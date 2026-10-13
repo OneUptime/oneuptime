@@ -1,78 +1,164 @@
-# Integración con ServiceNow
+# ServiceNow
 
-Abre automáticamente un incidente de [ServiceNow](https://www.servicenow.com) cada vez que se crea un incidente en OneUptime — para que la gestión de servicios y la monitorización estén sincronizadas.
+Abre un incidente de [ServiceNow](https://www.servicenow.com) por cada incidente de OneUptime y resuélvelo cuando el incidente de OneUptime se resuelva, para que tu centro de servicios siga lo que ve tu monitorización. Dos flujos de trabajo llaman a la [Table API](https://developer.servicenow.com/dev.do#!/reference/api/latest/rest/c_TableAPI) de ServiceNow.
 
-Esta integración es **saliente**: OneUptime llama a la [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html) de ServiceNow. Usa un **[Workflow](/docs/workflows/index)** de OneUptime con un disparador **Incident → On Create** y un **componente API**.
+:::cards
+- [Guardar las credenciales](#guardar-las-credenciales): Mantén la contraseña de ServiceNow fuera de tus flujos de trabajo.
+- [Abrir incidentes de ServiceNow](#abrir-un-incidente-de-servicenow-por-cada-incidente): Un flujo de trabajo, dos bloques.
+- [Resolverlos](#resolver-el-incidente-de-servicenow): Encontrar el registro y luego cerrarlo.
+- [Solución de problemas](#solución-de-problemas): Cuando ServiceNow rechaza una solicitud.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /api/now/table/incident)  ──►  ServiceNow incident
+## Cómo funciona
+
+```mermaid title="Dos flujos de trabajo, un incidente de ServiceNow"
+flowchart TB
+    declared["Incidente declarado"] --> create["Flujo de trabajo 1:<br/>On Create Incident"]
+    create -->|"POST incident"| sn["Incidente de ServiceNow"]
+    resolved["Incidente resuelto"] --> update["Flujo de trabajo 2:<br/>On Update Incident"]
+    update --> find["Buscar el registro<br/>por correlation_id"]
+    find -->|"PATCH state 6"| sn
 ```
 
-## Prerrequisitos
+El primer flujo de trabajo escribe el ID del incidente de OneUptime en el `correlation_id` del registro. El segundo encuentra el registro por ese ID y luego lo resuelve.
 
-- Una instancia de ServiceNow (`https://tu-instancia.service-now.com`).
-- Un usuario de ServiceNow con los roles `rest_api_explorer` / `itil` (o permisos suficientes para crear registros de `incident`). La autenticación básica con las credenciales de este usuario es el comienzo más sencillo; se recomienda OAuth para producción.
-- Un proyecto de OneUptime donde puedas crear workflows.
+## Antes de empezar
 
-## Paso 1 — Guardar las credenciales como secreto
+- Una instancia de ServiceNow, como `https://your-instance.service-now.com`.
+- Un usuario de ServiceNow para la integración que pueda crear y actualizar registros en la tabla `incident`, normalmente con el rol `itil`. Su nombre y su contraseña firman las solicitudes.
+- En OneUptime, permiso para crear flujos de trabajo y variables globales. En OneUptime Cloud, los flujos de trabajo necesitan el plan **Growth** o superior.
 
-La Table API de ServiceNow acepta **autenticación básica**.
+## Guardar las credenciales
 
-1. Codifica en base64 `usuario:contraseña` una vez:
+La Table API acepta autenticación Basic: el nombre y la contraseña del usuario, codificados juntos.
+
+:::steps
+1. Codifícalos una vez, en macOS o Linux:
 
    ```bash
-   printf '%s' 'integration_user:password' | base64
+   printf '%s' 'integration.user:password' | base64 | tr -d '\n'
    ```
 
-2. En OneUptime, ve a **Flujos de trabajo → Variables Globales → Crear**, nómbrala `SERVICENOW_AUTH`, pega la cadena en base64 y activa **Is Secret**.
+   Usa `printf`, no `echo`: `echo` añade un salto de línea, que se codifica con el resto y estropea las credenciales.
 
-## Paso 2 — Construir el workflow
+2. En OneUptime, ve a **Flujos de trabajo → Variables globales** y haz clic en **Crear Variable del flujo de trabajo**. Ponle el nombre `SERVICENOW_AUTH` y haz clic en **Siguiente**.
+3. Pega el valor codificado en **Contenido**, activa **Secreto** y haz clic en **Crear Variable del flujo de trabajo**.
+:::
 
-1. Abre **Flujos de trabajo → Crear flujo de trabajo**, nómbralo `Incidents → ServiceNow` y abre el **Constructor**.
-2. Añade un disparador **Incident** configurado en **On Create**. Renómbralo `Incident`.
-3. Añade un bloque **API** conectado al disparador:
+## Abrir un incidente de ServiceNow por cada incidente
 
-   - **Method**: `POST`
-   - **URL**: `https://tu-instancia.service-now.com/api/now/table/incident`
-   - **Headers**:
+:::steps
+### Crear el flujo de trabajo
 
-     ```text
-     Authorization: Basic {{variable.SERVICENOW_AUTH}}
-     Content-Type: application/json
-     Accept: application/json
-     ```
+Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **Empezar desde cero**. Ponle el nombre `Incidents to ServiceNow` y haz clic en **Crear flujo de trabajo**.
 
-   - **Body**:
+### Añadir el disparador
 
-     ```json
-     {
-       "short_description": "OneUptime: {{Incident.title}}",
-       "description": "{{Incident.description}}",
-       "urgency": "1",
-       "impact": "1",
-       "correlation_id": "oneuptime-{{Incident._id}}"
-     }
-     ```
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador y, en **Fields to pass on**, elige `title` y `description`.
 
-   `correlation_id` mantiene un vínculo con el incidente de OneUptime — útil si más adelante añades un paso de resolución. Los valores de `urgency`/`impact` de ServiceNow usan `1` (alto), `2` (medio), `3` (bajo).
+### Crear el registro
 
-4. **Guarda**, habilita y crea un incidente de prueba. Una respuesta `201 Created` en los registros del workflow devuelve el `sys_id` y el `number` del nuevo registro (por ejemplo `INC0012345`).
+Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Success** del disparador. Pon su **URL** en `https://your-instance.service-now.com/api/now/table/incident`. En **Más campos**, pon sus **Request Headers** en:
 
-## Paso 3 — Resolver al resolver en OneUptime (opcional)
+```json
+{
+  "Authorization": "Basic {{global.variables.SERVICENOW_AUTH}}",
+  "Accept": "application/json"
+}
+```
 
-1. Crea un **segundo** workflow con un disparador **Incident → On Update** y un bloque **Condiciones** que compruebe que el incidente está resuelto.
-2. Para actualizar el registro correcto de ServiceNow necesitas su `sys_id`. Puedes guardarlo en el incidente de OneUptime en el Paso 2 (lee `{{CreateRecord.response-body.result.sys_id}}` y escríbelo en una etiqueta con **Update Incident**), o busca el registro primero con un `GET` en `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
-3. Añade un bloque **API**: **Method** `PATCH`, **URL** `https://tu-instancia.service-now.com/api/now/table/incident/<sys_id>`, cuerpo `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Resuelto en el flujo de trabajo ITIL predeterminado).
+Y su **Request Body** en:
+
+```json
+{
+  "short_description": "OneUptime: {{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "urgency": "1",
+  "impact": "1",
+  "correlation_id": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}"
+}
+```
+
+### Probarlo y luego activarlo
+
+Haz clic en **Ejecutar flujo de trabajo**, introduce el **ID del incidente** de un incidente de prueba y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `201` con el nuevo registro, su `sys_id` y su `number`, como `INC0012345`. Después, activa **Habilitado** en la parte superior del **Constructor**.
+:::
+
+`urgency` e `impact` toman `1` para alto, `2` para medio y `3` para bajo, y ServiceNow calcula la prioridad a partir de los dos. Cualquier otra columna de la tabla `incident` puede ir en el cuerpo, con su nombre de columna.
+
+## Resolver el incidente de ServiceNow
+
+Un flujo de trabajo tiene un solo disparador, así que resolver requiere un segundo flujo de trabajo, que se inicia cuando cambia el estado de un incidente.
+
+:::steps
+### Añadir el disparador On Update Incident
+
+Crea un flujo de trabajo llamado `Resolve ServiceNow incidents` y elige **On Update Incident** como disparador. En **Fields to watch**, elige `currentIncidentStateId`, para que solo se ejecute cuando cambie el estado. En **Fields to pass on**, pide si el nuevo estado es un estado resuelto:
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### Comprobar que el incidente está resuelto
+
+Añade un bloque **If / Else** después del disparador. Pon **Value to check** en `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` y **Comparison** en **is true**.
+
+### Encontrar el registro
+
+Añade un bloque **API Get (JSON)** después del lado **Yes**, con los mismos **Request Headers** y esta **URL**:
+
+```text
+https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
+```
+
+### Resolver el registro
+
+Añade un bloque **API Patch (JSON)** después del **Success** del bloque de búsqueda, con los mismos **Request Headers** y esta **URL**:
+
+```text
+https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
+```
+
+Pon su **Request Body** en:
+
+```json
+{
+  "state": "6",
+  "close_code": "Solution provided",
+  "close_notes": "Resolved in OneUptime"
+}
+```
+
+### Activarlo
+
+Activa **Habilitado** y luego resuelve un incidente de prueba en OneUptime. Su incidente de ServiceNow pasa a Resolved.
+:::
+
+`state` `6` es Resolved en los estados de incidente predeterminados de ServiceNow. `close_code` debe ser uno de los códigos de resolución de tu instancia. Muchas instancias no resuelven un incidente sin código de resolución ni notas, así que envía ambos.
 
 ## Solución de problemas
 
-- **`401`** — vuelve a codificar `usuario:contraseña` con `printf` (no `echo`, que añade un salto de línea) y actualiza `SERVICENOW_AUTH`.
-- **`403`** — el usuario no tiene permisos para escribir en la tabla `incident`; añade el rol `itil`.
-- **`400`** — un nombre de campo o valor es incorrecto para las personalizaciones de tu instancia. Comprueba los nombres de campo en **System Definition → Tables → incident**.
-- **La instancia rechaza la llamada** — algunas instancias restringen la Table API; confirma que REST está habilitado y que tu IP no está bloqueada por una ACL.
+:::details ServiceNow responde 401
+Las credenciales son incorrectas. Vuelve a codificar `username:password` con `printf`, no `echo`, y sustituye el contenido de `SERVICENOW_AUTH`.
+:::
 
-## Dónde seguir leyendo
+:::details ServiceNow responde 403
+El usuario no puede escribir en la tabla `incident`. Dale el rol `itil`, o un rol con los mismos permisos, y comprueba que ninguna regla de control de acceso le bloquea la Table API.
+:::
 
-- [Resumen de Integraciones](/docs/integrations/index) — patrones y la guía de autenticación.
-- [Jira](/docs/integrations/jira) — el mismo patrón saliente para Jira.
-- [Componente API](/docs/workflows/components#api) — lectura del cuerpo de la respuesta.
+:::details ServiceNow responde 400, o resolver no cambia nada
+Un nombre de columna o un valor no encaja con tu instancia: una lista `state` personalizada, o un `close_code` que tu instancia no tiene. Compara con la tabla `incident` en **System Definition → Tables** en ServiceNow, y con el formulario del propio registro.
+:::
+
+:::details Resolver responde 404
+El paso de búsqueda no encontró ningún registro, así que la URL conservó la referencia tal como está escrita. Comprueba que el primer flujo de trabajo escribió `correlation_id`, y que ambos flujos de trabajo lo forman de la misma manera: `oneuptime-` seguido del `_id` del incidente.
+:::
+
+## Próximos pasos
+
+:::cards
+- [Jira](/docs/integrations/jira): Una integración bidireccional, mantenida al día con plantillas listas para usar.
+- [Componentes de flujo de trabajo](/docs/workflows/components#api): Cada ajuste de los bloques de API.
+- [Ejecuciones de flujo de trabajo](/docs/workflows/runs-and-logs): Lee lo que cada solicitud envió y recibió.
+- [Descripción general de integraciones](/docs/integrations/index): Los patrones detrás de cada integración.
+:::

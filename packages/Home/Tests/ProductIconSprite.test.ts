@@ -164,6 +164,38 @@ describe("the sprite", () => {
   });
 });
 
+describe("an icon's drawing", () => {
+  /*
+   * What the sprite takes of a partial (getIconDrawing): what its <svg>
+   * draws, without comments or the space between tags. No partial ships a
+   * comment ("ships no HTML comment", below); these hold what one would come
+   * to. Taking a comment out can bring what was around it together into a
+   * new "<!--", and one that never closes runs to the end, so neither may
+   * be left in the drawing.
+   */
+  const drawingOf: (inside: string) => string = (inside: string): string => {
+    return getIconDrawing(`<svg viewBox="0 0 24 24">${inside}</svg>`);
+  };
+
+  test.each([
+    ["a comment", '<!-- a --><path d="M0 0"/>'],
+    [
+      "comments around the paths",
+      '<!-- a -->\n  <path d="M0 0"/>\n  <!-- b -->',
+    ],
+    [
+      "a comment whose taking out brings another together",
+      '<!<!-- a -->-- b --><path d="M0 0"/>',
+    ],
+    ["a comment that never closes", '<path d="M0 0"/><!-- c'],
+  ])("%s: none is left", (_name: string, inside: string) => {
+    const drawing: string = drawingOf(inside);
+
+    expect(drawing).toBe('<path d="M0 0"/>');
+    expect(drawing).not.toContain("<!--");
+  });
+});
+
 describe("an icon partial", () => {
   test.each(ICON_PARTIALS)(
     "%s draws from the sprite inside the same <svg> when asked",

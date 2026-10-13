@@ -1,358 +1,451 @@
-# Microsoft Dynamics 365-integratie
+# Microsoft Dynamics 365
 
-Open een **Case** in [Microsoft Dynamics 365](https://www.microsoft.com/dynamics-365) zodra er een OneUptime-incident wordt uitgeroepen, houd die case gelijk terwijl het incident verschuift, en laat Dynamics casewijzigingen terugduwen naar OneUptime — allemaal met een [Workflow](/docs/workflows/index). Er is geen Dynamics-specifiek blok te installeren: OneUptime praat met de **Dataverse Web API** via het [API-component](/docs/workflows/components#api), en Dynamics praat terug via een [Webhook trigger](/docs/workflows/triggers#webhook).
+Houd [Microsoft Dynamics 365](https://www.microsoft.com/dynamics-365)-cases gelijk met je OneUptime-incidenten en -waarschuwingen, in beide richtingen. Kant-en-klare workflowsjablonen openen een case voor elk incident of elke waarschuwing, sluiten die wanneer het record is opgelost en kopiëren notities erin. Andere melden incidenten vanuit nieuwe cases en brengen oplossingen en notities terug. Er is geen plug-in: de workflows roepen de Dataverse Web API aan, en Dynamics 365 roept hun webhook-URL's aan.
 
-```text
-OneUptime Incident → On Create  ──►  API Post (token)  ──►  API Post (POST /api/data/v9.2/incidents)  ──►  Dynamics 365 Case
+:::cards
+- [Dynamics 365 voorbereiden](#dynamics-365-voorbereiden): Een app-registratie, een toepassingsgebruiker en een koppelingskolom.
+- [Beginnen met een sjabloon](#beginnen-met-een-sjabloon): De 13 sjablonen, wat ze vragen en hoe je ze instelt.
+- [Hoe de sjablonen werken](#hoe-de-sjablonen-werken): Hoe cases en records gekoppeld blijven, zonder lussen.
+- [Het zelf bouwen](#het-zelf-bouwen): Elke richting met de hand, voor als een sjabloon niet past.
+:::
 
-Dynamics 365 Case changed  ──►  Power Automate flow (HTTP)  ──►  OneUptime Webhook trigger  ──►  Update One Incident
+## Hoe het werkt
+
+```mermaid title="Twee richtingen, gekoppeld door een kolom op de case"
+flowchart TB
+    record["Incident of<br/>waarschuwing"] -->|"gemeld, opgelost,<br/>genoteerd"| out["Workflows naar<br/>Dynamics 365"]
+    out -->|"Web API, aangemeld<br/>via Entra ID"| case["Dynamics 365-case,<br/>met een<br/>koppelingskolom"]
+    case -->|"aangemaakt, opgelost,<br/>genoteerd"| flow["Power Automate-flow<br/>of Dataverse-webhook"]
+    flow --> back["Workflows vanuit<br/>Dynamics 365"]
+    back -->|"melden, oplossen,<br/>notities toevoegen"| record
 ```
 
-Deze pagina behandelt beide richtingen. Bouw eerst de outbound-helft — dat is de helft die de opzet in Microsoft Entra ID nodig heeft, en zodra die werkt is de inbound-helft één enkele flow.
+Elk sjabloon is een kleine workflow, dus je neemt alleen de richtingen die je wilt, voor incidenten, waarschuwingen of beide. De sjablonen van OneUptime → Dynamics 365 roepen de Dataverse Web API aan, aangemeld als toepassing via Microsoft Entra ID. De sjablonen van Dynamics 365 → OneUptime starten wanneer een Power Automate-flow of een Dataverse-webhook ze aanroept. Een tekstkolom die je aan de tabel Case toevoegt, koppelt elke case aan zijn record.
 
-## Vereisten
+## Voordat je begint
 
-- Een **Dynamics 365**-omgeving met de tabel **Case** erin. Cases komen uit Dynamics 365 Customer Service; een Dataverse-omgeving zonder die module heeft geen `incident`-tabel om naar te schrijven.
-- Het **Web API endpoint** van de omgeving. Je vindt het in het [Power Platform admin center](https://admin.powerplatform.microsoft.com/) onder **Settings → Developer resources** van je omgeving, of in **make.powerapps.com → Settings → Developer resources**. Het ziet eruit als `https://yourorg.crm.dynamics.com/api/data/v9.2/` — het regiosegment verschilt (`crm` voor Noord-Amerika, `crm2` voor Zuid-Amerika, `crm7` voor Japan, enzovoort).
-- Rechten om een applicatie te registreren in **Microsoft Entra ID** en om een **application user** aan te maken in de Dynamics-omgeving. Dat zijn meestal twee verschillende beheerders.
-- Een OneUptime-project waar je workflows en globale variabelen kunt aanmaken.
+- Een Dynamics 365-omgeving met de tabel **Case**. Cases komen uit Dynamics 365 Customer Service: een Dataverse-omgeving zonder heeft geen `incident`-tabel om in te schrijven.
+- Rechten om een toepassing te registreren in **Microsoft Entra ID**, en om een toepassingsgebruiker aan te maken in de omgeving. Dat zijn vaak twee verschillende beheerders.
+- In OneUptime het recht om workflows te maken. Op OneUptime Cloud hebben workflows het **Growth**-abonnement of hoger nodig.
 
-> Alles hieronder gebruikt de tabelnamen van Dataverse, niet de labels op de Dynamics-formulieren. Een case is de tabel **`incident`**, zijn collectie in een URL is **`incidents`**, zijn primaire sleutel is **`incidentid`**, en zijn titelkolom is **`title`**. Het casenummer dat je in de UI ziet is **`ticketnumber`**.
+> [!NOTE]
+> Deze pagina gebruikt de namen van Dataverse, niet de labels op de Dynamics-formulieren. Een case is de tabel `incident`, de verzameling ervan in een URL is `incidents`, de sleutel is `incidentid` en de titelkolom is `title`. Het casenummer dat je ziet, is `ticketnumber`.
 
-## Stap 1 — Registreer een applicatie in Microsoft Entra ID
+## Dynamics 365 voorbereiden
 
-OneUptime authenticeert als applicatie, niet als persoon, en gebruikt daarom de OAuth 2.0-flow **client credentials**.
+De sjablonen en een workflow die je zelf bouwt, hebben dit allebei nodig. OneUptime meldt zich aan als toepassing, niet als persoon, met de OAuth 2.0-flow voor clientreferenties.
 
-1. Meld je aan bij het [Azure-portaal](https://portal.azure.com) als beheerder van dezelfde tenant als je Dynamics-omgeving, en open **Microsoft Entra ID**.
-2. Ga naar **App registrations → New registration**. Geef het een naam zoals `OneUptime Integration`, laat **Supported account types** op **Accounts in this organizational directory only** staan, en kies **Register**.
-3. Kopieer vanaf de pagina **Overview** van de app de **Application (client) ID** en de **Directory (tenant) ID**.
-4. Ga naar **Certificates & secrets → Client secrets → New client secret**. Kopieer de **Value** van het geheim — niet zijn ID — voordat je wegnavigeert. Hij wordt nooit meer getoond. Een client secret leeft hoogstens 24 maanden, dus noteer de vervaldatum ergens waar je hem terugziet.
+:::steps
+### Een toepassing registreren in Microsoft Entra ID
 
-Twee dingen die mensen hier toevoegen en die je niet nodig hebt:
+1. Meld je aan bij de [Azure-portal](https://portal.azure.com) als beheerder van de tenant van je Dynamics-omgeving en open **Microsoft Entra ID**.
+2. Ga naar **App registrations → New registration**. Noem hem `OneUptime Integration`, laat **Supported account types** op **Accounts in this organizational directory only** staan en selecteer **Register**.
+3. Kopieer op de pagina **Overview** van de app de **Application (client) ID** en de **Directory (tenant) ID**.
+4. Ga naar **Certificates & secrets → Client secrets → New client secret** en kopieer de **Value** van het geheim, niet de ID ervan, voordat je de pagina verlaat: die wordt nooit meer getoond. Een clientgeheim leeft hoogstens 24 maanden, dus noteer wanneer het verloopt.
 
-- **Geen API permissions.** In de client credentials-flow is er geen aangemelde gebruiker, dus gedelegeerde permissies doen niets. `user_impersonation` onder **Dataverse** is een gedelegeerde permissie en is alleen voor interactieve apps. Microsoft Entra ID geeft met alle plezier een token voor Dataverse uit zonder dat er ook maar één permissie is geconfigureerd — toegang wordt aan de Dynamics-kant bepaald, in Stap 2.
-- **Geen admin consent-stap.** Om dezelfde reden.
+Voeg geen API-machtigingen toe en verleen geen beheerderstoestemming: zonder aangemelde gebruiker doen ze niets. Dynamics 365 bepaalt wat de toepassing mag doen, via de toepassingsgebruiker ervan.
 
-Microsoft geeft voor productieapplicaties de voorkeur aan een certificaat boven een client secret. Voor die optie moet de aanroeper zelf een JWT-assertie opbouwen en ondertekenen, wat een workflow niet kan, dus een client secret is hier de praktische keuze — behandel hem daarnaar: bewaar hem in een geheime variabele en roteer hem voordat hij verloopt.
+### De toepassingsgebruiker maken
 
-## Stap 2 — Maak de application user aan in Dynamics
+1. Selecteer in het [Power Platform-beheercentrum](https://admin.powerplatform.microsoft.com/) **Manage → Environments** en daarna je omgeving.
+2. Selecteer **Settings → Users + permissions → Application users**, daarna **+ New app user** en **+ Add an app**. Kies de registratie en selecteer **Add**.
+3. Kies een **Business unit** en geef hem daarna een aangepaste beveiligingsrol met het bewerkpictogram naast **Security roles**. Op het niveau Organization heeft de rol nodig:
+   - **Case**: Create, Read, Write, Append en Append To.
+   - **Note**: Create, Read en Append, voor de notitiesjablonen.
+   - **Activity**: Create, Read en Append, omdat het sluiten van een case een Case Resolution vastlegt, en dat is een activiteit.
+   - **Account**, en **Contact** als cases op naam van een contactpersoon worden aangemaakt: Read en Append To.
+4. Selecteer **Save** en daarna **Create**.
 
-Dit is de stap die wordt overgeslagen, en overslaan levert de meest verwarrende storing van deze hele integratie op: het tokenverzoek slaagt, en elke Dataverse-aanroep mislukt daarna met `403 Forbidden` en de foutcode `0x80072560` — *"The user isn't a member of the organization."* Entra ID geeft het token uit zonder ook maar iets van Dynamics te weten; Dynamics zoekt vervolgens naar een gebruikersrij die bij de applicatie hoort, en die is er niet.
+Een toepassingsgebruiker kan alleen een aangepaste rol hebben: kopieer een bestaande en snoei die bij. Zonder deze gebruiker geeft Microsoft Entra ID nog steeds tokens uit, maar elke aanroep naar Dynamics 365 mislukt met `403` en `0x80072560`, "The user isn't a member of the organization."
 
-1. Open het [Power Platform admin center](https://admin.powerplatform.microsoft.com/) en kies **Manage → Environments**, en daarna je omgeving.
-2. Kies **Settings → Users + permissions → Application users**.
-3. Kies **+ New app user**, dan **+ Add an app**, kies de registratie uit Stap 1, en kies **Add**.
-4. Kies een **Business unit**, vul een **Email address** in, en gebruik daarna het bewerkicoon naast **Security roles**.
-5. Wijs een **aangepaste** beveiligingsrol toe met rechten om aan te maken, te lezen en te schrijven op de tabel **Case**. Een application user kan geen van de ingebouwde rollen krijgen — Microsoft vereist een aangepaste. Heb je geen geschikte rol, kopieer dan een bestaande en snoei hem uit.
-6. Kies **Save** en daarna **Create**.
+### Een koppelingskolom toevoegen aan de tabel Case
 
-Je kunt per geregistreerde applicatie maar één application user per omgeving hebben. Application users zijn niet gelicentieerd en zijn vrijgesteld van de regels voor beveiligingsgroeplidmaatschap van de omgeving.
+Dataverse heeft niets zoals de labels van Jira, dus een case en een OneUptime-record vinden elkaar via een kolom die je toevoegt.
 
-## Stap 3 — Sla de gegevens op in OneUptime
+1. Kies in [make.powerapps.com](https://make.powerapps.com) je omgeving, open **Tables → Case → Columns** en selecteer **New column**.
+2. Noem hem `OneUptime Link`, laat **Data type** op **Single line of text** staan en sla op. De standaard maximale lengte van 100 is ruim voldoende: de sjablonen schrijven hoogstens 55 tekens.
+3. Open de nieuwe kolom en kopieer de **Logical name** ervan, zoals `new_oneuptimelink`. Het voorvoegsel komt van de uitgever van je oplossing, dus het jouwe kan anders zijn, zoals `cr4f2_oneuptimelink`.
 
-Ga naar **Workflows → Globale variabelen → Aanmaken** en voeg deze toe, waarbij je **Geheim** aanzet voor de gemarkeerde:
+Voeg de kolom toe aan het formulier Case als agenten de koppeling moeten zien.
+:::
 
-| Naam                     | Waarde                                                      | Geheim |
-| ------------------------ | ----------------------------------------------------------- | ------ |
-| `DYNAMICS_TENANT_ID`     | De Directory (tenant) ID uit Stap 1                         | Nee    |
-| `DYNAMICS_CLIENT_ID`     | De Application (client) ID uit Stap 1                       | Nee    |
-| `DYNAMICS_CLIENT_SECRET` | De **Value** van het client secret uit Stap 1               | Ja     |
-| `DYNAMICS_URL`           | `https://yourorg.crm.dynamics.com` — zonder afsluitende slash | Nee   |
+## Beginnen met een sjabloon
 
-Plak het client secret precies zoals Entra ID het je gaf. OneUptime codeert de formulierbody voor je, dus URL-codeer hem niet met de hand.
+Het dialoogvenster **Een workflow maken** heeft 13 Dynamics 365-sjablonen, onder **Dynamics 365** in de lijst met categorieën: zeven voor incidenten en daarna zes voor waarschuwingen, elke groep onder een eigen kop. Ze delen de koppelingskolom, dus elke combinatie ervan werkt samen.
 
-Verwijs vanuit een blok naar elk ervan met `{{global.variables.DYNAMICS_CLIENT_ID}}`. Zie [Variabelen](/docs/workflows/variables) voor hoe geheimen uit runlogboeken worden gewist.
+### Sjablonen voor incidenten
 
-## Stap 4 — Haal een access token op
+| Sjabloon | Wat het doet | Wat het vraagt |
+| --- | --- | --- |
+| **OneUptime → Dynamics 365** | | |
+| Create a Dynamics 365 case when an incident is declared | Opent een case voor elk nieuw incident, met een prioriteit gekozen op basis van de ernst en de ID van het incident in de koppelingskolom. Incidenten die vanuit Dynamics 365 zijn gemeld, en privé-incidenten, worden overgeslagen. | De vijf Dynamics 365-instellingen, de klant voor nieuwe cases en de OneUptime-URL |
+| Resolve the Dynamics 365 case when the incident is resolved | Sluit de gekoppelde case als **Problem Solved** wanneer het incident is opgelost, en legt een Case Resolution vast zoals oplossen met de hand dat doet. Heropent nooit een case. | De vijf Dynamics 365-instellingen |
+| Copy incident private notes to the Dynamics 365 case | Voegt elke nieuwe privénotitie als notitie toe aan de gekoppelde case. | De vijf Dynamics 365-instellingen |
+| Copy incident public notes to the Dynamics 365 case | Voegt elke nieuwe openbare notitie als notitie toe aan de gekoppelde case, zodat agenten klanten kunnen vertellen wat de statuspagina zegt. | De vijf Dynamics 365-instellingen |
+| **Dynamics 365 → OneUptime** | | |
+| Declare an incident when a Dynamics 365 case is created | Meldt een incident voor elke nieuwe case, buiten je statuspagina's gehouden, met een ernst gekozen op basis van de prioriteit van de case, en schrijft daarna de ID van het incident in de koppelingskolom van de case. | De vijf Dynamics 365-instellingen, en een flow of webhook voor nieuwe cases |
+| Resolve the incident when its Dynamics 365 case is resolved | Lost het incident op wanneer de gekoppelde case is opgelost. | De vijf Dynamics 365-instellingen, en een flow of webhook voor statuswijzigingen van cases |
+| Add Dynamics 365 case notes to the incident as private notes | Kopieert elke notitie die een agent aan een gekoppelde case toevoegt naar het incident, als privénotitie. | De vijf Dynamics 365-instellingen, en een flow of webhook voor nieuwe notities |
 
-Elke run haalt zijn eigen token op. Tokens gaan 60–90 minuten mee en de client credentials-flow geeft nooit een refresh token uit, dus er valt niets te cachen en niets te vernieuwen — één extra HTTP-aanroep per run is de hele prijs.
+### Sjablonen voor waarschuwingen
 
-1. Open **Workflows → Workflow maken**, geef het de naam `Incidents → Dynamics 365`, en open de **Bouwer**.
-2. Klik op de gestippelde plaatshouder, voeg de trigger **On Create Incident** toe, klik in zijn **Fields to pass on** op **Bewerken als JSON** en vraag om de kolommen die je wilt meesturen:
+De sjablonen voor waarschuwingen doen hetzelfde werk voor waarschuwingen. Het zijn er één minder, omdat waarschuwingen geen openbare notities hebben, en **Create an alert when a Dynamics 365 case is created** schrijft geen statuspagina-instellingen, omdat een waarschuwing nooit op een statuspagina komt.
+
+| Sjabloon | Wat het doet | Wat het vraagt |
+| --- | --- | --- |
+| **OneUptime → Dynamics 365** | | |
+| Create a Dynamics 365 case when an alert is created | Opent een case voor elke nieuwe waarschuwing, ook elke waarschuwing die een monitor afgeeft. Waarschuwingen die vanuit Dynamics 365 zijn aangemaakt, en privéwaarschuwingen, worden overgeslagen. | De vijf Dynamics 365-instellingen, de klant voor nieuwe cases en de OneUptime-URL |
+| Resolve the Dynamics 365 case when the alert is resolved | Sluit de gekoppelde case als **Problem Solved** wanneer de waarschuwing is opgelost. | De vijf Dynamics 365-instellingen |
+| Copy alert private notes to the Dynamics 365 case | Voegt elke nieuwe privénotitie als notitie toe aan de gekoppelde case. | De vijf Dynamics 365-instellingen |
+| **Dynamics 365 → OneUptime** | | |
+| Create an alert when a Dynamics 365 case is created | Maakt een waarschuwing aan voor elke nieuwe case, met een ernst gekozen op basis van de prioriteit van de case, en schrijft daarna de ID van de waarschuwing in de koppelingskolom van de case. | De vijf Dynamics 365-instellingen, en een flow of webhook voor nieuwe cases |
+| Resolve the alert when its Dynamics 365 case is resolved | Lost de waarschuwing op wanneer de gekoppelde case is opgelost. | De vijf Dynamics 365-instellingen, en een flow of webhook voor statuswijzigingen van cases |
+| Add Dynamics 365 case notes to the alert as private notes | Kopieert elke notitie die een agent aan een gekoppelde case toevoegt naar de waarschuwing, als privénotitie. | De vijf Dynamics 365-instellingen, en een flow of webhook voor nieuwe notities |
+
+Geen van de sjablonen van OneUptime → Dynamics 365 stuurt een incident dat als **Privé-incident** is gemarkeerd, of een waarschuwing die als **Privéwaarschuwing** is gemarkeerd, naar Dynamics 365: niet het record, niet de status en niet de notities ervan, tenzij je dat aanzet. Zie [Wijzigen wat een sjabloon doet](#wijzigen-wat-een-sjabloon-doet).
+
+**Monitoren geven zelf waarschuwingen af, en soms heel veel.** **Create a Dynamics 365 case when an alert is created** opent voor elke waarschuwing een case. Tenzij elke waarschuwing een case verdient, zet je een **If / Else**-blok tussen de trigger en de rest van de workflow, bijvoorbeeld op `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, en verbind je alleen de **Yes**-kant ervan verder.
+
+### Wat de sjablonen vragen
+
+De stap **Configureren** van de aanmaakwizard vraagt om maximaal zeven waarden: elk sjabloon vraagt de eerste vijf, de Dynamics 365-instellingen, en de twee sjablonen die een case aanmaken vragen ook de laatste twee. De stap controleert de vorm van elke Dynamics 365-instelling voordat er iets wordt aangemaakt, en zegt wat je in plaats daarvan moet invullen, omdat een waarde met de verkeerde vorm nergens een fout geeft tot er een uitvoering is.
+
+- **Dynamics 365 Environment URL** — het adres van je omgeving, zoals `https://yourorg.crm.dynamics.com`, uit het [Power Platform-beheercentrum](https://admin.powerplatform.microsoft.com/) onder **Environments**, je omgeving, **Environment URL**. Alleen het adres: niet het Web API-endpoint, dat eindigt op `/api/data/v9.2`, en geen slash aan het eind.
+- **Directory (Tenant) ID** — van de pagina **Overview** van de app-registratie.
+- **Application (Client) ID** — van dezelfde pagina.
+- **Client Secret Value** — de **Value** van het clientgeheim, uit **Certificates & secrets**. Niet de **Secret ID** ervan, dat is een GUID: de wizard weigert hier een GUID.
+- **Case Link Column** — de logische naam van de koppelingskolom, zoals `new_oneuptimelink`.
+- **Customer for New Cases** — alleen de twee sjablonen die een case aanmaken, vragen hierom. Elke case heeft een klant nodig, en een OneUptime-incident heeft er geen, dus alle nieuwe cases worden op naam van één klant aangemaakt: plak de ID van een account, of `contacts(<id>)` voor een contactpersoon. Open het record in Dynamics 365: de ID ervan is het deel na `id=` in het adres.
+- **OneUptime URL** — alleen de twee sjablonen die een case aanmaken, vragen hierom: het adres waarop je OneUptime opent, zoals `https://oneuptime.com`. De beschrijving van de case linkt daarmee terug naar het incident of de waarschuwing.
+
+**Hoe de sjablonen zich aanmelden.** De wizard slaat de tenant, de client-ID en het geheim op in één [OAuth 2.0-variabele](/docs/workflows/variables#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen), `dynamicsAccessToken`, onder **Workflow-variabelen** van de workflow: Client Credentials, de token-URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, de scope `<environment URL>/.default` en het clientgeheim, verstuurd in de body van het verzoek en versleuteld opgeslagen. Elke aanroep naar Dynamics 365 stuurt `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. OneUptime haalt het token op de eerste keer dat een stap het nodig heeft, haalt een nieuw op voordat het verloopt, en vervangt het door `[REDACTED]` in uitvoeringslogboeken en staptraces.
+
+Om de aanmelding te controleren voordat er iets draait, open je **Workflow-variabelen**, klik je bij `dynamicsAccessToken` op **Bekijken** en klik je op **Nu vernieuwen**. **Access Token Fetched** betekent dat de app-registratie klopt. Anders noemt de fout van Microsoft Entra ID wat er mis is, zoals `AADSTS7000215: Invalid client secret provided`.
+
+Elke workflow houdt een eigen kopie bij. Wanneer je het clientgeheim vervangt, open je `dynamicsAccessToken` in elke Dynamics 365-workflow en gebruik je **Update Credentials**.
+
+### De workflows maken
+
+:::steps
+1. Open **Workflows → Workflow maken**. Kies onder **Of begin met een sjabloon** **Dynamics 365** in de lijst met categorieën, of typ `Dynamics` in **Sjablonen zoeken…**, en klik op het sjabloon dat je wilt. Het opent en laat zien wat het doet en om welke instellingen het vraagt. Klik op **Dit sjabloon gebruiken**.
+2. **Naam** wordt ingevuld vanuit het sjabloon. Wijzig hem als je wilt.
+3. **Configureren** vraagt om de waarden hierboven.
+4. Klik op **Workflow maken**. Elke workflow wordt uitgeschakeld aangemaakt: zet **Ingeschakeld** aan bovenaan de **Bouwer** ervan.
+:::
+
+Begin met **Create a Dynamics 365 case when an incident is declared**, of met **Create a Dynamics 365 case when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Dynamics 365 van dezelfde soort vindt de case via de koppeling die dit sjabloon schrijft. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Logboeken → Uitvoeringen** van de workflow. De laatste stap van de uitvoering hoort `✅ Opened Dynamics 365 case CAS-01001-X1Y2Z3 for INC-42, linked as oneuptime-incident-<id>.` te tonen.
+
+### De sjablonen van Dynamics 365 → OneUptime koppelen
+
+De sjablonen van Dynamics 365 → OneUptime, drie voor incidenten en drie voor waarschuwingen, starten vanuit een [Webhook-trigger](/docs/workflows/triggers#webhook), dus Dynamics 365 moet te horen krijgen waar het zijn gebeurtenissen naartoe moet sturen. Doe het in deze volgorde:
+
+1. Maak de workflow en **zet hem eerst aan**. Een workflow die uit staat, weigert bezorgingen, en die komen niet in een wachtrij.
+2. Open de **Bouwer** van de workflow, klik op het triggerblok **Webhook** (`webhook-1`) en klik op **URL kopiëren** bovenaan de instellingen ervan. De URL ziet er zo uit:
+
+   ```text
+   https://<your OneUptime host>/workflow/trigger/<webhook secret key>
+   ```
+
+3. Laat Dynamics 365 ernaar posten, vanuit een Power Automate-flow of vanuit een Dataverse-webhook.
+
+Elk sjabloon hoeft alleen te weten welke rij is gewijzigd. Het leest die rij opnieuw uit Dynamics 365 voordat het iets doet, dus het neemt nooit de titel, de status of de koppeling van een case uit het verzoek over, en het maakt niet uit welke van de twee het verstuurt.
+
+:::tabs
+@tab Power Automate flow
+Maak in [Power Automate](https://make.powerautomate.com) een **Automated cloud flow** met de **Microsoft Dataverse**-trigger **When a row is added, modified or deleted**, ingesteld zoals hieronder, met **Scope** op **Organization**. Voeg de ingebouwde actie **HTTP** toe: **Method** `POST`, **URI** de URL van de workflow, een `Content-Type: application/json`-header en de body hieronder, met de ID van de rij gekozen uit de dynamische inhoud van de trigger.
+
+| Sjabloon | Change type | Table name | Select columns | Body |
+| --- | --- | --- | --- | --- |
+| Een incident melden / een waarschuwing aanmaken wanneer een case wordt aangemaakt | Added | Cases | | `{"incidentid": "<Case>"}` |
+| Het incident / de waarschuwing oplossen wanneer de case wordt opgelost | Modified | Cases | `statecode,statuscode` | `{"incidentid": "<Case>"}` |
+| Casenotities als privénotities aan het incident / de waarschuwing toevoegen | Added | Notes | | `{"annotationid": "<Note>"}` |
+
+Om alleen sommige cases te sturen, gebruik je **Filter rows** van de trigger, zoals `prioritycode eq 1` voor cases met hoge prioriteit. Je kunt ook de hele uitvoer van de trigger posten: de sjablonen lezen de ID van de rij en de `SdkMessage` ervan er op dezelfde manier uit.
+@tab Dataverse webhook
+Registreer de URL met de [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, met **HttpHeader**-authenticatie en een eigen header; de URL zelf is het geheim. Registreer daarna een stap erop voor elke gebeurtenis hieronder, met **Event Pipeline Stage of Execution** op **PostOperation** en **Execution Mode** op **Asynchronous**.
+
+| Sjabloon | Message | Primary Entity | Filtering Attributes |
+| --- | --- | --- | --- |
+| Een incident melden / een waarschuwing aanmaken wanneer een case wordt aangemaakt | `Create` | `incident` | |
+| Het incident / de waarschuwing oplossen wanneer de case wordt opgelost | `Close`, en `Update` voor statuswijzigingen door anderen | `incident` | `statecode, statuscode` (Update) |
+| Casenotities als privénotities aan het incident / de waarschuwing toevoegen | `Create` | `annotation` | |
+
+Het oplossen van een case geeft het bericht **Close**, niet **Update**, en daarom heeft dat sjabloon ze allebei nodig. Een webhook post de uitvoeringscontext van de plug-in, die de rij noemt in `PrimaryEntityId`, of voor **Close** in de `IncidentResolution` ervan, en de sjablonen lezen hem daaruit. Een Dataverse-webhook roept alleen de poorten 80 en 443 aan en heeft geen eigen rijfilter: elke nieuwe case bereikt het aanmaaksjabloon, tenzij je het beperkt met `ONLY_PRIORITIES`.
+:::
+
+Voordat je op een van beide vertrouwt:
+
+- **Iedereen met de URL kan de workflow starten.** Omdat de sjablonen elke rij opnieuw uit Dynamics 365 lezen, kan een verzoek ze alleen naar een echte case of notitie laten kijken. Het kan de aanmaaksjablonen nog wel laten handelen op een case die nog niet gekoppeld is. Bewaar de URL alleen in de flow of de webhook. Lekt hij uit, klik dan in de **Bouwer** van de workflow op de **Webhook**-trigger, klik op **URL opnieuw instellen** en plak de nieuwe URL in de flow of de webhook. De oude URL werkt meteen niet meer.
+- **Elke gebeurtenis is een uitvoering**, ook de gebeurtenissen die een sjabloon overslaat. Op OneUptime Cloud telt elke gebeurtenis mee voor de workflowuitvoeringen van je abonnement, en filteren in de flow houdt het aantal laag. Zie [Abonnementslimieten](/docs/workflows/configuration#planlimieten).
+- **Gebruik je beide sjablonen die een record aanmaken vanuit een case?** **Declare an incident when a Dynamics 365 case is created** en **Create an alert when a Dynamics 365 case is created** handelen allebei op elke case die ze krijgen. Elk controleert eerst de koppelingskolom, maar twee bezorgingen voor één nieuwe case komen tegelijk aan, dus de case kan zowel een incident als een waarschuwing krijgen. Stuur de twee verschillende cases, bijvoorbeeld per casetype.
+
+### Controleren of het werkt
+
+Elk sjabloon eindigt met een **Log**-stap die zegt wat er gebeurde, dus de laatste stap van een uitvoering in **Logboeken → Uitvoeringen** is de plek om te kijken:
+
+- `✅` — het heeft zijn werk gedaan en noemt de case, het incident of de waarschuwing.
+- `ℹ️` — het heeft de gebeurtenis bewust overgeslagen en zegt waarom: de case is niet gekoppeld aan een record van deze soort, de notitie kwam van de andere kant, het record is privé, of de nieuwe status heeft geen bijbehorende casestatus.
+- `❌` — een aanroep is mislukt. Bij een Dynamics 365-aanroep bevat de regel het antwoord van Dynamics 365.
+- `⚠️` — een sjabloon dat een record aanmaakt vanuit een case heeft het aangemaakt, maar Dynamics 365 heeft de koppeling niet geaccepteerd, dus de andere sjablonen kunnen het nog niet vinden. Typ de koppeling met de hand in de kolom van de case.
+
+Als een uitvoering bij de eerste Dynamics 365-stap stopt met `Could not get an OAuth 2.0 access token for {{local.variables.dynamicsAccessToken}}`, kloppen de aanmeldingsinstellingen niet, en het bericht citeert het antwoord van Microsoft Entra ID. Zie [Wat de sjablonen vragen](#wat-de-sjablonen-vragen).
+
+## Hoe de sjablonen werken
+
+### Hoe de twee kanten gekoppeld blijven
+
+De case bewaart de koppeling. Een case die bij een incident hoort, heeft `oneuptime-incident-<incident id>` in de koppelingskolom, en een case die bij een waarschuwing hoort, heeft `oneuptime-alert-<alert id>`. De ID is het laatste deel van het adres van het record in het dashboard.
+
+De sjablonen die een case aanmaken, schrijven de koppeling wanneer ze de case openen, en de sjablonen die een record aanmaken vanuit een case schrijven hem zodra het record bestaat. Alle andere sjablonen steken via die koppeling over: die van OneUptime → Dynamics 365 zoeken de case op via de koppeling, en die van Dynamics 365 → OneUptime lezen de ID van het record van de case. Om een met de hand geopende case te koppelen, typ je de waarde zelf in de koppelingskolom ervan, maar alleen als het record nog geen case heeft.
+
+**Een case is gekoppeld aan een incident of aan een waarschuwing, nooit aan beide.** Eén kolom dient voor beide soorten. De sjablonen voor incidenten negeren een case die aan een waarschuwing is gekoppeld, en omgekeerd, en de sjablonen die een record aanmaken vanuit een case laten elke case met iets in de koppelingskolom met rust.
+
+**Een record heeft één case.** De sjablonen die naar een case schrijven, handelen alleen wanneer precies één case de koppeling van het record bevat. Wordt de koppeling naar een tweede case gekopieerd, dan stoppen ze, en eindigt elke uitvoering met een overslaan dat beide noemt:
+
+```text
+More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-01001-X1Y2Z3, CAS-01002-K4L5M6). Clear it on every case except the one opened for the incident.
+```
+
+Incidenten en waarschuwingen die vanuit een case zijn aangemaakt, bewaren ook de ID en het nummer van de case in `customFields.dynamicsCaseId` en `customFields.dynamicsCaseNumber`, geschreven bij het aanmaken. Zo weten de sjablonen die een case aanmaken dat het record er al een heeft.
+
+### Hoe de sjablonen lussen voorkomen
+
+Elke schrijfactie in de ene richting is een gebeurtenis in de andere: een notitie die aan een case wordt toegevoegd, komt terug als nieuwe notitie, en een privénotitie die in OneUptime wordt toegevoegd, laat de notitietrigger afgaan. Vier dingen stoppen de echo:
+
+- **Markeringen in de tekst.** Elke notitie die de sjablonen aan een case toevoegen, heeft de titel `Synced from OneUptime: …`, net als het onderwerp van elke Case Resolution die ze vastleggen. Elke notitie die vanuit Dynamics 365 wordt geschreven, en de hoofdoorzaak van elke statuswijziging vanuit Dynamics 365, begint met `Synced from Dynamics 365`. Elke richting slaat tekst over die de markering van de andere kant draagt, zelfs in een notitie die iemand schreef en die er een citeert.
+- **De koppeling vanaf de eerste keer opslaan.** Een case die OneUptime opent, bevat de koppeling vanaf het moment dat hij bestaat, dus wanneer zijn **Create** terugkomt, vindt het sjabloon dat een record aanmaakt vanuit een case hem gekoppeld en doet het niets.
+- **`customFields.dynamicsCaseId`.** Een record dat vanuit een case is aangemaakt, draagt dit veld, en de sjablonen die een case aanmaken, slaan zulke records over.
+- **Statussen gaan alleen vooruit, aan beide kanten.** Het record oplossen sluit de case, en de **Close** van de case vindt het record dan al opgelost. Wanneer de case eerst wordt opgelost, wordt het record opgelost, en de update daarvan vindt de case al gesloten. Een case die al opgelost of geannuleerd is, wordt nooit heropend.
+
+Laat de markeringen staan wanneer je de sjablonen bewerkt. Het zijn de constanten `FROM_ONEUPTIME` en `FROM_DYNAMICS` in het hulpblok bovenaan elk script.
+
+### Wijzigen wat een sjabloon doet
+
+Open de **Bouwer** van de workflow en klik op het blok dat je wilt wijzigen. De instellingen die je het waarschijnlijkst wilt aanpassen, zijn constanten bovenaan een script, de **JavaScript Code** van een **Run Custom JavaScript**-blok, net onder het gedeelde hulpblok. De versies voor incidenten en voor waarschuwingen houden dezelfde constanten in dezelfde blokken.
+
+| Constante | Sjabloon en blok | Wat het regelt |
+| --- | --- | --- |
+| `SYNC_PRIVATE_INCIDENTS`, `SYNC_PRIVATE_ALERTS` | Elk sjabloon van OneUptime → Dynamics 365 — `prepare-case-1`, `plan-case-1`, `build-note-1` | `false` houdt privérecords buiten Dynamics 365: er wordt geen case voor geopend, hun case wordt niet gewijzigd, en hun notities worden niet toegevoegd. Zet hem op `true` in elk sjabloon dat ze moet sturen. |
+| `SEVERITY_TO_PRIORITY`, `DEFAULT_PRIORITY` | Een Dynamics 365-case aanmaken — `prepare-case-1` | De ernstniveaus van het project worden op volgorde over de caseprioriteiten verdeeld: het zwaarste opent een High-case (`1`), het lichtste een Low-case (`3`), en de niveaus daartussen Normal-cases (`2`). Noem een ernstniveau bij naam, in kleine letters, om zelf de prioriteit te kiezen, zoals `{ 'major incident': 1 }`. `DEFAULT_PRIORITY` (`2`) is voor een ernstniveau dat niet in de lijst van het project staat, of voor een project met maar één niveau. |
+| `CASE_ORIGIN`, `CASE_TYPE` | Een Dynamics 365-case aanmaken — `prepare-case-1` | De `caseorigincode` (`3`, Web) en de `casetypecode` (`2`, Problem) van de nieuwe case. Om een andere kolom in te stellen, voeg je die toe aan `CASE` in hetzelfde script, onder de logische naam ervan. |
+| `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Een Dynamics 365-case aanmaken — `prepare-case-1` | De eigen limieten van de tabel Case, 200 en 2000 tekens. De beschrijving houdt de link terug naar OneUptime, hoeveel er ook wordt afgeknipt. Verhoog ze als je tabel Case meer toestaat. |
+| `RESOLVED_CASE_STATUS` | De Dynamics 365-case oplossen — `plan-case-1` | De status waarmee een opgelost record zijn case sluit: `5` is Problem Solved, `1000` Information Provided. |
+| `STATE_TO_CASE_STATUS` | De Dynamics 365-case oplossen — `plan-case-1` | Zet de case door wanneer het record een andere status bereikt, op naam van de status: `{ Acknowledged: 4 }` zet hem naar Researching wanneer het incident wordt bevestigd. De actieve statussen van Dynamics 365 zijn `1` In Progress, `2` On Hold, `3` Waiting for Details en `4` Researching. Een opgeloste status die hier staat, sluit de case met de status die hij noemt. |
+| `PRIORITY_RANK` | Aanmaken vanuit een Dynamics 365-case — `prepare-incident-1`, `prepare-alert-1` | Koppelt een caseprioriteit (`1` High, `2` Normal, `3` Low) aan `0` (je zwaarste ernstniveau), `1` of `2` (het lichtste). Prioriteiten die er niet in staan, komen in het midden terecht. Met de twee ernstniveaus voor waarschuwingen die een nieuw project heeft, wordt Normal Low, tenzij je `2: 1` verandert in `2: 0`. |
+| `ONLY_PRIORITIES` | Aanmaken vanuit een Dynamics 365-case — `prepare-incident-1`, `prepare-alert-1` | Leeg neemt hij elke case die de flow of webhook stuurt. `[1]` maakt alleen records aan voor cases met hoge prioriteit. |
+| `CASE_STATUS_TO_STATE`, `CASE_STATE_TO_STATE_FLAG` | Oplossen wanneer de Dynamics 365-case is opgelost — `decide-state-1` | Een casestatus, op naam, naar een OneUptime-status, zoals `{ Researching: 'Acknowledged' }`. Anders beslist de toestand van de case: Resolved lost het record op. Voeg `2: 'isResolvedState'` toe om het ook op te lossen wanneer de case wordt geannuleerd. |
+| `MESSAGES` | Elk sjabloon van Dynamics 365 → OneUptime — `read-event-1` | De gebeurtenissen waarop het sjabloon handelt. Voeg `'Update'` toe aan de lijst van het notitiesjabloon om ook bewerkte notities te kopiëren: elke bewerking wordt een nieuwe notitie. |
+| `MAX_NOTE_LENGTH` | De notitiesjablonen — `build-note-1`, `read-note-1` | De langste notitie die elk schrijft: 100.000 tekens naar Dynamics 365, de eigen limiet van een notitie, en 30.000 naar OneUptime. |
+
+Status- en statusnamen die als sleutel worden gebruikt, moeten precies zo gespeld zijn als ze heten, hoofdletters inbegrepen. Houd `{{` uit de code: een script wordt vóór het draaien ingevuld zoals elke andere instelling, dus twee openingsaccolades achter elkaar zouden als een verwijzing worden gelezen.
+
+### Beperkingen
+
+- **De commerciële cloud van Microsoft.** De token-URL is `login.microsoftonline.com`. Voor US Government-clouds (GCC High, DoD) of China open je `dynamicsAccessToken`, gebruik je **Instellingen bewerken** en verander je de token-URL in de aanmeldhost van je cloud, zoals `login.microsoftonline.us`.
+- **Dynamics 365 kan weigeren een case op te lossen.** Je Customer Service-instellingen kunnen voorkomen dat een case wordt opgelost zolang die open activiteiten of open onderliggende cases heeft, en een bedrijfsregel of plug-in kan het ook weigeren. De uitvoering eindigt met `❌ Dynamics 365 did not resolve the case`, met de reden van Dynamics 365, en de case blijft zoals hij was.
+- **Records en cases gaan nooit achteruit.** Een case heropenen verandert niets in OneUptime, en een opgelost record wordt nooit heropend. Een case die al opgelost of geannuleerd is, wordt nooit heropend om opnieuw te worden gesloten.
+- **Notities en beschrijvingen zijn platte tekst.** Een notitie die in de editor voor rijke tekst van Dynamics 365 is geschreven, komt in OneUptime aan als de tekst die ze toont, en dat geldt ook voor een casebeschrijving die in de editor is geschreven of uit een e-mail komt: alinea's en regeleinden blijven, terwijl opmaak, afbeeldingen en de eigen stijlen van de e-mail verdwijnen. Een OneUptime-notitie komt in Dynamics 365 aan als de ruwe tekens, Markdown inbegrepen. Tekst uit Dynamics 365 — de titel en beschrijving van een case, een notitie, de namen van statussen, prioriteiten, klanten en mensen — leest precies zoals hij geschreven is: een afbeelding, een link, HTML, een diagram of een chatvermelding zoals `<!channel>` die erin is getypt, verschijnt als de tekens ervan en doet niets, omdat er een onzichtbare word joiner staat na het teken waarmee het zou beginnen. Een kopie van de tekst behoudt de word joiner. Een workflow houdt de scripts waarmee hij is gemaakt, dus een workflow die vanuit een oudere versie van een sjabloon is gemaakt, schrijft tekst zoals die versie dat deed: maak hem opnieuw vanuit het sjabloon om dit te krijgen. Bijlagen blijven in Dynamics 365; de notitie in OneUptime noemt het bestand.
+- **Bewerkte notities worden niet gekopieerd**, alleen nieuwe, tenzij je `'Update'` toevoegt aan `MESSAGES`.
+- **Privé-incidenten en -waarschuwingen blijven in OneUptime**, maar de sjablonen van Dynamics 365 → OneUptime controleren dit niet: notities en statuswijzigingen op een gekoppelde case bereiken een privérecord nog steeds.
+- **Elke case krijgt een record.** Tenzij je de flow filtert of `ONLY_PRIORITIES` instelt, maken de sjablonen die een record aanmaken vanuit een case een incident of waarschuwing aan voor elke nieuwe case die ze krijgen. In een drukke klantenservice is dat veel.
+- **Dezelfde gebeurtenis kan twee keer aankomen.** Een Dataverse-webhook probeert het één keer opnieuw wanneer OneUptime `502`, `503` of `504` antwoordt. Een herhaalde **Create** die aankomt nadat de eerste uitvoering de case heeft gekoppeld, wordt met rust gelaten. Eén die aankomt terwijl de eerste uitvoering nog loopt, kan een tweede record aanmaken.
+
+## Het zelf bouwen
+
+De sjablonen dekken de gebruikelijke gevallen. Om een richting zelf te bouwen, bouwt deze sectie beide met de hand, voor incidenten, na [Dynamics 365 voorbereiden](#dynamics-365-voorbereiden). [Hetzelfde doen voor waarschuwingen](#hetzelfde-doen-voor-waarschuwingen) zet het om naar waarschuwingen.
+
+### Aanmelden met een OAuth 2.0-variabele
+
+Maak het token één keer aan, voor elke workflow, als een [OAuth 2.0-variabele](/docs/workflows/variables#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen):
+
+1. Ga naar **Workflows → Globale variabelen**, open het menu **Meer** (**⋯**) naast **Workflow Variabele aanmaken** en kies **Create OAuth 2.0 Variable**. Noem hem `DYNAMICS_TOKEN`.
+2. Kies bij **Provider** **Microsoft Entra ID**, vervang `{tenant-id}` in de **Token-URL** door je Directory (tenant) ID en kies **Client Credentials**.
+3. Vul bij **Inloggegevens** de **Client-ID** en het **Client-secret** in. Stel bij **Geavanceerd** de scope in op `https://yourorg.crm.dynamics.com/.default` en maak daarna de variabele aan.
+
+Elk blok stuurt dan `Bearer {{global.variables.DYNAMICS_TOKEN}}` in zijn `Authorization`-header. OneUptime haalt het token op, haalt een nieuw op voordat het verloopt, en houdt het buiten de uitvoeringslogboeken.
+
+De scope moet je omgevings-URL zijn gevolgd door `/.default`. Een verkeerde omgevings-URL is de gebruikelijke oorzaak van `AADSTS70011: The provided value for the input parameter 'scope' is not valid`.
+
+### Een case openen voor elk incident
+
+:::steps
+1. Maak vanaf nul een workflow met de naam `Incidents to Dynamics 365`. Klik op het gestippelde blok en voeg de trigger **On Create Incident** toe. Vraag in de **Fields to pass on** ervan om `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
+2. Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Success**-punt van de trigger ermee. Stel de **Identifier** in op `create-case` en de **URL** op `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
+3. Stel onder **Meer velden** de **Request Headers** in op:
 
    ```json
    {
-     "_id": true,
-     "title": true,
-     "description": true,
-     "incidentNumber": true,
-     "incidentSeverity": { "name": true }
+     "Authorization": "Bearer {{global.variables.DYNAMICS_TOKEN}}",
+     "OData-MaxVersion": "4.0",
+     "OData-Version": "4.0",
+     "Accept": "application/json",
+     "If-None-Match": "null",
+     "Prefer": "return=representation"
    }
    ```
 
-   Laat zijn **Identifier** op `incident-on-create-1` staan.
+4. Stel de **Request Body** in op de case, met de GUID van het account waar je cases bij horen:
 
-3. Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe, verbind de **Succes**-stip van de trigger ermee, en open zijn instellingen. Zet zijn **Identifier** op `get-token`, en daarna:
+   ```json
+   {
+     "title": "OneUptime #{{local.components.incident-on-create-1.returnValues.model.incidentNumber}}: {{local.components.incident-on-create-1.returnValues.model.title}}",
+     "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+     "caseorigincode": 3,
+     "prioritycode": 1,
+     "new_oneuptimelink": "oneuptime-incident-{{local.components.incident-on-create-1.returnValues.model._id}}",
+     "customerid_account@odata.bind": "/accounts(00000000-0000-0000-0000-000000000000)"
+   }
+   ```
 
-   - **URL**: `https://login.microsoftonline.com/{{global.variables.DYNAMICS_TENANT_ID}}/oauth2/v2.0/token`
-   - **Request Headers**:
+5. Zet **Ingeschakeld** aan, meld een testincident en open **Logboeken → Uitvoeringen**. De stap `create-case` toont een `201` en een body met de nieuwe `incidentid` en `ticketnumber`.
+:::
 
-     ```json
-     { "Content-Type": "application/x-www-form-urlencoded" }
-     ```
+Elke case heeft een klant nodig, dus `customerid` is verplicht. Die kan naar een account of een contactpersoon wijzen, en daarom schrijf je `customerid_account@odata.bind` of `customerid_contact@odata.bind`, precies zo gespeld. `Prefer: return=representation` maakt het antwoord `201` met de case zelf, zodat het volgende blok `{{local.components.create-case.returnValues.response-body.incidentid}}` kan lezen. Zonder deze header antwoordt Dynamics 365 met `204` zonder body.
 
-   - **Request Body**:
+`new_oneuptimelink` is de koppelingskolom uit [Dynamics 365 voorbereiden](#dynamics-365-voorbereiden), met dezelfde waarde die de sjablonen schrijven, zodat je workflows en de sjablonen elkaars cases vinden. Gebruik de logische naam van je kolom.
 
-     ```json
-     {
-       "client_id": "{{global.variables.DYNAMICS_CLIENT_ID}}",
-       "client_secret": "{{global.variables.DYNAMICS_CLIENT_SECRET}}",
-       "scope": "{{global.variables.DYNAMICS_URL}}/.default",
-       "grant_type": "client_credentials"
-     }
-     ```
+### Prioriteit en status toewijzen
 
-**Typ de headernaam als `Content-Type`, met exact die hoofdletters.** Dat is wat OneUptime vertelt de body als form post te versturen in plaats van als JSON, en dat is de enige vorm die het tokeneindpunt van Microsoft accepteert. `content-type` in kleine letters matcht niet, het verzoek gaat als JSON de deur uit en komt terug met `400`.
+Dynamics 365 levert `severitycode` met één enkele optie, dus stel in plaats daarvan `prioritycode` in, en vertak op de ernst van het incident met een **If / Else**-blok voor een prioriteit per ernstniveau. Stuur deze kolommen als getallen:
 
-De `scope` moet je omgevings-URL zijn, gevolgd door `/.default` — dat is de vorm voor een confidential client. Een verkeerde omgevings-URL hier is de gebruikelijke oorzaak van `AADSTS70011: The provided value for the input parameter 'scope' is not valid`.
+| Kolom | Waarden |
+| --- | --- |
+| `prioritycode` | `1` High, `2` Normal, `3` Low |
+| `caseorigincode` | `1` Phone, `2` Email, `3` Web, `2483` Facebook, `3986` Twitter, `700610000` IoT |
+| `casetypecode` | `1` Question, `2` Problem, `3` Request |
+| `statecode` | `0` Active, `1` Resolved, `2` Cancelled |
+| `statuscode` | `1` In Progress, `2` On Hold, `3` Waiting for Details, `4` Researching, `5` Problem Solved, `6` Cancelled, `1000` Information Provided, `2000` Merged |
 
-Het token is nu verderop beschikbaar als:
+`statuscode` kan worden aangepast, dus je omgeving kan eigen waarden hebben.
 
-```text
-{{local.components.get-token.returnValues.response-body.access_token}}
-```
+### De case oplossen wanneer het incident is opgelost
 
-## Stap 5 — Maak de case aan
+Bouw dit als een tweede workflow, zodat een fout hier nooit verhindert dat er cases worden geopend.
 
-Voeg een tweede **API Post (JSON)**-blok toe, verbind de **Succes**-stip van `get-token` ermee, en zet zijn **Identifier** op `create-case`.
+:::steps
+1. Maak een workflow met de naam `Close Dynamics 365 cases`, met de trigger **On Update Incident**. Stel **Fields to watch** in op `{"currentIncidentStateId": true}` en **Fields to pass on** op `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
+2. Voeg een **If / Else**-blok toe: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
+3. Voeg na de **Yes**-kant ervan een **API Get (JSON)**-blok toe met de **Identifier** `find-case`, dezelfde headers zonder `Prefer` en deze **URL**:
 
-- **URL**: `{{global.variables.DYNAMICS_URL}}/api/data/v9.2/incidents?$select=incidentid,ticketnumber`
-- **Request Headers**:
+   ```text
+   https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
+   ```
 
-  ```json
-  {
-    "Authorization": "Bearer {{local.components.get-token.returnValues.response-body.access_token}}",
-    "OData-MaxVersion": "4.0",
-    "OData-Version": "4.0",
-    "Accept": "application/json",
-    "If-None-Match": "null",
-    "Prefer": "return=representation"
-  }
-  ```
+4. Voeg daarna een **API Post (JSON)**-blok toe naar `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident`, met dezelfde headers en deze body:
 
-- **Request Body**:
+   ```json
+   {
+     "IncidentResolution": {
+       "@odata.type": "Microsoft.Dynamics.CRM.incidentresolution",
+       "subject": "Resolved in OneUptime",
+       "incidentid@odata.bind": "/incidents({{local.components.find-case.returnValues.response-body.value[0].incidentid}})"
+     },
+     "Status": 5
+   }
+   ```
+:::
 
-  ```json
-  {
-    "title": "OneUptime #{{local.components.incident-on-create-1.returnValues.model.incidentNumber}}: {{local.components.incident-on-create-1.returnValues.model.title}}",
-    "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
-    "caseorigincode": 3,
-    "prioritycode": 1,
-    "customerid_account@odata.bind": "/accounts(00000000-0000-0000-0000-000000000000)"
-  }
-  ```
+De URL wordt precies verstuurd zoals hij geschreven is, dus de spaties in `$filter` staan er als `%20`. Een query antwoordt met een `value`-lijst, en `value[0]` is de eerste case daarin. `Status` is een `statuscode` van de toestand Resolved: `5` is Problem Solved.
 
-Vervang de account-GUID door het account waar deze cases bij horen. **`customerid` is echt verplicht op een case** — het is een van de kolommen die Dataverse bij elke programmatische schrijfactie afdwingt, dus een create zonder die kolom wordt afgewezen. Omdat hij naar een account of naar een contact kan wijzen, schrijf je nooit `customerid@odata.bind`; je schrijft `customerid_account@odata.bind` of `customerid_contact@odata.bind`, en die namen zijn hoofdlettergevoelig. `title` is verplicht op een andere manier: de Dynamics-formulieren staan erop, de API niet, dus stuur hem toch mee.
+Gebruik `CloseIncident` om op te lossen, in plaats van een `PATCH` van `statecode`: het legt de Case Resolution vast die een opgeloste case hoort te hebben, en een `PATCH` wordt geweigerd waar een beheerder statusovergangen heeft ingesteld. Stuur voor al het andere, zoals een prioriteit of een titel, een **API Patch (JSON)**-blok naar `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)` met een `If-Match: *`-header, die voorkomt dat er een nieuwe case wordt aangemaakt, en alleen de kolommen die je wijzigt.
 
-`Prefer: return=representation` is wat dit bruikbaar maakt vanuit een workflow. Zonder die header antwoordt een geslaagde create met `204 No Content` en zet hij de URI van het nieuwe record in een `OData-EntityId`-responseheader, waar je dan een GUID uit zou moeten vissen. Mét die header is het antwoord `201 Created` en draagt het het record zelf, zodat het volgende blok kan lezen:
+### Wijzigingen uit Dynamics 365 ontvangen
 
-```text
-{{local.components.create-case.returnValues.response-body.incidentid}}
-{{local.components.create-case.returnValues.response-body.ticketnumber}}
-```
+Bouw eerst de ontvangende workflow:
 
-Zet de workflow nu aan — **Overzicht → Workflow bewerken → Ingeschakeld** — roep een testincident uit, en lees de run onder **Logboeken → Uitvoeringen**. Het blok `create-case` hoort een `201` te tonen en een body met het nieuwe `incidentid`. Wijzigingen op het canvas slaan zichzelf op; er is geen opslaanknop.
-
-### Ernst en status mappen
-
-Dynamics levert `severitycode` met één enkele optie, "Default Value", dus er is geen kant-en-klare ernstschaal om op te mappen. Gebruik in plaats daarvan **`prioritycode`**, en vertak met een **If / Else**-blok op `{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}` als je prioriteiten per ernstniveau wilt.
-
-| Kolom            | Waarden                                                                                                                           |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `prioritycode`   | `1` High, `2` Normal, `3` Low                                                                                                     |
-| `caseorigincode` | `1` Phone, `2` Email, `3` Web, `2483` Facebook, `3986` Twitter, `700610000` IoT                                                   |
-| `casetypecode`   | `1` Question, `2` Problem, `3` Request                                                                                            |
-| `statecode`      | `0` Active, `1` Resolved, `2` Cancelled                                                                                           |
-| `statuscode`     | `1` In Progress, `2` On Hold, `3` Waiting for Details, `4` Researching, `5` Problem Solved, `6` Cancelled, `1000` Information Provided, `2000` Merged |
-
-`statuscode` is aanpasbaar, dus een tenant kan er eigen waarden aan hebben toegevoegd. Stuur gehele getallen, geen labels.
-
-## Stap 6 — Houd het incident en de case vanuit elkaar vindbaar
-
-Wat je later ook doet — reageren, oplossen, terugsynchroniseren — vraagt dat één van de twee systemen de identifier van het andere bewaart. Zet die aan de Dynamics-kant.
-
-Voeg een kolom van het type **single line of text** toe aan de tabel Case, bijvoorbeeld `new_oneuptimeincidentid`, en zet hem wanneer je de case aanmaakt:
-
-```json
-"new_oneuptimeincidentid": "{{local.components.incident-on-create-1.returnValues.model._id}}"
-```
-
-Elke latere workflow kan de case dan met een filter vinden:
-
-```text
-{{global.variables.DYNAMICS_URL}}/api/data/v9.2/incidents?$select=incidentid,ticketnumber&$filter=new_oneuptimeincidentid eq '<the incident id>'
-```
-
-Definieer je die kolom als een **alternate key** op de tabel Case, dan kun je het opzoeken helemaal overslaan en direct `PATCH`en naar `incidents(new_oneuptimeincidentid='<id>')` — een upsert die de case aanmaakt als hij ontbreekt en bijwerkt als hij bestaat. De sleutel moet klaar zijn met bouwen (zijn status wordt **Active**) voordat hij bruikbaar is, en waarden van een alternate key mogen geen `/ < > * % & : \ ? + #` bevatten. Een OneUptime-id is een gewone UUID, dus die is veilig.
-
-De omgekeerde richting — het Dynamics-case-id opslaan op het OneUptime-incident — kan ook, met een **Update One Incident**-blok dat naar `customFields` schrijft. Wees daar voorzichtig mee: `customFields` is één JSON-kolom, dus die wegschrijven vervangt elke waarde van elk aangepast veld op dat incident, niet alleen die van jou. De koppeling aan de Dynamics-kant houden vermijdt dat volledig.
-
-## Stap 7 — Los de case op wanneer het incident wordt opgelost
-
-Bouw dit als een **tweede** workflow, zodat een fout hier niet kan verhinderen dat er cases worden geopend.
-
-1. **Workflow maken**, geef het de naam `Incident resolved → Close Dynamics case`, en voeg de trigger **On Update Incident** toe.
-2. Klik in de **Fields to watch** van de trigger op **Bewerken als JSON** en zet er `{"currentIncidentStateId": true}` in, zodat de workflow alleen wakker wordt bij statuswijzigingen en niet bij elke bewerking. Doe in **Fields to pass on** hetzelfde met `{"_id": true, "currentIncidentState": {"name": true}}`.
-3. Voeg een **If / Else**-blok toe. **Input 1** is `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** is `==`, **Input 2** is `Resolved` — of hoe de opgeloste status in jouw project ook heet. Zie [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities).
-4. Herhaal vanaf de tak **Yes** het blok `get-token` uit Stap 4.
-5. Voeg een **API Get (JSON)**-blok toe, zet zijn **Identifier** op `find-case`, en geef het de `$filter`-URL uit Stap 6. Een Dataverse-query antwoordt met een `value`-array, en een workflowverwijzing kan met blokhaken in een array indexeren, dus het case-id is `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}`.
-6. Voeg een **API Post (JSON)**-blok toe dat de case sluit:
-
-   - **URL**: `{{global.variables.DYNAMICS_URL}}/api/data/v9.2/CloseIncident`
-   - **Request Headers**: dezelfde als in Stap 5, maar zonder `Prefer`.
-   - **Request Body**:
-
-     ```json
-     {
-       "IncidentResolution": {
-         "@odata.type": "Microsoft.Dynamics.CRM.incidentresolution",
-         "subject": "Resolved in OneUptime",
-         "incidentid@odata.bind": "/incidents(<the case id>)"
-       },
-       "Status": 5
-     }
-     ```
-
-     `Status` is een `statuscode`-waarde binnen de status Resolved — `5` is *Problem Solved*.
-
-     **Test deze body tegen je eigen omgeving voordat je erop vertrouwt.** `CloseIncident` neemt twee parameters aan, `IncidentResolution` en `Status`, maar Microsoft publiceert er geen HTTP-voorbeeld voor — elk officieel voorbeeld is in C#. De vorm hierboven is de gebruikelijke vertaling. Wijst jouw omgeving hem af, probeer de case dan te identificeren met een gewone eigenschap `"incidentid": "<the case id>"` in plaats van de `@odata.bind`-vorm, want zo verwijzen de andere actievoorbeelden van Microsoft naar een bestaand record.
-
-**Waarom niet gewoon de case `PATCH`en naar `statecode: 1`?** Dat kan — Microsoft documenteert een `PATCH` van `statecode` en `statuscode` als het Web API-equivalent van het oudere SetState-bericht, en het is het juiste gereedschap om een case tussen actieve statussen te verplaatsen. Wat het niet doet, is de activiteit **Case Resolution** aanmaken die een opgeloste case in Dynamics 365 Customer Service hoort te hebben, en het wordt botweg geweigerd in een omgeving waar een beheerder aangepaste statusovergangen heeft geconfigureerd. Gebruik `CloseIncident` om op te lossen; gebruik `PATCH` voor al het andere. En schrijf je `statecode`, zet dan altijd `statuscode` in hetzelfde verzoek — anders past Dynamics stilletjes de standaardstatus van die state toe.
-
-`CloseIncident` komt uit Dynamics 365 Customer Service en niet uit basis-Dataverse, en staat niet in de Dataverse-actiereferentie. Geeft hij `404` terug, bevestig dan dat hij in je omgeving bestaat door `{{global.variables.DYNAMICS_URL}}/api/data/v9.2/$metadata` op te halen en op `CloseIncident` te zoeken.
-
-Voor alles wat minder ver gaat dan de case sluiten — een notitie, een prioriteitsverhoging, een titelwijziging — gebruik je een **API Patch (JSON)**-blok tegen `{{global.variables.DYNAMICS_URL}}/api/data/v9.2/incidents(<the case id>)` met een `If-Match: *`-header, die voorkomt dat een onbedoelde upsert een nieuwe case aanmaakt. Stuur alleen de kolommen die je wijzigt.
-
-## Inbound — Dynamics 365 naar OneUptime
-
-Nu de andere richting: iemand sluit de case in Dynamics, of een agent voegt een notitie toe, en OneUptime hoort dat te weten.
-
-### Bouw eerst de ontvangende workflow
-
-1. **Workflow maken**, geef het de naam `Dynamics 365 → OneUptime`, en voeg de trigger **Webhook** toe.
-2. Open de **Bouwer** van die workflow, klik op de **Webhook**-trigger en klik bovenaan de instellingen ervan op **URL kopiëren**. De URL ziet er zo uit:
+1. Maak een workflow met de naam `Dynamics 365 to OneUptime`, met de trigger **Webhook**.
+2. Open de **Bouwer** van de workflow, klik op de **Webhook**-trigger en klik op **URL kopiëren** bovenaan de instellingen ervan. De URL ziet er zo uit:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Zelfgehoste installaties gebruiken hun eigen host. Behandel de URL als een wachtwoord — iedereen die hem heeft, kan de workflow starten. Lekt hij uit, klik dan op dezelfde plek op **URL opnieuw instellen**; de oude URL werkt dan meteen niet meer.
+   Bij een zelfgehoste installatie heeft de URL je eigen host. Behandel de URL als een wachtwoord: iedereen die hem heeft, kan de workflow starten. Lekt hij uit, klik dan op dezelfde plek op **URL opnieuw instellen**, en de oude URL werkt meteen niet meer.
 
-3. Voeg een **If / Else**-blok toe dat een gedeeld geheim controleert voordat er iets anders gebeurt. **Input 1** is `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — een waarde die je zelf verzint en als geheime globale variabele opslaat.
-4. Voeg vanaf de tak **Yes** een **Update One Incident**-blok toe:
+3. Voeg een **If / Else**-blok toe dat vóór alles een gedeeld geheim controleert: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to**, **Compare with** een waarde die je zelf bedenkt, bewaard in een geheime globale variabele.
+4. Voeg na de **Yes**-kant ervan een **Update One Incident**-blok toe. Stel de **Query** in op `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, en de **Data (JSON Object)** op de wijziging, zoals een nieuwe `currentIncidentStateId`. Een **Find One Incident State**-blok met de query `{"name": "Resolved"}` geeft je die ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
-   - **Query**: `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`
-   - **Data (JSON Object)**: wat de casewijziging in OneUptime moet betekenen — een statuswijziging, een notitie, een label.
+Zet hem aan en laat Dynamics 365 hem daarna aanroepen:
 
-   Om het incident naar een status te verplaatsen heb je de id van die status nodig: een **Find One Incident State**-blok met de query `{"name": "Resolved"}` geeft je `{{local.components.incident-state-find-one-1.returnValues.model._id}}` om naar `currentIncidentStateId` te schrijven.
+:::tabs
+@tab Power Automate flow
+1. Maak in [Power Automate](https://make.powerautomate.com) een **Automated cloud flow** met de **Microsoft Dataverse**-trigger **When a row is added, modified or deleted**: **Change type** `Modified`, **Table name** `Cases`, **Scope** `Organization` en **Select columns** `statecode,statuscode`, zodat hij alleen bij statuswijzigingen afgaat.
+2. Voeg **Get a row by ID** toe op `Cases`, met de ID van de rij uit de trigger: een update bevat alleen de kolommen die zijn gewijzigd.
+3. Voeg de ingebouwde actie **HTTP** toe: **Method** `POST`, **URI** de URL van de workflow, de headers `Content-Type: application/json` en `X-OneUptime-Secret: <your secret>`, en een body die uit de rij is opgebouwd: `oneuptimeIncidentId` is de koppelingskolom zonder `oneuptime-incident-`, zoals `replace(<link column>, 'oneuptime-incident-', '')`, naast `ticketnumber` en `statecode`.
+4. Sla de flow op en zet hem aan.
 
-Laat hem ingeschakeld en klaarstaan. Geef Dynamics nu iets om aan te roepen.
+De Microsoft Dataverse-connector is premium: de eigenaar van de flow heeft de licentie nodig, en de flow stopt als die verloopt. Bezorging duurt meestal enkele seconden.
+@tab Dataverse webhook
+1. Registreer de URL van de workflow met de [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, met **HttpHeader**-authenticatie en de header `X-OneUptime-Secret`.
+2. Registreer een stap voor het bericht **Update** op `incident`, met **Filtering Attributes** beperkt tot de kolommen die je nodig hebt, **PostOperation** en **Asynchronous**.
+3. Lees in de workflow de payload: dat is de uitvoeringscontext van de plug-in, waarin `InputParameters` een lijst van `{key, value}`-paren is en de gewijzigde rij onder `Target` staat. Een **Run Custom JavaScript**-blok is de eenvoudigste manier om hem te lezen.
 
-### Optie A — een Power Automate-flow (aanbevolen)
+Dataverse roept alleen de poorten 80 en 443 aan, wacht 60 seconden op een antwoord en probeert het één keer opnieuw, alleen bij `502`, `503` en `504`. Een update bevat alleen de kolommen die zijn gewijzigd, dus registreer een post-image voor de andere.
+:::
 
-Dit is het pad dat de meeste teams zouden moeten nemen: je bepaalt zelf de payload, en er valt niets te installeren.
+### Hetzelfde doen voor waarschuwingen
 
-1. Maak in [Power Automate](https://make.powerautomate.com) een **Automated cloud flow** aan.
-2. Trigger: **Microsoft Dataverse → When a row is added, modified or deleted**.
+Waarschuwingen werken op dezelfde manier. Wissel het recordtype om, en verder verandert er niets:
 
-   - **Change type**: `Modified`
-   - **Table name**: `Cases`
-   - **Scope**: `Organization` — iets smallers vuurt alleen af voor rijen die van jou of van je business unit zijn.
-   - **Select columns**: `statecode,statuscode`. Dit is een filter dat alleen bij Update geldt, en het is de moeite waard om het goed te doen. Lookupkolommen worden hier niet ondersteund, en noem nooit een kolom die bij elke update aanwezig is (zoals de primaire sleutel), anders vuurt de flow bij elke opslagactie af.
+| Incident | Waarschuwing |
+| --- | --- |
+| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
+| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
+| **Find One Incident State** | **Find One Alert State** |
+| **Update One Incident** | **Update One Alert** |
 
-3. Voeg **Microsoft Dataverse → Get a row by ID** toe, tabel `Cases`, rij-id uit de trigger, en een **Select columns** van `incidentid,ticketnumber,title,statecode,statuscode,new_oneuptimeincidentid`.
+Een workflow heeft precies één trigger, dus incidenten en waarschuwingen hebben elk een eigen workflow nodig. Om hetzelfde Dynamics 365-werk voor beide te doen, bouw je het één keer in een workflow met een **Manual**-trigger, en start je die vanuit beide met een **Execute Workflow**-blok.
 
-   Deze tweede aanroep is zijn prijs waard. Bij een update draagt de trigger alleen de kolommen die zijn gewijzigd, dus de identifiers waarop je moet matchen zijn er misschien gewoon niet.
+## Problemen oplossen
 
-4. Voeg de ingebouwde actie **HTTP** toe:
+Open eerst de mislukte stap in **Logboeken → Uitvoeringen**. Beide Microsoft-endpoints antwoorden met een JSON-body die het probleem uitlegt, en het API-blok bewaart die in `response-body`.
 
-   - **Method**: `POST`
-   - **URI**: de OneUptime-webhook-URL van hierboven
-   - **Headers**: `Content-Type: application/json` en `X-OneUptime-Secret: <the same secret>`
-   - **Body**: bouw hem op uit de uitvoer van *Get a row by ID*, bijvoorbeeld
+:::details 400 met AADSTS70011, de scope is niet geldig
+De scope is niet je omgevings-URL gevolgd door `/.default`. Kopieer de URL uit het Power Platform-beheercentrum en laat een slash aan het eind en elk `/api/data/...`-pad weg.
+:::
 
-     ```json
-     {
-       "oneuptimeIncidentId": "<new_oneuptimeincidentid>",
-       "caseId": "<incidentid>",
-       "caseNumber": "<ticketnumber>",
-       "statecode": "<statecode>",
-       "statuscode": "<statuscode>"
-     }
-     ```
+:::details 401 Unauthorized van Dynamics 365
+De `Authorization`-header ontbreekt of is onjuist opgebouwd. Hij moet `Bearer` bevatten, één spatie en dan het token.
+:::
 
-5. Sla op en zet de flow aan.
+:::details 403 Forbidden met 0x80072560
+"The user isn't a member of the organization": de toepassingsgebruiker ontbreekt, of hoort bij een andere app-registratie. Het token is in orde. Maak de gebruiker aan zoals in [Dynamics 365 voorbereiden](#dynamics-365-voorbereiden).
+:::
 
-Het weten waard voordat je voor dit pad kiest:
+:::details 403 Forbidden met een fout over bevoegdheden
+De toepassingsgebruiker bestaat, maar zijn beveiligingsrol mist een bevoegdheid die de aanroep nodig heeft, zoals Create, Read of Write op **Case**.
+:::
 
-- De **Microsoft Dataverse-connector is premium.** Voor een automated flow heeft alleen de eigenaar van de flow de licentie nodig, niet iedereen die met de case in aanraking komt — maar als de licentie van de eigenaar verloopt, stopt de flow stilletjes.
-- Dataverse-triggers zijn **push, geen polling** — Dynamics registreert een callback en vuurt die af. Aflevering gebeurt normaal binnen seconden; duurt het meer dan vijf minuten, dan loopt de asynchrone service achter, wat je onder **Settings → System Jobs** in het admin center kunt zien.
-- Eigen headers blijven bestaan. Power Automate haalt een aantal standaard headerfamilies uit HTTP-acties (de meeste `Accept-*`- en `Content-*`-headers, `Host`, `Origin`, `Cookie`), maar een eigen header zoals `X-OneUptime-Secret` wordt doorgegeven.
-- De flow moet in dezelfde omgeving leven als de tabel die hij bekijkt.
-- Verzoeken tellen mee in de Power Platform-verzoektoewijzing van je tenant, en throttling van de connector verschijnt als `429` binnen de flowrun.
+:::details 400 Bad Request over de klant
+`customerid` is verplicht. Stuur `customerid_account@odata.bind` of `customerid_contact@odata.bind`, precies zo gespeld, met een adres zoals `/accounts(<guid>)`.
+:::
 
-### Optie B — een native Dataverse-webhook
+:::details 404 Not Found bij CloseIncident
+`CloseIncident` hoort bij Dynamics 365 Customer Service, niet bij Dataverse alleen. Zoek het op in de `$metadata` van je omgeving.
+:::
 
-Is Power Automate niet beschikbaar, dan kan Dataverse OneUptime rechtstreeks aanroepen. Registreer het endpoint met de [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, geef het de OneUptime-URL, kies **HttpHeader**-authenticatie, en voeg `X-OneUptime-Secret` met je geheim toe. Registreer daarna een stap op de tabel **incident** voor het bericht **Update**, met **Filtering Attributes** beperkt tot de kolommen die je interesseren, stage **PostOperation**, uitvoeringsmodus **Asynchronous**.
+:::details 412 Precondition Failed met DuplicateRecord
+Een regel voor duplicaatdetectie gaf een treffer. Maak de regel nauwer, of stop met het sturen van het veld waarop hij overeenkomt.
+:::
 
-Neem deze route met je ogen open:
+:::details 429 Too Many Requests
+De servicebeschermingslimieten van Dataverse staan ongeveer 6.000 verzoeken toe, en 20 minuten uitvoeringstijd, per gebruiker in elke periode van vijf minuten. Het antwoord bevat `Retry-After`, in seconden. Zet een **Sleep**-blok in een workflow die in pieken werkt, of verplaats het werk naar een geplande workflow.
+:::
 
-- **Alleen poort 80 en 443.** Een zelfgehoste OneUptime op elke andere poort kan niet worden geregistreerd.
-- **Dataverse controleert je geheim niet.** Het stuurt de header mee; een verzoek weigeren dat hem niet draagt is volledig de taak van jouw workflow — en daar is het **If / Else**-blok in de ontvangende workflow voor.
-- **De payload is geen vriendelijk JSON-object.** Het is een geserialiseerde `RemoteExecutionContext`, waarin `InputParameters` een *array* van `{key, value}`-paren is en de gewijzigde rij onder de sleutel `Target` zit, met zijn kolommen in weer een `Attributes`-array. Reken erop dat je een **Run Custom JavaScript**-blok moet toevoegen om die plat te slaan voordat iets anders hem kan lezen.
-- **Alleen gewijzigde kolommen zitten erin** bij een update, dus registreer een **Post Image** als je `ticketnumber` of je OneUptime-id-kolom nodig hebt.
-- **Boven 256 KB worden de interessante delen weggehaald** — `InputParameters`, `PreEntityImages` en `PostEntityImages` gaan er allemaal uit, en het verzoek draagt een `x-ms-dynamics-msg-size-exceeded`-header. `PrimaryEntityId` en `PrimaryEntityName` overleven het, dus de terugval is om de rij via de Web API terug te lezen.
-- **Aflevering is bijna onvergeeflijk.** Dataverse wacht 60 seconden op een `2xx` en probeert precies één keer opnieuw, en alleen bij `502`, `503` en `504`. Al het andere — ook een `500` van jouw kant — wordt niet opnieuw geprobeerd; het belandt als mislukte System Job.
-- Kies **Asynchronous**. Een synchrone stap blokkeert de opslagactie van de agent op jouw endpoint, en als de transactie daarna wordt teruggedraaid, is het verzoek al de deur uit en niet meer terug te halen.
+:::details Er komt niets aan in OneUptime
+Stuur zelf een verzoek naar de webhook-URL met `curl`, en zoek het op in **Logboeken → Uitvoeringen**. Komt het jouwe aan en dat van Dynamics 365 niet, kijk dan eerder in de keten: de uitvoeringsgeschiedenis van de flow zelf, of de mislukte System Jobs van een Dataverse-webhook.
+:::
 
-Klassieke Dynamics-achtergrondworkflows hebben helemaal geen HTTP- of webhookstap, dus die zijn hier geen derde optie.
+:::details De workflow draait, maar het incident verandert niet
+Een **Update One Incident**-blok meldt `Items Updated: 0` wanneer de query niets vond, en dat is een succes, geen fout. Controleer of de ID in het verzoek echt die van het OneUptime-incident is, en of je op `_id` zoekt.
+:::
 
-## Hetzelfde doen voor alerts
+## Volgende stappen
 
-Alles hierboven is rond incidenten geschreven omdat dat het gangbare geval is, maar alerts werken identiek — verwissel het recordtype en er verandert verder niets:
-
-| Incident                                                     | Alert                                               |
-| ------------------------------------------------------------ | --------------------------------------------------- |
-| **On Create Incident** (`incident-on-create-1`)               | **On Create Alert** (`alert-on-create-1`)           |
-| **On Update Incident** (`incident-on-update-1`)               | **On Update Alert** (`alert-on-update-1`)           |
-| `incidentNumber`, `currentIncidentState`, `incidentSeverity`  | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State**                                   | **Find One Alert State**                            |
-| **Update One Incident**                                       | **Update One Alert**                                |
-
-Een workflow heeft precies één trigger, dus incidenten en alerts vragen elk om een eigen workflow. Zouden de twee hetzelfde werk doen, bouw dan de Dynamics-helft één keer en roep hem vanuit beide aan met het component **Execute Workflow**.
-
-## Probleemoplossing
-
-Lees eerst het mislukte blok in **Logboeken → Uitvoeringen** — beide Microsoft-eindpunten geven een verklarende JSON-body terug, en het API-component bewaart die in `response-body`.
-
-**Het tokenverzoek mislukt met `400` en `invalid_request` of een niet-ondersteund grant type.** De `Content-Type`-header is niet precies `Content-Type: application/x-www-form-urlencoded`, waardoor de body als JSON de deur uit ging. Controleer de hoofdletters.
-
-**`400` met `AADSTS70011: The provided value for the input parameter 'scope' is not valid`.** De `scope` is niet je omgevings-URL plus `/.default`. Kopieer de URL uit **Developer resources** en haal er elke afsluitende slash en elk `/api/data/...`-pad af.
-
-**`401 Unauthorized` van Dynamics.** De `Authorization`-header ontbreekt, klopt niet, of het token is halverwege de run verlopen. Hij moet luiden `Bearer <token>` met één spatie.
-
-**`403 Forbidden` met `0x80072560`, "The user isn't a member of the organization".** Stap 2 is overgeslagen, of de application user hangt aan een andere app-registratie. Het token is in orde; de gebruiker aan de Dynamics-kant is er niet.
-
-**`403 Forbidden` met een rechtenfout.** De application user bestaat, maar zijn aangepaste beveiligingsrol mist Create, Read of Write op **Case**.
-
-**`400 Bad Request` waarin de klant wordt genoemd.** `customerid` is verplicht. Zet `customerid_account@odata.bind` of `customerid_contact@odata.bind`, exact zo gespeld, met een URI met voorloopslash zoals `/accounts(<guid>)`.
-
-**`404 Not Found` op `/CloseIncident`.** De actie is een actie van Dynamics 365 Customer Service. Zoek ernaar in de `$metadata` van je omgeving voordat je aanneemt dat hij beschikbaar is.
-
-**`412 Precondition Failed` met `DuplicateRecord`.** Een regel voor duplicaatdetectie matchte. Maak de regel smaller of stop met het meesturen van het veld waarop hij matcht.
-
-**`429 Too Many Requests`.** De service protection-limieten van Dataverse — ruwweg 6.000 verzoeken en 20 minuten uitvoeringstijd per gebruiker in elk venster van vijf minuten, per webserver. Het antwoord bevat een `Retry-After` in seconden. Zit een workflow te bursten, zet er dan een **Delay**-blok in of verplaats het werk naar een geplande workflow die batcht.
-
-**Er komt niets aan aan de OneUptime-kant.** Stuur zelf een verzoek naar de webhook-URL met `curl` en controleer **Logboeken → Uitvoeringen** bij de workflow. Verschijnt jouw eigen verzoek wel en dat van Dynamics niet, dan zit het probleem stroomopwaarts: kijk voor Power Automate in de eigen runhistorie van de flow, en voor een native webhook onder **Settings → System Jobs**, gefilterd op mislukkingen.
-
-**De workflow draait, maar het incident verandert niet.** Een **Update One Incident**-blok meldt `Items Updated: 0` wanneer de query niets matchte — dat is een succes, geen fout. Controleer of de id in de payload het OneUptime-incident-id is en of je op `_id` bevraagt.
-
-## Waar verder lezen
-
-- [Integraties – Overzicht](/docs/integrations/index) — de inbound- en outbound-patronen en het authenticatie-spiekbriefje.
-- [Jira](/docs/integrations/jira) — dezelfde bouw in twee richtingen, maar dan tegen Jira.
-- [Workflows – Overzicht](/docs/workflows/index) en [Een workflow maken](/docs/workflows/authoring) — het canvas, identifiers, en een workflow aanzetten.
-- [Componenten](/docs/workflows/components) — de API-blokken, If / Else, en de OneUptime-datacomponenten.
-- [Variabelen](/docs/workflows/variables) — geheimen, en de uitvoer van het ene blok in het volgende lezen.
-- [Workflow-configuratie en veiligheid](/docs/workflows/configuration) — webhookbeveiliging en uitgaande netwerktoegang.
-- [IP-adressen](/docs/configuration/ip-addresses) — de uitgaande reeksen van OneUptime, als Dynamics achter een acceptatielijst zit.
+:::cards
+- [Jira](/docs/integrations/jira): Dezelfde tweerichtingssynchronisatie voor Jira-issues.
+- [Workflow-variabelen](/docs/workflows/variables#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen): OAuth 2.0-variabelen en de tokens die ze vers houden.
+- [Workflow-configuratie en veiligheid](/docs/workflows/configuration): Webhookbeveiliging, uitgaande netwerktoegang en abonnementslimieten.
+- [IP-adressen](/docs/configuration/ip-addresses): De uitgaande adressen van OneUptime, als Dynamics 365 achter een toegestane lijst staat.
+:::
