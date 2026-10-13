@@ -193,7 +193,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## 移动端的会话回放
 
-React Native 应用可以使用 `@oneuptime/react-native-replay` 录制会话。它将原生视图树记录为线框，绝不记录屏幕截图或屏幕上的文字，其录制与 Web 录制在同一个播放器中打开。它使用 **Browser** 密钥发送，该密钥的 **Allowed Origins** 以 `app://` 加上 Android 应用 ID 或 iOS bundle ID 的形式列出你的应用：这是一个独立的密钥，不同于你的 OpenTelemetry SDK 使用的服务器密钥。 [在 React Native 中安装](/docs/telemetry/session-replay#install-in-react-native) 会逐步介绍。
+React Native 应用可以使用 `@oneuptime/react-native-replay` 录制会话。它将原生视图树记录为线框，绝不记录屏幕截图或屏幕上的文字，其录制与 Web 录制在同一个播放器中打开。它使用 **Browser** 密钥发送，该密钥的 **Allowed Origins** 以 `app://` 加上 Android 应用 ID 或 iOS bundle ID 的形式列出你的应用：这是一个独立的密钥，不同于你的 OpenTelemetry SDK 使用的服务器密钥。 [在 React Native 中安装](/docs/telemetry/session-replay#在-react-native-中安装) 会逐步介绍。
 
 原生 Android 和 iOS 应用以及其他平台没有会话录制器：它们的 **Session Replay** 页面保持为空，而追踪、日志、指标、异常和 **客户端** 页面照常工作。
 
