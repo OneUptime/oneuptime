@@ -258,6 +258,13 @@ export interface SnmpTableSnapshot {
   kind: SnmpTableKind;
   columns: Array<SnmpTableSnapshotColumn>;
   rows: Array<SnmpTableSnapshotRow>;
+  /*
+   * How many rows the walk read and left out, when it left any out: an SSID
+   * table's networks the access point runs for itself and interfaces that
+   * broadcast none (SnmpTableListUtil.isListedRow). It tells an access point
+   * that broadcasts no SSID from a walk that read nothing at all.
+   */
+  leftOutRowCount?: number | undefined;
   isTruncated?: boolean | undefined;
   failureCause?: string | undefined;
   // Set beside failureCause when the reason is one the views explain.

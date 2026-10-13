@@ -597,12 +597,16 @@ describe("the Wi-Fi tab of the UniFi access point in issue #4730", () => {
  * The UI review of #4730. An access point can broadcast none of the
  * customer's networks and still run UniFi's own (an access point used as a
  * mesh uplink, or one no WLAN is assigned to): its SSIDs card says so,
- * rather than vanishing under an "SSIDs 0" tile. A table kept per radio
- * lists one network's bands together. And on a phone the tiles sit side by
- * side and an SSID's band and clients stay on screen.
+ * rather than vanishing under an "SSIDs 0" tile - and a walk that read no
+ * row at all says only that, claiming nothing about networks of its own. A
+ * table kept per radio lists one network's bands together. And on a phone
+ * the tiles sit side by side and an SSID's band and clients stay on screen.
  */
-const NO_SSIDS_LINE: string =
-  "The device reported no SSIDs on its last walk. Networks it runs for itself, such as a wireless mesh link, are not listed.";
+const OWN_NETWORKS_ONLY_LINE: string =
+  "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.";
+
+const NONE_REPORTED_LINE: string =
+  "The device reported no SSIDs on its last walk.";
 
 // The #4730 access point with DEMO turned off: only UniFi's own networks.
 function onlyUniFisOwnNetworks(): Array<SnmpTableResult> {
@@ -685,7 +689,7 @@ describe("the Wi-Fi tab's SSIDs card and layout (#4730 UI review)", () => {
       });
 
       expect(screen.getByTestId("wifi-no-ssids")).toHaveTextContent(
-        NO_SSIDS_LINE,
+        OWN_NETWORKS_ONLY_LINE,
       );
       // The card keeps its place under the radios, with what it lists.
       expect(
@@ -704,12 +708,68 @@ describe("the Wi-Fi tab's SSIDs card and layout (#4730 UI review)", () => {
     },
   );
 
+  test("says only that the device reported no SSIDs when its walk read no row at all, and leaves its clients unknown", async () => {
+    /*
+     * An SSID table the device does not implement, or one the SNMP view of
+     * its credentials hides, reads no row: nothing says the access point
+     * broadcasts no network, so neither the card nor the tiles claim it.
+     */
+    deviceRow = deviceWith({
+      snmpTableSnapshot: walk(
+        "ubiquiti-unifi-ap",
+        issue4730Results().map((result: SnmpTableResult): SnmpTableResult => {
+          return result.key === "wifi_ssids" ? { ...result, rows: [] } : result;
+        }),
+      ),
+    });
+
+    renderWiFi();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("wifi-no-ssids")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("wifi-no-ssids").textContent).toBe(
+      NONE_REPORTED_LINE,
+    );
+    expect(tileValue("SSIDs")).toBe("0");
+    expect(tileValue("Clients")).toBe("—");
+  });
+
+  test("says the device reports no SSIDs from the walk before a failed one, when that walk read only UniFi's own networks", async () => {
+    deviceRow = deviceWith({
+      snmpTableSnapshot: walk("ubiquiti-unifi-ap", onlyUniFisOwnNetworks()).map(
+        (snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+          return snapshot.key === "wifi_ssids"
+            ? { ...snapshot, failureCause: "Request timed out" }
+            : snapshot;
+        },
+      ),
+    });
+
+    renderWiFi();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("wifi-no-ssids")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("wifi-no-ssids")).toHaveTextContent(
+      OWN_NETWORKS_ONLY_LINE,
+    );
+    expect(tileValue("Clients")).toBe("0");
+  });
+
   test("says nothing of SSIDs when the SSID table's last walk failed and nothing earlier was read", async () => {
     deviceRow = deviceWith({
       snmpTableSnapshot: issue4730().map(
         (snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
           return snapshot.key === "wifi_ssids"
-            ? { ...snapshot, rows: [], failureCause: "Request timed out" }
+            ? {
+                ...snapshot,
+                rows: [],
+                leftOutRowCount: undefined,
+                failureCause: "Request timed out",
+              }
             : snapshot;
         },
       ),

@@ -121,9 +121,19 @@ export interface WifiSummary {
   /*
    * Every client the device reports: the radios' when the radio table
    * counts them, otherwise the SSIDs', otherwise the access points' - and
-   * 0 when an SSID table that counts clients was read and lists no SSID.
+   * 0 when the SSID tables, which count clients, read rows and list none:
+   * an access point that broadcasts no network has nobody on one.
    */
   totalClients?: number | undefined;
+  /*
+   * How many rows the SSID tables read that are no SSID - networks the
+   * access point runs for itself (UniFi's mesh link and adoption network,
+   * an Extreme controller's WDS and mesh services) and interfaces that
+   * broadcast none - whether a walk left them out or they were stored
+   * before walks did. Set only when there are some: with no SSID listed, it
+   * tells an access point that broadcasts none from a walk that read none.
+   */
+  leftOutSsidRows?: number | undefined;
   collectedAt?: string | undefined;
   failureCause?: string | undefined;
   failureReason?: SnmpTableFailureReason | undefined;
@@ -163,9 +173,9 @@ export default class WifiRadioUtil {
 
   /*
    * Whether the device's last walk read an SSID table, so that listing no
-   * SSID means the device reported none - an access point whose only
-   * networks are its own (UniFi's mesh link and adoption network) among
-   * them. A table whose last walk failed tells nothing of the kind.
+   * SSID means the device reported none (WifiSummary.leftOutSsidRows tells
+   * whether it reported networks of its own instead). A table whose last
+   * walk failed tells nothing of the kind.
    */
   public static hasReadSsidTable(
     snapshots: Array<SnmpTableSnapshot> | undefined,
@@ -243,19 +253,35 @@ export default class WifiRadioUtil {
     };
 
     /*
-     * An SSID table that counts clients, read by the last walk and listing
-     * no SSID, counts nobody: the access point broadcasts no network to be
-     * on (one whose only networks are UniFi's own, say). Its clients read 0
-     * beside its "SSIDs 0", rather than "not reported".
+     * The rows the SSID tables read that are no SSID: the ones a walk left
+     * out, and the stored ones it would leave out now.
      */
-    const ssidTablesCountNobody: boolean =
-      ssids.length === 0 &&
-      ssidTables.some((snapshot: SnmpTableSnapshot) => {
+    const leftOutSsidRows: number =
+      ssidTables.reduce((count: number, snapshot: SnmpTableSnapshot) => {
         return (
-          !snapshot.failureCause &&
-          (snapshot.columns || []).some((column: SnmpTableSnapshotColumn) => {
+          count + (snapshot.rows || []).length + (snapshot.leftOutRowCount || 0)
+        );
+      }, 0) - ssids.length;
+
+    if (leftOutSsidRows > 0) {
+      summary.leftOutSsidRows = leftOutSsidRows;
+    }
+
+    /*
+     * SSID tables that count clients, read rows and list none of them count
+     * nobody: the access point broadcasts no network to be on - its only
+     * networks are its own, UniFi's mesh link, say. Its clients read 0 beside
+     * its "SSIDs 0", rather than "not reported". A walk that read no rows at
+     * all tells nothing of the kind.
+     */
+    const broadcastsNoNetwork: boolean =
+      ssids.length === 0 &&
+      leftOutSsidRows > 0 &&
+      ssidTables.some((snapshot: SnmpTableSnapshot) => {
+        return (snapshot.columns || []).some(
+          (column: SnmpTableSnapshotColumn) => {
             return column.role === SnmpTableColumnRole.Clients;
-          })
+          },
         );
       });
 
@@ -263,7 +289,7 @@ export default class WifiRadioUtil {
       ? WifiRadioUtil.sumClients(radios)
       : WifiRadioUtil.sumClients(ssids) ??
         WifiRadioUtil.sumClients(accessPoints) ??
-        (ssidTablesCountNobody ? 0 : undefined);
+        (broadcastsNoNetwork ? 0 : undefined);
 
     if (totalClients !== undefined) {
       summary.totalClients = totalClients;

@@ -28173,6 +28173,6 @@
   "This applies to every on-call policy. When it ends, they are back in their usual place in the rotation. To end it early, delete it under On-Call Duty > User Overrides.": "它适用于所有值班策略。结束后，此人回到轮换中原来的位置。如需提前结束，请在“值班 > 用户覆盖”中将其删除。",
   "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page.": "有人不在岗时，所有值班策略发给此人的呼叫都会转给代班的人。如果没有指定任何人，此人的每个班次由轮换中的下一个人接手。如果只想在一个策略中代班，请在该策略的“用户覆盖”页面添加覆盖。",
   "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "有人不在岗时，此策略发给此人的呼叫会转给代班的人。如果没有指定任何人，此人的每个班次由轮换中的下一个人接手。如果想在所有策略中同时代班，请在“值班 > 用户覆盖”中添加覆盖。",
-  "The device reported no SSIDs on its last walk. Networks it runs for itself, such as a wireless mesh link, are not listed.": "设备在上次遍历中未报告任何 SSID。设备为自身运行的网络（例如无线网状链路）不会列出。",
-  "The device reported no SSIDs on its last walk. Networks it runs for itself, such as a wireless mesh link, are not listed. If it broadcasts SSIDs, check that the SNMP view your credentials use includes this table.": "设备在上次遍历中未报告任何 SSID。设备为自身运行的网络（例如无线网状链路）不会列出。如果它在广播 SSID，请检查你的凭据所使用的 SNMP 视图是否包含此表。"
+  "The device reported no SSIDs on its last walk.": "设备在上次遍历中未报告任何 SSID。",
+  "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.": "设备未报告任何 SSID。设备为自身运行的网络（例如无线网状链路）不会列出。"
 }

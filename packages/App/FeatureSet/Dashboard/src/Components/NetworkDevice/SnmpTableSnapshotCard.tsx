@@ -22,10 +22,10 @@ export interface ComponentProps {
 const ENDS_WITH_UNIT: RegExp = /[a-z%]$/i;
 
 /*
- * Values up to this long stay on one line - "2.4 GHz", "20 dBm" or "active"
- * never stack over two - and a narrow screen scrolls the table sideways.
- * Longer text (a description, a version string) wraps in a column of its
- * own width.
+ * Column names and values up to this long stay on one line - "TX Power",
+ * "2.4 GHz", "20 dBm" or "active" never stack over two - and a narrow
+ * screen scrolls the table sideways. Longer text (a description, a long
+ * column name a table was given) wraps in a column of its own width.
  */
 const ONE_LINE_VALUE_LENGTH: number = 24;
 
@@ -83,6 +83,23 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
   }
 
   /*
+   * Rows the walk read and left out of the table: an SSID table's networks
+   * the access point runs for itself (UniFi's mesh link and adoption
+   * network) and interfaces that broadcast none.
+   */
+  const leftOutRowCount: number = snapshot.leftOutRowCount || 0;
+
+  /*
+   * An SSID table whose rows were all left out: the device answered with
+   * rows, and none is a network people join. Saying "the device returned no
+   * rows - check the SNMP view" would send its owner the wrong way.
+   */
+  const ownNetworksOnly: boolean =
+    snapshot.kind === SnmpTableKind.WifiSsid &&
+    snapshot.rows.length === 0 &&
+    leftOutRowCount > 0;
+
+  /*
    * Why the last walk read nothing, in the words that fit what is left:
    * the rows from an earlier walk, or none at all. A probe that answered
    * without walking the table is told apart from a walk that failed - the
@@ -93,7 +110,8 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
       return undefined;
     }
 
-    const hasRows: boolean = snapshot.rows.length > 0;
+    // An earlier walk read rows, even when every one of them was left out.
+    const hasRows: boolean = snapshot.rows.length > 0 || leftOutRowCount > 0;
 
     if (
       snapshot.failureReason === SnmpTableFailureReason.ProbeDidNotWalkTables
@@ -121,21 +139,6 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
   };
 
   const failureText: string | undefined = getFailureText();
-
-  /*
-   * What a table whose walk read no rows says. An SSID table keeps only the
-   * networks people join, so a device whose only networks are its own
-   * (UniFi's mesh link and adoption network) did answer with rows: "check
-   * the SNMP view" alone would send its owner the wrong way.
-   */
-  const noRowsText: string | undefined =
-    snapshot.kind === SnmpTableKind.WifiSsid
-      ? translator.translateText(
-          "The device reported no SSIDs on its last walk. Networks it runs for itself, such as a wireless mesh link, are not listed. If it broadcasts SSIDs, check that the SNMP view your credentials use includes this table.",
-        )
-      : translator.translateText(
-          "The device returned no rows for this table. Check that it implements these columns, and that the SNMP view your credentials use includes them.",
-        );
 
   type RenderCellFunction = (
     column: SnmpTableSnapshotColumn,
@@ -208,7 +211,16 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
         )}
 
         {snapshot.rows.length === 0 ? (
-          failureText ? (
+          ownNetworksOnly ? (
+            <p
+              className="py-6 text-center text-sm text-gray-500"
+              data-testid={`snmp-table-${snapshot.key}-no-rows`}
+            >
+              {translator.translateText(
+                "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.",
+              )}
+            </p>
+          ) : failureText ? (
             /*
              * Nothing was read, so nothing was returned: the alert above
              * says why, and "the device returned no rows" would be wrong.
@@ -219,7 +231,9 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
               className="py-6 text-center text-sm text-gray-500"
               data-testid={`snmp-table-${snapshot.key}-no-rows`}
             >
-              {noRowsText}
+              {translator.translateText(
+                "The device returned no rows for this table. Check that it implements these columns, and that the SNMP view your credentials use includes them.",
+              )}
             </p>
           )
         ) : (
@@ -236,7 +250,11 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
                         <th
                           key={column.oid}
                           title={column.oid}
-                          className="whitespace-nowrap py-2 pr-4 text-left font-medium text-gray-500"
+                          className={`py-2 pr-4 text-left font-medium text-gray-500 ${
+                            column.name.length > ONE_LINE_VALUE_LENGTH
+                              ? "min-w-[8rem]"
+                              : "whitespace-nowrap"
+                          }`}
                         >
                           {column.name}
                         </th>

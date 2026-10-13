@@ -44,9 +44,10 @@ import logger from "../../../../Server/Utils/Logger";
  * walks no interface column, and its stored snapshot holds all five VAPs.
  *
  * What the next walk does: the criteria, the metrics and the templates read
- * DEMO's two rows, and the device stores them in place of the five - while
- * a walk that fails, or a probe that does not walk tables, leaves the five
- * stored and the Wi-Fi tab lists DEMO's two all the same.
+ * DEMO's two rows, and the device stores them in place of the five. A walk
+ * that fails, or a probe that does not walk tables, keeps the stored rows -
+ * the two of them that are SSIDs, counting the three it leaves out - so the
+ * stored column itself is clean after the next poll, walked or not.
  */
 
 const DEVICE_ID: ObjectID = new ObjectID(
@@ -429,7 +430,7 @@ describe("the issue #4730 access point's next walk", () => {
 });
 
 describe("a walk of the issue #4730 access point that reads no SSIDs", () => {
-  test("a failed walk keeps the five stored rows, marked, while the Wi-Fi tab lists DEMO's two", async () => {
+  test("a failed walk keeps the stored SSIDs, marked: DEMO's two rows, with the three UniFi networks counted as left out", async () => {
     const snmpResponse: SnmpMonitorResponse = walk({
       tableResults: [
         accessPointWalk()[0]!,
@@ -453,13 +454,22 @@ describe("a walk of the issue #4730 access point that reads no SSIDs", () => {
       }),
     ).toBeNull();
 
-    // The stored view keeps its last rows until a walk succeeds.
-    expect(ssidsOf(stored).rows).toHaveLength(5);
+    /*
+     * The stored view keeps its last rows until a walk succeeds - the ones a
+     * walk keeps now: the five stored before the fix are DEMO's two, and the
+     * three UniFi runs for itself are counted, not kept, for every reader of
+     * the column (the REST API included), not only the views that read it.
+     */
+    expect(labelsOf(ssidsOf(stored))).toEqual(DEMO_ROWS);
+    expect(ssidsOf(stored).leftOutRowCount).toBe(3);
     expect(ssidsOf(stored).failureCause).toBe("Request timed out");
+    expect(ssidsOf(stored).collectedAt).toBe(
+      ssidsOf(device().snmpTableSnapshot).collectedAt,
+    );
     expect(wifiTabSsids(stored!)).toEqual(["DEMO|2.4 GHz", "DEMO|5 GHz"]);
   });
 
-  test("a probe from before SNMP tables keeps the five stored rows, while the Wi-Fi tab lists DEMO's two", async () => {
+  test("a probe from before SNMP tables keeps the stored SSIDs too: DEMO's two rows, the three UniFi networks counted as left out", async () => {
     const stored: Array<SnmpTableSnapshot> | undefined =
       await NetworkDeviceWalkUtil.applyTableDefinitions({
         device: device(),
@@ -467,10 +477,41 @@ describe("a walk of the issue #4730 access point that reads no SSIDs", () => {
         monitoredAt: MONITORED_AT,
       });
 
-    expect(ssidsOf(stored).rows).toHaveLength(5);
+    expect(labelsOf(ssidsOf(stored))).toEqual(DEMO_ROWS);
+    expect(ssidsOf(stored).leftOutRowCount).toBe(3);
     expect(ssidsOf(stored).failureReason).toBe(
       SnmpTableFailureReason.ProbeDidNotWalkTables,
     );
     expect(wifiTabSsids(stored!)).toEqual(["DEMO|2.4 GHz", "DEMO|5 GHz"]);
+  });
+
+  test("a failed walk of a device stored after the fix keeps what it stored, and its count", async () => {
+    // The next walk, after the fix: DEMO's two rows and the three counted.
+    const walked: Array<SnmpTableSnapshot> | undefined =
+      await NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device(),
+        snmpResponse: walk({ tableResults: accessPointWalk() }),
+        monitoredAt: MONITORED_AT,
+      });
+
+    expect(labelsOf(ssidsOf(walked))).toEqual(DEMO_ROWS);
+    expect(ssidsOf(walked).leftOutRowCount).toBe(3);
+
+    // A walk that then fails keeps them as they are: nothing counted twice.
+    const stored: Array<SnmpTableSnapshot> | undefined =
+      await NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({ snmpTableSnapshot: walked || [] }),
+        snmpResponse: walk({
+          tableResults: [
+            accessPointWalk()[0]!,
+            { key: "wifi_ssids", rows: [], failureCause: "Request timed out" },
+          ],
+        }),
+        monitoredAt: MONITORED_AT,
+      });
+
+    expect(labelsOf(ssidsOf(stored))).toEqual(DEMO_ROWS);
+    expect(ssidsOf(stored).leftOutRowCount).toBe(3);
+    expect(ssidsOf(stored).failureCause).toBe("Request timed out");
   });
 });

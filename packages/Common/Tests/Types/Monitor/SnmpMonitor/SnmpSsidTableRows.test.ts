@@ -180,6 +180,34 @@ describe("an SSID table, as a walk stores it", () => {
 
     expect(snapshot.rows).toEqual([]);
     expect(snapshot.failureCause).toBeUndefined();
+    // An access point that broadcasts no SSID, not a walk that read nothing.
+    expect(snapshot.leftOutRowCount).toBe(2);
+  });
+
+  it("counts the rows it leaves out: the views tell an access point that broadcasts no SSID from a walk that read nothing", () => {
+    // Two of UniFi's own networks and a slot that names none.
+    expect(materializeOne(unifiVapTable(), unifiWalk()).leftOutRowCount).toBe(
+      3,
+    );
+
+    // A walk that read no row, or only networks, counts none.
+    expect(
+      materializeOne(unifiVapTable(), { key: "wifi_ssids", rows: [] }),
+    ).not.toHaveProperty("leftOutRowCount");
+    expect(
+      materializeOne(unifiVapTable(), {
+        key: "wifi_ssids",
+        rows: [vap("2", "Shop", "user", 3)],
+      }),
+    ).not.toHaveProperty("leftOutRowCount");
+
+    // Nor does a table of another kind, which keeps every row it walks.
+    expect(
+      materializeOne(
+        unifiVapTable({ kind: SnmpTableKind.Generic }),
+        unifiWalk(),
+      ),
+    ).not.toHaveProperty("leftOutRowCount");
   });
 
   it("leaves a failed walk's table as it was: no rows, and why", () => {
@@ -370,7 +398,15 @@ describe("SnmpTableListUtil.withListedRows - stored snapshots, read as a walk st
       stored,
     ])[0]!;
 
-    expect({ ...read, rows: [] }).toEqual({ ...stored, rows: [] });
+    // It counts the rows it leaves out, as a walk does ...
+    expect(read.leftOutRowCount).toBeGreaterThan(0);
+    expect(read.leftOutRowCount).toBe(stored.rows.length - read.rows.length);
+
+    // ... and keeps everything else as it was.
+    expect({ ...read, rows: [], leftOutRowCount: undefined }).toEqual({
+      ...stored,
+      rows: [],
+    });
   });
 
   it("returns a snapshot nothing is left out of as it is, and never changes the one it is given", () => {
@@ -446,6 +482,119 @@ describe("SnmpTableListUtil.withListedRows - stored snapshots, read as a walk st
         rows: undefined as unknown as Array<SnmpTableSnapshotRow>,
       }),
     ).toEqual([]);
+  });
+
+  it("adds what it leaves out to what the walk already left out", () => {
+    // A snapshot that left two rows out at its walk and stored one it would not keep now.
+    const stored: SnmpTableSnapshot = {
+      ...materializeOne(unifiVapTable(), {
+        key: "wifi_ssids",
+        rows: [vap("1", "element-9d2c4f0a7be13685"), vap("2", "Shop")],
+      }),
+    };
+    expect(stored.leftOutRowCount).toBe(1);
+
+    const storedRow: SnmpTableSnapshotRow = storedBeforeTheFix().rows.find(
+      (row: SnmpTableSnapshotRow): boolean => {
+        return row.label.startsWith("vwire-");
+      },
+    )!;
+
+    const read: SnmpTableSnapshot = SnmpTableListUtil.withListedRows([
+      { ...stored, rows: [...stored.rows, storedRow] },
+    ])[0]!;
+
+    expect(labelsOf(read)).toEqual(["Shop / na"]);
+    expect(read.leftOutRowCount).toBe(2);
+  });
+});
+
+/*
+ * A poll that reads no SSID table - its walk failed, or its probe walks no
+ * tables - keeps the stored rows. It keeps the ones a walk keeps now, so a
+ * device whose walks keep failing still has a clean stored column: every
+ * reader of it (the REST API, MCP, an export) sees SSIDs alone, not only the
+ * views that read it through withListedRows.
+ */
+describe("SnmpTableListUtil.mergeWithPrevious - a poll that reads no SSID table", () => {
+  function failedWalk(): Array<SnmpTableSnapshot> {
+    return [
+      materializeOne(unifiVapTable(), {
+        key: "wifi_ssids",
+        rows: [],
+        failureCause: "Request timed out",
+      }),
+    ];
+  }
+
+  it("keeps the stored SSIDs a walk keeps now, marked with the failure, and counts the rest", () => {
+    const stored: SnmpTableSnapshot = storedBeforeTheFix();
+    expect(stored.rows).toHaveLength(5);
+
+    const merged: SnmpTableSnapshot = SnmpTableListUtil.mergeWithPrevious({
+      current: failedWalk(),
+      previous: [stored],
+      definedKeys: ["wifi_ssids"],
+    })[0]!;
+
+    expect(labelsOf(merged)).toEqual(["Shop / na", "Shop-Guest / na"]);
+    expect(merged.leftOutRowCount).toBe(3);
+    expect(merged.failureCause).toBe("Request timed out");
+    // The stored snapshot it read is left as it was.
+    expect(stored.rows).toHaveLength(5);
+  });
+
+  it("keeps a snapshot stored since the fix as it was, counting nothing twice", () => {
+    const walked: SnmpTableSnapshot = materializeOne(
+      unifiVapTable(),
+      unifiWalk(),
+    );
+
+    const merged: SnmpTableSnapshot = SnmpTableListUtil.mergeWithPrevious({
+      current: failedWalk(),
+      previous: [walked],
+      definedKeys: ["wifi_ssids"],
+    })[0]!;
+
+    expect(merged).toEqual({ ...walked, failureCause: "Request timed out" });
+    expect(merged.leftOutRowCount).toBe(3);
+  });
+
+  it("does the same for a probe that walks no tables", () => {
+    const merged: SnmpTableSnapshot = SnmpTableListUtil.mergeWithPrevious({
+      current: SnmpTableListUtil.notWalked({
+        tables: [unifiVapTable()],
+        failureCause: "The probe did not walk this table.",
+      }),
+      previous: [storedBeforeTheFix()],
+      definedKeys: ["wifi_ssids"],
+    })[0]!;
+
+    expect(labelsOf(merged)).toEqual(["Shop / na", "Shop-Guest / na"]);
+    expect(merged.leftOutRowCount).toBe(3);
+    expect(merged.failureCause).toBe("The probe did not walk this table.");
+  });
+
+  it("keeps every stored row of any other kind of table", () => {
+    const stored: SnmpTableSnapshot = {
+      ...storedBeforeTheFix(),
+      kind: SnmpTableKind.Generic,
+    };
+
+    const merged: SnmpTableSnapshot = SnmpTableListUtil.mergeWithPrevious({
+      current: [
+        {
+          ...failedWalk()[0]!,
+          kind: SnmpTableKind.Generic,
+        },
+      ],
+      previous: [stored],
+      definedKeys: ["wifi_ssids"],
+    })[0]!;
+
+    expect(merged.rows).toHaveLength(5);
+    expect(merged).not.toHaveProperty("leftOutRowCount");
+    expect(merged.failureCause).toBe("Request timed out");
   });
 });
 

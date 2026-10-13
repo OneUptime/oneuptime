@@ -724,8 +724,12 @@ export default class SnmpTableListUtil {
        * In a table whose name columns name more than it has (see
        * SnmpTableDefinition.skipNameOnlyRows), the rows that hold nothing
        * but a name are left out - after they have named their children. So
-       * are an SSID table's rows that are no network people join.
+       * are an SSID table's rows that are no network people join, and the
+       * snapshot says how many: an access point that broadcasts no SSID is
+       * not a walk that read nothing.
        */
+      let leftOutRowCount: number = 0;
+
       const rows: Array<SnmpTableSnapshotRow> = resultRows
         .filter((row: SnmpTableResultRow) => {
           return (
@@ -734,7 +738,13 @@ export default class SnmpTableListUtil {
           );
         })
         .filter((row: SnmpTableResultRow) => {
-          return SnmpTableListUtil.isListedRow(table, row);
+          const isListed: boolean = SnmpTableListUtil.isListedRow(table, row);
+
+          if (!isListed) {
+            leftOutRowCount++;
+          }
+
+          return isListed;
         })
         .map((row: SnmpTableResultRow) => {
           return SnmpTableListUtil.buildRow(
@@ -768,6 +778,10 @@ export default class SnmpTableListUtil {
         ),
         rows: rows,
       };
+
+      if (leftOutRowCount > 0) {
+        snapshot.leftOutRowCount = leftOutRowCount;
+      }
 
       if (result.isTruncated) {
         snapshot.isTruncated = true;
@@ -879,10 +893,11 @@ export default class SnmpTableListUtil {
   /*
    * Stored snapshots as a walk stores them now. What a walk leaves out of a
    * table (isListedRow) is left out of rows a walk stored before it did -
-   * which the device keeps until its next successful walk replaces them, or
-   * for as long as its walks fail. The views that read stored rows (the
-   * Wi-Fi tab, the SNMP Tables tab, a criteria's row picker) read them
-   * through this. A snapshot nothing is left out of is returned as it is.
+   * which the device keeps until a walk replaces them - and counted in
+   * leftOutRowCount, as a walk counts them. The views that read stored rows
+   * (the Wi-Fi tab, the SNMP Tables tab, a criteria's row picker) read them
+   * through this, and a failed walk stores the rows it keeps through it
+   * (withFailureOf). A snapshot nothing is left out of is returned as it is.
    */
   public static withListedRows(
     snapshots: Array<SnmpTableSnapshot> | undefined,
@@ -891,10 +906,15 @@ export default class SnmpTableListUtil {
       (snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
         const rows: Array<SnmpTableSnapshotRow> =
           SnmpTableListUtil.listedRows(snapshot);
+        const leftOut: number = (snapshot.rows || []).length - rows.length;
 
-        return rows.length === (snapshot.rows || []).length
+        return leftOut === 0
           ? snapshot
-          : { ...snapshot, rows: rows };
+          : {
+              ...snapshot,
+              rows: rows,
+              leftOutRowCount: (snapshot.leftOutRowCount || 0) + leftOut,
+            };
       },
     );
   }
@@ -1170,14 +1190,20 @@ export default class SnmpTableListUtil {
   /*
    * The stored rows, marked with this walk's failure. The reason travels
    * with the cause it explains: a stored reason never outlives the failure
-   * it was given for.
+   * it was given for. The rows kept are the ones a walk stores now
+   * (withListedRows), so rows stored before a walk left them out - an SSID
+   * table's UniFi mesh link, say - are gone after the next poll, walked or
+   * not, for every reader of the column.
    */
   private static withFailureOf(
     previous: SnmpTableSnapshot,
     current: SnmpTableSnapshot,
   ): SnmpTableSnapshot {
+    const kept: SnmpTableSnapshot =
+      SnmpTableListUtil.withListedRows([previous])[0] || previous;
+
     const marked: SnmpTableSnapshot = {
-      ...previous,
+      ...kept,
       failureCause: current.failureCause,
     };
 

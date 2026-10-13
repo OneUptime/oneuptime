@@ -315,10 +315,19 @@ const NetworkDeviceWiFi: FunctionComponent<
   ).length;
 
   /*
-   * The SSIDs card lists the SSIDs, or - as the Radios card does - says the
-   * device reported none, when its last walk read the SSID table.
+   * The SSIDs card lists the SSIDs or, as the Radios card does, says the
+   * device has none: an access point whose only networks are its own
+   * (UniFi's mesh link and adoption network) broadcasts no SSID, and a walk
+   * that read the SSID table and found no row reported none. A table that
+   * was never read says nothing here.
    */
-  const hasReadSsidTable: boolean = WifiRadioUtil.hasReadSsidTable(snapshots);
+  const ownNetworksOnly: boolean =
+    summary.ssids.length === 0 && Boolean(summary.leftOutSsidRows);
+
+  const showsSsidsCard: boolean =
+    summary.ssids.length > 0 ||
+    ownNetworksOnly ||
+    WifiRadioUtil.hasReadSsidTable(snapshots);
 
   const tiles: Array<{ title: string; value: string }> = [
     ...(summary.accessPoints.length > 0
@@ -597,7 +606,7 @@ const NetworkDeviceWiFi: FunctionComponent<
         )}
       </Card>
 
-      {summary.ssids.length > 0 || hasReadSsidTable ? (
+      {showsSsidsCard ? (
         <Card
           title="SSIDs"
           description={
@@ -622,9 +631,13 @@ const NetworkDeviceWiFi: FunctionComponent<
             />
           ) : (
             <p className="text-sm text-gray-500" data-testid="wifi-no-ssids">
-              {translator.translateText(
-                "The device reported no SSIDs on its last walk. Networks it runs for itself, such as a wireless mesh link, are not listed.",
-              )}
+              {ownNetworksOnly
+                ? translator.translateText(
+                    "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.",
+                  )
+                : translator.translateText(
+                    "The device reported no SSIDs on its last walk.",
+                  )}
             </p>
           )}
         </Card>
