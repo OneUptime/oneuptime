@@ -1,6 +1,9 @@
 import Email from "../../Types/Email";
 import { JSONObject } from "../../Types/JSON";
-import Analytics, { COOKIE_CONSENT_STORAGE_KEY } from "../../Utils/Analytics";
+import Analytics, {
+  COOKIE_CONSENT_STORAGE_KEY,
+  PurchaseData,
+} from "../../Utils/Analytics";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -661,4 +664,234 @@ describe("isRevenueEventName", () => {
       expect(isRevenueEventName(eventName)).toBe(false);
     },
   );
+});
+
+/*
+ * Google Analytics' user_id and purchase, both sent only where the page loaded
+ * Google Analytics itself (sign-up and the dashboard).
+ */
+describe("Analytics' user_id and purchase for Google Analytics", () => {
+  let gtag: jest.Mock;
+
+  const measurementWindow: () => Record<string, unknown> = (): Record<
+    string,
+    unknown
+  > => {
+    return window as unknown as Record<string, unknown>;
+  };
+
+  const PURCHASE: PurchaseData = {
+    transactionId: "subscription_started:project-1",
+    value: 49,
+    currency: "USD",
+    plan: "Growth",
+  };
+
+  beforeEach(() => {
+    gtag = jest.fn();
+    measurementWindow()["oneUptimeGoogleTagMode"] = "analytics-only";
+    measurementWindow()["gtag"] = gtag;
+  });
+
+  afterEach(() => {
+    delete measurementWindow()["oneUptimeGoogleTagMode"];
+    delete measurementWindow()["gtag"];
+    jest.clearAllMocks();
+  });
+
+  describe("setGoogleAnalyticsUserId", () => {
+    it("sets user_id to the internal user ID", () => {
+      new Analytics(apiHost, apiKey).setGoogleAnalyticsUserId("user-123");
+
+      expect(gtag).toHaveBeenCalledTimes(1);
+      expect(gtag).toHaveBeenCalledWith("set", { user_id: "user-123" });
+    });
+
+    it("sets nothing for an empty ID", () => {
+      new Analytics(apiHost, apiKey).setGoogleAnalyticsUserId("");
+
+      expect(gtag).not.toHaveBeenCalled();
+    });
+
+    it("sets nothing on a page that loads the Tag Manager container instead", () => {
+      measurementWindow()["oneUptimeGoogleTagMode"] = "tag-manager";
+
+      new Analytics(apiHost, apiKey).setGoogleAnalyticsUserId("user-123");
+
+      expect(gtag).not.toHaveBeenCalled();
+    });
+
+    it("does nothing where no Google tag was loaded (a self-hosted install)", () => {
+      delete measurementWindow()["gtag"];
+
+      expect(() => {
+        new Analytics(apiHost, apiKey).setGoogleAnalyticsUserId("user-123");
+      }).not.toThrow();
+    });
+
+    it("never hands PostHog the ID", () => {
+      new Analytics(apiHost, apiKey).setGoogleAnalyticsUserId("user-123");
+
+      expect(posthog.identify).not.toHaveBeenCalled();
+      expect(posthog.capture).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("capturePurchase", () => {
+    it("sends GA4's purchase event with its transaction, value, currency and plan", () => {
+      new Analytics(apiHost, apiKey).capturePurchase(PURCHASE);
+
+      expect(gtag).toHaveBeenCalledTimes(1);
+      expect(gtag).toHaveBeenCalledWith("event", "purchase", {
+        transaction_id: "subscription_started:project-1",
+        value: 49,
+        currency: "USD",
+        items: [
+          {
+            item_id: "Growth",
+            item_name: "Growth",
+            price: 49,
+            quantity: 1,
+          },
+        ],
+      });
+    });
+
+    it("leaves PostHog to the subscription event it already has", () => {
+      new Analytics(apiHost, apiKey).capturePurchase(PURCHASE);
+
+      expect(posthog.capture).not.toHaveBeenCalled();
+    });
+
+    it("sends nothing on a page that loads the Tag Manager container instead", () => {
+      measurementWindow()["oneUptimeGoogleTagMode"] = "tag-manager";
+
+      new Analytics(apiHost, apiKey).capturePurchase(PURCHASE);
+
+      expect(gtag).not.toHaveBeenCalled();
+    });
+
+    it("does nothing where no Google tag was loaded (a self-hosted install)", () => {
+      delete measurementWindow()["gtag"];
+
+      expect(() => {
+        new Analytics(apiHost, apiKey).capturePurchase(PURCHASE);
+      }).not.toThrow();
+    });
+  });
+
+  describe("purchaseForNewProject", () => {
+    it("uses the server's event ID for the same conversion", () => {
+      expect(
+        Analytics.purchaseForNewProject({
+          projectId: "project-1",
+          planName: "Growth",
+          monthlyAmountInUSD: 49,
+        }),
+      ).toEqual(PURCHASE);
+    });
+
+    it("is none for custom pricing, which has no amount", () => {
+      expect(
+        Analytics.purchaseForNewProject({
+          projectId: "project-1",
+          planName: "Enterprise",
+          monthlyAmountInUSD: null,
+        }),
+      ).toBeNull();
+    });
+
+    it("is none without a project ID to name it by", () => {
+      expect(
+        Analytics.purchaseForNewProject({
+          projectId: "",
+          planName: "Growth",
+          monthlyAmountInUSD: 49,
+        }),
+      ).toBeNull();
+    });
+  });
+
+  describe("purchaseForPlanChange", () => {
+    const CHANGED_AT: Date = new Date("2026-10-13T09:30:00.000Z");
+
+    it("is a free project becoming a paying one, valued at the new MRR", () => {
+      expect(
+        Analytics.purchaseForPlanChange({
+          projectId: "project-1",
+          planName: "Scale",
+          isPaidConversion: true,
+          monthlyAmountInUSD: 99,
+          seats: 10,
+          changedAt: CHANGED_AT,
+        }),
+      ).toEqual({
+        transactionId:
+          "subscription_upgraded:project-1:2026-10-13T09:30:00.000Z",
+        value: 990,
+        currency: "USD",
+        plan: "Scale",
+      });
+    });
+
+    it("tells two upgrades of one project apart", () => {
+      const first: PurchaseData | null = Analytics.purchaseForPlanChange({
+        projectId: "project-1",
+        planName: "Growth",
+        isPaidConversion: true,
+        monthlyAmountInUSD: 22,
+        seats: 1,
+        changedAt: CHANGED_AT,
+      });
+      const second: PurchaseData | null = Analytics.purchaseForPlanChange({
+        projectId: "project-1",
+        planName: "Growth",
+        isPaidConversion: true,
+        monthlyAmountInUSD: 22,
+        seats: 1,
+        changedAt: new Date("2026-11-02T10:00:00.000Z"),
+      });
+
+      expect(first?.transactionId).not.toBe(second?.transactionId);
+    });
+
+    it("is none for a move between paid tiers, which is expansion", () => {
+      expect(
+        Analytics.purchaseForPlanChange({
+          projectId: "project-1",
+          planName: "Scale",
+          isPaidConversion: false,
+          monthlyAmountInUSD: 99,
+          seats: 10,
+          changedAt: CHANGED_AT,
+        }),
+      ).toBeNull();
+    });
+
+    it("is none for custom pricing, which has no amount", () => {
+      expect(
+        Analytics.purchaseForPlanChange({
+          projectId: "project-1",
+          planName: "Enterprise",
+          isPaidConversion: true,
+          monthlyAmountInUSD: null,
+          seats: 10,
+          changedAt: CHANGED_AT,
+        }),
+      ).toBeNull();
+    });
+
+    it("keeps transaction IDs within GA4's 100-character parameter limit", () => {
+      const purchase: PurchaseData | null = Analytics.purchaseForPlanChange({
+        projectId: "0195f2c1-7a4e-7c3b-9f0e-2d8a6b5c4e3f",
+        planName: "Scale",
+        isPaidConversion: true,
+        monthlyAmountInUSD: 99,
+        seats: 1,
+        changedAt: CHANGED_AT,
+      });
+
+      expect(purchase?.transactionId.length).toBeLessThanOrEqual(100);
+    });
+  });
 });
