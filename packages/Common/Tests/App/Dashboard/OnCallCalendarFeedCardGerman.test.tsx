@@ -53,7 +53,7 @@ const HTTPS_URL: string =
   "https://oneuptime.example.com/api/on-call-calendar/user/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG/shifts.ics";
 
 // Intl writes a no-break space in some languages' relative times.
-const NO_BREAK_SPACES: RegExp = /[  ]/g;
+const NO_BREAK_SPACES: RegExp = /[\u202f\u00a0]/g;
 
 function plain(text: string | null | undefined): string {
   return (text || "").replace(NO_BREAK_SPACES, " ");
