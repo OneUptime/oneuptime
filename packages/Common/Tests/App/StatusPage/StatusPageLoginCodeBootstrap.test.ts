@@ -75,37 +75,60 @@ describe("Status Page login-code head bootstrap", () => {
     page.window.close();
   });
 
-  it("does not start Google Tag Manager while a bearer code is pending", () => {
-    const page: JSDOM = loadPage(
+  /*
+   * A status page belongs to OneUptime's customer, and its visitors are not
+   * OneUptime's to measure - so no Google tag loads on one at all, whether a
+   * bearer code is in flight or not. That is stronger than the guard this
+   * replaced, which held the Tag Manager container back only while a code was
+   * pending and loaded it on every other visit.
+   */
+  it.each([
+    [
+      "while a bearer code is pending",
       "https://status.example/?loginCode=single-use-code",
-    );
+      undefined,
+    ],
+    ["on an ordinary visit", "https://status.example/", undefined],
+    [
+      "after a reload, before React consumes the stored code",
+      "https://status.example/",
+      "stored-single-use-code",
+    ],
+  ])(
+    "loads no Google tag %s",
+    (_label: string, url: string, existingCode: string | undefined) => {
+      const page: JSDOM = loadPage(url, existingCode);
 
-    expect((page.window as any).dataLayer).toBeUndefined();
-    expect(
-      page.window.document.querySelector(
-        'script[src^="https://www.googletagmanager.com/gtm.js"]',
-      ),
-    ).toBeNull();
-    page.window.close();
-  });
+      expect((page.window as any).dataLayer).toBeUndefined();
+      expect((page.window as any).gtag).toBeUndefined();
+      expect(
+        page.window.document.querySelector(
+          'script[src*="googletagmanager.com"]',
+        ),
+      ).toBeNull();
+      page.window.close();
+    },
+  );
 
-  it("keeps analytics enabled on ordinary status-page visits", () => {
-    const page: JSDOM = loadPage("https://status.example/");
-
-    expect((page.window as any).dataLayer).toHaveLength(1);
-    page.window.close();
-  });
-
-  it("continues suppressing analytics after a reload until React consumes the stored code", () => {
+  it("keeps a stored code for React to consume after a reload", () => {
     const page: JSDOM = loadPage(
       "https://status.example/",
       "stored-single-use-code",
     );
 
-    expect((page.window as any).dataLayer).toBeUndefined();
     expect(page.window.sessionStorage.getItem(STORAGE_KEY)).toBe(
       "stored-single-use-code",
     );
+    expect(
+      (page.window as any).__ONEUPTIME_STATUS_PAGE_LOGIN_HANDOFF_PENDING__,
+    ).toBe(true);
+    page.window.close();
+  });
+
+  it("switches off the product's own analytics", () => {
+    const page: JSDOM = loadPage("https://status.example/");
+
+    expect((page.window as any).oneUptimeProductAnalyticsDisabled).toBe(true);
     page.window.close();
   });
 });

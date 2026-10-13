@@ -92,7 +92,7 @@ How many days the chart covers is not set here. That is **Uptime History** in th
 
 Seventeen languages ship with OneUptime: English, German, French, Spanish, Italian, Portuguese, Dutch, Danish, Norwegian, Swedish, Russian, Japanese, Korean, Chinese (Simplified), Chinese (Traditional), Hindi and Persian.
 
-**Search Engine Indexing.** One switch, **Allow Search Engines to Index this Status Page**, decides whether Google, Bing and other search engines may list the page. It is on by default. There is no **Edit** button: the switch saves the moment you flip it. Switch it off and the page is served with `noindex, nofollow` (a robots meta tag and an `X-Robots-Tag` header); anyone with the link can still open it. Search engines can take a few weeks to drop a page they have already indexed.
+**Search Engine Indexing.** One switch, **Allow Search Engines to Index this Status Page**, decides whether Google, Bing and other search engines may list the page. It is on by default. There is no **Edit** button: the switch saves the moment you flip it. Switch it off and the page is served with `noindex, nofollow` (a robots meta tag and an `X-Robots-Tag` header); anyone with the link can still open it. Search engines can take a few weeks to drop a page they have already indexed. The switch covers the page on its custom domains only. Its preview URL is always served with `noindex, nofollow`, so a status page shows up in search results only once it has a custom domain.
 
 > [!TIP]
 > Turn **Allow Search Engines to Index this Status Page** off while a page is internal-only or still being set up, so a half-finished page does not start ranking for your brand name.

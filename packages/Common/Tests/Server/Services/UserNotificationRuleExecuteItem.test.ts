@@ -646,6 +646,13 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
           isVerified: true,
           userId: true,
           isCriticalAlertEnabled: true,
+          /*
+           * The alarm and the iPhone volume the handset chose for critical
+           * pages. Dropped, they read as unset and every page plays the
+           * system sound at full volume instead of the one its owner picked.
+           */
+          criticalAlertSound: true,
+          criticalAlertVolume: true,
         },
       });
     });

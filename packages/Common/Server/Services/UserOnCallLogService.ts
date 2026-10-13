@@ -13,6 +13,7 @@ import UserNotificationRuleService, {
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
+import { getRepeatClaimKey } from "../../Types/NotificationRule/NotificationRepeat";
 import ObjectID from "../../Types/ObjectID";
 import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -123,9 +124,10 @@ export class Service extends DatabaseService<Model> {
 
   /**
    * Atomically claim the right to execute ONE notification rule for this
-   * on-call log. Rules are claimed under their own id; see
-   * claimNotificationExecution below for what the claim actually guarantees and
-   * why it is keyed by a string.
+   * on-call log. Rules are claimed under their own id, and each repeat of a
+   * rule that repeats until acknowledged (NotificationRepeat) under a key of
+   * its own; see claimNotificationExecution below for what the claim actually
+   * guarantees and why it is keyed by a string.
    *
    * Returns true when THIS call claimed the rule (caller should send), false when
    * it was already executed/claimed (caller should skip) or the log is missing.
@@ -134,10 +136,17 @@ export class Service extends DatabaseService<Model> {
   public async claimNotificationRuleExecution(data: {
     userOnCallLogId: ObjectID;
     userNotificationRuleId: ObjectID;
+    // Absent (or 0) for the rule's first push.
+    repeatNumber?: number | undefined;
   }): Promise<boolean> {
+    const ruleId: string = data.userNotificationRuleId.toString();
+
     return await this.claimNotificationExecution({
       userOnCallLogId: data.userOnCallLogId,
-      claimKey: data.userNotificationRuleId.toString(),
+      claimKey:
+        data.repeatNumber && data.repeatNumber > 0
+          ? getRepeatClaimKey(ruleId, data.repeatNumber)
+          : ruleId,
     });
   }
 

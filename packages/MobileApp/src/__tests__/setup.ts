@@ -83,6 +83,12 @@ jest.mock("expo-notifications", () => {
     getLastNotificationResponseAsync: jest.fn(async () => {
       return null;
     }),
+    scheduleNotificationAsync: jest.fn(async () => {
+      return "local-notification-id";
+    }),
+    dismissNotificationAsync: jest.fn(async () => {
+      return undefined;
+    }),
   };
 });
 

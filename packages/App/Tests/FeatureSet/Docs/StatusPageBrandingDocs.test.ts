@@ -226,6 +226,12 @@ describe("Status Page Branding & Domains (English)", () => {
     );
   });
 
+  it("says search engines index a status page only on a custom domain, never at its preview URL", () => {
+    expect(page).toContain(
+      "The switch covers the page on its custom domains only. Its preview URL is always served with `noindex, nofollow`, so a status page shows up in search results only once it has a custom domain.",
+    );
+  });
+
   it("says the languages are one card and one dialog", () => {
     expect(page).toContain("**Edit Languages** opens two fields");
     expect(page).not.toContain("**Edit Default Language**");

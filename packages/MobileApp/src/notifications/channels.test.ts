@@ -1,6 +1,8 @@
 import * as Notifications from "expo-notifications";
 import {
   CRITICAL_CHANNEL,
+  CRITICAL_CHANNELS,
+  CRITICAL_SOUND_CHANNELS,
   HIGH_CHANNEL,
   LOW_CHANNEL,
   NORMAL_CHANNEL,
@@ -159,13 +161,18 @@ describe("Channel ids match the contract the server sends", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  test("all four channels are registered for creation", () => {
+  test("every channel is registered for creation, the critical ones first", () => {
     expect(
       NOTIFICATION_CHANNELS.map((entry: { id: string }) => {
         return entry.id;
       }),
     ).toEqual([
       "oncall_critical",
+      "oncall_critical_klaxon",
+      "oncall_critical_siren",
+      "oncall_critical_digital",
+      "oncall_critical_smoke_alarm",
+      "oncall_critical_rising",
       "oncall_high",
       "oncall_normal",
       "oncall_low",
@@ -180,5 +187,115 @@ describe("Channel ids match the contract the server sends", () => {
 
     expect(entry.channel).toBe(CRITICAL_CHANNEL);
     expect(entry.channel.bypassDnd).toBe(true);
+  });
+});
+
+describe("Each alarm sound has a critical channel of its own", () => {
+  /*
+   * Android fixes a channel's sound when the channel is created, so a page
+   * cannot bring its own sound: the server pages on the channel of the sound
+   * the responder chose. Each of these channels is a new id - the original
+   * oncall_critical is frozen on every phone that has it - and each is the
+   * critical channel in every way except its sound and its name.
+   */
+  const SOUND_FILES: Record<string, string> = {
+    oncall_critical_klaxon: "oneuptime_klaxon.wav",
+    oncall_critical_siren: "oneuptime_siren.wav",
+    oncall_critical_digital: "oneuptime_digital.wav",
+    oncall_critical_smoke_alarm: "oneuptime_smoke_alarm.wav",
+    oncall_critical_rising: "oneuptime_rising.wav",
+  };
+
+  test("the ids are the server's (Common AndroidNotificationChannel)", () => {
+    expect(NotificationChannelId.CRITICAL_KLAXON).toBe(
+      "oncall_critical_klaxon",
+    );
+    expect(NotificationChannelId.CRITICAL_SIREN).toBe("oncall_critical_siren");
+    expect(NotificationChannelId.CRITICAL_DIGITAL).toBe(
+      "oncall_critical_digital",
+    );
+    expect(NotificationChannelId.CRITICAL_SMOKE_ALARM).toBe(
+      "oncall_critical_smoke_alarm",
+    );
+    expect(NotificationChannelId.CRITICAL_RISING).toBe(
+      "oncall_critical_rising",
+    );
+  });
+
+  test("there is one per bundled sound, playing that sound", () => {
+    expect(
+      CRITICAL_SOUND_CHANNELS.map(
+        (entry: {
+          id: string;
+          channel: Notifications.NotificationChannelInput;
+        }) => {
+          return [entry.id, entry.channel.sound];
+        },
+      ),
+    ).toEqual(Object.entries(SOUND_FILES));
+  });
+
+  test.each(Object.keys(SOUND_FILES))(
+    "%s overrides silent mode and Do Not Disturb exactly as the critical channel does",
+    (id: string) => {
+      const channel: Notifications.NotificationChannelInput =
+        CRITICAL_SOUND_CHANNELS.find((entry: { id: string }) => {
+          return entry.id === id;
+        })!.channel;
+
+      // Everything but what names the channel and the sound it plays.
+      const settings: (
+        input: Notifications.NotificationChannelInput,
+      ) => Record<string, unknown> = (
+        input: Notifications.NotificationChannelInput,
+      ): Record<string, unknown> => {
+        const copy: Record<string, unknown> = { ...input };
+        delete copy["name"];
+        delete copy["description"];
+        delete copy["sound"];
+        return copy;
+      };
+
+      expect(settings(channel)).toEqual(settings(CRITICAL_CHANNEL));
+      expect(channel.bypassDnd).toBe(true);
+      expect(channel.importance).toBe(Notifications.AndroidImportance.MAX);
+      expect(channel.audioAttributes?.usage).toBe(
+        Notifications.AndroidAudioUsage.ALARM,
+      );
+    },
+  );
+
+  test("each is named for its sound in Android's notification settings, and says what it is for", () => {
+    for (const entry of CRITICAL_SOUND_CHANNELS) {
+      expect(entry.channel.name).toMatch(/^Critical On-Call Alerts: /);
+      expect(entry.channel.description).toContain("Do Not Disturb");
+    }
+
+    const names: Array<string | null | undefined> = CRITICAL_SOUND_CHANNELS.map(
+      (entry: { channel: Notifications.NotificationChannelInput }) => {
+        return entry.channel.name;
+      },
+    );
+
+    expect(names).toEqual([
+      "Critical On-Call Alerts: Klaxon",
+      "Critical On-Call Alerts: Siren",
+      "Critical On-Call Alerts: Digital alarm",
+      "Critical On-Call Alerts: Smoke alarm",
+      "Critical On-Call Alerts: Rising alarm",
+    ]);
+  });
+
+  test("building them did not change the critical channel itself", () => {
+    expect(CRITICAL_CHANNEL.sound).toBe("default");
+    expect(CRITICAL_CHANNEL.name).toBe("Critical On-Call Alerts");
+  });
+
+  test("the critical channels are the original first, then one per sound", () => {
+    expect(CRITICAL_CHANNELS[0]).toEqual({
+      id: "oncall_critical",
+      channel: CRITICAL_CHANNEL,
+    });
+    expect(CRITICAL_CHANNELS.slice(1)).toEqual([...CRITICAL_SOUND_CHANNELS]);
   });
 });

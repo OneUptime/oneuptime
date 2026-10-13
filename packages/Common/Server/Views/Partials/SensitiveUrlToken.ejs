@@ -20,24 +20,25 @@
 
     1.  The token is moved into sessionStorage and `history.replaceState`
         rewrites the path to the token-free route. This runs synchronously in
-        <head>, before the Google Tag Manager snippet below it, so every tag the
-        container loads sees only /accounts/reset-password. Analytics is NOT
-        disabled by this — the signup funnel still reports — it just no longer
-        sees the credential. It also keeps the token out of the browser's own
-        history, which replaceState overwrites rather than appends to.
+        <head>, before the Google tag (Partials/AnalyticsConsent.ejs) and
+        before any script a status page's owner adds, so every tag sees only
+        /accounts/reset-password. Analytics is NOT disabled by this — the
+        signup funnel still reports — it just no longer sees the credential.
+        It also keeps the token out of the browser's own history, which
+        replaceState overwrites rather than appends to.
 
     2.  If step 1 did not finish — no History API, a storage exception, a URL
         the parser rejected — the token is still in the address bar, and the
         partial fails closed by setting
-        __ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__. The Google Tag Manager
-        snippet on each page checks that flag and does not start the container
-        at all. Losing a page view is the cheaper failure.
+        __ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__. The Google tag loader in
+        Partials/AnalyticsConsent.ejs checks that flag and does not load the
+        tag at all. Losing a page view is the cheaper failure.
 
     The reset flow itself keeps working in both cases: the client reads the
     token through Common/UI/Utils/SensitiveUrlToken, which prefers the
     stash and falls back to the path when the bootstrap could not clean it.
 
-    MUST be included as the first thing in <head>, ahead of Google Tag Manager
+    MUST be included as the first thing in <head>, ahead of the Google tag
     and ahead of every external <script>. A tag that loads before this runs is
     a tag that sees the token. Common/Tests/App/SensitiveUrlTokenBootstrap.test.ts
     asserts that ordering for each page that includes it.
