@@ -45,6 +45,12 @@ const SKIPPED_DIRECTORIES: ReadonlySet<string> = new Set<string>([
   "coverage",
   "playwright-report",
   "test-results",
+  /*
+   * The ignored folder the offline UI suites build their fixtures into
+   * (output/playwright/<suite>/fixture): bundles of core's own files, the
+   * license server's schema among them, not more core to scan.
+   */
+  "output",
 ]);
 
 const TEXT_EXTENSIONS: ReadonlySet<string> = new Set<string>([
