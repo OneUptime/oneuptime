@@ -445,14 +445,10 @@ Verwenden Sie das Panel **Ihre Installation testen** auf der Seite **Wiedergaber
 Den Recorder zu installieren reicht, um eine Aufzeichnung mit den Traces, Logs und Ausnahmen Ihres Backends zu verknüpfen. Sie müssen weder der Seite noch Ihren Diensten Code hinzufügen.
 
 ```mermaid title="Wie ein Backend-Span unter der Aufzeichnung landet"
-sequenceDiagram
-    participant R as Recorder
-    participant B as Ihr Backend
-    participant O as OneUptime
-    R->>B: Eine Anfrage mit<br/>traceparent und tracestate
-    B->>B: Beide gehen an jeden<br/>Dienst, den es aufruft
-    B->>O: Spans und Logs<br/>über OTLP
-    Note over O: Spans erhalten die Sitzungs-ID,<br/>Logs folgen über die Trace-ID
+flowchart TB
+    recorder["Recorder"] -->|"Eine Anfrage mit<br/>traceparent und tracestate"| backend["Ihr Backend und jeder<br/>Dienst, den es aufruft"]
+    backend -->|"Spans und Logs<br/>über OTLP"| oneuptime["OneUptime"]
+    oneuptime --> filed["Spans erhalten die Sitzungs-ID,<br/>Logs folgen über die Trace-ID"]
 ```
 
 Solange eine Sitzung hochlädt, trägt jedes `fetch` und `XMLHttpRequest`, das Ihre Seite **an ihren eigenen Ursprung** stellt, den W3C-Trace-Kontext der Sitzung:

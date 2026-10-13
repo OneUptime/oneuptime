@@ -445,14 +445,10 @@ Use o painel **Test your installation** na página **Replay Policy** da aplicaç
 Instalar o gravador basta para vincular uma gravação aos traços, registros e exceções do seu backend. Não há código para adicionar à página nem aos seus serviços.
 
 ```mermaid title="Como um span do backend é arquivado sob a gravação"
-sequenceDiagram
-    participant R as Gravador
-    participant B as O seu backend
-    participant O as OneUptime
-    R->>B: Uma requisição com<br/>traceparent e tracestate
-    B->>B: Os dois vão para cada<br/>serviço que ele chama
-    B->>O: Spans e registros<br/>via OTLP
-    Note over O: Os spans recebem o id<br/>da sessão; os registros<br/>se juntam pelo id do traço
+flowchart TB
+    recorder["Gravador"] -->|"Uma requisição com<br/>traceparent e tracestate"| backend["O seu backend e cada<br/>serviço que ele chama"]
+    backend -->|"Spans e registros<br/>via OTLP"| oneuptime["OneUptime"]
+    oneuptime --> filed["Os spans recebem o id<br/>da sessão, os registros<br/>se juntam pelo id do traço"]
 ```
 
 Enquanto uma sessão envia, cada `fetch` e `XMLHttpRequest` que a sua página faz **para a própria origem** carrega o contexto de traço W3C da sessão:

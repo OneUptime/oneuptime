@@ -15,13 +15,14 @@ Telemetri passerer tre tjek på vej til en RUM-applikation. Find det første, de
 
 ```mermaid title="De tre tjek, i rækkefølge"
 flowchart TB
-    key{"Er nøglen<br/>gyldig?"} -->|"Nej"| fixkey["Ret eller<br/>erstat nøglen"]
-    key -->|"Ja"| request{"Sender browseren<br/>POST /otlp/v1/traces?"}
-    request -->|"Ingen forespørgsel"| start["SDK'et startede<br/>aldrig"]
-    request -->|"En fejlstatus"| status["Læs statussen"]
-    request -->|"2xx"| lands{"Er appen under<br/>Overvågning af<br/>reelle brugere?"}
-    lands -->|"Under Tjenester"| attributes["Tilføj browser.*- eller<br/>device.*-attributter"]
-    lands -->|"Ja, men tom"| range["Tjek tidsrummet,<br/>Klienter og vitals"]
+    key("Er nøglen<br/>gyldig?") -->|"Nej"| fixkey["Ret eller<br/>erstat nøglen"]
+    key -->|"Ja"| request("Sender<br/>browseren POST<br/>/otlp/v1/traces?")
+    request -->|"Ja"| answer("Er svaret<br/>en 2xx?")
+    request -->|"Nej"| start["SDK'et startede<br/>aldrig"]
+    answer -->|"Nej"| status["Læs statussen"]
+    answer -->|"Ja"| lands("Er appen under<br/>Overvågning af<br/>reelle brugere?")
+    lands -->|"Under Tjenester"| attributes["Tilføj<br/>browser.*- eller<br/>device.*-attributter"]
+    lands -->|"Ja, men tom"| range["Tjek tidsrummet,<br/>Klienter<br/>og vitals"]
 ```
 
 ## Tjek nøglen

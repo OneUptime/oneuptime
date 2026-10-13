@@ -445,14 +445,10 @@ Utilisez le panneau **Test your installation** de la page **Replay Policy** de l
 Installer l'enregistreur suffit pour lier un enregistrement aux traces, journaux et exceptions de votre backend. Il n'y a aucun code à ajouter à la page ni à vos services.
 
 ```mermaid title="Comment un span du backend est rangé sous l'enregistrement"
-sequenceDiagram
-    participant R as Enregistreur
-    participant B as Votre backend
-    participant O as OneUptime
-    R->>B: Une requête avec<br/>traceparent et tracestate
-    B->>B: Les deux vont à chaque<br/>service qu'il appelle
-    B->>O: Spans et journaux<br/>via OTLP
-    Note over O: Les spans reçoivent<br/>l'id de session, les journaux<br/>suivent l'id de trace
+flowchart TB
+    recorder["Enregistreur"] -->|"Une requête avec<br/>traceparent et tracestate"| backend["Votre backend et chaque<br/>service qu'il appelle"]
+    backend -->|"Spans et journaux<br/>via OTLP"| oneuptime["OneUptime"]
+    oneuptime --> filed["Les spans reçoivent<br/>l'id de session, les journaux<br/>suivent l'id de trace"]
 ```
 
 Pendant qu'une session envoie, chaque `fetch` et chaque `XMLHttpRequest` que votre page fait **vers sa propre origine** porte le contexte de trace W3C de la session :

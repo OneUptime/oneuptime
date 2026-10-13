@@ -445,14 +445,10 @@ Brug panelet **Test your installation** på applikationens side **Replay Policy*
 At installere optageren er nok til at kæde en optagelse sammen med din backends spor, logs og undtagelser. Der er ingen kode at tilføje til siden eller til dine tjenester.
 
 ```mermaid title="Sådan arkiveres et backend-span under optagelsen"
-sequenceDiagram
-    participant R as Optager
-    participant B as Din backend
-    participant O as OneUptime
-    R->>B: En forespørgsel med<br/>traceparent og tracestate
-    B->>B: Begge går til hver<br/>tjeneste, den kalder
-    B->>O: Spans og logs<br/>via OTLP
-    Note over O: Spans får<br/>sessions-id'et; logs samles<br/>via sporings-id
+flowchart TB
+    recorder["Optager"] -->|"En forespørgsel med<br/>traceparent og tracestate"| backend["Din backend og hver<br/>tjeneste, den kalder"]
+    backend -->|"Spans og logs<br/>via OTLP"| oneuptime["OneUptime"]
+    oneuptime --> filed["Spans får<br/>sessions-id'et, logs samles<br/>via sporings-id"]
 ```
 
 Mens en session uploader, bærer hver `fetch` og `XMLHttpRequest`, som din side foretager **til sin egen oprindelse**, sessionens W3C-sporingskontekst:

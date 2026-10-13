@@ -15,13 +15,14 @@ RUM アプリケーションが見つからない、空である、または **�
 
 ```mermaid title="3 つのチェックの順序"
 flowchart TB
-    key{"キーは<br/>有効か?"} -->|"いいえ"| fixkey["キーを修正<br/>または交換"]
-    key -->|"はい"| request{"ブラウザーは<br/>POST /otlp/v1/traces<br/>を送るか?"}
-    request -->|"リクエストなし"| start["SDK が<br/>起動していない"]
-    request -->|"エラーのステータス"| status["ステータスを読む"]
-    request -->|"2xx"| lands{"アプリは<br/>リアルユーザー<br/>モニタリングにあるか?"}
-    lands -->|"サービスにある"| attributes["browser.* または<br/>device.* 属性を追加"]
-    lands -->|"あるが空"| range["期間、クライアント、<br/>Web Vitals を確認"]
+    key("キーは<br/>有効か?") -->|"いいえ"| fixkey["キーを修正<br/>または交換"]
+    key -->|"はい"| request("ブラウザーは<br/>POST /otlp/v1/traces<br/>を送るか?")
+    request -->|"はい"| answer("応答は<br/>2xx か?")
+    request -->|"いいえ"| start["SDK が<br/>起動していない"]
+    answer -->|"いいえ"| status["ステータス<br/>を読む"]
+    answer -->|"はい"| lands("アプリは<br/>リアルユーザー<br/>モニタリング<br/>にあるか?")
+    lands -->|"サービスにある"| attributes["browser.*<br/>または device.*<br/>属性を追加"]
+    lands -->|"あるが空"| range["期間、<br/>クライアント、<br/>Web Vitals を確認"]
 ```
 
 ## キーを確認する

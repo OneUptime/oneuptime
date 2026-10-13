@@ -15,13 +15,14 @@ Telemetrie passeert drie controles op weg naar een RUM-applicatie. Zoek de eerst
 
 ```mermaid title="De drie controles, in volgorde"
 flowchart TB
-    key{"Is de sleutel<br/>geldig?"} -->|"Nee"| fixkey["De sleutel herstellen<br/>of vervangen"]
-    key -->|"Ja"| request{"Verstuurt de browser<br/>POST /otlp/v1/traces?"}
-    request -->|"Geen verzoek"| start["De SDK is nooit<br/>gestart"]
-    request -->|"Een foutstatus"| status["De status lezen"]
-    request -->|"2xx"| lands{"Staat de app onder<br/>Real User<br/>Monitoring?"}
-    lands -->|"Onder Services"| attributes["browser.*- of device.*-<br/>attributen toevoegen"]
-    lands -->|"Ja, maar leeg"| range["Periode, Clients en<br/>vitals controleren"]
+    key("Is de sleutel<br/>geldig?") -->|"Nee"| fixkey["De sleutel<br/>herstellen of<br/>vervangen"]
+    key -->|"Ja"| request("Verstuurt de<br/>browser POST<br/>/otlp/v1/traces?")
+    request -->|"Ja"| answer("Is het antwoord<br/>een 2xx?")
+    request -->|"Nee"| start["De SDK is nooit<br/>gestart"]
+    answer -->|"Nee"| status["De status lezen"]
+    answer -->|"Ja"| lands("Staat de app onder<br/>Real User<br/>Monitoring?")
+    lands -->|"Onder Services"| attributes["browser.*- of<br/>device.*-attributen<br/>toevoegen"]
+    lands -->|"Ja, maar leeg"| range["Periode,<br/>Clients en vitals<br/>controleren"]
 ```
 
 ## De sleutel controleren

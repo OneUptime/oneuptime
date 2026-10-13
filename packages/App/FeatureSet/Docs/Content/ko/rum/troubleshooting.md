@@ -15,13 +15,14 @@ RUM 애플리케이션이 없거나, 비어 있거나, **연결 끊김** 상태�
 
 ```mermaid title="세 가지 확인, 순서대로"
 flowchart TB
-    key{"키가<br/>유효한가요?"} -->|"아니요"| fixkey["키를 수정하거나<br/>교체"]
-    key -->|"예"| request{"브라우저가<br/>POST /otlp/v1/traces를<br/>보내나요?"}
-    request -->|"요청 없음"| start["SDK가 시작되지<br/>않음"]
-    request -->|"오류 상태"| status["상태 확인"]
-    request -->|"2xx"| lands{"앱이 실제 사용자<br/>모니터링 아래에<br/>있나요?"}
-    lands -->|"서비스 아래"| attributes["browser.* 또는<br/>device.* 속성 추가"]
-    lands -->|"예, 하지만 비어 있음"| range["기간, 클라이언트,<br/>Web Vitals 확인"]
+    key("키가<br/>유효한가요?") -->|"아니요"| fixkey["키를 수정하거나<br/>교체"]
+    key -->|"예"| request("브라우저가<br/>POST /otlp/v1/traces를<br/>보내나요?")
+    request -->|"예"| answer("응답이<br/>2xx인가요?")
+    request -->|"아니요"| start["SDK가 시작되지<br/>않음"]
+    answer -->|"아니요"| status["상태 확인"]
+    answer -->|"예"| lands("앱이 실제 사용자<br/>모니터링 아래에<br/>있나요?")
+    lands -->|"서비스 아래"| attributes["browser.* 또는<br/>device.*<br/>속성 추가"]
+    lands -->|"예, 하지만 비어 있음"| range["기간,<br/>클라이언트,<br/>Web Vitals 확인"]
 ```
 
 ## 키 확인하기

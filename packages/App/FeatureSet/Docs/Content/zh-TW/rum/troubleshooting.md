@@ -15,13 +15,14 @@
 
 ```mermaid title="三項檢查，依序進行"
 flowchart TB
-    key{"金鑰<br/>有效嗎?"} -->|"否"| fixkey["修正或<br/>更換金鑰"]
-    key -->|"是"| request{"瀏覽器是否傳送<br/>POST /otlp/v1/traces?"}
-    request -->|"沒有請求"| start["SDK 從未<br/>啟動"]
-    request -->|"錯誤狀態"| status["查看狀態碼"]
-    request -->|"2xx"| lands{"應用程式是否在<br/>真實使用者監測下?"}
-    lands -->|"在服務下"| attributes["新增 browser.* 或<br/>device.* 屬性"]
-    lands -->|"在，但為空"| range["檢查時間範圍、<br/>用戶端與 Web Vitals"]
+    key("金鑰<br/>有效嗎?") -->|"否"| fixkey["修正或<br/>更換金鑰"]
+    key -->|"是"| request("瀏覽器是否傳送<br/>POST /otlp/v1/traces?")
+    request -->|"是"| answer("回應是<br/>2xx 嗎?")
+    request -->|"否"| start["SDK 從未<br/>啟動"]
+    answer -->|"否"| status["查看狀態碼"]
+    answer -->|"是"| lands("應用程式是否在<br/>真實使用者監測下?")
+    lands -->|"在服務下"| attributes["新增 browser.*<br/>或 device.*<br/>屬性"]
+    lands -->|"在，但為空"| range["檢查時間範圍、<br/>用戶端與<br/>Web Vitals"]
 ```
 
 ## 檢查金鑰

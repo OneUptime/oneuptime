@@ -445,14 +445,10 @@ OneUptime をセルフホストしている場合は、代わりに自分のホ�
 録画をバックエンドのトレース、ログ、例外に関連付けるには、レコーダーをインストールするだけで十分です。ページにもサービスにも追加するコードはありません。
 
 ```mermaid title="バックエンドのスパンが録画の下に記録される流れ"
-sequenceDiagram
-    participant R as レコーダー
-    participant B as バックエンド
-    participant O as OneUptime
-    R->>B: traceparent と tracestate<br/>を付けたリクエスト
-    B->>B: 呼び出す各サービスに<br/>両方を渡す
-    B->>O: OTLP で<br/>スパンとログ
-    Note over O: スパンにはセッション ID、<br/>ログはトレース ID で結合
+flowchart TB
+    recorder["レコーダー"] -->|"traceparent と tracestate<br/>を付けたリクエスト"| backend["バックエンドと、それが<br/>呼び出す各サービス"]
+    backend -->|"OTLP で<br/>スパンとログ"| oneuptime["OneUptime"]
+    oneuptime --> filed["スパンにはセッション ID、<br/>ログはトレース ID で結合"]
 ```
 
 セッションのアップロード中、ページが **自身のオリジンに** 対して行うすべての `fetch` と `XMLHttpRequest` は、セッションの W3C トレースコンテキストを運びます。

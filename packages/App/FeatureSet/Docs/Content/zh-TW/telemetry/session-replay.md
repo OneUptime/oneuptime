@@ -445,14 +445,10 @@ connect-src 'self' https://oneuptime.com;
 安裝錄製器就足以把錄製與你後端的追蹤、日誌與例外狀況關聯起來。不需要在你的頁面或服務中加入任何程式碼。
 
 ```mermaid title="後端 span 如何歸檔到錄製之下"
-sequenceDiagram
-    participant R as 錄製器
-    participant B as 你的後端
-    participant O as OneUptime
-    R->>B: 帶有 traceparent 與<br/>tracestate 的請求
-    B->>B: 兩者都傳給它<br/>呼叫的每個服務
-    B->>O: 透過 OTLP 傳送<br/>span 與日誌
-    Note over O: span 取得工作階段 ID；<br/>日誌透過追蹤 ID 合併
+flowchart TB
+    recorder["錄製器"] -->|"帶有 traceparent 與<br/>tracestate 的請求"| backend["你的後端，以及它<br/>呼叫的每個服務"]
+    backend -->|"透過 OTLP 傳送<br/>span 與日誌"| oneuptime["OneUptime"]
+    oneuptime --> filed["span 取得工作階段 ID；<br/>日誌透過追蹤 ID 合併"]
 ```
 
 在工作階段上傳期間，你的頁面 **傳往其自身來源** 的每個 `fetch` 與 `XMLHttpRequest` 都會帶有該工作階段的 W3C 追蹤內容：

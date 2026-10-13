@@ -15,13 +15,14 @@ Telemetrie durchläuft auf dem Weg zu einer RUM-Anwendung drei Prüfungen. Suche
 
 ```mermaid title="Die drei Prüfungen, der Reihe nach"
 flowchart TB
-    key{"Wird der Schlüssel<br/>akzeptiert?"} -->|"Nein"| fixkey["Schlüssel reparieren<br/>oder ersetzen"]
-    key -->|"Ja"| request{"Sendet der Browser<br/>POST /otlp/v1/traces?"}
-    request -->|"Keine Anfrage"| start["Das SDK ist nie<br/>gestartet"]
-    request -->|"Ein Fehlerstatus"| status["Den Status lesen"]
-    request -->|"2xx"| lands{"Steht die App unter<br/>Real User Monitoring?"}
-    lands -->|"Unter Dienste"| attributes["browser.* oder device.*<br/>Attribute hinzufügen"]
-    lands -->|"Ja, aber leer"| range["Zeitraum, Clients<br/>und Vitals prüfen"]
+    key("Wird der Schlüssel<br/>akzeptiert?") -->|"Nein"| fixkey["Schlüssel<br/>reparieren oder<br/>ersetzen"]
+    key -->|"Ja"| request("Sendet der<br/>Browser POST<br/>/otlp/v1/traces?")
+    request -->|"Ja"| answer("Ist die Antwort<br/>ein 2xx?")
+    request -->|"Nein"| start["Das SDK ist nie<br/>gestartet"]
+    answer -->|"Nein"| status["Den Status lesen"]
+    answer -->|"Ja"| lands("Steht die App unter<br/>Real User Monitoring?")
+    lands -->|"Unter Dienste"| attributes["browser.* oder<br/>device.* Attribute<br/>hinzufügen"]
+    lands -->|"Ja, aber leer"| range["Zeitraum,<br/>Clients und<br/>Vitals prüfen"]
 ```
 
 ## Den Schlüssel prüfen

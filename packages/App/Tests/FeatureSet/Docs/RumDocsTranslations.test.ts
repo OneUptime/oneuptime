@@ -126,19 +126,26 @@ const ADMIN_DASHBOARD_LOCALES: string = path.resolve(
  * the docs' own font, in every language: their label lines are broken
  * (<br/>) to be no wider than this, counting a Chinese, Japanese or Korean
  * character twice. Each cap is the widest line the 17 languages drew when
- * they were measured; the widest diagram of all, the Russian single-page
- * app diagram, drew 521px. A label put back on one line runs its diagram off
- * the column, and the docs scroll it rather than shrink it.
+ * they were measured; the widest diagram of all, the Norwegian decision tree
+ * on RUM Troubleshooting, drew 541px. A label put back on one line runs its
+ * diagram off the column, and the docs scroll it rather than shrink it.
+ *
+ * A line's length is not the whole of a diagram's width: a decision tree
+ * spends the column on the nodes it lays side by side, and a sequence
+ * diagram on its participants (three of them draw 650px, whatever their
+ * labels say). That is why RUM Troubleshooting's tree asks one question a
+ * row and breaks its leaves into three short lines, and why Session Replay's
+ * backend linking is a flowchart, not a sequence diagram.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [RUM_INDEX]: 25,
   [BROWSER_SETUP]: 20,
   [MOBILE_SETUP]: 29,
   [WEB_VITALS]: 28,
-  [RUM_APPLICATIONS]: 30,
-  [SESSION_REPLAY]: 34,
-  [SESSION_REPLAY_TROUBLESHOOTING]: 30,
-  [RUM_TROUBLESHOOTING]: 30,
+  [RUM_APPLICATIONS]: 28,
+  [SESSION_REPLAY]: 31,
+  [SESSION_REPLAY_TROUBLESHOOTING]: 29,
+  [RUM_TROUBLESHOOTING]: 24,
 };
 
 /*
@@ -725,6 +732,32 @@ describe("the English pages", () => {
       expect(widestDiagramLine("en", entry.page)).toBeLessThanOrEqual(
         WIDEST_DIAGRAM_LINE[entry.page] as number,
       );
+    },
+  );
+
+  /*
+   * A sequence diagram draws each participant 150px wide with 50px between
+   * them, so three of them overrun the column whatever their labels say, and
+   * a flowchart laid out left to right puts every step of a chain side by
+   * side. The pages draw top to bottom, one step under the next.
+   */
+  it.each(RUM_PAGES)(
+    "$page draws every diagram as a flowchart read top to bottom",
+    (entry: RumDocsPageEntry) => {
+      const kinds: Array<string> = scanMarkdown(englishPage(entry.page))
+        .fences.filter((fence: { lang: string }): boolean => {
+          return fence.lang === "mermaid";
+        })
+        .map((fence: { code: string }): string => {
+          return fence.code.trim().split("\n")[0]?.trim() || "";
+        });
+
+      expect(kinds.length).toBeGreaterThan(0);
+      expect(
+        kinds.filter((kind: string): boolean => {
+          return kind !== "flowchart TB";
+        }),
+      ).toEqual([]);
     },
   );
 

@@ -445,14 +445,10 @@ Bruk panelet **Test your installation** på applikasjonens side **Replay Policy*
 Å installere opptakeren er nok til å koble et opptak til backendens spor, logger og unntak. Det er ingen kode å legge til på siden eller i tjenestene dine.
 
 ```mermaid title="Slik arkiveres et backend-spenn under opptaket"
-sequenceDiagram
-    participant R as Opptaker
-    participant B as Backenden din
-    participant O as OneUptime
-    R->>B: En forespørsel med<br/>traceparent og tracestate
-    B->>B: Begge går til hver<br/>tjeneste den kaller
-    B->>O: Spenn og logger<br/>via OTLP
-    Note over O: Spenn får<br/>økt-ID-en; logger samles<br/>via spor-ID
+flowchart TB
+    recorder["Opptaker"] -->|"En forespørsel med<br/>traceparent og tracestate"| backend["Backenden din og hver<br/>tjeneste den kaller"]
+    backend -->|"Spenn og logger<br/>via OTLP"| oneuptime["OneUptime"]
+    oneuptime --> filed["Spenn får<br/>økt-ID-en, logger samles<br/>via spor-ID"]
 ```
 
 Mens en økt laster opp, bærer hver `fetch` og `XMLHttpRequest` som siden din gjør **til sin egen opprinnelse**, øktens W3C-sporingskontekst:

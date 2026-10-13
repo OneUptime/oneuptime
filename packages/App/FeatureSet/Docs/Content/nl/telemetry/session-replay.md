@@ -445,14 +445,10 @@ Gebruik het paneel **Test your installation** op de pagina **Replay Policy** van
 Het installeren van de recorder is genoeg om een opname te koppelen aan de traces, logs en uitzonderingen van je backend. Er hoeft geen code aan de pagina of aan je services te worden toegevoegd.
 
 ```mermaid title="Hoe een backend-span onder de opname wordt gearchiveerd"
-sequenceDiagram
-    participant R as Recorder
-    participant B as Je backend
-    participant O as OneUptime
-    R->>B: Een verzoek met<br/>traceparent en tracestate
-    B->>B: Beide gaan naar elke<br/>service die hij aanroept
-    B->>O: Spans en logs<br/>via OTLP
-    Note over O: Spans krijgen de<br/>sessie-id; logs worden<br/>via trace-id samengevoegd
+flowchart TB
+    recorder["Recorder"] -->|"Een verzoek met<br/>traceparent en tracestate"| backend["Je backend en elke<br/>service die hij aanroept"]
+    backend -->|"Spans en logs<br/>via OTLP"| oneuptime["OneUptime"]
+    oneuptime --> filed["Spans krijgen de<br/>sessie-id, logs worden<br/>via trace-id samengevoegd"]
 ```
 
 Zolang een sessie uploadt, draagt elke `fetch` en `XMLHttpRequest` die je pagina **naar haar eigen origin** doet de W3C-tracecontext van de sessie:

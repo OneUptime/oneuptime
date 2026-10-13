@@ -15,13 +15,14 @@ A telemetria passa por três verificações no caminho até uma aplicação RUM.
 
 ```mermaid title="As três verificações, em ordem"
 flowchart TB
-    key{"A chave<br/>é válida?"} -->|"Não"| fixkey["Corrigir ou<br/>substituir a chave"]
-    key -->|"Sim"| request{"O navegador envia<br/>POST /otlp/v1/traces?"}
-    request -->|"Nenhuma requisição"| start["O SDK nunca<br/>iniciou"]
-    request -->|"Um status de erro"| status["Ler o status"]
-    request -->|"2xx"| lands{"O app está em<br/>Monitoramento de<br/>Usuários Reais?"}
-    lands -->|"Em Serviços"| attributes["Adicionar atributos<br/>browser.* ou device.*"]
-    lands -->|"Sim, mas vazia"| range["Verificar o intervalo,<br/>Clientes e vitals"]
+    key("A chave<br/>é válida?") -->|"Não"| fixkey["Corrigir ou<br/>substituir a chave"]
+    key -->|"Sim"| request("O navegador<br/>envia POST<br/>/otlp/v1/traces?")
+    request -->|"Sim"| answer("A resposta<br/>é um 2xx?")
+    request -->|"Não"| start["O SDK nunca<br/>iniciou"]
+    answer -->|"Não"| status["Ler o status"]
+    answer -->|"Sim"| lands("O app está em<br/>Monitoramento de<br/>Usuários Reais?")
+    lands -->|"Em Serviços"| attributes["Adicionar<br/>atributos browser.*<br/>ou device.*"]
+    lands -->|"Sim, mas vazia"| range["Verificar<br/>o intervalo,<br/>Clientes e vitals"]
 ```
 
 ## Verificar a chave

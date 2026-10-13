@@ -15,13 +15,14 @@ Telemetri passerar tre kontroller på väg till en RUM-applikation. Hitta den f�
 
 ```mermaid title="De tre kontrollerna, i ordning"
 flowchart TB
-    key{"Är nyckeln<br/>giltig?"} -->|"Nej"| fixkey["Rätta eller<br/>ersätt nyckeln"]
-    key -->|"Ja"| request{"Skickar webbläsaren<br/>POST /otlp/v1/traces?"}
-    request -->|"Ingen förfrågan"| start["SDK:t startade<br/>aldrig"]
-    request -->|"En felstatus"| status["Läs statusen"]
-    request -->|"2xx"| lands{"Finns appen under<br/>Övervakning av<br/>verkliga användare?"}
-    lands -->|"Under Tjänster"| attributes["Lägg till browser.*- eller<br/>device.*-attribut"]
-    lands -->|"Ja, men tom"| range["Kontrollera tidsintervallet,<br/>Klienter och vitals"]
+    key("Är nyckeln<br/>giltig?") -->|"Nej"| fixkey["Rätta eller<br/>ersätt nyckeln"]
+    key -->|"Ja"| request("Skickar<br/>webbläsaren POST<br/>/otlp/v1/traces?")
+    request -->|"Ja"| answer("Är svaret<br/>en 2xx?")
+    request -->|"Nej"| start["SDK:t startade<br/>aldrig"]
+    answer -->|"Nej"| status["Läs statusen"]
+    answer -->|"Ja"| lands("Finns appen under<br/>Övervakning av<br/>verkliga användare?")
+    lands -->|"Under Tjänster"| attributes["Lägg till<br/>browser.*- eller<br/>device.*-attribut"]
+    lands -->|"Ja, men tom"| range["Kontrollera<br/>tidsintervallet,<br/>Klienter och vitals"]
 ```
 
 ## Kontrollera nyckeln

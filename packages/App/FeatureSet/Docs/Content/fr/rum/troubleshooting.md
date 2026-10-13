@@ -15,13 +15,14 @@ La télémétrie passe trois vérifications en chemin vers une application RUM. 
 
 ```mermaid title="Les trois vérifications, dans l'ordre"
 flowchart TB
-    key{"La clé est-elle<br/>valide ?"} -->|"Non"| fixkey["Corriger ou<br/>remplacer la clé"]
-    key -->|"Oui"| request{"Le navigateur envoie-t-il<br/>POST /otlp/v1/traces ?"}
-    request -->|"Aucune requête"| start["Le SDK n'a jamais<br/>démarré"]
-    request -->|"Un statut d'erreur"| status["Lire le statut"]
-    request -->|"2xx"| lands{"L'application est-elle<br/>sous Surveillance<br/>des utilisateurs réels ?"}
-    lands -->|"Sous Services"| attributes["Ajouter des attributs<br/>browser.* ou device.*"]
-    lands -->|"Oui, mais vide"| range["Vérifier la période,<br/>les Clients et les vitals"]
+    key("La clé est-elle<br/>valide ?") -->|"Non"| fixkey["Corriger ou<br/>remplacer la clé"]
+    key -->|"Oui"| request("Le navigateur<br/>envoie-t-il POST<br/>/otlp/v1/traces ?")
+    request -->|"Oui"| answer("La réponse est-elle<br/>un 2xx ?")
+    request -->|"Non"| start["Le SDK n'a jamais<br/>démarré"]
+    answer -->|"Non"| status["Lire le statut"]
+    answer -->|"Oui"| lands("L'application est-elle<br/>sous Surveillance<br/>des utilisateurs réels ?")
+    lands -->|"Sous Services"| attributes["Ajouter des<br/>attributs browser.*<br/>ou device.*"]
+    lands -->|"Oui, mais vide"| range["Vérifier la période,<br/>les Clients<br/>et les vitals"]
 ```
 
 ## Vérifier la clé

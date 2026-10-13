@@ -445,14 +445,10 @@ CSP와 관련된 것이 하나 더 있는데, 정책이 아니라 스타일시�
 녹화를 백엔드의 트레이스, 로그, 예외와 연결하는 데는 레코더를 설치하는 것만으로 충분합니다. 페이지나 서비스에 추가할 코드는 없습니다.
 
 ```mermaid title="백엔드 스팬이 녹화 아래에 저장되는 과정"
-sequenceDiagram
-    participant R as 레코더
-    participant B as 백엔드
-    participant O as OneUptime
-    R->>B: traceparent와 tracestate가<br/>있는 요청
-    B->>B: 호출하는 모든 서비스로<br/>둘 다 전달
-    B->>O: OTLP로 스팬과<br/>로그 전송
-    Note over O: 스팬은 세션 ID를 받고,<br/>로그는 트레이스 ID로<br/>합쳐짐
+flowchart TB
+    recorder["레코더"] -->|"traceparent와 tracestate가<br/>있는 요청"| backend["백엔드와, 백엔드가<br/>호출하는 모든 서비스"]
+    backend -->|"OTLP로 스팬과<br/>로그 전송"| oneuptime["OneUptime"]
+    oneuptime --> filed["스팬은 세션 ID를 받고,<br/>로그는 트레이스 ID로<br/>합쳐짐"]
 ```
 
 세션이 업로드하는 동안, 페이지가 **자체 출처로** 보내는 모든 `fetch`와 `XMLHttpRequest`는 세션의 W3C 트레이스 컨텍스트를 담습니다.

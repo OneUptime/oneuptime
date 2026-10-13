@@ -445,14 +445,10 @@ Använd panelen **Test your installation** på applikationens sida **Replay Poli
 Att installera inspelaren räcker för att koppla en inspelning till din backends spår, loggar och undantag. Det finns ingen kod att lägga till på din sida eller i dina tjänster.
 
 ```mermaid title="Så arkiveras ett backend-span under inspelningen"
-sequenceDiagram
-    participant R as Inspelare
-    participant B as Din backend
-    participant O as OneUptime
-    R->>B: En förfrågan med<br/>traceparent och tracestate
-    B->>B: Båda går till varje<br/>tjänst den anropar
-    B->>O: Spans och loggar<br/>via OTLP
-    Note over O: Spans får sessions-ID:t;<br/>loggar sammanfogas<br/>via spår-ID
+flowchart TB
+    recorder["Inspelare"] -->|"En förfrågan med<br/>traceparent och tracestate"| backend["Din backend och varje<br/>tjänst den anropar"]
+    backend -->|"Spans och loggar<br/>via OTLP"| oneuptime["OneUptime"]
+    oneuptime --> filed["Spans får sessions-ID:t,<br/>loggar sammanfogas<br/>via spår-ID"]
 ```
 
 Medan en session laddar upp bär varje `fetch` och `XMLHttpRequest` som din sida gör **till sitt eget ursprung** sessionens W3C-spårningskontext:

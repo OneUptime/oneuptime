@@ -445,14 +445,10 @@ Usa il pannello **Test your installation** nella pagina **Replay Policy** dell'a
 Installare il registratore basta per collegare una registrazione alle tracce, ai log e alle eccezioni del tuo backend. Non c'è codice da aggiungere alla pagina né ai tuoi servizi.
 
 ```mermaid title="Come uno span del backend viene archiviato sotto la registrazione"
-sequenceDiagram
-    participant R as Registratore
-    participant B as Il tuo backend
-    participant O as OneUptime
-    R->>B: Una richiesta con<br/>traceparent e tracestate
-    B->>B: Entrambi vanno a ogni<br/>servizio che chiama
-    B->>O: Span e log<br/>via OTLP
-    Note over O: Gli span ricevono l'id<br/>di sessione; i log si uniscono<br/>per id di traccia
+flowchart TB
+    recorder["Registratore"] -->|"Una richiesta con<br/>traceparent e tracestate"| backend["Il tuo backend e ogni<br/>servizio che chiama"]
+    backend -->|"Span e log<br/>via OTLP"| oneuptime["OneUptime"]
+    oneuptime --> filed["Gli span ricevono l'id<br/>di sessione, i log si uniscono<br/>per id di traccia"]
 ```
 
 Mentre una sessione invia, ogni `fetch` e `XMLHttpRequest` che la tua pagina fa **verso la sua origine** porta il contesto di traccia W3C della sessione:

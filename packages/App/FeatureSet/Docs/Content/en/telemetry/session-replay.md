@@ -445,14 +445,10 @@ Use the **Test your installation** panel on the application's **Replay Policy** 
 Installing the recorder is enough to link a recording to your backend's traces, logs and exceptions. There is no code to add to the page or to your services.
 
 ```mermaid title="How a backend span is filed under the recording"
-sequenceDiagram
-    participant R as Recorder
-    participant B as Your backend
-    participant O as OneUptime
-    R->>B: A request with<br/>traceparent and tracestate
-    B->>B: Both go on to<br/>every service it calls
-    B->>O: Spans and logs<br/>over OTLP
-    Note over O: Spans get the session id,<br/>logs join by trace id
+flowchart TB
+    recorder["Recorder"] -->|"A request with<br/>traceparent and tracestate"| backend["Your backend, and every<br/>service it calls"]
+    backend -->|"Spans and logs<br/>over OTLP"| oneuptime["OneUptime"]
+    oneuptime --> filed["Spans get the session id,<br/>logs join by trace id"]
 ```
 
 While a session uploads, every `fetch` and `XMLHttpRequest` your page makes **to its own origin** carries the session's W3C trace context:

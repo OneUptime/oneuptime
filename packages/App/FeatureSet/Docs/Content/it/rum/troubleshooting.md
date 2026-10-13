@@ -15,13 +15,14 @@ La telemetria supera tre verifiche lungo il percorso verso un'applicazione RUM. 
 
 ```mermaid title="Le tre verifiche, in ordine"
 flowchart TB
-    key{"La chiave<br/>è valida?"} -->|"No"| fixkey["Correggere o<br/>sostituire la chiave"]
-    key -->|"Sì"| request{"Il browser invia<br/>POST /otlp/v1/traces?"}
-    request -->|"Nessuna richiesta"| start["L'SDK non è<br/>mai partito"]
-    request -->|"Uno stato di errore"| status["Leggere lo stato"]
-    request -->|"2xx"| lands{"L'app è in<br/>Monitoraggio degli<br/>utenti reali?"}
-    lands -->|"In Servizi"| attributes["Aggiungere attributi<br/>browser.* o device.*"]
-    lands -->|"Sì, ma vuota"| range["Controllare l'intervallo,<br/>Client e vitals"]
+    key("La chiave<br/>è valida?") -->|"No"| fixkey["Correggere o<br/>sostituire la chiave"]
+    key -->|"Sì"| request("Il browser<br/>invia POST<br/>/otlp/v1/traces?")
+    request -->|"Sì"| answer("La risposta<br/>è un 2xx?")
+    request -->|"No"| start["L'SDK non è<br/>mai partito"]
+    answer -->|"No"| status["Leggere lo stato"]
+    answer -->|"Sì"| lands("L'app è in<br/>Monitoraggio degli<br/>utenti reali?")
+    lands -->|"In Servizi"| attributes["Aggiungere<br/>attributi browser.*<br/>o device.*"]
+    lands -->|"Sì, ma vuota"| range["Controllare<br/>l'intervallo,<br/>Client e vitals"]
 ```
 
 ## Verificare la chiave

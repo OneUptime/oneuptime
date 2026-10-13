@@ -445,14 +445,10 @@ connect-src 'self' https://oneuptime.com;
 安装录制器就足以把录制与你后端的追踪、日志和异常关联起来。无需在你的页面或服务中添加任何代码。
 
 ```mermaid title="后端 span 如何归档到录制之下"
-sequenceDiagram
-    participant R as 录制器
-    participant B as 你的后端
-    participant O as OneUptime
-    R->>B: 带有 traceparent 和<br/>tracestate 的请求
-    B->>B: 两者都传给它<br/>调用的每个服务
-    B->>O: 通过 OTLP 发送<br/>span 和日志
-    Note over O: span 获得会话 ID；<br/>日志通过追踪 ID 合并
+flowchart TB
+    recorder["录制器"] -->|"带有 traceparent 和<br/>tracestate 的请求"| backend["你的后端，以及它<br/>调用的每个服务"]
+    backend -->|"通过 OTLP 发送<br/>span 和日志"| oneuptime["OneUptime"]
+    oneuptime --> filed["span 获得会话 ID；<br/>日志通过追踪 ID 合并"]
 ```
 
 在会话上传期间，你的页面 **发往其自身来源** 的每个 `fetch` 和 `XMLHttpRequest` 都会携带该会话的 W3C 追踪上下文：

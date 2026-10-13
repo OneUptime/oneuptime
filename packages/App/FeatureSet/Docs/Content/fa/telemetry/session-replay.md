@@ -445,14 +445,10 @@ connect-src 'self' https://oneuptime.com;
 نصب ضبط‌کننده برای پیوند دادن ضبط به ردیابی‌ها، گزارش‌ها و استثناهای بک‌اندتان کافی است. نه در صفحه و نه در سرویس‌هایتان کدی لازم نیست.
 
 ```mermaid title="یک اسپن بک‌اند چگونه زیر ضبط بایگانی می‌شود"
-sequenceDiagram
-    participant R as ضبط‌کننده
-    participant B as بک‌اند شما
-    participant O as OneUptime
-    R->>B: درخواستی با<br/>traceparent و tracestate
-    B->>B: هر دو به هر سرویسی<br/>که صدا می‌زند می‌روند
-    B->>O: اسپن‌ها و لاگ‌ها<br/>از راه OTLP
-    Note over O: شناسه نشست روی اسپن‌ها،<br/>لاگ‌ها از راه شناسه ردیابی
+flowchart TB
+    recorder["ضبط‌کننده"] -->|"درخواستی با<br/>traceparent و tracestate"| backend["بک‌اند شما و هر سرویسی<br/>که صدا می‌زند"]
+    backend -->|"اسپن‌ها و لاگ‌ها<br/>از راه OTLP"| oneuptime["OneUptime"]
+    oneuptime --> filed["شناسه نشست روی اسپن‌ها،<br/>لاگ‌ها از راه شناسه ردیابی"]
 ```
 
 تا وقتی نشستی فرستاده می‌شود، هر `fetch` و `XMLHttpRequest`ای که صفحه شما **به مبدأ خودش** می‌زند زمینه ردیابی W3C نشست را حمل می‌کند:

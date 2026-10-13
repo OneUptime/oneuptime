@@ -445,14 +445,10 @@ Usa el panel **Prueba tu instalación** de la página **Política de reproducci�
 Instalar el grabador basta para vincular una grabación con las trazas, registros y excepciones de tu backend. No hay código que añadir a la página ni a tus servicios.
 
 ```mermaid title="Cómo se archiva un span del backend bajo la grabación"
-sequenceDiagram
-    participant R as Grabador
-    participant B as Tu backend
-    participant O as OneUptime
-    R->>B: Una solicitud con<br/>traceparent y tracestate
-    B->>B: Ambas van a cada<br/>servicio al que llama
-    B->>O: Spans y registros<br/>por OTLP
-    Note over O: Los spans llevan el id<br/>de sesión; los registros<br/>se unen por id de traza
+flowchart TB
+    recorder["Grabador"] -->|"Una solicitud con<br/>traceparent y tracestate"| backend["Tu backend y cada<br/>servicio al que llama"]
+    backend -->|"Spans y registros<br/>por OTLP"| oneuptime["OneUptime"]
+    oneuptime --> filed["Los spans llevan el id<br/>de sesión, los registros<br/>se unen por id de traza"]
 ```
 
 Mientras una sesión sube, cada `fetch` y `XMLHttpRequest` que tu página hace **a su propio origen** lleva el contexto de traza W3C de la sesión:

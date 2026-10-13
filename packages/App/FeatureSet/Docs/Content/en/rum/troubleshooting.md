@@ -15,13 +15,14 @@ Telemetry passes three checks on its way to a RUM application. Find the first on
 
 ```mermaid title="The three checks, in order"
 flowchart TB
-    key{"Does the key<br/>validate?"} -->|"No"| fixkey["Fix or replace<br/>the key"]
-    key -->|"Yes"| request{"Does the browser send<br/>POST /otlp/v1/traces?"}
-    request -->|"No request"| start["The SDK never<br/>started"]
-    request -->|"An error status"| status["Read the status"]
-    request -->|"2xx"| lands{"Is the app under<br/>Real User Monitoring?"}
-    lands -->|"Under Services"| attributes["Add browser.* or<br/>device.* attributes"]
-    lands -->|"Yes, but empty"| range["Check the time range,<br/>Clients and vitals"]
+    key("Does the key<br/>validate?") -->|"No"| fixkey["Fix or replace<br/>the key"]
+    key -->|"Yes"| request("Does the browser<br/>send POST<br/>/otlp/v1/traces?")
+    request -->|"Yes"| answer("Is the answer<br/>2xx?")
+    request -->|"No"| start["The SDK never<br/>started"]
+    answer -->|"No"| status["Read the status"]
+    answer -->|"Yes"| lands("Is the app under<br/>Real User Monitoring?")
+    lands -->|"Under Services"| attributes["Add browser.*<br/>or device.*<br/>attributes"]
+    lands -->|"Yes, but empty"| range["Check the time<br/>range, Clients<br/>and vitals"]
 ```
 
 ## Check the key

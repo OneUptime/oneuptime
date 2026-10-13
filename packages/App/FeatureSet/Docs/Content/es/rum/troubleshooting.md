@@ -15,13 +15,14 @@ La telemetría pasa tres comprobaciones en su camino hacia una aplicación RUM. 
 
 ```mermaid title="Las tres comprobaciones, en orden"
 flowchart TB
-    key{"¿La clave<br/>es válida?"} -->|"No"| fixkey["Corregir o<br/>sustituir la clave"]
-    key -->|"Sí"| request{"¿El navegador envía<br/>POST /otlp/v1/traces?"}
-    request -->|"Ninguna solicitud"| start["El SDK nunca<br/>arrancó"]
-    request -->|"Un estado de error"| status["Leer el estado"]
-    request -->|"2xx"| lands{"¿La aplicación está en<br/>Monitoreo de usuarios<br/>reales?"}
-    lands -->|"En Servicios"| attributes["Añadir atributos<br/>browser.* o device.*"]
-    lands -->|"Sí, pero vacía"| range["Revisar el periodo,<br/>Clientes y vitals"]
+    key("¿La clave<br/>es válida?") -->|"No"| fixkey["Corregir o<br/>sustituir la clave"]
+    key -->|"Sí"| request("¿El navegador<br/>envía POST<br/>/otlp/v1/traces?")
+    request -->|"Sí"| answer("¿La respuesta<br/>es un 2xx?")
+    request -->|"No"| start["El SDK nunca<br/>arrancó"]
+    answer -->|"No"| status["Leer el estado"]
+    answer -->|"Sí"| lands("¿La aplicación está en<br/>Monitoreo de usuarios<br/>reales?")
+    lands -->|"En Servicios"| attributes["Añadir atributos<br/>browser.* o<br/>device.*"]
+    lands -->|"Sí, pero vacía"| range["Revisar el periodo,<br/>Clientes<br/>y vitals"]
 ```
 
 ## Comprobar la clave
