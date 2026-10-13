@@ -144,7 +144,10 @@ describe("self-hosted.ejs", () => {
   });
 
   test("carries the canonical title and description", () => {
-    expect(html).toContain("Self-Hosted OneUptime");
+    const seo: PageSEOData = PageSEOConfig["/enterprise/self-hosted"]!;
+
+    expect(html).toContain(`<title>${escapeForHtml(seo.title)}</title>`);
+    expect(html).toContain(`content="${escapeForHtml(seo.description)}"`);
     expect(html).toContain("https://oneuptime.com/enterprise/self-hosted");
   });
 
@@ -722,16 +725,14 @@ describe("security-events.ejs", () => {
     expect(html.length).toBeGreaterThan(10000);
   });
 
-  test("the hardcoded head matches the SEO entry's canonical URL", () => {
-    /*
-     * head-basic.ejs never reads `seo`, so the <title> and meta description in
-     * the template and the strings in PageSEO.ts are two separate places. Only
-     * the canonical URL is generated, so that is what can be asserted here.
-     */
+  test("the head is written from the SEO entry", () => {
+    const seo: PageSEOData = PageSEOConfig["/product/security-events"]!;
+
     expect(html).toContain(
       '<link rel="canonical" href="https://oneuptime.com/product/security-events"',
     );
-    expect(html).toContain("OneUptime | Security Events");
+    expect(html).toContain(`<title>${escapeForHtml(seo.title)}</title>`);
+    expect(html).toContain(`content="${escapeForHtml(seo.description)}"`);
   });
 
   test("renders the sections the page is built around", () => {
@@ -835,15 +836,15 @@ describe("vmware.ejs", () => {
     expect(html.length).toBeGreaterThan(10000);
   });
 
-  test("the hardcoded head is identical to the SEO entry", () => {
+  test("the head is written from the SEO entry", () => {
     /*
-     * The template hard-codes <title> and the meta description while
-     * head-social.ejs renders the OG/canonical tags from `seo`. Search
-     * engines see the first pair, social cards the second; they must agree
-     * word for word or the page advertises itself two different ways.
+     * The template writes <title> and the meta description from `seo`, and
+     * head-social.ejs the OG/canonical tags. Search engines see the first
+     * pair, social cards the second; they must agree word for word or the
+     * page advertises itself two different ways.
      */
-    expect(html).toContain(`<title>${seo.title}</title>`);
-    expect(html).toContain(`content="${seo.description}"`);
+    expect(html).toContain(`<title>${escapeForHtml(seo.title)}</title>`);
+    expect(html).toContain(`content="${escapeForHtml(seo.description)}"`);
     expect(html).toContain(
       '<link rel="canonical" href="https://oneuptime.com/product/vmware"',
     );
@@ -1140,10 +1141,10 @@ describe("databases.ejs", () => {
     expect(html.length).toBeGreaterThan(10000);
   });
 
-  test("the hardcoded head is identical to the SEO entry", () => {
+  test("the head is written from the SEO entry", () => {
     // Search engines read the first pair, social cards the second.
-    expect(html).toContain(`<title>${seo.title}</title>`);
-    expect(html).toContain(`content="${seo.description}"`);
+    expect(html).toContain(`<title>${escapeForHtml(seo.title)}</title>`);
+    expect(html).toContain(`content="${escapeForHtml(seo.description)}"`);
     expect(html).toContain(
       '<link rel="canonical" href="https://oneuptime.com/product/databases"',
     );
@@ -1870,10 +1871,10 @@ describe("queues.ejs", () => {
     expect(html.length).toBeGreaterThan(10000);
   });
 
-  test("the hardcoded head is identical to the SEO entry", () => {
+  test("the head is written from the SEO entry", () => {
     // Search engines read the first pair, social cards the second.
-    expect(html).toContain(`<title>${seo.title}</title>`);
-    expect(html).toContain(`content="${seo.description}"`);
+    expect(html).toContain(`<title>${escapeForHtml(seo.title)}</title>`);
+    expect(html).toContain(`content="${escapeForHtml(seo.description)}"`);
     expect(html).toContain(
       '<link rel="canonical" href="https://oneuptime.com/product/queues"',
     );

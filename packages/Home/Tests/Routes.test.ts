@@ -1,5 +1,5 @@
 import { REDIRECT_PATHS, isRedirectPath } from "../Utils/Sitemap";
-import PageSEOConfig, { PageSEOData } from "../Utils/PageSEO";
+import PageSEOConfig, { PageSEOData, getPageSEO } from "../Utils/PageSEO";
 import fs from "fs";
 import path from "path";
 
@@ -133,6 +133,89 @@ describe("Trust center routes", () => {
     expect(hasGetRoute("/data/claims.json")).toBe(true);
     expect(routesSource).toContain("statuses: ClaimStatuses");
   });
+});
+
+describe("Legal routes", () => {
+  /*
+   * /legal rendered the Terms of Service under a second URL, so search
+   * engines saw two copies of one document. It redirects to /legal/terms
+   * permanently, which is still what every link to /legal shows. Each
+   * document hands legal.ejs its own SEO entry rather than leaving the
+   * request middleware to derive one from the path, so /Legal/DPA and
+   * /legal/dpa/ still name /legal/dpa as canonical.
+   */
+  const legalPaths: Array<string> = [
+    ...new Set<string>(
+      [...routesSource.matchAll(/app\.get\(\s*"(\/legal\/[^"]+)"/g)].map(
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
+    ),
+  ];
+
+  test("/legal permanently redirects to the terms it always showed", () => {
+    expect(hasGetRoute("/legal")).toBe(true);
+    expect(redirectTargetOf("/legal")).toBe("/legal/terms");
+    expect(redirectsPermanently("/legal")).toBe(true);
+    expect(bodyOfGetRoute("/legal")).not.toContain("res.render(");
+  });
+
+  test("the terms are still a page of their own", () => {
+    expect(redirectTargetOf("/legal/terms")).toBeNull();
+    expect(bodyOfGetRoute("/legal/terms")).toContain('section: "terms"');
+  });
+
+  test("nothing describes /legal as a page, or leads a breadcrumb trail through it", () => {
+    // A redirect has no title or description of its own to give a search.
+    expect(PageSEOConfig["/legal"]).toBeUndefined();
+
+    const trails: Array<[string, Array<string>]> = [
+      ...Object.values(PageSEOConfig),
+      getPageSEO("/legal/a-document-nobody-wrote"),
+    ].map((seo: PageSEOData): [string, Array<string>] => {
+      return [
+        seo.canonicalPath,
+        seo.breadcrumbs.map((crumb: { url: string }): string => {
+          return crumb.url;
+        }),
+      ];
+    });
+
+    for (const [pagePath, urls] of trails) {
+      expect([pagePath, urls.includes("/legal")]).toEqual([pagePath, false]);
+    }
+  });
+
+  test("every legal document is registered once", () => {
+    const declarations: Array<string> = [
+      ...routesSource.matchAll(/app\.get\(\s*"(\/legal\/[^"]+)"/g),
+    ].map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(legalPaths.length).toBe(29);
+    expect(declarations.length).toBe(legalPaths.length);
+  });
+
+  test.each(legalPaths)(
+    "%s renders its own section with its own SEO entry",
+    (legalPath: string) => {
+      const body: string = bodyOfGetRoute(legalPath)!;
+      const section: string = legalPath.replace("/legal/", "");
+
+      expect(body).toContain(`${"${ViewsPath}"}/legal.ejs`);
+      expect(body).toContain(`section: "${section}"`);
+      expect(body).toMatch(
+        new RegExp(`getSEOForPath\\(\\s*"${legalPath}",\\s*res\\.locals`),
+      );
+
+      const seo: PageSEOData | undefined = PageSEOConfig[legalPath];
+
+      expect(seo).toBeDefined();
+      expect(seo!.canonicalPath).toBe(legalPath);
+    },
+  );
 });
 
 describe("Nostr identity route", () => {
