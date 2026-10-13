@@ -18,7 +18,8 @@ import path from "path";
  * on any request the fixture does not model.
  */
 
-const PORT: string = "4222";
+// The fixture server's port: EVENT_OVERVIEW_FIXTURE_PORT, as the config and server.js read it.
+const PORT: string = process.env["EVENT_OVERVIEW_FIXTURE_PORT"] || "4222";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");
 
@@ -1890,7 +1891,7 @@ test.describe("AI investigation report", () => {
     await expect(investigation.getByText("Fix task created")).toHaveCount(0);
   });
 
-  test("the feed shows a compact AI item and the full report behind More Information", async ({
+  test("the feed shows a compact AI item and unfolds the full report in place", async ({
     page,
   }: {
     page: Page;
@@ -1911,25 +1912,34 @@ test.describe("AI investigation report", () => {
     await expect(item).not.toContainText("Automated Root Cause Analysis");
     await expect(item).not.toContainText("Suggested next steps");
 
-    await item.getByRole("button", { name: "More Information" }).click();
-    const dialog: Locator = page.getByRole("dialog", {
-      name: "More Information",
+    const toggle: Locator = item.getByRole("button", {
+      name: "Show the full report",
     });
-    await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText("Most likely root cause");
-    await expect(dialog).toContainText("Suggested next steps");
-    await expect(dialog).toContainText("Evidence checked");
-    await expect(dialog).toContainText(
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
+
+    // Under the entry, where it was asked for: no dialog over the page.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    const report: Locator = item.getByTestId("feed-entry-details");
+    await expect(report).toBeVisible();
+    await expect(
+      item.getByRole("button", { name: "Hide details" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    await expect(report).toContainText("Most likely root cause");
+    await expect(report).toContainText("Suggested next steps");
+    await expect(report).toContainText("Evidence checked");
+    await expect(report).toContainText(
       "Incident #1042 timeline (1 entry) — 1 row(s)",
     );
-    await expect(dialog).toContainText(
+    await expect(report).toContainText(
       "Investigated automatically by OneUptime AI",
     );
-    // Safe mode: nothing in the modal is a link or an image from the report.
-    await expect(dialog.locator("img")).toHaveCount(0);
+    // Safe mode: nothing in the report is an image.
+    await expect(report.locator("img")).toHaveCount(0);
 
-    await dialog.getByRole("button", { name: "Close" }).click();
-    await expect(dialog).toHaveCount(0);
+    await item.getByRole("button", { name: "Hide details" }).click();
+    await expect(report).toHaveCount(0);
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
   });
 
   test("the alert page shows its report, references and header summary", async ({
@@ -9269,6 +9279,320 @@ test.describe("measurements", () => {
     ]);
     await page.mouse.move(0, 0);
     await screenshotElement(measurementsCard(page), "incident-measurements");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The feed, as a timeline
+ * ---------------------------------------------------------------------------
+ *
+ * Datadog's timeline, which the maintainer pointed at: a date and a time on
+ * every entry, never only "x days ago". Each day under a heading of its own
+ * (with Today / Yesterday beside it and the zone the times are in), each
+ * entry with the time it happened - a short "8 min. ago" only for the last
+ * hour - and its icon on a rail. The clock is pinned at 18:20 UTC on Monday,
+ * September 14, 2026, and the browser is in UTC.
+ */
+
+// Intl writes a narrow no-break space before AM/PM; read it as a space.
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
+async function plainText(locator: Locator): Promise<string> {
+  return ((await locator.innerText()) || "")
+    .replace(WHITESPACE_RUN, " ")
+    .trim();
+}
+
+function feedEntry(feed: Locator, text: string): Locator {
+  return feed.getByTestId("feed-entry").filter({ hasText: text });
+}
+
+test.describe("the feed, as a timeline", () => {
+  test("the day is a heading with its date, Today beside it, and the zone the times are in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+    const day: Locator = feed.getByTestId("feed-day");
+
+    await expect(day).toHaveCount(1);
+    await expect(
+      day.getByRole("heading", {
+        level: 3,
+        name: "Monday, September 14, 2026",
+      }),
+    ).toBeVisible();
+    await expect(day.getByTestId("feed-day-relative")).toHaveText("Today");
+    /*
+     * The zone the dashboard reads every date in (OneUptimeDate's current
+     * timezone): for this browser's UTC clock, moment-timezone's guess,
+     * whose name is GMT - the same clock.
+     */
+    await expect(day.getByTestId("feed-day-zone")).toHaveText("GMT");
+    // The day's section is named by its heading.
+    await expect(
+      feed.getByRole("region", { name: "Monday, September 14, 2026" }),
+    ).toHaveCount(1);
+  });
+
+  test("every entry has the time it happened, newest first, and the last hour also says how long ago", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+
+    expect(
+      await plainText(
+        feedEntry(feed, "Rolling checkout-api back").getByTestId(
+          "feed-entry-time",
+        ),
+      ),
+    ).toBe("6:09 PM 11 min. ago");
+
+    const times: Array<string> = [];
+    for (const time of await feed.getByTestId("feed-entry-time").all()) {
+      times.push(await plainText(time));
+    }
+
+    /*
+     * 18:12 resolved, 18:09 note, 18:05 commander, 18:04 acknowledged,
+     * 18:03 the AI report, 18:01 the on-call policy and, in the same minute,
+     * the incident itself: its time is not said twice.
+     */
+    expect(times).toEqual([
+      "6:12 PM 8 min. ago",
+      "6:09 PM 11 min. ago",
+      "6:05 PM 15 min. ago",
+      "6:04 PM 16 min. ago",
+      "6:03 PM 17 min. ago",
+      "6:01 PM 19 min. ago",
+      "",
+    ]);
+
+    // The time is a <time> with the instant it stands for.
+    await expect(
+      feedEntry(feed, "Rolling checkout-api back").locator("time"),
+    ).toHaveAttribute("datetime", "2026-09-14T18:09:00.000Z");
+  });
+
+  test("an entry reads as a sentence that starts with who did it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+
+    // "✅ Changed Incident #1042 State to Resolved", by Maya Chen.
+    const resolved: Locator = feedEntry(feed, "Resolved").first();
+    expect(await plainText(resolved.getByTestId("feed-entry-lead"))).toBe(
+      "Maya Chen changed Incident #1042 State to Resolved",
+    );
+    expect(await plainText(resolved)).not.toContain("✅");
+
+    // A note is hers too, her name above what she wrote.
+    const note: Locator = feedEntry(feed, "Rolling checkout-api back");
+    await expect(note.getByTestId("feed-entry-author")).toHaveText("Maya Chen");
+    expect(await plainText(note)).not.toContain("🔒");
+    // The rail's icon says what kind of entry it is.
+    await expect(note.getByTestId("feed-entry-icon")).toBeVisible();
+    await expect(note).toHaveAttribute("data-event-type", "PrivateNote");
+  });
+
+  test("a phone keeps the time above each entry, without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+    const note: Locator = feedEntry(feed, "Rolling checkout-api back");
+    const time: Box = await documentBox(note.getByTestId("feed-entry-time"));
+    const body: Box = await documentBox(note.getByTestId("feed-entry-author"));
+
+    expect(time.y + time.height).toBeLessThanOrEqual(body.y + 1);
+    await expectNoHorizontalOverflow(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(feed, "incident-feed-mobile");
+  });
+
+  test("screenshot of the incident feed", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE);
+    await page.mouse.move(0, 0);
+    await screenshotElement(card(page, "Incident Feed"), "incident-feed");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Open in Slack / Open in Microsoft Teams
+ * ---------------------------------------------------------------------------
+ *
+ * A record a workspace notification rule made a channel for has a button in
+ * its header that opens that channel (?channels= picks the record's
+ * channels). One channel is a link that opens in a new tab; a workspace with
+ * several is a menu of them; no channel, no button.
+ */
+
+const SLACK_CHANNEL_URL: string =
+  "https://slack.com/app_redirect?channel=C0ACME0001&team=T0ACMECOM";
+
+test.describe("Open in Slack / Microsoft Teams", () => {
+  test("no channel, no button", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await expect(
+      heroActions(page).getByRole("link", { name: "Open in Slack" }),
+    ).toHaveCount(0);
+    await expect(
+      heroActions(page).getByRole("button", { name: "Open in Slack" }),
+    ).toHaveCount(0);
+    // The page asked, for this incident.
+    const requests: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      `/workspace-channel-link/incident/${INCIDENT_ID}`,
+    );
+    expect(requests).not.toHaveLength(0);
+    expect(requests[0]!.method).toBe("GET");
+  });
+
+  test("an incident's Slack and Teams channels are links in its header, opening in a new tab", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack,teams");
+
+    const slack: Locator = heroActions(page).getByRole("link", {
+      name: "Open in Slack",
+    });
+    const teams: Locator = heroActions(page).getByRole("link", {
+      name: "Open in Microsoft Teams",
+    });
+
+    await expect(slack).toHaveAttribute("href", SLACK_CHANNEL_URL);
+    await expect(slack).toHaveAttribute("target", "_blank");
+    await expect(slack).toHaveAttribute("rel", "noopener noreferrer");
+
+    const teamsUrl: URL = new URL((await teams.getAttribute("href")) || "");
+    expect(teamsUrl.host).toBe("teams.microsoft.com");
+    expect(teamsUrl.searchParams.get("groupId")).toBe(
+      "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b",
+    );
+
+    // Slack first, both after the state actions.
+    const slackBox: Box = await documentBox(slack);
+    const teamsBox: Box = await documentBox(teams);
+    expect(
+      slackBox.y < teamsBox.y ||
+        (Math.abs(slackBox.y - teamsBox.y) < 2 && slackBox.x < teamsBox.x),
+    ).toBe(true);
+
+    // Pointing at the button names the channel.
+    await slack.hover();
+    await expect(
+      page.getByText("#incident-1042-checkout-latency"),
+    ).toBeVisible();
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-open-in-chat");
+  });
+
+  test("two Slack channels: one Open in Slack that lists both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack,slack2");
+
+    const button: Locator = heroActions(page).getByRole("button", {
+      name: "Open in Slack",
+    });
+    await expect(button).toHaveAttribute("aria-haspopup", "menu");
+    await button.click();
+
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "#incident-1042-checkout-latency",
+      "#sre-war-room",
+    ]);
+
+    const opened: Promise<Page> = page.context().waitForEvent("page");
+    await menu.getByRole("menuitem", { name: "#sre-war-room" }).click();
+    const tab: Page = await opened;
+    expect(tab.url()).toContain("C0ACME0002");
+    await tab.close();
+  });
+
+  for (const channelPage of [
+    { eventPage: ALERT_PAGE, recordType: "alert" },
+    {
+      eventPage: SCHEDULED_MAINTENANCE_PAGE,
+      recordType: "scheduled-maintenance",
+    },
+    { eventPage: INCIDENT_EPISODE_PAGE, recordType: "incident-episode" },
+    { eventPage: ALERT_EPISODE_PAGE, recordType: "alert-episode" },
+  ]) {
+    test(`the ${channelPage.recordType} page has it too`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, channelPage.eventPage, "channels=slack");
+
+      await expect(
+        heroActions(page).getByRole("link", { name: "Open in Slack" }),
+      ).toHaveAttribute("href", SLACK_CHANNEL_URL);
+      expect(
+        await apiRequestsTo(
+          page,
+          `/workspace-channel-link/${channelPage.recordType}/${
+            new URL(page.url()).pathname.split("/").pop() || ""
+          }`,
+        ),
+      ).not.toHaveLength(0);
+    });
+  }
+
+  test("a failure to read the channels hides the buttons and breaks nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&fail=channel-links");
+
+    await expect(
+      heroActions(page).getByRole("link", { name: "Open in Slack" }),
+    ).toHaveCount(0);
+    await expectNoErrorStates(page);
+  });
+
+  test("a phone shows the buttons without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack,slack2,teams");
+
+    await expect(
+      heroActions(page).getByRole("button", { name: "Open in Slack" }),
+    ).toBeVisible();
+    await expect(
+      heroActions(page).getByRole("link", { name: "Open in Microsoft Teams" }),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-open-in-chat-mobile");
   });
 });
 

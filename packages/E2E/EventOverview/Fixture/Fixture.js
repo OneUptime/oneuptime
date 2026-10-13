@@ -64,6 +64,11 @@
  *            to open folded). Sending, approving and stopping are modelled:
  *            see "The investigation card's conversation" below.
  *   ?theme=  dark adds html.dark (handled by server.js).
+ *   ?channels= the record's own Slack / Microsoft Teams channels, as
+ *            GET /workspace-channel-link answers them (the header's Open in
+ *            Slack / Open in Microsoft Teams): a comma list of slack (one
+ *            Slack channel), slack2 (a second one), teams (one Teams
+ *            channel). None by default: no button.
  *   ?role=   owner (default) | alert-member | loading
  *            Who is signed in. "owner" is a master admin who is also the
  *            Project Owner, so every permission gate is open. "alert-member"
@@ -102,6 +107,8 @@ import IncidentEpisodeView from "../../../App/FeatureSet/Dashboard/src/Pages/Inc
 import AlertEpisodeViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/EpisodeView/Layout";
 import AlertEpisodeView from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/EpisodeView/Index";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import WorkspaceChannelLinkUtil from "Common/Types/Workspace/WorkspaceChannelLink";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
@@ -261,6 +268,13 @@ const THREAD_MODES = ["answered", "working", "approval", "error", "crowded"];
 const threadMode = THREAD_MODES.includes(params.get("thread"))
   ? params.get("thread")
   : "empty";
+/*
+ * The record's own chat channels (?channels=), each link built by the real
+ * WorkspaceChannelLink rules from ids of the shapes Slack and Teams give.
+ */
+const channelModes = new Set(
+  (params.get("channels") || "").split(",").filter((value) => value.length > 0),
+);
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -4339,6 +4353,60 @@ function cancelThreadRun(body) {
   return { aiRunId: answer.aiRunId, cancelled: true };
 }
 
+const SLACK_TEAM_ID = "T0ACMECOM";
+const TEAMS_TEAM_ID = "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b";
+const TEAMS_TENANT_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+
+function channelLinks(url) {
+  const [recordType] = url.split("/workspace-channel-link/")[1].split("/");
+  const name =
+    {
+      incident: "incident-1042-checkout-latency",
+      alert: "alert-311-payment-webhook",
+      "incident-episode": "episode-12-checkout",
+      "alert-episode": "alert-episode-7-payments",
+      "scheduled-maintenance": "maintenance-58-db-failover",
+    }[recordType] || "oneuptime-updates";
+  const links = [];
+
+  if (channelModes.has("slack")) {
+    links.push({
+      workspaceType: WorkspaceType.Slack,
+      channelName: name,
+      url: WorkspaceChannelLinkUtil.getSlackChannelUrl({
+        teamId: SLACK_TEAM_ID,
+        channelId: "C0ACME0001",
+      }),
+    });
+  }
+
+  if (channelModes.has("slack2")) {
+    links.push({
+      workspaceType: WorkspaceType.Slack,
+      channelName: "sre-war-room",
+      url: WorkspaceChannelLinkUtil.getSlackChannelUrl({
+        teamId: SLACK_TEAM_ID,
+        channelId: "C0ACME0002",
+      }),
+    });
+  }
+
+  if (channelModes.has("teams")) {
+    links.push({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      channelName: name,
+      url: WorkspaceChannelLinkUtil.getMicrosoftTeamsChannelUrl({
+        tenantId: TEAMS_TENANT_ID,
+        teamId: TEAMS_TEAM_ID,
+        channelId: "19:acme0001acme0001acme0001acme0001@thread.tacv2",
+        channelName: name,
+      }),
+    });
+  }
+
+  return links;
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -4424,6 +4492,17 @@ async function handleApi(method, options) {
 
   if (url.endsWith("/ai-investigation/conversation/cancel-run")) {
     return ok(cancelThreadRun(body));
+  }
+
+  /*
+   * GET /workspace-channel-link/<record type>/<record id>: the links behind
+   * the header's Open in Slack / Open in Microsoft Teams (?channels=).
+   */
+  if (method === "GET" && url.includes("/workspace-channel-link/")) {
+    if (failures.has("channel-links")) {
+      throw fail(500, "The channel links could not be read.");
+    }
+    return ok({ links: channelLinks(url) });
   }
 
   fixture.unhandled.push({ kind: "api", method, url });
