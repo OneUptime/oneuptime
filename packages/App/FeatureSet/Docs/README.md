@@ -343,6 +343,9 @@ language, to the rules in `Tests/FeatureSet/Docs/DocsContentRules.ts`:
 - links land on a page in the nav and on a heading it has (never the title on
   line 1, which has no anchor), images and files under `/docs/static/` exist,
   no link is relative, and no two headings of a page share an anchor;
+- an address the reader fills in (`https://oneuptime.com/heartbeat/YOUR_KEY`,
+  `/dashboards/<id>/view`) is written as code, between backticks: as a link,
+  or as text, search engines follow it to a page that does not exist;
 - code samples are closed, and in English they name their language; English
   headings never skip a level, and Getting Started links into every nav group;
 - every English page is translated, and each translation keeps its English
