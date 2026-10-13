@@ -68,6 +68,13 @@ import {
   getClaimsMatrix,
   getClaimsNeedingReview,
 } from "./Utils/Claims";
+import {
+  TailwindStylesheet,
+  TailwindStylesheetRoutePattern,
+  findTailwindStylesheet,
+  serveTailwindStylesheet,
+} from "./Utils/TailwindStylesheet";
+import logger from "Common/Server/Utils/Logger";
 
 // import jobs.
 import "./Jobs/UpdateBlog";
@@ -103,6 +110,33 @@ const getSEOForPath: (
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
+
+    /*
+     * The compiled Tailwind stylesheet the image build wrote
+     * (Utils/TailwindStylesheet.ts). Every page reads its URL from
+     * app.locals - not res.locals, which the blog's routes (API/BlogAPI.ts,
+     * registered before this middleware) never get. With no build the URL
+     * is null and head-basic.ejs loads the Play CDN runtime instead.
+     */
+    const tailwindStylesheet: TailwindStylesheet | null =
+      findTailwindStylesheet();
+
+    app.locals["tailwindStylesheetHref"] = tailwindStylesheet
+      ? tailwindStylesheet.href
+      : null;
+
+    if (tailwindStylesheet) {
+      logger.info(`Serving compiled Tailwind CSS: ${tailwindStylesheet.href}`);
+    } else {
+      logger.warn(
+        "No compiled Tailwind CSS (npm run build:css); pages load the Tailwind Play CDN runtime instead.",
+      );
+    }
+
+    app.get(
+      TailwindStylesheetRoutePattern,
+      serveTailwindStylesheet(tailwindStylesheet),
+    );
 
     /*
      * Routes
