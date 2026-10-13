@@ -16,6 +16,7 @@ Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni 
 | Per…                                                          | Usa                                                               |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Pubblicare in uno strumento di chat                           | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) o [Mattermost](#mattermost) |
+| Inviare un SMS o chiamare un telefono                         | [SMSEagle](#smseagle)                                             |
 | Inviare un'email tramite il tuo server di posta               | [Email](#email)                                                   |
 | Chiamare qualsiasi altra API o un tuo servizio                | [API](#api)                                                       |
 | Riassumere, classificare o scrivere testo                     | [Generate Text with AI](#generate-text-with-ai)                   |

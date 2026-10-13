@@ -16,6 +16,7 @@
 | किसलिए…                                                       | इस्तेमाल करें                                                     |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | किसी चैट टूल पर पोस्ट करना                                    | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) या [Mattermost](#mattermost) |
+| किसी फ़ोन पर SMS भेजना या कॉल करना                            | [SMSEagle](#smseagle)                                             |
 | अपने मेल सर्वर से ईमेल भेजना                                  | [Email](#email)                                                   |
 | कोई दूसरा API या अपनी सेवा कॉल करना                           | [API](#api)                                                       |
 | टेक्स्ट का सारांश बनाना, वर्गीकरण करना या मसौदा लिखना         | [Generate Text with AI](#generate-text-with-ai)                   |

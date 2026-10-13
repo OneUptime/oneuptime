@@ -16,6 +16,7 @@
 | 하려는 일                                                     | 사용할 것                                                         |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | 채팅 도구에 게시하기                                          | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc), [Mattermost](#mattermost) |
+| 전화로 SMS를 보내거나 전화 걸기                                           | [SMSEagle](#smseagle)                                             |
 | 자체 메일 서버로 이메일 보내기                                | [Email](#email)                                                   |
 | 다른 API나 자체 서비스 호출하기                               | [API](#api)                                                       |
 | 텍스트 요약, 분류, 초안 작성하기                              | [Generate Text with AI](#generate-text-with-ai)                   |

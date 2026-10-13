@@ -16,6 +16,7 @@ Du trenger sjelden å ha den åpen mens du bygger. Innstillingene til hver blokk
 | For å …                                                       | Bruk                                                              |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Poste i et chatverktøy                                        | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) eller [Mattermost](#mattermost) |
+| Sende en SMS eller ringe en telefon                           | [SMSEagle](#smseagle)                                             |
 | Sende en e-post gjennom din egen e-postserver                 | [Email](#email)                                                   |
 | Kalle et hvilket som helst annet API eller din egen tjeneste  | [API](#api)                                                       |
 | Oppsummere, klassifisere eller skrive utkast til tekst        | [Generate Text with AI](#generate-text-with-ai)                   |

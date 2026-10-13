@@ -16,6 +16,7 @@
 | 想要……                                                        | 使用                                                              |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | 在聊天工具中張貼訊息                                          | [Slack](#slack)、[Microsoft Teams](#microsoft-teams)、[Discord](#discord)、[Telegram](#telegram)、[IRC](#irc) 或 [Mattermost](#mattermost) |
+| 向手機傳送簡訊或撥打電話                                                  | [SMSEagle](#smseagle)                                             |
 | 透過你自己的郵件伺服器寄送電子郵件                            | [Email](#email)                                                   |
 | 呼叫其他任何 API 或你自己的服務                               | [API](#api)                                                       |
 | 摘要、分類或草擬文字                                          | [Generate Text with AI](#generate-text-with-ai)                   |

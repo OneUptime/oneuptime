@@ -16,6 +16,7 @@ Du får sjældent brug for at have den åben, mens du bygger. Hver bloks indstil
 | For at…                                                       | Brug                                                              |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Poste i et chatværktøj                                        | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) eller [Mattermost](#mattermost) |
+| Sende en SMS eller ringe til en telefon                       | [SMSEagle](#smseagle)                                             |
 | Sende en e-mail gennem din egen mailserver                    | [Email](#email)                                                   |
 | Kalde enhver anden API eller din egen tjeneste                | [API](#api)                                                       |
 | Opsummere, klassificere eller skrive udkast til tekst         | [Generate Text with AI](#generate-text-with-ai)                   |

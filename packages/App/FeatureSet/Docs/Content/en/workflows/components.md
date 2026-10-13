@@ -16,6 +16,7 @@ You rarely need it open while you build. Every block's settings end with **How t
 | To…                                                   | Use                                                               |
 | ----------------------------------------------------- | ----------------------------------------------------------------- |
 | Post to a chat tool                                   | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) or [Mattermost](#mattermost) |
+| Text or call a phone                                  | [SMSEagle](#smseagle)                                             |
 | Send an email through your own mail server            | [Email](#email)                                                   |
 | Call any other API, or your own service               | [API](#api)                                                       |
 | Summarize, classify or draft text                     | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -186,7 +187,7 @@ Send an SMS or make a text-to-speech call through an SMSEagle device, a hardware
 | ------------------------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **SMSEagle URL**          | The device's address, such as `https://192.168.0.100`. The block adds the API v2 path itself.                                                                  |
 | **SMSEagle Access Token** | An API v2 key from the SMSEagle web panel, under Settings > API > API v2. It needs the "Send SMS" permission for SMS and "Make a TTS Advanced Call" for calls. |
-| **Phone Number**          | The number to text or call, in international format, such as `+1987654321`.                                                                                    |
+| **Phone Number**          | The number to text or call, in international format, such as `+15551234567`.                                                                                   |
 | **Message Text**          | The text of the SMS. Only in **Send SMS via SMSEagle**.                                                                                                        |
 | **Voice ID**              | The ID of a text-to-speech voice on the device. Only in **Make a Call via SMSEagle**.                                                                          |
 | **Text to Read Out**      | The text the device reads out during the call. Only in **Make a Call via SMSEagle**.                                                                           |

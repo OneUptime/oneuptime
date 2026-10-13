@@ -16,6 +16,7 @@
 | やりたいこと                                                  | 使うもの                                                          |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | チャットツールに投稿する                                      | [Slack](#slack)、[Microsoft Teams](#microsoft-teams)、[Discord](#discord)、[Telegram](#telegram)、[IRC](#irc)、[Mattermost](#mattermost) |
+| 電話に SMS を送る、または電話をかける                                         | [SMSEagle](#smseagle)                                             |
 | 自前のメールサーバーからメールを送る                          | [Email](#email)                                                   |
 | その他の API や自前のサービスを呼び出す                       | [API](#api)                                                       |
 | テキストを要約、分類、下書きする                              | [Generate Text with AI](#generate-text-with-ai)                   |

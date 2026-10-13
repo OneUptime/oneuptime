@@ -16,6 +16,7 @@ Rara vez la necesitarás abierta mientras construyes. Los ajustes de cada bloque
 | Para…                                                         | Usa                                                               |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Publicar en una herramienta de chat                           | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) o [Mattermost](#mattermost) |
+| Enviar un SMS o llamar a un teléfono                          | [SMSEagle](#smseagle)                                             |
 | Enviar un correo a través de tu propio servidor de correo     | [Email](#email)                                                   |
 | Llamar a cualquier otra API o a tu propio servicio            | [API](#api)                                                       |
 | Resumir, clasificar o redactar texto                          | [Generate Text with AI](#generate-text-with-ai)                   |

@@ -16,6 +16,7 @@ Vous aurez rarement besoin de l'ouvrir pendant la construction. Les paramètres 
 | Pour…                                                         | Utilisez                                                          |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Publier dans un outil de discussion                           | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) ou [Mattermost](#mattermost) |
+| Envoyer un SMS ou appeler un téléphone                        | [SMSEagle](#smseagle)                                             |
 | Envoyer un e-mail via votre propre serveur de messagerie      | [Email](#email)                                                   |
 | Appeler toute autre API, ou votre propre service              | [API](#api)                                                       |
 | Résumer, classer ou rédiger du texte                          | [Generate Text with AI](#generate-text-with-ai)                   |

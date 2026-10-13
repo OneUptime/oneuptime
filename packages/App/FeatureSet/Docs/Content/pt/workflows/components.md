@@ -16,6 +16,7 @@ Raramente você vai precisar dela aberta enquanto monta. As configurações de c
 | Para…                                                         | Use                                                               |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Publicar em uma ferramenta de chat                            | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) ou [Mattermost](#mattermost) |
+| Enviar um SMS ou ligar para um telefone                       | [SMSEagle](#smseagle)                                             |
 | Enviar um e-mail pelo seu próprio servidor de e-mail          | [Email](#email)                                                   |
 | Chamar qualquer outra API ou um serviço seu                   | [API](#api)                                                       |
 | Resumir, classificar ou redigir texto                         | [Generate Text with AI](#generate-text-with-ai)                   |

@@ -16,6 +16,7 @@ Je hebt haar zelden open nodig tijdens het bouwen. De instellingen van elk blok 
 | Om…                                                           | Gebruik                                                           |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | In een chattool te posten                                     | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) of [Mattermost](#mattermost) |
+| Een sms te sturen of een telefoon te bellen                   | [SMSEagle](#smseagle)                                             |
 | Een e-mail via je eigen mailserver te sturen                  | [Email](#email)                                                   |
 | Een andere API of je eigen dienst aan te roepen               | [API](#api)                                                       |
 | Tekst samen te vatten, te classificeren of op te stellen      | [Generate Text with AI](#generate-text-with-ai)                   |

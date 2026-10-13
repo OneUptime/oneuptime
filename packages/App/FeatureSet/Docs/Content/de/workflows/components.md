@@ -16,6 +16,7 @@ Beim Bauen brauchen Sie sie selten offen. Die Einstellungen jedes Bausteins ende
 | Um…                                                      | Verwenden Sie                                                     |
 | -------------------------------------------------------- | ----------------------------------------------------------------- |
 | In einem Chat-Tool zu posten                             | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) oder [Mattermost](#mattermost) |
+| Eine SMS zu senden oder ein Telefon anzurufen            | [SMSEagle](#smseagle)                                             |
 | Eine E-Mail über Ihren eigenen Mailserver zu senden      | [E-Mail](#email)                                                  |
 | Jede andere API oder Ihren eigenen Dienst aufzurufen     | [API](#api)                                                       |
 | Text zusammenzufassen, einzuordnen oder zu entwerfen     | [Generate Text with AI](#generate-text-with-ai)                   |
