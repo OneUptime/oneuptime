@@ -139,7 +139,9 @@ function definitionOf(
   return definition;
 }
 
-function fieldsOf(provider: SecurityEventConnectorProvider): Array<ConnectorField> {
+function fieldsOf(
+  provider: SecurityEventConnectorProvider,
+): Array<ConnectorField> {
   const definition: SecurityEventConnectorDefinition = definitionOf(provider);
 
   return [...definition.configFields, ...definition.secretFields];
@@ -183,7 +185,12 @@ function json(status: number, body: unknown): DataSourceHttpResponse {
 }
 
 function text(status: number, body: string): DataSourceHttpResponse {
-  return { statusCode: status, bodyText: body, bodyJson: undefined, headers: {} };
+  return {
+    statusCode: status,
+    bodyText: body,
+    bodyJson: undefined,
+    headers: {},
+  };
 }
 
 // A transport that fails before any answer, as a refused connection does.
@@ -230,7 +237,10 @@ function quotes(quoted: string, produced: Array<string>): boolean {
 }
 
 // The inline code spans of a text that start with a connection's prefix.
-function quotedMessages(section: string, prefixes: Array<string>): Array<string> {
+function quotedMessages(
+  section: string,
+  prefixes: Array<string>,
+): Array<string> {
   return codeIn(section).filter((span: string): boolean => {
     return prefixes.some((prefix: string): boolean => {
       return span.startsWith(prefix);
@@ -376,7 +386,10 @@ function createdAt(index: number): string {
   return new Date(WINDOW_START.getTime() + index * 1000).toISOString();
 }
 
-function sentinelIncident(index: number, created: string = createdAt(index)): JSONObject {
+function sentinelIncident(
+  index: number,
+  created: string = createdAt(index),
+): JSONObject {
   return {
     id: `/subscriptions/${SUBSCRIPTION_ID}/providers/Microsoft.SecurityInsights/incidents/incident-${index}`,
     name: `incident-${index}`,
@@ -401,7 +414,10 @@ function defenderAlert(index: number): JSONObject {
   };
 }
 
-function falconAlert(index: number, created: string = createdAt(index)): JSONObject {
+function falconAlert(
+  index: number,
+  created: string = createdAt(index),
+): JSONObject {
   return {
     composite_id: `cid:ind:alert-${index}`,
     created_timestamp: created,
@@ -481,9 +497,15 @@ describe("every connection page's form", () => {
         `click ${bold("Add connection")}, choose ${bold(definition.title)}`,
       );
       // Settings, then Credentials: the secret fields are on the step after.
-      expect(form).toContain('steps.push({ id: CONNECTION_STEP_ID, title: "Connection" });');
-      expect(form).toContain('steps.push({ id: CREDENTIALS_STEP_ID, title: "Credentials" });');
-      expect(form).toContain('title: "Test before saving",\n    stepId: CREDENTIALS_STEP_ID,');
+      expect(form).toContain(
+        'steps.push({ id: CONNECTION_STEP_ID, title: "Connection" });',
+      );
+      expect(form).toContain(
+        'steps.push({ id: CREDENTIALS_STEP_ID, title: "Credentials" });',
+      );
+      expect(form).toContain(
+        'title: "Test before saving",\n    stepId: CREDENTIALS_STEP_ID,',
+      );
       expect(englishPage(entry.page)).toContain(
         `Click ${bold("Test these settings")} under ${bold("Test before saving")}.`,
       );
@@ -491,9 +513,10 @@ describe("every connection page's form", () => {
   );
 
   it("Microsoft Defender XDR is picked under the category the picker files it in", () => {
-    expect(definitionOf(SecurityEventConnectorProvider.MicrosoftDefenderXdr).category).toBe(
-      "EDR / XDR",
-    );
+    expect(
+      definitionOf(SecurityEventConnectorProvider.MicrosoftDefenderXdr)
+        .category,
+    ).toBe("EDR / XDR");
     expect(englishPage(DEFENDER)).toContain(
       `choose ${bold("Microsoft Defender XDR")} under ${bold("EDR / XDR")}`,
     );
@@ -533,7 +556,9 @@ describe("every connection page's form", () => {
       Permission.SecurityViewer,
     ]);
     // Test connection, Run now, previews and imports need the update right.
-    expect(readRepoFile("Common/Server/API/SecurityEventConnectionAPI.ts")).toContain(
+    expect(
+      readRepoFile("Common/Server/API/SecurityEventConnectionAPI.ts"),
+    ).toContain(
       "allowedPermissions: new SecurityEventConnection().getUpdatePermissions(),",
     );
 
@@ -572,7 +597,11 @@ describe("every connection page's polling", () => {
       const first: { startTime: Date; endTime: Date } =
         SecurityEventConnectionPoller.getWindow(fresh, { type: "poll" }, now);
       const next: { startTime: Date; endTime: Date } =
-        SecurityEventConnectionPoller.getWindow(caughtUp, { type: "poll" }, now);
+        SecurityEventConnectionPoller.getWindow(
+          caughtUp,
+          { type: "poll" },
+          now,
+        );
       const catchingUp: { startTime: Date; endTime: Date } =
         SecurityEventConnectionPoller.getWindow(behind, { type: "poll" }, now);
 
@@ -598,7 +627,9 @@ describe("every connection page's polling", () => {
     expect(MAX_RANGE_MS).toBe(7 * DAY_IN_MS);
 
     for (const entry of CONNECTION_PAGES) {
-      const recordName: string = definitionOf(entry.provider).importedRecordName;
+      const recordName: string = definitionOf(
+        entry.provider,
+      ).importedRecordName;
 
       expect(englishPage(entry.page)).toContain(
         `${bold(`Preview ${recordName}s`)} reads a time range of up to 7 days and imports nothing.`,
@@ -626,9 +657,7 @@ describe("every connection page's polling", () => {
     const forcedAdvance: string =
       "More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.";
 
-    expect(poller).toContain(
-      narrowing.replace("{n}", "${nextChunkMinutes}"),
-    );
+    expect(poller).toContain(narrowing.replace("{n}", "${nextChunkMinutes}"));
     expect(poller).toContain(
       forcedAdvance
         .replace("{cursor}", "${minuteStart}")
@@ -698,7 +727,10 @@ describe("every connection page's test checklist", () => {
         scheduled.name,
       ];
       const documented: Array<string> = firstCellNames(
-        tableWithHeader(englishSection(entry.page, "## Test connection"), "Check"),
+        tableWithHeader(
+          englishSection(entry.page, "## Test connection"),
+          "Check",
+        ),
       );
 
       expect(documented).toEqual(reported);
@@ -718,8 +750,12 @@ describe("Microsoft Sentinel", () => {
     const request: string = quotedBlock(SENTINEL, "GET ");
 
     expect(MICROSOFT_SENTINEL_DEFAULT_PAGE_SIZE).toBe(50);
-    expect(url.searchParams.get("api-version")).toBe(MICROSOFT_SENTINEL_API_VERSION);
-    expect(url.searchParams.get("$orderby")).toBe("properties/createdTimeUtc asc");
+    expect(url.searchParams.get("api-version")).toBe(
+      MICROSOFT_SENTINEL_API_VERSION,
+    );
+    expect(url.searchParams.get("$orderby")).toBe(
+      "properties/createdTimeUtc asc",
+    );
     expect(url.searchParams.get("$top")).toBe("50");
     expect(url.searchParams.get("$filter")).toBe(
       `(properties/createdTimeUtc ge ${WINDOW_START.toISOString()}) and (properties/createdTimeUtc lt ${WINDOW_END.toISOString()})`,
@@ -737,7 +773,9 @@ describe("Microsoft Sentinel", () => {
 
   it("checks the settings as the page's table describes them", () => {
     expect(() => {
-      return MicrosoftSentinelClient.validateTenantId("contoso.onmicrosoft.com");
+      return MicrosoftSentinelClient.validateTenantId(
+        "contoso.onmicrosoft.com",
+      );
     }).not.toThrow();
     expect(() => {
       return MicrosoftSentinelClient.validateTenantId(TENANT_ID);
@@ -775,7 +813,9 @@ describe("Microsoft Sentinel", () => {
     expect(page).toContain(
       "3 to 90 letters, digits or hyphens, starting and ending with a letter or a digit.",
     );
-    expect(page).toContain("or a verified domain such as `contoso.onmicrosoft.com`");
+    expect(page).toContain(
+      "or a verified domain such as `contoso.onmicrosoft.com`",
+    );
   });
 
   it("signs in and reads incidents at the hosts of the cloud the page names", () => {
@@ -817,7 +857,8 @@ describe("Microsoft Sentinel", () => {
           fakePeer((): DataSourceHttpResponse => {
             return json(401, {
               error: "invalid_client",
-              error_description: "AADSTS7000215: Invalid client secret provided.",
+              error_description:
+                "AADSTS7000215: Invalid client secret provided.",
             });
           }).transport,
         ).getAccessToken();
@@ -833,7 +874,10 @@ describe("Microsoft Sentinel", () => {
         return sentinelClient(fakePeer(unreachable).transport).getAccessToken();
       }),
       await messageOf(() => {
-        return sentinelClient(fakePeer(neverAnswers).transport, 10).getAccessToken();
+        return sentinelClient(
+          fakePeer(neverAnswers).transport,
+          10,
+        ).getAccessToken();
       }),
       await messageOf(() => {
         return sentinelClient(
@@ -975,30 +1019,31 @@ describe("Microsoft Sentinel", () => {
   });
 
   it("imports an incident as the page's table maps it", () => {
-    const event: NormalizedSecurityEvent = MicrosoftSentinelNormalizer.normalize({
-      id: `/subscriptions/${SUBSCRIPTION_ID}/providers/Microsoft.SecurityInsights/incidents/9f2c`,
-      name: "9f2c",
-      type: "Microsoft.SecurityInsights/incidents",
-      properties: {
-        createdTimeUtc: "2026-09-14T08:12:44Z",
-        firstActivityTimeUtc: "2026-09-13T22:00:00Z",
-        title: "Suspicious sign-in",
-        severity: "High",
-        status: "Active",
-        classification: "TruePositive",
-        incidentUrl: "https://portal.azure.com/#asset/Incident/9f2c",
-        relatedAnalyticRuleIds: [
-          `/subscriptions/${SUBSCRIPTION_ID}/providers/Microsoft.SecurityInsights/alertRules/rule-guid`,
-        ],
-        additionalData: { tactics: ["Persistence"] },
-        owner: {
-          userPrincipalName: "analyst@contoso.com",
-          email: "analyst@contoso.com",
-          objectId: "owner-object-id",
+    const event: NormalizedSecurityEvent =
+      MicrosoftSentinelNormalizer.normalize({
+        id: `/subscriptions/${SUBSCRIPTION_ID}/providers/Microsoft.SecurityInsights/incidents/9f2c`,
+        name: "9f2c",
+        type: "Microsoft.SecurityInsights/incidents",
+        properties: {
+          createdTimeUtc: "2026-09-14T08:12:44Z",
+          firstActivityTimeUtc: "2026-09-13T22:00:00Z",
+          title: "Suspicious sign-in",
+          severity: "High",
+          status: "Active",
+          classification: "TruePositive",
+          incidentUrl: "https://portal.azure.com/#asset/Incident/9f2c",
+          relatedAnalyticRuleIds: [
+            `/subscriptions/${SUBSCRIPTION_ID}/providers/Microsoft.SecurityInsights/alertRules/rule-guid`,
+          ],
+          additionalData: { tactics: ["Persistence"] },
+          owner: {
+            userPrincipalName: "analyst@contoso.com",
+            email: "analyst@contoso.com",
+            objectId: "owner-object-id",
+          },
+          labels: [{ labelName: "vip" }],
         },
-        labels: [{ labelName: "vip" }],
-      },
-    });
+      });
 
     expect(event.classUid).toBe(2005);
     expect(event.className).toBe("Incident Finding");
@@ -1011,18 +1056,23 @@ describe("Microsoft Sentinel", () => {
     expect(event.statusName).toBe("Active");
     expect(event.mitreTactics).toEqual(["TA0003"]);
     expect(event.principalUser).toBe("analyst@contoso.com");
-    expect(event.targetResource).toBe("https://portal.azure.com/#asset/Incident/9f2c");
+    expect(event.targetResource).toBe(
+      "https://portal.azure.com/#asset/Incident/9f2c",
+    );
     expect(event.observables).toEqual(
       expect.arrayContaining(["analyst@contoso.com", "owner-object-id", "vip"]),
     );
     expect(event.attributes["properties.classification"]).toBe("TruePositive");
     expect(event.productName).toBe(
-      definitionOf(SecurityEventConnectorProvider.MicrosoftSentinel).productName,
+      definitionOf(SecurityEventConnectorProvider.MicrosoftSentinel)
+        .productName,
     );
 
     const page: string = englishPage(SENTINEL);
 
-    expect(page).toContain("Incident Finding event (OCSF class `2005`, activity `Create`)");
+    expect(page).toContain(
+      "Incident Finding event (OCSF class `2005`, activity `Create`)",
+    );
     expect(page).toContain("`Persistence` becomes `TA0003`");
   });
 });
@@ -1064,7 +1114,10 @@ describe("Microsoft Defender XDR", () => {
       await messageOf(() => {
         return defenderClient(
           fakePeer((): DataSourceHttpResponse => {
-            return json(401, { error: "invalid_client", error_codes: [7000215] });
+            return json(401, {
+              error: "invalid_client",
+              error_codes: [7000215],
+            });
           }).transport,
         ).getAccessToken();
       }),
@@ -1122,7 +1175,10 @@ describe("Microsoft Defender XDR", () => {
 
     // The page's own warning about an expired secret is the token failure.
     expect(
-      quotes("Microsoft Defender XDR token request failed (HTTP 401)", produced),
+      quotes(
+        "Microsoft Defender XDR token request failed (HTTP 401)",
+        produced,
+      ),
     ).toBe(true);
 
     const client: string = readRepoFile(
@@ -1178,28 +1234,30 @@ describe("Microsoft Defender XDR", () => {
   });
 
   it("imports an alert as the page's table maps it", () => {
-    const event: NormalizedSecurityEvent = MicrosoftDefenderXdrNormalizer.normalize({
-      "@odata.type": "#microsoft.graph.security.alert",
-      id: "da637551227677560813_-961444813",
-      title: "Suspicious credential access",
-      severity: "high",
-      status: "inProgress",
-      category: "CredentialAccess",
-      detectorId: "detector-1",
-      alertPolicyId: "policy-1",
-      createdDateTime: "2026-09-14T08:12:44Z",
-      firstActivityDateTime: "2026-09-14T06:00:00Z",
-      serviceSource: "microsoftDefenderForEndpoint",
-      incidentId: "42",
-    });
-    const fallback: NormalizedSecurityEvent = MicrosoftDefenderXdrNormalizer.normalize({
-      id: "alert-without-activity-time",
-      title: "Alert",
-      severity: "low",
-      status: "new",
-      alertPolicyId: "policy-1",
-      createdDateTime: "2026-09-14T08:12:44Z",
-    });
+    const event: NormalizedSecurityEvent =
+      MicrosoftDefenderXdrNormalizer.normalize({
+        "@odata.type": "#microsoft.graph.security.alert",
+        id: "da637551227677560813_-961444813",
+        title: "Suspicious credential access",
+        severity: "high",
+        status: "inProgress",
+        category: "CredentialAccess",
+        detectorId: "detector-1",
+        alertPolicyId: "policy-1",
+        createdDateTime: "2026-09-14T08:12:44Z",
+        firstActivityDateTime: "2026-09-14T06:00:00Z",
+        serviceSource: "microsoftDefenderForEndpoint",
+        incidentId: "42",
+      });
+    const fallback: NormalizedSecurityEvent =
+      MicrosoftDefenderXdrNormalizer.normalize({
+        id: "alert-without-activity-time",
+        title: "Alert",
+        severity: "low",
+        status: "new",
+        alertPolicyId: "policy-1",
+        createdDateTime: "2026-09-14T08:12:44Z",
+      });
 
     expect(event.classUid).toBe(2004);
     expect(event.eventUid).toBe("da637551227677560813_-961444813");
@@ -1215,7 +1273,9 @@ describe("Microsoft Defender XDR", () => {
 
     const page: string = englishPage(DEFENDER);
 
-    expect(page).toContain("Detection Finding event (OCSF class `2004`), with vendor `Microsoft` and product `Microsoft Defender XDR`");
+    expect(page).toContain(
+      "Detection Finding event (OCSF class `2004`), with vendor `Microsoft` and product `Microsoft Defender XDR`",
+    );
     expect(page).toContain("`inProgress` In Progress");
     expect(page).toContain("`CredentialAccess` becomes `TA0006`");
   });
@@ -1230,7 +1290,10 @@ describe("CrowdStrike Falcon", () => {
 
     expect(
       rows.map((row: Array<string>): Array<string> => {
-        return [codeIn(row[0] as string)[0] as string, (row[1] as string).trim()];
+        return [
+          codeIn(row[0] as string)[0] as string,
+          (row[1] as string).trim(),
+        ];
       }),
     ).toEqual(
       Object.entries(CROWDSTRIKE_FALCON_CLOUD_BASE_URLS).map(
@@ -1243,7 +1306,9 @@ describe("CrowdStrike Falcon", () => {
 
   it("reads at most 9,000 alerts a run: one token, then a query and a fetch per 1,000, within 20 requests", () => {
     const perPageRequests: number = 2;
-    const pages: number = Math.floor((MAX_FETCH_REQUESTS - 1) / perPageRequests);
+    const pages: number = Math.floor(
+      (MAX_FETCH_REQUESTS - 1) / perPageRequests,
+    );
 
     expect(CROWDSTRIKE_ALERTS_PAGE_SIZE).toBe(1000);
     expect(pages * CROWDSTRIKE_ALERTS_PAGE_SIZE).toBe(9000);
@@ -1271,9 +1336,12 @@ describe("CrowdStrike Falcon", () => {
           );
 
           return json(200, {
-            resources: Array.from({ length: 1000 }, (_value: unknown, index: number): string => {
-              return `cid:ind:alert-${offset + index + 1}`;
-            }),
+            resources: Array.from(
+              { length: 1000 },
+              (_value: unknown, index: number): string => {
+                return `cid:ind:alert-${offset + index + 1}`;
+              },
+            ),
             meta: { pagination: { offset, limit: 1000, total: 50000 } },
           });
         }
@@ -1326,7 +1394,9 @@ describe("CrowdStrike Falcon", () => {
       await messageOf(() => {
         return crowdStrikeClient(
           fakePeer((): DataSourceHttpResponse => {
-            return json(401, { errors: [{ code: 401, message: "access denied" }] });
+            return json(401, {
+              errors: [{ code: 401, message: "access denied" }],
+            });
           }).transport,
         ).getAccessToken();
       }),
@@ -1338,7 +1408,9 @@ describe("CrowdStrike Falcon", () => {
         ).getAccessToken();
       }),
       await messageOf(() => {
-        return crowdStrikeClient(fakePeer(unreachable).transport).getAccessToken();
+        return crowdStrikeClient(
+          fakePeer(unreachable).transport,
+        ).getAccessToken();
       }),
       ...(await Promise.all(
         [403, 401, 429, 400].map((status: number): Promise<string> => {
@@ -1354,7 +1426,9 @@ describe("CrowdStrike Falcon", () => {
         }),
       )),
       await messageOf(() => {
-        return crowdStrikeClient(queryAnswering(text(200, "not json"))).queryAlertIds({
+        return crowdStrikeClient(
+          queryAnswering(text(200, "not json")),
+        ).queryAlertIds({
           filter,
           limit: 1,
           offset: 0,
@@ -1368,14 +1442,14 @@ describe("CrowdStrike Falcon", () => {
         ).queryAlertIds({ filter, limit: 1, offset: 0 });
       }),
       await messageOf(() => {
-        return crowdStrikeClient(queryAnswering(json(429, { errors: [] }))).getAlerts([
-          "cid:ind:alert-1",
-        ]);
+        return crowdStrikeClient(
+          queryAnswering(json(429, { errors: [] })),
+        ).getAlerts(["cid:ind:alert-1"]);
       }),
       await messageOf(() => {
-        return crowdStrikeClient(queryAnswering(text(200, "not json"))).getAlerts([
-          "cid:ind:alert-1",
-        ]);
+        return crowdStrikeClient(
+          queryAnswering(text(200, "not json")),
+        ).getAlerts(["cid:ind:alert-1"]);
       }),
       await messageOf(() => {
         return crowdStrikeClient(
@@ -1385,7 +1459,9 @@ describe("CrowdStrike Falcon", () => {
         ).getAlerts(["cid:ind:alert-1"]);
       }),
       await messageOf(() => {
-        return Promise.resolve(crowdStrikeClient(fakePeer(unreachable).transport, "mars-1"));
+        return Promise.resolve(
+          crowdStrikeClient(fakePeer(unreachable).transport, "mars-1"),
+        );
       }),
     ];
     const quoted: Array<string> = quotedMessages(
@@ -1426,9 +1502,12 @@ describe("CrowdStrike Falcon", () => {
           );
 
           return json(200, {
-            resources: Array.from({ length: 1000 }, (_value: unknown, index: number): string => {
-              return `cid:ind:alert-${offset + index + 1}`;
-            }),
+            resources: Array.from(
+              { length: 1000 },
+              (_value: unknown, index: number): string => {
+                return `cid:ind:alert-${offset + index + 1}`;
+              },
+            ),
             meta: { pagination: { offset, limit: 1000, total: 50000 } },
           });
         }
@@ -1461,29 +1540,35 @@ describe("CrowdStrike Falcon", () => {
   });
 
   it("imports an alert as the page's table maps it", () => {
-    const event: NormalizedSecurityEvent = CrowdStrikeFalconNormalizer.normalize({
-      composite_id: "cid:ind:abc",
-      created_timestamp: "2026-09-14T08:12:44.995Z",
-      timestamp: "2026-09-14T08:00:00Z",
-      display_name: "Credential dumping",
-      name: "CredentialDumping",
-      pattern_id: 51101,
-      description: "A process read LSASS memory.",
-      severity_name: "High",
-      severity: 70,
-      status: "new",
-      tactic_id: "TA0006",
-      technique_id: "T1003",
-      device: { hostname: "web-1", local_ip: "10.0.0.5", external_ip: "203.0.113.7" },
-      user_name: "alice",
-      sha256: "a".repeat(64),
-    });
-    const numeric: NormalizedSecurityEvent = CrowdStrikeFalconNormalizer.normalize({
-      composite_id: "cid:ind:def",
-      created_timestamp: "2026-09-14T08:12:44.995Z",
-      name: "Lateral movement",
-      severity: 85,
-    });
+    const event: NormalizedSecurityEvent =
+      CrowdStrikeFalconNormalizer.normalize({
+        composite_id: "cid:ind:abc",
+        created_timestamp: "2026-09-14T08:12:44.995Z",
+        timestamp: "2026-09-14T08:00:00Z",
+        display_name: "Credential dumping",
+        name: "CredentialDumping",
+        pattern_id: 51101,
+        description: "A process read LSASS memory.",
+        severity_name: "High",
+        severity: 70,
+        status: "new",
+        tactic_id: "TA0006",
+        technique_id: "T1003",
+        device: {
+          hostname: "web-1",
+          local_ip: "10.0.0.5",
+          external_ip: "203.0.113.7",
+        },
+        user_name: "alice",
+        sha256: "a".repeat(64),
+      });
+    const numeric: NormalizedSecurityEvent =
+      CrowdStrikeFalconNormalizer.normalize({
+        composite_id: "cid:ind:def",
+        created_timestamp: "2026-09-14T08:12:44.995Z",
+        name: "Lateral movement",
+        severity: 85,
+      });
 
     expect(event.classUid).toBe(2004);
     expect(event.eventUid).toBe("cid:ind:abc");
@@ -1509,7 +1594,9 @@ describe("CrowdStrike Falcon", () => {
     expect(englishPage(CROWDSTRIKE)).toContain(
       "Detection Finding event (OCSF class `2004`), with vendor `CrowdStrike` and product `Falcon`",
     );
-    expect(englishPage(CROWDSTRIKE)).toContain("stays in `attributes.timestamp`");
+    expect(englishPage(CROWDSTRIKE)).toContain(
+      "stays in `attributes.timestamp`",
+    );
   });
 });
 
@@ -1523,10 +1610,11 @@ describe("Google SecOps", () => {
       englishPage(GOOGLE_SECOPS),
       "Setting",
     );
-    const control: NonNullable<SecurityEventConnectorDefinition["alertingOnlyControl"]> =
-      definition.alertingOnlyControl as NonNullable<
-        SecurityEventConnectorDefinition["alertingOnlyControl"]
-      >;
+    const control: NonNullable<
+      SecurityEventConnectorDefinition["alertingOnlyControl"]
+    > = definition.alertingOnlyControl as NonNullable<
+      SecurityEventConnectorDefinition["alertingOnlyControl"]
+    >;
 
     expect(
       rows.map((row: Array<string>): string => {

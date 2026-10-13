@@ -427,16 +427,19 @@ describe("each alerting page's monitor", () => {
     "%s says a notification opens at most 100 incidents unless Max incidents per request says otherwise, as grouping caps them",
     (page: string) => {
       const many: JSONObject = {
-        alerts: Array.from({ length: 101 }, (_value: unknown, index: number) => {
-          return { status: "firing", fingerprint: `alert-${index}` };
-        }),
+        alerts: Array.from(
+          { length: 101 },
+          (_value: unknown, index: number) => {
+            return { status: "firing", fingerprint: `alert-${index}` };
+          },
+        ),
       };
       const grouping: Grouping = groupingOf(page);
 
       expect(itemsOf(many, grouping)).toHaveLength(100);
-      expect(
-        itemsOf(many, { ...grouping, maxKeysPerPayload: 2 }),
-      ).toHaveLength(2);
+      expect(itemsOf(many, { ...grouping, maxKeysPerPayload: 2 })).toHaveLength(
+        2,
+      );
       expect(englishPage(page)).toContain(
         `up to ${bold("Max incidents per request")} of them (\`100\` unless you change it)`,
       );
@@ -452,7 +455,11 @@ describe("each alerting page's monitor", () => {
       const recovery: JSONObject =
         page === DATADOG
           ? { ...firing, transition: grouping.resolvedWhenValue }
-          : (withEvery(firing, "status", grouping.resolvedWhenValue) as JSONObject);
+          : (withEvery(
+              firing,
+              "status",
+              grouping.resolvedWhenValue,
+            ) as JSONObject);
       const opened: Array<IncomingRequestGroupingItem> = itemsOf(
         firing,
         grouping,
@@ -530,9 +537,7 @@ describe("each alerting page's monitor", () => {
         groupingOf(page),
       );
 
-      expect(Object.keys(item?.labels || {})).toEqual(
-        GROUPING_VARIABLES[page],
-      );
+      expect(Object.keys(item?.labels || {})).toEqual(GROUPING_VARIABLES[page]);
 
       for (const variable of GROUPING_VARIABLES[page] || []) {
         expect(englishPage(page)).toContain(`\`{{${variable}}}\``);
@@ -543,7 +548,9 @@ describe("each alerting page's monitor", () => {
   it("Alertmanager: one resolved alert closes only its own incident while the others fire on", () => {
     const grouping: Grouping = groupingOf(ALERTMANAGER);
     const notification: JSONObject = testPayloadOf(ALERTMANAGER);
-    const alerts: Array<JSONObject> = notification["alerts"] as Array<JSONObject>;
+    const alerts: Array<JSONObject> = notification[
+      "alerts"
+    ] as Array<JSONObject>;
     const mixed: JSONObject = {
       ...notification,
       alerts: [
@@ -567,8 +574,9 @@ describe("each alerting page's monitor", () => {
   it("Alertmanager and Grafana: grouping by a label the notification's alerts share folds them into one incident, which takes the first alert's status", () => {
     for (const page of [ALERTMANAGER, GRAFANA]) {
       const notification: JSONObject = notificationOf(page);
-      const alerts: Array<JSONObject> =
-        notification["alerts"] as Array<JSONObject>;
+      const alerts: Array<JSONObject> = notification[
+        "alerts"
+      ] as Array<JSONObject>;
       const byAlertName: Grouping = {
         ...groupingOf(page),
         groupByJSONPath: "requestBody.alerts[*].labels.alertname",
@@ -727,12 +735,10 @@ describe("each alerting page's workflow", () => {
           notification,
         );
 
-        expect({ field, unresolved: HOLDS_REFERENCE.test(resolved) }).toEqual(
-          {
-            field,
-            unresolved: false,
-          },
-        );
+        expect({ field, unresolved: HOLDS_REFERENCE.test(resolved) }).toEqual({
+          field,
+          unresolved: false,
+        });
       }
     },
   );
@@ -757,7 +763,9 @@ describe("what the monitor answers, and when it evaluates", () => {
       "App/FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest.ts",
     );
 
-    expect(route.indexOf("Response.sendEmptySuccessResponse(req, res);")).toBeLessThan(
+    expect(
+      route.indexOf("Response.sendEmptySuccessResponse(req, res);"),
+    ).toBeLessThan(
       route.indexOf("TelemetryQueueService.addIncomingRequestIngestJob("),
     );
 
@@ -842,12 +850,15 @@ describe("Prometheus Alertmanager", () => {
     const first: AlertmanagerConfig = jsYaml.load(
       fenceIn(configureSection(), "yaml"),
     ) as AlertmanagerConfig;
-    const child: { receiver: string; matchers: Array<string>; repeat_interval?: string } =
-      config.route.routes?.[0] as {
-        receiver: string;
-        matchers: Array<string>;
-        repeat_interval?: string;
-      };
+    const child: {
+      receiver: string;
+      matchers: Array<string>;
+      repeat_interval?: string;
+    } = config.route.routes?.[0] as {
+      receiver: string;
+      matchers: Array<string>;
+      repeat_interval?: string;
+    };
     const watchdog: WebhookReceiver = config.receivers.find(
       (receiver: WebhookReceiver): boolean => {
         return receiver.name === child.receiver;
@@ -952,10 +963,7 @@ describe("Datadog", () => {
       $ALERT_TRANSITION: "Recovered",
     });
 
-    const [first]: Array<IncomingRequestGroupingItem> = itemsOf(
-      web1,
-      grouping,
-    );
+    const [first]: Array<IncomingRequestGroupingItem> = itemsOf(web1, grouping);
     const [second]: Array<IncomingRequestGroupingItem> = itemsOf(
       web2,
       grouping,
