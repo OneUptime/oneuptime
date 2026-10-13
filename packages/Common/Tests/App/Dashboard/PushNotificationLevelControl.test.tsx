@@ -8,7 +8,7 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import type { Mock, SpyInstance } from "jest-mock";
+import { Mock, SpyInstance } from "jest-mock";
 import React from "react";
 import PushNotificationLevelControl, {
   DEVICE_NOT_OPTED_IN_HINT,

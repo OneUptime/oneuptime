@@ -5414,14 +5414,6 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    // Value checks: refused before anything below reads the database.
-    this.assertPushNotificationLevelIsKnown(
-      (createBy.data as unknown as RuleColumnCarrier)["pushNotificationLevel"],
-    );
-    this.assertRepeatEveryMinutesIsKnown(
-      (createBy.data as unknown as RuleColumnCarrier)["repeatEveryMinutes"],
-    );
-
     await super.onBeforeCreate(createBy);
 
     const carrier: RuleColumnCarrier =
@@ -5562,6 +5554,35 @@ export class Service extends ProjectReferencesService<Model> {
         "Only push notification rules can repeat until acknowledged.",
       );
     }
+  }
+
+  /*
+   * The level and the repeat interval are value checks, so they are refused
+   * before the database is asked anything: the base hooks run this before
+   * their project check, and this service's onBeforeCreate / onBeforeUpdate
+   * call the base hooks first.
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    this.assertPushNotificationLevelIsKnown(
+      (createBy.data as unknown as RuleColumnCarrier)["pushNotificationLevel"],
+    );
+    this.assertRepeatEveryMinutesIsKnown(
+      (createBy.data as unknown as RuleColumnCarrier)["repeatEveryMinutes"],
+    );
+  }
+
+  // As checkCreateBeforeReferences: before the project check.
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    this.assertPushNotificationLevelIsKnown(
+      (updateBy.data as unknown as RuleColumnCarrier)["pushNotificationLevel"],
+    );
+    this.assertRepeatEveryMinutesIsKnown(
+      (updateBy.data as unknown as RuleColumnCarrier)["repeatEveryMinutes"],
+    );
   }
 
   /**
@@ -5755,14 +5776,6 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    // Value checks: refused before anything below reads the database.
-    this.assertPushNotificationLevelIsKnown(
-      (updateBy.data as unknown as RuleColumnCarrier)["pushNotificationLevel"],
-    );
-    this.assertRepeatEveryMinutesIsKnown(
-      (updateBy.data as unknown as RuleColumnCarrier)["repeatEveryMinutes"],
-    );
-
     await super.onBeforeUpdate(updateBy);
 
     const patch: RuleColumnCarrier =

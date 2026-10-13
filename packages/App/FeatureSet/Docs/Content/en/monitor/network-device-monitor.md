@@ -413,6 +413,7 @@ Vendors split these facts differently, and the page puts them back together:
 - UniFi reports channel, transmit power and clients per SSID: a radio takes them from the SSIDs on its band.
 - Aruba counts clients per radio: an access point's clients are its radios'.
 - An interface that broadcasts no network (IQ Engine lists every interface, with N/A for those) is not listed as an SSID.
+- A network an access point runs for itself is not an SSID, so it is neither listed nor counted: UniFi's wireless mesh link (`vwire-…`) and its network for adopting new UniFi devices (`element-…`), and an Extreme controller's WDS and mesh services. A hidden SSID of your own is listed like any other.
 
 A device that reports no Wi-Fi yet has the page name its vendor's template, matched from the last poll the way auto-apply matches it, and apply it with **Apply Template**; the radios appear after the next poll.
 

@@ -28183,6 +28183,8 @@
   "Rings even when the phone is on silent or in Do Not Disturb.": "Rings even when the phone is on silent or in Do Not Disturb.",
   "Rings like a standard push until Critical On-Call Alerts is turned on in the OneUptime On-Call app on this phone.": "Rings like a standard push until Critical On-Call Alerts is turned on in the OneUptime On-Call app on this phone.",
   "Standard": "Standard",
+  "The device reported no SSIDs on its last walk.": "장치가 마지막 워크에서 SSID를 보고하지 않았습니다.",
+  "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.": "장치가 SSID를 보고하지 않습니다. 무선 메시 링크처럼 장치가 자체 용도로 운영하는 네트워크는 나열되지 않습니다.",
   "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded.",
   "Could not change how often this push repeats.": "이 푸시 알림의 반복 빈도를 변경할 수 없습니다.",
   "Critical Alert Sound": "중요 알림 사운드",

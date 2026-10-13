@@ -7,6 +7,10 @@ import BillingService from "../../../Server/Services/BillingService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import Project from "../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  SlackWebhookMessages,
+  captureSlackWebhookMessages,
+} from "./SlackWebhookMessages";
 
 /*
  * A project's balance for SMS, calls, WhatsApp and Telegram, with everything
@@ -68,6 +72,11 @@ export interface MessagingBalanceWorld {
   setCacheConnected: (value: boolean) => void;
   // How long a charge takes, in ms.
   setChargeDelayInMs: (ms: number) => void;
+  /*
+   * What was posted to Slack incoming webhooks - the operator's channel
+   * hears of every refill - caught rather than sent.
+   */
+  slack: SlackWebhookMessages;
   // Called while a charge is with the payment provider.
   duringCharge: (callback: (() => void) | null) => void;
 }
@@ -321,6 +330,8 @@ export function useMessagingBalanceWorld(
     }
   }) as never);
 
+  const slack: SlackWebhookMessages = captureSlackWebhookMessages();
+
   return {
     row,
     charges,
@@ -347,6 +358,7 @@ export function useMessagingBalanceWorld(
     setChargeDelayInMs: (ms: number): void => {
       chargeDelayInMs = ms;
     },
+    slack,
     duringCharge: (callback: (() => void) | null): void => {
       whileCharging = callback;
     },

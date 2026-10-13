@@ -549,9 +549,11 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     /*
      * The tables the device walks (template plus device-specific, merged
      * the way the poll merges them), each with the row names its last walk
-     * reported so the row picker can offer them.
+     * reported so the row picker can offer them - as a walk stores them
+     * now, so a row a walk no longer keeps is never offered.
      */
-    const snapshots: Array<SnmpTableSnapshot> = device?.snmpTableSnapshot || [];
+    const snapshots: Array<SnmpTableSnapshot> =
+      SnmpTableListUtil.withListedRows(device?.snmpTableSnapshot || []);
 
     const tables: Array<NetworkDeviceTableCatalogueEntry> =
       SnmpTableListUtil.resolveEffectiveTables({
