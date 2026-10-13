@@ -20,6 +20,7 @@ import {
   cardLines,
   cardTargets,
   comparableFence,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   navTitle,
@@ -54,6 +55,10 @@ import path from "path";
  *     locale, Persian included (drawnActionLabel); a table's create button
  *     as the table draws it (drawnCreateButton). A label of the Admin
  *     Dashboard is its value in the Admin Dashboard's locale (ADMIN_LABELS).
+ *   - A Dashboard label a page names in plain words, as a value a setting
+ *     takes - the push notification levels a rule is set to - is its value
+ *     in that language's Dashboard locale too, on the line of the English
+ *     page that names it (PLAIN_LABELS).
  *   - A menu path is drawn segment by segment, with " > " between the
  *     segments: in one bold span where the English page writes one, or a
  *     bold span per segment where it writes those; Persian, written right to
@@ -358,6 +363,18 @@ const PATHS_HELD_ELSEWHERE: Record<string, Array<string>> = {
   ],
 };
 
+/*
+ * Dashboard labels a page names in plain words, not in bold: the push
+ * notification levels an on-call rule's row and the form that adds a push
+ * rule draw, which the push page names as the values a rule is set to, in
+ * its diagram too. A translation quotes each as its language quotes a label,
+ * in the words its Dashboard draws, on the line of the English page that
+ * names it.
+ */
+const PLAIN_LABELS: Record<string, Array<string>> = {
+  [PUSH_PAGE]: ["Critical alert", "Standard"],
+};
+
 // The pages that open on a block of cards.
 const OPENS_ON_CARDS: Array<string> = [
   PUSH_PAGE,
@@ -395,6 +412,11 @@ const DIGIT_GROUP: RegExp = /(\d)[\s.,'\u066c](\d{3})(?!\d)/g;
 const DECIMAL_MARK: RegExp = /(\d)[,٫](\d)/g;
 // A line that starts a list item, a table row, a heading, a component, an image or a quote.
 const NOT_PARAGRAPH_TEXT: RegExp = /^\s*(?:[-*>|#:@]|\d+\.|!\[)/;
+// What a word is made of: letters, their marks and digits.
+const WORD_CHARACTER: string = "\\p{L}\\p{M}\\p{N}";
+// The scripts of Chinese, Japanese and Korean, which put no space between a label and the words around it.
+const UNSPACED_SCRIPT: RegExp =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 
 function englishPage(page: string): string {
   return readPage("en", page);
@@ -413,6 +435,22 @@ function adminKeys(page: string): Record<string, string> {
 
 function isParagraphText(line: string): boolean {
   return line.trim().length > 0 && !NOT_PARAGRAPH_TEXT.test(line);
+}
+
+/*
+ * Whether a line names a label as words of their own: "Critical alerts"
+ * does not name "Critical alert". A label in Chinese, Japanese or Korean
+ * may touch the words around it.
+ */
+function namesLabel(line: string, label: string): boolean {
+  if (UNSPACED_SCRIPT.test(label)) {
+    return line.includes(label);
+  }
+
+  return new RegExp(
+    `(?<![${WORD_CHARACTER}])${escapeRegExp(label)}(?![${WORD_CHARACTER}])`,
+    "u",
+  ).test(line);
 }
 
 // The menu paths a page names, in either way of writing them.
@@ -731,6 +769,33 @@ function isDrawnSegment(page: string, segment: string): boolean {
   );
 }
 
+/*
+ * The plain labels a translation does not name, as its Dashboard draws
+ * them, on the line where the English page names them: "<line>: <English>
+ * -> <drawn>".
+ */
+function unnamedPlainLabels(language: string, page: string): Array<string> {
+  const translatedLines: Array<string> = readPage(language, page).split("\n");
+  const missing: Array<string> = [];
+
+  englishPage(page)
+    .split("\n")
+    .forEach((line: string, index: number): void => {
+      for (const label of listed(PLAIN_LABELS, page)) {
+        const drawn: string = drawnLabel(language, label);
+
+        if (
+          namesLabel(line, label) &&
+          !namesLabel(translatedLines[index] || "", drawn)
+        ) {
+          missing.push(`${index + 1}: ${label} -> ${drawn}`);
+        }
+      }
+    });
+
+  return missing;
+}
+
 interface LinkIntoPage {
   from: string;
   to: string;
@@ -809,6 +874,7 @@ describe("the lists this test keeps", () => {
       PROSE,
       PROSE_LEADS,
       PATHS_HELD_ELSEWHERE,
+      PLAIN_LABELS,
     ]) {
       for (const page of Object.keys(lists)) {
         expect(PAGE_NAMES).toContain(page);
@@ -946,6 +1012,34 @@ describe("the lists this test keeps", () => {
         .map(pathText);
 
       expect({ page, unknown }).toEqual({ page, unknown: [] });
+    }
+  });
+
+  /*
+   * A plain label the English page drops, or starts to write in bold, fails
+   * here: a bold one is held by "names every Dashboard label".
+   */
+  it("list as plain labels only Dashboard labels the English pages name in plain words, not in bold", () => {
+    for (const page of Object.keys(PLAIN_LABELS)) {
+      const markdown: string = englishPage(page);
+
+      for (const label of listed(PLAIN_LABELS, page)) {
+        expect({
+          page,
+          label,
+          dashboard: true,
+          named: true,
+          bold: false,
+        }).toEqual({
+          page,
+          label,
+          dashboard: isActionLabel(label),
+          named: markdown.split("\n").some((line: string): boolean => {
+            return namesLabel(line, label);
+          }),
+          bold: boldSpans(prose(markdown)).includes(label),
+        });
+      }
     }
   });
 
@@ -1177,6 +1271,10 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
+    it("names the Dashboard labels the English page names in plain words as this language's Dashboard draws them, on the same lines", () => {
+      expect(unnamedPlainLabels(language, entry.page)).toEqual([]);
+    });
+
     it("names every Admin Dashboard label as this language's Admin Dashboard draws it", () => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = Object.values(adminKeys(entry.page))
@@ -1353,6 +1451,35 @@ describe("the helpers, on these pages' shapes", () => {
     expect(numbersIn("TCP 5228–5230 and 443")).toEqual(["443", "5228", "5230"]);
     expect(numbersIn("TCP ۵۲۲۸–۵۲۳۰ و ۴۴۳")).toEqual(["443", "5228", "5230"]);
     expect(numbersIn("version 1,5.0")).toEqual(["1.5", "0"].sort());
+  });
+
+  it("find a label as words of their own, and in Chinese, Japanese or Korean beside the words around it", () => {
+    const condition: string =
+      "every rule that notifies a phone is set to Critical alert, the default, or Standard, which follows";
+
+    expect(namesLabel(condition, "Critical alert")).toBe(true);
+    expect(namesLabel(condition, "Standard")).toBe(true);
+    expect(
+      namesLabel(
+        'Rule{"Its on-call rule set<br/>to Critical alert?"}',
+        "Critical alert",
+      ),
+    ).toBe(true);
+    expect(
+      namesLabel(
+        "Critical alerts on iOS require the entitlement",
+        "Critical alert",
+      ),
+    ).toBe(false);
+    expect(
+      namesLabel("auf „Normal“, das den Toneinstellungen folgt", "Normal"),
+    ).toBe(true);
+    expect(namesLabel("Normalerweise bleibt es still", "Normal")).toBe(false);
+    expect(namesLabel("pas de Standardisation", "Standard")).toBe(false);
+    expect(namesLabel("या 'सामान्य' पर सेट", "सामान्य")).toBe(true);
+    expect(namesLabel("सामान्यतः यह बजता है", "सामान्य")).toBe(false);
+    expect(namesLabel("设为普通的推送规则", "普通")).toBe(true);
+    expect(namesLabel("'일반'으로 설정된 푸시 규칙", "일반")).toBe(true);
   });
 
   it("find a line whose code span is closed by asterisks", () => {

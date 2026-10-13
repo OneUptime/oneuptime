@@ -105,7 +105,7 @@ La portée est volontairement étroite. Seules les alertes produites par une rè
 ```mermaid title="Quand une alerte d'astreinte sonne malgré le mode silencieux"
 flowchart TB
     Page["Une alerte d'astreinte"]
-    Rule{"Sa règle d'astreinte est<br/>sur « Critical alert » ?"}
+    Rule{"Sa règle d'astreinte est<br/>sur « Alerte critique » ?"}
     Device{"Critical On-Call Alerts<br/>activé pour cet appareil ?"}
     OS{"Le système du téléphone<br/>autorise les alertes critiques ?"}
     Loud["Joue un son malgré le<br/>mode silencieux et Ne pas déranger"]
@@ -122,7 +122,7 @@ flowchart TB
 Quatre conditions doivent toutes être remplies pour qu'une alerte outrepasse le mode silencieux. S'il en manque une, l'alerte est quand même livrée – simplement en silence.
 
 1. **La personne l'a activé pour cet appareil.** Enregistré par appareil, désactivé par défaut, dans `UserPush.isCriticalAlertEnabled`. Le téléphone et la tablette d'une même personne sont des décisions distinctes.
-2. **La règle d'astreinte qui a envoyé l'alerte le demande.** Sous **Paramètres utilisateur > Règles d'astreinte**, chaque règle qui notifie un téléphone est réglée sur « Critical alert », la valeur par défaut, ou sur « Standard », qui suit les réglages sonores du téléphone – ainsi une personne peut être réveillée pour un incident critique et prévenue en silence pour un incident mineur. Enregistré par règle dans `UserNotificationRule.pushNotificationLevel`.
+2. **La règle d'astreinte qui a envoyé l'alerte le demande.** Sous **Paramètres utilisateur > Règles d'astreinte**, chaque règle qui notifie un téléphone est réglée sur « Alerte critique », la valeur par défaut, ou sur « Standard », qui suit les réglages sonores du téléphone – ainsi une personne peut être réveillée pour un incident critique et prévenue en silence pour un incident mineur. Enregistré par règle dans `UserNotificationRule.pushNotificationLevel`.
 3. **Le serveur marque l'alerte comme critique.** Il envoie la charge utile de son critique d'APNs plus `interruptionLevel: critical` pour iOS, et cible un canal de notification critique pour Android : `oncall_critical`, ou le canal propre à l'alarme choisie (voir [Choisir le son d'alarme](#choisir-le-son-dalarme)).
 4. **Le système d'exploitation l'autorise**, et c'est là que les deux plateformes diffèrent.
 

@@ -105,7 +105,7 @@ expo:
 ```mermaid title="值班呼叫何时会穿透静音模式响起"
 flowchart TB
     Page["一次值班呼叫"]
-    Rule{"它的值班规则设为<br/>Critical alert？"}
+    Rule{"它的值班规则设为<br/>“重要警报”？"}
     Device{"此设备上开启了<br/>Critical On-Call Alerts？"}
     OS{"手机系统允许<br/>关键提醒？"}
     Loud["穿透静音模式和勿扰模式<br/>播放声音"]
@@ -122,7 +122,7 @@ flowchart TB
 呼叫要穿透静音模式，必须同时满足四个条件。只要缺少任何一个，呼叫仍会投递——只是静默投递。
 
 1. **值班人员在该设备上开启了它。** 按设备存储在 `UserPush.isCriticalAlertEnabled` 中，默认关闭。同一个人的手机和平板是分别决定的。
-2. **发送呼叫的值班规则要求这样做。** 在 **用户设置 > 值班规则** 中，每条通知手机的规则都设为默认的“Critical alert”，或设为遵循手机声音设置的“Standard”——这样值班人员可以在严重事件时被叫醒，而轻微事件只是静默通知。按规则存储在 `UserNotificationRule.pushNotificationLevel` 中。
+2. **发送呼叫的值班规则要求这样做。** 在 **用户设置 > 值班规则** 中，每条通知手机的规则都设为默认的“重要警报”，或设为遵循手机声音设置的“普通”——这样值班人员可以在严重事件时被叫醒，而轻微事件只是静默通知。按规则存储在 `UserNotificationRule.pushNotificationLevel` 中。
 3. **服务器把呼叫标记为关键。** 它为 iOS 发送 APNs 的关键声音负载以及 `interruptionLevel: critical`，并为 Android 指定一个关键通知渠道：`oncall_critical`，或所选警报声自己的渠道（见 [选择警报声](#选择警报声)）。
 4. **操作系统允许它**，这正是两个平台的不同之处。
 
@@ -188,7 +188,7 @@ Android 会在渠道首次创建时冻结其设置，因此无法通过应用更
 ### 关键提醒没有穿透静音模式
 
 - 检查**那台**设备上的开关是否已开启——这项设置按设备区分，重新安装或从零设置的新手机会创建新的设备注册（从旧手机备份恢复的手机，会在旧手机不再接收通知时接管旧手机的注册，并保留应用原有的设置）
-- 在 **用户设置 > 值班规则** 中检查该严重程度的值班规则：设为“Standard”的推送规则会遵循手机的声音设置，无论设备上的开关如何
+- 在 **用户设置 > 值班规则** 中检查该严重程度的值班规则：设为“普通”的推送规则会遵循手机的声音设置，无论设备上的开关如何
 - **iOS**：确认构建带有 Apple 的关键提醒权限（见上文），并且已在 iOS Settings > Notifications > OneUptime On-Call 下允许 Critical Alerts
 - **Android**：确认应用在 Settings > Notifications > Do Not Disturb access 下拥有勿扰访问权限
 - **Android**：如果你选择了警报声，它自己的通知渠道也必须被允许绕过勿扰模式；不允许时，应用的 Alarm sound 页面会说明
