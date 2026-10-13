@@ -1,65 +1,58 @@
 <%#
-    Consent Mode v2 and attribution capture, shared by every OneUptime-owned
-    origin that loads the Google Tag Manager container.
-
-    This lived only in Home/Views/head-basic.ejs, which meant the marketing site
-    denied storage by default and asked the visitor, while /accounts and
-    /dashboard loaded the same container with no consent signal at all and
-    captured nothing. Two consequences, both bad: somebody who pressed "Reject
-    all" on the marketing site was tracked anyway the moment they reached the
-    signup page — which is exactly where the conversion fires — and an ad
-    pointed straight at /accounts/register?gclid=... stored no click id, so
-    that signup was permanently unattributable.
+    Consent, the Google tag, and attribution capture, shared by every
+    OneUptime-owned origin that measures anything: the marketing site, the docs,
+    the API reference, sign-up and the dashboard.
 
     It is one file rather than a copy per origin because the storage contract
     has to stay byte-identical: the same 'cookiesAccepted' values, the same
-    'clickIds' and 'firstTouch' JSON shapes. Three copies is how those stop
-    agreeing.
+    'clickIds' and 'firstTouch' JSON shapes. Several copies is how those stop
+    agreeing - and these origins share one hostname on OneUptime Cloud, so an
+    answer given on the marketing site has to be the answer the product honours.
 
-    Include this BEFORE the Google Tag Manager snippet. Consent Mode defaults
-    are only meaningful if they are on the dataLayer before the container reads
-    it.
+    Locals:
+      enableGoogleTagManager  OneUptime's own measurement is on (the hosted
+                              product). False on self-hosted installs, which
+                              load no Google tag at all.
+      googleTagMode           'tag-manager' (default) loads the Google Tag
+                              Manager container with all of its tags.
+                              'analytics-only' loads Google Analytics and
+                              nothing else - for sign-up and the dashboard,
+                              where advertising pixels and visitor
+                              identification tools have no business running.
 
-    Home resolves this as ../../Common/Server/Views/Partials/AnalyticsConsent
-    and the App FeatureSets as ../../../../Common/Server/Views/Partials/...;
-    /usr/src/Common is present in both images.
+    Status pages and public dashboards must NOT include this: they belong to
+    OneUptime's customers, and their visitors are not OneUptime's to measure.
 
-    Deliberately NOT here: the PostHog loader (its project key is Home's) and
-    the home/-prefixed page view and CTA listeners. Those are Home's alone and
-    stay in head-basic.ejs. Reporting on a captured touch is handed back to
-    the page through window.oneUptimeOnAttributionCaptured for the same
-    reason.
+    Include it in <head>, before anything that reads the consent state. Home
+    resolves it as ../../Common/Server/Views/Partials/AnalyticsConsent and the
+    App FeatureSets as ../../../../Common/Server/Views/Partials/... (one more
+    ../ from a Partials folder); /usr/src/Common is present in both images.
+
+    Deliberately NOT here: the marketing site's PostHog loader (its project
+    key is Home's) and its home/-prefixed events. Home asks
+    window.oneUptimeConsent.whenAllowed to run them. Reporting on a captured
+    touch is handed back to the page through
+    window.oneUptimeOnAttributionCaptured for the same reason.
 -%>
+<% const tagsEnabled = typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false; %>
+<% const tagMode = (typeof googleTagMode !== 'undefined' && googleTagMode === 'analytics-only') ? 'analytics-only' : 'tag-manager'; %>
 <!--
     Consent.
 
-    This block runs BEFORE Google Tag Manager, because Consent Mode's defaults
-    have to be on the dataLayer before the container reads it.
-
-    MEASUREMENT IS NO LONGER GATED ON THE BANNER. Consent Mode defaults to
-    granted, attribution is captured and stored on every visit, and PostHog
-    loads on every visit. The `cookiesAccepted` key is still written and
-    `oneUptimeConsent` still reports it, because the banner and the footer's
-    cookie-settings link still read and write it — but nothing downstream
-    branches on the answer any more.
-
-    Stated plainly so nobody has to infer it from the code: pressing "Reject
-    all" does not stop measurement, does not stop attribution being stored, and
-    does not clear what an earlier visit stored. This was a deliberate product
-    decision (the booking receiver needs every booking attributed, and a
-    booking is itself a deliberate act by the visitor); it is not an oversight,
-    and it is not the behaviour the banner's own copy describes. If that copy
-    or the banner UI is meant to keep promising a choice, this is the file that
-    has to change back.
+    Nothing that measures you runs until it is allowed. Where the law asks for
+    consent first (the EEA, the UK and Switzerland), that means until you press
+    "Accept all". Elsewhere measurement runs until you press "Reject all", and
+    a refusal stops it, clears what it stored and is remembered. A browser
+    sending Global Privacy Control counts as a refusal unless you accept.
 -->
-<% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %>
+<% if (tagsEnabled) { %>
 <!--
     The dataLayer and the gtag shim, defined before both the consent signals
-    below and the container itself.
+    below and the tag itself.
 
     Deliberately inside the enableGoogleTagManager gate. A self-hosted install
     loads no Google tag at all, and every OneUptime event guards on
-    `typeof dataLayer !== 'undefined'` — so creating the array there would turn
+    `typeof dataLayer !== 'undefined'` - so creating the array there would turn
     those no-ops into an array that grows for the life of the page and that
     nothing will ever read.
 -->
@@ -72,6 +65,39 @@
 <script>
     window.oneUptimeConsent = (function () {
         var STORAGE_KEY = 'cookiesAccepted';
+
+        /*
+         * Time zones of the places whose law asks for consent before anything
+         * non-essential is stored: the EEA (with the EU's outermost regions,
+         * and Cyprus, whose zone is filed under Asia), the UK and Switzerland.
+         *
+         * Over-inclusive on purpose. Every Europe/ zone matches, including
+         * countries outside the EEA; being asked first there costs a click,
+         * while not asking where the law requires it is the defect this fixes.
+         */
+        var CONSENT_FIRST_TIME_ZONE = /^(Europe\/|Atlantic\/(Azores|Canary|Faroe|Faeroe|Madeira|Reykjavik)$|Africa\/Ceuta$|Arctic\/Longyearbyen$|Asia\/(Nicosia|Famagusta)$|America\/(Cayenne|Guadeloupe|Martinique|Marigot|St_Barthelemy)$|Indian\/(Mayotte|Reunion)$)/;
+
+        // What privacy-hardened browsers report instead of the real zone.
+        var HIDDEN_TIME_ZONE = /^(Etc\/|UTC$|GMT$|Universal$|Zulu$)/;
+
+        /*
+         * First-party cookies set by the tags behind the banner: Google
+         * Analytics and Ads, Meta, Microsoft Advertising, Reddit and X.
+         */
+        var MEASUREMENT_COOKIE = /^(_ga|_gid|_gat|_gcl_|_fbp|_fbc|_uet|_rdt_|_twclid)/;
+
+        // PostHog keeps its state in a cookie and in localStorage, both ph_*.
+        var ANALYTICS_STORAGE = /^ph_/;
+
+        var allowedCallbacks = [];
+        var changeListeners = [];
+
+        /*
+         * The answer given on this page, kept in memory too: a browser that
+         * refuses storage (private modes, blocked site data) would otherwise
+         * forget it the moment anything asked again.
+         */
+        var pageAnswer = null;
 
         function readRaw() {
             try {
@@ -86,6 +112,8 @@
         }
 
         function state() {
+            if (pageAnswer) { return pageAnswer; }
+
             var raw = readRaw();
             if (raw === 'true') { return 'granted'; }
             if (raw === 'false') { return 'denied'; }
@@ -96,11 +124,61 @@
             return state() === 'granted';
         }
 
+        function timeZone() {
+            try {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+            } catch (e) {
+                return '';
+            }
+        }
+
         /*
-         * Consent Mode v2, defaulting to granted across the board.
-         *
-         * wait_for_update is kept at 500ms so the container's own timing is
-         * unchanged, even though nothing arrives later to change the answer.
+         * Whether this visitor has to say yes before anything non-essential
+         * runs, decided from the browser's time zone. A zone that is missing
+         * or hidden asks first: when we cannot tell, we do not assume.
+         */
+        function requiresConsentFirst() {
+            var zone = timeZone();
+
+            if (!zone || HIDDEN_TIME_ZONE.test(zone)) {
+                return true;
+            }
+
+            return CONSENT_FIRST_TIME_ZONE.test(zone);
+        }
+
+        /*
+         * Global Privacy Control: a standing "no" from the browser. The
+         * Cookie Policy says it is honoured; this is where. Pressing "Accept
+         * all" overrides it, since that is the more specific answer.
+         */
+        function hasGlobalPrivacyControl() {
+            try {
+                return Boolean(window.navigator && window.navigator.globalPrivacyControl === true);
+            } catch (e) {
+                return false;
+            }
+        }
+
+        /*
+         * The one rule every measuring tag on the page follows. An answer on
+         * the banner always wins; with no answer, Global Privacy Control means
+         * no, and otherwise it depends on where the visitor is.
+         */
+        function isAllowed() {
+            var current = state();
+
+            if (current === 'granted') { return true; }
+            if (current === 'denied') { return false; }
+            if (hasGlobalPrivacyControl()) { return false; }
+
+            return !requiresConsentFirst();
+        }
+
+        /*
+         * Consent Mode v2. The defaults go out before the tag loads, granted
+         * only when measurement is allowed, and every answer is sent as an
+         * update - so a refusal reaches Google tags already on the page.
          */
         function pushConsentSignal(mode, granted) {
             /*
@@ -111,48 +189,226 @@
                 return;
             }
 
-            window.gtag('consent', mode, {
-                ad_storage: granted ? 'granted' : 'denied',
-                ad_user_data: granted ? 'granted' : 'denied',
-                ad_personalization: granted ? 'granted' : 'denied',
-                analytics_storage: granted ? 'granted' : 'denied',
-                functionality_storage: granted ? 'granted' : 'denied',
-                personalization_storage: granted ? 'granted' : 'denied',
-                security_storage: 'granted',
-                wait_for_update: 500
+            var value = granted ? 'granted' : 'denied';
+            var signal = {
+                ad_storage: value,
+                ad_user_data: value,
+                ad_personalization: value,
+                analytics_storage: value,
+                functionality_storage: value,
+                personalization_storage: value,
+                security_storage: 'granted'
+            };
+
+            if (mode === 'default') {
+                signal.wait_for_update = 500;
+            }
+
+            window.gtag('consent', mode, signal);
+        }
+
+        function cookieNames() {
+            try {
+                return (document.cookie ? document.cookie.split(';') : []).map(function (cookie) {
+                    return cookie.split('=')[0].trim();
+                });
+            } catch (e) {
+                return [];
+            }
+        }
+
+        /*
+         * Tags set their cookies on the registrable domain (.oneuptime.com)
+         * as well as the host, so each is expired on every parent domain up to
+         * that one. A browser ignores the write for a domain the cookie is not
+         * on, which costs nothing.
+         */
+        function expireCookie(name) {
+            var labels = String((window.location && window.location.hostname) || '').split('.');
+            var domains = [''];
+
+            for (var i = 0; i < labels.length - 1; i++) {
+                domains.push('.' + labels.slice(i).join('.'));
+            }
+
+            domains.forEach(function (domain) {
+                try {
+                    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/' + (domain ? '; domain=' + domain : '');
+                } catch (e) {
+                    // Cookies unavailable; nothing to expire.
+                }
             });
         }
 
-        pushConsentSignal('default', true);
+        function clearMeasurementCookies() {
+            cookieNames().forEach(function (name) {
+                if (MEASUREMENT_COOKIE.test(name)) {
+                    expireCookie(name);
+                }
+            });
+        }
+
+        function clearAnalyticsStorage() {
+            cookieNames().forEach(function (name) {
+                if (ANALYTICS_STORAGE.test(name)) {
+                    expireCookie(name);
+                }
+            });
+
+            try {
+                var keys = [];
+                for (var i = 0; i < window.localStorage.length; i++) {
+                    keys.push(window.localStorage.key(i));
+                }
+                keys.forEach(function (key) {
+                    if (key && ANALYTICS_STORAGE.test(key)) {
+                        window.localStorage.removeItem(key);
+                    }
+                });
+            } catch (e) {
+                // Storage unavailable; there is nothing in it to clear.
+            }
+        }
+
+        function notify(allowed) {
+            changeListeners.forEach(function (listener) {
+                try {
+                    listener(allowed);
+                } catch (e) {
+                    // One broken listener must not stop the others hearing.
+                }
+            });
+
+            if (allowed) {
+                allowedCallbacks.splice(0, allowedCallbacks.length).forEach(function (callback) {
+                    try {
+                        callback();
+                    } catch (e) {
+                        // One broken tag must not stop the others loading.
+                    }
+                });
+            }
+        }
 
         function set(granted) {
+            pageAnswer = granted ? 'granted' : 'denied';
+
             try {
                 window.localStorage.setItem(STORAGE_KEY, granted ? 'true' : 'false');
             } catch (e) {
-                // Nothing to persist to. The in-page decision still applies.
+                // Nothing to persist to. The answer still holds on this page.
             }
 
-            /*
-             * Deliberately NOT pushing a Consent Mode update here. The default
-             * is granted and stays granted; pushing 'denied' on a refusal would
-             * re-gate the Google tag and make the banner functional again,
-             * which is exactly what this file no longer does.
-             *
-             * There is no observer list either. Nothing downstream reacts to
-             * the answer any more, and an onChange() that could never fire is
-             * an API that reads as working code — re-add it alongside the
-             * consumer that needs it, not before.
-             */
+            pushConsentSignal('update', granted);
+
+            if (!granted) {
+                clearMeasurementCookies();
+                clearAnalyticsStorage();
+            }
+
+            notify(granted);
+        }
+
+        /*
+         * Runs callback once measurement is allowed: now, if it already is, or
+         * the moment the visitor accepts. Tags load through this, so nothing
+         * measuring starts on a page where it is not allowed.
+         */
+        function whenAllowed(callback) {
+            if (isAllowed()) {
+                callback();
+                return;
+            }
+
+            allowedCallbacks.push(callback);
+        }
+
+        // Told true or false every time the visitor answers.
+        function onChange(listener) {
+            changeListeners.push(listener);
+        }
+
+        pushConsentSignal('default', isAllowed());
+
+        /*
+         * Not allowed means nothing left behind from an earlier visit either:
+         * the tags ran unconditionally until this file gated them.
+         */
+        if (!isAllowed()) {
+            clearMeasurementCookies();
         }
 
         return {
             state: state,
             isGranted: isGranted,
+            isAllowed: isAllowed,
+            requiresConsentFirst: requiresConsentFirst,
+            whenAllowed: whenAllowed,
+            onChange: onChange,
             grant: function () { set(true); },
             deny: function () { set(false); }
         };
     })();
 </script>
+<% if (tagsEnabled) { %>
+
+<!--
+    The Google tag, loaded only once measurement is allowed.
+<% if (tagMode === 'analytics-only') { %>
+    Google Analytics alone, sent the product's key events by
+    Common/Utils/Analytics.ts. No container, so no advertising pixel or
+    visitor identification tool can run here, whatever the container holds.
+<% } else { %>
+    The Google Tag Manager container, with every tag it holds.
+<% } %>
+-->
+<script>
+    (function () {
+        var loaded = false;
+
+        window.oneUptimeGoogleTagMode = '<%= tagMode %>';
+
+        function loadGoogleTag() {
+            if (loaded) {
+                return;
+            }
+
+            /*
+             * Not while a single-use bearer token is still in the address bar.
+             * See Common/Server/Views/Partials/SensitiveUrlToken.ejs: the
+             * bootstrap normally removes the token before this runs, and this
+             * guard only fires when it could not - the tag would otherwise
+             * send the URL, token and all, with its first hit.
+             */
+            if (window.__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__) {
+                return;
+            }
+
+            loaded = true;
+
+            var script = document.createElement('script');
+            script.async = true;
+<% if (tagMode === 'analytics-only') { %>
+            script.src = 'https://www.googletagmanager.com/gtag/js?id=G-76XZF1WF3Z';
+            window.gtag('js', new Date());
+            window.gtag('config', 'G-76XZF1WF3Z');
+<% } else { %>
+            window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+            script.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-PKQD5WH';
+<% } %>
+
+            var firstScript = document.getElementsByTagName('script')[0];
+            if (firstScript && firstScript.parentNode) {
+                firstScript.parentNode.insertBefore(script, firstScript);
+            } else {
+                document.head.appendChild(script);
+            }
+        }
+
+        window.oneUptimeConsent.whenAllowed(loadGoogleTag);
+    })();
+</script>
+<% } %>
 
 <!--
     Attribution capture (UTM parameters + ad platform click IDs), and the
@@ -168,26 +424,28 @@
       'firstTouch' and never overwritten.
 
     A visit counts as a new "touch" if it carries ANY utm parameter or ad click
-    ID — Google Ads auto-tagging sends only gclid, no UTMs.
+    ID - Google Ads auto-tagging sends only gclid, no UTMs.
 
     CONSENT
 
-    None. Every touch is stored on sight, whatever the banner says and whether
-    or not it has been answered. See the block at the top of this file for why.
+    A touch is stored only while measurement is allowed. A visitor who has not
+    been asked yet keeps this page's touch in memory, and it is stored the
+    moment they accept; a refusal clears everything stored, and nothing is
+    read back or handed to Cal.com while measurement is not allowed.
 
     CAL.COM BOOKINGS
 
     window.oneUptimeCalAttributionMetadata(bookingKind) flattens the same
     attribution into the scalar string map Cal.com accepts as booking metadata.
     Cal hands it back on its BOOKING_CREATED webhook, which is delivered to the
-    CRM — not to OneUptime, which receives no booking webhook at all
+    CRM - not to OneUptime, which receives no booking webhook at all
     (Docs/analytics/enterprise-conversion-tracking.md).
 -->
 <script>
     (function () {
         /*
          * Must stay in step with UtmWireKeyToPropertyKey in
-         * Common/Types/Marketing/Attribution.ts — the signup door whitelists on
+         * Common/Types/Marketing/Attribution.ts - the signup door whitelists on
          * that map, so a key written here that is missing there is silently
          * dropped on arrival. AttributionCapture.test.ts asserts the two are
          * identical.
@@ -206,7 +464,7 @@
 
         /*
          * Must stay in step with AdClickIdKeys in
-         * Common/Types/Marketing/Attribution.ts — the server whitelists on that
+         * Common/Types/Marketing/Attribution.ts - the server whitelists on that
          * list, so a key sent from here that is missing there is silently
          * dropped on arrival.
          */
@@ -226,13 +484,12 @@
         /*
          * This page's touch, kept in memory as well as written.
          *
-         * Not a consent buffer — storeTouch runs unconditionally now. This is
-         * for the browser that refuses localStorage outright: private modes,
-         * "block all site data", a sandboxed iframe, enterprise storage policy.
-         * There, every setItem throws and is swallowed as best-effort, so a
-         * reader that trusted storage alone would hand Cal an empty bag for a
-         * visitor who arrived on a paid click seconds earlier — the exact
-         * failure this whole path exists to prevent.
+         * Two reasons. A visitor who has not been asked yet keeps it here until
+         * they answer, and it is stored the moment they accept. And a browser
+         * that refuses localStorage outright (private modes, "block all site
+         * data", a sandboxed iframe) swallows every write, so a reader that
+         * trusted storage alone would hand Cal an empty bag for a visitor who
+         * arrived on a paid click seconds earlier.
          */
         var currentTouch = null;
 
@@ -262,6 +519,10 @@
 
         function bound(value) {
             return String(value).slice(0, MAX_VALUE_LENGTH);
+        }
+
+        function isAllowed() {
+            return window.oneUptimeConsent.isAllowed();
         }
 
         function readTouchFromUrl() {
@@ -333,6 +594,16 @@
             }
         }
 
+        // Everything storeTouch writes, so a refusal takes all of it back.
+        function clearStoredAttribution() {
+            Object.keys(UTM_KEY_MAP).forEach(function (param) {
+                removeItem(UTM_KEY_MAP[param]);
+            });
+            removeItem('utmUrl');
+            removeItem('clickIds');
+            removeItem('firstTouch');
+        }
+
         function parseStoredJson(key) {
             var raw = getItem(key);
             if (!raw) { return null; }
@@ -346,12 +617,17 @@
 
         /*
          * Everything known about where this visitor came from, whether it
-         * reached storage or is only in memory.
+         * reached storage or is only in memory - and nothing at all while
+         * measurement is not allowed.
          *
          * This page's touch wins: it is this page load, and the stored copy is
          * at best the same thing and at worst an older visit.
          */
         window.oneUptimeGetAttribution = function () {
+            if (!isAllowed()) {
+                return { utm: {}, clickIds: {}, firstTouch: null };
+            }
+
             var utm = {};
             Object.keys(UTM_KEY_MAP).forEach(function (param) {
                 var key = UTM_KEY_MAP[param];
@@ -402,12 +678,12 @@
          * accepts as booking metadata.
          *
          * Cal takes booking metadata as FLAT, BRACKETED keys on the embed
-         * config — `metadata[utm_source]` — and hands them back on the webhook
+         * config - `metadata[utm_source]` - and hands them back on the webhook
          * as payload.metadata.utm_source. NOT as a nested `metadata: {...}`
          * object: Cal serialises each config value into a query parameter, so a
          * nested object becomes the string "[object Object]" and every key
          * inside it is lost. Nothing errors; bookings keep succeeding, they
-         * just arrive attributable to nothing — indistinguishable from not
+         * just arrive attributable to nothing - indistinguishable from not
          * having done this at all.
          *
          * https://cal.com/help/embedding/prefill-booking-form-embed
@@ -446,10 +722,11 @@
             }
 
             /*
-             * Unconditional, unlike everything above it. All three embeds book
-             * the same Cal event type (oneuptimehq/demo), so without this the
-             * receiver cannot tell a support call from an enterprise demo from
-             * a self-hosted architecture assessment — they arrive identical.
+             * Unconditional, unlike everything above it, and not personal
+             * data. All three embeds book the same Cal event type
+             * (oneuptimehq/demo), so without this the receiver cannot tell a
+             * support call from an enterprise demo from a self-hosted
+             * architecture assessment - they arrive identical.
              */
             if (bookingKind) {
                 config['metadata[ou_booking_kind]'] = String(bookingKind).slice(0, MAX_VALUE_LENGTH);
@@ -462,17 +739,35 @@
 
         if (touch) {
             currentTouch = touch;
-            storeTouch(touch);
         }
+
+        if (isAllowed()) {
+            if (touch) {
+                storeTouch(touch);
+            }
+        } else {
+            // Stored on an earlier visit, before measurement was gated.
+            clearStoredAttribution();
+        }
+
+        window.oneUptimeConsent.onChange(function (allowed) {
+            if (allowed) {
+                if (currentTouch) {
+                    storeTouch(currentTouch);
+                }
+            } else {
+                clearStoredAttribution();
+            }
+        });
 
         /*
          * Reporting is the including page's business, not this partial's.
          *
          * The marketing site emits a `home/`-prefixed PostHog event from here;
          * the product origins emit nothing, and must not start emitting under
-         * a `home/` name just because they now share the capture code. So the
+         * a `home/` name just because they share the capture code. So the
          * touch is handed out and the page decides what, if anything, to do
-         * with it.
+         * with it - and only while measurement is allowed.
          *
          * Wire keys (utm_source), not property keys (utmSource): this is what
          * arrived on the URL.
@@ -482,17 +777,19 @@
                 return;
             }
 
-            var eventProps = { utm_url: touch.url };
-            Object.keys(UTM_KEY_MAP).forEach(function (param) {
-                if (touch.utmValues[UTM_KEY_MAP[param]]) {
-                    eventProps[param] = touch.utmValues[UTM_KEY_MAP[param]];
-                }
-            });
-            Object.keys(touch.clickIds).forEach(function (param) {
-                eventProps[param] = touch.clickIds[param];
-            });
+            window.oneUptimeConsent.whenAllowed(function () {
+                var eventProps = { utm_url: touch.url };
+                Object.keys(UTM_KEY_MAP).forEach(function (param) {
+                    if (touch.utmValues[UTM_KEY_MAP[param]]) {
+                        eventProps[param] = touch.utmValues[UTM_KEY_MAP[param]];
+                    }
+                });
+                Object.keys(touch.clickIds).forEach(function (param) {
+                    eventProps[param] = touch.clickIds[param];
+                });
 
-            window.oneUptimeOnAttributionCaptured(eventProps);
+                window.oneUptimeOnAttributionCaptured(eventProps);
+            });
         });
     })();
 </script>

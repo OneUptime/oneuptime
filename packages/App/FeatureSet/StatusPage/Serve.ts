@@ -20,6 +20,10 @@ import {
 } from "Common/Types/StatusPage/StatusPageLanguage";
 import applyStatusPageContentSecurityPolicy from "Common/Server/Utils/StatusPageContentSecurityPolicy";
 import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
+import {
+  isSearchEngineIndexingAllowed,
+  isStatusPagePreviewPath,
+} from "Common/Types/StatusPage/SearchEngineIndexing";
 
 export const APP_NAME: string = "status-page";
 
@@ -58,7 +62,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
          * hosted either on a custom domain (feed at /rss) or on a subpath
          * at /status-page/:statusPageId (feed at /status-page/:statusPageId/rss).
          */
-        const isPreviewPage: boolean = req.path.includes("/status-page/");
+        const isPreviewPage: boolean = isStatusPagePreviewPath(req.path);
         const previewStatusPageId: string = isPreviewPage
           ? req.path.split("/status-page/")[1]?.split("/")[0] || ""
           : "";
@@ -96,6 +100,21 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
               statusPageData.isSearchEngineIndexingEnabled,
           };
         }
+
+        /*
+         * No page data: the lookup failed, or the URL named no page. A
+         * preview URL is kept out of search results all the same; a custom
+         * domain fails open, as it does whenever the owner's setting cannot
+         * be read.
+         */
+        const isSearchEngineIndexingEnabled: boolean =
+          isSearchEngineIndexingAllowed({
+            path: req.path,
+            indexingFlag: undefined,
+          });
+
+        applyStatusPageRobotsHeader(res, isSearchEngineIndexingEnabled);
+
         return {
           title: "Status Page",
           description:
@@ -104,6 +123,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             "/status-page-api/favicon/" + ObjectID.getZeroObjectID().toString(),
           lang: DEFAULT_STATUS_PAGE_LANGUAGE,
           rssFeedPath: rssFeedPath,
+          isSearchEngineIndexingEnabled: isSearchEngineIndexingEnabled,
         };
       },
     });
