@@ -192,20 +192,18 @@ const PushRepeatControl: FunctionComponent<ComponentProps> = (
               const optionValue: number = Number(option.value);
               const isSelected: boolean = optionValue === repeatEveryMinutes;
 
+              /*
+               * A choice of interval, so the tick on the one in use is the
+               * item's icon and the others keep its space: the way a feed's
+               * sort order is picked (FeedMoreMenu).
+               */
               return (
                 <MoreMenuItem
                   key={String(option.value)}
                   text={option.label}
-                  isChecked={isSelected}
+                  icon={isSelected ? IconProp.Check : undefined}
                   isIconSpaceReserved={true}
-                  rightElement={
-                    isSelected ? (
-                      <Icon
-                        icon={IconProp.Check}
-                        className="h-4 w-4 text-indigo-600"
-                      />
-                    ) : undefined
-                  }
+                  isChecked={isSelected}
                   dataTestId={`push-repeat-option-${optionValue}`}
                   onClick={() => {
                     void changeRepeat(optionValue);
