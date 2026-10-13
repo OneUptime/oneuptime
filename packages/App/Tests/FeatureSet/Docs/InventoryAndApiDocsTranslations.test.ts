@@ -25,6 +25,7 @@ import {
   PLAN_NAMES,
   PRODUCT_NAMES,
   PROSE,
+  WHOLE_LABELS,
 } from "./InventoryAndApiDocsPages";
 import {
   DocsHeading,
@@ -123,12 +124,18 @@ const PAGE_NAMES: Array<string> = INVENTORY_AND_API_PAGES.map(
 );
 
 /*
- * Side menu items the Dashboard draws by looking their whole text up
- * (translateString in SideMenuItem): where a locale has no wording of its
- * own for "Delete Item", the menu reads the English - it is not filled into
- * a "Delete {{itemName}}" template as a Settings card's action is.
+ * The labels the Dashboard draws by looking their whole text up, on any of
+ * the pages (WHOLE_LABELS): where a locale has no wording of its own for
+ * "Delete Item", the menu reads the English - it is not filled into a
+ * "Delete {{itemName}}" template as a Settings card's action is.
  */
-const MENU_ITEM_LABELS: ReadonlyArray<string> = ["Delete Item"];
+const WHOLE_LABEL_SET: Set<string> = new Set<string>(
+  Object.values(WHOLE_LABELS).flatMap(
+    (labels: ReadonlyArray<string>): Array<string> => {
+      return [...labels];
+    },
+  ),
+);
 
 /*
  * Each page's diagrams fit the 590px docs column, in every language: their
@@ -218,7 +225,7 @@ function keptBold(page: string): Array<string> {
  * other label is drawn as a named action would be (drawnActionLabel).
  */
 function drawnLabel(language: string, label: string): string {
-  return MENU_ITEM_LABELS.includes(label)
+  return WHOLE_LABEL_SET.has(label)
     ? drawnDashboardLabel(language, label)
     : drawnActionLabel(language, label);
 }
@@ -433,6 +440,7 @@ describe("the lists this test keeps", () => {
   it("name only pages of these groups", () => {
     for (const lists of [
       CREATE_BUTTONS,
+      WHOLE_LABELS,
       KEPT_AS_WRITTEN,
       PERMISSION_NAMES,
       PLAN_NAMES,
@@ -480,6 +488,7 @@ describe("the lists this test keeps", () => {
       const stale: Array<string> = [
         ...keptBold(page),
         ...listed(CREATE_BUTTONS, page),
+        ...listed(WHOLE_LABELS, page),
         ...listed(PROSE, page),
       ].filter((span: string): boolean => {
         return !english.includes(span);
@@ -540,10 +549,16 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("draw the side menu items it reads whole as the English Dashboard does", () => {
-    for (const label of MENU_ITEM_LABELS) {
-      expect(drawnDashboardLabel("en", label)).toBe(label);
-      expect(boldLabels(englishPage(INVENTORY_OVERVIEW))).toContain(label);
+  it("draw the labels it reads whole as the English Dashboard does, each a label of the Dashboard", () => {
+    for (const page of PAGE_NAMES) {
+      for (const label of listed(WHOLE_LABELS, page)) {
+        expect(drawnDashboardLabel("en", label)).toBe(label);
+        expect({ page, label, isLabel: isActionLabel(label) }).toEqual({
+          page,
+          label,
+          isLabel: true,
+        });
+      }
     }
   });
 });

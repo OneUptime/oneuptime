@@ -1,6 +1,6 @@
 # Inventory Overview
 
-Inventory is one list of everything OneUptime knows about your estate: services, hosts, containers, Kubernetes objects, network devices, cloud resources, IoT devices, serverless functions, and the things that send no telemetry at all. Most of it fills itself in from what OneUptime already watches. You add what watching cannot tell it: what a thing is for, who owns it, when its warranty runs out.
+Inventory is one list of everything OneUptime knows about your estate: services, hosts, Kubernetes objects, virtual machines, network devices, cloud resources, IoT devices, serverless functions, and the things that send no telemetry at all. Most of it fills itself in from what OneUptime already watches. You add what watching cannot tell it: what a thing is for, who owns it, when its warranty runs out.
 
 :::cards
 - [How items get into Inventory](#how-items-get-into-inventory): Discovered, mirrored, or added by you.
@@ -24,7 +24,7 @@ flowchart TB
 
 | Source | In the API | Where it comes from | How long it stays |
 | --- | --- | --- | --- |
-| **Discovered** | `discovered` | OpenTelemetry resource attributes, read as telemetry arrives: a service, host, pod, container or process that sends telemetry. | Registered again with each batch. Removed once it has been silent for longer than its kind's window (see below). |
+| **Discovered** | `discovered` | OpenTelemetry resource attributes, read as telemetry arrives: a service, host, Kubernetes object or virtual machine that sends telemetry. | Registered again with each batch. Removed once it has been silent for longer than its kind's window (see below). |
 | **Mirrored** | `inventory` | A record a OneUptime poller keeps: network devices, cloud resources, IoT devices, serverless functions, RUM applications, Docker hosts and Podman hosts. Copied every 15 minutes. | As long as its record. Delete the record, and the item goes with it. |
 | **Added by you** | `manual` | Added by you, for something OneUptime cannot see: a third-party API, a vendor-managed database, an appliance in a rack. | Until you delete it. Nothing expires it. |
 
@@ -40,15 +40,15 @@ A discovered item has a heartbeat. Each time telemetry arrives for it, its last-
 | **Recent** | Seen within the last day. |
 | **Stale** | Not seen for more than a day. The **Gone Quiet** page lists these. |
 
-Every three hours, OneUptime removes the discovered items that have been silent for longer than their kind's window. Mirrored items and the ones you added are never removed this way.
+Every three hours, OneUptime removes the discovered items that have been silent for longer than their kind's window, archived ones included, and their custom field values go with them. Mirrored items and the ones you added are never removed this way.
 
 | Kind of item | Removed after this long without telemetry |
 | --- | --- |
-| Pods, deployments, service instances, containers, processes, Proxmox guests and VMware virtual machines | 1 day |
+| Pods, deployments, Proxmox guests and VMware virtual machines | 1 day |
 | Kubernetes nodes and namespaces, Proxmox nodes, VMware hosts, clusters and datastores, and the databases and remote services your traces call | 7 days |
-| Services, hosts, Kubernetes, Proxmox and Ceph clusters, storage arrays, vCenters, Docker Swarm clusters and telemetry SDKs | 30 days |
+| Services, hosts, Kubernetes, Proxmox and Ceph clusters, storage arrays, vCenters and Docker Swarm clusters | 30 days |
 
-A relationship between two items is removed once it has not been seen again for 30 days.
+A relationship OneUptime discovered is removed once it has not been seen again for 30 days.
 
 ## Find your way around
 
@@ -127,11 +127,10 @@ OneUptime links items with directed relationships as it observes them. **Invento
 
 | Relationship | For example |
 | --- | --- |
-| `runs-on` | A pod runs on a node; a process runs on a host. |
+| `runs-on` | A pod runs on a node; a virtual machine runs on its host. |
 | `member-of` | A pod, node or namespace is a member of a cluster. |
 | `hosted-on` | A service is hosted on a host. |
-| `part-of` | A container is part of a pod; a process is part of a container. |
-| `instance-of` | A service instance is an instance of a service. |
+| `part-of` | A pod is part of its deployment. |
 | `depends-on` | A service calls another service, from the spans that cross between them. |
 
 ## Next steps

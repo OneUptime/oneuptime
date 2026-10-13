@@ -37,14 +37,27 @@ export const INVENTORY_AND_API_PAGES: ReadonlyArray<InventoryAndApiDocsPageEntry
 /*
  * A table's create button, drawn as translateCreateAction draws it: the
  * custom fields table's and the API keys table's ("Create <singular
- * name>"), and the Inventory list's and an API key's permissions table's,
- * whose tables name their own verb (createVerb "Add").
+ * name>"), and the Inventory list's, whose table names its own verb
+ * (createVerb "Add").
  */
 export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
   [INVENTORY_OVERVIEW]: ["Add Item"],
   [INVENTORY_CUSTOM_FIELDS]: ["Create Inventory Item Custom Field"],
-  [CMDB_SYNC]: ["Create API Key", "Add Permission"],
+  [CMDB_SYNC]: ["Create API Key"],
   [API_REFERENCE]: ["Create API Key"],
+};
+
+/*
+ * Labels the Dashboard looks up whole (translateString), never through a
+ * "Delete {{itemName}}" or "Add {{itemName}}" template: an item's side menu
+ * entry (SideMenuItem), and the buttons of an API key's Permissions card
+ * (Card draws each button's title as it is). Where a locale has no wording
+ * of its own, the Dashboard draws the English.
+ */
+export const WHOLE_LABELS: Readonly<Record<string, ReadonlyArray<string>>> = {
+  [INVENTORY_OVERVIEW]: ["Delete Item"],
+  [CMDB_SYNC]: ["Add Permission"],
+  [API_REFERENCE]: ["Add Role", "Add Permission"],
 };
 
 /*
@@ -55,7 +68,11 @@ export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
 export const PERMISSION_NAMES: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
-  [CMDB_SYNC]: ["Read Telemetry Service", "Edit Telemetry Service"],
+  [CMDB_SYNC]: [
+    "Read Telemetry Service",
+    "Edit Telemetry Service",
+    "Create Telemetry Service",
+  ],
 };
 
 // The plans the pages name: the Dashboard shows a plan's name as written.

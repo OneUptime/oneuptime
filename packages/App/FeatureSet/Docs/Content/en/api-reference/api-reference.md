@@ -89,17 +89,36 @@ A list or a count takes a `query`. A field with a value matches that value; an o
 | `Includes` | Any of the values in `value` |
 | `IsNull`, `NotNull` | No value, or any value |
 
-`select` names the fields to return, and `_id` always comes back. `sort` orders them, `ASC` or `DESC`. A list returns 10 records unless you set `limit`, up to 10,000, and `skip` passes over that many first: keep raising `skip` by `limit` until you have `count` of them. Add `?output-type=csv` to a list request for CSV instead of JSON.
+`select` names the fields to return, and `_id` always comes back. `sort` orders them, `ASC` or `DESC`; without one, the newest come first. A list returns 10 records unless you set `limit`, up to 10,000, and `skip` passes over that many first: keep raising `skip` by `limit` until you have `count` of them. Add `?output-type=csv` to a list request for CSV instead of JSON.
+
+For example, the monitors whose name contains "checkout", created since the start of 2026, newest first:
+
+```bash
+curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": {
+      "name": { "_type": "Search", "value": "checkout" },
+      "createdAt": { "_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z" }
+    },
+    "select": { "name": true, "createdAt": true },
+    "sort": { "createdAt": "DESC" },
+    "limit": 100
+  }'
+```
+
+Dates and IDs other than `_id` come back wrapped, as `{ "_type": "DateTime", "value": "..." }` and `{ "_type": "ObjectID", "value": "..." }`: read them from `value`.
 
 ### Status codes
 
 | Code | What it means | Read more |
 | --- | --- | --- |
 | `200` | It went through. A list or a count answers with the records you may read, none when there are none. | [Reading one record by its ID](#reading-one-record-by-its-id) |
-| `400` | The request is wrong: the API key is invalid, a value is not allowed, a field cannot be written, a record it names is not yours, or it changes several projects at once. The message names the field. | [Records a request names](#records-a-request-names) |
+| `400` | The request is wrong: the API key is invalid, a value is not allowed, a field cannot be written, a record it names is not yours, or it changes several projects at once. The message says what is wrong. | [Records a request names](#records-a-request-names) |
 | `402` | The project's plan does not include what the request uses. The message names the plan. | [Features your plan does not include](#features-your-plan-does-not-include) |
 | `404` | The record does not exist, is in another project, or is one you may not read: the same answer for each. | [Changing or deleting a record you may not read](#changing-or-deleting-a-record-you-may-not-read) |
-| `422` | You may not do this: you may read the record but not change it, or a permission's labels leave it out. The message says why. | [Changing or deleting a record you may not read](#changing-or-deleting-a-record-you-may-not-read) |
+| `422` | You may not do this: the API key has no permission for this kind of record, you may read the record but not change it, or a permission's labels leave it out. The message says why. | [Changing or deleting a record you may not read](#changing-or-deleting-a-record-you-may-not-read) |
 | `500` | Something failed on the server. When the owner of a new record cannot be written, the record is removed again, so the create can be tried again. | [Records a request names](#records-a-request-names) |
 
 ## Plans and the API
@@ -315,6 +334,10 @@ The `ApiKey` header is empty, is not a key, or names a key that has expired or b
 
 :::details Every request answers 402 Payment Required
 On OneUptime Cloud, API keys work only while the project is on the **Growth** plan or above. The keys are kept, and work again as they are once the project is back on the plan: see [API keys and SCIM below their plan](#api-keys-and-scim-below-their-plan).
+:::
+
+:::details Every request answers 422 You do not have permissions
+The API key has no permission for that kind of record. A key made with **Choose permissions later** can do nothing until it gets one: open it under **Project Settings → Advanced → API Keys**, then click **Add Role** or **Add Permission**. The message names the permissions that would let the request in.
 :::
 
 :::details A record I can see in the dashboard answers 404

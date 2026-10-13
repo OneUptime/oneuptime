@@ -98,7 +98,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-On a self-hosted install, use your own OneUptime address in place of `https://oneuptime.com`. The answer is `{ "data": [...], "count": ... }`, where `count` is how many items match in all. Page by raising `skip` by your `limit` until you have them all; `limit` goes up to 10,000.
+On a self-hosted install, use your own OneUptime address in place of `https://oneuptime.com`. The answer is `{ "data": [...], "count": ... }`, where `count` is how many items match in all. Page by raising `skip` by your `limit` until you have them all; `limit` goes up to 10,000. Dates and IDs other than `_id` come back wrapped, as `{ "_type": "DateTime", "value": "..." }` and `{ "_type": "ObjectID", "value": "..." }`: read them from `value`.
 
 ### Just the network devices
 
@@ -222,18 +222,22 @@ Dates in `customFields` are ISO-8601 UTC strings, and the CSV export writes them
 
 There is no change feed. Poll the list endpoint at whatever interval suits you, and compare on `entityKey`. `lastSeenAt` says when an item was last observed, which is usually the cheapest way to spot what has gone quiet since your last run.
 
-An item that disappears between runs has either aged out (a discovered item that stayed silent past its window) or had its owning record deleted. An item that carries custom field values is archived rather than deleted, so query with `"isArchived": true` to see what has been retired without losing the asset data attached to it.
+An item that disappears between runs has either aged out (a discovered item that stayed silent past its window) or had its owning record deleted. A mirrored item that carries custom field values is archived rather than deleted when its record goes, so query with `"isArchived": true` to see what has been retired without losing the asset data attached to it.
 
 ## Write back
 
 The same endpoints take writes, so a sync can push values into `customFields`: the asset tag your CMDB already owns, stamped onto the matching OneUptime item, for example. The key needs **Edit Telemetry Service** for that.
 
-You can also add items for things OneUptime cannot see, with `POST /api/inventory-item`, an `entityType` of `external.service`, `external.database` or `appliance`, and a `displayName`. OneUptime works out the identity key for you, and those items never expire.
+You can also add items for things OneUptime cannot see, with `POST /api/inventory-item`, an `entityType` of `external.service`, `external.database` or `appliance`, and a `displayName`. OneUptime works out the identity key for you, and those items never expire. The key needs **Create Telemetry Service** for that.
 
 ## Troubleshooting
 
 :::details Every request is refused with 402 Payment Required
 On OneUptime Cloud, API keys work only while the project is on the **Growth** plan or above. Nothing is deleted: the key works again as it is once the project is back on the plan. See [API keys and SCIM below their plan](/docs/api-reference/api-reference#api-keys-and-scim-below-their-plan).
+:::
+
+:::details Every request answers 422 You do not have permissions
+The key has no permission that reads the inventory. A key made with **Choose permissions later** can do nothing until it gets one: add **Read Telemetry Service** on its page, as in [Before you begin](#before-you-begin).
 :::
 
 :::details The list comes back without the columns I need
