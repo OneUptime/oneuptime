@@ -38,7 +38,7 @@ In **OneUptime Cloud** kann jedes Projekt den globalen Anbieter ohne Einrichtung
 
 Um stattdessen Ihre eigenen API-Schlüssel oder ein bestimmtes Modell zu verwenden, fügen Sie wie unten beschrieben einen eigenen Anbieter hinzu: Für KI, die auf Ihrem eigenen Anbieter läuft, wird Ihnen nichts berechnet.
 
-Der globale LLM-Anbieter wird aus dem KI-Guthaben des Projekts bezahlt. Um zu begrenzen, was KI pro Tag ausgeben darf, setzen Sie ein **Tägliches KI-Ausgabenlimit (USD)** unter **Projekteinstellungen → KI-Funktionen → Weitere Einstellungen**; ein **Tägliches KI-Token-Limit** dort begrenzt die Tokens bei jedem Anbieter, auch bei Ihrem eigenen. Siehe [die eigenen täglichen Limits des Projekts](/docs/ai/ai-sre#the-projects-own-daily-limits).
+Der globale LLM-Anbieter wird aus dem KI-Guthaben des Projekts bezahlt. Um zu begrenzen, was KI pro Tag ausgeben darf, setzen Sie ein **Tägliches KI-Ausgabenlimit (USD)** unter **Projekteinstellungen → KI-Funktionen → Weitere Einstellungen**; ein **Tägliches KI-Token-Limit** dort begrenzt die Tokens bei jedem Anbieter, auch bei Ihrem eigenen. Siehe [die eigenen täglichen Limits des Projekts](/docs/ai/ai-sre#die-eigenen-täglichen-limits-des-projekts).
 
 OneUptime Cloud kann nur LLM-Endpunkte im öffentlichen Internet erreichen. Es kann sich nicht mit einem Modell in Ihrem privaten Netzwerk verbinden, etwa einem selbst gehosteten Ollama- oder vLLM-Server. Um ein Modell zu verwenden, das Sie selbst betreiben, hosten Sie OneUptime selbst in einem Netzwerk, das es erreicht, oder stellen Sie das Modell unter einem öffentlichen Endpunkt bereit: siehe [Eine Basis-URL für ein selbst gehostetes Modell wählen](#eine-basis-url-für-ein-selbst-gehostetes-modell-wählen).
 

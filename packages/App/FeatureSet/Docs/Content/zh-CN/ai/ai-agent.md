@@ -52,7 +52,7 @@ flowchart TB
 
 要打开异常的 **AI Assistance** 页面，请在 **产品 → 可观测性 → 异常** 下打开该异常，然后在侧边菜单中选择 **AI Assistance**。已解决或已归档的异常需要先标记为未解决。
 
-OneUptime AI 也会自行启动修复任务：来自发现代码更改的调查，来自因缺少遥测而没有结论的调查，以及来自关于异常和慢追踪的 AI Insights。每种都有自己的开关；请参阅 [自动代码修复](/docs/ai/ai-sre#automatic-code-fixes)。
+OneUptime AI 也会自行启动修复任务：来自发现代码更改的调查，来自因缺少遥测而没有结论的调查，以及来自关于异常和慢追踪的 AI Insights。每种都有自己的开关；请参阅 [自动代码修复](/docs/ai/ai-sre#自动代码修复)。
 
 ## 拉取请求之前的验证
 

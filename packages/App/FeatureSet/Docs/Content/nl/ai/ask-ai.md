@@ -35,7 +35,7 @@ In de modus **Alleen-lezen** krijgt het model nooit acties aangeboden, dus het g
 | Een foutpatroon in de logs, of de bevindingen van een grafiek | Klik op **Explain with AI**: AI vragen opent met het bewijs als een vraag die je kunt aanpassen voordat je hem verstuurt. |
 | Een eigen pagina | Open **Producten → AI → Chat** voor een werkruimte over de hele pagina. Elk gesprek daar heeft een eigen adres, zodat je een draad als bladwijzer kunt bewaren of in het kanaal van een incident kunt plakken. |
 
-Bij een incident of waarschuwing heeft de kaart **AI Investigation** een eigen gesprek, **Ask OneUptime AI**, dat iedereen deelt die dat incident of die waarschuwing kan zien: zie [Met OneUptime AI over het incident praten](/docs/ai/ai-sre#talk-to-oneuptime-ai-about-the-incident).
+Bij een incident of waarschuwing heeft de kaart **AI Investigation** een eigen gesprek, **Ask OneUptime AI**, dat iedereen deelt die dat incident of die waarschuwing kan zien: zie [Met OneUptime AI over het incident praten](/docs/ai/ai-sre#praat-met-oneuptime-ai-over-het-incident).
 
 ## Wat hij kan zien
 
@@ -99,7 +99,7 @@ Elke actie van AI vragen gebeurt als jij: hij voert dezelfde wijziging uit als h
 - **Het Growth-abonnement, in OneUptime Cloud.** Een project met een lager abonnement ziet dat AI niet in zijn abonnement zit, met een link naar **Projectinstellingen → Facturering en facturen → Facturering**.
 - **AI ingeschakeld voor het project.** **AI inschakelen**, op **Projectinstellingen → AI → AI Features**, zet elke AI-functie van het project uit, AI vragen inbegrepen. Het staat aan, tenzij iemand het heeft uitgezet.
 
-AI vragen telt mee voor de eigen dagelijkse AI-limieten van het project wanneer het project die instelt (Projectinstellingen → AI Features → Meer instellingen): is er een bereikt, dan toont AI vragen een zin die zegt welke limiet is bereikt, dat OneUptime AI om middernacht UTC weer begint en wie de limiet kan verhogen of verwijderen. De eigenaren van het project krijgen een e-mail de eerste keer dat er op een dag een limiet wordt bereikt. De dagelijkse limieten voor incidenten en waarschuwingen houden AI vragen nooit tegen. Zie [de eigen dagelijkse limieten van het project](/docs/ai/ai-sre#the-projects-own-daily-limits).
+AI vragen telt mee voor de eigen dagelijkse AI-limieten van het project wanneer het project die instelt (Projectinstellingen → AI Features → Meer instellingen): is er een bereikt, dan toont AI vragen een zin die zegt welke limiet is bereikt, dat OneUptime AI om middernacht UTC weer begint en wie de limiet kan verhogen of verwijderen. De eigenaren van het project krijgen een e-mail de eerste keer dat er op een dag een limiet wordt bereikt. De dagelijkse limieten voor incidenten en waarschuwingen houden AI vragen nooit tegen. Zie [de eigen dagelijkse limieten van het project](/docs/ai/ai-sre#de-eigen-daglimieten-van-het-project).
 
 ## Problemen oplossen
 

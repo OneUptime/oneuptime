@@ -35,7 +35,7 @@ flowchart TB
 | 日志中的错误模式，或图表的发现 | 点击 **Explain with AI**：询问 AI 会打开，并把证据填成一个你可以在发送前编辑的问题。 |
 | 它自己的页面 | 打开 **产品 → AI → Chat**，获得整页的工作区。那里的每个会话都有自己的地址，你可以把会话加入书签，或粘贴到事件频道中。 |
 
-在事件或警报上，**AI Investigation** 卡片有一个自己的会话 **Ask OneUptime AI**，所有能看到该事件或警报的人共享这个会话：请参阅 [就事件与 OneUptime AI 对话](/docs/ai/ai-sre#talk-to-oneuptime-ai-about-the-incident)。
+在事件或警报上，**AI Investigation** 卡片有一个自己的会话 **Ask OneUptime AI**，所有能看到该事件或警报的人共享这个会话：请参阅 [就事件与 OneUptime AI 对话](/docs/ai/ai-sre#与-oneuptime-ai-讨论事件)。
 
 ## 它能看到什么
 
@@ -99,7 +99,7 @@ flowchart TB
 - **OneUptime Cloud 上的 Growth 套餐。** 套餐较低的项目会看到 AI 不包含在其套餐中的提示，并附有指向 **项目设置 → 账单和发票 → 账单** 的链接。
 - **为项目开启 AI。** **项目设置 → 人工智能 → AI Features** 上的 **启用 AI** 会关闭项目的所有 AI 功能，包括询问 AI。除非有人关闭，否则它处于开启状态。
 
-当项目设置了自己的每日 AI 限额时，询问 AI 也计入其中（项目设置 → AI Features → 更多设置）：一旦达到某个限额，询问 AI 会显示一句话，说明达到了哪个限额、OneUptime AI 将在 UTC 午夜重新开始，以及谁可以提高或取消该限额。每天首次达到限额时，项目所有者会收到一封电子邮件。事件和警报的每日限额从不会停止询问 AI。请参阅 [项目自己的每日限额](/docs/ai/ai-sre#the-projects-own-daily-limits)。
+当项目设置了自己的每日 AI 限额时，询问 AI 也计入其中（项目设置 → AI Features → 更多设置）：一旦达到某个限额，询问 AI 会显示一句话，说明达到了哪个限额、OneUptime AI 将在 UTC 午夜重新开始，以及谁可以提高或取消该限额。每天首次达到限额时，项目所有者会收到一封电子邮件。事件和警报的每日限额从不会停止询问 AI。请参阅 [项目自己的每日限额](/docs/ai/ai-sre#项目自身的每日限制)。
 
 ## 故障排除
 

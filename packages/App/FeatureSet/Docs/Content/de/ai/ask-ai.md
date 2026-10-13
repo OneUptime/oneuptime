@@ -35,7 +35,7 @@ Im Modus **Nur Lesezugriff** werden dem Modell keine Aktionen angeboten, die Unt
 | Ein Fehlermuster in den Logs oder die Befunde eines Diagramms | Klicken Sie auf **Explain with AI**: KI fragen öffnet sich mit den Belegen als Frage, die Sie vor dem Senden bearbeiten können. |
 | Eine eigene Seite | Öffnen Sie **Produkte → AI → Chat** für einen Arbeitsbereich über die ganze Seite. Jede Unterhaltung dort hat eine eigene Adresse, sodass Sie einen Verlauf als Lesezeichen speichern oder in einen Vorfallkanal einfügen können. |
 
-Bei einem Vorfall oder einer Warnung hat die Karte **KI-Untersuchung** eine eigene Unterhaltung, **Ask OneUptime AI**, die alle teilen, die diesen Vorfall oder diese Warnung sehen können: siehe [Mit OneUptime AI über den Vorfall sprechen](/docs/ai/ai-sre#talk-to-oneuptime-ai-about-the-incident).
+Bei einem Vorfall oder einer Warnung hat die Karte **KI-Untersuchung** eine eigene Unterhaltung, **Ask OneUptime AI**, die alle teilen, die diesen Vorfall oder diese Warnung sehen können: siehe [Mit OneUptime AI über den Vorfall sprechen](/docs/ai/ai-sre#mit-oneuptime-ai-über-den-vorfall-sprechen).
 
 ## Was KI fragen sehen kann
 
@@ -99,7 +99,7 @@ Jede Aktion, die KI fragen ausführt, erfolgt in Ihrem Namen: Sie bewirkt diesel
 - **Der Growth-Tarif, in OneUptime Cloud.** Ein Projekt mit einem kleineren Tarif sieht, dass KI in seinem Tarif nicht enthalten ist, mit einem Link zu **Projekteinstellungen → Abrechnung und Rechnungen → Abrechnung**.
 - **Für das Projekt eingeschaltete KI.** **KI aktivieren** unter **Projekteinstellungen → KI → KI-Funktionen** schaltet jede KI-Funktion des Projekts aus, KI fragen eingeschlossen. Es ist eingeschaltet, solange niemand es ausgeschaltet hat.
 
-KI fragen zählt zu den eigenen täglichen KI-Limits des Projekts, wenn das Projekt sie festlegt (Projekteinstellungen → KI-Funktionen → Weitere Einstellungen): Ist eines erreicht, zeigt KI fragen einen Satz, der sagt, welches Limit erreicht wurde, dass OneUptime AI um Mitternacht UTC wieder startet und wer das Limit erhöhen oder entfernen kann. Die Eigentümer des Projekts erhalten eine E-Mail, wenn an einem Tag zum ersten Mal ein Limit erreicht wird. Die täglichen Limits für Vorfälle und Warnungen halten KI fragen nie an. Siehe [die eigenen täglichen Limits des Projekts](/docs/ai/ai-sre#the-projects-own-daily-limits).
+KI fragen zählt zu den eigenen täglichen KI-Limits des Projekts, wenn das Projekt sie festlegt (Projekteinstellungen → KI-Funktionen → Weitere Einstellungen): Ist eines erreicht, zeigt KI fragen einen Satz, der sagt, welches Limit erreicht wurde, dass OneUptime AI um Mitternacht UTC wieder startet und wer das Limit erhöhen oder entfernen kann. Die Eigentümer des Projekts erhalten eine E-Mail, wenn an einem Tag zum ersten Mal ein Limit erreicht wird. Die täglichen Limits für Vorfälle und Warnungen halten KI fragen nie an. Siehe [die eigenen täglichen Limits des Projekts](/docs/ai/ai-sre#die-eigenen-täglichen-limits-des-projekts).
 
 ## Fehlerbehebung
 
