@@ -9,6 +9,7 @@ import {
 import StatusPageSessionLengthCopy, {
   fromSessionLengthChoiceValue,
   getSessionLengthChoices,
+  getSessionLengthLabel,
   isOtherSessionLength,
   NO_SESSION_LENGTH_VALUE,
   SessionLengthChoice,
@@ -74,20 +75,21 @@ function readSource(file: string): string {
 
 // Every English string the card can show.
 const shownStrings: () => Array<string> = (): Array<string> => {
-  return [
-    StatusPageSessionLengthCopy.cardTitle,
-    StatusPageSessionLengthCopy.cardDescription,
-    StatusPageSessionLengthCopy.label,
-    StatusPageSessionLengthCopy.noLimit,
-    StatusPageSessionLengthCopy.noLimitDescription,
-    StatusPageSessionLengthCopy.limitDescription,
-    StatusPageSessionLengthCopy.otherLength,
-    ...getSessionLengthChoices(null).map(
-      (choice: SessionLengthChoice): string => {
-        return choice.label;
-      },
-    ),
-  ];
+  return Array.from(
+    new Set([
+      StatusPageSessionLengthCopy.cardTitle,
+      StatusPageSessionLengthCopy.cardDescription,
+      StatusPageSessionLengthCopy.label,
+      StatusPageSessionLengthCopy.noLimit,
+      StatusPageSessionLengthCopy.noLimitDescription,
+      StatusPageSessionLengthCopy.limitDescription,
+      ...getSessionLengthChoices(36).map(
+        (choice: SessionLengthChoice): string => {
+          return choice.label;
+        },
+      ),
+    ]),
+  );
 };
 
 describe("the column it writes", () => {
@@ -195,16 +197,7 @@ describe("its strings", () => {
 
         expect([code, text, typeof translated]).toEqual([code, text, "string"]);
 
-        // "Sessions" reads the same in French; every other one is translated.
-        if (
-          !(code === "fr" && text === StatusPageSessionLengthCopy.cardTitle)
-        ) {
-          expect([code, text, translated === text]).toEqual([
-            code,
-            text,
-            false,
-          ]);
-        }
+        expect([code, text, translated === text]).toEqual([code, text, false]);
 
         const placeholders: Array<string> = text.match(/\{\{\w+\}\}/g) || [];
 
@@ -218,6 +211,58 @@ describe("its strings", () => {
       }
     },
   );
+});
+
+describe("how a length reads", () => {
+  test("in the Dashboard's own words for an hour, a day and a number of either", () => {
+    expect(getSessionLengthLabel(1)).toEqual({ label: "1 hour" });
+    expect(getSessionLengthLabel(24)).toEqual({ label: "1 day" });
+    expect(getSessionLengthLabel(12)).toEqual({
+      label: "{{count}} hours",
+      labelValues: { count: "12" },
+    });
+    expect(getSessionLengthLabel(720)).toEqual({
+      label: "{{count}} days",
+      labelValues: { count: "30" },
+    });
+  });
+
+  test("in whole days when it is days, in hours when it is not", () => {
+    expect(getSessionLengthLabel(48)).toEqual({
+      label: "{{count}} days",
+      labelValues: { count: "2" },
+    });
+    expect(getSessionLengthLabel(36)).toEqual({
+      label: "{{count}} hours",
+      labelValues: { count: "36" },
+    });
+  });
+
+  test("the card brings no length of its own into the Dashboard's words", () => {
+    /*
+     * "30 days" and the like are prose in the docs (the SLO and workflow
+     * docs say them as words, not as Dashboard labels): a key of en.json
+     * named so would make them labels. The card says lengths with the
+     * Dashboard's own templates instead.
+     */
+    const en: Record<string, unknown> = readLocale("en");
+
+    for (const text of [
+      "4 hours",
+      "8 hours",
+      "12 hours",
+      "3 days",
+      "7 days",
+      "14 days",
+      "30 days",
+    ]) {
+      expect([text, text in en]).toEqual([text, false]);
+    }
+  });
+
+  test("its title is its own, so translating it renames nothing else", () => {
+    expect(StatusPageSessionLengthCopy.cardTitle).toBe("Reader Sessions");
+  });
 });
 
 describe("where it lives", () => {

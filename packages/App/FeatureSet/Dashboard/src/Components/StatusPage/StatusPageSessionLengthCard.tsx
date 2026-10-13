@@ -40,7 +40,6 @@ import StatusPageSessionLengthCopy, {
   fromSessionLengthChoiceValue,
   getSessionLengthChoices,
   getSessionLengthDescription,
-  isOtherSessionLength,
   SessionLengthChoice,
   STATUS_PAGE_SESSION_LENGTH_CARD_TEST_ID,
   STATUS_PAGE_SESSION_LENGTH_SETTING_TEST_ID,
@@ -48,7 +47,7 @@ import StatusPageSessionLengthCopy, {
 } from "./StatusPageSessionLengthCopy";
 
 /*
- * The Sessions card on Security -> Access: "Sign readers out after", one
+ * The Reader Sessions card on Security -> Access: "Sign readers out after", one
  * pick that saves the moment it is made (see StatusPageSessionLengthCopy).
  *
  * - "Saving…" and then "Saved" show beside it; a pick the server refuses
@@ -115,10 +114,8 @@ const SessionLengthSetting: FunctionComponent<SettingProps> = (
       (choice: SessionLengthChoice): DropdownOption => {
         return {
           value: choice.value,
-          label: isOtherSessionLength(choice.value)
-            ? translator.translateTemplate(choice.label, {
-                hours: String(choice.value),
-              })
+          label: choice.labelValues
+            ? translator.translateTemplate(choice.label, choice.labelValues)
             : choice.label,
         };
       },

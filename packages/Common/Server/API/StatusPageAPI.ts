@@ -62,6 +62,10 @@ import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  isSameEmailAddress,
+  SubscriberRestrictionMessages,
+} from "../../Types/StatusPage/SubscriberRestrictions";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
@@ -1123,6 +1127,8 @@ export default class StatusPageAPI extends BaseAPI<
             masterPassword: true,
             allowSubscribersToChooseResources: true,
             allowSubscribersToChooseEventTypes: true,
+            // Whether a reader subscribes with the address they sign in with.
+            limitSubscribersToPrivateUsers: true,
             requireSsoForLogin: true,
             coverImageFile: SERVED_IMAGE_SELECT,
             faviconFile: SERVED_IMAGE_SELECT,
@@ -3488,6 +3494,54 @@ export default class StatusPageAPI extends BaseAPI<
     }
   }
 
+  /*
+   * A sign-up on a page that takes only its private users
+   * (Types/StatusPage/SubscriberRestrictions): by email, and with the
+   * address the reader is signed in to the page with - read from their
+   * private user, not from anything the request says.
+   */
+  private async assertSignUpIsSignedInReader(data: {
+    statusPageId: ObjectID;
+    req: ExpressRequest;
+  }): Promise<void> {
+    const sent: JSONObject = (data.req.body?.data as JSONObject) || {};
+
+    const sentOtherContact: boolean = [
+      "subscriberPhone",
+      "slackWorkspaceName",
+      "slackIncomingWebhookUrl",
+      "microsoftTeamsWorkspaceName",
+      "microsoftTeamsIncomingWebhookUrl",
+      "subscriberWebhook",
+    ].some((field: string): boolean => {
+      return Boolean(sent[field]);
+    });
+
+    const sentEmail: unknown = sent["subscriberEmail"];
+
+    if (
+      sentOtherContact ||
+      typeof sentEmail !== "string" ||
+      !sentEmail.trim()
+    ) {
+      throw new BadDataException(SubscriberRestrictionMessages.emailOnly);
+    }
+
+    const signedInEmail: string | null =
+      await StatusPageService.getSignedInPrivateUserEmail({
+        statusPageId: data.statusPageId,
+        req: data.req,
+      });
+
+    if (!signedInEmail) {
+      throw new BadDataException(SubscriberRestrictionMessages.notSignedIn);
+    }
+
+    if (!isSameEmailAddress(sentEmail, signedInEmail)) {
+      throw new BadDataException(SubscriberRestrictionMessages.notOwnEmail);
+    }
+  }
+
   @CaptureSpan()
   public async subscribeToStatusPage(req: ExpressRequest): Promise<void> {
     const objectId: ObjectID = new ObjectID(
@@ -3519,6 +3573,7 @@ export default class StatusPageAPI extends BaseAPI<
         allowSubscribersToChooseResources: true,
         allowSubscribersToChooseEventTypes: true,
         showSubscriberPageOnStatusPage: true,
+        limitSubscribersToPrivateUsers: true,
       },
       props: {
         isRoot: true,
@@ -3541,6 +3596,21 @@ export default class StatusPageAPI extends BaseAPI<
       throw new BadDataException(
         "Subscribes not enabled for this status page.",
       );
+    }
+
+    /*
+     * A page that takes only its private users: a new subscription is the
+     * signed-in reader's own email address, and no other contact. A change
+     * to one they manage is held to the same by StatusPageSubscriberService.
+     */
+    if (
+      !req.params["subscriberId"] &&
+      statusPage.limitSubscribersToPrivateUsers
+    ) {
+      await this.assertSignUpIsSignedInReader({
+        statusPageId: objectId,
+        req: req,
+      });
     }
 
     logger.debug(

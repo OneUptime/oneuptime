@@ -22,6 +22,7 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -158,6 +159,7 @@ export class Service extends ProjectReferencesService<Model> {
       incidentFeedEventType: IncidentFeedEventType.PrivateNote,
       displayColor: Blue500,
       userId: userId || undefined,
+      apiKeyActor: FeedApiKeyActorUtil.fromProps(_onCreate.createBy.props),
 
       feedInfoInMarkdown:
         mdText`📄 posted **private note** for this [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(createdItem.projectId!, incidentId)).toString()}):
@@ -219,6 +221,7 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
           incidentFeedEventType: IncidentFeedEventType.PrivateNote,
           displayColor: Blue500,
           userId: userId || undefined,
+          apiKeyActor: FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
 
           feedInfoInMarkdown:
             mdText`📄 updated **Private Note** for this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})

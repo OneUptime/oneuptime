@@ -20,6 +20,7 @@ import ObjectID from "../../../Types/ObjectID";
 import IncidentScopeAddedPagesNotification from "../../../Types/StatusPage/IncidentScopeAddedPagesNotification";
 import IncidentSubscriberAudience, {
   IncidentSubscriberAudienceCounts,
+  IncidentSubscriberAudienceExclusionReason,
   IncidentSubscriberAudienceResult,
   IncidentSubscriberAudienceStatusPage,
 } from "../../../Types/StatusPage/IncidentSubscriberAudience";
@@ -299,7 +300,24 @@ export default class SubscriberNotificationPreviewBuilder {
       data.audience.statusPages.length === 0 &&
       data.audience.hiddenStatusPageCount === 0
     ) {
-      return SubscriberNotificationPreviewNothingSentReason.NoStatusPages;
+      // Every page that shows it is switched off, rather than none showing it.
+      const isEveryPageOff: boolean =
+        data.audience.selectedStatusPagesNotListingMonitors.length === 0 &&
+        data.audience.excludedStatusPages.length > 0 &&
+        data.audience.excludedStatusPages.every(
+          (statusPage: {
+            reason: IncidentSubscriberAudienceExclusionReason;
+          }): boolean => {
+            return (
+              statusPage.reason ===
+              IncidentSubscriberAudienceExclusionReason.NotificationsOff
+            );
+          },
+        );
+
+      return isEveryPageOff
+        ? SubscriberNotificationPreviewNothingSentReason.NotificationsOff
+        : SubscriberNotificationPreviewNothingSentReason.NoStatusPages;
     }
 
     return null;

@@ -84,6 +84,9 @@ import { AddWorkflowLogTestRun1801400000000 } from "./1801400000000-AddWorkflowL
 import { AddWorkflowLogStartedByForeignKey1801450000000 } from "./1801450000000-AddWorkflowLogStartedByForeignKey";
 import { AddWorkspaceLiveMessage1801500000000 } from "./1801500000000-AddWorkspaceLiveMessage";
 import { AddStatusPagePrivateUserSessionLength1801600000000 } from "./1801600000000-AddStatusPagePrivateUserSessionLength";
+import { AddStatusPageSubscriberNotificationsSwitch1801700000000 } from "./1801700000000-AddStatusPageSubscriberNotificationsSwitch";
+import { AddStatusPageSubscriberRestrictions1801800000000 } from "./1801800000000-AddStatusPageSubscriberRestrictions";
+import { AddIncidentFeedApiKeyActor1801900000000 } from "./1801900000000-AddIncidentFeedApiKeyActor";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1368,4 +1371,7 @@ export default [
   AddWorkflowLogStartedByForeignKey1801450000000,
   AddWorkspaceLiveMessage1801500000000,
   AddStatusPagePrivateUserSessionLength1801600000000,
+  AddStatusPageSubscriberNotificationsSwitch1801700000000,
+  AddStatusPageSubscriberRestrictions1801800000000,
+  AddIncidentFeedApiKeyActor1801900000000,
 ];

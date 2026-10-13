@@ -151,7 +151,9 @@
       "placeholder": "subscriber@company.jp",
       "managePrompt": "購読時に使用したメールアドレスを入力してください",
       "manageDescription": "購読管理リンクをこのメールアドレスに送信します。",
-      "managePlaceholder": "email@yourcompany.jp"
+      "managePlaceholder": "email@yourcompany.jp",
+      "signedInEmailDescription": "サインインに使用するメールアドレスで購読します。",
+      "signInToSubscribe": "購読するには、このステータスページにサインインしてください。"
     },
     "sms": {
       "title": "SMSで購読する",

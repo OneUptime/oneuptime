@@ -41,6 +41,8 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import useAsyncEffect from "use-async-effect";
 import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
 import SubscriberChannelsCard from "../../../Components/StatusPage/SubscriberChannelsCard";
+import SubscriberNotificationsCard from "../../../Components/StatusPage/SubscriberNotificationsCard";
+import SubscriberRestrictionsCard from "../../../Components/StatusPage/SubscriberRestrictionsCard";
 import {
   getTemplateConfigurationWarning,
   TemplateConfigurationWarning,
@@ -55,6 +57,8 @@ const StatusPageSubscriberSettings: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
+  // Moves on whenever Send Notifications to Subscribers is saved: the warning re-reads it.
+  const [notificationsRevision, setNotificationsRevision] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   /*
    * The notification method of every template linked to this page, or null
@@ -164,7 +168,24 @@ const StatusPageSubscriberSettings: FunctionComponent<
 
   const settingsContent: ReactElement = (
     <Fragment>
-      <SubscriberNotificationWarnings statusPageId={modelId} />
+      <SubscriberNotificationWarnings
+        key={`subscriber-notification-warnings-${notificationsRevision}`}
+        statusPageId={modelId}
+      />
+
+      {/*
+       * Whether the page tells its subscribers anything at all: the one
+       * switch for every message they get, first because the channels below
+       * only decide how visitors sign up.
+       */}
+      <SubscriberNotificationsCard
+        statusPageId={modelId}
+        onSaved={() => {
+          setNotificationsRevision((current: number): number => {
+            return current + 1;
+          });
+        }}
+      />
 
       {/*
        * The Subscribe page and the five channels, one switch each, saved as
@@ -172,6 +193,12 @@ const StatusPageSubscriberSettings: FunctionComponent<
        * all six again in a three-step card on Advanced Settings.
        */}
       <SubscriberChannelsCard statusPageId={modelId} />
+
+      {/*
+       * Who may be a subscriber, whatever the channel: only the page's
+       * private users, only addresses at the page's domains.
+       */}
+      <SubscriberRestrictionsCard statusPageId={modelId} />
 
       <CardModelDetail<StatusPage>
         name="Status Page > Branding > Subscriber > Advanced"

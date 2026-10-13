@@ -1160,6 +1160,22 @@ describe("ScheduledMaintenancePublicNote:SendUpdateNotificationToSubscribers", (
     );
   });
 
+  test("sends nothing from a status page that sends its subscribers nothing", async () => {
+    updatedNotes = [publicNote()];
+    const page: StatusPage = statusPage();
+    page.sendSubscriberNotifications = false;
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).not.toHaveBeenCalled();
+  });
+
   test("marks the update Failed with the reason when sending breaks", async () => {
     updatedNotes = [publicNote()];
     mock(Markdown.convertToHTML).mockRejectedValue(

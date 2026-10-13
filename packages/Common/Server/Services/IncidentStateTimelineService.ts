@@ -53,6 +53,7 @@ import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import StateMoveCheck from "../Utils/StateMoveCheck";
 import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 
 export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
@@ -595,6 +596,7 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       moreInformationInMarkdown: mdText`**Cause:**
 ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
+      apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
       workspaceNotification: {
         /*
          * Not posted to Slack and Microsoft Teams for the record's first

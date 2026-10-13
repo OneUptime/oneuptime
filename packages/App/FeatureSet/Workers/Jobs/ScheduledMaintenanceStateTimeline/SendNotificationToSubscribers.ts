@@ -50,6 +50,7 @@ import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 
 RunCron(
   "ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers",
@@ -242,6 +243,14 @@ RunCron(
 
         for (const statuspage of statusPages) {
           if (!statuspage.id) {
+            continue;
+          }
+
+          // The page sends its subscribers nothing (Send Notifications to Subscribers off).
+          if (!isSendingSubscriberNotifications(statuspage)) {
+            logger.debug(
+              `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+            );
             continue;
           }
 
@@ -737,7 +746,7 @@ RunCron(
               feedInfoInMarkdown:
                 mdText`📧 **No notification sent to subscribers** for the state change of [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`.toString(),
               moreInformationInMarkdown:
-                "Subscriber notifications were skipped because all associated status pages either hide scheduled maintenance events or had no matching subscribers.",
+                "Subscriber notifications were skipped because all associated status pages either do not send notifications to their subscribers, hide scheduled maintenance events, or had no matching subscribers.",
               workspaceNotification: {
                 sendWorkspaceNotification: false,
               },

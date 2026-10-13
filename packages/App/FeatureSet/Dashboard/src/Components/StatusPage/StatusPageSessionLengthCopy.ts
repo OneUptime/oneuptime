@@ -5,7 +5,7 @@ import {
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * The Sessions card on a status page's Security -> Access page: how long a
+ * The Reader Sessions card on a status page's Security -> Access page: how long a
  * reader stays signed in after signing in, however active they are
  * (StatusPage.privateUserSessionLengthInHours, see
  * Common/Types/StatusPage/PrivateUserSessionLength). One pick from a short
@@ -20,7 +20,9 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Kept free of React so the card and its tests read these exact strings.
  * Every string is a whole sentence or a whole name, wrapped in
  * translationKey() so npm run i18n:extract finds it, and translated in all
- * seventeen Dashboard locale files.
+ * seventeen Dashboard locale files. The lengths are the Dashboard's own
+ * "1 hour", "1 day", "{{count}} hours" and "{{count}} days", translated as
+ * everywhere else they are used.
  */
 
 export const STATUS_PAGE_SESSION_LENGTH_CARD_TEST_ID: string =
@@ -35,20 +37,41 @@ export const NO_SESSION_LENGTH_VALUE: number = 0;
 export interface SessionLengthChoice {
   // Hours, or NO_SESSION_LENGTH_VALUE for no limit.
   value: number;
-  // What the option reads as, in English: translated where it is drawn.
+  /*
+   * What the option reads as, in English: translated where it is drawn,
+   * with labelValues filled in when it has them ("{{count}} days").
+   */
   label: string;
+  labelValues?: Record<string, string> | undefined;
 }
 
-const CHOICE_LABELS: Record<number, string> = {
-  1: translationKey("1 hour"),
-  4: translationKey("4 hours"),
-  8: translationKey("8 hours"),
-  12: translationKey("12 hours"),
-  24: translationKey("1 day"),
-  72: translationKey("3 days"),
-  168: translationKey("7 days"),
-  336: translationKey("14 days"),
-  720: translationKey("30 days"),
+const ONE_HOUR: string = translationKey("1 hour");
+const ONE_DAY: string = translationKey("1 day");
+const COUNT_HOURS: string = translationKey("{{count}} hours");
+const COUNT_DAYS: string = translationKey("{{count}} days");
+
+/*
+ * What a length reads as: in whole days when it is days, in hours when it
+ * is not ("36 hours"), whichever length it is.
+ */
+export const getSessionLengthLabel: (
+  hours: number,
+) => Pick<SessionLengthChoice, "label" | "labelValues"> = (
+  hours: number,
+): Pick<SessionLengthChoice, "label" | "labelValues"> => {
+  if (hours === 1) {
+    return { label: ONE_HOUR };
+  }
+
+  if (hours === 24) {
+    return { label: ONE_DAY };
+  }
+
+  if (hours % 24 === 0) {
+    return { label: COUNT_DAYS, labelValues: { count: String(hours / 24) } };
+  }
+
+  return { label: COUNT_HOURS, labelValues: { count: String(hours) } };
 };
 
 export const StatusPageSessionLengthCopy: {
@@ -58,10 +81,8 @@ export const StatusPageSessionLengthCopy: {
   noLimit: string;
   noLimitDescription: string;
   limitDescription: string;
-  // A length set through the API that the list does not offer.
-  otherLength: string;
 } = {
-  cardTitle: translationKey("Sessions"),
+  cardTitle: translationKey("Reader Sessions"),
   cardDescription: translationKey(
     "How long readers stay signed in to this status page after they sign in.",
   ),
@@ -73,7 +94,6 @@ export const StatusPageSessionLengthCopy: {
   limitDescription: translationKey(
     "Readers sign in again this long after they signed in, however active they are. With SSO or OIDC, your identity provider checks them again then. This applies to readers who are signed in now.",
   ),
-  otherLength: translationKey("{{hours}} hours"),
 };
 
 /*
@@ -106,17 +126,20 @@ export const getSessionLengthChoices: (
     ...hours.map((value: number): SessionLengthChoice => {
       return {
         value,
-        label: CHOICE_LABELS[value] || StatusPageSessionLengthCopy.otherLength,
+        ...getSessionLengthLabel(value),
       };
     }),
   ];
 };
 
-// Whether a choice reads its hours into the label ("36 hours").
+// Whether a length is one the list does not offer (set through the API).
 export const isOtherSessionLength: (value: number) => boolean = (
   value: number,
 ): boolean => {
-  return value !== NO_SESSION_LENGTH_VALUE && !CHOICE_LABELS[value];
+  return (
+    value !== NO_SESSION_LENGTH_VALUE &&
+    !PRIVATE_USER_SESSION_LENGTH_CHOICES_IN_HOURS.includes(value)
+  );
 };
 
 // The dropdown's value for what the column holds, and back.

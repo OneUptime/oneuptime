@@ -21,7 +21,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * The Sessions card on a status page's Security -> Access page: "Sign
+ * The Reader Sessions card on a status page's Security -> Access page: "Sign
  * readers out after", one pick that saves the moment it is made
  * (StatusPage.privateUserSessionLengthInHours, see
  * Common/Types/StatusPage/PrivateUserSessionLength).
@@ -217,7 +217,7 @@ function writes(): Array<Record<string, unknown>> {
   );
 }
 
-describe("the Sessions card", () => {
+describe("the Reader Sessions card", () => {
   test("reads only its own column, of this status page", async () => {
     await renderCard();
 
@@ -408,7 +408,7 @@ describe("the Sessions card", () => {
   });
 });
 
-describe("the Sessions card's copy", () => {
+describe("the Reader Sessions card's copy", () => {
   test("every choice maps to the hours the column stores", () => {
     expect(
       getSessionLengthChoices(null).map((choice: { value: number }): number => {

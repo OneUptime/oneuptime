@@ -1121,6 +1121,27 @@ jobs:
           Tests/Server/Services/StatusPagePrivateUserSessionLengthPostgres.test.ts
           --forceExit
 
+      # Clones the migrated StatusPage, StatusPagePrivateUser and
+      # StatusPageSubscriber tables (and the subscriber's resource join) into
+      # an isolated schema and asks the subscriber loader every send reads
+      # through, and the audience counts, whom a page takes: with Only
+      # Private Users Can Subscribe, a private user's address and no other
+      # contact; with Allowed Email Domains, an address at one of them or a
+      # subdomain; the two readers agree with each other, the _id cursor
+      # reads past the subscribers left out, and a sign-up is refused by the
+      # same rules.
+      - name: Test status page subscriber restrictions on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SUBSCRIBER_RESTRICTIONS_TESTS: "true"
+          SUBSCRIBER_RESTRICTIONS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SUBSCRIBER_RESTRICTIONS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SUBSCRIBER_RESTRICTIONS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/StatusPageSubscriberRestrictionsPostgres.test.ts
+          --forceExit
+
       # Clones the migrated Project, GlobalConfig and global SSO provider
       # tables into an isolated schema and creates projects through
       # ProjectService: while the server requires SSO for everyone, or when

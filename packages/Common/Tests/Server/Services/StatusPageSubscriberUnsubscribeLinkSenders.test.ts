@@ -294,6 +294,44 @@ describe("the status page report", () => {
     });
   });
 
+  /*
+   * A report is a notification: a page with Send Notifications to
+   * Subscribers off (Types/StatusPage/SubscriberNotificationsSwitch) sends
+   * its subscribers none, and reads none of them.
+   */
+  test("a page that sends its subscribers nothing sends them no report", async () => {
+    const page: StatusPage = statusPage({ isPublic: false });
+    page.sendSubscriberNotifications = false;
+    jest
+      .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+      .mockResolvedValue([page]);
+    const findBy: jest.SpyInstance = jest.spyOn(
+      StatusPageSubscriberService,
+      "findBy",
+    );
+
+    await StatusPageService.sendEmailReport({ statusPageId: STATUS_PAGE_ID });
+
+    expect(findBy).not.toHaveBeenCalled();
+    expect(sentMail()).toEqual([]);
+  });
+
+  test("a test report sent to one address on request still goes, so the team can see it", async () => {
+    const page: StatusPage = statusPage({ isPublic: false });
+    page.sendSubscriberNotifications = false;
+    jest
+      .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+      .mockResolvedValue([page]);
+
+    await StatusPageService.sendEmailReport({
+      statusPageId: STATUS_PAGE_ID,
+      email: new Email("someone@acme.com"),
+    });
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!.toEmail.toString()).toBe("someone@acme.com");
+  });
+
   test("a report sent to one address on request carries no subscriber's link", async () => {
     const findBy: jest.SpyInstance = jest.spyOn(
       StatusPageSubscriberService,

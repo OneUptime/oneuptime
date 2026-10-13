@@ -151,7 +151,9 @@
       "placeholder": "subscriber@kampani.com",
       "managePrompt": "कृपया वह ईमेल दर्ज करें जिससे आपने सदस्यता ली है",
       "manageDescription": "हम आपको इस ईमेल पर एक प्रबंधन लिंक भेजेंगे।",
-      "managePlaceholder": "email@aapkikampani.com"
+      "managePlaceholder": "email@aapkikampani.com",
+      "signedInEmailDescription": "आप उसी ईमेल पते से सदस्यता लेते हैं जिससे आप साइन इन करते हैं।",
+      "signInToSubscribe": "सदस्यता लेने के लिए इस स्टेटस पेज में साइन इन करें।"
     },
     "sms": {
       "title": "एसएमएस द्वारा सदस्यता लें",

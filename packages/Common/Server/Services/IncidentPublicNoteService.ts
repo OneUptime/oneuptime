@@ -26,6 +26,7 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -272,6 +273,7 @@ export class Service extends ProjectReferencesService<Model> {
       incidentFeedEventType: IncidentFeedEventType.PublicNote,
       displayColor: Indigo500,
       userId: userId || undefined,
+      apiKeyActor: FeedApiKeyActorUtil.fromProps(_onCreate.createBy.props),
       feedInfoInMarkdown:
         mdText`📄 posted **public note** for this [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) on status page:
 
@@ -334,6 +336,7 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
           incidentFeedEventType: IncidentFeedEventType.PublicNote,
           displayColor: Blue500,
           userId: userId || undefined,
+          apiKeyActor: FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
 
           feedInfoInMarkdown:
             mdText`📄 updated **Public Note** for this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})

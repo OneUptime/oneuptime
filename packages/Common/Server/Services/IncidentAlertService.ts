@@ -59,6 +59,9 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil, {
+  FeedApiKeyActor,
+} from "../Utils/Feed/FeedApiKeyActor";
 
 /*
  * The project's two linked alert switches: acknowledge linked alerts when the
@@ -687,6 +690,7 @@ export class Service extends ProjectReferencesService<Model> {
         },
         isLinked: true,
         actorUserId: actorUserId,
+        apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
         writeIncidentEntry: !isDeclaredWithIncident,
       });
     } catch (error) {
@@ -793,6 +797,7 @@ export class Service extends ProjectReferencesService<Model> {
           link: link,
           isLinked: false,
           actorUserId: actorUserId,
+          apiKeyActor: FeedApiKeyActorUtil.fromProps(onDelete.deleteBy.props),
           writeIncidentEntry: true,
         });
       } catch (error) {
@@ -829,6 +834,8 @@ export class Service extends ProjectReferencesService<Model> {
     link: CarriedLink;
     isLinked: boolean;
     actorUserId: ObjectID | undefined;
+    // The API key that made the change, when no person did.
+    apiKeyActor?: FeedApiKeyActor | undefined;
     // False for a link written while its incident is declared from alerts.
     writeIncidentEntry: boolean;
   }): Promise<void> {
@@ -912,6 +919,7 @@ export class Service extends ProjectReferencesService<Model> {
           ? mdText`🔗 Linked ${alertMention.subject} to ${incidentSubject}${alertMention.titleSuffix}`.toString()
           : mdText`Unlinked ${alertMention.subject} from ${incidentSubject}${alertMention.titleSuffix}`.toString(),
         userId: actorUserId,
+        apiKeyActor: data.apiKeyActor,
         workspaceNotification: {
           sendWorkspaceNotification: true,
           notifyUserId: actorUserId,
@@ -948,6 +956,8 @@ export class Service extends ProjectReferencesService<Model> {
     incidentId: ObjectID;
     alertIds: Array<ObjectID>;
     actorUserId: ObjectID | undefined;
+    // The API key that declared the incident, when no person did.
+    apiKeyActor?: FeedApiKeyActor | undefined;
   }): Promise<void> {
     const markdown: string | null = await this.buildDeclaredFromAlertsMarkdown({
       projectId: data.projectId,
@@ -965,6 +975,7 @@ export class Service extends ProjectReferencesService<Model> {
       displayColor: Yellow500,
       feedInfoInMarkdown: markdown,
       userId: data.actorUserId,
+      apiKeyActor: data.apiKeyActor,
       workspaceNotification: {
         sendWorkspaceNotification: true,
         notifyUserId: data.actorUserId,

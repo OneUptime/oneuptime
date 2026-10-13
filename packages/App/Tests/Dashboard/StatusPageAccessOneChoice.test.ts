@@ -112,9 +112,9 @@ const ACCESS_PAGE: string = dashboardFile(
 describe("the Access page", () => {
   const page: string = readSource(ACCESS_PAGE);
 
-  test("opens on the one choice, then folds the IP allowlist under Advanced", () => {
+  test("opens on the one choice, then how long readers stay signed in, then folds the IP allowlist under Advanced", () => {
     expect(page).toContain(
-      "<StatusPageAccessCard statusPageId={modelId} /> <AdvancedPageSection",
+      "<StatusPageAccessCard statusPageId={modelId} /> <StatusPageSessionLengthCard statusPageId={modelId} /> <AdvancedPageSection",
     );
     expect(page.split("<CardModelDetail").length - 1).toBe(1);
     expect(page.indexOf("<AdvancedPageSection")).toBeLessThan(

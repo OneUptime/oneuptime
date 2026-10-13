@@ -22,6 +22,12 @@ export interface FeedItemProps {
   element?: ReactElement;
   moreTextInMarkdown?: string;
   user?: User | undefined;
+  /*
+   * The project API key that made the change, by the name it had then,
+   * when no person did (IncidentFeed.apiKeyName): shown in the author's
+   * place, marked as an API key.
+   */
+  apiKeyName?: string | undefined;
   itemDateTime: Date;
   icon: IconProp;
   color: Color;
@@ -90,6 +96,29 @@ const FeedItem: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // The author when it is an API key: a key in the avatar's place.
+  const getApiKeyIcon: GetReactElementFunction = (): ReactElement => {
+    return (
+      <div data-testid="feed-item-api-key-avatar">
+        <div className="flex size-10 items-center justify-center rounded-full bg-gray-100 ring-8 ring-white">
+          <Icon className="size-5 text-gray-500" icon={IconProp.Key} />
+        </div>
+
+        {props.icon && (
+          <span className="absolute -bottom-0.5 -right-1 rounded-tl bg-white px-0.5 py-px">
+            <Icon
+              className="size-5 text-gray-500"
+              icon={props.icon}
+              color={props.color}
+            />
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const apiKeyName: string = (!props.user && props.apiKeyName?.trim()) || "";
+
   const getItem: GetReactElementFunction = (): ReactElement => {
     return (
       <li key={props.key}>
@@ -103,7 +132,8 @@ const FeedItem: FunctionComponent<ComponentProps> = (
           <div className="relative flex items-start space-x-3">
             <div className="relative">
               {props.user && getUserIcon()}
-              {!props.user && props.icon && getIconItem()}
+              {!props.user && apiKeyName && getApiKeyIcon()}
+              {!props.user && !apiKeyName && props.icon && getIconItem()}
             </div>
             <div className="min-w-0 flex-1">
               <div>
@@ -113,6 +143,19 @@ const FeedItem: FunctionComponent<ComponentProps> = (
                       {props.user?.name?.toString() ||
                         translator.translateText("Unknown User")}
                     </div>
+                  </div>
+                )}
+                {apiKeyName && (
+                  <div
+                    className="flex flex-wrap items-center gap-x-2 text-sm"
+                    data-testid="feed-item-api-key"
+                  >
+                    <span className="break-all font-medium text-gray-900">
+                      {apiKeyName}
+                    </span>
+                    <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
+                      {translator.translateText("API key")}
+                    </span>
                   </div>
                 )}
                 <div className="mt-0.5 text-sm text-gray-500 w-fit">

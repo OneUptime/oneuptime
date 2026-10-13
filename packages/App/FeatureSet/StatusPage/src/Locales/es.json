@@ -151,7 +151,9 @@
       "placeholder": "suscriptor@empresa.es",
       "managePrompt": "Introduzca el correo electrónico con el que se suscribió",
       "manageDescription": "Le enviaremos un enlace de gestión de suscripción a este correo electrónico.",
-      "managePlaceholder": "email@suempresa.es"
+      "managePlaceholder": "email@suempresa.es",
+      "signedInEmailDescription": "Te suscribes con la dirección de correo electrónico con la que inicias sesión.",
+      "signInToSubscribe": "Inicia sesión en esta página de estado para suscribirte."
     },
     "sms": {
       "title": "Suscribirse por SMS",
