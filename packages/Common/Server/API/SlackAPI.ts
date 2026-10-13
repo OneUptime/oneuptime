@@ -1859,13 +1859,13 @@ export default class SlackAPI {
     const threadTs: string = SlackAiConversations.getThreadTs(message);
 
     /*
-     * A question at the top of a channel starts a conversation with
-     * OneUptime AI in the thread under it, which its asker may reply in
+     * A question asked in a channel, not in a thread, starts a conversation
+     * with OneUptime AI in the thread under it, which its asker may reply in
      * without mentioning OneUptime again. An @mention in that thread puts
      * its author in it too, and each follow-up keeps it open. The thread of
-     * a notification is never one.
+     * a notification is never one: there, OneUptime is mentioned each time.
      */
-    const thread: SlackThreadPerson = {
+    const asker: SlackThreadPerson = {
       teamId: message.teamId,
       channelId: slackChannelId,
       threadTs: threadTs,
@@ -1876,9 +1876,9 @@ export default class SlackAPI {
       message.kind === SlackMessageKind.ThreadReply ||
       (message.kind === SlackMessageKind.Mention &&
         (!message.threadTs ||
-          (await SlackAiConversations.isConversation(thread))))
+          (await SlackAiConversations.isConversation(asker))))
     ) {
-      await SlackAiConversations.remember(thread);
+      await SlackAiConversations.remember(asker);
     }
 
     /*

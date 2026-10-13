@@ -3559,7 +3559,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         (possibleActionValue["data"] as any)?.["action"],
     );
 
-    // Only respond to card submits, direct messages and @mentions.
+    /*
+     * Only respond to card submits, direct messages and @mentions. Teams
+     * delivers the bot every message of the channels and group chats it is
+     * in (the app's ChannelMessage.Read.Group and ChatMessage.Read.Chat), so
+     * people talking to each other - under a notification card included -
+     * get no answer from it (#4768).
+     */
     if (!isCardSubmit && !isDirectMessage && !isMentioned) {
       logger.debug("Bot not mentioned in channel message, ignoring");
       return;
