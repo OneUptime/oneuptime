@@ -17,7 +17,6 @@ import ColumnLength from "Common/Types/Database/ColumnLength";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TestLLMProvider from "Common/UI/Utils/TestLLMProvider";
-import { LLM_PROVIDER_TEST_TOOLTIP } from "Common/UI/Utils/LlmProviderTestCopy";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmTypeDropdownOptions from "Common/UI/Utils/LlmTypeDropdownOptions";
 import React, {
@@ -59,8 +58,11 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
 
   /*
    * Test is for whoever may change the provider, as the server asks it.
-   * Anyone else who may read it sees Test locked, saying who may; before the
-   * permission snapshot has landed it is not offered.
+   * Anyone else who may read it sees Test locked, its tooltip saying who
+   * may; before the permission snapshot has landed it is not offered. An
+   * unlocked Test needs no tooltip: the dialog it opens says what it does,
+   * and a tooltip on it popped up again whenever the dialog closed and
+   * handed the button its focus back.
    */
   const testGate: PermissionGateResult = TestLLMProvider.getTestGate();
 
@@ -72,9 +74,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             icon: IconProp.Play,
             buttonStyle: ButtonStyleType.NORMAL,
             disabled: !testGate.isAllowed,
-            tooltip: testGate.isAllowed
-              ? LLM_PROVIDER_TEST_TOOLTIP
-              : testGate.disabledReason,
+            tooltip: testGate.isAllowed ? undefined : testGate.disabledReason,
             onClick: () => {
               if (testGate.isAllowed) {
                 setShowTestModal(true);

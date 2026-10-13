@@ -18,12 +18,11 @@ export const LLM_PROVIDER_TEST_REFUSED_SENTENCE: string = translationKey(
   "You do not have permission to test this LLM provider.",
 );
 
-// What Test does, on the button, for whoever may press it.
-export const LLM_PROVIDER_TEST_TOOLTIP: string = translationKey(
-  "Send this provider a short prompt to check its API key, model and Base URL.",
+// While a test runs: what is happening, then what it checks.
+export const LLM_PROVIDER_TEST_SENDING: string = translationKey(
+  "Sending a test prompt to your LLM provider…",
 );
 
-// Under a failed test: the next step.
-export const LLM_PROVIDER_TEST_FAILED_NEXT_STEP: string = translationKey(
-  "Change the provider's settings, then test again.",
+export const LLM_PROVIDER_TEST_CHECKS: string = translationKey(
+  "This checks its API key, model and Base URL, and whether its model can call tools.",
 );

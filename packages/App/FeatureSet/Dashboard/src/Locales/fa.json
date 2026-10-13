@@ -17267,7 +17267,6 @@
   "Test these settings": "Test these settings",
   "Test your installation": "Test your installation",
   "Testing only": "Testing only",
-  "Testing the connection to your LLM provider. This sends a small prompt using your configured API key, model, and base URL.": "اتصال به ارائه‌دهنده LLM شما در حال آزمایش است. یک درخواست کوتاه با کلید API، مدل و نشانی پایه‌ای که پیکربندی کرده‌اید فرستاده می‌شود.",
   "Testing the connection to your data source using its configured connection details and credentials.": "Testing the connection to your data source using its configured connection details and credentials.",
   "Text and input values were replaced before this session left the device.": "Text and input values were replaced before this session left the device.",
   "Thailand": "Thailand",
@@ -28122,18 +28121,17 @@
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "حالت {{earlier}} همین را می‌پرسد و زودتر بررسی می‌شود، پس این حالت هرگز انتخاب نمی‌شود.",
   "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "«{{comparison}}» مقایسه‌ای نیست که این گام آن را بشناسد، پس هر اجرا اینجا متوقف می‌شود. یکی را از فهرست انتخاب کنید.",
   "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "ترافیکی را که این پراب می‌بیند ضبط کنید، سپس فایل را دانلود کنید و در Wireshark باز کنید.",
-  "Change the provider's settings, then test again.": "تنظیمات ارائه‌دهنده را تغییر دهید، سپس دوباره آزمایش کنید.",
   "Content Hash": "Content Hash",
   "Destination Type": "Destination Type",
   "Internal record of the Slack and Microsoft Teams messages OneUptime keeps up to date in place, such as the progress of an on-call policy run.": "Internal record of the Slack and Microsoft Teams messages OneUptime keeps up to date in place, such as the progress of an on-call policy run.",
   "Message Data": "Message Data",
   "Message ID": "Message ID",
   "Message Key": "Message Key",
-  "Send this provider a short prompt to check its API key, model and Base URL.": "یک درخواست کوتاه برای این ارائه‌دهنده بفرستید تا کلید API، مدل و نشانی پایه آن بررسی شود.",
   "Test failed": "آزمایش ناموفق بود",
   "Test passed": "آزمایش موفق بود",
   "Test passed, with a warning": "آزمایش موفق بود، با یک هشدار",
   "Workspace Live Message": "Workspace Live Message",
   "Workspace Live Messages": "Workspace Live Messages",
-  "You do not have permission to test this LLM provider.": "مجوز آزمایش این ارائه‌دهنده LLM را ندارید."
+  "You do not have permission to test this LLM provider.": "مجوز آزمایش این ارائه‌دهنده LLM را ندارید.",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "این کار کلید API، مدل و نشانی پایه آن را بررسی می‌کند و اینکه آیا مدل آن می‌تواند ابزارها را فراخوانی کند."
 }

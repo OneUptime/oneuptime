@@ -17267,7 +17267,6 @@
   "Test these settings": "これらの設定をテスト",
   "Test your installation": "インストールをテスト",
   "Testing only": "テスト専用",
-  "Testing the connection to your LLM provider. This sends a small prompt using your configured API key, model, and base URL.": "LLM プロバイダーへの接続をテストしています。設定された API キー、モデル、ベース URL を使って小さなプロンプトを送信します。",
   "Testing the connection to your data source using its configured connection details and credentials.": "設定された接続情報と認証情報を使って、データソースへの接続をテストしています。",
   "Text and input values were replaced before this session left the device.": "このセッションがデバイスを離れる前に、テキストと入力値は置き換えられました。",
   "Thailand": "タイ",
@@ -28122,18 +28121,17 @@
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "ケース {{earlier}} が同じ条件で先に確認されるため、このケースが選ばれることはありません。",
   "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "「{{comparison}}」はこのステップが認識できない比較方法のため、すべての実行がここで止まります。一覧から選んでください。",
   "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "このプローブが見ているトラフィックをキャプチャし、ファイルをダウンロードして Wireshark で開きます。",
-  "Change the provider's settings, then test again.": "プロバイダーの設定を変更してから、もう一度テストしてください。",
   "Content Hash": "Content Hash",
   "Destination Type": "Destination Type",
   "Internal record of the Slack and Microsoft Teams messages OneUptime keeps up to date in place, such as the progress of an on-call policy run.": "Internal record of the Slack and Microsoft Teams messages OneUptime keeps up to date in place, such as the progress of an on-call policy run.",
   "Message Data": "Message Data",
   "Message ID": "Message ID",
   "Message Key": "Message Key",
-  "Send this provider a short prompt to check its API key, model and Base URL.": "このプロバイダーに短いプロンプトを送信し、API キー、モデル、ベース URL を確認します。",
   "Test failed": "テストに失敗しました",
   "Test passed": "テストに合格しました",
   "Test passed, with a warning": "テストに合格しました（警告あり）",
   "Workspace Live Message": "Workspace Live Message",
   "Workspace Live Messages": "Workspace Live Messages",
-  "You do not have permission to test this LLM provider.": "この LLM プロバイダーをテストする権限がありません。"
+  "You do not have permission to test this LLM provider.": "この LLM プロバイダーをテストする権限がありません。",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "API キー、モデル、ベース URL と、モデルがツールを呼び出せるかどうかを確認します。"
 }

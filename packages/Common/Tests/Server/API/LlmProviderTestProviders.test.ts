@@ -297,10 +297,10 @@ function dialogSays(): { success: boolean; message: string } {
   const failure: Exception = failures[0]![2] as Exception;
 
   /*
-   * Every failure of the provider is answered as bad data (HTTP 400): the
-   * status the dialog reads as the provider's failure, and puts the next
-   * step under ("Change the provider's settings, then test again."). A
-   * refusal - who may test, the plan - is answered otherwise, and gets none.
+   * Every failure of the provider is answered as bad data (HTTP 400), as it
+   * always was; a refusal - who may test, the plan - is answered otherwise.
+   * The dialog shows either in the server's words alone: they already end
+   * with what to do.
    */
   expect(failure).toBeInstanceOf(BadDataException);
   expect(failure.code).toBe(ExceptionCode.BadDataException);
@@ -397,7 +397,7 @@ describe("a wrong API key: the dialog says the key was not accepted, then the pr
     expect(dialogSays()).toEqual({
       success: false,
       message:
-        "OpenAI did not accept the API key (HTTP 401). Check the provider's API Key. OpenAI answered: Incorrect API key provided: sk-proj-****-key.",
+        "OpenAI did not accept the API key (HTTP 401). Check the provider's API Key.\nOpenAI answered: Incorrect API key provided: sk-proj-****-key.",
     });
   });
 
@@ -413,7 +413,7 @@ describe("a wrong API key: the dialog says the key was not accepted, then the pr
     expect(dialogSays()).toEqual({
       success: false,
       message:
-        "Anthropic did not accept the API key (HTTP 401). Check the provider's API Key. Anthropic answered: invalid x-api-key",
+        "Anthropic did not accept the API key (HTTP 401). Check the provider's API Key.\nAnthropic answered: invalid x-api-key",
     });
   });
 
@@ -432,7 +432,7 @@ describe("a wrong API key: the dialog says the key was not accepted, then the pr
     expect(dialogSays()).toEqual({
       success: false,
       message:
-        "Azure did not accept the API key. Copy KEY 1 or KEY 2 from the Keys and Endpoint page of the same resource the Base URL points to. Azure answered: Access denied due to invalid subscription key or wrong API endpoint.",
+        "Azure did not accept the API key. Copy KEY 1 or KEY 2 from the Keys and Endpoint page of the same resource the Base URL points to.\nAzure answered: Access denied due to invalid subscription key or wrong API endpoint.",
     });
   });
 
@@ -466,7 +466,7 @@ describe("a model the provider does not have: the dialog says to check the Model
     expect(dialogSays()).toEqual({
       success: false,
       message:
-        "OpenAI found no such model, or nothing at the Base URL (HTTP 404). Check the Model Name and the Base URL. OpenAI answered: The model `gpt-9` does not exist or you do not have access to it.",
+        "OpenAI found no such model, or nothing at the Base URL (HTTP 404). Check the Model Name and the Base URL.\nOpenAI answered: The model `gpt-9` does not exist or you do not have access to it.",
     });
   });
 
@@ -482,7 +482,7 @@ describe("a model the provider does not have: the dialog says to check the Model
     expect(dialogSays()).toEqual({
       success: false,
       message:
-        "Anthropic found no such model, or nothing at the Base URL (HTTP 404). Check the Model Name and the Base URL. Anthropic answered: model: claude-9",
+        "Anthropic found no such model, or nothing at the Base URL (HTTP 404). Check the Model Name and the Base URL.\nAnthropic answered: model: claude-9",
     });
   });
 
@@ -497,7 +497,7 @@ describe("a model the provider does not have: the dialog says to check the Model
     expect(dialogSays()).toEqual({
       success: false,
       message:
-        'Ollama found no such model, or nothing at the Base URL (HTTP 404). Check the Model Name and the Base URL. Ollama answered: model "llama9" not found, try pulling it first',
+        'Ollama found no such model, or nothing at the Base URL (HTTP 404). Check the Model Name and the Base URL.\nOllama answered: model "llama9" not found, try pulling it first',
     });
   });
 
@@ -521,7 +521,7 @@ describe("a model the provider does not have: the dialog says to check the Model
     expect(said.message).toContain("gpt-5.1");
     expect(
       said.message.endsWith(
-        "Azure answered: The API deployment for this resource does not exist.",
+        "\nAzure answered: The API deployment for this resource does not exist.",
       ),
     ).toBe(true);
   });
@@ -620,7 +620,7 @@ describe("the provider's other answers", () => {
     expect(dialogSays()).toEqual({
       success: false,
       message:
-        "OpenAI is limiting requests from this API key, or its quota or credits ran out (HTTP 429). Check the account's limits and billing, then test again. OpenAI answered: You exceeded your current quota.",
+        "OpenAI is limiting requests from this API key, or its quota or credits ran out (HTTP 429). Check the account's limits and billing, then test again.\nOpenAI answered: You exceeded your current quota.",
     });
   });
 

@@ -26,14 +26,19 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../../Enterprise/FakeEnterpriseModule";
 
 /*
  * What Test LLM Provider says when a provider did not answer
  * (LlmProviderTestFailure), and the answer in parts LLMService hands it
  * (LLMProviderHTTPException): what went wrong and what to check in
- * OneUptime's words, then what the provider said in its own - never its
- * error body as JSON, never the key, never the address. The route, provider
- * by provider, is LlmProviderTestProviders.test.ts.
+ * OneUptime's words, then - on a line of its own, which the dialog keeps -
+ * what the provider said in its own words: never its error body as JSON,
+ * never the key, never the address. The route, provider by provider, is
+ * LlmProviderTestProviders.test.ts.
  */
 
 function httpError(data: {
@@ -99,18 +104,35 @@ describe("an answer with an HTTP error: a sentence for its status, what to check
     );
   });
 
-  test("the provider's own words follow, as it said them", () => {
-    expect(
-      LlmProviderTestFailure.describe(
-        httpError({
-          statusCode: 401,
-          providerMessage: "  Incorrect API key provided: sk-****.  ",
-        }),
-        LlmType.OpenAI,
-      ),
-    ).toBe(
-      "OpenAI did not accept the API key (HTTP 401). Check the provider's API Key. OpenAI answered: Incorrect API key provided: sk-****.",
+  test("the provider's own words follow on a line of their own, as it said them", () => {
+    const said: string = LlmProviderTestFailure.describe(
+      httpError({
+        statusCode: 401,
+        providerMessage: "  Incorrect API key provided: sk-****.  ",
+      }),
+      LlmType.OpenAI,
     );
+
+    expect(said).toBe(
+      "OpenAI did not accept the API key (HTTP 401). Check the provider's API Key.\nOpenAI answered: Incorrect API key provided: sk-****.",
+    );
+    // What to do, then the evidence: two lines, never more.
+    expect(said.split("\n")).toEqual([
+      "OpenAI did not accept the API key (HTTP 401). Check the provider's API Key.",
+      "OpenAI answered: Incorrect API key provided: sk-****.",
+    ]);
+  });
+
+  test("a provider that said nothing readable: what to check alone, on one line", () => {
+    const said: string = LlmProviderTestFailure.describe(
+      httpError({ statusCode: 404, providerMessage: "   " }),
+      LlmType.OpenAI,
+    );
+
+    expect(said).toBe(
+      "OpenAI found no such model, or nothing at the Base URL (HTTP 404). Check the Model Name and the Base URL.",
+    );
+    expect(said).not.toContain("\n");
   });
 
   test("OneUptime's own advice for the provider leads instead of the status sentence", () => {
@@ -125,7 +147,7 @@ describe("an answer with an HTTP error: a sentence for its status, what to check
         LlmType.AzureOpenAI,
       ),
     ).toBe(
-      "Azure did not accept the API key. Copy KEY 1. Azure answered: Access denied.",
+      "Azure did not accept the API key. Copy KEY 1.\nAzure answered: Access denied.",
     );
   });
 
@@ -147,7 +169,7 @@ describe("an answer with an HTTP error: a sentence for its status, what to check
           llmType,
         ),
       ).toBe(
-        `${expected[llmType]} did not accept the API key (HTTP 401). Check the provider's API Key. ${expected[llmType]} answered: no`,
+        `${expected[llmType]} did not accept the API key (HTTP 401). Check the provider's API Key.\n${expected[llmType]} answered: no`,
       );
     }
   });
@@ -190,6 +212,35 @@ describe("no answer at all: OneUptime could not reach the provider, why, and to 
     ).toBe(
       "Something else went wrong. Check the Base URL, and that the OneUptime server can reach it.",
     );
+  });
+
+  test("an installation with its own name reads that name, where the sentence names the product", () => {
+    installFakeEnterpriseModule({ productBranding: { productName: "Acme" } });
+
+    try {
+      expect(
+        LlmProviderTestFailure.describe(
+          new APIException(
+            "Ollama API request failed: the LLM provider refused the connection.",
+          ),
+          LlmType.Ollama,
+        ),
+      ).toBe(
+        "Acme could not reach Ollama: the LLM provider refused the connection. Check the Base URL, and that the Acme server can reach it.",
+      );
+
+      // A sentence that does not name the product is the same either way.
+      expect(
+        LlmProviderTestFailure.describe(
+          httpError({ statusCode: 401, providerMessage: "Unauthorized" }),
+          LlmType.Ollama,
+        ),
+      ).toBe(
+        "Ollama did not accept the API key (HTTP 401). Check the provider's API Key.\nOllama answered: Unauthorized",
+      );
+    } finally {
+      uninstallEnterpriseModule();
+    }
   });
 });
 

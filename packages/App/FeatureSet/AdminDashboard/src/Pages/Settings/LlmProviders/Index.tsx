@@ -304,7 +304,6 @@ const Settings: FunctionComponent = (): ReactElement => {
           llmProviderId={testedProviderId}
           // No project: a global provider is the instance's own.
           headers={AdminModelAPI.getCommonHeaders()}
-          testingDescription="Testing the connection to this global LLM provider. This sends a small prompt using its configured API key, model, and base URL."
           onClose={() => {
             setTestedProviderId(null);
           }}

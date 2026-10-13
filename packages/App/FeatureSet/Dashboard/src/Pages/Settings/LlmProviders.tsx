@@ -17,7 +17,6 @@ import TestLlmProviderModal from "Common/UI/Components/AI/TestLlmProviderModal";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TestLLMProvider from "Common/UI/Utils/TestLLMProvider";
-import { LLM_PROVIDER_TEST_TOOLTIP } from "Common/UI/Utils/LlmProviderTestCopy";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
@@ -276,9 +275,8 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return testGate.isAllowed || Boolean(testGate.disabledReason);
               },
               disabled: !testGate.isAllowed,
-              tooltip: testGate.isAllowed
-                ? LLM_PROVIDER_TEST_TOOLTIP
-                : testGate.disabledReason,
+              // Locked, it says who may; unlocked, its dialog says what it does.
+              tooltip: testGate.isAllowed ? undefined : testGate.disabledReason,
               onClick: (item: LlmProvider, onCompleteAction: VoidFunction) => {
                 setTestedProviderId(item.id?.toString() || null);
                 onCompleteAction();

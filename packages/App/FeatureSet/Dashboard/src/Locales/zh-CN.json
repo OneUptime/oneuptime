@@ -17267,7 +17267,6 @@
   "Test these settings": "Test these settings",
   "Test your installation": "Test your installation",
   "Testing only": "Testing only",
-  "Testing the connection to your LLM provider. This sends a small prompt using your configured API key, model, and base URL.": "正在测试与您的 LLM 提供商的连接。将使用您配置的 API 密钥、模型和基础 URL 发送一条简短的提示词。",
   "Testing the connection to your data source using its configured connection details and credentials.": "Testing the connection to your data source using its configured connection details and credentials.",
   "Text and input values were replaced before this session left the device.": "Text and input values were replaced before this session left the device.",
   "Thailand": "Thailand",
@@ -28122,18 +28121,17 @@
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "分支 {{earlier}} 条件相同且先被检查，因此此分支永远不会被选中。",
   "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "“{{comparison}}”不是此步骤能识别的比较方式，因此每次运行都会在此停止。请从列表中选择一种。",
   "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "抓取此探测器看到的流量，然后下载文件并在 Wireshark 中打开。",
-  "Change the provider's settings, then test again.": "请修改提供商的设置，然后重新测试。",
   "Content Hash": "Content Hash",
   "Destination Type": "Destination Type",
   "Internal record of the Slack and Microsoft Teams messages OneUptime keeps up to date in place, such as the progress of an on-call policy run.": "Internal record of the Slack and Microsoft Teams messages OneUptime keeps up to date in place, such as the progress of an on-call policy run.",
   "Message Data": "Message Data",
   "Message ID": "Message ID",
   "Message Key": "Message Key",
-  "Send this provider a short prompt to check its API key, model and Base URL.": "向此提供商发送一条简短的提示词，检查其 API 密钥、模型和基础 URL。",
   "Test failed": "测试失败",
   "Test passed": "测试通过",
   "Test passed, with a warning": "测试通过，但有警告",
   "Workspace Live Message": "Workspace Live Message",
   "Workspace Live Messages": "Workspace Live Messages",
-  "You do not have permission to test this LLM provider.": "您没有测试此 LLM 提供商的权限。"
+  "You do not have permission to test this LLM provider.": "您没有测试此 LLM 提供商的权限。",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "这会检查其 API 密钥、模型和基础 URL，以及其模型能否调用工具。"
 }

@@ -1,4 +1,5 @@
 import LLMProviderHTTPException from "./LLMProviderHTTPException";
+import ProductBrandingText from "../ProductBrandingText";
 import APIException from "../../../Types/Exception/ApiException";
 import EgressGuardException from "../../../Types/Exception/EgressGuardException";
 import Exception from "../../../Types/Exception/Exception";
@@ -9,8 +10,10 @@ import LlmType from "../../../Types/LLM/LlmType";
  *
  * The Test button is where the person setting a provider up learns whether
  * its key, model and Base URL work, so a failure says, in this order: what
- * went wrong and what to check, in OneUptime's words; then what the provider
- * answered, in its own. It used to show the provider's error body as JSON -
+ * went wrong and what to check, in OneUptime's words; then, on a line of its
+ * own, what the provider answered, in its own. The dialog keeps the line
+ * break, so the two read apart: the first is what to do, the second the
+ * evidence. It used to show the provider's error body as JSON -
  * "LLM Provider test failed: OpenAI API error: {"error":{"message":"Incorrect
  * API key provided: ...","type":"invalid_request_error","param":null,"code":
  * "invalid_api_key"}}" - with the one sentence that mattered in the middle.
@@ -24,6 +27,8 @@ import LlmType from "../../../Types/LLM/LlmType";
  *    one and its details may be shown.
  *  - No answer at all: OneUptime could not reach the provider, why (never
  *    where: LLMService leaves the address out), and to check the Base URL.
+ *    The product is named as the installation names it
+ *    (ProductBrandingText).
  *  - Anything else LLMService says in words already (a key that is required,
  *    a refusal): as it is.
  */
@@ -124,7 +129,7 @@ export default class LlmProviderTestFailure {
 
     const answer: string = error.providerMessage.trim();
 
-    return answer ? `${lead} ${subject} answered: ${answer}` : lead;
+    return answer ? `${lead}\n${subject} answered: ${answer}` : lead;
   }
 
   private static describeNoAnswer(error: Exception, object: string): string {
@@ -132,11 +137,12 @@ export default class LlmProviderTestFailure {
     const rest: string =
       at === -1 ? "" : error.message.slice(at + UNANSWERED_REQUEST.length);
     const why: string = (rest.endsWith(".") ? rest.slice(0, -1) : rest).trim();
+    const productName: string = ProductBrandingText.getProductName();
 
     const lead: string = why
-      ? `OneUptime could not reach ${object}: ${why}.`
+      ? `${productName} could not reach ${object}: ${why}.`
       : error.message;
 
-    return `${lead} Check the Base URL, and that the OneUptime server can reach it.`;
+    return `${lead} Check the Base URL, and that the ${productName} server can reach it.`;
   }
 }

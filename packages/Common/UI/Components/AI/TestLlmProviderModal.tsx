@@ -7,7 +7,10 @@ import Dictionary from "../../../Types/Dictionary";
 import TestLLMProvider, {
   LLMProviderTestResult,
 } from "../../Utils/TestLLMProvider";
-import { LLM_PROVIDER_TEST_FAILED_NEXT_STEP } from "../../Utils/LlmProviderTestCopy";
+import {
+  LLM_PROVIDER_TEST_CHECKS,
+  LLM_PROVIDER_TEST_SENDING,
+} from "../../Utils/LlmProviderTestCopy";
 import { translationKey, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, {
@@ -26,22 +29,23 @@ import React, {
  * a provider's page, and a global provider's row in the Admin Dashboard). It
  * sends the provider a short prompt at once and says how it went:
  *
- *  - testing: what is happening, while it happens - and the dialog can be
- *    closed meanwhile (a provider that never answers can take minutes), its
- *    late verdict then dropped;
+ *  - testing: what is happening and what it checks, while it happens - and
+ *    the dialog can be closed meanwhile (Close, its X, Escape: a provider
+ *    that never answers can take minutes), its late verdict then dropped;
  *  - passed: the provider answered and called the tool it was offered;
  *  - passed, with a warning: it answered but did not call the tool, or ran
  *    out of room before it could - Ask AI and investigations read data
  *    through tools, so the server's words say what that means;
- *  - failed: what went wrong and what to check, then the provider's own
- *    words (LlmProviderTestFailure), and the next step - when the provider
- *    failed it. A test refused (who may test, the plan) or a request that
- *    failed on its way is said in the server's words alone: changing the
- *    provider would not help.
+ *  - failed: the server's words. For a provider that failed, what went wrong
+ *    and what to check, then - on a line of its own - what the provider
+ *    answered (LlmProviderTestFailure); for a test that was refused (who may
+ *    test, the plan), why.
  *
  * Each outcome is one alert with a headline in the reader's language and the
- * server's verdict under it. "Test again" runs it again - the verdict for a
- * reply cut short asks for that - and Close closes.
+ * server's verdict under it, which already ends with what to do next: check
+ * a setting, wait and test again. "Test again" runs it again - the verdict
+ * for a reply cut short, or a provider that was busy, asks for that - and
+ * Close closes.
  */
 
 export enum LlmProviderTestOutcome {
@@ -54,12 +58,10 @@ export enum LlmProviderTestOutcome {
 export interface ComponentProps {
   llmProviderId: string;
   /*
-   * The request's headers: the Dashboard's (its project), or none from the
-   * Admin Dashboard, which tests the global providers.
+   * The request's headers: the Dashboard's (its project), or the Admin
+   * Dashboard's, which tests the global providers.
    */
   headers?: Dictionary<string> | undefined;
-  // What the test does, said while it runs. The Dashboard's words by default.
-  testingDescription?: string | undefined;
   onClose: () => void;
 }
 
@@ -112,8 +114,6 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
     LlmProviderTestOutcome.Testing,
   );
   const [verdict, setVerdict] = useState<string>("");
-  // Whether the provider's settings can fix the failure (the next step).
-  const [isProviderFailure, setIsProviderFailure] = useState<boolean>(false);
 
   /*
    * Which run's verdict may still be shown: a run started again, or a
@@ -127,7 +127,6 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
 
     setOutcome(LlmProviderTestOutcome.Testing);
     setVerdict("");
-    setIsProviderFailure(false);
 
     const result: LLMProviderTestResult = await TestLLMProvider.test({
       llmProviderId: props.llmProviderId,
@@ -139,7 +138,6 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
     }
 
     setVerdict(result.message);
-    setIsProviderFailure(!result.success && result.isProviderFailure === true);
     setOutcome(getLlmProviderTestOutcome(result));
   }, [props.llmProviderId, props.headers]);
 
@@ -157,9 +155,18 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Test LLM Provider"
+      /*
+       * Nothing here to confirm or lose, so every way out of a dialog
+       * closes it - Close, the X, Escape and the backdrop - while the test
+       * runs too. Close is the one button that stays put: the rightmost,
+       * where the focus starts, drawn plain because it only closes; Test
+       * again appears beside it, never under the pointer in its place.
+       */
+      onClose={props.onClose}
+      onSubmit={props.onClose}
       submitButtonText="Close"
       submitButtonStyleType={ButtonStyleType.NORMAL}
-      onSubmit={props.onClose}
+      hasFooterCloseButton={false}
       /*
        * Offered once there is a verdict: while a test runs there is nothing
        * to run again, and a disabled button looks like one to press.
@@ -185,39 +192,25 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
             data-testid="llm-provider-test-running"
           >
             <Loader loaderType={LoaderType.Bar} color={Indigo500} size={160} />
-            <p className="text-sm font-medium leading-6 text-gray-900">
-              {translator.translateText(
-                "Sending a test prompt to your LLM provider…",
-              )}
+            <p className="text-balance text-sm font-medium leading-6 text-gray-900">
+              {translator.translateText(LLM_PROVIDER_TEST_SENDING)}
             </p>
-            <p className="max-w-sm text-sm leading-6 text-gray-500">
-              {props.testingDescription
-                ? translator.translateText(props.testingDescription)
-                : translator.translateText(
-                    "Testing the connection to your LLM provider. This sends a small prompt using your configured API key, model, and base URL.",
-                  )}
+            <p className="max-w-sm text-pretty text-sm leading-6 text-gray-500">
+              {translator.translateText(LLM_PROVIDER_TEST_CHECKS)}
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            <Alert
-              type={ALERT_TYPES[outcome]}
-              strongTitle={HEADLINES[outcome]}
-              title={verdict}
-              dataTestId="llm-provider-test-result"
-              textClassName="whitespace-pre-wrap"
-            />
-            {outcome === LlmProviderTestOutcome.Failed && isProviderFailure ? (
-              <p
-                className="text-sm leading-6 text-gray-600"
-                data-testid="llm-provider-test-next-step"
-              >
-                {translator.translateText(LLM_PROVIDER_TEST_FAILED_NEXT_STEP)}
-              </p>
-            ) : (
-              <></>
-            )}
-          </div>
+          /*
+           * The verdict keeps its line breaks: a failure puts what the
+           * provider answered on a line of its own, under what to check.
+           */
+          <Alert
+            type={ALERT_TYPES[outcome]}
+            strongTitle={HEADLINES[outcome]}
+            title={verdict}
+            dataTestId="llm-provider-test-result"
+            textClassName="whitespace-pre-wrap"
+          />
         )}
       </div>
     </Modal>

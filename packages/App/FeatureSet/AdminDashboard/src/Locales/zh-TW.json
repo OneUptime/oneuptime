@@ -877,5 +877,13 @@
   "{{count}} more": "另外 {{count}} 項",
   "{{count}} more_one": "另外 {{count}} 項",
   "On": "開啟",
-  "Off": "關閉"
+  "Off": "關閉",
+  "Test": "測試",
+  "Test LLM Provider": "測試 LLM 提供商",
+  "Sending a test prompt to your LLM provider…": "正在向您的 LLM 提供商傳送測試提示詞…",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "這會檢查其 API 金鑰、模型和基底 URL，以及其模型能否呼叫工具。",
+  "Test again": "重新測試",
+  "Test passed": "測試通過",
+  "Test passed, with a warning": "測試通過，但有警告",
+  "Test failed": "測試失敗"
 }

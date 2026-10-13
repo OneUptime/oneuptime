@@ -17267,7 +17267,6 @@
   "Test these settings": "Test these settings",
   "Test your installation": "Test your installation",
   "Testing only": "Testing only",
-  "Testing the connection to your LLM provider. This sends a small prompt using your configured API key, model, and base URL.": "Anslutningen till din LLM-leverantör testas. En kort prompt skickas med den konfigurerade API-nyckeln, modellen och bas-URL:en.",
   "Testing the connection to your data source using its configured connection details and credentials.": "Testing the connection to your data source using its configured connection details and credentials.",
   "Text and input values were replaced before this session left the device.": "Text and input values were replaced before this session left the device.",
   "Thailand": "Thailand",
@@ -28122,18 +28121,17 @@
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "Fall {{earlier}} frågar samma sak och kontrolleras först, så det här fallet väljs aldrig.",
   "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "”{{comparison}}” är inte en jämförelse som det här steget känner till, så varje körning stannar här. Välj en i listan.",
   "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "Spela in trafiken som den här sonden ser, ladda sedan ner filen och öppna den i Wireshark.",
-  "Change the provider's settings, then test again.": "Ändra leverantörens inställningar och testa sedan igen.",
   "Content Hash": "Content Hash",
   "Destination Type": "Destination Type",
   "Internal record of the Slack and Microsoft Teams messages OneUptime keeps up to date in place, such as the progress of an on-call policy run.": "Internal record of the Slack and Microsoft Teams messages OneUptime keeps up to date in place, such as the progress of an on-call policy run.",
   "Message Data": "Message Data",
   "Message ID": "Message ID",
   "Message Key": "Message Key",
-  "Send this provider a short prompt to check its API key, model and Base URL.": "Skicka en kort prompt till den här leverantören för att kontrollera API-nyckel, modell och bas-URL.",
   "Test failed": "Testet misslyckades",
   "Test passed": "Testet godkändes",
   "Test passed, with a warning": "Testet godkändes, med en varning",
   "Workspace Live Message": "Workspace Live Message",
   "Workspace Live Messages": "Workspace Live Messages",
-  "You do not have permission to test this LLM provider.": "Du har inte behörighet att testa den här LLM-leverantören."
+  "You do not have permission to test this LLM provider.": "Du har inte behörighet att testa den här LLM-leverantören.",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "Den kontrollerar API-nyckeln, modellen och bas-URL:en, och om modellen kan anropa verktyg."
 }

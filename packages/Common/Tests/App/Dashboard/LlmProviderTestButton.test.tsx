@@ -19,11 +19,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Who may press it is who the server lets test (LlmProviderTestAccess):
  * whoever may change the provider. Everyone else who may see the provider -
  * a Viewer, a Settings Viewer, Read LLM - finds Test locked, and its tooltip
- * is the server's refusal word for word: the sentence, then who may. Before
- * the permission snapshot has landed nothing is said, and nothing offered.
- * Pressed, it opens the one Test dialog (TestLlmProviderModal), which tests
- * the provider with the page's headers: the project's, or none from the
- * Admin Dashboard.
+ * is the server's refusal word for word: the sentence, then who may. An
+ * unlocked Test has no tooltip: the dialog it opens says what it does, and
+ * a tooltip on it popped up again each time that dialog closed and handed
+ * the button its focus back. Before the permission snapshot has landed
+ * nothing is said, and nothing offered. Pressed, it opens the one Test
+ * dialog (TestLlmProviderModal), which tests the provider with the page's
+ * headers: the project's, or none from the Admin Dashboard.
  *
  * The tables and the detail card are captured instead of drawn: their
  * buttons are what is under test.
@@ -97,7 +99,10 @@ import Permission, {
 import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 import API from "../../../UI/Utils/API/API";
-import { LLM_PROVIDER_TEST_TOOLTIP } from "../../../UI/Utils/LlmProviderTestCopy";
+import {
+  LLM_PROVIDER_TEST_CHECKS,
+  LLM_PROVIDER_TEST_SENDING,
+} from "../../../UI/Utils/LlmProviderTestCopy";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -239,13 +244,13 @@ afterEach(() => {
 
 describe("Project Settings > AI > LLM Providers: a row's Test", () => {
   test.each(TESTERS)(
-    "%s may press it, and it says what it does",
+    "%s may press it, and it has no tooltip to pop up",
     (_who: string, permissions: Array<Permission>) => {
       signedInAs(permissions);
       render(<LlmProvidersPage {...({} as unknown as PageComponentProps)} />);
 
       expect(rowTest().disabled).toBe(false);
-      expect(rowTest().tooltip).toBe(LLM_PROVIDER_TEST_TOOLTIP);
+      expect(rowTest().tooltip).toBeUndefined();
       expect(rowTest().isVisible?.(provider())).toBe(true);
     },
   );
@@ -315,7 +320,7 @@ describe("Project Settings > AI > LLM Providers: a row's Test", () => {
 
 describe("a provider's own page: the card's Test", () => {
   test.each(TESTERS)(
-    "%s may press it",
+    "%s may press it, and it has no tooltip to pop up when the dialog closes",
     (_who: string, permissions: Array<Permission>) => {
       signedInAs(permissions);
       render(
@@ -323,7 +328,7 @@ describe("a provider's own page: the card's Test", () => {
       );
 
       expect(cardTest()?.disabled).toBe(false);
-      expect(cardTest()?.tooltip).toBe(LLM_PROVIDER_TEST_TOOLTIP);
+      expect(cardTest()?.tooltip).toBeUndefined();
     },
   );
 
@@ -370,7 +375,7 @@ describe("a provider's own page: the card's Test", () => {
 });
 
 describe("Admin Dashboard > Settings > Global LLM Providers: a row's Test", () => {
-  test("pressed, it tests the global provider with no project, in words for a global provider", async () => {
+  test("pressed, it tests the global provider with no project, saying what it does as the Dashboard says it", async () => {
     jest.spyOn(User, "isMasterAdmin").mockReturnValue(true);
     // Held open, so the dialog says what it is doing.
     fetchMock.mockImplementation((): Promise<unknown> => {
@@ -399,9 +404,10 @@ describe("Admin Dashboard > Settings > Global LLM Providers: a row's Test", () =
     });
 
     expect(
-      within(screen.getByTestId("modal")).getByText(
-        "Testing the connection to this global LLM provider. This sends a small prompt using its configured API key, model, and base URL.",
-      ),
+      within(screen.getByTestId("modal")).getByText(LLM_PROVIDER_TEST_SENDING),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("modal")).getByText(LLM_PROVIDER_TEST_CHECKS),
     ).toBeInTheDocument();
 
     const request: { data: JSONObject; headers?: Record<string, string> } =

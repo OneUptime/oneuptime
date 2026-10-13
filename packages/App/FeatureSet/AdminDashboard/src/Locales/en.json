@@ -877,5 +877,13 @@
   "{{count}} more": "{{count}} more",
   "{{count}} more_one": "{{count}} more",
   "On": "On",
-  "Off": "Off"
+  "Off": "Off",
+  "Test": "Test",
+  "Test LLM Provider": "Test LLM Provider",
+  "Sending a test prompt to your LLM provider…": "Sending a test prompt to your LLM provider…",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "This checks its API key, model and Base URL, and whether its model can call tools.",
+  "Test again": "Test again",
+  "Test passed": "Test passed",
+  "Test passed, with a warning": "Test passed, with a warning",
+  "Test failed": "Test failed"
 }
