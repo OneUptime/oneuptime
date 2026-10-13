@@ -48,6 +48,9 @@ let activeLocale: LocaleData = EN;
 const countMock: MockFunction = getJestMockFunction();
 const analyticsMock: MockFunction = getJestMockFunction();
 
+// The count, Set up and placeholder inside a row carry its test id plus one of these.
+const INNER_PART_TEST_ID: RegExp = /-(count|set-up|loading)$/;
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
@@ -221,7 +224,7 @@ describe("what the card lists", () => {
         );
       })
       .filter((key: string): boolean => {
-        return !/-(count|set-up|loading)$/.test(key);
+        return !INNER_PART_TEST_ID.test(key);
       });
 
     expect(keys).toEqual([
@@ -242,9 +245,7 @@ describe("what the card lists", () => {
     );
     expect(row(ProjectResourceKey.Slos)).toHaveTextContent("SLOs4");
     expect(row(ProjectResourceKey.Services)).toHaveTextContent("Services8");
-    expect(row(ProjectResourceKey.Dashboards)).toHaveTextContent(
-      "Dashboards4",
-    );
+    expect(row(ProjectResourceKey.Dashboards)).toHaveTextContent("Dashboards4");
   });
 
   test("none of something: Set up, instead of a zero", async () => {
@@ -253,9 +254,7 @@ describe("what the card lists", () => {
     expect(
       screen.getByTestId("home-resource-workflows-set-up"),
     ).toHaveTextContent("Set up");
-    expect(
-      screen.queryByTestId("home-resource-workflows-count"),
-    ).toBeNull();
+    expect(screen.queryByTestId("home-resource-workflows-count")).toBeNull();
   });
 
   test("a new project: every resource says Set up", async () => {

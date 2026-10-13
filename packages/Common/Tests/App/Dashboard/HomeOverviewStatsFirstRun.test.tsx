@@ -1035,9 +1035,10 @@ describe("the requests behind the strip", () => {
 
     for (const recorded of requests) {
       if (recorded.type === "list") {
-        expect({ kind: recorded.kind, limit: recorded.request.limit }).toEqual(
-          { kind: recorded.kind, limit: HOME_ATTENTION_LIST_LIMIT },
-        );
+        expect({ kind: recorded.kind, limit: recorded.request.limit }).toEqual({
+          kind: recorded.kind,
+          limit: HOME_ATTENTION_LIST_LIMIT,
+        });
         expect(recorded.request.skip).toBe(0);
       }
     }

@@ -369,6 +369,8 @@ describe("Home's one batch", () => {
   });
 
   test("every list in the batch reads the first few rows: its total is the number", () => {
+    const firstFewRows: RegExp = /limit: HOME_ATTENTION_LIST_LIMIT/;
+
     for (const marker of [
       "export const fetchActiveIncidents",
       "export const fetchActiveAlerts",
@@ -378,8 +380,10 @@ describe("Home's one batch", () => {
     ]) {
       const body: string = arrowFunctionBody(OVERVIEW_DATA_SOURCE, marker);
 
-      expect({ marker, limit: /limit: HOME_ATTENTION_LIST_LIMIT/.test(body) })
-        .toEqual({ marker, limit: true });
+      expect({ marker, limit: firstFewRows.test(body) }).toEqual({
+        marker,
+        limit: true,
+      });
       expect(body).toContain("toHomeList");
       // Not a separate count beside the list: the list answers with both.
       expect(body).not.toContain("ModelAPI.count");
@@ -468,6 +472,9 @@ describe("Home and its cards", () => {
       /projectIdString[^;]*=[^;]*projectId\.toString\(\)/,
     );
 
+    const keyedOnProjectAndRefresh: RegExp =
+      /\[\s*projectIdString\s*,\s*props\.refreshKey\s*\]\s*\)$/;
+
     for (const [name, source, needle] of [
       ["ProjectResources", RESOURCES_SOURCE, "Promise.all"],
       ["UpcomingMaintenance", UPCOMING_SOURCE, "fetchUpcomingMaintenance("],
@@ -476,9 +483,7 @@ describe("Home and its cards", () => {
 
       expect({
         name,
-        keyedOnString: /\[\s*projectIdString\s*,\s*props\.refreshKey\s*\]\s*\)$/.test(
-          effect,
-        ),
+        keyedOnString: keyedOnProjectAndRefresh.test(effect),
       }).toEqual({ name, keyedOnString: true });
     }
 

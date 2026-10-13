@@ -68,7 +68,11 @@ jest.mock("../../../UI/Utils/Navigation", () => {
         return false;
       },
       getCurrentPath: () => {
-        return { toString: () => "/" };
+        return {
+          toString: () => {
+            return "/";
+          },
+        };
       },
     },
   };
@@ -219,9 +223,7 @@ describe("the actions", () => {
     renderBar();
 
     // Folded until opened.
-    expect(
-      screen.queryByTestId("home-quick-action-create-monitor"),
-    ).toBeNull();
+    expect(screen.queryByTestId("home-quick-action-create-monitor")).toBeNull();
 
     await act(async () => {
       fireEvent.click(screen.getByLabelText("Create"));
@@ -246,7 +248,9 @@ describe("the actions", () => {
       fireEvent.click(screen.getByLabelText("Create"));
     });
     await act(async () => {
-      fireEvent.click(screen.getByTestId("home-quick-action-schedule-maintenance"));
+      fireEvent.click(
+        screen.getByTestId("home-quick-action-schedule-maintenance"),
+      );
     });
 
     expect(navigateMock).toHaveBeenCalledTimes(1);
@@ -338,7 +342,11 @@ describe("getHomeQuickActions", () => {
     // Creating an alert by hand is not offered on Home: the palette has it.
     expect(
       keys(getHomeQuickActions(gates({ canCreateAlert: false })).create),
-    ).toEqual(["create-monitor", "schedule-maintenance", "create-announcement"]);
+    ).toEqual([
+      "create-monitor",
+      "schedule-maintenance",
+      "create-announcement",
+    ]);
   });
 
   test("every action opens a page that exists", () => {

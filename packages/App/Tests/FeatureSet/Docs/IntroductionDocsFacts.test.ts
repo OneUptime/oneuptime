@@ -903,11 +903,9 @@ describe("Home Page & Shortcuts", () => {
       ).match(/title: translationKey\("([^"]+)"\)/) as RegExpMatchArray
     )[1] as string;
     const creates: Array<string> = Array.from(
-      blockFrom(
-        COMMAND_BAR_SOURCE,
-        "const CREATE_ACTIONS",
-        "\n];",
-      ).matchAll(QUICK_ACTION_TITLE),
+      blockFrom(COMMAND_BAR_SOURCE, "const CREATE_ACTIONS", "\n];").matchAll(
+        QUICK_ACTION_TITLE,
+      ),
     ).map((match: RegExpMatchArray): string => {
       return match[1] as string;
     });
@@ -931,7 +929,7 @@ describe("Home Page & Shortcuts", () => {
     expect(COMMAND_BAR_SOURCE).toContain(
       "GlobalEvents.dispatchEvent(EventName.COMMAND_PALETTE_TOGGLE)",
     );
-    expect(COMMAND_BAR_SOURCE).toContain("[KeyboardKey.Mod, \"K\"]");
+    expect(COMMAND_BAR_SOURCE).toContain('[KeyboardKey.Mod, "K"]');
     expect(section).toContain("`Mod` + `K`");
     // Gated by the palette's own rule.
     expect(COMMAND_BAR_SOURCE).toContain("computeCreateActionGates(");
@@ -1140,9 +1138,9 @@ describe("Home Page & Shortcuts", () => {
   it("says how many of each kind Needs attention shows, and what it says when nothing is open", () => {
     const section: string = sectionOf(HOME, "### Needs attention");
 
-    expect(numberConstant(OVERVIEW_DATA_SOURCE, "HOME_ATTENTION_LIST_LIMIT")).toBe(
-      5,
-    );
+    expect(
+      numberConstant(OVERVIEW_DATA_SOURCE, "HOME_ATTENTION_LIST_LIMIT"),
+    ).toBe(5);
     expect(section).toContain("Each kind shows up to five");
     expect(section).toContain("**View all**");
     expect(section).toContain(

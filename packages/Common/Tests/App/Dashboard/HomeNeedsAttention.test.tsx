@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import "@testing-library/jest-dom";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import * as fs from "fs";
@@ -398,7 +405,9 @@ describe("the groups", () => {
       }),
     );
 
-    expect(screen.getByTestId("home-attention-group-maintenance")).toBeVisible();
+    expect(
+      screen.getByTestId("home-attention-group-maintenance"),
+    ).toBeVisible();
     expect(screen.queryByTestId("home-attention-total")).toBeNull();
   });
 });
@@ -574,9 +583,9 @@ describe("in German", () => {
     activeLocale = DE;
     renderCard(busy());
 
-    expect(screen.getByTestId("home-attention-group-incidents")).toHaveTextContent(
-      german("Active incidents"),
-    );
+    expect(
+      screen.getByTestId("home-attention-group-incidents"),
+    ).toHaveTextContent(german("Active incidents"));
     expect(
       screen.getByTestId("home-attention-group-alerts-view-all"),
     ).toHaveTextContent(german("View all"));

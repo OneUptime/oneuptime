@@ -148,7 +148,11 @@ let listRequests: Array<ListRequest> = [];
 let events: Array<ScheduledMaintenance> = [];
 let failList: boolean = false;
 
-function event(number: number, title: string, startsAt: Date): ScheduledMaintenance {
+function event(
+  number: number,
+  title: string,
+  startsAt: Date,
+): ScheduledMaintenance {
   return Object.assign(new ScheduledMaintenance(), {
     _id: `65f0000000000000000c${String(number).padStart(4, "0")}`,
     title,
@@ -356,16 +360,22 @@ describe("the calendar leaf", () => {
     const timezone: string = OneUptimeDate.getCurrentTimezone().toString();
 
     expect(formatCalendarPart({ date, part: "month", language: "en" })).toBe(
-      new Intl.DateTimeFormat("en", { month: "short", timeZone: timezone })
-        .format(date),
+      new Intl.DateTimeFormat("en", {
+        month: "short",
+        timeZone: timezone,
+      }).format(date),
     );
     expect(formatCalendarPart({ date, part: "day", language: "de" })).toBe(
-      new Intl.DateTimeFormat("de", { day: "numeric", timeZone: timezone })
-        .format(date),
+      new Intl.DateTimeFormat("de", {
+        day: "numeric",
+        timeZone: timezone,
+      }).format(date),
     );
     expect(formatCalendarPart({ date, part: "month", language: "fr" })).toBe(
-      new Intl.DateTimeFormat("fr", { month: "short", timeZone: timezone })
-        .format(date),
+      new Intl.DateTimeFormat("fr", {
+        month: "short",
+        timeZone: timezone,
+      }).format(date),
     );
   });
 

@@ -173,12 +173,15 @@ async function attentionGroups(page: Page): Promise<Array<string>> {
   return page
     .locator('[data-testid^="home-attention-group-"]')
     .evaluateAll((elements: Array<Element>): Array<string> => {
+      // Declared here: this function runs in the page, not in the spec.
+      const groupTestId: RegExp = /^home-attention-group-[a-z]+$/;
+
       return elements
         .map((element: Element): string => {
           return element.getAttribute("data-testid") || "";
         })
         .filter((testId: string): boolean => {
-          return /^home-attention-group-[a-z]+$/.test(testId);
+          return groupTestId.test(testId);
         })
         .map((testId: string): string => {
           return testId.replace("home-attention-group-", "");
@@ -250,9 +253,7 @@ test.describe("a busy project", () => {
       "maintenance",
     ]);
     // 2 incidents + 3 alerts + 2 monitors + 2 SLOs; maintenance is planned.
-    await expect(page.getByTestId("home-attention-total")).toHaveText(
-      "9 open",
-    );
+    await expect(page.getByTestId("home-attention-total")).toHaveText("9 open");
 
     const incident: Locator = page
       .getByTestId("home-attention-row-incidents")
@@ -320,12 +321,12 @@ test.describe("a busy project", () => {
     await expect(page.getByTestId("home-resource-services-count")).toHaveText(
       "8",
     );
-    await expect(
-      page.getByTestId("home-resource-dashboards-count"),
-    ).toHaveText("4");
-    await expect(
-      page.getByTestId("home-resource-workflows-set-up"),
-    ).toHaveText("Set up");
+    await expect(page.getByTestId("home-resource-dashboards-count")).toHaveText(
+      "4",
+    );
+    await expect(page.getByTestId("home-resource-workflows-set-up")).toHaveText(
+      "Set up",
+    );
     await expect(resources).toBeVisible();
 
     const upcoming: Locator = page.getByTestId("home-upcoming-row");
@@ -370,7 +371,9 @@ test.describe("a busy project", () => {
     await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
     await expect(tabs.first()).toContainText("Essentials");
     await expect(
-      page.getByTestId("home-explore-panel").getByTestId("home-explore-product"),
+      page
+        .getByTestId("home-explore-panel")
+        .getByTestId("home-explore-product"),
     ).toHaveCount(7);
 
     await tabs.nth(1).click();
@@ -537,7 +540,9 @@ test.describe("the verdicts", () => {
       "dashboards",
       "workflows",
     ]) {
-      await expect(page.getByTestId(`home-resource-${key}-set-up`)).toBeVisible();
+      await expect(
+        page.getByTestId(`home-resource-${key}-set-up`),
+      ).toBeVisible();
     }
     // Nothing is scheduled: no maintenance card at all.
     await expect(page.getByTestId("home-upcoming-maintenance")).toHaveCount(0);
@@ -622,9 +627,7 @@ test.describe("failures and Refresh", () => {
     await expect(page.getByTestId("home-resource-services-count")).toHaveText(
       "8",
     );
-    await expect(page.getByTestId("home-resource-status-pages")).toHaveCount(
-      0,
-    );
+    await expect(page.getByTestId("home-resource-status-pages")).toHaveCount(0);
   });
 
   test("the upcoming list failing: the card is left out", async ({
@@ -716,8 +719,9 @@ test.describe("the requests", () => {
         (request: RecordedRequest): boolean => {
           return (
             request.modelName === name &&
-            Object.keys(request.query || {}).sort().join(",") ===
-              "isArchived,projectId"
+            Object.keys(request.query || {})
+              .sort()
+              .join(",") === "isArchived,projectId"
           );
         },
       );
@@ -817,7 +821,11 @@ test.describe("screens and themes", () => {
     await screenshot(page, "home-busy-de");
   });
 
-  test("dark: every card on a dark surface", async ({ page }: { page: Page }) => {
+  test("dark: every card on a dark surface", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await openReady(page, "theme=dark");
 
     const backgrounds: Array<string> = await page.evaluate(

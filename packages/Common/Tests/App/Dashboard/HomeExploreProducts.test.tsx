@@ -187,9 +187,7 @@ describe("the categories", () => {
         return (tab.firstChild?.textContent || "").trim();
       }),
     ).toEqual(expected);
-    expect(expected[0]).toBe(
-      lookupNested(EN, "navbar.categories.essentials"),
-    );
+    expect(expected[0]).toBe(lookupNested(EN, "navbar.categories.essentials"));
   });
 
   test("every product but the settings pages is in exactly one category", () => {
@@ -369,7 +367,9 @@ describe("in German", () => {
       "navbar.categories.essentials",
     );
     expect(essentials).toBeDefined();
-    expect(essentials).not.toBe(lookupNested(EN, "navbar.categories.essentials"));
+    expect(essentials).not.toBe(
+      lookupNested(EN, "navbar.categories.essentials"),
+    );
     expect(tabs()[0]).toHaveTextContent(essentials!);
     expect(screen.getByTestId("home-explore-panel")).toHaveTextContent(
       lookupNested(DE, "navbar.items.incidentsTitle")!,

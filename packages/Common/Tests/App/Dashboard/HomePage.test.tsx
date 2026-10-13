@@ -130,7 +130,11 @@ jest.mock("../../../UI/Utils/Navigation", () => {
         return false;
       },
       getCurrentPath: () => {
-        return { toString: () => "/" };
+        return {
+          toString: () => {
+            return "/";
+          },
+        };
       },
     },
   };
@@ -193,8 +197,8 @@ import Home from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Alert from "../../../Models/DatabaseModels/Alert";
-import AlertState from "../../../Models/DatabaseModels/AlertState";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -297,15 +301,15 @@ interface ProjectData {
   counts: Map<unknown, number>;
 }
 
-function named<TModel>(
+function named<TModel extends BaseModel>(
   modelType: { new (): TModel },
   number: number,
   data: Record<string, unknown>,
 ): TModel {
-  return Object.assign(new modelType() as object, {
+  return Object.assign(new modelType(), {
     _id: `65f0000000000000000e${String(number).padStart(4, "0")}`,
     ...data,
-  }) as TModel;
+  });
 }
 
 function busyProject(): ProjectData {
@@ -732,9 +736,10 @@ describe("a brand-new project", () => {
       expect(screen.getByTestId("getting-started")).toBeInTheDocument();
     });
     expect(
-      screen.getByTestId("home-project-health").compareDocumentPosition(
-        screen.getByTestId("getting-started"),
-      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      screen
+        .getByTestId("home-project-health")
+        .compareDocumentPosition(screen.getByTestId("getting-started")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(screen.getByTestId("home-attention-empty")).toHaveAttribute(
       "data-state",
