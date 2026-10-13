@@ -186,7 +186,7 @@ Libera.Chat, OFTC 또는 자체 서버 등 어떤 IRC 네트워크든 IRC 채널
 | 설정                        | 하는 일                                                                                                                    |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | **SMSEagle URL**          | 장치의 주소입니다. 예: `https://192.168.0.100`. API v2 경로는 블록이 직접 덧붙입니다.                                                         |
-| **SMSEagle Access Token** | SMSEagle 웹 패널의 Settings, API, API v2에서 만든 API v2 키입니다. SMS에는 "Send SMS" 권한이, 전화에는 "Make a TTS Advanced Call" 권한이 필요합니다. |
+| **SMSEagle Access Token** | SMSEagle 웹 GUI의 Settings, API, API v2에서 만든 API v2 키입니다. SMS에는 "Send SMS" 권한이, 전화에는 "Make a TTS Advanced Call" 권한이 필요합니다. |
 | **전화번호**                  | SMS를 보내거나 전화를 걸 번호로, 국제 형식입니다. 예: `+15551234567`.                                                                       |
 | **Message Text**          | SMS의 본문입니다. **Send SMS via SMSEagle**에만 있습니다.                                                                           |
 | **Voice ID**              | 장치에 있는 텍스트 음성 변환 음성의 ID입니다. **Make a Call via SMSEagle**에만 있습니다.                                                        |

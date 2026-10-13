@@ -186,7 +186,7 @@ Invia un SMS o fai una chiamata con sintesi vocale tramite un dispositivo SMSEag
 | Impostazione              | Cosa fa                                                                                                                                                          |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **SMSEagle URL**          | L'indirizzo del dispositivo, come `https://192.168.0.100`. Il percorso dell'API v2 lo aggiunge il blocco.                                                        |
-| **SMSEagle Access Token** | Una chiave API v2 dal pannello web di SMSEagle, in Settings, API, API v2. Serve il permesso "Send SMS" per gli SMS e "Make a TTS Advanced Call" per le chiamate. |
+| **SMSEagle Access Token** | Una chiave API v2 dalla GUI web di SMSEagle, in Settings, API, API v2. Serve il permesso "Send SMS" per gli SMS e "Make a TTS Advanced Call" per le chiamate.    |
 | **Numero di telefono**    | Il numero a cui inviare l'SMS o da chiamare, in formato internazionale, come `+15551234567`.                                                                     |
 | **Message Text**          | Il testo dell'SMS. Solo in **Send SMS via SMSEagle**.                                                                                                            |
 | **Voice ID**              | L'ID di una voce di sintesi vocale del dispositivo. Solo in **Make a Call via SMSEagle**.                                                                        |

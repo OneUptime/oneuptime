@@ -186,7 +186,7 @@ System Instructions، Prompt و Context سریال‌شده روی هم به ۵�
 | تنظیم                     | کاری که می‌کند                                                                                                                                  |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | **SMSEagle URL**          | نشانی دستگاه، مانند `https://192.168.0.100`. بلوک خودش مسیر API v2 را اضافه می‌کند.                                                             |
-| **SMSEagle Access Token** | یک کلید API v2 از پنل وب SMSEagle، در Settings، API، API v2. برای پیامک به مجوز "Send SMS" و برای تماس به "Make a TTS Advanced Call" نیاز دارد. |
+| **SMSEagle Access Token** | یک کلید API v2 از GUI وب SMSEagle، در Settings، API، API v2. برای پیامک به مجوز "Send SMS" و برای تماس به "Make a TTS Advanced Call" نیاز دارد. |
 | **شماره تلفن**            | شماره‌ای که پیامک یا تماس می‌گیرد، در قالب بین‌المللی، مانند `+15551234567`.                                                                    |
 | **Message Text**          | متن پیامک. فقط در **Send SMS via SMSEagle**.                                                                                                    |
 | **Voice ID**              | شناسه یک صدای متن‌به‌گفتار روی دستگاه. فقط در **Make a Call via SMSEagle**.                                                                     |

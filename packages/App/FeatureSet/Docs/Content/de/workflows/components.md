@@ -186,7 +186,7 @@ Eine SMS senden oder einen Text-to-Speech-Anruf tätigen, über ein SMSEagle-Ger
 | Einstellung               | Was sie tut                                                                                                                                                            |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **SMSEagle URL**          | Die Adresse des Geräts, etwa `https://192.168.0.100`. Den Pfad der API v2 ergänzt der Baustein selbst.                                                                 |
-| **SMSEagle Access Token** | Ein API-v2-Schlüssel aus dem SMSEagle-Webpanel, unter Settings, API, API v2. Er braucht die Berechtigung "Send SMS" für SMS und "Make a TTS Advanced Call" für Anrufe. |
+| **SMSEagle Access Token** | Ein API-v2-Schlüssel aus der SMSEagle-Web-GUI, unter Settings, API, API v2. Er braucht die Berechtigung "Send SMS" für SMS und "Make a TTS Advanced Call" für Anrufe.  |
 | **Telefonnummer**         | Die Nummer, die eine SMS oder einen Anruf bekommt, im internationalen Format, etwa `+15551234567`.                                                                     |
 | **Message Text**          | Der Text der SMS. Nur in **Send SMS via SMSEagle**.                                                                                                                    |
 | **Voice ID**              | Die ID einer Text-to-Speech-Stimme auf dem Gerät. Nur in **Make a Call via SMSEagle**.                                                                                 |

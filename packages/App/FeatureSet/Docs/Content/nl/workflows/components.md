@@ -186,7 +186,7 @@ Stuur een sms of voer een tekst-naar-spraakgesprek via een SMSEagle-apparaat, ee
 | Instelling                | Wat het doet                                                                                                                                                                     |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **SMSEagle URL**          | Het adres van het apparaat, zoals `https://192.168.0.100`. Het pad van de API v2 voegt het blok zelf toe.                                                                        |
-| **SMSEagle Access Token** | Een API v2-sleutel uit het webpaneel van SMSEagle, onder Settings, API, API v2. Hij heeft de machtiging "Send SMS" nodig voor sms en "Make a TTS Advanced Call" voor gesprekken. |
+| **SMSEagle Access Token** | Een API v2-sleutel uit de web-GUI van SMSEagle, onder Settings, API, API v2. Hij heeft de machtiging "Send SMS" nodig voor sms en "Make a TTS Advanced Call" voor gesprekken.    |
 | **Telefoonnummer**        | Het nummer dat de sms of het gesprek krijgt, in internationaal formaat, zoals `+15551234567`.                                                                                    |
 | **Message Text**          | De tekst van de sms. Alleen in **Send SMS via SMSEagle**.                                                                                                                        |
 | **Voice ID**              | Het ID van een tekst-naar-spraakstem op het apparaat. Alleen in **Make a Call via SMSEagle**.                                                                                    |

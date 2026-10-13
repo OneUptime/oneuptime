@@ -186,7 +186,7 @@ Webhook の URL は [シークレットのグローバル変数](/docs/workflows
 | 設定                        | 役割                                                                                                                    |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | **SMSEagle URL**          | デバイスのアドレス。例: `https://192.168.0.100`。API v2 のパスはブロックが自分で付け加えます。                                                       |
-| **SMSEagle Access Token** | SMSEagle の Web パネルの Settings、API、API v2 で作成した API v2 キー。SMS には "Send SMS" 権限、電話には "Make a TTS Advanced Call" 権限が必要です。 |
+| **SMSEagle Access Token** | SMSEagle の Web GUI の Settings、API、API v2 で作成した API v2 キー。SMS には "Send SMS" 権限、電話には "Make a TTS Advanced Call" 権限が必要です。 |
 | **電話番号**                  | SMS を送る、または電話をかける番号。国際形式で指定します。例: `+15551234567`。                                                                     |
 | **Message Text**          | SMS の本文。**Send SMS via SMSEagle** のみ。                                                                                 |
 | **Voice ID**              | デバイス上のテキスト読み上げ音声の ID。**Make a Call via SMSEagle** のみ。                                                                 |

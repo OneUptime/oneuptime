@@ -527,7 +527,7 @@ const SMSEAGLE_ACCESS_TOKEN: WorkflowTemplateVariable = {
   name: "smsEagleAccessToken",
   title: "SMSEagle Access Token",
   description:
-    "The API v2 access token from the SMSEagle web panel (Settings > API > API v2).",
+    "The API v2 access token from the SMSEagle web GUI (Settings > API > API v2).",
   placeholder: "your-api-v2-access-token",
   required: true,
   isSecret: true,

@@ -10,7 +10,7 @@ OneUptime Alert → On Create  ──►  SMSEagle component  ──►  SMS or 
 
 ## Step 1 — Create an API key
 
-1. In the SMSEagle web panel, go to **Settings → API → API v2** and click **Create API key**.
+1. In the SMSEagle web GUI, go to **Settings → API → API v2** and click **Create API key**.
 2. Under **Permissions**, allow **Send SMS** and, if you want calls, **Make a TTS Advanced Call**.
 3. Copy the key. OneUptime calls it the **SMSEagle Access Token**.
 

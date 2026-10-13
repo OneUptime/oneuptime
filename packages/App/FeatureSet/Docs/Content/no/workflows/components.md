@@ -186,7 +186,7 @@ Send en SMS eller ring en tekst-til-tale-samtale gjennom en SMSEagle-enhet, en m
 | Innstilling               | Hva den gjør                                                                                                                                                 |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **SMSEagle URL**          | Adressen til enheten, for eksempel `https://192.168.0.100`. Blokken legger selv til banen for API v2.                                                        |
-| **SMSEagle Access Token** | En API v2-nøkkel fra SMSEagles webpanel, under Settings, API, API v2. Den trenger tillatelsen "Send SMS" for SMS og "Make a TTS Advanced Call" for samtaler. |
+| **SMSEagle Access Token** | En API v2-nøkkel fra SMSEagles web-GUI, under Settings, API, API v2. Den trenger tillatelsen "Send SMS" for SMS og "Make a TTS Advanced Call" for samtaler.  |
 | **Telefonnummer**         | Nummeret som skal få SMS-en eller samtalen, i internasjonalt format, for eksempel `+15551234567`.                                                            |
 | **Message Text**          | Teksten i SMS-en. Bare i **Send SMS via SMSEagle**.                                                                                                          |
 | **Voice ID**              | ID-en til en tekst-til-tale-stemme på enheten. Bare i **Make a Call via SMSEagle**.                                                                          |

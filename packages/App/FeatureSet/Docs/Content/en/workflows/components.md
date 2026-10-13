@@ -186,7 +186,7 @@ Send an SMS or make a text-to-speech call through an SMSEagle device, a hardware
 | Setting                   | What it does                                                                                                                                                   |
 | ------------------------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **SMSEagle URL**          | The device's address, such as `https://192.168.0.100`. The block adds the API v2 path itself.                                                                  |
-| **SMSEagle Access Token** | An API v2 key from the SMSEagle web panel, under Settings > API > API v2. It needs the "Send SMS" permission for SMS and "Make a TTS Advanced Call" for calls. |
+| **SMSEagle Access Token** | An API v2 key from the SMSEagle web GUI, under Settings > API > API v2. It needs the "Send SMS" permission for SMS and "Make a TTS Advanced Call" for calls.   |
 | **Phone Number**          | The number to text or call, in international format, such as `+15551234567`.                                                                                   |
 | **Message Text**          | The text of the SMS. Only in **Send SMS via SMSEagle**.                                                                                                        |
 | **Voice ID**              | The ID of a text-to-speech voice on the device. Only in **Make a Call via SMSEagle**.                                                                          |

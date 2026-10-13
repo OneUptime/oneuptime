@@ -186,7 +186,7 @@ Mattermost 接受消息时触发 **Success**。无法连接到服务器或 Matte
 | 设置                        | 作用                                                                                                         |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **SMSEagle URL**          | 设备的地址，例如 `https://192.168.0.100`。API v2 的路径由组件自行添加。                                                        |
-| **SMSEagle Access Token** | 在 SMSEagle 网页面板的 Settings、API、API v2 中创建的 API v2 密钥。短信需要 "Send SMS" 权限，电话需要 "Make a TTS Advanced Call" 权限。 |
+| **SMSEagle Access Token** | 在 SMSEagle 网页 GUI 的 Settings、API、API v2 中创建的 API v2 密钥。短信需要 "Send SMS" 权限，电话需要 "Make a TTS Advanced Call" 权限。 |
 | **电话号码**                  | 接收短信或电话的号码，采用国际格式，例如 `+15551234567`。                                                                       |
 | **Message Text**          | 短信的正文。仅在 **Send SMS via SMSEagle** 中。                                                                      |
 | **Voice ID**              | 设备上某个文字转语音声音的 ID。仅在 **Make a Call via SMSEagle** 中。                                                        |

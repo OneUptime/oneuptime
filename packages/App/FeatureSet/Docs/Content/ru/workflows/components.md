@@ -186,7 +186,7 @@ System Instructions, Prompt и сериализованный Context вмест
 | Настройка                 | Что делает                                                                                                                                        |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **SMSEagle URL**          | Адрес устройства, например `https://192.168.0.100`. Путь API v2 блок добавляет сам.                                                               |
-| **SMSEagle Access Token** | Ключ API v2 из веб-панели SMSEagle, в разделе Settings, API, API v2. Для SMS нужно разрешение "Send SMS", для звонков "Make a TTS Advanced Call". |
+| **SMSEagle Access Token** | Ключ API v2 из веб-GUI SMSEagle, в разделе Settings, API, API v2. Для SMS нужно разрешение "Send SMS", для звонков "Make a TTS Advanced Call".    |
 | **Номер телефона**        | Номер, на который отправить SMS или позвонить, в международном формате, например `+15551234567`.                                                  |
 | **Message Text**          | Текст SMS. Только в **Send SMS via SMSEagle**.                                                                                                    |
 | **Voice ID**              | ID голоса синтеза речи на устройстве. Только в **Make a Call via SMSEagle**.                                                                      |
