@@ -177,6 +177,16 @@ const ENGLISH_QUOTES: Readonly<Record<string, ReadonlyArray<string>>> = {
   [CONFIGURATION]: ["Dashboard not found", "Checkout API 2", "Checkout API 3"],
 };
 
+/*
+ * The names, longest first: "Kubernetes Cost Dashboard" goes before
+ * "Kubernetes" takes its first word.
+ */
+const NAMES_LONGEST_FIRST: Array<string> = [...PRODUCT_NAMES].sort(
+  (a: string, b: string): number => {
+    return b.length - a.length;
+  },
+);
+
 const ONLY_CODE: RegExp = /^`[^`]+`$/;
 /*
  * A number as a table states it: 5, 1.5. A translation may write its
@@ -400,7 +410,7 @@ function untranslatedLines(language: string, page: string): Array<string> {
       text = text.split(quote).join(" ");
     }
 
-    for (const name of PRODUCT_NAMES) {
+    for (const name of NAMES_LONGEST_FIRST) {
       text = text.split(name).join(" ");
     }
 
@@ -1064,7 +1074,7 @@ describe("the helpers, on these pages' shapes", () => {
 
     let names: string = english[namesLine] as string;
 
-    for (const name of PRODUCT_NAMES) {
+    for (const name of NAMES_LONGEST_FIRST) {
       names = names.split(name).join(" ");
     }
 
