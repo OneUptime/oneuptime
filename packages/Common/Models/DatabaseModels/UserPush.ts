@@ -18,6 +18,8 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
+import CriticalAlertSound from "../../Types/PushNotification/CriticalAlertSound";
+import { DEFAULT_CRITICAL_ALERT_VOLUME_PERCENT } from "../../Types/PushNotification/CriticalAlertVolume";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -383,6 +385,65 @@ class UserPush extends BaseModel {
     default: false,
   })
   public isCriticalAlertEnabled?: boolean = undefined;
+
+  /*
+   * The alarm a critical page plays on this handset (CriticalAlertSound), and
+   * on an iPhone how loud (a percentage - CriticalAlertVolume). Per device for
+   * the same reason as isCriticalAlertEnabled: a phone on the nightstand and
+   * one in a pocket want different alarms.
+   *
+   * The defaults - the system's own critical sound at full volume - are what
+   * every critical page played before the choice existed, so a device that
+   * never chose is paged exactly as before. Only the app can choose: Android
+   * plays a sound from a channel the app created, so a sound may only be named
+   * for a device whose app offered it (see CriticalAlertSound).
+   *
+   * Written like isCriticalAlertEnabled: at registration, and by UserPushAPI's
+   * critical-alert-preferences route, which checks the row belongs to the
+   * caller and then writes as root.
+   */
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    title: "Critical Alert Sound",
+    description:
+      "The alarm a critical on-call page plays on this device: default, klaxon, siren, digital, smoke_alarm or rising. Chosen in the OneUptime On-Call app.",
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    defaultValue: CriticalAlertSound.Default,
+    example: CriticalAlertSound.Klaxon,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: CriticalAlertSound.Default,
+  })
+  public criticalAlertSound?: CriticalAlertSound = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    title: "Critical Alert Volume",
+    description:
+      "How loud a critical on-call page plays on this device, as a percentage from 10 to 100. iPhone only: Android plays critical pages at the phone's alarm volume.",
+    isDefaultValueColumn: true,
+    type: TableColumnType.Number,
+    defaultValue: DEFAULT_CRITICAL_ALERT_VOLUME_PERCENT,
+    example: 75,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: DEFAULT_CRITICAL_ALERT_VOLUME_PERCENT,
+  })
+  public criticalAlertVolume?: number = undefined;
 }
 
 export default UserPush;

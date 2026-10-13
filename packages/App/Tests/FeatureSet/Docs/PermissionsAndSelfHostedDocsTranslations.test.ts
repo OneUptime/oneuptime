@@ -170,6 +170,7 @@ const NAMES: Record<string, Array<string>> = {
 const OTHER_CONSOLES: Record<string, Array<string>> = {
   [PUSH_PAGE]: [
     "Settings > Notifications > Critical On-Call Alerts",
+    "Settings > Notifications > Alarm sound",
     "Settings > Notifications > OneUptime On-Call",
     "Settings > Notifications > Do Not Disturb access",
     "Critical Alerts",
