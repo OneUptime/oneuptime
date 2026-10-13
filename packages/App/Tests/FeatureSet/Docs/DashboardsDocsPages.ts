@@ -47,6 +47,19 @@ export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
 };
 
 /*
+ * Labels drawn by a menu item, which looks its whole text up and draws what
+ * the locale holds (translateString in MoreMenuItem): the dashboard's ⋯ menu
+ * item Edit Dashboard and the Dashboards list's Export JSON bulk action.
+ * Where a locale still holds the English, the screen reads the English; no
+ * "Edit {{itemName}}" template is filled in, as it is for the Settings
+ * page's Duplicate Dashboard and Export Dashboard cards (translateNamedAction).
+ */
+export const MENU_ITEM_LABELS: ReadonlyArray<string> = [
+  "Edit Dashboard",
+  "Export JSON",
+];
+
+/*
  * The cards of the Create from Template picker. A card draws its title as
  * the catalog (Common/Types/Dashboard/DashboardTemplates) writes it, with no
  * translation lookup, so every language's Dashboard shows them in English.

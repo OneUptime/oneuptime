@@ -13,6 +13,7 @@ import {
   DATA_SOURCES,
   DashboardsDocsPageEntry,
   KEPT_AS_WRITTEN,
+  MENU_ITEM_LABELS,
   NAME_TABS,
   PERMISSION_NAMES,
   PRODUCT_NAMES,
@@ -34,6 +35,7 @@ import {
   dashboardLocale,
   drawnActionLabel,
   drawnCreateButton,
+  drawnDashboardLabel,
   isActionLabel,
 } from "./DocsDashboardLabels";
 import {
@@ -45,11 +47,7 @@ import {
   tables,
   unbalancedLines,
 } from "./DocsPageShape";
-import {
-  drawnMenuItem,
-  drawnPath,
-  drawnPathSegment,
-} from "./DocsProductsMenu";
+import { drawnMenuItem, drawnPath, drawnPathSegment } from "./DocsProductsMenu";
 import {
   CARD_LINE,
   anchorProblems,
@@ -92,7 +90,8 @@ import { describe, expect, it } from "@jest/globals";
  *   - every line of prose translated, and a title that is the nav link's.
  *
  * And it names the Dashboard the way that language's Dashboard draws it,
- * Persian included: a bold label by drawnActionLabel, a table's create
+ * Persian included: a bold label by drawnLabel (a menu item's by the
+ * locale's whole phrase, any other by drawnActionLabel), a table's create
  * button by drawnCreateButton, a menu path segment by segment (drawnPath:
  * one bold span joined by " → "; in Persian a bold span per segment joined
  * by " > ", with no "→" left in the prose), the custom domain's Status
@@ -238,7 +237,20 @@ function keptBold(page: string): Array<string> {
 }
 
 /*
- * The Dashboard labels a page names that drawnActionLabel draws: every bold
+ * What this language's Dashboard draws for a bold label: a menu item draws
+ * the locale's value for its whole text, the English where the locale holds
+ * the English (drawnDashboardLabel); a named action fills the locale's
+ * template with the model's name where the locale has no phrase of its own
+ * (drawnActionLabel).
+ */
+function drawnLabel(language: string, label: string): string {
+  return MENU_ITEM_LABELS.includes(label)
+    ? drawnDashboardLabel(language, label)
+    : drawnActionLabel(language, label);
+}
+
+/*
+ * The Dashboard labels a page names that drawnLabel draws: every bold
  * label but the ones a list draws, keeps or translates freely.
  */
 function dashboardLabels(page: string): Array<string> {
@@ -258,7 +270,7 @@ function englishBoldDrawings(
 ): Array<[string, string]> {
   return [
     ...dashboardLabels(page).map((label: string): [string, string] => {
-      return [`**${label}**`, `**${drawnActionLabel(language, label)}**`];
+      return [`**${label}**`, `**${drawnLabel(language, label)}**`];
     }),
     ...listed(CREATE_BUTTONS, page).map((button: string): [string, string] => {
       return [`**${button}**`, `**${drawnCreateButton(language, button)}**`];
@@ -577,9 +589,11 @@ describe("the lists this test keeps", () => {
         ...listed(DASHBOARD_QUOTES, page),
         ...listed(ENGLISH_QUOTES, page),
       ]) {
-        expect({ page, quote, quoted: englishPage(page).includes(quote) }).toEqual(
-          { page, quote, quoted: true },
-        );
+        expect({
+          page,
+          quote,
+          quoted: englishPage(page).includes(quote),
+        }).toEqual({ page, quote, quoted: true });
       }
 
       for (const quote of listed(DASHBOARD_QUOTES, page)) {
@@ -712,329 +726,317 @@ describe("the English pages", () => {
 });
 
 describe.each(LANGUAGES)("%s", (language: string) => {
-  describe.each(DASHBOARDS_PAGES)(
-    "$page",
-    (entry: DashboardsDocsPageEntry) => {
-      const english: string = englishPage(entry.page);
+  describe.each(DASHBOARDS_PAGES)("$page", (entry: DashboardsDocsPageEntry) => {
+    const english: string = englishPage(entry.page);
 
-      it("is translated, under the nav link's title", () => {
-        expect(hasPage(language, entry.page)).toBe(true);
+    it("is translated, under the nav link's title", () => {
+      expect(hasPage(language, entry.page)).toBe(true);
 
-        const translated: string = readPage(language, entry.page);
-        const title: string = navTitle(language, entry.navTitle);
+      const translated: string = readPage(language, entry.page);
+      const title: string = navTitle(language, entry.navTitle);
 
-        expect(translated).not.toEqual(english);
-        expect(typeof title).toBe("string");
-        expect(translated.split("\n")[0]).toBe(`# ${title}`);
-      });
+      expect(translated).not.toEqual(english);
+      expect(typeof title).toBe("string");
+      expect(translated.split("\n")[0]).toBe(`# ${title}`);
+    });
 
-      it("lies line for line beside the English page: headings, table rows, fences, components and tabs on the same lines", () => {
-        expect(lineShape(readPage(language, entry.page))).toEqual(
-          lineShape(english),
-        );
-      });
+    it("lies line for line beside the English page: headings, table rows, fences, components and tabs on the same lines", () => {
+      expect(lineShape(readPage(language, entry.page))).toEqual(
+        lineShape(english),
+      );
+    });
 
-      it("translates every line of prose", () => {
-        expect(untranslatedLines(language, entry.page)).toEqual([]);
-      });
+    it("translates every line of prose", () => {
+      expect(untranslatedLines(language, entry.page)).toEqual([]);
+    });
 
-      it("keeps every code block, and builds every diagram the same way", () => {
-        expect(
-          scanMarkdown(readPage(language, entry.page)).fences.map(
-            comparableFence,
-          ),
-        ).toEqual(scanMarkdown(english).fences.map(comparableFence));
-      });
+    it("keeps every code block, and builds every diagram the same way", () => {
+      expect(
+        scanMarkdown(readPage(language, entry.page)).fences.map(
+          comparableFence,
+        ),
+      ).toEqual(scanMarkdown(english).fences.map(comparableFence));
+    });
 
-      it("breaks its diagrams' labels into lines short enough for the 590px docs column", () => {
-        const widest: number = widestDiagramLine(language, entry.page);
+    it("breaks its diagrams' labels into lines short enough for the 590px docs column", () => {
+      const widest: number = widestDiagramLine(language, entry.page);
 
-        expect({
-          widest: widest,
-          fits: widest <= (WIDEST_DIAGRAM_LINE[entry.page] as number),
-        }).toEqual({ widest: widest, fits: true });
-      });
+      expect({
+        widest: widest,
+        fits: widest <= (WIDEST_DIAGRAM_LINE[entry.page] as number),
+      }).toEqual({ widest: widest, fits: true });
+    });
 
-      it("keeps every piece of inline code: the attributes, settings, macros and values", () => {
-        expect(inlineCode(readPage(language, entry.page))).toEqual(
-          inlineCode(english),
-        );
-      });
+    it("keeps every piece of inline code: the attributes, settings, macros and values", () => {
+      expect(inlineCode(readPage(language, entry.page))).toEqual(
+        inlineCode(english),
+      );
+    });
 
-      it("keeps the tab labels that name a system, and translates the others", () => {
-        const translated: Array<string> = tabLabels(
-          readPage(language, entry.page),
-        );
-        const original: Array<string> = tabLabels(english);
+    it("keeps the tab labels that name a system, and translates the others", () => {
+      const translated: Array<string> = tabLabels(
+        readPage(language, entry.page),
+      );
+      const original: Array<string> = tabLabels(english);
 
-        expect(translated.length).toBe(original.length);
+      expect(translated.length).toBe(original.length);
 
-        original.forEach((tab: string, index: number) => {
-          if (NAME_TABS.includes(tab)) {
-            expect({ index, tab: translated[index] }).toEqual({ index, tab });
-          } else {
-            expect({ index, translated: translated[index] !== tab }).toEqual({
-              index,
-              translated: true,
-            });
-          }
-        });
-      });
-
-      it("keeps the code in the first column of every table, row by row, and the numbers every row states", () => {
-        const translated: Array<Array<Array<string>>> = tables(
-          readPage(language, entry.page),
-        );
-
-        tables(english).forEach(
-          (table: Array<Array<string>>, index: number) => {
-            table.forEach((row: Array<string>, rowIndex: number) => {
-              const translatedRow: Array<string> =
-                translated[index]?.[rowIndex] || [];
-
-              expect({
-                table: index,
-                row: rowIndex,
-                code: ONLY_CODE.test(row[0] as string)
-                  ? translatedRow[0]
-                  : undefined,
-                numbers: numbersIn(outsideBoldSpans(translatedRow)),
-              }).toEqual({
-                table: index,
-                row: rowIndex,
-                code: ONLY_CODE.test(row[0] as string) ? row[0] : undefined,
-                numbers: numbersIn(outsideBoldSpans(row)),
-              });
-            });
-          },
-        );
-      });
-
-      it("closes every bold and code span it opens", () => {
-        expect(unbalancedLines(readPage(language, entry.page))).toEqual([]);
-      });
-
-      it("draws every bold and italic span, with no asterisks or underscores left on the page", async () => {
-        expect(
-          await strayMarkers(readPage(language, entry.page), language),
-        ).toEqual([]);
-      });
-
-      it("has the English page's headings, steps, tables and list items", () => {
-        const translated: string = readPage(language, entry.page);
-
-        expect(
-          scanMarkdown(translated).headings.map((heading: DocsHeading) => {
-            return heading.level;
-          }),
-        ).toEqual(
-          scanMarkdown(english).headings.map((heading: DocsHeading) => {
-            return heading.level;
-          }),
-        );
-        expect(stepCount(translated)).toBe(stepCount(english));
-        expect(tableShape(translated)).toEqual(tableShape(english));
-        expect(listItemCount(translated)).toBe(listItemCount(english));
-      });
-
-      it("writes its cards with an ASCII ': ' after the link, to the English cards' pages", () => {
-        const translated: Array<string> = cardLines(
-          readPage(language, entry.page),
-        );
-
-        expect(translated.length).toBe(cardLines(english).length);
-
-        for (const line of translated) {
-          expect({ line, ascii: CARD_LINE.test(line) }).toEqual({
-            line,
-            ascii: true,
+      original.forEach((tab: string, index: number) => {
+        if (NAME_TABS.includes(tab)) {
+          expect({ index, tab: translated[index] }).toEqual({ index, tab });
+        } else {
+          expect({ index, translated: translated[index] !== tab }).toEqual({
+            index,
+            translated: true,
           });
         }
-
-        expect(cardTargets(translated)).toEqual(
-          cardTargets(cardLines(english)),
-        );
       });
+    });
 
-      it("links only to anchors that are headings of the page they open", () => {
-        expect(anchorProblems(language, entry.page)).toEqual([]);
-      });
+    it("keeps the code in the first column of every table, row by row, and the numbers every row states", () => {
+      const translated: Array<Array<Array<string>>> = tables(
+        readPage(language, entry.page),
+      );
 
-      it("has every link on the English one's line, its anchor naming the heading in the English heading's place", () => {
-        const translated: Array<string> = linksByLine(
-          readPage(language, entry.page),
-        );
-        const original: Array<DocsLink> = scanMarkdown(english).links;
+      tables(english).forEach((table: Array<Array<string>>, index: number) => {
+        table.forEach((row: Array<string>, rowIndex: number) => {
+          const translatedRow: Array<string> =
+            translated[index]?.[rowIndex] || [];
 
-        expect(translated).toHaveLength(original.length);
-
-        original.forEach((link: DocsLink, index: number): void => {
-          const expected: string | null = expectedLink(
-            language,
-            entry.page,
-            link.target,
-          );
-          const written: string = translated[index] as string;
-
-          if (expected !== null) {
-            expect(written).toBe(`${link.line}: ${expected}`);
-            return;
-          }
-
-          // A stale page: the page is kept, with or without one of its anchors.
-          expect(written.split("#")[0]).toBe(
-            `${link.line}: ${link.target.split("#")[0]}`,
-          );
+          expect({
+            table: index,
+            row: rowIndex,
+            code: ONLY_CODE.test(row[0] as string)
+              ? translatedRow[0]
+              : undefined,
+            numbers: numbersIn(outsideBoldSpans(translatedRow)),
+          }).toEqual({
+            table: index,
+            row: rowIndex,
+            code: ONLY_CODE.test(row[0] as string) ? row[0] : undefined,
+            numbers: numbersIn(outsideBoldSpans(row)),
+          });
         });
       });
+    });
 
-      it("names every Dashboard label the English page names, as this language's Dashboard draws it", () => {
-        const translated: string = readPage(language, entry.page);
-        const missing: Array<string> = [
-          ...dashboardLabels(entry.page).map((label: string): string => {
-            return drawnActionLabel(language, label);
-          }),
-          ...listed(CREATE_BUTTONS, entry.page).map(
-            (button: string): string => {
-              return drawnCreateButton(language, button);
-            },
-          ),
-        ].filter((drawn: string): boolean => {
-          return !translated.includes(`**${drawn}**`);
+    it("closes every bold and code span it opens", () => {
+      expect(unbalancedLines(readPage(language, entry.page))).toEqual([]);
+    });
+
+    it("draws every bold and italic span, with no asterisks or underscores left on the page", async () => {
+      expect(
+        await strayMarkers(readPage(language, entry.page), language),
+      ).toEqual([]);
+    });
+
+    it("has the English page's headings, steps, tables and list items", () => {
+      const translated: string = readPage(language, entry.page);
+
+      expect(
+        scanMarkdown(translated).headings.map((heading: DocsHeading) => {
+          return heading.level;
+        }),
+      ).toEqual(
+        scanMarkdown(english).headings.map((heading: DocsHeading) => {
+          return heading.level;
+        }),
+      );
+      expect(stepCount(translated)).toBe(stepCount(english));
+      expect(tableShape(translated)).toEqual(tableShape(english));
+      expect(listItemCount(translated)).toBe(listItemCount(english));
+    });
+
+    it("writes its cards with an ASCII ': ' after the link, to the English cards' pages", () => {
+      const translated: Array<string> = cardLines(
+        readPage(language, entry.page),
+      );
+
+      expect(translated.length).toBe(cardLines(english).length);
+
+      for (const line of translated) {
+        expect({ line, ascii: CARD_LINE.test(line) }).toEqual({
+          line,
+          ascii: true,
         });
+      }
 
-        expect(missing).toEqual([]);
-      });
+      expect(cardTargets(translated)).toEqual(cardTargets(cardLines(english)));
+    });
 
-      it("leaves no label, button or path in English where this language's Dashboard draws it otherwise", () => {
-        const translated: string = readPage(language, entry.page);
-        const drawnHere: Array<[string, string]> = englishBoldDrawings(
+    it("links only to anchors that are headings of the page they open", () => {
+      expect(anchorProblems(language, entry.page)).toEqual([]);
+    });
+
+    it("has every link on the English one's line, its anchor naming the heading in the English heading's place", () => {
+      const translated: Array<string> = linksByLine(
+        readPage(language, entry.page),
+      );
+      const original: Array<DocsLink> = scanMarkdown(english).links;
+
+      expect(translated).toHaveLength(original.length);
+
+      original.forEach((link: DocsLink, index: number): void => {
+        const expected: string | null = expectedLink(
           language,
           entry.page,
+          link.target,
         );
-        /*
-         * A word this page writes in bold on purpose: drawn so, kept as
-         * written, or a segment of a Persian path, which is bold on its own.
-         */
-        const meant: Set<string> = new Set([
-          ...drawnHere.map((drawing: [string, string]): string => {
-            return drawing[1];
-          }),
-          ...keptBold(entry.page).map((name: string): string => {
-            return `**${name}**`;
-          }),
-          ...(language === "fa"
-            ? boldPaths(english).flatMap(
-                (segments: Array<string>): Array<string> => {
-                  return segments.map(
-                    (_segment: string, index: number): string => {
-                      return `**${drawnPathSegment(language, segments, index)}**`;
-                    },
-                  );
-                },
-              )
-            : []),
-        ]);
-        const leftover: Array<string> = drawnHere
-          .filter((drawing: [string, string]): boolean => {
-            const [englishBold, drawnBold] = drawing;
+        const written: string = translated[index] as string;
 
-            return (
-              englishBold !== drawnBold &&
-              !meant.has(englishBold) &&
-              translated.includes(englishBold)
-            );
-          })
-          .map((drawing: [string, string]): string => {
-            return drawing[0];
-          });
+        if (expected !== null) {
+          expect(written).toBe(`${link.line}: ${expected}`);
+          return;
+        }
 
-        expect(leftover).toEqual([]);
-      });
-
-      it("gives every menu path, segment by segment, as this language's Dashboard draws it", () => {
-        const translated: string = readPage(language, entry.page);
-        const missing: Array<string> = boldPaths(english)
-          .map((segments: Array<string>): string => {
-            return drawnPath(language, segments);
-          })
-          .filter((drawn: string): boolean => {
-            return !translated.includes(drawn);
-          });
-
-        expect(missing).toEqual([]);
-      });
-
-      it("keeps in English what every Dashboard draws in English: the template cards, untranslated settings, permissions and plans", () => {
-        const translated: string = readPage(language, entry.page);
-        const missing: Array<string> = keptBold(entry.page).filter(
-          (name: string): boolean => {
-            return !translated.includes(`**${name}**`);
-          },
+        // A stale page: the page is kept, with or without one of its anchors.
+        expect(written.split("#")[0]).toBe(
+          `${link.line}: ${link.target.split("#")[0]}`,
         );
+      });
+    });
 
-        expect(missing).toEqual([]);
+    it("names every Dashboard label the English page names, as this language's Dashboard draws it", () => {
+      const translated: string = readPage(language, entry.page);
+      const missing: Array<string> = [
+        ...dashboardLabels(entry.page).map((label: string): string => {
+          return drawnLabel(language, label);
+        }),
+        ...listed(CREATE_BUTTONS, entry.page).map((button: string): string => {
+          return drawnCreateButton(language, button);
+        }),
+      ].filter((drawn: string): boolean => {
+        return !translated.includes(`**${drawn}**`);
       });
 
-      it("quotes the server's and the public dashboard's messages in English, and the Dashboard's lines as this language's Dashboard words them", () => {
-        const translated: string = readPage(language, entry.page);
-        const missing: Array<string> = [
-          ...listed(ENGLISH_QUOTES, entry.page),
-          ...listed(DASHBOARD_QUOTES, entry.page).map(
-            (quote: string): string => {
-              return localeValue(language, quote);
-            },
-          ),
-        ].filter((quote: string): boolean => {
-          return !translated.includes(quote);
+      expect(missing).toEqual([]);
+    });
+
+    it("leaves no label, button or path in English where this language's Dashboard draws it otherwise", () => {
+      const translated: string = readPage(language, entry.page);
+      const drawnHere: Array<[string, string]> = englishBoldDrawings(
+        language,
+        entry.page,
+      );
+      /*
+       * A word this page writes in bold on purpose: drawn so, kept as
+       * written, or a segment of a Persian path, which is bold on its own.
+       */
+      const meant: Set<string> = new Set([
+        ...drawnHere.map((drawing: [string, string]): string => {
+          return drawing[1];
+        }),
+        ...keptBold(entry.page).map((name: string): string => {
+          return `**${name}**`;
+        }),
+        ...(language === "fa"
+          ? boldPaths(english).flatMap(
+              (segments: Array<string>): Array<string> => {
+                return segments.map(
+                  (_segment: string, index: number): string => {
+                    return `**${drawnPathSegment(language, segments, index)}**`;
+                  },
+                );
+              },
+            )
+          : []),
+      ]);
+      const leftover: Array<string> = drawnHere
+        .filter((drawing: [string, string]): boolean => {
+          const [englishBold, drawnBold] = drawing;
+
+          return (
+            englishBold !== drawnBold &&
+            !meant.has(englishBold) &&
+            translated.includes(englishBold)
+          );
+        })
+        .map((drawing: [string, string]): string => {
+          return drawing[0];
         });
 
-        expect(missing).toEqual([]);
+      expect(leftover).toEqual([]);
+    });
+
+    it("gives every menu path, segment by segment, as this language's Dashboard draws it", () => {
+      const translated: string = readPage(language, entry.page);
+      const missing: Array<string> = boldPaths(english)
+        .map((segments: Array<string>): string => {
+          return drawnPath(language, segments);
+        })
+        .filter((drawn: string): boolean => {
+          return !translated.includes(drawn);
+        });
+
+      expect(missing).toEqual([]);
+    });
+
+    it("keeps in English what every Dashboard draws in English: the template cards, untranslated settings, permissions and plans", () => {
+      const translated: string = readPage(language, entry.page);
+      const missing: Array<string> = keptBold(entry.page).filter(
+        (name: string): boolean => {
+          return !translated.includes(`**${name}**`);
+        },
+      );
+
+      expect(missing).toEqual([]);
+    });
+
+    it("quotes the server's and the public dashboard's messages in English, and the Dashboard's lines as this language's Dashboard words them", () => {
+      const translated: string = readPage(language, entry.page);
+      const missing: Array<string> = [
+        ...listed(ENGLISH_QUOTES, entry.page),
+        ...listed(DASHBOARD_QUOTES, entry.page).map((quote: string): string => {
+          return localeValue(language, quote);
+        }),
+      ].filter((quote: string): boolean => {
+        return !translated.includes(quote);
       });
 
-      if (entry.page === SHARING) {
-        it("lists the custom domain Status column as this language's Dashboard words it", () => {
-          expect(statusColumn(readPage(language, SHARING))).toEqual(
-            statusColumn(english).map((status: string): string => {
-              return localeValue(language, status);
-            }),
-          );
-        });
-      }
+      expect(missing).toEqual([]);
+    });
 
-      if (entry.page === AUTHORING) {
-        it("names every template card and picker group as the picker draws them, in English", () => {
-          const translated: string = readPage(language, AUTHORING);
+    if (entry.page === SHARING) {
+      it("lists the custom domain Status column as this language's Dashboard words it", () => {
+        expect(statusColumn(readPage(language, SHARING))).toEqual(
+          statusColumn(english).map((status: string): string => {
+            return localeValue(language, status);
+          }),
+        );
+      });
+    }
 
-          for (const name of TEMPLATE_CARD_NAMES) {
-            expect(translated).toContain(name);
-          }
+    if (entry.page === AUTHORING) {
+      it("names every template card and picker group as the picker draws them, in English", () => {
+        const translated: string = readPage(language, AUTHORING);
 
-          expect(tables(translated)[0]?.slice(1)).toEqual(
-            tables(english)[0]?.slice(1),
-          );
-        });
-      }
+        for (const name of TEMPLATE_CARD_NAMES) {
+          expect(translated).toContain(name);
+        }
 
-      if (language === "fa") {
-        it("joins its menu paths with ' > ', leaving no '→' in its prose", () => {
-          expect(
-            prose(readPage(language, entry.page)).split(RIGHT_ARROW).length -
-              1,
-          ).toBe(0);
-        });
-      }
+        expect(tables(translated)[0]?.slice(1)).toEqual(
+          tables(english)[0]?.slice(1),
+        );
+      });
+    }
 
-      it("lays out every diagram line in the order it reads: right to left on a right-to-left page", () => {
+    if (language === "fa") {
+      it("joins its menu paths with ' > ', leaving no '→' in its prose", () => {
         expect(
-          linesLaidOutBackwards(
-            readPage(language, entry.page),
-            getDocsLanguageDirection(language),
-          ),
-        ).toEqual([]);
+          prose(readPage(language, entry.page)).split(RIGHT_ARROW).length - 1,
+        ).toBe(0);
       });
-    },
-  );
+    }
+
+    it("lays out every diagram line in the order it reads: right to left on a right-to-left page", () => {
+      expect(
+        linesLaidOutBackwards(
+          readPage(language, entry.page),
+          getDocsLanguageDirection(language),
+        ),
+      ).toEqual([]);
+    });
+  });
 });
 
 describe("the helpers, on these pages' shapes", () => {
@@ -1049,6 +1051,17 @@ describe("the helpers, on these pages' shapes", () => {
     expect(drawnPath("fa", ["Products", "Teams"])).toBe(
       `**${drawnActionLabel("fa", "Products")}** > **${drawnMenuItem("fa", "Teams")}**`,
     );
+  });
+
+  it("draw a menu item as the locale holds its whole text, and a Settings card's action from its template", () => {
+    // The Italian locale holds "Edit Dashboard" and "Export JSON" as English.
+    expect(drawnLabel("it", "Edit Dashboard")).toBe("Edit Dashboard");
+    expect(drawnLabel("it", "Export JSON")).toBe("Export JSON");
+    expect(drawnLabel("de", "Edit Dashboard")).toBe(
+      drawnDashboardLabel("de", "Edit Dashboard"),
+    );
+    // DuplicateModel draws "Duplicate {{itemName}}" with the model's name.
+    expect(drawnLabel("it", "Duplicate Dashboard")).toBe("Duplica: Dashboard");
   });
 
   it("read the numbers a row states, in any digits, decimal mark or digit groups", () => {
@@ -1091,9 +1104,9 @@ describe("the helpers, on these pages' shapes", () => {
     expect(expectedLink("en", WIDGETS, "#which-widget-should-i-use")).toBe(
       "#which-widget-should-i-use",
     );
-    expect(
-      expectedLink("en", VARIABLES, "/docs/dashboards/widgets#slo"),
-    ).toBe("/docs/dashboards/widgets#slo");
+    expect(expectedLink("en", VARIABLES, "/docs/dashboards/widgets#slo")).toBe(
+      "/docs/dashboards/widgets#slo",
+    );
     expect(expectedLink("en", VARIABLES, "/docs/dashboards/widgets")).toBe(
       "/docs/dashboards/widgets",
     );
