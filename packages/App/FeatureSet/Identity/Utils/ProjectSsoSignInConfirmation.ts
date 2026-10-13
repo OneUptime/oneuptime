@@ -10,10 +10,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
-import {
-  EncryptionSecret,
-  IsBillingEnabled,
-} from "Common/Server/EnvironmentConfig";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import MailService from "Common/Server/Services/MailService";
@@ -25,6 +22,7 @@ import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserProjectSsoConsentService from "Common/Server/Services/UserProjectSsoConsentService";
 import UserService from "Common/Server/Services/UserService";
 import logger from "Common/Server/Utils/Logger";
+import TokenSigningKey from "Common/Server/Utils/TokenSigningKey";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import Project from "Common/Models/DatabaseModels/Project";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
@@ -162,7 +160,7 @@ export default class ProjectSsoSignInConfirmation {
     providerId: string;
   }): string {
     return crypto
-      .createHmac("sha256", EncryptionSecret.toString())
+      .createHmac("sha256", TokenSigningKey.get())
       .update(
         [
           SIGNATURE_PURPOSE,
