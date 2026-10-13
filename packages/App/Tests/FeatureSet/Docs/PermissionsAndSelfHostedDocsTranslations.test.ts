@@ -22,6 +22,7 @@ import {
   comparableFence,
   escapeRegExp,
   inlineCode,
+  labelLineWidth,
   listItemCount,
   navTitle,
   prose,
@@ -414,9 +415,6 @@ const DECIMAL_MARK: RegExp = /(\d)[,٫](\d)/g;
 const NOT_PARAGRAPH_TEXT: RegExp = /^\s*(?:[-*>|#:@]|\d+\.|!\[)/;
 // What a word is made of: letters, their marks and digits.
 const WORD_CHARACTER: string = "\\p{L}\\p{M}\\p{N}";
-// The scripts of Chinese, Japanese and Korean, which put no space between a label and the words around it.
-const UNSPACED_SCRIPT: RegExp =
-  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 
 function englishPage(page: string): string {
   return readPage("en", page);
@@ -439,11 +437,12 @@ function isParagraphText(line: string): boolean {
 
 /*
  * Whether a line names a label as words of their own: "Critical alerts"
- * does not name "Critical alert". A label in Chinese, Japanese or Korean
- * may touch the words around it.
+ * does not name "Critical alert". A label in Chinese, Japanese or Korean,
+ * which labelLineWidth draws wider than its characters, may touch the words
+ * around it: those languages put no space between them.
  */
 function namesLabel(line: string, label: string): boolean {
-  if (UNSPACED_SCRIPT.test(label)) {
+  if (labelLineWidth(label) > Array.from(label).length) {
     return line.includes(label);
   }
 
