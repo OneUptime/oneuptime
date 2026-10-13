@@ -188,7 +188,7 @@ For den fullstendige listen over `{{variable}}`-plassholdere du kan bruke i titt
 
 Hendelser som opprettes på denne måten, merkes av serveren: `isCreatedAutomatically` settes, `createdCriteriaId` registrerer hvilket kriteriefilter som utløste, og `createdByProbe` registrerer hvilken probe som så det. Alt annet ved dem oppfører seg nøyaktig som en hendelse som er erklært for hånd.
 
-En hendelse en monitor erklærer, knyttes til det monitoren overvåker: alt konfigurasjonen nevner (verten for en vertsmonitor, klyngen for en Kubernetes-monitor, tjenestene for en loggmonitor) og alt under **Tilkoblede ressurser**. Konfigurasjonen til en nettsted- eller API-monitor nevner ingen infrastruktur, så knytt den til klyngen, vertene eller databasen bak nettstedet: hendelsene havner da på de ressursenes sider, OneUptime AI kan undersøke dem der, og KI-rettingen til klyngen eller ressursen kan handle på dem (se [AI SRE](/docs/ai/ai-sre#which-incidents-a-clusters-fixes-act-on)). Varsler en monitor oppretter, knyttes på samme måte.
+En hendelse en monitor erklærer, knyttes til det monitoren overvåker: alt konfigurasjonen nevner (verten for en vertsmonitor, klyngen for en Kubernetes-monitor, tjenestene for en loggmonitor) og alt under **Tilkoblede ressurser**. Konfigurasjonen til en nettsted- eller API-monitor nevner ingen infrastruktur, så knytt den til klyngen, vertene eller databasen bak nettstedet: hendelsene havner da på de ressursenes sider, OneUptime AI kan undersøke dem der, og KI-rettingen til klyngen eller ressursen kan handle på dem (se [AI SRE](/docs/ai/ai-sre#hvilke-hendelser-en-klynges-rettelser-virker-på)). Varsler en monitor oppretter, knyttes på samme måte.
 
 ## Erklær via API-et
 

@@ -2,6 +2,9 @@ import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
 import { respondToMobileSsoFailure } from "../Utils/MobileSso";
 import ProjectSsoSignInConfirmation, {
+  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
+  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
+  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
   PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR,
   PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
   ProjectSsoKind,
@@ -513,6 +516,41 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         {
           title: "Account blocked.",
           message: ExceptionMessages.UserBlocked,
+        },
+      );
+    }
+
+    /*
+     * A project's own identity provider is configured by that project's
+     * admins, so it must never sign in a OneUptime administrator: the
+     * master-admin capability is instance-wide, and a tenant that controls a
+     * provider could otherwise assert an administrator's address and take the
+     * instance over. Refused on every edition, before anything is emailed,
+     * provisioned, or signed. See ../Utils/ProjectSsoSignInConfirmation.ts.
+     */
+    if (
+      ProjectSsoSignInConfirmation.mustNotSignInThroughProjectProvider(
+        alreadySavedUser,
+      )
+    ) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
+          errorDescription: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
+        })
+      ) {
+        return;
+      }
+
+      return Response.render(
+        req,
+        res,
+        "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
+        {
+          title: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
+          message: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
         },
       );
     }

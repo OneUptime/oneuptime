@@ -89,6 +89,8 @@ Creating a rule walks four steps:
 
 A channel the rule creates is named from **New Microsoft Teams Channel Name** followed by the record's number, such as `oneuptime-incident-42`, and only a channel that was created gets the people the rule invites. A private incident, alert or episode gets a private channel. Every later update of the record — a state change, a note, a new owner — is posted to its channels and chats.
 
+An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Microsoft Teams** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, in the Microsoft Teams app or in the browser. A record with two channels of its own lists both under the button. A record with channels in both Slack and Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels and chats your rules post to are not offered.
+
 Channels and chats stay readable: each event is posted once, and a record's first state is in the card that announces the record, not in a card of its own. An on-call policy run is one card that is edited as the run escalates: who was paged, how often and how, who was not and why, and who acknowledged. A new card is posted only when someone has to act: an escalation rule reached nobody, or the run ended without anyone acknowledging. That a record's owners or status page subscribers were notified stays in its feed in OneUptime.
 
 **Project Settings** > **Workspace** > **Microsoft Teams** lists the channels OneUptime can see in your teams, and the chats it was added to, with **Send Test** beside each one. A chat appears once the OneUptime app is added to it in Microsoft Teams; **Refresh Chats** picks up new chats and their current names.
@@ -143,17 +145,18 @@ Message the bot in a personal chat, or @mention OneUptime in a channel or a grou
 | Message | What the bot does |
 | --- | --- |
 | `help` | Lists what it can do. |
-| `ask <question>`, or any question in plain language | OneUptime AI answers about your logs, traces, metrics, incidents and monitors, for example "which monitors are down right now?". Answers only read. |
-| `create incident [title]` | Opens the incident form, with the title filled in. |
-| `create maintenance [title]` | Opens the scheduled maintenance form, with the title filled in. |
+| `incident [title]` | Opens the incident form, with the title filled in. |
+| `maintenance [title]` | Opens the scheduled maintenance form, with the title filled in. |
+| `oncall` | Lists who is on call right now in each on-call schedule you can see, until when, and who is next. |
+| `ask [question]`, or any question in plain language | OneUptime AI answers about your logs, traces, metrics, incidents and monitors, for example "which monitors are down right now?". Answers only read. |
 | `show active incidents`, `show active alerts` | Lists what is open now. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Lists upcoming, or ongoing, maintenance events. |
 
-Asking OneUptime AI needs AI turned on for the project. See [Ask AI](/docs/ai/ask-ai).
+Apart from the `show` lists, these are the words that follow `/oneuptime` in Slack; `create incident` and `create maintenance` still work too. Asking OneUptime AI needs your own Microsoft Teams account connected, and AI turned on for the project. If yours is not connected, the bot asks you once in each thread or chat to connect it, with a **Connect Microsoft Teams account** button. See [Ask AI](/docs/ai/ask-ai).
 
 ## Creating incidents and maintenance from Microsoft Teams
 
-Typing `create incident` or `create maintenance` to the OneUptime bot opens a form for the person who typed it, in a personal chat, a channel or a group chat alike. It is filled in as that person: as the OneUptime account their Microsoft Teams account is connected to (see [Connect Microsoft Teams](#connect-microsoft-teams)), with that account's permissions in the project. Someone whose account is not connected, or whose OneUptime account is no longer a member of the project, is told what to do in a reply that mentions them, instead of getting the form.
+Typing `incident` or `maintenance` to the OneUptime bot opens a form for the person who typed it, in a personal chat, a channel or a group chat alike. It is filled in as that person: as the OneUptime account their Microsoft Teams account is connected to (see [Connect Microsoft Teams](#connect-microsoft-teams)), with that account's permissions in the project. Someone whose account is not connected, or whose OneUptime account is no longer a member of the project, is told what to do in a reply that mentions them, instead of getting the form.
 
 - **Who may use them.** The people who may declare an incident or create a scheduled maintenance event in OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** and **Incident Member** for an incident (**Create Incident** in a custom role), and **Scheduled Maintenance Admin** and **Scheduled Maintenance Member** for an event (**Create Scheduled Maintenance**). Anyone else is told so, and gets no form.
 - **What a form offers.** Each list — severities, monitors, monitor statuses, on-call policies and labels — holds what the person who asked for it may read, as the same list in OneUptime does, and the card's "not shown" notes count only those: with a role limited to some labels, the monitors and on-call policies carrying those labels. A list they may not read at all is left off. Archived on-call policies are never offered.

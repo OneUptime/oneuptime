@@ -2,13 +2,13 @@
 <html lang="en" id="home">
 
 <head>
-  <title>OneUptime | Open-Source Observability & Incident Management</title>
-  <meta name="description"
-    content="Detect outages in seconds, page the right engineer, update your status page, and ship the fix — open-source observability and incident management.">
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
+  <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>

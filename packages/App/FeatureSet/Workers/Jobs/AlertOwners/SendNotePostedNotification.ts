@@ -26,7 +26,7 @@ import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "AlertOwner:SendsNotePostedEmail",
@@ -248,16 +248,18 @@ RunCron(
           eventType,
         });
 
-        moreAlertFeedInformationInMarkdown += mdText`**Notified:** ${user.name?.toString()} (${user.email?.toString()})\n`;
+        moreAlertFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            OwnerNotificationFeedText.nameAndEmail({
+              name: user.name?.toString(),
+              email: user.email?.toString(),
+            }),
+          );
       }
 
-      const projectId: ObjectID = alert.projectId!;
-      const alertId: ObjectID = alert.id!;
-      const alertDisplayNumber: string =
-        alert.alertNumberWithPrefix || "#" + alert.alertNumber!;
-
-      const alertFeedText: string =
-        mdText`🔔 **Owners Notified because private note is posted** Owners have been notified about the new private note posted on the [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}).`.toString();
+      const alertFeedText: string = OwnerNotificationFeedText.notePosted({
+        isPrivateNote: true,
+      });
 
       await AlertFeedService.createAlertFeedItem({
         alertId: alert.id!,

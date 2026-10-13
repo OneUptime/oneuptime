@@ -1,17 +1,12 @@
 import { TurnContext } from "botbuilder";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
-import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
-import MicrosoftTeamsAuthAction, {
-  MicrosoftTeamsAccountNotLinkedException,
-} from "./Actions/Auth";
+import { WorkspaceCommandName } from "../WorkspaceCommands";
 import MicrosoftTeamsIncidentActions, {
   MicrosoftTeamsNewIncidentFormChoices,
 } from "./Actions/Incident";
@@ -20,17 +15,14 @@ import MicrosoftTeamsScheduledMaintenanceActions, {
 } from "./Actions/ScheduledMaintenance";
 import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
 import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
-import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
-import MicrosoftTeamsConnectPrompt from "./MicrosoftTeamsConnectPrompt";
-import {
-  CREATE_INCIDENT_COMMAND,
-  CREATE_MAINTENANCE_COMMAND,
-} from "./Actions/ActionTypes";
+import MicrosoftTeamsCommands from "./MicrosoftTeamsCommands";
 import MicrosoftTeamsTimezone from "./MicrosoftTeamsTimezone";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
- * "create incident" and "create maintenance" typed to the Microsoft Teams bot.
+ * "incident" and "maintenance" typed to the Microsoft Teams bot - or "create
+ * incident" and "create maintenance", as they were typed before the words
+ * were Slack's too (WorkspaceCommands).
  *
  * Each answers with exactly one message: the form, or a reason it cannot be
  * shown that says what to do next (issue #4111 answered both with a generic
@@ -60,7 +52,7 @@ export interface CreateFormText {
    * The command that opens the form: what a sender without a connected
    * account types again once it is (MicrosoftTeamsConnectPrompt).
    */
-  command: string;
+  command: WorkspaceCommandName;
   // The lists that are left off a card refused as too large.
   lists: string;
 }
@@ -68,14 +60,14 @@ export interface CreateFormText {
 const INCIDENT_FORM: CreateFormText = {
   what: "an incident",
   dashboardRoute: "/incidents/create",
-  command: CREATE_INCIDENT_COMMAND,
+  command: WorkspaceCommandName.Incident,
   lists: "monitors, labels and on-call policies",
 };
 
 const SCHEDULED_MAINTENANCE_FORM: CreateFormText = {
   what: "a scheduled maintenance event",
   dashboardRoute: "/scheduled-maintenance-events/create",
-  command: CREATE_MAINTENANCE_COMMAND,
+  command: WorkspaceCommandName.Maintenance,
   lists: "monitors and labels",
 };
 
@@ -240,7 +232,7 @@ export default class MicrosoftTeamsCreateCommands {
    * The sender's own props when they may fill the form in: a connected
    * account of a current member who may create the thing. Otherwise the
    * sender is told why (no connected account, not a project member, no
-   * permission) and this returns null.
+   * permission) and this returns null (MicrosoftTeamsCommands).
    */
   private static async authorizeSender(data: {
     turnContext: TurnContext;
@@ -252,89 +244,18 @@ export default class MicrosoftTeamsCreateCommands {
       action: string;
     };
   }): Promise<DatabaseCommonInteractionProps | null> {
-    const { turnContext, activity, projectId, form } = data;
-
-    const teamsUserId: string =
-      ((activity["from"] as JSONObject | undefined)?.["aadObjectId"] as
-        | string
-        | undefined) || "";
-
-    if (!teamsUserId) {
-      logger.warn(
-        "A Microsoft Teams create command arrived without the sender's AAD object id",
-        {
-          projectId: projectId.toString(),
-        },
-      );
-      await MicrosoftTeamsReplies.sendBestEffort(
-        turnContext,
-        mdText`Sorry, I couldn't tell who sent this message, so I can't open the form to create ${form.what}. Please try again.`.toString(),
-      );
-      return null;
-    }
-
-    try {
-      const userId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: teamsUserId,
-          projectId: projectId,
-        });
-
-      const props: DatabaseCommonInteractionProps =
-        await WorkspaceActionAuthorization.getProjectMemberProps({
-          userId: userId,
-          projectId: projectId,
-        });
-
-      await WorkspaceActionAuthorization.assertCanCreate({
-        props: props,
-        modelType: data.createPermission.modelType,
-        action: data.createPermission.action,
-      });
-
-      return props;
-    } catch (error) {
-      /*
-       * Not connected: asked to connect, mentioning the sender, with a
-       * Connect button - and to type the command again once they have.
-       */
-      if (error instanceof MicrosoftTeamsAccountNotLinkedException) {
-        await MicrosoftTeamsConnectPrompt.prompt({
-          turnContext: turnContext,
-          projectId: projectId,
-          description: MicrosoftTeamsConnectPrompt.describeCommand({
-            purpose: data.createPermission.action,
-            command: form.command,
-          }),
-        });
-        return null;
-      }
-
-      // Placed as text: a refusal can name a label, a record or a person.
-      if (error instanceof NotAuthorizedException) {
-        await MicrosoftTeamsActionAnswer.reply({
-          turnContext: turnContext,
-          answer: {
-            markdown: mdText`${error.message}`.toString(),
-            text: error.message,
-          },
-        });
-        return null;
-      }
-
-      MicrosoftTeamsReplies.logFailure(
-        "Could not check the Microsoft Teams sender of a create command",
-        error,
-        {
-          projectId: projectId.toString(),
-        },
-      );
-      await MicrosoftTeamsReplies.sendBestEffort(
-        turnContext,
-        mdText`Sorry, I couldn't open the form to create ${form.what} because OneUptime could not check your account just now. Please try again in a minute.`.toString(),
-      );
-      return null;
-    }
+    return await MicrosoftTeamsCommands.authorizeSender({
+      turnContext: data.turnContext,
+      activity: data.activity,
+      projectId: data.projectId,
+      does: `open the form to create ${data.form.what}`,
+      commandName: "create",
+      connect: {
+        purpose: data.createPermission.action,
+        command: data.form.command,
+      },
+      createPermission: data.createPermission,
+    });
   }
 
   private static async sendForm(data: {

@@ -10,6 +10,27 @@ These agents are the **resource AI agents**. Each resource's dashboard page has 
 
 The resource's **Overview** ends with an **AI agent** card that sums the AI agent page up: whether the agent is connected, whether investigation is on, how fixes run (**Off**, **Ask for approval**, **Automatic** or **Bypass approval**) and what needs attention, with a link to the AI agent page, where they are changed.
 
+:::cards
+- [Supported resources](#supported-resources): Eight kinds of resource, one image.
+- [Installing an AI agent](#installing-an-ai-agent): Beside a collector you already run, or on a Linux host.
+- [How fixes work](#how-fixes-work): What may run on its own, what waits for a person, and what never runs.
+- [Security model](#security-model): Three checks on every command, and no credential from OneUptime.
+:::
+
+## How it works
+
+The agent never waits for a connection from OneUptime: it calls out to OneUptime, asks for work, and runs only what its own copy of the command policy allows, with the credentials it already has.
+
+```mermaid title="How a command reaches your resource"
+flowchart TB
+    A["OneUptime AI needs<br/>a command"] --> Q["OneUptime checks it<br/>and queues it"]
+    Q --> G["The agent asks for<br/>work every 3 seconds"]
+    G --> C{"Does the agent's<br/>own policy allow it?"}
+    C -->|"yes"| R["It runs the program<br/>with its own<br/>credentials"]
+    C -->|"no"| X["Refused before<br/>anything runs"]
+    R --> O["The output, masked,<br/>back to OneUptime AI"]
+```
+
 ## How it relates to the Kubernetes AI agent
 
 Kubernetes clusters have their own agent, the Kubernetes AI agent, installed by the Kubernetes agent Helm chart — see [Cluster access — let OneUptime AI run kubectl](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl). Nothing on this page changes it. The resource AI agents follow the same design:
@@ -454,3 +475,11 @@ The READMEs of the [Proxmox](https://github.com/OneUptime/oneuptime/tree/master/
 ## What is not covered
 
 Kubernetes clusters use the Kubernetes AI agent. Serverless functions and other cloud resources, IoT fleets and network devices have no AI agent: acting on them needs cloud or device credentials, which OneUptime AI only uses through a Runner you run.
+
+## Next steps
+
+:::cards
+- [AI SRE](/docs/ai/ai-sre): What OneUptime AI does with an incident, and how fixes are decided.
+- [Docker Agent](/docs/telemetry/docker-host): Install the collector the Docker AI agent runs beside.
+- [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector): Report a Linux host, then add the Host AI agent.
+:::

@@ -1165,9 +1165,9 @@ sudo bash install.sh
 - **AI 調査はデフォルトで有効です**。エージェントが接続すると、OneUptime AI はこのホストのインシデントとアラートをエージェントを使って調査し、ホストの **概要** にエージェントの状態が表示されます。停止するには、エージェントを実行している場所で `ONEUPTIME_AI_INVESTIGATION=false` を設定するか (方法は AI エージェントのページの **AI に許可する操作** にある **変更** で確認できます)、エージェントを削除します。
 - エージェントは `HOST_NAME` で登録されます。空のままにするとホスト自身のホスト名が使われ、これは別の名前を設定しない限り、この Collector が `host.name` として報告するものです。エージェントがこの Collector の作成したホストを担当するよう、両者を一致させる必要があります。エージェントは OneUptime のホストの **AI エージェント** ページに表示されます。
 - エージェントは `nsenter` でホストの名前空間に入り、ホスト自身のプログラムを実行するため、`pid: host` 付きの特権コンテナとして root で実行されます。つまり、ホスト上では root です。上限を決めるのはエージェントのコマンドポリシーです。`ONEUPTIME_AI_ALLOW_WRITES=true` を設定しない限り読み取り専用のコマンドだけを実行し、シェル、`sudo`、リスト外のプログラムは決して実行せず、自分自身、この Collector のユニット、`ONEUPTIME_AI_PROTECTED_TARGETS` 内のものは決して変更しません。
-- `ONEUPTIME_AI_ALLOW_WRITES=true` の場合、`ONEUPTIME_AI_WRITE_TARGETS` (`nginx.service,app-*` のような完全なユニット名) で、修正が触れてよいユニットを制限します。`ONEUPTIME_AI_FIXES` は修正の実行方法 (`ask-for-approval` (各修正を人が承認)、`automatic`、`bypass-approval`) を指定し、AI エージェントのページには読み取り専用で表示されます。インストーラーは両方を自身の環境からエージェントの `.env` に書き込みます ([AI に許可する操作 (エージェントで設定)](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent))。
+- `ONEUPTIME_AI_ALLOW_WRITES=true` の場合、`ONEUPTIME_AI_WRITE_TARGETS` (`nginx.service,app-*` のような完全なユニット名) で、修正が触れてよいユニットを制限します。`ONEUPTIME_AI_FIXES` は修正の実行方法 (`ask-for-approval` (各修正を人が承認)、`automatic`、`bypass-approval`) を指定し、AI エージェントのページには読み取り専用で表示されます。インストーラーは両方を自身の環境からエージェントの `.env` に書き込みます ([AI に許可する操作 (エージェントで設定)](/docs/ai/infrastructure-ai-agents#ai-に許可することエージェントで設定))。
 
-実行できる内容、修正の仕組み、トラブルシューティングについては、[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#hosts) を参照してください。
+実行できる内容、修正の仕組み、トラブルシューティングについては、[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ホスト) を参照してください。
 
 ## トラブルシューティング
 

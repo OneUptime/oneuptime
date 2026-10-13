@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28113,
-    "untranslated": 9627
+    "keys": 28197,
+    "untranslated": 9626
   },
   "sameAsEnglish": [
     " incidents",
@@ -339,6 +339,7 @@
     "Source Maps",
     "Span",
     "Spans",
+    "Standard",
     "Threads",
     "Trace",
     "Traces",

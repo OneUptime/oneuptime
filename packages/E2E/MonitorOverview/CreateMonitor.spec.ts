@@ -29,7 +29,8 @@ import path from "path";
  * page errors, and no request the fixture does not model.
  */
 
-const PORT: string = "4223";
+// The fixture server's port: MONITOR_OVERVIEW_FIXTURE_PORT, as the config and server.js read it.
+const PORT: string = process.env["MONITOR_OVERVIEW_FIXTURE_PORT"] || "4223";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-09-21T12:00:00.000Z");
 const CREATE_PATH: string = `/dashboard/${PROJECT_ID}/monitors/create`;

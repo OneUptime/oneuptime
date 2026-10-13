@@ -487,7 +487,7 @@ describe("episode feed icons", () => {
     ).toBe(IconProp.EyeSlash);
   });
 
-  test("keeps the icons the feeds already used", () => {
+  test("an episode opens with its own icon, and a member shows the icon its own feed opens with", () => {
     expect(
       getIncidentEpisodeFeedIcon(IncidentEpisodeFeedEventType.EpisodeCreated),
     ).toBe(IconProp.Layers);
@@ -496,9 +496,18 @@ describe("episode feed icons", () => {
         IncidentEpisodeFeedEventType.EpisodeStateChanged,
       ),
     ).toBe(IconProp.ArrowCircleRight);
+    expect(
+      getIncidentEpisodeFeedIcon(IncidentEpisodeFeedEventType.IncidentAdded),
+    ).toBe(IconProp.Flag);
+    expect(
+      getIncidentEpisodeFeedIcon(IncidentEpisodeFeedEventType.IncidentRemoved),
+    ).toBe(IconProp.Flag);
     expect(getAlertEpisodeFeedIcon(AlertEpisodeFeedEventType.AlertAdded)).toBe(
-      IconProp.Alert,
+      IconProp.BellAlert,
     );
+    expect(
+      getAlertEpisodeFeedIcon(AlertEpisodeFeedEventType.AlertRemoved),
+    ).toBe(IconProp.BellAlert);
     expect(
       getAlertEpisodeFeedIcon(AlertEpisodeFeedEventType.SeverityChanged),
     ).toBe(IconProp.ExclaimationCircle);

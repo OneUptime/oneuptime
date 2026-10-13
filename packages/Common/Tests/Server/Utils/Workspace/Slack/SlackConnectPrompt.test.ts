@@ -18,6 +18,7 @@ import WorkspaceConnectRequest, {
   WorkspaceConnectRequestRecord,
   WorkspacePendingActionKind,
 } from "../../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
+import { WorkspaceConversationPerson } from "../../../../../Server/Utils/Workspace/WorkspaceConnectPromptOnce";
 import { WorkspaceEventType } from "../../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import URL from "../../../../../Types/API/URL";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -234,20 +235,25 @@ describe("SlackConnectPrompt.describe", () => {
   );
 
   test.each([
-    [SlackActionType.NewIncident, "declare an incident", "/incident"],
-    [SlackActionType.SubmitNewIncident, "declare an incident", "/incident"],
+    [SlackActionType.NewIncident, "declare an incident", "/oneuptime incident"],
+    [
+      SlackActionType.SubmitNewIncident,
+      "declare an incident",
+      "/oneuptime incident",
+    ],
     [
       SlackActionType.NewScheduledMaintenance,
       "create a scheduled maintenance event",
-      "/maintenance",
+      "/oneuptime maintenance",
     ],
     [
       SlackActionType.SubmitNewScheduledMaintenance,
       "create a scheduled maintenance event",
-      "/maintenance",
+      "/oneuptime maintenance",
     ],
+    [SlackActionType.ShowOnCall, "see who is on call", "/oneuptime oncall"],
   ])(
-    "%s: asks to %s, then to run %s again",
+    "%s, with no command typed (a form's submission): asks to %s, then to run %s again",
     (actionType: SlackActionType, purpose: string, command: string) => {
       expect(
         SlackConnectPrompt.describe({
@@ -265,6 +271,46 @@ describe("SlackConnectPrompt.describe", () => {
       });
     },
   );
+
+  test.each([
+    // An app updated to the one /oneuptime command.
+    [SlackActionType.NewIncident, "/oneuptime incident"],
+    [SlackActionType.NewScheduledMaintenance, "/oneuptime maintenance"],
+    [SlackActionType.ShowOnCall, "/oneuptime oncall"],
+    // An app created from an older manifest: run what it has.
+    [SlackActionType.NewIncident, "/incident"],
+    [SlackActionType.NewScheduledMaintenance, "/maintenance"],
+    // A workspace that runs OneUptime with a command of its own.
+    [SlackActionType.NewIncident, "/irm incident"],
+  ])(
+    "%s typed as %s: run again exactly as it was typed",
+    (actionType: SlackActionType, command: string) => {
+      expect(
+        SlackConnectPrompt.describe({
+          actionType: actionType,
+          command: command,
+        }).again,
+      ).toEqual({
+        kind: WorkspaceConnectRequestAgainKind.Command,
+        label: command,
+      });
+    },
+  );
+
+  test("the shortcut that opens the maintenance form: press the shortcut again", () => {
+    expect(
+      SlackConnectPrompt.describe({
+        actionType: SlackActionType.NewScheduledMaintenance,
+        payloadType: "shortcut",
+      }),
+    ).toEqual({
+      purpose: "create a scheduled maintenance event",
+      again: {
+        kind: WorkspaceConnectRequestAgainKind.Button,
+        label: "Create Scheduled Event",
+      },
+    });
+  });
 
   test("the shortcut that opens the same form: press the shortcut again", () => {
     expect(
@@ -406,6 +452,55 @@ describe("SlackConnectPrompt.prompt", () => {
     expect(request!.pendingAction!.eventId.toString()).toBe(RECORD_ID);
   });
 
+  /*
+   * A question in the app's direct messages: the place names no channel to
+   * answer in, and the kept press keeps the direct messages as where the
+   * settings page's "Back to Slack" goes.
+   */
+  test("a question asked in the app's direct messages keeps the direct messages to come back to, and no channel to answer in", async () => {
+    answered.mockResolvedValue(SlackAnswerDelivery.DirectMessage);
+
+    const delivery: SlackAnswerDelivery = await SlackConnectPrompt.prompt({
+      projectId: PROJECT_ID,
+      place: {
+        projectAuthToken: "xoxb-project-token",
+        slackUserId: "U0ERIN",
+        slackDirectMessageChannelId: "D0ERIN",
+      },
+      slackTeamId: "T0TEAM",
+      description: SlackConnectPrompt.describeQuestion(),
+    });
+
+    expect(delivery).toBe(SlackAnswerDelivery.DirectMessage);
+    expect(answered).toHaveBeenCalledTimes(1);
+
+    const call: { answer: WorkspaceAnswer; connectUrl?: URL | undefined } =
+      answered.mock.calls[0]![0];
+
+    expect(call.answer).toEqual({
+      markdown:
+        "🔗 **Connect your Slack account to ask OneUptime AI.** It takes one click. Then ask your question again.",
+      text: "Connect your Slack account to ask OneUptime AI",
+    });
+
+    const request: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(
+        new globalThis.URL(call.connectUrl!.toString()).searchParams.get(
+          "connect",
+        ),
+      );
+
+    expect(request).toMatchObject({
+      workspaceUserId: "U0ERIN",
+      purpose: "ask OneUptime AI",
+      again: { kind: WorkspaceConnectRequestAgainKind.Question },
+    });
+    expect(request!.slack).toEqual({
+      teamId: "T0TEAM",
+      directMessageChannelId: "D0ERIN",
+    });
+  });
+
   test("each press gets a Connect button of its own: two presses, two answers, two tokens", async () => {
     for (let press: number = 0; press < 2; press++) {
       await SlackConnectPrompt.prompt({
@@ -472,10 +567,114 @@ describe("SlackConnectPrompt.prompt", () => {
     expect(theAnswer()).toEqual({
       answer: {
         markdown:
-          "🔗 **Connect your Slack account to declare an incident.** In OneUptime, go to **User Settings → Workspace → Slack** and press **Connect my account with Slack**. Once you're connected, run **/incident** again.",
+          "🔗 **Connect your Slack account to declare an incident.** In OneUptime, go to **User Settings → Workspace → Slack** and press **Connect my account with Slack**. Once you're connected, run **/oneuptime incident** again.",
         text: "Connect your Slack account to declare an incident",
       },
       connectUrl: null,
     });
+  });
+});
+
+/*
+ * #4768: a question to OneUptime AI in a message, from an account not
+ * connected, is prompted once in a conversation, not under every message
+ * written there - a button press or a command still gets its answer every
+ * time (prompt, above).
+ */
+describe("SlackConnectPrompt.promptOnce", () => {
+  let answered: jest.SpyInstance;
+
+  const place: SlackAnswerPlace = {
+    projectAuthToken: "xoxb-project-token",
+    slackUserId: "U0CAROL",
+    slackChannelId: "C0OPS",
+    slackThreadTs: "1760000000.000100",
+  };
+
+  const conversation: WorkspaceConversationPerson = {
+    workspaceType: WorkspaceType.Slack,
+    workspaceId: "T0TEAM",
+    conversationId: "C0OPS:1760000000.000100",
+    workspaceUserId: "U0CAROL",
+  };
+
+  function ask(
+    where: WorkspaceConversationPerson = conversation,
+  ): Promise<SlackAnswerDelivery | null> {
+    return SlackConnectPrompt.promptOnce({
+      projectId: PROJECT_ID,
+      place: place,
+      slackTeamId: "T0TEAM",
+      description: SlackConnectPrompt.describeQuestion(),
+      conversation: where,
+    });
+  }
+
+  beforeEach(() => {
+    (GlobalCache as unknown as { store: Map<string, unknown> }).store.clear();
+    jest
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockResolvedValue(URL.fromString(DASHBOARD_URL));
+    answered = jest
+      .spyOn(SlackActionAnswer, "answer")
+      .mockResolvedValue(SlackAnswerDelivery.Ephemeral);
+  });
+
+  test("the first question in a conversation is prompted, as prompt does; the next ones there are not", async () => {
+    expect(await ask()).toBe(SlackAnswerDelivery.Ephemeral);
+    expect(answered).toHaveBeenCalledTimes(1);
+    expect(answered.mock.calls[0]![0]).toMatchObject({
+      place: place,
+      answer: {
+        markdown:
+          "🔗 **Connect your Slack account to ask OneUptime AI.** It takes one click. Then ask your question again.",
+        text: "Connect your Slack account to ask OneUptime AI",
+      },
+    });
+
+    expect(await ask()).toBeNull();
+    expect(await ask()).toBeNull();
+    expect(answered).toHaveBeenCalledTimes(1);
+  });
+
+  test("another conversation, or another person, is prompted", async () => {
+    await ask();
+
+    expect(
+      await ask({ ...conversation, conversationId: "C0OPS:1760000009.000100" }),
+    ).toBe(SlackAnswerDelivery.Ephemeral);
+    expect(await ask({ ...conversation, workspaceUserId: "U0DAVE" })).toBe(
+      SlackAnswerDelivery.Ephemeral,
+    );
+    expect(answered).toHaveBeenCalledTimes(3);
+  });
+
+  test("once its Connect button has expired, the conversation is prompted again, with a new button", async () => {
+    const now: number = Date.now();
+    const clock: jest.SpyInstance = jest.spyOn(Date, "now");
+
+    await ask();
+
+    clock.mockReturnValue(now + 31 * 60 * 1000);
+    expect(await ask()).toBe(SlackAnswerDelivery.Ephemeral);
+
+    const tokens: Array<string | null> = answered.mock.calls.map(
+      (call: Array<{ connectUrl: URL }>): string | null => {
+        return new globalThis.URL(
+          call[0]!.connectUrl.toString(),
+        ).searchParams.get("connect");
+      },
+    );
+
+    expect(tokens).toHaveLength(2);
+    expect(tokens[0]).not.toBe(tokens[1]);
+  });
+
+  test("a prompt Slack took nowhere does not count: the next question is prompted", async () => {
+    answered.mockResolvedValueOnce(SlackAnswerDelivery.None);
+
+    expect(await ask()).toBe(SlackAnswerDelivery.None);
+    expect(await ask()).toBe(SlackAnswerDelivery.Ephemeral);
+    expect(await ask()).toBeNull();
   });
 });

@@ -44,6 +44,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import EventStatusPanel, {
+  EventPanelAction,
   EventStateAction,
   EventStateItem,
   EventStatusFact,
@@ -67,6 +68,11 @@ import {
 
 export interface ComponentProps {
   scheduledMaintenanceId: ObjectID;
+  /*
+   * Header actions that are not state changes - Open in Slack / Teams -
+   * shown beside the state actions.
+   */
+  secondaryActions?: Array<EventPanelAction> | undefined;
   onActionComplete: () => void;
   eventNumber?: string | undefined;
   title?: string | undefined;
@@ -678,6 +684,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
         actions={actions}
         onActionClick={openModalForState}
         onStateSelect={openModalForState}
+        secondaryActions={props.secondaryActions}
         facts={props.facts}
         headerNotice={overdueNotice}
       />

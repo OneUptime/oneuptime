@@ -5,7 +5,7 @@ Connectez OneUptime à Slack pour publier dans vos canaux les incidents, alertes
 :::cards
 - [Connecter Slack](#connecter-slack): Installez OneUptime dans votre espace de travail, puis associez votre propre compte.
 - [Règles de notification](#règles-de-notification): Décidez quels événements sont publiés où, et lesquels ont un canal à eux.
-- [Créer des incidents et des maintenances depuis Slack](#créer-des-incidents-et-des-maintenances-depuis-slack): `/incident` et `/maintenance`, en votre nom.
+- [La commande /oneuptime](#la-commande-oneuptime): Déclarez des incidents, planifiez des maintenances, voyez qui est d'astreinte et interrogez l'IA.
 - [Agir sur les incidents, alertes et événements depuis Slack](#agir-sur-les-incidents-alertes-et-événements-depuis-slack): Les boutons des messages de OneUptime.
 :::
 
@@ -76,6 +76,8 @@ Créer une règle passe par quatre étapes :
 
 Un canal que la règle crée prend le nom de **New Slack Channel Name** suivi du numéro de l'enregistrement, par exemple `oneuptime-incident-42`, et seul un canal créé reçoit les personnes que la règle invite : les propriétaires de l'enregistrement, les équipes et utilisateurs choisis et, pour les incidents et les alertes, les personnes d'astreinte au fur et à mesure qu'elles sont alertées. Un incident, une alerte ou un épisode privé reçoit un canal privé. Chaque mise à jour ultérieure de l'enregistrement — un changement d'état, une note, un nouveau propriétaire — est publiée dans ses canaux et dans les canaux existants que ses règles nomment. Un incident, une alerte ou un épisode créé déjà résolu ne reçoit pas de canal à lui ; son message de création va quand même dans les canaux que vos règles nomment. Voir [Déclaré déjà pris en compte ou résolu](/docs/incidents/declaring-incidents#déclaré-déjà-pris-en-compte-ou-résolu).
 
+Un incident, une alerte, un épisode ou un événement de maintenance planifiée qui a son propre canal affiche **Ouvrir dans Slack** dans l'en-tête de sa page dans OneUptime, à côté de ses boutons d'état. Ce bouton ouvre ce canal dans un nouvel onglet, dans l'application Slack ou dans le navigateur. Un enregistrement qui a deux canaux à lui les liste tous les deux sous le bouton. Un enregistrement qui a des canaux à la fois dans Slack et dans Microsoft Teams a à la place un seul bouton **Ouvrir le canal**, qui les liste tous. Les canaux existants où vos règles publient ne sont pas proposés.
+
 Un canal reste lisible : chaque événement est publié une seule fois, et le premier état d'un enregistrement figure dans le message qui annonce l'enregistrement, pas dans un message à part. Une exécution d'une politique d'astreinte est un seul message, modifié au fil de l'escalade : qui a été alerté, combien de fois et comment, qui ne l'a pas été et pourquoi, et qui l'a pris en compte. Un nouveau message n'est publié que lorsque quelqu'un doit agir : une règle d'escalade n'a atteint personne, ou l'exécution s'est terminée sans que personne ne le prenne en compte. Une personne dont le compte Slack n'est pas connecté à OneUptime ne peut pas être ajoutée à un canal ; OneUptime le dit une fois par canal, dans un seul message qui les nomme toutes et qui est modifié quand la liste s'allonge. Envoyez-leur le lien **Connect Slack account** de ce message pour qu'elles connectent leur compte en une étape. Le fait que les propriétaires de l'enregistrement ou les abonnés de la page de statut ont été prévenus reste dans son fil d'activité dans OneUptime.
 
 **Paramètres du projet** > **Espace de travail** > **Slack** liste les canaux que OneUptime voit, avec **Envoyer le test** à côté de chacun. OneUptime rejoint de lui-même un canal public la première fois qu'il y publie. Un canal privé n'est listé, et ne peut recevoir de publication, qu'après que l'application OneUptime y a été invitée dans Slack.
@@ -123,13 +125,36 @@ Réagissez à un message dans le canal d'un incident, d'une alerte, d'un épisod
 
 La note est enregistrée en votre nom, avec vos autorisations, donc votre propre compte Slack doit être connecté. Un message n'est enregistré qu'une fois, quel que soit le nombre de personnes qui réagissent.
 
+## La commande /oneuptime
+
+OneUptime a une seule commande dans Slack, `/oneuptime`. Le mot que vous tapez après indique quoi faire ; tout autre texte après est une question pour OneUptime AI.
+
+| Commande | Ce qu'elle fait |
+| --- | --- |
+| `/oneuptime help` | Liste les commandes, avec des exemples. |
+| `/oneuptime incident [title]` | Ouvre le formulaire d'incident, avec le titre rempli. |
+| `/oneuptime maintenance [title]` | Ouvre le formulaire de maintenance planifiée, avec le titre rempli. |
+| `/oneuptime oncall` | Liste qui est d'astreinte en ce moment dans chaque planning d'astreinte que vous pouvez voir, jusqu'à quand, et qui est le suivant. |
+| `/oneuptime ask [question]`, ou toute question | OneUptime AI répond sur vos journaux, traces, métriques, incidents et moniteurs. |
+
+Les réponses à `help` et `oncall` sont des messages que vous seul voyez, sous la commande. Un premier mot qui ressemble à une commande mal tapée, comme `incidnet`, reçoit la commande à laquelle il ressemble, pas une réponse de OneUptime AI. Les formulaires d'incident et de maintenance agissent en votre nom : voir [Créer des incidents et des maintenances depuis Slack](#créer-des-incidents-et-des-maintenances-depuis-slack).
+
+> [!NOTE]
+> `/oneuptime incident` et `/oneuptime maintenance` remplacent `/incident` et `/maintenance`, qui pouvaient entrer en conflit avec les commandes du même nom d'autres apps Slack. Une app Slack créée à partir d'un manifeste antérieur les garde, et elles ouvrent les mêmes formulaires, jusqu'à ce que l'app soit mise à jour : voir [Applications créées à partir d'un manifeste plus ancien](/docs/self-hosted/slack-integration#applications-créées-à-partir-dun-manifeste-plus-ancien).
+
 ## Interroger OneUptime AI depuis Slack
 
-Posez vos questions sur vos journaux, traces, métriques, incidents et moniteurs en langage courant. Mentionnez OneUptime avec @ dans un canal, ou envoyez-lui un message direct, et il répond dans le fil ; répondez-y pour poursuivre. `/oneuptime ask which monitors are down?` publie sa réponse dans le canal. Les deux demandent votre propre compte Slack connecté, et l'IA activée pour le projet. Les réponses dans Slack ne font que lire : pour changer quelque chose, utilisez les boutons. Voir [Demander à l'IA](/docs/ai/ask-ai).
+Posez vos questions sur vos journaux, traces, métriques, incidents et moniteurs en langage courant. Mentionnez OneUptime avec @ dans un canal, ou envoyez-lui un message direct, et il répond dans le fil. `/oneuptime ask which monitors are down?` publie sa réponse dans le canal. Les deux demandent votre propre compte Slack connecté, et l'IA activée pour le projet. Les réponses dans Slack ne font que lire : pour changer quelque chose, utilisez les boutons. Voir [Demander à l'IA](/docs/ai/ask-ai).
+
+OneUptime ne répond qu'à ce qui lui est adressé.
+
+- **Dans votre propre conversation, répondez simplement.** Une question que vous posez dans un canal, hors d'un fil, ouvre une conversation dans le fil qui se trouve dessous : répondez-y pour poursuivre sans mentionner OneUptime à nouveau, et toute autre personne s'y joint en le mentionnant.
+- **Dans tout autre fil, mentionnez OneUptime.** Sous le message d'un incident, par exemple, mentionnez-le à chaque fois : ce que les gens s'y écrivent entre eux ne reçoit aucune réponse.
+- **Si votre compte Slack n'est pas connecté.** OneUptime vous demande une fois par conversation de le connecter, dans un message que vous seul voyez, avec un bouton **Connect Slack account**.
 
 ## Créer des incidents et des maintenances depuis Slack
 
-`/incident` et `/maintenance` ouvrent un formulaire que vous remplissez et soumettez en votre nom : en tant que compte OneUptime auquel votre compte Slack est connecté (voir [Connecter Slack](#connecter-slack)), avec les autorisations de ce compte dans le projet. Si votre compte Slack n'est pas connecté, ou si votre compte OneUptime n'est plus membre du projet, OneUptime vous dit quoi faire là où vous avez lancé la commande, dans un message que vous seul voyez, et aucun formulaire ne s'ouvre. Les raccourcis **Create New Incident** et **Create Scheduled Event** ouvrent les mêmes formulaires.
+`/oneuptime incident` et `/oneuptime maintenance` ouvrent un formulaire que vous remplissez et soumettez en votre nom : en tant que compte OneUptime auquel votre compte Slack est connecté (voir [Connecter Slack](#connecter-slack)), avec les autorisations de ce compte dans le projet. Si votre compte Slack n'est pas connecté, ou si votre compte OneUptime n'est plus membre du projet, OneUptime vous dit quoi faire là où vous avez lancé la commande, dans un message que vous seul voyez, et aucun formulaire ne s'ouvre. Les raccourcis **Create New Incident** et **Create Scheduled Event** ouvrent les mêmes formulaires.
 
 - **Qui peut les utiliser.** Les personnes qui peuvent déclarer un incident ou créer un événement de maintenance planifiée dans OneUptime : **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** et **Incident Member** pour un incident (**Create Incident** dans un rôle personnalisé), et **Scheduled Maintenance Admin** et **Scheduled Maintenance Member** pour un événement (**Create Scheduled Maintenance**). Tous les autres en sont informés là où ils l'ont lancée, et aucun formulaire ne s'ouvre.
 - **Ce qu'un formulaire propose.** Chaque liste — gravités, moniteurs, états de moniteur, politiques d'astreinte et étiquettes — contient ce que vous pouvez lire, comme la même liste dans OneUptime : avec un rôle limité à certaines étiquettes, les moniteurs et politiques d'astreinte portant ces étiquettes. Une liste que vous ne pouvez pas lire du tout est retirée du formulaire. Les politiques d'astreinte archivées ne sont jamais proposées.
@@ -167,6 +192,10 @@ Quand Slack vous renvoie sans connexion, la page d'où vous êtes parti indique 
 
 :::details Un bouton ou une commande dit que mon compte Slack n'est pas connecté
 Pressez **Connect Slack account** dans cette réponse pour le connecter en une étape, ou associez-le dans **Paramètres utilisateur** > **Espace de travail** > **Slack** avec **Connect my account with Slack**. Si vous n'êtes plus membre du projet, OneUptime le dit à la place, et n'agit sur rien pour vous.
+:::
+
+:::details OneUptime ne répond pas à une réponse dans un fil
+Une réponse sans mention ne reçoit de réponse que dans votre propre conversation avec OneUptime AI : le fil sous une question que vous lui avez posée dans un canal. Dans tout autre fil, comme celui sous le message d'un incident, mentionnez OneUptime avec @. Si votre compte Slack n'est pas connecté, OneUptime vous demande de le connecter une fois par conversation, pas à chaque message : pressez **Connect Slack account** dans ce message, ou associez-le dans **Paramètres utilisateur** > **Espace de travail** > **Slack**. Voir [Interroger OneUptime AI depuis Slack](#interroger-oneuptime-ai-depuis-slack).
 :::
 
 :::details Les notifications arrivent, mais les boutons et les commandes ne font rien

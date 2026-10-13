@@ -5,7 +5,7 @@ Connect OneUptime to Slack to post incidents, alerts, episodes, scheduled mainte
 :::cards
 - [Connect Slack](#connect-slack): Install OneUptime in your workspace, then link your own account.
 - [Notification rules](#notification-rules): Decide which events post where, and which get a channel of their own.
-- [Creating incidents and maintenance from Slack](#creating-incidents-and-maintenance-from-slack): `/incident` and `/maintenance`, as yourself.
+- [The /oneuptime command](#the-oneuptime-command): Declare incidents, schedule maintenance, see who is on call and ask AI.
 - [Acting on incidents, alerts and events from Slack](#acting-on-incidents-alerts-and-events-from-slack): The buttons on OneUptime's messages.
 :::
 
@@ -76,6 +76,8 @@ Creating a rule walks four steps:
 
 A channel the rule creates is named from **New Slack Channel Name** followed by the record's number, such as `oneuptime-incident-42`, and only a channel that was created gets the people the rule invites: the record's owners, chosen teams and users, and, for incidents and alerts, the people on call as they are paged. A private incident, alert or episode gets a private channel. Every later update of the record — a state change, a note, a new owner — is posted to its channels and to the existing channels its rules name. An incident, alert or episode created already resolved gets no channel of its own; its created message still goes to the channels your rules name. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 
+An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Slack** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, in the Slack app or in the browser. A record with two channels of its own lists both under the button. A record with channels in both Slack and Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels your rules post to are not offered.
+
 A channel stays readable: each event is posted once, and a record's first state is in the message that announces the record, not in a message of its own. An on-call policy run is one message that is edited as the run escalates: who was paged, how often and how, who was not and why, and who acknowledged. A new message is posted only when someone has to act: an escalation rule reached nobody, or the run ended without anyone acknowledging. Someone whose Slack account is not connected to OneUptime cannot be added to a channel; OneUptime says so once per channel, in one message that names them all and is edited when the list grows. Send them its **Connect Slack account** link to connect their account in one step. That a record's owners or status page subscribers were notified stays in its feed in OneUptime.
 
 **Project Settings** > **Workspace** > **Slack** lists the channels OneUptime can see, with **Send Test** beside each one. OneUptime joins a public channel on its own the first time it posts there. A private channel is listed, and can be posted to, only after the OneUptime app is invited to it in Slack.
@@ -123,13 +125,36 @@ React to a message in the channel of an incident, alert, episode or scheduled ma
 
 The note is saved as you, with your permissions, so your own Slack account must be connected. A message is saved only once, however many people react.
 
+## The /oneuptime command
+
+OneUptime has one command in Slack, `/oneuptime`. The word you type after it says what to do; anything else after it is a question for OneUptime AI.
+
+| Command | What it does |
+| --- | --- |
+| `/oneuptime help` | Lists the commands, with examples. |
+| `/oneuptime incident [title]` | Opens the incident form, with the title filled in. |
+| `/oneuptime maintenance [title]` | Opens the scheduled maintenance form, with the title filled in. |
+| `/oneuptime oncall` | Lists who is on call right now in each on-call schedule you can see, until when, and who is next. |
+| `/oneuptime ask [question]`, or any question | OneUptime AI answers about your logs, traces, metrics, incidents and monitors. |
+
+The answers to `help` and `oncall` are messages only you see, under the command. A first word that looks like a command misspelt, such as `incidnet`, gets the command it looks like, not an answer from OneUptime AI. The incident and maintenance forms act as you: see [Creating incidents and maintenance from Slack](#creating-incidents-and-maintenance-from-slack).
+
+> [!NOTE]
+> `/oneuptime incident` and `/oneuptime maintenance` replace `/incident` and `/maintenance`, which could clash with other Slack apps' commands of the same name. A Slack app created from an earlier manifest keeps them, and they open the same forms, until the app is updated: see [Apps created from an older manifest](/docs/self-hosted/slack-integration#apps-created-from-an-older-manifest).
+
 ## Asking OneUptime AI from Slack
 
-Ask about your logs, traces, metrics, incidents and monitors in plain language. @mention OneUptime in a channel, or send it a direct message, and it answers in the thread; reply there to ask more. `/oneuptime ask which monitors are down?` posts its answer in the channel. Either needs your own Slack account connected, and AI turned on for the project. Answers in Slack only read: to change something, use the buttons. See [Ask AI](/docs/ai/ask-ai).
+Ask about your logs, traces, metrics, incidents and monitors in plain language. @mention OneUptime in a channel, or send it a direct message, and it answers in the thread. `/oneuptime ask which monitors are down?` posts its answer in the channel. Either needs your own Slack account connected, and AI turned on for the project. Answers in Slack only read: to change something, use the buttons. See [Ask AI](/docs/ai/ask-ai).
+
+OneUptime answers only what is addressed to it.
+
+- **In your own conversation, just reply.** A question you ask in a channel, not in a thread, starts a conversation in the thread under it: reply there to ask more without mentioning OneUptime again, and anyone else joins in by mentioning it.
+- **In any other thread, mention OneUptime.** Under an incident's message, for example, mention it each time: what people write to each other there gets no answer.
+- **If your Slack account is not connected.** OneUptime asks you once in each conversation to connect it, in a message only you see, with a **Connect Slack account** button.
 
 ## Creating incidents and maintenance from Slack
 
-`/incident` and `/maintenance` open a form that you fill in and submit as yourself: as the OneUptime account your Slack account is connected to (see [Connect Slack](#connect-slack)), with that account's permissions in the project. If your Slack account is not connected, or your OneUptime account is no longer a member of the project, OneUptime tells you what to do where you ran the command, in a message only you see, and no form opens. The **Create New Incident** and **Create Scheduled Event** shortcuts open the same forms.
+`/oneuptime incident` and `/oneuptime maintenance` open a form that you fill in and submit as yourself: as the OneUptime account your Slack account is connected to (see [Connect Slack](#connect-slack)), with that account's permissions in the project. If your Slack account is not connected, or your OneUptime account is no longer a member of the project, OneUptime tells you what to do where you ran the command, in a message only you see, and no form opens. The **Create New Incident** and **Create Scheduled Event** shortcuts open the same forms.
 
 - **Who may use them.** The people who may declare an incident or create a scheduled maintenance event in OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** and **Incident Member** for an incident (**Create Incident** in a custom role), and **Scheduled Maintenance Admin** and **Scheduled Maintenance Member** for an event (**Create Scheduled Maintenance**). Anyone else is told so where they ran it, and no form opens.
 - **What a form offers.** Each list — severities, monitors, monitor statuses, on-call policies and labels — holds what you may read, as the same list in OneUptime does: with a role limited to some labels, the monitors and on-call policies carrying those labels. A list you may not read at all is left off the form. Archived on-call policies are never offered.
@@ -167,6 +192,10 @@ When Slack sends you back without a connection, the page you started from says *
 
 :::details A button or command says my Slack account is not connected
 Press **Connect Slack account** in that answer to connect it in one step, or link it under **User Settings** > **Workspace** > **Slack** with **Connect my account with Slack**. If you are no longer a member of the project, OneUptime says so instead, and acts on nothing for you.
+:::
+
+:::details OneUptime does not answer a reply in a thread
+A reply with no mention is answered only in your own conversation with OneUptime AI: the thread under a question you asked it in a channel. In any other thread, such as the one under an incident's message, @mention OneUptime. If your Slack account is not connected, OneUptime asks you to connect it once in a conversation, not on every message: press **Connect Slack account** in that message, or link it under **User Settings** > **Workspace** > **Slack**. See [Asking OneUptime AI from Slack](#asking-oneuptime-ai-from-slack).
 :::
 
 :::details Notifications arrive, but buttons and commands do nothing

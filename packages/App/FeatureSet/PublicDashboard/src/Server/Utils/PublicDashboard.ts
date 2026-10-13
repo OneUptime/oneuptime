@@ -5,6 +5,10 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
+import {
+  PUBLIC_PAGE_NOT_FOUND,
+  PublicPageNotFound,
+} from "Common/Server/Utils/PublicPageNotFound";
 
 const DashboardApiInternalUrl: string =
   process.env["DASHBOARD_API_URL"] ||
@@ -16,11 +20,19 @@ export interface PublicDashboardData {
   description: string;
 }
 
+/*
+ * The dashboard a request names: its data; PUBLIC_PAGE_NOT_FOUND when the
+ * dashboard API says its link answers nobody - no such dashboard, an archived
+ * one, one shared only with its project, or one of a project a master admin
+ * blocked, which it answers alike - and the caller answers 404
+ * (PublicPageNotFound); or null when the URL names no dashboard or it could
+ * not be looked up.
+ */
 export const getPublicDashboardData: (
   req: ExpressRequest,
-) => Promise<PublicDashboardData | null> = async (
+) => Promise<PublicDashboardData | PublicPageNotFound | null> = async (
   req: ExpressRequest,
-): Promise<PublicDashboardData | null> => {
+): Promise<PublicDashboardData | PublicPageNotFound | null> => {
   try {
     logger.debug("Getting public dashboard data", {
       service: "public-dashboard",
@@ -62,42 +74,66 @@ export const getPublicDashboardData: (
     let title: string = "Dashboard";
     let description: string = "View dashboard metrics and insights.";
 
-    if (isPreview) {
-      dashboardId = dashboardIdOrDomain;
+    /*
+     * The /seo API resolves an id or a custom domain, so preview URLs
+     * (/public-dashboard/:dashboardId) go through it too: for the
+     * dashboard's title and description, and to learn whether its link
+     * answers at all.
+     */
+    logger.debug(
+      `Pinging the API with dashboardIdOrDomain: ${dashboardIdOrDomain}`,
+      { service: "public-dashboard" },
+    );
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get({
+        url: URL.fromString(DashboardApiInternalUrl).addRoute(
+          `/seo/${dashboardIdOrDomain}`,
+        ),
+      });
+
+    // Not found is an answer, not a failed lookup.
+    if (response instanceof HTTPErrorResponse && response.statusCode === 404) {
+      logger.debug("The dashboard API knows no such public dashboard", {
+        service: "public-dashboard",
+      });
+      return PUBLIC_PAGE_NOT_FOUND;
+    }
+
+    let seoData: JSONObject | null = null;
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.debug(`Received error response from API: ${response}`, {
+        service: "public-dashboard",
+      });
     } else {
-      logger.debug(
-        `Pinging the API with dashboardIdOrDomain: ${dashboardIdOrDomain}`,
-        { service: "public-dashboard" },
-      );
-      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get({
-          url: URL.fromString(DashboardApiInternalUrl).addRoute(
-            `/seo/${dashboardIdOrDomain}`,
-          ),
-        });
-
-      if (response instanceof HTTPErrorResponse) {
-        logger.debug(`Received error response from API: ${response}`, {
-          service: "public-dashboard",
-        });
-        return null;
-      }
-
       logger.debug("Successfully received response from API", {
         service: "public-dashboard",
       });
+      seoData = response.data || null;
+    }
 
-      dashboardId = response.data?.["_id"] as string;
+    if (isPreview) {
+      /*
+       * A preview URL carries the id, so the page can still be rendered when
+       * the lookup fails - with the default title - as it always was.
+       */
+      dashboardId = dashboardIdOrDomain;
+    } else {
+      if (!seoData) {
+        return null;
+      }
+
+      dashboardId = seoData["_id"] as string;
       if (!dashboardId) {
         logger.debug("No dashboard ID in response", {
           service: "public-dashboard",
         });
         return null;
       }
-
-      title = (response.data?.["title"] as string) || title;
-      description = (response.data?.["description"] as string) || description;
     }
+
+    title = (seoData?.["title"] as string) || title;
+    description = (seoData?.["description"] as string) || description;
 
     return {
       id: dashboardId,

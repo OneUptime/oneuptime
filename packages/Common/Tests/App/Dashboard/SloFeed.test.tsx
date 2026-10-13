@@ -47,7 +47,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import SloFeed, {
   getSloResourceFeedProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeed";
-import { getSloFeedEventIcon } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeedIcon";
+import {
+  getSloFeedEventIcon,
+  getSloFeedEventKind,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeedIcon";
 import {
   ComponentProps as ResourceFeedProps,
   resolveResourceFeedIcon,
@@ -104,8 +107,8 @@ describe("getSloResourceFeedProps", () => {
     expect(props.noItemsMessage).toBe(
       "No activity has been recorded for this SLO yet.",
     );
-    // Both the page and any embedded feed get the SLO icons from here.
-    expect(props.getIcon).toBe(getSloFeedEventIcon);
+    // Both the page and any embedded feed get the SLO kinds from here.
+    expect(props.getKind).toBe(getSloFeedEventKind);
     // ...and the event types the filter's checklist offers.
     expect(props.eventTypes).toEqual(ALL_EVENT_TYPES);
   });
@@ -130,7 +133,7 @@ describe("SLO feed icons", () => {
       expect(
         resolveResourceFeedIcon({
           eventType: eventType,
-          getIcon: getSloFeedEventIcon,
+          getKind: getSloFeedEventKind,
         }),
       ).not.toBe(IconProp.Circle);
     },
@@ -184,7 +187,7 @@ describe("SLO feed icons", () => {
     ],
     [
       ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveUpdated,
-      IconProp.Edit,
+      IconProp.PencilSquare,
     ],
     [
       ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveArchived,
@@ -192,20 +195,21 @@ describe("SLO feed icons", () => {
     ],
     [
       ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveRestored,
-      IconProp.Refresh,
+      IconProp.Unarchive,
     ],
-    [ServiceLevelObjectiveFeedEventType.OwnerUserAdded, IconProp.User],
-    [ServiceLevelObjectiveFeedEventType.OwnerTeamAdded, IconProp.Team],
-    [ServiceLevelObjectiveFeedEventType.OwnerUserRemoved, IconProp.Close],
-    [ServiceLevelObjectiveFeedEventType.OwnerTeamRemoved, IconProp.Close],
+    [ServiceLevelObjectiveFeedEventType.OwnerUserAdded, IconProp.UserPlus],
+    [ServiceLevelObjectiveFeedEventType.OwnerTeamAdded, IconProp.UserGroup],
+    [ServiceLevelObjectiveFeedEventType.OwnerUserRemoved, IconProp.UserMinus],
+    [ServiceLevelObjectiveFeedEventType.OwnerTeamRemoved, IconProp.UserMinus],
   ])(
     "%s is left to the shared rules, so it looks like every other feed's",
     (eventType: string, icon: IconProp) => {
       expect(getSloFeedEventIcon(eventType)).toBeUndefined();
+      expect(getSloFeedEventKind(eventType)).toBeUndefined();
       expect(
         resolveResourceFeedIcon({
           eventType: eventType,
-          getIcon: getSloFeedEventIcon,
+          getKind: getSloFeedEventKind,
         }),
       ).toBe(icon);
     },

@@ -117,6 +117,7 @@ import IncidentOwnerRule from "../../../../Models/DatabaseModels/IncidentOwnerRu
 import IncidentReminderRule from "../../../../Models/DatabaseModels/IncidentReminderRule";
 import IncidentSlaRule from "../../../../Models/DatabaseModels/IncidentSlaRule";
 import ProjectSCIM from "../../../../Models/DatabaseModels/ProjectSCIM";
+import ThreatIntelFeed from "../../../../Models/DatabaseModels/ThreatIntelFeed";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ReminderStopState from "../../../../Types/Reminder/ReminderStopState";
 import ModelForm, {
@@ -375,8 +376,8 @@ describe("a Create form's switches", () => {
     const model: JSONObject = await submit();
 
     expect(model["autoProvisionUsers"]).toBe(true);
-    // Never touched, off by its column: not sent, so the server's off stands.
-    expect(model["enablePushGroups"]).toBeUndefined();
+    // Never touched, off by its column: sent off, as the server would store it.
+    expect(model["enablePushGroups"]).toBe(false);
   });
 });
 
@@ -472,6 +473,44 @@ describe("a Create form's choices and numbers", () => {
     const model: JSONObject = await submit();
 
     expect(Number(model["atRiskThresholdInPercentage"])).toBe(80);
+  });
+
+  test("start a required number box on its column's 0, which answers it", async () => {
+    /*
+     * A threat intel feed's Minimum Confidence: required, and its column
+     * starts at 0 ("ingests everything"). The box drew the 0, but the form
+     * held nothing - a 0 default was taken for none - so it refused to go
+     * on: "Minimum Confidence is required."
+     */
+    await renderForm<ThreatIntelFeed>({
+      modelType: ThreatIntelFeed,
+      fields: [
+        {
+          field: { name: true },
+          title: "Name",
+          fieldType: FormFieldSchemaType.Text,
+          required: true,
+          placeholder: "Rule name",
+        },
+        {
+          field: { minimumConfidence: true },
+          title: "Minimum Confidence",
+          fieldType: FormFieldSchemaType.Number,
+          required: true,
+          placeholder: "Confidence",
+        },
+      ],
+    });
+
+    expect(screen.getByPlaceholderText("Confidence")).toHaveValue(0);
+
+    await typeName();
+    const model: JSONObject = await submit();
+
+    expect(
+      screen.queryByText("Minimum Confidence is required."),
+    ).not.toBeInTheDocument();
+    expect(model["minimumConfidence"]).toBe(0);
   });
 });
 

@@ -11,13 +11,16 @@ import URL from "Common/Types/API/URL";
  *   - A well-formed RSS 2.0 channel: <rss version="2.0"> with a <channel> and
  *     the "OneUptime Blog" title, plus the atom self-link pointing back at the
  *     feed URL that validators require.
- *   - The per-tag feed at /blog/tag/:tagName/rss.xml serves the same shape and
- *     titles itself after the tag.
+ *   - The per-tag feed at /blog/tag/:tagSlug/rss.xml (Home/API/BlogAPI.ts)
+ *     serves the same shape and titles itself after the tag. Search engines
+ *     are told not to index it (X-Robots-Tag: noindex); the main feed carries
+ *     no such header. A tag no post carries has no feed (404), so the per-tag
+ *     test reads the feed of "observability", a tag of the blog every image
+ *     clones.
  *
- * These assert structure only (never a specific post), so they hold whether the
- * deployment has zero blog posts or many. They run only where the Home
- * marketing site is deployed, which the suite gates on IS_BILLING_ENABLED,
- * consistent with the other Home specs.
+ * These assert structure only (never a specific post). They run only where
+ * the Home marketing site is deployed, which the suite gates on
+ * IS_BILLING_ENABLED, consistent with the other Home specs.
  */
 
 test.describe("Home: blog RSS feed", () => {
@@ -42,6 +45,8 @@ test.describe("Home: blog RSS feed", () => {
 
     const contentType: string = response.headers()["content-type"] || "";
     expect(contentType).toContain("application/rss+xml");
+    // The main feed stays indexable; only the tags' feeds say noindex.
+    expect(response.headers()["x-robots-tag"]).toBeUndefined();
 
     const body: string = await response.text();
 
@@ -73,6 +78,7 @@ test.describe("Home: blog RSS feed", () => {
 
     const contentType: string = response.headers()["content-type"] || "";
     expect(contentType).toContain("application/rss+xml");
+    expect(response.headers()["x-robots-tag"]).toBe("noindex");
 
     const body: string = await response.text();
 

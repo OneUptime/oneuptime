@@ -187,11 +187,11 @@ Swarm의 `docker-compose.yml`(과 `install.sh`)은 **Docker Swarm AI 에이전�
 
 - **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 클러스터의 인시던트와 알림을 조사하며, 클러스터의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
 - 인벤토리 폴러처럼 **매니저 노드에서 실행해야 합니다**. 노드, 서비스, 태스크 명령은 매니저에서만 쓸 수 있기 때문입니다. 워커에서는 아무것도 실행하지 않으며, 노드가 매니저가 될 때까지 클러스터에 등록되지 않습니다(이유는 `/status`에 표시됩니다). 클러스터마다 하나를 실행하세요.
-- `.env`에 `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하고 `docker compose up -d`를 실행하지 않는 한(또는 그 변수와 함께 `install.sh`를 실행하지 않는 한) **읽기 전용**입니다. 설치 프로그램은 환경에서 `ONEUPTIME_AI_ALLOW_WRITES`, `ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`, `ONEUPTIME_AI_WRITE_TARGETS`, `ONEUPTIME_AI_PROTECTED_TARGETS`를 `.env`에 쓰며, 다시 실행할 때는 그 변수를 (비어 있더라도) 전달하지 않는 한 마지막 네 개에 대해 `.env`에 이미 있는 값을 유지합니다. `ONEUPTIME_AI_WRITE_TARGETS`(서비스 및 노드 이름 글로브, 예: `web_*,api_*`)는 수정이 건드릴 수 있는 범위를 제한합니다. 같은 `.env`의 `ONEUPTIME_AI_FIXES`는 수정이 실행되는 방식을 정합니다. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)). 노드 드레인은 모드와 관계없이 항상 사람의 승인이 필요합니다.
+- `.env`에 `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하고 `docker compose up -d`를 실행하지 않는 한(또는 그 변수와 함께 `install.sh`를 실행하지 않는 한) **읽기 전용**입니다. 설치 프로그램은 환경에서 `ONEUPTIME_AI_ALLOW_WRITES`, `ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`, `ONEUPTIME_AI_WRITE_TARGETS`, `ONEUPTIME_AI_PROTECTED_TARGETS`를 `.env`에 쓰며, 다시 실행할 때는 그 변수를 (비어 있더라도) 전달하지 않는 한 마지막 네 개에 대해 `.env`에 이미 있는 값을 유지합니다. `ONEUPTIME_AI_WRITE_TARGETS`(서비스 및 노드 이름 글로브, 예: `web_*,api_*`)는 수정이 건드릴 수 있는 범위를 제한합니다. 같은 `.env`의 `ONEUPTIME_AI_FIXES`는 수정이 실행되는 방식을 정합니다. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)). 노드 드레인은 모드와 관계없이 항상 사람의 승인이 필요합니다.
 - Docker 소켓을 마운트한 채 root로 실행됩니다. 소켓의 소유자가 root이기 때문입니다. 그리고 매니저에서는 소켓을 쓸 수 있는 사람이 `:ro` 여부와 관계없이 Swarm 전체를 제어합니다. 한계를 정하는 것은 에이전트의 명령 정책입니다. 서비스나 스택을 만들거나 제거하지 않고, 시크릿이나 컨피그를 건드리지 않으며, 자기 자신, Collector, 인벤토리 폴러, `ONEUPTIME_AI_PROTECTED_TARGETS`(서비스 및 노드 이름 글로브)에 있는 어떤 것도 절대 바꾸지 않습니다.
 - `install.sh --no-ai-agent`로 빼거나, `docker-compose.yml`에서 `oneuptime-docker-swarm-ai-agent` 서비스를 삭제하세요.
 
-실행할 수 있는 명령, 수정이 동작하는 방식, 문제 해결 방법: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-swarm-clusters).
+실행할 수 있는 명령, 수정이 동작하는 방식, 문제 해결 방법: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-swarm-클러스터).
 
 ## 문제 해결
 

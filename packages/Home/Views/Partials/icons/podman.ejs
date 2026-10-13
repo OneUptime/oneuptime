@@ -1,13 +1,18 @@
-<!-- Podman Icon - seal mascot's face inside the octagon from Podman's emblem. The official artwork (a mother seal flanked by two pups, with whiskers and water lines) turns to mush below ~48px, and this partial renders at h-3.5 to h-5, so this keeps only the cues that survive: the octagonal frame, the brow arches, the eyes and the round muzzle. Mirrors IconProp.Podman in Common/UI/Components/Icon/Icon.tsx. -->
+<%# Podman Icon - seal mascot's face inside the octagon from Podman's emblem. The official artwork (a mother seal flanked by two pups, with whiskers and water lines) turns to mush below ~48px, and this partial renders at h-3.5 to h-5, so this keeps only the cues that survive: the octagonal frame, the brow arches, the eyes and the round muzzle. Mirrors IconProp.Podman in Common/UI/Components/Icon/Icon.tsx. %>
+<% const iconSpriteHref = typeof useIconSprite !== 'undefined' && useIconSprite && typeof productIconSpriteHref !== 'undefined' && productIconSpriteHref ? productIconSpriteHref : null; -%>
 <svg class="<%= typeof iconClass !== 'undefined' ? iconClass : 'h-5 w-5' %> text-blue-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-  <!-- Octagonal frame of the emblem, doubling as the seal's head -->
+<% if (iconSpriteHref) { -%>
+  <use href="<%= iconSpriteHref %>#podman"></use>
+<% } else { -%>
+  <%# Octagonal frame of the emblem, doubling as the seal's head -%>
   <path d="M15.79 2.85H8.21L2.85 8.21v7.58l5.36 5.36h7.58l5.36-5.36V8.21Z" stroke-linejoin="round"></path>
-  <!-- Brow arches -->
+  <%# Brow arches -%>
   <path d="M7.7 8.3C8.2 7.7 9.2 7.6 9.9 8M16.3 8.3C15.8 7.7 14.8 7.6 14.1 8" stroke-width="1.2" stroke-linecap="round"></path>
-  <!-- Eyes -->
+  <%# Eyes -%>
   <circle cx="9.1" cy="10.7" r="1.25" fill="currentColor" stroke="none"></circle>
   <circle cx="14.9" cy="10.7" r="1.25" fill="currentColor" stroke="none"></circle>
-  <!-- Muzzle and nose -->
+  <%# Muzzle and nose -%>
   <circle cx="12" cy="15.2" r="2.6"></circle>
   <circle cx="12" cy="14.35" r="0.6" fill="currentColor" stroke="none"></circle>
+<% } -%>
 </svg>

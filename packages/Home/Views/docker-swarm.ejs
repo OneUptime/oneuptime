@@ -4,12 +4,12 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-  <title>OneUptime | Docker Swarm Monitoring - Nodes, Services, Tasks & Stacks</title>
-  <meta name="description"
-    content="Monitor Docker Swarm clusters end to end: manager and worker node health, services and their task replicas, running-vs-desired convergence, stacks, overlay networks, secrets, configs, and volumes. One agent per cluster, usage-based pricing, 10-minute setup. Open source.">
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
+  <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>

@@ -4,12 +4,12 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-  <title>OneUptime | Ceph Monitoring - Cluster Health, OSDs, Pools & Capacity</title>
-  <meta name="description"
-    content="Monitor Ceph clusters without bolting Grafana onto the dashboard: health drill-downs, OSD and PG state, pool capacity with growth forecasts, and alerting with on-call built in. Open source.">
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
+  <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>

@@ -11,9 +11,12 @@
  */
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const test = require("node:test");
 
 const {
+  NGINX_DIRECTORY,
   readTemplate,
   readNginxConf,
   stripComments,
@@ -1847,8 +1850,8 @@ test("no location that nginx consults first can take the OAuth discovery documen
   /*
    * nginx tries regex locations in file order and stops at the first match,
    * and a `^~` prefix or an `=` location that matches is chosen without the
-   * regexes being tried at all. resolveLocation models the first rule only,
-   * so the other two are ruled out here directly.
+   * regexes being tried at all. resolveLocation models all three; they are
+   * also ruled out here directly, so this does not rest on the model alone.
    */
   const locations = getLocationBlocks(primaryServerBlock.body);
   const discoveryIndex = locations.findIndex((location) => {
@@ -2066,4 +2069,180 @@ test("the well-known locations that were already there are unchanged", () => {
   assert.deepEqual(getDirectives(statusPageWellKnown[0].body, "rewrite"), [
     "rewrite ^/\\.well-known(.*)$ /api/status-page/.well-known$1 break;",
   ]);
+});
+
+// ---------------------------------------------------------------------------
+// /workflows and /runbooks: the marketing site's short addresses
+// ---------------------------------------------------------------------------
+
+/*
+ * Home redirects /workflows and /runbooks to /product/workflows and
+ * /product/runbooks (Home/Routes.ts). `location /workflow` and
+ * `location /runbook` are prefixes of those two paths, so nginx used to send
+ * them to the app, which has no such route and answered with a JSON 404. An
+ * exact location for each hands them back to wherever `location /` sends the
+ * marketing site, without moving anything the app serves.
+ */
+const MARKETING_ALIASES = [
+  {
+    alias: "/workflows",
+    product: "/product/workflows",
+    appPrefix: "/workflow",
+  },
+  { alias: "/runbooks", product: "/product/runbooks", appPrefix: "/runbook" },
+];
+
+/** A location's directives, one per line, with comments and indentation gone. */
+function directivesOf(location) {
+  return stripComments(location.body)
+    .split("\n")
+    .map((line) => {
+      return line.trim().replace(/\s+/g, " ");
+    })
+    .filter(Boolean);
+}
+
+function findAliasLocation(alias) {
+  return getLocationBlocks(primaryServerBlock.body).find((location) => {
+    return location.spec === `= ${alias}`;
+  });
+}
+
+test("the primary ingress has one exact location for each marketing alias", () => {
+  for (const { alias } of MARKETING_ALIASES) {
+    assert.equal(
+      getLocationBlocks(primaryServerBlock.body).filter((location) => {
+        return location.spec === `= ${alias}`;
+      }).length,
+      1,
+      `the primary ingress must have exactly one "location = ${alias}"`,
+    );
+  }
+});
+
+test("the status-page servers are left as they were", () => {
+  // They have no /workflow or /runbook prefix for the aliases to escape from.
+  for (const serverBlock of serverBlocks) {
+    if (serverBlock === primaryServerBlock) {
+      continue;
+    }
+
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      assert.ok(
+        !location.spec.startsWith("="),
+        `a status-page server gained an exact location: ${location.spec}`,
+      );
+      assert.ok(
+        !/^\/(workflow|runbook)/.test(location.spec),
+        `a status-page server gained ${location.spec}`,
+      );
+    }
+  }
+});
+
+test("nginx location precedence sends each marketing alias to its own block", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const { alias } of MARKETING_ALIASES) {
+    assert.equal(
+      resolveLocation(locations, alias).spec,
+      `= ${alias}`,
+      `${alias} must not fall into a prefix location that sends it to the app`,
+    );
+  }
+});
+
+test("each marketing alias is proxied exactly like location /", () => {
+  /*
+   * Home when billing is enabled, the app otherwise: the address goes where
+   * every other page of the marketing site goes, with the same headers.
+   */
+  const catchAll = getLocationBlocks(primaryServerBlock.body).find(
+    (location) => {
+      return location.spec === "/";
+    },
+  );
+
+  assert.ok(catchAll, "the primary ingress lost location /");
+  assert.ok(
+    directivesOf(catchAll).includes("proxy_pass $backend_home;"),
+    "the premise: location / sends the marketing site to Home",
+  );
+
+  for (const { alias } of MARKETING_ALIASES) {
+    assert.deepEqual(
+      directivesOf(findAliasLocation(alias)),
+      directivesOf(catchAll),
+    );
+  }
+});
+
+test("the marketing alias locations leave the redirect itself to Home", () => {
+  /*
+   * Home keeps the query string a paid click carries and answers with a
+   * relative Location. A `return 301` here would need the query carried by
+   * hand, and nginx would name its own listen port in an absolute Location.
+   */
+  for (const { alias } of MARKETING_ALIASES) {
+    const location = findAliasLocation(alias);
+
+    for (const directive of ["return", "rewrite", "add_header", "access_log"]) {
+      assert.deepEqual(
+        getDirectives(location.body, directive),
+        [],
+        `location = ${alias} should not carry ${directive}`,
+      );
+    }
+  }
+
+  const homeRoutes = fs.readFileSync(
+    path.join(NGINX_DIRECTORY, "..", "Home", "Routes.ts"),
+    "utf8",
+  );
+
+  for (const { alias, product } of MARKETING_ALIASES) {
+    assert.ok(
+      new RegExp(
+        `app\\.get\\("${alias}",[^}]*redirectPreservingQuery\\(req, res, "${product}", 301\\)`,
+      ).test(homeRoutes),
+      `Home must answer ${alias} with a 301 to ${product}`,
+    );
+  }
+});
+
+test("everything the app serves under /workflow and /runbook still reaches it", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const [uri, spec] of [
+    ["/workflow", "/workflow"],
+    ["/workflow/", "/workflow"],
+    ["/workflow/manual/run/6a7b", "/workflow"],
+    ["/workflow/run-step/6a7b", "/workflow"],
+    ["/workflow/model-schema/Incident", "/workflow"],
+    ["/workflow/step-samples/6a7b", "/workflow"],
+    ["/workflow/update/6a7b", "/workflow"],
+    ["/runbook", "/runbook"],
+    ["/runbook/run/6a7b", "/runbook"],
+    ["/runbook/execution/6a7b/cancel", "/runbook"],
+    ["/runbook-agent-ingest/heartbeat", "/runbook-agent-ingest"],
+    ["/runner-ingest/heartbeat", "/runner-ingest"],
+    // Only the two exact addresses moved; anything under them is as it was.
+    ["/workflows/", "/workflow"],
+    ["/workflows/6a7b", "/workflow"],
+    ["/runbooks/", "/runbook"],
+    ["/runbooks/6a7b", "/runbook"],
+  ]) {
+    assert.equal(resolveLocation(locations, uri).spec, spec, uri);
+  }
+
+  for (const { appPrefix } of MARKETING_ALIASES) {
+    const location = getLocationBlocks(primaryServerBlock.body).find(
+      (candidate) => {
+        return candidate.spec === appPrefix;
+      },
+    );
+
+    assert.ok(location, `the primary ingress lost location ${appPrefix}`);
+    assert.ok(/proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(location.body));
+  }
 });

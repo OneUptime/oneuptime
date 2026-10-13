@@ -89,6 +89,8 @@ flowchart TB
 
 規則建立的頻道以 **New Microsoft Teams Channel Name** 加上紀錄編號命名，例如 `oneuptime-incident-42`。只有建立的頻道才會接收規則邀請的人員。私人事件、警示或片段會獲得私人頻道。此後紀錄的每次更新（狀態變化、備註、新擁有者）都會發布到它的頻道和聊天。
 
+擁有專屬頻道的事件、警示、片段或排定維護事件，會在其 OneUptime 頁面標題的狀態按鈕旁顯示 **在 Microsoft Teams 中開啟**。它會在新分頁中開啟該頻道，進入 Microsoft Teams 應用程式或瀏覽器。擁有兩個專屬頻道的紀錄會在按鈕下列出這兩個頻道。在 Slack 和 Microsoft Teams 中都有頻道的紀錄，會改為只顯示一個 **開啟頻道** 按鈕，列出所有頻道。不會提供您的規則所發布到的現有頻道和聊天。
+
 頻道和聊天保持易讀：每次更新只發布一次，紀錄的第一個狀態寫在宣布該紀錄的卡片裡，而不是單獨發一張卡片。待命策略的一次執行就是一張卡片，隨著上報推進而被編輯：呼叫了誰、呼叫了幾次以及透過什麼方式、誰沒有被呼叫以及原因、誰確認了。只有在需要有人採取行動時才會發布新卡片：某條上報規則沒有呼叫到任何人，或者執行結束時仍沒有人確認。紀錄的擁有者或狀態頁面訂閱者已收到通知這件事，保留在 OneUptime 中該紀錄的動態裡。
 
 **專案設定** > **工作區** > **Microsoft Teams** 列出 OneUptime 在您的團隊中看得到的頻道，以及已新增它的聊天，每一項旁邊都有 **傳送測試**。在 Microsoft Teams 中將 OneUptime 應用程式新增到聊天後，該聊天就會出現； **Refresh Chats** 會取得新的聊天及其目前名稱。
@@ -143,17 +145,18 @@ flowchart TB
 | 訊息 | 機器人的動作 |
 | --- | --- |
 | `help` | 列出它能做的事。 |
-| `ask <question>`，或任何日常語言的問題 | OneUptime AI 回答有關記錄、追蹤、指標、事件和監測器的問題，例如「現在有哪些監測器停擺了？」。回答只讀取資料。 |
-| `create incident [title]` | 開啟已填好標題的事件表單。 |
-| `create maintenance [title]` | 開啟已填好標題的排定維護表單。 |
+| `incident [title]` | 開啟已填好標題的事件表單。 |
+| `maintenance [title]` | 開啟已填好標題的排定維護表單。 |
+| `oncall` | 列出您看得到的每個待命排程中目前由誰待命、待命到何時，以及下一位是誰。 |
+| `ask [question]`，或任何日常語言的問題 | OneUptime AI 回答有關記錄、追蹤、指標、事件和監測器的問題，例如「現在有哪些監測器停擺了？」。回答只讀取資料。 |
 | `show active incidents`、 `show active alerts` | 列出目前尚未結束的項目。 |
 | `show scheduled maintenance`、 `show ongoing maintenance` | 列出即將進行或正在進行的維護活動。 |
 
-詢問 OneUptime AI 需要為專案開啟 AI。請參閱 [詢問 AI](/docs/ai/ask-ai)。
+除 `show` 清單外，這些就是 Slack 中 `/oneuptime` 後面的詞；`create incident` 和 `create maintenance` 仍然可以使用。詢問 OneUptime AI 需要連接您自己的 Microsoft Teams 帳戶，並為專案開啟 AI。如果您的帳戶未連接，機器人會在每個討論串或聊天中請您連接一次，並附上一個 **Connect Microsoft Teams account** 按鈕。請參閱 [詢問 AI](/docs/ai/ask-ai)。
 
 ## 從 Microsoft Teams 建立事件和維護
 
-向 OneUptime 機器人輸入 `create incident` 或 `create maintenance`，無論是在個人聊天、頻道還是群組聊天中，都會為輸入的人開啟一個表單。表單以此人的身分填寫：也就是以其 Microsoft Teams 帳戶所連接的 OneUptime 帳戶的身分（請參閱 [連接 Microsoft Teams](#連接-microsoft-teams) ），依該帳戶在專案中的權限提交。帳戶未連接的人，或 OneUptime 帳戶已不再是專案成員的人，會在提及其本人的回覆中收到該怎麼做的說明，而不是表單。
+向 OneUptime 機器人輸入 `incident` 或 `maintenance`，無論是在個人聊天、頻道還是群組聊天中，都會為輸入的人開啟一個表單。表單以此人的身分填寫：也就是以其 Microsoft Teams 帳戶所連接的 OneUptime 帳戶的身分（請參閱 [連接 Microsoft Teams](#連接-microsoft-teams) ），依該帳戶在專案中的權限提交。帳戶未連接的人，或 OneUptime 帳戶已不再是專案成員的人，會在提及其本人的回覆中收到該怎麼做的說明，而不是表單。
 
 - **誰可以使用。** 能在 OneUptime 中宣告事件或建立排定維護活動的人：對於事件，是 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member** （自訂角色中的 **Create Incident** ）；對於活動，是 **Scheduled Maintenance Admin** 和 **Scheduled Maintenance Member** （ **Create Scheduled Maintenance** ）。其他任何人都會收到告知，並且得不到表單。
 - **表單提供什麼。** 每個清單（嚴重程度、監測器、監測器狀態、待命策略和標籤）都包含要求表單的人可以讀取的內容，與 OneUptime 中的同一清單一致，卡片上的 "not shown" 說明也只計算這些：如果角色僅限於某些標籤，則為帶有這些標籤的監測器和待命策略。此人完全無法讀取的清單會被省略。已封存的待命策略永遠不會提供。

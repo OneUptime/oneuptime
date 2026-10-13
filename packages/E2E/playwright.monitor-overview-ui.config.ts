@@ -1,6 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
+/*
+ * The fixture server's port. Another checkout's run on the default port is
+ * reused outside CI, so a second run picks a port of its own:
+ * MONITOR_OVERVIEW_FIXTURE_PORT=4720 CI=1 npm run test-monitor-overview-ui.
+ */
+const port: string = process.env["MONITOR_OVERVIEW_FIXTURE_PORT"] || "4223";
+
 export default defineConfig({
   testDir: "./MonitorOverview",
   testMatch: "*.spec.ts",
@@ -26,7 +33,7 @@ export default defineConfig({
     },
   ],
   use: {
-    baseURL: "http://127.0.0.1:4223",
+    baseURL: `http://127.0.0.1:${port}`,
     locale: "en-US",
     timezoneId: "UTC",
     trace: "retain-on-failure",
@@ -35,7 +42,7 @@ export default defineConfig({
   webServer: {
     command: "node MonitorOverview/Fixture/server.js",
     cwd: path.resolve(__dirname),
-    url: "http://127.0.0.1:4223",
+    url: `http://127.0.0.1:${port}`,
     timeout: 300000,
     reuseExistingServer: !process.env["CI"],
   },

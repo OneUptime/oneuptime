@@ -841,7 +841,13 @@ describe("what a Teams user without a linked account is told (the real lookup; o
   }
 
   interface CreateCommandCase {
+    // The command as typed: as Teams took it before the words were Slack's.
     name: string;
+    /*
+     * The command to type again: the word Slack's /oneuptime takes too
+     * (WorkspaceCommands).
+     */
+    again: string;
     // What the command is asked to connect the account for.
     purpose: string;
     what: string;
@@ -866,6 +872,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
   const CREATE_COMMANDS: ReadonlyArray<CreateCommandCase> = [
     {
       name: "create incident",
+      again: "incident",
       purpose: "declare an incident",
       what: "an incident",
       run: (turn: FakeTurn, activity: JSONObject): Promise<void> => {
@@ -912,6 +919,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
     },
     {
       name: "create maintenance",
+      again: "maintenance",
       purpose: "create a scheduled maintenance event",
       what: "a scheduled maintenance event",
       run: (turn: FakeTurn, activity: JSONObject): Promise<void> => {
@@ -980,13 +988,13 @@ describe("what a Teams user without a linked account is told (the real lookup; o
         const request: WorkspaceConnectRequestRecord =
           await expectConnectPrompt(turn.replies, {
             purpose: command.purpose,
-            next: `It takes one click. Then type **${command.name}** again.`,
+            next: `It takes one click. Then type **${command.again}** again.`,
           });
         // A form opens only on a fresh command: nothing is finished for them.
         expect(request.pendingAction).toBeUndefined();
         expect(request.again).toEqual({
           kind: WorkspaceConnectRequestAgainKind.Command,
-          label: command.name,
+          label: command.again,
         });
         // Told before filling the form in: its lists were never read.
         expect(formLists.mock.calls).toHaveLength(0);
@@ -1076,7 +1084,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
         // One reply: asked to connect the account; no form posted for the channel.
         await expectConnectPrompt(turn.replies, {
           purpose: command.purpose,
-          next: `It takes one click. Then type **${command.name}** again.`,
+          next: `It takes one click. Then type **${command.again}** again.`,
         });
         expect(turn.replies[0]).not.toContain(command.formTitle);
 
@@ -1116,7 +1124,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
 
         await expectConnectPrompt(turn.replies, {
           purpose: command.purpose,
-          next: `It takes one click. Then type **${command.name}** again.`,
+          next: `It takes one click. Then type **${command.again}** again.`,
         });
         expect(create.mock.calls).toHaveLength(0);
         expect(memberPropsSpy).not.toHaveBeenCalled();
@@ -1129,6 +1137,18 @@ describe("what a Teams user without a linked account is told (the real lookup; o
     let aiEnabledSpy: SpyInstance<typeof AIService.isProjectAIEnabled>;
 
     beforeEach((): void => {
+      /*
+       * A question is answered with a prompt once in a conversation while its
+       * Connect button works (#4768): each test asks in the same chat, afresh.
+       */
+      (
+        jest.requireMock(
+          "../../../../../Server/Infrastructure/GlobalCache",
+        ) as {
+          default: { store: Map<string, unknown> };
+        }
+      ).default.store.clear();
+
       // Recording the chat reads the database; it is not what this is about.
       jest
         .spyOn(
@@ -1179,6 +1199,33 @@ describe("what a Teams user without a linked account is told (the real lookup; o
         expect(errorLog).not.toHaveBeenCalled();
       },
     );
+
+    /*
+     * #4768: asked once in a conversation, not on every question there. The
+     * card with its Connect button stays in the chat; a second one under each
+     * question would bury the conversation.
+     */
+    test("a second question in the same chat while the Connect button works: no second card; a question after it expired: a new one", async (): Promise<void> => {
+      stubLinkTable(null);
+
+      const first: FakeTurn = await ask();
+      await expectConnectPrompt(first.replies, ASK_PROMPT);
+
+      const second: FakeTurn = await ask();
+      expect(second.replies).toEqual([]);
+      expect(debugLog).toHaveBeenCalledWith(
+        "Not answered: the Teams user was asked to connect their account in this conversation already",
+        { projectId: PROJECT_ID.toString() },
+      );
+
+      const realNow: number = Date.now();
+      jest.spyOn(Date, "now").mockReturnValue(realNow + 31 * 60 * 1000);
+
+      const third: FakeTurn = await ask();
+      await expectConnectPrompt(third.replies, ASK_PROMPT);
+      expect(memberPropsSpy).not.toHaveBeenCalled();
+      expect(aiEnabledSpy).not.toHaveBeenCalled();
+    });
 
     test("without a dashboard URL the reply still says where to connect the account, and to ask again", async (): Promise<void> => {
       stubLinkTable(null);
