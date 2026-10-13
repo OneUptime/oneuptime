@@ -64,10 +64,11 @@ import { AddressInfo } from "net";
  *   - POST /api/user/get-list, a CRUD route behind the user middleware every
  *     authenticated route mounts: a 401, and no query runs as a master admin;
  *
- * whether the session comes as the dashboard's cookie or as a bearer token.
- * In the same installation a master admin's session the server signed itself
- * still gets through all three, so the refusal is the signature's, not the
- * route's. And an installation whose operator set ENCRYPTION_SECRET still
+ * whether the session comes as the dashboard's cookie or as a bearer token,
+ * whichever HMAC algorithm signed it, unsigned, and for an ordinary user as
+ * much as for a master admin. In the same installation a session the server
+ * signed itself still gets through, so the refusal is the signature's, not
+ * the route's. And an installation whose operator set ENCRYPTION_SECRET still
  * takes the sessions it signed before the upgrade.
  */
 
@@ -120,6 +121,22 @@ function publicKeysOf(installation: Installation): Array<string> {
   ).filter((key: string) => {
     return key.length > 0;
   });
+}
+
+// A master admin's session with "alg": "none" and no signature at all.
+function unsignedToken(): string {
+  const nowInSeconds: number = Math.floor(Date.now() / 1000);
+  const encode: (part: Record<string, unknown>) => string = (
+    part: Record<string, unknown>,
+  ): string => {
+    return Buffer.from(JSON.stringify(part), "utf8").toString("base64url");
+  };
+
+  return `${encode({ alg: "none", typ: "JWT" })}.${encode({
+    ...masterAdminClaims(),
+    iat: nowInSeconds,
+    exp: nowInSeconds + 15 * 60,
+  })}.`;
 }
 
 function genuineMasterAdminToken(installation: Installation): string {
@@ -474,6 +491,82 @@ describe.each(SHIPPED_ENCRYPTION_SECRETS)(
 
       for (const props of server.listProps) {
         expect(props["isMasterAdmin"]).toBe(true);
+      }
+    });
+
+    test("whichever HMAC algorithm signed such a session, and with no signature at all, it is a 401", async () => {
+      const server: Installation = started();
+
+      const forgedTokens: Array<{ how: string; token: string }> = [];
+
+      for (const key of publicKeysOf(server)) {
+        for (const algorithm of ["HS256", "HS384", "HS512"] as const) {
+          forgedTokens.push({
+            how: `${algorithm} with ${JSON.stringify(key)}`,
+            token: jwt.sign(masterAdminClaims(), key, {
+              algorithm,
+              expiresIn: 15 * 60,
+            }),
+          });
+        }
+      }
+
+      forgedTokens.push({ how: "unsigned", token: unsignedToken() });
+
+      for (const { how, token } of forgedTokens) {
+        const result: HttpResult = await send({
+          installation: server,
+          method: "POST",
+          path: `/api/user/${VICTIM_USER_ID}/set-password`,
+          token,
+          carrier: "bearer",
+          body: { password: "Taken-0ver-Passw0rd!" },
+        });
+
+        expect({ how, status: result.status }).toEqual({ how, status: 401 });
+      }
+
+      expect(server.reached).toEqual([]);
+    });
+
+    test("an ordinary user's session signed with that value is a 401 too, and the server's own still works", async () => {
+      const server: Installation = started();
+
+      const ordinaryClaims: Record<string, unknown> = {
+        ...masterAdminClaims(),
+        isMasterAdmin: false,
+      };
+
+      for (const key of publicKeysOf(server)) {
+        const result: HttpResult = await send({
+          installation: server,
+          method: "POST",
+          path: "/api/user/get-list",
+          token: jwt.sign(ordinaryClaims, key, { expiresIn: 15 * 60 }),
+          carrier: "cookie",
+          body: { query: {}, select: { email: true } },
+        });
+
+        expect({ key, status: result.status }).toEqual({ key, status: 401 });
+      }
+
+      expect(server.reached).toEqual([]);
+
+      const genuine: HttpResult = await send({
+        installation: server,
+        method: "POST",
+        path: "/api/user/get-list",
+        token: server.JSONWebToken.signJsonPayload(ordinaryClaims, 15 * 60),
+        carrier: "cookie",
+        body: { query: {}, select: { email: true } },
+      });
+
+      expect(genuine.status).toBe(200);
+      expect(server.listProps.length).toBeGreaterThan(0);
+
+      for (const props of server.listProps) {
+        expect(props["isMasterAdmin"]).not.toBe(true);
+        expect(String(props["userId"])).toBe(FORGED_USER_ID);
       }
     });
   },
