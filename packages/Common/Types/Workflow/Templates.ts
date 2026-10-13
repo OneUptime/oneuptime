@@ -512,6 +512,27 @@ const MATTERMOST_WEBHOOK_URL: WorkflowTemplateVariable = {
   },
 };
 
+// The device and its access token, the same in both SMSEagle templates.
+const SMSEAGLE_URL: WorkflowTemplateVariable = {
+  name: "smsEagleUrl",
+  title: "SMSEagle URL",
+  description:
+    "Base URL of your SMSEagle device. It must be reachable from your OneUptime server.",
+  placeholder: "https://192.168.0.100",
+  required: true,
+  isSecret: false,
+};
+
+const SMSEAGLE_ACCESS_TOKEN: WorkflowTemplateVariable = {
+  name: "smsEagleAccessToken",
+  title: "SMSEagle Access Token",
+  description:
+    "The API v2 access token from the SMSEagle web panel (Settings > API > API v2).",
+  placeholder: "your-api-v2-access-token",
+  required: true,
+  isSecret: true,
+};
+
 /** The select every incident trigger uses. Anything referenced below must be in here. */
 const INCIDENT_SELECT: JSONObject = {
   _id: true,
@@ -8010,31 +8031,17 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     id: "alert-created-smseagle-sms",
     name: "Text a phone via SMSEagle when an alert fires",
     description: "Sends an SMS through SMSEagle whenever an alert is raised.",
-    teaches: "How a step can reach a device on your own network.",
+    teaches:
+      "How a template can ask for a device's address and a secret token.",
     category: WorkflowTemplateCategory.Alerts,
     icon: IconProp.SMS,
     workflowName: "Notify via SMSEagle on new alert",
     workflowDescription:
       "Sends an SMS through SMSEagle whenever an alert is created in this project.",
     variables: [
-      {
-        name: "smsEagleUrl",
-        title: "SMSEagle URL",
-        description:
-          "Base URL of your SMSEagle device. It must be reachable from your OneUptime server.",
-        placeholder: "https://192.168.0.100",
-        required: true,
-        isSecret: false,
-      },
-      {
-        name: "smsEagleAccessToken",
-        title: "SMSEagle Access Token",
-        description:
-          "The API v2 key from the SMSEagle web panel (Settings > API > API v2).",
-        placeholder: "your-api-v2-access-token",
-        required: true,
-        isSecret: true,
-      },
+      SMSEAGLE_URL,
+      SMSEAGLE_ACCESS_TOKEN,
+
       {
         name: "smsEaglePhoneNumber",
         title: "Phone Number",
@@ -8107,24 +8114,9 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     workflowDescription:
       "Calls a phone through SMSEagle whenever an alert is created in this project.",
     variables: [
-      {
-        name: "smsEagleUrl",
-        title: "SMSEagle URL",
-        description:
-          "Base URL of your SMSEagle device. It must be reachable from your OneUptime server.",
-        placeholder: "https://192.168.0.100",
-        required: true,
-        isSecret: false,
-      },
-      {
-        name: "smsEagleAccessToken",
-        title: "SMSEagle Access Token",
-        description:
-          "The API v2 key from the SMSEagle web panel (Settings > API > API v2).",
-        placeholder: "your-api-v2-access-token",
-        required: true,
-        isSecret: true,
-      },
+      SMSEAGLE_URL,
+      SMSEAGLE_ACCESS_TOKEN,
+
       {
         name: "smsEaglePhoneNumber",
         title: "Phone Number",
