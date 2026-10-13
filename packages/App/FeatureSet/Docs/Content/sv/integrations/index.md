@@ -1,118 +1,178 @@
-# Integrationer
+# Översikt över integrationer
 
-OneUptime ansluter till de verktyg ditt team redan använder — Zabbix, Jira, PagerDuty, Slack och många fler — via **[Arbetsflöden](/docs/workflows/index)**, den inbyggda automationsmotorn. Det finns inga separata plugins att installera. Du kopplar ihop en integration på en dra-och-släpp-arbetsyta, och den körs när något händer.
+OneUptime fungerar med de verktyg ditt team redan använder. Larmverktyg skapar incidenter i OneUptime, och OneUptime skapar ärenden, jourlarm och chattmeddelanden i andra verktyg. Vissa verktyg ansluts från ett formulär, andra från en färdig arbetsflödesmall. Alla andra verktyg med en webhook eller ett API ansluts via ett arbetsflöde som du bygger själv.
 
-Den här sidan förklarar de två mönster som varje integration använder. När du förstår dem kan du ansluta OneUptime till nästan vad som helst, även verktyg som inte har en egen sida här.
+:::cards
+- [Välj hur du ansluter](#välj-hur-du-ansluter): De fyra sätten att ansluta och när du använder vart och ett.
+- [Katalog](#katalog): Alla verktyg med en guide, grupperade efter vad de gör.
+- [Bygg din egen integration](#bygg-din-egen-integration): Mönstren för inkommande och utgående data, för alla andra verktyg.
+- [Skydda autentiseringsuppgifter](#skydda-autentiseringsuppgifter): Hemliga variabler och de rubriker som varje verktyg förväntar sig.
+:::
 
-## De två mönstren
+## Så fungerar integrationer
 
-Varje integration flyttar data i en av två riktningar (och många använder båda).
+Varje integration flyttar data i en riktning eller i båda. **Inkommande**: ett annat verktyg berättar för OneUptime att något är fel, och OneUptime skapar en incident eller ett larm och larmar jourteamet. **Utgående**: något händer i OneUptime, och ett arbetsflöde berättar det för ett annat verktyg: det skapar ett ärende, larmar någon eller publicerar ett meddelande.
 
-### Inkommande — ett annat verktyg skickar data till OneUptime
-
-Använd detta när ett externt system behöver _skapa eller uppdatera något i OneUptime_ — vanligtvis öppna en incident eller ett larm när det upptäcker ett problem.
-
-1. Bygg ett arbetsflöde som börjar med en **[Webhook-utlösare](/docs/workflows/triggers#webhook)**. OneUptime ger dig en unik URL.
-2. Konfigurera en webhook / notifieringsåtgärd i det andra verktyget som POSTar till den URL:en när något händer.
-3. I arbetsflödet läser du den inkommande payloaden och använder en **Create Incident**- (eller Create Alert-) komponent för att registrera den.
-
-```text
-Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
+```mermaid title="Inkommande och utgående"
+flowchart TB
+    tool["Larm- eller<br/>säkerhetsverktyg"] -->|"inkommande"| record["Incident eller larm,<br/>jouren larmad"]
+    record -->|"utgående"| workflow["Arbetsflöde, t.ex.<br/>On Create Incident"]
+    workflow -->|"API-anrop<br/>eller meddelande"| other["Ärende-, larm-<br/>eller chattverktyg"]
+    other -.->|"webhook tillbaka"| record
 ```
 
-> **Tips:** Särskilt för larmverktyg är en **[Incoming Request-monitor](/docs/monitor/incoming-request-monitor)** oftast den bättre inkommande vägen. Den ger dig en webhook-URL utan att du bygger ett arbetsflöde, öppnar en incident per larm i payloaden, eskalerar till en jourpolicy och löser varje incident när verktyget rapporterar återställning. Ta till ett arbetsflöde när du behöver logik som OneUptime inte gör inbyggt. Se [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) för ett genomarbetat exempel.
+En dubbelriktad integration, som Jira eller Dynamics 365, använder båda riktningarna: ett arbetsflöde skickar ut incidenten, och ett annat, som startas av det andra verktygets webhook, hämtar tillbaka ändringar.
 
-### Utgående — OneUptime skickar data till ett annat verktyg
+## Välj hur du ansluter
 
-Använd detta när _något i OneUptime ska visas i ett annat verktyg_ — öppna ett Jira-ärende, larma någon i PagerDuty, posta till Slack.
+| Sätt | Passar bäst för | Exempel |
+| --- | --- | --- |
+| En inbyggd anslutning | Verktyg som OneUptime ansluter till själv. Du fyller i ett formulär, och det finns inget att bygga. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), anslutningarna för [Säkerhetshändelser](/docs/telemetry/security-events) |
+| En arbetsflödesmall | Ärendeverktyg, synkade åt båda hållen, och chattmeddelanden. Du väljer en mall och fyller i några inställningar. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| En Incoming Request-monitor | Larmverktyg som skickar en webhook. Du får en incident per larm, skickad till jouren och löst när larmet återhämtar sig, utan arbetsflöde. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| Ett arbetsflöde som du bygger | Alla verktyg med en webhook eller ett REST API, och all egen logik. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
-1. Bygg ett arbetsflöde som börjar med en **[OneUptime-händelseutlösare](/docs/workflows/triggers#oneuptime-event-triggers)** — till exempel **Incident → On Create**.
-2. Lägg till en **[API-komponent](/docs/workflows/components#api)** som anropar det andra verktygets REST API med incidentens uppgifter.
-3. Spara eventuella API-nycklar som **hemliga [globala variabler](/docs/workflows/variables#global-variables)** så att de aldrig visas i arbetsflödet eller dess loggar.
-
-```text
-OneUptime Incident → On Create  ──►  API component  ──►  Jira / PagerDuty / ServiceNow / GitHub
-```
+Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre finns det att underhålla.
 
 ## Katalog
 
-| Verktyg                                                               | Riktning                | Vad det gör                                                                       |
-| --------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------- |
-| [Zabbix](/docs/integrations/zabbix)                                   | Inkommande              | Omvandla Zabbix-problem till OneUptime-incidenter (och lös dem vid återhämtning). |
-| [Jira](/docs/integrations/jira)                                       | Utgående (+ inkommande) | Öppna ett Jira-ärende för varje incident; synkronisera status tillbaka.           |
-| [PagerDuty](/docs/integrations/pagerduty)                             | Utgående (+ inkommande) | Utlös och lös PagerDuty-händelser från OneUptime-incidenter.                      |
-| [Opsgenie](/docs/integrations/opsgenie)                               | Utgående (+ inkommande) | Skapa och stäng Opsgenie-larm.                                                    |
-| [ServiceNow](/docs/integrations/servicenow)                           | Utgående (+ inkommande) | Öppna ServiceNow-incidenter från OneUptime.                                       |
-| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | Utgående (+ inkommande) | Öppna och lös Dynamics 365-ärenden från OneUptime-incidenter.                     |
-| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inkommande              | Konvertera Alertmanager-notifieringar till incidenter.                            |
-| [Grafana](/docs/integrations/grafana)                                 | Inkommande              | Konvertera Grafana-larm till incidenter.                                          |
-| [Datadog](/docs/integrations/datadog)                                 | Inkommande              | Konvertera Datadog-monitorlarm till incidenter.                                   |
-| [Huntress](/docs/integrations/huntress)                               | Inkommande           | Larma jouren för Huntress-incidentrapporter och lös incidenten när rapporten stängs. |
-| [GitHub](/docs/integrations/github)                                   | Utgående                | Öppna ett GitHub-ärende för en incident.                                          |
-| [GitLab](/docs/integrations/gitlab)                                   | Utgående                | Öppna ett GitLab-ärende för en incident.                                          |
-| [Discord](/docs/integrations/discord)                                 | Utgående                | Posta incidentuppdateringar till en Discord-kanal.                                |
-| [Telegram](/docs/integrations/telegram)                               | Utgående                | Skicka incidentuppdateringar till en Telegram-chatt.                              |
-| [IRC](/docs/integrations/irc)                                         | Utgående                | Posta incidentuppdateringar till en IRC-kanal.                                    |
-| [Slack](/docs/workspace-connections/slack)                            | Båda                    | Inbyggd workspace-anslutning — kanaler, larm och jour.                            |
-| [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Båda                    | Inbyggd workspace-anslutning.                                                     |
+### Övervaknings- och larmverktyg
 
-> **Slack och Microsoft Teams** har en djupare, inbyggd anslutning som går längre än arbetsflöden — automatiska incidentkanaler, tvåvägsåtgärder och journotifieringar. Använd [Slack-](/docs/workspace-connections/slack) och [Microsoft Teams-](/docs/workspace-connections/microsoft-teams)workspace-anslutningarna för dessa, i stället för att bygga ett arbetsflöde.
+| Verktyg | Riktning | Vad det gör |
+| --- | --- | --- |
+| [Zabbix](/docs/integrations/zabbix) | Inkommande | Gör Zabbix-problem till incidenter och löser dem när Zabbix har återhämtat sig. |
+| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inkommande | Gör aviseringar från Alertmanager till incidenter. |
+| [Grafana](/docs/integrations/grafana) | Inkommande | Gör larm från Grafana till incidenter. |
+| [Datadog](/docs/integrations/datadog) | Inkommande | Gör larm från Datadog-monitorer till incidenter. |
 
-## Hantera hemligheter
+### Säkerhetsverktyg
 
-Klistra aldrig in en API-nyckel eller token direkt i ett block. Gör så här i stället:
+| Verktyg | Riktning | Vad det gör |
+| --- | --- | --- |
+| [Huntress](/docs/integrations/huntress) | Inkommande | Larmar jouren vid incidentrapporter från Huntress och löser incidenten när rapporten stängs. |
+| [Google SecOps](/docs/integrations/google-secops) | Inkommande | Hämtar detektioner från Google SecOps till Säkerhetshändelser. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Inkommande | Hämtar incidenter från Microsoft Sentinel till Säkerhetshändelser. |
+| [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | Inkommande | Hämtar larm från Microsoft Defender XDR till Säkerhetshändelser. |
+| [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | Inkommande | Hämtar larm från CrowdStrike Falcon till Säkerhetshändelser. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | Inkommande | Hämtar notable events från Splunk till Säkerhetshändelser. |
+| [Elastic Security](/docs/integrations/elastic-security) | Inkommande | Hämtar detektionslarm från Elastic Security till Säkerhetshändelser. |
+| [AWS Security Hub](/docs/integrations/aws-security-hub) | Inkommande | Hämtar fynd från AWS Security Hub till Säkerhetshändelser. |
+| [Okta-systemlogg](/docs/integrations/okta) | Inkommande | Hämtar inloggningar, kontoändringar och hotdetektioner från Okta till Säkerhetshändelser. |
 
-1. Gå till **Arbetsflöden → Globala variabler**.
-2. Skapa en variabel — till exempel `JIRA_AUTH` — och slå på **Hemlighet**.
-3. Referera till den var som helst med `{{global.variables.JIRA_AUTH}}`.
+### Ärendehantering och IT-tjänstehantering
 
-Hemliga variabler döljs i användargränssnittet när du sparar och rensas från körningsloggar. Se [Variabler](/docs/workflows/variables#global-variables).
+| Verktyg | Riktning | Vad det gör |
+| --- | --- | --- |
+| [Jira](/docs/integrations/jira) | Båda | Skapar ett Jira-ärende för varje incident eller larm och hämtar tillbaka statusändringar och kommentarer. |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) | Båda | Skapar ett Dynamics 365-ärende för varje incident eller larm och hämtar tillbaka statusändringar och anteckningar. |
+| [ServiceNow](/docs/integrations/servicenow) | Utgående | Skapar en ServiceNow-incident för varje OneUptime-incident och löser den tillsammans med incidenten. |
+| [GitHub](/docs/integrations/github) | Utgående | Skapar ett GitHub-issue för en incident. |
+| [GitLab](/docs/integrations/gitlab) | Utgående | Skapar ett GitLab-issue för en incident. |
 
-## Autentiseringsfuskblad
+### Verktyg för jourlarm
 
-De flesta utgående integrationer behöver en `Authorization`-header på API-blocket. Vanliga former:
+| Verktyg | Riktning | Vad det gör |
+| --- | --- | --- |
+| [PagerDuty](/docs/integrations/pagerduty) | Utgående | Utlöser en PagerDuty-incident för varje OneUptime-incident och löser den tillsammans med incidenten. |
+| [Opsgenie](/docs/integrations/opsgenie) | Utgående | Skapar ett Opsgenie-larm för varje OneUptime-incident och stänger det tillsammans med incidenten. |
 
-| Schema                       | Header-värde                                       | Används av                          |
-| ---------------------------- | -------------------------------------------------- | ----------------------------------- |
-| Bearer-token                 | `Bearer {{global.variables.TOKEN}}`                | GitHub, många moderna API:er        |
-| Basic auth                   | `Basic {{global.variables.BASE64_USER_PASS}}`      | Jira Cloud, ServiceNow              |
-| API-nyckelheader             | `GenieKey {{global.variables.OPSGENIE_KEY}}`       | Opsgenie                            |
-| Token i body                 | fältet `routing_key` i JSON-bodyn                  | PagerDuty Events API                |
-| Private token-header         | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab                              |
-| OAuth 2.0 client credentials | `Bearer <token fetched by an earlier API block>`   | Microsoft Dynamics 365 (Dataverse)  |
+### Chattverktyg
 
-För Basic auth, base64-koda `username:password` (eller `email:api_token`) **en gång**, spara sedan resultatet som hemligheten. På macOS/Linux:
+| Verktyg | Riktning | Vad det gör |
+| --- | --- | --- |
+| [Slack](/docs/workspace-connections/slack) | Båda | En inbyggd anslutning: incidentkanaler, åtgärder från Slack och jour. |
+| [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Båda | En inbyggd anslutning: incidentkanaler, åtgärder från Teams och jour. |
+| [Mattermost](/docs/workflows/components#mattermost) | Utgående | Publicerar incidentuppdateringar i en Mattermost-kanal. |
+| [Discord](/docs/integrations/discord) | Utgående | Publicerar incidentuppdateringar i en Discord-kanal. |
+| [Telegram](/docs/integrations/telegram) | Utgående | Skickar incidentuppdateringar till en Telegram-chatt. |
+| [IRC](/docs/integrations/irc) | Utgående | Publicerar incidentuppdateringar i en IRC-kanal. |
+
+> [!TIP]
+> Slack och Microsoft Teams har också arbetsflödessteg. Använd den inbyggda anslutningen för incidentkanaler och jour, och ett arbetsflödessteg när du bara behöver ett meddelande i en kanal.
+
+## Byt från ett annat verktyg
+
+För att lämna ett annat verktyg för jour, drifttid eller statussidor tar du över ditt team i stället för att ansluta de två. **Projektinställningar → Importera från ett annat verktyg** läser ditt konto med en API-nyckel, visar vad det hittade och skapar det du kryssar i. Varje verktyg har en guide:
+
+- Verktyg för jour och incidenter: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) och [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
+- Verktyg för drifttid och statussidor: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) och [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).
+
+## Bygg din egen integration
+
+Ett verktyg utan guide passar ändå in i ett av två mönster. Kan det skicka en webhook använder du det inkommande mönstret. Har det ett REST API använder du det utgående mönstret. Båda är arbetsflöden: se [Översikt över arbetsflöden](/docs/workflows/index) för att komma igång.
+
+### Inkommande: ett annat verktyg skickar data till OneUptime
+
+För ett larmverktyg börjar du med en [Incoming Request-monitor](/docs/monitor/incoming-request-monitor#ta-emot-larm-från-ett-annat-system): den skapar en incident per larm och löser den vid återhämtning, utan att du behöver bygga något. Bygg ett arbetsflöde när du behöver egen logik:
+
+:::steps
+1. Öppna **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **Börja från grunden**. Namnge arbetsflödet och klicka på **Skapa arbetsflöde**.
+2. Klicka på det streckade blocket **Choose what starts this workflow** och välj **Webhook**. Klicka på utlösaren och sedan på **Kopiera URL**.
+3. Skicka det andra verktygets webhook till den URL:en som en `POST` med `Content-Type: application/json`.
+4. Lägg till blocken som agerar på den. De läser begäran med referenser som `{{local.components.webhook-1.returnValues.request-body.status}}`: ett **If / Else**-block för att kontrollera ett fält och sedan **Create One Incident** för att deklarera en incident.
+5. Slå på **Aktiverad** högst upp i **Byggare**, skicka ett test från det andra verktyget och öppna **Loggar → Körningar** för att se vad som kom in.
+:::
+
+URL:en är den enda autentiseringsuppgiften, så behandla den som ett lösenord. Se [Webhook](/docs/workflows/triggers#webhook).
+
+### Utgående: OneUptime skickar data till ett annat verktyg
+
+:::steps
+1. Spara verktygets API-nyckel som en hemlig global variabel, som visas [nedan](#skydda-autentiseringsuppgifter).
+2. Skapa ett arbetsflöde, klicka på det streckade blocket och välj en händelseutlösare, t.ex. **On Create Incident**. Kryssa i fälten som ska skickas i **Select Fields**, t.ex. `title` och `description`.
+3. Klicka på **Lägg till komponent** och lägg till ett **API Post (JSON)**-block. Koppla utlösarens **Success**-punkt till det.
+4. Fyll i **URL**, **Request Headers** med rubriken `Authorization` och **Request Body** med incidentens fält, t.ex. `{{local.components.incident-on-create-1.returnValues.model.title}}`.
+5. Klicka på **Kör arbetsflöde**, ange **Incident-ID** för en incident och kör det. En testkörning skickar begäran på riktigt. Slå sedan på **Aktiverad**.
+:::
+
+När verktyget behöver datan i en annan form lägger du till ett [Run Custom JavaScript](/docs/workflows/components#custom-code)-block mellan de två. Receptet är detsamma för Zendesk, New Relic, AWS (via SNS), StatusCake och alla andra: bara URL:en och innehållet ändras.
+
+## Skydda autentiseringsuppgifter
+
+Klistra aldrig in en API-nyckel eller en token i ett block. Spara den en gång som en hemlig global variabel:
+
+:::steps
+1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflöde Variabel**.
+2. Ge den ett namn, t.ex. `JIRA_AUTH`, och klicka på **Nästa**.
+3. Klistra in nyckeln i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**.
+:::
+
+Alla block läser den som `{{global.variables.JIRA_AUTH}}`. En variabels innehåll kan inte läsas igen när det har sparats, och innehållet i en hemlig variabel ersätts med `[REDACTED]` i körningsloggar. För tokens som löper ut, som de från Microsoft Entra ID, hämtar en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-token-som-förnyar-sig-själva) en ny själv. Se [Arbetsflödesvariabler](/docs/workflows/variables#globala-variabler).
+
+### Lathund för autentisering
+
+De flesta utgående integrationer lägger nyckeln i en rubrik i begäran. De vanliga formerna:
+
+| Schema | Vad du skickar | Används av |
+| --- | --- | --- |
+| Bearer-token | `Authorization: Bearer {{global.variables.TOKEN}}` | GitHub och de flesta moderna API:er |
+| Basic-autentisering | `Authorization: Basic {{global.variables.BASE64_USER_PASS}}` | Jira Cloud, ServiceNow |
+| Rubrik med API-nyckel | `Authorization: GenieKey {{global.variables.OPSGENIE_KEY}}` | Opsgenie |
+| Rubrik med privat token | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab |
+| Nyckel i innehållet | `routing_key` i JSON-innehållet | PagerDuty Events API |
+| OAuth 2.0-klientautentiseringsuppgifter | `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`, från en OAuth 2.0-variabel | Microsoft Dynamics 365 |
+
+För Basic-autentisering kodar du `username:password`, eller `email:api_token`, en gång och sparar resultatet som hemligheten. På macOS eller Linux:
 
 ```bash
-printf '%s' 'you@example.com:your_api_token' | base64
+printf '%s' 'you@example.com:your_api_token' | base64 | tr -d '\n'
 ```
 
-## Hittar du inte ditt verktyg?
+Använd `printf`, inte `echo`: `echo` lägger till en radbrytning, som kodas tillsammans med resten och förstör autentiseringsuppgifterna. `tr` håller ett långt resultat på en rad.
 
-Nästan vilket verktyg som helst passar in i ett av de två mönstren ovan:
+## Egenhostade installationer
 
-- Om verktyget kan **skicka en webhook** när något händer, använd det **inkommande** mönstret — peka dess webhook mot en [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) om det är ett larmverktyg, eller mot en OneUptime Webhook-utlösare om du behöver egen logik.
-- Om verktyget har ett **REST API**, använd det **utgående** mönstret — anropa det från en **API-komponent**.
-- Om du behöver omforma data mellan de två, lägg till ett **[Custom Code](/docs/workflows/components#custom-code)**-block.
+En egenhostad OneUptime anropar andra verktyg från ditt nätverk, och andra verktyg anropar den från sina:
 
-Det täcker den långa svansen — Zendesk, AWS CloudWatch (via SNS), New Relic, Splunk, StatusCake med flera. Receptet är detsamma; bara URL:en och payloaden ändras.
+- **Utgående:** arbetsflödesbegäranden till privata nätverksadresser nekas om inte en administratör tillåter dem. Se [Utgående nätverksåtkomst](/docs/workflows/configuration#utgående-nätverksåtkomst).
+- **Inkommande:** ett verktygs webhooks måste nå din OneUptime via HTTPS, så ett verktyg i molnet behöver en offentlig adress att anropa.
+- **Inbyggda integrationer** har var sin installationsguide: [Slack](/docs/self-hosted/slack-integration), [Microsoft Teams](/docs/self-hosted/microsoft-teams-integration), [GitHub](/docs/self-hosted/github-integration), [Twilio](/docs/self-hosted/twilio-integration), [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email) och [Push Notifications](/docs/self-hosted/push-notifications).
 
-## Läs vidare
+## Nästa steg
 
-- [Översikt över arbetsflöden](/docs/workflows/index) — hur automationsmotorn fungerar.
-- [Utlösare](/docs/workflows/triggers) — Webhook- och OneUptime-händelseutlösare i detalj.
-- [Komponenter](/docs/workflows/components) — API-, Webhook- och datakomponenterna.
-- [Variabler](/docs/workflows/variables) — hemligheter och att skicka data mellan block.
-- [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) — den arbetsflödesfria inkommande vägen för larmverktyg.
-- [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) och [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — fullständiga genomarbetade exempel.
-
-## Nätverksåtkomst för egenhostade installationer
-
-Nätverkskraven beskrivs nu i installationsguiden för varje integration. Välj din integration:
-
-- [GitHub-integration](/docs/self-hosted/github-integration)
-- [SendGrid Integration för inkommande e-post](/docs/self-hosted/sendgrid-inbound-email)
-- [Slack-integration](/docs/self-hosted/slack-integration)
-- [Microsoft Teams-integration](/docs/self-hosted/microsoft-teams-integration)
-- [Twilio-integration för SMS och röst](/docs/self-hosted/twilio-integration)
-- [Push-aviseringar](/docs/self-hosted/push-notifications)
+:::cards
+- [Översikt över arbetsflöden](/docs/workflows/index): Hur arbetsflöden körs och hur du bygger ditt första.
+- [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor): Ta emot larm från alla verktyg utan arbetsflöde.
+- [Jira](/docs/integrations/jira): En komplett dubbelriktad integration, utifrån mallar.
+- [Arbetsflödesvariabler](/docs/workflows/variables): Skicka data mellan block och håll hemligheter utanför dem.
+:::
