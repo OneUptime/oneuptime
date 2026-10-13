@@ -589,6 +589,13 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       expect(arg.select).toEqual({
         _id: true,
         userId: true,
+        /*
+         * The rule's half of whether its push rings through silent mode
+         * (the device's isCriticalAlertEnabled below is the other half).
+         * Dropped, it reads as the default, Critical, and a rule its owner
+         * set to Standard keeps waking them through Do Not Disturb.
+         */
+        pushNotificationLevel: true,
         userCall: {
           phone: true,
           isVerified: true,
