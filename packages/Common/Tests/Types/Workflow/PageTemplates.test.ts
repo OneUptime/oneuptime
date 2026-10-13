@@ -44,6 +44,7 @@ import ComponentMetadata, {
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import {
+  PageTargetKind,
   getPageStepTarget,
   isPageStep,
 } from "../../../Types/Workflow/Components/OnCall";
@@ -354,6 +355,59 @@ describe.each(PAGE_TEMPLATE_IDS)(
       expect(template.description).toMatch(YOU_PICK);
     });
 
+    /*
+     * And where the picker lists what a template will need, it does not say
+     * "Nothing to fill in.": it names what the template's own Page steps
+     * pick - a schedule, a policy and a team, people - and where.
+     */
+    test("what it will need names each kind of record its Page steps pick, in the order they are on the canvas, and no other", () => {
+      const needs: string =
+        getWorkflowTemplate(templateId)!.setUpInBuilder || "";
+      const said: string = needs.toLowerCase();
+      const kinds: Array<PageTargetKind> = pageStepsOf(templateId).map(
+        (node: TemplateNodeSpec): PageTargetKind => {
+          return getPageStepTarget(node.metadataId)!.kind;
+        },
+      );
+      const positions: Array<number> = kinds.map(
+        (kind: PageTargetKind): number => {
+          return said.indexOf(WHAT_A_STEP_PICKS[kind]);
+        },
+      );
+
+      expect({
+        templateId: templateId,
+        needs: needs,
+        positions: positions,
+      }).toEqual({
+        templateId: templateId,
+        needs: needs,
+        // Each is named, the first step's first.
+        positions: [...positions].sort((a: number, b: number): number => {
+          return a - b;
+        }),
+      });
+      expect(Math.min(...positions)).toBeGreaterThanOrEqual(0);
+
+      for (const kind of Object.values(PageTargetKind)) {
+        if (!kinds.includes(kind)) {
+          expect(said).not.toContain(WHAT_A_STEP_PICKS[kind]);
+        }
+      }
+
+      // One schedule is "it"; people, or two kinds of record, are "them".
+      const isOneRecord: boolean =
+        kinds.length === 1 && kinds[0] !== PageTargetKind.User;
+
+      expect(
+        needs.endsWith(
+          isOneRecord
+            ? " to page. You pick it in the Builder."
+            : " to page. You pick them in the Builder.",
+        ),
+      ).toBe(true);
+    });
+
     test("every Page step's Error output leads somewhere: a page nobody got is never silent", () => {
       for (const node of pageStepsOf(templateId)) {
         expect(leadsTo(templateId, node.componentId, "error")).toHaveLength(1);
@@ -364,6 +418,14 @@ describe.each(PAGE_TEMPLATE_IDS)(
 
 const OPEN_AND_PICK: RegExp = /Open (the|each) Page step and pick /;
 const YOU_PICK: RegExp = /you pick/;
+
+// What each kind of Page step picks, as a template's "what you'll need" names it.
+const WHAT_A_STEP_PICKS: Record<PageTargetKind, string> = {
+  [PageTargetKind.User]: "people",
+  [PageTargetKind.Team]: "team",
+  [PageTargetKind.OnCallSchedule]: "on-call schedule",
+  [PageTargetKind.OnCallPolicy]: "on-call policy",
+};
 
 describe("what each page is about", () => {
   test.each([

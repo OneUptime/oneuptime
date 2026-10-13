@@ -259,6 +259,20 @@ const lintIssuesBesidesWhoToPage: LintIssuesBesidesWhoToPageFunction = (
   });
 };
 
+/*
+ * Whether a template has a Page step: the one kind of step a template
+ * leaves unfinished, for its user to say who is paged.
+ */
+type LeavesWhoToPageFunction = (templateId: string) => boolean;
+
+const leavesWhoToPage: LeavesWhoToPageFunction = (
+  templateId: string,
+): boolean => {
+  return specOf(templateId).nodes.some((node: TemplateNodeSpec): boolean => {
+    return (findMetadata(node.metadataId)?.arguments || []).some(isWhoToPage);
+  });
+};
+
 /** Every string an argument holds, including strings nested inside JSON objects. */
 type CollectStringsFunction = (value: JSONValue | undefined) => Array<string>;
 
@@ -497,6 +511,8 @@ describe("workflow templates", () => {
           ...(template.category === WorkflowTemplateCategory.Dynamics365
             ? ["oauth2Variables"]
             : []),
+          // Only the templates that page people leave something for the Builder.
+          ...(leavesWhoToPage(template.id) ? ["setUpInBuilder"] : []),
         ].sort(),
       );
     }
@@ -1997,6 +2013,34 @@ describe.each(
         },
       ),
     ).toEqual([]);
+  });
+
+  /*
+   * What the picker says a template will need. A template that leaves
+   * something for the Builder - who its Page steps page - says so
+   * (setUpInBuilder), and a template the builder's checks pass as it is
+   * created does not: "Nothing to fill in." is only said of a workflow that
+   * runs as it is created.
+   */
+  test("says what is left to set up in the Builder exactly when something is", () => {
+    const result: WorkflowLintResult = lintWorkflowGraph(hydrate(templateId));
+    const leftToSetUp: number =
+      result.issues.length -
+      lintIssuesBesidesWhoToPage(templateId, result).length;
+    const says: string = (
+      (getWorkflowTemplate(templateId) as WorkflowTemplate).setUpInBuilder || ""
+    ).trim();
+
+    expect({ templateId: templateId, says: says.length > 0 }).toEqual({
+      templateId: templateId,
+      says: leftToSetUp > 0,
+    });
+
+    if (says) {
+      // Short, like the line beside it, and it ends with where it is picked.
+      expect(says.endsWith("in the Builder.")).toBe(true);
+      expect(says.length).toBeLessThanOrEqual(80);
+    }
   });
 
   /*

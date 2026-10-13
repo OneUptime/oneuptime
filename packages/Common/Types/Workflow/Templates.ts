@@ -291,8 +291,16 @@ export interface WorkflowTemplate {
   /** Suggested name for the created workflow. */
   workflowName: string;
   workflowDescription: string;
-  /** Configuration the wizard collects before creating. Empty means it runs as-is. */
+  /** Configuration the wizard collects before creating. Empty means it asks for nothing. */
   variables: Array<WorkflowTemplateVariable>;
+  /**
+   * What the created workflow still needs that the wizard cannot ask for,
+   * because it is picked from the project's own records in the Builder: who
+   * a Page step pages. A short sentence or two, shown under "What you'll
+   * need" where a template that runs as it is created says "Nothing to fill
+   * in.". Absent on the templates that leave nothing to set up.
+   */
+  setUpInBuilder?: string | undefined;
   /**
    * OAuth 2.0 variables the wizard writes beside the static ones, built from
    * the values typed into `variables`. Absent on templates that need none.
@@ -8660,6 +8668,7 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
       "Checks each new incident's severity and, when it is critical, pages the person on call in a schedule you pick.",
     teaches:
       "How an If / Else in front of a Page step makes paging conditional. Open the Page step and pick the schedule.",
+    setUpInBuilder: "An on-call schedule to page. You pick it in the Builder.",
     category: WorkflowTemplateCategory.OnCall,
     icon: IconProp.Call,
     workflowName: "Page on-call for critical incidents",
@@ -8767,6 +8776,8 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
       "Starts an on-call policy you pick for critical incidents, pages a team you pick for major ones, and only logs the rest.",
     teaches:
       "How Switch / Case makes paging depend on a value, with a different Page step on each path. Open each Page step and pick who it pages.",
+    setUpInBuilder:
+      "An on-call policy and a team to page. You pick them in the Builder.",
     category: WorkflowTemplateCategory.OnCall,
     icon: IconProp.Switch,
     workflowName: "Page by incident severity",
@@ -8905,6 +8916,7 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
       "Gives you a URL. A POST to it pages the people you pick, with the title and message it sent, and opens an alert they can acknowledge.",
     teaches:
       "How paging works with no incident behind it: the Page step's title and message become a new alert. Open the Page step and pick who to page.",
+    setUpInBuilder: "People to page. You pick them in the Builder.",
     category: WorkflowTemplateCategory.OnCall,
     icon: IconProp.User,
     workflowName: "Page people from a webhook",
