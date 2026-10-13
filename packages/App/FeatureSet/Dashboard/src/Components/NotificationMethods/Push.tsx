@@ -20,10 +20,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL, VAPID_PUBLIC_KEY } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import User from "Common/UI/Utils/User";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
 import React, { ReactElement, useRef, useState } from "react";
@@ -477,14 +474,12 @@ const Push: () => JSX.Element = (): ReactElement => {
           deviceType: true,
         }}
         onFetchSuccess={(devices: Array<UserPush>) => {
-          isPhoneListedRef.current = devices.some(
-            (item: UserPush): boolean => {
-              return (
-                getPushDevicePlatform(item.deviceType) !==
-                PushDevicePlatform.Browser
-              );
-            },
-          );
+          isPhoneListedRef.current = devices.some((item: UserPush): boolean => {
+            return (
+              getPushDevicePlatform(item.deviceType) !==
+              PushDevicePlatform.Browser
+            );
+          });
         }}
         actionButtons={[
           {

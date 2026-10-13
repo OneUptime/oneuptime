@@ -86,9 +86,10 @@ const PushDeviceCriticalAlertSteps: FunctionComponent<ComponentProps> = (
     </>
   );
 
-  const storeLink: (data: { name: string; url: string }) => ReactElement = (
-    data: { name: string; url: string },
-  ): ReactElement => {
+  const storeLink: (data: {
+    name: string;
+    url: string;
+  }) => ReactElement = (data: { name: string; url: string }): ReactElement => {
     return (
       <a
         href={data.url}

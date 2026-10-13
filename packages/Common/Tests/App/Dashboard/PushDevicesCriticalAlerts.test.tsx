@@ -538,9 +538,7 @@ describe("the Critical Alerts column draws each device's state as a status", () 
       "not-receiving",
       "not-available",
     ]);
-    expect(screen.getAllByTestId("critical-alert-steps-link")).toHaveLength(
-      2,
-    );
+    expect(screen.getAllByTestId("critical-alert-steps-link")).toHaveLength(2);
   });
 
   test("nothing in the column is a control: no checkbox, no switch, no field - only the one link", async () => {
@@ -560,8 +558,7 @@ describe("the Critical Alerts column draws each device's state as a status", () 
           .queryAllByRole("button")
           .filter((button: HTMLElement): boolean => {
             return (
-              button.getAttribute("data-testid") !==
-              "critical-alert-steps-link"
+              button.getAttribute("data-testid") !== "critical-alert-steps-link"
             );
           }),
       ).toHaveLength(0);
@@ -802,9 +799,7 @@ describe("How to turn on: the steps on that phone, as its app asks", () => {
     ];
 
     // The footer's Close; the header's X is the other way out.
-    fireEvent.click(
-      within(dialog()).getByTestId("modal-footer-close-button"),
-    );
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-close-button"));
 
     await waitFor(() => {
       expect(screen.queryByTestId("modal")).toBeNull();
@@ -892,7 +887,9 @@ describe("a browser, and nobody's phone yet", () => {
     ]);
 
     // No phone to name, and nothing that only a phone does.
-    expect(within(modal).queryByTestId("critical-alert-steps-device")).toBeNull();
+    expect(
+      within(modal).queryByTestId("critical-alert-steps-device"),
+    ).toBeNull();
     expect(
       within(modal).queryByTestId("critical-alert-steps-once-on"),
     ).toBeNull();
@@ -973,9 +970,9 @@ describe("no devices yet", () => {
       screen.getAllByRole("button", { name: "Register Device" }),
     ).toHaveLength(2);
     // A phone: the app.
-    expect(
-      screen.getByTestId("push-devices-empty-get-app"),
-    ).toHaveTextContent("Get the mobile app");
+    expect(screen.getByTestId("push-devices-empty-get-app")).toHaveTextContent(
+      "Get the mobile app",
+    );
   });
 
   test("Get the mobile app opens the steps that get it", async () => {

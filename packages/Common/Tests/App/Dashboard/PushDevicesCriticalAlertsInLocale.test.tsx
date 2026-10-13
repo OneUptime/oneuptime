@@ -96,17 +96,14 @@ function expectedStep(language: string, template: string): string {
 
 function stepsShown(): Array<string> {
   return Array.from(
-    screen
-      .getByTestId("critical-alert-steps-list")
-      .querySelectorAll("li > p"),
+    screen.getByTestId("critical-alert-steps-list").querySelectorAll("li > p"),
   ).map((step: Element): string => {
     return step.textContent || "";
   });
 }
 
 beforeAll(async () => {
-  const resources: Record<string, { translation: Record<string, string> }> =
-    {};
+  const resources: Record<string, { translation: Record<string, string> }> = {};
 
   for (const language of LANGUAGES) {
     resources[language] = { translation: LOCALES[language]! };
@@ -230,9 +227,9 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
     expect(
       within(off!).getByTestId("critical-alert-steps-link"),
     ).toHaveAccessibleName(
-      locale["How to turn on critical alerts on {{deviceName}}"]!
-        .split("{{deviceName}}")
-        .join("iPhone 15 Pro"),
+      locale["How to turn on critical alerts on {{deviceName}}"]!.split(
+        "{{deviceName}}",
+      ).join("iPhone 15 Pro"),
     );
     expect(
       within(notAvailable!).getByText(locale["Not available in browsers"]!),

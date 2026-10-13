@@ -141,8 +141,7 @@ const PushDeviceCriticalAlertStatus: FunctionComponent<ComponentProps> = (
           <span>{translator.translateText("Off")}</span>
         </div>
         {getStepsLink({
-          text:
-            translator.translateText("How to turn on") || "How to turn on",
+          text: translator.translateText("How to turn on") || "How to turn on",
           accessibleName: translator.translateTemplate(
             "How to turn on critical alerts on {{deviceName}}",
             { deviceName: props.deviceName },
@@ -167,8 +166,9 @@ const PushDeviceCriticalAlertStatus: FunctionComponent<ComponentProps> = (
             translator.translateText("Get them on your phone") ||
             "Get them on your phone",
           accessibleName:
-            translator.translateText("How to get critical alerts on your phone") ||
-            "How to get critical alerts on your phone",
+            translator.translateText(
+              "How to get critical alerts on your phone",
+            ) || "How to get critical alerts on your phone",
         })
       ) : (
         <p className="text-xs leading-5 text-gray-500">

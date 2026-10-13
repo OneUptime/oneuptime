@@ -245,7 +245,9 @@ describe("the steps follow what the app does on each platform", () => {
       USE_CRITICAL_ALERTS.indexOf("const setEnabled:"),
     );
 
-    expect(setEnabled.indexOf("setCriticalAlertsEnabledOnServer(")).toBeLessThan(
+    expect(
+      setEnabled.indexOf("setCriticalAlertsEnabledOnServer("),
+    ).toBeLessThan(
       setEnabled.indexOf("await storeCriticalAlertsEnabled(enabled);"),
     );
 
@@ -365,12 +367,7 @@ describe("the steps follow what the app does on each platform", () => {
 });
 
 describe("the card shows a status because the server leaves nothing to change here", () => {
-  const model: string = read(
-    COMMON,
-    "Models",
-    "DatabaseModels",
-    "UserPush.ts",
-  );
+  const model: string = read(COMMON, "Models", "DatabaseModels", "UserPush.ts");
 
   test("nobody may write isCriticalAlertEnabled through the Dashboard's API", () => {
     const column: number = model.indexOf(

@@ -169,7 +169,9 @@ export const CRITICAL_ALERT_STEPS: Record<
   [PushDevicePlatform.Android]: [
     translationKey("Open {{app}} on this phone and tap {{settings}}."),
     TURN_ON_THE_SWITCH,
-    translationKey("Android opens Do Not Disturb access. Allow it for {{app}}."),
+    translationKey(
+      "Android opens Do Not Disturb access. Allow it for {{app}}.",
+    ),
     translationKey("Go back to the app and turn on {{criticalAlerts}} again."),
   ],
   [PushDevicePlatform.Browser]: [

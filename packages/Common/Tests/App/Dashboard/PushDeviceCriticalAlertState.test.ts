@@ -185,17 +185,18 @@ describe("the sentences the steps are built from", () => {
   });
 
   test("Android's last step turns the switch on again, iOS's allows the prompt", () => {
-    expect(
-      CRITICAL_ALERT_STEPS[PushDevicePlatform.Android][3],
-    ).toBe("Go back to the app and turn on {{criticalAlerts}} again.");
+    expect(CRITICAL_ALERT_STEPS[PushDevicePlatform.Android][3]).toBe(
+      "Go back to the app and turn on {{criticalAlerts}} again.",
+    );
     expect(CRITICAL_ALERT_STEPS[PushDevicePlatform.IOS][2]).toBe(
       "When iOS asks whether {{app}} may send critical alerts, tap Allow.",
     );
   });
 
   test("a browser's steps link both stores", () => {
-    expect(placeholdersOf(CRITICAL_ALERT_STEPS[PushDevicePlatform.Browser][0]!))
-      .toEqual(["app", "appStore", "googlePlay"]);
+    expect(
+      placeholdersOf(CRITICAL_ALERT_STEPS[PushDevicePlatform.Browser][0]!),
+    ).toEqual(["app", "appStore", "googlePlay"]);
   });
 
   test("a browser has nothing to troubleshoot: it never turns them on", () => {
@@ -227,15 +228,19 @@ describe("the sentences the steps are built from", () => {
 
     for (const sentence of ALL_SENTENCES) {
       for (const label of labels) {
-        // "Settings" and "Notifications" are also ordinary English words of
-        // the OS's own screens, which a translation should translate.
+        /*
+         * "Settings" and "Notifications" are also ordinary English words of
+         * the OS's own screens, which a translation should translate.
+         */
         if (label === "Settings" || label === "Notifications") {
           continue;
         }
 
-        expect({ sentence, label, written: sentence.includes(label) }).toEqual(
-          { sentence, label, written: false },
-        );
+        expect({ sentence, label, written: sentence.includes(label) }).toEqual({
+          sentence,
+          label,
+          written: false,
+        });
       }
     }
   });
