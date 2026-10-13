@@ -1485,6 +1485,150 @@ test("every add_header on a browser-facing SPA location uses the always flag", (
 });
 
 // ---------------------------------------------------------------------------
+// The docs' and the API reference's sitemaps
+// ---------------------------------------------------------------------------
+
+/*
+ * The sitemap index (/sitemap.xml, served by Home) lists the docs' and the
+ * API reference's sitemaps at the site's root, beside Home's own. The app
+ * builds them, at /docs/sitemap.xml and /reference/sitemap.xml. Without this
+ * location the two root addresses fall to "location /", which with
+ * BILLING_ENABLED=true is Home - a 404 page - and the index would list two
+ * sitemaps that do not exist.
+ */
+const SITEMAP_LOCATION_SPEC = "~ ^/sitemap-(docs|reference)\\.xml$";
+
+const APP_SITEMAPS = {
+  "/sitemap-docs.xml": "/docs/sitemap.xml",
+  "/sitemap-reference.xml": "/reference/sitemap.xml",
+};
+
+// What the location's rewrites make of a request path, as nginx applies them.
+function rewrittenBySitemapLocation(location, uri) {
+  for (const directive of getDirectives(location.body, "rewrite")) {
+    const parts = directive.replace(/;$/, "").split(" ");
+    const pattern = new RegExp(parts[1]);
+
+    if (pattern.test(uri)) {
+      return uri.replace(pattern, parts[2]);
+    }
+  }
+
+  return uri;
+}
+
+test("the docs and reference sitemaps are routed exactly once, in the primary ingress", () => {
+  const routed = serverBlocks.map((block) => {
+    return getLocationBlocks(block.body).filter((location) => {
+      return location.spec === SITEMAP_LOCATION_SPEC;
+    }).length;
+  });
+
+  assert.equal(
+    routed.reduce((sum, count) => {
+      return sum + count;
+    }, 0),
+    1,
+    "exactly one location may route the docs' and the reference's sitemaps",
+  );
+  assert.ok(
+    findLocation(primaryServerBlock, SITEMAP_LOCATION_SPEC),
+    "the primary ingress must route the docs' and the reference's sitemaps",
+  );
+});
+
+test("nginx location precedence sends the two sitemaps to their block, and every other sitemap to Home", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const uri of Object.keys(APP_SITEMAPS)) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      SITEMAP_LOCATION_SPEC,
+      `${uri} must land in the sitemap location, not in "location /" (Home when billing is on)`,
+    );
+  }
+
+  // Home's own sitemaps, the retired tag sitemaps, and near misses stay Home's.
+  for (const uri of [
+    "/sitemap.xml",
+    "/sitemap-pages.xml",
+    "/sitemap-compare.xml",
+    "/sitemap-blog-1.xml",
+    "/sitemap-tags-1.xml",
+    "/sitemap-docs.xml.gz",
+    "/sitemap-docsxml",
+    "/sitemap-documentation.xml",
+    "/blog/sitemap-docs.xml",
+  ]) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      "/",
+      `${uri} must stay with "location /"`,
+    );
+  }
+
+  // The app's own addresses are the docs' and the reference's locations.
+  assert.equal(resolveLocation(locations, "/docs/sitemap.xml").spec, "/docs");
+  assert.equal(
+    resolveLocation(locations, "/reference/sitemap.xml").spec,
+    "/reference",
+  );
+});
+
+test("the sitemap location hands the app each sitemap at the app's own address", () => {
+  const location = findLocation(primaryServerBlock, SITEMAP_LOCATION_SPEC);
+
+  assert.deepEqual(getDirectives(location.body, "rewrite"), [
+    "rewrite ^/sitemap-docs\\.xml$ /docs/sitemap.xml break;",
+    "rewrite ^/sitemap-reference\\.xml$ /reference/sitemap.xml break;",
+  ]);
+
+  for (const [uri, appPath] of Object.entries(APP_SITEMAPS)) {
+    assert.equal(rewrittenBySitemapLocation(location, uri), appPath);
+  }
+
+  assert.deepEqual(getDirectives(location.body, "return"), []);
+});
+
+test("the sitemap location proxies to the app whatever billing says", () => {
+  const location = findLocation(primaryServerBlock, SITEMAP_LOCATION_SPEC);
+
+  assert.deepEqual(
+    getDirectives(location.body, "proxy_pass"),
+    ["proxy_pass ${BACKEND_APP_TARGET};"],
+    "exactly one proxy_pass: the app",
+  );
+  assert.ok(
+    !location.body.includes("$billing_enabled"),
+    "the sitemap location must not branch on billing: Home has no such sitemaps",
+  );
+  assert.ok(
+    !location.body.includes("$backend_home"),
+    "the sitemap location must never proxy to Home",
+  );
+  assert.ok(
+    !/\bif\s*\(/.test(location.body),
+    "the sitemap location must proxy unconditionally",
+  );
+});
+
+test("the sitemap location proxies like the /docs location it hands requests to", () => {
+  const sitemaps = findLocation(primaryServerBlock, SITEMAP_LOCATION_SPEC);
+  const docs = findLocation(primaryServerBlock, "/docs");
+
+  for (const directive of ["proxy_set_header", "proxy_http_version"]) {
+    assert.deepEqual(
+      getDirectives(sitemaps.body, directive),
+      getDirectives(docs.body, directive),
+      `the sitemap location must ${directive} exactly as /docs does`,
+    );
+  }
+
+  assert.deepEqual(getDirectives(sitemaps.body, "access_log"), []);
+  assert.deepEqual(getDirectives(sitemaps.body, "add_header"), []);
+});
+
+// ---------------------------------------------------------------------------
 // OAuth discovery documents for the MCP server
 // ---------------------------------------------------------------------------
 
