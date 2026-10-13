@@ -75,6 +75,8 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
   Chat: "navbar.items.aiChatTitle",
   Insights: "navbar.items.sentinelInsightsTitle",
   Tasks: "navbar.items.aiAgentsTitle",
+  // Fix Tasks opens an exception from the menu's Observability group.
+  Exceptions: "navbar.items.exceptionsTitle",
 };
 
 /*
@@ -86,6 +88,7 @@ export const PRODUCTS_MENU_GROUP_KEYS: Readonly<Record<string, string>> = {
   // The groups the AI pages open their products from.
   AI: "navbar.categories.ai",
   Code: "navbar.categories.code",
+  Observability: "navbar.categories.observability",
 };
 
 // A value of a locale file by its dotted key, or null.

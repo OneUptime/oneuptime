@@ -26,7 +26,7 @@ flowchart TB
     W -->|"no"| N["A confused reaction,<br/>and nothing else"]
     W -->|"yes"| K["An eyes reaction and<br/>one acknowledgement"]
     K --> R["A Runner works the<br/>request in a clone"]
-    R --> O["The same comment, rewritten<br/>with the outcome"]
+    R --> O["The same comment,<br/>rewritten with<br/>the outcome"]
 ```
 
 It is the same agent and the same Runner as [Fix Tasks](/docs/ai/ai-agent), with the same budgets; only the trigger differs.
