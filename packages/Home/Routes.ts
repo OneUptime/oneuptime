@@ -74,6 +74,12 @@ import {
   findTailwindStylesheet,
   serveTailwindStylesheet,
 } from "./Utils/TailwindStylesheet";
+import {
+  ProductIconSprite,
+  ProductIconSpriteRoutePattern,
+  buildProductIconSprite,
+  serveProductIconSprite,
+} from "./Utils/ProductIconSprite";
 import logger from "Common/Server/Utils/Logger";
 
 // import jobs.
@@ -136,6 +142,32 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       TailwindStylesheetRoutePattern,
       serveTailwindStylesheet(tailwindStylesheet),
+    );
+
+    /*
+     * The product icons as one cached sprite (Utils/ProductIconSprite.ts),
+     * which the nav's menus and the sections below the fold draw from. If it
+     * cannot be made, productIconSpriteHref is null and every icon is drawn
+     * inline, as before.
+     */
+    let productIconSprite: ProductIconSprite | null = null;
+
+    try {
+      productIconSprite = await buildProductIconSprite();
+    } catch (err) {
+      logger.error(
+        "Could not build the product icon sprite; icons are inline.",
+      );
+      logger.error(err);
+    }
+
+    app.locals["productIconSpriteHref"] = productIconSprite
+      ? productIconSprite.href
+      : null;
+
+    app.get(
+      ProductIconSpriteRoutePattern,
+      serveProductIconSprite(productIconSprite),
     );
 
     /*
