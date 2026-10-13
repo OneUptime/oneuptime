@@ -21,6 +21,8 @@ import WorkspaceActionAnswers, {
 } from "./WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "./WorkspaceActionAuthorization";
 import {
+  WorkspaceConnectRequestAgain,
+  WorkspaceConnectRequestAgainKind,
   WorkspaceConnectRequestRecord,
   WorkspacePendingAction,
   WorkspacePendingActionKind,
@@ -43,7 +45,7 @@ import WorkspaceMemberActions, {
  * record, the project's plan. A record somebody else got to first is
  * answered with who and when, a refusal with its reason, and a press
  * OneUptime cannot finish for them (a form, a command, a question) with
- * what to press again.
+ * what to press, run or ask again.
  *
  * The answer opens with the news that the account is connected, and the
  * chat delivers it where the press was (SlackActionAnswer,
@@ -110,9 +112,7 @@ export default class WorkspaceConnectCompletion {
 
     if (!request.pendingAction) {
       return {
-        outcome: request.again
-          ? ConnectRequestOutcome.PressAgain
-          : ConnectRequestOutcome.Answered,
+        outcome: WorkspaceConnectCompletion.getAgainOutcome(request.again),
         answer: WorkspaceActionAnswers.getConnectedAnswer({
           workspaceType: request.workspaceType,
           again: request.again,
@@ -141,6 +141,25 @@ export default class WorkspaceConnectCompletion {
         outcome: finished.answer,
       }),
     };
+  }
+
+  /*
+   * What the settings page says of a press OneUptime does not finish, in
+   * the words the chat answers with (WorkspaceActionAnswers.getAgainPhrase):
+   * a question is asked again - no button asked it, so the page never says
+   * to press one - and a form's button or a command is pressed again. With
+   * nothing to do again, the chat has the whole answer.
+   */
+  public static getAgainOutcome(
+    again: WorkspaceConnectRequestAgain | undefined,
+  ): ConnectRequestOutcome {
+    if (!again) {
+      return ConnectRequestOutcome.Answered;
+    }
+
+    return again.kind === WorkspaceConnectRequestAgainKind.Question
+      ? ConnectRequestOutcome.AskAgain
+      : ConnectRequestOutcome.PressAgain;
   }
 
   /*

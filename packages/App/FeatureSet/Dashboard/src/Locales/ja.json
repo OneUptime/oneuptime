@@ -28284,5 +28284,6 @@
   "iOS didn't ask? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.": "iOS に尋ねられませんでしたか？App Store で {{app}} をアップデートしてください。1.5.0 より前のバージョンは重大なアラートを受け取れません。",
   "iPhone or iPad": "iPhone または iPad",
   "Once it's on, choose the alarm sound for on-call pages under {{alarmSoundPath}}.": "オンにしたら、オンコールの呼び出しで鳴らすアラーム音を {{alarmSoundPath}} で選びます。",
-  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "アプリを開いて {{serverUrl}} に接続し、サインインします。通知を許可すると、スマートフォンがこの一覧に表示されます。"
+  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "アプリを開いて {{serverUrl}} に接続し、サインインします。通知を許可すると、スマートフォンがこの一覧に表示されます。",
+  "Go back to {{workspace}} and ask your question again.": "{{workspace}} に戻って、もう一度質問してください。"
 }

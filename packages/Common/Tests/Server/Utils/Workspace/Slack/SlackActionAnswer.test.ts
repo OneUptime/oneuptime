@@ -344,6 +344,41 @@ describe("SlackActionAnswer.answer", () => {
     );
   });
 
+  /*
+   * Somebody who wrote to the app in its direct messages is answered by the
+   * app's own message there, which stays. The direct messages are named
+   * only as the way back from the settings page: never as a channel to post
+   * a message only they see in, which would be gone once Slack reloads.
+   */
+  test("a place in the app's direct messages is answered by the app's own message there, never by a message only they see", async () => {
+    slackAnswers.set("https://slack.com/api/chat.postMessage", () => {
+      return ok({ ok: true, ts: "1760000000.000200", channel: "D0NITIN" });
+    });
+
+    const delivery: SlackAnswerDelivery = await SlackActionAnswer.answer({
+      place: {
+        projectAuthToken: PROJECT_TOKEN,
+        slackUserId: SLACK_USER,
+        slackDirectMessageChannelId: "D0NITIN",
+      },
+      answer: ANSWER,
+      connectUrl: URL.fromString(CONNECT_URL),
+    });
+
+    expect(delivery).toBe(SlackAnswerDelivery.DirectMessage);
+    expect(urls()).toEqual(["https://slack.com/api/chat.postMessage"]);
+    expect(calls[0]!.data["channel"]).toBe(SLACK_USER);
+    expect(calls[0]!.data["thread_ts"]).toBeUndefined();
+    expect(calls[0]!.data["text"]).toBe(ANSWER.text);
+    expect(
+      (calls[0]!.data["blocks"] as Array<JSONObject>).map(
+        (block: JSONObject): unknown => {
+          return block["type"];
+        },
+      ),
+    ).toEqual(["section", "actions"]);
+  });
+
   test("an answer nothing takes is logged, and the press is not failed for it", async () => {
     jest
       .spyOn(SlackUtil, "sendDirectMessageToUser")

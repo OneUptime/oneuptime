@@ -512,6 +512,46 @@ describe("the Slack page, opened from a Connect button in Slack", () => {
     expect(backToSlack.closest("p")).toBeNull();
   });
 
+  /*
+   * A question to OneUptime AI - an @mention, a direct message - was asked
+   * in a message: there is no button to go back and press, and the page
+   * used to say there was (#4768).
+   */
+  test("back from the sign-in after a question: says to ask it again, names no button, and links back to the channel it was asked in", async () => {
+    query["pressed"] = "ask";
+    query["slackChannel"] = "C0OPS";
+    query["slackTeam"] = "T0TEAM";
+
+    await renderSlack();
+
+    const notice: HTMLElement = screen.getByTestId("connect-request-notice");
+    expect(notice).toHaveTextContent("Your Slack account is connected");
+    expect(notice).toHaveTextContent(
+      "Go back to Slack and ask your question again.",
+    );
+    expect(notice).not.toHaveTextContent("press the button");
+    expect(screen.getByRole("link", { name: "Back to Slack" })).toHaveAttribute(
+      "href",
+      "https://slack.com/app_redirect?channel=C0OPS&team=T0TEAM",
+    );
+    expect(setQueryStringMock).toHaveBeenCalledWith({
+      pressed: null,
+      slackChannel: null,
+      slackTeam: null,
+    });
+  });
+
+  test("…asked in the app's direct messages, which name no channel: the same sentence, and no link to nowhere", async () => {
+    query["pressed"] = "ask";
+
+    await renderSlack();
+
+    expect(screen.getByTestId("connect-request-notice")).toHaveTextContent(
+      "Go back to Slack and ask your question again.",
+    );
+    expect(screen.queryByRole("link", { name: "Back to Slack" })).toBeNull();
+  });
+
   test("a press Slack took no answer for: the page says to look at the record", async () => {
     query["pressed"] = "unanswered";
 
@@ -657,5 +697,22 @@ describe("the Microsoft Teams page, opened from a Connect button in Teams", () =
       "Go back to Microsoft Teams and press the button again.",
     );
     expect(screen.queryByRole("link", { name: "Back to Slack" })).toBeNull();
+  });
+
+  test("back from the sign-in after a question: says to ask it again, and names no button", async () => {
+    query["pressed"] = "ask";
+
+    await renderTeams();
+
+    const notice: HTMLElement = screen.getByTestId("connect-request-notice");
+    expect(notice).toHaveTextContent(
+      "Your Microsoft Teams account is connected",
+    );
+    expect(notice).toHaveTextContent(
+      "Go back to Microsoft Teams and ask your question again.",
+    );
+    expect(notice).not.toHaveTextContent("press the button");
+    expect(screen.queryByRole("link", { name: "Back to Slack" })).toBeNull();
+    expect(setQueryStringMock).toHaveBeenCalledWith({ pressed: null });
   });
 });

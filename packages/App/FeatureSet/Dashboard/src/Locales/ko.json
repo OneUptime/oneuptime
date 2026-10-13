@@ -28284,5 +28284,6 @@
   "iOS didn't ask? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.": "iOS가 묻지 않았나요? App Store에서 {{app}}을(를) 업데이트하세요. 1.5.0 이전 버전은 중요 알림을 받을 수 없습니다.",
   "iPhone or iPad": "iPhone 또는 iPad",
   "Once it's on, choose the alarm sound for on-call pages under {{alarmSoundPath}}.": "켠 후에는 온콜 호출에 사용할 알람 소리를 {{alarmSoundPath}}에서 선택하세요.",
-  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "앱을 열고 {{serverUrl}}에 연결한 다음 로그인하세요. 알림을 허용하면 휴대폰이 이 목록에 표시됩니다."
+  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "앱을 열고 {{serverUrl}}에 연결한 다음 로그인하세요. 알림을 허용하면 휴대폰이 이 목록에 표시됩니다.",
+  "Go back to {{workspace}} and ask your question again.": "{{workspace}}(으)로 돌아가 다시 질문하세요."
 }

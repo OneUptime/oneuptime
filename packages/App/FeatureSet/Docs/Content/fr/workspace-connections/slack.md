@@ -144,7 +144,13 @@ Les réponses à `help` et `oncall` sont des messages que vous seul voyez, sous 
 
 ## Interroger OneUptime AI depuis Slack
 
-Posez vos questions sur vos journaux, traces, métriques, incidents et moniteurs en langage courant. Mentionnez OneUptime avec @ dans un canal, ou envoyez-lui un message direct, et il répond dans le fil ; répondez-y pour poursuivre. `/oneuptime ask which monitors are down?` publie sa réponse dans le canal. Les deux demandent votre propre compte Slack connecté, et l'IA activée pour le projet. Les réponses dans Slack ne font que lire : pour changer quelque chose, utilisez les boutons. Voir [Demander à l'IA](/docs/ai/ask-ai).
+Posez vos questions sur vos journaux, traces, métriques, incidents et moniteurs en langage courant. Mentionnez OneUptime avec @ dans un canal, ou envoyez-lui un message direct, et il répond dans le fil. `/oneuptime ask which monitors are down?` publie sa réponse dans le canal. Les deux demandent votre propre compte Slack connecté, et l'IA activée pour le projet. Les réponses dans Slack ne font que lire : pour changer quelque chose, utilisez les boutons. Voir [Demander à l'IA](/docs/ai/ask-ai).
+
+OneUptime ne répond qu'à ce qui lui est adressé.
+
+- **Dans votre propre conversation, répondez simplement.** Une question que vous posez dans un canal, hors d'un fil, ouvre une conversation dans le fil qui se trouve dessous : répondez-y pour poursuivre sans mentionner OneUptime à nouveau, et toute autre personne s'y joint en le mentionnant.
+- **Dans tout autre fil, mentionnez OneUptime.** Sous le message d'un incident, par exemple, mentionnez-le à chaque fois : ce que les gens s'y écrivent entre eux ne reçoit aucune réponse.
+- **Si votre compte Slack n'est pas connecté.** OneUptime vous demande une fois par conversation de le connecter, dans un message que vous seul voyez, avec un bouton **Connect Slack account**.
 
 ## Créer des incidents et des maintenances depuis Slack
 
@@ -186,6 +192,10 @@ Quand Slack vous renvoie sans connexion, la page d'où vous êtes parti indique 
 
 :::details Un bouton ou une commande dit que mon compte Slack n'est pas connecté
 Pressez **Connect Slack account** dans cette réponse pour le connecter en une étape, ou associez-le dans **Paramètres utilisateur** > **Espace de travail** > **Slack** avec **Connect my account with Slack**. Si vous n'êtes plus membre du projet, OneUptime le dit à la place, et n'agit sur rien pour vous.
+:::
+
+:::details OneUptime ne répond pas à une réponse dans un fil
+Une réponse sans mention ne reçoit de réponse que dans votre propre conversation avec OneUptime AI : le fil sous une question que vous lui avez posée dans un canal. Dans tout autre fil, comme celui sous le message d'un incident, mentionnez OneUptime avec @. Si votre compte Slack n'est pas connecté, OneUptime vous demande de le connecter une fois par conversation, pas à chaque message : pressez **Connect Slack account** dans ce message, ou associez-le dans **Paramètres utilisateur** > **Espace de travail** > **Slack**. Voir [Interroger OneUptime AI depuis Slack](#interroger-oneuptime-ai-depuis-slack).
 :::
 
 :::details Les notifications arrivent, mais les boutons et les commandes ne font rien

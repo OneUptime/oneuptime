@@ -28284,5 +28284,6 @@
   "iOS didn't ask? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.": "O iOS não perguntou? Atualize {{app}} pela App Store: versões anteriores à 1.5.0 não recebem alertas críticos.",
   "iPhone or iPad": "iPhone ou iPad",
   "Once it's on, choose the alarm sound for on-call pages under {{alarmSoundPath}}.": "Depois de ativados, escolha o som de alarme dos acionamentos de plantão em {{alarmSoundPath}}.",
-  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "Abra o app, conecte-se a {{serverUrl}} e entre. Permita as notificações e seu celular aparece nesta lista."
+  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "Abra o app, conecte-se a {{serverUrl}} e entre. Permita as notificações e seu celular aparece nesta lista.",
+  "Go back to {{workspace}} and ask your question again.": "Volte para o {{workspace}} e faça sua pergunta novamente."
 }
