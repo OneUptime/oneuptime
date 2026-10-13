@@ -1,9 +1,10 @@
 import Alert, { AlertType } from "../Alerts/Alert";
-import { ButtonStyleType } from "../Button/Button";
+import Button, { ButtonStyleType } from "../Button/Button";
 import Loader, { LoaderType } from "../Loader/Loader";
 import Modal from "../Modal/Modal";
 import { Indigo500 } from "../../../Types/BrandColors";
 import Dictionary from "../../../Types/Dictionary";
+import IconProp from "../../../Types/Icon/IconProp";
 import TestLLMProvider, {
   LLMProviderTestResult,
 } from "../../Utils/TestLLMProvider";
@@ -58,8 +59,8 @@ export enum LlmProviderTestOutcome {
 export interface ComponentProps {
   llmProviderId: string;
   /*
-   * The request's headers: the Dashboard's (its project), or the Admin
-   * Dashboard's, which tests the global providers.
+   * The request's headers: the Dashboard's (its project), or none from the
+   * Admin Dashboard, which tests the global providers.
    */
   headers?: Dictionary<string> | undefined;
   onClose: () => void;
@@ -156,33 +157,35 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
     <Modal
       title="Test LLM Provider"
       /*
-       * Nothing here to confirm or lose, so every way out of a dialog
-       * closes it - Close, the X, Escape and the backdrop - while the test
-       * runs too. Close is the one button that stays put: the rightmost,
-       * where the focus starts, drawn plain because it only closes; Test
-       * again appears beside it, never under the pointer in its place.
+       * A dialog that reports, laid out as the product's other connection
+       * tests are (ConnectionTestModal): nothing to confirm or lose, so
+       * every way out closes it - Close, the X, Escape and the backdrop -
+       * while the test runs too. Close is the footer's one button on the
+       * right, where the focus starts, and it never moves.
        */
       onClose={props.onClose}
-      onSubmit={props.onClose}
-      submitButtonText="Close"
-      submitButtonStyleType={ButtonStyleType.NORMAL}
-      hasFooterCloseButton={false}
+      closeButtonText="Close"
       /*
-       * Offered once there is a verdict: while a test runs there is nothing
-       * to run again, and a disabled button looks like one to press.
+       * Test again, on the footer's other side, once there is a verdict:
+       * while a test runs there is nothing to run again, and a disabled
+       * button looks like one to press. Arriving there, it takes nobody's
+       * place - beside Close it would have pushed Close aside just as the
+       * verdict came in.
        */
-      secondaryButton={
-        outcome === LlmProviderTestOutcome.Testing
-          ? undefined
-          : {
-              title: "Test again",
-              onClick: () => {
-                runTest().catch(() => {
-                  // TestLLMProvider.test answers every failure itself.
-                });
-              },
-              dataTestId: "llm-provider-test-again",
-            }
+      leftFooterElement={
+        outcome === LlmProviderTestOutcome.Testing ? undefined : (
+          <Button
+            title="Test again"
+            buttonStyle={ButtonStyleType.NORMAL}
+            icon={IconProp.Refresh}
+            dataTestId="llm-provider-test-again"
+            onClick={() => {
+              runTest().catch(() => {
+                // TestLLMProvider.test answers every failure itself.
+              });
+            }}
+          />
+        )
       }
     >
       <div data-testid="llm-provider-test" data-outcome={outcome}>

@@ -148,7 +148,7 @@ function testAgainButton(): HTMLElement {
 }
 
 function closeButton(): HTMLElement {
-  return within(modal()).getByTestId("modal-footer-submit-button");
+  return within(modal()).getByTestId("modal-footer-close-button");
 }
 
 function result(): HTMLElement {
@@ -374,7 +374,7 @@ describe("after the test", () => {
     expect(testAgainButton()).toBeEnabled();
   });
 
-  test("the footer: Test again, then Close - which keeps its place, rightmost, from the start", async () => {
+  test("the footer: Close on its right from the start; Test again arrives on its other side", async () => {
     const held: ReturnType<typeof heldRequest> = heldRequest();
 
     renderModal();
@@ -389,13 +389,19 @@ describe("after the test", () => {
     await settled(LlmProviderTestOutcome.Passed);
 
     /*
-     * Test again arrives beside Close, never in its place: a person about
-     * to press Close as the verdict lands still presses Close.
+     * Test again arrives on the footer's left, never beside Close, where
+     * it would push Close aside: a person about to press Close as the
+     * verdict lands still presses Close. As the product's other connection
+     * tests lay it out (ConnectionTestModal's Run again).
      */
     expect(footerButtons()).toEqual(["Test again", "Close"]);
-    // No Cancel beside Close: the one way out in the footer is Close.
+    const footer: HTMLElement = screen.getByTestId("modal-footer");
+    const [leftSide, rightSide] = Array.from(footer.children);
+    expect(leftSide).toContainElement(testAgainButton());
+    expect(rightSide).toContainElement(closeButton());
+    // One way out in the footer, Close: no submit button beside it.
     expect(
-      within(modal()).queryByTestId("modal-footer-close-button"),
+      within(modal()).queryByTestId("modal-footer-submit-button"),
     ).toBeNull();
   });
 

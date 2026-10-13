@@ -123,7 +123,7 @@ function result(page: Page): Locator {
 }
 
 function closeButton(page: Page): Locator {
-  return page.getByTestId("modal-footer-submit-button");
+  return page.getByTestId("modal-footer-close-button");
 }
 
 function tooltip(page: Page): Locator {
@@ -290,7 +290,7 @@ test.describe("a provider's own page: the Test dialog", () => {
     await expect(result(page)).toContainText("Test passed");
     await expect(result(page)).toContainText(PASSED);
     await expect(dialog(page).getByText(TESTING)).toHaveCount(0);
-    // Test again arrives beside Close; Close keeps its place at the right.
+    // Test again arrives on the footer's left; Close keeps its place.
     expect(await footerButtons(page)).toEqual(["Test again", "Close"]);
     const closeAfter: { x: number; y: number } | null =
       await closeButton(page).boundingBox();

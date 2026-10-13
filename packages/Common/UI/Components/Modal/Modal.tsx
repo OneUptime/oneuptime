@@ -59,14 +59,6 @@ export interface ComponentProps {
   leftFooterElement?: ReactElement | undefined;
   disableCloseOnBackdropClick?: boolean | undefined;
   secondaryButton?: ModalSecondaryButton | undefined;
-  /*
-   * onClose gives a dialog every way out - the header's X, Escape, a press
-   * on the backdrop - and a Cancel in the footer. A dialog whose submit
-   * button already is the way out ("Close", on a dialog that only reports
-   * something) passes false: the footer then has no second button that
-   * does the same, while the X and Escape still close it.
-   */
-  hasFooterCloseButton?: boolean | undefined;
 }
 
 /*
@@ -689,11 +681,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                   : translateString("Cancel") || "Cancel"
               }
               onSubmit={props.onSubmit}
-              onClose={
-                props.onClose && props.hasFooterCloseButton !== false
-                  ? props.onClose
-                  : undefined
-              }
+              onClose={props.onClose ? props.onClose : undefined}
               isLoading={props.isLoading || false}
               disableSubmitButton={
                 props.isBodyLoading || props.disableSubmitButton
