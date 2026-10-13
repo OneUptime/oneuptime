@@ -28145,5 +28145,7 @@
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime در {{workspace}}، همان‌جا که دکمه را زدید، به شما پاسخ داد.",
   "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime در فضای کاری Slack با نام {{team}} نصب شده است. حساب خود را آنجا وصل کنید تا در Slack با نام خودتان رخدادها را تأیید کنید و پیام دریافت کنید.",
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "این دکمهٔ اتصال قبلاً استفاده شده است. به {{workspace}} برگردید و دوباره دکمه را بزنید.",
-  "Your {{workspace}} account is already connected": "حساب {{workspace}} شما از قبل وصل است"
+  "Your {{workspace}} account is already connected": "حساب {{workspace}} شما از قبل وصل است",
+  "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values فقط زمانی برقرار است که همه بررسی‌های بازه برقرار بوده باشند. Any Value به محض برقرار شدن یک بررسی برقرار می‌شود.",
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "میانگین، جمع، Maximum Value و Minimum Value یک عدد را برای کل بازه مقایسه می‌کنند. All Values لازم دارد که هر بررسی شرط را برآورده کند و Any Value فقط یکی."
 }

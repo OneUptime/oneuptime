@@ -28145,5 +28145,7 @@
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime answered you in {{workspace}}, where you pressed the button.",
   "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.",
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "This Connect button was used already. Go back to {{workspace}} and press the button again.",
-  "Your {{workspace}} account is already connected": "Your {{workspace}} account is already connected"
+  "Your {{workspace}} account is already connected": "Your {{workspace}} account is already connected",
+  "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.",
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one."
 }

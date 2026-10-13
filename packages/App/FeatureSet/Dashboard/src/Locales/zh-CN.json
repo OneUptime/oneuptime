@@ -28145,5 +28145,7 @@
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime 已在 {{workspace}} 中您按下按钮的地方回复了您。",
   "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime 已安装在 Slack 工作区 {{team}} 中。在那里连接您的账户，即可在 Slack 中以您本人的身份确认事件并接收消息。",
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "此连接按钮已被使用。请返回 {{workspace}}，再按一次该按钮。",
-  "Your {{workspace}} account is already connected": "您的 {{workspace}} 账户已经连接"
+  "Your {{workspace}} account is already connected": "您的 {{workspace}} 账户已经连接",
+  "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values 仅在时间窗口内的每次检查都匹配时才匹配。Any Value 只要有一次检查匹配就会匹配。",
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "平均值、总和、Maximum Value 和 Minimum Value 对整个时间窗口比较一个数值。All Values 要求每次检查都满足条件，Any Value 只需一次。"
 }

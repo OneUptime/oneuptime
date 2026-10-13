@@ -28145,5 +28145,7 @@
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime heeft je geantwoord in {{workspace}}, waar je op de knop drukte.",
   "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime is geïnstalleerd in de Slack-werkruimte {{team}}. Koppel daar je account om incidenten als jezelf te bevestigen en berichten te ontvangen, in Slack.",
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "Deze koppelknop is al gebruikt. Ga terug naar {{workspace}} en druk nogmaals op de knop.",
-  "Your {{workspace}} account is already connected": "Je {{workspace}}-account is al gekoppeld"
+  "Your {{workspace}} account is already connected": "Je {{workspace}}-account is al gekoppeld",
+  "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values komt alleen overeen als elke controle in het venster overeenkwam. Any Value komt overeen zodra één controle overeenkwam.",
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "Gemiddelde, Som, Maximum Value en Minimum Value vergelijken één waarde voor het hele venster. All Values vereist dat elke controle aan de voorwaarde voldoet, Any Value slechts één."
 }

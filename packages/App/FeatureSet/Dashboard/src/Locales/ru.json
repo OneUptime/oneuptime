@@ -28145,5 +28145,7 @@
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime ответил вам в {{workspace}}, там, где вы нажали кнопку.",
   "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime установлен в рабочем пространстве Slack {{team}}. Подключите там свой аккаунт, чтобы подтверждать инциденты и получать сообщения от своего имени в Slack.",
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "Эта кнопка подключения уже использована. Вернитесь в {{workspace}} и нажмите кнопку ещё раз.",
-  "Your {{workspace}} account is already connected": "Ваш аккаунт {{workspace}} уже подключён"
+  "Your {{workspace}} account is already connected": "Ваш аккаунт {{workspace}} уже подключён",
+  "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values срабатывает, только если совпала каждая проверка в окне. Any Value срабатывает, как только совпала одна проверка.",
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "Среднее, Сумма, Maximum Value и Minimum Value сравнивают одно значение за всё окно. All Values требует, чтобы условию соответствовала каждая проверка, Any Value — хотя бы одна."
 }

@@ -10,7 +10,6 @@ import {
   CheckOn,
   CriteriaFilter,
   CriteriaFilterUtil,
-  EvaluateOverTimeOptions,
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
@@ -222,15 +221,18 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
       return i.value === criteriaFilter?.filterType;
     });
 
+  /*
+   * Saved by this form as "5", by the API, Terraform and the form's own
+   * defaults as 5: both are the same option.
+   */
   const evaluateOverTimeMinutesValue: DropdownOption | undefined =
-    CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions().find(
-      (item: DropdownOption) => {
-        return (
-          item.value ===
-          criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes
-        );
-      },
+    CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOption(
+      criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes,
     );
+
+  const overTimeNoDataPolicy: NoDataPolicy =
+    criteriaFilter?.evaluateOverTimeOptions?.onNoDataPolicy ||
+    NoDataPolicy.Ignore;
 
   const evalOverTimeDropdownOptions: Array<DropdownOption> =
     CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
@@ -1124,160 +1126,6 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             </div>
           )}
 
-        {/** checkbox for evaluateOverTime */}
-
-        {criteriaFilter?.checkOn &&
-          CriteriaFilterUtil.isEvaluateOverTimeFilter(
-            criteriaFilter?.checkOn,
-          ) && (
-            <div className="mt-3">
-              <CheckboxElement
-                value={criteriaFilter?.evaluateOverTime}
-                title={"Evaluate this criteria over a period of time"}
-                onChange={(value: boolean) => {
-                  props.onChange?.({
-                    ...criteriaFilter,
-                    evaluateOverTime: value,
-                  });
-                }}
-              />
-            </div>
-          )}
-
-        {criteriaFilter?.checkOn &&
-        criteriaFilter?.checkOn &&
-        CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
-        criteriaFilter.evaluateOverTime ? (
-          <div className="mt-1">
-            <FieldLabelElement title="Evaluate" />
-            <Dropdown
-              value={evaluateOverTimeTypeValue}
-              options={evalOverTimeDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                const evaluateOverTimeOption: EvaluateOverTimeOptions =
-                  criteriaFilter?.evaluateOverTimeOptions
-                    ? {
-                        ...criteriaFilter?.evaluateOverTimeOptions,
-                      }
-                    : {
-                        timeValueInMinutes: 5,
-                        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-                      };
-
-                props.onChange?.({
-                  ...criteriaFilter,
-                  evaluateOverTime: true,
-                  evaluateOverTimeOptions: {
-                    ...evaluateOverTimeOption,
-                    evaluateOverTimeType:
-                      value?.toString() as EvaluateOverTimeType,
-                  },
-                });
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-
-        {criteriaFilter?.checkOn &&
-        criteriaFilter?.checkOn &&
-        CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
-        criteriaFilter.evaluateOverTime ? (
-          <div className="mt-1">
-            <FieldLabelElement title="For the last (in minutes)" />
-            <Dropdown
-              value={evaluateOverTimeMinutesValue}
-              options={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions()}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                const evaluateOverTimeOption: EvaluateOverTimeOptions =
-                  criteriaFilter?.evaluateOverTimeOptions
-                    ? {
-                        ...criteriaFilter?.evaluateOverTimeOptions,
-                      }
-                    : {
-                        timeValueInMinutes: 5,
-                        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-                      };
-
-                props.onChange?.({
-                  ...criteriaFilter,
-                  evaluateOverTime: true,
-                  evaluateOverTimeOptions: {
-                    ...evaluateOverTimeOption,
-                    timeValueInMinutes: value as number,
-                  },
-                });
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-
-        {criteriaFilter?.checkOn &&
-        CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
-        criteriaFilter.evaluateOverTime ? (
-          <div className="mt-1">
-            <FieldLabelElement
-              title="If No Data"
-              description={
-                "What should happen while the window does not have enough data yet — for example a monitor that has only just started, or one whose checks stopped being recorded?"
-              }
-            />
-            <Dropdown
-              value={(() => {
-                const policy: NoDataPolicy =
-                  criteriaFilter?.evaluateOverTimeOptions?.onNoDataPolicy ||
-                  NoDataPolicy.Ignore;
-                return { value: policy, label: policy };
-              })()}
-              options={[
-                {
-                  value: NoDataPolicy.Ignore,
-                  label: NoDataPolicy.Ignore,
-                },
-                {
-                  value: NoDataPolicy.TreatAsZero,
-                  label: NoDataPolicy.TreatAsZero,
-                },
-                {
-                  value: NoDataPolicy.Trigger,
-                  label: NoDataPolicy.Trigger,
-                },
-              ]}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                const evaluateOverTimeOption: EvaluateOverTimeOptions =
-                  criteriaFilter?.evaluateOverTimeOptions
-                    ? {
-                        ...criteriaFilter?.evaluateOverTimeOptions,
-                      }
-                    : {
-                        timeValueInMinutes: 5,
-                        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-                      };
-
-                props.onChange?.({
-                  ...criteriaFilter,
-                  evaluateOverTime: true,
-                  evaluateOverTimeOptions: {
-                    ...evaluateOverTimeOption,
-                    onNoDataPolicy: value?.toString() as NoDataPolicy,
-                  },
-                });
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-
         {!criteriaFilter?.checkOn ||
           (criteriaFilter?.checkOn && (
             <div className="mt-1">
@@ -1408,6 +1256,131 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 />
               </div>
             ))}
+
+        {/*
+         * Evaluate over a period of time, after what the filter checks, so a
+         * filter reads in order: Response Body, Not Contains, "App Title",
+         * then for how long. The window's settings sit indented under the
+         * box they belong to.
+         */}
+        {criteriaFilter?.checkOn &&
+          CriteriaFilterUtil.isEvaluateOverTimeFilter(
+            criteriaFilter.checkOn,
+            props.monitorType,
+          ) && (
+            <div className="mt-3" data-testid="criteria-filter-over-time">
+              <CheckboxElement
+                value={criteriaFilter?.evaluateOverTime}
+                title={"Evaluate this criteria over a period of time"}
+                dataTestId="criteria-filter-evaluate-over-time"
+                onChange={(value: boolean) => {
+                  props.onChange?.(
+                    CriteriaFilterUiUtil.setEvaluateOverTime({
+                      criteriaFilter: criteriaFilter,
+                      evaluateOverTime: value,
+                    }),
+                  );
+                }}
+              />
+
+              {criteriaFilter.evaluateOverTime ? (
+                <div
+                  className="mt-2 ml-7 space-y-1"
+                  data-testid="criteria-filter-over-time-options"
+                >
+                  <div>
+                    <FieldLabelElement
+                      title="Evaluate"
+                      description={CriteriaFilterUiUtil.getEvaluateOverTimeTypeDescription(
+                        criteriaFilter,
+                      )}
+                    />
+                    <Dropdown
+                      value={evaluateOverTimeTypeValue}
+                      options={evalOverTimeDropdownOptions}
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        props.onChange?.(
+                          CriteriaFilterUiUtil.setEvaluateOverTimeOption({
+                            criteriaFilter: criteriaFilter,
+                            change: {
+                              evaluateOverTimeType:
+                                value?.toString() as EvaluateOverTimeType,
+                            },
+                          }),
+                        );
+                      }}
+                    />
+                  </div>
+
+                  <div className="mt-1">
+                    <FieldLabelElement title="For the last (in minutes)" />
+                    <Dropdown
+                      value={evaluateOverTimeMinutesValue}
+                      options={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions()}
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        props.onChange?.(
+                          CriteriaFilterUiUtil.setEvaluateOverTimeOption({
+                            criteriaFilter: criteriaFilter,
+                            change: {
+                              // A number, as the API and Terraform send it.
+                              timeValueInMinutes: Number(value),
+                            },
+                          }),
+                        );
+                      }}
+                    />
+                  </div>
+
+                  <div className="mt-1">
+                    <FieldLabelElement
+                      title="If No Data"
+                      description={
+                        "What should happen while the window does not have enough data yet — for example a monitor that has only just started, or one whose checks stopped being recorded?"
+                      }
+                    />
+                    <Dropdown
+                      value={{
+                        value: overTimeNoDataPolicy,
+                        label: overTimeNoDataPolicy,
+                      }}
+                      options={[
+                        {
+                          value: NoDataPolicy.Ignore,
+                          label: NoDataPolicy.Ignore,
+                        },
+                        {
+                          value: NoDataPolicy.TreatAsZero,
+                          label: NoDataPolicy.TreatAsZero,
+                        },
+                        {
+                          value: NoDataPolicy.Trigger,
+                          label: NoDataPolicy.Trigger,
+                        },
+                      ]}
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        props.onChange?.(
+                          CriteriaFilterUiUtil.setEvaluateOverTimeOption({
+                            criteriaFilter: criteriaFilter,
+                            change: {
+                              onNoDataPolicy: value?.toString() as NoDataPolicy,
+                            },
+                          }),
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <></>
+              )}
+            </div>
+          )}
 
         {(criteriaFilter?.checkOn === CheckOn.MetricValue ||
           criteriaFilter?.checkOn === CheckOn.SpanCount ||

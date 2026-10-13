@@ -5,6 +5,7 @@ import {
   CriteriaFilter,
   CriteriaFilterUtil as CommonCriteriaFilterUtil,
   EvaluateOverTimeMinutes,
+  EvaluateOverTimeOptions,
   EvaluateOverTimeType,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
@@ -42,6 +43,18 @@ export const LLM_CHECK_ON_LABELS: ReadonlyArray<string> = [
 ];
 
 export default class CriteriaFilterUtil {
+  /*
+   * The window a filter is given when "Evaluate this criteria over a period
+   * of time" is ticked: every check of the last 5 minutes. All Values is the
+   * choice that waits - the reason most people tick the box - and the one
+   * every dropdown below already fell back to.
+   */
+  public static readonly DEFAULT_EVALUATE_OVER_TIME_OPTIONS: EvaluateOverTimeOptions =
+    {
+      timeValueInMinutes: 5,
+      evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+    };
+
   public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
     const keys: Array<string> = Object.keys(EvaluateOverTimeMinutes);
     return keys.map((key: string) => {
@@ -53,6 +66,104 @@ export default class CriteriaFilterUtil {
         value: (EvaluateOverTimeMinutes as any)[key]!.toString(),
       };
     });
+  }
+
+  /*
+   * The "For the last" option a saved window shows as. The form used to
+   * save the minutes as the option's string ("5"), while the API, Terraform
+   * and the form's own defaults hold a number (5) - and a strict comparison
+   * of the two drew an empty dropdown over a window that was saved and in
+   * force. Both spellings name the same option.
+   */
+  public static getEvaluateOverTimeMinutesOption(
+    timeValueInMinutes: number | string | undefined,
+  ): DropdownOption | undefined {
+    if (
+      timeValueInMinutes === undefined ||
+      timeValueInMinutes === null ||
+      String(timeValueInMinutes).trim() === ""
+    ) {
+      return undefined;
+    }
+
+    const minutes: number = Number(timeValueInMinutes);
+
+    return CriteriaFilterUtil.getEvaluateOverTimeMinutesOptions().find(
+      (option: DropdownOption) => {
+        return Number(option.value) === minutes;
+      },
+    );
+  }
+
+  /*
+   * The filter once "Evaluate this criteria over a period of time" is
+   * ticked or unticked.
+   *
+   * Ticking it on a filter with no window gives it the default one. The box
+   * used to set the flag alone, so a filter saved straight after ticking it
+   * had no window - and the server judges such a filter on the latest check
+   * alone, while the form showed the box ticked. Unticking keeps the window,
+   * so ticking it again brings back what was chosen.
+   */
+  public static setEvaluateOverTime(data: {
+    criteriaFilter: CriteriaFilter;
+    evaluateOverTime: boolean;
+  }): CriteriaFilter {
+    if (!data.evaluateOverTime) {
+      return {
+        ...data.criteriaFilter,
+        evaluateOverTime: false,
+      };
+    }
+
+    return {
+      ...data.criteriaFilter,
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: data.criteriaFilter.evaluateOverTimeOptions
+        ? { ...data.criteriaFilter.evaluateOverTimeOptions }
+        : { ...CriteriaFilterUtil.DEFAULT_EVALUATE_OVER_TIME_OPTIONS },
+    };
+  }
+
+  /*
+   * The filter with one of its window's settings changed. A window that
+   * was never set starts from the default, so changing one setting never
+   * leaves the others empty.
+   */
+  public static setEvaluateOverTimeOption(data: {
+    criteriaFilter: CriteriaFilter;
+    change: Partial<EvaluateOverTimeOptions>;
+  }): CriteriaFilter {
+    return {
+      ...data.criteriaFilter,
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: {
+        ...(data.criteriaFilter.evaluateOverTimeOptions ||
+          CriteriaFilterUtil.DEFAULT_EVALUATE_OVER_TIME_OPTIONS),
+        ...data.change,
+      },
+    };
+  }
+
+  /*
+   * What the "Evaluate" dropdown's choices mean for this filter. A check
+   * judged check by check (a yes/no series, or a body, header or expression
+   * judged from its match history) is offered All Values and Any Value
+   * only, so it is told what those two mean; a measured value is told the
+   * aggregates as well.
+   */
+  public static getEvaluateOverTimeTypeDescription(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): string {
+    if (CommonCriteriaFilterUtil.isJudgedCheckByCheck(criteriaFilter?.checkOn)) {
+      return translationKey(
+        "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.",
+      );
+    }
+
+    return translationKey(
+      "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.",
+    );
   }
 
   public static translateFilterToText(
@@ -110,8 +221,22 @@ export default class CriteriaFilterUtil {
     const evaluateOverTimeType: EvaluateOverTimeType | undefined =
       CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(criteriaFilter);
 
+    /*
+     * A body, a header or an expression judged from its match history has
+     * no values to speak of - "all values of Response Body" reads as
+     * nonsense - so it says which checks it must have matched on, after
+     * what it checks: ... not contains App Title on every check in the past
+     * 5 minutes.
+     */
+    const checkByCheckWindow: string =
+      CriteriaFilterUtil.getCheckByCheckWindowText(criteriaFilter);
+
     // check evaluation over time values.
-    if (criteriaFilter?.evaluateOverTime && evaluateOverTimeType) {
+    if (
+      criteriaFilter?.evaluateOverTime &&
+      evaluateOverTimeType &&
+      !checkByCheckWindow
+    ) {
       if (evaluateOverTimeType === EvaluateOverTimeType.AllValues) {
         text += `all values of `;
       } else if (evaluateOverTimeType === EvaluateOverTimeType.AnyValue) {
@@ -161,7 +286,9 @@ export default class CriteriaFilterUtil {
       text +=
         "JavaScript expression " +
         criteriaFilter?.value +
-        " - evaluates to true.";
+        " - evaluates to true" +
+        (checkByCheckWindow ? ` ${checkByCheckWindow.trim()}` : "") +
+        ".";
     } else {
       /*
        * Name the metric rather than the check: "Database Metric is greater
@@ -222,7 +349,8 @@ export default class CriteriaFilterUtil {
       // add minutes if evaluate over time is true
       if (
         criteriaFilter?.evaluateOverTime &&
-        criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
+        criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes &&
+        !checkByCheckWindow
       ) {
         text +=
           "in the past " +
@@ -271,6 +399,8 @@ export default class CriteriaFilterUtil {
           isPercentage ? "%" : ""
         }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix}${databaseUnitSuffix}${transceiverUnitSuffix} `;
       }
+
+      text += checkByCheckWindow;
     }
 
     if (filterCondition === FilterCondition.All) {
@@ -282,6 +412,40 @@ export default class CriteriaFilterUtil {
     }
 
     return text;
+  }
+
+  /*
+   * "on every check in the past 5 minutes " for a body, header or
+   * expression filter judged from its match history, "on any check ..." for
+   * Any Value; empty for every other filter, and for one whose window is not
+   * set (the server judges that one on the latest check alone).
+   *
+   * Is Request Timeout keeps a match history too, but it is a true/false
+   * check like Is Online and reads like one: "all values of ... is true".
+   */
+  public static getCheckByCheckWindowText(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): string {
+    const minutes: number | string | undefined =
+      criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes;
+
+    if (
+      !criteriaFilter?.evaluateOverTime ||
+      !minutes ||
+      !CommonCriteriaFilterUtil.isJudgedCheckByCheck(criteriaFilter.checkOn) ||
+      CommonCriteriaFilterUtil.isBooleanSeries(criteriaFilter.checkOn)
+    ) {
+      return "";
+    }
+
+    const whichChecks: string =
+      CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+        criteriaFilter,
+      ) === EvaluateOverTimeType.AnyValue
+        ? "any check"
+        : "every check";
+
+    return `on ${whichChecks} in the past ${minutes} minutes `;
   }
 
   public static getCheckOnOptionsByMonitorType(
