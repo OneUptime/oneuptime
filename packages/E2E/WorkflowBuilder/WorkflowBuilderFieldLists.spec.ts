@@ -152,6 +152,14 @@ function luminanceOf(color: string): number {
   );
 }
 
+/*
+ * How a colour reads on what is behind it, as WCAG counts it, from the
+ * luminance of each: 1 to 21, and 4.5 is what AA asks of small text.
+ */
+function contrast(colour: number, behind: number): number {
+  return (Math.max(colour, behind) + 0.05) / (Math.min(colour, behind) + 0.05);
+}
+
 async function styleOf(
   locator: Locator,
   property: "backgroundColor" | "color" | "borderTopColor",
@@ -1138,6 +1146,72 @@ test.describe("Workflow builder: a record trigger's field lists", () => {
           return element.scrollWidth <= element.clientWidth;
         }),
     ).toBe(true);
+  });
+
+  test("the list's quieter words can still be read: a group's hint, and the line under a name on the row the pointer is on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openTrigger(page);
+    const panel: Locator = await openList(dialog, PASS_ON);
+    const ground: number = luminanceOf(await styleOf(panel, "backgroundColor"));
+
+    // "Open one to pick its fields" says how the group works.
+    const hint: Locator = panel
+      .getByTestId(`${PASS_ON}-group-related`)
+      .locator('[data-part="hint"]');
+
+    await expect(hint).toHaveText("Open one to pick its fields");
+    expect(
+      contrast(luminanceOf(await styleOf(hint, "color")), ground),
+    ).toBeGreaterThanOrEqual(4.5);
+
+    // A row's line, with the pointer elsewhere: on the list's white.
+    const declared: Locator = option(dialog, PASS_ON, "declaredAt");
+    const detail: Locator = declared.locator('[data-part="detail"]');
+
+    await option(dialog, PASS_ON, "title").hover();
+    await expect(detail).toContainText("Date and time when this incident");
+
+    const resting: string = await styleOf(detail, "color");
+
+    expect(contrast(luminanceOf(resting), ground)).toBeGreaterThanOrEqual(4.5);
+
+    // With the pointer on it the row is tinted, and the line a shade darker.
+    await declared.hover();
+    await expect
+      .poll(async (): Promise<string> => {
+        return styleOf(detail, "color");
+      })
+      .not.toBe(resting);
+
+    const tint: number = luminanceOf(
+      await styleOf(declared, "backgroundColor"),
+    );
+
+    expect(tint).toBeLessThan(ground);
+    expect(
+      contrast(luminanceOf(await styleOf(detail, "color")), tint),
+    ).toBeGreaterThanOrEqual(4.5);
+    // The colour it had would not have done there.
+    expect(contrast(luminanceOf(resting), tint)).toBeLessThan(4.5);
+
+    // A related record's line - how many fields it has - is the same.
+    const state: Locator = option(dialog, PASS_ON, "currentIncidentState");
+
+    await state.hover();
+    await expect(state.locator('[data-part="detail"]')).toHaveText("5 fields");
+    await expect
+      .poll(async (): Promise<number> => {
+        return contrast(
+          luminanceOf(
+            await styleOf(state.locator('[data-part="detail"]'), "color"),
+          ),
+          luminanceOf(await styleOf(state, "backgroundColor")),
+        );
+      })
+      .toBeGreaterThanOrEqual(4.5);
   });
 
   test("in the dark theme the chips, the list, its rows and its notes are dark like the dialog", async ({

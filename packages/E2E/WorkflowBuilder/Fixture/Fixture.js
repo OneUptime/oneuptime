@@ -30,6 +30,13 @@
  *                         workflow that is turned off.
  * ?scenario=record-new    the "choose a trigger" placeholder, with the same
  *                         stand-ins: a record trigger added from the picker.
+ * ?scenario=record-branch the same trigger, then an If / Else on the title:
+ *                         Yes runs an HTTP POST (api-post-1), No a Log
+ *                         (log-1), and both lead to Slack. An HTTP GET
+ *                         (api-get-1) follows Slack, and another (api-get-2)
+ *                         is connected to nothing. So where Slack runs the
+ *                         POST has run on some runs only, and where the Log
+ *                         runs the POST is on another branch.
  *
  * ?page=create-workflow   the Workflows page's Create Workflow button and the
  *                         real "Create a workflow" dialog it opens, with the
@@ -152,6 +159,45 @@ if (scenario === "empty" || scenario === "record-new") {
   ];
   initialEdges = [
     edge("canvas-incident-on-update-1", "success", "canvas-log-1"),
+  ];
+} else if (scenario === "record-branch") {
+  initialNodes = [
+    step("incident-on-update", 1, 160, 32, {
+      "listen-on": {},
+      select: { title: true },
+    }),
+    step("if-else", 1, 160, 240, {
+      "input-1":
+        "{{local.components.incident-on-update-1.returnValues.model.title}}",
+      operator: "contains",
+      "input-2": "database",
+    }),
+    step("api-post", 1, -96, 448, {
+      url: "https://hooks.example.com/escalate",
+    }),
+    step("log", 1, 416, 448, { value: "Not a database incident" }),
+    step("slack-send-message-to-channel", 1, 160, 672, {
+      "webhook-url": "https://hooks.example.com/slack",
+      text: "Incident updated",
+    }),
+    step("api-get", 1, 160, 896, { url: "https://status.example.com" }),
+    step("api-get", 2, 672, 448, { url: "https://example.com/unused" }),
+  ];
+  initialEdges = [
+    edge("canvas-incident-on-update-1", "success", "canvas-if-else-1"),
+    edge("canvas-if-else-1", "yes", "canvas-api-post-1"),
+    edge("canvas-if-else-1", "no", "canvas-log-1"),
+    edge(
+      "canvas-api-post-1",
+      "success",
+      "canvas-slack-send-message-to-channel-1",
+    ),
+    edge("canvas-log-1", "out", "canvas-slack-send-message-to-channel-1"),
+    edge(
+      "canvas-slack-send-message-to-channel-1",
+      "success",
+      "canvas-api-get-1",
+    ),
   ];
 } else if (scenario === "trigger-only") {
   initialNodes = [step("manual", 1, 160, 64)];
@@ -442,7 +488,11 @@ function installRecordServer() {
   };
 }
 
-if (scenario === "record" || scenario === "record-new") {
+if (
+  scenario === "record" ||
+  scenario === "record-new" ||
+  scenario === "record-branch"
+) {
   installRecordServer();
 }
 

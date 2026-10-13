@@ -799,6 +799,99 @@ test.describe("Workflow builder: Run Workflow for a record trigger", () => {
     await expect(on.getByText("so this is a test run")).toHaveCount(0);
   });
 
+  test("when a record was created can be read on every row: on the list's white, and a shade darker on the row the keys are on", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(isMobile, "A phone's rows keep to the number and the title.");
+
+    const panel: Locator = await openRunPanel(page);
+
+    await searchBox(panel).click();
+    await expect(options(panel)).toHaveCount(6);
+
+    // How a colour reads on a ground, as WCAG counts it; 4.5 is AA.
+    type ReadsFunction = (row: Locator) => Promise<number>;
+
+    const reads: ReadsFunction = async (row: Locator): Promise<number> => {
+      const words: number = luminanceOf(
+        await styleOf(row.locator('[data-part="created"]'), "color"),
+      );
+      let behind: string = await styleOf(row, "backgroundColor");
+
+      // A row without a tint of its own shows the list's white.
+      if (luminanceOf(behind) === 0) {
+        behind = await styleOf(
+          panel.getByTestId(`${FIELD}-list`),
+          "backgroundColor",
+        );
+      }
+
+      const ground: number = luminanceOf(behind);
+
+      return (
+        (Math.max(words, ground) + 0.05) / (Math.min(words, ground) + 0.05)
+      );
+    };
+
+    // The keys start on the first row, which is tinted.
+    await expect(options(panel).first()).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    const active: string = await styleOf(
+      options(panel).first().locator('[data-part="created"]'),
+      "color",
+    );
+    const resting: string = await styleOf(
+      options(panel).nth(1).locator('[data-part="created"]'),
+      "color",
+    );
+
+    expect(active).not.toBe(resting);
+    expect(luminanceOf(active)).toBeLessThan(luminanceOf(resting));
+
+    for (let index: number = 0; index < 6; index++) {
+      await expect(
+        options(panel).nth(index).locator('[data-part="created"]'),
+      ).toContainText("Created");
+      expect(await reads(options(panel).nth(index))).toBeGreaterThanOrEqual(
+        4.5,
+      );
+    }
+
+    // The keys move down: the second row takes the darker shade, the first gives it up.
+    await page.keyboard.press("ArrowDown");
+    await expect(options(panel).nth(1)).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect
+      .poll(async (): Promise<string> => {
+        return styleOf(
+          options(panel).nth(1).locator('[data-part="created"]'),
+          "color",
+        );
+      })
+      .toBe(active);
+    expect(
+      await styleOf(
+        options(panel).first().locator('[data-part="created"]'),
+        "color",
+      ),
+    ).toBe(resting);
+
+    for (let index: number = 0; index < 6; index++) {
+      expect(await reads(options(panel).nth(index))).toBeGreaterThanOrEqual(
+        4.5,
+      );
+    }
+  });
+
   test("in the dark theme the box, the list, its rows and the pick are dark like the panel", async ({
     page,
   }: {
