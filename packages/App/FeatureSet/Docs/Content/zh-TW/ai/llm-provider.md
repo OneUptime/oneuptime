@@ -1,109 +1,131 @@
-# LLM 供應商
+# LLM 提供者
 
-OneUptime 支援整合各種大型語言模型（LLM）供應商，以在整個平台中啟用 AI 驅動的功能。本指南將協助您設定您自己的 LLM 供應商。
+LLM 提供者是 OneUptime 中每項 AI 功能背後的模型：調查、詢問 AI、草稿和修正拉取請求都依賴它。本頁說明某項功能使用哪個提供者，如何新增你自己的提供者（OpenAI、Azure OpenAI 和 Microsoft Foundry、Anthropic、Groq、Mistral、Ollama，或任何相容 OpenAI 的伺服器），以及如何讓 OneUptime 使用你自己執行的模型。
 
-## LLM 供應商可以做什麼？
+:::cards
+- [AI 使用哪個提供者](#ai-使用哪個提供者): 專案的預設提供者，否則使用全域提供者。
+- [自行託管：透過環境變數零設定](#自行託管透過環境變數零設定): 透過伺服器的設定，為每個專案提供一個提供者。
+- [設定 LLM 提供者](#設定-llm-提供者): 為專案新增提供者，並進行測試。
+- [為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url): OneUptime 伺服器能夠連到的位址。
+:::
 
-OneUptime 中的 LLM 供應商可協助您自動化並強化事件管理工作流程：
+## 提供者驅動的功能
 
-- **自主調查**：自動調查新的事件與警示，並在時間軸上發布附帶引用的根本原因分析——請參閱[AI SRE](/docs/ai/ai-sre)
-- **事件備註**：自動產生詳細的事件備註與更新
-- **警示備註**：建立有意義的警示描述與背景資訊
-- **排程維護備註**：自動產生維護事件備註
-- **事件事後檢討**：自動草擬完整的事件事後檢討報告
-- **程式碼改進**：如果您將程式碼儲存庫連接到 OneUptime，我們將使用您的 LLM 供應商來分析遙測資料（記錄檔、追蹤、指標、例外狀況）並建議程式碼改進
+- **調查**：OneUptime AI 調查新的事件和警示，並在時間軸上發布附有引用的根本原因分析。請參閱 [AI SRE](/docs/ai/ai-sre)。
+- **問題**：**Ask AI** 根據你專案的資料作答，每個論點都附有引用。請參閱 [詢問 AI](/docs/ai/ask-ai)。
+- **草稿**：事件、警示和排定維護的備註中的 **Draft with AI**，以及依需求或在事件解決時起草的事後檢討。
+- **程式碼**：修正例外、緩慢追蹤以及調查所發現原因的拉取請求，可從 OneUptime 或 GitHub 發起。請參閱 [修正任務](/docs/ai/ai-agent)。
+- **其他一切**：AI Insights 的分流、工作流程和運行手冊中的 AI 步驟，以及 Slack 和 Microsoft Teams 中的回答。
 
-## OneUptime SaaS 使用者
+## AI 使用哪個提供者
 
-如果您使用的是 **OneUptime SaaS**（雲端託管版本），預設情況下您可以使用 **Global LLM Provider**，無需任何額外設定。Global LLM Provider 已預先設定完成，可供所有 AI 功能使用。
+AI 功能使用專案的預設提供者。沒有預設提供者的專案會使用全域提供者（如果有的話）。詢問 AI 也可以把對話切換到專案的另一個提供者，或某個全域提供者。
 
-如果您偏好使用自己的 API 金鑰或特定供應商，您仍然可以依照以下說明設定自訂的 LLM 供應商。
-
-OneUptime SaaS 只能連線到公用網際網路上的 LLM 端點，無法連線到您私有網路中的模型，例如自行託管的 Ollama 或 vLLM 伺服器。若要使用您自己執行的模型，請在能連到該模型的網路中自行託管 OneUptime，或將模型公開在公用端點上——請參閱[為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)。
-
-## 自行託管：只用環境變數完成設定
-
-在自行託管的執行個體上，要**一次為所有專案**啟用 AI 功能，最快的方式是在 OneUptime 伺服器上設定 `GLOBAL_LLM_PROVIDER_*` 環境變數——Docker Compose 寫在 `config.env` 中，Helm 則透過 values 設定。啟動時，OneUptime 會依據這些變數註冊一個 Global LLM Provider（並保持同步）；不需要在儀表板中逐一為每個專案設定，專案沒有自己的供應商時，AI 修正任務也會使用它。
-
-| 變數 | 描述 |
-| --- | --- |
-| `GLOBAL_LLM_PROVIDER_TYPE` | 啟用時必填。可為下列其中之一：`OpenAI`、`AzureOpenAI`、`Anthropic`、`Groq`、`Mistral`、`Ollama`、`OpenAICompatible` |
-| `GLOBAL_LLM_PROVIDER_API_KEY` | API 金鑰——OpenAI、Azure OpenAI、Anthropic、Groq 與 Mistral 為必填；Ollama 或不需金鑰的 OpenAI 相容伺服器則不需要 |
-| `GLOBAL_LLM_PROVIDER_BASE_URL` | API 端點——Azure OpenAI、Ollama 與 OpenAI 相容伺服器為必填 |
-| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | 要使用的模型（OpenAI 相容伺服器為必填，其他情況建議填寫） |
-| `GLOBAL_LLM_PROVIDER_NAME` | 選填的易記名稱，會顯示在儀表板中 |
-
-**範例：自行託管的 Ollama**
-
-```bash
-GLOBAL_LLM_PROVIDER_TYPE=Ollama
-# OneUptime 伺服器能連線到的位址。絕不能用 localhost：
-# 請參閱下文 "為自行託管的模型選擇基底 URL"。
-GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
-GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
-# 不需要 API 金鑰——Ollama 不使用金鑰。
+```mermaid title="AI 功能使用哪個提供者"
+flowchart TB
+    F["AI 功能<br/>需要一個模型"] --> D{"專案是否有<br/>預設提供者？"}
+    D -->|"是"| P["專案的<br/>預設提供者"]
+    D -->|"否"| G{"是否有<br/>全域提供者？"}
+    G -->|"是"| GP["全域提供者：<br/>OneUptime Cloud<br/>上的 AI 額度"]
+    G -->|"否"| N["什麼都不執行，<br/>AI 頁面提示<br/>缺少提供者"]
 ```
 
-**範例：OpenAI**
+當 **設為預設** 開啟時，提供者就是專案的預設提供者，每個新提供者都是如此。如果專案的所有提供者都關閉了這一項，專案就會改用全域提供者，就像它沒有任何提供者一樣。
 
+## OneUptime Cloud
+
+在 **OneUptime Cloud** 上，每個專案都可以免設定使用全域提供者。它可用於每項 AI 功能，費用從專案的 AI 額度中支付。
+
+如果想改用你自己的 API 金鑰或某個特定模型，請依下文新增你自己的提供者：在你自己的提供者上執行的 AI 不會向你收費。
+
+全域 LLM 提供者的費用從專案的 AI 額度中支付。要限制 AI 每天能花費的金額，請在 **專案設定 → AI Features → 更多設定** 下設定 **每日 AI 支出限制 (USD)**；那裡的 **每日 AI Token 限制** 會限制任何提供者上的權杖，包括你自己的提供者。請參閱 [專案自身的每日限制](/docs/ai/ai-sre#the-projects-own-daily-limits)。
+
+OneUptime Cloud 只能連到公用網際網路上的 LLM 端點。它無法連線到你私人網路中的模型，例如自行託管的 Ollama 或 vLLM 伺服器。要使用你自己執行的模型，請在能夠連到該模型的網路中自行託管 OneUptime，或把模型發布到公用端點：請參閱 [為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)。
+
+## 自行託管：透過環境變數零設定
+
+在自行託管的執行個體上，**一次為所有專案** 開啟 AI 的最快方式，是在 OneUptime 伺服器上設定 `GLOBAL_LLM_PROVIDER_*` 環境變數：Docker Compose 寫在 `config.env` 中，Helm 則透過 values 設定。啟動時，OneUptime 會據此註冊一個全域 LLM 提供者並保持同步；任何專案都無需設定，沒有自有提供者的專案，其 AI 修正任務也會使用它。
+
+| 變數 | 說明 |
+| --- | --- |
+| `GLOBAL_LLM_PROVIDER_TYPE` | 開啟時必需。取值為 `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` 之一 |
+| `GLOBAL_LLM_PROVIDER_API_KEY` | API 金鑰：OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必需；Ollama 或無金鑰的 OpenAI 相容伺服器不需要 |
+| `GLOBAL_LLM_PROVIDER_BASE_URL` | 端點：Azure OpenAI、Ollama 和 OpenAI 相容伺服器必需 |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | 要使用的模型：OpenAI 相容伺服器必需，其他提供者建議設定 |
+| `GLOBAL_LLM_PROVIDER_NAME` | 可選的易記名稱，顯示在儀表板中 |
+
+:::tabs
+@tab Ollama
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=Ollama
+# An address the OneUptime server can reach. Never localhost: see
+# "Choosing a Base URL for a Self-Hosted Model" below.
+GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
+# No API key needed — Ollama is keyless.
+```
+@tab OpenAI
 ```bash
 GLOBAL_LLM_PROVIDER_TYPE=OpenAI
 GLOBAL_LLM_PROVIDER_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
 GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 ```
+:::
 
-同步是宣告式的：變更變數後，供應商會在下次重新啟動時更新；移除 `GLOBAL_LLM_PROVIDER_TYPE` 則會將其刪除。在管理儀表板中手動建立的全域供應商永遠不會被更動。專案仍可在 **專案設定** > **人工智慧** > **LLM 提供商** 下新增自己的供應商——專案自有的供應商一律優先於全域供應商。
+同步是宣告式的：修改變數後，提供者會在下次重新啟動時隨之更新；取消設定 `GLOBAL_LLM_PROVIDER_TYPE`，提供者就會被移除。在 Admin Dashboard 中手動建立的全域提供者永遠不會被變更。專案仍然可以在 **專案設定 → 人工智慧 → LLM 提供商** 下新增自己的提供者，而且專案擁有的提供者始終優先。
 
-## 支援的供應商
+## 支援的提供者
 
-OneUptime 目前支援以下 LLM 供應商：
+| 提供者 | 用途 | 需要 API 金鑰 | 需要基底 URL |
+| --- | --- | --- | --- |
+| **OpenAI** | GPT-5.1 以及其他 OpenAI 模型 | 是 | 否（使用預設值） |
+| **Azure OpenAI / Microsoft Foundry** | 你在 Microsoft Foundry 或 Azure OpenAI 中部署的模型：OpenAI 模型、Foundry Models 和 Claude | 是 | 是 |
+| **Anthropic** | Claude Sonnet 5.5、Claude Opus 5.5、Claude Haiku 5.5 以及其他 Claude 模型 | 是 | 否（使用預設值） |
+| **Groq** | Llama、Mixtral 等開放模型的快速推論 | 是 | 否（使用預設值） |
+| **Mistral** | Mistral 託管的模型 | 是 | 否（使用預設值） |
+| **Ollama** | 你自己執行的開放原始碼模型，例如 Llama 3.1、Mistral 或 Qwen | 否 | 是 |
+| **OpenAI Compatible** | 任何相容 OpenAI 的伺服器：vLLM、LocalAI、LM Studio 等 | 否（選填） | 是 |
 
-| 供應商                | 描述                                                                | 需要 API 金鑰 | 需要 Base URL    |
-| --------------------- | ------------------------------------------------------------------- | ------------- | ---------------- |
-| **OpenAI**            | GPT-5.1 及其他 OpenAI 模型                                          | 是            | 否（使用預設值） |
-| **Azure OpenAI / Microsoft Foundry** | 您在 Microsoft Foundry 或 Azure OpenAI 中部署的模型：OpenAI 模型、Foundry Models 和 Claude | 是 | 是 |
-| **Anthropic**         | Claude Sonnet 5.5、Claude Opus 5.5、Claude Haiku 5.5 及其他 Claude 模型 | 是            | 否（使用預設值） |
-| **Groq**              | 針對 Llama、Mixtral 及其他開源模型提供快速推論                      | 是            | 否（使用預設值） |
-| **Mistral**           | Mistral 託管的模型                                                  | 是            | 否（使用預設值） |
-| **Ollama**            | 自行託管的開源模型，例如 Llama 3.1、Mistral、Qwen 等                | 否            | 是               |
-| **OpenAI Compatible** | 任何與 OpenAI 相容的伺服器（vLLM、LocalAI、LM Studio 等）           | 否（選填）    | 是               |
+## 設定 LLM 提供者
 
-## 設定 LLM 供應商
+:::steps
+### 開啟 LLM 提供者
 
-### 步驟 1：前往 LLM Providers 設定
+前往 **專案設定 → 人工智慧 → LLM 提供商**（側邊選單的 **人工智慧** 區段預設是收合的），然後點選 **建立LLM 提供商**。
 
-1. 登入您的 OneUptime 儀表板
-2. 前往 **專案設定** > **人工智慧** > **LLM 提供商**
-3. 點選 **建立LLM 提供商** 以新增供應商
+### 為提供者命名
 
-### 步驟 2：設定您的供應商
+在 **基本資訊** 中，為它取一個能說明用途的 **名稱**，例如 "Production OpenAI" 或 "Local Ollama"，也可以填寫 **描述**。
 
-填寫以下欄位：
+### 填寫提供者的設定
 
-- **名稱**：此 LLM 設定的易記名稱（例如「Production OpenAI」、「Local Ollama」）
-- **描述**（選填）：協助識別此供應商用途的描述
-- **LLM 提供商**：選擇供應商類型（OpenAI、Azure OpenAI / Microsoft Foundry、Anthropic、Groq、Mistral、Ollama 或 OpenAI Compatible）
-- **API 金鑰**：您的 API 金鑰（OpenAI、Azure OpenAI、Anthropic、Groq 與 Mistral 為必填；Ollama 與 OpenAI 相容伺服器則為選填）
-- **模型名稱**：要使用的特定模型（例如 `gpt-5.1`、`claude-sonnet-5-5`、`llama3.1`）
-- **基底 URL**（選填）：自訂 API 端點 URL（Azure OpenAI、Ollama 與 OpenAI Compatible 為必填，其他則為選填）
-- **更多欄位**：收合在上方欄位之下，包括 **設為預設**（新供應商預設為開啟，因為 AI 功能只會使用專案的預設供應商）和 **其他參數**（選填的 JSON 物件，其中的額外參數會隨每個請求傳送給供應商，例如 `{"temperature": 0.2}`）
+在 **供應商設定** 中：
 
-**測試供應商。** 供應商頁面或其所在列選單中的 **測試** 會使用 **API 金鑰**、**模型名稱**、**基底 URL** 和 **其他參數** 的值向供應商傳送一則簡短的提示詞，並告訴您它是否有回應並呼叫了工具，而 OneUptime 的 AI 功能需要這一點。測試失敗時，會先說明應檢查什麼，再提供供應商的回答。可以變更供應商的人就可以測試它：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member** 和 **Edit LLM**。其他能看到該供應商的人會看到 **測試** 處於鎖定狀態。全域 LLM 供應商由伺服器管理員在管理儀表板的 **設定** > **全域 LLM 供應商** 中測試。
+- **LLM 提供商**：提供者的類型（OpenAI、Azure OpenAI / Microsoft Foundry、Anthropic、Groq、Mistral、Ollama 或 OpenAI Compatible）
+- **API 金鑰**：你的 API 金鑰（OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必需；Ollama 和 OpenAI 相容伺服器選填）
+- **模型名稱**：要使用的模型，例如 `gpt-5.1`、`claude-sonnet-5-5` 或 `llama3.1`
+- **基底 URL**：端點，Azure OpenAI、Ollama 和 OpenAI Compatible 必需；其他提供者選填，用於覆寫其預設值
+- **更多欄位**，收合在上述欄位下方：**設為預設**，新提供者預設開啟，因為 AI 功能只使用專案的預設提供者；以及 **其他參數**，一個選填的 JSON 物件，其中的額外參數會隨每個請求傳送給提供者（例如 `{"temperature": 0.2}`）
 
-## 各供應商專屬設定
+**誰可以看到提供者。** 專案的 LLM 提供者只有能讀取專案設定的成員才能讀取：**Project Owner**、**Project Admin**、**Project Member**、**Viewer**、**Settings Admin**、**Settings Member**、**Settings Viewer** 和 **Read LLM**。提供者的 **API 金鑰** 和 **其他參數** 只有專案的擁有者和管理員才能讀取，因為參數會隨每個請求傳送給提供者，而且可能像金鑰一樣帶有權杖或標頭。其他成員只能看到是否儲存了參數，而看不到參數內容。可以編輯提供者的成員仍然可以在不讀取的情況下替換其 API 金鑰或參數：在編輯表單中這些欄位一開始是空的，留空則保留已儲存的值。要刪除參數，請儲存 `{}`。只有專案的擁有者和管理員才能修改提供者的 **基底 URL**，因為它的 API 金鑰和其他參數會被傳送到該位址；其他可以編輯提供者的成員可以修改其餘所有內容。任何能讀取提供者的人都能讀取它的 **基底 URL**，所以絕不要在其中放入金鑰、權杖或密碼：請使用 **API 金鑰**。同一頁面上的 **全域 LLM 供應商** 清單（專案改用的共用提供者）會向任何已登入的人顯示它們的名稱、描述和價格，此外不顯示任何資訊。
+
+### 測試它
+
+**測試提供者。** 提供者頁面上或其所在列選單中的 **測試**，會用提供者的 **API 金鑰**、**模型名稱**、**基底 URL** 和 **其他參數** 傳送一個簡短的提示，並告訴你它是否作出回應並呼叫了工具，這是 OneUptime 的 AI 功能所需要的。測試失敗時，會先說明應檢查什麼，再說明提供者的回答。能修改提供者的人就能測試它：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member** 和 **Edit LLM**。其他能看到該提供者的人會發現 **測試** 處於鎖定狀態。全域 LLM 提供者由伺服器管理員在 Admin Dashboard 的 **設定 → 全域 LLM 供應商** 下測試。
+:::
+
+## 各提供者的設定
 
 ### OpenAI
 
-1. 從 [OpenAI Platform](https://platform.openai.com/api-keys) 取得您的 API 金鑰
-2. 選擇 **OpenAI** 作為 LLM 提供商
-3. 輸入您的 API 金鑰
+1. 從 [OpenAI Platform](https://platform.openai.com/api-keys) 取得 API 金鑰
+2. 選擇 **OpenAI** 作為 LLM 提供者
+3. 輸入你的 API 金鑰
 4. 選擇模型名稱：
-   - `gpt-5.1` - 建議的預設模型，擅長工具呼叫與複雜調查
-   - `gpt-5.1-mini` - 更快速且更具成本效益
+   - `gpt-5.1` - 建議的預設值，擅長工具呼叫和複雜調查
+   - `gpt-5.1-mini` - 更快、更經濟
 
-**範例設定：**
-
-```
+```text title="Example configuration"
 Name: Production OpenAI
 LLM Provider: OpenAI
 API Key: sk-xxxxxxxxxxxxxxxxxxxx
@@ -112,102 +134,97 @@ Model Name: gpt-5.1
 
 ### Anthropic
 
-1. 從 [Anthropic Console](https://console.anthropic.com/) 取得您的 API 金鑰
-2. 選擇 **Anthropic** 作為 LLM 提供商
-3. 輸入您的 API 金鑰
+1. 從 [Anthropic Console](https://console.anthropic.com/) 取得 API 金鑰
+2. 選擇 **Anthropic** 作為 LLM 提供者
+3. 輸入你的 API 金鑰
 4. 選擇模型名稱：
-   - `claude-sonnet-5-5` - 建議的預設模型，智慧、速度與成本的最佳平衡
-   - `claude-opus-5-5` - 能力更強，適合最棘手的調查
-   - `claude-haiku-5-5` - 最快速且最具成本效益
+   - `claude-sonnet-5-5` - 建議的預設值，在智慧、速度和成本之間取得最佳平衡
+   - `claude-opus-5-5` - 能力更強，適合最困難的調查
+   - `claude-haiku-5-5` - 最快、最經濟
 
-**範例設定：**
-
-```
+```text title="Example configuration"
 Name: Production Anthropic
 LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
 Model Name: claude-sonnet-5-5
 ```
 
-Claude Opus 4.7 及之後的所有 Claude 模型會自行決定取樣，並拒絕設定了 `temperature`、`top_p` 或 `top_k` 的請求。對這些模型，OneUptime 不會傳送這些設定。如果某個模型仍然拒絕其中之一，OneUptime 會移除該設定後重新傳送請求，並為該供應商記住這一點。
+Claude Opus 4.7 及之後的所有 Claude 模型會自行選擇取樣方式，並拒絕設定了 `temperature`、`top_p` 或 `top_k` 的請求。OneUptime 對這些模型不傳送這些設定。如果某個模型仍然拒絕其中某項設定，OneUptime 會去掉它重新傳送請求，並為該提供者記住這一點。
 
-Claude 5 模型會在回答前先思考，而思考會計入回覆的 token 上限，因此 OneUptime 會為思考預留空間。若要讓它們少思考、回答得更快更省錢，請在供應商的 **其他參數** 中設定 `{"output_config": {"effort": "low"}}`。您在那裡新增的設定，OneUptime 會隨每個請求傳送給 Anthropic，但 `model`、`messages`、`system`、`tools`、`tool_choice` 和 `stream` 除外，這些由 OneUptime 自行設定。
+Claude 5 模型會先思考再回答，而思考會計入回覆的權杖上限，所以 OneUptime 會為此保留空間。要讓它們少思考、更快更省地回答，請在提供者的 **其他參數** 中設定 `{"output_config": {"effort": "low"}}`。OneUptime 會把你在那裡新增的設定隨每個請求傳送給 Anthropic，但 `model`、`messages`、`system`、`tools`、`tool_choice` 和 `stream` 除外，這些由它自己設定。
 
-### Azure OpenAI 與 Microsoft Foundry
+### Azure OpenAI 和 Microsoft Foundry
 
-對於您在 Microsoft Foundry 或 Azure OpenAI 中部署的模型（OpenAI 模型、其他 Foundry Models 和 Claude），請使用 **Azure OpenAI / Microsoft Foundry**。把資源的一個金鑰填入 **API 金鑰**，把部署名稱填入 **模型名稱**，把資源的端點填入 **基底 URL**，例如 `https://contoso-ai.openai.azure.com/openai/v1`。[Microsoft Foundry 與 Azure OpenAI](/docs/ai/microsoft-foundry) 逐步介紹 Azure 這一側：資源、權限、模型部署、網路需求和疑難排解。
+對於你在 Microsoft Foundry 或 Azure OpenAI 中部署的模型（OpenAI 模型、其他 Foundry Models 和 Claude），請使用 **Azure OpenAI / Microsoft Foundry**。把資源的某個金鑰填為 **API 金鑰**，把部署名稱填為 **模型名稱**，把資源的端點填為 **基底 URL**，例如 `https://contoso-ai.openai.azure.com/openai/v1`。[Microsoft Foundry 和 Azure OpenAI](/docs/ai/microsoft-foundry) 介紹了 Azure 一側的設定：資源、權限、模型部署、網路需求和疑難排解。
 
 ### Ollama（自行託管）
 
-Ollama 讓您可以在本機或您自己的基礎設施上執行開源 LLM。
+Ollama 在你自己的機器上執行開放原始碼模型。
 
 1. 從 [ollama.ai](https://ollama.ai) 安裝 Ollama
-2. 拉取您想要的模型：`ollama pull llama3.1`
-3. 確保 Ollama 正在執行，且 OneUptime 伺服器可以連到它。原生安裝只會監聽 `127.0.0.1`，因此請以 `OLLAMA_HOST=0.0.0.0:11434` 啟動，讓它接受來自其他機器與容器的連線（官方 Docker 映像檔 `ollama/ollama` 已經這樣設定）
-4. 選擇 **Ollama** 作為 LLM 提供商
-5. 輸入 Base URL：OneUptime 伺服器連到 Ollama 伺服器時所用的位址，例如 `http://ollama:11434`（`/api/chat` 由 OneUptime 自動加上）。`localhost` 無法使用——請參閱[為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)
-6. 輸入您所拉取的模型名稱
+2. 拉取一個模型：`ollama pull llama3.1`
+3. 確保 Ollama 正在執行，而且 OneUptime 伺服器能連到它。原生安裝只監聽 `127.0.0.1`，所以要用 `OLLAMA_HOST=0.0.0.0:11434` 啟動它，以接受來自其他機器和容器的連線（官方的 `ollama/ollama` Docker 映像檔已經這樣做了）
+4. 選擇 **Ollama** 作為 LLM 提供者
+5. 輸入基底 URL：OneUptime 伺服器連到 Ollama 伺服器時使用的位址，例如 `http://ollama:11434`（OneUptime 會自行加上 `/api/chat`）。`localhost` 無法使用：請參閱 [為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)
+6. 輸入你拉取的模型名稱
 
-**範例設定（Ollama 以名為 `ollama` 的服務執行於 OneUptime 的 Docker Compose 網路上）：**
-
-```
+```text title="Ollama as a service named ollama on OneUptime's Docker Compose network"
 Name: Self-Hosted Ollama
 LLM Provider: Ollama
 Base URL: http://ollama:11434
 Model Name: llama3.1
 ```
 
-**加大上下文視窗。** 除非另外設定，Ollama 會依偵測到的 GPU 記憶體決定模型的上下文視窗大小：低於 24 GiB 時為 4k 個 token，不超過 48 GiB 時為 32k，超過 48 GiB 時則為 256k（舊版本使用 2048 或 4096 個 token）。OneUptime 的 AI 功能都是以代理方式運作。每個請求都帶有它們的系統提示與工具定義，在提出任何問題之前就已超過 10,000 個 token，而 AI 調查還會在進行過程中把每次查詢的結果加入對話。當請求再也放不下時，Ollama 會丟棄最舊的訊息，問題也會隨之被丟棄。視模型與 Ollama 版本而定，模型接著會在沒有問題或沒有工具的情況下作答，或者請求會失敗並回報 "no user query found in messages"（Qwen 3.8 及更新版本）或 "the prompt is longer than the context length currently available to the model"。OneUptime 會將這些失敗回報為 "…the request is larger than the model's context window"，且不會重新執行調查。請在供應商的 **其他參數** 中設定更大的 `num_ctx`：
+**加大上下文視窗。** 除非另有設定，Ollama 會依照它找到的 GPU 記憶體決定模型的上下文視窗大小：低於 24 GiB 時為 4k 權杖，48 GiB 以內為 32k，更高則為 256k（舊版本使用 2,048 或 4,096 個權杖）。OneUptime 的 AI 功能都是代理程式。每個請求都帶有它們的系統提示和工具定義，在任何問題之前就超過 10,000 個權杖，而 AI 調查在進行過程中會把每個查詢結果加入對話。當請求再也放不下時，Ollama 會丟棄最早的訊息，問題也隨之遺失。依模型和 Ollama 版本的不同，模型隨後會在沒有問題或沒有工具的情況下作答，或者請求會以 "no user query found in messages"（Qwen 3.8 及更新版本）或 "the prompt is longer than the context length currently available to the model" 失敗。OneUptime 會把這些失敗回報為 "…the request is larger than the model's context window"，並且不會再次執行調查。請在提供者的 **其他參數** 中設定更大的 `num_ctx`：
 
 ```json
 { "options": { "num_ctx": 65536 } }
 ```
 
-OneUptime 會把這個 `options` 物件合併到它送給 Ollama 的選項中，因此只需列出您要變更的設定。65,536 個 token 是 Ollama 為代理建議的大小，足以應付大多數調查。較長的調查可能會用到更多，因為 OneUptime 要等對話超過約 75,000 個 token 後，才會開始縮短舊的查詢結果：若模型支援且您的 GPU 能夠容納，請使用 131,072。上下文視窗越大，需要的記憶體越多；`ollama ps` 會顯示每個已載入模型實際取得的上下文大小。若想改為提高所有用戶端的預設值，請在 Ollama 伺服器上設定 `OLLAMA_CONTEXT_LENGTH`。當 OneUptime 透過 Ollama 與 OpenAI 相容的 `/v1` API（即 **OpenAI Compatible** 供應商）連到 Ollama 時，這是唯一的方法，因為該 API 會忽略 `num_ctx`。對於透過 `GLOBAL_LLM_PROVIDER_*` 變數註冊的全域供應商，請在管理儀表板的 **設定** > **全域 LLM 供應商** 中設定 **其他參數**；啟動時的同步不會動到該欄位。
+OneUptime 會把這個 `options` 物件合併到它傳送給 Ollama 的選項中，所以只需列出你想修改的設定。65,536 個權杖是 Ollama 為代理程式建議的值，足以涵蓋大多數調查。較長的調查可能會用得更多，因為 OneUptime 只有在對話超過大約 75,000 個權杖後才開始縮短舊的查詢結果：如果模型支援且你的 GPU 容納得下，請使用 131,072。更大的上下文視窗需要更多記憶體，`ollama ps` 會顯示每個已載入模型獲得的上下文。若要改為提高所有用戶端的預設值，請在 Ollama 伺服器上設定 `OLLAMA_CONTEXT_LENGTH`。當 OneUptime 透過 Ollama 相容 OpenAI 的 `/v1` API（**OpenAI Compatible** 提供者）連到它時，這是唯一的辦法，因為該 API 會忽略 `num_ctx`。對於透過 `GLOBAL_LLM_PROVIDER_*` 變數註冊的全域提供者，請在 Admin Dashboard 的 **設定 → 全域 LLM 供應商** 下設定 **其他參數**；啟動時的同步不會變更該欄位。
 
-**熱門的 Ollama 模型：**
+**常用的 Ollama 模型：**
 
-- `llama3.1` - Meta 的 Llama 3.1 模型，最早支援工具呼叫的 Llama
+- `llama3.1` - Meta 的 Llama 3.1 模型，支援工具呼叫的最早的 Llama
 - `llama3.3` - Meta 的 Llama 3.3 模型
-- `qwen2.5` - 阿里巴巴的 Qwen 2.5 模型
+- `qwen2.5` - Alibaba 的 Qwen 2.5 模型
 - `mistral-nemo` - Mistral AI 的 Nemo 模型
 
-> 注意：OneUptime 的 AI 功能屬於代理式——高度依賴工具呼叫。請使用 `llama3.1` 或更新版本（或其他支援工具呼叫的模型）。小型模型或不支援工具呼叫的模型（例如 `llama2`、最初的 `llama3`）效果不佳：它們無法查詢您的監視器、事件或遙測資料，因此調查結果會是空的或憑空捏造的。
+> [!NOTE]
+> OneUptime 的 AI 功能都是代理程式：它們高度依賴工具呼叫。請使用 `llama3.1` 或更新版本，或其他能呼叫工具的模型。小模型或不支援工具呼叫的模型（例如 `llama2` 或最初的 `llama3`）回答效果很差：它無法查詢你的監視器、事件或遙測資料，因此調查結果會是空的或捏造的。
 
 ### 為自行託管的模型選擇基底 URL
 
-自行託管模型（Ollama、vLLM、LM Studio 或任何其他與 OpenAI 相容的伺服器）的基底 URL 必須是 **OneUptime 伺服器** 能連到的位址。您的瀏覽器從不連線到它。
+自行託管模型的基底 URL，無論是 Ollama、vLLM、LM Studio 還是其他任何相容 OpenAI 的伺服器，都必須是 **OneUptime 伺服器** 能連到的位址。你的瀏覽器從不連線到它。
 
-**回送位址一律會被拒絕。** 連線之前，OneUptime 會檢查基底 URL 的主機名稱解析出的每個位址。`localhost`、`127.0.0.1`、`[::1]` 與 `0.0.0.0`，以及連結本機位址和 `169.254.169.254` 這類雲端中繼資料位址，在所有部署中都會被拒絕，自行託管也不例外。這是刻意的設計：供應商的基底 URL 不能被用來連到 OneUptime 伺服器本身的服務。況且在 Docker Compose 或 Kubernetes 中，`localhost` 指的是 OneUptime 容器，而不是執行模型的機器。
+**回送位址一律被拒絕。** 在連線之前，OneUptime 會檢查基底 URL 的主機名稱解析到的每一個位址。`localhost`、`127.0.0.1`、`[::1]` 和 `0.0.0.0`，以及 `169.254.169.254` 這類的連結本機位址和雲端中繼資料位址，在所有部署中都會被拒絕，自行託管也不例外。這是刻意的設計：提供者的基底 URL 不能被用來連到 OneUptime 伺服器本身的服務。在 Docker Compose 或 Kubernetes 中，`localhost` 無論如何都會指向 OneUptime 容器，而不是執行你模型的機器。
 
-請改用私有位址或內部主機名稱：
+請改用私人位址或內部主機名稱：
 
-| 模型伺服器的執行位置 | 基底 URL |
+| 模型伺服器執行的位置 | 基底 URL |
 | --- | --- |
-| OneUptime 的 Docker Compose 網路（`oneuptime`）上的服務 | 服務名稱，例如 `http://ollama:11434` |
-| 與 OneUptime 相同的 Kubernetes 叢集 | Service 的 DNS 名稱，例如 `http://ollama.<namespace>.svc.cluster.local:11434`——與[內建 vLLM](#在-kubernetes-上自行託管-vllmhelm) 的模式相同 |
-| 主機本身，不在任何容器內 | 主機的區域網路 IP，例如 `http://192.168.1.20:11434`；在 Docker Desktop 上也可以用 `http://host.docker.internal:11434` |
-| 您網路中的另一台機器 | 它的私有 IP 或內部主機名稱，例如 `http://10.0.0.12:11434` |
+| OneUptime 的 Docker Compose 網路（`oneuptime`）中的服務 | 服務名稱，例如 `http://ollama:11434` |
+| 與 OneUptime 相同的 Kubernetes 叢集 | Service 的 DNS 名稱，例如 `http://ollama.<namespace>.svc.cluster.local:11434`，與 [內建的 vLLM](#在-kubernetes-上自行託管-vllmhelm) 相同的模式 |
+| 主機本身，在任何容器之外 | 主機的區域網路 IP，例如 `http://192.168.1.20:11434`，在 Docker Desktop 上則為 `http://host.docker.internal:11434` |
+| 你網路中的另一台機器 | 它的私人 IP 或內部主機名稱，例如 `http://10.0.0.12:11434` |
 
-與 OpenAI 相容的伺服器也遵循相同規則，使用各自的連接埠與 `/v1` 路徑，例如 `http://vllm:8000/v1`，或 LM Studio 的 `http://192.168.1.20:1234/v1`。和原生安裝的 Ollama 一樣，LM Studio 在您於其伺服器設定中開啟 **Serve on Local Network** 之前，只會監聽 `127.0.0.1`。
+相容 OpenAI 的伺服器遵循相同的規則，使用各自的連接埠和 `/v1` 路徑，例如 `http://vllm:8000/v1`，LM Studio 則為 `http://192.168.1.20:1234/v1`。與原生安裝的 Ollama 一樣，LM Studio 在你於其伺服器設定中開啟 **Serve on Local Network** 之前只監聽 `127.0.0.1`。
 
-**自行託管的部署可以使用私有位址。** 自行託管的 OneUptime 可以連到私有網路位址，例如 `10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`100.64.0.0/10` 與 IPv6 `fc00::/7`，除非您設定了 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`，這會讓它們像在 OneUptime Cloud 上一樣被拒絕。此設定不適用於 Global LLM Provider：Global LLM Provider 由管理員（透過 `GLOBAL_LLM_PROVIDER_*` 變數或在管理儀表板中）設定，而不是由專案設定，因此仍可連到私有位址。無論哪個供應商，回送位址與連結本機位址都仍會被拒絕。
+**私人位址在自行託管的安裝中可用。** 自行託管的 OneUptime 可以連到私人網路位址，例如 `10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`100.64.0.0/10` 和 IPv6 `fc00::/7`，除非你設定了 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`，它會像 OneUptime Cloud 一樣拒絕這些位址。該設定不適用於全域 LLM 提供者，因為它由管理員（透過 `GLOBAL_LLM_PROVIDER_*` 變數或在 Admin Dashboard 中）而不是專案設定：它仍然可以連到私人位址。對每個提供者，回送位址和連結本機位址都始終被拒絕。
 
-**OneUptime Cloud（SaaS）無法連到私有網路。** 對所有 LLM 供應商，它都會拒絕私有網路位址，以及解析到這些位址的主機名稱。若要使用在您自己基礎設施上執行的模型，請在能連到該模型的網路中自行託管 OneUptime，或將模型公開在可公開存取的端點上。請用 API 金鑰保護公用端點：**Ollama** 供應商不會送出任何憑證，而 **OpenAI Compatible** 會把 API 金鑰當成 Bearer 權杖送出（Ollama 也在 `/v1` 下提供與 OpenAI 相容的 API，因此可以放在會檢查金鑰的反向代理之後）。
+**OneUptime Cloud（SaaS）無法連到私人網路。** 對每個 LLM 提供者，它都會拒絕私人網路位址，以及解析到這些位址的主機名稱。要使用執行在你自己基礎架構上的模型，要麼在能連到該模型的網路中自行託管 OneUptime，要麼把模型發布到可公開存取的端點。請用 API 金鑰保護公用端點：**Ollama** 提供者不傳送任何憑證，而 **OpenAI Compatible** 會把 API 金鑰作為 bearer 權杖傳送（Ollama 也在 `/v1` 下提供相容 OpenAI 的 API，所以它可以放在一個驗證金鑰的反向代理後面）。
 
 ### OpenAI Compatible（vLLM、LocalAI、LM Studio 等）
 
-**OpenAI Compatible** 供應商適用於任何實作了 OpenAI `/chat/completions` API、但本身並非 OpenAI 的伺服器，例如 [vLLM](https://docs.vllm.ai)、[LocalAI](https://localai.io)、[LM Studio](https://lmstudio.ai) 或 text-generation-webui。這類伺服器通常自行託管於您自己的 URL，且經常在沒有驗證的情況下執行。
+對於任何實作了 OpenAI `/chat/completions` API 但本身不是 OpenAI 的伺服器，請使用 **OpenAI Compatible** 提供者，例如 [vLLM](https://docs.vllm.ai)、[LocalAI](https://localai.io)、[LM Studio](https://lmstudio.ai) 或 text-generation-webui。它們通常執行在你自己的位址上，而且往往沒有身分驗證。
 
-1. 啟動您的 OpenAI 相容伺服器，並記下其 Base URL（通常以 `/v1` 結尾）
-2. 選擇 **OpenAI Compatible** 作為 LLM 提供商
-3. 輸入 **基底 URL**（必填），例如 `http://your-server:8000/v1`。它必須能從 OneUptime 伺服器連到，因此不能用 `localhost`——請參閱[為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)
-4. 輸入 **模型名稱**（必填）——必須符合您伺服器所提供的模型
-5. 只有在您的伺服器需要驗證時才輸入 **API 金鑰**；若不需要驗證，請留空
+1. 啟動你的 OpenAI 相容伺服器，並記下它的基底 URL（通常以 `/v1` 結尾）
+2. 選擇 **OpenAI Compatible** 作為 LLM 提供者
+3. 輸入 **基底 URL**（必填），例如 `http://your-server:8000/v1`。OneUptime 伺服器必須能連到它，所以不能用 `localhost`：請參閱 [為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)
+4. 輸入 **模型名稱**（必填）：它必須與你的伺服器提供的某個模型一致
+5. 只有在你的伺服器要求時才輸入 **API 金鑰**；對於無金鑰的伺服器請留空
 
-**範例設定（無需金鑰的 vLLM）：**
-
-```
+```text title="A keyless vLLM"
 Name: Self-Hosted vLLM
 LLM Provider: OpenAI Compatible
 Base URL: http://vllm.internal:8000/v1
@@ -215,13 +232,14 @@ Model Name: meta-llama/Llama-3.1-8B-Instruct
 API Key: (leave blank)
 ```
 
-> 提示：儲存後，請使用供應商上的 **測試** 按鈕，確認連線、模型名稱與 Base URL 皆正確。
+> [!TIP]
+> 儲存後，使用提供者的 **測試** 檢查連線、模型名稱和基底 URL。
 
 ### 在 Kubernetes 上自行託管 vLLM（Helm）
 
-如果您使用 Helm chart 自行託管 OneUptime，您可以在叢集中執行 [vLLM](https://docs.vllm.ai)——一個與 OpenAI 相容的推論伺服器——並在您自己的 GPU 上提供本地模型服務。資料不會離開您的基礎設施。
+如果你用 Helm chart 自行託管 OneUptime，就可以在叢集內執行 [vLLM](https://docs.vllm.ai)（一個相容 OpenAI 的推論伺服器），在你自己的 GPU 上提供本機模型。任何資料都不會離開你的基礎架構。
 
-1. 在您的 Helm values 中啟用它（需要 NVIDIA GPU 節點）：
+1. 在你的 Helm values 中開啟它（需要 NVIDIA GPU 節點）：
 
    ```yaml
    vllm:
@@ -229,19 +247,17 @@ API Key: (leave blank)
      model: Qwen/Qwen2.5-1.5B-Instruct
    ```
 
-2. 執行 `helm upgrade`，並等待 vLLM Pod 變為 Ready（首次啟動會下載模型）
-3. 完成——vLLM 會在啟動時自動註冊為 Global LLM Provider（`vllm.globalProvider.enabled`，預設為 `true`），因此所有專案的 AI 功能皆可使用，包括 AI 修正任務。（無論是雲端或自行託管，專案沒有自己的供應商時，代理的修正任務都會使用全域供應商；在雲端，這部分用量會以計量的 AI token 計費。專案自有的供應商一律優先。）
+2. 執行 `helm upgrade`，等待 vLLM 的 Pod 變為 Ready（首次啟動會下載模型）
+3. 就這樣：vLLM 會在啟動時自動註冊為全域 LLM 提供者（`vllm.globalProvider.enabled`，預設 `true`），因此 AI 功能對所有專案都可用，包括 AI 修正任務。（在任何地方，無論雲端還是自行託管，當專案沒有自有提供者時，代理程式的修正任務都會使用全域提供者；在雲端，這部分用量依計量的 AI 權杖計費。專案擁有的提供者始終優先。）
 
-如果您停用了自動註冊（`vllm.globalProvider.enabled: false`），請手動建立供應商：
+如果你關閉了自動註冊（`vllm.globalProvider.enabled: false`），請手動建立提供者：
 
-1. 選擇 **OpenAI Compatible** 作為 LLM 提供商（vLLM 使用 OpenAI API）
-2. 輸入叢集內部的 Base URL：`http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`（若您變更了 `global.clusterDomain`，請替換 `cluster.local`）
-3. 輸入 Model Name：完整的 HuggingFace 模型 ID（若您已設定 `vllm.servedModelName`，則輸入該值）
-4. 只有在您設定了 `vllm.apiKey` 時才需要輸入 API Key；若為無需金鑰的 vLLM，請留空
+1. 選擇 **OpenAI Compatible** 作為 LLM 提供者（vLLM 使用 OpenAI API）
+2. 輸入叢集內的基底 URL：`http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`（如果你修改過 `global.clusterDomain`，請替換 `cluster.local`）
+3. 輸入模型名稱：完整的 Hugging Face 模型 id（如果你設定了 `vllm.servedModelName`，則用它）
+4. 只有在你設定了 `vllm.apiKey` 時才輸入 API 金鑰；對於無金鑰的 vLLM 請留空
 
-**範例設定：**
-
-```
+```text title="The in-cluster vLLM"
 Name: In-Cluster vLLM
 LLM Provider: OpenAI Compatible
 Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
@@ -249,50 +265,43 @@ Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)
 ```
 
-若啟用了計費，或設定了 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`（在 Helm values 中為 `outboundConnections.blockPrivateNetwork: true`），專案自有的供應商就無法連到這個叢集內部位址，因為它會解析為叢集的私有 IP。請改在管理儀表板的 **設定** > **全域 LLM 供應商** 中，用相同的欄位建立該供應商：Global LLM Provider 可以連到這個位址。
+在開啟計費的情況下，或設定了 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`（Helm values 中的 `outboundConnections.blockPrivateNetwork: true`）時，專案自有的提供者無法連到這個叢集內位址，因為它解析到一個私人的叢集 IP。請改為在 Admin Dashboard 的 **設定 → 全域 LLM 供應商** 下用相同的欄位建立提供者：全域 LLM 提供者可以連到該位址。
 
-請參閱 [Helm chart 的 vLLM 指南](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md)，以了解 GPU 排程、受限模型與調校選項。
+有關 GPU 排程、受限模型和調校選項，請參閱 [Helm chart 的 vLLM 指南](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md)。
 
-## 使用自訂 Base URL
+## 最佳做法
 
-對於企業部署或使用代理服務時，您可以指定自訂的 Base URL：
-
-- **Azure OpenAI / Microsoft Foundry**：使用您資源的端點，例如 `https://contoso-ai.openai.azure.com/openai/v1`
-- **OpenAI 相容 API**：任何遵循 OpenAI API 規範的 API
-- **私有 Ollama 執行個體**：您的內部 Ollama 伺服器 URL
-
-## 最佳實務
-
-1. **使用具描述性的名稱**：清楚地為您的供應商命名（例如「Production OpenAI」、「Development Ollama」）
-2. **保護您的 API 金鑰**：API 金鑰在靜態時會加密，但請避免分享它們
-3. **測試您的設定**：設定完成後，請驗證供應商能與 AI 功能正常運作
-4. **監控使用量**：持續追蹤 API 使用量以管理成本
+- **為提供者取清楚的名稱**，例如 "Production OpenAI" 或 "Development Ollama"，讓隊友知道哪個是哪個。
+- **把金鑰放在 API 金鑰欄位中。** API 金鑰在儲存時會被加密，只有專案的擁有者和管理員能讀取。
+- **每次修改後都進行測試**，使用提供者的 **測試**。
+- **留意 AI 的成本。** 每次呼叫及其權杖和成本都列在 **專案設定 → 人工智慧 → AI 日誌** 下。
 
 ## 疑難排解
 
-### 連線問題
+:::details 無法連到提供者
+- **OpenAI 或 Anthropic**：檢查你的 API 金鑰是否有效並且有餘額
+- **Azure OpenAI / Microsoft Foundry**：錯誤訊息會先說明需要修改什麼。[Microsoft Foundry 和 Azure OpenAI](/docs/ai/microsoft-foundry) 說明了 Azure 回傳的每種錯誤
+- **Ollama**：檢查 Ollama 伺服器是否在執行，是否監聽在 OneUptime 伺服器能連到的位址上（原生安裝使用 `OLLAMA_HOST=0.0.0.0:11434`），以及基底 URL 是否指向該位址
+- **OpenAI Compatible**：檢查基底 URL 是否以 `/v1` 結尾（或與你的伺服器相符），模型名稱是否與你的伺服器提供的模型一致，以及是否只在伺服器要求時才設定了 API 金鑰
+- **"…points to an address OneUptime is not allowed to connect to"**：基底 URL 解析到了被拒絕的位址：`localhost` 或其他回送位址，或者在 OneUptime Cloud 上是私人網路位址。（OneUptime Cloud 會把被拒絕的主機名稱回報為 "…could not be reached"。）請參閱 [為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)
+- **防火牆**：檢查你的網路是否允許向提供者的 API 發起輸出連線
+:::
 
-- **OpenAI/Anthropic**：請確認您的 API 金鑰有效且有足夠的額度
-- **Azure OpenAI / Microsoft Foundry**：錯誤開頭會說明需要修改什麼。Azure 回傳的每種錯誤都在 [Microsoft Foundry 與 Azure OpenAI](/docs/ai/microsoft-foundry) 中有說明
-- **Ollama**：請確保 Ollama 伺服器正在執行、監聽 OneUptime 伺服器能連到的位址（原生安裝請使用 `OLLAMA_HOST=0.0.0.0:11434`），且 Base URL 指向該位址
-- **OpenAI Compatible**：請確認 Base URL 以 `/v1` 結尾（或符合您伺服器的設定）、Model Name 符合您伺服器所提供的模型，且僅在您的伺服器需要驗證時才設定 API Key
-- **"…points to an address OneUptime is not allowed to connect to"**：Base URL 解析到了被拒絕的位址——`localhost` 或其他回送位址，或在 OneUptime Cloud 上是私有網路位址。（OneUptime Cloud 會改以 "…could not be reached" 回報被拒絕的主機名稱。）請參閱[為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)
-- **防火牆**：請檢查您的網路是否允許對外連線至供應商的 API
+:::details 找不到模型
+檢查模型名稱的拼寫。對於 Ollama，請先用 `ollama pull <model-name>` 拉取模型。有些模型只在部分區域可用。
+:::
 
-### 找不到模型
+:::details 上下文視窗太小
+- **"…the request is larger than the model's context window"**：請求放不進模型的上下文視窗，通常是因為 AI 調查收集了大量證據。請在提供者的 **其他參數** 中提高 `num_ctx`，或在 Ollama 伺服器上提高 `OLLAMA_CONTEXT_LENGTH`；請參閱 [Ollama（自行託管）](#ollama自行託管)
+- **"no user query found in messages"**：同一個問題，這是 Qwen 的回報方式。OneUptime 一律會傳送問題；是 Ollama 為了放下請求的其餘部分而把它丟棄了
+:::
 
-- 請確認模型名稱拼寫正確
-- 對於 Ollama，請確保您已使用 `ollama pull <model-name>` 拉取該模型
-- 請檢查該模型在您的所在地區是否可用（部分模型有地區限制）
+還是沒有解決？請在 [OneUptime 的 GitHub issues](https://github.com/OneUptime/oneuptime/issues) 中搜尋你的錯誤，如果你的方案包含支援服務，也可以聯絡支援。
 
-### 上下文視窗過小
+## 後續步驟
 
-- **"…the request is larger than the model's context window"**：請求放不進模型的上下文視窗，通常是因為 AI 調查收集了大量證據。請在供應商的 **其他參數** 中加大 `num_ctx`，或在 Ollama 伺服器上加大 `OLLAMA_CONTEXT_LENGTH`；請參閱[Ollama（自行託管）](#ollama自行託管)
-- **"no user query found in messages"**：同樣的問題，只是 Qwen 的回報方式。OneUptime 一律會送出問題；是 Ollama 為了讓請求的其餘部分放得下而丟棄了它
-
-## 需要協助嗎？
-
-如果您在設定 LLM 供應商時遇到問題，請：
-
-1. 查看 [OneUptime GitHub Issues](https://github.com/OneUptime/oneuptime/issues) 以了解已知問題
-2. 如果您使用的是企業方案，請聯絡支援團隊
+:::cards
+- [修正任務](/docs/ai/ai-agent): 你的提供者撰寫的拉取請求，以及它們從哪裡開始。
+- [AI SRE](/docs/ai/ai-sre): OneUptime AI 有了提供者之後會做什麼。
+- [詢問 AI](/docs/ai/ask-ai): 向你的專案提問，並切換對話的提供者。
+:::
