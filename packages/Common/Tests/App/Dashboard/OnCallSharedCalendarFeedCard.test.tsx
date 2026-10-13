@@ -164,6 +164,7 @@ import { JSONObject } from "../../../Types/JSON";
 import Permission from "../../../Types/Permission";
 import OnCallDutyPolicyScheduleCalendarFeed from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "../../../Models/DatabaseModels/ProjectOnCallCalendarFeed";
+import { FEED_PANEL_BUTTON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedLayout";
 import {
   PROJECT_FEED_CURRENT_PATH,
   PROJECT_FEED_PUBLISH_PATH,
@@ -433,6 +434,36 @@ describe("SharedCalendarFeedCard - publishing", () => {
     expect(
       screen.getByTestId("schedule-shared-calendar-feed-webcal"),
     ).toHaveAttribute("href", WEBCAL_URL);
+  });
+
+  /*
+   * Publish starts the empty panel's text column, as the personal card's
+   * Generate calendar link does. A Button keeps a left margin for a
+   * dialog's footer from md up, which set it 12px in from the text above.
+   */
+  test("Publish lines up with the panel's text, for an editor and locked for a reader", async () => {
+    getMock.mockResolvedValue(ok(UNPUBLISHED_JSON));
+
+    const { unmount } = renderScheduleCard("Europe/Stockholm");
+
+    const working: HTMLElement = await screen.findByTestId(
+      "schedule-shared-calendar-feed-publish",
+    );
+
+    expect(working).not.toBeDisabled();
+    expect(working.className).toContain(FEED_PANEL_BUTTON_CLASS_NAME);
+    expect(FEED_PANEL_BUTTON_CLASS_NAME).toBe("md:!ml-0");
+
+    unmount();
+    permissionsForTest = READER_PERMISSIONS;
+    renderScheduleCard("Europe/Stockholm");
+
+    const locked: HTMLElement = await screen.findByTestId(
+      "schedule-shared-calendar-feed-publish",
+    );
+
+    expect(locked).toBeDisabled();
+    expect(locked.className).toContain(FEED_PANEL_BUTTON_CLASS_NAME);
   });
 
   test("a master admin is an editor everywhere", async () => {
@@ -785,6 +816,46 @@ describe("SharedCalendarFeedCard - a published link", () => {
     expect(
       screen.getByTestId("schedule-shared-calendar-feed-links"),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * The re-read after an action keeps the card as it is until it answers,
+   * rather than collapsing it to the loader and back.
+   */
+  test("Disable link keeps the card in place while it re-reads", async () => {
+    let answerReRead: (value: HTTPResponse<JSONObject>) => void = () => {
+      // Replaced below, once the re-read is asked for.
+    };
+
+    getMock.mockResolvedValueOnce(ok(publishedJson())).mockReturnValueOnce(
+      new Promise<HTTPResponse<JSONObject>>(
+        (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+          answerReRead = resolve;
+        },
+      ),
+    );
+
+    renderScheduleCard("Europe/Stockholm");
+
+    await screen.findByRole("button", { name: "Manage link" });
+    fireEvent.click(menuItem(openManageMenu(), "Disable link"));
+
+    await waitFor(() => {
+      expect(getMock).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("schedule-shared-calendar-feed-links"),
+    ).toBeInTheDocument();
+
+    answerReRead(ok(publishedJson({ isEnabled: false })));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("schedule-shared-calendar-feed-status-pill"),
+      ).toHaveTextContent("Disabled");
+    });
+    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
   });
 
   test("Enable link in the status writes isEnabled=true on the schedule feed model", async () => {

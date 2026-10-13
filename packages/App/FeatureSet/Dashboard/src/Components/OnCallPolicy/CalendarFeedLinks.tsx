@@ -84,6 +84,14 @@ export const SUBSCRIBE_OPTIONS_ALONE_GRID_CLASS_NAME: string =
 
 export const SUBSCRIBE_BLOCK_ALONE_CLASS_NAME: string = "max-w-3xl";
 
+/*
+ * What a click on an option does, under its name. Wrapped the way a person
+ * would set it: on a phone "Opens Google Calendar in a new tab" breaks
+ * before "new tab" rather than leaving "tab" alone on the second line.
+ */
+export const SUBSCRIBE_OPTION_HINT_CLASS_NAME: string =
+  "mt-0.5 text-pretty text-xs leading-5 text-gray-500";
+
 export const SUBSCRIBE_OPTION_MARK_CLASS_NAME: string =
   "flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-indigo-50 text-indigo-600";
 
@@ -143,7 +151,7 @@ const CalendarFeedLinks: FunctionComponent<ComponentProps> = (
               <div className="text-sm font-semibold text-gray-900">
                 {translateString("Google Calendar")}
               </div>
-              <div className="mt-0.5 text-xs leading-5 text-gray-500">
+              <div className={SUBSCRIBE_OPTION_HINT_CLASS_NAME}>
                 {translateString("Opens Google Calendar in a new tab")}
               </div>
             </div>
@@ -169,7 +177,7 @@ const CalendarFeedLinks: FunctionComponent<ComponentProps> = (
               <div className="text-sm font-semibold text-gray-900">
                 {translateString("Apple Calendar / Outlook")}
               </div>
-              <div className="mt-0.5 text-xs leading-5 text-gray-500">
+              <div className={SUBSCRIBE_OPTION_HINT_CLASS_NAME}>
                 {translateString("Opens the calendar app on this device")}
               </div>
             </div>

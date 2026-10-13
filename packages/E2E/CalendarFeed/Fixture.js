@@ -70,9 +70,11 @@ if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
 }
 
-if (language === "fa") {
-  document.documentElement.setAttribute("dir", "rtl");
-}
+/*
+ * Persian is drawn left to right, as the Dashboard draws every language:
+ * its page sets no direction (Dashboard/views/index.ejs), so neither does
+ * the fixture.
+ */
 
 await i18next.use(initReactI18next).init({
   lng: language,
@@ -375,6 +377,8 @@ const state = {
   copied: [],
   // How many status reads still fail before one answers.
   failuresLeft: scenario === "error" ? 1 : 0,
+  // How long a status read takes to answer, as a slow network would.
+  readDelayMilliseconds: 0,
 };
 
 window.__calendarFeedFixture = {
@@ -383,6 +387,10 @@ window.__calendarFeedFixture = {
   // What the personal link's status read answers next.
   setPersonal: (name) => {
     store.personal = personalStatus(name);
+  },
+  // Every status read from now on answers after this long.
+  setReadDelay: (milliseconds) => {
+    state.readDelayMilliseconds = milliseconds;
   },
 };
 
@@ -503,6 +511,11 @@ function answer(path) {
 API.get = async (options) => {
   const path = new URL(options.url.toString()).pathname;
   state.requests.push({ method: "GET", path: path });
+  if (state.readDelayMilliseconds > 0 && path.endsWith("/current")) {
+    await new Promise((resolve) => {
+      setTimeout(resolve, state.readDelayMilliseconds);
+    });
+  }
   return answer(path);
 };
 

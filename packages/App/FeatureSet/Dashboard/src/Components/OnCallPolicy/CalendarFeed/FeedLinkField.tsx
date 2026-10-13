@@ -1,4 +1,8 @@
-import { MaskedFeedLink, maskFeedLink } from "./CalendarFeedUtil";
+import {
+  MASK_CHARACTER,
+  MaskedFeedLink,
+  maskFeedLink,
+} from "./CalendarFeedUtil";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Clipboard from "Common/UI/Utils/Clipboard";
@@ -41,6 +45,52 @@ export interface ComponentProps {
 export const COPIED_FEEDBACK_MILLISECONDS: number = 2000;
 
 type CopyState = "idle" | "copied" | "blocked";
+
+/*
+ * Copy link's word while it says "Copied!" for a moment: drawn on top of
+ * the other word, which is kept in place but invisible. The button is as
+ * wide as the longer of the two in every language, so neither it nor the
+ * link beside it jumps for those two seconds ("Link kopieren" is five
+ * letters longer than "Kopiert!"). The word not showing is hidden from
+ * screen readers as well, so the button is named by the one in view. Both
+ * words start at the same place, beside the icon (a button centres its
+ * text unless told otherwise).
+ */
+interface SwappingLabelProps {
+  labels: [string, string];
+  showsSecond: boolean;
+  dataTestId: string;
+}
+
+export const SWAPPING_LABEL_HIDDEN_CLASS_NAME: string = "invisible";
+
+const SwappingLabel: FunctionComponent<SwappingLabelProps> = (
+  props: SwappingLabelProps,
+): ReactElement => {
+  return (
+    <span
+      className="grid justify-items-start text-start"
+      data-testid={props.dataTestId}
+    >
+      {props.labels.map((label: string, index: number): ReactElement => {
+        const isShown: boolean = props.showsSecond ? index === 1 : index === 0;
+
+        return (
+          <span
+            key={index}
+            className={`col-start-1 row-start-1 ${
+              isShown ? "" : SWAPPING_LABEL_HIDDEN_CLASS_NAME
+            }`}
+            aria-hidden={isShown ? undefined : true}
+            data-shown={isShown ? "true" : "false"}
+          >
+            {label}
+          </span>
+        );
+      })}
+    </span>
+  );
+};
 
 const FeedLinkField: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -102,6 +152,15 @@ const FeedLinkField: FunctionComponent<ComponentProps> = (
   const isCopied: boolean = copyState === "copied";
   const masked: MaskedFeedLink = maskFeedLink(props.url, props.tokenHint);
 
+  /*
+   * The dots are decoration and stay faint; the four characters after them
+   * are what tells this link from another - the status names them ("link
+   * ending in …k3Qx") - so they are drawn as legibly as the host.
+   */
+  const hintStart: number = masked.secret.lastIndexOf(MASK_CHARACTER) + 1;
+  const maskDots: string = masked.secret.slice(0, hintStart);
+  const maskHint: string = masked.secret.slice(hintStart);
+
   return (
     <div className="space-y-2">
       <div
@@ -138,18 +197,34 @@ const FeedLinkField: FunctionComponent<ComponentProps> = (
               <span className="min-w-0 truncate font-mono" aria-hidden="true">
                 {masked.address}
               </span>
-              <span
-                className="flex-none font-mono text-gray-400"
-                aria-hidden="true"
-              >
-                {masked.secret}
+              {/*
+               * Every span says font-mono itself: the Dashboard sets its font
+               * on every element (index.ejs), which beats inheriting it.
+               */}
+              <span className="flex-none font-mono" aria-hidden="true">
+                <span
+                  className="font-mono text-gray-400"
+                  data-testid={`${props.idPrefix}-link-mask-dots`}
+                >
+                  {maskDots}
+                </span>
+                <span
+                  className="font-mono text-gray-500"
+                  data-testid={`${props.idPrefix}-link-mask-hint`}
+                >
+                  {maskHint}
+                </span>
               </span>
             </div>
           )}
         </div>
+        {/*
+         * Not a pressed / unpressed toggle: its name says what it does next
+         * (Show link, then Hide link), and a toggle whose name changes as
+         * well would announce both ("Hide link, pressed").
+         */}
         <button
           type="button"
-          aria-pressed={isRevealed}
           aria-label={translator.translateText(
             isRevealed ? "Hide link" : "Show link",
           )}
@@ -167,6 +242,11 @@ const FeedLinkField: FunctionComponent<ComponentProps> = (
             icon={isRevealed ? IconProp.EyeSlash : IconProp.Eye}
             className="h-4 w-4 flex-none"
           />
+          {/*
+           * Show and Hide take the width they need: the field beside them
+           * changes too when they are pressed, so nothing jumps that was not
+           * going to move anyway.
+           */}
           <span className="max-sm:sr-only">
             {translator.translateText(isRevealed ? "Hide" : "Show")}
           </span>
@@ -190,9 +270,14 @@ const FeedLinkField: FunctionComponent<ComponentProps> = (
             icon={isCopied ? IconProp.Check : IconProp.Copy}
             className="h-4 w-4 flex-none"
           />
-          <span>
-            {translator.translateText(isCopied ? "Copied!" : "Copy link")}
-          </span>
+          <SwappingLabel
+            labels={[
+              translator.translateText("Copy link"),
+              translator.translateText("Copied!"),
+            ]}
+            showsSecond={isCopied}
+            dataTestId={`${props.idPrefix}-copy-label`}
+          />
         </button>
       </div>
       <div className="sr-only" role="status" aria-live="polite">

@@ -108,6 +108,18 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
         },
       );
 
+      const saved: React.ReactElement = React.createElement(
+        "button",
+        {
+          type: "button",
+          "data-testid": "card-model-detail-stub-saved",
+          onClick: (): void => {
+            props["onSaveSuccess"]?.();
+          },
+        },
+        "Saved",
+      );
+
       return React.createElement(
         "div",
         {
@@ -123,6 +135,7 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
           ),
         },
         `${props["cardProps"]?.title}|${fieldTitles.join(",")}`,
+        saved,
       );
     },
   };
@@ -934,6 +947,126 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
       });
     });
 
+    /*
+     * A re-read after an action keeps the card as it is until the answer
+     * arrives. The card used to put its loader in place of everything
+     * meanwhile, collapsing to a spinner and back under the reader's
+     * pointer - the page jumped by the card's height on every Disable,
+     * Enable, Delete and settings save.
+     */
+    test("Disable link keeps the card in place while it re-reads, then shows the answer", async () => {
+      let answerReRead: (value: HTTPResponse<JSONObject>) => void = () => {
+        // Replaced below, once the re-read is asked for.
+      };
+
+      getMock.mockResolvedValueOnce(ok(activeStatusJson())).mockReturnValueOnce(
+        new Promise<HTTPResponse<JSONObject>>(
+          (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+            answerReRead = resolve;
+          },
+        ),
+      );
+
+      renderFull();
+      await waitForActive();
+
+      fireEvent.click(
+        within(openManageMenu()).getByRole("menuitem", {
+          name: "Disable link",
+        }),
+      );
+
+      await waitFor(() => {
+        expect(getMock).toHaveBeenCalledTimes(2);
+      });
+
+      // Asked, not answered: the card is still the link it was.
+      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId("personal-calendar-feed-links"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("personal-calendar-feed-status-pill"),
+      ).toHaveTextContent("Active");
+
+      answerReRead(ok(activeStatusJson({ isEnabled: false })));
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("personal-calendar-feed-status-pill"),
+        ).toHaveTextContent("Disabled");
+      });
+      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    });
+
+    test("saving the settings re-reads the status without the loader", async () => {
+      let answerReRead: (value: HTTPResponse<JSONObject>) => void = () => {
+        // Replaced below, once the re-read is asked for.
+      };
+
+      getMock.mockResolvedValueOnce(ok(activeStatusJson())).mockReturnValueOnce(
+        new Promise<HTTPResponse<JSONObject>>(
+          (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+            answerReRead = resolve;
+          },
+        ),
+      );
+
+      renderFull();
+      await waitForActive();
+
+      fireEvent.click(screen.getByTestId("card-model-detail-stub-saved"));
+
+      await waitFor(() => {
+        expect(getMock).toHaveBeenCalledTimes(2);
+      });
+      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId("personal-calendar-feed-links"),
+      ).toBeInTheDocument();
+
+      answerReRead(ok(activeStatusJson({ lastRenderTruncated: true })));
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("personal-calendar-feed-truncated-warning"),
+        ).toBeInTheDocument();
+      });
+    });
+
+    test("Try again after a failed first read shows the loader: there is nothing to keep", async () => {
+      let answerReRead: (value: HTTPResponse<JSONObject>) => void = () => {
+        // Replaced below, once the re-read is asked for.
+      };
+
+      getMock
+        .mockResolvedValueOnce(fail(500, "Redis is on fire"))
+        .mockReturnValueOnce(
+          new Promise<HTTPResponse<JSONObject>>(
+            (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+              answerReRead = resolve;
+            },
+          ),
+        );
+
+      renderFull();
+
+      const error: HTMLElement = await screen.findByTestId(
+        "personal-calendar-feed-load-error",
+      );
+
+      fireEvent.click(within(error).getAllByRole("button")[0]!);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+      });
+
+      answerReRead(ok(activeStatusJson()));
+
+      await waitForActive();
+      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    });
+
     test("a failed Disable says why above the card's body, and the link stays as it was", async () => {
       getMock.mockResolvedValue(ok(activeStatusJson()));
       updateByIdMock.mockRejectedValue(
@@ -1015,8 +1148,17 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
         within(modal).getByText("Delete calendar link?"),
       ).toBeInTheDocument();
       expect(deleteItemMock).not.toHaveBeenCalled();
+      /*
+       * The button says what it does, as the menu item that opened the
+       * dialog does - as Regenerate's says "Regenerate link".
+       */
+      expect(
+        within(modal).queryByRole("button", { name: "Delete" }),
+      ).not.toBeInTheDocument();
 
-      fireEvent.click(within(modal).getByRole("button", { name: "Delete" }));
+      fireEvent.click(
+        within(modal).getByRole("button", { name: "Delete link" }),
+      );
 
       await waitFor(() => {
         expect(deleteItemMock).toHaveBeenCalledTimes(1);
@@ -1052,7 +1194,9 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
 
       const modal: HTMLElement = await screen.findByTestId("modal");
 
-      fireEvent.click(within(modal).getByRole("button", { name: "Delete" }));
+      fireEvent.click(
+        within(modal).getByRole("button", { name: "Delete link" }),
+      );
 
       await waitFor(() => {
         expect(within(modal).getByText("Database is away")).toBeInTheDocument();

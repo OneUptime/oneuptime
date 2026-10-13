@@ -289,11 +289,17 @@ test.describe("User Settings > Calendar Feed on a laptop (1280px)", () => {
     );
 
     await expect(value).toHaveValue(personalUrl(token));
-    await expect(
-      page.getByRole("button", { name: "Hide link" }),
-    ).toHaveAttribute("aria-pressed", "true");
 
-    await page.getByRole("button", { name: "Hide link" }).click();
+    /*
+     * Its name says what it does next, so it is not also a pressed toggle:
+     * a screen reader would read "Hide link, pressed".
+     */
+    const hide: Locator = page.getByRole("button", { name: "Hide link" });
+
+    await expect(hide).toBeVisible();
+    expect(await hide.getAttribute("aria-pressed")).toBeNull();
+
+    await hide.click();
 
     await expect(value).toHaveCount(0);
     expect(await page.locator("body").innerText()).not.toContain(token);
@@ -311,14 +317,31 @@ test.describe("User Settings > Calendar Feed on a laptop (1280px)", () => {
       "personal-calendar-feed-copy-button",
     );
 
+    const masked: Locator = page.getByTestId(
+      "personal-calendar-feed-link-masked",
+    );
+    const buttonBefore: Box = await box(copy);
+    const maskedBefore: Box = await box(masked);
+
     await copy.click();
 
-    await expect(copy).toHaveText("Copied!");
+    await expect(copy).toHaveAccessibleName("Copied!");
     expect((await fixtureState(page)).copied).toEqual([personalUrl(token)]);
     await expect(
       page.getByTestId("personal-calendar-feed-link-value"),
     ).toHaveCount(0);
-    await expect(copy).toHaveText("Copy link", { timeout: 5000 });
+
+    /*
+     * "Copied!" is shorter than "Copy link": the button keeps its width
+     * for those two seconds, so the hidden link beside it does not jump.
+     */
+    const buttonCopied: Box = await box(copy);
+    const maskedCopied: Box = await box(masked);
+
+    expect(Math.abs(buttonCopied.width - buttonBefore.width)).toBeLessThan(0.5);
+    expect(Math.abs(maskedCopied.width - maskedBefore.width)).toBeLessThan(0.5);
+
+    await expect(copy).toHaveAccessibleName("Copy link", { timeout: 5000 });
   });
 
   test("Google Calendar opens Google's add page with the webcal link; Apple Calendar / Outlook is the webcal link", async ({
@@ -430,6 +453,65 @@ test.describe("User Settings > Calendar Feed on a laptop (1280px)", () => {
     ]);
   });
 
+  /*
+   * After an action the card re-reads the link's status. On a real network
+   * that takes a moment, and the card used to put its loader in place of
+   * everything meanwhile - collapsing to a spinner and back under the
+   * reader's pointer. It keeps what it shows until the answer arrives.
+   */
+  test("after Disable link the card stays in place while it re-reads, then says Disabled", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=google");
+
+    const card: Locator = linkCard(page);
+    const heightBefore: number = (await box(card)).height;
+    const readsBefore: number = (await fixtureState(page)).requests.filter(
+      (request: FixtureRequest) => {
+        return request.method === "GET";
+      },
+    ).length;
+
+    await page.evaluate(() => {
+      (
+        window as unknown as {
+          __calendarFeedFixture: { setReadDelay: (ms: number) => void };
+        }
+      ).__calendarFeedFixture.setReadDelay(2000);
+    });
+
+    const menu: Locator = await openManageMenu(page);
+
+    await menu.getByRole("menuitem", { name: "Disable link" }).click();
+
+    // The re-read has been asked for and has not answered yet.
+    await expect
+      .poll(async () => {
+        return (await fixtureState(page)).requests.filter(
+          (request: FixtureRequest) => {
+            return request.method === "GET";
+          },
+        ).length;
+      })
+      .toBeGreaterThan(readsBefore);
+
+    await expect(card.getByTestId("component-loader")).toHaveCount(0);
+    await expect(
+      page.getByTestId("personal-calendar-feed-links"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("personal-calendar-feed-status-pill"),
+    ).toHaveText("Active");
+    expect(Math.abs((await box(card)).height - heightBefore)).toBeLessThan(1);
+
+    await expect(
+      page.getByTestId("personal-calendar-feed-status-pill"),
+    ).toHaveText("Disabled", { timeout: 10000 });
+    await expect(card.getByTestId("component-loader")).toHaveCount(0);
+  });
+
   test("Delete link asks first, then the card is back to Generate calendar link, which makes a new link", async ({
     page,
   }: {
@@ -444,7 +526,10 @@ test.describe("User Settings > Calendar Feed on a laptop (1280px)", () => {
     const dialog: Locator = page.getByTestId("modal");
 
     await expect(dialog).toContainText("Delete calendar link?");
-    await dialog.getByRole("button", { name: "Delete" }).click();
+    // The button names what it does, as the menu item that opened it does.
+    await dialog
+      .getByRole("button", { name: "Delete link", exact: true })
+      .click();
 
     await expect(
       page.getByTestId("personal-calendar-feed-empty-state"),
@@ -727,6 +812,17 @@ test.describe("German", () => {
     await linkCard(page).screenshot({
       path: path.join(SCREENSHOTS, "personal-google-de-1280.png"),
     });
+
+    // "Link kopieren" and "Kopiert!" share one width as well.
+    const copy: Locator = page.getByTestId(
+      "personal-calendar-feed-copy-button",
+    );
+    const before: Box = await box(copy);
+
+    await copy.click();
+    await expect(copy).toHaveAccessibleName("Kopiert!");
+
+    expect(Math.abs((await box(copy)).width - before.width)).toBeLessThan(0.5);
   });
 });
 
@@ -834,5 +930,36 @@ test.describe("the empty state", () => {
     await linkCard(page).screenshot({
       path: path.join(SCREENSHOTS, "personal-empty-1280.png"),
     });
+  });
+
+  /*
+   * The shared link's empty panel has its button in the same place: Publish
+   * shared link starts the panel's text column - for an editor, and locked,
+   * saying why, for a reader - not a dialog footer's margin in from it.
+   */
+  test("Publish shared link lines up with its panel's text too, working or locked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const cases: Array<[string, string]> = [
+      ["page=project&shared=empty", "project-shared-calendar-feed"],
+      [
+        "page=schedule&shared=empty&role=viewer",
+        "schedule-shared-calendar-feed",
+      ],
+    ];
+
+    for (const [query, prefix] of cases) {
+      await open(page, query);
+
+      const title: Box = await box(page.getByTestId(prefix + "-empty-title"));
+      const publish: Box = await box(page.getByTestId(prefix + "-publish"));
+
+      expect({ query, offset: Math.round(publish.x - title.x) }).toEqual({
+        query,
+        offset: 0,
+      });
+    }
   });
 });

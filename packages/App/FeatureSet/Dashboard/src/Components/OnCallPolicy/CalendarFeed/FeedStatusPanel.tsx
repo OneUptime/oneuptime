@@ -1,3 +1,4 @@
+import { FEED_PANEL_BUTTON_CLASS_NAME } from "./CalendarFeedLayout";
 import { FeedStatus } from "./CalendarFeedTypes";
 import {
   CALENDAR_FEED_DOCS_PATH,
@@ -369,7 +370,7 @@ const FeedStatusPanel: FunctionComponent<ComponentProps> = (
             isLoading={props.isBusy}
             disabled={props.isBusy}
             dataTestId={`${props.idPrefix}-enable`}
-            className="md:!ml-0"
+            className={FEED_PANEL_BUTTON_CLASS_NAME}
             onClick={() => {
               props.onEnable?.();
             }}
@@ -386,7 +387,7 @@ const FeedStatusPanel: FunctionComponent<ComponentProps> = (
             buttonSize={ButtonSize.Small}
             disabled={props.isBusy}
             dataTestId={`${props.idPrefix}-regenerate-now`}
-            className="md:!ml-0"
+            className={FEED_PANEL_BUTTON_CLASS_NAME}
             onClick={() => {
               props.onRegenerate?.();
             }}

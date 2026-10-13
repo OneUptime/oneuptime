@@ -25,6 +25,8 @@ export const FEED_CARD_FOOTER_CLASS_NAME: string = `${CARD_RULED_BODY_CLASS_NAME
 export const FEED_CARD_FOOTER_SECTION_CLASS_NAME: string =
   "mt-6 flex items-start gap-2 text-xs leading-5 text-gray-500";
 
+export const FEED_CARD_FOOTER_TEXT_CLASS_NAME: string = "min-w-0 text-pretty";
+
 export interface ComponentProps {
   icon: IconProp;
   children: ReactNode;
@@ -49,7 +51,12 @@ const FeedCardFooter: FunctionComponent<ComponentProps> = (
         icon={props.icon}
         className="mt-0.5 h-3.5 w-3.5 flex-none text-gray-400"
       />
-      <p className="min-w-0">{props.children}</p>
+      {/*
+       * Wrapped the way a person would set it: a line that breaks never
+       * leaves one short word alone on the last line ("Log", of "Open the
+       * On-Call Time Log").
+       */}
+      <p className={FEED_CARD_FOOTER_TEXT_CLASS_NAME}>{props.children}</p>
     </div>
   );
 };

@@ -47,6 +47,7 @@ jest.mock("react-i18next", () => {
 
 import FeedLinkField, {
   COPIED_FEEDBACK_MILLISECONDS,
+  SWAPPING_LABEL_HIDDEN_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/FeedLinkField";
 import { MASK_CHARACTER } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil";
 
@@ -92,6 +93,36 @@ function maskedParts(idPrefix: string = "feed"): Array<string> {
   ).map((part: Element): string => {
     return part.textContent || "";
   });
+}
+
+/*
+ * Copy link's two words share one place (the longer one sets the width):
+ * the one in view, and the one kept invisible and away from screen readers.
+ */
+function copyLabels(idPrefix: string = "feed"): {
+  shown: Array<string>;
+  hidden: Array<string>;
+} {
+  const words: Array<HTMLElement> = Array.from(
+    screen.getByTestId(`${idPrefix}-copy-label`).children,
+  ) as Array<HTMLElement>;
+
+  return {
+    shown: words
+      .filter((word: HTMLElement): boolean => {
+        return word.getAttribute("data-shown") === "true";
+      })
+      .map((word: HTMLElement): string => {
+        return word.textContent || "";
+      }),
+    hidden: words
+      .filter((word: HTMLElement): boolean => {
+        return word.getAttribute("data-shown") === "false";
+      })
+      .map((word: HTMLElement): string => {
+        return word.textContent || "";
+      }),
+  };
 }
 
 function renderField(
@@ -142,8 +173,43 @@ describe("FeedLinkField", () => {
       for (const part of Array.from(
         masked.querySelectorAll("span:not(.sr-only)"),
       )) {
-        expect(part).toHaveAttribute("aria-hidden", "true");
+        expect(part.closest("[aria-hidden='true']")).not.toBeNull();
       }
+    });
+
+    /*
+     * The dots are decoration and stay faint; the four characters after them
+     * tell this link from another - the status names them - so they are as
+     * legible as the host. Each span sets the monospace font itself: the
+     * Dashboard sets a font on every element, which beats inheriting one.
+     */
+    test("the four characters are drawn as legibly as the host, the dots faint, all monospaced", () => {
+      renderField();
+
+      const dots: HTMLElement = screen.getByTestId("feed-link-mask-dots");
+      const hint: HTMLElement = screen.getByTestId("feed-link-mask-hint");
+
+      expect(dots).toHaveTextContent(MASK_CHARACTER.repeat(10));
+      expect(hint.textContent).toBe(HINT);
+      expect(dots.className).toContain("text-gray-400");
+      expect(hint.className).toContain("text-gray-500");
+
+      for (const span of Array.from(
+        screen
+          .getByTestId("feed-link-masked")
+          .querySelectorAll("span:not(.sr-only)"),
+      )) {
+        expect(span.className).toContain("font-mono");
+      }
+    });
+
+    test("without a hint there are only dots, and nothing after them", () => {
+      renderField(URL_WITH_TOKEN, null);
+
+      expect(screen.getByTestId("feed-link-mask-dots")).toHaveTextContent(
+        MASK_CHARACTER.repeat(10),
+      );
+      expect(screen.getByTestId("feed-link-mask-hint").textContent).toBe("");
     });
 
     test("without a hint it is dots alone, and a link it cannot parse loses its host rather than breaking", () => {
@@ -181,14 +247,19 @@ describe("FeedLinkField", () => {
   });
 
   describe("Show and Hide", () => {
-    test("Show is a toggle button named for what it does", () => {
+    /*
+     * Its name says what it does next - Show link, then Hide link - so it
+     * is not also a pressed / unpressed toggle: a toggle whose name changes
+     * as well is read out as "Hide link, pressed".
+     */
+    test("Show is a button named for what it does next, not a pressed toggle", () => {
       renderField();
 
       const show: HTMLElement = screen.getByTestId("feed-reveal");
 
       expect(show.tagName).toBe("BUTTON");
       expect(show).toHaveAttribute("type", "button");
-      expect(show).toHaveAttribute("aria-pressed", "false");
+      expect(show).not.toHaveAttribute("aria-pressed");
       expect(show).toHaveAccessibleName("Show link");
       expect(show).toHaveTextContent("Show");
     });
@@ -210,7 +281,7 @@ describe("FeedLinkField", () => {
         name: "Hide link",
       });
 
-      expect(hide).toHaveAttribute("aria-pressed", "true");
+      expect(hide).not.toHaveAttribute("aria-pressed");
       expect(hide).toHaveTextContent("Hide");
 
       fireEvent.click(hide);
@@ -272,6 +343,44 @@ describe("FeedLinkField", () => {
       expect(copy.tagName).toBe("BUTTON");
       expect(copy).toHaveAccessibleName("Copy link");
       expect(copy).toHaveAttribute("title", "Copy https link");
+      expect(copyLabels()).toEqual({
+        shown: ["Copy link"],
+        hidden: ["Copied!"],
+      });
+    });
+
+    /*
+     * "Copied!" is shorter than "Copy link" ("Kopiert!" five letters shorter
+     * than "Link kopieren"). Both words share one grid cell, the one not in
+     * view invisible, so the button is as wide as the longer word in every
+     * language and the hidden link beside it does not jump for two seconds.
+     */
+    test("keeps both words in one place, so the button never changes width", () => {
+      renderField();
+
+      const label: HTMLElement = screen.getByTestId("feed-copy-label");
+
+      expect(label.className).toContain("grid");
+      expect(label.className).toContain("justify-items-start");
+
+      const words: Array<HTMLElement> = Array.from(
+        label.children,
+      ) as Array<HTMLElement>;
+
+      expect(words).toHaveLength(2);
+
+      for (const word of words) {
+        expect(word.className).toContain("col-start-1");
+        expect(word.className).toContain("row-start-1");
+      }
+
+      const hidden: HTMLElement = words.find((word: HTMLElement): boolean => {
+        return word.getAttribute("data-shown") === "false";
+      }) as HTMLElement;
+
+      expect(hidden.className).toContain(SWAPPING_LABEL_HIDDEN_CLASS_NAME);
+      expect(hidden).toHaveAttribute("aria-hidden", "true");
+      expect(SWAPPING_LABEL_HIDDEN_CLASS_NAME).toBe("invisible");
     });
 
     test("copies the https link without showing it, and says so on the button and to screen readers", async () => {
@@ -286,9 +395,13 @@ describe("FeedLinkField", () => {
 
       // Still hidden: copying is not showing.
       expect(screen.queryByTestId("feed-link-value")).not.toBeInTheDocument();
-      expect(screen.getByTestId("feed-copy-button")).toHaveTextContent(
+      expect(screen.getByTestId("feed-copy-button")).toHaveAccessibleName(
         "Copied!",
       );
+      expect(copyLabels()).toEqual({
+        shown: ["Copied!"],
+        hidden: ["Copy link"],
+      });
       expect(screen.getByRole("status")).toHaveTextContent("Link copied.");
     });
 
@@ -300,7 +413,7 @@ describe("FeedLinkField", () => {
         fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
       });
 
-      expect(screen.getByTestId("feed-copy-button")).toHaveTextContent(
+      expect(screen.getByTestId("feed-copy-button")).toHaveAccessibleName(
         "Copied!",
       );
 
@@ -308,7 +421,7 @@ describe("FeedLinkField", () => {
         jest.advanceTimersByTime(COPIED_FEEDBACK_MILLISECONDS - 1);
       });
 
-      expect(screen.getByTestId("feed-copy-button")).toHaveTextContent(
+      expect(screen.getByTestId("feed-copy-button")).toHaveAccessibleName(
         "Copied!",
       );
 
@@ -316,9 +429,13 @@ describe("FeedLinkField", () => {
         jest.advanceTimersByTime(1);
       });
 
-      expect(screen.getByTestId("feed-copy-button")).toHaveTextContent(
+      expect(screen.getByTestId("feed-copy-button")).toHaveAccessibleName(
         "Copy link",
       );
+      expect(copyLabels()).toEqual({
+        shown: ["Copy link"],
+        hidden: ["Copied!"],
+      });
       expect(screen.getByRole("status")).toHaveTextContent("");
     });
 
@@ -346,9 +463,10 @@ describe("FeedLinkField", () => {
         "This browser did not let the page copy the link, so it is shown and selected above. Copy it with Ctrl+C, or Cmd+C on a Mac.",
       );
       // Never a "Copied!" that is not true.
-      expect(screen.getByTestId("feed-copy-button")).toHaveTextContent(
+      expect(screen.getByTestId("feed-copy-button")).toHaveAccessibleName(
         "Copy link",
       );
+      expect(copyLabels().shown).toEqual(["Copy link"]);
     });
 
     test("the blocked note goes once the reader hides the link again", async () => {

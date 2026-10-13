@@ -1,6 +1,7 @@
 import CalendarFeedAPI from "./CalendarFeedAPI";
 import {
   FEED_BODY_GRID_CLASS_NAME,
+  FEED_PANEL_BUTTON_CLASS_NAME,
   FEED_SUBSCRIBE_COLUMN_CLASS_NAME,
   getFeedStatusColumnClassName,
 } from "./CalendarFeedLayout";
@@ -97,6 +98,11 @@ export interface ComponentProps {
   now?: Date | undefined;
 }
 
+interface LoadOptions {
+  // Keep what the card shows while it reads: a re-read after an action.
+  keepContent?: boolean | undefined;
+}
+
 const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -118,8 +124,20 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
     ? "personal-calendar-feed"
     : "schedule-personal-calendar-feed";
 
-  const load: () => Promise<void> = async (): Promise<void> => {
-    setIsLoading(true);
+  /*
+   * Reads the link's status. The first read, and Try again after a failed
+   * one, put the loader in the card's place: there is nothing to show yet.
+   * A re-read after something the reader did - Disable or Enable link,
+   * Delete link, saving the settings - keeps the card as it is until the
+   * answer arrives, so the card does not collapse to a spinner and back
+   * under the reader's pointer (the page jumped by the card's height).
+   */
+  const load: (options?: LoadOptions) => Promise<void> = async (
+    options?: LoadOptions,
+  ): Promise<void> => {
+    if (!options?.keepContent) {
+      setIsLoading(true);
+    }
     setError("");
 
     try {
@@ -149,6 +167,13 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
 
   const reload: () => void = (): void => {
     load().catch(() => {
+      // load routes every failure into the error state.
+    });
+  };
+
+  // A re-read after an action: the card keeps what it shows meanwhile.
+  const refresh: () => void = (): void => {
+    load({ keepContent: true }).catch(() => {
       // load routes every failure into the error state.
     });
   };
@@ -191,7 +216,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
           isEnabled: isEnabled,
         },
       });
-      await load();
+      await load({ keepContent: true });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -213,7 +238,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
         id: new ObjectID(status.feedId),
       });
       setShowDeleteConfirm(false);
-      await load();
+      await load({ keepContent: true });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -256,7 +281,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
       buttonStyle={ButtonStyleType.PRIMARY}
       isLoading={isBusy}
       dataTestId={`${idPrefix}-generate`}
-      className="md:!ml-0"
+      className={FEED_PANEL_BUTTON_CLASS_NAME}
       onClick={() => {
         rotate().catch(() => {
           // rotate routes every failure into the error state.
@@ -638,7 +663,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
           editButtonText="Edit settings"
           refresher={settingsRefresher}
           onSaveSuccess={() => {
-            reload();
+            refresh();
           }}
           formFields={[
             {
@@ -743,6 +768,10 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
         />
       )}
 
+      {/*
+       * The button says what it does, as the menu item that opened the
+       * dialog does - and as Regenerate's says "Regenerate link".
+       */}
       {showDeleteConfirm && (
         <ConfirmModal
           title="Delete calendar link?"
@@ -751,7 +780,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
               "Every app subscribed to this link stops updating. You can generate a new link at any time.",
             ) || ""
           }
-          submitButtonText="Delete"
+          submitButtonText="Delete link"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isBusy}
           error={error || undefined}

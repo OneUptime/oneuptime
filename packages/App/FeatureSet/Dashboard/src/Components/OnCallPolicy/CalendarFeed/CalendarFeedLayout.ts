@@ -22,6 +22,15 @@ export const FEED_STATUS_FULL_WIDTH_CLASS_NAME: string =
   "min-w-0 xl:col-span-5";
 
 /*
+ * A button that starts a column of text inside the card - Generate calendar
+ * link and Publish shared link in the empty panel, Enable link and
+ * Regenerate link in the status - lines up with the text above it. Button
+ * keeps a left margin for a dialog's footer from md up (md:ml-3), which set
+ * each of them 12px in from the text it belongs to.
+ */
+export const FEED_PANEL_BUTTON_CLASS_NAME: string = "md:!ml-0";
+
+/*
  * A state that needs the reader's attention - off, unreadable, never read in
  * two days - puts the status first while the two columns are stacked, so a
  * phone shows the problem before the options it affects.

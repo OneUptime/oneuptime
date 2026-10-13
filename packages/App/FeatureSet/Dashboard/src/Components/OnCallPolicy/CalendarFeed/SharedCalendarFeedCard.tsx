@@ -1,6 +1,7 @@
 import CalendarFeedAPI from "./CalendarFeedAPI";
 import {
   FEED_BODY_GRID_CLASS_NAME,
+  FEED_PANEL_BUTTON_CLASS_NAME,
   FEED_SUBSCRIBE_COLUMN_CLASS_NAME,
   getFeedStatusColumnClassName,
 } from "./CalendarFeedLayout";
@@ -132,6 +133,11 @@ export const getSharedFeedPaths: GetPathsFunction = (
   };
 };
 
+interface LoadOptions {
+  // Keep what the card shows while it reads: a re-read after an action.
+  keepContent?: boolean | undefined;
+}
+
 const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -179,8 +185,18 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
     props.scheduleId,
   );
 
-  const load: () => Promise<void> = async (): Promise<void> => {
-    setIsLoading(true);
+  /*
+   * The first read of a link - this schedule's, or another one's after the
+   * page moves on - puts the loader in the card's place. A re-read after an
+   * action (Disable or Enable link, saving the settings) keeps the card as
+   * it is until the answer arrives, as the personal card does.
+   */
+  const load: (options?: LoadOptions) => Promise<void> = async (
+    options?: LoadOptions,
+  ): Promise<void> => {
+    if (!options?.keepContent) {
+      setIsLoading(true);
+    }
     setError("");
 
     try {
@@ -247,7 +263,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
           isEnabled: isEnabled,
         },
       });
-      await load();
+      await load({ keepContent: true });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -378,6 +394,11 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
   } else if (!status.exists) {
     let publishControl: ReactElement;
 
+    /*
+     * Publish starts the panel's text column, as the personal card's
+     * Generate calendar link does: a Button keeps a left margin for a
+     * dialog's footer from md up, which set it 12px in from the text above.
+     */
     if (!isOnPlan) {
       publishControl = planGate;
     } else if (createGate.isAllowed) {
@@ -390,6 +411,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
           buttonStyle={ButtonStyleType.PRIMARY}
           isLoading={isBusy}
           dataTestId={`${idPrefix}-publish`}
+          className={FEED_PANEL_BUTTON_CLASS_NAME}
           onClick={() => {
             postAction(paths.publish).catch(() => {
               // postAction routes every failure into the error state.
@@ -408,6 +430,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
           disabled={true}
           tooltip={createGate.disabledReason}
           dataTestId={`${idPrefix}-publish`}
+          className={FEED_PANEL_BUTTON_CLASS_NAME}
           onClick={() => {
             // Locked. The tooltip says which permission is missing.
           }}
@@ -615,7 +638,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
           editButtonText="Edit settings"
           refresher={settingsRefresher}
           onSaveSuccess={() => {
-            load().catch(() => {
+            load({ keepContent: true }).catch(() => {
               // load routes every failure into the error state.
             });
           }}

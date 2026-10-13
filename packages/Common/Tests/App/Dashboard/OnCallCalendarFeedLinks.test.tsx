@@ -51,6 +51,7 @@ import CalendarFeedLinks, {
   SUBSCRIBE_OPTIONS_ALONE_GRID_CLASS_NAME,
   SUBSCRIBE_OPTIONS_GRID_CLASS_NAME,
   SUBSCRIBE_OPTION_CLASS_NAME,
+  SUBSCRIBE_OPTION_HINT_CLASS_NAME,
   SUBSCRIBE_OPTION_MARK_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeedLinks";
 import { FeedUrls } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedTypes";
@@ -136,6 +137,33 @@ describe("CalendarFeedLinks", () => {
         "title",
         "Opens the calendar app on this device that subscribes to calendar links: Apple Calendar on a Mac, iPhone or iPad, or Outlook on Windows.",
       );
+    });
+
+    /*
+     * What a click opens, under the app's name, wrapped the way a person
+     * would set it: on a phone "Opens Google Calendar in a new tab" broke
+     * with "tab" alone on its second line.
+     */
+    test("what each option opens is set in small grey type that never leaves a lone last word", () => {
+      render(<CalendarFeedLinks urls={URLS} />);
+
+      expect(SUBSCRIBE_OPTION_HINT_CLASS_NAME.split(" ")).toEqual(
+        expect.arrayContaining(["text-pretty", "text-xs", "text-gray-500"]),
+      );
+
+      for (const [id, hint] of [
+        ["calendar-feed-google", "Opens Google Calendar in a new tab"],
+        ["calendar-feed-webcal", "Opens the calendar app on this device"],
+      ]) {
+        const line: HTMLElement = screen
+          .getByTestId(id as string)
+          .querySelector(
+            `div[class='${SUBSCRIBE_OPTION_HINT_CLASS_NAME}']`,
+          ) as HTMLElement;
+
+        expect(line).not.toBeNull();
+        expect(line).toHaveTextContent(hint as string);
+      }
     });
 
     test("each option wears a mark of its own, in a tinted square", () => {

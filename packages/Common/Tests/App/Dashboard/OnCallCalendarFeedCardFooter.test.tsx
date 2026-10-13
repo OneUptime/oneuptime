@@ -11,6 +11,7 @@ import {
 import FeedCardFooter, {
   FEED_CARD_FOOTER_CLASS_NAME,
   FEED_CARD_FOOTER_SECTION_CLASS_NAME,
+  FEED_CARD_FOOTER_TEXT_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/FeedCardFooter";
 
 /*
@@ -111,6 +112,31 @@ describe("the calendar link card's footer", () => {
       expect(paragraph).toHaveTextContent("This calendar is for planning.");
       expect(strip.lastElementChild).toBe(paragraph);
       expect(strip.children).toHaveLength(2);
+
+      cleanup();
+    }
+  });
+
+  /*
+   * Set the way a person would: a note that breaks never leaves one short
+   * word alone on its last line - "Log", of "Open the On-Call Time Log",
+   * at 1100px.
+   */
+  test("the note wraps without a lone last word, on either surface", () => {
+    expect(FEED_CARD_FOOTER_TEXT_CLASS_NAME.split(TOKENS)).toEqual(
+      expect.arrayContaining(["min-w-0", "text-pretty"]),
+    );
+
+    for (const surface of [CardSurface.Page, CardSurface.Section]) {
+      render(
+        <CardSurfaceContext.Provider value={surface}>
+          {footer()}
+        </CardSurfaceContext.Provider>,
+      );
+
+      expect(
+        screen.getByTestId("feed-footer").querySelector("p")?.className,
+      ).toBe(FEED_CARD_FOOTER_TEXT_CLASS_NAME);
 
       cleanup();
     }
