@@ -25,6 +25,11 @@ const config = createConfig({
   outdir: output,
   additionalAlias: {
     Common: path.join(repository, "packages/Common"),
+    // The Admin Dashboard's Enterprise plugins, as the Community build has them.
+    "@oneuptime/ee-admin-dashboard": path.join(
+      repository,
+      "packages/App/FeatureSet/AdminDashboard/src/Enterprise/CommunityPlugins.ts",
+    ),
     react: path.join(repository, "packages/Common/node_modules/react"),
     "react-dom": path.join(
       repository,

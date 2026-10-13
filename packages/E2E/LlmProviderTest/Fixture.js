@@ -11,8 +11,12 @@ import { initReactI18next } from "react-i18next";
 import "Common/UI/Styles/Theme.css";
 import LlmProvidersPage from "../../App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviders";
 import LlmProviderViewPage from "../../App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviderView";
+import AdminLlmProvidersPage from "../../App/FeatureSet/AdminDashboard/src/Pages/Settings/LlmProviders/Index";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import ADMIN_EN from "../../App/FeatureSet/AdminDashboard/src/Locales/en.json";
+import ADMIN_JA from "../../App/FeatureSet/AdminDashboard/src/Locales/ja.json";
+import ADMIN_DE from "../../App/FeatureSet/AdminDashboard/src/Locales/de.json";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -33,11 +37,13 @@ import UserUtil from "Common/UI/Utils/User";
  * every Test request, its body and its headers - and drive - what the
  * provider answers next, and when.
  *
- *   ?page=     view (default: a provider's own page) | list
+ *   ?page=     view (default: a provider's own page) | list | admin (the
+ *              Admin Dashboard's Global LLM Providers, as a server
+ *              administrator)
  *   ?role=     owner (default) | member | settingsmember | editllm | viewer
  *              | readllm | blocked | loading
  *   ?verdict=  passed (default) | warning | truncated | badkey | badmodel
- *              | unreachable | refused | plan | legacy | slow
+ *              | busy | unreachable | refused | plan | legacy | slow
  *   ?theme=dark   ?lang=ja|de
  */
 
@@ -52,23 +58,41 @@ if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
 }
 
-await i18next.use(initReactI18next).init({
-  lng: language,
-  fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    ja: { translation: JA },
-    de: { translation: DE },
-  },
-  interpolation: { escapeValue: false },
-  keySeparator: false,
-  nsSeparator: false,
-});
+/*
+ * The Admin Dashboard reads its own locale files, and its nested keys
+ * ("pages.settings.title") as nested; the Dashboard's keys are flat.
+ */
+await i18next.use(initReactI18next).init(
+  page === "admin"
+    ? {
+        lng: language,
+        fallbackLng: "en",
+        resources: {
+          en: { translation: ADMIN_EN },
+          ja: { translation: ADMIN_JA },
+          de: { translation: ADMIN_DE },
+        },
+        interpolation: { escapeValue: false },
+      }
+    : {
+        lng: language,
+        fallbackLng: language,
+        resources: {
+          en: { translation: {} },
+          ja: { translation: JA },
+          de: { translation: DE },
+        },
+        interpolation: { escapeValue: false },
+        keySeparator: false,
+        nsSeparator: false,
+      },
+);
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const PROVIDER_ID = "20000000-0000-4000-8000-000000000001";
 const SECOND_PROVIDER_ID = "20000000-0000-4000-8000-000000000002";
 const GLOBAL_PROVIDER_ID = "20000000-0000-4000-8000-000000000003";
+const SECOND_GLOBAL_PROVIDER_ID = "20000000-0000-4000-8000-000000000004";
 
 const project = new Project();
 project._id = PROJECT_ID;
@@ -82,8 +106,9 @@ ProjectUtil.getCurrentProject = () => {
 UserUtil.getUserId = () => {
   return new ObjectID("10000000-0000-4000-8000-000000000002");
 };
+// The Admin Dashboard is a server administrator's.
 UserUtil.isMasterAdmin = () => {
-  return false;
+  return page === "admin";
 };
 UserUtil.isLoggedIn = () => {
   return true;
@@ -178,8 +203,27 @@ const globalProvider = provider(GLOBAL_PROVIDER_ID, {
   name: "OneUptime AI",
   description: "Included with your plan.",
   costPerMillionTokensInUSDCents: 0,
+  isGlobalLlm: true,
+  llmType: LlmType.Anthropic,
+  modelName: "claude-sonnet-5-5",
 });
 globalProvider.projectId = undefined;
+
+// The instance's own providers, as the Admin Dashboard lists them.
+const globalProviders = [
+  globalProvider,
+  (() => {
+    const item = provider(SECOND_GLOBAL_PROVIDER_ID, {
+      name: "Self-hosted Llama",
+      description: "Ollama in the data centre",
+      isGlobalLlm: true,
+      llmType: LlmType.Ollama,
+      modelName: "llama3.3:70b",
+    });
+    item.projectId = undefined;
+    return item;
+  })(),
+];
 
 /*
  * What the server answers a test with, word for word what it sends: the
@@ -213,18 +257,27 @@ const VERDICTS = {
         "Connection successful, but tool calling could not be determined — the reply hit the output limit before any tool call appeared. This says nothing either way about the model; try the test again.",
     },
   },
+  // What to check, then - on a line of its own - the provider's words.
   badkey: {
     status: 400,
     body: {
       message:
-        "OpenAI did not accept the API key (HTTP 401). Check the provider's API Key. OpenAI answered: Incorrect API key provided: sk-proj-****abcd.",
+        "OpenAI did not accept the API key (HTTP 401). Check the provider's API Key.\nOpenAI answered: Incorrect API key provided: sk-proj-****abcd.",
     },
   },
   badmodel: {
     status: 400,
     body: {
       message:
-        "OpenAI found no such model, or nothing at the Base URL (HTTP 404). Check the Model Name and the Base URL. OpenAI answered: The model `gpt-9` does not exist or you do not have access to it.",
+        "OpenAI found no such model, or nothing at the Base URL (HTTP 404). Check the Model Name and the Base URL.\nOpenAI answered: The model `gpt-9` does not exist or you do not have access to it.",
+    },
+  },
+  // A provider that was only busy: its advice is to wait, not to edit.
+  busy: {
+    status: 400,
+    body: {
+      message:
+        "OpenAI could not answer the request (HTTP 503). Test again in a few minutes.\nOpenAI answered: The server is overloaded, please try again later.",
     },
   },
   unreachable: {
@@ -310,6 +363,10 @@ ModelAPI.getList = async (args) => {
   if (args.modelType === LlmProvider && url.endsWith("/global-llms")) {
     return { data: [copy(globalProvider)], count: 1, skip: 0, limit: 10 };
   }
+  if (args.modelType === LlmProvider && page === "admin") {
+    const data = globalProviders.map(copy);
+    return { data: data, count: data.length, skip: 0, limit: args.limit };
+  }
   if (args.modelType === LlmProvider) {
     const data = providers
       .filter((item) => {
@@ -322,7 +379,7 @@ ModelAPI.getList = async (args) => {
 };
 
 ModelAPI.count = async () => {
-  return providers.length;
+  return page === "admin" ? globalProviders.length : providers.length;
 };
 
 ModelAPI.getItem = async (args) => {
@@ -363,6 +420,14 @@ function Shell() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
   Navigation.setParams(useParams());
+
+  if (page === "admin") {
+    return (
+      <div className="min-h-screen bg-gray-50" data-testid="fixture-page">
+        <AdminLlmProvidersPage />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-6 sm:px-8">
