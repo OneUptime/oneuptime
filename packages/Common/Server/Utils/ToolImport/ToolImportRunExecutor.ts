@@ -641,6 +641,19 @@ export default class ToolImportRunExecutor {
 
       const progress: ProgressWriter = new ProgressWriter(run.id!);
 
+      /*
+       * The subscribers earlier imports brought over are read past, so a
+       * page with more of them than one read collects comes over one
+       * import after another.
+       */
+      const importedSubscriberIds: Set<string> | undefined =
+        definition.kinds.includes(ToolImportResourceKind.StatusPageSubscriber)
+          ? await ToolImportProjectStateReader.readImportedSubscriberIds({
+              projectId: run.projectId!,
+              source: run.source!,
+            })
+          : undefined;
+
       const context: ToolImportReadContext = {
         transport: this.transportFactory(hosts, {
           isAddressGiven: isAddressGiven,
@@ -653,6 +666,7 @@ export default class ToolImportRunExecutor {
         onProgress: async (kind: ToolImportResourceKind): Promise<void> => {
           await progress.write({ done: 0, total: 0, kind: kind }, true);
         },
+        importedSubscriberIds: importedSubscriberIds,
       };
 
       const snapshot: ToolImportSnapshot =
