@@ -144,7 +144,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | क्रम संख्या | `host.serial_number` | जोड़ा गया | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | जोड़ा गया | ENTITY-MIB, नहीं तो जो `sysDescr` या `sysObjectID` बताता है |
 | मॉडल | `device.model.name` | जोड़ा गया | ENTITY-MIB, नहीं तो जो `sysDescr` बताता है |
-| फ़र्मवेयर संस्करण | `device.firmware.version` | जोड़ा गया | ENTITY-MIB |
+| फ़र्मवेयर संस्करण | `device.firmware.version` | जोड़ा गया | ENTITY-MIB, नहीं तो जो `sysDescr` बताता है |
 | ऑपरेटिंग सिस्टम | `os.name` | `os.description` (या `os.type`) | जो `sysDescr` बताता है: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS संस्करण | `os.version` | पता लगाया गया | ENTITY-MIB, नहीं तो जो `sysDescr` बताता है |
 | Device Type | `device.type` | जोड़ा गया। नहीं तो कार्ड उसे उसके OS और नाम से वर्गीकृत करता है (सर्वर, फ़ायरवॉल, ...) | उसकी भूमिका: जो आपने दी, नहीं तो वह जिसके रूप में टोपोलॉजी मैप उसे बनाता है |

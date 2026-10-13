@@ -1,6 +1,17 @@
 import { API_REFERENCE, CMDB_SYNC } from "./InventoryAndApiDocsPages";
-import { readPage, scanMarkdown } from "./DocsContentSupport";
-import { tables } from "./DocsPageShape";
+import {
+  bold,
+  boldIn,
+  codeIn,
+  englishPage,
+  englishSection,
+  lineStartingWith,
+  listOf,
+  readRepoFile,
+  rowStartingWith,
+  tableWithHeader,
+} from "./InventoryAndApiDocsSupport";
+import { scanMarkdown } from "./DocsContentSupport";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import InventoryItemCustomField from "Common/Models/DatabaseModels/InventoryItemCustomField";
@@ -36,8 +47,6 @@ import {
   getApiKeyExportCommand,
 } from "Common/Utils/DeveloperDocs/ExampleValues";
 import { describe, expect, it } from "@jest/globals";
-import fs from "fs";
-import path from "path";
 
 /*
  * What the OneUptime API Reference and the requests of Exporting to a CMDB
@@ -63,7 +72,6 @@ import path from "path";
  * product, and InventoryAndApiDocsTranslations holds the translations.
  */
 
-const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 const DASHBOARD_APP: string = "App/FeatureSet/Dashboard/src";
 const BASE_API: string = "Common/Server/API/BaseAPI.ts";
 const RESPONSE: string = "Common/Server/Utils/Response.ts";
@@ -81,12 +89,6 @@ const API_KEY_FORM: string = `${DASHBOARD_APP}/Components/ApiKey/ApiKeyCreateFor
 const API_KEY_PERMISSIONS: string = `${DASHBOARD_APP}/Components/ApiKey/ApiKeyPermissionTable.tsx`;
 const ROLE_ACCESS: string = `${DASHBOARD_APP}/Components/Permission/RoleAccess.ts`;
 
-// A bold span of a line.
-const BOLD_SPAN: RegExp = /\*\*([^*\n]+?)\*\*/g;
-// An inline code span of a line.
-const CODE_SPAN: RegExp = /`([^`\n]+)`/g;
-// The heading level of a Markdown heading line.
-const HEADING_LINE: RegExp = /^(#+) /;
 // "POST /api/<resource>/get-list": a request of the requests table.
 const REQUEST_CELL: RegExp = /^(GET|POST|PUT|DELETE) \/api\/<resource>(\S*)$/;
 // A route BaseAPI registers: router.post(`${...getCrudApiPath()...}/get-list`.
@@ -98,77 +100,6 @@ const CURL_BODY: RegExp = /-d '(\{[\s\S]*?\})'/;
 const DIAGRAM_STATUS: RegExp = /If not:(?: |<br\/>)(\d{3}(?: or \d{3})?)/g;
 // A card's title in the Access picker: `title: "Viewer",`.
 const OPTION_TITLE: RegExp = /title: "([^"]+)",/g;
-
-function readSource(relativePath: string): string {
-  return fs.readFileSync(path.join(PACKAGES_DIR, relativePath), "utf8");
-}
-
-function englishPage(page: string): string {
-  return readPage("en", page);
-}
-
-function bold(name: string): string {
-  return `**${name}**`;
-}
-
-// "a, b or c": a list as the pages write one.
-function listOf(items: ReadonlyArray<string>, conjunction: string): string {
-  if (items.length <= 1) {
-    return items.join("");
-  }
-
-  return `${items.slice(0, -1).join(", ")} ${conjunction} ${
-    items[items.length - 1]
-  }`;
-}
-
-function boldIn(text: string): Array<string> {
-  return Array.from(text.matchAll(BOLD_SPAN)).map(
-    (match: RegExpMatchArray): string => {
-      return match[1] as string;
-    },
-  );
-}
-
-function codeIn(text: string): Array<string> {
-  return Array.from(text.matchAll(CODE_SPAN)).map(
-    (match: RegExpMatchArray): string => {
-      return match[1] as string;
-    },
-  );
-}
-
-// The text of a section, from its heading to the next heading of its level or above.
-function sectionOf(markdown: string, heading: string): string {
-  const lines: Array<string> = markdown.split("\n");
-  const start: number = lines.indexOf(heading);
-
-  expect({ heading, found: start >= 0 }).toEqual({ heading, found: true });
-
-  const level: number = heading.indexOf(" ");
-  const body: Array<string> = [];
-
-  for (const line of lines.slice(start + 1)) {
-    const match: RegExpMatchArray | null = line.match(HEADING_LINE);
-
-    if (match && (match[1] as string).length <= level) {
-      break;
-    }
-
-    body.push(line);
-  }
-
-  return body.join("\n");
-}
-
-// The body rows of the first table of a text.
-function firstTableRows(text: string): Array<Array<string>> {
-  const found: Array<Array<string>> | undefined = tables(text)[0];
-
-  expect(found).toBeDefined();
-
-  return (found as Array<Array<string>>).slice(1);
-}
 
 // Every code block of a page in a language, as written.
 function codeBlocks(markdown: string, language: string): Array<string> {
@@ -183,10 +114,12 @@ function codeBlocks(markdown: string, language: string): Array<string> {
 
 // The source of one method of BaseAPI, from its signature to the next one's.
 function baseApiMethod(name: string): string {
-  const source: string = readSource(BASE_API);
+  const source: string = readRepoFile(BASE_API);
   const start: number = source.indexOf(`public async ${name}(`);
 
-  expect({ name, found: start >= 0 }).toEqual({ name, found: true });
+  if (start < 0) {
+    throw new Error(`BaseAPI has no method ${name}`);
+  }
 
   const next: number = source.indexOf("@CaptureSpan()", start);
 
@@ -195,7 +128,7 @@ function baseApiMethod(name: string): string {
 
 // "METHOD /suffix" of every route BaseAPI registers for a resource.
 function registeredRoutes(): Array<string> {
-  return Array.from(readSource(BASE_API).matchAll(ROUTE_REGISTRATION)).map(
+  return Array.from(readRepoFile(BASE_API).matchAll(ROUTE_REGISTRATION)).map(
     (match: RegExpMatchArray): string => {
       return `${(match[1] as string).toUpperCase()} ${match[2] as string}`;
     },
@@ -206,8 +139,9 @@ describe("OneUptime API Reference: a request and its answer", () => {
   const page: string = englishPage(API_REFERENCE);
 
   it("lists the six requests every resource has, as BaseAPI routes them, with what each body holds", () => {
-    const rows: Array<Array<string>> = firstTableRows(
-      sectionOf(page, "## Requests and answers"),
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(API_REFERENCE, "## Requests and answers"),
+      "Request",
     );
     const routes: Array<string> = registeredRoutes();
     const requests: Array<string> = rows.map((row: Array<string>): string => {
@@ -279,8 +213,9 @@ describe("OneUptime API Reference: a request and its answer", () => {
   });
 
   it("filters with the comparisons the API deserializes, under the names the page gives them", () => {
-    const rows: Array<Array<string>> = firstTableRows(
-      sectionOf(page, "### Filter, sort and page"),
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(API_REFERENCE, "### Filter, sort and page"),
+      "`_type`",
     );
     const types: Array<string> = rows.flatMap(
       (row: Array<string>): Array<string> => {
@@ -318,7 +253,10 @@ describe("OneUptime API Reference: a request and its answer", () => {
   });
 
   it("runs the worked example: a search and a date comparison, newest first", () => {
-    const section: string = sectionOf(page, "### Filter, sort and page");
+    const section: string = englishSection(
+      API_REFERENCE,
+      "### Filter, sort and page",
+    );
     const example: string = codeBlocks(section, "bash")[0] as string;
     const body: JSONObject = JSON.parse(
       (example.match(CURL_BODY) as RegExpMatchArray)[1] as string,
@@ -343,8 +281,11 @@ describe("OneUptime API Reference: a request and its answer", () => {
   });
 
   it("pages with the API's own limits, its default sort and the fields every answer carries", () => {
-    const section: string = sectionOf(page, "### Filter, sort and page");
-    const database: string = readSource(DATABASE_SERVICE);
+    const section: string = englishSection(
+      API_REFERENCE,
+      "### Filter, sort and page",
+    );
+    const database: string = readRepoFile(DATABASE_SERVICE);
     const getList: string = baseApiMethod("getList");
 
     expect(DEFAULT_LIMIT).toBe(10);
@@ -383,7 +324,7 @@ describe("OneUptime API Reference: a request and its answer", () => {
     );
     expect(wrappedDate["_type"]).toBe(ObjectType.DateTime);
     expect(wrappedId["_type"]).toBe(ObjectType.ObjectID);
-    expect(readSource(RESPONSE)).toContain(
+    expect(readRepoFile(RESPONSE)).toContain(
       'oneUptimeRequest.query["output-type"] === "csv"',
     );
     expect(page).toContain(
@@ -394,8 +335,9 @@ describe("OneUptime API Reference: a request and its answer", () => {
   });
 
   it("gives each status code the exception the server answers it with", () => {
-    const rows: Array<Array<string>> = firstTableRows(
-      sectionOf(page, "### Status codes"),
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(API_REFERENCE, "### Status codes"),
+      "Code",
     );
 
     expect(
@@ -410,32 +352,34 @@ describe("OneUptime API Reference: a request and its answer", () => {
     expect(ExceptionCode.ServerException).toBe(500);
 
     // An unusable key is bad data (400), a key below its plan a 402.
-    const authorization: string = readSource(PROJECT_AUTHORIZATION);
+    const authorization: string = readRepoFile(PROJECT_AUTHORIZATION);
 
     expect(authorization).toContain(
       'throw new BadDataException("Invalid API Key");',
     );
     expect(authorization).toContain("throw planRefusal;");
-    expect((rows[1] as Array<string>)[1]).toContain("the API key is invalid");
+    expect(rowStartingWith(rows, "`400`")[1]).toContain(
+      "the API key is invalid",
+    );
 
     // A read by ID of a record the caller may not read is a 404.
     expect(baseApiMethod("getItem")).toContain("throw new NotFoundException(");
 
     // A key with no permission for a kind of record is refused with 422.
-    const tablePermission: string = readSource(TABLE_PERMISSION);
+    const tablePermission: string = readRepoFile(TABLE_PERMISSION);
 
     expect(tablePermission).toContain("throw new NotAuthorizedException(");
     expect(tablePermission).toContain(
       "`You do not have permissions to ${type} ${",
     );
-    expect((rows[4] as Array<string>)[1]).toContain(
+    expect(rowStartingWith(rows, "`422`")[1]).toContain(
       "the API key has no permission for this kind of record",
     );
   });
 
   it("draws the checks in the order the server makes them, each with its status", () => {
     const diagram: string = codeBlocks(
-      sectionOf(page, "## How a request is answered"),
+      englishSection(API_REFERENCE, "## How a request is answered"),
       "mermaid",
     )[0] as string;
     const statuses: Array<string> = Array.from(
@@ -443,7 +387,7 @@ describe("OneUptime API Reference: a request and its answer", () => {
     ).map((match: RegExpMatchArray): string => {
       return match[1] as string;
     });
-    const authorization: string = readSource(PROJECT_AUTHORIZATION);
+    const authorization: string = readRepoFile(PROJECT_AUTHORIZATION);
 
     expect(statuses).toEqual(["400", "402", "404 or 422", "400"]);
     // The key is looked up before the plan is asked about.
@@ -457,10 +401,13 @@ describe("OneUptime API Reference: a request and its answer", () => {
 
 describe("OneUptime API Reference: an API key", () => {
   const page: string = englishPage(API_REFERENCE);
-  const steps: string = sectionOf(page, "## Make your first request");
+
+  function firstRequest(): string {
+    return englishSection(API_REFERENCE, "## Make your first request");
+  }
 
   it("creates the key under Project Settings, Advanced, API Keys, with the table's create button", () => {
-    const menu: string = readSource(SETTINGS_MENU);
+    const menu: string = readRepoFile(SETTINGS_MENU);
     const advanced: string = menu.slice(
       menu.indexOf('title: "Advanced"'),
       menu.indexOf('title: "Security"'),
@@ -468,7 +415,7 @@ describe("OneUptime API Reference: an API key", () => {
 
     expect(advanced).toContain('title: "API Keys"');
     expect(`Create ${new ApiKey().singularName}`).toBe("Create API Key");
-    expect(steps).toContain(
+    expect(firstRequest()).toContain(
       "Open **Project Settings → Advanced → API Keys** and click **Create API Key**.",
     );
     expect(englishPage(CMDB_SYNC)).toContain(
@@ -477,7 +424,7 @@ describe("OneUptime API Reference: an API key", () => {
   });
 
   it("asks for a name and an access the Access picker offers, and dates the key a year ahead under Advanced", () => {
-    const access: string = readSource(ROLE_ACCESS);
+    const access: string = readRepoFile(ROLE_ACCESS);
     const options: string = access.slice(
       access.indexOf("const ROLE_OPTIONS"),
       access.indexOf("export const TEAM_ACCESS_LATER_OPTION"),
@@ -487,12 +434,11 @@ describe("OneUptime API Reference: an API key", () => {
     ).map((match: RegExpMatchArray): string => {
       return match[1] as string;
     });
-    const form: string = readSource(API_KEY_FORM);
-    const line: string = steps
-      .split("\n")
-      .find((candidate: string): boolean => {
-        return candidate.startsWith("Open **Project Settings");
-      }) as string;
+    const form: string = readRepoFile(API_KEY_FORM);
+    const line: string = lineStartingWith(
+      firstRequest(),
+      "Open **Project Settings",
+    );
 
     expect(titles).toEqual([
       "Project Admin",
@@ -518,8 +464,8 @@ describe("OneUptime API Reference: an API key", () => {
   });
 
   it("opens the key's page on its API Key Details card, where the key and its expiry are", () => {
-    const keys: string = readSource(API_KEYS_PAGE);
-    const view: string = readSource(API_KEY_PAGE);
+    const keys: string = readRepoFile(API_KEYS_PAGE);
+    const view: string = readRepoFile(API_KEY_PAGE);
 
     expect(keys).toContain(
       "Navigation.navigate(getApiKeyRoute(createdApiKey.id));",
@@ -527,14 +473,14 @@ describe("OneUptime API Reference: an API key", () => {
     expect(view).toContain('title: "API Key Details"');
     expect(view).toContain('title: "API Key",');
     expect(view).toContain('title: "Expires",');
-    expect(steps).toContain(
+    expect(firstRequest()).toContain(
       "The key's page opens. Copy the **API Key** from the **API Key Details** card",
     );
     expect(page).toContain("where its **Expires** date is too.");
   });
 
   it("adds a role or a single permission from the key's Permissions card", () => {
-    const permissions: string = readSource(API_KEY_PERMISSIONS);
+    const permissions: string = readRepoFile(API_KEY_PERMISSIONS);
 
     expect(permissions).toContain('title: "Add Role",');
     expect(permissions).toContain('title: "Add Permission",');
@@ -545,13 +491,18 @@ describe("OneUptime API Reference: an API key", () => {
   });
 
   it("exports the key and sends it in the ApiKey header, as the Developer pages do", () => {
-    const authorization: string = readSource(PROJECT_AUTHORIZATION);
+    const authorization: string = readRepoFile(PROJECT_AUTHORIZATION);
     const command: string = getCurlCommand({
       method: "POST",
       url: "https://oneuptime.com/api/monitor/get-list",
       body: { select: { name: true } },
     });
-    const header: string = command.split(" \\\n  ")[1] as string;
+    // The part of the Developer pages' command that sends the key.
+    const header: string | undefined = command
+      .split(" \\\n  ")
+      .find((part: string): boolean => {
+        return part.includes("ApiKey");
+      });
 
     // Node lower-cases header names: ApiKey reaches the server as apikey.
     expect(authorization).toContain('req.headers?.["apikey"]');
@@ -573,10 +524,10 @@ describe("OneUptime API Reference: an API key", () => {
   });
 
   it("reads the key's own project, so a request names none", () => {
-    const authorization: string = readSource(PROJECT_AUTHORIZATION);
+    const authorization: string = readRepoFile(PROJECT_AUTHORIZATION);
 
     expect(authorization).toContain("tenantId = apiKeyRow.projectId;");
-    expect(steps).toContain(
+    expect(firstRequest()).toContain(
       "The key reads its own project, so the request names no project:",
     );
     expect(englishPage(CMDB_SYNC)).toContain(
@@ -592,18 +543,21 @@ describe("OneUptime API Reference: an API key", () => {
   });
 
   it("quotes the server's own messages in its troubleshooting", () => {
-    const troubleshooting: string = sectionOf(page, "## Troubleshooting");
+    const troubleshooting: string = englishSection(
+      API_REFERENCE,
+      "## Troubleshooting",
+    );
     const message: string = codeBlocks(troubleshooting, "text")[0] as string;
 
     expect(baseApiMethod("updateItem")).toContain(`'${message.trim()}'`);
-    expect(readSource(PROJECT_AUTHORIZATION)).toContain('"Invalid API Key"');
+    expect(readRepoFile(PROJECT_AUTHORIZATION)).toContain('"Invalid API Key"');
     expect(troubleshooting).toContain(
       ":::details Every request answers 400 Invalid API Key",
     );
     expect(troubleshooting).toContain(
       ":::details Every request answers 422 You do not have permissions",
     );
-    expect(readSource(TABLE_PERMISSION)).toContain(
+    expect(readRepoFile(TABLE_PERMISSION)).toContain(
       "You need one of these permissions: ${permissions.join",
     );
   });
@@ -613,8 +567,9 @@ describe("Exporting to a CMDB: the requests", () => {
   const page: string = englishPage(CMDB_SYNC);
 
   it("pulls the three resources from their own API paths", () => {
-    const rows: Array<Array<string>> = firstTableRows(
-      sectionOf(page, "## What you can pull"),
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(CMDB_SYNC, "## What you can pull"),
+      "Resource",
     );
 
     expect(
@@ -633,9 +588,10 @@ describe("Exporting to a CMDB: the requests", () => {
   });
 
   it("names columns an inventory item has, with values the product uses", () => {
-    const rows: Array<Array<string>> = tables(
-      sectionOf(page, "## What you can pull"),
-    )[1]!.slice(1);
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(CMDB_SYNC, "## What you can pull"),
+      "Column",
+    );
     const columns: Array<string> = new InventoryItem().getTableColumns()
       .columns;
 
@@ -648,17 +604,13 @@ describe("Exporting to a CMDB: the requests", () => {
       }
     }
 
-    const byColumn: Map<string, string> = new Map<string, string>(
-      rows.map((row: Array<string>): [string, string] => {
-        return [row[0] as string, row[1] as string];
-      }),
-    );
-
-    for (const type of codeIn(byColumn.get("`entityType`") as string)) {
+    for (const type of codeIn(
+      rowStartingWith(rows, "`entityType`")[1] as string,
+    )) {
       expect(Object.values(EntityType)).toContain(type);
     }
 
-    expect(codeIn(byColumn.get("`source`") as string)).toEqual(
+    expect(codeIn(rowStartingWith(rows, "`source`")[1] as string)).toEqual(
       Object.values(EntitySource),
     );
   });
@@ -699,8 +651,8 @@ describe("Exporting to a CMDB: the requests", () => {
   });
 
   it("adds only the types a person may add, and works out their identity key", () => {
-    const service: string = readSource(INVENTORY_ITEM_SERVICE);
-    const writeBack: string = sectionOf(page, "## Write back");
+    const service: string = readRepoFile(INVENTORY_ITEM_SERVICE);
+    const writeBack: string = englishSection(CMDB_SYNC, "## Write back");
 
     expect(writeBack).toContain(
       `an \`entityType\` of ${listOf(

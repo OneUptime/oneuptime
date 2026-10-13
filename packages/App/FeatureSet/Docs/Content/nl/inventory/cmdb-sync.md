@@ -144,7 +144,7 @@ Hosts en netwerkapparaten worden met dezelfde gegevens beschreven, opgeslagen on
 | Serienummer | `host.serial_number` | Gestempeld | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | Gestempeld | ENTITY-MIB, anders wat `sysDescr` of `sysObjectID` noemt |
 | Model | `device.model.name` | Gestempeld | ENTITY-MIB, anders wat `sysDescr` noemt |
-| Firmwareversie | `device.firmware.version` | Gestempeld | ENTITY-MIB |
+| Firmwareversie | `device.firmware.version` | Gestempeld | ENTITY-MIB, anders wat `sysDescr` noemt |
 | Besturingssysteem | `os.name` | `os.description` (of `os.type`) | Wat `sysDescr` noemt: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS-versie | `os.version` | Gedetecteerd | ENTITY-MIB, anders wat `sysDescr` noemt |
 | Device Type | `device.type` | Gestempeld. Anders deelt de kaart het in op basis van besturingssysteem en naam (Server, Firewall, ...) | Zijn rol: de rol die jij toewees, anders de rol waarmee de topologiekaart het tekent |

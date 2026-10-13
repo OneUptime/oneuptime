@@ -144,7 +144,7 @@ Les hôtes et les équipements réseau sont décrits par les mêmes faits, stock
 | Numéro de série | `host.serial_number` | Apposé | ENTITY-MIB |
 | Fabricant | `device.manufacturer` | Apposé | ENTITY-MIB, sinon ce que nomment `sysDescr` ou `sysObjectID` |
 | Modèle | `device.model.name` | Apposé | ENTITY-MIB, sinon ce que nomme `sysDescr` |
-| Version du micrologiciel | `device.firmware.version` | Apposée | ENTITY-MIB |
+| Version du micrologiciel | `device.firmware.version` | Apposée | ENTITY-MIB, sinon ce que nomme `sysDescr` |
 | Système d'exploitation | `os.name` | `os.description` (ou `os.type`) | Ce que nomme `sysDescr` : Cisco IOS, Junos OS, Arista EOS, Linux |
 | Version de l'OS | `os.version` | Détectée | ENTITY-MIB, sinon ce que nomme `sysDescr` |
 | Type d'appareil | `device.type` | Apposé. Sinon la carte le classe d'après son système d'exploitation et son nom (Serveur, Pare-feu, ...) | Son rôle : celui que vous avez attribué, sinon celui sous lequel la carte de topologie le dessine |

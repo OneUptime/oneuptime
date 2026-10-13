@@ -144,7 +144,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | Серийный номер | `host.serial_number` | Проставляется | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | Проставляется | ENTITY-MIB, иначе то, что называет `sysDescr` или `sysObjectID` |
 | Модель | `device.model.name` | Проставляется | ENTITY-MIB, иначе то, что называет `sysDescr` |
-| Версия прошивки | `device.firmware.version` | Проставляется | ENTITY-MIB |
+| Версия прошивки | `device.firmware.version` | Проставляется | ENTITY-MIB, иначе то, что называет `sysDescr` |
 | Операционная система | `os.name` | `os.description` (или `os.type`) | То, что называет `sysDescr`: Cisco IOS, Junos OS, Arista EOS, Linux |
 | Версия ОС | `os.version` | Определяется | ENTITY-MIB, иначе то, что называет `sysDescr` |
 | Device Type | `device.type` | Проставляется. Иначе карточка классифицирует его по ОС и имени (Сервер, Межсетевой экран, ...) | Его роль: назначенная вами, иначе та, с которой его рисует карта топологии |

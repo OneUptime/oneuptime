@@ -144,7 +144,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 序號 | `host.serial_number` | 標記 | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | 標記 | ENTITY-MIB，否則為 `sysDescr` 或 `sysObjectID` 指明的內容 |
 | 模型 | `device.model.name` | 標記 | ENTITY-MIB，否則為 `sysDescr` 指明的內容 |
-| 韌體版本 | `device.firmware.version` | 標記 | ENTITY-MIB |
+| 韌體版本 | `device.firmware.version` | 標記 | ENTITY-MIB，否則為 `sysDescr` 指明的內容 |
 | 作業系統 | `os.name` | `os.description`（或 `os.type`） | `sysDescr` 指明的內容：Cisco IOS、Junos OS、Arista EOS、Linux |
 | 作業系統版本 | `os.version` | 偵測取得 | ENTITY-MIB，否則為 `sysDescr` 指明的內容 |
 | Device Type | `device.type` | 標記。否則卡片會根據其作業系統和名稱加以分類（伺服器、防火牆……） | 它的角色：你指派的角色，否則為拓撲圖繪製它時使用的角色 |

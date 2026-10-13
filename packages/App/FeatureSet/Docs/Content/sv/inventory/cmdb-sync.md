@@ -144,7 +144,7 @@ Värdar och nätverksenheter beskrivs med samma uppgifter, sparade under samma n
 | Serienummer | `host.serial_number` | Stämplat | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | Stämplat | ENTITY-MIB, annars det `sysDescr` eller `sysObjectID` nämner |
 | Modell | `device.model.name` | Stämplad | ENTITY-MIB, annars det `sysDescr` nämner |
-| Firmwareversion | `device.firmware.version` | Stämplad | ENTITY-MIB |
+| Firmwareversion | `device.firmware.version` | Stämplad | ENTITY-MIB, annars det `sysDescr` nämner |
 | Operativsystem | `os.name` | `os.description` (eller `os.type`) | Det `sysDescr` nämner: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS-version | `os.version` | Upptäckt | ENTITY-MIB, annars det `sysDescr` nämner |
 | Device Type | `device.type` | Stämplad. Annars klassificerar kortet den utifrån operativsystem och namn (Server, Brandvägg, ...) | Dess roll: den du tilldelade, annars den som topologikartan ritar den som |

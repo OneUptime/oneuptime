@@ -144,7 +144,7 @@ Hosts und Netzwerkgeräte werden mit denselben Fakten beschrieben, gespeichert u
 | Seriennummer | `host.serial_number` | Aufgeprägt | ENTITY-MIB |
 | Hersteller | `device.manufacturer` | Aufgeprägt | ENTITY-MIB, sonst was `sysDescr` oder `sysObjectID` nennt |
 | Modell | `device.model.name` | Aufgeprägt | ENTITY-MIB, sonst was `sysDescr` nennt |
-| Firmware-Version | `device.firmware.version` | Aufgeprägt | ENTITY-MIB |
+| Firmware-Version | `device.firmware.version` | Aufgeprägt | ENTITY-MIB, sonst was `sysDescr` nennt |
 | Betriebssystem | `os.name` | `os.description` (oder `os.type`) | Was `sysDescr` nennt: Cisco IOS, Junos OS, Arista EOS, Linux |
 | Betriebssystemversion | `os.version` | Erkannt | ENTITY-MIB, sonst was `sysDescr` nennt |
 | Gerätetyp | `device.type` | Aufgeprägt. Sonst ordnet die Karte ihn nach Betriebssystem und Name ein (Server, Firewall, ...) | Seine Rolle: die, die Sie zugewiesen haben, sonst die, als die die Topologiekarte es zeichnet |

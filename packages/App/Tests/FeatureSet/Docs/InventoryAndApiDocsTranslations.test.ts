@@ -173,9 +173,10 @@ const DECIMAL_MARK: RegExp = /(\d)[,٫](\d)/g;
 const RIGHT_ARROW: string = "→";
 /*
  * The comma a language lists items with: ", " in Latin, Cyrillic and
- * Devanagari text, "、" in Chinese and Japanese, "، " in Persian.
+ * Devanagari text, "、" or the full-width "，" in Chinese and Japanese,
+ * "، " in Persian.
  */
-const LIST_ITEM_SEPARATOR: RegExp = /, |\u{3001}|\u{060C} /u;
+const LIST_ITEM_SEPARATOR: RegExp = /, |\u{3001}|\u{FF0C}|\u{060C} /u;
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 const LINK_TARGET: RegExp = /\]\([^)\s]*\)/g;
 // A word of four Latin letters or more: what an untranslated line is made of.
@@ -281,10 +282,26 @@ function outsideBoldSpans(row: Array<string>): string {
   }, text);
 }
 
+/*
+ * A text with its numbers' digit groups joined: 1,000,000 to 1000000. One
+ * pass joins every other group (a match takes the digit the next one
+ * needs), so it runs until nothing changes.
+ */
+function withoutDigitGroups(text: string): string {
+  let joined: string = text;
+  let previous: string = "";
+
+  while (joined !== previous) {
+    previous = joined;
+    joined = joined.replace(DIGIT_GROUP, "$1$2");
+  }
+
+  return joined;
+}
+
 function numbersIn(text: string): Array<string> {
   return Array.from(
-    toLatinDigits(text)
-      .replace(DIGIT_GROUP, "$1$2")
+    withoutDigitGroups(toLatinDigits(text))
       .replace(DECIMAL_MARK, "$1.$2")
       .matchAll(NUMBER),
   )
@@ -338,6 +355,9 @@ function inEnglishShape(language: string, page: string): boolean {
  * English one's place: a link into it keeps the page, and either drops the
  * anchor or names a heading that page has (anchorProblems holds it to one).
  * The result is null when either is fine.
+ *
+ * Like linksByLine, it answers decoded: "#وضعیت" rather than "#%D9%88...".
+ * An anchor that names no heading of the English page is kept as written.
  */
 function expectedLink(
   language: string,
@@ -350,7 +370,7 @@ function expectedLink(
     : parseDocsLink(target);
 
   if (!parsed || !parsed.anchor) {
-    return target;
+    return decodeURIComponent(target);
   }
 
   const served: string = hasPage(language, parsed.page) ? language : "en";
@@ -365,7 +385,13 @@ function expectedLink(
     decodeURIComponent(parsed.anchor),
   );
 
-  return ownAnchor ? `#${anchor}` : `${target.split("#")[0]}#${anchor}`;
+  if (anchor === null) {
+    return decodeURIComponent(target);
+  }
+
+  return ownAnchor
+    ? `#${anchor}`
+    : `${decodeURIComponent(target.split("#")[0] as string)}#${anchor}`;
 }
 
 // Every link of a page, line by line: "line: target".
@@ -874,7 +900,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
           // A stale page: the page is kept, with or without one of its anchors.
           expect(written.split("#")[0]).toBe(
-            `${link.line}: ${link.target.split("#")[0]}`,
+            `${link.line}: ${decodeURIComponent(link.target.split("#")[0] as string)}`,
           );
         });
       });
@@ -1136,6 +1162,17 @@ describe("the helpers, on these pages' shapes", () => {
     expect(
       expectedLink("en", INVENTORY_OVERVIEW, "/docs/inventory/custom-fields"),
     ).toBe("/docs/inventory/custom-fields");
+    // An anchor that names no heading is kept as written, not made "#null".
+    expect(expectedLink("fa", API_REFERENCE, "#no-such-heading")).toBe(
+      "#no-such-heading",
+    );
+    expect(
+      expectedLink(
+        "fa",
+        INVENTORY_OVERVIEW,
+        "/docs/inventory/cmdb-sync#nowhere",
+      ),
+    ).toBe("/docs/inventory/cmdb-sync#nowhere");
 
     // Every copy of these pages has its English page's headings.
     for (const language of LANGUAGES) {

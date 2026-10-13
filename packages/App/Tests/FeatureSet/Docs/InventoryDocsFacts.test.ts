@@ -66,8 +66,20 @@ import {
   INVENTORY_CUSTOM_FIELDS,
   INVENTORY_OVERVIEW,
 } from "./InventoryAndApiDocsPages";
-import { readPage } from "./DocsContentSupport";
-import { tables } from "./DocsPageShape";
+import {
+  bold,
+  boldIn,
+  codeIn,
+  englishPage,
+  englishSection,
+  leadOf,
+  lineStartingWith,
+  listOf,
+  readRepoFile,
+  rowStartingWith,
+  sourceFilesUnder,
+  tableWithHeader,
+} from "./InventoryAndApiDocsSupport";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { INVENTORY_ASSET_FIELD_LABELS } from "../../../FeatureSet/Dashboard/src/Components/Inventory/InventoryAssetLabels";
 import {
@@ -134,8 +146,6 @@ import {
 import { parseSystemDescription } from "Common/Utils/NetworkDevice/SystemDescriptionUtil";
 import { inferRelationshipType } from "Common/Utils/Telemetry/EntityRelationship";
 import { beforeAll, describe, expect, it } from "@jest/globals";
-import fs from "fs";
-import path from "path";
 
 // Imported for their side effect: RunCron (recorded above) keeps each handler.
 import "../../../FeatureSet/Workers/Jobs/TelemetryEntity/PruneStaleEntities";
@@ -162,7 +172,6 @@ import "../../../FeatureSet/Workers/Jobs/TelemetryEntity/SyncInventoryEntities";
  * tables of the CMDB page to the asset vocabulary.
  */
 
-const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 const DASHBOARD_APP: string = "App/FeatureSet/Dashboard/src";
 const INVENTORY_MENU: string = `${DASHBOARD_APP}/Pages/Inventory/SideMenu.tsx`;
 const ITEM_MENU: string = `${DASHBOARD_APP}/Pages/Inventory/View/SideMenu.tsx`;
@@ -184,7 +193,9 @@ const ENTITY_REGISTRY: string =
   "Common/Server/Utils/Telemetry/EntityRegistry.ts";
 const CUSTOM_FIELD_VALUE_STORES: string =
   "Common/Server/Utils/CustomField/CustomFieldValueStores.ts";
-const SERVICES_DIR: string = "Common/Server/Services";
+const CUSTOM_FIELD_RENAME: string =
+  "Common/Server/Utils/CustomField/CustomFieldRename.ts";
+const SERVER_DIR: string = "Common/Server";
 
 const PRUNE_JOB: string = "TelemetryEntity:PruneStaleEntities";
 const SYNC_JOB: string = "TelemetryEntity:SyncInventoryEntities";
@@ -194,12 +205,6 @@ const DAY_IN_HOURS: number = 24;
 
 // A side menu's titles, as the menu files write them, one per line.
 const MENU_TITLE_LINE: RegExp = /^(\s*)title: "([^"]+)",$/;
-// A bold span of a line.
-const BOLD_SPAN: RegExp = /\*\*([^*\n]+?)\*\*/g;
-// An inline code span of a line.
-const CODE_SPAN: RegExp = /`([^`\n]+)`/g;
-// The heading level of a Markdown heading line.
-const HEADING_LINE: RegExp = /^(#+) /;
 // What is left of a row of kinds once every kind is taken out: separators.
 const LIST_SEPARATORS: RegExp = /(\s|,|\||\band\b)+/g;
 // "1 day", "7 days": a retention window as the overview's table states it.
@@ -235,96 +240,34 @@ interface DeleteCall {
   };
 }
 
-function readSource(relativePath: string): string {
-  return fs.readFileSync(path.join(PACKAGES_DIR, relativePath), "utf8");
-}
-
-function englishPage(page: string): string {
-  return readPage("en", page);
-}
-
-function bold(name: string): string {
-  return `**${name}**`;
-}
-
-// Every bold span of a text, in order, repeats included.
-function boldIn(text: string): Array<string> {
-  return Array.from(text.matchAll(BOLD_SPAN)).map(
-    (match: RegExpMatchArray): string => {
-      return match[1] as string;
-    },
-  );
-}
-
-// Every inline code span of a text, in order.
-function codeIn(text: string): Array<string> {
-  return Array.from(text.matchAll(CODE_SPAN)).map(
-    (match: RegExpMatchArray): string => {
-      return match[1] as string;
-    },
-  );
-}
-
-// The text of a section, from its heading to the next heading of its level or above.
-function sectionOf(markdown: string, heading: string): string {
-  const lines: Array<string> = markdown.split("\n");
-  const start: number = lines.indexOf(heading);
-
-  expect({ heading, found: start >= 0 }).toEqual({ heading, found: true });
-
-  const level: number = heading.indexOf(" ");
-  const body: Array<string> = [];
-
-  for (const line of lines.slice(start + 1)) {
-    const match: RegExpMatchArray | null = line.match(HEADING_LINE);
-
-    if (match && (match[1] as string).length <= level) {
-      break;
-    }
-
-    body.push(line);
-  }
-
-  return body.join("\n");
-}
-
-// The line of a page that starts with `start`.
-function lineStartingWith(markdown: string, start: string): string {
-  const line: string | undefined = markdown
-    .split("\n")
-    .find((candidate: string): boolean => {
-      return candidate.startsWith(start);
-    });
-
-  expect({ start, found: line !== undefined }).toEqual({ start, found: true });
-
-  return line as string;
-}
-
-// The body rows of the first table of a text.
-function firstTableRows(text: string): Array<Array<string>> {
-  const found: Array<Array<string>> | undefined = tables(text)[0];
-
-  expect(found).toBeDefined();
-
-  return (found as Array<Array<string>>).slice(1);
-}
-
 /*
- * A side menu's sections and their links, read from the menu's file: each
- * section's title is indented less than its links' titles. A section the
- * file builds from a list (By Source) has no literal links.
+ * A side menu's sections and their links, read from the menu file's
+ * `sections` array, and only from it: each section's title is indented
+ * less than its links' titles. A section the file builds from a list
+ * (By Source) has no literal links.
  */
 function menuSections(relativePath: string): Array<MenuSection> {
-  const source: string = readSource(relativePath);
-  const sectionsStart: number = source.indexOf("const sections");
+  const file: string = readRepoFile(relativePath);
+  const sectionsStart: number = file.indexOf("const sections");
+
+  if (sectionsStart < 0) {
+    throw new Error(`${relativePath} declares no "const sections"`);
+  }
+
+  const sectionsEnd: number = file.indexOf("\n  ];", sectionsStart);
+
+  if (sectionsEnd < 0) {
+    throw new Error(`${relativePath} never closes its sections array`);
+  }
+
+  const source: string = file.slice(sectionsStart, sectionsEnd);
   const titles: Array<{ indent: number; title: string; at: number }> = [];
   let offset: number = 0;
 
   for (const line of source.split("\n")) {
     const match: RegExpMatchArray | null = line.match(MENU_TITLE_LINE);
 
-    if (match && offset > sectionsStart) {
+    if (match) {
       titles.push({
         indent: (match[1] as string).length,
         title: match[2] as string,
@@ -333,6 +276,10 @@ function menuSections(relativePath: string): Array<MenuSection> {
     }
 
     offset += line.length + 1;
+  }
+
+  if (titles.length === 0) {
+    throw new Error(`${relativePath}'s sections array has no titles`);
   }
 
   const sectionIndent: number = Math.min(
@@ -393,17 +340,6 @@ function collapsedSectionTitles(sections: Array<MenuSection>): Array<string> {
     });
 }
 
-// "a, b and c": a list as the pages write one.
-function listOf(items: ReadonlyArray<string>, conjunction: string): string {
-  if (items.length <= 1) {
-    return items.join("");
-  }
-
-  return `${items.slice(0, -1).join(", ")} ${conjunction} ${
-    items[items.length - 1]
-  }`;
-}
-
 /*
  * The members of a `new Set<EntityType>([...])` or a Map's keys declared
  * under `name` in a source file, as entity types.
@@ -411,9 +347,16 @@ function listOf(items: ReadonlyArray<string>, conjunction: string): string {
 function entityTypesDeclaredAs(source: string, name: string): Set<EntityType> {
   const start: number = source.indexOf(name);
 
-  expect({ name, declared: start >= 0 }).toEqual({ name, declared: true });
+  if (start < 0) {
+    throw new Error(`Nothing is declared as "${name}"`);
+  }
 
   const end: number = source.indexOf("]);", start);
+
+  if (end < 0) {
+    throw new Error(`"${name}" is not a list of entity types`);
+  }
+
   const declaration: string = source.slice(start, end);
 
   return new Set<EntityType>(
@@ -427,10 +370,7 @@ function entityTypesDeclaredAs(source: string, name: string): Set<EntityType> {
 
 // The entity types that become Inventory items when telemetry names them.
 function catalogedFromTelemetry(): Array<EntityType> {
-  const membershipOnly: Set<EntityType> = entityTypesDeclaredAs(
-    readSource(ENTITY_REGISTRY),
-    "const MEMBERSHIP_ONLY_TYPES",
-  );
+  const membershipOnly: Set<EntityType> = membershipOnlyTypes();
 
   return Object.values(EntityType).filter((type: EntityType): boolean => {
     return (
@@ -443,9 +383,22 @@ function catalogedFromTelemetry(): Array<EntityType> {
 
 function membershipOnlyTypes(): Set<EntityType> {
   return entityTypesDeclaredAs(
-    readSource(ENTITY_REGISTRY),
+    readRepoFile(ENTITY_REGISTRY),
     "const MEMBERSHIP_ONLY_TYPES",
   );
+}
+
+// The overview's sources table: a row per source, in the list's order.
+function sourcesTable(): Array<Array<string>> {
+  return tableWithHeader(
+    englishSection(INVENTORY_OVERVIEW, "## How items get into Inventory"),
+    "Source",
+  );
+}
+
+// The overview's row for a source, by the label the Source column gives it.
+function sourceRow(source: EntitySource): Array<string> {
+  return rowStartingWith(sourcesTable(), bold(getInventorySourceLabel(source)));
 }
 
 /*
@@ -553,13 +506,10 @@ const RETENTION_WORDS: ReadonlyArray<[string, ReadonlyArray<EntityType>]> = [
 
 describe("Inventory Overview: where items come from", () => {
   const overview: string = englishPage(INVENTORY_OVERVIEW);
-  const sourcesTable: Array<Array<string>> = firstTableRows(
-    sectionOf(overview, "## How items get into Inventory"),
-  );
 
   it("names the three sources in the list's order, as the Source column labels them, with their API values", () => {
     expect(
-      sourcesTable.map((row: Array<string>): Array<string> => {
+      sourcesTable().map((row: Array<string>): Array<string> => {
         return [row[0] as string, row[1] as string];
       }),
     ).toEqual(
@@ -570,7 +520,7 @@ describe("Inventory Overview: where items come from", () => {
   });
 
   it("lists every kind OneUptime mirrors, by the record it is copied from, on the mirror's fifteen-minute schedule", () => {
-    const mirrored: string = (sourcesTable[1] as Array<string>)[2] as string;
+    const mirrored: string = sourceRow(EntitySource.Inventory)[2] as string;
 
     // The mirror's sources are the mirrored types, and each has its record.
     expect(
@@ -600,8 +550,8 @@ describe("Inventory Overview: where items come from", () => {
   });
 
   it("names only kinds that become items: never the membership-only ones", () => {
-    const lead: string = overview.split("\n")[2] as string;
-    const discovered: string = (sourcesTable[0] as Array<string>)[2] as string;
+    const lead: string = leadOf(overview);
+    const discovered: string = sourceRow(EntitySource.Discovered)[2] as string;
     const membershipOnly: Set<EntityType> = membershipOnlyTypes();
 
     // The membership-only kinds the page used to name.
@@ -649,7 +599,7 @@ describe("Inventory Overview: where items come from", () => {
   });
 
   it("says a discovered or mirrored item cannot be renamed or retyped, and that its Settings page says where to change it", () => {
-    const policy: string = readSource(SETTINGS_POLICY);
+    const policy: string = readRepoFile(SETTINGS_POLICY);
 
     expect(overview).toContain(
       "A discovered or mirrored item cannot be renamed or given another type: its source would overwrite the change on its next pass. The item's **Settings** page says where to make a lasting change instead.",
@@ -667,8 +617,9 @@ describe("Inventory Overview: where items come from", () => {
   });
 
   it("gives a heartbeat to discovered items only, with the Status column's windows", () => {
-    const statusRows: Array<Array<string>> = firstTableRows(
-      sectionOf(overview, "### How long a silent item stays"),
+    const statusRows: Array<Array<string>> = tableWithHeader(
+      englishSection(INVENTORY_OVERVIEW, "### How long a silent item stays"),
+      "Status",
     );
 
     expect(
@@ -686,26 +637,27 @@ describe("Inventory Overview: where items come from", () => {
     ).toEqual([bold("Live"), bold("Recent"), bold("Stale")]);
 
     const live: RegExpMatchArray | null = (
-      (statusRows[0] as Array<string>)[1] as string
+      rowStartingWith(statusRows, bold("Live"))[1] as string
     ).match(MINUTES_PHRASE);
 
     expect(Number(live?.[1])).toBe(INVENTORY_LIVE_WINDOW_MINUTES);
     expect(INVENTORY_STALE_AFTER_MINUTES).toBe(DAY_IN_HOURS * 60);
-    expect((statusRows[1] as Array<string>)[1]).toBe(
+    expect(rowStartingWith(statusRows, bold("Recent"))[1]).toBe(
       "Seen within the last day.",
     );
-    expect((statusRows[2] as Array<string>)[1]).toContain(
+    expect(rowStartingWith(statusRows, bold("Stale"))[1]).toContain(
       "Not seen for more than a day. The **Gone Quiet** page lists these.",
     );
   });
 });
 
 describe("Inventory Overview: how long a silent item stays", () => {
-  const overview: string = englishPage(INVENTORY_OVERVIEW);
-  const section: string = sectionOf(
-    overview,
-    "### How long a silent item stays",
-  );
+  function silentItems(): string {
+    return englishSection(
+      INVENTORY_OVERVIEW,
+      "### How long a silent item stays",
+    );
+  }
 
   it("removes discovered items every three hours, archived ones and their custom field values included", () => {
     expect((mockCapturedJobs[PRUNE_JOB] as MockCapturedJob).schedule).toBe(
@@ -720,14 +672,17 @@ describe("Inventory Overview: how long a silent item stays", () => {
       expect(Object.keys(call.query).includes("isArchived")).toBe(false);
     }
 
-    expect(section).toContain(
+    expect(silentItems()).toContain(
       "Every three hours, OneUptime removes the discovered items that have been silent for longer than their kind's window, archived ones included, and their custom field values go with them. Mirrored items and the ones you added are never removed this way.",
     );
   });
 
   it("states each kind's window as the prune uses it, naming every catalogued kind it sweeps and none it never catalogues", () => {
     const windows: Map<EntityType, number> = pruneWindows();
-    const rows: Array<Array<string>> = tables(section)[1]!.slice(1);
+    const rows: Array<Array<string>> = tableWithHeader(
+      silentItems(),
+      "Kind of item",
+    );
     const cataloged: Array<EntityType> = catalogedFromTelemetry();
     const named: Array<EntityType> = [];
 
@@ -787,19 +742,20 @@ describe("Inventory Overview: how long a silent item stays", () => {
       expect(hoursBefore(call)).toBe(30 * DAY_IN_HOURS);
     }
 
-    expect(section).toContain(
+    expect(silentItems()).toContain(
       "A relationship OneUptime discovered is removed once it has not been seen again for 30 days.",
     );
   });
 });
 
 describe("Inventory Overview: finding your way around", () => {
-  const overview: string = englishPage(INVENTORY_OVERVIEW);
-  const section: string = sectionOf(overview, "## Find your way around");
-  const menu: Array<MenuSection> = menuSections(INVENTORY_MENU);
+  function findYourWay(): string {
+    return englishSection(INVENTORY_OVERVIEW, "## Find your way around");
+  }
 
   it("opens Inventory from the Products menu's Resources group", () => {
-    const navigation: string = readSource(
+    const section: string = findYourWay();
+    const navigation: string = readRepoFile(
       `${DASHBOARD_APP}/Utils/NavigationItems.tsx`,
     );
     const entry: string = navigation.slice(
@@ -813,7 +769,10 @@ describe("Inventory Overview: finding your way around", () => {
   });
 
   it("names the folded sections as the menu folds them", () => {
-    const folded: Array<string> = collapsedSectionTitles(menu);
+    const section: string = findYourWay();
+    const folded: Array<string> = collapsedSectionTitles(
+      menuSections(INVENTORY_MENU),
+    );
 
     expect(folded).toEqual(["By Source", "Settings", "Help", "Advanced"]);
     expect(section).toContain(
@@ -822,12 +781,12 @@ describe("Inventory Overview: finding your way around", () => {
   });
 
   it("lists every page of the menu, in the menu's order, under its section", () => {
-    const pages: Array<string> = firstTableRows(section).map(
+    const pages: Array<string> = tableWithHeader(findYourWay(), "Page").map(
       (row: Array<string>): string => {
         return row[0] as string;
       },
     );
-    const expected: Array<string> = menu.flatMap(
+    const expected: Array<string> = menuSections(INVENTORY_MENU).flatMap(
       (entry: MenuSection): Array<string> => {
         if (entry.title === "Inventory") {
           return entry.items.map(bold);
@@ -847,7 +806,8 @@ describe("Inventory Overview: finding your way around", () => {
   });
 
   it("names the By Source pages as the menu titles them, and Gone Quiet as the discovered items' stale list", () => {
-    const source: string = readSource(INVENTORY_MENU);
+    const section: string = findYourWay();
+    const source: string = readRepoFile(INVENTORY_MENU);
     const getSourceTitle: string = source.slice(
       source.indexOf("const getSourceTitle"),
       source.indexOf("type ScopedItemsRouteFunction"),
@@ -878,7 +838,7 @@ describe("Inventory Overview: finding your way around", () => {
   it("lists an item's own pages in its side menu's order", () => {
     const itemMenu: Array<MenuSection> = menuSections(ITEM_MENU);
     const line: string = lineStartingWith(
-      section,
+      findYourWay(),
       "Open an item, and its own side menu",
     );
     const expected: Array<string> = itemMenu.flatMap(
@@ -894,13 +854,13 @@ describe("Inventory Overview: finding your way around", () => {
 
   it("shows the incidents, alerts and maintenance of a service, host or Kubernetes cluster only", () => {
     const linked: Array<string> = Array.from(
-      readSource(LINKED_RESOURCE).matchAll(LINKED_RESOURCE_ENTRY),
+      readRepoFile(LINKED_RESOURCE).matchAll(LINKED_RESOURCE_ENTRY),
     ).map((match: RegExpMatchArray): string => {
       return match[1] as string;
     });
 
     expect(linked).toEqual(["Service", "Host", "KubernetesCluster"]);
-    expect(section).toContain(
+    expect(findYourWay()).toContain(
       "The incidents, alerts and maintenance events are those of the service, host or Kubernetes cluster the item stands for; on any other item, those pages say which resource to look at instead.",
     );
   });
@@ -915,14 +875,15 @@ describe("Inventory Overview: finding your way around", () => {
       "and",
     );
 
-    expect(section.toLowerCase()).toContain(
+    expect(findYourWay().toLowerCase()).toContain(
       `that describes both the same way: ${facts.toLowerCase()}.`,
     );
   });
 
   it("groups an item's connections as the Connections page does, capped where the server stops counting", () => {
+    const section: string = findYourWay();
     const groups: Array<string> = Array.from(
-      readSource(CONNECTIONS).matchAll(CONNECTIONS_SECTION),
+      readRepoFile(CONNECTIONS).matchAll(CONNECTIONS_SECTION),
     ).map((match: RegExpMatchArray): string => {
       return match[1] as string;
     });
@@ -935,17 +896,18 @@ describe("Inventory Overview: finding your way around", () => {
     expect(section).toContain(
       'a group with more than 100,000 connections shows "100,000+"',
     );
-    expect(readSource(CONNECTIONS)).toContain('"Show more"');
+    expect(readRepoFile(CONNECTIONS)).toContain('"Show more"');
     expect(section).toContain("**Show more** pages through the rest");
   });
 });
 
 describe("Inventory Overview: adding, archiving and relationships", () => {
-  const overview: string = englishPage(INVENTORY_OVERVIEW);
-
   it("adds an item with the list's Add Item form: a type, a name and a description", () => {
-    const table: string = readSource(INVENTORY_TABLE);
-    const steps: string = sectionOf(overview, "## Add something by hand");
+    const table: string = readRepoFile(INVENTORY_TABLE);
+    const steps: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "## Add something by hand",
+    );
 
     expect(table).toContain('singularName="Item"');
     expect(table).toContain('createVerb="Add"');
@@ -969,7 +931,10 @@ describe("Inventory Overview: adding, archiving and relationships", () => {
   });
 
   it("names the three types a person may add, by value and label, and no other", () => {
-    const steps: string = sectionOf(overview, "## Add something by hand");
+    const steps: string = englishSection(
+      INVENTORY_OVERVIEW,
+      "## Add something by hand",
+    );
 
     expect(steps).toContain("You can add three types by hand:");
     expect(MANUAL_ENTITY_TYPES.size).toBe(3);
@@ -982,11 +947,10 @@ describe("Inventory Overview: adding, archiving and relationships", () => {
   });
 
   it("archives rather than deletes: only an item added by hand is gone for good", () => {
-    const section: string = sectionOf(
-      overview,
-      "## Archive instead of deleting",
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(INVENTORY_OVERVIEW, "## Archive instead of deleting"),
+      "Source",
     );
-    const rows: Array<Array<string>> = firstTableRows(section);
 
     expect(
       rows.map((row: Array<string>): Array<string> => {
@@ -1014,13 +978,13 @@ describe("Inventory Overview: adding, archiving and relationships", () => {
   });
 
   it("archives from the list in one go or from the item's Settings page", () => {
-    const section: string = sectionOf(
-      overview,
+    const section: string = englishSection(
+      INVENTORY_OVERVIEW,
       "## Archive instead of deleting",
     );
-    const table: string = readSource(INVENTORY_TABLE);
-    const settings: string = readSource(ITEM_SETTINGS);
-    const card: string = readSource(ARCHIVE_CARD);
+    const table: string = readRepoFile(INVENTORY_TABLE);
+    const settings: string = readRepoFile(ITEM_SETTINGS);
+    const card: string = readRepoFile(ARCHIVE_CARD);
 
     expect(table).toContain("archiveBulkActions");
     expect(table).toContain("unarchiveBulkActions");
@@ -1032,8 +996,8 @@ describe("Inventory Overview: adding, archiving and relationships", () => {
   });
 
   it("archives a mirrored item whose record went, instead of deleting it, only when it carries custom field values", () => {
-    const section: string = sectionOf(
-      overview,
+    const section: string = englishSection(
+      INVENTORY_OVERVIEW,
       "## Archive instead of deleting",
     );
     const typed: InventoryItem = new InventoryItem();
@@ -1062,8 +1026,8 @@ describe("Inventory Overview: adding, archiving and relationships", () => {
   });
 
   it("lists every relationship OneUptime draws between items, and no other, with true examples", () => {
-    const section: string = sectionOf(
-      overview,
+    const section: string = englishSection(
+      INVENTORY_OVERVIEW,
       "## Relationships and topology",
     );
     const cataloged: Array<EntityType> = catalogedFromTelemetry();
@@ -1085,7 +1049,7 @@ describe("Inventory Overview: adding, archiving and relationships", () => {
       }
     }
 
-    const listed: Array<string> = firstTableRows(section).map(
+    const listed: Array<string> = tableWithHeader(section, "Relationship").map(
       (row: Array<string>): string => {
         return codeIn(row[0] as string)[0] as string;
       },
@@ -1175,7 +1139,7 @@ describe("Inventory Custom Fields", () => {
   });
 
   it("creates a field with the table's create button and the form's three fields", () => {
-    const base: string = readSource(CUSTOM_FIELDS_PAGE_BASE);
+    const base: string = readRepoFile(CUSTOM_FIELDS_PAGE_BASE);
 
     expect(new InventoryItemCustomField().singularName).toBe(
       "Inventory Item Custom Field",
@@ -1190,8 +1154,8 @@ describe("Inventory Custom Fields", () => {
   });
 
   it("lists a dropdown's options with the options field's colours and drag handles", () => {
-    const options: string = readSource(CUSTOM_FIELD_OPTIONS);
-    const colors: string = readSource(COLOR_PICKER);
+    const options: string = readRepoFile(CUSTOM_FIELD_OPTIONS);
+    const colors: string = readRepoFile(COLOR_PICKER);
 
     expect(options).toContain('title: "Dropdown Options"');
     expect(colors.match(STRING_CONSTANT("NO_COLOR_LABEL"))?.[1]).toBe(
@@ -1205,7 +1169,7 @@ describe("Inventory Custom Fields", () => {
     );
 
     // The options field edits its list with the option editor, dragged by a handle.
-    const editor: string = readSource(OPTIONS_EDITOR);
+    const editor: string = readRepoFile(OPTIONS_EDITOR);
 
     expect(options).toContain(
       'import DropdownOptionsInput from "Common/UI/Components/CustomFields/DropdownOptionsInput";',
@@ -1218,8 +1182,9 @@ describe("Inventory Custom Fields", () => {
   });
 
   it("lists every field type as the Field Type picker names it, in the picker's order", () => {
-    const rows: Array<Array<string>> = firstTableRows(
-      sectionOf(page, "## Defining Fields"),
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(INVENTORY_CUSTOM_FIELDS, "## Defining Fields"),
+      "Type",
     );
 
     expect(
@@ -1234,8 +1199,9 @@ describe("Inventory Custom Fields", () => {
   });
 
   it("offers on each chip the comparisons its field type gets", () => {
-    const rows: Array<Array<string>> = firstTableRows(
-      sectionOf(page, "## Filter the list"),
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(INVENTORY_CUSTOM_FIELDS, "## Filter the list"),
+      "Field type",
     );
     const typeByLabel: Map<string, CustomFieldType> = new Map<
       string,
@@ -1279,7 +1245,7 @@ describe("Inventory Custom Fields", () => {
   });
 
   it("starts custom field columns hidden and never sorts them", () => {
-    const columns: string = readSource(CUSTOM_FIELD_COLUMNS);
+    const columns: string = readRepoFile(CUSTOM_FIELD_COLUMNS);
 
     expect(columns).toContain("disableSort: true");
     expect(columns).toContain(
@@ -1291,18 +1257,24 @@ describe("Inventory Custom Fields", () => {
   });
 
   it("moves values with a renamed option, but not with a renamed field: only incident custom fields move theirs", () => {
-    const stores: string = readSource(CUSTOM_FIELD_VALUE_STORES);
-    const renamers: Array<string> = fs
-      .readdirSync(path.join(PACKAGES_DIR, SERVICES_DIR))
-      .filter((file: string): boolean => {
+    const stores: string = readRepoFile(CUSTOM_FIELD_VALUE_STORES);
+    // Every server source that renames a field's stored values, wherever it is.
+    const renamers: Array<string> = sourceFilesUnder(SERVER_DIR).filter(
+      (file: string): boolean => {
         return (
-          file.endsWith(".ts") &&
-          readSource(`${SERVICES_DIR}/${file}`).includes("renameCustomField(")
+          file !== CUSTOM_FIELD_RENAME &&
+          readRepoFile(file).includes("renameCustomField(")
         );
-      });
+      },
+    );
 
+    expect(readRepoFile(CUSTOM_FIELD_RENAME)).toContain(
+      "export const renameCustomField: (",
+    );
     expect(stores).toContain("new InventoryItemCustomField().tableName");
-    expect(renamers).toEqual(["IncidentCustomFieldService.ts"]);
+    expect(renamers).toEqual([
+      `${SERVER_DIR}/Services/IncidentCustomFieldService.ts`,
+    ]);
     expect(page).toContain(
       "Renaming a field does not move the values already stored under the old name. Incident custom fields are the exception",
     );
@@ -1329,20 +1301,24 @@ const ARUBA_DESCRIPTION: string =
   "Aruba JL258A 2930F-8G-PoE+-2SFP+ Switch, revision WC.16.10.0012, ROM WC.16.01.0008 (/ws/swbuildm/rel_xxx)";
 
 describe("Exporting to a CMDB: what a network device's record gives", () => {
-  const page: string = englishPage(CMDB_SYNC);
-  const network: string = sectionOf(page, "## Network Device Asset Attributes");
+  function networkSection(): string {
+    return englishSection(CMDB_SYNC, "## Network Device Asset Attributes");
+  }
 
   // The "Where it comes from" cell of the network table's row for a key.
   function sourceOf(key: string): string {
-    const row: Array<string> | undefined = firstTableRows(network).find(
-      (candidate: Array<string>): boolean => {
-        return candidate[1] === `\`${key}\``;
-      },
-    );
+    const row: Array<string> | undefined = tableWithHeader(
+      networkSection(),
+      "Field",
+    ).find((candidate: Array<string>): boolean => {
+      return candidate[1] === `\`${key}\``;
+    });
 
-    expect({ key, row: Boolean(row) }).toEqual({ key, row: true });
+    if (!row) {
+      throw new Error(`The network device table has no row for ${key}`);
+    }
 
-    return (row as Array<string>)[2] as string;
+    return row[2] as string;
   }
 
   it("reads a Meraki MX's make and model from its system description, and guesses nothing from one it does not know", () => {
@@ -1351,7 +1327,7 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
       model: "MX85",
     });
     expect(parseSystemDescription("Acme Widget OS 1.2 on a box")).toEqual({});
-    expect(network).toContain(
+    expect(networkSection()).toContain(
       "a Cisco Meraki MX reports `Meraki MX85`, which fills in the make and model. A platform whose `sysDescr` has no known shape adds nothing, rather than a guess.",
     );
   });
@@ -1367,9 +1343,59 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
     });
 
     expect(systems).toEqual(["Cisco IOS", "Junos OS", "Arista EOS", "Linux"]);
-    expect(sectionOf(page, "## Asset Details")).toContain(
+    expect(englishSection(CMDB_SYNC, "## Asset Details")).toContain(
       `What \`sysDescr\` names: ${systems.join(", ")} |`,
     );
+  });
+
+  it("says the Asset Details card takes a device's model, firmware and OS version from ENTITY-MIB, else from its system description", () => {
+    const rows: Array<Array<string>> = tableWithHeader(
+      englishSection(CMDB_SYNC, "## Asset Details"),
+      "Fact",
+    );
+    // What the card shows of a device that implements no ENTITY-MIB.
+    const described: ReturnType<typeof getNetworkDeviceAssetFacts> =
+      getNetworkDeviceAssetFacts({ sysDescr: ARUBA_DESCRIPTION });
+    // And of one that does: ENTITY-MIB wins.
+    const walked: ReturnType<typeof getNetworkDeviceAssetFacts> =
+      getNetworkDeviceAssetFacts({
+        sysDescr: ARUBA_DESCRIPTION,
+        deviceModel: "2930F",
+        firmwareVersion: "WC.16.01.0009",
+        softwareVersion: "WC.16.11.0001",
+      });
+
+    expect([
+      described.model,
+      described.firmwareVersion,
+      described.osVersion,
+    ]).toEqual([
+      "JL258A 2930F-8G-PoE+-2SFP+",
+      "WC.16.01.0008",
+      "WC.16.10.0012",
+    ]);
+    expect([walked.model, walked.firmwareVersion, walked.osVersion]).toEqual([
+      "2930F",
+      "WC.16.01.0009",
+      "WC.16.11.0001",
+    ]);
+
+    for (const key of [
+      "device.model.name",
+      "device.firmware.version",
+      "os.version",
+    ]) {
+      const row: Array<string> | undefined = rows.find(
+        (candidate: Array<string>): boolean => {
+          return candidate[1] === `\`${key}\``;
+        },
+      );
+
+      expect({ key, onANetworkDevice: row?.[3] }).toEqual({
+        key,
+        onANetworkDevice: "ENTITY-MIB, else what `sysDescr` names",
+      });
+    }
   });
 
   it("takes firmware from ENTITY-MIB, else from the system description of the platforms that give one", () => {
@@ -1421,7 +1447,7 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
     expect(sourceOf("host.ip")).toBe(
       "The address OneUptime polls, when it is an IP address",
     );
-    expect(network).toContain(
+    expect(networkSection()).toContain(
       "The hostname is never the IP address. A device that only its address names has `host.ip` and no `host.name`.",
     );
   });
@@ -1459,13 +1485,13 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
     expect((mockCapturedJobs[SYNC_JOB] as MockCapturedJob).schedule).toBe(
       EVERY_FIFTEEN_MINUTE,
     );
-    expect(network).toContain(
+    expect(networkSection()).toContain(
       "These values are copied from the Network Device record every fifteen minutes, and they **replace** the previous values rather than adding to them",
     );
   });
 
   it("archives a mirrored item that carries custom field values when its record goes, and says only that one is", () => {
-    const fresh: string = sectionOf(page, "## Keep it fresh");
+    const fresh: string = englishSection(CMDB_SYNC, "## Keep it fresh");
 
     expect(fresh).toContain(
       "A mirrored item that carries custom field values is archived rather than deleted when its record goes",

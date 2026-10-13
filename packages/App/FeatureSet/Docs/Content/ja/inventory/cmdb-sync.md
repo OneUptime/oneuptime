@@ -144,7 +144,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | シリアル番号 | `host.serial_number` | 付与 | ENTITY-MIB |
 | メーカー | `device.manufacturer` | 付与 | ENTITY-MIB、なければ `sysDescr` または `sysObjectID` が示すもの |
 | モデル | `device.model.name` | 付与 | ENTITY-MIB、なければ `sysDescr` が示すもの |
-| ファームウェアバージョン | `device.firmware.version` | 付与 | ENTITY-MIB |
+| ファームウェアバージョン | `device.firmware.version` | 付与 | ENTITY-MIB、なければ `sysDescr` が示すもの |
 | オペレーティングシステム | `os.name` | `os.description` (または `os.type`) | `sysDescr` が示すもの: Cisco IOS、Junos OS、Arista EOS、Linux |
 | OS バージョン | `os.version` | 検出 | ENTITY-MIB、なければ `sysDescr` が示すもの |
 | デバイスの種類 | `device.type` | 付与。なければカードが OS と名前から分類します (サーバー、ファイアウォール、...) | そのロール。割り当てたもの、なければトポロジーマップが描画する際のもの |

@@ -144,7 +144,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | شماره سریال | `host.serial_number` | ثبت‌شده | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | ثبت‌شده | ENTITY-MIB، وگرنه آنچه `sysDescr` یا `sysObjectID` نام می‌برد |
 | مدل | `device.model.name` | ثبت‌شده | ENTITY-MIB، وگرنه آنچه `sysDescr` نام می‌برد |
-| نسخه فریم‌ور | `device.firmware.version` | ثبت‌شده | ENTITY-MIB |
+| نسخه فریم‌ور | `device.firmware.version` | ثبت‌شده | ENTITY-MIB، وگرنه آنچه `sysDescr` نام می‌برد |
 | سیستم‌عامل | `os.name` | `os.description` (یا `os.type`) | آنچه `sysDescr` نام می‌برد: Cisco IOS، Junos OS، Arista EOS، Linux |
 | نسخه سیستم‌عامل | `os.version` | شناسایی‌شده | ENTITY-MIB، وگرنه آنچه `sysDescr` نام می‌برد |
 | Device Type | `device.type` | ثبت‌شده. وگرنه کارت آن را از سیستم‌عامل و نامش دسته‌بندی می‌کند (سرور، دیواره آتش، ...) | نقشش: نقشی که شما داده‌اید، وگرنه نقشی که نقشه توپولوژی برایش می‌کشد |

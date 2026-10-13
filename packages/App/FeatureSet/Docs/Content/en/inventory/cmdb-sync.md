@@ -144,7 +144,7 @@ Hosts and network devices are described by the same facts, stored under the same
 | Serial number | `host.serial_number` | Stamped | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | Stamped | ENTITY-MIB, else what `sysDescr` or `sysObjectID` names |
 | Model | `device.model.name` | Stamped | ENTITY-MIB, else what `sysDescr` names |
-| Firmware version | `device.firmware.version` | Stamped | ENTITY-MIB |
+| Firmware version | `device.firmware.version` | Stamped | ENTITY-MIB, else what `sysDescr` names |
 | Operating system | `os.name` | `os.description` (or `os.type`) | What `sysDescr` names: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS version | `os.version` | Detected | ENTITY-MIB, else what `sysDescr` names |
 | Device type | `device.type` | Stamped. Otherwise the card classifies it from its OS and name (Server, Firewall, ...) | Its role: the one you assigned, else the one the topology map draws it as |
