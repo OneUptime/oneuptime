@@ -174,6 +174,7 @@ const renderPost: (htmlBody: string) => Promise<string> = async (
       requestDemoCta: false,
       blogPost: blogPostWith(htmlBody),
       enableGoogleTagManager: false,
+      seo: { fullCanonicalUrl: POST_URL },
       homeUrl: "https://oneuptime.com",
     },
     { views: [VIEWS_ROOT] },

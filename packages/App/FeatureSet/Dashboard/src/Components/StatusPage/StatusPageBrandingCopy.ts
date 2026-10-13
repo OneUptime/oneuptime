@@ -125,7 +125,7 @@ export const StatusPageBrandingCopy: {
   languagesEditButton: translationKey("Edit Languages"),
   searchEngineIndexingTitle: translationKey("Search Engine Indexing"),
   searchEngineIndexingDescription: translationKey(
-    "Control whether search engines like Google and Bing are allowed to list this status page in their results.",
+    "Control whether search engines like Google and Bing may list this status page on its custom domains. Its preview URL is never listed.",
   ),
   searchEngineIndexingSwitchTitle: translationKey(
     "Allow Search Engines to Index this Status Page",
