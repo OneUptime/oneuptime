@@ -13,7 +13,11 @@ import { leaveSavedViewDefaultOutUnlessTicked } from "../../../Utils/Telemetry/S
 function sent(isDefault: boolean | undefined): JSONObject {
   const view: LogSavedView = new LogSavedView();
   view.name = "Checkout errors";
-  view.isDefault = isDefault;
+
+  // An untouched box the form never set: the property is not there at all.
+  if (isDefault !== undefined) {
+    view.isDefault = isDefault;
+  }
 
   const returned: LogSavedView = leaveSavedViewDefaultOutUnlessTicked(view);
 

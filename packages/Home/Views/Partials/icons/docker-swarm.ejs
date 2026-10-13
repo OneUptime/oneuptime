@@ -1,5 +1,9 @@
-<!-- Docker Swarm Icon - Generic container cluster of connected nodes (not the official Docker logo) -->
+<%# Docker Swarm Icon - Generic container cluster of connected nodes (not the official Docker logo) %>
+<% const iconSpriteHref = typeof useIconSprite !== 'undefined' && useIconSprite && typeof productIconSpriteHref !== 'undefined' && productIconSpriteHref ? productIconSpriteHref : null; -%>
 <svg class="<%= typeof iconClass !== 'undefined' ? iconClass : 'h-5 w-5' %> text-blue-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+<% if (iconSpriteHref) { -%>
+  <use href="<%= iconSpriteHref %>#docker-swarm"></use>
+<% } else { -%>
   <rect x="9.5" y="2.5" width="5" height="5" rx="0.75" stroke-linecap="round" stroke-linejoin="round"></rect>
   <rect x="3" y="14" width="5" height="5" rx="0.75" stroke-linecap="round" stroke-linejoin="round"></rect>
   <rect x="9.5" y="14" width="5" height="5" rx="0.75" stroke-linecap="round" stroke-linejoin="round"></rect>
@@ -11,4 +15,5 @@
   <circle cx="5.5" cy="16.5" r="0.6" fill="currentColor"></circle>
   <circle cx="12" cy="16.5" r="0.6" fill="currentColor"></circle>
   <circle cx="18.5" cy="16.5" r="0.6" fill="currentColor"></circle>
+<% } -%>
 </svg>

@@ -91,28 +91,6 @@ const except: (
 const EVERY_TRANSLATION_BUT_FA: Array<string> = except(EVERY_TRANSLATION, "fa");
 
 export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
-  "ai/ai-agent": {
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "ai/ai-sre": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "ai/ask-ai": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "ai/infrastructure-ai-agents": {
-    translated: EVERY_TRANSLATION,
-  },
-  "ai/llm-provider": {
-    codeLanguage: EN,
-  },
-  "ai/mcp-server": {
-    uniqueHeadings: EVERY_LANGUAGE,
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
   "cli/authentication": {
     sameShape: EVERY_TRANSLATION,
   },

@@ -187,11 +187,11 @@ swarm 的 `docker-compose.yml`（以及 `install.sh`）还会运行 **Docker Swa
 
 - **AI 调查默认开启。** 代理连接后，OneUptime AI 会用它来调查该集群上的事件和警报，集群的 **概览** 会显示代理的状态。要停止，请在代理运行的位置设置 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理页面上 **AI 可以执行的操作** 下的 **更改** 会显示方法），或者不安装代理。
 - 和清单轮询器一样，它 **必须运行在管理节点上**：节点、服务和任务命令只在管理节点上可用。在工作节点上，它什么也不运行，并且在节点成为管理节点之前不会为集群注册（它的 `/status` 会说明原因）。每个集群运行一个。
-- 除非你在 `.env` 中设置 `ONEUPTIME_AI_ALLOW_WRITES=true` 并运行 `docker compose up -d`（或带上该变量运行 `install.sh`；安装程序会把其环境中的 `ONEUPTIME_AI_ALLOW_WRITES`、`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`、`ONEUPTIME_AI_WRITE_TARGETS` 和 `ONEUPTIME_AI_PROTECTED_TARGETS` 写入 `.env`，再次运行时，除非你传入该变量（即使为空），否则后四个变量会保留 `.env` 中已有的值），否则它是 **只读** 的；`ONEUPTIME_AI_WRITE_TARGETS`（服务和节点名称的通配模式，例如 `web_*,api_*`）限制修复可以触及的范围。同一个 `.env` 中的 `ONEUPTIME_AI_FIXES` 决定修复如何运行——`ask-for-approval`（由人逐一批准）、`automatic` 或 `bypass-approval`——AI 代理页面会以只读方式显示它（[AI 可以执行的操作，由代理设定](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)）。无论处于哪种模式，排空节点始终需要人工批准。
+- 除非你在 `.env` 中设置 `ONEUPTIME_AI_ALLOW_WRITES=true` 并运行 `docker compose up -d`（或带上该变量运行 `install.sh`；安装程序会把其环境中的 `ONEUPTIME_AI_ALLOW_WRITES`、`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`、`ONEUPTIME_AI_WRITE_TARGETS` 和 `ONEUPTIME_AI_PROTECTED_TARGETS` 写入 `.env`，再次运行时，除非你传入该变量（即使为空），否则后四个变量会保留 `.env` 中已有的值），否则它是 **只读** 的；`ONEUPTIME_AI_WRITE_TARGETS`（服务和节点名称的通配模式，例如 `web_*,api_*`）限制修复可以触及的范围。同一个 `.env` 中的 `ONEUPTIME_AI_FIXES` 决定修复如何运行——`ask-for-approval`（由人逐一批准）、`automatic` 或 `bypass-approval`——AI 代理页面会以只读方式显示它（[AI 可以执行的操作，由代理设定](/docs/ai/infrastructure-ai-agents#ai-可以做什么由代理设置)）。无论处于哪种模式，排空节点始终需要人工批准。
 - 它以 root 身份运行并挂载了 Docker 套接字，因为该套接字归 root 所有——而在管理节点上，能使用该套接字的人就能控制整个 swarm，无论是否带 `:ro`。真正的限制是代理的命令策略：它绝不创建或删除服务或栈，绝不触碰密钥或配置，也绝不更改它自己、Collector、清单轮询器或 `ONEUPTIME_AI_PROTECTED_TARGETS`（服务和节点名称的通配模式）中的任何内容。
 - `install.sh --no-ai-agent` 会不安装它；也可以从 `docker-compose.yml` 中删除 `oneuptime-docker-swarm-ai-agent` 服务。
 
-它可以运行什么、修复如何工作以及如何排查它的问题：[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-swarm-clusters)。
+它可以运行什么、修复如何工作以及如何排查它的问题：[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-swarm-集群)。
 
 ## 故障排查
 

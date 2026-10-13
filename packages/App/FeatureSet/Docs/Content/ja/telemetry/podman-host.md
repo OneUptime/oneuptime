@@ -235,11 +235,11 @@ podman compose down
 上のコマンドと Compose ファイル、Podman エージェントの `install.sh`、そして [PodmanAgent ディレクトリ](https://github.com/OneUptime/oneuptime/tree/master/agents/PodmanAgent) にある `docker-compose.yml` は、どれも **Podman AI エージェント** を実行します。これは 2 つ目のコンテナ `oneuptime-podman-ai-agent` (イメージは `oneuptime/resource-ai-agent:release`) で、OneUptime AI がこのホストのインシデントやアラートを調査する際に求める読み取り専用のコマンドを、Podman の Docker 互換 API に対して `docker` CLI で実行し (`docker ps -a`、`docker logs --tail 200 web`、`docker container inspect web`)、許可した場合に限り、指定したコンテナの再起動などの修正を適用します。Collector と同じ `ONEUPTIME_URL`、`ONEUPTIME_SERVICE_TOKEN`、`PODMAN_HOST_NAME` を読み取るため、まさにこのホストを担当し、OneUptime ではホストの **AI エージェント** ページに表示されます。
 
 - **AI 調査はデフォルトで有効です**。エージェントが接続すると、OneUptime AI はこれを使ってこのホストのインシデントやアラートを調査し、ホストの **概要** にエージェントの状態が表示されます。止めるには、エージェントを実行している場所で `ONEUPTIME_AI_INVESTIGATION=false` を設定する (AI エージェントのページの **AI に許可する操作** の下にある **変更** で方法が表示されます) か、エージェントを省きます。
-- `ONEUPTIME_AI_ALLOW_WRITES=true` で起動しない限り、読み取り専用です。`ONEUPTIME_AI_WRITE_TARGETS` (たとえば `web-*,api-*`) で、修正が変更してよいコンテナを制限します。修正の実行方法を指定するには、`ONEUPTIME_AI_FIXES` も付けて起動します。`ask-for-approval` (人が 1 件ずつ承認)、`automatic`、`bypass-approval` のいずれかで、AI エージェントのページには読み取り専用で表示されます ([エージェントが設定する、AI に許可する操作](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent))。
+- `ONEUPTIME_AI_ALLOW_WRITES=true` で起動しない限り、読み取り専用です。`ONEUPTIME_AI_WRITE_TARGETS` (たとえば `web-*,api-*`) で、修正が変更してよいコンテナを制限します。修正の実行方法を指定するには、`ONEUPTIME_AI_FIXES` も付けて起動します。`ask-for-approval` (人が 1 件ずつ承認)、`automatic`、`bypass-approval` のいずれかで、AI エージェントのページには読み取り専用で表示されます ([エージェントが設定する、AI に許可する操作](/docs/ai/infrastructure-ai-agents#ai-に許可することエージェントで設定))。
 - Collector と同じソケットが必要で、ソケットは root が所有しているため、それをマウントして root として実行されます。そして rootful の Podman では、`:ro` かどうかにかかわらず、ソケットを使える者はこのホストの root と同じです。歯止めになるのはエージェントのコマンドポリシーです。`exec`、`run`、`rm`、`prune` は決して実行せず、自分自身、Collector、`ONEUPTIME_AI_PROTECTED_TARGETS` (コンテナ名の glob) に含まれるものは決して変更しません。
 - `install.sh --no-ai-agent` で省くことができ、`podman rm -f oneuptime-podman-ai-agent` で削除できます。アップグレードは Collector と同じです。`podman pull oneuptime/resource-ai-agent:release` を実行し、削除してから、再び起動します。
 
-実行できるコマンド、修正の仕組み、トラブルシューティングについては、[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-and-podman-hosts) を参照してください。
+実行できるコマンド、修正の仕組み、トラブルシューティングについては、[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-と-podman-のホスト) を参照してください。
 
 ## トラブルシューティング
 

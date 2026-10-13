@@ -236,7 +236,7 @@ El `docker-compose.yml` del agente también ejecuta el **Agente de IA de Ceph**,
 
 - **Las investigaciones con IA están activadas por defecto.** En cuanto el agente se conecta, OneUptime AI investiga con él los incidentes y alertas de este clúster, y la **Vista general** del clúster muestra el estado del agente. Para detenerlo, establece `ONEUPTIME_AI_INVESTIGATION=false` donde se ejecuta el agente (**Cambiar** en **Lo que puede hacer la IA**, en la página del agente de IA, muestra cómo), u omite el agente.
 - **Su propio cliente de Ceph es el límite estricto.** Se conecta como `client.oneuptime-ai`, con el `ceph.conf` mínimo del clúster y el keyring de ese cliente en una carpeta `ceph/` junto a `docker-compose.yml` (montada en solo lectura en `/etc/ceph`). Con caps de lectura, nada de lo que ejecuta puede cambiar el clúster. En una instalación nueva, `install.sh` ofrece crear el cliente; volver a ejecutarlo nunca lo hace. Nunca pongas el keyring de admin en esa carpeta.
-- Es de **solo lectura** salvo que establezcas `ONEUPTIME_AI_ALLOW_WRITES=true` y des al cliente los caps de las correcciones (el README del agente los enumera); `ONEUPTIME_AI_WRITE_TARGETS` (por ejemplo `osd.*,cluster`) limita lo que una corrección puede tocar. `ONEUPTIME_AI_FIXES`, en el mismo `.env`, indica cómo se ejecutan las correcciones — `ask-for-approval` (una persona aprueba cada una), `automatic` o `bypass-approval` — y la página del agente de IA lo muestra en solo lectura ([Lo que puede hacer la IA, fijado por el agente](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
+- Es de **solo lectura** salvo que establezcas `ONEUPTIME_AI_ALLOW_WRITES=true` y des al cliente los caps de las correcciones (el README del agente los enumera); `ONEUPTIME_AI_WRITE_TARGETS` (por ejemplo `osd.*,cluster`) limita lo que una corrección puede tocar. `ONEUPTIME_AI_FIXES`, en el mismo `.env`, indica cómo se ejecutan las correcciones — `ask-for-approval` (una persona aprueba cada una), `automatic` o `bypass-approval` — y la página del agente de IA lo muestra en solo lectura ([Lo que puede hacer la IA, fijado por el agente](/docs/ai/infrastructure-ai-agents#lo-que-la-ia-puede-hacer-definido-por-el-agente)).
 - Se conecta hacia fuera a los monitores (TCP 3300 y 6789) y a los daemons mgr y OSD (TCP 6800–7300), se ejecuta como UID 1000 sin capabilities y nunca ejecuta `auth`, `config-key`, `tell` ni nada que borre datos. Elimina el servicio `oneuptime-ceph-ai-agent` de `docker-compose.yml` si no usas OneUptime AI.
 
 Para crear el cliente a mano, ejecuta esto en un nodo de administración de Ceph, en la carpeta del agente (copia los dos archivos en la carpeta `ceph/` de la máquina del agente si es otra):
@@ -250,7 +250,7 @@ sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring
 docker compose up -d
 ```
 
-Qué puede ejecutar, cómo funcionan las correcciones y cómo solucionar sus problemas: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-clusters).
+Qué puede ejecutar, cómo funcionan las correcciones y cómo solucionar sus problemas: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#clústeres-de-ceph).
 
 ## Solución de problemas
 

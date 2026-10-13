@@ -235,11 +235,11 @@ podman compose down
 上面的指令和 Compose 檔案、Podman 代理程式的 `install.sh`，以及其 [PodmanAgent 目錄](https://github.com/OneUptime/oneuptime/tree/master/agents/PodmanAgent) 中的 `docker-compose.yml`，都會執行 **Podman AI 代理程式**：第二個容器 `oneuptime-podman-ai-agent`（映像檔 `oneuptime/resource-ai-agent:release`），它會在 OneUptime AI 調查此主機上的事件或警示時，執行 OneUptime AI 要求的唯讀指令——透過 Podman 與 Docker 相容的 API，使用 `docker` CLI：`docker ps -a`、`docker logs --tail 200 web`、`docker container inspect web`——而且只有在你允許時才會套用修正，例如重新啟動指定的容器。它會讀取與 Collector 相同的 `ONEUPTIME_URL`、`ONEUPTIME_SERVICE_TOKEN` 和 `PODMAN_HOST_NAME`，因此它服務的正是這台主機，並會出現在 OneUptime 中該主機的 **AI 代理程式** 頁面上。
 
 - **AI 調查預設為開啟。** 代理程式連線後，OneUptime AI 會用它來調查該主機上的事件和警示，主機的 **概覽** 會顯示代理程式的狀態。若要停止，請在代理程式執行的位置設定 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理程式頁面上 **AI 可以執行的操作** 下的 **變更** 會顯示方法），或不安裝代理程式。
-- 除非你以 `ONEUPTIME_AI_ALLOW_WRITES=true` 啟動它，否則它是唯讀的；`ONEUPTIME_AI_WRITE_TARGETS`（例如 `web-*,api-*`）會限制修正可以觸及哪些容器。啟動時也要帶上 `ONEUPTIME_AI_FIXES`，以指定修正的執行方式——`ask-for-approval`（由人逐一核准）、`automatic` 或 `bypass-approval`——AI 代理程式頁面會以唯讀方式顯示它（[由代理程式設定的 AI 可以執行的操作](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)）。
+- 除非你以 `ONEUPTIME_AI_ALLOW_WRITES=true` 啟動它，否則它是唯讀的；`ONEUPTIME_AI_WRITE_TARGETS`（例如 `web-*,api-*`）會限制修正可以觸及哪些容器。啟動時也要帶上 `ONEUPTIME_AI_FIXES`，以指定修正的執行方式——`ask-for-approval`（由人逐一核准）、`automatic` 或 `bypass-approval`——AI 代理程式頁面會以唯讀方式顯示它（[由代理程式設定的 AI 可以執行的操作](/docs/ai/infrastructure-ai-agents#ai-可以做什麼由代理程式設定)）。
 - 它需要與 Collector 相同的通訊端，並以 root 身分執行、掛載該通訊端，因為該通訊端屬於 root——而對於以 root 執行的 Podman，無論是否為 `:ro`，能夠使用該通訊端的人就等同這台主機上的 root。代理程式的指令原則就是界限：它從不執行 `exec`、`run`、`rm` 或 `prune`，也從不變更它自己、Collector 或 `ONEUPTIME_AI_PROTECTED_TARGETS`（容器名稱萬用字元）中的任何內容。
 - `install.sh --no-ai-agent` 會略過它；`podman rm -f oneuptime-podman-ai-agent` 會移除它。升級方式與 Collector 相同：`podman pull oneuptime/resource-ai-agent:release`，移除它，然後再次啟動。
 
-它可以執行什麼、修正如何運作以及如何疑難排解，請參閱 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-and-podman-hosts)。
+它可以執行什麼、修正如何運作以及如何疑難排解，請參閱 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-與-podman-主機)。
 
 ## 疑難排解
 
