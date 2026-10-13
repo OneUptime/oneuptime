@@ -159,11 +159,7 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Repository permissions",
   ],
   [LLM_PROVIDERS]: ["Serve on Local Network"],
-  [MCP_SERVER]: [
-    "Customize → Connectors",
-    "Add custom connector",
-    "oneuptime",
-  ],
+  [MCP_SERVER]: ["Customize → Connectors", "Add custom connector", "oneuptime"],
 };
 
 /*

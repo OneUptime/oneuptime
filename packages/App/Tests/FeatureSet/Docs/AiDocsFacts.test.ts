@@ -202,8 +202,13 @@ describe("Ask AI", () => {
   });
 
   it("names the approval card's buttons as the card draws them", () => {
-    const card: string = dashboardSource("Components/AIChat/ToolApprovalCard.tsx");
-    const row: string = englishSection(ASK_AI, "## Actions and permission modes");
+    const card: string = dashboardSource(
+      "Components/AIChat/ToolApprovalCard.tsx",
+    );
+    const row: string = englishSection(
+      ASK_AI,
+      "## Actions and permission modes",
+    );
 
     for (const button of ["Allow", "Skip", "Deny all"]) {
       expect(card).toContain(`translator.translateText("${button}")`);
@@ -221,16 +226,34 @@ describe("Ask AI", () => {
 
     for (const [tool, says] of [
       ["CreateIncidentTool", "Create an incident"],
-      ["AcknowledgeIncidentTool", "acknowledge or resolve incidents and alerts"],
+      [
+        "AcknowledgeIncidentTool",
+        "acknowledge or resolve incidents and alerts",
+      ],
       ["ResolveAlertTool", "acknowledge or resolve incidents and alerts"],
       ["ChangeIncidentSeverityTool", "change an incident's severity"],
-      ["CreateIncidentNoteTool", "Post an internal note on an incident or an alert"],
-      ["CreateAlertNoteTool", "Post an internal note on an incident or an alert"],
-      ["PostIncidentStatusUpdateTool", "Post a public status update on an incident"],
+      [
+        "CreateIncidentNoteTool",
+        "Post an internal note on an incident or an alert",
+      ],
+      [
+        "CreateAlertNoteTool",
+        "Post an internal note on an incident or an alert",
+      ],
+      [
+        "PostIncidentStatusUpdateTool",
+        "Post a public status update on an incident",
+      ],
       ["PageOnCallPolicyTool", "Page an on-call policy"],
       ["RunRunbookTool", "run a runbook"],
-      ["StartInvestigationTool", "start an AI investigation of an incident or alert"],
-      ["CommitCodeToBranchTool", "commit to a new branch of a connected repository"],
+      [
+        "StartInvestigationTool",
+        "start an AI investigation of an incident or alert",
+      ],
+      [
+        "CommitCodeToBranchTool",
+        "commit to a new branch of a connected repository",
+      ],
       ["OpenCodePullRequestTool", "open a pull request"],
     ] as Array<[string, string]>) {
       expect({ tool, inToolbox: toolbox.includes(`    ${tool},`) }).toEqual({
@@ -244,9 +267,7 @@ describe("Ask AI", () => {
     }
 
     // Chat-authored commits never land where nobody has to merge them.
-    expect(toolbox).toContain(
-      "These never touch the default or a protected",
-    );
+    expect(toolbox).toContain("These never touch the default or a protected");
     expect(actions).toContain(
       "It never writes to the default branch or a protected one, so a person still merges the change.",
     );
@@ -261,8 +282,12 @@ describe("Ask AI", () => {
       englishSection(ASK_AI, "## Steering a conversation"),
     );
 
-    expect(service).toContain("every provider configured for the project plus every global provider");
-    expect(chat).toContain('(data["defaultProviderId"] as string) || undefined');
+    expect(service).toContain(
+      "every provider configured for the project plus every global provider",
+    );
+    expect(chat).toContain(
+      '(data["defaultProviderId"] as string) || undefined',
+    );
     expect(steering).toContain(
       "The composer's provider picker lists your project's LLM providers and the global ones, with the default marked. A new conversation uses the default.",
     );
@@ -314,7 +339,9 @@ describe("Ask AI", () => {
 
     expect(gate).toContain("PlanType.Growth,");
     expect(PlanType.Growth).toBe("Growth");
-    expect(requirements).toContain(bold("The Growth plan, on OneUptime Cloud."));
+    expect(requirements).toContain(
+      bold("The Growth plan, on OneUptime Cloud."),
+    );
     expect(requirements).toContain(
       `${bold("Enable AI")}, on ${bold("Project Settings → AI → AI Features")}, turns every AI feature of the project off, Ask AI included.`,
     );
@@ -328,7 +355,11 @@ describe("Ask AI", () => {
       return availability.indexOf(reason);
     });
 
-    expect(order).toEqual([...order].sort((a: number, b: number) => a - b));
+    expect(order).toEqual(
+      [...order].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    );
     expect(troubleshooting).toContain(
       `the project's plan does not include AI, ${bold("Enable AI")} is off, or the project has no LLM provider`,
     );
@@ -352,9 +383,15 @@ describe("Fix Tasks", () => {
 
   it("lists Tasks under Products → Code, with the task's Overview, Logs and Pull Requests", () => {
     const items: string = flat(dashboardSource("Utils/NavigationItems.tsx"));
-    const taskMenu: string = dashboardSource("Pages/AIAgentTasks/View/SideMenu.tsx");
-    const codeMenu: string = dashboardSource("Components/Code/CodeSideMenu.tsx");
-    const run: string = flat(englishSection(FIX_TASKS, "## How a fix run works"));
+    const taskMenu: string = dashboardSource(
+      "Pages/AIAgentTasks/View/SideMenu.tsx",
+    );
+    const codeMenu: string = dashboardSource(
+      "Components/Code/CodeSideMenu.tsx",
+    );
+    const run: string = flat(
+      englishSection(FIX_TASKS, "## How a fix run works"),
+    );
 
     expect(items).toContain('title: t("navbar.items.aiAgentsTitle", "Tasks")');
     expect(items).toContain("category: codeCategory,");
@@ -424,8 +461,12 @@ describe("Fix Tasks", () => {
     expect(dashboardSource("Pages/Service/View/Traces.tsx")).toContain(
       'taskType="ImproveTracing"',
     );
-    expect(rowStartingWith(starts, `A service's ${bold("Logs")} page`)).toBeDefined();
-    expect(rowStartingWith(starts, `A service's ${bold("Traces")} page`)).toBeDefined();
+    expect(
+      rowStartingWith(starts, `A service's ${bold("Logs")} page`),
+    ).toBeDefined();
+    expect(
+      rowStartingWith(starts, `A service's ${bold("Traces")} page`),
+    ).toBeDefined();
   });
 
   it("opens an exception's AI Assistance from its side menu, under Resolve", () => {
@@ -437,7 +478,9 @@ describe("Fix Tasks", () => {
     expect(menu.indexOf('title: "AI Assistance"')).toBeGreaterThan(
       menu.indexOf('<SideMenuSection title="Resolve">'),
     );
-    expect(flat(englishSection(FIX_TASKS, "## Where fix tasks start"))).toContain(
+    expect(
+      flat(englishSection(FIX_TASKS, "## Where fix tasks start")),
+    ).toContain(
       `open the exception under ${bold("Products → Observability → Exceptions")} and choose ${bold("AI Assistance")} in its side menu`,
     );
   });
@@ -446,9 +489,17 @@ describe("Fix Tasks", () => {
     const completion: string = readRepoFile(
       "Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
     );
-    const run: string = flat(englishSection(FIX_TASKS, "## How a fix run works"));
-    const calls: number = numberConstant(completion, "MAX_COMPLETION_CALLS_PER_RUN");
-    const tokens: number = numberConstant(completion, "MAX_OUTPUT_TOKENS_PER_RUN");
+    const run: string = flat(
+      englishSection(FIX_TASKS, "## How a fix run works"),
+    );
+    const calls: number = numberConstant(
+      completion,
+      "MAX_COMPLETION_CALLS_PER_RUN",
+    );
+    const tokens: number = numberConstant(
+      completion,
+      "MAX_OUTPUT_TOKENS_PER_RUN",
+    );
 
     expect(run).toContain(
       `at most ${bold(`${calls} LLM calls`)} and ${bold(`${tokens.toLocaleString("en-US")} output tokens`)}`,
@@ -467,7 +518,9 @@ describe("Fix Tasks", () => {
   });
 
   it("verifies a change with up to 15 minutes a command, CI=true and two repairs", () => {
-    const verification: string = readRepoFile("Runner/Utils/BuildVerification.ts");
+    const verification: string = readRepoFile(
+      "Runner/Utils/BuildVerification.ts",
+    );
     const section: string = flat(
       englishSection(FIX_TASKS, "## Verification before the pull request"),
     );
@@ -479,7 +532,9 @@ describe("Fix Tasks", () => {
     expect(section).toContain(
       `Each one gets up to ${minutes} minutes and runs with \`CI=true\``,
     );
-    expect(section).toContain(`It makes at most ${bold(String(repairs))} repair attempts.`);
+    expect(section).toContain(
+      `It makes at most ${bold(String(repairs))} repair attempts.`,
+    );
   });
 
   it("gives the verification commands the repository Settings page's titles and placeholders", () => {
@@ -498,7 +553,9 @@ describe("Fix Tasks", () => {
     ] as Array<[string, string]>) {
       expect(settings).toContain(`title: "${title}",`);
       expect(settings).toContain(`placeholder: "${placeholder}",`);
-      expect(rowStartingWith(commands, bold(title))[1]).toBe(`\`${placeholder}\``);
+      expect(rowStartingWith(commands, bold(title))[1]).toBe(
+        `\`${placeholder}\``,
+      );
     }
   });
 
@@ -509,7 +566,9 @@ describe("Fix Tasks", () => {
     const queue: string = readRepoFile(
       "Common/Server/Utils/AI/CodeFix/CodeFixRunQueue.ts",
     );
-    const fails: string = flat(englishSection(FIX_TASKS, "## When a fix fails"));
+    const fails: string = flat(
+      englishSection(FIX_TASKS, "## When a fix fails"),
+    );
 
     expect(numberConstant(stuck, "RUN_HEARTBEAT_TIMEOUT_MINUTES")).toBe(12);
     expect(stuck).toContain("CodeFixRunQueue.markStaleRunAsError");
@@ -579,7 +638,9 @@ describe("Fix Tasks", () => {
     const resolver: string = readRepoFile(
       "Common/Server/Utils/CodeRepository/StackTraceRepoResolver.ts",
     );
-    const before: string = flat(englishSection(FIX_TASKS, "## Before you begin"));
+    const before: string = flat(
+      englishSection(FIX_TASKS, "## Before you begin"),
+    );
 
     expect(resolver).toContain(
       'method: "stack-trace" | "name-match" | "only-repository";',
@@ -602,7 +663,10 @@ describe("Fix Tasks", () => {
       "@TableBillingAccessControl({ create: PlanType.Growth,",
     );
     expect(
-      rowStartingWith(prerequisites, "A repository connected through the GitHub App")[1],
+      rowStartingWith(
+        prerequisites,
+        "A repository connected through the GitHub App",
+      )[1],
     ).toContain("Needs the Growth plan.");
   });
 
@@ -651,7 +715,10 @@ describe("GitHub App", () => {
   function commandRows(heading: string): Array<[string, Array<string>]> {
     return tableWithHeader(englishSection(GITHUB_APP, heading), "Command").map(
       (row: Array<string>): [string, Array<string>] => {
-        return [codeIn(row[0] as string)[0] as string, codeIn(row[2] as string)];
+        return [
+          codeIn(row[0] as string)[0] as string,
+          codeIn(row[2] as string),
+        ];
       },
     );
   }
@@ -670,7 +737,11 @@ describe("GitHub App", () => {
 
       const verb: string = command.split(" ")[1] as string;
       const group: Array<string> = phrases(
-        verb === "revise" ? "revise this" : verb === "implement" ? "implement this" : verb,
+        verb === "revise"
+          ? "revise this"
+          : verb === "implement"
+            ? "implement this"
+            : verb,
       );
 
       for (const phrase of understood) {
@@ -684,7 +755,9 @@ describe("GitHub App", () => {
   });
 
   it("says help, status and cancel start no agent run", () => {
-    const types: string = readRepoFile("Common/Types/CodeRepository/GitHubCommand.ts");
+    const types: string = readRepoFile(
+      "Common/Types/CodeRepository/GitHubCommand.ts",
+    );
 
     expect(flat(types)).toContain(
       "commandType === GitHubCommandType.Help || commandType === GitHubCommandType.Status || commandType === GitHubCommandType.Cancel",
@@ -710,7 +783,9 @@ describe("GitHub App", () => {
     }
 
     expect(settings).toContain('placeholder: "oneuptime",');
-    expect(page).toContain("the repository's trigger label, `oneuptime` unless you changed it");
+    expect(page).toContain(
+      "the repository's trigger label, `oneuptime` unless you changed it",
+    );
   });
 
   it("states a run's budget as a fix task's", () => {
@@ -759,7 +834,9 @@ describe("LLM Providers", () => {
     const service: string = flat(
       readRepoFile("Common/Server/Services/LlmProviderService.ts"),
     );
-    const form: string = flat(dashboardSource("Pages/Settings/LlmProviders.tsx"));
+    const form: string = flat(
+      dashboardSource("Pages/Settings/LlmProviders.tsx"),
+    );
 
     expect(service).toContain(
       "if (createBy.data.isDefault === undefined) { createBy.data.isDefault = true;",
@@ -768,7 +845,9 @@ describe("LLM Providers", () => {
   });
 
   it("walks the create form's two steps by their titles, with each step's fields", () => {
-    const form: string = flat(dashboardSource("Pages/Settings/LlmProviders.tsx"));
+    const form: string = flat(
+      dashboardSource("Pages/Settings/LlmProviders.tsx"),
+    );
     const setUp: string = flat(
       englishSection(LLM_PROVIDERS, "## Setting Up an LLM Provider"),
     );
@@ -781,9 +860,7 @@ describe("LLM Providers", () => {
       expect(setUp).toContain(`On ${bold(step)}`);
     }
 
-    expect(setUp).toContain(
-      `give it a ${bold("Name")} that says what it is`,
-    );
+    expect(setUp).toContain(`give it a ${bold("Name")} that says what it is`);
     expect(setUp).toContain(`optionally a ${bold("Description")}`);
   });
 
@@ -792,9 +869,11 @@ describe("LLM Providers", () => {
       englishSection(LLM_PROVIDERS, "## Supported Providers"),
       "Provider",
     );
-    const labels: Array<string> = providers.map((row: Array<string>): string => {
-      return row[0] as string;
-    });
+    const labels: Array<string> = providers.map(
+      (row: Array<string>): string => {
+        return row[0] as string;
+      },
+    );
 
     expect(labels).toHaveLength(Object.values(LlmType).length);
     expect(labels).toContain(bold("Azure OpenAI / Microsoft Foundry"));
@@ -802,9 +881,9 @@ describe("LLM Providers", () => {
   });
 
   it("names the Draft with AI button the note composer draws", () => {
-    expect(dashboardSource("Components/EventNotes/EventNoteComposer.tsx")).toContain(
-      'tx("Draft with AI")',
-    );
+    expect(
+      dashboardSource("Components/EventNotes/EventNoteComposer.tsx"),
+    ).toContain('tx("Draft with AI")');
     expect(englishPage(LLM_PROVIDERS)).toContain(bold("Draft with AI"));
   });
 });
@@ -885,17 +964,23 @@ describe("MCP Server", () => {
   });
 
   it("counts the records and the telemetry as the tables do", () => {
-    expect(flat(englishSection(MCP_SERVER, "## What the tools cover"))).toContain(
+    expect(
+      flat(englishSection(MCP_SERVER, "## What the tools cover")),
+    ).toContain(
       `There are create, get, list, update, delete and count tools for ${records().length} kinds of record, list and count tools for ${telemetry().length} kinds of telemetry, and tools made for incident response.`,
     );
   });
 
   it("names the public tools and the tools made for incident response by the server's own names", () => {
-    const helper: string = readRepoFile("App/FeatureSet/MCP/Tools/HelperTools.ts");
+    const helper: string = readRepoFile(
+      "App/FeatureSet/MCP/Tools/HelperTools.ts",
+    );
     const status: string = readRepoFile(
       "App/FeatureSet/MCP/Tools/PublicStatusPageTools.ts",
     );
-    const workflow: string = readRepoFile("App/FeatureSet/MCP/Tools/WorkflowTools.ts");
+    const workflow: string = readRepoFile(
+      "App/FeatureSet/MCP/Tools/WorkflowTools.ts",
+    );
     const page: string = englishPage(MCP_SERVER);
 
     for (const [source, names] of [
@@ -936,18 +1021,26 @@ describe("MCP Server", () => {
   });
 
   it("pages lists with the server's default and largest limit", () => {
-    const config: string = readRepoFile("App/FeatureSet/MCP/Config/ServerConfig.ts");
+    const config: string = readRepoFile(
+      "App/FeatureSet/MCP/Config/ServerConfig.ts",
+    );
 
     expect(numberConstant(config, "LIST_DEFAULT_LIMIT")).toBe(10);
     expect(numberConstant(config, "LIST_MAX_LIMIT")).toBe(100);
-    expect(flat(englishSection(MCP_SERVER, "## Field Selection and Pagination"))).toContain(
+    expect(
+      flat(englishSection(MCP_SERVER, "## Field Selection and Pagination")),
+    ).toContain(
       "List tools page with `limit` (10 by default, 100 at most) and `skip`",
     );
   });
 
   it("states the tokens' lifetimes as the authorization server issues them", () => {
-    const config: string = readRepoFile("Common/Server/Utils/Mcp/McpOAuthConfig.ts");
-    const signIn: string = flat(englishSection(MCP_SERVER, "### Signing In (OAuth 2.1)"));
+    const config: string = readRepoFile(
+      "Common/Server/Utils/Mcp/McpOAuthConfig.ts",
+    );
+    const signIn: string = flat(
+      englishSection(MCP_SERVER, "### Signing In (OAuth 2.1)"),
+    );
 
     expect(numberConstant(config, "ACCESS_TOKEN_TTL_SECONDS")).toBe(60 * 60);
     expect(numberConstant(config, "REFRESH_TOKEN_TTL_SECONDS")).toBe(
@@ -974,8 +1067,12 @@ describe("MCP Server", () => {
     expect(page).toContain(
       'claude mcp add --transport http oneuptime https://oneuptime.com/mcp --header "x-api-key: your-api-key-here"',
     );
-    expect(settings).toContain('translator.translateText("Customize → Connectors")');
-    expect(settings).toContain('translator.translateText("Add custom connector")');
+    expect(settings).toContain(
+      'translator.translateText("Customize → Connectors")',
+    );
+    expect(settings).toContain(
+      'translator.translateText("Add custom connector")',
+    );
     expect(page).toContain(
       `open ${bold("Customize → Connectors")}, choose ${bold("Add custom connector")}`,
     );
@@ -995,10 +1092,14 @@ describe("MCP Server", () => {
   });
 
   it("turns a status page's MCP access off on its MCP page, in the AI section of its menu", () => {
-    const menu: string = flat(dashboardSource("Pages/StatusPages/View/SideMenu.tsx"));
+    const menu: string = flat(
+      dashboardSource("Pages/StatusPages/View/SideMenu.tsx"),
+    );
     const mcp: string = dashboardSource("Pages/StatusPages/View/Mcp.tsx");
 
-    expect(menu).toContain('<SideMenuSection title="AI"> <SideMenuItem link={{ title: "MCP",');
+    expect(menu).toContain(
+      '<SideMenuSection title="AI"> <SideMenuItem link={{ title: "MCP",',
+    );
     expect(mcp).toContain('title="Enable MCP Server"');
     expect(flat(englishPage(MCP_SERVER))).toContain(
       `open ${bold("MCP")} in the ${bold("AI")} section of its side menu and switch off ${bold("Enable MCP Server")}`,
@@ -1014,7 +1115,9 @@ describe("MCP Server", () => {
       string
     >;
 
-    expect(flat(englishSection(MCP_SERVER, "## Signing In with OneUptime"))).toContain(
+    expect(
+      flat(englishSection(MCP_SERVER, "## Signing In with OneUptime")),
+    ).toContain(
       `Choose ${bold(consent["accessWriteTitle"] as string)}, or ${bold(consent["accessReadTitle"] as string)}.`,
     );
     expect(englishPage(MCP_SERVER)).toContain(
@@ -1031,10 +1134,15 @@ describe("MCP Server", () => {
 
 describe("AI SRE and the infrastructure AI agents", () => {
   it("says investigations start on and fixing starts off, as new projects do", () => {
-    const service: string = readRepoFile("Common/Server/Services/ProjectService.ts");
+    const service: string = readRepoFile(
+      "Common/Server/Services/ProjectService.ts",
+    );
     const defaults: string = service.slice(
       service.indexOf("export const NEW_PROJECT_AI_DEFAULT_COLUMNS"),
-      service.indexOf("];", service.indexOf("export const NEW_PROJECT_AI_DEFAULT_COLUMNS")),
+      service.indexOf(
+        "];",
+        service.indexOf("export const NEW_PROJECT_AI_DEFAULT_COLUMNS"),
+      ),
     );
     const how: string = flat(englishSection(AI_SRE, "## How it works"));
 
@@ -1042,7 +1150,9 @@ describe("AI SRE and the infrastructure AI agents", () => {
       AutoRemediationTriggerEntity.Incident,
       AutoRemediationTriggerEntity.Alert,
     ]) {
-      expect(defaults).not.toContain(`"${AUTOMATIC_FIX_SWITCH_COLUMNS[signal].fix}"`);
+      expect(defaults).not.toContain(
+        `"${AUTOMATIC_FIX_SWITCH_COLUMNS[signal].fix}"`,
+      );
     }
 
     expect(defaults).toContain('"enableAutomaticIncidentInvestigation"');
@@ -1072,11 +1182,13 @@ describe("AI SRE and the infrastructure AI agents", () => {
     );
 
     expect(numberConstant(config, "DEFAULT_POLL_INTERVAL_MS")).toBe(3000);
-    expect(flat(englishSection(INFRASTRUCTURE_AI_AGENTS, "### Connecting to OneUptime"))).toContain(
-      "asks for work every 3 seconds",
-    );
-    expect(flat(englishSection(INFRASTRUCTURE_AI_AGENTS, "## How it works"))).toContain(
-      "The agent asks for<br/>work every 3 seconds",
-    );
+    expect(
+      flat(
+        englishSection(INFRASTRUCTURE_AI_AGENTS, "### Connecting to OneUptime"),
+      ),
+    ).toContain("asks for work every 3 seconds");
+    expect(
+      flat(englishSection(INFRASTRUCTURE_AI_AGENTS, "## How it works")),
+    ).toContain("The agent asks for<br/>work every 3 seconds");
   });
 });

@@ -214,7 +214,10 @@ function keptBold(page: string): Array<string> {
 // A value of the Accounts app's locale by its dotted key.
 function accountsLabel(language: string, key: string): string {
   let value: unknown = JSON.parse(
-    fs.readFileSync(path.join(ACCOUNTS_LOCALES_DIR, `${language}.json`), "utf8"),
+    fs.readFileSync(
+      path.join(ACCOUNTS_LOCALES_DIR, `${language}.json`),
+      "utf8",
+    ),
   );
 
   for (const part of key.split(".")) {
@@ -530,13 +533,11 @@ describe("the lists this test keeps", () => {
         return [link.url, link.title];
       }),
     ).toEqual(
-      [
-        ...AI_PAGES.slice(0, 6),
-        MICROSOFT_FOUNDRY,
-        ...AI_PAGES.slice(6),
-      ].map((entry: AiDocsPageEntry): Array<string> => {
-        return [`/docs/${entry.page}`, entry.navTitle];
-      }),
+      [...AI_PAGES.slice(0, 6), MICROSOFT_FOUNDRY, ...AI_PAGES.slice(6)].map(
+        (entry: AiDocsPageEntry): Array<string> => {
+          return [`/docs/${entry.page}`, entry.navTitle];
+        },
+      ),
     );
   });
 
@@ -1051,9 +1052,7 @@ describe("the helpers, on these pages' shapes", () => {
       "**Products → Code → Tasks**",
     );
     // The German menu reads "Chat" where no flat label of it exists.
-    expect(drawnPathSegment("de", ["Products", "AI", "Chat"], 2)).toBe(
-      "Chat",
-    );
+    expect(drawnPathSegment("de", ["Products", "AI", "Chat"], 2)).toBe("Chat");
     // A Persian path is a bold span per segment.
     expect(drawnPath("fa", ["Products", "Code", "Tasks"])).toBe(
       `**${drawnPathSegment("fa", ["Products", "Code", "Tasks"], 0)}** > **${drawnPathSegment("fa", ["Products", "Code", "Tasks"], 1)}** > **${drawnPathSegment("fa", ["Products", "Code", "Tasks"], 2)}**`,
