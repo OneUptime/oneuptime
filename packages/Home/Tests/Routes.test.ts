@@ -1,5 +1,5 @@
 import { REDIRECT_PATHS, isRedirectPath } from "../Utils/Sitemap";
-import PageSEOConfig, { PageSEOData } from "../Utils/PageSEO";
+import PageSEOConfig, { PageSEOData, getPageSEO } from "../Utils/PageSEO";
 import fs from "fs";
 import path from "path";
 
@@ -132,6 +132,46 @@ describe("Trust center routes", () => {
   test("the claims matrix is served as JSON for machines", () => {
     expect(hasGetRoute("/data/claims.json")).toBe(true);
     expect(routesSource).toContain("statuses: ClaimStatuses");
+  });
+});
+
+describe("Legal routes", () => {
+  /*
+   * /legal rendered the Terms of Service under a second URL, so search
+   * engines saw two copies of one document. It redirects to /legal/terms
+   * permanently, which is still what every link to /legal shows.
+   */
+  test("/legal permanently redirects to the terms it always showed", () => {
+    expect(hasGetRoute("/legal")).toBe(true);
+    expect(redirectTargetOf("/legal")).toBe("/legal/terms");
+    expect(redirectsPermanently("/legal")).toBe(true);
+    expect(bodyOfGetRoute("/legal")).not.toContain("res.render(");
+  });
+
+  test("the terms are still a page of their own", () => {
+    expect(redirectTargetOf("/legal/terms")).toBeNull();
+    expect(bodyOfGetRoute("/legal/terms")).toContain('section: "terms"');
+  });
+
+  test("nothing describes /legal as a page, or leads a breadcrumb trail through it", () => {
+    // A redirect has no title or description of its own to give a search.
+    expect(PageSEOConfig["/legal"]).toBeUndefined();
+
+    const trails: Array<[string, Array<string>]> = [
+      ...Object.values(PageSEOConfig),
+      getPageSEO("/legal/a-document-nobody-wrote"),
+    ].map((seo: PageSEOData): [string, Array<string>] => {
+      return [
+        seo.canonicalPath,
+        seo.breadcrumbs.map((crumb: { url: string }): string => {
+          return crumb.url;
+        }),
+      ];
+    });
+
+    for (const [pagePath, urls] of trails) {
+      expect([pagePath, urls.includes("/legal")]).toEqual([pagePath, false]);
+    }
   });
 });
 

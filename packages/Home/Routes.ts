@@ -1354,16 +1354,16 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    app.get("/legal", (_req: ExpressRequest, res: ExpressResponse) => {
-      res.render(`${ViewsPath}/legal.ejs`, {
-        support: false,
-        enableGoogleTagManager: GoogleTagManagerEnabled,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        section: "terms",
-        requestDemoCta: false,
-      });
+    /*
+     * /legal always rendered the Terms of Service: the same page as
+     * /legal/terms, under a second URL, so search engines saw two copies of
+     * one document. It redirects there permanently, which keeps what every
+     * link to /legal (the footer, the trust center, the product's own
+     * footers) has always shown, and leaves one URL to rank. The Legal Center
+     * header and sidebar on every legal page still list every document.
+     */
+    app.get("/legal", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/legal/terms", 301);
     });
 
     app.get("/legal/terms", (_req: ExpressRequest, res: ExpressResponse) => {

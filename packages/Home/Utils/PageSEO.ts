@@ -1464,20 +1464,10 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     ],
   },
 
-  // Legal pages
-  "/legal": {
-    title: "Legal Center | Terms, Privacy, Compliance | OneUptime",
-    description:
-      "OneUptime legal documents including terms of service, privacy policy, GDPR, SOC 2, HIPAA compliance information.",
-    canonicalPath: "/legal",
-    twitterCard: "summary",
-    pageType: "legal",
-    breadcrumbs: [
-      { name: "Home", url: "/" },
-      { name: "Legal", url: "/legal" },
-    ],
-  },
-
+  /*
+   * Legal pages. /legal redirects to /legal/terms (Routes.ts), so each trail
+   * is Home > document.
+   */
   "/legal/terms": {
     title: "Terms of Service | OneUptime",
     description: "OneUptime terms of service and conditions of use.",
@@ -1486,7 +1476,6 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     pageType: "legal",
     breadcrumbs: [
       { name: "Home", url: "/" },
-      { name: "Legal", url: "/legal" },
       { name: "Terms of Service", url: "/legal/terms" },
     ],
   },
@@ -1500,7 +1489,6 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     pageType: "legal",
     breadcrumbs: [
       { name: "Home", url: "/" },
-      { name: "Legal", url: "/legal" },
       { name: "Privacy Policy", url: "/legal/privacy" },
     ],
   },
@@ -1514,7 +1502,6 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     pageType: "legal",
     breadcrumbs: [
       { name: "Home", url: "/" },
-      { name: "Legal", url: "/legal" },
       { name: "Cookie Policy", url: "/legal/cookies" },
     ],
   },
@@ -1528,7 +1515,6 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     pageType: "legal",
     breadcrumbs: [
       { name: "Home", url: "/" },
-      { name: "Legal", url: "/legal" },
       { name: "GDPR", url: "/legal/gdpr" },
     ],
   },
@@ -1542,7 +1528,6 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     pageType: "legal",
     breadcrumbs: [
       { name: "Home", url: "/" },
-      { name: "Legal", url: "/legal" },
       { name: "SOC 2", url: "/legal/soc-2" },
     ],
   },
@@ -1556,7 +1541,6 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     pageType: "legal",
     breadcrumbs: [
       { name: "Home", url: "/" },
-      { name: "Legal", url: "/legal" },
       { name: "HIPAA", url: "/legal/hipaa" },
     ],
   },
@@ -1753,7 +1737,6 @@ export const getPageSEO: (path: string) => PageSEOData = (
       pageType: "legal",
       breadcrumbs: [
         { name: "Home", url: "/" },
-        { name: "Legal", url: "/legal" },
         { name: sectionName, url: path },
       ],
     };
