@@ -46,7 +46,7 @@ import Text from "../../Types/Text";
 import EmailVerificationToken from "../../Models/DatabaseModels/EmailVerificationToken";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/User";
-import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import OperatorSlackNotice from "../Utils/OperatorSlackNotice";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import MarketingEventUtil, {
   utmAnalyticsProperties,
@@ -349,19 +349,17 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    /*
+     * The operator's Slack channel hears of every new user
+     * (OperatorSlackNotice), in the background: the signup waits on no
+     * webhook, and a post that fails is logged, never thrown.
+     */
     if (NotificationSlackWebhookOnCreateUser) {
-      SlackUtil.sendMessageToChannelViaIncomingWebhook({
-        url: URL.fromString(NotificationSlackWebhookOnCreateUser),
-        text: `*New OneUptime User:* 
-  *Email:* ${createdItem.email?.toString() || "N/A"}
-  *Name:* ${createdItem.name?.toString() || "N/A"}
-  *Phone:* ${createdItem.companyPhoneNumber?.toString() || "N/A"}
-  *Company:* ${createdItem.companyName?.toString() || "N/A"}`,
-      }).catch((err: Error) => {
-        // log this error but do not throw it. Not important enough to stop the process.
-        logger.error(err, {
-          userId: createdItem.id?.toString(),
-        } as LogAttributes);
+      void OperatorSlackNotice.post({
+        webhookUrl: NotificationSlackWebhookOnCreateUser,
+        text: OperatorSlackNotice.getUserCreatedText({ user: createdItem }),
+        about: "user creation",
+        userId: createdItem.id,
       });
     }
 

@@ -1,7 +1,9 @@
 import OperatorSlackNotice, {
   BalanceAdjustedNotice,
   BalanceRefilledNotice,
+  ProjectCreatedNotice,
   ProjectDeletedNotice,
+  ProjectPlanChangedNotice,
 } from "../../../Server/Utils/OperatorSlackNotice";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import logger from "../../../Server/Utils/Logger";
@@ -10,9 +12,12 @@ import User from "../../../Models/DatabaseModels/User";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import BalanceAdjustmentType from "../../../Types/Billing/BalanceAdjustmentType";
 import ProjectBalanceType from "../../../Types/Billing/ProjectBalanceType";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import Phone from "../../../Types/Phone";
 import {
   SlackWebhookMessages,
   captureSlackWebhookMessages,
@@ -22,15 +27,17 @@ import {
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * OperatorSlackNotice: what the operator's own Slack channels are told about
- * a project - a balance refilled or adjusted, the project deleted with the
- * feedback its owner gave - and how it is posted.
+ * OperatorSlackNotice: what the operator's own Slack channels are told - a
+ * user created; a project created, its plan changed, the subscriptions a
+ * plan change could not cancel, a balance refilled or adjusted, the project
+ * deleted with the feedback its owner gave - and how it is posted.
  *
+ * - Each message keeps the lines it always had, in the order it had them.
  * - Both balances read the same, title apart, so a refill of AI credits is
  *   told exactly as one of SMS and call balance is.
- * - Every value is text: a project named "<!channel>", or feedback with a
- *   mention, a link or Slack formatting in it, neither notifies anyone nor
- *   reshapes the message.
+ * - Every value is text: a user, a company or a project named "<!channel>",
+ *   or feedback with a mention, a link or Slack formatting in it, neither
+ *   notifies anyone nor reshapes the message.
  * - The feedback is quoted, every line of it, as the message's last part.
  * - Posting never throws: what the message is about has happened already.
  */
@@ -39,6 +46,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "0422f23a-8ef7-4321-843e-ecfee893f5dc",
 );
 const ADMIN_ID: ObjectID = new ObjectID("3e000000-0000-4000-8000-0000000000a1");
+const USER_ID: ObjectID = new ObjectID("5c000000-0000-4000-8000-0000000000b2");
 const WEBHOOK_URL: string =
   "https://hooks.slack.com/services/T000/B000/operator-channel";
 
@@ -121,6 +129,115 @@ function deletion(
     deletionReason: "Too expensive for our team.",
     ...overrides,
   };
+}
+
+// A user as created: signed up with every detail the form asks for.
+function makeUser(values: Partial<Record<string, unknown>> = {}): User {
+  const user: User = new User();
+  user.id = USER_ID;
+  user.email = new Email("jane@acme.example");
+  user.name = new Name("Jane Doe");
+  user.companyPhoneNumber = new Phone("+15551234567");
+  user.companyName = "Acme Compliance Ltd";
+
+  for (const [column, value] of Object.entries(values)) {
+    (user as unknown as Record<string, unknown>)[column] = value;
+  }
+
+  return user;
+}
+
+// A project as it is read again once it was created, or its plan changed.
+function readAgain(values: Partial<Record<string, unknown>> = {}): Project {
+  return makeProject({
+    createdOwnerName: new Name("Jane Doe"),
+    createdOwnerEmail: new Email("jane@acme.example"),
+    planName: PlanType.Growth,
+    paymentProviderSubscriptionStatus: SubscriptionStatus.Trialing,
+    ...values,
+  });
+}
+
+function projectCreated(
+  overrides: Partial<ProjectCreatedNotice> = {},
+): ProjectCreatedNotice {
+  return {
+    project: readAgain(),
+    isBillingEnabled: true,
+    ...overrides,
+  };
+}
+
+function planChanged(
+  overrides: Partial<ProjectPlanChangedNotice> = {},
+): ProjectPlanChangedNotice {
+  return {
+    project: readAgain({
+      planName: PlanType.Scale,
+      paymentProviderSubscriptionStatus: SubscriptionStatus.Active,
+    }),
+    isBillingEnabled: true,
+    ...overrides,
+  };
+}
+
+/*
+ * Who created a project, as the project row has them: both, either, or
+ * neither of the two (a creator with no name - invited, or signed in with
+ * SSO - has only their email).
+ */
+const CREATORS: Array<
+  [string, Partial<Record<string, unknown>>, string | null]
+> = [
+  [
+    "name and email",
+    {
+      createdOwnerName: new Name("Jane Doe"),
+      createdOwnerEmail: new Email("jane@acme.example"),
+    },
+    "Jane Doe (jane@acme.example)",
+  ],
+  [
+    "email only",
+    {
+      createdOwnerName: undefined,
+      createdOwnerEmail: new Email("jane@acme.example"),
+    },
+    "jane@acme.example",
+  ],
+  [
+    "name only",
+    { createdOwnerName: new Name("Jane Doe"), createdOwnerEmail: undefined },
+    "Jane Doe",
+  ],
+  [
+    "neither",
+    { createdOwnerName: undefined, createdOwnerEmail: undefined },
+    null,
+  ],
+];
+
+/*
+ * A name a person may give - themselves, their company, their project -
+ * that would act in Slack if it were placed as it is: a mention of the
+ * channel or a person, a link that hides where it goes.
+ */
+const HOSTILE_NAME: string =
+  "<!channel> <!here> <@U012AB3CD> <#C024BE91L> <https://evil.example/login|Reset your password> AT&T";
+
+// What HOSTILE_NAME would do in Slack: none of it may reach the text.
+const SLACK_CONTROLS: Array<string> = [
+  "<!channel>",
+  "<!here>",
+  "<@U012AB3CD>",
+  "<#C024BE91L>",
+  "<https://evil.example",
+];
+
+function expectNoSlackControls(text: string): void {
+  for (const control of SLACK_CONTROLS) {
+    expect(text).not.toContain(control);
+  }
 }
 
 /*
@@ -615,6 +732,280 @@ describe("OperatorSlackNotice.getProjectDeletedText", () => {
   });
 });
 
+describe("OperatorSlackNotice.getUserCreatedText", () => {
+  test("a new user reads as it always has: email, name, phone and company, in that order", () => {
+    expect(
+      lines(OperatorSlackNotice.getUserCreatedText({ user: makeUser() })),
+    ).toEqual([
+      "*New OneUptime User:*",
+      "*Email:* jane@acme.example",
+      "*Name:* Jane Doe",
+      "*Phone:* +15551234567",
+      "*Company:* Acme Compliance Ltd",
+    ]);
+  });
+
+  test("what a user did not give reads N/A: one invited by email has only that", () => {
+    const user: User = new User();
+    user.email = new Email("new.member@acme.example");
+
+    expect(lines(OperatorSlackNotice.getUserCreatedText({ user }))).toEqual([
+      "*New OneUptime User:*",
+      "*Email:* new.member@acme.example",
+      "*Name:* N/A",
+      "*Phone:* N/A",
+      "*Company:* N/A",
+    ]);
+  });
+
+  test("a name and a company are text: they notify nobody and link nowhere", () => {
+    const text: string = OperatorSlackNotice.getUserCreatedText({
+      user: makeUser({
+        name: new Name(HOSTILE_NAME),
+        companyName: HOSTILE_NAME,
+      }),
+    });
+
+    // No "<" of theirs reaches Slack: nothing they typed is a mention or a link.
+    expectNoSlackControls(text);
+
+    // And it reads as it was typed.
+    expect(lines(text)).toEqual([
+      "*New OneUptime User:*",
+      "*Email:* jane@acme.example",
+      `*Name:* ${HOSTILE_NAME}`,
+      "*Phone:* +15551234567",
+      `*Company:* ${HOSTILE_NAME}`,
+    ]);
+  });
+
+  test("a line break in a company name cannot add a line of its own", () => {
+    const text: string = OperatorSlackNotice.getUserCreatedText({
+      user: makeUser({
+        companyName: "Acme\n*Name:* Somebody Else\r\n<!channel>",
+      }),
+    });
+
+    expectNoSlackControls(text);
+    expect(lines(text)).toEqual([
+      "*New OneUptime User:*",
+      "*Email:* jane@acme.example",
+      "*Name:* Jane Doe",
+      "*Phone:* +15551234567",
+      "*Company:* Acme *Name:* Somebody Else <!channel>",
+    ]);
+  });
+});
+
+describe("OperatorSlackNotice.getProjectCreatedText", () => {
+  test("a project created reads as it always has, in the order it always had", () => {
+    expect(
+      lines(OperatorSlackNotice.getProjectCreatedText(projectCreated())),
+    ).toEqual([
+      "*Project Created:*",
+      "*Project Name:* Kerberos Compliance Platform",
+      `*Project ID:* ${PROJECT_ID.toString()}`,
+      "*Created By:* Jane Doe (jane@acme.example)",
+      "*Plan:* Growth",
+      "*Subscription Status:* trialing",
+    ]);
+  });
+
+  test("where OneUptime does not bill, there is no plan to tell", () => {
+    expect(
+      lines(
+        OperatorSlackNotice.getProjectCreatedText(
+          projectCreated({ isBillingEnabled: false }),
+        ),
+      ),
+    ).toEqual([
+      "*Project Created:*",
+      "*Project Name:* Kerberos Compliance Platform",
+      `*Project ID:* ${PROJECT_ID.toString()}`,
+      "*Created By:* Jane Doe (jane@acme.example)",
+    ]);
+  });
+
+  test("a plan or a subscription status not known reads N/A", () => {
+    const text: string = readable(
+      OperatorSlackNotice.getProjectCreatedText(
+        projectCreated({
+          project: readAgain({
+            planName: undefined,
+            paymentProviderSubscriptionStatus: undefined,
+          }),
+        }),
+      ),
+    );
+
+    expect(text).toContain("*Plan:* N/A");
+    expect(text).toContain("*Subscription Status:* N/A");
+  });
+
+  test.each(CREATORS)(
+    "a project whose creator has %s is announced, naming them by what is known",
+    (
+      _case: string,
+      creator: Partial<Record<string, unknown>>,
+      createdBy: string | null,
+    ) => {
+      expect(
+        lines(
+          OperatorSlackNotice.getProjectCreatedText(
+            projectCreated({ project: readAgain(creator) }),
+          ),
+        ),
+      ).toEqual([
+        "*Project Created:*",
+        "*Project Name:* Kerberos Compliance Platform",
+        `*Project ID:* ${PROJECT_ID.toString()}`,
+        ...(createdBy ? [`*Created By:* ${createdBy}`] : []),
+        "*Plan:* Growth",
+        "*Subscription Status:* trialing",
+      ]);
+    },
+  );
+
+  test("a project's name and its creator's are text: they notify nobody and link nowhere", () => {
+    const text: string = OperatorSlackNotice.getProjectCreatedText(
+      projectCreated({
+        project: readAgain({
+          name: HOSTILE_NAME,
+          createdOwnerName: new Name("<@U012AB3CD> <!everyone>"),
+        }),
+      }),
+    );
+
+    expectNoSlackControls(text);
+    expect(text).not.toContain("<!everyone>");
+
+    expect(lines(text)).toContain(`*Project Name:* ${HOSTILE_NAME}`);
+    expect(lines(text)).toContain(
+      "*Created By:* <@U012AB3CD> <!everyone> (jane@acme.example)",
+    );
+  });
+});
+
+describe("OperatorSlackNotice.getProjectPlanChangedText", () => {
+  test("a plan change reads as it always has, with the plan the project is on now", () => {
+    expect(
+      lines(OperatorSlackNotice.getProjectPlanChangedText(planChanged())),
+    ).toEqual([
+      "*Project Plan Changed:*",
+      "*Project Name:* Kerberos Compliance Platform",
+      `*Project ID:* ${PROJECT_ID.toString()}`,
+      "*Project Created By:* Jane Doe (jane@acme.example)",
+      "*Plan:* Scale",
+      "*Subscription Status:* active",
+    ]);
+  });
+
+  test("where OneUptime does not bill, there is no plan to tell", () => {
+    expect(
+      lines(
+        OperatorSlackNotice.getProjectPlanChangedText(
+          planChanged({ isBillingEnabled: false }),
+        ),
+      ),
+    ).toEqual([
+      "*Project Plan Changed:*",
+      "*Project Name:* Kerberos Compliance Platform",
+      `*Project ID:* ${PROJECT_ID.toString()}`,
+      "*Project Created By:* Jane Doe (jane@acme.example)",
+    ]);
+  });
+
+  test.each(CREATORS)(
+    "a project whose creator has %s names them by what is known",
+    (
+      _case: string,
+      creator: Partial<Record<string, unknown>>,
+      createdBy: string | null,
+    ) => {
+      const shown: Array<string> = lines(
+        OperatorSlackNotice.getProjectPlanChangedText(
+          planChanged({ project: readAgain(creator) }),
+        ),
+      );
+
+      expect(shown.slice(3, -2)).toEqual(
+        createdBy ? [`*Project Created By:* ${createdBy}`] : [],
+      );
+    },
+  );
+
+  test("a project with no name read again, nor a plan, still says which one changed", () => {
+    const project: Project = makeProject();
+    delete project.name;
+
+    expect(
+      lines(
+        OperatorSlackNotice.getProjectPlanChangedText(planChanged({ project })),
+      ),
+    ).toEqual([
+      "*Project Plan Changed:*",
+      "*Project Name:* N/A",
+      `*Project ID:* ${PROJECT_ID.toString()}`,
+      "*Plan:* N/A",
+      "*Subscription Status:* N/A",
+    ]);
+  });
+
+  test("a project's name and its creator's are text: they notify nobody and link nowhere", () => {
+    const text: string = OperatorSlackNotice.getProjectPlanChangedText(
+      planChanged({
+        project: readAgain({
+          name: HOSTILE_NAME,
+          createdOwnerName: new Name("<!channel>"),
+        }),
+      }),
+    );
+
+    expectNoSlackControls(text);
+
+    expect(lines(text)).toContain(`*Project Name:* ${HOSTILE_NAME}`);
+    expect(lines(text)).toContain(
+      "*Project Created By:* <!channel> (jane@acme.example)",
+    );
+  });
+});
+
+describe("OperatorSlackNotice.getSubscriptionsPendingCancellationText", () => {
+  test("names the project, every subscription left open and what has to be done", () => {
+    expect(
+      lines(
+        OperatorSlackNotice.getSubscriptionsPendingCancellationText({
+          projectId: PROJECT_ID,
+          subscriptionIds: ["sub_main_123", "sub_metered_456"],
+        }),
+      ),
+    ).toEqual([
+      "*Subscriptions could not be cancelled after a plan change:*",
+      `*Project ID:* ${PROJECT_ID.toString()}`,
+      "*Subscriptions still open at the payment provider:* sub_main_123, sub_metered_456",
+      "These are no longer recorded against the project and have to be cancelled by hand.",
+    ]);
+  });
+
+  test("a subscription ID is text, whatever it holds", () => {
+    const text: string =
+      OperatorSlackNotice.getSubscriptionsPendingCancellationText({
+        projectId: PROJECT_ID,
+        subscriptionIds: [
+          "sub_1_live_*x*",
+          "<!channel>",
+          "<https://evil.example|sub_2>",
+        ],
+      });
+
+    expect(text).not.toContain("<!channel>");
+    expect(text).not.toContain("<https://evil.example");
+    expect(lines(text)).toContain(
+      "*Subscriptions still open at the payment provider:* sub_1_live_*x*, <!channel>, <https://evil.example|sub_2>",
+    );
+  });
+});
+
 describe("OperatorSlackNotice.post", () => {
   let slack: SlackWebhookMessages;
   let errorLog: jest.SpyInstance;
@@ -659,6 +1050,25 @@ describe("OperatorSlackNotice.post", () => {
     expect(String(errorLog.mock.calls[0]?.[0])).toContain("socket hang up");
     expect(errorLog.mock.calls[0]?.[1]).toEqual({
       projectId: PROJECT_ID.toString(),
+    });
+  });
+
+  test("a post about a user that Slack fails is logged with the user, never thrown", async () => {
+    slack.failWith(new Error("socket hang up"));
+
+    await expect(
+      OperatorSlackNotice.post({
+        webhookUrl: WEBHOOK_URL,
+        text: "*New OneUptime User:*",
+        about: "user creation",
+        userId: USER_ID,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(errorLog).toHaveBeenCalledTimes(1);
+    expect(String(errorLog.mock.calls[0]?.[0])).toContain("user creation");
+    expect(errorLog.mock.calls[0]?.[1]).toEqual({
+      userId: USER_ID.toString(),
     });
   });
 
