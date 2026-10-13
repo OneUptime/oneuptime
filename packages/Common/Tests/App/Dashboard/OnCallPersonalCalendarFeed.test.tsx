@@ -22,12 +22,19 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * The reader's own calendar link, rendered for real against a stubbed API.
  *
  * What this file guards: the link is only ever minted through POST /rotate
- * (there is no client-side token anywhere), the four states a feed can be in
- * (absent / active / disabled / unreadable) each look different and offer the
- * right next step, every write goes to the right route or model with the
- * right payload, an older API (404) hides the feature rather than erroring,
- * and the schedule variant narrows the same link with ?schedule= while
- * pointing back to the full page for everything else.
+ * (there is no client-side token anywhere), the states a feed can be in
+ * (absent / active / disabled / unreadable / unsupported / failing) each look
+ * different and offer the right next step, every write goes to the right
+ * route or model with the right payload, an older API (404) hides the feature
+ * rather than erroring, and the schedule variant narrows the same link with
+ * ?schedule= while pointing back to the full page for everything else.
+ *
+ * And the card's redesign ("Please improve the UI of this card"): subscribing
+ * comes first, beside whether the link works; Regenerate, Disable / Enable
+ * and Delete moved from three header buttons - one a loud red Delete - into
+ * the header's ⋯ (Manage link), Regenerate and Delete still asking first; the
+ * server's warnings go above both columns; the Time Log pointer is a quiet
+ * footer; and a state that needs attention comes first on a phone.
  */
 
 const getMock: MockFunction = getJestMockFunction();
@@ -88,8 +95,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 /*
  * The settings card is ModelDetail machinery (its own fetch, its own form).
  * It is replaced with a stub that prints what it was asked to show, so the
- * assertions here are about WHICH model, id and fields the card is wired to,
- * not about ModelDetail itself.
+ * assertions here are about WHICH model, id, fields and style the card is
+ * wired to, not about ModelDetail itself.
  */
 jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   return {
@@ -110,6 +117,10 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
             new props["modelDetailProps"].modelType().tableName,
           ),
           "data-editable": String(props["isEditable"]),
+          "data-style": String(props["modelDetailProps"]?.style),
+          "data-columns": String(
+            props["modelDetailProps"]?.showDetailsInNumberOfColumns,
+          ),
         },
         `${props["cardProps"]?.title}|${fieldTitles.join(",")}`,
       );
@@ -144,22 +155,35 @@ jest.mock("react-i18next", () => {
 });
 
 import ObjectID from "../../../Types/ObjectID";
-import OneUptimeDate from "../../../Types/Date";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import UserOnCallCalendarFeed from "../../../Models/DatabaseModels/UserOnCallCalendarFeed";
-import FeedStatusLine from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/FeedStatusLine";
-import { FeedStatus } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedTypes";
+import { DetailStyle } from "../../../UI/Components/Detail/Detail";
+import {
+  formatFeedDay,
+  getFeedClock,
+} from "../../../UI/Components/Feed/FeedTime";
+import {
+  FEED_ATTENTION_FIRST_CLASS_NAME,
+  FEED_BODY_GRID_CLASS_NAME,
+  FEED_STATUS_COLUMN_CLASS_NAME,
+  FEED_STATUS_FULL_WIDTH_CLASS_NAME,
+  FEED_SUBSCRIBE_COLUMN_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedLayout";
 import {
   PERSONAL_FEED_CURRENT_PATH,
   PERSONAL_FEED_ROTATE_PATH,
+  PERSONAL_NEEDS_REGENERATION_COPY,
   PLANNING_NOT_AUDIT_COPY,
+  REFRESH_CADENCE_COPY,
   buildGoogleAddUrl,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil";
+import { FEED_CARD_FOOTER_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/FeedCardFooter";
 import PersonalCalendarFeedCard, {
   PersonalCalendarFeedVariant,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/PersonalCalendarFeedCard";
+import { SUBSCRIBE_BLOCK_ALONE_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeedLinks";
 import UserSettingsOnCallCalendarFeed from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/OnCallCalendarFeed";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -174,7 +198,8 @@ const SCHEDULE_ID: ObjectID = new ObjectID(
 );
 const NOW: Date = new Date("2026-08-31T12:00:00.000Z");
 
-const HTTPS_URL: string = `https://oneuptime.example.com/api/on-call-calendar/user/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG/shifts.ics`;
+const TOKEN: string = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG";
+const HTTPS_URL: string = `https://oneuptime.example.com/api/on-call-calendar/user/${TOKEN}/shifts.ics`;
 /*
  * The subscribe link the page renders: webcal://, built from the https link.
  * The payloads below carry webcals:// - what an API from before the Google
@@ -256,32 +281,6 @@ const urlOf: UrlOfFunction = (call: Array<unknown>): string => {
   return String((call[0] as Record<string, unknown>)["url"]);
 };
 
-type StatusFunction = (overrides?: Partial<FeedStatus>) => FeedStatus;
-
-const status: StatusFunction = (
-  overrides?: Partial<FeedStatus>,
-): FeedStatus => {
-  return {
-    exists: true,
-    feedId: FEED_ID,
-    isEnabled: true,
-    needsRegeneration: false,
-    tokenHint: "k3Qx",
-    rotatedAt: "2026-08-01T10:00:00.000Z",
-    previousTokenExpiresAt: null,
-    lastFetchedAt: null,
-    lastFetchedClient: null,
-    fetchCount: 0,
-    lastRenderTruncated: false,
-    settings: { pastDays: 2, futureDays: 90 },
-    urls: null,
-    hostWarning: null,
-    protocolWarning: null,
-    privateHost: null,
-    ...overrides,
-  };
-};
-
 function goToCalendarFeedPage(): void {
   window.history.pushState(
     {},
@@ -301,189 +300,44 @@ function resetMocks(): void {
   getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 10 });
 }
 
-describe("FeedStatusLine", () => {
-  afterEach(() => {
-    cleanup();
-  });
+function renderFull(): ReturnType<typeof render> {
+  return render(
+    <PersonalCalendarFeedCard
+      variant={PersonalCalendarFeedVariant.Full}
+      now={NOW}
+    />,
+  );
+}
 
-  test("says 'Not fetched yet' and the link hint when nothing has fetched the link", () => {
-    render(<FeedStatusLine status={status()} now={NOW} />);
-
-    const line: HTMLElement = screen.getByTestId("calendar-feed-status-line");
-
-    expect(line).toHaveTextContent("Not fetched yet");
-    expect(line).toHaveTextContent("link ending in …k3Qx");
-    expect(line).not.toHaveTextContent("Last rotated");
-  });
-
-  test("composes last fetched / client / approximate count / hint", () => {
-    render(
-      <FeedStatusLine
-        status={status({
-          lastFetchedAt: "2026-08-31T10:00:00.000Z",
-          lastFetchedClient: "Google Calendar",
-          fetchCount: 143,
-        })}
-        now={NOW}
-      />,
-    );
-
-    const line: HTMLElement = screen.getByTestId("calendar-feed-status-line");
-
-    expect(line).toHaveTextContent("Last fetched");
-    expect(line).toHaveTextContent("by Google Calendar");
-    expect(line).toHaveTextContent("~143 fetches");
-    expect(line).toHaveTextContent("link ending in …k3Qx");
-  });
-
-  test("uses the singular for exactly one fetch and omits the count at zero", () => {
-    const { rerender } = render(
-      <FeedStatusLine
-        status={status({
-          lastFetchedAt: "2026-08-31T10:00:00.000Z",
-          fetchCount: 1,
-        })}
-        now={NOW}
-      />,
-    );
-
-    expect(screen.getByTestId("calendar-feed-status-line")).toHaveTextContent(
-      "~1 fetch",
-    );
-
-    rerender(
-      <FeedStatusLine
-        status={status({
-          lastFetchedAt: "2026-08-31T10:00:00.000Z",
-          fetchCount: 0,
-        })}
-        now={NOW}
-      />,
-    );
-
+async function waitForActive(): Promise<void> {
+  await waitFor(() => {
     expect(
-      screen.getByTestId("calendar-feed-status-line"),
-    ).not.toHaveTextContent("~");
+      screen.getByTestId("personal-calendar-feed-active"),
+    ).toBeInTheDocument();
   });
+}
 
-  test("shows the rotation age only when asked, with today / 1 day / N days phrasing", () => {
-    const { rerender } = render(
-      <FeedStatusLine
-        status={status({ rotatedAt: "2026-08-01T10:00:00.000Z" })}
-        now={NOW}
-        showRotatedAgo={true}
-      />,
-    );
+// The card's ⋯, opened: the menu that holds Regenerate, Disable and Delete.
+function openManageMenu(): HTMLElement {
+  fireEvent.click(screen.getByRole("button", { name: "Manage link" }));
 
-    expect(screen.getByTestId("calendar-feed-status-line")).toHaveTextContent(
-      "Last rotated 30 days ago",
-    );
+  return screen.getByRole("menu");
+}
 
-    rerender(
-      <FeedStatusLine
-        status={status({ rotatedAt: "2026-08-30T08:00:00.000Z" })}
-        now={NOW}
-        showRotatedAgo={true}
-      />,
-    );
+function menuItemLabels(menu: HTMLElement): Array<string> {
+  return within(menu)
+    .getAllByRole("menuitem")
+    .map((item: HTMLElement): string => {
+      return (item.textContent || "").trim();
+    });
+}
 
-    expect(screen.getByTestId("calendar-feed-status-line")).toHaveTextContent(
-      "Last rotated 1 day ago",
-    );
-
-    rerender(
-      <FeedStatusLine
-        status={status({ rotatedAt: "2026-08-31T08:00:00.000Z" })}
-        now={NOW}
-        showRotatedAgo={true}
-      />,
-    );
-
-    expect(screen.getByTestId("calendar-feed-status-line")).toHaveTextContent(
-      "Last rotated today",
-    );
-  });
-
-  test("the reachability hint appears only after 48 hours without a fetch", () => {
-    const { rerender } = render(
-      <FeedStatusLine
-        status={status({ rotatedAt: "2026-08-01T10:00:00.000Z" })}
-        now={NOW}
-      />,
-    );
-
-    expect(
-      screen.getByTestId("calendar-feed-nothing-fetched-hint"),
-    ).toHaveTextContent("Nothing has fetched this link yet");
-
-    rerender(
-      <FeedStatusLine
-        status={status({ rotatedAt: "2026-08-31T00:00:00.000Z" })}
-        now={NOW}
-      />,
-    );
-
-    expect(
-      screen.queryByTestId("calendar-feed-nothing-fetched-hint"),
-    ).not.toBeInTheDocument();
-  });
-
-  test("idPrefix namespaces the test ids", () => {
-    render(<FeedStatusLine status={status()} now={NOW} idPrefix="shared" />);
-
-    expect(screen.getByTestId("shared-status-line")).toBeInTheDocument();
-  });
-
-  /*
-   * Every segment is one whole translated sentence with {{placeholders}}
-   * filled in by the component, not a translated word glued to a value. If a
-   * placeholder ever reached the DOM it would mean the sentence was looked up
-   * but never interpolated - a visible break in all 16 locales.
-   */
-  test("no interpolation placeholder ever reaches the rendered line", () => {
-    render(
-      <FeedStatusLine
-        status={status({
-          lastFetchedAt: "2026-08-31T10:00:00.000Z",
-          lastFetchedClient: "Google Calendar",
-          fetchCount: 143,
-          rotatedAt: "2026-08-01T10:00:00.000Z",
-        })}
-        now={NOW}
-        showRotatedAgo={true}
-      />,
-    );
-
-    const line: HTMLElement = screen.getByTestId("calendar-feed-status-line");
-
-    expect(line.textContent).not.toContain("{{");
-    expect(line.textContent).not.toContain("}}");
-    // Every value still lands in the sentence it belongs to.
-    expect(line).toHaveTextContent("by Google Calendar");
-    expect(line).toHaveTextContent("~143 fetches");
-    expect(line).toHaveTextContent("link ending in …k3Qx");
-    expect(line).toHaveTextContent("Last rotated 30 days ago");
-  });
-
-  test("the client is left out of the sentence rather than trailing an empty 'by'", () => {
-    render(
-      <FeedStatusLine
-        status={status({
-          lastFetchedAt: "2026-08-31T10:00:00.000Z",
-          lastFetchedClient: null,
-          fetchCount: 4,
-        })}
-        now={NOW}
-      />,
-    );
-
-    const line: HTMLElement = screen.getByTestId("calendar-feed-status-line");
-
-    expect(line).toHaveTextContent("Last fetched");
-    expect(line.textContent).not.toContain(" by ");
-    expect(line.textContent).not.toContain("{{");
-  });
-});
+// The card that holds the link: the subscribe card, not the settings stub.
+function linkCard(): HTMLElement {
+  return screen
+    .getByText("Subscribe to your on-call shifts")
+    .closest("[data-testid='card']") as HTMLElement;
+}
 
 describe("PersonalCalendarFeedCard (full variant)", () => {
   beforeEach(() => {
@@ -495,484 +349,818 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
     cleanup();
   });
 
-  test("reads /feed/current on mount and shows the empty state with a Generate button", async () => {
-    getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
+  describe("before a link exists", () => {
+    test("reads /feed/current on mount and shows the empty state with a Generate button", async () => {
+      getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
 
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
+      renderFull();
 
-    await waitFor(() => {
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("personal-calendar-feed-empty"),
+        ).toBeInTheDocument();
+      });
+
+      expect(getMock).toHaveBeenCalledTimes(1);
+      expect(urlOf(getMock.mock.calls[0] as Array<unknown>)).toContain(
+        PERSONAL_FEED_CURRENT_PATH,
+      );
       expect(
-        screen.getByTestId("personal-calendar-feed-empty"),
+        screen.getByTestId("personal-calendar-feed-generate"),
       ).toBeInTheDocument();
+      // Nothing to manage yet: no ⋯ menu, no header buttons, no settings card.
+      expect(
+        screen.queryByRole("button", { name: "Manage link" }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("card-button")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("card-model-detail-stub"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("personal-calendar-feed-status"),
+      ).not.toBeInTheDocument();
     });
 
-    expect(getMock).toHaveBeenCalledTimes(1);
-    expect(urlOf(getMock.mock.calls[0] as Array<unknown>)).toContain(
-      PERSONAL_FEED_CURRENT_PATH,
-    );
-    expect(
-      screen.getByTestId("personal-calendar-feed-generate"),
-    ).toBeInTheDocument();
-    // No card buttons (regenerate / disable / delete) before a link exists.
-    expect(screen.queryByTestId("card-button")).not.toBeInTheDocument();
-    // No settings card before a link exists.
-    expect(
-      screen.queryByTestId("card-model-detail-stub"),
-    ).not.toBeInTheDocument();
-  });
+    /*
+     * The server sends hostWarning / protocolWarning even when no feed exists.
+     * Saying "this link will be unreachable" only AFTER the reader has minted
+     * one and pasted it into Google Calendar wastes the one moment the warning
+     * is actionable.
+     */
+    test("the empty state shows the deployment warnings the server attached to it", async () => {
+      getMock.mockResolvedValue(
+        ok({
+          ...EMPTY_STATUS_JSON,
+          hostWarning: "HOST is not set, so the link points at localhost.",
+          protocolWarning:
+            "HTTP_PROTOCOL is http, so the link is not encrypted.",
+        }),
+      );
 
-  /*
-   * The server sends hostWarning / protocolWarning even when no feed exists.
-   * Saying "this link will be unreachable" only AFTER the reader has minted
-   * one and pasted it into Google Calendar wastes the one moment the warning
-   * is actionable.
-   */
-  test("the empty state shows the deployment warnings the server attached to it", async () => {
-    getMock.mockResolvedValue(
-      ok({
-        ...EMPTY_STATUS_JSON,
-        hostWarning: "HOST is not set, so the link points at localhost.",
-        protocolWarning: "HTTP_PROTOCOL is http, so the link is not encrypted.",
-      }),
-    );
+      renderFull();
 
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("personal-calendar-feed-empty"),
+        ).toBeInTheDocument();
+      });
 
-    await waitFor(() => {
       expect(
-        screen.getByTestId("personal-calendar-feed-empty"),
-      ).toBeInTheDocument();
-    });
-
-    expect(
-      screen.getByTestId("personal-calendar-feed-host-warning"),
-    ).toHaveTextContent("HOST is not set");
-    expect(
-      screen.getByTestId("personal-calendar-feed-protocol-warning"),
-    ).toHaveTextContent("HTTP_PROTOCOL is http");
-    // Still offered - the warning informs the click, it does not block it.
-    expect(
-      screen.getByTestId("personal-calendar-feed-generate"),
-    ).toBeInTheDocument();
-  });
-
-  test("Generate posts to /feed/rotate with an empty JSON body and renders the returned link", async () => {
-    getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
-    postMock.mockResolvedValue(ok(activeStatusJson()));
-
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
-
-    await waitFor(() => {
+        screen.getByTestId("personal-calendar-feed-host-warning"),
+      ).toHaveTextContent("HOST is not set");
+      expect(
+        screen.getByTestId("personal-calendar-feed-protocol-warning"),
+      ).toHaveTextContent("HTTP_PROTOCOL is http");
+      // Still offered - the warning informs the click, it does not block it.
       expect(
         screen.getByTestId("personal-calendar-feed-generate"),
       ).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByTestId("personal-calendar-feed-generate"));
+    test("Generate lines up with the panel's text, not a dialog footer's margin", async () => {
+      getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
 
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("personal-calendar-feed-active"),
-      ).toBeInTheDocument();
+      renderFull();
+
+      const generate: HTMLElement = await screen.findByTestId(
+        "personal-calendar-feed-generate",
+      );
+
+      expect(generate.className).toContain("md:!ml-0");
     });
 
-    expect(postMock).toHaveBeenCalledTimes(1);
-    expect(urlOf(postMock.mock.calls[0] as Array<unknown>)).toContain(
-      PERSONAL_FEED_ROTATE_PATH,
-    );
-    expect(
-      (postMock.mock.calls[0]![0] as Record<string, unknown>)["data"],
-    ).toEqual({});
+    test("Generate posts to /feed/rotate with an empty JSON body and renders the returned link", async () => {
+      getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
+      postMock.mockResolvedValue(ok(activeStatusJson()));
 
-    // The link block, hidden until revealed, and the webcal anchor.
-    expect(
-      screen.getByTestId("personal-calendar-feed-links"),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("personal-calendar-feed-webcal")).toHaveAttribute(
-      "href",
-      WEBCAL_URL,
-    );
-    expect(screen.queryByText(HTTPS_URL)).not.toBeInTheDocument();
+      renderFull();
 
-    // The settings card is wired to the personal feed model and this feed id.
-    const settings: HTMLElement = screen.getByTestId("card-model-detail-stub");
-    expect(settings).toHaveAttribute("data-model-id", FEED_ID);
-    expect(settings).toHaveAttribute(
-      "data-model-name",
-      new UserOnCallCalendarFeed().tableName,
-    );
-    expect(settings).toHaveTextContent(
-      "Calendar feed settings|Include shifts I cover for others,Days of past shifts,Days ahead",
-    );
-  });
+      fireEvent.click(
+        await screen.findByTestId("personal-calendar-feed-generate"),
+      );
 
-  test("an active feed shows the bookkeeping line, the Time Log pointer and the refresh alert", async () => {
-    getMock.mockResolvedValue(ok(activeStatusJson()));
+      await waitForActive();
 
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
-
-    await waitFor(() => {
+      expect(postMock).toHaveBeenCalledTimes(1);
+      expect(urlOf(postMock.mock.calls[0] as Array<unknown>)).toContain(
+        PERSONAL_FEED_ROTATE_PATH,
+      );
       expect(
-        screen.getByTestId("personal-calendar-feed-active"),
+        (postMock.mock.calls[0]![0] as Record<string, unknown>)["data"],
+      ).toEqual({});
+
+      // The link block, hidden until revealed, and the webcal anchor.
+      expect(
+        screen.getByTestId("personal-calendar-feed-links"),
       ).toBeInTheDocument();
-    });
+      expect(
+        screen.getByTestId("personal-calendar-feed-webcal"),
+      ).toHaveAttribute("href", WEBCAL_URL);
+      expect(document.body.textContent).not.toContain(TOKEN);
 
-    expect(
-      screen.getByTestId("personal-calendar-feed-status-line"),
-    ).toHaveTextContent("by Google Calendar");
-    expect(
-      screen.getByTestId("personal-calendar-feed-status-line"),
-    ).toHaveTextContent("~143 fetches");
-
-    const timeLog: HTMLElement = screen.getByTestId(
-      "personal-calendar-feed-time-log",
-    );
-    expect(timeLog).toHaveTextContent(PLANNING_NOT_AUDIT_COPY);
-    const expectedTimeLogRoute: Route = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.ON_CALLDUTY_USER_TIME_LOGS] as Route,
-    );
-    expect(
-      within(timeLog).getByText("Open the On-Call Time Log").closest("a"),
-    ).toHaveAttribute("href", expectedTimeLogRoute.toString());
-
-    expect(
-      screen.getByTestId("personal-calendar-feed-refresh-alert"),
-    ).toBeInTheDocument();
-
-    // Regenerate / Disable / Delete are offered once a link exists.
-    expect(
-      screen.getByRole("button", { name: "Regenerate link" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Disable" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
-  });
-
-  /*
-   * What the server does with the rotated-out token inside its grace window is
-   * answer with an EMPTY calendar (spec 2.1), not with the old shifts. The
-   * line has to say that: "keeps working until <date>" would tell somebody who
-   * rotated because a colleague left that the leaver still sees the roster for
-   * a month.
-   */
-  test("a rotated-out previous link is announced as empty until its expiry, not as still working", async () => {
-    getMock.mockResolvedValue(
-      ok(
-        activeStatusJson({
-          previousTokenExpiresAt: "2026-09-30T10:00:00.000Z",
-        }),
-      ),
-    );
-
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
-
-    let line: HTMLElement | null = null;
-
-    await waitFor(() => {
-      line = screen.getByTestId("personal-calendar-feed-previous-link");
-      expect(line).toHaveTextContent(
-        "Your previous link returns an empty calendar until",
+      // The settings card is wired to the personal feed model and this feed id.
+      const settings: HTMLElement = screen.getByTestId(
+        "card-model-detail-stub",
+      );
+      expect(settings).toHaveAttribute("data-model-id", FEED_ID);
+      expect(settings).toHaveAttribute(
+        "data-model-name",
+        new UserOnCallCalendarFeed().tableName,
+      );
+      expect(settings).toHaveTextContent(
+        "Calendar feed settings|Include shifts I cover for others,Days of past shifts,Days ahead",
       );
     });
 
-    expect(line!).toHaveTextContent("then stops working");
-    expect(line!).not.toHaveTextContent("keeps working");
-    // The {{date}} placeholder is filled, not printed.
-    expect(line!.textContent).not.toContain("{{");
-    expect(line!.textContent).toContain(
-      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-        OneUptimeDate.fromString("2026-09-30T10:00:00.000Z"),
-      ),
-    );
-  });
+    test("a failed Generate keeps the empty state and says why in red", async () => {
+      getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
+      postMock.mockResolvedValue(
+        fail(402, "Upgrade to Growth to use calendar feeds"),
+      );
 
-  test("Regenerate asks for confirmation, then posts to /feed/rotate", async () => {
-    getMock.mockResolvedValue(ok(activeStatusJson()));
-    postMock.mockResolvedValue(ok(activeStatusJson({ tokenHint: "n3wX" })));
+      renderFull();
 
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
+      fireEvent.click(
+        await screen.findByTestId("personal-calendar-feed-generate"),
+      );
 
-    await waitFor(() => {
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("personal-calendar-feed-error"),
+        ).toHaveTextContent("Upgrade to Growth to use calendar feeds");
+      });
       expect(
-        screen.getByRole("button", { name: "Regenerate link" }),
-      ).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Regenerate link" }));
-
-    const modal: HTMLElement = await screen.findByTestId("modal");
-    /*
-     * The modal must not promise the old link keeps serving shifts: the server
-     * answers it with an empty calendar for the 30-day grace, then 404s.
-     */
-    const description: HTMLElement = within(modal).getByTestId(
-      "confirm-modal-description",
-    );
-    expect(description).toHaveTextContent(
-      "For 30 days the old link keeps answering with that empty calendar instead of an error, then it stops working",
-    );
-    expect(description).not.toHaveTextContent("keeps working for 30 days");
-    // Nothing is posted until the reader confirms.
-    expect(postMock).not.toHaveBeenCalled();
-
-    fireEvent.click(
-      within(modal).getByRole("button", { name: "Regenerate link" }),
-    );
-
-    await waitFor(() => {
-      expect(postMock).toHaveBeenCalledTimes(1);
-    });
-    expect(urlOf(postMock.mock.calls[0] as Array<unknown>)).toContain(
-      PERSONAL_FEED_ROTATE_PATH,
-    );
-
-    await waitFor(() => {
-      expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
-    });
-    expect(
-      screen.getByTestId("personal-calendar-feed-status-line"),
-    ).toHaveTextContent("…n3wX");
-  });
-
-  test("Disable updates isEnabled on the personal feed row and re-reads the status", async () => {
-    getMock
-      .mockResolvedValueOnce(ok(activeStatusJson()))
-      .mockResolvedValueOnce(ok(activeStatusJson({ isEnabled: false })));
-
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: "Disable" }),
-      ).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Disable" }));
-
-    await waitFor(() => {
-      expect(updateByIdMock).toHaveBeenCalledTimes(1);
-    });
-
-    const call: Record<string, unknown> = updateByIdMock.mock
-      .calls[0]![0] as Record<string, unknown>;
-    expect(call["modelType"]).toBe(UserOnCallCalendarFeed);
-    expect(String(call["id"])).toBe(FEED_ID);
-    expect(call["data"]).toEqual({ isEnabled: false });
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("personal-calendar-feed-disabled"),
-      ).toBeInTheDocument();
-    });
-    expect(getMock).toHaveBeenCalledTimes(2);
-    /*
-     * A disabled feed offers Enable; the link stays visible under the
-     * warning so the reader can still copy it for later.
-     */
-    expect(screen.getByRole("button", { name: "Enable" })).toBeInTheDocument();
-    expect(
-      screen.getByTestId("personal-calendar-feed-links"),
-    ).toBeInTheDocument();
-  });
-
-  test("Delete asks for confirmation, then deletes the row and re-reads", async () => {
-    getMock
-      .mockResolvedValueOnce(ok(activeStatusJson()))
-      .mockResolvedValueOnce(ok(EMPTY_STATUS_JSON));
-
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: "Delete" }),
-      ).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-
-    const modal: HTMLElement = await screen.findByTestId("modal");
-    expect(deleteItemMock).not.toHaveBeenCalled();
-
-    fireEvent.click(within(modal).getByRole("button", { name: "Delete" }));
-
-    await waitFor(() => {
-      expect(deleteItemMock).toHaveBeenCalledTimes(1);
-    });
-
-    const call: Record<string, unknown> = deleteItemMock.mock
-      .calls[0]![0] as Record<string, unknown>;
-    expect(call["modelType"]).toBe(UserOnCallCalendarFeed);
-    expect(String(call["id"])).toBe(FEED_ID);
-
-    await waitFor(() => {
+        screen.getByTestId("personal-calendar-feed-error"),
+      ).toHaveAttribute("role", "alert");
       expect(
         screen.getByTestId("personal-calendar-feed-empty"),
       ).toBeInTheDocument();
     });
   });
 
-  test("an unreadable stored link shows the regenerate warning and no link", async () => {
-    getMock.mockResolvedValue(
-      ok(activeStatusJson({ needsRegeneration: true, urls: null })),
-    );
+  describe("an active link", () => {
+    test("subscribing and the status sit side by side, the status in the narrower column", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
 
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
+      renderFull();
+      await waitForActive();
 
-    await waitFor(() => {
+      const links: HTMLElement = screen.getByTestId(
+        "personal-calendar-feed-links",
+      );
+      const status: HTMLElement = screen.getByTestId(
+        "personal-calendar-feed-status",
+      );
+
+      const subscribeColumn: HTMLElement = links.parentElement as HTMLElement;
+      const statusColumn: HTMLElement = status.parentElement as HTMLElement;
+
+      expect(subscribeColumn.className).toBe(FEED_SUBSCRIBE_COLUMN_CLASS_NAME);
+      expect(statusColumn.className).toBe(FEED_STATUS_COLUMN_CLASS_NAME);
+      expect(subscribeColumn.parentElement).toBe(statusColumn.parentElement);
+      expect((subscribeColumn.parentElement as HTMLElement).className).toBe(
+        FEED_BODY_GRID_CLASS_NAME,
+      );
+
+      // Subscribing comes first, in the order a phone stacks them.
       expect(
-        screen.getByTestId("personal-calendar-feed-needs-regeneration"),
-      ).toHaveTextContent("encryption secret changed");
+        subscribeColumn.compareDocumentPosition(statusColumn) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(statusColumn.className).not.toContain(
+        FEED_ATTENTION_FIRST_CLASS_NAME,
+      );
     });
 
-    expect(
-      screen.queryByTestId("personal-calendar-feed-links"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Regenerate link" }),
-    ).toBeInTheDocument();
-  });
+    test("the status says when and by which app, roughly how often, and which link", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
 
-  test("server warnings attached to the link are shown next to it", async () => {
-    getMock.mockResolvedValue(
-      ok(
-        activeStatusJson({
-          hostWarning: "Set HOST to your public hostname",
-          protocolWarning: "This link will travel unencrypted",
-          lastRenderTruncated: true,
-        }),
-      ),
-    );
+      renderFull();
+      await waitForActive();
 
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
-
-    await waitFor(() => {
       expect(
-        screen.getByTestId("personal-calendar-feed-host-warning"),
+        screen.getByTestId("personal-calendar-feed-status-pill"),
+      ).toHaveTextContent("Active");
+      expect(
+        screen.getByTestId("personal-calendar-feed-status-headline"),
+      ).toHaveTextContent("Last fetched 2 hours ago by Google Calendar");
+      expect(
+        screen.getByTestId("personal-calendar-feed-status-line").textContent,
+      ).toBe("~143 fetches · link ending in …k3Qx");
+      // A personal link was minted by its reader: no rotation age.
+      expect(
+        screen.getByTestId("personal-calendar-feed-status-line"),
+      ).not.toHaveTextContent("Last rotated");
+    });
+
+    test("Google's refresh schedule is said to this reader because Google Calendar reads their link", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
+
+      renderFull();
+      await waitForActive();
+
+      expect(
+        screen.getByTestId("personal-calendar-feed-google-refresh-note"),
+      ).toHaveTextContent(REFRESH_CADENCE_COPY);
+    });
+
+    test("a reader on Apple Calendar is not told about Google's schedule", async () => {
+      getMock.mockResolvedValue(
+        ok(activeStatusJson({ lastFetchedClient: "Apple Calendar" })),
+      );
+
+      renderFull();
+      await waitForActive();
+
+      expect(
+        screen.queryByTestId("personal-calendar-feed-google-refresh-note"),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(REFRESH_CADENCE_COPY)).not.toBeInTheDocument();
+    });
+
+    test("the Time Log pointer is the card's quiet footer, linking to the report", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
+
+      renderFull();
+      await waitForActive();
+
+      const timeLog: HTMLElement = screen.getByTestId(
+        "personal-calendar-feed-time-log",
+      );
+
+      expect(timeLog).toHaveTextContent(PLANNING_NOT_AUDIT_COPY);
+      expect(timeLog.className).toBe(FEED_CARD_FOOTER_CLASS_NAME);
+      expect(timeLog.className).toContain("text-xs");
+
+      const expectedTimeLogRoute: Route = RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALLDUTY_USER_TIME_LOGS] as Route,
+      );
+      expect(
+        within(timeLog).getByText("Open the On-Call Time Log").closest("a"),
+      ).toHaveAttribute("href", expectedTimeLogRoute.toString());
+
+      // Last in the card, after both columns.
+      const active: HTMLElement = screen.getByTestId(
+        "personal-calendar-feed-active",
+      );
+      expect(active.lastElementChild).toBe(timeLog);
+    });
+
+    test("the header holds one action - the ⋯ named Manage link - and no buttons", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
+
+      renderFull();
+      await waitForActive();
+
+      const header: HTMLElement = within(linkCard()).getByTestId(
+        "card-header-actions",
+      );
+
+      expect(within(header).getAllByRole("button")).toHaveLength(1);
+      expect(
+        within(header).getByRole("button", { name: "Manage link" }),
+      ).toHaveAttribute("aria-haspopup", "menu");
+      expect(within(linkCard()).queryByTestId("card-button")).toBeNull();
+
+      for (const name of ["Regenerate link", "Disable", "Delete"]) {
+        expect(
+          screen.queryByRole("button", { name: name }),
+        ).not.toBeInTheDocument();
+      }
+    });
+
+    test("the menu holds Regenerate link, Disable link and a red Delete link, each with an icon", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
+
+      renderFull();
+      await waitForActive();
+
+      const menu: HTMLElement = openManageMenu();
+
+      expect(menuItemLabels(menu)).toEqual([
+        "Regenerate link",
+        "Disable link",
+        "Delete link",
+      ]);
+
+      for (const item of within(menu).getAllByRole("menuitem")) {
+        expect(item.querySelector("svg")).not.toBeNull();
+      }
+
+      expect(
+        within(menu).getByRole("menuitem", { name: "Delete link" }).className,
+      ).toContain("text-red-600");
+      expect(
+        within(menu).getByRole("menuitem", { name: "Regenerate link" })
+          .className,
+      ).not.toContain("text-red-600");
+    });
+
+    test("the settings card draws its three settings compact, side by side", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
+
+      renderFull();
+      await waitForActive();
+
+      const settings: HTMLElement = screen.getByTestId(
+        "card-model-detail-stub",
+      );
+
+      expect(settings).toHaveAttribute("data-style", DetailStyle.Compact);
+      expect(settings).toHaveAttribute("data-columns", "3");
+    });
+
+    /*
+     * What the server does with the rotated-out token inside its grace window
+     * is answer with an EMPTY calendar (spec 2.1), not with the old shifts.
+     * The line has to say that: "keeps working until <date>" would tell
+     * somebody who rotated because a colleague left that the leaver still sees
+     * the roster for a month.
+     */
+    test("a rotated-out previous link is announced as empty until its expiry, not as still working", async () => {
+      getMock.mockResolvedValue(
+        ok(
+          activeStatusJson({
+            previousTokenExpiresAt: "2026-09-30T10:00:00.000Z",
+          }),
+        ),
+      );
+
+      renderFull();
+
+      const line: HTMLElement = await screen.findByTestId(
+        "personal-calendar-feed-previous-link",
+      );
+
+      expect(line).toHaveTextContent(
+        "Your previous link returns an empty calendar until",
+      );
+      expect(line).toHaveTextContent("then stops working");
+      expect(line).not.toHaveTextContent("keeps working");
+      // The {{date}} placeholder is filled, in the reader's calendar's words.
+      expect(line.textContent).not.toContain("{{");
+      expect(line.textContent).toContain(
+        formatFeedDay(
+          new Date("2026-09-30T10:00:00.000Z"),
+          getFeedClock({ language: "en", now: NOW }),
+        ),
+      );
+    });
+
+    test("server warnings sit above both columns, at the card's full width", async () => {
+      getMock.mockResolvedValue(
+        ok(
+          activeStatusJson({
+            hostWarning: "Set HOST to your public hostname",
+            protocolWarning: "This link will travel unencrypted",
+            lastRenderTruncated: true,
+          }),
+        ),
+      );
+
+      renderFull();
+      await waitForActive();
+
+      const notices: HTMLElement = screen.getByTestId(
+        "personal-calendar-feed-notices",
+      );
+
+      expect(
+        within(notices).getByTestId("personal-calendar-feed-host-warning"),
       ).toHaveTextContent("Set HOST to your public hostname");
-    });
-    expect(
-      screen.getByTestId("personal-calendar-feed-protocol-warning"),
-    ).toHaveTextContent("This link will travel unencrypted");
-    expect(
-      screen.getByTestId("personal-calendar-feed-truncated-warning"),
-    ).toBeInTheDocument();
-  });
-
-  test("a 404 from an older API hides the feature instead of erroring", async () => {
-    getMock.mockResolvedValue(fail(404, "Not found"));
-
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
-
-    await waitFor(() => {
       expect(
-        screen.getByTestId("personal-calendar-feed-unsupported"),
-      ).toHaveTextContent("does not offer calendar feeds yet");
-    });
-
-    expect(
-      screen.queryByTestId("personal-calendar-feed-generate"),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText("Not found")).not.toBeInTheDocument();
-  });
-
-  test("any other failure surfaces the server's own message", async () => {
-    getMock.mockResolvedValue(fail(500, "Redis is on fire"));
-
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText("Redis is on fire")).toBeInTheDocument();
-    });
-  });
-
-  test("a failed Generate keeps the empty state and shows the reason", async () => {
-    getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
-    postMock.mockResolvedValue(
-      fail(402, "Upgrade to Growth to use calendar feeds"),
-    );
-
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Full}
-        now={NOW}
-      />,
-    );
-
-    await waitFor(() => {
+        within(notices).getByTestId("personal-calendar-feed-protocol-warning"),
+      ).toHaveTextContent("This link will travel unencrypted");
       expect(
-        screen.getByTestId("personal-calendar-feed-generate"),
+        within(notices).getByTestId("personal-calendar-feed-truncated-warning"),
+      ).toHaveTextContent("shortened because it would have exceeded the event");
+
+      // Above the subscribe options, and not inside them.
+      const links: HTMLElement = screen.getByTestId(
+        "personal-calendar-feed-links",
+      );
+      expect(
+        notices.compareDocumentPosition(links) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        within(links).queryByTestId("personal-calendar-feed-host-warning"),
+      ).toBeNull();
+    });
+
+    test("with nothing to warn about there is no empty notice box", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
+
+      renderFull();
+      await waitForActive();
+
+      expect(
+        screen.queryByTestId("personal-calendar-feed-notices"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("managing the link", () => {
+    test("Regenerate link asks for confirmation, then posts to /feed/rotate and shows the new link's status", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
+      postMock.mockResolvedValue(
+        ok(
+          activeStatusJson({
+            tokenHint: "n3wX",
+            lastFetchedAt: null,
+            lastFetchedClient: null,
+            fetchCount: 0,
+            rotatedAt: "2026-08-31T11:59:00.000Z",
+            previousTokenExpiresAt: "2026-09-30T11:59:00.000Z",
+          }),
+        ),
+      );
+
+      renderFull();
+      await waitForActive();
+
+      fireEvent.click(
+        within(openManageMenu()).getByRole("menuitem", {
+          name: "Regenerate link",
+        }),
+      );
+
+      const modal: HTMLElement = await screen.findByTestId("modal");
+      /*
+       * The modal must not promise the old link keeps serving shifts: the
+       * server answers it with an empty calendar for the 30-day grace, then
+       * 404s.
+       */
+      const description: HTMLElement = within(modal).getByTestId(
+        "confirm-modal-description",
+      );
+      expect(description).toHaveTextContent(
+        "For 30 days the old link keeps answering with that empty calendar instead of an error, then it stops working",
+      );
+      expect(description).not.toHaveTextContent("keeps working for 30 days");
+      // Nothing is posted until the reader confirms.
+      expect(postMock).not.toHaveBeenCalled();
+
+      fireEvent.click(
+        within(modal).getByRole("button", { name: "Regenerate link" }),
+      );
+
+      await waitFor(() => {
+        expect(postMock).toHaveBeenCalledTimes(1);
+      });
+      expect(urlOf(postMock.mock.calls[0] as Array<unknown>)).toContain(
+        PERSONAL_FEED_ROTATE_PATH,
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+      });
+      expect(
+        screen.getByTestId("personal-calendar-feed-status-line"),
+      ).toHaveTextContent("…n3wX");
+      expect(
+        screen.getByTestId("personal-calendar-feed-status-pill"),
+      ).toHaveTextContent("Waiting for first sync");
+      expect(
+        screen.getByTestId("personal-calendar-feed-previous-link"),
       ).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByTestId("personal-calendar-feed-generate"));
+    test("cancelling Regenerate changes nothing", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
 
-    await waitFor(() => {
+      renderFull();
+      await waitForActive();
+
+      fireEvent.click(
+        within(openManageMenu()).getByRole("menuitem", {
+          name: "Regenerate link",
+        }),
+      );
+
+      const modal: HTMLElement = await screen.findByTestId("modal");
+
+      fireEvent.click(within(modal).getByRole("button", { name: "Cancel" }));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+      });
+      expect(postMock).not.toHaveBeenCalled();
+    });
+
+    test("Disable link updates isEnabled on the personal feed row, re-reads, and the card says it is off", async () => {
+      getMock
+        .mockResolvedValueOnce(ok(activeStatusJson()))
+        .mockResolvedValueOnce(ok(activeStatusJson({ isEnabled: false })));
+
+      renderFull();
+      await waitForActive();
+
+      fireEvent.click(
+        within(openManageMenu()).getByRole("menuitem", {
+          name: "Disable link",
+        }),
+      );
+
+      await waitFor(() => {
+        expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      });
+
+      const call: Record<string, unknown> = updateByIdMock.mock
+        .calls[0]![0] as Record<string, unknown>;
+      expect(call["modelType"]).toBe(UserOnCallCalendarFeed);
+      expect(String(call["id"])).toBe(FEED_ID);
+      expect(call["data"]).toEqual({ isEnabled: false });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("personal-calendar-feed-disabled"),
+        ).toBeInTheDocument();
+      });
+      expect(getMock).toHaveBeenCalledTimes(2);
       expect(
-        screen.getByText("Upgrade to Growth to use calendar feeds"),
+        screen.getByTestId("personal-calendar-feed-status-pill"),
+      ).toHaveTextContent("Disabled");
+
+      /*
+       * A disabled feed offers Enable link, in the menu and as the status's
+       * next step; the link stays visible so the reader can still copy it
+       * for later.
+       */
+      expect(menuItemLabels(openManageMenu())).toContain("Enable link");
+      expect(
+        screen.getByTestId("personal-calendar-feed-enable"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("personal-calendar-feed-links"),
       ).toBeInTheDocument();
     });
-    expect(
-      screen.getByTestId("personal-calendar-feed-empty"),
-    ).toBeInTheDocument();
+
+    test("a disabled link puts its status first while the columns stack", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson({ isEnabled: false })));
+
+      renderFull();
+      await waitForActive();
+
+      const statusColumn: HTMLElement = screen.getByTestId(
+        "personal-calendar-feed-status",
+      ).parentElement as HTMLElement;
+
+      expect(statusColumn.className).toContain(FEED_ATTENTION_FIRST_CLASS_NAME);
+    });
+
+    test("Enable link in the status writes isEnabled=true and re-reads", async () => {
+      getMock
+        .mockResolvedValueOnce(ok(activeStatusJson({ isEnabled: false })))
+        .mockResolvedValueOnce(ok(activeStatusJson()));
+
+      renderFull();
+
+      fireEvent.click(
+        await screen.findByTestId("personal-calendar-feed-enable"),
+      );
+
+      await waitFor(() => {
+        expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      });
+      expect(
+        (updateByIdMock.mock.calls[0]![0] as Record<string, unknown>)["data"],
+      ).toEqual({ isEnabled: true });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("personal-calendar-feed-status-pill"),
+        ).toHaveTextContent("Active");
+      });
+    });
+
+    test("a failed Disable says why above the card's body, and the link stays as it was", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
+      updateByIdMock.mockRejectedValue(
+        new Error("You are not allowed to do that"),
+      );
+
+      renderFull();
+      await waitForActive();
+
+      fireEvent.click(
+        within(openManageMenu()).getByRole("menuitem", {
+          name: "Disable link",
+        }),
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("personal-calendar-feed-error"),
+        ).toHaveTextContent("You are not allowed to do that");
+      });
+      expect(
+        within(
+          screen.getByTestId("personal-calendar-feed-notices"),
+        ).getByTestId("personal-calendar-feed-error"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("personal-calendar-feed-status-pill"),
+      ).toHaveTextContent("Active");
+    });
+
+    test("while an action runs the menu's items wait", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
+      updateByIdMock.mockReturnValue(
+        new Promise<void>(() => {
+          // Never settles: the action is still running.
+        }),
+      );
+
+      renderFull();
+      await waitForActive();
+
+      fireEvent.click(
+        within(openManageMenu()).getByRole("menuitem", {
+          name: "Disable link",
+        }),
+      );
+
+      await waitFor(() => {
+        expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      });
+
+      const menu: HTMLElement = openManageMenu();
+
+      for (const label of ["Regenerate link", "Disable link", "Delete link"]) {
+        const item: HTMLElement = within(menu)
+          .getByText(label)
+          .closest("button") as HTMLElement;
+
+        expect(item).toHaveAttribute("aria-disabled", "true");
+      }
+    });
+
+    test("Delete link asks for confirmation, then deletes the row and re-reads to the empty state", async () => {
+      getMock
+        .mockResolvedValueOnce(ok(activeStatusJson()))
+        .mockResolvedValueOnce(ok(EMPTY_STATUS_JSON));
+
+      renderFull();
+      await waitForActive();
+
+      fireEvent.click(
+        within(openManageMenu()).getByRole("menuitem", {
+          name: "Delete link",
+        }),
+      );
+
+      const modal: HTMLElement = await screen.findByTestId("modal");
+      expect(
+        within(modal).getByText("Delete calendar link?"),
+      ).toBeInTheDocument();
+      expect(deleteItemMock).not.toHaveBeenCalled();
+
+      fireEvent.click(within(modal).getByRole("button", { name: "Delete" }));
+
+      await waitFor(() => {
+        expect(deleteItemMock).toHaveBeenCalledTimes(1);
+      });
+
+      const call: Record<string, unknown> = deleteItemMock.mock
+        .calls[0]![0] as Record<string, unknown>;
+      expect(call["modelType"]).toBe(UserOnCallCalendarFeed);
+      expect(String(call["id"])).toBe(FEED_ID);
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("personal-calendar-feed-empty"),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByRole("button", { name: "Manage link" }),
+      ).not.toBeInTheDocument();
+    });
+
+    test("a failed Delete says why in the dialog, once, and keeps the dialog open", async () => {
+      getMock.mockResolvedValue(ok(activeStatusJson()));
+      deleteItemMock.mockRejectedValue(new Error("Database is away"));
+
+      renderFull();
+      await waitForActive();
+
+      fireEvent.click(
+        within(openManageMenu()).getByRole("menuitem", {
+          name: "Delete link",
+        }),
+      );
+
+      const modal: HTMLElement = await screen.findByTestId("modal");
+
+      fireEvent.click(within(modal).getByRole("button", { name: "Delete" }));
+
+      await waitFor(() => {
+        expect(within(modal).getByText("Database is away")).toBeInTheDocument();
+      });
+      // Said in the dialog, not a second time behind it.
+      expect(screen.getAllByText("Database is away")).toHaveLength(1);
+      expect(
+        screen.queryByTestId("personal-calendar-feed-error"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("a link that cannot be read", () => {
+    test("says why, offers Regenerate link in the status, and shows no link", async () => {
+      getMock.mockResolvedValue(
+        ok(activeStatusJson({ needsRegeneration: true, urls: null })),
+      );
+
+      renderFull();
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("personal-calendar-feed-needs-regeneration"),
+        ).toHaveTextContent(PERSONAL_NEEDS_REGENERATION_COPY);
+      });
+
+      expect(
+        screen.queryByTestId("personal-calendar-feed-links"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId("personal-calendar-feed-status-pill"),
+      ).toHaveTextContent("Needs regeneration");
+
+      // The status takes the whole row: there is nothing to subscribe with.
+      expect(
+        screen.getByTestId("personal-calendar-feed-status").parentElement!
+          .className,
+      ).toContain(FEED_STATUS_FULL_WIDTH_CLASS_NAME);
+    });
+
+    test("Regenerate link there still asks before it acts", async () => {
+      getMock.mockResolvedValue(
+        ok(activeStatusJson({ needsRegeneration: true, urls: null })),
+      );
+      postMock.mockResolvedValue(ok(activeStatusJson()));
+
+      renderFull();
+
+      fireEvent.click(
+        await screen.findByTestId("personal-calendar-feed-regenerate-now"),
+      );
+
+      const modal: HTMLElement = await screen.findByTestId("modal");
+      expect(postMock).not.toHaveBeenCalled();
+
+      fireEvent.click(
+        within(modal).getByRole("button", { name: "Regenerate link" }),
+      );
+
+      await waitFor(() => {
+        expect(postMock).toHaveBeenCalledTimes(1);
+      });
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("personal-calendar-feed-links"),
+        ).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("when the status cannot be read", () => {
+    test("a 404 from an older API hides the feature instead of erroring", async () => {
+      getMock.mockResolvedValue(fail(404, "Not found"));
+
+      renderFull();
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("personal-calendar-feed-unsupported"),
+        ).toHaveTextContent("does not offer calendar feeds yet");
+      });
+
+      expect(
+        screen.queryByTestId("personal-calendar-feed-generate"),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Not found")).not.toBeInTheDocument();
+    });
+
+    test("any other failure says what failed, the server's reason, and offers Try again", async () => {
+      getMock
+        .mockResolvedValueOnce(fail(500, "Redis is on fire"))
+        .mockResolvedValueOnce(ok(activeStatusJson()));
+
+      renderFull();
+
+      const error: HTMLElement = await screen.findByTestId(
+        "personal-calendar-feed-load-error",
+      );
+
+      expect(error).toHaveTextContent("Could not load your calendar link.");
+      expect(error).toHaveTextContent("Redis is on fire");
+      expect(error).toHaveTextContent("Try again");
+
+      fireEvent.click(within(error).getAllByRole("button")[0]!);
+
+      await waitForActive();
+      expect(getMock).toHaveBeenCalledTimes(2);
+    });
   });
 });
 
@@ -986,16 +1174,20 @@ describe("PersonalCalendarFeedCard (schedule variant)", () => {
     cleanup();
   });
 
-  test("narrows the personal link to the schedule and points at the full page", async () => {
-    getMock.mockResolvedValue(ok(activeStatusJson()));
-
-    render(
+  function renderSchedule(): ReturnType<typeof render> {
+    return render(
       <PersonalCalendarFeedCard
         variant={PersonalCalendarFeedVariant.Schedule}
         scheduleId={SCHEDULE_ID}
         now={NOW}
       />,
     );
+  }
+
+  test("narrows the personal link to the schedule and points at the full page", async () => {
+    getMock.mockResolvedValue(ok(activeStatusJson()));
+
+    renderSchedule();
 
     await waitFor(() => {
       expect(
@@ -1009,10 +1201,6 @@ describe("PersonalCalendarFeedCard (schedule variant)", () => {
       "href",
       `${WEBCAL_URL}?schedule=${SCHEDULE_ID.toString()}`,
     );
-    // The page renders the refresh alert once, so the schedule half does not.
-    expect(
-      screen.queryByTestId("schedule-personal-calendar-feed-refresh-alert"),
-    ).not.toBeInTheDocument();
 
     const expectedRoute: Route = RouteUtil.populateRouteParams(
       RouteMap[PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED] as Route,
@@ -1021,31 +1209,40 @@ describe("PersonalCalendarFeedCard (schedule variant)", () => {
       screen.getByText("Manage your calendar link and reminders").closest("a"),
     ).toHaveAttribute("href", expectedRoute.toString());
 
-    // No regenerate / disable / delete controls in the narrow variant.
-    expect(screen.queryByTestId("card-button")).not.toBeInTheDocument();
+    // No manage menu, status panel or settings card in the narrow variant.
+    expect(
+      screen.queryByRole("button", { name: "Manage link" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("schedule-personal-calendar-feed-status"),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("card-model-detail-stub"),
     ).not.toBeInTheDocument();
   });
 
+  test("its subscribe block has the row to itself, so it keeps a reading width", async () => {
+    getMock.mockResolvedValue(ok(activeStatusJson()));
+
+    renderSchedule();
+
+    const links: HTMLElement = await screen.findByTestId(
+      "schedule-personal-calendar-feed-links",
+    );
+
+    expect(links.className).toContain(SUBSCRIBE_BLOCK_ALONE_CLASS_NAME);
+  });
+
   /*
    * A truncated render is a property of the feed, not of the page it is shown
    * on: the same link is short on the schedule page and on the settings page.
-   * The narrow variant used to drop the flag, so a reader who only ever opens
-   * the schedule page never learned their calendar was incomplete.
    */
   test("the narrow variant carries the truncation warning, like the full one", async () => {
     getMock.mockResolvedValue(
       ok(activeStatusJson({ lastRenderTruncated: true })),
     );
 
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Schedule}
-        scheduleId={SCHEDULE_ID}
-        now={NOW}
-      />,
-    );
+    renderSchedule();
 
     await waitFor(() => {
       expect(
@@ -1062,22 +1259,10 @@ describe("PersonalCalendarFeedCard (schedule variant)", () => {
     getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
     postMock.mockResolvedValue(ok(activeStatusJson()));
 
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Schedule}
-        scheduleId={SCHEDULE_ID}
-        now={NOW}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("schedule-personal-calendar-feed-generate"),
-      ).toBeInTheDocument();
-    });
+    renderSchedule();
 
     fireEvent.click(
-      screen.getByTestId("schedule-personal-calendar-feed-generate"),
+      await screen.findByTestId("schedule-personal-calendar-feed-generate"),
     );
 
     await waitFor(() => {
@@ -1093,16 +1278,12 @@ describe("PersonalCalendarFeedCard (schedule variant)", () => {
   test("a disabled link explains itself rather than showing a dead URL", async () => {
     getMock.mockResolvedValue(ok(activeStatusJson({ isEnabled: false })));
 
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Schedule}
-        scheduleId={SCHEDULE_ID}
-        now={NOW}
-      />,
-    );
+    renderSchedule();
 
     await waitFor(() => {
-      expect(screen.getByText(/This link is disabled/)).toBeInTheDocument();
+      expect(
+        screen.getByTestId("schedule-personal-calendar-feed-disabled"),
+      ).toHaveTextContent("This link is disabled");
     });
     expect(
       screen.queryByTestId("schedule-personal-calendar-feed-links"),
@@ -1114,37 +1295,42 @@ describe("PersonalCalendarFeedCard (schedule variant)", () => {
       ok(activeStatusJson({ needsRegeneration: true, urls: null })),
     );
 
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Schedule}
-        scheduleId={SCHEDULE_ID}
-        now={NOW}
-      />,
-    );
+    renderSchedule();
 
     await waitFor(() => {
       expect(
-        screen.getByText(/needs to be regenerated before it can be shown here/),
-      ).toBeInTheDocument();
+        screen.getByTestId(
+          "schedule-personal-calendar-feed-needs-regeneration",
+        ),
+      ).toHaveTextContent(
+        "needs to be regenerated before it can be shown here",
+      );
     });
   });
 
   test("a 404 from an older API renders the unsupported note", async () => {
     getMock.mockResolvedValue(fail(404, "Not found"));
 
-    render(
-      <PersonalCalendarFeedCard
-        variant={PersonalCalendarFeedVariant.Schedule}
-        scheduleId={SCHEDULE_ID}
-        now={NOW}
-      />,
-    );
+    renderSchedule();
 
     await waitFor(() => {
       expect(
         screen.getByTestId("schedule-personal-calendar-feed-unsupported"),
       ).toBeInTheDocument();
     });
+  });
+
+  test("a failure says what failed and offers Try again", async () => {
+    getMock.mockResolvedValue(fail(500, "Redis is on fire"));
+
+    renderSchedule();
+
+    const error: HTMLElement = await screen.findByTestId(
+      "schedule-personal-calendar-feed-load-error",
+    );
+
+    expect(error).toHaveTextContent("Redis is on fire");
+    expect(error).toHaveTextContent("Try again");
   });
 });
 
