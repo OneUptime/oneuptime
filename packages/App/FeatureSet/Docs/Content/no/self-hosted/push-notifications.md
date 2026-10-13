@@ -105,7 +105,7 @@ Omfanget er bevisst smalt. Bare varsler som en varslingsregel for vakt lager, er
 ```mermaid title="Når et vaktvarsel ringer gjennom lydløs modus"
 flowchart TB
     Page["Et vaktvarsel"]
-    Rule{"Står vaktregelen<br/>på «Critical alert»?"}
+    Rule{"Står vaktregelen<br/>på «Kritisk varsel»?"}
     Device{"Critical On-Call Alerts<br/>på for denne enheten?"}
     OS{"Tillater telefonens system<br/>kritiske varsler?"}
     Loud["Spiller av en lyd til tross for<br/>lydløs modus og Ikke forstyrr"]
@@ -122,7 +122,7 @@ flowchart TB
 Fire ting må alle være oppfylt for at et varsel skal overstyre lydløs modus. Mangler én av dem, blir varselet likevel levert – bare stille.
 
 1. **Personen har slått det på for den enheten.** Lagret per enhet, av som standard, i `UserPush.isCriticalAlertEnabled`. Telefonen og nettbrettet til en person er separate valg.
-2. **Vaktregelen som sendte varselet, ber om det.** Under **Brukerinnstillinger > Vaktregler** står hver regel som varsler en telefon, på «Critical alert», som er standard, eller på «Standard», som følger lydinnstillingene på telefonen – slik kan en person bli vekket av en kritisk hendelse og varslet stille om en mindre. Lagret per regel i `UserNotificationRule.pushNotificationLevel`.
+2. **Vaktregelen som sendte varselet, ber om det.** Under **Brukerinnstillinger > Vaktregler** står hver regel som varsler en telefon, på «Kritisk varsel», som er standard, eller på «Normal», som følger lydinnstillingene på telefonen – slik kan en person bli vekket av en kritisk hendelse og varslet stille om en mindre. Lagret per regel i `UserNotificationRule.pushNotificationLevel`.
 3. **Serveren merker varselet som kritisk.** Den sender den kritiske lyd-payloaden til APNs pluss `interruptionLevel: critical` for iOS, og bruker en kritisk varslingskanal for Android: `oncall_critical`, eller den valgte alarmens egen kanal (se [Velge alarmlyd](#velge-alarmlyd)).
 4. **Operativsystemet tillater det**, og det er her de to plattformene skiller seg.
 
@@ -154,7 +154,7 @@ To mekanismer er i spill, og de dekker ulike tilfeller:
 Android fryser innstillingene til en kanal når kanalen opprettes første gang, så de kan ikke endres med en appoppdatering – bare ved å levere en ny kanal-ID.
 :::
 
-For å sjekke at det virker, sender du et testvarsel til enheten fra **Brukerinnstillinger > Varselmetoder > Push Notifications**. Når enheten har kritiske varsler slått på, sendes også testen som et kritisk varsel – så sett telefonen på lydløs først, og du hører om et ekte varsel ville nådd deg.
+For å sjekke at det virker, sender du et testvarsel til enheten fra **Brukerinnstillinger > Varselmetoder > Push Notifications**. Når enheten har kritiske varsler slått på, sendes også testen som et kritisk varsel – så sett telefonen på lydløs først, og du hører om et ekte varsel ville nådd deg. Den samme listen viser om hver enhet har kritiske varsler slått på, og for en telefon som ikke har det, hvordan du slår dem på.
 
 ### Velge alarmlyd
 
@@ -188,7 +188,7 @@ En push-regel kan sende varselet sitt på nytt til noen bekrefter det. Under **B
 ### Kritiske varsler overstyrer ikke lydløs modus
 
 - Sjekk at bryteren er på for **den** enheten – innstillingen gjelder per enhet, og en ny installasjon eller en ny telefon satt opp fra bunnen av oppretter en ny enhetsregistrering (en telefon satt opp fra en sikkerhetskopi av den gamle tar over registreringen til den gamle telefonen så snart den ikke lenger mottar varsler, med innstillingen appen hadde)
-- Sjekk vaktregelen for den alvorlighetsgraden under **Brukerinnstillinger > Vaktregler**: en push-regel på «Standard» følger lydinnstillingene på telefonen, uansett hva bryteren på enheten sier
+- Sjekk vaktregelen for den alvorlighetsgraden under **Brukerinnstillinger > Vaktregler**: en push-regel på «Normal» følger lydinnstillingene på telefonen, uansett hva bryteren på enheten sier
 - **iOS**: Bekreft at bygget har Apples entitlement for kritiske varsler (se ovenfor), og at Critical Alerts er tillatt under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: Bekreft at appen har tilgang til Ikke forstyrr under Settings > Notifications > Do Not Disturb access
 - **Android**: Hvis du har valgt en alarmlyd, må også dens egen varslingskanal få lov til å overstyre Ikke forstyrr; appens skjerm Alarm sound sier fra når den ikke har det

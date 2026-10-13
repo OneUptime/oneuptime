@@ -7,6 +7,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 import {
+  PUBLIC_PAGE_NOT_FOUND,
+  PublicPageNotFound,
+} from "Common/Server/Utils/PublicPageNotFound";
+import {
   SEARCH_ENGINE_INDEXING_FLAG_NAME,
   isSearchEngineIndexingAllowed,
   isStatusPagePreviewPath,
@@ -27,11 +31,18 @@ export interface StatusPageData {
   isSearchEngineIndexingEnabled: boolean;
 }
 
+/*
+ * The page a request names: its data; PUBLIC_PAGE_NOT_FOUND when the status
+ * page API says there is no such page - none was made, it is archived, or a
+ * master admin blocked its project, which it answers alike - and the caller
+ * answers 404 (PublicPageNotFound); or null when the URL names no page or the
+ * page could not be looked up.
+ */
 export const getStatusPageData: (
   req: ExpressRequest,
-) => Promise<StatusPageData | null> = async (
+) => Promise<StatusPageData | PublicPageNotFound | null> = async (
   req: ExpressRequest,
-): Promise<StatusPageData | null> => {
+): Promise<StatusPageData | PublicPageNotFound | null> => {
   try {
     logger.debug("Getting status page data", { service: "status-page" });
 
@@ -91,6 +102,17 @@ export const getStatusPageData: (
       });
 
     let seoData: JSONObject | null = null;
+
+    /*
+     * Not found is an answer, not a failed lookup: the page is served as not
+     * found, on a preview URL too, where the id alone could render it.
+     */
+    if (response instanceof HTTPErrorResponse && response.statusCode === 404) {
+      logger.debug("The status page API knows no such page", {
+        service: "status-page",
+      });
+      return PUBLIC_PAGE_NOT_FOUND;
+    }
 
     if (response instanceof HTTPErrorResponse) {
       logger.debug(`Received error response from API: ${response}`, {

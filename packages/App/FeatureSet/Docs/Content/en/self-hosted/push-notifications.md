@@ -154,7 +154,7 @@ Two mechanisms are in play, and they cover different cases:
 Android freezes a channel's settings when the channel is first created, so these cannot be changed by an app update - only by shipping a new channel id.
 :::
 
-To check it works, send a test notification to the device from **User Settings > Notification Methods > Push Notifications**. When the device has critical alerts enabled, the test is sent as a critical alert too - so silence the phone first, and you will hear whether a real page would reach you.
+To check it works, send a test notification to the device from **User Settings > Notification Methods > Push Notifications**. When the device has critical alerts enabled, the test is sent as a critical alert too - so silence the phone first, and you will hear whether a real page would reach you. The same list shows whether each device has critical alerts on and, for a phone that does not, how to turn them on.
 
 ### Choosing the alarm sound
 

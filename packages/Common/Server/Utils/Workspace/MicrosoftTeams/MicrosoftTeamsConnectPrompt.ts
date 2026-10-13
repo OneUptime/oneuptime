@@ -17,9 +17,12 @@ import WorkspaceConnectRequest, {
 import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../WorkspaceMemberActions";
+import { WorkspaceCommandName } from "../WorkspaceCommands";
+import WorkspaceConnectPromptOnce, {
+  WorkspaceConnectPromptClaim,
+  WorkspaceConversationPerson,
+} from "../WorkspaceConnectPromptOnce";
 import {
-  CREATE_INCIDENT_COMMAND,
-  CREATE_MAINTENANCE_COMMAND,
   MicrosoftTeamsAlertActionType,
   MicrosoftTeamsAlertEpisodeActionType,
   MicrosoftTeamsIncidentActionType,
@@ -274,24 +277,30 @@ const CREATE_PRESSES: ReadonlyMap<
 > = new Map<string, { purpose: string; command: string }>([
   [
     MicrosoftTeamsIncidentActionType.NewIncident,
-    { purpose: "declare an incident", command: CREATE_INCIDENT_COMMAND },
+    {
+      purpose: "declare an incident",
+      command: WorkspaceCommandName.Incident,
+    },
   ],
   [
     MicrosoftTeamsIncidentActionType.SubmitNewIncident,
-    { purpose: "declare an incident", command: CREATE_INCIDENT_COMMAND },
+    {
+      purpose: "declare an incident",
+      command: WorkspaceCommandName.Incident,
+    },
   ],
   [
     MicrosoftTeamsScheduledMaintenanceActionType.NewScheduledMaintenance,
     {
       purpose: "create a scheduled maintenance event",
-      command: CREATE_MAINTENANCE_COMMAND,
+      command: WorkspaceCommandName.Maintenance,
     },
   ],
   [
     MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance,
     {
       purpose: "create a scheduled maintenance event",
-      command: CREATE_MAINTENANCE_COMMAND,
+      command: WorkspaceCommandName.Maintenance,
     },
   ],
 ]);
@@ -356,8 +365,8 @@ export default class MicrosoftTeamsConnectPrompt {
   }
 
   /*
-   * A command typed to the bot - "create incident" - from an account not
-   * connected yet: typed again once it is.
+   * A command typed to the bot - "incident" - from an account not connected
+   * yet: typed again once it is.
    */
   public static describeCommand(data: {
     purpose: string;
@@ -379,14 +388,14 @@ export default class MicrosoftTeamsConnectPrompt {
    * project. The press is recorded to be finished, or answered, there once
    * it is connected. When it cannot be recorded (the cache is down), the
    * answer still says to connect, with a link to the settings page without
-   * the press. Never throws.
+   * the press. True once the reply is sent. Never throws.
    */
   @CaptureSpan()
   public static async prompt(data: {
     turnContext: TurnContext;
     projectId: ObjectID;
     description: WorkspacePressDescription;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const activity: JSONObject = data.turnContext
       .activity as unknown as JSONObject;
 
@@ -412,7 +421,7 @@ export default class MicrosoftTeamsConnectPrompt {
         })
       : await MicrosoftTeamsConnectPrompt.getSettingsLink(data.projectId);
 
-    await MicrosoftTeamsActionAnswer.reply({
+    return await MicrosoftTeamsActionAnswer.reply({
       turnContext: data.turnContext,
       answer: WorkspaceActionAnswers.getConnectPrompt({
         workspaceType: WorkspaceType.MicrosoftTeams,
@@ -423,6 +432,73 @@ export default class MicrosoftTeamsConnectPrompt {
       }),
       connectUrl: link.url,
     });
+  }
+
+  /*
+   * A question to OneUptime AI - typed in a personal chat, or after
+   * @OneUptime in a channel or a group chat - from a Microsoft Teams
+   * account not connected yet: prompted as `prompt` does, once in the
+   * conversation (a channel's thread, a chat), and not again there while
+   * the Connect button it carries works (WorkspaceConnectPromptOnce). The
+   * card stays in the conversation, so asking again there is answered by
+   * it. True once the reply is sent, false when it could not be (and the
+   * next question there is prompted), null when they were asked there
+   * already. Never throws.
+   */
+  @CaptureSpan()
+  public static async promptOnce(data: {
+    turnContext: TurnContext;
+    projectId: ObjectID;
+    description: WorkspacePressDescription;
+  }): Promise<boolean | null> {
+    const claim: WorkspaceConnectPromptClaim | null =
+      await WorkspaceConnectPromptOnce.claim(
+        MicrosoftTeamsConnectPrompt.getConversation(
+          data.turnContext.activity as unknown as JSONObject,
+        ),
+      );
+
+    if (!claim) {
+      return null;
+    }
+
+    const isPrompted: boolean = await MicrosoftTeamsConnectPrompt.prompt(data);
+
+    if (!isPrompted) {
+      await claim.release();
+    }
+
+    return isPrompted;
+  }
+
+  /*
+   * The conversation an activity came in, and who sent it, for its one
+   * Connect prompt: a channel's thread ("<channel>;messageid=<post>"), a
+   * group chat or a personal chat, in the sender's Microsoft 365 tenant.
+   */
+  public static getConversation(
+    activity: JSONObject,
+  ): WorkspaceConversationPerson {
+    const conversation: JSONObject =
+      (activity["conversation"] as JSONObject | undefined) || {};
+    const from: JSONObject = (activity["from"] as JSONObject | undefined) || {};
+    const tenantId: unknown =
+      (
+        (activity["channelData"] as JSONObject | undefined)?.["tenant"] as
+          | JSONObject
+          | undefined
+      )?.["id"] || conversation["tenantId"];
+
+    return {
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      workspaceId: typeof tenantId === "string" ? tenantId : "",
+      conversationId:
+        typeof conversation["id"] === "string" ? conversation["id"] : "",
+      // The Microsoft Entra object id, else the Teams id.
+      workspaceUserId:
+        (typeof from["aadObjectId"] === "string" && from["aadObjectId"]) ||
+        (typeof from["id"] === "string" ? from["id"] : ""),
+    };
   }
 
   // The settings page alone, for a press that cannot be recorded.

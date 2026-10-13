@@ -3,6 +3,7 @@ import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
+import StatusPageSubscriber from "../../../../Models/DatabaseModels/StatusPageSubscriber";
 import ToolImportRecord from "../../../../Models/DatabaseModels/ToolImportRecord";
 import AlertSeverityService from "../../../../Server/Services/AlertSeverityService";
 import IncidentCustomFieldService from "../../../../Server/Services/IncidentCustomFieldService";
@@ -33,6 +34,8 @@ import ToolImportProjectStateReader from "../../../../Server/Utils/ToolImport/To
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import ToolImportResourceKind from "../../../../Types/ToolImport/ToolImportResourceKind";
+import { FindOperator } from "typeorm";
 
 /*
  * OneUptime's services as the applier unit tests see them: every create the
@@ -105,6 +108,24 @@ function severityRecord<T extends IncidentSeverity | AlertSeverity>(
 }
 
 /*
+ * The ids a read by id names (QueryHelper.any on `_id`), lowercase, or null
+ * when it names none.
+ */
+export function idsNamedBy(value: unknown): Set<string> | null {
+  if (!(value instanceof FindOperator)) {
+    return null;
+  }
+
+  return new Set<string>(
+    Object.values(value.objectLiteralParameters || {})
+      .flat()
+      .map((id: unknown): string => {
+        return String(id).toLowerCase();
+      }),
+  );
+}
+
+/*
  * A readable name as a UUID, the same every time: "status-offline" is
  * always the same id, so a test can name the record it expects.
  */
@@ -164,6 +185,17 @@ export class ApplierWorld {
       .mockImplementation((async (): Promise<Array<ToolImportRecord>> => {
         return this.records.map((record: ToolImportRecord) => {
           return record;
+        });
+      }) as never);
+
+    // Every row of a kind, as a read of all of them pages through.
+    jest
+      .spyOn(ToolImportRecordService, "findAllBy")
+      .mockImplementation((async (args: {
+        query: { kind?: ToolImportResourceKind };
+      }): Promise<Array<ToolImportRecord>> => {
+        return this.records.filter((record: ToolImportRecord) => {
+          return !args.query.kind || record.kind === args.query.kind;
         });
       }) as never);
 
@@ -259,6 +291,21 @@ export class ApplierWorld {
       this.reads.push("MonitorStatus");
       return this.statuses;
     }) as never);
+
+    // The subscribers it made, read back by id.
+    jest
+      .spyOn(StatusPageSubscriberService, "findBy")
+      .mockImplementation((async (args: {
+        query: { _id?: unknown };
+      }): Promise<Array<StatusPageSubscriber>> => {
+        const ids: Set<string> | null = idsNamedBy(args.query._id);
+
+        return this.dataOf<StatusPageSubscriber>("StatusPageSubscriber").filter(
+          (subscriber: StatusPageSubscriber) => {
+            return !ids || ids.has(subscriber.id!.toString().toLowerCase());
+          },
+        );
+      }) as never);
 
     jest
       .spyOn(IncidentSeverityService, "findBy")

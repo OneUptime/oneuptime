@@ -1,5 +1,10 @@
-import { appendQueryFrom, redirectPreservingQuery } from "../Utils/Redirect";
+import {
+  appendQueryFrom,
+  redirectPreservingQuery,
+  RedirectStatusCode,
+} from "../Utils/Redirect";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
 
@@ -43,6 +48,23 @@ const makeResponse: MakeResponseFunction = (
       recorded.url = first;
     },
   } as unknown as ExpressResponse;
+};
+
+type PermanentRedirectCallFunction = (target: string) => RegExp;
+
+/*
+ * A call to the helper that names `target` and a permanent 301, laid out the
+ * way Prettier lays it out: on one line, or one argument per line once it no
+ * longer fits.
+ */
+const permanentRedirectCall: PermanentRedirectCallFunction = (
+  target: string,
+): RegExp => {
+  const escapedTarget: string = escapeRegExp(target);
+
+  return new RegExp(
+    `redirectPreservingQuery\\(\\s*req,\\s*res,\\s*"${escapedTarget}",\\s*301,?\\s*\\)`,
+  );
 };
 
 describe("appendQueryFrom", () => {
@@ -131,18 +153,42 @@ describe("redirectPreservingQuery", () => {
     expect(recorded.url).toBe("/enterprise/self-hosted?gclid=abc");
   });
 
-  test("a temporary redirect passes no status code, so Express defaults to 302", () => {
+  test("a temporary redirect has to ask for one, and gets exactly that", () => {
     const recorded: RecordedRedirect = { statusCode: null, url: null };
 
     redirectPreservingQuery(
       makeRequest("/on-call?gclid=abc"),
       makeResponse(recorded),
       "/product/on-call",
+      302,
     );
 
-    expect(recorded.statusCode).toBeNull();
+    expect(recorded.statusCode).toBe(302);
     expect(recorded.url).toBe("/product/on-call?gclid=abc");
   });
+
+  test.each([[301], [302], [303], [307], [308]] as Array<[RedirectStatusCode]>)(
+    "a %d reaches Express as given, never left to Express's 302 default",
+    (statusCode: RedirectStatusCode) => {
+      /*
+       * Leaving the status out is how /on-call and /incident-management came
+       * to answer with a temporary 302 for years. Express only picks its
+       * default when it is handed a bare URL, so the helper must never hand it
+       * one.
+       */
+      const recorded: RecordedRedirect = { statusCode: null, url: null };
+
+      redirectPreservingQuery(
+        makeRequest("/incident-management?utm_source=x"),
+        makeResponse(recorded),
+        "/product/incident-management",
+        statusCode,
+      );
+
+      expect(recorded.statusCode).toBe(statusCode);
+      expect(recorded.url).toBe("/product/incident-management?utm_source=x");
+    },
+  );
 });
 
 /*
@@ -217,7 +263,7 @@ describe("route table wiring", () => {
     ["/incident-management", "/product/incident-management"],
     ["/ai-agent", "/product/ai-agent"],
   ])(
-    "%s redirects through the query-preserving helper",
+    "%s redirects permanently through the query-preserving helper",
     (routePath: string, target: string) => {
       const declaration: number = routesSource.indexOf(
         `app.get("${routePath}"`,
@@ -233,8 +279,77 @@ describe("route table wiring", () => {
       const nextRoute: number = rest.indexOf("app.get(", 1);
       const body: string = nextRoute === -1 ? rest : rest.slice(0, nextRoute);
 
-      expect(body).toContain(`redirectPreservingQuery(req, res, "${target}"`);
+      expect(body).toMatch(permanentRedirectCall(target));
       expect(body).not.toContain("_req");
     },
   );
+
+  test("every redirect in the route table is a permanent 301", () => {
+    /*
+     * Each of these is an alias for a page that has moved for good. A new
+     * one that genuinely is temporary should be argued for here, not slip in.
+     */
+    const calls: number = (
+      routesSource.match(/redirectPreservingQuery\(/g) || []
+    ).length;
+    const permanentCalls: number = (
+      routesSource.match(
+        /redirectPreservingQuery\(\s*req,\s*res,\s*"[^"]+",\s*301,?\s*\)/g,
+      ) || []
+    ).length;
+
+    expect(calls).toBeGreaterThanOrEqual(14);
+    expect(permanentCalls).toBe(calls);
+  });
+
+  test("the infrastructure agent installer stays a temporary redirect", () => {
+    /*
+     * Deliberately not a 301. It points at a file on a branch of the
+     * repository, which is where the script happens to live today; a 301 is
+     * cached by browsers and proxies for good, so a client that once saw one
+     * would keep fetching that address after the script moved or came to be
+     * served from this image, as /install.sh now is. It is not a page, so no
+     * search ranking rides on it either.
+     */
+    expect(routesSource).toMatch(
+      /app\.get\(\s*"\/infrastructure-agent\/install\.sh",[\s\S]{0,400}?res\.redirect\(\s*"https:\/\/raw\.githubusercontent\.com\/OneUptime\/oneuptime\/release\//,
+    );
+  });
+});
+
+describe("blog route wiring", () => {
+  const blogApiSource: string = fs.readFileSync(
+    path.join(__dirname, "..", "API", "BlogAPI.ts"),
+    "utf-8",
+  );
+
+  test("an old blog post address moves permanently to the post", () => {
+    const start: number = blogApiSource.indexOf('"/blog/post/:file",');
+
+    expect(start).toBeGreaterThan(-1);
+
+    const rest: string = blogApiSource.slice(start);
+    const body: string = rest.slice(0, rest.indexOf("app.get("));
+
+    /*
+     * The post's own address is /view and always will be. Common's
+     * Response.redirect sends Express's default 302, which kept the old
+     * address in search results in place of the post's.
+     */
+    expect(body).toMatch(
+      /redirectPreservingQuery\(\s*req,\s*res,\s*`\/blog\/post\/\$\{encodeURIComponent\(fileName\)\}\/view`,\s*301,?\s*\)/,
+    );
+  });
+
+  /*
+   * Every redirect the blog sends names its status. A res.redirect whose first
+   * argument is not a status code is Express's temporary 302 default. The
+   * pagination and tag-feed redirects call res.redirect(301, ...) directly
+   * rather than redirectPreservingQuery, because they drop the page and
+   * pageSize parameters the helper would carry over.
+   */
+  test("the blog serves no redirect through Express's 302 default", () => {
+    expect(blogApiSource).not.toContain("Response.redirect(");
+    expect(blogApiSource).not.toMatch(/res\.redirect\((?!\s*30[1-8]\b)/);
+  });
 });

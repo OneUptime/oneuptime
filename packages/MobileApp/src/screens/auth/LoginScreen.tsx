@@ -353,10 +353,15 @@ export default function LoginScreen(): React.JSX.Element {
       </View>
       {showPasskeyHelp ? (
         <Card variant="tinted" padding={spacing.lg}>
+          {/*
+           * The menu as the web dashboard draws it. "Passkeys & Two Factor
+           * Auth" was retired there; the web sign-in page's help names the
+           * same path.
+           */}
           <AppText variant="subhead" tone="secondary">
-            Sign in on the OneUptime website with your password or SSO. In your
-            profile, open Passkeys &amp; Two Factor Auth to add a passkey. Use
-            that passkey here on the same server.
+            Sign in on the OneUptime website with your password or SSO, then
+            open User Profile → Security → Passkeys to add a passkey. Use that
+            passkey here on the same server.
           </AppText>
         </Card>
       ) : null}

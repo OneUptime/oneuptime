@@ -5,7 +5,7 @@ OneUptime 을 Slack 에 연결하면 인시던트, 경고, 에피소드, 예정�
 :::cards
 - [Slack 연결하기](#slack-연결하기): 워크스페이스에 OneUptime 을 설치한 다음 자신의 계정을 연결합니다.
 - [알림 규칙](#알림-규칙): 어떤 이벤트를 어디에 게시하고, 어떤 이벤트에 전용 채널을 줄지 정합니다.
-- [Slack 에서 인시던트와 유지 관리 만들기](#slack-에서-인시던트와-유지-관리-만들기): `/incident` 와 `/maintenance` 를 본인으로서 사용합니다.
+- [/oneuptime 명령](#oneuptime-명령): 인시던트를 선언하고, 유지 관리를 예약하고, 온콜 담당자를 확인하고, AI 에게 질문합니다.
 - [Slack 에서 인시던트, 경고, 이벤트 조치하기](#slack-에서-인시던트-경고-이벤트-조치하기): OneUptime 메시지의 버튼입니다.
 :::
 
@@ -125,13 +125,36 @@ OneUptime Cloud 에서 알림 규칙과 요약은 **Growth** 플랜 이상에서
 
 메모는 본인으로서, 본인의 권한으로 저장되므로 자신의 Slack 계정이 연결되어 있어야 합니다. 몇 명이 반응하든 메시지는 한 번만 저장됩니다.
 
+## /oneuptime 명령
+
+OneUptime 의 Slack 명령은 `/oneuptime` 하나입니다. 그 뒤에 입력하는 단어가 할 일을 정하고, 그 밖의 내용은 OneUptime AI 에게 하는 질문이 됩니다.
+
+| 명령 | 하는 일 |
+| --- | --- |
+| `/oneuptime help` | 명령 목록을 예와 함께 보여 줍니다. |
+| `/oneuptime incident [title]` | 제목이 채워진 인시던트 양식을 엽니다. |
+| `/oneuptime maintenance [title]` | 제목이 채워진 예정된 유지 관리 양식을 엽니다. |
+| `/oneuptime oncall` | 볼 수 있는 각 온콜 스케줄에서 지금 온콜인 사람, 언제까지인지, 다음은 누구인지 나열합니다. |
+| `/oneuptime ask [question]`, 또는 모든 질문 | OneUptime AI 가 로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 답변합니다. |
+
+`help` 와 `oncall` 의 답변은 명령 아래에 나만 보이는 메시지로 표시됩니다. `incidnet` 처럼 첫 단어가 명령의 오타로 보이면, OneUptime AI 의 답변 대신 비슷한 명령을 받습니다. 인시던트와 유지 관리 양식은 본인으로서 동작합니다. [Slack 에서 인시던트와 유지 관리 만들기](#slack-에서-인시던트와-유지-관리-만들기) 을 참조하세요.
+
+> [!NOTE]
+> `/oneuptime incident` 와 `/oneuptime maintenance` 가, 다른 Slack 앱의 같은 이름 명령과 충돌할 수 있던 `/incident` 와 `/maintenance` 를 대신합니다. 이전 매니페스트로 만든 Slack 앱은 앱이 업데이트될 때까지 이 명령을 유지하며, 같은 양식을 엽니다. [이전 매니페스트로 만든 앱](/docs/self-hosted/slack-integration#이전-매니페스트로-만든-앱) 을 참조하세요.
+
 ## Slack 에서 OneUptime AI 에게 질문하기
 
-로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 일상적인 말로 질문하세요. 채널에서 OneUptime 을 @멘션하거나 다이렉트 메시지를 보내면 스레드에서 답변하며, 더 질문하려면 그 스레드에 답글을 답니다. `/oneuptime ask which monitors are down?` 은 답변을 채널에 게시합니다. 두 방법 모두 자신의 Slack 계정이 연결되어 있고 프로젝트에서 AI 가 켜져 있어야 합니다. Slack 의 답변은 읽기만 합니다. 무언가를 변경하려면 버튼을 사용하세요. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
+로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 일상적인 말로 질문하세요. 채널에서 OneUptime 을 @멘션하거나 다이렉트 메시지를 보내면 스레드에서 답변합니다. `/oneuptime ask which monitors are down?` 은 답변을 채널에 게시합니다. 두 방법 모두 자신의 Slack 계정이 연결되어 있고 프로젝트에서 AI 가 켜져 있어야 합니다. Slack 의 답변은 읽기만 합니다. 무언가를 변경하려면 버튼을 사용하세요. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
+
+OneUptime 은 자신에게 향한 것에만 답변합니다.
+
+- **자신의 대화에서는 답글만 달면 됩니다.** 스레드가 아닌 채널에서 질문하면 그 아래 스레드에서 대화가 시작됩니다. 거기에 답글을 달면 OneUptime 을 다시 멘션하지 않아도 계속 질문할 수 있고, 다른 사람은 OneUptime 을 멘션해서 대화에 참여합니다.
+- **그 밖의 스레드에서는 OneUptime 을 멘션합니다.** 예를 들어 인시던트 메시지 아래의 스레드에서는 매번 멘션하세요. 그곳에서 사람들이 서로 주고받는 글에는 답변하지 않습니다.
+- **Slack 계정이 연결되어 있지 않은 경우.** OneUptime 은 대화마다 한 번, 본인에게만 보이는 메시지로 **Connect Slack account** 버튼과 함께 연결을 요청합니다.
 
 ## Slack 에서 인시던트와 유지 관리 만들기
 
-`/incident` 와 `/maintenance` 는 본인이 작성해 본인으로서 제출하는 양식을 엽니다. 자신의 Slack 계정이 연결된 OneUptime 계정 ( [Slack 연결하기](#slack-연결하기) 참조) 으로서, 그 계정의 프로젝트 권한으로 제출됩니다. Slack 계정이 연결되어 있지 않거나 OneUptime 계정이 더 이상 프로젝트의 멤버가 아니면, OneUptime 이 명령을 실행한 곳에서 본인에게만 보이는 메시지로 무엇을 해야 하는지 알려 주며 양식은 열리지 않습니다. **Create New Incident** 와 **Create Scheduled Event** 바로 가기도 같은 양식을 엽니다.
+`/oneuptime incident` 와 `/oneuptime maintenance` 는 본인이 작성해 본인으로서 제출하는 양식을 엽니다. 자신의 Slack 계정이 연결된 OneUptime 계정 ( [Slack 연결하기](#slack-연결하기) 참조) 으로서, 그 계정의 프로젝트 권한으로 제출됩니다. Slack 계정이 연결되어 있지 않거나 OneUptime 계정이 더 이상 프로젝트의 멤버가 아니면, OneUptime 이 명령을 실행한 곳에서 본인에게만 보이는 메시지로 무엇을 해야 하는지 알려 주며 양식은 열리지 않습니다. **Create New Incident** 와 **Create Scheduled Event** 바로 가기도 같은 양식을 엽니다.
 
 - **사용할 수 있는 사람.** OneUptime 에서 인시던트를 선언하거나 예정된 유지 관리 이벤트를 만들 수 있는 사람입니다. 인시던트에는 **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member** (사용자 지정 역할에서는 **Create Incident** ), 이벤트에는 **Scheduled Maintenance Admin** 과 **Scheduled Maintenance Member** ( **Create Scheduled Maintenance** ) 입니다. 그 밖의 사람에게는 명령을 실행한 곳에서 그렇게 알리며 양식은 열리지 않습니다.
 - **양식이 제공하는 것.** 각 목록 (심각도, 모니터, 모니터 상태, 온콜 정책, 레이블) 에는 OneUptime 의 같은 목록과 마찬가지로 본인이 읽을 수 있는 것이 들어 있습니다. 일부 레이블로 제한된 역할이라면 그 레이블이 붙은 모니터와 온콜 정책입니다. 전혀 읽을 수 없는 목록은 양식에서 빠집니다. 보관된 온콜 정책은 제공되지 않습니다.
@@ -169,6 +192,10 @@ Slack 이 연결 없이 돌려보내면, 시작한 페이지에 **Slack이 연�
 
 :::details 버튼이나 명령에서 Slack 계정이 연결되지 않았다고 표시됨
 그 답변의 **Connect Slack account** 를 눌러 한 단계로 연결하거나, **사용자 설정** > **워크스페이스** > **Slack** 에서 **Connect my account with Slack** 으로 연결하세요. 더 이상 프로젝트의 멤버가 아니면 OneUptime 이 대신 그렇게 알리고, 본인을 위해 아무것도 조치하지 않습니다.
+:::
+
+:::details 스레드의 답글에 OneUptime 이 답변하지 않음
+멘션이 없는 답글에는 OneUptime AI 와의 본인 대화, 즉 채널에서 질문한 글 아래의 스레드에서만 답변합니다. 그 밖의 스레드, 예를 들어 인시던트 메시지 아래의 스레드에서는 OneUptime 을 @멘션하세요. Slack 계정이 연결되어 있지 않으면 OneUptime 은 메시지마다가 아니라 대화마다 한 번만 연결을 요청합니다. 그 메시지의 **Connect Slack account** 를 누르거나, **사용자 설정** > **워크스페이스** > **Slack** 에서 연결하세요. [Slack 에서 OneUptime AI 에게 질문하기](#slack-에서-oneuptime-ai-에게-질문하기) 를 참조하세요.
 :::
 
 :::details 알림은 도착하지만 버튼과 명령이 아무것도 하지 않음

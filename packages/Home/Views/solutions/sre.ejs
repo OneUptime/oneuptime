@@ -4,13 +4,13 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime for SRE | Reliability Engineering Platform with SLOs & Error Budgets</title>
-    <meta name="description"
-        content="SRE-first observability platform with SLOs, error budgets, incident management, and postmortems. Reduce toil, improve reliability, and balance velocity with stability.">
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
         <%- include('../head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
+        <%- include('../Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>

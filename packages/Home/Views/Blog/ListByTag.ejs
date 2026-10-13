@@ -4,13 +4,18 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-  <title>Latest Posts on <%= tagName %> - OneUptime Blog</title>
-  <meta name="description" content="Read our latest posts on <%= tagName %>.">
+  <%
+    // Each page of a tag is a page of its own (its own canonical), so each has a title of its own.
+    const pageLabel = page > 1 ? ' - Page ' + page : '';
+  %>
+  <title>Latest Posts on <%= tagName %><%= pageLabel %> - OneUptime Blog</title>
+  <meta name="description" content="Read our latest posts on <%= tagName %><%= page > 1 ? ' (page ' + page + ')' : '' %>.">
   <meta name="robots" content="noindex, follow">
   <%- include('../head') -%>
-  <link rel="alternate" type="application/rss+xml" title="OneUptime Blog - <%= tagName %> RSS Feed" href="/blog/tag/<%= tagSlug %>/rss.xml">
+  <link rel="alternate" type="application/rss+xml" title="OneUptime Blog - <%= tagName %> RSS Feed" href="<%= tagFeedPath %>">
 
 
+  <%- include('../Partials/tailwind-stylesheet') -%>
 </head>
 
 
@@ -25,7 +30,7 @@
           <%- include('./Partials/BlogTitleAndDescription', { title: 'Latest posts on '+tagName, smallTitle: "", description: 'Here are some of the latest posts on '+tagName }) -%>
 
           <div class="flex justify-center items-center gap-3 mb-6">
-            <a href="/blog/tag/<%= tagSlug %>/rss.xml" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 border border-gray-200 rounded-full hover:text-orange-600 hover:border-orange-300 hover:bg-orange-50 transition-all duration-200">
+            <a href="<%= tagFeedPath %>" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 border border-gray-200 rounded-full hover:text-orange-600 hover:border-orange-300 hover:bg-orange-50 transition-all duration-200">
               <svg class="w-4 h-4 text-orange-400" viewBox="0 0 24 24" fill="currentColor"><path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1Z"/></svg>
               <%= tagName %> RSS
             </a>
@@ -42,7 +47,7 @@
                   <%- include('./Partials/ListItem', { blogPost: blogPosts[i] }) -%>
                 <% } %>
               </div>
-              <%- include('./Partials/Pagination', { page: page, pageSize: pageSize, totalPages: totalPages, totalPosts: totalPosts, basePath: basePath }) -%>
+              <%- include('./Partials/Pagination', { page: page, pageSize: pageSize, totalPages: totalPages, totalPosts: totalPosts, pagePath: pagePath }) -%>
             <% } else { %>
               <div class="text-center text-gray-600 text-lg py-12">No posts found for this tag.</div>
             <% } %>

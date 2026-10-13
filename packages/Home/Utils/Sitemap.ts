@@ -4,7 +4,10 @@ import BlogPostUtil, { BlogPostHeader } from "./BlogPost";
 import OneUptimeDate from "Common/Types/Date";
 import URL from "Common/Types/API/URL";
 import { getProductCompareSlugs } from "./ProductCompare";
-import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import Express, {
+  ExpressApplication,
+  ExpressResponse,
+} from "Common/Server/Utils/Express";
 
 // Priority and changefreq configuration for different page types
 type ChangeFrequency =
@@ -84,9 +87,8 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/about": { priority: 0.7, changefreq: "weekly" },
   "/support": { priority: 0.7, changefreq: "weekly" },
 
-  // Documentation and reference
-  "/docs": { priority: 0.7, changefreq: "weekly" },
-  "/reference": { priority: 0.7, changefreq: "weekly" },
+  // The comparisons' hub; each comparison is in the compare sitemap.
+  "/compare": { priority: 0.8, changefreq: "weekly" },
 
   // Books and blog
   "/books": { priority: 0.7, changefreq: "monthly" },
@@ -114,14 +116,40 @@ export const REDIRECT_PATHS: Set<string> = new Set<string>([
   "/runbooks",
   "/on-call",
   "/scheduled-maintenance",
+  "/incident-management",
+  "/ai-agent",
+  // The Terms of Service, which /legal/terms is.
+  "/legal",
 ]);
+
+/*
+ * Redirects this service has no route for: the ingress hands /docs and
+ * /reference to the app (Nginx/default.conf.template), which sends a reader
+ * on to the first page in their language. Their pages are listed in the
+ * docs' and the reference's own sitemaps (DOCS_SITEMAP_PATH and
+ * REFERENCE_SITEMAP_PATH below).
+ */
+export const APP_REDIRECT_PATHS: Set<string> = new Set<string>([
+  "/docs",
+  "/reference",
+]);
+
+/*
+ * The sitemaps of the docs and the API reference. The app serves those pages
+ * and builds their sitemaps from them (App/FeatureSet/Docs/Utils/Sitemap.ts,
+ * App/FeatureSet/APIReference/Utils/Sitemap.ts); the ingress serves the two
+ * at these paths, at the site's root (Nginx/default.conf.template), so the
+ * index below can list them beside this service's own.
+ */
+export const DOCS_SITEMAP_PATH: string = "/sitemap-docs.xml";
+export const REFERENCE_SITEMAP_PATH: string = "/sitemap-reference.xml";
 
 export type IsRedirectPathFunction = (path: string) => boolean;
 
 export const isRedirectPath: IsRedirectPathFunction = (
   path: string,
 ): boolean => {
-  return REDIRECT_PATHS.has(path);
+  return REDIRECT_PATHS.has(path) || APP_REDIRECT_PATHS.has(path);
 };
 
 // Default config for pages not explicitly listed
@@ -136,12 +164,6 @@ const BLOG_POST_CONFIG: SitemapPageConfig = {
   changefreq: "monthly",
 };
 
-// Blog tag config
-const BLOG_TAG_CONFIG: SitemapPageConfig = {
-  priority: 0.4,
-  changefreq: "weekly",
-};
-
 // Compare page config
 const COMPARE_PAGE_CONFIG: SitemapPageConfig = {
   priority: 0.7,
@@ -150,9 +172,6 @@ const COMPARE_PAGE_CONFIG: SitemapPageConfig = {
 
 // Number of blog posts per sitemap file
 const BLOG_POSTS_PER_SITEMAP: number = 1000;
-
-// Number of tags per sitemap file
-const TAGS_PER_SITEMAP: number = 500;
 
 // Cache TTL: 10 minutes
 const TTL_MS: number = 10 * 60 * 1000;
@@ -166,14 +185,10 @@ interface CachedData<T> {
 let indexCache: CachedData<string> | null = null;
 let pagesCache: CachedData<string> | null = null;
 let compareCache: CachedData<string> | null = null;
-const tagsCaches: Map<number, CachedData<string>> = new Map();
 const blogCaches: Map<number, CachedData<string>> = new Map();
 
 // Cache for blog post count to avoid repeated fetches
 let blogPostCountCache: CachedData<number> | null = null;
-
-// Cache for tags count
-let tagsCountCache: CachedData<number> | null = null;
 
 function isCacheValid<T>(cache: CachedData<T> | null | undefined): boolean {
   if (!cache) {
@@ -197,9 +212,17 @@ function getPageConfig(path: string): SitemapPageConfig {
   return DEFAULT_CONFIG;
 }
 
+/*
+ * `lastmod` is given only where a real date is known: a blog post's date, and
+ * for a blog sitemap the newest of its posts'. A static page, a comparison,
+ * the docs and the reference have none, so theirs is left out rather than
+ * set to the moment the sitemap was generated. A date that changes on every
+ * fetch tells a crawler every page changed every time it looked, and it
+ * learns to ignore every date the site gives - the real ones too.
+ */
 interface SitemapEntry {
   loc: string;
-  lastmod: string;
+  lastmod?: string | undefined;
   priority: number;
   changefreq: ChangeFrequency;
 }
@@ -211,7 +234,9 @@ function buildUrlsetXml(entries: SitemapEntry[]): string {
   for (const entry of entries) {
     const urlEle: XMLBuilder = urlset.ele("url");
     urlEle.ele("loc").txt(entry.loc);
-    urlEle.ele("lastmod").txt(entry.lastmod);
+    if (entry.lastmod) {
+      urlEle.ele("lastmod").txt(entry.lastmod);
+    }
     urlEle.ele("changefreq").txt(entry.changefreq);
     urlEle.ele("priority").txt(entry.priority.toFixed(1));
   }
@@ -221,7 +246,7 @@ function buildUrlsetXml(entries: SitemapEntry[]): string {
 
 interface SitemapIndexEntry {
   loc: string;
-  lastmod: string;
+  lastmod?: string | undefined;
 }
 
 function buildSitemapIndexXml(entries: SitemapIndexEntry[]): string {
@@ -231,10 +256,65 @@ function buildSitemapIndexXml(entries: SitemapIndexEntry[]): string {
   for (const entry of entries) {
     const sitemapEle: XMLBuilder = sitemapindex.ele("sitemap");
     sitemapEle.ele("loc").txt(entry.loc);
-    sitemapEle.ele("lastmod").txt(entry.lastmod);
+    if (entry.lastmod) {
+      sitemapEle.ele("lastmod").txt(entry.lastmod);
+    }
   }
 
   return sitemapindex.end({ prettyPrint: true });
+}
+
+export type GetPostLastmodFunction = (
+  postDate: string | undefined,
+) => string | undefined;
+
+// A post's own date, as a sitemap gives it; undefined when it is no date.
+export const getPostLastmod: GetPostLastmodFunction = (
+  postDate: string | undefined,
+): string | undefined => {
+  if (!postDate) {
+    return undefined;
+  }
+
+  const date: Date = new Date(postDate);
+
+  return isNaN(date.getTime()) ? undefined : date.toISOString();
+};
+
+/*
+ * The lightweight post list (no git-history contributors). The sitemap only
+ * needs the posts' addresses and dates, and resolving contributors runs an
+ * expensive `git log` over the whole blog repo that previously timed the
+ * sitemap index out (504).
+ */
+async function getBlogPosts(): Promise<Array<BlogPostHeader>> {
+  return await BlogPostUtil.getBlogPostList();
+}
+
+// The posts one blog sitemap (1-indexed) lists.
+function getPostsOfBlogSitemap(
+  blogPosts: Array<BlogPostHeader>,
+  page: number,
+): Array<BlogPostHeader> {
+  const startIndex: number = (page - 1) * BLOG_POSTS_PER_SITEMAP;
+  return blogPosts.slice(startIndex, startIndex + BLOG_POSTS_PER_SITEMAP);
+}
+
+// The newest date of the posts a blog sitemap lists: when it last changed.
+function getBlogSitemapLastmod(
+  posts: Array<BlogPostHeader>,
+): string | undefined {
+  let newest: string | undefined = undefined;
+
+  for (const post of posts) {
+    const lastmod: string | undefined = getPostLastmod(post.postDate);
+
+    if (lastmod && (!newest || lastmod > newest)) {
+      newest = lastmod;
+    }
+  }
+
+  return newest;
 }
 
 // Get total blog post count (cached)
@@ -243,13 +323,7 @@ async function getBlogPostCount(): Promise<number> {
     return blogPostCountCache!.data;
   }
 
-  /*
-   * Use the lightweight list (no git-history contributors). The sitemap only
-   * needs the post count, and resolving contributors runs an expensive `git log`
-   * over the whole blog repo that previously timed the sitemap index out (504).
-   */
-  const blogPosts: Array<BlogPostHeader> = await BlogPostUtil.getBlogPostList();
-  const count: number = blogPosts.length;
+  const count: number = (await getBlogPosts()).length;
 
   blogPostCountCache = {
     data: count,
@@ -265,28 +339,24 @@ export async function getBlogSitemapPageCount(): Promise<number> {
   return Math.ceil(totalPosts / BLOG_POSTS_PER_SITEMAP);
 }
 
-// Get total tags count (cached)
-async function getTagsCount(): Promise<number> {
-  if (isCacheValid(tagsCountCache)) {
-    return tagsCountCache!.data;
-  }
+/*
+ * The blog tag sitemaps (/sitemap-tags-<n>.xml) are retired: tag pages are
+ * noindex, so a sitemap of them asked crawlers to fetch five thousand pages
+ * they are told not to index, and the index stopped listing them. The
+ * addresses answer 410 Gone, so crawlers that remember them drop them.
+ */
+export const RETIRED_SITEMAP_STATUS: number = 410;
 
-  const tags: string[] = await BlogPostUtil.getTags();
-  const count: number = tags.length;
+export type SendRetiredSitemapFunction = (res: ExpressResponse) => void;
 
-  tagsCountCache = {
-    data: count,
-    generatedAt: OneUptimeDate.getCurrentDate().getTime(),
-  };
-
-  return count;
-}
-
-// Calculate number of tags sitemap pages needed
-export async function getTagsSitemapPageCount(): Promise<number> {
-  const totalTags: number = await getTagsCount();
-  return Math.ceil(totalTags / TAGS_PER_SITEMAP);
-}
+export const sendRetiredSitemap: SendRetiredSitemapFunction = (
+  res: ExpressResponse,
+): void => {
+  res.status(RETIRED_SITEMAP_STATUS);
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("X-Robots-Tag", "noindex");
+  res.send("This sitemap has been retired.");
+};
 
 // Discover static paths from Express routes
 function discoverStaticPaths(): string[] {
@@ -355,8 +425,11 @@ function discoverStaticPaths(): string[] {
         if (isRedirectPath(p)) {
           continue;
         }
-        // We'll add compare pages separately with real slugs; skip base compare param route
-        if (p.startsWith("/compare")) {
+        /*
+         * Each comparison is in the compare sitemap, under its real slug; the
+         * hub, /compare, is a page of its own and stays here.
+         */
+        if (p.startsWith("/compare/")) {
           continue;
         }
         // Normalize slash
@@ -367,12 +440,12 @@ function discoverStaticPaths(): string[] {
       }
     }
 
-    // Ensure root present
+    /*
+     * Ensure root present. /docs and /reference are not added: both redirect
+     * (APP_REDIRECT_PATHS), and the docs' and the reference's own sitemaps
+     * list their pages (DOCS_SITEMAP_PATH, REFERENCE_SITEMAP_PATH).
+     */
     discoveredStaticPaths.add("/");
-    // Ensure docs main landing page present
-    discoveredStaticPaths.add("/docs");
-    // add /reference
-    discoveredStaticPaths.add("/reference");
   } catch {
     // If introspection fails, fall back to minimal set
     discoveredStaticPaths.add("/");
@@ -390,20 +463,22 @@ export async function generateSitemapIndexXml(): Promise<string> {
 
   const baseUrl: URL = await BlogPostUtil.getHomeUrl();
   const baseUrlString: string = baseUrl.toString().replace(/\/$/, "");
-  const timestamp: string = OneUptimeDate.getCurrentDate().toISOString();
 
+  /*
+   * A sitemap's lastmod is when its pages last changed, and only the blog's
+   * have a date: each blog sitemap is as new as its newest post. The others
+   * have none, so none is given (see SitemapEntry).
+   */
   const sitemaps: SitemapIndexEntry[] = [];
 
   // Static pages sitemap
   sitemaps.push({
     loc: `${baseUrlString}/sitemap-pages.xml`,
-    lastmod: timestamp,
   });
 
   // Compare pages sitemap
   sitemaps.push({
     loc: `${baseUrlString}/sitemap-compare.xml`,
-    lastmod: timestamp,
   });
 
   /*
@@ -412,13 +487,25 @@ export async function generateSitemapIndexXml(): Promise<string> {
    */
 
   // Blog post sitemaps (paginated)
-  const blogPageCount: number = await getBlogSitemapPageCount();
+  const blogPosts: Array<BlogPostHeader> = await getBlogPosts();
+  const blogPageCount: number = Math.ceil(
+    blogPosts.length / BLOG_POSTS_PER_SITEMAP,
+  );
   for (let i: number = 1; i <= blogPageCount; i++) {
     sitemaps.push({
       loc: `${baseUrlString}/sitemap-blog-${i}.xml`,
-      lastmod: timestamp,
+      lastmod: getBlogSitemapLastmod(getPostsOfBlogSitemap(blogPosts, i)),
     });
   }
+
+  // The docs and the API reference, served by the app (see DOCS_SITEMAP_PATH).
+  sitemaps.push({
+    loc: `${baseUrlString}${DOCS_SITEMAP_PATH}`,
+  });
+
+  sitemaps.push({
+    loc: `${baseUrlString}${REFERENCE_SITEMAP_PATH}`,
+  });
 
   const xml: string = buildSitemapIndexXml(sitemaps);
 
@@ -438,10 +525,10 @@ export async function generatePagesSitemapXml(): Promise<string> {
 
   const baseUrl: URL = await BlogPostUtil.getHomeUrl();
   const baseUrlString: string = baseUrl.toString().replace(/\/$/, "");
-  const timestamp: string = OneUptimeDate.getCurrentDate().toISOString();
 
   const staticPaths: string[] = discoverStaticPaths();
 
+  // No lastmod: a static page has no date it last changed (see SitemapEntry).
   const entries: SitemapEntry[] = staticPaths.map((p: string) => {
     const config: SitemapPageConfig = getPageConfig(p);
     const pathWithoutLeadingSlash: string = p.replace(/^\//, "");
@@ -450,7 +537,6 @@ export async function generatePagesSitemapXml(): Promise<string> {
         pathWithoutLeadingSlash === ""
           ? baseUrlString
           : `${baseUrlString}/${pathWithoutLeadingSlash}`,
-      lastmod: timestamp,
       priority: config.priority,
       changefreq: config.changefreq,
     };
@@ -485,14 +571,13 @@ export async function generateCompareSitemapXml(): Promise<string> {
 
   const baseUrl: URL = await BlogPostUtil.getHomeUrl();
   const baseUrlString: string = baseUrl.toString().replace(/\/$/, "");
-  const timestamp: string = OneUptimeDate.getCurrentDate().toISOString();
 
   const productCompareSlugs: string[] = getProductCompareSlugs();
 
+  // No lastmod: a comparison has no date it last changed (see SitemapEntry).
   const entries: SitemapEntry[] = productCompareSlugs.map((slug: string) => {
     return {
       loc: `${baseUrlString}/compare/${slug}`,
-      lastmod: timestamp,
       priority: COMPARE_PAGE_CONFIG.priority,
       changefreq: COMPARE_PAGE_CONFIG.changefreq,
     };
@@ -508,46 +593,6 @@ export async function generateCompareSitemapXml(): Promise<string> {
   return xml;
 }
 
-// Generate sitemap for blog tags (paginated)
-export async function generateTagsSitemapXml(page: number): Promise<string> {
-  const cachedTags: CachedData<string> | undefined = tagsCaches.get(page);
-  if (isCacheValid(cachedTags)) {
-    return cachedTags!.data;
-  }
-
-  const baseUrl: URL = await BlogPostUtil.getHomeUrl();
-  const baseUrlString: string = baseUrl.toString().replace(/\/$/, "");
-  const timestamp: string = OneUptimeDate.getCurrentDate().toISOString();
-
-  const allTags: string[] = await BlogPostUtil.getTags();
-
-  // Calculate slice for this page (1-indexed)
-  const startIndex: number = (page - 1) * TAGS_PER_SITEMAP;
-  const endIndex: number = startIndex + TAGS_PER_SITEMAP;
-  const tagsForPage: string[] = allTags.slice(startIndex, endIndex);
-
-  const entries: SitemapEntry[] = tagsForPage.map((tag: string) => {
-    const tagSlug: string = encodeURIComponent(
-      tag.toLowerCase().replace(/\s+/g, "-").trim(),
-    );
-    return {
-      loc: `${baseUrlString}/blog/tag/${tagSlug}`,
-      lastmod: timestamp,
-      priority: BLOG_TAG_CONFIG.priority,
-      changefreq: BLOG_TAG_CONFIG.changefreq,
-    };
-  });
-
-  const xml: string = buildUrlsetXml(entries);
-
-  tagsCaches.set(page, {
-    data: xml,
-    generatedAt: OneUptimeDate.getCurrentDate().getTime(),
-  });
-
-  return xml;
-}
-
 // Generate sitemap for blog posts (paginated)
 export async function generateBlogSitemapXml(page: number): Promise<string> {
   const cachedBlog: CachedData<string> | undefined = blogCaches.get(page);
@@ -559,16 +604,12 @@ export async function generateBlogSitemapXml(page: number): Promise<string> {
   const baseUrlString: string = baseUrl.toString().replace(/\/$/, "");
 
   // Lightweight list (no contributors) — the sitemap only needs urls + dates.
-  const blogPosts: Array<BlogPostHeader> = await BlogPostUtil.getBlogPostList();
-
-  // Calculate slice for this page (1-indexed)
-  const startIndex: number = (page - 1) * BLOG_POSTS_PER_SITEMAP;
-  const endIndex: number = startIndex + BLOG_POSTS_PER_SITEMAP;
-  const postsForPage: Array<BlogPostHeader> = blogPosts.slice(
-    startIndex,
-    endIndex,
+  const postsForPage: Array<BlogPostHeader> = getPostsOfBlogSitemap(
+    await getBlogPosts(),
+    page,
   );
 
+  // A post's own date is its lastmod: the one real date in these sitemaps.
   const entries: SitemapEntry[] = postsForPage.map((post: BlogPostHeader) => {
     const loc: string = post.blogUrl.startsWith("http")
       ? post.blogUrl
@@ -576,7 +617,7 @@ export async function generateBlogSitemapXml(page: number): Promise<string> {
 
     return {
       loc,
-      lastmod: new Date(post.postDate).toISOString(),
+      lastmod: getPostLastmod(post.postDate),
       priority: BLOG_POST_CONFIG.priority,
       changefreq: BLOG_POST_CONFIG.changefreq,
     };

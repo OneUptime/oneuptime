@@ -4,13 +4,16 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-  <title>
-    OneUptime Blog - Latest posts on Observability, Monitoring, Reliability and more.
-  </title>
-  <meta name="description" content="Learn more about Observability, Monitoring, Reliability and more.">
+  <%
+    // Each page of the list is a page of its own (its own canonical), so each has a title of its own.
+    const pageLabel = page > 1 ? ' - Page ' + page : '';
+  %>
+  <title>OneUptime Blog<%= pageLabel %> - Latest posts on Observability, Monitoring, Reliability and more.</title>
+  <meta name="description" content="<%= page > 1 ? 'Page ' + page + ' of the OneUptime Blog. ' : '' %>Learn more about Observability, Monitoring, Reliability and more.">
   <%- include('../head') -%>
 
 
+  <%- include('../Partials/tailwind-stylesheet') -%>
 </head>
 
 
@@ -68,7 +71,7 @@
                 <% } %>
               </div>
               <div id="no-search-results" class="hidden text-center text-gray-500 text-sm py-16">No posts match your search.</div>
-              <%- include('./Partials/Pagination', { page: page, pageSize: pageSize, totalPages: totalPages, totalPosts: totalPosts, basePath: basePath }) -%>
+              <%- include('./Partials/Pagination', { page: page, pageSize: pageSize, totalPages: totalPages, totalPosts: totalPosts, pagePath: pagePath }) -%>
             <% } else { %>
               <div class="text-center text-gray-600 text-lg py-12">No blog posts found.</div>
             <% } %>

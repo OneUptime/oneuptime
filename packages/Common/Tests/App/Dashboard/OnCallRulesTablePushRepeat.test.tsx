@@ -183,6 +183,7 @@ import ObjectID from "../../../Types/ObjectID";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import { getCreateFormColumnDefault } from "../../../UI/Components/Forms/Utils/CreateFormDefaults";
 import Validation from "../../../UI/Components/Forms/Validation";
 import ProjectUtil from "../../../UI/Utils/Project";
 
@@ -538,21 +539,29 @@ describe("the form that adds a rule asks how often a push repeats", () => {
     );
   });
 
-  test("starts on Don't repeat, and reads Don't repeat while it holds it", async () => {
+  test("starts on Don't repeat: its column's default, which a Create form starts it on", async () => {
     /*
-     * Through getDefaultValue rather than the column's default: the form
-     * fills a field in with a defaultValue only when that is truthy, and 0
-     * is not. The dropdown draws a 0 as no choice at all, so the placeholder
-     * - the Don't repeat option's own words - is what it shows meanwhile.
+     * The field names no default of its own: ModelForm starts a Create
+     * form's field on its column's default (CreateFormDefaults) - 0 here,
+     * which the form fills in and draws as the Don't repeat option like any
+     * other value (BasicFormFalsyDefaults). It once named its own, and a
+     * placeholder in that option's words, because the form took a 0 for no
+     * value at all.
      */
     await renderOwnTable();
 
     const field: CapturedFormField = repeatField();
 
-    expect(field.getDefaultValue).toBeDefined();
-    expect(field.getDefaultValue!({})).toBe(NO_NOTIFICATION_REPEAT);
-    expect(field.placeholder).toBe(PUSH_REPEAT_DROPDOWN_OPTIONS[0]!.label);
-    expect(field.placeholder).toBe("Don't repeat");
+    expect(field.defaultValue).toBeUndefined();
+    expect(field.getDefaultValue).toBeUndefined();
+    expect(field.placeholder).toBeUndefined();
+    expect(
+      getCreateFormColumnDefault(new UserNotificationRule(), field as never),
+    ).toBe(NO_NOTIFICATION_REPEAT);
+    expect(PUSH_REPEAT_DROPDOWN_OPTIONS[0]).toEqual({
+      value: NO_NOTIFICATION_REPEAT,
+      label: "Don't repeat",
+    });
   });
 
   test("is required while it is shown, so it never reads as optional - an interval always applies", async () => {

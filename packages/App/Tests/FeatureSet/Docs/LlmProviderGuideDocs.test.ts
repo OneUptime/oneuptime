@@ -8,6 +8,8 @@ import LLMService, {
   LLMCompletionRequest,
 } from "Common/Server/Utils/LLM/LLMService";
 import { startEachTestOnSelfHostedEgressPolicy } from "Common/Tests/Server/Utils/EgressPolicyEnvironment";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { drawnPath } from "./DocsProductsMenu";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -33,11 +35,6 @@ const CONTENT_DIR: string = path.join(
   PACKAGES_ROOT,
   "App/FeatureSet/Docs/Content",
 );
-const DASHBOARD_LOCALES_DIR: string = path.join(
-  PACKAGES_ROOT,
-  "App/FeatureSet/Dashboard/src/Locales",
-);
-
 const PAGE: string = "ai/llm-provider.md";
 
 // Registers the global provider from the GLOBAL_LLM_PROVIDER_* variables.
@@ -54,9 +51,6 @@ const SETTINGS_LAYOUT: string =
 const SETTINGS_MENU: string =
   "App/FeatureSet/Dashboard/src/Pages/Settings/SideMenu.tsx";
 const PROVIDER_MODEL: string = "Common/Models/DatabaseModels/LlmProvider.ts";
-
-// The guides quote the dashboard in English in these languages.
-const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en", "fa"];
 
 const TRANSLATIONS: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
   (language: string): boolean => {
@@ -83,7 +77,8 @@ interface Outline {
 /*
  * The page's skeleton: the level of each heading, in order, and the info
  * string of each fenced block. A "#" inside a fence is a shell comment, not
- * a heading.
+ * a heading. A diagram's caption is written in the page's language
+ * (AiDocsTranslations holds it), so a diagram counts by its kind alone.
  */
 function outlineOf(markdown: string): Outline {
   const outline: Outline = { headingLevels: [], fences: [] };
@@ -94,7 +89,9 @@ function outlineOf(markdown: string): Outline {
 
     if (fence) {
       if (!inFence) {
-        outline.fences.push(fence[1]!.trim());
+        const info: string = fence[1]!.trim();
+
+        outline.fences.push(info.startsWith("mermaid") ? "mermaid" : info);
       }
 
       inFence = !inFence;
@@ -135,21 +132,12 @@ function globalProviderVariablesIn(markdown: string): Array<string> {
   return [...new Set(markdown.match(GLOBAL_PROVIDER_VARIABLE) || [])].sort();
 }
 
-// What the dashboard draws for a label in that language.
+/*
+ * What the dashboard draws for a label in that language, Persian included
+ * (the AI pages name the Dashboard as each language's Dashboard draws it).
+ */
 function dashboardLabel(language: string, english: string): string {
-  if (ENGLISH_LABEL_LANGUAGES.includes(language)) {
-    return english;
-  }
-
-  const translations: Record<string, unknown> = JSON.parse(
-    fs.readFileSync(
-      path.join(DASHBOARD_LOCALES_DIR, `${language}.json`),
-      "utf8",
-    ),
-  );
-  const label: unknown = translations[english];
-
-  return typeof label === "string" ? label : english;
+  return drawnDashboardLabel(language, english);
 }
 
 // One field of the provider form, from its key to the next field's.
@@ -845,15 +833,12 @@ describe("every LLM provider guide sends readers to the page the dashboard has",
     "%s gives the way there, and the create button, in the dashboard's words",
     (language: string) => {
       const markdown: string = readPage(language);
-      const way: string = [
-        dashboardLabel(language, "Project Settings"),
-        dashboardLabel(language, "AI"),
-        dashboardLabel(language, "LLM Providers"),
-      ]
-        .map((label: string): string => {
-          return `**${label}**`;
-        })
-        .join(" > ");
+      // One bold path, as the menus draw it: "**Project Settings → AI → LLM Providers**".
+      const way: string = drawnPath(language, [
+        "Project Settings",
+        "AI",
+        "LLM Providers",
+      ]);
       const createButton: string = dashboardLabel(
         language,
         "Create {{itemName}}",

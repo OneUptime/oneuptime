@@ -5,7 +5,7 @@ Collega OneUptime a Slack per pubblicare nei tuoi canali incidenti, avvisi, epis
 :::cards
 - [Collegare Slack](#collegare-slack): Installa OneUptime nel tuo workspace, poi collega il tuo account.
 - [Regole di notifica](#regole-di-notifica): Decidi quali eventi vengono pubblicati dove, e quali hanno un canale tutto loro.
-- [Creare incidenti e manutenzioni da Slack](#creare-incidenti-e-manutenzioni-da-slack): `/incident` e `/maintenance`, a tuo nome.
+- [Il comando /oneuptime](#il-comando-oneuptime): Dichiara incidenti, programma manutenzioni, vedi chi è reperibile e chiedi all'IA.
 - [Agire su incidenti, avvisi ed eventi da Slack](#agire-su-incidenti-avvisi-ed-eventi-da-slack): I pulsanti dei messaggi di OneUptime.
 :::
 
@@ -125,13 +125,36 @@ Reagisci a un messaggio nel canale di un incidente, di un avviso, di un episodio
 
 La nota viene salvata a tuo nome, con i tuoi permessi, quindi il tuo account Slack deve essere collegato. Un messaggio viene salvato una sola volta, per quante persone reagiscano.
 
+## Il comando /oneuptime
+
+OneUptime ha un solo comando in Slack, `/oneuptime`. La parola che scrivi dopo dice cosa fare; qualsiasi altra cosa dopo è una domanda per OneUptime AI.
+
+| Comando | Cosa fa |
+| --- | --- |
+| `/oneuptime help` | Elenca i comandi, con esempi. |
+| `/oneuptime incident [title]` | Apre il modulo dell'incidente, con il titolo compilato. |
+| `/oneuptime maintenance [title]` | Apre il modulo della manutenzione programmata, con il titolo compilato. |
+| `/oneuptime oncall` | Elenca chi è reperibile in questo momento in ogni pianificazione di reperibilità che puoi vedere, fino a quando, e chi è il prossimo. |
+| `/oneuptime ask [question]`, o qualsiasi domanda | OneUptime AI risponde su log, trace, metriche, incidenti e monitor. |
+
+Le risposte a `help` e `oncall` sono messaggi che vedi solo tu, sotto il comando. Una prima parola che sembra un comando scritto male, come `incidnet`, riceve il comando a cui somiglia, non una risposta di OneUptime AI. I moduli di incidente e di manutenzione agiscono a tuo nome: vedi [Creare incidenti e manutenzioni da Slack](#creare-incidenti-e-manutenzioni-da-slack).
+
+> [!NOTE]
+> `/oneuptime incident` e `/oneuptime maintenance` sostituiscono `/incident` e `/maintenance`, che potevano entrare in conflitto con i comandi con lo stesso nome di altre app Slack. Un'app Slack creata da un manifest precedente li mantiene, e aprono gli stessi moduli, finché l'app non viene aggiornata: vedi [App create da un manifest più vecchio](/docs/self-hosted/slack-integration#app-create-da-un-manifest-più-vecchio).
+
 ## Chiedere a OneUptime AI da Slack
 
-Fai domande su log, trace, metriche, incidenti e monitor in linguaggio naturale. Menziona OneUptime con @ in un canale, o mandagli un messaggio diretto, e risponde nel thread; rispondi lì per chiedere altro. `/oneuptime ask which monitors are down?` pubblica la sua risposta nel canale. Entrambi richiedono il tuo account Slack collegato e l'IA attivata per il progetto. Le risposte in Slack si limitano a leggere: per cambiare qualcosa, usa i pulsanti. Vedi [Chiedi all'IA](/docs/ai/ask-ai).
+Fai domande su log, trace, metriche, incidenti e monitor in linguaggio naturale. Menziona OneUptime con @ in un canale, o mandagli un messaggio diretto, e risponde nel thread. `/oneuptime ask which monitors are down?` pubblica la sua risposta nel canale. Entrambi richiedono il tuo account Slack collegato e l'IA attivata per il progetto. Le risposte in Slack si limitano a leggere: per cambiare qualcosa, usa i pulsanti. Vedi [Chiedi all'IA](/docs/ai/ask-ai).
+
+OneUptime risponde solo a ciò che è rivolto a lui.
+
+- **Nella tua conversazione, basta rispondere.** Una domanda che fai in un canale, non in un thread, apre una conversazione nel thread sotto di essa: rispondi lì per chiedere altro senza menzionare di nuovo OneUptime, e chiunque altro si unisce menzionandolo.
+- **In qualsiasi altro thread, menziona OneUptime.** Sotto il messaggio di un incidente, per esempio, menzionalo ogni volta: ciò che le persone si scrivono lì tra loro non riceve risposta.
+- **Se il tuo account Slack non è collegato.** OneUptime ti chiede una volta per conversazione di collegarlo, in un messaggio che vedi solo tu, con un pulsante **Connect Slack account**.
 
 ## Creare incidenti e manutenzioni da Slack
 
-`/incident` e `/maintenance` aprono un modulo che compili e invii a tuo nome: come l'account OneUptime a cui è collegato il tuo account Slack (vedi [Collegare Slack](#collegare-slack)), con i permessi di quell'account nel progetto. Se il tuo account Slack non è collegato, o il tuo account OneUptime non è più membro del progetto, OneUptime ti dice cosa fare dove hai eseguito il comando, in un messaggio che vedi solo tu, e nessun modulo si apre. Le scorciatoie **Create New Incident** e **Create Scheduled Event** aprono gli stessi moduli.
+`/oneuptime incident` e `/oneuptime maintenance` aprono un modulo che compili e invii a tuo nome: come l'account OneUptime a cui è collegato il tuo account Slack (vedi [Collegare Slack](#collegare-slack)), con i permessi di quell'account nel progetto. Se il tuo account Slack non è collegato, o il tuo account OneUptime non è più membro del progetto, OneUptime ti dice cosa fare dove hai eseguito il comando, in un messaggio che vedi solo tu, e nessun modulo si apre. Le scorciatoie **Create New Incident** e **Create Scheduled Event** aprono gli stessi moduli.
 
 - **Chi può usarli.** Le persone che possono dichiarare un incidente o creare un evento di manutenzione programmata in OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** e **Incident Member** per un incidente (**Create Incident** in un ruolo personalizzato), e **Scheduled Maintenance Admin** e **Scheduled Maintenance Member** per un evento (**Create Scheduled Maintenance**). A chiunque altro viene detto dove lo ha eseguito, e nessun modulo si apre.
 - **Cosa offre un modulo.** Ogni elenco — gravità, monitor, stati dei monitor, policy di reperibilità ed etichette — contiene ciò che puoi leggere, come lo stesso elenco in OneUptime: con un ruolo limitato ad alcune etichette, i monitor e le policy di reperibilità che portano quelle etichette. Un elenco che non puoi leggere affatto viene omesso dal modulo. Le policy di reperibilità archiviate non vengono mai offerte.
@@ -169,6 +192,10 @@ Quando Slack ti riporta indietro senza un collegamento, la pagina da cui sei par
 
 :::details Un pulsante o un comando dice che il mio account Slack non è collegato
 Premi **Connect Slack account** in quella risposta per collegarlo in un solo passaggio, oppure collegalo in **Impostazioni utente** > **Area di lavoro** > **Slack** con **Connect my account with Slack**. Se non sei più membro del progetto, OneUptime lo dice invece, e non agisce su nulla per te.
+:::
+
+:::details OneUptime non risponde a una risposta in un thread
+Una risposta senza menzione riceve risposta solo nella tua conversazione con OneUptime AI: il thread sotto una domanda che gli hai fatto in un canale. In qualsiasi altro thread, come quello sotto il messaggio di un incidente, menziona OneUptime con @. Se il tuo account Slack non è collegato, OneUptime ti chiede di collegarlo una volta per conversazione, non a ogni messaggio: premi **Connect Slack account** in quel messaggio, oppure collegalo in **Impostazioni utente** > **Area di lavoro** > **Slack**. Vedi [Chiedere a OneUptime AI da Slack](#chiedere-a-oneuptime-ai-da-slack).
 :::
 
 :::details Le notifiche arrivano, ma pulsanti e comandi non fanno nulla

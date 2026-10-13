@@ -4,9 +4,8 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-  <title>Request Demo | OneUptime</title>
-  <meta name="description"
-    content="Schedule a personalized demo of OneUptime. See how our complete observability platform can help you monitor, observe, debug, and resolve issues faster.">
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
@@ -16,6 +15,7 @@
       scroll-behavior: smooth;
     }
   </style>
+  <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body class="antialiased bg-white">

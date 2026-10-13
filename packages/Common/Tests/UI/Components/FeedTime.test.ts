@@ -7,11 +7,13 @@ import {
   formatFeedDay,
   formatFeedFullTime,
   formatFeedTime,
+  formatFeedTimeAgo,
   getFeedClock,
   getFeedDayKey,
   getFeedLocale,
   getFeedRelativeDay,
   getFeedRelativeHint,
+  getFeedTimeAgoDistance,
   getFeedZoneName,
 } from "../../../UI/Components/Feed/FeedTime";
 
@@ -395,5 +397,133 @@ describe("the clock a feed is read with", () => {
 
     expect(read.language).toBe("de");
     expect(read.now.getTime()).toBeGreaterThanOrEqual(before);
+  });
+});
+
+/*
+ * How long ago, at any distance - for a status with no clock time beside it,
+ * such as when a calendar app last read a feed ("Last fetched {{when}}").
+ * It replaced moment's fromNow there, which said "a day ago" in English on
+ * every page whatever the reader's language.
+ */
+describe("how long ago, at any distance", () => {
+  const now: Date = new Date("2026-10-13T07:40:00.000Z");
+  const ago: (seconds: number) => Date = (seconds: number): Date => {
+    return new Date(now.getTime() - seconds * 1000);
+  };
+
+  const MINUTE: number = 60;
+  const HOUR: number = 60 * MINUTE;
+  const DAY: number = 24 * HOUR;
+
+  test.each<[number, number, string]>([
+    [0, 1, "minute"],
+    [89, 1, "minute"],
+    [90, 2, "minute"],
+    [44 * MINUTE, 44, "minute"],
+    [45 * MINUTE, 1, "hour"],
+    [21 * HOUR, 21, "hour"],
+    [22 * HOUR, 1, "day"],
+    [25 * DAY, 25, "day"],
+    [26 * DAY, 1, "month"],
+    [10 * 30 * DAY, 10, "month"],
+    [11 * 30 * DAY, 1, "year"],
+    [800 * DAY, 2, "year"],
+  ])(
+    "%s seconds ago reads as %s %s, rounded as a person would",
+    (seconds: number, count: number, unit: string) => {
+      expect(getFeedTimeAgoDistance(seconds)).toEqual({
+        count: count,
+        unit: unit,
+      });
+    },
+  );
+
+  test("a moment ahead of this clock is still a minute ago, never 'in 2 minutes'", () => {
+    expect(getFeedTimeAgoDistance(-90)).toEqual({ count: 1, unit: "minute" });
+    expect(formatFeedTimeAgo(ago(-90), clock({ now }))).toBe("1 minute ago");
+  });
+
+  test.each<[number, string]>([
+    [20, "1 minute ago"],
+    [7 * MINUTE, "7 minutes ago"],
+    [2 * HOUR, "2 hours ago"],
+    [23 * HOUR, "1 day ago"],
+    [3 * DAY, "3 days ago"],
+    [40 * DAY, "1 month ago"],
+    [400 * DAY, "1 year ago"],
+  ])(
+    "%s seconds ago is %s - always a number, never 'now', 'yesterday' or 'last month'",
+    (seconds: number, words: string) => {
+      expect(formatFeedTimeAgo(ago(seconds), clock({ now }))).toBe(words);
+    },
+  );
+
+  test.each<[string, string, string]>([
+    ["de", "vor 7 Minuten", "vor 1 Tag"],
+    ["fr", "il y a 7 minutes", "il y a 1 jour"],
+    ["ja", "7 分前", "1 日前"],
+  ])(
+    "is in the reader's language, not moment's English (%s)",
+    (language: string, minutes: string, day: string) => {
+      expect(
+        plain(formatFeedTimeAgo(ago(7 * MINUTE), clock({ now, language }))),
+      ).toBe(minutes);
+      expect(
+        plain(formatFeedTimeAgo(ago(23 * HOUR), clock({ now, language }))),
+      ).toBe(day);
+    },
+  );
+
+  test("a Persian reader's distance is written in Latin digits, like every other number on the page", () => {
+    const words: string = formatFeedTimeAgo(
+      ago(7 * MINUTE),
+      clock({ now, language: "fa" }),
+    ) as string;
+
+    expect(words).toContain("7");
+    expect(words).not.toContain("۷");
+  });
+
+  test("an invalid date says nothing rather than 'NaN minutes ago'", () => {
+    expect(
+      formatFeedTimeAgo(new Date("not a date"), clock({ now })),
+    ).toBeUndefined();
+  });
+
+  test("a browser without Intl.RelativeTimeFormat still gets a sentence, in English", () => {
+    const intl: { RelativeTimeFormat?: unknown } = Intl as unknown as {
+      RelativeTimeFormat?: unknown;
+    };
+    const original: unknown = intl.RelativeTimeFormat;
+
+    Object.defineProperty(Intl, "RelativeTimeFormat", {
+      value: undefined,
+      configurable: true,
+      writable: true,
+    });
+
+    try {
+      // A language no other test here formats with, so no formatter is cached.
+      expect(
+        formatFeedTimeAgo(ago(3 * HOUR), clock({ now, language: "is" })),
+      ).toBe("3 hours ago");
+      expect(formatFeedTimeAgo(ago(30), clock({ now, language: "is" }))).toBe(
+        "1 minute ago",
+      );
+    } finally {
+      Object.defineProperty(Intl, "RelativeTimeFormat", {
+        value: original,
+        configurable: true,
+        writable: true,
+      });
+    }
+  });
+
+  test("the timeline's own hint is unchanged: short, and 'now' under 45 seconds", () => {
+    expect(getFeedRelativeHint(ago(5), clock({ now }))).toBe("now");
+    expect(plain(getFeedRelativeHint(ago(12 * 60), clock({ now })))).toBe(
+      "12 min. ago",
+    );
   });
 });
