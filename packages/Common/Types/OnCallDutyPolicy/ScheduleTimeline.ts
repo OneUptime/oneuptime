@@ -54,6 +54,11 @@ export interface ScheduleTimelineOverrideJson {
   overrideEndsAt: string;
   // Set when the override is scoped to one on-call policy; null when global.
   onCallDutyPolicyId: string | null;
+  /*
+   * Present (true) when nobody was named to cover: the original user is
+   * skipped, and the rotation gave the shift to the next person.
+   */
+  isSkip?: boolean;
 }
 
 export interface ScheduleTimelineShiftJson {
@@ -256,6 +261,7 @@ export default class ScheduleTimelineUtil {
             overrideStartsAt: shift.override.overrideStartsAt.toISOString(),
             overrideEndsAt: shift.override.overrideEndsAt.toISOString(),
             onCallDutyPolicyId: shift.override.onCallDutyPolicyId ?? null,
+            ...(shift.override.isSkip ? { isSkip: true } : {}),
           }
         : null,
     };
@@ -431,6 +437,10 @@ export default class ScheduleTimelineUtil {
             raw["onCallDutyPolicyId"],
           ),
         };
+
+        if (raw["isSkip"] === true) {
+          override.isSkip = true;
+        }
       }
     }
 

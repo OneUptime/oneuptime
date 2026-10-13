@@ -230,6 +230,8 @@ const DASHBOARD_UI_NAMES: Array<string> = [
   // The Add User Override form "Get cover" opens, as it asks.
   "Who is away?",
   "Who covers?",
+  // What Who covers? says until someone is picked: saved so, it skips you.
+  "Next person in the rotation",
   "Starts",
   "Ends",
   "Remind me before shifts",

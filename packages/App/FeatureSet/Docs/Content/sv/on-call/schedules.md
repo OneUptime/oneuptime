@@ -8,6 +8,7 @@ Ett jourschema bestämmer vem som har jour vid varje tidpunkt. Personer turas om
 :::cards
 - [Vilka som turas om](#vilka-som-turas-om): Skapa ett schema med dess första rotation.
 - [Lager](#lager): Stapla rotationer, begränsa jourtiderna och lägg till reservtäckning.
+- [När någon är borta](#när-någon-är-borta): Hoppa över någon i rotationen tills hen är tillbaka.
 - [API och Terraform](#skapa-scheman-med-apiet-eller-terraform): Skapa scheman och deras rotationer som kod.
 :::
 
@@ -71,6 +72,23 @@ flowchart TB
 För att ändra vilket lager som kommer först använder du **Move layer up (higher priority)** eller **Move layer down (lower priority)** i ett lagers meny.
 
 Varje person behåller en färg överallt, så att du kan följa personen med en blick: i varje lager, i det slutliga schemat och dess åsidosättningar och på **Tidslinje för jourscheman**.
+
+## När någon är borta
+
+När någon åker på semester hoppar du över personen tills hen är tillbaka. Fäll ut ett lager på schemats sida **Lager** och klicka på **Hoppa över till…** bredvid personens namn. Det öppnar formuläret för frånvaro med personen under **Vem är borta?**, **Nästa person i rotationen** under **Vem täcker upp?** och **Börjar** från nu: ställ in **Slutar** på när hen är tillbaka och spara.
+
+Medan personen är borta:
+
+- Vart och ett av personens pass går till nästa person i lagret som inte är borta, i varje schema som hen ingår i. Ingen annans pass flyttas, och personens pass är hens igen så snart hen är tillbaka.
+- Om alla i ett lager är borta har lagret ingen i jour, och lagren under tar över. Lagret visar **Alla i det här lagret är borta just nu**.
+- Eskaleringsregler som larmar personen direkt eller via ett team hoppar över hen. Policyns körning visar att hen är borta, och till när.
+- Personens rad i lagret visar när hen är tillbaka, och det slutliga schemat och **Tidslinje för jourscheman** visar vem som har vart och ett av hens pass.
+
+Väljer du i stället någon under **Vem täcker upp?** får den personen alla hens larm, från varje schema och varje policy, i stället för att rotationen tar hens pass.
+
+Frånvaro som läggs till på det här sättet gäller för alla jourpolicyer. Den listas under **Jourtjänst** > **Användaråsidosättningar**, där du kan ta bort den för att få tillbaka personen tidigare. För att hoppa över någon i bara en policy lägger du till åsidosättningen på den policyns sida **Användaråsidosättningar** och låter **Vem täcker upp?** vara som det är.
+
+Via API:et hoppar en användaråsidosättning (`/api/on-call-duty-policy-user-override`) som skapas utan `routeAlertsToUserId` över personen i `overrideUserId` från `startsAt` till `endsAt`.
 
 ## Skapa scheman med API:et eller Terraform
 

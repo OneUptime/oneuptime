@@ -1,3 +1,4 @@
+import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import type { DropdownOption } from "../Dropdown/Dropdown";
 import type { DropdownChange } from "../Dropdown/DropdownChange";
@@ -101,6 +102,21 @@ export interface PeoplePickerFieldConfig {
    * it is, and the field's own validation says what is wrong with it.
    */
   excludePicksOf?: Array<PeoplePickerFieldKind> | undefined;
+  /*
+   * What leaving the picker empty means, said where a pick would be while
+   * nothing is picked: a user override's "Who covers?" reads "Next person
+   * in the rotation" until somebody is chosen. Removing the pick brings it
+   * back. Leave it out for a picker whose empty value needs no words.
+   */
+  whenNobodyPicked?: PeoplePickerNobodyPicked | undefined;
+}
+
+// What an empty picker stands for (PeoplePickerFieldConfig.whenNobodyPicked).
+export interface PeoplePickerNobodyPicked {
+  // A translation key: "Next person in the rotation".
+  text: string;
+  // Drawn before the words. Default: none.
+  icon?: IconProp | undefined;
 }
 
 /*
