@@ -17,7 +17,7 @@ Un campo si definisce una volta per il progetto, e ogni elemento può portarne u
 flowchart TB
     D["Definire un campo<br/>nelle Impostazioni"] --> V["Impostarne il valore<br/>su qualsiasi elemento"]
     V --> F["Filtri<br/>dell'elenco"]
-    V --> C["Colonne ed<br/>esportazione CSV"]
+    V --> C["Colonne ed<br/>esportazione<br/>CSV"]
     V --> A["customFields<br/>nell'API"]
 ```
 

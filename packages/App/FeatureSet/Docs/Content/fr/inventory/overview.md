@@ -17,7 +17,7 @@ OneUptime surveille déjà votre parc, donc le catalogue se construit à partir 
 flowchart TB
     T["Votre<br/>télémétrie"] -->|"Découvert"| I["Inventaire : un élément<br/>par chose, avec une<br/>clé d'identité stable"]
     R["Les sondes<br/>de OneUptime"] -->|"Répliqué toutes<br/>les 15 minutes"| I
-    Y["Ce qui n'envoie<br/>pas de télémétrie"] -->|"Ajouté par vous"| I
+    Y["Ce qui<br/>n'envoie pas<br/>de télémétrie"] -->|"Ajouté<br/>par vous"| I
     I --> L["Tous les éléments,<br/>la carte de topologie<br/>et les pages d'élément"]
     I --> X["Champs personnalisés,<br/>export CSV et API"]
 ```
