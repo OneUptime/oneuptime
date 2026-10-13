@@ -215,6 +215,10 @@ jest.mock("../screens/settings/SSOProviderSelectScreen", () => {
   return mockScreenStub("screen-sso-provider-select");
 });
 
+jest.mock("../screens/settings/CriticalAlertSoundScreen", () => {
+  return mockScreenStub("screen-critical-alert-sound");
+});
+
 /**
  * The options a navigator has actually resolved for the focused screen, which
  * is the merge of the navigator's screenOptions with the screen's own.
@@ -437,6 +441,13 @@ const SETTINGS_ROUTES: Record<keyof SettingsStackParamList, TitledRoute> = {
   OnCallCalendarFeed: {
     testID: "screen-on-call-calendar-feed",
     title: "Calendar Feed",
+    keepsIosLargeTitle: true,
+  },
+
+  // Opened from the Alarm sound row under Critical On-Call Alerts.
+  CriticalAlertSound: {
+    testID: "screen-critical-alert-sound",
+    title: "Alarm Sound",
     keepsIosLargeTitle: true,
   },
 };

@@ -67,6 +67,9 @@ export type SettingsStackParamList = {
    * jump that lands the user somewhere they did not tap.
    */
   OnCallCalendarFeed: undefined;
+
+  // The alarm critical pages play on this phone, and on an iPhone how loud.
+  CriticalAlertSound: undefined;
 };
 
 /**

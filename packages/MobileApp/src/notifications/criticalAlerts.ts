@@ -1,7 +1,11 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Linking, Platform } from "react-native";
-import { CRITICAL_CHANNEL, NotificationChannelId } from "./channels";
+import { CRITICAL_CHANNELS } from "./channels";
+import {
+  getCriticalAlertSoundOption,
+  type CriticalAlertSoundIdValue,
+} from "./criticalAlertSounds";
 import logger from "../utils/logger";
 
 /*
@@ -45,6 +49,15 @@ export enum CriticalAlertAvailability {
   Unsupported = "unsupported",
 }
 
+export interface CriticalAlertStatusOptions {
+  /*
+   * The alarm sound the responder chose. On Android each sound pages on a
+   * channel of its own, and the chosen sound's channel is the one that has to
+   * bypass Do Not Disturb. Left out, the system sound's channel.
+   */
+  sound?: CriticalAlertSoundIdValue | undefined;
+}
+
 export interface CriticalAlertStatus {
   availability: CriticalAlertAvailability;
   /*
@@ -73,52 +86,67 @@ const GRANTED_REASON: string =
   "On-call pages will play a sound even when this device is silenced or in Do Not Disturb.";
 
 /*
- * Write the critical channel again, then report whether Android really lets
- * it bypass Do Not Disturb.
+ * Write the critical channels again, then report whether Android really lets
+ * the chosen sound's channel bypass Do Not Disturb.
  *
  * Android settles a channel's bypass when the app WRITES the channel, not when
  * the user grants access. The app writes its channels when it starts, which on
  * a fresh install is before anybody has granted Do Not Disturb access, so the
- * critical channel is stored with bypassDnd false. Granting the access later
- * changes nothing on that stored channel: Android raises bypassDnd on an
- * existing channel only when an app that holds the access writes it again,
- * and only while the user has not changed any of that channel's settings
- * themselves. Reading the channel without writing it first therefore went on
- * reporting the old false after the responder had granted the access - the
- * settings screen told them to grant it again, and the switch would not stay
- * on until the app was restarted.
+ * critical channels are stored with bypassDnd false. Granting the access later
+ * changes nothing on a stored channel: Android raises bypassDnd on an existing
+ * channel only when an app that holds the access writes it again, and only
+ * while the user has not changed any of that channel's settings themselves.
+ * Reading the channel without writing it first therefore went on reporting
+ * the old false after the responder had granted the access - the settings
+ * screen told them to grant it again, and the switch would not stay on until
+ * the app was restarted.
  *
- * So the channel is written here, every time the status is read: on returning
- * from the Do Not Disturb access screen, that write is what turns the bypass
- * on. It is harmless otherwise - on an existing channel Android keeps every
- * setting the user changed, and never lets the app undo a bypass the user
- * switched off. setNotificationChannelAsync returns the channel as Android
- * stored it, so the returned bypassDnd is Android's answer, not an echo of the
- * request.
+ * So the channels are written here, every time the status is read: on
+ * returning from the Do Not Disturb access screen, that write is what turns
+ * the bypass on. Every critical channel is written, not only the chosen
+ * sound's, so a responder who picks another alarm later finds it already
+ * bypassing. It is harmless otherwise - on an existing channel Android keeps
+ * every setting the user changed, and never lets the app undo a bypass the
+ * user switched off. setNotificationChannelAsync returns the channel as
+ * Android stored it, so the returned bypassDnd is Android's answer, not an
+ * echo of the request.
  *
  * A channel the user changed before granting the access stays without the
  * bypass whatever the app writes; that phone is reported as denied, which is
  * true, and the responder can let the channel override Do Not Disturb in the
  * phone's own settings.
  */
-export async function isCriticalChannelBypassingDnd(): Promise<boolean> {
+export async function isCriticalChannelBypassingDnd(
+  sound?: CriticalAlertSoundIdValue,
+): Promise<boolean> {
   if (Platform.OS !== "android") {
     return false;
   }
 
-  try {
-    const channel: Notifications.NotificationChannel | null =
-      await Notifications.setNotificationChannelAsync(
-        NotificationChannelId.CRITICAL,
-        CRITICAL_CHANNEL,
-      );
+  const chosenChannelId: string = getCriticalAlertSoundOption(sound).channelId;
 
-    return Boolean(channel?.bypassDnd);
-  } catch (error: unknown) {
-    logger.warn(
-      "[CriticalAlerts] Could not write the critical notification channel:",
-      error,
-    );
+  let chosenChannel: Notifications.NotificationChannel | null = null;
+  let isChosenChannelWritten: boolean = false;
+
+  for (const { id, channel } of CRITICAL_CHANNELS) {
+    try {
+      const stored: Notifications.NotificationChannel | null =
+        await Notifications.setNotificationChannelAsync(id, channel);
+
+      if (id === chosenChannelId) {
+        chosenChannel = stored;
+        isChosenChannelWritten = true;
+      }
+    } catch (error: unknown) {
+      logger.warn(
+        `[CriticalAlerts] Could not write the critical notification channel ${id}:`,
+        error,
+      );
+    }
+  }
+
+  if (isChosenChannelWritten) {
+    return Boolean(chosenChannel?.bypassDnd);
   }
 
   /*
@@ -129,14 +157,12 @@ export async function isCriticalChannelBypassingDnd(): Promise<boolean> {
    */
   try {
     const channel: Notifications.NotificationChannel | null =
-      await Notifications.getNotificationChannelAsync(
-        NotificationChannelId.CRITICAL,
-      );
+      await Notifications.getNotificationChannelAsync(chosenChannelId);
 
     return Boolean(channel?.bypassDnd);
   } catch (error: unknown) {
     logger.warn(
-      "[CriticalAlerts] Could not read the critical notification channel:",
+      `[CriticalAlerts] Could not read the critical notification channel ${chosenChannelId}:`,
       error,
     );
     return false;
@@ -193,8 +219,10 @@ async function getIosCriticalAlertStatus(): Promise<CriticalAlertStatus> {
   };
 }
 
-async function getAndroidCriticalAlertStatus(): Promise<CriticalAlertStatus> {
-  const bypassesDnd: boolean = await isCriticalChannelBypassingDnd();
+async function getAndroidCriticalAlertStatus(
+  sound: CriticalAlertSoundIdValue | undefined,
+): Promise<CriticalAlertStatus> {
+  const bypassesDnd: boolean = await isCriticalChannelBypassingDnd(sound);
 
   if (bypassesDnd) {
     return {
@@ -209,7 +237,9 @@ async function getAndroidCriticalAlertStatus(): Promise<CriticalAlertStatus> {
   };
 }
 
-export async function getCriticalAlertStatus(): Promise<CriticalAlertStatus> {
+export async function getCriticalAlertStatus(
+  options: CriticalAlertStatusOptions = {},
+): Promise<CriticalAlertStatus> {
   /*
    * Simulators report permissions that a real handset would not honour, and
    * there is no ringer to override on web.
@@ -229,7 +259,7 @@ export async function getCriticalAlertStatus(): Promise<CriticalAlertStatus> {
       return await getIosCriticalAlertStatus();
     }
 
-    return await getAndroidCriticalAlertStatus();
+    return await getAndroidCriticalAlertStatus(options.sound);
   } catch (error: unknown) {
     logger.warn(
       "[CriticalAlerts] Could not determine critical alert status:",
@@ -263,7 +293,9 @@ export async function getCriticalAlertStatus(): Promise<CriticalAlertStatus> {
  * screen; the return value here is the state BEFORE the user acts on it, and
  * the caller re-checks when the app comes back to the foreground.
  */
-export async function requestCriticalAlertPermission(): Promise<CriticalAlertStatus> {
+export async function requestCriticalAlertPermission(
+  options: CriticalAlertStatusOptions = {},
+): Promise<CriticalAlertStatus> {
   if (
     !Device.isDevice ||
     (Platform.OS !== "ios" && Platform.OS !== "android")
@@ -291,12 +323,12 @@ export async function requestCriticalAlertPermission(): Promise<CriticalAlertSta
       );
     }
 
-    return getCriticalAlertStatus();
+    return getCriticalAlertStatus(options);
   }
 
   await openAndroidDoNotDisturbAccessSettings();
 
-  return getCriticalAlertStatus();
+  return getCriticalAlertStatus(options);
 }
 
 /*
