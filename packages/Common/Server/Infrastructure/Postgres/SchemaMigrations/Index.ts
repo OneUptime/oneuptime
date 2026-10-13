@@ -84,6 +84,7 @@ import { AddWorkflowLogTestRun1801400000000 } from "./1801400000000-AddWorkflowL
 import { AddWorkflowLogStartedByForeignKey1801450000000 } from "./1801450000000-AddWorkflowLogStartedByForeignKey";
 import { AddWorkspaceLiveMessage1801500000000 } from "./1801500000000-AddWorkspaceLiveMessage";
 import { MakeUserOverrideCoverOptional1801550000000 } from "./1801550000000-MakeUserOverrideCoverOptional";
+import { AddUserNotificationRulePushNotificationLevel1801600000000 } from "./1801600000000-AddUserNotificationRulePushNotificationLevel";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1368,4 +1369,5 @@ export default [
   AddWorkflowLogStartedByForeignKey1801450000000,
   AddWorkspaceLiveMessage1801500000000,
   MakeUserOverrideCoverOptional1801550000000,
+  AddUserNotificationRulePushNotificationLevel1801600000000,
 ];

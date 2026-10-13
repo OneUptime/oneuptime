@@ -105,22 +105,26 @@ La portée est volontairement étroite. Seules les alertes produites par une rè
 ```mermaid title="Quand une alerte d'astreinte sonne malgré le mode silencieux"
 flowchart TB
     Page["Une alerte d'astreinte"]
+    Rule{"Sa règle d'astreinte est<br/>sur « Critical alert » ?"}
     Device{"Critical On-Call Alerts<br/>activé pour cet appareil ?"}
     OS{"Le système du téléphone<br/>autorise les alertes critiques ?"}
     Loud["Joue un son malgré le<br/>mode silencieux et Ne pas déranger"]
     Quiet["Livrée en silence,<br/>comme tout autre push"]
-    Page --> Device
+    Page --> Rule
+    Rule -->|"oui"| Device
+    Rule -->|"non"| Quiet
     Device -->|"oui"| OS
     Device -->|"non"| Quiet
     OS -->|"oui"| Loud
     OS -->|"non"| Quiet
 ```
 
-Trois conditions doivent toutes être remplies pour qu'une alerte outrepasse le mode silencieux. S'il en manque une, l'alerte est quand même livrée – simplement en silence.
+Quatre conditions doivent toutes être remplies pour qu'une alerte outrepasse le mode silencieux. S'il en manque une, l'alerte est quand même livrée – simplement en silence.
 
 1. **La personne l'a activé pour cet appareil.** Enregistré par appareil, désactivé par défaut, dans `UserPush.isCriticalAlertEnabled`. Le téléphone et la tablette d'une même personne sont des décisions distinctes.
-2. **Le serveur marque l'alerte comme critique.** Il envoie la charge utile de son critique d'APNs plus `interruptionLevel: critical` pour iOS, et cible le canal de notification `oncall_critical` pour Android.
-3. **Le système d'exploitation l'autorise**, et c'est là que les deux plateformes diffèrent.
+2. **La règle d'astreinte qui a envoyé l'alerte le demande.** Sous **Paramètres utilisateur > Règles d'astreinte**, chaque règle qui notifie un téléphone est réglée sur « Critical alert », la valeur par défaut, ou sur « Standard », qui suit les réglages sonores du téléphone – ainsi une personne peut être réveillée pour un incident critique et prévenue en silence pour un incident mineur. Enregistré par règle dans `UserNotificationRule.pushNotificationLevel`.
+3. **Le serveur marque l'alerte comme critique.** Il envoie la charge utile de son critique d'APNs plus `interruptionLevel: critical` pour iOS, et cible le canal de notification `oncall_critical` pour Android.
+4. **Le système d'exploitation l'autorise**, et c'est là que les deux plateformes diffèrent.
 
 :::tabs
 @tab iOS
@@ -171,6 +175,7 @@ Pour vérifier que cela fonctionne, envoyez une notification de test à l'appare
 ### Les alertes critiques n'outrepassent pas le mode silencieux
 
 - Vérifiez que l'interrupteur est activé pour **cet** appareil – le réglage est propre à chaque appareil, et une réinstallation ou un nouveau téléphone configuré de zéro crée un nouvel enregistrement d'appareil (un téléphone configuré à partir d'une sauvegarde de l'ancien reprend l'enregistrement de l'ancien téléphone dès que celui-ci ne reçoit plus de notifications, avec le réglage qu'avait l'application)
+- Vérifiez la règle d'astreinte de cette gravité sous **Paramètres utilisateur > Règles d'astreinte** : une règle push réglée sur « Standard » suit les réglages sonores du téléphone, quel que soit l'interrupteur de l'appareil
 - **iOS** : confirmez que la compilation porte l'entitlement d'alertes critiques d'Apple (voir ci-dessus), et que Critical Alerts est autorisé sous iOS Settings > Notifications > OneUptime On-Call
 - **Android** : confirmez que l'application a l'accès à Ne pas déranger sous Settings > Notifications > Do Not Disturb access
 - L'écran de réglages indique lequel de ces éléments manque ; il relit l'état actuel auprès du système plutôt que de se fier à ce que l'application a demandé en dernier
