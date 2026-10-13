@@ -218,6 +218,11 @@ export interface UseScheduleUserOverridesParams {
   scheduleUserIds: Set<string>;
   windowStart: Date;
   windowEnd: Date;
+  /*
+   * Changed by the caller when it knows the overrides changed - somebody was
+   * just skipped from this page - so they are read again at once.
+   */
+  refreshKey?: number | undefined;
 }
 
 /**
@@ -351,8 +356,9 @@ export function useScheduleUserOverrides(
           (override: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
             return {
               overrideUserId: override.overrideUserId?.toString() || "",
+              // None for a skip: the next person in the rotation covers.
               routeAlertsToUserId:
-                override.routeAlertsToUserId?.toString() || "",
+                override.routeAlertsToUserId?.toString() || null,
               startsAt: override.startsAt!,
               endsAt: override.endsAt!,
               onCallDutyPolicyId:
@@ -380,7 +386,13 @@ export function useScheduleUserOverrides(
      * userIdKey is its stable, order-independent projection, and depending on
      * the Set itself would refetch on every render.
      */
-  }, [scheduleIdString, userIdKey, windowStartMs, windowEndMs]);
+  }, [
+    scheduleIdString,
+    userIdKey,
+    windowStartMs,
+    windowEndMs,
+    params.refreshKey || 0,
+  ]);
 
   return resolution;
 }

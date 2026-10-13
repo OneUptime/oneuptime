@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Their notification methods"]
 ```
 
-A user override that is in effect for a person sends their pages to the person covering for them instead.
+A user override that is in effect for a person sends their pages to the person covering for them instead. One that names nobody to cover skips them: they are not paged, the policy's run says they are away and until when, and in an on-call schedule each of their turns goes to the next person in the rotation.
 
 Every message is one its provider takes, so a page always goes out. Each channel carries this much:
 

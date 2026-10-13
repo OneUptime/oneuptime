@@ -100,7 +100,7 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 
 ### Evaluering over en tidsperiode
 
-**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **Is Online**, **Svartid (i ms)**, **Packet Loss (in %)** og **Jitter (in ms)**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for bare den siste: velg en aggregering under **Evaluer** og et vindu fra 2 til 60 minutter under **For de siste (i minutter)**.
+**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **Is Online**, **Svartid (i ms)**, **Packet Loss (in %)**, **Jitter (in ms)** og **Is Request Timeout**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for bare den siste: velg en aggregering under **Evaluer** og et vindu fra 2 til 60 minutter under **For de siste (i minutter)**.
 
 | Aggregering | Samsvarer når |
 | --- | --- |
@@ -109,6 +109,10 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 | **Any Value** | Minst én sjekk i vinduet oppfyller betingelsen. |
 
 **All Values** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Any Value** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
+
+**Is Request Timeout** er ikke et tall OneUptime registrerer. OneUptime registrerer derfor om filteret slo til ved hver sjekk, og vurderer vinduet ut fra den registreringen med **All Values** eller **Any Value**.
+
+Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekker: en monitor som sjekkes hvert 5. minutt, har bare én sjekk i et vindu på 5 minutter.
 
 **Hvis ingen data** avgjør hva som skjer så lenge vinduet ikke kan underbygge kriteriet:
 

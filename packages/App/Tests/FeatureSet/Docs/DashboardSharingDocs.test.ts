@@ -245,14 +245,14 @@ describe("the English dashboards overview", () => {
 
   it("maps Sharing in the page table, and Settings to what it holds", () => {
     const rows: Array<string> = page.split("\n").filter((line: string) => {
-      return line.startsWith("| **Dashboard → ");
+      return line.startsWith("| **");
     });
 
     const sharing: string | undefined = rows.find((row: string) => {
-      return row.startsWith("| **Dashboard → Sharing**");
+      return row.startsWith("| **Sharing** |");
     });
     const settings: string | undefined = rows.find((row: string) => {
-      return row.startsWith("| **Dashboard → Settings**");
+      return row.startsWith("| **Settings** |");
     });
 
     expect(sharing).toContain(

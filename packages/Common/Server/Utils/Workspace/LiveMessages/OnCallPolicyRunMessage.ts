@@ -43,6 +43,8 @@ import WorkspaceNotificationRuleService, {
 import logger, { LogAttributes } from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
+import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 import OnCallPolicyRunMessageView, {
   ON_CALL_RUN_NOT_PAGED,
   OnCallPolicyRun,
@@ -682,24 +684,36 @@ export default class OnCallPolicyRunMessage {
       notPaged.push(entry);
     };
 
-    // Per escalation rule: why it paged fewer people, for a rule that reached nobody.
-    const reasonsByRuleId: Map<string, Array<string>> = new Map<
+    /*
+     * Per escalation rule: why it paged fewer people, for a rule that reached
+     * nobody - text, or Markdown holding a moment ("away until <time>").
+     */
+    const reasonsByRuleId: Map<string, Array<string | MarkdownText>> = new Map<
       string,
-      Array<string>
+      Array<string | MarkdownText>
     >();
 
     const addRuleReason: (
       ruleId: ObjectID | undefined | null,
-      reason: string,
-    ) => void = (ruleId: ObjectID | undefined | null, reason: string): void => {
+      reason: string | MarkdownText,
+    ) => void = (
+      ruleId: ObjectID | undefined | null,
+      reason: string | MarkdownText,
+    ): void => {
       if (!ruleId) {
         return;
       }
 
-      const reasons: Array<string> =
+      const reasons: Array<string | MarkdownText> =
         reasonsByRuleId.get(ruleId.toString()) || [];
 
-      if (!reasons.includes(reason)) {
+      const isSaid: boolean = reasons.some(
+        (said: string | MarkdownText): boolean => {
+          return said.toString() === reason.toString();
+        },
+      );
+
+      if (!isSaid) {
         reasons.push(reason);
       }
 
@@ -778,6 +792,25 @@ export default class OnCallPolicyRunMessage {
             stepIndex,
             "not reached",
           );
+
+          /*
+           * Away with nobody named to cover (a user override that skips
+           * them): until when, in each reader's own time.
+           */
+          const awayUntil: Date | null = readAwayUntil(step.statusMessage);
+
+          if (awayUntil) {
+            addNotPaged(`person:${userId}:away`, {
+              personName: name,
+              reason: "away",
+              awayUntil: awayUntil,
+            });
+            addRuleReason(
+              step.onCallDutyPolicyEscalationRuleId,
+              OnCallPolicyRunMessageView.getAwayReason(name, awayUntil),
+            );
+            continue;
+          }
 
           const reason: string = this.getSkipReason(step.statusMessage);
 
@@ -989,7 +1022,7 @@ export default class OnCallPolicyRunMessage {
 
     // A rule that reached nobody, with nothing else to say why: it has nobody to page.
     for (const rule of rulesThatReachedNobody) {
-      const reasons: Array<string> =
+      const reasons: Array<string | MarkdownText> =
         reasonsByRuleId.get(rule.id!.toString()) || [];
 
       if (reasons.length === 0) {

@@ -1,11 +1,13 @@
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import CriteriaFilterElement from "./CriteriaFilter";
 import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   criteriaFilters: Array<CriteriaFilter>;
   filterCondition: FilterCondition;
+  monitorType?: MonitorType | undefined;
 }
 
 const CriteriaFilters: FunctionComponent<ComponentProps> = (
@@ -34,6 +36,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                   filterCondition={
                     !isLastItem ? props.filterCondition : undefined
                   }
+                  monitorType={props.monitorType}
                 />{" "}
               </li>
             );

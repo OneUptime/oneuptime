@@ -1,92 +1,128 @@
-# Variables y Filtros
+# Variables y filtros del panel
 
-Una variable convierte un solo panel en una plantilla. Añade una variable `service` a tu panel y los mismos gráficos se vuelven a renderizar para `checkout`, `payments` o `search`: los espectadores eligen de un menú desplegable en la parte superior en lugar de que construyas tres paneles casi idénticos.
+Una variable es un selector en la barra de herramientas del panel. Añade una variable `service` y los mismos gráficos muestran `checkout`, `payments` o `search`: los espectadores eligen en la barra de herramientas en lugar de que tú construyas tres paneles casi idénticos.
 
-## Tipos de variables
+:::cards
+- [Añadir una variable](#añadir-una-variable): Ponle nombre, elige de dónde vienen sus valores y guarda.
+- [Orígenes de las variables](#orígenes-de-las-variables): Telemetry Attribute, Project Labels, Custom List y Text Input.
+- [Cómo usan los widgets una variable](#cómo-usan-los-widgets-una-variable): Qué widgets siguen qué variables.
+- [Enlaces que conservan la selección](#enlaces-que-conservan-la-selección): Envía un enlace que se abre en el mismo servicio.
+:::
 
-Añade variables en **Panel → Ajustes → Variables**. Cada variable tiene un nombre (usado como `{{name}}` en tus widgets), una etiqueta opcional y un tipo.
+## Cómo funciona una variable
 
-### Lista personalizada
+Defines las variables mientras editas el panel, y se guardan con él. En modo de lectura, cada una es un selector en la barra de herramientas. Cuando un espectador elige un valor, cada widget que sigue la variable vuelve a leer sus datos, y el enlace de la página conserva la elección.
 
-Un menú desplegable estático. Escribes las opciones tú mismo.
-
-Úsalo cuando: las opciones son pocas y fijas. `environment` con valores `prod, staging, dev`. `region` con valores `us-east-1, eu-west-1, ap-south-1`.
-
-### Consulta
-
-Las opciones provienen de una consulta sobre tus datos.
-
-Úsalo cuando: las opciones cambian con el tiempo y quieres que el menú desplegable se mantenga al día. "Cada ID de cliente visto en las últimas 24 horas". La consulta se ejecuta sobre los datos de tu proyecto y los resultados se convierten en el menú desplegable.
-
-### Entrada de texto
-
-Un campo de texto libre. Se usa lo que el espectador escriba.
-
-Úsalo cuando: quieres que el panel actúe como una herramienta de búsqueda. Filtrar por dirección IP, ID de solicitud o cualquier otro valor de formato libre.
-
-### Atributo de telemetría
-
-Las opciones son los valores distintos de un atributo en tu telemetría durante el rango de tiempo del panel.
-
-Configura la **clave de atributo** (por ejemplo, `service.name`, `host.name`, `k8s.cluster.name`). El menú desplegable se rellena con cada valor distinto visto en tus logs, métricas y trazas.
-
-Úsalo cuando: las opciones coinciden con las etiquetas que ya envías con tu telemetría. Este es el tipo más común porque se actualiza automáticamente: cuando despliegas un nuevo servicio etiquetado como `service.name = inventory`, ese nombre aparece en el menú desplegable sin que tengas que editar el panel.
-
-## Selección múltiple
-
-Cada variable puede permitir múltiples selecciones. Cuando está activada, el espectador puede elegir uno o más valores; el panel filtra a cualquiera de ellos.
-
-Usa selección múltiple cuando: quieres comparar "checkout y payments juntos" sin salir del panel. Evítala cuando las matemáticas no funcionan entre los valores seleccionados (por ejemplo, promediar promedios).
-
-## Valores predeterminados
-
-Cada variable puede tener un valor predeterminado. El panel se renderiza con el valor predeterminado hasta que el espectador lo cambie. Para paneles públicos, el valor predeterminado es lo que los visitantes ven primero.
-
-## Cómo usar una variable en un widget
-
-En cualquier lugar donde un widget acepte un filtro —un `WHERE` de una métrica, el filtro de una lista, una coincidencia de atributo en un flujo de logs— puedes usar `{{variable_name}}`.
-
-Por ejemplo, un gráfico filtrado por servicio:
-
-```
-service.name = '{{service}}'
+```mermaid title="De definir una variable a la elección de un espectador"
+flowchart TB
+    A["Edición: Variables,<br/>luego Añadir variable"] --> B["Guardar variables,<br/>luego Guardar cambios"]
+    B --> C["Lectura: un selector<br/>en la barra de<br/>herramientas"]
+    C --> D["Un espectador<br/>elige un valor"]
+    D --> E["Los widgets que siguen<br/>la variable vuelven<br/>a leer"]
+    D --> F["El enlace de la página<br/>conserva la elección"]
 ```
 
-Cuando el menú desplegable está en `checkout`, el gráfico filtra al servicio de checkout. Cuando el espectador cambia a `payments`, el gráfico se vuelve a renderizar para payments.
+## Añadir una variable
 
-Para variables de **Atributo de telemetría**, OneUptime sabe a qué atributo se asigna la variable y aplica el filtro a cada widget que use el mismo atributo: no tienes que editar cada widget a mano.
+:::steps
+### Abrir el cuadro de diálogo de variables
 
-## Rango de tiempo
+Abre el panel, elige **⋯ → Editar panel** y haz clic en **Variables** en la barra de herramientas. El cuadro de diálogo **Variables del panel** enumera las variables del panel; el botón de la barra de herramientas las cuenta.
 
-El encabezado del panel tiene un rango de tiempo global. Cada widget de métrica consulta sobre esta ventana. Opciones:
+### Añadir una
 
-- **Preajustes** — última hora, 24 horas, 7 días, 30 días, 90 días (dependiendo de tu retención de datos).
-- **Personalizado** — elige una hora de inicio y de fin.
+Haz clic en **Añadir variable**. Una variable nueva lee un atributo de telemetría; elige otro **Origen** si lo necesitas.
 
-El rango de tiempo es parte de la URL del panel: al compartir la URL se comparte la ventana. Útil durante un incidente: fija el rango de tiempo en "10:00–10:30 UTC de hoy" y pega el enlace en el canal del incidente.
+### Rellenarla
 
-## Intervalo de actualización
+Dale un **Nombre**, que usan los widgets y los enlaces, como `service`: letras, dígitos y guiones bajos, empezando por una letra o un guion bajo, y distinto de los demás nombres del panel. Añade una **Etiqueta** para la barra de herramientas si quieres, un valor **Predeterminado** con el que empezar, y marca **Allow multi-select** para que los espectadores puedan elegir varios valores.
 
-Junto al rango de tiempo, elige con qué frecuencia los widgets vuelven a consultar:
+### Guardarla
 
-- **Apagado** — los widgets consultan una vez cuando se carga la página.
-- **5s / 10s / 30s / 1m / 5m / 15m** — actualización automática.
+Haz clic en **Guardar variables** y luego en **Guardar cambios** en la barra de herramientas. El selector de la variable aparece en la barra de herramientas cuando el panel vuelve al modo de lectura.
+:::
 
-La actualización automática es buena para una pantalla en la pared o una vista de incidente en vivo. Déjala apagada cuando estés investigando para que la vista no se mueva mientras miras.
+Para cambiar o quitar una variable más tarde, vuelve a abrir el cuadro de diálogo: cambia sus campos, o haz clic en la papelera que tiene al lado.
 
-## Juntándolo todo
+## Orígenes de las variables
 
-Un panel templado por servicio normalmente tiene:
+El **Origen** decide de dónde vienen los valores de una variable, y qué widgets la siguen.
 
-1. Una variable `service` de tipo **Atributo de telemetría** para `service.name`. Predeterminado: tu servicio más vigilado. Selección múltiple desactivada (para que los gráficos siempre muestren uno a la vez).
-2. Una variable `environment` de tipo **Lista personalizada**. Predeterminado: `prod`.
-3. Una variable `cluster` de tipo **Atributo de telemetría** para `k8s.cluster.name`. Selección múltiple activada (para que puedas comparar entre clusters).
-4. Widgets que referencian estas variables en sus filtros.
+| Origen | De dónde vienen sus valores | Selección múltiple |
+| --- | --- | --- |
+| Telemetry Attribute | Los valores de una clave de atributo en tus métricas, como `service.name` | Sí |
+| Project Labels | Las etiquetas del proyecto que permites, de 1 a 1000 | Sí |
+| Custom List | Valores que escribes, separados por comas, como `prod, staging` | Sí |
+| Text Input | Lo que escriba el espectador | No |
 
-El resultado: un panel, cada servicio cubierto, tres menús desplegables en la parte superior.
+### Telemetry Attribute
 
-## Dónde seguir leyendo
+Define la **Clave del atributo**, como `service.name`, `host.name` o `k8s.namespace.name`; el campo sugiere las claves que lleva tu telemetría. El selector ofrece hasta 100 valores de esa clave, leídos de tus métricas del último día, así que un servicio nuevo aparece en él sin que tengas que editar el panel.
 
-- [Widgets](/docs/dashboards/widgets) — cómo usa un filtro cada widget.
-- [Compartir y Paneles Públicos](/docs/dashboards/sharing) — variables y enlaces compartidos.
-- [Crear un Panel](/docs/dashboards/authoring) — la mecánica del lienzo.
+Es el origen más habitual, porque no necesita una lista propia: los valores son los que ya envías.
+
+### Project Labels
+
+Elige etiquetas de proyecto existentes para ofrecerlas como un desplegable del panel. Por ejemplo, crea una variable llamada `UNIT`, pon su origen en **Project Labels** y elige las etiquetas `0660` y `0661`.
+
+El panel guarda los ID y los nombres visibles de las etiquetas elegidas. El filtrado usa los ID, así que cambiar el nombre de una etiqueta del proyecto no rompe su vínculo. Los nombres visibles se guardan con el panel; vuelve a seleccionar una etiqueta renombrada en el editor de variables para actualizar su nombre visible. Los paneles públicos muestran estas mismas opciones guardadas.
+
+En un widget **Lista de monitores**, abre **Filtros → Variable de etiqueta** y selecciona `UNIT`. Al elegir `0660`, se muestran los monitores que llevan esa etiqueta. Los demás widgets no se ven afectados salvo que admitan y vinculen la variable de forma explícita: la **Lista de SLO** tiene el mismo ajuste **Variable de etiqueta**.
+
+Los filtros fijos del widget siguen aplicándose. Por ejemplo, con una etiqueta fija `network` y `UNIT` en `0660`, un monitor debe llevar las dos etiquetas. Varias unidades seleccionadas coinciden con cualquiera de ellas. Elegir **Todos** solo quita la condición de la variable, y mantiene los filtros fijos de etiqueta, estado y tipo de monitor.
+
+Una variable que falta o una selección fuera de sus opciones configuradas muestra un error. Una etiqueta elegida sin monitores que coincidan muestra la lista vacía. Quita explícitamente el vínculo del widget cuando ya no lo necesites.
+
+### Custom List y Text Input
+
+Una Custom List ofrece los valores que escribes, separados por comas. Un Text Input permite al espectador escribir cualquier valor, como una dirección IP o un ID de petición. Ninguno de los dos filtra un widget por sí solo: sus valores van donde escribes `{{name}}` (consulta más abajo).
+
+Una variable Query de un panel antiguo se conserva y muestra un cuadro de texto en la barra de herramientas: OneUptime ya no carga sus valores desde una consulta.
+
+## Selección múltiple y valores predeterminados
+
+Con **Allow multi-select** marcado, los espectadores eligen uno o varios valores, y los widgets muestran cualquiera de ellos. Una selección vacía significa **Todos**, y una variable de selección múltiple siempre empieza en **Todos**, por lo que su valor **Predeterminado** aparece atenuado.
+
+Una variable de selección única empieza en su valor **Predeterminado**, o en **Todos** si no tiene ninguno. **Todos** quita el filtro de la variable, así que los widgets lo muestran todo.
+
+Usa la selección múltiple para comparar "checkout y payments juntos" sin salir del panel. Evítala cuando los números no se suman entre valores, como en una media de medias.
+
+## Cómo usan los widgets una variable
+
+Cada origen llega a los widgets a su manera:
+
+- Las variables **Telemetry Attribute** filtran widgets sin que tengas que configurar nada en ellos: cada gráfico, valor, indicador y tabla de métricas; el **Gráfico de registros**, el **Flujo de registros**, el **Gráfico de trazas** y la **Tabla de trazas**; y las listas de infraestructura cuyos recursos llevan el atributo, como `host.name` en las listas de hosts y `k8s.namespace.name` en las listas de Kubernetes. El gráfico de una métrica sin ese atributo no muestra datos mientras haya un valor elegido: elige **Todos** para volver a verlo. La **Lista de trazas** y las listas de incidentes y alertas no las siguen.
+- Las variables **Project Labels** filtran una **Lista de monitores** o una **Lista de SLO** cuya **Variable de etiqueta** las nombra.
+- **Cualquier variable** puede escribirse en un texto como `{{name}}`: en un [widget HTML](/docs/dashboards/widgets#html), en la consulta de una [fuente de datos externa](/docs/dashboards/data-sources), y en el título de una **Lista de monitores** o una **Lista de SLO**. Un título como `{{UNIT}} NETWORK` muestra `0660 NETWORK`, `0660, 0661 NETWORK` o `All NETWORK`. Un título solo controla el texto que se muestra; configura **Variable de etiqueta** para filtrar la consulta de monitores.
+
+El [widget SLO](/docs/dashboards/widgets#slo) puede seguir una variable Telemetry Attribute sobre la clave `sloName`, para que los espectadores elijan qué SLO muestra.
+
+## Enlaces que conservan la selección
+
+El enlace de la página lleva la elección de cada variable como `?var-<name>=<value>`, con varios valores separados por comas, así que un enlace que copias se abre con la misma selección, incluido un **Todos** explícito. Un enlace como este se abre en el servicio payments:
+
+```text title="A dashboard link with a variable"
+https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
+```
+
+El enlace solo lleva las variables. El intervalo de tiempo empieza en la última hora en cada visita, así que dile a quien se lo envías qué tramo debe mirar, o haz zoom una vez que lo abra.
+
+## Un ejemplo: un panel para cada servicio
+
+Un panel de servicio suele tener:
+
+1. Una variable `service`, con origen Telemetry Attribute, clave de atributo `service.name` y tu servicio con más tráfico como valor predeterminado. Deja la selección múltiple desactivada, para que los gráficos muestren un servicio cada vez.
+2. Una variable `namespace`, con origen Telemetry Attribute, clave de atributo `k8s.namespace.name` y la selección múltiple activada para comparar espacios de nombres.
+3. Una variable `environment`, con origen Custom List y valores `prod, staging`, usada como `{{environment}}` en la consulta de una fuente de datos.
+4. Widgets que leen esos atributos: gráficos y valores de las métricas del servicio, un flujo de registros y una lista de pods de Kubernetes.
+
+El resultado: un panel para cada servicio, con tres selectores arriba.
+
+## Próximos pasos
+
+:::cards
+- [Widgets del panel](/docs/dashboards/widgets): Qué widgets siguen qué variables.
+- [Fuentes de datos externas](/docs/dashboards/data-sources): Pon una variable en una consulta PromQL o SQL.
+- [Compartir y paneles públicos](/docs/dashboards/sharing): Las variables en un panel público.
+- [Crear un panel](/docs/dashboards/authoring): El modo de edición, el guardado y el intervalo de tiempo.
+:::

@@ -129,7 +129,7 @@ sequenceDiagram
 
 ### 在一段时间内评估
 
-**在一段时间内评估此条件** 是筛选器下方的复选框，适用于 **Is Online**、**Total Connection Time (DNS + TCP) (in ms)**、**Port DNS Lookup Time (in ms)** 和 **Port TCP Connect Time (in ms)**。打开它即可判断过去一段时间内的检查，而不只是最近一次：在 **评估** 中选择聚合方式，在 **在过去（分钟）** 中选择 2 到 60 分钟的时间窗口。
+**在一段时间内评估此条件** 是筛选器下方的复选框，适用于 **Is Online**、**Total Connection Time (DNS + TCP) (in ms)**、**Port DNS Lookup Time (in ms)**、**Port TCP Connect Time (in ms)** 和 **Is Request Timeout**。打开它即可判断过去一段时间内的检查，而不只是最近一次：在 **评估** 中选择聚合方式，在 **在过去（分钟）** 中选择 2 到 60 分钟的时间窗口。
 
 | 聚合 | 匹配条件 |
 | --- | --- |
@@ -138,6 +138,10 @@ sequenceDiagram
 | **Any Value** | 窗口内至少有一次检查满足条件。 |
 
 **All Values** 只有在窗口真正被数据覆盖后才会匹配。刚创建的监视器，或者检查已不再被记录的监视器，没有足够的历史来说明过去 N 分钟的情况，因此条件会等待，而不是根据手头仅有的一个读数匹配。**Any Value** 用于“只要有一次检查超出阈值就立即告诉我”，并且仍会立即触发。
+
+**Is Request Timeout** 不是 OneUptime 记录的数值，因此 OneUptime 会记录每次检查时筛选器是否匹配，并根据这份记录以 **All Values** 或 **Any Value** 判断时间窗口。
+
+请让时间窗口长于监控间隔，使其包含多次检查：每 5 分钟检查一次的监视器，在任意 5 分钟的时间窗口内只有一次检查。
 
 **如果无数据** 决定在窗口无法支撑条件时发生什么：
 

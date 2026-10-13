@@ -5,6 +5,7 @@ import {
   CriteriaFilter,
   CriteriaFilterUtil as CommonCriteriaFilterUtil,
   EvaluateOverTimeMinutes,
+  EvaluateOverTimeOptions,
   EvaluateOverTimeType,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
@@ -42,6 +43,18 @@ export const LLM_CHECK_ON_LABELS: ReadonlyArray<string> = [
 ];
 
 export default class CriteriaFilterUtil {
+  /*
+   * The window a filter is given when "Evaluate this criteria over a period
+   * of time" is ticked: every check of the last 5 minutes. All Values is the
+   * choice that waits - the reason most people tick the box - and the one
+   * every dropdown below already fell back to.
+   */
+  public static readonly DEFAULT_EVALUATE_OVER_TIME_OPTIONS: EvaluateOverTimeOptions =
+    {
+      timeValueInMinutes: 5,
+      evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+    };
+
   public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
     const keys: Array<string> = Object.keys(EvaluateOverTimeMinutes);
     return keys.map((key: string) => {
@@ -55,9 +68,119 @@ export default class CriteriaFilterUtil {
     });
   }
 
+  /*
+   * The "For the last" option a saved window shows as. The form used to
+   * save the minutes as the option's string ("5"), while the API, Terraform
+   * and the form's own defaults hold a number (5) - and a strict comparison
+   * of the two drew an empty dropdown over a window that was saved and in
+   * force. Both spellings name the same option.
+   */
+  public static getEvaluateOverTimeMinutesOption(
+    timeValueInMinutes: number | string | undefined,
+  ): DropdownOption | undefined {
+    if (
+      timeValueInMinutes === undefined ||
+      timeValueInMinutes === null ||
+      String(timeValueInMinutes).trim() === ""
+    ) {
+      return undefined;
+    }
+
+    const minutes: number = Number(timeValueInMinutes);
+
+    return CriteriaFilterUtil.getEvaluateOverTimeMinutesOptions().find(
+      (option: DropdownOption) => {
+        return Number(option.value) === minutes;
+      },
+    );
+  }
+
+  /*
+   * The filter once "Evaluate this criteria over a period of time" is
+   * ticked or unticked.
+   *
+   * Ticking it on a filter with no window gives it the default one. The box
+   * used to set the flag alone, so a filter saved straight after ticking it
+   * had no window - and the server judges such a filter on the latest check
+   * alone, while the form showed the box ticked. Unticking keeps the window,
+   * so ticking it again brings back what was chosen.
+   */
+  public static setEvaluateOverTime(data: {
+    criteriaFilter: CriteriaFilter;
+    evaluateOverTime: boolean;
+  }): CriteriaFilter {
+    if (!data.evaluateOverTime) {
+      return {
+        ...data.criteriaFilter,
+        evaluateOverTime: false,
+      };
+    }
+
+    return {
+      ...data.criteriaFilter,
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: data.criteriaFilter.evaluateOverTimeOptions
+        ? { ...data.criteriaFilter.evaluateOverTimeOptions }
+        : { ...CriteriaFilterUtil.DEFAULT_EVALUATE_OVER_TIME_OPTIONS },
+    };
+  }
+
+  /*
+   * The filter with one of its window's settings changed. A window that
+   * was never set starts from the default, so changing one setting never
+   * leaves the others empty.
+   */
+  public static setEvaluateOverTimeOption(data: {
+    criteriaFilter: CriteriaFilter;
+    change: Partial<EvaluateOverTimeOptions>;
+  }): CriteriaFilter {
+    return {
+      ...data.criteriaFilter,
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: {
+        ...(data.criteriaFilter.evaluateOverTimeOptions ||
+          CriteriaFilterUtil.DEFAULT_EVALUATE_OVER_TIME_OPTIONS),
+        ...data.change,
+      },
+    };
+  }
+
+  /*
+   * What the "Evaluate" dropdown's choices mean for this filter. A check
+   * judged check by check (a yes/no series, or a body, header or expression
+   * judged from its match history on this monitor type) is offered All
+   * Values and Any Value only, so it is told what those two mean; a
+   * measured value is told the aggregates as well.
+   */
+  public static getEvaluateOverTimeTypeDescription(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): string {
+    if (
+      CommonCriteriaFilterUtil.isJudgedCheckByCheck(
+        criteriaFilter?.checkOn,
+        monitorType,
+      )
+    ) {
+      return translationKey(
+        "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.",
+      );
+    }
+
+    return translationKey(
+      "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.",
+    );
+  }
+
+  /*
+   * The filter as a sentence, for the criteria list. Pass the monitor type
+   * when it is known: whether a window is judged check by check depends on
+   * it (CommonCriteriaFilterUtil.isJudgedCheckByCheck).
+   */
   public static translateFilterToText(
     criteriaFilter: CriteriaFilter,
     filterCondition?: FilterCondition | undefined,
+    monitorType?: MonitorType | undefined,
   ): string {
     let text: string = "Check if ";
 
@@ -108,10 +231,30 @@ export default class CriteriaFilterUtil {
      * Online and the like) saved with an aggregate is judged as All Values.
      */
     const evaluateOverTimeType: EvaluateOverTimeType | undefined =
-      CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(criteriaFilter);
+      CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+        criteriaFilter,
+        monitorType,
+      );
+
+    /*
+     * A body, a header or an expression judged from its match history has
+     * no values to speak of - "all values of Response Body" reads as
+     * nonsense - so it says which checks it must have matched on, after
+     * what it checks: ... not contains "App Title" on every check in the
+     * past 5 minutes.
+     */
+    const checkByCheckWindow: string =
+      CriteriaFilterUtil.getCheckByCheckWindowText(criteriaFilter, monitorType);
+
+    /*
+     * A body, header or expression filter with the box ticked but no minutes
+     * is judged on the latest check, so it reads as one.
+     */
+    const isEvaluatedOverTime: boolean =
+      CommonCriteriaFilterUtil.isEvaluatedOverTime(criteriaFilter, monitorType);
 
     // check evaluation over time values.
-    if (criteriaFilter?.evaluateOverTime && evaluateOverTimeType) {
+    if (isEvaluatedOverTime && evaluateOverTimeType && !checkByCheckWindow) {
       if (evaluateOverTimeType === EvaluateOverTimeType.AllValues) {
         text += `all values of `;
       } else if (evaluateOverTimeType === EvaluateOverTimeType.AnyValue) {
@@ -161,7 +304,9 @@ export default class CriteriaFilterUtil {
       text +=
         "JavaScript expression " +
         criteriaFilter?.value +
-        " - evaluates to true.";
+        " - evaluates to true" +
+        (checkByCheckWindow ? ` ${checkByCheckWindow.trim()}` : "") +
+        ".";
     } else {
       /*
        * Name the metric rather than the check: "Database Metric is greater
@@ -221,8 +366,9 @@ export default class CriteriaFilterUtil {
 
       // add minutes if evaluate over time is true
       if (
-        criteriaFilter?.evaluateOverTime &&
-        criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes
+        isEvaluatedOverTime &&
+        criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes &&
+        !checkByCheckWindow
       ) {
         text +=
           "in the past " +
@@ -232,8 +378,16 @@ export default class CriteriaFilterUtil {
 
       // ADD FILTER TYPE - like greater than, less than, etc
 
+      /*
+       * A text comparison reads as a verb of its own - contains, starts
+       * with - where the others read "is greater than", "is true".
+       */
+      const isTextComparison: boolean = CriteriaFilterUtil.isTextComparison(
+        criteriaFilter?.filterType,
+      );
+
       if (criteriaFilter?.filterType) {
-        if (criteriaFilter?.filterType.toLowerCase().includes("contains")) {
+        if (isTextComparison) {
           text += criteriaFilter?.filterType.toString().toLowerCase() + " ";
         } else {
           text +=
@@ -243,7 +397,20 @@ export default class CriteriaFilterUtil {
 
       /// FINALLY ADD THE VALUE
 
-      if (criteriaFilter?.value !== undefined) {
+      if (
+        criteriaFilter?.value !== undefined &&
+        criteriaFilter?.value !== null &&
+        isTextComparison
+      ) {
+        /*
+         * The text a comparison looks for is quoted, as the evaluation log
+         * and an incident's root cause quote it (Response Body Not Contains
+         * "App Title"): a window can follow it - ... not contains "App
+         * Title" on every check in the past 5 minutes - and the reader has
+         * to see where the text ends.
+         */
+        text += `"${criteriaFilter.value.toString()}" `;
+      } else if (criteriaFilter?.value !== undefined) {
         const thresholdUnitSuffix: string =
           criteriaFilter?.checkOn === CheckOn.MetricValue &&
           criteriaFilter?.metricMonitorOptions?.thresholdUnit
@@ -271,6 +438,8 @@ export default class CriteriaFilterUtil {
           isPercentage ? "%" : ""
         }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix}${databaseUnitSuffix}${transceiverUnitSuffix} `;
       }
+
+      text += checkByCheckWindow;
     }
 
     if (filterCondition === FilterCondition.All) {
@@ -282,6 +451,62 @@ export default class CriteriaFilterUtil {
     }
 
     return text;
+  }
+
+  /*
+   * Whether a condition compares text: what it looks for is a piece of
+   * text, quoted when the filter is written as a sentence.
+   */
+  public static isTextComparison(filterType: FilterType | undefined): boolean {
+    return (
+      filterType === FilterType.Contains ||
+      filterType === FilterType.NotContains ||
+      filterType === FilterType.StartsWith ||
+      filterType === FilterType.EndsWith
+    );
+  }
+
+  /*
+   * "on every check in the past 5 minutes " for a body, header or
+   * expression filter judged from its match history, "on any check ..." for
+   * Any Value; empty for every other filter, for one whose window is not
+   * set (the server judges that one on the latest check alone), and for one
+   * on a monitor type that keeps no match history for it.
+   *
+   * Is Request Timeout keeps a match history too, but it is a true/false
+   * check like Is Online and reads like one: "all values of ... is true".
+   */
+  public static getCheckByCheckWindowText(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): string {
+    const minutes: number | string | undefined =
+      criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes;
+
+    if (
+      !CommonCriteriaFilterUtil.isEvaluatedOverTime(
+        criteriaFilter,
+        monitorType,
+      ) ||
+      !minutes ||
+      !CommonCriteriaFilterUtil.keepsMatchHistory(
+        criteriaFilter?.checkOn,
+        monitorType,
+      ) ||
+      CommonCriteriaFilterUtil.isBooleanSeries(criteriaFilter?.checkOn)
+    ) {
+      return "";
+    }
+
+    const whichChecks: string =
+      CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+        criteriaFilter,
+        monitorType,
+      ) === EvaluateOverTimeType.AnyValue
+        ? "any check"
+        : "every check";
+
+    return `on ${whichChecks} in the past ${minutes} minutes `;
   }
 
   public static getCheckOnOptionsByMonitorType(

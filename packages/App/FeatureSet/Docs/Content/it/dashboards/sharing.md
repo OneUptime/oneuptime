@@ -1,107 +1,189 @@
 # Condivisione e dashboard pubbliche
 
-Per impostazione predefinita, le dashboard sono private al tuo progetto — solo i membri del team autenticati possono vederle. Ma OneUptime ti permette anche di condividere una dashboard pubblicamente, proteggerla con una password, limitarla a determinati IP e ospitarla sul tuo dominio. Questa pagina copre tutti e quattro gli aspetti.
+Per impostazione predefinita, una dashboard è privata del tuo progetto: solo chi accede al tuo progetto può vederla. Puoi anche condividerla tramite un link pubblico, proteggere quel link con una password, limitarlo a determinati indirizzi IP e ospitarla sul tuo dominio. Questa pagina copre tutte e quattro le cose.
 
-## Dashboard private (il default)
+:::cards
+- [Chi può vedere una dashboard](#chi-può-vedere-una-dashboard): Una scelta fra tre, con il piano che richiede ciascuna.
+- [Condividere con una password](#condividere-con-una-password): Condividi il link, poi la password, con le persone che devono vederla.
+- [Lista di IP consentiti](#lista-di-ip-consentiti): Apri il link pubblico solo al tuo ufficio o alla tua VPN.
+- [Domini personalizzati](#domini-personalizzati): Servi la dashboard sul tuo dominio, con un certificato gratuito.
+:::
 
-Una dashboard e raggiungibile solo dai membri autenticati del tuo progetto. L'URL e simile a `https://oneuptime.com/dashboards/<id>/view` e richiede l'accesso.
+## Il percorso di un visitatore
 
-All'interno del progetto, proprietari ed etichette controllano chi vede cosa — vedi [Configurazione e permessi](/docs/dashboards/configuration).
+Un visitatore che apre il link pubblico di una dashboard incontra ciascuno di questi controlli in ordine. I membri del progetto che accedono a OneUptime vedono la dashboard all'interno del prodotto, qualunque cosa tu scelga qui.
+
+```mermaid title="Che cosa vede un visitatore quando apre il link pubblico"
+flowchart TB
+    visit["Un visitatore apre<br/>il link pubblico"] --> shared("La dashboard è<br/>condivisa pubblicamente?")
+    shared -->|"No"| missing["Una pagina<br/>non trovata"]
+    shared -->|"Sì"| allowed("Il suo indirizzo è<br/>nella lista di IP<br/>consentiti?")
+    allowed -->|"Sì, o<br/>nessuna lista"| locked("Serve una<br/>password?")
+    allowed -->|"No"| denied["Una pagina<br/>Access Denied"]
+    locked -->|"Sì"| prompt["La richiesta<br/>della password"]
+    prompt --> board["La dashboard"]
+    locked -->|"No"| board
+```
+
+## Chi può vedere una dashboard
+
+Apri la dashboard e scegli **⋯ → Condividi**, oppure apri **Condivisione** nel menu laterale della dashboard. La scheda **Chi può vedere questa dashboard** è un'unica scelta:
+
+- **Solo le persone di questo progetto** (l'impostazione predefinita): i membri vedono la dashboard quando accedono a OneUptime. Non ha un link pubblico: il suo indirizzo pubblico mostra la stessa pagina non trovata di un indirizzo senza dashboard, e nulla della dashboard, nemmeno il suo nome.
+- **Chiunque abbia il link**: la dashboard è pubblica. Chiunque abbia il suo link può vederla, senza accedere.
+- **Chiunque abbia il link e una password**: i visitatori aprono il link, poi inseriscono una password che condividi con loro. Nessuno ha bisogno di un account.
+
+Scegliere un'opzione chiede conferma, spiegando che cosa cambia per i visitatori, poi si applica subito. Scegliere **Chiunque abbia il link e una password** chiede la password nella stessa finestra quando la dashboard non ne ha una; finché è la scelta attiva, **Cambia password** la sostituisce. Finché la dashboard è pubblica, il suo **Link pubblico** si trova sotto la scelta, con un pulsante che lo copia.
+
+All'interno del progetto, i proprietari e le etichette controllano chi vede cosa: vedi [Configurazione e permessi della dashboard](/docs/dashboards/configuration). Chi può vedere la dashboard ma non modificarla vede la scelta e può copiare il link pubblico, ma non può cambiarla.
+
+Su OneUptime Cloud, condividere una dashboard richiede il piano **Growth**: con un piano inferiore, le due scelte pubbliche mostrano il piano che richiedono e non possono essere selezionate. Rendere di nuovo privata una dashboard (**Solo le persone di questo progetto**) funziona con ogni piano, quindi una dashboard rimasta pubblica alla fine di una prova, o dopo il passaggio a un piano inferiore, può sempre smettere di essere condivisa; la finestra indica che condividerla di nuovo richiede **Growth**. Passare da **Chiunque abbia il link** a **Chiunque abbia il link e una password**, e cambiare la password, funziona con ogni piano. Una dashboard creata tramite l'API o Terraform è soggetta agli stessi piani: creata pubblica richiede **Growth**, e creata con una lista di IP consentiti **Scale**.
+
+La scelta è memorizzata in tre colonne, che l'API e Terraform leggono e scrivono come prima: `isPublicDashboard`, `enableMasterPassword` e `masterPassword`. Solo una dashboard pubblica ha un link pubblico, e ai suoi visitatori viene chiesta la password ogni volta che `enableMasterPassword` è attivo. Una dashboard pubblica con `enableMasterPassword` attivo ma senza password impostata non fa entrare nessuno dal suo link pubblico: la pagina **Condivisione** la mostra come **Chiunque abbia il link e una password**, dice che nessuno può ancora aprire il link e offre **Imposta password**. Scegliere **Solo le persone di questo progetto** disattiva anche `enableMasterPassword` e conserva la password, così una nuova condivisione con password può riutilizzarla.
 
 ## Dashboard pubbliche
 
-Sotto **Dashboard → Impostazioni**, attiva **Public Dashboard**. La dashboard ora ha un secondo URL che non richiede l'accesso. Condividilo con fornitori, partner, clienti o incollalo in un README pubblico.
-
 Una dashboard pubblica:
 
-- Si apre sempre in modalita **Visualizza**. I visitatori pubblici non possono modificare ne vedere la palette dei widget.
-- Include le variabili che hai aggiunto. I visitatori scelgono dagli stessi menu a tendina che usa il tuo team.
-- Usa il **branding** impostato in Settings — titolo della pagina, descrizione, logo, favicon.
+- Si apre sempre in lettura. I visitatori non possono modificarla, e non vedono mai i suoi controlli di modifica.
+- Include le variabili che hai aggiunto. I visitatori scelgono dagli stessi selettori che usa il tuo team, e possono cambiare l'intervallo di tempo, ingrandire, attivare l'aggiornamento automatico e passare a schermo intero.
+- Usa il branding che imposti nella pagina **Branding** della dashboard: titolo della pagina, descrizione, logo, favicon.
 
-Tratta l'attivazione di una dashboard pubblica come la pubblicazione di una pagina web. Ogni widget al suo interno diventa leggibile da chiunque. Controlla cosa c'e sul canvas prima di attivare l'interruttore.
+Tratta la condivisione di una dashboard come la pubblicazione di una pagina web. Ogni widget che contiene diventa leggibile da chiunque abbia il link. Guarda che cosa c'è sul canvas prima di condividerla.
 
-Ogni widget pubblica solo ciò che disegna, e solo per le risorse su cui è puntato. Un widget SLO, per esempio, pubblica i numeri principali di quello SLO ma mai la sua definizione — vedi [SLO](/docs/dashboards/widgets#slo). I widget **Data Source** esterni sono l'eccezione: su una dashboard pubblica vengono esclusi del tutto anziché essere resi, perché la loro configurazione è la query stessa.
+Ogni widget pubblica solo ciò che disegna, e solo per le risorse a cui è stato puntato. Un widget SLO, per esempio, pubblica i numeri principali di quello SLO ma mai la sua definizione: vedi [SLO](/docs/dashboards/widgets#slo). I widget con una **Data Source** esterna sono l'eccezione: vengono esclusi del tutto da una dashboard pubblica invece di essere resi, perché la loro configurazione è la query stessa. Alcuni altri widget non possono essere mostrati senza una sessione con accesso, e lo indicano al loro posto: [Su una dashboard pubblica](/docs/dashboards/widgets#su-una-dashboard-pubblica) li elenca.
 
-## Password master
+## Condividere con una password
 
-Per mettere una password su una dashboard pubblica:
+Scegli **Chiunque abbia il link e una password** e inserisci la password nella finestra. I visitatori vedono una richiesta di password prima che compaia la dashboard. La richiesta mostra il nome, il titolo della pagina e la favicon della dashboard, e nient'altro: la descrizione, il logo e i widget compaiono una volta inserita la password. La password viene memorizzata come hash: nessuno può rileggerla. Una nuova password funziona subito; chi aveva inserito quella vecchia può continuare a vedere la dashboard per un massimo di 7 giorni.
 
-1. Attiva **Public Dashboard**.
-2. Attiva **Password principale**.
-3. Imposta la password.
+Usa una password quando:
 
-I visitatori vedono un prompt per la password prima che la dashboard appaia. La password e memorizzata come hash — non vediamo mai la password reale.
+- Vuoi condividere con un partner o un cliente, ma non vuoi che l'URL sia utile se trapela.
+- La dashboard è "semi-pubblica": abbastanza aperta da non voler invitare ogni visualizzatore come membro del team, ma non abbastanza da metterla su internet.
 
-Usa una password master quando:
+Per un controllo più forte (account separati per ogni visualizzatore, una traccia di audit di chi ha visto cosa), lascia la dashboard su **Solo le persone di questo progetto** e invita invece i visualizzatori come membri del team in sola lettura.
 
-- Vuoi condividere con un partner o cliente ma non vuoi che l'URL sia utile in caso di fuga.
-- La dashboard e "semi-pubblica" — abbastanza aperta da non voler invitare ogni visitatore come membro del team, ma non abbastanza aperta da metterla sull'internet pubblica.
+## Lista di IP consentiti
 
-Per un controllo piu stringente (account separati per ogni visitatore, una traccia di audit di chi ha visualizzato cosa), mantieni la dashboard privata e invita i visitatori come membri del team in sola lettura.
+In **Altre impostazioni** nella pagina **Condivisione**, la sezione **Lista IP consentiti** (la colonna `ipWhitelist`) limita il link pubblico agli indirizzi IP o agli intervalli IPv4 che elenchi, uno per riga, per esempio `203.0.113.7` o `10.0.0.0/8`. Si applica con o senza password; i membri del progetto che accedono non sono interessati. Lasciala vuota per consentire ogni indirizzo. Si salva per conto suo, separatamente dalla scelta, e modificarla richiede il piano **Scale** su OneUptime Cloud; svuotarla funziona con ogni piano. Finché una lista è in vigore, l'intestazione chiusa di **Altre impostazioni** mostra **Lista IP consentiti** con il numero di voci che contiene.
 
-## Allowlist di IP
+Usala quando:
 
-Sul piano **Scale**, puoi limitare una dashboard pubblica a un elenco di indirizzi IP o intervalli. Configuralo sotto **Dashboard → Impostazioni → Whitelist IP**.
+- La dashboard deve essere raggiungibile solo dal tuo ufficio o dalla tua VPN.
+- Un portale per fornitori deve essere raggiungibile solo dai loro IP noti.
+- Vuoi una protezione in più oltre a una password.
 
-Usalo quando:
-
-- La dashboard deve essere raggiungibile solo dal tuo ufficio o dalla VPN.
-- Un portale fornitore dovrebbe essere raggiungibile solo dai loro IP noti.
-- Vuoi una protezione extra in aggiunta a una password master.
-
-Le richieste da qualsiasi altro IP vengono rifiutate.
+Le richieste da qualsiasi altro IP vengono rifiutate con una pagina **Access Denied** che non mostra nulla della dashboard: né il nome, né il branding, né la richiesta di password. Una riga che non è un indirizzo IP né un intervallo IPv4 viene rifiutata al salvataggio, perché il server la salterebbe.
 
 ## Domini personalizzati
 
-Out of the box, una dashboard pubblica viene servita su `oneuptime.com`. Per ospitarla sul tuo sottodominio come `dashboard.acme.com`:
+Di base, una dashboard pubblica viene servita al suo link pubblico, sull'indirizzo di OneUptime. Per ospitarla su un tuo sottodominio come `dashboard.acme.com`, apri **Branding → Domini personalizzati** nel menu laterale della dashboard. Funziona esattamente come la pagina **Domini personalizzati** di una pagina di stato.
 
-1. Aggiungi un record CNAME sul tuo DNS che punti il sottodominio al target di OneUptime.
-2. Sotto **Dashboard → Impostazioni → Domini personalizzati**, aggiungi il dominio.
-3. Verificalo. OneUptime controlla il record DNS per te.
-4. Una volta verificata, la dashboard e raggiungibile sia sul tuo dominio personalizzato sia sull'URL originale.
+La scheda si intitola **Domini personalizzati** e dice che cosa fare: punta il record CNAME di ogni dominio al record CNAME per le dashboard della tua installazione, e OneUptime emette il certificato SSL del dominio e lo rinnova per te. La tabella ha due colonne, **Dominio** e **Stato**.
 
-I domini personalizzati sono utili per:
+Mettere la dashboard sul tuo dominio richiede tre passaggi, e solo i primi due spettano a te:
 
-- Dashboard rivolte ai clienti con il tuo brand.
-- Dashboard partner co-brandizzate.
-- Pagine di salute pubbliche con il proprio URL.
+1. **Aggiungi il dominio**: un sottodominio e uno dei tuoi domini verificati.
+2. **Aggiungi il suo record CNAME** presso il tuo provider DNS. La finestra **Configurazione DNS** si apre con il record non appena aggiungi il dominio.
+3. **Il certificato SSL gratuito viene emesso automaticamente** non appena il record viene trovato. Non c'è nessun pulsante da premere.
 
-Puoi associare piu di un dominio personalizzato a una singola dashboard se servi lo stesso contenuto a piu pubblici.
+Una volta verificata, la dashboard è raggiungibile sia sul tuo dominio personalizzato sia sull'URL originale.
+
+### Aggiungere il dominio
+
+Fai clic su **Crea: Dashboard Dominio**. La finestra è una sola pagina:
+
+- **Sottodominio**: solo l'etichetta, con il segnaposto `dashboard (leave blank for root)`. Inserisci solo `dashboard`, non l'intero nome host. Lascialo vuoto o inserisci `@` per usare il dominio radice (apex).
+- **Dominio**: i domini verificati in **Impostazioni del progetto → Domini**, dove dimostri con un record TXT che un dominio è tuo. Un dominio che non hai verificato non è elencato, perché verrebbe rifiutato. Il link **Aggiungi un dominio** accanto al campo apre quella pagina in una nuova scheda.
+- **Altri campi**: chiuso. Finché è chiuso, la sua intestazione dice quale certificato userà il dominio: "Emettiamo un certificato SSL gratuito per questo dominio e lo rinnoviamo automaticamente." Aprilo solo per usare un certificato tuo (vedi sotto).
+
+Fai clic su **Crea: Dashboard Dominio**. La finestra si chiude e si apre la **Configurazione DNS** del nuovo dominio. Il nome completo di un dominio è fissato quando lo aggiungi, quindi **Modifica** cambia solo il suo certificato. Per usare un altro sottodominio, aggiungi quel dominio ed elimina quello vecchio.
+
+### Configurazione DNS e Verifica ora
+
+La finestra **Configurazione DNS** mostra il record da aggiungere presso il tuo provider DNS, un campo per riga, ciascuno con un pulsante di copia: **Tipo** `CNAME`, **Nome** il dominio completo che hai aggiunto, e **Valore** il record CNAME per le dashboard della tua installazione. Per un dominio radice, senza sottodominio, la finestra aggiunge una nota: molti provider DNS non consentono lì un record CNAME, quindi usa invece il record ALIAS, ANAME o di CNAME flattening del tuo provider, con lo stesso valore.
+
+OneUptime verifica ogni dominio non verificato ogni 15 minuti, e quando la verifica trova il record ordina il certificato Let's Encrypt gratuito del dominio nella stessa verifica, che tu torni o meno. Per verificare subito, fai clic su **Verifica ora**:
+
+- **Il record non è ancora stato trovato.** La finestra resta aperta e dice quale record ha cercato. Un nuovo record DNS può metterci un po' a comparire. Fai di nuovo clic su **Verifica ora** più tardi, oppure lascia fare alla verifica ogni 15 minuti.
+- **Il record è stato trovato.** La finestra dice "Il tuo record CNAME è verificato." e che cosa succede poi al certificato. Il certificato gratuito viene ordinato in quel momento, e di solito è attivo entro 15 minuti.
+
+Finché un dominio non è verificato e il suo certificato non è al suo posto, la sua riga ha un'azione **Configurazione DNS** che apre la stessa finestra. Su un dominio verificato il cui ordine del certificato continua a fallire, o il cui certificato è scaduto, **Verifica ora** da lì ordina di nuovo e mostra perché l'ultimo ordine è fallito. Ordina al massimo una volta per dominio ogni 15 minuti; nel frattempo, OneUptime continua a riprovare da solo, aspettando un po' di più dopo ogni fallimento consecutivo. Il rinnovo è automatico, ben prima che il certificato scada, e una verifica DNS fallita non rimuove mai un certificato ancora valido.
+
+### Leggere la colonna Stato
+
+La colonna **Stato** indica a che punto è ogni dominio sulla strada verso HTTPS, in uno di sette stati, gli stessi delle pagine di stato. Quando un ordine è fallito, il motivo si trova nella riga sottostante.
+
+| Che cosa dice la colonna Stato | Che cosa significa |
+| --- | --- |
+| In attesa del DNS: aggiungi il record CNAME. | Il record CNAME non è ancora stato trovato. Apri **Configurazione DNS** per vedere il record, aggiungilo presso il tuo provider DNS, poi fai clic su **Verifica ora** o attendi la verifica ogni 15 minuti. |
+| Emissione di un certificato gratuito, di solito entro 15 minuti. | Il record è verificato, e il certificato viene ordinato o scritto. Non c'è niente da fare. |
+| Non è ancora stato possibile emettere un certificato gratuito. Continuiamo a provare. | Il record è verificato, ma l'ordine del suo certificato è fallito, per il motivo indicato nella riga sottostante. Correggi la causa, poi apri **Configurazione DNS** e fai clic su **Verifica ora** per ordinarlo di nuovo subito. |
+| Certificato scaduto. Continuiamo a provare a rinnovarlo. | Il certificato del dominio è scaduto perché i suoi rinnovi sono falliti. Apri **Configurazione DNS** e fai clic su **Verifica ora** per rinnovarlo subito e vedere perché. |
+| Certificato emesso, si rinnova automaticamente. | Fatto. Il dominio serve il suo certificato via HTTPS, e OneUptime lo rinnova. |
+| Certificato emesso, ma il rinnovo non è riuscito. Continuiamo a provare. | Il dominio serve ancora un certificato valido, ma il suo ultimo rinnovo è fallito, per il motivo indicato nella riga sottostante. OneUptime riprova ben prima che il certificato scada. |
+| Usa il tuo certificato caricato. | Il record è verificato, e il dominio è servito con il certificato che hai caricato. |
+
+Se un ordine fallisce, le cause abituali sono un record CAA sul tuo dominio che non consente `letsencrypt.org` e, su un'installazione self-hosted, un server che Let's Encrypt non riesce a raggiungere sulla porta 80.
+
+### Il tuo certificato, e la riemissione
+
+Per usare invece un tuo certificato, apri **Altri campi** quando aggiungi il dominio, attiva **Carica certificato personalizzato** e incolla il **Certificato** e la sua **Chiave privata del certificato**. OneUptime lo serve entro 15 minuti invece di ordinare un certificato Let's Encrypt, e prende il posto di qualsiasi certificato Let's Encrypt che il dominio avesse prima. Rinnovare un certificato caricato spetta a te: modifica il dominio e incolla quello nuovo. Se il dominio aveva prima un certificato gratuito, OneUptime continua a rinnovarlo mentre è in uso il tuo, quindi tornare indietro è immediato.
+
+Una volta ordinato un certificato gratuito per un dominio, la riga mostra **Reissue SSL**, che chiede a Let's Encrypt un certificato completamente nuovo quando ne vuoi uno prima del rinnovo automatico. Ogni dominio può essere riemesso una volta ogni 24 ore.
+
+Su un'installazione self-hosted, i domini personalizzati delle dashboard si attivano con la variabile d'ambiente `DASHBOARD_CNAME_RECORD` (`dashboard.cnameRecord` nel chart Helm), che è la destinazione a cui puntano i tuoi record CNAME. Senza di essa, la scheda e la finestra **Configurazione DNS** dicono "Custom Domains not enabled for this OneUptime installation" invece di mostrare un record, e OneUptime non verifica domini né ordina certificati per le dashboard.
+
+### Chi può verificare e riemettere
+
+**Verifica ora**, l'ordine del certificato di un dominio e **Reissue SSL** modificano il dominio, quindi richiedono l'autorizzazione a modificarlo: **Edit Dashboard Domain**, o un ruolo che la includa (Project Owner, Project Admin, Project Member, Settings Admin o Settings Member).
+
+Chi può solo leggere il dominio, come un Viewer o un Settings Viewer, vede comunque la colonna **Stato** e il record da aggiungere in **Configurazione DNS**. Per loro **Verifica ora** e **Reissue SSL** sono bloccati, e indicano quale autorizzazione serve. OneUptime continua comunque a verificare ogni dominio e a ordinarne il certificato da solo.
+
+Lo stesso vale per le chiavi API. Una chiave che può solo leggere i domini delle dashboard non può chiamare `verify-cname`, `order-ssl` o `reissue-ssl` su `/dashboard-domain`. Dalle **Read Dashboard Domain** ed **Edit Dashboard Domain** se ne ha bisogno.
+
+Un dominio appartiene a una sola dashboard del progetto alla volta. Puoi collegare più di un dominio personalizzato a una singola dashboard se servi lo stesso contenuto a più pubblici: una dashboard per i clienti con il tuo marchio, una dashboard per un partner con doppio marchio, o una pagina pubblica sullo stato di salute con il proprio URL.
 
 ## Branding
 
-Sotto **Dashboard → Impostazioni**, puoi configurare:
+Nella pagina **Branding** della dashboard, puoi configurare:
 
-- **Titolo della pagina** — cosa appare nella scheda del browser e in cima alla pagina.
-- **Descrizione della pagina** — la descrizione utilizzata dai motori di ricerca e dalle anteprime social.
-- **Logo** — carica un PNG o SVG da mostrare nell'intestazione.
-- **Favicon** — la piccola icona nella scheda del browser.
+- **Titolo della pagina**: ciò che appare nella scheda del browser e in cima alla pagina.
+- **Descrizione della pagina**: la descrizione usata dai motori di ricerca e dalle anteprime sui social.
+- **Logo**: un'immagine mostrata nell'intestazione della dashboard pubblica.
+- **Favicon**: la piccola icona nella scheda del browser.
 
-Il branding si applica solo quando la dashboard viene visualizzata pubblicamente. I visitatori interni vedono sempre il branding di OneUptime.
+Il logo e la favicon sono file caricati nel progetto stesso della dashboard, e questo viene verificato ogni volta che ne viene salvato uno: dalla dashboard, dall'API, da Terraform o da un workflow. Un file caricato in un altro progetto viene rifiutato con le stesse parole che riceve un file che non esiste più: "The logo's file could not be found. Upload the logo again." oppure "The favicon's file could not be found. Upload the favicon again." La dashboard pubblica mostra solo immagini del proprio progetto.
 
-## Embedding
+Il titolo e la descrizione della pagina compaiono anche in cima alla barra degli strumenti della dashboard per il tuo team, al posto del suo nome e della sua descrizione. Il logo e la favicon compaiono solo sulla dashboard pubblica.
 
-Puoi incorporare una dashboard pubblica nel tuo sito con un iframe:
+I visitatori vedono il branding solo quando possono vedere la dashboard. Prima che venga inserita la password, una dashboard condivisa con password mostra solo il titolo della pagina e la favicon, e i motori di ricerca e le anteprime dei link vedono il titolo della pagina ma non la descrizione della pagina. Una dashboard con una lista di IP consentiti mostra il suo branding solo agli indirizzi della lista, e i motori di ricerca e le anteprime dei link non ne vedono nulla.
 
-```html
+## Incorporare
+
+Puoi incorporare una dashboard pubblica nel tuo sito con un iframe, al suo link pubblico o a uno dei suoi domini personalizzati:
+
+```html title="embed.html"
 <iframe
-  src="https://dashboard.acme.com/view"
+  src="https://dashboard.acme.com"
   width="100%"
   height="800"
   frameborder="0"
 ></iframe>
 ```
 
-Se la dashboard ha una password master, i visitatori vedranno il prompt per la password all'interno dell'iframe.
+Se la dashboard è condivisa con una password, i visitatori vedranno la richiesta della password dentro l'iframe.
 
-## URL condivisibili
+## Inviare un link
 
-L'URL della dashboard include le selezioni correnti delle variabili e l'intervallo temporale come parametri di query. Regola i menu a tendina, copia l'URL, incollalo in chat — la persona che apre il link vede la dashboard con esattamente la stessa vista.
+Il link pubblico apre la dashboard con i suoi valori predefiniti salvati. Per inviare un link che si apra su un certo valore, aggiungici la variabile come `?var-<name>=<value>`, come fa la barra degli indirizzi quando un visitatore sceglie un valore; più valori sono separati da virgole. L'intervallo di tempo non fa parte del link: ogni visita parte dall'ultima ora.
 
-E il modo piu veloce per puntare un collega a "la dashboard al momento dell'inizio dell'incidente." Blocca l'intervallo temporale, copia, incolla.
+## Passaggi successivi
 
-## Letture successive
-
-- [Configurazione e permessi](/docs/dashboards/configuration) — controllo accessi in modalita privata.
-- [Variabili e filtri](/docs/dashboards/variables) — variabili con cui i visitatori possono interagire.
-- [Creazione di una dashboard](/docs/dashboards/authoring) — cosa va sul canvas.
+:::cards
+- [Configurazione e permessi della dashboard](/docs/dashboards/configuration): Proprietari, etichette e chi può cambiare la condivisione.
+- [Variabili e filtri della dashboard](/docs/dashboards/variables): I selettori che usano i visitatori, e i link che conservano una selezione.
+- [Widget della dashboard](/docs/dashboards/widgets): Che cosa pubblica ogni widget su una dashboard pubblica.
+- [Panoramica delle pagine di stato](/docs/status-pages/index): Di' ai clienti se il tuo servizio funziona.
+:::

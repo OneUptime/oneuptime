@@ -23,7 +23,9 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  * answers: it names the person who is away, the person covering - who their
  * alerts now reach - the window, and whether the swap applies everywhere or
  * to one policy. "Away" and "Covering" are the words the Add User Override
- * form asks with ("Who is away?", "Who covers?").
+ * form asks with ("Who is away?", "Who covers?"). An override that names
+ * nobody to cover says the rotation covers: "Next person in the rotation",
+ * with the rotation's icon where a person's initials would be.
  *
  * Rows come from OverridePresentation.buildOverrideSummaryRows, so this
  * component holds no wording of its own and stays a pure render of props.
@@ -64,6 +66,18 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
   const getAvatar: (userId: string) => ReactElement = (
     userId: string,
   ): ReactElement => {
+    // Nobody named: the rotation covers.
+    if (!userId) {
+      return (
+        <span
+          data-testid="active-override-rotation-avatar"
+          className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 ring-1 ring-inset ring-gray-200"
+        >
+          <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
+        </span>
+      );
+    }
+
     const info: OverrideUserDisplayInfo | undefined = props.userById[userId];
     return (
       <span
@@ -215,7 +229,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
        */}
       <p className="mt-1 text-xs text-gray-600">
         {translator.translateText(
-          "An override sends the alerts that would page one person to somebody else. Wherever one covers a shift, the calendar below shows the substitute rather than the person the rotation put on call.",
+          "An override sends the pages of someone who is away to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation instead. The calendar below shows who has each shift.",
         )}
       </p>
 

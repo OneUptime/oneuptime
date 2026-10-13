@@ -8,6 +8,7 @@ Ein Bereitschaftsplan legt fest, wer gerade Bereitschaft hat. Die Personen darin
 :::cards
 - [Wer sich abwechselt](#wer-sich-abwechselt): Einen Plan mit seiner ersten Rotation anlegen.
 - [Ebenen](#ebenen): Rotationen stapeln, Bereitschaftszeiten begrenzen und eine Vertretung darunter legen.
+- [Wenn jemand abwesend ist](#wenn-jemand-abwesend-ist): Jemanden in der Rotation überspringen, bis die Person zurück ist.
 - [API und Terraform](#pläne-mit-der-api-oder-terraform-anlegen): Pläne und ihre Rotationen als Code anlegen.
 :::
 
@@ -71,6 +72,23 @@ flowchart TB
 Um zu ändern, welche Ebene zuerst kommt, verwenden Sie **Ebene nach oben verschieben (höhere Priorität)** oder **Ebene nach unten verschieben (niedrigere Priorität)** im Menü einer Ebene.
 
 Jede Person behält überall dieselbe Farbe, damit Sie ihr auf einen Blick folgen können: auf jeder Ebene, im endgültigen Plan und seinen Vertretungen und auf der **Zeitachse der Bereitschaftspläne**.
+
+## Wenn jemand abwesend ist
+
+Wenn jemand in den Urlaub geht, überspringen Sie die Person, bis sie zurück ist. Klappen Sie auf der Seite **Ebenen** des Plans eine Ebene auf und klicken Sie neben ihrem Namen auf **Überspringen bis…**. Das öffnet das Formular für Abwesenheiten mit der Person unter **Wer ist abwesend?**, **Nächste Person in der Rotation** unter **Wer vertritt?** und **Beginnt** ab jetzt: Setzen Sie **Endet** auf ihre Rückkehr und speichern Sie.
+
+Solange die Person abwesend ist:
+
+- Jede ihrer Schichten geht an die nächste Person der Ebene, die nicht abwesend ist, in jedem Plan, in dem sie ist. Die Schichten der anderen verschieben sich nicht, und ihre gehören wieder ihr, sobald sie zurück ist.
+- Sind alle in einer Ebene abwesend, hat die Ebene niemanden in Bereitschaft, und die Ebenen darunter übernehmen. Die Ebene zeigt **Alle in dieser Ebene sind gerade abwesend**.
+- Eskalationsregeln, die sie direkt oder über ein Team alarmieren, überspringen sie. Der Lauf der Richtlinie vermerkt, dass sie abwesend ist und bis wann.
+- Ihre Zeile in der Ebene zeigt, bis wann sie abwesend ist, und der endgültige Plan und die **Zeitachse der Bereitschaftspläne** zeigen, wer jede ihrer Schichten übernimmt.
+
+Wählen Sie stattdessen jemanden unter **Wer vertritt?**, erhält diese Person alle ihre Alarmierungen, aus jedem Plan und jeder Richtlinie, statt dass die Rotation ihre Schichten übernimmt.
+
+So eingetragene Abwesenheit gilt für jede Bereitschaftsrichtlinie. Sie steht unter **Bereitschaftsdienst** > **Benutzerüberschreibungen**, wo Sie sie löschen können, um die Person früher zurückzuholen. Um jemanden nur in einer Richtlinie zu überspringen, legen Sie die Vertretung auf der Seite **Benutzerüberschreibungen** dieser Richtlinie an und lassen **Wer vertritt?**, wie es ist.
+
+Über die API überspringt eine Benutzervertretung (`/api/on-call-duty-policy-user-override`), die ohne `routeAlertsToUserId` angelegt wird, die Person in `overrideUserId` von `startsAt` bis `endsAt`.
 
 ## Pläne mit der API oder Terraform anlegen
 

@@ -46,11 +46,11 @@ const MIGRATIONS_DIR: string = path.join(
 );
 
 const MIGRATION_CLASS: string =
-  "AddUserNotificationRulePushNotificationLevel1801550000000";
+  "AddUserNotificationRulePushNotificationLevel1801600000000";
 
 const MIGRATION_PATH: string = path.join(
   MIGRATIONS_DIR,
-  "1801550000000-AddUserNotificationRulePushNotificationLevel.ts",
+  "1801600000000-AddUserNotificationRulePushNotificationLevel.ts",
 );
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -217,7 +217,7 @@ describe("the pushNotificationLevel migration", () => {
     // Imported AND listed in the exported array - the import alone does nothing.
     expect(index.match(new RegExp(MIGRATION_CLASS, "g"))?.length).toBe(2);
     expect(index).toContain(
-      `from "./1801550000000-AddUserNotificationRulePushNotificationLevel"`,
+      `from "./1801600000000-AddUserNotificationRulePushNotificationLevel"`,
     );
   });
 

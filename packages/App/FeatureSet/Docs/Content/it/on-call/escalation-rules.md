@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["I suoi metodi di notifica"]
 ```
 
-Una sostituzione utente in vigore per una persona invia i suoi avvisi a chi la sostituisce.
+Una sostituzione utente in vigore per una persona invia i suoi avvisi a chi la sostituisce. Una che non nomina nessuno per sostituirla la salta: non riceve avvisi, l'esecuzione della policy indica che è assente e fino a quando, e in una pianificazione di reperibilità ognuno dei suoi turni passa alla persona successiva nella rotazione.
 
 Ogni messaggio è uno che il suo fornitore accetta, così un avviso parte sempre. Ecco quanto porta ogni canale:
 

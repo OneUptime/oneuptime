@@ -212,10 +212,13 @@ describe("an escalation rule pages project members only", () => {
         return onCallBySchedule.get(scheduleId.toString()) || null;
       });
     jest
-      .spyOn(OnCallDutyPolicyEscalationRuleService, "getRouteAlertToUserId")
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "getAwayOverride")
       .mockImplementation(async (data: { userId: ObjectID }) => {
         return data.userId.toString() === OVERRIDDEN_MEMBER.toString()
-          ? SUBSTITUTE_LEAVER
+          ? {
+              coverUserId: SUBSTITUTE_LEAVER,
+              endsAt: new Date("2026-03-10T12:00:00.000Z"),
+            }
           : null;
       });
 
@@ -582,16 +585,16 @@ describe("an escalation rule pages project members only", () => {
 
       // Asked for the rule's own users only, never for the schedule's.
       const routeLookup: SpyInstance<
-        typeof OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId
+        typeof OnCallDutyPolicyEscalationRuleService.getAwayOverride
       > =
-        OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId as unknown as SpyInstance<
-          typeof OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId
+        OnCallDutyPolicyEscalationRuleService.getAwayOverride as unknown as SpyInstance<
+          typeof OnCallDutyPolicyEscalationRuleService.getAwayOverride
         >;
 
       const askedFor: Array<string> = routeLookup.mock.calls.map(
         (
           call: Parameters<
-            typeof OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId
+            typeof OnCallDutyPolicyEscalationRuleService.getAwayOverride
           >,
         ): string => {
           return call[0].userId.toString();

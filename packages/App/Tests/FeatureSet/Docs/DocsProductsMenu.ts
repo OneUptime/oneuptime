@@ -53,6 +53,13 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
   Workflows: "navbar.items.workflowsTitle",
   Services: "navbar.items.servicesTitle",
   "Real User Monitoring": "navbar.items.rumTitle",
+  /*
+   * The Dashboards pages open their product, and the teams whose
+   * permissions they name, from the menu. The Russian menu reads
+   * "Дашборды" where the Dashboards page's own title reads "Панели".
+   */
+  Dashboards: "navbar.items.dashboardsTitle",
+  Teams: "navbar.items.teamsTitle",
 };
 
 /*

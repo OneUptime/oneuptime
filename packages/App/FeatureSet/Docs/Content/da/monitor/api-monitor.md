@@ -188,7 +188,7 @@ Monitorer, der blev oprettet, før OneUptime ændrede disse standarder, beholder
 
 ### Evaluering over en periode
 
-**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **Is Online**, **Svarstatuskode** og **Svartid (i ms)**. Slå det til for at bedømme et vindue af tidligere tjek i stedet for kun det seneste: vælg en aggregering under **Evaluér** og et vindue fra 2 til 60 minutter under **For de seneste (i minutter)**.
+**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **Is Online**, **Svarstatuskode**, **Svartid (i ms)**, **Svarets brødtekst**, **Response Header**, **Response Header Value**, **JavaScript Expression** og **Is Request Timeout**. Slå det til for at bedømme et vindue af tidligere tjek i stedet for kun det seneste: vælg en aggregering under **Evaluér** og et vindue fra 2 til 60 minutter under **For de seneste (i minutter)**.
 
 | Aggregering | Matcher, når |
 | --- | --- |
@@ -197,6 +197,10 @@ Monitorer, der blev oprettet, før OneUptime ændrede disse standarder, beholder
 | **Any Value** | Mindst ét tjek i vinduet opfylder betingelsen. |
 
 **All Values** matcher først, når vinduet virkelig er dækket af data. En monitor, der lige er oprettet, eller en, hvis tjek ikke længere er blevet registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Any Value** er indstillingen for "sig det med det samme, når et enkelt tjek overskrider grænsen" og udløses stadig med det samme.
+
+En body, en header, en headerværdi eller et udtryk er ikke et tal, OneUptime registrerer. For de filtre og for **Is Request Timeout** registrerer OneUptime derfor, om filteret passede ved hvert tjek, og bedømmer vinduet ud fra den registrering med **All Values** eller **Any Value**. Sådan kommer en monitor igennem en genstart. En app, der er ved at starte, svarer måske `200` med en midlertidig side som `Application starting...`; med **All Values** sætter et filter **Svarets brødtekst**, der leder efter appens titel, først monitoren offline, når den midlertidige side har varet hele vinduet.
+
+Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: en monitor, der tjekkes hvert 5. minut, har kun ét tjek i et vindue på 5 minutter.
 
 **Hvis ingen data** afgør, hvad der sker, så længe vinduet ikke kan bære kriteriet:
 
@@ -214,6 +218,8 @@ Monitorer, der blev oprettet, før OneUptime ændrede disse standarder, beholder
 | Offline, når sundhedstjekket melder et problem | **Svarets brødtekst** | **Not Contains** | `"status":"ok"` |
 | Det samme, læst fra den fortolkede JSON | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
 | Accepter kun `201` fra et `POST` | **Svarstatuskode** | **Equal To** | `201` |
+
+For at komme igennem en genstart skal du slå **Evaluér disse kriterier over en periode** til for filteret på svarets brødtekst og vælge **All Values** over 15 minutter.
 
 ## Fejlfinding
 

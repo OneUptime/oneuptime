@@ -52,6 +52,14 @@ export const OVERRIDE_EVENT_CLASS_NAME: string =
 // Shown on the label/legend when a user has no name or email loaded.
 export const UNKNOWN_USER_LABEL: string = translationKey("Unknown user");
 
+/*
+ * Who covers an override that names nobody: the rotation. The same words the
+ * Add User Override form's "Who covers?" shows while nobody is picked.
+ */
+export const NEXT_IN_ROTATION_LABEL: string = translationKey(
+  "Next person in the rotation",
+);
+
 export function getUserDisplayName(
   info: OverrideUserDisplayInfo | undefined,
 ): string {
@@ -161,6 +169,9 @@ export function formatOverrideEventTitle(data: {
  * The hover text for an overridden block. Multi-line on purpose: this is where
  * a reader goes when the block itself is too narrow to have told them anything,
  * so it repeats the whole substitution rather than assuming the label was read.
+ *
+ * A skip says why it is this person: nobody was named, so the turn went to
+ * the next person in the rotation who is not away.
  */
 export function buildOverrideEventTooltip(data: {
   substituteName: string;
@@ -169,7 +180,25 @@ export function buildOverrideEventTooltip(data: {
   overrideEndsAt: Date;
   scope: OverrideScopeDescription;
   timezone?: string | undefined;
+  isSkip?: boolean | undefined;
 }): string {
+  if (data.isSkip) {
+    return [
+      translateTemplate("Skipped: {{original}} is away", {
+        original: data.originalName,
+      }),
+      translateTemplate(
+        "{{substitute}} is next in the rotation, so this turn is theirs.",
+        { substitute: data.substituteName },
+      ),
+      translateTemplate("Away: {{start}} → {{end}}", {
+        start: formatShiftInstant(data.overrideStartsAt, data.timezone),
+        end: formatShiftInstant(data.overrideEndsAt, data.timezone),
+      }),
+      data.scope.detail,
+    ].join("\n");
+  }
+
   return [
     translateTemplate("Override: {{original}} → {{substitute}}", {
       original: data.originalName,
@@ -212,8 +241,11 @@ export interface OverrideSummaryRow {
   key: string;
   originalUserId: string;
   originalName: string;
+  // "" for a skip: nobody is named, the next person in the rotation covers.
   substituteUserId: string;
   substituteName: string;
+  // True when nobody is named to cover: the person is skipped.
+  isSkip: boolean;
   startsAt: Date;
   endsAt: Date;
   scope: OverrideScopeDescription;
@@ -244,17 +276,19 @@ export function buildOverrideSummaryRows(data: {
     }
 
     const policyId: string = record.onCallDutyPolicyId || "";
+    const substituteUserId: string = record.routeAlertsToUserId || "";
 
     rows.push({
-      key: `${record.overrideUserId}-${record.routeAlertsToUserId}-${record.startsAt.getTime()}-${record.endsAt.getTime()}-${policyId}`,
+      key: `${record.overrideUserId}-${substituteUserId || "rotation"}-${record.startsAt.getTime()}-${record.endsAt.getTime()}-${policyId}`,
       originalUserId: record.overrideUserId,
       originalName: getUserDisplayName(
         data.userInfoById[record.overrideUserId],
       ),
-      substituteUserId: record.routeAlertsToUserId,
-      substituteName: getUserDisplayName(
-        data.userInfoById[record.routeAlertsToUserId],
-      ),
+      substituteUserId: substituteUserId,
+      substituteName: substituteUserId
+        ? getUserDisplayName(data.userInfoById[substituteUserId])
+        : translateTemplate(NEXT_IN_ROTATION_LABEL),
+      isSkip: !substituteUserId,
       startsAt: record.startsAt,
       endsAt: record.endsAt,
       scope: describeOverrideScope({
@@ -346,6 +380,11 @@ export function describeShiftOverride(data: {
   scope: OverrideScopeDescription;
   // "Covering for Alice Scheduled"
   coveringLabel: string;
+  /*
+   * Nobody was named to cover: the person is skipped, and this one is next
+   * in the rotation.
+   */
+  isSkip: boolean;
 } {
   const originalName: string = getUserDisplayName(
     data.userInfoById[data.override.originalUserId],
@@ -366,5 +405,6 @@ export function describeShiftOverride(data: {
     coveringLabel: translateTemplate("Covering for {{name}}", {
       name: originalName,
     }),
+    isSkip: data.override.isSkip === true,
   };
 }

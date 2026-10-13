@@ -223,6 +223,16 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
       "Adding a user override: who is away (you, to start with), who covers, when it starts (now) and when it ends - four short rows, two of them filled in. They are read back together before saving, so nobody books an override the wrong way round or for the wrong week. As two steps (Users, Time Window) the end only came after a Next, a page away from who it was for.",
   },
   /*
+   * "Skip until..." on a person in a schedule layer opens the same form
+   * (task oncall-skip-user-until).
+   */
+  {
+    file: `${DASHBOARD}/Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal.tsx`,
+    form: "ModelFormModal: Skip in the rotation",
+    reason:
+      "Skipping somebody in the rotation until a date: the Add User Override form, opened from their row with three of its four short rows filled in - them as who is away, the rotation as who covers, now as the start. Only when they are back is left, and the whole of it is read back on one page before it is saved.",
+  },
+  /*
    * "Log and trace drop filters, scrub rules and pipelines start from what
    * the rule does": a scrub rule starts from the pattern type it scrubs
    * (Components/Telemetry/ScrubRuleForm).
