@@ -12,6 +12,9 @@ import CodeRepositoryUtil from "Common/Server/Utils/CodeRepository/CodeRepositor
 import logger from "Common/Server/Utils/Logger";
 import crypto from "crypto";
 
+// The "#" (or "##" ...) a README's title line starts with.
+const TITLE_MARKER: RegExp = /^#+/;
+
 export interface BlogPostAuthor {
   username: string;
   githubUrl: string;
@@ -188,8 +191,8 @@ export default class BlogPostUtil {
         ] as string;
 
         resultList.push({
-          title: blog["title"] as string,
-          description: blog["description"] as string,
+          title: this.getTrimmedText(blog["title"]),
+          description: this.getTrimmedText(blog["description"]),
           fileName,
           formattedPostDate,
           postDate,
@@ -245,6 +248,11 @@ export default class BlogPostUtil {
     }
 
     return list;
+  }
+
+  // A title or description from Blogs.json, without the space around it.
+  private static getTrimmedText(value: unknown): string {
+    return typeof value === "string" ? value.trim() : "";
   }
 
   public static async getBlogPost(fileName: string): Promise<BlogPost | null> {
@@ -903,18 +911,27 @@ export default class BlogPostUtil {
     return lines.join("\n").trim();
   }
 
+  /*
+   * The title, description and tags are read off the post's README.md, whose
+   * head is "# <title>", "Tags: <tag>, <tag>" and "Description: <text>". Each
+   * is trimmed here, where it is read: the title used to keep the space after
+   * its "#" and the description the space after its "Description:", and every
+   * place they went - the <title>, the meta description, Open Graph, Twitter
+   * and the structured data - began with that space (and a README saved with
+   * CRLF line ends would add a "\r" at the end).
+   */
   public static getTitleFromFileContent(fileContent: string): string {
-    // title is the first line that stars with "#"
+    // title is the first line that starts with "#"
 
-    const titleLine: string =
-      fileContent
-        .split("\n")
-        .find((line: string) => {
-          return line.startsWith("#");
-        })
-        ?.replace("#", "") || "OneUptime Blog";
+    const titleLine: string | undefined = fileContent
+      .split("\n")
+      .find((line: string) => {
+        return line.startsWith("#");
+      });
 
-    return titleLine;
+    const title: string = (titleLine || "").replace(TITLE_MARKER, "").trim();
+
+    return title || "OneUptime Blog";
   }
 
   public static getTagsFromFileContent(fileContent: string): string[] {
@@ -928,13 +945,19 @@ export default class BlogPostUtil {
         })
         ?.replace("Tags:", "") || "";
 
-    return tagsLine.split(",").map((tag: string) => {
-      return tag.trim();
-    });
+    return tagsLine
+      .split(",")
+      .map((tag: string) => {
+        return tag.trim();
+      })
+      .filter((tag: string) => {
+        // A post without a "Tags:" line, or with a stray comma, has no empty tag.
+        return tag.length > 0;
+      });
   }
 
   public static getDescriptionFromFileContent(fileContent: string): string {
-    // description is the first line that starts with ">"
+    // description is the first line that starts with "Description:"
 
     const descriptionLine: string | undefined =
       fileContent
@@ -944,7 +967,7 @@ export default class BlogPostUtil {
         })
         ?.replace("Description:", "") || "";
 
-    return descriptionLine;
+    return descriptionLine.trim();
   }
 
   public static async getAuthorFromFileContent(
