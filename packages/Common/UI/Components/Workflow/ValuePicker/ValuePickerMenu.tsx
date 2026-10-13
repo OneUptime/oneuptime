@@ -240,6 +240,25 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
     }, [allGroups]);
 
     const [isUnavailableOpen, setIsUnavailableOpen] = useState<boolean>(false);
+    const unavailableRef: React.MutableRefObject<HTMLDivElement | null> =
+      useRef<HTMLDivElement | null>(null);
+
+    /*
+     * The steps that cannot be used are at the end of the list, so opened
+     * they were under its fold: the line said "1 step isn't available here"
+     * and showed nothing. Opening it brings them into view.
+     */
+    useEffect(() => {
+      const block: HTMLDivElement | null = unavailableRef.current;
+
+      if (
+        isUnavailableOpen &&
+        block &&
+        typeof block.scrollIntoView === "function"
+      ) {
+        block.scrollIntoView({ block: "nearest" });
+      }
+    }, [isUnavailableOpen]);
 
     /*
      * The opened value as the list has it now. A request can arrive while it
@@ -905,6 +924,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
 
         return (
           <div
+            ref={unavailableRef}
             className="mx-1 mt-1 border-t border-gray-100 pt-1"
             data-testid="value-picker-unavailable"
           >

@@ -1,4 +1,7 @@
-import { RunRecordTrigger, readRunRecordTrigger } from "../Utils/RunRecordTrigger";
+import {
+  RunRecordTrigger,
+  readRunRecordTrigger,
+} from "../Utils/RunRecordTrigger";
 import WorkflowRunAccess from "../Utils/WorkflowRunAccess";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "Common/Types/Exception/BadDataException";

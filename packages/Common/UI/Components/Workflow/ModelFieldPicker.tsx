@@ -167,9 +167,9 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
 
   const [paths, setPaths] = useState<Array<string> | null>(null);
   const [unknownPaths, setUnknownPaths] = useState<Array<string>>([]);
-  const [jsonText, setJsonText] = useState<string>(
-    () => readStoredValue(initialValue).text,
-  );
+  const [jsonText, setJsonText] = useState<string>(() => {
+    return readStoredValue(initialValue).text;
+  });
   const [isJson, setIsJson] = useState<boolean>(false);
   const [problems, setProblems] = useState<Array<string>>([]);
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
@@ -271,17 +271,27 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
   const remove: RemoveFunction = (path: string): void => {
     const current: Array<string> = paths || [];
 
+    const next: Array<string> = current.filter((candidate: string): boolean => {
+      return candidate !== path;
+    });
+
     focusAfterRemoveRef.current = current.indexOf(path);
     setUnknownPaths((unknown: Array<string>) => {
       return unknown.filter((candidate: string): boolean => {
         return candidate !== path;
       });
     });
-    emit(
-      current.filter((candidate: string): boolean => {
-        return candidate !== path;
-      }),
-    );
+    emit(next);
+
+    /*
+     * The last field taken off: the form is told the list was left as it
+     * is, so a list that must hold a field says so here and now. The dialog
+     * already says that something needs fixing, and without this it did not
+     * say what until the focus went elsewhere.
+     */
+    if (next.length === 0) {
+      props.onBlur?.();
+    }
   };
 
   type BackToListFunction = () => void;
@@ -389,7 +399,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               data-testid={`${testId}-back-to-list`}
-              className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
+              className="-mr-1 inline-flex items-center gap-1 rounded px-1 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
               onClick={backToList}
             >
               <Icon icon={IconProp.ListBullet} className="h-3.5 w-3.5" />
@@ -408,13 +418,27 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
       className="space-y-1"
       data-testid={testId}
       data-view="list"
+      onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+        /*
+         * Escape with the list open closes the list, wherever the focus is
+         * - in its search box, on Done, on Add field after a second press on
+         * it - and never the settings dialog around it. From Done it used to
+         * reach the dialog, which closed and took every unsaved setting
+         * with it.
+         */
+        if (event.key !== "Escape" || !isPanelOpen) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        setIsPanelOpen(false);
+        addButtonRef.current?.focus();
+      }}
       onBlur={(event: React.FocusEvent<HTMLDivElement>) => {
         const next: EventTarget | null = event.relatedTarget;
 
-        if (
-          next instanceof Node &&
-          event.currentTarget.contains(next)
-        ) {
+        if (next instanceof Node && event.currentTarget.contains(next)) {
           return;
         }
 
@@ -455,7 +479,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                       )
                     : title
                 }
-                className={`inline-flex max-w-full items-center gap-1 rounded-md border py-0.5 pl-2 pr-0.5 text-sm ${
+                className={`inline-flex max-w-full items-center gap-0.5 rounded-md border pl-2 text-sm ${
                   isUnknown
                     ? "border-amber-200 bg-amber-50 font-mono text-amber-800"
                     : "border-gray-200 bg-gray-50 text-gray-800"
@@ -475,7 +499,8 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                     ModelFieldPickerCopy.remove,
                     { field: title },
                   )}
-                  className="shrink-0 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  // 24px square: no smaller a target than a finger needs.
+                  className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   onClick={() => {
                     remove(path);
                   }}
@@ -491,9 +516,14 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
               data-testid={`${testId}-empty`}
             >
               {mode === FieldPickerMode.Watch
-                ? translator.translateTemplate(ModelFieldPickerCopy.emptyWatch, {
-                    record: translatableTerm(recordName, { inSentence: true }),
-                  })
+                ? translator.translateTemplate(
+                    ModelFieldPickerCopy.emptyWatch,
+                    {
+                      record: translatableTerm(recordName, {
+                        inSentence: true,
+                      }),
+                    },
+                  )
                 : translator.translateText(ModelFieldPickerCopy.emptyPassOn)}
             </li>
           ) : null}
@@ -525,6 +555,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
           onToggle={toggle}
           label={label}
           dataTestId={testId}
+          toggleRef={addButtonRef}
           onClose={(closeOptions: { returnFocus: boolean }) => {
             setIsPanelOpen(false);
 
@@ -539,7 +570,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           data-testid={`${testId}-edit-json`}
-          className="text-xs font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:underline"
+          className="-mr-1 rounded px-1 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:underline"
           onClick={() => {
             setIsPanelOpen(false);
             setIsJson(true);

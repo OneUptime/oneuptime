@@ -12,7 +12,6 @@
 import DatabaseService from "../../Services/DatabaseService";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import Search from "../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -27,11 +26,13 @@ import {
   RunRecordReferenceKind,
   formatRunRecordNumber,
   getRunRecordColumns,
+  getRunRecordSearchWords,
   isRunRecordNumberMatch,
   parseRunRecordReference,
   readRunRecordText,
 } from "../../../Types/Workflow/RunRecord";
 import Query from "../../Types/Database/Query";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import Sort from "../../Types/Database/Sort";
 
@@ -100,7 +101,10 @@ export default class RunRecordSearch {
 
     /*
      * Part of a name - and a number too, which can be part of a title
-     * ("Error 500") as well as a record's number.
+     * ("Error 500") as well as a record's number. Every word typed has to be
+     * in the name, in any order, which is how a title half remembered is
+     * typed: "database down" finds "Database is down". Each word is read as
+     * typed: a % or an _ in it is that character, not "anything".
      */
     if (
       columns.nameColumn &&
@@ -112,7 +116,9 @@ export default class RunRecordSearch {
           request: request,
           columns: columns,
           query: {
-            [columns.nameColumn]: new Search(reference.text),
+            [columns.nameColumn]: QueryHelper.searchAllWords(
+              getRunRecordSearchWords(reference.text),
+            ),
           },
           limit: limit,
           matchedBy: RunRecordMatch.Name,
@@ -271,9 +277,8 @@ export default class RunRecordSearch {
     columns: RunRecordColumns;
     matchedBy: RunRecordMatch;
   }): RunRecordOption | null {
-    const values: Dictionary<unknown> = data.record as unknown as Dictionary<
-      unknown
-    >;
+    const values: Dictionary<unknown> =
+      data.record as unknown as Dictionary<unknown>;
     const id: string = data.record._id?.toString() || "";
 
     if (!id) {
@@ -310,10 +315,7 @@ export default class RunRecordSearch {
 
     if (createdAt instanceof Date && !isNaN(createdAt.getTime())) {
       option.createdAt = createdAt.toISOString();
-    } else if (
-      typeof createdAt === "string" &&
-      !isNaN(Date.parse(createdAt))
-    ) {
+    } else if (typeof createdAt === "string" && !isNaN(Date.parse(createdAt))) {
       option.createdAt = new Date(createdAt).toISOString();
     }
 

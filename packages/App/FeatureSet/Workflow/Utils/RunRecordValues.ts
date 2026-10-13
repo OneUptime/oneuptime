@@ -35,66 +35,71 @@ type ResolveRunRecordValuesFunction = (data: {
   values: JSONObject;
 }) => Promise<JSONObject>;
 
-export const resolveRunRecordValues: ResolveRunRecordValuesFunction = async (data: {
-  workflowId: ObjectID;
-  projectId: ObjectID;
-  props: DatabaseCommonInteractionProps;
-  values: JSONObject;
-}): Promise<JSONObject> => {
-  const value: unknown = data.values[RUN_RECORD_ARGUMENT_ID];
+export const resolveRunRecordValues: ResolveRunRecordValuesFunction =
+  async (data: {
+    workflowId: ObjectID;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    values: JSONObject;
+  }): Promise<JSONObject> => {
+    const value: unknown = data.values[RUN_RECORD_ARGUMENT_ID];
 
-  // Nothing named, or an ID: nothing to look up.
-  if (typeof value !== "string" || value.trim() === "" || isRunRecordId(value)) {
-    return data.values;
-  }
+    // Nothing named, or an ID: nothing to look up.
+    if (
+      typeof value !== "string" ||
+      value.trim() === "" ||
+      isRunRecordId(value)
+    ) {
+      return data.values;
+    }
 
-  const trigger: RunRecordTrigger | null = await readRunRecordTrigger(
-    data.workflowId,
-  );
+    const trigger: RunRecordTrigger | null = await readRunRecordTrigger(
+      data.workflowId,
+    );
 
-  // Not a trigger that runs on a record: its values go on as they came.
-  if (!trigger) {
-    return data.values;
-  }
+    // Not a trigger that runs on a record: its values go on as they came.
+    if (!trigger) {
+      return data.values;
+    }
 
-  const reference: RunRecordReference = parseRunRecordReference(value);
-  const singularName: string =
-    trigger.service.getModel().singularName || "record";
+    const reference: RunRecordReference = parseRunRecordReference(value);
+    const singularName: string =
+      trigger.service.getModel().singularName || "record";
 
-  let record: RunRecordOption | null = null;
+    let record: RunRecordOption | null = null;
 
-  try {
-    record = await RunRecordSearch.resolve({
-      service: trigger.service,
-      projectId: data.projectId,
-      props: data.props,
-      search: value,
-    });
-  } catch (error) {
-    if (error instanceof NotAuthorizedException) {
-      throw new NotAuthorizedException(
-        RunRecordMessages.cannotRead(
-          trigger.service.getModel().pluralName || "these records",
-        ),
+    try {
+      record = await RunRecordSearch.resolve({
+        service: trigger.service,
+        projectId: data.projectId,
+        props: data.props,
+        search: value,
+      });
+    } catch (error) {
+      if (error instanceof NotAuthorizedException) {
+        throw new NotAuthorizedException(
+          RunRecordMessages.cannotRead(
+            trigger.service.getModel().pluralName || "these records",
+          ),
+        );
+      }
+
+      throw error;
+    }
+
+    if (!record) {
+      throw new BadDataException(
+        reference.kind === RunRecordReferenceKind.Number
+          ? RunRecordMessages.noRecordWithNumber({
+              singularName: singularName,
+              text: reference.text,
+            })
+          : RunRecordMessages.pickFromList(singularName),
       );
     }
 
-    throw error;
-  }
-
-  if (!record) {
-    throw new BadDataException(
-      reference.kind === RunRecordReferenceKind.Number
-        ? RunRecordMessages.noRecordWithNumber({
-            singularName: singularName,
-            text: reference.text,
-          })
-        : RunRecordMessages.pickFromList(singularName),
-    );
-  }
-
-  return {
-    ...data.values,
-    [RUN_RECORD_ARGUMENT_ID]: record.id,
+    return {
+      ...data.values,
+      [RUN_RECORD_ARGUMENT_ID]: record.id,
+    };
   };
-};

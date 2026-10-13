@@ -250,7 +250,9 @@ export const getFieldOptions: GetFieldOptionsFunction = (
 
   type GroupOfFunction = (column: ModelSchemaColumn) => FieldGroupId;
 
-  const groupOf: GroupOfFunction = (column: ModelSchemaColumn): FieldGroupId => {
+  const groupOf: GroupOfFunction = (
+    column: ModelSchemaColumn,
+  ): FieldGroupId => {
     if (column.id === options.displayColumnId) {
       return FieldGroupId.Main;
     }
@@ -632,7 +634,10 @@ const scoreOption: ScoreOptionFunction = (
     const byOwnName: TextMatch | null = matchName(option.shortTitle, query);
 
     if (byOwnName) {
-      return result(byOwnName.score + RELATED_BY_ITS_OWN_NAME, byOwnName.position);
+      return result(
+        byOwnName.score + RELATED_BY_ITS_OWN_NAME,
+        byOwnName.position,
+      );
     }
   } else {
     const byName: TextMatch | null = matchName(option.title, query);
@@ -647,9 +652,12 @@ const scoreOption: ScoreOptionFunction = (
   }
 
   const haystack: string = normalizeText(
-    [option.title, option.path, option.description || "", option.typeLabel].join(
-      " ",
-    ),
+    [
+      option.title,
+      option.path,
+      option.description || "",
+      option.typeLabel,
+    ].join(" "),
   );
 
   if (
@@ -719,7 +727,9 @@ export const searchFieldOptions: SearchFieldOptionsFunction = (
       a.score - b.score ||
       a.position - b.position ||
       isMainRelation(a.option) - isMainRelation(b.option) ||
-      (a.option.relationPath || "").localeCompare(b.option.relationPath || "") ||
+      (a.option.relationPath || "").localeCompare(
+        b.option.relationPath || "",
+      ) ||
       byRankThenTitle(a.option, b.option)
     );
   });
@@ -741,9 +751,11 @@ export interface ChosenFields {
   problems: Array<string>;
 }
 
-type ReadStoredValueFunction = (
-  value: unknown,
-) => { text: string; parsed: JSONObject | null; isEmpty: boolean };
+type ReadStoredValueFunction = (value: unknown) => {
+  text: string;
+  parsed: JSONObject | null;
+  isEmpty: boolean;
+};
 
 /** A stored value as text and, when it is a JSON object, that object. */
 export const readStoredValue: ReadStoredValueFunction = (

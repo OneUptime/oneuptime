@@ -13,6 +13,10 @@
  * holds is the picked record's ID, or what was typed until something is
  * picked: the server looks a typed number up exactly the same way when the
  * run starts, so INC-8 and Run work without a pick (RunRecordValues).
+ *
+ * A number or an ID typed out, which the list found one record for, becomes
+ * that record when the box is left: the field shows which incident INC-8 is,
+ * and the confirmation names it, before anything runs.
  */
 
 import Icon from "../Icon/Icon";
@@ -30,6 +34,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import {
   RunRecordEvent,
+  RunRecordMatch,
   RunRecordOption,
   RunRecordTriggerInfo,
 } from "../../../Types/Workflow/RunRecord";
@@ -201,6 +206,41 @@ interface ListState {
 
 const IDLE_LIST: ListState = { search: "", status: "idle", records: [] };
 
+type GetExactRunRecordFunction = (data: {
+  // What is typed now, trimmed.
+  search: string;
+  // What the records were listed for.
+  listedFor: string;
+  records: Array<RunRecordOption>;
+}) => RunRecordOption | null;
+
+/**
+ * The record what was typed names outright: the only one the list found by
+ * its number or by its ID, for exactly what is typed now. Part of a name
+ * names no record until one is picked, and neither does a number two
+ * records answer to.
+ */
+export const getExactRunRecord: GetExactRunRecordFunction = (data: {
+  search: string;
+  listedFor: string;
+  records: Array<RunRecordOption>;
+}): RunRecordOption | null => {
+  if (data.search === "" || data.listedFor !== data.search) {
+    return null;
+  }
+
+  const exact: Array<RunRecordOption> = data.records.filter(
+    (record: RunRecordOption): boolean => {
+      return (
+        record.matchedBy === RunRecordMatch.Id ||
+        record.matchedBy === RunRecordMatch.Number
+      );
+    },
+  );
+
+  return exact.length === 1 ? (exact[0] as RunRecordOption) : null;
+};
+
 export interface ComponentProps {
   workflowId: ObjectID;
   info: RunRecordTriggerInfo;
@@ -240,9 +280,12 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
     useRef<HTMLDivElement | null>(null);
   const inputRef: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
+  const changeRef: React.MutableRefObject<HTMLButtonElement | null> =
+    useRef<HTMLButtonElement | null>(null);
   // Only the newest request may fill the list: a slow answer is dropped.
   const requestRef: React.MutableRefObject<number> = useRef<number>(0);
-  const focusInputRef: React.MutableRefObject<boolean> =
+  const focusInputRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+  const focusChangeRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
   const trimmedQuery: string = query.trim();
@@ -308,10 +351,20 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
     };
   }, [isOpen, trimmedQuery, picked]);
 
+  /*
+   * The focus follows the field: to the box when Change brings it back, and
+   * to Change when a pick takes the box away - it was in the box, and would
+   * otherwise be nowhere.
+   */
   useEffect(() => {
     if (!picked && focusInputRef.current) {
       focusInputRef.current = false;
       inputRef.current?.focus();
+    }
+
+    if (picked && focusChangeRef.current) {
+      focusChangeRef.current = false;
+      changeRef.current?.focus();
     }
   }, [picked]);
 
@@ -341,15 +394,33 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
     }
   }, [activeIndex, isOpen, activeRecord?.id]);
 
-  type PickFunction = (record: RunRecordOption) => void;
+  type PickFunction = (
+    record: RunRecordOption,
+    // False when the focus is leaving the field anyway.
+    options?: { keepFocus: boolean },
+  ) => void;
 
-  const pick: PickFunction = (record: RunRecordOption): void => {
+  const pick: PickFunction = (
+    record: RunRecordOption,
+    options?: { keepFocus: boolean },
+  ): void => {
+    focusChangeRef.current = options?.keepFocus !== false;
     setPicked(record);
     setIsOpen(false);
     setQuery("");
     props.onChange(record.id);
     props.onRecordChange?.(record);
   };
+
+  // The record a number or an ID typed out names, once the list has it.
+  const exactRecord: RunRecordOption | null =
+    list.status === "loaded"
+      ? getExactRunRecord({
+          search: trimmedQuery,
+          listedFor: list.search,
+          records: list.records,
+        })
+      : null;
 
   type ChangeFunction = () => void;
 
@@ -371,7 +442,9 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
     props.onChange(text);
   };
 
-  type OnKeyDownFunction = (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  type OnKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) => void;
 
   const onKeyDown: OnKeyDownFunction = (
     event: React.KeyboardEvent<HTMLInputElement>,
@@ -436,9 +509,7 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
     const createdAt: Date | null = record.createdAt
       ? new Date(record.createdAt)
       : null;
-    const hasDate: boolean = Boolean(
-      createdAt && !isNaN(createdAt.getTime()),
-    );
+    const hasDate: boolean = Boolean(createdAt && !isNaN(createdAt.getTime()));
 
     return (
       <div
@@ -501,8 +572,7 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
 
     const isLoading: boolean =
       list.status === "loading" || list.status === "idle";
-    const showRecentHeading: boolean =
-      list.search === "" && records.length > 0;
+    const showRecentHeading: boolean = list.search === "" && records.length > 0;
 
     return (
       <div
@@ -580,6 +650,12 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
         }
 
         setIsOpen(false);
+
+        // INC-8 typed out and left: the incident it names, shown as picked.
+        if (!picked && exactRecord) {
+          pick(exactRecord, { keepFocus: false });
+        }
+
         props.onBlur?.();
       }}
     >
@@ -602,8 +678,9 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
             {picked.name || (picked.number ? "" : picked.id)}
           </span>
           <button
+            ref={changeRef}
             type="button"
-            className="shrink-0 rounded px-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="shrink-0 rounded px-1 py-0.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             data-testid={`${testId}-change`}
             onClick={change}
           >
@@ -656,21 +733,24 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
             onKeyDown={onKeyDown}
           />
           {query ? (
-            <button
-              type="button"
-              aria-label={translator.translateText(RunRecordFieldCopy.clear)}
-              data-testid={`${testId}-clear`}
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-gray-700"
-              onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
-                event.preventDefault();
-              }}
-              onClick={() => {
-                onQueryChange("");
-                inputRef.current?.focus();
-              }}
-            >
-              <Icon icon={IconProp.Close} className="h-4 w-4" />
-            </button>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+              <button
+                type="button"
+                aria-label={translator.translateText(RunRecordFieldCopy.clear)}
+                data-testid={`${testId}-clear`}
+                // 24px square, with a ring the keyboard can see in either theme.
+                className="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
+                  event.preventDefault();
+                }}
+                onClick={() => {
+                  onQueryChange("");
+                  inputRef.current?.focus();
+                }}
+              >
+                <Icon icon={IconProp.Close} className="h-4 w-4" />
+              </button>
+            </div>
           ) : null}
         </div>
       )}

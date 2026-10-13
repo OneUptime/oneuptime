@@ -109,30 +109,40 @@ export const StepSampleCopy: {
    * test request the note would otherwise offer to copy, and email to the
    * address is ignored. A test run with Run Workflow fills the fields in.
    */
-  noRequestYetWhileOff:
-    translationKey("No request has reached this webhook yet, and while this workflow is off its URL refuses requests. Test it with Run Workflow: the fields of the request you send there show up here."),
-  noEmailYetWhileOff:
-    translationKey("No email has reached the workflow's address yet, and while this workflow is off email to it is ignored. Test it with Run Workflow: the fields of the email you fill in there show up here."),
+  noRequestYetWhileOff: translationKey(
+    "No request has reached this webhook yet, and while this workflow is off its URL refuses requests. Test it with Run Workflow: the fields of the request you send there show up here.",
+  ),
+  noEmailYetWhileOff: translationKey(
+    "No email has reached the workflow's address yet, and while this workflow is off email to it is ignored. Test it with Run Workflow: the fields of the email you fill in there show up here.",
+  ),
   testWithRunWorkflow: translationKey("Test with Run Workflow"),
   waitingForTestRun: translationKey("Waiting for a test run…"),
-  noRequestYetWithTest:
-    translationKey("No request has reached this webhook yet. Send a test request, and the fields it sends show up here."),
-  noRequestYet:
-    translationKey("No request has reached this webhook yet. The fields of the first one show up here."),
-  noRequestYetInside:
-    translationKey("No request has arrived yet. Its fields show up here after the first one."),
+  noRequestYetWithTest: translationKey(
+    "No request has reached this webhook yet. Send a test request, and the fields it sends show up here.",
+  ),
+  noRequestYet: translationKey(
+    "No request has reached this webhook yet. The fields of the first one show up here.",
+  ),
+  noRequestYetInside: translationKey(
+    "No request has arrived yet. Its fields show up here after the first one.",
+  ),
   partial: "It was large, so not every field is listed.",
-  cutShortRequest:
-    translationKey("The last request was too big to keep, so its fields show up here after the next one."),
-  cutShortRun:
-    translationKey("It was too big to keep in the last run, so its fields show up here after the next one."),
+  cutShortRequest: translationKey(
+    "The last request was too big to keep, so its fields show up here after the next one.",
+  ),
+  cutShortRun: translationKey(
+    "It was too big to keep in the last run, so its fields show up here after the next one.",
+  ),
   waitingForEmail: translationKey("Waiting for an email…"),
-  noEmailYet:
-    translationKey("No email has reached the workflow's address yet. Send one, and its fields show up here."),
-  noEmailYetInside:
-    translationKey("No email has arrived yet. Its fields show up here after the first one."),
-  cutShortEmail:
-    translationKey("The last email was too big to keep, so its fields show up here after the next one."),
+  noEmailYet: translationKey(
+    "No email has reached the workflow's address yet. Send one, and its fields show up here.",
+  ),
+  noEmailYetInside: translationKey(
+    "No email has arrived yet. Its fields show up here after the first one.",
+  ),
+  cutShortEmail: translationKey(
+    "The last email was too big to keep, so its fields show up here after the next one.",
+  ),
 };
 
 type IsWebhookFunction = (step: NodeDataProp) => boolean;

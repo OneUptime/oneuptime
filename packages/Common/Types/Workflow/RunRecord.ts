@@ -27,10 +27,7 @@
  */
 
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import {
-  TableColumnMetadata,
-  getTableColumns,
-} from "../Database/TableColumn";
+import { TableColumnMetadata, getTableColumns } from "../Database/TableColumn";
 import TableColumnType from "../Database/TableColumnType";
 import Dictionary from "../Dictionary";
 import ObjectID from "../ObjectID";
@@ -50,6 +47,9 @@ export const RUN_RECORD_SEARCH_LIMIT: number = 10;
 
 // The longest search the server reads; anything longer is refused.
 export const RUN_RECORD_SEARCH_MAX_LENGTH: number = 200;
+
+// The most words of a name one search asks the database for.
+export const RUN_RECORD_SEARCH_MAX_WORDS: number = 12;
 
 /*
  * The largest record number there can be. Record numbers are Postgres
@@ -332,7 +332,8 @@ export const parseRunRecordSearchResponse: ParseRunRecordSearchResponseFunction 
       const option: RunRecordOption = {
         id: id,
         matchedBy:
-          typeof matchedBy === "string" && RUN_RECORD_MATCHES.includes(matchedBy)
+          typeof matchedBy === "string" &&
+          RUN_RECORD_MATCHES.includes(matchedBy)
             ? (matchedBy as RunRecordMatch)
             : RunRecordMatch.Name,
       };
@@ -373,6 +374,27 @@ export const formatRunRecordNumber: FormatRunRecordNumberFunction = (data: {
   }
 
   return undefined;
+};
+
+type GetRunRecordSearchWordsFunction = (text: string) => Array<string>;
+
+/**
+ * The words of what was typed. A record is found by its name when the name
+ * holds every one of them, in any order - how a title half remembered is
+ * typed: "database down" finds "Database is down", and so does "down
+ * database". At most RUN_RECORD_SEARCH_MAX_WORDS: the rest are left out
+ * rather than sent to the database.
+ */
+export const getRunRecordSearchWords: GetRunRecordSearchWordsFunction = (
+  text: string,
+): Array<string> => {
+  return text
+    .normalize("NFKC")
+    .split(WHITESPACE_PATTERN)
+    .filter((word: string): boolean => {
+      return word.length > 0;
+    })
+    .slice(0, RUN_RECORD_SEARCH_MAX_WORDS);
 };
 
 // The longest name the list shows; the rest is cut with an ellipsis.
@@ -492,7 +514,10 @@ export const RunRecordMessages: {
   notARecordTrigger:
     "This workflow's trigger doesn't run on a record, so there is nothing to look up.",
   searchTooLong: `Type at most ${RUN_RECORD_SEARCH_MAX_LENGTH} characters.`,
-  noRecordWithNumber: (data: { singularName: string; text: string }): string => {
+  noRecordWithNumber: (data: {
+    singularName: string;
+    text: string;
+  }): string => {
     return `No ${nameInSentence(data.singularName)} in this project has the number ${data.text}.`;
   },
   pickFromList: (singularName: string): string => {

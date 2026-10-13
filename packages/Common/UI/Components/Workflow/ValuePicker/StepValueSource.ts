@@ -467,7 +467,11 @@ export const buildStepValueGroups: BuildStepValueGroupsFunction = (
         subtitle: step.id,
         iconProp: step.metadata.iconProp,
         order: index,
-        items: stepItems({ step: step, options: options, isUnavailable: false }),
+        items: stepItems({
+          step: step,
+          options: options,
+          isUnavailable: false,
+        }),
       };
 
       const before: SometimesBefore | undefined =

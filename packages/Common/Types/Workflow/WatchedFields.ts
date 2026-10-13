@@ -15,10 +15,7 @@
  */
 
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import {
-  TableColumnMetadata,
-  getTableColumns,
-} from "../Database/TableColumn";
+import { TableColumnMetadata, getTableColumns } from "../Database/TableColumn";
 import TableColumnType from "../Database/TableColumnType";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";

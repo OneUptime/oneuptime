@@ -414,11 +414,7 @@ export const getStepValueSources: GetStepValueSourcesFunction = (graph: {
   const unavailable: Array<UnavailableStep> = [];
 
   for (const node of nodes) {
-    if (
-      node.id === editedNode.id ||
-      readable.has(node.id) ||
-      !node.data.id
-    ) {
+    if (node.id === editedNode.id || readable.has(node.id) || !node.data.id) {
       continue;
     }
 

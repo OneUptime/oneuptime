@@ -8,6 +8,15 @@
  * scrolls and clips, and an inline panel has nothing to get wrong there.
  * Unlike that list, a pick keeps it open - a step usually passes on several
  * fields - and each field shows whether it is chosen; Done closes it.
+ *
+ * Opening it brings the whole list into view: on a phone the settings
+ * dialog's buttons take a third of the screen, and the list opened under
+ * them. There it opens for browsing, too, as the Add Component panel does:
+ * focusing the search box would throw the keyboard over the fields.
+ *
+ * Escape is the field's to hear, not this list's (ModelFieldPicker): it has
+ * to close the list from the Add field button and the chips as well, so one
+ * place answers it for all of them.
  */
 
 import Icon from "../../Icon/Icon";
@@ -24,6 +33,7 @@ import {
   translationKey,
   Translator,
 } from "../../../Utils/TranslateTemplate";
+import prefersTouch from "../../../Utils/PrefersTouch";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -34,6 +44,16 @@ import React, {
   useRef,
   useState,
 } from "react";
+
+/*
+ * How tall the list of fields gets before it scrolls: 18rem, five rows and a
+ * bit of the next. Set on the element itself, not as a class: the Dashboard
+ * builds a class's style the first time the class is drawn, a moment after
+ * the element, and the list is brought into view as it opens - measured
+ * without its height it was every field tall, and landed at the top of the
+ * dialog with the chosen fields scrolled out of sight.
+ */
+export const ADD_FIELDS_LIST_MAX_HEIGHT: string = "18rem";
 
 // The counts are plurals, written whole so the extractor reads both forms.
 export const AddFieldsPanelCopy: {
@@ -63,6 +83,11 @@ export interface ComponentProps {
   // What the list is for, for its name: "Fields to pass on".
   label: string;
   dataTestId: string;
+  /*
+   * The button that opens and closes the list. A press on it is its own to
+   * answer: closing here as well would have its click open the list again.
+   */
+  toggleRef?: React.RefObject<HTMLElement | null> | undefined;
 }
 
 const AddFieldsPanel: FunctionComponent<ComponentProps> = (
@@ -129,8 +154,25 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
   ).length;
 
   useEffect(() => {
-    searchRef.current?.focus();
+    // Where a finger is the pointer, the list opens for browsing.
+    if (!prefersTouch()) {
+      searchRef.current?.focus({ preventScroll: true });
+    }
   }, []);
+
+  /*
+   * The whole list in view, down to Done, not just its first row: as it
+   * opens, and again after each pick. A pick can add a line of chips above
+   * the list, which pushes it down - on a phone, back under the dialog's
+   * buttons, from under the finger that made the pick.
+   */
+  useEffect(() => {
+    const panel: HTMLDivElement | null = panelRef.current;
+
+    if (panel && typeof panel.scrollIntoView === "function") {
+      panel.scrollIntoView({ block: "nearest" });
+    }
+  }, [props.chosen.length]);
 
   // A press anywhere outside the list closes it, the way a menu would.
   useEffect(() => {
@@ -139,11 +181,16 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
     ): void => {
       const panel: HTMLDivElement | null = panelRef.current;
 
-      if (
-        panel &&
-        event.target instanceof Node &&
-        panel.contains(event.target)
-      ) {
+      if (!(event.target instanceof Node)) {
+        return;
+      }
+
+      if (panel && panel.contains(event.target)) {
+        return;
+      }
+
+      // The button that opened it closes it itself.
+      if (props.toggleRef?.current?.contains(event.target)) {
         return;
       }
 
@@ -276,12 +323,6 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
         }
 
         return;
-      case "Escape":
-        // Closes this list, not the settings dialog around it.
-        event.preventDefault();
-        event.stopPropagation();
-        props.onClose({ returnFocus: true });
-        return;
       default:
         return;
     }
@@ -305,6 +346,11 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
           panelRef.current &&
           !panelRef.current.contains(next)
         ) {
+          // To the button that opened it: that button closes it itself.
+          if (props.toggleRef?.current?.contains(next)) {
+            return;
+          }
+
           props.onClose({ returnFocus: false });
         }
       }}
@@ -347,7 +393,7 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
           type="button"
           aria-label={translator.translateText(AddFieldsPanelCopy.close)}
           data-testid={`${testId}-close`}
-          className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           onClick={() => {
             props.onClose({ returnFocus: true });
           }}
@@ -362,7 +408,8 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
         aria-multiselectable={true}
         aria-label={translator.translateText(props.label)}
         data-testid={`${testId}-list`}
-        className="max-h-72 overflow-y-auto overflow-x-hidden py-1"
+        className="overflow-x-hidden py-1"
+        style={{ maxHeight: ADD_FIELDS_LIST_MAX_HEIGHT, overflowY: "auto" }}
       >
         {optionRows.length === 0 ? (
           <p
@@ -456,7 +503,10 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
                 </span>
               )}
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-gray-900">
+                <div
+                  data-part="name"
+                  className="truncate text-sm font-medium text-gray-900"
+                >
                   {translator.translateText(
                     row.depth > 0 ? option.shortTitle : option.title,
                   )}
@@ -482,7 +532,10 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
                   </div>
                 ) : null}
               </div>
-              <span className="mt-0.5 shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">
+              <span
+                data-part="kind"
+                className="mt-0.5 shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600"
+              >
                 {translator.translateText(option.typeLabel)}
               </span>
             </div>
