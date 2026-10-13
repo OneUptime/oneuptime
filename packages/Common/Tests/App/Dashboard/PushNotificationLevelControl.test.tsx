@@ -8,6 +8,7 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock, SpyInstance } from "jest-mock";
 import React from "react";
 import PushNotificationLevelControl, {
   DEVICE_NOT_OPTED_IN_HINT,
@@ -273,7 +274,7 @@ describe("PushNotificationLevelControl - what it shows", () => {
 
 describe("PushNotificationLevelControl - who may change it", () => {
   test("a viewer who may not change the rule gets a plain pill, no menu", async () => {
-    const onChange: jest.Mock<ChangeHandler> = jest.fn<ChangeHandler>();
+    const onChange: Mock<ChangeHandler> = jest.fn<ChangeHandler>();
 
     render(
       <PushNotificationLevelControl
@@ -380,7 +381,7 @@ describe("PushNotificationLevelControl - changing the level", () => {
   });
 
   test("picking the other level saves it, once", async () => {
-    const onChange: jest.Mock<ChangeHandler> = jest
+    const onChange: Mock<ChangeHandler> = jest
       .fn<ChangeHandler>()
       .mockResolvedValue(undefined);
 
@@ -404,7 +405,7 @@ describe("PushNotificationLevelControl - changing the level", () => {
   });
 
   test("Standard back to Critical saves Critical", async () => {
-    const onChange: jest.Mock<ChangeHandler> = jest
+    const onChange: Mock<ChangeHandler> = jest
       .fn<ChangeHandler>()
       .mockResolvedValue(undefined);
 
@@ -423,7 +424,7 @@ describe("PushNotificationLevelControl - changing the level", () => {
   });
 
   test("picking the level it already has saves nothing", async () => {
-    const onChange: jest.Mock<ChangeHandler> = jest
+    const onChange: Mock<ChangeHandler> = jest
       .fn<ChangeHandler>()
       .mockResolvedValue(undefined);
 
@@ -442,7 +443,7 @@ describe("PushNotificationLevelControl - changing the level", () => {
 
   test("the new level shows before the server answers, and the pill waits for it", async () => {
     const save: ReturnType<typeof deferred> = deferred();
-    const onChange: jest.Mock<ChangeHandler> = jest
+    const onChange: Mock<ChangeHandler> = jest
       .fn<ChangeHandler>()
       .mockReturnValue(save.promise);
 
@@ -473,7 +474,7 @@ describe("PushNotificationLevelControl - changing the level", () => {
 
   test("a second change cannot start while the first is saving", async () => {
     const save: ReturnType<typeof deferred> = deferred();
-    const onChange: jest.Mock<ChangeHandler> = jest
+    const onChange: Mock<ChangeHandler> = jest
       .fn<ChangeHandler>()
       .mockReturnValue(save.promise);
 
@@ -502,7 +503,7 @@ describe("PushNotificationLevelControl - changing the level", () => {
   });
 
   test("a refused change goes back to the stored level and says why", async () => {
-    const onChange: jest.Mock<ChangeHandler> = jest
+    const onChange: Mock<ChangeHandler> = jest
       .fn<ChangeHandler>()
       .mockRejectedValue(new Error("You do not have permission to do this."));
 
@@ -534,7 +535,7 @@ describe("PushNotificationLevelControl - changing the level", () => {
   });
 
   test("the error clears once a later change is saved", async () => {
-    const onChange: jest.Mock<ChangeHandler> = jest
+    const onChange: Mock<ChangeHandler> = jest
       .fn<ChangeHandler>()
       .mockRejectedValueOnce(new Error("Server Error"))
       .mockResolvedValueOnce(undefined);
@@ -664,7 +665,7 @@ describe("PushNotificationLevelControl - a phone that has not opted in", () => {
      * Icon draws a <div>, which a <p> cannot hold; React warns, and a browser
      * re-parents the icon out of the note.
      */
-    const consoleError: jest.SpiedFunction<typeof console.error> = jest
+    const consoleError: SpyInstance<typeof console.error> = jest
       .spyOn(console, "error")
       .mockImplementation((): void => {
         return undefined;
