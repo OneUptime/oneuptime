@@ -17,15 +17,22 @@
     return Math.abs(hash);
   }
 %>
+<%
+  /*
+   * Every tag links to its page through blogTagPath (Utils/BlogTag.ts, handed
+   * over by API/BlogAPI.ts), the one place a tag's address is built. A tag
+   * with no address (nothing of it can go into a URL) is shown without a link.
+   */
+%>
 <% if(blogPost.tags.length> 0){ %>
     <div class="flex flex-wrap gap-2">
-        <% for(var i=0; i<blogPost.tags.length; i++) { const tc = tagColors[hashTag(blogPost.tags[i]) % tagColors.length]; %>
-            <a href="/blog/tag/<%- encodeURIComponent(blogPost.tags[i].replaceAll(' ','-').toLowerCase()) -%>" class="group/tag">
+        <% for(var i=0; i<blogPost.tags.length; i++) { const tc = tagColors[hashTag(blogPost.tags[i]) % tagColors.length]; const tagPath = blogTagPath(blogPost.tags[i]); %>
+            <% if (tagPath) { %><a href="<%= tagPath %>" class="group/tag"><% } else { %><span class="group/tag"><% } %>
                 <span class="inline-flex items-center gap-1.5 rounded-full border <%= tc.border %> <%= tc.bg %> px-3 py-1 text-xs font-medium <%= tc.text %> shadow-sm <%= tc.hoverBg %> <%= tc.hoverBorder %> transition">
                     <span class="h-1.5 w-1.5 rounded-full <%= tc.dot %>"></span>
-                    <%- blogPost.tags[i] -%>
+                    <%= blogPost.tags[i] -%>
                 </span>
-            </a>
+            <% if (tagPath) { %></a><% } else { %></span><% } %>
         <% } %>
     </div>
 <% } %>

@@ -31,6 +31,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
 /*
  * The fixture page: the real calendar-feed pages, with the API answered from
@@ -116,16 +117,18 @@ function later(milliseconds) {
 
 let tokenSequence = 0;
 
-// A 43-character token like the server's, different every time one is minted.
+/*
+ * A 43-character token like the server's, different every time one is minted:
+ * drawn from the suites' one seeded generator, seeded by the feed and the mint.
+ */
 function mintToken(seed) {
   tokenSequence++;
   const alphabet =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  const random = seededRandom(seed * 1000003 + tokenSequence);
   let token = "";
-  let value = (seed + tokenSequence) * 7919;
   for (let i = 0; i < 43; i++) {
-    value = (value * 48271 + i * 31) % 2147483647;
-    token += alphabet[value % alphabet.length];
+    token += alphabet[random(alphabet.length)];
   }
   return token;
 }

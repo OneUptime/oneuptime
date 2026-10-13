@@ -1,4 +1,8 @@
-import BlogPostUtil, { BlogPost, BlogPostHeader } from "../Utils/BlogPost";
+import BlogPostUtil, {
+  BlogPost,
+  BlogPostHeader,
+  BlogTagSummary,
+} from "../Utils/BlogPost";
 import { ViewsPath } from "../Utils/Config";
 import "../API/BlogAPI";
 import Express, {
@@ -37,6 +41,7 @@ jest.mock("../Utils/BlogPost", () => {
     default: {
       getBlogPost: jest.fn(),
       getBlogPostList: jest.fn(),
+      getTagBySlug: jest.fn(),
       getTags: jest.fn(),
       getHomeUrl: jest.fn(),
     },
@@ -199,6 +204,13 @@ const ogUrl: (page: string) => string | null = (
   return tag?.match(/\bcontent=["']([^"']*)["']/i)?.[1] || null;
 };
 
+// The tags that have a page, by slug, as BlogPostUtil.getTagBySlug finds them.
+const TAGS: Map<string, BlogTagSummary> = new Map([
+  ["kubernetes", { slug: "kubernetes", name: "Kubernetes" }],
+  ["c-plus-plus", { slug: "c-plus-plus", name: "C++" }],
+  ["日本語", { slug: "日本語", name: "日本語" }],
+]);
+
 beforeEach(() => {
   jest.mocked(BlogPostUtil.getBlogPost).mockResolvedValue(blogPost);
   jest.mocked(BlogPostUtil.getBlogPostList).mockResolvedValue(
@@ -206,6 +218,11 @@ beforeEach(() => {
       return postHeader(index);
     }),
   );
+  jest
+    .mocked(BlogPostUtil.getTagBySlug)
+    .mockImplementation(async (slug: string) => {
+      return TAGS.get(slug) || null;
+    });
   jest.mocked(BlogPostUtil.getTags).mockResolvedValue(["kubernetes", "c++"]);
   jest.mocked(BlogPostUtil.getHomeUrl).mockResolvedValue({
     toString: (): string => {
@@ -243,8 +260,8 @@ describe("Blog post canonical URL", () => {
 describe("Blog tag page canonical URL", () => {
   test("a tag page declares its own first page as its only canonical", async () => {
     const page: string = await html(
-      await renderedBy("/blog/tag/:tagName", {
-        params: { tagName: "kubernetes" },
+      await renderedBy("/blog/tag/:tagSlug", {
+        params: { tagSlug: "kubernetes" },
         query: {},
       }),
     );
@@ -252,21 +269,23 @@ describe("Blog tag page canonical URL", () => {
     expect(canonicalUrls(page)).toEqual([`${HOME_URL}/blog/tag/kubernetes`]);
   });
 
-  test("later pages of a tag point at its first page, without pagination parameters", async () => {
+  test("a later page of a tag is its own canonical, with only its page number", async () => {
     const page: string = await html(
-      await renderedBy("/blog/tag/:tagName", {
-        params: { tagName: "kubernetes" },
-        query: { page: "2", pageSize: "24" },
+      await renderedBy("/blog/tag/:tagSlug", {
+        params: { tagSlug: "kubernetes" },
+        query: { page: "2", utm_source: "newsletter" },
       }),
     );
 
-    expect(canonicalUrls(page)).toEqual([`${HOME_URL}/blog/tag/kubernetes`]);
+    expect(canonicalUrls(page)).toEqual([
+      `${HOME_URL}/blog/tag/kubernetes?page=2`,
+    ]);
   });
 
   test("the social preview URL matches the canonical instead of the homepage", async () => {
     const page: string = await html(
-      await renderedBy("/blog/tag/:tagName", {
-        params: { tagName: "kubernetes" },
+      await renderedBy("/blog/tag/:tagSlug", {
+        params: { tagSlug: "kubernetes" },
         query: {},
       }),
     );
@@ -274,15 +293,47 @@ describe("Blog tag page canonical URL", () => {
     expect(ogUrl(page)).toBe(`${HOME_URL}/blog/tag/kubernetes`);
   });
 
-  test("a tag with characters that are not URL-safe is encoded in the canonical", async () => {
+  test("a tag whose name is not URL-safe is addressed by its slug", async () => {
     const page: string = await html(
-      await renderedBy("/blog/tag/:tagName", {
-        params: { tagName: "c++" },
+      await renderedBy("/blog/tag/:tagSlug", {
+        params: { tagSlug: "c-plus-plus" },
         query: {},
       }),
     );
 
-    expect(canonicalUrls(page)).toEqual([`${HOME_URL}/blog/tag/c%2B%2B`]);
+    expect(canonicalUrls(page)).toEqual([`${HOME_URL}/blog/tag/c-plus-plus`]);
+  });
+
+  test("a tag in another script is percent-encoded in the canonical", async () => {
+    const page: string = await html(
+      await renderedBy("/blog/tag/:tagSlug", {
+        params: { tagSlug: "日本語" },
+        query: {},
+      }),
+    );
+
+    expect(canonicalUrls(page)).toEqual([
+      `${HOME_URL}/blog/tag/%E6%97%A5%E6%9C%AC%E8%AA%9E`,
+    ]);
+  });
+});
+
+describe("Blog list canonical URL", () => {
+  test("the first page of the blog declares /blog as its canonical", async () => {
+    const page: string = await html(
+      await renderedBy("/blog", { params: {}, query: {} }),
+    );
+
+    expect(canonicalUrls(page)).toEqual([`${HOME_URL}/blog`]);
+  });
+
+  test("a later page of the blog is its own canonical", async () => {
+    const page: string = await html(
+      await renderedBy("/blog", { params: {}, query: { page: "3" } }),
+    );
+
+    expect(canonicalUrls(page)).toEqual([`${HOME_URL}/blog?page=3`]);
+    expect(ogUrl(page)).toBe(`${HOME_URL}/blog?page=3`);
   });
 });
 
