@@ -12,7 +12,13 @@ export interface PageSEOData {
   title: string;
   description: string;
   canonicalPath: string; // e.g., "/product/monitoring" - will be combined with homeUrl
-  ogImage?: string; // defaults to /img/og-image.png if not specified
+  /*
+   * A PNG or JPG under Static/img, ideally 1200 x 630. Without one the page
+   * shares /img/og-image.png (head-social.ejs), the wordmark-and-tagline card.
+   * Link previews on LinkedIn, X and Slack do not render SVG, and a path with
+   * no file behind it leaves the preview blank.
+   */
+  ogImage?: string;
   ogType?: string; // defaults to "website"
   twitterCard?: "summary" | "summary_large_image"; // defaults to "summary_large_image" for product pages
   breadcrumbs: BreadcrumbItem[];
@@ -194,7 +200,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     description:
       "On-call scheduling, alerting, and escalation policies. Alert the right people at the right time via SMS, phone, email, Slack. Rotation schedules and override support. Open source.",
     canonicalPath: "/product/on-call",
-    ogImage: "/img/on-call.png",
+    ogImage: "/img/on-call-policies.png",
     twitterCard: "summary_large_image",
     pageType: "product",
     breadcrumbs: [
@@ -258,7 +264,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     description:
       "Build automated workflows without code. Connect 5000+ services, automate incident response, and create custom integrations. Trigger on any event. Open source.",
     canonicalPath: "/product/workflows",
-    ogImage: "/img/workflows.png",
+    ogImage: "/img/workflow-builder.png",
     twitterCard: "summary_large_image",
     pageType: "product",
     breadcrumbs: [
