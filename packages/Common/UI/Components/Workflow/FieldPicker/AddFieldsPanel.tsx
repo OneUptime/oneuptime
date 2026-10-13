@@ -19,7 +19,11 @@ import {
   PanelRowKind,
   getPanelRows,
 } from "./FieldPickerOptions";
-import { translationKey, Translator } from "../../../Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -31,26 +35,21 @@ import React, {
   useState,
 } from "react";
 
+// The counts are plurals, written whole so the extractor reads both forms.
 export const AddFieldsPanelCopy: {
-  readonly searchOne: string;
-  readonly searchMany: string;
+  readonly search: PluralTemplate;
   readonly noMatch: string;
   readonly done: string;
   readonly close: string;
-  readonly chosenOne: string;
-  readonly chosenMany: string;
-  readonly fieldsOne: string;
-  readonly fieldsMany: string;
+  readonly chosen: PluralTemplate;
+  readonly fields: PluralTemplate;
 } = {
-  searchOne: translationKey("Search {{count}} field"),
-  searchMany: translationKey("Search {{count}} fields"),
+  search: { one: "Search {{count}} field", other: "Search {{count}} fields" },
   noMatch: translationKey("No fields match “{{query}}”."),
   done: translationKey("Done"),
   close: translationKey("Close"),
-  chosenOne: translationKey("{{count}} chosen"),
-  chosenMany: translationKey("{{count}} chosen"),
-  fieldsOne: translationKey("{{count}} field"),
-  fieldsMany: translationKey("{{count}} fields"),
+  chosen: { one: "{{count}} chosen", other: "{{count}} chosen" },
+  fields: { one: "{{count}} field", other: "{{count}} fields" },
 };
 
 export interface ComponentProps {
@@ -140,7 +139,11 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
     ): void => {
       const panel: HTMLDivElement | null = panelRef.current;
 
-      if (panel && event.target instanceof Node && panel.contains(event.target)) {
+      if (
+        panel &&
+        event.target instanceof Node &&
+        panel.contains(event.target)
+      ) {
         return;
       }
 
@@ -216,7 +219,9 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
     setActiveIndex((current + step + optionRows.length) % optionRows.length);
   };
 
-  type OnKeyDownFunction = (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  type OnKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) => void;
 
   const onKeyDown: OnKeyDownFunction = (
     event: React.KeyboardEvent<HTMLInputElement>,
@@ -320,17 +325,11 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
             activeRow?.option ? optionId(activeRow.option) : undefined
           }
           aria-label={translator.translatePlural(
-            {
-              one: AddFieldsPanelCopy.searchOne,
-              other: AddFieldsPanelCopy.searchMany,
-            },
+            AddFieldsPanelCopy.search,
             pickableCount,
           )}
           placeholder={translator.translatePlural(
-            {
-              one: AddFieldsPanelCopy.searchOne,
-              other: AddFieldsPanelCopy.searchMany,
-            },
+            AddFieldsPanelCopy.search,
             pickableCount,
           )}
           data-testid={`${testId}-search`}
@@ -437,7 +436,9 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
             >
               {option.isRelation ? (
                 <Icon
-                  icon={isExpanded ? IconProp.ChevronDown : IconProp.ChevronRight}
+                  icon={
+                    isExpanded ? IconProp.ChevronDown : IconProp.ChevronRight
+                  }
                   className="h-4 w-4 shrink-0 text-gray-400"
                 />
               ) : (
@@ -464,17 +465,11 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
                   <div className="truncate text-xs text-gray-500">
                     {chosenInside > 0
                       ? translator.translatePlural(
-                          {
-                            one: AddFieldsPanelCopy.chosenOne,
-                            other: AddFieldsPanelCopy.chosenMany,
-                          },
+                          AddFieldsPanelCopy.chosen,
                           chosenInside,
                         )
                       : translator.translatePlural(
-                          {
-                            one: AddFieldsPanelCopy.fieldsOne,
-                            other: AddFieldsPanelCopy.fieldsMany,
-                          },
+                          AddFieldsPanelCopy.fields,
                           option.fieldCount || 0,
                         )}
                   </div>
@@ -500,13 +495,7 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
           className="text-xs text-gray-500"
           data-testid={`${testId}-chosen-count`}
         >
-          {translator.translatePlural(
-            {
-              one: AddFieldsPanelCopy.chosenOne,
-              other: AddFieldsPanelCopy.chosenMany,
-            },
-            chosenCount,
-          )}
+          {translator.translatePlural(AddFieldsPanelCopy.chosen, chosenCount)}
         </span>
         <button
           type="button"

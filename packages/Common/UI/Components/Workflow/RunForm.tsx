@@ -46,7 +46,9 @@ import {
 import useTranslator from "../../Utils/UseTranslator";
 
 // The panel's own button, named in the sentence for a trigger with no values.
-export const RUN_WORKFLOW_SUBMIT_TITLE: string = "Run Workflow Manually";
+export const RUN_WORKFLOW_SUBMIT_TITLE: string = translationKey(
+  "Run Workflow Manually",
+);
 
 export const RunFormCopy: {
   readonly noValues: string;

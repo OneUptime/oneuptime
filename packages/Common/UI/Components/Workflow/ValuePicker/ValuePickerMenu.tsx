@@ -34,7 +34,11 @@ import {
   suggestionMatches,
 } from "./ValueSuggestion";
 import { StepSampleCopy } from "./StepSampleSource";
-import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
 import React, {
@@ -59,13 +63,15 @@ export const NOTE_REFRESH_MAX_MS: number = 10 * 60 * 1000;
 const COPIED_FEEDBACK_MS: number = 2000;
 
 export const ValuePickerMenuCopy: {
-  readonly notAvailableOne: string;
-  readonly notAvailableMany: string;
+  readonly notAvailable: PluralTemplate;
   readonly notAvailableHint: string;
   readonly notAvailableTitle: string;
 } = {
-  notAvailableOne: translationKey("{{count}} step isn't available here"),
-  notAvailableMany: translationKey("{{count}} steps aren't available here"),
+  // A plural, written whole so the extractor reads both forms.
+  notAvailable: {
+    one: "{{count}} step isn't available here",
+    other: "{{count}} steps aren't available here",
+  },
   notAvailableHint: translationKey(
     "Their values aren't there when this step runs.",
   ),
@@ -904,7 +910,9 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
           >
             {isSearching ? (
               <div className="px-2 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                {translator.translateText(ValuePickerMenuCopy.notAvailableTitle)}
+                {translator.translateText(
+                  ValuePickerMenuCopy.notAvailableTitle,
+                )}
               </div>
             ) : (
               <button
@@ -927,10 +935,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 />
                 <span className="font-medium">
                   {translator.translatePlural(
-                    {
-                      one: ValuePickerMenuCopy.notAvailableOne,
-                      other: ValuePickerMenuCopy.notAvailableMany,
-                    },
+                    ValuePickerMenuCopy.notAvailable,
                     matching.length,
                   )}
                 </span>
@@ -1230,15 +1235,15 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             options.length === 0 &&
             query.trim() !== "" &&
             filterSuggestionGroups(unavailableGroups, query).length === 0 && (
-            <div
-              className="px-3 py-2 text-xs text-gray-500"
-              data-testid="value-picker-no-match"
-            >
-              {translator.translateTemplate("No values match “{{search}}”.", {
-                search: query.trim(),
-              })}
-            </div>
-          )}
+              <div
+                className="px-3 py-2 text-xs text-gray-500"
+                data-testid="value-picker-no-match"
+              >
+                {translator.translateTemplate("No values match “{{search}}”.", {
+                  search: query.trim(),
+                })}
+              </div>
+            )}
 
           {!drill &&
             !hasAnyValues &&
