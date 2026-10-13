@@ -400,9 +400,9 @@ export default class ToolImportProjectStateReader {
 
   /*
    * The project's status page subscribers by email - every one, however
-   * many imports brought over, as a record an earlier import may have
-   * made, and each page's emails, for matching someone who already follows
-   * the page - read as OneUptime.
+   * many there are, as a record an earlier import may have made, and each
+   * page's emails, for matching someone who already follows the page -
+   * read as OneUptime.
    */
   private static async readExistingSubscribers(projectId: ObjectID): Promise<{
     records: Array<ToolImportExistingRecord>;
