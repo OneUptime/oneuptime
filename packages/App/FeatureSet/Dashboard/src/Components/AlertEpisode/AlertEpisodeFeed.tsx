@@ -1,15 +1,11 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Feed from "Common/UI/Components/Feed/Feed";
 import API from "Common/UI/Utils/API/API";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import AlertEpisodeFeed, {
   AlertEpisodeFeedEventType,
 } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
-import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -20,18 +16,28 @@ import UserNotificationEventType from "Common/Types/UserNotification/UserNotific
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
-import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedItems, {
+  UseFeedItemsResult,
+} from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
 import FeedCard from "Common/UI/Components/Feed/FeedCard";
+import FeedContent from "Common/UI/Components/Feed/FeedContent";
 import FeedActionsMenu from "Common/UI/Components/Feed/FeedActionsMenu";
 import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
 } from "Common/UI/Components/Feed/FeedOptions";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
-import { getAlertEpisodeFeedIcon } from "../EpisodeView/EpisodeFeedIcons";
+import {
+  getAlertEpisodeFeedIcon,
+  getAlertEpisodeFeedKind,
+} from "../EpisodeView/EpisodeFeedIcons";
+import {
+  FeedEntryKind,
+  getFeedEntryColor,
+} from "Common/UI/Components/Feed/FeedEntryKind";
 import useFeedNoteActions, {
   FeedNoteActions,
 } from "../EventNotes/useFeedNoteActions";
@@ -82,7 +88,7 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
   const getFeedItemFromEpisodeFeed: GetFeedItemFromEpisodeFeed = (
     episodeFeed: AlertEpisodeFeed,
   ): FeedItemProps => {
-    const icon: IconProp = getAlertEpisodeFeedIcon(
+    const kind: FeedEntryKind = getAlertEpisodeFeedKind(
       episodeFeed.alertEpisodeFeedEventType,
     );
 
@@ -92,8 +98,13 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
       moreTextInMarkdown: episodeFeed.moreInformationInMarkdown || "",
       user: episodeFeed.user,
       itemDateTime: episodeFeed.postedAt || episodeFeed.createdAt!,
-      color: episodeFeed.displayColor || Gray500,
-      icon: icon,
+      color: getFeedEntryColor({
+        kind: kind,
+        rowColor: episodeFeed.displayColor,
+      }),
+      icon: kind.icon,
+      burstKind: kind.burst,
+      eventType: episodeFeed.alertEpisodeFeedEventType,
     };
   };
 
@@ -104,18 +115,7 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
     resetKey: props.alertEpisodeId.toString(),
   });
 
-  const {
-    feedItems,
-    isLoading,
-    isLoadingMore,
-    error,
-    loadMoreError,
-    hasMore,
-    isCurrentFeedLoaded,
-    setError,
-    refresh,
-    loadMore,
-  } = useFeedItems<AlertEpisodeFeed>({
+  const feed: UseFeedItemsResult = useFeedItems<AlertEpisodeFeed>({
     resourceKey: props.alertEpisodeId.toString(),
     viewKey: feedOptions.optionsKey,
     refreshToken: props.refreshToken,
@@ -161,8 +161,8 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
       alertEpisodeId: props.alertEpisodeId,
     }),
     onPosted: () => {
-      refresh().catch((err: unknown) => {
-        setError(API.getFriendlyMessage(err as Exception));
+      feed.refresh().catch((err: unknown) => {
+        feed.setError(API.getFriendlyMessage(err as Exception));
       });
     },
   });
@@ -174,7 +174,7 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
         "Everything that has happened to this episode: status changes, notes, owners and every notification sent."
       }
       feedOptions={feedOptions}
-      onRefresh={refresh}
+      onRefresh={feed.refresh}
       actions={
         <FeedActionsMenu key="alert-episode-feed-actions-menu">
           {[
@@ -192,22 +192,14 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
       }
     >
       <div>
-        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
-        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
-        {isCurrentFeedLoaded && !isLoading && !error && (
-          <Feed
-            items={feedItems}
-            noItemsMessage={getFeedNoItemsMessage({
-              options: feedOptions.options,
-              noItemsMessage:
-                "Looks like there are no items in this feed for this episode.",
-            })}
-            hasMore={hasMore}
-            isLoadingMore={isLoadingMore}
-            onMore={loadMore}
-          />
-        )}
-        {loadMoreError && <ErrorMessage message={loadMoreError} />}
+        <FeedContent
+          feed={feed}
+          noItemsMessage={getFeedNoItemsMessage({
+            options: feedOptions.options,
+            noItemsMessage: "Nothing has happened to this episode yet.",
+          })}
+          sortOrder={feedOptions.options.sortOrder}
+        />
 
         {showOnCallPolicyModal && (
           <ModelFormModal
@@ -230,8 +222,8 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowOnCallPolicyModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
+              feed.refresh().catch((err: unknown) => {
+                feed.setError(API.getFriendlyMessage(err as Exception));
               });
             }}
             formProps={{

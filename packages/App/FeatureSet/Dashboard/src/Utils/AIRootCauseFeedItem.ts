@@ -1,3 +1,4 @@
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   InvestigationReportSection,
   InvestigationReportSectionKind,
@@ -25,6 +26,11 @@ export const AI_ROOT_CAUSE_FEED_LEAD: string =
   "OneUptime AI posted a root cause analysis";
 
 export const DEFAULT_AI_ROOT_CAUSE_LABEL: string = "Most likely root cause";
+
+// The words of the toggle that unfolds the whole report under the entry.
+export const AI_REPORT_DETAILS_LABEL: string = translationKey(
+  "Show the full report",
+);
 
 export interface AIRootCauseFeedContent {
   text: string;

@@ -1,25 +1,31 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Feed from "Common/UI/Components/Feed/Feed";
 import API from "Common/UI/Utils/API/API";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ScheduledMaintenanceFeed, {
   ScheduledMaintenanceFeedEventType,
 } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
-import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import Exception from "Common/Types/Exception/Exception";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
-import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedItems, {
+  UseFeedItemsResult,
+} from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
 import FeedCard from "Common/UI/Components/Feed/FeedCard";
+import FeedContent from "Common/UI/Components/Feed/FeedContent";
 import FeedActionsMenu from "Common/UI/Components/Feed/FeedActionsMenu";
+import {
+  FeedEntryKind,
+  SHARED_FEED_ENTRY_KINDS,
+  getFeedEntryColor,
+  getFeedEntryKind,
+  getFeedIcons,
+} from "Common/UI/Components/Feed/FeedEntryKind";
 import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
@@ -48,37 +54,70 @@ export interface ComponentProps {
 }
 
 /*
- * One icon per event type. A Record (rather than a chain of ifs) makes the
- * compiler flag a new event type that has no icon, instead of it quietly
+ * What each event type is (FeedEntryKind): its icon and colour, and whether a
+ * burst of it folds together. A Record (rather than a chain of ifs) makes the
+ * compiler flag a new event type that has no kind, instead of it quietly
  * falling back to a plain circle. It is shared by the feed items and the
  * event type filter's checklist (the feed's ⋯ menu), so the two always
  * match.
  */
+export const SCHEDULED_MAINTENANCE_FEED_KINDS: Record<
+  ScheduledMaintenanceFeedEventType,
+  FeedEntryKind
+> = {
+  [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated]: {
+    ...SHARED_FEED_ENTRY_KINDS.Created,
+    icon: IconProp.Calendar,
+  },
+  [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged]:
+    SHARED_FEED_ENTRY_KINDS.StateChanged,
+  [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated]:
+    SHARED_FEED_ENTRY_KINDS.Updated,
+  [ScheduledMaintenanceFeedEventType.OwnerNotificationSent]:
+    SHARED_FEED_ENTRY_KINDS.OwnerNotificationSent,
+  [ScheduledMaintenanceFeedEventType.SubscriberNotificationSent]:
+    SHARED_FEED_ENTRY_KINDS.SubscriberNotificationSent,
+  [ScheduledMaintenanceFeedEventType.PublicNote]:
+    SHARED_FEED_ENTRY_KINDS.PublicNote,
+  [ScheduledMaintenanceFeedEventType.PrivateNote]:
+    SHARED_FEED_ENTRY_KINDS.PrivateNote,
+  [ScheduledMaintenanceFeedEventType.OwnerUserAdded]:
+    SHARED_FEED_ENTRY_KINDS.OwnerUserAdded,
+  [ScheduledMaintenanceFeedEventType.OwnerTeamAdded]:
+    SHARED_FEED_ENTRY_KINDS.OwnerTeamAdded,
+  [ScheduledMaintenanceFeedEventType.RemediationNotes]:
+    SHARED_FEED_ENTRY_KINDS.RemediationNotes,
+  [ScheduledMaintenanceFeedEventType.RootCause]:
+    SHARED_FEED_ENTRY_KINDS.RootCause,
+  [ScheduledMaintenanceFeedEventType.OwnerUserRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerUserRemoved,
+  [ScheduledMaintenanceFeedEventType.OwnerTeamRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerTeamRemoved,
+  [ScheduledMaintenanceFeedEventType.OnCallNotification]:
+    SHARED_FEED_ENTRY_KINDS.OnCallNotification,
+  [ScheduledMaintenanceFeedEventType.OnCallPolicy]:
+    SHARED_FEED_ENTRY_KINDS.OnCallPolicy,
+  [ScheduledMaintenanceFeedEventType.OwnerRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.OwnerRuleExecuted,
+  [ScheduledMaintenanceFeedEventType.LabelRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.LabelRuleExecuted,
+};
+
 export const SCHEDULED_MAINTENANCE_FEED_ICONS: Record<
   ScheduledMaintenanceFeedEventType,
   IconProp
-> = {
-  [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated]:
-    IconProp.Alert,
-  [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged]:
-    IconProp.ArrowCircleRight,
-  [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated]:
-    IconProp.Edit,
-  [ScheduledMaintenanceFeedEventType.OwnerNotificationSent]: IconProp.Bell,
-  [ScheduledMaintenanceFeedEventType.SubscriberNotificationSent]:
-    IconProp.Notification,
-  [ScheduledMaintenanceFeedEventType.PublicNote]: IconProp.Announcement,
-  [ScheduledMaintenanceFeedEventType.PrivateNote]: IconProp.Lock,
-  [ScheduledMaintenanceFeedEventType.OwnerUserAdded]: IconProp.User,
-  [ScheduledMaintenanceFeedEventType.OwnerTeamAdded]: IconProp.Team,
-  [ScheduledMaintenanceFeedEventType.RemediationNotes]: IconProp.Wrench,
-  [ScheduledMaintenanceFeedEventType.RootCause]: IconProp.Cube,
-  [ScheduledMaintenanceFeedEventType.OwnerUserRemoved]: IconProp.Close,
-  [ScheduledMaintenanceFeedEventType.OwnerTeamRemoved]: IconProp.Close,
-  [ScheduledMaintenanceFeedEventType.OnCallNotification]: IconProp.Alert,
-  [ScheduledMaintenanceFeedEventType.OnCallPolicy]: IconProp.Call,
-  [ScheduledMaintenanceFeedEventType.OwnerRuleExecuted]: IconProp.User,
-  [ScheduledMaintenanceFeedEventType.LabelRuleExecuted]: IconProp.Tag,
+> = getFeedIcons(SCHEDULED_MAINTENANCE_FEED_KINDS);
+
+export const getScheduledMaintenanceFeedKind: (
+  eventType: ScheduledMaintenanceFeedEventType | string | undefined,
+) => FeedEntryKind = (
+  eventType: ScheduledMaintenanceFeedEventType | string | undefined,
+): FeedEntryKind => {
+  // Rows written by a newer server can carry a type this build does not know.
+  return getFeedEntryKind({
+    kinds: SCHEDULED_MAINTENANCE_FEED_KINDS,
+    eventType: eventType,
+  });
 };
 
 export const getScheduledMaintenanceFeedIcon: (
@@ -86,12 +125,7 @@ export const getScheduledMaintenanceFeedIcon: (
 ) => IconProp = (
   eventType: ScheduledMaintenanceFeedEventType | undefined,
 ): IconProp => {
-  if (!eventType) {
-    return IconProp.Circle;
-  }
-
-  // Rows written by a newer server can carry a type this build does not know.
-  return SCHEDULED_MAINTENANCE_FEED_ICONS[eventType] || IconProp.Circle;
+  return getScheduledMaintenanceFeedKind(eventType).icon;
 };
 
 // The checklist hands over plain strings rather than the enum.
@@ -135,7 +169,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
 
   const getFeedItemFromScheduledMaintenanceFeed: GetFeedItemFromScheduledMaintenanceFeed =
     (scheduledMaintenanceFeed: ScheduledMaintenanceFeed): FeedItemProps => {
-      const icon: IconProp = getScheduledMaintenanceFeedIcon(
+      const kind: FeedEntryKind = getScheduledMaintenanceFeedKind(
         scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType,
       );
 
@@ -148,8 +182,13 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         itemDateTime:
           scheduledMaintenanceFeed.postedAt ||
           scheduledMaintenanceFeed.createdAt!,
-        color: scheduledMaintenanceFeed.displayColor || Gray500,
-        icon: icon,
+        color: getFeedEntryColor({
+          kind: kind,
+          rowColor: scheduledMaintenanceFeed.displayColor,
+        }),
+        icon: kind.icon,
+        burstKind: kind.burst,
+        eventType: scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType,
       };
     };
 
@@ -160,18 +199,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
     resetKey: props.scheduledMaintenanceId.toString(),
   });
 
-  const {
-    feedItems,
-    isLoading,
-    isLoadingMore,
-    error,
-    loadMoreError,
-    hasMore,
-    isCurrentFeedLoaded,
-    setError,
-    refresh,
-    loadMore,
-  } = useFeedItems<ScheduledMaintenanceFeed>({
+  const feed: UseFeedItemsResult = useFeedItems<ScheduledMaintenanceFeed>({
     resourceKey: props.scheduledMaintenanceId.toString(),
     viewKey: feedOptions.optionsKey,
     refreshToken: props.refreshToken,
@@ -224,8 +252,8 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
       scheduledMaintenanceId: props.scheduledMaintenanceId,
     }),
     onPosted: () => {
-      refresh().catch((err: unknown) => {
-        setError(API.getFriendlyMessage(err as Exception));
+      feed.refresh().catch((err: unknown) => {
+        feed.setError(API.getFriendlyMessage(err as Exception));
       });
     },
   });
@@ -237,7 +265,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent."
       }
       feedOptions={feedOptions}
-      onRefresh={refresh}
+      onRefresh={feed.refresh}
       actions={
         <FeedActionsMenu key="scheduled-maintenance-feed-actions-menu">
           {[
@@ -255,22 +283,14 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
       }
     >
       <div>
-        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
-        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
-        {isCurrentFeedLoaded && !isLoading && !error && (
-          <Feed
-            items={feedItems}
-            noItemsMessage={getFeedNoItemsMessage({
-              options: feedOptions.options,
-              noItemsMessage:
-                "Looks like there are no items in this feed for this scheduled maintenance.",
-            })}
-            hasMore={hasMore}
-            isLoadingMore={isLoadingMore}
-            onMore={loadMore}
-          />
-        )}
-        {loadMoreError && <ErrorMessage message={loadMoreError} />}
+        <FeedContent
+          feed={feed}
+          noItemsMessage={getFeedNoItemsMessage({
+            options: feedOptions.options,
+            noItemsMessage: "Nothing has happened to this scheduled maintenance event yet.",
+          })}
+          sortOrder={feedOptions.options.sortOrder}
+        />
 
         {noteActions.dialog}
 
@@ -280,8 +300,8 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
             setShowRunbookPickerModal(false);
           }}
           onStarted={() => {
-            refresh().catch((err: unknown) => {
-              setError(API.getFriendlyMessage(err as Exception));
+            feed.refresh().catch((err: unknown) => {
+              feed.setError(API.getFriendlyMessage(err as Exception));
             });
           }}
           scheduledMaintenanceId={props.scheduledMaintenanceId}

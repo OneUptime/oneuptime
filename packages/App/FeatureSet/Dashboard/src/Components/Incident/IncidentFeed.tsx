@@ -1,16 +1,12 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Feed from "Common/UI/Components/Feed/Feed";
 import API from "Common/UI/Utils/API/API";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IncidentFeed, {
   IncidentFeedEventType,
 } from "Common/Models/DatabaseModels/IncidentFeed";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
-import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -22,17 +18,29 @@ import UserNotificationEventType from "Common/Types/UserNotification/UserNotific
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import RunbookPicker from "../Runbook/RunbookPicker";
-import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedItems, {
+  UseFeedItemsResult,
+} from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
 import FeedCard from "Common/UI/Components/Feed/FeedCard";
 import FeedActionsMenu from "Common/UI/Components/Feed/FeedActionsMenu";
+import FeedContent from "Common/UI/Components/Feed/FeedContent";
+import {
+  FeedEntryKind,
+  FeedTone,
+  SHARED_FEED_ENTRY_KINDS,
+  getFeedEntryColor,
+  getFeedEntryKind,
+  getFeedIcons,
+} from "Common/UI/Components/Feed/FeedEntryKind";
 import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
 } from "Common/UI/Components/Feed/FeedOptions";
 import {
+  AI_REPORT_DETAILS_LABEL,
   FeedItemMarkdown,
   getFeedItemMarkdown,
 } from "../../Utils/AIRootCauseFeedItem";
@@ -55,47 +63,73 @@ export interface ComponentProps {
 }
 
 /*
- * One icon per event type, shared by the feed items and the event type
- * filter's checklist (the feed's ⋯ menu), so the two always match. A root
- * cause posted by an AI investigation is the one item that swaps its icon
- * (see getFeedItemFromIncidentFeed).
+ * What each event type is (FeedEntryKind): its icon and colour, and whether
+ * a burst of it folds together. Shared by the feed's entries and the event
+ * type filter's checklist (the feed's ⋯ menu), so the two always match. A
+ * root cause posted by an AI investigation is the one entry that swaps its
+ * kind (see getFeedItemFromIncidentFeed).
  */
-export const INCIDENT_FEED_ICONS: Record<IncidentFeedEventType, IconProp> = {
-  [IncidentFeedEventType.PublicNote]: IconProp.Announcement,
-  [IncidentFeedEventType.SubscriberNotificationSent]: IconProp.Notification,
-  [IncidentFeedEventType.OwnerNotificationSent]: IconProp.Bell,
-  [IncidentFeedEventType.OwnerUserAdded]: IconProp.User,
-  [IncidentFeedEventType.OwnerTeamAdded]: IconProp.Team,
-  [IncidentFeedEventType.IncidentCreated]: IconProp.Alert,
-  [IncidentFeedEventType.IncidentStateChanged]: IconProp.ArrowCircleRight,
-  [IncidentFeedEventType.PrivateNote]: IconProp.Lock,
-  [IncidentFeedEventType.IncidentUpdated]: IconProp.Edit,
-  [IncidentFeedEventType.RootCause]: IconProp.Cube,
-  [IncidentFeedEventType.RemediationNotes]: IconProp.Wrench,
-  [IncidentFeedEventType.PostmortemNote]: IconProp.Book,
-  [IncidentFeedEventType.OwnerUserRemoved]: IconProp.Close,
-  [IncidentFeedEventType.OwnerTeamRemoved]: IconProp.Close,
-  [IncidentFeedEventType.OnCallPolicy]: IconProp.Call,
-  [IncidentFeedEventType.OnCallNotification]: IconProp.Alert,
-  [IncidentFeedEventType.IncidentMemberAdded]: IconProp.Circle,
-  [IncidentFeedEventType.IncidentMemberRemoved]: IconProp.Circle,
-  [IncidentFeedEventType.AlertLinked]: IconProp.Link,
-  [IncidentFeedEventType.AlertUnlinked]: IconProp.LinkSlash,
-  [IncidentFeedEventType.LabelRuleExecuted]: IconProp.Tag,
-  [IncidentFeedEventType.OwnerRuleExecuted]: IconProp.User,
-  [IncidentFeedEventType.PrivacyRuleExecuted]: IconProp.Circle,
-  [IncidentFeedEventType.OnCallRuleExecuted]: IconProp.Call,
-  [IncidentFeedEventType.AutoRemediation]: IconProp.Circle,
-  [IncidentFeedEventType.VideoCallStarted]: IconProp.VideoCamera,
-  [IncidentFeedEventType.VideoCallFailed]: IconProp.VideoCameraSlash,
-};
+export const INCIDENT_FEED_KINDS: Record<IncidentFeedEventType, FeedEntryKind> =
+  {
+    [IncidentFeedEventType.PublicNote]: SHARED_FEED_ENTRY_KINDS.PublicNote,
+    [IncidentFeedEventType.SubscriberNotificationSent]:
+      SHARED_FEED_ENTRY_KINDS.SubscriberNotificationSent,
+    [IncidentFeedEventType.OwnerNotificationSent]:
+      SHARED_FEED_ENTRY_KINDS.OwnerNotificationSent,
+    [IncidentFeedEventType.OwnerUserAdded]:
+      SHARED_FEED_ENTRY_KINDS.OwnerUserAdded,
+    [IncidentFeedEventType.OwnerTeamAdded]:
+      SHARED_FEED_ENTRY_KINDS.OwnerTeamAdded,
+    // The flag a declared incident is planted with, in red.
+    [IncidentFeedEventType.IncidentCreated]: {
+      icon: IconProp.Flag,
+      tone: FeedTone.Danger,
+    },
+    [IncidentFeedEventType.IncidentStateChanged]:
+      SHARED_FEED_ENTRY_KINDS.StateChanged,
+    [IncidentFeedEventType.PrivateNote]: SHARED_FEED_ENTRY_KINDS.PrivateNote,
+    [IncidentFeedEventType.IncidentUpdated]: SHARED_FEED_ENTRY_KINDS.Updated,
+    [IncidentFeedEventType.RootCause]: SHARED_FEED_ENTRY_KINDS.RootCause,
+    [IncidentFeedEventType.RemediationNotes]:
+      SHARED_FEED_ENTRY_KINDS.RemediationNotes,
+    [IncidentFeedEventType.PostmortemNote]:
+      SHARED_FEED_ENTRY_KINDS.PostmortemNote,
+    [IncidentFeedEventType.OwnerUserRemoved]:
+      SHARED_FEED_ENTRY_KINDS.OwnerUserRemoved,
+    [IncidentFeedEventType.OwnerTeamRemoved]:
+      SHARED_FEED_ENTRY_KINDS.OwnerTeamRemoved,
+    [IncidentFeedEventType.OnCallPolicy]: SHARED_FEED_ENTRY_KINDS.OnCallPolicy,
+    [IncidentFeedEventType.OnCallNotification]:
+      SHARED_FEED_ENTRY_KINDS.OnCallNotification,
+    [IncidentFeedEventType.IncidentMemberAdded]:
+      SHARED_FEED_ENTRY_KINDS.RoleAssigned,
+    [IncidentFeedEventType.IncidentMemberRemoved]:
+      SHARED_FEED_ENTRY_KINDS.RoleUnassigned,
+    [IncidentFeedEventType.AlertLinked]: SHARED_FEED_ENTRY_KINDS.Linked,
+    [IncidentFeedEventType.AlertUnlinked]: SHARED_FEED_ENTRY_KINDS.Unlinked,
+    [IncidentFeedEventType.LabelRuleExecuted]:
+      SHARED_FEED_ENTRY_KINDS.LabelRuleExecuted,
+    [IncidentFeedEventType.OwnerRuleExecuted]:
+      SHARED_FEED_ENTRY_KINDS.OwnerRuleExecuted,
+    [IncidentFeedEventType.PrivacyRuleExecuted]:
+      SHARED_FEED_ENTRY_KINDS.PrivacyRuleExecuted,
+    [IncidentFeedEventType.OnCallRuleExecuted]:
+      SHARED_FEED_ENTRY_KINDS.OnCallRuleExecuted,
+    [IncidentFeedEventType.AutoRemediation]:
+      SHARED_FEED_ENTRY_KINDS.AutoRemediation,
+    [IncidentFeedEventType.VideoCallStarted]:
+      SHARED_FEED_ENTRY_KINDS.VideoCallStarted,
+    [IncidentFeedEventType.VideoCallFailed]:
+      SHARED_FEED_ENTRY_KINDS.VideoCallFailed,
+  };
+
+export const INCIDENT_FEED_ICONS: Record<IncidentFeedEventType, IconProp> =
+  getFeedIcons(INCIDENT_FEED_KINDS);
 
 export const getIncidentFeedEventIcon: (eventType: string) => IconProp = (
   eventType: string,
 ): IconProp => {
-  return (
-    INCIDENT_FEED_ICONS[eventType as IncidentFeedEventType] || IconProp.Circle
-  );
+  return getFeedEntryKind({ kinds: INCIDENT_FEED_KINDS, eventType }).icon;
 };
 
 const IncidentFeedElement: FunctionComponent<ComponentProps> = (
@@ -129,9 +163,6 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   const getFeedItemFromIncidentFeed: GetFeedItemFromIncidentFeed = (
     incidentFeed: IncidentFeed,
   ): FeedItemProps => {
-    let icon: IconProp = getIncidentFeedEventIcon(
-      incidentFeed.incidentFeedEventType || "",
-    );
     const isAIInvestigation: boolean = Boolean(
       incidentFeed.incidentFeedEventType === IncidentFeedEventType.RootCause &&
         (incidentFeed.aiRunId ||
@@ -140,16 +171,17 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
           )),
     );
 
-    if (
-      incidentFeed.incidentFeedEventType === IncidentFeedEventType.RootCause
-    ) {
-      icon = isAIInvestigation ? IconProp.Sparkles : IconProp.Cube;
-    }
+    const kind: FeedEntryKind = isAIInvestigation
+      ? SHARED_FEED_ENTRY_KINDS.AIRootCause
+      : getFeedEntryKind({
+          kinds: INCIDENT_FEED_KINDS,
+          eventType: incidentFeed.incidentFeedEventType,
+        });
 
     /*
      * An AI report is laid out in full by the AI Investigation card, so its
-     * feed item shows only the summary and root cause; the whole report sits
-     * behind More Information.
+     * feed item shows only the summary and root cause; the whole report
+     * unfolds under Show the full report.
      */
     const feedItemMarkdown: FeedItemMarkdown = getFeedItemMarkdown({
       isAIInvestigation,
@@ -163,8 +195,14 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       moreTextInMarkdown: feedItemMarkdown.moreTextInMarkdown,
       user: incidentFeed.user,
       itemDateTime: incidentFeed.postedAt || incidentFeed.createdAt!,
-      color: incidentFeed.displayColor || Gray500,
-      icon: icon,
+      color: getFeedEntryColor({
+        kind: kind,
+        rowColor: incidentFeed.displayColor,
+      }),
+      icon: kind.icon,
+      burstKind: kind.burst,
+      eventType: incidentFeed.incidentFeedEventType,
+      detailsLabel: isAIInvestigation ? AI_REPORT_DETAILS_LABEL : undefined,
       safeMode: isAIInvestigation,
     };
   };
@@ -176,18 +214,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     resetKey: incidentIdString,
   });
 
-  const {
-    feedItems,
-    isLoading,
-    isLoadingMore,
-    error,
-    loadMoreError,
-    hasMore,
-    isCurrentFeedLoaded,
-    setError,
-    refresh,
-    loadMore,
-  } = useFeedItems<IncidentFeed>({
+  const feed: UseFeedItemsResult = useFeedItems<IncidentFeed>({
     resourceKey: incidentIdString,
     viewKey: feedOptions.optionsKey,
     refreshToken: props.refreshToken,
@@ -239,8 +266,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       incidentId: props.incidentId,
     }),
     onPosted: () => {
-      refresh().catch((err: unknown) => {
-        setError(API.getFriendlyMessage(err as Exception));
+      feed.refresh().catch((err: unknown) => {
+        feed.setError(API.getFriendlyMessage(err as Exception));
       });
     },
   });
@@ -252,7 +279,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
         "Everything that has happened to this incident: status changes, notes, owners and every notification sent."
       }
       feedOptions={feedOptions}
-      onRefresh={refresh}
+      onRefresh={feed.refresh}
       actions={
         <FeedActionsMenu key="incident-feed-actions-menu">
           {[
@@ -278,22 +305,14 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       }
     >
       <div>
-        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
-        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
-        {isCurrentFeedLoaded && !isLoading && !error && (
-          <Feed
-            items={feedItems}
-            noItemsMessage={getFeedNoItemsMessage({
-              options: feedOptions.options,
-              noItemsMessage:
-                "Looks like there are no items in this feed for this incident.",
-            })}
-            hasMore={hasMore}
-            isLoadingMore={isLoadingMore}
-            onMore={loadMore}
-          />
-        )}
-        {loadMoreError && <ErrorMessage message={loadMoreError} />}
+        <FeedContent
+          feed={feed}
+          noItemsMessage={getFeedNoItemsMessage({
+            options: feedOptions.options,
+            noItemsMessage: "Nothing has happened to this incident yet.",
+          })}
+          sortOrder={feedOptions.options.sortOrder}
+        />
 
         {showOnCallPolicyModal && (
           <ModelFormModal
@@ -316,8 +335,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowOnCallPolicyModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
+              feed.refresh().catch((err: unknown) => {
+                feed.setError(API.getFriendlyMessage(err as Exception));
               });
             }}
             formProps={{
@@ -355,8 +374,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             setShowRunbookPickerModal(false);
           }}
           onStarted={() => {
-            refresh().catch((err: unknown) => {
-              setError(API.getFriendlyMessage(err as Exception));
+            feed.refresh().catch((err: unknown) => {
+              feed.setError(API.getFriendlyMessage(err as Exception));
             });
           }}
           incidentId={props.incidentId}

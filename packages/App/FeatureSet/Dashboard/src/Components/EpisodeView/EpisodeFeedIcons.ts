@@ -1,77 +1,149 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import { IncidentEpisodeFeedEventType } from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
+import {
+  FeedEntryKind,
+  SHARED_FEED_ENTRY_KINDS,
+  getFeedEntryKind,
+  getFeedIcons,
+} from "Common/UI/Components/Feed/FeedEntryKind";
 
 /*
- * One icon per feed event type. These are Records rather than if-chains so
- * that adding an event type to either enum fails the build until it gets an
- * icon, instead of silently falling back to a plain circle in the feed.
+ * What each episode feed event type is (FeedEntryKind): its icon and colour,
+ * and whether a burst of it folds together. These are Records rather than
+ * if-chains so that adding an event type to either enum fails the build until
+ * it gets a kind, instead of silently falling back to a plain circle in the
+ * feed.
  */
+export const INCIDENT_EPISODE_FEED_KINDS: Record<
+  IncidentEpisodeFeedEventType,
+  FeedEntryKind
+> = {
+  [IncidentEpisodeFeedEventType.EpisodeCreated]: {
+    ...SHARED_FEED_ENTRY_KINDS.Created,
+    icon: IconProp.Layers,
+  },
+  [IncidentEpisodeFeedEventType.EpisodeStateChanged]:
+    SHARED_FEED_ENTRY_KINDS.StateChanged,
+  [IncidentEpisodeFeedEventType.EpisodeUpdated]: SHARED_FEED_ENTRY_KINDS.Updated,
+  [IncidentEpisodeFeedEventType.IncidentAdded]:
+    SHARED_FEED_ENTRY_KINDS.MemberAdded,
+  [IncidentEpisodeFeedEventType.IncidentRemoved]:
+    SHARED_FEED_ENTRY_KINDS.MemberRemoved,
+  [IncidentEpisodeFeedEventType.OwnerUserAdded]:
+    SHARED_FEED_ENTRY_KINDS.OwnerUserAdded,
+  [IncidentEpisodeFeedEventType.OwnerTeamAdded]:
+    SHARED_FEED_ENTRY_KINDS.OwnerTeamAdded,
+  [IncidentEpisodeFeedEventType.OwnerUserRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerUserRemoved,
+  [IncidentEpisodeFeedEventType.OwnerTeamRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerTeamRemoved,
+  [IncidentEpisodeFeedEventType.OwnerNotificationSent]:
+    SHARED_FEED_ENTRY_KINDS.OwnerNotificationSent,
+  [IncidentEpisodeFeedEventType.PrivateNote]:
+    SHARED_FEED_ENTRY_KINDS.PrivateNote,
+  [IncidentEpisodeFeedEventType.PublicNote]: SHARED_FEED_ENTRY_KINDS.PublicNote,
+  [IncidentEpisodeFeedEventType.RootCause]: SHARED_FEED_ENTRY_KINDS.RootCause,
+  [IncidentEpisodeFeedEventType.RemediationNotes]:
+    SHARED_FEED_ENTRY_KINDS.RemediationNotes,
+  [IncidentEpisodeFeedEventType.PostmortemNote]:
+    SHARED_FEED_ENTRY_KINDS.PostmortemNote,
+  [IncidentEpisodeFeedEventType.OnCallPolicy]:
+    SHARED_FEED_ENTRY_KINDS.OnCallPolicy,
+  [IncidentEpisodeFeedEventType.OnCallNotification]:
+    SHARED_FEED_ENTRY_KINDS.OnCallNotification,
+  [IncidentEpisodeFeedEventType.SeverityChanged]:
+    SHARED_FEED_ENTRY_KINDS.SeverityChanged,
+  [IncidentEpisodeFeedEventType.SubscriberNotificationSent]:
+    SHARED_FEED_ENTRY_KINDS.SubscriberNotificationSent,
+  [IncidentEpisodeFeedEventType.LabelRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.LabelRuleExecuted,
+  [IncidentEpisodeFeedEventType.OwnerRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.OwnerRuleExecuted,
+  [IncidentEpisodeFeedEventType.PrivacyRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.PrivacyRuleExecuted,
+  [IncidentEpisodeFeedEventType.OnCallRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.OnCallRuleExecuted,
+};
+
+export const ALERT_EPISODE_FEED_KINDS: Record<
+  AlertEpisodeFeedEventType,
+  FeedEntryKind
+> = {
+  [AlertEpisodeFeedEventType.EpisodeCreated]: {
+    ...SHARED_FEED_ENTRY_KINDS.Created,
+    icon: IconProp.Layers,
+  },
+  [AlertEpisodeFeedEventType.EpisodeStateChanged]:
+    SHARED_FEED_ENTRY_KINDS.StateChanged,
+  [AlertEpisodeFeedEventType.EpisodeUpdated]: SHARED_FEED_ENTRY_KINDS.Updated,
+  [AlertEpisodeFeedEventType.AlertAdded]: SHARED_FEED_ENTRY_KINDS.MemberAdded,
+  [AlertEpisodeFeedEventType.AlertRemoved]:
+    SHARED_FEED_ENTRY_KINDS.MemberRemoved,
+  [AlertEpisodeFeedEventType.OwnerUserAdded]:
+    SHARED_FEED_ENTRY_KINDS.OwnerUserAdded,
+  [AlertEpisodeFeedEventType.OwnerTeamAdded]:
+    SHARED_FEED_ENTRY_KINDS.OwnerTeamAdded,
+  [AlertEpisodeFeedEventType.OwnerUserRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerUserRemoved,
+  [AlertEpisodeFeedEventType.OwnerTeamRemoved]:
+    SHARED_FEED_ENTRY_KINDS.OwnerTeamRemoved,
+  [AlertEpisodeFeedEventType.OwnerNotificationSent]:
+    SHARED_FEED_ENTRY_KINDS.OwnerNotificationSent,
+  [AlertEpisodeFeedEventType.PrivateNote]: SHARED_FEED_ENTRY_KINDS.PrivateNote,
+  [AlertEpisodeFeedEventType.RootCause]: SHARED_FEED_ENTRY_KINDS.RootCause,
+  [AlertEpisodeFeedEventType.OnCallPolicy]:
+    SHARED_FEED_ENTRY_KINDS.OnCallPolicy,
+  [AlertEpisodeFeedEventType.OnCallNotification]:
+    SHARED_FEED_ENTRY_KINDS.OnCallNotification,
+  [AlertEpisodeFeedEventType.SeverityChanged]:
+    SHARED_FEED_ENTRY_KINDS.SeverityChanged,
+  [AlertEpisodeFeedEventType.LabelRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.LabelRuleExecuted,
+  [AlertEpisodeFeedEventType.OwnerRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.OwnerRuleExecuted,
+  [AlertEpisodeFeedEventType.PrivacyRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.PrivacyRuleExecuted,
+  [AlertEpisodeFeedEventType.OnCallRuleExecuted]:
+    SHARED_FEED_ENTRY_KINDS.OnCallRuleExecuted,
+};
+
 export const INCIDENT_EPISODE_FEED_ICONS: Record<
   IncidentEpisodeFeedEventType,
   IconProp
-> = {
-  [IncidentEpisodeFeedEventType.EpisodeCreated]: IconProp.Layers,
-  [IncidentEpisodeFeedEventType.EpisodeStateChanged]: IconProp.ArrowCircleRight,
-  [IncidentEpisodeFeedEventType.EpisodeUpdated]: IconProp.Edit,
-  [IncidentEpisodeFeedEventType.IncidentAdded]: IconProp.Alert,
-  [IncidentEpisodeFeedEventType.IncidentRemoved]: IconProp.Close,
-  [IncidentEpisodeFeedEventType.OwnerUserAdded]: IconProp.User,
-  [IncidentEpisodeFeedEventType.OwnerTeamAdded]: IconProp.Team,
-  [IncidentEpisodeFeedEventType.OwnerUserRemoved]: IconProp.Close,
-  [IncidentEpisodeFeedEventType.OwnerTeamRemoved]: IconProp.Close,
-  [IncidentEpisodeFeedEventType.OwnerNotificationSent]: IconProp.Bell,
-  [IncidentEpisodeFeedEventType.PrivateNote]: IconProp.Lock,
-  [IncidentEpisodeFeedEventType.PublicNote]: IconProp.Announcement,
-  [IncidentEpisodeFeedEventType.RootCause]: IconProp.Cube,
-  [IncidentEpisodeFeedEventType.RemediationNotes]: IconProp.Wrench,
-  [IncidentEpisodeFeedEventType.PostmortemNote]: IconProp.TextFile,
-  [IncidentEpisodeFeedEventType.OnCallPolicy]: IconProp.Call,
-  [IncidentEpisodeFeedEventType.OnCallNotification]: IconProp.Alert,
-  [IncidentEpisodeFeedEventType.SeverityChanged]: IconProp.ExclaimationCircle,
-  [IncidentEpisodeFeedEventType.SubscriberNotificationSent]:
-    IconProp.Notification,
-  [IncidentEpisodeFeedEventType.LabelRuleExecuted]: IconProp.Tag,
-  [IncidentEpisodeFeedEventType.OwnerRuleExecuted]: IconProp.User,
-  [IncidentEpisodeFeedEventType.PrivacyRuleExecuted]: IconProp.EyeSlash,
-  [IncidentEpisodeFeedEventType.OnCallRuleExecuted]: IconProp.Call,
-};
+> = getFeedIcons(INCIDENT_EPISODE_FEED_KINDS);
 
 export const ALERT_EPISODE_FEED_ICONS: Record<
   AlertEpisodeFeedEventType,
   IconProp
-> = {
-  [AlertEpisodeFeedEventType.EpisodeCreated]: IconProp.Layers,
-  [AlertEpisodeFeedEventType.EpisodeStateChanged]: IconProp.ArrowCircleRight,
-  [AlertEpisodeFeedEventType.EpisodeUpdated]: IconProp.Edit,
-  [AlertEpisodeFeedEventType.AlertAdded]: IconProp.Alert,
-  [AlertEpisodeFeedEventType.AlertRemoved]: IconProp.Close,
-  [AlertEpisodeFeedEventType.OwnerUserAdded]: IconProp.User,
-  [AlertEpisodeFeedEventType.OwnerTeamAdded]: IconProp.Team,
-  [AlertEpisodeFeedEventType.OwnerUserRemoved]: IconProp.Close,
-  [AlertEpisodeFeedEventType.OwnerTeamRemoved]: IconProp.Close,
-  [AlertEpisodeFeedEventType.OwnerNotificationSent]: IconProp.Bell,
-  [AlertEpisodeFeedEventType.PrivateNote]: IconProp.Lock,
-  [AlertEpisodeFeedEventType.RootCause]: IconProp.Cube,
-  [AlertEpisodeFeedEventType.OnCallPolicy]: IconProp.Call,
-  [AlertEpisodeFeedEventType.OnCallNotification]: IconProp.Alert,
-  [AlertEpisodeFeedEventType.SeverityChanged]: IconProp.ExclaimationCircle,
-  [AlertEpisodeFeedEventType.LabelRuleExecuted]: IconProp.Tag,
-  [AlertEpisodeFeedEventType.OwnerRuleExecuted]: IconProp.User,
-  [AlertEpisodeFeedEventType.PrivacyRuleExecuted]: IconProp.EyeSlash,
-  [AlertEpisodeFeedEventType.OnCallRuleExecuted]: IconProp.Call,
-};
+> = getFeedIcons(ALERT_EPISODE_FEED_KINDS);
+
+export function getIncidentEpisodeFeedKind(
+  eventType: IncidentEpisodeFeedEventType | string | undefined,
+): FeedEntryKind {
+  return getFeedEntryKind({
+    kinds: INCIDENT_EPISODE_FEED_KINDS,
+    eventType: eventType,
+  });
+}
+
+export function getAlertEpisodeFeedKind(
+  eventType: AlertEpisodeFeedEventType | string | undefined,
+): FeedEntryKind {
+  return getFeedEntryKind({
+    kinds: ALERT_EPISODE_FEED_KINDS,
+    eventType: eventType,
+  });
+}
 
 export function getIncidentEpisodeFeedIcon(
   eventType: IncidentEpisodeFeedEventType | undefined,
 ): IconProp {
-  return (
-    (eventType && INCIDENT_EPISODE_FEED_ICONS[eventType]) || IconProp.Circle
-  );
+  return getIncidentEpisodeFeedKind(eventType).icon;
 }
 
 export function getAlertEpisodeFeedIcon(
   eventType: AlertEpisodeFeedEventType | undefined,
 ): IconProp {
-  return (eventType && ALERT_EPISODE_FEED_ICONS[eventType]) || IconProp.Circle;
+  return getAlertEpisodeFeedKind(eventType).icon;
 }
