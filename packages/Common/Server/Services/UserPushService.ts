@@ -10,6 +10,16 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
+import CriticalAlertSound, {
+  CRITICAL_ALERT_SOUNDS,
+  CriticalAlertSoundDefinition,
+  isCriticalAlertSound,
+} from "../../Types/PushNotification/CriticalAlertSound";
+import {
+  CRITICAL_ALERT_VOLUME_MAX_PERCENT,
+  CRITICAL_ALERT_VOLUME_MIN_PERCENT,
+  isCriticalAlertVolumePercent,
+} from "../../Types/PushNotification/CriticalAlertVolume";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -39,6 +49,41 @@ export class Service extends DatabaseService<UserPush> {
     if (!validDeviceTypes.includes(createBy.data.deviceType)) {
       throw new BadDataException(
         "Device type must be one of: " + validDeviceTypes.join(", "),
+      );
+    }
+
+    /*
+     * The alarm and volume a device is created with, when the write names
+     * them: one a page can play, or refused here rather than stored. Delivery
+     * reads anything else as the system sound at full volume, so a stray
+     * value could not silence a page - but it would read back as a choice
+     * that is not the one in force.
+     */
+    const criticalAlertSound: unknown = createBy.data.criticalAlertSound;
+
+    if (
+      criticalAlertSound !== undefined &&
+      criticalAlertSound !== null &&
+      !isCriticalAlertSound(criticalAlertSound)
+    ) {
+      throw new BadDataException(
+        `Critical alert sound must be one of: ${CRITICAL_ALERT_SOUNDS.map(
+          (definition: CriticalAlertSoundDefinition): string => {
+            return definition.sound;
+          },
+        ).join(", ")}.`,
+      );
+    }
+
+    const criticalAlertVolume: unknown = createBy.data.criticalAlertVolume;
+
+    if (
+      criticalAlertVolume !== undefined &&
+      criticalAlertVolume !== null &&
+      !isCriticalAlertVolumePercent(criticalAlertVolume)
+    ) {
+      throw new BadDataException(
+        `Critical alert volume must be a whole number from ${CRITICAL_ALERT_VOLUME_MIN_PERCENT} to ${CRITICAL_ALERT_VOLUME_MAX_PERCENT}.`,
       );
     }
 
@@ -162,10 +207,79 @@ export class Service extends DatabaseService<UserPush> {
     deviceToken: string;
     isEnabled: boolean;
   }): Promise<number> {
+    return await this.updateMobileDevicesOfToken({
+      userId: data.userId,
+      deviceToken: data.deviceToken,
+      data: {
+        isCriticalAlertEnabled: data.isEnabled,
+      },
+    });
+  }
+
+  /**
+   * The alarm a handset's critical pages play, and on an iPhone how loud
+   * (CriticalAlertSound, CriticalAlertVolume). Keyed on the device token and
+   * kept to the caller's own iOS and Android devices for the same reasons as
+   * setCriticalAlertEnabledForDeviceToken: it is a property of the phone, set
+   * on every project the phone is registered against at once.
+   *
+   * Either may be left out to keep what is stored. The caller has already
+   * checked the values; this writes them as given.
+   */
+  @CaptureSpan()
+  public async setCriticalAlertPreferencesForDeviceToken(data: {
+    userId: ObjectID;
+    deviceToken: string;
+    sound?: CriticalAlertSound | undefined;
+    volumePercent?: number | undefined;
+  }): Promise<number> {
+    const update: {
+      criticalAlertSound?: CriticalAlertSound;
+      criticalAlertVolume?: number;
+    } = {};
+
+    if (data.sound !== undefined) {
+      update.criticalAlertSound = data.sound;
+    }
+
+    if (data.volumePercent !== undefined) {
+      update.criticalAlertVolume = data.volumePercent;
+    }
+
+    if (Object.keys(update).length === 0) {
+      throw new BadDataException(
+        "Give a critical alert sound, a critical alert volume, or both.",
+      );
+    }
+
+    return await this.updateMobileDevicesOfToken({
+      userId: data.userId,
+      deviceToken: data.deviceToken,
+      data: update,
+    });
+  }
+
+  /*
+   * Write `data` onto every iOS and Android device of `userId` registered with
+   * `deviceToken` - one per project the phone is registered against - and say
+   * how many were written. Refuses a token the caller has no device for, and
+   * one that is only a browser's: no browser can override a device's ringer,
+   * so a critical alert setting stored on a web row would read back as though
+   * it did something.
+   */
+  private async updateMobileDevicesOfToken(options: {
+    userId: ObjectID;
+    deviceToken: string;
+    data: {
+      isCriticalAlertEnabled?: boolean;
+      criticalAlertSound?: CriticalAlertSound;
+      criticalAlertVolume?: number;
+    };
+  }): Promise<number> {
     const devices: Array<UserPush> = await this.findBy({
       query: {
-        userId: data.userId,
-        deviceToken: data.deviceToken,
+        userId: options.userId,
+        deviceToken: options.deviceToken,
       },
       select: {
         _id: true,
@@ -213,9 +327,7 @@ export class Service extends DatabaseService<UserPush> {
         query: {
           _id: deviceId,
         },
-        data: {
-          isCriticalAlertEnabled: data.isEnabled,
-        },
+        data: options.data,
         props: {
           isRoot: true,
         },
@@ -396,6 +508,9 @@ export class Service extends DatabaseService<UserPush> {
     deviceType: PushDeviceType;
     deviceName: string;
     isCriticalAlertEnabled: boolean;
+    // The phone's alarm and volume as it registers now; left out, kept.
+    criticalAlertSound?: CriticalAlertSound | undefined;
+    criticalAlertVolume?: number | undefined;
   }): Promise<UserPush | null> {
     if (
       !data.previousDeviceToken ||
@@ -442,6 +557,12 @@ export class Service extends DatabaseService<UserPush> {
         deviceName: data.deviceName,
         isVerified: true,
         isCriticalAlertEnabled: data.isCriticalAlertEnabled,
+        ...(data.criticalAlertSound !== undefined
+          ? { criticalAlertSound: data.criticalAlertSound }
+          : {}),
+        ...(data.criticalAlertVolume !== undefined
+          ? { criticalAlertVolume: data.criticalAlertVolume }
+          : {}),
       },
       props: {
         isRoot: true,

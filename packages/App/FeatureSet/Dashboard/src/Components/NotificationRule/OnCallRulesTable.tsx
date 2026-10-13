@@ -9,6 +9,9 @@ import type {
 import PushNotificationLevelControl, {
   getPushNotificationLevelCardSelectOptions,
 } from "./PushNotificationLevelControl";
+import PushRepeatControl, {
+  PUSH_REPEAT_DROPDOWN_OPTIONS,
+} from "./PushRepeatControl";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
@@ -31,6 +34,7 @@ import {
 } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import { NO_NOTIFICATION_REPEAT } from "Common/Types/NotificationRule/NotificationRepeat";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import PushNotificationLevel from "Common/Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "Common/Types/ObjectID";
@@ -861,9 +865,36 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   };
 
   /*
+   * A push method of any kind - a browser included - which is what repeating
+   * until acknowledged applies to: a page sent again to a browser still
+   * reaches somebody at their desk. For somebody else's rules, any "Push".
+   */
+  type IsPushMethod = (selectedValue: unknown) => boolean;
+
+  const isPushMethod: IsPushMethod = (selectedValue: unknown): boolean => {
+    if (!selectedValue) {
+      return false;
+    }
+
+    const selectedId: string = selectedValue.toString();
+
+    if (isViewerTheOwner) {
+      return userPush.some((device: UserPush): boolean => {
+        return device.id?.toString() === selectedId;
+      });
+    }
+
+    return (props.notificationMethods || []).some(
+      (method: NotificationMethodChoice): boolean => {
+        return method.methodId === selectedId && method.methodType === "Push";
+      },
+    );
+  };
+
+  /*
    * The same gate as the row editor's, on the same question: may this viewer
    * rewrite how somebody gets paged? A viewer who may not still sees the
-   * level - the pill is drawn without its menu.
+   * level and the repeat - the pills are drawn without their menus.
    */
   const canChangeRules: boolean =
     isEditable &&
@@ -872,14 +903,19 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         .isAllowed || User.isMasterAdmin(),
     );
 
-  type UpdatePushNotificationLevel = (
+  // Saves one of a push rule's settings from its row: only what changed.
+  type UpdatePushRule = (
     rule: UserNotificationRule,
-    level: PushNotificationLevel,
+    data:
+      | { pushNotificationLevel: PushNotificationLevel }
+      | { repeatEveryMinutes: number },
   ) => Promise<void>;
 
-  const updatePushNotificationLevel: UpdatePushNotificationLevel = async (
+  const updatePushRule: UpdatePushRule = async (
     rule: UserNotificationRule,
-    level: PushNotificationLevel,
+    data:
+      | { pushNotificationLevel: PushNotificationLevel }
+      | { repeatEveryMinutes: number },
   ): Promise<void> => {
     if (!rule.id) {
       throw new Error(
@@ -892,27 +928,26 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
     await ModelAPI.updateById<UserNotificationRule>({
       modelType: UserNotificationRule,
       id: rule.id,
-      data: {
-        pushNotificationLevel: level,
-      },
+      data: data,
     });
   };
 
   /*
-   * The level control under a push rule's method, or nothing for a rule that
-   * pages anything else.
+   * The controls under a push rule's method, or nothing for a rule that pages
+   * anything else: how the push sounds (phones only) and how often it repeats
+   * until acknowledged (any push device).
    *
    * On your own page the rule's phone is one of the devices loaded above, so
-   * the control can also say when the phone has not turned critical alerts on
-   * - the one case where "Critical alert" on the row would not be true on the
-   * night. A browser has no level and gets no control. A phone missing from
-   * that list (no longer verified) still gets one: the rule still names it.
+   * the level can also say when the phone has not turned critical alerts on -
+   * the one case where "Critical alert" on the row would not be true on the
+   * night. A browser has no level, but can repeat. A phone missing from that
+   * list (no longer verified) still gets both: the rule still names it.
    */
-  type GetPushNotificationLevelElement = (
+  type GetPushControlsElement = (
     rule: UserNotificationRule,
   ) => ReactElement | null;
 
-  const getPushNotificationLevelElement: GetPushNotificationLevelElement = (
+  const getPushControlsElement: GetPushControlsElement = (
     rule: UserNotificationRule,
   ): ReactElement | null => {
     const rawUserPushId: unknown = rule["userPushId"];
@@ -923,6 +958,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
     const userPushId: string = new ObjectID(rawUserPushId as string).toString();
 
+    let hasLevel: boolean = true;
     let isDeviceCriticalAlertEnabled: boolean | undefined = undefined;
 
     if (isViewerTheOwner) {
@@ -933,23 +969,41 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
       );
 
       if (device && !isExpoPushDeviceType(device.deviceType)) {
-        return null;
+        hasLevel = false;
       }
 
-      if (device) {
+      if (device && hasLevel) {
         isDeviceCriticalAlertEnabled = Boolean(device.isCriticalAlertEnabled);
       }
     }
 
     return (
-      <PushNotificationLevelControl
-        level={rule["pushNotificationLevel"] as string | undefined}
-        isEditable={canChangeRules}
-        isDeviceCriticalAlertEnabled={isDeviceCriticalAlertEnabled}
-        onChange={(level: PushNotificationLevel): Promise<void> => {
-          return updatePushNotificationLevel(rule, level);
-        }}
-      />
+      <div
+        className="mt-1.5 flex flex-wrap items-start gap-x-2 gap-y-1"
+        data-testid="push-rule-controls"
+      >
+        {hasLevel ? (
+          <PushNotificationLevelControl
+            level={rule["pushNotificationLevel"] as string | undefined}
+            isEditable={canChangeRules}
+            isDeviceCriticalAlertEnabled={isDeviceCriticalAlertEnabled}
+            onChange={(level: PushNotificationLevel): Promise<void> => {
+              return updatePushRule(rule, { pushNotificationLevel: level });
+            }}
+          />
+        ) : (
+          <></>
+        )}
+        <PushRepeatControl
+          repeatEveryMinutes={rule["repeatEveryMinutes"] as number | undefined}
+          isEditable={canChangeRules}
+          onChange={(repeatEveryMinutes: number): Promise<void> => {
+            return updatePushRule(rule, {
+              repeatEveryMinutes: repeatEveryMinutes,
+            });
+          }}
+        />
+      </div>
     );
   };
 
@@ -1117,6 +1171,18 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
           applySelectedMethod(model, miscDataProps["notificationMethod"]);
 
+          /*
+           * Repeating is for push rules, and its field is shown only for one.
+           * An interval picked for a push device is still sent after the
+           * method is changed to something else - the form sends a hidden
+           * field's value too - and the server refuses a repeating rule that
+           * pages anything but a push device, in words about a field the
+           * form no longer shows.
+           */
+          if (!isPushMethod(miscDataProps["notificationMethod"])) {
+            model.repeatEveryMinutes = NO_NOTIFICATION_REPEAT;
+          }
+
           return Promise.resolve(model);
         }}
         sortOrder={SortOrder.Ascending}
@@ -1230,6 +1296,40 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             },
             dataTestId: "push-notification-level-field",
           },
+          /*
+           * Shown once a push method is picked - a browser included - and
+           * starting on "Don't repeat", the column's default. Changed later
+           * from the rule's row, like the level above.
+           *
+           * Started by getDefaultValue, not by the column's default: a form
+           * fills a field in with its defaultValue only when that is truthy
+           * (BasicForm), so 0 left the field empty and - required - refused
+           * every push rule until "Don't repeat" was picked by hand. And a
+           * dropdown draws 0 as no choice at all, so the placeholder says
+           * what it holds, as "Immediately" does for the delay below.
+           */
+          {
+            field: {
+              repeatEveryMinutes: true,
+            },
+            title: "Repeat until acknowledged",
+            description:
+              "Send the push again this often until somebody acknowledges, up to 10 more times.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: PUSH_REPEAT_DROPDOWN_OPTIONS,
+            getDefaultValue: (): number => {
+              return NO_NOTIFICATION_REPEAT;
+            },
+            placeholder: "Don't repeat",
+            required: true,
+            doNotShowWhenEditing: true,
+            showIf: (values: FormValues<UserNotificationRule>): boolean => {
+              return isPushMethod(
+                (values as Record<string, unknown>)["notificationMethod"],
+              );
+            },
+            dataTestId: "push-repeat-field",
+          },
           {
             field: {
               notifyAfterMinutes: true,
@@ -1259,6 +1359,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
            * than it is.
            */
           pushNotificationLevel: true,
+          repeatEveryMinutes: true,
           userPushId: true,
         }}
         filters={[]}
@@ -1278,20 +1379,18 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
               const methodElement: ReactElement = getMethodElement(item);
 
               // An opt-out row pages nothing, so it has no level either.
-              const pushNotificationLevelElement: ReactElement | null = item[
-                "isOptOut"
-              ]
+              const pushControlsElement: ReactElement | null = item["isOptOut"]
                 ? null
-                : getPushNotificationLevelElement(item);
+                : getPushControlsElement(item);
 
-              if (!pushNotificationLevelElement) {
+              if (!pushControlsElement) {
                 return methodElement;
               }
 
               return (
                 <div>
                   {methodElement}
-                  {pushNotificationLevelElement}
+                  {pushControlsElement}
                 </div>
               );
             },

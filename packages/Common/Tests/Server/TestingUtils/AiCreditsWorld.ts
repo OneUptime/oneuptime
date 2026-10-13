@@ -7,6 +7,10 @@ import BillingService from "../../../Server/Services/BillingService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import Project from "../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  SlackWebhookMessages,
+  captureSlackWebhookMessages,
+} from "./SlackWebhookMessages";
 
 /*
  * A project's AI credits, with everything that touches them behind fakes, so
@@ -65,6 +69,11 @@ export interface AiCreditsWorld {
   setCacheConnected: (value: boolean) => void;
   // How long a charge takes, in ms.
   setChargeDelayInMs: (ms: number) => void;
+  /*
+   * What was posted to Slack incoming webhooks - the operator's channel
+   * hears of every refill - caught rather than sent.
+   */
+  slack: SlackWebhookMessages;
 }
 
 const DEFAULT_ROW: Omit<AiCreditsRow, "_id"> = {
@@ -316,6 +325,8 @@ export function useAiCreditsWorld(
     }
   }) as never);
 
+  const slack: SlackWebhookMessages = captureSlackWebhookMessages();
+
   return {
     row,
     charges,
@@ -342,5 +353,6 @@ export function useAiCreditsWorld(
     setChargeDelayInMs: (ms: number): void => {
       chargeDelayInMs = ms;
     },
+    slack,
   };
 }

@@ -39,6 +39,15 @@ import { describe, expect, test } from "@jest/globals";
  *      message, handed to a reply as it is, is a finding
  *      (findUnescapedChatReplies). A person's name, a refusal naming a
  *      label or a record, a number prefix: each is text in a reply.
+ *   E. What OneUptime tells its operator's own Slack channels - the
+ *      incoming webhooks set with NOTIFICATION_SLACK_WEBHOOK_ON_* - is
+ *      written by an OperatorSlackNotice builder and posted with
+ *      OperatorSlackNotice.post. Those messages were Slack mrkdwn written by
+ *      hand ("*Project Name:* ${name}"), which rule A does not read as
+ *      Markdown, so a project or a company named "<!channel>" notified the
+ *      whole channel. A webhook setting used other than checked or handed
+ *      to that post, or a post whose text no builder wrote, is a finding
+ *      (findOperatorSlackPosts).
  *
  * A template that is right to stay untagged - an LLM prompt, a log line -
  * goes in ALLOWED_UNTAGGED with its reason. The list only shrinks: the guard
@@ -93,6 +102,7 @@ const BUILDER_FILES: ReadonlyArray<string> = [
   "packages/Common/Server/Services/UserService.ts",
   "packages/Common/Server/Services/StatusPageSubscriberService.ts",
   "packages/Common/Server/Utils/AffectedResources/LinkedAffectedResources.ts",
+  "packages/Common/Server/Utils/OperatorSlackNotice.ts",
   "packages/Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts",
   "packages/Common/Server/Utils/Monitor/RootCauseList.ts",
   "packages/Common/Server/Utils/Monitor/AffectedResourceList.ts",
@@ -193,7 +203,7 @@ const ALLOWED_UNTAGGED: Array<AllowedUntagged> = [
 export interface GuardFinding {
   file: string;
   line: number;
-  rule: "A" | "B" | "C" | "D";
+  rule: "A" | "B" | "C" | "D" | "E";
   text: string;
 }
 
@@ -1228,6 +1238,156 @@ export function findUnescapedChatReplies(
   });
 }
 
+/*
+ * Rule E: what OneUptime tells its operator's own Slack channels.
+ */
+
+// The webhook settings: NotificationSlackWebhookOnCreateUser, ...OnSubscriptionUpdate.
+const OPERATOR_WEBHOOK_SETTING_PATTERN: RegExp =
+  /^NotificationSlackWebhookOn[A-Z][A-Za-z]*$/;
+
+// What writes an operator's message: OperatorSlackNotice.getProjectCreatedText.
+const OPERATOR_TEXT_BUILDER_PATTERN: RegExp =
+  /^OperatorSlackNotice\.get[A-Za-z]+Text$/;
+
+const OPERATOR_POST_CALLEE: string = "OperatorSlackNotice.post";
+
+// A file that reads a webhook setting or posts to one.
+const OPERATOR_SLACK_FILE_PATTERN: RegExp =
+  /NotificationSlackWebhookOn|OperatorSlackNotice\.post/;
+
+// The name of the property a node is the value of in OperatorSlackNotice.post({ ... }).
+function operatorPostPropertyName(node: ts.Node): string | null {
+  const property: ts.Node = node.parent;
+
+  if (!ts.isPropertyAssignment(property) || property.initializer !== node) {
+    return null;
+  }
+
+  const argument: ts.Node = property.parent;
+  const call: ts.Node = argument.parent;
+
+  if (
+    !ts.isObjectLiteralExpression(argument) ||
+    !ts.isCallExpression(call) ||
+    calleeText(call) !== OPERATOR_POST_CALLEE ||
+    call.arguments[0] !== argument
+  ) {
+    return null;
+  }
+
+  return property.name.getText();
+}
+
+/*
+ * A setting named where it is declared or imported, or only checked:
+ * `if (NotificationSlackWebhookOnCreateUser)`, `!NotificationSlackWebhookOn...`.
+ */
+function isSettingNamedOrChecked(identifier: ts.Identifier): boolean {
+  const parent: ts.Node = identifier.parent;
+
+  return (
+    ts.isImportSpecifier(parent) ||
+    (ts.isVariableDeclaration(parent) && parent.name === identifier) ||
+    (ts.isIfStatement(parent) && parent.expression === identifier) ||
+    (ts.isPrefixUnaryExpression(parent) &&
+      parent.operator === ts.SyntaxKind.ExclamationToken)
+  );
+}
+
+// A post's text as written: a builder's message, or a variable only ever given one.
+function isOperatorBuilderText(expression: ts.Expression): boolean {
+  const value: ts.Expression = unwrap(expression);
+
+  if (ts.isCallExpression(value)) {
+    return OPERATOR_TEXT_BUILDER_PATTERN.test(calleeText(value));
+  }
+
+  if (ts.isIdentifier(value)) {
+    const given: Array<ts.Expression> = valuesGivenTo(value);
+
+    return given.length > 0 && given.every(isOperatorBuilderText);
+  }
+
+  return false;
+}
+
+/**
+ * Rule E over one file: every webhook setting (NotificationSlackWebhookOn...)
+ * is only checked, or handed to OperatorSlackNotice.post as its webhookUrl,
+ * and every such post's text is what an OperatorSlackNotice builder wrote.
+ */
+export function findOperatorSlackPosts(
+  file: string,
+  sourceText: string,
+): Array<GuardFinding> {
+  const source: ts.SourceFile = ts.createSourceFile(
+    file,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const found: Array<GuardFinding> = [];
+
+  const report: (node: ts.Node) => void = (node: ts.Node): void => {
+    found.push({
+      file: file,
+      line: lineOf(source, node),
+      rule: "E",
+      text: node.getText(source).slice(0, 120),
+    });
+  };
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isIdentifier(node) &&
+      OPERATOR_WEBHOOK_SETTING_PATTERN.test(node.text) &&
+      !isSettingNamedOrChecked(node) &&
+      operatorPostPropertyName(node) !== "webhookUrl"
+    ) {
+      report(node);
+    }
+
+    if (
+      ts.isCallExpression(node) &&
+      calleeText(node) === OPERATOR_POST_CALLEE
+    ) {
+      const argument: ts.Expression | undefined = node.arguments[0]
+        ? unwrap(node.arguments[0])
+        : undefined;
+      let text: ts.Expression | undefined = undefined;
+
+      if (argument && ts.isObjectLiteralExpression(argument)) {
+        for (const property of argument.properties) {
+          if (
+            ts.isPropertyAssignment(property) &&
+            property.name.getText() === "text"
+          ) {
+            text = property.initializer;
+          }
+
+          if (
+            ts.isShorthandPropertyAssignment(property) &&
+            property.name.text === "text"
+          ) {
+            text = property.name;
+          }
+        }
+      }
+
+      if (!text || !isOperatorBuilderText(text)) {
+        report(node);
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return found;
+}
+
 const ESCAPER_MODULE_PATTERN: RegExp =
   /(?:^|\/)(MarkdownEscape|UntrustedMarkdown)$/;
 
@@ -1455,6 +1615,38 @@ describe("feed and chat Markdown is written with mdText", () => {
       "getUnknownButtonAnswer",
     ]) {
       expect(seen.builders).toContain(builder);
+    }
+
+    expect(describeFindings(findings)).toEqual([]);
+  });
+
+  test("the operator's Slack channels are told only what an OperatorSlackNotice builder wrote", () => {
+    const findings: Array<GuardFinding> = [];
+    const scanned: Array<string> = [];
+
+    for (const root of SINK_SCAN_ROOTS) {
+      for (const fullPath of listSourceFiles(root)) {
+        const sourceText: string = fs.readFileSync(fullPath, "utf8");
+
+        if (!OPERATOR_SLACK_FILE_PATTERN.test(sourceText)) {
+          continue;
+        }
+
+        const file: string = toRepositoryPath(fullPath);
+
+        scanned.push(file);
+        findings.push(...findOperatorSlackPosts(file, sourceText));
+      }
+    }
+
+    // Every service that tells the operator is read: a renamed setting must not hide one.
+    for (const poster of [
+      "packages/Common/Server/Services/UserService.ts",
+      "packages/Common/Server/Services/ProjectService.ts",
+      "packages/Common/Server/Services/NotificationService.ts",
+      "packages/Common/Server/Services/AIBillingService.ts",
+    ]) {
+      expect(scanned).toContain(poster);
     }
 
     expect(describeFindings(findings)).toEqual([]);
@@ -1768,6 +1960,66 @@ describe("findUnescapedChatReplies", () => {
         ].join("\n"),
       ),
     ).toEqual([expect.stringMatching(/^D: `Done by/)]);
+  });
+});
+
+describe("findOperatorSlackPosts", () => {
+  const FILE: string = "packages/Common/Server/Services/ExampleService.ts";
+
+  function find(code: string): Array<string> {
+    return findOperatorSlackPosts(FILE, code).map(
+      (finding: GuardFinding): string => {
+        return `${finding.rule}: ${finding.text}`;
+      },
+    );
+  }
+
+  test("finds a webhook setting posted to with a message written by hand", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { if (NotificationSlackWebhookOnCreateUser) { SlackUtil.sendMessageToChannelViaIncomingWebhook({ url: URL.fromString(NotificationSlackWebhookOnCreateUser), text: `*New OneUptime User:* ${user.name}` }); } }",
+      ),
+    ).toEqual(["E: NotificationSlackWebhookOnCreateUser"]);
+  });
+
+  test("finds a post whose text no builder wrote", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { void OperatorSlackNotice.post({ webhookUrl: NotificationSlackWebhookOnCreateProject, text: `*Project Created:* ${project.name}`, about: 'project creation' }); }",
+      ),
+    ).toEqual([expect.stringMatching(/^E: OperatorSlackNotice\.post\(/)]);
+  });
+
+  test("finds a post whose text is a variable given a template", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { let text: string = OperatorSlackNotice.getProjectPlanChangedText(d); text += `*Plan:* ${plan}`; await OperatorSlackNotice.post({ webhookUrl: NotificationSlackWebhookOnSubscriptionUpdate, text: text, about: 'plan change' }); }",
+      ),
+    ).toEqual([expect.stringMatching(/^E: OperatorSlackNotice\.post\(/)]);
+  });
+
+  test("passes a builder's message posted to a setting it checked", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { if (!NotificationSlackWebhookOnCreateUser) { return; } void OperatorSlackNotice.post({ webhookUrl: NotificationSlackWebhookOnCreateUser, text: OperatorSlackNotice.getUserCreatedText({ user: user }), about: 'user creation' }); }",
+      ),
+    ).toEqual([]);
+  });
+
+  test("follows a variable to the builder that wrote it", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { let text: string; try { text = OperatorSlackNotice.getProjectDeletedText(d); } catch (err) { return; } void OperatorSlackNotice.post({ webhookUrl: NotificationSlackWebhookOnDeleteProject, text, about: 'project deletion' }); }",
+      ),
+    ).toEqual([]);
+  });
+
+  test("leaves a setting's declaration and its import alone", () => {
+    expect(
+      find(
+        'import { NotificationSlackWebhookOnCreateUser } from "../EnvironmentConfig"; export const NotificationSlackWebhookOnDeleteProject: string = process.env["NOTIFICATION_SLACK_WEBHOOK_ON_DELETED_PROJECT"] || "";',
+      ),
+    ).toEqual([]);
   });
 });
 

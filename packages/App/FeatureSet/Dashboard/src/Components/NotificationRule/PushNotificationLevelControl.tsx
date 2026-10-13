@@ -203,7 +203,7 @@ const PushNotificationLevelControl: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="mt-1.5 flex flex-col items-start gap-1"
+      className="flex flex-col items-start gap-1"
       data-testid="push-notification-level"
       data-level={level}
     >

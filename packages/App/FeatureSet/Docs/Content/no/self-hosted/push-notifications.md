@@ -123,7 +123,7 @@ Fire ting må alle være oppfylt for at et varsel skal overstyre lydløs modus. 
 
 1. **Personen har slått det på for den enheten.** Lagret per enhet, av som standard, i `UserPush.isCriticalAlertEnabled`. Telefonen og nettbrettet til en person er separate valg.
 2. **Vaktregelen som sendte varselet, ber om det.** Under **Brukerinnstillinger > Vaktregler** står hver regel som varsler en telefon, på «Critical alert», som er standard, eller på «Standard», som følger lydinnstillingene på telefonen – slik kan en person bli vekket av en kritisk hendelse og varslet stille om en mindre. Lagret per regel i `UserNotificationRule.pushNotificationLevel`.
-3. **Serveren merker varselet som kritisk.** Den sender den kritiske lyd-payloaden til APNs pluss `interruptionLevel: critical` for iOS, og bruker varslingskanalen `oncall_critical` for Android.
+3. **Serveren merker varselet som kritisk.** Den sender den kritiske lyd-payloaden til APNs pluss `interruptionLevel: critical` for iOS, og bruker en kritisk varslingskanal for Android: `oncall_critical`, eller den valgte alarmens egen kanal (se [Velge alarmlyd](#velge-alarmlyd)).
 4. **Operativsystemet tillater det**, og det er her de to plattformene skiller seg.
 
 :::tabs
@@ -148,13 +148,26 @@ Android har ikke noe godkjenningstrinn hos leverandøren, men omgåelse av Ikke 
 
 To mekanismer er i spill, og de dekker ulike tilfeller:
 
-- Varslingskanalen `oncall_critical` ber om `bypassDnd`, som dekker Ikke forstyrr og trenger tilgangen som er beskrevet ovenfor.
-- Den samme kanalen bruker lydstrømmen **alarm**, som høres på en telefon der ringelyden bare er dempet. Den halvdelen trenger ingen tillatelse i det hele tatt.
+- Hver kritisk varslingskanal – `oncall_critical` og kanalen til hver alarmlyd – ber om `bypassDnd`, som dekker Ikke forstyrr og trenger tilgangen som er beskrevet ovenfor.
+- De samme kanalene bruker lydstrømmen **alarm**, som høres på en telefon der ringelyden bare er dempet. Den halvdelen trenger ingen tillatelse i det hele tatt.
 
 Android fryser innstillingene til en kanal når kanalen opprettes første gang, så de kan ikke endres med en appoppdatering – bare ved å levere en ny kanal-ID.
 :::
 
 For å sjekke at det virker, sender du et testvarsel til enheten fra **Brukerinnstillinger > Varselmetoder > Push Notifications**. Når enheten har kritiske varsler slått på, sendes også testen som et kritisk varsel – så sett telefonen på lydløs først, og du hører om et ekte varsel ville nådd deg.
+
+### Velge alarmlyd
+
+Et kritisk varsel spiller telefonens egen lyd for kritiske varsler, med mindre personen velger en annen. I appen tilbyr **Settings > Notifications > Alarm sound**, som vises når Critical On-Call Alerts er slått på, fem kraftigere alarmer laget for å vekke folk: Klaxon, Siren, Digital alarm, Smoke alarm og Rising alarm, som starter svakt og blir stadig høyere. Hver av dem kan spilles av før den velges. Valget hører til enheten og lagres i `UserPush.criticalAlertSound`, og testvarselet spiller den også.
+
+- **iOS**: Varselet oppgir lyden, og iOS spiller den fra appen gjennom lydløs modus med lydstyrken som er valgt på samme skjerm: 25 %, 50 %, 75 % eller 100 %, som er standard. Lydstyrken lagres i `UserPush.criticalAlertVolume`.
+- **Android**: Hver alarm har sin egen varslingskanal (`oncall_critical_klaxon`, `oncall_critical_siren` og så videre), fordi Android fastsetter lyden til en kanal når kanalen opprettes. Serveren sender varselet på kanalen til den valgte alarmen, og den spilles med alarmvolumet på telefonen.
+
+En enhet beholder systemlyden til den kjører en versjon av appen som tilbyr valget, så en eldre app får aldri tilsendt en alarm den ikke har.
+
+### Gjenta et varsel til det bekreftes
+
+En push-regel kan sende varselet sitt på nytt til noen bekrefter det. Under **Brukerinnstillinger > Vaktregler** angir du **Gjenta til det bekreftes** når du legger til en push-regel, eller endrer det senere i regelens rad: hvert minutt, eller hvert 2., 3., 5., 10., 15. eller 30. minutt. Varselet sendes på nytt med det intervallet, høyst 10 ganger til, og stopper så snart hendelsen, varselet eller episoden er bekreftet. Lagret per regel i `UserNotificationRule.repeatEveryMinutes`, der 0, som er standard, sender varselet én gang.
 
 ## Feilsøking
 
@@ -178,6 +191,7 @@ For å sjekke at det virker, sender du et testvarsel til enheten fra **Brukerinn
 - Sjekk vaktregelen for den alvorlighetsgraden under **Brukerinnstillinger > Vaktregler**: en push-regel på «Standard» følger lydinnstillingene på telefonen, uansett hva bryteren på enheten sier
 - **iOS**: Bekreft at bygget har Apples entitlement for kritiske varsler (se ovenfor), og at Critical Alerts er tillatt under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: Bekreft at appen har tilgang til Ikke forstyrr under Settings > Notifications > Do Not Disturb access
+- **Android**: Hvis du har valgt en alarmlyd, må også dens egen varslingskanal få lov til å overstyre Ikke forstyrr; appens skjerm Alarm sound sier fra når den ikke har det
 - Innstillingsskjermen sier hvilken av disse som mangler; den leser den gjeldende tilstanden tilbake fra operativsystemet i stedet for å stole på det appen sist ba om
 
 ### Pusher merket «ikke levert»

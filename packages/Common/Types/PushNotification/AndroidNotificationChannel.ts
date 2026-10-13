@@ -18,6 +18,18 @@ enum AndroidNotificationChannel {
    * Not Disturb access.
    */
   Critical = "oncall_critical",
+  /*
+   * The same critical channel once per built-in alarm sound
+   * (CriticalAlertSound). Android fixes a channel's sound when the channel is
+   * created, so each sound needs a channel of its own. Named only for a device
+   * that chose that sound from the app, which only an app that creates these
+   * channels can do.
+   */
+  CriticalKlaxon = "oncall_critical_klaxon",
+  CriticalSiren = "oncall_critical_siren",
+  CriticalDigital = "oncall_critical_digital",
+  CriticalSmokeAlarm = "oncall_critical_smoke_alarm",
+  CriticalRising = "oncall_critical_rising",
   High = "oncall_high",
   Normal = "oncall_normal",
   Low = "oncall_low",

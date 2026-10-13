@@ -20,7 +20,12 @@ import {
   previousPushTokenReported,
   PUSH_TOKEN_KEY,
 } from "./pushTokenUtils";
-import { getCriticalAlertsEnabled } from "../storage/preferences";
+import {
+  getCriticalAlertSound,
+  getCriticalAlertsEnabled,
+  getCriticalAlertVolume,
+} from "../storage/preferences";
+import type { CriticalAlertSoundIdValue } from "../notifications/criticalAlertSounds";
 import logger from "../utils/logger";
 
 const RETRY_DELAY_MS: number = 5000;
@@ -208,6 +213,11 @@ export function usePushNotifications(navigationRef: unknown): void {
        */
       const isCriticalAlertEnabled: boolean = await getCriticalAlertsEnabled();
 
+      // And so are the alarm and volume chosen for those pages.
+      const criticalAlertSound: CriticalAlertSoundIdValue =
+        await getCriticalAlertSound();
+      const criticalAlertVolume: number = await getCriticalAlertVolume();
+
       // Whether every project was told; until then the old token is told again.
       let everyProjectRegistered: boolean = true;
 
@@ -222,6 +232,8 @@ export function usePushNotifications(navigationRef: unknown): void {
             deviceToken: token,
             projectId: project._id,
             isCriticalAlertEnabled: isCriticalAlertEnabled,
+            criticalAlertSound: criticalAlertSound,
+            criticalAlertVolume: criticalAlertVolume,
             ...(previousToken ? { previousDeviceToken: previousToken } : {}),
           });
         } catch (error: unknown) {

@@ -123,7 +123,7 @@ Quatro coisas precisam ser verdadeiras para um alerta ignorar o modo silencioso.
 
 1. **A pessoa ligou a configuração nesse dispositivo.** Guardada por dispositivo, desligada por padrão, em `UserPush.isCriticalAlertEnabled`. O celular e o tablet de uma mesma pessoa são decisões separadas.
 2. **A regra de plantão que enviou o alerta pede isso.** Em **Configurações do usuário > Regras de Plantão**, cada regra que notifica um celular está em “Critical alert”, o padrão, ou em “Standard”, que segue as configurações de som do celular – assim uma pessoa pode ser acordada por um incidente crítico e avisada em silêncio por um menor. Guardada por regra em `UserNotificationRule.pushNotificationLevel`.
-3. **O servidor marca o alerta como crítico.** Ele envia o payload de som crítico do APNs mais `interruptionLevel: critical` para iOS, e usa o canal de notificação `oncall_critical` para Android.
+3. **O servidor marca o alerta como crítico.** Ele envia o payload de som crítico do APNs mais `interruptionLevel: critical` para iOS, e usa um canal de notificação crítico para Android: `oncall_critical`, ou o canal próprio do alarme escolhido (veja [Escolhendo o som do alarme](#escolhendo-o-som-do-alarme)).
 4. **O sistema operacional permite**, e é aí que as duas plataformas diferem.
 
 :::tabs
@@ -148,13 +148,26 @@ O Android não tem etapa de aprovação do fabricante, mas a dispensa do Não Pe
 
 Dois mecanismos atuam, e cobrem casos diferentes:
 
-- O canal de notificação `oncall_critical` solicita `bypassDnd`, que cobre o Não Perturbe e precisa do acesso descrito acima.
-- O mesmo canal usa o fluxo de áudio de **alarme**, que é audível num celular cujo toque está apenas no mudo. Essa metade não precisa de permissão alguma.
+- Cada canal de notificação crítico – `oncall_critical` e o de cada som de alarme – solicita `bypassDnd`, que cobre o Não Perturbe e precisa do acesso descrito acima.
+- Os mesmos canais usam o fluxo de áudio de **alarme**, que é audível num celular cujo toque está apenas no mudo. Essa metade não precisa de permissão alguma.
 
 O Android congela as configurações de um canal quando ele é criado pela primeira vez, então elas não podem ser alteradas por uma atualização do app – só lançando um novo id de canal.
 :::
 
 Para verificar se funciona, envie uma notificação de teste ao dispositivo em **Configurações do usuário > Métodos de notificação > Push Notifications**. Quando o dispositivo tem os alertas críticos ativados, o teste também é enviado como alerta crítico – então silencie o celular antes, e você vai ouvir se um alerta real chegaria até você.
+
+### Escolhendo o som do alarme
+
+Um alerta crítico toca o som de alerta crítico do próprio celular, a menos que a pessoa escolha outro. No app, **Settings > Notifications > Alarm sound**, que aparece quando Critical On-Call Alerts está ligado, oferece cinco alarmes mais altos feitos para acordar: Klaxon, Siren, Digital alarm, Smoke alarm e Rising alarm, que começa baixo e vai ficando cada vez mais alto. Cada um pode ser ouvido antes de ser escolhido. A escolha pertence ao dispositivo e é guardada em `UserPush.criticalAlertSound`, e a notificação de teste também a toca.
+
+- **iOS**: o alerta indica o som, e o iOS o toca a partir do app apesar do modo silencioso, no volume escolhido na mesma tela: 25%, 50%, 75% ou 100%, o padrão. O volume é guardado em `UserPush.criticalAlertVolume`.
+- **Android**: cada alarme tem seu próprio canal de notificação (`oncall_critical_klaxon`, `oncall_critical_siren` e assim por diante), porque o Android fixa o som de um canal quando o canal é criado. O servidor envia o alerta no canal do alarme escolhido, e ele toca no volume de alarme do celular.
+
+Um dispositivo mantém o som do sistema até rodar uma versão do app que oferece a escolha, então um app mais antigo nunca recebe um alarme que não tem.
+
+### Repetindo um alerta até a confirmação
+
+Uma regra de push pode enviar seu alerta de novo até alguém confirmá-lo. Em **Configurações do usuário > Regras de Plantão**, defina **Repetir até a confirmação** ao adicionar uma regra de push, ou altere depois na linha da regra: a cada minuto, ou a cada 2, 3, 5, 10, 15 ou 30 minutos. O alerta é enviado de novo nesse intervalo, no máximo mais 10 vezes, e para assim que o incidente, alerta ou episódio é confirmado. Guardado por regra em `UserNotificationRule.repeatEveryMinutes`, onde 0, o padrão, envia o alerta uma única vez.
 
 ## Solução de problemas
 
@@ -178,6 +191,7 @@ Para verificar se funciona, envie uma notificação de teste ao dispositivo em *
 - Verifique a regra de plantão dessa gravidade em **Configurações do usuário > Regras de Plantão**: uma regra de push em “Standard” segue as configurações de som do celular, seja qual for o interruptor do dispositivo
 - **iOS**: confirme que o build tem o entitlement de alertas críticos da Apple (veja acima) e que Critical Alerts está permitido em iOS Settings > Notifications > OneUptime On-Call
 - **Android**: confirme que o app tem acesso ao Não Perturbe em Settings > Notifications > Do Not Disturb access
+- **Android**: se você escolheu um som de alarme, o canal de notificação próprio dele também precisa ter permissão para ignorar o Não Perturbe; a tela Alarm sound do app avisa quando não tem
 - A tela de configurações diz qual deles está faltando; ela lê o estado atual do sistema operacional em vez de confiar no que o app pediu por último
 
 ### Pushes marcados como "não entregues"

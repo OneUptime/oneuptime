@@ -553,10 +553,13 @@ describe("isCriticalChannelBypassingDnd", () => {
 
     await isCriticalChannelBypassingDnd();
 
-    expect(writeSpy).toHaveBeenCalledTimes(1);
-    expect(writeSpy.mock.calls[0]![1]).toEqual(
-      expect.objectContaining({ bypassDnd: true }),
-    );
+    // Every critical channel: the system sound's and one per alarm sound.
+    expect(writeSpy).toHaveBeenCalledTimes(6);
+    expect(writeSpy.mock.calls[0]![0]).toBe("oncall_critical");
+
+    for (const call of writeSpy.mock.calls) {
+      expect(call[1]).toEqual(expect.objectContaining({ bypassDnd: true }));
+    }
   });
 
   test("reports what the OS stored, not what the app asked for", async () => {
