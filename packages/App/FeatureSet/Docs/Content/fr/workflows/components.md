@@ -16,8 +16,8 @@ Vous aurez rarement besoin de l'ouvrir pendant la construction. Les paramètres 
 | Pour…                                                         | Utilisez                                                          |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Publier dans un outil de discussion                           | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) ou [Mattermost](#mattermost) |
-| Envoyer un SMS ou appeler un téléphone                        | [SMSEagle](#smseagle)                                             |
 | Envoyer un e-mail via votre propre serveur de messagerie      | [Email](#email)                                                   |
+| Envoyer un SMS ou appeler un téléphone                        | [SMSEagle](#smseagle)                                             |
 | Appeler toute autre API, ou votre propre service              | [API](#api)                                                       |
 | Résumer, classer ou rédiger du texte                          | [Generate Text with AI](#generate-text-with-ai)                   |
 | Prendre un chemin ou un autre selon une valeur                | [Conditions](#conditions)                                         |
@@ -180,23 +180,6 @@ Sous **Plus de champs** :
 
 Gardez l'URL du webhook dans une [variable globale secrète](/docs/workflows/variables#variables-globales) : quiconque la possède peut publier dans le canal. Elle est masquée dans les journaux d'exécution dans tous les cas. Le message part de OneUptime et les redirections ne sont pas suivies. Un webhook sur une adresse de bouclage (`localhost`, `127.0.0.1`), de lien local ou de métadonnées cloud est refusé, tout comme un webhook sur une adresse de réseau privé, sauf si un administrateur auto-hébergé l'autorise avec `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Voir [Accès au réseau privé](/docs/self-hosted/private-network-access).
 
-## SMSEagle
-
-Envoyez un SMS ou passez un appel en synthèse vocale via un appareil SMSEagle, une passerelle SMS matérielle sur votre propre réseau. **Send SMS via SMSEagle** envoie un SMS, et **Make a Call via SMSEagle** appelle le numéro et lit le texte à voix haute.
-
-| Paramètre                 | Ce qu'il fait                                                                                                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SMSEagle URL**          | L'adresse de l'appareil, par exemple `https://192.168.0.100`. Le bloc ajoute lui-même le chemin de l'API v2.                                                                  |
-| **SMSEagle Access Token** | Une clé API v2 de la GUI web de SMSEagle, sous Settings, API, API v2. Elle a besoin de l'autorisation "Send SMS" pour les SMS et "Make a TTS Advanced Call" pour les appels.  |
-| **Numéro de téléphone**   | Le numéro à qui envoyer le SMS ou à appeler, au format international, par exemple `+15551234567`.                                                                             |
-| **Message Text**          | Le texte du SMS. Seulement dans **Send SMS via SMSEagle**.                                                                                                                    |
-| **Voice ID**              | L'ID d'une voix de synthèse vocale de l'appareil. Seulement dans **Make a Call via SMSEagle**.                                                                                |
-| **Text to Read Out**      | Le texte que l'appareil lit pendant l'appel. Seulement dans **Make a Call via SMSEagle**.                                                                                     |
-
-**Success** se produit quand l'appareil a mis le SMS ou l'appel en file d'attente, et renvoie le **Message ID** qu'il lui a attribué. **Error** se produit quand l'appareil est injoignable ou le refuse, et transmet la raison, par exemple `voice_id: Resource with specified ID not found.` donnée par SMSEagle. Un paramètre manquant ou un **Voice ID** qui n'est pas un nombre arrête au contraire l'exécution.
-
-Gardez le jeton d'accès dans une [variable globale secrète](/docs/workflows/variables#variables-globales). Il est masqué dans les journaux d'exécution dans tous les cas. La requête part de OneUptime et les redirections ne sont pas suivies. Un appareil sur une adresse de bouclage (`localhost`, `127.0.0.1`), de lien local ou de métadonnées cloud est refusé, tout comme un appareil sur une adresse de réseau privé, sauf si un administrateur auto-hébergé l'autorise avec `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Voir [Accès au réseau privé](/docs/self-hosted/private-network-access).
-
 ## Email
 
 Envoyez un e-mail via un serveur SMTP que vous indiquez sur le bloc. Le bloc s'appelle **Send Email**.
@@ -216,6 +199,23 @@ Envoyez un e-mail via un serveur SMTP que vous indiquez sur le bloc. Le bloc s'a
 Le bloc se connecte directement au serveur indiqué dans ses paramètres. Il n'utilise ni les paramètres [SMTP](/docs/emails/smtp) de votre projet ni le serveur de messagerie de OneUptime, et les e-mails qu'il envoie n'apparaissent pas dans les journaux de notifications. Pour vérifier ce qu'il a fait, consultez les [Exécutions](/docs/workflows/runs-and-logs) du workflow.
 
 Les connexions vers les adresses de bouclage (`localhost`, `127.0.0.1`), de lien local et de métadonnées cloud sont refusées. Sur OneUptime Cloud, un hôte SMTP situé sur une adresse de réseau privé, ou un nom qui se résout vers une telle adresse, est également refusé. Les installations auto-hébergées peuvent atteindre un serveur de messagerie sur leur propre réseau, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` est défini sur `true`. Un hôte refusé prend la sortie **Error**, et rien n'est envoyé.
+
+## SMSEagle
+
+Envoyez un SMS ou passez un appel en synthèse vocale via un appareil SMSEagle, une passerelle SMS matérielle sur votre propre réseau. **Send SMS via SMSEagle** envoie un SMS, et **Make a Call via SMSEagle** appelle le numéro et lit le texte à voix haute.
+
+| Paramètre                 | Ce qu'il fait                                                                                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | L'adresse de l'appareil, par exemple `https://192.168.0.100`. Le bloc ajoute lui-même le chemin de l'API v2.                                                                  |
+| **SMSEagle Access Token** | Une clé API v2 de la GUI web de SMSEagle, sous Settings, API, API v2. Elle a besoin de l'autorisation "Send SMS" pour les SMS et "Make a TTS Advanced Call" pour les appels.  |
+| **Numéro de téléphone**   | Le numéro à qui envoyer le SMS ou à appeler, au format international, par exemple `+15551234567`.                                                                             |
+| **Message Text**          | Le texte du SMS. Seulement dans **Send SMS via SMSEagle**.                                                                                                                    |
+| **Voice ID**              | L'ID d'une voix de synthèse vocale de l'appareil. Seulement dans **Make a Call via SMSEagle**.                                                                                |
+| **Text to Read Out**      | Le texte que l'appareil lit pendant l'appel. Seulement dans **Make a Call via SMSEagle**.                                                                                     |
+
+**Success** se produit quand l'appareil a mis le SMS ou l'appel en file d'attente, et renvoie le **Message ID** qu'il lui a attribué. **Error** se produit quand l'appareil est injoignable ou le refuse, et transmet la raison, par exemple `voice_id: Resource with specified ID not found.` donnée par SMSEagle. Un paramètre manquant ou un **Voice ID** qui n'est pas un nombre arrête au contraire l'exécution.
+
+Gardez le jeton d'accès dans une [variable globale secrète](/docs/workflows/variables#variables-globales). Il est masqué dans les journaux d'exécution dans tous les cas. La requête part de OneUptime et les redirections ne sont pas suivies. Un appareil sur une adresse de bouclage (`localhost`, `127.0.0.1`), de lien local ou de métadonnées cloud est refusé, tout comme un appareil sur une adresse de réseau privé, sauf si un administrateur auto-hébergé l'autorise avec `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Voir [Accès au réseau privé](/docs/self-hosted/private-network-access).
 
 ## Custom Code
 

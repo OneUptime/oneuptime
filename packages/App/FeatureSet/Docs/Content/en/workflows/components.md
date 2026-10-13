@@ -16,8 +16,8 @@ You rarely need it open while you build. Every block's settings end with **How t
 | To…                                                   | Use                                                               |
 | ----------------------------------------------------- | ----------------------------------------------------------------- |
 | Post to a chat tool                                   | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) or [Mattermost](#mattermost) |
-| Text or call a phone                                  | [SMSEagle](#smseagle)                                             |
 | Send an email through your own mail server            | [Email](#email)                                                   |
+| Text or call a phone                                  | [SMSEagle](#smseagle)                                             |
 | Call any other API, or your own service               | [API](#api)                                                       |
 | Summarize, classify or draft text                     | [Generate Text with AI](#generate-text-with-ai)                   |
 | Take one path or another depending on a value         | [Conditions](#conditions)                                         |
@@ -180,23 +180,6 @@ Under **More fields**:
 
 Keep the webhook URL in a [secret global variable](/docs/workflows/variables#global-variables): anyone who has it can post to the channel. It's hidden in run logs either way. The message goes out from OneUptime, and a redirect is not followed. A webhook on a loopback (`localhost`, `127.0.0.1`), link-local or cloud metadata address is refused, and so is one on a private network address, unless a self-hosted administrator allows it with `ALLOW_PRIVATE_NETWORK_WEBHOOKS` or `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. See [Private Network Access](/docs/self-hosted/private-network-access).
 
-## SMSEagle
-
-Send an SMS or make a text-to-speech call through an SMSEagle device, a hardware SMS gateway on your own network. **Send SMS via SMSEagle** sends an SMS, and **Make a Call via SMSEagle** calls the number and reads the text out.
-
-| Setting                   | What it does                                                                                                                                                   |
-| ------------------------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **SMSEagle URL**          | The device's address, such as `https://192.168.0.100`. The block adds the API v2 path itself.                                                                  |
-| **SMSEagle Access Token** | An API v2 key from the SMSEagle web GUI, under Settings > API > API v2. It needs the "Send SMS" permission for SMS and "Make a TTS Advanced Call" for calls.   |
-| **Phone Number**          | The number to text or call, in international format, such as `+15551234567`.                                                                                   |
-| **Message Text**          | The text of the SMS. Only in **Send SMS via SMSEagle**.                                                                                                        |
-| **Voice ID**              | The ID of a text-to-speech voice on the device. Only in **Make a Call via SMSEagle**.                                                                          |
-| **Text to Read Out**      | The text the device reads out during the call. Only in **Make a Call via SMSEagle**.                                                                           |
-
-**Success** fires when the device queued the SMS or call, and returns the **Message ID** it gave it. **Error** fires when the device can't be reached or refuses it, and passes along the reason, such as SMSEagle's `voice_id: Resource with specified ID not found.` A missing setting, or a **Voice ID** that is not a number, stops the run instead.
-
-Keep the access token in a [secret global variable](/docs/workflows/variables#global-variables). It's hidden in run logs either way. The request goes out from OneUptime, and a redirect is not followed. A device on a loopback (`localhost`, `127.0.0.1`), link-local or cloud metadata address is refused, and so is one on a private network address, unless a self-hosted administrator allows it with `ALLOW_PRIVATE_NETWORK_WEBHOOKS` or `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. See [Private Network Access](/docs/self-hosted/private-network-access).
-
 ## Email
 
 Send an email through an SMTP server you enter on the block. The block is called **Send Email**.
@@ -216,6 +199,23 @@ Send an email through an SMTP server you enter on the block. The block is called
 The block connects straight to the server in its settings. It does not use your project's [SMTP](/docs/emails/smtp) settings or OneUptime's own mail server, and the emails it sends do not appear in Notification Logs. To check what it did, look at the workflow's [Runs](/docs/workflows/runs-and-logs).
 
 Connections to loopback (`localhost`, `127.0.0.1`), link-local and cloud metadata addresses are refused. On OneUptime Cloud, an SMTP host on a private network address, or a name that resolves to one, is refused too. Self-hosted installs can reach a mail server on their own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is set to `true`. A refused host takes the **Error** output, and nothing is sent.
+
+## SMSEagle
+
+Send an SMS or make a text-to-speech call through an SMSEagle device, a hardware SMS gateway on your own network. **Send SMS via SMSEagle** sends an SMS, and **Make a Call via SMSEagle** calls the number and reads the text out.
+
+| Setting                   | What it does                                                                                                                                                   |
+| ------------------------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **SMSEagle URL**          | The device's address, such as `https://192.168.0.100`. The block adds the API v2 path itself.                                                                  |
+| **SMSEagle Access Token** | An API v2 key from the SMSEagle web GUI, under Settings > API > API v2. It needs the "Send SMS" permission for SMS and "Make a TTS Advanced Call" for calls.   |
+| **Phone Number**          | The number to text or call, in international format, such as `+15551234567`.                                                                                   |
+| **Message Text**          | The text of the SMS. Only in **Send SMS via SMSEagle**.                                                                                                        |
+| **Voice ID**              | The ID of a text-to-speech voice on the device. Only in **Make a Call via SMSEagle**.                                                                          |
+| **Text to Read Out**      | The text the device reads out during the call. Only in **Make a Call via SMSEagle**.                                                                           |
+
+**Success** fires when the device queued the SMS or call, and returns the **Message ID** it gave it. **Error** fires when the device can't be reached or refuses it, and passes along the reason, such as SMSEagle's `voice_id: Resource with specified ID not found.` A missing setting, or a **Voice ID** that is not a number, stops the run instead.
+
+Keep the access token in a [secret global variable](/docs/workflows/variables#global-variables). It's hidden in run logs either way. The request goes out from OneUptime, and a redirect is not followed. A device on a loopback (`localhost`, `127.0.0.1`), link-local or cloud metadata address is refused, and so is one on a private network address, unless a self-hosted administrator allows it with `ALLOW_PRIVATE_NETWORK_WEBHOOKS` or `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. See [Private Network Access](/docs/self-hosted/private-network-access).
 
 ## Custom Code
 
