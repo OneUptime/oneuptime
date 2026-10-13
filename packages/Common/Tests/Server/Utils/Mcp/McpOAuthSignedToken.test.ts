@@ -1,7 +1,7 @@
 import McpOAuthSignedToken, {
   McpOAuthSignedTokenPurpose,
 } from "../../../../Server/Utils/Mcp/McpOAuthSignedToken";
-import { EncryptionSecret } from "../../../../Server/EnvironmentConfig";
+import TokenSigningKey from "../../../../Server/Utils/TokenSigningKey";
 import JSONWebToken from "../../../../Server/Utils/JsonWebToken";
 import Email from "../../../../Types/Email";
 import { JSONObject } from "../../../../Types/JSON";
@@ -33,10 +33,11 @@ jest.mock("../../../../Server/Utils/Logger");
  * Both NAME A USER. So the properties that matter are the ones that keep such
  * a token from being worth more than it was minted for:
  *
- *   - nobody without EncryptionSecret can make or alter one;
+ *   - nobody without TokenSigningKey can make or alter one (ENCRYPTION_SECRET
+ *     when the operator set one, and never a value the repository ships);
  *   - a token minted for one purpose is not accepted as another;
  *   - it is never a JWT, in either direction - JSONWebToken.decode accepts
- *     any JWT signed with EncryptionSecret that carries a user id and an email
+ *     any JWT signed with TokenSigningKey that carries a user id and an email
  *     as a full dashboard session;
  *   - it stops working when it says it does;
  *   - verify() answers null for everything else, and never throws.
@@ -111,13 +112,13 @@ function signOrFail(
 
 /*
  * The signature the implementation is expected to compute, written out
- * independently: an HMAC key derived from EncryptionSecret under the
+ * independently: an HMAC key derived from TokenSigningKey under the
  * purpose's label, then an HMAC of "v1.<payload>" with that key.
  */
 function expectedSignature(
   purpose: McpOAuthSignedTokenPurpose,
   payloadB64: string,
-  secret: string = EncryptionSecret.toString(),
+  secret: string = TokenSigningKey.get(),
 ): string {
   const key: Buffer = crypto
     .createHmac("sha256", secret)
@@ -181,6 +182,8 @@ function loadWithEncryptionSecret(secret: string): SignedTokenClass {
           "../../../../Server/EnvironmentConfig",
         ) as Record<string, unknown>),
         EncryptionSecret: new ObjectID(secret),
+        // An installation that set its own: it signs with exactly that.
+        IsEncryptionSecretInsecure: false,
       };
     });
 
@@ -248,7 +251,7 @@ describe("McpOAuthSignedToken: round trip and format", () => {
     });
   });
 
-  test("the signature is HMAC-SHA256 under a key DERIVED from EncryptionSecret and the purpose label", () => {
+  test("the signature is HMAC-SHA256 under a key DERIVED from TokenSigningKey and the purpose label", () => {
     const token: string = signOrFail(PURPOSE_A);
     const [, payloadB64, signature] = token.split(".") as [
       string,
@@ -259,15 +262,15 @@ describe("McpOAuthSignedToken: round trip and format", () => {
     expect(signature).toBe(expectedSignature(PURPOSE_A, payloadB64));
   });
 
-  test("a token signed with EncryptionSecret itself as the key (no derivation) does not verify", () => {
+  test("a token signed with TokenSigningKey itself as the key (no derivation) does not verify", () => {
     /*
      * The derivation is what separates these tokens from everything else
-     * EncryptionSecret signs. A token MACed with the raw secret must be a
+     * TokenSigningKey signs. A token MACed with the raw key must be a
      * forgery, whatever purpose it is presented under.
      */
     const payloadB64: string = signOrFail(PURPOSE_A).split(".")[1] as string;
     const rawKeySignature: string = crypto
-      .createHmac("sha256", EncryptionSecret.toString())
+      .createHmac("sha256", TokenSigningKey.get())
       .update(`v1.${payloadB64}`)
       .digest("base64url");
 
@@ -671,7 +674,7 @@ describe("McpOAuthSignedToken: one purpose, one key", () => {
   });
 });
 
-describe("McpOAuthSignedToken: a different EncryptionSecret", () => {
+describe("McpOAuthSignedToken: another installation's ENCRYPTION_SECRET", () => {
   test("a token signed under another instance's secret does not verify here, and the reverse", () => {
     const other: SignedTokenClass = loadWithEncryptionSecret(
       "another-instances-encryption-secret",
@@ -977,7 +980,7 @@ describe("McpOAuthSignedToken is never a JWT, in either direction", () => {
     const token: string = signOrFail(DELEGATION_PURPOSE, SESSION_SHAPED_CLAIMS);
 
     expect(() => {
-      return jwt.verify(token, EncryptionSecret.toString());
+      return jwt.verify(token, TokenSigningKey.get());
     }).toThrow();
 
     // Not even parseable as a JWT without checking the signature.

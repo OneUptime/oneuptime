@@ -99,6 +99,13 @@ import useEventVideoCalls, {
   VideoCallEventKind,
 } from "../../../Components/VideoCall/useEventVideoCalls";
 import { getJoinVideoCallAction } from "../../../Components/VideoCall/JoinVideoCallAction";
+import useRecordChannelLinks, {
+  getOpenInChatActions,
+} from "../../../Components/Workspace/useRecordChannelLinks";
+import {
+  WorkspaceChannelLink,
+  WorkspaceChannelRecordType,
+} from "Common/Types/Workspace/WorkspaceChannelLink";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
 import AlertAffectedResources from "./AffectedResources";
@@ -419,6 +426,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     eventId: modelId,
     // A rule's call arrives a moment after a new alert is created.
     eventStartedAt: alertStartedAt,
+  });
+  // The alert's own Slack and Teams channels: Open in Slack / Teams.
+  const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
+    recordType: WorkspaceChannelRecordType.Alert,
+    recordId: modelId,
+    // A rule's channel arrives a moment after a new alert is created.
+    recordStartedAt: alertStartedAt,
   });
   const joinVideoCallAction: EventPanelAction | null = getJoinVideoCallAction(
     videoCalls.calls,
@@ -835,7 +849,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           severity={severity}
           isPrivate={isPrivate}
           facts={headerFacts}
-          secondaryActions={joinVideoCallAction ? [joinVideoCallAction] : []}
+          secondaryActions={[
+            ...(joinVideoCallAction ? [joinVideoCallAction] : []),
+            ...getOpenInChatActions(channelLinks),
+          ]}
           aiInvestigationStatus={currentAIInvestigationStatus}
           aiInvestigationSummary={currentAIInvestigationSummary}
           aiInvestigationVerdict={currentAIInvestigationVerdict}

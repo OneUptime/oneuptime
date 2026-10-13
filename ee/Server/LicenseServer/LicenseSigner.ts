@@ -31,8 +31,9 @@ import {
  *                 compact JWS an installation verifies offline against the
  *                 public keys its build trusts.
  *   legacy HS256  what every release before signed licenses received: a JWT
- *                 signed with this server's own ENCRYPTION_SECRET that the
- *                 installation cannot verify and only checks is present.
+ *                 signed with this server's own token signing key
+ *                 (TokenSigningKey) that the installation cannot verify and
+ *                 only checks is present.
  *
  * EdDSA is used ONLY when ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY holds an
  * Ed25519 private key whose key id (RFC 7638 thumbprint) is in THIS build's

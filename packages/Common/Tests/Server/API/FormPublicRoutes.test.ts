@@ -25,7 +25,7 @@ import FormAPI, {
   FORM_FOREIGN_PAGE_MESSAGE,
   FORM_SUBMISSION_BODY_MESSAGE,
 } from "../../../Server/API/FormAPI";
-import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
+import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
 import Redis from "../../../Server/Infrastructure/Redis";
 import {
   FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
@@ -343,7 +343,7 @@ const STALE_ACCESS_TOKEN: string = jwt.sign(
     isGlobalLogin: true,
     sessionId: "44444444-4444-4444-8444-444444444444",
   },
-  `${EncryptionSecret.toString()}-before-rotation`,
+  `${TokenSigningKey.get()}-before-rotation`,
   { expiresIn: 15 * 60 },
 );
 
@@ -358,7 +358,7 @@ const EXPIRED_ACCESS_TOKEN: string = jwt.sign(
     sessionId: "44444444-4444-4444-8444-444444444444",
     exp: Math.floor(Date.now() / 1000) - 60,
   },
-  EncryptionSecret.toString(),
+  TokenSigningKey.get(),
 );
 
 function validAccessToken(): string {

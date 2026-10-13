@@ -267,6 +267,8 @@
     "Private Network Access": "Accès au réseau privé",
     "Architecture": "Architecture",
     "Enterprise Edition": "Édition Enterprise",
+    "Inventory Overview": "Vue d'ensemble de l'inventaire",
+    "Inventory Custom Fields": "Champs personnalisés de l'inventaire",
     "Custom Fields": "Champs personnalisés",
     "Exporting to a CMDB": "Exporter vers une CMDB",
     "Incidents Overview": "Vue d'ensemble des incidents",

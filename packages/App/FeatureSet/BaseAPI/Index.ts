@@ -1671,6 +1671,7 @@ import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
+import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -5174,6 +5175,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * it reads through the same schedule-level shift cache as the feeds.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallScheduleTimelineAPI);
+
+    /*
+     * The links behind a record's Open in Slack / Open in Microsoft Teams
+     * button (/workspace-channel-link/<record type>/<id>). Session-only; the
+     * record is read with the caller's own permissions first.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelLinkAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

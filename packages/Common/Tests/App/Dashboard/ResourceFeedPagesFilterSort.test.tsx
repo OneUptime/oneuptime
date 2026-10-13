@@ -75,9 +75,12 @@ import DatabaseServerFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pag
 import ServiceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Feed";
 import SloFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Feed";
 import SloFeed from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeed";
-import { getSloFeedEventIcon } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeedIcon";
 import {
-  GetResourceFeedIconFunction,
+  getSloFeedEventIcon,
+  getSloFeedEventKind,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeedIcon";
+import {
+  GetResourceFeedKindFunction,
   ResourceFeedModel,
   getIconForEventType,
   resolveResourceFeedIcon,
@@ -128,11 +131,11 @@ import ServiceLevelObjectiveFeed, {
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import {
   FEED_OPTIONS_TEXT,
+  FEED_PAGE_SIZE,
   FILTERED_FEED_NO_ITEMS_MESSAGE,
   getFeedEventTypeLabel,
 } from "../../../UI/Components/Feed/FeedOptions";
@@ -189,8 +192,8 @@ interface ResourceFeedSurface {
   resourceIdColumn: string;
   eventTypeColumn: string;
   enumObject: Record<string, string>;
-  // The feed's own icons, for the event types the shared rules do not know.
-  getIcon?: GetResourceFeedIconFunction | undefined;
+  // The feed's own kinds, for the event types the shared rules do not know.
+  getKind?: GetResourceFeedKindFunction | undefined;
   /*
    * Puts the resource id where this surface reads it, and returns the element.
    * Re-rendering a mounted surface with a new one's element is the dashboard
@@ -208,7 +211,7 @@ interface FeedPageSpec {
   resourceIdColumn: string;
   eventTypeColumn: string;
   enumObject: Record<string, string>;
-  getIcon?: GetResourceFeedIconFunction | undefined;
+  getKind?: GetResourceFeedKindFunction | undefined;
 }
 
 const FEED_PAGES: Array<FeedPageSpec> = [
@@ -341,7 +344,7 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     resourceIdColumn: "serviceLevelObjectiveId",
     eventTypeColumn: "serviceLevelObjectiveFeedEventType",
     enumObject: ServiceLevelObjectiveFeedEventType,
-    getIcon: getSloFeedEventIcon,
+    getKind: getSloFeedEventKind,
   },
 ];
 
@@ -378,7 +381,7 @@ const toSurface: ToSurface = (spec: FeedPageSpec): ResourceFeedSurface => {
     resourceIdColumn: spec.resourceIdColumn,
     eventTypeColumn: spec.eventTypeColumn,
     enumObject: spec.enumObject,
-    getIcon: spec.getIcon,
+    getKind: spec.getKind,
     mount: (resourceId: ObjectID): React.ReactElement => {
       window.history.pushState({}, "", getFeedPageUrl(spec, resourceId));
 
@@ -411,7 +414,7 @@ const EMBEDDED_SLO_FEED: ResourceFeedSurface = {
   resourceIdColumn: "serviceLevelObjectiveId",
   eventTypeColumn: "serviceLevelObjectiveFeedEventType",
   enumObject: ServiceLevelObjectiveFeedEventType,
-  getIcon: getSloFeedEventIcon,
+  getKind: getSloFeedEventKind,
   mount: (resourceId: ObjectID): React.ReactElement => {
     window.history.pushState(
       {},
@@ -454,7 +457,7 @@ const waitForFeed: WaitForFeed = async (
 ): Promise<void> => {
   await waitFor(() => {
     expect(mockGetListCalls).toHaveLength(requestCount);
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("feed-skeleton")).not.toBeInTheDocument();
   });
 };
 
@@ -661,7 +664,7 @@ describe("Resource feed pages - the ⋯ menu's sort and filter on the real pages
 
       expect(request["sort"]).toEqual({ postedAt: SortOrder.Descending });
       expect(request["skip"]).toBe(0);
-      expect(request["limit"]).toBe(DEFAULT_LIMIT);
+      expect(request["limit"]).toBe(FEED_PAGE_SIZE);
 
       // The icon is chosen from the event type, so it has to be selected.
       expect(
@@ -712,7 +715,7 @@ describe("Resource feed pages - the ⋯ menu's sort and filter on the real pages
             label: getFeedEventTypeLabel(eventType),
             icon: resolveResourceFeedIcon({
               eventType: eventType,
-              getIcon: surface.getIcon,
+              getKind: surface.getKind,
             }),
           };
         })
@@ -778,7 +781,7 @@ describe("Resource feed pages - the ⋯ menu's sort and filter on the real pages
       // A new filter reads the newest window again, not the rows on screen.
       expect(request["sort"]).toEqual({ postedAt: SortOrder.Descending });
       expect(request["skip"]).toBe(0);
-      expect(request["limit"]).toBe(DEFAULT_LIMIT);
+      expect(request["limit"]).toBe(FEED_PAGE_SIZE);
 
       // Nothing matched, and the feed says the filter is why.
       expect(
@@ -866,7 +869,7 @@ describe("Resource feed pages - the ⋯ menu's sort and filter on the real pages
       );
       expect(request["sort"]).toEqual({ postedAt: SortOrder.Descending });
       expect(request["skip"]).toBe(0);
-      expect(request["limit"]).toBe(DEFAULT_LIMIT);
+      expect(request["limit"]).toBe(FEED_PAGE_SIZE);
 
       /*
        * The page agrees with the request: an empty feed is the resource's
@@ -908,7 +911,7 @@ describe("Resource feed pages - the ⋯ menu's sort and filter on the real pages
       // Reversing the loaded rows would show the newest ten upside down.
       expect(request["sort"]).toEqual({ postedAt: SortOrder.Ascending });
       expect(request["skip"]).toBe(0);
-      expect(request["limit"]).toBe(DEFAULT_LIMIT);
+      expect(request["limit"]).toBe(FEED_PAGE_SIZE);
       expect(Object.keys(getQuery(request))).toEqual([
         surface.resourceIdColumn,
       ]);
@@ -1152,7 +1155,7 @@ describe("SLO feed - page and embedded feed", () => {
       expect(
         resolveResourceFeedIcon({
           eventType: eventType,
-          getIcon: getSloFeedEventIcon,
+          getKind: getSloFeedEventKind,
         }),
       ).toBe(ownIcon);
       expect(ownIcon).not.toBe(getIconForEventType(eventType));
