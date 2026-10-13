@@ -54,6 +54,7 @@ import SlackAuthAction, {
 } from "../../../../Server/Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../../../../Server/Utils/Workspace/Slack/Actions/Incident";
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
+import SlackModalMetadata from "../../../../Server/Utils/Workspace/Slack/SlackModalMetadata";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
   WorkspaceEventType,
@@ -110,6 +111,8 @@ import { DataSource, Logger } from "typeorm";
  *   - the same buttons on an incident without that label, or on another
  *     project's incident, are refused like a record that is not there, and
  *     nothing is written - neither are they for a member who may only read;
+ *     a refusal on Slack is told where the button was pressed, in a message
+ *     only the presser sees, never in a direct message;
  *   - the change-state form offers the states the member may read, in the
  *     project's order, and says so when there are none;
  *   - Teams' Escalate pages for the card's incident with a policy the
@@ -230,6 +233,8 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
 
   const SLACK_TEAM_ID: string = "T0PAYMENTS";
   const PROJECT_AUTH_TOKEN: string = "xoxb-synthetic-project-token";
+  // The channel every Slack button here is pressed in, and so answered in.
+  const SLACK_CHANNEL: string = "C0INCIDENTS";
 
   const projectId: ObjectID = ObjectID.generate();
   const otherProjectId: ObjectID = ObjectID.generate();
@@ -289,6 +294,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
     WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE;
 
   let directMessageSpy: SpyInstance<typeof SlackUtil.sendDirectMessageToUser>;
+  let ephemeralSpy: SpyInstance<typeof SlackUtil.sendEphemeralMessageToChannel>;
   let showModalSpy: SpyInstance<typeof SlackUtil.showModalToUser>;
 
   async function insert(
@@ -970,6 +976,9 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
     directMessageSpy = jest
       .spyOn(SlackUtil, "sendDirectMessageToUser")
       .mockResolvedValue();
+    ephemeralSpy = jest
+      .spyOn(SlackUtil, "sendEphemeralMessageToChannel")
+      .mockResolvedValue();
     showModalSpy = jest.spyOn(SlackUtil, "showModalToUser").mockResolvedValue();
   });
 
@@ -978,6 +987,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
     expect(recorder.failures).toEqual([]);
 
     directMessageSpy.mockRestore();
+    ephemeralSpy.mockRestore();
     showModalSpy.mockRestore();
 
     // Each test starts from the incidents as they were declared.
@@ -1017,12 +1027,30 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
   const req: ExpressRequest = {} as ExpressRequest;
   const res: ExpressResponse = {} as ExpressResponse;
 
-  function directMessageTexts(): Array<string> {
-    return directMessageSpy.mock.calls.map(
-      (call: Parameters<typeof SlackUtil.sendDirectMessageToUser>) => {
+  /*
+   * What the presser was told, in order: a message only they see, in the
+   * channel they pressed in (SlackActionAnswer) - never a direct message.
+   */
+  function answerTexts(slackUserId: string): Array<string> {
+    expect(directMessageSpy).not.toHaveBeenCalled();
+
+    return ephemeralSpy.mock.calls.map(
+      (
+        call: Parameters<typeof SlackUtil.sendEphemeralMessageToChannel>,
+      ): string => {
+        expect(call[0]).toMatchObject({
+          channelId: SLACK_CHANNEL,
+          userId: slackUserId,
+        });
         return (call[0].messageBlocks[0] as WorkspacePayloadMarkdown).text;
       },
     );
+  }
+
+  // The press was done and needed no answer: nothing in the channel, no DM.
+  function expectNoAnswer(): void {
+    expect(directMessageSpy).not.toHaveBeenCalled();
+    expect(ephemeralSpy).not.toHaveBeenCalled();
   }
 
   // A button pressed on a Slack message, authorized from the stored rows.
@@ -1038,7 +1066,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
             type: "block_actions",
             user: { id: slackUserId, username: "jane" },
             team: { id: SLACK_TEAM_ID },
-            channel: { id: "C0INCIDENTS" },
+            channel: { id: SLACK_CHANNEL },
             trigger_id: "trigger-1",
             actions: [{ action_id: actionType, value: value }],
           }),
@@ -1071,7 +1099,15 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
             team: { id: SLACK_TEAM_ID },
             view: {
               callback_id: actionType,
-              private_metadata: incidentId.toString(),
+              /*
+               * The incident, and the channel the button that opened the
+               * form was pressed in - as every form a press opens carries it
+               * (SlackActionAnswer.showModal).
+               */
+              private_metadata: SlackModalMetadata.write(
+                incidentId.toString(),
+                { channelId: SLACK_CHANNEL },
+              ),
               state: { values: values },
             },
           }),
@@ -1137,7 +1173,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         paymentsIncidentId.toString(),
       );
 
-      expect(directMessageTexts()).toEqual([]);
+      expectNoAnswer();
       expect(await newStateChanges()).toEqual([
         {
           incidentId: paymentsIncidentId.toString(),
@@ -1166,8 +1202,8 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
           row.incidentId.toString(),
         );
 
-        expect(directMessageTexts()).toEqual([
-          `@jane, You do not have permission to acknowledge this incident: the incident ${NOT_FOUND}`,
+        expect(answerTexts(SLACK_RESPONDER)).toEqual([
+          `You do not have permission to acknowledge this incident: the incident ${NOT_FOUND}`,
         ]);
         await nothingWritten();
       },
@@ -1180,10 +1216,11 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         paymentsIncidentId.toString(),
       );
 
-      expect(directMessageTexts()).toHaveLength(1);
-      expect(directMessageTexts()[0]).toContain(
-        "You do not have permission to acknowledge this incident.",
-      );
+      expect(answerTexts(SLACK_VIEWER)).toEqual([
+        expect.stringContaining(
+          "You do not have permission to acknowledge this incident.",
+        ),
+      ]);
       await nothingWritten();
     });
   });
@@ -1206,7 +1243,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         privateNote("Rolled back the checkout deploy."),
       );
 
-      expect(directMessageTexts()).toEqual([]);
+      expectNoAnswer();
       expect(await notes()).toEqual([
         {
           incidentId: paymentsIncidentId.toString(),
@@ -1225,8 +1262,9 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         privateNote("Looking into it."),
       );
 
-      expect(directMessageTexts()).toEqual([
-        `@jane, You do not have permission to add a private note to this incident: the incident ${NOT_FOUND}`,
+      // Answered in the channel the form was opened from.
+      expect(answerTexts(SLACK_RESPONDER)).toEqual([
+        `You do not have permission to add a private note to this incident: the incident ${NOT_FOUND}`,
       ]);
       await nothingWritten();
     });
@@ -1248,7 +1286,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
       expect(shownOptions()).toEqual({
         incidentState: ["Acknowledged", "Resolved"],
       });
-      expect(directMessageTexts()).toEqual([]);
+      expectNoAnswer();
     });
 
     test("tells a member who may read no incident state so, and shows no form", async () => {
@@ -1259,8 +1297,8 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
       );
 
       expect(showModalSpy).not.toHaveBeenCalled();
-      expect(directMessageTexts()).toEqual([
-        `@jane, ${SlackIncidentActions.NO_STATES_MESSAGE}`,
+      expect(answerTexts(SLACK_STATE_BLIND)).toEqual([
+        SlackIncidentActions.NO_STATES_MESSAGE,
       ]);
     });
 
@@ -1278,7 +1316,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         },
       );
 
-      expect(directMessageTexts()).toEqual([]);
+      expectNoAnswer();
       expect(await newStateChanges()).toEqual([
         {
           incidentId: paymentsIncidentId.toString(),
@@ -1303,10 +1341,9 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         },
       );
 
-      expect(directMessageTexts()).toHaveLength(1);
-      expect(directMessageTexts()[0]).toContain(
-        "Could not change the state of the incident:",
-      );
+      expect(answerTexts(SLACK_RESPONDER)).toEqual([
+        expect.stringContaining("Could not change the state of the incident:"),
+      ]);
       await nothingWritten();
     });
   });
