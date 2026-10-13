@@ -416,9 +416,9 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
 
       for (const command of commandsOf(getManifest())) {
         expect((command["title"] as string).length).toBeLessThanOrEqual(32);
-        expect(
-          (command["description"] as string).length,
-        ).toBeLessThanOrEqual(128);
+        expect((command["description"] as string).length).toBeLessThanOrEqual(
+          128,
+        );
       }
     });
 

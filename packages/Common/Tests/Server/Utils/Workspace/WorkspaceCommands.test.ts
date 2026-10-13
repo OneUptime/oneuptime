@@ -31,12 +31,24 @@ function parse(text: string | null | undefined): WorkspaceCommandInput {
 
 describe("WorkspaceCommands.parse: each command", () => {
   test.each([
-    ["incident Checkout is down", WorkspaceCommandName.Incident, "Checkout is down"],
+    [
+      "incident Checkout is down",
+      WorkspaceCommandName.Incident,
+      "Checkout is down",
+    ],
     ["incident", WorkspaceCommandName.Incident, ""],
-    ["maintenance Database upgrade", WorkspaceCommandName.Maintenance, "Database upgrade"],
+    [
+      "maintenance Database upgrade",
+      WorkspaceCommandName.Maintenance,
+      "Database upgrade",
+    ],
     ["maintenance", WorkspaceCommandName.Maintenance, ""],
     ["oncall", WorkspaceCommandName.OnCall, ""],
-    ["ask which monitors are down?", WorkspaceCommandName.Ask, "which monitors are down?"],
+    [
+      "ask which monitors are down?",
+      WorkspaceCommandName.Ask,
+      "which monitors are down?",
+    ],
     ["help", WorkspaceCommandName.Help, ""],
   ])(
     "%j is the %s command, followed by %j",
@@ -46,8 +58,16 @@ describe("WorkspaceCommands.parse: each command", () => {
   );
 
   test.each([
-    ["create incident Checkout is down", WorkspaceCommandName.Incident, "Checkout is down"],
-    ["create maintenance Database upgrade", WorkspaceCommandName.Maintenance, "Database upgrade"],
+    [
+      "create incident Checkout is down",
+      WorkspaceCommandName.Incident,
+      "Checkout is down",
+    ],
+    [
+      "create maintenance Database upgrade",
+      WorkspaceCommandName.Maintenance,
+      "Database upgrade",
+    ],
     ["on-call", WorkspaceCommandName.OnCall, ""],
     ["on call", WorkspaceCommandName.OnCall, ""],
     ["?", WorkspaceCommandName.Help, ""],
@@ -84,14 +104,30 @@ describe("WorkspaceCommands.parse: each command", () => {
 
 describe("WorkspaceCommands.parse: letter case, spaces and punctuation", () => {
   test.each([
-    ["INCIDENT Checkout is down", WorkspaceCommandName.Incident, "Checkout is down"],
-    ["Incident API p99 > 2s on EU-West", WorkspaceCommandName.Incident, "API p99 > 2s on EU-West"],
+    [
+      "INCIDENT Checkout is down",
+      WorkspaceCommandName.Incident,
+      "Checkout is down",
+    ],
+    [
+      "Incident API p99 > 2s on EU-West",
+      WorkspaceCommandName.Incident,
+      "API p99 > 2s on EU-West",
+    ],
     ["Create Incident Disk full", WorkspaceCommandName.Incident, "Disk full"],
-    ["MAINTENANCE Q3 Kernel Upgrade (Frankfurt)", WorkspaceCommandName.Maintenance, "Q3 Kernel Upgrade (Frankfurt)"],
+    [
+      "MAINTENANCE Q3 Kernel Upgrade (Frankfurt)",
+      WorkspaceCommandName.Maintenance,
+      "Q3 Kernel Upgrade (Frankfurt)",
+    ],
     ["OnCall", WorkspaceCommandName.OnCall, ""],
     ["ON-CALL", WorkspaceCommandName.OnCall, ""],
     ["HELP", WorkspaceCommandName.Help, ""],
-    ["Ask Why did checkout latency spike?", WorkspaceCommandName.Ask, "Why did checkout latency spike?"],
+    [
+      "Ask Why did checkout latency spike?",
+      WorkspaceCommandName.Ask,
+      "Why did checkout latency spike?",
+    ],
   ])(
     "%j: the command in any case, what follows as typed",
     (text: string, command: WorkspaceCommandName, rest: string) => {
@@ -126,8 +162,16 @@ describe("WorkspaceCommands.parse: letter case, spaces and punctuation", () => {
     ["help!", WorkspaceCommandName.Help, ""],
     ["oncall?", WorkspaceCommandName.OnCall, ""],
     ["on call?", WorkspaceCommandName.OnCall, ""],
-    ["incident: Checkout is down", WorkspaceCommandName.Incident, "Checkout is down"],
-    ["maintenance, Database upgrade", WorkspaceCommandName.Maintenance, "Database upgrade"],
+    [
+      "incident: Checkout is down",
+      WorkspaceCommandName.Incident,
+      "Checkout is down",
+    ],
+    [
+      "maintenance, Database upgrade",
+      WorkspaceCommandName.Maintenance,
+      "Database upgrade",
+    ],
   ])(
     "%j: a command may be typed with punctuation after it",
     (text: string, command: WorkspaceCommandName, rest: string) => {
@@ -215,12 +259,32 @@ describe("WorkspaceCommands.parse: questions for OneUptime AI", () => {
 
 describe("WorkspaceCommands.parse: a command misspelt", () => {
   test.each([
-    ["incidnet Checkout is down", "incidnet", WorkspaceCommandName.Incident, "Checkout is down"],
+    [
+      "incidnet Checkout is down",
+      "incidnet",
+      WorkspaceCommandName.Incident,
+      "Checkout is down",
+    ],
     ["indicent", "indicent", WorkspaceCommandName.Incident, ""],
-    ["Incidnet: Checkout", "Incidnet", WorkspaceCommandName.Incident, "Checkout"],
-    ["maintenence Database upgrade", "maintenence", WorkspaceCommandName.Maintenance, "Database upgrade"],
+    [
+      "Incidnet: Checkout",
+      "Incidnet",
+      WorkspaceCommandName.Incident,
+      "Checkout",
+    ],
+    [
+      "maintenence Database upgrade",
+      "maintenence",
+      WorkspaceCommandName.Maintenance,
+      "Database upgrade",
+    ],
     ["maintainance", "maintainance", WorkspaceCommandName.Maintenance, ""],
-    ["maintanance window", "maintanance", WorkspaceCommandName.Maintenance, "window"],
+    [
+      "maintanance window",
+      "maintanance",
+      WorkspaceCommandName.Maintenance,
+      "window",
+    ],
     ["oncal", "oncal", WorkspaceCommandName.OnCall, ""],
     ["onclal", "onclal", WorkspaceCommandName.OnCall, ""],
   ])(
@@ -245,9 +309,9 @@ describe("WorkspaceCommands.parse: a command misspelt", () => {
     expect(WorkspaceCommands.getEditDistance("incidet", "incident")).toBe(1);
     expect(WorkspaceCommands.getEditDistance("inncident", "incident")).toBe(1);
     expect(WorkspaceCommands.getEditDistance("indicent", "incident")).toBe(2);
-    expect(WorkspaceCommands.getEditDistance("maintenence", "maintenance")).toBe(
-      1,
-    );
+    expect(
+      WorkspaceCommands.getEditDistance("maintenence", "maintenance"),
+    ).toBe(1);
     expect(
       WorkspaceCommands.getEditDistance("maintainance", "maintenance"),
     ).toBe(2);

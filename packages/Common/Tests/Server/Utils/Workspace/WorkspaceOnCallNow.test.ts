@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import WorkspaceOnCallNow from "../../../../Server/Utils/Workspace/WorkspaceOnCallNow";
 import { WorkspaceAnswer } from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
@@ -27,7 +34,9 @@ import ObjectID from "../../../../Types/ObjectID";
  */
 
 const DASHBOARD: string = "https://oneuptime.test/dashboard";
-const PROJECT_ID: ObjectID = new ObjectID("e0000000-0000-4000-8000-000000000001");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "e0000000-0000-4000-8000-000000000001",
+);
 const ASKER: ObjectID = new ObjectID("e0000000-0000-4000-8000-0000000000a1");
 const SIMON: ObjectID = new ObjectID("e0000000-0000-4000-8000-0000000000b1");
 const ANA: ObjectID = new ObjectID("e0000000-0000-4000-8000-0000000000b2");
@@ -302,7 +311,9 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
 
     // The heading, twenty schedules, a blank line and the note.
     expect(lines).toHaveLength(23);
-    expect(lines[20]).toBe(`- [Schedule 20](${linkOf(rows[19]!)}): **Simon Lee**.`);
+    expect(lines[20]).toBe(
+      `- [Schedule 20](${linkOf(rows[19]!)}): **Simon Lee**.`,
+    );
     expect(lines[21]).toBe("");
     expect(lines[22]).toBe(
       `These are the first 20 schedules. [See them all in OneUptime](${SCHEDULES_LINK}).`,
@@ -354,7 +365,9 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
   test.each([
     [
       "no permission",
-      new NotAuthorizedException("You do not have permission to read schedules"),
+      new NotAuthorizedException(
+        "You do not have permission to read schedules",
+      ),
     ],
     ["not on the plan", new PaymentRequiredException("Please upgrade.")],
   ])(

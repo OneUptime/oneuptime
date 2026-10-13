@@ -109,9 +109,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const MEMBER_ID: ObjectID = new ObjectID(
   "c2000000-0000-4000-8000-0000000000a1",
 );
-const SIMON_ID: ObjectID = new ObjectID(
-  "c2000000-0000-4000-8000-0000000000b1",
-);
+const SIMON_ID: ObjectID = new ObjectID("c2000000-0000-4000-8000-0000000000b1");
 const SEVERITY_ID: ObjectID = new ObjectID(
   "c2000000-0000-4000-8000-0000000000c1",
 );
@@ -370,11 +368,9 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
     jest
       .spyOn(ProductBrandingText, "getProductName")
       .mockReturnValue("OneUptime");
-    jest
-      .spyOn(AIService, "isProjectAIEnabled")
-      .mockImplementation(async () => {
-        return aiEnabled;
-      });
+    jest.spyOn(AIService, "isProjectAIEnabled").mockImplementation(async () => {
+      return aiEnabled;
+    });
     jest
       .spyOn(AIService, "getReachedProjectDailyLimit")
       .mockResolvedValue(null);
@@ -445,9 +441,9 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
 
   // The text of a message's first section.
   function sectionText(blocks: unknown): string {
-    const first: JSONObject | undefined = (
-      (blocks as Array<JSONObject> | undefined) || []
-    )[0];
+    const first: JSONObject | undefined = ((blocks as
+      | Array<JSONObject>
+      | undefined) || [])[0];
 
     return ((first?.["text"] as JSONObject | undefined)?.["text"] ||
       "") as string;
@@ -471,8 +467,10 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
   function inputOf(view: JSONObject, actionId: string): JSONObject | undefined {
     return (view["blocks"] as Array<JSONObject>).find(
       (block: JSONObject): boolean => {
-        return (block["element"] as JSONObject | undefined)?.["action_id"] ===
-          actionId;
+        return (
+          (block["element"] as JSONObject | undefined)?.["action_id"] ===
+          actionId
+        );
       },
     );
   }
@@ -754,7 +752,7 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
           [
             "👥 ​*On call now*​",
             "",
-            `•   <${DASHBOARD_URL}/${PROJECT_ID.toString()}/on-call-duty/schedules/${SCHEDULE_ID.toString()}|Primary>: ​*Simon Lee*​ until {{DATE(2026-10-17T09:00:00Z, SHORT)}} at {{TIME(2026-10-17T09:00:00Z)}}.`,
+            `•   <${DASHBOARD_URL}/${PROJECT_ID.toString()}/on-call-duty/schedules/${SCHEDULE_ID.toString()}|Primary>: \u200b*Simon Lee*\u200b until {{DATE(2026-10-17T09:00:00Z, SHORT)}} at {{TIME(2026-10-17T09:00:00Z)}}.`,
             "",
             `<${DASHBOARD_URL}/${PROJECT_ID.toString()}/on-call-duty/schedules|Open the on-call schedules in OneUptime>`,
             "",
@@ -829,19 +827,19 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
 
     test.each([
       ["which monitors are down?", "which monitors are down?"],
-      ["  why did checkout latency spike?  ", "why did checkout latency spike?"],
+      [
+        "  why did checkout latency spike?  ",
+        "why did checkout latency spike?",
+      ],
       ["incidents today?", "incidents today?"],
       ["help me find slow queries", "help me find slow queries"],
       ["is API &lt; 99% up?", "is API < 99% up?"],
-    ])(
-      "/oneuptime %j asks AI %j",
-      async (text: string, question: string) => {
-        await post(text);
-        await slackCallsAfter(1);
+    ])("/oneuptime %j asks AI %j", async (text: string, question: string) => {
+      await post(text);
+      await slackCallsAfter(1);
 
-        expect(assistantQuestions).toEqual([question]);
-      },
-    );
+      expect(assistantQuestions).toEqual([question]);
+    });
 
     test("with AI turned off: said so, and where the commands that need no AI are", async () => {
       aiEnabled = false;

@@ -208,9 +208,7 @@ export default class WorkspaceCommands {
    * Reads what a chat sent - the text after `/oneuptime` in Slack, the
    * message to the bot in Microsoft Teams - as a command (see the header).
    */
-  public static parse(
-    input: string | null | undefined,
-  ): WorkspaceCommandInput {
+  public static parse(input: string | null | undefined): WorkspaceCommandInput {
     const text: string = (input || "").trim();
 
     if (!text) {
@@ -290,8 +288,8 @@ export default class WorkspaceCommands {
   }
 
   /*
-   * Every command, with an example of each, as both chats show it - and,
-   * for text that started with a misspelt command, the one it looks like:
+   * Every command, with examples, as both chats show it - and, for text
+   * that started with a misspelt command, the one it looks like:
    *
    *   👋 Here's what /oneuptime does
    *   • /oneuptime incident [title]: declare an incident. Opens the form,
@@ -594,12 +592,7 @@ export default class WorkspaceCommands {
           rows[i - 1]![j - 1]! + cost,
         );
 
-        if (
-          i > 1 &&
-          j > 1 &&
-          a[i - 1] === b[j - 2] &&
-          a[i - 2] === b[j - 1]
-        ) {
+        if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
           distance = Math.min(distance, rows[i - 2]![j - 2]! + 1);
         }
 

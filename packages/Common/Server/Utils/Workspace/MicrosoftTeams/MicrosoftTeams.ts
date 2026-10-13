@@ -3670,10 +3670,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       );
 
       if (listCommand) {
-        responseText = await this.getListCommandMessage(
-          listCommand,
-          projectId,
-        );
+        responseText = await this.getListCommandMessage(listCommand, projectId);
       } else {
         switch (input.command) {
           case WorkspaceCommandName.Help:

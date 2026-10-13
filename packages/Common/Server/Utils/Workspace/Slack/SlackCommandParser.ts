@@ -68,10 +68,10 @@ export default class SlackCommandParser {
     const rawText: string = typeof data.text === "string" ? data.text : "";
     const text: string = SlackCommandParser.toPlainText(rawText);
 
-    const legacy: WorkspaceCommandName | undefined = Object.prototype
-      .hasOwnProperty.call(LEGACY_SLACK_COMMANDS, command)
-      ? LEGACY_SLACK_COMMANDS[command]
-      : undefined;
+    const legacy: WorkspaceCommandName | undefined =
+      Object.prototype.hasOwnProperty.call(LEGACY_SLACK_COMMANDS, command)
+        ? LEGACY_SLACK_COMMANDS[command]
+        : undefined;
 
     if (legacy) {
       // Everything after an old command is its form's title.

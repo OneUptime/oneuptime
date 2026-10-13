@@ -83,7 +83,10 @@ describe("MicrosoftTeamsCommands.getListCommand: Teams' own lists, matched exact
     ["active incidents", MicrosoftTeamsListCommand.ActiveIncidents],
     ["show active alerts", MicrosoftTeamsListCommand.ActiveAlerts],
     ["active alerts", MicrosoftTeamsListCommand.ActiveAlerts],
-    ["show scheduled maintenance", MicrosoftTeamsListCommand.ScheduledMaintenance],
+    [
+      "show scheduled maintenance",
+      MicrosoftTeamsListCommand.ScheduledMaintenance,
+    ],
     ["scheduled maintenance", MicrosoftTeamsListCommand.ScheduledMaintenance],
     ["show ongoing maintenance", MicrosoftTeamsListCommand.OngoingMaintenance],
     ["ongoing maintenance", MicrosoftTeamsListCommand.OngoingMaintenance],
@@ -99,9 +102,12 @@ describe("MicrosoftTeamsCommands.getListCommand: Teams' own lists, matched exact
     "maintenance",
     "help",
     "",
-  ])("%j is no list: it is read as Slack reads the words, or a question", (text: string) => {
-    expect(MicrosoftTeamsCommands.getListCommand(text)).toBeNull();
-  });
+  ])(
+    "%j is no list: it is read as Slack reads the words, or a question",
+    (text: string) => {
+      expect(MicrosoftTeamsCommands.getListCommand(text)).toBeNull();
+    },
+  );
 
   test("the lists' first words are no command Slack's /oneuptime takes", () => {
     for (const command of Object.values(MicrosoftTeamsListCommand)) {

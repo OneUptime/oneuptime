@@ -1514,9 +1514,16 @@ describe("the words Slack's /oneuptime takes: incident, maintenance and oncall, 
     ],
     [
       "maintenence",
-      { word: "maintenence", command: WorkspaceCommandName.Maintenance, text: "" },
+      {
+        word: "maintenence",
+        command: WorkspaceCommandName.Maintenance,
+        text: "",
+      },
     ],
-    ["oncal", { word: "oncal", command: WorkspaceCommandName.OnCall, text: "" }],
+    [
+      "oncal",
+      { word: "oncal", command: WorkspaceCommandName.OnCall, text: "" },
+    ],
   ])(
     "%j - a command misspelt - gets the help, with the command it looks like; nothing runs, and AI is not asked",
     async (text: string, misspelt: WorkspaceCommandMisspelling) => {

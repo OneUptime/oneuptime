@@ -64,11 +64,10 @@ import MicrosoftTeamsScheduledMaintenanceActions from "../../../../Server/Utils/
 import MicrosoftTeamsCommands from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceMessageTime from "../../../../Server/Utils/Workspace/WorkspaceMessageTime";
-import {
+import WorkspaceConnectRequest, {
   WorkspaceConnectRequestAgainKind,
   WorkspaceConnectRequestRecord,
 } from "../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
-import WorkspaceConnectRequest from "../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import AIService from "../../../../Server/Services/AIService";
@@ -388,15 +387,13 @@ beforeEach(() => {
   (MicrosoftTeamsUtil as unknown as CachedAdapterSlot).cachedAdapter =
     new CloudAdapter(new ConfigurationBotFrameworkAuthentication({}));
 
-  jest.spyOn(MicrosoftTeamsUtil, "resolveProjectByTenantId").mockResolvedValue(
-    {
-      projectAuth: {
-        projectId: projectId,
-      } as unknown as WorkspaceProjectAuthToken,
-      isAmbiguous: false,
-      candidateProjectIds: [projectId],
-    } as MicrosoftTeamsTenantResolution,
-  );
+  jest.spyOn(MicrosoftTeamsUtil, "resolveProjectByTenantId").mockResolvedValue({
+    projectAuth: {
+      projectId: projectId,
+    } as unknown as WorkspaceProjectAuthToken,
+    isAmbiguous: false,
+    candidateProjectIds: [projectId],
+  } as MicrosoftTeamsTenantResolution);
   jest
     .spyOn(
       MicrosoftTeamsUtil as unknown as {
@@ -457,9 +454,11 @@ beforeEach(() => {
   keptConnectRequests.clear();
   jest
     .spyOn(GlobalCache, "setString")
-    .mockImplementation(async (namespace: string, key: string, value: string) => {
-      keptConnectRequests.set(`${namespace}:${key}`, value);
-    });
+    .mockImplementation(
+      async (namespace: string, key: string, value: string) => {
+        keptConnectRequests.set(`${namespace}:${key}`, value);
+      },
+    );
   jest
     .spyOn(GlobalCache, "getString")
     .mockImplementation(async (namespace: string, key: string) => {
@@ -501,17 +500,15 @@ describe("help: one card that mentions whoever asked, with the words Slack's /on
     ["a bare 'ask'", "ask", "personal" as const],
   ])(
     "%s: the help card, HTTP 200",
-    async (
-      _name: string,
-      text: string,
-      where: "personal" | "channel",
-    ) => {
+    async (_name: string, text: string, where: "personal" | "channel") => {
       const delivery: Delivery = await deliver(message(text, where));
 
       expect(delivery.httpStatus).toBe(200);
       expect(delivery.posts).toHaveLength(1);
       expect(delivery.posts[0]!.conversationId).toBe(
-        where === "channel" ? CHANNEL_CONVERSATION_ID : PERSONAL_CONVERSATION_ID,
+        where === "channel"
+          ? CHANNEL_CONVERSATION_ID
+          : PERSONAL_CONVERSATION_ID,
       );
       expect(answerOf(delivery.posts[0])).toBe(
         MicrosoftTeamsCommands.getHelpAnswer().markdown,
@@ -631,8 +628,9 @@ describe("incident and maintenance: the forms, with the title as typed", () => {
         `🔗 **Connect your Microsoft Teams account to ${purpose}.** It takes one click. Then type **${again}** again.`,
       );
 
-      const request: WorkspaceConnectRequestRecord | null =
-        await keptRequestOf(delivery.posts[0]);
+      const request: WorkspaceConnectRequestRecord | null = await keptRequestOf(
+        delivery.posts[0],
+      );
       expect(request?.again).toEqual({
         kind: WorkspaceConnectRequestAgainKind.Command,
         label: again,
@@ -722,8 +720,9 @@ describe("oncall: who is on call right now, as a card that reads each moment in 
       "🔗 **Connect your Microsoft Teams account to see who is on call.** It takes one click. Then type **oncall** again.",
     );
 
-    const request: WorkspaceConnectRequestRecord | null =
-      await keptRequestOf(delivery.posts[0]);
+    const request: WorkspaceConnectRequestRecord | null = await keptRequestOf(
+      delivery.posts[0],
+    );
     expect(request).toMatchObject({
       workspaceUserId: SENDER["aadObjectId"],
       purpose: "see who is on call",

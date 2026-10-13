@@ -82,11 +82,13 @@ describe("the Slack app manifest's commands", () => {
     const hint: string = slashCommands[0]!.usage_hint;
 
     expect(hint.split(" | ")).toEqual(
-      WORKSPACE_COMMANDS.map((definition: { name: string; argument: string }) => {
-        return definition.argument
-          ? `${definition.name} [${definition.argument}]`
-          : definition.name;
-      }),
+      WORKSPACE_COMMANDS.map(
+        (definition: { name: string; argument: string }) => {
+          return definition.argument
+            ? `${definition.name} [${definition.argument}]`
+            : definition.name;
+        },
+      ),
     );
   });
 
@@ -118,7 +120,11 @@ describe("the Slack app manifest's shortcuts", () => {
         return [shortcut.name, shortcut.type, shortcut.callback_id];
       }),
     ).toEqual([
-      ["Create Scheduled Event", "global", SlackActionType.NewScheduledMaintenance],
+      [
+        "Create Scheduled Event",
+        "global",
+        SlackActionType.NewScheduledMaintenance,
+      ],
       ["Create New Incident", "global", SlackActionType.NewIncident],
     ]);
   });

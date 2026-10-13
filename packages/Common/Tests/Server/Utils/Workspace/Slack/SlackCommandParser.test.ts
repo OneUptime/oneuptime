@@ -94,7 +94,9 @@ describe("SlackCommandParser.read", () => {
   });
 
   test("the words are read from the text as typed: escapes undone", () => {
-    expect(read("/oneuptime", "incident API p99 &gt; 2s &amp; rising").input).toEqual({
+    expect(
+      read("/oneuptime", "incident API p99 &gt; 2s &amp; rising").input,
+    ).toEqual({
       command: WorkspaceCommandName.Incident,
       text: "API p99 > 2s & rising",
     });
@@ -145,13 +147,11 @@ describe("SlackCommandParser.getAction: what a command asks for, as a press is r
   });
 
   test("/oneuptime create incident: the same form, run again as /oneuptime incident", () => {
-    expect(actionOf("/oneuptime", "create incident Checkout is down")).toEqual(
-      {
-        actionType: SlackActionType.NewIncident,
-        actionValue: "Checkout is down",
-        command: "/oneuptime incident",
-      },
-    );
+    expect(actionOf("/oneuptime", "create incident Checkout is down")).toEqual({
+      actionType: SlackActionType.NewIncident,
+      actionValue: "Checkout is down",
+      command: "/oneuptime incident",
+    });
   });
 
   test("/oneuptime maintenance: the New Scheduled Maintenance form", () => {

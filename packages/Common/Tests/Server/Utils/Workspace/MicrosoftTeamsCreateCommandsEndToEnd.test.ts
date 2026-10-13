@@ -2873,7 +2873,7 @@ describe("controls: commands that always worked still answer once with HTTP 200"
     );
     // Both create commands take the form's title after them.
     expect(reply).toContain(
-      "\n- **incident [title]**: declare an incident. Opens the form, with the title filled in. For example: \"incident Checkout is down\"\n- **maintenance [title]**: schedule a maintenance event. Opens the form, with the title filled in. For example: \"maintenance Database upgrade\"\n",
+      '\n- **incident [title]**: declare an incident. Opens the form, with the title filled in. For example: "incident Checkout is down"\n- **maintenance [title]**: schedule a maintenance event. Opens the form, with the title filled in. For example: "maintenance Database upgrade"\n',
     );
   });
 
