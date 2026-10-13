@@ -157,7 +157,10 @@ const FeedStatusPanel: FunctionComponent<ComponentProps> = (
   /*
    * "Last fetched 7 minutes ago by Google Calendar": one whole sentence per
    * shape, with {{placeholders}} a translator can move, and the distance in
-   * the reader's language (FeedTime), never moment's English.
+   * the reader's language (FeedTime), never moment's English. The app is
+   * named as the server reports it (classifyCalendarClient), the way the
+   * docs quote it in every language: it says which program fetched the
+   * link, not a word of the page.
    */
   const lastFetchedSentence: string | null =
     fetchedAt && hasFetchTime
@@ -174,7 +177,7 @@ const FeedStatusPanel: FunctionComponent<ComponentProps> = (
                 "Last fetched {{when}} by {{client}}",
                 {
                   when: when,
-                  client: translator.translateText(client) || client,
+                  client: client,
                 },
               )
             : translator.translateTemplate("Last fetched {{when}}", {

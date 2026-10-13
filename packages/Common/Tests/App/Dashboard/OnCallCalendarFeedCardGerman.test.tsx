@@ -17,9 +17,10 @@ import { I18nextProvider } from "react-i18next";
  *
  * The card's old status line filled "Last fetched {{when}} by {{client}}"
  * with moment's English ("2 hours ago") even inside a German sentence. Now
- * the distance comes from Intl in the reader's language, the app's name is
- * the locale's own ("Google Kalender"), and every new word on the card - the
- * pill, the options' lines, the field's buttons, the menu - is the locale's.
+ * the distance comes from Intl in the reader's language, the app that
+ * fetched the link is named as the server reports it - as the docs quote the
+ * sentence in every language - and every new word on the card - the pill,
+ * the options' lines, the field's buttons, the menu - is the locale's.
  */
 
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
@@ -131,14 +132,14 @@ describe("the calendar link card in German", () => {
     cleanup();
   });
 
-  test("the status reads as one German sentence: the locale's wording, Intl's distance, the locale's name for Google Calendar", () => {
+  test("the status reads as one German sentence: the locale's wording, Intl's distance, the app as the server names it", () => {
     inLanguage(german, panel(status()));
 
     expect(DE["Last fetched {{when}} by {{client}}"]).toBe(
       "Zuletzt abgerufen {{when}} von {{client}}",
     );
     expect(plain(screen.getByTestId("feed-status-headline").textContent)).toBe(
-      "Zuletzt abgerufen vor 7 Minuten von Google Kalender",
+      "Zuletzt abgerufen vor 7 Minuten von Google Calendar",
     );
     expect(screen.getByTestId("feed-status-pill")).toHaveTextContent(
       DE["Active"] as string,
@@ -189,7 +190,7 @@ describe("the calendar link card in German", () => {
       DE["Enable link"] as string,
     );
     expect(plain(screen.getByTestId("feed-last-fetched").textContent)).toBe(
-      "Zuletzt abgerufen vor 7 Minuten von Google Kalender",
+      "Zuletzt abgerufen vor 7 Minuten von Google Calendar",
     );
   });
 
@@ -286,7 +287,7 @@ describe("the calendar link card in Japanese", () => {
     inLanguage(japanese, panel(status()));
 
     expect(plain(screen.getByTestId("feed-status-headline").textContent)).toBe(
-      "最終取得 7 分前（取得元: Google カレンダー）",
+      "最終取得 7 分前（取得元: Google Calendar）",
     );
     expect(screen.getByTestId("feed-status-pill")).toHaveTextContent(
       JA["Active"] as string,

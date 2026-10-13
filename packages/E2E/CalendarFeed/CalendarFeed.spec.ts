@@ -716,7 +716,7 @@ test.describe("German", () => {
 
     await expect(
       page.getByTestId("personal-calendar-feed-status-headline"),
-    ).toHaveText("Zuletzt abgerufen vor 7 Minuten von Google Kalender");
+    ).toHaveText("Zuletzt abgerufen vor 7 Minuten von Google Calendar");
     await expect(
       page.getByRole("button", { name: "Link verwalten" }),
     ).toBeVisible();
