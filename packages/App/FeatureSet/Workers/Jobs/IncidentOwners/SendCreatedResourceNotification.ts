@@ -282,12 +282,13 @@ RunCron(
             eventType,
           });
 
-          moreIncidentFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
-          OwnerNotificationFeedText.nameAndEmail({
-            name: user.name?.toString(),
-            email: user.email?.toString(),
-          }),
-        );
+          moreIncidentFeedInformationInMarkdown +=
+            OwnerNotificationFeedText.notifiedLineMarkdown(
+              OwnerNotificationFeedText.nameAndEmail({
+                name: user.name?.toString(),
+                email: user.email?.toString(),
+              }),
+            );
         } catch (e) {
           logger.error(
             "Error in sending incident created resource notification",

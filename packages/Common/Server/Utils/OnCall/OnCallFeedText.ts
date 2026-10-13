@@ -109,7 +109,9 @@ const getRuleClause: (input: OnCallStepFeedTextInput) => MarkdownText = (
   const teamName: string = (input.teamName || "").trim();
 
   return mdText`escalation rule **${getRuleName(input.ruleName)}**${
-    scheduleName ? mdText` (schedule **${scheduleName}**)` : FeedMarkdown.empty()
+    scheduleName
+      ? mdText` (schedule **${scheduleName}**)`
+      : FeedMarkdown.empty()
   }${teamName ? mdText`, as a member of **${teamName}**` : FeedMarkdown.empty()}`;
 };
 
@@ -211,12 +213,16 @@ const getRunStatusSentences: (
         ];
       }
 
-      if (message.indexOf(ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START) === 0) {
+      if (
+        message.indexOf(ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START) === 0
+      ) {
         const why: string = message
           .slice(ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START.length)
           .trim();
 
-        return [mdText`${policy} stopped paging because the ${asSentence(why)}`];
+        return [
+          mdText`${policy} stopped paging because the ${asSentence(why)}`,
+        ];
       }
 
       return [mdText`${policy} stopped paging.`, ...messageSentences];
@@ -229,7 +235,10 @@ const getRunStatusSentences: (
     case OnCallDutyPolicyStatus.Error:
       return [mdText`${policy} stopped with an error.`, ...messageSentences];
     default:
-      return [mdText`${policy} is now **${input.status}**.`, ...messageSentences];
+      return [
+        mdText`${policy} is now **${input.status}**.`,
+        ...messageSentences,
+      ];
   }
 };
 

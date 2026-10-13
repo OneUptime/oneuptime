@@ -248,19 +248,18 @@ RunCron(
           eventType,
         });
 
-        moreAlertFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
-          OwnerNotificationFeedText.nameAndEmail({
-            name: user.name?.toString(),
-            email: user.email?.toString(),
-          }),
-        );
+        moreAlertFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            OwnerNotificationFeedText.nameAndEmail({
+              name: user.name?.toString(),
+              email: user.email?.toString(),
+            }),
+          );
       }
 
-
-      const alertFeedText: string =
-        OwnerNotificationFeedText.notePosted({
-          isPrivateNote: true,
-        });
+      const alertFeedText: string = OwnerNotificationFeedText.notePosted({
+        isPrivateNote: true,
+      });
 
       await AlertFeedService.createAlertFeedItem({
         alertId: alert.id!,

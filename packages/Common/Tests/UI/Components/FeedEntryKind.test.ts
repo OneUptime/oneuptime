@@ -42,11 +42,14 @@ describe("colours", () => {
     [FeedTone.Danger, Red500],
     [FeedTone.People, Violet500],
     [FeedTone.AI, Indigo500],
-  ])("%s is one fixed colour, whatever the row says", (tone: FeedTone, color: Color) => {
-    expect(
-      getFeedEntryColor({ kind: kind(tone), rowColor: Red500 }).toString(),
-    ).toBe(color.toString());
-  });
+  ])(
+    "%s is one fixed colour, whatever the row says",
+    (tone: FeedTone, color: Color) => {
+      expect(
+        getFeedEntryColor({ kind: kind(tone), rowColor: Red500 }).toString(),
+      ).toBe(color.toString());
+    },
+  );
 
   test("a kind that takes the row's own colour takes it - a state change in its new state's colour", () => {
     const stateColor: Color = Color.fromString("#22c55e");
@@ -109,7 +112,9 @@ describe("the shared kinds", () => {
   test("every kind that arrives in bursts folds as one of the four burst kinds", () => {
     const burstKinds: Array<[string, FeedBurstKind | undefined]> =
       Object.entries(SHARED_FEED_ENTRY_KINDS).map(
-        (entry: [string, FeedEntryKind]): [string, FeedBurstKind | undefined] => {
+        (
+          entry: [string, FeedEntryKind],
+        ): [string, FeedBurstKind | undefined] => {
           return [entry[0], entry[1].burst];
         },
       );

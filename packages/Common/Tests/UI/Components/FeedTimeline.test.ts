@@ -19,7 +19,7 @@ import { FeedBurstKind } from "../../../UI/Components/Feed/FeedEntryKind";
  * entry. The order the server sent is kept, whichever way the reader sorts.
  */
 
-const NARROW_SPACES: RegExp = /[  ]/g;
+const NARROW_SPACES: RegExp = /[\u202f\u00a0]/g;
 
 const plain: (text: string | undefined) => string = (
   text: string | undefined,
@@ -86,9 +86,10 @@ describe("days", () => {
       item("2026-10-09T03:00:00.000Z"),
     ];
 
-    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline(
-      { items, clock: clock() },
-    );
+    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline({
+      items,
+      clock: clock(),
+    });
 
     expect(
       days.map((day: FeedTimelineDay<FeedTimelineItem>) => {
@@ -113,9 +114,10 @@ describe("days", () => {
       item("2026-10-13T07:25:00.000Z"),
     ];
 
-    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline(
-      { items, clock: clock() },
-    );
+    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline({
+      items,
+      clock: clock(),
+    });
 
     expect(
       days.map((day: FeedTimelineDay<FeedTimelineItem>) => {
@@ -137,12 +139,10 @@ describe("days", () => {
   });
 
   test("each day's heading names the zone its times are in", () => {
-    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline(
-      {
-        items: [item("2026-10-13T07:25:00.000Z")],
-        clock: clock({ timezone: "America/New_York" }),
-      },
-    );
+    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline({
+      items: [item("2026-10-13T07:25:00.000Z")],
+      clock: clock({ timezone: "America/New_York" }),
+    });
 
     expect(days[0]!.zoneName).toBe("EDT");
   });
@@ -162,9 +162,10 @@ describe("times", () => {
       item("2026-10-13T07:16:00.000Z"),
     ];
 
-    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline(
-      { items, clock: clock() },
-    );
+    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline({
+      items,
+      clock: clock(),
+    });
 
     expect(shownTimes(days[0]!)).toEqual([
       "3:25 PM",
@@ -181,9 +182,10 @@ describe("times", () => {
       item("2026-10-12T07:25:00.000Z"),
     ];
 
-    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline(
-      { items, clock: clock() },
-    );
+    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline({
+      items,
+      clock: clock(),
+    });
 
     expect(shownTimes(days[0]!)).toEqual(["3:25 PM"]);
     expect(shownTimes(days[1]!)).toEqual(["3:25 PM"]);
@@ -196,15 +198,13 @@ describe("times", () => {
       item("2026-11-01T05:30:00.000Z"),
     ];
 
-    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline(
-      {
-        items,
-        clock: clock({
-          timezone: "America/New_York",
-          now: new Date("2026-11-02T12:00:00.000Z"),
-        }),
-      },
-    );
+    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline({
+      items,
+      clock: clock({
+        timezone: "America/New_York",
+        now: new Date("2026-11-02T12:00:00.000Z"),
+      }),
+    });
 
     expect(days).toHaveLength(1);
     expect(days[0]!.zoneName).toBe("EST");
@@ -215,15 +215,13 @@ describe("times", () => {
   });
 
   test("an entry from the last hour carries the hint, an older one does not", () => {
-    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline(
-      {
-        items: [
-          item("2026-10-13T07:28:00.000Z"),
-          item("2026-10-13T05:00:00.000Z"),
-        ],
-        clock: clock(),
-      },
-    );
+    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline({
+      items: [
+        item("2026-10-13T07:28:00.000Z"),
+        item("2026-10-13T05:00:00.000Z"),
+      ],
+      clock: clock(),
+    });
 
     expect(plain(days[0]!.entries[0]!.time.relativeHint)).toBe("12 min. ago");
     expect(days[0]!.entries[1]!.time.relativeHint).toBeUndefined();
@@ -242,12 +240,10 @@ describe("times", () => {
   });
 
   test("an entry without a valid date still renders, under the earliest day, without crashing", () => {
-    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline(
-      {
-        items: [{ key: "broken", itemDateTime: new Date("nope") }],
-        clock: clock(),
-      },
-    );
+    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline({
+      items: [{ key: "broken", itemDateTime: new Date("nope") }],
+      clock: clock(),
+    });
 
     expect(days).toHaveLength(1);
     expect(days[0]!.entries[0]!.item.key).toBe("broken");
@@ -426,9 +422,10 @@ describe("bursts", () => {
     }
 
     const started: number = Date.now();
-    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline(
-      { items, clock: clock() },
-    );
+    const days: Array<FeedTimelineDay<FeedTimelineItem>> = buildFeedTimeline({
+      items,
+      clock: clock(),
+    });
 
     expect(Date.now() - started).toBeLessThan(2000);
     expect(days.length).toBeGreaterThan(0);

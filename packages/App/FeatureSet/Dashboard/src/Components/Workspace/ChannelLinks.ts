@@ -83,9 +83,7 @@ export function getChannelLinkLabel(link: WorkspaceChannelLink): string {
   const name: string = link.channelName.trim();
 
   if (!name) {
-    return link.workspaceType === WorkspaceType.Slack
-      ? "#channel"
-      : "Channel";
+    return link.workspaceType === WorkspaceType.Slack ? "#channel" : "Channel";
   }
 
   if (link.workspaceType === WorkspaceType.Slack && !name.startsWith("#")) {

@@ -191,9 +191,7 @@ async function expectCompactItemWithFullReportUnfolding(): Promise<void> {
   expect(screen.queryByText(/\[C\d+\]/)).toBeNull();
   expect(screen.queryByTestId("feed-entry-details")).toBeNull();
 
-  fireEvent.click(
-    screen.getByRole("button", { name: "Show the full report" }),
-  );
+  fireEvent.click(screen.getByRole("button", { name: "Show the full report" }));
 
   /* Unfolded in place - no dialog - and still safe. */
   expect(screen.queryByRole("dialog")).toBeNull();

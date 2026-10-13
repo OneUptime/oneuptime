@@ -89,17 +89,20 @@ export default class OwnerNotificationFeedText {
   }): string {
     const count: number = Math.max(0, Math.floor(data.count));
     const members: string =
-      count === 1 ? `1 ${data.memberNoun} was` : `${count} ${data.memberNoun}s were`;
+      count === 1
+        ? `1 ${data.memberNoun} was`
+        : `${count} ${data.memberNoun}s were`;
 
     return mdText`Owners were notified that ${members} added to this episode.`.toString();
   }
 
   /*
-   * One person notified, as a line of the entry's details: "- Nitin Kumar
-   * (nitin@example.com)" - a list, where the old "Notified:" lines ran
-   * together into one paragraph.
+   * One person notified, as a Markdown line of the entry's details: "- Nitin
+   * Kumar (nitin@example.com)" - a list, where the old "Notified:" lines ran
+   * together into one paragraph. Named for Markdown, as what it returns is
+   * appended to the details as it is (FeedAndChatPlainTextEscapedGuard).
    */
-  public static notifiedLine(person: MarkdownValue): string {
+  public static notifiedLineMarkdown(person: MarkdownValue): string {
     return mdText`- ${person}\n`.toString();
   }
 

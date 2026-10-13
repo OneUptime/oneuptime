@@ -23,7 +23,7 @@ import {
  */
 
 // Intl writes a narrow no-break space before AM/PM in newer ICU versions.
-const NARROW_SPACES: RegExp = /[  ]/g;
+const NARROW_SPACES: RegExp = /[\u202f\u00a0]/g;
 
 const plain: (text: string | undefined) => string = (
   text: string | undefined,
@@ -144,9 +144,9 @@ describe("the time of day", () => {
     expect(plain(formatFeedTime(date, clock({ use12HourClock: true })))).toBe(
       "3:25 PM",
     );
-    expect(
-      plain(formatFeedTime(date, clock({ use12HourClock: false }))),
-    ).toBe("15:25");
+    expect(plain(formatFeedTime(date, clock({ use12HourClock: false })))).toBe(
+      "15:25",
+    );
   });
 
   test("a 24-hour clock writes midnight as 00:xx", () => {
@@ -184,9 +184,7 @@ describe("the time of day", () => {
 
   test("the full time for the tooltip has the date, seconds and zone", () => {
     expect(
-      plain(
-        formatFeedFullTime(new Date("2026-10-13T07:25:42.000Z"), clock()),
-      ),
+      plain(formatFeedFullTime(new Date("2026-10-13T07:25:42.000Z"), clock())),
     ).toBe("Tuesday, October 13, 2026 at 3:25:42 PM GMT+08");
   });
 });

@@ -7,10 +7,10 @@ import {
 } from "@testing-library/react";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { Blue500 } from "../../../Types/BrandColors";
-import { FEED_PAGE_SIZE } from "../../../UI/Components/Feed/FeedOptions";
 import IconProp from "../../../Types/Icon/IconProp";
 import { FeedItemProps } from "../../../UI/Components/Feed/FeedItem";
 import {
+  FEED_PAGE_SIZE,
   FeedOptions,
   getFeedOptionsKey,
 } from "../../../UI/Components/Feed/FeedOptions";

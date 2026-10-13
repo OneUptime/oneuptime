@@ -219,9 +219,7 @@ const useFeedItems: <TFeedModel>(
     }
 
     fetchItems({
-      limit: hasResourceChanged
-        ? pageSizeRef.current
-        : currentLimitRef.current,
+      limit: hasResourceChanged ? pageSizeRef.current : currentLimitRef.current,
       isLoadingMore: false,
     }).catch(() => {
       // fetchItems converts request failures into the appropriate UI state.

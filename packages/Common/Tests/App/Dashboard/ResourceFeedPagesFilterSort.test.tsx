@@ -131,11 +131,11 @@ import ServiceLevelObjectiveFeed, {
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import { FEED_PAGE_SIZE } from "../../../UI/Components/Feed/FeedOptions";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import {
   FEED_OPTIONS_TEXT,
+  FEED_PAGE_SIZE,
   FILTERED_FEED_NO_ITEMS_MESSAGE,
   getFeedEventTypeLabel,
 } from "../../../UI/Components/Feed/FeedOptions";

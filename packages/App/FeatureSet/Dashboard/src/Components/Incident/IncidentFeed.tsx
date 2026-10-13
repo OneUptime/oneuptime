@@ -202,9 +202,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       icon: kind.icon,
       burstKind: kind.burst,
       eventType: incidentFeed.incidentFeedEventType,
-      detailsLabel: isAIInvestigation
-        ? AI_REPORT_DETAILS_LABEL
-        : kind.moreText,
+      detailsLabel: isAIInvestigation ? AI_REPORT_DETAILS_LABEL : kind.moreText,
       safeMode: isAIInvestigation,
     };
   };

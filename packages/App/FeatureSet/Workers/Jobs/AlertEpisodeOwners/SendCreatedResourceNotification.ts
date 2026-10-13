@@ -214,12 +214,13 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
-          OwnerNotificationFeedText.nameAndEmail({
-            name: user.name?.toString(),
-            email: user.email?.toString(),
-          }),
-        );
+          moreEpisodeFeedInformationInMarkdown +=
+            OwnerNotificationFeedText.notifiedLineMarkdown(
+              OwnerNotificationFeedText.nameAndEmail({
+                name: user.name?.toString(),
+                email: user.email?.toString(),
+              }),
+            );
         } catch (e) {
           logger.error(
             "Error in sending alert episode created resource notification",

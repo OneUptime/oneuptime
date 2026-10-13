@@ -121,8 +121,7 @@ RunCron(
         },
       });
 
-      const alertFeedText: string =
-        OwnerNotificationFeedText.created("alert");
+      const alertFeedText: string = OwnerNotificationFeedText.created("alert");
       let moreAlertFeedInformationInMarkdown: string = "";
 
       const alertIdentifiedDate: Date =
@@ -458,12 +457,13 @@ RunCron(
             eventType,
           });
 
-          moreAlertFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
-          OwnerNotificationFeedText.nameAndEmail({
-            name: user.name?.toString(),
-            email: user.email?.toString(),
-          }),
-        );
+          moreAlertFeedInformationInMarkdown +=
+            OwnerNotificationFeedText.notifiedLineMarkdown(
+              OwnerNotificationFeedText.nameAndEmail({
+                name: user.name?.toString(),
+                email: user.email?.toString(),
+              }),
+            );
         } catch (e) {
           logger.error("Error in sending alert created resource notification");
           logger.error(e);

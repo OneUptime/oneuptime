@@ -83,11 +83,9 @@ const HIDE_DETAILS_LABEL: string = translationKey("Hide details");
 const FeedMarkdown: FunctionComponent<{
   text: string;
   safeMode: boolean;
-}> = React.memo(
-  (props: { text: string; safeMode: boolean }): ReactElement => {
-    return <MarkdownViewer text={props.text} safeMode={props.safeMode} />;
-  },
-);
+}> = React.memo((props: { text: string; safeMode: boolean }): ReactElement => {
+  return <MarkdownViewer text={props.text} safeMode={props.safeMode} />;
+});
 
 FeedMarkdown.displayName = "FeedMarkdown";
 
@@ -327,7 +325,9 @@ const FeedItem: FunctionComponent<ComponentProps> = (
               data-testid="feed-entry-details-toggle"
             >
               <Icon
-                icon={isDetailsOpen ? IconProp.ChevronDown : IconProp.ChevronRight}
+                icon={
+                  isDetailsOpen ? IconProp.ChevronDown : IconProp.ChevronRight
+                }
                 className="h-3.5 w-3.5"
               />
               {translator.translateText(

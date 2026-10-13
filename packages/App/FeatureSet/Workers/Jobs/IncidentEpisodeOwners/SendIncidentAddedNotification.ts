@@ -267,11 +267,10 @@ RunCron(
         )
       ).toString();
 
-      const episodeFeedText: string =
-        OwnerNotificationFeedText.membersAdded({
-          memberNoun: "incident",
-          count: incidentCountInBatch,
-        });
+      const episodeFeedText: string = OwnerNotificationFeedText.membersAdded({
+        memberNoun: "incident",
+        count: incidentCountInBatch,
+      });
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       for (const user of owners) {
@@ -427,12 +426,13 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
-            mdText`${OwnerNotificationFeedText.nameAndEmail({
-              name: user.name?.toString(),
-              email: user.email?.toString(),
-            })}, told of ${incidentCountInBatch === 1 ? "1 incident" : `${incidentCountInBatch} incidents`}`,
-          );
+          moreEpisodeFeedInformationInMarkdown +=
+            OwnerNotificationFeedText.notifiedLineMarkdown(
+              mdText`${OwnerNotificationFeedText.nameAndEmail({
+                name: user.name?.toString(),
+                email: user.email?.toString(),
+              })}, told of ${incidentCountInBatch === 1 ? "1 incident" : `${incidentCountInBatch} incidents`}`,
+            );
         } catch (e) {
           logger.error(
             "Error in sending incident-added-to-episode batch notification",

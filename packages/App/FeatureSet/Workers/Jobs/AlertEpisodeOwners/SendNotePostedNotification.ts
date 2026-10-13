@@ -228,19 +228,18 @@ RunCron(
           eventType,
         });
 
-        moreEpisodeFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
-          OwnerNotificationFeedText.nameAndEmail({
-            name: user.name?.toString(),
-            email: user.email?.toString(),
-          }),
-        );
+        moreEpisodeFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            OwnerNotificationFeedText.nameAndEmail({
+              name: user.name?.toString(),
+              email: user.email?.toString(),
+            }),
+          );
       }
 
-
-      const episodeFeedText: string =
-        OwnerNotificationFeedText.notePosted({
-          isPrivateNote: true,
-        });
+      const episodeFeedText: string = OwnerNotificationFeedText.notePosted({
+        isPrivateNote: true,
+      });
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id!,

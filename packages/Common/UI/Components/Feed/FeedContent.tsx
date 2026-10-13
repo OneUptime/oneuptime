@@ -54,7 +54,9 @@ export const FeedSkeleton: FunctionComponent = (): ReactElement => {
                   <div className="h-7 w-7 rounded-full bg-gray-100"></div>
                 </div>
                 <div className="col-start-2 row-start-2 space-y-2 pt-1.5 sm:col-start-3 sm:row-start-1">
-                  <div className={`h-3.5 rounded bg-gray-100 ${row.textWidth}`}></div>
+                  <div
+                    className={`h-3.5 rounded bg-gray-100 ${row.textWidth}`}
+                  ></div>
                   {row.hasSecondLine && (
                     <div className="h-3.5 w-4/5 rounded bg-gray-100"></div>
                   )}

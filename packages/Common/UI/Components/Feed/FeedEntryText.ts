@@ -43,7 +43,8 @@ const LEADING_EMOJI: RegExp =
 const HEADING_OPENING: RegExp = /^#{1,6}[ \t]+/;
 
 // An opening that is not a paragraph: a heading, list, quote, table, code, rule.
-const BLOCK_OPENING: RegExp = /^(?:#{1,6}[ \t]|[-*+][ \t]|\d+[.)][ \t]|>|\||```|~~~|<|---|\*\*\*|___|===)/;
+const BLOCK_OPENING: RegExp =
+  /^(?:#{1,6}[ \t]|[-*+][ \t]|\d+[.)][ \t]|>|\||```|~~~|<|---|\*\*\*|___|===)/;
 
 // The first word of a sentence: letters only.
 const FIRST_WORD: RegExp = /^[A-Za-z]+/;
@@ -164,7 +165,9 @@ export const stripLeadingDecoration: StripDecorationFunction = (
     return markdown;
   }
 
-  return markdown.slice(0, leadingWhitespaceLength) + prefix + afterEmoji + tail;
+  return (
+    markdown.slice(0, leadingWhitespaceLength) + prefix + afterEmoji + tail
+  );
 };
 
 export interface FeedEntryLead {

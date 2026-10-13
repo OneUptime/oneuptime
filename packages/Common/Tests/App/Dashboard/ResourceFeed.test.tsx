@@ -106,9 +106,9 @@ import ObjectID from "../../../Types/ObjectID";
 import { Green500 } from "../../../Types/BrandColors";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Includes from "../../../Types/BaseDatabase/Includes";
-import { FEED_PAGE_SIZE } from "../../../UI/Components/Feed/FeedOptions";
 import {
   FEED_OPTIONS_TEXT,
+  FEED_PAGE_SIZE,
   FILTERED_FEED_NO_ITEMS_MESSAGE,
 } from "../../../UI/Components/Feed/FeedOptions";
 import { getSortOrderStorageKey } from "../../../UI/Components/Feed/useFeedOptions";
@@ -450,18 +450,14 @@ describe("ResourceFeed", () => {
     renderFeed();
 
     await waitFor(() => {
-      expect(
-        screen.getByText(`activity-${PAGE_AND_TWO}`),
-      ).toBeInTheDocument();
+      expect(screen.getByText(`activity-${PAGE_AND_TWO}`)).toBeInTheDocument();
     });
 
     const visibleActivity: Array<HTMLElement> =
       screen.getAllByText(/activity-\d+/);
     expect(visibleActivity).toHaveLength(FEED_PAGE_SIZE);
     expect(visibleActivity[0]).toHaveTextContent(`activity-${PAGE_AND_TWO}`);
-    expect(visibleActivity[FEED_PAGE_SIZE - 1]).toHaveTextContent(
-      "activity-3",
-    );
+    expect(visibleActivity[FEED_PAGE_SIZE - 1]).toHaveTextContent("activity-3");
     expect(screen.queryByText("activity-2")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: MORE }));
@@ -562,9 +558,7 @@ describe("ResourceFeed", () => {
 
     fireEvent.click(screen.getByRole("button", { name: MORE }));
     await waitFor(() => {
-      expect(screen.getAllByText(/live-entry-/)).toHaveLength(
-        PAGE_AND_TWO + 1,
-      );
+      expect(screen.getAllByText(/live-entry-/)).toHaveLength(PAGE_AND_TWO + 1);
     });
 
     const labels: Array<string> = screen
@@ -604,9 +598,7 @@ describe("ResourceFeed", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: MORE }));
     await waitFor(() => {
-      expect(screen.getAllByText(/resource-entry-/)).toHaveLength(
-        PAGE_AND_TWO,
-      );
+      expect(screen.getAllByText(/resource-entry-/)).toHaveLength(PAGE_AND_TWO);
     });
 
     view.rerender(getFeedElement(nextClusterId));
@@ -848,9 +840,7 @@ describe("getIconForEventType", () => {
         IconProp.PencilSquare,
       );
       expect(getIconForEventType(`${model}Archived`)).toBe(IconProp.Archive);
-      expect(getIconForEventType(`${model}Restored`)).toBe(
-        IconProp.Unarchive,
-      );
+      expect(getIconForEventType(`${model}Restored`)).toBe(IconProp.Unarchive);
     }
   });
 

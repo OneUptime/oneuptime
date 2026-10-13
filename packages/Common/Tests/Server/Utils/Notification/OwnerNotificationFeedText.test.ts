@@ -78,10 +78,26 @@ describe("what owners were told", () => {
   });
 
   test.each<["incident" | "alert", number, string]>([
-    ["incident", 1, "Owners were notified that 1 incident was added to this episode."],
-    ["incident", 3, "Owners were notified that 3 incidents were added to this episode."],
-    ["alert", 1, "Owners were notified that 1 alert was added to this episode."],
-    ["alert", 12, "Owners were notified that 12 alerts were added to this episode."],
+    [
+      "incident",
+      1,
+      "Owners were notified that 1 incident was added to this episode.",
+    ],
+    [
+      "incident",
+      3,
+      "Owners were notified that 3 incidents were added to this episode.",
+    ],
+    [
+      "alert",
+      1,
+      "Owners were notified that 1 alert was added to this episode.",
+    ],
+    [
+      "alert",
+      12,
+      "Owners were notified that 12 alerts were added to this episode.",
+    ],
   ])(
     "members added to an episode: %s x%p",
     (memberNoun: "incident" | "alert", count: number, expected: string) => {
@@ -105,13 +121,13 @@ describe("what owners were told", () => {
 describe("who was notified", () => {
   test("is a list, one person per line - not lines run into one paragraph", () => {
     const details: string =
-      OwnerNotificationFeedText.notifiedLine(
+      OwnerNotificationFeedText.notifiedLineMarkdown(
         OwnerNotificationFeedText.nameAndEmail({
           name: "Nitin Kumar",
           email: "nitin@example.com",
         }),
       ) +
-      OwnerNotificationFeedText.notifiedLine(
+      OwnerNotificationFeedText.notifiedLineMarkdown(
         FeedMarkdown.link("Aidil Rahman", "https://oneuptime.com/u/a"),
       );
 
@@ -136,7 +152,7 @@ describe("who was notified", () => {
   });
 
   test("a name cannot start a list or a heading of its own", () => {
-    const line: string = OwnerNotificationFeedText.notifiedLine(
+    const line: string = OwnerNotificationFeedText.notifiedLineMarkdown(
       OwnerNotificationFeedText.nameAndEmail({
         name: "# Heading\n- injected",
         email: "x@example.com",

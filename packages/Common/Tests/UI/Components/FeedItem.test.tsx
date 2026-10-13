@@ -153,7 +153,9 @@ describe("who did it", () => {
 
     const lead: HTMLElement = screen.getByTestId("feed-entry-lead");
 
-    expect(lead.textContent).toBe(`**[Nitin Kumar](${LINK})** is no longer on call.`);
+    expect(lead.textContent).toBe(
+      `**[Nitin Kumar](${LINK})** is no longer on call.`,
+    );
     expect(within(lead).getByTestId("feed-entry-avatar")).toBeInTheDocument();
   });
 
@@ -191,7 +193,9 @@ describe("who did it", () => {
 
   test("an entry nobody in particular did has no name and no avatar", () => {
     renderEntry({
-      item: item({ textInMarkdown: "🔔 Owners were notified of the new note." }),
+      item: item({
+        textInMarkdown: "🔔 Owners were notified of the new note.",
+      }),
     });
 
     expect(screen.queryByTestId("feed-entry-avatar")).not.toBeInTheDocument();
@@ -243,9 +247,9 @@ describe("the time", () => {
     const time: HTMLElement = screen.getByTestId("feed-entry-time");
 
     expect(time).toHaveTextContent("3:25 PM");
-    expect(
-      screen.getByTestId("feed-entry-relative-time"),
-    ).toHaveTextContent("12 min. ago");
+    expect(screen.getByTestId("feed-entry-relative-time")).toHaveTextContent(
+      "12 min. ago",
+    );
     expect(time.querySelector("time")).toHaveAttribute(
       "dateTime",
       "2026-10-13T07:25:00.000Z",
@@ -313,15 +317,18 @@ describe("the details", () => {
     ["none at all", undefined],
     ["an empty string", ""],
     ["a cause nobody gave", "**Cause:**\n"],
-  ])("there is no toggle for %s", (_label: string, more: string | undefined) => {
-    renderEntry({
-      item: item(more === undefined ? {} : { moreTextInMarkdown: more }),
-    });
+  ])(
+    "there is no toggle for %s",
+    (_label: string, more: string | undefined) => {
+      renderEntry({
+        item: item(more === undefined ? {} : { moreTextInMarkdown: more }),
+      });
 
-    expect(
-      screen.queryByTestId("feed-entry-details-toggle"),
-    ).not.toBeInTheDocument();
-  });
+      expect(
+        screen.queryByTestId("feed-entry-details-toggle"),
+      ).not.toBeInTheDocument();
+    },
+  );
 });
 
 describe("the kind", () => {

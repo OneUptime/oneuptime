@@ -196,10 +196,10 @@ import OnCallDutyPolicyFeed, {
 } from "../../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import { FEED_PAGE_SIZE } from "../../../UI/Components/Feed/FeedOptions";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  FEED_PAGE_SIZE,
   FILTERED_FEED_NO_ITEMS_MESSAGE,
   getFeedEventTypeLabel,
 } from "../../../UI/Components/Feed/FeedOptions";
@@ -243,8 +243,7 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(MonitorFeedEventType),
     storageKey: "monitor",
     iconFn: getMonitorFeedEventIcon,
-    noItemsMessage:
-      "Nothing has happened to this monitor yet.",
+    noItemsMessage: "Nothing has happened to this monitor yet.",
     hasActionsMenu: false,
   },
   {
@@ -259,8 +258,7 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(IncidentFeedEventType),
     storageKey: "incident",
     iconFn: getIncidentFeedEventIcon,
-    noItemsMessage:
-      "Nothing has happened to this incident yet.",
+    noItemsMessage: "Nothing has happened to this incident yet.",
     hasActionsMenu: true,
   },
   {
@@ -275,8 +273,7 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(AlertFeedEventType),
     storageKey: "alert",
     iconFn: getAlertFeedEventIcon,
-    noItemsMessage:
-      "Nothing has happened to this alert yet.",
+    noItemsMessage: "Nothing has happened to this alert yet.",
     hasActionsMenu: true,
   },
   {
@@ -291,8 +288,7 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(IncidentEpisodeFeedEventType),
     storageKey: "incident-episode",
     iconFn: getIncidentEpisodeFeedEventIcon,
-    noItemsMessage:
-      "Nothing has happened to this episode yet.",
+    noItemsMessage: "Nothing has happened to this episode yet.",
     hasActionsMenu: true,
   },
   {
@@ -307,8 +303,7 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(AlertEpisodeFeedEventType),
     storageKey: "alert-episode",
     iconFn: getAlertEpisodeFeedEventIcon,
-    noItemsMessage:
-      "Nothing has happened to this episode yet.",
+    noItemsMessage: "Nothing has happened to this episode yet.",
     hasActionsMenu: true,
   },
   {
@@ -341,8 +336,7 @@ const FEED_CASES: Array<FeedCase> = [
     enumValues: Object.values(OnCallDutyPolicyFeedEventType),
     storageKey: "on-call-policy",
     iconFn: getOnCallDutyPolicyFeedEventIcon,
-    noItemsMessage:
-      "Nothing has happened to this on-call policy yet.",
+    noItemsMessage: "Nothing has happened to this on-call policy yet.",
     hasActionsMenu: false,
   },
 ];
@@ -1022,11 +1016,11 @@ describe("the event type checklist", () => {
             eventType,
             `fixture-${eventType}`,
             /*
-           * Ten minutes apart: this suite is about which rows are asked for
-           * and drawn, so no two of a kind arrive close enough to fold into
-           * one entry (FeedTimeline's bursts have suites of their own).
-           */
-          new Date(Date.UTC(2026, 8, 1, 0, index * 10)),
+             * Ten minutes apart: this suite is about which rows are asked for
+             * and drawn, so no two of a kind arrive close enough to fold into
+             * one entry (FeedTimeline's bursts have suites of their own).
+             */
+            new Date(Date.UTC(2026, 8, 1, 0, index * 10)),
           );
         },
       );
@@ -1140,7 +1134,12 @@ describe("Oldest first", () => {
       const remounted: RenderResult = renderFeedCase(feedCase);
       await waitForRequestCount(3);
 
-      expectWindow(feedCase, getRequest(2), SortOrder.Ascending, FEED_PAGE_SIZE);
+      expectWindow(
+        feedCase,
+        getRequest(2),
+        SortOrder.Ascending,
+        FEED_PAGE_SIZE,
+      );
       expectUnfilteredQuery(feedCase, getRequest(2));
 
       // Going back to the default forgets the choice rather than storing it.
@@ -1446,7 +1445,12 @@ describe("the window after More", () => {
       chooseSortOrder("Oldest first");
       await waitForRequestCount(5);
 
-      expectWindow(feedCase, getRequest(4), SortOrder.Ascending, FEED_PAGE_SIZE);
+      expectWindow(
+        feedCase,
+        getRequest(4),
+        SortOrder.Ascending,
+        FEED_PAGE_SIZE,
+      );
       expectFilteredQuery(feedCase, getRequest(4), [eventType]);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
@@ -1623,7 +1627,12 @@ describe("a later visit", () => {
       toggleEventType(eventType);
       await waitForRequestCount(3);
 
-      expectWindow(feedCase, getRequest(2), SortOrder.Ascending, FEED_PAGE_SIZE);
+      expectWindow(
+        feedCase,
+        getRequest(2),
+        SortOrder.Ascending,
+        FEED_PAGE_SIZE,
+      );
       expectFilteredQuery(feedCase, getRequest(2), [eventType]);
 
       view.unmount();
@@ -1679,7 +1688,12 @@ describe("a later visit", () => {
       renderFeedCase(feedCase);
       await waitForRequestCount(2);
 
-      expectWindow(feedCase, getRequest(1), SortOrder.Ascending, FEED_PAGE_SIZE);
+      expectWindow(
+        feedCase,
+        getRequest(1),
+        SortOrder.Ascending,
+        FEED_PAGE_SIZE,
+      );
       expectUnfilteredQuery(feedCase, getRequest(1));
     },
   );
@@ -1705,7 +1719,12 @@ describe("moving to another resource", () => {
       chooseSortOrder("Oldest first");
       await waitForRequestCount(3);
 
-      expectWindow(feedCase, getRequest(2), SortOrder.Ascending, FEED_PAGE_SIZE);
+      expectWindow(
+        feedCase,
+        getRequest(2),
+        SortOrder.Ascending,
+        FEED_PAGE_SIZE,
+      );
       expectFilteredQuery(feedCase, getRequest(2), [eventType]);
       expect(getFilterBoxTitle()).toBe(
         `Showing 1 of ${feedCase.enumValues.length} event types`,
@@ -1837,7 +1856,12 @@ describe("the ⋯ button", () => {
       );
       await waitForRequestCount(4);
 
-      expectWindow(feedCase, getRequest(3), SortOrder.Ascending, FEED_PAGE_SIZE);
+      expectWindow(
+        feedCase,
+        getRequest(3),
+        SortOrder.Ascending,
+        FEED_PAGE_SIZE,
+      );
       expectFilteredQuery(feedCase, getRequest(3), [eventType]);
       expect(screen.queryByRole("menu")).toBeNull();
     },

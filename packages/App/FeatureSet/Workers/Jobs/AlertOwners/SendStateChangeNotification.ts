@@ -389,25 +389,24 @@ RunCron(
           eventType,
         });
 
-        moreAlertFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
-          await UserService.getUserMarkdownString({
-            userId: user.id!,
-            projectId: alertStateTimeline.projectId!,
-          }),
-        );
+        moreAlertFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            await UserService.getUserMarkdownString({
+              userId: user.id!,
+              projectId: alertStateTimeline.projectId!,
+            }),
+          );
       }
-
 
       await AlertFeedService.createAlertFeedItem({
         alertId: alert.id!,
         projectId: alert.projectId!,
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown:
-          OwnerNotificationFeedText.stateChanged({
-            recordNoun: "alert",
-            stateName: alertState.name,
-          }),
+        feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
+          recordNoun: "alert",
+          stateName: alertState.name,
+        }),
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
         /*
          * The feed only. That the owners were told is a side effect of the

@@ -138,73 +138,71 @@ const Feed: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="flow-root" data-testid="feed">
-      {days.map(
-        (day: FeedTimelineDay<FeedItemProps>, dayIndex: number) => {
-          const headingId: string = `${idPrefix}-day-${day.dayKey}`;
+      {days.map((day: FeedTimelineDay<FeedItemProps>, dayIndex: number) => {
+        const headingId: string = `${idPrefix}-day-${day.dayKey}`;
 
-          return (
-            <section
-              key={day.dayKey}
-              aria-labelledby={headingId}
-              className={dayIndex > 0 ? "mt-2" : ""}
-              data-testid="feed-day"
-            >
-              <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-                <h3
-                  id={headingId}
-                  className="text-sm font-semibold text-gray-900"
-                  data-testid="feed-day-heading"
-                >
-                  {day.label}
-                </h3>
-                {day.relativeLabel && (
-                  <span
-                    className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
-                    data-testid="feed-day-relative"
-                  >
-                    {day.relativeLabel}
-                  </span>
-                )}
-                {day.zoneName && (
-                  <Tooltip
-                    text={translator.translateTemplate(FEED_TEXT.timesAreIn, {
-                      zone: day.zoneName,
-                    })}
-                  >
-                    <span
-                      className="text-xs text-gray-500"
-                      data-testid="feed-day-zone"
-                    >
-                      {day.zoneName}
-                    </span>
-                  </Tooltip>
-                )}
+        return (
+          <section
+            key={day.dayKey}
+            aria-labelledby={headingId}
+            className={dayIndex > 0 ? "mt-2" : ""}
+            data-testid="feed-day"
+          >
+            <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h3
+                id={headingId}
+                className="text-sm font-semibold text-gray-900"
+                data-testid="feed-day-heading"
+              >
+                {day.label}
+              </h3>
+              {day.relativeLabel && (
                 <span
-                  className="h-px min-w-4 flex-1 bg-gray-100"
-                  aria-hidden="true"
-                ></span>
-              </div>
-              <ol role="list">
-                {day.entries.map(
-                  (
-                    entry: FeedTimelineEntry<FeedItemProps>,
-                    entryIndex: number,
-                  ) => {
-                    return (
-                      <FeedItem
-                        key={entry.item.key}
-                        entry={entry}
-                        isLastInDay={entryIndex === day.entries.length - 1}
-                        onToggleBurst={toggleBurst}
-                      />
-                    );
-                  },
-                )}
-              </ol>
-            </section>
-          );
-        },
-      )}
+                  className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
+                  data-testid="feed-day-relative"
+                >
+                  {day.relativeLabel}
+                </span>
+              )}
+              {day.zoneName && (
+                <Tooltip
+                  text={translator.translateTemplate(FEED_TEXT.timesAreIn, {
+                    zone: day.zoneName,
+                  })}
+                >
+                  <span
+                    className="text-xs text-gray-500"
+                    data-testid="feed-day-zone"
+                  >
+                    {day.zoneName}
+                  </span>
+                </Tooltip>
+              )}
+              <span
+                className="h-px min-w-4 flex-1 bg-gray-100"
+                aria-hidden="true"
+              ></span>
+            </div>
+            <ol role="list">
+              {day.entries.map(
+                (
+                  entry: FeedTimelineEntry<FeedItemProps>,
+                  entryIndex: number,
+                ) => {
+                  return (
+                    <FeedItem
+                      key={entry.item.key}
+                      entry={entry}
+                      isLastInDay={entryIndex === day.entries.length - 1}
+                      onToggleBurst={toggleBurst}
+                    />
+                  );
+                },
+              )}
+            </ol>
+          </section>
+        );
+      })}
       {props.hasMore === true && (
         <div className="mt-1 flex justify-center border-t border-gray-100 pt-4">
           <Button

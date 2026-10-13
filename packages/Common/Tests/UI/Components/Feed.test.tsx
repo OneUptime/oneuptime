@@ -45,7 +45,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
  * clock is fixed at 3:40 PM on Tuesday, October 13, 2026 in Singapore.
  */
 
-const NARROW_SPACES: RegExp = /[  ]/g;
+const NARROW_SPACES: RegExp = /[\u202f\u00a0]/g;
 
 const textOf: (element: HTMLElement) => string = (
   element: HTMLElement,

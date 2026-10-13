@@ -296,14 +296,14 @@ RunCron(
           eventType,
         });
 
-        moreScheduledMaintenanceFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
-          await UserService.getUserMarkdownString({
-            userId: user.id!,
-            projectId: scheduledMaintenanceStateTimeline.projectId!,
-          }),
-        );
+        moreScheduledMaintenanceFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            await UserService.getUserMarkdownString({
+              userId: user.id!,
+              projectId: scheduledMaintenanceStateTimeline.projectId!,
+            }),
+          );
       }
-
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id!,
@@ -311,11 +311,10 @@ RunCron(
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown:
-          OwnerNotificationFeedText.stateChanged({
-            recordNoun: "scheduled maintenance event",
-            stateName: scheduledMaintenanceState.name,
-          }),
+        feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
+          recordNoun: "scheduled maintenance event",
+          stateName: scheduledMaintenanceState.name,
+        }),
         moreInformationInMarkdown:
           moreScheduledMaintenanceFeedInformationInMarkdown,
         /*

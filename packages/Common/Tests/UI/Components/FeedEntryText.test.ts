@@ -62,12 +62,9 @@ describe("the decoration an entry opens with", () => {
       `**🚫 [Incident INC-8](${LINK}) On-Call Alert Skipped — nobody was notified**`,
       `**[Incident INC-8](${LINK}) On-Call Alert Skipped — nobody was notified**`,
     ],
-  ])(
-    "is taken off %s",
-    (_label: string, stored: string, shown: string) => {
-      expect(stripLeadingDecoration(stored)).toBe(shown);
-    },
-  );
+  ])("is taken off %s", (_label: string, stored: string, shown: string) => {
+    expect(stripLeadingDecoration(stored)).toBe(shown);
+  });
 
   test("leading spaces are kept where they were", () => {
     expect(stripLeadingDecoration("  🔔 Owners were notified.")).toBe(
@@ -93,7 +90,9 @@ describe("the decoration an entry opens with", () => {
   test("only the start is read: a megabyte-long entry is handled in time and keeps its tail", () => {
     const tail: string = "x".repeat(4 * 1024 * 1024);
     const started: number = Date.now();
-    const result: string = stripLeadingDecoration(`📄 posted a log:\n\n${tail}`);
+    const result: string = stripLeadingDecoration(
+      `📄 posted a log:\n\n${tail}`,
+    );
 
     expect(Date.now() - started).toBeLessThan(500);
     expect(result.startsWith("posted a log:")).toBe(true);
@@ -138,7 +137,11 @@ describe("the sentence that follows the person's name", () => {
       "👨🏻‍👩🏻‍👦🏻 Removed team **Payments** from the [Incident INC-8](x) as the owner.",
       "removed team **Payments** from the [Incident INC-8](x) as the owner.",
     ],
-    ["Started", "Started on-call policy **X**.", "started on-call policy **X**."],
+    [
+      "Started",
+      "Started on-call policy **X**.",
+      "started on-call policy **X**.",
+    ],
   ])(
     "a sentence that opens with '%s' reads in lower case after the name",
     (_verb: string, stored: string, expected: string) => {
@@ -159,19 +162,16 @@ describe("the sentence that follows the person's name", () => {
   });
 
   test.each<[string, string]>([
-    [
-      "a heading",
-      "#### 🚨 Incident INC-8 Created:\n\n**Checkout down**",
-    ],
+    ["a heading", "#### 🚨 Incident INC-8 Created:\n\n**Checkout down**"],
     ["a list", "- one\n- two"],
     ["a quote", "> quoted"],
     ["a table", "| a | b |\n| - | - |"],
     ["a code fence", "```\ncode\n```"],
+    ["a noun phrase", "**[Incident INC-8](x) was updated.**"],
     [
-      "a noun phrase",
-      "**[Incident INC-8](x) was updated.**",
+      "a capitalised sentence that is not an action",
+      "Episode severity changed to **SEV1**",
     ],
-    ["a capitalised sentence that is not an action", "Episode severity changed to **SEV1**"],
   ])(
     "an entry that opens with %s keeps the name on a line of its own",
     (_label: string, stored: string) => {
@@ -255,11 +255,7 @@ describe("whether an entry has details to show", () => {
     ["a cause no one gave, with a space", "**Cause:** \n", false],
     ["a lone label", "Message:", false],
     ["a cause", "**Cause:**\nThe pool was set to 5.", true],
-    [
-      "who was notified",
-      "- [Nitin](x)\n- [Aidil](y)\n",
-      true,
-    ],
+    ["who was notified", "- [Nitin](x)\n- [Aidil](y)\n", true],
     [
       "the old notified lines",
       "**Notified:** Nitin (nitin@example.com)\n",

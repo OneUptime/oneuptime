@@ -310,14 +310,14 @@ RunCron(
           eventType,
         });
 
-        moreEpisodeFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
-          await UserService.getUserMarkdownString({
-            userId: user.id!,
-            projectId: episodeStateTimeline.projectId!,
-          }),
-        );
+        moreEpisodeFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            await UserService.getUserMarkdownString({
+              userId: user.id!,
+              projectId: episodeStateTimeline.projectId!,
+            }),
+          );
       }
-
 
       await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
         incidentEpisodeId: episode.id!,
@@ -325,11 +325,10 @@ RunCron(
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown:
-          OwnerNotificationFeedText.stateChanged({
-            recordNoun: "incident episode",
-            stateName: incidentState.name,
-          }),
+        feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
+          recordNoun: "incident episode",
+          stateName: incidentState.name,
+        }),
         moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,
       });
     }

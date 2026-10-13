@@ -138,17 +138,16 @@ export type ResolveResourceFeedKindFunction = (data: {
 }) => FeedEntryKind;
 
 // The feed's own mapping first, then the shared suffix rules.
-export const resolveResourceFeedKind: ResolveResourceFeedKindFunction =
-  (data: {
-    eventType: string;
-    getKind?: GetResourceFeedKindFunction | undefined;
-  }): FeedEntryKind => {
-    const ownKind: FeedEntryKind | undefined = data.getKind
-      ? data.getKind(data.eventType)
-      : undefined;
+export const resolveResourceFeedKind: ResolveResourceFeedKindFunction = (data: {
+  eventType: string;
+  getKind?: GetResourceFeedKindFunction | undefined;
+}): FeedEntryKind => {
+  const ownKind: FeedEntryKind | undefined = data.getKind
+    ? data.getKind(data.eventType)
+    : undefined;
 
-    return ownKind || getKindForEventType(data.eventType);
-  };
+  return ownKind || getKindForEventType(data.eventType);
+};
 
 export const resolveResourceFeedIcon: (data: {
   eventType: string;

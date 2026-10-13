@@ -255,18 +255,18 @@ RunCron(
           eventType,
         });
 
-        moreScheduledMaintenanceFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
-          OwnerNotificationFeedText.nameAndEmail({
-            name: user.name?.toString(),
-            email: user.email?.toString(),
-          }),
-        );
+        moreScheduledMaintenanceFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            OwnerNotificationFeedText.nameAndEmail({
+              name: user.name?.toString(),
+              email: user.email?.toString(),
+            }),
+          );
       }
 
       const isPrivateNote: boolean = privateNoteIds.includes(
         note._id!.toString(),
       );
-
 
       const scheduledMaintenanceFeedText: string =
         OwnerNotificationFeedText.notePosted({

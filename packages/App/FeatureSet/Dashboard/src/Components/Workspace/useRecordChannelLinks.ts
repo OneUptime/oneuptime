@@ -66,9 +66,10 @@ export default function useRecordChannelLinks(data: {
 }): Array<WorkspaceChannelLink> {
   const recordKey: string = `${data.recordType}:${data.recordId.toString()}`;
   const [loaded, setLoaded] = useState<LoadedLinks | null>(null);
-  const [recheck, setRecheck] = useState<{ recordKey: string; count: number }>(
-    { recordKey, count: 0 },
-  );
+  const [recheck, setRecheck] = useState<{ recordKey: string; count: number }>({
+    recordKey,
+    count: 0,
+  });
 
   const attempt: number = recheck.recordKey === recordKey ? recheck.count : 0;
 

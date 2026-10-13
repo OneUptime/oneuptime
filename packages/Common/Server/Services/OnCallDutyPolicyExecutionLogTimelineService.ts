@@ -203,7 +203,8 @@ export class Service extends DatabaseService<Model> {
               ?.name,
           scheduleName:
             onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
-          teamName: onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name,
+          teamName:
+            onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name,
           recipient: recipient,
           overriddenUser: overriddenUser,
           statusMessage: onCallDutyPolicyExecutionLogTimeline.statusMessage,

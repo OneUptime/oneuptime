@@ -288,7 +288,8 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
           feed={feed}
           noItemsMessage={getFeedNoItemsMessage({
             options: feedOptions.options,
-            noItemsMessage: "Nothing has happened to this scheduled maintenance event yet.",
+            noItemsMessage:
+              "Nothing has happened to this scheduled maintenance event yet.",
           })}
           sortOrder={feedOptions.options.sortOrder}
         />
