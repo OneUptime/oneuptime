@@ -328,7 +328,9 @@ describe("Managing Applications: how an application is created", () => {
     );
     expect(service).toContain("newApp.name = data.appIdentifier;");
     expect(created).toContain("compared without regard to case");
-    expect(created).toContain("creates the application when the project has none");
+    expect(created).toContain(
+      "creates the application when the project has none",
+    );
   });
 
   it("runs the label and owner rules when an application is created, discovered ones included", () => {
@@ -345,14 +347,19 @@ describe("Managing Applications: how an application is created", () => {
     expect(created).toContain('rules["Label and owner<br/>rules run"]');
     expect(
       section(RUM_APPLICATIONS, "## Label rules and owner rules"),
-    ).toContain("Rules run when an application is created, discovered ones included.");
+    ).toContain(
+      "Rules run when an application is created, discovered ones included.",
+    );
   });
 
   it("renames on the Application Details card, where the app name is shown and never changes", () => {
     const settings: string = source("applicationSettings");
     const model: string = source("rumApplicationModel");
     const appIdentifier: string =
-      model.split("public appIdentifier?:")[0]?.split("@ColumnAccessControl({").pop() || "";
+      model
+        .split("public appIdentifier?:")[0]
+        ?.split("@ColumnAccessControl({")
+        .pop() || "";
 
     expect(settings).toContain('title="Application Details"');
     expect(settings).toContain('title: "Display Name",');
@@ -363,7 +370,10 @@ describe("Managing Applications: how an application is created", () => {
       'translationKey("Edit Details")',
     );
 
-    const rename: string = section(RUM_APPLICATIONS, "### Rename an application");
+    const rename: string = section(
+      RUM_APPLICATIONS,
+      "### Rename an application",
+    );
 
     for (const label of [
       "Display Name",
@@ -393,7 +403,10 @@ describe("Managing Applications: how an application is created", () => {
       'singularName: "RUM Application",',
     );
 
-    const add: string = section(RUM_APPLICATIONS, "### Add an application yourself");
+    const add: string = section(
+      RUM_APPLICATIONS,
+      "### Add an application yourself",
+    );
 
     expect(stepCount(add)).toBe(3);
 
@@ -549,7 +562,11 @@ describe("Managing Applications: label rules and owner rules", () => {
         "Application Name",
         "Application Description",
       ]) {
-        expect({ page, title, inForm: form.includes(`title: "${title}",`) }).toEqual({
+        expect({
+          page,
+          title,
+          inForm: form.includes(`title: "${title}",`),
+        }).toEqual({
           page,
           title,
           inForm: true,
@@ -570,11 +587,15 @@ describe("Managing Applications: label rules and owner rules", () => {
       expect(form).toContain(step);
     }
 
-    expect(rules.split("\n").filter((line: string): boolean => {
-      return NUMBERED_ITEM.test(line);
-    })).toHaveLength(2);
+    expect(
+      rules.split("\n").filter((line: string): boolean => {
+        return NUMBERED_ITEM.test(line);
+      }),
+    ).toHaveLength(2);
     expect(rules).toContain("1. On **Match**");
-    expect(rules).toContain("2. On **Labels**, or **Owners** for an owner rule");
+    expect(rules).toContain(
+      "2. On **Labels**, or **Owners** for an owner rule",
+    );
   });
 
   it("runs a rule over the applications you already have with Run Now", () => {
@@ -615,7 +636,10 @@ describe("Managing Applications: label rules and owner rules", () => {
 
     expect(ownerPages).toEqual([]);
 
-    for (const model of ["RumApplicationOwnerUser", "RumApplicationOwnerTeam"]) {
+    for (const model of [
+      "RumApplicationOwnerUser",
+      "RumApplicationOwnerTeam",
+    ]) {
       const route: string | undefined = fs
         .readFileSync(
           path.join(
@@ -656,7 +680,9 @@ describe("Managing Applications: retention", () => {
 
     expect(card).toContain('title="Session Replay Retention"');
     expect(card).toContain('title: "Edit on Replay Policy",');
-    expect(card).toContain('other: "Session replays are kept for {{count}} days."');
+    expect(card).toContain(
+      'other: "Session replays are kept for {{count}} days."',
+    );
     expect(source("applicationSettings")).toContain(
       "<SessionReplayRetentionSettingsCard",
     );
@@ -673,8 +699,12 @@ describe("Managing Applications: retention", () => {
     const leftover: string = source("retentionLeftover");
 
     expect(leftover).toContain('title: translationKey("Retention Override")');
-    expect(leftover).toContain('removeButton: translationKey("Remove Override")');
-    expect(retention).toContain("**Retention Override** card with a **Remove Override** button");
+    expect(leftover).toContain(
+      'removeButton: translationKey("Remove Override")',
+    );
+    expect(retention).toContain(
+      "**Retention Override** card with a **Remove Override** button",
+    );
     expect(retention).toContain("Scale plan and above on OneUptime Cloud");
   });
 
@@ -740,7 +770,9 @@ describe("Managing Applications: archiving, permissions and alerts", () => {
     expect(source("archiveCard")).toContain(
       'title: isArchived ? "Unarchive" : "Archive",',
     );
-    expect(source("applicationSettings")).toContain("<ArchiveResourceCard<RumApplication>");
+    expect(source("applicationSettings")).toContain(
+      "<ArchiveResourceCard<RumApplication>",
+    );
 
     const applicationMenu: string = source("applicationSideMenu");
 
@@ -748,9 +780,14 @@ describe("Managing Applications: archiving, permissions and alerts", () => {
       applicationMenu.split('<SideMenuSection title="Advanced">')[1],
     ).toContain('title: "Delete Application",');
 
-    const archiving: string = section(RUM_APPLICATIONS, "## Archiving and deleting");
+    const archiving: string = section(
+      RUM_APPLICATIONS,
+      "## Archiving and deleting",
+    );
 
-    expect(archiving).toContain("**Real User Monitoring → Advanced → Archived**");
+    expect(archiving).toContain(
+      "**Real User Monitoring → Advanced → Archived**",
+    );
     expect(archiving).toContain("**Delete Application**");
   });
 
@@ -762,7 +799,10 @@ describe("Managing Applications: archiving, permissions and alerts", () => {
     expect(named.length).toBeGreaterThan(10);
 
     for (const code of named) {
-      expect({ code, exists: Object.values(Permission).includes(code as Permission) }).toEqual({
+      expect({
+        code,
+        exists: Object.values(Permission).includes(code as Permission),
+      }).toEqual({
         code,
         exists: true,
       });
@@ -786,7 +826,8 @@ describe("Managing Applications: archiving, permissions and alerts", () => {
     const application: string = source("rumApplicationModel");
     const session: string = source("rumSessionModel");
     const sessionReaders: string =
-      session.split("Permission.ReadRumSessionReplay,")[0]?.split("[").pop() || "";
+      session.split("Permission.ReadRumSessionReplay,")[0]?.split("[").pop() ||
+      "";
 
     expect(application).toContain("Permission.Viewer,");
     expect(sessionReaders).not.toContain("Permission.Viewer");
@@ -816,9 +857,11 @@ describe("Managing Applications: archiving, permissions and alerts", () => {
     ).toEqual(categories);
 
     for (const template of templates) {
-      const row: Array<string> = rows.find((candidate: Array<string>): boolean => {
-        return candidate[0] === template.category;
-      }) as Array<string>;
+      const row: Array<string> = rows.find(
+        (candidate: Array<string>): boolean => {
+          return candidate[0] === template.category;
+        },
+      ) as Array<string>;
 
       if (template.category === "Session Replay") {
         // The four budget alerts are named on the Session Replay page.
@@ -826,7 +869,10 @@ describe("Managing Applications: archiving, permissions and alerts", () => {
         continue;
       }
 
-      expect({ name: template.name, listed: (row[1] as string).includes(template.name) }).toEqual({
+      expect({
+        name: template.name,
+        listed: (row[1] as string).includes(template.name),
+      }).toEqual({
         name: template.name,
         listed: true,
       });
@@ -881,25 +927,38 @@ describe("Session Replay: the policy, as Edit Policy names it", () => {
     );
     expect(columnDefault("sessionReplaySamplePercentage")).toBe("100");
     expect(columnDefault("sessionReplayCaptureUserIdentity")).toBe("true");
-    expect(columnDefault("sessionReplaySameOriginTracePropagation")).toBe("true");
+    expect(columnDefault("sessionReplaySameOriginTracePropagation")).toBe(
+      "true",
+    );
     expect(columnDefault("sessionReplayCaptureGeo")).toBe("true");
     expect(columnDefault("sessionReplayRecordCanvas")).toBe("false");
   });
 
   it("names the steps of Edit Policy the page sends readers to", () => {
-    for (const step of ["Recording", "Masking", "Consent & Identity", "Performance & Tracing", "Limits"]) {
+    for (const step of [
+      "Recording",
+      "Masking",
+      "Consent & Identity",
+      "Performance & Tracing",
+      "Limits",
+    ]) {
       expect(policy).toContain(`{ title: "${step}", id: "`);
     }
 
     const page: string = englishPage(SESSION_REPLAY);
 
-    expect(page).toContain("on the **Performance & Tracing** step of **Edit Policy**");
+    expect(page).toContain(
+      "on the **Performance & Tracing** step of **Edit Policy**",
+    );
     expect(page).toContain("on the **Recording** step of **Edit Policy**");
     expect(englishPage(RUM_APPLICATIONS)).toContain("**Edit Policy → Limits**");
   });
 
   it("names the performance budgets as the form titles them", () => {
-    const triggers: string = section(SESSION_REPLAY, "## Performance capture triggers");
+    const triggers: string = section(
+      SESSION_REPLAY,
+      "## Performance capture triggers",
+    );
 
     for (const column of [
       "sessionReplayLcpBudgetMs",
@@ -916,19 +975,30 @@ describe("Session Replay: the policy, as Edit Policy names it", () => {
     expect(titles.get("sessionReplayIgnoreErrorPatterns")).toBe(
       "Ignored error patterns",
     );
-    expect(recorder).toContain("export const MAX_IGNORE_PATTERNS: number = 20;");
+    expect(recorder).toContain(
+      "export const MAX_IGNORE_PATTERNS: number = 20;",
+    );
     expect(recorder).toContain(
       "export const MAX_IGNORE_PATTERN_LENGTH: number = 200;",
     );
     // Recorded, but never the reason an error-triggered session uploads.
-    expect(recorder).toContain("isTriggerWorthy is false for errors that are recorded");
+    expect(recorder).toContain(
+      "isTriggerWorthy is false for errors that are recorded",
+    );
     expect(recorder).toContain('cross-origin "Script error." noise');
 
-    const triggers: string = section(SESSION_REPLAY, "## Performance capture triggers");
+    const triggers: string = section(
+      SESSION_REPLAY,
+      "## Performance capture triggers",
+    );
 
     expect(triggers).toContain("**Ignored error patterns**");
-    expect(triggers).toContain("up to 20 regular expressions, of up to 200 characters each");
-    expect(triggers).toContain("A matching error is still recorded in the session");
+    expect(triggers).toContain(
+      "up to 20 regular expressions, of up to 200 characters each",
+    );
+    expect(triggers).toContain(
+      "A matching error is still recorded in the session",
+    );
     expect(triggers).toContain("`Script error.`");
   });
 
@@ -958,9 +1028,9 @@ describe("Session Replay: installing it", () => {
     const snippet: string = source("installSnippet");
     const applicationMenu: string = source("applicationSideMenu");
     const replaySection: string =
-      applicationMenu.split('<SideMenuSection title="Session Replay">')[1]?.split(
-        "</SideMenuSection>",
-      )[0] || "";
+      applicationMenu
+        .split('<SideMenuSection title="Session Replay">')[1]
+        ?.split("</SideMenuSection>")[0] || "";
 
     expect(documentationPage).toContain("<SessionReplaySetupGuide");
     expect(replaySection).toContain('title: "Documentation",');
@@ -969,11 +1039,15 @@ describe("Session Replay: installing it", () => {
     expect(install).toContain(
       "The application's **Documentation** page, in the **Session Replay** section of its side menu, shows this snippet",
     );
-    expect(install).toContain("with Next.js / React and Google Tag Manager versions of it");
+    expect(install).toContain(
+      "with Next.js / React and Google Tag Manager versions of it",
+    );
   });
 
   it("installs React Native in two steps", () => {
-    expect(stepCount(section(SESSION_REPLAY, "## Install in React Native"))).toBe(2);
+    expect(
+      stepCount(section(SESSION_REPLAY, "## Install in React Native")),
+    ).toBe(2);
   });
 });
 
@@ -996,22 +1070,28 @@ describe("RUM Troubleshooting: the refusals, as OneUptime sends them", () => {
   it("reads the key check's answer the way the endpoint writes it", () => {
     const ingest: string = source("otelIngest");
     const validate: string =
-      ingest.split('"/otlp/v1/validate",')[1]?.split("// Queue stats endpoint")[0] || "";
+      ingest
+        .split('"/otlp/v1/validate",')[1]
+        ?.split("// Queue stats endpoint")[0] || "";
 
     expect(validate).toContain("valid: true,");
     expect(validate).toContain("projectId: policy.projectId.toString(),");
     expect(validate).toContain("keyType: policy.keyType,");
     // Missing, unknown or revoked, switched off and expired keys are all 401.
-    expect(validate.split("statusCode: new StatusCode(401)").length - 1).toBe(3);
+    expect(validate.split("statusCode: new StatusCode(401)").length - 1).toBe(
+      3,
+    );
 
     const answers: Array<Array<string>> = tableStartingWith(
       section(RUM_TROUBLESHOOTING, "## Check the key"),
       "Answer",
     );
 
-    expect(answers.map((row: Array<string>): string => {
-      return row[0] as string;
-    })).toEqual(['`200` with `"valid": true`', '`401` with `"valid": false`']);
+    expect(
+      answers.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual(['`200` with `"valid": true`', '`401` with `"valid": false`']);
     expect(answers[0]?.[1]).toContain("`keyType`");
     expect(answers[0]?.[1]).toContain("`projectId`");
     expect(answers[1]?.[1]).toContain(
@@ -1054,9 +1134,11 @@ describe("RUM Troubleshooting: the refusals, as OneUptime sends them", () => {
       section(RUM_TROUBLESHOOTING, "## Check where the telemetry lands"),
       "Kind",
     );
-    const named: Array<string> = rows.flatMap((row: Array<string>): Array<string> => {
-      return allMatches(row[1] as string, INLINE_CODE, 1);
-    });
+    const named: Array<string> = rows.flatMap(
+      (row: Array<string>): Array<string> => {
+        return allMatches(row[1] as string, INLINE_CODE, 1);
+      },
+    );
 
     for (const attribute of named) {
       expect({ attribute, read: ingest.includes(`"${attribute}"`) }).toEqual({
@@ -1086,7 +1168,9 @@ describe("RUM Troubleshooting: the refusals, as OneUptime sends them", () => {
     expect(ingest).toMatch(
       /this\.getStringAttribute\(data\.attributes, "browser\.platform"\) \|\|\s*this\.getStringAttribute\(data\.attributes, "device\.model\.identifier"\)/,
     );
-    expect(section(RUM_TROUBLESHOOTING, "## The Clients page is empty")).toContain(
+    expect(
+      section(RUM_TROUBLESHOOTING, "## The Clients page is empty"),
+    ).toContain(
       "The **Clients** page lists `browser.platform` on the web and `device.model.identifier` on mobile.",
     );
   });

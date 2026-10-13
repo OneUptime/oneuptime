@@ -204,20 +204,19 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
  * the same words as labels: the browser's developer tools (its panels and
  * its Network panel's type filters) and a Power Pages site's settings.
  */
-export const OTHER_PRODUCTS: Readonly<Record<string, ReadonlyArray<string>>> =
-  {
-    [SESSION_REPLAY_TROUBLESHOOTING]: [
-      "Network",
-      "Img",
-      "CSS",
-      "Font",
-      "Console",
-      "Other",
-      "Security",
-      "Advanced settings",
-      "CORS",
-    ],
-  };
+export const OTHER_PRODUCTS: Readonly<Record<string, ReadonlyArray<string>>> = {
+  [SESSION_REPLAY_TROUBLESHOOTING]: [
+    "Network",
+    "Img",
+    "CSS",
+    "Font",
+    "Console",
+    "Other",
+    "Security",
+    "Advanced settings",
+    "CORS",
+  ],
+};
 
 /*
  * Bold labels of the Admin Dashboard, which a self-hosted installation's
