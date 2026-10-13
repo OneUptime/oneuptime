@@ -13,10 +13,10 @@ Import the alerts of every [Microsoft Defender XDR](https://learn.microsoft.com/
 
 ```mermaid title="From a Defender alert to a security event"
 flowchart TB
-    defender["A Defender workload<br/>raises an alert"] --> poll["OneUptime polls on<br/>the connection's interval"]
-    poll --> token["It signs in as<br/>your app registration"]
-    token --> list["It lists the alerts<br/>created since last time"]
-    list --> event["Each one is stored as<br/>a Detection Finding"]
+    defender["A Defender workload<br/>raises an alert"] --> poll["OneUptime polls<br/>on the connection's<br/>interval"]
+    poll --> token["It signs in as your<br/>app registration"]
+    token --> list["It lists the<br/>alerts created<br/>since last time"]
+    list --> event["Each is stored as<br/>a Detection Finding"]
 ```
 
 Every minute, OneUptime polls each enabled connection whose poll interval has passed. A poll signs in to Microsoft Entra ID as your app registration, asks Microsoft Graph for the alerts created since the last poll ([List alerts_v2](https://learn.microsoft.com/en-us/graph/api/security-list-alerts_v2)), and stores each one as an [OCSF](https://schema.ocsf.io/) Detection Finding event (class `2004`). Detection rules, monitors and dashboards then treat it like a security event from any other source.

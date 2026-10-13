@@ -127,10 +127,10 @@ The connections list shows **Name**, **Provider** (with the connection's Data to
 
 ```mermaid title="One poll of the managed connector"
 flowchart TB
-    poll["A poll reads the window<br/>after its cursor"] --> rule["1. Rule detections,<br/>by created time"]
-    rule --> curated["2. Curated rule detections,<br/>by created time"]
+    poll["Each poll reads one<br/>window of time"] --> rule["1. Rule detections,<br/>by created time"]
+    rule --> curated["2. Curated rule<br/>detections, by<br/>created time"]
     curated --> alerts["3. The alerts view,<br/>by detection time"]
-    alerts --> merge["Merged by detection ID,<br/>imported ones skipped"]
+    alerts --> merge["Merged by detection<br/>ID, skipping those<br/>already imported"]
     merge --> events["Stored as Detection<br/>Finding events"]
 ```
 

@@ -102,7 +102,7 @@ Alertmanager: {{requestBody.externalURL}}
 - `{{requestBody.alerts[0].annotations.summary}}` reads the first alert of the notification, which is not always the alert the incident was opened for.
 - A reference to a field the notification does not have is left as written, braces and all, rather than being emptied.
 
-See [Incident & Alert Dynamic Templating](/docs/monitor/incident-alert-templating) for every variable you can use.
+See [Incident & Alert Templating](/docs/monitor/incident-alert-templating) for every variable you can use.
 
 ## Configure Alertmanager
 

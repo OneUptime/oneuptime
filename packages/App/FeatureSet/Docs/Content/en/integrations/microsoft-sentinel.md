@@ -13,10 +13,10 @@ Import the incidents your [Microsoft Sentinel](https://learn.microsoft.com/en-us
 
 ```mermaid title="From a Sentinel incident to a security event"
 flowchart TB
-    rule["An analytics rule<br/>opens an incident"] --> poll["OneUptime polls on<br/>the connection's interval"]
-    poll --> token["It signs in as<br/>your app registration"]
-    token --> list["It lists the incidents<br/>created since last time"]
-    list --> event["Each one is stored as<br/>an Incident Finding"]
+    rule["An analytics rule<br/>opens an incident"] --> poll["OneUptime polls<br/>on the connection's<br/>interval"]
+    poll --> token["It signs in as your<br/>app registration"]
+    token --> list["It lists the<br/>incidents created<br/>since last time"]
+    list --> event["Each is stored as<br/>an Incident Finding"]
 ```
 
 Every minute, OneUptime polls each enabled connection whose poll interval has passed. A poll signs in to Microsoft Entra ID as your app registration, asks Azure Resource Manager for the incidents created since the last poll, and stores each one as an [OCSF](https://schema.ocsf.io/) Incident Finding event (class `2005`). Detection rules, monitors and dashboards then treat it like a security event from any other source.

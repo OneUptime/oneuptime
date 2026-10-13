@@ -13,8 +13,8 @@ Send [Grafana](https://grafana.com) alerts to OneUptime, so each firing alert be
 
 ```mermaid title="From a Grafana alert to an incident"
 flowchart TB
-    rule["Grafana alert rule<br/>fires"] --> policy["A notification policy<br/>groups the alerts"]
-    policy --> post["The contact point posts<br/>them to OneUptime"]
+    rule["Grafana alert rule<br/>fires"] --> policy["A notification<br/>policy groups<br/>the alerts"]
+    policy --> post["The contact point<br/>posts them to<br/>OneUptime"]
     post --> status{"Each alert's<br/>status"}
     status -->|"firing"| open["Incident opened,<br/>on-call paged"]
     status -->|"resolved"| resolve["Incident resolved"]
@@ -87,7 +87,7 @@ Each alert of a notification opens its own incident, up to **Max incidents per r
 > [!WARNING]
 > Do not group by a label every alert of a notification shares. Grafana's default notification policy groups alerts by `grafana_folder` and `alertname`, so every alert of one notification has the same `alertname`: grouping by `requestBody.alerts[*].labels.alertname` folds the whole notification into one incident.
 
-`{{requestBody.commonLabels.alertname}}` and `{{requestBody.message}}` describe the whole notification, which is one alert rule under the default policy. The grouping key is a variable too, `{{fingerprint}}`, but it is a hash that tells a responder nothing. See [Incident & Alert Dynamic Templating](/docs/monitor/incident-alert-templating) for every variable you can use.
+`{{requestBody.commonLabels.alertname}}` and `{{requestBody.message}}` describe the whole notification, which is one alert rule under the default policy. The grouping key is a variable too, `{{fingerprint}}`, but it is a hash that tells a responder nothing. See [Incident & Alert Templating](/docs/monitor/incident-alert-templating) for every variable you can use.
 
 ## Configure Grafana
 

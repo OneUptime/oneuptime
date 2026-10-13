@@ -13,7 +13,7 @@ Send [Datadog](https://www.datadoghq.com) monitor alerts to OneUptime, so each a
 
 ```mermaid title="From a Datadog alert to an incident"
 flowchart TB
-    monitor["Datadog monitor<br/>changes state"] --> mention["Its message mentions<br/>the webhook"]
+    monitor["Datadog monitor<br/>changes state"] --> mention["Its message names<br/>the webhook"]
     mention --> post["The webhook posts<br/>your payload"]
     post --> transition{"transition"}
     transition -->|"Triggered"| open["Incident opened,<br/>on-call paged"]

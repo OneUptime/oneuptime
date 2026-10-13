@@ -13,10 +13,10 @@ Import [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) alerts, from 
 
 ```mermaid title="From a Falcon alert to a security event"
 flowchart TB
-    falcon["Falcon raises<br/>an alert"] --> poll["OneUptime polls on<br/>the connection's interval"]
+    falcon["Falcon raises<br/>an alert"] --> poll["OneUptime polls<br/>on the connection's<br/>interval"]
     poll --> token["It signs in with<br/>your API client"]
-    token --> list["It lists the alerts<br/>created since last time"]
-    list --> event["Each one is stored as<br/>a Detection Finding"]
+    token --> list["It lists the<br/>alerts created<br/>since last time"]
+    list --> event["Each is stored as<br/>a Detection Finding"]
 ```
 
 Every minute, OneUptime polls each enabled connection whose poll interval has passed. A poll signs in to your Falcon cloud with the API client's ID and secret, asks the Alerts API for the alerts created since the last poll, and stores each one as an [OCSF](https://schema.ocsf.io/) Detection Finding event (class `2004`). Detection rules, monitors and dashboards then treat it like a security event from any other source.
