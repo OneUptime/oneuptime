@@ -54,12 +54,6 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
         "email": "support@oneuptime.com",
         "contactType": "customer service",
         "url": "https://oneuptime.com/support"
-    },
-    "hasMerchantReturnPolicy": {
-        "@type": "MerchantReturnPolicy",
-        "@id": "https://oneuptime.com/#return-policy",
-        "applicableCountry": ["US", "GB", "CA", "AU", "DE", "FR", "NL", "IN", "SG", "JP"],
-        "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"
     }
 } }) -%>
 
@@ -79,7 +73,14 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
 } }) -%>
 <% } %>
 
-<!-- SoftwareApplication Schema for Product Pages -->
+<!--
+    SoftwareApplication Schema for Product Pages.
+
+    No aggregateRating: Google's review snippet rules allow a rating only when
+    it comes from real reviews shown on the page, and none of these pages shows
+    one. No shipping details or return policy either: those describe physical
+    goods, and on software they are merchant data that is not true.
+-->
 <% if (pageType === 'product' && softwareApp) { %>
 <%- include('./Partials/json-ld', { schema: {
     "@context": "https://schema.org",
@@ -103,54 +104,9 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
         "description": "Free tier available. Paid plans start at $22/month.",
         "seller": {
             "@id": "https://oneuptime.com/#organization"
-        },
-        "hasMerchantReturnPolicy": {
-            "@id": "https://oneuptime.com/#return-policy"
-        },
-        "shippingDetails": {
-            "@type": "OfferShippingDetails",
-            "shippingRate": {
-                "@type": "MonetaryAmount",
-                "value": 0,
-                "currency": "USD"
-            },
-            "shippingDestination": [
-                { "@type": "DefinedRegion", "addressCountry": "US" },
-                { "@type": "DefinedRegion", "addressCountry": "GB" },
-                { "@type": "DefinedRegion", "addressCountry": "CA" },
-                { "@type": "DefinedRegion", "addressCountry": "AU" },
-                { "@type": "DefinedRegion", "addressCountry": "DE" },
-                { "@type": "DefinedRegion", "addressCountry": "FR" },
-                { "@type": "DefinedRegion", "addressCountry": "NL" },
-                { "@type": "DefinedRegion", "addressCountry": "IN" },
-                { "@type": "DefinedRegion", "addressCountry": "SG" },
-                { "@type": "DefinedRegion", "addressCountry": "JP" }
-            ],
-            "deliveryTime": {
-                "@type": "ShippingDeliveryTime",
-                "handlingTime": {
-                    "@type": "QuantitativeValue",
-                    "minValue": 0,
-                    "maxValue": 0,
-                    "unitCode": "DAY"
-                },
-                "transitTime": {
-                    "@type": "QuantitativeValue",
-                    "minValue": 0,
-                    "maxValue": 0,
-                    "unitCode": "DAY"
-                }
-            }
         }
     },
-    "featureList": softwareApp.features,
-    "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "150",
-        "bestRating": "5",
-        "worstRating": "1"
-    }
+    "featureList": softwareApp.features
 } }) -%>
 <% } %>
 
