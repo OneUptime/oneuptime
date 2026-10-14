@@ -51,6 +51,7 @@ import {
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { getStableValueKey } from "Common/UI/Utils/UseStableValue";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -604,13 +605,31 @@ interface Props {
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   /*
+   * The host's scope, by value (issue #4709). Pages hand it over as new
+   * objects on every render - an ObjectID read from the URL in the render,
+   * `attributeFilters={{...}}`, the stored query an incident page re-reads
+   * on every background refresh - and the span list, the chart and the
+   * facets are all built from it, so each such render read them all again.
+   * The memos below that build those reads are keyed on these values, not
+   * on the objects.
+   */
+  const spanQueryKey: string = getStableValueKey(props.spanQuery);
+  const hostScopeKey: string = getStableValueKey({
+    primaryEntityId: props.primaryEntityId?.toString() || null,
+    attributeFilters: props.attributeFilters || null,
+    entityKeysFilter: props.entityKeysFilter || null,
+    entityScope: props.entityScope || null,
+    exceptionScope: props.exceptionScope || null,
+  });
+
+  /*
    * The host's stored span query, read once into every vocabulary the viewer
    * speaks. See Utils/SpanQueryScope — the single reading is what keeps the
    * list, the histogram and the facet counts describing the same rows.
    */
   const spanScope: SpanQueryScope = useMemo(() => {
     return buildSpanQueryScope(props.spanQuery);
-  }, [props.spanQuery]);
+  }, [spanQueryKey]);
 
   /*
    * The window the monitor evaluated over, as a picker value. Always CUSTOM
@@ -1304,11 +1323,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     return query;
   }, [
-    props.primaryEntityId,
-    props.attributeFilters,
-    props.entityKeysFilter,
-    props.entityScope,
-    props.exceptionScope,
+    // The host's props by value, not by identity (see hostScopeKey).
+    hostScopeKey,
     spanScope,
     timeRange,
     activeFilters,
@@ -1954,10 +1970,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     timeRange,
     activeFilters,
     submittedSearch,
-    props.primaryEntityId,
-    props.attributeFilters,
-    props.entityKeysFilter,
-    props.exceptionScope,
+    // The host's props by value, not by identity (see hostScopeKey).
+    hostScopeKey,
     spanScope,
     rootOnly,
   ]);
