@@ -72,6 +72,19 @@ describe("metric facets — attribute filters", () => {
     expect(paramValues(statement)).toContainEqual(["web-1", "web-2"]);
   });
 
+  test("bare values carry the value pre-filter a skip index can use", () => {
+    // See appendAttributeValuesPrefilter.
+    const single: Statement = facetFor({ "host.name": "web-1" });
+    const list: Statement = facetFor({ "host.name": ["web-1", "web-2"] });
+
+    expect(normalizedQuery(single)).toMatch(
+      /AND has\(mapValues\(attributes\), \{p\d+:String\}\) AND arrayExists\(/,
+    );
+    expect(normalizedQuery(list)).toMatch(
+      /AND hasAny\(mapValues\(attributes\), \{p\d+:Array\(String\)\}\) AND arrayExists\(/,
+    );
+  });
+
   test("a wildcard operator compiles to ILIKE over the glob", () => {
     const statement: Statement = facetFor({
       "host.name": { _type: "Wildcard", value: ["web-*"] },

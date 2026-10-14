@@ -33,6 +33,7 @@ import MetricItemAggMV1mByContainer from "../../../../Models/AnalyticsModels/Met
 import MetricBaselineHourly from "../../../../Models/AnalyticsModels/MetricBaselineHourly";
 import SpanCountBaseline from "../../../../Models/AnalyticsModels/SpanCountBaseline";
 import LogCountBaseline from "../../../../Models/AnalyticsModels/LogCountBaseline";
+import Log from "../../../../Models/AnalyticsModels/Log";
 
 const CLUSTER_ENV_KEY: string = "CLICKHOUSE_CLUSTER_NAME";
 const SHARDING_ENV_KEY: string = "CLICKHOUSE_SHARDING_KEY";
@@ -464,6 +465,84 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
         spanGen.toDropSkipIndexStatement("idx_trace_id");
       expect(dropIndex).toContain("SpanItemV3Local");
       expect(dropIndex).toContain("ON CLUSTER 'oneuptime'");
+    });
+
+    describe("skip index expressions", () => {
+      const logGen: () => StatementGenerator<Log> =
+        (): StatementGenerator<Log> => {
+          return new StatementGenerator<Log>({
+            modelType: Log,
+            database: ClickhouseAppInstance,
+          });
+        };
+
+      const logColumn: (key: string) => AnalyticsTableColumn = (
+        key: string,
+      ): AnalyticsTableColumn => {
+        return new Log().getTableColumn(key)!;
+      };
+
+      const ATTRIBUTE_VALUES_INDEX: string =
+        "idx_attribute_values mapValues(attributes) TYPE bloom_filter(0.01) GRANULARITY 1";
+
+      test("the Log model indexes attribute values, not just keys", () => {
+        /*
+         * The whole point of the index: attribute filters compare values,
+         * and a granule of log lines holds nearly every key, so only a
+         * value-level index lets a filtered search skip granules.
+         */
+        expect(logColumn("attributes").skipIndex).toEqual({
+          name: "idx_attribute_values",
+          type: SkipIndexType.BloomFilter,
+          params: [0.01],
+          granularity: 1,
+          expression: "mapValues(attributes)",
+        });
+      });
+
+      test("CREATE TABLE writes the expression instead of the column", () => {
+        const query: string = logGen().toTableCreateStatement().query;
+
+        expect(query).toContain(`, INDEX ${ATTRIBUTE_VALUES_INDEX}`);
+        expect(query).not.toContain("INDEX idx_attribute_values attributes ");
+      });
+
+      test("ADD INDEX writes the same definition as CREATE TABLE, on the local table ON CLUSTER", () => {
+        const database: string =
+          ClickhouseAppInstance.getDatasourceOptions().database!;
+
+        expect(
+          fullText(logGen().toAddSkipIndexStatement(logColumn("attributes"))!),
+        ).toBe(
+          `ALTER TABLE ${database}.LogItemV3Local ON CLUSTER 'oneuptime' ADD INDEX IF NOT EXISTS ${ATTRIBUTE_VALUES_INDEX} :: {}`,
+        );
+      });
+
+      test("an index without an expression still covers its column", () => {
+        const expected: string =
+          "idx_trace_id traceId TYPE bloom_filter(0.01) GRANULARITY 1";
+
+        expect(spanGen.toTableCreateStatement().query).toContain(
+          `, INDEX ${expected}`,
+        );
+        expect(
+          fullText(
+            spanGen.toAddSkipIndexStatement(new SpanModel().tableColumns[1]!)!,
+          ),
+        ).toContain(`ADD INDEX IF NOT EXISTS ${expected}`);
+      });
+
+      test("a token index on a Nullable column is still wrapped in assumeNotNull", () => {
+        const expected: string =
+          "idx_body assumeNotNull(body) TYPE tokenbf_v1(10240, 3, 0) GRANULARITY 4";
+
+        expect(logGen().toTableCreateStatement().query).toContain(
+          `, INDEX ${expected}`,
+        );
+        expect(
+          fullText(logGen().toAddSkipIndexStatement(logColumn("body"))!),
+        ).toContain(`ADD INDEX IF NOT EXISTS ${expected}`);
+      });
     });
 
     test("ALTER UPDATE mutates the local table with ON CLUSTER", () => {
