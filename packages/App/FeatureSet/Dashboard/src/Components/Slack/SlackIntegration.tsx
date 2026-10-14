@@ -50,8 +50,46 @@ import ConnectRequestNotice, {
   ConnectRequestState,
   useConnectRequest,
 } from "../Workspace/ConnectRequestNotice";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+
+/*
+ * What each card of the Slack settings says. The project's card (Project
+ * Settings only) and your own are apart: installing the app is the
+ * project's, connecting your account is yours.
+ */
+export const CONNECT_WITH_SLACK_DESCRIPTION: string = translationKey(
+  "Post incidents, alerts and scheduled maintenance to your Slack channels, give each incident a channel of its own, and let your team acknowledge, resolve and page from Slack.",
+);
+
+export const SLACK_INSTALLED_IN_WORKSPACE_TITLE: string = translationKey(
+  "OneUptime is installed in the {{team}} Slack workspace",
+);
+
+export const SLACK_INSTALLED_TITLE: string = translationKey(
+  "OneUptime is installed in Slack",
+);
+
+export const SLACK_INSTALLED_DESCRIPTION: string = translationKey(
+  "It posts what your notification rules send, creates a channel for each incident and invites its people. Each member connects their own Slack account to act as themselves.",
+);
+
+export const YOUR_SLACK_ACCOUNT_CONNECTED_TITLE: string = translationKey(
+  "Your Slack account is connected",
+);
+
+export const YOUR_SLACK_ACCOUNT_CONNECTED_DESCRIPTION: string = translationKey(
+  "Buttons, commands and reactions in Slack act as you, with your permissions in this project, and the OneUptime app's Home in Slack shows your on-call shifts.",
+);
+
+export const SLACK_NOT_CONNECTED_TO_PROJECT_TITLE: string = translationKey(
+  "Slack is not connected to this project yet",
+);
+
+export const SLACK_NOT_CONNECTED_TO_PROJECT_DESCRIPTION: string =
+  translationKey(
+    "A project admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.",
+  );
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -342,31 +380,19 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   let cardDescription: string = "";
   let cardButtons: Array<CardButtonSchema> = [];
 
-  // if user and project both connected with slack, then.
+  /*
+   * Your own Slack account, connected: what that lets you do, and how to
+   * undo it. The project's own connection - its channels, uninstalling the
+   * app - is the card above this one, on Project Settings only.
+   */
   if (isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are connected with ${slackTeamName} team on Slack`;
-    cardDescription = `Your account is already connected with Slack.`;
+    cardTitle = YOUR_SLACK_ACCOUNT_CONNECTED_TITLE;
+    cardDescription = YOUR_SLACK_ACCOUNT_CONNECTED_DESCRIPTION;
     cardButtons = [
-      {
-        title: `View Channels`,
-        isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.NORMAL,
-        onClick: async () => {
-          try {
-            setError(null);
-            setShowChannelsModal(true);
-          } catch (error) {
-            setError(
-              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
-            );
-          }
-        },
-        icon: IconProp.Slack,
-      },
       {
         title: `Disconnect`,
         isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.DANGER,
+        buttonStyle: ButtonStyleType.DANGER_OUTLINE,
         onClick: async () => {
           try {
             setIsButtonLoading(true);
@@ -523,75 +549,101 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     cardButtons = [
       // connect with slack button.
       getConnectWithSlackButton(`Connect my account with Slack`),
-      {
-        title: `View Channels`,
-        isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.NORMAL,
-        onClick: async () => {
-          try {
-            setError(null);
-            setShowChannelsModal(true);
-          } catch (error) {
-            setError(
-              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
-            );
-          }
-        },
-        icon: IconProp.Slack,
-      },
-      {
-        title: `Uninstall OneUptime from Slack`,
-        isLoading: isButtonLoading,
-        /*
-         * Red, but outlined: "Connect my account with Slack" beside it is the
-         * card's one primary button, and a filled red one would compete with
-         * it for a step almost nobody on this card has come to take.
-         */
-        buttonStyle: ButtonStyleType.DANGER_OUTLINE,
-        onClick: async () => {
-          try {
-            setIsButtonLoading(true);
-            setError(null);
-            if (projectAuthTokenId) {
-              await ModelAPI.deleteItem({
-                modelType: WorkspaceProjectAuthToken,
-                id: projectAuthTokenId!,
-              });
-
-              setIsProjectAccountConnected(false);
-              setWorkspaceProjectAuthTokenId(null);
-
-              /*
-               * Every Workspace menu in the project lists only connected
-               * workspaces: ask again, so they stop listing this one.
-               */
-              ConnectedWorkspaces.refresh().catch(() => {
-                // A failed request leaves the menus as they were.
-              });
-            } else {
-              setError(
-                <div>
-                  Looks like the user auth token id is not set properly. Please
-                  try again.
-                </div>,
-              );
-            }
-          } catch (error) {
-            setError(
-              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
-            );
-          }
-          setIsButtonLoading(false);
-        },
-        icon: IconProp.Trash,
-      },
     ];
   }
 
+  /*
+   * The project's connection to Slack, on Project Settings: which
+   * workspace, its channels, and uninstalling the app - whether or not your
+   * own account is connected, so an admin never has to disconnect
+   * themselves first.
+   */
+  const projectCardButtons: Array<CardButtonSchema> = [
+    {
+      title: `View Channels`,
+      isLoading: isButtonLoading,
+      buttonStyle: ButtonStyleType.NORMAL,
+      onClick: async () => {
+        try {
+          setError(null);
+          setShowChannelsModal(true);
+        } catch (error) {
+          setError(
+            <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
+          );
+        }
+      },
+      icon: IconProp.Slack,
+    },
+    {
+      title: `Uninstall OneUptime from Slack`,
+      isLoading: isButtonLoading,
+      /*
+       * Red, but outlined: the most a card about an installed app asks of
+       * anyone is to look at its channels, and a filled red button would be
+       * the loudest thing on the page for a step almost nobody came to take.
+       */
+      buttonStyle: ButtonStyleType.DANGER_OUTLINE,
+      onClick: async () => {
+        try {
+          setIsButtonLoading(true);
+          setError(null);
+          if (projectAuthTokenId) {
+            await ModelAPI.deleteItem({
+              modelType: WorkspaceProjectAuthToken,
+              id: projectAuthTokenId!,
+            });
+
+            setIsProjectAccountConnected(false);
+            setWorkspaceProjectAuthTokenId(null);
+            /*
+             * Uninstalling unlinks every member's Slack account too
+             * (WorkspaceProjectAuthTokenService), yours included.
+             */
+            setIsUserAccountConnected(false);
+            setWorkspaceUserAuthTokenId(null);
+
+            /*
+             * Every Workspace menu in the project lists only connected
+             * workspaces: ask again, so they stop listing this one.
+             */
+            ConnectedWorkspaces.refresh().catch(() => {
+              // A failed request leaves the menus as they were.
+            });
+          } else {
+            setError(
+              <div>
+                Looks like the user auth token id is not set properly. Please
+                try again.
+              </div>,
+            );
+          }
+        } catch (error) {
+          setError(
+            <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
+          );
+        }
+        setIsButtonLoading(false);
+      },
+      icon: IconProp.Trash,
+    },
+  ];
+
   if (!isProjectAccountConnected) {
     cardTitle = `Connect with Slack`;
-    cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
+    cardDescription = CONNECT_WITH_SLACK_DESCRIPTION;
     cardButtons = [getConnectWithSlackButton(`Connect with Slack`)];
+  }
+
+  /*
+   * Your own settings, before anybody connected the project: installing the
+   * app into a Slack workspace is for the project's settings, not for a
+   * personal page.
+   */
+  if (!isProjectAccountConnected && props.hideProjectCards) {
+    cardTitle = SLACK_NOT_CONNECTED_TO_PROJECT_TITLE;
+    cardDescription = SLACK_NOT_CONNECTED_TO_PROJECT_DESCRIPTION;
+    cardButtons = [];
   }
 
   if (!SlackAppClientId) {
@@ -608,7 +660,29 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       <ConnectCallbackNotice state={connectCallback} />
       <ConnectRequestNotice state={connectRequest} />
 
-      <div>
+      {isProjectAccountConnected && !props.hideProjectCards && (
+        <div data-testid="slack-project-connection">
+          <Card
+            title={
+              slackTeamName
+                ? translator.translateTemplate(
+                    SLACK_INSTALLED_IN_WORKSPACE_TITLE,
+                    { team: slackTeamName },
+                  )
+                : SLACK_INSTALLED_TITLE
+            }
+            description={SLACK_INSTALLED_DESCRIPTION}
+            buttons={projectCardButtons}
+          />
+        </div>
+      )}
+
+      <div
+        data-testid="slack-your-account"
+        className={
+          isProjectAccountConnected && !props.hideProjectCards ? "mt-6" : ""
+        }
+      >
         <Card
           title={cardTitle}
           description={cardDescription}

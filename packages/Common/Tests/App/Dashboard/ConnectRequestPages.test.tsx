@@ -446,8 +446,9 @@ describe("the Slack page, opened from a Connect button in Slack", () => {
     expect(notice).not.toHaveTextContent("connect your account here");
     // News, not a warning.
     expect(notice.className).toContain("bg-blue-50");
+    // The card for your own account says so.
     expect(
-      screen.getByText("Your account is already connected with Slack."),
+      screen.getByRole("heading", { name: "Your Slack account is connected" }),
     ).toBeInTheDocument();
   });
 
@@ -605,8 +606,9 @@ describe("the Slack page, opened from the Connect Slack account link in a channe
     expect(signInStarts()).toEqual([]);
     expect(navigateMock).not.toHaveBeenCalled();
     expect(screen.queryByTestId("connect-request-connecting")).toBeNull();
+    // The card for your own account says so.
     expect(
-      screen.getByText("Your account is already connected with Slack."),
+      screen.getByRole("heading", { name: "Your Slack account is connected" }),
     ).toBeInTheDocument();
   });
 

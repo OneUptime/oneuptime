@@ -482,6 +482,12 @@ describe("the guard catches the faults the audit fixed", () => {
     ).toEqual(["Run a Runbook two-primaries"]);
   });
 
+  /*
+   * The Slack settings used to draw Uninstall - filled red - on the card
+   * whose one primary button is Connect my account. Uninstalling is the
+   * project's, so it moved to the project's own card; drawn again beside
+   * Connect, filled, it is two main actions on one card.
+   */
   test("a filled red Uninstall beside the primary Connect on the Slack card", () => {
     const file: string =
       "packages/App/FeatureSet/Dashboard/src/Components/Slack/SlackIntegration.tsx";
@@ -489,12 +495,19 @@ describe("the guard catches the faults the audit fixed", () => {
 
     expect(findButtonGroupsWithTwoFilled(file, source)).toEqual([]);
 
-    const reverted: string = source.replace(
-      "buttonStyle: ButtonStyleType.DANGER_OUTLINE,",
-      "buttonStyle: ButtonStyleType.DANGER,",
+    const connectButton: string =
+      "getConnectWithSlackButton(`Connect my account with Slack`),";
+    const reverted: string = revert(
+      source,
+      connectButton,
+      `${connectButton}
+      {
+        title: \`Uninstall OneUptime from Slack\`,
+        buttonStyle: ButtonStyleType.DANGER,
+        onClick: () => {},
+      },`,
     );
 
-    expect(reverted).not.toBe(source);
     expect(
       findButtonGroupsWithTwoFilled(file, reverted).map(
         (group: ButtonGroupWithTwoFilled): string => {
@@ -504,6 +517,44 @@ describe("the guard catches the faults the audit fixed", () => {
     ).toEqual([
       "title || `Connect with Slack` | Uninstall OneUptime from Slack",
     ]);
+  });
+
+  /*
+   * The project's card - View Channels, Uninstall - asks nothing of
+   * anybody: both outlined or plain. A filled red Uninstall beside a
+   * primary View Channels is two main actions again.
+   */
+  test("a filled red Uninstall beside a primary View Channels on the Slack project card", () => {
+    const file: string =
+      "packages/App/FeatureSet/Dashboard/src/Components/Slack/SlackIntegration.tsx";
+    const source: string = read(file);
+    const projectCard: string = source.slice(
+      source.indexOf("const projectCardButtons: Array<CardButtonSchema> = ["),
+    );
+    const before: string = source.slice(0, source.length - projectCard.length);
+
+    expect(projectCard).not.toBe(source);
+
+    // View Channels made primary, Uninstall filled red.
+    const reverted: string =
+      before +
+      revert(
+        revert(
+          projectCard,
+          "buttonStyle: ButtonStyleType.NORMAL,",
+          "buttonStyle: ButtonStyleType.PRIMARY,",
+        ),
+        "buttonStyle: ButtonStyleType.DANGER_OUTLINE,",
+        "buttonStyle: ButtonStyleType.DANGER,",
+      );
+
+    expect(
+      findButtonGroupsWithTwoFilled(file, reverted).map(
+        (group: ButtonGroupWithTwoFilled): string => {
+          return group.labels.join(" | ");
+        },
+      ),
+    ).toEqual(["View Channels | Uninstall OneUptime from Slack"]);
   });
 
   test("a primary bulk Remove Labels", () => {
