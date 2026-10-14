@@ -16,10 +16,10 @@ Cada comando envía una solicitud a la API REST de OneUptime e imprime la respue
 ```mermaid title="Un comando, una solicitud"
 flowchart TB
     T["Su terminal<br/>o un trabajo de CI"] -->|"oneuptime incident list"| C["CLI oneuptime"]
-    K["La clave de API y la URL:<br/>opciones, entorno<br/>o un contexto guardado"] --> C
+    K["La clave de API<br/>y la URL: opciones,<br/>entorno o un<br/>contexto guardado"] --> C
     C -->|"POST /api/incident/get-list"| A["API REST de OneUptime"]
     A -->|"los registros que la<br/>clave puede leer,<br/>en JSON"| C
-    C -->|"una tabla en una terminal,<br/>JSON en una tubería"| T
+    C -->|"una tabla en<br/>una terminal,<br/>JSON en una tubería"| T
 ```
 
 Los comandos de los registros vienen con la CLI: cada tipo de registro que la API de OneUptime abre a las herramientas tiene uno, los mismos registros para los que el [servidor MCP](/docs/ai/mcp-server) tiene herramientas. Ejecute `oneuptime resources` para listarlos.

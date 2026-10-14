@@ -16,10 +16,10 @@ Chaque commande envoie une requête à l'API REST de OneUptime et affiche la ré
 ```mermaid title="Une commande, une requête"
 flowchart TB
     T["Votre terminal<br/>ou une tâche de CI"] -->|"oneuptime incident list"| C["CLI oneuptime"]
-    K["La clé API et l'URL :<br/>options, environnement<br/>ou un contexte enregistré"] --> C
+    K["La clé API et l'URL :<br/>options, environnement<br/>ou un contexte<br/>enregistré"] --> C
     C -->|"POST /api/incident/get-list"| A["API REST de OneUptime"]
     A -->|"les enregistrements<br/>que la clé peut lire,<br/>en JSON"| C
-    C -->|"un tableau dans un terminal,<br/>du JSON dans un pipe"| T
+    C -->|"un tableau dans<br/>un terminal,<br/>du JSON dans un pipe"| T
 ```
 
 Les commandes des enregistrements sont livrées avec la CLI : chaque type d'enregistrement que l'API de OneUptime ouvre aux outils en a une, les mêmes enregistrements pour lesquels le [serveur MCP](/docs/ai/mcp-server) a des outils. Lancez `oneuptime resources` pour les lister.

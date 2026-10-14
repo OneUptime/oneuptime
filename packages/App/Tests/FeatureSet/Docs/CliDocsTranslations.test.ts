@@ -114,12 +114,12 @@ const PAGE_NAMES: Array<string> = CLI_PAGES.map(
  * off the column, and the docs scroll it rather than shrink it.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
-  [CLI_OVERVIEW]: 40,
-  [AUTHENTICATION]: 40,
-  [RESOURCE_OPERATIONS]: 40,
-  [OUTPUT_FORMATS]: 40,
-  [SCRIPTING]: 40,
-  [COMMAND_REFERENCE]: 40,
+  [CLI_OVERVIEW]: 29,
+  [AUTHENTICATION]: 30,
+  [RESOURCE_OPERATIONS]: 26,
+  [OUTPUT_FORMATS]: 22,
+  [SCRIPTING]: 29,
+  [COMMAND_REFERENCE]: 19,
 };
 
 /*

@@ -17,9 +17,9 @@ Un deployment può prima chiedere a OneUptime se c'è un incidente aperto, e fer
 flowchart TB
     J["Il job di CI parte"] --> S["I suoi secret impostano<br/>ONEUPTIME_API_KEY<br/>e ONEUPTIME_URL"]
     S --> Q["oneuptime incident count<br/>degli incidenti non risolti"]
-    Q -->|"0"| D["Esegui il deployment"]
-    Q -->|"1 o più"| X["Fermati: c'è un<br/>incidente aperto"]
-    Q -->|"codice di uscita 2"| A["Fermati: controlla<br/>la chiave API"]
+    Q -->|"0"| D["Esegui il<br/>deployment"]
+    Q -->|"1 o più"| X["Fermati:<br/>c'è un incidente<br/>aperto"]
+    Q -->|"codice di<br/>uscita 2"| A["Fermati:<br/>controlla la<br/>chiave API"]
 ```
 
 ## Dare a uno script la sua chiave API

@@ -18,8 +18,8 @@ flowchart TB
     J["El trabajo de CI empieza"] --> S["Sus secretos definen<br/>ONEUPTIME_API_KEY<br/>y ONEUPTIME_URL"]
     S --> Q["oneuptime incident count<br/>de incidentes no resueltos"]
     Q -->|"0"| D["Desplegar"]
-    Q -->|"1 o más"| X["Detenerse: hay un<br/>incidente abierto"]
-    Q -->|"código de salida 2"| A["Detenerse: revisar<br/>la clave de API"]
+    Q -->|"1 o más"| X["Detenerse:<br/>hay un incidente<br/>abierto"]
+    Q -->|"código de<br/>salida 2"| A["Detenerse:<br/>revisar la<br/>clave de API"]
 ```
 
 ## Dar a un script su clave de API

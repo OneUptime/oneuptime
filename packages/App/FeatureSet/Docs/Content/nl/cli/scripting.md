@@ -18,8 +18,8 @@ flowchart TB
     J["De CI-job start"] --> S["Zijn secrets zetten<br/>ONEUPTIME_API_KEY<br/>en ONEUPTIME_URL"]
     S --> Q["oneuptime incident count<br/>van niet opgeloste incidenten"]
     Q -->|"0"| D["Deployen"]
-    Q -->|"1 of meer"| X["Stoppen: er staat<br/>een incident open"]
-    Q -->|"exitcode 2"| A["Stoppen: controleer<br/>de API-sleutel"]
+    Q -->|"1 of meer"| X["Stoppen:<br/>er staat een<br/>incident open"]
+    Q -->|"exitcode 2"| A["Stoppen:<br/>controleer de<br/>API-sleutel"]
 ```
 
 ## Een script zijn API-sleutel geven

@@ -18,8 +18,8 @@ flowchart TB
     J["CI ジョブが開始"] --> S["シークレットが<br/>ONEUPTIME_API_KEY<br/>と ONEUPTIME_URL を設定"]
     S --> Q["oneuptime incident count<br/>で未解決の件数"]
     Q -->|"0"| D["デプロイ"]
-    Q -->|"1 以上"| X["停止: 未解決の<br/>インシデントあり"]
-    Q -->|"終了コード 2"| A["停止: API キー<br/>を確認"]
+    Q -->|"1 以上"| X["停止:<br/>未解決の<br/>インシデントあり"]
+    Q -->|"終了コード 2"| A["停止:<br/>API キー<br/>を確認"]
 ```
 
 ## スクリプトに API キーを渡す

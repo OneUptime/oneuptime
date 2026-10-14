@@ -18,8 +18,8 @@ flowchart TB
     J["Der CI-Job startet"] --> S["Seine Secrets setzen<br/>ONEUPTIME_API_KEY<br/>und ONEUPTIME_URL"]
     S --> Q["oneuptime incident count<br/>der nicht gelösten Vorfälle"]
     Q -->|"0"| D["Deployen"]
-    Q -->|"1 oder mehr"| X["Anhalten: ein Vorfall<br/>ist offen"]
-    Q -->|"Exit-Code 2"| A["Anhalten: den<br/>API-Schlüssel prüfen"]
+    Q -->|"1 oder mehr"| X["Anhalten:<br/>ein Vorfall<br/>ist offen"]
+    Q -->|"Exit-Code 2"| A["Anhalten:<br/>API-Schlüssel<br/>prüfen"]
 ```
 
 ## Einem Skript seinen API-Schlüssel geben

@@ -102,8 +102,8 @@ oneuptime incident list --context staging
 
 ```mermaid title="دستور کلید API و URL خود را کجا پیدا می‌کند"
 flowchart TB
-    F["۱. پرچم‌های روی دستور:<br/>--api-key و --url"] --> E["۲. متغیرهای محیطی:<br/>ONEUPTIME_API_KEY<br/>و ONEUPTIME_URL"]
-    E --> N["۳. زمینه‌ای که با<br/>--context نام برده شد"]
+    F["۱. پرچم‌های روی دستور:<br/>‎--api-key و ‎--url"] --> E["۲. متغیرهای محیطی:<br/>ONEUPTIME_API_KEY<br/>و ONEUPTIME_URL"]
+    E --> N["۳. زمینه‌ای که با<br/>‎--context نام برده شد"]
     N --> C["۴. زمینهٔ فعلی"]
     C --> X["هیچ‌جا پیدا نشد:<br/>دستور متوقف می‌شود"]
 ```

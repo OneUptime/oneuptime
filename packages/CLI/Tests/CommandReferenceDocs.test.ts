@@ -53,6 +53,9 @@ const HEADING: RegExp = /^(#{1,6})\s+(.*)$/;
 const FENCE: RegExp = /^\s*```(\S*)/;
 const COMMAND_HEADING: RegExp = /^### `oneuptime ([^`]+)`$/;
 const CODE_SPAN: RegExp = /`([^`]+)`/g;
+// A table's separator row: | --- | --- |
+const TABLE_SEPARATOR: RegExp = /^\|\s*-/;
+const BACKTICK: RegExp = /`/g;
 
 interface CodeBlock {
   lang: string;
@@ -138,7 +141,7 @@ function tableRows(markdown: string): Array<Array<string>> {
   return markdown
     .split("\n")
     .filter((line: string): boolean => {
-      return line.startsWith("|") && !/^\|\s*-/.test(line);
+      return line.startsWith("|") && !TABLE_SEPARATOR.test(line);
     })
     .map((line: string): Array<string> => {
       return line
@@ -360,7 +363,7 @@ describe("the CLI docs hold the real program", () => {
         )
           .slice(1)
           .map((cells: Array<string>): string => {
-            return (cells[0] as string).replace(/`/g, "");
+            return (cells[0] as string).replace(BACKTICK, "");
           });
 
         expect({ page, listed: [...listed].sort() }).toEqual({

@@ -18,8 +18,8 @@ flowchart TB
     J["CI-jobbet startar"] --> S["Dess hemligheter sätter<br/>ONEUPTIME_API_KEY<br/>och ONEUPTIME_URL"]
     S --> Q["oneuptime incident count<br/>av olösta incidenter"]
     Q -->|"0"| D["Driftsätt"]
-    Q -->|"1 eller fler"| X["Stoppa: en incident<br/>är öppen"]
-    Q -->|"slutkod 2"| A["Stoppa: kontrollera<br/>API-nyckeln"]
+    Q -->|"1 eller fler"| X["Stoppa:<br/>en incident<br/>är öppen"]
+    Q -->|"slutkod 2"| A["Stoppa:<br/>kontrollera<br/>API-nyckeln"]
 ```
 
 ## Ge ett skript dess API-nyckel
