@@ -194,6 +194,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | صفحه‌های وضعیت | `status-page`, `status-page-announcement` |
 | نگهداری زمان‌بندی‌شده | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | تیم‌ها و کشیک | `team`, `on-call-policy` |
+| امنیت | `security-case`, `security-case-note`, `security-detection`, `security-playbook` |
 | برچسب‌ها | `label` |
 
 تله‌متری `list`، `create` و `count` را می‌پذیرد:

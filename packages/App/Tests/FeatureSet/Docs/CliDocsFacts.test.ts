@@ -403,7 +403,7 @@ describe("the command reference", () => {
     expect(discovery).toContain('.replace(/([a-z])([A-Z])/g, "$1-$2")');
     expect(discovery).toContain('.replace(/[\\s_]+/g, "-")');
 
-    expect(recordCommands()).toHaveLength(23);
+    expect(recordCommands()).toHaveLength(27);
     expect(telemetryCommands()).toHaveLength(9);
     expect(commandsInResourcesTable(0)).toEqual(recordCommands());
     expect(commandsInResourcesTable(1)).toEqual(telemetryCommands());
