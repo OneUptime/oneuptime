@@ -1,7 +1,9 @@
 import DocsPlaceholders, {
   TERRAFORM_PROVIDER_MAJOR_PLACEHOLDER,
+  TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER,
   TERRAFORM_PROVIDER_VERSION_PLACEHOLDER,
   getTerraformProviderMajorVersion,
+  getTerraformProviderMatchingConstraint,
   getTerraformProviderVersionConstraint,
 } from "../../../FeatureSet/Docs/Utils/Placeholders";
 import { describe, expect, it } from "@jest/globals";
@@ -74,6 +76,49 @@ describe("the provider version constraint", () => {
   });
 });
 
+/*
+ * A self-hosted OneUptime takes the newest provider that is not newer than
+ * itself: {{TERRAFORM_PROVIDER_MATCHING}} is that range for the OneUptime
+ * serving the page, as the dashboard's Terraform pages write it
+ * (TerraformOperationsDocsFacts holds the two to each other).
+ */
+describe("the self-hosted range", () => {
+  it.each([
+    ["14.0.21", ">= 14.0, <= 14.0.21"],
+    ["v14.2.0", ">= 14.0, <= 14.2.0"],
+    [" 15.0.3 ", ">= 15.0, <= 15.0.3"],
+  ])("for OneUptime %s is %s", (version: string, constraint: string) => {
+    expect(getTerraformProviderMatchingConstraint(version)).toBe(constraint);
+  });
+
+  it.each([["1.0.0"], ["14.0"], ["unknown"], [""]])(
+    "without a release's version (%p) is the newest provider of the major, as the version placeholder",
+    (version: string) => {
+      expect(getTerraformProviderMatchingConstraint(version)).toBe(
+        getTerraformProviderVersionConstraint(version),
+      );
+    },
+  );
+
+  it("is this release's when rendered, every time it is written", () => {
+    const major: string = APP_PACKAGE_VERSION.split(".")[0]!;
+    const rendered: string = DocsPlaceholders.render(
+      [
+        `version = "${TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER}"`,
+        `\`${TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER}\``,
+      ].join("\n"),
+    );
+
+    expect(rendered).not.toContain("{{TERRAFORM_PROVIDER");
+    expect(rendered).toBe(
+      [
+        `version = ">= ${major}.0, <= ${APP_PACKAGE_VERSION}"`,
+        `\`>= ${major}.0, <= ${APP_PACKAGE_VERSION}\``,
+      ].join("\n"),
+    );
+  });
+});
+
 describe("rendering", () => {
   it("fills in every occurrence of both placeholders", () => {
     const major: string = APP_PACKAGE_VERSION.split(".")[0]!;
@@ -132,7 +177,7 @@ describe("the Terraform pages", () => {
         .includes(TERRAFORM_PROVIDER_VERSION_PLACEHOLDER);
     });
 
-    // index, quick-start, registry and self-hosted in every language at least.
+    // index, quick-start, complete-guide, registry and opentofu in every language at least.
     expect(pinned.length).toBeGreaterThan(40);
   });
 });
