@@ -699,6 +699,23 @@ describe("the Microsoft Teams page, opened from a Connect button in Teams", () =
     expect(screen.queryByRole("link", { name: "Back to Slack" })).toBeNull();
   });
 
+  /*
+   * A command typed to the bot - "oncall", "show active incidents" - is
+   * typed again, as the conversation says: no button sent it.
+   */
+  test("back from the sign-in after a command: says to type it again, and names no button", async () => {
+    query["pressed"] = "run";
+
+    await renderTeams();
+
+    const notice: HTMLElement = screen.getByTestId("connect-request-notice");
+    expect(notice).toHaveTextContent(
+      "Go back to Microsoft Teams and type the command again.",
+    );
+    expect(notice).not.toHaveTextContent("press the button");
+    expect(setQueryStringMock).toHaveBeenCalledWith({ pressed: null });
+  });
+
   test("back from the sign-in after a question: says to ask it again, and names no button", async () => {
     query["pressed"] = "ask";
 

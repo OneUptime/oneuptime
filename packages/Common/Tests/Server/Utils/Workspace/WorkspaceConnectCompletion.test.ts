@@ -518,7 +518,7 @@ describe("a press OneUptime cannot finish for them", () => {
       });
 
     expect(result).toEqual({
-      outcome: ConnectRequestOutcome.PressAgain,
+      outcome: ConnectRequestOutcome.RunAgain,
       answer: {
         markdown:
           "✅ **Your Slack account is connected to OneUptime.** Now run **/oneuptime incident** again.",
@@ -565,8 +565,6 @@ describe("WorkspaceConnectCompletion.getAgainOutcome: what the settings page say
   test.each([
     [WorkspaceConnectRequestAgainKind.Button, "Add Note"],
     [WorkspaceConnectRequestAgainKind.Button, undefined],
-    [WorkspaceConnectRequestAgainKind.Command, "/oneuptime incident"],
-    [WorkspaceConnectRequestAgainKind.Command, undefined],
   ])(
     "a %s (%s) is pressed again",
     (kind: WorkspaceConnectRequestAgainKind, label: string | undefined) => {
@@ -575,6 +573,30 @@ describe("WorkspaceConnectCompletion.getAgainOutcome: what the settings page say
           label ? { kind: kind, label: label } : { kind: kind },
         ),
       ).toBe(ConnectRequestOutcome.PressAgain);
+    },
+  );
+
+  /*
+   * A command - /oneuptime incident, "oncall" typed to the Teams bot - is
+   * run (typed) again: the page used to say "press the button again" for
+   * it, though no button sent it.
+   */
+  test.each([
+    ["/oneuptime incident"],
+    ["/incident"],
+    ["oncall"],
+    ["show active incidents"],
+    [undefined],
+  ])(
+    "a command (%s) is run again",
+    (label: string | undefined) => {
+      expect(
+        WorkspaceConnectCompletion.getAgainOutcome(
+          label
+            ? { kind: WorkspaceConnectRequestAgainKind.Command, label: label }
+            : { kind: WorkspaceConnectRequestAgainKind.Command },
+        ),
+      ).toBe(ConnectRequestOutcome.RunAgain);
     },
   );
 

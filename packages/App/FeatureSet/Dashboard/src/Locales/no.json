@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} har vakt, men er ikke i gruppen: Slack-kontoen til personen er deaktivert.",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} har vakt, men er ikke i gruppen: personen er gjest i Slack, og Slack holder gjester utenfor brukergrupper.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} har vakt, men er ikke i taggen: en tagg inneholder bare personer fra sitt eget team, og personen er ikke i teamet {{team}}. Legg personen til i teamet i Microsoft Teams.",
-  "{{remaining}} of the error budget left": "{{remaining}} av feilbudsjettet igjen"
+  "{{remaining}} of the error budget left": "{{remaining}} av feilbudsjettet igjen",
+  "Go back to {{workspace}} and run the command again.": "Gå tilbake til {{workspace}} og kjør kommandoen igjen.",
+  "Go back to {{workspace}} and type the command again.": "Gå tilbake til {{workspace}} og skriv kommandoen igjen.",
+  "Taking you to Microsoft to confirm it's you.": "Vi sender deg til Microsoft for å bekrefte at det er deg."
 }

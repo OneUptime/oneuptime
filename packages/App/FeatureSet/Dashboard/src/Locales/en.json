@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} is on call but isn't in the group: their Slack account is deactivated.",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.",
-  "{{remaining}} of the error budget left": "{{remaining}} of the error budget left"
+  "{{remaining}} of the error budget left": "{{remaining}} of the error budget left",
+  "Go back to {{workspace}} and run the command again.": "Go back to {{workspace}} and run the command again.",
+  "Go back to {{workspace}} and type the command again.": "Go back to {{workspace}} and type the command again.",
+  "Taking you to Microsoft to confirm it's you.": "Taking you to Microsoft to confirm it's you."
 }

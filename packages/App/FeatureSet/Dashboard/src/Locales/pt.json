@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} está de plantão, mas não está no grupo: a conta do Slack dessa pessoa está desativada.",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} está de plantão, mas não está no grupo: essa pessoa é convidada no Slack, e o Slack deixa convidados fora dos grupos de usuários.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} está de plantão, mas não está na marca: uma marca só inclui membros da sua equipe, e essa pessoa não está na equipe {{team}}. Adicione-a à equipe no Microsoft Teams.",
-  "{{remaining}} of the error budget left": "Resta {{remaining}} do orçamento de erros"
+  "{{remaining}} of the error budget left": "Resta {{remaining}} do orçamento de erros",
+  "Go back to {{workspace}} and run the command again.": "Volte para o {{workspace}} e execute o comando novamente.",
+  "Go back to {{workspace}} and type the command again.": "Volte para o {{workspace}} e digite o comando novamente.",
+  "Taking you to Microsoft to confirm it's you.": "Levando você à Microsoft para confirmar que é você."
 }

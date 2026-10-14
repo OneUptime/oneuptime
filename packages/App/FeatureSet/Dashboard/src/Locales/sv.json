@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} har jour men är inte med i gruppen: personens Slack-konto är inaktiverat.",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} har jour men är inte med i gruppen: personen är gäst i Slack, och Slack håller gäster utanför användargrupper.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} har jour men är inte med i taggen: en tagg innehåller bara personer i sitt eget team, och personen finns inte i teamet {{team}}. Lägg till personen i teamet i Microsoft Teams.",
-  "{{remaining}} of the error budget left": "{{remaining}} av felbudgeten kvar"
+  "{{remaining}} of the error budget left": "{{remaining}} av felbudgeten kvar",
+  "Go back to {{workspace}} and run the command again.": "Gå tillbaka till {{workspace}} och kör kommandot igen.",
+  "Go back to {{workspace}} and type the command again.": "Gå tillbaka till {{workspace}} och skriv kommandot igen.",
+  "Taking you to Microsoft to confirm it's you.": "Vi skickar dig till Microsoft för att bekräfta att det är du."
 }

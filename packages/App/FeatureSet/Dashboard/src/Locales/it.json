@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} è reperibile ma non è nel gruppo: il suo account Slack è disattivato.",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} è reperibile ma non è nel gruppo: è un ospite in Slack, e Slack esclude gli ospiti dai gruppi di utenti.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} è reperibile ma non è nel tag: un tag contiene solo membri del suo team, e questa persona non è nel team {{team}}. Aggiungila al team in Microsoft Teams.",
-  "{{remaining}} of the error budget left": "Resta il {{remaining}} del budget di errore"
+  "{{remaining}} of the error budget left": "Resta il {{remaining}} del budget di errore",
+  "Go back to {{workspace}} and run the command again.": "Torna su {{workspace}} ed esegui di nuovo il comando.",
+  "Go back to {{workspace}} and type the command again.": "Torna su {{workspace}} e digita di nuovo il comando.",
+  "Taking you to Microsoft to confirm it's you.": "Ti portiamo su Microsoft per confermare che sei tu."
 }

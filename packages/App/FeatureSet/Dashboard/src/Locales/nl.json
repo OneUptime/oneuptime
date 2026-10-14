@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} heeft dienst maar zit niet in de groep: het Slack-account van deze persoon is gedeactiveerd.",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} heeft dienst maar zit niet in de groep: deze persoon is gast in Slack, en Slack houdt gasten buiten gebruikersgroepen.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} heeft dienst maar zit niet in de tag: een tag bevat alleen mensen uit het eigen team, en deze persoon zit niet in het team {{team}}. Voeg deze persoon in Microsoft Teams toe aan het team.",
-  "{{remaining}} of the error budget left": "Nog {{remaining}} van het foutbudget over"
+  "{{remaining}} of the error budget left": "Nog {{remaining}} van het foutbudget over",
+  "Go back to {{workspace}} and run the command again.": "Ga terug naar {{workspace}} en voer de opdracht opnieuw uit.",
+  "Go back to {{workspace}} and type the command again.": "Ga terug naar {{workspace}} en typ de opdracht opnieuw.",
+  "Taking you to Microsoft to confirm it's you.": "We sturen je door naar Microsoft om te bevestigen dat jij het bent."
 }

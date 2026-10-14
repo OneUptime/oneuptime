@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} آنکال است اما در گروه نیست: حساب Slack او غیرفعال شده است.",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} آنکال است اما در گروه نیست: او در Slack مهمان است و Slack مهمان‌ها را به گروه‌های کاربری راه نمی‌دهد.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} آنکال است اما در برچسب نیست: هر برچسب فقط اعضای تیم خودش را دارد و او در تیم {{team}} نیست. او را در Microsoft Teams به تیم اضافه کنید.",
-  "{{remaining}} of the error budget left": "{{remaining}} از بودجه خطا باقی مانده است"
+  "{{remaining}} of the error budget left": "{{remaining}} از بودجه خطا باقی مانده است",
+  "Go back to {{workspace}} and run the command again.": "به {{workspace}} برگردید و دوباره فرمان را اجرا کنید.",
+  "Go back to {{workspace}} and type the command again.": "به {{workspace}} برگردید و دوباره فرمان را تایپ کنید.",
+  "Taking you to Microsoft to confirm it's you.": "در حال رفتن به Microsoft برای تأیید این‌که خودتان هستید."
 }

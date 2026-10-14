@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} est d'astreinte mais n'est pas dans le groupe : son compte Slack est désactivé.",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} est d'astreinte mais n'est pas dans le groupe : cette personne est invitée dans Slack, et Slack exclut les invités des groupes d'utilisateurs.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} est d'astreinte mais n'est pas dans la balise : une balise ne contient que des membres de son équipe, et cette personne n'est pas dans l'équipe {{team}}. Ajoutez-la à l'équipe dans Microsoft Teams.",
-  "{{remaining}} of the error budget left": "Il reste {{remaining}} du budget d'erreur"
+  "{{remaining}} of the error budget left": "Il reste {{remaining}} du budget d'erreur",
+  "Go back to {{workspace}} and run the command again.": "Retournez dans {{workspace}} et exécutez de nouveau la commande.",
+  "Go back to {{workspace}} and type the command again.": "Retournez dans {{workspace}} et tapez de nouveau la commande.",
+  "Taking you to Microsoft to confirm it's you.": "Redirection vers Microsoft pour confirmer que c'est bien vous."
 }

@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} 님은 온콜이지만 그룹에 포함되지 않았습니다: Slack 계정이 비활성화되었습니다.",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} 님은 온콜이지만 그룹에 포함되지 않았습니다: Slack의 게스트이며, Slack은 게스트를 사용자 그룹에 넣지 않습니다.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} 님은 온콜이지만 태그에 포함되지 않았습니다: 태그에는 해당 팀의 멤버만 들어갈 수 있는데, 이 사용자는 {{team}} 팀에 없습니다. Microsoft Teams에서 팀에 추가하세요.",
-  "{{remaining}} of the error budget left": "오류 예산 {{remaining}} 남음"
+  "{{remaining}} of the error budget left": "오류 예산 {{remaining}} 남음",
+  "Go back to {{workspace}} and run the command again.": "{{workspace}}(으)로 돌아가 명령을 다시 실행하세요.",
+  "Go back to {{workspace}} and type the command again.": "{{workspace}}(으)로 돌아가 명령을 다시 입력하세요.",
+  "Taking you to Microsoft to confirm it's you.": "본인임을 확인하기 위해 Microsoft로 이동합니다."
 }

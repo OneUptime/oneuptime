@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} はオンコール中ですが、グループに含まれていません：Slack アカウントが無効化されています。",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} はオンコール中ですが、グループに含まれていません：Slack のゲストであり、Slack ではゲストをユーザーグループに入れられません。",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} はオンコール中ですが、タグに含まれていません：タグにはそのチームのメンバーしか入れられず、この人は {{team}} チームのメンバーではありません。Microsoft Teams でチームに追加してください。",
-  "{{remaining}} of the error budget left": "エラーバジェットの残り {{remaining}}"
+  "{{remaining}} of the error budget left": "エラーバジェットの残り {{remaining}}",
+  "Go back to {{workspace}} and run the command again.": "{{workspace}} に戻って、もう一度コマンドを実行してください。",
+  "Go back to {{workspace}} and type the command again.": "{{workspace}} に戻って、もう一度コマンドを入力してください。",
+  "Taking you to Microsoft to confirm it's you.": "本人確認のため Microsoft に移動しています。"
 }

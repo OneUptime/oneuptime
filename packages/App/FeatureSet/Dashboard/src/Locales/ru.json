@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} дежурит, но не входит в группу: аккаунт Slack этого человека деактивирован.",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} дежурит, но не входит в группу: этот человек — гость в Slack, а Slack не добавляет гостей в группы пользователей.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} дежурит, но не входит в тег: в тег входят только участники его команды, а этого человека нет в команде {{team}}. Добавьте его в команду в Microsoft Teams.",
-  "{{remaining}} of the error budget left": "Осталось {{remaining}} бюджета ошибок"
+  "{{remaining}} of the error budget left": "Осталось {{remaining}} бюджета ошибок",
+  "Go back to {{workspace}} and run the command again.": "Вернитесь в {{workspace}} и выполните команду ещё раз.",
+  "Go back to {{workspace}} and type the command again.": "Вернитесь в {{workspace}} и введите команду ещё раз.",
+  "Taking you to Microsoft to confirm it's you.": "Переходим в Microsoft, чтобы подтвердить, что это вы."
 }

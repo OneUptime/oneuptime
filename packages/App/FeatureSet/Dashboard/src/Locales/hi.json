@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} ऑन-कॉल हैं, लेकिन समूह में नहीं हैं: उनका Slack खाता निष्क्रिय है।",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} ऑन-कॉल हैं, लेकिन समूह में नहीं हैं: वे Slack में मेहमान हैं, और Slack मेहमानों को उपयोगकर्ता समूहों से बाहर रखता है।",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} ऑन-कॉल हैं, लेकिन टैग में नहीं हैं: किसी टैग में सिर्फ़ उसकी टीम के लोग हो सकते हैं, और वे {{team}} टीम में नहीं हैं। उन्हें Microsoft Teams में टीम में जोड़ें।",
-  "{{remaining}} of the error budget left": "त्रुटि बजट का {{remaining}} बचा है"
+  "{{remaining}} of the error budget left": "त्रुटि बजट का {{remaining}} बचा है",
+  "Go back to {{workspace}} and run the command again.": "{{workspace}} पर वापस जाएँ और कमांड फिर से चलाएँ।",
+  "Go back to {{workspace}} and type the command again.": "{{workspace}} पर वापस जाएँ और कमांड फिर से टाइप करें।",
+  "Taking you to Microsoft to confirm it's you.": "यह पुष्टि करने के लिए कि यह आप ही हैं, आपको Microsoft पर ले जाया जा रहा है।"
 }

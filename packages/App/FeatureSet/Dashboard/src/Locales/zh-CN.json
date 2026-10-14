@@ -28734,5 +28734,8 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} 正在值班，但不在该组中：此人的 Slack 帐户已停用。",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} 正在值班，但不在该组中：此人是 Slack 中的访客，而 Slack 不允许访客加入用户组。",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} 正在值班，但不在该标记中：标记只能包含其团队的成员，而此人不在 {{team}} 团队中。请在 Microsoft Teams 中将此人添加到该团队。",
-  "{{remaining}} of the error budget left": "错误预算剩余 {{remaining}}"
+  "{{remaining}} of the error budget left": "错误预算剩余 {{remaining}}",
+  "Go back to {{workspace}} and run the command again.": "请返回 {{workspace}}，再运行一次该命令。",
+  "Go back to {{workspace}} and type the command again.": "请返回 {{workspace}}，再输入一次该命令。",
+  "Taking you to Microsoft to confirm it's you.": "正在前往 Microsoft 以确认是您本人。"
 }
