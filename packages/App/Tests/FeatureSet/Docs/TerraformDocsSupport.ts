@@ -238,7 +238,8 @@ const GO_SCHEMA_ATTRIBUTE: RegExp =
 // `{"log_monitor", "logMonitor"},` - an entry of monitorStepsSubConfigs.
 const GO_SUB_CONFIG: RegExp = /^\s*\{"([a-z_]+)", "([A-Za-z]+)"\},$/;
 // `var monitorStepsCheckOnValues = []string{` - a list of fixed values.
-const GO_VALUE_LIST_START: RegExp = /^var (monitorSteps[A-Za-z]+Values) = \[\]string\{(.*)$/;
+const GO_VALUE_LIST_START: RegExp =
+  /^var (monitorSteps[A-Za-z]+Values) = \[\]string\{(.*)$/;
 const GO_QUOTED: RegExp = /"([^"]+)"/g;
 const GO_REQUIRED_LINE: RegExp = /^\s*Required:\s+true,/;
 const GO_SENSITIVE_LINE: RegExp = /^\s*Sensitive:\s+true,/;
@@ -436,7 +437,14 @@ export interface HclBody {
 }
 
 interface HclToken {
-  type: "ident" | "string" | "template" | "number" | "punct" | "newline" | "eof";
+  type:
+    | "ident"
+    | "string"
+    | "template"
+    | "number"
+    | "punct"
+    | "newline"
+    | "eof";
   value: string;
   line: number;
 }
@@ -496,10 +504,7 @@ function skipString(
       continue;
     }
 
-    if (
-      (character === "$" || character === "%") &&
-      text[index + 1] === "{"
-    ) {
+    if ((character === "$" || character === "%") && text[index + 1] === "{") {
       const end: number = skipInterpolation(text, index + 1);
       value += text.slice(index, end);
       index = end;
@@ -603,7 +608,9 @@ function tokenize(text: string): Array<HclToken> {
         }
 
         if (next === -1) {
-          throw new Error(`Line ${startLine}: the heredoc ${marker} is never closed.`);
+          throw new Error(
+            `Line ${startLine}: the heredoc ${marker} is never closed.`,
+          );
         }
 
         bodyLines.push(current);
@@ -674,7 +681,9 @@ function tokenize(text: string): Array<HclToken> {
       continue;
     }
 
-    throw new Error(`Line ${line}: HCL this reader does not know: "${character}".`);
+    throw new Error(
+      `Line ${line}: HCL this reader does not know: "${character}".`,
+    );
   }
 
   push("eof", "");
@@ -816,7 +825,9 @@ class HclParser {
         break;
     }
 
-    throw new Error(`Line ${token.line}: a value cannot start with "${token.value}".`);
+    throw new Error(
+      `Line ${token.line}: a value cannot start with "${token.value}".`,
+    );
   }
 
   private parseIdentifier(token: HclToken): HclValue {
@@ -917,7 +928,9 @@ class HclParser {
       const key: HclToken = this.next();
 
       if (key.type !== "ident" && key.type !== "string") {
-        throw new Error(`Line ${key.line}: an object key cannot be "${key.value}".`);
+        throw new Error(
+          `Line ${key.line}: an object key cannot be "${key.value}".`,
+        );
       }
 
       if (this.isPunct("=") || this.isPunct(":")) {

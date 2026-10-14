@@ -128,7 +128,8 @@ const META_ARGUMENTS: ReadonlyArray<string> = [
   "provider",
 ];
 
-const RFC_3339: RegExp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+const RFC_3339: RegExp =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 const UUID: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const E2E_TEST_NAME: RegExp = /`(\d{2}-[a-z0-9-]+)`/g;
@@ -151,7 +152,9 @@ function hclBlocksOf(page: string): Array<CodeBlock> {
 }
 
 // Every HCL block of a page, parsed, with where it is.
-function parsedBlocks(page: string): Array<{ block: CodeBlock; body: HclBody }> {
+function parsedBlocks(
+  page: string,
+): Array<{ block: CodeBlock; body: HclBody }> {
   return hclBlocksOf(page).map((block: CodeBlock) => {
     return { block: block, body: parseHcl(block.code) };
   });
@@ -473,7 +476,10 @@ function filterProblems(
       CriteriaFilterUtil.getCheckOnOptionsByMonitorType(monitorType),
     ).includes(checkOn)
   ) {
-    report(path, `a ${monitorType} monitor's criteria editor offers no "${checkOn}"`);
+    report(
+      path,
+      `a ${monitorType} monitor's criteria editor offers no "${checkOn}"`,
+    );
   }
 
   if (
@@ -530,7 +536,10 @@ function filterProblems(
     );
 
     if (json && !isJsonencode(json.value)) {
-      report(path, `${option.attributeName} is not written with jsonencode({ ... })`);
+      report(
+        path,
+        `${option.attributeName} is not written with jsonencode({ ... })`,
+      );
     }
   }
 }
@@ -577,7 +586,12 @@ function criteriaProblems(
 
     objectItems(templates.value, `${path}.${list}`, report).forEach(
       (template: Array<HclAttribute>, index: number): void => {
-        nestedProblems(template, templateSchema, `${path}.${list}[${index}]`, report);
+        nestedProblems(
+          template,
+          templateSchema,
+          `${path}.${list}[${index}]`,
+          report,
+        );
       },
     );
   }
@@ -621,7 +635,10 @@ function stepProblems(
   );
 
   if (hasDestination !== Boolean(destinationType)) {
-    report(path, "monitor_destination and monitor_destination_type go together");
+    report(
+      path,
+      "monitor_destination and monitor_destination_type go together",
+    );
   }
 
   if (
@@ -640,7 +657,13 @@ function stepProblems(
     report(path, `a ${monitorType} monitor checks a hostname or an IP address`);
   }
 
-  fixedValue(step, "request_type", "monitorStepsRequestTypeValues", path, report);
+  fixedValue(
+    step,
+    "request_type",
+    "monitorStepsRequestTypeValues",
+    path,
+    report,
+  );
 
   const port: HclValue | undefined = attributeNamed(step, "port")?.value;
 
@@ -656,7 +679,12 @@ function stepProblems(
     `${path}.criteria`,
     report,
   ).forEach((criteria: Array<HclAttribute>, index: number): void => {
-    criteriaProblems(criteria, monitorType, `${path}.criteria[${index}]`, report);
+    criteriaProblems(
+      criteria,
+      monitorType,
+      `${path}.criteria[${index}]`,
+      report,
+    );
   });
 }
 
@@ -808,7 +836,9 @@ function terraformBlockProblems(block: HclBlock, where: string): Array<string> {
     }
 
     if (version !== TERRAFORM_PROVIDER_VERSION_PLACEHOLDER) {
-      problems.push(`${where}: the version is "${version}", not the placeholder`);
+      problems.push(
+        `${where}: the version is "${version}", not the placeholder`,
+      );
     }
   }
 
@@ -1200,7 +1230,10 @@ describe("the HCL on the pages", () => {
           );
 
           // A variable that holds a key: its name says so.
-          if (block.type === "variable" && (block.labels[0] as string).endsWith("_key")) {
+          if (
+            block.type === "variable" &&
+            (block.labels[0] as string).endsWith("_key")
+          ) {
             expect({ page, variable: block.labels[0], sensitive }).toEqual({
               page,
               variable: block.labels[0],
@@ -1339,7 +1372,9 @@ describe("the checks themselves", () => {
       "template",
     );
     expect(
-      stringLiteral(attributeNamed(block.body.attributes, "custom_code")?.value),
+      stringLiteral(
+        attributeNamed(block.body.attributes, "custom_code")?.value,
+      ),
     ).toBe('return { data: "x" };');
     expect(referencesInBody(block.body)).toEqual([
       "each.key",
@@ -1415,7 +1450,10 @@ describe("the overview", () => {
     expect(named.length).toBeGreaterThanOrEqual(15);
 
     for (const typeName of named) {
-      expect({ typeName, resource: provider.resources.has(shortName(typeName)) }).toEqual({
+      expect({
+        typeName,
+        resource: provider.resources.has(shortName(typeName)),
+      }).toEqual({
         typeName,
         resource: true,
       });
@@ -1427,9 +1465,9 @@ describe("the overview", () => {
   });
 
   it("is right that every resource has a data source of the same name", () => {
-    expect(section(TERRAFORM_OVERVIEW, "### Read what already exists")).toContain(
-      "Every resource has a data source of the same name",
-    );
+    expect(
+      section(TERRAFORM_OVERVIEW, "### Read what already exists"),
+    ).toContain("Every resource has a data source of the same name");
 
     for (const name of Array.from(provider.resources.keys())) {
       expect({ name, dataSource: provider.dataSources.has(name) }).toEqual({
@@ -1467,9 +1505,7 @@ describe("the overview", () => {
     expect(readRepoFile(RESOURCE_GENERATOR)).toContain(
       "has been renamed to ${this.providerName}_${resource.name}",
     );
-    expect(readRepoFile(RESOURCE_GENERATOR)).toContain(
-      "legacyNameStateMover(",
-    );
+    expect(readRepoFile(RESOURCE_GENERATOR)).toContain("legacyNameStateMover(");
   });
 
   it("asks for the versions the generated docs give for import blocks", () => {
@@ -1504,7 +1540,10 @@ describe("the overview", () => {
   });
 
   it("names the Developer section and its pages as the Dashboard does", () => {
-    const text: string = section(TERRAFORM_OVERVIEW, "## Let the dashboard write it");
+    const text: string = section(
+      TERRAFORM_OVERVIEW,
+      "## Let the dashboard write it",
+    );
 
     expect(text).toContain(`**${DEVELOPER_DOCS_SECTION_TITLE}**`);
 
@@ -1525,15 +1564,15 @@ describe("the overview", () => {
     expect(example("Text, numbers, true or false")).toBe(
       "is_public_status_page = false",
     );
-    expect(resourceType("status_page").attributes.get("is_public_status_page")?.type).toBe(
-      "bool",
-    );
+    expect(
+      resourceType("status_page").attributes.get("is_public_status_page")?.type,
+    ).toBe("bool");
     expect(example("A reference to another record")).toBe(
       "incident_severity_id = oneuptime_incident_severity.sev1.id",
     );
-    expect(resourceType("incident").attributes.get("incident_severity_id")?.relation).toBe(
-      "incident_severity",
-    );
+    expect(
+      resourceType("incident").attributes.get("incident_severity_id")?.relation,
+    ).toBe("incident_severity");
     expect(example("A list of references")).toBe(
       "labels = [oneuptime_label.critical.id]",
     );
@@ -1546,9 +1585,9 @@ describe("the overview", () => {
     expect(resourceType("label").attributes.get("color")?.isComplexObject).toBe(
       true,
     );
-    expect(resourceType("domain").attributes.get("domain")?.isComplexObject).toBe(
-      true,
-    );
+    expect(
+      resourceType("domain").attributes.get("domain")?.isComplexObject,
+    ).toBe(true);
     expect(example("A date and time")).toBe(
       'starts_at = "2030-06-01T02:00:00Z"',
     );
@@ -1583,7 +1622,11 @@ describe("the quick start", () => {
       "packages/App/FeatureSet/Dashboard/src/Pages/Settings/SideMenu.tsx",
     );
 
-    for (const title of ["Access", "Project Admin", "Choose permissions later"]) {
+    for (const title of [
+      "Access",
+      "Project Admin",
+      "Choose permissions later",
+    ]) {
       expect(access).toContain(`title: "${title}"`);
       expect(page).toContain(`**${title}**`);
     }
@@ -1615,8 +1658,12 @@ describe("the quick start", () => {
       expect(project).toContain(`.name = "${name}";`);
     }
 
-    expect(page).toContain('data "oneuptime_monitor_status" "operational" {\n  name = "Operational"\n}');
-    expect(page).toContain('data "oneuptime_monitor_status" "offline" {\n  name = "Offline"\n}');
+    expect(page).toContain(
+      'data "oneuptime_monitor_status" "operational" {\n  name = "Operational"\n}',
+    );
+    expect(page).toContain(
+      'data "oneuptime_monitor_status" "offline" {\n  name = "Offline"\n}',
+    );
   });
 
   it("checks every five minutes, as a new monitor does in the Dashboard", () => {
@@ -1731,13 +1778,15 @@ describe("the complete guide", () => {
     expect(rowStartingWith(rows, "`oneuptime_url`")[1]).toBe("`ONEUPTIME_URL`");
 
     // The schema: both optional, the key sensitive.
-    expect(providerSource).toContain('"oneuptime_url": schema.StringAttribute{');
+    expect(providerSource).toContain(
+      '"oneuptime_url": schema.StringAttribute{',
+    );
     expect(providerSchemaAttribute(providerSource, "api_key")).toContain(
       "Optional:            true,\n                Sensitive:           true,",
     );
-    expect(
-      providerSchemaAttribute(providerSource, "oneuptime_url"),
-    ).toContain("Optional:            true,");
+    expect(providerSchemaAttribute(providerSource, "oneuptime_url")).toContain(
+      "Optional:            true,",
+    );
     expect(
       providerSchemaAttribute(providerSource, "oneuptime_url"),
     ).not.toContain("Sensitive");
@@ -1750,8 +1799,12 @@ describe("the complete guide", () => {
     );
     expect(providerSource).toContain('oneuptimeUrl = "oneuptime.com"');
     // A scheme and /api are added.
-    expect(providerSource).toContain('oneuptimeUrl = "https://" + oneuptimeUrl');
-    expect(providerSource).toContain('strings.TrimSuffix(oneuptimeUrl, "/") + "/api"');
+    expect(providerSource).toContain(
+      'oneuptimeUrl = "https://" + oneuptimeUrl',
+    );
+    expect(providerSource).toContain(
+      'strings.TrimSuffix(oneuptimeUrl, "/") + "/api"',
+    );
     expect(section(COMPLETE_GUIDE, "## Configure the provider")).toContain(
       "the provider adds `https://` when the address has no scheme, and `/api` at the end",
     );
@@ -1760,7 +1813,9 @@ describe("the complete guide", () => {
   it("is right that a master key's create fails for want of a project", () => {
     expect(
       readRepoFile("packages/Common/Server/Services/MonitorService.ts"),
-    ).toContain('throw new BadDataException("ProjectId required to create monitor.");');
+    ).toContain(
+      'throw new BadDataException("ProjectId required to create monitor.");',
+    );
     expect(section(COMPLETE_GUIDE, "## Configure the provider")).toContain(
       "fails with `ProjectId required`",
     );
@@ -1787,7 +1842,9 @@ describe("the complete guide", () => {
       expect(generator).toContain(`"${summary}"`);
     }
 
-    expect(generator).toContain("// limit 2 is enough to detect ambiguity without paging.");
+    expect(generator).toContain(
+      "// limit 2 is enough to detect ambiguity without paging.",
+    );
     expect(generator).toContain("hasId && len(filters) > 0");
     expect(generator).toContain("!hasId && len(filters) == 0");
 
@@ -1795,12 +1852,19 @@ describe("the complete guide", () => {
     const statusPage: ProviderType = dataSourceType("status_page");
 
     expect(statusPage.attributes.get("name")?.isLookupFilter).toBe(true);
-    expect(statusPage.attributes.get("is_public_status_page")?.isLookupFilter).toBe(true);
-    expect(statusPage.attributes.get("master_password")?.isLookupFilter).toBe(false);
+    expect(
+      statusPage.attributes.get("is_public_status_page")?.isLookupFilter,
+    ).toBe(true);
+    expect(statusPage.attributes.get("master_password")?.isLookupFilter).toBe(
+      false,
+    );
     expect(statusPage.attributes.get("created_at")?.isLookupFilter).toBe(false);
     expect(statusPage.attributes.get("labels")?.isLookupFilter).toBe(false);
     expect(statusPage.attributes.get("project_id")?.isLookupFilter).toBe(false);
-    expect(dataSourceType("monitor_status").attributes.get("priority")?.isLookupFilter).toBe(true);
+    expect(
+      dataSourceType("monitor_status").attributes.get("priority")
+        ?.isLookupFilter,
+    ).toBe(true);
   });
 
   it("keeps the CI examples to the key's environment variable", () => {
@@ -1830,7 +1894,9 @@ describe("the complete guide", () => {
     );
 
     expect(rfc3339).toContain("StringSemanticEquals");
-    expect(jsonSubset).toContain("func jsonIsSubset(plan, actual interface{}) bool");
+    expect(jsonSubset).toContain(
+      "func jsonIsSubset(plan, actual interface{}) bool",
+    );
     expect(readRepoFile(MONITOR_STEPS_GO)).toContain(
       "return jsonIsSubset(theirsPlain, minePlain), diags",
     );
@@ -1857,7 +1923,10 @@ function attributesListed(rows: Array<Array<string>>): Array<string> {
 }
 
 // Every code span of a text that is one of a list's values.
-function valuesNamed(text: string, values: ReadonlyArray<string>): Array<string> {
+function valuesNamed(
+  text: string,
+  values: ReadonlyArray<string>,
+): Array<string> {
   return codeIn(text).filter((span: string): boolean => {
     return values.includes(span);
   });
@@ -1867,33 +1936,34 @@ function valuesNamed(text: string, values: ReadonlyArray<string>): Array<string>
  * The monitor types each row of the check_on table speaks of, by the row's
  * first cell: every value the row lists is offered for each of them.
  */
-const CHECK_ON_ROW_TYPES: Readonly<Record<string, ReadonlyArray<MonitorType>>> = {
-  "Website / API": [MonitorType.Website, MonitorType.API],
-  "Ping / IP": [MonitorType.Ping, MonitorType.IP],
-  Port: [MonitorType.Port],
-  "SSL Certificate": [MonitorType.SSLCertificate],
-  "Incoming Request": [MonitorType.IncomingRequest],
-  "Incoming Email": [MonitorType.IncomingEmail],
-  Server: [MonitorType.Server],
-  Logs: [MonitorType.Logs],
-  Traces: [MonitorType.Traces],
-  Exceptions: [MonitorType.Exceptions],
-  Profiles: [MonitorType.Profiles],
-  "AI / LLM": [MonitorType.Llm],
-  Metrics: [MonitorType.Metrics],
-  "Custom Code / Synthetic": [
-    MonitorType.CustomJavaScriptCode,
-    MonitorType.SyntheticMonitor,
-  ],
-  DNS: [MonitorType.DNS],
-  Domain: [MonitorType.Domain],
-  DNSSEC: [MonitorType.DNSSEC],
-  "SQL Query": [MonitorType.SQLQuery],
-  "Database Health": [MonitorType.Database],
-  "External Status Page": [MonitorType.ExternalStatusPage],
-  NTP: [MonitorType.NTP],
-  "Network Device (SNMP)": [MonitorType.NetworkDevice],
-};
+const CHECK_ON_ROW_TYPES: Readonly<Record<string, ReadonlyArray<MonitorType>>> =
+  {
+    "Website / API": [MonitorType.Website, MonitorType.API],
+    "Ping / IP": [MonitorType.Ping, MonitorType.IP],
+    Port: [MonitorType.Port],
+    "SSL Certificate": [MonitorType.SSLCertificate],
+    "Incoming Request": [MonitorType.IncomingRequest],
+    "Incoming Email": [MonitorType.IncomingEmail],
+    Server: [MonitorType.Server],
+    Logs: [MonitorType.Logs],
+    Traces: [MonitorType.Traces],
+    Exceptions: [MonitorType.Exceptions],
+    Profiles: [MonitorType.Profiles],
+    "AI / LLM": [MonitorType.Llm],
+    Metrics: [MonitorType.Metrics],
+    "Custom Code / Synthetic": [
+      MonitorType.CustomJavaScriptCode,
+      MonitorType.SyntheticMonitor,
+    ],
+    DNS: [MonitorType.DNS],
+    Domain: [MonitorType.Domain],
+    DNSSEC: [MonitorType.DNSSEC],
+    "SQL Query": [MonitorType.SQLQuery],
+    "Database Health": [MonitorType.Database],
+    "External Status Page": [MonitorType.ExternalStatusPage],
+    NTP: [MonitorType.NTP],
+    "Network Device (SNMP)": [MonitorType.NetworkDevice],
+  };
 
 describe("the monitor steps page", () => {
   const schema: MonitorStepsSchema = readMonitorStepsSchema();
@@ -1908,11 +1978,11 @@ describe("the monitor steps page", () => {
         return name;
       },
     );
-    const plain: Array<NestedAttribute> = Array.from(schema.step.values()).filter(
-      (attribute: NestedAttribute): boolean => {
-        return !subConfigNames.includes(attribute.name);
-      },
-    );
+    const plain: Array<NestedAttribute> = Array.from(
+      schema.step.values(),
+    ).filter((attribute: NestedAttribute): boolean => {
+      return !subConfigNames.includes(attribute.name);
+    });
 
     expect(attributesListed(rows)).toEqual(
       plain
@@ -1923,7 +1993,10 @@ describe("the monitor steps page", () => {
     );
 
     for (const attribute of plain) {
-      const written: string = rowStartingWith(rows, `\`${attribute.name}\``)[1] as string;
+      const written: string = rowStartingWith(
+        rows,
+        `\`${attribute.name}\``,
+      )[1] as string;
       let expected: string = NESTED_KINDS[attribute.kind] as string;
 
       if (attribute.sensitive) {
@@ -1942,7 +2015,10 @@ describe("the monitor steps page", () => {
   });
 
   it("names every per-type JSON attribute of a step, as the provider and the Dashboard's export have them", () => {
-    const text: string = section(MONITOR_STEPS, "### Settings of each monitor type");
+    const text: string = section(
+      MONITOR_STEPS,
+      "### Settings of each monitor type",
+    );
     const subConfigNames: Array<string> = schema.subConfigs.map(
       ([name]: [string, string]): string => {
         return name;
@@ -1954,7 +2030,10 @@ describe("the monitor steps page", () => {
     );
     expect(schema.subConfigs).toEqual(
       MONITOR_STEP_SUB_CONFIGS.map(
-        (config: { attributeName: string; apiKey: string }): [string, string] => {
+        (config: {
+          attributeName: string;
+          apiKey: string;
+        }): [string, string] => {
           return [config.attributeName, config.apiKey];
         },
       ),
@@ -1962,7 +2041,9 @@ describe("the monitor steps page", () => {
   });
 
   it("writes an ID inside a step's JSON as the API writes one", () => {
-    expect(section(MONITOR_STEPS, "### Settings of each monitor type")).toContain(
+    expect(
+      section(MONITOR_STEPS, "### Settings of each monitor type"),
+    ).toContain(
       'telemetryServiceIds = [{ _type = "ObjectID", value = oneuptime_service.checkout.id }]',
     );
     expect(readRepoFile("packages/Common/Types/ObjectID.ts")).toContain(
@@ -1976,12 +2057,20 @@ describe("the monitor steps page", () => {
       "Attribute",
     );
 
-    expect(attributesListed(rows)).toEqual(Array.from(schema.criteria.keys()).sort());
+    expect(attributesListed(rows)).toEqual(
+      Array.from(schema.criteria.keys()).sort(),
+    );
 
     for (const attribute of Array.from(schema.criteria.values())) {
-      const type: string = rowStartingWith(rows, `\`${attribute.name}\``)[1] as string;
+      const type: string = rowStartingWith(
+        rows,
+        `\`${attribute.name}\``,
+      )[1] as string;
 
-      expect({ attribute: attribute.name, required: type.endsWith("(required)") }).toEqual({
+      expect({
+        attribute: attribute.name,
+        required: type.endsWith("(required)"),
+      }).toEqual({
         attribute: attribute.name,
         required: attribute.required,
       });
@@ -1994,22 +2083,29 @@ describe("the monitor steps page", () => {
       text,
       "An item of `incidents` takes",
     );
-    const incident: Array<string> = codeIn(incidentSentence.split(". An item of `alerts`")[0] as string)
-      .filter((span: string): boolean => {
-        return span !== "incidents";
-      });
-    const alertsSentence: string = incidentSentence.split(". An item of `alerts`")[1] as string;
+    const incident: Array<string> = codeIn(
+      incidentSentence.split(". An item of `alerts`")[0] as string,
+    ).filter((span: string): boolean => {
+      return span !== "incidents";
+    });
+    const alertsSentence: string = incidentSentence.split(
+      ". An item of `alerts`",
+    )[1] as string;
     const [added, removed] = alertsSentence.split(", and without ");
     const alert: Array<string> = [
       ...incident.filter((name: string): boolean => {
-        return !["incident_severity_id", "auto_resolve_incident"].includes(name);
+        return !["incident_severity_id", "auto_resolve_incident"].includes(
+          name,
+        );
       }),
       ...codeIn(added as string),
     ].filter((name: string): boolean => {
       return !codeIn(removed as string).includes(name);
     });
 
-    expect([...incident].sort()).toEqual(Array.from(schema.incident.keys()).sort());
+    expect([...incident].sort()).toEqual(
+      Array.from(schema.incident.keys()).sort(),
+    );
     expect(alert.sort()).toEqual(Array.from(schema.alert.keys()).sort());
     expect(incidentSentence).toContain(
       "takes `title` and `description` (both required)",
@@ -2051,13 +2147,41 @@ describe("the monitor steps page", () => {
   it("lists the fixed values of a filter's window and no-data policy, and of a step's request and destination", () => {
     const text: string = englishPage(MONITOR_STEPS);
     const lists: Array<[string, string, string]> = [
-      ["monitorStepsEvaluateOverTimeTypeValues", "## Filter reference", "`evaluate_over_time_type`"],
-      ["monitorStepsNoDataPolicyValues", "## Filter reference", "`evaluate_over_time_no_data_policy`"],
-      ["monitorStepsRequestTypeValues", "## Step attributes", "| `request_type` |"],
-      ["monitorStepsDestinationTypeValues", "## Step attributes", "| `monitor_destination_type` |"],
-      ["monitorStepsScreenSizeTypeValues", "## Step attributes", "| `screen_size_types` |"],
-      ["monitorStepsBrowserTypeValues", "## Step attributes", "| `browser_types` |"],
-      ["monitorStepsFilterConditionValues", "## Criteria attributes", "| `filter_condition` |"],
+      [
+        "monitorStepsEvaluateOverTimeTypeValues",
+        "## Filter reference",
+        "`evaluate_over_time_type`",
+      ],
+      [
+        "monitorStepsNoDataPolicyValues",
+        "## Filter reference",
+        "`evaluate_over_time_no_data_policy`",
+      ],
+      [
+        "monitorStepsRequestTypeValues",
+        "## Step attributes",
+        "| `request_type` |",
+      ],
+      [
+        "monitorStepsDestinationTypeValues",
+        "## Step attributes",
+        "| `monitor_destination_type` |",
+      ],
+      [
+        "monitorStepsScreenSizeTypeValues",
+        "## Step attributes",
+        "| `screen_size_types` |",
+      ],
+      [
+        "monitorStepsBrowserTypeValues",
+        "## Step attributes",
+        "| `browser_types` |",
+      ],
+      [
+        "monitorStepsFilterConditionValues",
+        "## Criteria attributes",
+        "| `filter_condition` |",
+      ],
     ];
 
     for (const [listName, heading, start] of lists) {
@@ -2067,7 +2191,9 @@ describe("the monitor steps page", () => {
           .map((candidate: string): string => {
             // A paragraph names its attribute first: start the line there.
             const at: number = candidate.indexOf(start);
-            return at > 0 && !candidate.startsWith("|") ? candidate.slice(at) : candidate;
+            return at > 0 && !candidate.startsWith("|")
+              ? candidate.slice(at)
+              : candidate;
           })
           .join("\n"),
         start,
@@ -2083,9 +2209,9 @@ describe("the monitor steps page", () => {
       });
     }
 
-    expect(monitorStepsValues("monitorStepsEvaluateOverTimeTypeValues")).toEqual(
-      Object.values(EvaluateOverTimeType),
-    );
+    expect(
+      monitorStepsValues("monitorStepsEvaluateOverTimeTypeValues"),
+    ).toEqual(Object.values(EvaluateOverTimeType));
     expect(text).toContain("`Ignore` (the default) does not match");
   });
 
@@ -2105,7 +2231,10 @@ describe("the monitor steps page", () => {
     ).toEqual(Object.keys(CHECK_ON_ROW_TYPES));
 
     for (const row of rows) {
-      const listed: Array<string> = valuesNamed(row[1] as string, checkOnValues);
+      const listed: Array<string> = valuesNamed(
+        row[1] as string,
+        checkOnValues,
+      );
 
       expect(listed.length).toBeGreaterThan(0);
 
@@ -2115,7 +2244,11 @@ describe("the monitor steps page", () => {
         );
 
         for (const checkOn of listed) {
-          expect({ monitorType, checkOn, offered: offered.includes(checkOn) }).toEqual({
+          expect({
+            monitorType,
+            checkOn,
+            offered: offered.includes(checkOn),
+          }).toEqual({
             monitorType,
             checkOn,
             offered: true,
@@ -2167,7 +2300,9 @@ describe("the monitor steps page", () => {
   });
 
   it("is right that nothing checks a monitor without steps, and nothing fills them in", () => {
-    const probe: string = readRepoFile("packages/Probe/Utils/Monitors/Monitor.ts");
+    const probe: string = readRepoFile(
+      "packages/Probe/Utils/Monitors/Monitor.ts",
+    );
     const monitorService: string = readRepoFile(
       "packages/Common/Server/Services/MonitorService.ts",
     );
@@ -2176,7 +2311,9 @@ describe("the monitor steps page", () => {
       "func MonitorStepsSchemaAttribute(",
     );
 
-    expect(probe).toContain('logger.debug("No monitor steps found");\n      return;');
+    expect(probe).toContain(
+      'logger.debug("No monitor steps found");\n      return;',
+    );
     expect(monitorService).not.toContain("getDefaultMonitorSteps");
     expect(monitorService).toContain("if (createBy.data.monitorSteps) {");
     expect(attribute).toContain("Optional:            true,");
@@ -2192,7 +2329,9 @@ describe("the monitor steps page", () => {
     );
 
     expect(monitorService).toContain("isOperationalState: true,");
-    expect(monitorService).toContain("defaultMonitorStatusId: monitorStatus.id,");
+    expect(monitorService).toContain(
+      "defaultMonitorStatusId: monitorStatus.id,",
+    );
   });
 
   it("checks what the end-to-end test's website monitor checks", () => {
@@ -2205,7 +2344,9 @@ describe("the monitor steps page", () => {
     ): Array<string> => {
       const monitor: HclBlock | undefined = body.blocks.find(
         (block: HclBlock): boolean => {
-          return block.labels[0] === "oneuptime_monitor" && block.labels[1] === name;
+          return (
+            block.labels[0] === "oneuptime_monitor" && block.labels[1] === name
+          );
         },
       );
       const triples: Array<string> = [];
@@ -2223,7 +2364,9 @@ describe("the monitor steps page", () => {
             triples.push(
               [
                 checkOn,
-                stringLiteral(attributeNamed(value.attributes, "filter_type")?.value),
+                stringLiteral(
+                  attributeNamed(value.attributes, "filter_type")?.value,
+                ),
                 stringLiteral(attributeNamed(value.attributes, "value")?.value),
               ].join(" | "),
             );
@@ -2235,20 +2378,27 @@ describe("the monitor steps page", () => {
         }
       };
 
-      walk(attributeNamed(monitor?.body.attributes || [], "monitor_steps")?.value || {
-        kind: "null",
-        line: 0,
-      });
+      walk(
+        attributeNamed(monitor?.body.attributes || [], "monitor_steps")
+          ?.value || {
+          kind: "null",
+          line: 0,
+        },
+      );
 
       return triples.sort();
     };
     const pageExample: HclBody = parseHcl(
-      (hclBlocksOf(MONITOR_STEPS).find((block: CodeBlock): boolean => {
-        return block.code.includes('resource "oneuptime_monitor" "website"');
-      }) as CodeBlock).code,
+      (
+        hclBlocksOf(MONITOR_STEPS).find((block: CodeBlock): boolean => {
+          return block.code.includes('resource "oneuptime_monitor" "website"');
+        }) as CodeBlock
+      ).code,
     );
 
-    expect(filtersOf(pageExample, "website")).toEqual(filtersOf(fixture, "website"));
+    expect(filtersOf(pageExample, "website")).toEqual(
+      filtersOf(fixture, "website"),
+    );
     expect(filtersOf(fixture, "website").length).toBeGreaterThan(1);
   });
 });
@@ -2271,8 +2421,8 @@ describe("the examples page", () => {
               return block.code;
             })
             .join("\n\n"),
-        ).blocks
-          .filter((block: HclBlock): boolean => {
+        )
+          .blocks.filter((block: HclBlock): boolean => {
             return block.type === "resource";
           })
           .map((block: HclBlock): string => {
@@ -2282,7 +2432,12 @@ describe("the examples page", () => {
 
       for (const match of Array.from(text.matchAll(E2E_TEST_NAME))) {
         const name: string = match[1] as string;
-        const fixture: string = path.join(REPO_ROOT, E2E_FIXTURES, name, "main.tf");
+        const fixture: string = path.join(
+          REPO_ROOT,
+          E2E_FIXTURES,
+          name,
+          "main.tf",
+        );
 
         named++;
         expect({ name, exists: fs.existsSync(fixture) }).toEqual({
@@ -2314,11 +2469,17 @@ describe("the examples page", () => {
 
   it("judges a certificate as a new SSL certificate monitor does in the Dashboard", () => {
     const id: ObjectID = ObjectID.generate();
-    const filtersOf: (criteria: MonitorCriteriaInstance | null) => Array<string> = (
+    const filtersOf: (
+      criteria: MonitorCriteriaInstance | null,
+    ) => Array<string> = (
       criteria: MonitorCriteriaInstance | null,
     ): Array<string> => {
       return (criteria?.data?.filters || []).map(
-        (filter: { checkOn: CheckOn; filterType?: FilterType | undefined; value?: unknown }): string => {
+        (filter: {
+          checkOn: CheckOn;
+          filterType?: FilterType | undefined;
+          value?: unknown;
+        }): string => {
           return `${filter.checkOn} | ${filter.filterType} | ${filter.value ?? ""}`;
         },
       );
@@ -2361,13 +2522,17 @@ describe("the examples page", () => {
       }
     ).items[0] as HclValue;
     const criteria: Array<HclValue> = (
-      attributeNamed((step as { attributes: Array<HclAttribute> }).attributes, "criteria")
-        ?.value as { items: Array<HclValue> }
+      attributeNamed(
+        (step as { attributes: Array<HclAttribute> }).attributes,
+        "criteria",
+      )?.value as { items: Array<HclValue> }
     ).items;
     const written: Array<Array<string>> = criteria.map((item: HclValue) => {
       const filters: Array<HclValue> = (
-        attributeNamed((item as { attributes: Array<HclAttribute> }).attributes, "filters")
-          ?.value as { items: Array<HclValue> }
+        attributeNamed(
+          (item as { attributes: Array<HclAttribute> }).attributes,
+          "filters",
+        )?.value as { items: Array<HclValue> }
       ).items;
 
       return filters.map((filter: HclValue): string => {
@@ -2426,7 +2591,10 @@ describe("the examples page", () => {
       "Run the probe with `PROBE_ID` set to the probe's `id` and `PROBE_KEY` to the key",
     );
 
-    for (const key of ["incoming_request_secret_key", "server_monitor_secret_key"]) {
+    for (const key of [
+      "incoming_request_secret_key",
+      "server_monitor_secret_key",
+    ]) {
       expect(resourceType("monitor").attributes.get(key)).toEqual(
         expect.objectContaining({ settable: false }),
       );

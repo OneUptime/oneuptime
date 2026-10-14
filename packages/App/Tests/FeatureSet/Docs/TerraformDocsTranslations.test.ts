@@ -286,7 +286,9 @@ function withoutDigitGroups(text: string): string {
 function numbersIn(text: string): Array<string> {
   return Array.from(
     withoutDigitGroups(
-      toLatinDigits(text.replace(INLINE_CODE_SPAN, " ").replace(PLACEHOLDER, " ")),
+      toLatinDigits(
+        text.replace(INLINE_CODE_SPAN, " ").replace(PLACEHOLDER, " "),
+      ),
     )
       .replace(DECIMAL_MARK, "$1.$2")
       .matchAll(NUMBER),
@@ -1013,7 +1015,8 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("find an untranslated line of prose, but not a line of names or code", () => {
-    let names: string = "Terraform Registry, OpenTofu Registry, GitHub Actions, PowerShell";
+    let names: string =
+      "Terraform Registry, OpenTofu Registry, GitHub Actions, PowerShell";
 
     for (const name of NAMES_LONGEST_FIRST) {
       names = names.split(name).join(" ");
