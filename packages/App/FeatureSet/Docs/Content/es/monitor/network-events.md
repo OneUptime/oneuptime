@@ -223,7 +223,7 @@ Desde la pestaña **Eventos** de un dispositivo, los monitores vigilan solo ese 
 
 ## Direcciones que aún no son dispositivos
 
-El syslog puede llegar antes de que el dispositivo que lo envía se añada a OneUptime. En tu propia sonda se guarda, sus eventos están en la página de Eventos de la red con el nombre que el dispositivo se da a sí mismo, y su dirección aparece en **Envía syslog y aún no es un dispositivo**, marcada como **Aún no es un dispositivo**:
+El syslog puede llegar antes de que el dispositivo que lo envía se añada a OneUptime. En tu propia sonda se guarda, sus eventos están en la página de Eventos de la red con el nombre que el dispositivo se da a sí mismo, y su dirección aparece en **Envía syslog y aún no es un dispositivo**:
 
 - **Añadir como dispositivo** abre **Añadir dispositivo** con la dirección y la sonda ya rellenadas. Los mensajes que ya llegaron se quedan en la página de la red; los nuevos van al dispositivo.
 - **Es uno de mis dispositivos** añade la dirección a las **Otras direcciones** de un dispositivo: úsalo cuando un dispositivo que ya añadiste envía desde otra dirección, como una loopback. Sus mensajes van a ese dispositivo a partir del minuto siguiente.

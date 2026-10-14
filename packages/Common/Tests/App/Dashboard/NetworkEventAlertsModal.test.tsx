@@ -30,10 +30,15 @@ import ProjectUtil from "../../../UI/Utils/Project";
 
 /*
  * Being told when something happens on the network: the alerts most
- * networks want, one card each. A card opens Create Monitor filled in -
- * what the monitor then is, is pinned in NetworkEventMonitorPrefill.test.ts.
- * These draw the dialog: every featured alert, its words, where each card
- * leads, and what someone who may not create monitors is shown instead.
+ * networks want, as a list to pick from. A row opens Create Monitor filled
+ * in - what the monitor then is, is pinned in
+ * NetworkEventMonitorPrefill.test.ts. These draw the dialog: every featured
+ * alert, its words, where each row leads, and what someone who may not
+ * create monitors is shown instead.
+ *
+ * A row has one thing to press: its name is the link, and the link covers
+ * the row. (It used to be a card with a "Create alert" link under its
+ * sentence - eight identical links, read out eight times over.)
  */
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
@@ -71,13 +76,29 @@ function cardFor(id: NetworkEventAlertTemplateId): HTMLElement {
   return card;
 }
 
+// A row's one link: named after its alert.
+function linkElementOf(card: HTMLElement): HTMLElement {
+  const id: NetworkEventAlertTemplateId = card.getAttribute(
+    "data-template-id",
+  ) as NetworkEventAlertTemplateId;
+
+  return within(card).getByRole("link", {
+    name: NETWORK_EVENT_ALERT_TEMPLATE_COPY[id].title,
+  });
+}
+
 function linkOf(card: HTMLElement): URL {
   return new URL(
-    within(card)
-      .getByRole("link", { name: "Create alert" })
-      .getAttribute("href") || "",
+    linkElementOf(card).getAttribute("href") || "",
     "https://oneuptime.example",
   );
+}
+
+// What a row draws for the eye only: its icon tile and, when it leads on, its arrow.
+function decorations(card: HTMLElement): Array<Element> {
+  return Array.from(card.children).filter((child: Element): boolean => {
+    return child.getAttribute("aria-hidden") === "true";
+  });
 }
 
 beforeEach(() => {
@@ -251,17 +272,139 @@ describe("from one device's page", () => {
   });
 });
 
+describe("the list itself", () => {
+  test("is a list of eight items, so a screen reader says how many alerts there are", () => {
+    renderModal();
+
+    const list: HTMLElement = screen.getByTestId(
+      "network-event-alert-templates",
+    );
+
+    expect(list.tagName).toBe("UL");
+    expect(list).toHaveAttribute("role", "list");
+    expect(within(list).getAllByRole("listitem")).toHaveLength(8);
+
+    for (const card of cards()) {
+      expect(card.tagName).toBe("LI");
+    }
+  });
+
+  test("a row has one thing to press: its name, which is its link", () => {
+    renderModal();
+
+    for (const card of cards()) {
+      expect(within(card).getAllByRole("link")).toHaveLength(1);
+      expect(within(card).queryByRole("button")).not.toBeInTheDocument();
+      // Eight links that all read "Create alert" said nothing apart.
+      expect(
+        within(card).queryByRole("link", { name: "Create alert" }),
+      ).not.toBeInTheDocument();
+    }
+
+    // Every link has a name of its own.
+    const names: Array<string> = cards().map((card: HTMLElement): string => {
+      return linkElementOf(card).textContent || "";
+    });
+
+    expect(new Set(names).size).toBe(8);
+  });
+
+  test("the link covers its whole row, so a click anywhere on the row opens the alert", () => {
+    renderModal();
+
+    for (const card of cards()) {
+      // The row is what the link's ::after is laid out against.
+      expect(card).toHaveClass("relative");
+      expect(linkElementOf(card)).toHaveClass(
+        "after:absolute",
+        "after:inset-0",
+      );
+      expect(card).toHaveClass("hover:bg-gray-50");
+    }
+  });
+
+  test("the keyboard's focus is drawn on the whole row, inside its own edges", () => {
+    renderModal();
+
+    expect(linkElementOf(cards()[0]!)).toHaveClass(
+      "focus:outline-none",
+      "focus-visible:after:ring-2",
+      "focus-visible:after:ring-inset",
+      "focus-visible:after:ring-indigo-500",
+    );
+  });
+
+  test("a row's sentence is a paragraph under its name, not part of the link's name", () => {
+    renderModal();
+
+    const card: HTMLElement = cardFor(NetworkEventAlertTemplateId.HaFailover);
+    const sentence: HTMLElement = within(card).getByText(
+      NETWORK_EVENT_ALERT_TEMPLATE_COPY[NetworkEventAlertTemplateId.HaFailover]
+        .description,
+    );
+
+    expect(sentence.tagName).toBe("P");
+    expect(linkElementOf(card)).not.toContainElement(sentence);
+  });
+
+  test("the arrow that says a row leads somewhere is decoration", () => {
+    renderModal();
+
+    for (const card of cards()) {
+      // The icon tile and the arrow: neither is read out.
+      expect(decorations(card)).toHaveLength(2);
+    }
+  });
+
+  test("is one column a row wide, in a dialog no wider than its sentences need", () => {
+    renderModal();
+
+    const list: HTMLElement = screen.getByTestId(
+      "network-event-alert-templates",
+    );
+
+    // Not the two-column grid of cards it was.
+    expect(list.className).not.toContain("grid");
+    expect(list).toHaveClass("divide-y", "divide-gray-100");
+    // Medium, not the 80rem-wide Large.
+    expect(screen.getByTestId("modal")).toHaveClass("sm:max-w-3xl");
+    expect(screen.getByTestId("modal")).not.toHaveClass("sm:max-w-7xl");
+  });
+});
+
 describe("someone who may not create monitors", () => {
-  test("is told so on every card, and handed no link to a form they cannot save", () => {
+  test("is told so once, over the list, and handed no link to a form they cannot save", () => {
     renderModal({ canCreate: false });
 
     expect(cards()).toHaveLength(8);
 
-    for (const card of cards()) {
-      expect(card).toHaveTextContent(
+    // Once, not on each of the eight rows.
+    expect(
+      screen.getAllByText(
         "You need permission to create monitors to set this up.",
-      );
+      ),
+    ).toHaveLength(1);
+
+    const note: HTMLElement = screen.getByTestId(
+      "network-event-alert-templates-locked",
+    );
+    const list: HTMLElement = screen.getByTestId(
+      "network-event-alert-templates",
+    );
+
+    expect(note).toHaveTextContent(
+      "You need permission to create monitors to set this up.",
+    );
+    // Before the list, so it is read first.
+    expect(
+      note.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    for (const card of cards()) {
       expect(within(card).queryByRole("link")).not.toBeInTheDocument();
+      // A row that leads nowhere does not light up or point onwards.
+      expect(card).not.toHaveClass("hover:bg-gray-50");
+      expect(decorations(card)).toHaveLength(1);
     }
 
     expect(
@@ -271,6 +414,26 @@ describe("someone who may not create monitors", () => {
     expect(
       cardFor(NetworkEventAlertTemplateId.VpnTunnelDown),
     ).toHaveTextContent("A VPN tunnel goes down");
+    expect(
+      cardFor(NetworkEventAlertTemplateId.VpnTunnelDown),
+    ).toHaveTextContent(
+      NETWORK_EVENT_ALERT_TEMPLATE_COPY[
+        NetworkEventAlertTemplateId.VpnTunnelDown
+      ].description,
+    );
+  });
+
+  test("someone who may create is not told anything about permission", () => {
+    renderModal();
+
+    expect(
+      screen.queryByTestId("network-event-alert-templates-locked"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "You need permission to create monitors to set this up.",
+      ),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -296,5 +459,29 @@ describe("a card on its own", () => {
     expect(card).toHaveTextContent("An interface goes down");
     expect(card.querySelector('[aria-hidden="true"]')).not.toBeNull();
     expect(within(card).getAllByRole("link")).toHaveLength(1);
+    expect(
+      within(card).getByRole("link", { name: "An interface goes down" }),
+    ).toBeInTheDocument();
+  });
+
+  test("for one device its link carries the device", () => {
+    render(
+      <MemoryRouter>
+        <NetworkEventAlertCard
+          template={
+            NetworkEventAlertTemplates.get(
+              NetworkEventAlertTemplateId.InterfaceDown,
+            )!
+          }
+          canCreate={true}
+          networkDeviceId={DEVICE_ID}
+        />
+      </MemoryRouter>,
+    );
+
+    const url: URL = linkOf(screen.getByTestId("network-event-alert-template"));
+
+    expect(url.searchParams.get("networkEventAlert")).toBe("interface-down");
+    expect(url.searchParams.get("networkEventDeviceId")).toBe(DEVICE_ID);
   });
 });

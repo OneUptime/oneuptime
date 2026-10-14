@@ -223,7 +223,7 @@ Från en enhets **Händelser**-flik bevakar monitorerna bara den enheten. För v
 
 ## Adresser som inte är enheter ännu
 
-Syslog kan komma innan enheten som skickar det har lagts till i OneUptime. På din egen sond sparas det, dess händelser finns på nätverkets Händelser-sida med namnet enheten ger sig själv, och adressen listas under **Skickar syslog, ännu inte en enhet**, märkt **Ännu inte en enhet**:
+Syslog kan komma innan enheten som skickar det har lagts till i OneUptime. På din egen sond sparas det, dess händelser finns på nätverkets Händelser-sida med namnet enheten ger sig själv, och adressen listas under **Skickar syslog, ännu inte en enhet**:
 
 - **Lägg till som enhet** öppnar **Add Device** med adressen och sonden ifyllda. Meddelandena som redan har kommit stannar på nätverkets sida; nya går till enheten.
 - **Det är en av mina enheter** lägger till adressen bland en enhets **Övriga adresser**: använd den när en enhet du redan har lagt till skickar från en annan adress, till exempel en loopback. Dess meddelanden går till den enheten från och med nästa minut.

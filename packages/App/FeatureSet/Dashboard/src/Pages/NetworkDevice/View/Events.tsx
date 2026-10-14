@@ -17,10 +17,11 @@ import React, {
  * One device's Events page: what it reported, newest first, read out of
  * its syslog and its traps.
  *
- * The device's name, addresses and probe are read here for two things: the
- * set-up guide the page shows before the first message arrives (which
- * probe to send to, and which addresses the messages are matched by), and
- * the name an alert made from this page is given.
+ * The device's name, addresses, maker and probe are read here for two
+ * things: the set-up guide the page shows before the first message arrives
+ * (which probe to send to, whose steps to open on, and which addresses the
+ * messages are matched by), and the name an alert made from this page is
+ * given.
  */
 const NetworkDeviceEvents: FunctionComponent<
   PageComponentProps
@@ -41,6 +42,8 @@ const NetworkDeviceEvents: FunctionComponent<
         name: true,
         hostname: true,
         otherAddresses: true,
+        vendor: true,
+        sysDescr: true,
         probe: {
           _id: true,
           name: true,
@@ -59,6 +62,13 @@ const NetworkDeviceEvents: FunctionComponent<
           otherAddresses: item.otherAddresses || undefined,
           probeName: item.probe?.name || undefined,
           isGlobalProbe: Boolean(item.probe?.isGlobalProbe),
+          // Whatever says who made it: the parsers tell a maker by either.
+          vendor:
+            [item.vendor, item.sysDescr]
+              .filter((text: string | undefined): boolean => {
+                return Boolean(text && text.trim());
+              })
+              .join(" ") || undefined,
         });
       })
       .catch(() => {

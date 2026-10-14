@@ -28479,5 +28479,6 @@
   "Wi-Fi client disconnected": "Wi-Fi क्लाइंट अलग हुआ",
   "Wi-Fi network": "Wi-Fi नेटवर्क",
   "last message {{time}}": "आखिरी संदेश {{time}}",
-  "Informational": "सूचनात्मक"
+  "Informational": "सूचनात्मक",
+  "Peer address": "पीयर का पता"
 }

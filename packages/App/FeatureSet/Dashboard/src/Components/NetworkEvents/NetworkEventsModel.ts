@@ -66,6 +66,15 @@ export const NETWORK_EVENT_SUBJECT_LABELS: Dictionary<string> = {
 };
 
 /*
+ * What an attribute is called when it is not what the event is about. A
+ * routing event is about its neighbor; the same attribute on a tunnel's
+ * event is the tunnel's far end, which nobody calls a neighbor.
+ */
+export const NETWORK_EVENT_DETAIL_LABELS: Dictionary<string> = {
+  [NetworkEventAttribute.PeerAddress]: translationKey("Peer address"),
+};
+
+/*
  * The order subjects are looked for in on an event the vocabulary does not
  * know (a project's own): the thing first, then who, then from where.
  */
@@ -171,15 +180,24 @@ function toDate(value: unknown): Date | null {
 function subjectFor(
   attributes: Dictionary<string>,
   attribute: string,
+  // Whether the attribute is what the event's type says it is about.
+  isOwnSubject: boolean,
 ): NetworkEventSubject | undefined {
   const value: string = attributes[attribute] || "";
-  const label: string | undefined = NETWORK_EVENT_SUBJECT_LABELS[attribute];
+  const subjectLabel: string | undefined =
+    NETWORK_EVENT_SUBJECT_LABELS[attribute];
 
-  if (!value || !label) {
+  if (!value || !subjectLabel) {
     return undefined;
   }
 
-  return { attribute: attribute, label: label, value: value };
+  return {
+    attribute: attribute,
+    label: isOwnSubject
+      ? subjectLabel
+      : NETWORK_EVENT_DETAIL_LABELS[attribute] || subjectLabel,
+    value: value,
+  };
 }
 
 /*
@@ -208,6 +226,7 @@ export function getNetworkEventSubjects(
     const subject: NetworkEventSubject | undefined = subjectFor(
       attributes,
       attribute,
+      attribute === own,
     );
 
     if (subject) {

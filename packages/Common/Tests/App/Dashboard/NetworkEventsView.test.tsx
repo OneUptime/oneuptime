@@ -41,6 +41,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * The network is replaced by a small log store that answers the way the
  * logs' list and facets endpoints do - by attributes and by window - so a
  * filter really narrows what comes back. The range picker is a stand-in.
+ *
+ * The page is read at noon UTC on Tuesday, October 13, 2026, by someone
+ * whose clock is 24-hour and whose time zone is UTC: the times a row and
+ * an event's details show are written out below against that.
  */
 
 const DEVICE_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -49,6 +53,9 @@ const PROBE_ID: string = "44444444-4444-4444-8444-444444444444";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-10-13T12:00:00.000Z");
 const UNKNOWN_ADDRESS: string = "203.0.113.77";
+
+// Intl writes "3:25 PM" with a narrow no-break space: read as a plain one.
+const NARROW_SPACES: RegExp = /[\u202f\u00a0]/g;
 
 const apiPostMock: MockFunction = getJestMockFunction();
 const logsListMock: MockFunction = getJestMockFunction();
@@ -152,8 +159,10 @@ import Log from "../../../Models/AnalyticsModels/Log";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import Route from "../../../Types/API/Route";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
+import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Timezone from "../../../Types/Timezone";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 
@@ -548,6 +557,21 @@ function createAlertButton(): HTMLElement | null {
   return screen.queryByRole("button", { name: "Create alert" });
 }
 
+// Where a row of the alerts dialog leads: its one link, named after its alert.
+function alertUrlOf(card: HTMLElement): URL {
+  return new URL(
+    within(card).getByRole("link").getAttribute("href") || "",
+    "https://oneuptime.example",
+  );
+}
+
+// What a row's time cell reads to the eye: the clock time, then the hint.
+function timeOf(row: HTMLElement): string {
+  return (within(row).getByTestId("network-event-time").textContent || "")
+    .replace(NARROW_SPACES, " ")
+    .trim();
+}
+
 function urlOf(route: Route): URL {
   return new URL(route.toString(), "https://oneuptime.example");
 }
@@ -555,6 +579,10 @@ function urlOf(route: Route): URL {
 beforeEach(() => {
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   jest.setSystemTime(NOW);
+  OneUptimeDate.setUserTimezone(Timezone.UTC);
+  jest
+    .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+    .mockReturnValue(false);
   window.history.replaceState(null, "", "/");
   store = [];
   apiPostMock.mockReset();
@@ -574,6 +602,7 @@ afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   jest.useRealTimers();
+  OneUptimeDate.setUserTimezone(null);
 });
 
 describe("the network's Events page", () => {
@@ -640,9 +669,14 @@ describe("the network's Events page", () => {
     expect(within(row).getByTestId("network-event-message")).toHaveTextContent(
       "Interface GigabitEthernet0/1, changed state to down",
     );
-    expect(within(row).getByTestId("network-event-time")).toHaveTextContent(
-      "a minute ago",
-    );
+    /*
+     * Its real time of day, in the reader's zone - and, as it is from the
+     * last hour, how long ago that was.
+     */
+    expect(timeOf(row)).toBe("11:591 min. ago");
+    expect(
+      within(row).getByTestId("network-event-relative-time"),
+    ).toHaveTextContent("1 min. ago");
     // The kind is a coloured dot; it is said in words for a screen reader.
     expect(row).toHaveTextContent("Problem");
     expect(rowNamed("interface.up")).toHaveTextContent("Recovery");
@@ -1013,8 +1047,13 @@ describe("what a device said, word for word", () => {
         return fact.textContent || "";
       });
 
-    expect(facts[0]).toContain("When");
-    expect(facts[0]).toContain("a minute ago");
+    // The whole instant, to the second, with its zone - and how long ago.
+    expect(facts[0]).toBe(
+      "WhenTuesday, October 13, 2026 at 11:59:00 UTC1 minute ago",
+    );
+    expect(
+      within(panel).getByTestId("network-event-details-ago"),
+    ).toHaveTextContent("1 minute ago");
     expect(facts.slice(1)).toEqual([
       "DeviceCore Switch",
       "InterfaceGigabitEthernet0/1",
@@ -1237,12 +1276,7 @@ describe("Create alert", () => {
     ]);
 
     for (const card of cards) {
-      const url: URL = new URL(
-        within(card)
-          .getByRole("link", { name: "Create alert" })
-          .getAttribute("href") || "",
-        "https://oneuptime.example",
-      );
+      const url: URL = alertUrlOf(card);
 
       expect(url.pathname).toBe(`/dashboard/${PROJECT_ID}/monitors/create`);
       expect(url.searchParams.get("networkEventAlert")).toBe(
@@ -1526,8 +1560,14 @@ describe("a page with nothing to list says why", () => {
     );
 
     expect(empty).toHaveTextContent("No events match these filters");
+    expect(empty).toHaveTextContent(
+      "Nothing in this time range is of the kind, event and device picked above.",
+    );
 
-    fireEvent.click(screen.getByTestId("network-events-clear-filters"));
+    // The button every filtered-out table offers, in its words.
+    fireEvent.click(
+      within(empty).getByRole("button", { name: "Clear Filters" }),
+    );
     await flush();
 
     expect(rows()).toHaveLength(6);
@@ -1603,8 +1643,59 @@ describe("who sends syslog without being a device", () => {
     expect(sources[0]).toHaveTextContent("unknown-sw");
     expect(sources[0]).toHaveTextContent("Cisco · last message 20 minutes ago");
     expect(
-      within(sources[0]!).getByTestId("network-event-source-unknown"),
-    ).toHaveTextContent("Not a device yet");
+      within(sources[0]!).getByTestId("network-event-source-name"),
+    ).toHaveTextContent("unknown-sw");
+  });
+
+  test("says once what they are - in the card's title, not on every row", async () => {
+    await renderView(NETWORK);
+
+    const card: HTMLElement = screen
+      .getByTestId("network-event-sources")
+      .closest('[data-testid="card"]') as HTMLElement;
+
+    expect(
+      within(card).getByRole("heading", {
+        name: "Sending syslog, not a device yet",
+      }),
+    ).toBeInTheDocument();
+
+    for (const source of screen.getAllByTestId("network-event-source")) {
+      expect(source).not.toHaveTextContent("Not a device yet");
+    }
+  });
+
+  test("an address that gives itself no name of its own is listed by its address alone", async () => {
+    store = [];
+    put(3, {
+      "syslog.unmatched": "true",
+      "syslog.sourceIp": UNKNOWN_ADDRESS,
+      "syslog.hostname": UNKNOWN_ADDRESS,
+      "probe.id": PROBE_ID,
+    });
+    put(4, LINK_DOWN);
+    await renderView(NETWORK);
+
+    const source: HTMLElement = screen.getByTestId("network-event-source");
+
+    expect(source).toHaveTextContent(UNKNOWN_ADDRESS);
+    expect(
+      within(source).queryByTestId("network-event-source-name"),
+    ).not.toBeInTheDocument();
+    expect(source).toHaveTextContent("last message 3 minutes ago");
+  });
+
+  test("when it was last heard is said in full on hover", async () => {
+    await renderView(NETWORK);
+
+    const line: HTMLElement = within(
+      screen.getByTestId("network-event-source"),
+    ).getByText("Cisco · last message 20 minutes ago");
+
+    expect(line).toHaveAttribute(
+      "title",
+      "Tuesday, October 13, 2026 at 11:40:00 UTC",
+    );
   });
 
   test("is asked for by the mark ingest leaves, over the page's own range", async () => {
@@ -1932,6 +2023,603 @@ describe("a page that could not be read", () => {
   });
 });
 
+describe("the page's own frame", () => {
+  test("the description runs under the title and the actions, so three controls never squeeze it", async () => {
+    aDayOfEvents();
+    await renderView(NETWORK);
+
+    const header: HTMLElement = screen
+      .getByRole("heading", { name: "Events" })
+      .closest('[data-testid="card-header"]') as HTMLElement;
+
+    expect(header).toHaveAttribute("data-header-layout", "stacked");
+    // The range, Refresh and Create alert share the title's line.
+    const actions: HTMLElement = within(header).getByTestId(
+      "card-header-actions",
+    );
+
+    expect(within(actions).getByTestId("card-picker")).toBeInTheDocument();
+    expect(
+      within(actions).getByRole("button", { name: "Refresh" }),
+    ).toBeInTheDocument();
+    expect(
+      within(actions).getByRole("button", { name: "Create alert" }),
+    ).toBeInTheDocument();
+    // The description is not on that line.
+    expect(
+      within(header).getByTestId("card-header-title-row"),
+    ).not.toContainElement(within(header).getByTestId("card-description"));
+  });
+
+  test("the list is a timeline: a heading for each day the events are from", async () => {
+    aDayOfEvents();
+    window.history.replaceState(null, "", "/?range=Past%201%20Week");
+    await renderView(NETWORK);
+
+    expect(
+      screen
+        .getAllByTestId("network-events-day-heading")
+        .map((heading: HTMLElement): string => {
+          return heading.textContent || "";
+        }),
+    ).toEqual(["Tuesday, October 13, 2026", "Sunday, October 11, 2026"]);
+    // The failover of two days ago is under its own day.
+    const days: Array<HTMLElement> =
+      screen.getAllByTestId("network-events-day");
+
+    expect(within(days[0]!).getAllByTestId("network-event-row")).toHaveLength(
+      6,
+    );
+    expect(
+      within(days[1]!)
+        .getAllByTestId("network-event-row")
+        .map((row: HTMLElement): string => {
+          return row.getAttribute("data-event-name") || "";
+        }),
+    ).toEqual(["ha.failover"]);
+  });
+
+  test("with nothing in the range and nothing picked there is nothing to narrow: no buttons, no pickers", async () => {
+    // Two days ago: outside the past day.
+    put(60 * 24 * 2, LINK_DOWN);
+    await renderView(NETWORK);
+
+    expect(
+      screen.getByTestId("network-events-empty-range"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("network-events-filters"),
+    ).not.toBeInTheDocument();
+    // The way to another range is still there.
+    expect(screen.getByTestId("card-picker")).toBeInTheDocument();
+
+    // One click to the week, and the filters are back with the events.
+    fireEvent.click(screen.getByTestId("network-events-show-week"));
+    await flush();
+
+    expect(rows()).toHaveLength(1);
+    expect(screen.getByTestId("network-events-filters")).toBeInTheDocument();
+  });
+
+  test("syslog with no event in it has nothing to narrow either", async () => {
+    put(5, { "syslog.sourceIp": "10.0.0.2", "syslog.hostname": "core-sw1" });
+    await renderView(NETWORK);
+
+    expect(
+      screen.getByTestId("network-events-empty-unrecognized"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("network-events-filters"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a filter that hides everything keeps the filters on the page: they are the way back", async () => {
+    aDayOfEvents();
+    window.history.replaceState(null, "", "/?event=hardware.fan_failed");
+    await renderView(NETWORK);
+
+    expect(
+      screen.getByTestId("network-events-empty-filtered"),
+    ).toBeInTheDocument();
+
+    const filters: HTMLElement = screen.getByTestId("network-events-filters");
+
+    expect(within(filters).getByRole("radiogroup")).toBeInTheDocument();
+    expect(
+      within(filters).getByRole("combobox", { name: "Event" }),
+    ).toBeInTheDocument();
+    expect(filters).toHaveTextContent("Fan failed");
+  });
+
+  test("the kind buttons keep to one line beside the pickers, which take what is left", async () => {
+    aDayOfEvents();
+    await renderView(NETWORK);
+
+    const filters: HTMLElement = screen.getByTestId("network-events-filters");
+    const kinds: HTMLElement = within(filters).getByRole("radiogroup");
+
+    // Stacked below xl; one wrapping line from xl up.
+    expect(filters).toHaveClass("flex-col", "xl:flex-row", "xl:flex-wrap");
+    // On that line the buttons never break apart or shrink...
+    expect(kinds).toHaveClass("xl:flex-nowrap", "xl:flex-shrink-0");
+    // ...and a picker is never narrower than its placeholder needs.
+    const picker: HTMLElement = within(filters)
+      .getByRole("combobox", { name: "Event" })
+      .closest(".xl\\:min-w-\\[11rem\\]") as HTMLElement;
+
+    expect(picker).not.toBeNull();
+    expect(picker).toHaveClass("sm:w-56", "xl:w-auto", "xl:flex-1");
+  });
+});
+
+describe("an empty page is drawn the way an empty table is", () => {
+  function emptyState(testId: string): HTMLElement {
+    return screen.getByTestId(testId);
+  }
+
+  test("nothing in this range: the table's own empty state, with the one way on", async () => {
+    put(60 * 24 * 2, LINK_DOWN);
+    await renderView(NETWORK);
+
+    const empty: HTMLElement = emptyState("network-events-empty-range");
+
+    expect(empty).toHaveAttribute("data-empty-state-kind", "empty");
+    expect(
+      within(empty).getByRole("heading", {
+        level: 3,
+        name: "No events in this time range",
+      }),
+    ).toBeInTheDocument();
+    // How long ago, in words that follow the reader's language.
+    expect(
+      within(empty).getByTestId("network-events-empty-range-description"),
+    ).toHaveTextContent("The last one was 2 days ago.");
+    expect(
+      within(empty)
+        .getAllByRole("button")
+        .map((button: HTMLElement): string => {
+          return button.textContent || "";
+        }),
+    ).toEqual(["Show the past week"]);
+  });
+
+  test("filtered out: the filtered state, never a Create button", async () => {
+    aDayOfEvents();
+    window.history.replaceState(
+      null,
+      "",
+      "/?kind=recovery&event=device.reboot",
+    );
+    await renderView(NETWORK);
+
+    const empty: HTMLElement = emptyState("network-events-empty-filtered");
+
+    expect(empty).toHaveAttribute("data-empty-state-kind", "filtered");
+    expect(
+      within(empty)
+        .getAllByRole("button")
+        .map((button: HTMLElement): string => {
+          return button.textContent || "";
+        }),
+    ).toEqual(["Clear Filters"]);
+
+    fireEvent.click(within(empty).getByRole("button"));
+    await flush();
+
+    expect(rows()).toHaveLength(6);
+    expect(query().get("kind")).toBeNull();
+    expect(query().get("event")).toBeNull();
+  });
+
+  test("syslog but no events: its two ways on are links, so they open in a new tab like any other", async () => {
+    put(5, { "syslog.sourceIp": "10.0.0.2", "syslog.hostname": "core-sw1" });
+    await renderView(NETWORK);
+
+    const empty: HTMLElement = emptyState("network-events-empty-unrecognized");
+
+    expect(empty).toHaveAttribute("data-empty-state-kind", "empty");
+    expect(within(empty).queryByRole("button")).not.toBeInTheDocument();
+    expect(
+      within(empty)
+        .getAllByRole("link")
+        .map((link: HTMLElement): string => {
+          return link.textContent || "";
+        }),
+    ).toEqual(["Open Logs", "How to name your own events"]);
+  });
+
+  test("why it is empty could not be found out: no button that would promise more than is known", async () => {
+    logsListMock.mockImplementation(async (options: unknown) => {
+      if ((options as LogsListRequest).limit === 1) {
+        throw new Error("The look back failed.");
+      }
+
+      return answerLogsList(options);
+    });
+    await renderView(NETWORK);
+
+    const empty: HTMLElement = emptyState("network-events-empty-unknown");
+
+    expect(empty).toHaveAttribute("data-empty-state-kind", "empty");
+    expect(within(empty).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(empty).queryByRole("link")).not.toBeInTheDocument();
+  });
+});
+
+describe("a page that could not be read at all", () => {
+  test("says what failed and why, the way a table that could not load does", async () => {
+    logsListMock.mockRejectedValue(
+      new Error("You do not have permission to read logs."),
+    );
+    await renderView(NETWORK);
+
+    const failed: HTMLElement = screen.getByTestId("network-events-error");
+
+    expect(failed).toHaveAttribute("data-empty-state-kind", "error");
+    expect(
+      within(failed).getByRole("heading", {
+        level: 3,
+        name: "Couldn't load events",
+      }),
+    ).toBeInTheDocument();
+    expect(failed).toHaveTextContent(
+      "You do not have permission to read logs.",
+    );
+    // Not the small grey sentence it was, with no way to try again under it.
+    expect(
+      within(failed).getByRole("button", { name: "Try again" }),
+    ).toBeInTheDocument();
+  });
+
+  test("Try again reads the page again, and the events take the error's place", async () => {
+    aDayOfEvents();
+    logsListMock.mockRejectedValueOnce(new Error("The server is restarting."));
+    logsListMock.mockRejectedValueOnce(new Error("The server is restarting."));
+    await renderView(NETWORK);
+
+    fireEvent.click(
+      within(screen.getByTestId("network-events-error")).getByRole("button", {
+        name: "Try again",
+      }),
+    );
+    await flush();
+
+    expect(
+      screen.queryByTestId("network-events-error"),
+    ).not.toBeInTheDocument();
+    expect(rows()).toHaveLength(6);
+  });
+
+  test("a second failure says so again, with its own reason", async () => {
+    logsListMock.mockRejectedValueOnce(new Error("The server is restarting."));
+    logsListMock.mockRejectedValueOnce(new Error("The server is restarting."));
+    logsListMock.mockRejectedValue(new Error("Still restarting."));
+    await renderView(NETWORK);
+
+    fireEvent.click(
+      within(screen.getByTestId("network-events-error")).getByRole("button", {
+        name: "Try again",
+      }),
+    );
+    await flush();
+
+    expect(screen.getByTestId("network-events-error")).toHaveTextContent(
+      "Still restarting.",
+    );
+    expect(screen.getByTestId("network-events-error")).not.toHaveTextContent(
+      "The server is restarting.",
+    );
+  });
+
+  test("a failed refresh of a page that has rows is a note over them, never this state", async () => {
+    aDayOfEvents();
+    await renderView(NETWORK);
+
+    logsListMock.mockRejectedValue(new Error("The server is restarting."));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await flush();
+
+    expect(
+      screen.queryByTestId("network-events-error"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("network-events-refresh-error"),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("an event, opened", () => {
+  const TUNNEL_WITH_PEER: Record<string, string> = {
+    ...TUNNEL_DOWN,
+    "network.peer.address": "198.51.100.9",
+    "network.protocol.name": "ipsec",
+  };
+
+  const NEIGHBOR_DOWN: Record<string, string> = {
+    "event.domain": "network",
+    "event.name": "routing.neighbor_down",
+    "event.kind": "problem",
+    "event.category": "routing",
+    "event.device": "Core Switch",
+    "event.message": "neighbor 10.0.0.9 Down BGP Notification sent",
+    "network.peer.address": "10.0.0.9",
+    "networkDevice.id": DEVICE_ID,
+    "syslog.vendor": "Cisco",
+    "syslog.sourceIp": "10.0.0.2",
+  };
+
+  function factsOf(panel: HTMLElement): Array<string> {
+    return within(panel)
+      .getAllByTestId("network-event-fact")
+      .map((fact: HTMLElement): string => {
+        return fact.textContent || "";
+      });
+  }
+
+  beforeEach(() => {
+    aDayOfEvents();
+  });
+
+  test("opens beside the list, not over it: the panel is the narrow one", async () => {
+    await renderView(NETWORK);
+
+    const panel: HTMLElement = await open("interface.down");
+    const frame: HTMLElement = within(panel).getByTestId("side-over-layer")
+      .firstElementChild as HTMLElement;
+
+    // 42rem, so the rows it was opened from stay in view on a laptop.
+    expect(frame).toHaveClass("max-w-2xl");
+    expect(frame).not.toHaveClass("max-w-5xl");
+  });
+
+  test("its first fact is not flush against the panel's header", async () => {
+    await renderView(NETWORK);
+
+    const panel: HTMLElement = await open("interface.down");
+
+    expect(within(panel).getByTestId("network-event-details")).toHaveClass(
+      "sm:pt-4",
+    );
+  });
+
+  test("the row it was opened from stays marked while it is open, and no other", async () => {
+    await renderView(NETWORK);
+
+    await open("vpn.tunnel_down");
+
+    expect(rowNamed("vpn.tunnel_down")).toHaveAttribute("data-open", "true");
+    expect(rowNamed("vpn.tunnel_down")).toHaveClass("bg-gray-50");
+    expect(rowNamed("interface.down")).not.toHaveAttribute("data-open");
+
+    // Another row takes the mark with it.
+    await open("interface.down");
+
+    expect(rowNamed("interface.down")).toHaveAttribute("data-open", "true");
+    expect(rowNamed("vpn.tunnel_down")).not.toHaveAttribute("data-open");
+
+    fireEvent.click(
+      within(screen.getByTestId("side-over-footer")).getByRole("button", {
+        name: "Close",
+      }),
+    );
+    await flush();
+
+    expect(rowNamed("interface.down")).not.toHaveAttribute("data-open");
+    expect(rowNamed("interface.down")).not.toHaveClass("bg-gray-50");
+  });
+
+  test("the kind is said with the dot the list draws it with", async () => {
+    await renderView(NETWORK);
+
+    const problem: HTMLElement = await open("interface.down");
+    const kind: HTMLElement = within(problem)
+      .getAllByTestId("network-event-fact")
+      .find((fact: HTMLElement): boolean => {
+        return (fact.textContent || "").startsWith("Kind");
+      }) as HTMLElement;
+
+    expect(kind).toHaveTextContent("KindProblem");
+    expect(kind.querySelector(".bg-red-500")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+
+    const recovery: HTMLElement = await open("interface.up");
+
+    expect(
+      within(recovery)
+        .getAllByTestId("network-event-fact")
+        .find((fact: HTMLElement): boolean => {
+          return (fact.textContent || "").startsWith("Kind");
+        })
+        ?.querySelector(".bg-emerald-500"),
+    ).not.toBeNull();
+  });
+
+  test("an unknown sender is made a device from the fact that names it, not from the footer", async () => {
+    await renderView(NETWORK);
+
+    const panel: HTMLElement = await open("device.reboot");
+    const device: HTMLElement = within(panel)
+      .getAllByTestId("network-event-fact")
+      .find((fact: HTMLElement): boolean => {
+        return (fact.textContent || "").startsWith("Device");
+      }) as HTMLElement;
+
+    expect(device).toHaveTextContent("unknown-sw");
+    expect(
+      within(device).getByTestId("network-event-unknown-source"),
+    ).toHaveTextContent("Not a device yet");
+    expect(
+      within(device).getByRole("button", { name: "Add as device" }),
+    ).toBeInTheDocument();
+
+    // The footer keeps to the panel's own two buttons: on a phone it has room for no more.
+    expect(
+      within(within(panel).getByTestId("side-over-footer"))
+        .getAllByRole("button")
+        .map((button: HTMLElement): string => {
+          return button.textContent || "";
+        }),
+    ).toEqual(["Close", "Create alert for this event"]);
+  });
+
+  test("Add as device stays small on a phone: its own words' width, not a dialog button's", async () => {
+    await renderView(NETWORK);
+
+    const panel: HTMLElement = await open("device.reboot");
+
+    expect(
+      within(panel).getByTestId("network-event-details-add-device"),
+    ).toHaveClass("max-md:w-auto", "max-md:text-sm", "md:ml-0");
+  });
+
+  test("a tunnel's far end is its peer address, not a routing neighbor", async () => {
+    store = [];
+    put(1, TUNNEL_WITH_PEER);
+    await renderView(NETWORK);
+
+    const panel: HTMLElement = await open("vpn.tunnel_down");
+
+    expect(factsOf(panel).slice(1)).toEqual([
+      "DeviceBranch Firewall",
+      "TunnelHQ-to-Branch",
+      "Peer address198.51.100.9",
+      "KindProblem",
+      "Reported asSyslog, Sophos format",
+      "Sent from10.0.9.1",
+    ]);
+    // The row names the tunnel: what the event is about.
+    expect(
+      within(rowNamed("vpn.tunnel_down")).getByTestId("network-event-subject"),
+    ).toHaveTextContent("Tunnel HQ-to-Branch");
+  });
+
+  test("a routing event's neighbor is still its Neighbor, in the row and in the panel", async () => {
+    store = [];
+    put(1, NEIGHBOR_DOWN);
+    await renderView(NETWORK);
+
+    expect(
+      within(rowNamed("routing.neighbor_down")).getByTestId(
+        "network-event-subject",
+      ),
+    ).toHaveTextContent("Neighbor 10.0.0.9");
+
+    const panel: HTMLElement = await open("routing.neighbor_down");
+
+    expect(factsOf(panel)).toContain("Neighbor10.0.0.9");
+    expect(panel).not.toHaveTextContent("Peer address");
+  });
+
+  test("the two sections under the facts are headings, so they can be jumped to", async () => {
+    await renderView(NETWORK);
+
+    const panel: HTMLElement = await open("interface.down");
+
+    expect(
+      within(panel)
+        .getAllByRole("heading", { level: 3 })
+        .map((heading: HTMLElement): string => {
+          return heading.textContent || "";
+        }),
+    ).toEqual(["What the device said", "What was read out of it"]);
+  });
+
+  test("an event from a day ago says so in days, not in the hours a clock would count", async () => {
+    store = [];
+    put(60 * 30, LINK_DOWN);
+    window.history.replaceState(null, "", "/?range=Past%201%20Week");
+    await renderView(NETWORK);
+
+    const panel: HTMLElement = await open("interface.down");
+
+    expect(factsOf(panel)[0]).toBe(
+      "WhenMonday, October 12, 2026 at 06:00:00 UTC1 day ago",
+    );
+  });
+});
+
+describe("It is one of my devices: which device", () => {
+  beforeEach(() => {
+    aDayOfEvents();
+  });
+
+  async function optionsOfLinkDialog(): Promise<Array<string>> {
+    await renderView(NETWORK);
+
+    fireEvent.click(screen.getByTestId("network-event-source-link"));
+    await flush();
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+
+    fireEvent.keyDown(await within(modal).findByRole("combobox"), {
+      key: "ArrowDown",
+      code: "ArrowDown",
+    });
+
+    return (await screen.findAllByRole("option")).map(
+      (option: HTMLElement): string => {
+        return option.textContent || "";
+      },
+    );
+  }
+
+  test("a device is listed by its name with the address it is reached at", async () => {
+    getListMock.mockResolvedValue({
+      data: [
+        Object.assign(new NetworkDevice(), {
+          _id: DEVICE_ID,
+          name: "Core Switch",
+          hostname: "10.0.0.2",
+        }),
+      ],
+      count: 1,
+      skip: 0,
+      limit: 500,
+    });
+
+    expect(await optionsOfLinkDialog()).toEqual(["Core Switch (10.0.0.2)"]);
+  });
+
+  test("a device named after its own hostname is not named twice", async () => {
+    getListMock.mockResolvedValue({
+      data: [
+        Object.assign(new NetworkDevice(), {
+          _id: DEVICE_ID,
+          name: "core-sw-01.hq.example.net",
+          hostname: "core-sw-01.hq.example.net",
+        }),
+      ],
+      count: 1,
+      skip: 0,
+      limit: 500,
+    });
+
+    expect(await optionsOfLinkDialog()).toEqual(["core-sw-01.hq.example.net"]);
+  });
+
+  test("a device with no hostname gets no empty brackets, and one with no name is its hostname", async () => {
+    getListMock.mockResolvedValue({
+      data: [
+        Object.assign(new NetworkDevice(), {
+          _id: DEVICE_ID,
+          name: "Core Switch",
+        }),
+        Object.assign(new NetworkDevice(), {
+          _id: OTHER_DEVICE_ID,
+          hostname: "10.0.9.1",
+        }),
+      ],
+      count: 2,
+      skip: 0,
+      limit: 500,
+    });
+
+    expect(await optionsOfLinkDialog()).toEqual(["Core Switch", "10.0.9.1"]);
+  });
+});
+
 describe("one device's Events page", () => {
   const INFO: NetworkEventsDeviceInfo = {
     name: "Core Switch",
@@ -2037,14 +2725,9 @@ describe("one device's Events page", () => {
     for (const card of within(modal).getAllByTestId(
       "network-event-alert-template",
     )) {
-      expect(
-        new URL(
-          within(card)
-            .getByRole("link", { name: "Create alert" })
-            .getAttribute("href") || "",
-          "https://oneuptime.example",
-        ).searchParams.get("networkEventDeviceId"),
-      ).toBe(DEVICE_ID);
+      expect(alertUrlOf(card).searchParams.get("networkEventDeviceId")).toBe(
+        DEVICE_ID,
+      );
     }
   });
 

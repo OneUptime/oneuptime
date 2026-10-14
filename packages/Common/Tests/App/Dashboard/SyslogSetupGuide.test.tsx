@@ -354,3 +354,296 @@ describe("on one device's page", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("a device whose maker is known", () => {
+  function selectedTab(): string {
+    return (
+      within(guide()).getByRole("tab", { selected: true }).textContent || ""
+    );
+  }
+
+  test.each([
+    ["Sophos", "Sophos Firewall"],
+    ["Fortinet", "FortiGate"],
+    ["Extreme Networks", "Extreme Networks"],
+    ["HPE Aruba", "HPE Aruba"],
+    ["Hewlett Packard Enterprise", "HPE Aruba"],
+    ["MikroTik", "MikroTik"],
+    ["Ubiquiti", "UniFi"],
+    ["Cambium Networks", "Cambium"],
+    ["Cisco", "Cisco"],
+  ])(
+    "a %s device opens on its own maker's steps: %s",
+    (deviceVendor: string, tabName: string) => {
+      renderGuide({ scope: "device", deviceVendor: deviceVendor });
+
+      expect(selectedTab()).toBe(tabName);
+      expect(
+        within(guide()).getAllByRole("tab", { selected: true }),
+      ).toHaveLength(1);
+    },
+  );
+
+  test("the steps and the lines shown are that maker's, not Cisco's", () => {
+    renderGuide({ scope: "device", deviceVendor: "MikroTik" });
+
+    expect(steps()).toEqual(dataFor(SyslogSetupVendor.MikroTik).steps);
+    expect(configuration()).toBe(
+      dataFor(SyslogSetupVendor.MikroTik).configuration,
+    );
+    expect(configuration()).not.toContain("logging host");
+  });
+
+  test("the maker is read out of a system description too", () => {
+    renderGuide({
+      scope: "device",
+      deviceVendor:
+        "ExtremeXOS (X460G2-24p-10G4) version 22.7.1.2 by release-manager",
+    });
+
+    expect(selectedTab()).toBe("Extreme Networks");
+  });
+
+  test("a maker OneUptime has no steps for, or none at all, opens on the first tab", () => {
+    renderGuide({ scope: "device", deviceVendor: "Juniper Networks" });
+
+    expect(selectedTab()).toBe("Cisco");
+
+    cleanup();
+    renderGuide({ scope: "device" });
+
+    expect(selectedTab()).toBe("Cisco");
+
+    cleanup();
+    renderGuide({ scope: "device", deviceVendor: "   " });
+
+    expect(selectedTab()).toBe("Cisco");
+  });
+
+  test("the maker arrives after the page: the guide moves to its steps", () => {
+    const { rerender } = render(
+      <MemoryRouter>
+        <SyslogSetupGuide scope="device" />
+      </MemoryRouter>,
+    );
+
+    expect(selectedTab()).toBe("Cisco");
+
+    rerender(
+      <MemoryRouter>
+        <SyslogSetupGuide scope="device" deviceVendor="Sophos" />
+      </MemoryRouter>,
+    );
+
+    expect(selectedTab()).toBe("Sophos Firewall");
+    expect(steps()).toEqual(dataFor(SyslogSetupVendor.Sophos).steps);
+  });
+
+  test("a tab the reader picked themselves is theirs: a maker that arrives later does not take it back", () => {
+    const { rerender } = render(
+      <MemoryRouter>
+        <SyslogSetupGuide scope="device" />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(tab(SyslogSetupVendor.MikroTik));
+
+    rerender(
+      <MemoryRouter>
+        <SyslogSetupGuide scope="device" deviceVendor="Sophos" />
+      </MemoryRouter>,
+    );
+
+    expect(selectedTab()).toBe("MikroTik");
+  });
+
+  test("every other maker's steps stay one click away", () => {
+    renderGuide({ scope: "device", deviceVendor: "Sophos" });
+
+    expect(within(guide()).getAllByRole("tab")).toHaveLength(
+      getSyslogSetupGuides().length,
+    );
+
+    fireEvent.click(tab(SyslogSetupVendor.Cisco));
+
+    expect(selectedTab()).toBe("Cisco");
+    expect(configuration()).toContain("logging host");
+  });
+
+  test("the network's page knows no one maker: it opens on the first tab", () => {
+    renderGuide();
+
+    expect(selectedTab()).toBe("Cisco");
+  });
+});
+
+describe("a device polled by a global probe", () => {
+  test("is told so before anything else in step 1: nothing under it applies until that is put right", () => {
+    renderGuide({
+      scope: "device",
+      isGlobalProbe: true,
+      probeName: "Frankfurt (global)",
+    });
+
+    const note: HTMLElement = screen.getByTestId("syslog-setup-global-probe");
+    const listens: HTMLElement = within(guide()).getByText(
+      "The probe already listens on this port, over UDP and over TCP, at the IP address of the machine it runs on.",
+    );
+    const firstPort: HTMLElement =
+      screen.getAllByTestId("syslog-setup-port")[0]!;
+
+    expect(
+      note.compareDocumentPosition(listens) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      note.compareDocumentPosition(firstPort) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(note).toHaveAttribute("role", "note");
+  });
+
+  test("is not told to send syslog to the probe that cannot hear it", () => {
+    renderGuide({
+      scope: "device",
+      isGlobalProbe: true,
+      probeName: "Frankfurt (global)",
+    });
+
+    expect(guide()).toHaveTextContent("Send syslog to one of your probes");
+    expect(guide()).not.toHaveTextContent("Send syslog to probe");
+    expect(guide()).not.toHaveTextContent("Frankfurt (global)");
+  });
+
+  test("a device on a probe of the project's own is named its probe, and warned of nothing", () => {
+    renderGuide({
+      scope: "device",
+      isGlobalProbe: false,
+      probeName: "office-probe",
+    });
+
+    expect(guide()).toHaveTextContent("Send syslog to probe office-probe");
+    expect(
+      screen.queryByTestId("syslog-setup-global-probe"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("the vendor tabs, for a screen reader and the keyboard", () => {
+  test("are a tab list named for what they choose", () => {
+    renderGuide();
+
+    expect(
+      within(guide()).getByRole("tablist", { name: "Device vendor" }),
+    ).toBeInTheDocument();
+    expect(within(guide()).getAllByRole("tab")).toHaveLength(
+      getSyslogSetupGuides().length,
+    );
+  });
+
+  test("every tab says which panel it shows, and the panel says which tab it is of", () => {
+    renderGuide();
+
+    const panel: HTMLElement = within(guide()).getByRole("tabpanel");
+
+    for (const candidate of within(guide()).getAllByRole("tab")) {
+      expect(candidate).toHaveAttribute("aria-controls", panel.id);
+      expect(candidate.id).not.toBe("");
+    }
+
+    expect(panel).toHaveAttribute(
+      "aria-labelledby",
+      tab(SyslogSetupVendor.Cisco).id,
+    );
+    // The panel is named after its tab.
+    expect(within(guide()).getByRole("tabpanel", { name: "Cisco" })).toBe(
+      panel,
+    );
+
+    fireEvent.click(tab(SyslogSetupVendor.UniFi));
+
+    expect(panel).toHaveAttribute(
+      "aria-labelledby",
+      tab(SyslogSetupVendor.UniFi).id,
+    );
+    expect(within(guide()).getByRole("tabpanel", { name: "UniFi" })).toBe(
+      panel,
+    );
+  });
+
+  test("the steps and the lines to paste are what the panel holds", () => {
+    renderGuide();
+
+    const panel: HTMLElement = within(guide()).getByRole("tabpanel");
+
+    expect(panel).toContainElement(screen.getByTestId("syslog-setup-steps"));
+    expect(panel).toContainElement(
+      screen.getByTestId("syslog-setup-configuration"),
+    );
+    // The tabs themselves are not inside it.
+    expect(panel).not.toContainElement(tab(SyslogSetupVendor.Cisco));
+  });
+
+  test("two guides on one page keep their tabs and panels apart", () => {
+    renderGuide();
+    renderGuide();
+
+    const panels: Array<HTMLElement> = screen.getAllByRole("tabpanel");
+    const tabs: Array<HTMLElement> = screen.getAllByRole("tab");
+
+    expect(panels).toHaveLength(2);
+    expect(panels[0]!.id).not.toBe(panels[1]!.id);
+    expect(
+      new Set(
+        tabs.map((candidate: HTMLElement): string => {
+          return candidate.id;
+        }),
+      ).size,
+    ).toBe(tabs.length);
+  });
+
+  test("a tab is a button the keyboard reaches, with a focus ring of its own", () => {
+    renderGuide();
+
+    for (const candidate of within(guide()).getAllByRole("tab")) {
+      expect(candidate.tagName).toBe("BUTTON");
+      expect(candidate).toHaveAttribute("type", "button");
+      expect(candidate).toHaveClass(
+        "focus:outline-none",
+        "focus-visible:ring-2",
+        "focus-visible:ring-indigo-500",
+      );
+    }
+  });
+});
+
+describe("the lines to paste", () => {
+  test("a guide of one line has room for its copy button: the block is padded above and below", () => {
+    renderGuide();
+
+    fireEvent.click(tab(SyslogSetupVendor.Aruba));
+
+    // One line: without the room, the button reached past the block's frame.
+    expect(configuration()?.split("\n")).toHaveLength(1);
+    expect(screen.getByTestId("syslog-setup-configuration")).toHaveClass(
+      "[&_code]:!py-3",
+    );
+    expect(
+      within(screen.getByTestId("syslog-setup-configuration")).getByRole(
+        "button",
+        { name: "Copy to clipboard" },
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("the docs link's arrow stays with its last word when the link wraps", () => {
+    renderGuide();
+
+    const link: HTMLElement = within(guide()).getByRole("link", {
+      name: "Every vendor's steps, and the events each one reports",
+    });
+
+    // Inline, so the icon cannot be left alone on a line of its own.
+    expect(link).not.toHaveClass("inline-flex");
+    expect(link).toHaveClass("[&_div]:inline-block", "[&_div]:ml-1");
+  });
+});

@@ -223,7 +223,7 @@ Vanaf het tabblad **Gebeurtenissen** van een apparaat bewaken de monitors alleen
 
 ## Adressen die nog geen apparaat zijn
 
-Syslog kan binnenkomen voordat het apparaat dat het stuurt aan OneUptime is toegevoegd. Op je eigen probe wordt het bewaard, de gebeurtenissen ervan staan op de Gebeurtenissen-pagina van het netwerk met de naam die het apparaat zichzelf geeft, en het adres staat onder **Stuurt syslog, nog geen apparaat**, gemarkeerd als **Nog geen apparaat**:
+Syslog kan binnenkomen voordat het apparaat dat het stuurt aan OneUptime is toegevoegd. Op je eigen probe wordt het bewaard, de gebeurtenissen ervan staan op de Gebeurtenissen-pagina van het netwerk met de naam die het apparaat zichzelf geeft, en het adres staat onder **Stuurt syslog, nog geen apparaat**:
 
 - **Toevoegen als apparaat** opent **Add Device** met het adres en de probe al ingevuld. De berichten die al binnenkwamen blijven op de pagina van het netwerk; nieuwe gaan naar het apparaat.
 - **Het is een van mijn apparaten** voegt het adres toe aan de **Overige adressen** van een apparaat: gebruik dit als een apparaat dat je al toevoegde vanaf een ander adres verstuurt, zoals een loopback. Zijn berichten gaan vanaf de volgende minuut naar dat apparaat.

@@ -5,6 +5,7 @@ import {
   getConfigurationForProbe,
   getNetworkEventsDocsUrl,
   getSyslogSetupGuides,
+  getSyslogSetupVendorForDevice,
 } from "./NetworkEventsSetup";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
@@ -14,7 +15,13 @@ import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useId,
+  useState,
+} from "react";
 
 /*
  * What an Events page shows before any syslog has arrived: three steps
@@ -22,6 +29,11 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * port); the device needs a remote syslog server set (step 2, per vendor,
  * ready to paste); and messages are matched to the device by the address
  * they come from (step 3, with the addresses this device is known by).
+ *
+ * On a device's page the guide opens on the steps of the device's own
+ * maker, when OneUptime knows it. A device polled by a global probe is
+ * told first that its syslog cannot get there: step 1 then asks for a
+ * probe of the reader's own rather than naming the one that cannot hear.
  */
 
 export interface ComponentProps {
@@ -35,6 +47,11 @@ export interface ComponentProps {
   settingsRoute?: Route | undefined;
   // The page is looking for the first message by itself, and says so.
   isWaiting?: boolean | undefined;
+  /*
+   * Who made the device, when it is known (device page): its Vendor and
+   * its system description. The guide opens on that maker's steps.
+   */
+  deviceVendor?: string | undefined;
 }
 
 const PortBadge: FunctionComponent<{
@@ -71,15 +88,41 @@ const SyslogSetupGuide: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const guides: Array<SyslogSetupGuideData> = getSyslogSetupGuides();
+  const deviceGuideVendor: SyslogSetupVendor | null =
+    getSyslogSetupVendorForDevice(props.deviceVendor);
   const [vendor, setVendor] = useState<SyslogSetupVendor>(
-    SyslogSetupVendor.Cisco,
+    deviceGuideVendor || SyslogSetupVendor.Cisco,
   );
+  // Until the reader picks a tab themselves, the device's maker picks it.
+  const [hasPickedVendor, setHasPickedVendor] = useState<boolean>(false);
+  const tabsId: string = useId();
+
+  /*
+   * The device's details arrive after the page: the guide moves to its
+   * maker's steps then, unless the reader has already chosen a tab.
+   */
+  useEffect(() => {
+    if (deviceGuideVendor && !hasPickedVendor) {
+      setVendor(deviceGuideVendor);
+    }
+  }, [deviceGuideVendor]);
+
   const guide: SyslogSetupGuideData =
     guides.find((candidate: SyslogSetupGuideData): boolean => {
       return candidate.vendor === vendor;
     }) || guides[0]!;
   const configuration: string | null = getConfigurationForProbe(guide, null);
   const isDevice: boolean = props.scope === "device";
+  // A global probe cannot be sent syslog: it is not named as where to send it.
+  const probeName: string | undefined = props.isGlobalProbe
+    ? undefined
+    : props.probeName;
+  const panelId: string = `${tabsId}-panel`;
+  const getTabId: (tabVendor: SyslogSetupVendor) => string = (
+    tabVendor: SyslogSetupVendor,
+  ): string => {
+    return `${tabsId}-tab-${tabVendor}`;
+  };
 
   return (
     <div className="py-2" data-testid="syslog-setup-guide">
@@ -113,20 +156,39 @@ const SyslogSetupGuide: FunctionComponent<ComponentProps> = (
           <StepNumber number={1} />
           <div className="min-w-0 flex-1">
             <div className="text-sm font-medium text-gray-900">
-              {props.probeName ? (
+              {probeName ? (
                 <TranslatedSentence
                   template="Send syslog to probe {{probe}}"
                   slots={{
-                    probe: (
-                      <span className="font-semibold">{props.probeName}</span>
-                    ),
+                    probe: <span className="font-semibold">{probeName}</span>,
                   }}
                 />
               ) : (
                 translator.translateText("Send syslog to one of your probes")
               )}
             </div>
-            <p className="mt-1 text-sm text-gray-600">
+            {props.isGlobalProbe ? (
+              <div
+                role="note"
+                className="mt-2 flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 ring-1 ring-amber-200"
+                data-testid="syslog-setup-global-probe"
+              >
+                <Icon
+                  icon={IconProp.Alert}
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
+                />
+                <span>
+                  {translator.translateText(
+                    "This device is polled by a global probe, which syslog from your network cannot reach. Run a custom probe on the device's network and pick it in the device's settings.",
+                  )}
+                </span>
+              </div>
+            ) : (
+              <></>
+            )}
+            <p
+              className={`${props.isGlobalProbe ? "mt-3" : "mt-1"} text-sm text-gray-600`}
+            >
               {translator.translateText(
                 "The probe already listens on this port, over UDP and over TCP, at the IP address of the machine it runs on.",
               )}
@@ -148,24 +210,6 @@ const SyslogSetupGuide: FunctionComponent<ComponentProps> = (
                 }}
               />
             </p>
-            {props.isGlobalProbe ? (
-              <div
-                className="mt-3 flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 ring-1 ring-amber-200"
-                data-testid="syslog-setup-global-probe"
-              >
-                <Icon
-                  icon={IconProp.Alert}
-                  className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
-                />
-                <span>
-                  {translator.translateText(
-                    "This device is polled by a global probe, which syslog from your network cannot reach. Run a custom probe on the device's network and pick it in the device's settings.",
-                  )}
-                </span>
-              </div>
-            ) : (
-              <></>
-            )}
           </div>
         </li>
 
@@ -190,15 +234,18 @@ const SyslogSetupGuide: FunctionComponent<ComponentProps> = (
                 return (
                   <button
                     key={candidate.vendor}
+                    id={getTabId(candidate.vendor)}
                     type="button"
                     role="tab"
                     aria-selected={isActive}
+                    aria-controls={panelId}
                     className={`rounded-md px-2.5 py-1 text-xs font-medium ring-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                       isActive
                         ? "bg-indigo-50 text-indigo-700 ring-indigo-200"
                         : "bg-white text-gray-600 ring-gray-200 hover:bg-gray-50"
                     }`}
                     onClick={() => {
+                      setHasPickedVendor(true);
                       setVendor(candidate.vendor);
                     }}
                     data-testid={`syslog-setup-vendor-${candidate.vendor}`}
@@ -210,21 +257,35 @@ const SyslogSetupGuide: FunctionComponent<ComponentProps> = (
                 );
               })}
             </div>
-            <ol
-              className="mt-3 list-decimal space-y-1 pl-5 text-sm text-gray-600"
-              data-testid="syslog-setup-steps"
+            <div
+              id={panelId}
+              role="tabpanel"
+              aria-labelledby={getTabId(guide.vendor)}
             >
-              {guide.steps.map((step: string): ReactElement => {
-                return <li key={step}>{translator.translateText(step)}</li>;
-              })}
-            </ol>
-            {configuration ? (
-              <div className="mt-3" data-testid="syslog-setup-configuration">
-                <CodeBlock code={configuration} language="text" />
-              </div>
-            ) : (
-              <></>
-            )}
+              <ol
+                className="mt-3 list-decimal space-y-1 pl-5 text-sm text-gray-600"
+                data-testid="syslog-setup-steps"
+              >
+                {guide.steps.map((step: string): ReactElement => {
+                  return <li key={step}>{translator.translateText(step)}</li>;
+                })}
+              </ol>
+              {configuration ? (
+                /*
+                 * A little more room above and below the lines than a code
+                 * block gives itself: with one line to paste (HPE Aruba) its
+                 * copy button otherwise reaches past its frame.
+                 */
+                <div
+                  className="mt-3 [&_code]:!py-3"
+                  data-testid="syslog-setup-configuration"
+                >
+                  <CodeBlock code={configuration} language="text" />
+                </div>
+              ) : (
+                <></>
+              )}
+            </div>
           </div>
         </li>
 
@@ -306,7 +367,7 @@ const SyslogSetupGuide: FunctionComponent<ComponentProps> = (
               <Link
                 to={getNetworkEventsDocsUrl()}
                 openInNewTab={true}
-                className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:underline"
+                className="font-medium text-indigo-600 hover:underline [&_div]:ml-1 [&_div]:inline-block [&_div]:align-[-0.125rem]"
               >
                 <>
                   {translator.translateText(

@@ -28479,5 +28479,6 @@
   "Wi-Fi client disconnected": "کلاینت Wi-Fi قطع شد",
   "Wi-Fi network": "شبکهٔ Wi-Fi",
   "last message {{time}}": "آخرین پیام {{time}}",
-  "Informational": "اطلاع‌رسانی"
+  "Informational": "اطلاع‌رسانی",
+  "Peer address": "نشانی همتا"
 }

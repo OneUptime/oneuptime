@@ -28479,5 +28479,6 @@
   "Wi-Fi client disconnected": "Wi-Fi クライアントが切断",
   "Wi-Fi network": "Wi-Fi ネットワーク",
   "last message {{time}}": "最後のメッセージは{{time}}",
-  "Informational": "情報"
+  "Informational": "情報",
+  "Peer address": "ピアアドレス"
 }

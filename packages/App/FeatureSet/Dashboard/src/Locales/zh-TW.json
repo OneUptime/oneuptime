@@ -28479,5 +28479,6 @@
   "Wi-Fi client disconnected": "Wi-Fi 用戶端已中斷連線",
   "Wi-Fi network": "Wi-Fi 網路",
   "last message {{time}}": "最後一則訊息{{time}}",
-  "Informational": "資訊"
+  "Informational": "資訊",
+  "Peer address": "對端位址"
 }

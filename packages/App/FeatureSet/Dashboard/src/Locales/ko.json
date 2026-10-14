@@ -28479,5 +28479,6 @@
   "Wi-Fi client disconnected": "Wi-Fi 클라이언트 연결 끊김",
   "Wi-Fi network": "Wi-Fi 네트워크",
   "last message {{time}}": "마지막 메시지 {{time}}",
-  "Informational": "정보성"
+  "Informational": "정보성",
+  "Peer address": "피어 주소"
 }

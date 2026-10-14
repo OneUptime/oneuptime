@@ -28479,5 +28479,6 @@
   "Wi-Fi client disconnected": "WLAN-Client getrennt",
   "Wi-Fi network": "WLAN",
   "last message {{time}}": "letzte Nachricht {{time}}",
-  "Informational": "Hinweise"
+  "Informational": "Hinweise",
+  "Peer address": "Adresse der Gegenstelle"
 }

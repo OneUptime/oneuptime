@@ -187,6 +187,9 @@ describe("the Events pages in the dark theme", () => {
     expect(Array.from(getModules().keys())).toEqual(
       expect.arrayContaining([
         "Components/NetworkEvents/NetworkEventsView.tsx",
+        // The list and an event's details: where the kind dots are drawn.
+        "Components/NetworkEvents/NetworkEventsTimeline.tsx",
+        "Components/NetworkEvents/NetworkEventDetails.tsx",
         "Components/NetworkEvents/SyslogSetupGuide.tsx",
         "Components/NetworkEvents/NetworkEventAlertsModal.tsx",
         "Components/NetworkEvents/NetworkEventSourcesCard.tsx",
@@ -243,6 +246,9 @@ describe("the Events pages in the dark theme", () => {
         // The alert cards' icon tiles.
         "bg-red-50",
         "text-red-600",
+        // A day's "Today", and the line its heading draws to the edge.
+        "bg-gray-100",
+        "text-gray-600",
         // The set-up guide's step numbers and the picked vendor's tab.
         "bg-indigo-50",
         "text-indigo-700",
@@ -256,13 +262,51 @@ describe("the Events pages in the dark theme", () => {
   });
 
   test("the kind dots are full class names, so the stylesheet is built with them", () => {
-    const view: string = readCode(
-      "Components/NetworkEvents/NetworkEventsView.tsx",
+    const timeline: string = readCode(
+      "Components/NetworkEvents/NetworkEventsTimeline.tsx",
     );
 
-    expect(view).toContain('[NetworkEventKind.Problem]: "bg-red-500",');
-    expect(view).toContain('[NetworkEventKind.Recovery]: "bg-emerald-500",');
-    expect(view).toContain('[NetworkEventKind.Info]: "bg-gray-300",');
+    expect(timeline).toContain('[NetworkEventKind.Problem]: "bg-red-500",');
+    expect(timeline).toContain(
+      '[NetworkEventKind.Recovery]: "bg-emerald-500",',
+    );
+    expect(timeline).toContain('[NetworkEventKind.Info]: "bg-gray-300",');
+    // One list of them: an event's details draw the dot the list draws.
+    expect(
+      readCode("Components/NetworkEvents/NetworkEventDetails.tsx"),
+    ).toContain("KIND_DOT_CLASS_NAMES[row.kind]");
+    expect(
+      readCode("Components/NetworkEvents/NetworkEventsView.tsx"),
+    ).not.toContain("bg-red-500");
+  });
+
+  test("the lines a row's time spans are full class names too", () => {
+    const timeline: string = readCode(
+      "Components/NetworkEvents/NetworkEventsTimeline.tsx",
+    );
+
+    for (const name of [
+      '1: "sm:row-span-1",',
+      '2: "sm:row-span-2",',
+      '3: "sm:row-span-3",',
+      '1: "lg:row-span-1",',
+      '2: "lg:row-span-2",',
+    ]) {
+      expect(timeline).toContain(name);
+    }
+
+    // Never put together from a number at run time.
+    expect(timeline).not.toContain("row-span-${");
+  });
+
+  test("the open row is marked with the colour a row has under the pointer, which the dark theme has", () => {
+    const timeline: string = readCode(
+      "Components/NetworkEvents/NetworkEventsTimeline.tsx",
+    );
+
+    expect(timeline).toContain('props.isOpen ? " bg-gray-50" : ""');
+    expect(isRemapped("bg-gray-50")).toBe(true);
+    expect(isRemapped("hover:bg-gray-50")).toBe(true);
   });
 
   test("no fixed hex colour that would not follow the theme", () => {

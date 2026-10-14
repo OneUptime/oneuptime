@@ -2,7 +2,12 @@ import URL from "Common/Types/API/URL";
 import { DEFAULT_SYSLOG_RECEIVER_PORT } from "Common/Types/Syslog/SyslogReceiverDefaults";
 import { DOCS_URL } from "Common/UI/Config";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { SyslogParserId } from "Common/Utils/Syslog/SyslogVendorParser";
+import SyslogVendorCatalog from "Common/Utils/Syslog/SyslogVendorCatalog";
+import {
+  SyslogParserId,
+  SyslogVendorParser,
+  isVendorOfParser,
+} from "Common/Utils/Syslog/SyslogVendorParser";
 
 /*
  * Pointing a device's syslog at a probe, per vendor: what the set-up card
@@ -212,6 +217,38 @@ export function getSyslogSetupGuides(): Array<SyslogSetupGuide> {
       steps: [STEP_OTHER_SERVER, STEP_OTHER_SEVERITY, STEP_OTHER_FORMATS],
     },
   ];
+}
+
+/*
+ * The guide of the maker a device is known to be from - by its Vendor, or
+ * by its system description, the way the parsers themselves tell (their
+ * vendorKeywords) - or null when nothing names one. A device's page opens
+ * its guide on these steps, so a Sophos firewall is not shown Cisco's.
+ */
+export function getSyslogSetupVendorForDevice(
+  deviceVendor: string | null | undefined,
+): SyslogSetupVendor | null {
+  if (!deviceVendor || !deviceVendor.trim()) {
+    return null;
+  }
+
+  for (const guide of getSyslogSetupGuides()) {
+    // Linux-based devices and CEF: no maker to tell them by.
+    if (guide.vendor === SyslogSetupVendor.Other) {
+      continue;
+    }
+
+    for (const parserId of guide.parsers) {
+      const parser: SyslogVendorParser | null =
+        SyslogVendorCatalog.getParser(parserId);
+
+      if (parser && isVendorOfParser(parser, deviceVendor)) {
+        return guide.vendor;
+      }
+    }
+  }
+
+  return null;
 }
 
 /*

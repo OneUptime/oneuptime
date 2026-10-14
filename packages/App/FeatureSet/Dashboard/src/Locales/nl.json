@@ -28479,5 +28479,6 @@
   "Wi-Fi client disconnected": "Wifi-client verbroken",
   "Wi-Fi network": "Wifi-netwerk",
   "last message {{time}}": "laatste bericht {{time}}",
-  "Informational": "Informatief"
+  "Informational": "Informatief",
+  "Peer address": "Peer-adres"
 }

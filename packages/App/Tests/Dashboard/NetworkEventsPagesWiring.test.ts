@@ -178,10 +178,61 @@ describe("a device's Events tab", () => {
     );
   });
 
-  test("reads only what the set-up guide and an alert's name need: the name, the addresses messages are matched by, and the probe", () => {
+  test("reads only what the set-up guide and an alert's name need: the name, the addresses messages are matched by, who made it, and the probe", () => {
     expect(page).toContain(
-      "select: { _id: true, name: true, hostname: true, otherAddresses: true, probe: { _id: true, name: true, isGlobalProbe: true, }, },",
+      "select: { _id: true, name: true, hostname: true, otherAddresses: true, vendor: true, sysDescr: true, probe: { _id: true, name: true, isGlobalProbe: true, }, },",
     );
+  });
+
+  test("hands the guide everything that says who made the device: its Vendor and its system description", () => {
+    expect(page).toContain(
+      'vendor: [item.vendor, item.sysDescr] .filter((text: string | undefined): boolean => { return Boolean(text && text.trim()); }) .join(" ") || undefined,',
+    );
+  });
+
+  test("who made the device is read with the columns anyone who may read a device may read", () => {
+    /*
+     * A column the reader may not select fails the whole request, and the
+     * page would lose the device's name and addresses with it. Vendor and
+     * System Description are readable by exactly who may read Other
+     * Addresses, which the page already asked for.
+     */
+    const model: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "Common",
+        "Models",
+        "DatabaseModels",
+        "NetworkDevice.ts",
+      ),
+      "utf8",
+    );
+
+    function readPermissionsOf(column: string): string {
+      const declaration: number = model.indexOf(`public ${column}?:`);
+      const access: number = model.lastIndexOf(
+        "@ColumnAccessControl({",
+        declaration,
+      );
+      const read: number = model.indexOf("read: [", access);
+
+      expect(declaration).toBeGreaterThan(-1);
+      expect(read).toBeGreaterThan(access);
+      expect(read).toBeLessThan(declaration);
+
+      return model
+        .slice(read, model.indexOf("]", read))
+        .replace(WHITESPACE, " ");
+    }
+
+    const otherAddresses: string = readPermissionsOf("otherAddresses");
+
+    expect(otherAddresses).toContain("Permission.ReadNetworkDevice");
+    expect(readPermissionsOf("vendor")).toBe(otherAddresses);
+    expect(readPermissionsOf("sysDescr")).toBe(otherAddresses);
   });
 
   test("a device that could not be read does not take the page down", () => {
@@ -247,6 +298,94 @@ describe("Create Monitor, opened from an alert card", () => {
     expect(create).toContain(
       ").finally(() => { setIsLoading(false); }); return; } const monitorTypeParam",
     );
+  });
+});
+
+describe("how the Events view is put together", () => {
+  const view: string = readCode(
+    "Components/NetworkEvents/NetworkEventsView.tsx",
+  );
+  const timeline: string = readCode(
+    "Components/NetworkEvents/NetworkEventsTimeline.tsx",
+  );
+  const details: string = readCode(
+    "Components/NetworkEvents/NetworkEventDetails.tsx",
+  );
+
+  test("the list is the timeline, told which rows to draw and which one is open", () => {
+    expect(view).toContain(
+      "<NetworkEventsTimeline rows={visibleRows} showDevice={!isDevice} onOpen={setSelected} openRowId={selected?.id} />",
+    );
+  });
+
+  test("the timeline is laid out by the feeds' own rules, so the two can never drift apart", () => {
+    expect(timeline).toContain(
+      'from "Common/UI/Components/Feed/FeedTimeline";',
+    );
+    expect(timeline).toContain(
+      "buildFeedTimeline<TimelineItem>({ items: timed, clock: clock })",
+    );
+    expect(timeline).toContain(
+      "getFeedClock({ language: translator.language, now: now })",
+    );
+    // The same sentence, and so the same translations, as the feeds' headings.
+    expect(timeline).toContain(
+      'translationKey( "Times are in {{zone}}, your time zone.", )',
+    );
+  });
+
+  test("no time on these pages is written by moment's English fromNow any more", () => {
+    for (const file of [
+      "Components/NetworkEvents/NetworkEventsView.tsx",
+      "Components/NetworkEvents/NetworkEventsTimeline.tsx",
+      "Components/NetworkEvents/NetworkEventDetails.tsx",
+      "Components/NetworkEvents/NetworkEventSourcesCard.tsx",
+      "Components/NetworkEvents/SyslogSetupGuide.tsx",
+    ]) {
+      const code: string = readCode(file);
+
+      expect({ file, fromNow: code.includes(".fromNow(") }).toEqual({
+        file,
+        fromNow: false,
+      });
+      expect({
+        file,
+        local: code.includes("getDateAsLocalFormattedString("),
+      }).toEqual({ file, local: false });
+    }
+  });
+
+  test("a row opens the event's details, which know whether an alert may be made and for which device", () => {
+    expect(view).toContain(
+      '<NetworkEventDetails row={selected} canCreateAlert={canCreateAlert} alertDeviceId={ scope.kind === "device" ? scope.networkDeviceId : undefined } onClose={() => { setSelected(null); }} />',
+    );
+    // Beside the list, not over it.
+    expect(details).toContain("size={SideOverSize.Small}");
+    expect(details).not.toContain("SideOverSize.Medium");
+  });
+
+  test("the details offer Add as device where the sender is named, and leave the footer to the panel", () => {
+    expect(details).not.toContain("leftFooterElement");
+    expect(details).toContain('dataTestId="network-event-details-add-device"');
+  });
+
+  test("the header is the stacked one: its description never shares a line with three controls", () => {
+    expect(view).toContain('headerLayout="stacked"');
+  });
+
+  test("an empty or failed page is drawn by the tables' own empty state", () => {
+    expect(view).toContain(
+      'from "Common/UI/Components/Table/TableEmptyState";',
+    );
+    expect(view).toContain("getFilteredEmptyStateProps({");
+    expect(view).toContain("getLoadErrorStateProps({");
+    // Not a look-alike of its own, and not the bare grey sentence.
+    expect(view).not.toContain("NetworkEventsEmptyState");
+    expect(view).not.toContain("<ErrorMessage");
+  });
+
+  test("the guide is told who made the device, so it can open on that maker's steps", () => {
+    expect(view).toContain("deviceVendor={props.device?.vendor}");
   });
 });
 

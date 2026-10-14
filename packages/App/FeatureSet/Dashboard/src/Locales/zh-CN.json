@@ -28479,5 +28479,6 @@
   "Wi-Fi client disconnected": "Wi-Fi 客户端已断开",
   "Wi-Fi network": "Wi-Fi 网络",
   "last message {{time}}": "最后一条消息{{time}}",
-  "Informational": "信息"
+  "Informational": "信息",
+  "Peer address": "对端地址"
 }

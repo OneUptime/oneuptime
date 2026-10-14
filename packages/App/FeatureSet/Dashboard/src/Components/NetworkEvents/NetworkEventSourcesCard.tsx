@@ -5,7 +5,6 @@ import {
 } from "../Network/NetworkQuickActions";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import NetworkDeviceOtherAddressesUtil from "Common/Utils/NetworkDevice/NetworkDeviceOtherAddresses";
 import Button, {
@@ -17,6 +16,12 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  FeedClock,
+  formatFeedFullTime,
+  formatFeedTimeAgo,
+  getFeedClock,
+} from "Common/UI/Components/Feed/FeedTime";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
@@ -41,6 +46,9 @@ import React, {
  *
  * Their messages are not lost meanwhile: they are kept for the project and
  * shown on the Events page with the address in place of a device's name.
+ *
+ * Every row here is an address that is not a device yet - the card's title
+ * says so once, so no row repeats it.
  */
 
 export interface ComponentProps {
@@ -104,11 +112,20 @@ export const LinkSyslogSourceModal: FunctionComponent<{
 
   const options: Array<DropdownOption> = devices.map(
     (device: NetworkDevice): DropdownOption => {
+      const name: string = device.name?.trim() || "";
+      const hostname: string = device.hostname?.trim() || "";
+
       return {
         value: device.id?.toString() || "",
-        label: device.name
-          ? `${device.name} (${device.hostname || ""})`
-          : device.hostname || "",
+        /*
+         * The name, with the address it is reached at when that says more:
+         * a device named after its own hostname is not named twice, and
+         * one with no hostname gets no empty brackets.
+         */
+        label:
+          name && hostname && name !== hostname
+            ? `${name} (${hostname})`
+            : name || hostname,
       };
     },
   );
@@ -195,6 +212,9 @@ const NetworkEventSourcesCard: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  // "6 minutes ago", in the reader's language - not moment's English.
+  const clock: FeedClock = getFeedClock({ language: translator.language });
+
   return (
     <div id="network-event-sources">
       <Card
@@ -225,13 +245,21 @@ const NetworkEventSourcesCard: FunctionComponent<ComponentProps> = (
                 details.push(source.vendor);
               }
 
-              if (source.lastSeenAt) {
+              const lastSeenAgo: string | undefined = source.lastSeenAt
+                ? formatFeedTimeAgo(source.lastSeenAt, clock)
+                : undefined;
+
+              if (lastSeenAgo) {
                 details.push(
                   translator.translateTemplate("last message {{time}}", {
-                    time: OneUptimeDate.fromNow(source.lastSeenAt),
+                    time: lastSeenAgo,
                   }),
                 );
               }
+
+              const hasOwnName: boolean = Boolean(
+                source.hostname && source.hostname !== source.address,
+              );
 
               return (
                 <li
@@ -245,27 +273,30 @@ const NetworkEventSourcesCard: FunctionComponent<ComponentProps> = (
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
-                      <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <span className="font-mono text-sm font-medium text-gray-900">
+                      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        <span className="font-mono text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
                           {source.address}
                         </span>
-                        {source.hostname &&
-                        source.hostname !== source.address ? (
-                          <span className="truncate text-sm text-gray-600">
+                        {hasOwnName ? (
+                          <span
+                            className="min-w-0 text-sm text-gray-600 [overflow-wrap:anywhere]"
+                            data-testid="network-event-source-name"
+                          >
                             {source.hostname}
                           </span>
                         ) : (
                           <></>
                         )}
-                        <span
-                          className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200"
-                          data-testid="network-event-source-unknown"
-                        >
-                          {translator.translateText("Not a device yet")}
-                        </span>
                       </div>
                       {details.length > 0 ? (
-                        <div className="mt-0.5 text-xs text-gray-500">
+                        <div
+                          className="mt-0.5 text-xs text-gray-500"
+                          title={
+                            source.lastSeenAt
+                              ? formatFeedFullTime(source.lastSeenAt, clock)
+                              : undefined
+                          }
+                        >
                           {details.join(" · ")}
                         </div>
                       ) : (

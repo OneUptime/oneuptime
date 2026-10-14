@@ -223,7 +223,7 @@ From a device's **Events** tab the monitors watch that device only. For any othe
 
 ## Addresses that are not devices yet
 
-Syslog can arrive before the device that sends it is added to OneUptime. On your own probe it is kept, its events are on the network's Events page with the name the device gives itself, and its address is listed under **Sending syslog, not a device yet**, marked **Not a device yet**:
+Syslog can arrive before the device that sends it is added to OneUptime. On your own probe it is kept, its events are on the network's Events page with the name the device gives itself, and its address is listed under **Sending syslog, not a device yet**:
 
 - **Add as device** opens **Add Device** with the address and the probe filled in. The messages that already arrived stay on the network's page; new ones go to the device.
 - **It is one of my devices** adds the address to a device's **Other Addresses**: use it when a device you already added sends from another address, such as a loopback. Its messages go to that device from the next minute on.

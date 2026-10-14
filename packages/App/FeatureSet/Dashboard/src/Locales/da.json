@@ -28479,5 +28479,6 @@
   "Wi-Fi client disconnected": "Wi-Fi-klient frakoblet",
   "Wi-Fi network": "Wi-Fi-netværk",
   "last message {{time}}": "seneste meddelelse {{time}}",
-  "Informational": "Til orientering"
+  "Informational": "Til orientering",
+  "Peer address": "Peer-adresse"
 }

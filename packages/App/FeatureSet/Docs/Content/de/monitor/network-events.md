@@ -223,7 +223,7 @@ Vom Tab **Ereignisse** eines Geräts aus überwachen die Monitore nur dieses Ger
 
 ## Adressen, die noch keine Geräte sind
 
-Syslog kann ankommen, bevor das Gerät, das es sendet, zu OneUptime hinzugefügt wurde. Auf Ihrer eigenen Sonde wird es aufbewahrt, seine Ereignisse stehen auf der Ereignisseite des Netzwerks unter dem Namen, den das Gerät sich selbst gibt, und seine Adresse steht unter **Sendet Syslog, noch kein Gerät**, markiert mit **Noch kein Gerät**:
+Syslog kann ankommen, bevor das Gerät, das es sendet, zu OneUptime hinzugefügt wurde. Auf Ihrer eigenen Sonde wird es aufbewahrt, seine Ereignisse stehen auf der Ereignisseite des Netzwerks unter dem Namen, den das Gerät sich selbst gibt, und seine Adresse steht unter **Sendet Syslog, noch kein Gerät**:
 
 - **Als Gerät hinzufügen** öffnet **Gerät hinzufügen** mit bereits eingetragener Adresse und Sonde. Die bereits angekommenen Nachrichten bleiben auf der Seite des Netzwerks; neue gehen an das Gerät.
 - **Es ist eines meiner Geräte** trägt die Adresse bei einem Gerät unter **Weitere Adressen** ein: Verwenden Sie es, wenn ein bereits hinzugefügtes Gerät von einer anderen Adresse sendet, etwa einem Loopback. Seine Nachrichten gehen ab der nächsten Minute an dieses Gerät.

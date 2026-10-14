@@ -13,6 +13,7 @@ import {
   SyslogVendorSample,
 } from "Common/Tests/Helpers/SyslogVendorSamples";
 import {
+  NETWORK_EVENT_DETAIL_LABELS,
   NETWORK_EVENT_FACET_KEYS,
   NETWORK_EVENT_SUBJECT_LABELS,
   NetworkEventCounts,
@@ -31,7 +32,12 @@ import {
 import {
   NETWORK_EVENT_COPY,
   getNetworkEventCopy,
+  getNetworkEventTitle,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkEvents/NetworkEventCopy";
+import {
+  Translator,
+  createTranslator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What the Events pages show, as data: a log turned into a row, the counts
@@ -421,6 +427,161 @@ describe("what an event is about", () => {
         "event.device": "Core Switch",
       }),
     ).toEqual([]);
+  });
+});
+
+describe("what the rest of an event's attributes are called", () => {
+  /*
+   * A routing event is about its neighbor. The same attribute on a
+   * tunnel's event is the tunnel's far end, which nobody calls a neighbor.
+   */
+  test("a routing event's peer is its Neighbor: what the event is about", () => {
+    expect(
+      getNetworkEventSubjects("routing.neighbor_down", {
+        "network.peer.address": "10.0.0.9",
+      }),
+    ).toEqual([
+      {
+        attribute: "network.peer.address",
+        label: "Neighbor",
+        value: "10.0.0.9",
+      },
+    ]);
+  });
+
+  test("a tunnel's peer is its Peer address, listed after the tunnel", () => {
+    expect(
+      getNetworkEventSubjects("vpn.tunnel_down", {
+        "network.peer.address": "198.51.100.9",
+        "vpn.tunnel.name": "HQ-to-Branch",
+      }),
+    ).toEqual([
+      {
+        attribute: "vpn.tunnel.name",
+        label: "Tunnel",
+        value: "HQ-to-Branch",
+      },
+      {
+        attribute: "network.peer.address",
+        label: "Peer address",
+        value: "198.51.100.9",
+      },
+    ]);
+  });
+
+  test("only what an event is not about is renamed: every subject keeps its own label", () => {
+    for (const definition of NETWORK_EVENT_DEFINITIONS) {
+      if (!definition.subjectAttribute) {
+        continue;
+      }
+
+      const subjects: Array<{ attribute: string; label: string }> =
+        getNetworkEventSubjects(definition.type, {
+          [definition.subjectAttribute]: "x",
+        });
+
+      expect({ type: definition.type, label: subjects[0]?.label }).toEqual({
+        type: definition.type,
+        label: NETWORK_EVENT_SUBJECT_LABELS[definition.subjectAttribute],
+      });
+    }
+  });
+
+  test("an event the project named has no subject of its own, so a peer it names is a Peer address", () => {
+    expect(
+      getNetworkEventSubjects("ups.on_battery", {
+        "network.peer.address": "10.0.0.9",
+      }).map((subject: { label: string }): string => {
+        return subject.label;
+      }),
+    ).toEqual(["Peer address"]);
+  });
+
+  test("the other name is only given to attributes that have a label to begin with", () => {
+    for (const attribute of Object.keys(NETWORK_EVENT_DETAIL_LABELS)) {
+      expect({
+        attribute,
+        hasSubjectLabel: Boolean(NETWORK_EVENT_SUBJECT_LABELS[attribute]),
+      }).toEqual({ attribute, hasSubjectLabel: true });
+      expect(NETWORK_EVENT_DETAIL_LABELS[attribute]).not.toBe(
+        NETWORK_EVENT_SUBJECT_LABELS[attribute],
+      );
+    }
+  });
+
+  test("a Sophos tunnel line, read by the real parser: the tunnel is the subject, the far end its peer address", () => {
+    const sample: SyslogVendorSample = ALL_SYSLOG_VENDOR_SAMPLES.find(
+      (candidate: SyslogVendorSample): boolean => {
+        return (
+          candidate.name === "sophos ipsec tunnel terminated, central reporting"
+        );
+      },
+    )!;
+    const attributes: Record<string, unknown> = {
+      ...(SyslogEventNormalizer.readLine(sample.line)?.normalized.attributes ||
+        {}),
+    };
+
+    markNetworkEvent(attributes, { device: "fw-hq-01" });
+
+    const row: NetworkEventRow | null = toNetworkEventRow(log(attributes), 0);
+
+    expect(row?.subject).toEqual({
+      attribute: "vpn.tunnel.name",
+      label: "Tunnel",
+      value: "HQ-Branch1",
+    });
+    expect(row?.details).toEqual([
+      {
+        attribute: "network.peer.address",
+        label: "Peer address",
+        value: "10.171.4.118",
+      },
+    ]);
+  });
+});
+
+describe("what a list calls an event", () => {
+  const english: Translator = createTranslator(undefined, "en");
+
+  test("a built-in event by the vocabulary's words", () => {
+    expect(getNetworkEventTitle("interface.down", english)).toBe(
+      "Interface down",
+    );
+    expect(getNetworkEventTitle("vpn.tunnel_up", english)).toBe(
+      "VPN tunnel up",
+    );
+  });
+
+  test("in the reader's language when it has the words", () => {
+    const german: Translator = createTranslator((text: string): string => {
+      return text === "Interface down" ? "Schnittstelle ausgefallen" : text;
+    }, "de");
+
+    expect(getNetworkEventTitle("interface.down", german)).toBe(
+      "Schnittstelle ausgefallen",
+    );
+    // No German for it yet: the English, never an empty title.
+    expect(getNetworkEventTitle("interface.up", german)).toBe("Interface up");
+  });
+
+  test("an event the project named by its own name, as written", () => {
+    expect(getNetworkEventTitle("ups.on_battery", english)).toBe(
+      "ups.on_battery",
+    );
+    expect(getNetworkEventTitle("", english)).toBe("");
+  });
+
+  test("every built-in event has a title that is not its machine name", () => {
+    for (const definition of NETWORK_EVENT_DEFINITIONS) {
+      const title: string = getNetworkEventTitle(definition.type, english);
+
+      expect({ type: definition.type, title }).not.toEqual({
+        type: definition.type,
+        title: definition.type,
+      });
+      expect(title).toBe(NETWORK_EVENT_COPY[definition.type].title);
+    }
   });
 });
 

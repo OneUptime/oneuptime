@@ -223,7 +223,7 @@ Depuis l'onglet **Événements** d'un appareil, les moniteurs ne surveillent que
 
 ## Adresses qui ne sont pas encore des appareils
 
-Du syslog peut arriver avant que l'appareil qui l'envoie ne soit ajouté à OneUptime. Sur votre propre sonde, il est conservé, ses événements sont sur la page Événements du réseau avec le nom que l'appareil se donne, et son adresse est listée sous **Envoie du syslog, pas encore un appareil**, marquée **Pas encore un appareil** :
+Du syslog peut arriver avant que l'appareil qui l'envoie ne soit ajouté à OneUptime. Sur votre propre sonde, il est conservé, ses événements sont sur la page Événements du réseau avec le nom que l'appareil se donne, et son adresse est listée sous **Envoie du syslog, pas encore un appareil** :
 
 - **Ajouter comme appareil** ouvre **Ajouter l'équipement** avec l'adresse et la sonde déjà renseignées. Les messages déjà arrivés restent sur la page du réseau ; les nouveaux vont à l'appareil.
 - **C'est l'un de mes appareils** ajoute l'adresse à un appareil sous **Autres adresses** : utilisez-le lorsqu'un appareil déjà ajouté envoie depuis une autre adresse, comme une loopback. Ses messages vont à cet appareil à partir de la minute suivante.

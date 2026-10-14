@@ -24,6 +24,7 @@ import {
   getConfigurationForProbe,
   getNetworkEventsDocsUrl,
   getSyslogSetupGuides,
+  getSyslogSetupVendorForDevice,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkEvents/NetworkEventsSetup";
 import { DEFAULT_SYSLOG_RECEIVER_PORT } from "Common/Types/Syslog/SyslogReceiverDefaults";
 import SyslogVendorCatalog from "Common/Utils/Syslog/SyslogVendorCatalog";
@@ -421,5 +422,117 @@ describe("the docs link", () => {
     }
 
     expect(languages).toBeGreaterThan(1);
+  });
+});
+
+describe("whose steps a device's guide opens on", () => {
+  /*
+   * A device's Events page knows who made the device (its Vendor, and its
+   * system description): its guide opens on that maker's steps, so a
+   * Sophos firewall is not shown Cisco's lines to paste.
+   */
+  test.each([
+    ["Cisco", SyslogSetupVendor.Cisco],
+    ["Cisco Systems, Inc.", SyslogSetupVendor.Cisco],
+    ["Sophos", SyslogSetupVendor.Sophos],
+    ["Fortinet", SyslogSetupVendor.Fortinet],
+    ["FortiGate-60F v7.4.3", SyslogSetupVendor.Fortinet],
+    ["Extreme Networks", SyslogSetupVendor.Extreme],
+    ["Aruba", SyslogSetupVendor.Aruba],
+    ["HPE", SyslogSetupVendor.Aruba],
+    ["Hewlett Packard Enterprise", SyslogSetupVendor.Aruba],
+    ["ProCurve J9773A Switch 2530-24G-PoEP", SyslogSetupVendor.Aruba],
+    ["MikroTik", SyslogSetupVendor.MikroTik],
+    ["RouterOS RB4011iGS+", SyslogSetupVendor.MikroTik],
+    ["Ubiquiti", SyslogSetupVendor.UniFi],
+    ["UniFi Dream Machine Pro", SyslogSetupVendor.UniFi],
+    ["Cambium Networks", SyslogSetupVendor.Cambium],
+  ])("%s -> %s", (deviceVendor: string, expected: SyslogSetupVendor) => {
+    expect(getSyslogSetupVendorForDevice(deviceVendor)).toBe(expected);
+  });
+
+  test("is told the way the parsers themselves tell a maker: by their own keywords", () => {
+    for (const parser of SyslogVendorCatalog.getParsers()) {
+      for (const keyword of parser.vendorKeywords) {
+        const vendor: SyslogSetupVendor | null =
+          getSyslogSetupVendorForDevice(keyword);
+
+        expect({ keyword, known: vendor !== null }).toEqual({
+          keyword,
+          known: true,
+        });
+        // And the guide it opens on is one that makes that parser's messages.
+        expect({
+          keyword,
+          reaches: guideFor(vendor as SyslogSetupVendor).parsers.some(
+            (id: SyslogParserId): boolean => {
+              return SyslogVendorCatalog.getParser(id)!.vendorKeywords.includes(
+                keyword,
+              );
+            },
+          ),
+        }).toEqual({ keyword, reaches: true });
+      }
+    }
+  });
+
+  test("whatever the casing, and wherever in a system description the maker is named", () => {
+    expect(getSyslogSetupVendorForDevice("SOPHOS")).toBe(
+      SyslogSetupVendor.Sophos,
+    );
+    expect(getSyslogSetupVendorForDevice("sophos")).toBe(
+      SyslogSetupVendor.Sophos,
+    );
+    expect(
+      getSyslogSetupVendorForDevice(
+        "ExtremeXOS (X460G2-24p-10G4) version 22.7.1.2 by release-manager",
+      ),
+    ).toBe(SyslogSetupVendor.Extreme);
+    expect(
+      getSyslogSetupVendorForDevice(
+        "Cisco IOS Software, C2960 Software (C2960-LANBASEK9-M), Version 15.0(2)SE",
+      ),
+    ).toBe(SyslogSetupVendor.Cisco);
+  });
+
+  test("a maker with no steps of its own, or none at all, is nobody's: the guide keeps its first tab", () => {
+    for (const unknown of [
+      "Juniper Networks",
+      "Palo Alto Networks",
+      "Linux",
+      "",
+      "   ",
+      null,
+      undefined,
+    ]) {
+      expect({
+        unknown,
+        vendor: getSyslogSetupVendorForDevice(unknown),
+      }).toEqual({ unknown, vendor: null });
+    }
+  });
+
+  test("never opens on Other devices: that tab is for what no maker's tab covers", () => {
+    const other: SyslogSetupGuide = guideFor(SyslogSetupVendor.Other);
+
+    // Its parsers name no maker, so nothing can lead to it.
+    for (const parserId of other.parsers) {
+      expect(
+        SyslogVendorCatalog.getParser(parserId)?.vendorKeywords || [],
+      ).toEqual([]);
+    }
+
+    for (const text of ["other", "Other devices", "cef", "linux", "sshd"]) {
+      expect(getSyslogSetupVendorForDevice(text)).not.toBe(
+        SyslogSetupVendor.Other,
+      );
+    }
+  });
+
+  test("a device two makers' words appear in opens on the first guide that claims it", () => {
+    // Guides are tried in the order the tabs are drawn.
+    expect(
+      getSyslogSetupVendorForDevice("Cisco switch behind a Sophos firewall"),
+    ).toBe(SyslogSetupVendor.Cisco);
   });
 });

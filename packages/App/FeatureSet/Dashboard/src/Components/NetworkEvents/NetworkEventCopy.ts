@@ -2,7 +2,7 @@ import NetworkEventType, {
   NetworkEventKind,
   NetworkEventTypeUtil,
 } from "Common/Types/NetworkEvent/NetworkEventType";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The words of each network event (NetworkEventType in Common holds what
@@ -220,4 +220,17 @@ export function getNetworkEventCopy(name: unknown): NetworkEventCopy | null {
   }
 
   return NETWORK_EVENT_COPY[name];
+}
+
+/*
+ * What a list calls an event: the vocabulary's words for a built-in one,
+ * in the reader's language, and its own name for one a project defined.
+ */
+export function getNetworkEventTitle(
+  name: string,
+  translator: Translator,
+): string {
+  const copy: NetworkEventCopy | null = getNetworkEventCopy(name);
+
+  return copy ? translator.translateText(copy.title) || copy.title : name;
 }

@@ -21,17 +21,22 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * BEING TOLD WHEN SOMETHING HAPPENS ON THE NETWORK.
  *
- * The alerts most networks want, one card each: what happens, and when the
- * alert closes again. A card opens Create Monitor filled in - a Logs
- * monitor counting that event, one alert per device and per thing on it -
- * where anything can be changed before saving.
+ * The alerts most networks want, as a list to pick from: what goes wrong,
+ * and when the alert closes again. Picking one opens Create Monitor filled
+ * in - a Logs monitor counting that event, one alert per device and per
+ * thing on it - where anything can be changed before saving.
+ *
+ * A whole row is the way in: its name is the link, and the link covers the
+ * row, so there is one thing to press per alert and nothing to read eight
+ * times over.
  *
  * From one device's page the monitors are for that device alone, and the
  * dialog says so.
  *
  * Creating is permission-gated by the caller, the way the monitor table
  * gates its own create button: a viewer is not offered a form they cannot
- * submit.
+ * submit. Handed someone who may not create, the list says so once and no
+ * row is a link.
  */
 
 export interface ComponentProps {
@@ -55,50 +60,55 @@ export const NetworkEventAlertCard: FunctionComponent<{
     NETWORK_EVENT_ALERT_TEMPLATE_COPY[
       props.template.id as NetworkEventAlertTemplateId
     ];
+  const title: string = translator.translateText(copy.title) || copy.title;
 
   return (
-    <div
-      className="flex flex-col rounded-lg bg-white p-4 ring-1 ring-gray-200"
+    <li
+      className={`relative flex items-start gap-3 px-4 py-3.5${
+        props.canCreate ? " hover:bg-gray-50" : ""
+      }`}
       data-testid="network-event-alert-template"
       data-template-id={props.template.id}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${copy.iconTileClassName}`}
-          aria-hidden="true"
-        >
-          <Icon icon={copy.icon} className={`h-5 w-5 ${copy.iconClassName}`} />
-        </div>
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-gray-900">
-            {translator.translateText(copy.title)}
-          </div>
-          <div className="mt-1 text-sm text-gray-600">
-            {translator.translateText(copy.description)}
-          </div>
-        </div>
+      <div
+        className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${copy.iconTileClassName}`}
+        aria-hidden="true"
+      >
+        <Icon icon={copy.icon} className={`h-5 w-5 ${copy.iconClassName}`} />
       </div>
-      <div className="mt-3 flex flex-1 items-end">
+      <div className="min-w-0 flex-1">
         {props.canCreate ? (
+          /*
+           * The row's one link: its ::after covers the whole row, so a
+           * click anywhere on the row opens the alert.
+           */
           <AppLink
             to={getNetworkEventAlertRoute(
               props.template.id,
               props.networkDeviceId,
             )}
-            className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+            className="text-sm font-semibold text-gray-900 after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500"
           >
-            <span>{translator.translateText("Create alert") || ""}</span>
-            <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
+            {title}
           </AppLink>
         ) : (
-          <div className="text-xs text-gray-500">
-            {translator.translateText(
-              "You need permission to create monitors to set this up.",
-            )}
-          </div>
+          <div className="text-sm font-semibold text-gray-900">{title}</div>
         )}
+        <p className="mt-0.5 text-sm leading-5 text-gray-600">
+          {translator.translateText(copy.description)}
+        </p>
       </div>
-    </div>
+      {props.canCreate ? (
+        <div className="flex-shrink-0 self-center" aria-hidden="true">
+          <Icon
+            icon={IconProp.ChevronRight}
+            className="h-4 w-4 text-gray-400"
+          />
+        </div>
+      ) : (
+        <></>
+      )}
+    </li>
   );
 };
 
@@ -127,7 +137,7 @@ const NetworkEventAlertsModal: FunctionComponent<ComponentProps> = (
       }
       onClose={props.onClose}
       closeButtonText="Close"
-      modalWidth={ModalWidth.Large}
+      modalWidth={ModalWidth.Medium}
       leftFooterElement={
         props.canCreate ? (
           <AppLink
@@ -139,22 +149,37 @@ const NetworkEventAlertsModal: FunctionComponent<ComponentProps> = (
         ) : undefined
       }
     >
-      <div
-        className="grid grid-cols-1 gap-3 md:grid-cols-2"
-        data-testid="network-event-alert-templates"
-      >
-        {NetworkEventAlertTemplates.getFeatured().map(
-          (template: NetworkEventAlertTemplate): ReactElement => {
-            return (
-              <NetworkEventAlertCard
-                key={template.id}
-                template={template}
-                canCreate={props.canCreate}
-                networkDeviceId={props.device?.id}
-              />
-            );
-          },
+      <div>
+        {props.canCreate ? (
+          <></>
+        ) : (
+          <p
+            className="mb-3 text-sm text-gray-600"
+            data-testid="network-event-alert-templates-locked"
+          >
+            {translator.translateText(
+              "You need permission to create monitors to set this up.",
+            )}
+          </p>
         )}
+        <ul
+          role="list"
+          className="divide-y divide-gray-100 overflow-hidden rounded-lg ring-1 ring-gray-200"
+          data-testid="network-event-alert-templates"
+        >
+          {NetworkEventAlertTemplates.getFeatured().map(
+            (template: NetworkEventAlertTemplate): ReactElement => {
+              return (
+                <NetworkEventAlertCard
+                  key={template.id}
+                  template={template}
+                  canCreate={props.canCreate}
+                  networkDeviceId={props.device?.id}
+                />
+              );
+            },
+          )}
+        </ul>
       </div>
     </Modal>
   );

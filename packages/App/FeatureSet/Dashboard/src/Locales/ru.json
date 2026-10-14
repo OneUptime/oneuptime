@@ -28479,5 +28479,6 @@
   "Wi-Fi client disconnected": "Клиент Wi-Fi отключился",
   "Wi-Fi network": "Сеть Wi-Fi",
   "last message {{time}}": "последнее сообщение {{time}}",
-  "Informational": "Информационные"
+  "Informational": "Информационные",
+  "Peer address": "Адрес удалённой стороны"
 }
