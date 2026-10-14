@@ -123,8 +123,8 @@ describe("the list footer while nothing is on screen", () => {
         itemsOnCurrentPage={0}
         onPageChange={() => {}}
         onPageSizeChange={() => {}}
-        isLoading={props.isLoading}
-        isDisabled={props.isDisabled}
+        isLoading={props.isLoading ?? false}
+        isDisabled={props.isDisabled ?? false}
       />,
     );
     return screen.getByTestId("logs-pagination");
