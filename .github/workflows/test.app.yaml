@@ -180,6 +180,7 @@ jobs:
               test-pagination-ui
               test-calendar-feed-ui
               test-topology-ui
+              test-home-overview-ui
               test-security-operations-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Value Picker (the
@@ -334,4 +335,6 @@ jobs:
             output/playwright/pagination-ui/test-results
             output/playwright/calendar-feed-ui/*.png
             output/playwright/calendar-feed-ui/test-results
+            output/playwright/home-overview-ui/*.png
+            output/playwright/home-overview-ui/test-results
           retention-days: 7

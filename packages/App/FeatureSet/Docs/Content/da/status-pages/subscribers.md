@@ -47,6 +47,21 @@ Hver kanal har også sin egen liste i statussidens sidemenu under **Abonnenter**
 
 **Én kontakt er ikke nok.** Punktet **Abonner** i statussidens navigationsbjælke vises kun, når **Vis abonnentside** er slået til, *og* mindst én kanal er slået til. Hvis du slår **E-mail** til, men lader **Vis abonnentside** være slået fra, har besøgende ingen mulighed for at nå formularen.
 
+## Slå alle notifikationer fra
+
+Det første kort på **Abonnementsindstillinger**, **Notifikationer**, indeholder **Send notifikationer til abonnenter** (`sendSubscriberNotifications`), slået til som standard, som gemmes, så snart du slår den om. Er den slået fra, sender statussiden intet til sine abonnenter: ingen notifikation om en hændelse, en episode, planlagt vedligeholdelse eller en meddelelse, ingen note eller postmortem og ingen e-mailrapport, uanset hvad dens kanaler og hændelsestyper siger. Dens abonnenter bevares, og besøgende kan stadig abonnere, så længe siden **Abonner** og en kanal er slået til; en ny e-mailabonnent får stadig den e-mail, der bekræfter abonnementet. Intet holdes tilbage for at blive sendt senere: slås den til igen, fortæller siden sine abonnenter om det, der sker fra da af.
+
+Mens den er slået fra, siger toppen af hver abonnentliste det, med et link tilbage til **Abonnementsindstillinger**. Oversigten over, hvem der får besked, på en hændelse eller en offentlig note, nævner siden som en, der ikke sender notifikationer til sine abonnenter, og en notifikations statusbesked og dens post i feedet siger, hvorfor siden blev sprunget over. Det virker på alle abonnementer. En testrapport, der sendes til en adresse, du skriver, bliver stadig sendt.
+
+## Hvem kan abonnere
+
+Kortet **Hvem kan abonnere**, også på **Abonnementsindstillinger**, holder en sides notifikationer til de personer, den er beregnet til:
+
+- **Kun private brugere kan abonnere** (`limitSubscribersToPrivateUsers`), slået fra som standard, gemmes, så snart du slår den om. Er den slået til, kan kun sidens [private brugere](/docs/status-pages/index#private-brugere), uanset om de er tilføjet manuelt, logget ind med SSO eller oprettet af SCIM, abonnere, via e-mail og med den adresse, de logger ind med. Siden **Abonner** udfylder den adresse, lader den ikke blive ændret og tilbyder ingen anden kanal. Dit team kan kun tilføje en privat brugers adresse og ingen abonnent via SMS, Slack, Microsoft Teams eller webhook. En abonnent, hvis adresse ikke nu tilhører en privat bruger af siden, hvad enten det er en, der blev tilføjet, før du slog den til, eller en læser, der siden er fjernet manuelt eller af SCIM, får intet sendt og tælles ikke med. En offentlig side har intet login, så mens den er slået til der, kan kun dit team tilføje abonnenter.
+- **Tilladte e-maildomæner** (`allowedSubscriberEmailDomains`) indeholder de domæner, en e-mailabonnents adresse må ligge på, ét pr. linje, som `acme.com`. En adresse på et underdomæne matcher også (`eu.acme.com` for `acme.com`), men ikke en, der kun ender på de samme bogstaver (`evilacme.com`). Tilmeldinger og tilføjelser på ethvert andet domæne afvises, og en e-mailabonnent, der allerede er på et andet domæne, får intet sendt. Lad feltet være tomt for at tillade alle domæner. Abonnenter via SMS, Slack, Microsoft Teams og webhook har intet domæne og påvirkes ikke. Skriv listen, og vælg **Gem domæner**: en post, der ikke er et domæne, nævnes, før noget gemmes, og listen gemmes med små bogstaver, ét domæne pr. linje, op til 100 af dem.
+
+Ingen af indstillingerne sletter en abonnent, og når de slås fra, sendes der til alle igen. På OneUptime Cloud kræver det abonnementet **Scale** at slå en af dem til; at slå dem fra virker på alle abonnementer.
+
 ## Hvad en besøgende ser på Abonner-siden
 
 Siden **Abonner** har en undermenu med én fane pr. slået-til kanal. Hver fane beder om det mindste, den har brug for:

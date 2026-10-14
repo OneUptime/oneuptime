@@ -249,6 +249,8 @@ describe("BaseAPI CRUD auth contract for the ApiKey header (issue #3004)", () =>
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.clearAllMocks();
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
 
     repositoryFind = getJestSpyOn(repository, "find");
 

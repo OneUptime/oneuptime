@@ -1,83 +1,128 @@
-# GitHub-integration
+# GitHub
 
-Åbn automatisk en [GitHub](https://github.com)-sag, når en OneUptime-hændelse oprettes — så ingeniørernes opfølgning spores i det repo, der ejer den berørte tjeneste.
+OneUptime arbejder sammen med [GitHub](https://github.com) på to måder. Forbind dine repositorier via OneUptimes GitHub App, så åbner OneUptimes AI pull requests, der retter det, den finder, og svarer, når du nævner den i et issue eller en pull request. Eller byg et workflow, der åbner et GitHub-issue for hver hændelse, så opfølgningsarbejdet spores i det repositorie, der ejer tjenesten.
 
-Denne integration er **udgående**: OneUptime kalder [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Den bruger et OneUptime **[Workflow](/docs/workflows/index)** med en **Hændelse → On Create**-trigger og en **API-komponent**.
+:::cards
+- [Vælg, hvordan du forbinder](#vælg-hvordan-du-forbinder): GitHub App eller et workflow, og hvad hver af dem gør.
+- [Forbind dine repositorier](#forbind-dine-repositorier): GitHub App, til pull requests med rettelser.
+- [Åbn et issue for hver hændelse](#åbn-et-github-issue-for-hver-hændelse): Ét workflow, to blokke.
+- [Fejlfinding](#fejlfinding): Når GitHub afviser en anmodning.
+:::
 
-> **Leder du efter den dybere GitHub-forbindelse?** OneUptime har også en native **GitHub App**-integration til at forbinde kode-repositories (brugt af AI-agenten og kodefunktioner). Du kan tale med den app i dit repository — nævn den i en sag eller en pull request, og den implementerer, reviderer eller gennemgår; se [Arbejd med OneUptime fra GitHub](/docs/ai/github-app), og [GitHub-integration (selvhostet)](/docs/self-hosted/github-integration) for at installere den. Denne side handler specifikt om _oprettelse af sager fra hændelser_.
+## Sådan fungerer det
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
+```mermaid title="To måder, OneUptime arbejder med GitHub på"
+flowchart TB
+    app["GitHub App"] --> repos["Dine repositorier,<br/>importeret"]
+    repos --> pr["Pull requests med<br/>rettelser fra<br/>OneUptimes AI"]
+    declared["Hændelse erklæret"] --> workflow["Workflow:<br/>On Create Incident"]
+    workflow -->|"POST issues"| issue["GitHub-issue"]
 ```
 
-## Forudsætninger
+De to er adskilte, og du kan bruge den ene eller begge. GitHub App arbejder i de repositorier, du installerer den på. Workflowet behøver kun et token og kalder GitHubs [REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue) som ethvert andet API.
 
-- Et GitHub-repository, hvor du ønsker sager oprettet.
-- Et token, der kan oprette sager:
+## Vælg, hvordan du forbinder
 
-  - **Finkornede PAT** scoped til det repo med **Issues: Read and write**, eller
-  - et **klassisk PAT** med `repo`-scopet.
+| Måde | Hvad den gør | Hvad den kræver |
+| --- | --- | --- |
+| GitHub App | Importerer dine repositorier. OneUptimes AI åbner pull requests i dem, der retter exceptions, langsomme traces og de årsager, dens undersøgelser finder, og svarer på omtaler i issues og pull requests. | En organisation eller konto at installere appen på. På OneUptime Cloud planen **Growth**. |
+| Et workflow | Åbner et GitHub-issue for hver hændelse i det repositorie, du vælger. | Et GitHub-token, der kan oprette issues, og et workflow med to blokke. |
 
-  Opret et på [github.com/settings/tokens](https://github.com/settings/tokens).
+## Forbind dine repositorier
 
-- Et OneUptime-projekt, hvor du kan oprette workflows.
+Åbn **Produkter → Kode → Opgaver**, derefter **Koderepositorier**, og klik på **Connect with GitHub App**. GitHub spørger, hvor appen skal installeres, og hvilke repositorier den må bruge. Hvert repositorie i installationen importeres og holdes ajour, når du føjer repositorier til installationen eller fjerner dem.
 
-## Trin 1 — Gem tokenet
+En selvhostet instans skal først have sin egen GitHub App: [GitHub-integration](/docs/self-hosted/github-integration) viser, hvordan du opretter den. Derefter åbner [Rettelsesopgaver](/docs/ai/ai-agent) pull requests i dine repositorier, og siden [GitHub App](/docs/ai/github-app) viser, hvad appen gør, når du nævner den i et issue eller en pull request.
 
-1. Gå til **Arbejdsgange → Globale variabler → Opret**.
-2. Navngiv det `GITHUB_TOKEN`, indsæt tokenet, og slå **Is Secret** til.
+## Før du går i gang
 
-## Trin 2 — Byg workflowet
+Resten af denne side bygger workflowet. Det kræver:
 
-1. Åbn **Arbejdsgange → Opret arbejdsgang**, navngiv det `Incidents → GitHub Issues`, og åbn **Bygger**.
-2. Tilføj en **Hændelse**-trigger sat til **On Create**. Omdøb den til `Incident`.
-3. Tilføj en **API**-blok forbundet til triggeren:
+- Et GitHub-token, der kan oprette issues i repositoriet: et fine-grained personal access token til det repositorie, med tilladelsen **Issues** sat til **Read and write**, eller et klassisk token med omfanget `repo`. Opret et i GitHubs [tokenindstillinger](https://github.com/settings/tokens).
+- I OneUptime rettigheden til at oprette workflows og globale variabler. På OneUptime Cloud kræver workflows **Growth**-abonnementet eller højere.
 
-   - **Method**: `POST`
-   - **URL**: `https://api.github.com/repos/din-org/dit-repo/issues`
-   - **Headers**:
+## Gem tokenet
 
-     ```text
-     Authorization: Bearer {{variable.GITHUB_TOKEN}}
-     Accept: application/vnd.github+json
-     X-GitHub-Api-Version: 2022-11-28
-     User-Agent: OneUptime
-     ```
+:::steps
+1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Workflow Variabel**.
+2. Giv den navnet `GITHUB_TOKEN`, og klik på **Næste**.
+3. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
+:::
 
-   - **Body**:
+En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så tokenet aldrig vises i en kørsel.
 
-     ```json
-     {
-       "title": "OneUptime incident: {{Incident.title}}",
-       "body": "{{Incident.description}}\n\nFiled automatically from OneUptime.",
-       "labels": ["incident", "oneuptime"]
-     }
-     ```
+## Åbn et GitHub-issue for hver hændelse
 
-4. **Gem**, aktivér, og opret en testhændelse. Et `201 Created` i workflowets logfiler betyder, at sagen blev oprettet; responsebodyen indeholder dens `number` og `html_url`.
+:::steps
+### Opret workflowet
+
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv det navnet `Incidents to GitHub`, og klik på **Opret arbejdsgang**.
+
+### Tilføj triggeren
+
+Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Incident**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg **Beskrivelse** og **Incident Number With Prefix**.
+
+### Åbn issuet
+
+Klik på **Tilføj komponent**, tilføj en blok **API Post (JSON)**, og forbind triggerens punkt **Success** til den. Sæt dens **URL** til `https://api.github.com/repos/your-org/your-repo/issues`, med dit repositories ejer og navn. Sæt under **Flere felter** dens **Request Headers** til:
+
+```json
+{
+  "Authorization": "Bearer {{global.variables.GITHUB_TOKEN}}",
+  "Accept": "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28"
+}
+```
+
+Og dens **Request Body** til:
+
+```json
+{
+  "title": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "body": "{{local.components.incident-on-create-1.returnValues.model.description}}\n\nOpened by OneUptime for incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}.",
+  "labels": ["incident"]
+}
+```
+
+### Test det, og slå det derefter til
+
+Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og kør den. Trinnet **API Post (JSON)** viser et `201`-svar med det nye issue, med dets `number` og dets `html_url`. Slå derefter **Aktiveret** til øverst i **Bygger**.
+:::
+
+Issuet forbliver åbent, når hændelsen er løst, da opfølgningsarbejdet som regel lever længere end hændelsen. For tickets, der holdes i takt med hændelsen i begge retninger, se [Jira](/docs/integrations/jira).
 
 ## Tips
 
-- **GitHub Enterprise Server**: brug `https://din-vært/api/v3/repos/{owner}/{repo}/issues`.
-- **Ansvarlige / milepæl**: tilføj `"assignees": ["octocat"]` eller `"milestone": 3` til bodyen.
-- **Link tilbage**: læs `{{CreateIssue.response-body.html_url}}` og gem det på hændelsen med en **Update Incident**-blok.
+- **GitHub Enterprise Server.** Send i stedet anmodningen til din server: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. En server på en privat netværksadresse kræver et selvhostet OneUptime, hvis administrator tillader det: se [Udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
+- **Tildel det.** Føj `"assignees": ["octocat"]` eller `"milestone": 3` til body'en. GitHub dropper labels, tildelte og milepæle uden et ord, når tokenet ikke må pushe til repositoriet.
+- **Kun nogle hændelser.** Sæt en blok **If / Else** mellem triggeren og API-blokken, og åbn kun issues på dens **Yes**-side, for eksempel for én alvorlighed.
 
 ## Fejlfinding
 
-- **`401`** — tokenet er forkert eller udløbet. Finkornede tokens skal eksplicit give adgang til repo'et og **Issues**-tilladelsen.
-- **`403` / hastighedsgrænse** — inkludér `User-Agent`-headeren (GitHub afviser anmodninger uden én) og tjek, at du ikke er hastighedsbegrænset.
-- **`404`** — `owner/repo`-stien er forkert, eller tokenet kan ikke se et privat repo.
-- **`422`** — en label, der ikke eksisterer, er fint (GitHub opretter refererede labels), men en misdannet body er ikke — tjek din JSON.
+Trinnet **API Post (JSON)** tager **Error**, når GitHub afviser anmodningen. Dets **Response Status** og **Response Body** i kørslen siger hvorfor.
 
-## Læs videre
+:::details GitHub svarer 401
+Tokenet er forkert, udløbet eller tilbagekaldt. Opret et nyt, og erstat indholdet af `GITHUB_TOKEN`.
+:::
 
-- [Integrationsoversigt](/docs/integrations/index) — mønstre og autentificeringsoversigten.
-- [GitLab](/docs/integrations/gitlab) — den samme idé for GitLab.
-- [GitHub-integration (selvhostet)](/docs/self-hosted/github-integration) — den native GitHub App-forbindelse.
-- [Arbejd med OneUptime fra GitHub](/docs/ai/github-app) — sådan giver du GitHub Appen kommandoer fra en sag eller en pull request.
+:::details GitHub svarer 403
+Tokenet kan ikke oprette issues dér: et fine-grained token uden **Issues** sat til **Read and write** på dette repositorie, et token, din organisation ikke har godkendt, eller et klassisk token, der ikke er godkendt til din organisations single sign-on. En 403, hvis body taler om en hastighedsgrænse, betyder, at tokenet har sendt for mange anmodninger: vent, eller åbn issues for færre hændelser.
+:::
 
-## Netværksadgang for selvhostede installationer
+:::details GitHub svarer 404
+Ejeren eller repositoriet i **URL** er forkert, eller tokenet kan ikke se repositoriet. GitHub svarer 404, ikke 403, for et privat repositorie, som et token ikke kan se.
+:::
 
-Workflowet på denne side til oprettelse af issues kræver DNS-opslag og udgående HTTPS (TCP 443) fra OneUptime til `api.github.com`. Det kræver ingen indgående callback fra GitHub. [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+:::details GitHub svarer 410 eller 422
+- `410`: issues er slået fra i repositoriets indstillinger.
+- `422`: GitHub kan ikke læse body'en. Kontrollér, at den er gyldig JSON, at `title` er sat, og at `labels` og `assignees` er lister.
+:::
 
-Læs afsnittet om netværksadgang i [GitHub-integration](/docs/self-hosted/github-integration) for oplysninger om udgående forbindelser, indgående callbacks og private installationer.
+## Næste trin
+
+:::cards
+- [GitHub App](/docs/ai/github-app): Bed OneUptimes AI om en ændring, en revision eller en review direkte fra GitHub.
+- [GitLab](/docs/integrations/gitlab): Det samme workflow, for GitLab-issues.
+- [Workflow-komponenter](/docs/workflows/components#api): Alle indstillinger for API-blokkene.
+- [Oversigt over integrationer](/docs/integrations/index): Mønstrene bag hver integration.
+:::

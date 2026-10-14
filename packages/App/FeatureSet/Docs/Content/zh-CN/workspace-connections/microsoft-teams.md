@@ -6,6 +6,7 @@
 - [连接 Microsoft Teams](#连接-microsoft-teams): 管理员同意、您的登录，以及每个团队中的应用。
 - [通知规则](#通知规则): 决定哪些事件发布到哪里，以及哪些事件拥有专属频道。
 - [与 OneUptime 机器人对话](#与-oneuptime-机器人对话): 在与机器人的聊天中使用命令、提问和表单。
+- [值班标记](#值班标记): 让团队的标记与值班人员保持一致，并呼叫它。
 - [从 Microsoft Teams 处理事件、警报和活动](#从-microsoft-teams-处理事件警报和活动): OneUptime 卡片上的按钮。
 :::
 
@@ -136,7 +137,11 @@ flowchart TB
 | 📌 或 📍 | 仅您的团队可见的私密备注 |
 | 📣 或 📢 | 显示在状态页上的公开备注。仅限事件和计划维护活动。 |
 
-备注以您的身份、按您的权限保存，因此您自己的 Microsoft Teams 账户必须已连接，并且 OneUptime 应用必须在该团队中。
+备注会保留消息在 Microsoft Teams 中的样子：格式、链接和代码，以名字显示的被提及的人，以及指向其文件和图片的链接。公开备注会去掉文件和图片，因为它们只对您的团队开放。
+
+备注是写这条消息的人的原话：如果此人的 Microsoft Teams 账户已连接，显示其 OneUptime 名称，否则显示 Teams 中的名字。私密备注无论多久之后才保存，都会排在时间线上消息发布的时间点。公开备注排在保存的时间点，状态页也从那时起显示它。时间线会显示是谁保存的。备注不会再发回频道，因为消息已经在那里了。
+
+备注以您的身份、按您的权限保存，并且 OneUptime 应用必须在该团队中。如果您的 Microsoft Teams 账户尚未连接，OneUptime 会在一条提及您的回复中请您连接，并附上一个按钮，您一连接就会保存该消息。
 
 ## 与 OneUptime 机器人对话
 
@@ -148,6 +153,7 @@ flowchart TB
 | `incident [title]` | 打开已填好标题的事件表单。 |
 | `maintenance [title]` | 打开已填好标题的计划维护表单。 |
 | `oncall` | 列出您能看到的每个值班计划中当前由谁值班、值班到何时，以及下一位是谁。 |
+| `page [who] [message]` | 就您的消息呼叫您 @提及的人，或发送一张卡片来选择要呼叫的人。请参阅 [从 Microsoft Teams 呼叫他人](#从-microsoft-teams-呼叫他人)。 |
 | `ask [question]`，或任何日常语言的问题 | OneUptime AI 回答有关日志、追踪、指标、事件和监视器的问题，例如"现在有哪些监视器宕机了？"。回答只读取数据。 |
 | `show active incidents`、 `show active alerts` | 列出当前未关闭的内容。 |
 | `show scheduled maintenance`、 `show ongoing maintenance` | 列出即将进行或正在进行的维护活动。 |
@@ -163,6 +169,36 @@ flowchart TB
 - **表单可以指定什么。** 在频道或群聊中，任何在场的人都可以提交表单，并且以提交者的身份、按其自己的权限提交。事件或活动以这些权限创建，并记在此人名下。此人无法读取的监视器、值班策略、标签、严重程度或状态，或属于其他项目的，都会像项目中不存在一样被拒绝，并且不会创建任何内容：机器人会回复 "One of the values you picked ... is not available in this project any more. Please pick it again."
 
 事件、警报或片段上的 **Execute On-Call Policy** 也以同样方式工作：它需要执行值班策略的权限（ **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自定义角色中的 **Create On-Call Duty Policy Execution Log** ）以及读取该事件、警报或片段的权限，并提供此人可以读取的有效值班策略。从卡片查看监视器或值班策略时，也会以点击按钮的人的身份读取。
+
+## 从 Microsoft Teams 呼叫他人
+
+在频道或群聊中，`@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` 会立即呼叫 Nawaz。OneUptime 会创建一条以您的消息为标题的警报，您 @提及的每个人都会按其本人的值班规则收到电话、短信、推送通知或电子邮件，直到有人确认该警报。
+
+- **立即被呼叫的人。** 您 @提及的人，以及您 @提及的标记所关联值班计划中正在值班的人，前提是其后跟有消息（请参阅 [值班标记](#值班标记)）。OneUptime 通过此人的 Microsoft Teams 账户所连接的 OneUptime 账户识别此人，否则通过此人在 Microsoft Teams 中的电子邮件地址识别。项目之外的人不会被呼叫。
+- **其他情况会收到卡片。** 如果没有 @提及任何人（例如在与机器人的个人聊天中）、没有消息、提及了未关联您可见值班计划的标记，或有 OneUptime 无法识别的人，机器人会以 **Page someone** 卡片回复，其中已填入您输入的内容，并说明哪些人无法选中。选择人员、团队、值班计划（呼叫此刻在该计划中值班的人）或值班策略（按其升级规则呼叫），然后提交。对话中的任何人都可以以自己的身份提交该卡片。呼叫完成后，卡片会被移除，以免有人用它重复呼叫。
+- **显示位置。** 对话会以一张持续更新的卡片显示这次呼叫：呼叫了谁、如何呼叫，以及谁已确认。机器人无法发布它时，它的回复会告诉您呼叫了谁，并附上警报的链接。
+- **谁可以呼叫。** 既能执行值班策略又能创建警报的人： **Project Owner**、 **Project Admin** 和 **Project Member**，或同时拥有 **On-Call Member** 和 **Alert Member** 的人（自定义角色中的 **Create On-Call Duty Policy Execution Log** 和 **Create Alert** ）。不经值班策略直接呼叫人员、团队或值班计划，还需要访问项目中所有值班策略的权限。其他任何人都会在回复中收到告知，并且不会呼叫任何人。
+
+## 值班标记
+
+让 Microsoft Teams 标记（例如 `@Payments on-call`）与一个或多个值班计划中当前正在值班的人保持一致，这样其团队中的任何人都可以 @提及它来联系值班人员。OneUptime 会在每次交接和覆盖时更改该标记的成员，并每 15 分钟检查一次。
+
+:::steps
+### 将标记连接到值班计划
+
+在 **值班** > **值班计划** 中打开该计划。在其 **Microsoft Teams 标记** 卡片中，点击 **连接标记**，选择团队并输入标记名称：即该团队中使用此名称的标记，或由 OneUptime 新建的标记。标记中的成员会立即替换为正在值班的人。
+
+### 同时将其连接到备用值班计划
+
+若要让一个标记同时包含主值班和备用值班的人员，请在备用值班计划的页面上连接同一个标记。一个标记可以关联任意数量的值班计划。
+:::
+
+- **卡片显示的内容。** 每个标记当前的成员、它所在的团队、它关联的其他值班计划，以及它是否 **已是最新**。标记只能包含其团队的成员：不在该团队中的值班人员会连同原因一起列出。
+- **无人值班时。** OneUptime 会把所有人移出该标记，直到有人值班。新建标记需要团队中有人正在值班，因为 Microsoft Teams 不能创建没有成员的标记。
+- **呼叫该标记。** `@OneUptime page @Payments on-call The checkout API is down` 会呼叫该标记所关联值班计划中正在值班的人。请参阅 [从 Microsoft Teams 呼叫他人](#从-microsoft-teams-呼叫他人)。
+- **Microsoft 365 的要求。** 更改标记需要应用的 `TeamworkTag.ReadWrite.All` 权限，由 Microsoft 365 管理员在 **项目设置** > **工作区** > **Microsoft Teams** 中通过 **授予管理员许可** 授予。如果您的组织在 OneUptime 能够维护标记之前就已授予许可，请再授予一次。
+- **谁可以连接。** 可以编辑值班计划的角色： **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自定义角色中的 **Edit On-Call Duty Policy Schedule**。在 OneUptime Cloud 上，连接需要 **Growth** 套餐。
+- **断开连接后。** OneUptime 不再更改该标记。该标记及其成员会按原样保留在 Microsoft Teams 中。
 
 ## 从 Microsoft Teams 处理事件、警报和活动
 

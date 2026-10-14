@@ -208,6 +208,199 @@ describe("Markdown.convertToHTML - email renderer", () => {
     expect(html).toContain("text-align:left");
   });
 
+  /*
+   * A TABLE'S LINES SIT BETWEEN ITS ROWS.
+   *
+   * Every body cell used to draw a hairline under itself. Under the last
+   * row that hairline met the table's own bottom border and, the table's
+   * borders being collapsed, was drawn in its place - a cell's border wins
+   * over the table's - so the table's bottom edge was the near-invisible
+   * #f1f5f9 and the box read as open at the bottom: the same divider-on-
+   * the-edge the maintainer saw at the foot of a detail card. Now the
+   * heavier rule under the header is the first body row's top border, each
+   * later row draws a hairline above itself, and the table's border alone
+   * closes it.
+   */
+  describe("a table's lines", () => {
+    interface Cell {
+      tag: string;
+      style: string;
+    }
+
+    const HEADER_RULE: string = "border-top:1px solid #cbd5e1;";
+    const HAIRLINE: string = "border-top:1px solid #f1f5f9;";
+
+    // Every cell's tag and style, in order, read with indexOf.
+    const cellsOf: (html: string) => Array<Cell> = (
+      html: string,
+    ): Array<Cell> => {
+      const cells: Array<Cell> = [];
+      let at: number = 0;
+
+      for (;;) {
+        const header: number = html.indexOf('<th style="', at);
+        const body: number = html.indexOf('<td style="', at);
+        const next: number =
+          header === -1 ? body : body === -1 ? header : Math.min(header, body);
+
+        if (next === -1) {
+          return cells;
+        }
+
+        const styleStart: number = next + '<th style="'.length;
+        const styleEnd: number = html.indexOf('"', styleStart);
+
+        cells.push({
+          tag: next === header ? "th" : "td",
+          style: html.slice(styleStart, styleEnd),
+        });
+        at = styleEnd;
+      }
+    };
+
+    // What each body row draws above itself: "rule", "hairline" or "none".
+    const bodyRowLines: (html: string, columns: number) => Array<string> = (
+      html: string,
+      columns: number,
+    ): Array<string> => {
+      const body: Array<Cell> = cellsOf(html).filter((cell: Cell): boolean => {
+        return cell.tag === "td";
+      });
+      const rows: Array<string> = [];
+
+      for (let row: number = 0; row * columns < body.length; row++) {
+        const lines: Array<string> = body
+          .slice(row * columns, row * columns + columns)
+          .map((cell: Cell): string => {
+            if (cell.style.includes(HEADER_RULE)) {
+              return "rule";
+            }
+
+            return cell.style.includes(HAIRLINE) ? "hairline" : "none";
+          });
+
+        // Every cell of a row draws the same line.
+        expect(new Set(lines).size).toBe(1);
+        rows.push(lines[0]!);
+      }
+
+      return rows;
+    };
+
+    const table: (rows: number) => string = (rows: number): string => {
+      return [
+        "| Metric | Value |",
+        "| --- | --- |",
+        ...Array.from({ length: rows }, (_: unknown, index: number) => {
+          return `| m${index + 1} | ${index + 1} ms |`;
+        }),
+      ].join("\n");
+    };
+
+    test.each([
+      [1, ["rule"]],
+      [2, ["rule", "hairline"]],
+      [4, ["rule", "hairline", "hairline", "hairline"]],
+    ])(
+      "with %d body row(s): the header rule above the first, a hairline above each later one",
+      async (rows: number, expected: Array<string>) => {
+        const html: string = await Markdown.convertToHTML(
+          table(rows),
+          MarkdownContentType.Email,
+        );
+
+        expect(bodyRowLines(html, 2)).toEqual(expected);
+      },
+    );
+
+    test("no cell draws a line under itself, and the header draws none of its own", async () => {
+      const html: string = await Markdown.convertToHTML(
+        table(3),
+        MarkdownContentType.Email,
+      );
+      const headerCells: Array<Cell> = cellsOf(html).filter(
+        (cell: Cell): boolean => {
+          return cell.tag === "th";
+        },
+      );
+
+      expect(html).not.toContain("border-bottom");
+      expect(headerCells).toHaveLength(2);
+
+      for (const cell of headerCells) {
+        expect(cell.style).not.toContain("border");
+        expect(cell.style).toContain("background-color:#f8fafc");
+      }
+    });
+
+    test("the table's own border is the line round it", async () => {
+      const html: string = await Markdown.convertToHTML(
+        table(2),
+        MarkdownContentType.Email,
+      );
+
+      expect(html).toContain("border-collapse:collapse;");
+      expect(html.split("border:1px solid #e2e8f0;")).toHaveLength(2);
+    });
+
+    test("a table with a header and no body rows draws no line at all", async () => {
+      const html: string = await Markdown.convertToHTML(
+        ["| Metric | Value |", "| --- | --- |"].join("\n"),
+        MarkdownContentType.Email,
+      );
+
+      expect(html).toContain("<th");
+      expect(html).not.toContain("<td");
+      expect(html).not.toContain(HEADER_RULE);
+      expect(html).not.toContain(HAIRLINE);
+    });
+
+    test("each table in a text starts again: its first body row takes the header rule", async () => {
+      const html: string = await Markdown.convertToHTML(
+        [
+          table(3),
+          "",
+          "Between the tables.",
+          "",
+          ["| Metric | Value |", "| --- | --- |"].join("\n"),
+          "",
+          "And then:",
+          "",
+          table(2),
+        ].join("\n"),
+        MarkdownContentType.Email,
+      );
+      const tables: Array<string> = html.split("<table").slice(1);
+
+      expect(tables).toHaveLength(3);
+      expect(bodyRowLines(tables[0]!, 2)).toEqual([
+        "rule",
+        "hairline",
+        "hairline",
+      ]);
+      expect(bodyRowLines(tables[1]!, 2)).toEqual([]);
+      expect(bodyRowLines(tables[2]!, 2)).toEqual(["rule", "hairline"]);
+    });
+
+    test("texts rendered at the same time each draw their own tables' lines", async () => {
+      const sizes: Array<number> = [3, 1, 4, 2, 5];
+      const htmls: Array<string> = await Promise.all(
+        sizes.map((rows: number): Promise<string> => {
+          return Markdown.convertToHTML(table(rows), MarkdownContentType.Email);
+        }),
+      );
+
+      htmls.forEach((html: string, index: number): void => {
+        expect(bodyRowLines(html, 2)).toEqual([
+          "rule",
+          ...Array.from({ length: sizes[index]! - 1 }, (): string => {
+            return "hairline";
+          }),
+        ]);
+      });
+    });
+  });
+
   // The root cause backticks every metric name, alias and timestamp.
   test("inline code is styled and its content preserved", async () => {
     const html: string = await Markdown.convertToHTML(

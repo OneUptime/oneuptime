@@ -77,6 +77,7 @@ Incoming Webhook や Teams のワークフロー URL は、このボットのメ
 - **Channel.ReadBasic.All** - チャネルが存在することを確認し、その詳細を取得するために必要
 - **TeamsAppInstallation.ReadForTeam.All** - 診断に必要。チームに実際にインストールされているアプリパッケージを OneUptime が読み取り、このデプロイのクライアント ID と比較できるようになるため、送信に失敗したときに考えられる原因の *どれ* なのかを伝えられます。この許可がないと、OneUptime は「インストールされていない」と「インストールされているが、他人のパッケージ」を区別できず、Microsoft の応答をそのまま伝えることしかできません。この統合のデバッグに数分ではなく数日かかる最大の理由がこれです。付与してください。
 - **Chat.ReadBasic.WhereInstalled** - 任意。OneUptime アプリが参加している各チャットの名前を OneUptime が読み取れるようにします。この許可がない場合、各チャットはマニフェストの **ChatSettings.Read.Chat** アクセス許可 (下記) を通じてこれを付与します。古いマニフェストで追加されたチャットは、そのチャットでアプリが更新されて初めてこの許可を持ちます。
+- **TeamworkTag.ReadWrite.All** - 任意。チームのタグを、連動するスケジュールのオンコール担当者と OneUptime が一致させられるようにします ( [オンコールタグ](/docs/workspace-connections/microsoft-teams#オンコールタグ) を参照)。この許可がない場合、スケジュールのカードには、組織がまだ OneUptime にタグの管理を許可していないと表示されます。
 
 `ChannelMessage.Send` は委任されたアクセス許可のみで、[Microsoft Graph のアクセス許可リファレンス](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend) にはアプリケーションのアクセス許可としての版がありません。上の委任されたアクセス許可の一覧に入れたままにしてください。
 

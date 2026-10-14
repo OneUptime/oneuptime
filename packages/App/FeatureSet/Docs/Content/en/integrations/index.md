@@ -84,7 +84,7 @@ Start from the top of the table: the higher a way is, the less there is to maint
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Both | A built-in connection: incident channels, actions from Teams, and on-call. |
 | [Mattermost](/docs/workflows/components#mattermost) | Outbound | Post incident updates to a Mattermost channel. |
 | [Discord](/docs/integrations/discord) | Outbound | Post incident updates to a Discord channel. |
-| [Telegram](/docs/integrations/telegram) | Outbound | Send incident updates to a Telegram chat. |
+| [Telegram](/docs/integrations/telegram) | Outbound | Send a message to a Telegram chat when an alert fires. |
 | [IRC](/docs/integrations/irc) | Outbound | Post incident updates to an IRC channel. |
 
 > [!TIP]
@@ -119,10 +119,10 @@ The URL is the only credential, so treat it like a password. See [Webhook](/docs
 
 :::steps
 1. Save the tool's API key as a secret global variable, as shown [below](#keep-credentials-safe).
-2. Create a workflow, click the dashed block and pick an event trigger, such as **On Create Incident**. In its **Fields to pass on**, tick the fields to send, such as `title` and `description`.
+2. Create a workflow, click the dashed block and pick an event trigger, such as **On Create Incident**. Click the trigger: its **Fields to pass on** starts with **Title**, so click **Add field** and pick the other fields to send, such as **Description**.
 3. Click **Add Component** and add an **API Post (JSON)** block. Connect the trigger's **Success** dot to it.
 4. Fill in its **URL**, its **Request Headers** with the `Authorization` header, and its **Request Body** with the incident's fields, such as `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-5. Click **Run Workflow**, enter the **Incident ID** of an incident, and run it. A test run really sends the request. Then switch **Enabled** on.
+5. Click **Run Workflow**, pick an incident under **Incident**, and run it. A test run really sends the request. Then switch **Enabled** on.
 :::
 
 When the tool needs data reshaped first, add a [Run Custom JavaScript](/docs/workflows/components#custom-code) block between the two. The recipe is the same for Zendesk, New Relic, AWS (through SNS), StatusCake and the long tail: only the URL and the body change.

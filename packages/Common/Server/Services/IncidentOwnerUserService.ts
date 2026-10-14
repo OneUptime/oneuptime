@@ -20,6 +20,7 @@ import logger from "../Utils/Logger";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -134,6 +135,7 @@ export class Service extends ProjectReferencesService<Model> {
             feedInfoInMarkdown:
               mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`.toString(),
             userId: deleteByUserId || undefined,
+            apiKeyActor: FeedApiKeyActorUtil.fromProps(onDelete.deleteBy.props),
             workspaceNotification: {
               sendWorkspaceNotification: true,
               notifyUserId: userId || undefined,
@@ -182,6 +184,7 @@ export class Service extends ProjectReferencesService<Model> {
               projectId: projectId,
             })}** to the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`.toString(),
           userId: createdByUserId || undefined,
+          apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
           workspaceNotification: {
             sendWorkspaceNotification: true,
             notifyUserId: userId || undefined,

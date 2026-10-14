@@ -89,6 +89,8 @@ Una lista o un recuento acepta una `query`. Un campo con un valor coincide con e
 | `Includes` | Cualquiera de los valores de `value` |
 | `IsNull`, `NotNull` | Ningún valor, o cualquier valor |
 
+Un campo de un registro que nombra el recurso se filtra bajo su relación: `"user": { "name": { "_type": "Search", "value": "ada" } }` encuentra los miembros del equipo cuyo usuario tiene un nombre que contiene «ada». Filtrar por un campo requiere permiso para leerlo, a través de una relación igual que en el propio recurso: un filtro sobre un campo que no puedes leer se rechaza con un `422` que nombra el campo.
+
 `select` nombra los campos que se devuelven, y `_id` siempre vuelve. `sort` los ordena, `ASC` o `DESC`; sin orden, los más recientes van primero. Una lista devuelve 10 registros salvo que fijes `limit`, hasta 10 000, y `skip` se salta antes esa cantidad: sigue aumentando `skip` en `limit` hasta tener `count` de ellos. Añade `?output-type=csv` a una solicitud de lista para obtener CSV en lugar de JSON.
 
 Por ejemplo, los monitores cuyo nombre contiene «checkout», creados desde el inicio de 2026, los más recientes primero:

@@ -48,7 +48,7 @@ Go to **Workflows**, click **Create Workflow**, then **Start from scratch**. Nam
 
 ### Add the trigger
 
-Click the dashed **Choose what starts this workflow** block and pick **On Create Incident**. Click the trigger, and in **Fields to pass on** pick `title` and `description`.
+Click the dashed **Choose what starts this workflow** block and pick **On Create Incident**. Click the trigger: its **Fields to pass on** starts with **Title**, so click **Add field** and pick **Description**.
 
 ### Send the trigger event
 
@@ -72,7 +72,7 @@ Click **Add Component**, add an **API Post (JSON)** block, and connect the trigg
 
 ### Test it, then turn it on
 
-Click **Run Workflow**, enter the **Incident ID** of a test incident, and run it. The **API Post (JSON)** step shows a `202` response with `"status": "success"`, and PagerDuty opens an incident. Then switch **Enabled** on at the top of the **Builder**.
+Click **Run Workflow**, pick a test incident under **Incident**, and run it. The **API Post (JSON)** step shows a `202` response with `"status": "success"`, and PagerDuty opens an incident. Then switch **Enabled** on at the top of the **Builder**.
 :::
 
 The block sends JSON, so it needs no `Content-Type` header. PagerDuty's `severity` is one of `critical`, `error`, `warning` and `info`: to send each incident's own, see [Map severities](#map-severities).
@@ -84,7 +84,7 @@ A workflow has one trigger, so resolving takes a second workflow, started when a
 :::steps
 ### Add the On Update Incident trigger
 
-Create a workflow named `Resolve PagerDuty incidents`, and pick **On Update Incident** as its trigger. In **Fields to watch**, pick `currentIncidentStateId`, so it runs only when the state changes. In **Fields to pass on**, ask for whether the new state is a resolved one:
+Create a workflow named `Resolve PagerDuty incidents`, and pick **On Update Incident** as its trigger. In **Fields to watch**, click **Add field** and pick **Current Incident State**, so it runs only when the state changes. In **Fields to pass on**, ask for whether the new state is a resolved one: click **Add field**, open **Current Incident State** and pick **Is Resolved State**. Or click **Edit as JSON** and replace the JSON with:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ Checking `isResolvedState` rather than a state's name keeps working when you ren
 
 To send each incident's severity, add a **Run Custom JavaScript** block between the trigger and the **API Post (JSON)** block, and read its answer in the body.
 
-1. In the trigger's **Fields to pass on**, also pick the severity's `name`: `{ "incidentSeverity": { "name": true } }`.
+1. In the trigger's **Fields to pass on**, click **Add field**, open **Incident Severity** and pick **Name**.
 2. Set the block's **Arguments** to `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, and its **JavaScript Code** to:
 
    ```javascript

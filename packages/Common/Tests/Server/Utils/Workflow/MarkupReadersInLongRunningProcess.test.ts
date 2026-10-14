@@ -13,7 +13,8 @@ import path from "path";
  * asWritten helper every Jira and Dynamics 365 script carries - as the
  * create-from-case script reads a case's description, with the same
  * section - and the Microsoft Teams reader of a pinned message
- * (ReactionNoteSync.htmlToText).
+ * (MicrosoftTeamsMessageReader, written as the note's Markdown by
+ * ChatMessageMarkdown).
  * V8 matches a regular expression with a backtracking stack that can grow
  * with every character a quantifier takes, and a process that has run a
  * while compiles them without optimization - so, as AGENTS.md
@@ -33,14 +34,18 @@ import path from "path";
  * /<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi, which start again from
  * every place a match could start: in this state, two seconds for 28 KB of
  * spaces (a Teams message's largest) and half a minute for 100 KB. Each
- * shape below is read well inside a second.
+ * shape below is read, and written as a note, inside a second - a megabyte
+ * is some forty times a Teams message's largest. In the note every
+ * "<" is text, written "\<": a "<" that starts markup is one no backslash
+ * escapes.
  */
 
 const COMMON_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
 /*
- * Each shape is read in about 50 ms on a developer machine. The patterns
- * this replaced took minutes on a megabyte of the slow ones.
+ * Each shape is read and written in under half a second on a developer
+ * machine; the fastest of up to three attempts counts. The patterns this
+ * replaced took minutes on a megabyte of the slow ones.
  */
 const TEAMS_READ_LIMIT_IN_MS: number = 1000;
 
@@ -77,7 +82,8 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
               'export { default as OAuth2TokenClient } from "./Server/Utils/Workflow/OAuth2TokenClient";',
               'export { OAuth2GrantType } from "./Types/Workflow/WorkflowVariableOAuth";',
               'export { getTemplateGraphSpec } from "./Types/Workflow/Templates";',
-              'export { default as MicrosoftTeamsReactionNoteSync } from "./Server/Utils/Workspace/MicrosoftTeams/ReactionNoteSync";',
+              'export { default as MicrosoftTeamsMessageReader } from "./Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsMessageReader";',
+              'export { default as ChatMessageMarkdown } from "./Utils/Markdown/ChatMessageMarkdown";',
             ].join("\n"),
             resolveDir: process.cwd(),
             loader: "ts",
@@ -102,7 +108,8 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           OAuth2TokenClient,
           OAuth2GrantType,
           getTemplateGraphSpec,
-          MicrosoftTeamsReactionNoteSync,
+          MicrosoftTeamsMessageReader,
+          ChatMessageMarkdown,
         } = bundle.exports;
 
         const MEGABYTE = 1024 * 1024;
@@ -234,13 +241,61 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           ["hexadecimal references", "<p>" + repeatTo("&#x41;") + "</p>"],
         ];
 
-        const teamsMessages = TEAMS_SHAPES.map(([shape, text]) => {
-          const started = Date.now();
-          const read = attempt(() => {
-            return MicrosoftTeamsReactionNoteSync.htmlToText(text);
-          });
+        /*
+         * Whether Markdown holds a "<" that starts markup: one that no backslash
+         * escapes (an odd run of them before it), with a letter, "/", "!" or "?"
+         * after it. Read with indexOf, as the readers are.
+         */
+        const MARKUP_AFTER = new RegExp("^[A-Za-z/!?]$");
+        const holdsMarkup = (markdown) => {
+          for (let index = markdown.indexOf("<"); index !== -1; index = markdown.indexOf("<", index + 1)) {
+            let backslashes = 0;
 
-          return { shape, read, ms: Date.now() - started };
+            while (markdown[index - 1 - backslashes] === "\\") {
+              backslashes++;
+            }
+
+            if (backslashes % 2 === 0 && MARKUP_AFTER.test(markdown[index + 1] || "")) {
+              return true;
+            }
+          }
+
+          return false;
+        };
+
+        /*
+         * The fastest of up to three attempts counts, as Tests/Helpers/FastestRun
+         * has it: one attempt can stall in a busy test run.
+         */
+        const teamsMessages = TEAMS_SHAPES.map(([shape, text]) => {
+          let fastest = null;
+
+          for (let attempt = 0; attempt < 3; attempt++) {
+            const started = Date.now();
+            let read;
+
+            try {
+              const note = ChatMessageMarkdown.toMarkdown({
+                blocks: MicrosoftTeamsMessageReader.readHtml(text, null),
+              }).toString();
+
+              read = { ok: true, markup: holdsMarkup(note) };
+            } catch (error) {
+              read = { ok: false, error: String((error && error.message) || error).split("\n")[0] };
+            }
+
+            const ms = Date.now() - started;
+
+            if (fastest === null || ms < fastest.ms) {
+              fastest = { shape, read, ms };
+            }
+
+            if (!read.ok || ms < ${TEAMS_READ_LIMIT_IN_MS}) {
+              break;
+            }
+          }
+
+          return fastest;
         });
 
         /*
@@ -385,7 +440,7 @@ describe("Markup read out of megabyte-long text, where V8 compiles regular expre
     ]);
   });
 
-  test("the Teams reader of a pinned message reads every shape, each in well under a second", () => {
+  test("the Teams reader of a pinned message reads every shape, and writes it as a note, each inside a second", () => {
     // A megabyte of each shape: the ten above, and ten a Teams message can take.
     expect(report.teamsMessages).toHaveLength(20);
 

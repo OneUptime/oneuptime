@@ -143,7 +143,7 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 
 | 기능 | 하는 일 | 경로 |
 | --- | --- | --- |
-| `/oneuptime` | 인시던트 선언, 유지 관리 예약, 온콜 담당자 확인, OneUptime AI에 질문. `/oneuptime help`로 모든 명령 목록을 봅니다 | `POST /api/slack/command` |
+| `/oneuptime` | 인시던트 선언, 유지 관리 예약, 온콜 담당자 확인, 누군가 호출, OneUptime AI에 질문. `/oneuptime help`로 모든 명령 목록을 봅니다 | `POST /api/slack/command` |
 | **Create New Incident** 및 **Create Scheduled Event** 바로 가기 | Slack 바로 가기에서 인시던트 선언 또는 유지 관리 예약 | `POST /api/slack/interactive` |
 | OneUptime 메시지의 버튼과 양식 | 확인, 해결, 메모 추가, 상태 변경, 온콜 정책 실행 | `POST /api/slack/interactive` 및 `POST /api/slack/options-load` |
 | 이벤트 | 멘션, 메시지, 반응, 고정. 예를 들어 메시지를 메모로 저장 | `POST /api/slack/events` |
@@ -154,9 +154,17 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 
 이전 매니페스트로 Slack 앱을 만들었다면 **OAuth & Permissions > Bot Token Scopes**에 `files:write`를 추가하세요(또는 현재 매니페스트로 앱을 업데이트하세요). 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Connect with Slack**을 다시 선택해 새 스코프가 부여되게 합니다. 그때까지 각 스크린샷은 대체 텍스트로 표시됩니다.
 
+### 온콜 사용자 그룹
+
+스케줄의 Slack 사용자 그룹을 온콜 담당자와 같게 유지하려면([온콜 사용자 그룹](/docs/workspace-connections/slack#온콜-사용자-그룹) 참고) 봇 스코프 `usergroups:read`와 `usergroups:write`가 필요합니다. 생성된 매니페스트에는 이 스코프가 포함되어 있습니다.
+
+이전 매니페스트로 Slack 앱을 만들었다면 **OAuth & Permissions > Bot Token Scopes**에 `usergroups:read`와 `usergroups:write`를 추가하세요(또는 현재 매니페스트로 앱을 업데이트하세요). 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Connect with Slack**을 다시 선택해 새 스코프가 부여되게 합니다. 그때까지 스케줄 카드에는 OneUptime의 Slack 앱이 아직 사용자 그룹을 변경할 수 없다고 표시됩니다.
+
 ### 이전 매니페스트로 만든 앱
 
-이전 OneUptime 매니페스트로 만든 Slack 앱은 `/incident`와 `/maintenance`를 자체 명령으로 등록하며, 이 명령은 다른 앱의 같은 이름 명령과 충돌할 수 있습니다. 이 명령은 계속 작동하고 `/oneuptime incident`, `/oneuptime maintenance`와 같은 양식을 엽니다. `/oneuptime`으로 바꾸려면 서버가 생성하는 매니페스트로 앱을 업데이트하세요. [api.slack.com/apps](https://api.slack.com/apps)에서 앱의 **App Manifest**를 열고 매니페스트를 붙여 넣은 뒤 저장합니다. 스코프는 그대로이므로 앱을 다시 설치할 필요가 없습니다.
+이전 OneUptime 매니페스트로 만든 Slack 앱은 `/incident`와 `/maintenance`를 자체 명령으로 등록하며, 이 명령은 다른 앱의 같은 이름 명령과 충돌할 수 있습니다. 이 명령은 계속 작동하고 `/oneuptime incident`, `/oneuptime maintenance`와 같은 양식을 엽니다. `/oneuptime`으로 바꾸려면 서버가 생성하는 매니페스트로 앱을 업데이트하세요. [api.slack.com/apps](https://api.slack.com/apps)에서 앱의 **App Manifest**를 열고 매니페스트를 붙여 넣은 뒤 저장합니다.
+
+`/oneuptime page` 이전에 만든 앱도 같은 업데이트가 필요합니다. 업데이트하기 전에는 `/oneuptime page`가 @멘션한 사람을 알아보지 못하고, 바로 호출하는 대신 그 사람을 고르는 양식을 엽니다. 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Connect with Slack**을 다시 선택해 매니페스트가 추가하는 `users:read.email` 스코프가 부여되게 합니다. 그러면 Slack 계정이 OneUptime에 연결되지 않은 사람도 이메일 주소로 찾을 수 있습니다.
 
 ## 자체 호스팅 배포의 네트워크 접근
 

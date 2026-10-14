@@ -89,6 +89,8 @@ Een lijst of een telling neemt een `query`. Een veld met een waarde komt overeen
 | `Includes` | Een van de waarden in `value` |
 | `IsNull`, `NotNull` | Geen waarde, of een willekeurige waarde |
 
+Een veld van een record dat de resource noemt, filter je onder de relatie ervan: `"user": { "name": { "_type": "Search", "value": "ada" } }` vindt de teamleden van wie de gebruiker een naam heeft die „ada” bevat. Filteren op een veld vereist toestemming om het te lezen, via een relatie net als op de resource zelf: een filter op een veld dat je niet mag lezen, wordt geweigerd met een `422` die het veld noemt.
+
 `select` noemt de velden die terugkomen, en `_id` komt altijd terug. `sort` ordent ze, `ASC` of `DESC`; zonder sortering komen de nieuwste eerst. Een lijst geeft 10 records terug tenzij je `limit` instelt, tot 10.000, en `skip` slaat er eerst zoveel over: blijf `skip` met `limit` verhogen tot je er `count` hebt. Voeg `?output-type=csv` toe aan een lijstverzoek voor CSV in plaats van JSON.
 
 Bijvoorbeeld de monitors waarvan de naam „checkout” bevat, gemaakt sinds het begin van 2026, de nieuwste eerst:

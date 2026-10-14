@@ -1,230 +1,214 @@
 # Opérations sur les ressources
 
-Le CLI OneUptime fournit des opérations CRUD complètes (Créer, Lire, Mettre à jour, Supprimer) pour toutes les ressources prises en charge. Les ressources sont découvertes automatiquement depuis votre instance OneUptime.
+Chaque type d'enregistrement est une commande à part entière, comme `incident`, `monitor` ou `status-page`, et chacune prend les mêmes opérations : `list`, `get`, `create`, `update`, `delete` et `count`. Cette page montre chaque opération, avec les filtres, la pagination et le JSON dans lequel un enregistrement s'écrit.
 
-## Ressources disponibles
+:::cards
+- [Trouver la commande d'un enregistrement](#trouver-la-commande-dun-enregistrement): oneuptime resources les liste toutes.
+- [Lister des enregistrements](#lister-des-enregistrements): Filtrer, trier et paginer.
+- [Créer un enregistrement](#créer-un-enregistrement): À partir de JSON sur la ligne de commande ou dans un fichier.
+- [Supprimer un enregistrement](#supprimer-un-enregistrement): Immédiatement, sans retour en arrière.
+:::
 
-Exécutez la commande suivante pour voir tous les types de ressources disponibles :
+## Comment les opérations s'articulent
+
+Lire, modifier et supprimer un enregistrement demandent son ID. Lister, compter et créer n'en demandent aucun, et une liste ou une création vous donne les ID que prennent les autres :
+
+```mermaid title="D'où vient l'ID d'un enregistrement"
+flowchart TB
+    L["list<br/>trouve des enregistrements"] -->|"le _id de chacun"| G["get<br/>lit un enregistrement"]
+    C["create<br/>ajoute un enregistrement"] -->|"le nouveau _id"| G
+    G --> U["update<br/>le modifie"]
+    U --> D["delete<br/>le supprime"]
+```
+
+Un ID est un UUID, comme `6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11`. Vous pouvez aussi en copier un depuis la page de l'enregistrement dans OneUptime : voir [Trouver l'ID d'une ressource](/docs/api-reference/api-reference#trouver-lid-dune-ressource).
+
+## Trouver la commande d'un enregistrement
 
 ```bash
 oneuptime resources
 ```
 
-Vous pouvez filtrer par type :
+La liste montre chaque type d'enregistrement avec sa commande, ses noms, son type et son chemin d'API. Il existe deux types :
+
+| Type | Ce qu'il contient | Opérations |
+| --- | --- | --- |
+| `database` | Les enregistrements que vous gérez : moniteurs, incidents, alertes, pages de statut, équipes et plus encore | `list`, `get`, `create`, `update`, `delete`, `count` |
+| `analytics` | La télémétrie : logs, spans, métriques, exceptions et autres événements | `list`, `create`, `count` |
+
+Affichez un seul type avec `oneuptime resources --type database` ou `--type analytics`. La [Référence des commandes](/docs/cli/command-reference#ressources) liste chaque commande.
+
+## Lister des enregistrements
 
 ```bash
-# Afficher uniquement les ressources de base de données
-oneuptime resources --type database
-
-# Afficher uniquement les ressources analytiques
-oneuptime resources --type analytics
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
 ```
 
-Les ressources courantes comprennent :
-
-| Ressource                           | Commande                                |
-| ----------------------------------- | --------------------------------------- |
-| Incident                            | `oneuptime incident`                    |
-| Alerte                              | `oneuptime alert`                       |
-| Moniteur                            | `oneuptime monitor`                     |
-| Statut de moniteur                  | `oneuptime monitor-status`              |
-| État d'incident                     | `oneuptime incident-state`              |
-| Page de statut                      | `oneuptime status-page`                 |
-| Politique d'astreinte               | `oneuptime on-call-policy`              |
-| Équipe                              | `oneuptime team`                        |
-| Événement de maintenance programmée | `oneuptime scheduled-maintenance-event` |
-
-## Lister les ressources
-
-Récupérer une liste de ressources avec filtrage, pagination et tri optionnels.
+| Option | Ce qu'elle fait | Par défaut |
+| --- | --- | --- |
+| `--query <json>` | Ne renvoie que les enregistrements qui correspondent : voir [Filtrer une liste](#filtrer-une-liste) | Chaque enregistrement que la clé peut lire |
+| `--limit <n>` | Le nombre maximal d'enregistrements à renvoyer, jusqu'à 10 000 | `10` |
+| `--skip <n>` | Combien d'enregistrements correspondants passer d'abord | `0` |
+| `--sort <json>` | L'ordre, comme `{"createdAt":"ASC"}`, ou `"DESC"` pour les plus récents d'abord | Les plus récents d'abord |
+| `-o, --output <format>` | `table`, `json` ou `wide` | `table` dans un terminal, `json` dans un pipe |
 
 ```bash
-oneuptime <resource> list [options]
-```
-
-**Options :**
-
-| Option                  | Description                       | Défaut  |
-| ----------------------- | --------------------------------- | ------- |
-| `--query <json>`        | Critères de filtre au format JSON | Aucun   |
-| `--limit <n>`           | Nombre maximum de résultats       | `10`    |
-| `--skip <n>`            | Nombre de résultats à ignorer     | `0`     |
-| `--sort <json>`         | Ordre de tri au format JSON       | Aucun   |
-| `-o, --output <format>` | Format de sortie                  | `table` |
-
-**Exemples :**
-
-```bash
-# Lister les 10 incidents les plus récents
+# The ten newest incidents
 oneuptime incident list
 
-# Filtrer les incidents par identifiant d'état
-oneuptime incident list --query '{"currentIncidentStateId":"<state-id>"}'
+# The oldest monitors first, 50 at a time: the second page
+oneuptime monitor list --sort '{"createdAt":"ASC"}' --limit 50 --skip 50
 
-# Lister avec pagination
-oneuptime incident list --limit 20 --skip 40
-
-# Trier par date de création (décroissant)
-oneuptime incident list --sort '{"createdAt":-1}'
-
-# Sortir au format JSON
+# Every field of each incident, as JSON
 oneuptime incident list -o json
 ```
 
-## Obtenir une ressource
+Une liste demande à OneUptime chaque champ de chaque enregistrement que la clé peut lire. Un tableau en affiche six ; le JSON les affiche tous (voir [Formats de sortie](/docs/cli/output-formats)). Pour parcourir tous les enregistrements, augmentez `--skip` de `--limit` jusqu'à ce qu'une page revienne vide ; `count` indique combien il y en a.
 
-Récupérer une seule ressource par son identifiant.
+### Filtrer une liste
+
+`--query` prend le même filtre que l'API : un champ avec une valeur correspond à cette valeur, et un objet avec un `_type` compare.
+
+| Filtre | Correspond à |
+| --- | --- |
+| `{"title":"Checkout API is down"}` | Les enregistrements qui ont exactement cette valeur |
+| `{"title":{"_type":"Search","value":"checkout"}}` | Un texte qui contient la valeur |
+| `{"createdAt":{"_type":"GreaterThan","value":"2026-10-01T00:00:00.000Z"}}` | Des dates plus tardives, ou des nombres plus grands |
+| `{"currentIncidentState":{"isResolvedState":false}}` | Un champ d'un enregistrement que la ressource nomme : ici, les incidents qui ne sont pas résolus |
 
 ```bash
-oneuptime <resource> get <id>
+oneuptime incident list --query '{"title":{"_type":"Search","value":"checkout"}}'
 ```
 
-**Arguments :**
+[Filtrer, trier et paginer](/docs/api-reference/api-reference#filtrer-trier-et-paginer) dans la référence de l'API liste chaque `_type`.
 
-| Argument | Description                          |
-| -------- | ------------------------------------ |
-| `<id>`   | L'identifiant de la ressource (UUID) |
-
-**Exemples :**
+## Lire un enregistrement
 
 ```bash
-# Obtenir un incident spécifique
-oneuptime incident get 550e8400-e29b-41d4-a716-446655440000
-
-# Obtenir un moniteur au format JSON
-oneuptime monitor get abc-123 -o json
+oneuptime <resource> get <id> [-o <format>]
 ```
 
-## Créer une ressource
-
-Créer une nouvelle ressource à partir d'un JSON en ligne ou d'un fichier.
-
 ```bash
-oneuptime <resource> create [options]
+oneuptime incident get 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 ```
 
-**Options :**
+Un tableau affiche une ligne pour chaque champ de l'enregistrement, chaque valeur coupée à 60 caractères ; `-o json` affiche les valeurs entières. Un ID qui ne nomme aucun enregistrement que votre clé peut lire répond `Not found`, et la commande se termine avec le code `3`.
 
-| Option                  | Description                                                       |
-| ----------------------- | ----------------------------------------------------------------- |
-| `--data <json>`         | Données de la ressource sous forme d'objet JSON                   |
-| `--file <path>`         | Chemin vers un fichier JSON contenant les données de la ressource |
-| `-o, --output <format>` | Format de sortie                                                  |
-
-Vous devez fournir soit `--data` soit `--file`.
-
-**Exemples :**
+## Créer un enregistrement
 
 ```bash
-# Créer un incident avec du JSON en ligne
-oneuptime incident create --data '{"title":"API Outage","currentIncidentStateId":"<state-id>","incidentSeverityId":"<severity-id>","declaredAt":"2025-01-15T10:30:00Z"}'
+oneuptime <resource> create --data <json> [-o <format>]
+oneuptime <resource> create --file <path> [-o <format>]
+```
 
-# Créer depuis un fichier JSON
+`--data` prend l'enregistrement en JSON, et `--file` le lit dans un fichier JSON. Donnez l'un des deux ; si les deux sont donnés, c'est le fichier qui est utilisé. Les champs sont ceux de l'API, et la [référence de l'API](/reference) liste ceux de chaque ressource. Le projet vient de la clé API : un enregistrement ne le nomme donc jamais.
+
+```bash
+# A manual monitor
+oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}'
+
+# An incident with one of your severities
+oneuptime incident create --data '{"title":"Checkout API is down","incidentSeverityId":"<severity-id>"}'
+
+# The same incident, from a file
 oneuptime incident create --file incident.json
-
-# Créer et sortir au format JSON pour capturer l'identifiant
-oneuptime monitor create --data '{"name":"API Health Check"}' -o json
 ```
 
-## Mettre à jour une ressource
-
-Mettre à jour une ressource existante par identifiant.
+La CLI affiche le nouvel enregistrement, avec son `_id`. Un incident commence dans l'état de création de votre projet, sauf si `currentIncidentStateId` en nomme un autre : voir [L'état dans lequel commence un nouvel enregistrement](/docs/api-reference/api-reference#létat-dans-lequel-commence-un-nouvel-enregistrement). Pour trouver les ID de vos niveaux de gravité :
 
 ```bash
-oneuptime <resource> update <id> [options]
+oneuptime incident-severity list -o json | jq -r '.[] | "\(._id)  \(.name)"'
 ```
 
-**Arguments :**
+> [!TIP]
+> Sous Windows, mettez le JSON dans un fichier et utilisez `--file` : PowerShell et l'Invite de commandes mettent le JSON entre guillemets sur la ligne de commande autrement que Bash.
 
-| Argument | Description                   |
-| -------- | ----------------------------- |
-| `<id>`   | L'identifiant de la ressource |
-
-**Options :**
-
-| Option                  | Description                                    |
-| ----------------------- | ---------------------------------------------- |
-| `--data <json>`         | Champs à mettre à jour au format JSON (requis) |
-| `-o, --output <format>` | Format de sortie                               |
-
-**Exemples :**
+## Mettre à jour un enregistrement
 
 ```bash
-# Modifier l'état d'un incident (par ex., vers résolu)
-oneuptime incident update abc-123 --data '{"currentIncidentStateId":"<resolved-state-id>"}'
-
-# Renommer un moniteur
-oneuptime monitor update abc-123 --data '{"name":"Updated Monitor Name"}'
+oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-## Supprimer une ressource
-
-Supprimer une ressource par identifiant.
+`--data` est obligatoire et ne contient que les champs à modifier :
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+# Rename a monitor
+oneuptime monitor update <monitor-id> --data '{"name":"Checkout API (EU)"}'
+
+# Move an incident to your resolved state
+oneuptime incident update <incident-id> --data '{"currentIncidentStateId":"<resolved-state-id>"}'
 ```
 
-**Arguments :**
-
-| Argument | Description                   |
-| -------- | ----------------------------- |
-| `<id>`   | L'identifiant de la ressource |
-
-**Options :**
-
-| Option    | Description                        |
-| --------- | ---------------------------------- |
-| `--force` | Ignorer la demande de confirmation |
-
-**Exemples :**
+OneUptime répond à une mise à jour par un objet vide : la CLI affiche une ligne vide, ou `{}` avec `-o json`. Lancez `get` pour voir l'enregistrement tel qu'il est maintenant. Faire passer un incident à un autre état de cette façon enregistre le changement sur sa chronologie, comme le fait le tableau de bord, et un état antérieur à son état actuel est refusé. Pour trouver l'ID de l'état résolu, le premier dans l'ordre de votre projet :
 
 ```bash
-oneuptime incident delete abc-123
-oneuptime monitor delete 550e8400-e29b-41d4-a716-446655440000
-
-# Ignorer la confirmation
-oneuptime monitor delete 550e8400-e29b-41d4-a716-446655440000 --force
+oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order":"ASC"}' --limit 1 -o json | jq -r '.[0]._id'
 ```
 
-## Compter les ressources
-
-Compter les ressources correspondant à des critères de filtre optionnels.
+## Supprimer un enregistrement
 
 ```bash
-oneuptime <resource> count [options]
+oneuptime <resource> delete <id>
 ```
 
-**Options :**
+```bash
+oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
+```
 
-| Option           | Description                       |
-| ---------------- | --------------------------------- |
-| `--query <json>` | Critères de filtre au format JSON |
+Elle répond `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.`
 
-**Exemples :**
+> [!CAUTION]
+> `delete` supprime l'enregistrement immédiatement. La CLI ne vous demande pas de confirmer, et rien ne permet d'annuler. Elle accepte `--force`, pour les scripts écrits avec, et `--force` ne change rien.
+
+## Compter des enregistrements
 
 ```bash
-# Compter tous les incidents
+oneuptime <resource> count [--query <json>]
+```
+
+```bash
+# Every incident
 oneuptime incident count
 
-# Compter les incidents par état
-oneuptime incident count --query '{"currentIncidentStateId":"<state-id>"}'
-
-# Compter les moniteurs
-oneuptime monitor count
+# Incidents that are not resolved
+oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}'
 ```
 
-## Ressources analytiques
+La CLI affiche un seul nombre, le même dans un tableau et en JSON, qu'un script peut donc lire tel quel.
 
-Les ressources analytiques prennent en charge un ensemble limité d'opérations par rapport aux ressources de base de données :
+## Ce que chaque type permet
 
-| Opération | Prise en charge |
-| --------- | --------------- |
-| `list`    | Oui             |
-| `create`  | Oui             |
-| `count`   | Oui             |
-| `get`     | Non             |
-| `update`  | Non             |
-| `delete`  | Non             |
+| Opération | `database` | `analytics` |
+| --- | --- | --- |
+| `list` | Oui | Oui |
+| `get` | Oui | Non |
+| `create` | Oui | Oui |
+| `update` | Oui | Non |
+| `delete` | Oui | Non |
+| `count` | Oui | Oui |
 
-Utilisez `oneuptime resources --type analytics` pour voir les ressources analytiques disponibles sur votre instance.
+## Dépannage
+
+:::details Le message « Not found: API error (404) »
+L'enregistrement n'existe pas, se trouve dans un autre projet, ou la clé ne peut pas le lire : OneUptime répond de la même façon dans chaque cas. Vérifiez l'ID avec `list`, et les autorisations de la clé. La commande se termine avec le code `3`.
+:::
+
+:::details Le message « API error (422): You do not have permissions to select on »
+Une liste ou une lecture demande chaque champ de l'enregistrement, et la clé ne peut pas lire l'un d'eux : le message nomme le champ et les autorisations qui peuvent le lire. Donnez à la clé l'une de ces autorisations.
+:::
+
+:::details Le message « Error: Invalid JSON »
+La valeur de `--query`, `--sort` ou `--data` n'est pas du JSON. Avec Bash et zsh, entourez-la d'apostrophes ; sous Windows, mettez un enregistrement dans un fichier et utilisez `--file`.
+:::
+
+:::details API error (400) lors d'une création ou d'une mise à jour
+OneUptime a refusé un champ : le message le nomme. `No fields to update` signifie que `--data` ne contenait aucun champ à modifier.
+:::
+
+## Étapes suivantes
+
+:::cards
+- [Formats de sortie](/docs/cli/output-formats): Lire les réponses sous forme de tableaux ou de JSON.
+- [Scripts et CI/CD](/docs/cli/scripting): Utiliser ces opérations dans des scripts et des pipelines.
+- [Référence des commandes](/docs/cli/command-reference): Chaque commande, option et valeur par défaut.
+:::

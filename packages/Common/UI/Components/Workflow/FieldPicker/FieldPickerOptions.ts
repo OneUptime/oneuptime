@@ -5,7 +5,8 @@
  *   - Fields to pass on (stored as "select"), on the On Create and On Update
  *     triggers and the Find steps: the record's fields the next steps can
  *     use. A related record's fields can be passed on too ("Current Incident
- *     State › Name").
+ *     State › Name"), and so can the record's project's ID, which a link back
+ *     to the record is built from (isOfferedProjectColumn).
  *   - Fields to watch (stored as "listen-on"), on the On Update trigger: the
  *     fields whose change runs the workflow. Only what an update can change:
  *     a related record is watched by the column holding its ID, which is
@@ -149,6 +150,34 @@ const isManyRelation: IsRelationColumnFunction = (
   return column.isRelation && column.type === "Entity Array";
 };
 
+type IsOfferedProjectColumnFunction = (
+  column: ModelSchemaColumn,
+  options: { mode: FieldPickerMode },
+) => boolean;
+
+/*
+ * The record's project, as the column holding its ID: offered when passing
+ * on, never when watching. Passed on, it is what a link back to the record in
+ * OneUptime is built from - /dashboard/<project id>/incidents/<incident id> -
+ * as the Jira and Microsoft Dynamics 365 templates build theirs. Left out of
+ * the list, their own trigger showed it as a field the record does not have,
+ * which the run never leaves out, and a guide that adds it could only say to
+ * type it as JSON. No update moves a record to another project, so there is
+ * nothing to watch; the Project itself, a related record, stays out (its
+ * fields are the project's settings, not the record's), and so does a related
+ * record's own project, which is this record's again.
+ */
+export const isOfferedProjectColumn: IsOfferedProjectColumnFunction = (
+  column: ModelSchemaColumn,
+  options: { mode: FieldPickerMode },
+): boolean => {
+  return (
+    Boolean(column.isTenantColumn) &&
+    !column.isRelation &&
+    options.mode === FieldPickerMode.PassOn
+  );
+};
+
 type TypeLabelFunction = (column: ModelSchemaColumn) => string;
 
 const typeLabelOf: TypeLabelFunction = (column: ModelSchemaColumn): string => {
@@ -195,7 +224,7 @@ export const getFieldOptions: GetFieldOptionsFunction = (
   const stored: Array<string> = options.storedPaths || [];
   const columns: Array<ModelSchemaColumn> = options.columns.filter(
     (column: ModelSchemaColumn): boolean => {
-      return !column.isTenantColumn;
+      return !column.isTenantColumn || isOfferedProjectColumn(column, options);
     },
   );
 
@@ -309,7 +338,12 @@ export const getFieldOptions: GetFieldOptionsFunction = (
         : FieldGroupId.Related;
     }
 
-    if (isSystemColumn(column)) {
+    /*
+     * The project is OneUptime's to fill in: the run stamps it on every
+     * record a workflow writes, whatever was typed. Its column is required,
+     * which would have made it a main field.
+     */
+    if (isSystemColumn(column) || column.isTenantColumn) {
       return FieldGroupId.System;
     }
 

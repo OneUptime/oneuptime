@@ -1,68 +1,122 @@
-# OneUptime CLI
+# CLI 개요
 
-OneUptime CLI는 터미널에서 OneUptime 리소스를 직접 관리하기 위한 명령줄 인터페이스입니다. 모니터, 인시던트, 알림, 상태 페이지 등에 대한 전체 CRUD 작업을 지원합니다.
+OneUptime CLI인 `oneuptime`은 터미널이나 스크립트에서 OneUptime 프로젝트를 관리합니다. 프로젝트의 API 키로 모니터, 인시던트, 알림, 상태 페이지 등 OneUptime API가 제공하는 레코드를 나열하고, 읽고, 만들고, 변경하고, 삭제하고, 개수를 셉니다.
 
-## 기능
+:::cards
+- [CLI의 작동 방식](#cli의-작동-방식): 명령 하나, API 요청 하나, 응답 하나.
+- [CLI 설치](#cli-설치): npm 명령 하나와 고를 버전.
+- [첫 명령 실행](#첫-명령-실행): API 키를 저장한 다음 인시던트를 나열합니다.
+- [명령 한눈에 보기](#명령-한눈에-보기): 모든 명령과 그것을 설명하는 페이지.
+:::
 
-- 프로덕션, 스테이징 및 개발을 위한 명명된 컨텍스트를 통한 **다중 환경 지원**
-- OneUptime 인스턴스에서 사용 가능한 리소스의 **자동 검색**
-- CLI 플래그, 환경 변수 또는 저장된 컨텍스트를 통한 **유연한 인증**
-- JSON, 테이블 및 와이드 표시 모드를 갖춘 **스마트 출력 형식**
-- CI/CD 파이프라인 및 자동화 워크플로를 위한 **스크립팅 가능**
+## CLI의 작동 방식
 
-## 설치
+각 명령은 OneUptime REST API에 요청을 하나 보내고 응답을 출력합니다. CLI는 API 키와 OneUptime 주소를 플래그, 환경 변수 또는 `oneuptime login`이 저장한 컨텍스트에서 가져옵니다. 명령이 무엇을 읽고 바꿀 수 있는지는 키가 결정하며, 이는 API와 똑같습니다.
+
+```mermaid title="명령 하나, 요청 하나"
+flowchart TB
+    T["터미널<br/>또는 CI 작업"] -->|"oneuptime incident list"| C["oneuptime CLI"]
+    K["API 키와 URL:<br/>플래그, 환경 변수<br/>또는 저장된 컨텍스트"] --> C
+    C -->|"POST /api/incident/get-list"| A["OneUptime REST API"]
+    A -->|"키가 읽을 수 있는<br/>레코드, JSON으로"| C
+    C -->|"터미널에서는 표,<br/>파이프에서는 JSON"| T
+```
+
+레코드용 명령은 CLI에 들어 있습니다. OneUptime API가 도구에 여는 레코드 종류마다 명령이 하나씩 있으며, [MCP 서버](/docs/ai/mcp-server)가 도구를 가진 레코드와 같습니다. 목록을 보려면 `oneuptime resources`를 실행합니다.
+
+## 시작하기 전에
+
+- **Node.js와 npm**: CLI를 설치할 현재 LTS 릴리스.
+- **프로젝트의 API 키.** **프로젝트 설정 → 고급 → API 키**에서 **API 키 만들기**로 만듭니다. [API 키 만들기](/docs/api-reference/api-reference#api-키-만들기)를 참조하세요.
+- **OneUptime Cloud에서는 Growth 플랜 이상.** 프로젝트의 API 키는 이 플랜에서만 작동합니다. [플랜 미만의 API 키와 SCIM](/docs/api-reference/api-reference#플랜-미만의-api-키와-scim)을 참조하세요.
+
+## CLI 설치
+
+npm에서 `@oneuptime/cli` 패키지를 설치합니다. `oneuptime` 명령이 추가되며, `--version`은 설치한 버전을 출력합니다.
 
 ```bash
 npm install -g @oneuptime/cli
+oneuptime --version
 ```
 
-## 빠른 시작
+CLI는 OneUptime과 함께 릴리스되며 버전 번호가 같습니다. 자체 호스팅 OneUptime에서는 명령이 서버의 레코드와 맞도록 사용 중인 OneUptime과 같은 버전의 CLI를 설치하세요.
 
 ```bash
-# OneUptime 인스턴스로 인증
+npm install -g @oneuptime/cli@<your-oneuptime-version>
+```
+
+## 첫 명령 실행
+
+:::steps
+### API 키 저장
+
+키와 OneUptime 주소로 로그인합니다. CLI는 이를 `default`라는 이름의 컨텍스트로 저장하고 이후로 그것을 사용합니다.
+
+```bash
 oneuptime login <your-api-key> https://oneuptime.com
+```
 
-# 모니터 목록 조회
-oneuptime monitor list
+`Logged in successfully. Context "default" is now active.`라고 응답합니다. 자체 호스팅 OneUptime에서는 `https://oneuptime.com` 대신 해당 주소를 사용하세요.
 
-# 특정 인시던트 보기
-oneuptime incident get <incident-id>
+### 인시던트 나열
 
-# 사용 가능한 모든 리소스 보기
+```bash
+oneuptime incident list
+```
+
+가장 최근 인시던트 10개가 표로 나타납니다. `login`은 키를 확인하지 않고 저장하므로, 키가 작동한다는 것을 처음 보여 주는 명령이 바로 이것입니다. 거부되면 [문제 해결](/docs/cli/authentication#문제-해결)을 참조하세요.
+
+### 그 밖에 관리할 수 있는 것 보기
+
+```bash
 oneuptime resources
 ```
 
-## 문서
+목록에는 다룰 수 있는 레코드 종류와 그 명령(예: `monitor`, `status-page`, `on-call-policy`)이 표시됩니다.
+:::
 
-| 가이드                                  | 설명                                       |
-| --------------------------------------- | ------------------------------------------ |
-| [인증](./authentication.md)             | 로그인, 컨텍스트 및 자격 증명 관리         |
-| [리소스 작업](./resource-operations.md) | 모니터, 인시던트, 알림 등에 대한 CRUD 작업 |
-| [출력 형식](./output-formats.md)        | JSON, 테이블 및 와이드 출력 모드           |
-| [스크립팅 및 CI/CD](./scripting.md)     | 자동화, 환경 변수 및 파이프라인 사용       |
-| [명령 참조](./command-reference.md)     | 모든 명령 및 옵션에 대한 전체 참조         |
+## 명령 한눈에 보기
+
+| 명령 | 하는 일 | 자세히 |
+| --- | --- | --- |
+| `oneuptime login <api-key> <instance-url>` | API 키와 주소를 컨텍스트로 저장합니다 | [인증](/docs/cli/authentication#로그인) |
+| `oneuptime context list`, `use`, `current`, `delete` | 저장된 컨텍스트를 나열, 전환, 표시, 삭제합니다 | [인증](/docs/cli/authentication#컨텍스트) |
+| `oneuptime whoami` | 다음 명령이 사용할 URL과 API 키를 보여 줍니다 | [인증](/docs/cli/authentication#cli가-사용할-값-확인) |
+| `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 한 종류의 레코드를 다룹니다 | [리소스 작업](/docs/cli/resource-operations) |
+| `oneuptime resources` | 레코드 종류를 명령과 함께 나열합니다 | [명령 참조](/docs/cli/command-reference#oneuptime-resources) |
+| `oneuptime version` | CLI 버전을 출력합니다 | [명령 참조](/docs/cli/command-reference#oneuptime-version) |
+| `oneuptime help [command]` | 명령의 도움말을 보여 줍니다 | [도움말 보기](#도움말-보기) |
 
 ## 전역 옵션
 
-이 플래그는 모든 명령과 함께 사용할 수 있습니다:
+이 옵션은 모든 명령에서 명령 앞이나 뒤에 쓸 수 있습니다.
 
-| 플래그                  | 설명                               |
-| ----------------------- | ---------------------------------- |
-| `--api-key <key>`       | 이 명령에 대한 API 키 재정의       |
-| `--url <url>`           | 이 명령에 대한 인스턴스 URL 재정의 |
-| `--context <name>`      | 특정 명명된 컨텍스트 사용          |
-| `-o, --output <format>` | 출력 형식: `json`, `table`, `wide` |
-| `--no-color`            | 색상 출력 비활성화                 |
-| `--help`                | 명령 도움말 표시                   |
-| `--version`             | CLI 버전 표시                      |
+| 옵션 | 하는 일 |
+| --- | --- |
+| `--api-key <key>` | 저장된 키 대신 이 명령에 쓸 API 키 |
+| `--url <url>` | 이 명령에 쓸 OneUptime 주소 |
+| `--context <name>` | 현재 컨텍스트 대신 이 명령에 쓸 저장된 컨텍스트 |
+| `-o, --output <format>` | `table`, `json` 또는 `wide`: [출력 형식](/docs/cli/output-formats) 참조 |
+| `--no-color` | 색 없이 출력합니다 |
+| `-V, --version` | CLI 버전을 출력합니다 |
+| `-h, --help` | 명령의 도움말을 보여 줍니다 |
 
-## 도움말 받기
+## 도움말 보기
+
+모든 명령에는 인수, 옵션, 기본값을 보여 주는 자체 도움말이 있습니다.
 
 ```bash
-# 일반 도움말
 oneuptime --help
-
-# 특정 명령에 대한 도움말
-oneuptime monitor --help
-oneuptime monitor list --help
+oneuptime help incident
+oneuptime incident list --help
 ```
+
+## 다음 단계
+
+:::cards
+- [인증](/docs/cli/authentication): 환경마다의 컨텍스트와 명령이 사용하는 키.
+- [리소스 작업](/docs/cli/resource-operations): 레코드를 나열하고, 읽고, 만들고, 변경하고, 삭제하고, 셉니다.
+- [출력 형식](/docs/cli/output-formats): 사람에게는 표, 스크립트에는 JSON.
+- [스크립팅 및 CI/CD](/docs/cli/scripting): 종료 코드, jq, 파이프라인.
+- [명령 참조](/docs/cli/command-reference): 모든 명령, 옵션, 기본값.
+:::

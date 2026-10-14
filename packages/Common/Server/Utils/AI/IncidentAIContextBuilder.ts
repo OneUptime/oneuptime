@@ -6,6 +6,7 @@ import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNot
 import IncidentService from "../../Services/IncidentService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentInternalNoteService from "../../Services/IncidentInternalNoteService";
+import SavedChatMessageNote from "../Notes/SavedChatMessageNote";
 import IncidentPublicNoteService from "../../Services/IncidentPublicNoteService";
 import WorkspaceUtil, { WorkspaceChannelMessage } from "../Workspace/Workspace";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
@@ -125,13 +126,16 @@ export default class IncidentAIContextBuilder {
           _id: true,
           note: true,
           createdAt: true,
+          postedAt: true,
+          savedFromChatMessage: true,
           createdByUser: {
             name: true,
             email: true,
           },
         },
+        // In the order they belong in: a saved chat message when it was written.
         sort: {
-          createdAt: SortOrder.Ascending,
+          postedAt: SortOrder.Ascending,
         },
         limit: 100,
         skip: 0,
@@ -313,13 +317,18 @@ export default class IncidentAIContextBuilder {
     if (internalNotes.length > 0) {
       contextText += "# Internal Notes (Private)\n\n";
       for (const note of internalNotes) {
-        const noteTime: string = note.createdAt
-          ? OneUptimeDate.getDateAsFormattedString(note.createdAt)
+        const postedAt: Date | undefined = note.postedAt || note.createdAt;
+        const noteTime: string = postedAt
+          ? OneUptimeDate.getDateAsFormattedString(postedAt)
           : "N/A";
-        const createdBy: string =
-          note.createdByUser?.name?.toString() ||
-          note.createdByUser?.email?.toString() ||
-          "Unknown";
+        // A message saved from a chat is its author's words.
+        const createdBy: string = SavedChatMessageNote.getPromptAuthor({
+          note: note,
+          createdBy:
+            note.createdByUser?.name?.toString() ||
+            note.createdByUser?.email?.toString() ||
+            "Unknown",
+        });
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
         contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
@@ -517,13 +526,18 @@ Grounding rules (important):
     if (internalNotes.length > 0) {
       contextText += "# Internal Notes (Private)\n\n";
       for (const note of internalNotes) {
-        const noteTime: string = note.createdAt
-          ? OneUptimeDate.getDateAsFormattedString(note.createdAt)
+        const postedAt: Date | undefined = note.postedAt || note.createdAt;
+        const noteTime: string = postedAt
+          ? OneUptimeDate.getDateAsFormattedString(postedAt)
           : "N/A";
-        const createdBy: string =
-          note.createdByUser?.name?.toString() ||
-          note.createdByUser?.email?.toString() ||
-          "Unknown";
+        // A message saved from a chat is its author's words.
+        const createdBy: string = SavedChatMessageNote.getPromptAuthor({
+          note: note,
+          createdBy:
+            note.createdByUser?.name?.toString() ||
+            note.createdByUser?.email?.toString() ||
+            "Unknown",
+        });
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
         contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;

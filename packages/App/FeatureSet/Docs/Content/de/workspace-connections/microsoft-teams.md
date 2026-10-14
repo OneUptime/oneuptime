@@ -6,6 +6,7 @@ Verbinden Sie OneUptime mit Microsoft Teams, um Vorfälle, Warnungen, Episoden, 
 - [Microsoft Teams verbinden](#microsoft-teams-verbinden): Administratorzustimmung, Ihre Anmeldung und die App in jedem Team.
 - [Benachrichtigungsregeln](#benachrichtigungsregeln): Legen Sie fest, welche Ereignisse wohin posten und welche einen eigenen Kanal bekommen.
 - [Mit dem OneUptime-Bot sprechen](#mit-dem-oneuptime-bot-sprechen): Befehle, Fragen und Formulare im Chat mit dem Bot.
+- [Bereitschafts-Tags](#bereitschafts-tags): Halten Sie das Tag eines Teams gleich denen, die Bereitschaft haben, und alarmieren Sie es.
 - [Aus Microsoft Teams auf Vorfälle, Warnungen und Ereignisse reagieren](#aus-microsoft-teams-auf-vorfälle-warnungen-und-ereignisse-reagieren): Die Schaltflächen auf den Karten von OneUptime.
 :::
 
@@ -136,7 +137,11 @@ Reagieren Sie auf eine Nachricht oder eine Antwort in dem Kanal, den OneUptime f
 | 📌 oder 📍 | Eine private Notiz, die nur Ihr Team sieht |
 | 📣 oder 📢 | Eine öffentliche Notiz, die auf der Statusseite erscheint. Nur Vorfälle und geplante Wartungsereignisse. |
 
-Die Notiz wird als Sie gespeichert, mit Ihren Berechtigungen, daher muss Ihr eigenes Microsoft-Teams-Konto verbunden und die OneUptime-App im Team sein.
+Die Notiz übernimmt die Nachricht so, wie Microsoft Teams sie gezeigt hat: ihre Formatierung, Links und Code, die erwähnten Personen mit Namen und ihre Dateien und Bilder als Links darauf. Eine öffentliche Notiz lässt die Dateien und Bilder weg, da sie sich nur für Ihr Team öffnen.
+
+Sie gibt die Worte dessen wieder, der die Nachricht geschrieben hat: mit seinem OneUptime-Namen, wenn sein Microsoft-Teams-Konto verbunden ist, sonst mit dem Namen, den Teams zeigt. Eine private Notiz wird in der Zeitleiste dort eingeordnet, wo die Nachricht gepostet wurde, egal wie viel später sie gespeichert wird. Eine öffentliche Notiz wird beim Speichern eingeordnet, also dann, wenn die Statusseite sie zeigt. Die Zeitleiste nennt, wer sie gespeichert hat. Die Notiz wird nicht zurück in den Kanal gepostet, in dem die Nachricht bereits steht.
+
+Die Notiz wird als Sie gespeichert, mit Ihren Berechtigungen, und die OneUptime-App muss im Team sein. Ist Ihr Microsoft-Teams-Konto noch nicht verbunden, bittet OneUptime Sie in einer Antwort, die Sie erwähnt, es zu verbinden, mit einer Schaltfläche, die die Nachricht speichert, sobald Sie das getan haben.
 
 ## Mit dem OneUptime-Bot sprechen
 
@@ -148,6 +153,7 @@ Schreiben Sie dem Bot in einem persönlichen Chat, oder erwähnen Sie OneUptime 
 | `incident [title]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. |
 | `maintenance [title]` | Öffnet das Formular für geplante Wartung, mit ausgefülltem Titel. |
 | `oncall` | Listet, wer gerade in jedem Bereitschaftsplan, den Sie sehen können, Bereitschaft hat, bis wann und wer als Nächstes dran ist. |
+| `page [who] [message]` | Alarmiert die Personen, die Sie mit @ erwähnen, wegen Ihrer Nachricht, oder sendet eine Karte, auf der Sie wählen, wer alarmiert wird. Siehe [Jemanden aus Microsoft Teams alarmieren](#jemanden-aus-microsoft-teams-alarmieren). |
 | `ask [question]`, oder jede Frage in natürlicher Sprache | OneUptime AI antwortet zu Ihren Logs, Traces, Metriken, Vorfällen und Monitoren, zum Beispiel "Welche Monitore sind gerade ausgefallen?". Antworten lesen nur. |
 | `show active incidents`, `show active alerts` | Listet, was gerade offen ist. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Listet anstehende oder laufende Wartungsereignisse. |
@@ -163,6 +169,36 @@ Bis auf die `show`-Listen sind das die Wörter, die in Slack auf `/oneuptime` fo
 - **Was ein Formular nennen darf.** In einem Kanal oder Gruppenchat darf jede anwesende Person das Formular absenden, und es wird als diese Person abgesendet, mit ihren eigenen Berechtigungen. Der Vorfall oder das Ereignis wird mit diesen Berechtigungen erstellt und dieser Person zugeschrieben. Ein Monitor, eine Bereitschaftsrichtlinie, eine Beschriftung, ein Schweregrad oder Status, den sie nicht lesen darf, oder einer eines anderen Projekts, wird abgelehnt wie einer, den das Projekt nicht hat, und es wird nichts erstellt: Der Bot antwortet "One of the values you picked ... is not available in this project any more. Please pick it again."
 
 **Execute On-Call Policy** an einem Vorfall, einer Warnung oder Episode funktioniert genauso: Es braucht die Berechtigung, eine Bereitschaftsrichtlinie auszuführen (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** und **On-Call Member**, oder **Create On-Call Duty Policy Execution Log** in einer benutzerdefinierten Rolle) und diesen Vorfall, diese Warnung oder Episode zu lesen, und bietet die aktiven Bereitschaftsrichtlinien an, die die Person lesen darf. Einen Monitor oder eine Bereitschaftsrichtlinie aus einer Karte heraus anzusehen liest diese ebenfalls als die Person, die die Schaltfläche gedrückt hat.
+
+## Jemanden aus Microsoft Teams alarmieren
+
+In einem Kanal oder Gruppenchat alarmiert `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` Nawaz sofort. OneUptime erstellt eine Warnung mit Ihrer Nachricht als Titel, und jede Person, die Sie mit @ erwähnen, bekommt einen Anruf, eine SMS, eine Push-Benachrichtigung oder eine E-Mail, wie es ihre eigenen Bereitschaftsregeln vorsehen, bis jemand die Warnung bestätigt.
+
+- **Wer sofort alarmiert wird.** Die Personen, die Sie mit @ erwähnen, und alle, die in den Bereitschaftsplänen Bereitschaft haben, denen ein von Ihnen mit @ erwähntes Tag folgt (siehe [Bereitschafts-Tags](#bereitschafts-tags)), wenn eine Nachricht auf sie folgt. OneUptime erkennt eine Person am OneUptime-Konto, mit dem ihr Microsoft-Teams-Konto verbunden ist, oder sonst an ihrer E-Mail-Adresse in Microsoft Teams. Niemand außerhalb des Projekts wird alarmiert.
+- **Alles andere bekommt eine Karte.** Ohne Erwähnung mit @, wie in einem persönlichen Chat mit dem Bot, ohne Nachricht, mit einem Tag, das keinem für Sie sichtbaren Bereitschaftsplan folgt, oder mit einer Person, die OneUptime nicht erkennt, antwortet der Bot mit der Karte **Page someone**, ausgefüllt mit dem, was Sie geschrieben haben, und nennt, wen er nicht auswählen konnte. Wählen Sie Personen, ein Team, einen Bereitschaftsplan, der alarmiert, wer darin gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie, die über ihre Eskalationsregeln alarmiert, und senden Sie sie ab. Jede Person im Gespräch darf die Karte absenden, als sie selbst. Hat sie alarmiert, wird die Karte entfernt, damit niemand zweimal damit alarmiert.
+- **Wo es erscheint.** Das Gespräch zeigt die Alarmierung als eine Karte, die aktuell gehalten wird: wer alarmiert wurde und wie, und wer bestätigt hat. Wo der Bot sie nicht posten kann, nennt seine Antwort, wer alarmiert wurde, mit einem Link zur Warnung.
+- **Wer alarmieren darf.** Alle, die sowohl eine Bereitschaftsrichtlinie ausführen als auch eine Warnung erstellen dürfen: **Project Owner**, **Project Admin** und **Project Member**, oder **On-Call Member** zusammen mit **Alert Member** (**Create On-Call Duty Policy Execution Log** und **Create Alert** in einer benutzerdefinierten Rolle). Personen, ein Team oder einen Bereitschaftsplan direkt zu alarmieren, ohne Bereitschaftsrichtlinie dahinter, braucht zusätzlich Zugriff auf alle Bereitschaftsrichtlinien des Projekts. Alle anderen erfahren das in einer Antwort, und niemand wird alarmiert.
+
+## Bereitschafts-Tags
+
+Halten Sie ein Tag in Microsoft Teams wie `@Payments on-call` gleich denen, die in einem oder mehreren Bereitschaftsplänen gerade Bereitschaft haben, damit jeder in seinem Team es mit @ erwähnen kann, um sie zu erreichen. OneUptime ändert die Mitglieder des Tags bei jeder Übergabe und jeder Vertretung und prüft es alle 15 Minuten.
+
+:::steps
+### Ein Tag mit einem Bereitschaftsplan verbinden
+
+Öffnen Sie den Bereitschaftsplan unter **Bereitschaftsdienst** > **Bereitschaftspläne**. Klicken Sie in seiner Karte **Tags in Microsoft Teams** auf **Tag verbinden**, wählen Sie das Team und geben Sie den Namen des Tags ein: das Tag des Teams mit diesem Namen oder ein neues, das OneUptime erstellt. Seine Mitglieder werden sofort durch die Personen ersetzt, die Bereitschaft haben.
+
+### Es auch mit dem sekundären Bereitschaftsplan verbinden
+
+Für ein Tag, das die primäre und die sekundäre Bereitschaft enthält, verbinden Sie dasselbe Tag auch auf der Seite des sekundären Bereitschaftsplans. Ein Tag kann beliebig vielen Bereitschaftsplänen folgen.
+:::
+
+- **Was die Karte zeigt.** Wer jetzt in jedem Tag ist, sein Team, welchen anderen Bereitschaftsplänen es folgt und ob es **Aktuell** ist. Ein Tag enthält nur Mitglieder seines Teams: Wer Bereitschaft hat, aber nicht im Team ist, wird mit dem Grund genannt.
+- **Niemand in Bereitschaft.** OneUptime nimmt alle aus dem Tag, bis jemand Bereitschaft hat. Ein neues Tag braucht jemanden aus dem Team in Bereitschaft, denn Microsoft Teams erstellt kein Tag ohne Mitglieder.
+- **Das Tag alarmieren.** `@OneUptime page @Payments on-call The checkout API is down` alarmiert alle, die in den Bereitschaftsplänen des Tags Bereitschaft haben. Siehe [Jemanden aus Microsoft Teams alarmieren](#jemanden-aus-microsoft-teams-alarmieren).
+- **Was Microsoft 365 braucht.** Tags zu ändern braucht die Berechtigung `TeamworkTag.ReadWrite.All` der App, die eine Administratorin oder ein Administrator von Microsoft 365 mit **Administratorzustimmung erteilen** unter **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** erteilt. Hat Ihre Organisation zugestimmt, bevor OneUptime Tags pflegen konnte, stimmen Sie einmal erneut zu.
+- **Wer eines verbinden darf.** Die Rollen, die Bereitschaftspläne bearbeiten dürfen: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** und **On-Call Member**, oder **Edit On-Call Duty Policy Schedule** in einer benutzerdefinierten Rolle. In OneUptime Cloud braucht das Verbinden den Tarif **Growth**.
+- **Trennen.** OneUptime ändert das Tag nicht mehr. Das Tag und seine Mitglieder bleiben in Microsoft Teams, wie sie sind.
 
 ## Aus Microsoft Teams auf Vorfälle, Warnungen und Ereignisse reagieren
 

@@ -89,6 +89,8 @@ En liste eller en telling tar en `query`. Et felt med en verdi matcher den verdi
 | `Includes` | En av verdiene i `value` |
 | `IsNull`, `NotNull` | Ingen verdi, eller en hvilken som helst verdi |
 
+Et felt i en post som ressursen nevner, filtreres under relasjonen: `"user": { "name": { "_type": "Search", "value": "ada" } }` finner teammedlemmene der brukerens navn inneholder «ada». Å filtrere på et felt krever tillatelse til å lese det, gjennom en relasjon som på selve ressursen: et filter på et felt du ikke har lov til å lese, avvises med en `422` som nevner feltet.
+
 `select` nevner feltene som skal returneres, og `_id` kommer alltid med. `sort` ordner dem, `ASC` eller `DESC`; uten sortering kommer de nyeste først. En liste returnerer 10 poster med mindre du setter `limit`, opptil 10 000, og `skip` hopper først over så mange: fortsett å øke `skip` med `limit` til du har `count` av dem. Legg til `?output-type=csv` i en listeforespørsel for å få CSV i stedet for JSON.
 
 For eksempel monitorene der navnet inneholder «checkout», opprettet siden starten av 2026, de nyeste først:

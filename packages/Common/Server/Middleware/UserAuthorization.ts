@@ -21,6 +21,7 @@ import Dictionary from "../../Types/Dictionary";
 import Exception from "../../Types/Exception/Exception";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import ProjectBlockedException from "../../Types/Exception/ProjectBlockedException";
 import SsoAuthorizationException from "../../Types/Exception/SsoAuthorizationException";
 import TenantNotFoundException from "../../Types/Exception/TenantNotFoundException";
 import HashedString from "../../Types/HashedString";
@@ -958,13 +959,26 @@ export default class UserMiddleware {
         userGlobalAccessPermission.projectIds &&
         userGlobalAccessPermission.projectIds.length > 0
       ) {
-        const userTenantAccessPermission: Dictionary<UserTenantAccessPermission> | null =
-          await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
-            req,
-            new ObjectID(userId),
-            userGlobalAccessPermission.projectIds,
-            userGlobalAccessPermission,
-          );
+        /*
+         * A lookup that fails here (whether a project is blocked, its
+         * sign-in rules) answers as an error. Express 4 does not catch a
+         * rejection from an async middleware: uncaught, the request would
+         * hang until it timed out.
+         */
+        let userTenantAccessPermission: Dictionary<UserTenantAccessPermission> | null =
+          null;
+
+        try {
+          userTenantAccessPermission =
+            await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+              req,
+              new ObjectID(userId),
+              userGlobalAccessPermission.projectIds,
+              userGlobalAccessPermission,
+            );
+        } catch (error) {
+          return Response.sendErrorResponse(req, res, error as Exception);
+        }
 
         if (userTenantAccessPermission) {
           oneuptimeRequest.userTenantAccessPermission =
@@ -1230,6 +1244,26 @@ export default class UserMiddleware {
     };
   }
 
+  /*
+   * Whether the project is blocked for this caller: a master admin blocked it
+   * (Admin Dashboard > Projects), and the caller is not a master admin, who
+   * keeps full access to it - to look into it, clean it up, unblock or
+   * delete it. Read through ProjectService.isProjectBlocked, cached per
+   * server and forgotten on every server when a block changes
+   * (RealtimeAccessChanges). Throws when the lookup fails: "blocked" and "we
+   * could not find out" are different answers, as for a blocked user.
+   */
+  public static async isProjectBlockedFor(data: {
+    projectId: ObjectID;
+    isMasterAdmin: boolean;
+  }): Promise<boolean> {
+    if (data.isMasterAdmin) {
+      return false;
+    }
+
+    return await ProjectService.isProjectBlocked(data.projectId);
+  }
+
   @CaptureSpan()
   public static async getUserTenantAccessPermissionWithTenantId(data: {
     req: ExpressRequest;
@@ -1252,13 +1286,15 @@ export default class UserMiddleware {
       (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
 
     /*
-     * Resolve the SSO requirement and the tenant permission in parallel.
-     * `getRequireSsoForLogin` is cached in-process for 60s, so this is
-     * usually free; the tenant permission lookup is the expensive call.
+     * Resolve the SSO requirement, the tenant permission and whether the
+     * project is blocked in parallel. `getRequireSsoForLogin` and
+     * `isProjectBlocked` are cached in-process for 60s, so they are usually
+     * free; the tenant permission lookup is the expensive call.
      */
-    const [projectRequireSsoForLogin, tenantPermission]: [
+    const [projectRequireSsoForLogin, tenantPermission, isProjectBlocked]: [
       boolean,
       UserTenantAccessPermission | null,
+      boolean,
     ] = await Promise.all([
       ProjectService.getRequireSsoForLogin(tenantId).catch((err: Error) => {
         /*
@@ -1273,7 +1309,22 @@ export default class UserMiddleware {
       AccessTokenService.getUserTenantAccessPermission(userId, tenantId, {
         userGlobalAccessPermission,
       }),
+      UserMiddleware.isProjectBlockedFor({
+        projectId: tenantId,
+        isMasterAdmin,
+      }),
     ]);
+
+    /*
+     * A blocked project refuses its members - everyone but a master admin
+     * who may open it - before its sign-in rules are asked: signing in with
+     * SSO would not let them in. Someone who is not a member is answered as
+     * they always are, and is not told the project exists, let alone that it
+     * is blocked.
+     */
+    if (isProjectBlocked && tenantPermission) {
+      throw new ProjectBlockedException();
+    }
 
     /*
      * The instance-wide "Require SSO for Login" flag (GlobalConfig) forces SSO
@@ -1351,6 +1402,16 @@ export default class UserMiddleware {
       permission: UserTenantAccessPermission | null;
     }> = await Promise.all(
       projectIds.map(async (projectId: ObjectID) => {
+        // Blocked: left out, as a project the person may not open is.
+        if (
+          await UserMiddleware.isProjectBlockedFor({
+            projectId,
+            isMasterAdmin,
+          })
+        ) {
+          return { projectId, permission: null };
+        }
+
         const projectRequireSsoForLogin: boolean =
           await ProjectService.getRequireSsoForLogin(projectId).catch(() => {
             /*

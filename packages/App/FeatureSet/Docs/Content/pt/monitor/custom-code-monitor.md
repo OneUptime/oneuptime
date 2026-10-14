@@ -215,7 +215,7 @@ Adicione um filtro por campo que queira verificar; cada um pode ter sua própria
 - Greater Than, Less Than e as outras condições numéricas só correspondem a um número, então retorne um campo como `42`, não como `"42"`. Verdadeiro e Falso só correspondem a um booleano.
 - Um campo que não está nos dados retornados (uma chave ausente, ou um índice de array além do fim) é comparado como vazio: **Is Empty** corresponde a ele, e nenhuma outra condição.
 - Um campo cujo nome contém um ponto não pode ser acessado por um caminho.
-- No Terraform, o `custom_code_monitor_options` do filtro define o caminho do campo: veja [Etapas do monitor](/docs/terraform/monitor-steps#comparing-one-field-of-a-scripts-result).
+- No Terraform, o `custom_code_monitor_options` do filtro define o caminho do campo: veja [Etapas do monitor](/docs/terraform/monitor-steps#comparar-um-campo-do-resultado-de-um-script).
 
 ## Módulos disponíveis no script
 

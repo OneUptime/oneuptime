@@ -7,6 +7,7 @@ import { HistogramBucket } from "../../../UI/Components/LogsViewer/types";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement, useCallback } from "react";
 import { beforeEach, describe, expect, test } from "@jest/globals";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 
 function bucket(time: string, count: number): HistogramBucket {
   return { time, severity: "Error", count };
@@ -58,6 +59,9 @@ const HistogramProbe: FunctionComponent<ProbeProps> = (
       </span>
       <span data-testid="loading">{String(state.isLoading)}</span>
       <span data-testid="interval">{String(state.bucketIntervalMs)}</span>
+      <span data-testid="error">
+        {state.error ? `${state.error.kind}: ${state.error.message}` : ""}
+      </span>
     </div>
   );
 };
@@ -72,6 +76,18 @@ function counts(): string {
 
 function isLoading(): boolean {
   return screen.getByTestId("loading").textContent === "true";
+}
+
+function error(): string {
+  return screen.getByTestId("error").textContent || "";
+}
+
+const TIME_LIMIT_SENTENCE: string =
+  "This query took longer than 45 seconds and was stopped before it finished. Try a shorter time range or more specific filters.";
+
+// What the API answers a histogram read stopped at its time limit with.
+function stoppedAtTimeLimit(): HTTPErrorResponse {
+  return new HTTPErrorResponse(504, { error: TIME_LIMIT_SENTENCE }, {});
 }
 
 describe("useLogsHistogram", () => {
@@ -670,6 +686,209 @@ describe("useLogsHistogram", () => {
       });
 
       expect(isLoading()).toBe(false);
+    });
+  });
+
+  /*
+   * Issue #4707: a chart whose read was stopped at the time limit used to
+   * look exactly like a window with no logs. The hook now says why the chart
+   * is empty, for the card to show with a way to try again.
+   */
+  describe("why the chart is empty", () => {
+    test("a read stopped at the time limit says it took too long", async () => {
+      const fetchBuckets: FetchHistogramBucketsFunction = async (): Promise<
+        Array<HistogramBucket>
+      > => {
+        throw stoppedAtTimeLimit();
+      };
+
+      render(<HistogramProbe fetchBuckets={fetchBuckets} />);
+
+      await waitFor(() => {
+        expect(error()).toBe(`timed-out: ${TIME_LIMIT_SENTENCE}`);
+      });
+
+      expect(counts()).toBe("");
+      expect(isLoading()).toBe(false);
+    });
+
+    test("any other failure says it failed, in the server's words", async () => {
+      const fetchBuckets: FetchHistogramBucketsFunction = async (): Promise<
+        Array<HistogramBucket>
+      > => {
+        throw new HTTPErrorResponse(
+          400,
+          { error: "Invalid attribute key: http.route!" },
+          {},
+        );
+      };
+
+      render(<HistogramProbe fetchBuckets={fetchBuckets} />);
+
+      await waitFor(() => {
+        expect(error()).toBe("failed: Invalid attribute key: http.route!");
+      });
+    });
+
+    test("a window that simply holds no logs is not an error", async () => {
+      const fetchBuckets: FetchHistogramBucketsFunction = async (): Promise<
+        Array<HistogramBucket>
+      > => {
+        return [];
+      };
+
+      render(<HistogramProbe fetchBuckets={fetchBuckets} />);
+
+      await waitFor(() => {
+        expect(isLoading()).toBe(false);
+      });
+
+      expect(error()).toBe("");
+    });
+
+    test("trying again clears the error while it runs, and a good answer keeps it cleared", async () => {
+      let shouldFail: boolean = true;
+      const pending: Array<(buckets: Array<HistogramBucket>) => void> = [];
+
+      const fetchBuckets: FetchHistogramBucketsFunction = (): Promise<
+        Array<HistogramBucket>
+      > => {
+        if (shouldFail) {
+          return Promise.reject(stoppedAtTimeLimit());
+        }
+
+        return new Promise<Array<HistogramBucket>>(
+          (resolve: (buckets: Array<HistogramBucket>) => void) => {
+            pending.push(resolve);
+          },
+        );
+      };
+
+      render(
+        <HistogramProbe fetchBuckets={fetchBuckets} onReady={captureState} />,
+      );
+
+      await waitFor(() => {
+        expect(error()).toContain("timed-out");
+      });
+
+      shouldFail = false;
+
+      await act(async () => {
+        void latest!.refresh();
+      });
+
+      expect(error()).toBe("");
+      expect(isLoading()).toBe(true);
+
+      await act(async () => {
+        pending[0]!(FIRST_WINDOW);
+      });
+
+      expect(error()).toBe("");
+      expect(counts()).toBe("11:59=3");
+    });
+
+    test("a live poll that fails raises no error and keeps the chart", async () => {
+      let shouldFail: boolean = false;
+
+      const fetchBuckets: FetchHistogramBucketsFunction = async (): Promise<
+        Array<HistogramBucket>
+      > => {
+        if (shouldFail) {
+          throw stoppedAtTimeLimit();
+        }
+
+        return FIRST_WINDOW;
+      };
+
+      render(
+        <HistogramProbe fetchBuckets={fetchBuckets} onReady={captureState} />,
+      );
+
+      await waitFor(() => {
+        expect(counts()).toBe("11:59=3");
+      });
+
+      shouldFail = true;
+      await refresh(true);
+
+      expect(error()).toBe("");
+      expect(counts()).toBe("11:59=3");
+    });
+
+    test("a live poll that succeeds clears an earlier error", async () => {
+      let shouldFail: boolean = true;
+
+      const fetchBuckets: FetchHistogramBucketsFunction = async (): Promise<
+        Array<HistogramBucket>
+      > => {
+        if (shouldFail) {
+          throw stoppedAtTimeLimit();
+        }
+
+        return SECOND_WINDOW;
+      };
+
+      render(
+        <HistogramProbe fetchBuckets={fetchBuckets} onReady={captureState} />,
+      );
+
+      await waitFor(() => {
+        expect(error()).toContain("timed-out");
+      });
+
+      shouldFail = false;
+      await refresh(true);
+
+      expect(error()).toBe("");
+      expect(counts()).toBe("11:59=3,12:00=8");
+    });
+
+    test("a failure for a window the reader has left does not land on the new one", async () => {
+      const pending: Array<{
+        resolve: (buckets: Array<HistogramBucket>) => void;
+        reject: (error: unknown) => void;
+      }> = [];
+
+      const fetchBuckets: FetchHistogramBucketsFunction = (): Promise<
+        Array<HistogramBucket>
+      > => {
+        return new Promise<Array<HistogramBucket>>(
+          (
+            resolve: (buckets: Array<HistogramBucket>) => void,
+            reject: (error: unknown) => void,
+          ) => {
+            pending.push({ resolve: resolve, reject: reject });
+          },
+        );
+      };
+
+      const view: ReturnType<typeof render> = render(
+        <HistogramProbe fetchBuckets={fetchBuckets} queryKey="one-day" />,
+      );
+
+      await waitFor(() => {
+        expect(pending.length).toBe(1);
+      });
+
+      view.rerender(
+        <HistogramProbe fetchBuckets={fetchBuckets} queryKey="one-hour" />,
+      );
+
+      await waitFor(() => {
+        expect(pending.length).toBe(2);
+      });
+
+      await act(async () => {
+        pending[1]!.resolve(SECOND_WINDOW);
+      });
+      await act(async () => {
+        pending[0]!.reject(stoppedAtTimeLimit());
+      });
+
+      expect(error()).toBe("");
+      expect(counts()).toBe("11:59=3,12:00=8");
     });
   });
 });

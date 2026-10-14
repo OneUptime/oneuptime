@@ -48,7 +48,7 @@ flowchart TB
 
 ### 트리거 추가하기
 
-점선으로 된 **Choose what starts this workflow** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭하고 **Fields to pass on**에서 `title`과 `description`을 고릅니다.
+점선으로 된 **Choose what starts this workflow** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭합니다. **Fields to pass on**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**을 고릅니다.
 
 ### trigger 이벤트 보내기
 
@@ -72,7 +72,7 @@ flowchart TB
 
 ### 테스트한 다음 켜기
 
-**워크플로 실행**을 클릭하고 테스트 인시던트의 **인시던트 ID**를 입력한 다음 실행합니다. **API Post (JSON)** 단계에 `"status": "success"`가 담긴 `202` 응답이 표시되고, PagerDuty가 인시던트를 엽니다. 그런 다음 **빌더** 상단에서 **활성화됨**을 켭니다.
+**워크플로 실행**을 클릭하고 **인시던트**에서 테스트 인시던트를 고른 다음 실행합니다. **API Post (JSON)** 단계에 `"status": "success"`가 담긴 `202` 응답이 표시되고, PagerDuty가 인시던트를 엽니다. 그런 다음 **빌더** 상단에서 **활성화됨**을 켭니다.
 :::
 
 블록은 JSON을 보내므로 `Content-Type` 헤더가 필요 없습니다. PagerDuty의 `severity`는 `critical`, `error`, `warning`, `info` 중 하나입니다. 인시던트마다 그 심각도를 보내려면 [심각도 매핑](#심각도-매핑)을 참고하세요.
@@ -84,7 +84,7 @@ flowchart TB
 :::steps
 ### On Update Incident 트리거 추가하기
 
-`Resolve PagerDuty incidents`라는 워크플로를 만들고 트리거로 **On Update Incident**를 고릅니다. **Fields to watch**에서 `currentIncidentStateId`를 골라 상태가 바뀔 때만 실행되게 합니다. **Fields to pass on**에서 새 상태가 해결된 상태인지 요청합니다:
+`Resolve PagerDuty incidents`라는 워크플로를 만들고 트리거로 **On Update Incident**를 고릅니다. **Fields to watch**에서 **필드 추가**를 클릭하고 **Current Incident State**를 골라 상태가 바뀔 때만 실행되게 합니다. **Fields to pass on**에서 새 상태가 해결된 상태인지 요청합니다. **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다. 또는 **JSON으로 편집**을 클릭하고 JSON을 다음으로 바꿉니다:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ flowchart TB
 
 인시던트마다 그 심각도를 보내려면 트리거와 **API Post (JSON)** 블록 사이에 **Run Custom JavaScript** 블록을 추가하고, 그 응답을 본문에서 읽습니다.
 
-1. 트리거의 **Fields to pass on**에서 심각도의 `name`도 고릅니다: `{ "incidentSeverity": { "name": true } }`.
+1. 트리거의 **Fields to pass on**에서 **필드 추가**를 클릭하고 **인시던트 심각도**를 연 다음 **이름**을 고릅니다.
 2. 블록의 **Arguments**를 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`로, **JavaScript Code**를 다음으로 설정합니다:
 
    ```javascript

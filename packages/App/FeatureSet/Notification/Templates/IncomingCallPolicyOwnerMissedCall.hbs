@@ -32,7 +32,7 @@
           <tbody>
             {{#each attempts}}
             <tr>
-              <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; word-break: break-word;">
+              <td style="padding: 14px 20px;{{#unless @first}} border-top: 1px solid #e2e8f0;{{/unless}} overflow-wrap: anywhere; word-break: break-word;">
                 <p style="margin: 0; font-size: 15px; line-height: 24px; font-weight: 600; color: #0f172a;">{{this.position}}. {{this.userName}}</p>
                 <p style="margin: 2px 0 0; font-size: 13px; line-height: 21px; color: #64748b;">{{this.details}}</p>
               </td>

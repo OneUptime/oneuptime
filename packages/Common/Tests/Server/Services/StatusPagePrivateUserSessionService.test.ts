@@ -1,6 +1,7 @@
 import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPagePrivateUserSession from "../../../Models/DatabaseModels/StatusPagePrivateUserSession";
 import StatusPagePrivateUserService from "../../../Server/Services/StatusPagePrivateUserService";
+import StatusPageService from "../../../Server/Services/StatusPageService";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import FindOneBy from "../../../Server/Types/Database/FindOneBy";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
@@ -285,6 +286,12 @@ describe("StatusPagePrivateUserSessionService sign-in and login-code exchange", 
         update: privateUserUpdate,
       } as unknown as Repository<StatusPagePrivateUser>,
     );
+    /*
+     * A session is issued and renewed with its page's Sign Readers Out
+     * After read in (StatusPagePrivateUserSessionLength.test.ts covers it):
+     * these pages have none.
+     */
+    getJestSpyOn(StatusPageService, "findOneById").mockResolvedValue(null);
   });
 
   afterEach(() => {

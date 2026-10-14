@@ -79,6 +79,18 @@ export default class ArrayUtil {
     return ArrayUtil.isEqual(array1, array2);
   }
 
+  /*
+   * Add every item of `items` to the end of `target`. `target.push(...items)`
+   * passes each item as an argument of its own, and a few hundred thousand of
+   * them - the pieces of a long chat message read into a note - are more
+   * than the call stack holds: it throws "Maximum call stack size exceeded".
+   */
+  public static append<T>(target: Array<T>, items: ReadonlyArray<T>): void {
+    for (const item of items) {
+      target.push(item);
+    }
+  }
+
   public static removeDuplicates(array: Array<any>): Array<any> {
     return array.filter((value: any, index: number, self: Array<any>) => {
       return self.indexOf(value) === index;

@@ -6,6 +6,7 @@ Verbinden Sie OneUptime mit Slack, um Vorfälle, Warnungen, Episoden, geplante W
 - [Slack verbinden](#slack-verbinden): Installieren Sie OneUptime in Ihrem Workspace und verknüpfen Sie dann Ihr eigenes Konto.
 - [Benachrichtigungsregeln](#benachrichtigungsregeln): Legen Sie fest, welche Ereignisse wohin posten und welche einen eigenen Kanal bekommen.
 - [Der Befehl /oneuptime](#der-befehl-oneuptime): Vorfälle melden, Wartungen planen, sehen, wer Bereitschaft hat, und die KI fragen.
+- [Bereitschafts-Benutzergruppen](#bereitschafts-benutzergruppen): Halten Sie eine Benutzergruppe gleich denen, die Bereitschaft haben, und alarmieren Sie sie.
 - [Aus Slack auf Vorfälle, Warnungen und Ereignisse reagieren](#aus-slack-auf-vorfälle-warnungen-und-ereignisse-reagieren): Die Schaltflächen in den Nachrichten von OneUptime.
 :::
 
@@ -123,7 +124,11 @@ Reagieren Sie auf eine Nachricht im Kanal eines Vorfalls, einer Warnung, einer E
 | 📌 Ein Pin-Emoji oder Slacks eigenes **Pin to channel** | Eine private Notiz, die nur Ihr Team sieht |
 | 📢 Ein Megafon- oder Lautsprecher-Emoji | Eine öffentliche Notiz, die auf der Statusseite erscheint. Nur Vorfälle und geplante Wartungsereignisse. |
 
-Die Notiz wird als Sie gespeichert, mit Ihren Berechtigungen, daher muss Ihr eigenes Slack-Konto verbunden sein. Eine Nachricht wird nur einmal gespeichert, egal wie viele Personen reagieren.
+Die Notiz übernimmt die Nachricht so, wie Slack sie gezeigt hat: ihre Formatierung, Links und Code, die erwähnten Personen und Kanäle mit Namen und ihre Dateien und Bilder als Links darauf. Eine öffentliche Notiz lässt die Dateien und Bilder weg, da sie sich nur für Ihr Team öffnen.
+
+Sie gibt die Worte dessen wieder, der die Nachricht geschrieben hat: mit seinem OneUptime-Namen, wenn sein Slack-Konto verbunden ist, sonst mit dem Namen, den Slack zeigt. Eine private Notiz wird in der Zeitleiste dort eingeordnet, wo die Nachricht gepostet wurde, egal wie viel später sie gespeichert wird. Eine öffentliche Notiz wird beim Speichern eingeordnet, also dann, wenn die Statusseite sie zeigt. Die Zeitleiste nennt, wer sie gespeichert hat. Die Notiz wird nicht zurück in den Kanal gepostet, in dem die Nachricht bereits steht.
+
+Die Notiz wird als Sie gespeichert, mit Ihren Berechtigungen. Ist Ihr Slack-Konto noch nicht verbunden, bittet OneUptime Sie in einer Nachricht, die nur Sie sehen, es zu verbinden, mit einer Schaltfläche, die die Nachricht speichert, sobald Sie das getan haben. Eine Nachricht wird nur einmal gespeichert, egal wie viele Personen reagieren.
 
 ## Der Befehl /oneuptime
 
@@ -135,6 +140,7 @@ OneUptime hat in Slack einen einzigen Befehl, `/oneuptime`. Das Wort, das Sie da
 | `/oneuptime incident [title]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. |
 | `/oneuptime maintenance [title]` | Öffnet das Formular für geplante Wartung, mit ausgefülltem Titel. |
 | `/oneuptime oncall` | Listet, wer gerade in jedem Bereitschaftsplan, den Sie sehen können, Bereitschaft hat, bis wann und wer als Nächstes dran ist. |
+| `/oneuptime page [who] [message]` | Alarmiert die Personen, die Sie mit @ erwähnen, wegen Ihrer Nachricht, oder öffnet ein Formular, in dem Sie wählen, wer alarmiert wird. Siehe [Jemanden aus Slack alarmieren](#jemanden-aus-slack-alarmieren). |
 | `/oneuptime ask [question]`, oder jede Frage | OneUptime AI antwortet zu Ihren Logs, Traces, Metriken, Vorfällen und Monitoren. |
 
 Die Antworten auf `help` und `oncall` sind Nachrichten, die nur Sie sehen, unter dem Befehl. Ein erstes Wort, das wie ein vertippter Befehl aussieht, etwa `incidnet`, bekommt den Befehl, dem es ähnelt, statt einer Antwort von OneUptime AI. Die Formulare für Vorfälle und Wartungen handeln als Sie: siehe [Vorfälle und Wartungen aus Slack erstellen](#vorfälle-und-wartungen-aus-slack-erstellen).
@@ -161,6 +167,36 @@ OneUptime antwortet nur auf das, was an OneUptime gerichtet ist.
 - **Was ein Formular nennen darf.** Der Vorfall oder das Ereignis wird mit Ihren eigenen Berechtigungen erstellt und Ihnen zugeschrieben. Ein Monitor, eine Bereitschaftsrichtlinie, eine Beschriftung, ein Schweregrad oder Status, den Sie nicht lesen dürfen, oder einer eines anderen Projekts, wird abgelehnt wie einer, den das Projekt nicht hat, auch aus einem Formular, das vor der Änderung Ihres Zugriffs geöffnet wurde, und es wird nichts erstellt. OneUptime sagt Ihnen im Kanal, in einer Nachricht, die nur Sie sehen, warum.
 
 **Execute On-Call Policy** an einem Vorfall, einer Warnung oder Episode funktioniert genauso: Es braucht die Berechtigung, eine Bereitschaftsrichtlinie auszuführen (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** und **On-Call Member**, oder **Create On-Call Duty Policy Execution Log** in einer benutzerdefinierten Rolle) und diesen Vorfall, diese Warnung oder Episode zu lesen, und bietet die aktiven Bereitschaftsrichtlinien an, die Sie lesen dürfen.
+
+## Jemanden aus Slack alarmieren
+
+`/oneuptime page @nawaz The checkout API is throwing 500s` alarmiert Nawaz sofort. OneUptime erstellt eine Warnung mit Ihrer Nachricht als Titel, und jede Person, die Sie mit @ erwähnen, bekommt einen Anruf, eine SMS, eine Push-Benachrichtigung oder eine E-Mail, wie es ihre eigenen Bereitschaftsregeln vorsehen, bis jemand die Warnung bestätigt.
+
+- **Wer sofort alarmiert wird.** Die Personen, die Sie mit @ erwähnen, und alle, die in den Bereitschaftsplänen Bereitschaft haben, denen eine von Ihnen mit @ erwähnte Benutzergruppe folgt (siehe [Bereitschafts-Benutzergruppen](#bereitschafts-benutzergruppen)), wenn eine Nachricht auf sie folgt. OneUptime erkennt eine Person am OneUptime-Konto, mit dem ihr Slack-Konto verbunden ist, oder sonst an der E-Mail-Adresse, die Slack für sie hat. Niemand außerhalb des Projekts wird alarmiert.
+- **Alles andere öffnet ein Formular.** Ohne Erwähnung mit @, ohne Nachricht, mit `@here`, mit einer Benutzergruppe, die keinem für Sie sichtbaren Bereitschaftsplan folgt, oder mit einer Person, die OneUptime nicht erkennt, öffnet sich das Formular **Page someone** mit dem, was Sie geschrieben haben, und nennt, wen es nicht auswählen konnte. Wählen Sie Personen, ein Team, einen Bereitschaftsplan, der alarmiert, wer darin gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie, die über ihre Eskalationsregeln alarmiert, und senden Sie es ab. Ein Name, den Sie zuerst schreiben, wie in `/oneuptime page Primary The disk is full`, wählt den Bereitschaftsplan, das Team oder die Richtlinie mit diesem Namen.
+- **Wo es erscheint.** Der Kanal zeigt die Alarmierung als eine Nachricht, die aktuell gehalten wird: wer alarmiert wurde und wie, und wer bestätigt hat. Wo OneUptime nicht posten kann, etwa in einem privaten Kanal, in den es nicht eingeladen wurde, nennt eine Nachricht, die nur Sie sehen, wer alarmiert wurde, mit einem Link zur Warnung.
+- **Wer alarmieren darf.** Alle, die sowohl eine Bereitschaftsrichtlinie ausführen als auch eine Warnung erstellen dürfen: **Project Owner**, **Project Admin** und **Project Member**, oder **On-Call Member** zusammen mit **Alert Member** (**Create On-Call Duty Policy Execution Log** und **Create Alert** in einer benutzerdefinierten Rolle). Personen, ein Team oder einen Bereitschaftsplan direkt zu alarmieren, ohne Bereitschaftsrichtlinie dahinter, braucht zusätzlich Zugriff auf alle Bereitschaftsrichtlinien des Projekts. Alle anderen erfahren das dort, wo sie den Befehl ausgeführt haben, und niemand wird alarmiert.
+
+## Bereitschafts-Benutzergruppen
+
+Halten Sie eine Slack-Benutzergruppe wie `@payments-oncall` gleich denen, die in einem oder mehreren Bereitschaftsplänen gerade Bereitschaft haben, damit jeder sie mit @ erwähnen kann, um sie zu erreichen. OneUptime ändert die Mitglieder der Gruppe bei jeder Übergabe und jeder Vertretung und prüft sie alle 15 Minuten.
+
+:::steps
+### Eine Benutzergruppe mit einem Bereitschaftsplan verbinden
+
+Öffnen Sie den Bereitschaftsplan unter **Bereitschaftsdienst** > **Bereitschaftspläne**. Klicken Sie in seiner Karte **Slack-Benutzergruppen** auf **Benutzergruppe verbinden**, und wählen Sie dann eine der Benutzergruppen Ihres Workspace oder **Neue Benutzergruppe erstellen** mit einem Namen und einem Handle. Ihre Mitglieder werden sofort durch die Personen ersetzt, die Bereitschaft haben.
+
+### Sie auch mit dem sekundären Bereitschaftsplan verbinden
+
+Für eine Gruppe, die die primäre und die sekundäre Bereitschaft enthält, verbinden Sie dieselbe Gruppe auch auf der Seite des sekundären Bereitschaftsplans. Eine Gruppe kann beliebig vielen Bereitschaftsplänen folgen.
+:::
+
+- **Was die Karte zeigt.** Wer jetzt in jeder Gruppe ist, welchen anderen Bereitschaftsplänen sie folgt und ob sie **Aktuell** ist. Wer Bereitschaft hat, aber nicht in die Gruppe aufgenommen werden kann, wird mit dem Grund genannt: OneUptime findet eine Person über ihr verbundenes Slack-Konto oder sonst über die E-Mail-Adresse, die Slack für sie hat, und Slack nimmt Gäste nicht in Benutzergruppen auf.
+- **Niemand in Bereitschaft.** Slack kann keine Benutzergruppe ohne Mitglieder behalten, daher deaktiviert OneUptime die Gruppe, bis jemand Bereitschaft hat, und aktiviert sie dann wieder.
+- **Die Gruppe alarmieren.** `/oneuptime page @payments-oncall The checkout API is down` alarmiert alle, die in den Bereitschaftsplänen der Gruppe Bereitschaft haben. Siehe [Jemanden aus Slack alarmieren](#jemanden-aus-slack-alarmieren).
+- **Was Slack braucht.** Benutzergruppen gibt es in den kostenpflichtigen Tarifen von Slack, und ein Workspace kann nur seinen Inhabern und Admins erlauben, sie zu ändern: Die Karte sagt, was davon zutrifft und was zu tun ist. Wurde Slack verbunden, bevor OneUptime Benutzergruppen pflegen konnte, verbinden Sie es einmal erneut unter **Projekteinstellungen** > **Arbeitsbereich** > **Slack**.
+- **Wer eine verbinden darf.** Die Rollen, die Bereitschaftspläne bearbeiten dürfen: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** und **On-Call Member**, oder **Edit On-Call Duty Policy Schedule** in einer benutzerdefinierten Rolle. In OneUptime Cloud braucht das Verbinden den Tarif **Growth**.
+- **Trennen.** OneUptime ändert die Gruppe nicht mehr. Die Gruppe und ihre Mitglieder bleiben in Slack, wie sie sind.
 
 ## Aus Slack auf Vorfälle, Warnungen und Ereignisse reagieren
 

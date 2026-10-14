@@ -333,7 +333,7 @@ const LINKS_INTO_THESE_PAGES: ReadonlyArray<LinkIntoPage> = [
     anchor: "reserved-attribute-keys",
   },
   {
-    // custom_code_monitor_options; only Persian has a translated copy.
+    // custom_code_monitor_options; every language's copy since docs task 30a.
     from: "terraform/monitor-steps",
     to: CUSTOM_CODE_MONITOR,
     anchor: "alerting-on-the-returned-data",

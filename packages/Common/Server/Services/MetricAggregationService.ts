@@ -1,10 +1,13 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
-import { appendAttributeOperatorFilter } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
+import {
+  getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import MetricService from "./MetricService";
 import { MutableMetricService as MutableMetricServiceClass } from "./MutableMetricService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
-import { JSONObject, ObjectType } from "../../Types/JSON";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -201,15 +204,11 @@ export class MetricAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' yields
-     * partial rows rather than holding a pool connection.
+     * Cap runtime below the client's 58s request_timeout rather than hold a
+     * pool connection, and say so when it is reached (see
+     * INTERACTIVE_READ_TIME_LIMIT).
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -342,14 +341,10 @@ export class MetricAggregationService {
 
     /*
      * Defense in depth: cap runtime below nginx's 60s proxy_read_timeout
-     * so a slow facet never starves the endpoint.
+     * so a slow facet never starves the endpoint. A facet stopped at the
+     * limit is named in the facets endpoint's timedOutFacets.
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -424,71 +419,23 @@ export class MetricAggregationService {
       );
     }
 
-    if (request.attributes && Object.keys(request.attributes).length > 0) {
-      for (const [attrKey, attrValue] of Object.entries(request.attributes)) {
-        MetricAggregationService.validateFacetKey(attrKey);
-
-        /*
-         * Match attribute keys case-insensitively — see the matching note in
-         * LogAggregationService.appendCommonFilters. Casings vary across
-         * OTEL conventions and app-emitted attributes.
-         */
-        if (Array.isArray(attrValue)) {
-          /*
-           * An empty selection means "no selection", which must widen to
-           * everything rather than compile to `IN ()` and match nothing.
-           */
-          if (attrValue.length === 0) {
-            continue;
-          }
-          statement.append(
-            SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-              type: TableColumnType.Text,
-              value: attrKey,
-            }}) AND v IN (${{
-              type: TableColumnType.Text,
-              value: new Includes(attrValue),
-            }}), mapKeys(attributes), mapValues(attributes))`,
-          );
-          continue;
-        }
-
-        if (typeof attrValue === "object" && attrValue !== null) {
-          appendAttributeOperatorFilter({
-            statement,
-            attributeKey: attrKey,
-            operator: attrValue as unknown as Record<string, unknown>,
-          });
-          continue;
-        }
-
-        if (attrValue === "") {
-          /*
-           * A blank equality value is "missing or empty", not "present and
-           * empty": a ClickHouse Map subscript returns the type default for a
-           * key the row does not carry, so rows without the attribute match
-           * too. Routed through the operator builder so a bare "" and an
-           * explicit EqualTo("") cannot disagree.
-           */
-          appendAttributeOperatorFilter({
-            statement,
-            attributeKey: attrKey,
-            operator: { _type: ObjectType.IsNull },
-          });
-          continue;
-        }
-
-        statement.append(
-          SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-            type: TableColumnType.Text,
-            value: attrKey,
-          }}) AND v = ${{
-            type: TableColumnType.Text,
-            value: attrValue,
-          }}, mapKeys(attributes), mapValues(attributes))`,
-        );
-      }
-    }
+    /*
+     * Attribute filters - a value, a list (empty means "no selection"), a
+     * blank ("is empty") or an operator - compiled exactly as the log and
+     * trace charts compile them: keys matched case-insensitively, an exact
+     * value checked with `has(mapValues(attributes), ...)` before the
+     * per-key lambda. MetricItemV3 has no attribute value index (see
+     * AttributeValueIndex for why), so here that check skips no granule; it
+     * only spares the lambda the rows that do not hold the value. See
+     * AttributeFilterStatement.
+     */
+    appendAttributeFilters({
+      statement: statement,
+      attributes: request.attributes,
+      validateKey: (attributeKey: string): void => {
+        MetricAggregationService.validateFacetKey(attributeKey);
+      },
+    });
   }
 
   private static isTopLevelColumn(key: string): boolean {

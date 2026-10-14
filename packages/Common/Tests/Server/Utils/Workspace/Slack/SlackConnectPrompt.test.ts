@@ -252,6 +252,9 @@ describe("SlackConnectPrompt.describe", () => {
       "/oneuptime maintenance",
     ],
     [SlackActionType.ShowOnCall, "see who is on call", "/oneuptime oncall"],
+    [SlackActionType.PageSomeone, "page someone", "/oneuptime page"],
+    // The Page someone form: never paged for them once they connect.
+    [SlackActionType.SubmitPageSomeone, "page someone", "/oneuptime page"],
   ])(
     "%s, with no command typed (a form's submission): asks to %s, then to run %s again",
     (actionType: SlackActionType, purpose: string, command: string) => {
@@ -277,6 +280,8 @@ describe("SlackConnectPrompt.describe", () => {
     [SlackActionType.NewIncident, "/oneuptime incident"],
     [SlackActionType.NewScheduledMaintenance, "/oneuptime maintenance"],
     [SlackActionType.ShowOnCall, "/oneuptime oncall"],
+    [SlackActionType.PageSomeone, "/oneuptime page"],
+    [SlackActionType.PageSomeone, "/irm page"],
     // An app created from an older manifest: run what it has.
     [SlackActionType.NewIncident, "/incident"],
     [SlackActionType.NewScheduledMaintenance, "/maintenance"],

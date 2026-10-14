@@ -106,7 +106,10 @@ import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
 import MicrosoftTeamsConnectPrompt from "./MicrosoftTeamsConnectPrompt";
 import { WorkspaceAnswer } from "../WorkspaceActionAnswers";
 import WorkspaceAiAnswerSources from "../WorkspaceAiAnswerSources";
-import { WorkspaceConnectRequestAgainKind } from "../WorkspaceConnectRequest";
+import {
+  WorkspaceConnectRequestAgainKind,
+  WorkspaceConnectRequestTeamsPlace,
+} from "../WorkspaceConnectRequest";
 import ProductBrandingText from "../../ProductBrandingText";
 import MicrosoftTeamsAlertActions from "./Actions/Alert";
 import MicrosoftTeamsAlertEpisodeActions from "./Actions/AlertEpisode";
@@ -116,6 +119,7 @@ import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMainte
 import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
 import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplicator";
 import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
+import MicrosoftTeamsPage from "./MicrosoftTeamsPage";
 import MicrosoftTeamsCommands, {
   MicrosoftTeamsListCommand,
 } from "./MicrosoftTeamsCommands";
@@ -347,6 +351,18 @@ const MICROSOFT_TEAMS_ROSTER_ERROR_FRAGMENTS: Array<string> = [
 
 // Maximum number of pages to fetch when paginating teams
 const MICROSOFT_TEAMS_MAX_PAGES: number = 500;
+
+// The most people of a team's roster read (MicrosoftTeamsUtil.getTeamRoster).
+export const MICROSOFT_TEAMS_MAX_ROSTER_MEMBERS: number = 10000;
+
+// One person of a team, as its roster tells them.
+export interface MicrosoftTeamsRosterMember {
+  // Their Microsoft Entra object id: what a tag's member is.
+  aadObjectId: string;
+  email: string;
+  userPrincipalName: string;
+  name: string;
+}
 
 // How many affected monitors a "show ..." reply names for one item.
 const MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES: number = 10;
@@ -1725,6 +1741,26 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
     }
 
+    /*
+     * A channel the message is not for: the one a note it repeats was
+     * saved from (WorkspaceMessagePayload.exceptChannelIds) - named here
+     * by its name too, so it is left out once the name is resolved.
+     */
+    const exceptChannelIds: Array<string> =
+      data.workspaceMessagePayload.exceptChannelIds || [];
+
+    if (exceptChannelIds.length > 0) {
+      for (
+        let index: number = workspaceChannelsToPostTo.length - 1;
+        index >= 0;
+        index--
+      ) {
+        if (exceptChannelIds.includes(workspaceChannelsToPostTo[index]!.id)) {
+          workspaceChannelsToPostTo.splice(index, 1);
+        }
+      }
+    }
+
     logger.debug("=== Starting message sending loop ===");
     logger.debug(
       `Total channels to post to: ${workspaceChannelsToPostTo.length}`,
@@ -2213,6 +2249,61 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         | Array<JSONObject>
         | undefined) || []
     );
+  }
+
+  /*
+   * A channel thread as a place to answer somebody in
+   * (WorkspaceConnectRequestTeamsPlace): the thread's conversation
+   * ("<channel>;messageid=<first message>"), the Bot Connector of the team
+   * it is in, the tenant, and the person, to mention. Null when Microsoft
+   * Teams is not set up for the project.
+   */
+  @CaptureSpan()
+  public static async getChannelThreadPlace(data: {
+    projectId: ObjectID;
+    teamId: string;
+    channelId: string;
+    parentMessageId: string;
+    // The person, by their Microsoft Entra object id, and their name.
+    userTeamsId?: string | undefined;
+    userName?: string | undefined;
+  }): Promise<WorkspaceConnectRequestTeamsPlace | null> {
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    const tenantId: string | undefined = projectAuth?.workspaceProjectId;
+
+    if (!projectAuth || !projectAuth.miscData || !tenantId) {
+      return null;
+    }
+
+    const miscData: MicrosoftTeamsMiscData =
+      projectAuth.miscData as MicrosoftTeamsMiscData;
+
+    const installedTeam: MicrosoftTeamsInstalledTeam | undefined =
+      this.indexInstalledTeamsByGraphTeamId(miscData.installedTeams)[
+        data.teamId
+      ];
+
+    const place: WorkspaceConnectRequestTeamsPlace = {
+      serviceUrl: MicrosoftTeamsServiceUrl.resolve(installedTeam?.serviceUrl),
+      conversationId: `${data.channelId};messageid=${data.parentMessageId}`,
+      conversationType: "channel",
+      tenantId: tenantId,
+    };
+
+    if (data.userTeamsId) {
+      place.userTeamsId = data.userTeamsId;
+    }
+
+    if (data.userName) {
+      place.userName = data.userName;
+    }
+
+    return place;
   }
 
   /*
@@ -3713,6 +3804,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
               projectId: projectId,
             });
             return;
+          case WorkspaceCommandName.Page:
+            /*
+             * "page @Nawaz <message>" pages at once; anything else opens
+             * the Page someone card. The people are read from the
+             * message's own mentions, which the text above has dropped.
+             */
+            await MicrosoftTeamsPage.handleCommand({
+              turnContext: data.turnContext,
+              activity: data.activity,
+              projectId: projectId,
+            });
+            return;
           case WorkspaceCommandName.Ask:
           case null:
             /*
@@ -5064,6 +5167,17 @@ All monitoring checks are passing normally.`;
           } as MicrosoftTeamsRequest,
           databaseProps,
         );
+        return;
+      }
+
+      // The Page someone card of "page", submitted.
+      if (MicrosoftTeamsPage.isPageAction(actionType)) {
+        await MicrosoftTeamsPage.handleSubmit({
+          turnContext: data.turnContext,
+          value: value,
+          projectId: projectId,
+          databaseProps: databaseProps,
+        });
         return;
       }
 
@@ -6469,6 +6583,101 @@ All monitoring checks are passing normally.`;
     }
 
     return index;
+  }
+
+  /*
+   * The people of a team OneUptime's app is installed in, as the Bot
+   * Connector tells them (the team's roster): each one's Microsoft Entra
+   * object id, email address and name. A tag can only hold a team's
+   * members, and this is how the on-call user group sync finds them by
+   * their OneUptime email address - without a Microsoft Graph permission to
+   * read people. Null when OneUptime does not know the app to be in the
+   * team, since only then can its bot read the roster. Throws when the Bot
+   * Connector refuses.
+   */
+  @CaptureSpan()
+  public static async getTeamRoster(data: {
+    projectId: ObjectID;
+    // The team's Microsoft Graph id.
+    teamId: string;
+  }): Promise<Array<MicrosoftTeamsRosterMember> | null> {
+    if (!MicrosoftTeamsAppClientId) {
+      return null;
+    }
+
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    const miscData: MicrosoftTeamsMiscData | undefined =
+      projectAuth?.miscData as MicrosoftTeamsMiscData | undefined;
+
+    const installedTeam: MicrosoftTeamsInstalledTeam | undefined =
+      this.indexInstalledTeamsByGraphTeamId(miscData?.installedTeams)[
+        data.teamId
+      ];
+
+    if (!projectAuth || !installedTeam || !installedTeam.teamsThreadId) {
+      return null;
+    }
+
+    const teamsThreadId: string = installedTeam.teamsThreadId;
+
+    const conversationReference: ConversationReference = {
+      bot: {
+        id: MicrosoftTeamsAppClientId,
+        name: "OneUptime Bot",
+      },
+      conversation: {
+        id: teamsThreadId,
+        isGroup: true,
+        conversationType: "channel",
+        tenantId: projectAuth.workspaceProjectId || undefined,
+      } as ConversationReference["conversation"],
+      channelId: "msteams",
+      serviceUrl: MicrosoftTeamsServiceUrl.resolve(installedTeam.serviceUrl),
+    };
+
+    const members: Array<TeamsChannelAccount> = [];
+
+    await this.getBotAdapter().continueConversationAsync(
+      MicrosoftTeamsAppClientId,
+      conversationReference,
+      async (context: TurnContext) => {
+        let continuationToken: string | undefined = undefined;
+
+        do {
+          const page: TeamsPagedMembersResult =
+            await TeamsInfo.getPagedTeamMembers(
+              context,
+              teamsThreadId,
+              500,
+              continuationToken,
+            );
+
+          members.push(...(page.members || []));
+          continuationToken = page.continuationToken || undefined;
+        } while (
+          continuationToken &&
+          members.length < MICROSOFT_TEAMS_MAX_ROSTER_MEMBERS
+        );
+      },
+    );
+
+    return members
+      .filter((member: TeamsChannelAccount): boolean => {
+        return Boolean(member?.aadObjectId);
+      })
+      .map((member: TeamsChannelAccount): MicrosoftTeamsRosterMember => {
+        return {
+          aadObjectId: member.aadObjectId!,
+          email: (member.email || "").trim(),
+          userPrincipalName: (member.userPrincipalName || "").trim(),
+          name: (member.name || "").trim(),
+        };
+      });
   }
 
   /*

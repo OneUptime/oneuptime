@@ -1,4 +1,11 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { TurnContext } from "botbuilder";
 import fs from "fs";
 import path from "path";
@@ -37,6 +44,7 @@ import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/M
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import ProjectService from "../../../Server/Services/ProjectService";
 
 jest.setTimeout(30_000);
 
@@ -141,6 +149,11 @@ const forgedInvokeBody: (action: string) => JSONObject = (
     },
   };
 };
+
+beforeEach(() => {
+  // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+});
 
 afterEach(() => {
   jest.restoreAllMocks();

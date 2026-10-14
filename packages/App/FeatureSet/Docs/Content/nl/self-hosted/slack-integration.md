@@ -143,7 +143,7 @@ Het manifest stelt deze functies in. Elke functie bereikt uw server via de getoo
 
 | Functie | Wat ze doet | Route |
 | --- | --- | --- |
-| `/oneuptime` | Een incident melden, onderhoud plannen, zien wie er dienst heeft en OneUptime AI vragen stellen; `/oneuptime help` toont alle commando's | `POST /api/slack/command` |
+| `/oneuptime` | Een incident melden, onderhoud plannen, zien wie er dienst heeft, iemand oproepen en OneUptime AI vragen stellen; `/oneuptime help` toont alle commando's | `POST /api/slack/command` |
 | De snelkoppelingen **Create New Incident** en **Create Scheduled Event** | Een incident melden of onderhoud plannen vanuit de snelkoppelingen van Slack | `POST /api/slack/interactive` |
 | Knoppen en formulieren in OneUptime-berichten | Bevestigen, oplossen, een notitie toevoegen, de status wijzigen, een on-callbeleid uitvoeren | `POST /api/slack/interactive` en `POST /api/slack/options-load` |
 | Events | Vermeldingen, berichten, reacties en pins, bijvoorbeeld om een bericht als notitie op te slaan | `POST /api/slack/events` |
@@ -154,9 +154,17 @@ Beschrijvingen van incidenten en meldingen kunnen screenshots bevatten, bijvoorb
 
 Hebt u uw Slack-app aangemaakt vanuit een ouder manifest, voeg dan `files:write` toe onder **OAuth & Permissions > Bot Token Scopes** (of werk de app bij vanuit het huidige manifest). Kies daarna opnieuw **Connect with Slack** in **Projectinstellingen > Werkruimte > Slack**, zodat de nieuwe scope wordt toegekend. Tot dan wordt elk screenshot getoond als de alternatieve tekst ervan.
 
+### Gebruikersgroepen voor bereikbaarheid
+
+Om de Slack-gebruikersgroep van een schema gelijk te houden aan wie er dienst heeft (zie [Gebruikersgroepen voor bereikbaarheid](/docs/workspace-connections/slack#gebruikersgroepen-voor-bereikbaarheid)), zijn de botscopes `usergroups:read` en `usergroups:write` nodig. Het gegenereerde manifest bevat die.
+
+Hebt u uw Slack-app aangemaakt vanuit een ouder manifest, voeg dan `usergroups:read` en `usergroups:write` toe onder **OAuth & Permissions > Bot Token Scopes** (of werk de app bij vanuit het huidige manifest). Kies daarna opnieuw **Connect with Slack** in **Projectinstellingen > Werkruimte > Slack**, zodat de nieuwe scopes worden toegekend. Tot dan zegt de kaart van het schema dat de Slack-app van OneUptime nog geen gebruikersgroepen mag wijzigen.
+
 ### Apps aangemaakt vanuit een ouder manifest
 
-Een Slack-app die vanuit een eerder OneUptime-manifest is aangemaakt, registreert `/incident` en `/maintenance` als eigen commando's, die kunnen botsen met gelijknamige commando's van andere apps. Ze blijven werken en openen dezelfde formulieren als `/oneuptime incident` en `/oneuptime maintenance`. Werk de app bij vanuit het manifest dat uw server genereert om ze door `/oneuptime` te vervangen: open op [api.slack.com/apps](https://api.slack.com/apps) het **App Manifest** van de app, plak het manifest en sla op. De scopes blijven gelijk, dus de app hoeft niet opnieuw te worden geïnstalleerd.
+Een Slack-app die vanuit een eerder OneUptime-manifest is aangemaakt, registreert `/incident` en `/maintenance` als eigen commando's, die kunnen botsen met gelijknamige commando's van andere apps. Ze blijven werken en openen dezelfde formulieren als `/oneuptime incident` en `/oneuptime maintenance`. Werk de app bij vanuit het manifest dat uw server genereert om ze door `/oneuptime` te vervangen: open op [api.slack.com/apps](https://api.slack.com/apps) het **App Manifest** van de app, plak het manifest en sla op.
+
+Een app die is aangemaakt vóór `/oneuptime page` heeft dezelfde update nodig: tot die er is, kan `/oneuptime page` niet zien wie u met @ noemt, en opent het een formulier om hen te kiezen in plaats van hen meteen op te roepen. Kies daarna opnieuw **Connect with Slack** in **Projectinstellingen > Werkruimte > Slack**, zodat de scope `users:read.email` die het manifest toevoegt wordt toegekend: daarmee wordt iemand van wie het Slack-account niet aan OneUptime is gekoppeld, gevonden via diens e-mailadres.
 
 ## Netwerktoegang voor zelf gehoste installaties
 

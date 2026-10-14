@@ -47,6 +47,21 @@ Ogni canale ha anche il proprio elenco nel menu laterale della pagina di stato, 
 
 **Un interruttore non basta.** La voce **Iscriviti** nella barra di navigazione della pagina di stato compare solo quando **Mostra pagina iscritti** è attivo *e* almeno un canale è attivo. Se attivate **E-mail** ma lasciate disattivato **Mostra pagina iscritti**, i visitatori non hanno modo di raggiungere il modulo.
 
+## Disattivare tutte le notifiche
+
+La prima scheda di **Impostazioni iscritti**, **Notifiche**, contiene **Invia notifiche agli iscritti** (`sendSubscriberNotifications`), attivo per impostazione predefinita, che si salva appena lo cambiate. Se è disattivato, la pagina di stato non invia nulla ai suoi iscritti: nessuna notifica di incidenti, episodi, manutenzione programmata o annunci, nessuna nota né post-mortem, e nessun report via email, qualunque cosa dicano i suoi canali e tipi di evento. I suoi iscritti vengono mantenuti, e i visitatori possono ancora iscriversi finché la pagina **Iscriviti** e un canale sono attivi; un nuovo iscritto email riceve comunque l'email che conferma l'iscrizione. Nulla viene trattenuto per essere inviato più tardi: quando lo riattivate, la pagina avvisa i suoi iscritti di ciò che succede da quel momento in poi.
+
+Finché è disattivato, la parte alta di ogni elenco di iscritti lo dice, con un link per tornare a **Impostazioni iscritti**. Il riepilogo di chi verrà avvisato, su un incidente o una nota pubblica, indica la pagina come una che non invia notifiche ai suoi iscritti, e il messaggio di stato di una notifica e la sua voce nel feed dicono perché la pagina è stata saltata. L'interruttore funziona su tutti i piani. Un report di prova inviato a un indirizzo che digitate parte comunque.
+
+## Chi può iscriversi
+
+La scheda **Chi può iscriversi**, anch'essa in **Impostazioni iscritti**, riserva le notifiche di una pagina alle persone a cui è destinata:
+
+- **Solo gli utenti privati possono iscriversi** (`limitSubscribersToPrivateUsers`), disattivato per impostazione predefinita, si salva appena lo cambiate. Se è attivo, solo gli [utenti privati](/docs/status-pages/index#utenti-privati) della pagina, che siano stati aggiunti a mano, abbiano effettuato l'accesso con SSO o siano stati forniti tramite SCIM, possono iscriversi, via email, con l'indirizzo con cui accedono. La pagina **Iscriviti** compila quell'indirizzo, non permette di cambiarlo e non offre altri canali. Il vostro team può aggiungere solo l'indirizzo di un utente privato, e nessun iscritto SMS, Slack, Microsoft Teams o webhook. Un iscritto il cui indirizzo ora non è quello di un utente privato della pagina (uno aggiunto prima che lo attivaste, o un lettore rimosso da allora, a mano o tramite SCIM) non riceve nulla e non viene contato. Una pagina pubblica non prevede l'accesso, quindi finché è attivo, lì solo il vostro team può aggiungere iscritti.
+- **Domini email consentiti** (`allowedSubscriberEmailDomains`) contiene i domini a cui può appartenere l'indirizzo di un iscritto email, uno per riga, come `acme.com`. Corrisponde anche un indirizzo su un sottodominio (`eu.acme.com` per `acme.com`), ma non uno che termina solo con le stesse lettere (`evilacme.com`). Le iscrizioni e le aggiunte su qualsiasi altro dominio vengono rifiutate, e a un iscritto email già su un altro dominio non viene inviato nulla. Lasciatelo vuoto per consentire qualsiasi dominio. Gli iscritti SMS, Slack, Microsoft Teams e webhook non hanno un dominio e non sono interessati. Digitate l'elenco e scegliete **Salva domini**: una voce che non è un dominio viene segnalata prima che si salvi qualsiasi cosa, e l'elenco viene salvato in minuscolo, un dominio per riga, fino a 100 domini.
+
+Nessuna delle due impostazioni elimina un iscritto, e disattivandole si torna a inviare a tutti. Su OneUptime Cloud, attivare l'una o l'altra richiede il piano **Scale**; disattivarle funziona su tutti i piani.
+
 ## Che cosa vede un visitatore nella pagina di iscrizione
 
 La pagina **Iscriviti** ha un sottomenu con una scheda per ogni canale attivo. Ogni scheda chiede il minimo indispensabile:

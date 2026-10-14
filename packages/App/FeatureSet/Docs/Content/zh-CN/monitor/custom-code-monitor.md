@@ -215,7 +215,7 @@ return {
 - Greater Than、Less Than 和其他数值条件只匹配数字，因此请把字段返回为 `42`，而不是 `"42"`。是和否只匹配布尔值。
 - 返回数据中不存在的字段（缺失的键，或超出数组末尾的索引）按空值比较：**Is Empty** 会匹配它，其他条件都不会。
 - 名称中包含点号的字段无法通过路径访问。
-- 在 Terraform 中，过滤器的 `custom_code_monitor_options` 用于设置字段路径：请参阅 [监控步骤](/docs/terraform/monitor-steps#comparing-one-field-of-a-scripts-result)。
+- 在 Terraform 中，过滤器的 `custom_code_monitor_options` 用于设置字段路径：请参阅 [监控步骤](/docs/terraform/monitor-steps#比较脚本结果中的某个字段)。
 
 ## 脚本中可用的模块
 

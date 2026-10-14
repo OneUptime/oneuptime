@@ -6,6 +6,7 @@ Koble OneUptime til Slack for å publisere hendelser, varsler, episoder, planlag
 - [Koble til Slack](#koble-til-slack): Installer OneUptime i workspacet ditt, og koble deretter til din egen konto.
 - [Varslingsregler](#varslingsregler): Bestem hvilke hendelser som publiseres hvor, og hvilke som får sin egen kanal.
 - [Kommandoen /oneuptime](#kommandoen-oneuptime): Erklær hendelser, planlegg vedlikehold, se hvem som har vakt, og spør AI.
+- [Vakt-brukergrupper](#vakt-brukergrupper): Hold en brukergruppe lik dem som har vakt, og tilkall den.
 - [Handle på hendelser, varsler og begivenheter fra Slack](#handle-på-hendelser-varsler-og-begivenheter-fra-slack): Knappene i meldingene fra OneUptime.
 :::
 
@@ -123,7 +124,11 @@ Reager på en melding i kanalen til en hendelse, et varsel, en episode eller en 
 | 📌 En tegnestift-emoji, eller Slacks egen **Pin to channel** | Et privat notat, som bare teamet ditt ser |
 | 📢 En megafon- eller høyttaler-emoji | Et offentlig notat, vist på statussiden. Bare hendelser og planlagte vedlikeholdsbegivenheter. |
 
-Notatet lagres som deg, med dine tillatelser, så din egen Slack-konto må være koblet til. En melding lagres bare én gang, uansett hvor mange som reagerer.
+Notatet beholder meldingen slik Slack viste den: formateringen, lenkene og koden, personene og kanalene den nevner, ved navn, og filene og bildene som lenker til dem. Et offentlig notat utelater filene og bildene, siden de bare åpnes for teamet ditt.
+
+Det er ordene til den som skrev meldingen: OneUptime-navnet deres når Slack-kontoen deres er koblet til, ellers navnet Slack viser. Et privat notat plasseres på tidslinjen der meldingen ble lagt ut, uansett hvor lenge etterpå det lagres. Et offentlig notat plasseres når det lagres, altså når statussiden viser det. Tidslinjen sier hvem som lagret det. Notatet legges ikke ut igjen i kanalen, der meldingen allerede står.
+
+Notatet lagres som deg, med dine tillatelser. Hvis Slack-kontoen din ikke er koblet til ennå, ber OneUptime deg koble den til, i en melding bare du ser, med en knapp som lagrer meldingen så snart du har gjort det. En melding lagres bare én gang, uansett hvor mange som reagerer.
 
 ## Kommandoen /oneuptime
 
@@ -135,6 +140,7 @@ OneUptime har én kommando i Slack, `/oneuptime`. Ordet du skriver etter den, si
 | `/oneuptime incident [title]` | Åpner hendelsesskjemaet med tittelen fylt ut. |
 | `/oneuptime maintenance [title]` | Åpner skjemaet for planlagt vedlikehold med tittelen fylt ut. |
 | `/oneuptime oncall` | Viser hvem som har vakt akkurat nå i hver vaktplan du kan se, til når, og hvem som er neste. |
+| `/oneuptime page [who] [message]` | Tilkaller personene du nevner med @, om meldingen din, eller åpner et skjema der du velger hvem som skal tilkalles. Se [Tilkall noen fra Slack](#tilkall-noen-fra-slack). |
 | `/oneuptime ask [question]`, eller et hvilket som helst spørsmål | OneUptime AI svarer om logger, traces, målinger, hendelser og monitorer. |
 
 Svarene på `help` og `oncall` er meldinger bare du ser, under kommandoen. Et første ord som ligner en feilstavet kommando, som `incidnet`, får kommandoen det ligner, ikke et svar fra OneUptime AI. Skjemaene for hendelser og vedlikehold handler som deg: se [Opprett hendelser og vedlikehold fra Slack](#opprett-hendelser-og-vedlikehold-fra-slack).
@@ -161,6 +167,36 @@ OneUptime svarer bare på det som er rettet til den.
 - **Hva et skjema kan nevne.** Hendelsen eller begivenheten opprettes med dine egne tillatelser og krediteres deg. En monitor, vaktpolicy, etikett, alvorlighetsgrad eller status du ikke kan lese, eller en fra et annet prosjekt, avvises som en prosjektet ikke har, selv fra et skjema som ble åpnet før tilgangen din endret seg, og ingenting opprettes. OneUptime forteller deg hvorfor i kanalen, i en melding bare du ser.
 
 **Execute On-Call Policy** på en hendelse, et varsel eller en episode fungerer på samme måte: den krever tillatelse til å kjøre en vaktpolicy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member**, eller **Create On-Call Duty Policy Execution Log** i en egendefinert rolle) og til å lese den hendelsen, det varselet eller den episoden, og den tilbyr de aktive vaktpolicyene du kan lese.
+
+## Tilkall noen fra Slack
+
+`/oneuptime page @nawaz The checkout API is throwing 500s` tilkaller Nawaz med en gang. OneUptime oppretter et varsel med meldingen din som tittel, og hver person du nevner med @, får en telefonsamtale, en SMS, en pushvarsling eller en e-post, slik vedkommendes egne vaktregler sier, til noen bekrefter varselet.
+
+- **Hvem som tilkalles med en gang.** Personene du nevner med @, og dem som har vakt i vaktplanene en brukergruppe du nevner med @, følger (se [Vakt-brukergrupper](#vakt-brukergrupper)), når en melding følger etter dem. OneUptime kjenner igjen en person på OneUptime-kontoen vedkommendes Slack-konto er koblet til, eller ellers på e-postadressen Slack har for vedkommende. Ingen utenfor prosjektet tilkalles.
+- **Alt annet åpner et skjema.** Uten noen nevnt med @, uten melding, med `@here`, med en brukergruppe som ikke følger noen vaktplan du kan se, eller med en person OneUptime ikke kjenner igjen, åpnes skjemaet **Page someone** med det du skrev ferdig utfylt, og det sier hvem det ikke kunne velge. Velg personer, et team, en vaktplan, som tilkaller den som har vakt i den nå, eller en vaktpolicy, som tilkaller gjennom eskaleringsreglene sine, og send det inn. Et navn du skriver først, som i `/oneuptime page Primary The disk is full`, velger vaktplanen, teamet eller policyen med det navnet.
+- **Hvor det vises.** Kanalen viser tilkallingen som én melding som holdes oppdatert: hvem som ble tilkalt og hvordan, og hvem som bekreftet. Der OneUptime ikke kan poste, for eksempel i en privat kanal den ikke er invitert til, sier en melding bare du ser hvem som ble tilkalt, med en lenke til varselet.
+- **Hvem som kan tilkalle.** Alle som både kan kjøre en vaktpolicy og opprette et varsel: **Project Owner**, **Project Admin** og **Project Member**, eller **On-Call Member** sammen med **Alert Member** (**Create On-Call Duty Policy Execution Log** og **Create Alert** i en egendefinert rolle). Å tilkalle personer, et team eller en vaktplan direkte, uten en vaktpolicy bak tilkallingen, krever også tilgang til alle vaktpolicyene i prosjektet. Alle andre får beskjed om det der de kjørte kommandoen, og ingen tilkalles.
+
+## Vakt-brukergrupper
+
+Hold en Slack-brukergruppe, for eksempel `@payments-oncall`, lik dem som har vakt i én eller flere vaktplaner, slik at alle kan nevne den med @ for å nå dem. OneUptime endrer medlemmene i gruppen ved hver overlevering og hver overstyring, og sjekker den hvert 15. minutt.
+
+:::steps
+### Koble en brukergruppe til en vaktplan
+
+Åpne vaktplanen under **Vakttjeneste** > **Vaktplaner**. Klikk **Koble til brukergruppe** i kortet **Slack-brukergrupper**, og velg en av brukergruppene i arbeidsområdet ditt, eller **Opprett en ny brukergruppe** med et navn og et alias. Medlemmene byttes straks ut med dem som har vakt.
+
+### Koble den også til den sekundære vaktplanen
+
+For en gruppe med både primær og sekundær vakt kobler du den samme gruppen til på siden til den sekundære vaktplanen. En gruppe kan følge så mange vaktplaner du vil.
+:::
+
+- **Hva kortet viser.** Hvem som er i hver gruppe nå, de andre vaktplanene den følger, og om den er **Oppdatert**. En som har vakt, men ikke kan legges i gruppen, nevnes med årsaken: OneUptime finner en person gjennom den tilkoblede Slack-kontoen, eller ellers gjennom e-postadressen Slack har for vedkommende, og Slack holder gjester utenfor brukergrupper.
+- **Ingen har vakt.** Slack kan ikke beholde en brukergruppe uten medlemmer, så OneUptime slår av gruppen til noen har vakt, og slår den så på igjen.
+- **Tilkall gruppen.** `/oneuptime page @payments-oncall The checkout API is down` tilkaller dem som har vakt i vaktplanene gruppen følger. Se [Tilkall noen fra Slack](#tilkall-noen-fra-slack).
+- **Hva Slack krever.** Brukergrupper hører til de betalte abonnementene til Slack, og et arbeidsområde kan la bare eierne og administratorene endre dem: kortet sier hvilket, og hva du gjør. Hvis Slack ble koblet til før OneUptime kunne holde brukergrupper oppdatert, kobler du det til igjen én gang under **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**.
+- **Hvem som kan koble til en.** Rollene som kan redigere vaktplaner: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en egendefinert rolle. På OneUptime Cloud krever det abonnementet **Growth** å koble til en.
+- **Koble fra.** OneUptime slutter å endre gruppen. Gruppen og medlemmene blir værende i Slack som de er.
 
 ## Handle på hendelser, varsler og begivenheter fra Slack
 

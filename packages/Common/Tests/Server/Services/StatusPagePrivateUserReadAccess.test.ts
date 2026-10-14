@@ -111,17 +111,59 @@ describe("private status page access requires a live session", () => {
     expect(await hasAccess()).toBe(true);
     expect(addSignInRule).toHaveBeenLastCalledWith(query, {
       requiresSso: true,
+      sessionLengthInHours: undefined,
     });
 
     statusPage.requireSsoForLogin = false;
     expect(await hasAccess()).toBe(true);
     expect(addSignInRule).toHaveBeenLastCalledWith(query, {
       requiresSso: false,
+      sessionLengthInHours: undefined,
     });
 
     // The provider tables are joined into the one session read.
     expect(query.leftJoin).toHaveBeenCalled();
     expect(getOne).toHaveBeenCalledTimes(2);
+  });
+
+  test("reads the session within the page's Sign Readers Out After", async () => {
+    /*
+     * A session counts only while fewer hours than the page's limit have
+     * passed since it signed in (StatusPagePrivateUserSessionLength.test.ts,
+     * and against Postgres in StatusPagePrivateUserSessionLengthPostgres).
+     */
+    const addSignInRule: jest.SpyInstance = jest.spyOn(
+      StatusPagePrivateUserSessionService,
+      "addSignInRule",
+    );
+    const pageRead: jest.SpyInstance = jest.spyOn(
+      StatusPageService,
+      "findOneById",
+    );
+
+    statusPage.privateUserSessionLengthInHours = 12;
+    expect(await hasAccess()).toBe(true);
+    expect(addSignInRule).toHaveBeenLastCalledWith(query, {
+      requiresSso: false,
+      sessionLengthInHours: 12,
+    });
+    expect(query.andWhere).toHaveBeenCalledWith(
+      "session.createdAt > NOW() - make_interval(hours => CAST(:sessionLengthInHours AS integer))",
+      { sessionLengthInHours: 12 },
+    );
+
+    // The page is read with the limit, in the read that decides access.
+    expect(pageRead).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          privateUserSessionLengthInHours: true,
+        }),
+      }),
+    );
+
+    // Past the limit the read finds no session, and access is refused.
+    getOne.mockResolvedValue(null);
+    expect(await hasAccess()).toBe(false);
   });
 
   test("does not cache successful authorization after revocation or deletion", async () => {

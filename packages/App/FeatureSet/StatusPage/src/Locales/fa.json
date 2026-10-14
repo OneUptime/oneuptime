@@ -151,7 +151,9 @@
       "placeholder": "subscriber@company.com",
       "managePrompt": "لطفاً ایمیلی که با آن عضو شده‌اید را وارد کنید",
       "manageDescription": "لینک مدیریت عضویت را به این ایمیل ارسال خواهیم کرد.",
-      "managePlaceholder": "email@yourcompany.com"
+      "managePlaceholder": "email@yourcompany.com",
+      "signedInEmailDescription": "شما با نشانی ایمیلی که با آن وارد می‌شوید مشترک می‌شوید.",
+      "signInToSubscribe": "برای اشتراک در این صفحه وضعیت، وارد آن شوید."
     },
     "sms": {
       "title": "عضویت با پیامک",

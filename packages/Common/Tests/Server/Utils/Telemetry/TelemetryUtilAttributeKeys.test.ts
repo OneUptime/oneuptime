@@ -16,8 +16,9 @@ jest.mock("../../../../Server/Services/DatabaseService", () => {
    * `class {}` therefore passes locally and dies in CI the moment this test's
    * import graph reaches one of those services, with a suite-level
    * "hardDeleteItemsOlderThanInDays is not a function" and no failing test to
-   * point at. Anything genuinely used by the code under test belongs in the
-   * test's own mocks, not here.
+   * point at. The state timeline services also call `keepRowsOnDeleteByQuery`
+   * from their constructors, always. Anything genuinely used by the code under
+   * test belongs in the test's own mocks, not here.
    */
   return {
     __esModule: true,
@@ -28,6 +29,10 @@ jest.mock("../../../../Server/Services/DatabaseService", () => {
 
       public setDoNotAllowDelete(): void {
         // no-op: delete-permission config, same.
+      }
+
+      public keepRowsOnDeleteByQuery(): void {
+        // no-op: the rows a delete by query keeps, config too.
       }
     },
   };

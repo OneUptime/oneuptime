@@ -2,6 +2,7 @@ import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
+import { attributeValuesSkipIndex } from "../../Types/AnalyticsDatabase/AttributeValueIndex";
 import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
@@ -530,6 +531,14 @@ export default class Span extends AnalyticsBaseModel {
       defaultValue: {},
       type: TableColumnType.MapStringString,
       mapKeysColumn: "attributeKeys",
+      /*
+       * A bloom filter over every attribute VALUE, for the same reason as
+       * Log's: a trace search for one value (`@http.route:/orders`, a
+       * clicked facet chip) skips the granules that hold no such value
+       * instead of decompressing the whole map for every span in the time
+       * range. See AttributeValueIndex.
+       */
+      skipIndex: attributeValuesSkipIndex(),
       accessControl: {
         read: [
           Permission.ProjectOwner,

@@ -7,6 +7,7 @@ import IncidentFeed, {
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
+import getSavedChatMessageFeedAuthor from "Common/UI/Components/Feed/SavedChatMessageFeedAuthor";
 import IconProp from "Common/Types/Icon/IconProp";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -193,7 +194,16 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       key: incidentFeed.id!.toString(),
       textInMarkdown: feedItemMarkdown.textInMarkdown,
       moreTextInMarkdown: feedItemMarkdown.moreTextInMarkdown,
-      user: incidentFeed.user,
+      /*
+       * A note saved from a chat message is led by the message's author;
+       * the row's user only saved it (SavedChatMessageFeedAuthor).
+       */
+      ...getSavedChatMessageFeedAuthor({
+        savedFromChatMessage: incidentFeed.savedFromChatMessage,
+        user: incidentFeed.user,
+      }),
+      // A change no person made, by a project API key: the key's name then.
+      apiKeyName: incidentFeed.user ? undefined : incidentFeed.apiKeyName,
       itemDateTime: incidentFeed.postedAt || incidentFeed.createdAt!,
       color: getFeedEntryColor({
         kind: kind,
@@ -240,8 +250,10 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             email: true,
             profilePictureId: true,
           },
+          apiKeyName: true,
           incidentFeedEventType: true,
           postedAt: true,
+          savedFromChatMessage: true,
         },
         skip: 0,
         sort: {

@@ -227,6 +227,7 @@
       "plan": "{{name}} - Tarif enthält keine MCP-Clients",
       "sso": "{{name}} - zuerst mit Single Sign-On anmelden",
       "blocked": "{{name}} - von Ihrem Administrator nicht erlaubt",
+      "project-blocked": "{{name}} - das Projekt wurde gesperrt",
       "not-a-member": "{{name}} - Sie sind kein Mitglied"
     },
     "noProjects": "Sie gehören noch keinem Projekt an. Erstellen Sie ein Projekt oder treten Sie einem bei und verbinden Sie Ihren MCP-Client anschließend erneut.",

@@ -1,3 +1,4 @@
+import { JSONObject } from "../../Types/JSON";
 import Incident from "./Incident";
 import IncidentState from "./IncidentState";
 import Project from "./Project";
@@ -859,4 +860,37 @@ export default class IncidentPublicNote extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public postedWithIncidentStateId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentPublicNote,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Saved From Chat Message",
+    description:
+      "When this note was saved from a Slack or Microsoft Teams message - pinned, or given a note emoji - the chat it was posted in (workspaceType), who wrote it (authorName, and authorUserId when their chat account is connected to OneUptime) and when it was posted there (postedAt). Written by OneUptime; the note's creator is whoever saved it.",
+    required: false,
+    example: {
+      workspaceType: "Slack",
+      authorName: "Aidil Rahman",
+      authorUserId: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+      postedAt: "2026-10-08T10:07:00.000Z",
+    },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public savedFromChatMessage?: JSONObject = undefined;
 }

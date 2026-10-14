@@ -342,6 +342,8 @@ function expectReadAsTheMember(reads: Array<ListRead>): void {
 }
 
 beforeEach((): void => {
+  // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   // The project's plan, as the checks read it where a plan decides (CallerPlan).
   jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
     plan: PlanType.Enterprise,

@@ -32,6 +32,11 @@ export enum IncidentSubscriberAudienceExclusionReason {
   // The page does not show incidents at all (Show Incidents is off).
   HidesIncidents = "HidesIncidents",
   /*
+   * The page sends its subscribers nothing (Send Notifications to
+   * Subscribers is off, Types/StatusPage/SubscriberNotificationsSwitch).
+   */
+  NotificationsOff = "NotificationsOff",
+  /*
    * Asked for a Retry of the incident's 'created' notification only: the
    * page was already sent it in full (Incident.statusPagesNotifiedOnCreation),
    * and Retry resumes after it.

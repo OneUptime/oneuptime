@@ -1,6 +1,6 @@
 /*
- * The integration pages docs overhaul tasks 28a and 28b rewrote, by the
- * paths their suites name them with, and the words they keep as the
+ * The integration pages docs overhaul tasks 28a, 28b and 28c rewrote, by
+ * the paths their suites name them with, and the words they keep as the
  * products write them.
  *
  * IntegrationsDocsFacts holds the English pages to the product, and
@@ -34,10 +34,31 @@ export const SENTINEL: string = "integrations/microsoft-sentinel";
 export const DEFENDER: string = "integrations/microsoft-defender-xdr";
 export const CROWDSTRIKE: string = "integrations/crowdstrike-falcon";
 
+// Task 28c: the other four Security Events connections.
+export const SPLUNK: string = "integrations/splunk";
+export const ELASTIC: string = "integrations/elastic-security";
+export const AWS_SECURITY_HUB: string = "integrations/aws-security-hub";
+export const OKTA: string = "integrations/okta";
+
+// Task 28c: issues opened in GitHub and GitLab, and the chat steps.
+export const GITHUB: string = "integrations/github";
+export const GITLAB: string = "integrations/gitlab";
+export const DISCORD: string = "integrations/discord";
+export const TELEGRAM: string = "integrations/telegram";
+
+/*
+ * The IRC page, which has suites of its own (IrcIntegrationDocs): named
+ * here for the checks that read every integrations page, and for the tab
+ * labels the Discord and Telegram pages word as it does.
+ */
+export const IRC: string = "integrations/irc";
+
 /*
  * The pages these tasks rewrote, in nav order: task 28a's are the first
  * seven links of the Integrations group, and task 28b's follow, with
  * Huntress, which has suites of its own, between Datadog and Google SecOps.
+ * Task 28c's come after CrowdStrike Falcon, and IRC, which has suites of
+ * its own too, is the group's last link.
  */
 export const INTEGRATIONS_PAGES: ReadonlyArray<IntegrationsDocsPageEntry> = [
   { page: OVERVIEW, navTitle: "Integrations Overview" },
@@ -54,6 +75,14 @@ export const INTEGRATIONS_PAGES: ReadonlyArray<IntegrationsDocsPageEntry> = [
   { page: SENTINEL, navTitle: "Microsoft Sentinel" },
   { page: DEFENDER, navTitle: "Microsoft Defender XDR" },
   { page: CROWDSTRIKE, navTitle: "CrowdStrike Falcon" },
+  { page: SPLUNK, navTitle: "Splunk Enterprise Security" },
+  { page: ELASTIC, navTitle: "Elastic Security" },
+  { page: AWS_SECURITY_HUB, navTitle: "AWS Security Hub" },
+  { page: OKTA, navTitle: "Okta System Log" },
+  { page: GITHUB, navTitle: "GitHub" },
+  { page: GITLAB, navTitle: "GitLab" },
+  { page: DISCORD, navTitle: "Discord" },
+  { page: TELEGRAM, navTitle: "Telegram" },
 ];
 
 // How many of the Integrations nav group's first links are task 28a's pages.
@@ -66,13 +95,23 @@ export const ALERTING_PAGES: ReadonlyArray<string> = [
   DATADOG,
 ];
 
-// The Security Events connections' pages.
+// The Security Events connections' pages: one for every connector.
 export const SECURITY_CONNECTION_PAGES: ReadonlyArray<string> = [
   GOOGLE_SECOPS,
   SENTINEL,
   DEFENDER,
   CROWDSTRIKE,
+  SPLUNK,
+  ELASTIC,
+  AWS_SECURITY_HUB,
+  OKTA,
 ];
+
+// The pages of a workflow that opens an issue for every incident.
+export const ISSUE_PAGES: ReadonlyArray<string> = [GITHUB, GITLAB];
+
+// The pages of a chat step, built from a template or from scratch.
+export const CHAT_STEP_PAGES: ReadonlyArray<string> = [DISCORD, TELEGRAM];
 
 /*
  * What a workflow step defines itself, named on the page: a step's title,
@@ -115,6 +154,26 @@ const INBOUND_WORKFLOW_STEPS: ReadonlyArray<string> = [
   "Incident Template",
   "JSON Object",
   "No",
+];
+
+/*
+ * The steps of the workflow the GitHub and GitLab pages build: an On Create
+ * Incident trigger and an API Post (JSON) block, and the If / Else block and
+ * the API block's outputs their tips and troubleshooting name.
+ */
+const ISSUE_WORKFLOW_STEPS: ReadonlyArray<string> = [
+  "On Create Incident",
+  "Fields to pass on",
+  "API Post (JSON)",
+  "Success",
+  "URL",
+  "Request Headers",
+  "Request Body",
+  "If / Else",
+  "Yes",
+  "Error",
+  "Response Status",
+  "Response Body",
 ];
 
 export const STEP_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
@@ -240,13 +299,43 @@ export const STEP_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
   [ALERTMANAGER]: INBOUND_WORKFLOW_STEPS,
   [GRAFANA]: INBOUND_WORKFLOW_STEPS,
   [DATADOG]: INBOUND_WORKFLOW_STEPS,
+  [GITHUB]: ISSUE_WORKFLOW_STEPS,
+  [GITLAB]: ISSUE_WORKFLOW_STEPS,
+  [DISCORD]: [
+    "Send Message to Discord",
+    "Message Text",
+    "Success",
+    "Error",
+    "Log",
+    "On Create Incident",
+    "Fields to pass on",
+    "Discord Incoming Webhook URL",
+    "On Update Incident",
+    "On Create Alert",
+    "If / Else",
+  ],
+  [TELEGRAM]: [
+    "Send Message to Telegram",
+    "Message Text",
+    "Success",
+    "Error",
+    "Log",
+    "Telegram Bot Token",
+    "On Create Alert",
+    "Fields to pass on",
+    "Chat ID",
+    "On Create Incident",
+    "On Update Incident",
+    "If / Else",
+  ],
 };
 
 /*
- * The names of the Jira and Dynamics 365 templates, and the settings their
- * create wizard asks for, as the picker and the wizard show them. The
- * Dashboard shows them in English in every language, so the pages keep
- * them as written. The facts suite holds each to the templates.
+ * The names of the Jira, Dynamics 365, Discord and Telegram templates, the
+ * names of the workflows they create, and the settings their create wizard
+ * asks for, as the picker and the wizard show them. The Dashboard shows
+ * them in English in every language, so the pages keep them as written.
+ * The facts suites hold each to the templates.
  */
 export const TEMPLATE_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
   [JIRA]: [
@@ -274,6 +363,16 @@ export const TEMPLATE_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "OneUptime URL",
     "Create a Dynamics 365 case when an incident is declared",
     "Declare an incident when a Dynamics 365 case is created",
+  ],
+  [DISCORD]: [
+    "Tell Discord when an incident opens",
+    "Notify Discord on new incident",
+    "Discord Webhook URL",
+  ],
+  [TELEGRAM]: [
+    "Tell Telegram when an alert fires",
+    "Notify Telegram on new alert",
+    "Telegram Chat ID",
   ],
 };
 
@@ -501,6 +600,48 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Endpoint security → Endpoint detections",
     "Next-Gen SIEM → Alerts",
   ],
+  // Splunk Web's token settings.
+  [SPLUNK]: [
+    "Settings → Tokens",
+    "Enable Token Authentication",
+    "New Token",
+    "User",
+    "Audience",
+    "Expiration",
+    "Create",
+  ],
+  // Kibana.
+  [ELASTIC]: ["Stack Management → API keys", "Create API key", "Base64"],
+  // The AWS console: Security Hub and IAM.
+  [AWS_SECURITY_HUB]: [
+    "Security Hub → Settings → Regions",
+    "Policies → Create policy",
+    "JSON",
+    "Users → Create user",
+    "Security credentials → Access keys → Create access key",
+    "Third-party service",
+  ],
+  // The Okta Admin Console.
+  [OKTA]: [
+    "Admin Console",
+    "Security → API",
+    "Tokens",
+    "Create token",
+    "Any IP",
+    "Token Value",
+  ],
+  // A fine-grained token's permission, as GitHub's settings name it.
+  [GITHUB]: ["Issues", "Read and write"],
+  // A GitLab project's overview and settings.
+  [GITLAB]: ["Copy project ID", "Settings → Access tokens"],
+  // A Discord channel's settings and permissions.
+  [DISCORD]: [
+    "Manage Webhooks",
+    "Edit Channel",
+    "Integrations → Webhooks",
+    "New Webhook",
+    "Copy Webhook URL",
+  ],
 };
 
 /*
@@ -607,6 +748,70 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Poll scheduler",
       "Security event storage",
     ],
+    /*
+     * The connection form's switch to remove a stored secret is drawn from
+     * the setting's title, in English like the setting itself.
+     */
+    [SPLUNK]: [
+      "Splunk Enterprise Security",
+      "Authentication token",
+      "Splunk management URL",
+      "Remove the stored Authentication token",
+      "Remove the stored Password",
+      "Catching up",
+      "Preview notable events",
+      "Authenticate with Splunk",
+      "Run the search on Splunk",
+      "Notable events available to import",
+      "Background workers",
+      "Poll scheduler",
+      "Security event storage",
+    ],
+    [ELASTIC]: [
+      "Elastic Security",
+      "Kibana URL",
+      "Kibana space",
+      "Catching up",
+      "Preview alerts",
+      "Authenticate with Kibana",
+      "Read detection alerts",
+      "Alerts available to import",
+      "Background workers",
+      "Poll scheduler",
+      "Security event storage",
+    ],
+    [AWS_SECURITY_HUB]: [
+      "Access key ID",
+      "Secret access key",
+      "AWS Security Hub",
+      "Session token",
+      "Remove the stored Session token",
+      "Catching up",
+      "Preview findings",
+      "Authenticate with AWS",
+      "Read findings",
+      "Findings available to import",
+      "Background workers",
+      "Poll scheduler",
+      "Security event storage",
+    ],
+    [OKTA]: [
+      "Okta System Log",
+      "API token",
+      "Okta organization URL",
+      "Event filter",
+      "Catching up",
+      "Preview log events",
+      "Authenticate with Okta",
+      "Read System Log events",
+      "Events available to import",
+      "Background workers",
+      "Poll scheduler",
+      "Security event storage",
+    ],
+    // The button that inserts a value into a step's setting: a symbol.
+    [DISCORD]: ["{ }"],
+    [TELEGRAM]: ["{ }"],
   };
 
 // The plans the pages name: the Dashboard shows a plan's name as written.
@@ -616,6 +821,10 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
   [SERVICENOW]: ["Growth"],
   [JIRA]: ["Growth"],
   [DYNAMICS]: ["Growth"],
+  [GITHUB]: ["Growth"],
+  [GITLAB]: ["Growth"],
+  [DISCORD]: ["Growth"],
+  [TELEGRAM]: ["Growth"],
 };
 
 /*
@@ -801,6 +1010,83 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Correlation.",
     "Detection rules.",
     "Monitors.",
+  ],
+  [SPLUNK]: [
+    "Creation time is the cursor.",
+    "The first poll looks back 24 hours",
+    "Every later poll starts 1 minute before the saved cursor",
+    "A poll reads at most 24 hours past the cursor.",
+    "Duplicates are dropped by `event_id`",
+    "Narrow.",
+    "Grow back.",
+    "Move past a single minute.",
+    "Search.",
+    "Correlation.",
+    "Detection rules.",
+    "Monitors.",
+  ],
+  [ELASTIC]: [
+    "Creation time is the cursor.",
+    "The first poll looks back 24 hours",
+    "Every later poll starts 1 minute before the saved cursor",
+    "A poll reads at most 24 hours past the cursor.",
+    "Duplicates are dropped by the alert's `_id`",
+    "Narrow.",
+    "Grow back.",
+    "Move past a single minute.",
+    "Search.",
+    "Correlation.",
+    "Detection rules.",
+    "Monitors.",
+  ],
+  [AWS_SECURITY_HUB]: [
+    "Creation time is the cursor.",
+    "The first poll looks back 24 hours",
+    "Every later poll starts 30 minutes before the saved cursor.",
+    "A poll reads at most 24 hours past the cursor.",
+    "Duplicates are dropped by the finding's `Id`",
+    "Narrow.",
+    "Grow back.",
+    "Move past a single minute.",
+    "Search.",
+    "Correlation.",
+    "Detection rules.",
+    "Monitors.",
+  ],
+  [OKTA]: [
+    "Publish time is the cursor.",
+    "The first poll looks back 24 hours",
+    "Every later poll starts 15 minutes before the saved cursor.",
+    "A poll reads at most 24 hours past the cursor.",
+    "Duplicates are dropped by `uuid`",
+    "Narrow.",
+    "Grow back.",
+    "Move past a single minute.",
+    "Search.",
+    "Correlation.",
+    "Detection rules.",
+    "Monitors.",
+  ],
+  [GITHUB]: ["GitHub Enterprise Server.", "Assign it.", "Only some incidents."],
+  [GITLAB]: [
+    "A GitLab of your own.",
+    "The project's path for its ID.",
+    "Assign it.",
+    "Only some incidents.",
+  ],
+  [DISCORD]: [
+    "outbound",
+    "Format with Discord's Markdown.",
+    "Mind the 2,000-character limit.",
+    "Post more than new incidents.",
+    "Only Discord's own addresses.",
+  ],
+  [TELEGRAM]: [
+    "outbound",
+    "Plain text.",
+    "Mind the 4,096-character limit.",
+    "Incidents too.",
+    "The token's shape is checked.",
   ],
 };
 

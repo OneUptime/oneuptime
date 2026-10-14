@@ -6,6 +6,7 @@ Koppel OneUptime aan Microsoft Teams om incidenten, waarschuwingen, episodes, ge
 - [Microsoft Teams koppelen](#microsoft-teams-koppelen): Beheerderstoestemming, je aanmelding en de app in elk team.
 - [Meldingsregels](#meldingsregels): Bepaal welke gebeurtenissen waar worden geplaatst, en welke een eigen kanaal krijgen.
 - [Praten met de OneUptime-bot](#praten-met-de-oneuptime-bot): Commando's, vragen en formulieren in een chat met de bot.
+- [Tags voor bereikbaarheid](#tags-voor-bereikbaarheid): Houd de tag van een team gelijk aan wie er dienst heeft, en roep die op.
 - [Handelen op incidenten, waarschuwingen en gebeurtenissen vanuit Microsoft Teams](#handelen-op-incidenten-waarschuwingen-en-gebeurtenissen-vanuit-microsoft-teams): De knoppen op de kaarten van OneUptime.
 :::
 
@@ -136,7 +137,11 @@ Reageer op een bericht, of een antwoord, in het kanaal dat OneUptime aanmaakte v
 | 📌 of 📍 | Een privénotitie, alleen zichtbaar voor je team |
 | 📣 of 📢 | Een openbare notitie, getoond op de statuspagina. Alleen incidenten en geplande onderhoudsgebeurtenissen. |
 
-De notitie wordt als jou opgeslagen, met jouw rechten, dus je eigen Microsoft Teams-account moet gekoppeld zijn, en de OneUptime-app moet in het team zitten.
+De notitie houdt het bericht zoals Microsoft Teams het liet zien: de opmaak, links en code, de personen die het noemt bij naam, en de bestanden en afbeeldingen als links ernaar. Een openbare notitie laat de bestanden en afbeeldingen weg, omdat die alleen voor je team opengaan.
+
+Het zijn de woorden van wie het bericht schreef: diens OneUptime-naam als diens Microsoft Teams-account gekoppeld is, anders de naam die Teams toont. Een privénotitie komt in de tijdlijn op het moment dat het bericht werd geplaatst, hoe lang daarna ze ook wordt opgeslagen. Een openbare notitie komt erin op het moment dat ze wordt opgeslagen, dus wanneer de statuspagina haar toont. De tijdlijn zegt wie haar opsloeg. De notitie wordt niet teruggeplaatst in het kanaal, waar het bericht al staat.
+
+De notitie wordt als jou opgeslagen, met jouw rechten, en de OneUptime-app moet in het team zitten. Is je Microsoft Teams-account nog niet gekoppeld, dan vraagt OneUptime je om het te koppelen, in een antwoord dat jou noemt, met een knop die het bericht opslaat zodra je dat hebt gedaan.
 
 ## Praten met de OneUptime-bot
 
@@ -148,6 +153,7 @@ Stuur de bot een bericht in een persoonlijke chat, of noem OneUptime met @ in ee
 | `incident [title]` | Opent het incidentformulier, met de titel ingevuld. |
 | `maintenance [title]` | Opent het formulier voor gepland onderhoud, met de titel ingevuld. |
 | `oncall` | Toont wie er nu dienst heeft in elk bereikbaarheidsschema dat je kunt zien, tot wanneer, en wie de volgende is. |
+| `page [who] [message]` | Roept de mensen op die je met @ noemt, over je bericht, of stuurt een kaart om te kiezen wie je oproept. Zie [Iemand oproepen vanuit Microsoft Teams](#iemand-oproepen-vanuit-microsoft-teams). |
 | `ask [question]`, of elke vraag in gewone taal | OneUptime AI beantwoordt vragen over je logs, traces, metrieken, incidenten en monitoren, bijvoorbeeld "welke monitoren liggen er nu uit?". Antwoorden lezen alleen. |
 | `show active incidents`, `show active alerts` | Toont wat er nu openstaat. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Toont komende, of lopende, onderhoudsgebeurtenissen. |
@@ -163,6 +169,36 @@ Op de `show`-lijsten na zijn dit de woorden die in Slack na `/oneuptime` komen; 
 - **Wat een formulier mag noemen.** In een kanaal of een groepschat mag iedereen die daar is het formulier versturen, en het wordt verstuurd als wie dat doet, met diens eigen rechten. Het incident of de gebeurtenis wordt met die rechten aangemaakt en op naam van die persoon gezet. Een monitor, bereikbaarheidsbeleid, label, ernstniveau of status die hij niet mag lezen, of een uit een ander project, wordt geweigerd alsof het project die niet heeft, en er wordt niets aangemaakt: de bot antwoordt "One of the values you picked ... is not available in this project any more. Please pick it again."
 
 **Execute On-Call Policy** op een incident, waarschuwing of episode werkt op dezelfde manier: het vereist rechten om een bereikbaarheidsbeleid uit te voeren (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** en **On-Call Member**, of **Create On-Call Duty Policy Execution Log** in een aangepaste rol) en om dat incident, die waarschuwing of die episode te lezen, en het biedt het actieve bereikbaarheidsbeleid aan dat de persoon mag lezen. Een monitor of bereikbaarheidsbeleid bekijken vanaf een kaart leest het ook als de persoon die op de knop drukte.
+
+## Iemand oproepen vanuit Microsoft Teams
+
+In een kanaal of een groepschat roept `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` Nawaz meteen op. OneUptime maakt een waarschuwing aan met je bericht als titel, en elke persoon die je met @ noemt krijgt een telefoontje, een sms, een pushmelding of een e-mail, zoals diens eigen bereikbaarheidsregels zeggen, tot iemand de waarschuwing bevestigt.
+
+- **Wie meteen wordt opgeroepen.** De mensen die je met @ noemt, en wie er dienst heeft in de schema's die een tag volgt die je met @ noemt (zie [Tags voor bereikbaarheid](#tags-voor-bereikbaarheid)), als er een bericht op hen volgt. OneUptime herkent iemand aan het OneUptime-account waaraan diens Microsoft Teams-account is gekoppeld, of anders aan diens e-mailadres in Microsoft Teams. Niemand buiten het project wordt opgeroepen.
+- **Al het andere krijgt een kaart.** Zonder iemand met @ genoemd, zoals in een persoonlijke chat met de bot, zonder bericht, met een tag die geen bereikbaarheidsschema volgt dat je kunt zien, of met iemand die OneUptime niet herkent, antwoordt de bot met de kaart **Page someone**, met wat je typte al ingevuld, en zegt hij wie hij niet kon kiezen. Kies mensen, een team, een bereikbaarheidsschema, dat oproept wie er nu dienst in heeft, of een bereikbaarheidsbeleid, dat oproept via zijn escalatieregels, en verstuur de kaart. Iedereen in het gesprek mag de kaart versturen, als zichzelf. Zodra er is opgeroepen, wordt de kaart verwijderd, zodat niemand er twee keer mee oproept.
+- **Waar het te zien is.** Het gesprek toont de oproep als één kaart die wordt bijgewerkt: wie werd opgeroepen en hoe, en wie bevestigde. Waar de bot die niet kan posten, zegt zijn antwoord wie werd opgeroepen, met een link naar de waarschuwing.
+- **Wie mag oproepen.** Iedereen die zowel een bereikbaarheidsbeleid mag uitvoeren als een waarschuwing mag aanmaken: **Project Owner**, **Project Admin** en **Project Member**, of **On-Call Member** samen met **Alert Member** (**Create On-Call Duty Policy Execution Log** en **Create Alert** in een aangepaste rol). Mensen, een team of een schema rechtstreeks oproepen, zonder bereikbaarheidsbeleid achter de oproep, vereist daarnaast toegang tot elk bereikbaarheidsbeleid van het project. Ieder ander krijgt dat te horen in een antwoord, en niemand wordt opgeroepen.
+
+## Tags voor bereikbaarheid
+
+Houd een Microsoft Teams-tag, zoals `@Payments on-call`, gelijk aan wie er dienst heeft in een of meer bereikbaarheidsschema's, zodat iedereen in het team die met @ kan noemen om hen te bereiken. OneUptime past de leden van de tag aan bij elke overdracht en vervanging, en controleert de tag elke 15 minuten.
+
+:::steps
+### Een tag aan een schema koppelen
+
+Open het schema onder **Bereikbaarheidsdienst** > **Bereikbaarheidsschema's**. Klik in de kaart **Microsoft Teams-tags** op **Tag koppelen**, kies het team en geef de tag een naam: de tag van het team met die naam, of een nieuwe die OneUptime maakt. De leden worden meteen vervangen door wie er dienst heeft.
+
+### De tag ook aan het secundaire schema koppelen
+
+Voor een tag met zowel de primaire als de secundaire dienst koppel je dezelfde tag ook op de pagina van het secundaire schema. Een tag kan zoveel schema's volgen als je wilt.
+:::
+
+- **Wat de kaart toont.** Wie er nu in elke tag zit, het team, de andere schema's die de tag volgt, en of die **Actueel** is. Een tag bevat alleen mensen uit het eigen team: wie dienst heeft maar niet in het team zit, wordt genoemd, met de reden.
+- **Niemand heeft dienst.** OneUptime haalt iedereen uit de tag tot iemand dienst heeft. Een nieuwe tag heeft iemand uit het team met dienst nodig, want Microsoft Teams maakt geen lege tag.
+- **De tag oproepen.** `@OneUptime page @Payments on-call The checkout API is down` roept op wie er dienst heeft in de schema's die de tag volgt. Zie [Iemand oproepen vanuit Microsoft Teams](#iemand-oproepen-vanuit-microsoft-teams).
+- **Wat Microsoft 365 nodig heeft.** Tags wijzigen vraagt de machtiging `TeamworkTag.ReadWrite.All` van de app, die een Microsoft 365-beheerder verleent met **Beheerderstoestemming verlenen** onder **Projectinstellingen** > **Werkruimte** > **Microsoft Teams**. Gaf je organisatie toestemming voordat OneUptime tags kon bijhouden, geef die dan één keer opnieuw.
+- **Wie er een mag koppelen.** De rollen die schema's mogen bewerken: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** en **On-Call Member**, of **Edit On-Call Duty Policy Schedule** in een aangepaste rol. In OneUptime Cloud vraagt koppelen het abonnement **Growth**.
+- **Ontkoppelen.** OneUptime past de tag niet meer aan. De tag en de leden blijven in Microsoft Teams zoals ze zijn.
 
 ## Handelen op incidenten, waarschuwingen en gebeurtenissen vanuit Microsoft Teams
 

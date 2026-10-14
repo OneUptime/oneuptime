@@ -638,6 +638,8 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
         incidentId: INCIDENT_ID,
         alertIds: alertIds,
         actorUserId: USER_ID,
+        // Declared by no project API key: no key to name.
+        apiKeyActor: {},
       });
 
       const summaryOrder: number = summary.mock.invocationCallOrder[0]!;
@@ -650,6 +652,28 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
       expect(summaryOrder).toBeLessThan(
         order("handleIncidentStateChangeAsync"),
       );
+    });
+
+    /*
+     * Declared through POST /api/incident with a project API key (Jira
+     * Automation, a script): the announcement names the key, as the
+     * incident's own feed items do (Utils/Feed/FeedApiKeyActor).
+     */
+    test("declared with a project API key, the announcement names the key", async () => {
+      const keyId: ObjectID = ObjectID.generate();
+
+      await onCreateSuccess({ alertIdsToLink: alertIds }, createdIncident(), {
+        isRoot: true,
+        tenantId: PROJECT_ID,
+        apiKeyId: keyId,
+        apiKeyName: "Jira Automation",
+      });
+      await settle();
+
+      expect(summary).toHaveBeenCalledTimes(1);
+      expect(
+        (summary.mock.calls[0]![0] as { apiKeyActor: unknown }).apiKeyActor,
+      ).toEqual({ apiKeyId: keyId, apiKeyName: "Jira Automation" });
     });
 
     test("the links themselves are written without incident-side entries", async () => {

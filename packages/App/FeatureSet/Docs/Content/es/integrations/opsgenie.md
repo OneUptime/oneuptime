@@ -49,7 +49,7 @@ Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **
 
 ### Añadir el disparador
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador y, en **Fields to pass on**, elige `title` y `description`.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador: sus **Fields to pass on** empiezan con **Título**, así que haz clic en **Añadir campo** y elige **Descripción**.
 
 ### Crear la alerta
 
@@ -73,7 +73,7 @@ Y su **Request Body** en:
 
 ### Probarlo y luego activarlo
 
-Haz clic en **Ejecutar flujo de trabajo**, introduce el **ID del incidente** de un incidente de prueba y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `202`, y la alerta aparece en Opsgenie un momento después. Después, activa **Habilitado** en la parte superior del **Constructor**.
+Haz clic en **Ejecutar flujo de trabajo**, elige un incidente de prueba en **Incidente** y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `202`, y la alerta aparece en Opsgenie un momento después. Después, activa **Habilitado** en la parte superior del **Constructor**.
 :::
 
 El esquema de Opsgenie es la palabra `GenieKey`, un espacio y luego la clave. Opsgenie limita `message` a 130 caracteres, y sus prioridades van de `P1` a `P5`: para enviar la de cada incidente, consulta [Asignar las prioridades](#asignar-las-prioridades).
@@ -85,7 +85,7 @@ Un flujo de trabajo tiene un solo disparador, así que cerrar requiere un segund
 :::steps
 ### Añadir el disparador On Update Incident
 
-Crea un flujo de trabajo llamado `Close Opsgenie alerts` y elige **On Update Incident** como disparador. En **Fields to watch**, elige `currentIncidentStateId`, para que solo se ejecute cuando cambie el estado. En **Fields to pass on**, pide si el nuevo estado es un estado resuelto:
+Crea un flujo de trabajo llamado `Close Opsgenie alerts` y elige **On Update Incident** como disparador. En **Fields to watch**, haz clic en **Añadir campo** y elige **Estado actual del incidente**, para que solo se ejecute cuando cambie el estado. En **Fields to pass on**, pide si el nuevo estado es un estado resuelto: haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Es estado resuelto**. O haz clic en **Editar como JSON** y reemplaza el JSON por:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ Activa **Habilitado** y luego resuelve un incidente de prueba en OneUptime. Opsg
 
 Para enviar la gravedad de cada incidente como prioridad de Opsgenie, añade un bloque **Run Custom JavaScript** entre el disparador y el bloque **API Post (JSON)**.
 
-1. En los **Fields to pass on** del disparador, elige también el `name` de la gravedad: `{ "incidentSeverity": { "name": true } }`.
+1. En los **Fields to pass on** del disparador, haz clic en **Añadir campo**, abre **Gravedad del incidente** y elige **Nombre**.
 2. Pon los **Arguments** del bloque en `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, y su **JavaScript Code** en:
 
    ```javascript

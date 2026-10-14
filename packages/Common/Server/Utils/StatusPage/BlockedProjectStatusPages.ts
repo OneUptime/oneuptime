@@ -9,6 +9,7 @@ import {
 import logger from "../Logger";
 import applyPublicPageNotFound from "../PublicPageNotFound";
 import Response from "../Response";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
 import { STATUS_PAGE_NOT_FOUND_MESSAGE } from "../../../Types/StatusPage/StatusPageArchive";
@@ -55,6 +56,20 @@ import { STATUS_PAGE_NOT_FOUND_MESSAGE } from "../../../Types/StatusPage/StatusP
  * A lookup that fails lets the request through, and the route answers as it
  * always has: a fault in a check that is there for abuse must not take every
  * status page down with it.
+ *
+ * THE PAGES SEND NOTHING
+ *
+ * Every subscriber notification - incidents, episodes, notes, postmortems,
+ * scheduled maintenance, announcements, reports, and the confirmations a
+ * subscription sends - finds its status pages in one place
+ * (StatusPageSubscriberService.getStatusPagesToSendNotification), which
+ * leaves the pages of a blocked project out (leaveOutStatusPagesOfBlockedProjects),
+ * as it leaves archived pages out: the unsubscribe link every message
+ * carries would lead to a page this gate takes down. It asks the same
+ * per-process answers, once per project, so a notification adds no query;
+ * and it fails open too - a notification goes out as usual when the answer
+ * cannot be had. The dashboard says why a page sends nothing
+ * (Types/StatusPage/StatusPageProjectBlock).
  */
 
 // The route parameters that name a status page, by id or by custom domain.
@@ -110,6 +125,72 @@ export default class BlockedProjectStatusPages {
       logger.error(err);
       return false;
     }
+  }
+
+  /*
+   * Whether a master admin blocked this project, for the subscriber jobs to
+   * say why they send nothing. False without a project, and - failing open -
+   * when it cannot be told.
+   */
+  public static async isProjectBlocked(
+    projectId: ObjectID | null | undefined,
+  ): Promise<boolean> {
+    if (!projectId) {
+      return false;
+    }
+
+    try {
+      return await ProjectService.isProjectBlocked(projectId);
+    } catch (err) {
+      logger.error(
+        `Could not tell whether project ${projectId.toString()} is blocked; its status pages send to their subscribers as usual.`,
+      );
+      logger.error(err);
+      return false;
+    }
+  }
+
+  /*
+   * The pages of `statusPages` whose project is not blocked: the ones that
+   * may send to their subscribers. Each project is asked once, by the page's
+   * projectId; a page read without one is asked by its id
+   * (isStatusPageOfBlockedProject). A page whose project cannot be told is
+   * kept. The order of the pages is kept.
+   */
+  public static async leaveOutStatusPagesOfBlockedProjects(
+    statusPages: Array<StatusPage>,
+  ): Promise<Array<StatusPage>> {
+    const isBlockedByProject: Map<string, Promise<boolean>> = new Map();
+
+    const isBlocked: Array<boolean> = await Promise.all(
+      statusPages.map((statusPage: StatusPage): Promise<boolean> => {
+        const projectId: ObjectID | undefined = statusPage.projectId;
+
+        if (!projectId) {
+          return statusPage.id
+            ? BlockedProjectStatusPages.isStatusPageOfBlockedProject(
+                statusPage.id,
+              )
+            : Promise.resolve(false);
+        }
+
+        const key: string = projectId.toString().toLowerCase();
+        let answer: Promise<boolean> | undefined = isBlockedByProject.get(key);
+
+        if (!answer) {
+          answer = BlockedProjectStatusPages.isProjectBlocked(projectId);
+          isBlockedByProject.set(key, answer);
+        }
+
+        return answer;
+      }),
+    );
+
+    return statusPages.filter(
+      (_statusPage: StatusPage, index: number): boolean => {
+        return !isBlocked[index];
+      },
+    );
   }
 
   private static async letThroughUnlessBlocked(data: {

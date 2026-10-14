@@ -6,6 +6,7 @@ Conecta OneUptime con Slack para publicar en tus canales los incidentes, alertas
 - [Conectar Slack](#conectar-slack): Instala OneUptime en tu espacio de trabajo y luego vincula tu propia cuenta.
 - [Reglas de notificación](#reglas-de-notificación): Decide qué eventos se publican dónde, y cuáles tienen un canal propio.
 - [El comando /oneuptime](#el-comando-oneuptime): Declara incidentes, programa mantenimientos, mira quién está de guardia y pregunta a la IA.
+- [Grupos de usuarios de guardia](#grupos-de-usuarios-de-guardia): Mantén un grupo de usuarios igual a quienes están de guardia, y avísalo.
 - [Actuar sobre incidentes, alertas y eventos desde Slack](#actuar-sobre-incidentes-alertas-y-eventos-desde-slack): Los botones de los mensajes de OneUptime.
 :::
 
@@ -123,7 +124,11 @@ Reacciona a un mensaje en el canal de un incidente, una alerta, un episodio o un
 | 📌 Un emoji de chincheta, o el propio **Pin to channel** de Slack | Una nota privada, visible solo para tu equipo |
 | 📢 Un emoji de megáfono o altavoz | Una nota pública, mostrada en la página de estado. Solo incidentes y eventos de mantenimiento programado. |
 
-La nota se guarda como tú, con tus permisos, así que tu propia cuenta de Slack debe estar conectada. Un mensaje se guarda solo una vez, reaccione quien reaccione.
+La nota conserva el mensaje tal como lo mostraba Slack: su formato, sus enlaces y su código, las personas y los canales que menciona por su nombre, y sus archivos e imágenes como enlaces a ellos. Una nota pública deja fuera los archivos y las imágenes, ya que solo se abren para tu equipo.
+
+Son las palabras de quien escribió el mensaje: su nombre de OneUptime si su cuenta de Slack está conectada y, si no, el nombre que muestra Slack. Una nota privada se coloca en la cronología en el momento en que se publicó el mensaje, por mucho después que se guarde. Una nota pública se coloca cuando se guarda, que es cuando la muestra la página de estado. La cronología dice quién la guardó. La nota no se vuelve a publicar en el canal, donde el mensaje ya está.
+
+La nota se guarda como tú, con tus permisos. Si tu cuenta de Slack aún no está conectada, OneUptime te pide que la conectes, en un mensaje que solo ves tú, con un botón que guarda el mensaje en cuanto lo hagas. Un mensaje se guarda solo una vez, reaccione quien reaccione.
 
 ## El comando /oneuptime
 
@@ -135,6 +140,7 @@ OneUptime tiene un solo comando en Slack, `/oneuptime`. La palabra que escribes 
 | `/oneuptime incident [title]` | Abre el formulario de incidente, con el título rellenado. |
 | `/oneuptime maintenance [title]` | Abre el formulario de mantenimiento programado, con el título rellenado. |
 | `/oneuptime oncall` | Lista quién está de guardia ahora mismo en cada programación de guardia que puedes ver, hasta cuándo y quién va después. |
+| `/oneuptime page [who] [message]` | Avisa a las personas que mencionas con @ sobre tu mensaje, o abre un formulario para elegir a quién avisar. Consulta [Avisar a alguien desde Slack](#avisar-a-alguien-desde-slack). |
 | `/oneuptime ask [question]`, o cualquier pregunta | OneUptime AI responde sobre tus registros, trazas, métricas, incidentes y monitores. |
 
 Las respuestas a `help` y `oncall` son mensajes que solo ves tú, debajo del comando. Una primera palabra que parece un comando mal escrito, como `incidnet`, recibe el comando al que se parece, no una respuesta de OneUptime AI. Los formularios de incidentes y mantenimientos actúan como tú: consulta [Crear incidentes y mantenimientos desde Slack](#crear-incidentes-y-mantenimientos-desde-slack).
@@ -161,6 +167,36 @@ OneUptime solo responde a lo que va dirigido a él.
 - **Qué puede nombrar un formulario.** El incidente o el evento se crea con tus propios permisos y se te atribuye. Un monitor, una política de guardia, una etiqueta, una gravedad o un estado que no puedes leer, o uno de otro proyecto, se rechaza como uno que el proyecto no tiene, incluso desde un formulario abierto antes de que cambiara tu acceso, y no se crea nada. OneUptime te dice por qué en el canal, en un mensaje que solo tú ves.
 
 **Execute On-Call Policy** en un incidente, una alerta o un episodio funciona igual: necesita permiso para ejecutar una política de guardia (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** y **On-Call Member**, o **Create On-Call Duty Policy Execution Log** en un rol personalizado) y para leer ese incidente, alerta o episodio, y ofrece las políticas de guardia activas que puedes leer.
+
+## Avisar a alguien desde Slack
+
+`/oneuptime page @nawaz The checkout API is throwing 500s` avisa a Nawaz de inmediato. OneUptime crea una alerta cuyo título es tu mensaje, y cada persona que mencionas con @ recibe una llamada, un SMS, una notificación push o un correo electrónico, según sus propias reglas de guardia, hasta que alguien reconoce la alerta.
+
+- **A quién se avisa de inmediato.** A las personas que mencionas con @, y a quienes están de guardia en las programaciones que sigue un grupo de usuarios que mencionas con @ (consulta [Grupos de usuarios de guardia](#grupos-de-usuarios-de-guardia)), cuando un mensaje las sigue. OneUptime identifica a una persona por la cuenta de OneUptime a la que está conectada su cuenta de Slack, o si no, por la dirección de correo electrónico que Slack tiene de ella. Nunca se avisa a nadie de fuera del proyecto.
+- **Todo lo demás abre un formulario.** Sin nadie mencionado con @, sin mensaje, con `@here`, con un grupo de usuarios que no sigue ninguna programación de guardia que puedas ver, o con una persona que OneUptime no puede identificar, se abre el formulario **Page someone** con lo que escribiste ya rellenado, y dice a quién no pudo elegir. Elige personas, un equipo, una programación de guardia, que avisa a quien esté de guardia en ella ahora, o una política de guardia, que avisa mediante sus reglas de escalado, y envíalo. Un nombre que escribes primero, como en `/oneuptime page Primary The disk is full`, elige la programación, el equipo o la política con ese nombre.
+- **Dónde se muestra.** El canal muestra el aviso como un solo mensaje, que se mantiene al día: a quién se avisó y cómo, y quién lo reconoció. Donde OneUptime no puede publicar, como en un canal privado al que no se le ha invitado, un mensaje que solo tú ves dice a quién se avisó, con un enlace a la alerta.
+- **Quién puede avisar.** Quien pueda tanto ejecutar una política de guardia como crear una alerta: **Project Owner**, **Project Admin** y **Project Member**, o **On-Call Member** junto con **Alert Member** (**Create On-Call Duty Policy Execution Log** y **Create Alert** en un rol personalizado). Avisar directamente a personas, a un equipo o a una programación, sin una política de guardia detrás del aviso, requiere además acceso a todas las políticas de guardia del proyecto. A cualquier otra persona se le indica donde ejecutó el comando, y no se avisa a nadie.
+
+## Grupos de usuarios de guardia
+
+Mantén un grupo de usuarios de Slack, como `@payments-oncall`, igual a quienes están de guardia en una o varias programaciones de guardia, para que cualquiera pueda mencionarlo con @ y llegar a ellos. OneUptime cambia los miembros del grupo en cada relevo y cada sustitución, y lo comprueba cada 15 minutos.
+
+:::steps
+### Conectar un grupo de usuarios a una programación
+
+Abre la programación en **Guardia** > **Programaciones de guardia**. En su tarjeta **Grupos de usuarios de Slack**, haz clic en **Conectar grupo de usuarios** y elige uno de los grupos de usuarios de tu espacio de trabajo, o **Crear un grupo de usuarios nuevo** con un nombre y un identificador. Sus miembros se sustituyen al instante por quienes están de guardia.
+
+### Conectarlo también a la programación secundaria
+
+Para un grupo que tenga a la guardia principal y a la secundaria, conecta el mismo grupo en la página de la programación secundaria. Un grupo puede seguir cualquier número de programaciones.
+:::
+
+- **Qué muestra la tarjeta.** Quién está ahora en cada grupo, las otras programaciones que sigue y si está **Al día**. Quien está de guardia pero no puede entrar en el grupo aparece con el motivo: OneUptime encuentra a una persona por su cuenta de Slack conectada, o si no, por la dirección de correo electrónico que Slack tiene de ella, y Slack deja a los invitados fuera de los grupos de usuarios.
+- **Nadie de guardia.** Slack no puede mantener un grupo de usuarios vacío, así que OneUptime desactiva el grupo hasta que alguien esté de guardia, y luego lo vuelve a activar.
+- **Avisar al grupo.** `/oneuptime page @payments-oncall The checkout API is down` avisa a quienes están de guardia en las programaciones que sigue el grupo. Consulta [Avisar a alguien desde Slack](#avisar-a-alguien-desde-slack).
+- **Qué necesita Slack.** Los grupos de usuarios están en los planes de pago de Slack, y un espacio de trabajo puede dejar que solo sus propietarios y administradores los cambien: la tarjeta dice cuál de los dos, y qué hacer. Si Slack se conectó antes de que OneUptime pudiera mantener grupos de usuarios, vuelve a conectarlo una vez en **Ajustes del proyecto** > **Espacio de trabajo** > **Slack**.
+- **Quién puede conectar uno.** Los roles que pueden editar programaciones: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** y **On-Call Member**, o **Edit On-Call Duty Policy Schedule** en un rol personalizado. En OneUptime Cloud, conectar uno requiere el plan **Growth**.
+- **Desconectar.** OneUptime deja de cambiar el grupo. El grupo y sus miembros se quedan en Slack tal como están.
 
 ## Actuar sobre incidentes, alertas y eventos desde Slack
 

@@ -1,83 +1,128 @@
-# GitHub-integration
+# GitHub
 
-Öppna ett [GitHub](https://github.com)-ärende automatiskt när en OneUptime-incident skapas — så att ingenjörernas uppföljning spåras i det repo som äger den berörda tjänsten.
+OneUptime arbetar med [GitHub](https://github.com) på två sätt. Anslut dina repositorier via OneUptimes GitHub App, så öppnar OneUptimes AI pull requests som rättar det den hittar, och svarar när du nämner den i ett issue eller en pull request. Eller bygg ett arbetsflöde som öppnar ett GitHub-issue för varje incident, så att uppföljningsarbetet spåras i det repositorium som äger tjänsten.
 
-Den här integrationen är **utgående**: OneUptime anropar [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Den använder ett OneUptime **[Arbetsflöde](/docs/workflows/index)** med en **Incident → On Create**-utlösare och en **API-komponent**.
+:::cards
+- [Välj hur du ansluter](#välj-hur-du-ansluter): GitHub App eller ett arbetsflöde, och vad vart och ett gör.
+- [Anslut dina repositorier](#anslut-dina-repositorier): GitHub App, för pull requests med rättningar.
+- [Öppna ett issue för varje incident](#öppna-ett-github-issue-för-varje-incident): Ett arbetsflöde, två block.
+- [Felsökning](#felsökning): När GitHub avvisar en begäran.
+:::
 
-> **Letar du efter den djupare GitHub-anslutningen?** OneUptime har också en inbyggd **GitHub App**-integration för att ansluta kodrepon (används av AI-agenten och kodfunktioner). Du kan prata med den appen i ditt repo — nämn den i ett ärende eller en pull request så implementerar, reviderar eller granskar den; se [Arbeta med OneUptime från GitHub](/docs/ai/github-app), och [GitHub Integration (egenhostad)](/docs/self-hosted/github-integration) för hur du installerar den. Den här sidan handlar specifikt om att _lägga ärenden från incidenter_.
+## Så fungerar det
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
+```mermaid title="Två sätt som OneUptime arbetar med GitHub på"
+flowchart TB
+    app["GitHub App"] --> repos["Dina repositorier,<br/>importerade"]
+    repos --> pr["Pull requests med<br/>rättningar från<br/>OneUptimes AI"]
+    declared["Incident deklarerad"] --> workflow["Arbetsflöde:<br/>On Create Incident"]
+    workflow -->|"POST issues"| issue["GitHub-issue"]
 ```
 
-## Förutsättningar
+De två är fristående, och du kan använda det ena eller båda. GitHub App arbetar i de repositorier som du installerar den på. Arbetsflödet behöver bara en token och anropar GitHubs [REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue) som vilket annat API som helst.
 
-- Ett GitHub-repo där du vill att ärenden ska läggas.
-- En token som kan skapa ärenden:
+## Välj hur du ansluter
 
-  - **Fine-grained PAT** scoped till det repot med **Issues: Read and write**, eller
-  - en **klassisk PAT** med scopet `repo`.
+| Sätt | Vad det gör | Vad det behöver |
+| --- | --- | --- |
+| GitHub App | Importerar dina repositorier. OneUptimes AI öppnar pull requests i dem som rättar undantag, långsamma spårningar och orsakerna som dess undersökningar hittar, och svarar på omnämnanden i issues och pull requests. | En organisation eller ett konto att installera appen på. På OneUptime Cloud planen **Growth**. |
+| Ett arbetsflöde | Öppnar ett GitHub-issue för varje incident, i det repositorium du väljer. | En GitHub-token som kan skapa issues, och ett arbetsflöde med två block. |
 
-  Skapa en på [github.com/settings/tokens](https://github.com/settings/tokens).
+## Anslut dina repositorier
 
-- Ett OneUptime-projekt där du kan skapa arbetsflöden.
+Öppna **Produkter → Kod → Uppgifter**, sedan **Kodrepositorier**, och klicka på **Connect with GitHub App**. GitHub frågar var appen ska installeras och vilka repositorier den får använda. Varje repositorium i installationen importeras och hålls uppdaterat när du lägger till repositorier i installationen eller tar bort dem.
 
-## Steg 1 — Spara token
+En egenvärdad instans behöver först en egen GitHub App: [GitHub-integration](/docs/self-hosted/github-integration) visar hur du skapar den. Därefter öppnar [Åtgärdsuppgifter](/docs/ai/ai-agent) pull requests i dina repositorier, och sidan [GitHub App](/docs/ai/github-app) visar vad appen gör när du nämner den i ett issue eller en pull request.
 
-1. Gå till **Arbetsflöden → Globala variabler → Skapa**.
-2. Namnge det `GITHUB_TOKEN`, klistra in token och slå på **Is Secret**.
+## Innan du börjar
 
-## Steg 2 — Bygg arbetsflödet
+Resten av den här sidan bygger arbetsflödet. Det behöver:
 
-1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Incidents → GitHub Issues` och öppna **Byggare**.
-2. Lägg till en **Incident**-utlösare inställd på **On Create**. Byt namn till `Incident`.
-3. Lägg till ett **API**-block kopplat till utlösaren:
+- En GitHub-token som kan skapa issues i repositoriet: en fine-grained personal access token för det repositoriet, med behörigheten **Issues** satt till **Read and write**, eller en klassisk token med omfånget `repo`. Skapa en i GitHubs [tokeninställningar](https://github.com/settings/tokens).
+- I OneUptime behörighet att skapa arbetsflöden och globala variabler. På OneUptime Cloud kräver arbetsflöden **Growth**-abonnemanget eller högre.
 
-   - **Method**: `POST`
-   - **URL**: `https://api.github.com/repos/your-org/your-repo/issues`
-   - **Headers**:
+## Spara token
 
-     ```text
-     Authorization: Bearer {{variable.GITHUB_TOKEN}}
-     Accept: application/vnd.github+json
-     X-GitHub-Api-Version: 2022-11-28
-     User-Agent: OneUptime
-     ```
+:::steps
+1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflöde Variabel**.
+2. Ge den namnet `GITHUB_TOKEN` och klicka på **Nästa**.
+3. Klistra in token i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**.
+:::
 
-   - **Body**:
+En hemlig variabel ersätts med `[REDACTED]` i körningsloggar, så token syns aldrig i en körning.
 
-     ```json
-     {
-       "title": "OneUptime incident: {{Incident.title}}",
-       "body": "{{Incident.description}}\n\nFiled automatically from OneUptime.",
-       "labels": ["incident", "oneuptime"]
-     }
-     ```
+## Öppna ett GitHub-issue för varje incident
 
-4. **Spara**, aktivera och skapa en testincident. `201 Created` i arbetsflödets loggar betyder att ärendet skapades; svars-bodyn innehåller dess `number` och `html_url`.
+:::steps
+### Skapa arbetsflödet
+
+Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **Börja från grunden**. Ge det namnet `Incidents to GitHub` och klicka på **Skapa arbetsflöde**.
+
+### Lägg till utlösaren
+
+Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Incident**. Klicka på utlösaren: dess **Fields to pass on** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning** och **Incident Number With Prefix**.
+
+### Öppna issuet
+
+Klicka på **Lägg till komponent**, lägg till ett block **API Post (JSON)** och anslut utlösarens punkt **Success** till det. Sätt dess **URL** till `https://api.github.com/repos/your-org/your-repo/issues`, med ditt repositoriums ägare och namn. Sätt under **Fler fält** dess **Request Headers** till:
+
+```json
+{
+  "Authorization": "Bearer {{global.variables.GITHUB_TOKEN}}",
+  "Accept": "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28"
+}
+```
+
+Och **Request Body** på:
+
+```json
+{
+  "title": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "body": "{{local.components.incident-on-create-1.returnValues.model.description}}\n\nOpened by OneUptime for incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}.",
+  "labels": ["incident"]
+}
+```
+
+### Testa det och slå sedan på det
+
+Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API Post (JSON)** visar ett `201`-svar med det nya issuet, med dess `number` och dess `html_url`. Slå sedan på **Aktiverad** högst upp i **Byggare**.
+:::
+
+Issuet förblir öppet när incidenten är löst, eftersom uppföljningsarbetet oftast lever längre än incidenten. För ärenden som hålls i takt med incidenten åt båda hållen, se [Jira](/docs/integrations/jira).
 
 ## Tips
 
-- **GitHub Enterprise Server**: använd `https://your-host/api/v3/repos/{owner}/{repo}/issues`.
-- **Tilldelade / milstolpe**: lägg till `"assignees": ["octocat"]` eller `"milestone": 3` i bodyn.
-- **Länka tillbaka**: läs `{{CreateIssue.response-body.html_url}}` och spara det på incidenten med ett **Update Incident**-block.
+- **GitHub Enterprise Server.** Skicka begäran till din server i stället: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. En server på en privat nätverksadress kräver en egenvärdad OneUptime vars administratör tillåter det: se [Utgående nätverksåtkomst](/docs/workflows/configuration#utgående-nätverksåtkomst).
+- **Tilldela det.** Lägg till `"assignees": ["octocat"]` eller `"milestone": 3` i bodyn. GitHub släpper etiketter, tilldelade och milstolpar utan ett ord när token inte får pusha till repositoriet.
+- **Bara vissa incidenter.** Sätt ett block **If / Else** mellan utlösaren och API-blocket, och öppna issues bara på dess **Yes**-sida, till exempel för en allvarlighetsgrad.
 
 ## Felsökning
 
-- **`401`** — token är fel eller har löpt ut. Fine-grained tokens måste explicit bevilja repot och **Issues**-behörigheten.
-- **`403` / hastighetsgräns** — inkludera `User-Agent`-headern (GitHub avvisar förfrågningar utan en) och kontrollera att du inte är hastighetsbegränsad.
-- **`404`** — `owner/repo`-sökvägen är fel, eller token kan inte se ett privat repo.
-- **`422`** — en etikett som inte finns är okej (GitHub skapar refererade etiketter), men en felformaterad body är det inte — kontrollera din JSON.
+Steget **API Post (JSON)** tar **Error** när GitHub avvisar begäran. Dess **Response Status** och **Response Body** i körningen säger varför.
 
-## Läs vidare
+:::details GitHub svarar 401
+Token är fel, har gått ut eller har återkallats. Skapa en ny och ersätt innehållet i `GITHUB_TOKEN`.
+:::
 
-- [Integrationsöversikt](/docs/integrations/index) — mönster och autentiseringsfuskbladet.
-- [GitLab](/docs/integrations/gitlab) — samma idé för GitLab.
-- [GitHub Integration (egenhostad)](/docs/self-hosted/github-integration) — den inbyggda GitHub App-anslutningen.
-- [Arbeta med OneUptime från GitHub](/docs/ai/github-app) — att styra GitHub App:en från ett ärende eller en pull request.
+:::details GitHub svarar 403
+Token kan inte skapa issues där: en fine-grained token utan **Issues** satt till **Read and write** för det här repositoriet, en token som din organisation inte har godkänt, eller en klassisk token som inte är auktoriserad för din organisations single sign-on. En 403 vars body talar om en hastighetsgräns betyder att token har skickat för många begäranden: vänta, eller öppna issues för färre incidenter.
+:::
 
-## Nätverksåtkomst för egenhostade installationer
+:::details GitHub svarar 404
+Ägaren eller repositoriet i **URL** är fel, eller så kan token inte se repositoriet. GitHub svarar 404, inte 403, för ett privat repositorium som en token inte kan se.
+:::
 
-Arbetsflödet på den här sidan för att skapa ärenden kräver DNS-uppslagning och utgående HTTPS (TCP 443) från OneUptime till `api.github.com`. Det kräver inga inkommande återanrop från GitHub. [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+:::details GitHub svarar 410 eller 422
+- `410`: issues är avstängda i repositoriets inställningar.
+- `422`: GitHub kan inte läsa bodyn. Kontrollera att den är giltig JSON, att `title` är satt och att `labels` och `assignees` är listor.
+:::
 
-Läs avsnittet om nätverksåtkomst i [GitHub-integration](/docs/self-hosted/github-integration) för information om utgående anslutningar, inkommande återanrop och privata installationer.
+## Nästa steg
+
+:::cards
+- [GitHub App](/docs/ai/github-app): Be OneUptimes AI om en ändring, en revidering eller en granskning direkt från GitHub.
+- [GitLab](/docs/integrations/gitlab): Samma arbetsflöde, för GitLab-issues.
+- [Arbetsflödeskomponenter](/docs/workflows/components#api): Alla inställningar för API-blocken.
+- [Översikt över integrationer](/docs/integrations/index): Mönstren bakom varje integration.
+:::

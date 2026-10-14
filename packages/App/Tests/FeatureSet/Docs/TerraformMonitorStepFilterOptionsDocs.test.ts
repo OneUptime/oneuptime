@@ -1,3 +1,4 @@
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { DocsHeading, scanMarkdown } from "./DocsContentSupport";
 import { FILTER_JSON_OPTIONS } from "Common/Utils/DeveloperDocs/TerraformMonitorSteps";
 import { describe, expect, it } from "@jest/globals";
@@ -5,7 +6,7 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The Terraform monitor-steps page, in English and Persian, against the
+ * The Terraform monitor-steps page, in every docs language, against the
  * provider it documents.
  *
  * A Custom Code or Synthetic monitor's Result Value filter can compare one
@@ -39,8 +40,11 @@ const E2E_FIXTURE: string = path.join(
 
 const PAGE: string = "terraform/monitor-steps";
 const CUSTOM_CODE_PAGE: string = "monitor/custom-code-monitor";
-// `fa` is the only translated docs corpus; every other language falls back to English.
-const LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
+/*
+ * Every docs language: docs task 30a translated the page into all of them
+ * (TerraformDocsTranslations holds each to the English page).
+ */
+const LANGUAGES: ReadonlyArray<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
 
 const HCL_BLOCK: RegExp = /```hcl\n([\s\S]*?)\n```/g;
 // `check_on = "Result Value"` - an attribute assignment on one line.
@@ -49,7 +53,13 @@ const HCL_ASSIGNMENT: RegExp = /^\s*([a-z_]+)\s+= (.+)$/;
 const GO_STRING_ITEM: RegExp = /^\s*"([^"]+)",$/;
 const GO_ATTR_TYPE: RegExp = /"([a-z_]+)":\s+types\.[A-Za-z0-9]+/g;
 const LINK: RegExp = /\]\((\/docs\/[^)#\s]+)(?:#([^)\s]+))?\)/g;
-const TRAILING_PARENTHETICAL: RegExp = /\s*\([^)]*\)\s*$/;
+// "(Optional)" at the end of a field's title, in ASCII or full-width brackets.
+const TRAILING_PARENTHETICAL: RegExp = /\s*[(（][^)）]*[)）]\s*$/;
+// The check_on table's row of the Custom Code and Synthetic monitors names these.
+const RESULT_VALUE_ROW_SPANS: ReadonlyArray<string> = [
+  "`Result Value`",
+  "`custom_code_monitor_options`",
+];
 // The padding terraform fmt puts before `=` to line a block's attributes up.
 const ASSIGNMENT_PADDING: RegExp = /\s+=\s+/;
 
@@ -185,11 +195,27 @@ describe("the Terraform monitor-steps page", () => {
   });
 
   it("says in the check_on table which monitors take custom_code_monitor_options", () => {
+    const englishRow: string | undefined = readPage(PAGE, "en")
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("| Custom Code / Synthetic |");
+      });
+
+    for (const span of RESULT_VALUE_ROW_SPANS) {
+      expect(englishRow).toContain(span);
+    }
+
     for (const language of LANGUAGES) {
+      // A translation words the monitor types: the row is found by its code.
       const row: string | undefined = readPage(PAGE, language)
         .split("\n")
         .find((line: string): boolean => {
-          return line.startsWith("| Custom Code / Synthetic |");
+          return (
+            line.startsWith("| ") &&
+            RESULT_VALUE_ROW_SPANS.every((span: string): boolean => {
+              return line.includes(span);
+            })
+          );
         });
 
       expect({ language, row: Boolean(row) }).toEqual({ language, row: true });

@@ -105,8 +105,8 @@ Il budget rimanente decide lo stato dello SLO:
 | Stato | Quando |
 | --- | --- |
 | **Integro** | Resta più budget della soglia a rischio. |
-| **At Risk** | Il budget rimanente è alla soglia a rischio o sotto: il 20% per impostazione predefinita. |
-| **Budget Exhausted** | Il budget rimanente è a zero o sotto. |
+| **A rischio** | Il budget rimanente è alla soglia a rischio o sotto: il 20% per impostazione predefinita. |
+| **Budget esaurito** | Il budget rimanente è a zero o sotto. |
 
 Imposta la soglia a rischio in **Impostazioni** → **Objective**.
 
@@ -128,13 +128,13 @@ Con la soglia predefinita del 20%, uno SLO a rischio torna integro al 25% di bud
 
 ## Notifiche ai proprietari
 
-Quando uno SLO passa a **At Risk** o **Budget Exhausted**, OneUptime avvisa i suoi proprietari:
+Quando uno SLO passa a **A rischio** o **Budget esaurito**, OneUptime avvisa i suoi proprietari:
 
 - I proprietari sono gli utenti e i membri dei team nella pagina **Proprietari** dello SLO che sono ancora membri del progetto. Uno SLO senza proprietari avvisa invece i proprietari del progetto.
 - Ogni proprietario riceve un'e-mail per impostazione predefinita, e la notifica su ogni altro canale che attiva per **SLO status changed** in **Impostazioni utente** → **Impostazioni notifiche** → **Monitoraggio**.
 - L'oggetto dell'e-mail nomina lo stato e lo SLO, per esempio `[SLO At Risk] API Availability`.
 
-Perché uno SLO vicino a un limite non avvisi di continuo, i suoi proprietari ricevono al massimo una notifica all'ora. Un passaggio a **Budget Exhausted** viene sempre inviato, anche entro quell'ora.
+Perché uno SLO vicino a un limite non avvisi di continuo, i suoi proprietari ricevono al massimo una notifica all'ora. Un passaggio a **Budget esaurito** viene sempre inviato, anche entro quell'ora.
 
 > [!TIP]
 > Le notifiche ai proprietari dicono ai responsabili di uno SLO che il suo budget è in difficoltà. Per avvisare il tuo team di reperibilità tramite le politiche di escalation, usa gli [Avvisi e incidenti di tasso di consumo](/docs/slo/burn-rate-alerts). Una regola del tasso di consumo può anche aggiungere i proprietari dello SLO a ogni avviso e incidente che crea.

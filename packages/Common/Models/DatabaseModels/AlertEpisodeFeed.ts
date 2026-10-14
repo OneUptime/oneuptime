@@ -1,3 +1,4 @@
+import { JSONObject } from "../../Types/JSON";
 import AlertEpisode from "./AlertEpisode";
 import Project from "./Project";
 import User from "./User";
@@ -614,4 +615,36 @@ export default class AlertEpisodeFeed extends BaseModel {
     unique: false,
   })
   public postedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlertEpisodeFeed,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Saved From Chat Message",
+    description:
+      "For a note saved from a Slack or Microsoft Teams message: the chat it was posted in (workspaceType), who wrote it (authorName, and authorUserId when their chat account is connected to OneUptime) and when it was posted there (postedAt). The feed item's user is whoever saved it. Written by OneUptime.",
+    required: false,
+    example: {
+      workspaceType: "Slack",
+      authorName: "Aidil Rahman",
+      postedAt: "2026-10-08T10:07:00.000Z",
+    },
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public savedFromChatMessage?: JSONObject = undefined;
 }

@@ -139,6 +139,11 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import EpisodeMemberEmailList, {
+  ALERT_NUMBER_BADGE,
+  EpisodeMemberEmailListItem,
+  INCIDENT_NUMBER_BADGE,
+} from "../Utils/Mail/EpisodeMemberEmailList";
 
 export interface NotificationMethodDescriptor {
   userEmailId?: ObjectID;
@@ -4955,56 +4960,33 @@ export class Service extends ProjectReferencesService<Model> {
       fallback: "No resources identified",
     });
 
-    // Build alerts list HTML with proper email styling
-    let alertsListHtml: string = "";
-    if (alerts.length > 0) {
-      const alertRows: string[] = [];
-      for (const alert of alerts) {
-        const alertTitle: string = Markdown.escapeHtml(
-          alert.title || "Untitled Alert",
-        );
-        const alertNumber: string =
+    /*
+     * The episode's alerts, one row each, with dividers only between rows
+     * (EpisodeMemberEmailList). Empty when the episode has none, and the
+     * template leaves the section out.
+     */
+    const alertItems: Array<EpisodeMemberEmailListItem> = [];
+
+    for (const alert of alerts) {
+      alertItems.push({
+        number:
           alert.alertNumberWithPrefix ||
-          (alert.alertNumber ? `#${alert.alertNumber}` : "");
-        const alertLink: string = (
+          (alert.alertNumber ? `#${alert.alertNumber}` : ""),
+        title: alert.title || "Untitled Alert",
+        link: (
           await AlertService.getAlertLinkInDashboard(
             alertEpisode.projectId!,
             alert.id!,
           )
-        ).toString();
-        const monitorName: string = Markdown.escapeHtml(
-          alert.monitor?.name || "",
-        );
-
-        alertRows.push(`
-            <tr>
-              <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; word-break: break-word;">
-                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
-                  <tr>
-                    <td style="vertical-align: middle;">
-                      <span style="display: inline-block; background-color: #f1f5f9; color: #111111; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${alertNumber}</span>
-                      <a href="${alertLink}" style="color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${alertTitle}</a>
-                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 13px; line-height: 20px; margin-top: 6px;">Monitor: ${monitorName}</span>` : ""}
-                    </td>
-                    <td width="52" style="text-align: right; vertical-align: middle; padding-left: 8px;">
-                      <a href="${alertLink}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          `);
-      }
-      if (alertRows.length > 0) {
-        alertsListHtml = `
-          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-            <tbody>
-              ${alertRows.join("")}
-            </tbody>
-          </table>
-        `;
-      }
+        ).toString(),
+        monitorName: alert.monitor?.name || "",
+      });
     }
+
+    const alertsListHtml: string = EpisodeMemberEmailList.toHtml(
+      alertItems,
+      ALERT_NUMBER_BADGE,
+    );
 
     const episodeNumber: string =
       alertEpisode.episodeNumberWithPrefix ||
@@ -5131,63 +5113,40 @@ export class Service extends ProjectReferencesService<Model> {
       fallback: "No resources identified",
     });
 
-    // Build incidents list HTML with proper email styling
-    let incidentsListHtml: string = "";
-    if (incidents.length > 0) {
-      const incidentRows: string[] = [];
-      for (const incident of incidents) {
-        const incidentTitle: string = Markdown.escapeHtml(
-          incident.title || "Untitled Incident",
-        );
-        const incidentNumber: string =
+    /*
+     * The episode's incidents, one row each, with dividers only between
+     * rows (EpisodeMemberEmailList). Empty when the episode has none, and
+     * the template leaves the section out.
+     */
+    const incidentItems: Array<EpisodeMemberEmailListItem> = [];
+
+    for (const incident of incidents) {
+      incidentItems.push({
+        number:
           incident.incidentNumberWithPrefix ||
-          (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
-        const incidentLink: string = (
+          (incident.incidentNumber ? `#${incident.incidentNumber}` : ""),
+        title: incident.title || "Untitled Incident",
+        link: (
           await IncidentService.getIncidentLinkInDashboard(
             incidentEpisode.projectId!,
             incident.id!,
           )
-        ).toString();
-        const monitorName: string = Markdown.escapeHtml(
-          (incident.monitors || [])
-            .map((monitor: Monitor): string => {
-              return monitor.name || "";
-            })
-            .filter((name: string): boolean => {
-              return name.length > 0;
-            })
-            .join(", ") || "",
-        );
-
-        incidentRows.push(`
-            <tr>
-              <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; word-break: break-word;">
-                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
-                  <tr>
-                    <td style="vertical-align: middle;">
-                      <span style="display: inline-block; background-color: #fee2e2; color: #991b1b; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${incidentNumber}</span>
-                      <a href="${incidentLink}" style="color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${incidentTitle}</a>
-                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 13px; line-height: 20px; margin-top: 6px;">Monitor: ${monitorName}</span>` : ""}
-                    </td>
-                    <td width="52" style="text-align: right; vertical-align: middle; padding-left: 8px;">
-                      <a href="${incidentLink}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          `);
-      }
-      if (incidentRows.length > 0) {
-        incidentsListHtml = `
-          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-            <tbody>
-              ${incidentRows.join("")}
-            </tbody>
-          </table>
-        `;
-      }
+        ).toString(),
+        monitorName: (incident.monitors || [])
+          .map((monitor: Monitor): string => {
+            return monitor.name || "";
+          })
+          .filter((name: string): boolean => {
+            return name.length > 0;
+          })
+          .join(", "),
+      });
     }
+
+    const incidentsListHtml: string = EpisodeMemberEmailList.toHtml(
+      incidentItems,
+      INCIDENT_NUMBER_BADGE,
+    );
 
     const episodeNumber: string =
       incidentEpisode.episodeNumberWithPrefix ||

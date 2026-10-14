@@ -46,6 +46,12 @@ describe("WorkspaceCommands.parse: each command", () => {
     ["maintenance", WorkspaceCommandName.Maintenance, ""],
     ["oncall", WorkspaceCommandName.OnCall, ""],
     [
+      "page @nawaz The checkout API is down",
+      WorkspaceCommandName.Page,
+      "@nawaz The checkout API is down",
+    ],
+    ["page", WorkspaceCommandName.Page, ""],
+    [
       "ask which monitors are down?",
       WorkspaceCommandName.Ask,
       "which monitors are down?",
@@ -94,12 +100,56 @@ describe("WorkspaceCommands.parse: each command", () => {
     }
   });
 
-  test("the commands are incident, maintenance, oncall, ask and help, in that order", () => {
+  test("the commands are incident, maintenance, oncall, page, ask and help, in that order", () => {
     expect(
       WORKSPACE_COMMANDS.map((definition: WorkspaceCommandDefinition) => {
         return definition.name;
       }),
-    ).toEqual(["incident", "maintenance", "oncall", "ask", "help"]);
+    ).toEqual(["incident", "maintenance", "oncall", "page", "ask", "help"]);
+  });
+
+  /*
+   * Like incident and maintenance, page takes what follows it: a question
+   * that only starts with the word ("page views this week?") opens the page
+   * form, which pages nobody until it is submitted. `ask` asks it.
+   */
+  test("page keeps everything after it, as typed; ask asks a question that starts with the word", () => {
+    expect(parse("Page: @nawaz, @simon - db down")).toEqual({
+      command: WorkspaceCommandName.Page,
+      text: "@nawaz, @simon - db down",
+    });
+    expect(parse("page views this week?")).toEqual({
+      command: WorkspaceCommandName.Page,
+      text: "views this week?",
+    });
+    expect(parse("ask page views this week?")).toEqual({
+      command: WorkspaceCommandName.Ask,
+      text: "page views this week?",
+    });
+  });
+
+  test("page is never read as a misspelling: it is too short to tell from the words a question starts with", () => {
+    for (const word of ["pages", "paged", "pace", "sage", "pgae"]) {
+      expect(parse(`${word} the database`).misspelt).toBeUndefined();
+      expect(parse(`${word} the database`).command).toBeNull();
+    }
+  });
+});
+
+describe("WorkspaceCommands.getArgumentHint", () => {
+  test("what may follow each command, as the help and the Slack app's usage hint write it", () => {
+    expect(
+      WORKSPACE_COMMANDS.map((definition: WorkspaceCommandDefinition) => {
+        return [definition.name, WorkspaceCommands.getArgumentHint(definition)];
+      }),
+    ).toEqual([
+      ["incident", "[title]"],
+      ["maintenance", "[title]"],
+      ["oncall", ""],
+      ["page", "[who] [message]"],
+      ["ask", "[question]"],
+      ["help", ""],
+    ]);
   });
 });
 
@@ -794,6 +844,7 @@ const SLACK_HELP_LINES: Array<string> = [
   "- `/oneuptime incident [title]`: declare an incident",
   "- `/oneuptime maintenance [title]`: schedule maintenance",
   "- `/oneuptime oncall`: see who is on call right now",
+  "- `/oneuptime page [who] [message]`: page a person, a team or whoever is on call",
   "- `/oneuptime ask [question]`: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
   "- `/oneuptime help`: list every command",
   "",
@@ -805,6 +856,7 @@ const TEAMS_HELP_LINES: Array<string> = [
   "- **incident [title]**: declare an incident",
   "- **maintenance [title]**: schedule maintenance",
   "- **oncall**: see who is on call right now",
+  "- **page [who] [message]**: page a person, a team or whoever is on call",
   "- **ask [question]**: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
   "- **help**: list every command",
   "",
@@ -824,6 +876,7 @@ describe("WorkspaceCommands.getSummary", () => {
       ["incident", "declare an incident"],
       ["maintenance", "schedule maintenance"],
       ["oncall", "see who is on call right now"],
+      ["page", "page a person, a team or whoever is on call"],
       [
         "ask",
         "ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
@@ -851,7 +904,7 @@ describe("WorkspaceCommands.getHelpAnswer", () => {
 
     expect(answer).toEqual({
       markdown: SLACK_HELP_LINES.join("\n"),
-      text: "Here's what /oneuptime can do: incident, maintenance, oncall, ask, help",
+      text: "Here's what /oneuptime can do: incident, maintenance, oncall, page, ask, help",
     });
   });
 
@@ -874,7 +927,7 @@ describe("WorkspaceCommands.getHelpAnswer", () => {
       SLACK_HELP_LINES.join("\n").split("/oneuptime").join("/irm"),
     );
     expect(answer.text).toBe(
-      "Here's what /irm can do: incident, maintenance, oncall, ask, help",
+      "Here's what /irm can do: incident, maintenance, oncall, page, ask, help",
     );
   });
 
@@ -885,7 +938,7 @@ describe("WorkspaceCommands.getHelpAnswer", () => {
 
     expect(answer).toEqual({
       markdown: TEAMS_HELP_LINES.join("\n"),
-      text: "Here's what I can do: incident, maintenance, oncall, ask, help",
+      text: "Here's what I can do: incident, maintenance, oncall, page, ask, help",
     });
     // A card shows no code: nothing is written as code in Teams.
     expect(answer.markdown).not.toContain("`");
@@ -904,10 +957,10 @@ describe("WorkspaceCommands.getHelpAnswer", () => {
 
     const lines: Array<string> = answer.markdown.split("\n");
 
-    expect(lines[5]).toBe(
+    expect(lines[6]).toBe(
       "- **show active incidents**, **show active alerts**: list what is open right now",
     );
-    expect(lines[6]).toBe("- **help**: list every command");
+    expect(lines[7]).toBe("- **help**: list every command");
   });
 
   test("Microsoft Teams: the bot is @mentioned by the name Teams shows for it, whatever the product is called", () => {
@@ -996,14 +1049,14 @@ describe("WorkspaceCommands.getCommandListLines: the help's list, alone", () => 
       return line.toString();
     });
 
-    expect(lines).toEqual(TEAMS_HELP_LINES.slice(1, 6));
+    expect(lines).toEqual(TEAMS_HELP_LINES.slice(1, 7));
     expect(
       WorkspaceCommands.getCommandListLines({
         workspaceType: WorkspaceType.Slack,
       }).map((line: { toString: () => string }): string => {
         return line.toString();
       }),
-    ).toEqual(SLACK_HELP_LINES.slice(1, 6));
+    ).toEqual(SLACK_HELP_LINES.slice(1, 7));
   });
 });
 

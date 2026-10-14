@@ -38,6 +38,13 @@ export interface FacetVisibilityOptions {
   showHidden: boolean;
   // Section title per key, for the footer's tooltip. Defaults to the key.
   getTitle?: ((facetKey: string) => string) | undefined;
+  /*
+   * Facets whose counts the server stopped at the query time limit (issue
+   * #4707). Not counted is not empty: such a facet is never folded into the
+   * "N empty filters hidden" footer, which would say something untrue about
+   * it. It stays in its place, where its section says it was not counted.
+   */
+  stoppedKeys?: ReadonlySet<string> | undefined;
 }
 
 export interface FacetVisibility {
@@ -75,9 +82,16 @@ export const computeFacetVisibility: (
       continue;
     }
 
-    const isInUse: boolean =
+    /*
+     * Kept on screen whatever its values: a facet the user is working with
+     * (a selection, a search box), and a facet the time limit stopped, whose
+     * section says it was not counted — folding that one into "N empty
+     * filters hidden" would call it empty, which nobody knows.
+     */
+    const mustStay: boolean =
       hasActiveValues(options.activeValuesByKey[key]) ||
-      options.searchExemptKeys.has(key);
+      options.searchExemptKeys.has(key) ||
+      Boolean(options.stoppedKeys?.has(key));
 
     const values: FacetData[string] | undefined = options.facetData[key];
 
@@ -86,16 +100,16 @@ export const computeFacetVisibility: (
        * Not loaded yet (or not returned). Rendering it would flash a dozen
        * empty resource sections — and a bogus "12 hidden" count — on every
        * first load, so it is neither shown nor counted. The exception is a
-       * facet the user is working with: a selection or a search box must not
-       * vanish because a refetch failed.
+       * facet that must stay: a selection or a search box must not vanish
+       * because a refetch failed.
        */
-      if (isInUse) {
+      if (mustStay) {
         visibleKeys.push(key);
       }
       continue;
     }
 
-    if (values.length > 0 || isInUse) {
+    if (values.length > 0 || mustStay) {
       visibleKeys.push(key);
       continue;
     }

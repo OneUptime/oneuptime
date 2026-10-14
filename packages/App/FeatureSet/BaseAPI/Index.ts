@@ -82,6 +82,7 @@ import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
 import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
 import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificationRuleAPI";
+import WorkspaceUserGroupAPI from "Common/Server/API/WorkspaceUserGroupAPI";
 import VideoCallConnectionAPI from "Common/Server/API/VideoCallConnectionAPI";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import IncidentVideoCallService, {
@@ -5370,6 +5371,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new WorkspaceNotificationRuleAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new WorkspaceUserGroupAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

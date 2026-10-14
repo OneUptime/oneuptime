@@ -143,7 +143,7 @@ Manifestet setter opp disse funksjonene. Hver av dem når serveren din via ruten
 
 | Funksjon | Hva den gjør | Rute |
 | --- | --- | --- |
-| `/oneuptime` | Erklær en hendelse, planlegg vedlikehold, se hvem som har vakt, og spør OneUptime AI; `/oneuptime help` viser alle kommandoene | `POST /api/slack/command` |
+| `/oneuptime` | Erklær en hendelse, planlegg vedlikehold, se hvem som har vakt, tilkall noen, og spør OneUptime AI; `/oneuptime help` viser alle kommandoene | `POST /api/slack/command` |
 | Snarveiene **Create New Incident** og **Create Scheduled Event** | Erklær en hendelse eller planlegg vedlikehold fra Slacks snarveier | `POST /api/slack/interactive` |
 | Knapper og skjemaer i OneUptime-meldinger | Bekreft, løs, legg til et notat, endre tilstanden, kjør en vaktpolicy | `POST /api/slack/interactive` og `POST /api/slack/options-load` |
 | Hendelser | Omtaler, meldinger, reaksjoner og festede elementer, for eksempel for å lagre en melding som notat | `POST /api/slack/events` |
@@ -154,9 +154,17 @@ Beskrivelser av hendelser og varsler kan inneholde skjermbilder, for eksempel fr
 
 Hvis du opprettet Slack-appen fra et eldre manifest, legger du til `files:write` under **OAuth & Permissions > Bot Token Scopes** (eller oppdaterer appen fra det gjeldende manifestet). Velg deretter **Connect with Slack** igjen under **Prosjektinnstillinger > Arbeidsområde > Slack**, slik at det nye scopet blir gitt. Inntil da vises hvert skjermbilde som sin alternative tekst.
 
+### Vakt-brukergrupper
+
+Å holde en vaktplans Slack-brukergruppe lik dem som har vakt (se [Vakt-brukergrupper](/docs/workspace-connections/slack#vakt-brukergrupper)) krever bot-scopene `usergroups:read` og `usergroups:write`. Det genererte manifestet inneholder dem.
+
+Hvis du opprettet Slack-appen fra et eldre manifest, legger du til `usergroups:read` og `usergroups:write` under **OAuth & Permissions > Bot Token Scopes** (eller oppdaterer appen fra det gjeldende manifestet). Velg deretter **Connect with Slack** igjen under **Prosjektinnstillinger > Arbeidsområde > Slack**, slik at de nye scopene blir gitt. Inntil da sier vaktplanens kort at OneUptimes Slack-app ennå ikke har lov til å endre brukergrupper.
+
 ### Apper opprettet fra et eldre manifest
 
-En Slack-app som er opprettet fra et tidligere OneUptime-manifest, registrerer `/incident` og `/maintenance` som egne kommandoer, som kan kollidere med kommandoer med samme navn i andre apper. De virker fortsatt og åpner de samme skjemaene som `/oneuptime incident` og `/oneuptime maintenance`. For å erstatte dem med `/oneuptime` oppdaterer du appen fra manifestet serveren din genererer: på [api.slack.com/apps](https://api.slack.com/apps) åpner du appens **App Manifest**, limer inn manifestet og lagrer. Scopene er de samme, så appen trenger ikke å installeres på nytt.
+En Slack-app som er opprettet fra et tidligere OneUptime-manifest, registrerer `/incident` og `/maintenance` som egne kommandoer, som kan kollidere med kommandoer med samme navn i andre apper. De virker fortsatt og åpner de samme skjemaene som `/oneuptime incident` og `/oneuptime maintenance`. For å erstatte dem med `/oneuptime` oppdaterer du appen fra manifestet serveren din genererer: på [api.slack.com/apps](https://api.slack.com/apps) åpner du appens **App Manifest**, limer inn manifestet og lagrer.
+
+En app som er opprettet før `/oneuptime page`, trenger den samme oppdateringen: til den har fått den, kan ikke `/oneuptime page` se hvem du nevner med @, og åpner et skjema der du velger dem, i stedet for å tilkalle dem med en gang. Velg deretter **Connect with Slack** igjen under **Prosjektinnstillinger > Arbeidsområde > Slack**, slik at scopet `users:read.email` som manifestet legger til, blir gitt: med det blir en person hvis Slack-konto ikke er koblet til OneUptime, funnet via e-postadressen sin.
 
 ## Nettverkstilgang for selvdriftede installasjoner
 

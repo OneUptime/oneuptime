@@ -7,6 +7,7 @@ import {
   DYNAMICS,
   FIRST_TASK_PAGE_COUNT,
   INTEGRATIONS_PAGES,
+  IRC,
   IntegrationsDocsPageEntry,
   JIRA,
   KEPT_AS_WRITTEN,
@@ -16,6 +17,7 @@ import {
   PRODUCT_NAMES,
   PROSE,
   STEP_NAMES,
+  TELEGRAM,
   TEMPLATE_NAMES,
   ZABBIX,
 } from "./IntegrationsDocsPages";
@@ -62,6 +64,7 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import { anchorInLanguage } from "./NetworkDocsLabels";
+import { leadOf } from "./InventoryAndApiDocsSupport";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { describe, expect, it } from "@jest/globals";
 
@@ -70,10 +73,13 @@ import { describe, expect, it } from "@jest/globals";
  * PagerDuty, Opsgenie, ServiceNow and Microsoft Dynamics 365 pages, in
  * every docs language; and task 28b: the Prometheus Alertmanager, Grafana
  * and Datadog pages, and the Google SecOps, Microsoft Sentinel, Microsoft
- * Defender XDR and CrowdStrike Falcon connection pages.
- * IntegrationsDocsFacts, AlertingIntegrationsDocsFacts and
- * SecurityConnectionsDocsFacts hold the English pages to the product; this
- * suite holds each translation to its English page:
+ * Defender XDR and CrowdStrike Falcon connection pages; and task 28c: the
+ * Splunk Enterprise Security, Elastic Security, AWS Security Hub and Okta
+ * System Log connection pages, and the GitHub, GitLab, Discord and
+ * Telegram pages. IntegrationsDocsFacts, AlertingIntegrationsDocsFacts,
+ * SecurityConnectionsDocsFacts, SplunkElasticAwsOktaDocsFacts and
+ * IssueAndChatIntegrationsDocsFacts hold the English pages to the product;
+ * this suite holds each translation to its English page:
  *
  *   - line for line: the same number of lines, each heading, table row,
  *     fence, component line and tab on the English one's line, so a later
@@ -135,7 +141,45 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   "integrations/microsoft-sentinel": 22,
   "integrations/microsoft-defender-xdr": 22,
   "integrations/crowdstrike-falcon": 21,
+  "integrations/splunk": 22,
+  "integrations/elastic-security": 21,
+  "integrations/aws-security-hub": 22,
+  "integrations/okta": 23,
+  "integrations/github": 21,
+  "integrations/gitlab": 20,
+  "integrations/discord": 20,
+  "integrations/telegram": 18,
 };
+
+/*
+ * Tab labels that are words, not a product's name: how a workflow is built,
+ * on the Discord and Telegram pages, as on the IRC page. A reader's pick of
+ * a tab is remembered by its label, from page to page, so each language
+ * words these as its IRC page does, and the pick follows the reader from
+ * one chat's page to the next. Every other tab label names a product, and
+ * stays as written.
+ */
+const WORDED_TAB_LABELS: ReadonlyArray<string> = [
+  "From the template",
+  "From scratch",
+];
+
+// A tab's label as a page in this language writes it.
+function drawnTabLabel(language: string, english: string): string {
+  if (!WORDED_TAB_LABELS.includes(english)) {
+    return english;
+  }
+
+  const englishLabels: Array<string> = tabLabels(readPage("en", IRC));
+  const labels: Array<string> = tabLabels(readPage(language, IRC));
+  const drawn: string | undefined = labels[englishLabels.indexOf(english)];
+
+  if (!drawn) {
+    throw new Error(`The ${language} IRC page has no tab for ${english}`);
+  }
+
+  return drawn;
+}
 
 // The names, longest first: "Jira Cloud" goes before "Jira" takes its first word.
 const NAMES_LONGEST_FIRST: Array<string> = [...PRODUCT_NAMES].sort(
@@ -760,9 +804,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         );
       });
 
-      it("keeps the tabs' labels, which name products", () => {
+      it("keeps the tabs' labels that name products, and words the others as the IRC page does", () => {
         expect(tabLabels(readPage(language, entry.page))).toEqual(
-          tabLabels(english),
+          tabLabels(english).map((label: string): string => {
+            return drawnTabLabel(language, label);
+          }),
         );
       });
 
@@ -997,6 +1043,85 @@ describe("the Integrations Overview's catalog, in every language", () => {
       expect(catalogRows(language)).toEqual(catalogRows("en"));
     },
   );
+
+  /*
+   * The words each language's Telegram page writes in its lead for an
+   * alert and for an incident: "when an alert fires or an incident opens".
+   * The catalog's Telegram row says what Telegram's one template sends, a
+   * message when an alert fires (IssueAndChatIntegrationsDocsFacts holds
+   * the English row to the template), so in every language it names the
+   * alert in its Telegram page's own word, and no incident. It said
+   * "incident updates", in every language.
+   */
+  const TELEGRAM_LEAD_WORDS: Record<
+    string,
+    { alert: string; incident: string }
+  > = {
+    en: { alert: "alert", incident: "incident" },
+    de: { alert: "Warnung", incident: "Vorfall" },
+    fr: { alert: "alerte", incident: "incident" },
+    es: { alert: "alerta", incident: "incidente" },
+    it: { alert: "avviso", incident: "incident" },
+    pt: { alert: "alerta", incident: "incidente" },
+    nl: { alert: "waarschuwing", incident: "incident" },
+    da: { alert: "advarsel", incident: "hændelse" },
+    no: { alert: "varsel", incident: "hendelse" },
+    sv: { alert: "larm", incident: "incident" },
+    ru: { alert: "оповещени", incident: "инцидент" },
+    ja: { alert: "アラート", incident: "インシデント" },
+    ko: { alert: "알림", incident: "인시던트" },
+    "zh-CN": { alert: "警报", incident: "事件" },
+    "zh-TW": { alert: "警示", incident: "事件" },
+    hi: { alert: "अलर्ट", incident: "घटना" },
+    fa: { alert: "هشدار", incident: "حادثه" },
+  };
+
+  // A row's description, by the docs page its first cell opens.
+  function catalogDescription(language: string, page: string): string {
+    const row: Array<string> | undefined = tables(readPage(language, OVERVIEW))
+      .flatMap((table: Array<Array<string>>): Array<Array<string>> => {
+        return table;
+      })
+      .find((candidate: Array<string>): boolean => {
+        return (candidate[0] || "").endsWith(`](/docs/${page})`);
+      });
+
+    if (!row) {
+      throw new Error(`The ${language} catalog has no row for ${page}`);
+    }
+
+    return row[2] as string;
+  }
+
+  it("knows the Telegram page's words in every docs language", () => {
+    expect(Object.keys(TELEGRAM_LEAD_WORDS)).toEqual([
+      ...SUPPORTED_DOCS_LANGUAGE_CODES,
+    ]);
+  });
+
+  it.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
+    "%s words Telegram's row by the alert its template sends, as its Telegram page does, and names no incident",
+    (language: string) => {
+      const words: { alert: string; incident: string } = TELEGRAM_LEAD_WORDS[
+        language
+      ] as { alert: string; incident: string };
+      const lead: string = leadOf(readPage(language, TELEGRAM)).toLowerCase();
+      const description: string = catalogDescription(
+        language,
+        TELEGRAM,
+      ).toLowerCase();
+
+      // Both words are the page's own, from the sentence that names both.
+      expect(lead).toContain(words.alert.toLowerCase());
+      expect(lead).toContain(words.incident.toLowerCase());
+      expect({
+        language,
+        description,
+        alert: description.includes(words.alert.toLowerCase()),
+        incident: description.includes(words.incident.toLowerCase()),
+      }).toEqual({ language, description, alert: true, incident: false });
+    },
+  );
 });
 
 describe("the helpers, on these pages' shapes", () => {
@@ -1043,6 +1168,25 @@ describe("the helpers, on these pages' shapes", () => {
             inShape: inEnglishShape(language, page),
           }).toEqual({ language, page, inShape: true });
         }
+      }
+    }
+  });
+
+  it("word a tab that names no product as the IRC page does, and keep every other as written", () => {
+    expect(drawnTabLabel("en", "From the template")).toBe("From the template");
+    expect(drawnTabLabel("de", "Zabbix 7.0")).toBe("Zabbix 7.0");
+
+    for (const language of LANGUAGES) {
+      for (const label of WORDED_TAB_LABELS) {
+        expect({
+          language,
+          label,
+          worded: drawnTabLabel(language, label) !== label,
+        }).toEqual({
+          language,
+          label,
+          worded: true,
+        });
       }
     }
   });

@@ -49,7 +49,7 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Incident**. Klicka på utlösaren och välj `title` och `description` i **Fields to pass on**.
+Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Incident**. Klicka på utlösaren: dess **Fields to pass on** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning**.
 
 ### Skapa larmet
 
@@ -73,7 +73,7 @@ Och **Request Body** på:
 
 ### Testa det och slå sedan på det
 
-Klicka på **Kör arbetsflöde**, ange **Incident-ID** för en testincident och kör det. Steget **API Post (JSON)** visar ett `202`-svar, och larmet dyker upp i Opsgenie en stund senare. Slå sedan på **Aktiverad** högst upp i **Byggare**.
+Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API Post (JSON)** visar ett `202`-svar, och larmet dyker upp i Opsgenie en stund senare. Slå sedan på **Aktiverad** högst upp i **Byggare**.
 :::
 
 Opsgenies schema är ordet `GenieKey`, ett blanksteg och sedan nyckeln. Opsgenie begränsar `message` till 130 tecken, och prioriteterna går från `P1` till `P5`: se [Koppla prioriteter](#koppla-prioriteter) för att skicka varje incidents egen.
@@ -85,7 +85,7 @@ Ett arbetsflöde har en utlösare, så det krävs ett andra arbetsflöde för at
 :::steps
 ### Lägg till utlösaren On Update Incident
 
-Skapa ett arbetsflöde som heter `Close Opsgenie alerts` och välj **On Update Incident** som utlösare. Välj `currentIncidentStateId` i **Fields to watch**, så att det bara körs när statusen ändras. Fråga i **Fields to pass on** om den nya statusen är en löst status:
+Skapa ett arbetsflöde som heter `Close Opsgenie alerts` och välj **On Update Incident** som utlösare. Klicka på **Lägg till fält** i **Fields to watch** och välj **Current Incident State**, så att det bara körs när statusen ändras. Fråga i **Fields to pass on** om den nya statusen är en löst status: klicka på **Lägg till fält**, öppna **Current Incident State** och välj **Is Resolved State**. Eller klicka på **Redigera som JSON** och ersätt JSON:en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ Slå på **Aktiverad** och lös sedan en testincident i OneUptime. Opsgenie stä
 
 För att skicka varje incidents allvarlighetsgrad som en Opsgenie-prioritet lägger du till ett **Run Custom JavaScript**-block mellan utlösaren och **API Post (JSON)**-blocket.
 
-1. Välj också allvarlighetsgradens `name` i utlösarens **Fields to pass on**: `{ "incidentSeverity": { "name": true } }`.
+1. Klicka på **Lägg till fält** i utlösarens **Fields to pass on**, öppna **Incidentallvar** och välj **Namn**.
 2. Ställ in blockets **Arguments** på `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` och dess **JavaScript Code** på:
 
    ```javascript

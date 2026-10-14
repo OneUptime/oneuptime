@@ -7,6 +7,7 @@ import logger from "../Logger";
 import FileOwnership, { OwnedFile } from "./FileOwnership";
 import PublishedImages from "./PublishedImages";
 import File from "../../../Models/DatabaseModels/File";
+import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
 import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
 import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundException";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
@@ -278,9 +279,9 @@ export default class FileViewerAccess {
    * Whether the person can open the project right now: what the API answers
    * for every request made to it (UserMiddleware): an accepted membership,
    * with the project's SSO requirement met. A project that requires SSO the
-   * request has not signed in with, or a project that no longer exists, is a
-   * no. A lookup that fails is an error, not a decision (keepReadableFile
-   * turns it into a refusal).
+   * request has not signed in with, a project that no longer exists, or one
+   * a master admin blocked, is a no. A lookup that fails is an error, not a
+   * decision (keepReadableFile turns it into a refusal).
    */
   private static async canOpenProject(data: {
     req: ExpressRequest;
@@ -299,7 +300,8 @@ export default class FileViewerAccess {
     } catch (err) {
       if (
         err instanceof SsoAuthorizationException ||
-        err instanceof TenantNotFoundException
+        err instanceof TenantNotFoundException ||
+        err instanceof ProjectBlockedException
       ) {
         return false;
       }

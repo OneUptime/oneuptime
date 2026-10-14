@@ -18,9 +18,12 @@ import {
  *
  * These tests stub the database driver and pin down the query's contract:
  * it counts (never reads an address), it is pinned to the project, it counts
- * only the subscribers the jobs send to, and it reads the rows back into
- * per-page, per-channel numbers. StatusPageSubscriberAudienceCountsPostgres
- * runs the same query against a real Postgres.
+ * only the subscribers the jobs send to - who are also only the ones their
+ * page takes (Only Private Users Can Subscribe, Allowed Email Domains) - and
+ * it reads the rows back into per-page, per-channel numbers.
+ * StatusPageSubscriberAudienceCountsPostgres and
+ * StatusPageSubscriberRestrictionsPostgres run the same query against a real
+ * Postgres.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -73,8 +76,8 @@ describe("StatusPageSubscriberService.countActiveSubscribersByChannel", () => {
     });
 
     expect(query).toHaveBeenCalledTimes(1);
-    expect(sql()).toContain('FROM "StatusPageSubscriber"');
-    expect(sql()).toContain('GROUP BY "statusPageId"');
+    expect(sql()).toContain('FROM "StatusPageSubscriber" "subscriber"');
+    expect(sql()).toContain('GROUP BY "subscriber"."statusPageId"');
   });
 
   test("it counts and never selects an address", async () => {
@@ -93,7 +96,9 @@ describe("StatusPageSubscriberService.countActiveSubscribersByChannel", () => {
       });
 
     expect(columns).toHaveLength(6);
-    expect(columns[0]).toBe('"statusPageId"::text AS "statusPageId"');
+    expect(columns[0]).toBe(
+      '"subscriber"."statusPageId"::text AS "statusPageId"',
+    );
 
     for (const column of columns.slice(1)) {
       expect(column).toMatch(
@@ -108,9 +113,34 @@ describe("StatusPageSubscriberService.countActiveSubscribersByChannel", () => {
       statusPageIds: [new ObjectID(PAGE_A)],
     });
 
-    expect(sql()).toContain('"isUnsubscribed" = false');
-    expect(sql()).toContain('"isSubscriptionConfirmed" = true');
-    expect(sql()).toContain('"deletedAt" IS NULL');
+    expect(sql()).toContain('"subscriber"."isUnsubscribed" = false');
+    expect(sql()).toContain('"subscriber"."isSubscriptionConfirmed" = true');
+    expect(sql()).toContain('"subscriber"."deletedAt" IS NULL');
+  });
+
+  test("only the subscribers their page takes, by the page's own settings, joined in the same query", async () => {
+    await StatusPageSubscriberService.countActiveSubscribersByChannel({
+      projectId: PROJECT_ID,
+      statusPageIds: [new ObjectID(PAGE_A)],
+    });
+
+    /*
+     * Left-joined: a subscriber is counted by its page's settings, and one
+     * whose page row is not there by none.
+     */
+    expect(sql()).toContain(
+      'LEFT JOIN "StatusPage" "statusPage" ON "statusPage"."_id" = "subscriber"."statusPageId"',
+    );
+    expect(sql()).toContain('"statusPage"."limitSubscribersToPrivateUsers"');
+    expect(sql()).toContain('"statusPage"."allowedSubscriberEmailDomains"');
+    // The private users read are those of the pages counted, by bound id.
+    expect(sql()).toContain(
+      'FROM "StatusPagePrivateUser" "privateUser" WHERE "privateUser"."statusPageId" = ANY($2::uuid[])',
+    );
+    expect(sql()).toContain('"privateUser"."deletedAt" IS NULL');
+    // Still the two parameters, and no value inlined.
+    expect(params()).toHaveLength(2);
+    expect(sql()).not.toContain(PAGE_A);
   });
 
   test("pinned to the project, with the page ids as a bound parameter", async () => {
@@ -123,8 +153,8 @@ describe("StatusPageSubscriberService.countActiveSubscribersByChannel", () => {
       ],
     });
 
-    expect(sql()).toContain('"projectId" = $1');
-    expect(sql()).toContain('"statusPageId" = ANY($2::uuid[])');
+    expect(sql()).toContain('"subscriber"."projectId" = $1');
+    expect(sql()).toContain('"subscriber"."statusPageId" = ANY($2::uuid[])');
     expect(params()).toEqual([PROJECT_ID.toString(), [PAGE_A, PAGE_B]]);
   });
 

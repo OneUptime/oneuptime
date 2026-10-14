@@ -11,6 +11,7 @@ import TelemetryIngest from "Common/Server/Middleware/TelemetryIngest";
 import PayAsYouGoBillingService, {
   PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
 } from "Common/Server/Services/PayAsYouGoBillingService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import StatusPageDomainService from "Common/Server/Services/StatusPageDomainService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
@@ -894,6 +895,10 @@ describe("what the shipper pages say an ingest request is answered", () => {
       .mockResolvedValue(key as never);
     jest
       .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
+      .mockResolvedValue(false as never);
+    // A project that is not blocked: a blocked one is refused with a 403 first.
+    jest
+      .spyOn(ProjectService, "isProjectBlocked")
       .mockResolvedValue(false as never);
 
     let refused: unknown = undefined;

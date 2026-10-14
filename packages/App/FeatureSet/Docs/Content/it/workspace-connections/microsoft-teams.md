@@ -6,6 +6,7 @@ Collega OneUptime a Microsoft Teams per pubblicare nei tuoi canali e nelle tue c
 - [Collegare Microsoft Teams](#collegare-microsoft-teams): Il consenso dell'amministratore, il tuo accesso e l'app in ogni team.
 - [Regole di notifica](#regole-di-notifica): Decidi quali eventi vengono pubblicati dove, e quali hanno un canale tutto loro.
 - [Parlare con il bot di OneUptime](#parlare-con-il-bot-di-oneuptime): Comandi, domande e moduli in una chat con il bot.
+- [Tag di reperibilità](#tag-di-reperibilità): Mantieni il tag di un team uguale a chi è reperibile, e chiamalo.
 - [Agire su incidenti, avvisi ed eventi da Microsoft Teams](#agire-su-incidenti-avvisi-ed-eventi-da-microsoft-teams): I pulsanti delle schede di OneUptime.
 :::
 
@@ -136,7 +137,11 @@ Reagisci a un messaggio, o a una risposta, nel canale che OneUptime ha creato pe
 | 📌 o 📍 | Una nota privata, visibile solo al tuo team |
 | 📣 o 📢 | Una nota pubblica, mostrata sulla pagina di stato. Solo incidenti ed eventi di manutenzione programmata. |
 
-La nota viene salvata a tuo nome, con i tuoi permessi, quindi il tuo account Microsoft Teams deve essere collegato, e l'app di OneUptime deve essere nel team.
+La nota riprende il messaggio così come Microsoft Teams lo mostrava: la formattazione, i link e il codice, le persone che menziona con il loro nome, e i file e le immagini come link. Una nota pubblica lascia fuori i file e le immagini, perché si aprono solo per il tuo team.
+
+Sono le parole di chi ha scritto il messaggio: il suo nome in OneUptime se il suo account Microsoft Teams è collegato, altrimenti il nome che mostra Teams. Una nota privata viene collocata nella cronologia al momento in cui il messaggio è stato pubblicato, per quanto tempo dopo venga salvata. Una nota pubblica viene collocata al momento in cui viene salvata, cioè quando la pagina di stato la mostra. La cronologia dice chi l'ha salvata. La nota non viene ripubblicata nel canale, dove il messaggio c'è già.
+
+La nota viene salvata a tuo nome, con i tuoi permessi, e l'app di OneUptime deve essere nel team. Se il tuo account Microsoft Teams non è ancora collegato, OneUptime ti chiede di collegarlo, in una risposta che ti menziona, con un pulsante che salva il messaggio non appena l'hai fatto.
 
 ## Parlare con il bot di OneUptime
 
@@ -148,6 +153,7 @@ Scrivi al bot in una chat personale, oppure menziona OneUptime con @ in un canal
 | `incident [title]` | Apre il modulo dell'incidente, con il titolo compilato. |
 | `maintenance [title]` | Apre il modulo della manutenzione programmata, con il titolo compilato. |
 | `oncall` | Elenca chi è reperibile in questo momento in ogni pianificazione di reperibilità che puoi vedere, fino a quando, e chi è il prossimo. |
+| `page [who] [message]` | Chiama le persone che menzioni con @ per il tuo messaggio, oppure invia una scheda per scegliere chi chiamare. Vedi [Chiamare qualcuno da Microsoft Teams](#chiamare-qualcuno-da-microsoft-teams). |
 | `ask [question]`, o qualsiasi domanda in linguaggio naturale | OneUptime AI risponde su log, trace, metriche, incidenti e monitor, per esempio "quali monitor sono giù in questo momento?". Le risposte si limitano a leggere. |
 | `show active incidents`, `show active alerts` | Elenca ciò che è aperto adesso. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Elenca gli eventi di manutenzione in arrivo, o in corso. |
@@ -163,6 +169,36 @@ Scrivere `incident` o `maintenance` al bot di OneUptime apre un modulo per la pe
 - **Cosa può indicare un modulo.** In un canale o in una chat di gruppo chiunque vi partecipi può inviare il modulo, e viene inviato a nome di chi lo fa, con i suoi permessi. L'incidente o l'evento viene creato con quei permessi e attribuito a quella persona. Un monitor, una policy di reperibilità, un'etichetta, una gravità o uno stato che non può leggere, o uno di un altro progetto, viene rifiutato come uno che il progetto non ha, e non viene creato nulla: il bot risponde "One of the values you picked ... is not available in this project any more. Please pick it again."
 
 **Execute On-Call Policy** su un incidente, un avviso o un episodio funziona allo stesso modo: richiede il permesso di eseguire una policy di reperibilità (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, oppure **Create On-Call Duty Policy Execution Log** in un ruolo personalizzato) e di leggere quell'incidente, avviso o episodio, e offre le policy di reperibilità attive che la persona può leggere. Anche visualizzare un monitor o una policy di reperibilità da una scheda lo legge a nome della persona che ha premuto il pulsante.
+
+## Chiamare qualcuno da Microsoft Teams
+
+In un canale o in una chat di gruppo, `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` chiama subito Nawaz. OneUptime crea un avviso il cui titolo è il tuo messaggio, e ogni persona che menzioni con @ riceve una telefonata, un SMS, una notifica push o un'email, come dicono le sue regole di reperibilità, finché qualcuno non conferma l'avviso.
+
+- **Chi viene chiamato subito.** Le persone che menzioni con @, e chi è reperibile nelle pianificazioni seguite da un tag che menzioni con @ (vedi [Tag di reperibilità](#tag-di-reperibilità)), quando le segue un messaggio. OneUptime riconosce una persona dall'account OneUptime a cui è collegato il suo account Microsoft Teams, oppure dal suo indirizzo email in Microsoft Teams. Nessuno al di fuori del progetto viene chiamato.
+- **Tutto il resto riceve una scheda.** Senza nessuno menzionato con @, come in una chat personale con il bot, senza messaggio, con un tag che non segue nessuna pianificazione di reperibilità che puoi vedere, o con una persona che OneUptime non riesce a riconoscere, il bot risponde con la scheda **Page someone**, con quello che hai scritto già compilato, e dice chi non è riuscito a scegliere. Scegli persone, un team, una pianificazione di reperibilità, che chiama chi è reperibile in essa in quel momento, o una policy di reperibilità, che chiama tramite le sue regole di escalation, e inviala. Chiunque nella conversazione può inviare la scheda, a proprio nome. Una volta che ha chiamato, la scheda viene rimossa, così nessuno chiama due volte con essa.
+- **Dove si vede.** La conversazione mostra la chiamata come una sola scheda, tenuta aggiornata: chi è stato chiamato e come, e chi ha confermato. Dove il bot non può pubblicarla, la sua risposta dice chi è stato chiamato, con un link all'avviso.
+- **Chi può chiamare.** Chiunque possa sia eseguire una policy di reperibilità sia creare un avviso: **Project Owner**, **Project Admin** e **Project Member**, oppure **On-Call Member** insieme ad **Alert Member** (**Create On-Call Duty Policy Execution Log** e **Create Alert** in un ruolo personalizzato). Chiamare direttamente persone, un team o una pianificazione, senza una policy di reperibilità dietro la chiamata, richiede anche l'accesso a tutte le policy di reperibilità del progetto. A chiunque altro viene detto in una risposta, e nessuno viene chiamato.
+
+## Tag di reperibilità
+
+Mantieni un tag di Microsoft Teams, come `@Payments on-call`, uguale a chi è reperibile in una o più pianificazioni di reperibilità, così chiunque nel suo team può menzionarlo con @ per raggiungerli. OneUptime cambia i membri del tag a ogni passaggio di consegne e sostituzione, e lo controlla ogni 15 minuti.
+
+:::steps
+### Collegare un tag a una pianificazione
+
+Apri la pianificazione in **Reperibilità** > **Pianificazioni di reperibilità**. Nella sua scheda **Tag di Microsoft Teams**, fai clic su **Collega tag**, scegli il team e dai un nome al tag: il tag del team con quel nome, oppure uno nuovo creato da OneUptime. I suoi membri vengono sostituiti subito da chi è reperibile.
+
+### Collegarlo anche alla pianificazione secondaria
+
+Per un tag che contenga la reperibilità primaria e quella secondaria, collega lo stesso tag anche nella pagina della pianificazione secondaria. Un tag può seguire qualsiasi numero di pianificazioni.
+:::
+
+- **Cosa mostra la scheda.** Chi c'è ora in ogni tag, il suo team, le altre pianificazioni che segue e se è **Aggiornato**. Un tag contiene solo membri del suo team: chi è reperibile ma non è nel team viene indicato, con il motivo.
+- **Nessuno reperibile.** OneUptime toglie tutti dal tag finché qualcuno non è reperibile. Un nuovo tag ha bisogno di qualcuno del team reperibile, perché Microsoft Teams non crea tag vuoti.
+- **Chiamarlo.** `@OneUptime page @Payments on-call The checkout API is down` chiama chi è reperibile nelle pianificazioni seguite dal tag. Vedi [Chiamare qualcuno da Microsoft Teams](#chiamare-qualcuno-da-microsoft-teams).
+- **Cosa serve a Microsoft 365.** Modificare i tag richiede l'autorizzazione `TeamworkTag.ReadWrite.All` dell'app, che un amministratore di Microsoft 365 concede con **Concedi consenso amministratore** in **Impostazioni del progetto** > **Area di lavoro** > **Microsoft Teams**. Se la tua organizzazione ha dato il consenso prima che OneUptime potesse mantenere i tag, dallo di nuovo una volta.
+- **Chi può collegarne uno.** I ruoli che possono modificare le pianificazioni: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, oppure **Edit On-Call Duty Policy Schedule** in un ruolo personalizzato. Su OneUptime Cloud, collegarne uno richiede il piano **Growth**.
+- **Scollegare.** OneUptime smette di modificare il tag. Il tag e i suoi membri restano in Microsoft Teams come sono.
 
 ## Agire su incidenti, avvisi ed eventi da Microsoft Teams
 

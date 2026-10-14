@@ -57,6 +57,7 @@ import SubscriberNotificationDeliveryRecord, {
   StatusPageDeliverySkipReason,
   SubscriberNotificationRetryScope,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 import SubscriberNotificationTiming, {
   SubscriberNotificationRunClock,
   SubscriberNotificationSendWindow,
@@ -504,6 +505,21 @@ const notifySubscribersOfIncidentPublicNote: (data: {
           logger.debug(
             "Encountered a status page without an id; skipping.",
             logAttributes,
+          );
+          continue;
+        }
+
+        /*
+         * The page sends its subscribers nothing (Send Notifications to
+         * Subscribers off): passed over with why, and not recorded as told.
+         */
+        if (!isSendingSubscriberNotifications(statuspage)) {
+          logger.debug(
+            `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+          );
+          deliveryRecord.skipStatusPage(
+            statuspage,
+            StatusPageDeliverySkipReason.NotificationsOff,
           );
           continue;
         }
@@ -1097,7 +1113,7 @@ ${FeedMarkdown.asMarkdown(incidentPublicNote.note)}`.toString(),
         feedInfoInMarkdown:
           mdText`📧 **No notification sent to subscribers** for ${copy.feedNotSentSubject} on [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`.toString(),
         moreInformationInMarkdown: [
-          "Subscriber notifications were skipped because every associated status page either hides incidents, is left out by this incident's status page scope, or had no matching subscribers.",
+          "Subscriber notifications were skipped because every associated status page either does not send notifications to its subscribers, hides incidents, is left out by this incident's status page scope, or had no matching subscribers.",
           deliveryMarkdown,
         ]
           .filter(Boolean)

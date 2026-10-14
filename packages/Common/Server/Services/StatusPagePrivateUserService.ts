@@ -6,6 +6,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectReferencesService from "./ProjectReferencesService";
 import MailService from "./MailService";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
@@ -282,6 +283,40 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     return createdItem;
+  }
+
+  /*
+   * Whether an email address is a private user of this status page now: who
+   * may be its subscriber when Only Private Users Can Subscribe is on
+   * (Types/StatusPage/SubscriberRestrictions). Compared trimmed and
+   * lower-cased; private users the page no longer has - removed by SCIM or
+   * by hand - are not.
+   */
+  @CaptureSpan()
+  public async isPrivateUserEmail(data: {
+    statusPageId: ObjectID;
+    email: string;
+  }): Promise<boolean> {
+    const email: string = data.email.trim().toLowerCase();
+
+    if (!email) {
+      return false;
+    }
+
+    const privateUser: Model | null = await this.findOneBy({
+      query: {
+        statusPageId: data.statusPageId,
+        email: QueryHelper.findWithSameText(email),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(privateUser);
   }
 }
 export default new Service();

@@ -42,6 +42,12 @@ export interface FeedItemProps {
   moreTextInMarkdown?: string;
   // Who did it: their avatar and name lead the entry.
   user?: User | undefined;
+  /*
+   * The project API key that made the change, by the name it had then,
+   * when no person did (IncidentFeed.apiKeyName): it leads the entry as a
+   * person would, with a key for a picture, marked "API key".
+   */
+  apiKeyName?: string | undefined;
   itemDateTime: Date;
   // The entry's kind (FeedEntryKind): its icon and colour in the rail.
   icon: IconProp;
@@ -104,6 +110,8 @@ export const FEED_ENTRY_GRID_CLASS_NAME: string =
 
 const DEFAULT_DETAILS_LABEL: string = translationKey("Show details");
 const HIDE_DETAILS_LABEL: string = translationKey("Hide details");
+// Beside the name of an API key that made the change.
+const API_KEY_LABEL: string = translationKey("API key");
 
 /*
  * The Markdown of an entry. Kept apart and memoised: a feed re-reads the
@@ -130,9 +138,24 @@ const hasNamedAuthor: (item: FeedItemProps) => boolean = (
 };
 
 /*
+ * The API key an entry is by: one no person and no named author made. A
+ * user, when the entry has one, is who made it.
+ */
+const getApiKeyName: (item: FeedItemProps) => string | undefined = (
+  item: FeedItemProps,
+): string | undefined => {
+  if (hasNamedAuthor(item) || item.user) {
+    return undefined;
+  }
+
+  return (item.apiKeyName || "").trim() || undefined;
+};
+
+/*
  * The name an entry's author goes by, or undefined for an entry nobody in
  * particular did (OneUptime itself, a rule, a schedule). A named author wins
- * over the entry's user, who only saved it for them.
+ * over the entry's user, who only saved it for them; an API key leads an
+ * entry no person made.
  */
 const getAuthorName: (item: FeedItemProps) => string | undefined = (
   item: FeedItemProps,
@@ -147,7 +170,7 @@ const getAuthorName: (item: FeedItemProps) => string | undefined = (
     ""
   ).trim();
 
-  return userName || undefined;
+  return userName || getApiKeyName(item);
 };
 
 const Avatar: FunctionComponent<{ user?: User | undefined }> = (props: {
@@ -164,6 +187,19 @@ const Avatar: FunctionComponent<{ user?: User | undefined }> = (props: {
       alt=""
       data-testid="feed-entry-avatar"
     />
+  );
+};
+
+// An API key's picture: a key, where a person's would be.
+const ApiKeyAvatar: FunctionComponent = (): ReactElement => {
+  return (
+    <span
+      className="mr-1.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 align-[-0.3rem]"
+      data-testid="feed-entry-api-key-avatar"
+      aria-hidden="true"
+    >
+      <Icon icon={IconProp.Key} className="h-3 w-3 text-gray-500" />
+    </span>
   );
 };
 
@@ -214,6 +250,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
   }, [props.focusRequest]);
 
   const authorName: string | undefined = getAuthorName(item);
+  const isApiKeyAuthor: boolean = Boolean(getApiKeyName(item));
   const hasAuthorLine: boolean = Boolean(authorName && item.authorDetail);
   // A named author is not the user: their picture would be someone else's.
   const avatarUser: User | undefined = hasNamedAuthor(item)
@@ -288,8 +325,24 @@ const FeedItem: FunctionComponent<ComponentProps> = (
   );
 
   const authorNameElement: ReactElement | null = authorName ? (
-    <strong className="font-semibold text-gray-900">{authorName}</strong>
+    <>
+      <strong className="font-semibold text-gray-900">{authorName}</strong>
+      {isApiKeyAuthor && (
+        <span
+          className="ml-1.5 inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 align-[0.05rem] text-xs font-medium text-gray-600"
+          data-testid="feed-entry-api-key-badge"
+        >
+          {translator.translateText(API_KEY_LABEL)}
+        </span>
+      )}
+    </>
   ) : null;
+
+  const authorAvatar: ReactElement = isApiKeyAuthor ? (
+    <ApiKeyAvatar />
+  ) : (
+    <Avatar user={avatarUser} />
+  );
 
   const getLead: () => ReactElement | null = (): ReactElement | null => {
     if (hasAuthorLine) {
@@ -298,7 +351,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
           className="text-sm leading-6 text-gray-700"
           data-testid="feed-entry-author"
         >
-          <Avatar user={avatarUser} />
+          {authorAvatar}
           {authorNameElement}{" "}
           <span className="text-gray-500">{item.authorDetail}</span>
         </div>
@@ -315,7 +368,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
           className="text-sm leading-6 text-gray-700 [&_div]:inline [&_p]:m-0 [&_p]:inline"
           data-testid="feed-entry-lead"
         >
-          <Avatar user={avatarUser} />
+          {authorAvatar}
           {!text.leadNamesActor && <>{authorNameElement} </>}
           <FeedMarkdown text={text.lead} safeMode={safeMode} />
         </div>
@@ -327,7 +380,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
         className="text-sm leading-6 text-gray-700"
         data-testid="feed-entry-author"
       >
-        <Avatar user={avatarUser} />
+        {authorAvatar}
         {authorNameElement}
       </div>
     );

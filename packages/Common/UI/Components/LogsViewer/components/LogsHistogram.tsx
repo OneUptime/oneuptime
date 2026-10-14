@@ -22,6 +22,8 @@ import OneUptimeDate from "../../../../Types/Date";
 import useHistogramRangeSelection, {
   HistogramRangeSelectionState,
 } from "../../Charts/Utils/useHistogramRangeSelection";
+import TelemetryLoadErrorMessage from "../../TelemetryViewer/components/TelemetryLoadErrorMessage";
+import { TelemetryLoadError } from "../../../Utils/Telemetry/TelemetryLoadError";
 
 export interface LogsHistogramProps {
   buckets: Array<HistogramBucket>;
@@ -39,6 +41,13 @@ export interface LogsHistogramProps {
    * it a selection can only run from one bar's start to another's.
    */
   bucketIntervalMs?: number | undefined;
+  /*
+   * Why the chart's read did not come back. The card stays, with the reason
+   * where the bars go and a way to try again, instead of vanishing as if the
+   * window held no logs (issue #4707).
+   */
+  error?: TelemetryLoadError | undefined;
+  onRetry?: (() => void) | undefined;
 }
 
 interface PivotedRow {
@@ -140,6 +149,40 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
         {...selection.placeholderProps}
       >
         <ComponentLoader />
+      </div>
+    );
+  }
+
+  /*
+   * A zoomed card keeps its "Double-click to reset" hint, as it does over
+   * bars, a loader or an empty box: the box where the bars go still takes
+   * the double-click, so the way back to the range the reader zoomed from
+   * stays where it was.
+   */
+  if (props.error && !props.isLoading) {
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white">
+        <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-2">
+          <span className="text-xs font-medium text-gray-500">
+            {translator.translateText("Log Volume")}
+          </span>
+          {props.onZoomOut && (
+            <span className="text-[10px] text-gray-300">
+              {translator.translateText("Double-click to reset")}
+            </span>
+          )}
+        </div>
+        <div
+          className="flex min-h-[120px] select-none items-center justify-center"
+          {...selection.placeholderProps}
+        >
+          <TelemetryLoadErrorMessage
+            error={props.error}
+            subject="chart"
+            variant="chart"
+            onRetry={props.onRetry}
+          />
+        </div>
       </div>
     );
   }

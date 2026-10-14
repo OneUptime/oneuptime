@@ -31,7 +31,11 @@ import { stubRowsCallerMayDelete } from "../TestingUtils/RowsCallerMayWrite";
  *   - A state timeline entry's neighbours close the gap it leaves: one entry
  *     at a time. A delete of several entries - a workflow's delete of many,
  *     say - has no one gap to close: it is left as it is, moves no
- *     neighbour, and is neither refused nor narrowed.
+ *     neighbour, and is neither refused nor narrowed by the hook. A
+ *     monitor's status timeline does not even read its rows: any delete
+ *     that names its events by a query, one or many, is a clean-up that
+ *     DatabaseService has already narrowed to the events that are over
+ *     (keepRowsOnDeleteByQuery), and it moves no event.
  *   - An on-call policy's workspace channels are archived when the policy's
  *     own delete names it by its id - and only then, and only for a policy
  *     the delete removes.
@@ -180,11 +184,6 @@ const TIMELINES: Array<TimelineCase> = [
     parentColumn: "alertId",
   },
   {
-    name: "MonitorStatusTimelineService",
-    service: asService(MonitorStatusTimelineService),
-    parentColumn: "monitorId",
-  },
-  {
     name: "ScheduledMaintenanceStateTimelineService",
     service: asService(ScheduledMaintenanceStateTimelineService),
     parentColumn: "scheduledMaintenanceId",
@@ -285,6 +284,76 @@ describe.each(TIMELINES)(
     });
   },
 );
+
+describe("MonitorStatusTimelineService: a delete by query is a clean-up the hook does not read", () => {
+  const service: DatabaseService<DatabaseBaseModel> = asService(
+    MonitorStatusTimelineService,
+  );
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function events(): Array<DatabaseBaseModel> {
+    return [
+      rowOf(service, ROW_A, {
+        monitorId: PARENT_ID,
+        startsAt: new Date("2026-10-01T00:00:00.000Z"),
+      }),
+      rowOf(service, ROW_B, {
+        monitorId: PARENT_ID,
+        startsAt: new Date("2026-10-02T00:00:00.000Z"),
+      }),
+    ];
+  }
+
+  it.each([
+    ["a teammate", TEAMMATE],
+    ["a master admin", MASTER_ADMIN],
+    ["OneUptime", { isRoot: true }],
+  ])(
+    "for %s: no event is read or moved, and the hook leaves the delete as it is",
+    async (_caller: string, props: JSONObject) => {
+      const pool: Array<DatabaseBaseModel> = events();
+
+      stubRowsCallerMayDelete(service, () => {
+        return pool;
+      });
+      const findBy: jest.SpyInstance = stubReads(service, pool);
+      const repair: Array<jest.SpyInstance> = [
+        jest
+          .spyOn(service, "countBy")
+          .mockResolvedValue(new PositiveNumber(5) as never),
+        jest.spyOn(service, "findOneBy").mockResolvedValue(null as never),
+        jest.spyOn(service, "updateOneById").mockResolvedValue(1 as never),
+        jest.spyOn(service, "updateOneBy").mockResolvedValue(1 as never),
+      ];
+
+      // One event or several: a delete by query either way.
+      for (const window of [
+        { skip: 0, limit: 100 },
+        { skip: 0, limit: 1 },
+      ]) {
+        const deleteBy: DeleteBy<DatabaseBaseModel> = deleteOf(
+          { monitorId: PARENT_ID },
+          props,
+          window,
+        );
+
+        await runHook(service, deleteBy);
+
+        expect(deleteBy.query).toEqual({ monitorId: PARENT_ID });
+        expect(deleteBy.limit).toBe(window.limit);
+      }
+
+      expect(findBy).not.toHaveBeenCalled();
+
+      for (const spy of repair) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+    },
+  );
+});
 
 describe("OnCallDutyPolicyService: a policy's workspace channels are archived by its own delete", () => {
   const service: DatabaseService<DatabaseBaseModel> = asService(

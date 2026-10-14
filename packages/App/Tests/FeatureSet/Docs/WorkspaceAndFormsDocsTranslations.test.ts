@@ -165,6 +165,12 @@ const TEAMS_CARD_BUTTONS: Array<string> = ["Escalate", "Escalate."];
 const SLACK_CONNECT_BUTTON: Array<string> = ["Connect Slack account"];
 const TEAMS_CONNECT_BUTTON: Array<string> = ["Connect Microsoft Teams account"];
 
+/*
+ * The form a page from the chat opens - Slack's modal, Microsoft Teams'
+ * card - as the server titles it, in English (SlackPageActions.FORM_TITLE).
+ */
+const PAGE_FORM: Array<string> = ["Page someone"];
+
 // Slack's own controls and the app's shortcuts, by the names Slack shows.
 const SLACK_CONTROLS: Array<string> = [
   "Pin to channel",
@@ -255,6 +261,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...CHAT_BUTTONS,
     ...SLACK_CONNECT_BUTTON,
     ...SLACK_CONTROLS,
+    ...PAGE_FORM,
   ],
   [TEAMS]: [
     "Growth",
@@ -262,6 +269,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...TEAMS_CARD_BUTTONS,
     ...TEAMS_CONNECT_BUTTON,
     ...TEAMS_CONTROLS,
+    ...PAGE_FORM,
   ],
   [VIDEO]: [...PROVIDER_CONSOLES, ...BRANDS],
   [BUILDING]: [],
@@ -405,6 +413,18 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     // What OneUptime AI answers in Slack: the rule's two halves.
     "In your own conversation, just reply.",
     "In any other thread, mention OneUptime.",
+    // Paging someone from Slack.
+    "Who is paged at once.",
+    "Anything else opens a form.",
+    "Where it shows.",
+    "Who may page.",
+    // On-call user groups.
+    "What the card shows.",
+    "Nobody on call.",
+    "Paging it.",
+    "What Slack needs.",
+    "Who may connect one.",
+    "Disconnecting.",
   ],
   [TEAMS]: [
     "The project's connection",
@@ -424,6 +444,18 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What Change State offers.",
     "Where the person is answered.",
     "If their account is not connected.",
+    // Paging someone from Microsoft Teams.
+    "Who is paged at once.",
+    "Anything else gets a card.",
+    "Where it shows.",
+    "Who may page.",
+    // On-call tags.
+    "What the card shows.",
+    "Nobody on call.",
+    "Paging it.",
+    "What Microsoft 365 needs.",
+    "Who may connect one.",
+    "Disconnecting.",
   ],
   [VIDEO]: [],
   [BUILDING]: [
@@ -535,8 +567,9 @@ const PUBLIC_PAGE_MESSAGES: Record<string, Array<PublicPageMessage>> = {
  * with Persian digits as Latin ones and thousands separators dropped.
  */
 const NUMBERS: Record<string, Array<string>> = {
-  [SLACK]: ["7"],
-  [TEAMS]: ["7"],
+  // A connect button's days; how often a user group or tag is checked.
+  [SLACK]: ["7", "15"],
+  [TEAMS]: ["7", "15"],
   [VIDEO]: ["40", "30"],
   [BUILDING]: ["50", "100", "500", "20000", "10000", "512", "128"],
   [SHARING]: ["429", "503"],
@@ -1018,6 +1051,7 @@ describe("the lists this test keeps", () => {
       ...CHAT_BUTTONS,
       ...SLACK_CONNECT_BUTTON,
       ...TEAMS_CONNECT_BUTTON,
+      ...PAGE_FORM,
       ...TEAMS_CARD_BUTTONS,
       ...SLACK_CONTROLS,
       ...TEAMS_CONTROLS,

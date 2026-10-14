@@ -143,7 +143,7 @@ Das Manifest richtet diese Funktionen ein. Jede erreicht Ihren Server über die 
 
 | Funktion | Was sie tut | Route |
 | --- | --- | --- |
-| `/oneuptime` | Einen Vorfall melden, eine Wartung planen, sehen, wer Bereitschaft hat, und OneUptime AI fragen; `/oneuptime help` listet alle Befehle auf | `POST /api/slack/command` |
+| `/oneuptime` | Einen Vorfall melden, eine Wartung planen, sehen, wer Bereitschaft hat, jemanden alarmieren und OneUptime AI fragen; `/oneuptime help` listet alle Befehle auf | `POST /api/slack/command` |
 | Die Shortcuts **Create New Incident** und **Create Scheduled Event** | Einen Vorfall melden oder eine Wartung planen, über die Shortcuts von Slack | `POST /api/slack/interactive` |
 | Schaltflächen und Formulare in OneUptime-Nachrichten | Bestätigen, lösen, eine Notiz hinzufügen, den Status ändern, eine On-Call-Richtlinie ausführen | `POST /api/slack/interactive` und `POST /api/slack/options-load` |
 | Ereignisse | Erwähnungen, Nachrichten, Reaktionen und Pins, zum Beispiel um eine Nachricht als Notiz zu speichern | `POST /api/slack/events` |
@@ -154,9 +154,17 @@ Beschreibungen von Vorfällen und Alarmen können Screenshots enthalten, zum Bei
 
 Wenn Sie Ihre Slack-App aus einem älteren Manifest erstellt haben, fügen Sie `files:write` unter **OAuth & Permissions > Bot Token Scopes** hinzu (oder aktualisieren Sie die App aus dem aktuellen Manifest). Wählen Sie dann unter **Projekteinstellungen > Arbeitsbereich > Slack** erneut **Mit Slack verbinden**, damit der neue Scope gewährt wird. Bis dahin wird jeder Screenshot als sein Alternativtext angezeigt.
 
+### Bereitschafts-Benutzergruppen
+
+Damit die Slack-Benutzergruppe eines Bereitschaftsplans gleich denen bleibt, die Bereitschaft haben (siehe [Bereitschafts-Benutzergruppen](/docs/workspace-connections/slack#bereitschafts-benutzergruppen)), braucht es die Bot-Scopes `usergroups:read` und `usergroups:write`. Das erzeugte Manifest enthält sie.
+
+Wenn Sie Ihre Slack-App aus einem älteren Manifest erstellt haben, fügen Sie `usergroups:read` und `usergroups:write` unter **OAuth & Permissions > Bot Token Scopes** hinzu (oder aktualisieren Sie die App aus dem aktuellen Manifest). Wählen Sie dann unter **Projekteinstellungen > Arbeitsbereich > Slack** erneut **Mit Slack verbinden**, damit die neuen Scopes gewährt werden. Bis dahin sagt die Karte des Bereitschaftsplans, dass die Slack-App von OneUptime Benutzergruppen noch nicht ändern darf.
+
 ### Apps aus einem älteren Manifest
 
-Eine Slack-App, die aus einem früheren OneUptime-Manifest erstellt wurde, registriert `/incident` und `/maintenance` als eigene Befehle, die mit gleichnamigen Befehlen anderer Apps kollidieren können. Sie funktionieren weiter und öffnen dieselben Formulare wie `/oneuptime incident` und `/oneuptime maintenance`. Um sie durch `/oneuptime` zu ersetzen, aktualisieren Sie die App aus dem Manifest, das Ihr Server erzeugt: Öffnen Sie auf [api.slack.com/apps](https://api.slack.com/apps) das **App Manifest** der App, fügen Sie das Manifest ein und speichern Sie. Die Scopes bleiben gleich, die App muss also nicht neu installiert werden.
+Eine Slack-App, die aus einem früheren OneUptime-Manifest erstellt wurde, registriert `/incident` und `/maintenance` als eigene Befehle, die mit gleichnamigen Befehlen anderer Apps kollidieren können. Sie funktionieren weiter und öffnen dieselben Formulare wie `/oneuptime incident` und `/oneuptime maintenance`. Um sie durch `/oneuptime` zu ersetzen, aktualisieren Sie die App aus dem Manifest, das Ihr Server erzeugt: Öffnen Sie auf [api.slack.com/apps](https://api.slack.com/apps) das **App Manifest** der App, fügen Sie das Manifest ein und speichern Sie.
+
+Eine App, die vor `/oneuptime page` erstellt wurde, braucht dieselbe Aktualisierung: Bis sie sie hat, erkennt `/oneuptime page` nicht, wen Sie mit @ erwähnen, und öffnet ein Formular, in dem Sie die Personen auswählen, statt sie sofort zu alarmieren. Wählen Sie dann unter **Projekteinstellungen > Arbeitsbereich > Slack** erneut **Mit Slack verbinden**, damit der Scope `users:read.email`, den das Manifest hinzufügt, gewährt wird: Damit wird eine Person, deren Slack-Konto nicht mit OneUptime verbunden ist, an ihrer E-Mail-Adresse erkannt.
 
 ## Netzwerkzugriff für selbst gehostete Installationen
 

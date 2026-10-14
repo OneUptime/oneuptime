@@ -16,10 +16,18 @@
   .st-Rich h1, .st-Rich h2, .st-Rich h3 { color: #0f172a; line-height: 1.4; }
   .st-Rich img { height: auto; }
   .st-Rich table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; }
-  .st-Rich th, .st-Rich td { padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+  .st-Rich th, .st-Rich td { padding: 8px; text-align: left; }
   .st-Rich pre { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; padding: 12px; background-color: #f1f5f9; border-radius: 6px; }
   .st-Rich blockquote { margin: 12px 0; padding-left: 16px; border-left: 3px solid #cbd5e1; }
-  .st-DetailCard-field:last-child { border-bottom: 0 !important; }
+  {{!--
+    No rule here draws or hides a divider. Many clients drop this block, or
+    its pseudo-classes, so dividers are inline styles drawn only between
+    two rows (Utils/EmailDetailCard.ts, and {{#unless @first}} in a list).
+    That includes a table in a rich value: Markdown.convertToHTML draws
+    its lines inline, each above the row below it, and a cell border here
+    would draw over them - and under the last row - in the clients that
+    keep this block.
+  --}}
   @media only screen and (max-width: 600px) {
     body[override] .st-Outer { padding: 12px 8px !important; }
     body[override] .st-Gutter { padding-left: 24px !important; padding-right: 24px !important; }
