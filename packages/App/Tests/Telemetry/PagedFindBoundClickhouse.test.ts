@@ -59,19 +59,29 @@ import {
  *      fixture that could no longer show the double read fails too.
  *   3. The saving the bound exists for is kept: an unfiltered first page
  *      reads a small fraction of what the unbounded find reads.
+ *   4. A sharded install pages the same. Through a Distributed table over
+ *      two shards that each hold every other row - so every tie group
+ *      straddles them - every page is still the unbounded page: the narrow
+ *      read and the page's values are worked out once, on the server the
+ *      find is sent to, and handed to both shards.
  *
  * Granules are 128 rows (index_granularity = 128, adaptive granularity
  * off), so a fixture of tens of thousands of rows spans hundreds of them.
  *
- * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
+ * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server,
+ * and TEST_CLICKHOUSE_TWO_SHARD_CLUSTER at the cluster of two shards that
+ * Fixtures/ClickhouseTwoShardCluster.xml gives it (from packages/App):
  *
- *   docker run -d --rm -p 18124:8123 -e CLICKHOUSE_PASSWORD=test \
+ *   docker run -d --rm --name paged-find-bound-ch -p 18124:8123 \
+ *     -e CLICKHOUSE_PASSWORD=test \
+ *     -v "$(pwd)/Tests/Telemetry/Fixtures/ClickhouseTwoShardCluster.xml:/etc/clickhouse-server/config.d/two-shards.xml" \
  *     clickhouse/clickhouse-server:26.7
  *   TEST_CLICKHOUSE_URL=http://default:test@localhost:18124 \
+ *   TEST_CLICKHOUSE_TWO_SHARD_CLUSTER=paged_find_bound_two_shards \
  *     npx jest Tests/Telemetry/PagedFindBoundClickhouse.test.ts
  *
- * The App Test workflow provides the server; the guard at the bottom fails
- * the run there if it ever goes missing.
+ * The App Test workflow provides both; the guard at the bottom fails the
+ * run there if either ever goes missing.
  * ------------------------------------------------------------------
  */
 
@@ -95,6 +105,13 @@ const endpoint: string | undefined = process.env["TEST_CLICKHOUSE_URL"];
 jest.setTimeout(300000);
 
 const integration: typeof describe.skip = endpoint ? describe : describe.skip;
+
+// A cluster of two shards, one database each (Fixtures/ClickhouseTwoShardCluster.xml).
+const twoShardCluster: string | undefined =
+  process.env["TEST_CLICKHOUSE_TWO_SHARD_CLUSTER"];
+
+const shardedIntegration: typeof describe.skip =
+  endpoint && twoShardCluster ? describe : describe.skip;
 
 const database: string = `paged_find_bound_test_${process.pid}_${Date.now()}`;
 
@@ -381,12 +398,71 @@ interface ReadStats {
   readRows: number;
 }
 
+/*
+ * One INSERT ... SELECT of fixture rows over numbers(fromRow, ...): the
+ * column formulas as ClickHouse reads them. Kept, so a second layout is
+ * filled with exactly the same rows.
+ */
+interface FixtureInsert {
+  projectId: ObjectID;
+  idPrefix: string;
+  fromRow: number;
+  toRow: number;
+  second: string;
+  service: string;
+  severity: string;
+  body: string;
+  retention: string;
+}
+
 integration("a paged find against ClickHouse (#4710)", () => {
   let clickhouse: ClickhouseDatabase;
   let client: ClickhouseClient;
+  let options: ClickHouseClientConfigOptions;
   let original: Record<string, unknown> | undefined;
   let originalAudit: Record<string, unknown> | undefined;
   let measureSettings: ClickHouseSettings = {};
+  let fixtureInserts: Array<FixtureInsert> = [];
+
+  /*
+   * A model's own table (its columns, skip indexes, partitioning, keys) as
+   * `<table>Local` in the given database.
+   */
+  async function createLocalTable(
+    modelType: { new (): AnalyticsBaseModel },
+    databaseName: string,
+  ): Promise<void> {
+    const model: AnalyticsBaseModel = new modelType();
+    const generator: StatementGenerator<AnalyticsBaseModel> =
+      new StatementGenerator<AnalyticsBaseModel>({
+        modelType: modelType,
+        database: clickhouse,
+      });
+    const columns: Statement = generator.toColumnsCreateStatement(
+      model.tableColumns,
+    );
+
+    await client.command({
+      query: `CREATE TABLE ${databaseName}.${model.tableName}Local (${columns.query}) ENGINE = MergeTree PARTITION BY (${model.partitionKey}) PRIMARY KEY (${model.primaryKeys.join(", ")}) ORDER BY (${model.sortKeys.join(", ")}) SETTINGS index_granularity = ${GRANULE_ROWS}, index_granularity_bytes = 0`,
+      query_params: columns.query_params,
+    });
+  }
+
+  // Writes one insert's rows into a LogItemV3Local, those of them `where` admits.
+  async function insertRows(
+    table: string,
+    rows: FixtureInsert,
+    where: string,
+  ): Promise<void> {
+    const start: string = OneUptimeDate.toClickhouseDateTime64(WINDOW_START);
+
+    await client.command({
+      query: `INSERT INTO ${table} (projectId, primaryEntityId, primaryEntityType, time, timeUnixNano, severityText, severityNumber, attributes, attributeKeys, entityKeys, body, retentionDate, _id, createdAt)
+        SELECT '${rows.projectId.toString()}', ${rows.service}, 'Service', addSeconds(toDateTime64('${start}', 9), ${rows.second}) AS rowTime, toUInt64(toUnixTimestamp64Nano(rowTime)), ${rows.severity}, 9, map('row', toString(number)), ['row'], [], ${rows.body}, ${rows.retention}, ${sqlId(rows.idPrefix)}, now()
+        FROM numbers(${rows.fromRow}, ${rows.toRow - rows.fromRow})
+        WHERE ${where}`,
+    });
+  }
 
   const projectWindow: (
     projectId: ObjectID,
@@ -610,7 +686,7 @@ integration("a paged find against ClickHouse (#4710)", () => {
       );
     }
 
-    const options: ClickHouseClientConfigOptions = {
+    options = {
       url: `${url.protocol}//${url.host}`,
       username: decodeURIComponent(url.username) || "default",
       password: decodeURIComponent(url.password),
@@ -651,30 +727,15 @@ integration("a paged find against ClickHouse (#4710)", () => {
       Number(cache!.present) > 0 ? { use_query_condition_cache: 0 } : {}
     ) as ClickHouseSettings;
 
-    /*
-     * A model's own table (its columns, skip indexes, partitioning, keys)
-     * as `<table>Local`, and the Distributed table the service reads in
-     * front of it.
-     */
+    // A model's own table, and the Distributed table the service reads in front of it.
     const createTables: (modelType: {
       new (): AnalyticsBaseModel;
     }) => Promise<void> = async (modelType: {
       new (): AnalyticsBaseModel;
     }): Promise<void> => {
       const model: AnalyticsBaseModel = new modelType();
-      const generator: StatementGenerator<AnalyticsBaseModel> =
-        new StatementGenerator<AnalyticsBaseModel>({
-          modelType: modelType,
-          database: clickhouse,
-        });
-      const columns: Statement = generator.toColumnsCreateStatement(
-        model.tableColumns,
-      );
 
-      await client.command({
-        query: `CREATE TABLE ${database}.${model.tableName}Local (${columns.query}) ENGINE = MergeTree PARTITION BY (${model.partitionKey}) PRIMARY KEY (${model.primaryKeys.join(", ")}) ORDER BY (${model.sortKeys.join(", ")}) SETTINGS index_granularity = ${GRANULE_ROWS}, index_granularity_bytes = 0`,
-        query_params: columns.query_params,
-      });
+      await createLocalTable(modelType, database);
 
       await client.command({
         query: `CREATE TABLE ${database}.${model.tableName} AS ${database}.${model.tableName}Local ENGINE = Distributed('default', ${database}, ${model.tableName}Local, ${model.shardingKey || "rand()"})`,
@@ -702,7 +763,6 @@ integration("a paged find against ClickHouse (#4710)", () => {
     AuditLogService.database = clickhouse;
     AuditLogService.databaseClient = client;
 
-    const start: string = OneUptimeDate.toClickhouseDateTime64(WINDOW_START);
     const live: string = OneUptimeDate.toClickhouseDateTime(
       OneUptimeDate.addRemoveDays(new Date(), 30),
     );
@@ -710,44 +770,10 @@ integration("a paged find against ClickHouse (#4710)", () => {
       OneUptimeDate.addRemoveHours(new Date(), -1),
     );
 
-    const insert: (
-      projectId: ObjectID,
-      idPrefix: string,
-      fromRow: number,
-      toRow: number,
-      second: string,
-      columns: {
-        service: string;
-        severity: string;
-        body: string;
-        retention: string;
-      },
-    ) => Promise<void> = async (
-      projectId: ObjectID,
-      idPrefix: string,
-      fromRow: number,
-      toRow: number,
-      second: string,
-      columns: {
-        service: string;
-        severity: string;
-        body: string;
-        retention: string;
-      },
-    ): Promise<void> => {
-      await client.command({
-        query: `INSERT INTO ${database}.LogItemV3Local (projectId, primaryEntityId, primaryEntityType, time, timeUnixNano, severityText, severityNumber, attributes, attributeKeys, entityKeys, body, retentionDate, _id, createdAt)
-          SELECT '${projectId.toString()}', ${columns.service}, 'Service', addSeconds(toDateTime64('${start}', 9), ${second}) AS rowTime, toUInt64(toUnixTimestamp64Nano(rowTime)), ${columns.severity}, 9, map('row', toString(number)), ['row'], [], ${columns.body}, ${columns.retention}, ${sqlId(idPrefix)}, now()
-          FROM numbers(${fromRow}, ${toRow - fromRow})`,
-      });
-    };
-
-    const ownColumns: {
-      service: string;
-      severity: string;
-      body: string;
-      retention: string;
-    } = {
+    const ownRows: Omit<FixtureInsert, "fromRow" | "toRow"> = {
+      projectId: PROJECT_ID,
+      idPrefix: PROJECT_ID_PREFIX,
+      second: SQL_SECOND,
       service: `['${SERVICES.join("', '")}'][number % 3 + 1]`,
       severity:
         "multiIf(number % 97 = 0, 'Fatal', number % 10 = 0, 'Error', 'Information')",
@@ -755,51 +781,40 @@ integration("a paged find against ClickHouse (#4710)", () => {
       retention: `if(number % 50 = 7, toDateTime('${expired}'), toDateTime('${live}'))`,
     };
 
-    // Three inserts, so each day of the range is split over several parts, as live ingest leaves it.
-    for (const [fromRow, toRow] of [
-      [0, 7000],
-      [7000, 14000],
-      [14000, ROWS],
-    ] as Array<[number, number]>) {
-      await insert(
-        PROJECT_ID,
-        PROJECT_ID_PREFIX,
-        fromRow,
-        toRow,
-        SQL_SECOND,
-        ownColumns,
-      );
-    }
-
-    // Another project's rows in the same seconds, matching every filter: never part of a page.
-    await insert(
-      OTHER_PROJECT_ID,
-      OTHER_ID_PREFIX,
-      0,
-      OTHER_ROWS,
-      "intDiv(number, 2) * 100",
+    fixtureInserts = [
+      // Three inserts, so each day of the range is split over several parts, as live ingest leaves it.
+      { ...ownRows, fromRow: 0, toRow: 7000 },
+      { ...ownRows, fromRow: 7000, toRow: 14000 },
+      { ...ownRows, fromRow: 14000, toRow: ROWS },
+      // Another project's rows in the same seconds, matching every filter: never part of a page.
       {
+        projectId: OTHER_PROJECT_ID,
+        idPrefix: OTHER_ID_PREFIX,
+        fromRow: 0,
+        toRow: OTHER_ROWS,
+        second: "intDiv(number, 2) * 100",
         service: `'${SERVICES[0]!}'`,
         severity: "'Fatal'",
         body: "'other project needle-4710'",
         retention: `toDateTime('${live}')`,
       },
-    );
-
-    // The deep project: two rows a second, enough rows to page past 131,072.
-    await insert(
-      DEEP_PROJECT_ID,
-      DEEP_ID_PREFIX,
-      0,
-      DEEP_ROWS,
-      "intDiv(number, 2)",
+      // The deep project: two rows a second, enough rows to page past 131,072.
       {
+        projectId: DEEP_PROJECT_ID,
+        idPrefix: DEEP_ID_PREFIX,
+        fromRow: 0,
+        toRow: DEEP_ROWS,
+        second: "intDiv(number, 2)",
         service: `'${SERVICES[1]!}'`,
         severity: "'Information'",
         body: "'deep'",
         retention: `toDateTime('${live}')`,
       },
-    );
+    ];
+
+    for (const rows of fixtureInserts) {
+      await insertRows(`${database}.LogItemV3Local`, rows, "1");
+    }
 
     // Audit log entries: 25 to a second, so every page boundary falls inside a tie.
     await client.command({
@@ -1365,12 +1380,288 @@ integration("a paged find against ClickHouse (#4710)", () => {
       },
     );
   });
+
+  /*
+   * A sharded install reads a Distributed table over several shards, each
+   * holding part of a project's rows (spans go to a shard by their trace,
+   * so every shard holds some of a project's spans). The narrow read and
+   * the page's values have to be worked out once, over every shard, and
+   * the same values handed to each: worked out over one shard's rows, the
+   * pages would hold that shard's rows only. The same fixture, every other
+   * row on each of two shards, so every tie group straddles them.
+   *
+   * As on a node of a sharded install, the database the find reads holds
+   * both the Distributed table and this node's own shard (`<table>Local`):
+   * a narrow read of the local table instead of the Distributed one would
+   * page through half the rows here, not fail.
+   */
+  shardedIntegration(
+    "a sharded install: two shards, every other row on each",
+    () => {
+      let shardDatabases: Array<string> = [];
+      let shardedDatabase: string = "";
+      let sharded: ClickhouseDatabase | undefined;
+      let shardedClient: ClickhouseClient | undefined;
+
+      // Runs `read` with LogService reading the two-shard table.
+      async function throughShards<T>(read: () => Promise<T> | T): Promise<T> {
+        const own: Record<string, unknown> = {
+          database: LogService.database,
+          databaseClient: LogService.databaseClient,
+        };
+
+        LogService.database = sharded!;
+        LogService.databaseClient = shardedClient!;
+
+        try {
+          return await read();
+        } finally {
+          Object.assign(LogService, own);
+        }
+      }
+
+      beforeAll(async (): Promise<void> => {
+        /*
+         * The cluster comes from a config file the server reads a moment
+         * after it lands (the workflow copies it in just before the tests
+         * run): wait for it rather than race it.
+         */
+        for (let attempt: number = 0; attempt < 120; attempt++) {
+          const shards: { json: () => Promise<unknown> } = await client.query({
+            query:
+              "SELECT default_database AS name FROM system.clusters WHERE cluster = {cluster:String} ORDER BY shard_num",
+            query_params: { cluster: twoShardCluster! },
+            format: "JSONEachRow",
+          });
+
+          shardDatabases = (
+            (await shards.json()) as Array<{ name: string }>
+          ).map((shard: { name: string }): string => {
+            return shard.name;
+          });
+
+          if (shardDatabases.length > 0) {
+            break;
+          }
+
+          await new Promise<void>((resolve: () => void): void => {
+            setTimeout(resolve, 500);
+          });
+        }
+
+        // Two shards, each a database of its own.
+        expect(shardDatabases).toHaveLength(2);
+        expect(new Set(shardDatabases).size).toBe(2);
+        expect(shardDatabases).not.toContain("");
+
+        // The finds read the first shard's database: this node's.
+        shardedDatabase = shardDatabases[0]!;
+
+        for (const [shard, shardDatabase] of shardDatabases.entries()) {
+          await client.command({
+            query: `DROP DATABASE IF EXISTS ${shardDatabase}`,
+          });
+          await client.command({ query: `CREATE DATABASE ${shardDatabase}` });
+          await createLocalTable(Log, shardDatabase);
+
+          // The first shard holds the even rows, the second the odd ones.
+          for (const rows of fixtureInserts) {
+            await insertRows(
+              `${shardDatabase}.LogItemV3Local`,
+              rows,
+              `number % 2 = ${shard}`,
+            );
+          }
+        }
+
+        const shardedOptions: ClickHouseClientConfigOptions = {
+          ...options,
+          database: shardedDatabase,
+        };
+
+        sharded = new ClickhouseDatabase(shardedOptions);
+        shardedClient = await sharded.connect(shardedOptions);
+
+        // No database name: each shard reads its own default database.
+        await client.command({
+          query: `CREATE TABLE ${shardedDatabase}.LogItemV3 AS ${database}.LogItemV3Local ENGINE = Distributed('${twoShardCluster!}', '', 'LogItemV3Local', rand())`,
+        });
+      });
+
+      afterAll(async (): Promise<void> => {
+        for (const shardDatabase of shardDatabases) {
+          await client.command({
+            query: `DROP DATABASE IF EXISTS ${shardDatabase}`,
+          });
+        }
+
+        if (sharded) {
+          await sharded.disconnect();
+        }
+      });
+
+      test("each shard holds every other row, and the tie group of 600 straddles them", async () => {
+        for (const shardDatabase of shardDatabases) {
+          const result: { json: () => Promise<unknown> } = await client.query({
+            query: `SELECT sum(tied) AS rows, max(tied) AS biggestTie FROM (SELECT time, count() AS tied FROM ${shardDatabase}.LogItemV3Local WHERE projectId = {project:String} GROUP BY time)`,
+            query_params: { project: PROJECT_ID.toString() },
+            format: "JSONEachRow",
+          });
+          const [layout] = (await result.json()) as Array<{
+            rows: string | number;
+            biggestTie: string | number;
+          }>;
+
+          // Half of the project's rows, and 300 of the 600 that share one second.
+          expect([
+            shardDatabase,
+            Number(layout!.rows),
+            Number(layout!.biggestTie),
+          ]).toEqual([shardDatabase, ROWS / 2, TIE_ROWS / 2]);
+        }
+
+        const all: { json: () => Promise<unknown> } = await client.query({
+          query: `SELECT count() AS rows FROM ${shardedDatabase}.LogItemV3 WHERE projectId = {project:String}`,
+          query_params: { project: PROJECT_ID.toString() },
+          format: "JSONEachRow",
+        });
+        const [total] = (await all.json()) as Array<{ rows: string | number }>;
+
+        expect(Number(total!.rows)).toBe(ROWS);
+        // The finds below read the two-shard table, not the one-shard one.
+        expect(
+          Object.values(
+            await throughShards(() => {
+              return findStatement(
+                projectWindow(PROJECT_ID, {}),
+                NEWEST_FIRST,
+                0,
+                50,
+              ).query_params;
+            }),
+          ),
+        ).toContain(shardedDatabase);
+      });
+
+      test.each(FILTERS)(
+        "$label: newest and oldest first, pages of 7 and 50, against the fixture",
+        async ({ query, filter }: FilterCase) => {
+          for (const sort of [NEWEST_FIRST, OLDEST_FIRST]) {
+            const expected: Array<string> = oracle(filter, sort);
+
+            for (const limit of [7, 50]) {
+              for (const skip of offsetsToCheck(expected, limit)) {
+                expect([
+                  sort.leadOrder,
+                  limit,
+                  skip,
+                  await throughShards(() => {
+                    return findPage(
+                      projectWindow(PROJECT_ID, query),
+                      sort,
+                      skip,
+                      limit,
+                    );
+                  }),
+                ]).toEqual([
+                  sort.leadOrder,
+                  limit,
+                  skip,
+                  expected.slice(skip, skip + limit),
+                ]);
+              }
+            }
+          }
+        },
+      );
+
+      test("the tie group of 600 rows, paged 50 at a time, is returned whole, once, in _id order", async () => {
+        const expected: Array<string> = oracle((): boolean => {
+          return true;
+        }, NEWEST_FIRST);
+        const tieSecond: number = secondOf(TIE_START);
+        const tieIds: Array<string> = FIXTURE.filter((row: FixtureRow) => {
+          return !row.expired && row.second === tieSecond;
+        })
+          .map((row: FixtureRow): string => {
+            return row.id;
+          })
+          .sort(compareText)
+          .reverse();
+        const first: number = expected.indexOf(tieIds[0]!);
+        const seen: Array<string> = [];
+
+        for (
+          let skip: number = first - (first % 50);
+          skip < first + tieIds.length;
+          skip += 50
+        ) {
+          seen.push(
+            ...(await throughShards(() => {
+              return findPage(
+                projectWindow(PROJECT_ID, {}),
+                NEWEST_FIRST,
+                skip,
+                50,
+              );
+            })),
+          );
+        }
+
+        expect(
+          seen.filter((id: string): boolean => {
+            return tieIds.includes(id);
+          }),
+        ).toEqual(tieIds);
+      });
+
+      test.each([
+        ["newest first", SortOrder.Descending],
+        ["oldest first", SortOrder.Ascending],
+      ])(
+        "%s: a page 131,100 rows deep, the last page and one past it, and the 10,001 rows an API caller can ask for",
+        async (_label: string, order: SortOrder) => {
+          const sort: SortSpec = { lead: "time", leadOrder: order };
+
+          for (const [skip, limit] of [
+            [131100, 101],
+            [DEEP_ROWS - 37, 101],
+            [DEEP_ROWS, 101],
+            [0, 10001],
+          ] as Array<[number, number]>) {
+            const statement: Statement = await throughShards(() => {
+              return findStatement(
+                projectWindow(DEEP_PROJECT_ID, {}),
+                sort,
+                skip,
+                limit,
+              );
+            });
+            const page: Array<string> = await ids({
+              query: statement.query,
+              params: statement.query_params,
+            });
+
+            expect([skip, limit, page]).toEqual([
+              skip,
+              limit,
+              await ids(unbounded(statement, skip)),
+            ]);
+            expect(page).toHaveLength(
+              Math.max(0, Math.min(limit, DEEP_ROWS - skip)),
+            );
+          }
+        },
+      );
+    },
+  );
 });
 
 describe("paged find ClickHouse suite wiring", () => {
-  test("runs whenever the suite is under CI", () => {
+  test("runs whenever the suite is under CI, on one shard and on two", () => {
     if (process.env["GITHUB_ACTIONS"] === "true") {
       expect(endpoint).toBeTruthy();
+      expect(twoShardCluster).toBeTruthy();
     }
   });
 });
