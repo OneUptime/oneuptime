@@ -585,7 +585,7 @@ const rowsKeptNotes: (
   return [
     {
       type: ComponentDocumentationNoteType.Tip,
-      text: `Some ${words.many} always stay: ${rule}. The run's log says how many were kept${kept.oneRowByIdCanGo ? ", and a query by ID deletes the one it names" : ""}.`,
+      text: `Some ${words.many} always stay: ${rule}. The run's log says how many were kept.${kept.oneRowByIdCanGo ? ` To delete one particular ${words.one}, query it by its ID.` : ""}`,
     },
   ];
 };

@@ -111,7 +111,7 @@ describe.each(WITH_DELETE_STEPS)("%s", (tableName: string) => {
       );
 
       expect(kept).toEqual([
-        `Some ${model.pluralName} always stay: ${rule}. The run's log says how many were kept${getRowsKeptOnDelete(tableName)!.oneRowByIdCanGo ? ", and a query by ID deletes the one it names" : ""}.`,
+        `Some ${model.pluralName} always stay: ${rule}. The run's log says how many were kept.${getRowsKeptOnDelete(tableName)!.oneRowByIdCanGo ? ` To delete one particular ${model.singularName}, query it by its ID.` : ""}`,
       ]);
     },
   );
