@@ -1,83 +1,128 @@
-# GitHub 통합
+# GitHub
 
-OneUptime 인시던트가 생성될 때 자동으로 [GitHub](https://github.com) 이슈를 열어 — 영향받은 서비스를 소유하는 저장소에서 엔지니어링 후속 작업을 추적합니다.
+OneUptime은 두 가지 방식으로 [GitHub](https://github.com)와 함께 작동합니다. OneUptime GitHub App으로 저장소를 연결하면, OneUptime AI가 찾은 문제를 고치는 pull request를 열고, issue나 pull request에서 멘션하면 응답합니다. 또는 인시던트마다 GitHub issue를 여는 워크플로를 만들어, 후속 작업을 서비스를 소유한 저장소에서 추적할 수 있습니다.
 
-이 통합은 **아웃바운드**: OneUptime이 [GitHub REST API](https://docs.github.com/en/rest/issues/issues)를 호출합니다. **Incident → On Create** 트리거와 **API 컴포넌트** 를 갖춘 OneUptime **[Workflow](/docs/workflows/index)** 를 사용합니다.
+:::cards
+- [연결 방법 선택](#연결-방법-선택): GitHub App 또는 워크플로, 그리고 각각이 하는 일.
+- [저장소 연결](#저장소-연결): 수정 pull request를 위한 GitHub App.
+- [인시던트마다 issue 열기](#인시던트마다-github-issue-열기): 워크플로 하나, 블록 두 개.
+- [문제 해결](#문제-해결): GitHub가 요청을 거부할 때.
+:::
 
-> **더 깊은 GitHub 연결을 원하시나요?** OneUptime에는 코드 저장소 연결을 위한 네이티브 **GitHub App** 통합도 있습니다(AI 에이전트 및 코드 기능에 사용됨). 저장소 안에서 그 앱에 말을 걸 수 있습니다 — 이슈나 풀 리퀘스트에서 멘션하면 구현하거나, 고치거나, 리뷰해 줍니다. [GitHub에서 OneUptime 사용하기](/docs/ai/github-app)를 보시고, 설치 방법은 [GitHub 통합 (자체 호스팅)](/docs/self-hosted/github-integration)을 참조하세요. 이 페이지는 _인시던트에서 이슈 제출_ 에 관한 것입니다.
+## 작동 방식
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
+```mermaid title="OneUptime이 GitHub와 함께 작동하는 두 가지 방식"
+flowchart TB
+    app["GitHub App"] --> repos["가져온 저장소"]
+    repos --> pr["OneUptime AI의<br/>수정 pull request"]
+    declared["인시던트 선언"] --> workflow["워크플로:<br/>On Create Incident"]
+    workflow -->|"POST issues"| issue["GitHub issue"]
 ```
+
+두 방식은 서로 독립적이며, 하나만 쓰거나 둘 다 쓸 수 있습니다. GitHub App은 설치한 저장소에서 작동합니다. 워크플로에는 토큰만 있으면 되며, 다른 API처럼 GitHub의 [REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue)를 호출합니다.
+
+## 연결 방법 선택
+
+| 방식 | 하는 일 | 필요한 것 |
+| --- | --- | --- |
+| GitHub App | 저장소를 가져옵니다. OneUptime AI가 그 안에서 예외, 느린 트레이스, 조사로 찾은 원인을 고치는 pull request를 열고, issue와 pull request의 멘션에 응답합니다. | 앱을 설치할 조직 또는 계정. OneUptime Cloud에서는 **Growth** 플랜. |
+| 워크플로 | 인시던트마다, 선택한 저장소에 GitHub issue를 엽니다. | issue를 만들 수 있는 GitHub 토큰과, 블록 두 개로 된 워크플로. |
+
+## 저장소 연결
+
+**제품 → 코드 → 작업**을 연 다음 **코드 저장소**를 열고 **Connect with GitHub App**을 클릭합니다. GitHub가 앱을 어디에 설치할지, 어떤 저장소를 사용할 수 있는지 묻습니다. 설치에 포함된 모든 저장소를 가져오며, 설치에 저장소를 추가하거나 빼면 그에 맞게 갱신됩니다.
+
+자체 호스팅 인스턴스에는 먼저 자체 GitHub App이 필요합니다. 만드는 방법은 [GitHub 통합](/docs/self-hosted/github-integration)에서 설명합니다. 그 뒤에는 [수정 작업](/docs/ai/ai-agent)이 저장소에 pull request를 열고, issue나 pull request에서 앱을 멘션할 때 앱이 하는 일은 [GitHub App](/docs/ai/github-app) 페이지에서 설명합니다.
 
 ## 사전 요건
 
-- 이슈를 제출할 GitHub 저장소.
-- 이슈를 만들 수 있는 토큰:
+이 페이지의 나머지 부분에서는 워크플로를 만듭니다. 필요한 것:
 
-  - **Issues: Read and write** 권한이 있는 해당 저장소 범위의 **세분화된 PAT**, 또는
-  - `repo` 범위의 **클래식 PAT**.
+- 저장소에서 issue를 만들 수 있는 GitHub 토큰. 그 저장소용 fine-grained personal access token에 **Issues** 권한을 **Read and write**로 설정한 것, 또는 `repo` 범위를 가진 클래식 토큰입니다. GitHub의 [토큰 설정](https://github.com/settings/tokens)에서 만드세요.
+- OneUptime에서 워크플로와 전역 변수를 만들 권한. OneUptime Cloud에서는 워크플로에 **Growth** 요금제 이상이 필요합니다.
 
-  [github.com/settings/tokens](https://github.com/settings/tokens)에서 만드세요.
+## 토큰 저장
 
-- 워크플로를 만들 수 있는 OneUptime 프로젝트.
+:::steps
+1. **워크플로 → 전역 변수**로 이동해 **워크플로 변수 만들기**를 클릭합니다.
+2. 이름을 `GITHUB_TOKEN`으로 지정하고 **다음**을 클릭합니다.
+3. 토큰을 **콘텐츠**에 붙여 넣고 **시크릿**을 켠 뒤 **워크플로 변수 만들기**를 클릭합니다.
+:::
 
-## 1단계 — 토큰 저장
+시크릿 변수는 실행 로그에서 `[REDACTED]`로 바뀌므로 토큰이 실행에 나타나는 일은 없습니다.
 
-1. **워크플로 → 전역 변수 → 만들기** 로 이동합니다.
-2. 이름을 `GITHUB_TOKEN` 으로 지정하고 토큰을 붙여넣고 **Is Secret** 를 켭니다.
+## 인시던트마다 GitHub issue 열기
 
-## 2단계 — 워크플로 구성
+:::steps
+### 워크플로 만들기
 
-1. **워크플로 → 워크플로 생성** 을 열고, 이름을 `Incidents → GitHub Issues` 로 지정하고 **빌더** 를 엽니다.
-2. **Incident** 트리거를 **On Create** 로 설정해 추가합니다. 이름을 `Incident` 로 변경합니다.
-3. 트리거에 연결된 **API** 블록을 추가합니다:
+**워크플로**로 이동해 **워크플로 생성**을 클릭한 다음 **처음부터 시작**을 클릭합니다. 이름을 `Incidents to GitHub`로 지정하고 **워크플로 생성**을 클릭합니다.
 
-   - **Method**: `POST`
-   - **URL**: `https://api.github.com/repos/your-org/your-repo/issues`
-   - **Headers**:
+### 트리거 추가하기
 
-     ```text
-     Authorization: Bearer {{variable.GITHUB_TOKEN}}
-     Accept: application/vnd.github+json
-     X-GitHub-Api-Version: 2022-11-28
-     User-Agent: OneUptime
-     ```
+점선으로 된 **Choose what starts this workflow** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭하고 **Select Fields**에서 `title`, `description`, `incidentNumberWithPrefix`를 고릅니다.
 
-   - **Body**:
+### issue 열기
 
-     ```json
-     {
-       "title": "OneUptime incident: {{Incident.title}}",
-       "body": "{{Incident.description}}\n\nFiled automatically from OneUptime.",
-       "labels": ["incident", "oneuptime"]
-     }
-     ```
+**구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 뒤, 트리거의 **Success** 점을 그 블록에 연결합니다. 블록의 **URL**을 `https://api.github.com/repos/your-org/your-repo/issues`로 설정하되, 저장소의 소유자와 이름으로 바꿉니다. **추가 필드**에서 **Request Headers**를 다음과 같이 설정합니다:
 
-4. **Save** 하고, 활성화하고, 테스트 인시던트를 만듭니다. 워크플로 로그에서 `201 Created` 가 나오면 이슈가 생성된 것입니다. 응답 본문에 `number` 와 `html_url` 이 포함됩니다.
+```json
+{
+  "Authorization": "Bearer {{global.variables.GITHUB_TOKEN}}",
+  "Accept": "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28"
+}
+```
+
+**Request Body**는 다음과 같습니다:
+
+```json
+{
+  "title": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "body": "{{local.components.incident-on-create-1.returnValues.model.description}}\n\nOpened by OneUptime for incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}.",
+  "labels": ["incident"]
+}
+```
+
+### 테스트한 다음 켜기
+
+**워크플로 실행**을 클릭하고 테스트 인시던트의 **인시던트 ID**를 입력한 뒤 실행합니다. **API Post (JSON)** 단계에 새 issue가 담긴 `201` 응답이 그 `number`, `html_url`과 함께 나타납니다. 그런 다음 **빌더** 위쪽에서 **활성화됨**을 켭니다.
+:::
+
+후속 작업은 보통 인시던트보다 오래가므로, 인시던트가 해결되어도 issue는 열린 채로 남습니다. 인시던트와 양방향으로 맞춰지는 티켓이 필요하다면 [Jira](/docs/integrations/jira)를 참고하세요.
 
 ## 팁
 
-- **GitHub Enterprise Server**: `https://your-host/api/v3/repos/{owner}/{repo}/issues` 를 사용합니다.
-- **담당자 / 마일스톤**: 본문에 `"assignees": ["octocat"]` 또는 `"milestone": 3` 을 추가합니다.
-- **링크 백**: `{{CreateIssue.response-body.html_url}}` 을 읽고 **Update Incident** 블록으로 인시던트에 저장합니다.
+- **GitHub Enterprise Server.** 대신 자체 서버로 요청을 보냅니다: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. 사설 네트워크 주소의 서버에는 관리자가 이를 허용한 자체 호스팅 OneUptime이 필요합니다. [아웃바운드 네트워크 접근](/docs/workflows/configuration#아웃바운드-네트워크-접근)을 참고하세요.
+- **담당자 지정.** 본문에 `"assignees": ["octocat"]`이나 `"milestone": 3`을 추가합니다. 토큰이 저장소에 push할 수 없으면 GitHub는 레이블, 담당자, 마일스톤을 아무 말 없이 버립니다.
+- **일부 인시던트만.** 트리거와 API 블록 사이에 **If / Else** 블록을 두고, 그 **Yes** 쪽에서만 issue를 엽니다. 예를 들어 한 심각도에서만 엽니다.
 
 ## 문제 해결
 
-- **`401`** — 토큰이 잘못되었거나 만료되었습니다. 세분화된 토큰은 저장소와 **Issues** 권한을 명시적으로 부여해야 합니다.
-- **`403` / 속도 제한** — `User-Agent` 헤더를 포함하세요(GitHub은 없으면 요청을 거부합니다) 그리고 속도 제한에 걸리지 않았는지 확인하세요.
-- **`404`** — `owner/repo` 경로가 잘못되었거나 토큰이 비공개 저장소를 볼 수 없습니다.
-- **`422`** — 존재하지 않는 라벨은 괜찮습니다(GitHub이 참조된 라벨을 만들어줍니다), 하지만 잘못된 본문은 안 됩니다 — JSON을 확인하세요.
+GitHub가 요청을 거부하면 **API Post (JSON)** 단계는 **Error**로 진행합니다. 실행의 **Response Status**와 **Response Body**에 이유가 나옵니다.
 
-## 다음에 읽어 볼 내용
+:::details GitHub가 401로 응답함
+토큰이 잘못되었거나, 만료되었거나, 취소되었습니다. 새 토큰을 만들고 `GITHUB_TOKEN`의 내용을 바꾸세요.
+:::
 
-- [통합 개요](/docs/integrations/index) — 패턴과 인증 빠른 참조.
-- [GitLab](/docs/integrations/gitlab) — GitLab에 대한 동일한 아이디어.
-- [GitHub 통합 (자체 호스팅)](/docs/self-hosted/github-integration) — 네이티브 GitHub App 연결.
-- [GitHub에서 OneUptime 사용하기](/docs/ai/github-app) — 이슈나 풀 리퀘스트에서 GitHub App에 명령하기.
+:::details GitHub가 403으로 응답함
+토큰이 그곳에서 issue를 만들 수 없습니다. 이 저장소에서 **Issues**가 **Read and write**로 설정되지 않은 fine-grained 토큰, 조직이 승인하지 않은 토큰, 또는 조직의 Single Sign-On에 대해 승인되지 않은 클래식 토큰입니다. 본문이 속도 제한을 언급하는 403은 토큰이 너무 많은 요청을 보냈다는 뜻입니다. 기다리거나, issue를 여는 인시던트를 줄이세요.
+:::
 
-## 자체 호스팅 배포의 네트워크 액세스
+:::details GitHub가 404로 응답함
+**URL**의 소유자나 저장소가 잘못되었거나, 토큰이 저장소를 볼 수 없습니다. 토큰이 볼 수 없는 비공개 저장소에 대해 GitHub는 403이 아니라 404로 응답합니다.
+:::
 
-이 페이지의 이슈 생성 워크플로에는 DNS 확인과 OneUptime에서 `api.github.com`으로의 아웃바운드 HTTPS(TCP 443)가 필요합니다. GitHub의 인바운드 콜백은 필요하지 않습니다. [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+:::details GitHub가 410 또는 422로 응답함
+- `410`: 저장소 설정에서 issues가 꺼져 있습니다.
+- `422`: GitHub가 본문을 읽을 수 없습니다. 올바른 JSON인지, `title`이 설정되어 있는지, `labels`와 `assignees`가 목록인지 확인하세요.
+:::
 
-아웃바운드 연결, 인바운드 콜백 및 비공개 배포에 대한 자세한 내용은 [GitHub 통합](/docs/self-hosted/github-integration)의 네트워크 액세스 섹션을 참조하세요.
+## 다음 단계
+
+:::cards
+- [GitHub App](/docs/ai/github-app): GitHub에서 바로 OneUptime AI에 변경, 수정, 리뷰를 요청합니다.
+- [GitLab](/docs/integrations/gitlab): 같은 워크플로를 GitLab issue로.
+- [워크플로우 구성 요소](/docs/workflows/components#api): API 블록의 모든 설정.
+- [통합 개요](/docs/integrations/index): 모든 통합의 바탕이 되는 패턴.
+:::
