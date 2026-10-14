@@ -29238,11 +29238,6 @@
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "Wenn Sie einen Sicherheitsfall löschen, werden auch seine Erkennungen, Notizen, seine Zeitleiste und seine Playbook-Ausführungen gelöscht.",
   "To keep the record, close the case with a verdict instead.": "Um den Fall zu behalten, schließen Sie ihn stattdessen mit einer Bewertung ab.",
   "State Change": "Statusänderung",
-  "Every monitor it has keeps running, but no new one can be added until it has fewer than {{limit}}.": "Alle vorhandenen Monitore laufen weiter, aber es kann kein neuer hinzugefügt werden, bis es weniger als {{limit}} sind.",
-  "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.": "Manuelle Monitore zählen nicht zum Limit. Deaktivierte oder archivierte Monitore schon.",
-  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Der Free-Tarif umfasst {{count}} aktive Monitore, und dieses Projekt hat {{activeMonitors}}.",
-  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Der Free-Tarif umfasst {{count}} aktiven Monitor, und dieses Projekt hat {{activeMonitors}}.",
-  "This project has more active monitors than its plan includes": "Dieses Projekt hat mehr aktive Monitore, als sein Tarif umfasst",
   "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.": "Der Tarif dieses Projekts umfasst {{limit}} aktive Monitore, und im Projekt ist kein Platz mehr für diesen. Löschen Sie Monitore, die Sie nicht mehr benötigen, oder ändern Sie den Tarif, um ihn zu übernehmen.",
   "To add more, delete monitors you no longer need or change your plan.": "Um weitere hinzuzufügen, löschen Sie Monitore, die Sie nicht mehr benötigen, oder ändern Sie Ihren Tarif.",
   "Upgrade your plan to add more.": "Wechseln Sie zu einem höheren Tarif, um weitere hinzuzufügen.",
@@ -29251,5 +29246,12 @@
   "You've reached the Free plan's monitor limit": "Sie haben das Monitor-Limit des Free-Tarifs erreicht",
   "You've reached your plan's monitor limit": "Sie haben das Monitor-Limit Ihres Tarifs erreicht",
   "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Ihr Tarif umfasst {{count}} aktive Monitore, und dieses Projekt hat {{activeMonitors}}.",
-  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Ihr Tarif umfasst {{count}} aktiven Monitor, und dieses Projekt hat {{activeMonitors}}."
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Ihr Tarif umfasst {{count}} aktiven Monitor, und dieses Projekt hat {{activeMonitors}}.",
+  "All of them keep running, but no more can be added until the project has fewer than {{limit}}.": "Alle laufen weiter, aber es können keine weiteren hinzugefügt werden, bis das Projekt weniger als {{limit}} hat.",
+  "Manual monitors don't count towards the limit, so you can still add them. Monitors that are turned off or archived do count.": "Manuelle Monitore zählen nicht zum Limit, Sie können sie also weiterhin hinzufügen. Deaktivierte oder archivierte Monitore zählen mit.",
+  "Nothing was created or changed.": "Es wurde nichts erstellt oder geändert.",
+  "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "Der Free-Tarif erlaubt bis zu {{count}} aktive Monitore, und dieses Projekt hat {{activeMonitors}}.",
+  "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "Der Free-Tarif erlaubt bis zu {{count}} aktiven Monitor, und dieses Projekt hat {{activeMonitors}}.",
+  "You're over the Free plan's monitor limit": "Sie haben das Monitor-Limit des Free-Tarifs überschritten",
+  "You're over your plan's monitor limit": "Sie haben das Monitor-Limit Ihres Tarifs überschritten"
 }

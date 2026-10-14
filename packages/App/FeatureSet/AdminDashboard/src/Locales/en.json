@@ -360,12 +360,14 @@
       "adjustBalanceStepBalance": "Balance",
       "adjustBalanceStepAmount": "Amount & Reason",
       "monitorLimitCardTitle": "Active Monitors",
-      "monitorLimitCardDescription": "Every monitor but a Manual one counts, whether it is turned on or not. At its limit the project can add no active monitor until it has fewer, and the ones it has keep running. A plan bought from a reseller sets the limit, and the reseller's next change of tier writes it again.",
+      "monitorLimitCardDescription": "Every monitor but a Manual one counts, turned on or off. At the limit the project can't add more, and the monitors it has keep running. A plan bought from a reseller sets this limit, and the reseller's next change of tier overwrites it. Free plan projects are also held to the Free plan's limit.",
       "monitorLimitEditButton": "Edit Monitor Limit",
       "fieldActiveMonitors": "Active Monitors",
       "fieldMonitorLimit": "Active Monitor Limit",
       "fieldMonitorLimitDescription": "The most active monitors this project may have. Leave it empty for no limit.",
-      "noMonitorLimit": "No limit"
+      "noMonitorLimit": "No limit",
+      "overMonitorLimit": "{{over}} over the limit",
+      "atMonitorLimit": "At the limit"
     },
     "projectSupport": {
       "title": "Customer Support Access",

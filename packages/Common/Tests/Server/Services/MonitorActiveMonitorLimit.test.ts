@@ -196,7 +196,7 @@ describe("creating a monitor in a project whose plan caps active monitors", () =
     await expect(
       hooks.onBeforeCreate(createInput(MonitorType.Website)),
     ).rejects.toThrow(
-      "This project has 2,881 active monitors and its plan includes 500, so no more can be added until it has fewer than 500. Every monitor it has keeps running.",
+      "This project has 2,881 active monitors and its plan includes 500, so no more can be added until it has fewer than 500. All of its monitors keep running.",
     );
   });
 

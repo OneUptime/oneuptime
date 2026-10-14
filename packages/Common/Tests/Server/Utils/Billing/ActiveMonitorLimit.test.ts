@@ -301,7 +301,7 @@ describe("the refusal", () => {
         adding: 1,
       }),
     ).toBe(
-      `This project has 2,881 active monitors and its plan includes 500, so no more can be added until it has fewer than 500. Every monitor it has keeps running. ${PLAN_ROOM_TEXT}`,
+      `This project has 2,881 active monitors and its plan includes 500, so no more can be added until it has fewer than 500. All of its monitors keep running. ${PLAN_ROOM_TEXT}`,
     );
   });
 
@@ -329,7 +329,12 @@ describe("the refusal", () => {
     );
   });
 
-  test("past the Free plan's limit", () => {
+  /*
+   * The Free plan includes no active monitor - each one on it is paid as
+   * you go - so it allows its number; a plan bought from a reseller
+   * includes its own.
+   */
+  test("past the Free plan's limit: it allows, rather than includes, its number", () => {
     expect(
       ActiveMonitorLimit.getRefusalMessage({
         limit: { limit: 10, kind: ActiveMonitorLimitKind.FreePlan },
@@ -337,7 +342,19 @@ describe("the refusal", () => {
         adding: 1,
       }),
     ).toBe(
-      `This project has 12 active monitors and the Free plan includes 10, so no more can be added until it has fewer than 10. Every monitor it has keeps running. ${FREE_ROOM_TEXT}`,
+      `This project has 12 active monitors and the Free plan allows 10, so no more can be added until it has fewer than 10. All of its monitors keep running. ${FREE_ROOM_TEXT}`,
+    );
+  });
+
+  test("with some room on the Free plan, it allows its number too", () => {
+    expect(
+      ActiveMonitorLimit.getRefusalMessage({
+        limit: { limit: 10, kind: ActiveMonitorLimitKind.FreePlan },
+        activeMonitors: 8,
+        adding: 3,
+      }),
+    ).toBe(
+      `This project has 8 active monitors and the Free plan allows 10, so it has room for 2 more, not 3. ${FREE_ROOM_TEXT}`,
     );
   });
 

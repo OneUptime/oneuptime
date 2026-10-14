@@ -16,7 +16,9 @@ import nodePath from "path";
  * fails silently (a misspelt field renders an empty row and 400s on save),
  * and the Admin Dashboard has no React harness in App's jest, so - as the
  * sibling AdminDashboard suites do - this holds the wiring against the
- * source and the locale files.
+ * source and the locale files. What the card draws (2,881 with "2,381 over
+ * the limit" beside it, "No limit", the edit form's title) is rendered on
+ * the real page in Common's AdminProjectActiveMonitorsCard.test.tsx.
  */
 
 const ADMIN_DASHBOARD_SRC: string = nodePath.join(
@@ -123,8 +125,35 @@ describe("Project > Subscription > Active Monitors", () => {
   });
 
   test("an unset limit reads as 'No limit' rather than a blank row", () => {
+    expect(detailFields).toContain("<PlaceholderText");
     expect(detailFields).toContain(
-      'placeholder: t("pages.projectSubscription.noMonitorLimit")',
+      'text={t("pages.projectSubscription.noMonitorLimit")}',
+    );
+    // Nothing, or 0, is no limit: the one rule the server holds.
+    expect(detailFields).toContain("ActiveMonitorLimitUtil.getProjectLimit(");
+  });
+
+  test("numbers are written the way the admin's language writes them", () => {
+    expect(subscriptionSource).toContain("toLocaleString(i18n.language");
+    expect(detailFields).toContain("formatCount(count)");
+    expect(detailFields).toContain("formatCount(limit)");
+  });
+
+  test("a project at or past its limit says so beside the count", () => {
+    expect(detailFields).toContain("count > limit");
+    expect(detailFields).toContain(
+      't("pages.projectSubscription.overMonitorLimit", {',
+    );
+    expect(detailFields).toContain("over: formatCount(count - limit)");
+    expect(detailFields).toContain("count === limit");
+    expect(detailFields).toContain(
+      't("pages.projectSubscription.atMonitorLimit")',
+    );
+  });
+
+  test("its edit form is titled after what it edits, not 'Edit Project'", () => {
+    expect(card).toContain(
+      'editModalTitle={t("pages.projectSubscription.monitorLimitEditButton")}',
     );
   });
 
@@ -165,6 +194,7 @@ describe("translations", () => {
   test("the card asks for exactly its own keys", () => {
     expect(usedKeys).toEqual(
       [
+        "atMonitorLimit",
         "fieldActiveMonitors",
         "fieldMonitorLimit",
         "fieldMonitorLimitDescription",
@@ -172,6 +202,7 @@ describe("translations", () => {
         "monitorLimitCardTitle",
         "monitorLimitEditButton",
         "noMonitorLimit",
+        "overMonitorLimit",
       ].sort(),
     );
   });
@@ -208,6 +239,8 @@ describe("translations", () => {
         "fieldMonitorLimit",
         "fieldMonitorLimitDescription",
         "noMonitorLimit",
+        "overMonitorLimit",
+        "atMonitorLimit",
       ]) {
         if (block[key] === english[key]) {
           untranslated.push(`${fileName} ${key}`);
@@ -218,17 +251,44 @@ describe("translations", () => {
     expect(untranslated).toEqual([]);
   });
 
+  // The one value the card fills: how far over its limit the project is.
+  const PLACEHOLDERS_SET: Record<string, Array<string>> = {
+    overMonitorLimit: ["{{over}}"],
+  };
+
+  const PLACEHOLDER: RegExp = /\{\{[^{}]*\}\}/g;
+
   test("the card's words fill no placeholder the card never sets", () => {
     for (const fileName of localeFileNames()) {
       const block: Record<string, string> = subscriptionBlock(fileName);
 
       for (const key of usedKeys) {
-        expect({ fileName, key, value: block[key] }).toEqual({
+        expect({
           fileName,
           key,
-          value: expect.not.stringContaining("{{"),
+          placeholders: (block[key] || "").match(PLACEHOLDER) || [],
+        }).toEqual({
+          fileName,
+          key,
+          placeholders: PLACEHOLDERS_SET[key] || [],
         });
       }
+    }
+  });
+
+  test("the description names the Free plan's own limit, in every language", () => {
+    expect(
+      subscriptionBlock("en.json")["monitorLimitCardDescription"],
+    ).toContain("Free plan projects are also held to the Free plan's limit.");
+
+    for (const fileName of localeFileNames()) {
+      expect({
+        fileName,
+        description: subscriptionBlock(fileName)["monitorLimitCardDescription"],
+      }).toEqual({
+        fileName,
+        description: expect.stringContaining("Free"),
+      });
     }
   });
 });

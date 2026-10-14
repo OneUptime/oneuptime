@@ -360,12 +360,14 @@
       "adjustBalanceStepBalance": "Saldo",
       "adjustBalanceStepAmount": "Importo e motivo",
       "monitorLimitCardTitle": "Monitor attivi",
-      "monitorLimitCardDescription": "Conta ogni monitor tranne quelli manuali, che sia attivato o no. Al limite il progetto non può aggiungere monitor attivi finché non ne ha meno; quelli che ha continuano a funzionare. Un piano acquistato da un rivenditore fissa il limite, e il prossimo cambio di livello del rivenditore lo riscrive.",
+      "monitorLimitCardDescription": "Conta ogni monitor tranne quelli manuali, attivato o no. Al limite il progetto non può aggiungerne altri, e quelli che ha continuano a funzionare. Un piano acquistato da un rivenditore fissa questo limite, e il prossimo cambio di livello del rivenditore lo sovrascrive. I progetti sul piano Free sono soggetti anche al limite del piano Free.",
       "monitorLimitEditButton": "Modifica limite monitor",
       "fieldActiveMonitors": "Monitor attivi",
       "fieldMonitorLimit": "Limite di monitor attivi",
       "fieldMonitorLimitDescription": "Il numero massimo di monitor attivi che questo progetto può avere. Lascia vuoto per nessun limite.",
-      "noMonitorLimit": "Nessun limite"
+      "noMonitorLimit": "Nessun limite",
+      "overMonitorLimit": "{{over}} oltre il limite",
+      "atMonitorLimit": "Al limite"
     },
     "projectSupport": {
       "title": "Accesso dell'assistenza clienti",

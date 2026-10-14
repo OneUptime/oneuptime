@@ -15,10 +15,12 @@ import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import ActiveMonitorLimitNotice, {
   ACTIVE_MONITOR_LIMIT_ROUTE,
+  ActiveMonitorLimitAlert,
   ActiveMonitorLimitNoticeCopy,
   ActiveMonitorLimitNoticeShowWhen,
   getActiveMonitorLimitNoticeCopy,
   joinSentences,
+  readActiveMonitorLimitIfReached,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/ActiveMonitorLimitNotice";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -27,6 +29,7 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   ActiveMonitorLimitKind,
   ActiveMonitorLimitStatus,
+  NO_ACTIVE_MONITOR_LIMIT,
 } from "../../../Types/Monitor/ActiveMonitorLimit";
 import { APP_API_URL } from "../../../UI/Config";
 import API from "../../../UI/Utils/API/API";
@@ -92,12 +95,17 @@ jest.mock("react-i18next", () => {
  * 2,881. The server now refuses every new active monitor at the limit;
  * this is what the Create Monitor page (at the limit or past it) and the
  * monitor list (past it) say first - which limit, how many the project
- * has, that what it has keeps running, what to do, and what counts - with
- * a link to the plan. It says nothing while the status loads, when it
- * cannot be read, or when the project has no limit.
+ * has, that what it has keeps running, what to do, and what counts (Manual
+ * monitors never do, so one can still be added) - with a link to the plan.
+ * It says nothing while the status loads, when it cannot be read, or when
+ * the project has no limit. An action that makes several monitors at once
+ * says the same, as the reason it did not start.
  */
 
 const NOTICE: string = "active-monitor-limit-notice";
+
+const MANUAL_NOTE: string =
+  "Manual monitors don't count towards the limit, so you can still add them. Monitors that are turned off or archived do count.";
 
 let getSpy: ReturnType<typeof getJestSpyOn>;
 
@@ -121,6 +129,17 @@ function answer(status: ActiveMonitorLimitStatus | JSONObject | null): void {
       {},
     ) as never,
   );
+}
+
+/*
+ * The request fails. Thrown from an async function, so the rejection is a
+ * native promise's that the code under test awaits - not one made ahead of
+ * time that the zone.js shim reports as unhandled before it is awaited.
+ */
+function failRequests(): void {
+  getSpy.mockImplementation((async (): Promise<never> => {
+    throw new Error("Network down");
+  }) as never);
 }
 
 function renderNotice(showWhen: ActiveMonitorLimitNoticeShowWhen): void {
@@ -215,10 +234,8 @@ describe("on Create Monitor (at the limit or past it)", () => {
     expect(notice).toHaveTextContent(
       "To add more, delete monitors you no longer need or change your plan.",
     );
-    expect(notice).toHaveTextContent(
-      "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.",
-    );
-    expect(notice).not.toHaveTextContent("keeps running");
+    expect(notice).toHaveTextContent(MANUAL_NOTE);
+    expect(notice).not.toHaveTextContent("keep running");
 
     // Where it stands, then what to do with the plan's link after it, then what counts.
     expect(
@@ -233,9 +250,7 @@ describe("on Create Monitor (at the limit or past it)", () => {
     );
     expect(
       screen.getByTestId("active-monitor-limit-notice-note"),
-    ).toHaveTextContent(
-      "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.",
-    );
+    ).toHaveTextContent(MANUAL_NOTE);
 
     const link: HTMLElement = screen.getByRole("link", { name: "View plan" });
     expect(link).toHaveAttribute("href", routeFor(PageMap.SETTINGS_BILLING));
@@ -249,23 +264,26 @@ describe("on Create Monitor (at the limit or past it)", () => {
 
     const notice: HTMLElement = await screen.findByTestId(NOTICE);
 
-    expect(notice).toHaveTextContent(
-      "This project has more active monitors than its plan includes",
-    );
+    expect(notice).toHaveTextContent("You're over your plan's monitor limit");
     expect(notice).toHaveTextContent(
       "Your plan includes 500 active monitors, and this project has 2,881.",
     );
     expect(notice).toHaveTextContent(
-      "Every monitor it has keeps running, but no new one can be added until it has fewer than 500.",
+      "All of them keep running, but no more can be added until the project has fewer than 500.",
     );
     expect(
       screen.getByTestId("active-monitor-limit-notice-state"),
     ).toHaveTextContent(
-      "Your plan includes 500 active monitors, and this project has 2,881. Every monitor it has keeps running, but no new one can be added until it has fewer than 500.",
+      "Your plan includes 500 active monitors, and this project has 2,881. All of them keep running, but no more can be added until the project has fewer than 500.",
     );
   });
 
-  test("at the Free plan's limit: upgrade", async () => {
+  /*
+   * The Free plan includes no active monitor - each one on it is paid as
+   * you go, at the rate the pricing card beside the notice quotes - so it
+   * allows its number rather than including it.
+   */
+  test("at the Free plan's limit: it allows, rather than includes, its monitors; upgrade", async () => {
     answer({ limit: FREE_10, activeMonitors: 10 });
 
     renderNotice(ActiveMonitorLimitNoticeShowWhen.AtOrOverLimit);
@@ -276,13 +294,55 @@ describe("on Create Monitor (at the limit or past it)", () => {
       "You've reached the Free plan's monitor limit",
     );
     expect(notice).toHaveTextContent(
-      "The Free plan includes 10 active monitors, and this project has 10.",
+      "The Free plan allows up to 10 active monitors, and this project has 10.",
     );
+    expect(notice).not.toHaveTextContent("includes");
     expect(notice).toHaveTextContent("Upgrade your plan to add more.");
     expect(screen.getByRole("link", { name: "View plans" })).toHaveAttribute(
       "href",
       routeFor(PageMap.SETTINGS_BILLING),
     );
+  });
+
+  test("past the Free plan's limit: over it, in its own words", async () => {
+    answer({ limit: FREE_10, activeMonitors: 14 });
+
+    renderNotice(ActiveMonitorLimitNoticeShowWhen.AtOrOverLimit);
+
+    const notice: HTMLElement = await screen.findByTestId(NOTICE);
+
+    expect(notice).toHaveTextContent(
+      "You're over the Free plan's monitor limit",
+    );
+    expect(
+      screen.getByTestId("active-monitor-limit-notice-state"),
+    ).toHaveTextContent(
+      "The Free plan allows up to 10 active monitors, and this project has 14. All of them keep running, but no more can be added until the project has fewer than 10.",
+    );
+    expect(notice).toHaveTextContent("Upgrade your plan to add more.");
+  });
+
+  test("the titles say which limit and where the project stands, each its own", () => {
+    const translator: Translator = createTranslator(undefined, "en");
+
+    const titles: Array<string> = [
+      { limit: PLAN_500, activeMonitors: 500 },
+      { limit: PLAN_500, activeMonitors: 501 },
+      { limit: FREE_10, activeMonitors: 10 },
+      { limit: FREE_10, activeMonitors: 11 },
+    ].map((status: ActiveMonitorLimitStatus): string => {
+      return getActiveMonitorLimitNoticeCopy({
+        status: status,
+        translator: translator,
+      })!.title;
+    });
+
+    expect(titles).toEqual([
+      "You've reached your plan's monitor limit",
+      "You're over your plan's monitor limit",
+      "You've reached the Free plan's monitor limit",
+      "You're over the Free plan's monitor limit",
+    ]);
   });
 });
 
@@ -302,8 +362,87 @@ describe("on the monitor list (past the limit only)", () => {
     renderNotice(ActiveMonitorLimitNoticeShowWhen.OverLimit);
 
     expect(await screen.findByTestId(NOTICE)).toHaveTextContent(
-      "This project has more active monitors than its plan includes",
+      "You're over your plan's monitor limit",
     );
+  });
+});
+
+/*
+ * The notice itself, for a status already read: what an action that makes
+ * several monitors at once shows as the reason it did not start.
+ */
+describe("the notice for a status already read", () => {
+  function renderAlert(status: ActiveMonitorLimitStatus): void {
+    render(
+      <MemoryRouter>
+        <ActiveMonitorLimitAlert status={status} />
+      </MemoryRouter>,
+    );
+  }
+
+  test("asks nothing itself, and says the same as the page", () => {
+    renderAlert({ limit: PLAN_500, activeMonitors: 2881 });
+
+    expect(getSpy).not.toHaveBeenCalled();
+
+    const notice: HTMLElement = screen.getByTestId(NOTICE);
+    expect(notice).toHaveTextContent("You're over your plan's monitor limit");
+    expect(notice).toHaveTextContent(MANUAL_NOTE);
+    expect(screen.getByRole("link", { name: "View plan" })).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SETTINGS_BILLING),
+    );
+  });
+
+  test("a warning, so it reads as one wherever it is", () => {
+    renderAlert({ limit: FREE_10, activeMonitors: 10 });
+
+    expect(screen.getByTestId(NOTICE)).toHaveClass("bg-amber-50");
+    expect(screen.getByRole("alert")).toBe(screen.getByTestId(NOTICE));
+  });
+
+  test("nothing for a project with no limit", () => {
+    renderAlert(NO_ACTIVE_MONITOR_LIMIT);
+
+    expect(screen.queryByTestId(NOTICE)).toBeNull();
+  });
+});
+
+describe("for an action that makes several monitors at once", () => {
+  test("the status, when the project has no room left", async () => {
+    answer({ limit: PLAN_500, activeMonitors: 500 });
+
+    await expect(readActiveMonitorLimitIfReached()).resolves.toEqual({
+      limit: PLAN_500,
+      activeMonitors: 500,
+    });
+  });
+
+  test("past the limit too", async () => {
+    answer({ limit: FREE_10, activeMonitors: 14 });
+
+    await expect(readActiveMonitorLimitIfReached()).resolves.toEqual({
+      limit: FREE_10,
+      activeMonitors: 14,
+    });
+  });
+
+  test("nothing with room left, with no limit, or when it cannot tell", async () => {
+    answer({ limit: PLAN_500, activeMonitors: 499 });
+    await expect(readActiveMonitorLimitIfReached()).resolves.toBeNull();
+
+    answer({ limit: null, activeMonitors: null });
+    await expect(readActiveMonitorLimitIfReached()).resolves.toBeNull();
+
+    failRequests();
+    await expect(readActiveMonitorLimitIfReached()).resolves.toBeNull();
+  });
+
+  test("nothing asked on a self-hosted install", async () => {
+    config.billingEnabled = false;
+
+    await expect(readActiveMonitorLimitIfReached()).resolves.toBeNull();
+    expect(getSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -324,7 +463,7 @@ describe("on a self-hosted install", () => {
 
 describe("when it cannot tell", () => {
   test("a request that fails draws nothing, and breaks nothing", async () => {
-    getSpy.mockRejectedValue(new Error("Network down") as never);
+    failRequests();
 
     renderNotice(ActiveMonitorLimitNoticeShowWhen.AtOrOverLimit);
     await settled();
@@ -342,6 +481,37 @@ describe("when it cannot tell", () => {
     await settled();
 
     expect(screen.queryByTestId(NOTICE)).toBeNull();
+  });
+});
+
+/*
+ * Where Create Monitor puts it: first, above the Free plan's pricing card
+ * and the form. On a phone the pricing card fills the screen, so a notice
+ * under it was a scroll away from the one thing the page had to say.
+ */
+describe("on the Create Monitor page", () => {
+  const createSource: string = fs.readFileSync(
+    path.join(
+      __dirname,
+      "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create.tsx",
+    ),
+    "utf8",
+  );
+
+  test("comes first: before the pricing card and the form", () => {
+    const notice: number = createSource.indexOf("<ActiveMonitorLimitNotice");
+    const pricing: number = createSource.indexOf("<MonitorPayAsYouGoCard");
+    const form: number = createSource.indexOf('title="Create New Monitor"');
+
+    expect(notice).toBeGreaterThan(-1);
+    expect(pricing).toBeGreaterThan(notice);
+    expect(form).toBeGreaterThan(pricing);
+  });
+
+  test("at the limit or past it", () => {
+    expect(createSource).toContain(
+      "showWhen={ActiveMonitorLimitNoticeShowWhen.AtOrOverLimit}",
+    );
   });
 });
 
@@ -383,12 +553,30 @@ describe("in the reader's language", () => {
     });
 
     expect(copy.title).toBe(
-      "Dieses Projekt hat mehr aktive Monitore, als sein Tarif umfasst",
+      "Sie haben das Monitor-Limit Ihres Tarifs überschritten",
     );
     expect(copy.state[0]).toBe(
       "Ihr Tarif umfasst 500 aktive Monitore, und dieses Projekt hat 2.881.",
     );
+    expect(copy.state[1]).toBe(
+      "Alle laufen weiter, aber es können keine weiteren hinzugefügt werden, bis das Projekt weniger als 500 hat.",
+    );
     expect(copy.linkText).toBe("Tarif anzeigen");
+  });
+
+  test("German, at the Free plan's limit", () => {
+    const copy: ActiveMonitorLimitNoticeCopy = copyFor("de", {
+      limit: FREE_10,
+      activeMonitors: 10,
+    });
+
+    expect(copy.title).toBe(
+      "Sie haben das Monitor-Limit des Free-Tarifs erreicht",
+    );
+    expect(copy.state[0]).toBe(
+      "Der Free-Tarif erlaubt bis zu 10 aktive Monitore, und dieses Projekt hat 10.",
+    );
+    expect(copy.linkText).toBe("Tarife anzeigen");
   });
 
   test("whole sentences run on with a space, and without one after a full-width full stop", () => {
@@ -406,11 +594,27 @@ describe("in the reader's language", () => {
       }).state[0],
     ).toBe("Your plan includes 1 active monitor, and this project has 1.");
     expect(
+      copyFor("en", {
+        limit: { limit: 1, kind: ActiveMonitorLimitKind.FreePlan },
+        activeMonitors: 1,
+      }).state[0],
+    ).toBe(
+      "The Free plan allows up to 1 active monitor, and this project has 1.",
+    );
+    expect(
       copyFor("de", {
         limit: { limit: 1, kind: ActiveMonitorLimitKind.Plan },
         activeMonitors: 1,
       }).state[0],
     ).toBe("Ihr Tarif umfasst 1 aktiven Monitor, und dieses Projekt hat 1.");
+    expect(
+      copyFor("de", {
+        limit: { limit: 1, kind: ActiveMonitorLimitKind.FreePlan },
+        activeMonitors: 1,
+      }).state[0],
+    ).toBe(
+      "Der Free-Tarif erlaubt bis zu 1 aktiven Monitor, und dieses Projekt hat 1.",
+    );
   });
 
   test.each([
@@ -431,29 +635,27 @@ describe("in the reader's language", () => {
     "hi",
     "fa",
   ])("%s has its own words for every sentence", (language: string) => {
-    const english: Array<ActiveMonitorLimitNoticeCopy> = [
-      copyFor("en", { limit: PLAN_500, activeMonitors: 2881 }),
-      copyFor("en", { limit: FREE_10, activeMonitors: 10 }),
-    ];
-    const translated: Array<ActiveMonitorLimitNoticeCopy> = [
-      copyFor(language, { limit: PLAN_500, activeMonitors: 2881 }),
-      copyFor(language, { limit: FREE_10, activeMonitors: 10 }),
+    const STATES: Array<ActiveMonitorLimitStatus> = [
+      { limit: PLAN_500, activeMonitors: 500 },
+      { limit: PLAN_500, activeMonitors: 2881 },
+      { limit: FREE_10, activeMonitors: 10 },
+      { limit: FREE_10, activeMonitors: 14 },
     ];
 
-    translated.forEach(
-      (copy: ActiveMonitorLimitNoticeCopy, index: number): void => {
-        const englishCopy: ActiveMonitorLimitNoticeCopy = english[index]!;
+    STATES.forEach((status: ActiveMonitorLimitStatus): void => {
+      const englishCopy: ActiveMonitorLimitNoticeCopy = copyFor("en", status);
+      const copy: ActiveMonitorLimitNoticeCopy = copyFor(language, status);
 
-        expect(copy.title).not.toBe(englishCopy.title);
-        expect(copy.linkText).not.toBe(englishCopy.linkText);
-        expect(copy.action).not.toBe(englishCopy.action);
-        expect(copy.note).not.toBe(englishCopy.note);
-        copy.state.forEach((sentence: string, at: number): void => {
-          expect(sentence).not.toBe(englishCopy.state[at]);
-          // Every value filled: no placeholder left for the reader to see.
-          expect(sentence).not.toContain("{{");
-        });
-      },
-    );
+      expect(copy.title).not.toBe(englishCopy.title);
+      expect(copy.linkText).not.toBe(englishCopy.linkText);
+      expect(copy.action).not.toBe(englishCopy.action);
+      expect(copy.note).not.toBe(englishCopy.note);
+      expect(copy.state).toHaveLength(englishCopy.state.length);
+      copy.state.forEach((sentence: string, at: number): void => {
+        expect(sentence).not.toBe(englishCopy.state[at]);
+        // Every value filled: no placeholder left for the reader to see.
+        expect(sentence).not.toContain("{{");
+      });
+    });
   });
 });

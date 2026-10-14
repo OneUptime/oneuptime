@@ -360,12 +360,14 @@
       "adjustBalanceStepBalance": "余额",
       "adjustBalanceStepAmount": "金额和原因",
       "monitorLimitCardTitle": "活动监视器",
-      "monitorLimitCardDescription": "除手动监视器外，所有监视器无论是否开启都计入。达到限额后，在数量减少之前，项目无法添加活动监视器；现有监视器会继续运行。从经销商处购买的套餐会设定限额，经销商下次变更等级时会重新写入。",
+      "monitorLimitCardDescription": "除手动监视器外，所有监视器无论是否开启都计入。达到限额后，项目无法再添加，现有监视器会继续运行。从经销商处购买的套餐会设定此限额，经销商下次变更等级时会覆盖它。Free 套餐的项目同样受 Free 套餐限额的约束。",
       "monitorLimitEditButton": "编辑监视器限额",
       "fieldActiveMonitors": "活动监视器",
       "fieldMonitorLimit": "活动监视器限额",
       "fieldMonitorLimitDescription": "此项目可拥有的活动监视器的最大数量。留空表示不限制。",
-      "noMonitorLimit": "不限制"
+      "noMonitorLimit": "不限制",
+      "overMonitorLimit": "超出限额 {{over}} 个",
+      "atMonitorLimit": "已达限额"
     },
     "projectSupport": {
       "title": "客户支持访问权限",

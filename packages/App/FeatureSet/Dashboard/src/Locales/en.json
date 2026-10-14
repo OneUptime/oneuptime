@@ -29238,11 +29238,6 @@
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "Deleting a security case also deletes its detections, notes, timeline and playbook runs.",
   "To keep the record, close the case with a verdict instead.": "To keep the record, close the case with a verdict instead.",
   "State Change": "State Change",
-  "Every monitor it has keeps running, but no new one can be added until it has fewer than {{limit}}.": "Every monitor it has keeps running, but no new one can be added until it has fewer than {{limit}}.",
-  "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.": "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.",
-  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}.",
-  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "The Free plan includes {{count}} active monitor, and this project has {{activeMonitors}}.",
-  "This project has more active monitors than its plan includes": "This project has more active monitors than its plan includes",
   "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.": "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.",
   "To add more, delete monitors you no longer need or change your plan.": "To add more, delete monitors you no longer need or change your plan.",
   "Upgrade your plan to add more.": "Upgrade your plan to add more.",
@@ -29251,5 +29246,12 @@
   "You've reached the Free plan's monitor limit": "You've reached the Free plan's monitor limit",
   "You've reached your plan's monitor limit": "You've reached your plan's monitor limit",
   "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.",
-  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Your plan includes {{count}} active monitor, and this project has {{activeMonitors}}."
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Your plan includes {{count}} active monitor, and this project has {{activeMonitors}}.",
+  "All of them keep running, but no more can be added until the project has fewer than {{limit}}.": "All of them keep running, but no more can be added until the project has fewer than {{limit}}.",
+  "Manual monitors don't count towards the limit, so you can still add them. Monitors that are turned off or archived do count.": "Manual monitors don't count towards the limit, so you can still add them. Monitors that are turned off or archived do count.",
+  "Nothing was created or changed.": "Nothing was created or changed.",
+  "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.",
+  "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "The Free plan allows up to {{count}} active monitor, and this project has {{activeMonitors}}.",
+  "You're over the Free plan's monitor limit": "You're over the Free plan's monitor limit",
+  "You're over your plan's monitor limit": "You're over your plan's monitor limit"
 }

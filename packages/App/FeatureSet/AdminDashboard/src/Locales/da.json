@@ -360,12 +360,14 @@
       "adjustBalanceStepBalance": "Saldo",
       "adjustBalanceStepAmount": "Beløb og årsag",
       "monitorLimitCardTitle": "Aktive monitorer",
-      "monitorLimitCardDescription": "Alle monitorer undtagen manuelle tæller med, uanset om de er slået til. Ved grænsen kan projektet ikke tilføje aktive monitorer, før det har færre; dem, det har, kører videre. Et abonnement købt hos en forhandler fastsætter grænsen, og forhandlerens næste niveauskift skriver den igen.",
+      "monitorLimitCardDescription": "Alle monitorer undtagen manuelle tæller med, slået til eller ej. Ved grænsen kan projektet ikke tilføje flere, og dem, det har, kører videre. Et abonnement købt hos en forhandler fastsætter denne grænse, og forhandlerens næste niveauskift overskriver den. Projekter på Free-abonnementet er også underlagt Free-abonnementets grænse.",
       "monitorLimitEditButton": "Rediger monitorgrænse",
       "fieldActiveMonitors": "Aktive monitorer",
       "fieldMonitorLimit": "Grænse for aktive monitorer",
       "fieldMonitorLimitDescription": "Det største antal aktive monitorer, projektet må have. Lad feltet være tomt for ingen grænse.",
-      "noMonitorLimit": "Ingen grænse"
+      "noMonitorLimit": "Ingen grænse",
+      "overMonitorLimit": "{{over}} over grænsen",
+      "atMonitorLimit": "Ved grænsen"
     },
     "projectSupport": {
       "title": "Kundesupportadgang",

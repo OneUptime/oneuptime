@@ -13,6 +13,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import { FunctionComponent, ReactElement } from "react";
@@ -906,9 +907,12 @@ describe("useBulkCreatePingMonitors", () => {
   /*
    * The plan's limit on active monitors (ActiveMonitorLimit). A project with
    * no room can get no Ping monitor at all - a reason about the project, so
-   * it is said once, in the same modal as a project setting that stops the
-   * action, and nothing starts. The server refuses every create past the
-   * limit either way.
+   * it is said once, in a modal of its own, and nothing starts. The modal
+   * holds the limit's own notice, as Create Monitor shows it: which limit,
+   * how many, what to do with the plan a click away, and what counts - not
+   * the project-setting sentence the seed ids' failure gives, which would
+   * call a plan a setting. The server refuses every create past the limit
+   * either way.
    */
   describe("the plan's limit on active monitors", () => {
     function answerLimit(status: JSONObject): void {
@@ -928,7 +932,7 @@ describe("useBulkCreatePingMonitors", () => {
       jest.restoreAllMocks();
     });
 
-    test("with no room, it is said once and nothing starts", async () => {
+    test("with no room, it is said once, with the limit's notice, and nothing starts", async () => {
       answerLimit({
         limit: { limit: 500, kind: "Plan" },
         activeMonitors: 2881,
@@ -938,22 +942,54 @@ describe("useBulkCreatePingMonitors", () => {
 
       fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
 
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("modal-title")).toHaveTextContent(
-            "Ping Monitors Could Not Be Created",
-          );
-        },
+      const notice: HTMLElement = await screen.findByTestId(
+        "active-monitor-limit-notice",
+        {},
         { timeout: WAIT_TIMEOUT },
       );
 
+      expect(screen.getByTestId("modal-title")).toHaveTextContent(
+        "Ping Monitors Could Not Be Created",
+      );
+      expect(screen.getByTestId("modal-description")).toHaveTextContent(
+        "Nothing was created or changed.",
+      );
+      // A plan's limit is not a project setting.
+      expect(screen.queryByText(/project setting/)).toBeNull();
+
+      expect(notice).toHaveTextContent("You're over your plan's monitor limit");
       expect(
-        screen.getByText(
-          "Your plan includes 500 active monitors, and this project has 2,881. Every monitor it has keeps running, but no new one can be added until it has fewer than 500. To add more, delete monitors you no longer need or change your plan.",
-        ),
-      ).toBeInTheDocument();
+        within(notice).getByTestId("active-monitor-limit-notice-state"),
+      ).toHaveTextContent(
+        "Your plan includes 500 active monitors, and this project has 2,881. All of them keep running, but no more can be added until the project has fewer than 500.",
+      );
+      expect(
+        within(notice).getByTestId("active-monitor-limit-notice-action"),
+      ).toHaveTextContent(
+        "To add more, delete monitors you no longer need or change your plan. View plan",
+      );
+      expect(
+        within(notice).getByRole("link", { name: "View plan" }),
+      ).toHaveAttribute("href", expect.stringContaining("/settings/billing"));
+      expect(notice).toHaveTextContent(
+        "Manual monitors don't count towards the limit, so you can still add them.",
+      );
+
       expect(onBulkActionStartMock).not.toHaveBeenCalled();
       expect(resolveSeedIdsMock).not.toHaveBeenCalled();
+      expect(createMock).not.toHaveBeenCalled();
+
+      // Closing it leaves nothing behind.
+      fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+
+      await waitFor(
+        () => {
+          expect(
+            screen.queryByTestId("active-monitor-limit-notice"),
+          ).toBeNull();
+        },
+        { timeout: WAIT_TIMEOUT },
+      );
       expect(createMock).not.toHaveBeenCalled();
     });
 
@@ -967,12 +1003,21 @@ describe("useBulkCreatePingMonitors", () => {
 
       fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
 
+      const notice: HTMLElement = await screen.findByTestId(
+        "active-monitor-limit-notice",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+
+      expect(notice).toHaveTextContent(
+        "You've reached the Free plan's monitor limit",
+      );
+      expect(notice).toHaveTextContent(
+        "The Free plan allows up to 10 active monitors, and this project has 10.",
+      );
+      expect(notice).toHaveTextContent("Upgrade your plan to add more.");
       expect(
-        await screen.findByText(
-          "The Free plan includes 10 active monitors, and this project has 10. Upgrade your plan to add more.",
-          {},
-          { timeout: WAIT_TIMEOUT },
-        ),
+        within(notice).getByRole("link", { name: "View plans" }),
       ).toBeInTheDocument();
       expect(createMock).not.toHaveBeenCalled();
     });

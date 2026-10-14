@@ -314,14 +314,21 @@ export default class ActiveMonitorLimit {
       limit: limit,
       activeMonitors: data.activeMonitors,
     });
-    const plan: string = isFreePlan ? "the Free plan" : "its plan";
+    /*
+     * A plan bought from a reseller includes its monitors. The Free plan
+     * includes none - each active monitor on it is paid as you go - so it
+     * allows its number rather than including it.
+     */
+    const plan: string = isFreePlan
+      ? "the Free plan allows"
+      : "its plan includes";
 
     let state: string;
 
     if (room > 0) {
-      state = `This project has ${this.monitors(data.activeMonitors)} and ${plan} includes ${this.formatCount(limit)}, so it has room for ${this.formatCount(room)} more, not ${this.formatCount(data.adding)}.`;
+      state = `This project has ${this.monitors(data.activeMonitors)} and ${plan} ${this.formatCount(limit)}, so it has room for ${this.formatCount(room)} more, not ${this.formatCount(data.adding)}.`;
     } else if (data.activeMonitors > limit) {
-      state = `This project has ${this.monitors(data.activeMonitors)} and ${plan} includes ${this.formatCount(limit)}, so no more can be added until it has fewer than ${this.formatCount(limit)}. Every monitor it has keeps running.`;
+      state = `This project has ${this.monitors(data.activeMonitors)} and ${plan} ${this.formatCount(limit)}, so no more can be added until it has fewer than ${this.formatCount(limit)}. All of its monitors keep running.`;
     } else {
       state = `This project has reached ${isFreePlan ? "the Free plan's" : "its plan's"} limit of ${this.monitors(limit)}, so no more can be added.`;
     }

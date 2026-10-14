@@ -50,6 +50,9 @@
  *              (10 of the Free plan's 10) | fail (the request fails). The
  *              Dashboard asks it only on a billed install: add ?billing=true
  *              (handled by server.js, as BILLING_ENABLED).
+ *   ?plan=     free puts the project on the Free plan (with ?billing=true):
+ *              Create Monitor then shows its pricing card. Any other value,
+ *              or none, is no plan the page can name, as before.
  *   ?theme=    dark adds html.dark (handled by server.js).
  *
  * Every read is recorded on window.__monitorOverviewFixture: getItemRequests,
@@ -141,6 +144,7 @@ import {
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { APP_API_URL } from "Common/UI/Config";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -201,6 +205,7 @@ const roleMode = ROLE_KEYS.includes(params.get("role"))
   : "owner";
 const failures = listParam("fail");
 const showNav = params.get("nav") === "1";
+const planMode = params.get("plan") === "free" ? "free" : "none";
 
 /*
  * The project's limit on active monitors (Types/Monitor/ActiveMonitorLimit),
@@ -302,6 +307,7 @@ const fixture = {
     role: roleMode,
     fail: Array.from(failures),
     monitorLimit: monitorLimitMode,
+    plan: planMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -1964,6 +1970,10 @@ ProjectUtil.getCurrentProjectId = () => {
 };
 ProjectUtil.getCurrentProject = () => {
   return project;
+};
+// ?plan=free: the Free plan (isProjectOnFreePlan also needs ?billing=true).
+ProjectUtil.getCurrentPlan = () => {
+  return planMode === "free" ? PlanType.Free : null;
 };
 ModelAPI.getCommonHeaders = () => {
   return { tenantid: PROJECT_ID };

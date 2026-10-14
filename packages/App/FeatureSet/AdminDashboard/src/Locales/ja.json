@@ -360,12 +360,14 @@
       "adjustBalanceStepBalance": "残高",
       "adjustBalanceStepAmount": "金額と理由",
       "monitorLimitCardTitle": "アクティブなモニター",
-      "monitorLimitCardDescription": "手動モニター以外のすべてのモニターが、オンかどうかに関係なく数えられます。上限に達すると、数が減るまでアクティブなモニターを追加できません。既存のモニターは動作し続けます。リセラーから購入したプランが上限を決め、リセラーが次にティアを変更すると再設定されます。",
+      "monitorLimitCardDescription": "手動モニター以外のすべてのモニターが、オンかどうかに関係なく数えられます。上限に達すると、プロジェクトはそれ以上追加できませんが、既存のモニターは動作し続けます。リセラーから購入したプランがこの上限を決め、リセラーが次にティアを変更すると上書きされます。Free プランのプロジェクトには Free プランの上限も適用されます。",
       "monitorLimitEditButton": "モニター上限を編集",
       "fieldActiveMonitors": "アクティブなモニター",
       "fieldMonitorLimit": "アクティブなモニターの上限",
       "fieldMonitorLimitDescription": "このプロジェクトが持てるアクティブなモニターの最大数です。上限なしにするには空欄のままにしてください。",
-      "noMonitorLimit": "上限なし"
+      "noMonitorLimit": "上限なし",
+      "overMonitorLimit": "上限を {{over}} 超過",
+      "atMonitorLimit": "上限に到達"
     },
     "projectSupport": {
       "title": "カスタマーサポートのアクセス",

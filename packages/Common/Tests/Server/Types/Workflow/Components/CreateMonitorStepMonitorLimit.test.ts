@@ -137,7 +137,7 @@ describe("a workflow's Create Monitor step", () => {
     expect(run.result.executePort?.id).toBe("error");
     expect(monitors.inserts).toEqual([]);
     expect(run.lines).toContain(
-      "This project has 2,881 active monitors and its plan includes 500, so no more can be added until it has fewer than 500. Every monitor it has keeps running. Delete monitors you no longer need, or change the plan in Project Settings > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
+      "This project has 2,881 active monitors and its plan includes 500, so no more can be added until it has fewer than 500. All of its monitors keep running. Delete monitors you no longer need, or change the plan in Project Settings > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
     );
   });
 

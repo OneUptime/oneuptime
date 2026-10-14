@@ -360,12 +360,14 @@
       "adjustBalanceStepBalance": "Saldo",
       "adjustBalanceStepAmount": "Bedrag en reden",
       "monitorLimitCardTitle": "Actieve monitoren",
-      "monitorLimitCardDescription": "Elke monitor behalve een handmatige telt mee, of hij nu aan staat of niet. Op de limiet kan het project geen actieve monitor toevoegen totdat het er minder heeft; de bestaande blijven draaien. Een abonnement dat bij een reseller is gekocht bepaalt de limiet, en de volgende niveauwijziging van de reseller schrijft hem opnieuw.",
+      "monitorLimitCardDescription": "Elke monitor behalve een handmatige telt mee, aan of uit. Op de limiet kan het project er geen meer toevoegen, en de bestaande blijven draaien. Een abonnement dat bij een reseller is gekocht bepaalt deze limiet, en de volgende niveauwijziging van de reseller overschrijft hem. Voor projecten op het Free-abonnement geldt ook de limiet van het Free-abonnement.",
       "monitorLimitEditButton": "Monitorlimiet bewerken",
       "fieldActiveMonitors": "Actieve monitoren",
       "fieldMonitorLimit": "Limiet voor actieve monitoren",
       "fieldMonitorLimitDescription": "Het maximale aantal actieve monitoren dat dit project mag hebben. Laat leeg voor geen limiet.",
-      "noMonitorLimit": "Geen limiet"
+      "noMonitorLimit": "Geen limiet",
+      "overMonitorLimit": "{{over}} boven de limiet",
+      "atMonitorLimit": "Op de limiet"
     },
     "projectSupport": {
       "title": "Toegang voor klantenondersteuning",

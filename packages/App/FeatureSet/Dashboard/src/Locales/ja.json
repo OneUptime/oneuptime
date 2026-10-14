@@ -29238,11 +29238,6 @@
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "セキュリティケースを削除すると、その検出、メモ、タイムライン、プレイブックの実行も削除されます。",
   "To keep the record, close the case with a verdict instead.": "記録を残すには、代わりに判定を付けてケースをクローズしてください。",
   "State Change": "状態の変更",
-  "Every monitor it has keeps running, but no new one can be added until it has fewer than {{limit}}.": "既存のモニターはすべて動作し続けますが、{{limit}} 個未満になるまで新しいモニターは追加できません。",
-  "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.": "手動モニターは上限に含まれません。無効化またはアーカイブされたモニターは含まれます。",
-  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Free プランに含まれるアクティブなモニターは {{count}} 個で、このプロジェクトには {{activeMonitors}} 個あります。",
-  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Free プランに含まれるアクティブなモニターは {{count}} 個で、このプロジェクトには {{activeMonitors}} 個あります。",
-  "This project has more active monitors than its plan includes": "このプロジェクトのアクティブなモニターは、プランに含まれる数を超えています",
   "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.": "このプロジェクトのプランに含まれるアクティブなモニターは {{limit}} 個までで、このモニターを追加する余地がありません。取り込むには、不要になったモニターを削除するか、プランを変更してください。",
   "To add more, delete monitors you no longer need or change your plan.": "さらに追加するには、不要になったモニターを削除するか、プランを変更してください。",
   "Upgrade your plan to add more.": "さらに追加するには、プランをアップグレードしてください。",
@@ -29251,5 +29246,12 @@
   "You've reached the Free plan's monitor limit": "Free プランのモニター上限に達しました",
   "You've reached your plan's monitor limit": "プランのモニター上限に達しました",
   "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "ご利用のプランに含まれるアクティブなモニターは {{count}} 個で、このプロジェクトには {{activeMonitors}} 個あります。",
-  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "ご利用のプランに含まれるアクティブなモニターは {{count}} 個で、このプロジェクトには {{activeMonitors}} 個あります。"
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "ご利用のプランに含まれるアクティブなモニターは {{count}} 個で、このプロジェクトには {{activeMonitors}} 個あります。",
+  "All of them keep running, but no more can be added until the project has fewer than {{limit}}.": "すべて動作し続けますが、このプロジェクトのモニターが {{limit}} 個未満になるまで追加できません。",
+  "Manual monitors don't count towards the limit, so you can still add them. Monitors that are turned off or archived do count.": "手動モニターは上限に含まれないため、引き続き追加できます。無効化またはアーカイブされたモニターは上限に含まれます。",
+  "Nothing was created or changed.": "何も作成・変更されませんでした。",
+  "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "Free プランで使えるアクティブなモニターは最大 {{count}} 個で、このプロジェクトには {{activeMonitors}} 個あります。",
+  "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "Free プランで使えるアクティブなモニターは最大 {{count}} 個で、このプロジェクトには {{activeMonitors}} 個あります。",
+  "You're over the Free plan's monitor limit": "Free プランのモニター上限を超えています",
+  "You're over your plan's monitor limit": "プランのモニター上限を超えています"
 }

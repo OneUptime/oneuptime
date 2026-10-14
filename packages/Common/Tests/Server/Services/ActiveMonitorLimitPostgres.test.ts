@@ -503,7 +503,7 @@ describePostgres(
         await expect(
           createMonitor(MonitorType.IncomingRequest, "One too many"),
         ).rejects.toThrow(
-          "This project has 7 active monitors and its plan includes 5, so no more can be added until it has fewer than 5. Every monitor it has keeps running. Delete monitors you no longer need, or change the plan in Project Settings > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
+          "This project has 7 active monitors and its plan includes 5, so no more can be added until it has fewer than 5. All of its monitors keep running. Delete monitors you no longer need, or change the plan in Project Settings > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
         );
 
         const manual: Monitor = await createMonitor(
