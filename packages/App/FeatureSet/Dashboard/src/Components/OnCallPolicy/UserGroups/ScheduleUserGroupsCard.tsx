@@ -2,6 +2,7 @@ import ConnectUserGroupModal from "./ConnectUserGroupModal";
 import UserGroupRow from "./UserGroupRow";
 import UserGroupsAPI from "./UserGroupsAPI";
 import {
+  DISCONNECT_TEXT,
   getMention,
   USER_GROUP_LABELS,
   USER_GROUPS_COPY,
@@ -147,12 +148,54 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
     }
   };
 
-  const isOnlySchedule: (view: WorkspaceUserGroupView) => boolean = (
+  // The schedules a group keeps following once this one is let go.
+  const getOtherScheduleNames: (
     view: WorkspaceUserGroupView,
-  ): boolean => {
-    return !view.schedules.some((schedule: { scheduleId: string }) => {
-      return schedule.scheduleId !== props.scheduleId;
-    });
+  ) => Array<string> = (view: WorkspaceUserGroupView): Array<string> => {
+    return view.schedules
+      .filter((schedule: { scheduleId: string }): boolean => {
+        return schedule.scheduleId !== props.scheduleId;
+      })
+      .map((schedule: { name: string }): string => {
+        return schedule.name;
+      });
+  };
+
+  const getDisconnectDescription: (
+    view: WorkspaceUserGroupView,
+  ) => ReactElement = (view: WorkspaceUserGroupView): ReactElement => {
+    const others: Array<string> = getOtherScheduleNames(view);
+    const mention: ReactElement = <strong>{getMention(view)}</strong>;
+
+    if (others.length === 0) {
+      return (
+        <TranslatedSentence
+          template={DISCONNECT_TEXT.last}
+          slots={{ mention: mention }}
+        />
+      );
+    }
+
+    if (others.length === 1) {
+      return (
+        <TranslatedSentence
+          template={DISCONNECT_TEXT.oneOther}
+          slots={{ mention: mention }}
+          values={{ schedule: others[0]! }}
+        />
+      );
+    }
+
+    return (
+      <TranslatedSentence
+        template={{
+          one: DISCONNECT_TEXT.manyOthersOne,
+          other: DISCONNECT_TEXT.manyOthers,
+        }}
+        count={others.length}
+        slots={{ mention: mention }}
+      />
+    );
   };
 
   let body: ReactElement;
@@ -167,7 +210,7 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
     body = (
       <div
         data-testid={`user-groups-empty-${props.workspaceType}`}
-        className="rounded-lg border border-dashed border-gray-300 px-6 py-8 text-center"
+        className="rounded-lg border border-dashed border-gray-300 px-6 py-6 text-center"
       >
         <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
           <Icon
@@ -254,6 +297,11 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
             workspaceType={props.workspaceType}
             scheduleId={props.scheduleId}
             scheduleName={props.scheduleName}
+            followingIds={props.views.map(
+              (view: WorkspaceUserGroupView): string => {
+                return view.workspaceUserGroupId;
+              },
+            )}
             onClose={() => {
               setIsConnecting(false);
             }}
@@ -268,21 +316,10 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
 
         {toDisconnect ? (
           <ConfirmModal
-            title={translator.translateTemplate(copy.disconnectTitle, {
+            title={translator.translateTemplate(DISCONNECT_TEXT.title, {
               mention: getMention(toDisconnect),
             })}
-            description={
-              <TranslatedSentence
-                template={
-                  isOnlySchedule(toDisconnect)
-                    ? copy.disconnectLastText
-                    : copy.disconnectOneOfText
-                }
-                slots={{
-                  mention: <strong>{getMention(toDisconnect)}</strong>,
-                }}
-              />
-            }
+            description={getDisconnectDescription(toDisconnect)}
             submitButtonText={USER_GROUP_LABELS.disconnect}
             submitButtonType={ButtonStyleType.DANGER}
             isLoading={busyId === toDisconnect.workspaceUserGroupId}

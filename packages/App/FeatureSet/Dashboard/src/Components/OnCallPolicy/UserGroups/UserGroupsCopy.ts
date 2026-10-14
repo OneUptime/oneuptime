@@ -40,10 +40,6 @@ export interface UserGroupsWorkspaceCopy {
   groupNoun: string;
   // Turned off while nobody is on call.
   turnedOffText: string;
-  // Disconnecting.
-  disconnectTitle: string;
-  disconnectLastText: string;
-  disconnectOneOfText: string;
 }
 
 export const USER_GROUPS_COPY: Readonly<
@@ -68,13 +64,6 @@ export const USER_GROUPS_COPY: Readonly<
     turnedOffText: translationKey(
       "Nobody is on call now, so OneUptime turned {{mention}} off in Slack: Slack can't keep a user group with nobody in it. It turns it back on when somebody is on call.",
     ),
-    disconnectTitle: translationKey("Disconnect {{mention}}?"),
-    disconnectLastText: translationKey(
-      "OneUptime stops updating {{mention}}. The people in it now stay in it.",
-    ),
-    disconnectOneOfText: translationKey(
-      "{{mention}} stops following this schedule. It keeps following its other schedules.",
-    ),
   },
   [WorkspaceType.MicrosoftTeams]: {
     workspaceName: "Microsoft Teams",
@@ -95,26 +84,48 @@ export const USER_GROUPS_COPY: Readonly<
     turnedOffText: translationKey(
       "Nobody is on call now, so OneUptime took everybody out of {{mention}}. They go back in when somebody is on call.",
     ),
-    disconnectTitle: translationKey("Disconnect {{mention}}?"),
-    disconnectLastText: translationKey(
-      "OneUptime stops updating {{mention}}. The people in it now stay in it.",
-    ),
-    disconnectOneOfText: translationKey(
-      "{{mention}} stops following this schedule. It keeps following its other schedules.",
-    ),
   },
 };
 
+/*
+ * Disconnecting a group from this schedule: what stops, and what stays -
+ * the other schedules it follows, by name when there is one.
+ */
+export const DISCONNECT_TEXT: Readonly<{
+  title: string;
+  last: string;
+  oneOther: string;
+  manyOthers: string;
+  manyOthersOne: string;
+}> = {
+  title: translationKey("Disconnect {{mention}}?"),
+  last: translationKey(
+    "OneUptime stops updating {{mention}}. The people in it now stay in it.",
+  ),
+  oneOther: translationKey(
+    "{{mention}} stops following this schedule. It keeps following {{schedule}}.",
+  ),
+  manyOthers: translationKey(
+    "{{mention}} stops following this schedule. It keeps following {{count}} other schedules.",
+  ),
+  manyOthersOne: translationKey(
+    "{{mention}} stops following this schedule. It keeps following {{count}} other schedule.",
+  ),
+};
+
+// A Microsoft Teams tag's team, under its name.
+export const TEAM_SUBTITLE: string = translationKey("In the {{team}} team");
+
 // The labels the card's rows use.
 export const USER_GROUP_LABELS: Readonly<{
-  follows: string;
+  alsoFollows: string;
   inItNow: string;
   nobodyInIt: string;
   tryAgain: string;
   disconnect: string;
   connect: string;
 }> = {
-  follows: translationKey("Follows"),
+  alsoFollows: translationKey("Also follows"),
   inItNow: translationKey("In it now"),
   nobodyInIt: translationKey("Nobody"),
   tryAgain: translationKey("Try again"),
@@ -141,8 +152,10 @@ export const USER_GROUP_STATUS_LABELS: Readonly<
 > = {
   [UserGroupStatusKind.InStep]: translationKey("Up to date"),
   [UserGroupStatusKind.NotYet]: translationKey("Updating"),
-  [UserGroupStatusKind.TurnedOff]: translationKey("Off - nobody on call"),
-  [UserGroupStatusKind.TurnedOffInWorkspace]: translationKey("Turned off"),
+  [UserGroupStatusKind.TurnedOff]: translationKey("Nobody on call"),
+  [UserGroupStatusKind.TurnedOffInWorkspace]: translationKey(
+    "Turned off in Slack",
+  ),
   [UserGroupStatusKind.Problem]: translationKey("Not up to date"),
 };
 

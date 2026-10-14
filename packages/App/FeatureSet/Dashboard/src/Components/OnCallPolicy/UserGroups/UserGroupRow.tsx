@@ -5,6 +5,7 @@ import {
   getPersonName,
   getUserGroupProblemText,
   getUserGroupStatus,
+  TEAM_SUBTITLE,
   USER_GROUP_LABELS,
   USER_GROUP_STATUS_LABELS,
   USER_GROUP_TIME_TEXT,
@@ -142,6 +143,14 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
 
   const teamName: string = view.teamName || copy.workspaceName;
 
+  // The schedules besides this one whose people it holds too.
+  const otherSchedules: Array<WorkspaceUserGroupScheduleView> =
+    view.schedules.filter(
+      (schedule: WorkspaceUserGroupScheduleView): boolean => {
+        return schedule.scheduleId !== props.scheduleId;
+      },
+    );
+
   const problemText: string | null = getUserGroupProblemText(view);
 
   // The sentence under the people: what the status means, when it needs one.
@@ -215,15 +224,24 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
               {translator.translateText(USER_GROUP_STATUS_LABELS[status])}
             </span>
           </div>
-          {(view.handle && view.name && view.name !== view.handle) ||
-          view.teamName ? (
-            <div className="mt-1 truncate text-xs text-gray-500">
-              {[
-                view.handle && view.name !== view.handle ? view.name : "",
-                view.teamName || "",
-              ]
-                .filter(Boolean)
-                .join(" · ")}
+          {view.handle && view.name && view.name !== view.handle ? (
+            <div
+              data-testid={`${testId}-name`}
+              className="mt-1 truncate text-xs text-gray-500"
+            >
+              {view.name}
+            </div>
+          ) : (
+            <></>
+          )}
+          {view.teamName ? (
+            <div
+              data-testid={`${testId}-team`}
+              className="mt-1 truncate text-xs text-gray-500"
+            >
+              {translator.translateTemplate(TEAM_SUBTITLE, {
+                team: view.teamName,
+              })}
             </div>
           ) : (
             <></>
@@ -251,7 +269,7 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
           {props.onDisconnect ? (
             <Button
               title={USER_GROUP_LABELS.disconnect}
-              buttonStyle={ButtonStyleType.OUTLINE}
+              buttonStyle={ButtonStyleType.NORMAL}
               buttonSize={ButtonSize.Small}
               disabled={
                 Boolean(props.disconnectDisabledReason) || props.isBusy
@@ -269,11 +287,13 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
       </div>
 
       <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[minmax(0,7rem)_minmax(0,1fr)]">
-        <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 sm:pt-0.5">
-          {translator.translateText(USER_GROUP_LABELS.inItNow)}
-        </dt>
-        <dd data-testid={`${testId}-members`} className="min-w-0">
-          {view.members.length > 0 && !view.isTurnedOff ? (
+        {status !== UserGroupStatusKind.NotYet ? (
+          <>
+            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 sm:pt-0.5">
+              {translator.translateText(USER_GROUP_LABELS.inItNow)}
+            </dt>
+            <dd data-testid={`${testId}-members`} className="min-w-0">
+              {view.members.length > 0 && !view.isTurnedOff ? (
             <ul className="flex flex-wrap gap-2">
               {view.members.map((person: WorkspaceUserGroupPersonView) => {
                 return (
@@ -289,53 +309,51 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
                 );
               })}
             </ul>
-          ) : (
-            <span className="text-gray-500">
-              {translator.translateText(USER_GROUP_LABELS.nobodyInIt)}
-            </span>
-          )}
-        </dd>
+              ) : (
+                <span className="text-gray-500">
+                  {translator.translateText(USER_GROUP_LABELS.nobodyInIt)}
+                </span>
+              )}
+            </dd>
+          </>
+        ) : (
+          <></>
+        )}
 
-        <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 sm:pt-0.5">
-          {translator.translateText(USER_GROUP_LABELS.follows)}
-        </dt>
-        <dd data-testid={`${testId}-schedules`} className="min-w-0">
-          <ul className="flex flex-wrap gap-x-3 gap-y-1">
-            {view.schedules.map((schedule: WorkspaceUserGroupScheduleView) => {
-              const isThisSchedule: boolean =
-                schedule.scheduleId === props.scheduleId;
-
-              return (
-                <li key={schedule.scheduleId} className="min-w-0 max-w-full">
-                  {isThisSchedule ? (
-                    <span className="font-medium text-gray-900">
-                      {schedule.name}
-                    </span>
-                  ) : (
-                    <AppLink
-                      to={getScheduleLink(schedule)}
-                      className="font-medium text-indigo-700 hover:underline"
-                    >
-                      {schedule.name}
-                    </AppLink>
-                  )}
-                  {schedule.onCallNow ? (
-                    <span className="text-gray-500">
-                      {" · "}
-                      {getPersonName(schedule.onCallNow)}
-                    </span>
-                  ) : (
-                    <></>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </dd>
+        {otherSchedules.length > 0 ? (
+          <>
+            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 sm:pt-0.5">
+              {translator.translateText(USER_GROUP_LABELS.alsoFollows)}
+            </dt>
+            <dd data-testid={`${testId}-schedules`} className="min-w-0">
+              <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                {otherSchedules.map(
+                  (schedule: WorkspaceUserGroupScheduleView) => {
+                    return (
+                      <li
+                        key={schedule.scheduleId}
+                        className="min-w-0 max-w-full"
+                      >
+                        <AppLink
+                          to={getScheduleLink(schedule)}
+                          className="font-medium text-indigo-700 hover:underline"
+                        >
+                          {schedule.name}
+                        </AppLink>
+                      </li>
+                    );
+                  },
+                )}
+              </ul>
+            </dd>
+          </>
+        ) : (
+          <></>
+        )}
       </dl>
 
       {statusSentence ? (
-        <p
+        <div
           data-testid={`${testId}-status-text`}
           className={`mt-3 flex items-start gap-2 rounded-md px-3 py-2 text-sm text-pretty ${
             isWarning
@@ -350,7 +368,7 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
             }`}
           />
           <span>{statusSentence}</span>
-        </p>
+        </div>
       ) : (
         <></>
       )}

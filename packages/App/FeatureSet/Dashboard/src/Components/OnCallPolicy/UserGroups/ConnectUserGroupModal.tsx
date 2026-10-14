@@ -57,6 +57,11 @@ export interface ComponentProps {
   workspaceType: WorkspaceType;
   scheduleId: string;
   scheduleName: string;
+  /*
+   * The groups that follow this schedule already: left out of the list,
+   * since connecting one again changes nothing.
+   */
+  followingIds?: Array<string> | undefined;
   onClose: () => void;
   onConnected: (view: WorkspaceUserGroupView) => void;
 }
@@ -205,7 +210,14 @@ const ConnectUserGroupModal: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const groups: Array<WorkspaceAvailableUserGroup> = available.groups;
+  const groups: Array<WorkspaceAvailableUserGroup> = available.groups.filter(
+    (group: WorkspaceAvailableUserGroup): boolean => {
+      return (
+        !group.workspaceUserGroupId ||
+        !(props.followingIds || []).includes(group.workspaceUserGroupId)
+      );
+    },
+  );
 
   const fields: Array<Field<ConnectFormValues>> = isSlack
     ? [
