@@ -1,83 +1,128 @@
-# GitHub-integratie
+# GitHub
 
-Open automatisch een [GitHub](https://github.com)-issue wanneer een OneUptime-incident wordt aangemaakt — zodat de engineeringopvolging wordt bijgehouden in de repository die eigenaar is van de getroffen service.
+OneUptime werkt op twee manieren met [GitHub](https://github.com). Koppel je repository's via de GitHub App van OneUptime, en de AI van OneUptime opent pull requests die oplossen wat ze vindt, en antwoordt wanneer je haar noemt in een issue of een pull request. Of bouw een workflow die voor elk incident een GitHub-issue opent, zodat het vervolgwerk wordt bijgehouden in de repository waar de dienst bij hoort.
 
-Deze integratie is **outbound**: OneUptime roept de [GitHub REST API](https://docs.github.com/en/rest/issues/issues) aan. Ze maakt gebruik van een OneUptime **[Workflow](/docs/workflows/index)** met een **Incident → On Create**-trigger en een **API-component**.
+:::cards
+- [Kiezen hoe je koppelt](#kiezen-hoe-je-koppelt): De GitHub App of een workflow, en wat elk ervan doet.
+- [Je repository's koppelen](#je-repositorys-koppelen): De GitHub App, voor pull requests met fixes.
+- [Voor elk incident een issue openen](#voor-elk-incident-een-github-issue-openen): Eén workflow, twee blokken.
+- [Problemen oplossen](#problemen-oplossen): Wanneer GitHub een verzoek weigert.
+:::
 
-> **Op zoek naar de diepere GitHub-verbinding?** OneUptime heeft ook een native **GitHub App**-integratie voor het koppelen van coderepositories (gebruikt door de AI-agent en codefuncties). Je kunt in je repository tegen die app praten — vermeld hem in een issue of pull request en hij implementeert, herziet of beoordeelt; zie [Werken met OneUptime vanuit GitHub](/docs/ai/github-app), en [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) om hem te installeren. Deze pagina gaat specifiek over _issues aanmaken vanuit incidenten_.
+## Hoe het werkt
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
+```mermaid title="Twee manieren waarop OneUptime met GitHub werkt"
+flowchart TB
+    app["De GitHub App"] --> repos["Je repository's,<br/>geïmporteerd"]
+    repos --> pr["Pull requests met<br/>fixes van de AI<br/>van OneUptime"]
+    declared["Incident gemeld"] --> workflow["Workflow:<br/>On Create Incident"]
+    workflow -->|"POST issues"| issue["GitHub-issue"]
 ```
 
-## Vereisten
+De twee staan los van elkaar, en je kunt er één of allebei gebruiken. De GitHub App werkt in de repository's waarop je haar installeert. De workflow heeft alleen een token nodig, en roept de [REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue) van GitHub aan zoals elke andere API.
 
-- Een GitHub-repository waar je issues wilt aanmaken.
-- Een token dat issues kan aanmaken:
+## Kiezen hoe je koppelt
 
-  - Een **fine-grained PAT** beperkt tot die repository met **Issues: Read and write**, of
-  - een **classic PAT** met het `repo`-bereik.
+| Manier | Wat ze doet | Wat ze nodig heeft |
+| --- | --- | --- |
+| De GitHub App | Importeert je repository's. De AI van OneUptime opent daarin pull requests die exceptions, trage traces en de oorzaken die haar onderzoeken vinden oplossen, en antwoordt op vermeldingen in issues en pull requests. | Een organisatie of account om de app op te installeren. Op OneUptime Cloud het abonnement **Growth**. |
+| Een workflow | Opent voor elk incident een GitHub-issue, in de repository die je kiest. | Een GitHub-token dat issues mag maken, en een workflow van twee blokken. |
 
-  Maak er een aan op [github.com/settings/tokens](https://github.com/settings/tokens).
+## Je repository's koppelen
 
-- Een OneUptime-project waar je workflows kunt aanmaken.
+Open **Producten → Code → Taken**, dan **Code-repositories**, en klik op **Connect with GitHub App**. GitHub vraagt waar de app moet worden geïnstalleerd en welke repository's ze mag gebruiken. Elke repository in de installatie wordt geïmporteerd, en blijft bijgewerkt wanneer je repository's aan de installatie toevoegt of eruit haalt.
 
-## Stap 1 — Sla het token op
+Een zelf gehoste instantie heeft eerst een eigen GitHub App nodig: [GitHub-integratie](/docs/self-hosted/github-integration) laat zien hoe je die maakt. Daarna openen [Hersteltaken](/docs/ai/ai-agent) pull requests in je repository's, en de pagina [GitHub App](/docs/ai/github-app) laat zien wat de app doet wanneer je haar noemt in een issue of een pull request.
 
-1. Ga naar **Workflows → Globale variabelen → Aanmaken**.
-2. Geef het de naam `GITHUB_TOKEN`, plak het token, en zet **Is Secret** aan.
+## Voordat je begint
 
-## Stap 2 — Bouw de workflow
+De rest van deze pagina bouwt de workflow. Die heeft nodig:
 
-1. Open **Workflows → Workflow maken**, geef het de naam `Incidents → GitHub Issues`, en open de **Bouwer**.
-2. Voeg een **Incident**-trigger toe ingesteld op **On Create**. Hernoem het naar `Incident`.
-3. Voeg een **API**-blok toe verbonden met de trigger:
+- Een GitHub-token dat issues mag maken in de repository: een fine-grained personal access token voor die repository, met de machtiging **Issues** op **Read and write**, of een klassiek token met de scope `repo`. Maak er een in de [tokeninstellingen](https://github.com/settings/tokens) van GitHub.
+- In OneUptime het recht om workflows en globale variabelen te maken. Op OneUptime Cloud hebben workflows het **Growth**-abonnement of hoger nodig.
 
-   - **Method**: `POST`
-   - **URL**: `https://api.github.com/repos/your-org/your-repo/issues`
-   - **Headers**:
+## Het token opslaan
 
-     ```text
-     Authorization: Bearer {{variable.GITHUB_TOKEN}}
-     Accept: application/vnd.github+json
-     X-GitHub-Api-Version: 2022-11-28
-     User-Agent: OneUptime
-     ```
+:::steps
+1. Ga naar **Workflows → Globale variabelen** en klik op **Workflow Variabele aanmaken**.
+2. Noem hem `GITHUB_TOKEN` en klik op **Volgende**.
+3. Plak het token in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**.
+:::
 
-   - **Body**:
+Een geheime variabele wordt in runlogs vervangen door `[REDACTED]`, dus het token verschijnt nooit in een run.
 
-     ```json
-     {
-       "title": "OneUptime incident: {{Incident.title}}",
-       "body": "{{Incident.description}}\n\nFiled automatically from OneUptime.",
-       "labels": ["incident", "oneuptime"]
-     }
-     ```
+## Voor elk incident een GitHub-issue openen
 
-4. **Opslaan**, schakel in en maak een testincident aan. Een `201 Created` in de workflow-logs betekent dat de issue is aangemaakt; de responsebody bevat het `number` en de `html_url`.
+:::steps
+### De workflow maken
+
+Ga naar **Workflows**, klik op **Workflow maken** en dan op **Vanaf nul beginnen**. Noem hem `Incidents to GitHub` en klik op **Workflow maken**.
+
+### De trigger toevoegen
+
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger en kies in **Select Fields** `title`, `description` en `incidentNumberWithPrefix`.
+
+### Het issue openen
+
+Klik op **Component toevoegen**, voeg een blok **API Post (JSON)** toe en verbind het punt **Success** van de trigger ermee. Zet zijn **URL** op `https://api.github.com/repos/your-org/your-repo/issues`, met de eigenaar en de naam van je repository. Zet onder **Meer velden** zijn **Request Headers** op:
+
+```json
+{
+  "Authorization": "Bearer {{global.variables.GITHUB_TOKEN}}",
+  "Accept": "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28"
+}
+```
+
+En de **Request Body** op:
+
+```json
+{
+  "title": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "body": "{{local.components.incident-on-create-1.returnValues.model.description}}\n\nOpened by OneUptime for incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}.",
+  "labels": ["incident"]
+}
+```
+
+### Testen en daarna aanzetten
+
+Klik op **Workflow uitvoeren**, vul de **Incident-ID** van een testincident in en voer hem uit. De stap **API Post (JSON)** toont een antwoord `201` met het nieuwe issue, met zijn `number` en zijn `html_url`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+:::
+
+Het issue blijft open wanneer het incident is opgelost, omdat het vervolgwerk het incident meestal overleeft. Voor tickets die in beide richtingen met het incident gelijk oplopen, zie [Jira](/docs/integrations/jira).
 
 ## Tips
 
-- **GitHub Enterprise Server**: gebruik `https://your-host/api/v3/repos/{owner}/{repo}/issues`.
-- **Toegewezenen / mijlpaal**: voeg `"assignees": ["octocat"]` of `"milestone": 3` toe aan de body.
-- **Terugkoppeling**: lees `{{CreateIssue.response-body.html_url}}` en sla het op bij het incident met een **Update Incident**-blok.
+- **GitHub Enterprise Server.** Stuur het verzoek in plaats daarvan naar je server: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. Een server op een privénetwerkadres heeft een zelf gehoste OneUptime nodig waarvan de beheerder dat toestaat: zie [Uitgaande netwerktoegang](/docs/workflows/configuration#uitgaande-netwerktoegang).
+- **Wijs het toe.** Voeg `"assignees": ["octocat"]` of `"milestone": 3` toe aan de body. GitHub laat labels, toegewezenen en mijlpalen zonder melding vallen wanneer het token niet naar de repository mag pushen.
+- **Alleen sommige incidenten.** Zet een blok **If / Else** tussen de trigger en het API-blok, en open alleen issues aan de kant **Yes** ervan, bijvoorbeeld voor één ernst.
 
-## Probleemoplossing
+## Problemen oplossen
 
-- **`401`** — het token is verkeerd of verlopen. Fine-grained tokens moeten expliciet de repository en de **Issues**-toestemming verlenen.
-- **`403` / snelheidsbeperking** — voeg de `User-Agent`-header toe (GitHub weigert verzoeken zonder) en controleer of je niet wordt beperkt.
-- **`404`** — het pad `owner/repo` is verkeerd, of het token heeft geen toegang tot een privérepository.
-- **`422`** — een label dat niet bestaat is prima (GitHub maakt labels aan), maar een misvormde body niet — controleer je JSON.
+De stap **API Post (JSON)** neemt **Error** wanneer GitHub het verzoek weigert. Zijn **Response Status** en **Response Body** in de run zeggen waarom.
 
-## Waar verder lezen
+:::details GitHub antwoordt 401
+Het token is fout, verlopen of ingetrokken. Maak een nieuw token en vervang de inhoud van `GITHUB_TOKEN`.
+:::
 
-- [Integraties – Overzicht](/docs/integrations/index) — patronen en het authenticatie-spiekbriefje.
-- [GitLab](/docs/integrations/gitlab) — hetzelfde idee voor GitLab.
-- [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) — de native GitHub App-verbinding.
-- [Werken met OneUptime vanuit GitHub](/docs/ai/github-app) — de GitHub App aansturen vanuit een issue of pull request.
+:::details GitHub antwoordt 403
+Het token mag daar geen issues maken: een fine-grained token zonder **Issues** op **Read and write** voor deze repository, een token dat je organisatie niet heeft goedgekeurd, of een klassiek token dat niet is geautoriseerd voor de single sign-on van je organisatie. Een 403 waarvan de body over een ratelimiet spreekt, betekent dat het token te veel verzoeken stuurde: wacht, of open issues voor minder incidenten.
+:::
 
-## Netwerktoegang voor zelfgehoste implementaties
+:::details GitHub antwoordt 404
+De eigenaar of de repository in de **URL** is fout, of het token kan de repository niet zien. GitHub antwoordt 404, niet 403, voor een privérepository die een token niet kan zien.
+:::
 
-De workflow op deze pagina voor het aanmaken van issues vereist DNS-resolutie en uitgaand HTTPS-verkeer (TCP 443) van OneUptime naar `api.github.com`. Er is geen inkomende GitHub-callback nodig. [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+:::details GitHub antwoordt 410 of 422
+- `410`: issues zijn uitgeschakeld in de instellingen van de repository.
+- `422`: GitHub kan de body niet lezen. Controleer of het geldige JSON is, of `title` is ingesteld, en of `labels` en `assignees` lijsten zijn.
+:::
 
-Raadpleeg het gedeelte over netwerktoegang in de [GitHub-integratie](/docs/self-hosted/github-integration) voor uitgaande verbindingen, inkomende callbacks en privé-implementaties.
+## Volgende stappen
+
+:::cards
+- [GitHub App](/docs/ai/github-app): Vraag de AI van OneUptime vanuit GitHub zelf om een wijziging, een herziening of een review.
+- [GitLab](/docs/integrations/gitlab): Dezelfde workflow, voor GitLab-issues.
+- [Workflow-componenten](/docs/workflows/components#api): Elke instelling van de API-blokken.
+- [Overzicht van integraties](/docs/integrations/index): De patronen achter elke integratie.
+:::

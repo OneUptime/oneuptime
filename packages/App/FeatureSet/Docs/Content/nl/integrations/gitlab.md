@@ -1,66 +1,113 @@
-# GitLab-integratie
+# GitLab
 
-Open automatisch een [GitLab](https://gitlab.com)-issue wanneer een OneUptime-incident wordt aangemaakt — zodat de engineeringopvolging terechtkomt in het project dat eigenaar is van de getroffen service.
+Open voor elk OneUptime-incident een [GitLab](https://gitlab.com)-issue, zodat het vervolgwerk wordt bijgehouden in het project waar de dienst bij hoort. Een workflow roept de [Issues API](https://docs.gitlab.com/api/issues/#new-issue) van GitLab aan, op GitLab.com of op een eigen GitLab.
 
-Deze integratie is **outbound**: OneUptime roept de [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html) aan. Ze maakt gebruik van een OneUptime **[Workflow](/docs/workflows/index)** met een **Incident → On Create**-trigger en een **API-component**. Ze werkt hetzelfde op GitLab.com en zelf-beheerde GitLab.
+:::cards
+- [Het token opslaan](#het-token-opslaan): Houd het token van GitLab buiten je workflows.
+- [Voor elk incident een issue openen](#voor-elk-incident-een-gitlab-issue-openen): Eén workflow, twee blokken.
+- [Tips](#tips): Een eigen GitLab, projectpaden en toegewezenen.
+- [Problemen oplossen](#problemen-oplossen): Wanneer GitLab een verzoek weigert.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/issues)  ──►  GitLab issue
+> [!NOTE]
+> De AI van OneUptime opent alleen pull requests met fixes in repository's die via de GitHub App zijn gekoppeld, dus ze kan nog niet in een GitLab-repository werken. Zie [GitHub](/docs/integrations/github).
+
+## Hoe het werkt
+
+```mermaid title="Eén workflow, één GitLab-issue"
+flowchart TB
+    declared["Incident gemeld"] --> workflow["Workflow:<br/>On Create Incident"]
+    workflow -->|"POST issues"| issue["GitLab-issue"]
 ```
 
-## Vereisten
+De workflow draait één keer voor elk nieuw incident. Zijn blok **API Post (JSON)** stuurt de titel en de beschrijving van het incident naar de issues van het project, ondertekend met een toegangstoken.
 
-- Een GitLab-project en zijn **Project ID** (zichtbaar op de overzichtspagina van het project, onder de projectnaam).
-- Een toegangstoken dat issues kan aanmaken — een **Project-**, **Group-** of **Personal Access Token** met het bereik `api`: **Settings → Access Tokens**.
-- Een OneUptime-project waar je workflows kunt aanmaken.
+## Voordat je begint
 
-## Stap 1 — Sla het token op
+- De ID van het GitLab-project. Selecteer op de overzichtspagina van het project het actiemenu, de verticale puntjes, en dan **Copy project ID**.
+- Een GitLab-toegangstoken met de scope `api`, voor een gebruiker of bot met een rol in het project die issues mag maken: een project-, groeps- of persoonlijk toegangstoken. Maak het onder **Settings → Access tokens** in het project, de groep of je gebruikersinstellingen.
+- In OneUptime het recht om workflows en globale variabelen te maken. Op OneUptime Cloud hebben workflows het **Growth**-abonnement of hoger nodig.
 
-1. Ga naar **Workflows → Globale variabelen → Aanmaken**.
-2. Geef het de naam `GITLAB_TOKEN`, plak het token, en zet **Is Secret** aan.
+## Het token opslaan
 
-## Stap 2 — Bouw de workflow
+:::steps
+1. Ga naar **Workflows → Globale variabelen** en klik op **Workflow Variabele aanmaken**.
+2. Noem hem `GITLAB_TOKEN` en klik op **Volgende**.
+3. Plak het token in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**.
+:::
 
-1. Open **Workflows → Workflow maken**, geef het de naam `Incidents → GitLab Issues`, en open de **Bouwer**.
-2. Voeg een **Incident**-trigger toe ingesteld op **On Create**. Hernoem het naar `Incident`.
-3. Voeg een **API**-blok toe verbonden met de trigger:
+Een geheime variabele wordt in runlogs vervangen door `[REDACTED]`, dus het token verschijnt nooit in een run.
 
-   - **Method**: `POST`
-   - **URL**: `https://gitlab.com/api/v4/projects/12345678/issues` _(vervang `12345678` door je Project ID; gebruik voor zelf-beheerde GitLab je eigen host)_
-   - **Headers**:
+## Voor elk incident een GitLab-issue openen
 
-     ```text
-     PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}
-     Content-Type: application/json
-     ```
+:::steps
+### De workflow maken
 
-   - **Body**:
+Ga naar **Workflows**, klik op **Workflow maken** en dan op **Vanaf nul beginnen**. Noem hem `Incidents to GitLab` en klik op **Workflow maken**.
 
-     ```json
-     {
-       "title": "OneUptime incident: {{Incident.title}}",
-       "description": "{{Incident.description}}\n\nFiled automatically from OneUptime.",
-       "labels": "incident,oneuptime"
-     }
-     ```
+### De trigger toevoegen
 
-4. **Opslaan**, schakel in en maak een testincident aan. Een `201 Created` in de workflow-logs betekent dat de issue is aangemaakt; de responsebody bevat de `iid` en de `web_url`.
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger en kies in **Select Fields** `title`, `description` en `incidentNumberWithPrefix`.
+
+### Het issue openen
+
+Klik op **Component toevoegen**, voeg een blok **API Post (JSON)** toe en verbind het punt **Success** van de trigger ermee. Zet zijn **URL** op `https://gitlab.com/api/v4/projects/12345678/issues`, met de ID van je project in plaats van `12345678`. Zet onder **Meer velden** zijn **Request Headers** op:
+
+```json
+{
+  "PRIVATE-TOKEN": "{{global.variables.GITLAB_TOKEN}}"
+}
+```
+
+En de **Request Body** op:
+
+```json
+{
+  "title": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}\n\nOpened by OneUptime for incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}.",
+  "labels": "incident,oneuptime"
+}
+```
+
+### Testen en daarna aanzetten
+
+Klik op **Workflow uitvoeren**, vul de **Incident-ID** van een testincident in en voer hem uit. De stap **API Post (JSON)** toont een antwoord `201` met het nieuwe issue, met zijn `iid` en zijn `web_url`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+:::
+
+Het blok stuurt JSON, dus het heeft geen header `Content-Type` nodig. GitLab maakt labels aan die het nog niet kent, dus `incident` en `oneuptime` hoeven niet te worden ingesteld. Het issue blijft open wanneer het incident is opgelost, omdat het vervolgwerk het incident meestal overleeft.
 
 ## Tips
 
-- **Zelf-beheerde GitLab**: vervang `https://gitlab.com` door je instantie-URL; het pad `/api/v4/...` blijft hetzelfde.
-- **Projectpad in plaats van ID**: je kunt het pad URL-coderen — bijv. `group%2Fproject` — in plaats van het numerieke ID.
-- **Toegewezene / vervaldatum**: voeg `"assignee_ids": [42]` of `"due_date": "2026-01-31"` toe aan de body.
-- **Terugkoppeling**: lees `{{CreateIssue.response-body.web_url}}` en sla het op bij het incident met een **Update Incident**-blok.
+- **Een eigen GitLab.** Stuur het verzoek in plaats daarvan naar je server: `https://gitlab.example.com/api/v4/projects/12345678/issues`. Een server op een privénetwerkadres heeft een zelf gehoste OneUptime nodig waarvan de beheerder dat toestaat: zie [Uitgaande netwerktoegang](/docs/workflows/configuration#uitgaande-netwerktoegang).
+- **Het projectpad in plaats van de ID.** Het pad werkt in plaats van de ID, met de `/` geschreven als `%2F`: `projects/your-group%2Fyour-project/issues`. De URL wordt precies zo verstuurd als hij is geschreven, dus codeer hem zelf.
+- **Wijs het toe.** Voeg `"assignee_ids": [42]` of `"due_date": "2026-12-31"` toe aan de body, of `"confidential": true` om het alleen aan projectleden te tonen.
+- **Alleen sommige incidenten.** Zet een blok **If / Else** tussen de trigger en het API-blok, en open alleen issues aan de kant **Yes** ervan, bijvoorbeeld voor één ernst.
 
-## Probleemoplossing
+## Problemen oplossen
 
-- **`401`** — het token is ongeldig of verlopen, of mist het bereik `api`.
-- **`404`** — het Project ID is verkeerd, of het token heeft geen toegang tot een privéproject.
-- **`400`** — een verplicht veld ontbreekt of is misvormd; `title` is verplicht.
+De stap **API Post (JSON)** neemt **Error** wanneer GitLab het verzoek weigert. Zijn **Response Status** en **Response Body** in de run zeggen waarom.
 
-## Waar verder lezen
+:::details GitLab antwoordt 401
+Het token is fout, verlopen of ingetrokken. Maak een nieuw token en vervang de inhoud van `GITLAB_TOKEN`.
+:::
 
-- [Integraties – Overzicht](/docs/integrations/index) — patronen en het authenticatie-spiekbriefje.
-- [GitHub](/docs/integrations/github) — hetzelfde idee voor GitHub.
-- [API-component](/docs/workflows/components#api) — de responsebody lezen.
+:::details GitLab antwoordt 403
+Het token heeft de scope `api` niet, of de rol van zijn gebruiker in het project mag geen issues maken. De body noemt `insufficient_scope` wanneer het aan de scope ligt.
+:::
+
+:::details GitLab antwoordt 404
+De ID van het project in de **URL** is fout, of het token kan het project niet zien. GitLab antwoordt 404, niet 403, voor een privéproject dat een token niet kan zien.
+:::
+
+:::details GitLab antwoordt 400
+GitLab kan de body niet lezen: `title` ontbreekt, of een veld heeft het verkeerde type. De body noemt het veld.
+:::
+
+## Volgende stappen
+
+:::cards
+- [GitHub](/docs/integrations/github): Dezelfde workflow voor GitHub, en de GitHub App.
+- [Workflow-componenten](/docs/workflows/components#api): Elke instelling van de API-blokken.
+- [Workflow-uitvoeringen](/docs/workflows/runs-and-logs): Lees wat elk verzoek verstuurde en terugkreeg.
+- [Overzicht van integraties](/docs/integrations/index): De patronen achter elke integratie.
+:::
