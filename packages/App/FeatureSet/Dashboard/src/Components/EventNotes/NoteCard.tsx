@@ -274,6 +274,7 @@ const NoteCard: FunctionComponent<ComponentProps> = (
           userId={author.userId}
           name={authorName}
           isAutomation={author.isAutomation}
+          isNameless={author.isNameStandIn}
         />
       </div>
 
@@ -315,8 +316,13 @@ const NoteCard: FunctionComponent<ComponentProps> = (
         ) : (
           <>
             <header className="relative flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-gray-100 py-2 pl-4 pr-11">
+              {/*
+               * A name wraps rather than being cut: a name from a chat is
+               * often long ("Priya Raghunathan (Platform, EMEA)"), and who
+               * wrote a note is what its header is for.
+               */}
               <span
-                className="min-w-0 truncate text-sm font-semibold text-gray-900"
+                className="min-w-0 break-words text-sm font-semibold text-gray-900"
                 data-testid="note-author"
               >
                 {authorName}
@@ -350,7 +356,7 @@ const NoteCard: FunctionComponent<ComponentProps> = (
               )}
               {author.savedByName && (
                 <span
-                  className="min-w-0 truncate text-xs text-gray-500"
+                  className="min-w-0 break-words text-xs text-gray-500"
                   data-testid="note-saved-by"
                 >
                   {translator.translateTemplate(NOTE_ADDED_BY, {
