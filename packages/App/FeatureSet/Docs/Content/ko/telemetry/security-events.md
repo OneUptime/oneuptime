@@ -1,11 +1,11 @@
 # 보안 이벤트(SIEM)
 
-OneUptime은 보안 이벤트를 로그, 트레이스, 메트릭 옆에 보관하며, 어떤 형식으로 도착했든 모두 같은 형태인 [OCSF](https://schema.ocsf.io/)(Open Cybersecurity Schema Framework)로 맞춥니다. 어떤 소스에서든 이벤트를 보내고, 검색하고, 중요한 것은 Sigma 탐지 규칙, 위협 인텔리전스, 모니터로 알림으로 바꾸세요.
+OneUptime은 보안 이벤트를 로그, 트레이스, 메트릭 옆에 보관하며, 어떤 형식으로 도착했든 모두 같은 형태인 [OCSF](https://schema.ocsf.io/)(Open Cybersecurity Schema Framework)로 맞춥니다. 어떤 소스에서든 이벤트를 보내고, 검색하고, 중요한 것은 Sigma 탐지 규칙, 위협 인텔리전스, 모니터로 찾아내세요. 찾아낸 것은 처리할 [케이스](/docs/telemetry/security-cases) 가 되고, 플레이북이 이에 대응합니다.
 
 :::cards
 - [이벤트 보내기](#보안-이벤트-보내기): HTTPS POST, Fluent Bit 출력, 또는 보안 제품과의 연결.
 - [검색과 상관 분석](#보안-이벤트-탐색하기): 이벤트 탐색기와 상관 분석 그래프.
-- [탐지 규칙](#탐지-규칙): 알림을 여는 Sigma 규칙.
+- [탐지 규칙](#탐지-규칙): 케이스와 알림을 여는 Sigma 규칙.
 - [모니터](#보안-이벤트-모니터): 롤링 윈도우의 개수와, 다시 회복되는 상태.
 :::
 
@@ -21,21 +21,28 @@ flowchart TB
     normalize --> events["보안 이벤트"]
     events --> rules["탐지 규칙<br/>(Sigma)"]
     events --> monitors["보안 이벤트<br/>모니터"]
-    rules --> act["알림, 인시던트,<br/>탐지 결과"]
+    rules --> act["케이스, 알림,<br/>탐지 결과"]
     monitors --> act
 ```
 
-**관측 가능성** 아래의 **제품 → Security Events** 를 엽니다. 탭은 다음과 같습니다.
+**관측 가능성** 아래의 **제품 → Security Events** 를 엽니다. 메뉴는 다음과 같습니다.
 
-| 탭 | 용도 |
-| --- | --- |
-| **이벤트** | 모든 이벤트를 검색하고 필터링하며, 이벤트 하나를 열어 모든 필드를 확인 |
-| **상관 분석** | 같은 호스트, 사용자, IP 주소를 공유하는 이벤트의 그래프 |
-| **Detection Rules** | 일정에 따라 실행되어 알림을 여는 Sigma 규칙 |
-| **Threat Intel** | 알려진 악성 지표의 STIX/TAXII 피드 |
-| **모니터** | 프로젝트의 보안 이벤트 모니터 |
-| **Connections** | OneUptime이 새 레코드를 폴링하는 보안 제품 |
-| **설정 가이드** | 이벤트를 보내는 스니펫. 수집 키가 미리 채워져 있음 |
+| 페이지 | 섹션 | 용도 |
+| --- | --- | --- |
+| **개요** | 개요 | 지금 누군가 손을 써야 하는 것과, 케이스가 얼마나 빨리 처리되는지 |
+| **Security Cases** | 개요 | 탐지된 것을 그 대상별로 묶은 대기열 |
+| **이벤트** | 조사 | 모든 이벤트를 검색하고 필터링하며, 이벤트 하나를 열어 모든 필드를 확인 |
+| **상관 분석** | 조사 | 같은 호스트, 사용자, IP 주소를 공유하는 이벤트의 그래프 |
+| **엔티티** | 조사 | 탐지 결과에 가장 많이 등장하는 사용자, 호스트, 주소 |
+| **Detection Rules** | 탐지 | 일정에 따라 실행되어 케이스를 여는 Sigma 규칙 |
+| **Rule Library** | 탐지 | 추가할 수 있는 기성 탐지 규칙 |
+| **ATT&CK Coverage** | 탐지 | 규칙이 다루는 MITRE ATT&CK 기법 |
+| **Threat Intel** | 탐지 | 알려진 악성 지표의 STIX/TAXII 피드 |
+| **모니터** | 탐지 | 프로젝트의 보안 이벤트 모니터 |
+| **Playbooks** | 대응 | 케이스에 대해 자동으로 또는 직접 실행되는 단계 |
+| **Playbook Runs** | 대응 | 각 플레이북이 한 일과, 승인을 기다리는 단계 |
+| **Connections** | 소스 | OneUptime이 새 레코드를 폴링하는 보안 제품 |
+| **설정 가이드** | 소스 | 이벤트를 보내는 스니펫. 수집 키가 미리 채워져 있음 |
 
 ## 시작하기 전에
 
@@ -43,9 +50,9 @@ flowchart TB
 
 | 역할 | 할 수 있는 일 |
 | --- | --- |
-| Security Admin | 모든 것: 이벤트, 탐지 규칙, 위협 인텔리전스 피드, 연결 |
-| Security Member | 이벤트와 위협 인텔리전스 읽기, 탐지 규칙과 피드의 생성, 변경, 삭제. 연결을 설정하거나 보안 데이터를 삭제할 수는 없음. |
-| Security Viewer | 이벤트, 규칙, 피드, 지표, 연결 읽기 |
+| Security Admin | 모든 것: 이벤트, 케이스, 플레이북, 탐지 규칙, 위협 인텔리전스 피드, 연결 |
+| Security Member | 이벤트와 위협 인텔리전스 읽기, 케이스 처리, 플레이북 실행과 그 단계 승인, 탐지 규칙과 피드의 생성, 변경, 삭제. 플레이북이나 연결을 설정하거나 보안 데이터를 삭제할 수는 없음. |
+| Security Viewer | 이벤트, 케이스, 플레이북, 규칙, 피드, 지표, 연결 읽기 |
 
 ## 보안 이벤트 보내기
 
@@ -161,6 +168,7 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | AWS Security Hub | Finding을 Detection Finding과 Compliance Finding으로 | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 로그인, MFA, 계정, 정책 이벤트 | [Okta System Log](/docs/integrations/okta) |
 
+- 제품 자체의 알림 중 **Open Cases From**(다른 수준을 고르지 않는 한 **High and above**, 또는 **없음**) 이상인 것은 그 대상인 사용자, 호스트, 주소별로 묶여 [케이스](/docs/telemetry/security-cases) 를 엽니다.
 - 연결은 레코드가 설명하는 활동 시각이 아니라, 제품이 레코드를 만든 시각을 기준으로 읽습니다. 매시간 실행되는 SIEM 규칙은 일치한 이벤트보다 한참 뒤에 탐지를 만들지만, 그것도 가져옵니다.
 - 첫 폴링은 24시간 전까지 거슬러 올라가므로, 새 연결에서 최근 레코드가 바로 보입니다.
 - 연결 행의 **연결 테스트** 는 제품에 대한 접근과 OneUptime 자체 워커의 실행 여부를 확인하며, 아무것도 가져오지 않습니다. **Run now** 는 즉시 폴링합니다.
@@ -211,14 +219,14 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 
 ## 탐지 규칙
 
-탐지 규칙은 의심스러운 활동을 설명하는 개방형 YAML 형식인 [Sigma](https://sigmahq.io/) 규칙으로, OneUptime이 일정에 따라 여러분의 이벤트에 대해 실행합니다. 일치하면 알림을 열고, 원하면 인시던트도 열고, Detection Finding을 이벤트에 다시 기록합니다.
+탐지 규칙은 의심스러운 활동을 설명하는 개방형 YAML 형식인 [Sigma](https://sigmahq.io/) 규칙으로, OneUptime이 일정에 따라 여러분의 이벤트에 대해 실행합니다. 일치하면 [케이스](/docs/telemetry/security-cases) 를 열거나 기존 케이스에 합류하고, 알림을 열고, 원하면 인시던트도 열고, Detection Finding을 이벤트에 다시 기록합니다. **Rule Library** 에는 출발점으로 쓸 수 있는 기성 규칙이 있습니다.
 
 ```mermaid title="탐지 규칙이 발동하는 과정"
 flowchart TB
     tick["매분: 간격이 된<br/>규칙을 실행"] --> query["규칙의 마지막 실행<br/>이후의 이벤트"]
     query --> count["Group By Field의<br/>값마다 개수를 셈"]
     count --> check{"개수가<br/>Match Count Threshold에<br/>도달했는가?"}
-    check -->|"예"| fire["알림, 선택적 인시던트,<br/>Detection Finding"]
+    check -->|"예"| fire["케이스, 알림,<br/>선택적 인시던트,<br/>Detection Finding"]
     check -->|"아니요"| wait["다음 실행까지<br/>아무것도 안 함"]
 ```
 
@@ -229,7 +237,8 @@ flowchart TB
 2. **기본 정보** 에서 **이름** 을 정하고, **활성화됨** 은 켠 채로 둡니다.
 3. **Sigma Rule** 에서 규칙의 YAML을 **Sigma Rule (YAML)** 에 붙여 넣습니다. 저장할 때 구문을 분석하므로, 오류는 양식에 표시됩니다.
 4. **평가** 에서 실행 빈도와 필요한 일치 횟수를 설정합니다. [평가 설정](#평가-설정) 을 참고하세요.
-5. **일치 시** 에서 일치했을 때 할 일을 고릅니다. **Create Alert on Match**(켜짐), **Create Incident on Match**(꺼짐), **Write Detection Finding on Match**(켜짐)와, 선택 사항인 **알림 심각도** 와 **인시던트 심각도** 입니다.
+5. **Security Cases** 에서 **Open a Case on Match** 를 켠 채로 두면, 규칙이 그룹화에 쓰는 값별로 일치가 케이스로 묶입니다.
+6. **일치 시** 에서 일치했을 때 그 밖에 할 일을 고릅니다. **Create Alert on Match**(켜짐), **Create Incident on Match**(꺼짐), **Write Detection Finding on Match**(켜짐)와, 선택 사항인 **알림 심각도** 와 **인시던트 심각도** 입니다.
 :::
 
 `10.x.x.x` 밖에서 온 로그인 실패에 일치하는 첫 규칙:
@@ -374,6 +383,7 @@ Detection Finding은 제품 `OneUptime Detections` 에서 나온 `Detection Find
 
 :::cards
 - [위협 인텔리전스](/docs/telemetry/threat-intelligence): 이벤트를 STIX/TAXII 피드와 대조합니다.
+- [보안 케이스 및 플레이북](/docs/telemetry/security-cases): 규칙이 찾아낸 것을 처리하고, 플레이북으로 대응합니다.
 - [Google SecOps](/docs/integrations/google-secops): Chronicle의 탐지와 이벤트를 가져옵니다.
 - [검색 구문](/docs/telemetry/search-syntax): 검색창이 이해하는 모든 것.
 - [권한 레퍼런스](/docs/permissions/reference): Security 역할과 각 역할이 할 수 있는 일.

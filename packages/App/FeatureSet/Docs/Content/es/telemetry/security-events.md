@@ -1,11 +1,11 @@
 # Eventos de seguridad (SIEM)
 
-OneUptime guarda los eventos de seguridad junto a tus registros, trazas y métricas, y da a cada uno la misma forma, [OCSF](https://schema.ocsf.io/) (el Open Cybersecurity Schema Framework), sea cual sea el formato en que llegó. Envía eventos desde cualquier origen, búscalos y convierte los importantes en alertas con reglas de detección Sigma, inteligencia de amenazas y monitores.
+OneUptime guarda los eventos de seguridad junto a tus registros, trazas y métricas, y da a cada uno la misma forma, [OCSF](https://schema.ocsf.io/) (el Open Cybersecurity Schema Framework), sea cual sea el formato en que llegó. Envía eventos desde cualquier origen, búscalos y encuentra los importantes con reglas de detección Sigma, inteligencia de amenazas y monitores. Lo que encuentran se convierte en [casos](/docs/telemetry/security-cases) que gestionar, y los playbooks responden a ellos.
 
 :::cards
 - [Enviar eventos](#enviar-eventos-de-seguridad): Un POST HTTPS, una salida de Fluent Bit o una conexión con un producto de seguridad.
 - [Buscar y correlacionar](#explorar-los-eventos-de-seguridad): El explorador de eventos y el grafo de correlación.
-- [Reglas de detección](#reglas-de-detección): Reglas Sigma que abren alertas.
+- [Reglas de detección](#reglas-de-detección): Reglas Sigma que abren casos y alertas.
 - [Monitores](#monitores-de-eventos-de-seguridad): Recuentos sobre una ventana deslizante, con un estado que se recupera.
 :::
 
@@ -21,21 +21,28 @@ flowchart TB
     normalize --> events["Eventos de seguridad"]
     events --> rules["Reglas de detección<br/>(Sigma)"]
     events --> monitors["Monitores de eventos<br/>de seguridad"]
-    rules --> act["Alertas, incidentes<br/>y hallazgos"]
+    rules --> act["Casos, alertas<br/>y hallazgos"]
     monitors --> act
 ```
 
-Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Sus pestañas:
+Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú:
 
-| Pestaña | Para qué sirve |
-| --- | --- |
-| **Eventos** | Buscar y filtrar todos los eventos, y abrir uno para ver todos sus campos |
-| **Correlacionar** | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
-| **Reglas de detección** | Reglas Sigma que se ejecutan según una programación y abren alertas |
-| **Inteligencia de amenazas** | Feeds STIX/TAXII de indicadores maliciosos conocidos |
-| **Monitores** | Los monitores de eventos de seguridad del proyecto |
-| **Conexiones** | Productos de seguridad que OneUptime consulta en busca de registros nuevos |
-| **Guía de configuración** | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
+| Página | Sección | Para qué sirve |
+| --- | --- | --- |
+| **Vista general** | Vista general | Lo que necesita atención ahora y la rapidez con que se gestionan los casos |
+| **Security Cases** | Vista general | La cola de lo detectado, agrupado según de qué trata |
+| **Eventos** | Investigar | Buscar y filtrar todos los eventos, y abrir uno para ver todos sus campos |
+| **Correlacionar** | Investigar | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
+| **Entidades** | Investigar | Los usuarios, hosts y direcciones que más nombran tus hallazgos |
+| **Reglas de detección** | Detectar | Reglas Sigma que se ejecutan según una programación y abren casos |
+| **Rule Library** | Detectar | Reglas de detección listas para añadir |
+| **ATT&CK Coverage** | Detectar | Las técnicas de MITRE ATT&CK que cubren tus reglas |
+| **Inteligencia de amenazas** | Detectar | Feeds STIX/TAXII de indicadores maliciosos conocidos |
+| **Monitores** | Detectar | Los monitores de eventos de seguridad del proyecto |
+| **Playbooks** | Responder | Pasos que se ejecutan sobre los casos, por sí solos o a mano |
+| **Playbook Runs** | Responder | Lo que hizo cada playbook y los pasos que esperan aprobación |
+| **Conexiones** | Orígenes | Productos de seguridad que OneUptime consulta en busca de registros nuevos |
+| **Guía de configuración** | Orígenes | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
 
 ## Antes de empezar
 
@@ -43,9 +50,9 @@ Los datos de seguridad solo los leen los roles Project Owner y Project Admin y l
 
 | Rol | Qué puede hacer |
 | --- | --- |
-| Security Admin | Todo: eventos, reglas de detección, feeds de inteligencia de amenazas y conexiones |
-| Security Member | Leer eventos e inteligencia de amenazas, y crear, cambiar y eliminar reglas de detección y feeds. No puede configurar conexiones ni eliminar datos de seguridad. |
-| Security Viewer | Leer eventos, reglas, feeds, indicadores y conexiones |
+| Security Admin | Todo: eventos, casos, playbooks, reglas de detección, feeds de inteligencia de amenazas y conexiones |
+| Security Member | Leer eventos e inteligencia de amenazas, gestionar casos, ejecutar playbooks y aprobar sus pasos, y crear, cambiar y eliminar reglas de detección y feeds. No puede configurar playbooks ni conexiones, ni eliminar datos de seguridad. |
+| Security Viewer | Leer eventos, casos, playbooks, reglas, feeds, indicadores y conexiones |
 
 ## Enviar eventos de seguridad
 
@@ -161,6 +168,7 @@ La pestaña **Guía de configuración** tiene estos fragmentos con tu propio hos
 | AWS Security Hub | Findings, como Detection y Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Eventos de inicio de sesión, MFA, cuentas y políticas | [Okta System Log](/docs/integrations/okta) |
 
+- Las alertas propias del producto con un nivel igual o superior a **Open Cases From** (**High and above** salvo que elijas otro nivel, o **Nunca**) abren [casos](/docs/telemetry/security-cases), agrupadas por el usuario, host o dirección de los que tratan.
 - Una conexión lee los registros según el momento en que el producto los creó, no según el momento de la actividad que describen. Una regla de SIEM que se ejecuta cada hora crea detecciones mucho después de los eventos que coincidieron, y aun así se importan.
 - La primera consulta mira 24 horas atrás, así que una conexión nueva muestra registros recientes de inmediato.
 - **Probar conexión**, en la fila de la conexión, comprueba el acceso al producto y que los workers propios de OneUptime están funcionando, y no importa nada. **Ejecutar ahora** consulta en el acto.
@@ -211,14 +219,14 @@ La barra lateral cuenta los eventos de la ventana por **Origen**, **Gravedad**, 
 
 ## Reglas de detección
 
-Una regla de detección es una regla [Sigma](https://sigmahq.io/), un formato YAML abierto para describir actividad sospechosa, que OneUptime ejecuta según una programación sobre tus eventos. Cuando coincide, abre una alerta, opcionalmente un incidente, y escribe un Detection Finding de vuelta en los eventos.
+Una regla de detección es una regla [Sigma](https://sigmahq.io/), un formato YAML abierto para describir actividad sospechosa, que OneUptime ejecuta según una programación sobre tus eventos. Cuando coincide, abre un [caso](/docs/telemetry/security-cases) o se suma a uno, abre una alerta, opcionalmente un incidente, y escribe un Detection Finding de vuelta en los eventos. La **Rule Library** tiene reglas listas para usar como punto de partida.
 
 ```mermaid title="Cómo se dispara una regla de detección"
 flowchart TB
     tick["Cada minuto: reglas<br/>cuyo intervalo ha vencido"] --> query["Eventos desde la<br/>última ejecución"]
     query --> count["Contados por valor<br/>del campo de agrupación"]
     count --> check{"¿El recuento llega<br/>al umbral?"}
-    check -->|"Sí"| fire["Alerta, incidente opcional<br/>y un Detection Finding"]
+    check -->|"Sí"| fire["Un caso, una alerta,<br/>un incidente opcional<br/>y un Detection Finding"]
     check -->|"No"| wait["Nada, hasta<br/>la siguiente ejecución"]
 ```
 
@@ -229,7 +237,8 @@ flowchart TB
 2. En **Información básica**, rellena el **Nombre** y deja **Habilitado** activado.
 3. En **Regla Sigma**, pega el YAML de la regla en **Regla Sigma (YAML)**. Se analiza al guardar, así que un error aparece en el formulario.
 4. En **Evaluación**, define cada cuánto se ejecuta y cuántas coincidencias necesita; consulta [Ajustes de evaluación](#ajustes-de-evaluación).
-5. En **Al coincidir**, elige qué hace una coincidencia: **Crear alerta al coincidir** (activado), **Crear incidente al coincidir** (desactivado) y **Escribir un hallazgo de detección al coincidir** (activado), con una **Gravedad de la alerta** y una **Gravedad del incidente** opcionales.
+5. En **Security Cases**, deja **Open a Case on Match** activado para agrupar sus coincidencias en casos, por el valor por el que agrupa la regla.
+6. En **Al coincidir**, elige qué más hace una coincidencia: **Crear alerta al coincidir** (activado), **Crear incidente al coincidir** (desactivado) y **Escribir un hallazgo de detección al coincidir** (activado), con una **Gravedad de la alerta** y una **Gravedad del incidente** opcionales.
 :::
 
 Una primera regla, que coincide con los inicios de sesión fallidos desde fuera de `10.x.x.x`:
@@ -374,6 +383,7 @@ Cada valor del **Campo de agrupación** recibe su propia alerta: agrupa por algo
 
 :::cards
 - [Inteligencia de amenazas](/docs/telemetry/threat-intelligence): Coteja tus eventos con feeds STIX/TAXII.
+- [Casos de seguridad y playbooks](/docs/telemetry/security-cases): Gestiona lo que encuentran tus reglas y responde con playbooks.
 - [Google SecOps](/docs/integrations/google-secops): Trae las detecciones y los eventos de Chronicle.
 - [Sintaxis de búsqueda](/docs/telemetry/search-syntax): Todo lo que entiende la barra de búsqueda.
 - [Referencia de permisos](/docs/permissions/reference): Los roles de seguridad y lo que puede hacer cada uno.

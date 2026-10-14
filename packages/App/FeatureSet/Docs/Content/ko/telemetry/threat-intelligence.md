@@ -17,7 +17,7 @@ flowchart TB
     events["새 보안 이벤트"] --> tag["도착할 때<br/>threat.* 속성으로<br/>태그"]
     indicators --> tag
     indicators --> match["매분 최근<br/>이벤트와 대조"]
-    match --> act["알림, 선택적 인시던트,<br/>탐지 결과"]
+    match --> act["케이스, 알림,<br/>선택적 인시던트,<br/>탐지 결과"]
 ```
 
 ## 시작하기 전에
@@ -35,7 +35,7 @@ flowchart TB
 
 ### 피드 만들기
 
-**Threat Intel Feed 만들기** 를 클릭하고 **기본 정보**, **TAXII Server**, **인증**, **일치 시** 의 네 단계를 채웁니다. 필드는 아래 표에 있습니다.
+**Threat Intel Feed 만들기** 를 클릭하고 **기본 정보**, **TAXII Server**, **인증**, **Security Cases**, **일치 시** 의 다섯 단계를 채웁니다. 필드는 아래 표에 있습니다.
 
 ### 첫 폴링 확인하기
 
@@ -50,6 +50,7 @@ flowchart TB
 | **Minimum Confidence** | STIX `confidence` 가 이보다 낮은 지표는 건너뜁니다. 0~100이며, 0이면 모두 남깁니다. confidence가 없는 지표는 항상 통과합니다. |
 | **API Token** | 토큰을 요구하는 컬렉션용 bearer 토큰. |
 | **Basic Auth Username** 과 **Basic Auth Password** | HTTP Basic 인증을 쓰는 컬렉션용. 공개 컬렉션이라면 둘 다, 그리고 토큰도 비워 두세요. |
+| **Open a Case on Match** | 기본적으로 켜짐: 지표가 들어 있는 이벤트마다 그 지표에 관한 [케이스](/docs/telemetry/security-cases) 를 열거나, 이미 그 지표에 관해 열려 있는 케이스에 합류합니다. |
 | **Create Alert on Match** | 기본적으로 켜짐: 일치한 지표마다 알림을 엽니다. |
 | **알림 심각도** | 이 피드가 여는 모든 알림의 심각도. 비워 두면 각 지표의 위협 수준을 사용합니다. |
 | **Create Incident on Match** | 기본적으로 꺼짐. 인시던트는 온콜 에스컬레이션, SLA, 상태 페이지를 움직이며, 지표 일치에는 보통 알림으로 충분합니다. |

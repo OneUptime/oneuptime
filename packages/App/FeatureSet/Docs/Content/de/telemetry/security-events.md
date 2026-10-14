@@ -1,11 +1,11 @@
 # Sicherheitsereignisse (SIEM)
 
-OneUptime bewahrt Sicherheitsereignisse neben Ihren Logs, Traces und Metriken auf und gibt jedem dieselbe Form, [OCSF](https://schema.ocsf.io/) (das Open Cybersecurity Schema Framework), egal in welchem Format es ankam. Senden Sie Ereignisse aus jeder Quelle, durchsuchen Sie sie, und machen Sie die wichtigen mit Sigma-Erkennungsregeln, Threat Intelligence und Monitoren zu Warnungen.
+OneUptime bewahrt Sicherheitsereignisse neben Ihren Logs, Traces und Metriken auf und gibt jedem dieselbe Form, [OCSF](https://schema.ocsf.io/) (das Open Cybersecurity Schema Framework), egal in welchem Format es ankam. Senden Sie Ereignisse aus jeder Quelle, durchsuchen Sie sie, und finden Sie die wichtigen mit Sigma-Erkennungsregeln, Threat Intelligence und Monitoren. Was diese finden, wird zu [Fällen](/docs/telemetry/security-cases), die Sie bearbeiten, und Playbooks reagieren darauf.
 
 :::cards
 - [Ereignisse senden](#sicherheitsereignisse-senden): Ein HTTPS-POST, eine Fluent-Bit-Ausgabe oder eine Verbindung zu einem Sicherheitsprodukt.
 - [Suchen und korrelieren](#sicherheitsereignisse-erkunden): Der Explorer für Ereignisse und der Korrelationsgraph.
-- [Erkennungsregeln](#erkennungsregeln): Sigma-Regeln, die Warnungen öffnen.
+- [Erkennungsregeln](#erkennungsregeln): Sigma-Regeln, die Fälle und Warnungen öffnen.
 - [Monitore](#monitore-für-sicherheitsereignisse): Zählungen über ein gleitendes Fenster, mit einem Status, der sich erholt.
 :::
 
@@ -21,21 +21,28 @@ flowchart TB
     normalize --> events["Sicherheitsereignisse"]
     events --> rules["Erkennungsregeln<br/>(Sigma)"]
     events --> monitors["Monitore für<br/>Sicherheitsereignisse"]
-    rules --> act["Warnungen, Vorfälle<br/>und Befunde"]
+    rules --> act["Fälle, Warnungen<br/>und Befunde"]
     monitors --> act
 ```
 
-Öffnen Sie **Produkte → Sicherheitsereignisse**, unter **Observability**. Seine Tabs:
+Öffnen Sie **Produkte → Sicherheitsereignisse**, unter **Observability**. Sein Menü:
 
-| Tab | Wofür er da ist |
-| --- | --- |
-| **Ereignisse** | Jedes Ereignis suchen und filtern, und eines öffnen, um alle seine Felder zu sehen |
-| **Korrelieren** | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
-| **Erkennungsregeln** | Sigma-Regeln, die nach Zeitplan laufen und Warnungen öffnen |
-| **Threat Intel** | STIX/TAXII-Feeds bekannter bösartiger Indikatoren |
-| **Monitore** | Die Monitore des Projekts für Sicherheitsereignisse |
-| **Verbindungen** | Sicherheitsprodukte, die OneUptime nach neuen Datensätzen abfragt |
-| **Einrichtungsanleitung** | Snippets zum Senden von Ereignissen, mit Ihrem Ingestion-Schlüssel ausgefüllt |
+| Seite | Bereich | Wofür sie da ist |
+| --- | --- | --- |
+| **Übersicht** | Übersicht | Was gerade Aufmerksamkeit braucht, und wie schnell Fälle bearbeitet werden |
+| **Security Cases** | Übersicht | Die Warteschlange mit allem Erkannten, gruppiert nach dem, worum es jeweils geht |
+| **Ereignisse** | Untersuchen | Jedes Ereignis suchen und filtern, und eines öffnen, um alle seine Felder zu sehen |
+| **Korrelieren** | Untersuchen | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
+| **Entitäten** | Untersuchen | Die Benutzer, Hosts und Adressen, die Ihre Befunde am häufigsten nennen |
+| **Erkennungsregeln** | Detect | Sigma-Regeln, die nach Zeitplan laufen und Fälle eröffnen |
+| **Rule Library** | Detect | Fertige Erkennungsregeln zum Hinzufügen |
+| **ATT&CK Coverage** | Detect | Die Techniken von MITRE ATT&CK, die Ihre Regeln abdecken |
+| **Threat Intel** | Detect | STIX/TAXII-Feeds bekannter bösartiger Indikatoren |
+| **Monitore** | Detect | Die Monitore des Projekts für Sicherheitsereignisse |
+| **Playbooks** | Respond | Schritte, die auf Fällen laufen, von selbst oder per Hand |
+| **Playbook Runs** | Respond | Was jedes Playbook getan hat, und die Schritte, die auf Genehmigung warten |
+| **Verbindungen** | Quellen | Sicherheitsprodukte, die OneUptime nach neuen Datensätzen abfragt |
+| **Einrichtungsanleitung** | Quellen | Snippets zum Senden von Ereignissen, mit Ihrem Ingestion-Schlüssel ausgefüllt |
 
 ## Bevor Sie beginnen
 
@@ -43,9 +50,9 @@ Sicherheitsdaten lesen nur die Rollen Project Owner und Project Admin sowie die 
 
 | Rolle | Was sie darf |
 | --- | --- |
-| Security Admin | Alles: Ereignisse, Erkennungsregeln, Threat-Intel-Feeds und Verbindungen |
-| Security Member | Ereignisse und Threat Intel lesen sowie Erkennungsregeln und Feeds erstellen, ändern und löschen. Sie kann keine Verbindungen einrichten und keine Sicherheitsdaten löschen. |
-| Security Viewer | Ereignisse, Regeln, Feeds, Indikatoren und Verbindungen lesen |
+| Security Admin | Alles: Ereignisse, Fälle, Playbooks, Erkennungsregeln, Threat-Intel-Feeds und Verbindungen |
+| Security Member | Ereignisse und Threat Intel lesen, Fälle bearbeiten, Playbooks ausführen und ihre Schritte genehmigen sowie Erkennungsregeln und Feeds erstellen, ändern und löschen. Sie kann keine Playbooks oder Verbindungen einrichten und keine Sicherheitsdaten löschen. |
+| Security Viewer | Ereignisse, Fälle, Playbooks, Regeln, Feeds, Indikatoren und Verbindungen lesen |
 
 ## Sicherheitsereignisse senden
 
@@ -161,6 +168,7 @@ Der Tab **Einrichtungsanleitung** hat diese Snippets mit Ihrem eigenen Host und 
 | AWS Security Hub | Findings, als Detection und Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Anmelde-, MFA-, Konto- und Richtlinienereignisse | [Okta System Log](/docs/integrations/okta) |
 
+- Die eigenen Warnungen des Produkts ab der Stufe, die in **Open Cases From** eingestellt ist (**High and above**, sofern Sie keine andere Stufe wählen, oder **Nie**), eröffnen [Fälle](/docs/telemetry/security-cases), gruppiert nach dem Benutzer, dem Host oder der Adresse, um die es jeweils geht.
 - Eine Verbindung liest Datensätze nach dem Zeitpunkt, zu dem das Produkt sie erstellt hat, nicht nach der Zeit der Aktivität, die sie beschreiben. Eine SIEM-Regel, die stündlich läuft, erstellt Erkennungen lange nach den Ereignissen, auf die sie passte, und diese werden trotzdem importiert.
 - Die erste Abfrage blickt 24 Stunden zurück, sodass eine neue Verbindung sofort aktuelle Datensätze zeigt.
 - **Verbindung testen** in der Zeile der Verbindung prüft den Zugriff auf das Produkt und ob die eigenen Worker von OneUptime laufen, und importiert nichts. **Jetzt ausführen** fragt sofort ab.
@@ -211,14 +219,14 @@ Die Seitenleiste zählt die Ereignisse des Zeitfensters nach **Quelle**, **Schwe
 
 ## Erkennungsregeln
 
-Eine Erkennungsregel ist eine [Sigma](https://sigmahq.io/)-Regel, ein offenes YAML-Format zur Beschreibung verdächtiger Aktivität, die OneUptime nach Zeitplan gegen Ihre Ereignisse laufen lässt. Passt sie, öffnet sie eine Warnung, wahlweise einen Vorfall, und schreibt einen Detection Finding zurück in die Ereignisse.
+Eine Erkennungsregel ist eine [Sigma](https://sigmahq.io/)-Regel, ein offenes YAML-Format zur Beschreibung verdächtiger Aktivität, die OneUptime nach Zeitplan gegen Ihre Ereignisse laufen lässt. Passt sie, eröffnet sie einen [Fall](/docs/telemetry/security-cases) oder ergänzt einen offenen, öffnet eine Warnung, wahlweise einen Vorfall, und schreibt einen Detection Finding zurück in die Ereignisse. Die **Rule Library** bietet fertige Regeln als Ausgangspunkt.
 
 ```mermaid title="Wie eine Erkennungsregel auslöst"
 flowchart TB
     tick["Jede Minute: Regeln,<br/>deren Intervall fällig ist"] --> query["Ereignisse seit dem<br/>letzten Lauf der Regel"]
     query --> count["Gezählt pro Wert<br/>des Gruppierfelds"]
     count --> check{"Erreicht die Zählung<br/>den Schwellenwert?"}
-    check -->|"Ja"| fire["Warnung, optionaler Vorfall<br/>und ein Detection Finding"]
+    check -->|"Ja"| fire["Ein Fall, eine Warnung,<br/>ein optionaler Vorfall<br/>und ein Detection Finding"]
     check -->|"Nein"| wait["Nichts, bis<br/>zum nächsten Lauf"]
 ```
 
@@ -229,7 +237,8 @@ flowchart TB
 2. Füllen Sie unter **Grundinformationen** das Feld **Name** aus, und lassen Sie **Aktiviert** eingeschaltet.
 3. Fügen Sie unter **Sigma-Regel** das YAML der Regel in **Sigma-Regel (YAML)** ein. Es wird beim Speichern geparst, sodass ein Fehler im Formular erscheint.
 4. Legen Sie unter **Auswertung** fest, wie oft sie läuft und wie viele Treffer sie braucht; siehe [Auswertungseinstellungen](#auswertungseinstellungen).
-5. Wählen Sie unter **Bei Treffer**, was ein Treffer bewirkt: **Bei Treffer Warnung erstellen** (an), **Bei Treffer Vorfall erstellen** (aus) und **Bei Treffer Erkennungsbefund schreiben** (an), mit optionalem **Warnungsschweregrad** und **Vorfallsschweregrad**.
+5. Lassen Sie unter **Security Cases** die Option **Open a Case on Match** eingeschaltet, um die Treffer der Regel nach dem Wert, nach dem sie gruppiert, zu Fällen zusammenzufassen.
+6. Wählen Sie unter **Bei Treffer**, was ein Treffer sonst noch bewirkt: **Bei Treffer Warnung erstellen** (an), **Bei Treffer Vorfall erstellen** (aus) und **Bei Treffer Erkennungsbefund schreiben** (an), mit optionalem **Warnungsschweregrad** und **Vorfallsschweregrad**.
 :::
 
 Eine erste Regel, die auf fehlgeschlagene Anmeldungen von außerhalb von `10.x.x.x` passt:
@@ -374,6 +383,7 @@ Jeder Wert von **Nach Feld gruppieren** bekommt seine eigene Warnung: Gruppieren
 
 :::cards
 - [Threat Intelligence](/docs/telemetry/threat-intelligence): Ihre Ereignisse mit STIX/TAXII-Feeds abgleichen.
+- [Sicherheitsfälle und Playbooks](/docs/telemetry/security-cases): Bearbeiten, was Ihre Regeln finden, und mit Playbooks darauf reagieren.
 - [Google SecOps](/docs/integrations/google-secops): Die Erkennungen und Ereignisse von Chronicle hereinholen.
 - [Suchsyntax](/docs/telemetry/search-syntax): Alles, was die Suchleiste versteht.
 - [Berechtigungsreferenz](/docs/permissions/reference): Die Security-Rollen und was jede darf.

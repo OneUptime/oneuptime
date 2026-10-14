@@ -17,7 +17,7 @@ flowchart TB
     events["Nouveaux événements<br/>de sécurité"] --> tag["Marqués à l'arrivée<br/>par des attributs<br/>threat.*"]
     indicators --> tag
     indicators --> match["Confrontés chaque<br/>minute aux<br/>événements récents"]
-    match --> act["Une alerte, un incident<br/>optionnel et un constat"]
+    match --> act["Un dossier, une alerte,<br/>un incident optionnel<br/>et un constat"]
 ```
 
 ## Avant de commencer
@@ -35,7 +35,7 @@ Ouvrez **Produits → Événements de sécurité → Threat Intel**.
 
 ### Créer le flux
 
-Cliquez sur **Créer : Flux de renseignements sur les menaces** et remplissez ses quatre étapes : **Informations de base**, **TAXII Server**, **Authentification** et **En cas de correspondance**. Les champs figurent dans le tableau ci-dessous.
+Cliquez sur **Créer : Flux de renseignements sur les menaces** et remplissez ses cinq étapes : **Informations de base**, **TAXII Server**, **Authentification**, **Security Cases** et **En cas de correspondance**. Les champs figurent dans le tableau ci-dessous.
 
 ### Vérifier la première interrogation
 
@@ -50,6 +50,7 @@ En une minute ou deux, la ligne du flux affiche **Dernière interrogation**, et 
 | **Confiance minimale** | Les indicateurs dont la `confidence` STIX est inférieure sont ignorés : de 0 à 100, et 0 garde tout. Les indicateurs sans confiance passent toujours. |
 | **Jeton d'API** | Un jeton bearer, pour une collection qui en demande un. |
 | **Nom d'utilisateur Basic Auth** et **Mot de passe Basic Auth** | Pour une collection qui utilise l'authentification HTTP basique. Laissez les deux et le jeton vides pour une collection publique. |
+| **Open a Case on Match** | Activé par défaut : chaque événement qui nomme un indicateur ouvre un [dossier](/docs/telemetry/security-cases) sur cet indicateur, ou rejoint le dossier ouvert qui porte déjà sur lui. |
 | **Créer une alerte en cas de correspondance** | Activé par défaut : chaque indicateur correspondant ouvre une alerte. |
 | **Gravité de l'alerte** | La gravité de chaque alerte ouverte par ce flux. Laissez-la vide pour prendre le niveau de menace de chaque indicateur. |
 | **Créer un incident en cas de correspondance** | Désactivé par défaut. Les incidents déclenchent l'escalade d'astreinte, les SLA et les pages de statut, et pour les correspondances d'indicateurs les alertes suffisent en général. |
