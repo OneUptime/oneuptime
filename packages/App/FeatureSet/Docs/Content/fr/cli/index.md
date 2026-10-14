@@ -1,68 +1,122 @@
-# CLI OneUptime
+# Vue d'ensemble de la CLI
 
-Le CLI OneUptime est une interface en ligne de commande permettant de gérer vos ressources OneUptime directement depuis le terminal. Il prend en charge les opérations CRUD complètes sur les moniteurs, incidents, alertes, pages de statut, et plus encore.
+La CLI de OneUptime, `oneuptime`, gère votre projet OneUptime depuis un terminal ou un script. Elle liste, lit, crée, modifie, supprime et compte les moniteurs, incidents, alertes, pages de statut et les autres enregistrements que l'API de OneUptime propose, avec une clé API de votre projet.
 
-## Fonctionnalités
+:::cards
+- [Comment fonctionne la CLI](#comment-fonctionne-la-cli): Une commande, une requête à l'API, une réponse.
+- [Installer la CLI](#installer-la-cli): Une commande npm, et la version à choisir.
+- [Lancer vos premières commandes](#lancer-vos-premières-commandes): Enregistrez votre clé API, puis listez vos incidents.
+- [Les commandes en un coup d'œil](#les-commandes-en-un-coup-dœil): Chaque commande, et la page qui l'explique.
+:::
 
-- **Prise en charge multi-environnement** avec des contextes nommés pour la production, le staging et le développement
-- **Découverte automatique** des ressources disponibles depuis votre instance OneUptime
-- **Authentification flexible** via des indicateurs CLI, des variables d'environnement ou des contextes sauvegardés
-- **Formatage de sortie intelligent** avec les modes d'affichage JSON, table et étendu
-- **Compatible avec les scripts** pour les pipelines CI/CD et les flux d'automatisation
+## Comment fonctionne la CLI
 
-## Installation
+Chaque commande envoie une requête à l'API REST de OneUptime et affiche la réponse. La CLI prend la clé API et l'adresse de votre OneUptime dans des options, des variables d'environnement ou un contexte enregistré par `oneuptime login`. La clé décide de ce qu'une commande peut lire et modifier, exactement comme pour l'API.
+
+```mermaid title="Une commande, une requête"
+flowchart TB
+    T["Votre terminal<br/>ou une tâche de CI"] -->|"oneuptime incident list"| C["CLI oneuptime"]
+    K["La clé API et l'URL :<br/>options, environnement<br/>ou un contexte enregistré"] --> C
+    C -->|"POST /api/incident/get-list"| A["API REST de OneUptime"]
+    A -->|"les enregistrements<br/>que la clé peut lire,<br/>en JSON"| C
+    C -->|"un tableau dans un terminal,<br/>du JSON dans un pipe"| T
+```
+
+Les commandes des enregistrements sont livrées avec la CLI : chaque type d'enregistrement que l'API de OneUptime ouvre aux outils en a une, les mêmes enregistrements pour lesquels le [serveur MCP](/docs/ai/mcp-server) a des outils. Lancez `oneuptime resources` pour les lister.
+
+## Avant de commencer
+
+- **Node.js et npm**, dans une version LTS actuelle, pour installer la CLI.
+- **Une clé API de votre projet.** Créez-en une dans **Paramètres du projet → Avancé → Clés API** avec **Créer : Clé API** : voir [Créer une clé API](/docs/api-reference/api-reference#créer-une-clé-api).
+- **Sur OneUptime Cloud, l'offre Growth ou supérieure.** Les clés API d'un projet ne fonctionnent qu'avec elle : voir [Clés API et SCIM sous leur offre](/docs/api-reference/api-reference#clés-api-et-scim-sous-leur-offre).
+
+## Installer la CLI
+
+Installez le paquet `@oneuptime/cli` depuis npm. Il ajoute la commande `oneuptime`, et `--version` affiche la version installée :
 
 ```bash
 npm install -g @oneuptime/cli
+oneuptime --version
 ```
 
-## Démarrage rapide
+La CLI sort en même temps que OneUptime et porte le même numéro de version. Sur un OneUptime auto-hébergé, installez la CLI de la version de votre OneUptime, afin que ses commandes correspondent aux enregistrements de votre serveur :
 
 ```bash
-# S'authentifier auprès de votre instance OneUptime
+npm install -g @oneuptime/cli@<your-oneuptime-version>
+```
+
+## Lancer vos premières commandes
+
+:::steps
+### Enregistrer votre clé API
+
+Connectez-vous avec la clé et l'adresse de votre OneUptime. La CLI les enregistre comme un contexte nommé `default` et l'utilise désormais :
+
+```bash
 oneuptime login <your-api-key> https://oneuptime.com
+```
 
-# Lister vos moniteurs
-oneuptime monitor list
+Elle répond `Logged in successfully. Context "default" is now active.` Sur un OneUptime auto-hébergé, utilisez son adresse à la place de `https://oneuptime.com`.
 
-# Afficher un incident spécifique
-oneuptime incident get <incident-id>
+### Lister vos incidents
 
-# Voir toutes les ressources disponibles
+```bash
+oneuptime incident list
+```
+
+Les dix incidents les plus récents s'affichent sous forme de tableau. `login` enregistre la clé sans la vérifier : c'est donc cette commande qui montre la première que la clé fonctionne. Si elle est refusée, voir [Dépannage](/docs/cli/authentication#dépannage).
+
+### Voir ce que vous pouvez gérer d'autre
+
+```bash
 oneuptime resources
 ```
 
-## Documentation
+La liste montre chaque type d'enregistrement avec lequel vous pouvez travailler, et sa commande, comme `monitor`, `status-page` ou `on-call-policy`.
+:::
 
-| Guide                                                     | Description                                                                 |
-| --------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [Authentification](./authentication.md)                   | Connexion, contextes et gestion des identifiants                            |
-| [Opérations sur les ressources](./resource-operations.md) | Opérations CRUD sur les moniteurs, incidents, alertes, et plus              |
-| [Formats de sortie](./output-formats.md)                  | Modes de sortie JSON, table et étendu                                       |
-| [Scripts et CI/CD](./scripting.md)                        | Automatisation, variables d'environnement et utilisation dans les pipelines |
-| [Référence des commandes](./command-reference.md)         | Référence complète de toutes les commandes et options                       |
+## Les commandes en un coup d'œil
+
+| Commande | Ce qu'elle fait | En savoir plus |
+| --- | --- | --- |
+| `oneuptime login <api-key> <instance-url>` | Enregistre une clé API et une adresse comme contexte | [Authentification](/docs/cli/authentication#se-connecter) |
+| `oneuptime context list`, `use`, `current`, `delete` | Liste, change, affiche et supprime les contextes enregistrés | [Authentification](/docs/cli/authentication#contextes) |
+| `oneuptime whoami` | Affiche l'URL et la clé API que la prochaine commande utilisera | [Authentification](/docs/cli/authentication#vérifier-ce-que-la-cli-va-utiliser) |
+| `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Travaille avec un type d'enregistrement | [Opérations sur les ressources](/docs/cli/resource-operations) |
+| `oneuptime resources` | Liste les types d'enregistrements, avec leurs commandes | [Référence des commandes](/docs/cli/command-reference#oneuptime-resources) |
+| `oneuptime version` | Affiche la version de la CLI | [Référence des commandes](/docs/cli/command-reference#oneuptime-version) |
+| `oneuptime help [command]` | Affiche l'aide d'une commande | [Obtenir de l'aide](#obtenir-de-laide) |
 
 ## Options globales
 
-Ces indicateurs peuvent être utilisés avec n'importe quelle commande :
+Ces options fonctionnent avec chaque commande, avant ou après elle :
 
-| Indicateur              | Description                                       |
-| ----------------------- | ------------------------------------------------- |
-| `--api-key <key>`       | Remplacer la clé API pour cette commande          |
-| `--url <url>`           | Remplacer l'URL de l'instance pour cette commande |
-| `--context <name>`      | Utiliser un contexte nommé spécifique             |
-| `-o, --output <format>` | Format de sortie : `json`, `table`, `wide`        |
-| `--no-color`            | Désactiver la sortie colorée                      |
-| `--help`                | Afficher l'aide de la commande                    |
-| `--version`             | Afficher la version du CLI                        |
+| Option | Ce qu'elle fait |
+| --- | --- |
+| `--api-key <key>` | La clé API pour cette commande, à la place de celle enregistrée |
+| `--url <url>` | L'adresse de votre OneUptime pour cette commande |
+| `--context <name>` | Un contexte enregistré pour cette commande, à la place du contexte actuel |
+| `-o, --output <format>` | `table`, `json` ou `wide` : voir [Formats de sortie](/docs/cli/output-formats) |
+| `--no-color` | Affiche sans couleurs |
+| `-V, --version` | Affiche la version de la CLI |
+| `-h, --help` | Affiche l'aide de la commande |
 
 ## Obtenir de l'aide
 
-```bash
-# Aide générale
-oneuptime --help
+Chaque commande a sa propre aide, avec ses arguments, ses options et ses valeurs par défaut :
 
-# Aide pour une commande spécifique
-oneuptime monitor --help
-oneuptime monitor list --help
+```bash
+oneuptime --help
+oneuptime help incident
+oneuptime incident list --help
 ```
+
+## Étapes suivantes
+
+:::cards
+- [Authentification](/docs/cli/authentication): Des contextes pour chaque environnement, et la clé qu'une commande utilise.
+- [Opérations sur les ressources](/docs/cli/resource-operations): Lister, lire, créer, modifier, supprimer et compter des enregistrements.
+- [Formats de sortie](/docs/cli/output-formats): Des tableaux pour les humains, du JSON pour les scripts.
+- [Scripts et CI/CD](/docs/cli/scripting): Codes de sortie, jq et pipelines.
+- [Référence des commandes](/docs/cli/command-reference): Chaque commande, option et valeur par défaut.
+:::
