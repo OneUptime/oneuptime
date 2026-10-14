@@ -889,6 +889,21 @@ export default class WorkspaceUserGroupManager {
       );
     }
 
+    /*
+     * A group turned off in Slack is picked to be kept in step: connecting
+     * it turns it back on, as the form says. Turned off later by somebody,
+     * it is left off (the card says so).
+     */
+    if (group.isTurnedOff) {
+      await WorkspaceUserGroupManager.askWorkspace(WorkspaceType.Slack, () => {
+        return SlackUserGroups.turnOn({
+          authToken: authToken,
+          teamId: teamId,
+          groupId: group.id,
+        });
+      });
+    }
+
     return {
       workspaceGroupId: group.id,
       workspaceTeamId: null,
