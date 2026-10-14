@@ -1,0 +1,489 @@
+import BadDataException from "../Exception/BadDataException";
+import { JSONObject, JSONValue } from "../JSON";
+import ObjectID from "../ObjectID";
+import SecurityCasePriority, {
+  isSecurityCasePriority,
+} from "../SecurityCase/SecurityCasePriority";
+import SecurityCaseStatus, {
+  isSecurityCaseStatus,
+} from "../SecurityCase/SecurityCaseStatus";
+import SecurityCaseVerdict, {
+  isSecurityCaseVerdict,
+} from "../SecurityCase/SecurityCaseVerdict";
+import {
+  SecurityPlaybookActionDefinition,
+  SecurityPlaybookActionType,
+  getSecurityPlaybookAction,
+  isSecurityPlaybookActionType,
+} from "./SecurityPlaybookAction";
+
+/*
+ * One step of a playbook: an action, its settings, and three switches that
+ * shape how a run treats it.
+ *
+ *  - requiresApproval: the run stops before the step and waits for a person
+ *    to approve or reject it on the case. Rejecting ends the run.
+ *  - continueOnFailure: a failed step does not stop the steps after it.
+ *  - onlyIfThreatIntelMatched: the step runs only when an earlier Check
+ *    Threat Intel step of the same run found a known-bad entity, and is
+ *    skipped otherwise. "Contain only what intel says is bad" without a
+ *    branching editor.
+ *
+ * Steps are stored as JSON on the playbook and copied onto each run when it
+ * starts, so editing a playbook never changes a run already under way.
+ */
+export interface SecurityPlaybookStep {
+  id: string;
+  action: SecurityPlaybookActionType;
+  config: JSONObject;
+  requiresApproval: boolean;
+  continueOnFailure: boolean;
+  onlyIfThreatIntelMatched: boolean;
+}
+
+export interface AssignCaseConfig {
+  userId?: string | undefined;
+  teamId?: string | undefined;
+}
+
+export interface SetCasePriorityConfig {
+  priority: SecurityCasePriority;
+}
+
+export interface SetCaseStatusConfig {
+  status: SecurityCaseStatus;
+  // Only for Closed.
+  verdict?: SecurityCaseVerdict | undefined;
+}
+
+export interface AddCaseNoteConfig {
+  note: string;
+}
+
+export interface AddCaseLabelsConfig {
+  labelIds: Array<string>;
+}
+
+export interface CheckThreatIntelConfig {
+  // Raise the case to at least this priority when an entity matches.
+  raisePriorityTo?: SecurityCasePriority | undefined;
+}
+
+export interface LookUpEntityActivityConfig {
+  lookbackInHours: number;
+}
+
+export interface EmailPeopleConfig {
+  userIds: Array<string>;
+  teamIds: Array<string>;
+  // Markdown with {{case.*}} placeholders; a summary of the case when empty.
+  message?: string | undefined;
+}
+
+export interface PostToChannelConfig {
+  channelName: string;
+  message?: string | undefined;
+}
+
+export interface PageOnCallConfig {
+  onCallPolicyId: string;
+}
+
+export interface DeclareIncidentConfig {
+  incidentSeverityId: string;
+}
+
+export interface ConnectionActionConfig {
+  connectionId: string;
+}
+
+export enum DefenderIsolationType {
+  Full = "Full",
+  Selective = "Selective",
+}
+
+export interface IsolateDefenderDeviceConfig extends ConnectionActionConfig {
+  isolationType: DefenderIsolationType;
+}
+
+export interface SendWebhookConfig {
+  url: string;
+}
+
+export interface RunWorkflowConfig {
+  workflowId: string;
+}
+
+export const SECURITY_PLAYBOOK_MAX_STEPS: number = 25;
+export const SECURITY_PLAYBOOK_NOTE_MAX_LENGTH: number = 10000;
+export const ENTITY_ACTIVITY_LOOKBACK_MIN_HOURS: number = 1;
+export const ENTITY_ACTIVITY_LOOKBACK_MAX_HOURS: number = 720;
+export const ENTITY_ACTIVITY_LOOKBACK_DEFAULT_HOURS: number = 24;
+
+function stepLabel(index: number, action: SecurityPlaybookActionType): string {
+  const definition: SecurityPlaybookActionDefinition | undefined =
+    getSecurityPlaybookAction(action);
+
+  return `Step ${index + 1} (${definition?.title || action})`;
+}
+
+function readObject(value: JSONValue | undefined): JSONObject {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as JSONObject;
+  }
+
+  return {};
+}
+
+function readText(config: JSONObject, key: string): string {
+  const value: JSONValue | undefined = config[key];
+
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function isObjectIdText(value: string): boolean {
+  return ObjectID.isValidUUID(value);
+}
+
+function readIdList(config: JSONObject, key: string): Array<string> {
+  const value: JSONValue | undefined = config[key];
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const ids: Array<string> = [];
+
+  for (const item of value) {
+    const text: string = typeof item === "string" ? item.trim() : "";
+
+    if (text && isObjectIdText(text) && !ids.includes(text)) {
+      ids.push(text);
+    }
+  }
+
+  return ids;
+}
+
+function requireId(
+  config: JSONObject,
+  key: string,
+  label: string,
+  what: string,
+): string {
+  const value: string = readText(config, key);
+
+  if (!value || !isObjectIdText(value)) {
+    throw new BadDataException(`${label}: choose ${what}.`);
+  }
+
+  return value;
+}
+
+/*
+ * The settings an action keeps, cleaned: unknown keys dropped, text trimmed,
+ * ids checked for shape. Throws a message that names the step and says what
+ * to fix. Whether an id still points at something of this project (a user,
+ * a policy, a connection) is checked when the step runs, not here: things
+ * get deleted after playbooks are saved, and the run says so on the case.
+ */
+export function normalizeSecurityPlaybookStepConfig(
+  action: SecurityPlaybookActionType,
+  rawConfig: JSONObject,
+  label: string,
+): JSONObject {
+  switch (action) {
+    case SecurityPlaybookActionType.AssignCase: {
+      const userId: string = readText(rawConfig, "userId");
+      const teamId: string = readText(rawConfig, "teamId");
+      const config: JSONObject = {};
+
+      if (userId && isObjectIdText(userId)) {
+        config["userId"] = userId;
+      }
+
+      if (teamId && isObjectIdText(teamId)) {
+        config["teamId"] = teamId;
+      }
+
+      if (!config["userId"] && !config["teamId"]) {
+        throw new BadDataException(`${label}: choose a user, a team, or both.`);
+      }
+
+      return config;
+    }
+
+    case SecurityPlaybookActionType.SetCasePriority: {
+      const priority: string = readText(rawConfig, "priority");
+
+      if (!isSecurityCasePriority(priority)) {
+        throw new BadDataException(`${label}: choose a priority.`);
+      }
+
+      return { priority };
+    }
+
+    case SecurityPlaybookActionType.SetCaseStatus: {
+      const status: string = readText(rawConfig, "status");
+
+      if (!isSecurityCaseStatus(status) || status === SecurityCaseStatus.New) {
+        throw new BadDataException(
+          `${label}: choose Investigating, Contained or Closed.`,
+        );
+      }
+
+      if (status !== SecurityCaseStatus.Closed) {
+        return { status };
+      }
+
+      const verdict: string = readText(rawConfig, "verdict");
+
+      if (!isSecurityCaseVerdict(verdict)) {
+        throw new BadDataException(
+          `${label}: a case is closed with a verdict - choose one.`,
+        );
+      }
+
+      return { status, verdict };
+    }
+
+    case SecurityPlaybookActionType.AddCaseNote: {
+      const note: string = readText(rawConfig, "note");
+
+      if (!note) {
+        throw new BadDataException(`${label}: write the note.`);
+      }
+
+      if (note.length > SECURITY_PLAYBOOK_NOTE_MAX_LENGTH) {
+        throw new BadDataException(
+          `${label}: the note is longer than ${SECURITY_PLAYBOOK_NOTE_MAX_LENGTH} characters.`,
+        );
+      }
+
+      return { note };
+    }
+
+    case SecurityPlaybookActionType.AddCaseLabels: {
+      const labelIds: Array<string> = readIdList(rawConfig, "labelIds");
+
+      if (labelIds.length === 0) {
+        throw new BadDataException(`${label}: choose at least one label.`);
+      }
+
+      return { labelIds };
+    }
+
+    case SecurityPlaybookActionType.CheckThreatIntel: {
+      const raisePriorityTo: string = readText(rawConfig, "raisePriorityTo");
+
+      return isSecurityCasePriority(raisePriorityTo) ? { raisePriorityTo } : {};
+    }
+
+    case SecurityPlaybookActionType.LookUpEntityActivity: {
+      const raw: JSONValue | undefined = rawConfig["lookbackInHours"];
+      const hours: number =
+        typeof raw === "number"
+          ? raw
+          : typeof raw === "string" && raw.trim()
+            ? Number(raw)
+            : ENTITY_ACTIVITY_LOOKBACK_DEFAULT_HOURS;
+
+      if (
+        !Number.isInteger(hours) ||
+        hours < ENTITY_ACTIVITY_LOOKBACK_MIN_HOURS ||
+        hours > ENTITY_ACTIVITY_LOOKBACK_MAX_HOURS
+      ) {
+        throw new BadDataException(
+          `${label}: look back a whole number of hours, ${ENTITY_ACTIVITY_LOOKBACK_MIN_HOURS} to ${ENTITY_ACTIVITY_LOOKBACK_MAX_HOURS}.`,
+        );
+      }
+
+      return { lookbackInHours: hours };
+    }
+
+    case SecurityPlaybookActionType.EmailPeople: {
+      const userIds: Array<string> = readIdList(rawConfig, "userIds");
+      const teamIds: Array<string> = readIdList(rawConfig, "teamIds");
+      const message: string = readText(rawConfig, "message");
+
+      if (userIds.length === 0 && teamIds.length === 0) {
+        throw new BadDataException(`${label}: choose who to email.`);
+      }
+
+      if (message.length > SECURITY_PLAYBOOK_NOTE_MAX_LENGTH) {
+        throw new BadDataException(
+          `${label}: the message is longer than ${SECURITY_PLAYBOOK_NOTE_MAX_LENGTH} characters.`,
+        );
+      }
+
+      return { userIds, teamIds, ...(message ? { message } : {}) };
+    }
+
+    case SecurityPlaybookActionType.PostToSlack:
+    case SecurityPlaybookActionType.PostToMicrosoftTeams: {
+      const channelName: string = readText(rawConfig, "channelName").replace(
+        /^#/,
+        "",
+      );
+      const message: string = readText(rawConfig, "message");
+
+      if (!channelName) {
+        throw new BadDataException(`${label}: name the channel to post to.`);
+      }
+
+      if (message.length > SECURITY_PLAYBOOK_NOTE_MAX_LENGTH) {
+        throw new BadDataException(
+          `${label}: the message is longer than ${SECURITY_PLAYBOOK_NOTE_MAX_LENGTH} characters.`,
+        );
+      }
+
+      return { channelName, ...(message ? { message } : {}) };
+    }
+
+    case SecurityPlaybookActionType.PageOnCall:
+      return {
+        onCallPolicyId: requireId(
+          rawConfig,
+          "onCallPolicyId",
+          label,
+          "the on-call policy to run",
+        ),
+      };
+
+    case SecurityPlaybookActionType.DeclareIncident:
+      return {
+        incidentSeverityId: requireId(
+          rawConfig,
+          "incidentSeverityId",
+          label,
+          "the incident's severity",
+        ),
+      };
+
+    case SecurityPlaybookActionType.SuspendOktaUser:
+    case SecurityPlaybookActionType.EndOktaSessions:
+    case SecurityPlaybookActionType.ContainCrowdStrikeHost:
+      return {
+        connectionId: requireId(
+          rawConfig,
+          "connectionId",
+          label,
+          "the connection to act through",
+        ),
+      };
+
+    case SecurityPlaybookActionType.IsolateDefenderDevice: {
+      const isolationType: string = readText(rawConfig, "isolationType");
+
+      return {
+        connectionId: requireId(
+          rawConfig,
+          "connectionId",
+          label,
+          "the connection to act through",
+        ),
+        isolationType:
+          isolationType === DefenderIsolationType.Selective
+            ? DefenderIsolationType.Selective
+            : DefenderIsolationType.Full,
+      };
+    }
+
+    case SecurityPlaybookActionType.SendWebhook: {
+      const url: string = readText(rawConfig, "url");
+
+      if (!/^https?:\/\/[^\s/?#]+[^\s]*$/i.test(url)) {
+        throw new BadDataException(
+          `${label}: enter the URL to send to, starting with https:// or http://.`,
+        );
+      }
+
+      return { url };
+    }
+
+    case SecurityPlaybookActionType.RunWorkflow:
+      return {
+        workflowId: requireId(
+          rawConfig,
+          "workflowId",
+          label,
+          "the workflow to run",
+        ),
+      };
+  }
+}
+
+/*
+ * Reads a playbook's steps from what was stored or posted (an array, or the
+ * JSON text of one) into clean steps. Throws BadDataException, naming the
+ * step, for anything a run could not carry out.
+ */
+export function parseSecurityPlaybookSteps(
+  value: unknown,
+): Array<SecurityPlaybookStep> {
+  let raw: unknown = value;
+
+  if (typeof raw === "string") {
+    const text: string = raw.trim();
+
+    if (!text) {
+      return [];
+    }
+
+    try {
+      raw = JSON.parse(text);
+    } catch {
+      throw new BadDataException("Playbook steps are not valid JSON.");
+    }
+  }
+
+  if (raw === null || raw === undefined) {
+    return [];
+  }
+
+  if (!Array.isArray(raw)) {
+    throw new BadDataException("Playbook steps must be a list.");
+  }
+
+  if (raw.length > SECURITY_PLAYBOOK_MAX_STEPS) {
+    throw new BadDataException(
+      `A playbook can have at most ${SECURITY_PLAYBOOK_MAX_STEPS} steps.`,
+    );
+  }
+
+  const seenIds: Set<string> = new Set<string>();
+
+  return raw.map((item: unknown, index: number): SecurityPlaybookStep => {
+    const step: JSONObject = readObject(item as JSONValue);
+    const action: JSONValue | undefined = step["action"];
+
+    if (!isSecurityPlaybookActionType(action)) {
+      throw new BadDataException(
+        `Step ${index + 1}: "${String(action ?? "")}" is not an action a playbook can run.`,
+      );
+    }
+
+    const label: string = stepLabel(index, action);
+
+    let id: string = typeof step["id"] === "string" ? step["id"].trim() : "";
+
+    if (!id || seenIds.has(id)) {
+      id = ObjectID.generate().toString();
+    }
+
+    seenIds.add(id);
+
+    return {
+      id,
+      action,
+      config: normalizeSecurityPlaybookStepConfig(
+        action,
+        readObject(step["config"]),
+        label,
+      ),
+      requiresApproval: step["requiresApproval"] === true,
+      continueOnFailure: step["continueOnFailure"] === true,
+      onlyIfThreatIntelMatched: step["onlyIfThreatIntelMatched"] === true,
+    };
+  });
+}
