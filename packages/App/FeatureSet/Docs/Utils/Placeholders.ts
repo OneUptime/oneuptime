@@ -55,7 +55,9 @@ export const TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER: string =
 
 const MAJOR_VERSION_PATTERN: RegExp = new RegExp("^v?(\\d+)\\.\\d+");
 // A release's version: "14.0.56", or "v14.0.56" as a tag writes it.
-const RELEASE_VERSION_PATTERN: RegExp = new RegExp("^v?(\\d+)\\.(\\d+)\\.(\\d+)$");
+const RELEASE_VERSION_PATTERN: RegExp = new RegExp(
+  "^v?(\\d+)\\.(\\d+)\\.(\\d+)$",
+);
 // The version every development build reports, which names no release.
 const DEVELOPMENT_VERSION: string = "1.0.0";
 

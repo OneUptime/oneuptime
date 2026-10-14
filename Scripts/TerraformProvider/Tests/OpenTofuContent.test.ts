@@ -325,7 +325,9 @@ describe("what the READMEs say about the engines and the module", () => {
    */
   test("no README promises TOFU_VAR_* variables", () => {
     expect(examplesReadme).not.toContain("TOFU_VAR");
-    expect(examplesReadme).toContain("OpenTofu reads `TF_VAR_*` environment variables");
+    expect(examplesReadme).toContain(
+      "OpenTofu reads `TF_VAR_*` environment variables",
+    );
   });
 
   /*
@@ -341,7 +343,9 @@ describe("what the READMEs say about the engines and the module", () => {
 
   // Who gets paged is an escalation rule's team, user or schedule.
   test("the module README says how to add who gets paged", () => {
-    expect(moduleReadme).toContain("`oneuptime_team_on_call_duty_escalation_rule`");
+    expect(moduleReadme).toContain(
+      "`oneuptime_team_on_call_duty_escalation_rule`",
+    );
     expect(moduleReadme).not.toContain("`oneuptime_team_member`");
     expect(moduleReadme).toContain("`escalation_rule_id`");
   });

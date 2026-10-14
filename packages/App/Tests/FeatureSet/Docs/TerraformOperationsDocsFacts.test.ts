@@ -1005,12 +1005,12 @@ describe("the self-hosted page", () => {
   });
 });
 
-// The operating systems the release builds the provider for, as the page names them.
 // A target of the GoReleaser configuration: "      - darwin".
 const GOOS_LINE: RegExp = /^ {6}- ([a-z]+)$/gm;
 // The default of a module input: `  default     = "Operational"`.
 const DEFAULT_VALUE: RegExp = /^ {2}default\s*=\s*"([^"]*)"$/m;
 
+// The operating systems the release builds the provider for, as the page names them.
 const OPERATING_SYSTEM_NAMES: Readonly<Record<string, string>> = {
   linux: "Linux",
   darwin: "macOS",

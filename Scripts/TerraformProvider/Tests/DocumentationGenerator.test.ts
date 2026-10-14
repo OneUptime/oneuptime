@@ -144,7 +144,9 @@ describe("opentofu", () => {
     expect(guide).toContain(
       "`init` rewrites the provider's entry when you switch engines",
     );
-    expect(guide).toContain("OpenTofu reads a state Terraform wrote, as it is.");
+    expect(guide).toContain(
+      "OpenTofu reads a state Terraform wrote, as it is.",
+    );
     expect(guide).toContain(
       "Terraform refuses the OpenTofu Registry's copy (`authentication signature from unknown issuer`)",
     );
