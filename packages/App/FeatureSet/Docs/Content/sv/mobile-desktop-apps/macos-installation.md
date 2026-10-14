@@ -1,261 +1,118 @@
-# Installationsguide för macOS
+# macOS-installation
 
-Installera OneUptime som en inbyggd skrivbordsapplikation på macOS för sömlös övervakning och incidenthantering.
+OneUptime-instrumentpanelen installeras på en Mac som en app: lägg till den i Dock från Safari, eller installera den från Google Chrome eller Microsoft Edge. Den öppnas i ett eget fönster, med en egen symbol i Dock och i Launchpad, och kan visa notiser. Det finns inget att ladda ner: appen är instrumentpanelen i ditt OneUptime, och den är uppdaterad så snart ditt OneUptime är det.
 
-## Installationsmetoder
+:::cards
+- [Installera appen](#installera-appen): Från Safari, Chrome eller Edge.
+- [Behåll den i Dock](#behåll-den-i-dock): Öppna den med ett klick, eller vid inloggning.
+- [Få notiser på den här datorn](#få-notiser-på-den-här-datorn): Registrera appen för push-aviseringar.
+- [Felsökning](#felsökning): Inget Lägg till i Dock, inga notiser, logga in igen.
+:::
 
-### Metod 1: Safari (rekommenderas för macOS)
+## Så fungerar skrivbordsappen
 
-Safari ger utmärkt PWA-integration med inbyggda macOS-funktioner.
+```mermaid title="Vad du får när du installerar instrumentpanelen"
+flowchart TB
+    Browser["Safari, Chrome eller<br/>Edge öppnar din<br/>instrumentpanel"]
+    Install["Du lägger till den i<br/>Dock eller installerar<br/>den som app"]
+    App["OneUptime i ett<br/>eget fönster, i Dock<br/>och i Launchpad"]
+    OneUptime["Ditt OneUptime levererar<br/>instrumentpanelen"]
+    Browser --> Install --> App
+    App -->|"hämtar<br/>instrumentpanelen<br/>varje gång den öppnas"| OneUptime
+```
 
-1. **Öppna OneUptime i Safari**
+En Safari-webbapp har sin egen inloggning, egna cookies och inställningar, skilda från Safari. En app som installerats från Chrome eller Edge delar dem med den webbläsaren.
 
-   - Starta Safari-webbläsaren
-   - Navigera till URL:en för din OneUptime-instans
-   - Logga in på ditt OneUptime-konto
-   - Vänta tills sidan laddas helt
+## Innan du börjar
 
-2. **Installera PWA**
+- macOS Sonoma 14 eller senare för Safari. Chrome och Edge installerar appar på alla macOS-versioner de körs på.
+- Adressen till ditt OneUptime, över HTTPS: `https://oneuptime.com` på OneUptime Cloud, eller din egen, till exempel `https://oneuptime.example.com`.
+- Ett konto som du kan logga in på instrumentpanelen med.
 
-   - Klicka på **Fil** i menyraden
-   - Välj **"Lägg till i Dock"** (macOS Sonoma+)
-   - Eller leta efter **installationsikonen** i adressfältet
-   - Alternativt: **Fil** → **"Lägg till på startskärmen"** (äldre macOS)
+## Installera appen
 
-3. **Anpassa installationen**
+:::tabs
+@tab Safari
+1. Öppna ditt OneUptime i Safari och logga in.
+2. Välj **Arkiv → Lägg till i Dock** på valfri sida i instrumentpanelen, eller klicka på delningsknappen i verktygsfältet och sedan på **Lägg till i Dock**.
+3. Behåll namnet eller ändra det, och klicka på **Lägg till**.
+4. Öppna OneUptime från Dock och logga in en gång till: webbappen delar inte Safaris inloggning.
+@tab Chrome
+1. Öppna ditt OneUptime i Chrome och logga in.
+2. Klicka på installationsikonen till höger i adressfältet på valfri sida i instrumentpanelen, och sedan på **Installera**. Eller öppna **⋮ → Casta, spara och dela → Installera sidan som app…**.
+3. Chrome öppnar OneUptime i ett eget fönster och lägger till det i Launchpad.
+@tab Edge
+1. Öppna ditt OneUptime i Edge och logga in.
+2. Klicka på installationsikonen till höger i adressfältet på valfri sida i instrumentpanelen, och sedan på **Installera**. Eller öppna **Inställningar med mera (…) → Fler verktyg → Appar → Installera den här webbplatsen som en app**.
+3. Edge öppnar OneUptime i ett eget fönster och lägger till det i Launchpad.
+:::
 
-   - **Appnamn**: Ändra om du vill (standard: OneUptime)
-   - **Dock**: Välj att lägga till i Dock
-   - **Launchpad**: Lägg till i Launchpad för enkel åtkomst
+Installera från en sida i instrumentpanelen, efter att du har loggat in: inloggningssidan är inte appen. Safari sparar webbappen i mappen Program i din hemmapp.
 
-4. **Starta appen**
-   - Hitta OneUptime i Dock, Launchpad eller Program-mappen
-   - Klicka för att starta i dedikerat fönster
-   - Appen körs oberoende av Safari
+## Behåll den i Dock
 
-### Metod 2: Google Chrome
+- **Dock.** Kontrollklicka på appens symbol i Dock medan den är öppen och välj **Alternativ → Behåll i Dock**. En Safari-webbapp finns redan i Dock.
+- **Öppna vid inloggning.** Kontrollklicka på symbolen i Dock och välj **Alternativ → Öppna vid inloggning**.
+- **Spotlight.** Tryck på kommando-mellanslag och skriv OneUptime.
 
-Chrome erbjuder robusttt PWA-stöd med utmärkt skrivbordsintegration.
+## Få notiser på den här datorn
 
-1. **Öppna OneUptime i Chrome**
+Appen visar notiser när du har registrerat den för push-aviseringar, i varje projekt du vill få dem från. Registrera Safari-webbappen inifrån själva webbappen: den är en webbläsare i sig. En app som installerats från Chrome eller Edge registreras med sin webbläsare.
 
-   - Starta Google Chrome
-   - Gå till din OneUptime-instans
-   - Se till att du är inloggad
-   - Låt sidan laddas helt
+:::steps
+### Öppna dina push-enheter
+Öppna **Användarinställningar → Aviseringsmetoder** och fliken **Push Notifications** i appen.
 
-2. **Installera via menyn**
+### Registrera den här appen
+Klicka på **Registrera enhet**, behåll det föreslagna **Enhetsnamn**, till exempel `Safari on macOS`, eller ändra det, och klicka på **Registrera enhet** igen. När macOS eller webbläsaren frågar om OneUptime får skicka notiser väljer du **Tillåt**.
 
-   - Leta efter **installationsikonen** (⊞) i adressfältet
-   - Klicka på **"Installera OneUptime"**
-   - Eller använd **Chrome-menyn** → **Fler verktyg** → **Skapa genväg**
+### Skicka ett test
+Klicka på **Send Test Notification** i dialogrutan **Browser Registered**. Visas ingenting, titta på datorns notisinställningar: se [Felsökning](#felsökning).
+:::
 
-3. **Installationsalternativ**
+En webbläsare kan inte ringa igenom ett Fokus som Stör ej. Använd mobilappen med kritiska varningar för larm som måste väcka dig: se [iOS-installation](/docs/mobile-desktop-apps/ios-installation#ring-igenom-tyst-läge).
 
-   - Markera **"Öppna som fönster"** för inbyggd appupplevelse
-   - Anpassa appnamnet om det behövs
-   - Klicka på **"Installera"** eller **"Skapa"**
+På ett OneUptime i egen drift behöver webbläsaraviseringar serverns VAPID-nycklar: se [Push-aviseringar](/docs/self-hosted/push-notifications#egeninstallerad-konfiguration).
 
-4. **Komma åt appen**
-   - Hitta OneUptime i Program-mappen
-   - Eller via Spotlight-sökning
-   - Fäst i Dock för snabb åtkomst
+## Uppdateringar
 
-### Metod 3: Microsoft Edge
+Det finns inget att uppdatera. Appen hämtar instrumentpanelen från ditt OneUptime varje gång den öppnas, så den ändras när ditt OneUptime uppgraderas. Har ett fönster varit öppet sedan uppgraderingen laddar du om det med kommando-R.
 
-Edge ger solitt PWA-stöd med bra macOS-integration.
+## Avinstallera
 
-1. **Öppna OneUptime i Edge**
+:::tabs
+@tab Safari
+Öppna din hemmapp i Finder, sedan dess mapp Program, och dra OneUptime till papperskorgen.
+@tab Chrome
+Öppna menyn **⋮** i appens fönster, välj objektet som avinstallerar appen och sedan **Ta bort**.
+@tab Edge
+Öppna `edge://apps` i Edge, välj **Detaljer** för OneUptime och sedan **Avinstallera**.
+:::
 
-   - Starta Microsoft Edge
-   - Navigera till OneUptime-URL:en
-   - Slutför inloggningsprocessen
-
-2. **Installera app**
-   - Klicka på **tredubbelpunktsmenyn** → **Appar** → **Installera den här webbplatsen som en app**
-   - Eller leta efter installationsprompt i adressfältet
-   - Anpassa appnamnet om du vill
-   - Klicka på **"Installera"**
-
-### Anpassningsalternativ
-
-### Dock och Launchpad
-
-1. **Dock-position**: Dra OneUptime till önskad Dock-position
-2. **Dock-storlek**: Ändra storlek på ikonen i Dock-inställningar
-3. **Launchpad-organisation**: Skapa en övervakningsappmapp
-4. **Märkaviseringar**: Visa incidentantal på Dock-ikonen
-
-### Menyraden och aviseringar
-
-1. **Aviseringscenter**
-
-   - Systeminställningar → Aviseringar → OneUptime
-   - Konfigurera varningsstilar och leverans
-   - Ange prioritetsnivåer för olika incidenttyper
-
-2. **Menyradesintegration**
-   - Inbyggd menyrad för Safari PWA:er
-   - Anpassade menyobjekt för vanliga åtgärder
-   - Tangentbordsgenvägar för vanliga uppgifter
+Att avinstallera appen avregistrerar den inte: dess webbläsare får fortfarande notiser. Vill du stoppa dem tar du bort den under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, med **Ta bort**.
 
 ## Felsökning
 
-### Installationsproblem
+:::details Inget Lägg till i Dock i Safari
+Safari lägger till webbappar i Dock från och med macOS Sonoma 14. Uppdatera macOS, eller installera appen från Chrome eller Edge i stället.
+:::
 
-**"Lägg till i Dock" inte tillgängligt i Safari:**
+:::details Inga notiser visas
+- Kontrollera under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, att appen eller dess webbläsare finns i listan, och skicka en **Testavisering**.
+- Öppna **Systeminställningar → Notiser** på datorn och kontrollera att OneUptime, eller webbläsaren det installerades från, får skicka notiser, och att inget Fokus håller tillbaka dem.
+- Blockerar webbläsaren notiser för OneUptime, tillåt dem i dess inställningar för webbplatsen och registrera igen.
+- På ett OneUptime i egen drift säger dialogrutan **Registrera enhet** när servern saknar VAPID-nycklar.
+:::
 
-```
-Lösningar:
-1. Se till att macOS Sonoma (14.0) eller senare
-2. Uppdatera Safari till den senaste versionen
-3. Prova alternativ: Fil → Lägg till på startskärmen
-4. Rensa Safari-cache och försök igen
-5. Använd Chrome eller Edge som alternativ
-```
+:::details Appen ber dig logga in igen
+En Safari-webbapp har sin egen inloggning: logga in i appen. En app som installerats från Chrome eller Edge delar sin webbläsares inloggning, så loggar du ut i webbläsaren, eller rensar dess cookies, loggas den också ut.
+:::
 
-**PWA installeras inte eller kraschar:**
+## Nästa steg
 
-```
-Lösningar:
-1. Kontrollera macOS-versionskompatibilitet
-2. Se till att det finns tillräckligt med diskutrymme (100 MB+)
-3. Uppdatera webbläsaren till den senaste versionen
-4. Rensa webbläsarens cache och cookies
-5. Inaktivera webbläsartillägg tillfälligt
-6. Starta om Mac och försök installera igen
-```
-
-**Appen visas inte i Program:**
-
-```
-Lösningar:
-1. Kontrollera Launchpad för OneUptime-ikonen
-2. Sök med Spotlight (⌘+Space)
-3. Titta i webbläsarens PWA-hanteringsavsnitt
-4. Prova att installera om med en annan webbläsare
-5. Kontrollera om den installerats under ett annat namn
-```
-
-### Aviseringsproblem
-
-**macOS-aviseringar fungerar inte:**
-
-```
-Lösningar:
-1. Systeminställningar → Aviseringar → OneUptime
-2. Aktivera "Tillåt aviseringar"
-3. Ange lämplig varningsstil (banners/varningar)
-4. Kontrollera inställningar för Stör ej
-5. Verifiera OneUptime-aviseringsinställningar
-6. Bevilja aviserings behörigheter när du uppmanas
-```
-
-## Avinstallation
-
-### Fullständig borttagning
-
-1. **Program-mapp-metod**
-
-   - Öppna Program-mappen
-   - Hitta OneUptime
-   - Dra till papperskorgen eller högerklicka → Flytta till papperskorgen
-
-2. **Dock-metod**
-
-   - Högerklicka på OneUptime i Dock
-   - Välj "Alternativ" → "Ta bort från Dock"
-   - Ta sedan bort från Program-mappen
-
-3. **Webbläsarens PWA-hantering**
-   - **Chrome**: chrome://apps/ → Hitta OneUptime → Ta bort
-   - **Edge**: edge://apps/ → Hitta OneUptime → Avinstallera
-   - **Safari**: Ingen dedikerad hanteringssida
-
-### Ren avinstallation
-
-Ta bort all associerad data:
-
-```bash
-# Rensa Safari PWA-data (allmänna webbplatsdata)
-rm -rf ~/Library/Safari/Databases
-rm -rf ~/Library/Caches/com.apple.Safari
-
-# Rensa Chrome PWA-data
-rm -rf ~/Library/Application\ Support/Google/Chrome/Default/Web\ Applications
-
-# Rensa Edge PWA-data
-rm -rf ~/Library/Application\ Support/Microsoft\ Edge/Default/Web\ Applications
-```
-
-## Uppdateringar och underhåll
-
-### Automatiska uppdateringar
-
-- OneUptime PWA uppdateras automatiskt när du är online
-- Inga App Store-uppdateringar krävs
-- Nya funktioner tillgängliga omedelbart
-- Kritiska uppdateringar tillämpas direkt
-
-### Underhållsschema
-
-Regelbundet underhåll för optimal prestanda:
-
-**Veckovis:**
-
-- Starta om OneUptime-appen
-- Rensa webbläsarcache om du upplever problem
-- Kontrollera om det finns macOS-uppdateringar
-
-**Månadsvis:**
-
-- Granska lagringsanvändning och rensa vid behov
-- Uppdatera webbläsare om de inte uppdateras automatiskt
-- Verifiera att aviseringsinställningar fortfarande fungerar
-
-## Integration med macOS-funktioner
-
-### Integration med Genvägar-appen
-
-Skapa anpassade genvägar för OneUptime:
-
-1. Öppna **Genvägar**-appen
-2. Skapa **Ny genväg**
-3. Lägg till åtgärden **"Öppna app"**
-4. Välj **OneUptime**
-5. Lägg till i Siri för röstaktivering
-
-### Terminal-integration
-
-Hantera OneUptime via Terminal:
-
-```bash
-# Skapa alias för snabb OneUptime-start
-echo 'alias oneuptime="open -a \"OneUptime\""' >> ~/.zshrc
-
-# Funktion för att kontrollera om OneUptime körs
-oneuptime_status() {
-    if pgrep -f "OneUptime" > /dev/null; then
-        echo "OneUptime is running"
-    else
-        echo "OneUptime is not running"
-    fi
-}
-```
-
-## Säkerhet och sekretess
-
-### macOS-säkerhetsfunktioner
-
-1. **Gatekeeper**: Se till att PWA-installationer är från betrodda källor
-2. **System Integrity Protection**: Skyddar systemfiler
-3. **FileVault**: Kryptera disk för dataskydd
-4. **Nyckelring**: Säker lagring av autentiseringsuppgifter
-
-### Bästa praxis
-
-1. **Regelbundna uppdateringar**: Håll macOS och webbläsare uppdaterade
-2. **Stark autentisering**: Använd Touch ID/Face ID när det är tillgängligt
-3. **Nätverkssäkerhet**: Använd VPN för fjärrövervakning
-4. **Datasäkerhetskopiering**: Regelbundna Time Machine-säkerhetskopior inkluderar PWA-data
-5. **Behörighetsgranskning**: Granska beviljade behörigheter regelbundet
+:::cards
+- [iOS-installation](/docs/mobile-desktop-apps/ios-installation): Bli larmad på din iPhone, med kritiska varningar.
+- [Windows-installation](/docs/mobile-desktop-apps/windows-installation): Samma app på Windows.
+- [Vanliga frågor och felsökning](/docs/mobile-desktop-apps/faq-troubleshooting): Svar om båda apparna.
+- [Ditt konto](/docs/introduction/your-account): Så når OneUptime dig i varje projekt.
+:::

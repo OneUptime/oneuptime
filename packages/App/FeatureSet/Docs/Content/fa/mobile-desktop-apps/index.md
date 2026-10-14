@@ -1,48 +1,89 @@
-# اپلیکیشن‌های موبایل و دسکتاپ OneUptime
+# نمای کلی اپلیکیشن‌ها
 
-OneUptime دو راه برای استفاده از پلتفرم بیرون از مرورگر ارائه می‌دهد:
+OneUptime یک اپلیکیشن برای گوشی و یک اپلیکیشن برای رایانه دارد. **OneUptime On-Call** برای iPhone، iPad و Android وقتی آنکال هستید شما را فرا می‌خواند، و می‌گذارد هر جا که باشید حادثه‌ها را تأیید و رفع کنید. در Windows، macOS و Linux، داشبورد OneUptime از مرورگر به‌عنوان یک اپلیکیشن دسکتاپ نصب می‌شود که در پنجرهٔ خودش باز می‌شود. هر دو با OneUptime Cloud و با OneUptime خودمیزبان کار می‌کنند.
 
-- **اپلیکیشن‌های بومی موبایل** برای iOS و Android که در **Apple App Store** و **Google Play** منتشر شده‌اند. این‌ها فراخوان‌های آنکال، هشدارهای حادثه و اقدام‌های تأیید را مستقیماً به گوشی شما می‌رسانند.
-- **اپلیکیشن‌های نصب‌شدنی دسکتاپ** برای Windows، macOS و Linux که به‌صورت یک Progressive Web App (PWA) مستقیماً از مرورگر نصب می‌شوند. این‌ها به داشبورد OneUptime روی رایانه شما پنجره، آیکون و سطح اعلان اختصاصی می‌دهند.
+:::cards
+- [یک اپلیکیشن انتخاب کنید](#یک-اپلیکیشن-انتخاب-کنید): هر اپلیکیشن به چه کاری می‌آید، کنار هم.
+- [اپلیکیشن‌ها چگونه به OneUptime می‌رسند](#اپلیکیشنها-چگونه-به-oneuptime-میرسند): مسیری که ورود و فراخوان‌های آنکال طی می‌کنند.
+- [اپلیکیشن موبایل را بگیرید](#اپلیکیشن-موبایل-را-بگیرید): از App Store، Google Play یا GitHub.
+- [اپلیکیشن دسکتاپ را بگیرید](#اپلیکیشن-دسکتاپ-را-بگیرید): داشبورد را از Edge، Chrome یا Safari نصب کنید.
+:::
 
-## موبایل (اپلیکیشن‌های بومی)
+## یک اپلیکیشن انتخاب کنید
 
-اپلیکیشن **OneUptime On-Call** یک برنامه بومی است که با React Native ساخته شده است. از طریق فروشگاه‌های رسمی توزیع می‌شود تا به‌روزرسانی خودکار، اعلان پوش و باز کردن با زیست‌سنجی داشته باشید.
+|  | اپلیکیشن موبایل | اپلیکیشن دسکتاپ |
+| --- | --- | --- |
+| چیست | OneUptime On-Call، یک اپلیکیشن بومی برای iPhone، iPad و Android | داشبورد OneUptime، نصب‌شده از مرورگر |
+| از کجا | App Store، Google Play یا یک APK از GitHub | OneUptime خودتان: چیزی برای دانلود نیست |
+| فراخوان‌های آنکال | اعلان‌های پوش که می‌توانند از حالت بی‌صدا و مزاحم نشوید عبور کنند | اعلان‌های مرورگر، پس از ثبت مرورگر |
+| چه می‌توانید بکنید | حادثه‌ها، هشدارها، مانیتورها و اینکه چه کسی آنکال است؛ تأیید، رفع و افزودن یادداشت | هر کاری که داشبورد انجام می‌دهد |
+| به‌روزرسانی | از فروشگاه، یا با نصب یک APK جدیدتر | هر بار که باز می‌شود داشبورد را از OneUptime شما بارگیری می‌کند |
+| کجا اجرا می‌شود | iOS 16.4 یا جدیدتر، Android 7.0 یا جدیدتر | Windows، macOS و Linux، با Edge یا Chrome، یا Safari روی macOS Sonoma 14 یا جدیدتر |
 
-- **iOS** — [دانلود از App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391). به iOS 15.0 یا بالاتر نیاز دارد. [راهنمای نصب iOS](./ios-installation.md) را ببینید.
-- **Android** — [دریافت از Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). به Android 8.0 یا بالاتر نیاز دارد. برای دستگاه‌های بدون Google Play، [دانلود مستقیم APK](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) هم در دسترس است. [راهنمای نصب Android](./android-installation.md) را ببینید.
+می‌توانید از هر دو استفاده کنید: اپلیکیشن دسکتاپ را در ساعات کاری باز نگه دارید، و بگذارید شب‌ها گوشی بیدارتان کند.
 
-## دسکتاپ (Progressive Web App)
+## اپلیکیشن‌ها چگونه به OneUptime می‌رسند
 
-داشبورد وب OneUptime یک Progressive Web App است، بنابراین می‌توانید آن را بدون گذر از هیچ فروشگاهی و از یک مرورگر مدرن به‌عنوان اپلیکیشن دسکتاپ نصب کنید.
+```mermaid title="فراخوان‌های آنکال چگونه به گوشی و رایانهٔ شما می‌رسند"
+flowchart TB
+    OneUptime["OneUptime شما:<br/>Cloud یا خودمیزبان"]
+    Expo["سرویس پوش Expo،<br/>سپس Apple یا Google"]
+    WebPush["سرویس پوشِ<br/>مرورگر شما"]
+    Phone["OneUptime On-Call<br/>روی گوشی شما"]
+    Desktop["اپلیکیشن دسکتاپ<br/>روی رایانهٔ شما"]
+    OneUptime -->|"به یک گوشی"| Expo
+    OneUptime -->|"به یک مرورگرِ<br/>ثبت‌شده"| WebPush
+    Expo -->|"اعلان پوش"| Phone
+    WebPush -->|"اعلان"| Desktop
+```
 
-- [نصب روی Windows](./windows-installation.md)
-- [نصب روی macOS](./macos-installation.md)
-- [نصب روی Linux](./linux-installation.md)
+اپلیکیشن موبایل به OneUptime شما وارد می‌شود و گوشی را در همهٔ پروژه‌هایی که عضوشان هستید ثبت می‌کند. از آن پس OneUptime اعلان‌های پوش گوشی، از جمله فراخوان‌های آنکال، را از راه سرویس پوش Expo می‌فرستد، که آن‌ها را برای تحویل به Apple یا Google می‌سپارد. یک OneUptime خودمیزبان به‌طور پیش‌فرض آن‌ها را از راه رلهٔ پوش OneUptime می‌فرستد، پس به حساب Apple، Google یا Expo از آنِ خودش نیاز ندارد: [اعلان‌های پوش](/docs/self-hosted/push-notifications) را ببینید.
 
-### شروع کار روی دسکتاپ
+اپلیکیشن دسکتاپ همان داشبورد است، در پنجره‌ای جدا. وقتی مرورگرش را برای اعلان‌های پوش ثبت کنید، اعلان نشان می‌دهد: صفحه‌های Windows، macOS و Linux نشان می‌دهند چگونه.
 
-1. نمونه OneUptime خود را در یک مرورگر مبتنی بر Chromium (Chrome، Edge) یا Safari باز کنید.
-2. به دنبال دکمه **Install** در نوار نشانی یا در مسیر **File → Add to Dock / Apps → Install this site as an app** بگردید.
-3. اپلیکیشن نصب‌شده را از Start Menu، Launchpad یا اجراکننده برنامه‌های خود اجرا کنید.
+## پیش از شروع
 
-### رفع اشکال دسکتاپ
+- یک حساب در یک پروژهٔ OneUptime. برای اینکه فراخوانده شوید، باید آنکال هم باشید: [قواعد تشدید](/docs/on-call/escalation-rules) را ببینید.
+- نشانی OneUptime شما. در OneUptime Cloud این نشانی `https://oneuptime.com` است؛ یک OneUptime خودمیزبان نشانی خودش را دارد، مانند `https://oneuptime.example.com`.
+- OneUptime شما روی HTTPS. اپلیکیشن موبایل روی HTTP ساده وصل نمی‌شود، و مرورگرها فقط برای سایت‌های HTTPS اعلان نشان می‌دهند، و Edge و Chrome فقط برای آن‌ها اپلیکیشن نصب می‌کنند.
 
-**گزینه نصب ظاهر نمی‌شود:**
+## اپلیکیشن موبایل را بگیرید
 
-- مطمئن شوید از مرورگری پشتیبانی‌شده استفاده می‌کنید.
-- بررسی کنید که نمونه OneUptime شما روی HTTPS ارائه می‌شود.
-- صفحه را تازه کنید یا کش مرورگر خود را پاک کنید.
+:::steps
+### OneUptime On-Call را نصب کنید
+آن را روی iPhone یا iPad از [App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) بگیرید، یا روی Android از [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). روی گوشی Android بدون Google Play، به‌جای آن [APK](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) را نصب کنید. همین پیوندها در داشبورد زیر **تنظیمات پروژه** > **اعلان‌ها** > **اپلیکیشن‌های موبایل** هم هستند.
 
-**اعلان‌های پوش کار نمی‌کنند:**
+### آن را به OneUptime خودتان وصل کنید
+اپلیکیشن را باز کنید، برای OneUptime Cloud نشانی `https://oneuptime.com` را نگه دارید یا نشانی OneUptime خودتان را وارد کنید، و با رمز عبور، کلید عبور یا ورود یکپارچه وارد شوید.
 
-- وقتی مرورگر اجازه خواست، دسترسی اعلان را بدهید.
-- تنظیمات اعلان سیستم‌عامل خود را برای آن مرورگر بررسی کنید.
-- کاربران خودمیزبان: مطمئن شوید اعلان‌های پوش روی نمونه OneUptime شما پیکربندی شده است.
+### اجازهٔ اعلان بدهید
+وقتی گوشی پرسید، اجازه بدهید. اپلیکیشن گوشی را در هر یک از پروژه‌هایتان ثبت می‌کند، و فراخوان‌های آنکال روی آن می‌رسند.
+:::
 
-## پشتیبانی
+هر گام با جزئیات، همراه با آنچه پس از آن باید بررسی کنید: [نصب روی Android](/docs/mobile-desktop-apps/android-installation) و [نصب روی iOS](/docs/mobile-desktop-apps/ios-installation).
 
-- مشکلات مخصوص موبایل: راهنمای نصب [iOS](./ios-installation.md) یا [Android](./android-installation.md) را ببینید.
-- مشکلات مخصوص دسکتاپ: راهنمای نصب [Windows](./windows-installation.md)، [macOS](./macos-installation.md) یا [Linux](./linux-installation.md) را ببینید.
-- پرسش‌های عمومی: صفحه [پرسش‌های متداول و رفع اشکال](./faq-troubleshooting.md) را ببینید.
-- باگ‌ها یا درخواست قابلیت را در [مخزن GitHub](https://github.com/OneUptime/oneuptime) ما ثبت کنید.
+## اپلیکیشن دسکتاپ را بگیرید
+
+:::steps
+### داشبورد را باز کنید
+در Microsoft Edge یا Google Chrome، یا در Safari روی Mac، به OneUptime خودتان وارد شوید.
+
+### آن را نصب کنید
+در Edge یا Chrome، روی نماد نصب در سمت راست نوار نشانی کلیک کنید. در Safari، **File** > **Add to Dock** را انتخاب کنید.
+
+### آن را مانند هر اپلیکیشن دیگری باز کنید
+در پنجرهٔ خودش، از منوی Start، از Dock یا از لانچر اپلیکیشن‌ها باز می‌شود.
+:::
+
+هر مرورگر، گام به گام: [نصب روی Windows](/docs/mobile-desktop-apps/windows-installation)، [نصب روی macOS](/docs/mobile-desktop-apps/macos-installation) و [نصب روی Linux](/docs/mobile-desktop-apps/linux-installation).
+
+## گام‌های بعدی
+
+:::cards
+- [نصب روی Android](/docs/mobile-desktop-apps/android-installation): اپلیکیشن را روی Android نصب کنید، وارد شوید و بررسی کنید که فراخوان‌ها می‌رسند.
+- [نصب روی iOS](/docs/mobile-desktop-apps/ios-installation): اپلیکیشن را روی iPhone یا iPad نصب کنید و هشدارهای بحرانی را روشن کنید.
+- [نصب روی Windows](/docs/mobile-desktop-apps/windows-installation): داشبورد را از Edge یا Chrome نصب کنید.
+- [نصب روی macOS](/docs/mobile-desktop-apps/macos-installation): داشبورد را از Safari، Chrome یا Edge به Dock اضافه کنید.
+- [نصب روی Linux](/docs/mobile-desktop-apps/linux-installation): داشبورد را از Chrome، Chromium یا Edge نصب کنید.
+- [پرسش‌های متداول و رفع اشکال](/docs/mobile-desktop-apps/faq-troubleshooting): پاسخ‌ها، راه‌حل‌ها، و اینکه وقتی گوشی دیگر فراخوان نمی‌گیرد چه کنید.
+:::

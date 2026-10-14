@@ -1,182 +1,112 @@
-# Windows 安裝指南
+# Windows 安裝
 
-在 Windows 上將 OneUptime 安裝為桌面應用程式，以進行全面的監控與事件管理。
+OneUptime 儀表板可以從 Microsoft Edge 或 Google Chrome 在 Windows 上安裝為應用程式。它在自己的視窗中開啟，在工作列和「開始」功能表中有自己的圖示，並且可以顯示通知。無需下載任何內容：這個應用程式就是你的 OneUptime 的儀表板，只要你的 OneUptime 是最新的，它就是最新的。
 
-## 安裝方式
+:::cards
+- [安裝應用程式](#安裝應用程式): 從 Edge 或 Chrome 安裝，只需點選幾下。
+- [釘選它並隨 Windows 啟動](#釘選它並隨-windows-啟動): 讓它一鍵即可開啟。
+- [在這台電腦上接收通知](#在這台電腦上接收通知): 為推播通知註冊瀏覽器。
+- [疑難排解](#疑難排解): 沒有安裝圖示、沒有通知、需要重新登入。
+:::
 
-### 方式 1：Microsoft Edge（建議）
+## 桌面應用程式的運作方式
 
-Edge 提供最佳的 Windows PWA 整合，具備原生功能。
-
-1. **在 Edge 中開啟 OneUptime**
-
-   - 啟動 Microsoft Edge 瀏覽器
-   - 前往您的 OneUptime 執行個體 URL
-   - 登入您的 OneUptime 帳戶
-   - 等待頁面完整載入
-
-2. **安裝應用程式**
-
-   - 在網址列中尋找**安裝圖示**（⊞）
-   - 點擊 **"Install OneUptime"** 按鈕
-   - 或點擊**三點選單** → **Apps** → **Install this site as an app**
-
-3. **自訂安裝**
-
-   - **應用程式名稱**：可依需求修改（預設值：OneUptime）
-   - **開始功能表**：選擇是否加入開始功能表
-   - **工作列**：可選擇釘選到工作列
-   - **桌面**：建立桌面捷徑
-
-4. **完成安裝**
-   - 點擊 **"Install"** 以完成
-   - OneUptime 將會在自己的視窗中開啟
-   - 在開始功能表的已安裝應用程式中找到它
-
-### 方式 2：Google Chrome
-
-Chrome 提供出色的 PWA 支援，並具備豐富的桌面整合。
-
-1. **在 Chrome 中開啟 OneUptime**
-
-   - 啟動 Google Chrome
-   - 前往您的 OneUptime 執行個體
-   - 確認您已登入
-   - 允許頁面完整載入
-
-2. **透過網址列安裝**
-
-   - 在網址列中尋找**安裝圖示**（⊞）
-   - 點擊 **"Install OneUptime"**
-   - 或使用選單：**三點** → **More tools** → **Create shortcut**
-
-3. **安裝選項**
-
-   - 勾選 **"Open as window"** 以獲得類似應用程式的體驗
-   - 可依需求自訂應用程式名稱
-   - 點擊 **"Install"** 或 **"Create"**
-
-4. **啟動應用程式**
-   - 在 Windows 開始功能表中找到 OneUptime
-   - 或從桌面捷徑啟動
-   - 應用程式會在專屬視窗中開啟
-
-### 方式 3：Firefox
-
-Firefox 支援 PWA 安裝，並具備基本的桌面整合。
-
-1. **在 Firefox 中開啟 OneUptime**
-
-   - 啟動 Firefox 瀏覽器
-   - 前往 OneUptime URL
-   - 完成登入程序
-
-2. **安裝 PWA**
-   - 尋找**安裝提示**或橫幅
-   - 或點擊**選單** → **Install**
-   - 若有提供，請點擊相當於 **"Add to Home Screen"** 的選項
-
-### 啟動設定
-
-1. **自動啟動**：設定 OneUptime 隨 Windows 一起啟動
-   - 在工作列上按右鍵 → 工作管理員 → 啟動
-   - 如有需要，啟用 OneUptime
-2. **預設大小**：設定偏好的視窗大小與位置
-
-### 通知設定
-
-1. **Windows 通知**
-
-   - 設定 → 系統 → 通知與動作
-   - 找到 OneUptime 並設定警示偏好
-   - 啟用事件的橫幅通知
-
-2. **專注輔助**
-   - 設定「請勿打擾」設定
-   - 允許 OneUptime 的重要通知
-   - 為不同的警示類型設定優先順序
-
-## 進階安裝選項
-
-## 疑難排解
-
-### 安裝問題
-
-**未顯示安裝按鈕：**
-
-```
-Solutions:
-1. Ensure you're using Edge or Chrome (recommended browsers)
-2. Verify HTTPS connection to OneUptime instance
-3. Clear browser cache and cookies
-4. Update browser to latest version
-5. Check if PWA requirements are met on server
-6. Disable browser extensions temporarily
+```mermaid title="安裝儀表板會帶來什麼"
+flowchart TB
+    Browser["Edge 或 Chrome<br/>開啟你的儀表板"]
+    Install["你把它安裝<br/>為應用程式"]
+    App["在自己視窗中的<br/>OneUptime，位於工作列<br/>和「開始」功能表中"]
+    OneUptime["你的 OneUptime<br/>提供儀表板"]
+    Browser --> Install --> App
+    App -->|"每次開啟時<br/>載入儀表板"| OneUptime
 ```
 
-**安裝失敗或當機：**
+已安裝的應用程式與其瀏覽器共享登入狀態、設定和通知權限。關閉瀏覽器後，應用程式仍會在自己的視窗中繼續執行。
 
-```
-Solutions:
-1. Run browser as administrator
-2. Check Windows User Account Control (UAC) settings
-3. Ensure sufficient disk space (minimum 100MB)
-4. Temporarily disable antivirus software
-5. Clear browser data completely
-6. Restart Windows and try again
-```
+## 開始之前
 
-**應用程式未出現在開始功能表中：**
+- Windows 10 或 Windows 11，並裝有較新版本的 Microsoft Edge 或 Google Chrome。
+- 透過 HTTPS 存取的你的 OneUptime 網址：OneUptime Cloud 上是 `https://oneuptime.com`，或你自己的網址，例如 `https://oneuptime.example.com`。
+- 一個可以登入儀表板的帳號。
 
-```
-Solutions:
-1. Search for "OneUptime" in Windows search
-2. Check if installed under different name
-3. Look in "Recently added" apps section
-4. Reinstall and ensure "Add to Start Menu" is checked
-5. Manually create shortcut if necessary
-```
+## 安裝應用程式
 
-### 通知問題
+:::tabs
+@tab Edge
+1. 在 Edge 中開啟你的 OneUptime 並登入。
+2. 在任意儀表板頁面上，點選網址列右側的安裝圖示，然後點選 **安裝**。或者開啟 **設定及其他 (…) → 更多工具 → 應用程式 → 將此網站安裝為應用程式**。
+3. Edge 會在自己的視窗中開啟 OneUptime，並可能提示你將其釘選到工作列或「開始」功能表。
+@tab Chrome
+1. 在 Chrome 中開啟你的 OneUptime 並登入。
+2. 在任意儀表板頁面上，點選網址列右側的安裝圖示，然後點選 **安裝**。或者開啟 **⋮ → 投放、儲存及分享 → 將頁面安裝為應用程式**。
+3. Chrome 會在自己的視窗中開啟 OneUptime，並將其新增到「開始」功能表。
+:::
 
-**Windows 通知無法運作：**
+請在登入後從儀表板頁面安裝：登入頁面不是這個應用程式。之後要開啟它，請在「開始」功能表中搜尋 OneUptime。
 
-```
-Solutions:
-1. Windows Settings → System → Notifications & actions
-2. Enable notifications for OneUptime
-3. Check Focus Assist settings
-4. Ensure notification permissions in OneUptime
-5. Test with simple notification first
-```
+## 釘選它並隨 Windows 啟動
+
+- **工作列。** 在應用程式開啟時，以滑鼠右鍵按一下它在工作列上的圖示，然後選擇 **釘選到工作列**。
+- **隨 Windows 啟動。** 在 Edge 中開啟 `edge://apps`，在 OneUptime 上選擇 **詳細資料**，然後開啟 **裝置登入時自動啟動**。同一頁面還可以將應用程式釘選到工作列或「開始」功能表，或在桌面上建立捷徑。
+
+## 在這台電腦上接收通知
+
+應用程式透過其瀏覽器顯示通知，前提是你在每個想接收通知的專案中為推播通知註冊了該瀏覽器。
+
+:::steps
+### 開啟你的推播裝置
+在應用程式中，開啟 **使用者設定 → 通知方式** 和 **Push Notifications** 分頁。
+
+### 註冊這個瀏覽器
+點選 **註冊裝置**，保留建議的 **裝置名稱**（例如 `Edge on Windows`）或修改它，然後再次點選 **註冊裝置**。當瀏覽器詢問是否允許 OneUptime 顯示通知時，選擇 **允許**。
+
+### 傳送測試
+在 **Browser Registered** 對話方塊中，點選 **Send Test Notification**。如果什麼都沒有出現，請檢查 Windows 本身的通知設定：請參閱 [疑難排解](#疑難排解)。
+:::
+
+瀏覽器的通知音量不會超過 Windows 允許的程度：它無法略過「請勿打擾」。對於必須叫醒你的呼叫，請使用開啟了重大警示的行動應用程式：請參閱 [Android 安裝](/docs/mobile-desktop-apps/android-installation#穿透靜音模式) 或 [iOS 安裝](/docs/mobile-desktop-apps/ios-installation#穿透靜音模式)。
+
+在自架的 OneUptime 上，瀏覽器通知需要伺服器的 VAPID 金鑰：請參閱 [推播通知](/docs/self-hosted/push-notifications#自架設定)。
+
+## 更新
+
+無需更新任何內容。應用程式每次開啟時都會從你的 OneUptime 載入儀表板，因此你的 OneUptime 升級後它也會隨之變化。如果某個視窗在升級前就已開啟，請按 Ctrl+R 重新載入。
 
 ## 解除安裝
 
-### 完整移除
+:::tabs
+@tab Edge
+開啟 `edge://apps`，在 OneUptime 上選擇 **詳細資料**，然後選擇 **解除安裝**。
+@tab Chrome
+在應用程式視窗中開啟 **⋮** 選單，選擇解除安裝該應用程式的選單項目，然後選擇 **移除**。
+:::
 
-1. **Windows 設定方式**
+Windows 也會在 **設定 → 應用程式 → 已安裝的應用程式** 下列出該應用程式，在那裡點選 **解除安裝** 同樣可以移除它。
 
-   - 設定 → 應用程式 → 應用程式與功能
-   - 搜尋 "OneUptime"
-   - 點擊並選擇「解除安裝」
+解除安裝應用程式不會取消註冊它的瀏覽器：瀏覽器仍會收到通知。要停止通知，請在 **使用者設定 → 通知方式** 的 **Push Notifications** 分頁中，用 **刪除** 刪除該瀏覽器。
 
-2. **瀏覽器方式**
+## 疑難排解
 
-   - 開啟 Edge/Chrome
-   - 前往 edge://apps/ 或 chrome://apps/
-   - 找到 OneUptime
-   - 點擊選項 → 解除安裝
+:::details 網址列中沒有安裝圖示
+請在登入後開啟儀表板頁面，而不是登入頁面，並確認網址以 `https://` 開頭：瀏覽器只會從安全網站安裝應用程式。如果圖示仍未出現，請按上文所述使用瀏覽器的選單。其他瀏覽器可能無法將網站安裝為應用程式；請使用 Edge 或 Chrome。
+:::
 
-3. **開始功能表方式**
-   - 在開始功能表中於 OneUptime 上按右鍵
-   - 選擇「解除安裝」
-   - 確認移除
+:::details 沒有顯示通知
+- 在 **使用者設定 → 通知方式** 的 **Push Notifications** 分頁中，確認這個瀏覽器已列出，並向它傳送一則 **測試通知**。
+- 在 Windows 中開啟 **設定 → 系統 → 通知**：通知必須開啟（對瀏覽器也要開啟），並且「請勿打擾」必須關閉。Windows 10 中這個頁面名為「通知與動作」。
+- 如果瀏覽器封鎖了 OneUptime 的通知，請點選網址列左側的圖示，允許該網站的通知，然後重新註冊瀏覽器。
+- 在自架的 OneUptime 上，如果伺服器沒有 VAPID 金鑰，**註冊裝置** 對話方塊會說明這一點。
+:::
 
-## 更新與維護
+:::details 應用程式要求你重新登入
+應用程式與其瀏覽器共享登入狀態。在瀏覽器中登出或清除其 Cookie，也會讓應用程式登出。
+:::
 
-### 自動更新
+## 後續步驟
 
-- OneUptime PWA 在連線時會自動更新
-- 無需手動介入
-- 更新會在重新啟動後立即套用
-- 重要修補程式會即時部署
+:::cards
+- [macOS 安裝](/docs/mobile-desktop-apps/macos-installation): 在 Mac 上使用同一個應用程式。
+- [Android 安裝](/docs/mobile-desktop-apps/android-installation): 在手機上接收呼叫。
+- [常見問題與疑難排解](/docs/mobile-desktop-apps/faq-troubleshooting): 關於兩個應用程式的解答。
+- [您的帳戶](/docs/introduction/your-account): OneUptime 如何在每個專案中聯絡你。
+:::
