@@ -65,16 +65,25 @@
  *              bucketSizeInMinutes and buckets (how many came back)
  *   realtime: modelName, eventType (a subscription; nothing is ever sent)
  *
- * Two gates hold answers back so a spec can choose the moment data lands
- * (both default to "immediate", which answers at once):
+ * Three gates hold answers back so a spec can choose the moment data lands
+ * (all default to "immediate", which answers at once):
  *
  *   .histogramGate   the explorers' histogram, facets and analytics answers
  *   .aggregateGate   every modelled AnalyticsModelAPI.aggregate answer
+ *   .listGate        ModelAPI.getList reads of the tables named in
+ *                    listGate.tables (none by default), such as an
+ *                    explorer's saved views or its Service list
  *
  *   gate.mode = "manual"   later requests wait in gate.pending
- *                          ({ seq, url or metricName, window, response })
+ *                          ({ seq, url, metricName or modelName, window,
+ *                          response })
  *   gate.deliver()         answers everything pending, in order, and
  *                          returns how many it answered
+ *
+ * An explorer reads its saved views and its resource lists as it mounts,
+ * before a spec can reach the page. window.__chartTimeZoomGates, set before
+ * the page loads (addInitScript), is what each gate starts with, as in
+ * { listGate: { mode: "manual", tables: ["LogSavedView"] } }.
  *
  * Reads the query time limit stops (issue #4707). A spec sets
  * .timeLimit, and the reads it names answer the way the API answers a read
@@ -236,9 +245,11 @@ const HOST_IDENTIFIER = "api-gateway-01";
  * every answer in `pending` until deliver(). Switching back to "immediate"
  * does not release what is already parked: deliver() does.
  */
-function createGate() {
+function createGate(name) {
+  const initial = window.__chartTimeZoomGates?.[name] || {};
   const gate = {
-    mode: "immediate",
+    mode: initial.mode || "immediate",
+    tables: initial.tables || [],
     pending: [],
     deliver() {
       const released = gate.pending.splice(0, gate.pending.length);
@@ -285,8 +296,9 @@ const fixture = {
   },
   requests: [],
   unhandled: [],
-  histogramGate: createGate(),
-  aggregateGate: createGate(),
+  histogramGate: createGate("histogramGate"),
+  aggregateGate: createGate("aggregateGate"),
+  listGate: createGate("listGate"),
   /*
    * See the header. A spec that needs the first load stopped sets
    * window.__chartTimeZoomTimeLimit before the page loads (addInitScript).
@@ -2455,6 +2467,14 @@ const EXPLORER_ENDPOINTS = [
     },
   },
   {
+    // The search bar's suggestions for a typed `@key:`; no exception here
+    // carries attributes, so there is nothing to suggest.
+    path: "/telemetry/exceptions/get-attribute-values",
+    answer: () => {
+      return { values: [] };
+    },
+  },
+  {
     path: "/telemetry/metrics/facets",
     answer: (body, url) => {
       const facets = {};
@@ -2554,7 +2574,7 @@ ModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
   const skip = Number(options.skip || 0);
   const limit = Number(options.limit || 10);
-  record({
+  const entry = record({
     kind: "getList",
     modelName,
     query: serialize(options.query),
@@ -2567,20 +2587,27 @@ ModelAPI.getList = async (options) => {
   const known = knownTable(options.modelType, "getList", {
     query: serialize(options.query),
   });
-  const records = sortRecords(
-    (known?.records || []).filter((item) => {
-      return matches(item, options.query);
-    }),
-    options.sort,
-  );
-  return {
-    data: records.slice(skip, skip + limit).map((item) => {
-      return projectRecord(options.modelType, item, options.select);
-    }),
-    count: records.length,
-    skip,
-    limit,
+  const answer = () => {
+    const records = sortRecords(
+      (known?.records || []).filter((item) => {
+        return matches(item, options.query);
+      }),
+      options.sort,
+    );
+    return {
+      data: records.slice(skip, skip + limit).map((item) => {
+        return projectRecord(options.modelType, item, options.select);
+      }),
+      count: records.length,
+      skip,
+      limit,
+    };
   };
+  // The tables a spec holds answer when it says (see the header).
+  if (fixture.listGate.tables.includes(modelName)) {
+    return throughGate(fixture.listGate, { seq: entry.seq, modelName }, answer);
+  }
+  return answer();
 };
 
 ModelAPI.count = async (options) => {

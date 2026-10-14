@@ -26,6 +26,10 @@ import {
   TelemetryLoadErrorKind,
 } from "../../../Utils/Telemetry/TelemetryLoadError";
 
+// The sidebar's loader, shown while there is nothing to list yet.
+export const TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID: string =
+  "telemetry-facet-sidebar-loader";
+
 export interface TelemetryFacetSidebarProps {
   facetData: FacetData;
   isLoading: boolean;
@@ -189,6 +193,29 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
       ? { kind: TelemetryLoadErrorKind.TimedOut, message: "" }
       : undefined);
 
+  /*
+   * Nothing to list yet: the first read, or an explorer that holds its reads
+   * until it knows its scope (issue #4709). The sidebar then shows its
+   * loader alone, under its heading where it is seen, rather than a facet
+   * list saying "No values in this time range" under every facet that has
+   * not been read. A host can hand over a key before its values (the
+   * Exceptions explorer counts error classes itself), so it is the values
+   * that are looked at, not the keys. A facet the reader is searching keeps
+   * its section, so the box they are typing in stays where it is.
+   */
+  const hasNothingToListYet: boolean =
+    props.isLoading &&
+    Object.values(props.facetData).every(
+      (values: Array<FacetValue> | undefined): boolean => {
+        return !values || values.length === 0;
+      },
+    ) &&
+    Object.values(facetSearch.searchTextByKey).every(
+      (text: string): boolean => {
+        return text.trim().length === 0;
+      },
+    );
+
   const visibleConfigs: Array<FacetConfig> = visibility.visibleKeys
     .map((key: string): FacetConfig | undefined => {
       return configsByKey.get(key);
@@ -210,8 +237,11 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
         </h3>
       </div>
 
-      {props.isLoading && Object.keys(props.facetData).length === 0 && (
-        <div className="flex flex-1 items-center justify-center py-8">
+      {hasNothingToListYet && (
+        <div
+          className="flex items-center justify-center py-8"
+          data-testid={TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID}
+        >
           <ComponentLoader />
         </div>
       )}
@@ -225,54 +255,56 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
         />
       )}
 
-      <div id={facetListId} className="flex-1 overflow-y-auto">
-        {visibleConfigs.map((config: FacetConfig) => {
-          const values: Array<FacetValue> = facetData[config.key] || [];
+      {!hasNothingToListYet && (
+        <div id={facetListId} className="flex-1 overflow-y-auto">
+          {visibleConfigs.map((config: FacetConfig) => {
+            const values: Array<FacetValue> = facetData[config.key] || [];
 
-          const onSearchChange: ((text: string) => void) | undefined =
-            config.serverSearchable
-              ? facetSearch.getSearchChangeHandler(config.key)
-              : undefined;
+            const onSearchChange: ((text: string) => void) | undefined =
+              config.serverSearchable
+                ? facetSearch.getSearchChangeHandler(config.key)
+                : undefined;
 
-          return (
-            <TelemetryFacetSection
-              key={config.key}
-              facetKey={config.key}
-              title={config.title}
-              values={values}
-              onIncludeValue={props.onIncludeFilter}
-              onExcludeValue={props.onExcludeFilter}
-              valueDisplayMap={config.valueDisplayMap}
-              valueColorMap={config.valueColorMap}
-              activeValues={activeValuesByKey[config.key]}
-              onSearchChange={onSearchChange}
-              icon={config.icon}
-              searchText={facetSearch.searchTextByKey[config.key] ?? ""}
-              onSearchTextChange={(text: string) => {
-                facetSearch.setSearchText(config.key, text);
-              }}
-              emptyStateText={getSidebarFacetEmptyStateText({
-                isHideable: config.hideWhenEmpty === true,
-                emptyStateNoun: config.emptyStateNoun,
-                searchedAtArrivalText:
-                  facetSearch.searchedAtArrivalByKey[config.key],
-                isScoped: props.onlyShowValuesInScope,
-              })}
-              isCountStopped={timedOutFacetKeys.has(config.key)}
-            />
-          );
-        })}
+            return (
+              <TelemetryFacetSection
+                key={config.key}
+                facetKey={config.key}
+                title={config.title}
+                values={values}
+                onIncludeValue={props.onIncludeFilter}
+                onExcludeValue={props.onExcludeFilter}
+                valueDisplayMap={config.valueDisplayMap}
+                valueColorMap={config.valueColorMap}
+                activeValues={activeValuesByKey[config.key]}
+                onSearchChange={onSearchChange}
+                icon={config.icon}
+                searchText={facetSearch.searchTextByKey[config.key] ?? ""}
+                onSearchTextChange={(text: string) => {
+                  facetSearch.setSearchText(config.key, text);
+                }}
+                emptyStateText={getSidebarFacetEmptyStateText({
+                  isHideable: config.hideWhenEmpty === true,
+                  emptyStateNoun: config.emptyStateNoun,
+                  searchedAtArrivalText:
+                    facetSearch.searchedAtArrivalByKey[config.key],
+                  isScoped: props.onlyShowValuesInScope,
+                })}
+                isCountStopped={timedOutFacetKeys.has(config.key)}
+              />
+            );
+          })}
 
-        <HiddenFacetsFooter
-          hiddenCount={visibility.hiddenCount}
-          hiddenTitles={visibility.hiddenTitles}
-          isShowingHidden={showHidden}
-          controlsId={facetListId}
-          onToggle={() => {
-            setShowHidden(!showHidden);
-          }}
-        />
-      </div>
+          <HiddenFacetsFooter
+            hiddenCount={visibility.hiddenCount}
+            hiddenTitles={visibility.hiddenTitles}
+            isShowingHidden={showHidden}
+            controlsId={facetListId}
+            onToggle={() => {
+              setShowHidden(!showHidden);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 };

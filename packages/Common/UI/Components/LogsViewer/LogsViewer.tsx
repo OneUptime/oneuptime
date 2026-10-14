@@ -1487,6 +1487,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                   onPageChange={handlePageChange}
                   onPageSizeChange={handlePageSizeChange}
                   isDisabled={props.isLoading}
+                  isLoading={props.isLoading && props.logs.length === 0}
                 />
               )}
             </div>

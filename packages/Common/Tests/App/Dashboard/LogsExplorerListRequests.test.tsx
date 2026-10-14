@@ -175,6 +175,7 @@ import DashboardLogsViewer, {
   INITIAL_SAVED_VIEW_WAIT_MS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Logs/LogsViewer";
 import { LOGS_VIEWER_TOOLBAR_TEST_ID } from "../../../UI/Components/LogsViewer/components/LogsViewerToolbar";
+import { LOGS_TABLE_TEST_ID } from "../../../UI/Components/LogsViewer/components/LogsTable";
 import Log from "../../../Models/AnalyticsModels/Log";
 import LogSavedView from "../../../Models/DatabaseModels/LogSavedView";
 import LogSeverity from "../../../Types/Log/LogSeverity";
@@ -1076,6 +1077,63 @@ describe("a saved view that applies on load is waited for", () => {
     expect(listCalls()).toHaveLength(1);
     expect(histogramRequests()).toHaveLength(1);
     expect(facetRequests()).toHaveLength(1);
+  });
+
+  test("while the saved views are read, the explorer says it is loading - not that there are no logs", async () => {
+    savedViews = [errorsView()];
+    const gate: Deferred<void> = defer<void>();
+    savedViewsGate = gate.promise;
+
+    await openAt(`?savedView=${SAVED_VIEW_ID}&range=Past%201%20Day&page=2`);
+
+    // The list's loader, with room for the rows; no empty state under it.
+    const table: HTMLElement = screen.getByTestId(LOGS_TABLE_TEST_ID);
+    expect(table).toHaveClass("min-h-48");
+    expect(within(table).getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.queryByText("No logs found")).toBeNull();
+    expect(footerSummary()).toBe("Loading...");
+    // The page the link named is the page the footer is on.
+    expect(
+      within(footer()).getByTestId("pagination-current-page-indicator-desktop"),
+    ).toHaveTextContent("Page 2");
+
+    await act(async () => {
+      gate.resolve();
+    });
+    await settle();
+
+    expect(listCalls()).toHaveLength(1);
+    expect(screen.getByTestId(LOGS_TABLE_TEST_ID)).not.toHaveClass("min-h-48");
+    expect(footerSummary()).toMatch(/^Showing 101-200/);
+  });
+
+  test("turning Live on while the saved views are read sends nothing until they land", async () => {
+    savedViews = [errorsView()];
+    const gate: Deferred<void> = defer<void>();
+    savedViewsGate = gate.promise;
+
+    await openAt(`?savedView=${SAVED_VIEW_ID}&range=Past%201%20Day`);
+
+    fireEvent.click(screen.getByRole("button", { name: "Live" }));
+    await settle();
+
+    /*
+     * A beat now would read - and paint - the query the view is about to
+     * replace: the rows this wait is there to keep off the screen.
+     */
+    expect(listCalls()).toHaveLength(0);
+    expect(histogramRequests()).toHaveLength(0);
+
+    await act(async () => {
+      gate.resolve();
+    });
+    await settle();
+
+    // One read: the view's.
+    expect(listCalls()).toHaveLength(1);
+    expect(lastListCall().query["severityText"]).toEqual(
+      new Includes([LogSeverity.Error]),
+    );
   });
 
   test("a link to a view that is gone reads the link's own scope once, and drops the stale id", async () => {

@@ -349,7 +349,13 @@ describe("a page load reads everything once (#4709)", () => {
         fingerprints: 0,
       }),
     );
+    /*
+     * Every part reads as loading meanwhile - the list, the chart and the
+     * facets - so nothing says "no exceptions" for a read not yet sent.
+     */
     expect(viewerProps.isLoading).toBe(true);
+    expect(viewerProps.histogramLoading).toBe(true);
+    expect(viewerProps.facetLoading).toBe(true);
 
     await act(async () => {
       serviceListGate!.resolve();

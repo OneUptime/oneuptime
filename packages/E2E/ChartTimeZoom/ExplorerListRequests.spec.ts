@@ -1,4 +1,10 @@
-import { expect, Page, Route as PlaywrightRoute, test } from "@playwright/test";
+import {
+  expect,
+  Locator,
+  Page,
+  Route as PlaywrightRoute,
+  test,
+} from "@playwright/test";
 
 /*
  * Issue #4709 in a real browser: every load of the logs explorer - a
@@ -52,7 +58,12 @@ interface SpecWindow {
     requests: Array<RecordedRequest>;
     unhandled: Array<Record<string, unknown>>;
     dataset: { logSavedViewId: string };
+    listGate: { mode: string; deliver: () => number };
   };
+  __chartTimeZoomGates?: Record<
+    string,
+    { mode: string; tables: Array<string> }
+  >;
 }
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -432,6 +443,173 @@ test.describe("the exceptions explorer reads its list, chart and facets once per
         `${visit}: class counts once`,
       ).toHaveLength(6);
     }
+  });
+});
+
+/*
+ * Holds the fixture's ModelAPI.getList answers for `tables` from the first
+ * request of the next page load: an explorer reads its saved views and its
+ * service list as it mounts, before a spec can reach the page.
+ */
+async function holdOnLoad(page: Page, tables: Array<string>): Promise<void> {
+  await page.addInitScript((heldTables: Array<string>) => {
+    (window as unknown as SpecWindow).__chartTimeZoomGates = {
+      listGate: { mode: "manual", tables: heldTables },
+    };
+  }, tables);
+}
+
+// Lets every held answer through, and every later one at once.
+async function release(page: Page): Promise<void> {
+  await page.evaluate((): void => {
+    const gate: SpecWindow["__chartTimeZoomFixture"]["listGate"] = (
+      window as unknown as SpecWindow
+    ).__chartTimeZoomFixture.listGate;
+    gate.mode = "immediate";
+    gate.deliver();
+  });
+}
+
+test.describe("while an explorer waits to know what it shows, every part of it says it is loading (#4709)", () => {
+  /*
+   * The wait is one small read and normally over in a moment; held here so
+   * the moment can be looked at. Nothing may say "no logs" or "no values"
+   * for a read that has not been sent, and nothing may show rows the
+   * explorer is about to replace.
+   */
+  test("logs: a link that names a saved view, while the saved views load", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`/dashboard/${PROJECT_ID}/logs`);
+    await waitForLogsList(page);
+    const savedViewId: string = await page.evaluate((): string => {
+      return (window as unknown as SpecWindow).__chartTimeZoomFixture.dataset
+        .logSavedViewId;
+    });
+
+    await holdOnLoad(page, ["LogSavedView"]);
+    await page.goto(
+      `/dashboard/${PROJECT_ID}/logs?savedView=${savedViewId}&range=Past%201%20Day&page=2`,
+    );
+    await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+      timeout: 60000,
+    });
+
+    const footer: Locator = page
+      .getByTestId("logs-pagination")
+      .getByTestId("pagination-summary");
+    await expect(footer).toHaveText("Loading...", { timeout: 30000 });
+    // The list's own loader, in the room its rows will take.
+    const list: Locator = page.getByTestId("logs-table");
+    await expect(list.getByTestId("component-loader")).toBeVisible();
+    expect((await list.boundingBox())!.height).toBeGreaterThanOrEqual(192);
+    await expect(page.getByText("No logs found")).toHaveCount(0);
+    await page.waitForTimeout(SETTLE_MS);
+    expect(await listReads(page, LOG_TABLE)).toHaveLength(0);
+    await expect(footer).toHaveText("Loading...");
+
+    await release(page);
+
+    await expect(footer).toContainText("Showing 101-", { timeout: 30000 });
+    await page.waitForTimeout(SETTLE_MS);
+    const reads: Array<RecordedRequest> = await listReads(page, LOG_TABLE);
+    expect(reads, describeReads(reads)).toHaveLength(1);
+    expect(reads[0]!.skip).toBe(LOGS_PAGE_SIZE);
+    await expect(
+      page.getByRole("button", { name: /^Checkout errors/ }).first(),
+    ).toBeVisible();
+  });
+
+  test("exceptions: a `@service:` link, while the service names load", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await holdOnLoad(page, ["Service"]);
+    await page.goto(
+      `/dashboard/${PROJECT_ID}/exceptions/unresolved?range=Past%201%20Day&search=${encodeURIComponent(
+        "@service:checkout-api",
+      )}`,
+    );
+    await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+      timeout: 60000,
+    });
+
+    const footer: Locator = page
+      .getByTestId("telemetry-pagination")
+      .getByTestId("pagination-summary");
+    await expect(footer).toHaveText("Loading...", { timeout: 30000 });
+    // The sidebar's loader alone, not "No values" under every facet.
+    await expect(
+      page.getByTestId("telemetry-facet-sidebar-loader"),
+    ).toBeVisible();
+    await expect(page.getByText("No values in this time range")).toHaveCount(0);
+    await expect(page.getByText("No exceptions found")).toHaveCount(0);
+    await page.waitForTimeout(SETTLE_MS);
+    expect(await readsOf(page, "getList", "TelemetryException")).toHaveLength(
+      0,
+    );
+    await expect(footer).toHaveText("Loading...");
+
+    await release(page);
+
+    // One read, with the token resolved: checkout-api's two groups only.
+    await expect(
+      page.getByText(
+        "context deadline exceeded calling payments-worker /charge",
+      ),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(
+      page.getByText("Cannot read properties of undefined (reading 'items')"),
+    ).toBeVisible();
+    await expect(page.getByText("no such index [products-v7]")).toHaveCount(0);
+    await page.waitForTimeout(SETTLE_MS);
+    expect(await readsOf(page, "getList", "TelemetryException")).toHaveLength(
+      1,
+    );
+    await expect(
+      page.getByTestId("telemetry-facet-sidebar-loader"),
+    ).toHaveCount(0);
+  });
+
+  test("metrics: a `service:` link, while the service names load", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await holdOnLoad(page, ["Service"]);
+    await page.goto(
+      `/dashboard/${PROJECT_ID}/metrics?range=Past%201%20Hour&search=${encodeURIComponent(
+        "service:checkout-api",
+      )}`,
+    );
+    await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+      timeout: 60000,
+    });
+
+    const footer: Locator = page
+      .getByTestId("telemetry-pagination")
+      .getByTestId("pagination-summary");
+    await expect(footer).toHaveText("Loading...", { timeout: 30000 });
+    await expect(page.getByText("No metrics found")).toHaveCount(0);
+    await page.waitForTimeout(SETTLE_MS);
+    expect(await readsOf(page, "getList", "MetricType")).toHaveLength(0);
+    await expect(footer).toHaveText("Loading...");
+
+    await release(page);
+
+    /*
+     * One read, with the token applied. No metric series in the fixture
+     * names a service, so the answer is empty - and only now says so.
+     */
+    await expect(page.getByText("No metrics found")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(footer).toHaveText("No metrics");
+    await page.waitForTimeout(SETTLE_MS);
+    expect(await readsOf(page, "getList", "MetricType")).toHaveLength(1);
   });
 });
 

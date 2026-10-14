@@ -1945,11 +1945,18 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
    * Live polling. The list and the histogram come from different endpoints,
    * so both have to be refreshed on the same beat — otherwise new rows keep
    * arriving under a chart that never moves.
+   *
+   * Not while the explorer waits for a saved view to apply (issue #4709),
+   * like the first reads: a beat then would read the query the view is
+   * about to replace, and paint its rows over the loaders.
    */
   useLiveLogsRefresh({
     isLive: isLiveEnabled,
     isEligible:
-      page === 1 && sortField === "time" && sortOrder === SortOrder.Descending,
+      !awaitsInitialSavedView &&
+      page === 1 &&
+      sortField === "time" &&
+      sortOrder === SortOrder.Descending,
     intervalInMs: LIVE_POLL_INTERVAL_MS,
     refreshLogs: () => {
       void fetchItems({ skipLoadingState: true, refreshResultTotal: true });
