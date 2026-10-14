@@ -177,6 +177,9 @@ const LINKABLE_SCHEMES: ReadonlyArray<string> = ["http:", "https:", "mailto:"];
 // A link's words that look like a web address of their own.
 const WEB_ADDRESS_START: RegExp = /^(?:https?:\/\/|www\.)/i;
 
+// Where a bare web address could start, anywhere in a text.
+const WEB_ADDRESS_ANYWHERE: RegExp = /https?:\/\/|www\./i;
+
 // An invisible character that keeps two markers apart (see renderLine).
 const WORD_JOINER: string = "⁠";
 
@@ -841,40 +844,59 @@ ${code}
 
   /*
    * Plain text as values, each placed as text by mdText: at most
-   * MAX_TEXT_VALUE_LENGTH characters, cut after a space where there is one,
-   * and every backtick a value of its own. mdText leaves the characters of
-   * a bare web address as they are, so the address stays the one typed -
-   * but a backtick is in no address, and left there it could pair with
-   * another into a code span, where Slack reads "<...>" as a link: on its
-   * own, it is always escaped.
+   * MAX_TEXT_VALUE_LENGTH characters, cut after a space where there is one.
+   * mdText leaves the characters of a bare web address as they are, so the
+   * address stays the one typed - but a backtick is in no address, and left
+   * there it could pair with another into a code span, where Slack reads
+   * "<...>" as a link. So a value with an address in it is cut at its
+   * backticks too, each run of them a value of its own, which is escaped
+   * whole. A value with no address has every backtick escaped as it is:
+   * cut there too, a line of a million backticks was a million values.
    */
   private static splitTextValue(text: string): Array<string> {
-    if (text.length <= MAX_TEXT_VALUE_LENGTH && text.indexOf("`") === -1) {
+    if (
+      text.length <= MAX_TEXT_VALUE_LENGTH &&
+      (text.indexOf("`") === -1 || !WEB_ADDRESS_ANYWHERE.test(text))
+    ) {
       return [text];
     }
 
     const values: Array<string> = [];
+    let start: number = 0;
 
-    for (const [index, part] of text.split("`").entries()) {
-      if (index > 0) {
-        values.push("`");
-      }
+    while (start < text.length) {
+      let end: number = Math.min(start + MAX_TEXT_VALUE_LENGTH, text.length);
 
-      let start: number = 0;
-
-      while (start < part.length) {
-        let end: number = Math.min(start + MAX_TEXT_VALUE_LENGTH, part.length);
-
-        if (end < part.length) {
-          const space: number = part.lastIndexOf(" ", end);
-
-          if (space > start) {
-            end = space + 1;
+      // After the last space in this piece - looked for in it alone.
+      if (end < text.length) {
+        for (let probe: number = end; probe > start; probe--) {
+          if (text[probe] === " ") {
+            end = probe + 1;
+            break;
           }
         }
+      }
 
-        values.push(part.slice(start, end));
-        start = end;
+      const piece: string = text.slice(start, end);
+      start = end;
+
+      if (piece.indexOf("`") === -1 || !WEB_ADDRESS_ANYWHERE.test(piece)) {
+        values.push(piece);
+        continue;
+      }
+
+      let run: number = 0;
+
+      while (run < piece.length) {
+        let next: number = run;
+        const isBacktick: boolean = piece[run] === "`";
+
+        while (next < piece.length && (piece[next] === "`") === isBacktick) {
+          next++;
+        }
+
+        values.push(piece.slice(run, next));
+        run = next;
       }
     }
 

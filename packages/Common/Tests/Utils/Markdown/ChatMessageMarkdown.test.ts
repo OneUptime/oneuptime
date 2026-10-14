@@ -370,6 +370,24 @@ describe("ChatMessageMarkdown.toMarkdown: a message as it read in the chat", () 
     expect(ChatMessageMarkdown.isEmpty({ blocks: [blocks[1]!] })).toBe(false);
   });
 
+  test("a backtick typed next to an address is never code", () => {
+    const markdown: string = markdownOf(
+      paragraph(text("see https://x.example/a`b` and ``c``")),
+    );
+
+    expect(markdown).toBe("see https://x.example/a\\`b\\` and \\`\\`c\\`\\`");
+
+    const html: string = renderAsDashboard([markdown])[0]!;
+
+    expect(html).not.toContain("<code>");
+    /*
+     * A bare address is a link up to what Markdown readers take as its end,
+     * the next space: escapes typed glued to it are in it, as they are
+     * wherever mdText places an address (FeedMarkdown).
+     */
+    expect(hrefsOf(html)).toEqual(["https://x.example/a%5C%60b%5C%60"]);
+  });
+
   test("a code block is fenced, with no language, longer than any fence inside it", () => {
     const markdown: string = markdownOf({
       type: "code",
@@ -902,8 +920,22 @@ describe("ChatMessageMarkdown.toMarkdown: in time that grows with the message", 
     ["markers", paragraph(text("*_~`[]<>\\".repeat(LENGTH / 9)))],
     ["addresses", paragraph(text("https://a.example/x ".repeat(LENGTH / 20)))],
     ["lines", paragraph(text("a line of a message\n".repeat(LENGTH / 19)))],
-    ["one character a line", paragraph(text("a\n".repeat(LENGTH / 8)))],
+    ["one character a line", paragraph(text("a\n".repeat(LENGTH / 2)))],
     ["spaces", paragraph(text(" ".repeat(LENGTH) + "x"))],
+    // A backtick next to an address is a value of its own: a run of them is one.
+    ["backticks", paragraph(text("`".repeat(LENGTH)))],
+    [
+      "an address, then backticks",
+      paragraph(text(`https://a.example/${"`a".repeat(LENGTH / 2)}`)),
+    ],
+    [
+      "addresses and backticks",
+      paragraph(text("https://a.example/`x` ".repeat(LENGTH / 22))),
+    ],
+    [
+      "one long word with no space to cut at",
+      paragraph(text("ab".repeat(LENGTH / 2))),
+    ],
   ])("%s", (_case: string, block: ChatBlock) => {
     expect(timed({ blocks: [block] })).toBeLessThan(LIMIT_IN_MS);
   });

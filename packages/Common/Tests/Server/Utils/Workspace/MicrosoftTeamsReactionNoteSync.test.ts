@@ -47,6 +47,16 @@ import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMa
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../../Server/Services/WorkspaceUserAuthTokenService";
 import MicrosoftTeamsUtil from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import MicrosoftTeamsActionAnswer from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActionAnswer";
+import WorkspaceConnectRequest, {
+  WorkspaceConnectButton,
+  WorkspaceConnectRequestTeamsPlace,
+  WorkspacePendingActionKind,
+} from "../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
+import { WorkspaceEventType } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
+import UserService from "../../../../Server/Services/UserService";
+import User from "../../../../Models/DatabaseModels/User";
+import Name from "../../../../Types/Name";
 import MicrosoftTeamsReactionNoteSync, {
   MicrosoftTeamsNoteReaction,
   MicrosoftTeamsReactionOutcome,
@@ -54,6 +64,7 @@ import MicrosoftTeamsReactionNoteSync, {
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/ReactionNoteSync";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceReactionNote, {
+  WorkspaceMessageNoteOutcome,
   WorkspaceNoteResourceType,
   WorkspaceNoteSaveResult,
 } from "../../../../Server/Utils/Workspace/WorkspaceReactionNote";
@@ -95,11 +106,17 @@ const memberProps: DatabaseCommonInteractionProps = {
   tenantId: projectId,
 };
 const incidentId: ObjectID = ObjectID.generate();
+// Aidil's OneUptime account, when his Microsoft Teams account is connected.
+const posterUserId: ObjectID = ObjectID.generate();
 
 const TEAM_ID: string = "team-graph-id";
 const CHANNEL_ID: string = "19:incident-42@thread.tacv2";
 const AAD_USER_ID: string = "aad-jane";
 const NOW: Date = new Date("2026-09-23T12:00:00.000Z");
+// Aidil wrote the message, three hours before Jane pinned it.
+const POSTER_AAD_ID: string = "aad-aidil";
+const POSTED_AT: Date = new Date("2026-09-23T09:00:00.000Z");
+const CONNECT_URL: string = `https://oneuptime.test/dashboard/${projectId.toString()}/user-settings/microsoft-teams-integration?connect=token-1`;
 
 function minutesAgo(minutes: number): string {
   return new Date(NOW.getTime() - minutes * 60 * 1000).toISOString();
@@ -148,6 +165,14 @@ function graphMessage(data: {
     id: data.id,
     replyToId: data.replyToId || null,
     messageType: data.messageType || "message",
+    createdDateTime: POSTED_AT.toISOString(),
+    from: {
+      user: {
+        id: POSTER_AAD_ID,
+        displayName: "Aidil Rahman",
+        userIdentityType: "aadUser",
+      },
+    },
     deletedDateTime: data.deletedDateTime || null,
     body: {
       contentType: data.contentType || "html",
@@ -409,170 +434,6 @@ describe("MicrosoftTeamsReactionNoteSync.getNoteReactions", () => {
   });
 });
 
-describe("MicrosoftTeamsReactionNoteSync.getMessageText", () => {
-  test("turns Teams HTML into readable text", () => {
-    expect(
-      MicrosoftTeamsReactionNoteSync.getMessageText(
-        graphMessage({
-          id: "1",
-          content:
-            '<p>Failed over to <at id="0">DB Replica</at>&nbsp;at 12:03</p><p>Next:<br>check lag</p><ul><li>one</li><li>two</li></ul>',
-        }),
-      ),
-    ).toBe(
-      "Failed over to @DB Replica at 12:03\nNext:\ncheck lag\n- one\n- two",
-    );
-  });
-
-  test("decodes entities once — &amp;lt; stays &lt;", () => {
-    expect(
-      MicrosoftTeamsReactionNoteSync.htmlToText(
-        "a &lt;b&gt; &amp; &quot;c&quot; &#39;d&#39; &apos;e&apos; &#128204; &#x1F4E3; &amp;lt;",
-      ),
-    ).toBe(`a <b> & "c" 'd' 'e' 📌 📣 &lt;`);
-  });
-
-  test("collapses blank lines and trims", () => {
-    expect(
-      MicrosoftTeamsReactionNoteSync.htmlToText(
-        "<div>\n\n<p>one</p>   \n\n\n\n<p>two</p></div>",
-      ),
-    ).toBe("one\n\ntwo");
-  });
-
-  test("an invalid numeric entity is dropped rather than throwing", () => {
-    expect(MicrosoftTeamsReactionNoteSync.htmlToText("x&#99999999;y")).toBe(
-      "xy",
-    );
-  });
-
-  test("plain text bodies are used as they read, a '<' in them never a tag", () => {
-    /*
-     * A plain-text body is not HTML, so nothing is taken out of it. Its "<"
-     * reads as typed in the note, with an invisible word joiner after it,
-     * so the note's Markdown cannot read "<b>" as a tag.
-     */
-    expect(
-      MicrosoftTeamsReactionNoteSync.getMessageText(
-        graphMessage({
-          id: "1",
-          contentType: "text",
-          content: "  a <b>literal</b> text  ",
-        }),
-      ),
-    ).toBe("a <⁠b>literal<⁠/b> text");
-    expect(
-      MicrosoftTeamsReactionNoteSync.getMessageText(
-        graphMessage({
-          id: "1",
-          contentType: "text",
-          content: "  plain words only  ",
-        }),
-      ),
-    ).toBe("plain words only");
-  });
-
-  test("a card message (like OneUptime's own posts) is read from the card", () => {
-    const card: JSONObject = {
-      type: "AdaptiveCard",
-      body: [
-        { type: "TextBlock", text: "Incident #42 acknowledged" },
-        {
-          type: "Container",
-          items: [
-            {
-              type: "ColumnSet",
-              columns: [
-                {
-                  type: "Column",
-                  items: [{ type: "TextBlock", text: "  by Jane  " }],
-                },
-              ],
-            },
-          ],
-        },
-        {
-          type: "FactSet",
-          facts: [
-            { title: "Severity:", value: "SEV1" },
-            { title: "", value: "Only value" },
-            { title: "", value: "" },
-          ],
-        },
-        {
-          type: "RichTextBlock",
-          inlines: ["Rich ", { type: "TextRun", text: "text" }],
-        },
-        { type: "Image", url: "https://x/y.png" },
-      ],
-    };
-
-    expect(
-      MicrosoftTeamsReactionNoteSync.getMessageText(
-        graphMessage({
-          id: "1",
-          content: '<attachment id="card-1"></attachment>',
-          attachments: [
-            {
-              id: "card-1",
-              contentType: "application/vnd.microsoft.card.adaptive",
-              content: JSON.stringify(card),
-            },
-          ],
-        }),
-      ),
-    ).toBe(
-      "Incident #42 acknowledged\nby Jane\nSeverity: SEV1\nOnly value\nRich text",
-    );
-  });
-
-  test("text and card are both kept", () => {
-    expect(
-      MicrosoftTeamsReactionNoteSync.getMessageText(
-        graphMessage({
-          id: "1",
-          content: 'Look at this <attachment id="c"></attachment>',
-          attachments: [
-            {
-              contentType: "application/vnd.microsoft.card.adaptive",
-              content: {
-                type: "AdaptiveCard",
-                body: [{ type: "TextBlock", text: "Card text" }],
-              },
-            },
-            {
-              contentType: "reference",
-              contentUrl: "https://sharepoint/file.docx",
-            },
-          ],
-        }),
-      ),
-    ).toBe("Look at this\n\nCard text");
-  });
-
-  test("a malformed card is ignored", () => {
-    expect(
-      MicrosoftTeamsReactionNoteSync.getMessageText(
-        graphMessage({
-          id: "1",
-          content: "",
-          attachments: [
-            {
-              contentType: "application/vnd.microsoft.card.adaptive",
-              content: "{not json",
-            },
-          ],
-        }),
-      ),
-    ).toBe("");
-  });
-
-  test("a message with no body is empty", () => {
-    expect(MicrosoftTeamsReactionNoteSync.getMessageText({ id: "1" })).toBe("");
-    expect(MicrosoftTeamsReactionNoteSync.htmlToText("")).toBe("");
-  });
-});
-
 describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
   let claimSpy: jest.SpyInstance;
   let releaseSpy: jest.SpyInstance;
@@ -581,6 +442,18 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
   let authorizeSpy: jest.SpyInstance;
   let saveSpy: jest.SpyInstance;
   let replySpy: jest.SpyInstance;
+  let placeSpy: jest.SpyInstance;
+  let linkSpy: jest.SpyInstance;
+  let answerSpy: jest.SpyInstance;
+
+  const PLACE: WorkspaceConnectRequestTeamsPlace = {
+    serviceUrl: "https://smba.trafficmanager.net/teams/",
+    conversationId: `${CHANNEL_ID};messageid=1700000000100`,
+    conversationType: "channel",
+    tenantId: "tenant-1",
+    userTeamsId: AAD_USER_ID,
+    userName: "Jane Doe",
+  };
 
   beforeEach((): void => {
     claimSpy = jest
@@ -591,11 +464,20 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       .spyOn(WorkspaceReactionNote, "hasNote")
       .mockResolvedValue(false);
 
-    const userAuth: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
-    userAuth.userId = oneUptimeUserId;
+    // Jane, who pins, is connected; Aidil, who wrote the message, is not.
     userAuthSpy = jest
       .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
-      .mockResolvedValue(userAuth);
+      .mockImplementation((async (data: {
+        query: { workspaceUserId: string };
+      }): Promise<WorkspaceUserAuthToken | null> => {
+        if (data.query.workspaceUserId !== AAD_USER_ID) {
+          return null;
+        }
+
+        const userAuth: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+        userAuth.userId = oneUptimeUserId;
+        return userAuth;
+      }) as never);
 
     authorizeSpy = jest
       .spyOn(WorkspaceActionAuthorization, "authorize")
@@ -617,6 +499,19 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     jest
       .spyOn(DatabaseConfig, "getDashboardUrl")
       .mockResolvedValue(URL.fromString("https://oneuptime.test/dashboard"));
+
+    placeSpy = jest
+      .spyOn(MicrosoftTeamsUtil, "getChannelThreadPlace")
+      .mockResolvedValue(PLACE);
+    linkSpy = jest
+      .spyOn(WorkspaceConnectRequest, "getConnectLink")
+      .mockResolvedValue({
+        button: WorkspaceConnectButton.OneClick,
+        url: URL.fromString(CONNECT_URL),
+      });
+    answerSpy = jest
+      .spyOn(MicrosoftTeamsActionAnswer, "sendToPlace")
+      .mockResolvedValue(true);
   });
 
   test("a pin saves a private note in the user's name and confirms in the thread", async () => {
@@ -646,25 +541,153 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       resources: [{ service: IncidentService, id: incidentId }],
     });
 
-    // Saved with the member's own props: the note is theirs.
+    /*
+     * Saved with the member's own props - Jane saved it - as the message
+     * Aidil wrote, when he wrote it: he has no OneUptime account, so he is
+     * named as Teams names him.
+     */
     expect(saveSpy).toHaveBeenCalledWith({
       resource: watchedChannel().resource,
       noteType: WorkspaceNoteType.Private,
       props: memberProps,
       note: "Restarted the primary DB",
       sourceMessageKey: `${CHANNEL_ID}:1700000000200`,
+      savedFromChatMessage: {
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        authorName: "Aidil Rahman",
+        postedAt: POSTED_AT.toISOString(),
+      },
     });
     expect(saveSpy.mock.calls[0]![0].props).toBe(memberProps);
 
+    // One confirmation, in the message's thread; the message is not repeated.
+    expect(replySpy).toHaveBeenCalledTimes(1);
     expect(replySpy).toHaveBeenCalledWith({
       projectId: projectId,
       teamId: TEAM_ID,
       channelId: CHANNEL_ID,
       parentMessageId: "1700000000100",
-      text: "✅ Message saved as **private note** to [Incident #42](https://oneuptime.test/incidents/42).",
+      text: "✅ Saved as a **private note** on [Incident #42](https://oneuptime.test/incidents/42).",
     });
 
     expect(releaseSpy).not.toHaveBeenCalled();
+    expect(answerSpy).not.toHaveBeenCalled();
+  });
+
+  test("a message a connected member wrote is saved as theirs, by their OneUptime name", async () => {
+    userAuthSpy.mockImplementation((async (data: {
+      query: { workspaceUserId: string };
+    }): Promise<WorkspaceUserAuthToken | null> => {
+      const userAuth: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+      userAuth.userId =
+        data.query.workspaceUserId === POSTER_AAD_ID
+          ? posterUserId
+          : oneUptimeUserId;
+      return userAuth;
+    }) as never);
+
+    const poster: User = new User();
+    poster.name = new Name("Aidil R.");
+    const userSpy: jest.SpyInstance = jest
+      .spyOn(UserService, "findOneById")
+      .mockResolvedValue(poster);
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction(),
+      now: NOW,
+    });
+
+    expect(userSpy.mock.calls[0]![0].id).toBe(posterUserId);
+    expect(saveSpy.mock.calls[0]![0].savedFromChatMessage).toEqual({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      authorName: "Aidil R.",
+      authorUserId: posterUserId.toString(),
+      postedAt: POSTED_AT.toISOString(),
+    });
+  });
+
+  test("a message an app posted is saved as the app's", async () => {
+    const message: JSONObject = graphMessage({ id: "1700000000200" });
+    message["from"] = { application: { id: "app", displayName: "Datadog" } };
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({ message: message }),
+      now: NOW,
+    });
+
+    expect(saveSpy.mock.calls[0]![0].savedFromChatMessage).toEqual({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      authorName: "Datadog",
+      postedAt: POSTED_AT.toISOString(),
+    });
+  });
+
+  test("the note keeps the message's formatting; a public note leaves its files out", async () => {
+    const message: JSONObject = graphMessage({
+      id: "1700000000200",
+      content:
+        '<p><strong>Root cause:</strong> expired cert, see <a href="https://wiki.example.com/rca">the RCA</a></p><ul><li>renewed</li></ul>',
+      attachments: [
+        {
+          contentType: "reference",
+          contentUrl: "https://contoso.sharepoint.com/rca.pdf",
+          name: "rca.pdf",
+        },
+      ],
+    });
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({ message: message }),
+      now: NOW,
+    });
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({
+        message: message,
+        noteType: WorkspaceNoteType.Public,
+      }),
+      now: NOW,
+    });
+
+    expect(saveSpy.mock.calls[0]![0].note).toBe(
+      "**Root cause:** expired cert, see [the RCA](https://wiki.example.com/rca)\n\n- renewed\n\n📎 [rca.pdf](https://contoso.sharepoint.com/rca.pdf)",
+    );
+    expect(saveSpy.mock.calls[1]![0].note).toBe(
+      "**Root cause:** expired cert, see [the RCA](https://wiki.example.com/rca)\n\n- renewed",
+    );
+  });
+
+  test("a message of only files is not put on the status page, and the member is told why", async () => {
+    const message: JSONObject = graphMessage({
+      id: "1700000000200",
+      content: '<attachment id="f"></attachment>',
+      attachments: [
+        {
+          contentType: "reference",
+          contentUrl: "https://contoso.sharepoint.com/rca.pdf",
+          name: "rca.pdf",
+        },
+      ],
+    });
+
+    await expect(
+      MicrosoftTeamsReactionNoteSync.processReaction({
+        channel: watchedChannel(),
+        reaction: noteReaction({
+          message: message,
+          noteType: WorkspaceNoteType.Public,
+        }),
+        now: NOW,
+      }),
+    ).resolves.toBe(MicrosoftTeamsReactionOutcome.NoText);
+
+    expect(saveSpy).not.toHaveBeenCalled();
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "This message has only files or images, which are not put on the status page, so it was not saved as a public note.",
+    );
   });
 
   test("a megaphone saves a public note and says it is on the status page", async () => {
@@ -678,8 +701,8 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     expect(authorizeSpy.mock.calls[0]![0].action).toBe(
       "add a public note to this incident",
     );
-    expect(replySpy.mock.calls[0]![0].text).toContain(
-      "This note will be visible on the status page.",
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "✅ Saved as a **public note** on [Incident #42](https://oneuptime.test/incidents/42). It is shown on the status page.",
     );
   });
 
@@ -785,7 +808,7 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     expect(replySpy).not.toHaveBeenCalled();
   });
 
-  test("someone who has not linked Teams is told how to, once, while the reaction is fresh", async () => {
+  test("someone who has not connected is asked once, in the thread, with a Connect button that saves the message", async () => {
     userAuthSpy.mockResolvedValue(null);
 
     await expect(
@@ -798,28 +821,145 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
 
     expect(authorizeSpy).not.toHaveBeenCalled();
     expect(saveSpy).not.toHaveBeenCalled();
-    expect(replySpy).toHaveBeenCalledTimes(1);
-    expect(replySpy.mock.calls[0]![0].parentMessageId).toBe("1700000000100");
-    expect(replySpy.mock.calls[0]![0].text).toBe(
-      `Jane Doe, to save messages as notes, first connect your Microsoft Teams account to OneUptime in [OneUptime → User Settings → Microsoft Teams](https://oneuptime.test/dashboard/${projectId.toString()}/user-settings/microsoft-teams-integration), then react again.`,
+    // No plain reply: the card is the one answer.
+    expect(replySpy).not.toHaveBeenCalled();
+
+    // Asked once for this reaction, however many runs see it.
+    expect(claimSpy).toHaveBeenCalledWith(
+      "microsoft-teams-reaction-note-prompt",
+      claimSpy.mock.calls[0]![1],
+      "1",
+      { expiresInSeconds: 2 * 24 * 60 * 60 },
+    );
+
+    expect(placeSpy).toHaveBeenCalledWith({
+      projectId: projectId,
+      teamId: TEAM_ID,
+      channelId: CHANNEL_ID,
+      parentMessageId: "1700000000100",
+      userTeamsId: AAD_USER_ID,
+      userName: "Jane Doe",
+    });
+
+    // The Connect button carries the save: connecting finishes it.
+    expect(linkSpy).toHaveBeenCalledWith({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      projectId: projectId,
+      workspaceUserId: AAD_USER_ID,
+      purpose: "save this message as a private note on this incident",
+      pendingAction: {
+        kind: WorkspacePendingActionKind.SavePrivateNote,
+        eventType: WorkspaceEventType.Incident,
+        eventId: incidentId,
+        message: {
+          channelId: CHANNEL_ID,
+          messageId: "1700000000200",
+          teamId: TEAM_ID,
+        },
+      },
+      teams: PLACE,
+    });
+
+    expect(answerSpy).toHaveBeenCalledTimes(1);
+    expect(answerSpy.mock.calls[0]![0]).toEqual({
+      place: PLACE,
+      answer: {
+        markdown:
+          "🔗 **Connect your Microsoft Teams account to save this message as a private note on this incident.** It takes one click, and OneUptime saves it for you as soon as you're connected.",
+        text: "Connect your Microsoft Teams account to save this message as a private note on this incident",
+      },
+      connectUrl: URL.fromString(CONNECT_URL),
+    });
+
+    // The reaction waits: a later run saves it once Jane has connected.
+    expect(releaseSpy).toHaveBeenCalledWith(
+      "microsoft-teams-reaction-note",
+      claimSpy.mock.calls[0]![1],
     );
   });
 
-  test("the link hint still makes sense without a name or a dashboard URL", async () => {
+  test("a megaphone asks to save a public note", async () => {
     userAuthSpy.mockResolvedValue(null);
-    (
-      DatabaseConfig.getDashboardUrl as unknown as jest.SpyInstance
-    ).mockRejectedValue(new Error("no host"));
 
     await MicrosoftTeamsReactionNoteSync.processReaction({
       channel: watchedChannel(),
-      reaction: noteReaction({ reactingUserName: undefined }),
+      reaction: noteReaction({ noteType: WorkspaceNoteType.Public }),
       now: NOW,
     });
 
-    expect(replySpy.mock.calls[0]![0].text).toBe(
-      "To save messages as notes, first connect your Microsoft Teams account to OneUptime, then react again.",
+    expect(linkSpy.mock.calls[0]![0].pendingAction.kind).toBe(
+      WorkspacePendingActionKind.SavePublicNote,
     );
+    expect(answerSpy.mock.calls[0]![0].answer.text).toBe(
+      "Connect your Microsoft Teams account to save this message as a public note on this incident",
+    );
+  });
+
+  test("asked already: the next run says nothing, and the reaction still waits", async () => {
+    userAuthSpy.mockResolvedValue(null);
+    claimSpy.mockImplementation((async (namespace: string) => {
+      return namespace !== "microsoft-teams-reaction-note-prompt";
+    }) as never);
+
+    await expect(
+      MicrosoftTeamsReactionNoteSync.processReaction({
+        channel: watchedChannel(),
+        reaction: noteReaction(),
+        now: NOW,
+      }),
+    ).resolves.toBe(MicrosoftTeamsReactionOutcome.NotLinked);
+
+    expect(answerSpy).not.toHaveBeenCalled();
+    expect(linkSpy).not.toHaveBeenCalled();
+    expect(releaseSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("without the cache to note the question, nobody is asked, rather than at every run", async () => {
+    userAuthSpy.mockResolvedValue(null);
+    claimSpy.mockImplementation((async (namespace: string) => {
+      if (namespace === "microsoft-teams-reaction-note-prompt") {
+        throw new Error("Cache is not connected");
+      }
+
+      return true;
+    }) as never);
+
+    await expect(
+      MicrosoftTeamsReactionNoteSync.processReaction({
+        channel: watchedChannel(),
+        reaction: noteReaction(),
+        now: NOW,
+      }),
+    ).resolves.toBe(MicrosoftTeamsReactionOutcome.NotLinked);
+
+    expect(answerSpy).not.toHaveBeenCalled();
+  });
+
+  test("with no place in Teams to answer, nobody is asked", async () => {
+    userAuthSpy.mockResolvedValue(null);
+    placeSpy.mockResolvedValue(null);
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction(),
+      now: NOW,
+    });
+
+    expect(linkSpy).not.toHaveBeenCalled();
+    expect(answerSpy).not.toHaveBeenCalled();
+  });
+
+  test("a card that cannot be sent does not fail the run", async () => {
+    userAuthSpy.mockResolvedValue(null);
+    answerSpy.mockRejectedValue(new Error("bot not in team"));
+
+    await expect(
+      MicrosoftTeamsReactionNoteSync.processReaction({
+        channel: watchedChannel(),
+        reaction: noteReaction(),
+        now: NOW,
+      }),
+    ).resolves.toBe(MicrosoftTeamsReactionOutcome.NotLinked);
   });
 
   test("an old reaction by someone unlinked gets no reply", async () => {
@@ -836,6 +976,7 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     ).resolves.toBe(MicrosoftTeamsReactionOutcome.NotLinked);
 
     expect(replySpy).not.toHaveBeenCalled();
+    expect(answerSpy).not.toHaveBeenCalled();
   });
 
   test("a member who may not add the note is told why, and nothing is saved", async () => {
@@ -948,22 +1089,6 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
 
     expect(replySpy.mock.calls[0]![0].text).toBe(
       "\\*Jane\\* \\[Doe\\], could not save the message as a note: No.",
-    );
-  });
-
-  test("someone unlinked whose Teams name carries Markdown is named as written, and the settings link is the only link", async () => {
-    userAuthSpy.mockResolvedValue(null);
-
-    await MicrosoftTeamsReactionNoteSync.processReaction({
-      channel: watchedChannel(),
-      reaction: noteReaction({
-        reactingUserName: "**Jane** [Doe](https://example.com)",
-      }),
-      now: NOW,
-    });
-
-    expect(replySpy.mock.calls[0]![0].text).toBe(
-      `\\*\\*Jane\\*\\* \\[Doe\\](https://example.com), to save messages as notes, first connect your Microsoft Teams account to OneUptime in [OneUptime → User Settings → Microsoft Teams](https://oneuptime.test/dashboard/${projectId.toString()}/user-settings/microsoft-teams-integration), then react again.`,
     );
   });
 
@@ -1110,6 +1235,336 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     expect(authorizeSpy.mock.calls[0]![0].resources).toEqual([
       { service: AlertEpisodeService, id: incidentId },
     ]);
+  });
+});
+
+describe("MicrosoftTeamsReactionNoteSync: a pinned message is saved as Teams showed it", () => {
+  /*
+   * What the plain-text reader was held to (MicrosoftTeamsMessageReader.test
+   * has the whole corpus): pinned, a hostile or broken message is saved as
+   * the text it shows, and nothing in it is markup in the note.
+   */
+  let saveSpy: jest.SpyInstance;
+
+  beforeEach((): void => {
+    jest.spyOn(GlobalCache, "setStringIfNotExists").mockResolvedValue(true);
+    jest.spyOn(GlobalCache, "deleteKey").mockResolvedValue();
+    jest.spyOn(WorkspaceReactionNote, "hasNote").mockResolvedValue(false);
+
+    const userAuth: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+    userAuth.userId = oneUptimeUserId;
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
+      .mockImplementation((async (data: {
+        query: { workspaceUserId: string };
+      }): Promise<WorkspaceUserAuthToken | null> => {
+        return data.query.workspaceUserId === AAD_USER_ID ? userAuth : null;
+      }) as never);
+    jest
+      .spyOn(WorkspaceActionAuthorization, "authorize")
+      .mockResolvedValue(memberProps);
+    saveSpy = jest
+      .spyOn(WorkspaceReactionNote, "saveNote")
+      .mockResolvedValue(WorkspaceNoteSaveResult.Saved);
+    jest.spyOn(WorkspaceReactionNote, "getResourceDisplay").mockResolvedValue({
+      label: "Incident #42",
+      link: URL.fromString("https://oneuptime.test/incidents/42"),
+    });
+    jest
+      .spyOn(MicrosoftTeamsUtil, "sendTextReplyToChannelThread")
+      .mockResolvedValue();
+  });
+
+  test.each([
+    [
+      "an unclosed tag",
+      "<p>Rolled back</p><img src=x onerror=alert(1)",
+      "Rolled back\n\nimg src=x onerror=alert(1)",
+    ],
+    [
+      "a tag rebuilt once a tag inside it is out",
+      "<p>&lt;scr<b></b>ipt&gt;alert(1)&lt;/script&gt;</p>",
+      "\\<script>alert(1)\\</script>",
+    ],
+    [
+      "a typed Slack mention",
+      "<p>&lt;!channel&gt; DB is back</p>",
+      "\\<\u2060!channel> DB is back",
+    ],
+    [
+      "an ordinary message",
+      '<p><at id="0">Jane</at>&nbsp;restarted the <b>primary</b> DB</p>',
+      "@Jane restarted the **primary** DB",
+    ],
+  ])(
+    "%s is saved as the text it shows",
+    async (_case: string, html: string, note: string) => {
+      const outcome: MicrosoftTeamsReactionOutcome =
+        await MicrosoftTeamsReactionNoteSync.processReaction({
+          channel: watchedChannel(),
+          reaction: noteReaction({
+            message: graphMessage({ id: "1700000000200", content: html }),
+            noteType: WorkspaceNoteType.Public,
+          }),
+          now: NOW,
+        });
+
+      expect(outcome).toBe(MicrosoftTeamsReactionOutcome.Saved);
+
+      const saved: string = saveSpy.mock.calls[0]![0].note as string;
+
+      expect(saved).toBe(note);
+      // Every "<" in it is text.
+      expect(saved.split("<").length).toBe(saved.split("\\<").length);
+    },
+  );
+});
+
+describe("MicrosoftTeamsReactionNoteSync.saveAfterConnect", () => {
+  /*
+   * Jane pinned a message before her Microsoft Teams account was connected,
+   * and was asked to connect, with a Connect button. Connecting saves the
+   * message at once (WorkspaceConnectCompletion): the channel is read again,
+   * and her pin on that message is handled as a run would - quietly, but
+   * for its one confirmation.
+   */
+  const resource: MicrosoftTeamsWatchedChannel["resource"] = {
+    resourceType: WorkspaceNoteResourceType.Incident,
+    resourceId: incidentId,
+    projectId: projectId,
+  };
+
+  let readSpy: jest.SpyInstance;
+  let saveSpy: jest.SpyInstance;
+  let replySpy: jest.SpyInstance;
+  let hasNoteSpy: jest.SpyInstance;
+  let claimSpy: jest.SpyInstance;
+
+  const projectAuth: () => WorkspaceProjectAuthToken =
+    (): WorkspaceProjectAuthToken => {
+      const token: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
+      token.projectId = projectId;
+      token.authToken = "teams-token";
+      return token;
+    };
+
+  const pinnedMessage: (reactions?: Array<JSONObject>) => JSONObject = (
+    reactions?: Array<JSONObject>,
+  ): JSONObject => {
+    return graphMessage({
+      id: "1700000000100",
+      replies: [
+        graphMessage({
+          id: "1700000000200",
+          replyToId: "1700000000100",
+          reactions: reactions || [
+            graphReaction({ createdDateTime: minutesAgo(30) }),
+          ],
+        }),
+      ],
+    });
+  };
+
+  const saveAfterConnect: (
+    noteType?: WorkspaceNoteType,
+  ) => ReturnType<typeof MicrosoftTeamsReactionNoteSync.saveAfterConnect> = (
+    noteType?: WorkspaceNoteType,
+  ) => {
+    return MicrosoftTeamsReactionNoteSync.saveAfterConnect({
+      resource: resource,
+      noteType: noteType || WorkspaceNoteType.Private,
+      message: {
+        channelId: CHANNEL_ID,
+        messageId: "1700000000200",
+        teamId: TEAM_ID,
+      },
+      workspaceUserId: AAD_USER_ID,
+    });
+  };
+
+  beforeEach((): void => {
+    jest
+      .useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] })
+      .setSystemTime(NOW);
+
+    claimSpy = jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockResolvedValue(true);
+    jest.spyOn(GlobalCache, "deleteKey").mockResolvedValue();
+    hasNoteSpy = jest
+      .spyOn(WorkspaceReactionNote, "hasNote")
+      .mockResolvedValue(false);
+
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
+      .mockResolvedValue(projectAuth());
+
+    readSpy = jest
+      .spyOn(MicrosoftTeamsUtil, "getRecentChannelMessagesWithReplies")
+      .mockResolvedValue([pinnedMessage()]);
+
+    const userAuth: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+    userAuth.userId = oneUptimeUserId;
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
+      .mockImplementation((async (data: {
+        query: { workspaceUserId: string };
+      }): Promise<WorkspaceUserAuthToken | null> => {
+        return data.query.workspaceUserId === AAD_USER_ID ? userAuth : null;
+      }) as never);
+    jest
+      .spyOn(WorkspaceActionAuthorization, "authorize")
+      .mockResolvedValue(memberProps);
+    saveSpy = jest
+      .spyOn(WorkspaceReactionNote, "saveNote")
+      .mockResolvedValue(WorkspaceNoteSaveResult.Saved);
+    jest.spyOn(WorkspaceReactionNote, "getResourceDisplay").mockResolvedValue({
+      label: "Incident #42",
+      link: URL.fromString("https://oneuptime.test/incidents/42"),
+    });
+    replySpy = jest
+      .spyOn(MicrosoftTeamsUtil, "sendTextReplyToChannelThread")
+      .mockResolvedValue();
+  });
+
+  afterEach((): void => {
+    jest.useRealTimers();
+  });
+
+  test("saves the message she pinned, and confirms it once in its thread", async () => {
+    await expect(saveAfterConnect()).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.Saved,
+    });
+
+    expect(readSpy).toHaveBeenCalledWith({
+      authToken: "teams-token",
+      projectId: projectId,
+      teamId: TEAM_ID,
+      channelId: CHANNEL_ID,
+    });
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    expect(saveSpy.mock.calls[0]![0].sourceMessageKey).toBe(
+      `${CHANNEL_ID}:1700000000200`,
+    );
+    expect(saveSpy.mock.calls[0]![0].savedFromChatMessage).toEqual({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      authorName: "Aidil Rahman",
+      postedAt: POSTED_AT.toISOString(),
+    });
+    // The confirmation, in the thread of the message: nothing else.
+    expect(replySpy).toHaveBeenCalledTimes(1);
+    expect(replySpy.mock.calls[0]![0].parentMessageId).toBe("1700000000100");
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "✅ Saved as a **private note** on [Incident #42](https://oneuptime.test/incidents/42).",
+    );
+  });
+
+  test("a pin she took off before connecting saves nothing", async () => {
+    readSpy.mockResolvedValue([pinnedMessage([])]);
+
+    await expect(saveAfterConnect()).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.NotFound,
+    });
+    expect(saveSpy).not.toHaveBeenCalled();
+    expect(replySpy).not.toHaveBeenCalled();
+  });
+
+  test("somebody else's pin on the message is not hers", async () => {
+    readSpy.mockResolvedValue([
+      pinnedMessage([
+        graphReaction({
+          userId: "aad-somebody-else",
+          createdDateTime: minutesAgo(30),
+        }),
+      ]),
+    ]);
+
+    await expect(saveAfterConnect()).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.NotFound,
+    });
+  });
+
+  test("her pin asks for a private note, not a public one", async () => {
+    await expect(saveAfterConnect(WorkspaceNoteType.Public)).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.NotFound,
+    });
+  });
+
+  test("a message somebody saved meanwhile is not saved again", async () => {
+    hasNoteSpy.mockResolvedValue(true);
+
+    await expect(saveAfterConnect()).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.AlreadySaved,
+    });
+    expect(saveSpy).not.toHaveBeenCalled();
+    expect(replySpy).not.toHaveBeenCalled();
+  });
+
+  test("a run handling it right now: saved when its note is there", async () => {
+    claimSpy.mockResolvedValue(false);
+    hasNoteSpy.mockResolvedValue(true);
+
+    await expect(saveAfterConnect()).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.Saved,
+    });
+
+    hasNoteSpy.mockResolvedValue(false);
+
+    await expect(saveAfterConnect()).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.Failed,
+    });
+  });
+
+  test("a refusal is told on the Connect button's page, not in the thread", async () => {
+    jest
+      .spyOn(WorkspaceActionAuthorization, "authorize")
+      .mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permission to add a private note to this incident.",
+        ),
+      );
+
+    await expect(saveAfterConnect()).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.Refused,
+      reason:
+        "Jane Doe, You do not have permission to add a private note to this incident.",
+    });
+    expect(replySpy).not.toHaveBeenCalled();
+  });
+
+  test("a message with nothing to save says so", async () => {
+    readSpy.mockResolvedValue([
+      graphMessage({
+        id: "1700000000200",
+        content: "<p> </p>",
+        reactions: [graphReaction({ createdDateTime: minutesAgo(30) })],
+      }),
+    ]);
+
+    await expect(saveAfterConnect()).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.NothingToSave,
+      reason: "This message has no text to save as a note.",
+    });
+  });
+
+  test("without the team, or Teams set up for the project, nothing is read", async () => {
+    await expect(
+      MicrosoftTeamsReactionNoteSync.saveAfterConnect({
+        resource: resource,
+        noteType: WorkspaceNoteType.Private,
+        message: { channelId: CHANNEL_ID, messageId: "1700000000200" },
+        workspaceUserId: AAD_USER_ID,
+      }),
+    ).resolves.toEqual({ outcome: WorkspaceMessageNoteOutcome.Failed });
+
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
+      .mockResolvedValue(null);
+
+    await expect(saveAfterConnect()).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.Failed,
+    });
+    expect(readSpy).not.toHaveBeenCalled();
   });
 });
 

@@ -177,18 +177,27 @@ const isHtmlWhitespace: IsHtmlWhitespaceFunction = (
   );
 };
 
+// What a browser shows for a reference that names no character.
+const REPLACEMENT_CHARACTER: string = "�";
+
 /*
- * A character reference's character, or "" when it names none - read with
- * String.fromCodePoint, which refuses what is not a code point.
+ * A numeric character reference's character, as a browser reads it: one
+ * that names none - nothing, half of a surrogate pair, past the last code
+ * point - is the replacement character, never half a character.
  */
 const fromCodePoint: (codePoint: number) => string = (
   codePoint: number,
 ): string => {
-  try {
-    return String.fromCodePoint(codePoint);
-  } catch {
-    return "";
+  if (
+    !Number.isInteger(codePoint) ||
+    codePoint <= 0 ||
+    codePoint > 0x10ffff ||
+    (codePoint >= 0xd800 && codePoint <= 0xdfff)
+  ) {
+    return REPLACEMENT_CHARACTER;
   }
+
+  return String.fromCodePoint(codePoint);
 };
 
 const NAMED_ENTITIES: Record<string, string> = {
@@ -377,6 +386,8 @@ interface OpenList {
   items: Array<Array<ChatInline>>;
   // Whether an item is open: its text goes into the last of items.
   isItemOpen: boolean;
+  // Whether its items hold text not written out yet (pendingLists).
+  isPending: boolean;
 }
 
 // A link being read: where it goes, and where its words start.
@@ -395,6 +406,13 @@ class TeamsHtmlWalk {
 
   private inlines: Array<ChatInline> = [];
   private lists: Array<OpenList> = [];
+  /*
+   * The open lists whose items hold text not written out yet, in the order
+   * they got it: written out (flushListItems) without looking at the
+   * others - a message of thousands of nested lists looked at every open
+   * list for each one, and took minutes.
+   */
+  private pendingLists: Array<OpenList> = [];
   private quoteDepth: number = 0;
   private quoteInlines: Array<ChatInline> = [];
   private preDepth: number = 0;
@@ -504,6 +522,8 @@ class TeamsHtmlWalk {
         if (isEnd) {
           this.endLink();
         } else {
+          // A link inside a link ends the first, as a browser reads it.
+          this.endLink();
           this.links.push({
             url: readAttribute(markup, "href"),
             firstInline: this.inlines.length,
@@ -728,6 +748,11 @@ class TeamsHtmlWalk {
       }
 
       ArrayUtil.append(item, inlines);
+
+      if (!list.isPending) {
+        list.isPending = true;
+        this.pendingLists.push(list);
+      }
       return;
     }
 
@@ -774,7 +799,9 @@ class TeamsHtmlWalk {
     this.endParagraph();
 
     const parent: OpenList | undefined = this.lists[this.lists.length - 1];
-    const startNumber: number = Number(start);
+    // "start" when the list has one: Number(null) would be 0.
+    const startNumber: number =
+      start !== null && start.trim() !== "" ? Number(start) : 1;
 
     // The parent's items so far come before the nested list.
     this.flushListItems();
@@ -788,6 +815,7 @@ class TeamsHtmlWalk {
           : 1,
       items: [],
       isItemOpen: false,
+      isPending: false,
     });
   }
 
@@ -828,7 +856,17 @@ class TeamsHtmlWalk {
    * first - so a nested list, or a code block, comes after them.
    */
   private flushListItems(): void {
-    for (const list of this.lists) {
+    const pending: Array<OpenList> = this.pendingLists;
+    this.pendingLists = [];
+
+    // Outer ones first.
+    pending.sort((a: OpenList, b: OpenList): number => {
+      return a.indent - b.indent;
+    });
+
+    for (const list of pending) {
+      list.isPending = false;
+
       const items: Array<Array<ChatInline>> = list.items.filter(
         (item: Array<ChatInline>): boolean => {
           return item.length > 0;
@@ -1114,20 +1152,29 @@ export default class MicrosoftTeamsMessageReader {
     return asObject(content);
   }
 
-  // The visible text of an adaptive card, one element per line.
+  /*
+   * The visible text of an adaptive card, one element per line, in the
+   * order the card shows them. Read with a list of what is left to read,
+   * not by calling itself: a card nested deeper than the call stack is
+   * read too.
+   */
   public static getAdaptiveCardLines(card: JSONObject): Array<string> {
     const lines: Array<string> = [];
+    // What is left to read, the next one last.
+    const left: Array<unknown> = [card];
 
-    const visit: (element: unknown) => void = (element: unknown): void => {
+    while (left.length > 0) {
+      const element: unknown = left.pop();
+
       if (!element || typeof element !== "object") {
-        return;
+        continue;
       }
 
       if (Array.isArray(element)) {
-        for (const child of element) {
-          visit(child);
+        for (let index: number = element.length - 1; index >= 0; index--) {
+          left.push(element[index]);
         }
-        return;
+        continue;
       }
 
       const node: JSONObject = element as JSONObject;
@@ -1160,14 +1207,13 @@ export default class MicrosoftTeamsMessageReader {
         }
       }
 
-      for (const key of ["body", "items", "columns"]) {
+      // Its body, then its items, then its columns: pushed last first.
+      for (const key of ["columns", "items", "body"]) {
         if (node[key]) {
-          visit(node[key]);
+          left.push(node[key]);
         }
       }
-    };
-
-    visit(card);
+    }
 
     return lines
       .map((line: string): string => {
