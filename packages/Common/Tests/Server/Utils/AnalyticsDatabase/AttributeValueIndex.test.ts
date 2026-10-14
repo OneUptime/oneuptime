@@ -164,9 +164,8 @@ describe("idx_attribute_values", () => {
 
     test("the key index the value index sits beside is still there", () => {
       for (const modelType of [Log, Span]) {
-        const keys: AnalyticsTableColumn | null = new modelType().getTableColumn(
-          "attributeKeys",
-        );
+        const keys: AnalyticsTableColumn | null =
+          new modelType().getTableColumn("attributeKeys");
 
         expect(keys?.skipIndex?.name).toBe("idx_attribute_keys");
       }
@@ -186,7 +185,9 @@ describe("idx_attribute_values", () => {
           generatorFor(modelType).toTableCreateStatement(),
         );
 
-        expect(create).toContain(`CREATE TABLE IF NOT EXISTS oneuptime.${localTable}`);
+        expect(create).toContain(
+          `CREATE TABLE IF NOT EXISTS oneuptime.${localTable}`,
+        );
         expect(create).toContain(`, INDEX ${INDEX_DEFINITION}`);
       },
     );
@@ -222,7 +223,9 @@ describe("idx_attribute_values", () => {
         `INDEX ${definition}`,
       );
       expect(
-        sqlOf(generatorFor(Log).toAddSkipIndexStatement(attributesColumn(model))!),
+        sqlOf(
+          generatorFor(Log).toAddSkipIndexStatement(attributesColumn(model))!,
+        ),
       ).toContain(`ADD INDEX IF NOT EXISTS ${definition}`);
     });
 

@@ -28,7 +28,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * for the filters that need a value to be present.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("aaaaaaaa-0000-4000-8000-000000000001");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "aaaaaaaa-0000-4000-8000-000000000001",
+);
 const START_TIME: Date = new Date("2026-10-12T00:00:00.000Z");
 const END_TIME: Date = new Date("2026-10-13T00:00:00.000Z");
 
@@ -202,9 +204,7 @@ describe("an exact attribute value is looked up in the value index on every char
       expect(attributePredicates(statement)).toEqual([
         "has(mapValues(attributes), {p:String}) AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8({p:String}) AND v = {p:String}, mapKeys(attributes), mapValues(attributes))",
       ]);
-      expect(Object.values(statement.query_params)).toContain(
-        "/orders/export",
-      );
+      expect(Object.values(statement.query_params)).toContain("/orders/export");
       // Bound, never inlined.
       expect(statement.query).not.toContain("/orders/export");
     },

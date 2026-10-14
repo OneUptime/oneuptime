@@ -39,7 +39,8 @@ function run(operator: Record<string, unknown>): Statement {
   return statement;
 }
 
-const KEY_PLACEHOLDER: RegExp = /lowerUTF8\(k\) = lowerUTF8\(\{(p\d+):String\}\)/;
+const KEY_PLACEHOLDER: RegExp =
+  /lowerUTF8\(k\) = lowerUTF8\(\{(p\d+):String\}\)/;
 const EQUALS_PLACEHOLDER: RegExp = / AND v = \{(p\d+):String\}/;
 const IN_PLACEHOLDER: RegExp = / AND v IN \(\{(p\d+):Array\(String\)\}\)/;
 const HAS_PLACEHOLDER: RegExp =
@@ -75,9 +76,9 @@ describe("appendAttributeOperatorFilter", () => {
       expect(statement.query).toContain("mapKeys(attributes)");
       expect(statement.query).toContain("mapValues(attributes)");
       // The key itself is a bound parameter, never inlined.
-      expect(statement.query_params[placeholder(statement, KEY_PLACEHOLDER)]).toBe(
-        ATTR,
-      );
+      expect(
+        statement.query_params[placeholder(statement, KEY_PLACEHOLDER)],
+      ).toBe(ATTR);
       expect(statement.query).not.toContain(ATTR);
     });
   });
@@ -393,7 +394,10 @@ describe("appendAttributeOperatorFilter", () => {
     });
 
     test("a one-value list uses has(), the same check EqualTo makes", () => {
-      const list: Statement = run({ _type: ObjectType.Includes, value: ["GET"] });
+      const list: Statement = run({
+        _type: ObjectType.Includes,
+        value: ["GET"],
+      });
 
       expect(list.query).toMatch(HAS_PLACEHOLDER);
       expect(list.query).not.toMatch(HAS_ANY_PLACEHOLDER);
@@ -444,7 +448,10 @@ describe("appendAttributeOperatorFilter", () => {
       ["Wildcard", { _type: ObjectType.Wildcard, value: ["GE*"] }],
       ["NotWildcard", { _type: ObjectType.NotWildcard, value: ["GE*"] }],
       ["GreaterThan", { _type: ObjectType.GreaterThan, value: 5 }],
-      ["GreaterThanOrEqual", { _type: ObjectType.GreaterThanOrEqual, value: 5 }],
+      [
+        "GreaterThanOrEqual",
+        { _type: ObjectType.GreaterThanOrEqual, value: 5 },
+      ],
       ["LessThan", { _type: ObjectType.LessThan, value: 5 }],
       ["LessThanOrEqual", { _type: ObjectType.LessThanOrEqual, value: 5 }],
       ["IncludesNone", { _type: ObjectType.IncludesNone, value: ["GET"] }],
@@ -465,10 +472,7 @@ describe("appendAttributeOperatorFilter", () => {
     });
 
     test("attributeValuesPresent binds every value and inlines none", () => {
-      const statement: Statement = attributeValuesPresent([
-        "a'b",
-        "c\\d",
-      ]);
+      const statement: Statement = attributeValuesPresent(["a'b", "c\\d"]);
 
       expect(statement.query).toBe(
         "hasAny(mapValues(attributes), {p0:Array(String)})",
@@ -550,9 +554,9 @@ describe("appendAttributeOperatorFilter", () => {
     });
 
     test("every key is validated, in order, before it reaches SQL", () => {
-      expect(compile({ "http.route": "/a", "user.id": ["u1"] }).validated).toEqual(
-        ["http.route", "user.id"],
-      );
+      expect(
+        compile({ "http.route": "/a", "user.id": ["u1"] }).validated,
+      ).toEqual(["http.route", "user.id"]);
     });
 
     test("a key the validator refuses stops the compile with its exception", () => {
@@ -588,7 +592,8 @@ describe("appendAttributeOperatorFilter", () => {
         run({ _type: ObjectType.Includes, value: ["GET", "POST"] }).query,
       );
       expect(list.query_params).toStrictEqual(
-        run({ _type: ObjectType.Includes, value: ["GET", "POST"] }).query_params,
+        run({ _type: ObjectType.Includes, value: ["GET", "POST"] })
+          .query_params,
       );
       expect(blank.query).toBe(run({ _type: ObjectType.IsNull }).query);
       expect(operator.query).toBe(

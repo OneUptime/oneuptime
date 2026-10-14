@@ -2057,7 +2057,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     );
 
     for (const col of skipIndexColumns) {
-      columns.append(`, INDEX ${StatementGenerator.toSkipIndexDefinition(col)}`);
+      columns.append(
+        `, INDEX ${StatementGenerator.toSkipIndexDefinition(col)}`,
+      );
     }
 
     // Append projections after indexes
