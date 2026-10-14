@@ -37,10 +37,7 @@ import WorkspaceReactionNote, {
   WorkspaceNoteSaveResult,
 } from "../WorkspaceReactionNote";
 import MicrosoftTeamsUtil from "./MicrosoftTeams";
-import FeedMarkdown, {
-  MarkdownText,
-  mdText,
-} from "../../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import ChatMessageMarkdown, {
   ChatMessageContent,
 } from "../../../../Utils/Markdown/ChatMessageMarkdown";
@@ -50,7 +47,9 @@ import MicrosoftTeamsMessageReader, {
   MicrosoftTeamsMessageAuthor,
 } from "./MicrosoftTeamsMessageReader";
 import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
-import WorkspaceActionAnswers from "../WorkspaceActionAnswers";
+import WorkspaceActionAnswers, {
+  WorkspaceAnswer,
+} from "../WorkspaceActionAnswers";
 import WorkspaceConnectRequest, {
   WorkspaceConnectLink,
   WorkspaceConnectRequestTeamsPlace,
@@ -658,24 +657,30 @@ export default class MicrosoftTeamsReactionNoteSync {
         -this.NOTICE_MAX_AGE_IN_MINUTES,
       ).getTime();
 
-    // Replies about this reaction: only for a fresh one, never when quiet.
-    const reply: (text: MarkdownText) => Promise<void> = async (
-      text: MarkdownText,
+    /*
+     * Why nothing was saved, told to the person who reacted (answerInThread):
+     * only for a fresh reaction, never when quiet. `message` is plain text -
+     * a refusal can name a label or a record - and is placed as text; the
+     * report gets it as it is, for an answer given elsewhere.
+     */
+    const answer: (message: string) => Promise<void> = async (
+      message: string,
     ): Promise<void> => {
       if (data.report) {
-        data.report.reason = FeedMarkdown.withoutInvisibleBreaks(
-          text.toString(),
-        );
+        data.report.reason = message;
       }
 
       if (!isFresh || data.quiet) {
         return;
       }
 
-      await this.replyInThread({
+      await this.answerInThread({
         channel: channel,
-        threadId: reaction.threadId,
-        text: text.toString(),
+        reaction: reaction,
+        answer: {
+          markdown: mdText`${message}`.toString(),
+          text: message,
+        },
       });
     };
 
@@ -735,12 +740,7 @@ export default class MicrosoftTeamsReactionNoteSync {
         throw err;
       }
 
-      // The person's name and the refusal are both text.
-      await reply(
-        reaction.reactingUserName
-          ? mdText`${reaction.reactingUserName}, ${err.message}`
-          : mdText`${err.message}`,
-      );
+      await answer(err.message);
 
       return MicrosoftTeamsReactionOutcome.NotAuthorized;
     }
@@ -759,11 +759,12 @@ export default class MicrosoftTeamsReactionNoteSync {
     });
 
     if (note.isEmpty()) {
-      await reply(
-        mdText`${WorkspaceReactionNote.getNothingToSaveMessage({
+      await answer(
+        WorkspaceReactionNote.getNothingToSaveMessage({
           noteType: reaction.noteType,
           hasAttachments: !ChatMessageMarkdown.isEmpty(content),
-        })}`,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        }),
       );
 
       return MicrosoftTeamsReactionOutcome.NoText;
@@ -806,11 +807,7 @@ export default class MicrosoftTeamsReactionNoteSync {
         throw err;
       }
 
-      await reply(
-        reaction.reactingUserName
-          ? mdText`${reaction.reactingUserName}, could not save the message as a note: ${refusal}`
-          : mdText`Could not save the message as a note: ${refusal}`,
-      );
+      await answer(`Could not save the message as a note: ${refusal}`);
 
       return MicrosoftTeamsReactionOutcome.Refused;
     }
@@ -974,6 +971,53 @@ export default class MicrosoftTeamsReactionNoteSync {
     return null;
   }
 
+  /*
+   * Answers the person who reacted, in the message's thread, the way the
+   * Connect prompt asks them (promptToConnect) and a button is answered
+   * (MicrosoftTeamsActionAnswer): a card that mentions them, so Teams
+   * notifies them and the thread shows who it is for - Microsoft Teams has
+   * no message only one person sees. Without a place to send the card to
+   * (the project's Teams connection is incomplete), a plain reply.
+   */
+  private static async answerInThread(data: {
+    channel: MicrosoftTeamsWatchedChannel;
+    reaction: MicrosoftTeamsNoteReaction;
+    answer: WorkspaceAnswer;
+  }): Promise<void> {
+    let place: WorkspaceConnectRequestTeamsPlace | null = null;
+
+    try {
+      place = await MicrosoftTeamsUtil.getChannelThreadPlace({
+        projectId: data.channel.resource.projectId,
+        teamId: data.channel.teamId,
+        channelId: data.channel.channelId,
+        parentMessageId: data.reaction.threadId,
+        userTeamsId: data.reaction.reactingUserId,
+        userName: data.reaction.reactingUserName,
+      });
+    } catch (err) {
+      logger.error("Could not find where to answer a Microsoft Teams member", {
+        projectId: data.channel.resource.projectId.toString(),
+        channelId: data.channel.channelId,
+      });
+      logger.error(err);
+    }
+
+    if (!place) {
+      await this.replyInThread({
+        channel: data.channel,
+        threadId: data.reaction.threadId,
+        text: data.answer.markdown,
+      });
+      return;
+    }
+
+    await MicrosoftTeamsActionAnswer.sendToPlace({
+      place: place,
+      answer: data.answer,
+    });
+  }
+
   private static async replyInThread(data: {
     channel: MicrosoftTeamsWatchedChannel;
     threadId: string;
@@ -1042,6 +1086,7 @@ export default class MicrosoftTeamsReactionNoteSync {
       const purpose: string = WorkspaceActionAnswers.getPendingActionPurpose({
         kind: kind,
         eventType: eventType,
+        workspaceType: WorkspaceType.MicrosoftTeams,
       });
 
       const place: WorkspaceConnectRequestTeamsPlace | null =

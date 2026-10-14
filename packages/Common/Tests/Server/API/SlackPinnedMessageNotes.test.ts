@@ -753,6 +753,46 @@ describe("a pinned Slack message, saved as a note", () => {
     expect(writes()[0]!.data["text"]).toBe(PUBLIC_CONFIRMATION);
   });
 
+  test("a 📣 on a message of only an image saves nothing, and only they are told why, at the foot of the channel", async () => {
+    const messageTs: string = wrote({ user: AIDIL, minutesAgo: 12 });
+    const message: JSONObject = channelMessages[channelMessages.length - 1]!;
+
+    // Only a screenshot: no text, no blocks.
+    message["text"] = "";
+    message["blocks"] = [];
+    message["files"] = [
+      {
+        id: "F0P99",
+        name: "p99-latency.png",
+        title: "p99-latency.png",
+        mimetype: "image/png",
+        permalink: "https://acme.slack.com/files/U0AIDIL/F0P99/p99-latency.png",
+      },
+    ];
+
+    await deliver(reacted(NITIN, "mega", messageTs));
+    await until((): boolean => {
+      return writes().length >= 1;
+    }, "the answer");
+    await settle();
+
+    expect(publicNotes.inserts).toHaveLength(0);
+    expect(feed).toHaveLength(0);
+    expect(writes()).toHaveLength(1);
+
+    const answer: SlackCall = writes()[0]!;
+    const said: string =
+      "The message you reacted to has only files or images, which the status page does not show, so it was not saved as a public note.";
+
+    // Only Nitin sees it; at the foot of the channel, as it is not a reply.
+    expect(answer.method).toBe("chat.postEphemeral");
+    expect(answer.data["channel"]).toBe(INC_CHANNEL);
+    expect(answer.data["user"]).toBe(NITIN);
+    expect(answer.data["thread_ts"]).toBeUndefined();
+    expect(answer.data["text"]).toBe(said);
+    expect(JSON.stringify(answer.data["blocks"])).toContain(said);
+  });
+
   test("a message pinned days after it was written is filed when it was written", async () => {
     const messageTs: string = wrote({ user: AIDIL, minutesAgo: 3 * 24 * 60 });
 
@@ -893,15 +933,18 @@ describe("somebody not connected who pins a message", () => {
     expect(prompt.method).toBe("chat.postEphemeral");
     expect(prompt.data["channel"]).toBe(INC_CHANNEL);
     expect(prompt.data["user"]).toBe(CAROL);
+    // At the foot of the channel, away from the message: named by the pin.
+    expect(prompt.data["thread_ts"]).toBeUndefined();
     expect(prompt.data["text"]).toBe(
-      "Connect your Slack account to save this message as a private note on this incident",
+      "Connect your Slack account to save the message you pinned as a private note on this incident",
     );
 
     const blocks: string = JSON.stringify(prompt.data["blocks"]);
 
     expect(blocks).toContain(
-      "Connect your Slack account to save this message as a private note on this incident.",
+      "Connect your Slack account to save the message you pinned as a private note on this incident.",
     );
+    expect(blocks).not.toContain("this message");
     expect(blocks).toContain(
       "It takes one click, and OneUptime saves it for you as soon as you're connected.",
     );

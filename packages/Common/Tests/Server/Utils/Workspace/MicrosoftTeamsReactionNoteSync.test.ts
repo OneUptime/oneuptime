@@ -71,6 +71,7 @@ import WorkspaceReactionNote, {
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
+import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
@@ -685,9 +686,17 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     ).resolves.toBe(MicrosoftTeamsReactionOutcome.NoText);
 
     expect(saveSpy).not.toHaveBeenCalled();
-    expect(replySpy.mock.calls[0]![0].text).toBe(
-      "This message has only files or images, which are not put on the status page, so it was not saved as a public note.",
-    );
+    // To Jane, by mention, in the message's thread: no plain reply.
+    expect(replySpy).not.toHaveBeenCalled();
+    expect(answerSpy).toHaveBeenCalledTimes(1);
+    expect(answerSpy.mock.calls[0]![0]).toEqual({
+      place: PLACE,
+      answer: {
+        markdown:
+          "The message you reacted to has only files or images, which the status page does not show, so it was not saved as a public note.",
+        text: "The message you reacted to has only files or images, which the status page does not show, so it was not saved as a public note.",
+      },
+    });
   });
 
   test("a megaphone saves a public note and says it is on the status page", async () => {
@@ -846,7 +855,9 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       workspaceType: WorkspaceType.MicrosoftTeams,
       projectId: projectId,
       workspaceUserId: AAD_USER_ID,
-      purpose: "save this message as a private note on this incident",
+      // The card sits at the end of the thread: not "this message".
+      purpose:
+        "save the message you reacted to as a private note on this incident",
       pendingAction: {
         kind: WorkspacePendingActionKind.SavePrivateNote,
         eventType: WorkspaceEventType.Incident,
@@ -865,8 +876,8 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       place: PLACE,
       answer: {
         markdown:
-          "🔗 **Connect your Microsoft Teams account to save this message as a private note on this incident.** It takes one click, and OneUptime saves it for you as soon as you're connected.",
-        text: "Connect your Microsoft Teams account to save this message as a private note on this incident",
+          "🔗 **Connect your Microsoft Teams account to save the message you reacted to as a private note on this incident.** It takes one click, and OneUptime saves it for you as soon as you're connected.",
+        text: "Connect your Microsoft Teams account to save the message you reacted to as a private note on this incident",
       },
       connectUrl: URL.fromString(CONNECT_URL),
     });
@@ -891,7 +902,7 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       WorkspacePendingActionKind.SavePublicNote,
     );
     expect(answerSpy.mock.calls[0]![0].answer.text).toBe(
-      "Connect your Microsoft Teams account to save this message as a public note on this incident",
+      "Connect your Microsoft Teams account to save the message you reacted to as a public note on this incident",
     );
   });
 
@@ -995,11 +1006,73 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     ).resolves.toBe(MicrosoftTeamsReactionOutcome.NotAuthorized);
 
     expect(saveSpy).not.toHaveBeenCalled();
-    expect(replySpy.mock.calls[0]![0].text).toBe(
-      "Jane Doe, You do not have permission to add a public note to this incident.",
-    );
+
+    /*
+     * Jane is answered as a button is: a card in the message's thread that
+     * mentions her, so Teams tells her - not "Jane Doe, You do not ..." as
+     * plain text, which notified nobody.
+     */
+    expect(replySpy).not.toHaveBeenCalled();
+    expect(placeSpy).toHaveBeenCalledWith({
+      projectId: projectId,
+      teamId: TEAM_ID,
+      channelId: CHANNEL_ID,
+      parentMessageId: "1700000000100",
+      userTeamsId: AAD_USER_ID,
+      userName: "Jane Doe",
+    });
+    expect(answerSpy).toHaveBeenCalledTimes(1);
+    expect(answerSpy.mock.calls[0]![0]).toEqual({
+      place: PLACE,
+      answer: {
+        markdown:
+          "You do not have permission to add a public note to this incident.",
+        text: "You do not have permission to add a public note to this incident.",
+      },
+    });
     // A refusal is an answer: it is not retried next minute.
     expect(releaseSpy).not.toHaveBeenCalled();
+  });
+
+  test("with no place to send a card to, the refusal is still told, as a reply in the thread", async () => {
+    authorizeSpy.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission to add a private note to this incident.",
+      ),
+    );
+    placeSpy.mockResolvedValue(null);
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction(),
+      now: NOW,
+    });
+
+    expect(answerSpy).not.toHaveBeenCalled();
+    expect(replySpy).toHaveBeenCalledTimes(1);
+    expect(replySpy).toHaveBeenCalledWith({
+      projectId: projectId,
+      teamId: TEAM_ID,
+      channelId: CHANNEL_ID,
+      parentMessageId: "1700000000100",
+      text: "You do not have permission to add a private note to this incident.",
+    });
+  });
+
+  test("a place that cannot be found does not fail the run, and the refusal is still told", async () => {
+    authorizeSpy.mockRejectedValue(new NotAuthorizedException("No."));
+    placeSpy.mockRejectedValue(new Error("Graph is down"));
+
+    await expect(
+      MicrosoftTeamsReactionNoteSync.processReaction({
+        channel: watchedChannel(),
+        reaction: noteReaction(),
+        now: NOW,
+      }),
+    ).resolves.toBe(MicrosoftTeamsReactionOutcome.NotAuthorized);
+
+    expect(answerSpy).not.toHaveBeenCalled();
+    expect(replySpy.mock.calls[0]![0].text).toBe("No.");
   });
 
   test("an old refused reaction gets no reply", async () => {
@@ -1015,6 +1088,7 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     });
 
     expect(replySpy).not.toHaveBeenCalled();
+    expect(answerSpy).not.toHaveBeenCalled();
   });
 
   /*
@@ -1054,17 +1128,24 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
         }),
       ).resolves.toBe(MicrosoftTeamsReactionOutcome.Refused);
 
-      expect(replySpy).toHaveBeenCalledTimes(1);
-      expect(replySpy.mock.calls[0]![0].parentMessageId).toBe("1700000000100");
-      expect(replySpy.mock.calls[0]![0].text).toBe(
-        `Jane Doe, could not save the message as a note: ${refusal.message}`,
-      );
+      const said: string = `Could not save the message as a note: ${refusal.message}`;
+
+      expect(replySpy).not.toHaveBeenCalled();
+      expect(placeSpy.mock.calls[0]![0].parentMessageId).toBe("1700000000100");
+      expect(answerSpy).toHaveBeenCalledTimes(1);
+      expect(answerSpy.mock.calls[0]![0]).toEqual({
+        place: PLACE,
+        answer: {
+          markdown: mdText`${said}`.toString(),
+          text: said,
+        },
+      });
       // A refusal is an answer: the claim is kept, so it is not tried again.
       expect(releaseSpy).not.toHaveBeenCalled();
     },
   );
 
-  test("a refused save is explained without a name when Teams gave none", async () => {
+  test("a refused save is explained when Teams gave no name, to nobody in particular", async () => {
     saveSpy.mockRejectedValue(new NotAuthorizedException("No."));
 
     await MicrosoftTeamsReactionNoteSync.processReaction({
@@ -1073,12 +1154,14 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       now: NOW,
     });
 
-    expect(replySpy.mock.calls[0]![0].text).toBe(
-      "Could not save the message as a note: No.",
-    );
+    expect(placeSpy.mock.calls[0]![0].userName).toBeUndefined();
+    expect(answerSpy.mock.calls[0]![0].answer).toEqual({
+      markdown: "Could not save the message as a note: No.",
+      text: "Could not save the message as a note: No.",
+    });
   });
 
-  test("the reply to a refused save shows the member's name as written, not as formatting", async () => {
+  test("the member is named by the card's mention, never inside the answer's text", async () => {
     saveSpy.mockRejectedValue(new NotAuthorizedException("No."));
 
     await MicrosoftTeamsReactionNoteSync.processReaction({
@@ -1087,12 +1170,14 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       now: NOW,
     });
 
-    expect(replySpy.mock.calls[0]![0].text).toBe(
-      "\\*Jane\\* \\[Doe\\], could not save the message as a note: No.",
+    // The card's mention takes the name (MicrosoftTeamsActionAnswer.getMentionName).
+    expect(placeSpy.mock.calls[0]![0].userName).toBe("*Jane* [Doe]");
+    expect(answerSpy.mock.calls[0]![0].answer.markdown).toBe(
+      "Could not save the message as a note: No.",
     );
   });
 
-  test("a member the check refuses is named, and told the refusal, as text", async () => {
+  test("a refusal the check gives is told as text, not as formatting", async () => {
     authorizeSpy.mockRejectedValue(
       new NotAuthorizedException(
         "You do not have permission: the label *Payments* is not yours.",
@@ -1107,9 +1192,11 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       now: NOW,
     });
 
-    expect(replySpy.mock.calls[0]![0].text).toBe(
-      "\\*\\*Jane\\*\\* \\[Doe\\](https://example.com), You do not have permission: the label \\*Payments\\* is not yours.",
-    );
+    expect(answerSpy.mock.calls[0]![0].answer).toEqual({
+      markdown:
+        "You do not have permission: the label \\*Payments\\* is not yours.",
+      text: "You do not have permission: the label *Payments* is not yours.",
+    });
   });
 
   test("a refusal the check gives without a name is still text", async () => {
@@ -1125,9 +1212,10 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       now: NOW,
     });
 
-    expect(replySpy.mock.calls[0]![0].text).toBe(
-      "The label \\[x\\](https://example.com) is not yours.",
-    );
+    expect(answerSpy.mock.calls[0]![0].answer).toEqual({
+      markdown: "The label \\[x\\](https://example.com) is not yours.",
+      text: "The label [x](https://example.com) is not yours.",
+    });
   });
 
   test("an old reaction whose save is refused gets no reply, and is not retried either", async () => {
@@ -1144,6 +1232,7 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     ).resolves.toBe(MicrosoftTeamsReactionOutcome.Refused);
 
     expect(replySpy).not.toHaveBeenCalled();
+    expect(answerSpy).not.toHaveBeenCalled();
     expect(releaseSpy).not.toHaveBeenCalled();
   });
 
@@ -1526,8 +1615,9 @@ describe("MicrosoftTeamsReactionNoteSync.saveAfterConnect", () => {
 
     await expect(saveAfterConnect()).resolves.toEqual({
       outcome: WorkspaceMessageNoteOutcome.Refused,
+      // As it reads, for the Connect answer: no name in front of it.
       reason:
-        "Jane Doe, You do not have permission to add a private note to this incident.",
+        "You do not have permission to add a private note to this incident.",
     });
     expect(replySpy).not.toHaveBeenCalled();
   });
@@ -1543,7 +1633,7 @@ describe("MicrosoftTeamsReactionNoteSync.saveAfterConnect", () => {
 
     await expect(saveAfterConnect()).resolves.toEqual({
       outcome: WorkspaceMessageNoteOutcome.NothingToSave,
-      reason: "This message has no text to save as a note.",
+      reason: "The message you reacted to has no text to save as a note.",
     });
   });
 

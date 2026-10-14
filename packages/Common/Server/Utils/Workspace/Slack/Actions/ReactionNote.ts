@@ -123,8 +123,9 @@ export default class SlackReactionNoteActions {
 
   /*
    * What a pin from somebody not connected yet asks them to connect for -
-   * "save this message as a private note on this incident" - and what
-   * OneUptime finishes for them once they have: the message, saved
+   * "save the message you pinned as a private note on this incident": the
+   * prompt is at the foot of the channel, not next to the message - and
+   * what OneUptime finishes for them once they have: the message, saved
    * (WorkspaceConnectCompletion).
    */
   public static describe(data: {
@@ -145,6 +146,7 @@ export default class SlackReactionNoteActions {
       purpose: WorkspaceActionAnswers.getPendingActionPurpose({
         kind: kind,
         eventType: eventType,
+        workspaceType: WorkspaceType.Slack,
       }),
       pendingAction: {
         kind: kind,
@@ -456,6 +458,7 @@ export default class SlackReactionNoteActions {
       const reason: string = WorkspaceReactionNote.getNothingToSaveMessage({
         noteType: noteType,
         hasAttachments: !ChatMessageMarkdown.isEmpty(message.content),
+        workspaceType: WorkspaceType.Slack,
       });
 
       if (tellPerson) {

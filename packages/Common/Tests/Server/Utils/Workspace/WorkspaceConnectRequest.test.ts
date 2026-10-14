@@ -417,7 +417,7 @@ describe("a pinned message to save once the account is connected", () => {
       workspaceType: WorkspaceType.Slack,
       projectId: PROJECT_ID,
       workspaceUserId: "U0JANE",
-      purpose: "save this message as a private note on this incident",
+      purpose: "save the message you pinned as a private note on this incident",
       pendingAction: {
         kind: WorkspacePendingActionKind.SavePrivateNote,
         eventType: WorkspaceEventType.Incident,
@@ -443,7 +443,8 @@ describe("a pinned message to save once the account is connected", () => {
       workspaceType: WorkspaceType.MicrosoftTeams,
       projectId: PROJECT_ID,
       workspaceUserId: "aad-jane",
-      purpose: "save this message as a public note on this incident",
+      purpose:
+        "save the message you reacted to as a public note on this incident",
       pendingAction: {
         kind: WorkspacePendingActionKind.SavePublicNote,
         eventType: WorkspaceEventType.Incident,
@@ -477,7 +478,8 @@ describe("a pinned message to save once the account is connected", () => {
         workspaceType: WorkspaceType.Slack,
         projectId: PROJECT_ID.toString(),
         workspaceUserId: "U0JANE",
-        purpose: "save this message as a private note on this incident",
+        purpose:
+          "save the message you pinned as a private note on this incident",
         expiresAt: new Date(Date.now() + 60_000).toISOString(),
         pendingAction: {
           kind: WorkspacePendingActionKind.SavePrivateNote,

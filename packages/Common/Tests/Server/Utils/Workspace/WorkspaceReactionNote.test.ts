@@ -1073,27 +1073,65 @@ describe("WorkspaceReactionNote.getNotePostedAt", () => {
 });
 
 describe("WorkspaceReactionNote: what a pin is told", () => {
+  /*
+   * The answer is not next to the message - Slack shows it at the foot of
+   * the channel, Teams at the end of the thread - so it names the message
+   * by what the person did, never "This message" (which would read as the
+   * answer itself).
+   */
   test("nothing to save: no text, or only files for a public note", () => {
     expect(
       WorkspaceReactionNote.getNothingToSaveMessage({
         noteType: WorkspaceNoteType.Private,
         hasAttachments: false,
+        workspaceType: WorkspaceType.Slack,
       }),
-    ).toBe("This message has no text to save as a note.");
+    ).toBe("The message you pinned has no text to save as a note.");
     expect(
       WorkspaceReactionNote.getNothingToSaveMessage({
         noteType: WorkspaceNoteType.Public,
         hasAttachments: false,
+        workspaceType: WorkspaceType.Slack,
       }),
-    ).toBe("This message has no text to save as a note.");
+    ).toBe("The message you reacted to has no text to save as a note.");
     expect(
       WorkspaceReactionNote.getNothingToSaveMessage({
         noteType: WorkspaceNoteType.Public,
         hasAttachments: true,
+        workspaceType: WorkspaceType.Slack,
       }),
     ).toBe(
-      "This message has only files or images, which are not put on the status page, so it was not saved as a public note.",
+      "The message you reacted to has only files or images, which the status page does not show, so it was not saved as a public note.",
     );
+  });
+
+  test("in Microsoft Teams, where only a reaction saves a message, it is the message they reacted to", () => {
+    expect(
+      WorkspaceReactionNote.getNothingToSaveMessage({
+        noteType: WorkspaceNoteType.Private,
+        hasAttachments: false,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      }),
+    ).toBe("The message you reacted to has no text to save as a note.");
+    expect(
+      WorkspaceReactionNote.getNothingToSaveMessage({
+        noteType: WorkspaceNoteType.Public,
+        hasAttachments: true,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      }),
+    ).toBe(
+      "The message you reacted to has only files or images, which the status page does not show, so it was not saved as a public note.",
+    );
+  });
+
+  test("only a public note says it leaves files and images out", () => {
+    expect(
+      WorkspaceReactionNote.getNothingToSaveMessage({
+        noteType: WorkspaceNoteType.Private,
+        hasAttachments: true,
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toBe("The message you pinned has no text to save as a note.");
   });
 
   test("the confirmation as a notification's plain text", () => {

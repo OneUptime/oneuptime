@@ -670,7 +670,7 @@ describe("a pinned message, saved once the account is connected", () => {
   ): WorkspaceConnectRequestRecord {
     return request({
       workspaceUserId: "U0JANE",
-      purpose: "save this message as a private note on this incident",
+      purpose: "save the message you pinned as a private note on this incident",
       pendingAction: {
         kind: kind || WorkspacePendingActionKind.SavePrivateNote,
         eventType: WorkspaceEventType.Incident,
@@ -758,7 +758,8 @@ describe("a pinned message, saved once the account is connected", () => {
         request: request({
           workspaceType: WorkspaceType.MicrosoftTeams,
           workspaceUserId: "aad-jane",
-          purpose: "save this message as a public note on this incident",
+          purpose:
+            "save the message you reacted to as a public note on this incident",
           pendingAction: {
             kind: WorkspacePendingActionKind.SavePublicNote,
             eventType: WorkspaceEventType.Incident,
@@ -808,10 +809,10 @@ describe("a pinned message, saved once the account is connected", () => {
       "nothing to save",
       {
         outcome: WorkspaceMessageNoteOutcome.NothingToSave,
-        reason: "This message has no text to save as a note.",
+        reason: "The message you pinned has no text to save as a note.",
       },
-      "✅ **Your Slack account is connected to OneUptime.** This message has no text to save as a note.",
-      "Your Slack account is connected to OneUptime. This message has no text to save as a note.",
+      "✅ **Your Slack account is connected to OneUptime.** The message you pinned has no text to save as a note.",
+      "Your Slack account is connected to OneUptime. The message you pinned has no text to save as a note.",
     ],
     [
       "the message gone",
@@ -847,6 +848,47 @@ describe("a pinned message, saved once the account is connected", () => {
       });
     },
   );
+
+  /*
+   * Microsoft Teams saves a message by the reaction on it: when neither is
+   * there any more, the message may still be - only the reaction is gone.
+   */
+  test("in Microsoft Teams, a message not found is the message or the reaction gone", async () => {
+    teamsSave.mockResolvedValue({
+      outcome: WorkspaceMessageNoteOutcome.NotFound,
+    });
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: request({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceUserId: "aad-jane",
+          purpose:
+            "save the message you reacted to as a private note on this incident",
+          pendingAction: {
+            kind: WorkspacePendingActionKind.SavePrivateNote,
+            eventType: WorkspaceEventType.Incident,
+            eventId: INCIDENT_ID,
+            message: {
+              channelId: "19:inc-2@thread.tacv2",
+              messageId: "1760000000200",
+              teamId: "graph-team-ops",
+            },
+          },
+          slack: undefined,
+        }),
+        userId: USER_ID,
+      });
+
+    expect(result).toEqual({
+      outcome: ConnectRequestOutcome.Answered,
+      answer: {
+        markdown:
+          "✅ **Your Microsoft Teams account is connected to OneUptime.** The message, or your reaction to it, is no longer there, so nothing was saved.",
+        text: "Your Microsoft Teams account is connected to OneUptime. The message, or your reaction to it, is no longer there, so nothing was saved",
+      },
+    });
+  });
 
   test("a save that throws is logged, and answered as a failure: the account is connected either way", async () => {
     slackSave.mockRejectedValue(new Error("database is down"));

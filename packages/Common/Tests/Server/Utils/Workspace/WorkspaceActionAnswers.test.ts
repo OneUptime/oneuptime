@@ -459,21 +459,6 @@ describe("what a press asks to be connected for", () => {
       WorkspaceEventType.ScheduledMaintenance,
       "mark this scheduled maintenance event as complete",
     ],
-    [
-      WorkspacePendingActionKind.SavePrivateNote,
-      WorkspaceEventType.Incident,
-      "save this message as a private note on this incident",
-    ],
-    [
-      WorkspacePendingActionKind.SavePublicNote,
-      WorkspaceEventType.ScheduledMaintenance,
-      "save this message as a public note on this scheduled maintenance event",
-    ],
-    [
-      WorkspacePendingActionKind.SavePrivateNote,
-      WorkspaceEventType.AlertEpisode,
-      "save this message as a private note on this alert episode",
-    ],
   ])(
     "%s on %s: %s",
     (
@@ -489,6 +474,72 @@ describe("what a press asks to be connected for", () => {
       ).toBe(purpose);
     },
   );
+
+  /*
+   * A pinned message's prompt is not next to it - at the foot of the
+   * channel in Slack, at the end of the thread in Microsoft Teams - so it
+   * names the message by what the person did, never "this message".
+   */
+  test.each([
+    [
+      WorkspacePendingActionKind.SavePrivateNote,
+      WorkspaceEventType.Incident,
+      WorkspaceType.Slack,
+      "save the message you pinned as a private note on this incident",
+    ],
+    [
+      WorkspacePendingActionKind.SavePublicNote,
+      WorkspaceEventType.ScheduledMaintenance,
+      WorkspaceType.Slack,
+      "save the message you reacted to as a public note on this scheduled maintenance event",
+    ],
+    [
+      WorkspacePendingActionKind.SavePrivateNote,
+      WorkspaceEventType.AlertEpisode,
+      WorkspaceType.Slack,
+      "save the message you pinned as a private note on this alert episode",
+    ],
+    [
+      WorkspacePendingActionKind.SavePrivateNote,
+      WorkspaceEventType.Incident,
+      WorkspaceType.MicrosoftTeams,
+      "save the message you reacted to as a private note on this incident",
+    ],
+    [
+      WorkspacePendingActionKind.SavePublicNote,
+      WorkspaceEventType.Incident,
+      WorkspaceType.MicrosoftTeams,
+      "save the message you reacted to as a public note on this incident",
+    ],
+  ])(
+    "%s on %s in %s: %s",
+    (
+      kind: WorkspacePendingActionKind,
+      eventType: WorkspaceEventType,
+      workspaceType: WorkspaceType,
+      purpose: string,
+    ) => {
+      const said: string = WorkspaceActionAnswers.getPendingActionPurpose({
+        kind: kind,
+        eventType: eventType,
+        workspaceType: workspaceType,
+      });
+
+      expect(said).toBe(purpose);
+      expect(said).not.toContain("this message");
+    },
+  );
+
+  test("a pinned message's prompt without its chat still never says 'this message'", () => {
+    expect(
+      WorkspaceActionAnswers.getPendingActionPurpose({
+        kind: WorkspacePendingActionKind.SavePrivateNote,
+        eventType: WorkspaceEventType.Incident,
+      }),
+    ).toBe(
+      "save the message you reacted to as a private note on this incident",
+    );
+  });
 });
 
 describe("a press that comes too late says who got there first, and when", () => {

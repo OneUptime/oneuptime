@@ -589,7 +589,9 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
       },
       slackTeamId: TEAM_ID,
       description: {
-        purpose: "save this message as a private note on this incident",
+        // The prompt is at the foot of the channel: not "this message".
+        purpose:
+          "save the message you pinned as a private note on this incident",
         pendingAction: {
           kind: WorkspacePendingActionKind.SavePrivateNote,
           eventType: WorkspaceEventType.Incident,
@@ -615,7 +617,7 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
     );
 
     expect(promptSpy.mock.calls[0]![0].description.purpose).toBe(
-      "save this message as a public note on this incident",
+      "save the message you reacted to as a public note on this incident",
     );
     expect(promptSpy.mock.calls[0]![0].description.pendingAction.kind).toBe(
       WorkspacePendingActionKind.SavePublicNote,
@@ -682,7 +684,7 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
 
     expect(saveSpy).not.toHaveBeenCalled();
     expect(refusalSpy.mock.calls[0]![0].message).toBe(
-      "This message has no text to save as a note.",
+      "The message you pinned has no text to save as a note.",
     );
   });
 
@@ -707,7 +709,7 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
 
     expect(saveSpy).not.toHaveBeenCalled();
     expect(refusalSpy.mock.calls[0]![0].message).toBe(
-      "This message has only files or images, which are not put on the status page, so it was not saved as a public note.",
+      "The message you reacted to has only files or images, which the status page does not show, so it was not saved as a public note.",
     );
   });
 
@@ -847,7 +849,7 @@ describe("SlackReactionNoteActions.saveMessage: finished once an account is conn
       }),
     ).resolves.toEqual({
       outcome: WorkspaceMessageNoteOutcome.NothingToSave,
-      reason: "This message has no text to save as a note.",
+      reason: "The message you pinned has no text to save as a note.",
     });
 
     saveSpy.mockResolvedValueOnce(WorkspaceNoteSaveResult.Duplicate);

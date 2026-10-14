@@ -16,7 +16,9 @@ import URL from "../../../Types/API/URL";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
-import { WorkspaceNoteType } from "../../../Types/Workspace/WorkspaceNoteReaction";
+import WorkspaceNoteReactionUtil, {
+  WorkspaceNoteType,
+} from "../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import AlertEpisodeInternalNoteService from "../../Services/AlertEpisodeInternalNoteService";
 import AlertEpisodeService from "../../Services/AlertEpisodeService";
@@ -795,18 +797,27 @@ export default class WorkspaceReactionNote {
   /*
    * What somebody is told when the message they pinned has nothing a note
    * can hold: no text at all, or - for a public note - only files and
-   * images, which are not put on a status page (a link into the company's
-   * chat opens for nobody there).
+   * images, which a status page does not show (a link into the company's
+   * chat opens for nobody there). The answer is not next to the message,
+   * so it names it as they chose it (getSavedMessageWords): "The message
+   * you pinned has no text to save as a note."
    */
   public static getNothingToSaveMessage(data: {
     noteType: WorkspaceNoteType;
     hasAttachments: boolean;
+    workspaceType?: WorkspaceType | undefined;
   }): string {
+    const words: string = WorkspaceNoteReactionUtil.getSavedMessageWords({
+      noteType: data.noteType,
+      workspaceType: data.workspaceType,
+    });
+    const message: string = words.charAt(0).toUpperCase() + words.slice(1);
+
     if (data.noteType === WorkspaceNoteType.Public && data.hasAttachments) {
-      return "This message has only files or images, which are not put on the status page, so it was not saved as a public note.";
+      return `${message} has only files or images, which the status page does not show, so it was not saved as a public note.`;
     }
 
-    return "This message has no text to save as a note.";
+    return `${message} has no text to save as a note.`;
   }
 
   // The confirmation as plain text, for what a notification shows.

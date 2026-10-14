@@ -468,15 +468,25 @@ export default class WorkspaceConnectCompletion {
           isDone: false,
         };
       }
-      case WorkspaceMessageNoteOutcome.NotFound:
+      case WorkspaceMessageNoteOutcome.NotFound: {
+        /*
+         * Slack: the message was deleted. Microsoft Teams saves a message
+         * by the reaction on it, so it is also not found once the person
+         * took their reaction off.
+         */
+        const gone: string =
+          request.workspaceType === WorkspaceType.MicrosoftTeams
+            ? "The message, or your reaction to it, is no longer there, so nothing was saved"
+            : "The message is no longer there, so nothing was saved";
+
         return {
           answer: {
-            markdown:
-              mdText`The message is no longer there, so nothing was saved.`.toString(),
-            text: "The message is no longer there, so nothing was saved",
+            markdown: mdText`${gone}.`.toString(),
+            text: gone,
           },
           isDone: false,
         };
+      }
       case WorkspaceMessageNoteOutcome.Failed: {
         const productName: string = ProductBrandingText.getProductName();
 

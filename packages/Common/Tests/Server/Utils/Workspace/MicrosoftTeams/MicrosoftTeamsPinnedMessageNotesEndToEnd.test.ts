@@ -106,6 +106,7 @@ import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import PermissionScope from "../../../../../Types/Database/AccessControl/PermissionScope";
 import { JSONObject } from "../../../../../Types/JSON";
 import Name from "../../../../../Types/Name";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, {
   UserPermission,
@@ -640,6 +641,91 @@ describe("a pinned Microsoft Teams message, saved as a note", () => {
   });
 });
 
+describe("a Microsoft Teams message that cannot be saved", () => {
+  test("a 📣 on a message of only a file: Nitin is told why, by a card that mentions him, in the thread", async () => {
+    const message: JSONObject = graphMessage({
+      id: "1700000000100",
+      from: AIDIL,
+      minutesAgo: 10,
+      html: '<p><attachment id="f1"></attachment></p>',
+      reactions: [reaction(NITIN, "📣", 1)],
+    });
+    message["attachments"] = [
+      {
+        id: "f1",
+        contentType: "reference",
+        contentUrl:
+          "https://acme.sharepoint.com/sites/ops/Shared%20Documents/p99.png",
+        name: "p99.png",
+      },
+    ];
+    channelMessages = [message];
+
+    expect(await syncRun()).toEqual([MicrosoftTeamsReactionOutcome.NoText]);
+
+    expect(publicNotes.inserts).toHaveLength(0);
+    expect(feed).toHaveLength(0);
+    expect(connector.posts).toHaveLength(1);
+
+    const post: ConnectorPost = connector.posts[0]!;
+    const card: {
+      text: string;
+      buttons: Array<JSONObject>;
+      mentions: Array<JSONObject>;
+    } = cardOf(post);
+
+    expect(post.conversationId).toBe(`${CHANNEL_ID};messageid=1700000000100`);
+    expect(card.text).toBe(
+      "<at>Nitin Kumar</at> The message you reacted to has only files or images, which the status page does not show, so it was not saved as a public note.",
+    );
+    expect(card.mentions).toEqual([
+      {
+        type: "mention",
+        text: "<at>Nitin Kumar</at>",
+        mentioned: { id: NITIN, name: "Nitin Kumar" },
+      },
+    ]);
+    expect(card.buttons).toHaveLength(0);
+    // What a notification shows.
+    expect(post.activity["summary"]).toBe(
+      "The message you reacted to has only files or images, which the status page does not show, so it was not saved as a public note.",
+    );
+
+    // The next runs leave it: answered once.
+    await syncRun();
+    expect(connector.posts).toHaveLength(1);
+  });
+
+  test("a member who may not add the note is told so by a card that mentions them, and nothing is saved", async () => {
+    jest
+      .spyOn(WorkspaceActionAuthorization, "authorize")
+      .mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permission to add a private note to this incident.",
+        ),
+      );
+    channelMessages = [
+      graphMessage({
+        id: "1700000000100",
+        from: AIDIL,
+        minutesAgo: 10,
+        html: "<p>Restarted the primary DB</p>",
+        reactions: [reaction(NITIN, "📌", 1)],
+      }),
+    ];
+
+    expect(await syncRun()).toEqual([
+      MicrosoftTeamsReactionOutcome.NotAuthorized,
+    ]);
+
+    expect(privateNotes.inserts).toHaveLength(0);
+    expect(connector.posts).toHaveLength(1);
+    expect(cardOf(connector.posts[0]!).text).toBe(
+      "<at>Nitin Kumar</at> You do not have permission to add a private note to this incident.",
+    );
+  });
+});
+
 describe("somebody not connected who pins a Microsoft Teams message", () => {
   function carolsPin(): void {
     channelMessages = [
@@ -673,7 +759,7 @@ describe("somebody not connected who pins a Microsoft Teams message", () => {
 
     expect(post.conversationId).toBe(`${CHANNEL_ID};messageid=1700000000100`);
     expect(card.text).toBe(
-      "<at>Carol Diaz</at> 🔗 **Connect your Microsoft Teams account to save this message as a private note on this incident.** It takes one click, and OneUptime saves it for you as soon as you're connected.",
+      "<at>Carol Diaz</at> 🔗 **Connect your Microsoft Teams account to save the message you reacted to as a private note on this incident.** It takes one click, and OneUptime saves it for you as soon as you're connected.",
     );
     expect(card.mentions).toEqual([
       {
@@ -755,8 +841,9 @@ describe("somebody not connected who pins a Microsoft Teams message", () => {
       });
 
     expect(result.outcome).toBe(ConnectRequestOutcome.Answered);
+    // The message is there: her reaction is what is gone.
     expect(result.answer.text).toBe(
-      "Your Microsoft Teams account is connected to OneUptime. The message is no longer there, so nothing was saved",
+      "Your Microsoft Teams account is connected to OneUptime. The message, or your reaction to it, is no longer there, so nothing was saved",
     );
     expect(privateNotes.inserts).toHaveLength(0);
     expect(connector.posts).toHaveLength(0);
