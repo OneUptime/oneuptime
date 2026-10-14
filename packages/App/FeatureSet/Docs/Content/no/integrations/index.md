@@ -84,7 +84,7 @@ Start fra toppen av tabellen: jo høyere en måte står, jo mindre er det å ved
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Begge | En innebygd tilkobling: hendelseskanaler, handlinger fra Teams og vakter. |
 | [Mattermost](/docs/workflows/components#mattermost) | Utgående | Legger ut oppdateringer om hendelser i en Mattermost-kanal. |
 | [Discord](/docs/integrations/discord) | Utgående | Legger ut oppdateringer om hendelser i en Discord-kanal. |
-| [Telegram](/docs/integrations/telegram) | Utgående | Sender oppdateringer om hendelser til en Telegram-chat. |
+| [Telegram](/docs/integrations/telegram) | Utgående | Sender en melding til en Telegram-chat når et varsel utløses. |
 | [IRC](/docs/integrations/irc) | Utgående | Legger ut oppdateringer om hendelser i en IRC-kanal. |
 
 > [!TIP]
@@ -122,7 +122,7 @@ URL-en er den eneste påloggingsinformasjonen, så behandle den som et passord. 
 2. Opprett en arbeidsflyt, klikk på den stiplede blokken, og velg en hendelsestrigger, f.eks. **On Create Incident**. Kryss av for feltene som skal sendes i **Fields to pass on**, f.eks. `title` og `description`.
 3. Klikk på **Legg til komponent**, og legg til en **API Post (JSON)**-blokk. Koble triggerens **Success**-punkt til den.
 4. Fyll ut **URL**, **Request Headers** med `Authorization`-overskriften og **Request Body** med hendelsens felt, f.eks. `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-5. Klikk på **Kjør arbeidsflyt**, skriv inn **Hendelse-ID** for en hendelse, og kjør den. En testkjøring sender forespørselen på ordentlig. Slå deretter på **Aktivert**.
+5. Klikk på **Kjør arbeidsflyt**, velg en hendelse under **Hendelse**, og kjør den. En testkjøring sender forespørselen på ordentlig. Slå deretter på **Aktivert**.
 :::
 
 Når verktøyet trenger dataene i en annen form, legger du til en [Run Custom JavaScript](/docs/workflows/components#custom-code)-blokk mellom de to. Oppskriften er den samme for Zendesk, New Relic, AWS (via SNS), StatusCake og alle de andre: bare URL-en og innholdet endres.

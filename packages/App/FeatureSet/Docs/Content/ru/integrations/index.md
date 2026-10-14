@@ -84,7 +84,7 @@ flowchart TB
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Оба | Встроенное подключение: каналы инцидентов, действия из Teams и дежурства. |
 | [Mattermost](/docs/workflows/components#mattermost) | Исходящее | Публикует обновления инцидентов в канале Mattermost. |
 | [Discord](/docs/integrations/discord) | Исходящее | Публикует обновления инцидентов в канале Discord. |
-| [Telegram](/docs/integrations/telegram) | Исходящее | Отправляет обновления инцидентов в чат Telegram. |
+| [Telegram](/docs/integrations/telegram) | Исходящее | Отправляет сообщение в чат Telegram, когда срабатывает оповещение. |
 | [IRC](/docs/integrations/irc) | Исходящее | Публикует обновления инцидентов в канале IRC. |
 
 > [!TIP]
@@ -122,7 +122,7 @@ URL — единственные учётные данные, поэтому о�
 2. Создайте рабочий процесс, нажмите на пунктирный блок и выберите триггер события, например **On Create Incident**. В его **Fields to pass on** отметьте поля для отправки, например `title` и `description`.
 3. Нажмите **Добавить компонент** и добавьте блок **API Post (JSON)**. Соедините с ним точку **Success** триггера.
 4. Заполните его **URL**, **Request Headers** с заголовком `Authorization` и **Request Body** с полями инцидента, например `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-5. Нажмите **Запустить рабочий процесс**, введите **ID инцидента** какого-либо инцидента и запустите. Тестовый запуск действительно отправляет запрос. Затем включите **Включено**.
+5. Нажмите **Запустить рабочий процесс**, выберите инцидент в поле **Инцидент** и запустите. Тестовый запуск действительно отправляет запрос. Затем включите **Включено**.
 :::
 
 Если инструменту нужны данные в другом виде, добавьте между ними блок [Run Custom JavaScript](/docs/workflows/components#custom-code). Рецепт одинаков для Zendesk, New Relic, AWS (через SNS), StatusCake и всех остальных: меняются только URL и тело.

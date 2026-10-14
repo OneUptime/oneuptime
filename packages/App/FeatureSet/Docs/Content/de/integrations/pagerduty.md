@@ -72,7 +72,7 @@ Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**
 
 ### Testen und dann einschalten
 
-Klicken Sie auf **Arbeitsablauf ausführen**, geben Sie die **Vorfall-ID** eines Testvorfalls ein und führen Sie ihn aus. Der Schritt **API Post (JSON)** zeigt eine `202`-Antwort mit `"status": "success"`, und PagerDuty eröffnet einen Vorfall. Schalten Sie danach oben im **Editor** **Aktiviert** ein.
+Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API Post (JSON)** zeigt eine `202`-Antwort mit `"status": "success"`, und PagerDuty eröffnet einen Vorfall. Schalten Sie danach oben im **Editor** **Aktiviert** ein.
 :::
 
 Der Baustein sendet JSON, er braucht also keinen `Content-Type`-Header. Der `severity` von PagerDuty ist einer von `critical`, `error`, `warning` und `info`: Um den jeweils eigenen Schweregrad jedes Vorfalls zu senden, siehe [Schweregrade zuordnen](#schweregrade-zuordnen).

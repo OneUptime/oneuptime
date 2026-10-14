@@ -84,7 +84,7 @@ flowchart TB
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | هر دو | یک اتصال داخلی: کانال‌های حادثه، اقدام از درون Teams، و آنکال. |
 | [Mattermost](/docs/workflows/components#mattermost) | خروجی | به‌روزرسانی‌های حادثه را در یک کانال Mattermost می‌فرستد. |
 | [Discord](/docs/integrations/discord) | خروجی | به‌روزرسانی‌های حادثه را در یک کانال Discord می‌فرستد. |
-| [Telegram](/docs/integrations/telegram) | خروجی | به‌روزرسانی‌های حادثه را به یک گفتگوی Telegram می‌فرستد. |
+| [Telegram](/docs/integrations/telegram) | خروجی | وقتی هشداری ایجاد می‌شود، پیامی به یک گفتگوی Telegram می‌فرستد. |
 | [IRC](/docs/integrations/irc) | خروجی | به‌روزرسانی‌های حادثه را در یک کانال IRC می‌فرستد. |
 
 > [!TIP]
@@ -122,7 +122,7 @@ flowchart TB
 2. یک گردش کاری بسازید، روی بلوک خط‌چین کلیک کنید و یک تریگر رویداد برگزینید، مانند **On Create Incident**. در **Fields to pass on** آن، فیلدهایی را که باید فرستاده شوند تیک بزنید، مانند `title` و `description`.
 3. روی **افزودن مؤلفه** کلیک کنید و یک بلوک **API Post (JSON)** اضافه کنید. نقطه **Success** تریگر را به آن وصل کنید.
 4. **URL** آن را پر کنید، **Request Headers** آن را با سرآیند `Authorization`، و **Request Body** آن را با فیلدهای حادثه، مانند `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-5. روی **اجرای گردش کاری** کلیک کنید، **شناسه حادثه** یک حادثه را وارد کنید و اجرا کنید. یک اجرای آزمایشی واقعاً درخواست را می‌فرستد. سپس **فعال** را روشن کنید.
+5. روی **اجرای گردش کاری** کلیک کنید، زیر **حادثه** یک حادثه را برگزینید و اجرا کنید. یک اجرای آزمایشی واقعاً درخواست را می‌فرستد. سپس **فعال** را روشن کنید.
 :::
 
 وقتی ابزار به داده‌ای با شکل دیگر نیاز دارد، یک بلوک [Run Custom JavaScript](/docs/workflows/components#custom-code) میان این دو اضافه کنید. دستورالعمل برای Zendesk، New Relic، AWS (از طریق SNS)، StatusCake و بقیه ابزارها همین است: فقط نشانی و بدنه تغییر می‌کنند.

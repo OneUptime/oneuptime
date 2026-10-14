@@ -84,7 +84,7 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | 양방향 | 기본 제공 연결: 인시던트 채널, Teams에서의 작업, 온콜. |
 | [Mattermost](/docs/workflows/components#mattermost) | 아웃바운드 | 인시던트 업데이트를 Mattermost 채널에 게시합니다. |
 | [Discord](/docs/integrations/discord) | 아웃바운드 | 인시던트 업데이트를 Discord 채널에 게시합니다. |
-| [Telegram](/docs/integrations/telegram) | 아웃바운드 | 인시던트 업데이트를 Telegram 채팅으로 보냅니다. |
+| [Telegram](/docs/integrations/telegram) | 아웃바운드 | 알림이 발생하면 Telegram 채팅으로 메시지를 보냅니다. |
 | [IRC](/docs/integrations/irc) | 아웃바운드 | 인시던트 업데이트를 IRC 채널에 게시합니다. |
 
 > [!TIP]
@@ -122,7 +122,7 @@ URL이 유일한 자격 증명이므로 비밀번호처럼 다루세요. [Webhoo
 2. 워크플로를 만들고, 점선 블록을 클릭한 다음 **On Create Incident** 같은 이벤트 트리거를 고릅니다. **Fields to pass on**에서 `title`, `description`처럼 보낼 필드를 선택합니다.
 3. **구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가합니다. 트리거의 **Success** 점을 이 블록에 연결합니다.
 4. **URL**, `Authorization` 헤더가 있는 **Request Headers**, `{{local.components.incident-on-create-1.returnValues.model.title}}` 같은 인시던트 필드가 있는 **Request Body**를 채웁니다.
-5. **워크플로 실행**을 클릭하고, 인시던트의 **인시던트 ID**를 입력한 다음 실행합니다. 테스트 실행도 요청을 실제로 보냅니다. 그런 다음 **활성화됨**을 켭니다.
+5. **워크플로 실행**을 클릭하고, **인시던트**에서 인시던트를 고른 다음 실행합니다. 테스트 실행도 요청을 실제로 보냅니다. 그런 다음 **활성화됨**을 켭니다.
 :::
 
 도구가 다른 형태의 데이터를 필요로 하면 두 블록 사이에 [Run Custom JavaScript](/docs/workflows/components#custom-code) 블록을 추가하세요. Zendesk, New Relic, AWS(SNS를 통해), StatusCake를 비롯한 다른 모든 도구도 방법은 같고, 바뀌는 것은 URL과 본문뿐입니다.

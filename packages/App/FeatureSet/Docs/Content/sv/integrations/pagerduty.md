@@ -72,7 +72,7 @@ Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block oc
 
 ### Testa det och slå sedan på det
 
-Klicka på **Kör arbetsflöde**, ange **Incident-ID** för en testincident och kör det. Steget **API Post (JSON)** visar ett `202`-svar med `"status": "success"`, och PagerDuty skapar en incident. Slå sedan på **Aktiverad** högst upp i **Byggare**.
+Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API Post (JSON)** visar ett `202`-svar med `"status": "success"`, och PagerDuty skapar en incident. Slå sedan på **Aktiverad** högst upp i **Byggare**.
 :::
 
 Blocket skickar JSON, så det behöver ingen `Content-Type`-rubrik. PagerDutys `severity` är en av `critical`, `error`, `warning` och `info`: se [Koppla allvarlighetsgrader](#koppla-allvarlighetsgrader) för att skicka varje incidents egen.

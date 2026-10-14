@@ -73,7 +73,7 @@ E il suo **Request Body** su:
 
 ### Provarlo, poi attivarlo
 
-Fai clic su **Esegui flusso di lavoro**, inserisci l'**ID incidente** di un incidente di prova ed eseguilo. Il passaggio **API Post (JSON)** mostra una risposta `202`, e l'alert compare in Opsgenie un attimo dopo. Poi attiva **Abilitato** in cima al **Costruttore**.
+Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passaggio **API Post (JSON)** mostra una risposta `202`, e l'alert compare in Opsgenie un attimo dopo. Poi attiva **Abilitato** in cima al **Costruttore**.
 :::
 
 Lo schema di Opsgenie è la parola `GenieKey`, uno spazio, poi la chiave. Opsgenie limita `message` a 130 caratteri, e le sue priorità vanno da `P1` a `P5`: per inviare quella di ogni incidente, vedi [Mappare le priorità](#mappare-le-priorità).
