@@ -28793,5 +28793,9 @@
   "{{state}}, the state before it, becomes the episode's current state again.": "その前の状態である {{state}} が、再びエピソードの現在の状態になります。",
   "{{state}}, the state before it, becomes the event's current state again.": "その前の状態である {{state}} が、再びイベントの現在の状態になります。",
   "{{state}}, the state before it, becomes the incident's current state again.": "その前の状態である {{state}} が、再びインシデントの現在の状態になります。",
-  "{{state}}, the state before it, takes over its time.": "その前の状態である {{state}} が、この期間を引き継ぎます。"
+  "{{state}}, the state before it, takes over its time.": "その前の状態である {{state}} が、この期間を引き継ぎます。",
+  "{{count}} {{itemsName}} deleted": "{{itemsName}}: {{count}} 件削除",
+  "{{count}} {{itemsName}} deleted_one": "{{itemName}}: {{count}} 件削除",
+  "{{count}} {{itemsName}} not deleted": "{{itemsName}}: {{count}} 件削除できず",
+  "{{count}} {{itemsName}} not deleted_one": "{{itemName}}: {{count}} 件削除できず"
 }

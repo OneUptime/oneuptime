@@ -28793,5 +28793,9 @@
   "{{state}}, the state before it, becomes the episode's current state again.": "其之前的状态 {{state}} 将重新成为片段的当前状态。",
   "{{state}}, the state before it, becomes the event's current state again.": "其之前的状态 {{state}} 将重新成为维护事件的当前状态。",
   "{{state}}, the state before it, becomes the incident's current state again.": "其之前的状态 {{state}} 将重新成为事件的当前状态。",
-  "{{state}}, the state before it, takes over its time.": "其之前的状态 {{state}} 将接管这段时间。"
+  "{{state}}, the state before it, takes over its time.": "其之前的状态 {{state}} 将接管这段时间。",
+  "{{count}} {{itemsName}} deleted": "已删除 {{count}} 个{{itemsName}}",
+  "{{count}} {{itemsName}} deleted_one": "已删除 {{count}} 个{{itemName}}",
+  "{{count}} {{itemsName}} not deleted": "{{count}} 个{{itemsName}}未删除",
+  "{{count}} {{itemsName}} not deleted_one": "{{count}} 个{{itemName}}未删除"
 }

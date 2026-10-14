@@ -641,6 +641,20 @@ export const BULK_DELETE_QUESTION: PluralTemplate = {
     "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.",
 };
 
+/*
+ * What a bulk Delete's result says about each row: deleted, or not - and
+ * then, under it, which ones and why.
+ */
+export const BULK_DELETED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} deleted",
+  other: "{{count}} {{itemsName}} deleted",
+};
+
+export const BULK_NOT_DELETED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} not deleted",
+  other: "{{count}} {{itemsName}} not deleted",
+};
+
 // A table that names its own verb ("Unlink") for the bulk action.
 export const BULK_ACTION_TITLE: PluralTemplate = {
   one: "{{action}} {{count}} {{itemName}}",
@@ -2325,6 +2339,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * clicks would make a finished move look like it was still going on.
      */
     quiet?: boolean | undefined;
+    /*
+     * When the page asked for has no rows left but earlier pages do - a bulk
+     * Delete that took every row of the last page - go to the last page that
+     * has rows, instead of an empty page under a "Showing 21-20 of 20".
+     */
+    stayInRange?: boolean | undefined;
   }) => Promise<void>;
 
   const getFetchSort: () => Sort<TBaseModel> = (): Sort<TBaseModel> => {
@@ -2351,6 +2371,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const fetchItems: FetchItemsFunction = async (options?: {
     quiet?: boolean | undefined;
+    stayInRange?: boolean | undefined;
   }): Promise<void> => {
     const isQuiet: boolean = Boolean(options?.quiet);
 
@@ -2387,6 +2408,33 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         sort: getFetchSort(),
         requestOptions: props.fetchRequestOptions,
       });
+
+      if (
+        options?.stayInRange &&
+        listResult.data.length === 0 &&
+        listResult.count > 0 &&
+        currentPageNumber > 1
+      ) {
+        /*
+         * The page number's own effect fetches the last page with rows; the
+         * empty one is never drawn.
+         */
+        setCurrentPageNumber(
+          Math.max(
+            1,
+            Math.min(
+              currentPageNumber - 1,
+              Math.ceil(listResult.count / itemsOnPage),
+            ),
+          ),
+        );
+
+        if (!isQuiet) {
+          setIsLoading(false);
+        }
+
+        return;
+      }
 
       setTotalItemsCount(listResult.count);
       setHasMore(listResult.hasMore);
@@ -3290,29 +3338,22 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonStyleType: ButtonStyleType.DANGER,
         icon: (deleteVerb && props.bulkActions?.deleteIcon) || IconProp.Trash,
         confirmMessage: (items: Array<TBaseModel>) => {
-          // What goes with them, then the list's own sentence for many rows.
-          const deleteWarning: string = getDeleteWarning(
-            props.bulkActions?.deleteConfirmationWarning ??
-              props.deleteConfirmationWarning,
-          );
-          const warning: string = deleteWarning ? ` ${deleteWarning}` : "";
-
           if (deleteVerb) {
-            return `${translator.translatePlural(
+            return translator.translatePlural(
               BULK_ACTION_QUESTION,
               items.length,
               {
                 action: translatableTerm(deleteVerb, { inSentence: true }),
                 ...getNounValues(true),
               },
-            )}${warning}`;
+            );
           }
 
-          return `${translator.translatePlural(
+          return translator.translatePlural(
             BULK_DELETE_QUESTION,
             items.length,
             getNounValues(false),
-          )}${warning}`;
+          );
         },
         confirmTitle: (items: Array<TBaseModel>) => {
           if (deleteVerb) {
@@ -3333,18 +3374,49 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
          * which. The rows were picked by hand, often across pages and after a
          * filter, and this is the last moment to notice one that should not be
          * there - so the first few are named under the count.
+         *
+         * Then, in a paragraph of its own, what goes with them (and the
+         * list's own sentence): after the names it is about them, where in
+         * the middle of the question it was one more sentence to read past.
          */
         confirmDetails: (items: Array<TBaseModel>): ReactElement => {
+          const warning: string = getDeleteWarning(
+            props.bulkActions?.deleteConfirmationWarning ??
+              props.deleteConfirmationWarning,
+          );
+
           return (
-            <DeleteItemNames
-              names={items.map((item: TBaseModel) => {
-                return getItemLabel(item);
-              })}
-              totalCount={items.length}
-            />
+            <div className="space-y-3">
+              <DeleteItemNames
+                names={items.map((item: TBaseModel) => {
+                  return getItemLabel(item);
+                })}
+                totalCount={items.length}
+              />
+              {warning ? (
+                <p
+                  data-testid="bulk-delete-consequence"
+                  className="text-sm leading-6 text-gray-600"
+                >
+                  {warning}
+                </p>
+              ) : (
+                <></>
+              )}
+            </div>
           );
         },
         confirmButtonStyleType: ButtonStyleType.DANGER,
+        /*
+         * "2 Status Pages deleted, 1 Status Page not deleted". A table that
+         * names its own verb keeps the general words.
+         */
+        resultLabels: deleteVerb
+          ? undefined
+          : {
+              succeeded: BULK_DELETED_COUNT,
+              failed: BULK_NOT_DELETED_COUNT,
+            },
         onClick: async ({
           items,
           onProgressInfo,
@@ -3891,7 +3963,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         })()}
         onBulkActionEnd={async () => {
           clearBulkSelectionState();
-          await fetchItems();
+          // A bulk Delete can empty the page it was started on.
+          await fetchItems({ stayInRange: true });
         }}
         onBulkActionStart={() => {}}
         bulkSelectedItems={bulkSelectedItems}

@@ -28793,5 +28793,9 @@
   "{{state}}, the state before it, becomes the episode's current state again.": "{{state}}, the state before it, becomes the episode's current state again.",
   "{{state}}, the state before it, becomes the event's current state again.": "{{state}}, the state before it, becomes the event's current state again.",
   "{{state}}, the state before it, becomes the incident's current state again.": "{{state}}, the state before it, becomes the incident's current state again.",
-  "{{state}}, the state before it, takes over its time.": "{{state}}, the state before it, takes over its time."
+  "{{state}}, the state before it, takes over its time.": "{{state}}, the state before it, takes over its time.",
+  "{{count}} {{itemsName}} deleted": "{{count}} {{itemsName}} deleted",
+  "{{count}} {{itemsName}} deleted_one": "{{count}} {{itemName}} deleted",
+  "{{count}} {{itemsName}} not deleted": "{{count}} {{itemsName}} not deleted",
+  "{{count}} {{itemsName}} not deleted_one": "{{count}} {{itemName}} not deleted"
 }

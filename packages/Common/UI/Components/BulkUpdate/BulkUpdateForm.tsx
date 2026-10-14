@@ -119,6 +119,19 @@ export interface BulkActionButtonSchema<T extends GenericObject> {
    */
   confirmDetails?: ((items: Array<T>) => ReactElement | undefined) | undefined;
   confirmButtonStyleType?: ButtonStyleType;
+  /*
+   * The result's words for what happened to each item, when this action has
+   * better ones than "succeeded" and "failed": a Delete says "2 Monitors
+   * deleted" and "1 Monitor not deleted", which is what the reader is
+   * looking for. Plural templates with {{count}}, {{itemName}} and
+   * {{itemsName}}, as BULK_SUCCEEDED_COUNT.
+   */
+  resultLabels?:
+    | {
+        succeeded: PluralTemplate;
+        failed: PluralTemplate;
+      }
+    | undefined;
 }
 
 export interface ComponentProps<T extends GenericObject> {
@@ -183,6 +196,10 @@ const BulkUpdateForm: <T extends GenericObject>(
   const [actionInProgress, setActionInProgress] =
     React.useState<boolean>(false);
 
+  // The action whose run the progress dialog reports, for its words.
+  const [runningAction, setRunningAction] =
+    React.useState<BulkActionButtonSchema<T> | null>(null);
+
   if (props.selectedItems.length === 0) {
     return <></>;
   }
@@ -221,6 +238,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         setProgressInfo(info);
       },
       onBulkActionStart: () => {
+        setRunningAction(button);
         setShowProgressInfoModal(true);
         setProgressInfo({
           inProgressItems: props.selectedItems,
@@ -338,9 +356,13 @@ const BulkUpdateForm: <T extends GenericObject>(
                   icon={IconProp.CheckCircle}
                   color={Green}
                 />
-                <div className="ml-2 text-sm font-medium text-green-800">
+                <div
+                  className="ml-2 text-sm font-medium text-green-800"
+                  data-testid="bulk-action-succeeded-count"
+                >
                   {translator.translatePlural(
-                    BULK_SUCCEEDED_COUNT,
+                    runningAction?.resultLabels?.succeeded ||
+                      BULK_SUCCEEDED_COUNT,
                     progressInfo.successItems.length,
                     {
                       count: String(progressInfo.successItems.length),
@@ -358,9 +380,12 @@ const BulkUpdateForm: <T extends GenericObject>(
                   icon={IconProp.Close}
                   color={Red}
                 />
-                <div className="ml-2 text-sm font-medium text-red-800">
+                <div
+                  className="ml-2 text-sm font-medium text-red-800"
+                  data-testid="bulk-action-failed-count"
+                >
                   {translator.translatePlural(
-                    BULK_FAILED_COUNT,
+                    runningAction?.resultLabels?.failed || BULK_FAILED_COUNT,
                     progressInfo.failed.length,
                     {
                       count: String(progressInfo.failed.length),

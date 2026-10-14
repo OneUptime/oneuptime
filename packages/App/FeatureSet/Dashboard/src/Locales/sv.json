@@ -28793,5 +28793,9 @@
   "{{state}}, the state before it, becomes the episode's current state again.": "{{state}}, tillståndet före det, blir episodens aktuella tillstånd igen.",
   "{{state}}, the state before it, becomes the event's current state again.": "{{state}}, tillståndet före det, blir händelsens aktuella tillstånd igen.",
   "{{state}}, the state before it, becomes the incident's current state again.": "{{state}}, tillståndet före det, blir incidentens aktuella tillstånd igen.",
-  "{{state}}, the state before it, takes over its time.": "{{state}}, tillståndet före det, tar över dess period."
+  "{{state}}, the state before it, takes over its time.": "{{state}}, tillståndet före det, tar över dess period.",
+  "{{count}} {{itemsName}} deleted": "{{count}} {{itemsName}} borttagna",
+  "{{count}} {{itemsName}} deleted_one": "{{count}} {{itemName}} borttagen",
+  "{{count}} {{itemsName}} not deleted": "{{count}} {{itemsName}} inte borttagna",
+  "{{count}} {{itemsName}} not deleted_one": "{{count}} {{itemName}} inte borttagen"
 }

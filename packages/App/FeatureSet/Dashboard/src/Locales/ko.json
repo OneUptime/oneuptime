@@ -28793,5 +28793,9 @@
   "{{state}}, the state before it, becomes the episode's current state again.": "이전 상태인 {{state}}이(가) 다시 에피소드의 현재 상태가 됩니다.",
   "{{state}}, the state before it, becomes the event's current state again.": "이전 상태인 {{state}}이(가) 다시 이벤트의 현재 상태가 됩니다.",
   "{{state}}, the state before it, becomes the incident's current state again.": "이전 상태인 {{state}}이(가) 다시 인시던트의 현재 상태가 됩니다.",
-  "{{state}}, the state before it, takes over its time.": "이전 상태인 {{state}}이(가) 이 기간을 이어받습니다."
+  "{{state}}, the state before it, takes over its time.": "이전 상태인 {{state}}이(가) 이 기간을 이어받습니다.",
+  "{{count}} {{itemsName}} deleted": "{{itemsName}} {{count}}개 삭제됨",
+  "{{count}} {{itemsName}} deleted_one": "{{itemName}} {{count}}개 삭제됨",
+  "{{count}} {{itemsName}} not deleted": "{{itemsName}} {{count}}개 삭제 안 됨",
+  "{{count}} {{itemsName}} not deleted_one": "{{itemName}} {{count}}개 삭제 안 됨"
 }

@@ -28793,5 +28793,9 @@
   "{{state}}, the state before it, becomes the episode's current state again.": "इससे पहले की स्थिति, {{state}}, फिर से एपिसोड की वर्तमान स्थिति बन जाती है।",
   "{{state}}, the state before it, becomes the event's current state again.": "इससे पहले की स्थिति, {{state}}, फिर से इवेंट की वर्तमान स्थिति बन जाती है।",
   "{{state}}, the state before it, becomes the incident's current state again.": "इससे पहले की स्थिति, {{state}}, फिर से घटना की वर्तमान स्थिति बन जाती है।",
-  "{{state}}, the state before it, takes over its time.": "इससे पहले की स्थिति, {{state}}, अब इसके समय को कवर करती है।"
+  "{{state}}, the state before it, takes over its time.": "इससे पहले की स्थिति, {{state}}, अब इसके समय को कवर करती है।",
+  "{{count}} {{itemsName}} deleted": "{{count}} {{itemsName}} हटाए गए",
+  "{{count}} {{itemsName}} deleted_one": "{{count}} {{itemName}} हटाया गया",
+  "{{count}} {{itemsName}} not deleted": "{{count}} {{itemsName}} नहीं हटाए गए",
+  "{{count}} {{itemsName}} not deleted_one": "{{count}} {{itemName}} नहीं हटाया गया"
 }

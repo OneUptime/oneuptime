@@ -28793,5 +28793,9 @@
   "{{state}}, the state before it, becomes the episode's current state again.": "{{state}}, tilstanden før den, blir episodens gjeldende tilstand igjen.",
   "{{state}}, the state before it, becomes the event's current state again.": "{{state}}, tilstanden før den, blir hendelsens gjeldende tilstand igjen.",
   "{{state}}, the state before it, becomes the incident's current state again.": "{{state}}, tilstanden før den, blir hendelsens gjeldende tilstand igjen.",
-  "{{state}}, the state before it, takes over its time.": "{{state}}, tilstanden før den, overtar dens periode."
+  "{{state}}, the state before it, takes over its time.": "{{state}}, tilstanden før den, overtar dens periode.",
+  "{{count}} {{itemsName}} deleted": "{{count}} {{itemsName}} slettet",
+  "{{count}} {{itemsName}} deleted_one": "{{count}} {{itemName}} slettet",
+  "{{count}} {{itemsName}} not deleted": "{{count}} {{itemsName}} ikke slettet",
+  "{{count}} {{itemsName}} not deleted_one": "{{count}} {{itemName}} ikke slettet"
 }

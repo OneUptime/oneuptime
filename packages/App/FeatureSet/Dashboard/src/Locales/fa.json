@@ -28793,5 +28793,9 @@
   "{{state}}, the state before it, becomes the episode's current state again.": "{{state}}، حالت پیش از آن، دوباره حالت فعلی اپیزود می‌شود.",
   "{{state}}, the state before it, becomes the event's current state again.": "{{state}}، حالت پیش از آن، دوباره حالت فعلی رویداد می‌شود.",
   "{{state}}, the state before it, becomes the incident's current state again.": "{{state}}، حالت پیش از آن، دوباره حالت فعلی حادثه می‌شود.",
-  "{{state}}, the state before it, takes over its time.": "{{state}}، حالت پیش از آن، این بازه را در بر می‌گیرد."
+  "{{state}}, the state before it, takes over its time.": "{{state}}، حالت پیش از آن، این بازه را در بر می‌گیرد.",
+  "{{count}} {{itemsName}} deleted": "{{count}} مورد حذف شد ({{itemsName}})",
+  "{{count}} {{itemsName}} deleted_one": "{{count}} مورد حذف شد ({{itemName}})",
+  "{{count}} {{itemsName}} not deleted": "{{count}} مورد حذف نشد ({{itemsName}})",
+  "{{count}} {{itemsName}} not deleted_one": "{{count}} مورد حذف نشد ({{itemName}})"
 }
