@@ -1063,6 +1063,11 @@ const MetricsViewer: FunctionComponent<Props> = (
     if (!needsNameMatch) {
       setNameMatch(null);
       lastAttributeFilterRef.current = "";
+      /*
+       * A match still out is no longer wanted, and leaves its loader to
+       * whoever asks next: nobody will, so it comes down here.
+       */
+      setAttributeFilterLoading(false);
       return;
     }
 

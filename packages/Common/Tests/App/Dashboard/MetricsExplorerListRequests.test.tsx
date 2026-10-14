@@ -430,6 +430,86 @@ describe("an embedded explorer reads once, and only on a real change of its scop
   });
 });
 
+describe("the name match answers for the scope on screen", () => {
+  // Each host reports one metric of its own.
+  const NAME_BY_HOST: Record<string, string> = {
+    "web-01": "system.cpu.utilization",
+    "web-02": "system.memory.usage",
+  };
+
+  function hostOf(args: unknown): string {
+    const attributes: Record<string, unknown> =
+      ((args as ListArgs).query["attributes"] as Record<string, unknown>) || {};
+    return String(attributes["resource.host.name"] || "");
+  }
+
+  function hostMetrics(hostName: string): React.ReactElement {
+    return (
+      <MetricsViewer
+        attributeFilters={{ "resource.host.name": hostName }}
+        disableUrlSync={true}
+      />
+    );
+  }
+
+  test("a late match for a host the page has left is not used", async () => {
+    const slowFirstHost: Deferred = defer();
+    analyticsGetListMock.mockImplementation(async (args: unknown) => {
+      const host: string = hostOf(args);
+      if (host === "web-01") {
+        await slowFirstHost.promise;
+      }
+      const metric: Metric = new Metric();
+      metric.name = NAME_BY_HOST[host]!;
+      return { data: [metric], count: 1 };
+    });
+
+    const view: RenderResult = await mount(hostMetrics("web-01"));
+    // The list waits for web-01's names.
+    expect(listReads()).toHaveLength(0);
+
+    await act(async () => {
+      view.rerender(hostMetrics("web-02"));
+    });
+    await settle();
+
+    expect(listReads()).toHaveLength(1);
+    expect(listReads()[0]!.query["name"]).toEqual(
+      new Includes([NAME_BY_HOST["web-02"]!]),
+    );
+
+    // web-01's match lands now: too late to be the list's.
+    await act(async () => {
+      slowFirstHost.resolve();
+    });
+    await settle();
+
+    expect(listReads()).toHaveLength(1);
+    expect(viewerProps.isLoading).toBe(false);
+  });
+
+  test("a match still out when the scope stops needing one leaves no loader behind", async () => {
+    const neverAnswers: Promise<void> = new Promise<void>(() => {});
+    analyticsGetListMock.mockImplementation(async () => {
+      await neverAnswers;
+      return { data: [], count: 0 };
+    });
+
+    const view: RenderResult = await mount(hostMetrics("web-01"));
+    expect(viewerProps.isLoading).toBe(true);
+
+    // The page drops its attribute scope while the match is out.
+    await act(async () => {
+      view.rerender(<MetricsViewer disableUrlSync={true} />);
+    });
+    await settle();
+
+    expect(listReads()).toHaveLength(1);
+    expect(listReads()[0]!.query["name"]).toBeUndefined();
+    expect(viewerProps.isLoading).toBe(false);
+  });
+});
+
 describe("a real change reads once", () => {
   test("a new range: the rows' sparklines once more, the list not", async () => {
     await openAt("");
