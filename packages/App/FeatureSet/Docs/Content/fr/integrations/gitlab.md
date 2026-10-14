@@ -1,66 +1,113 @@
-# Intégration GitLab
+# GitLab
 
-Ouvrez automatiquement un ticket [GitLab](https://gitlab.com) lorsqu'un incident OneUptime est créé — pour que le suivi du travail d'ingénierie atterrisse dans le projet propriétaire du service concerné.
+Ouvrez une issue [GitLab](https://gitlab.com) pour chaque incident OneUptime, afin que le travail qui en découle soit suivi dans le projet propriétaire du service. Un workflow appelle l'[API Issues](https://docs.gitlab.com/api/issues/#new-issue) de GitLab, sur GitLab.com ou sur votre propre GitLab.
 
-Cette intégration est **sortante** : OneUptime appelle l'[API REST GitLab](https://docs.gitlab.com/ee/api/issues.html). Elle utilise un **[Workflow](/docs/workflows/index)** OneUptime avec un déclencheur **Incident → On Create** et un **composant API**. Elle fonctionne de la même façon sur GitLab.com et sur les instances GitLab auto-gérées.
+:::cards
+- [Enregistrer le jeton](#enregistrer-le-jeton): Gardez le jeton de GitLab hors de vos workflows.
+- [Ouvrir une issue pour chaque incident](#ouvrir-une-issue-gitlab-pour-chaque-incident): Un workflow, deux blocs.
+- [Conseils](#conseils): Votre propre GitLab, les chemins de projet et les assignés.
+- [Dépannage](#dépannage): Quand GitLab refuse une requête.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/issues)  ──►  GitLab issue
+> [!NOTE]
+> L'IA de OneUptime n'ouvre des pull requests de correction que dans les dépôts connectés via l'application GitHub : elle ne peut donc pas encore travailler dans un dépôt GitLab. Voir [GitHub](/docs/integrations/github).
+
+## Fonctionnement
+
+```mermaid title="Un workflow, une issue GitLab"
+flowchart TB
+    declared["Incident déclaré"] --> workflow["Workflow :<br/>On Create Incident"]
+    workflow -->|"POST issues"| issue["Issue GitLab"]
 ```
 
-## Prérequis
+Le workflow s'exécute une fois pour chaque nouvel incident. Son bloc **API Post (JSON)** envoie le titre et la description de l'incident aux issues du projet, signés avec un jeton d'accès.
 
-- Un projet GitLab et son **ID de projet** (affiché sur la page d'aperçu du projet, sous le nom du projet).
-- Un jeton d'accès pouvant créer des tickets — un **jeton d'accès de projet, de groupe ou personnel** avec la portée `api` : **Settings → Access Tokens**.
-- Un projet OneUptime où vous pouvez créer des workflows.
+## Avant de commencer
 
-## Étape 1 — Stocker le jeton
+- L'ID du projet GitLab. Sur la page d'aperçu du projet, sélectionnez le menu d'actions, les trois points verticaux, puis **Copy project ID**.
+- Un jeton d'accès GitLab avec le scope `api`, pour un utilisateur ou un bot dont le rôle dans le projet peut créer des issues : un jeton d'accès de projet, de groupe ou personnel. Créez-le sous **Settings → Access tokens** dans le projet, le groupe ou vos paramètres utilisateur.
+- Dans OneUptime, le droit de créer des workflows et des variables globales. Sur OneUptime Cloud, les workflows nécessitent l'offre **Growth** ou supérieure.
 
-1. Allez dans **Flux de travail → Variables globales → Créer**.
-2. Nommez-le `GITLAB_TOKEN`, collez le jeton, et activez **Is Secret**.
+## Enregistrer le jeton
 
-## Étape 2 — Créer le workflow
+:::steps
+1. Allez dans **Flux de travail → Variables globales** et cliquez sur **Créer : Variable de flux de travail**.
+2. Nommez-la `GITLAB_TOKEN` et cliquez sur **Suivant**.
+3. Collez le jeton dans **Contenu**, activez **Secret**, et cliquez sur **Créer : Variable de flux de travail**.
+:::
 
-1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Incidents → GitLab Issues`, et ouvrez le **Constructeur**.
-2. Ajoutez un déclencheur **Incident** sur **On Create**. Renommez-le `Incident`.
-3. Ajoutez un bloc **API** connecté au déclencheur :
+Une variable secrète est remplacée par `[REDACTED]` dans les journaux d'exécution, le jeton n'apparaît donc jamais dans une exécution.
 
-   - **Method** : `POST`
-   - **URL** : `https://gitlab.com/api/v4/projects/12345678/issues` _(remplacez `12345678` par votre ID de projet ; pour une instance auto-gérée, utilisez votre propre hôte)_
-   - **Headers** :
+## Ouvrir une issue GitLab pour chaque incident
 
-     ```text
-     PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}
-     Content-Type: application/json
-     ```
+:::steps
+### Créer le workflow
 
-   - **Body** :
+Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis sur **Partir de zéro**. Nommez-le `Incidents to GitLab` et cliquez sur **Créer un flux de travail**.
 
-     ```json
-     {
-       "title": "OneUptime incident: {{Incident.title}}",
-       "description": "{{Incident.description}}\n\nFiled automatically from OneUptime.",
-       "labels": "incident,oneuptime"
-     }
-     ```
+### Ajouter le déclencheur
 
-4. **Enregistrez**, activez, et créez un incident de test. Un `201 Created` dans les journaux du workflow signifie que le ticket a été créé ; le corps de la réponse contient son `iid` et son `web_url`.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur et, dans **Fields to pass on**, choisissez `title`, `description` et `incidentNumberWithPrefix`.
+
+### Ouvrir l'issue
+
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **URL** sur `https://gitlab.com/api/v4/projects/12345678/issues`, avec l'ID de votre projet à la place de `12345678`. Sous **Plus de champs**, réglez ses **Request Headers** sur :
+
+```json
+{
+  "PRIVATE-TOKEN": "{{global.variables.GITLAB_TOKEN}}"
+}
+```
+
+Et son **Request Body** sur :
+
+```json
+{
+  "title": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}\n\nOpened by OneUptime for incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}.",
+  "labels": "incident,oneuptime"
+}
+```
+
+### Tester, puis activer
+
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `201` contenant la nouvelle issue, avec son `iid` et son `web_url`. Activez ensuite **Activé** en haut du **Constructeur**.
+:::
+
+Le bloc envoie du JSON, il n'a donc besoin d'aucun en-tête `Content-Type`. GitLab crée les labels qu'il ne connaît pas encore : `incident` et `oneuptime` ne demandent donc aucune configuration. L'issue reste ouverte quand l'incident est résolu, car le travail qui en découle survit généralement à l'incident.
 
 ## Conseils
 
-- **GitLab auto-géré** : remplacez `https://gitlab.com` par l'URL de votre instance ; le chemin `/api/v4/...` reste le même.
-- **Chemin de projet au lieu de l'ID** : vous pouvez encoder l'URL du chemin — par ex. `group%2Fproject` — à la place de l'ID numérique.
-- **Assignataire / date d'échéance** : ajoutez `"assignee_ids": [42]` ou `"due_date": "2026-01-31"` au corps.
-- **Lien en retour** : lisez `{{CreateIssue.response-body.web_url}}` et stockez-le sur l'incident avec un bloc **Update Incident**.
+- **Votre propre GitLab.** Envoyez plutôt la requête à votre serveur : `https://gitlab.example.com/api/v4/projects/12345678/issues`. Un serveur sur une adresse de réseau privé exige un OneUptime auto-hébergé dont l'administrateur l'autorise : voir [Accès réseau sortant](/docs/workflows/configuration#accès-réseau-sortant).
+- **Le chemin du projet à la place de son ID.** Le chemin fonctionne à la place de l'ID, avec son `/` écrit `%2F` : `projects/your-group%2Fyour-project/issues`. L'URL est envoyée exactement telle qu'elle est écrite : encodez-la donc vous-même.
+- **L'assigner.** Ajoutez `"assignee_ids": [42]` ou `"due_date": "2026-12-31"` au corps, ou `"confidential": true` pour ne la montrer qu'aux membres du projet.
+- **Seulement certains incidents.** Placez un bloc **If / Else** entre le déclencheur et le bloc d'API, et n'ouvrez des issues que sur son côté **Yes**, par exemple pour une gravité.
 
 ## Dépannage
 
-- **`401`** — le jeton est invalide ou expiré, ou n'a pas la portée `api`.
-- **`404`** — l'ID de projet est incorrect, ou le jeton ne peut pas accéder à un projet privé.
-- **`400`** — un champ requis est manquant ou mal formé ; `title` est obligatoire.
+L'étape **API Post (JSON)** prend **Error** quand GitLab refuse la requête. Ses **Response Status** et **Response Body** dans l'exécution disent pourquoi.
 
-## Pour aller plus loin
+:::details GitLab répond 401
+Le jeton est faux, expiré ou révoqué. Créez-en un nouveau, et remplacez le contenu de `GITLAB_TOKEN`.
+:::
 
-- [Vue d'ensemble des intégrations](/docs/integrations/index) — les schémas et l'aide-mémoire d'authentification.
-- [GitHub](/docs/integrations/github) — la même idée pour GitHub.
-- [Composant API](/docs/workflows/components#api) — lecture du corps de la réponse.
+:::details GitLab répond 403
+Le jeton n'a pas le scope `api`, ou le rôle de son utilisateur dans le projet ne peut pas créer d'issues. Le corps nomme `insufficient_scope` quand c'est le scope.
+:::
+
+:::details GitLab répond 404
+L'ID du projet dans l'**URL** est faux, ou le jeton ne peut pas voir le projet. GitLab répond 404, et non 403, pour un projet privé qu'un jeton ne peut pas voir.
+:::
+
+:::details GitLab répond 400
+GitLab ne peut pas lire le corps : `title` manque, ou un champ a le mauvais type. Le corps nomme le champ.
+:::
+
+## Étapes suivantes
+
+:::cards
+- [GitHub](/docs/integrations/github): Le même workflow pour GitHub, et l'application GitHub.
+- [Composants de workflow](/docs/workflows/components#api): Chaque paramètre des blocs d'API.
+- [Exécutions de workflow](/docs/workflows/runs-and-logs): Lisez ce que chaque requête a envoyé et reçu.
+- [Présentation des intégrations](/docs/integrations/index): Les modèles derrière chaque intégration.
+:::

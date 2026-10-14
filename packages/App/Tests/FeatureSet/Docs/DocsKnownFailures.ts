@@ -101,18 +101,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "cli/output-formats": {
     codeLanguage: EN,
   },
-  "integrations/aws-security-hub": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/elastic-security": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/okta": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/splunk": {
-    translated: EVERY_TRANSLATION,
-  },
   "mobile-desktop-apps/faq-troubleshooting": {
     noRelativeLinks: EVERY_LANGUAGE,
   },
