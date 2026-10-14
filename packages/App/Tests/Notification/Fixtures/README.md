@@ -44,7 +44,9 @@ node node_modules/.bin/jest --runInBand --runTestsByPath \
   Tests/Notification/NotificationRollupTemplate.test.ts \
   Tests/Notification/OnCallShiftReminderTemplates.test.ts \
   Tests/Notification/OwnerNotificationPreferencesTemplate.test.ts \
-  Tests/Notification/StatusPageSubscriberReportTemplate.test.ts
+  Tests/Notification/StatusPageSubscriberReportTemplate.test.ts \
+  Tests/Notification/EmailDetailCardDividers.test.ts \
+  Tests/Notification/EmailDividerGuard.test.ts
 ```
 
 The additional suites check distinct layers of the email UI:
@@ -59,3 +61,11 @@ The additional suites check distinct layers of the email UI:
 - `SubscriberEmailTemplateDefaults` tests the worker's actual substitution method,
   every starter event's content and navigation, report conditions, and existing
   SMS and webhook defaults.
+- `EmailDetailCardDividers` renders the detail card partials with no, one and
+  many rows, conditional and looped, and holds them to dividers drawn only
+  between rows (`Utils/EmailDetailCard.ts`): never above the first row, never
+  under the last, inline so no client needs the `<style>` block for it.
+- `EmailDividerGuard` renders every template with every way its rows can come
+  and go (`EmailTemplateVariables.ts`) and reads each email with inline styles
+  only (`EmailMarkupTree.ts`, `EmailDividers.ts`): no divider may sit on the
+  edge of a card, a list or a section, or above or under nothing.

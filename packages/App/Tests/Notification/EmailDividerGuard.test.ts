@@ -56,10 +56,10 @@ import {
  * each email as a client that keeps nothing but inline styles reads it. In
  * every one:
  *
- *   - no divider sits on the edge of the box around it (Fixtures/
- *     EmailDividers.misplacedDividers): a line above or left of something
- *     has something visible before it in its box, and a line under or right
- *     of something has something visible after it;
+ *   - every divider has something visible on each side of it, inside the
+ *     box around it (Fixtures/EmailDividers.misplacedDividers): none sits
+ *     on the edge of a card, a list or a section, and none is drawn above
+ *     or under nothing;
  *   - every detail card draws a divider above each row but its first, and
  *     none under any row, and holds nothing but rows.
  *
@@ -154,36 +154,41 @@ interface Finding {
 }
 
 // What is wrong with the dividers of one rendered email.
-const findingsFor: (variableSet: VariableSet, html: string) => Array<Finding> =
-  (variableSet: VariableSet, html: string): Array<Finding> => {
-    const tree: EmailMarkupTree = readEmailMarkup(html);
-    const findings: Array<Finding> = [];
+const findingsFor: (
+  variableSet: VariableSet,
+  html: string,
+) => Array<Finding> = (
+  variableSet: VariableSet,
+  html: string,
+): Array<Finding> => {
+  const tree: EmailMarkupTree = readEmailMarkup(html);
+  const findings: Array<Finding> = [];
 
-    for (const divider of misplacedDividers(tree)) {
+  for (const divider of misplacedDividers(tree)) {
+    findings.push({
+      variables: variableSet.name,
+      problem: `a ${divider.side} divider with nothing ${divider.nothing} it in its box: ${divider.element} in ${divider.box}`,
+    });
+  }
+
+  detailCards(tree).forEach((card: DetailCard, index: number): void => {
+    if (!dividersOnlyBetweenRows(card)) {
       findings.push({
         variables: variableSet.name,
-        problem: `a divider on the ${divider.side} edge of its box: ${divider.element} in ${divider.box}`,
+        problem: `detail card ${index + 1} draws ${JSON.stringify(card.rows)}`,
       });
     }
 
-    detailCards(tree).forEach((card: DetailCard, index: number): void => {
-      if (!dividersOnlyBetweenRows(card)) {
-        findings.push({
-          variables: variableSet.name,
-          problem: `detail card ${index + 1} draws ${JSON.stringify(card.rows)}`,
-        });
-      }
+    if (card.strayElements.length > 0) {
+      findings.push({
+        variables: variableSet.name,
+        problem: `detail card ${index + 1} holds more than rows: ${card.strayElements.join(", ")}`,
+      });
+    }
+  });
 
-      if (card.strayElements.length > 0) {
-        findings.push({
-          variables: variableSet.name,
-          problem: `detail card ${index + 1} holds more than rows: ${card.strayElements.join(", ")}`,
-        });
-      }
-    });
-
-    return findings;
-  };
+  return findings;
+};
 
 describe("every email in the catalog", () => {
   test("the catalog is every template but the customer's own HTML", () => {
@@ -492,7 +497,10 @@ describe("the guard sees a divider on the edge of its box", () => {
     expect(
       misplaced(`<div ${BOX}><div>One</div><div ${BOTTOM}>Two</div></div>`),
     ).toEqual([
-      expect.objectContaining({ side: "bottom" }) as unknown as MisplacedDivider,
+      expect.objectContaining({
+        side: "bottom",
+        nothing: "after",
+      }) as unknown as MisplacedDivider,
     ]);
   });
 
@@ -500,7 +508,52 @@ describe("the guard sees a divider on the edge of its box", () => {
     expect(
       misplaced(`<div ${BOX}><div ${TOP}>One</div><div>Two</div></div>`),
     ).toEqual([
-      expect.objectContaining({ side: "top" }) as unknown as MisplacedDivider,
+      expect.objectContaining({
+        side: "top",
+        nothing: "before",
+      }) as unknown as MisplacedDivider,
+    ]);
+  });
+
+  test("a divider above an empty last section: a line with nothing after it", () => {
+    expect(
+      misplaced(`<div ${BOX}><div>One</div><div ${TOP}> &nbsp; </div></div>`),
+    ).toEqual([
+      expect.objectContaining({
+        side: "top",
+        nothing: "after",
+      }) as unknown as MisplacedDivider,
+    ]);
+  });
+
+  test("a divider under an empty first section: a line with nothing before it", () => {
+    expect(
+      misplaced(`<div ${BOX}><div ${BOTTOM}></div><div>Two</div></div>`),
+    ).toEqual([
+      expect.objectContaining({
+        side: "bottom",
+        nothing: "before",
+      }) as unknown as MisplacedDivider,
+    ]);
+  });
+
+  test("a vertical divider between two cells, but not after the last one", () => {
+    const RIGHT: string = 'style="border-right: 1px solid #e2e8f0;"';
+
+    expect(
+      misplaced(
+        `<table ${BOX}><tr><td ${RIGHT}>1</td><td ${RIGHT}>2</td><td>3</td></tr></table>`,
+      ),
+    ).toEqual([]);
+    expect(
+      misplaced(
+        `<table ${BOX}><tr><td ${RIGHT}>1</td><td ${RIGHT}>2</td></tr></table>`,
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        side: "right",
+        nothing: "after",
+      }) as unknown as MisplacedDivider,
     ]);
   });
 
@@ -538,7 +591,9 @@ describe("the guard sees a divider on the edge of its box", () => {
   });
 
   test("a table's rows are read as rows: a line under the last one sits on the table's border", () => {
-    const table: (cellStyle: string) => string = (cellStyle: string): string => {
+    const table: (cellStyle: string) => string = (
+      cellStyle: string,
+    ): string => {
       return `<table ${BOX}><thead><tr><th>Head</th></tr></thead><tbody><tr><td ${cellStyle}>One</td></tr><tr><td ${cellStyle}>Two</td></tr></tbody></table>`;
     };
 
@@ -603,16 +658,13 @@ describe("the guard reads an email's markup as a browser would", () => {
     expect(style.get("border-top")).toBe("2px solid #000");
   });
 
-  test.each(catalog)(
-    "%s closes every element it opens",
-    (name: string) => {
-      const everything: VariableSet = variableSetsOf(name)[0]!;
-      const tree: EmailMarkupTree = readEmailMarkup(
-        render(name, everything.variables),
-      );
+  test.each(catalog)("%s closes every element it opens", (name: string) => {
+    const everything: VariableSet = variableSetsOf(name)[0]!;
+    const tree: EmailMarkupTree = readEmailMarkup(
+      render(name, everything.variables),
+    );
 
-      expect(tree.unmatchedEndTags).toEqual([]);
-      expect(tree.unclosedElements).toEqual([]);
-    },
-  );
+    expect(tree.unmatchedEndTags).toEqual([]);
+    expect(tree.unclosedElements).toEqual([]);
+  });
 });

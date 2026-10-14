@@ -93,10 +93,15 @@ const createEngine: (withCardHelpers: boolean) => typeof Handlebars = (
 
 const engine: typeof Handlebars = createEngine(true);
 
-const render: (source: string, variables?: Record<string, unknown>) => string =
-  (source: string, variables: Record<string, unknown> = {}): string => {
-    return engine.compile(source)(variables);
-  };
+const render: (
+  source: string,
+  variables?: Record<string, unknown>,
+) => string = (
+  source: string,
+  variables: Record<string, unknown> = {},
+): string => {
+  return engine.compile(source)(variables);
+};
 
 const cardsOf: (html: string) => Array<DetailCard> = (
   html: string,
@@ -288,9 +293,9 @@ describe("a detail card's rows", () => {
         { title: "Runbook", renderedHtml: "<p>Restart the gateway.</p>" },
       ];
 
-      expect(
-        shapeOf(cardsOf(render(source, { customFieldRows }))[0]!),
-      ).toEqual(["Incident Title:", "|Region", "|Runbook"]);
+      expect(shapeOf(cardsOf(render(source, { customFieldRows }))[0]!)).toEqual(
+        ["Incident Title:", "|Region", "|Runbook"],
+      );
       expect(
         shapeOf(cardsOf(render(source, { customFieldRows: [] }))[0]!),
       ).toEqual(["Incident Title:"]);
@@ -356,7 +361,13 @@ describe("each card counts its own rows", () => {
       `{{#each groups}}${card(
         `{{#each this.rows}}{{> DetailBoxField title=this plainText=this }}\n{{/each}}`,
       )}{{/each}}`,
-      { groups: [{ rows: ["A1", "A2"] }, { rows: ["B1"] }, { rows: ["C1", "C2", "C3"] }] },
+      {
+        groups: [
+          { rows: ["A1", "A2"] },
+          { rows: ["B1"] },
+          { rows: ["C1", "C2", "C3"] },
+        ],
+      },
     );
 
     expect(cardsOf(html).map(shapeOf)).toEqual([
@@ -604,8 +615,7 @@ describe("the sources keep dividers between rows", () => {
 
         let open: boolean = false;
 
-        for (const statement of (program as { body: Array<Statement> })
-          .body) {
+        for (const statement of (program as { body: Array<Statement> }).body) {
           if (statement.type === "PartialStatement") {
             const partial: string = String(
               (statement["name"] as Statement)["original"],
@@ -691,8 +701,7 @@ describe("the email in the maintainer's screenshot", () => {
       currentState: "Created",
       alertSeverity: "Critical",
       resourcesAffected: "API",
-      rootCause:
-        "<p><strong>Probes in Agreement</strong>: US, EU</p>",
+      rootCause: "<p><strong>Probes in Agreement</strong>: US, EU</p>",
       alertDescription: "<p>API: Status Page is currently offline.</p>",
     });
     const tree: EmailMarkupTree = readEmailMarkup(html);

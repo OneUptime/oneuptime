@@ -130,11 +130,11 @@ export const templateVariables: (source: string) => TemplateVariables = (
     }
   };
 
-  const setField: (
+  const setField: (list: string, field: string, value: unknown) => void = (
     list: string,
     field: string,
     value: unknown,
-  ) => void = (list: string, field: string, value: unknown): void => {
+  ): void => {
     const fields: Map<string, unknown> =
       found.lists.get(list) || new Map<string, unknown>();
 
@@ -146,37 +146,40 @@ export const templateVariables: (source: string) => TemplateVariables = (
   };
 
   // A path read where `list` is the list being looped over, or null.
-  const readPath: (path: Node, list: string | null, value?: unknown) => void =
-    (path: Node, list: string | null, value?: unknown): void => {
-      if (path["type"] !== "PathExpression") {
-        return;
+  const readPath: (path: Node, list: string | null, value?: unknown) => void = (
+    path: Node,
+    list: string | null,
+    value?: unknown,
+  ): void => {
+    if (path["type"] !== "PathExpression") {
+      return;
+    }
+
+    const original: string = String(path["original"]);
+    const parts: Array<string> = (path["parts"] as Array<string>) || [];
+
+    if (parts.length === 0) {
+      return;
+    }
+
+    if (path["data"]) {
+      // @root.x reads the root; @first, @index and the rest are the loop's.
+      if (original.startsWith("@root.")) {
+        setValue(parts.slice(1).join("."), value ?? sampleValue(original));
       }
 
-      const original: string = String(path["original"]);
-      const parts: Array<string> = (path["parts"] as Array<string>) || [];
+      return;
+    }
 
-      if (parts.length === 0) {
-        return;
-      }
+    const name: string = parts.join(".");
 
-      if (path["data"]) {
-        // @root.x reads the root; @first, @index and the rest are the loop's.
-        if (original.startsWith("@root.")) {
-          setValue(parts.slice(1).join("."), value ?? sampleValue(original));
-        }
+    if (list !== null && Number(path["depth"]) === 0) {
+      setField(list, parts[0]!, value ?? sampleValue(parts[0]!));
+      return;
+    }
 
-        return;
-      }
-
-      const name: string = parts.join(".");
-
-      if (list !== null && Number(path["depth"]) === 0) {
-        setField(list, parts[0]!, value ?? sampleValue(parts[0]!));
-        return;
-      }
-
-      setValue(name, value ?? sampleValue(name));
-    };
+    setValue(name, value ?? sampleValue(name));
+  };
 
   const visit: (node: unknown, list: string | null) => void = (
     node: unknown,
@@ -270,7 +273,11 @@ export const templateVariables: (source: string) => TemplateVariables = (
           params[0]!["type"] === "PathExpression" &&
           (params[0]!["parts"] as Array<string>).length === 0;
 
-        if (rendersWithThisContext && list === null && !partialsRead.has(name)) {
+        if (
+          rendersWithThisContext &&
+          list === null &&
+          !partialsRead.has(name)
+        ) {
           partialsRead.add(name);
           const partial: string | null = readPartial(name);
 

@@ -19,13 +19,18 @@ import {
  * all the way round it - the `border` shorthand - such as a detail card, a
  * list, a Markdown table, a button or the email itself.
  *
- * A divider belongs BETWEEN two things in its box. One with nothing of the
- * box's on its far side sits on the box's own border: under the last row
- * of a card it doubles the card's bottom border, or - as the maintainer saw
- * it - draws a second line a few pixels inside it. So a line at the top or
- * left of an element needs something visible before the element, and a
- * line at the bottom or right needs something visible after it, inside the
- * nearest box around the element (the email itself when there is none).
+ * A divider belongs BETWEEN two things in its box: something visible on
+ * each side of the line, inside the nearest box around the element that
+ * draws it (the email itself when there is none). One with nothing on its
+ * far side sits on the box's own border: under the last row of a card it
+ * doubles the card's bottom border, or - as the maintainer saw it - draws
+ * a second line a few pixels inside it. One drawn above an empty last
+ * section is the same line with nothing after it.
+ *
+ * Before a line at the top or left of an element is what the box shows
+ * before the element; after it, the element itself and what follows it.
+ * Before a line at the bottom or right is what the box shows up to the end
+ * of the element; after it, what follows the element.
  *
  * Visible is text that is not whitespace, or an image, outside the <head>
  * and outside anything hidden with display: none or mso-hide: all. Only
@@ -36,9 +41,11 @@ export type DividerSide = "top" | "bottom" | "left" | "right";
 
 export interface MisplacedDivider {
   side: DividerSide;
+  // The side of the line with nothing visible on it, inside its box.
+  nothing: "before" | "after";
   // The element that draws it: its tag, class and style.
   element: string;
-  // The box whose edge it sits on, described the same way.
+  // The box it sits in, described the same way.
   box: string;
 }
 
@@ -187,9 +194,9 @@ const boxAround: (element: EmailElement) => EmailElement = (
 };
 
 /*
- * Every divider in the email with nothing of its box on its far side: one
- * that sits on the edge of the box around it. An email laid out right has
- * none.
+ * Every divider in the email without something visible of its box on each
+ * side of it: one that sits on the edge of the box around it, or above or
+ * under nothing. An email laid out right has none.
  */
 export const misplacedDividers: (
   tree: EmailMarkupTree,
@@ -224,14 +231,23 @@ export const misplacedDividers: (
     const boxEnd: number = positions.end.get(box)!;
 
     for (const side of sides) {
-      const hasSomethingBeyond: boolean =
-        side === "top" || side === "left"
-          ? anyVisibleBetween(boxStart, elementStart)
-          : anyVisibleBetween(elementEnd, boxEnd);
+      // Where the line runs: at the element's start, or at its end.
+      const line: number =
+        side === "top" || side === "left" ? elementStart : elementEnd;
 
-      if (!hasSomethingBeyond) {
+      if (!anyVisibleBetween(boxStart, line)) {
         misplaced.push({
           side: side,
+          nothing: "before",
+          element: describeElement(element),
+          box: describeElement(box),
+        });
+      }
+
+      if (!anyVisibleBetween(line, boxEnd)) {
+        misplaced.push({
+          side: side,
+          nothing: "after",
           element: describeElement(element),
           box: describeElement(box),
         });
