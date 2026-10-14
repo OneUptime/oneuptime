@@ -34,6 +34,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useStableValue from "Common/UI/Utils/UseStableValue";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import URL from "Common/Types/API/URL";
@@ -524,9 +525,62 @@ export function getMetricRowClickHandler(data: {
   };
 }
 
+/*
+ * What a `service:<fragment>` token resolves to against the loaded service
+ * names: the ids it matches, or that it matched none. Null when there is no
+ * token, or no names to resolve it against yet (a scoped view never loads
+ * them), in which case the token is not applied.
+ */
+export interface MetricsServiceTokenResolution {
+  serviceIds: Array<string>;
+  matchedNothing: boolean;
+}
+
+export function resolveMetricsServiceToken(
+  serviceMatcher: MetricsTextMatcher | null,
+  services: Array<Service>,
+): MetricsServiceTokenResolution | null {
+  if (!serviceMatcher || services.length === 0) {
+    return null;
+  }
+
+  const serviceIds: Array<string> = [];
+
+  for (const service of services) {
+    if (service.id && service.name && serviceMatcher(service.name.toString())) {
+      serviceIds.push(service.id.toString());
+    }
+  }
+
+  return { serviceIds, matchedNothing: serviceIds.length === 0 };
+}
+
 const MetricsViewer: FunctionComponent<Props> = (
   props: Props,
 ): ReactElement => {
+  /*
+   * The host's scope, by value (issue #4709). Pages hand it over as new
+   * arrays and objects on every render (`serviceIds={[modelId]}`,
+   * `attributeFilters={{...}}`), and the metric list, the name match and
+   * every sparkline aggregate are keyed on it - so each such render read
+   * them all again.
+   */
+  const serviceIds: Array<ObjectID> | undefined = useStableValue(
+    props.serviceIds,
+  );
+  const serviceIdsToDisplay: Array<ObjectID> | undefined = useStableValue(
+    props.serviceIdsToDisplay,
+  );
+  const attributeFilters: Record<string, string> | undefined = useStableValue(
+    props.attributeFilters,
+  );
+  const entityKeysFilter: Array<string> | undefined = useStableValue(
+    props.entityKeysFilter,
+  );
+  const entityScope: EntityScopeFilter | undefined = useStableValue(
+    props.entityScope,
+  );
+
   /*
    * Parse all filter state from the URL once on first mount so refresh +
    * back-from-metric-detail restore the view.
@@ -595,6 +649,11 @@ const MetricsViewer: FunctionComponent<Props> = (
   const [error, setError] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);
+  /*
+   * Whether the service list has landed (or failed). A `service:` token can
+   * only be applied once it has; see isWaitingForServiceNames.
+   */
+  const [hasLoadedServices, setHasLoadedServices] = useState<boolean>(false);
 
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
@@ -685,20 +744,24 @@ const MetricsViewer: FunctionComponent<Props> = (
   const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
     useRef<string>("");
 
-  // Metric names that match attribute filters (null = no attribute filter active)
-  const [attributeMatchedNames, setAttributeMatchedNames] =
-    useState<Array<string> | null>(null);
-
   /*
-   * For a list pinned to entity keys alone: metric name → the services that
-   * reported it under those keys, so a row does not name every service
-   * that ever sent the metric project-wide. Null when the rows keep their
-   * own service scope (serviceIds / serviceIdsToDisplay, or no key scope).
+   * The metric names the attribute / entity scope matched, and the scope
+   * (nameMatchKey, below) they were matched for. Keyed so that while a new
+   * scope's match is out, the list waits for it instead of being read with
+   * the previous scope's names and read again a moment later (issue #4709),
+   * and so a late answer for a scope the reader has left is never used.
+   *
+   * `entityScopedServiceIds`, for a list pinned to entity keys alone: metric
+   * name → the services that reported it under those keys, so a row does not
+   * name every service that ever sent the metric project-wide. Null when the
+   * rows keep their own service scope (serviceIds / serviceIdsToDisplay, or
+   * no key scope).
    */
-  const [entityScopedServiceIds, setEntityScopedServiceIds] = useState<Record<
-    string,
-    Array<string>
-  > | null>(null);
+  const [nameMatch, setNameMatch] = useState<{
+    key: string;
+    names: Array<string>;
+    entityScopedServiceIds: Record<string, Array<string>> | null;
+  } | null>(null);
   const [attributeFilterLoading, setAttributeFilterLoading] =
     useState<boolean>(false);
 
@@ -736,27 +799,20 @@ const MetricsViewer: FunctionComponent<Props> = (
    * replace the item's window and filters a tick after mount.
    */
   const isScoped: boolean = useMemo(() => {
-    const hasServiceIds: boolean = Boolean(
-      props.serviceIds && props.serviceIds.length > 0,
-    );
+    const hasServiceIds: boolean = Boolean(serviceIds && serviceIds.length > 0);
     const hasAttributeFilters: boolean = Boolean(
-      props.attributeFilters && Object.keys(props.attributeFilters).length > 0,
+      attributeFilters && Object.keys(attributeFilters).length > 0,
     );
     const hasEntityKeysFilter: boolean = Boolean(
-      props.entityKeysFilter && props.entityKeysFilter.length > 0,
+      entityKeysFilter && entityKeysFilter.length > 0,
     );
     return (
       hasServiceIds ||
       hasAttributeFilters ||
       hasEntityKeysFilter ||
-      Boolean(props.entityScope)
+      Boolean(entityScope)
     );
-  }, [
-    props.serviceIds,
-    props.attributeFilters,
-    props.entityKeysFilter,
-    props.entityScope,
-  ]);
+  }, [serviceIds, attributeFilters, entityKeysFilter, entityScope]);
 
   /*
    * Whether the project's service list is skipped. Besides the Service facet,
@@ -770,14 +826,11 @@ const MetricsViewer: FunctionComponent<Props> = (
    */
   const skipsServiceList: boolean = useMemo(() => {
     return (
-      Boolean(props.serviceIds && props.serviceIds.length > 0) ||
-      Boolean(
-        props.attributeFilters &&
-          Object.keys(props.attributeFilters).length > 0,
-      ) ||
-      Boolean(props.entityScope)
+      Boolean(serviceIds && serviceIds.length > 0) ||
+      Boolean(attributeFilters && Object.keys(attributeFilters).length > 0) ||
+      Boolean(entityScope)
     );
-  }, [props.serviceIds, props.attributeFilters, props.entityScope]);
+  }, [serviceIds, attributeFilters, entityScope]);
 
   /*
    * Mirror filter state to the URL so refresh and back-from-metric-detail
@@ -865,6 +918,8 @@ const MetricsViewer: FunctionComponent<Props> = (
         setServices(named);
       } catch {
         // non-critical
+      } finally {
+        setHasLoadedServices(true);
       }
     };
     void loadServices();
@@ -943,15 +998,56 @@ const MetricsViewer: FunctionComponent<Props> = (
    *   1. Tokens parsed from the typed search string (`@key:value`).
    *   2. Chips in `activeFilters` whose key starts with `attributes.`
    *      (added when the user picks a value from the dropdown / hits Enter).
-   *   3. The scope pinned by the host page (`props.attributeFilters`).
+   *   3. The scope pinned by the host page (`attributeFilters`).
    */
   const effectiveAttributes: MetricsAttributeFilters = useMemo(() => {
     return mergeMetricsAttributeFilters({
       parsed: parsedSearch.attributes,
       chips: activeFilters,
-      ...(props.attributeFilters ? { pinned: props.attributeFilters } : {}),
+      ...(attributeFilters ? { pinned: attributeFilters } : {}),
     });
-  }, [parsedSearch.attributes, activeFilters, props.attributeFilters]);
+  }, [parsedSearch.attributes, activeFilters, attributeFilters]);
+
+  /*
+   * Pinned to entity keys with no service scope of its own: the name match
+   * also says which services reported each name under the keys (grouped by
+   * primaryEntityId), for the rows' service chips.
+   */
+  const derivesRowServices: boolean =
+    (entityKeysFilter || []).length > 0 &&
+    !(serviceIds && serviceIds.length > 0) &&
+    !(serviceIdsToDisplay && serviceIdsToDisplay.length > 0);
+
+  // Whether the list is restricted to the names an attribute / entity scope matches.
+  const needsNameMatch: boolean =
+    Object.keys(effectiveAttributes).length > 0 ||
+    (entityKeysFilter || []).length > 0 ||
+    Boolean(entityScope);
+
+  // The scope a name match answers for.
+  const nameMatchKey: string = JSON.stringify({
+    attributes: effectiveAttributes,
+    entityKeys: entityKeysFilter || [],
+    entityScope: entityScope || null,
+    derivesRowServices,
+  });
+
+  const isNameMatchCurrent: boolean = Boolean(
+    needsNameMatch && nameMatch && nameMatch.key === nameMatchKey,
+  );
+
+  /*
+   * Metric names that match the scope: null when nothing restricts the list,
+   * and while the current scope's match is still out. By value, so a scope
+   * whose names are the same as the last one's does not rebuild the list
+   * query for nothing.
+   */
+  const attributeMatchedNames: Array<string> | null = useStableValue(
+    isNameMatchCurrent ? nameMatch!.names : null,
+  );
+
+  const entityScopedServiceIds: Record<string, Array<string>> | null =
+    isNameMatchCurrent ? nameMatch!.entityScopedServiceIds : null;
 
   /*
    * When attribute filters (or the entityKeys / entityScope scopes) change,
@@ -961,27 +1057,11 @@ const MetricsViewer: FunctionComponent<Props> = (
    */
   useEffect(() => {
     const attributeKeys: Array<string> = Object.keys(effectiveAttributes);
-    const entityKeys: Array<string> = props.entityKeysFilter || [];
-    const entityScope: EntityScopeFilter | undefined = props.entityScope;
-    /*
-     * Pinned to entity keys with no service scope of its own: the same
-     * query also says which services reported each name under the keys
-     * (grouped by primaryEntityId), for the rows' service chips.
-     */
-    const derivesRowServices: boolean =
-      entityKeys.length > 0 &&
-      !(props.serviceIds && props.serviceIds.length > 0) &&
-      !(props.serviceIdsToDisplay && props.serviceIdsToDisplay.length > 0);
-    const filterKey: string = JSON.stringify({
-      attributes: effectiveAttributes,
-      entityKeys,
-      entityScope: entityScope || null,
-      derivesRowServices,
-    });
+    const entityKeys: Array<string> = entityKeysFilter || [];
+    const filterKey: string = nameMatchKey;
 
-    if (attributeKeys.length === 0 && entityKeys.length === 0 && !entityScope) {
-      setAttributeMatchedNames(null);
-      setEntityScopedServiceIds(null);
+    if (!needsNameMatch) {
+      setNameMatch(null);
       lastAttributeFilterRef.current = "";
       return;
     }
@@ -992,12 +1072,21 @@ const MetricsViewer: FunctionComponent<Props> = (
     }
     lastAttributeFilterRef.current = filterKey;
 
+    // A scope the reader has since left: its answer is not used.
+    const isStillWanted: () => boolean = (): boolean => {
+      return lastAttributeFilterRef.current === filterKey;
+    };
+
     const fetchMatchingNames: () => Promise<void> = async () => {
       setAttributeFilterLoading(true);
       try {
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
         if (!projectId) {
-          setAttributeMatchedNames([]);
+          setNameMatch({
+            key: filterKey,
+            names: [],
+            entityScopedServiceIds: null,
+          });
           return;
         }
 
@@ -1046,6 +1135,10 @@ const MetricsViewer: FunctionComponent<Props> = (
             requestOptions: {},
           });
 
+        if (!isStillWanted()) {
+          return;
+        }
+
         const uniqueNames: Set<string> = new Set<string>();
         for (const m of result.data) {
           const name: string = m.name as unknown as string;
@@ -1053,9 +1146,10 @@ const MetricsViewer: FunctionComponent<Props> = (
             uniqueNames.add(name);
           }
         }
-        setAttributeMatchedNames(Array.from(uniqueNames));
-        setEntityScopedServiceIds(
-          derivesRowServices
+        setNameMatch({
+          key: filterKey,
+          names: Array.from(uniqueNames),
+          entityScopedServiceIds: derivesRowServices
             ? getMetricServiceIdsByName(
                 result.data as unknown as Array<{
                   name?: unknown;
@@ -1063,24 +1157,52 @@ const MetricsViewer: FunctionComponent<Props> = (
                 }>,
               )
             : null,
-        );
+        });
       } catch {
-        setAttributeMatchedNames([]);
-        // Unknown: name no service rather than every service in the project.
-        setEntityScopedServiceIds(derivesRowServices ? {} : null);
+        if (isStillWanted()) {
+          setNameMatch({
+            key: filterKey,
+            names: [],
+            // Unknown: name no service rather than every service in the project.
+            entityScopedServiceIds: derivesRowServices ? {} : null,
+          });
+        }
       } finally {
-        setAttributeFilterLoading(false);
+        if (isStillWanted()) {
+          setAttributeFilterLoading(false);
+        }
       }
     };
     void fetchMatchingNames();
   }, [
     effectiveAttributes,
-    props.entityKeysFilter,
-    props.entityScope,
-    props.serviceIds,
-    props.serviceIdsToDisplay,
+    entityKeysFilter,
+    entityScope,
+    derivesRowServices,
+    needsNameMatch,
+    nameMatchKey,
     timeRange,
   ]);
+
+  /*
+   * The `service:` token, resolved by value. The service list lands a moment
+   * after mount; keyed on the list itself, the metric query was rebuilt when
+   * it did - with no token, into the same query - and the list and every
+   * row's sparkline aggregate were read twice on every page load (#4709).
+   */
+  const serviceTokenResolution: MetricsServiceTokenResolution | null =
+    useStableValue(
+      resolveMetricsServiceToken(parsedSearch.serviceMatcher, services),
+    );
+
+  /*
+   * A typed `service:` token waits for the names it resolves against, where
+   * this view loads them: read before, the list would ignore the token and
+   * be read again with it a moment later.
+   */
+  const isWaitingForServiceNames: boolean = Boolean(
+    parsedSearch.serviceMatcher && !skipsServiceList && !hasLoadedServices,
+  );
 
   // Build metric query
   const metricQuery: Query<MetricType> = useMemo(() => {
@@ -1091,7 +1213,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     }
 
     // Prop-level service filter
-    const propServiceIds: Array<ObjectID> = props.serviceIds || [];
+    const propServiceIds: Array<ObjectID> = serviceIds || [];
 
     /*
      * Active facet filters for service. The legacy `serviceId` alias is
@@ -1117,23 +1239,15 @@ const MetricsViewer: FunctionComponent<Props> = (
      * don't load it and scope services via props).
      */
     let serviceFragmentMatchedNothing: boolean = false;
-    const serviceMatcher: MetricsTextMatcher | null =
-      parsedSearch.serviceMatcher;
-    if (serviceMatcher && services.length > 0) {
-      const fragmentServiceIds: Array<ObjectID> = [];
-      for (const service of services) {
-        if (
-          service.id &&
-          service.name &&
-          serviceMatcher(service.name.toString())
-        ) {
-          fragmentServiceIds.push(service.id);
-        }
-      }
-      if (fragmentServiceIds.length === 0) {
+    if (serviceTokenResolution) {
+      if (serviceTokenResolution.matchedNothing) {
         serviceFragmentMatchedNothing = true;
       } else {
-        mergedServiceIds.push(...fragmentServiceIds);
+        mergedServiceIds.push(
+          ...serviceTokenResolution.serviceIds.map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+        );
       }
     }
 
@@ -1187,11 +1301,11 @@ const MetricsViewer: FunctionComponent<Props> = (
 
     return query;
   }, [
-    props.serviceIds,
+    serviceIds,
     activeFilters,
     parsedSearch,
     attributeMatchedNames,
-    services,
+    serviceTokenResolution,
   ]);
 
   // Fetch metric list
@@ -1236,12 +1350,12 @@ const MetricsViewer: FunctionComponent<Props> = (
     const hasEffectiveAttributes: boolean =
       Object.keys(effectiveAttributes).length > 0;
     const isEntityScoped: boolean = Boolean(
-      (props.entityKeysFilter && props.entityKeysFilter.length > 0) ||
-        props.entityScope,
+      (entityKeysFilter && entityKeysFilter.length > 0) || entityScope,
     );
     if (
-      (hasEffectiveAttributes || isEntityScoped) &&
-      attributeMatchedNames === null
+      ((hasEffectiveAttributes || isEntityScoped) &&
+        attributeMatchedNames === null) ||
+      isWaitingForServiceNames
     ) {
       setIsLoading(true);
       return;
@@ -1251,20 +1365,25 @@ const MetricsViewer: FunctionComponent<Props> = (
     fetchMetrics,
     effectiveAttributes,
     attributeMatchedNames,
-    props.entityKeysFilter,
-    props.entityScope,
+    entityKeysFilter,
+    entityScope,
+    isWaitingForServiceNames,
   ]);
 
-  // Batch-fetch sparklines for visible metric names
-  const visibleNames: Array<string> = useMemo(() => {
-    return metrics
+  /*
+   * Batch-fetch sparklines for visible metric names - by value: a list read
+   * again with the same rows (a refresh) is not a reason to aggregate every
+   * row's series again.
+   */
+  const visibleNames: Array<string> = useStableValue(
+    metrics
       .map((m: MetricType): string | undefined => {
         return m.name || undefined;
       })
       .filter((n: string | undefined): n is string => {
         return typeof n === "string" && n.length > 0;
-      });
-  }, [metrics]);
+      }),
+  );
 
   useEffect(() => {
     if (visibleNames.length === 0) {
@@ -1288,8 +1407,8 @@ const MetricsViewer: FunctionComponent<Props> = (
           effectiveAttributes,
         ).some((key: string): boolean => {
           return !(
-            props.attributeFilters &&
-            Object.prototype.hasOwnProperty.call(props.attributeFilters, key)
+            attributeFilters &&
+            Object.prototype.hasOwnProperty.call(attributeFilters, key)
           );
         });
         let overrides: MetricRowValueOverrideMap = new Map();
@@ -1321,9 +1440,9 @@ const MetricsViewer: FunctionComponent<Props> = (
          * returns one bucketed point per minute (~60 rows/metric for a
          * 1h window) and reuses the explorer's dedup/result cache.
          */
-        const entityKeys: Array<string> = props.entityKeysFilter || [];
+        const entityKeys: Array<string> = entityKeysFilter || [];
         const isEntityScoped: boolean =
-          entityKeys.length > 0 || Boolean(props.entityScope);
+          entityKeys.length > 0 || Boolean(entityScope);
         const aggregates: Map<string, AggregatedResult> =
           defaultNames.length === 0
             ? new Map()
@@ -1336,7 +1455,7 @@ const MetricsViewer: FunctionComponent<Props> = (
                     dateRange.endValue,
                   ),
                   entityKeys,
-                  entityScope: props.entityScope,
+                  entityScope: entityScope,
                 })
               : await MetricUtil.fetchSparklineAggregates({
                   metricNames: defaultNames,
@@ -1415,9 +1534,9 @@ const MetricsViewer: FunctionComponent<Props> = (
     visibleNames,
     timeRange,
     effectiveAttributes,
-    props.entityKeysFilter,
-    props.entityScope,
-    props.attributeFilters,
+    entityKeysFilter,
+    entityScope,
+    attributeFilters,
     props.fetchRowValueOverrides,
   ]);
 
@@ -1575,11 +1694,11 @@ const MetricsViewer: FunctionComponent<Props> = (
    */
   const entityLookup: MetricsEntityLookup = useMemo(() => {
     return collectMetricsEntityLookup({
-      scopeIds: props.serviceIds,
+      scopeIds: serviceIds,
       scopeEntityType: props.scopeEntityType,
       filters: activeFilters,
     });
-  }, [props.serviceIds, props.scopeEntityType, activeFilters]);
+  }, [serviceIds, props.scopeEntityType, activeFilters]);
 
   const entityNameMap: TelemetryEntityNameMap = useTelemetryEntityNames(
     entityLookup.ids,
@@ -1589,28 +1708,28 @@ const MetricsViewer: FunctionComponent<Props> = (
   // Read-only chips for prop-level scoping (e.g. service view page)
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
     return buildMetricsActiveFilterChips({
-      scopeIds: props.serviceIds,
+      scopeIds: serviceIds,
       scopeEntityType: props.scopeEntityType,
-      attributeFilters: props.attributeFilters,
+      attributeFilters: attributeFilters,
       attributeFilterDisplayKeys: props.attributeFilterDisplayKeys,
       attributeFilterDisplayValues: props.attributeFilterDisplayValues,
       /*
        * The bare entity-key scope gets its own locked chip; `entityScope`
        * does not (its attribute chip already stands for it).
        */
-      entityKeysFilter: props.entityKeysFilter,
+      entityKeysFilter: entityKeysFilter,
       entityKeyDisplays: props.entityKeyDisplays,
       activeFilters,
       facetConfigs,
       nameMap: entityNameMap,
     });
   }, [
-    props.serviceIds,
+    serviceIds,
     props.scopeEntityType,
-    props.attributeFilters,
+    attributeFilters,
     props.attributeFilterDisplayKeys,
     props.attributeFilterDisplayValues,
-    props.entityKeysFilter,
+    entityKeysFilter,
     props.entityKeyDisplays,
     activeFilters,
     facetConfigs,
@@ -1672,11 +1791,9 @@ const MetricsViewer: FunctionComponent<Props> = (
         eventScope["primaryEntityType"] =
           props.scopeEntityType || ServiceType.OpenTelemetry;
       }
-      if (props.entityKeysFilter !== undefined) {
+      if (entityKeysFilter !== undefined) {
         const singleEntityKey: string | undefined =
-          props.entityKeysFilter.length === 1
-            ? props.entityKeysFilter[0]
-            : undefined;
+          entityKeysFilter.length === 1 ? entityKeysFilter[0] : undefined;
         const searchAttributes: Record<string, string> | undefined =
           singleEntityKey
             ? props.entityKeyDisplays?.[singleEntityKey]?.searchAttributes
@@ -1684,21 +1801,17 @@ const MetricsViewer: FunctionComponent<Props> = (
         if (searchAttributes && Object.keys(searchAttributes).length > 0) {
           Object.assign(eventScope, searchAttributes);
         } else {
-          eventScope["entityKeys"] = new Includes(props.entityKeysFilter);
+          eventScope["entityKeys"] = new Includes(entityKeysFilter);
         }
-      } else if (props.entityScope) {
+      } else if (entityScope) {
         /*
          * The membership fallback identifies the same host or cluster by its
          * telemetry attribute, which the event overlay can resolve exactly.
          */
-        if (
-          props.entityScope.attributeKey &&
-          props.entityScope.attributeValue
-        ) {
-          eventScope[props.entityScope.attributeKey] =
-            props.entityScope.attributeValue;
+        if (entityScope.attributeKey && entityScope.attributeValue) {
+          eventScope[entityScope.attributeKey] = entityScope.attributeValue;
         } else {
-          eventScope["entityKeys"] = new Includes(props.entityScope.entityKeys);
+          eventScope["entityKeys"] = new Includes(entityScope.entityKeys);
         }
       }
       if (Object.keys(eventScope).length > 0) {
@@ -1742,9 +1855,9 @@ const MetricsViewer: FunctionComponent<Props> = (
       timeRange,
       metricQuery,
       props.scopeEntityType,
-      props.entityKeysFilter,
+      entityKeysFilter,
       props.entityKeyDisplays,
-      props.entityScope,
+      entityScope,
     ],
   );
 
@@ -1866,7 +1979,7 @@ const MetricsViewer: FunctionComponent<Props> = (
                 ? rowValueLabels[name]!.caption
                 : props.defaultRowValueCaption
             }
-            serviceIds={props.serviceIdsToDisplay}
+            serviceIds={serviceIdsToDisplay}
             restrictServicesToIds={
               entityScopedServiceIds
                 ? entityScopedServiceIds[name] || []
