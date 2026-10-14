@@ -2,6 +2,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useRef,
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
@@ -142,6 +143,35 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
    */
   const [limitReached, setLimitReached] =
     useState<ActiveMonitorLimitStatus | null>(null);
+
+  /*
+   * Which read of the limit an answer belongs to: the newest wins, so a
+   * slow read from when the panel opened never overwrites the one Create
+   * made after it.
+   */
+  const limitReadSequence: React.MutableRefObject<number> = useRef<number>(0);
+
+  /*
+   * The limit, read now; null when the project has room, has no limit, or
+   * it cannot be read. Never rejects. An answer a newer read has overtaken
+   * is dropped.
+   */
+  type ReadLimitFunction = () => Promise<ActiveMonitorLimitStatus | null>;
+
+  const readLimit: ReadLimitFunction =
+    async (): Promise<ActiveMonitorLimitStatus | null> => {
+      limitReadSequence.current += 1;
+      const sequence: number = limitReadSequence.current;
+
+      const status: ActiveMonitorLimitStatus | null =
+        await readActiveMonitorLimitIfReached();
+
+      if (sequence === limitReadSequence.current) {
+        setLimitReached(status);
+      }
+
+      return status;
+    };
 
   const [projectDefaults, setProjectDefaults] =
     useState<ProjectDefaults | null>(null);
@@ -504,11 +534,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     setShowCreateSideOver(true);
 
     // Never rejects: a limit it cannot read is no limit here.
-    void readActiveMonitorLimitIfReached().then(
-      (status: ActiveMonitorLimitStatus | null): void => {
-        setLimitReached(status);
-      },
-    );
+    void readLimit();
   };
 
   /*
@@ -580,10 +606,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         );
       })
     ) {
-      const limitStatus: ActiveMonitorLimitStatus | null =
-        await readActiveMonitorLimitIfReached();
-
-      setLimitReached(limitStatus);
+      const limitStatus: ActiveMonitorLimitStatus | null = await readLimit();
 
       if (limitStatus) {
         setIsCreating(false);

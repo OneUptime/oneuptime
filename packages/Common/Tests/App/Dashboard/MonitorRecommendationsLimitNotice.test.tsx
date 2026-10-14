@@ -206,9 +206,7 @@ describe("the page reads the limit before a batch starts", () => {
     const consent: number = handler.indexOf(
       "setActionError(MONITOR_CONSENT_ERROR);",
     );
-    const limit: number = handler.indexOf(
-      "await readActiveMonitorLimitIfReached()",
-    );
+    const limit: number = handler.indexOf("await readLimit()");
     const seed: number = handler.indexOf(
       "MonitorRecommendationCreateRunner.getInitialProgress(",
     );
@@ -219,7 +217,7 @@ describe("the page reads the limit before a batch starts", () => {
 
     // At the limit it returns before anything is created.
     const limitBranch: string = handler.slice(limit, seed);
-    expect(limitBranch).toContain("setLimitReached(limitStatus);");
+    expect(limitBranch).toContain("if (limitStatus) {");
     expect(limitBranch).toContain("return;");
     expect(limitBranch).not.toContain("createOrUpdate");
   });
@@ -230,7 +228,16 @@ describe("the page reads the limit before a batch starts", () => {
 
     expect(opener).toContain("setShowCreateSideOver(true);");
     expect(opener).toContain("setLimitReached(null);");
-    expect(opener).toContain("readActiveMonitorLimitIfReached()");
+    expect(opener).toContain("readLimit()");
+
+    // Every read goes through one place, where the newest answer wins.
+    const reader: string =
+      page.split("const readLimit:")[1]?.split("const [projectDefaults")[0] ||
+      "";
+    expect(reader).toContain("await readActiveMonitorLimitIfReached()");
+    expect(reader).toContain("sequence === limitReadSequence.current");
+    expect(reader).toContain("setLimitReached(status);");
+    expect(page.split("readActiveMonitorLimitIfReached()").length - 1).toBe(1);
 
     // Both buttons open it this way, and nothing opens it any other way.
     expect(page.split("openCreatePanel").length - 1).toBe(3);
