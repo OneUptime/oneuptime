@@ -4,6 +4,7 @@ import {
   ConnectNote,
   getConnectNotes,
   NEW_USER_GROUP_VALUE,
+  PEOPLE_COUNT,
   USER_GROUP_LABELS,
   USER_GROUPS_COPY,
   UserGroupsWorkspaceCopy,
@@ -92,13 +93,7 @@ export const getUserGroupOptionLabel: (data: {
 
   if (data.group.userCount !== null && data.group.userCount !== undefined) {
     parts.push(
-      data.translator.translatePlural(
-        {
-          one: CONNECT_FORM_TEXT.peopleCountOne,
-          other: CONNECT_FORM_TEXT.peopleCount,
-        },
-        data.group.userCount,
-      ),
+      data.translator.translatePlural(PEOPLE_COUNT, data.group.userCount),
     );
   }
 
@@ -147,41 +142,43 @@ const ConnectUserGroupModal: FunctionComponent<ComponentProps> = (
     };
   }, [props.workspaceType]);
 
-  const submit: (values: FormValues<ConnectFormValues>) => Promise<void> =
-    async (values: FormValues<ConnectFormValues>): Promise<void> => {
-      setIsSubmitting(true);
-      setSubmitError("");
-      setLastValues(values);
+  const submit: (
+    values: FormValues<ConnectFormValues>,
+  ) => Promise<void> = async (
+    values: FormValues<ConnectFormValues>,
+  ): Promise<void> => {
+    setIsSubmitting(true);
+    setSubmitError("");
+    setLastValues(values);
 
-      const request: WorkspaceUserGroupConnectRequest = {
-        onCallDutyPolicyScheduleId: props.scheduleId,
-        workspaceType: props.workspaceType,
-      };
-
-      if (isSlack) {
-        if (values.userGroup === NEW_USER_GROUP_VALUE) {
-          request.newGroupName = (values.newGroupName || "").trim();
-          request.newGroupHandle = readSlackUserGroupHandle(
-            values.newGroupHandle || "",
-          );
-        } else {
-          request.workspaceGroupId = values.userGroup || "";
-        }
-      } else {
-        request.workspaceTeamId = values.teamId || "";
-        request.tagName = (values.tagName || "").trim();
-      }
-
-      try {
-        const view: WorkspaceUserGroupView =
-          await UserGroupsAPI.connect(request);
-        props.onConnected(view);
-      } catch (err) {
-        setSubmitError(API.getFriendlyMessage(err));
-      } finally {
-        setIsSubmitting(false);
-      }
+    const request: WorkspaceUserGroupConnectRequest = {
+      onCallDutyPolicyScheduleId: props.scheduleId,
+      workspaceType: props.workspaceType,
     };
+
+    if (isSlack) {
+      if (values.userGroup === NEW_USER_GROUP_VALUE) {
+        request.newGroupName = (values.newGroupName || "").trim();
+        request.newGroupHandle = readSlackUserGroupHandle(
+          values.newGroupHandle || "",
+        );
+      } else {
+        request.workspaceGroupId = values.userGroup || "";
+      }
+    } else {
+      request.workspaceTeamId = values.teamId || "";
+      request.tagName = (values.tagName || "").trim();
+    }
+
+    try {
+      const view: WorkspaceUserGroupView = await UserGroupsAPI.connect(request);
+      props.onConnected(view);
+    } catch (err) {
+      setSubmitError(API.getFriendlyMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // The list could not be read, or there is nothing to connect to.
   const blocker: string | null = loadError
@@ -267,17 +264,18 @@ const ConnectUserGroupModal: FunctionComponent<ComponentProps> = (
                 className="mt-2 space-y-1 text-sm text-gray-600"
               >
                 {notes.map((note: ConnectNote) => {
+                  const text: string =
+                    typeof note.template === "string"
+                      ? translator.translateTemplate(note.template, note.values)
+                      : translator.translatePlural(
+                          note.template,
+                          note.count || 0,
+                          note.values,
+                        );
+
                   return (
-                    <li key={note.template} className="text-pretty">
-                      {note.count !== undefined && note.oneTemplate
-                        ? translator.translatePlural(
-                            { one: note.oneTemplate, other: note.template },
-                            note.count,
-                          )
-                        : translator.translateTemplate(
-                            note.template,
-                            note.values,
-                          )}
+                    <li key={text} className="text-pretty">
+                      {text}
                     </li>
                   );
                 })}

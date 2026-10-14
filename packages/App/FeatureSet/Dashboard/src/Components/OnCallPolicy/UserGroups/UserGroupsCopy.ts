@@ -7,7 +7,10 @@ import {
   WorkspaceUserGroupView,
 } from "Common/Types/Workspace/WorkspaceUserGroup";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WHAT THE SCHEDULE PAGE'S USER GROUP CARD SAYS.
@@ -95,8 +98,6 @@ export const DISCONNECT_TEXT: Readonly<{
   title: string;
   last: string;
   oneOther: string;
-  manyOthers: string;
-  manyOthersOne: string;
 }> = {
   title: translationKey("Disconnect {{mention}}?"),
   last: translationKey(
@@ -105,12 +106,12 @@ export const DISCONNECT_TEXT: Readonly<{
   oneOther: translationKey(
     "{{mention}} stops following this schedule. It keeps following {{schedule}}.",
   ),
-  manyOthers: translationKey(
+};
+
+export const DISCONNECT_MANY_OTHERS: PluralTemplate = {
+  one: "{{mention}} stops following this schedule. It keeps following {{count}} other schedule.",
+  other:
     "{{mention}} stops following this schedule. It keeps following {{count}} other schedules.",
-  ),
-  manyOthersOne: translationKey(
-    "{{mention}} stops following this schedule. It keeps following {{count}} other schedule.",
-  ),
 };
 
 // A Microsoft Teams tag's team, under its name.
@@ -372,14 +373,8 @@ export const CONNECT_FORM_TEXT: Readonly<{
   tag: string;
   tagDescription: string;
   noTeams: string;
-  peopleCount: string;
-  peopleCountOne: string;
   turnedOffOption: string;
   followsOne: string;
-  followsMany: string;
-  followsManyOne: string;
-  replacesPeople: string;
-  replacesPeopleOne: string;
   turnsOn: string;
 }> = {
   userGroup: translationKey("User group"),
@@ -403,27 +398,32 @@ export const CONNECT_FORM_TEXT: Readonly<{
   noTeams: translationKey(
     "OneUptime's app isn't in any team yet. Add it to a team in Microsoft Teams, then try again.",
   ),
-  peopleCount: translationKey("{{count}} people"),
-  peopleCountOne: translationKey("{{count}} person"),
   turnedOffOption: translationKey("turned off"),
   followsOne: translationKey(
     "It follows {{schedule}} already: it will hold the people on call there and here.",
   ),
-  followsMany: translationKey(
-    "It follows {{count}} schedules already: it will hold the people on call in them and here.",
-  ),
-  followsManyOne: translationKey(
-    "It follows {{count}} schedule already: it will hold the people on call in it and here.",
-  ),
-  replacesPeople: translationKey(
-    "Its {{count}} people now are replaced with whoever is on call.",
-  ),
-  replacesPeopleOne: translationKey(
-    "Its {{count}} person now is replaced with whoever is on call.",
-  ),
   turnsOn: translationKey(
     "It is turned off in Slack now. Connecting it turns it back on.",
   ),
+};
+
+// How many people a group in the list holds.
+export const PEOPLE_COUNT: PluralTemplate = {
+  one: "{{count}} person",
+  other: "{{count}} people",
+};
+
+// A group picked that follows several schedules already.
+export const FOLLOWS_MANY: PluralTemplate = {
+  one: "It follows {{count}} schedule already: it will hold the people on call in it and here.",
+  other:
+    "It follows {{count}} schedules already: it will hold the people on call in them and here.",
+};
+
+// A group picked that follows no schedule yet, with people in it.
+export const REPLACES_PEOPLE: PluralTemplate = {
+  one: "Its {{count}} person now is replaced with whoever is on call.",
+  other: "Its {{count}} people now are replaced with whoever is on call.",
 };
 
 /*
@@ -433,9 +433,8 @@ export const CONNECT_FORM_TEXT: Readonly<{
  * the order they are shown.
  */
 export interface ConnectNote {
-  template: string;
-  // The plural's "one" form, when the note counts.
-  oneTemplate?: string | undefined;
+  // A sentence, or a count-dependent one (with `count`).
+  template: string | PluralTemplate;
   count?: number | undefined;
   values: Record<string, string>;
 }
@@ -460,16 +459,14 @@ export const getConnectNotes: (data: {
     });
   } else if (group.followsScheduleNames.length > 1) {
     notes.push({
-      template: CONNECT_FORM_TEXT.followsMany,
-      oneTemplate: CONNECT_FORM_TEXT.followsManyOne,
+      template: FOLLOWS_MANY,
       count: group.followsScheduleNames.length,
       values: {},
     });
   } else if (group.userCount && group.userCount > 0) {
     // A group that follows no schedule yet: who is in it now goes.
     notes.push({
-      template: CONNECT_FORM_TEXT.replacesPeople,
-      oneTemplate: CONNECT_FORM_TEXT.replacesPeopleOne,
+      template: REPLACES_PEOPLE,
       count: group.userCount,
       values: {},
     });

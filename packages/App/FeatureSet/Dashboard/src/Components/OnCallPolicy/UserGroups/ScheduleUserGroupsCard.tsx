@@ -2,6 +2,7 @@ import ConnectUserGroupModal from "./ConnectUserGroupModal";
 import UserGroupRow from "./UserGroupRow";
 import UserGroupsAPI from "./UserGroupsAPI";
 import {
+  DISCONNECT_MANY_OTHERS,
   DISCONNECT_TEXT,
   getMention,
   USER_GROUP_LABELS,
@@ -188,10 +189,7 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
 
     return (
       <TranslatedSentence
-        template={{
-          one: DISCONNECT_TEXT.manyOthersOne,
-          other: DISCONNECT_TEXT.manyOthers,
-        }}
+        template={DISCONNECT_MANY_OTHERS}
         count={others.length}
         slots={{ mention: mention }}
       />

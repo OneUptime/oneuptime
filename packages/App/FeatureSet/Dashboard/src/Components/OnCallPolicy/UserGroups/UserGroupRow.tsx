@@ -1,4 +1,7 @@
-import { getUserAvatarStyle, getUserInitials } from "../OnCallScheduleLayer/LayerUserColors";
+import {
+  getUserAvatarStyle,
+  getUserInitials,
+} from "../OnCallScheduleLayer/LayerUserColors";
 import {
   getLeftOutText,
   getMention,
@@ -189,9 +192,9 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const getScheduleLink: (
+  const getScheduleLink: (schedule: WorkspaceUserGroupScheduleView) => Route = (
     schedule: WorkspaceUserGroupScheduleView,
-  ) => Route = (schedule: WorkspaceUserGroupScheduleView): Route => {
+  ): Route => {
     return RouteUtil.populateRouteParams(
       RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW] as Route,
       { modelId: new ObjectID(schedule.scheduleId) },
@@ -271,9 +274,7 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
               title={USER_GROUP_LABELS.disconnect}
               buttonStyle={ButtonStyleType.NORMAL}
               buttonSize={ButtonSize.Small}
-              disabled={
-                Boolean(props.disconnectDisabledReason) || props.isBusy
-              }
+              disabled={Boolean(props.disconnectDisabledReason) || props.isBusy}
               tooltip={props.disconnectDisabledReason}
               dataTestId={`${testId}-disconnect`}
               onClick={() => {
@@ -294,21 +295,21 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
             </dt>
             <dd data-testid={`${testId}-members`} className="min-w-0">
               {view.members.length > 0 && !view.isTurnedOff ? (
-            <ul className="flex flex-wrap gap-2">
-              {view.members.map((person: WorkspaceUserGroupPersonView) => {
-                return (
-                  <li
-                    key={person.userId}
-                    className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full bg-gray-50 py-0.5 pl-0.5 pr-2.5 ring-1 ring-inset ring-gray-200"
-                  >
-                    {getAvatar(person)}
-                    <span className="truncate text-sm font-medium text-gray-900">
-                      {getPersonName(person)}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+                <ul className="flex flex-wrap gap-2">
+                  {view.members.map((person: WorkspaceUserGroupPersonView) => {
+                    return (
+                      <li
+                        key={person.userId}
+                        className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full bg-gray-50 py-0.5 pl-0.5 pr-2.5 ring-1 ring-inset ring-gray-200"
+                      >
+                        {getAvatar(person)}
+                        <span className="truncate text-sm font-medium text-gray-900">
+                          {getPersonName(person)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
               ) : (
                 <span className="text-gray-500">
                   {translator.translateText(USER_GROUP_LABELS.nobodyInIt)}
