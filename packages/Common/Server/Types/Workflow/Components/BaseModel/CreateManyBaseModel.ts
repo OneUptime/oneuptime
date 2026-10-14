@@ -12,6 +12,7 @@ import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseMo
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { applyTenantColumn, logUnknownColumns } from "./ModelArguments";
 import logComponentError from "./LogComponentError";
+import { assertIdsAreResolved } from "./UnresolvedIdReference";
 
 export default class CreateManyBaseModel<
   TBaseModel extends BaseModel,
@@ -89,6 +90,23 @@ export default class CreateManyBaseModel<
         throw options.onError(
           new BadDataException("json-array is should be of type object."),
         );
+      }
+
+      /*
+       * Every record is read before the first is created, so an ID still
+       * written as a {{...}} reference stops the step before it has created
+       * part of the list. See the helper.
+       */
+      for (const [index, item] of (
+        args["json-array"] as Array<JSONObject>
+      ).entries()) {
+        assertIdsAreResolved({
+          json: (item as JSONObject) || {},
+          model: this.modelService.getModel(),
+          metadata: this.getMetadata(),
+          argumentId: "json-array",
+          itemNumber: index + 1,
+        });
       }
 
       const array: Array<TBaseModel> = [];

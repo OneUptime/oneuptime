@@ -18,6 +18,7 @@ import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseMo
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { applyTenantColumn, logUnknownColumns } from "./ModelArguments";
 import logComponentError from "./LogComponentError";
+import { assertIdsAreResolved } from "./UnresolvedIdReference";
 
 export default class CreateOneBaseModel<
   TBaseModel extends BaseModel,
@@ -107,6 +108,14 @@ export default class CreateOneBaseModel<
           new BadDataException("JSON is should be of type object."),
         );
       }
+
+      // An ID still written as a {{...}} reference stops the step. See the helper.
+      assertIdsAreResolved({
+        json: args["json"] as JSONObject,
+        model: this.modelService.getModel(),
+        metadata: this.getMetadata(),
+        argumentId: "json",
+      });
 
       /*
        * Checked before applyTenantColumn rather than after: the report should

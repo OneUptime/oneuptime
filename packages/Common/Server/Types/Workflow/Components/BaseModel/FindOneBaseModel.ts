@@ -16,6 +16,7 @@ import BaseModelComponents, {
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
 import logComponentError from "./LogComponentError";
+import { assertIdsAreResolved } from "./UnresolvedIdReference";
 
 export default class FindOneBaseModel<
   TBaseModel extends BaseModel,
@@ -93,6 +94,14 @@ export default class FindOneBaseModel<
           new BadDataException("Query is should be of type object."),
         );
       }
+
+      // An ID still written as a {{...}} reference stops the step. See the helper.
+      assertIdsAreResolved({
+        json: args["query"] as JSONObject,
+        model: this.modelService.getModel(),
+        metadata: this.getMetadata(),
+        argumentId: "query",
+      });
 
       if (!args["select"]) {
         throw options.onError(

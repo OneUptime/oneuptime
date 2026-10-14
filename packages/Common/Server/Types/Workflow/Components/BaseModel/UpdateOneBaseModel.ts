@@ -19,6 +19,7 @@ import {
   updateOneMergingCustomFields,
 } from "./CustomFieldsArgument";
 import logComponentError from "./LogComponentError";
+import { assertIdsAreResolved } from "./UnresolvedIdReference";
 
 export default class UpdateOneBaseModel<
   TBaseModel extends BaseModel,
@@ -106,6 +107,14 @@ export default class UpdateOneBaseModel<
         this.modelService.getModel(),
       );
 
+      // An ID still written as a {{...}} reference stops the step. See the helper.
+      assertIdsAreResolved({
+        json: args["data"] as JSONObject,
+        model: this.modelService.getModel(),
+        metadata: this.getMetadata(),
+        argumentId: "data",
+      });
+
       if (!args["query"]) {
         throw options.onError(new BadDataException("Query is undefined."));
       }
@@ -119,6 +128,14 @@ export default class UpdateOneBaseModel<
           new BadDataException("Query is should be of type object."),
         );
       }
+
+      // An ID still written as a {{...}} reference stops the step. See the helper.
+      assertIdsAreResolved({
+        json: args["query"] as JSONObject,
+        model: this.modelService.getModel(),
+        metadata: this.getMetadata(),
+        argumentId: "query",
+      });
 
       const query: Query<TBaseModel> = JSONFunctions.deserialize(
         normalizeModelKeys(

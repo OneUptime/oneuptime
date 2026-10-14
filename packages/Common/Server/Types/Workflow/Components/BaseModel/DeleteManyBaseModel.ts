@@ -14,6 +14,7 @@ import ComponentMetadata, {
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import { normalizeModelKeys } from "./ModelArguments";
 import logComponentError from "./LogComponentError";
+import { assertIdsAreResolved } from "./UnresolvedIdReference";
 
 export default class DeleteManyBaseModel<
   TBaseModel extends BaseModel,
@@ -90,6 +91,14 @@ export default class DeleteManyBaseModel<
           new BadDataException("Query is should be of type object."),
         );
       }
+
+      // An ID still written as a {{...}} reference stops the step. See the helper.
+      assertIdsAreResolved({
+        json: args["query"] as JSONObject,
+        model: this.modelService.getModel(),
+        metadata: this.getMetadata(),
+        argumentId: "query",
+      });
 
       if (args["skip"] && typeof args["skip"] === "string") {
         args["skip"] = parseInt(args["skip"]);
