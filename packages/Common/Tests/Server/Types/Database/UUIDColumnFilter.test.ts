@@ -668,6 +668,60 @@ describe("serializeQuery — the ids of a relation filter", () => {
     expect(params(result["monitors"]["_id"])).toEqual([[STATE_ID]]);
   });
 
+  /*
+   * A comparison on a relation compares its key, a uuid column, so it is
+   * held to the rule as one: it used to pass through unread, and Postgres
+   * was asked for the uuid "abc".
+   */
+  it.each([
+    ["EqualTo", new EqualTo("abc")],
+    ["NotEqual", new NotEqual("[object Object]")],
+    ["EqualToOrNull", new EqualToOrNull(UNRESOLVED_REFERENCE)],
+    ["GreaterThan", new GreaterThan(42)],
+    ["InBetween", new InBetween(STATE_ID, "abc")],
+  ])(
+    "refuses an id in %s on a relation that is not one",
+    (_name: string, value: unknown) => {
+      expect(
+        refusalOf(Incident, { currentIncidentState: value }).message,
+      ).toContain('Invalid ID for "currentIncidentState" in the query');
+    },
+  );
+
+  it("compares a relation with the id a serialized ObjectID holds", () => {
+    const result: Record<string, any> = serialize(Incident, {
+      currentIncidentState: new NotEqual(
+        JSON.stringify({ _type: "ObjectID", value: STATE_ID }),
+      ),
+    });
+
+    expect(params(result["currentIncidentState"])).toEqual([STATE_ID]);
+  });
+
+  it("leaves a comparison on a relation that already worked as it was", () => {
+    const result: Record<string, any> = serialize(Incident, {
+      currentIncidentState: new EqualTo(STATE_ID),
+      incidentSeverity: new NotEqual(OTHER_STATE_ID.toUpperCase()),
+    });
+
+    expect(params(result["currentIncidentState"])).toEqual([STATE_ID]);
+    expect(params(result["incidentSeverity"])).toEqual([
+      OTHER_STATE_ID.toUpperCase(),
+    ]);
+  });
+
+  it("leaves null checks and text matches on a relation alone", () => {
+    const result: Record<string, any> = serialize(Incident, {
+      currentIncidentState: new IsNull(),
+      incidentSeverity: new NotNull(),
+      createdByUser: new Search("5f0e"),
+    });
+
+    expect(rawSql(result["currentIncidentState"], "x")).toBe("(x IS NULL)");
+    expect(rawSql(result["incidentSeverity"], "x")).toBe("(x IS NOT NULL)");
+    expect(params(result["createdByUser"])).toEqual(["%5f0e%"]);
+  });
+
   it.each([
     ["a list", { monitors: ["abc"] }],
     ["a list of records", { monitors: [{ name: "api" }] }],
@@ -770,5 +824,233 @@ describe("every ObjectID column is a Postgres uuid", () => {
 
     expect(scanned).toBeGreaterThan(1000);
     expect(offenders).toEqual([]);
+  });
+});
+
+/*
+ * WRITES. A create's record and an update's data are held to the rule a
+ * filter is held to (DatabaseService runs normalizeWrittenValue on each
+ * column before any hook). These pin the rule itself; the paths that reach
+ * it - the REST API, a workflow's steps - are in
+ * Tests/Server/API/UUIDColumnApiPaths.test.ts.
+ */
+describe("normalizeWrittenValue - an id a write gives", () => {
+  const incident: BaseModel = new Incident();
+
+  const written: (columnName: string, value: unknown) => unknown = (
+    columnName: string,
+    value: unknown,
+  ): unknown => {
+    return UUIDColumnFilter.normalizeWrittenValue({
+      columnName: columnName,
+      column: incident.getTableColumnMetadata(columnName),
+      value: value,
+    });
+  };
+
+  // The exception a write of `value` to `columnName` is refused with.
+  const writeRefusalOf: (
+    columnName: string,
+    value: unknown,
+  ) => BadDataException = (
+    columnName: string,
+    value: unknown,
+  ): BadDataException => {
+    try {
+      written(columnName, value);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadDataException);
+      return error as BadDataException;
+    }
+
+    throw new Error(`Expected ${String(value)} to be refused.`);
+  };
+
+  describe("to an ID column", () => {
+    // What Postgres reads as a uuid is written exactly as it came.
+    it.each([
+      ["canonical", STATE_ID],
+      ["upper case", STATE_ID.toUpperCase()],
+      ["in braces", `{${STATE_ID}}`],
+      ["without hyphens", STATE_ID.replace(/-/g, "")],
+    ])("keeps an id written %s as it came", (_name: string, id: string) => {
+      expect(written("currentIncidentStateId", id)).toBe(id);
+    });
+
+    it("keeps an ObjectID as the very ObjectID it was", () => {
+      const id: ObjectID = new ObjectID(STATE_ID);
+
+      expect(written("currentIncidentStateId", id)).toBe(id);
+    });
+
+    /*
+     * The JSON text is what a workflow writes for a quoted reference to a
+     * record's id, and it used to reach Postgres as the uuid
+     * "{\n  "_type": "ObjectID", ...".
+     */
+    it.each([
+      ["as an object", { _type: "ObjectID", value: STATE_ID }],
+      [
+        "as its JSON text",
+        JSON.stringify({ _type: "ObjectID", value: STATE_ID }, null, 2),
+      ],
+      [
+        "wrapped in another",
+        { _type: "ObjectID", value: { _type: "ObjectID", value: STATE_ID } },
+      ],
+    ])(
+      "writes a serialized ObjectID sent %s as the id it holds",
+      (_name: string, value: unknown) => {
+        expect(written("currentIncidentStateId", value)).toBe(STATE_ID);
+      },
+    );
+
+    // An empty id has always been written as NULL by the column's transformer.
+    it.each([
+      ["no value", undefined],
+      ["a clear", null],
+      ["an empty text", ""],
+    ])("leaves %s as it is", (_name: string, value: unknown) => {
+      expect(written("currentIncidentStateId", value)).toBe(value);
+    });
+
+    it.each([
+      ["text that is no id", "abc"],
+      ["an object made text", "[object Object]"],
+      ["an unresolved workflow reference", UNRESOLVED_REFERENCE],
+      ["a number", 42],
+      ["true", true],
+      ["a record", { _id: STATE_ID }],
+      ["an empty object", {}],
+      ["a list", [STATE_ID]],
+      ["an ObjectID holding text that is no id", new ObjectID("abc")],
+      ["a serialized ObjectID holding no id", { _type: "ObjectID", value: "" }],
+      ["a Date", new Date("2026-01-01T00:00:00Z")],
+    ])("refuses %s, naming the column", (_name: string, value: unknown) => {
+      const refusal: BadDataException = writeRefusalOf(
+        "currentIncidentStateId",
+        value,
+      );
+
+      expect(refusal.message).toContain(
+        'Invalid ID for "currentIncidentStateId" in the data:',
+      );
+      expect(refusal.message).toContain(EXAMPLE_UUID);
+    });
+
+    it("repeats a refused text, cut short", () => {
+      expect(writeRefusalOf("currentIncidentStateId", "abc").message).toBe(
+        `Invalid ID for "currentIncidentStateId" in the data: "abc" is not an ID. An ID is a UUID such as "${EXAMPLE_UUID}".`,
+      );
+      expect(
+        writeRefusalOf("currentIncidentStateId", "x".repeat(100000)).message
+          .length,
+      ).toBeLessThan(400);
+    });
+
+    /*
+     * save() turns a create that carries an existing row's id into an update
+     * of that row, so the record's own id is never rewritten - whatever it
+     * holds, it is written as it came (a create may not carry one but
+     * OneUptime's own).
+     */
+    it("never rewrites the record's own _id", () => {
+      const text: string = JSON.stringify({ _type: "ObjectID", value: STATE_ID });
+      const id: ObjectID = new ObjectID(STATE_ID);
+
+      expect(written("_id", text)).toBe(text);
+      expect(written("_id", id)).toBe(id);
+      expect(written("_id", "abc")).toBe("abc");
+    });
+
+    it("leaves a column that holds no id alone", () => {
+      expect(written("title", "abc")).toBe("abc");
+      expect(written("title", "[object Object]")).toBe("[object Object]");
+      expect(written("isVisibleOnStatusPage", "abc")).toBe("abc");
+    });
+  });
+
+  describe("to a relation", () => {
+    it("keeps a record named by an id, or as a record with one, as it came", () => {
+      const record: JSONObject = { _id: STATE_ID, name: "Acknowledged" };
+      const model: BaseModel = new Incident();
+      model._id = OTHER_STATE_ID;
+
+      expect(written("currentIncidentState", STATE_ID)).toBe(STATE_ID);
+      expect(written("currentIncidentState", record)).toBe(record);
+      expect(record).toEqual({ _id: STATE_ID, name: "Acknowledged" });
+      expect(written("monitors", [STATE_ID, record, model])).toEqual([
+        STATE_ID,
+        record,
+        model,
+      ]);
+      expect(model._id).toBe(OTHER_STATE_ID);
+    });
+
+    it("writes a serialized ObjectID it names a record by as the id it holds", () => {
+      const text: string = JSON.stringify({ _type: "ObjectID", value: STATE_ID });
+      const record: JSONObject = { _id: text };
+      const plain: JSONObject = { id: { _type: "ObjectID", value: STATE_ID } };
+
+      expect(written("currentIncidentState", text)).toBe(STATE_ID);
+      expect(written("monitors", [record, plain])).toEqual([
+        { _id: STATE_ID },
+        { id: STATE_ID },
+      ]);
+    });
+
+    // A record with no id - one the write itself would create - names none.
+    it("leaves a record given with no id alone", () => {
+      const record: JSONObject = { name: "Acknowledged" };
+
+      expect(written("currentIncidentState", record)).toBe(record);
+      expect(written("monitors", [record, null, ""])).toEqual([
+        record,
+        null,
+        "",
+      ]);
+    });
+
+    it.each([
+      ["currentIncidentState", "Resolved"],
+      ["currentIncidentState", { _id: "abc" }],
+      ["currentIncidentState", { id: "[object Object]" }],
+      ["currentIncidentState", new ObjectID("abc")],
+      ["monitors", [STATE_ID, "abc"]],
+      ["monitors", [{ _id: UNRESOLVED_REFERENCE }]],
+    ])(
+      "refuses %s naming a record by %p, naming the relation",
+      (columnName: string, value: unknown) => {
+        expect(writeRefusalOf(columnName, value).message).toContain(
+          `Invalid ID for "${columnName}" in the data:`,
+        );
+      },
+    );
+
+    /*
+     * A write may take a plain record's `id` rather than its `_id`
+     * (DatabaseService.sanitizeCreateOrUpdate takes a text `id` when `_id`
+     * is not text), so both are read.
+     */
+    it("reads a plain record's id as well as its _id", () => {
+      const record: JSONObject = {
+        _id: new ObjectID(STATE_ID) as unknown as string,
+        id: OTHER_STATE_ID,
+      };
+
+      expect(written("monitors", [record])).toEqual([record]);
+      expect(
+        writeRefusalOf("monitors", [{ _id: STATE_ID, id: "abc" }]).message,
+      ).toContain('Invalid ID for "monitors" in the data: "abc" is not an ID.');
+    });
+
+    it("refuses a model whose _id is no id", () => {
+      const model: BaseModel = new Incident();
+      model._id = "abc";
+
+      expect(writeRefusalOf("monitors", [model]).message).toContain(
+        'Invalid ID for "monitors" in the data: "abc" is not an ID.',
+      );
+    });
   });
 });

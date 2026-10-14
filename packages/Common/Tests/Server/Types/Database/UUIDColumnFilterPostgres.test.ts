@@ -5,6 +5,10 @@ import Query from "../../../../Server/Types/Database/Query";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import QueryUtil from "../../../../Server/Types/Database/QueryUtil";
 import UUIDColumnFilter from "../../../../Server/Types/Database/UUIDColumnFilter";
+import PostgresErrorTranslator, {
+  TranslatedPostgresException,
+} from "../../../../Server/Utils/Database/PostgresErrorTranslator";
+import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import JSONFunctions from "../../../../Types/JSONFunctions";
@@ -42,9 +46,13 @@ import {
  *
  * and the API answered each with a 500. The first test makes that statement
  * again; the rest pin what UUIDColumnFilter (run by QueryUtil.serializeQuery)
- * does instead, against the column Postgres actually has. The last pins its
- * one claim that only Postgres can judge: what it reads as a uuid is exactly
+ * does instead, against the column Postgres actually has. One pins its one
+ * claim that only Postgres can judge: what it reads as a uuid is exactly
  * what Postgres's uuid input accepts, so no filter that worked is refused.
+ * The last two are about writes: what the write check
+ * (UUIDColumnFilter.normalizeWrittenValue) writes for each form of an id,
+ * Postgres stores as that id; and a non-id that reaches Postgres anyway is
+ * the production error, which PostgresErrorTranslator answers with a 400.
  *
  * Every row lives in a uniquely named schema holding a structure-only clone
  * of Incident (LIKE ... INCLUDING ALL: the migrated column types, defaults
@@ -449,5 +457,122 @@ describePostgres("filters on a uuid column against a migrated Postgres", () => {
     expect(acceptedByPostgres).toBeGreaterThan(50);
     expect(texts.length - acceptedByPostgres).toBeGreaterThan(50);
     expect(disagreements).toEqual([]);
+  });
+
+  // The state the newest open incident is in, as Postgres stores it.
+  const storedStateOfNewest: () => Promise<string> =
+    async (): Promise<string> => {
+      const rows: Array<{ currentIncidentStateId: string }> =
+        await database.query(
+          `SELECT "currentIncidentStateId" FROM "Incident" WHERE "_id" = $1`,
+          [openIncidentIds[1]],
+        );
+
+      return rows[0]!.currentIncidentStateId;
+    };
+
+  /*
+   * A create or an update gives an id in any form the check keeps or
+   * rewrites - text Postgres reads, an ObjectID, a serialized ObjectID as an
+   * object or as the JSON text a workflow writes for a quoted reference -
+   * and through the column's own transformer Postgres stores each as the id.
+   */
+  test("what the write check writes for each form of an id, Postgres stores as that id", async () => {
+    const column: TableColumnMetadata = new Incident().getTableColumnMetadata(
+      "currentIncidentStateId",
+    );
+
+    const forms: Array<unknown> = [
+      resolvedStateId,
+      resolvedStateId.toUpperCase(),
+      `{${resolvedStateId}}`,
+      resolvedStateId.replace(/-/g, ""),
+      new ObjectID(resolvedStateId),
+      { _type: "ObjectID", value: resolvedStateId },
+      JSON.stringify({ _type: "ObjectID", value: resolvedStateId }, null, 2),
+    ];
+
+    try {
+      for (const form of forms) {
+        const written: unknown = UUIDColumnFilter.normalizeWrittenValue({
+          columnName: "currentIncidentStateId",
+          column: column,
+          value: form,
+        });
+
+        await database
+          .getRepository(Incident)
+          .update(
+            { _id: openIncidentIds[1]! },
+            { currentIncidentStateId: written as ObjectID },
+          );
+
+        expect(await storedStateOfNewest()).toBe(resolvedStateId);
+
+        // Put back between forms, so each is seen to write the id itself.
+        await database
+          .getRepository(Incident)
+          .update(
+            { _id: openIncidentIds[1]! },
+            { currentIncidentStateId: new ObjectID(openStateId) },
+          );
+      }
+    } finally {
+      await database
+        .getRepository(Incident)
+        .update(
+          { _id: openIncidentIds[1]! },
+          { currentIncidentStateId: new ObjectID(openStateId) },
+        );
+    }
+
+    expect(await storedStateOfNewest()).toBe(openStateId);
+  });
+
+  /*
+   * The write check refuses a non-id before anything is written. Should one
+   * reach Postgres some other way - server code, a statement written by
+   * hand - it is the production error, and the translator answers it with a
+   * 400 that does not repeat what was bound.
+   */
+  test("a write Postgres refuses as a uuid is answered with a 400", async () => {
+    let failure: unknown = null;
+
+    try {
+      await database
+        .getRepository(Incident)
+        .update(
+          { _id: openIncidentIds[1]! },
+          { currentIncidentStateId: "not-a-state" as unknown as ObjectID },
+        );
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toBeInstanceOf(QueryFailedError);
+    expect((failure as Error).message).toBe(
+      'invalid input syntax for type uuid: "not-a-state"',
+    );
+    expect(await storedStateOfNewest()).toBe(openStateId);
+
+    const translated: unknown = PostgresErrorTranslator.translate(failure);
+
+    expect(translated).toBeInstanceOf(BadDataException);
+    expect((translated as TranslatedPostgresException).postgresErrorCode).toBe(
+      "22P02",
+    );
+    expect((translated as Error).message).not.toContain("not-a-state");
+
+    // Any other value Postgres cannot read is left to its own error.
+    let otherFailure: unknown = null;
+
+    try {
+      await database.query("SELECT CAST($1 AS integer)", ["not-a-number"]);
+    } catch (error) {
+      otherFailure = error;
+    }
+
+    expect(otherFailure).toBeInstanceOf(QueryFailedError);
+    expect(PostgresErrorTranslator.translate(otherFailure)).toBe(otherFailure);
   });
 });

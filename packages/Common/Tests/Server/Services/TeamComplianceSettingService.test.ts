@@ -5730,7 +5730,31 @@ describe("TeamComplianceSettingService updates reach the write normalised", () =
     ).toEqual([MAJOR_INCIDENT]);
   });
 
+  /*
+   * The relation save takes a text `id` when `_id` is not text. Here the
+   * `_id` is this project's own severity - an id, but an ObjectID, not
+   * text - so a check that read `_id` alone would pass the write, and the
+   * save would link the other project's severity named by `id`.
+   */
   test("another project's severity named by `id` behind a non-string `_id` is refused before anything is written", async () => {
+    await expect(
+      service.updateOneById({
+        id: new ObjectID(SETTING_ID),
+        data: {
+          incidentSeverities: [
+            { _id: new ObjectID(CRITICAL_INCIDENT), id: FOREIGN_INCIDENT },
+          ],
+        } as never,
+        props: EDITOR_PROPS,
+      }),
+    ).rejects.toThrow(FOREIGN_INCIDENT_SEVERITY_MESSAGE);
+
+    expect(save).not.toHaveBeenCalled();
+    expect(repositoryUpdate).not.toHaveBeenCalled();
+  });
+
+  // An `_id` that is no id at all is refused as one, naming the list.
+  test("a severity named by an `_id` that is no id is refused before anything is written", async () => {
     await expect(
       service.updateOneById({
         id: new ObjectID(SETTING_ID),
@@ -5739,7 +5763,9 @@ describe("TeamComplianceSettingService updates reach the write normalised", () =
         } as never,
         props: EDITOR_PROPS,
       }),
-    ).rejects.toThrow(FOREIGN_INCIDENT_SEVERITY_MESSAGE);
+    ).rejects.toThrow(
+      'Invalid ID for "incidentSeverities" in the data: 1 is not an ID.',
+    );
 
     expect(save).not.toHaveBeenCalled();
     expect(repositoryUpdate).not.toHaveBeenCalled();

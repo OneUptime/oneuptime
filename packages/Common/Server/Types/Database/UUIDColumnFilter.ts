@@ -68,6 +68,16 @@ import { FindOperator } from "typeorm";
  * canonical form, so no filter Postgres answered before is refused now. Text
  * matches (Search, StartsWith, Wildcard, ...) compare the id cast to text and
  * are left alone, as are null checks and operators QueryHelper built.
+ *
+ * A write is held to the same rule (normalizeWrittenValue, which
+ * DatabaseService runs on a create's record and an update's data before any
+ * hook): an id the record gives a uuid column, or names a related record by,
+ * is text Postgres reads as a uuid, or the write is refused with a 400 naming
+ * the column - where it used to reach Postgres and come back a 500, often
+ * from a lookup a hook made with it. A serialized ObjectID is written as the
+ * id it holds there too. What still reaches Postgres some other way - a
+ * custom route, a statement written by hand - is answered with a 400 by
+ * PostgresErrorTranslator.
  */
 
 /*
@@ -99,6 +109,9 @@ const MAX_SERIALIZED_OBJECT_ID_DEPTH: number = 8;
 const MAX_SERIALIZED_OBJECT_ID_TEXT_LENGTH: number = 1024;
 
 export const EXAMPLE_UUID: string = "550e8400-e29b-41d4-a716-446655440000";
+
+// Where a refused id was given: a filter's query, or the data a write gives.
+type IdPlace = "query" | "data";
 
 export default class UUIDColumnFilter {
   // True for text Postgres reads as a uuid.
@@ -301,6 +314,15 @@ export default class UUIDColumnFilter {
       );
     }
 
+    /*
+     * A comparison on a relation (EqualTo, NotEqual, InBetween, ...)
+     * compares its key, a uuid column: held to the rule as one. Text
+     * matches and null checks pass through as they do there.
+     */
+    if (value instanceof QueryOperator) {
+      return this.normalizeIdColumnFilter(columnName, value);
+    }
+
     if (this.isPlainObject(value) && column.modelType) {
       const relatedModel: BaseModel = new column.modelType();
       const relatedFilter: JSONObject = { ...(value as JSONObject) };
@@ -359,7 +381,11 @@ export default class UUIDColumnFilter {
   }
 
   // `value` as the text of one id, or a BadDataException naming the column.
-  private static getIdText(columnName: string, value: unknown): string {
+  private static getIdText(
+    columnName: string,
+    value: unknown,
+    place: IdPlace = "query",
+  ): string {
     let id: unknown = this.parseSerializedObjectIDText(value) || value;
 
     for (
@@ -378,12 +404,13 @@ export default class UUIDColumnFilter {
       return id;
     }
 
-    throw this.getInvalidIdException(columnName, value);
+    throw this.getInvalidIdException(columnName, value, place);
   }
 
   private static getInvalidIdException(
     columnName: string,
     value: unknown,
+    place: IdPlace,
   ): BadDataException {
     const isObject: boolean =
       value !== null &&
@@ -391,7 +418,7 @@ export default class UUIDColumnFilter {
       !(value instanceof ObjectID);
 
     return new BadDataException(
-      `Invalid ID for "${columnName}" in the query: ${this.describeValue(
+      `Invalid ID for "${columnName}" in the ${place}: ${this.describeValue(
         value,
       )} is not an ID. An ID is a UUID such as "${EXAMPLE_UUID}"${
         isObject
@@ -399,6 +426,120 @@ export default class UUIDColumnFilter {
           : ""
       }.`,
     );
+  }
+
+  /*
+   * WRITES: the value a create's record or an update's data gives the
+   * column `columnName`, with every id in it held to the rule a filter is
+   * held to - text Postgres reads as a uuid, or an ObjectID holding such
+   * text, kept as it came; a serialized ObjectID, as an object or as its
+   * JSON text, written as the text of the id it holds - or a
+   * BadDataException naming the column, before anything is written. For a
+   * relation, every record it names is read: each given as its id, or as the
+   * record - its `_id`, and a plain object's `id` too, since the write may
+   * take either (DatabaseService.sanitizeCreateOrUpdate takes a text `id`
+   * when `_id` is not text); a record given with no id is left alone.
+   *
+   * Left as they are: no value (undefined), a clear (null), and an empty
+   * text, which the column's transformer has always written as NULL. And
+   * the record's own `_id`: a create may not carry one but OneUptime's own
+   * (DatabaseService refuses it before this), and save() turns a create
+   * carrying an existing row's id into an update of that row, so it is
+   * never rewritten here. A column that is neither a uuid nor a relation is
+   * handed back as it is.
+   */
+  public static normalizeWrittenValue(data: {
+    columnName: string;
+    column: TableColumnMetadata;
+    value: unknown;
+  }): unknown {
+    const value: unknown = data.value;
+
+    if (
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      data.columnName === "_id"
+    ) {
+      return value;
+    }
+
+    if (data.column.type === TableColumnType.ObjectID) {
+      return this.getWrittenId(data.columnName, value);
+    }
+
+    if (
+      data.column.type !== TableColumnType.Entity &&
+      data.column.type !== TableColumnType.EntityArray
+    ) {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item: unknown): unknown => {
+        return this.normalizeWrittenRecord(data.columnName, item);
+      });
+    }
+
+    return this.normalizeWrittenRecord(data.columnName, value);
+  }
+
+  /*
+   * An id a write gives: an ObjectID is kept as it came, anything else is
+   * the text of the id - the very text given, when that is one.
+   */
+  private static getWrittenId(columnName: string, value: unknown): unknown {
+    const id: string = this.getIdText(columnName, value, "data");
+
+    return value instanceof ObjectID ? value : id;
+  }
+
+  // One record a write names through a relation: as its id, or as itself.
+  private static normalizeWrittenRecord(
+    columnName: string,
+    item: unknown,
+  ): unknown {
+    if (item === undefined || item === null || item === "") {
+      return item;
+    }
+
+    if (
+      typeof item === "string" ||
+      item instanceof ObjectID ||
+      this.isSerializedObjectID(item)
+    ) {
+      return this.getWrittenId(columnName, item);
+    }
+
+    // A number or a list names no record; the write reads none from it.
+    if (typeof item !== "object" || Array.isArray(item)) {
+      return item;
+    }
+
+    const record: Record<string, unknown> = item as Record<string, unknown>;
+
+    /*
+     * Every key the record's id may be written from. A model's `id` is read
+     * from its `_id`, so only a plain object is read for an `id` of its own.
+     */
+    const idKeys: Array<string> =
+      item instanceof BaseModel ? ["_id"] : ["_id", "id"];
+
+    for (const idKey of idKeys) {
+      const id: unknown = record[idKey];
+
+      if (id === undefined || id === null || id === "") {
+        continue;
+      }
+
+      const written: unknown = this.getWrittenId(columnName, id);
+
+      if (written !== id) {
+        record[idKey] = written;
+      }
+    }
+
+    return item;
   }
 
   // A refused value as its error message shows it, cut short.
