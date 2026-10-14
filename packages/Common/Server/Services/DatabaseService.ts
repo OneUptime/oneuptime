@@ -1400,7 +1400,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * Every ID a write gives - an ID column's value, the records a relation
    * names - as text Postgres reads as a uuid, or the write is refused with
    * one plain message naming the column ('Invalid ID for "monitorId" in the
-   * data: "abc" is not an ID. ...'), before any hook runs and before
+   * data: "abc". An ID is a UUID, ...'), before any hook runs and before
    * anything is written. A serialized ObjectID - as an object, or as the
    * JSON text a workflow writes for a quoted reference - is written as the
    * id it holds. Such a value used to reach the database, often first in a

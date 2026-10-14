@@ -407,6 +407,13 @@ export default class UUIDColumnFilter {
     throw this.getInvalidIdException(columnName, value, place);
   }
 
+  /*
+   * 'Invalid ID for "monitorId" in the data: "abc". An ID is a UUID, such
+   * as "550e8400-...".' The field and where it was given first, for whoever
+   * wrote the request; then what was given, which is all a person who typed
+   * it needs to see what went wrong; then what an ID looks like - the same
+   * words, example and all, as PostgresErrorTranslator's answer.
+   */
   private static getInvalidIdException(
     columnName: string,
     value: unknown,
@@ -420,9 +427,9 @@ export default class UUIDColumnFilter {
     return new BadDataException(
       `Invalid ID for "${columnName}" in the ${place}: ${this.describeValue(
         value,
-      )} is not an ID. An ID is a UUID such as "${EXAMPLE_UUID}"${
+      )}. An ID is a UUID, such as "${EXAMPLE_UUID}"${
         isObject
-          ? `, sent as that text or as {"_type": "ObjectID", "value": "${EXAMPLE_UUID}"}`
+          ? `, sent as text or as {"_type": "ObjectID", "value": "${EXAMPLE_UUID}"}`
           : ""
       }.`,
     );
@@ -549,7 +556,12 @@ export default class UUIDColumnFilter {
     return item;
   }
 
-  // A refused value as its error message shows it, cut short.
+  /*
+   * A refused value as its error message shows it, cut short: text in
+   * quotes, anything else named for what it is ("the value 1", "the object
+   * {...}"), so a bare number at the end of the sentence never reads as a
+   * list's "1.".
+   */
   private static describeValue(value: unknown): string {
     if (typeof value === "string") {
       return JSON.stringify(this.cut(value));
@@ -560,7 +572,7 @@ export default class UUIDColumnFilter {
     }
 
     if (value === null || typeof value !== "object") {
-      return String(value);
+      return `the value ${this.cut(String(value))}`;
     }
 
     if (!Array.isArray(value) && !this.isPlainObject(value)) {

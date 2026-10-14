@@ -705,7 +705,11 @@ describe("a workflow's Create and Update steps", () => {
     expect(result.executePort?.id).toBe("error");
     expect(reached.createHook).not.toHaveBeenCalled();
     expect(log).toContain(
-      `Invalid ID for "currentMonitorStatusId" in the data: "abc" is not an ID. An ID is a UUID such as "${EXAMPLE_UUID}".`,
+      `Invalid ID for "currentMonitorStatusId" in the data: "abc". An ID is a UUID, such as "${EXAMPLE_UUID}".`,
+    );
+    // The run window's Steps view shows it under the step's Error output.
+    expect(result.executePortReason).toBe(
+      `Invalid ID for "currentMonitorStatusId" in the data: "abc". An ID is a UUID, such as "${EXAMPLE_UUID}".`,
     );
   });
 });

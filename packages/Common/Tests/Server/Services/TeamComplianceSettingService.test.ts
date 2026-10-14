@@ -5764,7 +5764,7 @@ describe("TeamComplianceSettingService updates reach the write normalised", () =
         props: EDITOR_PROPS,
       }),
     ).rejects.toThrow(
-      'Invalid ID for "incidentSeverities" in the data: 1 is not an ID.',
+      'Invalid ID for "incidentSeverities" in the data: the value 1. An ID is a UUID',
     );
 
     expect(save).not.toHaveBeenCalled();

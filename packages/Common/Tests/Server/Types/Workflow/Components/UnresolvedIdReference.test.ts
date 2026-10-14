@@ -197,9 +197,28 @@ describe("describeUnresolvedIdReference", () => {
 
   test("names the reference, the argument, the column and the step it points at", () => {
     expect(describeFor(STEP_REFERENCE)).toBe(
-      `${STEP_REFERENCE} in "Query" did not resolve to a value, so there is no ID for "currentIncidentStateId" and the step stopped before reading or writing anything. Step "monitor-find-one-1" has not run, or returned nothing there - a Find One that finds no record returns no model. Check the step id and the return value name, or handle the empty result before this step.`,
+      `The step stopped before reading or writing anything: ${STEP_REFERENCE} in "Query" did not resolve, so "currentIncidentStateId" has no ID. Step "monitor-find-one-1" has not run, or did not return this value - a Find One that finds no record returns no model. Check the step id and the return value name, or handle the empty result before this step.`,
     );
   });
+
+  /*
+   * The run window shows it under the step's Error output, the first thing
+   * read about the step: what happened comes first, whatever the reference.
+   */
+  test.each([
+    STEP_REFERENCE,
+    VARIABLE_REFERENCE,
+    "{{global.variables.stateId}}",
+    "{{local.componets.monitor-find-one-1}}",
+    `{{${"x".repeat(100000)}}}`,
+  ])(
+    "says first that the step stopped and changed nothing: %#",
+    (reference: string) => {
+      expect(describeFor(reference)).toMatch(
+        /^The step stopped before reading or writing anything: \{\{/,
+      );
+    },
+  );
 
   test("names the variable a variable reference points at", () => {
     expect(describeFor(VARIABLE_REFERENCE)).toContain(
@@ -330,7 +349,7 @@ describe("a database step whose ID did not resolve", () => {
         select: { _id: true },
         limit: 25,
       },
-      `${STEP_REFERENCE} in "Query" did not resolve to a value, so there is no ID for "currentIncidentStateId"`,
+      `${STEP_REFERENCE} in "Query" did not resolve, so "currentIncidentStateId" has no ID`,
     ],
     [
       "Find One Incident, by its Query",
@@ -342,7 +361,7 @@ describe("a database step whose ID did not resolve", () => {
         query: { currentIncidentState: VARIABLE_REFERENCE },
         select: { _id: true },
       },
-      `${VARIABLE_REFERENCE} in "Query" did not resolve to a value, so there is no ID for "currentIncidentState"`,
+      `${VARIABLE_REFERENCE} in "Query" did not resolve, so "currentIncidentState" has no ID`,
     ],
     [
       "Delete One Monitor, by its Query",
@@ -351,7 +370,7 @@ describe("a database step whose ID did not resolve", () => {
       },
       Monitor,
       { query: { _id: STEP_REFERENCE } },
-      `in "Query" did not resolve to a value, so there is no ID for "_id"`,
+      `in "Query" did not resolve, so "_id" has no ID`,
     ],
     [
       "Delete Many Monitor, by its Query",
@@ -360,7 +379,7 @@ describe("a database step whose ID did not resolve", () => {
       },
       Monitor,
       { query: { currentMonitorStatusId: STEP_REFERENCE } },
-      `there is no ID for "currentMonitorStatusId"`,
+      `so "currentMonitorStatusId" has no ID`,
     ],
     [
       "Update One Monitor, by its Query",
@@ -369,7 +388,7 @@ describe("a database step whose ID did not resolve", () => {
       },
       Monitor,
       { query: { id: STEP_REFERENCE }, data: { isEnabled: true } },
-      `in "Query" did not resolve to a value, so there is no ID for "_id"`,
+      `in "Query" did not resolve, so "_id" has no ID`,
     ],
     [
       "Update One Monitor, by the record it writes",
@@ -381,7 +400,7 @@ describe("a database step whose ID did not resolve", () => {
         query: { _id: MONITOR_ID },
         data: { currentMonitorStatusId: STEP_REFERENCE },
       },
-      `in "Data (JSON Object)" did not resolve to a value, so there is no ID for "currentMonitorStatusId"`,
+      `in "Data (JSON Object)" did not resolve, so "currentMonitorStatusId" has no ID`,
     ],
     [
       "Update Many Monitor, by the record it writes",
@@ -393,7 +412,7 @@ describe("a database step whose ID did not resolve", () => {
         query: { _id: MONITOR_ID },
         data: { currentMonitorStatusId: VARIABLE_REFERENCE },
       },
-      `in "Data (JSON Object)" did not resolve to a value`,
+      `in "Data (JSON Object)" did not resolve, so`,
     ],
     [
       "Create One Incident, by the record it writes",
@@ -407,7 +426,7 @@ describe("a database step whose ID did not resolve", () => {
           monitors: [{ _id: STEP_REFERENCE }],
         },
       },
-      `in "JSON Object" did not resolve to a value, so there is no ID for "monitors"`,
+      `in "JSON Object" did not resolve, so "monitors" has no ID`,
     ],
     [
       "Create Many Incident, by its second record",
@@ -421,7 +440,7 @@ describe("a database step whose ID did not resolve", () => {
           { title: "Second", currentIncidentStateId: STEP_REFERENCE },
         ],
       },
-      `in "JSON Array" (item 2) did not resolve to a value`,
+      `in "JSON Array" (item 2) did not resolve, so`,
     ],
   ];
 
@@ -447,6 +466,18 @@ describe("a database step whose ID did not resolve", () => {
 
       expect(result.executePort?.id).toBe("error");
       expect(loggedLines(fixture.log)).toContain(expectedMessage);
+
+      /*
+       * And again as the reason the step took its Error output, which the
+       * run window's Steps view shows under it: the message, whole.
+       */
+      expect(result.executePortReason).toContain(expectedMessage);
+      expect(result.executePortReason).toMatch(
+        /^The step stopped before reading or writing anything: /,
+      );
+      expect(loggedLines(fixture.log)).toContain(
+        result.executePortReason as string,
+      );
 
       for (const call of calls) {
         expect(call).not.toHaveBeenCalled();
@@ -577,7 +608,7 @@ describe("a Query a run filled in from an earlier Find One Monitor", () => {
 
     expect(result.executePort?.id).toBe("error");
     expect(loggedLines(fixture.log)).toContain(
-      'Step "monitor-find-one-1" has not run, or returned nothing there',
+      'Step "monitor-find-one-1" has not run, or did not return this value',
     );
 
     for (const call of calls) {

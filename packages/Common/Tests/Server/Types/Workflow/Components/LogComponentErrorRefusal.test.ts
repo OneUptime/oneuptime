@@ -181,6 +181,109 @@ describe("logComponentError", () => {
 });
 
 /*
+ * What it hands back: everything it logged after "Error running component",
+ * as one paragraph. A database step returns it as the reason it took its
+ * Error output, which the run window's Steps view shows under that output -
+ * the step's error used to be only in the Full Log.
+ */
+describe("the reason logComponentError hands back", () => {
+  type Logged = { lines: Array<unknown>; reason: string };
+
+  function logged(data: {
+    error: unknown;
+    model: Incident | Monitor | null;
+    stepTitle?: string | undefined;
+  }): Logged {
+    const lines: Array<unknown> = [];
+
+    const reason: string = logComponentError({
+      error: data.error,
+      model: data.model,
+      log: (line: unknown): void => {
+        lines.push(line);
+      },
+      stepTitle: data.stepTitle,
+    });
+
+    return { lines, reason };
+  }
+
+  test("the message, as it was logged", () => {
+    const result: Logged = logged({
+      error: new BadDataException(
+        'Invalid ID for "currentMonitorStatusId" in the data: "abc".',
+      ),
+      model: new Monitor(),
+      stepTitle: "Create One Monitor",
+    });
+
+    expect(result.reason).toBe(
+      'Invalid ID for "currentMonitorStatusId" in the data: "abc".',
+    );
+    expect(result.lines).toEqual(["Error running component", result.reason]);
+  });
+
+  test("a refusal in the words the run log gave it", () => {
+    const result: Logged = logged({
+      error: new NotAuthorizedException(
+        "You do not have permission to update Team",
+      ),
+      model: new Monitor(),
+      stepTitle: STEP,
+    });
+
+    expect(result.reason).toBe(
+      REFUSED + "You do not have permission to update Team",
+    );
+  });
+
+  test("a message and its tip, as one paragraph in the order they were logged", () => {
+    const result: Logged = logged({
+      error: new Error(
+        'Property "currentStatus" was not found in "Monitor". Make sure your query is correct.',
+      ),
+      model: new Monitor(),
+      stepTitle: "Update One Monitor",
+    });
+
+    expect(result.lines).toHaveLength(3);
+    expect(result.lines[2]).toContain(
+      'Tip: "currentStatus" is not a column on Monitor.',
+    );
+    expect(result.reason).toBe(`${result.lines[1]} ${result.lines[2]}`);
+  });
+
+  test("a refusal and the template tip after it", () => {
+    const error: unknown = new ColumnWriteRefusedException({
+      requestType: DatabaseRequestType.Create,
+      columnName: "createdIncidentTemplateId",
+      modelName: "Incident",
+    });
+
+    const result: Logged = logged({
+      error: error,
+      model: new Incident(),
+      stepTitle: "Create One Incident",
+    });
+
+    expect(result.lines).toHaveLength(3);
+    expect(result.reason).toBe(`${result.lines[1]} ${result.lines[2]}`);
+    expect(result.reason).toContain(
+      "pick the template under Incident Template on this step",
+    );
+  });
+
+  test("an error that is no Error at all, as the JSON it was logged as", () => {
+    const result: Logged = logged({
+      error: { code: "ECONNRESET" },
+      model: null,
+    });
+
+    expect(result.reason).toBe(JSON.stringify({ code: "ECONNRESET" }, null, 2));
+  });
+});
+
+/*
  * A Create One Incident step that still declares from a template the way it
  * did before steps acted as a Project Admin - createdIncidentTemplateId in
  * its JSON Object - is refused for that column, and the run log points at

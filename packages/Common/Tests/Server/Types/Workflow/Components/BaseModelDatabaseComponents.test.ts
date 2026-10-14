@@ -1106,3 +1106,182 @@ describe("Create uses the shared error logging", () => {
     expect(fixture.onError).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * A database step that fails says why where the run window opens: the
+ * Steps view shows a step's reason for taking its Error output under it
+ * (RunReturnType.executePortReason). Before, a failed database step said why
+ * only in the Full Log, and its card showed nothing but Failed.
+ */
+describe("why a database step took its Error output", () => {
+  type StepCase = [
+    string,
+    string,
+    (service: DatabaseService<Monitor>) => ComponentCode,
+    JSONObject,
+  ];
+
+  const STEPS: Array<StepCase> = [
+    [
+      "Create One",
+      "create",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new CreateOneBaseModel<Monitor>(service);
+      },
+      { json: { name: "new monitor" } },
+    ],
+    [
+      "Create Many",
+      "create",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new CreateManyBaseModel<Monitor>(service);
+      },
+      { "json-array": [{ name: "new monitor" }] },
+    ],
+    [
+      "Update One",
+      "updateOneBy",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new UpdateOneBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, data: { isEnabled: true } },
+    ],
+    [
+      "Update Many",
+      "updateBy",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new UpdateManyBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, data: { isEnabled: true } },
+    ],
+    [
+      "Delete One",
+      "deleteOneBy",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new DeleteOneBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID } },
+    ],
+    [
+      "Delete Many",
+      "deleteBy",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new DeleteManyBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID } },
+    ],
+    [
+      "Find One",
+      "findOneBy",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new FindOneBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, select: { _id: true } },
+    ],
+    [
+      "Find Many",
+      "findBy",
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new FindManyBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, select: { _id: true } },
+    ],
+  ];
+
+  test.each(STEPS)(
+    "%s gives the error it logged as its reason",
+    async (
+      _name: string,
+      method: string,
+      make: (service: DatabaseService<Monitor>) => ComponentCode,
+      args: JSONObject,
+    ) => {
+      const service: DatabaseService<Monitor> = makeMonitorService();
+      jest
+        .spyOn(service, method as never)
+        .mockRejectedValue(
+          new Error(
+            `Invalid ID for "currentMonitorStatusId" in the data: "${MONITOR_STATUS_ID}x".`,
+          ) as never,
+        );
+
+      const fixture: OptionsFixture = makeOptions();
+      const result: RunReturnType = await make(service).run(
+        args,
+        fixture.options,
+      );
+
+      expect(result.executePort?.id).toBe("error");
+      expect(result.executePortReason).toBe(
+        `Invalid ID for "currentMonitorStatusId" in the data: "${MONITOR_STATUS_ID}x".`,
+      );
+      expect(loggedLines(fixture.log)).toContain(
+        result.executePortReason as string,
+      );
+      expect(fixture.onError).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(STEPS)(
+    "%s gives the tip it logged too",
+    async (
+      _name: string,
+      method: string,
+      make: (service: DatabaseService<Monitor>) => ComponentCode,
+      args: JSONObject,
+    ) => {
+      const service: DatabaseService<Monitor> = makeMonitorService();
+      jest
+        .spyOn(service, method as never)
+        .mockRejectedValue(
+          new Error(
+            'Property "currentStatus" was not found in "Monitor". Make sure your query is correct.',
+          ) as never,
+        );
+
+      const fixture: OptionsFixture = makeOptions();
+      const result: RunReturnType = await make(service).run(
+        args,
+        fixture.options,
+      );
+
+      expect(result.executePort?.id).toBe("error");
+      expect(result.executePortReason).toMatch(
+        /^Property "currentStatus" was not found in "Monitor"\. Make sure your query is correct\. Tip: "currentStatus" is not a column on Monitor\./,
+      );
+    },
+  );
+
+  // A step that worked has nothing to explain.
+  test.each(STEPS)(
+    "%s that worked gives no reason",
+    async (
+      _name: string,
+      method: string,
+      make: (service: DatabaseService<Monitor>) => ComponentCode,
+      args: JSONObject,
+    ) => {
+      const service: DatabaseService<Monitor> = makeMonitorService();
+      const created: Monitor = new Monitor();
+      created._id = MONITOR_ID;
+      const returned: unknown =
+        method === "create"
+          ? created
+          : method === "findOneBy"
+            ? null
+            : method === "findBy"
+              ? []
+              : 1;
+      jest.spyOn(service, method as never).mockResolvedValue(returned as never);
+
+      const fixture: OptionsFixture = makeOptions();
+      const result: RunReturnType = await make(service).run(
+        args,
+        fixture.options,
+      );
+
+      expect(result.executePort?.id).toBe("success");
+      expect(result.executePortReason).toBeUndefined();
+    },
+  );
+});

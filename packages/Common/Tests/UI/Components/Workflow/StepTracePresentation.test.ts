@@ -23,6 +23,7 @@ import {
   getReturnedRows,
   getStepOutcome,
   getStepWarnings,
+  getStepWarningsToShow,
   getTraceAttention,
   getTraceResumesAt,
   getTraceSteps,
@@ -565,6 +566,104 @@ describe("getStepWarnings", () => {
   test("reads a missing or odd list as none", () => {
     expect(getStepWarnings(aStep())).toEqual([]);
     expect(getStepWarnings(aStep({ warnings: "nope" as never }))).toEqual([]);
+  });
+});
+
+/*
+ * A database step whose ID is a {{...}} reference that did not resolve
+ * takes its Error output saying which reference and what to do; the
+ * runner's warning about that same reference only repeats it, so the card
+ * leaves it out. Every other warning stays.
+ */
+describe("getStepWarningsToShow", () => {
+  const STATE: string =
+    "{{local.components.incident-state-find-one-1.returnValues.model._id}}";
+  const TITLE: string = "{{local.variables.title}}";
+
+  const warningAbout: (...references: Array<string>) => {
+    message: string;
+    unresolvedReferences: Array<string>;
+  } = (
+    ...references: Array<string>
+  ): { message: string; unresolvedReferences: Array<string> } => {
+    return {
+      message: `${references.join(", ")} in "Data (JSON Object)" did not resolve to anything and was left as literal text. Check the step id and the return value name.`,
+      unresolvedReferences: references,
+    };
+  };
+
+  const failedWith: (
+    reason: string | undefined,
+    warnings: Array<{ message: string; unresolvedReferences?: Array<string> }>,
+  ) => WorkflowStepTraceEntry = (
+    reason: string | undefined,
+    warnings: Array<{ message: string; unresolvedReferences?: Array<string> }>,
+  ): WorkflowStepTraceEntry => {
+    return aStep({
+      status: WorkflowStepStatus.Error,
+      executedPort: ERROR_PORT_ID,
+      executedPortTitle: "Error",
+      ...(reason ? { executedPortReason: reason } : {}),
+      warnings: warnings,
+    });
+  };
+
+  const shown: (step: WorkflowStepTraceEntry) => Array<string> = (
+    step: WorkflowStepTraceEntry,
+  ): Array<string> => {
+    return getStepWarningsToShow(step, getStepOutcome(traceOf(step), 0)).map(
+      (warning: { message: string }): string => {
+        return warning.message;
+      },
+    );
+  };
+
+  const STOPPED: string = `The step stopped before reading or writing anything: ${STATE} in "Data (JSON Object)" did not resolve, so "currentIncidentStateId" has no ID.`;
+
+  test("leaves out the warning about the reference the step's error names", () => {
+    expect(shown(failedWith(STOPPED, [warningAbout(STATE)]))).toEqual([]);
+  });
+
+  test("keeps a warning about a reference the error does not name", () => {
+    expect(shown(failedWith(STOPPED, [warningAbout(TITLE)]))).toEqual([
+      warningAbout(TITLE).message,
+    ]);
+  });
+
+  test("keeps a warning about two references when the error names only one", () => {
+    expect(shown(failedWith(STOPPED, [warningAbout(STATE, TITLE)]))).toEqual([
+      warningAbout(STATE, TITLE).message,
+    ]);
+  });
+
+  test("keeps a warning that is about no reference", () => {
+    expect(
+      shown(failedWith(STOPPED, [{ message: "Using the cached token." }])),
+    ).toEqual(["Using the cached token."]);
+  });
+
+  test("keeps every warning of a step that gave no reason", () => {
+    expect(shown(failedWith(undefined, [warningAbout(STATE)]))).toEqual([
+      warningAbout(STATE).message,
+    ]);
+  });
+
+  // Only the Error output's reason is the step's error.
+  test("keeps the warning when the reason is for any other output", () => {
+    const step: WorkflowStepTraceEntry = aStep({
+      executedPort: "case-1",
+      executedPortTitle: "Production",
+      executedPortReason: `Matched ${STATE}.`,
+      warnings: [warningAbout(STATE)],
+    });
+
+    expect(shown(step)).toEqual([warningAbout(STATE).message]);
+  });
+
+  test("still drops what getStepWarnings drops", () => {
+    expect(
+      shown(failedWith(STOPPED, [{ message: "" }, null as never])),
+    ).toEqual([]);
   });
 });
 

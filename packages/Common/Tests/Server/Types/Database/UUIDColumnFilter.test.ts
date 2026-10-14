@@ -229,7 +229,7 @@ describe("serializeQuery — the production request: an object for currentIncide
     expect(
       refusalOf(Incident, { currentIncidentStateId: "[object Object]" })
         .message,
-    ).toContain('"[object Object]" is not an ID');
+    ).toContain('in the query: "[object Object]". An ID is a UUID');
   });
 
   // The rarer production error: a workflow reference left as written.
@@ -238,8 +238,8 @@ describe("serializeQuery — the production request: an object for currentIncide
       currentIncidentStateId: UNRESOLVED_REFERENCE,
     });
 
-    expect(refusal.message).toContain(
-      `Invalid ID for "currentIncidentStateId" in the query: "${UNRESOLVED_REFERENCE}" is not an ID.`,
+    expect(refusal.message).toBe(
+      `Invalid ID for "currentIncidentStateId" in the query: "${UNRESOLVED_REFERENCE}". An ID is a UUID, such as "${EXAMPLE_UUID}".`,
     );
   });
 
@@ -561,7 +561,7 @@ describe("serializeQuery — anything else on a uuid column is refused", () => {
   it("names the type of a value that is no plain object", () => {
     expect(
       refusalOf(Incident, { currentIncidentStateId: new Incident() }).message,
-    ).toContain("an instance of Incident is not an ID");
+    ).toContain("in the query: an instance of Incident. An ID is a UUID");
   });
 
   it.each([
@@ -571,7 +571,9 @@ describe("serializeQuery — anything else on a uuid column is refused", () => {
   ])("refuses %s", (_name: string, value: ObjectID) => {
     expect(
       refusalOf(Incident, { currentIncidentStateId: value }).message,
-    ).toContain("is not an ID");
+    ).toContain(
+      `in the query: the ObjectID "${value.toString()}". An ID is a UUID`,
+    );
   });
 
   it.each([
@@ -940,7 +942,7 @@ describe("normalizeWrittenValue - an id a write gives", () => {
 
     it("repeats a refused text, cut short", () => {
       expect(writeRefusalOf("currentIncidentStateId", "abc").message).toBe(
-        `Invalid ID for "currentIncidentStateId" in the data: "abc" is not an ID. An ID is a UUID such as "${EXAMPLE_UUID}".`,
+        `Invalid ID for "currentIncidentStateId" in the data: "abc". An ID is a UUID, such as "${EXAMPLE_UUID}".`,
       );
       expect(
         writeRefusalOf("currentIncidentStateId", "x".repeat(100000)).message
@@ -1047,7 +1049,7 @@ describe("normalizeWrittenValue - an id a write gives", () => {
       expect(written("monitors", [record])).toEqual([record]);
       expect(
         writeRefusalOf("monitors", [{ _id: STATE_ID, id: "abc" }]).message,
-      ).toContain('Invalid ID for "monitors" in the data: "abc" is not an ID.');
+      ).toContain('Invalid ID for "monitors" in the data: "abc". An ID is');
     });
 
     it("refuses a model whose _id is no id", () => {
@@ -1055,7 +1057,7 @@ describe("normalizeWrittenValue - an id a write gives", () => {
       model._id = "abc";
 
       expect(writeRefusalOf("monitors", [model]).message).toContain(
-        'Invalid ID for "monitors" in the data: "abc" is not an ID.',
+        'Invalid ID for "monitors" in the data: "abc". An ID is',
       );
     });
   });

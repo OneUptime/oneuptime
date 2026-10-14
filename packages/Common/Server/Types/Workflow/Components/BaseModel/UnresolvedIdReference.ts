@@ -248,7 +248,7 @@ export const describeUnresolvedIdReference: DescribeUnresolvedIdReferenceFunctio
     let advice: string = "Check the reference.";
 
     if (path.rootType === ReferenceRootType.ComponentReturnValue) {
-      advice = `Step "${path.componentId}" has not run, or returned nothing there - a Find One that finds no record returns no model. Check the step id and the return value name, or handle the empty result before this step.`;
+      advice = `Step "${path.componentId}" has not run, or did not return this value - a Find One that finds no record returns no model. Check the step id and the return value name, or handle the empty result before this step.`;
     } else if (
       path.rootType === ReferenceRootType.LocalVariable ||
       path.rootType === ReferenceRootType.GlobalVariable
@@ -260,7 +260,12 @@ export const describeUnresolvedIdReference: DescribeUnresolvedIdReferenceFunctio
 
     const item: string = data.itemNumber ? ` (item ${data.itemNumber})` : "";
 
-    return `${reference} in "${data.argumentName}"${item} did not resolve to a value, so there is no ID for "${data.unresolved.columnName}" and the step stopped before reading or writing anything. ${advice}`;
+    /*
+     * What happened first - the step stopped, and changed nothing - then
+     * why, then what to do: the run window shows this under the step's
+     * Error output, where it is read before anything else about the step.
+     */
+    return `The step stopped before reading or writing anything: ${reference} in "${data.argumentName}"${item} did not resolve, so "${data.unresolved.columnName}" has no ID. ${advice}`;
   };
 
 type AssertIdsAreResolvedFunction = (data: {
