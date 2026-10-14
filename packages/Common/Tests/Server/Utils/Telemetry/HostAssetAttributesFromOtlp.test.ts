@@ -27,6 +27,10 @@ jest.mock("../../../../Server/Services/DatabaseService", () => {
       public setDoNotAllowDelete(): void {
         // no-op: delete-permission config, same.
       }
+
+      public keepRowsOnDeleteByQuery(): void {
+        // no-op: the rows a delete by query keeps, config too.
+      }
     },
   };
 });
