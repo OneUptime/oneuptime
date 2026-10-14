@@ -89,6 +89,8 @@ import {
   STATUS_PAGE_ARCHIVED_SENDS_NOTHING_MESSAGE,
   STATUS_PAGE_NOT_FOUND_MESSAGE,
 } from "../../Types/StatusPage/StatusPageArchive";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "../../Types/StatusPage/StatusPageProjectBlock";
+import BlockedProjectStatusPages from "../Utils/StatusPage/BlockedProjectStatusPages";
 import MasterPasswordRequiredException from "../../Types/Exception/MasterPasswordRequiredException";
 import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
@@ -1696,10 +1698,22 @@ export class Service extends ProjectReferencesService<StatusPage> {
 
     if (statusPages.length === 0) {
       /*
-       * getStatusPagesToSendNotification leaves archived pages out, so a
-       * test report sent from the dashboard for one lands here. Say why,
-       * rather than "not found" for a page the sender is looking at.
+       * getStatusPagesToSendNotification leaves out archived pages and the
+       * pages of a blocked project, so a test report sent from the dashboard
+       * for one lands here. Say why, rather than "not found" for a page the
+       * sender is looking at - the block first, which unarchiving would not
+       * lift.
        */
+      if (
+        await BlockedProjectStatusPages.isStatusPageOfBlockedProject(
+          data.statusPageId,
+        )
+      ) {
+        throw new BadDataException(
+          STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+        );
+      }
+
       if (await this.isStatusPageArchived(data.statusPageId)) {
         throw new BadDataException(STATUS_PAGE_ARCHIVED_SENDS_NOTHING_MESSAGE);
       }

@@ -16,6 +16,7 @@ import ScheduledMaintenancePublicNoteService from "Common/Server/Services/Schedu
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import SmsService from "Common/Server/Services/SmsService";
 import AffectedStatusPageResources from "Common/Server/Utils/StatusPage/AffectedStatusPageResources";
+import BlockedProjectStatusPages from "Common/Server/Utils/StatusPage/BlockedProjectStatusPages";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
@@ -39,6 +40,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
@@ -282,8 +284,15 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         noteId: publicNote.id!,
         trigger: trigger,
         status: StatusPageSubscriberNotificationStatus.Skipped,
-        message:
-          "No status pages are configured for this scheduled maintenance. Skipping notifications.",
+        /*
+         * The pages of a blocked project send nothing, and are left out of
+         * the pages to send from: say so, rather than that none are set.
+         */
+        message: (await BlockedProjectStatusPages.isProjectBlocked(
+          event.projectId,
+        ))
+          ? STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE
+          : "No status pages are configured for this scheduled maintenance. Skipping notifications.",
       });
       return;
     }

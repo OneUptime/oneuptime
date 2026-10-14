@@ -21,6 +21,7 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 
 /*
  * Scheduled maintenance public note notifications: "note posted" and the new
@@ -227,8 +228,14 @@ jest.mock("Common/Server/Utils/StatusPageSubscriberWebhook", () => {
   return { __esModule: true, default: { sendWebhookNotification: jest.fn() } };
 });
 
+// Whether the event's project is blocked (BlockedProjectStatusPages).
+jest.mock("Common/Server/Services/ProjectService", () => {
+  return { __esModule: true, default: { isProjectBlocked: jest.fn() } };
+});
+
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import MailService from "Common/Server/Services/MailService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import ScheduledMaintenancePublicNoteService from "Common/Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
@@ -890,6 +897,7 @@ beforeEach(() => {
   mock(
     StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
   ).mockResolvedValue(null as never);
+  mock(ProjectService.isProjectBlocked).mockResolvedValue(false as never);
 
   mock(Markdown.convertToHTML).mockImplementation(
     async (markdown: unknown): Promise<string> => {
@@ -2521,5 +2529,67 @@ describe("ScheduledMaintenancePublicNote: a note posted with a state change name
     expect(sentTeams()[0]).toContain(
       StateChangeNoteMessage.getChatStatusLine(COMPLETED).toString(),
     );
+  });
+});
+
+/*
+ * A blocked project's status pages send nothing: the one lookup every
+ * subscriber notification reads (getStatusPagesToSendNotification) leaves
+ * them out, so the job finds no page to send from. It says why, rather than
+ * that the event has no status pages.
+ */
+describe("ScheduledMaintenancePublicNote notifications of a blocked project", () => {
+  beforeEach(() => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([] as never);
+    mock(ProjectService.isProjectBlocked).mockResolvedValue(true as never);
+  });
+
+  test("a new note is marked Skipped with the reason, and nothing is sent", async () => {
+    createdNotes = [
+      publicNote({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
+
+    await runJob(CREATED_JOB);
+
+    nothingSent();
+    expect(ProjectService.isProjectBlocked).toHaveBeenCalledWith(PROJECT_ID);
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessage:
+        STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+    });
+  });
+
+  test("an updated note is marked Skipped the same way", async () => {
+    updatedNotes = [publicNote()];
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatusOnNoteUpdated:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessageOnNoteUpdated:
+        STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+    });
+  });
+
+  test("a live project's note is sent without asking about its project", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([statusPage()] as never);
+    mock(ProjectService.isProjectBlocked).mockResolvedValue(false as never);
+    updatedNotes = [publicNote()];
+
+    await runJob(UPDATED_JOB);
+
+    expect(MailService.sendMail).toHaveBeenCalled();
+    expect(ProjectService.isProjectBlocked).not.toHaveBeenCalled();
   });
 });

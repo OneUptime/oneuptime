@@ -185,9 +185,10 @@ describe.each([
     send: () => Promise<void>;
   }) => {
     beforeEach(() => {
+      // The page, as the one lookup every subscriber message reads it from.
       jest
-        .spyOn(StatusPageService, "findOneBy")
-        .mockResolvedValue(statusPage({ isPublic: true }));
+        .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+        .mockResolvedValue([statusPage({ isPublic: true })]);
     });
 
     test("links to the subscriber's unsubscribe page, token and all", async () => {
