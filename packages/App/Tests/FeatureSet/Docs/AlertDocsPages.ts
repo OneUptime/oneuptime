@@ -56,6 +56,18 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   };
 
 /*
+ * Text every translation keeps in English, word for word, because the
+ * Dashboard shows it as a new project stores it: the descriptions the two
+ * alert severities are seeded with.
+ */
+export const SEEDED_TEXT: Readonly<Record<string, ReadonlyArray<string>>> = {
+  [ALERT_STATES]: [
+    "Issues causing very high impact to customers. Immediate attention is required.",
+    "Issues causing low impact to customers.",
+  ],
+};
+
+/*
  * Bold words that are a list item's lead, a table row's own name or a
  * word stressed in a sentence, not a label of the Dashboard: a translation
  * words them freely.

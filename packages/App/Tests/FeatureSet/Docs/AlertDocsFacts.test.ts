@@ -15,6 +15,7 @@ import {
   ALERT_SETTINGS,
   ALERT_STATES,
   AlertDocsPageEntry,
+  SEEDED_TEXT,
 } from "./AlertDocsPages";
 import { readPage } from "./DocsContentSupport";
 import {
@@ -279,9 +280,9 @@ describe("the Alerts group in the docs", () => {
         readPackageFile(`App/FeatureSet/Docs/Locales/${language}.json`),
       );
       const dashboard: { navbar: { items: Record<string, string> } } =
-        JSON.parse(
-          readDashboardSource(`Locales/${language}.json`),
-        ) as { navbar: { items: Record<string, string> } };
+        JSON.parse(readDashboardSource(`Locales/${language}.json`)) as {
+          navbar: { items: Record<string, string> };
+        };
 
       expect({
         language,
@@ -361,18 +362,20 @@ describe("the overview's side menu table is the Alerts side menu", () => {
       (foldedPart || "").split(", and a section")[0] || "",
     );
 
-    expect([...open, ...folded].sort()).toEqual(
-      titlesOf(alertsMenu()).sort(),
-    );
+    expect([...open, ...folded].sort()).toEqual(titlesOf(alertsMenu()).sort());
 
     for (const title of open) {
-      expect({ section: title, folded: startsCollapsed(menuSource, title) })
-        .toEqual({ section: title, folded: false });
+      expect({
+        section: title,
+        folded: startsCollapsed(menuSource, title),
+      }).toEqual({ section: title, folded: false });
     }
 
     for (const title of folded) {
-      expect({ section: title, folded: startsCollapsed(menuSource, title) })
-        .toEqual({ section: title, folded: true });
+      expect({
+        section: title,
+        folded: startsCollapsed(menuSource, title),
+      }).toEqual({ section: title, folded: true });
     }
   });
 
@@ -450,7 +453,10 @@ describe("the overview's side menu table is the Alerts side menu", () => {
 
 describe("the alert page's menu table is the alert's own menu", () => {
   const overview: string = english(ALERTS_OVERVIEW);
-  const table: string = section(overview, "## What each page of an alert shows");
+  const table: string = section(
+    overview,
+    "## What each page of an alert shows",
+  );
 
   it("reads the menu, with the Developer section where the menu adds it", () => {
     expect(titlesOf(alertViewMenu())).toEqual([
@@ -517,9 +523,10 @@ describe("the episode page's menu table is the episode's own menu", () => {
       "Pages/Alerts/EpisodeView/SideMenu.tsx",
     );
     const folded: Array<string> = boldNames(
-      paragraphAfter(table, "**Ownership**, **Developer** and **Advanced** start folded.").split(
-        " start folded.",
-      )[0] || "",
+      paragraphAfter(
+        table,
+        "**Ownership**, **Developer** and **Advanced** start folded.",
+      ).split(" start folded.")[0] || "",
     );
 
     expect(folded).toEqual(["Ownership", "Developer", "Advanced"]);
@@ -749,8 +756,9 @@ function seededRows(methodName: string): Array<SeededRow> {
     .map((block: string): SeededRow => {
       const field: (name: string) => string = (name: string): string => {
         return (
-          block.match(new RegExp(`\\.${escapeRegExp(name)} =\\s*([^;]+);`))?.[1] ||
-          ""
+          block.match(
+            new RegExp(`\\.${escapeRegExp(name)} =\\s*([^;]+);`),
+          )?.[1] || ""
         ).trim();
       };
       const flag: RegExpMatchArray | null = block.match(SEEDED_FLAG);
@@ -833,6 +841,13 @@ describe("the seeded alert states and severities", () => {
     for (const row of severities) {
       expect(row.flag).toBeNull();
     }
+
+    // Every translation keeps the seeded descriptions as a project stores them.
+    expect(SEEDED_TEXT[ALERT_STATES]).toEqual(
+      severities.map((row: SeededRow): string => {
+        return row.description;
+      }),
+    );
   });
 
   it("are what the overview's comparison table starts alerts with", () => {
@@ -934,7 +949,9 @@ describe("where alerts come from", () => {
       "Server/Utils/Monitor/MonitorAlert.ts",
     );
 
-    expect(monitorAlert).toContain("(alert.createdCriteriaId || undefined) ===");
+    expect(monitorAlert).toContain(
+      "(alert.createdCriteriaId || undefined) ===",
+    );
     expect(monitorAlert).toContain(
       "(alert.seriesFingerprint || undefined) === seriesFingerprint",
     );
@@ -1128,7 +1145,10 @@ describe("what happens when an alert is created", () => {
   const service: string = readCommonSource("Server/Services/AlertService.ts");
   const steps: string = onCreateSuccessSteps(service);
   const page: string = english(ALERTS_OVERVIEW);
-  const list: string = section(page, "## What happens when an alert is created");
+  const list: string = section(
+    page,
+    "## What happens when an alert is created",
+  );
 
   it("runs the steps in the order the overview lists them", () => {
     expect(
@@ -1258,16 +1278,18 @@ describe("responding to an alert", () => {
 
     expect(feed).toContain('text="Execute Runbook"');
     expect(feed).toContain('text="Execute On-Call Policy"');
-    expect(readCommonSource("UI/Components/Feed/FeedActionsMenu.tsx")).toContain(
-      'translator.translateText("Actions")',
-    );
+    expect(
+      readCommonSource("UI/Components/Feed/FeedActionsMenu.tsx"),
+    ).toContain('translator.translateText("Actions")');
     expect(respond).toContain(
       "The **Actions** menu of the **Alert Feed** also runs a runbook with **Execute Runbook**, or pages more people with **Execute On-Call Policy**.",
     );
   });
 
   it("names the Linked Incidents page's buttons and the Settings page's switches", () => {
-    const linked: string = readDashboardSource("Pages/Alerts/View/Incidents.tsx");
+    const linked: string = readDashboardSource(
+      "Pages/Alerts/View/Incidents.tsx",
+    );
     const privacy: string = readDashboardSource(
       "Components/Alert/AlertPrivacySwitchCopy.ts",
     );
@@ -1278,13 +1300,17 @@ describe("responding to an alert", () => {
 
     expect(linked).toContain('title: "Link Incident"');
     expect(linked).toContain('title: "Declare Incident"');
-    expect(privacy).toContain('cardTitle: translationKey("Who can see this alert")');
+    expect(privacy).toContain(
+      'cardTitle: translationKey("Who can see this alert")',
+    );
     expect(privacy).toContain('switchTitle: translationKey("Private Alert")');
     expect(privacy).toContain(
       'makePrivateConfirmTitle: translationKey("Make this alert private?")',
     );
     expect(reminders).toContain('cardTitle: translationKey("Reminders")');
-    expect(reminders).toContain('switchTitle: translationKey("Send reminders")');
+    expect(reminders).toContain(
+      'switchTitle: translationKey("Send reminders")',
+    );
 
     expect(pages).toContain(
       "**Linked Incidents** — the incidents this alert is part of, with **Link Incident** and **Declare Incident**.",
@@ -1308,7 +1334,7 @@ describe("responding to an alert", () => {
     );
   });
 
-  it("says an episode a private alert opens reads \"Private alert\" where it would show the alert's title", () => {
+  it('says an episode a private alert opens reads "Private alert" where it would show the alert\'s title', () => {
     const engine: string = readCommonSource(
       "Server/Services/AlertGroupingEngineService.ts",
     );
@@ -1343,7 +1369,10 @@ describe("who hears about an alert", () => {
 
     expect(start).toBeGreaterThan(0);
 
-    const body: string = defaults.slice(start, defaults.indexOf("\n  }\n", start));
+    const body: string = defaults.slice(
+      start,
+      defaults.indexOf("\n  }\n", start),
+    );
 
     return Array.from(
       body.matchAll(/NotificationSettingEventType\.(\w+)/g),
@@ -1491,7 +1520,9 @@ describe("alert states and severities", () => {
     expect(severityCopy.title).toBe("Alert Severities");
     expect(page).toContain("The **Alert States** card lists your states");
     expect(page).toContain("The **Alert Severities** card lists them");
-    expect(page).toContain("The new state is added just above the resolved state");
+    expect(page).toContain(
+      "The new state is added just above the resolved state",
+    );
   });
 
   it("names what a state counts as, as the Counts as column draws it", () => {
@@ -1623,8 +1654,12 @@ describe("alert states and severities", () => {
     expect(timeline).toContain('title: "Alert Status",');
     expect(timeline).toContain('title: "View Cause",');
     expect(timeline).toContain('title: "View Logs",');
-    expect(timeline).toContain("getStateTimelineEndsAtColumn<AlertStateTimeline>()");
-    expect(timeline).toContain("getStateTimelineDurationColumn<AlertStateTimeline>()");
+    expect(timeline).toContain(
+      "getStateTimelineEndsAtColumn<AlertStateTimeline>()",
+    );
+    expect(timeline).toContain(
+      "getStateTimelineDurationColumn<AlertStateTimeline>()",
+    );
     expect(timeline).toContain("isEditable={false}");
     expect(text).toContain(
       "Its card, **Status Timeline**, lists them newest first, with **Alert Status**, **Starts At**, **Ends At** and **Duration**.",
@@ -1671,7 +1706,9 @@ describe("alert states and severities", () => {
   });
 
   it("keeps Active Alerts to the states above the resolved one, as the list and its badge query them", () => {
-    const unresolved: string = readDashboardSource("Pages/Alerts/Unresolved.tsx");
+    const unresolved: string = readDashboardSource(
+      "Pages/Alerts/Unresolved.tsx",
+    );
 
     expect(unresolved).toContain('useUnresolvedStateIds("alert")');
     expect(readDashboardSource("Pages/Alerts/SideMenu.tsx")).toContain(
@@ -1683,12 +1720,16 @@ describe("alert states and severities", () => {
   });
 
   it("maps a monitor recommendation's Critical and Warning onto the first two severities", () => {
-    const seeding: string = readCommonSource("Server/Services/ProjectService.ts");
+    const seeding: string = readCommonSource(
+      "Server/Services/ProjectService.ts",
+    );
 
     expect(seeding).toContain(
       "`MonitorRecommendationSeverityMapper` maps a recommendation's declared",
     );
-    expect(seeding).toContain("`Critical` onto rank 1 and `Warning` onto rank 2");
+    expect(seeding).toContain(
+      "`Critical` onto rank 1 and `Warning` onto rank 2",
+    );
     expect(page).toContain(
       "OneUptime maps it onto your first and second alert severity, which in a new project are **High** and **Low**.",
     );
@@ -1788,7 +1829,9 @@ describe("alert episodes and grouping rules", () => {
       "Group By Monitor Labels",
     ];
 
-    expect(rulesPage).toContain('title: "Group By",\n            id: "group-by"');
+    expect(rulesPage).toContain(
+      'title: "Group By",\n            id: "group-by"',
+    );
 
     for (const title of switches) {
       expect(rulesPage).toContain(`title: "${title}",`);
@@ -1822,7 +1865,11 @@ describe("alert episodes and grouping rules", () => {
       "**Details**",
     ]);
 
-    for (const group of ["On-Call & Ownership", "Episode Lifecycle", "Details"]) {
+    for (const group of [
+      "On-Call & Ownership",
+      "Episode Lifecycle",
+      "Details",
+    ]) {
       expect(rulesPage).toContain(`sectionTitle: "${group}"`);
     }
 
@@ -1869,7 +1916,9 @@ describe("alert episodes and grouping rules", () => {
   });
 
   it("names an episode without a template after its monitor, or the alert title's first 50 characters", () => {
-    expect(engine).toContain("if (values.monitorName) {\n        return values.monitorName;");
+    expect(engine).toContain(
+      "if (values.monitorName) {\n        return values.monitorName;",
+    );
     expect(engine).toContain("return alert.title.substring(0, 50);");
     expect(section(page, "## Episode titles")).toContain(
       "an episode is named after the monitor of its first alert, or after the first 50 characters of the alert's title when it has no monitor.",
@@ -1936,7 +1985,9 @@ describe("alert episodes and grouping rules", () => {
       "Server/Services/AlertEpisodeService.ts",
     );
 
-    expect(engine).toContain("newEpisode.alertSeverityId = alert.alertSeverityId;");
+    expect(engine).toContain(
+      "newEpisode.alertSeverityId = alert.alertSeverityId;",
+    );
     expect(engine).toContain("onlyIfHigher: true,");
     expect(episodeService).toContain("// Lower order = higher severity");
     expect(page).toContain(
@@ -1952,7 +2003,9 @@ describe("alert episodes and grouping rules", () => {
       "Server/Services/AlertEpisodeService.ts",
     );
 
-    expect(timeline).toContain("AlertEpisodeService.cascadeStateToMemberAlerts({");
+    expect(timeline).toContain(
+      "AlertEpisodeService.cascadeStateToMemberAlerts({",
+    );
     expect(episodeService).toContain("StateMoveUtil.isMoveAllowed({");
     expect(page).toContain(
       "every alert in it moves too, except an alert already in that state or past it.",
@@ -1968,7 +2021,9 @@ describe("alert episodes and grouping rules", () => {
     expect(autoResolve).toContain(
       "false, // Don't cascade to alerts - they're already resolved",
     );
-    expect(autoResolve).toContain("enableResolveDelay && resolveDelayMinutes > 0");
+    expect(autoResolve).toContain(
+      "enableResolveDelay && resolveDelayMinutes > 0",
+    );
     expect(page).toContain(
       "**It resolves itself** once every alert in it is resolved. **Wait before resolving an episode** holds it open for that many minutes first",
     );
@@ -2018,7 +2073,9 @@ describe("alert episodes and grouping rules", () => {
       episodeService.indexOf("protected override async onCreateSuccess("),
     );
 
-    expect(engine).toContain("newEpisode.onCallDutyPolicies = onCallDutyPolicies;");
+    expect(engine).toContain(
+      "newEpisode.onCallDutyPolicies = onCallDutyPolicies;",
+    );
     expect(
       inOrder(
         positionsIn(created, [
@@ -2033,7 +2090,9 @@ describe("alert episodes and grouping rules", () => {
   });
 
   it("names the episode create form, its steps and its buttons as the pages draw them", () => {
-    const create: string = readDashboardSource("Pages/Alerts/EpisodeCreate.tsx");
+    const create: string = readDashboardSource(
+      "Pages/Alerts/EpisodeCreate.tsx",
+    );
     const table: string = readDashboardSource(
       "Components/AlertEpisode/AlertEpisodesTable.tsx",
     );
@@ -2056,7 +2115,9 @@ describe("alert episodes and grouping rules", () => {
       expect(steps).toContain(`**${name}**`);
     }
 
-    expect(page).toContain("the list shows its **Grouping Rule** as **Manual**");
+    expect(page).toContain(
+      "the list shows its **Grouping Rule** as **Manual**",
+    );
   });
 
   it("names the episode header's menu as the header draws it", () => {
@@ -2074,19 +2135,23 @@ describe("alert episodes and grouping rules", () => {
  * where a default team or user used to be.
  */
 describe("the in-product episode documentation agrees with the docs and the engines", () => {
-  const SINGLE_BRACE_VARIABLE: RegExp = /(?<!\{)\{(alert|incident|monitor)\w*\}(?!\})/;
+  const SINGLE_BRACE_VARIABLE: RegExp =
+    /(?<!\{)\{(alert|incident|monitor)\w*\}(?!\})/;
 
   it.each([
     ["Pages/Alerts/EpisodeDocs.tsx", "alert"],
     ["Pages/Incidents/EpisodeDocs.tsx", "incident"],
-  ])("%s names the template variables as {{variable}}", (file: string, record: string) => {
-    const source: string = readDashboardSource(file);
+  ])(
+    "%s names the template variables as {{variable}}",
+    (file: string, record: string) => {
+      const source: string = readDashboardSource(file);
 
-    expect(source).not.toMatch(SINGLE_BRACE_VARIABLE);
-    expect(source).toContain(`{{${record}Title}}`);
-    expect(source).toContain("{{monitorName}}");
-    expect(source).toContain(`{{${record}Severity}}`);
-  });
+      expect(source).not.toMatch(SINGLE_BRACE_VARIABLE);
+      expect(source).toContain(`{{${record}Title}}`);
+      expect(source).toContain("{{monitorName}}");
+      expect(source).toContain(`{{${record}Severity}}`);
+    },
+  );
 
   it("names only variables the alert engine fills", () => {
     const source: string = readDashboardSource("Pages/Alerts/EpisodeDocs.tsx");
@@ -2101,11 +2166,18 @@ describe("the in-product episode documentation agrees with the docs and the engi
       },
     );
     // The TranslatedSentence slots are the page's own, not template variables.
-    const slots: Array<string> = ["episodes", "alerts", "groupingRules", "policies"];
+    const slots: Array<string> = [
+      "episodes",
+      "alerts",
+      "groupingRules",
+      "policies",
+    ];
 
     for (const name of named) {
-      expect({ name, known: filled.includes(name) || slots.includes(name) })
-        .toEqual({ name, known: true });
+      expect({
+        name,
+        known: filled.includes(name) || slots.includes(name),
+      }).toEqual({ name, known: true });
     }
   });
 
@@ -2154,8 +2226,11 @@ describe("the in-product episode documentation agrees with the docs and the engi
         }
 
         for (const variable of Array.from(key.matchAll(/\{\{\w+\}\}/g))) {
-          expect({ language, variable: variable[0], kept: String(value).includes(variable[0]) })
-            .toEqual({ language, variable: variable[0], kept: true });
+          expect({
+            language,
+            variable: variable[0],
+            kept: String(value).includes(variable[0]),
+          }).toEqual({ language, variable: variable[0], kept: true });
         }
       }
     }
@@ -2191,10 +2266,14 @@ describe("alert rules and settings", () => {
     ]) {
       const source: string = readDashboardSource(`${settingsDir}/${file}.tsx`);
 
-      expect({ file, alertTab: source.includes('name: "Alert Rules",') })
-        .toEqual({ file, alertTab: true });
-      expect({ file, episodeTab: source.includes('name: "Episode Rules",') })
-        .toEqual({ file, episodeTab: true });
+      expect({
+        file,
+        alertTab: source.includes('name: "Alert Rules",'),
+      }).toEqual({ file, alertTab: true });
+      expect({
+        file,
+        episodeTab: source.includes('name: "Episode Rules",'),
+      }).toEqual({ file, episodeTab: true });
     }
 
     expect(page).toContain(
@@ -2203,7 +2282,9 @@ describe("alert rules and settings", () => {
   });
 
   it("walks the on-call rule's three steps with the form's own names, and starts a rule enabled", () => {
-    const source: string = readDashboardSource(`${settingsDir}/AlertOnCallRules.tsx`);
+    const source: string = readDashboardSource(
+      `${settingsDir}/AlertOnCallRules.tsx`,
+    );
     const steps: string = section(page, "## On-call rules");
 
     expect(source).toContain('{ title: "Basic Info", id: "basic-info" },');
@@ -2211,7 +2292,9 @@ describe("alert rules and settings", () => {
       '{ title: "Match Criteria", id: "match-criteria", columns: 2 },',
     );
     expect(source).toContain('{ title: "On-Call Policies", id: "on-call" },');
-    expect(source).toContain('placeholder: "Page database team for any DB alert",');
+    expect(source).toContain(
+      'placeholder: "Page database team for any DB alert",',
+    );
     expect(source).toContain("doNotShowWhenCreating: true,");
     expect(
       readCommonSource("Models/DatabaseModels/AlertOnCallRule.ts"),
@@ -2231,9 +2314,14 @@ describe("alert rules and settings", () => {
   });
 
   it("names the conditions an alert rule can match on, as the rule forms list them", () => {
-    const source: string = readDashboardSource(`${settingsDir}/AlertOnCallRules.tsx`);
+    const source: string = readDashboardSource(
+      `${settingsDir}/AlertOnCallRules.tsx`,
+    );
     const conditions: string = section(page, "### Conditions");
-    const alertRules: string = source.slice(0, source.indexOf("const EpisodeRulesTable"));
+    const alertRules: string = source.slice(
+      0,
+      source.indexOf("const EpisodeRulesTable"),
+    );
 
     for (const title of [
       "Monitors",
@@ -2245,8 +2333,10 @@ describe("alert rules and settings", () => {
       "Monitor Name",
       "Monitor Description",
     ]) {
-      expect({ title, offered: alertRules.includes(`title: "${title}",`) })
-        .toEqual({ title, offered: true });
+      expect({
+        title,
+        offered: alertRules.includes(`title: "${title}",`),
+      }).toEqual({ title, offered: true });
       expect(conditions).toContain(`**${title}**`);
     }
   });
@@ -2272,15 +2362,18 @@ describe("alert rules and settings", () => {
       "Match all",
       "Match any",
     ]) {
-      expect({ operator, labelled: fields.includes(`"${operator}"`) }).toEqual(
-        { operator, labelled: true },
-      );
+      expect({ operator, labelled: fields.includes(`"${operator}"`) }).toEqual({
+        operator,
+        labelled: true,
+      });
       expect(conditions).toContain(`**${operator}**`);
     }
   });
 
   it("walks the reminder rule's three steps and fields with the form's own names and defaults", () => {
-    const source: string = readDashboardSource(`${settingsDir}/AlertReminderRules.tsx`);
+    const source: string = readDashboardSource(
+      `${settingsDir}/AlertReminderRules.tsx`,
+    );
     const model: string = readCommonSource(
       "Models/DatabaseModels/AlertReminderRule.ts",
     );
@@ -2307,7 +2400,9 @@ describe("alert rules and settings", () => {
     expect(reminders).toContain(
       "set **Reminder Interval (minutes)**, how often owners are reminded, and **Stop Reminders When**: **Resolved**, the default, or **Acknowledged**.",
     );
-    expect(reminders).toContain("Each new alert gets the first rule that matches it");
+    expect(reminders).toContain(
+      "Each new alert gets the first rule that matches it",
+    );
     expect(reminders).toContain('such as "Critical Alert Reminders"');
   });
 
@@ -2316,7 +2411,11 @@ describe("alert rules and settings", () => {
       "Server/Services/AlertReminderRuleService.ts",
     );
 
-    for (const hook of ["onCreateSuccess", "onUpdateSuccess", "onDeleteSuccess"]) {
+    for (const hook of [
+      "onCreateSuccess",
+      "onUpdateSuccess",
+      "onDeleteSuccess",
+    ]) {
       const at: number = service.indexOf(`protected override async ${hook}(`);
 
       expect(at).toBeGreaterThan(0);
@@ -2331,7 +2430,9 @@ describe("alert rules and settings", () => {
   });
 
   it("names the note templates' card and fields, and says they fill in no variables", () => {
-    const source: string = readDashboardSource(`${settingsDir}/AlertNoteTemplates.tsx`);
+    const source: string = readDashboardSource(
+      `${settingsDir}/AlertNoteTemplates.tsx`,
+    );
     const notes: string = section(page, "### Note templates");
 
     expect(source).toContain('title: "Private Note Templates for Alerts",');
@@ -2346,12 +2447,18 @@ describe("alert rules and settings", () => {
     // Only incident note templates fill in variables.
     expect(
       fs.existsSync(
-        path.join(PACKAGES_DIR, "Common/Utils/Incident/IncidentNoteTemplateVariables.ts"),
+        path.join(
+          PACKAGES_DIR,
+          "Common/Utils/Incident/IncidentNoteTemplateVariables.ts",
+        ),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(PACKAGES_DIR, "Common/Utils/Alert/AlertNoteTemplateVariables.ts"),
+        path.join(
+          PACKAGES_DIR,
+          "Common/Utils/Alert/AlertNoteTemplateVariables.ts",
+        ),
       ),
     ).toBe(false);
 
@@ -2402,7 +2509,9 @@ describe("alert rules and settings", () => {
     );
 
     expect(copy).toContain('title: translationKey("Investigate new alerts"),');
-    expect(copy).toContain('title: translationKey("Fix new alerts automatically"),');
+    expect(copy).toContain(
+      'title: translationKey("Fix new alerts automatically"),',
+    );
     expect(newProjectDefaults).toContain("enableAutomaticAlertInvestigation");
     expect(newProjectDefaults).not.toContain("enableAutomaticAlertRemediation");
     expect(page).toContain(
@@ -2427,7 +2536,9 @@ describe("alert rules and settings", () => {
       "AlertCustomField",
       "AlertMeasurement",
     ]) {
-      const source: string = readCommonSource(`Models/DatabaseModels/${model}.ts`);
+      const source: string = readCommonSource(
+        `Models/DatabaseModels/${model}.ts`,
+      );
       const create: string = source.slice(
         source.indexOf("@TableAccessControl({"),
         source.indexOf("read:", source.indexOf("@TableAccessControl({")),
@@ -2438,7 +2549,12 @@ describe("alert rules and settings", () => {
         projectAdmin: create.includes("Permission.ProjectAdmin"),
         member: create.includes("Permission.ProjectMember"),
         alertMember: create.includes("Permission.AlertMember"),
-      }).toEqual({ model, projectAdmin: true, member: false, alertMember: false });
+      }).toEqual({
+        model,
+        projectAdmin: true,
+        member: false,
+        alertMember: false,
+      });
     }
 
     expect(who).toContain(
@@ -2472,9 +2588,9 @@ describe("alert rules and settings", () => {
     expect(page).toContain("(/docs/configuration/label-and-owner-rules)");
     expect(page).toContain("(/docs/configuration/run-rules-now)");
     expect(page).toContain("(/docs/runbooks/rules)");
-    expect(
-      readPage("en", "configuration/run-rules-now"),
-    ).toContain("- **Privacy Rules**, for incidents, alerts, incident episodes and alert episodes.");
+    expect(readPage("en", "configuration/run-rules-now")).toContain(
+      "- **Privacy Rules**, for incidents, alerts, incident episodes and alert episodes.",
+    );
   });
 });
 
@@ -2484,7 +2600,8 @@ describe("alert rules and settings", () => {
  */
 describe("the readers", () => {
   it("read a section up to the next heading of its level, and fail on one the page lacks", () => {
-    const markdown: string = "# T\n\n## A\n\none\n\n### B\n\ntwo\n\n## C\n\nthree\n";
+    const markdown: string =
+      "# T\n\n## A\n\none\n\n### B\n\ntwo\n\n## C\n\nthree\n";
 
     expect(section(markdown, "## A")).toContain("two");
     expect(section(markdown, "## A")).not.toContain("three");
@@ -2507,13 +2624,20 @@ describe("the readers", () => {
 
   it("read a section's fold from its own setting, or from its title", () => {
     expect(
-      startsCollapsed('{ title: "Rules", defaultCollapsed: true, items: [] }', "Rules"),
+      startsCollapsed(
+        '{ title: "Rules", defaultCollapsed: true, items: [] }',
+        "Rules",
+      ),
     ).toBe(true);
-    expect(startsCollapsed('{ title: "Episodes", items: [] }', "Episodes")).toBe(
-      false,
-    );
-    expect(sectionHead('<SideMenuSection title="On Call" defaultCollapsed={true}>', "On Call"))
-      .toContain("defaultCollapsed");
+    expect(
+      startsCollapsed('{ title: "Episodes", items: [] }', "Episodes"),
+    ).toBe(false);
+    expect(
+      sectionHead(
+        '<SideMenuSection title="On Call" defaultCollapsed={true}>',
+        "On Call",
+      ),
+    ).toContain("defaultCollapsed");
     expect(stringConstant('X: string = "y";', "X")).toBe("y");
   });
 

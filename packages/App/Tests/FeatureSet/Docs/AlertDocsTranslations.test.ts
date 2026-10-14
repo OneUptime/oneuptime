@@ -15,6 +15,7 @@ import {
   KEPT_AS_WRITTEN,
   PRODUCT_NAMES,
   PROSE,
+  SEEDED_TEXT,
 } from "./AlertDocsPages";
 import {
   DocsHeading,
@@ -384,7 +385,7 @@ function untranslatedLines(language: string, page: string): Array<string> {
       .replace(INLINE_CODE_SPAN, " ")
       .replace(LINK_TARGET, "]");
 
-    for (const kept of keptWords(page)) {
+    for (const kept of [...keptWords(page), ...listed(SEEDED_TEXT, page)]) {
       text = text.split(kept).join(" ");
     }
 
@@ -410,6 +411,7 @@ describe("the lists this test keeps", () => {
   it("name only pages of the Alerts group", () => {
     for (const lists of [
       KEPT_AS_WRITTEN,
+      SEEDED_TEXT,
       PROSE,
       DIAGRAM_KINDS,
       WIDEST_DIAGRAM_LINE,
@@ -464,6 +466,19 @@ describe("the lists this test keeps", () => {
       ].filter((span: string): boolean => {
         return !english.includes(span);
       });
+
+      expect({ page, stale }).toEqual({ page, stale: [] });
+    }
+  });
+
+  it("keep only seeded text an English page shows, outside its bold spans", () => {
+    for (const page of PAGE_NAMES) {
+      const english: string = englishPage(page);
+      const stale: Array<string> = listed(SEEDED_TEXT, page).filter(
+        (text: string): boolean => {
+          return !english.includes(text) || english.includes(`**${text}**`);
+        },
+      );
 
       expect({ page, stale }).toEqual({ page, stale: [] });
     }
@@ -836,6 +851,16 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       );
 
       expect(missing).toEqual([]);
+    });
+
+    it("keeps the text a new project is seeded with in English, word for word, as the Dashboard shows it", () => {
+      const translated: string = readPage(language, entry.page);
+
+      expect(
+        listed(SEEDED_TEXT, entry.page).filter((text: string): boolean => {
+          return !translated.includes(text);
+        }),
+      ).toEqual([]);
     });
 
     if (language === "fa") {

@@ -144,7 +144,10 @@ export function stringConstant(source: string, name: string): string {
 }
 
 // The quoted strings of a `name: ... = [ ... ];` constant in a source file.
-export function quotedListConstant(source: string, name: string): Array<string> {
+export function quotedListConstant(
+  source: string,
+  name: string,
+): Array<string> {
   const start: number = source.indexOf(`${name}:`);
 
   if (start < 0) {
