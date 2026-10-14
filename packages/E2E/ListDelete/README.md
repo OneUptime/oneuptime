@@ -2,7 +2,8 @@
 
 An offline harness for the real
 `packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/StatusPages.tsx` page and its
-Archived page, an incident's State Timeline page
+Archived page, a status page's own Delete page (`Pages/StatusPages/View/Delete.tsx`),
+the Monitors list (`Pages/Monitor/Monitors.tsx`), an incident's State Timeline page
 (`Pages/Incidents/View/StateTimeline.tsx`) and the Teams list
 (`Pages/Teams/Index.tsx`). It bundles the production pages with esbuild, replaces
 only the `ModelAPI` / `API` data boundary and the synthetic user's permissions, and
@@ -33,7 +34,21 @@ The suite drives Delete the way a person does, through every confirmation:
 - the Teams list (`?page=teams`): Owners and Admin keep Delete locked, saying
   why; a project's own team deletes after a dialog that says what goes with it;
   a bulk Delete that includes a built-in team deletes the rest and lists it as
-  not deleted.
+  not deleted;
+- the Monitors list (`?page=monitors`): the row's and the bulk Delete's dialogs
+  name what goes with a monitor (its SLOs included) and offer Archive instead;
+- a status page's own Delete page (`?page=status-page-delete`): the card and
+  its dialog say the same thing about what goes as the list's Delete does;
+- the dialogs in German and Japanese (`?lang=de`, `?lang=ja`): every sentence
+  translated, and Japanese sentences run on without a space after "。";
+- a name with nowhere to break (`?long=1`) wrapping inside the dialog on a
+  phone;
+- on a phone: the Bulk Actions menu opening on the screen, and a tap on a
+  locked Delete showing why it is locked and keeping it shown;
+- a bulk Delete refused for one reason (`?rows=6&refuse=<the six ids>`): the
+  reason said once, with every status page under it;
+- the timeline dialog on a phone: when the state began on one line, and what
+  deleting it does in a paragraph of its own.
 
 `Fixture/Fixture.js` records every DELETE the page sends on
 `window.__fixture.deletes`, so the assertions check what was deleted as well as
@@ -62,7 +77,9 @@ node ListDelete/Fixture/server.js
 Then open
 `http://127.0.0.1:4296/dashboard/10000000-0000-4000-8000-000000000001/status-pages`,
 adding `?role=viewer`, `?refuse=30000000-0000-4000-8000-000000000003`,
-`?page=archived`, `?rows=10` or `?theme=dark` as needed.
+`?page=archived`, `?rows=10`, `?long=1`, `?delay=700` (each delete takes that
+long, to see a bulk Delete run), `?lang=de`, `?lang=ja` or `?theme=dark` as
+needed.
 
 The other pages:
 
@@ -72,5 +89,9 @@ The other pages:
   `40000000-0000-4000-8000-000000000002`
 - the Teams list:
   `http://127.0.0.1:4296/dashboard/10000000-0000-4000-8000-000000000001/settings/teams?page=teams`
+- the Monitors list:
+  `http://127.0.0.1:4296/dashboard/10000000-0000-4000-8000-000000000001/monitors?page=monitors`
+- Demo Status's own Delete page:
+  `http://127.0.0.1:4296/dashboard/10000000-0000-4000-8000-000000000001/status-pages/30000000-0000-4000-8000-000000000002/delete?page=status-page-delete`
 
 Each takes `&theme=dark` too.

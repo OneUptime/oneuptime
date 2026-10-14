@@ -97,8 +97,9 @@ describe("DeleteConsequenceParagraph", () => {
   test("takes a test id of its own, for a dialog that says what a delete does", () => {
     render(
       <DeleteConsequenceParagraph dataTestId="state-row-delete-effect">
-        Acknowledged, the state before it, becomes the incident's current state
-        again.
+        {
+          "Acknowledged, the state before it, becomes the incident's current state again."
+        }
       </DeleteConsequenceParagraph>,
     );
 
