@@ -1,0 +1,338 @@
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
+import { JSONObject } from "Common/Types/JSON";
+import ActiveMonitorLimitUtil, {
+  ActiveMonitorLimitKind,
+  ActiveMonitorLimitStatus,
+  NO_ACTIVE_MONITOR_LIMIT,
+} from "Common/Types/Monitor/ActiveMonitorLimit";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Link from "Common/UI/Components/Link/Link";
+import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
+
+/*
+ * THE PLAN'S LIMIT ON ACTIVE MONITORS, SAID BEFORE ANYONE IS REFUSED.
+ *
+ * A project whose plan caps active monitors - a plan bought from a reseller,
+ * or the Free plan - is refused a new one at its limit, on every path, by
+ * the server (Common/Server/Utils/Billing/ActiveMonitorLimit). This says so
+ * where monitors are made and listed, so nobody fills in the Create Monitor
+ * form to be refused at the end of it, and a project already past its limit
+ * hears that its monitors keep running and what to do:
+ *
+ *  - on Create Monitor, at the limit or past it (AtOrOverLimit), first on
+ *    the page: above the Free plan's pricing card, which would otherwise
+ *    fill a phone's screen with prices for a monitor that cannot be added;
+ *  - on the monitor list, only past it (OverLimit) - at the limit there is
+ *    nothing wrong to say until someone adds one;
+ *  - in an action that makes several monitors at once (bulk Create Ping
+ *    Monitors), as the reason it did not start (ActiveMonitorLimitAlert,
+ *    readActiveMonitorLimitIfReached).
+ *
+ * The same words everywhere: which limit, how many active monitors the
+ * project has, what to do with a link to the plan, and what counts - Manual
+ * monitors never do, so the Create Monitor form stays and can still make
+ * one; monitors that are turned off or archived do, so turning one off
+ * frees nothing.
+ *
+ * Nothing is drawn while the status loads, when it cannot be read, or when
+ * the project has no limit: the server's refusal says the same, in the same
+ * terms, if it comes to that. A self-hosted install has no plans, so there
+ * nothing is asked at all.
+ */
+
+export enum ActiveMonitorLimitNoticeShowWhen {
+  AtOrOverLimit = "AtOrOverLimit",
+  OverLimit = "OverLimit",
+}
+
+export interface ComponentProps {
+  showWhen: ActiveMonitorLimitNoticeShowWhen;
+  className?: string | undefined;
+}
+
+/*
+ * What the notice says, in the reader's language: where the project stands,
+ * what to do (with the plan's link after it), and what counts.
+ */
+export interface ActiveMonitorLimitNoticeCopy {
+  title: string;
+  state: Array<string>;
+  action: string;
+  linkText: string;
+  note: string;
+}
+
+// A sentence that ends the way Chinese and Japanese end one takes no space after it.
+const FULL_WIDTH_SENTENCE_END: RegExp = /[。！？]$/;
+
+// Whole sentences, one after another, as the reader's language runs them on.
+export const joinSentences: (sentences: Array<string>) => string = (
+  sentences: Array<string>,
+): string => {
+  return sentences.reduce((text: string, sentence: string): string => {
+    if (!text) {
+      return sentence;
+    }
+
+    return FULL_WIDTH_SENTENCE_END.test(text)
+      ? `${text}${sentence}`
+      : `${text} ${sentence}`;
+  }, "");
+};
+
+export const ACTIVE_MONITOR_LIMIT_ROUTE: string =
+  "/monitor/active-monitor-limit";
+
+// The project's limit and, when it has one, how many active monitors it has.
+export const fetchActiveMonitorLimitStatus: () => Promise<ActiveMonitorLimitStatus> =
+  async (): Promise<ActiveMonitorLimitStatus> => {
+    const response: HTTPResponse<JSONObject> = (await API.get<JSONObject>({
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
+        ACTIVE_MONITOR_LIMIT_ROUTE,
+      ),
+      headers: ModelAPI.getCommonHeaders(),
+    })) as HTTPResponse<JSONObject>;
+
+    return ActiveMonitorLimitUtil.fromJSON(response.data);
+  };
+
+// The words for a project at or past its limit.
+export const getActiveMonitorLimitNoticeCopy: (data: {
+  status: ActiveMonitorLimitStatus;
+  translator: Translator;
+}) => ActiveMonitorLimitNoticeCopy | null = (data: {
+  status: ActiveMonitorLimitStatus;
+  translator: Translator;
+}): ActiveMonitorLimitNoticeCopy | null => {
+  const { status, translator } = data;
+
+  if (!status.limit || status.activeMonitors === null) {
+    return null;
+  }
+
+  const isFreePlan: boolean =
+    status.limit.kind === ActiveMonitorLimitKind.FreePlan;
+  const isOverLimit: boolean = ActiveMonitorLimitUtil.isOverLimit(status);
+  const limit: number = status.limit.limit;
+  const activeMonitors: string = translator.formatNumber(status.activeMonitors);
+
+  let title: string;
+
+  if (isFreePlan) {
+    title = isOverLimit
+      ? (translator.translateText(
+          "You're over the Free plan's monitor limit",
+        ) as string)
+      : (translator.translateText(
+          "You've reached the Free plan's monitor limit",
+        ) as string);
+  } else {
+    title = isOverLimit
+      ? (translator.translateText(
+          "You're over your plan's monitor limit",
+        ) as string)
+      : (translator.translateText(
+          "You've reached your plan's monitor limit",
+        ) as string);
+  }
+
+  /*
+   * A plan bought from a reseller includes its monitors. The Free plan
+   * includes none - every active monitor on it is paid as you go - so it
+   * allows up to its number rather than including it.
+   */
+  const state: Array<string> = [
+    isFreePlan
+      ? translator.translatePlural(
+          {
+            one: "The Free plan allows up to {{count}} active monitor, and this project has {{activeMonitors}}.",
+            other:
+              "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.",
+          },
+          limit,
+          { activeMonitors: activeMonitors },
+        )
+      : translator.translatePlural(
+          {
+            one: "Your plan includes {{count}} active monitor, and this project has {{activeMonitors}}.",
+            other:
+              "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.",
+          },
+          limit,
+          { activeMonitors: activeMonitors },
+        ),
+  ];
+
+  if (isOverLimit) {
+    state.push(
+      translator.translateTemplate(
+        "All of them keep running, but no more can be added until the project has fewer than {{limit}}.",
+        { limit: translator.formatNumber(limit) },
+      ),
+    );
+  }
+
+  return {
+    title: title,
+    state: state,
+    action: isFreePlan
+      ? (translator.translateText("Upgrade your plan to add more.") as string)
+      : (translator.translateText(
+          "To add more, delete monitors you no longer need or change your plan.",
+        ) as string),
+    linkText: isFreePlan
+      ? (translator.translateText("View plans") as string)
+      : (translator.translateText("View plan") as string),
+    note: translator.translateText(
+      "Manual monitors don't count towards the limit, so you can still add them. Monitors that are turned off or archived do count.",
+    ) as string,
+  };
+};
+
+/*
+ * For an action that makes several monitors at once: the project's limit
+ * when it has no room for any active monitor - a reason about the project,
+ * said once (with ActiveMonitorLimitAlert) rather than against every item -
+ * or null when it has room, when it cannot tell, and on an install without
+ * plans. The server holds every create to the limit either way.
+ */
+export const readActiveMonitorLimitIfReached: () => Promise<ActiveMonitorLimitStatus | null> =
+  async (): Promise<ActiveMonitorLimitStatus | null> => {
+    if (!BILLING_ENABLED) {
+      return null;
+    }
+
+    let status: ActiveMonitorLimitStatus;
+
+    try {
+      status = await fetchActiveMonitorLimitStatus();
+    } catch {
+      return null;
+    }
+
+    return ActiveMonitorLimitUtil.isAtOrOverLimit(status) ? status : null;
+  };
+
+export interface ActiveMonitorLimitAlertProps {
+  status: ActiveMonitorLimitStatus;
+  className?: string | undefined;
+}
+
+/*
+ * The notice itself, for a status already read: a warning with which limit,
+ * where the project stands, what to do with the plan a click away, and what
+ * counts. Nothing for a project with no limit.
+ */
+export const ActiveMonitorLimitAlert: FunctionComponent<
+  ActiveMonitorLimitAlertProps
+> = (props: ActiveMonitorLimitAlertProps): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  const copy: ActiveMonitorLimitNoticeCopy | null =
+    getActiveMonitorLimitNoticeCopy({
+      status: props.status,
+      translator: translator,
+    });
+
+  if (!copy) {
+    return <></>;
+  }
+
+  return (
+    <Alert
+      type={AlertType.WARNING}
+      className={props.className}
+      dataTestId="active-monitor-limit-notice"
+      strongTitle={copy.title}
+      title={
+        <div className="space-y-2">
+          <p data-testid="active-monitor-limit-notice-state">
+            {joinSentences(copy.state)}
+          </p>
+          <p data-testid="active-monitor-limit-notice-action">
+            {copy.action}{" "}
+            <Link
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SETTINGS_BILLING] as Route,
+              )}
+              className="whitespace-nowrap font-semibold underline underline-offset-2"
+            >
+              {copy.linkText}
+            </Link>
+          </p>
+          <p
+            className="text-xs leading-5 opacity-80"
+            data-testid="active-monitor-limit-notice-note"
+          >
+            {copy.note}
+          </p>
+        </div>
+      }
+    />
+  );
+};
+
+const ActiveMonitorLimitNotice: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const [status, setStatus] = useState<ActiveMonitorLimitStatus>(
+    NO_ACTIVE_MONITOR_LIMIT,
+  );
+
+  useEffect(() => {
+    if (!BILLING_ENABLED) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    fetchActiveMonitorLimitStatus()
+      .then((value: ActiveMonitorLimitStatus) => {
+        if (isCurrent) {
+          setStatus(value);
+        }
+      })
+      .catch(() => {
+        /*
+         * Quiet: the notice is a heads-up. A create at the limit is refused
+         * by the server in the same terms whatever this could read.
+         */
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  const isShown: boolean =
+    props.showWhen === ActiveMonitorLimitNoticeShowWhen.OverLimit
+      ? ActiveMonitorLimitUtil.isOverLimit(status)
+      : ActiveMonitorLimitUtil.isAtOrOverLimit(status);
+
+  if (!isShown) {
+    return <></>;
+  }
+
+  return (
+    <ActiveMonitorLimitAlert
+      status={status}
+      className={props.className || "mb-5"}
+    />
+  );
+};
+
+export default ActiveMonitorLimitNotice;

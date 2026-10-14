@@ -39,6 +39,8 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { MonitorRecommendationCreateProgress } from "./MonitorRecommendationCreateRunner";
+import { ActiveMonitorLimitStatus } from "Common/Types/Monitor/ActiveMonitorLimit";
+import { ActiveMonitorLimitAlert } from "../Monitor/ActiveMonitorLimitNotice";
 
 export interface ComponentProps {
   selectedRecommendations: Array<MonitorRecommendation>;
@@ -55,6 +57,12 @@ export interface ComponentProps {
    */
   createProgress?: MonitorRecommendationCreateProgress | undefined;
   error?: string | undefined;
+  /*
+   * The plan's limit on active monitors, when the project has no room for
+   * any: its notice goes above the form, and Create stays off - every
+   * monitor in the batch would be refused.
+   */
+  limitReached?: ActiveMonitorLimitStatus | undefined;
   onClose: () => void;
   onSubmit: (
     notificationSettings: MonitorRecommendationNotificationSettings,
@@ -321,6 +329,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
       submitButtonIsLoading={props.isCreating}
       submitButtonDisabled={
         props.isCreating ||
+        Boolean(props.limitReached) ||
         props.selectedRecommendations.length === 0 ||
         (needsBillingConsent && !hasAcknowledgedBilling)
       }
@@ -347,6 +356,12 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
       }}
     >
       <div className="space-y-6">
+        {props.limitReached ? (
+          <ActiveMonitorLimitAlert status={props.limitReached} />
+        ) : (
+          <></>
+        )}
+
         {props.error ? <ErrorMessage message={props.error} /> : <></>}
 
         <MonitorBatchPayAsYouGoConsent

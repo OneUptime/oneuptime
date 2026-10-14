@@ -49,6 +49,8 @@ const INCIDENT_STATE_TIMELINE_SERVICE_FILE: string =
   "Common/Server/Services/IncidentStateTimelineService.ts";
 const ACTIVE_MONITORING_PLAN_FILE: string =
   "Common/Server/Types/Billing/MeteredPlan/ActiveMonitoringMeteredPlan.ts";
+const ACTIVE_MONITOR_LIMIT_FILE: string =
+  "Common/Server/Utils/Billing/ActiveMonitorLimit.ts";
 
 const PAGE: string = "monitor/manual-monitor";
 
@@ -154,8 +156,19 @@ describe("creating a manual monitor", () => {
     expect(MonitorTypeHelper.isBilledAsActiveMonitor(MonitorType.Manual)).toBe(
       false,
     );
+    /*
+     * The bill counts what the plan's limit on active monitors counts, with
+     * its one statement: every monitor but a Manual one.
+     */
     expect(readRepoFile(ACTIVE_MONITORING_PLAN_FILE)).toContain(
-      "monitorType: QueryHelper.notEquals(MonitorType.Manual),",
+      "await ActiveMonitorLimit.refreshCount(projectId);",
+    );
+    const activeMonitorLimit: string = readRepoFile(ACTIVE_MONITOR_LIMIT_FILE);
+    expect(activeMonitorLimit).toContain(
+      'FROM "Monitor" WHERE "projectId" = $1 AND "monitorType" <> $2 AND "deletedAt" IS NULL',
+    );
+    expect(activeMonitorLimit).toContain(
+      "[data.projectId.toString(), MonitorType.Manual],",
     );
     expect(page).toContain(
       "A Manual monitor is not an active monitor, so on OneUptime Cloud it adds nothing to your bill.",

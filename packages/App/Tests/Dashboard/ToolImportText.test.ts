@@ -671,6 +671,18 @@ describe("what the uptime and status page tools bring reads whole", () => {
     ).toBe(
       "The Free plan has room for 10 monitors, and this project has no room left for this one. Upgrade the plan to bring it over.",
     );
+    // A plan of its own - bought from a reseller - caps them at its own number.
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.MonitorLimitReached, {
+          limit: 500,
+        }),
+        ENGLISH,
+        "UptimeRobot",
+      ),
+    ).toBe(
+      "This project's plan includes 500 active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.",
+    );
   });
 
   test("the status page and subscriber notes read whole", () => {
