@@ -210,7 +210,7 @@ sequenceDiagram
 - Заголовки и поля тела (внутри строковых значений).
 - Обе стороны блока **If / Else**.
 
-В полях JSON — **Data (JSON Object)**, **Query** и **Select Fields** в компонентах записей, **Request Body** блока API, **Arguments** в **Run Custom JavaScript** — ссылка подставляется в зависимости от того, где она стоит:
+В полях JSON — **Data (JSON Object)** и **Query** в компонентах записей, **Request Body** блока API, **Arguments** в **Run Custom JavaScript** — ссылка подставляется в зависимости от того, где она стоит:
 
 - **В кавычках это текст.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` вставляет значение в строку. Кавычки, обратные косые черты и переводы строк в значении экранируются, поэтому JSON остаётся корректным, а значение — одной строкой.
 - **Сама по себе это само значение.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` вставляет объект целиком, список остаётся списком, а число — числом. Текст, который сам является JSON, — `5`, `true` или объект, который блок вернул как JSON-текст, — вставляется как это значение. Любой другой текст вставляется как строка.
@@ -238,7 +238,7 @@ sequenceDiagram
 Вебхук приходит с телом вроде `{ "service": "checkout", "status": "failed" }`. Чтобы превратить его в инцидент OneUptime:
 
 1. Триггер **Webhook** с ID `ci-webhook`.
-2. Блок **If / Else**: **Value to check** — поле `status` в Request Body вебхука (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison** — **is equal to**, а **Compare with** — `failed`.
+2. Блок **If / Else**: **Проверяемое значение** — поле `status` в Request Body вебхука (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Сравнение** — **равно**, а **Сравнить с** — `failed`.
 3. Из ветви **Yes** — блок **Create One Incident** с:
    - Заголовок: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Описание: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`

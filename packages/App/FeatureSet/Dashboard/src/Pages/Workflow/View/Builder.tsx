@@ -823,6 +823,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               await saveGraph(nodes, edges);
             }}
             runStepDisabledReason={stepRunLockedReason}
+            runDisabledReason={runLockedReason}
             onRunStep={async (component: NodeDataProp) => {
               await startRun(async (): Promise<void> => {
                 await sendStepRun(component);

@@ -615,8 +615,8 @@ Den samme generering giver dig udløsere til selve konfigurationen: **On Create 
 
 Et par detaljer, der betyder noget, når du forbinder dem:
 
-- **On Update X** tager et valgfrit argument **Listen on**, der indsnævrer udløseren til opdateringer, der ændrer bestemte felter, uanset hvad de ændres til: en kontakt, der slås fra, eller et felt, der ryddes, tæller også. Et felt, der gemmes med den værdi, det allerede har, er ikke en ændring, så en redigeringsformular, der sender det tilbage ved hver gemning, vækker ikke workflowet. Lad det stå tomt for at udløse ved enhver ændring. Kommer en opdatering ind uden en optegnelse over, hvilke felter der ændrede sig, springes filteret over, og workflowet kører alligevel.
-- **On Create X** og **On Update X** tager begge et påkrævet argument **Select Fields**; **On Delete X** tager ingen argumenter.
+- **On Update X** tager et valgfrit argument **Fields to watch**, der indsnævrer udløseren til opdateringer, der ændrer bestemte felter, uanset hvad de ændres til: en kontakt, der slås fra, eller et felt, der ryddes, tæller også. Et felt, der gemmes med den værdi, det allerede har, er ikke en ændring, så en redigeringsformular, der sender det tilbage ved hver gemning, vækker ikke workflowet. Lad det stå tomt for at udløse ved enhver ændring. Kommer en opdatering ind uden en optegnelse over, hvilke felter der ændrede sig, springes filteret over, og workflowet kører alligevel.
+- **On Create X** og **On Update X** tager begge et påkrævet argument **Fields to pass on**; **On Delete X** tager ingen argumenter.
 - Alle tre har en enkelt udgangsport **Success**, og hver accepterer et ID-argument, så du kan køre workflowet i hånden mod én post.
 - Navnene kommer fra modellens navn i ental, ikke fra dens tabelnavn — derfor ser du **On Create Incident Team Owner** og **On Create Incident User Owner** i stedet for navne i tabelform.
 - Der er ingen udløsere for definitioner af brugerdefinerede hændelsesfelter. Den model er det eneste medlem af hændelsesfamilien, hvor workflows er slået fra.

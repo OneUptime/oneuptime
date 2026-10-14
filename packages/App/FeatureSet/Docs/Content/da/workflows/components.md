@@ -291,27 +291,27 @@ Dens indstillinger læses som en sætning: **Hvis** *værdi, der skal tjekkes* *
 
 | Indstilling        | Hvad den gør                                                                                                                             |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Value to check** | Som regel en værdi fra en tidligere blok. Tryk på **{ }** i feltet for at vælge en, eller skriv `{{`.                                    |
-| **Comparison**     | Hvordan der sammenlignes, med ord. Sammenligningerne står nedenfor.                                                                      |
-| **Compare with**   | Det, der sammenlignes med, skrevet eller valgt på samme måde. **er tom**, **er ikke tom**, **is true** og **is false** bruger det ikke.   |
-| **Compare as**     | Foldet væk under sammenligningen: **Text**, **Tal** eller **True / False**. Vælg **Text** for at sortere datoer skrevet `2026-10-01`, eller **Tal** for at gøre `200` og `200.0` ens. |
+| **Værdi, der skal tjekkes** | Som regel en værdi fra en tidligere blok. Tryk på **{ }** i feltet for at vælge en, eller skriv `{{`.                                    |
+| **Sammenligning**     | Hvordan der sammenlignes, med ord. Sammenligningerne står nedenfor.                                                                      |
+| **Sammenlign med**   | Det, der sammenlignes med, skrevet eller valgt på samme måde. **er tom**, **er ikke tom**, **er sand** og **er falsk** bruger det ikke.   |
+| **Sammenlign som**     | Foldet væk under sammenligningen: **Text**, **Tal** eller **Sand / Falsk**. Vælg **Text** for at sortere datoer skrevet `2026-10-01`, eller **Tal** for at gøre `200` og `200.0` ens. |
 
 Sammenligningerne:
 
-- **is equal to** og **is not equal to**;
+- **er lig med** og **er ikke lig med**;
 - for tekst: **indeholder**, **indeholder ikke**, **starter med** og **slutter med**;
-- for tal: **er større end**, **is greater than or equal to**, **er mindre end** og **is less than or equal to**;
+- for tal: **er større end**, **er større end eller lig med**, **er mindre end** og **er mindre end eller lig med**;
 - **er tom** og **er ikke tom**, som tjekker, om værdien overhovedet er der;
-- **is true** og **is false**.
+- **er sand** og **er falsk**.
 
-Talsammenligningerne sammenligner tal, og tekstsammenligningerne sammenligner tekst, så du har sjældent brug for **Compare as**. Sådan sammenlignes værdierne:
+Talsammenligningerne sammenligner tal, og tekstsammenligningerne sammenligner tekst, så du har sjældent brug for **Sammenlign som**. Sådan sammenlignes værdierne:
 
 - Som tekst tæller store bogstaver: `Error` er ikke `error`.
 - Som tal tæller tekst, der ikke er et tal, som `0`. Indstillingerne gør opmærksom på en sådan skrevet værdi.
 - Som sand eller falsk tæller kun `true` som sand.
 - **er tom** opfyldes af slet ingenting, blank tekst, en tom liste eller et tomt objekt, eller en værdi, som den tidligere blok ikke havde, som et felt, webhooken ikke sendte. `0` og `false` er værdier, så de er ikke tomme.
 
-**Yes** kører, når betingelsen er opfyldt, og **No**, når den ikke er. Blokke, der blev sat op, før indstillingerne havde disse navne, kører præcis som før. Et gammelt valg tilbydes ikke længere: at sammenligne en værdi som **Null** eller **Undefined**, hvilket ignorerede, hvad værdien indeholdt. En blok, der stadig bruger det, siger det, når du åbner den; vælg **er tom** for at tjekke for en manglende værdi.
+**Yes** kører, når betingelsen er opfyldt, og **No**, når den ikke er. Blokke, der blev sat op, før indstillingerne havde disse navne, kører præcis som før. Et gammelt valg tilbydes ikke længere: at sammenligne en værdi som **Null** eller **Udefineret**, hvilket ignorerede, hvad værdien indeholdt. En blok, der stadig bruger det, siger det, når du åbner den; vælg **er tom** for at tjekke for en manglende værdi.
 
 ## Switch / Case
 
@@ -321,12 +321,12 @@ Den sammenligner én værdi med hvert af sine tilfælde efter tur, fra toppen, o
 
 | Indstilling        | Hvad den gør |
 | ------------------ | ------------ |
-| **Value to check** | Den værdi, hvert tilfælde sammenlignes med, som regel fra en tidligere blok. Tryk på **{ }** i feltet for at vælge en, eller skriv `{{`. |
+| **Værdi, der skal tjekkes** | Den værdi, hvert tilfælde sammenlignes med, som regel fra en tidligere blok. Tryk på **{ }** i feltet for at vælge en, eller skriv `{{`. |
 | **Cases**          | En sammenligning og en værdi for hver vej, tjekket fra toppen. Tryk på **Tilføj tilfælde** for at tilføje et til, og træk et tilfælde i dets greb for at flytte det. En blok kan have højst 25 tilfælde. |
 
-Hvert tilfælde er en udgang på lærredet, opkaldt efter sin værdi: et tilfælde, der spørger **is equal to** `production`, er udgangen *production*, og et, der spørger **er større end** `500`, er *is greater than 500*. **Default** er altid den sidste udgang. Forbind hver udgang med det, der skal køre bagefter.
+Hvert tilfælde er en udgang på lærredet, opkaldt efter sin værdi: et tilfælde, der spørger **er lig med** `production`, er udgangen *production*, og et, der spørger **er større end** `500`, er *is greater than 500*. **Default** er altid den sidste udgang. Forbind hver udgang med det, der skal køre bagefter.
 
-Et tilfælde passer præcis, når en [If / Else](#conditions) med samme sammenligning og værdi ville tage **Yes**: sammenligningerne er de samme, og værdierne sammenlignes på samme måde. **Compare as** er foldet væk under tilfældene, med et valg for hvert tilfælde.
+Et tilfælde passer præcis, når en [If / Else](#conditions) med samme sammenligning og værdi ville tage **Yes**: sammenligningerne er de samme, og værdierne sammenlignes på samme måde. **Sammenlign som** er foldet væk under tilfældene, med et valg for hvert tilfælde.
 
 Når du fjerner et tilfælde, der har en forbindelse, viser indstillingerne, hvilke blokke det førte til, og **Gendan** henter tilfældet tilbage. Når du gemmer, fjernes forbindelsen sammen med tilfældet. Byggerens tjek gør opmærksom på et tilfælde, som intet er forbundet til, og på et tilfælde, der aldrig bliver valgt, fordi et tilfælde ovenover spørger om det samme.
 
@@ -410,7 +410,7 @@ En forespørgsel er altid begrænset til det projekt, workflowet kører i. Du ka
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-En nøgle, der ikke er en kolonne, ignoreres i stedet for at blive afvist — kørslens log nævner dem, der blev droppet, så kig der, når et felt ikke lander. **Select Fields**, på Find-komponenterne og triggerne, bruger de samme kolonnenøgler med værdien `true`: `{"_id": true, "name": true}`.
+En nøgle, der ikke er en kolonne, ignoreres i stedet for at blive afvist — kørslens log nævner dem, der blev droppet, så kig der, når et felt ikke lander. **Fields to pass on**, på Find-komponenterne og triggerne, vælges fra en liste; dens **Rediger som JSON** viser de samme kolonnenøgler med værdien `true`: `{"_id": true, "name": true}`.
 
 **Brugerdefinerede felter** er én kolonne, `customFields`, der rummer hvert brugerdefineret felts værdi under feltets navn. Update-komponenterne ændrer kun de brugerdefinerede felter, du nævner, og alle andre beholder deres værdi:
 

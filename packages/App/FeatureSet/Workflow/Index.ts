@@ -2,6 +2,7 @@ import ComponentCodeAPI from "./API/ComponentCode";
 import ManualAPI from "./API/Manual";
 import RunStepAPI from "./API/RunStep";
 import ModelSchemaAPI from "./API/ModelSchema";
+import RunRecordsAPI from "./API/RunRecords";
 import StepSamplesAPI from "./API/StepSamples";
 import WorkflowAPI from "./API/Workflow";
 import RunWorkflow from "./Services/RunWorkflow";
@@ -31,6 +32,12 @@ const WorkflowFeatureSet: FeatureSet = {
 
       // What each step held the last times it ran, for the value picker.
       app.use(`/${APP_NAME}`, new StepSamplesAPI().router);
+
+      /*
+       * The records Run Workflow can run a record trigger with, looked up by
+       * number, name or ID.
+       */
+      app.use(`/${APP_NAME}`, new RunRecordsAPI().router);
 
       app.use(`/${APP_NAME}`, new WorkflowAPI().router);
 

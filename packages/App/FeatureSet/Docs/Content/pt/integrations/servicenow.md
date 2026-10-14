@@ -54,7 +54,7 @@ Vá para **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois 
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Incident**. Clique no gatilho e, em **Select Fields**, escolha `title` e `description`.
+Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Incident**. Clique no gatilho e, em **Fields to pass on**, escolha `title` e `description`.
 
 ### Criar o registro
 
@@ -93,7 +93,7 @@ Um workflow tem um só gatilho, então resolver exige um segundo workflow, inici
 :::steps
 ### Adicionar o gatilho On Update Incident
 
-Crie um workflow chamado `Resolve ServiceNow incidents` e escolha **On Update Incident** como gatilho. Em **Listen on**, escolha `currentIncidentStateId`, para que ele só rode quando o estado mudar. Em **Select Fields**, peça se o novo estado é um estado resolvido:
+Crie um workflow chamado `Resolve ServiceNow incidents` e escolha **On Update Incident** como gatilho. Em **Fields to watch**, escolha `currentIncidentStateId`, para que ele só rode quando o estado mudar. Em **Fields to pass on**, peça se o novo estado é um estado resolvido:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

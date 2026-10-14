@@ -291,27 +291,27 @@ Ses paramètres se lisent comme une phrase : **Si** *valeur à vérifier* *compa
 
 | Paramètre          | Ce qu'il fait                                                                                                                              |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Value to check** | En général une valeur d'un bloc précédent. Appuyez sur **{ }** dans la zone pour en choisir une, ou tapez `{{`.                            |
-| **Comparison**     | Comment comparer, en toutes lettres. Les comparaisons sont listées ci-dessous.                                                             |
-| **Compare with**   | Ce à quoi comparer, saisi ou choisi de la même façon. **est vide**, **n'est pas vide**, **is true** et **is false** ne l'utilisent pas.    |
-| **Compare as**     | Replié sous la comparaison : **Text**, **Nombre** ou **True / False**. Choisissez **Text** pour ordonner des dates écrites `2026-10-01`, ou **Nombre** pour que `200` et `200.0` soient égaux. |
+| **Valeur à vérifier** | En général une valeur d'un bloc précédent. Appuyez sur **{ }** dans la zone pour en choisir une, ou tapez `{{`.                            |
+| **Comparaison**     | Comment comparer, en toutes lettres. Les comparaisons sont listées ci-dessous.                                                             |
+| **Comparer avec**   | Ce à quoi comparer, saisi ou choisi de la même façon. **est vide**, **n'est pas vide**, **est vrai** et **est faux** ne l'utilisent pas.    |
+| **Comparer comme**     | Replié sous la comparaison : **Text**, **Nombre** ou **Vrai / Faux**. Choisissez **Text** pour ordonner des dates écrites `2026-10-01`, ou **Nombre** pour que `200` et `200.0` soient égaux. |
 
 Les comparaisons :
 
-- **is equal to** et **is not equal to** ;
+- **est égal à** et **n'est pas égal à** ;
 - pour le texte : **contient**, **ne contient pas**, **commence par** et **se termine par** ;
-- pour les nombres : **est supérieur à**, **is greater than or equal to**, **est inférieur à** et **is less than or equal to** ;
+- pour les nombres : **est supérieur à**, **est supérieur ou égal à**, **est inférieur à** et **est inférieur ou égal à** ;
 - **est vide** et **n'est pas vide**, qui vérifient si la valeur est présente ;
-- **is true** et **is false**.
+- **est vrai** et **est faux**.
 
-Les comparaisons de nombres comparent des nombres et les comparaisons de texte comparent du texte : vous avez donc rarement besoin de **Compare as**. Comment les valeurs sont comparées :
+Les comparaisons de nombres comparent des nombres et les comparaisons de texte comparent du texte : vous avez donc rarement besoin de **Comparer comme**. Comment les valeurs sont comparées :
 
 - En texte, les majuscules comptent : `Error` n'est pas `error`.
 - En nombres, un texte qui n'est pas un nombre compte comme `0`. Les paramètres signalent une valeur saisie de ce genre.
 - En vrai ou faux, seul `true` compte comme vrai.
 - **est vide** est satisfait par l'absence de toute valeur, un texte vide, une liste ou un objet vide, ou une valeur que le bloc précédent n'avait pas, comme un champ que le webhook n'a pas envoyé. `0` et `false` sont des valeurs : ils ne sont donc pas vides.
 
-**Yes** s'exécute quand la condition est remplie et **No** quand elle ne l'est pas. Les blocs configurés avant que les paramètres portent ces noms s'exécutent exactement comme avant. Un ancien choix n'est plus proposé : comparer une valeur en tant que **Null** ou **Undefined**, ce qui ignorait ce que contenait la valeur. Un bloc qui l'utilise encore le signale quand vous l'ouvrez ; choisissez **est vide** pour vérifier qu'une valeur manque.
+**Yes** s'exécute quand la condition est remplie et **No** quand elle ne l'est pas. Les blocs configurés avant que les paramètres portent ces noms s'exécutent exactement comme avant. Un ancien choix n'est plus proposé : comparer une valeur en tant que **Nul** ou **Non défini**, ce qui ignorait ce que contenait la valeur. Un bloc qui l'utilise encore le signale quand vous l'ouvrez ; choisissez **est vide** pour vérifier qu'une valeur manque.
 
 ## Switch / Case
 
@@ -321,12 +321,12 @@ Il compare une valeur à chacun de ses cas tour à tour, depuis le haut, et cont
 
 | Paramètre          | Ce qu'il fait |
 | ------------------ | ------------- |
-| **Value to check** | La valeur à laquelle chaque cas est comparé, en général celle d'un bloc précédent. Appuyez sur **{ }** dans la zone pour en choisir une, ou tapez `{{`. |
+| **Valeur à vérifier** | La valeur à laquelle chaque cas est comparé, en général celle d'un bloc précédent. Appuyez sur **{ }** dans la zone pour en choisir une, ou tapez `{{`. |
 | **Cases**          | Une comparaison et une valeur pour chaque chemin, vérifiées depuis le haut. Appuyez sur **Ajouter un cas** pour en ajouter un autre, et faites glisser un cas par sa poignée pour le déplacer. Un bloc contient au maximum 25 cas. |
 
-Chaque cas est une sortie sur le canevas, nommée d'après sa valeur : un cas qui demande **is equal to** `production` est la sortie *production*, et un cas qui demande **est supérieur à** `500` est *is greater than 500*. **Default** est toujours la dernière sortie. Reliez chaque sortie à ce qui doit s'exécuter ensuite.
+Chaque cas est une sortie sur le canevas, nommée d'après sa valeur : un cas qui demande **est égal à** `production` est la sortie *production*, et un cas qui demande **est supérieur à** `500` est *is greater than 500*. **Default** est toujours la dernière sortie. Reliez chaque sortie à ce qui doit s'exécuter ensuite.
 
-Un cas correspond exactement quand un [If / Else](#conditions) avec la même comparaison et la même valeur prendrait **Yes** : les comparaisons sont les mêmes, et les valeurs sont comparées de la même façon. **Compare as** est replié sous les cas, avec un choix pour chaque cas.
+Un cas correspond exactement quand un [If / Else](#conditions) avec la même comparaison et la même valeur prendrait **Yes** : les comparaisons sont les mêmes, et les valeurs sont comparées de la même façon. **Comparer comme** est replié sous les cas, avec un choix pour chaque cas.
 
 Quand vous retirez un cas qui a une connexion, les paramètres indiquent vers quels blocs il menait, et **Rétablir** remet le cas en place. L'enregistrement supprime la connexion avec le cas. Les vérifications du Constructeur signalent un cas auquel rien n'est relié, et un cas qui n'est jamais pris parce qu'un cas au-dessus demande la même chose.
 
@@ -410,7 +410,7 @@ Une requête est toujours limitée au projet dans lequel le workflow s'exécute.
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Une clé qui n'est pas une colonne est ignorée plutôt que rejetée — le journal de l'exécution nomme celles qu'il a écartées : regardez-y quand un champ n'arrive pas. **Select Fields**, sur les composants Find et les déclencheurs, utilise les mêmes clés de colonnes avec des valeurs `true` : `{"_id": true, "name": true}`.
+Une clé qui n'est pas une colonne est ignorée plutôt que rejetée — le journal de l'exécution nomme celles qu'il a écartées : regardez-y quand un champ n'arrive pas. **Fields to pass on**, sur les composants Find et les déclencheurs, se choisit dans une liste ; son **Modifier en JSON** montre les mêmes clés de colonnes avec des valeurs `true` : `{"_id": true, "name": true}`.
 
 Les **champs personnalisés** forment une seule colonne, `customFields`, qui contient la valeur de chaque champ personnalisé sous le nom du champ. Les composants Update ne modifient que les champs personnalisés que vous nommez, et tous les autres gardent leur valeur :
 

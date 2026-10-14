@@ -18,11 +18,14 @@ import ToolImportApplier, {
 import {
   buildToolImportPlan,
   ToolImportAccess,
+  ToolImportPreviousRecord,
   ToolImportProjectState,
 } from "../../../../Server/Utils/ToolImport/ToolImportPlanner";
 import Errors from "../../../../Server/Utils/Errors";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
@@ -44,7 +47,11 @@ import {
   ToolImportSnapshot,
 } from "../../../../Types/ToolImport/ToolImportSnapshot";
 import ToolImportSource from "../../../../Types/ToolImport/ToolImportSource";
-import { ApplierWorld, RecordedCreate } from "./ToolImportApplierWorld";
+import {
+  ApplierWorld,
+  RecordedCreate,
+  TableRead,
+} from "./ToolImportApplierWorld";
 import {
   AFTER_HOURS,
   BUSINESS_HOURS,
@@ -1078,6 +1085,127 @@ describe("ToolImportApplier: never twice", () => {
     expect(outcomeOf(report, "Service:checkout").outcome).toBe(
       ToolImportOutcome.Created,
     );
+  });
+
+  test("what an earlier import remembered is found however many rows came after it: deleted since, a service and every schedule a schedule became are forgotten and made again once", async () => {
+    const world: ApplierWorld = new ApplierWorld();
+    const earlierRunId: ObjectID = ObjectID.generate();
+    const gone: Array<{ kind: ToolImportResourceKind; sourceId: string }> = [
+      { kind: ToolImportResourceKind.Service, sourceId: "checkout" },
+      // The two schedules it became (rotations on call together).
+      { kind: ToolImportResourceKind.OnCallSchedule, sourceId: "primary" },
+      { kind: ToolImportResourceKind.OnCallSchedule, sourceId: "primary#2" },
+    ];
+
+    for (const record of gone) {
+      remembered(world, { ...record, runId: earlierRunId, isComplete: true });
+    }
+
+    const staleRecordIds: Array<string> = world.records.map(
+      (record: ToolImportRecord): string => {
+        return record.id!.toString();
+      },
+    );
+
+    // Later imports' rows: as many again as one read returns.
+    const laterRunId: ObjectID = ObjectID.generate();
+
+    for (let index: number = 0; index < LIMIT_MAX; index++) {
+      remembered(world, {
+        kind: ToolImportResourceKind.StatusPageSubscriber,
+        sourceId: `subscriber-${index}`,
+        runId: laterRunId,
+        isComplete: true,
+      });
+    }
+
+    // The plan saw them gone (previousRecords.stillExists false).
+    const { report } = await runImport({
+      state: projectState({
+        memberUserIdsByEmail: new Map([["mia@example.com", MEMBER_USER_ID]]),
+        previousRecords: gone.map(
+          (record: {
+            kind: ToolImportResourceKind;
+            sourceId: string;
+          }): ToolImportPreviousRecord => {
+            return {
+              ...record,
+              recordId: ObjectID.generate().toString(),
+              isComplete: true,
+              stillExists: false,
+            };
+          },
+        ),
+      }),
+    });
+
+    expect([...world.deletedRecordIds].sort()).toEqual(
+      [...staleRecordIds].sort(),
+    );
+    expect(world.createsOf("Service")).toHaveLength(1);
+    expect(outcomeOf(report, "Service:checkout").outcome).toBe(
+      ToolImportOutcome.Created,
+    );
+    expect(outcomeOf(report, "OnCallSchedule:primary")).toMatchObject({
+      outcome: ToolImportOutcome.Created,
+      recordIds: [expect.any(String), expect.any(String)],
+    });
+    expect(
+      world
+        .dataOf<OnCallDutyPolicySchedule>("OnCallDutyPolicySchedule")
+        .filter((created: OnCallDutyPolicySchedule) => {
+          return created.name?.startsWith("Primary");
+        }),
+    ).toHaveLength(2);
+
+    // Every row was read, a page at a time, in the order of their ids.
+    expect(
+      world.recordReads.map((read: TableRead): unknown => {
+        return [read.skip, read.limit, read.sort];
+      }),
+    ).toEqual([
+      [0, LIMIT_MAX, { _id: SortOrder.Ascending }],
+      [LIMIT_MAX, LIMIT_MAX, { _id: SortOrder.Ascending }],
+    ]);
+  });
+
+  test("an item read twice is made once: what one item forgets and remembers is what the next one finds", async () => {
+    const world: ApplierWorld = new ApplierWorld();
+    remembered(world, {
+      kind: ToolImportResourceKind.Team,
+      sourceId: "platform",
+      runId: ObjectID.generate(),
+      isComplete: true,
+    });
+    const staleRecordId: string = world.records[0]!.id!.toString();
+
+    // The tool listed the team twice (a page of its API read again).
+    const listedTwice: ToolImportSnapshot = account();
+    listedTwice.teams = [...listedTwice.teams, ...listedTwice.teams];
+
+    const { report } = await runImport({
+      snapshot: listedTwice,
+      state: projectState({
+        memberUserIdsByEmail: new Map([["mia@example.com", MEMBER_USER_ID]]),
+        previousRecords: [
+          {
+            kind: ToolImportResourceKind.Team,
+            sourceId: "platform",
+            recordId: ObjectID.generate().toString(),
+            isComplete: true,
+            stillExists: false,
+          },
+        ],
+      }),
+    });
+
+    // The deleted team's record forgotten once; the team made once, then found.
+    expect(world.deletedRecordIds).toEqual([staleRecordId]);
+    expect(world.createsOf("Team")).toHaveLength(1);
+    expect(outcomeOf(report, "Team:platform")).toMatchObject({
+      outcome: ToolImportOutcome.Created,
+      recordIds: [world.createsOf("Team")[0]!.data.id!.toString()],
+    });
   });
 
   test("a second import of the same tool finds everything the first made, and makes nothing", async () => {

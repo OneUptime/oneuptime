@@ -108,7 +108,7 @@ En download indeholder intet, du ikke allerede kunne læse i kørslen. Hemmeligh
 
 :::details Mit workflow kørte ikke
 1. Sørg for, at workflowet er **Aktiveret**: kontakten sidder øverst i dets **Bygger**, som siger det over lærredet, når workflowet er slået fra. Nye workflows starter deaktiveret, og mens et workflow er slået fra, starter dets trigger det ikke: kun **Kør arbejdsgang** og **Run just this step** gør, som testkørsler. Et webhook-kald til det får HTTP 400 med en meddelelse om, hvordan du slår det til.
-2. For en OneUptime-begivenhedstrigger skal du bekræfte, at begivenheden faktisk skete: åbn posten, og tjek dens historik. En **On Update**-trigger med **Listen on** udløses kun, når et af de felter ændrede sig.
+2. For en OneUptime-begivenhedstrigger skal du bekræfte, at begivenheden faktisk skete: åbn posten, og tjek dens historik. En **On Update**-trigger med **Fields to watch** udløses kun, når et af de felter ændrede sig.
 3. For en webhook-trigger skal du bekræfte, at det andet system sender til den rigtige URL. De fleste værktøjer logger, når de sender en webhook — tjek dér.
 4. For en tidsplantrigger skal du bekræfte, at cron-udtrykket svarer til det tidspunkt, du forventer. Tidsplaner kører i UTC.
 

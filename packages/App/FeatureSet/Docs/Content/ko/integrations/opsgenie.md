@@ -49,7 +49,7 @@ flowchart TB
 
 ### 트리거 추가하기
 
-점선으로 된 **Choose what starts this workflow** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭하고 **Select Fields**에서 `title`과 `description`을 고릅니다.
+점선으로 된 **Choose what starts this workflow** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭하고 **Fields to pass on**에서 `title`과 `description`을 고릅니다.
 
 ### 알림 만들기
 
@@ -85,7 +85,7 @@ Opsgenie의 방식은 `GenieKey`라는 단어, 공백, 키의 순서입니다. O
 :::steps
 ### On Update Incident 트리거 추가하기
 
-`Close Opsgenie alerts`라는 워크플로를 만들고 트리거로 **On Update Incident**를 고릅니다. **Listen on**에서 `currentIncidentStateId`를 골라 상태가 바뀔 때만 실행되게 합니다. **Select Fields**에서 새 상태가 해결된 상태인지 요청합니다:
+`Close Opsgenie alerts`라는 워크플로를 만들고 트리거로 **On Update Incident**를 고릅니다. **Fields to watch**에서 `currentIncidentStateId`를 골라 상태가 바뀔 때만 실행되게 합니다. **Fields to pass on**에서 새 상태가 해결된 상태인지 요청합니다:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 
 인시던트마다 그 심각도를 Opsgenie 우선순위로 보내려면 트리거와 **API Post (JSON)** 블록 사이에 **Run Custom JavaScript** 블록을 추가합니다.
 
-1. 트리거의 **Select Fields**에서 심각도의 `name`도 고릅니다: `{ "incidentSeverity": { "name": true } }`.
+1. 트리거의 **Fields to pass on**에서 심각도의 `name`도 고릅니다: `{ "incidentSeverity": { "name": true } }`.
 2. 블록의 **Arguments**를 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`로, **JavaScript Code**를 다음으로 설정합니다:
 
    ```javascript

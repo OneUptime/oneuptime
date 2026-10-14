@@ -269,7 +269,7 @@ Scopet skal være din miljø-URL efterfulgt af `/.default`. En forkert miljø-UR
 ### Opret en sag for hver hændelse
 
 :::steps
-1. Opret et workflow fra bunden med navnet `Incidents to Dynamics 365`. Klik på den stiplede blok, og tilføj triggeren **On Create Incident**. Bed i dens **Select Fields** om `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
+1. Opret et workflow fra bunden med navnet `Incidents to Dynamics 365`. Klik på den stiplede blok, og tilføj triggeren **On Create Incident**. Bed i dens **Fields to pass on** om `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
 2. Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Success**-punkt med den. Sæt dens **Identifier** til `create-case` og dens **URL** til `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Sæt under **Flere felter** dens **Request Headers** til:
 
@@ -323,7 +323,7 @@ Dynamics 365 leveres med `severitycode` med en enkelt mulighed, så sæt i stede
 Byg dette som et andet workflow, så en fejl her aldrig forhindrer, at der oprettes sager.
 
 :::steps
-1. Opret et workflow med navnet `Close Dynamics 365 cases`, med triggeren **On Update Incident**. Sæt **Listen on** til `{"currentIncidentStateId": true}` og **Select Fields** til `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
+1. Opret et workflow med navnet `Close Dynamics 365 cases`, med triggeren **On Update Incident**. Sæt **Fields to watch** til `{"currentIncidentStateId": true}` og **Fields to pass on** til `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
 2. Tilføj en **If / Else**-blok: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
 3. Tilføj efter dens **Yes**-side en **API Get (JSON)**-blok med **Identifier** `find-case`, de samme headere uden `Prefer` og denne **URL**:
 

@@ -269,7 +269,7 @@ O escopo precisa ser a URL do seu ambiente seguida de `/.default`. Uma URL de am
 ### Abrir um caso para cada incidente
 
 :::steps
-1. Crie do zero um workflow chamado `Incidents to Dynamics 365`. Clique no bloco tracejado e adicione o gatilho **On Create Incident**. Em **Select Fields**, peça `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
+1. Crie do zero um workflow chamado `Incidents to Dynamics 365`. Clique no bloco tracejado e adicione o gatilho **On Create Incident**. Em **Fields to pass on**, peça `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
 2. Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligue a ele o ponto **Success** do gatilho. Defina o **Identifier** dele como `create-case` e a **URL** como `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Em **Mais campos**, defina os **Request Headers** dele como:
 
@@ -323,7 +323,7 @@ O Dynamics 365 vem com `severitycode` com uma única opção, então defina `pri
 Monte isso como um segundo workflow, para que uma falha aqui nunca impeça a abertura dos casos.
 
 :::steps
-1. Crie um workflow chamado `Close Dynamics 365 cases`, com o gatilho **On Update Incident**. Defina **Listen on** como `{"currentIncidentStateId": true}` e **Select Fields** como `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
+1. Crie um workflow chamado `Close Dynamics 365 cases`, com o gatilho **On Update Incident**. Defina **Fields to watch** como `{"currentIncidentStateId": true}` e **Fields to pass on** como `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
 2. Adicione um bloco **If / Else**: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
 3. Depois do lado **Yes** dele, adicione um bloco **API Get (JSON)** com o **Identifier** `find-case`, os mesmos cabeçalhos sem `Prefer` e esta **URL**:
 

@@ -307,7 +307,7 @@ Jira Cloud احراز هویت Basic را می‌پذیرد که از ایمیل
 ### باز کردن یک issue در Jira برای هر حادثه
 
 :::steps
-1. از صفر یک گردش کاری به نام `Incidents to Jira` بسازید. روی بلوک خط‌چین کلیک کنید و تریگر **On Create Incident** را اضافه کنید. در **Select Fields** آن، `{"_id": true, "title": true, "description": true, "incidentNumber": true}` را بخواهید. **Identifier** آن را همان `incident-on-create-1` بگذارید.
+1. از صفر یک گردش کاری به نام `Incidents to Jira` بسازید. روی بلوک خط‌چین کلیک کنید و تریگر **On Create Incident** را اضافه کنید. در **Fields to pass on** آن، `{"_id": true, "title": true, "description": true, "incidentNumber": true}` را بخواهید. **Identifier** آن را همان `incident-on-create-1` بگذارید.
 2. روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **Success** تریگر را به آن وصل کنید. **Identifier** آن را روی `create-issue`، **URL** آن را روی `{{global.variables.JIRA_URL}}/rest/api/3/issue`، و زیر **فیلدهای بیشتر**، **Request Headers** آن را روی `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}` بگذارید.
 3. **Request Body** آن را روی issue بگذارید، و `OPS` و `Bug` را با کلید پروژه خودتان و یک نوع issue از آن پروژه جایگزین کنید:
 
@@ -384,14 +384,14 @@ curl -u 'you@example.com:your_api_token' \
 }
 ```
 
-برای این کار `projectId` را به **Select Fields** تریگر اضافه کنید، و `.value` را نگه دارید: ستونی که شناسه رکورد دیگری را نگه می‌دارد به شکل `{"_type": "ObjectID", "value": "..."}` می‌رسد. `globalId` تکرار فراخوانی را بی‌خطر می‌کند: Jira پیوندی را که آن را دارد به‌روزرسانی می‌کند، به جای اینکه پیوند دومی اضافه کند.
+برای این کار `projectId` را به **Fields to pass on** تریگر اضافه کنید، و `.value` را نگه دارید: ستونی که شناسه رکورد دیگری را نگه می‌دارد به شکل `{"_type": "ObjectID", "value": "..."}` می‌رسد. `globalId` تکرار فراخوانی را بی‌خطر می‌کند: Jira پیوندی را که آن را دارد به‌روزرسانی می‌کند، به جای اینکه پیوند دومی اضافه کند.
 
 ### نظر دادن و گذار همراه با پیشرفت حادثه
 
 این را به صورت یک گردش کاری دوم بسازید، تا شکستی در اینجا هرگز جلوی باز شدن issueها را نگیرد.
 
 :::steps
-1. گردش کاری‌ای به نام `Incident updates to Jira` با تریگر **On Update Incident** بسازید. **Listen on** را روی `{"currentIncidentStateId": true}` و **Select Fields** را روی `{"_id": true, "currentIncidentState": {"name": true}}` بگذارید.
+1. گردش کاری‌ای به نام `Incident updates to Jira` با تریگر **On Update Incident** بسازید. **Fields to watch** را روی `{"currentIncidentStateId": true}` و **Fields to pass on** را روی `{"_id": true, "currentIncidentState": {"name": true}}` بگذارید.
 2. یک بلوک **If / Else** اضافه کنید: **Value to check** برابر `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`، **Comparison** برابر **is equal to**، **Compare with** برابر `Resolved`، یا نام وضعیت رفع‌شده خودتان.
 3. پس از سمت **Yes** آن، issue را با یک بلوک **API Post (JSON)** پیدا کنید که **Identifier** آن `find-issue` است و به `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` می‌فرستد:
 

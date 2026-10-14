@@ -210,7 +210,7 @@ OAuth 2.0 변수 페이지의 **접근 토큰** 카드에는 다음 상태 중 �
 - 헤더와 본문 필드(문자열 값 안).
 - **If / Else** 블록의 양쪽.
 
-JSON 입력란 — 레코드 구성 요소의 **Data (JSON Object)**, **Query**, **Select Fields**, API 블록의 **Request Body**, **Run Custom JavaScript**의 **Arguments** — 에서는 참조가 놓인 위치에 따라 채워집니다.
+JSON 입력란 — 레코드 구성 요소의 **Data (JSON Object)**와 **Query**, API 블록의 **Request Body**, **Run Custom JavaScript**의 **Arguments** — 에서는 참조가 놓인 위치에 따라 채워집니다.
 
 - **따옴표 안에서는 텍스트입니다.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` 는 값을 문자열 안에 넣습니다. 값에 있는 따옴표, 백슬래시, 줄 바꿈은 이스케이프되므로 JSON은 유효하게 유지되고 값은 하나의 문자열로 남습니다.
 - **혼자 있으면 값 그 자체입니다.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` 는 객체 전체를 넣고, 목록은 목록으로, 숫자는 숫자로 남습니다. 그 자체가 JSON인 텍스트 — `5`, `true`, 또는 블록이 JSON 텍스트로 반환한 객체 — 는 그 값으로 들어갑니다. 그 밖의 텍스트는 문자열로 들어갑니다.
@@ -238,7 +238,7 @@ JSON 입력란 — 레코드 구성 요소의 **Data (JSON Object)**, **Query**,
 웹훅이 `{ "service": "checkout", "status": "failed" }` 같은 본문과 함께 도착합니다. 이것을 OneUptime 인시던트로 만들려면:
 
 1. ID가 `ci-webhook` 인 **웹훅** 트리거.
-2. **If / Else** 블록: **Value to check**는 웹훅 Request Body의 `status` 필드(`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison**은 **is equal to**, **Compare with**는 `failed`.
+2. **If / Else** 블록: **확인할 값**은 웹훅 Request Body의 `status` 필드(`{{local.components.ci-webhook.returnValues.request-body.status}}`), **비교**는 **같음**, **비교 대상**은 `failed`.
 3. **Yes** 분기에서 다음 내용의 **Create One Incident** 블록:
    - 제목: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 설명: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`

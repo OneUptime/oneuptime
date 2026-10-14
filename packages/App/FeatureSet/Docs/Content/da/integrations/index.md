@@ -119,7 +119,7 @@ URL'en er den eneste loginoplysning, så behandl den som en adgangskode. Se [Web
 
 :::steps
 1. Gem værktøjets API-nøgle som en hemmelig global variabel, som vist [nedenfor](#hold-loginoplysninger-sikre).
-2. Opret et workflow, klik på den stiplede blok, og vælg en begivenhedstrigger, f.eks. **On Create Incident**. Sæt i dens **Select Fields** flueben ved de felter, der skal sendes, f.eks. `title` og `description`.
+2. Opret et workflow, klik på den stiplede blok, og vælg en begivenhedstrigger, f.eks. **On Create Incident**. Sæt i dens **Fields to pass on** flueben ved de felter, der skal sendes, f.eks. `title` og `description`.
 3. Klik på **Tilføj komponent**, og tilføj en **API Post (JSON)**-blok. Forbind triggerens **Success**-punkt med den.
 4. Udfyld dens **URL**, dens **Request Headers** med `Authorization`-headeren og dens **Request Body** med hændelsens felter, f.eks. `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Klik på **Kør arbejdsgang**, indtast **Hændelses-ID** for en hændelse, og kør den. En testkørsel sender anmodningen for alvor. Slå derefter **Aktiveret** til.

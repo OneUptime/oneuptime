@@ -128,7 +128,7 @@ The trigger takes the dashed block's place. The ID on it, `incident-on-create-1`
 
 ### Choose the incident fields
 
-Click the trigger. In **Select Fields**, tick the fields the request should carry, such as the title and the description, and click **Save**.
+Click the trigger. **Fields to pass on** starts with the title: click **Add field**, tick the description and any other field the request should carry, and click **Save**.
 
 The trigger passes the new incident on with these fields. A field you don't select arrives empty.
 
@@ -158,7 +158,7 @@ A request that fails — an unreachable URL, or an answer that isn't 2xx — now
 
 ### Test it
 
-Click **Run Workflow**, enter the **Incident ID** of an incident in this project, click **Run Workflow Manually**, and confirm with **Run**. The workflow is still off, so this is a **Test run**, and the request is really sent.
+Click **Run Workflow** and pick an incident in this project under **Incident**: the most recent ones are listed, and typing its number or part of its title finds another. Click **Run Workflow Manually**, and confirm with **Run**. The workflow is still off, so this is a **Test run**, and the request is really sent.
 
 A **Workflow Run** panel opens and follows the run. Open the **API Post (JSON)** step to see the body it sent and the response it got.
 

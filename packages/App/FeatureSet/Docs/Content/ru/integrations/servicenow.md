@@ -54,7 +54,7 @@ Table API принимает аутентификацию Basic: имя и па�
 
 ### Добавьте триггер
 
-Нажмите на пунктирный блок **Choose what starts this workflow** и выберите **On Create Incident**. Нажмите на триггер и в **Select Fields** выберите `title` и `description`.
+Нажмите на пунктирный блок **Choose what starts this workflow** и выберите **On Create Incident**. Нажмите на триггер и в **Fields to pass on** выберите `title` и `description`.
 
 ### Создайте запись
 
@@ -93,7 +93,7 @@ Table API принимает аутентификацию Basic: имя и па�
 :::steps
 ### Добавьте триггер On Update Incident
 
-Создайте рабочий процесс с именем `Resolve ServiceNow incidents` и выберите триггер **On Update Incident**. В **Listen on** выберите `currentIncidentStateId`, чтобы он запускался только при смене состояния. В **Select Fields** запросите, является ли новое состояние состоянием устранения:
+Создайте рабочий процесс с именем `Resolve ServiceNow incidents` и выберите триггер **On Update Incident**. В **Fields to watch** выберите `currentIncidentStateId`, чтобы он запускался только при смене состояния. В **Fields to pass on** запросите, является ли новое состояние состоянием устранения:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

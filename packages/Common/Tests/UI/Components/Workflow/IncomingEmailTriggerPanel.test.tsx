@@ -274,7 +274,7 @@ describe("keeping the address private", () => {
     expect(
       screen.getByTestId("incoming-email-trigger-address-private"),
     ).toHaveTextContent(
-      "Anyone with this address can start the workflow, so keep it private. If the address leaks, reset it.",
+      "Anyone with this address can start the workflow, so keep it private. If it leaks, reset it.",
     );
   });
 

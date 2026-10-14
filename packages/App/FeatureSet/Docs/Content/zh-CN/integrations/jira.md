@@ -307,7 +307,7 @@ Jira Cloud 接受由账户的电子邮件和 API 令牌编码在一起构成的 
 ### 为每个事件创建 Jira 问题
 
 :::steps
-1. 从零开始创建一个名为 `Incidents to Jira` 的工作流。点击虚线块，添加 **On Create Incident** 触发器。在它的 **Select Fields** 中请求 `{"_id": true, "title": true, "description": true, "incidentNumber": true}`。它的 **Identifier** 保持为 `incident-on-create-1`。
+1. 从零开始创建一个名为 `Incidents to Jira` 的工作流。点击虚线块，添加 **On Create Incident** 触发器。在它的 **Fields to pass on** 中请求 `{"_id": true, "title": true, "description": true, "incidentNumber": true}`。它的 **Identifier** 保持为 `incident-on-create-1`。
 2. 点击 **添加组件**，添加一个 **API Post (JSON)** 块，并把触发器的 **Success** 点连接到它。把它的 **Identifier** 设为 `create-issue`，**URL** 设为 `{{global.variables.JIRA_URL}}/rest/api/3/issue`，并在 **更多字段** 下把 **Request Headers** 设为 `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`。
 3. 把它的 **Request Body** 设为问题内容，并把 `OPS` 和 `Bug` 替换为你的项目键和该项目中的一个问题类型：
 
@@ -384,14 +384,14 @@ Jira 管理员也可以改为添加一个短文本自定义字段，例如命名
 }
 ```
 
-为此请把 `projectId` 加到触发器的 **Select Fields** 中，并保留 `.value`：保存另一条记录 ID 的列会以 `{"_type": "ObjectID", "value": "..."}` 的形式到达。`globalId` 让这个调用可以安全地重复执行：Jira 会更新带有它的链接，而不是再添加一个。
+为此请把 `projectId` 加到触发器的 **Fields to pass on** 中，并保留 `.value`：保存另一条记录 ID 的列会以 `{"_type": "ObjectID", "value": "..."}` 的形式到达。`globalId` 让这个调用可以安全地重复执行：Jira 会更新带有它的链接，而不是再添加一个。
 
 ### 随事件进展发表评论并转换
 
 把这部分构建为第二个工作流，这样这里的失败永远不会妨碍创建问题。
 
 :::steps
-1. 创建一个名为 `Incident updates to Jira` 的工作流，使用 **On Update Incident** 触发器。把 **Listen on** 设为 `{"currentIncidentStateId": true}`，**Select Fields** 设为 `{"_id": true, "currentIncidentState": {"name": true}}`。
+1. 创建一个名为 `Incident updates to Jira` 的工作流，使用 **On Update Incident** 触发器。把 **Fields to watch** 设为 `{"currentIncidentStateId": true}`，**Fields to pass on** 设为 `{"_id": true, "currentIncidentState": {"name": true}}`。
 2. 添加一个 **If / Else** 块：**Value to check** 为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`，**Comparison** 为 **is equal to**，**Compare with** 为 `Resolved` 或你的已解决状态的名称。
 3. 在它的 **Yes** 一侧之后，用一个 **Identifier** 为 `find-issue` 的 **API Post (JSON)** 块查找问题，发布到 `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`：
 

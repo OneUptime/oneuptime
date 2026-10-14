@@ -44,6 +44,8 @@ const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
 
 const PAGE: string = "workflows/components";
 const HEADING: string = "## Switch / Case";
+// The setting it shares with If / Else, which its editor translates.
+const VALUE_TO_CHECK: string = "Value to check";
 const LINK: string = "[Switch / Case](#switch-case)";
 
 const SWITCH_EDITOR_SOURCE: string = fs.readFileSync(
@@ -166,8 +168,21 @@ describe("the Switch / Case section of the Components guide", () => {
     );
 
     expect(SWITCH.title).toBe("Switch / Case");
-    expect(settings).toEqual(["Value to check", CASES_LABEL]);
+    expect(settings).toEqual([VALUE_TO_CHECK, CASES_LABEL]);
     expect(outputs).toEqual([SWITCH_DEFAULT_PORT.title]);
+
+    /*
+     * Value to check is the one setting the editor draws in the reader's
+     * language (it shares If / Else's label, ConditionModel), so a page
+     * names it as its Dashboard does; the rest are named as the step does.
+     */
+    type DrawnFunction = (language: string, name: string) => string;
+
+    const drawn: DrawnFunction = (language: string, name: string): string => {
+      return name === VALUE_TO_CHECK
+        ? drawnDashboardLabel(language, name)
+        : name;
+    };
 
     for (const language of LANGUAGES) {
       const section: string = switchSection(readPage(language, PAGE));
@@ -176,7 +191,7 @@ describe("the Switch / Case section of the Components guide", () => {
         expect({
           language,
           name,
-          named: section.includes(`**${name}**`),
+          named: section.includes(`**${drawn(language, name)}**`),
         }).toEqual({ language, name, named: true });
       }
 
@@ -194,7 +209,7 @@ describe("the Switch / Case section of the Components guide", () => {
       }).toEqual({
         language,
         rows: settings.map((name: string): string => {
-          return `**${name}**`;
+          return `**${drawn(language, name)}**`;
         }),
       });
     }

@@ -78,6 +78,9 @@ import React, {
   useState,
 } from "react";
 import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import useAfterPress, {
+  AfterPressFunction,
+} from "../../../Utils/UseAfterPress";
 import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ConditionEditorProps {
@@ -180,12 +183,22 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
 
   const [touched, setTouched] = useState<Touched>({});
 
+  /*
+   * A field's message waits for the press that left it to end: shown at
+   * once, it pushed what was pressed below the field - the comparison,
+   * Compare as, the dialog's Save - down under the pointer, and that first
+   * press did nothing (Utils/UseAfterPress), as in Switch / Case.
+   */
+  const afterPress: AfterPressFunction = useAfterPress();
+
   type MarkTouchedFunction = (field: keyof Touched) => void;
 
   // An error shows under a field once it has been left, as in every form.
   const markTouched: MarkTouchedFunction = (field: keyof Touched): void => {
-    setTouched((current: Touched) => {
-      return current[field] ? current : { ...current, [field]: true };
+    afterPress(() => {
+      setTouched((current: Touched) => {
+        return current[field] ? current : { ...current, [field]: true };
+      });
     });
   };
 

@@ -17,6 +17,7 @@
     "Pattern {{number}}: {{problem}}",
     "Peer",
     "Provider",
+    "Record",
     "Report",
     "Runbook: {{name}}",
     "Runner",

@@ -108,7 +108,7 @@ A download holds nothing you could not already read in the run. Secrets and fiel
 
 :::details My workflow didn't run
 1. Make sure the workflow is **Enabled**: the switch is at the top of its **Builder**, which says so above the canvas when the workflow is off. New workflows start disabled, and while a workflow is off its trigger doesn't start it: only **Run Workflow** and **Run just this step** do, as test runs. A webhook call to it gets HTTP 400 with a message saying how to turn it on.
-2. For a OneUptime event trigger, confirm the event actually happened: open the record and check its history. An **On Update** trigger with **Listen on** fires only when one of those fields changed.
+2. For a OneUptime event trigger, confirm the event actually happened: open the record and check its history. An **On Update** trigger with **Fields to watch** fires only when one of those fields changed.
 3. For a webhook trigger, confirm the other system is sending to the right URL. Most tools log when they send a webhook — check there.
 4. For a schedule trigger, confirm the cron expression matches the time you expect. Schedules run in UTC.
 

@@ -48,7 +48,7 @@ flowchart TB
 
 ### トリガーを追加する
 
-点線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックし、**Select Fields** で `title` と `description` を選びます。
+点線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックし、**Fields to pass on** で `title` と `description` を選びます。
 
 ### trigger イベントを送信する
 
@@ -84,7 +84,7 @@ flowchart TB
 :::steps
 ### On Update Incident トリガーを追加する
 
-`Resolve PagerDuty incidents` という名前のワークフローを作成し、トリガーに **On Update Incident** を選びます。**Listen on** で `currentIncidentStateId` を選び、状態が変わったときだけ実行されるようにします。**Select Fields** で、新しい状態が解決済みの状態かどうかを要求します:
+`Resolve PagerDuty incidents` という名前のワークフローを作成し、トリガーに **On Update Incident** を選びます。**Fields to watch** で `currentIncidentStateId` を選び、状態が変わったときだけ実行されるようにします。**Fields to pass on** で、新しい状態が解決済みの状態かどうかを要求します:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ flowchart TB
 
 インシデントごとの重大度を送るには、トリガーと **API Post (JSON)** ブロックの間に **Run Custom JavaScript** ブロックを追加し、その応答を本文で読み取ります。
 
-1. トリガーの **Select Fields** で、重大度の `name` も選びます: `{ "incidentSeverity": { "name": true } }`。
+1. トリガーの **Fields to pass on** で、重大度の `name` も選びます: `{ "incidentSeverity": { "name": true } }`。
 2. ブロックの **Arguments** を `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` に、**JavaScript Code** を次のように設定します:
 
    ```javascript

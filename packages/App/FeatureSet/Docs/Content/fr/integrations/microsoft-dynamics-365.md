@@ -269,7 +269,7 @@ La portée doit être l'URL de votre environnement suivie de `/.default`. Une UR
 ### Ouvrir un dossier pour chaque incident
 
 :::steps
-1. Créez à partir de zéro un workflow nommé `Incidents to Dynamics 365`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **On Create Incident**. Dans ses **Select Fields**, demandez `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
+1. Créez à partir de zéro un workflow nommé `Incidents to Dynamics 365`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **On Create Incident**. Dans ses **Fields to pass on**, demandez `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
 2. Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **Identifiant** sur `create-case`, et son **URL** sur `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Sous **Plus de champs**, réglez ses **Request Headers** sur :
 
@@ -323,7 +323,7 @@ Dynamics 365 livre `severitycode` avec une seule option, réglez donc plutôt `p
 Construisez cela dans un second workflow, pour qu'un échec ici n'empêche jamais l'ouverture des dossiers.
 
 :::steps
-1. Créez un workflow nommé `Close Dynamics 365 cases`, avec le déclencheur **On Update Incident**. Réglez **Listen on** sur `{"currentIncidentStateId": true}` et **Select Fields** sur `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
+1. Créez un workflow nommé `Close Dynamics 365 cases`, avec le déclencheur **On Update Incident**. Réglez **Fields to watch** sur `{"currentIncidentStateId": true}` et **Fields to pass on** sur `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
 2. Ajoutez un bloc **If / Else** : **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
 3. Après son côté **Yes**, ajoutez un bloc **API Get (JSON)** avec l'**Identifiant** `find-case`, les mêmes en-têtes sans `Prefer`, et cette **URL** :
 
