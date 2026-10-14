@@ -36,6 +36,7 @@
 | --- | --- | --- |
 | 位置 | **專案設定 > 通知 > 通知設定** 中的 **Twilio 設定** 卡片 | **Admin Dashboard > 設定 > 通話和簡訊** |
 | 誰可以設定 | **Project Owner**、**Project Admin**，或自訂角色中的 **Create Call and SMS** | 主管理員 |
+| 誰可以讀取其 Auth Token | **Project Owner**、**Project Admin**，或自訂角色中的 **Read Call and SMS**。其他能檢視該設定的人可以看到其餘部分，權杖以加密形式儲存 | 主管理員 |
 | 用於 | 作為專案預設設定期間傳給專案成員的簡訊和電話、指派給它的狀態頁面，以及使用它的來電原則 | 傳給任何沒有預設設定的專案成員的簡訊和電話 |
 
 新增專案設定：
