@@ -28,7 +28,7 @@ flowchart TB
 OneUptime به‌محض اینکه پیام‌ها را از درخواست خواند پاسخ می‌دهد، و کمی بعد آن‌ها را تجزیه و ذخیره می‌کند. متن پیام در بدنهٔ لاگ می‌ماند و همهٔ چیزهای دیگر به attribute تبدیل می‌شوند.
 
 > [!TIP]
-> دستگاه‌های شبکه‌ای که با یک پراب OneUptime پایش می‌کنید می‌توانند syslog خود را بی‌واسطهٔ رله، از راه UDP مستقیم به پراب بفرستند؛ آنگاه لاگ‌ها روی همان دستگاه در OneUptime نمایش داده می‌شوند. [راهنماهای سازندگان تجهیزات شبکه (Sophos، Extreme، Cambium)](/docs/monitor/network-vendor-guides) را ببینید.
+> دستگاه‌های شبکه می‌توانند syslog خود را بی‌واسطهٔ رله، از راه UDP یا TCP مستقیم به یک پراب OneUptime بفرستند؛ آنگاه OneUptime پیام‌های هر سازنده را به‌صورت رویدادهایی روی همان دستگاه می‌خواند. [رویدادهای شبکه](/docs/monitor/network-events) را ببینید.
 
 ## پیش از شروع
 
@@ -200,7 +200,7 @@ OneUptime به‌طور خودکار این attributeها را به هر ورو�
 
 این attributeها در کاوشگر **محصولات → لاگ‌ها** قابل جستجو می‌شوند؛ برای نمونه `@syslog.severity.name:error` یا `@syslog.hostname:web-01`. [نحو جستجو](/docs/telemetry/search-syntax) را ببینید.
 
-خود پیام در بدنهٔ لاگ می‌ماند. فایروال‌هایی مانند Sophos XGS و Fortinet FortiGate آن را به‌صورت جفت‌های `key=value` می‌نویسند (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`)؛ برای اینکه این جفت‌ها هم به attribute تبدیل شوند، یک پردازشگر **Key=Value Parser** در یک [خط لولهٔ لاگ](/docs/telemetry/log-pipelines#keyvalue-parser) اضافه کنید.
+خود پیام در بدنهٔ لاگ می‌ماند. پیامی که در قالب یک سازندهٔ تجهیزات شبکه باشد بیشتر خوانده می‌شود: جفت‌های `key=value` یک فایروال Sophos یا FortiGate (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) به attributeهای `sophos.*` و `fortigate.*` تبدیل می‌شوند، و آنچه رخ داده یک [رویداد شبکه](/docs/monitor/network-events) می‌شود. برای هر قالب `key=value` دیگری، یک پردازشگر **Key=Value Parser** در یک [خط لولهٔ لاگ](/docs/telemetry/log-pipelines#keyvalue-parser) اضافه کنید تا جفت‌ها به attribute تبدیل شوند.
 
 ### شدت
 

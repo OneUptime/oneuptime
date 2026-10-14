@@ -110,7 +110,7 @@ flowchart TB
 
 ### 예: Sophos XGS 방화벽
 
-Sophos XGS 방화벽이 [프로브](/docs/monitor/network-device-monitor) 로 syslog를 보내면, 각 메시지는 네트워크 장치의 로그로 저장되고 syslog 메시지가 본문이 됩니다. 이를 파싱하려면 다음과 같이 합니다.
+OneUptime은 Sophos와 FortiGate의 syslog를 알아서 `sophos.*`와 `fortigate.*` 속성으로 읽습니다([네트워크 이벤트](/docs/monitor/network-events) 참고). 이 예시는 OneUptime이 모르는 형식에 대해 하듯이 같은 것을 직접 만들어 봅니다. Sophos XGS 방화벽이 [프로브](/docs/monitor/network-device-monitor) 로 syslog를 보내면, 각 메시지는 네트워크 장치의 로그로 저장되고 syslog 메시지가 본문이 됩니다. 이를 파싱하려면 다음과 같이 합니다.
 
 :::steps
 #### 방화벽용 파이프라인 만들기
@@ -199,7 +199,7 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 
 ## 카테고리 프로세서
 
-규칙 목록을 순서대로 평가해, 필터가 처음 일치한 규칙의 이름을 대상 속성에 저장합니다. 그러면 "Payment Error" 로그를 한 번에 검색할 수 있습니다. **대상 속성** (기본값 `category`) 을 설정한 다음 **카테고리 규칙** 을 추가하세요. 각 규칙은 **Category name** 과 **When logs match** 의 조건으로 이루어집니다. 처음 일치한 규칙이 적용되며, 어느 규칙과도 일치하지 않는 로그는 그대로 남습니다.
+규칙 목록을 순서대로 평가해, 필터가 처음 일치한 규칙의 이름을 대상 속성에 저장합니다. 그러면 "Payment Error" 로그를 한 번에 검색할 수 있습니다. **대상 속성** (기본값 `category`) 을 설정한 다음 **카테고리 규칙** 을 추가하세요. 각 규칙은 **Category name** 과 **When logs match** 의 조건으로 이루어집니다. 처음 일치한 규칙이 적용되며, 어느 규칙과도 일치하지 않는 로그는 그대로 남습니다. 네트워크 장치의 로그에서는 이벤트처럼 이름을 붙인 규칙(`ups.on_battery`)을 대상 속성 `event.name` 아래에 두면 로그가 [네트워크 이벤트](/docs/monitor/network-events#나만의-이벤트)가 됩니다.
 
 ## 다음 단계
 

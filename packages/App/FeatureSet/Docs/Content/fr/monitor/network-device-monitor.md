@@ -43,7 +43,7 @@ L'équipement et le moniteur ont des rôles différents :
 
 - **Une sonde qui peut joindre l'équipement.** La sonde pingue et interroge l'équipement depuis son propre réseau ; un équipement à une adresse privée a donc besoin d'une [sonde personnalisée](/docs/probe/custom-probe) dans ce réseau : une sonde sur l'internet public ne peut pas le joindre.
 - **SNMP, pour plus que le ping.** Facultatif. Une communauté v1 ou v2c, ou un utilisateur SNMPv3, configuré sur l'équipement, avec UDP 161 ouvert depuis la sonde. Sans cela, l'équipement est seulement pingué.
-- **Traps, syslog et flux.** Facultatif. La sonde reçoit les traps SNMP sur UDP 162, le syslog sur UDP 5140 une fois activé, et les enregistrements de flux sur UDP 2055, 4739 et 6343 ; ouvrez ces ports de vos équipements vers la sonde.
+- **Traps, syslog et flux.** Facultatif. La sonde reçoit les traps SNMP sur UDP 162, le syslog sur UDP et TCP 5140, et les enregistrements de flux sur UDP 2055, 4739 et 6343 ; ouvrez ces ports de vos équipements vers la sonde.
 
 ## La vue d'ensemble du réseau
 
@@ -62,7 +62,7 @@ En dessous, une ligne dit si quelque chose déclenche un incident quand un équi
 
 Tant que rien n'a été ajouté, la vue d'ensemble montre à la place les deux points d'entrée : **Découvrir des équipements** analyse une plage d'adresses pour que vous choisissiez quoi ajouter, idéal pour tout un réseau ou un nouveau site, et **Ajouter un seul équipement** en ajoute un par son adresse IP ou son nom d'hôte.
 
-Le menu Réseau garde en vue ce que vous ouvrez tous les jours : **Vue d'ensemble**, **Appareils**, **Sites**, **Carte**, **Traffic** et **Découverte**. Le reste est replié en sections, et une section s'ouvre d'elle-même sur chacune de ses pages :
+Le menu Réseau garde en vue ce que vous ouvrez tous les jours : **Vue d'ensemble**, **Appareils**, **Sites**, **Carte**, **Traffic**, **Événements** et **Découverte**. Le reste est replié en sections, et une section s'ouvre d'elle-même sur chacune de ses pages :
 
 | Section | Pages |
 | --- | --- |
@@ -1057,6 +1057,7 @@ Une réponse contenant la description de l'équipement signifie que la sonde peu
 :::cards
 - [Sites réseau](/docs/monitor/network-sites): Regrouper les équipements par lieu et agréger leur santé dans l'arborescence.
 - [Trafic réseau](/docs/monitor/network-traffic): Voir qui parle à qui grâce aux enregistrements de flux de vos équipements.
+- [Événements réseau](/docs/monitor/network-events): Voir ce que vos équipements signalent dans leur syslog, et recevoir des alertes dessus.
 - [Guides par constructeur réseau](/docs/monitor/network-vendor-guides): Sophos, Extreme et Cambium, de bout en bout.
 - [Capture de paquets](/docs/probe/packet-capture): Capturer des paquets sur la sonde d'un équipement pour Wireshark.
 :::

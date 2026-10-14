@@ -43,6 +43,29 @@ export interface LogAttributeGroupCountResult {
 }
 
 /*
+ * What a Logs monitor whose groups are resolved by a log is judged on.
+ *
+ * `groups` are the ones still open: they matched the monitor's filters in
+ * the window, and no resolving log has arrived for them since. A group
+ * that matched and was then resolved is not in it, however many of its
+ * logs are still in the window.
+ */
+export interface LogUnresolvedAttributeGroupResult {
+  // Open groups, the ones with the most matching logs first, at most `limit`.
+  groups: Array<LogAttributeGroupCount>;
+  /*
+   * The values of every group a resolving log has arrived for after its
+   * last matching log - or that only resolving logs were seen for - at
+   * most `resolvedLimit` of them.
+   */
+  resolvedGroups: Array<Array<string>>;
+  // Matching logs across every open group - not just the groups returned.
+  totalCount: number;
+  // Open groups, before `limit` cut them.
+  totalGroupCount: number;
+}
+
+/*
  * count() is a UInt64, which ClickHouse sends as a JSON string or a JSON
  * number depending on output_format_json_quote_64bit_integers (see
  * AnalyticsDatabaseService.countBy). Accept both.
@@ -263,6 +286,257 @@ export class LogService extends AnalyticsDatabaseService<Log> {
       groups: groups,
       totalCount: firstRow ? toCount(firstRow["totalCount"]) : 0,
       totalGroupCount: firstRow ? toCount(firstRow["totalGroupCount"]) : 0,
+    };
+  }
+
+  /*
+   * The grouped count of a monitor whose groups are resolved by a log:
+   * which groups are open, and which a resolving log has closed.
+   *
+   * `query` is the monitor's own filter; `resolvedByQuery` matches the logs
+   * that resolve a group (see MonitorStepLogMonitorUtil.toResolvedByQuery).
+   * Both are read in one statement, so the two sides are one snapshot: a
+   * group can never be counted open by one query and resolved by another
+   * that ran a moment later.
+   */
+  @CaptureSpan()
+  public async countUnresolvedAttributeGroups(input: {
+    query: Query<Log>;
+    resolvedByQuery: Query<Log>;
+    groupByAttributes: Array<string>;
+    limit: number;
+    resolvedLimit: number;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<LogUnresolvedAttributeGroupResult> {
+    const queries: Array<Query<Log>> = [];
+
+    for (const query of [input.query, input.resolvedByQuery]) {
+      const countBy: CountBy<Log> = await this.onBeforeCount({
+        query: query,
+        props: input.props,
+        skip: 0,
+        limit: input.limit,
+      });
+
+      const permission: CheckReadPermissionType<Log> =
+        await ModelPermission.checkReadPermission(
+          this.modelType,
+          countBy.query,
+          null,
+          input.props,
+        );
+
+      queries.push(permission.query);
+    }
+
+    const statement: Statement = this.toUnresolvedAttributeGroupStatement({
+      query: queries[0]!,
+      resolvedByQuery: queries[1]!,
+      groupByAttributes: input.groupByAttributes,
+      limit: input.limit,
+      resolvedLimit: input.resolvedLimit,
+    });
+
+    const dbResult: Results = await this.executeQuery(statement);
+    const response: ResponseJSON<JSONObject> =
+      await dbResult.json<JSONObject>();
+
+    return LogService.toUnresolvedAttributeGroupResult({
+      rows: response.data || [],
+      groupByAttributes: input.groupByAttributes,
+      limit: input.limit,
+    });
+  }
+
+  /*
+   * Open and resolved groups as one statement:
+   *
+   *   SELECT countIf(__isProblem = 1) AS groupCount,
+   *          maxIf(time, __isProblem = 0) > maxIf(time, __isProblem = 1)
+   *            AS isResolved,
+   *          sum(groupCount) OVER (PARTITION BY isResolved) AS totalCount,
+   *          count() OVER (PARTITION BY isResolved) AS totalGroupCount,
+   *          __group_0, ...
+   *   FROM (
+   *     SELECT time, 1 AS __isProblem,
+   *            substringUTF8(attributes[{key}], 1, 256) AS __group_0, ...
+   *     FROM <db>.Log WHERE <the monitor's filter>
+   *     UNION ALL
+   *     SELECT time, 0 AS __isProblem, ...
+   *     FROM <db>.Log WHERE <the resolving logs' filter>
+   *   )
+   *   GROUP BY __group_0, ...
+   *   ORDER BY isResolved ASC, groupCount DESC, __group_0, ...
+   *   LIMIT {rows} BY isResolved
+   *
+   * A group is resolved when its newest resolving log is newer than its
+   * newest matching log. maxIf over no rows is the epoch, so a group with
+   * only resolving logs is resolved and one with none is open. Two logs
+   * at the very same instant leave the group open: the order they
+   * happened in is not known, and an alert left open is seen, while one
+   * closed by mistake is not.
+   *
+   * LIMIT BY keeps the first rows of each side, so a burst of groups on
+   * one side can never crowd out the other. The window functions run
+   * before it and cover every group of their side.
+   *
+   * As in the plain grouped count, attribute keys are bound as query
+   * parameters and the aliases come from the key's position.
+   */
+  public toUnresolvedAttributeGroupStatement(input: {
+    query: Query<Log>;
+    resolvedByQuery: Query<Log>;
+    groupByAttributes: Array<string>;
+    limit: number;
+    resolvedLimit: number;
+  }): Statement {
+    if (input.groupByAttributes.length === 0) {
+      throw new BadDataException(
+        "At least one attribute is needed to group logs by.",
+      );
+    }
+
+    const limit: number = Math.floor(Number(input.limit));
+    const resolvedLimit: number = Math.floor(Number(input.resolvedLimit));
+
+    if (
+      !Number.isFinite(limit) ||
+      limit < 1 ||
+      !Number.isFinite(resolvedLimit) ||
+      resolvedLimit < 1
+    ) {
+      throw new BadDataException("The group limit must be a positive number.");
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const aliases: Array<string> = input.groupByAttributes.map(
+      (_key: string, index: number) => {
+        return `__group_${index}`;
+      },
+    );
+
+    const statement: Statement = SQL`SELECT countIf(__isProblem = 1) AS groupCount, maxIf(time, __isProblem = 0) > maxIf(time, __isProblem = 1) AS isResolved, sum(groupCount) OVER (PARTITION BY isResolved) AS totalCount, count() OVER (PARTITION BY isResolved) AS totalGroupCount`;
+
+    statement.append(`, ${aliases.join(", ")} FROM (`);
+
+    const sides: Array<{ query: Query<Log>; isProblem: number }> = [
+      { query: input.query, isProblem: 1 },
+      { query: input.resolvedByQuery, isProblem: 0 },
+    ];
+
+    sides.forEach(
+      (side: { query: Query<Log>; isProblem: number }, sideIndex: number) => {
+        if (sideIndex > 0) {
+          statement.append(" UNION ALL ");
+        }
+
+        statement.append(`SELECT time, ${side.isProblem} AS __isProblem`);
+
+        input.groupByAttributes.forEach((key: string, index: number) => {
+          statement.append(
+            SQL`, substringUTF8(attributes[${{
+              value: key,
+              type: TableColumnType.Text,
+            }}], 1, `,
+          );
+          statement.append(
+            `${MAX_LOG_GROUP_VALUE_LENGTH}) AS ${aliases[index]}`,
+          );
+        });
+
+        statement
+          .append(
+            SQL` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
+          )
+          .append(this.statementGenerator.toWhereStatement(side.query))
+          .append(this.getRetentionReadFilter());
+      },
+    );
+
+    statement.append(`) GROUP BY ${aliases.join(", ")}`);
+
+    // Open groups first, the busiest of them first; values break ties.
+    statement.append(
+      ` ORDER BY isResolved ASC, groupCount DESC, ${aliases
+        .map((alias: string) => {
+          return `${alias} ASC`;
+        })
+        .join(", ")}`,
+    );
+
+    statement.append(
+      SQL` LIMIT ${{
+        value: Math.max(limit, resolvedLimit),
+        type: TableColumnType.Number,
+      }} BY isResolved`,
+    );
+
+    // 'throw', for the reason the plain grouped count gives.
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "throw",
+        boundScanMemory: true,
+      }),
+    );
+
+    return statement;
+  }
+
+  public static toUnresolvedAttributeGroupResult(input: {
+    rows: Array<JSONObject>;
+    groupByAttributes: Array<string>;
+    limit: number;
+  }): LogUnresolvedAttributeGroupResult {
+    const valuesOf: (row: JSONObject) => Array<string> = (
+      row: JSONObject,
+    ): Array<string> => {
+      return input.groupByAttributes.map(
+        (_key: string, index: number): string => {
+          const value: unknown = row[`__group_${index}`];
+
+          return value === undefined || value === null ? "" : String(value);
+        },
+      );
+    };
+
+    const groups: Array<LogAttributeGroupCount> = [];
+    const resolvedGroups: Array<Array<string>> = [];
+    let totalCount: number = 0;
+    let totalGroupCount: number = 0;
+
+    for (const row of input.rows) {
+      // A UInt8: 1, "1" or true, depending on the client's settings.
+      const isResolved: boolean =
+        row["isResolved"] === true || toCount(row["isResolved"]) > 0;
+
+      if (isResolved) {
+        resolvedGroups.push(valuesOf(row));
+        continue;
+      }
+
+      const count: number = toCount(row["groupCount"]);
+
+      // The totals of the open side are on each of its rows.
+      totalCount = toCount(row["totalCount"]);
+      totalGroupCount = toCount(row["totalGroupCount"]);
+
+      // Only resolving logs can make a row with no matching log, and that is resolved.
+      if (count > 0 && groups.length < input.limit) {
+        groups.push({ values: valuesOf(row), count: count });
+      }
+    }
+
+    return {
+      groups: groups,
+      resolvedGroups: resolvedGroups,
+      totalCount: totalCount,
+      totalGroupCount: totalGroupCount,
     };
   }
 }

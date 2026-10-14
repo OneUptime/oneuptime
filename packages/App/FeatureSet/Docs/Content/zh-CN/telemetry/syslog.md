@@ -28,7 +28,7 @@ flowchart TB
 OneUptime 一读完请求中的消息就会应答，稍后再解析并保存它们。消息文本保留在日志正文中，其他所有内容都会成为属性。
 
 > [!TIP]
-> 用 OneUptime 探针监控的网络设备，可以不经中继、直接通过 UDP 把 syslog 发送到探针，日志随后会出现在 OneUptime 中该设备的页面上。参见[网络设备厂商指南(Sophos、Extreme、Cambium)](/docs/monitor/network-vendor-guides)。
+> 网络设备可以不经中继、直接通过 UDP 或 TCP 把 syslog 发送到 OneUptime 探针，随后 OneUptime 会把各厂商的消息读取为该设备上的事件。参见[网络事件](/docs/monitor/network-events)。
 
 ## 开始之前
 
@@ -200,7 +200,7 @@ OneUptime 会自动为每条日志添加以下属性：
 
 这些属性可以在 **产品 → 日志** 浏览器中搜索，例如 `@syslog.severity.name:error` 或 `@syslog.hostname:web-01`。参见[搜索语法](/docs/telemetry/search-syntax)。
 
-消息本身保留在日志正文中。Sophos XGS 和 Fortinet FortiGate 等防火墙会把消息写成 `key=value` 对（`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`）；在[日志管道](/docs/telemetry/log-pipelines#keyvalue-parser)中添加一个 **Key=Value Parser** 处理器，就能把这些键值对也变成属性。
+消息本身保留在日志正文中。采用网络厂商格式的消息会被进一步读取：Sophos 或 FortiGate 防火墙的 `key=value` 对（`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`）会变成 `sophos.*` 和 `fortigate.*` 属性，发生了什么则变成[网络事件](/docs/monitor/network-events)。对于其他任何 `key=value` 格式，请在[日志管道](/docs/telemetry/log-pipelines#keyvalue-parser)中添加一个 **Key=Value Parser** 处理器，把这些键值对变成属性。
 
 ### 严重级别
 

@@ -31,7 +31,7 @@ flowchart TB
 
 - A [network device](/docs/monitor/network-device-monitor) per box, polled by a probe that can reach it, with a vendor template that brings the right health OIDs and [SNMP tables](/docs/monitor/network-device-monitor#snmp-tables).
 - A Network Device monitor per device for alerting. Create it from the device's page so the [recommended alerts](/docs/monitor/network-device-monitor#recommended-alert-pack), including one per-row alert for each table that knows what healthy looks like, are filled in for you. For a fleet, an [alert policy](/docs/monitor/network-device-monitor#alert-policies) keeps one on every device.
-- For what a vendor reports only in its logs: syslog to the probe, a [log pipeline](/docs/telemetry/log-pipelines) to turn each line into attributes, [Logs monitors with Group By](/docs/monitor/logs-monitor#per-group-alerting-group-by) to alert once per tunnel or gateway, and [log recording rules](/docs/telemetry/log-recording-rules) to chart the numbers in those logs.
+- For what a vendor reports only in its logs: syslog to the probe, which OneUptime reads into [network events](/docs/monitor/network-events) on its own, [Logs monitors with Group By](/docs/monitor/logs-monitor#per-group-alerting-group-by) to alert once per tunnel or gateway, and [log recording rules](/docs/telemetry/log-recording-rules) to chart the numbers in those logs.
 
 ## Sophos Firewall (XGS / SFOS)
 
@@ -71,20 +71,20 @@ A tunnel Sophos reports as active only has its security associations up. To prov
 ### Gateways and SD-WAN from syslog
 
 :::steps
-1. Turn on the probe's syslog receiver: set `PROBE_SYSLOG_RECEIVER_ENABLED=true` on the probe. It listens on UDP 5140 by default (`PROBE_SYSLOG_RECEIVER_PORT` changes it); publish the port if the probe runs in Docker. Messages are matched to the network device whose hostname, or one of whose **Other Addresses**, is the sender's address, and appear on the device's **Logs** page.
+1. The probe's syslog receiver is on by default. It listens on port 5140, over UDP and TCP (`PROBE_SYSLOG_RECEIVER_PORT` changes it); publish the port if the probe runs in Docker. Messages are matched to the network device whose hostname, or one of whose **Other Addresses**, is the sender's address, and appear on the device's **Events** and **Logs** pages.
 2. On the firewall, under **System services → Log settings**, add a syslog server pointing at the probe and that port, and tick the **Event** log types for IPsec and gateways and the **SD-WAN** log type: the SLA logs stay off until it is ticked.
-3. Under **Logs → Settings → Pipelines**, create a pipeline whose filter matches the firewall's logs, such as `attributes.networkDevice.name = 'hq-firewall'`, and add a **Key=Value Parser** with **Target Prefix** `sophos`. Paste a line from the firewall into its tester to see the exact attribute names your SFOS version produces; [the Sophos example](/docs/telemetry/log-pipelines#example-sophos-xgs-firewall) walks through it.
-4. Create [Logs monitors](/docs/monitor/logs-monitor) on the firewall's logs, each with **Group by Attributes** so every tunnel or gateway alerts on its own, and the criteria **Log Count** **Greater Than** `0` over a few minutes. The rows below are the three to start with.
+3. There is nothing to parse. OneUptime reads the firewall's `key=value` fields into `sophos.*` attributes, and reads tunnels, gateways, SD-WAN SLA changes, failovers and sign-ins out of them as [network events](/docs/monitor/network-events). Open a log on the device's **Logs** page to see the exact attribute names your SFOS version produces.
+4. On the device's **Events** page, click **Create alert** and pick an alert. It opens a [Logs monitor](/docs/monitor/logs-monitor) filled in, with **Group by Attributes** so every tunnel or gateway alerts on its own, and **Resolved by Attributes** so each alert closes when the firewall reports it back. The rows below are the three to start with.
 5. Chart SD-WAN quality: with SD-WAN logging on, the firewall writes an SLA summary per profile and gateway (`latency`, `jitter`, `packet_loss`). Under **Logs → Settings → Recording Rules**, create one rule per number, such as the average of `sophos.latency` grouped by `sophos.gw_name` and `sophos.profile_name`, then chart the results, or alert on them with a [Metrics monitor](/docs/monitor/metrics-monitor) that groups by gateway. [Log Recording Rules](/docs/telemetry/log-recording-rules) walks through this example.
 :::
 
-| Alert | Logs to count | Group by |
-| --- | --- | --- |
-| IPsec tunnel terminated | Attribute `sophos.log_component` = `IPSec`, body contains `terminated` | `sophos.con_name` |
-| Gateway down | Attribute `sophos.log_component` = `Gateway`, body contains `is Down` | `sophos.gatewayname` |
-| SD-WAN SLA not met | Attribute `sophos.log_type` = `SD-WAN`, body contains `SLA not met` | `sophos.gw_name` |
+| Alert | Event it counts | One alert per | Closed by |
+| --- | --- | --- | --- |
+| A VPN tunnel goes down | `vpn.tunnel_down` | `vpn.tunnel.name` | `vpn.tunnel_up` |
+| A WAN link goes down | `gateway.down` | `network.gateway.name` | `gateway.up` |
+| SD-WAN link below its SLA | `sdwan.sla_not_met` | `network.gateway.name` | `sdwan.sla_met` |
 
-The syslog events complement the SNMP table: they arrive the moment a tunnel drops, while the table also catches a tunnel that never came up.
+The first two are on the **Create alert** list; for the third, open one of its events and click **Create alert for this event**. The syslog events complement the SNMP table: they arrive the moment a tunnel drops, while the table also catches a tunnel that never came up.
 
 ### Traps
 
@@ -153,7 +153,7 @@ Tunnel status needs SFOS v20 or later. Check too that the SNMP view of your cred
 :::
 
 :::details No syslog arrives from the firewall
-The probe's syslog receiver is off by default: set `PROBE_SYSLOG_RECEIVER_ENABLED=true` and publish UDP 5140, or your `PROBE_SYSLOG_RECEIVER_PORT`, to the probe. Messages are matched to a device by the sender's address, so the firewall's hostname in OneUptime, or one of its **Other Addresses**, must be the address it sends syslog from.
+The probe listens for syslog on port 5140, over UDP and TCP, unless it was started with `PROBE_SYSLOG_RECEIVER_ENABLED=false`: publish that port, or your `PROBE_SYSLOG_RECEIVER_PORT`, if the probe runs in Docker. Messages are matched to a device by the sender's address, so the firewall's hostname in OneUptime, or one of its **Other Addresses**, must be the address it sends syslog from; until it is, they are listed on the network's **Events** page as **Not a device yet**.
 :::
 
 :::details A Fabric Engine switch got the EXOS template
@@ -168,6 +168,7 @@ The total client count needs firmware 6.5.3 or later. On older firmware the radi
 
 :::cards
 - [Network Device Monitor](/docs/monitor/network-device-monitor): Everything a device collects, and every criteria it can alert on.
+- [Network Events](/docs/monitor/network-events): What each vendor's syslog says, as events and alerts.
 - [Log Pipelines](/docs/telemetry/log-pipelines): Parse firewall logs into attributes.
 - [Logs Monitor](/docs/monitor/logs-monitor): Alert once per tunnel or gateway.
 :::

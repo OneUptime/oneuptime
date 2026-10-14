@@ -43,7 +43,7 @@ El dispositivo y el monitor hacen trabajos distintos:
 
 - **Una sonda que pueda alcanzar el dispositivo.** La sonda hace ping al dispositivo y lo recorre desde su propia red, así que un dispositivo en una dirección privada necesita una [sonda personalizada](/docs/probe/custom-probe) dentro de esa red: una sonda en internet pública no puede alcanzarlo.
 - **SNMP, para algo más que ping.** Opcional. Una cadena de comunidad v1 o v2c, o un usuario SNMPv3, configurado en el dispositivo, con UDP 161 abierto desde la sonda. Sin eso, el dispositivo solo recibe ping.
-- **Traps, syslog y flujos.** Opcional. La sonda recibe traps SNMP en UDP 162, syslog en UDP 5140 una vez que lo activas, y registros de flujo en UDP 2055, 4739 y 6343; abre esos puertos desde tus dispositivos hacia la sonda.
+- **Traps, syslog y flujos.** Opcional. La sonda recibe traps SNMP en UDP 162, syslog en UDP y TCP 5140, y registros de flujo en UDP 2055, 4739 y 6343; abre esos puertos desde tus dispositivos hacia la sonda.
 
 ## La vista general de la red
 
@@ -62,7 +62,7 @@ Debajo, una línea dice si algo genera un incidente cuando un dispositivo cae: c
 
 Mientras no se ha añadido nada, la vista general muestra en su lugar las dos formas de empezar: **Descubrir dispositivos** escanea un rango de direcciones para que elijas qué añadir, lo mejor para toda una red o un sitio nuevo, y **Añadir un solo dispositivo** añade uno por su dirección IP o su nombre de host.
 
-El menú Red mantiene a la vista lo que abres cada día: **Vista general**, **Dispositivos**, **Sitios**, **Mapa**, **Tráfico** y **Descubrimiento**. El resto queda plegado en secciones, y una sección se abre sola en cualquiera de sus páginas:
+El menú Red mantiene a la vista lo que abres cada día: **Vista general**, **Dispositivos**, **Sitios**, **Mapa**, **Tráfico**, **Eventos** y **Descubrimiento**. El resto queda plegado en secciones, y una sección se abre sola en cualquiera de sus páginas:
 
 | Sección | Páginas |
 | --- | --- |
@@ -1057,6 +1057,7 @@ Una respuesta con la descripción del dispositivo significa que la sonda puede r
 :::cards
 - [Sitios de red](/docs/monitor/network-sites): Agrupa los dispositivos en lugares y resume su salud a lo largo del árbol.
 - [Tráfico de red](/docs/monitor/network-traffic): Ve quién habla con quién a partir de los registros de flujo de tus dispositivos.
+- [Eventos de red](/docs/monitor/network-events): Ve lo que tus dispositivos notifican en su syslog, y recibe alertas sobre ello.
 - [Guías por fabricante de red](/docs/monitor/network-vendor-guides): Sophos, Extreme y Cambium, de principio a fin.
 - [Captura de paquetes](/docs/probe/packet-capture): Captura paquetes en la sonda de un dispositivo para Wireshark.
 :::

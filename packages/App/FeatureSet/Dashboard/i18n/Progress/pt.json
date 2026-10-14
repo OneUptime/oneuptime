@@ -1,15 +1,19 @@
 {
   "baseline": {
-    "keys": 28289,
-    "untranslated": 16931
+    "keys": 28484,
+    "untranslated": 16918
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "App",
     "Apps",
     "Embedding",
+    "Failover",
+    "Gateway",
+    "Hardware",
     "Interface",
     "Interface {{index}}",
+    "Interfaces",
     "Offline",
     "Runbook: {{name}}",
     "Runner",
@@ -18,6 +22,7 @@
     "cluster",
     "host",
     "kubectl set image deployment/web * -n web",
+    "syslog",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",

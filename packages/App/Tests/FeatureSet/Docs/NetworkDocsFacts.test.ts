@@ -84,6 +84,7 @@ import {
   getSiteHealthRollupPolicyLabel,
 } from "Common/Types/NetworkSite/SiteHealthRollupPolicy";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import { DEFAULT_SYSLOG_RECEIVER_PORT } from "Common/Types/Syslog/SyslogReceiverDefaults";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import TemplateVariablesCatalog, {
   TemplateVariable,
@@ -248,6 +249,10 @@ const NETWORK_DEVICE_MODEL: string = readSource(
   "Common/Models/DatabaseModels/NetworkDevice.ts",
 );
 const PROBE_CONFIG: string = readSource("Probe/Config.ts");
+const SYSLOG_RECEIVER: string = readSource("Probe/Services/SyslogReceiver.ts");
+// The TCP listener is given the receiver's port, as the UDP socket is.
+const TCP_LISTENS_ON_THE_PORT: RegExp =
+  /server\.listen\(\{\s*port: PROBE_SYSLOG_RECEIVER_PORT,/;
 
 // A probe setting's default, as Probe/Config.ts declares it.
 function probeDefault(name: string): string {
@@ -268,7 +273,9 @@ describe("the Network Device Monitor page: the Network area", () => {
   it("names the menu's open rows, in order", () => {
     const open: Array<string> = menu.get("Network") || [];
 
-    expect(open.length).toBe(6);
+    expect(open.length).toBe(7);
+    // Events sits beside Traffic: the two pages a device's own data fills.
+    expect(open.indexOf("Events")).toBe(open.indexOf("Traffic") + 1);
     expect(DEVICE).toContain(
       `${open
         .slice(0, -1)
@@ -823,12 +830,21 @@ describe("the Network Device Monitor page: receivers on the probe", () => {
     ]);
   });
 
-  it("names the ports the probe takes traps, syslog and flows on, syslog only once turned on", () => {
+  it("names the ports the probe takes traps, syslog and flows on, syslog over UDP and TCP on one port", () => {
+    // On unless turned off, on the default every reader of it shares.
     expect(PROBE_CONFIG).toContain(
-      'process.env["PROBE_SYSLOG_RECEIVER_ENABLED"] === "true"',
+      'process.env["PROBE_SYSLOG_RECEIVER_ENABLED"] !== "false"',
     );
+    expect(PROBE_CONFIG).toContain(
+      "defaultValue: DEFAULT_SYSLOG_RECEIVER_PORT,",
+    );
+    // One port number: bound for UDP, listened on for TCP.
+    expect(SYSLOG_RECEIVER).toContain(
+      "socket.bind(PROBE_SYSLOG_RECEIVER_PORT);",
+    );
+    expect(SYSLOG_RECEIVER).toMatch(TCP_LISTENS_ON_THE_PORT);
     expect(DEVICE).toContain(
-      `The probe takes SNMP traps on UDP ${probeDefault("PROBE_SNMP_TRAP_RECEIVER_PORT")}, syslog on UDP ${probeDefault("PROBE_SYSLOG_RECEIVER_PORT")} once you turn it on, and flow records on UDP ${DEFAULT_NETFLOW_COLLECTOR_PORT}, ${DEFAULT_IPFIX_COLLECTOR_PORT} and ${DEFAULT_SFLOW_COLLECTOR_PORT}`,
+      `The probe takes SNMP traps on UDP ${probeDefault("PROBE_SNMP_TRAP_RECEIVER_PORT")}, syslog on UDP and TCP ${DEFAULT_SYSLOG_RECEIVER_PORT}, and flow records on UDP ${DEFAULT_NETFLOW_COLLECTOR_PORT}, ${DEFAULT_IPFIX_COLLECTOR_PORT} and ${DEFAULT_SFLOW_COLLECTOR_PORT}`,
     );
   });
 });
@@ -1120,10 +1136,13 @@ describe("the Network Vendor Guides page", () => {
     expect(VENDORS).toContain(
       `Send sFlow to the probe on UDP ${DEFAULT_SFLOW_COLLECTOR_PORT}, or IPFIX on UDP ${DEFAULT_IPFIX_COLLECTOR_PORT}`,
     );
+    expect(VENDORS).toContain("The probe's syslog receiver is on by default.");
     expect(VENDORS).toContain(
-      `It listens on UDP ${probeDefault("PROBE_SYSLOG_RECEIVER_PORT")} by default`,
+      `It listens on port ${DEFAULT_SYSLOG_RECEIVER_PORT}, over UDP and TCP (\`PROBE_SYSLOG_RECEIVER_PORT\` changes it)`,
     );
-    expect(VENDORS).toContain("The probe's syslog receiver is off by default");
+    expect(VENDORS).toContain(
+      `The probe listens for syslog on port ${DEFAULT_SYSLOG_RECEIVER_PORT}, over UDP and TCP, unless it was started with \`PROBE_SYSLOG_RECEIVER_ENABLED=false\``,
+    );
   });
 
   it("tells Fabric Engine from EXOS by the description it quotes", () => {

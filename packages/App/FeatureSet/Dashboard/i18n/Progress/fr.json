@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28289,
-    "untranslated": 9621
+    "keys": 28484,
+    "untranslated": 9614
   },
   "sameAsEnglish": [
     " incidents",
@@ -344,6 +344,7 @@
     "Trace",
     "Traces",
     "Transport",
+    "Tunnel",
     "Type",
     "VMware vCenter",
     "Variable",
@@ -359,6 +360,7 @@
     "cluster",
     "kubectl set image deployment/web * -n web",
     "services",
+    "syslog",
     "{{count}} minutes",
     "{{count}} option",
     "{{count}} options",
