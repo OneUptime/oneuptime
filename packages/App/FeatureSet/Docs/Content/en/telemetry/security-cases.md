@@ -15,14 +15,14 @@ Security Events turns what your detection rules, threat intelligence and connect
 flowchart TB
     subgraph sources["Detections"]
         direction LR
-        rules["Detection rules"] ~~~ intel["Threat intelligence"] ~~~ products["Connected products"]
+        rules["Detection<br/>rules"] ~~~ intel["Threat<br/>intelligence"] ~~~ products["Connected<br/>products"]
     end
     sources --> group{"An open case about<br/>the same entity?"}
-    group -->|"Yes"| join["The detection joins it"]
+    group -->|"Yes"| join["The detection<br/>joins it"]
     group -->|"No"| open["A new case opens"]
     join --> playbooks["Playbooks run"]
     open --> playbooks
-    playbooks --> work["An analyst works the case"]
+    playbooks --> work["An analyst<br/>works the case"]
     work --> close["Closed with a verdict"]
 ```
 
@@ -38,7 +38,7 @@ Cases and playbooks follow the three Security roles. Project Owner and Project A
 | Security Member | Open, assign, change and close cases, write notes, run playbooks and approve or reject their steps |
 | Security Viewer | Read cases, detections, notes, playbooks and their runs |
 
-Each of these can also be granted on its own, from **Create Security Case** to **Approve Security Playbook Steps**; see [Permission Reference](/docs/permissions/reference).
+Each of these can also be granted on its own, from creating a case to approving a playbook's steps; see [Permission Reference](/docs/permissions/reference).
 
 ## Where cases come from
 
@@ -82,7 +82,7 @@ A case moves through four statuses. It can skip one, such as a false positive cl
 
 The case's page has everything to work it:
 
-- **The header**: **Assign to Me**, **Run Playbook**, **Declare Incident** and **Close Case**, the status steps, and the priority under the menu beside them.
+- At the top: **Assign to Me**, **Run Playbook**, **Declare Incident** and **Close Case**, the status steps, and the priority under the menu beside them.
 - **Detections**: what fired to open the case or join it, how often, and the latest matching event.
 - **Entities**: the users, hosts and addresses the case is about, with their activity across all your security events in the last 7 days. Each opens in **Correlate**.
 - **MITRE ATT&CK**: the tactics and techniques its detections map to, each linked to its page on attack.mitre.org.
@@ -208,7 +208,7 @@ A run that stops hearing from its worker, after a restart for example, is picked
 **Products → Security Events → Overview** is where the product opens:
 
 - The open cases assigned to you, the open cases nobody has picked up, and the playbook steps waiting for approval.
-- **Mean Time to Acknowledge**, **to Contain** and **to Close**, over the cases opened in the last 30 days: from a case opening to someone taking it on (assigning a person, or moving it out of New), to Contained, and to Closed. A case still waiting is not counted in a mean.
+- **Mean Time to Acknowledge**, **Mean Time to Contain** and **Mean Time to Close**, over the cases opened in the last 30 days: from a case opening to someone taking it on (assigning a person, or moving it out of New), to Contained, and to Closed. A case still waiting is not counted in a mean.
 - The cases opened each day for 30 days, by priority, and the detections raised each day for 14 days, by source.
 - The open cases by priority and by status, the verdicts of the last 30 days, the ATT&CK tactics behind the cases, the detections that fired most, and the entities named by the most findings.
 
@@ -224,7 +224,7 @@ A project with no cases and no detections yet shows, above these, the three step
 
 - **Workflows**: a case or a note can start a workflow when it is created, updated or deleted. A **Run a workflow** step starts a workflow whose trigger is a webhook.
 - **API**: cases, notes, detections, playbooks and runs have the same REST API as the rest of OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook` and `/security-playbook-run`. See [API Reference](/docs/api-reference/api-reference).
-- **AI agents**: the MCP server has tools for cases, notes, detections and playbooks. See [MCP Server](/docs/ai/mcp-server).
+- AI agents: the MCP server has tools for cases, notes, detections and playbooks. See [MCP Server](/docs/ai/mcp-server).
 
 ## Troubleshooting
 

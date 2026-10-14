@@ -5,9 +5,8 @@ OneUptime keeps security events beside your logs, traces and metrics, and gives 
 :::cards
 - [Send events](#send-security-events): An HTTPS POST, a Fluent Bit output, or a connection to a security product.
 - [Search and correlate](#explore-security-events): The Events explorer and the Correlate graph.
-- [Detection rules](#detection-rules): Sigma rules that open alerts.
+- [Detection rules](#detection-rules): Sigma rules that open cases and alerts.
 - [Monitors](#security-events-monitors): Counts over a rolling window, with a status that recovers.
-- [Cases and playbooks](/docs/telemetry/security-cases): Work what was detected, and respond to it.
 :::
 
 ## How it works
@@ -227,7 +226,7 @@ flowchart TB
     tick["Every minute: rules<br/>whose interval is due"] --> query["Events since<br/>the rule's last run"]
     query --> count["Counted per value of<br/>the Group By Field"]
     count --> check{"Count reaches the<br/>Match Count Threshold?"}
-    check -->|"Yes"| fire["Case, alert, optional incident<br/>and a Detection Finding"]
+    check -->|"Yes"| fire["A case, an alert,<br/>an optional incident<br/>and a Detection Finding"]
     check -->|"No"| wait["Nothing, until<br/>the next run"]
 ```
 
