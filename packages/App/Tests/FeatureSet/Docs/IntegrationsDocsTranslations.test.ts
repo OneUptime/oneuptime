@@ -128,13 +128,13 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   "integrations/opsgenie": 20,
   "integrations/servicenow": 24,
   "integrations/microsoft-dynamics-365": 24,
-  "integrations/prometheus-alertmanager": 30,
-  "integrations/grafana": 30,
-  "integrations/datadog": 30,
-  "integrations/google-secops": 30,
-  "integrations/microsoft-sentinel": 30,
-  "integrations/microsoft-defender-xdr": 30,
-  "integrations/crowdstrike-falcon": 30,
+  "integrations/prometheus-alertmanager": 22,
+  "integrations/grafana": 23,
+  "integrations/datadog": 22,
+  "integrations/google-secops": 23,
+  "integrations/microsoft-sentinel": 22,
+  "integrations/microsoft-defender-xdr": 22,
+  "integrations/crowdstrike-falcon": 21,
 };
 
 // The names, longest first: "Jira Cloud" goes before "Jira" takes its first word.
