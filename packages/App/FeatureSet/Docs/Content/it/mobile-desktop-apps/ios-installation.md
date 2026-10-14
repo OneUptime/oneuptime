@@ -32,8 +32,8 @@ flowchart TB
     Check["L'app controlla che<br/>il tuo OneUptime risponda"]
     SignIn["Accedi: password,<br/>passkey o SSO"]
     Allow["Consenti le notifiche"]
-    Register["L'app registra il dispositivo<br/>in ciascuno dei tuoi progetti"]
-    Rules["Ogni progetto elenca<br/>il dispositivo, con le regole<br/>di reperibilità predefinite"]
+    Register["L'app registra il<br/>dispositivo in ciascuno<br/>dei tuoi progetti"]
+    Rules["Ogni progetto elenca il<br/>dispositivo, con le regole<br/>di reperibilità predefinite"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 

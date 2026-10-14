@@ -13,9 +13,9 @@ OneUptime डैशबोर्ड Google Chrome, Chromium या Microsoft Edge
 
 ```mermaid title="डैशबोर्ड इंस्टॉल करने से आपको क्या मिलता है"
 flowchart TB
-    Browser["Chrome, Chromium या Edge<br/>आपका डैशबोर्ड खोलता है"]
+    Browser["Chrome, Chromium<br/>या Edge आपका<br/>डैशबोर्ड खोलता है"]
     Install["आप उसे ऐप के रूप में<br/>इंस्टॉल करते हैं"]
-    App["अपनी अलग विंडो में OneUptime,<br/>आपके ऐप लॉन्चर में"]
+    App["अपनी अलग विंडो<br/>में OneUptime,<br/>आपके ऐप लॉन्चर में"]
     OneUptime["आपका OneUptime<br/>डैशबोर्ड देता है"]
     Browser --> Install --> App
     App -->|"हर बार खुलने पर<br/>डैशबोर्ड लोड करता है"| OneUptime

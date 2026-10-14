@@ -15,7 +15,7 @@ OneUptime डैशबोर्ड Mac पर ऐप के रूप में 
 flowchart TB
     Browser["Safari, Chrome या Edge<br/>आपका डैशबोर्ड खोलता है"]
     Install["आप उसे Dock में जोड़ते हैं<br/>या ऐप के रूप में<br/>इंस्टॉल करते हैं"]
-    App["अपनी अलग विंडो में OneUptime,<br/>Dock और Launchpad में"]
+    App["अपनी अलग विंडो में<br/>OneUptime, Dock<br/>और Launchpad में"]
     OneUptime["आपका OneUptime<br/>डैशबोर्ड देता है"]
     Browser --> Install --> App
     App -->|"हर बार खुलने पर<br/>डैशबोर्ड लोड करता है"| OneUptime

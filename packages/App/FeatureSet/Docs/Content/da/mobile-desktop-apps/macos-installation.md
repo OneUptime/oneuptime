@@ -15,7 +15,7 @@ OneUptime-dashboardet installeres på en Mac som en app: føj det til Dock fra S
 flowchart TB
     Browser["Safari, Chrome eller Edge<br/>åbner dit dashboard"]
     Install["Du føjer det til Dock eller<br/>installerer det som en app"]
-    App["OneUptime i sit eget vindue,<br/>i Dock og i Launchpad"]
+    App["OneUptime i sit<br/>eget vindue, i Dock<br/>og i Launchpad"]
     OneUptime["Dit OneUptime leverer<br/>dashboardet"]
     Browser --> Install --> App
     App -->|"henter dashboardet,<br/>hver gang den åbner"| OneUptime

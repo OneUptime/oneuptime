@@ -15,7 +15,7 @@ Das OneUptime-Dashboard lässt sich unter Windows als App installieren, aus Micr
 flowchart TB
     Browser["Edge oder Chrome öffnet<br/>Ihr Dashboard"]
     Install["Sie installieren es<br/>als App"]
-    App["OneUptime in einem eigenen Fenster,<br/>in Taskleiste und Startmenü"]
+    App["OneUptime in einem<br/>eigenen Fenster, in<br/>Taskleiste und Startmenü"]
     OneUptime["Ihr OneUptime liefert<br/>das Dashboard"]
     Browser --> Install --> App
     App -->|"lädt das Dashboard<br/>bei jedem Öffnen"| OneUptime

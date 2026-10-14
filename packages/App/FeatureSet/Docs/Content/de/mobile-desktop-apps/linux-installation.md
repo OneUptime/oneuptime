@@ -13,9 +13,9 @@ Das OneUptime-Dashboard lässt sich unter Linux als App installieren, aus Google
 
 ```mermaid title="Was Ihnen die Installation des Dashboards bringt"
 flowchart TB
-    Browser["Chrome, Chromium oder Edge<br/>öffnet Ihr Dashboard"]
+    Browser["Chrome, Chromium<br/>oder Edge öffnet<br/>Ihr Dashboard"]
     Install["Sie installieren es<br/>als App"]
-    App["OneUptime in einem eigenen Fenster,<br/>in Ihrem App-Starter"]
+    App["OneUptime in einem<br/>eigenen Fenster,<br/>in Ihrem App-Starter"]
     OneUptime["Ihr OneUptime liefert<br/>das Dashboard"]
     Browser --> Install --> App
     App -->|"lädt das Dashboard<br/>bei jedem Öffnen"| OneUptime

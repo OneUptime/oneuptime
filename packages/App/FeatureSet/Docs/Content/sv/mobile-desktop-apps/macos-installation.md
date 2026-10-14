@@ -13,12 +13,12 @@ OneUptime-instrumentpanelen installeras på en Mac som en app: lägg till den i 
 
 ```mermaid title="Vad du får när du installerar instrumentpanelen"
 flowchart TB
-    Browser["Safari, Chrome eller Edge<br/>öppnar din instrumentpanel"]
-    Install["Du lägger till den i Dock<br/>eller installerar den som app"]
-    App["OneUptime i ett eget fönster,<br/>i Dock och i Launchpad"]
+    Browser["Safari, Chrome eller<br/>Edge öppnar din<br/>instrumentpanel"]
+    Install["Du lägger till den i<br/>Dock eller installerar<br/>den som app"]
+    App["OneUptime i ett<br/>eget fönster, i Dock<br/>och i Launchpad"]
     OneUptime["Ditt OneUptime levererar<br/>instrumentpanelen"]
     Browser --> Install --> App
-    App -->|"hämtar instrumentpanelen<br/>varje gång den öppnas"| OneUptime
+    App -->|"hämtar<br/>instrumentpanelen<br/>varje gång den öppnas"| OneUptime
 ```
 
 En Safari-webbapp har sin egen inloggning, egna cookies och inställningar, skilda från Safari. En app som installerats från Chrome eller Edge delar dem med den webbläsaren.

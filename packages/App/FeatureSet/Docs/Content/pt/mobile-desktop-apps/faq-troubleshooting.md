@@ -77,11 +77,11 @@ O OneUptime envia os acionamentos de um celular pela Expo, que os entrega à App
 
 ```mermaid title="Como um celular para de receber acionamentos, e como volta"
 flowchart TB
-    Registered["O celular está registrado,<br/>e os acionamentos chegam a ele"]
-    Gone["A Expo o dá como perdido:<br/>um push é recusado, ou o<br/>recibo dele diz isso cerca<br/>de 15 minutos depois"]
-    Marked["O OneUptime o marca Não está<br/>recebendo notificações e para<br/>de enviar; as regras ficam"]
+    Registered["O celular está registrado,<br/>e os acionamentos<br/>chegam a ele"]
+    Gone["A Expo o dá como<br/>perdido: um push é<br/>recusado, ou o recibo<br/>dele diz isso cerca<br/>de 15 minutos depois"]
+    Marked["O OneUptime o marca<br/>Não está recebendo<br/>notificações e para de<br/>enviar; as regras ficam"]
     Open["Você abre o aplicativo<br/>estando conectado"]
-    Renewed["O aplicativo se registra de novo,<br/>renova o token push dele, e os<br/>acionamentos voltam a chegar"]
+    Renewed["O aplicativo se registra<br/>de novo, renova o<br/>token push dele,<br/>e os acionamentos<br/>voltam a chegar"]
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 

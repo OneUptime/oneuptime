@@ -30,10 +30,10 @@ De App Store houdt de app up-to-date zolang **App-updates** aanstaat, onder **In
 flowchart TB
     Address["U voert het adres<br/>van uw OneUptime in"]
     Check["De app controleert of<br/>uw OneUptime antwoordt"]
-    SignIn["U meldt zich aan: wachtwoord,<br/>passkey of SSO"]
+    SignIn["U meldt zich aan:<br/>wachtwoord, passkey<br/>of SSO"]
     Allow["U staat meldingen toe"]
-    Register["De app registreert het apparaat<br/>in elk van uw projecten"]
-    Rules["Elk project toont het apparaat,<br/>met de standaard<br/>bereikbaarheidsregels"]
+    Register["De app registreert<br/>het apparaat in elk<br/>van uw projecten"]
+    Rules["Elk project toont<br/>het apparaat,<br/>met de standaard<br/>bereikbaarheidsregels"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 

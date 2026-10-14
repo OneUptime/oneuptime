@@ -77,11 +77,11 @@ OneUptime envoie les alertes d'un téléphone par Expo, qui les confie à Apple 
 
 ```mermaid title="Comment un téléphone cesse de recevoir des alertes, et comment il revient"
 flowchart TB
-    Registered["Le téléphone est enregistré,<br/>et les alertes l'atteignent"]
-    Gone["Expo le signale disparu : un<br/>push est refusé, ou son reçu<br/>le dit environ 15 minutes après"]
-    Marked["OneUptime le marque Ne reçoit<br/>pas de notifications et cesse<br/>d'envoyer ; ses règles restent"]
+    Registered["Le téléphone est<br/>enregistré, et les<br/>alertes l'atteignent"]
+    Gone["Expo le signale disparu :<br/>un push est refusé,<br/>ou son reçu le dit environ<br/>15 minutes après"]
+    Marked["OneUptime le marque Ne<br/>reçoit pas de notifications<br/>et cesse d'envoyer ;<br/>ses règles restent"]
     Open["Vous ouvrez l'application<br/>en étant connecté"]
-    Renewed["L'application se réenregistre,<br/>renouvelle son jeton push, et<br/>les alertes l'atteignent à nouveau"]
+    Renewed["L'application se<br/>réenregistre,<br/>renouvelle son jeton<br/>push, et les alertes<br/>l'atteignent à nouveau"]
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 

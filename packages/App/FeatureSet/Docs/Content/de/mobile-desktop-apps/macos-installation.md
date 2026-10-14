@@ -13,9 +13,9 @@ Das OneUptime-Dashboard lässt sich auf einem Mac als App installieren: Fügen S
 
 ```mermaid title="Was Ihnen die Installation des Dashboards bringt"
 flowchart TB
-    Browser["Safari, Chrome oder Edge<br/>öffnet Ihr Dashboard"]
-    Install["Sie fügen es zum Dock hinzu<br/>oder installieren es als App"]
-    App["OneUptime in einem eigenen Fenster,<br/>im Dock und im Launchpad"]
+    Browser["Safari, Chrome<br/>oder Edge öffnet<br/>Ihr Dashboard"]
+    Install["Sie fügen es zum<br/>Dock hinzu oder<br/>installieren es als App"]
+    App["OneUptime in einem<br/>eigenen Fenster, im<br/>Dock und im Launchpad"]
     OneUptime["Ihr OneUptime liefert<br/>das Dashboard"]
     Browser --> Install --> App
     App -->|"lädt das Dashboard<br/>bei jedem Öffnen"| OneUptime

@@ -15,7 +15,7 @@ OneUptime 儀表板可以從 Microsoft Edge 或 Google Chrome 在 Windows 上安
 flowchart TB
     Browser["Edge 或 Chrome<br/>開啟你的儀表板"]
     Install["你把它安裝<br/>為應用程式"]
-    App["在自己視窗中的 OneUptime，<br/>位於工作列和「開始」功能表中"]
+    App["在自己視窗中的<br/>OneUptime，位於工作列<br/>和「開始」功能表中"]
     OneUptime["你的 OneUptime<br/>提供儀表板"]
     Browser --> Install --> App
     App -->|"每次開啟時<br/>載入儀表板"| OneUptime

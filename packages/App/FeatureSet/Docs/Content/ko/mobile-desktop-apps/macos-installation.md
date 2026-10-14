@@ -13,7 +13,7 @@ OneUptime 대시보드는 Mac에 앱으로 설치됩니다. Safari에서 Dock에
 
 ```mermaid title="대시보드를 설치하면 얻는 것"
 flowchart TB
-    Browser["Safari, Chrome 또는 Edge가<br/>대시보드를 엽니다"]
+    Browser["Safari, Chrome<br/>또는 Edge가<br/>대시보드를 엽니다"]
     Install["Dock에 추가하거나<br/>앱으로 설치합니다"]
     App["별도의 창에서 열리는<br/>OneUptime, Dock과<br/>Launchpad에도"]
     OneUptime["사용 중인 OneUptime이<br/>대시보드를 제공합니다"]

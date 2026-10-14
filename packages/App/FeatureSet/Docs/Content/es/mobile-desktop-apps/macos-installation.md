@@ -15,7 +15,7 @@ El panel de OneUptime se instala en un Mac como una aplicación: añádalo al Do
 flowchart TB
     Browser["Safari, Chrome o Edge<br/>abre su panel"]
     Install["Usted lo añade al Dock o<br/>lo instala como aplicación"]
-    App["OneUptime en su propia ventana,<br/>en el Dock y en el Launchpad"]
+    App["OneUptime en su propia<br/>ventana, en el Dock<br/>y en el Launchpad"]
     OneUptime["Su OneUptime sirve<br/>el panel"]
     Browser --> Install --> App
     App -->|"carga el panel<br/>cada vez que se abre"| OneUptime

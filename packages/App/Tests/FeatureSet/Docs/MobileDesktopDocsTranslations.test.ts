@@ -116,26 +116,28 @@ const PAGE_NAMES: Array<string> = MOBILE_DESKTOP_PAGES.map(
 );
 
 /*
- * Each diagram fits the 590px docs column, in every language: its label
- * lines are broken (<br/>) to be no wider than its cap, counting a Chinese,
+ * Each diagram reads as it is written, in every language: its label lines
+ * are broken (<br/>) to be no wider than its cap, counting a Chinese,
  * Japanese or Korean character twice. A page's caps are its diagrams', in
- * order. Each is the widest line the 17 languages drew, every diagram drawn
- * in a browser at the column's width without scrolling.
+ * order. Each is the widest line the 17 languages drew when every line was
+ * measured in a browser, in the font Mermaid draws labels in: none is wider
+ * than 185px, or twelve Chinese, Japanese or Korean characters (192px).
+ * Mermaid breaks a line wider than 200px again inside its node, leaving a
+ * word alone on a line, and the narrow diagram it draws is scaled up to the
+ * 590px docs column, so a stray word shows large. Every diagram fits the
+ * column without scrolling.
  *
- * A diagram of one column - the sign-in steps, the desktop app, the FAQ's
- * phone that registers again - has room for a long line. One that draws
- * two nodes side by side - the overview's two apps, the Android and iOS
- * pages' two outcomes - breaks its lines sooner, or the pair runs off the
- * column, and the docs scroll it rather than shrink it.
+ * A Hindi line counts its vowel signs, which take no width of their own:
+ * the sign-in steps' caps are a Hindi line's.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, ReadonlyArray<number>> = {
-  [APPS_OVERVIEW]: [28],
-  [ANDROID]: [36, 26],
-  [IOS]: [36, 26],
-  [WINDOWS]: [36],
-  [MACOS]: [36],
-  [LINUX]: [36],
-  [FAQ]: [36],
+  [APPS_OVERVIEW]: [27],
+  [ANDROID]: [29, 25],
+  [IOS]: [31, 25],
+  [WINDOWS]: [27],
+  [MACOS]: [27],
+  [LINUX]: [26],
+  [FAQ]: [28],
 };
 
 /*

@@ -15,7 +15,7 @@ OneUptime 대시보드는 Microsoft Edge 또는 Google Chrome에서 Windows에 �
 flowchart TB
     Browser["Edge 또는 Chrome이<br/>대시보드를 엽니다"]
     Install["앱으로<br/>설치합니다"]
-    App["별도의 창에서 열리는<br/>OneUptime, 작업 표시줄과<br/>시작 메뉴에도"]
+    App["별도의 창에서 열리는<br/>OneUptime,<br/>작업 표시줄과<br/>시작 메뉴에도"]
     OneUptime["사용 중인 OneUptime이<br/>대시보드를 제공합니다"]
     Browser --> Install --> App
     App -->|"열 때마다<br/>대시보드를 불러옴"| OneUptime

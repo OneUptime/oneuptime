@@ -15,7 +15,7 @@ OneUptime 仪表板可以作为应用安装在 Mac 上：从 Safari 将它添加
 flowchart TB
     Browser["Safari、Chrome 或 Edge<br/>打开你的仪表板"]
     Install["你把它添加到程序坞<br/>或安装为应用"]
-    App["在自己窗口中的 OneUptime，<br/>位于程序坞和启动台中"]
+    App["在自己窗口中的<br/>OneUptime，<br/>位于程序坞和启动台中"]
     OneUptime["你的 OneUptime<br/>提供仪表板"]
     Browser --> Install --> App
     App -->|"每次打开时<br/>加载仪表板"| OneUptime

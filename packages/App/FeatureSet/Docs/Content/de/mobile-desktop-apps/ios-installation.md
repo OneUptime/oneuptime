@@ -30,10 +30,10 @@ Der App Store hält die App aktuell, solange **App-Updates** unter **Einstellung
 flowchart TB
     Address["Sie geben die Adresse<br/>Ihres OneUptime ein"]
     Check["Die App prüft, ob Ihr<br/>OneUptime antwortet"]
-    SignIn["Sie melden sich an: Passwort,<br/>Passkey oder SSO"]
+    SignIn["Sie melden sich an:<br/>Passwort, Passkey<br/>oder SSO"]
     Allow["Sie erlauben Mitteilungen"]
-    Register["Die App registriert das Gerät<br/>in jedem Ihrer Projekte"]
-    Rules["Jedes Projekt führt das Gerät,<br/>mit Standard-Bereitschaftsregeln"]
+    Register["Die App registriert<br/>das Gerät in jedem<br/>Ihrer Projekte"]
+    Rules["Jedes Projekt führt<br/>das Gerät, mit den<br/>Standard-<br/>Bereitschaftsregeln"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 

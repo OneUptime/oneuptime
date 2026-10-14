@@ -13,7 +13,7 @@ OneUptime のダッシュボードは、Google Chrome、Chromium、または Mic
 
 ```mermaid title="ダッシュボードをインストールすると得られるもの"
 flowchart TB
-    Browser["Chrome、Chromium、Edge で<br/>ダッシュボードを開く"]
+    Browser["Chrome、Chromium、<br/>Edge で<br/>ダッシュボードを開く"]
     Install["アプリとして<br/>インストールする"]
     App["専用のウィンドウで開く<br/>OneUptime。アプリ<br/>ランチャーにも"]
     OneUptime["お使いの OneUptime が<br/>ダッシュボードを配信する"]

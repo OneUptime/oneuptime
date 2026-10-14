@@ -40,10 +40,10 @@ En APK opdaterer ikke sig selv: installer den nyeste oven på den en gang imelle
 flowchart TB
     Address["Du indtaster dit<br/>OneUptimes adresse"]
     Check["Appen tjekker, at dit<br/>OneUptime svarer"]
-    SignIn["Du logger ind: adgangskode,<br/>adgangsnøgle eller SSO"]
+    SignIn["Du logger ind:<br/>adgangskode,<br/>adgangsnøgle eller SSO"]
     Allow["Du tillader notifikationer"]
-    Register["Appen registrerer telefonen<br/>i hvert af dine projekter"]
-    Rules["Hvert projekt viser telefonen,<br/>med standardvagtreglerne"]
+    Register["Appen registrerer<br/>telefonen i hvert<br/>af dine projekter"]
+    Rules["Hvert projekt viser<br/>telefonen, med<br/>standardvagtreglerne"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 

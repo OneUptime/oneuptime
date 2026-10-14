@@ -15,7 +15,7 @@ OneUptime डैशबोर्ड Microsoft Edge या Google Chrome से Wi
 flowchart TB
     Browser["Edge या Chrome आपका<br/>डैशबोर्ड खोलता है"]
     Install["आप उसे ऐप के रूप में<br/>इंस्टॉल करते हैं"]
-    App["अपनी अलग विंडो में OneUptime,<br/>टास्कबार और Start मेनू में"]
+    App["अपनी अलग विंडो<br/>में OneUptime,<br/>टास्कबार और Start मेनू में"]
     OneUptime["आपका OneUptime<br/>डैशबोर्ड देता है"]
     Browser --> Install --> App
     App -->|"हर बार खुलने पर<br/>डैशबोर्ड लोड करता है"| OneUptime

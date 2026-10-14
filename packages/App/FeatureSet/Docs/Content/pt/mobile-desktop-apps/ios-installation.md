@@ -29,11 +29,11 @@ A App Store mantém o aplicativo atualizado enquanto **Atualizações de Apps** 
 ```mermaid title="O que o aplicativo faz quando você faz login"
 flowchart TB
     Address["Você digita o endereço<br/>do seu OneUptime"]
-    Check["O aplicativo verifica se<br/>o seu OneUptime responde"]
+    Check["O aplicativo verifica se o<br/>seu OneUptime responde"]
     SignIn["Você faz login: senha,<br/>chave de acesso ou SSO"]
-    Allow["Você permite as notificações"]
+    Allow["Você permite<br/>as notificações"]
     Register["O aplicativo registra<br/>o dispositivo em cada<br/>um dos seus projetos"]
-    Rules["Cada projeto lista o dispositivo,<br/>com as regras de plantão<br/>padrão"]
+    Rules["Cada projeto lista o<br/>dispositivo, com as<br/>regras de plantão padrão"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 
@@ -76,7 +76,7 @@ Por padrão, um acionamento de plantão segue as configurações de som do dispo
 
 ```mermaid title="Se um acionamento de plantão toca mesmo assim num iPhone ou iPad"
 flowchart TB
-    Page["Um acionamento de plantão<br/>para este dispositivo"]
+    Page["Um acionamento<br/>de plantão para<br/>este dispositivo"]
     Rule{"Regra em<br/>Alerta crítico?"}
     Device{"Critical On-Call<br/>Alerts ativado?"}
     Quiet["Segue o som e o<br/>Foco do dispositivo"]

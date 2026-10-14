@@ -13,9 +13,9 @@ Le tableau de bord OneUptime s'installe sur un Mac comme une application : ajout
 
 ```mermaid title="Ce que vous apporte l'installation du tableau de bord"
 flowchart TB
-    Browser["Safari, Chrome ou Edge<br/>ouvre votre tableau de bord"]
-    Install["Vous l'ajoutez au Dock ou<br/>l'installez comme application"]
-    App["OneUptime dans sa propre fenêtre,<br/>dans le Dock et le Launchpad"]
+    Browser["Safari, Chrome ou<br/>Edge ouvre votre<br/>tableau de bord"]
+    Install["Vous l'ajoutez au<br/>Dock ou l'installez<br/>comme application"]
+    App["OneUptime dans sa<br/>propre fenêtre, dans le<br/>Dock et le Launchpad"]
     OneUptime["Votre OneUptime sert<br/>le tableau de bord"]
     Browser --> Install --> App
     App -->|"charge le tableau de bord<br/>à chaque ouverture"| OneUptime

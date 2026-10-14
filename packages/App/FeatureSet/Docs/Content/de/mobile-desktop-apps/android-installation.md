@@ -40,10 +40,10 @@ Ein APK aktualisiert sich nicht selbst: Installieren Sie von Zeit zu Zeit das ne
 flowchart TB
     Address["Sie geben die Adresse<br/>Ihres OneUptime ein"]
     Check["Die App prüft, ob Ihr<br/>OneUptime antwortet"]
-    SignIn["Sie melden sich an: Passwort,<br/>Passkey oder SSO"]
-    Allow["Sie erlauben Benachrichtigungen"]
-    Register["Die App registriert das Telefon<br/>in jedem Ihrer Projekte"]
-    Rules["Jedes Projekt führt das Telefon,<br/>mit Standard-Bereitschaftsregeln"]
+    SignIn["Sie melden sich an:<br/>Passwort, Passkey<br/>oder SSO"]
+    Allow["Sie erlauben<br/>Benachrichtigungen"]
+    Register["Die App registriert<br/>das Telefon in<br/>jedem Ihrer Projekte"]
+    Rules["Jedes Projekt führt<br/>das Telefon, mit den<br/>Standard-<br/>Bereitschaftsregeln"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 

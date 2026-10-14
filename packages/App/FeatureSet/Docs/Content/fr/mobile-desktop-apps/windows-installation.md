@@ -15,7 +15,7 @@ Le tableau de bord OneUptime s'installe sous Windows comme une application, depu
 flowchart TB
     Browser["Edge ou Chrome ouvre<br/>votre tableau de bord"]
     Install["Vous l'installez<br/>comme application"]
-    App["OneUptime dans sa propre fenêtre,<br/>dans la barre des tâches<br/>et le menu Démarrer"]
+    App["OneUptime dans<br/>sa propre fenêtre,<br/>dans la barre des tâches<br/>et le menu Démarrer"]
     OneUptime["Votre OneUptime sert<br/>le tableau de bord"]
     Browser --> Install --> App
     App -->|"charge le tableau de bord<br/>à chaque ouverture"| OneUptime

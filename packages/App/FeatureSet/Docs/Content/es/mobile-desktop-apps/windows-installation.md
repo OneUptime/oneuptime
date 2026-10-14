@@ -15,7 +15,7 @@ El panel de OneUptime se instala en Windows como una aplicación, desde Microsof
 flowchart TB
     Browser["Edge o Chrome abre<br/>su panel"]
     Install["Usted lo instala<br/>como aplicación"]
-    App["OneUptime en su propia ventana,<br/>en la barra de tareas<br/>y en el menú Inicio"]
+    App["OneUptime en su propia<br/>ventana, en la barra de<br/>tareas y en el menú Inicio"]
     OneUptime["Su OneUptime sirve<br/>el panel"]
     Browser --> Install --> App
     App -->|"carga el panel<br/>cada vez que se abre"| OneUptime

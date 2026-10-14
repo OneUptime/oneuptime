@@ -78,10 +78,10 @@ OneUptime skickar en telefons larm genom Expo, som lämnar dem vidare till Apple
 ```mermaid title="Så slutar en telefon få larm, och så kommer den tillbaka"
 flowchart TB
     Registered["Telefonen är registrerad,<br/>och larmen når den"]
-    Gone["Expo anmäler den borta: en push<br/>avvisas, eller dess kvitto säger<br/>det ungefär 15 minuter senare"]
-    Marked["OneUptime markerar den Tar inte<br/>emot aviseringar och slutar skicka;<br/>dess regler finns kvar"]
+    Gone["Expo anmäler den borta:<br/>en push avvisas,<br/>eller dess kvitto<br/>säger det ungefär<br/>15 minuter senare"]
+    Marked["OneUptime markerar den<br/>Tar inte emot aviseringar<br/>och slutar skicka;<br/>dess regler finns kvar"]
     Open["Du öppnar appen<br/>medan du är inloggad"]
-    Renewed["Appen registrerar sig igen,<br/>förnyar sin push-token, och<br/>larmen når den igen"]
+    Renewed["Appen registrerar<br/>sig igen, förnyar sin<br/>push-token, och<br/>larmen når den igen"]
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 

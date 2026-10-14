@@ -14,8 +14,8 @@
 ```mermaid title="نصب داشبورد چه چیزی به شما می‌دهد"
 flowchart TB
     Browser["Safari، Chrome یا Edge<br/>داشبورد شما را باز می‌کند"]
-    Install["آن را به Dock اضافه می‌کنید<br/>یا به‌عنوان اپلیکیشن نصب می‌کنید"]
-    App["OneUptime در پنجرهٔ خودش،<br/>در Dock و در Launchpad"]
+    Install["آن را به Dock اضافه<br/>می‌کنید یا به‌عنوان<br/>اپلیکیشن نصب می‌کنید"]
+    App["OneUptime در پنجرهٔ<br/>خودش، در Dock<br/>و در Launchpad"]
     OneUptime["OneUptime شما<br/>داشبورد را ارائه می‌کند"]
     Browser --> Install --> App
     App -->|"هر بار که باز می‌شود<br/>داشبورد را بارگیری می‌کند"| OneUptime

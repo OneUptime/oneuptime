@@ -13,9 +13,9 @@ O painel do OneUptime é instalado no Linux como um aplicativo, pelo Google Chro
 
 ```mermaid title="O que instalar o painel lhe dá"
 flowchart TB
-    Browser["Chrome, Chromium ou Edge<br/>abre o seu painel"]
+    Browser["Chrome, Chromium ou<br/>Edge abre o seu painel"]
     Install["Você o instala<br/>como aplicativo"]
-    App["OneUptime numa janela própria,<br/>no seu iniciador de aplicativos"]
+    App["OneUptime numa<br/>janela própria, no seu<br/>iniciador de aplicativos"]
     OneUptime["O seu OneUptime serve<br/>o painel"]
     Browser --> Install --> App
     App -->|"carrega o painel<br/>sempre que abre"| OneUptime

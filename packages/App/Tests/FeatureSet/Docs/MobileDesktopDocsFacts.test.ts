@@ -839,7 +839,7 @@ describe("a phone that has to register again", () => {
     expect(minutes).toBe(15);
     expect(
       englishSection(FAQ, "## When a phone has to register again"),
-    ).toContain(`so about ${minutes} minutes later`);
+    ).toContain(`about ${minutes} minutes later`);
   });
 
   it("registers again each time the app starts, on sign-in and on coming back, at most every five minutes", () => {

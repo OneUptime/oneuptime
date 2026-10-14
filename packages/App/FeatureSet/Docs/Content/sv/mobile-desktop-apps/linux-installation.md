@@ -13,12 +13,12 @@ OneUptime-instrumentpanelen installeras på Linux som en app, från Google Chrom
 
 ```mermaid title="Vad du får när du installerar instrumentpanelen"
 flowchart TB
-    Browser["Chrome, Chromium eller Edge<br/>öppnar din instrumentpanel"]
+    Browser["Chrome, Chromium<br/>eller Edge öppnar<br/>din instrumentpanel"]
     Install["Du installerar den<br/>som en app"]
-    App["OneUptime i ett eget fönster,<br/>i din appstartare"]
+    App["OneUptime i ett eget<br/>fönster, i din appstartare"]
     OneUptime["Ditt OneUptime levererar<br/>instrumentpanelen"]
     Browser --> Install --> App
-    App -->|"hämtar instrumentpanelen<br/>varje gång den öppnas"| OneUptime
+    App -->|"hämtar<br/>instrumentpanelen<br/>varje gång den öppnas"| OneUptime
 ```
 
 Den installerade appen delar inloggning, inställningar och aviseringstillstånd med sin webbläsare. Stäng webbläsaren, så fortsätter appen i sitt eget fönster.

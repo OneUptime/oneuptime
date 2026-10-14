@@ -27,7 +27,7 @@ Du kan bruge begge: hold desktop-appen åben på arbejdet, og lad telefonen væk
 ```mermaid title="Sådan når vagtalarmer din telefon og din computer"
 flowchart TB
     OneUptime["Dit OneUptime:<br/>Cloud eller selv-hostet"]
-    Expo["Expos push-tjeneste,<br/>derefter Apple eller Google"]
+    Expo["Expos push-tjeneste,<br/>derefter Apple<br/>eller Google"]
     WebPush["Din browsers<br/>push-tjeneste"]
     Phone["OneUptime On-Call<br/>på din telefon"]
     Desktop["Desktop-appen<br/>på din computer"]

@@ -77,11 +77,11 @@ OneUptime stuurt de oproepen van een telefoon via Expo, dat ze aan Apple of Goog
 
 ```mermaid title="Hoe een telefoon geen oproepen meer krijgt, en hoe hij terugkomt"
 flowchart TB
-    Registered["De telefoon is geregistreerd,<br/>en oproepen bereiken hem"]
-    Gone["Expo meldt hem weg: een push<br/>wordt geweigerd, of zijn<br/>ontvangstbewijs zegt het zo'n<br/>15 minuten later"]
-    Marked["OneUptime markeert hem als<br/>Ontvangt geen meldingen en stopt<br/>met sturen; zijn regels blijven"]
+    Registered["De telefoon is<br/>geregistreerd, en<br/>oproepen bereiken hem"]
+    Gone["Expo meldt hem weg: een<br/>push wordt geweigerd, of<br/>zijn ontvangstbewijs zegt<br/>het zo'n 15 minuten later"]
+    Marked["OneUptime markeert<br/>hem als Ontvangt geen<br/>meldingen en stopt met<br/>sturen; zijn regels blijven"]
     Open["U opent de app terwijl<br/>u bent aangemeld"]
-    Renewed["De app registreert zich opnieuw,<br/>vernieuwt zijn pushtoken, en<br/>oproepen bereiken hem weer"]
+    Renewed["De app registreert zich<br/>opnieuw, vernieuwt zijn<br/>pushtoken, en oproepen<br/>bereiken hem weer"]
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 

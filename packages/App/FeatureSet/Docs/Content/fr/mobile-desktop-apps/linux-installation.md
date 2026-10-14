@@ -13,9 +13,9 @@ Le tableau de bord OneUptime s'installe sous Linux comme une application, depuis
 
 ```mermaid title="Ce que vous apporte l'installation du tableau de bord"
 flowchart TB
-    Browser["Chrome, Chromium ou Edge<br/>ouvre votre tableau de bord"]
+    Browser["Chrome, Chromium<br/>ou Edge ouvre votre<br/>tableau de bord"]
     Install["Vous l'installez<br/>comme application"]
-    App["OneUptime dans sa propre fenêtre,<br/>dans votre lanceur d'applications"]
+    App["OneUptime dans sa<br/>propre fenêtre, dans votre<br/>lanceur d'applications"]
     OneUptime["Votre OneUptime sert<br/>le tableau de bord"]
     Browser --> Install --> App
     App -->|"charge le tableau de bord<br/>à chaque ouverture"| OneUptime

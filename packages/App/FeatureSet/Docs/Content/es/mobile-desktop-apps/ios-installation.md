@@ -29,11 +29,11 @@ El App Store mantiene la aplicación actualizada mientras **Actualizaciones de a
 ```mermaid title="Lo que hace la aplicación cuando inicia sesión"
 flowchart TB
     Address["Usted escribe la dirección<br/>de su OneUptime"]
-    Check["La aplicación comprueba que<br/>su OneUptime responde"]
-    SignIn["Usted inicia sesión: contraseña,<br/>clave de acceso o SSO"]
-    Allow["Usted permite las notificaciones"]
+    Check["La aplicación<br/>comprueba que su<br/>OneUptime responde"]
+    SignIn["Usted inicia sesión:<br/>contraseña, clave<br/>de acceso o SSO"]
+    Allow["Usted permite<br/>las notificaciones"]
     Register["La aplicación registra el<br/>dispositivo en cada uno<br/>de sus proyectos"]
-    Rules["Cada proyecto lista el<br/>dispositivo, con las reglas<br/>de guardia predeterminadas"]
+    Rules["Cada proyecto lista<br/>el dispositivo, con<br/>las reglas de guardia<br/>predeterminadas"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 

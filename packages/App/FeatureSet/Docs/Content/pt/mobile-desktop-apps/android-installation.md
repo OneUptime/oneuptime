@@ -39,11 +39,11 @@ Um APK não se atualiza sozinho: de vez em quando, instale o mais recente por ci
 ```mermaid title="O que o aplicativo faz quando você faz login"
 flowchart TB
     Address["Você digita o endereço<br/>do seu OneUptime"]
-    Check["O aplicativo verifica se<br/>o seu OneUptime responde"]
+    Check["O aplicativo verifica se o<br/>seu OneUptime responde"]
     SignIn["Você faz login: senha,<br/>chave de acesso ou SSO"]
-    Allow["Você permite as notificações"]
-    Register["O aplicativo registra o celular<br/>em cada um dos seus projetos"]
-    Rules["Cada projeto lista o celular,<br/>com as regras de plantão<br/>padrão"]
+    Allow["Você permite<br/>as notificações"]
+    Register["O aplicativo registra<br/>o celular em cada<br/>um dos seus projetos"]
+    Rules["Cada projeto lista o<br/>celular, com as regras<br/>de plantão padrão"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 
@@ -86,7 +86,7 @@ Por padrão, um acionamento de plantão segue as configurações de som do celul
 
 ```mermaid title="Se um acionamento de plantão toca mesmo assim no Android"
 flowchart TB
-    Page["Um acionamento de plantão<br/>para este celular"]
+    Page["Um acionamento de<br/>plantão para este celular"]
     Rule{"Regra em<br/>Alerta crítico?"}
     Device{"Critical On-Call<br/>Alerts ativado?"}
     Quiet["Segue o som e o<br/>Não Perturbe<br/>do celular"]

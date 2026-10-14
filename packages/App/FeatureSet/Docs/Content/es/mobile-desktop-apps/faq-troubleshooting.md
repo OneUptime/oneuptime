@@ -77,11 +77,11 @@ OneUptime envía los avisos de un teléfono a través de Expo, que los entrega a
 
 ```mermaid title="Cómo un teléfono deja de recibir avisos, y cómo vuelve"
 flowchart TB
-    Registered["El teléfono está registrado,<br/>y los avisos le llegan"]
-    Gone["Expo lo da por perdido: un push<br/>se rechaza, o su recibo lo dice<br/>unos 15 minutos después"]
-    Marked["OneUptime lo marca No recibe<br/>notificaciones y deja de enviar;<br/>sus reglas se quedan"]
+    Registered["El teléfono está<br/>registrado, y los<br/>avisos le llegan"]
+    Gone["Expo lo da por perdido:<br/>un push se rechaza,<br/>o su recibo lo dice unos<br/>15 minutos después"]
+    Marked["OneUptime lo marca<br/>No recibe notificaciones<br/>y deja de enviar;<br/>sus reglas se quedan"]
     Open["Usted abre la aplicación<br/>con la sesión iniciada"]
-    Renewed["La aplicación se vuelve<br/>a registrar, renueva su token<br/>push, y los avisos le llegan<br/>de nuevo"]
+    Renewed["La aplicación se vuelve<br/>a registrar, renueva su<br/>token push, y los avisos<br/>le llegan de nuevo"]
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 

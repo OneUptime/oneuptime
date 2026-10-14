@@ -32,8 +32,8 @@ flowchart TB
     Check["The app checks that<br/>your OneUptime answers"]
     SignIn["You sign in: password,<br/>passkey or SSO"]
     Allow["You allow notifications"]
-    Register["The app registers the device<br/>in each of your projects"]
-    Rules["Each project lists the device,<br/>with default on-call rules"]
+    Register["The app registers<br/>the device in each<br/>of your projects"]
+    Rules["Each project lists<br/>the device, with<br/>default on-call rules"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 

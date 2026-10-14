@@ -78,8 +78,8 @@ OneUptime은 휴대폰으로 가는 호출을 Expo를 통해 보내고, Expo가 
 ```mermaid title="휴대폰이 호출을 받지 못하게 되는 과정과 다시 받게 되는 과정"
 flowchart TB
     Registered["휴대폰이 등록되어<br/>호출이 도착합니다"]
-    Gone["Expo가 연결할 수 없다고 알림:<br/>푸시가 거부되거나, 약 15분 뒤<br/>배달 영수증이 그렇게 알림"]
-    Marked["OneUptime이 '알림을 받지<br/>못하고 있습니다'로 표시하고<br/>보내기를 멈춤. 규칙은 유지됨"]
+    Gone["Expo가 연결할 수<br/>없다고 알림:<br/>푸시가 거부되거나,<br/>약 15분 뒤 배달<br/>영수증이 그렇게 알림"]
+    Marked["OneUptime이 '알림을<br/>받지 못하고 있습니다'로<br/>표시하고 보내기를<br/>멈춤. 규칙은 유지됨"]
     Open["로그인한 상태로<br/>앱을 엽니다"]
     Renewed["앱이 다시 등록하고<br/>푸시 토큰을 갱신하며<br/>호출이 다시 도착합니다"]
     Registered --> Gone --> Marked --> Open --> Renewed

@@ -13,9 +13,9 @@ OneUptime 儀表板可以從 Google Chrome、Chromium 或 Microsoft Edge 在 Lin
 
 ```mermaid title="安裝儀表板會帶來什麼"
 flowchart TB
-    Browser["Chrome、Chromium 或 Edge<br/>開啟你的儀表板"]
+    Browser["Chrome、Chromium<br/>或 Edge<br/>開啟你的儀表板"]
     Install["你把它安裝<br/>為應用程式"]
-    App["在自己視窗中的 OneUptime，<br/>位於你的應用程式啟動器中"]
+    App["在自己視窗中的<br/>OneUptime，位於你的<br/>應用程式啟動器中"]
     OneUptime["你的 OneUptime<br/>提供儀表板"]
     Browser --> Install --> App
     App -->|"每次開啟時<br/>載入儀表板"| OneUptime

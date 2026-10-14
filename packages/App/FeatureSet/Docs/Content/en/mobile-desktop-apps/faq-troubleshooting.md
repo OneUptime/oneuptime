@@ -78,10 +78,10 @@ OneUptime sends a phone's pages through Expo, which hands them to Apple or Googl
 ```mermaid title="How a phone stops getting pages, and how it comes back"
 flowchart TB
     Registered["The phone is registered,<br/>and pages reach it"]
-    Gone["Expo reports it gone: a push<br/>is refused, or its receipt says<br/>so about 15 minutes later"]
-    Marked["OneUptime marks it Not receiving<br/>notifications and stops sending;<br/>its rules stay"]
+    Gone["Expo reports it gone:<br/>a push is refused,<br/>or its receipt says so<br/>about 15 minutes later"]
+    Marked["OneUptime marks it<br/>Not receiving<br/>notifications and stops<br/>sending; its rules stay"]
     Open["You open the app<br/>while signed in"]
-    Renewed["The app registers again,<br/>renews its push token, and<br/>pages reach it again"]
+    Renewed["The app registers again,<br/>renews its push token,<br/>and pages reach it again"]
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 

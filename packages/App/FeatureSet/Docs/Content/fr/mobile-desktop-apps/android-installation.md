@@ -40,10 +40,10 @@ Un APK ne se met pas à jour tout seul : installez de temps en temps le plus ré
 flowchart TB
     Address["Vous saisissez l'adresse<br/>de votre OneUptime"]
     Check["L'application vérifie que<br/>votre OneUptime répond"]
-    SignIn["Vous vous connectez : mot de<br/>passe, clé d'accès ou SSO"]
-    Allow["Vous autorisez les notifications"]
-    Register["L'application enregistre le<br/>téléphone dans chaque projet"]
-    Rules["Chaque projet liste le téléphone,<br/>avec les règles d'astreinte<br/>par défaut"]
+    SignIn["Vous vous connectez :<br/>mot de passe,<br/>clé d'accès ou SSO"]
+    Allow["Vous autorisez<br/>les notifications"]
+    Register["L'application enregistre<br/>le téléphone dans<br/>chaque projet"]
+    Rules["Chaque projet<br/>liste le téléphone,<br/>avec les règles<br/>d'astreinte par défaut"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 

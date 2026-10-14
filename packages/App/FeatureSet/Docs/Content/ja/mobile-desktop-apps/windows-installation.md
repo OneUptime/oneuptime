@@ -15,7 +15,7 @@ OneUptime のダッシュボードは、Microsoft Edge または Google Chrome �
 flowchart TB
     Browser["Edge または Chrome で<br/>ダッシュボードを開く"]
     Install["アプリとして<br/>インストールする"]
-    App["専用のウィンドウで開く<br/>OneUptime。タスクバーと<br/>スタートメニューにも"]
+    App["専用のウィンドウで<br/>開く OneUptime。<br/>タスクバーと<br/>スタートメニューにも"]
     OneUptime["お使いの OneUptime が<br/>ダッシュボードを配信する"]
     Browser --> Install --> App
     App -->|"開くたびに<br/>ダッシュボードを読み込む"| OneUptime

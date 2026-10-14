@@ -30,10 +30,10 @@ App Store holder appen opdateret, så længe **Appopdateringer** er slået til u
 flowchart TB
     Address["Du indtaster dit<br/>OneUptimes adresse"]
     Check["Appen tjekker, at dit<br/>OneUptime svarer"]
-    SignIn["Du logger ind: adgangskode,<br/>adgangsnøgle eller SSO"]
+    SignIn["Du logger ind:<br/>adgangskode,<br/>adgangsnøgle eller SSO"]
     Allow["Du tillader notifikationer"]
-    Register["Appen registrerer enheden<br/>i hvert af dine projekter"]
-    Rules["Hvert projekt viser enheden,<br/>med standardvagtreglerne"]
+    Register["Appen registrerer<br/>enheden i hvert<br/>af dine projekter"]
+    Rules["Hvert projekt viser<br/>enheden, med<br/>standardvagtreglerne"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 

@@ -15,7 +15,7 @@ OneUptime-dashboardet installeres på Windows som en app, fra Microsoft Edge ell
 flowchart TB
     Browser["Edge eller Chrome åbner<br/>dit dashboard"]
     Install["Du installerer det<br/>som en app"]
-    App["OneUptime i sit eget vindue,<br/>på proceslinjen og<br/>i menuen Start"]
+    App["OneUptime i sit eget<br/>vindue, på proceslinjen<br/>og i menuen Start"]
     OneUptime["Dit OneUptime leverer<br/>dashboardet"]
     Browser --> Install --> App
     App -->|"henter dashboardet,<br/>hver gang den åbner"| OneUptime

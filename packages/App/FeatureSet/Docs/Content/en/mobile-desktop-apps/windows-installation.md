@@ -15,7 +15,7 @@ The OneUptime dashboard installs on Windows as an app, from Microsoft Edge or Go
 flowchart TB
     Browser["Edge or Chrome<br/>opens your dashboard"]
     Install["You install it<br/>as an app"]
-    App["OneUptime in a window of its own,<br/>on the taskbar and in the Start menu"]
+    App["OneUptime in a window<br/>of its own, on the taskbar<br/>and in the Start menu"]
     OneUptime["Your OneUptime<br/>serves the dashboard"]
     Browser --> Install --> App
     App -->|"loads the dashboard<br/>each time it opens"| OneUptime

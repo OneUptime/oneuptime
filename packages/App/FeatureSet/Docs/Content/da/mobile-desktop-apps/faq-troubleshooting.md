@@ -78,10 +78,10 @@ OneUptime sender en telefons alarmer gennem Expo, som giver dem videre til Apple
 ```mermaid title="Sådan holder en telefon op med at få alarmer, og sådan kommer den tilbage"
 flowchart TB
     Registered["Telefonen er registreret,<br/>og alarmer når den"]
-    Gone["Expo melder den væk: et push<br/>afvises, eller dets kvittering<br/>siger det cirka 15 minutter senere"]
-    Marked["OneUptime markerer den Modtager<br/>ikke notifikationer og holder op<br/>med at sende; reglerne bliver"]
+    Gone["Expo melder den væk:<br/>et push afvises, eller<br/>dets kvittering siger det<br/>cirka 15 minutter senere"]
+    Marked["OneUptime markerer<br/>den Modtager ikke<br/>notifikationer og holder<br/>op med at sende;<br/>reglerne bliver"]
     Open["Du åbner appen,<br/>mens du er logget ind"]
-    Renewed["Appen registrerer sig igen,<br/>fornyer sit push-token, og<br/>alarmer når den igen"]
+    Renewed["Appen registrerer<br/>sig igen, fornyer<br/>sit push-token, og<br/>alarmer når den igen"]
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 

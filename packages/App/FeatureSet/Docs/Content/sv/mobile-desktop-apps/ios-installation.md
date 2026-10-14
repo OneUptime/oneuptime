@@ -32,8 +32,8 @@ flowchart TB
     Check["Appen kontrollerar att<br/>ditt OneUptime svarar"]
     SignIn["Du loggar in: lösenord,<br/>passkey eller SSO"]
     Allow["Du tillåter notiser"]
-    Register["Appen registrerar enheten<br/>i vart och ett av dina projekt"]
-    Rules["Varje projekt visar enheten,<br/>med standardjourreglerna"]
+    Register["Appen registrerar<br/>enheten i vart och<br/>ett av dina projekt"]
+    Rules["Varje projekt visar<br/>enheten, med<br/>standardjourreglerna"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 

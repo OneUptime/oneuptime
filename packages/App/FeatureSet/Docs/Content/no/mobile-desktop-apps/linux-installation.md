@@ -13,7 +13,7 @@ OneUptime-dashbordet installeres på Linux som en app, fra Google Chrome, Chromi
 
 ```mermaid title="Hva du får når du installerer dashbordet"
 flowchart TB
-    Browser["Chrome, Chromium eller Edge<br/>åpner dashbordet ditt"]
+    Browser["Chrome, Chromium<br/>eller Edge åpner<br/>dashbordet ditt"]
     Install["Du installerer det<br/>som en app"]
     App["OneUptime i eget vindu,<br/>i appstarteren din"]
     OneUptime["Ditt OneUptime leverer<br/>dashbordet"]

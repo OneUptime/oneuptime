@@ -26,8 +26,8 @@ OneUptime には、スマートフォン用のアプリとコンピューター�
 
 ```mermaid title="オンコールの呼び出しがスマートフォンとコンピューターに届くまで"
 flowchart TB
-    OneUptime["お使いの OneUptime：<br/>Cloud またはセルフホスト"]
-    Expo["Expo のプッシュサービス、<br/>次に Apple または Google"]
+    OneUptime["お使いの OneUptime：<br/>Cloud または<br/>セルフホスト"]
+    Expo["Expo の<br/>プッシュサービス、次に<br/>Apple または Google"]
     WebPush["ブラウザの<br/>プッシュサービス"]
     Phone["スマートフォンの<br/>OneUptime On-Call"]
     Desktop["コンピューターの<br/>デスクトップアプリ"]

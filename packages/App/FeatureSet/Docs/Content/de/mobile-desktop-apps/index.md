@@ -26,7 +26,7 @@ Sie können beide nutzen: Lassen Sie die Desktop-App bei der Arbeit offen, und l
 
 ```mermaid title="Wie Bereitschaftsalarme Ihr Telefon und Ihren Computer erreichen"
 flowchart TB
-    OneUptime["Ihr OneUptime:<br/>Cloud oder selbst gehostet"]
+    OneUptime["Ihr OneUptime: Cloud<br/>oder selbst gehostet"]
     Expo["Expo-Push-Dienst,<br/>dann Apple oder Google"]
     WebPush["Der Push-Dienst<br/>Ihres Browsers"]
     Phone["OneUptime On-Call<br/>auf Ihrem Telefon"]

@@ -13,9 +13,9 @@ El panel de OneUptime se instala en Linux como una aplicación, desde Google Chr
 
 ```mermaid title="Lo que le da instalar el panel"
 flowchart TB
-    Browser["Chrome, Chromium o Edge<br/>abre su panel"]
+    Browser["Chrome, Chromium<br/>o Edge abre su panel"]
     Install["Usted lo instala<br/>como aplicación"]
-    App["OneUptime en su propia ventana,<br/>en su lanzador de aplicaciones"]
+    App["OneUptime en su<br/>propia ventana, en su<br/>lanzador de aplicaciones"]
     OneUptime["Su OneUptime sirve<br/>el panel"]
     Browser --> Install --> App
     App -->|"carga el panel<br/>cada vez que se abre"| OneUptime

@@ -15,7 +15,7 @@
 flowchart TB
     Browser["Edge یا Chrome<br/>داشبورد شما را باز می‌کند"]
     Install["آن را به‌عنوان<br/>اپلیکیشن نصب می‌کنید"]
-    App["OneUptime در پنجرهٔ خودش،<br/>روی نوار وظیفه و در منوی Start"]
+    App["OneUptime در پنجرهٔ<br/>خودش، روی نوار<br/>وظیفه و در منوی Start"]
     OneUptime["OneUptime شما<br/>داشبورد را ارائه می‌کند"]
     Browser --> Install --> App
     App -->|"هر بار که باز می‌شود<br/>داشبورد را بارگیری می‌کند"| OneUptime

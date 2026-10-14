@@ -13,8 +13,8 @@ OneUptime のダッシュボードは、Mac にアプリとしてインストー
 
 ```mermaid title="ダッシュボードをインストールすると得られるもの"
 flowchart TB
-    Browser["Safari、Chrome、Edge で<br/>ダッシュボードを開く"]
-    Install["Dock に追加するか<br/>アプリとしてインストールする"]
+    Browser["Safari、Chrome、<br/>Edge で<br/>ダッシュボードを開く"]
+    Install["Dock に追加するか<br/>アプリとして<br/>インストールする"]
     App["専用のウィンドウで開く<br/>OneUptime。Dock と<br/>Launchpad にも"]
     OneUptime["お使いの OneUptime が<br/>ダッシュボードを配信する"]
     Browser --> Install --> App

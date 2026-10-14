@@ -78,10 +78,10 @@ OneUptime schickt die Alarme eines Telefons über Expo, das sie Apple oder Googl
 ```mermaid title="Wie ein Telefon keine Alarme mehr bekommt, und wie es zurückkommt"
 flowchart TB
     Registered["Das Telefon ist registriert,<br/>und Alarme erreichen es"]
-    Gone["Expo meldet es als weg: Ein<br/>Push wird abgelehnt, oder<br/>seine Quittung sagt es etwa<br/>15 Minuten später"]
-    Marked["OneUptime markiert es mit<br/>Keine Benachrichtigungen und<br/>sendet nicht mehr; seine<br/>Regeln bleiben"]
-    Open["Sie öffnen die App,<br/>während Sie angemeldet sind"]
-    Renewed["Die App registriert sich neu,<br/>erneuert ihr Push-Token, und<br/>Alarme erreichen es wieder"]
+    Gone["Expo meldet es als<br/>weg: Ein Push wird<br/>abgelehnt, oder seine<br/>Quittung sagt es etwa<br/>15 Minuten später"]
+    Marked["OneUptime markiert<br/>es mit Keine<br/>Benachrichtigungen<br/>und sendet nicht mehr;<br/>seine Regeln bleiben"]
+    Open["Sie öffnen die App,<br/>während Sie<br/>angemeldet sind"]
+    Renewed["Die App registriert<br/>sich neu, erneuert ihr<br/>Push-Token, und Alarme<br/>erreichen es wieder"]
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 

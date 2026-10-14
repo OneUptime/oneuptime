@@ -39,11 +39,11 @@ Un APK no se actualiza solo: instale de vez en cuando el más reciente encima. S
 ```mermaid title="Lo que hace la aplicación cuando inicia sesión"
 flowchart TB
     Address["Usted escribe la dirección<br/>de su OneUptime"]
-    Check["La aplicación comprueba que<br/>su OneUptime responde"]
-    SignIn["Usted inicia sesión: contraseña,<br/>clave de acceso o SSO"]
-    Allow["Usted permite las notificaciones"]
+    Check["La aplicación<br/>comprueba que su<br/>OneUptime responde"]
+    SignIn["Usted inicia sesión:<br/>contraseña, clave<br/>de acceso o SSO"]
+    Allow["Usted permite<br/>las notificaciones"]
     Register["La aplicación registra el<br/>teléfono en cada uno<br/>de sus proyectos"]
-    Rules["Cada proyecto lista el teléfono,<br/>con las reglas de guardia<br/>predeterminadas"]
+    Rules["Cada proyecto lista<br/>el teléfono, con las<br/>reglas de guardia<br/>predeterminadas"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 

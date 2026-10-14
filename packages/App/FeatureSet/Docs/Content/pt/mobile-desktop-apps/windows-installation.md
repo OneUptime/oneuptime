@@ -15,7 +15,7 @@ O painel do OneUptime é instalado no Windows como um aplicativo, pelo Microsoft
 flowchart TB
     Browser["Edge ou Chrome abre<br/>o seu painel"]
     Install["Você o instala<br/>como aplicativo"]
-    App["OneUptime numa janela própria,<br/>na barra de tarefas<br/>e no menu Iniciar"]
+    App["OneUptime numa janela<br/>própria, na barra de<br/>tarefas e no menu Iniciar"]
     OneUptime["O seu OneUptime serve<br/>o painel"]
     Browser --> Install --> App
     App -->|"carrega o painel<br/>sempre que abre"| OneUptime

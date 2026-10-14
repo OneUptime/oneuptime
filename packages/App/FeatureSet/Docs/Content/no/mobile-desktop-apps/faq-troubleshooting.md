@@ -78,10 +78,10 @@ OneUptime sender en telefons varsler gjennom Expo, som gir dem videre til Apple 
 ```mermaid title="Slik slutter en telefon å få varsler, og slik kommer den tilbake"
 flowchart TB
     Registered["Telefonen er registrert,<br/>og varsler når den"]
-    Gone["Expo melder den borte: et push<br/>avvises, eller kvitteringen<br/>sier det rundt 15 minutter senere"]
-    Marked["OneUptime merker den Mottar<br/>ikke varsler og slutter å sende;<br/>reglene blir værende"]
+    Gone["Expo melder den borte:<br/>et push avvises,<br/>eller kvitteringen sier det<br/>rundt 15 minutter senere"]
+    Marked["OneUptime merker<br/>den Mottar ikke varsler<br/>og slutter å sende;<br/>reglene blir værende"]
     Open["Du åpner appen<br/>mens du er logget inn"]
-    Renewed["Appen registrerer seg på nytt,<br/>fornyer push-tokenet, og<br/>varsler når den igjen"]
+    Renewed["Appen registrerer<br/>seg på nytt, fornyer<br/>push-tokenet, og<br/>varsler når den igjen"]
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 

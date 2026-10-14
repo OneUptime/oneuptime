@@ -27,7 +27,7 @@ Du kan bruke begge: ha skrivebordsappen åpen på jobb, og la telefonen vekke de
 ```mermaid title="Slik når vaktvarsler telefonen og datamaskinen din"
 flowchart TB
     OneUptime["Ditt OneUptime:<br/>Cloud eller selvdriftet"]
-    Expo["Expos push-tjeneste,<br/>deretter Apple eller Google"]
+    Expo["Expos push-tjeneste,<br/>deretter Apple<br/>eller Google"]
     WebPush["Nettleserens<br/>push-tjeneste"]
     Phone["OneUptime On-Call<br/>på telefonen din"]
     Desktop["Skrivebordsappen<br/>på datamaskinen din"]

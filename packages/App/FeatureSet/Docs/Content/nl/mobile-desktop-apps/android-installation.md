@@ -40,10 +40,10 @@ Een APK werkt zichzelf niet bij: installeer af en toe de nieuwste eroverheen. Uw
 flowchart TB
     Address["U voert het adres<br/>van uw OneUptime in"]
     Check["De app controleert of<br/>uw OneUptime antwoordt"]
-    SignIn["U meldt zich aan: wachtwoord,<br/>passkey of SSO"]
+    SignIn["U meldt zich aan:<br/>wachtwoord, passkey<br/>of SSO"]
     Allow["U staat meldingen toe"]
-    Register["De app registreert de telefoon<br/>in elk van uw projecten"]
-    Rules["Elk project toont de telefoon,<br/>met de standaard<br/>bereikbaarheidsregels"]
+    Register["De app registreert<br/>de telefoon in elk<br/>van uw projecten"]
+    Rules["Elk project toont<br/>de telefoon,<br/>met de standaard<br/>bereikbaarheidsregels"]
     Address --> Check --> SignIn --> Allow --> Register --> Rules
 ```
 

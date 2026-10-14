@@ -78,7 +78,7 @@ OneUptime 通过 Expo 发送手机的呼叫，Expo 再把它们交给 Apple 或 
 ```mermaid title="手机如何不再收到呼叫，又如何恢复"
 flowchart TB
     Registered["手机已注册，<br/>呼叫能送达它"]
-    Gone["Expo 报告它已失联：推送<br/>被拒绝，或约 15 分钟后的<br/>回执这样说明"]
+    Gone["Expo 报告它已失联：<br/>推送被拒绝，或约<br/>15 分钟后的回执<br/>这样说明"]
     Marked["OneUptime 将它标记为<br/>未收到通知并停止发送；<br/>它的规则会保留"]
     Open["你在登录状态下<br/>打开应用"]
     Renewed["应用重新注册，<br/>刷新推送令牌，<br/>呼叫再次送达"]

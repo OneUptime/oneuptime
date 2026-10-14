@@ -29,8 +29,8 @@ App Store から iPhone や iPad に **OneUptime On-Call** をインストール
 ```mermaid title="サインインするときにアプリが行うこと"
 flowchart TB
     Address["お使いの OneUptime の<br/>アドレスを入力する"]
-    Check["お使いの OneUptime が<br/>応答するかをアプリが確認する"]
-    SignIn["サインインする：パスワード、<br/>パスキー、または SSO"]
+    Check["お使いの OneUptime が<br/>応答するかを<br/>アプリが確認する"]
+    SignIn["サインインする：<br/>パスワード、パスキー、<br/>または SSO"]
     Allow["通知を許可する"]
     Register["アプリが各プロジェクトに<br/>デバイスを登録する"]
     Rules["各プロジェクトに、既定の<br/>オンコールルール付きで<br/>デバイスが表示される"]

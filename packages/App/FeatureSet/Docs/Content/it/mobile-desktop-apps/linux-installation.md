@@ -13,9 +13,9 @@ La dashboard di OneUptime si installa su Linux come app, da Google Chrome, Chrom
 
 ```mermaid title="Cosa ti dà installare la dashboard"
 flowchart TB
-    Browser["Chrome, Chromium o Edge<br/>apre la tua dashboard"]
+    Browser["Chrome, Chromium<br/>o Edge apre la<br/>tua dashboard"]
     Install["La installi<br/>come app"]
-    App["OneUptime in una finestra sua,<br/>nel tuo launcher di app"]
+    App["OneUptime in una<br/>finestra sua, nel<br/>tuo launcher di app"]
     OneUptime["Il tuo OneUptime serve<br/>la dashboard"]
     Browser --> Install --> App
     App -->|"carica la dashboard<br/>a ogni apertura"| OneUptime

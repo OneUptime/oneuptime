@@ -13,7 +13,7 @@ OneUptime 대시보드는 Google Chrome, Chromium 또는 Microsoft Edge에서 Li
 
 ```mermaid title="대시보드를 설치하면 얻는 것"
 flowchart TB
-    Browser["Chrome, Chromium 또는 Edge가<br/>대시보드를 엽니다"]
+    Browser["Chrome, Chromium<br/>또는 Edge가<br/>대시보드를 엽니다"]
     Install["앱으로<br/>설치합니다"]
     App["별도의 창에서 열리는<br/>OneUptime, 앱 런처에도"]
     OneUptime["사용 중인 OneUptime이<br/>대시보드를 제공합니다"]

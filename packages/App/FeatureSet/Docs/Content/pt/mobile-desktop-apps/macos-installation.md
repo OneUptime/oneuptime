@@ -14,8 +14,8 @@ O painel do OneUptime é instalado num Mac como um aplicativo: adicione-o ao Doc
 ```mermaid title="O que instalar o painel lhe dá"
 flowchart TB
     Browser["Safari, Chrome ou Edge<br/>abre o seu painel"]
-    Install["Você o adiciona ao Dock ou<br/>o instala como aplicativo"]
-    App["OneUptime numa janela própria,<br/>no Dock e no Launchpad"]
+    Install["Você o adiciona ao<br/>Dock ou o instala<br/>como aplicativo"]
+    App["OneUptime numa<br/>janela própria, no<br/>Dock e no Launchpad"]
     OneUptime["O seu OneUptime serve<br/>o painel"]
     Browser --> Install --> App
     App -->|"carrega o painel<br/>sempre que abre"| OneUptime

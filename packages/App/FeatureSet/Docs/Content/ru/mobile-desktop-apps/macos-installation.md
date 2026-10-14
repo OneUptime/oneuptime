@@ -13,12 +13,12 @@
 
 ```mermaid title="Что даёт установка панели управления"
 flowchart TB
-    Browser["Safari, Chrome или Edge<br/>открывает панель управления"]
-    Install["Вы добавляете её в Dock<br/>или устанавливаете<br/>как приложение"]
-    App["OneUptime в собственном окне,<br/>в Dock и в Launchpad"]
+    Browser["Safari, Chrome или<br/>Edge открывает<br/>панель управления"]
+    Install["Вы добавляете<br/>её в Dock или<br/>устанавливаете<br/>как приложение"]
+    App["OneUptime в<br/>собственном окне,<br/>в Dock и в Launchpad"]
     OneUptime["Ваш OneUptime отдаёт<br/>панель управления"]
     Browser --> Install --> App
-    App -->|"загружает панель управления<br/>при каждом открытии"| OneUptime
+    App -->|"загружает панель<br/>управления при<br/>каждом открытии"| OneUptime
 ```
 
 Веб-приложение Safari хранит собственный вход, файлы cookie и настройки отдельно от Safari. Приложение, установленное из Chrome или Edge, использует их вместе с этим браузером.
