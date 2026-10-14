@@ -28734,5 +28734,12 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} har vagt, men er ikke i gruppen: personens Slack-konto er deaktiveret.",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} har vagt, men er ikke i gruppen: personen er gæst i Slack, og Slack holder gæster uden for brugergrupper.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} har vagt, men er ikke i mærket: et mærke rummer kun personer fra sit eget team, og personen er ikke i teamet {{team}}. Tilføj personen til teamet i Microsoft Teams.",
-  "{{remaining}} of the error budget left": "{{remaining}} af fejlbudgettet tilbage"
+  "{{remaining}} of the error budget left": "{{remaining}} af fejlbudgettet tilbage",
+  "Are you sure you want to delete the {{status}} status event that started {{startsAt}}?": "Er du sikker på, at du vil slette statushændelsen {{status}}, der startede {{startsAt}}?",
+  "It ended more than {{days}} days ago, so status pages no longer show it.": "Den sluttede for mere end {{days}} dage siden, så statussider viser den ikke længere.",
+  "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.": "Monitorens ældste statushændelse kan ikke slettes, så længe den dækker en del af de seneste {{days}} dage: statussider ville vise den periode grå. Tilføj en statushændelse, der starter før den, for at erstatte den, og slet derefter denne.",
+  "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.": "Monitorens eneste statushændelse kan ikke slettes: monitoren ville ikke have nogen status, og statussider ville vise den grå. Tilføj en ny statushændelse for at ændre dens status.",
+  "{{status}}, the status before it, becomes the monitor's current status again.": "{{status}}, statussen før den, bliver monitorens aktuelle status igen.",
+  "{{status}}, the status before it, takes over its time.": "{{status}}, statussen før den, overtager dens periode.",
+  "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.": "Statussen før hver slettet hændelse overtager dens periode, så sletning af den nyeste ændrer monitorens aktuelle status."
 }

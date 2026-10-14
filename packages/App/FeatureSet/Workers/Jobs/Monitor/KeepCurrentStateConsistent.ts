@@ -4,8 +4,12 @@ import logger from "Common/Server/Utils/Logger";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorStatusTimelineReconciler, {
   RepairStaleOpenRowsResult,
+  RestoreMissingStatusTimelinesResult,
 } from "Common/Server/Utils/Monitor/MonitorStatusTimelineReconciler";
 import ObjectID from "Common/Types/ObjectID";
+
+// How many restored monitors the log names by id; the rest are counted.
+const MONITORS_NAMED_IN_LOG: number = 100;
 
 /*
  * Repairs MonitorStatusTimeline rows that were left open (endsAt IS NULL) even though a later
@@ -95,6 +99,41 @@ RunCron(
       }
     } catch (err) {
       logger.error("Error in Monitor:KeepCurrentStateConsistent job");
+      logger.error(err);
+    }
+
+    /*
+     * A monitor with no status timeline left is gray on every status page, whatever its
+     * status. Its own current status is recorded again as one row (see
+     * MonitorStatusTimelineReconciler.restoreMissingStatusTimelines): the monitors OneUptime
+     * Cloud's old 120 day purge emptied, and any whose first row was never written. Its own
+     * try: a failure here must not hide the repair above, nor the other way round.
+     */
+    try {
+      const restored: RestoreMissingStatusTimelinesResult =
+        await MonitorStatusTimelineReconciler.restoreMissingStatusTimelines({});
+
+      if (restored.restored > 0) {
+        /*
+         * Warn rather than log: once the monitors emptied before are restored, a run should
+         * restore nothing. A non-zero count later means something deletes a monitor's last
+         * status row, or a first row went unwritten, and someone should look at it.
+         */
+        const named: Array<string> = restored.restoredMonitorIds
+          .slice(0, MONITORS_NAMED_IN_LOG)
+          .map((monitorId: ObjectID) => {
+            return monitorId.toString();
+          });
+        const unnamed: number = restored.restored - named.length;
+
+        logger.warn(
+          `Monitor:KeepCurrentStateConsistent - restored the current status of ${restored.restored} monitor(s) that had no status timeline left: ${named.join(", ")}${unnamed > 0 ? ` and ${unnamed} more` : ""}.`,
+        );
+      }
+    } catch (err) {
+      logger.error(
+        "Error in Monitor:KeepCurrentStateConsistent job while restoring the status of monitors with no status timeline",
+      );
       logger.error(err);
     }
   },

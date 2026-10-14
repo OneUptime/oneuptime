@@ -116,6 +116,7 @@ import {
   Driver,
   EntityManager,
   FindOperator,
+  Raw,
   Repository,
   SelectQueryBuilder,
   UpdateResult,
@@ -166,6 +167,11 @@ import RelatedFileAccess, {
 import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import CallerPlan from "../Utils/Billing/CallerPlan";
+import QueryIdCondition from "../Utils/Database/QueryIdCondition";
+import {
+  BoundRowsKept,
+  RowsKeptOnDeleteRule,
+} from "../Utils/Database/StateTimelineRowsKept";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -454,6 +460,29 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): void {
     this.hardDeleteItemByColumnName = columnName;
     this.hardDeleteItemsOlderThanDays = olderThan;
+  }
+
+  // The rows a delete by query leaves, when the table keeps some. See below.
+  private rowsKeptOnDeleteByQuery: RowsKeptOnDeleteRule | null = null;
+
+  /*
+   * Declared by a service whose table holds rows a clean-up must never take:
+   * a state timeline's current row, and every row a status timeline still
+   * draws (Types/StateTimeline/RowsKeptOnDelete). Every delete that names
+   * its rows by a query - anything but one row by its id - is then narrowed
+   * to leave them before any of its rows is read
+   * (leaveRowsKeptOnDeleteByQuery): OneUptime's own purges and the retention
+   * job, a workflow's Delete One and Delete Many, a teammate's delete of
+   * several rows. A delete of one row by its id is the service's own hook to
+   * judge.
+   */
+  protected keepRowsOnDeleteByQuery(rule: RowsKeptOnDeleteRule): void {
+    this.rowsKeptOnDeleteByQuery = rule;
+  }
+
+  // What a delete by query of this table leaves, or null when it leaves nothing.
+  public getRowsKeptOnDeleteByQuery(): RowsKeptOnDeleteRule | null {
+    return this.rowsKeptOnDeleteByQuery;
   }
 
   public getModel(): TBaseModel {
@@ -6784,6 +6813,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         DatabaseRequestType.Delete,
       );
 
+      // The rows the table keeps from a delete by query stay. See the helper.
+      this.leaveRowsKeptOnDeleteByQuery(deleteBy);
+
       /*
        * Only the rows the caller may delete reach the hook. See the helper.
        * A hard delete also purges soft-deleted rows, so they count too.
@@ -6940,6 +6972,106 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return filters as Query<TBaseModel>;
   }
 
+  /*
+   * A delete by query of a table that keeps rows from one
+   * (keepRowsOnDeleteByQuery), narrowed in place to leave them. It runs
+   * before the caller's rows are read (keepRowsCallerMayWrite) and before
+   * any hook reads the delete's rows, so no window of the delete ever holds
+   * a row that stays: a delete run again and again - the retention job's
+   * loop, a workflow on a schedule - still reaches every row it may take.
+   *
+   * Left as it is: a delete that names one row by its id, which the
+   * service's own hook judges (a state timeline lets that row's neighbours
+   * close the gap it leaves, or refuses it), and one that skips the hooks,
+   * OneUptime's own write past every rule.
+   */
+  private leaveRowsKeptOnDeleteByQuery(deleteBy: DeleteBy<TBaseModel>): void {
+    const rule: RowsKeptOnDeleteRule | null = this.rowsKeptOnDeleteByQuery;
+
+    if (
+      !rule ||
+      deleteBy.props.ignoreHooks ||
+      DatabaseService.getOneRowIdNamedBy(deleteBy.query)
+    ) {
+      return;
+    }
+
+    const bound: BoundRowsKept = rule.bind();
+
+    deleteBy.query = QueryIdCondition.withIdCondition(
+      deleteBy.query,
+      Raw((columnPath: string): string => {
+        return `NOT ${bound.sqlForRowKept(QueryIdCondition.rowAliasOf(columnPath, "_id"))}`;
+      }, bound.parameters) as FindOperator<unknown>,
+    );
+  }
+
+  /*
+   * How many of the rows `query` names a delete by that query leaves
+   * (keepRowsOnDeleteByQuery), counted as `props` reads them - for whoever
+   * ran the delete to say so, as a workflow step's log does. Null when the
+   * table keeps no rows from a delete, or when the query names one row by
+   * its id: that delete is the service's hook to judge, and leaves nothing.
+   */
+  @CaptureSpan()
+  public async countRowsKeptOnDeleteByQuery(data: {
+    query: Query<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<number | null> {
+    const rule: RowsKeptOnDeleteRule | null = this.rowsKeptOnDeleteByQuery;
+
+    if (!rule || DatabaseService.getOneRowIdNamedBy(data.query)) {
+      return null;
+    }
+
+    const bound: BoundRowsKept = rule.bind();
+
+    const kept: PositiveNumber = await this.countBy({
+      query: QueryIdCondition.withIdCondition(
+        data.query,
+        Raw((columnPath: string): string => {
+          return bound.sqlForRowKept(
+            QueryIdCondition.rowAliasOf(columnPath, "_id"),
+          );
+        }, bound.parameters) as FindOperator<unknown>,
+      ),
+      props: data.props,
+    });
+
+    return kept.toNumber();
+  }
+
+  /*
+   * Whether a delete by query would leave this row (keepRowsOnDeleteByQuery),
+   * read as OneUptime: for a service's hook that holds a delete of one row by
+   * its id to the same rule. False when the table keeps no rows.
+   */
+  protected async isRowKeptOnDeleteByQuery(rowId: ObjectID): Promise<boolean> {
+    const rule: RowsKeptOnDeleteRule | null = this.rowsKeptOnDeleteByQuery;
+
+    if (!rule) {
+      return false;
+    }
+
+    const bound: BoundRowsKept = rule.bind();
+
+    const kept: PositiveNumber = await this.countBy({
+      query: QueryIdCondition.withIdCondition(
+        { _id: rowId.toString() } as Query<TBaseModel>,
+        Raw((columnPath: string): string => {
+          return bound.sqlForRowKept(
+            QueryIdCondition.rowAliasOf(columnPath, "_id"),
+          );
+        }, bound.parameters) as FindOperator<unknown>,
+      ),
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return kept.toNumber() > 0;
+  }
+
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     // What onBeforeDelete handed back, for onDeleteError.
     let onDeleteOfError: OnDelete<TBaseModel> | undefined = undefined;
@@ -6957,6 +7089,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
         throw new BadDataException("Delete not allowed");
       }
+
+      // The rows the table keeps from a delete by query stay. See the helper.
+      this.leaveRowsKeptOnDeleteByQuery(deleteBy);
 
       // Only the rows the caller may delete reach the hook. See the helper.
       if (

@@ -63,7 +63,9 @@ jest.mock("../../../Server/Infrastructure/Semaphore", () => {
   };
 });
 
-import MonitorStatusTimelineService from "../../../Server/Services/MonitorStatusTimelineService";
+import MonitorStatusTimelineService, {
+  StatusEventDeleteCarryForward,
+} from "../../../Server/Services/MonitorStatusTimelineService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
@@ -567,8 +569,18 @@ describe("MonitorStatusTimelineService.onDeleteSuccess - bridging the surviving 
   });
 
   function runOnDeleteSuccess(
-    carryForward: ObjectID | null,
+    monitorId: ObjectID | null,
   ): Promise<OnDelete<MonitorStatusTimeline>> {
+    /*
+     * What onBeforeDelete hands on for one event deleted by its id: its
+     * monitor, the event, and the event before it that runs on over its time
+     * (none here, as when the oldest event goes). The monitor's status is
+     * refreshed, and bridged, once that event is among the deleted ids.
+     */
+    const carryForward: StatusEventDeleteCarryForward | null = monitorId
+      ? { monitorId: monitorId, eventId: ROW_ID, previousRunsOn: null }
+      : null;
+
     const onDelete: OnDelete<MonitorStatusTimeline> = {
       deleteBy: {
         query: {

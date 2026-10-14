@@ -426,6 +426,8 @@ Fields OneUptime fills in itself aren't offered when you write a record: the rec
 
 **Skip** and **Limit** are two number fields on Find Many, Update Many, and Delete Many, under **More fields** — `Skip: 0` with `Limit: 100` takes the first hundred matches. **Limit** defaults to `10`, and on Update Many and Delete Many it caps how many records are actually written, not just how many come back. So `Items Deleted: 10` means ten records were deleted, not that ten matched. Raise **Limit** when you mean to change more than ten.
 
+Delete One and Delete Many by query never empty a history. On a monitor's status events, and on the state timelines of incidents, alerts, scheduled maintenance events and episodes, they never remove a record's current state, and they keep every monitor status event that covers part of the last 90 days, so a status page never shows a monitor gray. The run log says how many were kept. To delete one particular event, query it by its `_id`.
+
 **Success** and **Error** report whether the query ran, not what it found. A query matching nothing returns `0` and still leaves through **Success** — that is not a failure. To branch on whether anything matched, read the returned count in an **If / Else** block.
 
 ## Next steps

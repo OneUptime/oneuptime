@@ -28734,5 +28734,12 @@
   "{{name}} is on call but isn't in the group: their Slack account is deactivated.": "{{name}} è reperibile ma non è nel gruppo: il suo account Slack è disattivato.",
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} è reperibile ma non è nel gruppo: è un ospite in Slack, e Slack esclude gli ospiti dai gruppi di utenti.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} è reperibile ma non è nel tag: un tag contiene solo membri del suo team, e questa persona non è nel team {{team}}. Aggiungila al team in Microsoft Teams.",
-  "{{remaining}} of the error budget left": "Resta il {{remaining}} del budget di errore"
+  "{{remaining}} of the error budget left": "Resta il {{remaining}} del budget di errore",
+  "Are you sure you want to delete the {{status}} status event that started {{startsAt}}?": "Sei sicuro di voler eliminare l'evento di stato {{status}} iniziato il {{startsAt}}?",
+  "It ended more than {{days}} days ago, so status pages no longer show it.": "È terminato più di {{days}} giorni fa, quindi le pagine di stato non lo mostrano più.",
+  "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.": "L'evento di stato più vecchio del monitor non può essere eliminato finché copre parte degli ultimi {{days}} giorni: le pagine di stato mostrerebbero quel periodo in grigio. Per sostituirlo, aggiungi un evento di stato che inizi prima, poi elimina questo.",
+  "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.": "L'unico evento di stato del monitor non può essere eliminato: il monitor rimarrebbe senza stato e le pagine di stato lo mostrerebbero in grigio. Per cambiarne lo stato, aggiungi un nuovo evento di stato.",
+  "{{status}}, the status before it, becomes the monitor's current status again.": "{{status}}, lo stato precedente, torna a essere lo stato attuale del monitor.",
+  "{{status}}, the status before it, takes over its time.": "{{status}}, lo stato precedente, ora copre quel periodo.",
+  "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.": "Lo stato che precede ogni evento eliminato ne copre il periodo, quindi eliminare il più recente cambia lo stato attuale del monitor."
 }
