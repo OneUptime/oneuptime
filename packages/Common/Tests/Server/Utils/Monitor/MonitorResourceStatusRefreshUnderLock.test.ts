@@ -137,6 +137,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import ProjectService from "../../../../Server/Services/ProjectService";
 
 const ONLINE: ObjectID = new ObjectID("aaaaaaaa-0000-4000-8000-000000000001");
 const OFFLINE: ObjectID = new ObjectID("aaaaaaaa-0000-4000-8000-000000000002");
@@ -281,6 +282,8 @@ function writtenStatuses(): Array<string> {
 describe("MonitorResourceUtil.monitorResource decides status under the per-monitor lock", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
 
     lock.mockResolvedValue({ isAcquired: true } as never);
 

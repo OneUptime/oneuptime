@@ -1,6 +1,7 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Footer from "../Footer/Footer";
+import ProjectBlocked from "../Project/ProjectBlocked";
 import Header from "../Header/Header";
 import NavBar from "../NavBar/NavBar";
 import Route from "Common/Types/API/Route";
@@ -39,6 +40,11 @@ export interface ComponentProps {
   onSsoErrorHandled?: (() => void) | undefined;
   // The header reports a project that requires SSO through this.
   onSsoAuthorizationRequired?: (() => void) | undefined;
+  /*
+   * A master admin blocked the selected project
+   * (BlockedProject.isSelectedProjectBlocked): its pages show why instead.
+   */
+  isSelectedProjectBlocked?: boolean | undefined;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -86,6 +92,16 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
   const error: string = shouldRedirectToSso ? "" : props.error;
 
+  /*
+   * The blocked project's own pages - every route under its id - show why
+   * they cannot open, with no menu of pages that would not open either. The
+   * header stays, so the project picker switches to another project, and
+   * the person's own pages (profile, log out, invitations) open as usual.
+   */
+  const showProjectBlocked: boolean =
+    Boolean(props.isSelectedProjectBlocked) &&
+    ProjectUtil.getProjectIdFromUrl() !== null;
+
   let isSubscriptionInactiveOrOverdue: boolean = false;
   let isSubscriptionOverdue: boolean = false;
 
@@ -113,28 +129,30 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      {BILLING_ENABLED && isSubscriptionInactiveOrOverdue && (
-        <TopAlert
-          alertType={TopAlertType.DANGER}
-          title={
-            isSubscriptionOverdue
-              ? "Your project will become inactive soon because some of the invoices are unpaid"
-              : "Your project is not active because some invoices are unpaid. If left unpaid, your project will be deleted."
-          }
-          description={
-            <AppLink
-              className="underline"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route,
-              )}
-            >
-              {translator.translateText(
-                "Click here to pay your unpaid invoices.",
-              ) || ""}
-            </AppLink>
-          }
-        />
-      )}
+      {BILLING_ENABLED &&
+        isSubscriptionInactiveOrOverdue &&
+        !showProjectBlocked && (
+          <TopAlert
+            alertType={TopAlertType.DANGER}
+            title={
+              isSubscriptionOverdue
+                ? "Your project will become inactive soon because some of the invoices are unpaid"
+                : "Your project is not active because some invoices are unpaid. If left unpaid, your project will be deleted."
+            }
+            description={
+              <AppLink
+                className="underline"
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route,
+                )}
+              >
+                {translator.translateText(
+                  "Click here to pay your unpaid invoices.",
+                ) || ""}
+              </AppLink>
+            }
+          />
+        )}
 
       <MasterPage
         footer={<Footer />}
@@ -150,7 +168,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
           />
         }
         navBar={
-          <NavBar show={props.projects.length > 0 && !isOnHideNavbarPage} />
+          <NavBar
+            show={
+              props.projects.length > 0 &&
+              !isOnHideNavbarPage &&
+              !showProjectBlocked
+            }
+          />
         }
         isLoading={props.isLoading}
         error={error}
@@ -163,7 +187,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
          */
         className="flex flex-col min-h-screen"
       >
-        {props.children}
+        {showProjectBlocked ? <ProjectBlocked /> : props.children}
       </MasterPage>
     </div>
   );

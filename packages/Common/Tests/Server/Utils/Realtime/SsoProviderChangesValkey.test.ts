@@ -37,7 +37,7 @@ import { Redis as RedisClient } from "ioredis";
  * the live updates open in the project: on hearing A, it forgets its
  * answers about that project's providers (ProjectService.forgetSignInRules,
  * here the part of it this suite is about) and asks the live updates in the
- * project again (Realtime.recheckSignInRules, here a listener recording the
+ * project again (Realtime.recheckProjectAccess, here a listener recording the
  * call; Realtime.test runs the real one). Realtime.test and
  * UserAuthorizationProjectSsoProvider.test cover what each server then
  * decides.

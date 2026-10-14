@@ -49,6 +49,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import ProjectService from "Common/Server/Services/ProjectService";
 
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -224,6 +225,8 @@ const runWith: RunWithFunction = async (data: {
 
 describe("RunWorkflow: a cut-down copy of a value too big to keep", () => {
   beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });

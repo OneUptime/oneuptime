@@ -4,6 +4,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
+import ProjectService from "./ProjectService";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -11,6 +12,7 @@ import Model from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ProjectBlockedException from "../../Types/Exception/ProjectBlockedException";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import TelemetryIngestionKeyPolicy from "../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../Types/Telemetry/TelemetryIngestionKeyType";
@@ -403,6 +405,17 @@ export class Service extends DatabaseService<Model> {
       policy.isEnabled &&
       (!policy.expiresAt || policy.expiresAt.getTime() > Date.now())
     ) {
+      /*
+       * A project a master admin blocked ingests nothing until it is
+       * unblocked, whatever it pays: every transport that resolves a key
+       * here (HTTP, gRPC, MQTT, validation, session replay) refuses it with
+       * a 403. Asked on key-cache hits too; the answer has its own cache
+       * (ProjectService.isProjectBlocked), forgotten when the block changes.
+       */
+      if (await ProjectService.isProjectBlocked(policy.projectId)) {
+        throw new ProjectBlockedException();
+      }
+
       /*
        * Check even on key-cache hits. Billing eligibility has its own bounded
        * cache, and must not remain enabled for the lifetime of a live key.

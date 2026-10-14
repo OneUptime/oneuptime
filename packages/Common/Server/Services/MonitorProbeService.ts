@@ -236,6 +236,10 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
          * customers' monitoring was silently switched off. Monitoring now
          * stops only when the subscription is truly inactive (unpaid,
          * canceled, incomplete, incomplete_expired, expired, paused).
+         *
+         * A project a master admin blocked (Project.isBlocked) is not probed
+         * at all until it is unblocked, as ProjectService's
+         * getActiveProjectStatusQuery says for every other monitoring path.
          */
         const activeSubscriptionStatuses: Array<string> =
           SubscriptionStatusUtil.getActiveSubscriptionStatuses();
@@ -255,6 +259,7 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
           AND m."disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false
           AND m."deletedAt" IS NULL
           AND p."deletedAt" IS NULL
+          AND p."isBlocked" = false
           AND (p."paymentProviderSubscriptionStatus" IS NULL
                OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
