@@ -29225,6 +29225,16 @@
   "open cases assigned to you_one": "open case assigned to you",
   "open cases nobody has picked up_one": "open case nobody has picked up",
   "playbook steps waiting for approval_one": "playbook step waiting for approval",
+  "Approval Decided": "Approval Decided",
+  "Approval Requested": "Approval Requested",
+  "Assignee Changed": "Assignee Changed",
+  "Case Updated": "Case Updated",
+  "Entity Activity": "Entity Activity",
+  "Incident Declared": "Incident Declared",
+  "Playbook Run": "Playbook Run",
+  "Playbook Step": "Playbook Step",
+  "Priority Changed": "Priority Changed",
+  "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "सुरक्षा केस हटाने से उसके डिटेक्शन, नोट्स, टाइमलाइन और प्लेबुक रन भी हट जाते हैं।",
   "To keep the record, close the case with a verdict instead.": "रिकॉर्ड रखने के लिए, इसके बजाय केस को किसी निर्णय के साथ बंद करें।"
 }

@@ -22,8 +22,14 @@ import { describe, expect, test } from "@jest/globals";
 
 describe("SecurityCasePriority", () => {
   test("lists priorities most urgent first, each ranked above the next", () => {
-    for (let index: number = 1; index < SECURITY_CASE_PRIORITIES.length; index++) {
-      expect(securityCasePriorityRank(SECURITY_CASE_PRIORITIES[index - 1])).toBeGreaterThan(
+    for (
+      let index: number = 1;
+      index < SECURITY_CASE_PRIORITIES.length;
+      index++
+    ) {
+      expect(
+        securityCasePriorityRank(SECURITY_CASE_PRIORITIES[index - 1]),
+      ).toBeGreaterThan(
         securityCasePriorityRank(SECURITY_CASE_PRIORITIES[index]),
       );
     }
@@ -61,9 +67,15 @@ describe("SecurityCasePriority", () => {
   });
 
   test("compares priorities, treating a missing minimum as any", () => {
-    expect(isPriorityAtLeast(SecurityCasePriority.High, SecurityCasePriority.Medium)).toBe(true);
-    expect(isPriorityAtLeast(SecurityCasePriority.High, SecurityCasePriority.High)).toBe(true);
-    expect(isPriorityAtLeast(SecurityCasePriority.Low, SecurityCasePriority.High)).toBe(false);
+    expect(
+      isPriorityAtLeast(SecurityCasePriority.High, SecurityCasePriority.Medium),
+    ).toBe(true);
+    expect(
+      isPriorityAtLeast(SecurityCasePriority.High, SecurityCasePriority.High),
+    ).toBe(true);
+    expect(
+      isPriorityAtLeast(SecurityCasePriority.Low, SecurityCasePriority.High),
+    ).toBe(false);
     expect(isPriorityAtLeast(SecurityCasePriority.Low, undefined)).toBe(true);
     expect(isPriorityAtLeast(undefined, SecurityCasePriority.Low)).toBe(false);
     expect(isPriorityAtLeast("nonsense", SecurityCasePriority.Low)).toBe(false);
@@ -71,10 +83,16 @@ describe("SecurityCasePriority", () => {
 
   test("picks the higher of two priorities, either way round", () => {
     expect(
-      higherSecurityCasePriority(SecurityCasePriority.Low, SecurityCasePriority.Critical),
+      higherSecurityCasePriority(
+        SecurityCasePriority.Low,
+        SecurityCasePriority.Critical,
+      ),
     ).toBe(SecurityCasePriority.Critical);
     expect(
-      higherSecurityCasePriority(SecurityCasePriority.Critical, SecurityCasePriority.Low),
+      higherSecurityCasePriority(
+        SecurityCasePriority.Critical,
+        SecurityCasePriority.Low,
+      ),
     ).toBe(SecurityCasePriority.Critical);
   });
 
@@ -86,13 +104,19 @@ describe("SecurityCasePriority", () => {
 
   test("colors a priority like the events list colors the matching severity", () => {
     // SecurityEventSeverityPill: Critical red, High orange, Medium yellow, Low blue, the rest gray.
-    expect(getSecurityCasePriorityColor(SecurityCasePriority.Critical)).toBe(Red);
-    expect(getSecurityCasePriorityColor(SecurityCasePriority.High)).toBe(Orange);
-    expect(getSecurityCasePriorityColor(SecurityCasePriority.Medium)).toBe(Yellow);
-    expect(getSecurityCasePriorityColor(SecurityCasePriority.Low)).toBe(Blue);
-    expect(getSecurityCasePriorityColor(SecurityCasePriority.Informational)).toBe(
-      Gray500,
+    expect(getSecurityCasePriorityColor(SecurityCasePriority.Critical)).toBe(
+      Red,
     );
+    expect(getSecurityCasePriorityColor(SecurityCasePriority.High)).toBe(
+      Orange,
+    );
+    expect(getSecurityCasePriorityColor(SecurityCasePriority.Medium)).toBe(
+      Yellow,
+    );
+    expect(getSecurityCasePriorityColor(SecurityCasePriority.Low)).toBe(Blue);
+    expect(
+      getSecurityCasePriorityColor(SecurityCasePriority.Informational),
+    ).toBe(Gray500);
   });
 });
 

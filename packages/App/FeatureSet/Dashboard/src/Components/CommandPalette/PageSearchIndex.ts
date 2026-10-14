@@ -1564,7 +1564,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Security Cases",
             icon: IconProp.ShieldExclamation,
             keywords: [
-              "security cases",
               "security incidents",
               "triage",
               "investigations",

@@ -70,7 +70,10 @@ describe("MITRE ATT&CK data", () => {
       expect({
         tactic: tactic.id,
         count: (MITRE_TACTIC_TECHNIQUES[tactic.id] || []).length,
-      }).toEqual({ tactic: tactic.id, count: STATED_TECHNIQUE_COUNTS[tactic.id] });
+      }).toEqual({
+        tactic: tactic.id,
+        count: STATED_TECHNIQUE_COUNTS[tactic.id],
+      });
     }
   });
 
@@ -92,7 +95,8 @@ describe("MITRE ATT&CK data", () => {
   });
 
   test("a technique that serves several tactics carries all of them, in matrix order", () => {
-    const validAccounts: MitreTechnique | undefined = getMitreTechnique("T1078");
+    const validAccounts: MitreTechnique | undefined =
+      getMitreTechnique("T1078");
 
     expect(validAccounts?.name).toBe("Valid Accounts");
     expect(validAccounts?.tacticIds).toEqual([
@@ -104,7 +108,9 @@ describe("MITRE ATT&CK data", () => {
   });
 
   test("tactic short names cover every tactic, with defense_evasion read as Stealth", () => {
-    const covered: Set<string> = new Set(Object.values(MITRE_TACTIC_SHORT_NAMES));
+    const covered: Set<string> = new Set(
+      Object.values(MITRE_TACTIC_SHORT_NAMES),
+    );
 
     for (const tactic of MITRE_TACTICS) {
       expect(covered.has(tactic.id)).toBe(true);
