@@ -49,7 +49,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul begin
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger en kies in **Fields to pass on** `title` en `description`.
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
 
 ### De alert aanmaken
 
@@ -85,7 +85,7 @@ Een workflow heeft één trigger, dus voor het sluiten is een tweede workflow no
 :::steps
 ### De trigger On Update Incident toevoegen
 
-Maak een workflow met de naam `Close Opsgenie alerts` en kies **On Update Incident** als trigger. Kies in **Fields to watch** `currentIncidentStateId`, zodat hij alleen draait wanneer de status verandert. Vraag in **Fields to pass on** of de nieuwe status een opgeloste status is:
+Maak een workflow met de naam `Close Opsgenie alerts` en kies **On Update Incident** als trigger. Klik in **Fields to watch** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Fields to pass on** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ Zet **Ingeschakeld** aan en los daarna in OneUptime een testincident op. Opsgeni
 
 Om de ernst van elk incident als Opsgenie-prioriteit mee te sturen, voeg je tussen de trigger en het **API Post (JSON)**-blok een **Run Custom JavaScript**-blok toe.
 
-1. Kies in de **Fields to pass on** van de trigger ook de `name` van de ernst: `{ "incidentSeverity": { "name": true } }`.
+1. Klik in de **Fields to pass on** van de trigger op **Veld toevoegen**, open **Ernst van incident** en kies **Naam**.
 2. Stel de **Arguments** van het blok in op `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, en de **JavaScript Code** op:
 
    ```javascript

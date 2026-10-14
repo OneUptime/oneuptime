@@ -60,7 +60,7 @@ flowchart TB
 
 ### Добавьте триггер
 
-Нажмите пунктирный блок **Choose what starts this workflow** и выберите **On Create Incident**. Нажмите на триггер и в **Fields to pass on** выберите `title`, `description` и `incidentNumberWithPrefix`.
+Нажмите пунктирный блок **Choose what starts this workflow** и выберите **On Create Incident**. Нажмите на триггер: его **Fields to pass on** начинаются с поля **Заголовок**, поэтому нажмите **Добавить поле** и выберите **Описание** и **Incident Number With Prefix**.
 
 ### Откройте issue
 

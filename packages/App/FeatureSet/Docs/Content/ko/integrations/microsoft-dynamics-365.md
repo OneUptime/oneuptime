@@ -269,7 +269,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### 인시던트마다 사례 열기
 
 :::steps
-1. `Incidents to Dynamics 365`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **On Create Incident** 트리거를 추가합니다. 그 **Fields to pass on**에서 `{"_id": true, "title": true, "description": true, "incidentNumber": true}`를 요청합니다.
+1. `Incidents to Dynamics 365`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **On Create Incident** 트리거를 추가합니다. 그 **Fields to pass on**에는 **제목**이 이미 들어 있습니다. **필드 추가**를 클릭하고 **설명**과 **인시던트 번호**를 고릅니다. ID는 항상 전달됩니다.
 2. **구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **Success** 점을 이 블록에 연결합니다. **Identifier**를 `create-case`로, **URL**을 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`로 설정합니다.
 3. **추가 필드**에서 **Request Headers**를 다음으로 설정합니다:
 
@@ -323,7 +323,7 @@ Dynamics 365의 `severitycode`에는 옵션이 하나뿐이므로 대신 `priori
 이것은 두 번째 워크플로로 만들어, 여기서의 실패가 사례 열기를 막지 않게 하세요.
 
 :::steps
-1. **On Update Incident** 트리거가 있는 `Close Dynamics 365 cases`라는 워크플로를 만듭니다. **Fields to watch**을 `{"currentIncidentStateId": true}`로, **Fields to pass on**를 `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`로 설정합니다.
+1. **On Update Incident** 트리거가 있는 `Close Dynamics 365 cases`라는 워크플로를 만듭니다. **Fields to watch**에서 **필드 추가**를 클릭하고 **Current Incident State**를 고릅니다. **Fields to pass on**에서 **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다.
 2. **If / Else** 블록을 추가합니다: **Value to check**는 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison**은 **is true**입니다.
 3. 그 **Yes** 쪽 뒤에 **Identifier**가 `find-case`이고, `Prefer`를 뺀 같은 헤더와 다음 **URL**을 가진 **API Get (JSON)** 블록을 추가합니다:
 

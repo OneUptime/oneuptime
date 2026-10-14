@@ -307,7 +307,7 @@ Jira Cloud は、[テンプレートが尋ねる内容](#テンプレートが�
 ### インシデントごとに Jira の課題を作成する
 
 :::steps
-1. `Incidents to Jira` という名前のワークフローをゼロから作成します。点線のブロックをクリックし、**On Create Incident** トリガーを追加します。その **Fields to pass on** で `{"_id": true, "title": true, "description": true, "incidentNumber": true}` を要求します。**識別子** は `incident-on-create-1` のままにします。
+1. `Incidents to Jira` という名前のワークフローをゼロから作成します。点線のブロックをクリックし、**On Create Incident** トリガーを追加します。その **Fields to pass on** は **タイトル** から始まります。**フィールドを追加** をクリックし、**説明** と **インシデント番号** を選びます。ID は常に引き渡されます。**識別子** は `incident-on-create-1` のままにします。
 2. **コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **Success** の点をそのブロックに接続します。**識別子** を `create-issue`、**URL** を `{{global.variables.JIRA_URL}}/rest/api/3/issue` にし、**その他の項目** で **Request Headers** を `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}` に設定します。
 3. **Request Body** に課題を設定し、`OPS` と `Bug` を自分のプロジェクトキーとそのプロジェクトの課題タイプに置き換えます:
 
@@ -384,14 +384,14 @@ Jira の全員が戻れる道を用意するには、`create-issue` の後に、
 }
 ```
 
-このために、トリガーの **Fields to pass on** に `projectId` を追加し、`.value` は残してください。別のレコードの ID を持つ列は `{"_type": "ObjectID", "value": "..."}` として届きます。`globalId` によって、呼び出しを安全に繰り返せます。Jira は 2 つ目を追加せず、それを持つリンクを更新します。
+このために、トリガーの **Fields to pass on** で **フィールドを追加** をクリックして **プロジェクト ID** を選び、`.value` は残してください。別のレコードの ID を持つ列は `{"_type": "ObjectID", "value": "..."}` として届きます。`globalId` によって、呼び出しを安全に繰り返せます。Jira は 2 つ目を追加せず、それを持つリンクを更新します。
 
 ### インシデントの進行に合わせてコメントし、遷移させる
 
 これは 2 つ目のワークフローとして構築し、ここでの失敗が課題の作成を妨げないようにします。
 
 :::steps
-1. **On Update Incident** トリガーを持つ `Incident updates to Jira` という名前のワークフローを作成します。**Fields to watch** を `{"currentIncidentStateId": true}`、**Fields to pass on** を `{"_id": true, "currentIncidentState": {"name": true}}` に設定します。
+1. **On Update Incident** トリガーを持つ `Incident updates to Jira` という名前のワークフローを作成します。**Fields to watch** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選びます。**Fields to pass on** で **フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **名前** を選びます。
 2. **If / Else** ブロックを追加します: **Value to check** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`、**Comparison** を **is equal to**、**Compare with** を `Resolved` (または自分の解決済み状態の名前) にします。
 3. その **Yes** 側の後に、**識別子** が `find-issue` で `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` に投稿する **API Post (JSON)** ブロックで課題を見つけます:
 

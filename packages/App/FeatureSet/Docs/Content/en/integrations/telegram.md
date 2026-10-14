@@ -57,7 +57,7 @@ The workflow opens in the **Builder** with three steps: **On Create Alert**; **S
 @tab From scratch
 1. Save the token as a secret global variable: go to **Workflows → Global Variables**, click **Create Workflow Variable**, name it `TELEGRAM_BOT_TOKEN`, and click **Next**. Paste the token into **Content**, turn on **Secret**, and click **Create Workflow Variable**.
 2. Go to **Workflows**, click **Create Workflow**, choose **Start from scratch**, name the workflow, and click **Create Workflow**.
-3. In the **Builder**, click **Choose what starts this workflow** and pick **On Create Alert** under **Popular**. Click the trigger and, in **Fields to pass on**, pick the fields your message shows, such as `title` and `alertNumberWithPrefix`.
+3. In the **Builder**, click **Choose what starts this workflow** and pick **On Create Alert** under **Popular**. Click the trigger: its **Fields to pass on** starts with **Title**, so click **Add field** and pick the other fields your message shows, such as **Alert Number With Prefix**.
 4. Click **Add Component**, search for `telegram`, and click **Send Message to Telegram**. Connect the trigger's **Success** output to it.
 5. Click the new step. In **Telegram Bot Token**, click **{ }** and pick `TELEGRAM_BOT_TOKEN` under **Global variables**. Enter the chat's ID in **Chat ID**, write the message in **Message Text**, and insert the alert's fields with **{ }**.
 :::

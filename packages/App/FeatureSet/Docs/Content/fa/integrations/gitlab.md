@@ -47,7 +47,7 @@ flowchart TB
 
 ### افزودن تریگر
 
-روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید و **On Create Incident** را برگزینید. روی تریگر کلیک کنید، و در **Fields to pass on** گزینه‌های `title`، `description` و `incidentNumberWithPrefix` را برگزینید.
+روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید و **On Create Incident** را برگزینید. روی تریگر کلیک کنید: **Fields to pass on** آن از پیش **عنوان** را دارد، پس روی **افزودن فیلد** کلیک کنید و **توضیحات** و **Incident Number With Prefix** را برگزینید.
 
 ### باز کردن issue
 
