@@ -352,6 +352,219 @@ describe("every list's Delete", () => {
   });
 });
 
+/*
+ * The shared tables that list one kind of record and offer its Delete
+ * (Components/*), keyed by the module a page imports them from. MonitorTable
+ * offers Delete unless it is told not to; the others always do.
+ */
+const DELETING_WRAPPER_MODULES: Record<string, string> = {
+  "Components/Monitor/MonitorTable": "monitors",
+  "Components/Incident/IncidentsTable": "incidents",
+  "Components/Alert/AlertsTable": "alerts",
+  "Components/ScheduledMaintenance/ScheduledMaintenanceTable":
+    "scheduled maintenance events",
+  "Components/IncidentEpisode/IncidentEpisodesTable": "incident episodes",
+  "Components/AlertEpisode/AlertEpisodesTable": "alert episodes",
+  "Components/Inventory/InventoryTable": "inventory items",
+  "Components/Announcement/AnnouncementsTable": "announcements",
+  "Components/SecurityCase/SecurityCasesTable": "security cases",
+};
+
+// A row action that takes the record out of this list without deleting it.
+const UNLINK_ACTION_TITLE: RegExp = /title:\s*"(Unassign|Unlink|Remove)\b/;
+
+// A use of the monitors table that leaves isDeleteable to its default.
+const DEFAULT_DELETEABLE: RegExp = /:\(default\)$/;
+
+interface WrapperUse {
+  file: string;
+  line: number;
+  module: string;
+  isDeleteable: string;
+  actionButtons: string;
+}
+
+type ReadWrapperUsesFunction = (file: string) => Array<WrapperUse>;
+
+const readWrapperUses: ReadWrapperUsesFunction = (
+  file: string,
+): Array<WrapperUse> => {
+  const text: string = fs.readFileSync(file, "utf8");
+  const source: ts.SourceFile = ts.createSourceFile(
+    file,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+
+  // The names this file gives the wrapper tables it imports.
+  const localNames: Map<string, string> = new Map();
+
+  for (const statement of source.statements) {
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !ts.isStringLiteral(statement.moduleSpecifier) ||
+      !statement.importClause?.name
+    ) {
+      continue;
+    }
+
+    const specifier: string = statement.moduleSpecifier.text;
+    const module: string | undefined = Object.keys(
+      DELETING_WRAPPER_MODULES,
+    ).find((candidate: string): boolean => {
+      return specifier.endsWith(candidate);
+    });
+
+    if (module) {
+      localNames.set(statement.importClause.name.getText(source), module);
+    }
+  }
+
+  if (localNames.size === 0) {
+    return [];
+  }
+
+  const uses: Array<WrapperUse> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) {
+      const module: string | undefined = localNames.get(
+        node.tagName.getText(source),
+      );
+
+      if (module) {
+        const attribute: (name: string) => string = (name: string): string => {
+          for (const property of node.attributes.properties) {
+            if (
+              ts.isJsxAttribute(property) &&
+              property.name.getText(source) === name
+            ) {
+              const initializer: ts.JsxAttributeValue | undefined =
+                property.initializer;
+
+              if (!initializer) {
+                return "true";
+              }
+
+              if (ts.isJsxExpression(initializer)) {
+                return initializer.expression?.getText(source) || "";
+              }
+
+              return initializer.getText(source);
+            }
+          }
+
+          return "";
+        };
+
+        uses.push({
+          file: path.relative(FEATURE_SET_DIR, file).split(path.sep).join("/"),
+          line:
+            source.getLineAndCharacterOfPosition(node.getStart(source)).line +
+            1,
+          module,
+          isDeleteable: attribute("isDeleteable"),
+          actionButtons: attribute("actionButtons"),
+        });
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return uses;
+};
+
+describe("a list of another resource's members", () => {
+  /*
+   * A shared table drawn on another resource's page, listing what belongs
+   * to it - a monitor group's monitors, a template's linked monitors - takes
+   * a row out of the list with an Unassign or Unlink action. Delete there
+   * would delete the record everywhere, not take it out of this one list,
+   * so such a list keeps Delete off: in its rows and in Bulk Actions.
+   */
+  const wrapperUses: Array<WrapperUse> = files
+    .filter((file: string): boolean => {
+      return file.startsWith(DASHBOARD_SRC);
+    })
+    .flatMap((file: string): Array<WrapperUse> => {
+      return readWrapperUses(file);
+    });
+
+  const memberLists: Array<WrapperUse> = wrapperUses.filter(
+    (use: WrapperUse): boolean => {
+      return UNLINK_ACTION_TITLE.test(use.actionButtons);
+    },
+  );
+
+  test("the guard finds the shared tables and the member lists (not vacuous)", () => {
+    expect(wrapperUses.length).toBeGreaterThan(40);
+    expect(
+      memberLists
+        .map((use: WrapperUse): string => {
+          return use.file;
+        })
+        .sort(),
+    ).toEqual([
+      "Dashboard/src/Pages/Monitor/Settings/MonitorTemplatesView.tsx",
+      "Dashboard/src/Pages/MonitorGroup/View/Monitors.tsx",
+    ]);
+  });
+
+  test.each(
+    memberLists.map((use: WrapperUse): [string, WrapperUse] => {
+      return [`${use.file}:${use.line}`, use];
+    }),
+  )(
+    "%s takes rows out with its own action, and keeps Delete off",
+    (_where: string, use: WrapperUse) => {
+      /*
+       * Only MonitorTable can turn its Delete off. A member list of any
+       * other shared table needs the same prop before it can exist.
+       */
+      expect(use.module).toBe("Components/Monitor/MonitorTable");
+      expect(use.isDeleteable).toBe("false");
+    },
+  );
+
+  test("a monitor template's linked monitors unlink, and do not delete", () => {
+    const [use] = wrapperUses.filter((candidate: WrapperUse): boolean => {
+      return (
+        candidate.file ===
+        "Dashboard/src/Pages/Monitor/Settings/MonitorTemplatesView.tsx"
+      );
+    });
+
+    expect(use).toBeDefined();
+    expect(use!.isDeleteable).toBe("false");
+    expect(use!.actionButtons).toContain('title: "Unlink from Template"');
+    expect(use!.actionButtons).toContain('title: "Sync from Template"');
+  });
+
+  test("every other place that draws the monitors table offers Delete", () => {
+    const offering: Array<string> = wrapperUses
+      .filter((use: WrapperUse): boolean => {
+        return (
+          use.module === "Components/Monitor/MonitorTable" &&
+          !UNLINK_ACTION_TITLE.test(use.actionButtons)
+        );
+      })
+      .map((use: WrapperUse): string => {
+        return `${use.file}:${use.isDeleteable || "(default)"}`;
+      });
+
+    expect(offering.length).toBeGreaterThan(5);
+
+    for (const entry of offering) {
+      expect(entry).toMatch(DEFAULT_DELETEABLE);
+    }
+  });
+});
+
 // The hooks' two lists of actions, as whole identifiers.
 const ARCHIVE_ACTIONS: RegExp = /\barchiveBulkActions\b/;
 const UNARCHIVE_ACTIONS: RegExp = /\bunarchiveBulkActions\b/;
@@ -384,7 +597,11 @@ describe("archive instead of delete", () => {
     expect(archivedOnly.length).toBeGreaterThan(20);
   });
 
-  test.each(liveArchivable.map((use: ModelTableUse) => [use.file, use]))(
+  test.each(
+    liveArchivable.map((use: ModelTableUse): [string, ModelTableUse] => {
+      return [use.file, use];
+    }),
+  )(
     "%s says archiving is the reversible way off the list",
     (_file: string, use: ModelTableUse) => {
       expect(use.isDeleteable).toBe("true");
@@ -392,7 +609,11 @@ describe("archive instead of delete", () => {
     },
   );
 
-  test.each(archivedOnly.map((use: ModelTableUse) => [use.file, use]))(
+  test.each(
+    archivedOnly.map((use: ModelTableUse): [string, ModelTableUse] => {
+      return [use.file, use];
+    }),
+  )(
     "%s, an Archived page, deletes without offering to archive",
     (_file: string, use: ModelTableUse) => {
       expect(use.isDeleteable).toBe("true");

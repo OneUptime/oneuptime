@@ -91,7 +91,11 @@ jest.mock("../../../UI/Utils/User", () => {
         return false;
       },
       getUserId: (): { toString: () => string } => {
-        return { toString: () => "80000000-0000-4000-8000-000000000001" };
+        return {
+          toString: () => {
+            return "80000000-0000-4000-8000-000000000001";
+          },
+        };
       },
       getName: (): string => {
         return "Test User";
@@ -123,6 +127,8 @@ import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "../../../UI/Utils/Project";
+import Project from "../../../Models/DatabaseModels/Project";
 import API from "../../../UI/Utils/API/API";
 import { getDeleteConsequence } from "../../../UI/Components/DeleteConfirmation/DeleteConsequences";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../../../App/FeatureSet/Dashboard/src/Components/Archive/ResourceArchiveCopy";
@@ -264,6 +270,7 @@ import FormsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/Form
 import SecurityCasesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Cases";
 import { CLOSE_CASE_INSTEAD_OF_DELETE } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCasesTable";
 import MonitorGroupMonitorsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/MonitorGroup/View/Monitors";
+import MonitorTemplateViewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplatesView";
 
 type RealModelTableType = (props: Record<string, unknown>) => ReactElement;
 
@@ -730,5 +737,148 @@ describe("a monitor group's monitors", () => {
         },
       ),
     ).toEqual(["Unassign"]);
+  });
+});
+
+describe("a monitor template's linked monitors", () => {
+  /*
+   * The template's members: a row leaves the list with Unlink from
+   * Template, and Open in Monitors List takes the same rows to the list
+   * where monitors are deleted. Deleting one from here would delete it
+   * everywhere, not unlink it - so Delete is off, in the rows and in Bulk
+   * Actions.
+   */
+  beforeEach(() => {
+    // The template page reads the project its custom fields belong to.
+    const project: Project = new Project();
+    project.id = new ObjectID(PROJECT_ID);
+
+    jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT_ID));
+  });
+
+  test("offer Sync and Unlink, not Delete", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/monitors/settings/templates/${ROW_ID}`);
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <MonitorTemplateViewPage {...PAGE_PROPS} />
+        </MemoryRouter>,
+      );
+    });
+
+    const monitors: Array<CapturedTable> = capturedTables.filter(
+      (table: CapturedTable): boolean => {
+        return table.modelType === Monitor;
+      },
+    );
+
+    expect(monitors.length).toBeGreaterThan(0);
+
+    const table: CapturedTable = monitors[monitors.length - 1]!;
+
+    expect(table.isDeleteable).toBe(false);
+    expect(
+      (table["actionButtons"] as Array<{ title: string }>).map(
+        (action: { title: string }): string => {
+          return action.title;
+        },
+      ),
+    ).toEqual(["Sync from Template", "Unlink from Template"]);
+  });
+
+  /*
+   * And the production table, given those props, draws neither Delete: not
+   * in the row's ⋯ menu, not in Bulk Actions.
+   */
+  test("draw no Delete in a row's ⋯ menu or in Bulk Actions", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/monitors/settings/templates/${ROW_ID}`);
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <MonitorTemplateViewPage {...PAGE_PROPS} />
+        </MemoryRouter>,
+      );
+    });
+
+    const monitors: Array<CapturedTable> = capturedTables.filter(
+      (table: CapturedTable): boolean => {
+        return table.modelType === Monitor;
+      },
+    );
+    const table: CapturedTable = monitors[monitors.length - 1]!;
+
+    cleanup();
+    listedModel = Monitor;
+
+    render(
+      <MemoryRouter>
+        <RealModelTable
+          {...table}
+          columns={[
+            { field: { _id: true }, title: "ID", type: FieldType.Text },
+          ]}
+          filters={[]}
+          topContent={undefined}
+          query={{}}
+          customFieldsModelType={undefined}
+          saveFilterProps={undefined}
+          disableUrlState={true}
+          cardProps={{ title: "Linked Monitors", description: "" }}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByTestId("row-actions-more-button"));
+
+    const titles: Array<string> = await waitFor(() => {
+      const items: Array<HTMLElement> = screen.getAllByRole("menuitem");
+
+      expect(items.length).toBeGreaterThan(0);
+
+      return items.map((item: HTMLElement): string => {
+        return (item.textContent || "").trim();
+      });
+    });
+
+    expect(titles).toContain("Unlink from Template");
+    expect(titles).not.toContain("Delete");
+
+    fireEvent.keyDown(document.activeElement || document.body, {
+      key: "Escape",
+    });
+
+    /*
+     * The monitors table's own bulk actions (labels, owners, archive) keep
+     * the row selectable: select the row, then open Bulk Actions.
+     */
+    const checkbox: HTMLInputElement | null = document.querySelector(
+      'tbody input[type="checkbox"]',
+    );
+
+    expect(checkbox).not.toBeNull();
+
+    fireEvent.click(checkbox!);
+
+    fireEvent.click(await screen.findByText("Bulk Actions"));
+
+    const bulkTitles: Array<string> = await waitFor(() => {
+      const items: Array<HTMLElement> = screen.getAllByRole("menuitem");
+
+      expect(items.length).toBeGreaterThan(0);
+
+      return items.map((item: HTMLElement): string => {
+        return (item.textContent || "").trim();
+      });
+    });
+
+    expect(bulkTitles).toContain("Archive");
+    expect(bulkTitles).not.toContain("Delete");
+
+    expect(deleteRequests).toEqual([]);
   });
 });
