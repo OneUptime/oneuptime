@@ -264,15 +264,17 @@ beforeEach(() => {
     }) as never);
 
   // A page read by its id, archived or not (its project, whether it is archived).
-  jest.spyOn(StatusPageService, "findOneById").mockImplementation((async (data: {
-    id: ObjectID;
-  }): Promise<StatusPage | null> => {
-    return (
-      storedPages.find((page: StatusPage): boolean => {
-        return idOf(page) === data.id.toString().toLowerCase();
-      }) || null
-    );
-  }) as never);
+  jest
+    .spyOn(StatusPageService, "findOneById")
+    .mockImplementation((async (data: {
+      id: ObjectID;
+    }): Promise<StatusPage | null> => {
+      return (
+        storedPages.find((page: StatusPage): boolean => {
+          return idOf(page) === data.id.toString().toLowerCase();
+        }) || null
+      );
+    }) as never);
 
   isProjectBlocked = jest
     .spyOn(ProjectService, "isProjectBlocked")
@@ -283,7 +285,9 @@ beforeEach(() => {
   jest
     .spyOn(DatabaseConfig, "getHost")
     .mockResolvedValue(new Hostname("oneuptime.example"));
-  jest.spyOn(DatabaseConfig, "getHttpProtocol").mockResolvedValue(Protocol.HTTPS);
+  jest
+    .spyOn(DatabaseConfig, "getHttpProtocol")
+    .mockResolvedValue(Protocol.HTTPS);
   jest
     .spyOn(StatusPageService, "getStatusPageURL")
     .mockImplementation(async (statusPageId: ObjectID): Promise<string> => {
@@ -361,9 +365,7 @@ describe("the one lookup every subscriber notification reads its status pages fr
 
     const findProject: jest.SpyInstance = jest
       .spyOn(ProjectService, "findOneById")
-      .mockImplementation((async (data: {
-        id: ObjectID;
-      }): Promise<Project> => {
+      .mockImplementation((async (data: { id: ObjectID }): Promise<Project> => {
         const project: Project = new Project();
         project.id = data.id;
         project.isBlocked = blockedProjectIds.includes(data.id.toString());

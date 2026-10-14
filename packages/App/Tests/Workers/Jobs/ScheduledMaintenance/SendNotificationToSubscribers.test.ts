@@ -279,9 +279,9 @@ describe("ScheduledMaintenance:SendNotificationToSubscribers", () => {
       ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem as unknown as jest.Mock
     ).mockResolvedValue(undefined as never);
 
-    (
-      ProjectService.isProjectBlocked as unknown as jest.Mock
-    ).mockResolvedValue(false as never);
+    (ProjectService.isProjectBlocked as unknown as jest.Mock).mockResolvedValue(
+      false as never,
+    );
   });
 
   test("selects endsAt so {{scheduledEndTime}} has a value to render", async () => {

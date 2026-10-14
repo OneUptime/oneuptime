@@ -270,12 +270,11 @@ describe("the emails a status page sends", () => {
           "findOneBy",
         ).mockResolvedValue(subscriber());
         // The one lookup every subscriber message reads its page from.
-        findPage = getJestSpyOn(
-          StatusPageService,
-          "findBy",
-        ).mockImplementation((async () => {
-          return [page];
-        }) as never);
+        findPage = getJestSpyOn(StatusPageService, "findBy").mockImplementation(
+          (async () => {
+            return [page];
+          }) as never,
+        );
         // Of a project that is not blocked.
         getJestSpyOn(ProjectService, "isProjectBlocked").mockResolvedValue(
           false,

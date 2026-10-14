@@ -144,9 +144,9 @@ beforeEach(() => {
   service.sendEmailReport.mockResolvedValue(undefined as never);
 
   (ProjectService.isProjectBlocked as unknown as jest.Mock).mockReset();
-  (
-    ProjectService.isProjectBlocked as unknown as jest.Mock
-  ).mockResolvedValue(false as never);
+  (ProjectService.isProjectBlocked as unknown as jest.Mock).mockResolvedValue(
+    false as never,
+  );
 
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation((): Date => {
     return new Date(now.getTime());
