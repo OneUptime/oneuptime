@@ -1,7 +1,7 @@
 # Home overview
 
 These images show the production dashboard page `packages/App/FeatureSet/Dashboard/src/Pages/Home/Home.tsx`
-inside its real `Pages/Home/Layout.tsx` (Page header and the Home side menu), with every card it mounts:
+inside its real `Pages/Home/Layout.tsx` (the Page header; the overview has no side menu), with every card it mounts:
 `Components/Home/HomeCommandBar`, `ProjectHealthCard` (with `OverviewStats`), `GettingStarted` (with
 `HowOneUptimeWorks`), `NeedsAttention`, `ProjectResources`, `UpcomingMaintenance` and `ExploreProducts`.
 
@@ -16,7 +16,8 @@ monitor, incident, alert, SLO, maintenance window and count in the images is fab
   five count tiles over the Active Incidents table; alerts, monitors and SLOs are numbers only, and the
   side menu's Not Operational badge counts an archived monitor the tile leaves out (3 against 2). After:
   the red "2 active incidents" headline over the five numbers, the open work by name in urgency order,
-  Your project, Upcoming maintenance and Explore OneUptime; the badge agrees with the number.
+  Your project, Upcoming maintenance and Explore OneUptime, at the page's full width: the side menu
+  (whose badge now agrees with the number) is on the lists Home opens, not on the overview.
   `before-busy.png` is master at `e0d768f0706` (`git archive`) rendered in this branch's fixture.
 - `before-new-project.png` / `after-new-project.png`: a project made a minute ago. After: "Nothing is being
   monitored yet", the welcome checklist under the headline, "Problems will show up here", and every
