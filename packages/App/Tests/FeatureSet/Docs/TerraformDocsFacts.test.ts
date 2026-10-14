@@ -24,6 +24,7 @@ import {
   COMPLETE_GUIDE,
   EXAMPLES,
   MONITOR_STEPS,
+  OTHER_VERSION_CONSTRAINTS,
   QUICK_START,
   TERRAFORM_OVERVIEW,
   TERRAFORM_PAGES,
@@ -51,12 +52,16 @@ import {
   attributeNamed,
   codeBlocks,
   goFunction,
+  moduleInterface,
+  ModuleInterface,
   monitorStepsValues,
   parseHcl,
+  publishedModuleDirectory,
   readMonitorStepsSchema,
   readProvider,
   readRepoFile,
   referencesInBody,
+  REGISTRY_PROVIDER_ADDRESSES,
 } from "./TerraformDocsSupport";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -235,6 +240,8 @@ interface Declarations {
   variables: Set<string>;
   // "oneuptime.staging"
   providerAliases: Set<string>;
+  // "module.storefront", and the module's directory under Examples/opentofu/modules.
+  modules: Map<string, string>;
 }
 
 function declarationsOf(page: string): Declarations {
@@ -243,12 +250,28 @@ function declarationsOf(page: string): Declarations {
     data: new Set(),
     variables: new Set(),
     providerAliases: new Set(),
+    modules: new Map(),
   };
 
-  for (const { body } of parsedBlocks(page)) {
+  for (const { block: code, body } of parsedBlocks(page)) {
+    // A CLI configuration or a lock file declares nothing.
+    if (code.info.endsWith('.tfrc"') || code.info.endsWith('.lock.hcl"')) {
+      continue;
+    }
+
     for (const block of body.blocks) {
       if (block.type === "resource") {
         declared.resources.add(`${block.labels[0]}.${block.labels[1]}`);
+      }
+
+      if (block.type === "module") {
+        declared.modules.set(
+          `module.${block.labels[0]}`,
+          publishedModuleDirectory(
+            stringLiteral(attributeNamed(block.body.attributes, "source")?.value) ||
+              "",
+          ) || "",
+        );
       }
 
       if (block.type === "data") {
@@ -801,8 +824,17 @@ const OUTPUT_ARGUMENTS: ReadonlyArray<string> = [
   "sensitive",
 ];
 
-function terraformBlockProblems(block: HclBlock, where: string): Array<string> {
+function terraformBlockProblems(
+  block: HclBlock,
+  where: string,
+  page: string,
+): Array<string> {
   const problems: Array<string> = [];
+  // The version placeholder, or a range the page writes on purpose.
+  const constraints: Array<string> = [
+    TERRAFORM_PROVIDER_VERSION_PLACEHOLDER,
+    ...(OTHER_VERSION_CONSTRAINTS[page] || []),
+  ];
 
   for (const nested of block.body.blocks) {
     if (nested.type === "backend") {
@@ -835,7 +867,7 @@ function terraformBlockProblems(block: HclBlock, where: string): Array<string> {
       problems.push(`${where}: the provider's source is "${source}"`);
     }
 
-    if (version !== TERRAFORM_PROVIDER_VERSION_PLACEHOLDER) {
+    if (!constraints.includes(version as string)) {
       problems.push(
         `${where}: the version is "${version}", not the placeholder`,
       );
@@ -976,11 +1008,263 @@ function argumentsProblems(
     });
 }
 
+/*
+ * An import block: its address is a resource the provider can import (one
+ * with a read endpoint), and its ID is the record's.
+ */
+function importBlockProblems(block: HclBlock, where: string): Array<string> {
+  const problems: Array<string> = argumentsProblems(
+    block,
+    ["to", "id"],
+    where,
+  );
+  const to: HclValue | undefined = attributeNamed(
+    block.body.attributes,
+    "to",
+  )?.value;
+  const id: string | null = stringLiteral(
+    attributeNamed(block.body.attributes, "id")?.value,
+  );
+
+  if (to?.kind !== "reference" || to.path.split(".").length !== 2) {
+    return [...problems, `${where}: import needs to = <type>.<name>`];
+  }
+
+  const typeName: string = to.path.split(".")[0] as string;
+  const type: ProviderType | undefined = provider.resources.get(
+    shortName(typeName),
+  );
+
+  if (!type) {
+    problems.push(`${where}: the provider has no resource ${typeName}`);
+  } else if (!type.canBeImported) {
+    problems.push(`${where}: ${typeName} cannot be imported`);
+  }
+
+  if (id === null) {
+    problems.push(`${where}: import needs the record's id`);
+  }
+
+  return problems;
+}
+
+/*
+ * A removed block takes a resource out of the state and keeps the record:
+ * the pages never write one that would destroy it.
+ */
+function removedBlockProblems(block: HclBlock, where: string): Array<string> {
+  const from: HclValue | undefined = attributeNamed(
+    block.body.attributes,
+    "from",
+  )?.value;
+  const lifecycle: HclBlock | undefined = block.body.blocks.find(
+    (nested: HclBlock): boolean => {
+      return nested.type === "lifecycle";
+    },
+  );
+  const problems: Array<string> = [];
+
+  if (
+    from?.kind !== "reference" ||
+    !provider.resources.has(shortName(from.path.split(".")[0] as string))
+  ) {
+    problems.push(`${where}: removed needs from = <a provider resource>`);
+  }
+
+  if (
+    !lifecycle ||
+    boolLiteral(attributeNamed(lifecycle.body.attributes, "destroy")?.value) !==
+      false
+  ) {
+    problems.push(`${where}: removed without lifecycle { destroy = false }`);
+  }
+
+  return problems;
+}
+
+// Arguments every module block may set besides the module's inputs.
+const MODULE_ARGUMENTS: ReadonlyArray<string> = [
+  "source",
+  "version",
+  "providers",
+  "count",
+  "for_each",
+  "depends_on",
+];
+
+/*
+ * A module block: the module the provider repository publishes, with inputs
+ * it declares, every required one set, and the keys its object inputs take.
+ */
+function moduleBlockProblems(block: HclBlock, where: string): Array<string> {
+  const source: string =
+    stringLiteral(attributeNamed(block.body.attributes, "source")?.value) || "";
+  const directory: string | null = publishedModuleDirectory(source);
+
+  if (!directory) {
+    return [`${where}: "${source}" is not a module the provider publishes`];
+  }
+
+  const module: ModuleInterface = moduleInterface(directory);
+  const problems: Array<string> = [];
+
+  for (const attribute of block.body.attributes) {
+    if (MODULE_ARGUMENTS.includes(attribute.name)) {
+      continue;
+    }
+
+    if (!module.variables.has(attribute.name)) {
+      problems.push(`${where}: the module has no input ${attribute.name}`);
+      continue;
+    }
+
+    const keys: Set<string> | undefined = module.objectKeys.get(
+      attribute.name,
+    );
+
+    if (keys && attribute.value.kind === "object") {
+      for (const item of attribute.value.attributes) {
+        const value: HclValue = item.value;
+
+        if (value.kind !== "object") {
+          problems.push(`${where}: ${attribute.name}.${item.name} is not an object`);
+          continue;
+        }
+
+        for (const key of value.attributes) {
+          if (!keys.has(key.name)) {
+            problems.push(
+              `${where}: ${attribute.name}.${item.name} has no ${key.name}`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  for (const [name, required] of Array.from(module.variables.entries())) {
+    if (required && !attributeNamed(block.body.attributes, name)) {
+      problems.push(`${where}: the module needs ${name}`);
+    }
+  }
+
+  return problems;
+}
+
+/*
+ * A CLI configuration file (a code block titled *.tfrc): where Terraform
+ * and OpenTofu install the provider from. Every address it names is the
+ * provider's, as one of the two registries knows it, and a mirror's path is
+ * absolute.
+ */
+function cliConfigurationProblems(body: HclBody, where: string): Array<string> {
+  const problems: Array<string> = [];
+
+  if (body.attributes.length > 0) {
+    problems.push(`${where}: a CLI configuration sets no top-level attribute`);
+  }
+
+  for (const block of body.blocks) {
+    if (block.type !== "provider_installation") {
+      problems.push(`${where}: a ${block.type} block in a CLI configuration`);
+      continue;
+    }
+
+    for (const method of block.body.blocks) {
+      const allowed: Record<string, ReadonlyArray<string>> = {
+        filesystem_mirror: ["path", "include", "exclude"],
+        network_mirror: ["url", "include", "exclude"],
+        direct: ["include", "exclude"],
+      };
+
+      if (!allowed[method.type]) {
+        problems.push(`${where}: provider_installation has no ${method.type}`);
+        continue;
+      }
+
+      problems.push(
+        ...argumentsProblems(method, allowed[method.type] || [], where),
+      );
+
+      const path: string | null = stringLiteral(
+        attributeNamed(method.body.attributes, "path")?.value,
+      );
+
+      if (method.type === "filesystem_mirror" && !path?.startsWith("/")) {
+        problems.push(`${where}: a filesystem mirror's path is absolute`);
+      }
+
+      for (const name of ["include", "exclude"]) {
+        const list: HclValue | undefined = attributeNamed(
+          method.body.attributes,
+          name,
+        )?.value;
+
+        if (!list) {
+          continue;
+        }
+
+        if (list.kind !== "tuple") {
+          problems.push(`${where}: ${method.type}.${name} is not a list`);
+          continue;
+        }
+
+        for (const item of list.items) {
+          const address: string | null = stringLiteral(item);
+
+          if (!address || !REGISTRY_PROVIDER_ADDRESSES.includes(address)) {
+            problems.push(
+              `${where}: ${method.type}.${name} names "${address}", not the provider`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  return problems;
+}
+
+/*
+ * A lock file (a code block titled .terraform.lock.hcl): the provider under
+ * one registry's address, with the version it picked and the constraint the
+ * pages write.
+ */
+function lockFileProblems(body: HclBody, where: string): Array<string> {
+  const problems: Array<string> = [];
+
+  for (const block of body.blocks) {
+    const address: string = block.labels[0] || "";
+
+    if (block.type !== "provider" || !REGISTRY_PROVIDER_ADDRESSES.includes(address)) {
+      problems.push(`${where}: a lock file holds a ${block.type} "${address}"`);
+      continue;
+    }
+
+    problems.push(
+      ...argumentsProblems(block, ["version", "constraints", "hashes"], where),
+    );
+
+    if (
+      stringLiteral(attributeNamed(block.body.attributes, "constraints")?.value) !==
+      TERRAFORM_PROVIDER_VERSION_PLACEHOLDER
+    ) {
+      problems.push(`${where}: the lock file's constraint is not the placeholder`);
+    }
+  }
+
+  return problems;
+}
+
 // Every problem of one top-level block of a page.
-function blockProblems(block: HclBlock, where: string): Array<string> {
+function blockProblems(
+  block: HclBlock,
+  where: string,
+  page: string = "",
+): Array<string> {
   switch (block.type) {
     case "terraform":
-      return terraformBlockProblems(block, where);
+      return terraformBlockProblems(block, where, page);
     case "provider":
       return [
         ...(block.labels[0] === "oneuptime"
@@ -1009,6 +1293,12 @@ function blockProblems(block: HclBlock, where: string): Array<string> {
     }
     case "moved":
       return movedBlockProblems(block, where);
+    case "import":
+      return importBlockProblems(block, where);
+    case "removed":
+      return removedBlockProblems(block, where);
+    case "module":
+      return moduleBlockProblems(block, where);
     case "variable":
       return argumentsProblems(block, VARIABLE_ARGUMENTS, where);
     case "output":
@@ -1047,6 +1337,21 @@ function referenceProblems(
     return declared.providerAliases.has(reference)
       ? []
       : [`${where}: no provider alias ${reference}`];
+  }
+
+  if (parts[0] === "module") {
+    const directory: string | undefined = declared.modules.get(
+      `module.${parts[1]}`,
+    );
+
+    if (directory === undefined) {
+      return [`${where}: module.${parts[1]} is not declared on the page`];
+    }
+
+    return directory &&
+      moduleInterface(directory).outputs.has(parts[2] as string)
+      ? []
+      : [`${where}: module.${parts[1]} has no output ${parts[2]}`];
   }
 
   const isData: boolean = parts[0] === "data";
@@ -1091,11 +1396,23 @@ function pageHclProblems(page: string): Array<string> {
   for (const { block, body } of parsedBlocks(page)) {
     const where: string = `${page}:${block.line}`;
 
+    // Files that are not a configuration: Terraform's own, read on their own.
+    if (block.info.endsWith('.tfrc"')) {
+      problems.push(...cliConfigurationProblems(body, where));
+      continue;
+    }
+
+    if (block.info === 'title=".terraform.lock.hcl"') {
+      problems.push(...lockFileProblems(body, where));
+      continue;
+    }
+
     for (const nested of body.blocks) {
       problems.push(
         ...blockProblems(
           nested,
           `${where} ${nested.type} ${nested.labels.join(".")}`,
+          page,
         ),
       );
     }
@@ -1126,11 +1443,15 @@ function pageHclProblems(page: string): Array<string> {
       );
     }
 
-    // A moved block names an old type on purpose: movedBlockProblems reads it.
+    /*
+     * A moved block names an old type on purpose, and an import or a removed
+     * block an address that need not be in the configuration: their own
+     * checks read them.
+     */
     const referring: HclBody = {
       attributes: body.attributes,
       blocks: body.blocks.filter((nested: HclBlock): boolean => {
-        return nested.type !== "moved";
+        return !["moved", "import", "removed"].includes(nested.type);
       }),
     };
 

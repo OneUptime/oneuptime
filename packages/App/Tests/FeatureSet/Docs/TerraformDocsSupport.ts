@@ -76,6 +76,12 @@ export interface ProviderAttribute {
   relation: string | null;
   // Data sources: an argument a lookup can match on.
   isLookupFilter: boolean;
+  /*
+   * Resources: the API sends it back when the provider reads the resource.
+   * One it never sends (a write-only secret) is left as it was in the
+   * state: an import leaves it empty.
+   */
+  readBack: boolean;
 }
 
 export interface ProviderType {
@@ -122,6 +128,7 @@ function attributeOf(
   name: string,
   attribute: TerraformAttribute,
   flags: SchemaFlags,
+  readBack: boolean = true,
 ): ProviderAttribute {
   return {
     name: name,
@@ -134,6 +141,7 @@ function attributeOf(
     enumValues: attribute.enumValues || [],
     relation: attribute.relation ? attribute.relation.name : null,
     isLookupFilter: Boolean(attribute.isLookupFilter),
+    readBack: readBack,
   };
 }
 
@@ -159,6 +167,9 @@ export function readProvider(): Promise<ProviderSchema> {
 
       for (const resource of parser.getResources()) {
         const attributes: Map<string, ProviderAttribute> = new Map();
+        // What the read maps back (ResourceGenerator.generateResponseMapping).
+        const readSchema: Record<string, TerraformAttribute> =
+          resource.operationSchemas?.read || {};
 
         for (const [name, attribute] of Object.entries(resource.schema)) {
           attributes.set(
@@ -167,6 +178,8 @@ export function readProvider(): Promise<ProviderSchema> {
               name,
               attribute,
               getSchemaFlags(name, attribute, resource),
+              name === "id" ||
+                Object.prototype.hasOwnProperty.call(readSchema, name),
             ),
           );
         }
@@ -1057,4 +1070,112 @@ export function codeBlocks(markdown: string): Array<CodeBlock> {
   }
 
   return blocks;
+}
+
+/*
+ * The provider's address as each registry knows it: what a CLI
+ * configuration's mirror and a lock file name.
+ */
+export const REGISTRY_PROVIDER_ADDRESSES: ReadonlyArray<string> = [
+  "registry.terraform.io/oneuptime/oneuptime",
+  "registry.opentofu.org/oneuptime/oneuptime",
+];
+
+/*
+ * The modules the provider repository publishes: the generator copies
+ * Examples/opentofu/modules into it as modules/ (DocumentationGenerator
+ * .copyModules), so a module's source names the provider repository.
+ */
+export const MODULES_DIRECTORY: string = "Examples/opentofu/modules";
+
+const PUBLISHED_MODULE_SOURCE: RegExp =
+  /^github\.com\/OneUptime\/terraform-provider-oneuptime\/\/modules\/([a-z0-9-]+)\?ref=v(?:X\.Y\.Z|\d+\.\d+\.\d+)$/;
+
+// The module directory a published source names, or null for any other source.
+export function publishedModuleDirectory(source: string): string | null {
+  const match: RegExpMatchArray | null = source.match(PUBLISHED_MODULE_SOURCE);
+
+  if (!match) {
+    return null;
+  }
+
+  const directory: string = match[1] as string;
+
+  return fs.existsSync(path.join(REPO_ROOT, MODULES_DIRECTORY, directory))
+    ? directory
+    : null;
+}
+
+export interface ModuleInterface {
+  // Every input, and whether it is required (declared without a default).
+  variables: Map<string, boolean>;
+  // The keys of an input typed as a map of objects: monitors -> url, ...
+  objectKeys: Map<string, Set<string>>;
+  outputs: Set<string>;
+}
+
+const VARIABLE_BLOCK_START: RegExp = /^variable "([^"]+)" \{$/;
+const OUTPUT_BLOCK_START: RegExp = /^output "([^"]+)" \{$/;
+const DEFAULT_LINE: RegExp = /^ {2}default\s*=/;
+const OBJECT_TYPE_START: RegExp = /^ {2}type\s*=\s*map\(object\(\{$/;
+const OBJECT_KEY_LINE: RegExp = /^ {4}([a-z_]+)\s*=/;
+
+/*
+ * A module's inputs and outputs, read from its variables.tf and outputs.tf.
+ * Their validation blocks hold expressions the HCL reader above does not
+ * parse, so the files are read line by line: a block starts at a line of
+ * its own, and the formatter indents what is in it.
+ */
+export function moduleInterface(directory: string): ModuleInterface {
+  const base: string = `${MODULES_DIRECTORY}/${directory}`;
+  const variables: Map<string, boolean> = new Map();
+  const objectKeys: Map<string, Set<string>> = new Map();
+  const outputs: Set<string> = new Set();
+  let current: string | null = null;
+  let inObjectType: boolean = false;
+
+  for (const line of readRepoFile(`${base}/variables.tf`).split("\n")) {
+    const start: RegExpMatchArray | null = line.match(VARIABLE_BLOCK_START);
+
+    if (start) {
+      current = start[1] as string;
+      variables.set(current, true);
+      inObjectType = false;
+      continue;
+    }
+
+    if (current === null) {
+      continue;
+    }
+
+    if (DEFAULT_LINE.test(line)) {
+      variables.set(current, false);
+    }
+
+    if (OBJECT_TYPE_START.test(line)) {
+      inObjectType = true;
+      objectKeys.set(current, new Set());
+      continue;
+    }
+
+    if (inObjectType) {
+      const key: RegExpMatchArray | null = line.match(OBJECT_KEY_LINE);
+
+      if (key) {
+        objectKeys.get(current)?.add(key[1] as string);
+      } else {
+        inObjectType = false;
+      }
+    }
+  }
+
+  for (const line of readRepoFile(`${base}/outputs.tf`).split("\n")) {
+    const start: RegExpMatchArray | null = line.match(OUTPUT_BLOCK_START);
+
+    if (start) {
+      outputs.add(start[1] as string);
+    }
+  }
+
+  return { variables: variables, objectKeys: objectKeys, outputs: outputs };
 }
