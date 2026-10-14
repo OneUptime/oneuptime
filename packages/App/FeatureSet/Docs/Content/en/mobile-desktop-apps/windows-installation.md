@@ -58,7 +58,7 @@ The app shows notifications through its browser, once you register the browser f
 In the app, open **User Settings → Notification Methods** and the **Push Notifications** tab.
 
 ### Register this browser
-Click **Register Device**, keep or change the **Device Name**, and click **Register Device** again. When the browser asks whether OneUptime may show notifications, choose **Allow**.
+Click **Register Device**, keep the suggested **Device Name**, such as `Edge on Windows`, or change it, and click **Register Device** again. When the browser asks whether OneUptime may show notifications, choose **Allow**.
 
 ### Send a test
 In the **Browser Registered** dialog, click **Send Test Notification**. If nothing appears, look at Windows' own notification settings: see [Troubleshooting](#troubleshooting).

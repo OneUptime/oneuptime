@@ -99,7 +99,7 @@ When iOS asks whether OneUptime On-Call may send critical alerts, tap **Allow**.
 Tap **Alarm sound** under the switch. Besides the device's own critical alert sound, it offers Klaxon, Siren, Digital alarm, Smoke alarm and Rising alarm, which starts soft and gets louder. Press play beside a sound to hear it. Then pick the volume a page plays at: 25%, 50%, 75% or 100%, the default.
 :::
 
-Only on-call pages ring through, and only from on-call rules set to **Critical alert**, the default. A rule set to **Standard** follows the device's settings whatever the switch says, so you can be woken for a critical incident and paged quietly for a minor one. Send a **Test Notification** with the device on silent to hear what a page will do. The preview on the **Alarm sound** screen plays at the ringer volume, and not at all on silent: a real page does not.
+Only on-call pages ring through, and only from on-call rules set to **Critical alert**, the default. A rule set to **Standard** follows the device's settings whatever the switch says, so you can be woken for a critical incident and paged quietly for a minor one. Send a **Test Notification** with the device on silent to hear what a page will do. The preview on the **Alarm sound** screen plays at the ringer volume, and not at all on silent; a real page rings through silent mode at the volume you chose.
 
 > [!NOTE]
 > Critical alerts need OneUptime On-Call 1.5.0 or later from the App Store. Earlier versions were built without Apple's permission for critical alerts, so iOS never offered them the switch.

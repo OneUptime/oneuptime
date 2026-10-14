@@ -64,7 +64,7 @@ The app shows notifications once you register it for push notifications, in each
 In the app, open **User Settings → Notification Methods** and the **Push Notifications** tab.
 
 ### Register this app
-Click **Register Device**, keep or change the **Device Name**, and click **Register Device** again. When macOS or the browser asks whether OneUptime may send notifications, choose **Allow**.
+Click **Register Device**, keep the suggested **Device Name**, such as `Safari on macOS`, or change it, and click **Register Device** again. When macOS or the browser asks whether OneUptime may send notifications, choose **Allow**.
 
 ### Send a test
 In the **Browser Registered** dialog, click **Send Test Notification**. If nothing appears, look at the Mac's notification settings: see [Troubleshooting](#troubleshooting).

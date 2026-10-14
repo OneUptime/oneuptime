@@ -20,7 +20,7 @@ OneUptime has an app for your phone and one for your computer. **OneUptime On-Ca
 | Updates | From the store, or by installing a newer APK | Every time it opens, it loads the dashboard from your OneUptime |
 | Runs on | iOS 16.4 or later, Android 7.0 or later | Windows, macOS and Linux, with Edge or Chrome, or Safari on macOS Sonoma 14 or later |
 
-Use both if you like: many people keep the desktop app open at work and let the phone wake them at night.
+You can use both: keep the desktop app open at work, and let the phone wake you at night.
 
 ## How the apps reach OneUptime
 
@@ -39,15 +39,15 @@ flowchart TB
     WebPush -->|"notification"| Desktop
 ```
 
-The mobile app signs in to your OneUptime and registers the phone in each project you belong to. From then on OneUptime sends the phone's on-call pages through Expo's push service, which hands them to Apple or Google to deliver. A self-hosted OneUptime sends them through OneUptime's push relay, so it needs no Apple, Google or Expo account of its own: see [Push Notifications](/docs/self-hosted/push-notifications).
+The mobile app signs in to your OneUptime and registers the phone in each project you belong to. From then on OneUptime sends the phone's push notifications, on-call pages among them, through Expo's push service, which hands them to Apple or Google to deliver. By default a self-hosted OneUptime sends them through OneUptime's push relay, so it needs no Apple, Google or Expo account of its own: see [Push Notifications](/docs/self-hosted/push-notifications).
 
-The desktop app is the dashboard itself, in a window of its own. It shows notifications once you register its browser for push notifications, as each OS page shows.
+The desktop app is the dashboard itself, in a window of its own. It shows notifications once you register its browser for push notifications: the Windows, macOS and Linux pages show how.
 
 ## Before you begin
 
 - An account in a OneUptime project. To be paged, you must also be on call: see [Escalation Rules](/docs/on-call/escalation-rules).
 - Your OneUptime's address. On OneUptime Cloud it is `https://oneuptime.com`; a self-hosted OneUptime has its own, such as `https://oneuptime.example.com`.
-- HTTPS. The mobile app does not connect over plain HTTP, and browsers install apps and send notifications only for HTTPS sites.
+- Your OneUptime served over HTTPS. The mobile app does not connect over plain HTTP, and browsers show notifications, and Edge and Chrome install apps, only for HTTPS sites.
 
 ## Get the mobile app
 
