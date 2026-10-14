@@ -85,12 +85,6 @@ const except: (
   });
 };
 
-/*
- * Persian has more pages translated than any other language: most
- * untranslated pages are missing in every translation but Persian.
- */
-const EVERY_TRANSLATION_BUT_FA: Array<string> = except(EVERY_TRANSLATION, "fa");
-
 export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "mobile-desktop-apps/faq-troubleshooting": {
     noRelativeLinks: EVERY_LANGUAGE,
@@ -119,16 +113,5 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "zh-TW",
       "fa",
     ),
-  },
-  "terraform/importing-resources": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "terraform/opentofu": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "terraform/troubleshooting": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
 };

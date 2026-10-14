@@ -1,6 +1,9 @@
 /*
- * The Terraform pages docs overhaul task 30a rewrote, by the paths their
- * suites name them with, and the words they keep as the product writes them.
+ * The Terraform pages, by the paths their suites name them with, and the
+ * words they keep as the product writes them. Docs overhaul task 30a
+ * rewrote the overview, quick start, complete guide, monitor steps and
+ * examples; task 30b the importing, troubleshooting, self-hosted, registry
+ * and OpenTofu pages, which complete the nav group.
  *
  * TerraformDocsFacts holds the English pages to the provider
  * (Scripts/TerraformProvider) and to the product, and
@@ -20,19 +23,29 @@ export const QUICK_START: string = "terraform/quick-start";
 export const COMPLETE_GUIDE: string = "terraform/complete-guide";
 export const MONITOR_STEPS: string = "terraform/monitor-steps";
 export const EXAMPLES: string = "terraform/examples";
+export const IMPORTING_RESOURCES: string = "terraform/importing-resources";
+export const TROUBLESHOOTING: string = "terraform/troubleshooting";
+export const SELF_HOSTED: string = "terraform/self-hosted";
+export const REGISTRY: string = "terraform/registry";
+export const OPENTOFU: string = "terraform/opentofu";
 
-// The pages of this task, in nav order.
+// Every page of the group, in nav order.
 export const TERRAFORM_PAGES: ReadonlyArray<TerraformDocsPageEntry> = [
   { page: TERRAFORM_OVERVIEW, navTitle: "Terraform Overview" },
   { page: QUICK_START, navTitle: "Quick Start" },
   { page: COMPLETE_GUIDE, navTitle: "Complete Guide" },
   { page: MONITOR_STEPS, navTitle: "Monitor Steps" },
   { page: EXAMPLES, navTitle: "Examples" },
+  { page: IMPORTING_RESOURCES, navTitle: "Importing Resources" },
+  { page: TROUBLESHOOTING, navTitle: "Troubleshooting" },
+  { page: SELF_HOSTED, navTitle: "Self-Hosted Setup" },
+  { page: REGISTRY, navTitle: "Registry Usage" },
+  { page: OPENTOFU, navTitle: "OpenTofu" },
 ];
 
 /*
- * The whole Terraform nav group. The other five pages are docs task 30b's;
- * the group's first page is where /docs/terraform lands (Utils/Redirects).
+ * The whole Terraform nav group: the pages above, in the same order. The
+ * group's first page is where /docs/terraform lands (Utils/Redirects).
  */
 export const TERRAFORM_GROUP_URLS: ReadonlyArray<string> = [
   "/docs/terraform/index",
@@ -77,7 +90,7 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
 /*
  * Tab labels a translation words in its own language: they describe a way
  * of doing something. Every other tab names a product or a system (Linux,
- * OpenTofu, GitHub Actions) and keeps its name.
+ * OpenTofu, GitHub Actions, Debian / Ubuntu) and keeps its name.
  */
 export const TRANSLATED_TABS: Readonly<Record<string, ReadonlyArray<string>>> =
   {
@@ -120,6 +133,22 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "IDs.",
     "JSON written by hand.",
   ],
+  [IMPORTING_RESOURCES]: [
+    "Terraform 1.5 or later, or OpenTofu 1.6 or later.",
+    "An API key that can read what you import.",
+    "The provider in your configuration",
+    "An import changes nothing, but the next apply does.",
+    "Secrets are not read back.",
+    "One configuration for each record.",
+    "Imported records are managed records.",
+  ],
+  [TROUBLESHOOTING]: [
+    "402 Payment Required on every request",
+    "402 Payment Required",
+    "Before you plan:",
+    "When the state has lost a resource already:",
+  ],
+  [SELF_HOSTED]: ["Proxies.", "Plain HTTP."],
 };
 
 /*
@@ -132,6 +161,11 @@ export const DIAGRAM_KINDS: Readonly<Record<string, string>> = {
   [COMPLETE_GUIDE]: "flowchart TB",
   [MONITOR_STEPS]: "flowchart TB",
   [EXAMPLES]: "flowchart TB",
+  [IMPORTING_RESOURCES]: "flowchart TB",
+  [TROUBLESHOOTING]: "flowchart TB",
+  [SELF_HOSTED]: "flowchart TB",
+  [REGISTRY]: "flowchart TB",
+  [OPENTOFU]: "flowchart TB",
 };
 
 /*
@@ -157,6 +191,21 @@ export const UNDECLARED_REFERENCES: Readonly<
 };
 
 /*
+ * The version constraints a page's terraform blocks may write besides
+ * {{TERRAFORM_PROVIDER_VERSION}}: the self-hosted range, as the dashboard
+ * writes it ({{TERRAFORM_PROVIDER_MATCHING}}), and the same range spelled
+ * out for an example version.
+ */
+export const OTHER_VERSION_CONSTRAINTS: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  [SELF_HOSTED]: [
+    "{{TERRAFORM_PROVIDER_MATCHING}}",
+    ">= {{TERRAFORM_PROVIDER_MAJOR}}.0, <= {{TERRAFORM_PROVIDER_MAJOR}}.0.40",
+  ],
+};
+
+/*
  * Names a translation writes as the English does, in prose and tables too:
  * products, tools, formats and protocols. A line made of them alone is not a
  * line left untranslated.
@@ -178,6 +227,15 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "PowerShell",
   "PostgreSQL",
   "DynamoDB",
+  "Docker Compose",
+  "Helm",
+  "Debian",
+  "Ubuntu",
+  "RHEL",
+  "Fedora",
+  "FreeBSD",
+  "OpenBSD",
+  "Solaris",
   "Linux",
   "macOS",
   "Windows",
@@ -204,6 +262,7 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "TCP",
   "DNS",
   "DNSSEC",
+  "HTTPS",
   "HTTP",
   "IoT",
   "vCenter",
