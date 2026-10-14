@@ -11,6 +11,7 @@ import { BETTER_STACK_HOST } from "../../../../Types/ToolImport/ToolImportCatalo
 import { TOOL_IMPORT_MAX_RECORDS_PER_KIND } from "../../../../Types/ToolImport/ToolImportLimits";
 import {
   makeToolImportNote,
+  ToolImportNote,
   ToolImportNoteCode,
 } from "../../../../Types/ToolImport/ToolImportNote";
 import ToolImportResourceKind from "../../../../Types/ToolImport/ToolImportResourceKind";
@@ -28,6 +29,8 @@ import {
   betterStackApi,
   betterStackError,
   betterStackPage,
+  betterStackPaged,
+  betterStackSubscribers,
   CHECKOUT_ID,
   DATABASE_ID,
   ERROR_FREE_ID,
@@ -49,7 +52,8 @@ import { FixtureApi, json, RecordingSleep } from "./ToolImportFixtureTransport";
  * documented shapes: what each monitor type and heartbeat becomes, what a
  * status page's sections, resources and subscribers become, and how it
  * reads - only incidents.betterstack.com, page by page, with lists the
- * token may not read said rather than failed.
+ * token may not read said rather than failed, and subscribers an earlier
+ * import brought over read past, so each import reads the next ones.
  */
 
 const NOW: number = Date.parse("2026-10-08T12:00:00Z");
@@ -57,6 +61,7 @@ const NOW: number = Date.parse("2026-10-08T12:00:00Z");
 function context(
   api: FixtureApi,
   sleep: RecordingSleep = new RecordingSleep({ now: NOW }),
+  importedSubscriberIds?: ReadonlySet<string>,
 ): ToolImportReadContext {
   return {
     transport: api.transport,
@@ -66,12 +71,14 @@ function context(
     },
     maxRequests: 500,
     deadlineAt: NOW + 60 * 60 * 1000,
+    importedSubscriberIds: importedSubscriberIds,
   };
 }
 
 async function read(
   api: FixtureApi = betterStackApi(),
   sleep?: RecordingSleep,
+  importedSubscriberIds?: ReadonlySet<string>,
 ): Promise<ToolImportSnapshot> {
   return await new BetterStackAdapter().read(
     {
@@ -79,7 +86,7 @@ async function read(
       region: "",
       apiKey: BETTER_STACK_TOKEN,
     },
-    context(api, sleep),
+    context(api, sleep, importedSubscriberIds),
   );
 }
 
@@ -611,5 +618,202 @@ describe("BetterStackAdapter: how it reads", () => {
         kind: ToolImportResourceKind.StatusPageSubscriber,
       }),
     ]);
+  });
+});
+
+describe("BetterStackAdapter: subscribers an earlier import brought over", () => {
+  const LIMIT: number = TOOL_IMPORT_MAX_RECORDS_PER_KIND;
+
+  const SUBSCRIBERS_PATH: string = `/api/v2/status-pages/${PUBLIC_PAGE_ID}/subscribers`;
+
+  const READ_LIMIT_REACHED: ToolImportNote = makeToolImportNote(
+    ToolImportNoteCode.ReadLimitReached,
+    {
+      kind: ToolImportResourceKind.StatusPageSubscriber,
+      limit: LIMIT,
+    },
+  );
+
+  // The public page with these subscribers, paged as Better Stack pages them.
+  function pageWith(subscribers: Array<Record<string, unknown>>): FixtureApi {
+    return betterStackApi().add({
+      path: SUBSCRIBERS_PATH,
+      answers: [betterStackPaged(subscribers)],
+    });
+  }
+
+  function idsOf(snapshot: ToolImportSnapshot): Array<string> {
+    return (snapshot.statusPageSubscribers || []).map(
+      (subscriber: ImportedStatusPageSubscriber): string => {
+        return subscriber.sourceId;
+      },
+    );
+  }
+
+  function subscriberIds(from: number, count: number): Array<string> {
+    return betterStackSubscribers(count, from).map(
+      (subscriber: Record<string, unknown>): string => {
+        return subscriber["id"] as string;
+      },
+    );
+  }
+
+  test("are read past without being counted: each read collects the next ones, until none are left", async () => {
+    const total: number = 2 * LIMIT + 2000;
+    const subscribers: Array<Record<string, unknown>> = betterStackSubscribers(
+      total,
+      0,
+    );
+
+    const firstApi: FixtureApi = pageWith(subscribers);
+    const first: ToolImportSnapshot = await read(firstApi);
+
+    expect(idsOf(first)).toEqual(subscriberIds(0, LIMIT));
+    expect(first.notes).toEqual([READ_LIMIT_REACHED]);
+    expect(firstApi.callsTo(SUBSCRIBERS_PATH)).toHaveLength(LIMIT / 250);
+
+    // The first ones came over: the next read collects the ones after them.
+    const second: ToolImportSnapshot = await read(
+      pageWith(subscribers),
+      undefined,
+      new Set<string>(idsOf(first)),
+    );
+
+    expect(idsOf(second)).toEqual(subscriberIds(LIMIT, LIMIT));
+    expect(second.notes).toEqual([READ_LIMIT_REACHED]);
+
+    // And the one after that, the rest - reading every page to get there.
+    const thirdApi: FixtureApi = pageWith(subscribers);
+    const third: ToolImportSnapshot = await read(
+      thirdApi,
+      undefined,
+      new Set<string>([...idsOf(first), ...idsOf(second)]),
+    );
+
+    expect(idsOf(third)).toEqual(subscriberIds(2 * LIMIT, 2000));
+    expect(third.notes).toEqual([]);
+    expect(thirdApi.callsTo(SUBSCRIBERS_PATH)).toHaveLength(total / 250);
+  });
+
+  test("a page with as many subscribers as one read collects is read whole; one with more stops at the limit, and says so", async () => {
+    const whole: ToolImportSnapshot = await read(
+      pageWith(betterStackSubscribers(LIMIT, 0)),
+    );
+
+    expect(idsOf(whole)).toEqual(subscriberIds(0, LIMIT));
+    expect(whole.notes).toEqual([]);
+
+    const cut: ToolImportSnapshot = await read(
+      pageWith(betterStackSubscribers(LIMIT + 1, 0)),
+    );
+
+    expect(idsOf(cut)).toEqual(subscriberIds(0, LIMIT));
+    expect(cut.notes).toEqual([READ_LIMIT_REACHED]);
+  });
+
+  test("only subscribers are read past: monitors, heartbeats, pages, sections and resources are read whole, whatever ids are given", async () => {
+    const everything: ToolImportSnapshot = await read();
+
+    const snapshot: ToolImportSnapshot = await read(
+      betterStackApi(),
+      undefined,
+      new Set<string>([
+        // Every monitor, heartbeat, page, section and resource of the team.
+        HOME_ID,
+        CHECKOUT_ID,
+        ERROR_FREE_ID,
+        ORDERS_ID,
+        GATEWAY_ID,
+        DATABASE_ID,
+        MAIL_ID,
+        NAMES_ID,
+        SYSLOG_ID,
+        SIGNUP_ID,
+        BACKUP_HEARTBEAT_ID,
+        SYNC_HEARTBEAT_ID,
+        PUBLIC_PAGE_ID,
+        INTERNAL_PAGE_ID,
+        "50",
+        "51",
+        "61",
+        "62",
+        "63",
+        "64",
+        "65",
+        "66",
+        // And one subscriber, who came over before.
+        "71",
+      ]),
+    );
+
+    expect(snapshot.monitors).toHaveLength(14);
+    expect(snapshot.monitors).toEqual(everything.monitors);
+    expect(snapshot.statusPages).toEqual(everything.statusPages);
+    expect(idsOf(snapshot)).toEqual(["72", "73"]);
+    expect(snapshot.notes).toEqual([]);
+  });
+
+  test("the ones that never came over are read again: subscribers who never confirmed are listed by every read, before the next ones", async () => {
+    // The first hundred never confirmed, so no import brings them over.
+    const subscribers: Array<Record<string, unknown>> = betterStackSubscribers(
+      LIMIT + 300,
+      0,
+    ).map(
+      (
+        subscriber: Record<string, unknown>,
+        index: number,
+      ): Record<string, unknown> => {
+        return index < 100
+          ? {
+              ...subscriber,
+              attributes: {
+                ...(subscriber["attributes"] as Record<string, unknown>),
+                confirmed_at: null,
+              },
+            }
+          : subscriber;
+      },
+    );
+
+    const first: ToolImportSnapshot = await read(pageWith(subscribers));
+
+    expect(idsOf(first)).toEqual(subscriberIds(0, LIMIT));
+    expect(first.notes).toEqual([READ_LIMIT_REACHED]);
+
+    // Everyone the first read found who could come over did.
+    const broughtOver: Set<string> = new Set<string>(
+      (first.statusPageSubscribers || [])
+        .filter((subscriber: ImportedStatusPageSubscriber): boolean => {
+          return !subscriber.skipReason;
+        })
+        .map((subscriber: ImportedStatusPageSubscriber): string => {
+          return subscriber.sourceId;
+        }),
+    );
+
+    expect(broughtOver.size).toBe(LIMIT - 100);
+
+    const second: ToolImportSnapshot = await read(
+      pageWith(subscribers),
+      undefined,
+      broughtOver,
+    );
+
+    expect(idsOf(second)).toEqual([
+      ...subscriberIds(0, 100),
+      ...subscriberIds(LIMIT, 300),
+    ]);
+    expect(
+      (second.statusPageSubscribers || [])
+        .slice(0, 100)
+        .map((subscriber: ImportedStatusPageSubscriber) => {
+          return subscriber.skipReason;
+        }),
+    ).toEqual(
+      new Array(100).fill(
+        makeToolImportNote(ToolImportNoteCode.SubscriberNotConfirmed),
+      ),
+    );
+    expect(second.notes).toEqual([]);
   });
 });

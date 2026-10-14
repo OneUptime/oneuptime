@@ -1,9 +1,11 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
   ALERTING_PAGES,
+  CHAT_STEP_PAGES,
   DYNAMICS,
   GROUPING_VARIABLES,
   INTEGRATIONS_PAGES,
+  ISSUE_PAGES,
   IntegrationsDocsPageEntry,
   JIRA,
   OPSGENIE,
@@ -386,6 +388,8 @@ describe("every page: the workflow steps it names", () => {
     OPSGENIE,
     SERVICENOW,
     ...ALERTING_PAGES,
+    ...ISSUE_PAGES,
+    ...CHAT_STEP_PAGES,
   ])(
     "%s names each block by the identifier the Builder gives it: its step's id, then -1",
     (page: string) => {
