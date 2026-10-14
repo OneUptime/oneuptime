@@ -8,6 +8,7 @@ import {
   getPersonName,
   getUserGroupProblemText,
   getUserGroupStatus,
+  isMembersShown,
   TEAM_SUBTITLE,
   USER_GROUP_LABELS,
   USER_GROUP_STATUS_LABELS,
@@ -29,10 +30,12 @@ import {
   WorkspaceUserGroupScheduleView,
   WorkspaceUserGroupView,
 } from "Common/Types/Workspace/WorkspaceUserGroup";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import RowActions from "Common/UI/Components/ActionButton/RowActions";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import {
   FeedClock,
   formatFeedFullTime,
@@ -45,23 +48,32 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * One user group on the schedule page's card: how people mention it and
- * whether it is up to date, who is in it now, the schedules it follows,
- * and - when something keeps it from being in step - what, and what to do.
+ * One user group on the schedule page's card, the one important thing
+ * first: how people mention it and whether it is up to date - and, when
+ * something keeps it from being in step, what and what to do, with Try
+ * again right there. Then who is in it now and the other schedules it
+ * follows, anybody on call it could not hold, and when OneUptime last
+ * looked. Disconnect is rare, so it waits in the row's ⋯, as a table row's
+ * delete does (RowActions).
  */
 
 export interface ComponentProps {
   view: WorkspaceUserGroupView;
   // The schedule whose page this is.
   scheduleId: string;
-  // Try again: shown while the workspace refuses.
+  // Try again: offered while the workspace refuses.
   onTryAgain?: (() => void) | undefined;
   onDisconnect?: (() => void) | undefined;
   // A Try again or a Disconnect of this group is on its way.
   isBusy?: boolean | undefined;
-  // What the buttons say when they may not be pressed.
-  tryAgainDisabledReason?: string | undefined;
-  disconnectDisabledReason?: string | undefined;
+  /*
+   * Whether the reader may change the group (Try again, Disconnect), and
+   * when they may not, why: Disconnect stays in the menu, locked, saying
+   * it. With no reason to give (their permissions have not loaded yet),
+   * neither is offered.
+   */
+  canChange?: boolean | undefined;
+  changeDisabledReason?: string | undefined;
   // Injected by tests; the page passes nothing and gets the real clock.
   now?: Date | undefined;
 }
@@ -102,6 +114,10 @@ export const USER_GROUP_STATUS_TONES: Readonly<
 
 const PILL_CLASS_NAME: string =
   "inline-flex max-w-full flex-none items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset";
+
+// The label column of the row's facts: as wide as its longest label.
+const FACT_LABEL_CLASS_NAME: string =
+  "text-xs font-medium uppercase tracking-wide text-gray-500 sm:pt-0.5";
 
 const UserGroupRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -154,29 +170,89 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
       },
     );
 
+  const isMembersRowShown: boolean = isMembersShown(view);
   const problemText: string | null = getUserGroupProblemText(view);
 
-  // The sentence under the people: what the status means, when it needs one.
-  let statusSentence: string | null = null;
-
-  if (status === UserGroupStatusKind.NotYet) {
-    statusSentence =
-      translator.translateText(USER_GROUP_TIME_TEXT.notYet) || null;
-  } else if (status === UserGroupStatusKind.TurnedOff) {
-    statusSentence = translator.translateTemplate(copy.turnedOffText, {
-      mention: mention,
-    });
-  } else if (problemText) {
-    statusSentence = translator.translateTemplate(problemText, {
+  const fillProblem: (template: string) => string = (
+    template: string,
+  ): string => {
+    return translator.translateTemplate(template, {
       mention: mention,
       team: teamName,
       detail: view.problemDetail || "",
     });
-  }
+  };
 
-  const isWarning: boolean =
-    status === UserGroupStatusKind.Problem ||
-    status === UserGroupStatusKind.TurnedOffInWorkspace;
+  /*
+   * What the status means, right under it: a refusal in red with Try
+   * again, a group turned off in Slack in amber, and the quiet states - off
+   * for nobody on call, not looked at yet - in grey.
+   */
+  let statusNote: ReactElement | null = null;
+
+  if (status === UserGroupStatusKind.Problem && problemText) {
+    const canTryAgain: boolean =
+      Boolean(props.onTryAgain) && Boolean(props.canChange);
+
+    statusNote = (
+      <Alert
+        type={AlertType.DANGER}
+        dataTestId={`${testId}-status-text`}
+        className="mt-3"
+        title={fillProblem(problemText)}
+        textOnRight={
+          canTryAgain
+            ? props.isBusy
+              ? USER_GROUP_LABELS.checking
+              : USER_GROUP_LABELS.tryAgain
+            : undefined
+        }
+        onClick={
+          canTryAgain
+            ? () => {
+                if (!props.isBusy) {
+                  props.onTryAgain?.();
+                }
+              }
+            : undefined
+        }
+      />
+    );
+  } else if (
+    status === UserGroupStatusKind.TurnedOffInWorkspace &&
+    problemText
+  ) {
+    statusNote = (
+      <Alert
+        type={AlertType.WARNING}
+        dataTestId={`${testId}-status-text`}
+        className="mt-3"
+        title={fillProblem(problemText)}
+      />
+    );
+  } else if (
+    status === UserGroupStatusKind.NotYet ||
+    status === UserGroupStatusKind.TurnedOff
+  ) {
+    statusNote = (
+      <div
+        data-testid={`${testId}-status-text`}
+        className="mt-3 flex items-start gap-2 rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-700 ring-1 ring-inset ring-gray-200"
+      >
+        <Icon
+          icon={IconProp.Info}
+          className="mt-0.5 h-4 w-4 flex-none text-gray-400"
+        />
+        <span className="min-w-0 text-pretty">
+          {status === UserGroupStatusKind.NotYet
+            ? translator.translateText(USER_GROUP_TIME_TEXT.notYet)
+            : translator.translateTemplate(copy.turnedOffText, {
+                mention: mention,
+              })}
+        </span>
+      </div>
+    );
+  }
 
   const getAvatar: (person: WorkspaceUserGroupPersonView) => ReactElement = (
     person: WorkspaceUserGroupPersonView,
@@ -201,17 +277,46 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Disconnect, in the row's ⋯ even when it is the row's only action: one
+   * red button on every row of the card would be its loudest thing. Locked,
+   * it stays listed and says why.
+   */
+  const actions: Array<ActionButtonSchema<WorkspaceUserGroupView>> =
+    props.onDisconnect && (props.canChange || props.changeDisabledReason)
+      ? [
+          {
+            title: USER_GROUP_LABELS.disconnect,
+            icon: IconProp.LinkSlash,
+            buttonStyleType: ButtonStyleType.HOVER_DANGER_OUTLINE,
+            placement: ActionButtonPlacement.MoreMenu,
+            disabled: !props.canChange || props.isBusy,
+            tooltip: props.canChange ? undefined : props.changeDisabledReason,
+            onClick: (
+              _item: WorkspaceUserGroupView,
+              onCompleteAction: () => void,
+            ) => {
+              // The card asks first (its Disconnect dialog).
+              onCompleteAction();
+              props.onDisconnect?.();
+            },
+          },
+        ]
+      : [];
+
+  const hasFacts: boolean = isMembersRowShown || otherSchedules.length > 0;
+
   return (
     <li
       data-testid={testId}
       className="rounded-lg border border-gray-200 bg-white p-4"
     >
-      <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
+      <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span
               data-testid={`${testId}-mention`}
-              className="max-w-full break-all rounded bg-indigo-50 px-1.5 py-0.5 text-sm font-semibold text-indigo-700"
+              className="max-w-full break-words rounded bg-indigo-50 px-1.5 py-0.5 text-sm font-semibold text-indigo-700"
             >
               {mention}
             </span>
@@ -251,125 +356,89 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
           )}
         </div>
 
-        <div className="flex flex-none flex-wrap items-center gap-2">
-          {props.onTryAgain && status === UserGroupStatusKind.Problem ? (
-            <Button
-              title={USER_GROUP_LABELS.tryAgain}
-              icon={IconProp.Refresh}
-              buttonStyle={ButtonStyleType.NORMAL}
-              buttonSize={ButtonSize.Small}
-              isLoading={props.isBusy}
-              disabled={Boolean(props.tryAgainDisabledReason) || props.isBusy}
-              tooltip={props.tryAgainDisabledReason}
-              dataTestId={`${testId}-try-again`}
-              onClick={() => {
-                props.onTryAgain?.();
-              }}
+        {actions.length > 0 ? (
+          <div className="flex-none" data-testid={`${testId}-actions`}>
+            <RowActions<WorkspaceUserGroupView>
+              item={view}
+              actionButtons={actions}
+              itemLabel={mention}
             />
-          ) : (
-            <></>
-          )}
-          {props.onDisconnect ? (
-            <Button
-              title={USER_GROUP_LABELS.disconnect}
-              buttonStyle={ButtonStyleType.NORMAL}
-              buttonSize={ButtonSize.Small}
-              disabled={Boolean(props.disconnectDisabledReason) || props.isBusy}
-              tooltip={props.disconnectDisabledReason}
-              dataTestId={`${testId}-disconnect`}
-              onClick={() => {
-                props.onDisconnect?.();
-              }}
-            />
-          ) : (
-            <></>
-          )}
-        </div>
+          </div>
+        ) : (
+          <></>
+        )}
       </div>
 
-      <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[minmax(7rem,max-content)_minmax(0,1fr)]">
-        {status !== UserGroupStatusKind.NotYet ? (
-          <>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 sm:pt-0.5">
-              {translator.translateText(USER_GROUP_LABELS.inItNow)}
-            </dt>
-            <dd data-testid={`${testId}-members`} className="min-w-0">
-              {view.members.length > 0 && !view.isTurnedOff ? (
-                <ul className="flex flex-wrap gap-2">
-                  {view.members.map((person: WorkspaceUserGroupPersonView) => {
-                    return (
-                      <li
-                        key={person.userId}
-                        className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full bg-gray-50 py-0.5 pl-0.5 pr-2.5 ring-1 ring-inset ring-gray-200"
-                      >
-                        {getAvatar(person)}
-                        <span className="truncate text-sm font-medium text-gray-900">
-                          {getPersonName(person)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <span className="text-gray-500">
-                  {translator.translateText(USER_GROUP_LABELS.nobodyInIt)}
-                </span>
-              )}
-            </dd>
-          </>
-        ) : (
-          <></>
-        )}
+      {statusNote}
 
-        {otherSchedules.length > 0 ? (
-          <>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 sm:pt-0.5">
-              {translator.translateText(USER_GROUP_LABELS.alsoFollows)}
-            </dt>
-            <dd data-testid={`${testId}-schedules`} className="min-w-0">
-              <ul className="flex flex-wrap gap-x-4 gap-y-1">
-                {otherSchedules.map(
-                  (schedule: WorkspaceUserGroupScheduleView) => {
-                    return (
-                      <li
-                        key={schedule.scheduleId}
-                        className="min-w-0 max-w-full"
-                      >
-                        <AppLink
-                          to={getScheduleLink(schedule)}
-                          className="font-medium text-indigo-700 hover:underline"
-                        >
-                          {schedule.name}
-                        </AppLink>
-                      </li>
-                    );
-                  },
+      {hasFacts ? (
+        <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[minmax(7rem,max-content)_minmax(0,1fr)]">
+          {isMembersRowShown ? (
+            <>
+              <dt className={FACT_LABEL_CLASS_NAME}>
+                {translator.translateText(USER_GROUP_LABELS.members)}
+              </dt>
+              <dd data-testid={`${testId}-members`} className="min-w-0">
+                {view.members.length > 0 && !view.isTurnedOff ? (
+                  <ul className="flex flex-wrap gap-2">
+                    {view.members.map(
+                      (person: WorkspaceUserGroupPersonView) => {
+                        return (
+                          <li
+                            key={person.userId}
+                            className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full bg-gray-50 py-0.5 pl-0.5 pr-2.5 ring-1 ring-inset ring-gray-200"
+                          >
+                            {getAvatar(person)}
+                            <span className="truncate text-sm font-medium text-gray-900">
+                              {getPersonName(person)}
+                            </span>
+                          </li>
+                        );
+                      },
+                    )}
+                  </ul>
+                ) : (
+                  <span className="text-gray-500">
+                    {translator.translateText(USER_GROUP_LABELS.noMembers)}
+                  </span>
                 )}
-              </ul>
-            </dd>
-          </>
-        ) : (
-          <></>
-        )}
-      </dl>
+              </dd>
+            </>
+          ) : (
+            <></>
+          )}
 
-      {statusSentence ? (
-        <div
-          data-testid={`${testId}-status-text`}
-          className={`mt-3 flex items-start gap-2 rounded-md px-3 py-2 text-sm text-pretty ${
-            isWarning
-              ? "bg-amber-50 text-amber-900 ring-1 ring-inset ring-amber-200"
-              : "bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-200"
-          }`}
-        >
-          <Icon
-            icon={isWarning ? IconProp.Alert : IconProp.Info}
-            className={`mt-0.5 h-4 w-4 flex-none ${
-              isWarning ? "text-amber-600" : "text-gray-400"
-            }`}
-          />
-          <span>{statusSentence}</span>
-        </div>
+          {otherSchedules.length > 0 ? (
+            <>
+              <dt className={FACT_LABEL_CLASS_NAME}>
+                {translator.translateText(USER_GROUP_LABELS.alsoFollows)}
+              </dt>
+              <dd data-testid={`${testId}-schedules`} className="min-w-0">
+                <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                  {otherSchedules.map(
+                    (schedule: WorkspaceUserGroupScheduleView) => {
+                      return (
+                        <li
+                          key={schedule.scheduleId}
+                          className="min-w-0 max-w-full"
+                        >
+                          <AppLink
+                            to={getScheduleLink(schedule)}
+                            className="font-medium text-indigo-700 hover:underline"
+                          >
+                            {schedule.name}
+                          </AppLink>
+                        </li>
+                      );
+                    },
+                  )}
+                </ul>
+              </dd>
+            </>
+          ) : (
+            <></>
+          )}
+        </dl>
       ) : (
         <></>
       )}
@@ -389,7 +458,7 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
                   icon={IconProp.Alert}
                   className="mt-0.5 h-4 w-4 flex-none text-amber-600"
                 />
-                <span className="text-pretty">
+                <span className="min-w-0 text-pretty">
                   {translator.translateTemplate(
                     getLeftOutText({
                       workspaceType: view.workspaceType,

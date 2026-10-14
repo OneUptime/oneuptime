@@ -1359,7 +1359,9 @@ export default class WorkspacePage {
    * A group the chat @mentioned that a page cannot name: @here, or a user
    * group (a Microsoft Teams tag) that follows no on-call schedule the
    * member may read - which is what makes one pageable: connecting it on a
-   * schedule's page (WorkspaceUserGroup).
+   * schedule's page (WorkspaceUserGroup). Said the same way in both chats,
+   * the fact first, with the verb the schedule's card uses (Connect), and
+   * then what to do in the form.
    */
   public static getGroupNote(data: {
     group: WorkspacePageGroup;
@@ -1373,12 +1375,7 @@ export default class WorkspacePage {
       return `${productName} can't page @${data.group.name}. ${pickBelow}`;
     }
 
-    const kind: string =
-      data.workspaceType === WorkspaceType.MicrosoftTeams
-        ? "a tag"
-        : "a user group";
-
-    return `${productName} pages ${kind} only when it follows an on-call schedule you can see, and @${data.group.name} doesn't. ${pickBelow}`;
+    return `${productName} can't page @${data.group.name}: it isn't connected to an on-call schedule you can see. ${pickBelow}`;
   }
 
   // The page's title: the message on one line, cut to what an alert holds.

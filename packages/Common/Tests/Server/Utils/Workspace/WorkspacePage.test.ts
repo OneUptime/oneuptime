@@ -1248,18 +1248,18 @@ describe("WorkspacePage.getPrefill: groups @mentioned", () => {
     ]);
   });
 
-  test("a user group that follows no schedule the member can see: what makes one pageable, and to pick who it means", () => {
+  test("a user group that follows no schedule the member can see: not paged, why - in the card's own verb - and to pick who it means", () => {
     expect(
       prefillOf({
         paged: [],
         notPaged: [{ name: "oncall-db", workspaceGroupId: "S0DB" }],
       }).notes,
     ).toEqual([
-      "OneUptime pages a user group only when it follows an on-call schedule you can see, and @oncall-db doesn't. Pick the on-call schedule, the team or the people below.",
+      "OneUptime can't page @oncall-db: it isn't connected to an on-call schedule you can see. Pick the on-call schedule, the team or the people below.",
     ]);
   });
 
-  test("in Microsoft Teams, a tag", () => {
+  test("in Microsoft Teams, a tag: the same words", () => {
     expect(
       prefillOf(
         {
@@ -1269,7 +1269,7 @@ describe("WorkspacePage.getPrefill: groups @mentioned", () => {
         WorkspaceType.MicrosoftTeams,
       ).notes,
     ).toEqual([
-      "OneUptime pages a tag only when it follows an on-call schedule you can see, and @On-call DBAs doesn't. Pick the on-call schedule, the team or the people below.",
+      "OneUptime can't page @On-call DBAs: it isn't connected to an on-call schedule you can see. Pick the on-call schedule, the team or the people below.",
     ]);
   });
 
@@ -1294,7 +1294,9 @@ describe("WorkspacePage.getPrefill: groups @mentioned", () => {
         group: { name: "oncall-db", workspaceGroupId: "S0DB" },
         workspaceType: WorkspaceType.Slack,
       }),
-    ).toContain("Acme Pager pages a user group only when");
+    ).toBe(
+      "Acme Pager can't page @oncall-db: it isn't connected to an on-call schedule you can see. Pick the on-call schedule, the team or the people below.",
+    );
   });
 });
 

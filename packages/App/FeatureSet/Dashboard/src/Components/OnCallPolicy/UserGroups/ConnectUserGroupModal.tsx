@@ -44,9 +44,10 @@ import React, {
  * Slack: one list - "Create a new user group" first, then the workspace's
  * groups as people mention them ("@payments-oncall · Payments on-call ·
  * 3 people"). A new group gets a name and a handle, suggested from the
- * schedule's name. Under the list, what connecting the group picked does:
- * the schedules it follows already, the people in it now that are
- * replaced, a group that is turned off turned back on.
+ * schedule's name; with no group of the workspace's to pick, the form
+ * opens on it. Under the list, what connecting the group picked does: the
+ * schedules it follows already, the people in it now that are replaced, a
+ * group that is turned off turned back on.
  *
  * Microsoft Teams: the team (one OneUptime's app is in) and the tag's name -
  * the team's tag of that name, or a new one.
@@ -224,6 +225,10 @@ const ConnectUserGroupModal: FunctionComponent<ComponentProps> = (
           fieldType: FormFieldSchemaType.Dropdown,
           required: true,
           placeholder: CONNECT_FORM_TEXT.userGroupPlaceholder,
+          // Nothing of the workspace's to pick: a new one is the way.
+          ...(groups.length === 0
+            ? { defaultValue: NEW_USER_GROUP_VALUE }
+            : {}),
           dropdownOptions: [
             {
               label:

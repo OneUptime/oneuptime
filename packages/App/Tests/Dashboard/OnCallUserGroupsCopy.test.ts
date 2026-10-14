@@ -21,6 +21,7 @@ import {
   getPersonName,
   getUserGroupProblemText,
   getUserGroupStatus,
+  isMembersShown,
   PEOPLE_COUNT,
   REPLACES_PEOPLE,
   TEAM_SUBTITLE,
@@ -113,6 +114,7 @@ function everySentence(): Array<string> {
       copy.connectButton,
       copy.emptyTitle,
       copy.emptyText,
+      copy.loadError,
       copy.connectTitle,
       copy.connectDescription,
       copy.groupNoun,
@@ -133,12 +135,19 @@ function everySentence(): Array<string> {
     WorkspaceType.Slack,
     WorkspaceType.MicrosoftTeams,
   ]) {
-    for (const problem of Object.values(WorkspaceUserGroupProblem)) {
-      sentences.push(
-        getUserGroupProblemText(
-          viewOf({ workspaceType: workspaceType, problem: problem }),
-        )!,
-      );
+    // With the workspace's own words for a refusal, and without them.
+    for (const problemDetail of ["invalid_users", null]) {
+      for (const problem of Object.values(WorkspaceUserGroupProblem)) {
+        sentences.push(
+          getUserGroupProblemText(
+            viewOf({
+              workspaceType: workspaceType,
+              problem: problem,
+              problemDetail: problemDetail,
+            }),
+          )!,
+        );
+      }
     }
 
     for (const reason of Object.values(WorkspaceUserGroupLeftOutReason)) {
@@ -198,6 +207,18 @@ describe("where a group stands", () => {
     ).toBe(UserGroupStatusKind.Problem);
   });
 
+  test("only a Slack user group can be turned off by somebody: said of a Teams tag, it is a refusal - never 'Turned off in Slack'", () => {
+    expect(
+      getUserGroupStatus(
+        viewOf({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          handle: null,
+          problem: WorkspaceUserGroupProblem.TurnedOffInWorkspace,
+        }),
+      ),
+    ).toBe(UserGroupStatusKind.Problem);
+  });
+
   test("each status has its pill's word", () => {
     expect(USER_GROUP_STATUS_LABELS).toEqual({
       [UserGroupStatusKind.InStep]: "Up to date",
@@ -239,9 +260,52 @@ describe("what each refusal says to do", () => {
     expect(slack(WorkspaceUserGroupProblem.Unavailable)).toContain(
       "It tries again in a few minutes.",
     );
-    expect(slack(WorkspaceUserGroupProblem.Refused)).toBe(
-      "Slack refused the change: {{detail}}.",
+    expect(slack(WorkspaceUserGroupProblem.PaidPlanNeeded)).toBe(
+      "User groups need a paid Slack plan, so OneUptime can't update {{mention}}. Upgrade your Slack workspace to use them.",
     );
+    // Slack never says it this way; if it did, the fix is the scopes'.
+    expect(slack(WorkspaceUserGroupProblem.MissingPermission)).toBe(
+      slack(WorkspaceUserGroupProblem.MissingScope),
+    );
+  });
+
+  test("a refusal in the workspace's own words, and without them - never 'refused the change: .'", () => {
+    expect(
+      getUserGroupProblemText(
+        viewOf({
+          problem: WorkspaceUserGroupProblem.Refused,
+          problemDetail: "invalid_users",
+        }),
+      ),
+    ).toBe("Slack refused the change: {{detail}}.");
+
+    for (const problemDetail of [null, "", "   "]) {
+      expect(
+        getUserGroupProblemText(
+          viewOf({
+            problem: WorkspaceUserGroupProblem.Refused,
+            problemDetail: problemDetail,
+          }),
+        ),
+      ).toBe("Slack refused the change.");
+      expect(
+        getUserGroupProblemText(
+          viewOf({
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            handle: null,
+            problem: WorkspaceUserGroupProblem.Refused,
+            problemDetail: problemDetail,
+          }),
+        ),
+      ).toBe("Microsoft Teams refused the change.");
+    }
+
+    // A problem with words of its own never needs the detail.
+    expect(
+      getUserGroupProblemText(
+        viewOf({ problem: WorkspaceUserGroupProblem.AdminsOnly }),
+      ),
+    ).toContain("Permissions > User Groups");
   });
 
   test("Microsoft Teams: consent for tags, the app gone from the team, the tag gone", () => {
@@ -256,8 +320,8 @@ describe("what each refusal says to do", () => {
       )!;
     };
 
-    expect(teams(WorkspaceUserGroupProblem.MissingPermission)).toContain(
-      "with Grant Admin Consent, in Project Settings > Workspace > Microsoft Teams.",
+    expect(teams(WorkspaceUserGroupProblem.MissingPermission)).toBe(
+      "Your Microsoft 365 organization hasn't let OneUptime manage tags yet. A Microsoft 365 admin can allow it with Grant Admin Consent, in Project Settings > Workspace > Microsoft Teams.",
     );
     expect(teams(WorkspaceUserGroupProblem.TeamGone)).toBe(
       "OneUptime's app isn't in the {{team}} team any more, so it can't update {{mention}}. Add the app to the team in Microsoft Teams again.",
@@ -317,31 +381,33 @@ describe("who is on call but not in a group", () => {
       });
     };
 
-    expect(why(WorkspaceUserGroupLeftOutReason.NotFound)).toContain(
-      "They can connect their Slack account in User Settings > Slack, or use the same email address in both.",
+    expect(why(WorkspaceUserGroupLeftOutReason.NotFound)).toBe(
+      "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Slack, or use the same email address in both.",
     );
-    expect(why(WorkspaceUserGroupLeftOutReason.Guest)).toContain(
-      "Slack keeps guests out of user groups.",
+    expect(why(WorkspaceUserGroupLeftOutReason.Guest)).toBe(
+      "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.",
     );
-    expect(why(WorkspaceUserGroupLeftOutReason.Deactivated)).toContain(
-      "their Slack account is deactivated.",
+    expect(why(WorkspaceUserGroupLeftOutReason.Deactivated)).toBe(
+      "{{name}} is on call but isn't in the group: their Slack account is deactivated.",
     );
   });
 
-  test("Microsoft Teams: a tag holds only its team's people", () => {
-    expect(
-      getLeftOutText({
-        workspaceType: WorkspaceType.MicrosoftTeams,
-        person: {
-          userId: "9a000000-0000-4000-8000-0000000000b1",
-          name: "Bob Lee",
-          email: "bob@acme.test",
-          reason: WorkspaceUserGroupLeftOutReason.NotInTeam,
-        },
-      }),
-    ).toBe(
-      "{{name}} is on call but isn't in it: they aren't in the {{team}} team in Microsoft Teams, and a tag holds only people in its team.",
-    );
+  test("Microsoft Teams: a tag holds only its team's people - and what puts them in", () => {
+    for (const reason of Object.values(WorkspaceUserGroupLeftOutReason)) {
+      expect(
+        getLeftOutText({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          person: {
+            userId: "9a000000-0000-4000-8000-0000000000b1",
+            name: "Bob Lee",
+            email: "bob@acme.test",
+            reason: reason,
+          },
+        }),
+      ).toBe(
+        "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.",
+      );
+    }
   });
 
   test("a person by their name, or their email address when they have none", () => {
@@ -351,6 +417,55 @@ describe("who is on call but not in a group", () => {
     expect(getPersonName({ name: "", email: "ana@acme.test" })).toBe(
       "ana@acme.test",
     );
+  });
+});
+
+describe("who is in it", () => {
+  test("listed once OneUptime has put people in it, or has had it in step", () => {
+    expect(isMembersShown(viewOf())).toBe(true);
+    expect(
+      isMembersShown(
+        viewOf({
+          members: [
+            {
+              userId: "9a000000-0000-4000-8000-0000000000a1",
+              name: "Ana Silva",
+              email: "ana@acme.test",
+            },
+          ],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  test("not before OneUptime looked at it, nor while it is off for nobody on call - the row's note says so", () => {
+    expect(isMembersShown(viewOf({ checkedAt: null, syncedAt: null }))).toBe(
+      false,
+    );
+    expect(isMembersShown(viewOf({ isTurnedOff: true }))).toBe(false);
+  });
+
+  test("refused before it was ever in step: OneUptime does not know who is in it, so it says nothing rather than 'None'", () => {
+    expect(
+      isMembersShown(
+        viewOf({
+          problem: WorkspaceUserGroupProblem.MissingScope,
+          syncedAt: null,
+        }),
+      ),
+    ).toBe(false);
+
+    // Once in step, the people it put in are shown, as they stand.
+    expect(
+      isMembersShown(
+        viewOf({ problem: WorkspaceUserGroupProblem.MissingScope }),
+      ),
+    ).toBe(true);
+  });
+
+  test("an empty list says None - 'Nobody' is translated as 'page nobody' in some locales", () => {
+    expect(USER_GROUP_LABELS.members).toBe("Members");
+    expect(USER_GROUP_LABELS.noMembers).toBe("None");
   });
 });
 
@@ -457,14 +572,69 @@ describe("in every language the Dashboard speaks", () => {
   });
 
   test("the card's own sentences are translated in each of them", () => {
+    const teamsLeftOut: string = getLeftOutText({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      person: {
+        userId: "9a000000-0000-4000-8000-0000000000b1",
+        name: "Bob Lee",
+        email: "bob@acme.test",
+        reason: WorkspaceUserGroupLeftOutReason.NotInTeam,
+      },
+    });
+
     const own: Array<string> = [
-      USER_GROUPS_COPY[WorkspaceType.Slack].title,
-      USER_GROUPS_COPY[WorkspaceType.Slack].emptyText,
-      USER_GROUPS_COPY[WorkspaceType.MicrosoftTeams].title,
+      ...Object.values(USER_GROUPS_COPY).flatMap(
+        (copy: (typeof USER_GROUPS_COPY)[WorkspaceType]): Array<string> => {
+          return [
+            copy.title,
+            copy.description,
+            copy.emptyTitle,
+            copy.emptyText,
+            copy.loadError,
+            copy.connectDescription,
+            copy.turnedOffText,
+          ];
+        },
+      ),
       USER_GROUP_STATUS_LABELS[UserGroupStatusKind.TurnedOff],
       USER_GROUP_STATUS_LABELS[UserGroupStatusKind.Problem],
+      USER_GROUP_LABELS.members,
+      USER_GROUP_LABELS.noMembers,
+      USER_GROUP_LABELS.checking,
+      USER_GROUP_TIME_TEXT.notYet,
       DISCONNECT_TEXT.last,
+      CONNECT_FORM_TEXT.teamDescription,
+      CONNECT_FORM_TEXT.tagDescription,
+      CONNECT_FORM_TEXT.followsOne,
       FOLLOWS_MANY.other,
+      REPLACES_PEOPLE.other,
+      teamsLeftOut,
+      getUserGroupProblemText(
+        viewOf({ problem: WorkspaceUserGroupProblem.PaidPlanNeeded }),
+      )!,
+      getUserGroupProblemText(
+        viewOf({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          handle: null,
+          problem: WorkspaceUserGroupProblem.MissingPermission,
+        }),
+      )!,
+      getUserGroupProblemText(
+        viewOf({ problem: WorkspaceUserGroupProblem.Refused }),
+      )!,
+      ...Object.values(WorkspaceUserGroupLeftOutReason).map(
+        (reason: WorkspaceUserGroupLeftOutReason): string => {
+          return getLeftOutText({
+            workspaceType: WorkspaceType.Slack,
+            person: {
+              userId: "9a000000-0000-4000-8000-0000000000b1",
+              name: "Bob Lee",
+              email: "bob@acme.test",
+              reason: reason,
+            },
+          });
+        },
+      ),
     ];
 
     for (const language of LANGUAGES) {

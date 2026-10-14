@@ -36,6 +36,8 @@ export interface UserGroupsWorkspaceCopy {
   connectButton: string;
   emptyTitle: string;
   emptyText: string;
+  // The card's list could not be read: the bold first line of the alert.
+  loadError: string;
   // The Connect dialog.
   connectTitle: string;
   connectDescription: string;
@@ -52,16 +54,17 @@ export const USER_GROUPS_COPY: Readonly<
     workspaceName: "Slack",
     title: translationKey("Slack user groups"),
     description: translationKey(
-      "Keep a Slack user group's people equal to whoever is on call here, so anyone can @mention it to reach them.",
+      "Keep a Slack user group in step with whoever is on call here, so anyone can @mention it to reach them.",
     ),
     connectButton: translationKey("Connect user group"),
-    emptyTitle: translationKey("No user group yet"),
+    emptyTitle: translationKey("No user groups yet"),
     emptyText: translationKey(
-      "Connect one, such as @payments-oncall, and OneUptime keeps its people equal to whoever is on call here, at every hand-off and override.",
+      "Connect one, such as @payments-oncall, and OneUptime updates its members at every hand-off and override.",
     ),
+    loadError: translationKey("Could not load the user groups."),
     connectTitle: translationKey("Connect a Slack user group"),
     connectDescription: translationKey(
-      "OneUptime puts whoever is on call in this schedule in the group, in place of the people in it now, and keeps it up to date.",
+      "OneUptime replaces the group's members with whoever is on call in this schedule, and keeps them up to date.",
     ),
     groupNoun: translationKey("user group"),
     turnedOffText: translationKey(
@@ -72,20 +75,21 @@ export const USER_GROUPS_COPY: Readonly<
     workspaceName: "Microsoft Teams",
     title: translationKey("Microsoft Teams tags"),
     description: translationKey(
-      "Keep a Microsoft Teams tag's people equal to whoever is on call here, so anyone can @mention it to reach them.",
+      "Keep a Microsoft Teams tag in step with whoever is on call here, so anyone in its team can @mention it to reach them.",
     ),
     connectButton: translationKey("Connect tag"),
-    emptyTitle: translationKey("No tag yet"),
+    emptyTitle: translationKey("No tags yet"),
     emptyText: translationKey(
-      "Connect one, such as @Payments on-call, and OneUptime keeps its people equal to whoever is on call here, at every hand-off and override.",
+      "Connect one, such as @Payments on-call, and OneUptime updates its members at every hand-off and override.",
     ),
+    loadError: translationKey("Could not load the tags."),
     connectTitle: translationKey("Connect a Microsoft Teams tag"),
     connectDescription: translationKey(
-      "OneUptime puts whoever is on call in this schedule in the tag, in place of the people in it now, and keeps it up to date. A tag holds only people in its team.",
+      "OneUptime replaces the tag's members with whoever is on call in this schedule, and keeps them up to date. A tag can only hold people in its team.",
     ),
     groupNoun: translationKey("tag"),
     turnedOffText: translationKey(
-      "Nobody is on call now, so OneUptime took everybody out of {{mention}}. They go back in when somebody is on call.",
+      "Nobody is on call now, so OneUptime emptied {{mention}}. It fills it again when somebody is on call.",
     ),
   },
 };
@@ -101,7 +105,7 @@ export const DISCONNECT_TEXT: Readonly<{
 }> = {
   title: translationKey("Disconnect {{mention}}?"),
   last: translationKey(
-    "OneUptime stops updating {{mention}}. The people in it now stay in it.",
+    "OneUptime stops updating {{mention}}. Its members stay as they are.",
   ),
   oneOther: translationKey(
     "{{mention}} stops following this schedule. It keeps following {{schedule}}.",
@@ -120,16 +124,20 @@ export const TEAM_SUBTITLE: string = translationKey("In the {{team}} team");
 // The labels the card's rows use.
 export const USER_GROUP_LABELS: Readonly<{
   alsoFollows: string;
-  inItNow: string;
-  nobodyInIt: string;
+  members: string;
+  // Members, when there are none: "None" ("Nobody" reads "page nobody" in some locales).
+  noMembers: string;
   tryAgain: string;
+  // Try again, while OneUptime looks at the group.
+  checking: string;
   disconnect: string;
   connect: string;
 }> = {
   alsoFollows: translationKey("Also follows"),
-  inItNow: translationKey("In it now"),
-  nobodyInIt: translationKey("Nobody"),
+  members: translationKey("Members"),
+  noMembers: translationKey("None"),
   tryAgain: translationKey("Try again"),
+  checking: translationKey("Checking…"),
   disconnect: translationKey("Disconnect"),
   connect: translationKey("Connect"),
 };
@@ -165,7 +173,14 @@ export const getUserGroupStatus: (
 ) => UserGroupStatusKind = (
   view: WorkspaceUserGroupView,
 ): UserGroupStatusKind => {
-  if (view.problem === WorkspaceUserGroupProblem.TurnedOffInWorkspace) {
+  /*
+   * Only a Slack user group can be turned off by somebody: a Microsoft
+   * Teams tag has no off. Said of a tag, it is a refusal like any other.
+   */
+  if (
+    view.problem === WorkspaceUserGroupProblem.TurnedOffInWorkspace &&
+    view.workspaceType === WorkspaceType.Slack
+  ) {
     return UserGroupStatusKind.TurnedOffInWorkspace;
   }
 
@@ -184,6 +199,27 @@ export const getUserGroupStatus: (
   return UserGroupStatusKind.InStep;
 };
 
+/*
+ * Whether the row lists who is in the group. Not before OneUptime has
+ * looked at it, nor while it is off for nobody on call (the row says so),
+ * nor after a refusal before it was ever in step: OneUptime has put nobody
+ * in it yet, and does not know who is - "None" would be wrong.
+ */
+export const isMembersShown: (view: WorkspaceUserGroupView) => boolean = (
+  view: WorkspaceUserGroupView,
+): boolean => {
+  const status: UserGroupStatusKind = getUserGroupStatus(view);
+
+  if (
+    status === UserGroupStatusKind.NotYet ||
+    status === UserGroupStatusKind.TurnedOff
+  ) {
+    return false;
+  }
+
+  return view.members.length > 0 || Boolean(view.syncedAt);
+};
+
 // The time sentences: when it was last looked at, and last in step.
 export const USER_GROUP_TIME_TEXT: Readonly<{
   checked: string;
@@ -192,7 +228,7 @@ export const USER_GROUP_TIME_TEXT: Readonly<{
 }> = {
   checked: translationKey("Checked {{when}}"),
   lastInStep: translationKey("Last up to date {{when}}"),
-  notYet: translationKey("OneUptime is putting whoever is on call in it."),
+  notYet: translationKey("OneUptime is adding whoever is on call now."),
 };
 
 /*
@@ -200,56 +236,58 @@ export const USER_GROUP_TIME_TEXT: Readonly<{
  * sentence each, per workspace. {{mention}} is the group as people type it,
  * {{team}} a Teams tag's team, {{detail}} what the workspace said.
  */
+const SLACK_MISSING_SCOPE: string = translationKey(
+  "OneUptime's Slack app isn't allowed to change user groups yet. Reconnect Slack in Project Settings > Workspace > Slack to allow it.",
+);
+
+const SLACK_GONE: string = translationKey(
+  "{{mention}} is not in your Slack workspace any more. Disconnect it, or connect another user group.",
+);
+
+const SLACK_REFUSED: string = translationKey(
+  "Slack refused the change: {{detail}}.",
+);
+
 const SLACK_PROBLEM_TEXT: Readonly<Record<WorkspaceUserGroupProblem, string>> =
   {
     [WorkspaceUserGroupProblem.NotConnected]: translationKey(
       "Slack is not connected to this project any more, so OneUptime can't update {{mention}}. Connect Slack again in Project Settings > Workspace > Slack.",
     ),
     [WorkspaceUserGroupProblem.PaidPlanNeeded]: translationKey(
-      "Slack keeps user groups for paid plans, so OneUptime can't update {{mention}}. Upgrade your Slack workspace to use them.",
+      "User groups need a paid Slack plan, so OneUptime can't update {{mention}}. Upgrade your Slack workspace to use them.",
     ),
-    [WorkspaceUserGroupProblem.MissingScope]: translationKey(
-      "OneUptime's Slack app isn't allowed to change user groups yet. Reconnect Slack in Project Settings > Workspace > Slack to allow it.",
-    ),
+    [WorkspaceUserGroupProblem.MissingScope]: SLACK_MISSING_SCOPE,
     [WorkspaceUserGroupProblem.AdminsOnly]: translationKey(
       "Slack lets only workspace owners and admins change user groups in your workspace, so OneUptime can't update {{mention}}. A Slack admin can let everyone manage user groups in Slack's admin settings, under Permissions > User Groups.",
     ),
-    [WorkspaceUserGroupProblem.MissingPermission]: translationKey(
-      "OneUptime isn't allowed to change {{mention}} in Slack.",
-    ),
-    [WorkspaceUserGroupProblem.Gone]: translationKey(
-      "{{mention}} is not in your Slack workspace any more. Disconnect it, or connect another user group.",
-    ),
-    [WorkspaceUserGroupProblem.TeamGone]: translationKey(
-      "{{mention}} is not in your Slack workspace any more. Disconnect it, or connect another user group.",
-    ),
+    // Slack says this as a missing scope: the same fix.
+    [WorkspaceUserGroupProblem.MissingPermission]: SLACK_MISSING_SCOPE,
+    [WorkspaceUserGroupProblem.Gone]: SLACK_GONE,
+    [WorkspaceUserGroupProblem.TeamGone]: SLACK_GONE,
     [WorkspaceUserGroupProblem.TurnedOffInWorkspace]: translationKey(
       "Somebody turned {{mention}} off in Slack, so nobody can mention it. OneUptime keeps its people up to date: turn it back on in Slack to use it.",
     ),
     [WorkspaceUserGroupProblem.Unavailable]: translationKey(
       "Slack didn't answer when OneUptime last tried. It tries again in a few minutes.",
     ),
-    [WorkspaceUserGroupProblem.Refused]: translationKey(
-      "Slack refused the change: {{detail}}.",
-    ),
+    [WorkspaceUserGroupProblem.Refused]: SLACK_REFUSED,
   };
+
+const TEAMS_REFUSED: string = translationKey(
+  "Microsoft Teams refused the change: {{detail}}.",
+);
 
 const TEAMS_PROBLEM_TEXT: Readonly<Record<WorkspaceUserGroupProblem, string>> =
   {
     [WorkspaceUserGroupProblem.NotConnected]: translationKey(
       "Microsoft Teams is not connected to this project any more, so OneUptime can't update {{mention}}. Connect it again in Project Settings > Workspace > Microsoft Teams.",
     ),
-    [WorkspaceUserGroupProblem.PaidPlanNeeded]: translationKey(
-      "Microsoft Teams refused the change: {{detail}}.",
-    ),
-    [WorkspaceUserGroupProblem.MissingScope]: translationKey(
-      "Microsoft Teams refused the change: {{detail}}.",
-    ),
-    [WorkspaceUserGroupProblem.AdminsOnly]: translationKey(
-      "Microsoft Teams refused the change: {{detail}}.",
-    ),
+    // Slack's refusals: a tag never meets them, so they are said as given.
+    [WorkspaceUserGroupProblem.PaidPlanNeeded]: TEAMS_REFUSED,
+    [WorkspaceUserGroupProblem.MissingScope]: TEAMS_REFUSED,
+    [WorkspaceUserGroupProblem.AdminsOnly]: TEAMS_REFUSED,
     [WorkspaceUserGroupProblem.MissingPermission]: translationKey(
-      "Your Microsoft 365 tenant hasn't let OneUptime manage tags yet. A Microsoft 365 admin can allow it with Grant Admin Consent, in Project Settings > Workspace > Microsoft Teams.",
+      "Your Microsoft 365 organization hasn't let OneUptime manage tags yet. A Microsoft 365 admin can allow it with Grant Admin Consent, in Project Settings > Workspace > Microsoft Teams.",
     ),
     [WorkspaceUserGroupProblem.Gone]: translationKey(
       "{{mention}} is not in the {{team}} team any more. Disconnect it, or connect another tag.",
@@ -257,16 +295,23 @@ const TEAMS_PROBLEM_TEXT: Readonly<Record<WorkspaceUserGroupProblem, string>> =
     [WorkspaceUserGroupProblem.TeamGone]: translationKey(
       "OneUptime's app isn't in the {{team}} team any more, so it can't update {{mention}}. Add the app to the team in Microsoft Teams again.",
     ),
-    [WorkspaceUserGroupProblem.TurnedOffInWorkspace]: translationKey(
-      "Microsoft Teams refused the change: {{detail}}.",
-    ),
+    [WorkspaceUserGroupProblem.TurnedOffInWorkspace]: TEAMS_REFUSED,
     [WorkspaceUserGroupProblem.Unavailable]: translationKey(
       "Microsoft Teams didn't answer when OneUptime last tried. It tries again in a few minutes.",
     ),
-    [WorkspaceUserGroupProblem.Refused]: translationKey(
-      "Microsoft Teams refused the change: {{detail}}.",
-    ),
+    [WorkspaceUserGroupProblem.Refused]: TEAMS_REFUSED,
   };
+
+/*
+ * A refusal the workspace gave no words for: said without them, never as
+ * "refused the change: ." with nothing after the colon.
+ */
+const REFUSED_WITHOUT_DETAIL: Readonly<Record<WorkspaceType, string>> = {
+  [WorkspaceType.Slack]: translationKey("Slack refused the change."),
+  [WorkspaceType.MicrosoftTeams]: translationKey(
+    "Microsoft Teams refused the change.",
+  ),
+};
 
 // The English sentence for a group's problem; null for none.
 export const getUserGroupProblemText: (
@@ -276,15 +321,30 @@ export const getUserGroupProblemText: (
     return null;
   }
 
-  return view.workspaceType === WorkspaceType.MicrosoftTeams
-    ? TEAMS_PROBLEM_TEXT[view.problem]
-    : SLACK_PROBLEM_TEXT[view.problem];
+  const text: string =
+    view.workspaceType === WorkspaceType.MicrosoftTeams
+      ? TEAMS_PROBLEM_TEXT[view.problem]
+      : SLACK_PROBLEM_TEXT[view.problem];
+
+  if (text.includes("{{detail}}") && !view.problemDetail?.trim()) {
+    return REFUSED_WITHOUT_DETAIL[view.workspaceType];
+  }
+
+  return text;
 };
 
 /*
  * Why somebody on call is not in the group: one sentence each, naming
  * them ({{name}}) and saying what would put them in.
  */
+const SLACK_NOT_FOUND: string = translationKey(
+  "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Slack, or use the same email address in both.",
+);
+
+const TEAMS_NOT_IN_TEAM: string = translationKey(
+  "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.",
+);
+
 const LEFT_OUT_TEXT: Readonly<
   Record<
     WorkspaceType,
@@ -292,32 +352,21 @@ const LEFT_OUT_TEXT: Readonly<
   >
 > = {
   [WorkspaceType.Slack]: {
-    [WorkspaceUserGroupLeftOutReason.NotFound]: translationKey(
-      "{{name}} is on call but isn't in it: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Slack, or use the same email address in both.",
-    ),
+    [WorkspaceUserGroupLeftOutReason.NotFound]: SLACK_NOT_FOUND,
     [WorkspaceUserGroupLeftOutReason.Guest]: translationKey(
-      "{{name}} is on call but isn't in it: they are a guest in Slack, and Slack keeps guests out of user groups.",
+      "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.",
     ),
     [WorkspaceUserGroupLeftOutReason.Deactivated]: translationKey(
-      "{{name}} is on call but isn't in it: their Slack account is deactivated.",
+      "{{name}} is on call but isn't in the group: their Slack account is deactivated.",
     ),
-    [WorkspaceUserGroupLeftOutReason.NotInTeam]: translationKey(
-      "{{name}} is on call but isn't in it: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Slack, or use the same email address in both.",
-    ),
+    [WorkspaceUserGroupLeftOutReason.NotInTeam]: SLACK_NOT_FOUND,
   },
+  // A tag holds a team's members: whatever kept somebody out, that is why.
   [WorkspaceType.MicrosoftTeams]: {
-    [WorkspaceUserGroupLeftOutReason.NotFound]: translationKey(
-      "{{name}} is on call but isn't in it: they aren't in the {{team}} team in Microsoft Teams, and a tag holds only people in its team.",
-    ),
-    [WorkspaceUserGroupLeftOutReason.Guest]: translationKey(
-      "{{name}} is on call but isn't in it: they aren't in the {{team}} team in Microsoft Teams, and a tag holds only people in its team.",
-    ),
-    [WorkspaceUserGroupLeftOutReason.Deactivated]: translationKey(
-      "{{name}} is on call but isn't in it: they aren't in the {{team}} team in Microsoft Teams, and a tag holds only people in its team.",
-    ),
-    [WorkspaceUserGroupLeftOutReason.NotInTeam]: translationKey(
-      "{{name}} is on call but isn't in it: they aren't in the {{team}} team in Microsoft Teams, and a tag holds only people in its team.",
-    ),
+    [WorkspaceUserGroupLeftOutReason.NotFound]: TEAMS_NOT_IN_TEAM,
+    [WorkspaceUserGroupLeftOutReason.Guest]: TEAMS_NOT_IN_TEAM,
+    [WorkspaceUserGroupLeftOutReason.Deactivated]: TEAMS_NOT_IN_TEAM,
+    [WorkspaceUserGroupLeftOutReason.NotInTeam]: TEAMS_NOT_IN_TEAM,
   },
 };
 
@@ -390,17 +439,19 @@ export const CONNECT_FORM_TEXT: Readonly<{
   ),
   team: translationKey("Team"),
   teamPlaceholder: translationKey("Pick a team"),
-  teamDescription: translationKey("The teams OneUptime's app is in."),
+  teamDescription: translationKey(
+    "Only teams that have the OneUptime app are listed.",
+  ),
   tag: translationKey("Tag"),
   tagDescription: translationKey(
-    "The team's tag with this name, or a new one OneUptime makes.",
+    "OneUptime uses the team's tag with this name, or creates one.",
   ),
   noTeams: translationKey(
     "OneUptime's app isn't in any team yet. Add it to a team in Microsoft Teams, then try again.",
   ),
   turnedOffOption: translationKey("turned off"),
   followsOne: translationKey(
-    "It follows {{schedule}} already: it will hold the people on call there and here.",
+    "It already follows {{schedule}}, so it will hold whoever is on call there and here.",
   ),
   turnsOn: translationKey(
     "It is turned off in Slack now. Connecting it turns it back on.",
@@ -415,15 +466,15 @@ export const PEOPLE_COUNT: PluralTemplate = {
 
 // A group picked that follows several schedules already.
 export const FOLLOWS_MANY: PluralTemplate = {
-  one: "It follows {{count}} schedule already: it will hold the people on call in it and here.",
+  one: "It already follows {{count}} schedule, so it will hold whoever is on call in it and here.",
   other:
-    "It follows {{count}} schedules already: it will hold the people on call in them and here.",
+    "It already follows {{count}} schedules, so it will hold whoever is on call in them and here.",
 };
 
 // A group picked that follows no schedule yet, with people in it.
 export const REPLACES_PEOPLE: PluralTemplate = {
-  one: "Its {{count}} person now is replaced with whoever is on call.",
-  other: "Its {{count}} people now are replaced with whoever is on call.",
+  one: "OneUptime replaces its {{count}} member with whoever is on call.",
+  other: "OneUptime replaces its {{count}} members with whoever is on call.",
 };
 
 /*

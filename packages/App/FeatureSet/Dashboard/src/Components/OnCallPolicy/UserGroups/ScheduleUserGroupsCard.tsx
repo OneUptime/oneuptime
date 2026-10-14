@@ -9,17 +9,18 @@ import {
   USER_GROUPS_COPY,
   UserGroupsWorkspaceCopy,
 } from "./UserGroupsCopy";
+import { FEED_PANEL_BUTTON_CLASS_NAME } from "../CalendarFeed/CalendarFeedLayout";
+import FeedEmptyState from "../CalendarFeed/FeedEmptyState";
 import { useWorkspaceConnections } from "../../../Utils/Workspace/ConnectedWorkspaces";
 import WorkspaceUserGroup from "Common/Models/DatabaseModels/WorkspaceUserGroup";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { WorkspaceUserGroupView } from "Common/Types/Workspace/WorkspaceUserGroup";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
@@ -48,6 +49,11 @@ import React, {
  * that follow this schedule, each with who is in it now, the schedules it
  * follows and whether it is up to date, and connects one in a click. A
  * project that connected neither is shown neither.
+ *
+ * It sits between the on-call banner and the calendar subscription cards,
+ * and speaks their language: an empty card is the same panel as theirs
+ * (FeedEmptyState), and a list that could not be read, or a press that
+ * failed, is the same red alert with its way to try again.
  */
 
 export interface ComponentProps {
@@ -74,6 +80,7 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const copy: UserGroupsWorkspaceCopy = USER_GROUPS_COPY[props.workspaceType];
+  const idPrefix: string = `user-groups-${props.workspaceType}`;
 
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [toDisconnect, setToDisconnect] =
@@ -104,10 +111,6 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
     { singularName: copy.groupNoun },
   );
 
-  const canChange: boolean = changeGate.isAllowed;
-  const changeDisabledReason: string | undefined = canChange
-    ? undefined
-    : changeGate.disabledReason;
 
   const tryAgain: (view: WorkspaceUserGroupView) => Promise<void> = async (
     view: WorkspaceUserGroupView,
@@ -166,7 +169,9 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
     view: WorkspaceUserGroupView,
   ) => ReactElement = (view: WorkspaceUserGroupView): ReactElement => {
     const others: Array<string> = getOtherScheduleNames(view);
-    const mention: ReactElement = <strong>{getMention(view)}</strong>;
+    const mention: ReactElement = (
+      <strong className="break-words">{getMention(view)}</strong>
+    );
 
     if (others.length === 0) {
       return (
@@ -196,57 +201,61 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
     );
   };
 
+  /*
+   * The empty panel's one action: Connect, or - for a reader who may not -
+   * the same button locked, saying which permission it needs.
+   */
+  const getEmptyControl: () => ReactElement = (): ReactElement => {
+    if (!connectButton) {
+      return <></>;
+    }
+
+    return (
+      <Button
+        title={copy.connectButton}
+        icon={IconProp.Add}
+        buttonStyle={ButtonStyleType.PRIMARY}
+        disabled={connectButton.disabled}
+        tooltip={connectButton.tooltip}
+        dataTestId={`${idPrefix}-connect`}
+        className={FEED_PANEL_BUTTON_CLASS_NAME}
+        onClick={() => {
+          if (!connectButton.disabled) {
+            setIsConnecting(true);
+          }
+        }}
+      />
+    );
+  };
+
   let body: ReactElement;
 
   if (props.isLoading) {
     body = <ComponentLoader />;
   } else if (props.error) {
     body = (
-      <ErrorMessage message={props.error} onRefreshClick={props.onReload} />
+      <Alert
+        type={AlertType.DANGER}
+        strongTitle={copy.loadError}
+        title={props.error}
+        textOnRight={USER_GROUP_LABELS.tryAgain}
+        dataTestId={`${idPrefix}-load-error`}
+        onClick={props.onReload}
+      />
     );
   } else if (props.views.length === 0) {
     body = (
-      <div
-        data-testid={`user-groups-empty-${props.workspaceType}`}
-        className="rounded-lg border border-dashed border-gray-300 px-6 py-6 text-center"
-      >
-        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-          <Icon
-            icon={IconProp.UserGroup}
-            size={SizeProp.Large}
-            thick={ThickProp.Thick}
-            className="h-5 w-5"
-          />
-        </div>
-        <h3 className="mt-3 text-sm font-semibold text-gray-900">
-          {translator.translateText(copy.emptyTitle)}
-        </h3>
-        <p className="mx-auto mt-1 max-w-md text-sm text-gray-500 text-pretty">
-          {translator.translateText(copy.emptyText)}
-        </p>
-        {connectButton && !connectButton.disabled ? (
-          <div className="mt-4 flex justify-center">
-            <Button
-              title={copy.connectButton}
-              icon={IconProp.Add}
-              buttonStyle={ButtonStyleType.PRIMARY}
-              dataTestId={`user-groups-empty-connect-${props.workspaceType}`}
-              onClick={() => {
-                setIsConnecting(true);
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-      </div>
+      <FeedEmptyState
+        idPrefix={idPrefix}
+        icon={IconProp.UserGroup}
+        title={copy.emptyTitle}
+        description={copy.emptyText}
+        control={getEmptyControl()}
+      />
     );
   } else {
     body = (
-      <ul
-        data-testid={`user-groups-${props.workspaceType}`}
-        className="space-y-3"
-      >
+      <ul data-testid={idPrefix} className="space-y-3">
         {props.views.map((view: WorkspaceUserGroupView) => {
           return (
             <UserGroupRow
@@ -255,8 +264,8 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
               scheduleId={props.scheduleId}
               now={props.now}
               isBusy={busyId === view.workspaceUserGroupId}
-              tryAgainDisabledReason={changeDisabledReason}
-              disconnectDisabledReason={changeDisabledReason}
+              canChange={changeGate.isAllowed}
+              changeDisabledReason={changeGate.disabledReason}
               onTryAgain={() => {
                 tryAgain(view).catch(() => {
                   // tryAgain keeps its own error.
@@ -280,10 +289,17 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
       buttons={connectButton && props.views.length > 0 ? [connectButton] : []}
     >
       <div data-testid={`user-groups-card-${props.workspaceType}`}>
+        {/*
+         * A Try again that failed, said above the list in red - unless the
+         * Disconnect dialog that failed is still open and says it there.
+         */}
         {actionError && !toDisconnect ? (
-          <div className="mb-3">
-            <ErrorMessage message={actionError} />
-          </div>
+          <Alert
+            type={AlertType.DANGER}
+            title={actionError}
+            dataTestId={`${idPrefix}-error`}
+            className="mb-3"
+          />
         ) : (
           <></>
         )}
@@ -386,12 +402,22 @@ const ScheduleUserGroupsCard: FunctionComponent<ComponentProps> = (
     removedId?: string,
   ) => void = (view: WorkspaceUserGroupView | null, removedId?: string) => {
     setViews((current: Array<WorkspaceUserGroupView>) => {
+      const index: number = view
+        ? current.findIndex((existing: WorkspaceUserGroupView): boolean => {
+            return existing.workspaceUserGroupId === view.workspaceUserGroupId;
+          })
+        : -1;
+
+      // Looked at again: the row keeps its place.
+      if (view && index >= 0) {
+        const next: Array<WorkspaceUserGroupView> = [...current];
+        next[index] = view;
+        return next;
+      }
+
       const kept: Array<WorkspaceUserGroupView> = current.filter(
         (existing: WorkspaceUserGroupView): boolean => {
-          return (
-            existing.workspaceUserGroupId !== removedId &&
-            existing.workspaceUserGroupId !== view?.workspaceUserGroupId
-          );
+          return existing.workspaceUserGroupId !== removedId;
         },
       );
 

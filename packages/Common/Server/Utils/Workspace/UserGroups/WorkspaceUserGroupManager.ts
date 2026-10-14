@@ -762,7 +762,7 @@ export default class WorkspaceUserGroupManager {
       case WorkspaceUserGroupProblem.AdminsOnly:
         return "Slack lets only workspace owners and admins manage user groups in your workspace. Ask a Slack admin to let everyone manage user groups (in Slack's admin settings, Permissions > User Groups), then try again.";
       case WorkspaceUserGroupProblem.MissingPermission:
-        return `${productName} isn't allowed to manage tags in your Microsoft 365 tenant yet. A Microsoft 365 admin can allow it with Grant Admin Consent, in Project Settings > Workspace > Microsoft Teams.`;
+        return `${productName} isn't allowed to manage tags in your Microsoft 365 organization yet. A Microsoft 365 admin can allow it with Grant Admin Consent, in Project Settings > Workspace > Microsoft Teams.`;
       case WorkspaceUserGroupProblem.TeamGone:
         return WorkspaceUserGroupManager.getTeamGoneText();
       case WorkspaceUserGroupProblem.Gone:
@@ -1053,7 +1053,7 @@ export default class WorkspaceUserGroupManager {
 
     if (!firstMember) {
       throw new BadDataException(
-        "Microsoft Teams makes no empty tag, and nobody on call in this schedule now is a member of this team. Pick a tag the team has, or connect a new one once somebody from the team is on call.",
+        "Microsoft Teams can't create an empty tag, and nobody on call in this schedule right now is in this team. Name a tag the team already has, or try again once somebody from the team is on call.",
       );
     }
 

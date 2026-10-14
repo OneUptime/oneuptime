@@ -266,7 +266,7 @@ describe("the examples, read as the command reads them", () => {
         group: { name: "oncall-db", workspaceGroupId: "S0123" },
         workspaceType: WorkspaceType.Slack,
       }),
-    ).toContain("only when it follows an on-call schedule you can see");
+    ).toContain("it isn't connected to an on-call schedule you can see");
   });
 
   test("Slack: `/oneuptime page @payments-oncall ...` pages whoever is on call in the schedules the user group follows, as the page says", () => {

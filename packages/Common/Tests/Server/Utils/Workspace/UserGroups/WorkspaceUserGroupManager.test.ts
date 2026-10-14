@@ -614,7 +614,7 @@ describe("connecting a Microsoft Teams tag", () => {
     );
 
     expect(error.message).toBe(
-      "Microsoft Teams makes no empty tag, and nobody on call in this schedule now is a member of this team. Pick a tag the team has, or connect a new one once somebody from the team is on call.",
+      "Microsoft Teams can't create an empty tag, and nobody on call in this schedule right now is in this team. Name a tag the team already has, or try again once somebody from the team is on call.",
     );
     expect(world.graph.paths("POST")).toEqual([]);
   });
@@ -658,7 +658,7 @@ describe("connecting a Microsoft Teams tag", () => {
     );
 
     expect(error.message).toBe(
-      "OneUptime isn't allowed to manage tags in your Microsoft 365 tenant yet. A Microsoft 365 admin can allow it with Grant Admin Consent, in Project Settings > Workspace > Microsoft Teams.",
+      "OneUptime isn't allowed to manage tags in your Microsoft 365 organization yet. A Microsoft 365 admin can allow it with Grant Admin Consent, in Project Settings > Workspace > Microsoft Teams.",
     );
   });
 

@@ -1013,7 +1013,7 @@ describe("anything else: the Page someone card, with what was typed filled in", 
     const card: JSONObject = cardOf(sent(delivery)[0]);
 
     expect((card["body"] as Array<JSONObject>)[1]!["text"]).toBe(
-      "⚠️ OneUptime pages a tag only when it follows an on-call schedule you can see, and @On-call DBAs doesn't. Pick the on-call schedule, the team or the people below.",
+      "⚠️ OneUptime can't page @On-call DBAs: it isn't connected to an on-call schedule you can see. Pick the on-call schedule, the team or the people below.",
     );
   });
 

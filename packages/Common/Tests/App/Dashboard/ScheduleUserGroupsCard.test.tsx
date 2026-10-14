@@ -28,10 +28,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * The real card, rows and Connect dialog, with the server's routes stood in
  * for: a card per connected chat workspace, Slack first; each group with
  * who is in it, the other schedules it follows, where it stands and why;
- * Try again and Disconnect, and who may press them; and Connect - a new
- * Slack group, or a workspace's group, or a Teams tag - sending what the
- * server reads. The words come from UserGroupsCopy, whose own suite pins
- * each sentence (App/Tests/Dashboard/OnCallUserGroupsCopy.test.ts).
+ * Try again (on the problem itself) and Disconnect (in the row's ⋯), and
+ * who may press them; and Connect - a new Slack group, or a workspace's
+ * group, or a Teams tag - sending what the server reads. An empty card is
+ * the schedule page's empty panel (FeedEmptyState), a list that could not
+ * be read the red alert with Try again. The words come from
+ * UserGroupsCopy, whose own suite pins each sentence
+ * (App/Tests/Dashboard/OnCallUserGroupsCopy.test.ts).
  */
 
 let permissionsForTest: Array<string> = [];
@@ -260,6 +263,47 @@ function textOf(id: string, part: string): string {
   );
 }
 
+// The words of a row's status note, without the Try again beside them.
+function noteOf(id: string): string {
+  const note: HTMLElement | null = within(row(id)).queryByTestId(
+    `user-group-${id}-status-text`,
+  );
+
+  if (!note) {
+    return "";
+  }
+
+  const message: Element | null = note.querySelector(".alert-message > div");
+
+  return (message || note).textContent || "";
+}
+
+// Opens a row's ⋯ menu and hands back its Disconnect.
+async function openRowMenu(id: string): Promise<HTMLElement> {
+  await act(async () => {
+    fireEvent.click(within(row(id)).getByTestId("row-actions-more-button"));
+  });
+
+  return screen.getByRole("menuitem", { name: "Disconnect" });
+}
+
+async function disconnectRow(id: string): Promise<void> {
+  const item: HTMLElement = await openRowMenu(id);
+
+  await act(async () => {
+    fireEvent.click(item);
+  });
+}
+
+// The Try again a row's problem carries: the alert's own button.
+function tryAgainOf(id: string): HTMLElement | null {
+  const note: HTMLElement | null = within(row(id)).queryByTestId(
+    `user-group-${id}-status-text`,
+  );
+
+  return note ? within(note).queryByRole("button") : null;
+}
+
 beforeEach(() => {
   window.history.pushState(
     {},
@@ -400,34 +444,87 @@ describe("a card per connected workspace", () => {
     );
   });
 
-  test("no group yet: says what one is for, with Connect user group as the one button", async () => {
+  test("no group yet: the schedule page's empty panel - what one is for, with Connect user group as its one button", async () => {
     views = [];
 
     await renderCard();
 
-    const empty: HTMLElement = screen.getByTestId("user-groups-empty-Slack");
+    // The same panel the calendar cards under it show (FeedEmptyState).
+    const empty: HTMLElement = screen.getByTestId("user-groups-Slack-empty-state");
 
-    expect(within(empty).getByText("No user group yet")).toBeInTheDocument();
     expect(
-      within(empty).getByText(
-        "Connect one, such as @payments-oncall, and OneUptime keeps its people equal to whoever is on call here, at every hand-off and override.",
-      ),
-    ).toBeInTheDocument();
+      within(empty).getByTestId("user-groups-Slack-empty-title").textContent,
+    ).toBe("No user groups yet");
     expect(
-      screen.getByTestId("user-groups-empty-connect-Slack"),
-    ).toBeInTheDocument();
+      within(empty).getByTestId("user-groups-Slack-empty-description")
+        .textContent,
+    ).toBe(
+      "Connect one, such as @payments-oncall, and OneUptime updates its members at every hand-off and override.",
+    );
+
+    const connect: HTMLElement = within(empty).getByTestId(
+      "user-groups-Slack-connect",
+    );
+
+    expect(connect).toHaveTextContent("Connect user group");
+    expect(connect).toBeEnabled();
+
+    // Its one button: none in the card's header.
+    expect(
+      within(screen.getByTestId("card-header")).queryByRole("button"),
+    ).toBeNull();
   });
 
-  test("the groups could not be read: said, with a way to try again", async () => {
+  test("Microsoft Teams with no tag yet: its own words", async () => {
+    views = [];
+
+    await renderCard([WorkspaceType.MicrosoftTeams]);
+
+    expect(
+      screen.getByTestId("user-groups-MicrosoftTeams-empty-title").textContent,
+    ).toBe("No tags yet");
+    expect(
+      screen.getByTestId("user-groups-MicrosoftTeams-empty-description")
+        .textContent,
+    ).toBe(
+      "Connect one, such as @Payments on-call, and OneUptime updates its members at every hand-off and override.",
+    );
+    expect(
+      screen.getByTestId("user-groups-MicrosoftTeams-connect"),
+    ).toHaveTextContent("Connect tag");
+  });
+
+  test("the groups could not be read: said in red, with the server's reason, and Try again reads them again", async () => {
+    let isRefused: boolean = true;
+
     getMock.mockImplementation((async () => {
-      return refused("You do not have permission to read this schedule.");
+      if (isRefused) {
+        return refused("You do not have permission to read this schedule.");
+      }
+
+      return ok({ userGroups: [PAYMENTS] as unknown as Array<JSONObject> });
     }) as never);
 
     await renderCard();
 
-    expect(
-      screen.getByText("You do not have permission to read this schedule."),
-    ).toBeInTheDocument();
+    const alert: HTMLElement = screen.getByTestId("user-groups-Slack-load-error");
+
+    expect(alert).toHaveTextContent("Could not load the user groups.");
+    expect(alert).toHaveTextContent(
+      "You do not have permission to read this schedule.",
+    );
+    expect(alert).toHaveTextContent("Try again");
+
+    isRefused = false;
+
+    await act(async () => {
+      fireEvent.click(within(alert).getByRole("button"));
+    });
+
+    await waitFor(() => {
+      expect(row(PAYMENTS.workspaceUserGroupId)).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("user-groups-Slack-load-error")).toBeNull();
   });
 });
 
@@ -441,6 +538,13 @@ describe("a group's row", () => {
     expect(textOf(id, "status")).toBe("Up to date");
     expect(textOf(id, "members")).toContain("Ana Silva");
     expect(textOf(id, "members")).toContain("Bob Lee");
+    expect(
+      within(row(id)).getByTestId(`user-group-${id}-members`)
+        .previousElementSibling?.textContent,
+    ).toBe("Members");
+    // Nothing to explain: no note, and no Try again.
+    expect(within(row(id)).queryByTestId(`user-group-${id}-status-text`)).toBeNull();
+    expect(within(row(id)).queryByText("Try again")).toBeNull();
 
     // This schedule is not listed: only the others, as links to them.
     const schedules: HTMLElement = within(row(id)).getByTestId(
@@ -471,7 +575,7 @@ describe("a group's row", () => {
     ).toBeNull();
   });
 
-  test("nobody on call: Nobody on call, Nobody in it, and why the group is off", async () => {
+  test("nobody on call: Nobody on call, and why the group is off - no member list to say it again", async () => {
     views = [
       viewOf({
         workspaceUserGroupId: "8a000000-0000-4000-8000-000000000003",
@@ -485,7 +589,9 @@ describe("a group's row", () => {
     const id: string = "8a000000-0000-4000-8000-000000000003";
 
     expect(textOf(id, "status")).toBe("Nobody on call");
-    expect(textOf(id, "members")).toBe("Nobody");
+    expect(
+      within(row(id)).queryByTestId(`user-group-${id}-members`),
+    ).toBeNull();
     expect(textOf(id, "status-text")).toBe(
       "Nobody is on call now, so OneUptime turned @payments-oncall off in Slack: Slack can't keep a user group with nobody in it. It turns it back on when somebody is on call.",
     );
@@ -510,7 +616,7 @@ describe("a group's row", () => {
       within(row(id)).queryByTestId(`user-group-${id}-members`),
     ).toBeNull();
     expect(textOf(id, "status-text")).toBe(
-      "OneUptime is putting whoever is on call in it.",
+      "OneUptime is adding whoever is on call now.",
     );
     // Never looked at: no time to give.
     expect(within(row(id)).queryByTestId(`user-group-${id}-time`)).toBeNull();
@@ -538,15 +644,18 @@ describe("a group's row", () => {
     await renderCard();
 
     expect(textOf(id, "status")).toBe("Not up to date");
-    expect(textOf(id, "status-text")).toBe(
+    expect(noteOf(id)).toBe(
       "Slack lets only workspace owners and admins change user groups in your workspace, so OneUptime can't update @payments-oncall. A Slack admin can let everyone manage user groups in Slack's admin settings, under Permissions > User Groups.",
     );
+    // A problem is said in red, with Try again beside it.
+    expect(
+      within(row(id)).getByTestId(`user-group-${id}-status-text`),
+    ).toHaveClass("bg-red-50");
+    expect(textOf(id, "status-text")).toContain("Try again");
     expect(textOf(id, "time")).toBe("Last up to date 2 hours ago");
 
     await act(async () => {
-      fireEvent.click(
-        within(row(id)).getByTestId(`user-group-${id}-try-again`),
-      );
+      fireEvent.click(tryAgainOf(id)!);
     });
 
     await waitFor(() => {
@@ -560,11 +669,158 @@ describe("a group's row", () => {
   test("Try again only where there is a problem", async () => {
     await renderCard();
 
+    expect(tryAgainOf(PAYMENTS.workspaceUserGroupId)).toBeNull();
     expect(
-      within(row(PAYMENTS.workspaceUserGroupId)).queryByTestId(
-        `user-group-${PAYMENTS.workspaceUserGroupId}-try-again`,
-      ),
+      within(row(PAYMENTS.workspaceUserGroupId)).queryByText("Try again"),
     ).toBeNull();
+  });
+
+  test("Try again: the row keeps its place among the others while it is looked at again", async () => {
+    const first: string = "8a000000-0000-4000-8000-000000000031";
+    const second: string = "8a000000-0000-4000-8000-000000000032";
+
+    views = [
+      viewOf({
+        workspaceUserGroupId: first,
+        handle: "first-oncall",
+        problem: WorkspaceUserGroupProblem.Unavailable,
+      }),
+      viewOf({ workspaceUserGroupId: second, handle: "second-oncall" }),
+    ];
+    syncAnswer = () => {
+      return ok({
+        userGroup: viewOf({
+          workspaceUserGroupId: first,
+          handle: "first-oncall",
+        }) as unknown as JSONObject,
+      });
+    };
+
+    await renderCard();
+
+    await act(async () => {
+      fireEvent.click(tryAgainOf(first)!);
+    });
+
+    await waitFor(() => {
+      expect(textOf(first, "status")).toBe("Up to date");
+    });
+
+    expect(
+      within(screen.getByTestId("user-groups-Slack"))
+        .getAllByRole("listitem")
+        .filter((item: HTMLElement): boolean => {
+          return (item.getAttribute("data-testid") || "").startsWith(
+            "user-group-",
+          );
+        })
+        .map((item: HTMLElement): string | null => {
+          return item.getAttribute("data-testid");
+        }),
+    ).toEqual([`user-group-${first}`, `user-group-${second}`]);
+  });
+
+  test("Try again fails: said above the list, in red", async () => {
+    const id: string = "8a000000-0000-4000-8000-000000000033";
+
+    views = [
+      viewOf({
+        workspaceUserGroupId: id,
+        problem: WorkspaceUserGroupProblem.Unavailable,
+      }),
+    ];
+    syncAnswer = () => {
+      return refused("Slack didn't answer. Try again in a minute.");
+    };
+
+    await renderCard();
+
+    await act(async () => {
+      fireEvent.click(tryAgainOf(id)!);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("user-groups-Slack-error")).toHaveTextContent(
+        "Slack didn't answer. Try again in a minute.",
+      );
+    });
+  });
+
+  test("refused before it was ever in step: no member list - OneUptime does not know who is in it", async () => {
+    const id: string = "8a000000-0000-4000-8000-000000000034";
+
+    views = [
+      viewOf({
+        workspaceUserGroupId: id,
+        members: [],
+        problem: WorkspaceUserGroupProblem.MissingScope,
+        syncedAt: null,
+        checkedAt: minutesAgo(1),
+      }),
+    ];
+
+    await renderCard();
+
+    expect(
+      within(row(id)).queryByTestId(`user-group-${id}-members`),
+    ).toBeNull();
+    expect(noteOf(id)).toBe(
+      "OneUptime's Slack app isn't allowed to change user groups yet. Reconnect Slack in Project Settings > Workspace > Slack to allow it.",
+    );
+    expect(textOf(id, "time")).toBe("Checked 1 minute ago");
+  });
+
+  test("in step once, refused since, with nobody in it: None", async () => {
+    const id: string = "8a000000-0000-4000-8000-000000000035";
+
+    views = [
+      viewOf({
+        workspaceUserGroupId: id,
+        members: [],
+        problem: WorkspaceUserGroupProblem.Gone,
+      }),
+    ];
+
+    await renderCard();
+
+    expect(textOf(id, "members")).toBe("None");
+  });
+
+  test("a refusal Slack gave no words for: said without a dangling colon", async () => {
+    const id: string = "8a000000-0000-4000-8000-000000000036";
+
+    views = [
+      viewOf({
+        workspaceUserGroupId: id,
+        problem: WorkspaceUserGroupProblem.Refused,
+        problemDetail: null,
+      }),
+    ];
+
+    await renderCard();
+
+    expect(noteOf(id)).toBe("Slack refused the change.");
+  });
+
+  test("a long handle wraps where its hyphens are, never mid-word", async () => {
+    const id: string = "8a000000-0000-4000-8000-000000000037";
+
+    views = [
+      viewOf({
+        workspaceUserGroupId: id,
+        handle:
+          "payments-checkout-and-billing-platform-engineers-oncall-this-week",
+      }),
+    ];
+
+    await renderCard();
+
+    const mention: HTMLElement = within(row(id)).getByTestId(
+      `user-group-${id}-mention`,
+    );
+
+    expect(mention).toHaveClass("break-words");
+    expect(mention).not.toHaveClass("break-all");
   });
 
   test("turned off in Slack by somebody: says so, and to turn it back on there", async () => {
@@ -580,7 +836,11 @@ describe("a group's row", () => {
     await renderCard();
 
     expect(textOf(id, "status")).toBe("Turned off in Slack");
-    expect(textOf(id, "status-text")).toBe(
+    expect(
+      within(row(id)).getByTestId(`user-group-${id}-status-text`),
+    ).toHaveClass("bg-amber-50");
+    expect(tryAgainOf(id)).toBeNull();
+    expect(noteOf(id)).toBe(
       "Somebody turned @payments-oncall off in Slack, so nobody can mention it. OneUptime keeps its people up to date: turn it back on in Slack to use it.",
     );
   });
@@ -598,7 +858,7 @@ describe("a group's row", () => {
     await renderCard();
 
     expect(textOf(id, "left-out")).toBe(
-      "Bob Lee is on call but isn't in it: they are a guest in Slack, and Slack keeps guests out of user groups.",
+      "Bob Lee is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.",
     );
   });
 
@@ -621,7 +881,7 @@ describe("a group's row", () => {
 
     expect(screen.getByText("Microsoft Teams tags")).toBeInTheDocument();
     expect(textOf(id, "left-out")).toBe(
-      "Bob Lee is on call but isn't in it: they aren't in the Payments team in Microsoft Teams, and a tag holds only people in its team.",
+      "Bob Lee is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the Payments team. Add them to it in Microsoft Teams.",
     );
   });
 });
@@ -632,11 +892,12 @@ describe("disconnecting", () => {
 
     await renderCard();
 
-    await act(async () => {
-      fireEvent.click(
-        within(row(id)).getByTestId(`user-group-${id}-disconnect`),
-      );
-    });
+    // Rare and destructive: in the row's ⋯, named for the group.
+    expect(
+      within(row(id)).getByTestId("row-actions-more-button"),
+    ).toHaveAttribute("aria-label", "More actions for @payments-oncall");
+
+    await disconnectRow(id);
 
     expect(
       screen.getByText("Disconnect @payments-oncall?"),
@@ -664,14 +925,10 @@ describe("disconnecting", () => {
 
     await renderCard();
 
-    await act(async () => {
-      fireEvent.click(
-        within(row(id)).getByTestId(`user-group-${id}-disconnect`),
-      );
-    });
+    await disconnectRow(id);
 
     expect(document.body.textContent).toContain(
-      "OneUptime stops updating @payments-oncall. The people in it now stay in it.",
+      "OneUptime stops updating @payments-oncall. Its members stay as they are.",
     );
   });
 
@@ -687,11 +944,7 @@ describe("disconnecting", () => {
 
     await renderCard();
 
-    await act(async () => {
-      fireEvent.click(
-        within(row(id)).getByTestId(`user-group-${id}-disconnect`),
-      );
-    });
+    await disconnectRow(id);
 
     expect(document.body.textContent).toContain(
       "@payments-oncall stops following this schedule. It keeps following 2 other schedules.",
@@ -700,7 +953,7 @@ describe("disconnecting", () => {
 });
 
 describe("who may change them", () => {
-  test("somebody who may only read: no Connect, and Disconnect turned off with why", async () => {
+  test("somebody who may only read: the problem without Try again, and Disconnect locked in the menu, saying why", async () => {
     permissionsForTest = [Permission.Viewer];
     views = [
       viewOf({
@@ -713,21 +966,40 @@ describe("who may change them", () => {
 
     const id: string = "8a000000-0000-4000-8000-000000000010";
 
-    expect(
-      within(row(id)).getByTestId(`user-group-${id}-disconnect`),
-    ).toBeDisabled();
-    expect(
-      within(row(id)).getByTestId(`user-group-${id}-try-again`),
-    ).toBeDisabled();
+    // The problem is said, with nothing to press.
+    expect(noteOf(id)).toContain("Slack didn't answer");
+    expect(tryAgainOf(id)).toBeNull();
+    expect(textOf(id, "status-text")).not.toContain("Try again");
+
+    const disconnect: HTMLElement = await openRowMenu(id);
+
+    expect(disconnect).toHaveAttribute("aria-disabled", "true");
+    expect(disconnect).toHaveAccessibleDescription(
+      /You do not have permission to create this user group\./,
+    );
+
+    await act(async () => {
+      fireEvent.click(disconnect);
+    });
+
+    expect(screen.queryByText("Disconnect @payments-oncall?")).toBeNull();
   });
 
-  test("with nothing connected yet, somebody who may only read gets no Connect button", async () => {
+  test("with nothing connected yet, somebody who may only read sees Connect locked, saying why", async () => {
     permissionsForTest = [Permission.Viewer];
     views = [];
 
     await renderCard();
 
-    expect(screen.queryByTestId("user-groups-empty-connect-Slack")).toBeNull();
+    const connect: HTMLElement = screen.getByTestId("user-groups-Slack-connect");
+
+    expect(connect).toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(connect);
+    });
+
+    expect(document.querySelector("[role=combobox]")).toBeNull();
   });
 });
 
@@ -759,7 +1031,7 @@ describe("connecting", () => {
 
   async function openConnect(): Promise<void> {
     await act(async () => {
-      fireEvent.click(screen.getByTestId("user-groups-empty-connect-Slack"));
+      fireEvent.click(screen.getByTestId("user-groups-Slack-connect"));
     });
 
     await waitFor(() => {
@@ -821,7 +1093,7 @@ describe("connecting", () => {
 
     chooseGroup("@sre · SRE · 12 people");
     expect(screen.getByTestId("connect-user-group-notes").textContent).toBe(
-      "Its 12 people now are replaced with whoever is on call.",
+      "OneUptime replaces its 12 members with whoever is on call.",
     );
 
     chooseGroup("@old-pager · Old pager · 1 person · turned off");
@@ -832,14 +1104,53 @@ describe("connecting", () => {
         return item.textContent || "";
       }),
     ).toEqual([
-      "Its 1 person now is replaced with whoever is on call.",
+      "OneUptime replaces its 1 member with whoever is on call.",
       "It is turned off in Slack now. Connecting it turns it back on.",
     ]);
 
     chooseGroup("@oncall · Everyone on call · 4 people");
     expect(screen.getByTestId("connect-user-group-notes").textContent).toBe(
-      "It follows 2 schedules already: it will hold the people on call in them and here.",
+      "It already follows 2 schedules, so it will hold whoever is on call in them and here.",
     );
+  });
+
+  test("a workspace with no user group to pick: the form opens on Create a new user group, its name and handle ready", async () => {
+    available = { groups: [], teams: [] };
+
+    await renderCard();
+    await openConnect();
+
+    await waitFor(() => {
+      expect(
+        screen.getByDisplayValue("Payments Primary on-call"),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByDisplayValue("payments-primary-oncall"),
+    ).toBeInTheDocument();
+    expect(document.body.textContent).toContain("Create a new user group");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(() => {
+      expect(posted("/workspace-user-group/connect")).toHaveLength(1);
+    });
+    expect(posted("/workspace-user-group/connect")[0]).toEqual({
+      onCallDutyPolicyScheduleId: PRIMARY_ID,
+      workspaceType: WorkspaceType.Slack,
+      newGroupName: "Payments Primary on-call",
+      newGroupHandle: "payments-primary-oncall",
+    });
+  });
+
+  test("a workspace with user groups: the form waits for a pick", async () => {
+    await renderCard();
+    await openConnect();
+
+    expect(screen.queryByDisplayValue("payments-primary-oncall")).toBeNull();
+    expect(document.body.textContent).toContain("Pick a user group");
   });
 
   test("a workspace's group: connected by its id, and its row appears", async () => {
@@ -986,9 +1297,7 @@ describe("connecting", () => {
     await renderCard([WorkspaceType.MicrosoftTeams]);
 
     await act(async () => {
-      fireEvent.click(
-        screen.getByTestId("user-groups-empty-connect-MicrosoftTeams"),
-      );
+      fireEvent.click(screen.getByTestId("user-groups-MicrosoftTeams-connect"));
     });
 
     await waitFor(() => {
@@ -996,6 +1305,12 @@ describe("connecting", () => {
         screen.getByDisplayValue("Payments Primary on-call"),
       ).toBeInTheDocument();
     });
+    expect(document.body.textContent).toContain(
+      "Only teams that have the OneUptime app are listed.",
+    );
+    expect(document.body.textContent).toContain(
+      "OneUptime uses the team's tag with this name, or creates one.",
+    );
 
     await act(async () => {
       fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
@@ -1018,9 +1333,7 @@ describe("connecting", () => {
     await renderCard([WorkspaceType.MicrosoftTeams]);
 
     await act(async () => {
-      fireEvent.click(
-        screen.getByTestId("user-groups-empty-connect-MicrosoftTeams"),
-      );
+      fireEvent.click(screen.getByTestId("user-groups-MicrosoftTeams-connect"));
     });
 
     await waitFor(() => {
@@ -1051,7 +1364,7 @@ describe("connecting", () => {
     await renderCard();
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId("user-groups-empty-connect-Slack"));
+      fireEvent.click(screen.getByTestId("user-groups-Slack-connect"));
     });
 
     await waitFor(() => {

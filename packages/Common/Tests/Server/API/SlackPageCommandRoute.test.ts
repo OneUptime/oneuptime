@@ -1135,7 +1135,7 @@ describe("POST /slack/command: /oneuptime page", () => {
       const view: JSONObject = await openedForm();
 
       expect(notesIn(view)).toBe(
-        "⚠️ OneUptime pages a user group only when it follows an on-call schedule you can see, and @oncall-db doesn't. Pick the on-call schedule, the team or the people below.\n",
+        "⚠️ OneUptime can't page @oncall-db: it isn't connected to an on-call schedule you can see. Pick the on-call schedule, the team or the people below.\n",
       );
       expect(messageIn(view)).toBe("db down");
       expect(pages).toEqual([]);
@@ -1174,7 +1174,7 @@ describe("POST /slack/command: /oneuptime page", () => {
       const view: JSONObject = await openedForm();
 
       expect(notesIn(view)).toBe(
-        "⚠️ OneUptime pages a user group only when it follows an on-call schedule you can see, and @payments-oncall doesn't. Pick the on-call schedule, the team or the people below.\n",
+        "⚠️ OneUptime can't page @payments-oncall: it isn't connected to an on-call schedule you can see. Pick the on-call schedule, the team or the people below.\n",
       );
       expect(pickedIn(view)).toEqual([]);
       expect(pages).toEqual([]);
