@@ -281,11 +281,17 @@ describe("Alert content and caller customizations", () => {
     const right: HTMLElement = screen.getByTestId("alert-text-on-right");
 
     expect(right).toHaveTextContent("Try again");
-    // From sm up it sits beside the message: it does not shrink or wrap.
-    expect(right).toHaveClass("sm:flex-none", "sm:whitespace-nowrap");
+    /*
+     * From sm up it sits beside the message at its own width, up to half
+     * the row, and does not shrink below it. It still wraps: a long value
+     * breaks inside that half rather than widening the page (the E2E Alerts
+     * suite measures both).
+     */
+    expect(right).toHaveClass("sm:shrink-0", "sm:max-w-[50%]");
+    expect(right).not.toHaveClass("sm:whitespace-nowrap");
     // On a phone it sits under the message and wraps like it.
     expect(right).not.toHaveClass("whitespace-nowrap");
-    expect(right).not.toHaveClass("flex-none");
+    expect(right).not.toHaveClass("shrink-0");
   });
 
   test("preserves caller identifiers and class customization hooks", () => {
