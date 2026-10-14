@@ -1,6 +1,8 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
+  ALERTING_PAGES,
   DYNAMICS,
+  GROUPING_VARIABLES,
   INTEGRATIONS_PAGES,
   IntegrationsDocsPageEntry,
   JIRA,
@@ -352,11 +354,21 @@ describe("every page: the workflow steps it names", () => {
         // A Jira automation rule's smart values, sent back to the workflow.
         "issue.",
       ];
+      /*
+       * And the variable a monitor's grouping adds, named after the last
+       * segment of its path (AlertingIntegrationsDocsFacts holds each to
+       * the grouping the page sets).
+       */
+      const groupingVariables: ReadonlyArray<string> =
+        GROUPING_VARIABLES[entry.page] || [];
       const wrong: Array<string> = referencesOf(entry.page).filter(
         (reference: string): boolean => {
-          return !roots.some((root: string): boolean => {
-            return reference.startsWith(root);
-          });
+          return (
+            !groupingVariables.includes(reference) &&
+            !roots.some((root: string): boolean => {
+              return reference.startsWith(root);
+            })
+          );
         },
       );
 
@@ -367,7 +379,14 @@ describe("every page: the workflow steps it names", () => {
     },
   );
 
-  it.each([OVERVIEW, ZABBIX, PAGERDUTY, OPSGENIE, SERVICENOW])(
+  it.each([
+    OVERVIEW,
+    ZABBIX,
+    PAGERDUTY,
+    OPSGENIE,
+    SERVICENOW,
+    ...ALERTING_PAGES,
+  ])(
     "%s names each block by the identifier the Builder gives it: its step's id, then -1",
     (page: string) => {
       const ids: Set<string> = stepIds();

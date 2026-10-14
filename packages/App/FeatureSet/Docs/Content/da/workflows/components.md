@@ -17,6 +17,7 @@ Du får sjældent brug for at have den åben, mens du bygger. Hver bloks indstil
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Poste i et chatværktøj                                        | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) eller [Mattermost](#mattermost) |
 | Sende en e-mail gennem din egen mailserver                    | [Email](#email)                                                   |
+| Tilkalde en person, et team eller den, der har vagt | [Paging](#paging) |
 | Kalde enhver anden API eller din egen tjeneste                | [API](#api)                                                       |
 | Opsummere, klassificere eller skrive udkast til tekst         | [Generate Text with AI](#generate-text-with-ai)                   |
 | Tage den ene eller den anden vej afhængigt af en værdi        | [Conditions](#conditions)                                         |
@@ -198,6 +199,49 @@ Send en e-mail gennem en SMTP-server, som du angiver på blokken. Blokken hedder
 Blokken forbinder direkte til serveren i sine indstillinger. Den bruger ikke dit projekts [SMTP](/docs/emails/smtp)-indstillinger eller OneUptimes egen mailserver, og de e-mails, den sender, vises ikke i notifikationsloggene. For at tjekke, hvad den gjorde, ser du på workflowets [Kørsler](/docs/workflows/runs-and-logs).
 
 Forbindelser til loopback- (`localhost`, `127.0.0.1`), link-local- og cloudmetadata-adresser afvises. I OneUptime Cloud afvises også en SMTP-vært på en privat netværksadresse eller et navn, der peger på en. Selvhostede installationer kan nå en mailserver på deres eget netværk, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er sat til `true`. En afvist vært tager udgangen **Error**, og intet sendes.
+
+## Paging
+
+Tilkald personer fra et workflow: hver person får et opkald, en sms, en pushnotifikation eller en e-mail, som personens egne vagtregler siger, indtil nogen kvitterer. Der er en blok for hver måde at sige, hvem der skal tilkaldes. Søg efter `page` i panelet **Tilføj komponent**.
+
+| Blok                        | Hvem den tilkalder |
+| --------------------------- | ------------------ |
+| **Page Users**              | De personer, du nævner. |
+| **Page a Team**             | Alle medlemmer af et team. |
+| **Page Whoever Is On Call** | Den, der har vagt i en vagtplan, når blokken kører. |
+| **Page an On-Call Policy**  | En vagtpolitik, som tilkalder gennem sine eskaleringsregler og gentager sig, som den er sat til. |
+
+De første tre tilkalder alle, de nævner, på én gang, og ingen andre bagefter. Brug **Page an On-Call Policy** til eskalering.
+
+Vil du kun tilkalde, når noget er sandt, så sæt [If / Else](#conditions) foran blokken, og forbind den udgang, der skal tilkalde, med den. Med mere end to veje tager [Switch / Case](#switch-case) en vej for hver værdi, og hver vej kan tilkalde en anden.
+
+```mermaid title="Tilkald den, der har vagt, men kun ved kritiske hændelser"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+Når du opretter et workflow, har skabelonerne under **Vagt** dette klar, og et, der tilkalder efter alvorlighed med **Switch / Case**. En skabelon overlader til dig, hvem der tilkaldes: workflowet åbner i Byggeren, hvor hver tilkaldeblok siger **Click to set up**.
+
+| Indstilling | Hvad den gør |
+| ----------- | ------------ |
+| **Users**, **Teams**, **On-Call Schedules** eller **On-Call Policies** | Hvem der tilkaldes: hver blok har den, der hører til dens navn. Vælg efter navn, eller tryk på **{ }** for enden af rækken for at tilføje en værdi fra en tidligere blok. En værdi kan indeholde ét ID eller flere og, for **Users**, en e-mailadresse. |
+| **Page About** | Hvad tilkaldet handler om: **A new alert**, **An incident** eller **An alert**. At kvittere for tilkaldet kvitterer også for det. |
+| **Title** og **Message** | Til en ny advarsel. OneUptime opretter en advarsel ud fra dem, og den bliver blandt dine advarsler som enhver anden. |
+| **Incident ID** eller **Alert ID** | Til en hændelse eller en advarsel, der allerede findes, som regel den, workflowet startede på: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | Til en ny advarsel, under **Flere felter**. Den afgør, hvilke af hver persons vagtregler der tilkalder personen. Står den tom, er det projektets mest alvorlige. |
+
+En blok, der føjes til et workflow, som starter på en hændelse eller en advarsel, er allerede sat til at tilkalde om den post, så den kun spørger, hvem der skal tilkaldes.
+
+**Success** kører, så snart mindst én person er tilkaldt, eller én politik er startet. **Error** kører, når ingen blev tilkaldt, og blokkens værdi **Error** siger hvorfor, for eksempel at ingen har vagt i vagtplanen. **Summary** siger i én sætning, hvem der blev tilkaldt, og hvem der blev udeladt, klar til at slå op i en kanal, og **Paged Users** oplister de tilkaldte personer.
+
+En person, der er fraværende, tilkaldes ikke: i stedet tilkaldes den, personens brugeroverride nævner som dækning. Et tilkald nævner højst 100 personer, teams og vagtplaner. Se [Sådan nås hver person](/docs/on-call/escalation-rules#sådan-nås-hver-person).
+
+Et tilkald uden en vagtpolitik bag sig står sammen med politikkernes kørsler som **Direkte tilkald**: i vagtloggene for hændelsen eller advarslen, i dens feed og dens Slack- eller Microsoft Teams-kanal og i loggene hos hver tilkaldt person. Det står åbent i 30 minutter, og derefter så længe der stadig går tilkald ud. Har ingen kvitteret til den tid, slutter det uden at tilkalde andre.
+
+> [!WARNING]
+> **Kør arbejdsgang** tilkalder personer i virkeligheden, uanset om workflowet er slået til eller fra, og det gør **Run just this step** også. Angiv dig selv, mens du tester.
 
 ## Custom Code
 

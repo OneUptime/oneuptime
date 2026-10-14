@@ -373,6 +373,99 @@ test.describe("Create a workflow", () => {
   });
 
   /*
+   * A paging template asks this dialog for nothing, and still needs somebody
+   * picked before it does anything: who it pages is one of the project's own
+   * schedules, teams, policies or people, picked in the Builder. So where
+   * another template with no settings says "Nothing to fill in.", its
+   * details say what it needs and where that is picked; the Name step says
+   * which step to open; and the workflow it creates, switched off, holds its
+   * Page step with nobody in it yet.
+   */
+  test("a paging template says what it still needs and where that is picked, and is created with its Page step waiting for it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openDialog(page);
+
+    await dialog
+      .getByTestId("workflow-template-view-select")
+      .selectOption("On-Call");
+
+    const row: Locator = templateRow(
+      dialog,
+      "Page whoever is on call when a critical incident is created",
+    );
+
+    await row.click();
+
+    const details: Locator = row.getByTestId("workflow-template-details");
+    const needs: Locator = details.getByTestId(
+      "workflow-template-details-in-builder",
+    );
+
+    await expect(needs).toHaveText(
+      "An on-call schedule to page. You pick it in the Builder.",
+    );
+    await expect(
+      details.getByTestId("workflow-template-details-no-settings"),
+    ).toHaveCount(0);
+    await expect(
+      details.getByTestId("workflow-template-details-step"),
+    ).toContainText(["If / Else", "Page Whoever Is On Call", "Log"]);
+
+    // Inside its row, at a laptop's width and at a phone's.
+    const rowBox: Box = await boxOf(row);
+    const needsBox: Box = await boxOf(needs);
+
+    expect(needsBox.x).toBeGreaterThanOrEqual(rowBox.x);
+    expect(needsBox.x + needsBox.width).toBeLessThanOrEqual(
+      rowBox.x + rowBox.width + 0.5,
+    );
+
+    // Nothing to configure: Name is the last step, and says what to open.
+    await nextButton(dialog).click();
+    await expect(dialog.getByTestId("workflow-name-input")).toHaveValue(
+      "Page on-call for critical incidents",
+    );
+    await expect(dialog).toContainText(
+      "Open the Page step and pick the schedule.",
+    );
+    await submitButton(dialog).click();
+
+    await expect(page.getByTestId("created-workflow")).toHaveText(
+      "Opened the builder for Page on-call for critical incidents",
+    );
+
+    const records: Array<CreatedRecord> = await createdRecords(page);
+
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      kind: "workflow",
+      name: "Page on-call for critical incidents",
+      isEnabled: false,
+      projectId: PROJECT_ID,
+    });
+
+    type StoredNode = {
+      data?: { metadataId?: string; arguments?: Record<string, unknown> };
+    };
+
+    const pageSteps: Array<StoredNode> = (
+      (records[0]?.graph?.nodes || []) as Array<StoredNode>
+    ).filter((node: StoredNode): boolean => {
+      return node.data?.metadataId === "page-on-call";
+    });
+
+    expect(pageSteps).toHaveLength(1);
+    // About the incident that started it, and nobody picked to page yet.
+    expect(pageSteps[0]?.data?.arguments).toMatchObject({ about: "incident" });
+    expect(Object.keys(pageSteps[0]?.data?.arguments || {})).not.toContain(
+      "on-call-schedules",
+    );
+  });
+
+  /*
    * A Jira template that links the issue in what it writes asks first for
    * the site that link goes to: the address people open Jira at, apart from
    * the Jira API URL the requests go to. A page's address pasted from the

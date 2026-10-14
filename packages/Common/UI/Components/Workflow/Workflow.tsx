@@ -51,6 +51,7 @@ import {
   getNewStepArguments,
   hasOutPortsFromSettings,
 } from "../../../Types/Workflow/ComponentOutPorts";
+import { getNewPageStepArguments } from "../../../Types/Workflow/Components/OnCallPageNewStep";
 import React, {
   FunctionComponent,
   useCallback,
@@ -835,6 +836,25 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     if (newStepArguments) {
       (compToAdd.data as NodeDataProp).arguments = newStepArguments;
+    }
+
+    /*
+     * A Page step added to a workflow that starts on an incident or an
+     * alert starts as a page about that record (OnCallPageNewStep): all it
+     * still asks is who to page.
+     */
+    const newPageStepArguments: JSONObject | null = getNewPageStepArguments({
+      metadataId: componentMetadata.id,
+      steps: nodes.map((node: Node): NodeDataProp => {
+        return node.data as NodeDataProp;
+      }),
+    });
+
+    if (newPageStepArguments) {
+      (compToAdd.data as NodeDataProp).arguments = {
+        ...((compToAdd.data as NodeDataProp).arguments || {}),
+        ...newPageStepArguments,
+      };
     }
 
     if (componentMetadata.componentType === ComponentType.Trigger) {

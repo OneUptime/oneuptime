@@ -31,7 +31,7 @@ flowchart TB
 
 - Un [dispositivo de red](/docs/monitor/network-device-monitor) por equipo, sondeado por una sonda que pueda alcanzarlo, con una plantilla del fabricante que trae los OID de salud y las [tablas SNMP](/docs/monitor/network-device-monitor#tablas-snmp) adecuados.
 - Un monitor de dispositivo de red por dispositivo para las alertas. Créalo desde la página del dispositivo para que las [alertas recomendadas](/docs/monitor/network-device-monitor#paquete-de-alertas-recomendado), incluida una alerta por fila para cada tabla que sabe qué aspecto tiene lo sano, se rellenen por ti. Para una flota, una [política de alertas](/docs/monitor/network-device-monitor#políticas-de-alertas) mantiene uno en cada dispositivo.
-- Para lo que un fabricante solo informa en sus registros: syslog hacia la sonda, una [canalización de registros](/docs/telemetry/log-pipelines) que convierte cada línea en atributos, [monitores de registros con Group By](/docs/monitor/logs-monitor#alertas-por-grupo-group-by) para alertar una vez por túnel o por gateway, y [reglas de grabación de registros](/docs/telemetry/log-recording-rules) para graficar las cifras de esos registros.
+- Para lo que un fabricante solo informa en sus registros: syslog hacia la sonda, que OneUptime lee por sí solo como [eventos de red](/docs/monitor/network-events), [monitores de registros con Group By](/docs/monitor/logs-monitor#alertas-por-grupo-group-by) para alertar una vez por túnel o por gateway, y [reglas de grabación de registros](/docs/telemetry/log-recording-rules) para graficar las cifras de esos registros.
 
 ## Sophos Firewall (XGS / SFOS)
 
@@ -71,20 +71,20 @@ Un túnel que Sophos informa como activo solo tiene sus asociaciones de segurida
 ### Gateways y SD-WAN desde syslog
 
 :::steps
-1. Activa el receptor de syslog de la sonda: pon `PROBE_SYSLOG_RECEIVER_ENABLED=true` en la sonda. Escucha en UDP 5140 por defecto (`PROBE_SYSLOG_RECEIVER_PORT` lo cambia); publica el puerto si la sonda se ejecuta en Docker. Los mensajes se asocian al dispositivo de red cuyo nombre de host, o una de cuyas **Otras direcciones**, es la dirección del remitente, y aparecen en la página **Registros** del dispositivo.
+1. El receptor de syslog de la sonda está activado por defecto. Escucha en el puerto 5140, por UDP y TCP (`PROBE_SYSLOG_RECEIVER_PORT` lo cambia); publica el puerto si la sonda se ejecuta en Docker. Los mensajes se asocian al dispositivo de red cuyo nombre de host, o una de cuyas **Otras direcciones**, es la dirección del remitente, y aparecen en las páginas **Eventos** y **Registros** del dispositivo.
 2. En el firewall, en **System services → Log settings**, añade un servidor syslog que apunte a la sonda y a ese puerto, y marca los tipos de registro **Event** para IPsec y los gateways y el tipo de registro **SD-WAN**: los registros de SLA siguen desactivados hasta que se marca.
-3. En **Registros → Ajustes → Canalizaciones**, crea una canalización cuyo filtro coincida con los registros del firewall, como `attributes.networkDevice.name = 'hq-firewall'`, y añade un **Key=Value Parser** con **Prefijo de destino** `sophos`. Pega una línea del firewall en su probador para ver los nombres de atributo exactos que produce tu versión de SFOS; [el ejemplo de Sophos](/docs/telemetry/log-pipelines#ejemplo-firewall-sophos-xgs) lo recorre paso a paso.
-4. Crea [monitores de registros](/docs/monitor/logs-monitor) sobre los registros del firewall, cada uno con **Group by Attributes** para que cada túnel o gateway alerte por su cuenta, y el criterio **Log Count** **Greater Than** `0` durante unos minutos. Las filas de abajo son las tres con las que empezar.
+3. No hay nada que analizar. OneUptime lee los campos `key=value` del firewall como atributos `sophos.*`, y saca de ellos los túneles, los gateways, los cambios de SLA de SD-WAN, las conmutaciones por error y los inicios de sesión como [eventos de red](/docs/monitor/network-events). Abre un registro en la página **Registros** del dispositivo para ver los nombres de atributo exactos que produce tu versión de SFOS.
+4. En la página **Eventos** del dispositivo, haz clic en **Crear alerta** y elige una alerta. Abre un [monitor de registros](/docs/monitor/logs-monitor) ya rellenado, con **Group by Attributes** para que cada túnel o gateway alerte por su cuenta, y **Resuelto por atributos** para que cada alerta se cierre cuando el firewall notifique que ha vuelto. Las filas de abajo son las tres con las que empezar.
 5. Grafica la calidad de SD-WAN: con el registro de SD-WAN activado, el firewall escribe un resumen de SLA por perfil y por gateway (`latency`, `jitter`, `packet_loss`). En **Registros → Ajustes → Reglas de grabación**, crea una regla por cifra, como la media de `sophos.latency` agrupada por `sophos.gw_name` y `sophos.profile_name`, y después grafica los resultados, o alerta sobre ellos con un [monitor de métricas](/docs/monitor/metrics-monitor) que agrupe por gateway. [Reglas de grabación de registros](/docs/telemetry/log-recording-rules) recorre este ejemplo.
 :::
 
-| Alerta | Registros que contar | Agrupar por |
-| --- | --- | --- |
-| Túnel IPsec terminado | Atributo `sophos.log_component` = `IPSec`, el cuerpo contiene `terminated` | `sophos.con_name` |
-| Gateway caído | Atributo `sophos.log_component` = `Gateway`, el cuerpo contiene `is Down` | `sophos.gatewayname` |
-| SLA de SD-WAN no cumplido | Atributo `sophos.log_type` = `SD-WAN`, el cuerpo contiene `SLA not met` | `sophos.gw_name` |
+| Alerta | Evento que cuenta | Una alerta por | Cerrada por |
+| --- | --- | --- | --- |
+| Se cae un túnel VPN | `vpn.tunnel_down` | `vpn.tunnel.name` | `vpn.tunnel_up` |
+| Se cae un enlace WAN | `gateway.down` | `network.gateway.name` | `gateway.up` |
+| Enlace SD-WAN por debajo de su SLA | `sdwan.sla_not_met` | `network.gateway.name` | `sdwan.sla_met` |
 
-Los eventos de syslog complementan la tabla SNMP: llegan en el momento en que cae un túnel, mientras que la tabla también detecta un túnel que nunca llegó a establecerse.
+Las dos primeras están en la lista de **Crear alerta**; para la tercera, abre uno de sus eventos y haz clic en **Crear alerta para este evento**. Los eventos de syslog complementan la tabla SNMP: llegan en el momento en que cae un túnel, mientras que la tabla también detecta un túnel que nunca llegó a establecerse.
 
 ### Traps
 
@@ -153,7 +153,7 @@ El estado de los túneles requiere SFOS v20 o posterior. Comprueba también que 
 :::
 
 :::details No llega syslog del firewall
-El receptor de syslog de la sonda está desactivado por defecto: pon `PROBE_SYSLOG_RECEIVER_ENABLED=true` y publica UDP 5140, o tu `PROBE_SYSLOG_RECEIVER_PORT`, hacia la sonda. Los mensajes se asocian a un dispositivo por la dirección del remitente, así que el nombre de host del firewall en OneUptime, o una de sus **Otras direcciones**, debe ser la dirección desde la que envía syslog.
+La sonda escucha syslog en el puerto 5140, por UDP y TCP, salvo que se haya iniciado con `PROBE_SYSLOG_RECEIVER_ENABLED=false`: publica ese puerto, o tu `PROBE_SYSLOG_RECEIVER_PORT`, si la sonda se ejecuta en Docker. Los mensajes se asocian a un dispositivo por la dirección del remitente, así que el nombre de host del firewall en OneUptime, o una de sus **Otras direcciones**, debe ser la dirección desde la que envía syslog; hasta entonces, aparecen en la página **Eventos** de la red como **Aún no es un dispositivo**.
 :::
 
 :::details Un switch Fabric Engine recibió la plantilla de EXOS
@@ -168,6 +168,7 @@ El número total de clientes requiere el firmware 6.5.3 o posterior. En firmware
 
 :::cards
 - [Monitor de dispositivos de red](/docs/monitor/network-device-monitor): Todo lo que recopila un dispositivo, y cada criterio sobre el que puede alertar.
+- [Eventos de red](/docs/monitor/network-events): Lo que dice el syslog de cada fabricante, como eventos y alertas.
 - [Canalizaciones de registros](/docs/telemetry/log-pipelines): Descompón los registros del firewall en atributos.
 - [Monitor de registros](/docs/monitor/logs-monitor): Alerta una vez por túnel o por gateway.
 :::

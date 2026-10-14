@@ -145,8 +145,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "SNMP Trap Received (Trap OID)",
     "SNMP Trap Varbind Value",
     "SNMP Table Value",
-    "Log Count",
-    "Greater Than",
   ],
 };
 

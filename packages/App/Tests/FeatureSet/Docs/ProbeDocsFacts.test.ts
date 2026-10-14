@@ -14,6 +14,10 @@ import {
   PACKET_CAPTURE_MIN_FILE_SIZE_IN_MB,
 } from "Common/Types/PacketCapture/PacketCaptureLimits";
 import Permission from "Common/Types/Permission";
+import {
+  DEFAULT_SYSLOG_RATE_LIMIT_PER_MINUTE,
+  DEFAULT_SYSLOG_RECEIVER_PORT,
+} from "Common/Types/Syslog/SyslogReceiverDefaults";
 import NumberUtil from "Common/Utils/Number";
 import ProbeNetworkFailureUtil, {
   ProbeNetworkFailure,
@@ -97,6 +101,7 @@ const CONSTANT_SOURCES: Array<string> = [
   PROBE_REVERSE_DNS,
   PROBE_NETBIOS,
   "Common/Types/NetFlow/NetworkFlowCollectorPorts.ts",
+  "Common/Types/Syslog/SyslogReceiverDefaults.ts",
 ];
 
 /*
@@ -128,6 +133,12 @@ const VARIABLE_NAME: RegExp =
 // A number as the probe writes one: "45000", "2_147_483_647" or "1.25".
 const NUMBER_LITERAL: RegExp = /^\d[\d_]*(?:\.\d+)?$/;
 const IDENTIFIER: RegExp = /^[A-Z][A-Z0-9_]*$/;
+/*
+ * Past its limit the syslog receiver keeps what it reads as a network
+ * event, on an allowance as large as the limit itself.
+ */
+const EVENTS_KEPT_PAST_THE_LIMIT: RegExp =
+  /SyslogReceiver\.eventsKeptPastLimitThisMinute <\s*PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE &&\s*SyslogReceiver\.isNetworkEvent\(parsed\)/;
 
 function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(PACKAGES_DIR, relativePath), "utf8");
@@ -625,13 +636,19 @@ describe("the Custom Probes page: every setting the probe reads", () => {
     );
   });
 
-  it("says what the syslog receiver forwards a minute, and that it logs what it drops", () => {
+  it("says what the syslog receiver forwards a minute, what it keeps past that, and that it logs what it drops", () => {
     const listeners: string = section(page, "### What the probe listens on");
+    const receiver: string = readSource(PROBE_SYSLOG);
 
-    expect(listeners).toContain(
-      `The syslog receiver forwards at most \`PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE\` messages a minute, \`${numberDefault("PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE")}\` by default, drops the rest, and logs how many it dropped.`,
+    expect(numberDefault("PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE")).toBe(
+      DEFAULT_SYSLOG_RATE_LIMIT_PER_MINUTE,
     );
-    expect(readSource(PROBE_SYSLOG)).toContain(
+    expect(listeners).toContain(
+      `The syslog receiver forwards at most \`PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE\` messages a minute, \`${DEFAULT_SYSLOG_RATE_LIMIT_PER_MINUTE}\` by default. Past that it still forwards the messages it reads as network events, up to as many again, drops the rest, and logs how many it dropped.`,
+    );
+    // "As many again": the events' allowance is the limit, counted apart.
+    expect(receiver).toMatch(EVENTS_KEPT_PAST_THE_LIMIT);
+    expect(receiver).toContain(
       "Syslog receiver dropped ${SyslogReceiver.droppedThisMinute} messages in the last minute",
     );
   });
@@ -672,9 +689,19 @@ describe("the Custom Probes page: every setting the probe reads", () => {
       `On, UDP ${numberDefault("PROBE_SNMP_TRAP_RECEIVER_PORT")}`,
     );
 
-    expect(switchDefault("PROBE_SYSLOG_RECEIVER_ENABLED")).toBe("off");
+    // On like the other receivers, and the one that also takes TCP.
+    expect(switchDefault("PROBE_SYSLOG_RECEIVER_ENABLED")).toBe("on");
+    expect(numberDefault("PROBE_SYSLOG_RECEIVER_PORT")).toBe(
+      DEFAULT_SYSLOG_RECEIVER_PORT,
+    );
     expect(byVariable["PROBE_SYSLOG_RECEIVER_ENABLED"]?.[2]).toBe(
-      `Off, UDP ${numberDefault("PROBE_SYSLOG_RECEIVER_PORT")}`,
+      `On, UDP and TCP ${DEFAULT_SYSLOG_RECEIVER_PORT}`,
+    );
+    expect(byVariable["PROBE_SYSLOG_RECEIVER_ENABLED"]?.[3]).toBe(
+      "[Network Events](/docs/monitor/network-events)",
+    );
+    expect(readSource(PROBE_SYSLOG)).toContain(
+      "SyslogReceiver.startTcpServer(",
     );
 
     expect(switchDefault("PROBE_NETFLOW_RECEIVER_ENABLED")).toBe("on");

@@ -18,6 +18,7 @@ jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentTemplate from "../../../../Models/DatabaseModels/IncidentTemplate";
 import Label from "../../../../Models/DatabaseModels/Label";
@@ -270,11 +271,33 @@ describe("the list a setting picked from the project's records offers", () => {
     expect(source?.excludesCurrentWorkflow).toBe(true);
   });
 
+  test("a Page step's Severity lists the project's alert severities, the most severe first", () => {
+    const source: RecordChoiceSource | null = getRecordChoiceSource(
+      ComponentInputType.AlertSeveritySelect,
+    );
+
+    expect(source?.modelType).toBe(AlertSeverity);
+    expect(source?.labelColumn).toBe("name");
+    // The project's own order, not the alphabet: "Critical" before "High".
+    expect(source?.sortColumn).toBe("order");
+    expect(source?.excludesCurrentWorkflow).toBe(false);
+  });
+
+  test("the other two are in the order of their names", () => {
+    for (const type of [
+      ComponentInputType.IncidentTemplateSelect,
+      ComponentInputType.WorkflowSelect,
+    ]) {
+      expect(getRecordChoiceSource(type)?.sortColumn).toBeUndefined();
+    }
+  });
+
   test("no other setting is a list of records", () => {
     for (const type of Object.values(ComponentInputType)) {
       if (
         type === ComponentInputType.IncidentTemplateSelect ||
-        type === ComponentInputType.WorkflowSelect
+        type === ComponentInputType.WorkflowSelect ||
+        type === ComponentInputType.AlertSeveritySelect
       ) {
         continue;
       }
@@ -292,6 +315,64 @@ describe("the list a setting picked from the project's records offers", () => {
     ]);
     expect(getRecordChoiceTypes(CREATE_ONE_LABEL.arguments)).toEqual([]);
     expect(getRecordChoiceTypes(undefined)).toEqual([]);
+
+    // Each Page step has the one: its Severity.
+    for (const id of [
+      ComponentID.PageUsers,
+      ComponentID.PageTeam,
+      ComponentID.PageOnCall,
+      ComponentID.PageOnCallPolicy,
+    ]) {
+      expect(
+        getRecordChoiceTypes(
+          Components.find((component: ComponentMetadata): boolean => {
+            return component.id === id;
+          })!.arguments,
+        ),
+      ).toEqual([ComponentInputType.AlertSeveritySelect]);
+    }
+  });
+
+  test("the severities come from the API in the project's order, each offered by name as its ID", async () => {
+    const critical: AlertSeverity = new AlertSeverity();
+    critical._id = "5e000000-0000-4000-8000-0000000000c1";
+    critical.name = "Critical";
+
+    const high: AlertSeverity = new AlertSeverity();
+    high._id = "5e000000-0000-4000-8000-0000000000c2";
+    high.name = "High";
+
+    const low: AlertSeverity = new AlertSeverity();
+    low._id = "5e000000-0000-4000-8000-0000000000c3";
+    low.name = "Low";
+
+    // As the API answers a list sorted by order: not the alphabet's.
+    getList.mockResolvedValue({
+      data: [critical, high, low],
+      count: 3,
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+    } as never);
+
+    expect(
+      await loadRecordChoices({
+        type: ComponentInputType.AlertSeveritySelect,
+        workflowId: new ObjectID(WORKFLOW_ID),
+      }),
+    ).toEqual([
+      { label: "Critical", value: "5e000000-0000-4000-8000-0000000000c1" },
+      { label: "High", value: "5e000000-0000-4000-8000-0000000000c2" },
+      { label: "Low", value: "5e000000-0000-4000-8000-0000000000c3" },
+    ]);
+
+    const request: JSONObject = getList.mock.calls[0]![0];
+
+    expect(request["modelType"]).toBe(AlertSeverity);
+    expect(request["select"]).toEqual({ _id: true, name: true });
+    expect(request["sort"]).toEqual({ order: SortOrder.Ascending });
+    expect(request["limit"]).toBe(LIMIT_PER_PROJECT);
+    // Listed as the person editing the workflow: the project comes from their session.
+    expect(request["query"]).toEqual({});
   });
 
   test("the templates come from the API by name, each offered as its ID; an unnamed one by its ID", async () => {

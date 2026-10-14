@@ -12,6 +12,7 @@ import ComponentPortViewer from "./ComponentPortViewer";
 import ComponentReturnValueViewer from "./ComponentReturnValueViewer";
 import ComponentSettingsSection from "./ComponentSettingsSection";
 import DocumentationViewer from "./DocumentationViewer";
+import { getPageStepRunWarning } from "./OnCall/PageStepRunWarning";
 import { OutputConnections } from "./Switch/SwitchModel";
 import { StepValueSources } from "./ValuePicker/StepGraph";
 import { WORKFLOW_URL } from "../../Config";
@@ -520,10 +521,20 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
              * Worded as what it is. There is no dry run: the step executes for
              * real, and anything it sends or changes is not undone afterwards.
              */
-            description={translator.translateTemplate(
-              'This runs "{{step}}" for real, on its own. Anything it sends, writes or deletes actually happens. Values it reads from other steps will be empty, because nothing else runs.',
-              { step: translatableTerm(component.metadata.title) },
-            )}
+            description={[
+              translator.translateTemplate(
+                'This runs "{{step}}" for real, on its own. Anything it sends, writes or deletes actually happens. Values it reads from other steps will be empty, because nothing else runs.',
+                { step: translatableTerm(component.metadata.title) },
+              ),
+              // A Page step says what "for real" means for it: phones ring.
+              translator.translateText(
+                getPageStepRunWarning(component.metadata.id) || undefined,
+              ),
+            ]
+              .filter((sentence: string | undefined): boolean => {
+                return Boolean(sentence);
+              })
+              .join(" ")}
             onClose={() => {
               setShowRunStepConfirmation(false);
             }}

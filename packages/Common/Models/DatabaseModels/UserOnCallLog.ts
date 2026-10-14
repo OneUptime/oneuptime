@@ -232,6 +232,12 @@ export default class UserOnCallLog extends BaseModel {
   @JoinColumn({ name: "onCallDutyPolicyId" })
   public onCallDutyPolicy?: OnCallDutyPolicy = undefined;
 
+  /*
+   * Empty for a direct page: a person paged by name, as a member of a team
+   * or as whoever is on call in a schedule, with no on-call policy behind
+   * the page (Types/OnCallDutyPolicy/OnCallDirectPage). Not `required`, so
+   * such a log passes DatabaseService.checkRequiredFields.
+   */
   @ColumnAccessControl({
     create: [],
     read: [Permission.CurrentUser],
@@ -240,16 +246,15 @@ export default class UserOnCallLog extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy ID",
     description:
-      "ID of your On-Call Policy which belongs to this execution log event.",
+      "ID of your On-Call Policy which belongs to this execution log event. Empty when the person was paged directly, without an on-call policy.",
     example: "9e1f2a3b-4c5d-6e7f-8a9b-0c1d2e3f4a5b",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyId?: ObjectID = undefined;
@@ -332,6 +337,7 @@ export default class UserOnCallLog extends BaseModel {
   public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule =
     undefined;
 
+  // Empty for a direct page, which has no escalation rules (see onCallDutyPolicyId).
   @ColumnAccessControl({
     create: [],
     read: [Permission.CurrentUser],
@@ -340,16 +346,15 @@ export default class UserOnCallLog extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy Escalation Rule ID",
     description:
-      "ID of your On-Call Policy Escalation Rule which belongs to this log event.",
+      "ID of your On-Call Policy Escalation Rule which belongs to this log event. Empty when the person was paged directly, without an on-call policy.",
     example: "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;

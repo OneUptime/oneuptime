@@ -17,6 +17,7 @@
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | 在聊天工具中发帖                                              | [Slack](#slack)、[Microsoft Teams](#microsoft-teams)、[Discord](#discord)、[Telegram](#telegram)、[IRC](#irc) 或 [Mattermost](#mattermost) |
 | 通过你自己的邮件服务器发送邮件                                | [Email](#email)                                                   |
+| 呼叫某个人、某个团队或当前值班的人 | [Paging](#paging) |
 | 调用其他任何 API 或你自己的服务                               | [API](#api)                                                       |
 | 总结、分类或起草文本                                          | [Generate Text with AI](#generate-text-with-ai)                   |
 | 根据某个值走这条或那条路径                                    | [Conditions](#conditions)                                         |
@@ -198,6 +199,49 @@ SMTP 服务器接受了消息时触发 **Success**。SMTP 主机被拒绝、无�
 块会直接连接到它设置中的服务器。它不使用项目的 [SMTP](/docs/emails/smtp) 设置或 OneUptime 自己的邮件服务器，它发送的邮件也不会出现在通知日志中。要检查它做了什么，请查看工作流的 [运行记录](/docs/workflows/runs-and-logs)。
 
 到回环地址（`localhost`、`127.0.0.1`）、链路本地地址和云元数据地址的连接会被拒绝。在 OneUptime Cloud 上，位于私有网络地址的 SMTP 主机，或解析到这类地址的名称，也会被拒绝。自托管安装可以连接到它们自己网络中的邮件服务器，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 被设置为 `true`。被拒绝的主机会走 **Error** 输出，什么都不会发送。
+
+## Paging
+
+从工作流中呼叫人员：每个人会按各自的值班规则接到电话、短信、推送通知或电子邮件，直到有人确认。指定呼叫对象的每种方式各有一个块。在 **添加组件** 面板中搜索 `page`。
+
+| 块                          | 呼叫谁 |
+| --------------------------- | ------ |
+| **Page Users**              | 你指定的人。 |
+| **Page a Team**             | 团队的每个成员。 |
+| **Page Whoever Is On Call** | 块运行时，值班计划中正在值班的人。 |
+| **Page an On-Call Policy**  | 一个值班策略，它按自己的升级规则呼叫，并按设置重复。 |
+
+前三个块会同时呼叫它们指定的所有人，之后不再呼叫其他人。需要升级时，请使用 **Page an On-Call Policy**。
+
+如果只想在某个条件成立时呼叫，把 [If / Else](#conditions) 放在这个块前面，并把应当呼叫的输出连接到它。有两条以上的路径时，[Switch / Case](#switch-case) 为每个值走一条路径，每条路径可以呼叫不同的人。
+
+```mermaid title="只在发生严重事件时呼叫值班的人"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+创建工作流时， **值班** 下的模板里已经备好了这个工作流，还有一个用 **Switch / Case** 按严重程度呼叫的模板。呼叫谁由你来定：工作流会在生成器中打开，每个呼叫块上都显示 **Click to set up**。
+
+| 设置 | 作用 |
+| ---- | ---- |
+| **Users**、**Teams**、**On-Call Schedules** 或 **On-Call Policies** | 呼叫谁：每个块都有与其名称对应的那一项。按名称选择，或者按行尾的 **{ }** 添加前面块的一个值。一个值可以包含一个或多个 ID；对于 **Users**，还可以是电子邮件地址。 |
+| **Page About** | 呼叫是关于什么的： **A new alert**、**An incident** 或 **An alert**。确认呼叫也就确认了它。 |
+| **Title** 和 **Message** | 用于新告警。OneUptime 会用它们创建一个告警，它和其他告警一样留在你的告警列表中。 |
+| **Incident ID** 或 **Alert ID** | 用于已经存在的事件或告警，通常是启动这个工作流的那一个：`{{local.components.incident-on-create-1.returnValues.model._id}}`。 |
+| **Severity** | 用于新告警，位于 **更多字段** 下。它决定每个人的哪些值班规则会呼叫他们。留空时，使用项目中最严重的级别。 |
+
+添加到由事件或告警启动的工作流中的块，已经设置为针对该记录进行呼叫，因此只需要指定呼叫谁。
+
+至少呼叫到一个人，或者有一个策略已启动时，运行 **Success**。没有呼叫到任何人时运行 **Error**，块的 **Error** 值会说明原因，例如计划中没有人在值班。 **Summary** 用一句话说明呼叫了谁、略过了谁，可以直接发到频道里； **Paged Users** 列出被呼叫的人。
+
+不在岗的人不会被呼叫：会改为呼叫其用户替班指定的代班人。一次呼叫最多指定 100 个人员、团队和计划。参见 [如何联系到每个人](/docs/on-call/escalation-rules#如何联系到每个人)。
+
+背后没有值班策略的呼叫，会与策略的运行记录列在一起，显示为 **直接呼叫**：出现在事件或告警的值班日志、它的动态和它的 Slack 或 Microsoft Teams 频道中，以及每个被呼叫的人的日志中。它会保持打开 30 分钟，此后只要还有呼叫在发出就继续保持。如果到那时仍无人确认，它就此结束，不再呼叫其他人。
+
+> [!WARNING]
+> 无论工作流是开启还是关闭， **运行工作流** 都会真实呼叫人员， **Run just this step** 也一样。测试时请指定你自己。
 
 ## Custom Code
 

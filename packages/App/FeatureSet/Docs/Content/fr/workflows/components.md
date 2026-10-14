@@ -17,6 +17,7 @@ Vous aurez rarement besoin de l'ouvrir pendant la construction. Les paramètres 
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Publier dans un outil de discussion                           | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) ou [Mattermost](#mattermost) |
 | Envoyer un e-mail via votre propre serveur de messagerie      | [Email](#email)                                                   |
+| Alerter une personne, une équipe ou la personne d'astreinte | [Paging](#paging) |
 | Appeler toute autre API, ou votre propre service              | [API](#api)                                                       |
 | Résumer, classer ou rédiger du texte                          | [Generate Text with AI](#generate-text-with-ai)                   |
 | Prendre un chemin ou un autre selon une valeur                | [Conditions](#conditions)                                         |
@@ -198,6 +199,49 @@ Envoyez un e-mail via un serveur SMTP que vous indiquez sur le bloc. Le bloc s'a
 Le bloc se connecte directement au serveur indiqué dans ses paramètres. Il n'utilise ni les paramètres [SMTP](/docs/emails/smtp) de votre projet ni le serveur de messagerie de OneUptime, et les e-mails qu'il envoie n'apparaissent pas dans les journaux de notifications. Pour vérifier ce qu'il a fait, consultez les [Exécutions](/docs/workflows/runs-and-logs) du workflow.
 
 Les connexions vers les adresses de bouclage (`localhost`, `127.0.0.1`), de lien local et de métadonnées cloud sont refusées. Sur OneUptime Cloud, un hôte SMTP situé sur une adresse de réseau privé, ou un nom qui se résout vers une telle adresse, est également refusé. Les installations auto-hébergées peuvent atteindre un serveur de messagerie sur leur propre réseau, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` est défini sur `true`. Un hôte refusé prend la sortie **Error**, et rien n'est envoyé.
+
+## Paging
+
+Alerter des personnes depuis un workflow : chacune reçoit un appel, un SMS, une notification push ou un e-mail, comme le prévoient ses propres règles d'astreinte, jusqu'à ce que quelqu'un accuse réception. Il y a un bloc pour chaque façon de dire qui alerter. Dans le panneau **Ajouter un composant**, cherchez `page`.
+
+| Bloc                        | Qui il alerte |
+| --------------------------- | ------------- |
+| **Page Users**              | Les personnes que vous nommez. |
+| **Page a Team**             | Chaque membre d'une équipe. |
+| **Page Whoever Is On Call** | La personne d'astreinte dans un planning d'astreinte au moment où le bloc s'exécute. |
+| **Page an On-Call Policy**  | Une politique d'astreinte, qui alerte en suivant ses règles d'escalade et se répète comme elle est réglée. |
+
+Les trois premiers alertent en même temps toutes les personnes qu'ils nomment, et personne d'autre ensuite. Pour une escalade, utilisez **Page an On-Call Policy**.
+
+Pour n'alerter que lorsqu'une condition est vraie, placez [If / Else](#conditions) devant le bloc et reliez-lui la sortie qui doit alerter. Avec plus de deux chemins, [Switch / Case](#switch-case) prend un chemin pour chaque valeur, et chaque chemin peut alerter quelqu'un d'autre.
+
+```mermaid title="Alerter la personne d'astreinte, mais seulement pour les incidents critiques"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+Quand vous créez un workflow, les modèles sous **Astreinte** ont celui-ci tout prêt, ainsi qu'un autre qui alerte selon la gravité avec **Switch / Case**. Un modèle vous laisse choisir qui alerter : le workflow s'ouvre dans le Constructeur, où chaque bloc d'alerte affiche **Click to set up**.
+
+| Paramètre | Ce qu'il fait |
+| --------- | ------------- |
+| **Users**, **Teams**, **On-Call Schedules** ou **On-Call Policies** | Qui alerter : chaque bloc a celui qui va avec son nom. Choisissez par nom, ou appuyez sur **{ }** au bout de la ligne pour ajouter une valeur d'un bloc précédent. Une valeur peut contenir un ID ou plusieurs et, pour **Users**, une adresse e-mail. |
+| **Page About** | Ce sur quoi porte l'alerte : **A new alert**, **An incident** ou **An alert**. Accuser réception de l'alerte en accuse réception aussi. |
+| **Title** et **Message** | Pour une nouvelle alerte. OneUptime crée une alerte à partir d'eux, et elle reste parmi vos alertes comme n'importe quelle autre. |
+| **Incident ID** ou **Alert ID** | Pour un incident ou une alerte qui existe déjà, en général celui par lequel le workflow a commencé : `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | Pour une nouvelle alerte, sous **Plus de champs**. Elle décide lesquelles des règles d'astreinte de chaque personne l'alertent. Laissée vide, c'est la plus grave du projet. |
+
+Un bloc ajouté à un workflow qui commence par un incident ou une alerte est déjà réglé pour alerter à propos de cet enregistrement : il ne demande plus que qui alerter.
+
+**Success** s'exécute dès qu'au moins une personne est alertée, ou qu'une politique a démarré. **Error** s'exécute quand personne ne l'a été, et la valeur **Error** du bloc dit pourquoi, par exemple que personne n'est d'astreinte dans le planning. **Summary** dit en une phrase qui a été alerté et qui a été laissé de côté, prête à être publiée dans un canal, et **Paged Users** liste les personnes alertées.
+
+Une personne absente n'est pas alertée : c'est celle que son remplacement d'utilisateur désigne pour la remplacer qui l'est. Une alerte nomme au plus 100 personnes, équipes et plannings. Voir [Comment chaque personne est jointe](/docs/on-call/escalation-rules#comment-chaque-personne-est-jointe).
+
+Une alerte sans politique d'astreinte derrière elle figure avec les exécutions des politiques sous le nom **Appel direct** : dans les journaux d'astreinte de l'incident ou de l'alerte, dans son fil et son canal Slack ou Microsoft Teams, et dans les journaux de chaque personne alertée. Elle reste ouverte 30 minutes, puis aussi longtemps que des alertes partent encore. Si personne n'a accusé réception d'ici là, elle se termine sans alerter personne d'autre.
+
+> [!WARNING]
+> **Exécuter le flux de travail** alerte des personnes pour de vrai, que le workflow soit activé ou non, et **Run just this step** aussi. Désignez-vous vous-même pendant vos tests.
 
 ## Custom Code
 

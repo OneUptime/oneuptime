@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28197,
-    "untranslated": 16943
+    "keys": 28484,
+    "untranslated": 16927
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -12,12 +12,17 @@
     "CloudWatch Metric Streams",
     "Diagram",
     "Embedding",
+    "Failover",
     "Filter:",
     "Filter: {{expression}}",
+    "Gateway",
     "Incident {{number}}: {{title}}",
+    "Information",
     "Null",
     "Offline",
+    "Peer",
     "Precision",
+    "Problem",
     "Revision",
     "Runbook: {{name}}",
     "Runner",
@@ -25,9 +30,11 @@
     "Stratum",
     "Team",
     "Text",
+    "Tunnel",
     "VMware vCenter",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
+    "syslog",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",

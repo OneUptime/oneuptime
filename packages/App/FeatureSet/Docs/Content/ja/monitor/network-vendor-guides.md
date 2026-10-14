@@ -31,7 +31,7 @@ flowchart TB
 
 - 機器ごとに 1 つの [ネットワークデバイス](/docs/monitor/network-device-monitor)。到達できるプローブがポーリングし、適切なヘルス OID と [SNMP テーブル](/docs/monitor/network-device-monitor#snmp-テーブル) を持ち込むベンダーテンプレートを使います。
 - アラート用に、デバイスごとに 1 つのネットワークデバイス モニター。デバイスのページから作成すると、[推奨アラート](/docs/monitor/network-device-monitor#推奨アラートパック)(正常な状態を知っている各テーブルの行ごとのアラートを含む)が自動で入ります。フリートでは、[アラートポリシー](/docs/monitor/network-device-monitor#アラートポリシー) がすべてのデバイスにモニターを維持します。
-- ベンダーがログでしか報告しないものには、プローブへの syslog、各行を属性に変える [ログパイプライン](/docs/telemetry/log-pipelines)、トンネルやゲートウェイごとに 1 回アラートを出す [Group By 付きのログ モニター](/docs/monitor/logs-monitor#グループごとのアラートgroup-by)、そしてそのログの数値をグラフ化する [ログの記録ルール](/docs/telemetry/log-recording-rules) を使います。
+- ベンダーがログでしか報告しないものには、プローブへの syslog（OneUptime が自動的に [ネットワークイベント](/docs/monitor/network-events) として読み取ります）、トンネルやゲートウェイごとに 1 回アラートを出す [Group By 付きのログ モニター](/docs/monitor/logs-monitor#グループごとのアラートgroup-by)、そしてそのログの数値をグラフ化する [ログの記録ルール](/docs/telemetry/log-recording-rules) を使います。
 
 ## Sophos Firewall (XGS / SFOS)
 
@@ -71,20 +71,20 @@ Sophos がアクティブと報告するトンネルは、セキュリティア�
 ### syslog からのゲートウェイと SD-WAN
 
 :::steps
-1. プローブの syslog レシーバーを有効にします。プローブに `PROBE_SYSLOG_RECEIVER_ENABLED=true` を設定します。既定では UDP 5140 で待ち受けます(`PROBE_SYSLOG_RECEIVER_PORT` で変更できます)。プローブが Docker で動いている場合はポートを公開します。メッセージは、ホスト名または **その他のアドレス** のいずれかが送信元のアドレスであるネットワークデバイスに照合され、デバイスの **ログ** ページに表示されます。
+1. プローブの syslog レシーバーは既定で有効です。ポート 5140 を UDP と TCP で待ち受けます(`PROBE_SYSLOG_RECEIVER_PORT` で変更できます)。プローブが Docker で動いている場合はポートを公開します。メッセージは、ホスト名または **その他のアドレス** のいずれかが送信元のアドレスであるネットワークデバイスに照合され、デバイスの **イベント** ページと **ログ** ページに表示されます。
 2. ファイアウォールの **System services → Log settings** で、プローブとそのポートを指す syslog サーバーを追加し、IPsec とゲートウェイの **Event** ログタイプと、**SD-WAN** ログタイプにチェックを入れます。SLA のログは、これにチェックを入れるまでオフのままです。
-3. **ログ → 設定 → パイプライン** で、`attributes.networkDevice.name = 'hq-firewall'` のようにファイアウォールのログに一致するフィルターを持つパイプラインを作成し、**ターゲットのプレフィックス** を `sophos` にした **Key=Value Parser** を追加します。ファイアウォールのログ行をテスターに貼り付けると、使っている SFOS のバージョンが生成する正確な属性名を確認できます。[Sophos の例](/docs/telemetry/log-pipelines#例-sophos-xgs-ファイアウォール) で手順を説明しています。
-4. ファイアウォールのログに対して [ログ モニター](/docs/monitor/logs-monitor) を作成します。各トンネルやゲートウェイが個別にアラートを出すようにそれぞれ **Group by Attributes** を付け、数分間の **Log Count** **Greater Than** `0` という条件にします。下の行が、最初に作る 3 つです。
+3. 解析する必要はありません。OneUptime はファイアウォールの `key=value` フィールドを `sophos.*` 属性として読み取り、そこからトンネル、ゲートウェイ、SD-WAN の SLA の変化、フェイルオーバー、サインインを [ネットワークイベント](/docs/monitor/network-events) として読み取ります。デバイスの **ログ** ページでログを開くと、使っている SFOS のバージョンが生成する正確な属性名を確認できます。
+4. デバイスの **イベント** ページで **アラートを作成** をクリックし、アラートを選びます。入力済みの [ログ モニター](/docs/monitor/logs-monitor) が開きます。各トンネルやゲートウェイが個別にアラートを出すように **Group by Attributes** が、ファイアウォールが復旧を報告したときに各アラートが閉じるように **解決する属性** が設定されています。下の行が、最初に作る 3 つです。
 5. SD-WAN の品質をグラフ化します。SD-WAN のログ記録がオンになっていると、ファイアウォールはプロファイルとゲートウェイごとに SLA の要約(`latency`、`jitter`、`packet_loss`)を書き出します。**ログ → 設定 → 記録ルール** で、`sophos.gw_name` と `sophos.profile_name` でグループ化した `sophos.latency` の平均など、数値ごとに 1 つのルールを作成し、結果をグラフ化するか、ゲートウェイでグループ化する [メトリクスモニター](/docs/monitor/metrics-monitor) でアラートを出します。[ログの記録ルール](/docs/telemetry/log-recording-rules) でこの例を説明しています。
 :::
 
-| アラート | 数えるログ | グループ化の基準 |
-| --- | --- | --- |
-| IPsec トンネルの終了 | 属性 `sophos.log_component` = `IPSec`、本文に `terminated` を含む | `sophos.con_name` |
-| ゲートウェイのダウン | 属性 `sophos.log_component` = `Gateway`、本文に `is Down` を含む | `sophos.gatewayname` |
-| SD-WAN の SLA 未達 | 属性 `sophos.log_type` = `SD-WAN`、本文に `SLA not met` を含む | `sophos.gw_name` |
+| アラート | 数えるイベント | アラートの単位 | 閉じるイベント |
+| --- | --- | --- | --- |
+| VPN トンネルがダウンしたとき | `vpn.tunnel_down` | `vpn.tunnel.name` | `vpn.tunnel_up` |
+| WAN リンクがダウンしたとき | `gateway.down` | `network.gateway.name` | `gateway.up` |
+| SD-WAN リンクが SLA を下回る | `sdwan.sla_not_met` | `network.gateway.name` | `sdwan.sla_met` |
 
-syslog のイベントは SNMP テーブルを補います。トンネルが落ちた瞬間に届く一方、テーブルは一度も上がらなかったトンネルも捉えます。
+最初の 2 つは **アラートを作成** の一覧にあります。3 つ目は、そのイベントの 1 つを開いて **このイベントのアラートを作成** をクリックします。syslog のイベントは SNMP テーブルを補います。トンネルが落ちた瞬間に届く一方、テーブルは一度も上がらなかったトンネルも捉えます。
 
 ### トラップ
 
@@ -153,7 +153,7 @@ cnMaestro は、アクセスポイントのオフラインなどのアラーム�
 :::
 
 :::details ファイアウォールから syslog が届かない
-プローブの syslog レシーバーは既定でオフです。`PROBE_SYSLOG_RECEIVER_ENABLED=true` を設定し、プローブまでの UDP 5140、または設定した `PROBE_SYSLOG_RECEIVER_PORT` を公開してください。メッセージは送信元のアドレスでデバイスに照合されるため、OneUptime でのファイアウォールのホスト名、または **その他のアドレス** のいずれかが、syslog を送るアドレスである必要があります。
+プローブは、`PROBE_SYSLOG_RECEIVER_ENABLED=false` で起動していない限り、ポート 5140 で UDP と TCP の syslog を待ち受けます。プローブが Docker で動いている場合は、そのポート、または設定した `PROBE_SYSLOG_RECEIVER_PORT` を公開してください。メッセージは送信元のアドレスでデバイスに照合されるため、OneUptime でのファイアウォールのホスト名、または **その他のアドレス** のいずれかが、syslog を送るアドレスである必要があります。そうなるまでは、ネットワークの **イベント** ページに **まだデバイスではありません** として表示されます。
 :::
 
 :::details Fabric Engine スイッチに EXOS のテンプレートが適用された
@@ -168,6 +168,7 @@ cnMaestro は、アクセスポイントのオフラインなどのアラーム�
 
 :::cards
 - [ネットワークデバイス モニター](/docs/monitor/network-device-monitor): デバイスが収集するすべてのものと、アラートに使えるすべての条件。
+- [ネットワークイベント](/docs/monitor/network-events): 各ベンダーの syslog が伝える内容を、イベントとアラートとして。
 - [ログパイプライン](/docs/telemetry/log-pipelines): ファイアウォールのログを属性に分解します。
 - [ログ モニター](/docs/monitor/logs-monitor): トンネルやゲートウェイごとに 1 回アラートを出します。
 :::

@@ -410,7 +410,7 @@ describe("source helpers", () => {
   test("comment stripping keeps URLs and string content", () => {
     const source: string = readPage("NetworkDevice/View/Logs.tsx");
     expect(source).not.toContain("/*");
-    expect(source).toContain("PROBE_SYSLOG_RECEIVER_ENABLED=true");
+    expect(source).toContain("on port 5140, over UDP and TCP.");
   });
 });
 

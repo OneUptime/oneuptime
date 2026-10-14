@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28197,
-    "untranslated": 16890
+    "keys": 28484,
+    "untranslated": 16873
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -9,6 +9,7 @@
     "Null",
     "Runner",
     "VMware vCenter",
-    "kubectl set image deployment/web * -n web"
+    "kubectl set image deployment/web * -n web",
+    "syslog"
   ]
 }

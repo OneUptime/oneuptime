@@ -54,6 +54,10 @@ export interface ComponentProps {
   disablePageScrollLock?: boolean | undefined;
 }
 
+// The footer's Close button below md: as wide as its word, never squeezed.
+export const SIDE_OVER_CLOSE_BUTTON_CLASS_NAME: string =
+  "max-md:w-auto max-md:shrink-0";
+
 type PortalTargetFunction = () => HTMLElement | null;
 
 /*
@@ -277,6 +281,15 @@ const SideOver: FunctionComponent<ComponentProps> = (
                     props.onClose();
                   }}
                   buttonStyle={ButtonStyleType.NORMAL}
+                  /*
+                   * Below md a button is as wide as it is given room for, so
+                   * Close and the action shared the footer half and half -
+                   * "Close" with room to spare beside an action whose words
+                   * ("Create alert for this event") broke over two or three
+                   * lines. Close keeps the width of its own word there, and
+                   * the action takes the rest of the line.
+                   */
+                  className={SIDE_OVER_CLOSE_BUTTON_CLASS_NAME}
                 />
 
                 {props.onSubmit && (
