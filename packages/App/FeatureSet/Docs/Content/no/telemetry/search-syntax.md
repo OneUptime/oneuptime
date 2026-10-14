@@ -195,6 +195,7 @@ Brikker er en del av den lagrede visningen og av sidens URL, så et filter overl
 - Attributt**nøkler** sammenlignes uten å skille mellom store og små bokstaver for filtre med jokertegn, "inneholder", prefiks og suffiks, så du trenger ikke huske om den ble tatt inn som `requestId` eller `requestid`.
 - Et filter `-@k:...` samsvarer også med rader som aldri har hatt attributtet: en rad helt uten `platform.team` begynner selvsagt ikke med `a`.
 - Numeriske sammenligninger virker på attributtverdier som er lagret som tekst; en verdi som ikke er et tall, oppfyller aldri en sammenligning.
+- I logger og spor slås et søk etter en nøyaktig verdi, for eksempel `@http.route:/orders`, `@k:(a OR b)` eller en verdi du klikker på i fasettsidepanelet, opp i en indeks over attributtverdiene, så det forblir raskt over lange tidsintervaller. Jokertegn, "inneholder", utelukkelser og sammenligninger leser hver logglinje eller hvert span i intervallet: kombiner dem med en nøyaktig verdi eller et kortere intervall når et søk er tregt.
 
 ## Neste trinn
 

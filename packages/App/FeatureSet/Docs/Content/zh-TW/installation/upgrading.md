@@ -297,6 +297,26 @@ Slack 和 Microsoft Teams 操作同樣受專案方案約束：在不包含待命
 
 已儲存的目標沒有移轉，因此 **請在升級後重新開啟每個 IPv6 的 Ping、Port 和 SSL 監測器並再次儲存**，並檢查它顯示的目標。預計在 macOS 或 FreeBSD 探測器上一直失敗的監測器會開始回報真實情況，這可能會解決事件，也可能引發新的事件。
 
+### 依屬性值搜尋會跳過不可能符合的部分
+
+依屬性值篩選的日誌與追蹤（例如 `@http.route:/orders` 或在分面側欄中點選的值）過去會讀取時間範圍內每一行日誌或每個 span 的屬性。在繁忙的安裝中，跨越幾個小時或更長時間的搜尋可能會在 45 秒的查詢限制處停止。14 為日誌表與 span 表的屬性值新增了索引，因此這類搜尋只會讀取表中可能包含該值的部分。清單、圖表、分面計數與匯出會傳回與以前相同的結果，只是更快。
+
+對少數資料列才有的值幫助最大，例如請求路徑，或使用者、租用戶、訂單、工作階段的 ID。大多數資料列都有的值（例如 `GET`）仍依原本的方式讀取，萬用字元、包含、排除、比較與 `@k:*` 也是如此。
+
+無需任何操作。啟動時，OneUptime 會在不重寫 `LogItemV3` 與 `SpanItemV3` 的情況下為它們新增索引，並在新的日誌與 span 到達時為其建立索引。之後，ClickHouse 會在背景為既有的日誌與 span 建立索引，與資料擷取和搜尋同時進行：它會把每一列的屬性讀取一次，工作量大約相當於對所保留的全部資料做一次搜尋。較早的日期會在它處理到時變快。索引會讓這兩張表增大幾個百分點，在我們的測量中為 4%。
+
+如需追蹤進度，或在非常大的安裝上停止它，請在 `clickhouse-client` 中執行以下陳述式（`oneuptime` 是預設的叢集名稱）：
+
+```sql
+SELECT table, parts_to_do FROM system.mutations
+WHERE command LIKE '%idx_attribute_values%' AND NOT is_done;
+
+KILL MUTATION ON CLUSTER 'oneuptime'
+WHERE command LIKE '%idx_attribute_values%';
+```
+
+它尚未處理到的日期會照常搜尋，直到再次合併或過期。
+
 ### Kubernetes 代理程式 chart：Kubernetes AI 代理程式
 
 `kubernetes-agent` chart 現在預設執行 **Kubernetes AI 代理程式**：一個小型的唯讀 Pod（`component=ai-agent`，映像檔 `oneuptime/kubernetes-ai-agent`），讓 OneUptime AI 在調查該叢集上的事件或警示時可以執行 `kubectl`。它取代了 `aiAccess.enabled=true` 安裝的叢集內 Runner。它與 OneUptime 12 中停用的 AI Agent 無關（[如果您執行過獨立的 AI Agent](#如果您執行過獨立的-ai-agent)）。

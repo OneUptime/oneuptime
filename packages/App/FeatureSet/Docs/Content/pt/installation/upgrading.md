@@ -297,6 +297,26 @@ Um destino Ping ou Port colado com espaços em volta – que é o que se obtém 
 
 Não há migração para os destinos já armazenados, então **reabra cada monitor IPv6 Ping, Port e SSL depois da atualização e salve-o de novo**, e confira o destino que ele mostra. Espere que os monitores que falhavam permanentemente em sondas macOS ou FreeBSD comecem a relatar a verdade, o que pode resolver incidentes ou abrir novos.
 
+### Pesquisas por valor de atributo pulam o que não pode corresponder
+
+Registros e traces filtrados por um valor de atributo, como `@http.route:/orders` ou um valor clicado na barra lateral de facetas, liam os atributos de cada linha de registro ou span do intervalo de tempo. Em uma instalação movimentada, uma pesquisa de algumas horas ou mais podia parar no limite de consulta de 45 segundos. A 14 adiciona um índice sobre os valores de atributo das tabelas de registros e de spans, então essas pesquisas leem só as partes da tabela que podem conter o valor. A lista, o gráfico, as contagens de facetas e a exportação retornam os mesmos resultados de antes, mais cedo.
+
+Ajuda mais com um valor que poucas linhas têm, como um caminho de requisição ou um id de usuário, tenant, pedido ou sessão. Um valor que a maioria das linhas tem, como `GET`, é lido como antes, assim como curingas, "contém", exclusões, comparações e `@k:*`.
+
+Não há nada a fazer. Na inicialização, o OneUptime adiciona o índice a `LogItemV3` e `SpanItemV3` sem reescrevê-las e indexa os novos registros e spans conforme chegam. Depois, o ClickHouse indexa em segundo plano os que você já tem, junto com a ingestão e as pesquisas: ele lê os atributos de cada linha uma vez, mais ou menos o trabalho de uma pesquisa sobre tudo o que você guarda. Os dias mais antigos ficam mais rápidos à medida que ele os alcança. O índice aumenta em alguns por cento o tamanho dessas duas tabelas, 4% nas nossas medições.
+
+Para acompanhar, ou para interromper em uma instalação muito grande, execute isto no `clickhouse-client` (`oneuptime` é o nome padrão do cluster):
+
+```sql
+SELECT table, parts_to_do FROM system.mutations
+WHERE command LIKE '%idx_attribute_values%' AND NOT is_done;
+
+KILL MUTATION ON CLUSTER 'oneuptime'
+WHERE command LIKE '%idx_attribute_values%';
+```
+
+Os dias que ele ainda não alcançou são pesquisados como antes até serem mesclados de novo ou expirarem.
+
 ### Chart do agente Kubernetes: o agente de IA do Kubernetes
 
 O chart `kubernetes-agent` agora executa por padrão o **Agente de IA do Kubernetes**: um pequeno pod somente leitura (`component=ai-agent`, imagem `oneuptime/kubernetes-ai-agent`) que permite à OneUptime AI executar `kubectl` enquanto investiga um incidente ou alerta nesse cluster. Ele substitui o Runner interno ao cluster que `aiAccess.enabled=true` instalava. Ele não tem relação com o AI Agent descontinuado no OneUptime 12 ([Se você executava o AI Agent avulso](#se-você-executava-o-ai-agent-avulso)).

@@ -195,6 +195,7 @@ Chips er en del af den gemte visning og af sidens URL, så et filter overlever e
 - Attribut**nøgler** sammenlignes uden hensyn til store og små bogstaver ved filtre med jokertegn, "indeholder", præfiks og suffiks, så du behøver ikke huske, om den blev indlæst som `requestId` eller `requestid`.
 - Et filter `-@k:...` matcher også rækker, der aldrig har haft attributten: en række helt uden `platform.team` begynder naturligvis ikke med `a`.
 - Numeriske sammenligninger virker på attributværdier, der er gemt som tekst; en værdi, der ikke er et tal, opfylder aldrig en sammenligning.
+- I logs og spor slås en søgning efter en præcis værdi, f.eks. `@http.route:/orders`, `@k:(a OR b)` eller en værdi, du klikker på i facetsidepanelet, op i et indeks over attributværdierne, så den forbliver hurtig over lange tidsintervaller. Jokertegn, "indeholder", udelukkelser og sammenligninger læser hver loglinje eller hvert span i intervallet: kombinér dem med en præcis værdi eller et kortere interval, når en søgning er langsom.
 
 ## Næste trin
 

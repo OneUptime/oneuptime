@@ -1341,6 +1341,43 @@ destination it shows. Expect monitors that were failing permanently on macOS or
 FreeBSD probes to start reporting the truth, which may resolve incidents or
 raise new ones.
 
+### Searches by attribute value skip what cannot match
+
+Logs and traces filtered on an attribute value, such as `@http.route:/orders`
+or a value clicked in the facet sidebar, used to read the attributes of every
+log line or span in the time range. On a busy install, a search over a few
+hours or more could stop at the 45-second query limit. 14 adds an index over
+the attribute values of the log and span tables, so these searches read only
+the parts of the table that can hold the value. The list, the chart, the facet
+counts and the export return the same results as before, sooner.
+
+It helps most with a value few rows carry, such as a request path or a user,
+tenant, order or session id. A value most rows carry, such as `GET`, is read
+as before, and so are wildcards, contains, exclusions, comparisons and
+`@k:*`.
+
+Nothing to do. On start, OneUptime adds the index to `LogItemV3` and
+`SpanItemV3` without rewriting them, and indexes new logs and spans as they
+arrive. ClickHouse then indexes the ones you already have in the background,
+alongside ingestion and searches: it reads the attributes of every row once,
+about the work of one search over everything you keep. Older days get faster
+as it reaches them. The index adds a few percent to the size of these two
+tables, 4% in our measurements.
+
+To follow it, or to stop it on a very large install, run this in
+`clickhouse-client` (`oneuptime` is the default cluster name):
+
+```sql
+SELECT table, parts_to_do FROM system.mutations
+WHERE command LIKE '%idx_attribute_values%' AND NOT is_done;
+
+KILL MUTATION ON CLUSTER 'oneuptime'
+WHERE command LIKE '%idx_attribute_values%';
+```
+
+Days it has not reached are searched as before until they are merged again or
+age out.
+
 ### Kubernetes agent chart: the Kubernetes AI agent
 
 The `kubernetes-agent` chart now runs the **Kubernetes AI agent** by default:
