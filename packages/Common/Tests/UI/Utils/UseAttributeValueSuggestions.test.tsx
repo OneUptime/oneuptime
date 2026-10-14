@@ -484,3 +484,81 @@ describe("a lookup that fails", () => {
     expect(harness.result.current.error).toBeDefined();
   });
 });
+
+describe("a lookup that finds no values", () => {
+  test("says so once the answer is here, and only for the key it was about", async () => {
+    fetchValues.mockImplementation(
+      async (key: string): Promise<Array<string>> => {
+        return key === "exception" ? [] : [`${key}-value-1`];
+      },
+    );
+
+    const harness: Harness = renderPicker({ searchText: "@exception:" });
+
+    // While the pause runs and the lookup is out, nothing is said yet.
+    expect(harness.result.current.isLoading).toBe(true);
+    expect(harness.result.current.hasNoValues).toBe(false);
+
+    await wait(PAUSE);
+
+    expect(askedFor()).toEqual(["exception"]);
+    expect(harness.result.current.isLoading).toBe(false);
+    expect(harness.result.current.error).toBeUndefined();
+    expect(harness.result.current.hasNoValues).toBe(true);
+    expect(harness.result.current.valueSuggestions).toEqual({
+      exception: [],
+    });
+
+    // A key with values has nothing of the sort to say.
+    harness.rerender({ searchText: "@env:" });
+    await wait(PAUSE);
+
+    expect(harness.result.current.hasNoValues).toBe(false);
+    expect(harness.result.current.valueSuggestions["env"]).toEqual([
+      "env-value-1",
+    ]);
+
+    // Coming back to the empty key says it again, at once, asking nothing.
+    harness.rerender({ searchText: "@exception:" });
+
+    expect(harness.result.current.hasNoValues).toBe(true);
+    expect(askedFor()).toEqual(["exception", "env"]);
+  });
+
+  test("a failed lookup, a key the project lacks, a field and free text never say it", async () => {
+    fetchValues.mockImplementation(async (): Promise<Array<string>> => {
+      return [];
+    });
+
+    // A key the project does not have is never asked about.
+    const harness: Harness = renderPicker({ searchText: "@not.a.key:" });
+    await wait(10 * PAUSE);
+    expect(harness.result.current.hasNoValues).toBe(false);
+
+    // A field written with @ is not an attribute.
+    harness.rerender({
+      searchText: "@env:",
+      ignoreKey: (key: string): boolean => {
+        return key === "env";
+      },
+    });
+    await wait(10 * PAUSE);
+    expect(harness.result.current.hasNoValues).toBe(false);
+
+    // Free text names no key.
+    harness.rerender({ searchText: "timeout" });
+    await wait(10 * PAUSE);
+    expect(harness.result.current.hasNoValues).toBe(false);
+    expect(askedFor()).toEqual([]);
+
+    // A lookup that failed is a failure, not an empty answer.
+    fetchValues.mockImplementationOnce(async (): Promise<Array<string>> => {
+      throw new Error("Network Error");
+    });
+    harness.rerender({ searchText: "@http.method:" });
+    await wait(PAUSE);
+
+    expect(harness.result.current.error).toBeDefined();
+    expect(harness.result.current.hasNoValues).toBe(false);
+  });
+});

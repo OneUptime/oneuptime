@@ -7,6 +7,12 @@ import React from "react";
 import AttributeValuesLoadError, {
   ATTRIBUTE_VALUES_LOAD_ERROR_TEST_ID,
 } from "../../../UI/Components/TelemetryViewer/components/AttributeValuesLoadError";
+import AttributeValuesEmpty, {
+  ATTRIBUTE_VALUES_EMPTY_TEST_ID,
+} from "../../../UI/Components/TelemetryViewer/components/AttributeValuesEmpty";
+import AttributeKeySentence, {
+  LOADING_ATTRIBUTE_VALUES_SENTENCE,
+} from "../../../UI/Components/TelemetryViewer/components/AttributeKeySentence";
 import TelemetrySearchSuggestions from "../../../UI/Components/TelemetryViewer/components/TelemetrySearchSuggestions";
 import LogSearchSuggestions from "../../../UI/Components/LogsViewer/components/LogSearchSuggestions";
 import {
@@ -16,8 +22,8 @@ import {
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
- * The `@key:` dropdown's "could not load the values" row (issue #4708) in
- * the dark theme.
+ * The `@key:` dropdown's "could not load the values" and "no values to
+ * suggest" rows (issue #4708) in the dark theme, Try again selected or not.
  *
  * The dark theme is Theme.css remapping the light utilities a component
  * uses once <html> carries .dark; a utility with no remap keeps its light
@@ -101,7 +107,7 @@ describe("the could-not-load row in the dark theme", () => {
   test.each(ERRORS)(
     "remaps every colour it draws when the values %s",
     (_label: string, error: TelemetryLoadError) => {
-      render(
+      const { rerender } = render(
         <AttributeValuesLoadError
           attributeKey="exception.message"
           error={error}
@@ -109,9 +115,29 @@ describe("the could-not-load row in the dark theme", () => {
         />,
       );
 
-      const tokens: Array<string> = colourTokensIn(
+      const unselected: Array<string> = colourTokensIn(
         screen.getByTestId(ATTRIBUTE_VALUES_LOAD_ERROR_TEST_ID),
       );
+
+      // Try again selected with the down arrow.
+      rerender(
+        <AttributeValuesLoadError
+          attributeKey="exception.message"
+          error={error}
+          onRetry={jest.fn()}
+          isRetrySelected={true}
+        />,
+      );
+
+      const selected: Array<string> = colourTokensIn(
+        screen.getByTestId(ATTRIBUTE_VALUES_LOAD_ERROR_TEST_ID),
+      );
+
+      expect(selected).toEqual(
+        expect.arrayContaining(["bg-indigo-50", "ring-indigo-200"]),
+      );
+
+      const tokens: Array<string> = [...unselected, ...selected];
 
       // The scan found the row's colours at all.
       expect(tokens).toEqual(
@@ -125,11 +151,28 @@ describe("the could-not-load row in the dark theme", () => {
     },
   );
 
+  test("the no-values row remaps every colour it draws", () => {
+    render(<AttributeValuesEmpty attributeKey="exception.message" />);
+
+    const tokens: Array<string> = colourTokensIn(
+      screen.getByTestId(ATTRIBUTE_VALUES_EMPTY_TEST_ID),
+    );
+
+    expect(tokens).toEqual(
+      expect.arrayContaining(["text-gray-700", "text-gray-500"]),
+    );
+    expect(
+      tokens.filter((token: string): boolean => {
+        return !isRemappedForDarkTheme(token);
+      }),
+    ).toEqual([]);
+  });
+
   test.each([
     ["the explorers' dropdown", TelemetrySearchSuggestions],
     ["the logs dropdown", LogSearchSuggestions],
   ])(
-    "%s, holding the row or loading, draws only remapped colours",
+    "%s, holding either row or loading, draws only remapped colours",
     (
       _label: string,
       Dropdown: typeof TelemetrySearchSuggestions | typeof LogSearchSuggestions,
@@ -155,8 +198,32 @@ describe("the could-not-load row in the dark theme", () => {
           onSelect={jest.fn()}
           fieldContext="env"
           isAttributeMode={true}
+          hasNoValues={true}
+        />,
+      );
+
+      const empty: Array<string> = colourTokensIn(container);
+
+      expect(
+        container.querySelector(
+          `[data-testid="${ATTRIBUTE_VALUES_EMPTY_TEST_ID}"]`,
+        ),
+      ).not.toBeNull();
+
+      rerender(
+        <Dropdown
+          suggestions={[]}
+          selectedIndex={-1}
+          onSelect={jest.fn()}
+          fieldContext="env"
+          isAttributeMode={true}
           isLoading={true}
-          loadingMessage="Loading values for env..."
+          loadingMessage={
+            <AttributeKeySentence
+              template={LOADING_ATTRIBUTE_VALUES_SENTENCE}
+              attributeKey="env"
+            />
+          }
         />,
       );
 
@@ -166,9 +233,11 @@ describe("the could-not-load row in the dark theme", () => {
         expect.arrayContaining(["bg-white", "border-gray-200"]),
       );
       expect(
-        [...withError, ...loading].filter((token: string): boolean => {
-          return !isRemappedForDarkTheme(token);
-        }),
+        [...withError, ...empty, ...loading].filter(
+          (token: string): boolean => {
+            return !isRemappedForDarkTheme(token);
+          },
+        ),
       ).toEqual([]);
     },
   );

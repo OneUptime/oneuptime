@@ -32,7 +32,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - a key the project does not have asks nothing;
  *   - coming back to a key asks nothing;
  *   - a key list that fails is asked for once, and the picker still works;
- *   - a lookup that fails says so in the dropdown, and Try again asks again.
+ *   - a lookup that fails says so in the dropdown, and Try again asks again;
+ *   - a lookup that finds no values says so, instead of the dropdown
+ *     vanishing after its loading line.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -75,6 +77,8 @@ import {
   ATTRIBUTE_VALUES_LOAD_ERROR_TEST_ID,
   ATTRIBUTE_VALUES_RETRY_TEST_ID,
 } from "../../../UI/Components/TelemetryViewer/components/AttributeValuesLoadError";
+import { ATTRIBUTE_VALUES_EMPTY_TEST_ID } from "../../../UI/Components/TelemetryViewer/components/AttributeValuesEmpty";
+import { SEARCH_SUGGESTIONS_TEST_ID } from "../../../UI/Components/LogsViewer/components/LogSearchSuggestions";
 import {
   ATTRIBUTE_VALUE_LOOKUP_PAUSE_IN_MS,
   clearAttributeValueAnswers,
@@ -221,9 +225,9 @@ describe("the logs search bar asks for values", () => {
 
     await type(input, "@exception.message:");
     expect(valueLookups()).toHaveLength(0);
-    expect(
-      screen.getByText("Loading values for exception.message..."),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId(SEARCH_SUGGESTIONS_TEST_ID)).toHaveTextContent(
+      "Loading values for exception.message...",
+    );
 
     await settle(ATTRIBUTE_VALUE_LOOKUP_PAUSE_IN_MS);
 
@@ -255,9 +259,8 @@ describe("the logs search bar asks for values", () => {
     await settle(10 * ATTRIBUTE_VALUE_LOOKUP_PAUSE_IN_MS);
 
     expect(valueLookups()).toHaveLength(0);
-    expect(
-      screen.queryByText("Loading values for exceptoin.message..."),
-    ).toBeNull();
+    // Nothing to say about a key nobody has: no loading line, no dropdown.
+    expect(screen.queryByTestId(SEARCH_SUGGESTIONS_TEST_ID)).toBeNull();
   });
 
   test("the search help's example, its key typed over, asks only for the key stopped on", async () => {
@@ -351,7 +354,9 @@ describe("the logs search bar asks for values", () => {
     );
 
     expect(error).toHaveTextContent("Values for env took too long to load.");
-    expect(screen.queryByText("Loading values for env...")).toBeNull();
+    expect(
+      screen.getByTestId(SEARCH_SUGGESTIONS_TEST_ID),
+    ).not.toHaveTextContent("Loading values");
 
     fireEvent.click(screen.getByTestId(ATTRIBUTE_VALUES_RETRY_TEST_ID));
     await settle();
@@ -361,6 +366,38 @@ describe("the logs search bar asks for values", () => {
       screen.queryByTestId(ATTRIBUTE_VALUES_LOAD_ERROR_TEST_ID),
     ).toBeNull();
     expect(screen.getByText("env-one")).toBeInTheDocument();
+  });
+
+  test("a lookup that finds no values says so, and the key is not asked about again", async () => {
+    valuesAnswer = async (): Promise<unknown> => {
+      return new HTTPResponse<JSONObject>(200, { values: [] }, {});
+    };
+
+    const input: HTMLInputElement = await renderViewer();
+
+    await type(input, "@http.method:");
+    await settle(ATTRIBUTE_VALUE_LOOKUP_PAUSE_IN_MS);
+
+    const empty: HTMLElement = screen.getByTestId(
+      ATTRIBUTE_VALUES_EMPTY_TEST_ID,
+    );
+
+    expect(empty).toHaveTextContent(
+      "No values to suggest for http.method in this time range.",
+    );
+    expect(empty).toHaveTextContent(
+      "You can still type a value and press Enter.",
+    );
+    expect(
+      screen.queryByTestId(ATTRIBUTE_VALUES_LOAD_ERROR_TEST_ID),
+    ).toBeNull();
+
+    // Typing a value of one's own: the line steps aside, nothing is asked.
+    await type(input, "GET", "@http.method:");
+    await settle(10 * ATTRIBUTE_VALUE_LOOKUP_PAUSE_IN_MS);
+
+    expect(screen.queryByTestId(ATTRIBUTE_VALUES_EMPTY_TEST_ID)).toBeNull();
+    expect(valueLookups()).toHaveLength(1);
   });
 
   test("`@service:` offers the services and never looks up an attribute named service", async () => {

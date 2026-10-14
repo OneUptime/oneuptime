@@ -103,6 +103,10 @@
  * window.__chartTimeZoomTimeLimit, set before the page loads, is where
  * .timeLimit starts, for a spec whose first load is stopped.
  *
+ * .noAttributeValues: the search bars' `@key:` value lookups answer with
+ * no values, as the server does for a key the rows of the range do not
+ * carry (issue #4708), until the spec sets it back.
+ *
  * Anything the fixture does not model (a table, an analytics model, a
  * metric name, an API URL or an explorer filter) lands on .unhandled as
  * well. The spec asserts `unhandled` is empty. .dataset holds the ids and
@@ -313,6 +317,8 @@ const fixture = {
     attributeValues: false,
     ...(window.__chartTimeZoomTimeLimit || {}),
   },
+  // See the header.
+  noAttributeValues: false,
 };
 window.__chartTimeZoomFixture = fixture;
 
@@ -2874,6 +2880,13 @@ async function handleApi(method, options) {
       endpoint.path.endsWith("/get-attribute-values")
     ) {
       return stoppedAtTimeLimit();
+    }
+    // A key no row of the range carries: the lookup finds no values.
+    if (
+      fixture.noAttributeValues &&
+      endpoint.path.endsWith("/get-attribute-values")
+    ) {
+      return ok({ values: [] });
     }
     let response;
     try {

@@ -24,12 +24,18 @@ import path from "path";
  *   - a key the project does not have is never asked about;
  *   - a key asked about before is not asked about again;
  *   - a lookup that runs out of time says so in the dropdown, with Try
- *     again, and Try again asks again;
+ *     again beside its hint (near the words, not at the far end of a wide
+ *     dropdown), and Try again asks again - from the mouse, or from the
+ *     keyboard with the down arrow and Enter, the focus never leaving the
+ *     search box;
+ *   - a lookup that finds no values says so, instead of the dropdown
+ *     vanishing after its loading line;
  *   - at phone width that message fits the screen.
  *
- * The fixture records every API call the page makes (its `requests`), and
- * its `timeLimit.attributeValues` makes the value lookups answer as the API
- * answers a read ClickHouse stopped (504).
+ * The fixture records every API call the page makes (its `requests`); its
+ * `timeLimit.attributeValues` makes the value lookups answer as the API
+ * answers a read ClickHouse stopped (504), and its `noAttributeValues` as
+ * the API answers a key the rows of the range do not carry (no values).
  */
 
 const PORT: string = process.env["CHART_TIME_ZOOM_FIXTURE_PORT"] || "4233";
@@ -46,6 +52,8 @@ const TRACE_VALUES: string = "/telemetry/traces/get-attribute-values";
 
 const ERROR_TEST_ID: string = "attribute-values-load-error";
 const RETRY_TEST_ID: string = "attribute-values-retry";
+const EMPTY_TEST_ID: string = "attribute-values-empty";
+const KEY_IN_SENTENCE_TEST_ID: string = "attribute-key-in-sentence";
 const SUGGESTIONS_TEST_ID: string = "search-suggestions";
 
 // The fixture's services, the values of `resource.service.name`.
@@ -82,6 +90,7 @@ interface FixtureState {
   requests: Array<RecordedRequest>;
   unhandled: Array<Record<string, unknown>>;
   timeLimit: { attributeValues?: boolean | undefined };
+  noAttributeValues: boolean;
 }
 
 interface SpecWindow {
@@ -191,6 +200,13 @@ async function setValuesStopped(page: Page, stopped: boolean): Promise<void> {
       attributeValues: isStopped,
     };
   }, stopped);
+}
+
+async function setNoValues(page: Page, hasNone: boolean): Promise<void> {
+  await page.evaluate((none: boolean) => {
+    (window as unknown as SpecWindow).__chartTimeZoomFixture.noAttributeValues =
+      none;
+  }, hasNone);
 }
 
 // The search box, once the explorer has its attribute keys.
@@ -402,6 +418,136 @@ test.describe("Logs explorer: the @key: value picker", () => {
     ]);
   });
 
+  test("Try again sits beside the hint, under the words, not at the far end of the dropdown", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openExplorer(page, LOGS_PATH);
+    const box: Locator = await searchBox(page, SEARCH_LOGS, LOG_KEYS);
+
+    await setValuesStopped(page, true);
+    await box.pressSequentially("@resource.service.name:", {
+      delay: KEYSTROKE_DELAY_MS,
+    });
+
+    const error: Locator = page.getByTestId(ERROR_TEST_ID);
+    await expect(error).toBeVisible({ timeout: 15000 });
+
+    // The key is drawn as typed, in monospace, as the search box draws it.
+    const key: Locator = error.getByTestId(KEY_IN_SENTENCE_TEST_ID);
+    await expect(key).toHaveText("resource.service.name");
+    const keyFont: string = await key.evaluate((element: Element): string => {
+      return window.getComputedStyle(element).fontFamily;
+    });
+    expect(keyFont.toLowerCase()).toContain("mono");
+
+    const dropdownBox: { x: number; width: number } | null = await page
+      .getByTestId(SUGGESTIONS_TEST_ID)
+      .boundingBox();
+    const sentenceBox: { x: number; y: number; height: number } | null =
+      await error.locator("p").first().boundingBox();
+    const retryBox: { x: number; y: number } | null = await page
+      .getByTestId(RETRY_TEST_ID)
+      .boundingBox();
+
+    expect(dropdownBox).not.toBeNull();
+    expect(sentenceBox).not.toBeNull();
+    expect(retryBox).not.toBeNull();
+
+    // The dropdown is as wide as the search box: well over 1,000 px here.
+    expect(dropdownBox!.width).toBeGreaterThan(1000);
+    // Try again is under the sentence, within its first half - not at the end.
+    expect(retryBox!.y).toBeGreaterThanOrEqual(
+      sentenceBox!.y + sentenceBox!.height - 1,
+    );
+    expect(retryBox!.x - dropdownBox!.x).toBeLessThan(dropdownBox!.width / 2);
+  });
+
+  test("Try again from the keyboard: the down arrow selects it and Enter asks again, the focus staying in the box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openExplorer(page, LOGS_PATH);
+    const box: Locator = await searchBox(page, SEARCH_LOGS, LOG_KEYS);
+
+    await setValuesStopped(page, true);
+    await box.pressSequentially("@resource.service.name:", {
+      delay: KEYSTROKE_DELAY_MS,
+    });
+
+    const retry: Locator = page.getByTestId(RETRY_TEST_ID);
+    await expect(retry).toBeVisible({ timeout: 15000 });
+    await expect(retry).toHaveAttribute("data-selected", "false");
+
+    await box.press("ArrowDown");
+    await expect(retry).toHaveAttribute("data-selected", "true");
+    await expect(box).toBeFocused();
+
+    await page.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "value-suggestions-retry-selected-synthetic.png",
+      ),
+    });
+
+    await setValuesStopped(page, false);
+    await box.press("Enter");
+
+    for (const name of SERVICE_NAMES) {
+      await expect(dropdownOption(page, name)).toBeVisible({
+        timeout: 15000,
+      });
+    }
+    await expect(box).toBeFocused();
+    // Enter asked again; it made no chip of the empty value and ran no search.
+    await expect(box).toHaveValue("@resource.service.name:");
+    expect(await keysAskedFor(page, LOG_VALUES)).toEqual([
+      "resource.service.name",
+      "resource.service.name",
+    ]);
+  });
+
+  test("a lookup that finds no values says so, until a value of one's own is typed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openExplorer(page, LOGS_PATH);
+    const box: Locator = await searchBox(page, SEARCH_LOGS, LOG_KEYS);
+
+    await setNoValues(page, true);
+    await box.pressSequentially("@resource.service.name:", {
+      delay: KEYSTROKE_DELAY_MS,
+    });
+
+    const empty: Locator = page.getByTestId(EMPTY_TEST_ID);
+    await expect(empty).toBeVisible({ timeout: 15000 });
+    await expect(empty).toContainText(
+      "No values to suggest for resource.service.name in this time range.",
+    );
+    await expect(empty).toContainText(
+      "You can still type a value and press Enter.",
+    );
+    // Nothing failed: no error, nothing to try again, no loading line.
+    await expect(page.getByTestId(ERROR_TEST_ID)).toHaveCount(0);
+    await expect(page.getByTestId(RETRY_TEST_ID)).toHaveCount(0);
+    await expect(page.getByText("Loading values for")).toHaveCount(0);
+
+    await page.screenshot({
+      path: path.join(SCREENSHOTS, "value-suggestions-empty-synthetic.png"),
+    });
+
+    // A value of one's own: the line steps aside, nothing more is asked.
+    await box.pressSequentially("canary", { delay: KEYSTROKE_DELAY_MS });
+    await expect(empty).toHaveCount(0);
+    await page.waitForTimeout(SETTLE_MS);
+    expect(await keysAskedFor(page, LOG_VALUES)).toEqual([
+      "resource.service.name",
+    ]);
+  });
+
   test("at phone width the could-not-load message fits the screen and widens nothing", async ({
     page,
   }: {
@@ -496,6 +642,63 @@ test.describe("Traces explorer: the @key: value picker", () => {
       new Date(String(lookups[0]!["endTime"])).getTime() -
         new Date(String(lookups[0]!["startTime"])).getTime(),
     ).toBe(HOUR);
+  });
+
+  test("a lookup that runs out of time says so; the keyboard's Try again asks again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openExplorer(page, TRACES_PATH);
+    const box: Locator = await searchBox(
+      page,
+      SEARCH_TRACES,
+      "/telemetry/traces/get-attributes",
+    );
+
+    await setValuesStopped(page, true);
+    await box.pressSequentially("@http.route:", { delay: KEYSTROKE_DELAY_MS });
+
+    const error: Locator = page.getByTestId(ERROR_TEST_ID);
+    await expect(error).toBeVisible({ timeout: 15000 });
+    await expect(error).toContainText(
+      "Values for http.route took too long to load.",
+    );
+
+    await setValuesStopped(page, false);
+    await box.press("ArrowDown");
+    await box.press("Enter");
+
+    await expect(dropdownOption(page, "/api/checkout")).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(error).toHaveCount(0);
+    await expect(box).toBeFocused();
+    expect(await keysAskedFor(page, TRACE_VALUES)).toEqual([
+      "http.route",
+      "http.route",
+    ]);
+  });
+
+  test("a lookup that finds no values says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openExplorer(page, TRACES_PATH);
+    const box: Locator = await searchBox(
+      page,
+      SEARCH_TRACES,
+      "/telemetry/traces/get-attributes",
+    );
+
+    await setNoValues(page, true);
+    await box.pressSequentially("@http.route:", { delay: KEYSTROKE_DELAY_MS });
+
+    await expect(page.getByTestId(EMPTY_TEST_ID)).toContainText(
+      "No values to suggest for http.route in this time range.",
+      { timeout: 15000 },
+    );
   });
 
   test("typing a key over another asks only for the key stopped on", async ({
