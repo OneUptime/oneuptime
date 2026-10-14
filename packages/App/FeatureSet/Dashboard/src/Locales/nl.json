@@ -28620,9 +28620,9 @@
   "Not counted": "Niet geteld",
   "Not counted: this took too long.": "Niet geteld: dit duurde te lang.",
   "Something went wrong. Try again in a moment.": "Er ging iets mis. Probeer het zo opnieuw.",
-  "They were stopped before they finished. Try a shorter time range or more specific filters.": "Gestopt voordat ze klaar waren. Probeer een korter tijdsbereik of specifiekere filters.",
   "This chart could not load": "Deze grafiek kon niet worden geladen",
   "This chart took too long to load": "Het laden van deze grafiek duurde te lang",
   "This search could not finish": "Deze zoekopdracht kon niet worden voltooid",
-  "This search took too long": "Deze zoekopdracht duurde te lang"
+  "This search took too long": "Deze zoekopdracht duurde te lang",
+  "Try a shorter time range or more specific filters.": "Probeer een korter tijdsbereik of specifiekere filters."
 }

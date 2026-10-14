@@ -404,10 +404,16 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
       {props.mainContentOverride}
 
       {/* Histogram */}
+      {/*
+       * When the list says the search could not finish, a chart that could
+       * not either steps aside rather than say it again: one message, one
+       * Try again.
+       */}
       {!props.mainContentOverride &&
         showHistogram &&
         props.histogramBuckets &&
-        props.histogramSeries && (
+        props.histogramSeries &&
+        !(listError && props.histogramError) && (
           <TelemetryHistogram
             buckets={props.histogramBuckets}
             isLoading={props.histogramLoading || false}
@@ -442,6 +448,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             timedOutFacets={props.timedOutFacets}
             facetError={props.facetError}
             onRetryFacets={props.onRetryFacets}
+            showCountsNotice={!listError}
             facetConfigs={props.facetConfigs || []}
             activeFilters={props.activeFilters}
             onIncludeFilter={(key: string, value: string) => {

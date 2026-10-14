@@ -28620,9 +28620,9 @@
   "Not counted": "Not counted",
   "Not counted: this took too long.": "Not counted: this took too long.",
   "Something went wrong. Try again in a moment.": "Something went wrong. Try again in a moment.",
-  "They were stopped before they finished. Try a shorter time range or more specific filters.": "They were stopped before they finished. Try a shorter time range or more specific filters.",
   "This chart could not load": "This chart could not load",
   "This chart took too long to load": "This chart took too long to load",
   "This search could not finish": "This search could not finish",
-  "This search took too long": "This search took too long"
+  "This search took too long": "This search took too long",
+  "Try a shorter time range or more specific filters.": "Try a shorter time range or more specific filters."
 }

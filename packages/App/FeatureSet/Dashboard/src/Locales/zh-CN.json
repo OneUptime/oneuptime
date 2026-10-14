@@ -28620,9 +28620,9 @@
   "Not counted": "未计数",
   "Not counted: this took too long.": "未计数：耗时过长。",
   "Something went wrong. Try again in a moment.": "出了点问题。请稍后重试。",
-  "They were stopped before they finished. Try a shorter time range or more specific filters.": "已在完成前停止。请尝试缩短时间范围或使用更具体的筛选条件。",
   "This chart could not load": "无法加载此图表",
   "This chart took too long to load": "此图表加载耗时过长",
   "This search could not finish": "此搜索未能完成",
-  "This search took too long": "此搜索耗时过长"
+  "This search took too long": "此搜索耗时过长",
+  "Try a shorter time range or more specific filters.": "请尝试缩短时间范围或使用更具体的筛选条件。"
 }

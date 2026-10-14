@@ -28620,9 +28620,9 @@
   "Not counted": "Inte räknat",
   "Not counted: this took too long.": "Inte räknat: det tog för lång tid.",
   "Something went wrong. Try again in a moment.": "Något gick fel. Försök igen om en stund.",
-  "They were stopped before they finished. Try a shorter time range or more specific filters.": "De stoppades innan de var klara. Prova ett kortare tidsintervall eller mer specifika filter.",
   "This chart could not load": "Det här diagrammet kunde inte läsas in",
   "This chart took too long to load": "Det tog för lång tid att läsa in det här diagrammet",
   "This search could not finish": "Den här sökningen kunde inte slutföras",
-  "This search took too long": "Den här sökningen tog för lång tid"
+  "This search took too long": "Den här sökningen tog för lång tid",
+  "Try a shorter time range or more specific filters.": "Prova ett kortare tidsintervall eller mer specifika filter."
 }

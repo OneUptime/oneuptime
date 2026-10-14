@@ -28620,9 +28620,9 @@
   "Not counted": "गिना नहीं गया",
   "Not counted: this took too long.": "गिना नहीं गया: इसमें बहुत समय लगा।",
   "Something went wrong. Try again in a moment.": "कुछ गलत हो गया। थोड़ी देर में फिर से प्रयास करें।",
-  "They were stopped before they finished. Try a shorter time range or more specific filters.": "इन्हें पूरा होने से पहले रोक दिया गया। कम समय सीमा या अधिक सटीक फ़िल्टर आज़माएँ।",
   "This chart could not load": "यह चार्ट लोड नहीं हो सका",
   "This chart took too long to load": "इस चार्ट को लोड होने में बहुत समय लगा",
   "This search could not finish": "यह खोज पूरी नहीं हो सकी",
-  "This search took too long": "इस खोज में बहुत समय लगा"
+  "This search took too long": "इस खोज में बहुत समय लगा",
+  "Try a shorter time range or more specific filters.": "कम समय सीमा या अधिक सटीक फ़िल्टर आज़माएँ।"
 }

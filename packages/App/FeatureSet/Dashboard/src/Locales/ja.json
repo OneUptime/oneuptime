@@ -28620,9 +28620,9 @@
   "Not counted": "未集計",
   "Not counted: this took too long.": "未集計: 時間がかかりすぎました。",
   "Something went wrong. Try again in a moment.": "問題が発生しました。しばらくしてから再試行してください。",
-  "They were stopped before they finished. Try a shorter time range or more specific filters.": "完了する前に停止しました。時間範囲を短くするか、フィルターを絞り込んでください。",
   "This chart could not load": "このグラフを読み込めませんでした",
   "This chart took too long to load": "このグラフの読み込みに時間がかかりすぎました",
   "This search could not finish": "この検索を完了できませんでした",
-  "This search took too long": "この検索に時間がかかりすぎました"
+  "This search took too long": "この検索に時間がかかりすぎました",
+  "Try a shorter time range or more specific filters.": "時間範囲を短くするか、フィルターを絞り込んでください。"
 }

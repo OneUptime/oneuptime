@@ -28620,9 +28620,9 @@
   "Not counted": "집계되지 않음",
   "Not counted: this took too long.": "집계되지 않음: 시간이 너무 오래 걸렸습니다.",
   "Something went wrong. Try again in a moment.": "문제가 발생했습니다. 잠시 후 다시 시도하세요.",
-  "They were stopped before they finished. Try a shorter time range or more specific filters.": "완료되기 전에 중지되었습니다. 기간을 줄이거나 필터를 더 구체적으로 지정해 보세요.",
   "This chart could not load": "이 차트를 불러오지 못했습니다",
   "This chart took too long to load": "이 차트를 불러오는 데 시간이 너무 오래 걸렸습니다",
   "This search could not finish": "이 검색을 완료하지 못했습니다",
-  "This search took too long": "이 검색에 시간이 너무 오래 걸렸습니다"
+  "This search took too long": "이 검색에 시간이 너무 오래 걸렸습니다",
+  "Try a shorter time range or more specific filters.": "기간을 줄이거나 필터를 더 구체적으로 지정해 보세요."
 }

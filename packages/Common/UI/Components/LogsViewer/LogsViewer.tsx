@@ -1329,7 +1329,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       )}
 
       {/* Histogram */}
-      {props.histogramBuckets && (
+      {/*
+       * When the list says the search could not finish, a chart that could
+       * not either steps aside rather than say it again: one message, one
+       * Try again (which reruns the chart too).
+       */}
+      {props.histogramBuckets && !(props.listError && props.histogramError) && (
         <LogsHistogram
           buckets={props.histogramBuckets}
           isLoading={props.histogramLoading || false}
@@ -1368,6 +1373,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               timedOutFacets={props.timedOutFacets}
               facetError={props.facetError}
               onRetryFacets={props.onRetryFacets}
+              showCountsNotice={!props.listError}
               serviceMap={serviceMap}
               hostMap={hostMap}
               dockerHostMap={dockerHostMap}

@@ -28620,9 +28620,9 @@
   "Not counted": "شمرده نشد",
   "Not counted: this took too long.": "شمرده نشد: بیش از حد طول کشید.",
   "Something went wrong. Try again in a moment.": "مشکلی پیش آمد. کمی بعد دوباره تلاش کنید.",
-  "They were stopped before they finished. Try a shorter time range or more specific filters.": "پیش از پایان متوقف شدند. بازهٔ زمانی کوتاه‌تر یا فیلترهای دقیق‌تری را امتحان کنید.",
   "This chart could not load": "این نمودار بارگذاری نشد",
   "This chart took too long to load": "بارگذاری این نمودار بیش از حد طول کشید",
   "This search could not finish": "این جستجو کامل نشد",
-  "This search took too long": "این جستجو بیش از حد طول کشید"
+  "This search took too long": "این جستجو بیش از حد طول کشید",
+  "Try a shorter time range or more specific filters.": "بازهٔ زمانی کوتاه‌تر یا فیلترهای دقیق‌تری را امتحان کنید."
 }

@@ -28620,9 +28620,9 @@
   "Not counted": "Не подсчитано",
   "Not counted: this took too long.": "Не подсчитано: это заняло слишком много времени.",
   "Something went wrong. Try again in a moment.": "Что-то пошло не так. Повторите попытку через минуту.",
-  "They were stopped before they finished. Try a shorter time range or more specific filters.": "Подсчёт остановлен до завершения. Попробуйте более короткий временной диапазон или более точные фильтры.",
   "This chart could not load": "Не удалось загрузить этот график",
   "This chart took too long to load": "Загрузка этого графика заняла слишком много времени",
   "This search could not finish": "Не удалось завершить этот поиск",
-  "This search took too long": "Этот поиск занял слишком много времени"
+  "This search took too long": "Этот поиск занял слишком много времени",
+  "Try a shorter time range or more specific filters.": "Попробуйте более короткий временной диапазон или более точные фильтры."
 }

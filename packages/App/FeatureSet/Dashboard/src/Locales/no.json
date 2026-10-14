@@ -28620,9 +28620,9 @@
   "Not counted": "Ikke telt",
   "Not counted: this took too long.": "Ikke telt: dette tok for lang tid.",
   "Something went wrong. Try again in a moment.": "Noe gikk galt. Prøv igjen om et øyeblikk.",
-  "They were stopped before they finished. Try a shorter time range or more specific filters.": "De ble stoppet før tiden. Prøv et kortere tidsrom eller mer spesifikke filtre.",
   "This chart could not load": "Dette diagrammet kunne ikke lastes inn",
   "This chart took too long to load": "Dette diagrammet brukte for lang tid på å laste",
   "This search could not finish": "Dette søket kunne ikke fullføres",
-  "This search took too long": "Dette søket tok for lang tid"
+  "This search took too long": "Dette søket tok for lang tid",
+  "Try a shorter time range or more specific filters.": "Prøv et kortere tidsrom eller mer spesifikke filtre."
 }

@@ -102,6 +102,11 @@ export interface LogsFacetSidebarProps {
   timedOutFacets?: Array<string> | undefined;
   facetError?: TelemetryLoadError | undefined;
   onRetryFacets?: (() => void) | undefined;
+  /*
+   * Off while the list says the search could not finish: one message, and
+   * one Try again, for the whole search. The stopped facets still say so.
+   */
+  showCountsNotice?: boolean | undefined;
 }
 
 /*
@@ -419,7 +424,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
         </div>
       )}
 
-      {!props.isLoading && countsNotice && (
+      {!props.isLoading && countsNotice && props.showCountsNotice !== false && (
         <TelemetryLoadErrorMessage
           error={countsNotice}
           subject="counts"

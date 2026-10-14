@@ -28620,9 +28620,9 @@
   "Not counted": "Non conteggiato",
   "Not counted: this took too long.": "Non conteggiato: ha richiesto troppo tempo.",
   "Something went wrong. Try again in a moment.": "Qualcosa è andato storto. Riprova tra un momento.",
-  "They were stopped before they finished. Try a shorter time range or more specific filters.": "Sono stati interrotti prima del termine. Prova un intervallo di tempo più breve o filtri più specifici.",
   "This chart could not load": "Impossibile caricare questo grafico",
   "This chart took too long to load": "Il caricamento di questo grafico ha richiesto troppo tempo",
   "This search could not finish": "Impossibile completare questa ricerca",
-  "This search took too long": "Questa ricerca ha richiesto troppo tempo"
+  "This search took too long": "Questa ricerca ha richiesto troppo tempo",
+  "Try a shorter time range or more specific filters.": "Prova un intervallo di tempo più breve o filtri più specifici."
 }

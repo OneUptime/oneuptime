@@ -48,9 +48,7 @@ const TIMED_OUT_ADVICE: Record<TelemetryLoadErrorSubject, string> = {
   chart: translationKey(
     "It was stopped before it finished. Try a shorter time range or more specific filters.",
   ),
-  counts: translationKey(
-    "They were stopped before they finished. Try a shorter time range or more specific filters.",
-  ),
+  counts: translationKey("Try a shorter time range or more specific filters."),
 };
 
 const FAILED_FALLBACK: string = translationKey(

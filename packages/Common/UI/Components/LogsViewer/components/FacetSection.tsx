@@ -133,7 +133,7 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
         <div id={bodyId} className="mt-1 px-1">
           {props.isCountStopped && (
             <p
-              className="px-1.5 pb-1 text-[11px] text-amber-700"
+              className="px-1.5 pb-1 text-[11px] text-gray-500"
               data-testid="facet-count-stopped"
             >
               {translator.translateText("Not counted: this took too long.")}
