@@ -32,14 +32,16 @@ configure({ asyncUtilTimeout: 15000 });
  * batch of stale or duplicated devices meant deleting them one at a time.
  *
  * The action is not written per page: ModelTable adds a default "Delete" to
- * any table that already offers bulk actions, for anyone the model lets
- * delete. What is asserted here is that behaviour end to end - it is offered,
- * it asks first, it deletes exactly what was selected - plus the two things
- * that only matter once the selection is large:
+ * any table whose rows are deleted from it (`isDeleteable` - the same switch
+ * that puts Delete in each row's ⋯ menu) and that already offers bulk
+ * actions, for anyone the model lets delete. What is asserted here is that
+ * behaviour end to end - it is offered exactly where the row's Delete is, it
+ * asks first, it deletes exactly what was selected - plus the things that
+ * only matter once the selection is large:
  *
- *   - the confirmation can carry what else leaves with the rows
- *     (`deleteConfirmationWarning`), because a devices page knows things the
- *     generic sentence cannot;
+ *   - the confirmation says what else leaves with the rows - the model's own
+ *     sentence (DeleteConsequences), then the table's
+ *     (`deleteConfirmationWarning`) - in a paragraph after their names;
  *   - a delete that FAILS is reported. Failures used to be collected but
  *     never handed to the progress modal unless a later row happened to
  *     succeed, so a run whose trailing rows failed under-reported, and a run
@@ -134,9 +136,14 @@ const ARCHIVE_ACTION: unknown = {
 };
 
 const DEVICE_DELETE_WARNING: string =
-  "Their interfaces, links, endpoints and any monitor OneUptime created for them are deleted too.";
+  "Archive devices instead to keep their history.";
+
+// DeleteConsequences' sentence for a network device, said by every Delete.
+const NETWORK_DEVICE_CONSEQUENCE: string =
+  "Deleting a network device also deletes its interfaces, links, endpoints and any monitor OneUptime created for it, with that monitor's history.";
 
 type TableOptions = {
+  isDeleteable?: boolean | undefined;
   bulkActionButtons?: Array<unknown> | undefined;
   deleteConfirmationWarning?: string | undefined;
   deleteVerb?: string | undefined;
@@ -209,13 +216,12 @@ describe("BaseModelTable bulk Delete", () => {
         description: "Every device in this project",
       },
       /*
-       * Exactly how the Devices page is configured: no per-row Delete button.
-       * Bulk deletion is deliberately not tied to that flag - `isDeleteable`
-       * is about the Actions column, not about the selection bar.
+       * As the Devices page is configured: rows deleted from the list - Delete
+       * in each row's ⋯ menu and in Bulk Actions, the two always together.
        */
       isCreateable: true,
       isEditable: false,
-      isDeleteable: false,
+      isDeleteable: options.isDeleteable ?? true,
       isViewable: true,
       callbacks: callbacks,
       bulkActions: {
@@ -403,6 +409,22 @@ describe("BaseModelTable bulk Delete", () => {
     );
   };
 
+  // What the bulk dialog says goes with the rows, after their names.
+  const consequenceText: ConfirmationTextFunction = (): string => {
+    return (
+      document.querySelector('[data-testid="bulk-delete-consequence"]')
+        ?.textContent || ""
+    );
+  };
+
+  type HasTextFunction = (testId: string) => string;
+
+  const textOf: HasTextFunction = (testId: string): string => {
+    return (
+      document.querySelector(`[data-testid="${testId}"]`)?.textContent || ""
+    ).trim();
+  };
+
   beforeEach(() => {
     isMasterAdminForTest = false;
     permissionsForTest = [Permission.ProjectAdmin];
@@ -440,23 +462,126 @@ describe("BaseModelTable bulk Delete", () => {
       expect(findMenuItem("Delete")).not.toBeDisabled();
     });
 
-    /* `isDeleteable={false}` is about the row's Actions column, nothing else. */
-    test("is offered even though the table has no per-row Delete button", async () => {
+    /*
+     * One switch for both: a list whose rows are deleted from it offers Delete
+     * in each row's ⋯ menu and in Bulk Actions.
+     */
+    test("is offered where each row's ⋯ menu offers Delete too", async () => {
       const { container } = renderTable();
 
-      await selectRows(container, 1);
-
-      const rowDeleteButton: HTMLButtonElement | undefined = Array.from(
-        container.querySelectorAll<HTMLButtonElement>("button"),
-      ).find((button: HTMLButtonElement) => {
-        return (button.textContent || "").trim() === "Delete";
+      await waitFor(() => {
+        expect(
+          container.querySelectorAll('[data-testid="row-actions-more-button"]')
+            .length,
+        ).toBe(ROWS.length);
       });
 
-      expect(rowDeleteButton).toBeUndefined();
+      fireEvent.click(
+        container.querySelector<HTMLElement>(
+          '[data-testid="row-actions-more-button"]',
+        )!,
+      );
 
+      await waitFor(() => {
+        expect(findMenuItem("Delete")).toBeDefined();
+      });
+
+      // Close the row's menu before opening Bulk Actions.
+      fireEvent.keyDown(document.activeElement || document.body, {
+        key: "Escape",
+      });
+
+      await selectRows(container, 1);
       await openBulkMenu();
 
       expect(findMenuItem("Delete")).toBeDefined();
+    });
+
+    /*
+     * A list that keeps Delete off its rows on purpose - another resource's
+     * members, a list across projects, history - used to delete from Bulk
+     * Actions anyway, for anyone the model let delete.
+     */
+    test("is not offered on a list whose rows are not deleted from it, even to someone who may delete", async () => {
+      const { container } = renderTable({ isDeleteable: false });
+
+      await selectRows(container, 1);
+      await openBulkMenu();
+
+      expect(menuItemLabels()).toEqual(
+        expect.arrayContaining(["Archive", "Export CSV"]),
+      );
+      expect(findMenuItem("Delete")).toBeUndefined();
+    });
+
+    test("is not placed there either when the list names the default Delete", async () => {
+      const { container } = renderTable({
+        isDeleteable: false,
+        bulkActionButtons: [
+          ARCHIVE_ACTION,
+          ModalTableBulkDefaultActions.Delete,
+        ],
+      });
+
+      await selectRows(container, 1);
+      await openBulkMenu();
+
+      expect(findMenuItem("Delete")).toBeUndefined();
+      // And never the raw enum as an unnamed item.
+      expect(menuItemLabels()).not.toContain("");
+    });
+
+    /*
+     * The other half of the old rule: a table with no bulk actions of its own
+     * grew a selection column whose actions were Delete and Export CSV, for
+     * whoever may delete the model - on lists that never offered Delete at
+     * all. Delete is gone from such a list; the selection stays for the same
+     * people, with Export CSV alone (the monitor logs' and LLM calls'
+     * exports are worded for it).
+     */
+    test("keeps the selection on such a list, with Export CSV alone, for someone who may delete", async () => {
+      const { container } = renderTable({
+        isDeleteable: false,
+        bulkActionButtons: [],
+      });
+
+      await selectRows(container, 1);
+      await openBulkMenu();
+
+      expect(menuItemLabels()).toEqual(["Export CSV"]);
+      expect(findMenuItem("Delete")).toBeUndefined();
+    });
+
+    test("grows no selection column on such a list for someone who may not delete", async () => {
+      permissionsForTest = [Permission.Viewer];
+
+      const { container } = renderTable({
+        isDeleteable: false,
+        bulkActionButtons: [],
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("core-router-1")).toBeInTheDocument();
+      });
+
+      expect(container.querySelectorAll('input[type="checkbox"]').length).toBe(
+        0,
+      );
+    });
+
+    /*
+     * Unchanged for a deletable list with no bulk actions of its own: whoever
+     * may delete gets the selection column, and Delete in it.
+     */
+    test("is the one bulk action of a deletable list with none of its own, for someone who may delete", async () => {
+      const { container } = renderTable({ bulkActionButtons: [] });
+
+      await selectRows(container, 1);
+      await openBulkMenu();
+
+      expect(menuItemLabels()).toEqual(
+        expect.arrayContaining(["Delete", "Export CSV"]),
+      );
     });
 
     /* One Delete, whoever supplied it - not the page's plus an injected one. */
@@ -514,24 +639,39 @@ describe("BaseModelTable bulk Delete", () => {
     });
 
     /*
-     * A devices page knows what leaves with a device - its interfaces, links
-     * and auto-created monitor - and that Archive is the reversible option.
-     * The default sentence cannot know any of that.
+     * What leaves with a device - its interfaces, links and auto-created
+     * monitor - is the model's own sentence (DeleteConsequences), said by
+     * every Delete of one. A list adds its own after it: that Archive is the
+     * reversible option, say.
      */
-    test("carries the table's own warning when it sets one", async () => {
+    test("says what goes with the rows, then the table's own warning, after their names", async () => {
       await startBulkDelete({
         deleteConfirmationWarning: DEVICE_DELETE_WARNING,
       });
 
       await waitFor(() => {
-        expect(confirmationText()).not.toBe("");
+        expect(consequenceText()).not.toBe("");
       });
 
-      expect(confirmationText()).toContain("cannot be undone");
-      expect(confirmationText()).toContain(DEVICE_DELETE_WARNING);
+      expect(consequenceText()).toBe(
+        `${NETWORK_DEVICE_CONSEQUENCE} ${DEVICE_DELETE_WARNING}`,
+      );
+
+      // After the names, in the dialog's details - not inside the question.
+      const items: Element = document.querySelector(
+        '[data-testid="delete-confirmation-items"]',
+      )!;
+      const consequence: Element = document.querySelector(
+        '[data-testid="bulk-delete-consequence"]',
+      )!;
+
+      expect(
+        items.compareDocumentPosition(consequence) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
     });
 
-    test("says nothing extra when the table sets no warning", async () => {
+    test("asks the question on its own, and says only the model's sentence without a table warning", async () => {
       await startBulkDelete();
 
       await waitFor(() => {
@@ -541,6 +681,19 @@ describe("BaseModelTable bulk Delete", () => {
       expect(confirmationText().trim()).toBe(
         "Are you sure you want to delete 2 Network Devices? This action cannot be undone.",
       );
+      expect(consequenceText()).toBe(NETWORK_DEVICE_CONSEQUENCE);
+    });
+
+    test("uses the table's own warning for many rows instead of the one for its rows", async () => {
+      await startBulkDelete({
+        deleteConfirmationWarning: DEVICE_DELETE_WARNING,
+      });
+
+      await waitFor(() => {
+        expect(consequenceText()).not.toBe("");
+      });
+
+      expect(consequenceText()).toContain(DEVICE_DELETE_WARNING);
     });
 
     test("deletes nothing until it is confirmed", async () => {
@@ -583,17 +736,38 @@ describe("BaseModelTable bulk Delete", () => {
       });
     });
 
-    test("reports how many succeeded", async () => {
+    test("reports how many were deleted", async () => {
       await startBulkDelete();
       await confirmDelete();
 
       await waitFor(() => {
-        expect(screen.queryByText(/succeeded/)).not.toBeNull();
+        expect(textOf("bulk-action-succeeded-count")).not.toBe("");
+      });
+
+      // What happened, not only that something did ("succeeded").
+      expect(textOf("bulk-action-succeeded-count")).toBe(
+        "2 Network Devices deleted",
+      );
+      expect(textOf("bulk-action-failed-count")).toBe("");
+    });
+
+    test("clears the selection once the results are dismissed", async () => {
+      await startBulkDelete();
+      await confirmDelete();
+
+      await waitFor(() => {
+        expect(deletedIds.length).toBe(2);
       });
 
       expect(
-        screen.getByText("2 Network Devices succeeded"),
+        screen.getByText("2 Network Devices Selected"),
       ).toBeInTheDocument();
+
+      await closeProgressModal();
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Network Devices? Selected/)).toBeNull();
+      });
     });
   });
 
@@ -621,13 +795,18 @@ describe("BaseModelTable bulk Delete", () => {
       await confirmDelete();
 
       await waitFor(() => {
-        expect(screen.queryByText(/failed/)).not.toBeNull();
+        expect(textOf("bulk-action-failed-count")).not.toBe("");
       });
 
-      expect(screen.getByText("1 Network Device failed")).toBeInTheDocument();
-      expect(
-        screen.getByText("1 Network Device succeeded"),
-      ).toBeInTheDocument();
+      expect(textOf("bulk-action-failed-count")).toBe(
+        "1 Network Device not deleted",
+      );
+      expect(textOf("bulk-action-succeeded-count")).toBe(
+        "1 Network Device deleted",
+      );
+      // Which one, and why.
+      expect(textOf("bulk-action-failed-items")).toContain("core-router-1");
+      expect(textOf("bulk-action-failed-items")).not.toContain("core-router-2");
       expect(
         screen.getByText("Device is referenced by a monitor you cannot delete"),
       ).toBeInTheDocument();
@@ -646,10 +825,12 @@ describe("BaseModelTable bulk Delete", () => {
       await confirmDelete();
 
       await waitFor(() => {
-        expect(screen.queryByText(/failed/)).not.toBeNull();
+        expect(textOf("bulk-action-failed-count")).not.toBe("");
       });
 
-      expect(screen.getByText("1 Network Device failed")).toBeInTheDocument();
+      expect(textOf("bulk-action-failed-count")).toBe(
+        "1 Network Device not deleted",
+      );
     });
 
     /*
@@ -665,11 +846,13 @@ describe("BaseModelTable bulk Delete", () => {
       await confirmDelete();
 
       await waitFor(() => {
-        expect(screen.queryByText(/failed/)).not.toBeNull();
+        expect(textOf("bulk-action-failed-count")).not.toBe("");
       });
 
-      expect(screen.getByText("2 Network Devices failed")).toBeInTheDocument();
-      expect(screen.queryByText(/succeeded/)).toBeNull();
+      expect(textOf("bulk-action-failed-count")).toBe(
+        "2 Network Devices not deleted",
+      );
+      expect(textOf("bulk-action-succeeded-count")).toBe("");
     });
 
     test("keeps deleting the rest of the selection after one fails", async () => {
@@ -859,11 +1042,35 @@ describe("BaseModelTable bulk Delete", () => {
       });
 
       expect(confirmationText().trim()).toBe(
-        `Are you sure you want to unlink 2 network devices? ${LINK_WARNING}`,
+        "Are you sure you want to unlink 2 network devices?",
       );
       expect(confirmationText()).not.toContain("cannot be undone");
+      /*
+       * Only the table's own sentence: removing links is not deleting the
+       * devices, so what goes with a deleted device is not said.
+       */
+      expect(consequenceText()).toBe(LINK_WARNING);
       expect(screen.getByText("Unlink 2 Network Devices")).toBeInTheDocument();
       expect(screen.queryByText("Delete 2 Network Devices")).toBeNull();
+    });
+
+    test("reports its results in the general words, not as deletes", async () => {
+      const { container } = renderTable({
+        deleteVerb: "Unlink",
+      });
+
+      await selectRows(container, 2);
+      await openBulkMenu();
+      fireEvent.click(findMenuItem("Unlink")!);
+      await confirmDelete("Unlink");
+
+      await waitFor(() => {
+        expect(textOf("bulk-action-succeeded-count")).not.toBe("");
+      });
+
+      expect(textOf("bulk-action-succeeded-count")).toBe(
+        "2 Network Devices succeeded",
+      );
     });
 
     test("uses the singular for one row", async () => {

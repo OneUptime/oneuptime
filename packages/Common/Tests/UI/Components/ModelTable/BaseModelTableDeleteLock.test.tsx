@@ -395,13 +395,17 @@ describe.each([
     await runBulkDelete();
 
     await waitFor(() => {
-      expect(screen.queryByText(/failed/)).not.toBeNull();
+      expect(
+        document.querySelector('[data-testid="bulk-action-failed-count"]'),
+      ).not.toBeNull();
     });
 
     // Nothing was sent for the built-in state.
     expect(deletedIds).toEqual(["state-2"]);
-    expect(screen.getByText("1 Incident State failed")).toBeInTheDocument();
-    expect(screen.getByText("1 Incident State succeeded")).toBeInTheDocument();
+    expect(
+      screen.getByText("1 Incident State not deleted"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("1 Incident State deleted")).toBeInTheDocument();
     expect(screen.getByText(LOCKED_REASON)).toBeInTheDocument();
   });
 
@@ -416,10 +420,14 @@ describe.each([
     await runBulkDelete();
 
     await waitFor(() => {
-      expect(screen.getByText("2 Incident States failed")).toBeInTheDocument();
+      expect(
+        screen.getByText("2 Incident States not deleted"),
+      ).toBeInTheDocument();
     });
 
     expect(deletedIds).toEqual([]);
-    expect(screen.queryByText(/succeeded/)).toBeNull();
+    expect(
+      document.querySelector('[data-testid="bulk-action-succeeded-count"]'),
+    ).toBeNull();
   });
 });

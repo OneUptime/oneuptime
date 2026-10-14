@@ -3909,8 +3909,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             sourceButtons.push(ModalTableBulkDefaultActions.Delete);
           }
 
-          return {
-            buttons: sourceButtons
+          const buttons: Array<BulkActionButtonSchema<TBaseModel>> =
+            sourceButtons
               .map(
                 (
                   action:
@@ -3958,7 +3958,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 ): boolean => {
                   return action !== null;
                 },
-              ) as Array<BulkActionButtonSchema<TBaseModel>>,
+              ) as Array<BulkActionButtonSchema<TBaseModel>>;
+
+          return {
+            buttons,
+            /*
+             * A list whose rows are not deleted from it, and that has no bulk
+             * actions of its own, used to get its row selection - and Export
+             * CSV with it - from the Delete added for whoever may delete the
+             * model. Delete is gone from such a list; the selection and
+             * Export CSV stay for the people who had them (a monitor's logs
+             * and the LLM calls word their export for it: getExportValue).
+             */
+            isCsvExportOnly:
+              !props.isDeleteable && userCanDelete && buttons.length === 0,
           };
         })()}
         onBulkActionEnd={async () => {
