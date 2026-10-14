@@ -18,6 +18,9 @@ import InventoryItemCustomField from "Common/Models/DatabaseModels/InventoryItem
 import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import User from "Common/Models/DatabaseModels/User";
+import ColumnRefusalMessage from "Common/Server/Types/Database/Permissions/ColumnRefusalMessage";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -80,6 +83,8 @@ const PROJECT_AUTHORIZATION: string =
   "Common/Server/Middleware/ProjectAuthorization.ts";
 const TABLE_PERMISSION: string =
   "Common/Server/Types/Database/Permissions/TablePermission.ts";
+const QUERY_PERMISSION: string =
+  "Common/Server/Types/Database/Permissions/QueryPermission.ts";
 const INVENTORY_ITEM_SERVICE: string =
   "Common/Server/Services/InventoryItemService.ts";
 const SETTINGS_MENU: string = `${DASHBOARD_APP}/Pages/Settings/SideMenu.tsx`;
@@ -250,6 +255,60 @@ describe("OneUptime API Reference: a request and its answer", () => {
     }) as InBetween<number>;
 
     expect([range.startValue, range.endValue]).toEqual([1, 9]);
+  });
+
+  it("filters through a relation, held to the read of the field it compares", () => {
+    const sentence: string = lineStartingWith(
+      englishSection(API_REFERENCE, "### Filter, sort and page"),
+      "A field of a record the resource names is filtered under its relation:",
+    );
+    const [example, status] = codeIn(sentence) as [string, string];
+
+    // The page's example is a relation filter the API deserializes.
+    const filter: JSONObject = JSONFunctions.deserialize(
+      JSON.parse(`{${example}}`) as JSONObject,
+    );
+    const userFilter: JSONObject = filter["user"] as JSONObject;
+
+    expect(userFilter["name"]).toBeInstanceOf(Search);
+    expect((userFilter["name"] as Search<string>).value).toBe("ada");
+    expect(sentence).toContain(
+      'finds the team members whose user\'s name contains "ada".',
+    );
+
+    // A team member's user, and a field every reader of the relation may see.
+    expect(new TeamMember().getTableColumnMetadata("user").modelType).toBe(
+      User,
+    );
+    expect(
+      new User().getTableColumnMetadata("name").canReadOnRelationQuery,
+    ).toBe(true);
+
+    /*
+     * The read check walks a filter into the relation it names and refuses
+     * a field the caller may not read, in words that name it.
+     */
+    const queryPermission: string = readRepoFile(QUERY_PERMISSION);
+
+    expect(queryPermission).toContain(
+      "QueryPermission.checkRelationFilterPermission({",
+    );
+    expect(queryPermission).toContain(
+      "ColumnRefusalMessage.getRelationQueryRefusal({",
+    );
+    expect(queryPermission).toContain("throw new NotAuthorizedException(");
+    expect(
+      ColumnRefusalMessage.getRelationQueryRefusal({
+        column: "password",
+        relatedModelName: "SMTP Config",
+        relationColumn: "smtpConfig",
+        permissions: [Permission.ProjectOwner],
+      }),
+    ).toContain("password");
+    expect(status).toBe(String(ExceptionCode.NotAuthorizedException));
+    expect(sentence).toContain(
+      "a filter on a field you may not read is refused with a `422` that names it.",
+    );
   });
 
   it("runs the worked example: a search and a date comparison, newest first", () => {

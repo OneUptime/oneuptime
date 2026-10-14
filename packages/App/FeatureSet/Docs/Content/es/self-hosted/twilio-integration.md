@@ -36,6 +36,7 @@ Guarda las credenciales para un proyecto, o una sola vez para toda la instalaci�
 | --- | --- | --- |
 | Dónde | La tarjeta **Configuración de Twilio** en **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones** | **Admin Dashboard > Ajustes > Llamadas y SMS** |
 | Quién puede configurarla | **Project Owner**, **Project Admin**, o **Create Call and SMS** en un rol personalizado | Un administrador maestro |
+| Quién puede leer su Auth Token | **Project Owner**, **Project Admin**, o **Read Call and SMS** en un rol personalizado. Los demás que pueden ver la configuración ven el resto; el token se guarda cifrado | Un administrador maestro |
 | Se usa para | Los SMS y las llamadas a los miembros del proyecto mientras sea la predeterminada del proyecto, las páginas de estado a las que está asignada y las políticas de llamadas entrantes que la usan | Los SMS y las llamadas a los miembros de cualquier proyecto que no tenga configuración predeterminada |
 
 Para añadir una configuración de proyecto:

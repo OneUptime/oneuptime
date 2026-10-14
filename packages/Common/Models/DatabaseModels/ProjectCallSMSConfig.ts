@@ -428,6 +428,26 @@ export default class ProjectCallSMSConfig extends BaseModel {
   })
   public twilioAccountSID?: string = undefined;
 
+  /*
+   * The Twilio auth token is a password-equivalent credential: it alone,
+   * with the account SID, sends calls and SMS on the customer's Twilio
+   * account and reaches its resources. So it is read only by the roles that
+   * own a project's call and SMS settings — its owners and admins and
+   * whoever is explicitly granted Read Call and SMS — never by the broad
+   * read-only roles (a plain member, a viewer, the settings roles) that may
+   * see the rest of the config. This matches the SMTP config's password,
+   * which the same roles read, and the role model, which says call and SMS
+   * settings take Project Admin.
+   *
+   * It is also encrypted at rest (encrypted: true), like every other stored
+   * provider credential — the LLM provider's API key, runbook and OIDC
+   * secrets. Nothing a request filters or sorts by this column touches the
+   * token: the database holds ciphertext, so a WHERE or ORDER BY runs
+   * against ciphertext and tells a caller who may not read the column
+   * nothing about the token inside it. The account SID stays readable by
+   * the config's wider audience — it identifies the account but cannot
+   * authenticate without this token, exactly as the SMTP username does.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -437,11 +457,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
       Permission.ReadProjectCallSMSConfig,
     ],
     update: [
@@ -451,15 +466,20 @@ export default class ProjectCallSMSConfig extends BaseModel {
     ],
   })
   @TableColumn({
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
+    encrypted: true,
     title: "Twilio Auth Token",
     description: "Auth Token for your Twilio Account",
     example: "your-twilio-auth-token",
   })
-  /* NOT unique, for the same reason as twilioAccountSID above. */
+  /*
+   * NOT unique, for the same reason as twilioAccountSID above — and a unique
+   * constraint would be meaningless now the value is stored encrypted: the
+   * same token encrypts to different ciphertext each time it is written.
+   */
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
     nullable: true,
     unique: false,
   })
