@@ -57,14 +57,13 @@ export default interface AggregateBy<TBaseModel extends GenericObject> {
       }
     | undefined;
   /**
-   * What ClickHouse does when the aggregate's execution-time cap fires.
-   * 'break' (the default when omitted) returns the partial buckets
-   * computed so far — acceptable for chart rendering. Callers that
-   * ALERT on the result (the metric-monitor worker) must pass 'throw'
-   * so a timed-out evaluation fails loudly instead of silently scoring
-   * partial data as if it were complete. The server allow-lists the
-   * value before it reaches SQL: anything other than the exact string
-   * "throw" is treated as 'break'.
+   * No longer read: every aggregate now stops with an error when its
+   * execution-time cap fires ('throw'), the way alerting callers (the
+   * metric-monitor worker) used to have to ask for (issue #4707). 'break'
+   * was meant to return the buckets computed so far, but ClickHouse answers
+   * a grouped read it breaks off with an empty body, which failed every
+   * chart with a bare "Server Error". Kept so callers that still send it
+   * keep working; whatever it says, the server uses 'throw'.
    */
   timeoutOverflowMode?: "break" | "throw" | undefined;
 }

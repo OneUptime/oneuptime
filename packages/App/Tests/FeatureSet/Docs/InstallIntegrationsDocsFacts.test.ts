@@ -1831,6 +1831,59 @@ describe("Slack Integration, against the manifest and the server", () => {
     );
   });
 
+  /*
+   * The app's Home tab and its hello in a channel it is added to: the
+   * manifest turns the tab on and subscribes to the two events, which the
+   * scopes the app already asks for cover - so an older app is updated,
+   * never connected again.
+   */
+  it("the Home tab and the channel hello are the manifest's, and ask for no scope it does not have", () => {
+    const events: Array<string> = valueAt(
+      manifest,
+      "settings.event_subscriptions.bot_events",
+    ) as Array<string>;
+    const scopes: Array<string> = valueAt(
+      manifest,
+      "oauth_config.scopes.bot",
+    ) as Array<string>;
+    const eventsRoute: string = `\`POST ${pathOf(
+      valueAt(manifest, "settings.event_subscriptions.request_url") as string,
+    )}\``;
+    const interactive: string = `\`POST ${pathOf(
+      valueAt(manifest, "settings.interactivity.request_url") as string,
+    )}\``;
+
+    expect(valueAt(manifest, "features.app_home.home_tab_enabled")).toBe(true);
+    expect(events).toContain("app_home_opened");
+    expect(events).toContain("member_joined_channel");
+    // Slack sends member_joined_channel with these; app_home_opened needs none.
+    expect(scopes).toContain("channels:read");
+    expect(scopes).toContain("groups:read");
+
+    const rows: Array<Array<string>> = tableRows(
+      sectionOf(page, "## What the app can do"),
+    );
+    const home: Array<string> | undefined = rows.find(
+      (cells: Array<string>): boolean => {
+        return cells[0] === "The app's **Home** tab";
+      },
+    );
+    const hello: Array<string> | undefined = rows.find(
+      (cells: Array<string>): boolean => {
+        return cells[0] === "A hello in each channel the app is added to";
+      },
+    );
+
+    // The tab is drawn on an event, and its buttons are presses.
+    expect(home?.[2]).toBe(`${eventsRoute} and ${interactive}`);
+    expect(hello?.[2]).toBe(eventsRoute);
+    expect(
+      sectionOf(page, "### Apps created from an older manifest"),
+    ).toContain(
+      "The update turns the tab on and subscribes the app to the `app_home_opened` and `member_joined_channel` events. It adds no scope, so nothing needs connecting again.",
+    );
+  });
+
   it("the manifest's URLs are built from HOST and HTTP_PROTOCOL", () => {
     const handler: string = blockFrom(
       readSource("slackApi"),

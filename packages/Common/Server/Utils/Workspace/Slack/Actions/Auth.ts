@@ -92,6 +92,11 @@ export interface SlackRequest {
     | undefined;
   // Why the press is not acted on, when it is not (isAuthorized false).
   refusal?: SlackAuthRefusal | undefined;
+  /*
+   * The kind of view a press was made in: "home" for the app's Home tab
+   * (SlackHome), "modal" for a form. None for a message's button.
+   */
+  slackViewType?: string | undefined;
 }
 
 /*
@@ -135,6 +140,9 @@ const slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime: 
 
     // The Connect button itself: a link to connect the account.
     SlackActionType.ConnectSlackAccount,
+
+    // A link to a page in OneUptime (SlackWelcome).
+    SlackActionType.OpenInOneUptime,
   ];
 
 export default class SlackAuthAction {
@@ -414,6 +422,10 @@ export default class SlackAuthAction {
       isAuthorized: true,
       slackUserId: slackUserId,
       payloadType: payload["type"] as string,
+      slackViewType:
+        typeof view?.["type"] === "string"
+          ? (view["type"] as string)
+          : undefined,
       userId: userId,
       projectId: projectId,
       projectAuthToken: projectAuth.authToken!,

@@ -181,6 +181,7 @@ jobs:
               test-calendar-feed-ui
               test-topology-ui
               test-home-overview-ui
+              test-security-operations-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Value Picker (the
           # chip editor's caret handling differs in each).
@@ -310,6 +311,8 @@ jobs:
             output/playwright/custom-field-options-ui/test-results
             output/playwright/security-events-empty-states-ui/*.png
             output/playwright/security-events-empty-states-ui/test-results
+            output/playwright/security-operations-ui/*.png
+            output/playwright/security-operations-ui/test-results
             output/playwright/status-page-search/test-results
             output/playwright/navigation-search/test-results
             output/playwright/pencil-button/test-results

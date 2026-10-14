@@ -79,6 +79,13 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
     };
   }),
   {
+    file: `${DASHBOARD}/Components/SecurityPlaybook/SecurityPlaybookStepDialog.tsx`,
+    form: "BasicFormModal #1",
+    step: "settings",
+    reason:
+      "One dialog for all eighteen playbook actions: only the one to three settings of the action picked on the step before ever show - a channel and a message to post to Slack, a connection to suspend an Okta user - and then the step's three switches. The other settings are other actions', never on screen together.",
+  },
+  {
     file: `${DASHBOARD}/Pages/Metrics/Settings/PipelineRules.tsx`,
     form: "ModelTable: Metrics > Settings > Pipeline Rules",
     step: "action",
@@ -389,12 +396,12 @@ describe("the project's stepped forms", () => {
     [
       `${DASHBOARD}/Pages/SecurityEvents/DetectionRules.tsx`,
       "ModelTable: Security Events > Detection Rules",
-      ["basic-info", "sigma-rule", "evaluation", "on-match"],
+      ["basic-info", "sigma-rule", "evaluation", "cases", "on-match"],
     ],
     [
       `${DASHBOARD}/Pages/SecurityEvents/ThreatIntel.tsx`,
       "ModelTable: Security Events > Threat Intel Feeds",
-      ["basic-info", "taxii-server", "authentication", "matching"],
+      ["basic-info", "taxii-server", "authentication", "cases", "matching"],
     ],
     /*
      * Five steps of fourteen fields once; three questions now - which

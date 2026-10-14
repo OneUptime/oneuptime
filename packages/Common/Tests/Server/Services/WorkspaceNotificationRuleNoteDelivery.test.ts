@@ -389,7 +389,14 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification —
     );
   });
 
-  test("a message sent without one is posted as it always was: no notification line", async () => {
+  /*
+   * A record's own posts - a note, a state change, the record created -
+   * set no notification line of their own, and used to be posted without
+   * one: a phone showed "This content can't be displayed" (Slack) or "sent
+   * a card" (Teams). Their notification says the start of the post now,
+   * who wrote it included (WorkspaceNotificationText).
+   */
+  test("a message sent without one says the start of what it shows: who, what, and the first words", async () => {
     jest
       .spyOn(WorkspaceUserAuthTokenService, "getUserAuth")
       .mockResolvedValue(null);
@@ -401,6 +408,27 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification —
       workspaceNotification: {
         sendWorkspaceNotification: true,
         notifyUserId: userId,
+      },
+    });
+
+    const said: string =
+      "Jane Doe 📄 posted private note for this Incident #42: Restarted the primary database.";
+
+    expect(sentPayload(teamsSendSpy as never).text).toBe(said);
+    expect(sentPayload(slackSendSpy as never).text).toBe(said);
+  });
+
+  test("a message that says nothing in words carries no notification line", async () => {
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "getUserAuth")
+      .mockResolvedValue(null);
+
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
+      projectId: projectId,
+      notificationFor: { incidentId: incidentId },
+      feedInfoInMarkdown: "```\nnpm run build\n```",
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
       },
     });
 

@@ -337,19 +337,19 @@ describe("an incident in its Microsoft Teams channel", () => {
 
     /*
      * What each new card's notification says (the activity's summary): the
-     * run's card and the alarm say what they are about, as in Slack; the
-     * record's own cards are as they always were.
+     * run's card and the alarm say what they are about, as in Slack, and so
+     * do the record's own cards now - they used to say "sent a card".
      */
     expect(
       posts.map((post: ConnectorRequest): unknown => {
         return post.activity?.["summary"];
       }),
     ).toEqual([
-      undefined,
+      "🚨 Incident INC-8 Created: testslack",
       "PolicyX is paging for Incident INC-8",
       "PolicyX paged nobody at escalation rule 3 of 3 (third) for Incident INC-8",
-      undefined,
-      undefined,
+      "Nitin 👀 Changed Incident INC-8 State to Acknowledged",
+      "Nitin ✅ Changed Incident INC-8 State to Resolved",
     ]);
 
     /*

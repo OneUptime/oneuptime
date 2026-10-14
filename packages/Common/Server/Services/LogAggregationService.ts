@@ -4,7 +4,10 @@ import {
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
 import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import LogDatabaseService from "./LogService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -429,14 +432,13 @@ export class LogAggregationService {
 
     /*
      * Defense in depth: cap histogram runtime below nginx's 60s
-     * proxy_read_timeout. 'break' returns partial aggregated results
-     * rather than throwing, which is acceptable for a density viz.
-     * Explicitly enable projection use.
+     * proxy_read_timeout, and say so when it is reached (see
+     * INTERACTIVE_READ_TIME_LIMIT) rather than draw a chart that looks
+     * complete. Explicitly enable projection use.
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         boundScanMemory: true,
         additionalSettings: { optimize_use_projections: 1 },
       }),
@@ -560,12 +562,13 @@ export class LogAggregationService {
 
     /*
      * Defense in depth: cap individual facet query runtime below nginx's
-     * 60s proxy_read_timeout so a slow facet never starves the endpoint.
+     * 60s proxy_read_timeout so a slow facet never starves the endpoint. A
+     * facet stopped at the limit is reported as such (see
+     * INTERACTIVE_READ_TIME_LIMIT and the facets endpoint's timedOutFacets).
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         boundScanMemory: true,
       }),
     );
@@ -814,13 +817,12 @@ export class LogAggregationService {
 
     /*
      * Defense in depth: cap runtime below the client's 58s request_timeout
-     * (matches the histogram / facet paths above). 'break' returns partial
-     * aggregated results rather than holding a pool connection.
+     * (matches the histogram / facet paths above; see
+     * INTERACTIVE_READ_TIME_LIMIT).
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         boundScanMemory: true,
       }),
     );
@@ -895,13 +897,12 @@ export class LogAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' returns
-     * partial results (matches the histogram / facet paths).
+     * Cap runtime below the client's 58s request_timeout (matches the
+     * histogram / facet paths; see INTERACTIVE_READ_TIME_LIMIT).
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         boundScanMemory: true,
       }),
     );
@@ -965,13 +966,12 @@ export class LogAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' returns
-     * partial results (matches the histogram / facet paths).
+     * Cap runtime below the client's 58s request_timeout (matches the
+     * histogram / facet paths; see INTERACTIVE_READ_TIME_LIMIT).
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         boundScanMemory: true,
       }),
     );
@@ -1080,6 +1080,12 @@ export class LogAggregationService {
     });
   }
 
+  /*
+   * The newest logs that match, up to 10,000, for a file. Every filter the
+   * histogram and the facets take narrows it the same way — an attribute
+   * filter, an entity key and a resource picked in the facets included — so
+   * an export holds the rows the search shows and no others.
+   */
   @CaptureSpan()
   public static async getExportLogs(request: {
     projectId: ObjectID;
@@ -1089,12 +1095,14 @@ export class LogAggregationService {
     serviceIds?: Array<ObjectID> | undefined;
     // Resources whose rows are left out whatever else matches.
     excludedServiceIds?: Array<ObjectID> | undefined;
+    entityKeys?: Array<string> | undefined;
+    resourceScopes?: Array<ResourceEntityScope> | undefined;
     severityTexts?: Array<string> | undefined;
     bodySearchText?: string | undefined;
     traceIds?: Array<string> | undefined;
     spanIds?: Array<string> | undefined;
     sessionIds?: Array<string> | undefined;
-    attributes?: Record<string, string> | undefined;
+    attributes?: LogAttributeFilters | undefined;
   }): Promise<Array<JSONObject>> {
     const maxLimit: number = Math.min(request.limit || 10000, 10000);
 
@@ -1135,15 +1143,12 @@ export class LogAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' returns
-     * partial rows rather than holding a pool connection on a large export.
+     * Cap runtime below the client's 58s request_timeout rather than hold a
+     * pool connection on a large export. An export stopped at the limit
+     * fails with a QueryTimeoutException: a file missing rows it says
+     * nothing about is worse than no file (see INTERACTIVE_READ_TIME_LIMIT).
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     const dbResult: Results = await LogDatabaseService.executeQuery(statement);
     const response: DbJSONResponse = await dbResult.json<{
@@ -1317,15 +1322,12 @@ export class LogAggregationService {
     LogAggregationService.appendCommonFilters(totalStatement, request);
 
     /*
-     * Cap the count scan below the client's 58s request_timeout; 'break'
-     * returns a partial (lower-bound) count, acceptable for an estimate.
+     * Cap the count scan below the client's 58s request_timeout. 'break'
+     * was meant to give a lower-bound count here, but ClickHouse answers a
+     * count it breaks off with an empty body, so a window too wide to count
+     * fails with a QueryTimeoutException (see INTERACTIVE_READ_TIME_LIMIT).
      */
-    totalStatement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    totalStatement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     // Get matching count using the filter query as body search
     const matchStatement: Statement = SQL`
@@ -1352,16 +1354,8 @@ export class LogAggregationService {
       bodySearchText: request.filterQuery,
     });
 
-    /*
-     * Cap the count scan below the client's 58s request_timeout; 'break'
-     * returns a partial (lower-bound) count, acceptable for an estimate.
-     */
-    matchStatement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    // Same cap, and the same stop, as the total above.
+    matchStatement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     const [totalResult, matchResult] = await Promise.all([
       LogDatabaseService.executeQuery(totalStatement),
@@ -1715,13 +1709,12 @@ export class LogAggregationService {
   private static errorPatternQuerySettings(): string {
     /*
      * Same ceiling as every other aggregation here: below the client's 58s
-     * request timeout, 'break' so a wide window degrades to partial counts
-     * instead of an error page, and the scan-memory bound because these
-     * queries read the fat `attributes` map alongside `body`.
+     * request timeout, stopping with an error a wide window can explain
+     * (see INTERACTIVE_READ_TIME_LIMIT), and the scan-memory bound because
+     * these queries read the fat `attributes` map alongside `body`.
      */
     return getQuerySettings({
-      maxExecutionTimeInSeconds: 45,
-      timeoutOverflowMode: "break",
+      ...INTERACTIVE_READ_TIME_LIMIT,
       boundScanMemory: true,
     });
   }

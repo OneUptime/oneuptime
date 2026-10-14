@@ -203,6 +203,7 @@ Records take `list`, `get`, `create`, `update`, `delete` and `count`:
 | Status pages          | `status-page`, `status-page-announcement`                                                                                                        |
 | Scheduled maintenance | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline`                                             |
 | Teams and on-call     | `team`, `on-call-policy`                                                                                                                         |
+| Security              | `security-case`, `security-case-note`, `security-detection`, `security-playbook`                                                                 |
 | Labels                | `label`                                                                                                                                          |
 
 Telemetry takes `list`, `create` and `count`:

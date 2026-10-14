@@ -38,6 +38,7 @@ import { OnCallDutyPolicyFeedEventType } from "../../../Models/DatabaseModels/On
 import { PodmanHostFeedEventType } from "../../../Models/DatabaseModels/PodmanHostFeed";
 import { ProxmoxClusterFeedEventType } from "../../../Models/DatabaseModels/ProxmoxClusterFeed";
 import { ScheduledMaintenanceFeedEventType } from "../../../Models/DatabaseModels/ScheduledMaintenanceFeed";
+import { SecurityCaseFeedEventType } from "../../../Models/DatabaseModels/SecurityCaseFeed";
 import { ServiceFeedEventType } from "../../../Models/DatabaseModels/ServiceFeed";
 import { ServiceLevelObjectiveFeedEventType } from "../../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import { StorageArrayFeedEventType } from "../../../Models/DatabaseModels/StorageArrayFeed";
@@ -146,6 +147,11 @@ const FEEDS: Array<FeedEventTypeSpec> = [
     name: "ScheduledMaintenanceFeed",
     enumName: "ScheduledMaintenanceFeedEventType",
     eventTypes: Object.values(ScheduledMaintenanceFeedEventType),
+  },
+  {
+    name: "SecurityCaseFeed",
+    enumName: "SecurityCaseFeedEventType",
+    eventTypes: Object.values(SecurityCaseFeedEventType),
   },
   {
     name: "ServiceFeed",

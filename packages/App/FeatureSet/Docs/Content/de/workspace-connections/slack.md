@@ -148,6 +148,18 @@ Die Antworten auf `help` und `oncall` sind Nachrichten, die nur Sie sehen, unter
 > [!NOTE]
 > `/oneuptime incident` und `/oneuptime maintenance` ersetzen `/incident` und `/maintenance`, die mit gleichnamigen Befehlen anderer Slack-Apps kollidieren konnten. Eine Slack-App, die aus einem früheren Manifest erstellt wurde, behält sie, und sie öffnen dieselben Formulare, bis die App aktualisiert wird: siehe [Apps aus einem älteren Manifest](/docs/self-hosted/slack-integration#apps-aus-einem-älteren-manifest).
 
+## Die Startseite von OneUptime in Slack
+
+Öffnen Sie OneUptime unter **Apps** in der Seitenleiste von Slack: Der Tab **Home** zeigt, was im Projekt geschieht, so wie Sie es sehen dürfen, und wird bei jedem Öffnen neu gelesen.
+
+- **Ihre Bereitschaft.** Die Bereitschaftspläne, in denen Sie gerade Bereitschaft haben, und bis wann, oder sonst Ihre nächste Schicht.
+- **Was offen ist.** Die neuesten offenen Vorfälle und Warnungen, die Sie lesen dürfen, jeweils mit einem Link auf ihre Seite in OneUptime.
+- **Die Schaltflächen.** **Declare incident**, **Schedule maintenance** und **Page someone** öffnen dieselben Formulare wie `/oneuptime incident`, `/oneuptime maintenance` und `/oneuptime page`, und **Who's on call** antwortet wie `/oneuptime oncall`.
+
+Die Startseite liest als Sie, deshalb braucht sie Ihr eigenes verbundenes Slack-Konto. Bis es verbunden ist, enthält sie die Schaltfläche **Connect Slack account** und zeigt Ihnen Ihre Startseite, sobald Sie es verbunden haben.
+
+Wenn jemand OneUptime zu einem Kanal hinzufügt, postet es dort eine Begrüßung: wie man ihm eine Frage stellt und wo man eine Benachrichtigungsregel hinzufügt, die in den Kanal postet.
+
 ## OneUptime AI aus Slack fragen
 
 Fragen Sie in natürlicher Sprache nach Ihren Logs, Traces, Metriken, Vorfällen und Monitoren. Erwähnen Sie OneUptime in einem Kanal mit @ oder schicken Sie eine Direktnachricht, und die Antwort kommt im Thread. `/oneuptime ask which monitors are down?` postet seine Antwort im Kanal. Beides braucht Ihr verbundenes Slack-Konto und eingeschaltete KI für das Projekt. Antworten in Slack lesen nur: Um etwas zu ändern, nutzen Sie die Schaltflächen. Siehe [KI fragen](/docs/ai/ask-ai).

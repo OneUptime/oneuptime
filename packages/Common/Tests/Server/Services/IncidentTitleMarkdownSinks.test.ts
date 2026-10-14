@@ -25,7 +25,9 @@ import {
 } from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 import MicrosoftTeamsIncidentActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Incident";
 import MicrosoftTeamsIncidentEpisodeActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/IncidentEpisode";
-import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import WorkspaceOpenRecords, {
+  WorkspaceOpenRecordKind,
+} from "../../../Server/Utils/Workspace/WorkspaceOpenRecords";
 import IncidentEpisodeWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/IncidentEpisode";
 import URL from "../../../Types/API/URL";
 import Hostname from "../../../Types/API/Hostname";
@@ -401,7 +403,12 @@ describe("Microsoft Teams", () => {
     userId: USER_ID,
   };
 
-  test("the active incidents summary keeps the title inside its link", async () => {
+  /*
+   * The open incidents list ("show active incidents", and the Home in
+   * Slack and Teams): the incident's number links to it, and the title
+   * after it is text.
+   */
+  test("the open incidents list keeps the title as text, and links the incident's number", async () => {
     const state: IncidentState = new IncidentState();
     state._id = ObjectID.generate().toString();
     state.name = "Investigating";
@@ -410,36 +417,39 @@ describe("Microsoft Teams", () => {
     incident.currentIncidentState = state;
 
     jest
-      .spyOn(IncidentStateService, "getUnresolvedIncidentStates")
-      .mockResolvedValue([state] as never);
+      .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
+      .mockResolvedValue([state.id!]);
     jest
       .spyOn(IncidentService, "findBy")
       .mockResolvedValue([incident] as never);
     jest
-      .spyOn(IncidentService, "getIncidentLinkInDashboard")
-      .mockResolvedValue(URL.fromString(DASHBOARD_LINK) as never);
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockResolvedValue(URL.fromString("https://oneuptime.example/dashboard"));
 
-    const message: string = await (
-      MicrosoftTeamsUtil as unknown as {
-        getActiveIncidentsMessage: (projectId: ObjectID) => Promise<string>;
-      }
-    ).getActiveIncidentsMessage(PROJECT_ID);
+    const message: string = (
+      await WorkspaceOpenRecords.getListAnswer({
+        kind: WorkspaceOpenRecordKind.Incidents,
+        projectId: PROJECT_ID,
+        props: databaseProps,
+      })
+    ).markdown;
 
     expectTitleInert([message]);
 
-    // The one link for the incident goes to the dashboard, title and all.
+    // The one link for the incident goes to its page, under its number.
     const incidentLinks: Array<Tokens.Link> = tokensOf(message).filter(
       (token: Token): boolean => {
         return (
-          token.type === "link" &&
-          (token as Tokens.Link).text.startsWith("Incident INC-42")
+          token.type === "link" && (token as Tokens.Link).text === "INC-42"
         );
       },
     ) as Array<Tokens.Link>;
 
     expect(incidentLinks).toHaveLength(1);
-    expect(incidentLinks[0]!.href).toBe(DASHBOARD_LINK);
-    expect(readText(incidentLinks[0]!.raw)).toContain(HOSTILE_TITLE);
+    expect(new globalThis.URL(incidentLinks[0]!.href).pathname).toBe(
+      `/dashboard/${PROJECT_ID.toString()}/incidents/${INCIDENT_ID.toString()}`,
+    );
+    expect(readText(message)).toContain(`INC-42 ${HOSTILE_TITLE}`);
   });
 
   test("the bot's incident details quote the title inertly", async () => {

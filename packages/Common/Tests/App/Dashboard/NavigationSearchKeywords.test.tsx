@@ -94,7 +94,9 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["opentelemetry", "Traces", PageMap.TRACES],
   ["service level", "SLOs", PageMap.SLOS],
   ["error budget", "SLOs", PageMap.SLOS],
-  ["siem", "Security Events", PageMap.SECURITY_EVENTS],
+  // Security Events opens on its overview.
+  ["siem", "Security Events", PageMap.SECURITY_EVENTS_OVERVIEW],
+  ["soar", "Security Events", PageMap.SECURITY_EVENTS_OVERVIEW],
   ["snmp", "Network", PageMap.NETWORK_OVERVIEW],
   ["flamegraph", "Performance Profiles", PageMap.PROFILES],
   ["lambda", "Serverless", PageMap.SERVERLESS_FUNCTIONS],

@@ -39,7 +39,7 @@ El servidor no tiene estado: no emite ids de sesión y cada petición es indepen
 - **Mantenimiento programado**: crear y gestionar eventos de mantenimiento.
 - **Telemetría**: consultar logs, métricas, trazas, excepciones, logs de monitores, eventos de seguridad y más, solo lectura.
 
-Hay herramientas de crear, obtener, listar, actualizar, eliminar y contar para 23 tipos de registro, herramientas de listar y contar para 9 tipos de telemetría, y herramientas pensadas para la respuesta a incidentes. Las herramientas de solo lectura llevan `readOnlyHint` y las de eliminación llevan `destructiveHint`, así que un cliente puede ejecutar por su cuenta las llamadas seguras y preguntarte antes de las destructivas. Una llamada a herramienta fallida vuelve como resultado de la herramienta (`isError: true`) con un `statusCode`, los detalles y una sugerencia, no como un error del protocolo MCP, así que el agente puede leer el fallo y corregirse.
+Hay herramientas de crear, obtener, listar, actualizar, eliminar y contar para 27 tipos de registro, herramientas de listar y contar para 9 tipos de telemetría, y herramientas pensadas para la respuesta a incidentes. Las herramientas de solo lectura llevan `readOnlyHint` y las de eliminación llevan `destructiveHint`, así que un cliente puede ejecutar por su cuenta las llamadas seguras y preguntarte antes de las destructivas. Una llamada a herramienta fallida vuelve como resultado de la herramienta (`isError: true`) con un `statusCode`, los detalles y una sugerencia, no como un error del protocolo MCP, así que el agente puede leer el fallo y corregirse.
 
 ## Antes de empezar
 
@@ -464,6 +464,7 @@ El servidor MCP no tiene estado: ni emite ni rastrea ids de sesión, así que ca
 | Mantenimiento programado | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Equipos y guardias | Team, On-Call Policy |
 | Etiquetas | Label |
+| Seguridad | Security Case, Security Case Note, Security Detection, Security Playbook |
 
 | Área | Telemetría solo con herramientas de listar y contar |
 | --- | --- |

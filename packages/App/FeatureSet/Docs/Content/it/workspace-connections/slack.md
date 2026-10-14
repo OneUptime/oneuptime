@@ -148,6 +148,18 @@ Le risposte a `help` e `oncall` sono messaggi che vedi solo tu, sotto il comando
 > [!NOTE]
 > `/oneuptime incident` e `/oneuptime maintenance` sostituiscono `/incident` e `/maintenance`, che potevano entrare in conflitto con i comandi con lo stesso nome di altre app Slack. Un'app Slack creata da un manifest precedente li mantiene, e aprono gli stessi moduli, finché l'app non viene aggiornata: vedi [App create da un manifest più vecchio](/docs/self-hosted/slack-integration#app-create-da-un-manifest-più-vecchio).
 
+## La home di OneUptime in Slack
+
+Apri OneUptime da **Apps** nella barra laterale di Slack: la sua scheda **Home** mostra cosa succede nel progetto, come puoi vederlo tu, e viene riletta ogni volta che la apri.
+
+- **La tua reperibilità.** Le pianificazioni di reperibilità in cui sei reperibile adesso, e fino a quando, oppure il tuo prossimo turno.
+- **Cosa è aperto.** Gli incidenti e gli avvisi aperti più recenti che puoi leggere, ciascuno con un link alla sua pagina in OneUptime.
+- **I suoi pulsanti.** **Declare incident**, **Schedule maintenance** e **Page someone** aprono gli stessi moduli di `/oneuptime incident`, `/oneuptime maintenance` e `/oneuptime page`, e **Who's on call** risponde come `/oneuptime oncall`.
+
+La home legge come te, quindi richiede il tuo account Slack collegato. Finché non lo è, la home mostra un pulsante **Connect Slack account**, e ti mostra la tua home non appena lo hai collegato.
+
+Quando qualcuno aggiunge OneUptime a un canale, vi pubblica un saluto: come fargli una domanda e dove aggiungere una regola di notifica che pubblica nel canale.
+
 ## Chiedere a OneUptime AI da Slack
 
 Fai domande su log, trace, metriche, incidenti e monitor in linguaggio naturale. Menziona OneUptime con @ in un canale, o mandagli un messaggio diretto, e risponde nel thread. `/oneuptime ask which monitors are down?` pubblica la sua risposta nel canale. Entrambi richiedono il tuo account Slack collegato e l'IA attivata per il progetto. Le risposte in Slack si limitano a leggere: per cambiare qualcosa, usa i pulsanti. Vedi [Chiedi all'IA](/docs/ai/ask-ai).

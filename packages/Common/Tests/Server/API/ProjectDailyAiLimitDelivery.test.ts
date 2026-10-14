@@ -72,8 +72,12 @@ describe("the post lane: Slack and Microsoft Teams say the limit sentence", () =
     const limitCheck: number = teams.indexOf(
       "AIService.getReachedProjectDailyLimit({ projectId })",
     );
+    /*
+     * The acknowledgement - typing in a chat, a "Looking into it…" in a
+     * channel (sendAnswerPlaceholder) - comes only once both are checked.
+     */
     const acknowledgement: number = teams.indexOf(
-      "turnContext.sendActivity(this.AI_OPS_ACK_TEXT)",
+      "this.sendAnswerPlaceholder(turnContext)",
     );
 
     expect(switchCheck).toBeGreaterThan(-1);

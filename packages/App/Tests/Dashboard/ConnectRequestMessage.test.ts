@@ -59,6 +59,11 @@ describe("what became of the press", () => {
       ConnectRequestOutcome.PressAgain,
       "Go back to Slack and press the button again.",
     ],
+    // A command - /oneuptime incident - which no button sent.
+    [
+      ConnectRequestOutcome.RunAgain,
+      "Go back to Slack and run the command again.",
+    ],
     // A question to OneUptime AI: asked in a message, with no button.
     [
       ConnectRequestOutcome.AskAgain,
@@ -134,6 +139,33 @@ describe("what became of the press", () => {
     },
   );
 
+  /*
+   * A command - /oneuptime incident in Slack, "incident" typed to the Teams
+   * bot - is run again in Slack and typed again in Teams, as the chat says:
+   * the page used to say "press the button again" for it, though no button
+   * sent it.
+   */
+  test("a command is run again in Slack and typed again in Microsoft Teams: no button to press", () => {
+    const slack: ConnectRequestNoticeText | null = getConnectRequestNotice({
+      provider: ConnectProvider.Slack,
+      pressed: ConnectRequestOutcome.RunAgain,
+      translator: ENGLISH,
+    });
+    const teams: ConnectRequestNoticeText | null = getConnectRequestNotice({
+      provider: ConnectProvider.MicrosoftTeams,
+      pressed: ConnectRequestOutcome.RunAgain,
+      translator: ENGLISH,
+    });
+
+    expect(slack?.message).toBe("Go back to Slack and run the command again.");
+    expect(teams?.message).toBe(
+      "Go back to Microsoft Teams and type the command again.",
+    );
+    expect(slack!.message).not.toMatch(BUTTON_OR_PRESS);
+    expect(teams!.message).not.toMatch(BUTTON_OR_PRESS);
+    expect(ConnectRequestOutcome.RunAgain).toBe("run");
+  });
+
   test("the address says a question apart from a button: ask, not again", () => {
     expect(ConnectRequestOutcome.AskAgain).toBe("ask");
     expect(
@@ -184,8 +216,15 @@ describe("the other notices", () => {
       }),
     ).toEqual({
       title: "Connecting your Microsoft Teams account…",
-      message: "Taking you to Microsoft Teams to confirm it's you.",
+      // The sign-in is Microsoft's own page, not Teams.
+      message: "Taking you to Microsoft to confirm it's you.",
     });
+    expect(
+      getConnectingNotice({
+        provider: ConnectProvider.Slack,
+        translator: ENGLISH,
+      }).message,
+    ).toBe("Taking you to Slack to confirm it's you.");
   });
 
   test("a Connect button that can no longer be used", () => {
@@ -287,11 +326,13 @@ describe("the sentences are in every locale", () => {
 
   test("every outcome has a sentence, and the notices their titles", () => {
     /*
-     * 6 outcomes, 3 titles, 2 messages, "Back to Slack", the title of a
-     * sign-in that could not start, for each chat, and what a Connect button
-     * used already says to somebody connected (a title and a message).
+     * 7 outcomes (a command's in two words: run in Slack, type in Teams), 3
+     * titles, 2 messages (the connecting one in two: Slack, Microsoft),
+     * "Back to Slack", the title of a sign-in that could not start, for
+     * each chat, and what a Connect button used already says to somebody
+     * connected (a title and a message).
      */
-    expect(keys).toHaveLength(Object.values(ConnectRequestOutcome).length + 10);
+    expect(keys).toHaveLength(Object.values(ConnectRequestOutcome).length + 12);
   });
 
   test("en.json has every one", () => {

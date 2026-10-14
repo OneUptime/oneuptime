@@ -229,7 +229,7 @@ describe("AnalyticsDatabaseService", () => {
 
       expect(statement.query).toBe(
         "SELECT <select-statement> FROM {p0:Identifier}.{p1:Identifier} WHERE TRUE <where-statement> ORDER BY <sort-statement> LIMIT {p2:Int32} OFFSET {p3:Int32}\n" +
-          "SETTINGS max_execution_time = 45, timeout_overflow_mode = 'break', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736",
+          "SETTINGS max_execution_time = 45, timeout_overflow_mode = 'throw', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736",
       );
       expect(statement.query_params).toStrictEqual({
         p0: "oneuptime",
@@ -828,8 +828,11 @@ describe("AnalyticsDatabaseService", () => {
 
     test("defaults to 0 (with a warning) when the response body is unparseable", async () => {
       /*
-       * timeout_overflow_mode='break' can truncate a count() response —
-       * json() then rejects. countBy must degrade to 0, not throw.
+       * The default count runs with timeout_overflow_mode='break', which
+       * answers a count it broke off with an empty body — json() then
+       * rejects. The default count degrades to 0, as its callers (monitor
+       * thresholds) have always read it; an exact count throws instead
+       * (AnalyticsDatabaseServiceExactCount).
        */
       jest.spyOn(service, "executeQuery").mockResolvedValue({
         json: () => {
@@ -914,11 +917,34 @@ describe("AnalyticsDatabaseService", () => {
         clickhouseSettings: { max_execution_time: 1800 },
       });
 
+      /*
+       * A read with a time limit also asks ClickHouse to hold its answer
+       * until it is done, so a stop arrives as an error (issue #4707).
+       */
       expect(query).toHaveBeenCalledWith({
         query: "SELECT 1",
         format: "JSON",
         query_params: undefined,
-        clickhouse_settings: { max_execution_time: 1800 },
+        clickhouse_settings: {
+          http_wait_end_of_query: 1,
+          max_execution_time: 1800,
+        },
+      });
+    });
+
+    test("a migration statement is sent exactly as its caller sends it", async () => {
+      (service as any).migrationDatabaseClient = { exec, query };
+
+      await service.executeQuery("SELECT 1 SETTINGS max_execution_time = 45", {
+        useMigrationConnection: true,
+        clickhouseSettings: { send_progress_in_http_headers: 1 },
+      });
+
+      expect(query).toHaveBeenCalledWith({
+        query: "SELECT 1 SETTINGS max_execution_time = 45",
+        format: "JSON",
+        query_params: undefined,
+        clickhouse_settings: { send_progress_in_http_headers: 1 },
       });
     });
 

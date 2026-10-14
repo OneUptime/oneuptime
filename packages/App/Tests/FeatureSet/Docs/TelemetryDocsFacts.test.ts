@@ -39,6 +39,7 @@ import {
   SourceMapMaxMapsPerRelease,
   SourceMapRetentionInDays,
 } from "Common/Server/EnvironmentConfig";
+import { INTERACTIVE_READ_TIME_LIMIT } from "Common/Server/Utils/AnalyticsDatabase/QuerySettingsHelper";
 import LogPipelineService, {
   LoadedPipeline,
 } from "../../../FeatureSet/Telemetry/Services/LogPipelineService";
@@ -736,6 +737,42 @@ describe("Search Syntax", () => {
       });
 
       expect(resolved.serviceIds).toEqual(["1"]);
+    });
+  });
+
+  /*
+   * Good to know's time limit (issue #4707): the one the explorers' reads
+   * run with — which stops a read rather than cutting it short — and the
+   * button the explorers draw to run a stopped search again.
+   */
+  describe("the time limit a search runs under", () => {
+    it("is the one the explorers' reads run with, and it stops them", () => {
+      expect(INTERACTIVE_READ_TIME_LIMIT.timeoutOverflowMode).toBe("throw");
+      expect(page).toContain(
+        `A search that runs longer than ${INTERACTIVE_READ_TIME_LIMIT.maxExecutionTimeInSeconds} seconds is stopped.`,
+      );
+    });
+
+    it("names the button the explorers draw to run it again", () => {
+      const message: string = fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "..",
+          "Common",
+          "UI",
+          "Components",
+          "TelemetryViewer",
+          "components",
+          "TelemetryLoadErrorMessage.tsx",
+        ),
+        "utf8",
+      );
+
+      expect(message).toContain('translationKey("Try again")');
+      expect(page).toContain("offers **Try again**");
     });
   });
 });

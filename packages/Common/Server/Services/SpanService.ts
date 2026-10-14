@@ -6,7 +6,10 @@ import AggregateBy, {
   AggregateUtil,
 } from "../Types/AnalyticsDatabase/AggregateBy";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
@@ -221,7 +224,10 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     /*
      * optimize_use_projections is on by default in modern ClickHouse but we
      * set it explicitly to make the intent obvious. The 45s cap is defense
-     * in depth — projection scans should complete in <1s.
+     * in depth — projection scans should complete in <1s. This is the
+     * default (non-exact) count: 'break' keeps it what its callers have
+     * always read, 0 when the count was broken off (see countBy). A total a
+     * person reads is an exact count, which never takes this path.
      */
     statement.append(
       getQuerySettings({
@@ -484,10 +490,10 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       }}`,
     );
 
+    // A chart: stopped at the limit, it says so (INTERACTIVE_READ_TIME_LIMIT).
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         additionalSettings: { optimize_use_projections: 1 },
       }),
     );

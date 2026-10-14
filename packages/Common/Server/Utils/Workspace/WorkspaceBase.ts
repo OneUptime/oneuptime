@@ -13,6 +13,7 @@ import WorkspaceMessagePayload, {
   WorkspaceMessagePayloadButton,
   WorkspaceModalBlock,
   WorkspacePayloadButtons,
+  WorkspacePayloadContext,
   WorkspacePayloadHeader,
   WorkspacePayloadImage,
   WorkspacePayloadMarkdown,
@@ -355,6 +356,22 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  /*
+   * Small, muted text under a message (WorkspacePayloadContext). A
+   * workspace with no such block of its own draws it as plain Markdown.
+   */
+  @CaptureSpan()
+  public static getContextBlock(data: {
+    payloadContextBlock: WorkspacePayloadContext;
+  }): JSONObject {
+    return this.getMarkdownBlock({
+      payloadMarkdownBlock: {
+        _type: "WorkspacePayloadMarkdown",
+        text: data.payloadContextBlock.text,
+      },
+    });
+  }
+
   @CaptureSpan()
   public static getBlocksFromWorkspaceMessagePayload(data: {
     messageBlocks: Array<WorkspaceMessageBlock>;
@@ -380,6 +397,13 @@ export default class WorkspaceBase {
           break;
         case "WorkspacePayloadDivider":
           blocks.push(this.getDividerBlock());
+          break;
+        case "WorkspacePayloadContext":
+          blocks.push(
+            this.getContextBlock({
+              payloadContextBlock: block as WorkspacePayloadContext,
+            }),
+          );
           break;
         case "WorkspacePayloadButtons":
           blocks.push(

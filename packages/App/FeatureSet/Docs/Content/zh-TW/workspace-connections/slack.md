@@ -148,6 +148,18 @@ OneUptime 在 Slack 中只有一個指令：`/oneuptime`。在它後面輸入的
 > [!NOTE]
 > `/oneuptime incident` 和 `/oneuptime maintenance` 取代了 `/incident` 和 `/maintenance`，後兩者可能與其他 Slack 應用程式的同名指令衝突。用較早的資訊清單建立的 Slack 應用程式會保留它們，在應用程式更新之前，它們會開啟相同的表單：請參閱 [用較舊資訊清單建立的應用程式](/docs/self-hosted/slack-integration#用較舊資訊清單建立的應用程式)。
 
+## Slack 中的 OneUptime 首頁
+
+在 Slack 側邊欄的 **Apps** 下開啟 OneUptime，它的 **Home** 分頁會依您有權查看的範圍顯示專案中正在發生的事情，每次開啟時都會重新讀取。
+
+- **您的待命。** 您目前正在待命的待命排程及其結束時間，否則是您的下一個班次。
+- **未解決的內容。** 您有權讀取的最新未解決事件和警示，每一項都連結到它在 OneUptime 中的頁面。
+- **按鈕。** **Declare incident** 、 **Schedule maintenance** 和 **Page someone** 開啟的表單與 `/oneuptime incident` 、 `/oneuptime maintenance` 和 `/oneuptime page` 相同， **Who's on call** 的回答與 `/oneuptime oncall` 相同。
+
+首頁以您的身分讀取，因此需要連接您自己的 Slack 帳戶。在連接之前，首頁上會有一個 **Connect Slack account** 按鈕，連接後會立即顯示您的首頁。
+
+當有人把 OneUptime 新增到頻道時，它會在那裡發佈一則問候：如何向它提問，以及在哪裡新增發佈到該頻道的通知規則。
+
 ## 從 Slack 詢問 OneUptime AI
 
 用日常語言詢問有關記錄、追蹤、指標、事件和監測器的問題。在頻道中 @提及 OneUptime，或傳送私人訊息給它，它會在討論串中回答。 `/oneuptime ask which monitors are down?` 會將答案發布到頻道中。兩種方式都需要連接您自己的 Slack 帳戶，並為專案開啟 AI。Slack 中的回答只讀取資料：要變更內容，請使用按鈕。請參閱 [詢問 AI](/docs/ai/ask-ai)。

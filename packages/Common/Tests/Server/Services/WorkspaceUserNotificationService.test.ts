@@ -256,6 +256,63 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser", () => {
 
   /*
    * ----------------------------------------------------------------------- *
+   * (B2) What the notification of the direct message says.
+   * -----------------------------------------------------------------------
+   */
+
+  describe("the notification line", () => {
+    test("a given line goes to Slack as its text and to Teams as the card's summary", async () => {
+      await WorkspaceUserNotificationService.sendDirectMessageToUser({
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.Slack,
+        workspaceUserId: SLACK_USER_ID,
+        messageBlocks: markdownBlocks(),
+        notificationText: "🚨 New incident assigned to you: INC-8",
+      });
+
+      await WorkspaceUserNotificationService.sendDirectMessageToUser({
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        workspaceUserId: TEAMS_USER_ID,
+        messageBlocks: markdownBlocks(),
+        notificationText: "🚨 New incident assigned to you: INC-8",
+      });
+
+      expect((slackSend.mock.calls[0][0] as { text?: string }).text).toBe(
+        "🚨 New incident assigned to you: INC-8",
+      );
+      expect((teamsSend.mock.calls[0][0] as { text?: string }).text).toBe(
+        "🚨 New incident assigned to you: INC-8",
+      );
+    });
+
+    test("without one, the start of the message: a direct message always says something", async () => {
+      await WorkspaceUserNotificationService.sendDirectMessageToUser({
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.Slack,
+        workspaceUserId: SLACK_USER_ID,
+        messageBlocks: markdownBlocks(),
+      });
+
+      expect((slackSend.mock.calls[0][0] as { text?: string }).text).toBe(
+        "incident page body",
+      );
+    });
+
+    test("a message with no words carries no line", async () => {
+      await WorkspaceUserNotificationService.sendDirectMessageToUser({
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        workspaceUserId: TEAMS_USER_ID,
+        messageBlocks: [{ _type: "WorkspacePayloadDivider" }],
+      });
+
+      expect(teamsSend.mock.calls[0][0]).not.toHaveProperty("text");
+    });
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
    * (C) The on-call timeline contract.
    * -----------------------------------------------------------------------
    */

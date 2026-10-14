@@ -88,6 +88,8 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         cardProps={{
+          // Its search and buttons drop under the title beside the side menu.
+          headerLayout: "stacked",
           title: "Detection Rules",
           description:
             "Sigma rules evaluated on a schedule against your security events. Sigma is an open YAML format for describing detections — a matching rule can raise an alert and write a Detection Finding back into the event stream.",
@@ -106,6 +108,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
            * severity dropdowns' showIf sees undefined on a fresh create
            * form and hides fields whose toggles are actually on.
            */
+          shouldCreateCase: true,
           shouldCreateAlert: true,
           shouldWriteDetectionFinding: true,
           shouldCreateIncident: false,
@@ -119,6 +122,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           { title: "Basic Info", id: "basic-info" },
           { title: "Sigma Rule", id: "sigma-rule" },
           { title: "Evaluation", id: "evaluation" },
+          { title: "Security Cases", id: "cases" },
           { title: "On Match", id: "on-match" },
         ]}
         formFields={[
@@ -233,10 +237,23 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              shouldCreateCase: true,
+            },
+            title: "Open a Case on Match",
+            stepId: "cases",
+            description:
+              "Group each match into a security case to triage, by the user, host or address it is about: a new case, or the open case already about it. Playbooks run on the cases it opens.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
               shouldCreateAlert: true,
             },
             title: "Create Alert on Match",
             stepId: "on-match",
+            description:
+              "Also open a OneUptime alert, for teams that work security matches alongside their other alerts.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },

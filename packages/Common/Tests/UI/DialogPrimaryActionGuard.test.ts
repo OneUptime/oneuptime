@@ -482,6 +482,12 @@ describe("the guard catches the faults the audit fixed", () => {
     ).toEqual(["Run a Runbook two-primaries"]);
   });
 
+  /*
+   * The Slack settings used to draw Uninstall - filled red - on the card
+   * whose one primary button is Connect my account. Uninstalling is the
+   * project's, so it moved to the project's own card; drawn again beside
+   * Connect, filled, it is two main actions on one card.
+   */
   test("a filled red Uninstall beside the primary Connect on the Slack card", () => {
     const file: string =
       "packages/App/FeatureSet/Dashboard/src/Components/Slack/SlackIntegration.tsx";
@@ -489,12 +495,19 @@ describe("the guard catches the faults the audit fixed", () => {
 
     expect(findButtonGroupsWithTwoFilled(file, source)).toEqual([]);
 
-    const reverted: string = source.replace(
-      "buttonStyle: ButtonStyleType.DANGER_OUTLINE,",
-      "buttonStyle: ButtonStyleType.DANGER,",
+    const connectButton: string =
+      "getConnectWithSlackButton(`Connect my account with Slack`),";
+    const reverted: string = revert(
+      source,
+      connectButton,
+      `${connectButton}
+      {
+        title: \`Uninstall OneUptime from Slack\`,
+        buttonStyle: ButtonStyleType.DANGER,
+        onClick: () => {},
+      },`,
     );
 
-    expect(reverted).not.toBe(source);
     expect(
       findButtonGroupsWithTwoFilled(file, reverted).map(
         (group: ButtonGroupWithTwoFilled): string => {
@@ -503,6 +516,44 @@ describe("the guard catches the faults the audit fixed", () => {
       ),
     ).toEqual([
       "title || `Connect with Slack` | Uninstall OneUptime from Slack",
+    ]);
+  });
+
+  /*
+   * The Microsoft Teams settings drew Uninstall - outlined, then as a third
+   * button of the project's card - beside the Connect the page asks for.
+   * Uninstalling is in the project card's ⋯ now; drawn again beside
+   * Connect, filled, it is two main actions on one card.
+   */
+  test("a filled red Uninstall beside the primary Connect on the Microsoft Teams card", () => {
+    const file: string =
+      "packages/App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsIntegration.tsx";
+    const source: string = read(file);
+
+    expect(findButtonGroupsWithTwoFilled(file, source)).toEqual([]);
+
+    const connectButton: string = `getConnectWithTeamsButton(
+        translationKey("Connect my account with Microsoft Teams"),
+      ),`;
+    const reverted: string = revert(
+      source,
+      connectButton,
+      `${connectButton}
+      {
+        title: \`Uninstall OneUptime from Microsoft Teams\`,
+        buttonStyle: SharedButtonStyle.DANGER,
+        onClick: () => {},
+      },`,
+    );
+
+    expect(
+      findButtonGroupsWithTwoFilled(file, reverted).map(
+        (group: ButtonGroupWithTwoFilled): string => {
+          return group.labels.join(" | ");
+        },
+      ),
+    ).toEqual([
+      "title || `Connect with Microsoft Teams` | Uninstall OneUptime from Microsoft Teams",
     ]);
   });
 

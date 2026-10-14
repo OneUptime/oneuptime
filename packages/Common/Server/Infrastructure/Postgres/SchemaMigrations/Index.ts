@@ -94,6 +94,7 @@ import { AddStatusPageSubscriberNotificationsSwitch1801950000000 } from "./18019
 import { AddStatusPageSubscriberRestrictions1802000000000 } from "./1802000000000-AddStatusPageSubscriberRestrictions";
 import { AddIncidentFeedApiKeyActor1802050000000 } from "./1802050000000-AddIncidentFeedApiKeyActor";
 import { AddWorkspaceUserGroup1802100000000 } from "./1802100000000-AddWorkspaceUserGroup";
+import { AddSecurityCases1802150000000 } from "./1802150000000-AddSecurityCases";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1390,4 +1391,5 @@ export default [
   AddStatusPageSubscriberRestrictions1802000000000,
   AddIncidentFeedApiKeyActor1802050000000,
   AddWorkspaceUserGroup1802100000000,
+  AddSecurityCases1802150000000,
 ];

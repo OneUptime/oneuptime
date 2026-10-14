@@ -17,7 +17,7 @@ flowchart TB
     events["Neue Sicherheits-<br/>ereignisse"] --> tag["Beim Eintreffen<br/>mit threat.*<br/>markiert"]
     indicators --> tag
     indicators --> match["Jede Minute gegen<br/>aktuelle Ereignisse<br/>abgeglichen"]
-    match --> act["Eine Warnung, ein optionaler<br/>Vorfall und ein Befund"]
+    match --> act["Ein Fall, eine Warnung,<br/>ein optionaler Vorfall<br/>und ein Befund"]
 ```
 
 ## Bevor Sie beginnen
@@ -35,7 +35,7 @@ flowchart TB
 
 ### Den Feed erstellen
 
-Klicken Sie auf **Threat-Intel-Feed erstellen** und füllen Sie seine vier Schritte aus: **Grundinformationen**, **TAXII-Server**, **Authentifizierung** und **Bei Treffer**. Die Felder stehen in der Tabelle unten.
+Klicken Sie auf **Threat-Intel-Feed erstellen** und füllen Sie seine fünf Schritte aus: **Grundinformationen**, **TAXII-Server**, **Authentifizierung**, **Security Cases** und **Bei Treffer**. Die Felder stehen in der Tabelle unten.
 
 ### Die erste Abfrage prüfen
 
@@ -50,6 +50,7 @@ Innerhalb von ein, zwei Minuten zeigt die Zeile des Feeds **Zuletzt abgefragt**,
 | **Mindestkonfidenz** | Indikatoren mit niedrigerer STIX-`confidence` werden übersprungen: 0 bis 100, 0 behält alles. Indikatoren ohne Konfidenz kommen immer durch. |
 | **API-Token** | Ein Bearer-Token, für eine Sammlung, die eines verlangt. |
 | **Basic-Auth-Benutzername** und **Basic-Auth-Passwort** | Für eine Sammlung mit HTTP-Basic-Auth. Lassen Sie beide und das Token für eine öffentliche Sammlung leer. |
+| **Open a Case on Match** | Standardmäßig an: Jedes Ereignis, das einen Indikator nennt, eröffnet einen [Fall](/docs/telemetry/security-cases) zu diesem Indikator oder wird dem offenen Fall zugeordnet, der ihn bereits betrifft. |
 | **Bei Treffer Warnung erstellen** | Standardmäßig an: Jeder getroffene Indikator öffnet eine Warnung. |
 | **Warnungsschweregrad** | Der Schweregrad jeder Warnung, die dieser Feed öffnet. Lassen Sie ihn leer, um die Bedrohungsstufe jedes Indikators zu nehmen. |
 | **Bei Treffer Vorfall erstellen** | Standardmäßig aus. Vorfälle steuern Bereitschaftseskalation, SLAs und Statusseiten, und für Indikatortreffer reichen meist Warnungen. |

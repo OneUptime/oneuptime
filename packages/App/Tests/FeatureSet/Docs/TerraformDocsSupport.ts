@@ -1,12 +1,5 @@
 import OpenAPIUtil from "Common/Server/Utils/OpenAPI";
 import { JSONObject } from "Common/Types/JSON";
-import { OpenAPIParser } from "../../../../../Scripts/TerraformProvider/Core/OpenAPIParser";
-import {
-  OpenAPISpec,
-  TerraformAttribute,
-  TerraformDataSource,
-  TerraformResource,
-} from "../../../../../Scripts/TerraformProvider/Core/Types";
 import fs from "fs";
 import path from "path";
 
@@ -32,10 +25,13 @@ import path from "path";
  *   - parseHcl reads the HCL of the pages, so a test can hold every block to
  *     both.
  *
- * ResourceGenerator imports Common through the "Common/*" alias, which this
- * package's TypeScript program does not resolve outside packages/App, so it
- * is loaded at run time (jest's moduleNameMapper resolves the alias) rather
- * than imported. The parser and the types import nothing of Common's.
+ * The generator is loaded at run time, never imported. The App image
+ * compiles packages/App with no Scripts/ beside it, so an import of the
+ * generator fails that build. ResourceGenerator also imports Common through
+ * the "Common/*" alias, which this package's TypeScript program does not
+ * resolve outside packages/App (jest's moduleNameMapper resolves it). The
+ * types below describe what these helpers read of the generator's own
+ * (Core/Types).
  *
  * TerraformDocsFacts and TerraformDocsTranslations read these; importing a
  * .test.ts file would run its tests.
@@ -98,6 +94,41 @@ export interface ProviderSchema {
   dataSources: Map<string, ProviderType>;
 }
 
+// What these helpers read of the generator's TerraformAttribute.
+interface TerraformAttribute {
+  type: string;
+  optional?: boolean;
+  computed?: boolean;
+  sensitive?: boolean;
+  isDateTime?: boolean;
+  isComplexObject?: boolean;
+  enumValues?: Array<string>;
+  relation?: { name: string } | undefined;
+  isLookupFilter?: boolean;
+}
+
+// What these helpers read of the generator's TerraformResource.
+interface TerraformResource {
+  name: string;
+  legacyName?: string | undefined;
+  operations: { read?: unknown };
+  schema: Record<string, TerraformAttribute>;
+}
+
+// What these helpers read of the generator's TerraformDataSource.
+interface TerraformDataSource {
+  name: string;
+  legacyName?: string | undefined;
+  schema: Record<string, TerraformAttribute>;
+}
+
+// The generator's OpenAPIParser, as these helpers use it.
+interface OpenAPIParser {
+  setSpec(spec: JSONObject): void;
+  getResources(): Array<TerraformResource>;
+  getDataSources(): Array<TerraformDataSource>;
+}
+
 interface SchemaFlags {
   required: boolean;
   optional: boolean;
@@ -122,6 +153,18 @@ async function loadSchemaFlags(): Promise<SchemaFlagsFunction> {
   };
 
   return loaded.ResourceGenerator.getSchemaFlags;
+}
+
+async function loadParser(): Promise<OpenAPIParser> {
+  const modulePath: string = path.join(
+    REPO_ROOT,
+    "Scripts/TerraformProvider/Core/OpenAPIParser",
+  );
+  const loaded: { OpenAPIParser: new () => OpenAPIParser } = (await import(
+    modulePath
+  )) as { OpenAPIParser: new () => OpenAPIParser };
+
+  return new loaded.OpenAPIParser();
 }
 
 function attributeOf(
@@ -156,11 +199,9 @@ export function readProvider(): Promise<ProviderSchema> {
   if (!providerSchema) {
     providerSchema = (async (): Promise<ProviderSchema> => {
       const getSchemaFlags: SchemaFlagsFunction = await loadSchemaFlags();
-      const parser: OpenAPIParser = new OpenAPIParser();
+      const parser: OpenAPIParser = await loadParser();
 
-      parser.setSpec(
-        OpenAPIUtil.generateOpenAPISpec() as JSONObject as unknown as OpenAPISpec,
-      );
+      parser.setSpec(OpenAPIUtil.generateOpenAPISpec() as JSONObject);
 
       const resources: Map<string, ProviderType> = new Map();
       const dataSources: Map<string, ProviderType> = new Map();
@@ -192,7 +233,7 @@ export function readProvider(): Promise<ProviderSchema> {
         });
       }
 
-      for (const dataSource of parser.getDataSources() as Array<TerraformDataSource>) {
+      for (const dataSource of parser.getDataSources()) {
         const attributes: Map<string, ProviderAttribute> = new Map();
 
         for (const [name, attribute] of Object.entries(dataSource.schema)) {
