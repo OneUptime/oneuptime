@@ -43,6 +43,7 @@ import {
   SECURITY_EVENT_CONNECTION_TEST_ROUTE,
   connectorDocsUrl,
 } from "./SecurityEventConnectionDiagnosticsUtil";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export const PROVIDER_STEP_ID: string = "provider";
 export const CONNECTION_STEP_ID: string = "connection";
@@ -91,6 +92,44 @@ export interface SecurityEventConnectionFormSubmission {
   isEnabled: boolean;
   pollIntervalInMinutes: number;
   alertingOnly: boolean;
+  /*
+   * The least severity of an imported alert that opens a security case, or
+   * "" for never (the alerts are imported as events only).
+   */
+  caseMinimumSeverity: string;
+}
+
+/*
+ * The case threshold as the form offers it. "Never" stands for the empty
+ * value the connection stores: a dropdown cannot hold an empty choice.
+ */
+export const CASE_SEVERITY_NEVER: string = "Never";
+
+export const CASE_SEVERITY_CHOICES: Array<string> = [
+  "Critical",
+  "High",
+  "Medium",
+  "Low",
+  CASE_SEVERITY_NEVER,
+];
+
+// Whole labels, each looked up on its own.
+const CASE_SEVERITY_LABELS: Record<string, string> = {
+  Critical: translationKey("Critical only"),
+  High: translationKey("High and above"),
+  Medium: translationKey("Medium and above"),
+  Low: translationKey("Low and above"),
+  [CASE_SEVERITY_NEVER]: translationKey("Never - import as events only"),
+};
+
+export function readCaseSeverityChoice(value: JSONValue | undefined): string {
+  const choice: string = readString(value);
+
+  if (!choice || choice === CASE_SEVERITY_NEVER) {
+    return "";
+  }
+
+  return CASE_SEVERITY_CHOICES.includes(choice) ? choice : "High";
 }
 
 function readString(value: JSONValue | undefined): string {
@@ -238,6 +277,7 @@ export function readSecurityEventConnectionForm(
       ? interval
       : definition.defaultPollIntervalInMinutes,
     alertingOnly: values["alertingOnly"] !== false,
+    caseMinimumSeverity: readCaseSeverityChoice(values["caseMinimumSeverity"]),
   };
 }
 
@@ -316,6 +356,7 @@ export function securityEventConnectionUpdatePayload(
     isEnabled: submission.isEnabled,
     pollIntervalInMinutes: submission.pollIntervalInMinutes,
     alertingOnly: submission.alertingOnly,
+    caseMinimumSeverity: submission.caseMinimumSeverity,
     /*
      * A blank credential step means "keep what is stored"; a removal (null)
      * is a change, so it is sent like a typed value.
@@ -808,6 +849,23 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
           );
         },
       },
+      {
+        field: { caseMinimumSeverity: true },
+        title: "Open Cases From",
+        description:
+          "Alerts this product raised at or above this severity open security cases to triage, grouped by the user, host or address they are about. Never: the alerts are imported as events only.",
+        stepId: POLLING_STEP_ID,
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: CASE_SEVERITY_CHOICES.map(
+          (choice: string): DropdownOption => {
+            return {
+              label: CASE_SEVERITY_LABELS[choice] || choice,
+              value: choice,
+            };
+          },
+        ),
+        required: true,
+      },
     );
 
     /*
@@ -863,6 +921,8 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
       lockedDefinition?.defaultPollIntervalInMinutes ||
       5;
     initialValues["alertingOnly"] = props.connection.alertingOnly !== false;
+    initialValues["caseMinimumSeverity"] =
+      props.connection.caseMinimumSeverity || CASE_SEVERITY_NEVER;
 
     const config: JSONObject = props.connection.config || {};
 
@@ -875,6 +935,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
   } else {
     initialValues["isEnabled"] = true;
     initialValues["alertingOnly"] = true;
+    initialValues["caseMinimumSeverity"] = "High";
     initialValues["pollIntervalInMinutes"] = 5;
 
     if (getSecurityEventConnectorDefinition(props.initialProvider)) {
@@ -981,6 +1042,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
             model.isEnabled = submission.isEnabled;
             model.pollIntervalInMinutes = submission.pollIntervalInMinutes;
             model.alertingOnly = submission.alertingOnly;
+            model.caseMinimumSeverity = submission.caseMinimumSeverity;
 
             await ModelAPI.create<SecurityEventConnection>({
               model,

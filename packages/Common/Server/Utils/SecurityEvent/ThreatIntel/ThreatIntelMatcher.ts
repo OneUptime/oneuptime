@@ -49,6 +49,16 @@ import {
   resolveIncidentSeverityIdForProject,
 } from "../SecurityEventAlerting";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import { threatIntelMatchMarkdown } from "../../../../Utils/SecurityCase/SecurityCaseMarkdown";
+import SecurityCaseIngest, {
+  SecurityCaseIngestResult,
+  SecurityDetectionSignal,
+} from "../../SecurityCase/SecurityCaseIngest";
+import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
+import {
+  entitiesFromObservables,
+  mergeSecurityEntities,
+} from "../../../../Types/SecurityCase/SecurityEntity";
 
 /*
  * The threat-intel matcher: every minute, join each enabled feed's ACTIVE
@@ -79,6 +89,8 @@ export interface ThreatIntelMatchResult {
   alertsCreated: number;
   incidentsCreated: number;
   findingsWritten: number;
+  // Cases the matches opened; the rest joined cases already open.
+  casesOpened: number;
 }
 
 export default class ThreatIntelMatcher {
@@ -95,6 +107,7 @@ export default class ThreatIntelMatcher {
         shouldCreateAlert: true,
         shouldCreateIncident: true,
         shouldWriteDetectionFinding: true,
+        shouldCreateCase: true,
         alertSeverityId: true,
         incidentSeverityId: true,
         lastEvaluatedAt: true,
@@ -186,6 +199,7 @@ export default class ThreatIntelMatcher {
       alertsCreated: 0,
       incidentsCreated: 0,
       findingsWritten: 0,
+      casesOpened: 0,
     };
 
     for (const matchGroup of matchedGroups) {
@@ -212,11 +226,37 @@ export default class ThreatIntelMatcher {
         });
       }
 
+      let findingEventUids: Map<string, string> = new Map();
+
       if (feed.shouldWriteDetectionFinding !== false) {
-        result.findingsWritten = await this.writeThreatIntelFindings({
+        findingEventUids = await this.writeThreatIntelFindings({
           feed,
           matchedGroups,
         });
+        result.findingsWritten = findingEventUids.size;
+      }
+
+      // !== false, like a detection rule's: see DetectionRule.shouldCreateCase.
+      if (feed.shouldCreateCase !== false) {
+        try {
+          const ingestResult: SecurityCaseIngestResult =
+            await SecurityCaseIngest.recordDetections(
+              this.buildCaseSignals({
+                feed,
+                matchedGroups,
+                findingEventUids,
+                startTime,
+                endTime,
+              }),
+            );
+
+          result.casesOpened = ingestResult.casesOpened;
+        } catch (error) {
+          logger.error(
+            `ThreatIntelMatcher: feed ${feed.id.toString()} could not record its matches as security cases:`,
+          );
+          logger.error(error);
+        }
       }
     }
 
@@ -339,10 +379,65 @@ export default class ThreatIntelMatcher {
     return created;
   }
 
+  /*
+   * One case signal per matched indicator: a detection about the indicator's
+   * value - the address, domain or hash the events touched - at the severity
+   * its confidence earns.
+   */
+  public static buildCaseSignals(data: {
+    feed: ThreatIntelFeed;
+    matchedGroups: Array<IndicatorMatchGroup>;
+    findingEventUids: Map<string, string>;
+    startTime: Date;
+    endTime: Date;
+  }): Array<SecurityDetectionSignal> {
+    const { feed } = data;
+
+    return data.matchedGroups.map(
+      (matchGroup: IndicatorMatchGroup): SecurityDetectionSignal => {
+        return {
+          projectId: feed.projectId!,
+          source: SecurityDetectionSource.ThreatIntel,
+          fingerprint: this.buildFingerprint(
+            feed.id!,
+            matchGroup.indicatorValue,
+          ),
+          title: `${feed.name || "Threat intel"} — ${matchGroup.indicatorValue}`,
+          description: threatIntelMatchMarkdown({
+            feedName: feed.name || "Threat intel",
+            indicatorName: matchGroup.indicatorName,
+            indicatorValue: matchGroup.indicatorValue,
+            indicatorType: matchGroup.indicatorType,
+            confidence: matchGroup.confidence,
+            matchCount: matchGroup.matchCount,
+            windowStart: OneUptimeDate.getDateAsFormattedString(data.startTime),
+            windowEnd: OneUptimeDate.getDateAsFormattedString(data.endTime),
+            stixId: matchGroup.stixId,
+            sampleMessage: matchGroup.sampleMessage || undefined,
+          }).toString(),
+          severity: ocsfSeverityForConfidence(matchGroup.confidence),
+          eventCount: matchGroup.matchCount,
+          groupValue: matchGroup.indicatorValue,
+          entities: mergeSecurityEntities(
+            entitiesFromObservables([matchGroup.indicatorValue]),
+            entitiesFromObservables(matchGroup.sampleObservables),
+          ),
+          mitreTactics: [],
+          mitreTechniques: [],
+          ruleName: feed.name || undefined,
+          threatIntelFeedId: feed.id!,
+          sampleMessage: matchGroup.sampleMessage || undefined,
+          eventUid: data.findingEventUids.get(matchGroup.indicatorValue),
+          seenAt: data.endTime,
+        };
+      },
+    );
+  }
+
   private static async writeThreatIntelFindings(data: {
     feed: ThreatIntelFeed;
     matchedGroups: Array<IndicatorMatchGroup>;
-  }): Promise<number> {
+  }): Promise<Map<string, string>> {
     const { feed, matchedGroups } = data;
     const projectId: ObjectID = feed.projectId!;
 
@@ -364,18 +459,24 @@ export default class ThreatIntelMatcher {
       DETECTION_FINDING_CLASS_UID,
     );
 
+    const eventUids: Map<string, string> = new Map();
+
     const rows: Array<JSONObject> = matchedGroups.map(
       (matchGroup: IndicatorMatchGroup): JSONObject => {
         const severityName: OcsfSeverity = ocsfSeverityForConfidence(
           matchGroup.confidence,
         );
 
+        const eventUid: string = `threat-intel:${feed.id!.toString()}:${this.buildFingerprint(
+          feed.id!,
+          matchGroup.indicatorValue,
+        )}:${OneUptimeDate.getCurrentDateAsUnixNano()}`;
+
+        eventUids.set(matchGroup.indicatorValue, eventUid);
+
         const normalized: NormalizedSecurityEvent = {
           time: OneUptimeDate.getCurrentDate(),
-          eventUid: `threat-intel:${feed.id!.toString()}:${this.buildFingerprint(
-            feed.id!,
-            matchGroup.indicatorValue,
-          )}:${OneUptimeDate.getCurrentDateAsUnixNano()}`,
+          eventUid: eventUid,
           categoryUid,
           categoryName,
           classUid: DETECTION_FINDING_CLASS_UID,
@@ -433,7 +534,7 @@ export default class ThreatIntelMatcher {
 
     await SecurityEventService.insertJsonRows(rows);
 
-    return rows.length;
+    return eventUids;
   }
 
   private static buildAlertableMatch(data: {

@@ -844,7 +844,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models and the vCenter collection errors", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors and the security case and playbook catalogs", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -856,6 +856,9 @@ describe("the real source roots", () => {
       "models packages/Common/Models/AnalyticsModels",
       // What a failed vCenter collection means and what fixes it.
       "ui packages/Common/Types/VMware",
+      // What a case's verdicts mean and what each playbook action does.
+      "ui packages/Common/Types/SecurityCase",
+      "ui packages/Common/Types/SecurityPlaybook",
     ]);
   });
 

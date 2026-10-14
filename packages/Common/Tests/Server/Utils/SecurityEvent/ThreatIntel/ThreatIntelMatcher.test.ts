@@ -48,6 +48,7 @@ import OneUptimeDate from "../../../../../Types/Date";
 import ServiceType from "../../../../../Types/Telemetry/ServiceType";
 import { JSONObject } from "../../../../../Types/JSON";
 import { getJestSpyOn } from "../../../../Spy";
+import SecurityCaseIngest from "../../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
 import {
   afterEach,
   beforeEach,
@@ -194,6 +195,12 @@ beforeEach(() => {
   getJestSpyOn(logger, "warn").mockImplementation((() => {
     return undefined;
   }) as never);
+  // Feeds open security cases unless switched off; SecurityCaseIngest has its own suite.
+  getJestSpyOn(SecurityCaseIngest, "recordDetections").mockResolvedValue({
+    casesOpened: 0,
+    detectionsAdded: 0,
+    detectionsRepeated: 0,
+  } as never);
 });
 
 afterEach(() => {

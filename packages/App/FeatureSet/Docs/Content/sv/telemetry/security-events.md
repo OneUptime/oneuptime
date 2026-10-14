@@ -1,11 +1,11 @@
 # Säkerhetshändelser (SIEM)
 
-OneUptime lagrar säkerhetshändelser bredvid dina loggar, spår och metriker, och ger alla samma form, [OCSF](https://schema.ocsf.io/) (Open Cybersecurity Schema Framework), oavsett vilket format de kom i. Skicka händelser från vilken källa som helst, sök i dem och gör de viktiga till larm med Sigma-detektionsregler, hotunderrättelser och monitorer.
+OneUptime lagrar säkerhetshändelser bredvid dina loggar, spår och metriker, och ger alla samma form, [OCSF](https://schema.ocsf.io/) (Open Cybersecurity Schema Framework), oavsett vilket format de kom i. Skicka händelser från vilken källa som helst, sök i dem och hitta de viktiga med Sigma-detektionsregler, hotunderrättelser och monitorer. Det de hittar blir [ärenden](/docs/telemetry/security-cases) att arbeta med, och playbooks reagerar på dem.
 
 :::cards
 - [Skicka händelser](#skicka-säkerhetshändelser): En HTTPS-POST, en Fluent Bit-utdata eller en anslutning till en säkerhetsprodukt.
 - [Sök och korrelera](#utforska-säkerhetshändelser): Händelseutforskaren och korrelationsgrafen.
-- [Detektionsregler](#detektionsregler): Sigma-regler som öppnar larm.
+- [Detektionsregler](#detektionsregler): Sigma-regler som öppnar ärenden och larm.
 - [Monitorer](#monitorer-för-säkerhetshändelser): Räkningar över ett glidande fönster, med en status som återhämtar sig.
 :::
 
@@ -21,21 +21,28 @@ flowchart TB
     normalize --> events["Säkerhetshändelser"]
     events --> rules["Detektionsregler<br/>(Sigma)"]
     events --> monitors["Monitorer för<br/>säkerhetshändelser"]
-    rules --> act["Larm, incidenter<br/>och fynd"]
+    rules --> act["Ärenden, larm<br/>och fynd"]
     monitors --> act
 ```
 
-Öppna **Produkter → Security Events**, under **Observerbarhet**. Dess flikar:
+Öppna **Produkter → Security Events**, under **Observerbarhet**. Dess meny:
 
-| Flik | Vad den används till |
-| --- | --- |
-| **Händelser** | Sök och filtrera alla händelser, och öppna en för att se alla dess fält |
-| **Korrelera** | En graf över händelserna som delar en värd, en användare eller en IP-adress |
-| **Detection Rules** | Sigma-regler som körs enligt ett schema och öppnar larm |
-| **Threat Intel** | STIX/TAXII-flöden med kända skadliga indikatorer |
-| **Monitorer** | Projektets monitorer för säkerhetshändelser |
-| **Connections** | Säkerhetsprodukter som OneUptime hämtar nya poster från |
-| **Installationsguide** | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
+| Sida | Avsnitt | Vad den används till |
+| --- | --- | --- |
+| **Översikt** | Översikt | Vad som behöver någon just nu, och hur snabbt ärenden hanteras |
+| **Security Cases** | Översikt | Kön med det som har upptäckts, grupperat efter vad det handlar om |
+| **Händelser** | Utredning | Sök och filtrera alla händelser, och öppna en för att se alla dess fält |
+| **Korrelera** | Utredning | En graf över händelserna som delar en värd, en användare eller en IP-adress |
+| **Entiteter** | Utredning | Användarna, värdarna och adresserna som dina fynd nämner oftast |
+| **Detection Rules** | Detektion | Sigma-regler som körs enligt ett schema och öppnar ärenden |
+| **Rule Library** | Detektion | Färdiga detektionsregler att lägga till |
+| **ATT&CK Coverage** | Detektion | MITRE ATT&CK-teknikerna som dina regler täcker |
+| **Threat Intel** | Detektion | STIX/TAXII-flöden med kända skadliga indikatorer |
+| **Monitorer** | Detektion | Projektets monitorer för säkerhetshändelser |
+| **Playbooks** | Respons | Steg som körs på ärenden, av sig själva eller manuellt |
+| **Playbook Runs** | Respons | Vad varje playbook gjorde, och stegen som väntar på godkännande |
+| **Connections** | Källor | Säkerhetsprodukter som OneUptime hämtar nya poster från |
+| **Installationsguide** | Källor | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
 
 ## Innan du börjar
 
@@ -43,9 +50,9 @@ Säkerhetsdata kan bara läsas av rollerna Project Owner och Project Admin och a
 
 | Roll | Vad den kan göra |
 | --- | --- |
-| Security Admin | Allt: händelser, detektionsregler, threat intel-flöden och anslutningar |
-| Security Member | Läsa händelser och threat intel, samt skapa, ändra och ta bort detektionsregler och flöden. Den kan inte konfigurera anslutningar eller ta bort säkerhetsdata. |
-| Security Viewer | Läsa händelser, regler, flöden, indikatorer och anslutningar |
+| Security Admin | Allt: händelser, ärenden, playbooks, detektionsregler, threat intel-flöden och anslutningar |
+| Security Member | Läsa händelser och threat intel, arbeta med ärenden, köra playbooks och godkänna deras steg, samt skapa, ändra och ta bort detektionsregler och flöden. Den kan inte konfigurera playbooks eller anslutningar, och inte ta bort säkerhetsdata. |
+| Security Viewer | Läsa händelser, ärenden, playbooks, regler, flöden, indikatorer och anslutningar |
 
 ## Skicka säkerhetshändelser
 
@@ -161,6 +168,7 @@ Fliken **Installationsguide** har de här kodsnuttarna med din egen värd och ny
 | AWS Security Hub | Findings, som Detection och Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Händelser för inloggning, MFA, konton och policyer | [Okta System Log](/docs/integrations/okta) |
 
+- Produktens egna larm på eller över **Open Cases From** (**High and above** om du inte väljer en annan nivå, eller **Aldrig**) öppnar [ärenden](/docs/telemetry/security-cases), grupperade efter användaren, värden eller adressen som de handlar om.
 - En anslutning läser poster efter tiden då produkten skapade dem, inte efter tiden för aktiviteten de beskriver. En SIEM-regel som körs varje timme skapar detektioner långt efter händelserna den träffade, och de importeras ändå.
 - Den första hämtningen tittar 24 timmar bakåt, så en ny anslutning visar nya poster direkt.
 - **Testa anslutningen**, i anslutningens rad, kontrollerar åtkomsten till produkten och att OneUptimes egna workers körs, och importerar ingenting. **Run now** hämtar direkt.
@@ -211,14 +219,14 @@ Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad*
 
 ## Detektionsregler
 
-En detektionsregel är en [Sigma](https://sigmahq.io/)-regel, ett öppet YAML-format för att beskriva misstänkt aktivitet, som OneUptime kör enligt ett schema mot dina händelser. När den träffar öppnar den ett larm, eventuellt en incident, och skriver ett Detection Finding tillbaka bland händelserna.
+En detektionsregel är en [Sigma](https://sigmahq.io/)-regel, ett öppet YAML-format för att beskriva misstänkt aktivitet, som OneUptime kör enligt ett schema mot dina händelser. När den träffar öppnar den ett [ärende](/docs/telemetry/security-cases) eller lägger träffen i ett som redan är öppet, öppnar ett larm, eventuellt en incident, och skriver ett Detection Finding tillbaka bland händelserna. **Rule Library** har färdiga regler att utgå från.
 
 ```mermaid title="Så löser en detektionsregel ut"
 flowchart TB
     tick["Varje minut: regler<br/>vars intervall har gått"] --> query["Händelser sedan<br/>regelns senaste körning"]
     query --> count["Räknade per värde av<br/>Group By Field"]
     count --> check{"Når räkningen<br/>Match Count Threshold?"}
-    check -->|"Ja"| fire["Larm, eventuell incident<br/>och ett Detection Finding"]
+    check -->|"Ja"| fire["Ett ärende, ett larm,<br/>en eventuell incident<br/>och ett Detection Finding"]
     check -->|"Nej"| wait["Ingenting förrän<br/>nästa körning"]
 ```
 
@@ -229,7 +237,8 @@ flowchart TB
 2. Ge den ett **Namn** under **Grundläggande information**, och låt **Aktiverad** vara påslaget.
 3. Klistra in regelns YAML i **Sigma Rule (YAML)** under **Sigma Rule**. Den tolkas när du sparar, så ett fel visas i formuläret.
 4. Ange under **Utvärdering** hur ofta den körs och hur många träffar den behöver; se [Utvärderingsinställningar](#utvärderingsinställningar).
-5. Välj under **Vid träff** vad en träff gör: **Create Alert on Match** (på), **Create Incident on Match** (av) och **Write Detection Finding on Match** (på), med valfri **Varningsallvar** och **Incidentallvar**.
+5. Låt **Open a Case on Match** vara påslaget under **Security Cases** för att samla regelns träffar i ärenden, efter värdet som regeln grupperar efter.
+6. Välj under **Vid träff** vad en träff mer ska göra: **Create Alert on Match** (på), **Create Incident on Match** (av) och **Write Detection Finding on Match** (på), med valfri **Varningsallvar** och **Incidentallvar**.
 :::
 
 En första regel, som träffar misslyckade inloggningar utanför `10.x.x.x`:
@@ -374,6 +383,7 @@ Varje värde i **Group By Field** får ett eget larm: gruppera efter något grö
 
 :::cards
 - [Hotunderrättelser](/docs/telemetry/threat-intelligence): Matcha dina händelser mot STIX/TAXII-flöden.
+- [Säkerhetsärenden och playbooks](/docs/telemetry/security-cases): Arbeta med det som dina regler hittar, och reagera med playbooks.
 - [Google SecOps](/docs/integrations/google-secops): Hämta in Chronicles detektioner och händelser.
 - [Söksyntax](/docs/telemetry/search-syntax): Allt som sökfältet förstår.
 - [Behörighetsreferens](/docs/permissions/reference): Security-rollerna, och vad var och en kan göra.

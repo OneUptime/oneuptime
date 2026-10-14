@@ -1,36 +1,170 @@
+import PageMap from "./PageMap";
+import IconProp from "Common/Types/Icon/IconProp";
+
 /*
- * Which Security Events tab a route is on.
+ * The Security Events menu, as data.
  *
- * The product used to hang its seven destinations off a left side menu, which
- * put it out of step with every other telemetry signal: Logs, Traces, Metrics
- * and Exceptions all carry their destinations as tabs in the page header, and
- * the events list under this one is now the same explorer those pages render.
- * Keeping the mapping here (rather than inside the layout) is what lets
- * App/Tests pin every route to its tab without rendering a page.
+ * The product began as an events explorer, and carried its seven
+ * destinations as header tabs the way Logs, Traces and Metrics do. It is a
+ * security operations product now - cases to work, playbooks that respond,
+ * rules and threat intelligence that detect - and fourteen destinations do
+ * not fit in a tab bar. So it has a side menu like Incidents and Alerts, the
+ * other products people work in, and the menu reads as the work does:
  *
- * Matching is done on the path SEGMENT after `/security-events/`, not with a
- * substring test on the whole path: a project id, a saved-view name or a
- * query string that happened to contain "monitors" would otherwise light up
- * the wrong tab.
+ *   Overview      how the SOC is doing, and the case queue: what was
+ *                 detected, grouped by what it is about
+ *   Investigate   the raw events, how they connect, and who they involve
+ *   Detect        what turns events into cases
+ *   Respond       what happens to a case by itself
+ *   Sources       where the events come from
+ *
+ * Kept free of React so the menu - its order, its titles and the page each
+ * entry opens - is pinned in a plain test, and the docs that describe it are
+ * held to it.
  */
 
-export type SecurityEventsTabKey =
-  | "events"
-  | "correlate"
-  | "detection-rules"
-  | "threat-intel"
-  | "monitors"
-  | "connections"
-  | "setup";
+export type SecurityEventsMenuBadge = "openCases" | "runsWaitingForApproval";
 
-const SEGMENT_TO_TAB: Record<string, SecurityEventsTabKey> = {
-  correlate: "correlate",
-  "detection-rules": "detection-rules",
-  "threat-intel": "threat-intel",
-  monitors: "monitors",
-  connections: "connections",
-  documentation: "setup",
-};
+export interface SecurityEventsMenuItem {
+  page: PageMap;
+  title: string;
+  icon: IconProp;
+  // A live count beside the title: what is waiting for somebody.
+  badge?: SecurityEventsMenuBadge | undefined;
+}
+
+export interface SecurityEventsMenuSection {
+  title: string;
+  items: Array<SecurityEventsMenuItem>;
+  /*
+   * Folded away until someone opens it, or is on one of its pages: setting
+   * detections and sources up is not what most visits are for.
+   */
+  startsCollapsed?: boolean | undefined;
+}
+
+export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
+  {
+    title: "Overview",
+    items: [
+      {
+        page: PageMap.SECURITY_EVENTS_OVERVIEW,
+        title: "Overview",
+        icon: IconProp.ChartBar,
+      },
+      {
+        page: PageMap.SECURITY_CASES,
+        title: "Security Cases",
+        icon: IconProp.ShieldExclamation,
+        badge: "openCases",
+      },
+    ],
+  },
+  {
+    title: "Investigate",
+    items: [
+      {
+        page: PageMap.SECURITY_EVENTS,
+        title: "Events",
+        icon: IconProp.List,
+      },
+      {
+        page: PageMap.SECURITY_EVENTS_CORRELATE,
+        title: "Correlate",
+        icon: IconProp.Graph,
+      },
+      {
+        page: PageMap.SECURITY_EVENTS_ENTITIES,
+        title: "Entities",
+        icon: IconProp.Fingerprint,
+      },
+    ],
+  },
+  {
+    title: "Detect",
+    startsCollapsed: true,
+    items: [
+      {
+        page: PageMap.SECURITY_EVENTS_DETECTION_RULES,
+        title: "Detection Rules",
+        icon: IconProp.ShieldCheck,
+      },
+      {
+        page: PageMap.SECURITY_EVENTS_RULE_LIBRARY,
+        title: "Rule Library",
+        icon: IconProp.SquareStack3D,
+      },
+      {
+        page: PageMap.SECURITY_EVENTS_ATTACK_COVERAGE,
+        title: "ATT&CK Coverage",
+        icon: IconProp.TableCells,
+      },
+      {
+        page: PageMap.SECURITY_EVENTS_THREAT_INTEL,
+        title: "Threat Intel",
+        icon: IconProp.Bug,
+      },
+      {
+        page: PageMap.SECURITY_EVENTS_MONITORS,
+        title: "Monitors",
+        icon: IconProp.AltGlobe,
+      },
+    ],
+  },
+  {
+    title: "Respond",
+    items: [
+      {
+        page: PageMap.SECURITY_PLAYBOOKS,
+        title: "Playbooks",
+        icon: IconProp.Bolt,
+      },
+      {
+        page: PageMap.SECURITY_PLAYBOOK_RUNS,
+        title: "Playbook Runs",
+        icon: IconProp.Play,
+        badge: "runsWaitingForApproval",
+      },
+    ],
+  },
+  {
+    title: "Sources",
+    startsCollapsed: true,
+    items: [
+      {
+        page: PageMap.SECURITY_EVENTS_CONNECTIONS,
+        title: "Connections",
+        icon: IconProp.Link,
+      },
+      {
+        page: PageMap.SECURITY_EVENTS_DOCUMENTATION,
+        title: "Setup Guide",
+        icon: IconProp.Book,
+      },
+    ],
+  },
+];
+
+/*
+ * The pages that open on their own, outside the menu's layout: a case and a
+ * playbook are each worked on a full-width page, reached from their lists.
+ */
+export const SECURITY_EVENTS_DETAIL_PAGES: Array<PageMap> = [
+  PageMap.SECURITY_CASE_VIEW,
+  PageMap.SECURITY_PLAYBOOK_VIEW,
+];
+
+// Where the product opens: the overview, not the raw events.
+export const SECURITY_EVENTS_LANDING_PAGE: PageMap =
+  PageMap.SECURITY_EVENTS_OVERVIEW;
+
+export function getSecurityEventsMenuItems(): Array<SecurityEventsMenuItem> {
+  return SECURITY_EVENTS_MENU.flatMap(
+    (section: SecurityEventsMenuSection): Array<SecurityEventsMenuItem> => {
+      return section.items;
+    },
+  );
+}
 
 const ROOT_SEGMENT: string = "security-events";
 
@@ -40,7 +174,9 @@ const ROOT_SEGMENT: string = "security-events";
  * the `/*` react-router leaves on a wildcard route).
  *
  * Returns null when the path is not a Security Events route at all, so a
- * caller can tell "the events list" apart from "not ours".
+ * caller can tell "the events list" apart from "not ours". Matched on path
+ * segments rather than a substring, so a project id or a query string that
+ * happens to contain "cases" is never taken for the Cases page.
  */
 export function getSecurityEventsPathSegment(path: string): string | null {
   const withoutQuery: string = (path || "").split("?")[0] || "";
@@ -57,14 +193,4 @@ export function getSecurityEventsPathSegment(path: string): string | null {
   }
 
   return segments[rootIndex + 1] || "";
-}
-
-export function getActiveSecurityEventsTab(path: string): SecurityEventsTabKey {
-  const segment: string | null = getSecurityEventsPathSegment(path);
-
-  if (segment === null) {
-    return "events";
-  }
-
-  return SEGMENT_TO_TAB[segment] || "events";
 }

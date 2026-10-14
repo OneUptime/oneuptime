@@ -60,6 +60,7 @@ import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import { JSONObject } from "../../../../Types/JSON";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import { getJestSpyOn } from "../../../Spy";
+import SecurityCaseIngest from "../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
 import {
   INCIDENT_STATE_IDS,
   idsOfAnyFilter,
@@ -351,6 +352,15 @@ describe("DetectionRuleEvaluator", () => {
      * resolved state (Common/Utils/ResolvedState).
      */
     mockProjectStates();
+    /*
+     * Every rule opens security cases unless switched off; the case side
+     * has its own suite (SecurityCaseIngest), so here it only records.
+     */
+    getJestSpyOn(SecurityCaseIngest, "recordDetections").mockResolvedValue({
+      casesOpened: 0,
+      detectionsAdded: 0,
+      detectionsRepeated: 0,
+    } as never);
   });
 
   afterEach(() => {
@@ -391,6 +401,7 @@ describe("DetectionRuleEvaluator", () => {
         alertsCreated: 0,
         incidentsCreated: 0,
         findingsWritten: 0,
+        casesOpened: 0,
         error: null,
       };
 
