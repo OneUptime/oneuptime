@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * with no default changes no row; the backfill rewrites each internal note
  * once.
  */
-export class AddSavedChatMessageToNotes1801800000000
+export class AddSavedChatMessageToNotes1801850000000
   implements MigrationInterface
 {
-  public name: string = "AddSavedChatMessageToNotes1801800000000";
+  public name: string = "AddSavedChatMessageToNotes1801850000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

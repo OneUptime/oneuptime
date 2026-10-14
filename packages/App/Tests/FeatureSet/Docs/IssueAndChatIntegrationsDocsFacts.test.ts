@@ -24,13 +24,20 @@ import { dashboardLabel, drawnActionLabel } from "./DocsDashboardLabels";
 import {
   bold,
   boldIn,
-  codeIn,
   englishPage,
   englishSection,
   leadOf,
   readRepoFile,
   tableWithHeader,
 } from "./InventoryAndApiDocsSupport";
+import {
+  FieldListInstruction,
+  FieldPick,
+  fieldListInstructions,
+  pickedField,
+  pickerFields,
+} from "./IntegrationsFieldLists";
+import { FieldOption } from "Common/UI/Components/Workflow/FieldPicker/FieldPickerOptions";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -285,7 +292,7 @@ describe("GitHub and GitLab: an issue for every incident", () => {
       ).toEqual(expect.arrayContaining(["Response Status", "Response Body"]));
 
       expect(text).toContain(
-        `pick ${bold("On Create Incident")}. Click the trigger, and in ${bold(SELECT_FIELDS_NAME)} pick`,
+        `pick ${bold("On Create Incident")}. Click the trigger: its ${bold(SELECT_FIELDS_NAME)} starts with ${bold("Title")}, so click ${bold("Add field")} and pick`,
       );
       expect(text).toContain(
         `Under ${bold("More fields")}, set its ${bold("Request Headers")} to:`,
@@ -297,18 +304,36 @@ describe("GitHub and GitLab: an issue for every incident", () => {
   );
 
   it.each(ISSUE_PAGES)(
-    "%s picks in Fields to pass on every field its body reads, each one an incident's",
-    (page: string) => {
-      const pickLine: string = englishSection(page, "### Add the trigger");
-      const picked: Array<string> = codeIn(
-        pickLine.slice(pickLine.indexOf(SELECT_FIELDS_NAME)),
+    "%s passes on in Fields to pass on every field its body reads, the title it starts with and the fields it picks, each one an incident's",
+    async (page: string) => {
+      const instructions: Array<FieldListInstruction> = fieldListInstructions(
+        englishSection(page, "### Add the trigger"),
       );
+      const options: Array<FieldOption> = await pickerFields(
+        "Incident",
+        SELECT_FIELDS_NAME,
+      );
+
+      expect(instructions).toHaveLength(1);
+
+      const instruction: FieldListInstruction =
+        instructions[0] as FieldListInstruction;
+      // The list as Add field draws it: the title it starts with, then the picks.
+      const picked: Array<string | undefined> = [
+        ...instruction.startsWith.map((label: string) => {
+          return pickedField(options, { label })?.path;
+        }),
+        ...instruction.picks.map((pick: FieldPick) => {
+          return pickedField(options, pick)?.path;
+        }),
+      ];
       const body: JSONObject = jsonBlocks(page)[1] as JSONObject;
       const read: Array<string> = modelFieldsRead(
         JSON.stringify(body),
         "incident-on-create-1",
       );
 
+      expect(instruction.startsWith).toEqual(["Title"]);
       expect(picked).toEqual([
         "title",
         "description",
@@ -321,7 +346,10 @@ describe("GitHub and GitLab: an issue for every incident", () => {
       }
 
       for (const field of picked) {
-        expect({ field, onIncident: field in new Incident() }).toEqual({
+        expect({
+          field,
+          onIncident: (field as string) in new Incident(),
+        }).toEqual({
           field,
           onIncident: true,
         });

@@ -54,7 +54,7 @@ Go to **Workflows**, click **Create Workflow**, then **Start from scratch**. Nam
 
 ### Add the trigger
 
-Click the dashed **Choose what starts this workflow** block and pick **On Create Incident**. Click the trigger, and in **Fields to pass on** pick `title` and `description`.
+Click the dashed **Choose what starts this workflow** block and pick **On Create Incident**. Click the trigger: its **Fields to pass on** starts with **Title**, so click **Add field** and pick **Description**.
 
 ### Create the record
 
@@ -93,7 +93,7 @@ A workflow has one trigger, so resolving takes a second workflow, started when a
 :::steps
 ### Add the On Update Incident trigger
 
-Create a workflow named `Resolve ServiceNow incidents`, and pick **On Update Incident** as its trigger. In **Fields to watch**, pick `currentIncidentStateId`, so it runs only when the state changes. In **Fields to pass on**, ask for whether the new state is a resolved one:
+Create a workflow named `Resolve ServiceNow incidents`, and pick **On Update Incident** as its trigger. In **Fields to watch**, click **Add field** and pick **Current Incident State**, so it runs only when the state changes. In **Fields to pass on**, ask for whether the new state is a resolved one: click **Add field**, open **Current Incident State** and pick **Is Resolved State**. Or click **Edit as JSON** and replace the JSON with:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

@@ -307,7 +307,7 @@ I token scadono dopo un anno per impostazione predefinita e non si rinnovano. Pe
 ### Aprire un ticket Jira per ogni incidente
 
 :::steps
-1. Crea da zero un workflow chiamato `Incidents to Jira`. Fai clic sul blocco tratteggiato e aggiungi il trigger **On Create Incident**. Nei suoi **Fields to pass on**, chiedi `{"_id": true, "title": true, "description": true, "incidentNumber": true}`. Lascia il suo **Identifier** come `incident-on-create-1`.
+1. Crea da zero un workflow chiamato `Incidents to Jira`. Fai clic sul blocco tratteggiato e aggiungi il trigger **On Create Incident**. I suoi **Fields to pass on** iniziano con **Titolo**: fai clic su **Aggiungi campo** e scegli **Descrizione** e **Numero dell'incidente**. L'ID viene sempre trasmesso. Lascia il suo **Identifier** come `incident-on-create-1`.
 2. Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Success** del trigger. Imposta il suo **Identifier** su `create-issue`, il suo **URL** su `{{global.variables.JIRA_URL}}/rest/api/3/issue` e, in **Altri campi**, i suoi **Request Headers** su `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Imposta il suo **Request Body** sul ticket, e sostituisci `OPS` e `Bug` con la chiave del tuo progetto e un tipo di ticket di quel progetto:
 
@@ -384,14 +384,14 @@ Per dare a tutti in Jira una strada per tornare indietro, aggiungi dopo `create-
 }
 ```
 
-Per questo aggiungi `projectId` ai **Fields to pass on** del trigger, e mantieni il `.value`: una colonna che contiene l'ID di un altro record arriva come `{"_type": "ObjectID", "value": "..."}`. Il `globalId` rende sicuro ripetere la chiamata: Jira aggiorna il link che lo porta invece di aggiungerne un secondo.
+Per questo, nei **Fields to pass on** del trigger, fai clic su **Aggiungi campo** e scegli **ID Progetto**, e mantieni il `.value`: una colonna che contiene l'ID di un altro record arriva come `{"_type": "ObjectID", "value": "..."}`. Il `globalId` rende sicuro ripetere la chiamata: Jira aggiorna il link che lo porta invece di aggiungerne un secondo.
 
 ### Commentare e fare la transizione mentre l'incidente avanza
 
 Costruiscilo come secondo workflow, così un errore qui non impedisce mai l'apertura dei ticket.
 
 :::steps
-1. Crea un workflow chiamato `Incident updates to Jira`, con il trigger **On Update Incident**. Imposta **Fields to watch** su `{"currentIncidentStateId": true}` e **Fields to pass on** su `{"_id": true, "currentIncidentState": {"name": true}}`.
+1. Crea un workflow chiamato `Incident updates to Jira`, con il trigger **On Update Incident**. In **Fields to watch**, fai clic su **Aggiungi campo** e scegli **Current Incident State**. In **Fields to pass on**, fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Nome**.
 2. Aggiungi un blocco **If / Else**: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, o il nome del tuo stato risolto.
 3. Dopo il suo lato **Yes**, trova il ticket con un blocco **API Post (JSON)** il cui **Identifier** sia `find-issue`, che pubblichi su `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 

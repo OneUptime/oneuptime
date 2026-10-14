@@ -36,6 +36,7 @@ Lagre påloggingsinformasjonen for ett prosjekt, eller én gang for hele install
 | --- | --- | --- |
 | Hvor | Kortet **Twilio-konfigurasjon** under **Prosjektinnstillinger > Varsler > Varselinnstillinger** | **Admin Dashboard > Innstillinger > Anrop og SMS** |
 | Hvem kan angi den | **Project Owner**, **Project Admin** eller **Create Call and SMS** i en egendefinert rolle | En master-admin |
+| Hvem kan lese dens Auth Token | **Project Owner**, **Project Admin** eller **Read Call and SMS** i en egendefinert rolle. Andre som ser konfigurasjonen, ser resten av den; tokenet lagres kryptert | En master-admin |
 | Brukes til | SMS og anrop til prosjektets medlemmer så lenge den er prosjektstandarden, statussidene den er tildelt, og retningslinjene for innkommende anrop som bruker den | SMS og anrop til medlemmene i alle prosjekter som ikke har en standardkonfigurasjon |
 
 Slik legger du til en prosjektkonfigurasjon:

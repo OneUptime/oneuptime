@@ -36,6 +36,7 @@ Sla de inloggegevens op voor één project, of eenmalig voor de hele installatie
 | --- | --- | --- |
 | Waar | De kaart **Twilio-configuratie** onder **Projectinstellingen > Meldingen > Meldingsinstellingen** | **Admin Dashboard > Instellingen > Oproep en sms** |
 | Wie kan het instellen | **Project Owner**, **Project Admin**, of **Create Call and SMS** in een aangepaste rol | Een master-admin |
+| Wie het Auth Token kan lezen | **Project Owner**, **Project Admin**, of **Read Call and SMS** in een aangepaste rol. Anderen die de configuratie zien, zien de rest ervan; het token wordt versleuteld opgeslagen | Een master-admin |
 | Gebruikt voor | Sms en oproepen naar de leden van het project zolang het de projectstandaard is, de statuspagina's waaraan het is toegewezen en het beleid voor inkomende oproepen dat het gebruikt | Sms en oproepen naar de leden van elk project dat geen standaardconfiguratie heeft |
 
 Zo voegt u een projectconfiguratie toe:

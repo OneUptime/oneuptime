@@ -119,7 +119,7 @@ URL이 유일한 자격 증명이므로 비밀번호처럼 다루세요. [Webhoo
 
 :::steps
 1. [아래](#자격-증명-안전하게-보관하기)에 나온 대로 도구의 API 키를 시크릿 전역 변수로 저장합니다.
-2. 워크플로를 만들고, 점선 블록을 클릭한 다음 **On Create Incident** 같은 이벤트 트리거를 고릅니다. **Fields to pass on**에서 `title`, `description`처럼 보낼 필드를 선택합니다.
+2. 워크플로를 만들고, 점선 블록을 클릭한 다음 **On Create Incident** 같은 이벤트 트리거를 고릅니다. 트리거를 클릭합니다. **Fields to pass on**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**처럼 보낼 다른 필드를 고릅니다.
 3. **구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가합니다. 트리거의 **Success** 점을 이 블록에 연결합니다.
 4. **URL**, `Authorization` 헤더가 있는 **Request Headers**, `{{local.components.incident-on-create-1.returnValues.model.title}}` 같은 인시던트 필드가 있는 **Request Body**를 채웁니다.
 5. **워크플로 실행**을 클릭하고, **인시던트**에서 인시던트를 고른 다음 실행합니다. 테스트 실행도 요청을 실제로 보냅니다. 그런 다음 **활성화됨**을 켭니다.

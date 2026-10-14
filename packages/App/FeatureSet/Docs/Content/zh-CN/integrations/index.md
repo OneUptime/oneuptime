@@ -119,7 +119,7 @@ URL 是唯一的凭据，所以要像对待密码一样对待它。参见 [Webho
 
 :::steps
 1. 按照[下文](#妥善保管凭据)所示，把该工具的 API 密钥保存为一个密钥全局变量。
-2. 创建一个工作流，点击虚线块并选择一个事件触发器，例如 **On Create Incident**。在它的 **Fields to pass on** 中勾选要发送的字段，例如 `title` 和 `description`。
+2. 创建一个工作流，点击虚线块并选择一个事件触发器，例如 **On Create Incident**。点击该触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段**，再选择要发送的其他字段，例如 **描述**。
 3. 点击 **添加组件**，添加一个 **API Post (JSON)** 块。把触发器的 **Success** 点连接到它。
 4. 填写它的 **URL**，在 **Request Headers** 中填入 `Authorization` 请求头，在 **Request Body** 中填入事件的字段，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。
 5. 点击 **运行工作流**，在 **事件** 中选择一个事件，然后运行。测试运行会真的发送请求。然后打开 **已启用**。

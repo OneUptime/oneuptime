@@ -1,6 +1,7 @@
 import { readPage } from "./DocsContentSupport";
-import { escapeRegExp } from "./DocsTranslationChecks";
+import { boldSpans, escapeRegExp } from "./DocsTranslationChecks";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
+import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { LEGACY_SLACK_COMMANDS } from "Common/Server/Utils/Workspace/Slack/SlackCommandParser";
 import WorkspaceCommands from "Common/Server/Utils/Workspace/WorkspaceCommands";
@@ -8,6 +9,10 @@ import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "Common/Types/AnalyticsDat
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { getTableColumns } from "Common/Types/Database/TableColumn";
 import Domain from "Common/Types/Domain";
+import Permission, {
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
 import { HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import { describe, expect, it } from "@jest/globals";
@@ -2360,6 +2365,57 @@ describe("Twilio Integration, against the notification server and the forms", ()
     ).toBeGreaterThanOrEqual(2);
     expect(page).toContain("Incoming-call handlers validate Twilio signatures");
     expect(page).toContain("`X-Twilio-Signature` header through proxies");
+  });
+
+  it("the Auth Token is read back by the roles the column names, and stored encrypted", () => {
+    const row: Array<string> | undefined = tableRows(
+      sectionOf(page, "## 2. Save the credentials in OneUptime"),
+    ).find((cells: Array<string>): boolean => {
+      return cells[0] === "Who can read its Auth Token";
+    });
+    const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+    const titleOf: (permission: Permission) => string = (
+      permission: Permission,
+    ): string => {
+      return (
+        PermissionHelper.getAllPermissionProps().find(
+          (props: PermissionProps): boolean => {
+            return props.permission === permission;
+          },
+        )?.title || permission
+      );
+    };
+    const tokenReaders: Array<string> = (
+      config.getColumnAccessControlFor("twilioAuthToken")?.read || []
+    ).map(titleOf);
+
+    expect(row).toBeDefined();
+    // The roles the cell names are the column's read list, in its order.
+    expect(boldSpans(row![1] as string)).toEqual(tokenReaders);
+    expect(tokenReaders).toEqual([
+      "Project Owner",
+      "Project Admin",
+      "Read Call and SMS",
+    ]);
+    expect(row![1]).toContain("the token is stored encrypted");
+    expect(getTableColumns(config)["twilioAuthToken"]?.encrypted).toBe(true);
+
+    // The rest of the configuration reads for every role that sees it.
+    for (const column of [
+      "name",
+      "twilioAccountSID",
+      "twilioPrimaryPhoneNumber",
+      "twilioSecondaryPhoneNumbers",
+      "isProjectDefault",
+    ]) {
+      expect({
+        column,
+        read: config.getColumnAccessControlFor(column)?.read,
+      }).toEqual({ column, read: config.getReadPermissions() });
+    }
+    expect(row![1]).toContain(
+      "Others who can see the configuration see the rest of it",
+    );
   });
 
   it("the project form asks for the fields the steps name", () => {
