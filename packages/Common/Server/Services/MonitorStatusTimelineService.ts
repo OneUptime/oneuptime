@@ -46,6 +46,10 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorUptimeSummaryUtil from "../../Utils/Monitor/MonitorUptimeSummaryUtil";
 import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
+import MonitorStatusEventDelete, {
+  StatusEventDeleteDecision,
+} from "../Utils/Monitor/MonitorStatusEventDelete";
 
 /*
  * Thrown by onBeforeCreate when the incoming status is the same as the status of
@@ -101,6 +105,17 @@ export interface MergedDowntimeRow {
 export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
   public constructor() {
     super(MonitorStatusTimeline);
+
+    /*
+     * A delete by query - a workflow's Delete Many, a retention purge -
+     * leaves each monitor's current status and every status event that
+     * covers part of the last 90 days, so a monitor never turns grey on a
+     * status page because its history was cleaned up. One event deleted by
+     * its id is onBeforeDelete's to judge.
+     */
+    this.keepRowsOnDeleteByQuery(
+      StateTimelineRowsKept.forTable("MonitorStatusTimeline"),
+    );
   }
 
   /**
@@ -424,9 +439,9 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * everything clipped to [startDate, LEAST(endDate, now())], and an open row
    * capped at the next row's start, `ORDER BY startsAt, endsAt NULLS LAST`.
    * For a single monitor the two agree exactly, unless two of its own rows
-   * overlap (deleting a row from the middle of a timeline leaves that, see
-   * getRollingUptimeTotals): the aggregate counts the overlap twice, and a
-   * union once.
+   * overlap (deleting a row from the middle of a timeline used to leave
+   * that, see getRollingUptimeTotals): the aggregate counts the overlap
+   * twice, and a union once.
    *
    * Downtime statuses are picked out AFTER that LEAD, never before it.
    * Filtered first, an open Offline row would run on to the next Offline
@@ -633,13 +648,14 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * That row set is exactly what the aggregate reads while no closed row
    * ends after a later row starts. The write paths keep that: create closes
    * the preceding row at the new row's start, and a backfilled row gets the
-   * next row's start as its end. The exception is deleting a row from the
-   * middle of a timeline (onBeforeDelete). That moves the preceding row's
-   * end to the next row's old start and the next row's start back to the
-   * deleted row's start, so the two overlap across the deleted span. Where
-   * that overlap straddles the widest window's start, the aggregate counts
-   * it twice, reporting more than 100% coverage, and this counts it once,
-   * from the newer row.
+   * next row's start as its end, and deleting a row from the middle of a
+   * timeline runs the preceding row on to the next row's start
+   * (MonitorStatusEventDelete). That delete used to move the next row's
+   * start back to the deleted row's start as well, so the two overlapped
+   * across the deleted span, and rows it wrote then still do. Where such an
+   * overlap straddles the widest window's start, the aggregate counts it
+   * twice, reporting more than 100% coverage, and this counts it once, from
+   * the newer row.
    */
   @CaptureSpan()
   public async getRollingUptimeTotals(data: {
@@ -1679,18 +1695,21 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     deleteBy: DeleteBy<MonitorStatusTimeline>,
   ): Promise<OnDelete<MonitorStatusTimeline>> {
     /*
-     * OneUptime's own deletes of entries - a retention purge, a cleanup -
-     * move no neighbour unless they name one entry by its id.
+     * A delete that names its events by a query - a workflow's Delete Many
+     * or Delete One by query, a retention purge - is a clean-up, not a
+     * correction: it moves no event. DatabaseService has already narrowed it
+     * to the events that are over (keepRowsOnDeleteByQuery, declared in the
+     * constructor): each monitor keeps its current status, and every event
+     * that covers part of the last 90 days.
      */
-    if (deleteBy.props.isRoot && !Service.getOneRowIdNamedBy(deleteBy.query)) {
+    if (!Service.getOneRowIdNamedBy(deleteBy.query)) {
       return { deleteBy, carryForward: null };
     }
 
     /*
-     * The one entry the delete removes, and the delete held to it: its
-     * neighbours close the gap it leaves. A delete of several entries - a
-     * workflow's delete of many, say - has no one gap to close: it is left
-     * as it is, and moves no neighbour.
+     * The one event the delete names by its id, and the delete held to it:
+     * the event before it closes the gap it leaves, or the delete is refused
+     * when no event is left to (MonitorStatusEventDelete).
      */
     const toBeDeleted: {
       row: MonitorStatusTimeline | null;
@@ -1701,146 +1720,110 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       endsAt: true,
     });
 
-    if (toBeDeleted.deletesMore) {
+    if (toBeDeleted.deletesMore || !toBeDeleted.row) {
       return { deleteBy, carryForward: null };
     }
 
-    if (toBeDeleted.row) {
-      const monitorStatusTimelineToBeDeleted: MonitorStatusTimeline | null =
-        toBeDeleted.row;
+    const event: MonitorStatusTimeline = toBeDeleted.row;
+    const monitorId: ObjectID | undefined = event.monitorId;
 
-      const monitorId: ObjectID | undefined =
-        monitorStatusTimelineToBeDeleted?.monitorId;
-
-      if (monitorId) {
-        const monitorStatusTimeline: PositiveNumber = await this.countBy({
-          query: {
-            monitorId: monitorId,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        if (!monitorStatusTimelineToBeDeleted) {
-          throw new BadDataException("Monitor status timeline not found.");
-        }
-
-        if (monitorStatusTimeline.isOne()) {
-          throw new BadDataException(
-            "Cannot delete the only status timeline. Monitor should have at least one status timeline.",
-          );
-        }
-
-        /*
-         * There are three cases.
-         * 1. This is the first status.
-         * 2. This is the last status.
-         * 3. This is in the middle.
-         */
-
-        const stateBeforeThis: MonitorStatusTimeline | null =
-          await this.findOneBy({
-            query: {
-              _id: QueryHelper.notEquals(
-                monitorStatusTimelineToBeDeleted.id!.toString(),
-              ),
-              monitorId: monitorId,
-              startsAt: QueryHelper.lessThanEqualTo(
-                monitorStatusTimelineToBeDeleted.startsAt!,
-              ),
-            },
-            sort: {
-              startsAt: SortOrder.Descending,
-            },
-            props: {
-              isRoot: true,
-            },
-            select: {
-              monitorStatusId: true,
-              startsAt: true,
-              endsAt: true,
-            },
-          });
-
-        const stateAfterThis: MonitorStatusTimeline | null =
-          await this.findOneBy({
-            query: {
-              monitorId: monitorId,
-              startsAt: QueryHelper.greaterThan(
-                monitorStatusTimelineToBeDeleted.startsAt!,
-              ),
-            },
-            sort: {
-              startsAt: SortOrder.Ascending,
-            },
-            props: {
-              isRoot: true,
-            },
-            select: {
-              monitorStatusId: true,
-              startsAt: true,
-              endsAt: true,
-            },
-          });
-
-        if (!stateBeforeThis) {
-          // This is the first status, no need to update previous status.
-          logger.debug("This is the first status.", {
-            monitorId: monitorId?.toString(),
-          } as LogAttributes);
-        } else if (!stateAfterThis) {
-          /*
-           * This is the last status.
-           * Update the previous status to end at the start of this status.
-           */
-          await this.updateOneById({
-            id: stateBeforeThis.id!,
-            data: {
-              endsAt: monitorStatusTimelineToBeDeleted.endsAt!,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-          logger.debug("This is the last status.", {
-            monitorId: monitorId?.toString(),
-          } as LogAttributes);
-        } else {
-          /*
-           * This status is in the middle.
-           * Update the previous status to end at the start of this status.
-           */
-          await this.updateOneById({
-            id: stateBeforeThis.id!,
-            data: {
-              endsAt: stateAfterThis.startsAt!,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-          // Update the next status to start at the end of this status.
-          await this.updateOneById({
-            id: stateAfterThis.id!,
-            data: {
-              startsAt: monitorStatusTimelineToBeDeleted.startsAt!,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-          logger.debug("This status is in the middle.", {
-            monitorId: monitorId?.toString(),
-          } as LogAttributes);
-        }
-      }
-
-      return { deleteBy, carryForward: monitorId };
+    if (!monitorId) {
+      return { deleteBy, carryForward: null };
     }
 
-    return { deleteBy, carryForward: null };
+    const eventCount: PositiveNumber = await this.countBy({
+      query: {
+        monitorId: monitorId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const stateBeforeThis: MonitorStatusTimeline | null = await this.findOneBy(
+      {
+        query: {
+          _id: QueryHelper.notEquals(event.id!.toString()),
+          monitorId: monitorId,
+          startsAt: QueryHelper.lessThanEqualTo(event.startsAt!),
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          startsAt: true,
+          endsAt: true,
+        },
+      },
+    );
+
+    const stateAfterThis: MonitorStatusTimeline | null = await this.findOneBy({
+      query: {
+        monitorId: monitorId,
+        startsAt: QueryHelper.greaterThan(event.startsAt!),
+      },
+      sort: {
+        startsAt: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+        startsAt: true,
+      },
+    });
+
+    const decision: StatusEventDeleteDecision = MonitorStatusEventDelete.decide(
+      {
+        event: event,
+        before:
+          stateBeforeThis && stateBeforeThis.id
+            ? {
+                id: stateBeforeThis.id,
+                startsAt: stateBeforeThis.startsAt,
+                endsAt: stateBeforeThis.endsAt,
+              }
+            : null,
+        after: stateAfterThis,
+        eventCount: eventCount.toNumber(),
+        now: OneUptimeDate.getCurrentDate(),
+      },
+    );
+
+    if (decision.kind === "refuse") {
+      throw new BadDataException(decision.message);
+    }
+
+    if (decision.kind === "previous-runs-on") {
+      /*
+       * Written as null, never left out, when the event before it becomes
+       * the current status again: a column left out of an update is not
+       * written at all.
+       */
+      await this.updateOneById({
+        id: decision.previousId,
+        data: {
+          endsAt: decision.endsAt,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug(
+      `Monitor status event ${event.id?.toString()} deleted: ${decision.kind}.`,
+      {
+        monitorId: monitorId.toString(),
+      } as LogAttributes,
+    );
+
+    return { deleteBy, carryForward: monitorId };
   }
 
   @CaptureSpan()

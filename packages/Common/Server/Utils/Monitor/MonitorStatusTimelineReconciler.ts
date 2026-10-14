@@ -3,6 +3,7 @@ import PostgresAppInstance, {
 } from "../../Infrastructure/PostgresDatabase";
 import DatabaseNotConnectedException from "../../../Types/Exception/DatabaseNotConnectedException";
 import ObjectID from "../../../Types/ObjectID";
+import { MonitorFeedEventType } from "../../../Models/DatabaseModels/MonitorFeed";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -65,6 +66,55 @@ const MAX_BATCH_SIZE: number = 10000;
  * is already guaranteed to terminate; this only bounds a run if that invariant is ever broken.
  */
 const MAX_ROUNDS: number = 100000;
+
+/*
+ * A MONITOR WITH NO STATUS TIMELINE LEFT.
+ *
+ * A status page draws a monitor's bars and uptime from its status timeline, so a monitor
+ * with no row left is grey there - "no data" - even when it has been Operational all along.
+ * Two things left monitors that way:
+ *
+ *   - OneUptime Cloud's retention purge, from December 2023 to March 2025, deleted every
+ *     status timeline row whose startsAt was more than 120 days old. A monitor that had not
+ *     changed status for 120 days lost its only row, its CURRENT status, and turned grey for
+ *     good. Deletes by query now never take a monitor's current status
+ *     (Types/StateTimeline/RowsKeptOnDelete), but the monitors already emptied stay grey.
+ *   - A monitor whose first status row could not be written when it was created
+ *     (MonitorService.createStatusTimelineWithRetry gives up after three lock failures). A
+ *     Manual monitor is never probed, so nothing else ever writes one.
+ *
+ * The monitor itself still says what its status is (currentMonitorStatusId), so that status
+ * is recorded again as one open row: from the last status change OneUptime has a record of
+ * (the newest MonitorStatusChanged item of the monitor's feed), or else from when the monitor
+ * was created - never later than now, never before the monitor existed. The row says what
+ * happened in its root cause, notifies nobody (isOwnerNotified), and writes no feed item: no
+ * status changed.
+ *
+ * Left alone: a deleted monitor, a monitor with no current status, one whose status is no
+ * longer its project's (the row would name a status the monitor's project does not have), and
+ * a monitor created in the last RESTORE_GRACE_PERIOD_IN_MINUTES, which may still be writing its
+ * first row.
+ */
+export const RESTORED_STATUS_EVENT_ROOT_CAUSE: string =
+  "Restored by OneUptime. This monitor's status history had been deleted, so OneUptime recorded its current status again, from the last status change it has a record of (or from when the monitor was created).";
+
+// A monitor this new may still be writing its first status row (MonitorService.onCreateSuccess).
+export const RESTORE_GRACE_PERIOD_IN_MINUTES: number = 60;
+
+export const DEFAULT_RESTORE_BATCH_SIZE: number = 1000;
+
+export interface RestoreMissingStatusTimelinesOptions {
+  // Monitors restored per statement.
+  batchSize?: number | undefined;
+  // The clock, unless a test holds it.
+  now?: Date | undefined;
+}
+
+export interface RestoreMissingStatusTimelinesResult {
+  // Monitors given their current status back as a status timeline row.
+  restored: number;
+  restoredMonitorIds: Array<ObjectID>;
+}
 
 export default class MonitorStatusTimelineReconciler {
   /*
@@ -335,6 +385,150 @@ export default class MonitorStatusTimelineReconciler {
       scanned: scanned,
       repaired: repaired,
     };
+  }
+
+  /*
+   * Gives every monitor with no status timeline left its current status back as one row (see
+   * RESTORED_STATUS_EVENT_ROOT_CAUSE above). Idempotent: a restored monitor has a row, so a
+   * second run restores nothing. Batched, a statement per batch, until a batch comes back short.
+   */
+  @CaptureSpan()
+  public static async restoreMissingStatusTimelines(
+    options: RestoreMissingStatusTimelinesOptions = {},
+  ): Promise<RestoreMissingStatusTimelinesResult> {
+    const batchSize: number = this.getBatchSize(
+      options.batchSize || DEFAULT_RESTORE_BATCH_SIZE,
+    );
+
+    const now: Date = options.now || new Date();
+
+    const createdBefore: Date = new Date(
+      now.getTime() - RESTORE_GRACE_PERIOD_IN_MINUTES * 60 * 1000,
+    );
+
+    const restoredMonitorIds: Array<ObjectID> = [];
+
+    for (let round: number = 1; round <= MAX_ROUNDS; round++) {
+      const restored: Array<ObjectID> =
+        await this.restoreMissingStatusTimelinesBatch({
+          batchSize: batchSize,
+          createdBefore: createdBefore,
+          now: now,
+        });
+
+      restoredMonitorIds.push(...restored);
+
+      if (restored.length < batchSize) {
+        break;
+      }
+    }
+
+    if (restoredMonitorIds.length > 0) {
+      logger.debug(
+        `MonitorStatusTimelineReconciler: restored the current status of ${restoredMonitorIds.length} monitor(s) that had no status timeline left.`,
+      );
+    }
+
+    return {
+      restored: restoredMonitorIds.length,
+      restoredMonitorIds: restoredMonitorIds,
+    };
+  }
+
+  /*
+   * One statement: up to batchSize monitors with no live status timeline row, each given one.
+   *
+   * Two runs at once - two workers starting together - must not both restore the same monitor:
+   * the second row would be an open twin of the first, with the same start, which nothing
+   * closes. So the statement takes a transaction-level advisory lock first, and does nothing
+   * when another statement holds it; the next batch, or the next run, sees what the first one
+   * committed. NOT EXISTS reads the live rows only: a row deleted before is no status.
+   *
+   * The (monitorId, startsAt) index answers each NOT EXISTS, so a run costs a probe per
+   * monitor; only a monitor that has no row left has its feed read, through its monitorId.
+   */
+  private static async restoreMissingStatusTimelinesBatch(data: {
+    batchSize: number;
+    createdBefore: Date;
+    now: Date;
+  }): Promise<Array<ObjectID>> {
+    const dataSource: DatabaseSource = this.getDataSource();
+
+    const sql: string = `
+      WITH run AS (
+        SELECT pg_try_advisory_xact_lock(
+          hashtext('MonitorStatusTimelineReconciler.restoreMissingStatusTimelines')
+        ) AS "mayRun"
+      ),
+      missing AS (
+        SELECT m."_id" AS "monitorId",
+               m."projectId" AS "projectId",
+               m."currentMonitorStatusId" AS "monitorStatusId",
+               m."createdAt" AS "monitorCreatedAt"
+        FROM "Monitor" m
+        WHERE (SELECT "mayRun" FROM run)
+          AND m."deletedAt" IS NULL
+          AND m."currentMonitorStatusId" IS NOT NULL
+          AND m."createdAt" < $1
+          AND NOT EXISTS (
+            SELECT 1
+            FROM "MonitorStatusTimeline" t
+            WHERE t."monitorId" = m."_id"
+              AND t."deletedAt" IS NULL
+          )
+          AND EXISTS (
+            SELECT 1
+            FROM "MonitorStatus" s
+            WHERE s."_id" = m."currentMonitorStatusId"
+              AND s."projectId" = m."projectId"
+              AND s."deletedAt" IS NULL
+          )
+        ORDER BY m."_id" ASC
+        LIMIT $2
+      )
+      INSERT INTO "MonitorStatusTimeline" (
+        "projectId",
+        "monitorId",
+        "monitorStatusId",
+        "isOwnerNotified",
+        "rootCause",
+        "startsAt",
+        "version"
+      )
+      SELECT missing."projectId",
+             missing."monitorId",
+             missing."monitorStatusId",
+             TRUE,
+             $3,
+             LEAST(
+               GREATEST(
+                 (
+                   SELECT MAX(COALESCE(f."postedAt", f."createdAt"))
+                   FROM "MonitorFeed" f
+                   WHERE f."monitorId" = missing."monitorId"
+                     AND f."monitorFeedEventType" = $4
+                     AND f."deletedAt" IS NULL
+                 ),
+                 missing."monitorCreatedAt"
+               ),
+               $5::timestamptz
+             ),
+             1
+      FROM missing
+      RETURNING "monitorId"
+    `;
+
+    const rows: Array<{ monitorId: string }> = await dataSource.query(sql, [
+      data.createdBefore,
+      data.batchSize,
+      RESTORED_STATUS_EVENT_ROOT_CAUSE,
+      MonitorFeedEventType.MonitorStatusChanged,
+      data.now,
+    ]);
+
+    return rows.map((row: { monitorId: string }): ObjectID => {
+      return new ObjectID(row.monitorId);
+    });
   }
 
   private static getBatchSize(batchSize?: number | undefined): number {

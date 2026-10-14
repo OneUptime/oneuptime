@@ -23,6 +23,11 @@ import { DatabaseOperation, getDatabaseOperation } from "../DatabaseOperation";
 import { RunRecordColumns, getRunRecordColumns } from "../RunRecord";
 import { componentReturnValueReference } from "../TemplateSyntax";
 import { WORKFLOW_TEST_WHILE_OFF_HELP } from "../WorkflowEnabled";
+import {
+  describeRowsKeptOnDelete,
+  getRowsKeptOnDelete,
+  RowsKeptOnDelete,
+} from "../../StateTimeline/RowsKeptOnDelete";
 import ComponentDocumentation, {
   ComponentDocumentationExample,
   ComponentDocumentationLink,
@@ -557,6 +562,34 @@ const update: UpdateOrDeleteFunction = (
   };
 };
 
+/*
+ * On a state timeline: what a delete by query always leaves, so a step that
+ * deletes fewer rows than its query matched is no surprise
+ * (Types/StateTimeline/RowsKeptOnDelete). The run's log says how many.
+ */
+const rowsKeptNotes: (
+  words: ModelWords,
+) => Array<{ type: ComponentDocumentationNoteType; text: string }> = (
+  words: ModelWords,
+): Array<{ type: ComponentDocumentationNoteType; text: string }> => {
+  const kept: RowsKeptOnDelete | null = getRowsKeptOnDelete(
+    words.model.tableName,
+  );
+
+  if (!kept) {
+    return [];
+  }
+
+  const rule: string = describeRowsKeptOnDelete(kept);
+
+  return [
+    {
+      type: ComponentDocumentationNoteType.Tip,
+      text: `Some ${words.many} always stay: ${rule}. The run's log says how many were kept${kept.oneRowByIdCanGo ? ", and a query by ID deletes the one it names" : ""}.`,
+    },
+  ];
+};
+
 const remove: UpdateOrDeleteFunction = (
   context: ComponentDocumentationContext,
   words: ModelWords,
@@ -583,6 +616,7 @@ const remove: UpdateOrDeleteFunction = (
             type: ComponentDocumentationNoteType.Tip,
             text: "Matching nothing is not an error: **Items Deleted** is `0` and the step takes **Success**.",
           },
+          ...rowsKeptNotes(words),
         ]
       : [
           {
@@ -593,6 +627,7 @@ const remove: UpdateOrDeleteFunction = (
             type: ComponentDocumentationNoteType.Tip,
             text: "Matching nothing is not an error: **Items Deleted** is `0` and the step takes **Success**.",
           },
+          ...rowsKeptNotes(words),
         ],
     learnMore: [
       countTopic({ context, words, returnValueId: "items-deleted" }),

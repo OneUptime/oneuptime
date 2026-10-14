@@ -16,6 +16,7 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeStateTimeline from "../../Models/DatabaseModels/AlertEpisodeStateTimeline";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
@@ -52,6 +53,15 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+
+    /*
+     * A delete by query - a workflow's Delete Many, a retention purge,
+     * the purge above - never takes an alert episode's current state. One entry
+     * deleted by its id is onBeforeDelete's to judge.
+     */
+    this.keepRowsOnDeleteByQuery(
+      StateTimelineRowsKept.forTable("AlertEpisodeStateTimeline"),
+    );
   }
 
   /*
