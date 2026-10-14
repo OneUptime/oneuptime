@@ -424,9 +424,7 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
             ></span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium text-gray-900">
-                {row.title ||
-                  translator.translateText("Untitled") ||
-                  "Untitled"}
+                {row.title || translator.translateText("Untitled")}
               </span>
               {row.subtitle || row.time ? (
                 <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-gray-500">
@@ -447,7 +445,7 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
               )}
             </span>
             {row.pill ? (
-              <span className="hidden flex-none sm:inline-flex">
+              <span className="max-sm:hidden flex-none sm:inline-flex">
                 <Pill
                   text={row.pill.text}
                   color={row.pill.color}

@@ -133,10 +133,7 @@ const ExploreProducts: FunctionComponent<ComponentProps> = (
       >
         <div
           role="tablist"
-          aria-label={
-            translator.translateText("Product categories") ||
-            "Product categories"
-          }
+          aria-label={translator.translateText("Product categories")}
           className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1"
         >
           {categories.map(

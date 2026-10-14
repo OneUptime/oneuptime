@@ -239,9 +239,7 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-gray-900">
-                      {event.title ||
-                        translator.translateText("Untitled") ||
-                        "Untitled"}
+                      {event.title || translator.translateText("Untitled")}
                     </span>
                     {startsAt ? (
                       <span
