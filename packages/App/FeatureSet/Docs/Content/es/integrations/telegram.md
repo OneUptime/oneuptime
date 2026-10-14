@@ -1,56 +1,113 @@
-# Integración con Telegram
+# Telegram
 
-Envía actualizaciones de incidentes a un chat o grupo de [Telegram](https://telegram.org). OneUptime tiene un componente de workflow **Telegram** integrado, por lo que la configuración es rápida.
+Envía un mensaje a un chat, grupo o canal de [Telegram](https://telegram.org) cuando se dispara una alerta o se abre un incidente. El paso de flujo de trabajo **Send Message to Telegram** de OneUptime lo envía como un bot que tú creas, y una plantilla lista para usar crea el flujo de trabajo para las alertas. Esta integración es **saliente**: el bot envía mensajes y no lee lo que se dice en el chat.
 
-Esta integración es **saliente**: OneUptime envía mensajes a través de un bot de Telegram.
+:::cards
+- [Cómo funciona](#cómo-funciona): Lo que hace el flujo de trabajo cuando se dispara una alerta.
+- [Configuración](#configurar-la-integración): Un bot, su chat y después el flujo de trabajo: desde la plantilla o desde cero.
+- [Consejos](#consejos): Texto sin formato, mensajes largos e incidentes.
+- [Solución de problemas](#solución-de-problemas): Qué significan los errores de Telegram y qué cambiar.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  Telegram component  ──►  message in your chat
+## Cómo funciona
+
+```mermaid title="De una alerta a un mensaje de Telegram"
+flowchart TB
+    fired["Alerta disparada"] --> trigger["On Create Alert"]
+    trigger --> step["Send Message<br/>to Telegram"]
+    step -->|"Success"| chat["Mensaje en<br/>tu chat"]
+    step -->|"Error"| log["Log: por qué<br/>no se entregó"]
 ```
 
-## Paso 1 — Crear un bot y obtener su token
+El paso envía el **Message Text** al chat, como tu bot, a través de la Bot API de Telegram. Toma su salida **Success** cuando Telegram acepta el mensaje, y su salida **Error**, con el motivo de Telegram, cuando Telegram lo rechaza. La plantilla conecta un paso **Log** a **Error**, para que una ejecución que no pudo enviar diga por qué.
 
-1. En Telegram, envía un mensaje a [@BotFather](https://t.me/BotFather) y escribe `/newbot`.
-2. Sigue las instrucciones. BotFather te da un **token de bot** como `123456789:AA...`.
+## Antes de empezar
 
-## Paso 2 — Encontrar tu chat ID
+- Una cuenta de Telegram, para crear el bot y añadirlo al chat.
+- En OneUptime, el derecho a crear flujos de trabajo y variables. En OneUptime Cloud, los flujos de trabajo necesitan el plan **Growth** o superior.
 
-1. Añade el bot al grupo (o inicia un chat directo con él) y envíale cualquier mensaje.
-2. Abre `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates` en un navegador.
-3. Encuentra `"chat":{"id":...}` en la respuesta — ese número es tu **chat ID** (los IDs de grupo son negativos).
+## Configurar la integración
 
-## Paso 3 — Guardar los secretos
+:::steps
+### Crear un bot
 
-1. En OneUptime, ve a **Flujos de trabajo → Variables Globales → Crear**.
-2. Crea `TELEGRAM_BOT_TOKEN` (secreto) y `TELEGRAM_CHAT_ID`.
+En Telegram, envía `/newbot` a [@BotFather](https://t.me/BotFather) y responde a sus preguntas. Te da el token del bot, por ejemplo `123456789:ABCdefGhIJKlmnoPQRstuVWxyz`. Quien tenga el token puede enviar mensajes como tu bot, así que guárdalo tan bien como una contraseña.
 
-## Paso 4 — Construir el workflow
+### Encontrar el ID del chat
 
-1. Abre **Flujos de trabajo → Crear flujo de trabajo**, nómbralo `Incidents → Telegram` y abre el **Constructor**.
-2. Añade un disparador **Incident** configurado en **On Create**. Renómbralo `Incident`.
-3. Añade un componente **Telegram** conectado al disparador:
-   - **Bot token**: `{{variable.TELEGRAM_BOT_TOKEN}}`
-   - **Chat ID**: `{{variable.TELEGRAM_CHAT_ID}}`
-   - **Mensaje**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
-4. **Guarda**, habilita y crea un incidente de prueba. El mensaje llega a tu chat.
+1. Añade el bot al grupo, o hazlo administrador del canal. Para escribir a una persona, esa persona empieza primero un chat con el bot.
+2. Envía en el grupo un mensaje que mencione al bot, por ejemplo `/start@your_bot`, para que el bot lo vea.
+3. Abre `https://api.telegram.org/bot<token>/getUpdates` en un navegador, con el token del bot en lugar de `<token>`.
+4. Busca `"chat":{"id":` en la respuesta. El número que sigue es el ID del chat. El ID de un grupo empieza por `-`, y el de un grupo grande por `-100`.
 
-## Alternativa: el componente API
+Un canal público se puede indicar con su `@username` en lugar de un ID.
 
-Un bloque **API** también funciona:
+### Crear el flujo de trabajo
 
-- **Method**: `POST`
-- **URL**: `https://api.telegram.org/bot{{variable.TELEGRAM_BOT_TOKEN}}/sendMessage`
-- **Headers**: `Content-Type: application/json`
-- **Body**: `{ "chat_id": "{{variable.TELEGRAM_CHAT_ID}}", "text": "New incident: {{Incident.title}}" }`
+Empieza desde la plantilla, que crea todo el flujo de trabajo para las alertas, o desde cero.
+
+:::tabs
+@tab Desde la plantilla
+1. Abre **Flujos de trabajo** y haz clic en **Crear flujo de trabajo**.
+2. Escribe `Telegram` en **Buscar plantillas…**, haz clic en **Tell Telegram when an alert fires** y después en **Usar esta plantilla**.
+3. Deja el nombre **Notify Telegram on new alert** o cámbialo, y haz clic en **Siguiente**.
+4. Pega el token en **Telegram Bot Token** y el ID en **Telegram Chat ID**, y haz clic en **Crear flujo de trabajo**.
+
+El flujo de trabajo se abre en el **Constructor** con tres pasos: **On Create Alert**; **Send Message to Telegram**, que envía el número, el título, la gravedad y el estado de la alerta; y un paso **Log** en su salida **Error**. El token se guarda como la variable secreta `telegramBotToken` del flujo de trabajo, y el ID como `telegramChatId`.
+@tab Desde cero
+1. Guarda el token como variable global secreta: ve a **Flujos de trabajo → Variables globales**, haz clic en **Crear Variable del flujo de trabajo**, ponle el nombre `TELEGRAM_BOT_TOKEN` y haz clic en **Siguiente**. Pega el token en **Contenido**, activa **Secreto** y haz clic en **Crear Variable del flujo de trabajo**.
+2. Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo**, elige **Empezar desde cero**, ponle nombre al flujo de trabajo y haz clic en **Crear flujo de trabajo**.
+3. En el **Constructor**, haz clic en **Elige qué inicia este flujo de trabajo** y elige **On Create Alert** en **Populares**. Haz clic en el disparador y, en **Select Fields**, elige los campos que muestra tu mensaje, por ejemplo `title` y `alertNumberWithPrefix`.
+4. Haz clic en **Añadir componente**, busca `telegram` y haz clic en **Send Message to Telegram**. Conecta la salida **Success** del disparador a este paso.
+5. Haz clic en el paso nuevo. En **Telegram Bot Token**, haz clic en **{ }** y elige `TELEGRAM_BOT_TOKEN` en **Variables globales**. Escribe el ID del chat en **Chat ID**, escribe el mensaje en **Message Text** e inserta los campos de la alerta con **{ }**.
+:::
+
+Un mensaje hecho desde cero lee los campos de la alerta con referencias como estas:
+
+```text
+🚨 Alert {{local.components.alert-on-create-1.returnValues.model.alertNumberWithPrefix}} fired
+Title: {{local.components.alert-on-create-1.returnValues.model.title}}
+```
+
+### Activarlo y probarlo
+
+Activa el interruptor **Habilitado** en la parte superior del **Constructor**. A partir de ahí, cada alerta nueva se envía al chat.
+
+Para probarlo sin disparar una alerta, haz clic en **Ejecutar flujo de trabajo** y pon el ID de una alerta que ya tengas en **ID de la alerta**. La página de la alerta muestra su ID. Haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El panel **Ejecución del flujo de trabajo** sigue la ejecución, y el mensaje aparece en el chat. Si el paso toma **Error** en su lugar, la línea del paso **Log** dice por qué: consulta [Solución de problemas](#solución-de-problemas).
+:::
 
 ## Consejos
 
-- El bot solo ve mensajes después de ser añadido a un grupo y de que el **modo privacidad** lo permita — si `getUpdates` está vacío, envíale primero un mensaje al bot, o desactiva el modo privacidad a través de BotFather.
-- Usa **Condiciones** para filtrar por gravedad antes de enviar.
-- Añade `"parse_mode": "Markdown"` al cuerpo de la API (o usa el formato del componente) para texto en negrita y enlaces.
+- **Texto sin formato.** El paso envía el texto tal como se escribe, sin el formato de Telegram, así que `*` y `_` aparecen tal cual.
+- **Tener en cuenta el límite de 4.096 caracteres.** Telegram acepta mensajes de hasta 4.096 caracteres. Uno más largo se recorta, y termina con "… (truncated — see OneUptime for the full text)", en lugar de rechazarse.
+- **También incidentes.** Crea el mismo flujo de trabajo sobre **On Create Incident**, o sobre **On Update Incident** para los cambios de estado. Para enviar solo algunas alertas, pon un bloque **If / Else** antes del paso.
+- **Se comprueba la forma del token.** Un token que no tiene la forma de `123456789:ABCdef…` detiene la ejecución antes de enviar nada, y el token nunca se escribe en el registro.
 
-## Dónde seguir leyendo
+## Solución de problemas
 
-- [Resumen de Integraciones](/docs/integrations/index) — el patrón saliente.
-- [Discord](/docs/integrations/discord) — la misma idea para Discord.
-- [Componentes → Telegram](/docs/workflows/components#telegram) — la referencia del componente.
+Cuando el paso toma **Error**, la ejecución dice por qué: el paso **Log** de la plantilla escribe `❌ Telegram could not deliver the alert notification:`, el motivo de Telegram y un recordatorio de que el bot tiene que estar en el chat.
+
+:::details Telegram responde "Bad Request: chat not found"
+El **Chat ID** es incorrecto, o el bot no puede ver el chat: añade el bot al grupo, hazlo administrador del canal, o pide a la persona que empiece un chat con el bot. El ID de un grupo empieza por `-`.
+:::
+
+:::details Telegram responde "Forbidden: bot was blocked by the user" o "bot is not a member"
+La persona bloqueó el bot, o el bot se quitó del grupo o del canal. Vuelve a añadirlo, o envía a otro chat.
+:::
+
+:::details Telegram responde "Unauthorized"
+Telegram no aceptó el token: se revocó en @BotFather, o se copió mal. Copia el token actual del bot desde @BotFather y sustituye el valor de la variable.
+:::
+
+:::details Telegram responde "Too Many Requests: retry after"
+Telegram limita lo rápido que envía un bot, sobre todo a un grupo. Una ráfaga de alertas puede alcanzar ese límite: envía menos mensajes, por ejemplo solo para algunas gravedades.
+:::
+
+## Próximos pasos
+
+:::cards
+- [Componentes de flujo de trabajo](/docs/workflows/components#telegram): Cada ajuste del paso y qué significan sus salidas.
+- [Discord](/docs/integrations/discord): La misma idea, en un canal de Discord.
+- [Ejecuciones de flujo de trabajo](/docs/workflows/runs-and-logs): Lee qué hizo cada ejecución del flujo de trabajo.
+- [Descripción general de integraciones](/docs/integrations/index): El patrón saliente y las demás herramientas que puedes conectar.
+:::
