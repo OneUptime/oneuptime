@@ -9,17 +9,20 @@ import {
 import "@testing-library/jest-dom";
 import { cleanup, waitFor } from "@testing-library/react";
 import * as React from "react";
+import { MemoryRouter, Route as RouterRoute, Routes } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * Home's side menu (Pages/Home/SideMenu.tsx) beside the overview.
+ * Home's side menu (Pages/Home/SideMenu.tsx), on the lists Home opens.
  *
  * Home used to BE the Active Incidents table, so the menu's "Active
  * Incidents" entry was Home itself and nothing in it named the page as an
- * overview. Now the menu opens on Home > Overview, Active Incidents is a
- * page of its own, and every list keeps its badge. The Not Operational
- * badge counts what its list shows: archived monitors are not checked, so
- * their frozen status is not a problem, and the list leaves them out.
+ * overview. Now Active Incidents is a page of its own and every list keeps
+ * its badge. The overview draws every list the menu holds, so it has no menu
+ * (Pages/Home/Layout.tsx): the lists do, and its Home > Overview leads back.
+ * The Not Operational badge counts what its list shows: archived monitors
+ * are not checked, so their frozen status is not a problem, and the list
+ * leaves them out.
  */
 
 const countMock: MockFunction = getJestMockFunction();
@@ -69,6 +72,7 @@ jest.mock("../../../UI/Utils/Analytics", () => {
   return { __esModule: true, default: { capture: jest.fn() } };
 });
 
+import HomeLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/Layout";
 import HomeSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Alert from "../../../Models/DatabaseModels/Alert";
@@ -78,6 +82,7 @@ import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import Project from "../../../Models/DatabaseModels/Project";
+import Route from "../../../Types/API/Route";
 import {
   activeLinkTitles,
   DESKTOP_WIDTH,
@@ -100,6 +105,40 @@ async function renderHomeMenu(): Promise<void> {
   await renderMenu(<HomeSideMenu project={project()} />);
 }
 
+// The real Home layout at an address, with a stand-in for the page it holds.
+async function renderLayoutAt(path: string): Promise<void> {
+  goTo(path);
+  await renderMenu(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <RouterRoute
+          path="/dashboard/:projectId/home/*"
+          element={
+            <HomeLayout
+              pageRoute={new Route(path)}
+              currentProject={project()}
+              hasPaymentMethod={false}
+            />
+          }
+        >
+          <RouterRoute index element={<div data-testid="home-outlet" />} />
+          <RouterRoute path="*" element={<div data-testid="home-outlet" />} />
+        </RouterRoute>
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+// Every list Home opens, each drawn with the side menu.
+const HOME_LISTS: Array<string> = [
+  PageMap.HOME_ACTIVE_INCIDENTS,
+  PageMap.HOME_ACTIVE_INCIDENT_EPISODES,
+  PageMap.HOME_ACTIVE_ALERTS,
+  PageMap.HOME_ACTIVE_EPISODES,
+  PageMap.HOME_NOT_OPERATIONAL_MONITORS,
+  PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
+];
+
 interface CountRequest {
   modelType: unknown;
   query: Record<string, unknown>;
@@ -107,8 +146,11 @@ interface CountRequest {
 
 beforeEach(() => {
   setViewportWidth(DESKTOP_WIDTH);
-  // The project's id in the address is what the menu fills its links with.
-  goTo(`/dashboard/${PROJECT_ID}/home/`);
+  /*
+   * The project's id in the address is what the menu fills its links with,
+   * and the menu is drawn on Home's lists, not on the overview.
+   */
+  goTo(`/dashboard/${PROJECT_ID}/home/active-incidents`);
   countMock.mockImplementation(() => {
     return Promise.resolve(0);
   });
@@ -179,16 +221,19 @@ describe("Home's side menu", () => {
     ]);
   });
 
-  test("on Home, Overview is the page you are on; on Active Incidents, that is", async () => {
-    await renderHomeMenu();
-
-    expect(activeLinkTitles()).toEqual(["Overview"]);
-
-    cleanup();
-    goTo(`/dashboard/${PROJECT_ID}/home/active-incidents`);
+  test("on a list, that list is the page you are on, and Overview leads back to Home", async () => {
     await renderHomeMenu();
 
     expect(activeLinkTitles()).toEqual(["Active Incidents"]);
+    expect(linksIn("Home")).toEqual([
+      { title: "Overview", href: routeFor(PageMap.HOME) },
+    ]);
+
+    cleanup();
+    goTo(routeFor(PageMap.HOME_NOT_OPERATIONAL_MONITORS));
+    await renderHomeMenu();
+
+    expect(activeLinkTitles()).toEqual(["Not Operational"]);
   });
 
   test("the Not Operational badge counts what its list shows: archived monitors left out", async () => {
@@ -242,5 +287,51 @@ describe("Home's side menu", () => {
         ScheduledMaintenance,
       ]),
     );
+  });
+});
+
+describe("where Home draws its side menu", () => {
+  test("the overview has none: it draws every list itself, and takes the full width", async () => {
+    for (const path of [
+      `/dashboard/${PROJECT_ID}/home/`,
+      `/dashboard/${PROJECT_ID}/home`,
+    ]) {
+      await renderLayoutAt(path);
+
+      expect(document.querySelector('[data-testid="home-outlet"]')).not.toBe(
+        null,
+      );
+      expect({ path, sections: sectionTitlesInOrder() }).toEqual({
+        path,
+        sections: [],
+      });
+
+      cleanup();
+    }
+  });
+
+  test("every list Home opens has it, and its Overview leads back", async () => {
+    for (const list of HOME_LISTS) {
+      await renderLayoutAt(routeFor(list));
+
+      expect(document.querySelector('[data-testid="home-outlet"]')).not.toBe(
+        null,
+      );
+      expect({ list, sections: sectionTitlesInOrder() }).toEqual({
+        list,
+        sections: [
+          "Home",
+          "Incidents",
+          "Alerts",
+          "Monitors",
+          "Scheduled Events",
+        ],
+      });
+      expect(linksIn("Home")).toEqual([
+        { title: "Overview", href: routeFor(PageMap.HOME) },
+      ]);
+
+      cleanup();
+    }
   });
 });

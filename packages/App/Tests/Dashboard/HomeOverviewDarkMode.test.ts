@@ -233,9 +233,9 @@ describe("Home in the dark theme", () => {
         "text-red-600",
         "text-amber-600",
         "text-emerald-600",
-        // Declare Incident.
-        "border-red-200",
-        "text-red-700",
+        // Declare Incident and Create: the Dashboard's normal button.
+        "border-gray-300",
+        "text-gray-700",
         // Links.
         "text-indigo-600",
       ]),

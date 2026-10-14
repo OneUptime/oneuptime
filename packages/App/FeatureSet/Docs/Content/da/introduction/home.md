@@ -92,7 +92,7 @@ Tjeklisten forsvinder, når alle fire trin er gennemført. Klik på **Luk** for 
 
 ### Hjems sidemenu
 
-Sidemenuen ved siden af Hjem åbner på **Oversigt**, denne side, og har listerne bag tallene, hver med et antal:
+Hjem har ikke selv en sidemenu: siden viser allerede alt, hvad menuen ville vise. Listerne, den åbner, deler en sidemenu, som viser hver liste med dens antal og fører tilbage til Hjem fra **Oversigt**:
 
 | Afsnit | Sider |
 | --- | --- |

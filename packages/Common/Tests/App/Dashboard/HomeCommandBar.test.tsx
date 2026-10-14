@@ -107,6 +107,7 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import HomeCommandBar, {
+  ACTION_BUTTON_CLASS_NAME,
   DECLARE_INCIDENT_ACTION,
   getHomeQuickActions,
   HomeQuickAction,
@@ -217,6 +218,47 @@ describe("the actions", () => {
       projectId: PROJECT_ID,
       action: "declare-incident",
     });
+  });
+
+  test("Declare Incident is a normal button, the same as Create: not red", () => {
+    renderBar();
+
+    const declare: HTMLElement | null = screen
+      .getByTestId("home-quick-action-declare-incident")
+      .closest("a");
+    const create: HTMLElement = screen.getByLabelText("Create");
+
+    // The link adds cursor-pointer, which a button has anyway.
+    const classesOf: (element: HTMLElement | null) => Array<string> = (
+      element: HTMLElement | null,
+    ): Array<string> => {
+      return (element?.className || "")
+        .split(/\s+/)
+        .filter((name: string): boolean => {
+          return name.length > 0 && name !== "cursor-pointer";
+        })
+        .sort();
+    };
+
+    expect(classesOf(declare)).toEqual(classesOf(create));
+    expect(classesOf(create)).toEqual(
+      ACTION_BUTTON_CLASS_NAME.split(" ").sort(),
+    );
+    expect(ACTION_BUTTON_CLASS_NAME).not.toMatch(/\b(red|rose|orange)-/);
+
+    // The Dashboard's normal button (Button's NORMAL style).
+    const classes: Array<string> = ACTION_BUTTON_CLASS_NAME.split(" ");
+    for (const normal of [
+      "rounded-md",
+      "border",
+      "border-gray-300",
+      "bg-white",
+      "text-gray-700",
+      "shadow-sm",
+      "hover:bg-gray-50",
+    ]) {
+      expect(classes).toContain(normal);
+    }
   });
 
   test("the rest are one Create menu: monitor, maintenance, announcement", async () => {

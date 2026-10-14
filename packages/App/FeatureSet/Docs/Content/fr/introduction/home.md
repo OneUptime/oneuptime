@@ -92,7 +92,7 @@ La liste disparaît une fois les quatre étapes terminées. Pour la masquer plus
 
 ### Le menu latéral de l'accueil
 
-Le menu latéral de l'accueil s'ouvre sur **Vue d'ensemble**, cette page, et contient les listes qui se cachent derrière les nombres, chacune avec un compteur :
+L'accueil lui-même n'a pas de menu latéral : il montre déjà tout ce que le menu montrerait. Les listes qu'il ouvre en partagent un, qui donne à chaque liste son compteur et ramène à l'accueil depuis **Vue d'ensemble** :
 
 | Section | Pages |
 | --- | --- |

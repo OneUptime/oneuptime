@@ -92,7 +92,7 @@ La lista desaparece cuando los cuatro pasos están completados. Para ocultarla a
 
 ### El menú lateral de Inicio
 
-El menú lateral de Inicio se abre en **Vista general**, esta página, y tiene las listas que hay detrás de los números, cada una con un contador:
+Inicio no tiene menú lateral: ya muestra todo lo que mostraría el menú. Las listas que abre comparten uno, que muestra cada lista con su contador y vuelve a Inicio desde **Vista general**:
 
 | Sección | Páginas |
 | --- | --- |

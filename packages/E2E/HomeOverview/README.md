@@ -4,7 +4,7 @@ An offline harness for the real dashboard Home page:
 
 | Page | Route (from `RouteMap`)          | Production components                                                                                                                                                                                                                                                              |
 | ---- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Home | `HOME` `/dashboard/:projectId/home/` | `Pages/Home/{Layout,Home}` and every card they mount: the side menu, `Components/Home/HomeCommandBar`, `ProjectHealthCard` (with `OverviewStats`), `GettingStarted` (with `HowOneUptimeWorks`), `NeedsAttention`, `ProjectResources`, `UpcomingMaintenance` and `ExploreProducts` |
+| Home | `HOME` `/dashboard/:projectId/home/` | `Pages/Home/{Layout,Home}` and every card they mount: `Components/Home/HomeCommandBar`, `ProjectHealthCard` (with `OverviewStats`), `GettingStarted` (with `HowOneUptimeWorks`), `NeedsAttention`, `ProjectResources`, `UpcomingMaintenance` and `ExploreProducts` |
 
 `Fixture/server.js` bundles the production layout and page with esbuild, serves them with the
 same Tailwind build, `tailwind.config` and `Theme.css` production uses, and listens on
@@ -58,7 +58,8 @@ command palette.
   (archived monitors and disabled or archived SLOs left out) and their status lines; the open
   work in urgency order with its "9 open" total, an incident row's number, severity, state and
   age, a monitor row, an SLO with no budget left, a window that ends in 40 minutes, and a row
-  opening its incident; a number opening Home's own Active Incidents beside the side menu; Your
+  opening its incident; a number opening Home's own Active Incidents, which has the side menu the
+  overview leaves out, and its Overview leading back; Your
   project's counts with Set up for workflows; the three windows coming up, soonest first; two
   columns at 1440px; Explore opening on Essentials, a tab click and the arrow keys.
 - **Search and create**: the search box opens the palette by mouse and by keyboard; Declare

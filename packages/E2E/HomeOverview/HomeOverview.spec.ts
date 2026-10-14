@@ -332,12 +332,17 @@ test.describe("a busy project", () => {
     );
   });
 
-  test("the strip's cells open Home's own lists, beside its side menu", async ({
+  test("the strip's cells open Home's own lists, which have the side menu the overview leaves out", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openReady(page);
+
+    // The overview draws every list itself, so its cards take the full width.
+    const menuSections: Locator = page.locator("h6");
+    await expect(menuSections).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Overview" })).toHaveCount(0);
 
     await stat(page, "active-incidents").click();
 
@@ -351,6 +356,21 @@ test.describe("a busy project", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Active Incidents",
     );
+    await expect(menuSections).toHaveText([
+      "Home",
+      "Incidents",
+      "Alerts",
+      "Monitors",
+      "Scheduled Events",
+    ]);
+
+    // Overview leads back, and the overview is again without the menu.
+    await page.getByRole("link", { name: "Overview" }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/dashboard/${PROJECT_ID}/home/?$`),
+    );
+    await expect(page.getByTestId("home-project-health")).toBeVisible();
+    await expect(menuSections).toHaveCount(0);
   });
 
   test("lists what the project is made of, and what is coming up", async ({

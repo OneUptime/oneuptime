@@ -92,7 +92,7 @@ A lista some quando as quatro etapas estão concluídas. Para escondê-la antes,
 
 ### O menu lateral do Início
 
-O menu lateral do Início abre em **Visão geral**, esta página, e tem as listas por trás dos números, cada uma com uma contagem:
+O Início não tem menu lateral: ele já mostra tudo o que o menu mostraria. As listas que ele abre compartilham um, que mostra cada lista com sua contagem e volta ao Início em **Visão geral**:
 
 | Seção | Páginas |
 | --- | --- |

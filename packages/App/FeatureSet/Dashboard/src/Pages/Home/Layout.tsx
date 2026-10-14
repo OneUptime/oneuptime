@@ -111,11 +111,13 @@ const HomeLayout: FunctionComponent<PageComponentProps> = (
   ];
 
   const currentPath: string = normalizePath(location.pathname);
-  const presentation: HomePagePresentation = routePresentation.find(
+  // One of the lists Home opens, or nothing on the overview itself.
+  const list: HomePagePresentation | undefined = routePresentation.find(
     (item: { route: Route; presentation: HomePagePresentation }): boolean => {
       return normalizePath(item.route.toString()) === currentPath;
     },
-  )?.presentation || { title: "Home" };
+  )?.presentation;
+  const presentation: HomePagePresentation = list || { title: "Home" };
 
   const breadcrumbLinks: Array<Link> = [
     {
@@ -136,8 +138,15 @@ const HomeLayout: FunctionComponent<PageComponentProps> = (
     <Page
       title={presentation.title}
       breadcrumbLinks={breadcrumbLinks}
+      /*
+       * The overview draws every list this menu holds, each with its count,
+       * so it takes the full width. The lists keep the menu: it moves between
+       * them, holds the two Active Episodes lists, and leads back to Overview.
+       */
       sideMenu={
-        <DashboardSideMenu project={props.currentProject || undefined} />
+        list ? (
+          <DashboardSideMenu project={props.currentProject || undefined} />
+        ) : undefined
       }
     >
       <Suspense fallback={<PageLoader isVisible={true} />}>

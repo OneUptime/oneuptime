@@ -92,7 +92,7 @@ Die Checkliste verschwindet, sobald alle vier Schritte erledigt sind. Um sie fr�
 
 ### Das Seitenmenü der Startseite
 
-Das Seitenmenü neben der Startseite zeigt zuerst **Übersicht**, diese Seite, und enthält die Listen hinter den Zahlen, jede mit ihrer Anzahl:
+Die Startseite selbst hat kein Seitenmenü: Sie zeigt bereits alles, was das Menü zeigen würde. Die Listen, die sie öffnet, teilen sich eines, das jede Liste mit ihrer Anzahl zeigt und über **Übersicht** zur Startseite zurückführt:
 
 | Abschnitt | Seiten |
 | --- | --- |

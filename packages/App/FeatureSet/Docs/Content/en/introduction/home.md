@@ -92,7 +92,7 @@ The checklist goes away once all four steps are done. To hide it sooner, click *
 
 ### Home's side menu
 
-The side menu next to Home opens on **Overview**, this page, and holds the lists behind the numbers, each with a count:
+Home itself has no side menu: it already shows everything the menu would. The lists it opens share one, which gives each list its count and leads back to Home from **Overview**:
 
 | Section | Pages |
 | --- | --- |

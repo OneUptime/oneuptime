@@ -92,7 +92,7 @@ L'elenco sparisce quando tutti e quattro i passaggi sono completati. Per nascond
 
 ### Il menu laterale della home
 
-Il menu laterale accanto alla home si apre su **Panoramica**, questa pagina, e contiene gli elenchi dietro i numeri, ognuno con un contatore:
+La home non ha un menu laterale: mostra già tutto ciò che il menu mostrerebbe. Gli elenchi che apre ne condividono uno, che mostra ogni elenco con il suo contatore e riporta alla home da **Panoramica**:
 
 | Sezione | Pagine |
 | --- | --- |

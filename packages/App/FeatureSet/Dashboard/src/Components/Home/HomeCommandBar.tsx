@@ -140,10 +140,13 @@ export const getCurrentCreateActionGates: () => PaletteCreateActionGates =
 // The palette's own chord (DashboardCommandPalette listens for it).
 const SEARCH_SHORTCUT: Array<KeyboardShortcutKey> = [KeyboardKey.Mod, "K"];
 
-const BUTTON_CLASS_NAME: string =
-  "inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
-
-const NEUTRAL_BUTTON_CLASS_NAME: string = `${BUTTON_CLASS_NAME} border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:bg-gray-50`;
+/*
+ * Declare Incident and Create look like the Dashboard's other buttons (the
+ * Button component's NORMAL style). They stay links, so either opens in a new
+ * tab, and neither is colored: the headline is where Home shows urgency.
+ */
+export const ACTION_BUTTON_CLASS_NAME: string =
+  "inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 export interface ComponentProps {
   projectId: string;
@@ -214,14 +217,14 @@ const HomeCommandBar: FunctionComponent<ComponentProps> = (
 
     // One thing to create needs no menu.
     if (actions.create.length === 1) {
-      return renderActionLink(actions.create[0]!, NEUTRAL_BUTTON_CLASS_NAME);
+      return renderActionLink(actions.create[0]!, ACTION_BUTTON_CLASS_NAME);
     }
 
     return (
       <MoreMenu
         dataTestId="home-create-menu"
         ariaLabel={translator.translateText("Create") || "Create"}
-        triggerClassName={NEUTRAL_BUTTON_CLASS_NAME}
+        triggerClassName={ACTION_BUTTON_CLASS_NAME}
         elementToBeShownInsteadOfButton={
           <span className="inline-flex items-center gap-1.5">
             <Icon icon={IconProp.Add} className="h-4 w-4 flex-none" />
@@ -292,7 +295,7 @@ const HomeCommandBar: FunctionComponent<ComponentProps> = (
           {actions.declareIncident
             ? renderActionLink(
                 actions.declareIncident,
-                `${BUTTON_CLASS_NAME} border-red-200 bg-red-50 text-red-700 hover:bg-red-100`,
+                ACTION_BUTTON_CLASS_NAME,
               )
             : null}
           {renderCreate()}

@@ -92,7 +92,7 @@ De checklist verdwijnt zodra alle vier stappen klaar zijn. Om hem eerder te verb
 
 ### Het zijmenu van Start
 
-Het zijmenu naast Start opent op **Overzicht**, deze pagina, en bevat de lijsten achter de getallen, elk met een teller:
+Start zelf heeft geen zijmenu: het toont al alles wat het menu zou tonen. De lijsten die het opent, delen er een dat elke lijst met zijn teller toont en via **Overzicht** terugleidt naar Start:
 
 | Sectie | Pagina's |
 | --- | --- |

@@ -92,7 +92,7 @@ Checklistan försvinner när alla fyra steg är klara. Klicka på **Stäng** fö
 
 ### Hems sidomeny
 
-Sidomenyn bredvid Hem öppnas på **Översikt**, den här sidan, och har listorna bakom siffrorna, var och en med sitt antal:
+Hem har ingen egen sidomeny: sidan visar redan allt som menyn skulle visa. Listorna den öppnar delar på en sidomeny, som visar varje lista med sitt antal och leder tillbaka till Hem från **Översikt**:
 
 | Avsnitt | Sidor |
 | --- | --- |

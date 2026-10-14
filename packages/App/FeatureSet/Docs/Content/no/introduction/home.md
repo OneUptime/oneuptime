@@ -92,7 +92,7 @@ Sjekklisten forsvinner når alle fire steg er fullført. Klikk på **Lukk** for 
 
 ### Sidemenyen til Hjem
 
-Sidemenyen ved siden av Hjem åpner på **Oversikt**, denne siden, og har listene bak tallene, hver med et antall:
+Hjem har ikke selv en sidemeny: siden viser allerede alt menyen ville vist. Listene den åpner, deler én sidemeny, som viser hver liste med antallet sitt og fører tilbake til Hjem fra **Oversikt**:
 
 | Del | Sider |
 | --- | --- |
