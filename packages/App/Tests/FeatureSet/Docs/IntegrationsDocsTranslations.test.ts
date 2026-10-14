@@ -70,10 +70,13 @@ import { describe, expect, it } from "@jest/globals";
  * PagerDuty, Opsgenie, ServiceNow and Microsoft Dynamics 365 pages, in
  * every docs language; and task 28b: the Prometheus Alertmanager, Grafana
  * and Datadog pages, and the Google SecOps, Microsoft Sentinel, Microsoft
- * Defender XDR and CrowdStrike Falcon connection pages.
- * IntegrationsDocsFacts, AlertingIntegrationsDocsFacts and
- * SecurityConnectionsDocsFacts hold the English pages to the product; this
- * suite holds each translation to its English page:
+ * Defender XDR and CrowdStrike Falcon connection pages; and task 28c: the
+ * Splunk Enterprise Security, Elastic Security, AWS Security Hub and Okta
+ * System Log connection pages, and the GitHub, GitLab, Discord and
+ * Telegram pages. IntegrationsDocsFacts, AlertingIntegrationsDocsFacts,
+ * SecurityConnectionsDocsFacts, SecurityConnectorPagesDocsFacts and
+ * IssueAndChatIntegrationsDocsFacts hold the English pages to the product;
+ * this suite holds each translation to its English page:
  *
  *   - line for line: the same number of lines, each heading, table row,
  *     fence, component line and tab on the English one's line, so a later
@@ -135,6 +138,14 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   "integrations/microsoft-sentinel": 22,
   "integrations/microsoft-defender-xdr": 22,
   "integrations/crowdstrike-falcon": 21,
+  "integrations/splunk": 23,
+  "integrations/elastic-security": 23,
+  "integrations/aws-security-hub": 23,
+  "integrations/okta": 23,
+  "integrations/github": 23,
+  "integrations/gitlab": 23,
+  "integrations/discord": 23,
+  "integrations/telegram": 23,
 };
 
 // The names, longest first: "Jira Cloud" goes before "Jira" takes its first word.

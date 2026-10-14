@@ -1622,6 +1622,66 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
     expect(updateCall().data["cursor"]).toBeUndefined();
   });
 
+  /*
+   * What a timed-out request of the Splunk, Elastic Security, Okta, Defender
+   * XDR and Falcon clients really says: the shared data source fetch words
+   * axios's timeout "Timeout Error." (RequestTimeoutMessage.test.ts drives
+   * each client through it). The pattern once knew only axios's own words,
+   * so these windows were retried whole on every poll.
+   */
+  test("a request the shared data source fetch timed out narrows the next window too", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: new Error(
+        "Splunk Enterprise Security search export did not complete: Could not reach data source: Timeout Error.",
+      ),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: 1440 },
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.status).toBe("failed");
+    expect(result.nextChunkMinutes).toBe(720);
+    expect(result.warnings).toContain(
+      "The source did not answer in time for this window; the next poll reads a 720 minute window from the same starting point.",
+    );
+    expect(updateCall().data["cursor"]).toBeUndefined();
+  });
+
+  test("a request refused with an error status keeps the window: only a timeout narrows it", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: new Error(
+        "Splunk Enterprise Security search export did not complete: Could not reach data source: Connection Refused.",
+      ),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: 1440 },
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.status).toBe("failed");
+    expect(result.nextChunkMinutes).toBe(1440);
+    expect(
+      result.warnings.some((warning: string): boolean => {
+        return warning.includes("did not answer in time");
+      }),
+    ).toBe(false);
+  });
+
   test("a failed fetch records a redacted error, a failure check named after the phase, and holds a usable cursor and its chunk", async () => {
     const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
     const fake: FakeConnector = makeFakeConnector({
