@@ -119,7 +119,7 @@ URL:en är den enda autentiseringsuppgiften, så behandla den som ett lösenord.
 
 :::steps
 1. Spara verktygets API-nyckel som en hemlig global variabel, som visas [nedan](#skydda-autentiseringsuppgifter).
-2. Skapa ett arbetsflöde, klicka på det streckade blocket och välj en händelseutlösare, t.ex. **On Create Incident**. Kryssa i fälten som ska skickas i **Fields to pass on**, t.ex. `title` och `description`.
+2. Skapa ett arbetsflöde, klicka på det streckade blocket och välj en händelseutlösare, t.ex. **On Create Incident**. Klicka på utlösaren: dess **Fields to pass on** börjar med **Titel**, så klicka på **Lägg till fält** och välj de andra fälten som ska skickas, t.ex. **Beskrivning**.
 3. Klicka på **Lägg till komponent** och lägg till ett **API Post (JSON)**-block. Koppla utlösarens **Success**-punkt till det.
 4. Fyll i **URL**, **Request Headers** med rubriken `Authorization` och **Request Body** med incidentens fält, t.ex. `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Klicka på **Kör arbetsflöde**, välj en incident under **Incident** och kör det. En testkörning skickar begäran på riktigt. Slå sedan på **Aktiverad**.

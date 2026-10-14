@@ -124,7 +124,11 @@ Reacciona a un mensaje en el canal de un incidente, una alerta, un episodio o un
 | 📌 Un emoji de chincheta, o el propio **Pin to channel** de Slack | Una nota privada, visible solo para tu equipo |
 | 📢 Un emoji de megáfono o altavoz | Una nota pública, mostrada en la página de estado. Solo incidentes y eventos de mantenimiento programado. |
 
-La nota se guarda como tú, con tus permisos, así que tu propia cuenta de Slack debe estar conectada. Un mensaje se guarda solo una vez, reaccione quien reaccione.
+La nota conserva el mensaje tal como lo mostraba Slack: su formato, sus enlaces y su código, las personas y los canales que menciona por su nombre, y sus archivos e imágenes como enlaces a ellos. Una nota pública deja fuera los archivos y las imágenes, ya que solo se abren para tu equipo.
+
+Son las palabras de quien escribió el mensaje: su nombre de OneUptime si su cuenta de Slack está conectada y, si no, el nombre que muestra Slack. Una nota privada se coloca en la cronología en el momento en que se publicó el mensaje, por mucho después que se guarde. Una nota pública se coloca cuando se guarda, que es cuando la muestra la página de estado. La cronología dice quién la guardó. La nota no se vuelve a publicar en el canal, donde el mensaje ya está.
+
+La nota se guarda como tú, con tus permisos. Si tu cuenta de Slack aún no está conectada, OneUptime te pide que la conectes, en un mensaje que solo ves tú, con un botón que guarda el mensaje en cuanto lo hagas. Un mensaje se guarda solo una vez, reaccione quien reaccione.
 
 ## El comando /oneuptime
 

@@ -462,6 +462,7 @@ function seedPrivateNotes(): void {
       incidentId: INCIDENT_ID,
       note: "Rotated the cert on lb-eu-west-1b.",
       createdAt: ago(9 * MINUTE),
+      postedAt: ago(9 * MINUTE),
       createdByUser: SAM,
     },
     {
@@ -469,6 +470,7 @@ function seedPrivateNotes(): void {
       incidentId: INCIDENT_ID,
       note: "Paged the edge on-call.",
       createdAt: ago(3 * DAY),
+      postedAt: ago(3 * DAY),
       createdByUser: MAYA,
     },
   );
@@ -821,17 +823,222 @@ describe("event notes: reading the feed", () => {
     });
   });
 
-  test("a private feed sorts by when notes were written and asks for no public columns", async () => {
+  test("a private feed sorts by when notes were posted, and asks for no subscriber columns", async () => {
     seedPrivateNotes();
     await renderPrivate();
 
     const request: ListRequest = noteRequests()[0]!;
     expect(request.modelType).toBe(IncidentInternalNote);
-    expect(request.sort).toEqual({ createdAt: SortOrder.Descending });
-    expect(request.select["postedAt"]).toBeUndefined();
+    // A chat message saved as a note is filed when it was written there.
+    expect(request.sort).toEqual({ postedAt: SortOrder.Descending });
+    expect(request.select["postedAt"]).toBe(true);
+    expect(request.select["savedFromChatMessage"]).toBe(true);
     expect(
       request.select["subscriberNotificationStatusOnNoteCreated"],
     ).toBeUndefined();
+  });
+
+  test("a Slack message saved as a note is its author's, filed when they wrote it, and says who saved it", async () => {
+    seedPrivateNotes();
+    tableOf(IncidentInternalNote).push({
+      _id: noteId(13),
+      incidentId: INCIDENT_ID,
+      note: "Not sure what's happening here, is this triggered by **something**?",
+      // Saved by Sam a minute ago; Aidil wrote it two hours ago.
+      createdAt: ago(MINUTE),
+      postedAt: ago(2 * HOUR),
+      createdByUser: SAM,
+      postedFromSlackMessageId: "C0INC8:1791454620.000200",
+      savedFromChatMessage: {
+        workspaceType: "Slack",
+        authorName: "Aidil Rahman",
+        postedAt: ago(2 * HOUR).toISOString(),
+      },
+    });
+    await renderPrivate();
+
+    const saved: HTMLElement = card("Not sure what's happening here");
+
+    expect(within(saved).getByTestId("note-author")).toHaveTextContent(
+      "Aidil Rahman",
+    );
+    expect(within(saved).getByTestId("note-source")).toHaveTextContent(
+      "via Slack",
+    );
+    expect(within(saved).getByTestId("note-saved-by")).toHaveTextContent(
+      "Note added by Sam Rivera",
+    );
+    expect(within(saved).getByTestId("note-time")).toHaveTextContent(
+      "2 hours ago",
+    );
+    // The message's words, as its Markdown.
+    expect(within(saved).getByTestId("note-body")).toHaveTextContent(
+      "is this triggered by",
+    );
+    // Between the note written 9 minutes ago and the one 3 days ago.
+    expect(
+      cards().map((element: HTMLElement): string => {
+        return element.getAttribute("data-note-id") || "";
+      }),
+    ).toEqual([noteId(11), noteId(13), noteId(12)]);
+  });
+
+  test("a Microsoft Teams message's author with a OneUptime account is named by it; their own note says nobody else added it", async () => {
+    tableOf(IncidentInternalNote).push(
+      {
+        _id: noteId(14),
+        incidentId: INCIDENT_ID,
+        note: "Rolled back.",
+        createdAt: ago(MINUTE),
+        postedAt: ago(5 * MINUTE),
+        createdByUser: MAYA,
+        postedFromSlackMessageId: "19:inc-8@thread.tacv2:1700000000200",
+        savedFromChatMessage: {
+          workspaceType: "MicrosoftTeams",
+          authorName: "Sam Rivera",
+          authorUserId: SAM._id,
+        },
+      },
+      {
+        _id: noteId(15),
+        incidentId: INCIDENT_ID,
+        note: "Failover done.",
+        createdAt: ago(MINUTE),
+        postedAt: ago(30 * MINUTE),
+        createdByUser: MAYA,
+        postedFromSlackMessageId: "19:inc-8@thread.tacv2:1700000000300",
+        savedFromChatMessage: {
+          workspaceType: "MicrosoftTeams",
+          authorName: "Maya Chen",
+          authorUserId: MAYA._id,
+        },
+      },
+    );
+    await renderPrivate();
+
+    const bySam: HTMLElement = card("Rolled back.");
+    expect(within(bySam).getByTestId("note-author")).toHaveTextContent(
+      "Sam Rivera",
+    );
+    expect(within(bySam).getByTestId("note-source")).toHaveTextContent(
+      "via Microsoft Teams",
+    );
+    expect(within(bySam).getByTestId("note-saved-by")).toHaveTextContent(
+      "Note added by Maya Chen",
+    );
+
+    const byMaya: HTMLElement = card("Failover done.");
+    expect(within(byMaya).queryByTestId("note-saved-by")).toBeNull();
+  });
+
+  test("a message whose author the chat did not name is 'Someone', drawn as a person, not as initials", async () => {
+    tableOf(IncidentInternalNote).push({
+      _id: noteId(17),
+      incidentId: INCIDENT_ID,
+      note: "Paged the database team.",
+      createdAt: ago(MINUTE),
+      postedAt: ago(20 * MINUTE),
+      createdByUser: MAYA,
+      postedFromSlackMessageId: "19:inc-8@thread.tacv2:1700000000500",
+      savedFromChatMessage: {
+        workspaceType: "MicrosoftTeams",
+        postedAt: ago(20 * MINUTE).toISOString(),
+      },
+    });
+    await renderPrivate();
+
+    const nameless: HTMLElement = card("Paged the database team.");
+    expect(within(nameless).getByTestId("note-author")).toHaveTextContent(
+      "Someone",
+    );
+    // A plain person: "SO" would read as somebody's initials.
+    expect(
+      within(nameless).getByTestId("note-avatar-nameless"),
+    ).toBeInTheDocument();
+    expect(within(nameless).queryByText("SO")).toBeNull();
+    expect(within(nameless).getByTestId("note-saved-by")).toHaveTextContent(
+      "Note added by Maya Chen",
+    );
+  });
+
+  test("a named author who is not connected keeps their initials", async () => {
+    tableOf(IncidentInternalNote).push({
+      _id: noteId(18),
+      incidentId: INCIDENT_ID,
+      note: "Named.",
+      createdAt: ago(MINUTE),
+      postedAt: ago(25 * MINUTE),
+      createdByUser: MAYA,
+      postedFromSlackMessageId: "C0INC8:1791454620.000900",
+      savedFromChatMessage: {
+        workspaceType: "Slack",
+        authorName: "Aidil Rahman",
+      },
+    });
+    await renderPrivate();
+
+    const named: HTMLElement = card("Named.");
+    expect(within(named).getByText("AR")).toBeInTheDocument();
+    expect(within(named).queryByTestId("note-avatar-nameless")).toBeNull();
+  });
+
+  test("a long name from a chat, and who saved it, are shown whole: they wrap, never cut", async () => {
+    tableOf(IncidentInternalNote).push({
+      _id: noteId(19),
+      incidentId: INCIDENT_ID,
+      note: "Is this triggered by something?",
+      createdAt: ago(MINUTE),
+      postedAt: ago(15 * MINUTE),
+      createdByUser: person(
+        3,
+        "Bartholomew Featherstonehaugh-Montgomery (Platform, EMEA)",
+      ),
+      postedFromSlackMessageId: "C0INC8:1791454620.000950",
+      savedFromChatMessage: {
+        workspaceType: "Slack",
+        authorName: "Priya Raghunathan-Venkataraman (Site Reliability, APAC)",
+        postedAt: ago(15 * MINUTE).toISOString(),
+      },
+    });
+    await renderPrivate();
+
+    const long: HTMLElement = card("Is this triggered by something?");
+    const author: HTMLElement = within(long).getByTestId("note-author");
+    const savedBy: HTMLElement = within(long).getByTestId("note-saved-by");
+
+    expect(author).toHaveTextContent(
+      "Priya Raghunathan-Venkataraman (Site Reliability, APAC)",
+    );
+    expect(savedBy).toHaveTextContent(
+      "Note added by Bartholomew Featherstonehaugh-Montgomery (Platform, EMEA)",
+    );
+
+    for (const element of [author, savedBy]) {
+      expect(element.className).not.toContain("truncate");
+      expect(element.className).toContain("break-words");
+    }
+  });
+
+  test("a note saved from Microsoft Teams before its author was recorded says Microsoft Teams, not Slack", async () => {
+    tableOf(IncidentInternalNote).push({
+      _id: noteId(16),
+      incidentId: INCIDENT_ID,
+      note: "An older Teams note.",
+      createdAt: ago(MINUTE),
+      postedAt: ago(MINUTE),
+      createdByUser: MAYA,
+      postedFromSlackMessageId: "19:inc-8@thread.tacv2:1700000000400",
+    });
+    await renderPrivate();
+
+    const older: HTMLElement = card("An older Teams note.");
+    expect(within(older).getByTestId("note-author")).toHaveTextContent(
+      "Maya Chen",
+    );
+    expect(within(older).getByTestId("note-source")).toHaveTextContent(
+      "via Microsoft Teams",
+    );
+    expect(within(older).queryByTestId("note-saved-by")).toBeNull();
   });
 
   test("shows a skeleton until the notes arrive", async () => {
@@ -1048,7 +1255,7 @@ describe("event notes: paging, sorting and searching", () => {
       expect(cards()[0]).toHaveTextContent("Paged the edge on-call.");
     });
     expect(noteRequests()[1]!.sort).toEqual({
-      createdAt: SortOrder.Ascending,
+      postedAt: SortOrder.Ascending,
     });
     expect(screen.getByTestId("notes-sort")).toHaveTextContent("Oldest first");
   });

@@ -89,6 +89,8 @@ Un elenco o un conteggio accetta una `query`. Un campo con un valore corrisponde
 | `Includes` | Uno qualsiasi dei valori in `value` |
 | `IsNull`, `NotNull` | Nessun valore, o un valore qualsiasi |
 
+Un campo di un record che la risorsa nomina si filtra sotto la sua relazione: `"user": { "name": { "_type": "Search", "value": "ada" } }` trova i membri del team il cui utente ha un nome che contiene «ada». Filtrare per un campo richiede il permesso di leggerlo, attraverso una relazione come sulla risorsa stessa: un filtro su un campo che non puoi leggere viene rifiutato con un `422` che nomina il campo.
+
 `select` nomina i campi da restituire, e `_id` torna sempre. `sort` li ordina, `ASC` o `DESC`; senza ordinamento, i più recenti vengono per primi. Un elenco restituisce 10 record se non imposti `limit`, fino a 10.000, e `skip` ne salta prima altrettanti: continua ad aumentare `skip` di `limit` finché non ne hai `count`. Aggiungi `?output-type=csv` a una richiesta di elenco per avere CSV invece di JSON.
 
 Per esempio, i monitor il cui nome contiene «checkout», creati dall'inizio del 2026, i più recenti per primi:

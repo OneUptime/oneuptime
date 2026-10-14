@@ -1351,6 +1351,43 @@ describe("MicrosoftTeamsUtil.sendMessage - unresolvable channel destinations are
       );
   }
 
+  test("a channel to skip is not posted to, whether named by its name or its id", async () => {
+    // A note saved from a message in "general" is not posted back into it.
+    const general: WorkspaceChannel = buildChannel({ name: "general" });
+    const ops: WorkspaceChannel = buildChannel({
+      id: "19:ops@thread.tacv2",
+      name: "ops",
+    });
+    jest
+      .spyOn(MicrosoftTeamsUtil, "getWorkspaceChannelByName")
+      .mockImplementation(
+        async (args: {
+          channelName: string;
+        }): Promise<WorkspaceChannel | null> => {
+          return args.channelName === "general" ? general : ops;
+        },
+      );
+    jest
+      .spyOn(MicrosoftTeamsUtil, "getWorkspaceChannelFromChannelId")
+      .mockResolvedValue(general);
+    const sendSpy: jest.SpyInstance = mockSendCardToChannel();
+
+    const response: WorkspaceSendMessageResponse = await callSendMessage({
+      ...buildChannelPayload({
+        channelNames: ["general", "ops"],
+        channelIds: [CHANNEL_ID],
+      }),
+      exceptChannelIds: [CHANNEL_ID],
+    });
+
+    expect(sendSpy).toHaveBeenCalledTimes(1);
+    expect(sendSpy.mock.calls[0]![0].workspaceChannel.id).toBe(
+      "19:ops@thread.tacv2",
+    );
+    expect(response.threads).toHaveLength(1);
+    expect(response.errors).toEqual([]);
+  });
+
   test("a channelName that does not resolve is reported as an error, not a silent success", async () => {
     jest
       .spyOn(MicrosoftTeamsUtil, "getWorkspaceChannelByName")

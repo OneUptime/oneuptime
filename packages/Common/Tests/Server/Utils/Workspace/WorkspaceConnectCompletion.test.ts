@@ -23,6 +23,16 @@ import WorkspaceMemberActions, {
   WorkspaceEventStanding,
   WorkspaceEventType,
 } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
+import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
+import MicrosoftTeamsReactionNoteSync from "../../../../Server/Utils/Workspace/MicrosoftTeams/ReactionNoteSync";
+import SlackReactionNoteActions from "../../../../Server/Utils/Workspace/Slack/Actions/ReactionNote";
+import WorkspaceReactionNote, {
+  WorkspaceMessageNoteOutcome,
+  WorkspaceMessageNoteResult,
+  WorkspaceNoteResourceType,
+} from "../../../../Server/Utils/Workspace/WorkspaceReactionNote";
+import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -610,6 +620,16 @@ describe("WorkspaceConnectCompletion.getLoggedButtonAction", () => {
       WorkspaceEventType.ScheduledMaintenance,
       "mark_scheduled_maintenance_as_ongoing",
     ],
+    [
+      WorkspacePendingActionKind.SavePrivateNote,
+      WorkspaceEventType.Incident,
+      "save_incident_private_note",
+    ],
+    [
+      WorkspacePendingActionKind.SavePublicNote,
+      WorkspaceEventType.ScheduledMaintenance,
+      "save_scheduled_maintenance_public_note",
+    ],
   ])(
     "%s on a %s is logged as %s, as the button's own press is",
     (
@@ -626,4 +646,318 @@ describe("WorkspaceConnectCompletion.getLoggedButtonAction", () => {
       ).toBe(logged);
     },
   );
+});
+
+describe("a pinned message, saved once the account is connected", () => {
+  /*
+   * Jane pinned a message before her account was connected. Connecting
+   * saves it, as her pin would have: SlackReactionNoteActions.saveMessage
+   * in Slack, MicrosoftTeamsReactionNoteSync.saveAfterConnect in Microsoft
+   * Teams (their own suites hold how). This holds what is asked of them,
+   * and what the chat and the settings page are told of each outcome.
+   */
+  const MESSAGE: { channelId: string; messageId: string } = {
+    channelId: "C0INC2",
+    messageId: "1760000000.000200",
+  };
+
+  let slackSave: jest.SpyInstance;
+  let teamsSave: jest.SpyInstance;
+
+  function notePress(
+    overrides?: Partial<WorkspaceConnectRequestRecord>,
+    kind?: WorkspacePendingActionKind,
+  ): WorkspaceConnectRequestRecord {
+    return request({
+      workspaceUserId: "U0JANE",
+      purpose: "save the message you pinned as a private note on this incident",
+      pendingAction: {
+        kind: kind || WorkspacePendingActionKind.SavePrivateNote,
+        eventType: WorkspaceEventType.Incident,
+        eventId: INCIDENT_ID,
+        message: MESSAGE,
+      },
+      ...overrides,
+    });
+  }
+
+  beforeEach(() => {
+    const projectAuth: WorkspaceProjectAuthToken =
+      new WorkspaceProjectAuthToken();
+    projectAuth.authToken = "xoxb-project";
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
+      .mockResolvedValue(projectAuth);
+
+    slackSave = jest
+      .spyOn(SlackReactionNoteActions, "saveMessage")
+      .mockResolvedValue({ outcome: WorkspaceMessageNoteOutcome.Saved });
+    teamsSave = jest
+      .spyOn(MicrosoftTeamsReactionNoteSync, "saveAfterConnect")
+      .mockResolvedValue({ outcome: WorkspaceMessageNoteOutcome.Saved });
+
+    jest.spyOn(WorkspaceReactionNote, "getResourceDisplay").mockResolvedValue({
+      label: "Incident INC-2",
+      link: URL.fromString(INCIDENT_LINK),
+    });
+  });
+
+  test("Slack: saved as the member, in the message's channel, and answered as done", async () => {
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: notePress(),
+        userId: USER_ID,
+      });
+
+    expect(slackSave).toHaveBeenCalledWith({
+      requester: {
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+        projectAuthToken: "xoxb-project",
+        slackUserId: "U0JANE",
+        slackChannelId: "C0INC2",
+      },
+      resource: {
+        resourceType: WorkspaceNoteResourceType.Incident,
+        resourceId: INCIDENT_ID,
+        projectId: PROJECT_ID,
+      },
+      noteType: WorkspaceNoteType.Private,
+      channelId: "C0INC2",
+      messageTs: "1760000000.000200",
+      // Answered here, as a whole.
+      tellPerson: false,
+    });
+    expect(teamsSave).not.toHaveBeenCalled();
+    // Not a state change: nothing of the button's is asked or done.
+    expect(authorize).not.toHaveBeenCalled();
+    expect(acknowledge).not.toHaveBeenCalled();
+
+    expect(result).toEqual({
+      outcome: ConnectRequestOutcome.Done,
+      answer: {
+        markdown: `✅ **Your Slack account is connected to OneUptime.** You saved the message as a private note on **[Incident INC-2](${INCIDENT_LINK})**.`,
+        text: "Your Slack account is connected to OneUptime. You saved the message as a private note on Incident INC-2",
+      },
+    });
+  });
+
+  test("Microsoft Teams: the channel is read again for her reaction, and a public note is said so", async () => {
+    const teamsMessage: {
+      channelId: string;
+      messageId: string;
+      teamId: string;
+    } = {
+      channelId: "19:inc-2@thread.tacv2",
+      messageId: "1760000000200",
+      teamId: "graph-team-ops",
+    };
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: request({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceUserId: "aad-jane",
+          purpose:
+            "save the message you reacted to as a public note on this incident",
+          pendingAction: {
+            kind: WorkspacePendingActionKind.SavePublicNote,
+            eventType: WorkspaceEventType.Incident,
+            eventId: INCIDENT_ID,
+            message: teamsMessage,
+          },
+          slack: undefined,
+        }),
+        userId: USER_ID,
+      });
+
+    expect(teamsSave).toHaveBeenCalledWith({
+      resource: {
+        resourceType: WorkspaceNoteResourceType.Incident,
+        resourceId: INCIDENT_ID,
+        projectId: PROJECT_ID,
+      },
+      noteType: WorkspaceNoteType.Public,
+      message: teamsMessage,
+      workspaceUserId: "aad-jane",
+    });
+    expect(slackSave).not.toHaveBeenCalled();
+    expect(result.outcome).toBe(ConnectRequestOutcome.Done);
+    expect(result.answer.markdown).toBe(
+      `✅ **Your Microsoft Teams account is connected to OneUptime.** You saved the message as a public note on **[Incident INC-2](${INCIDENT_LINK})**.`,
+    );
+  });
+
+  test.each([
+    [
+      "saved by somebody else meanwhile",
+      { outcome: WorkspaceMessageNoteOutcome.AlreadySaved },
+      `✅ **Your Slack account is connected to OneUptime.** This message is already saved as a note on **[Incident INC-2](${INCIDENT_LINK})**.`,
+      "Your Slack account is connected to OneUptime. This message is already saved as a note on Incident INC-2",
+    ],
+    [
+      "refused, with why as text",
+      {
+        outcome: WorkspaceMessageNoteOutcome.Refused,
+        reason:
+          "You do not have permission to add a private note to this incident: the label *Payments* is not yours.",
+      },
+      "✅ **Your Slack account is connected to OneUptime.** You do not have permission to add a private note to this incident: the label \\*Payments\\* is not yours.",
+      "Your Slack account is connected to OneUptime. You do not have permission to add a private note to this incident: the label *Payments* is not yours.",
+    ],
+    [
+      "nothing to save",
+      {
+        outcome: WorkspaceMessageNoteOutcome.NothingToSave,
+        reason: "The message you pinned has no text to save as a note.",
+      },
+      "✅ **Your Slack account is connected to OneUptime.** The message you pinned has no text to save as a note.",
+      "Your Slack account is connected to OneUptime. The message you pinned has no text to save as a note.",
+    ],
+    [
+      "the message gone",
+      { outcome: WorkspaceMessageNoteOutcome.NotFound },
+      "✅ **Your Slack account is connected to OneUptime.** The message is no longer there, so nothing was saved.",
+      "Your Slack account is connected to OneUptime. The message is no longer there, so nothing was saved",
+    ],
+    [
+      "a failure",
+      { outcome: WorkspaceMessageNoteOutcome.Failed },
+      "✅ **Your Slack account is connected to OneUptime.** OneUptime could not save the message as a note just now. Please try again.",
+      "Your Slack account is connected to OneUptime. OneUptime could not save the message as a note just now",
+    ],
+  ])(
+    "%s: answered, never done",
+    async (
+      _case: string,
+      saved: WorkspaceMessageNoteResult,
+      markdown: string,
+      text: string,
+    ) => {
+      slackSave.mockResolvedValue(saved);
+
+      const result: WorkspaceConnectCompletionResult =
+        await WorkspaceConnectCompletion.complete({
+          request: notePress(),
+          userId: USER_ID,
+        });
+
+      expect(result).toEqual({
+        outcome: ConnectRequestOutcome.Answered,
+        answer: { markdown: markdown, text: text },
+      });
+    },
+  );
+
+  /*
+   * Microsoft Teams saves a message by the reaction on it: when neither is
+   * there any more, the message may still be - only the reaction is gone.
+   */
+  test("in Microsoft Teams, a message not found is the message or the reaction gone", async () => {
+    teamsSave.mockResolvedValue({
+      outcome: WorkspaceMessageNoteOutcome.NotFound,
+    });
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: request({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceUserId: "aad-jane",
+          purpose:
+            "save the message you reacted to as a private note on this incident",
+          pendingAction: {
+            kind: WorkspacePendingActionKind.SavePrivateNote,
+            eventType: WorkspaceEventType.Incident,
+            eventId: INCIDENT_ID,
+            message: {
+              channelId: "19:inc-2@thread.tacv2",
+              messageId: "1760000000200",
+              teamId: "graph-team-ops",
+            },
+          },
+          slack: undefined,
+        }),
+        userId: USER_ID,
+      });
+
+    expect(result).toEqual({
+      outcome: ConnectRequestOutcome.Answered,
+      answer: {
+        markdown:
+          "✅ **Your Microsoft Teams account is connected to OneUptime.** The message, or your reaction to it, is no longer there, so nothing was saved.",
+        text: "Your Microsoft Teams account is connected to OneUptime. The message, or your reaction to it, is no longer there, so nothing was saved",
+      },
+    });
+  });
+
+  test("a save that throws is logged, and answered as a failure: the account is connected either way", async () => {
+    slackSave.mockRejectedValue(new Error("database is down"));
+    const errorLog: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((() => {}) as never);
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: notePress(),
+        userId: USER_ID,
+      });
+
+    expect(result.outcome).toBe(ConnectRequestOutcome.Answered);
+    expect(result.answer.text).toBe(
+      "Your Slack account is connected to OneUptime. OneUptime could not save the message as a note just now",
+    );
+    expect(errorLog).toHaveBeenCalledWith(
+      "Could not save a pinned message once its chat account was connected.",
+      { projectId: PROJECT_ID.toString() },
+    );
+  });
+
+  test("Slack not set up for the project any more: nothing is read, and it says so", async () => {
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
+      .mockResolvedValue(null);
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: notePress(),
+        userId: USER_ID,
+      });
+
+    expect(slackSave).not.toHaveBeenCalled();
+    expect(result.outcome).toBe(ConnectRequestOutcome.Answered);
+  });
+
+  test("a record that cannot be named is 'the incident'", async () => {
+    jest
+      .spyOn(WorkspaceReactionNote, "getResourceDisplay")
+      .mockRejectedValue(new Error("gone"));
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: notePress(),
+        userId: USER_ID,
+      });
+
+    expect(result.answer.markdown).toBe(
+      "✅ **Your Slack account is connected to OneUptime.** You saved the message as a private note on the incident.",
+    );
+  });
+
+  test("an alert episode's pin saves on the episode", async () => {
+    await WorkspaceConnectCompletion.complete({
+      request: notePress({
+        pendingAction: {
+          kind: WorkspacePendingActionKind.SavePrivateNote,
+          eventType: WorkspaceEventType.AlertEpisode,
+          eventId: INCIDENT_ID,
+          message: MESSAGE,
+        },
+      }),
+      userId: USER_ID,
+    });
+
+    expect(slackSave.mock.calls[0]![0].resource.resourceType).toBe(
+      WorkspaceNoteResourceType.AlertEpisode,
+    );
+  });
 });

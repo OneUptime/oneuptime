@@ -12,8 +12,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * no online DDL. Existing installations start with none: nothing changes
  * until somebody links a group to a schedule.
  */
-export class AddWorkspaceUserGroup1801800000000 implements MigrationInterface {
-  public name: string = "AddWorkspaceUserGroup1801800000000";
+export class AddWorkspaceUserGroup1801900000000 implements MigrationInterface {
+  public name: string = "AddWorkspaceUserGroup1801900000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

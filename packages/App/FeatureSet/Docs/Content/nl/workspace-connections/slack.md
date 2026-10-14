@@ -124,7 +124,11 @@ Reageer op een bericht in het kanaal van een incident, waarschuwing, episode of 
 | 📌 Een punaise-emoji, of Slacks eigen **Pin to channel** | Een privénotitie, alleen zichtbaar voor je team |
 | 📢 Een megafoon- of luidspreker-emoji | Een openbare notitie, getoond op de statuspagina. Alleen incidenten en geplande onderhoudsgebeurtenissen. |
 
-De notitie wordt als jou opgeslagen, met jouw rechten, dus je eigen Slack-account moet gekoppeld zijn. Een bericht wordt maar één keer opgeslagen, hoeveel mensen er ook op reageren.
+De notitie houdt het bericht zoals Slack het liet zien: de opmaak, links en code, de personen en kanalen die het noemt bij naam, en de bestanden en afbeeldingen als links ernaar. Een openbare notitie laat de bestanden en afbeeldingen weg, omdat die alleen voor je team opengaan.
+
+Het zijn de woorden van wie het bericht schreef: diens OneUptime-naam als diens Slack-account gekoppeld is, anders de naam die Slack toont. Een privénotitie komt in de tijdlijn op het moment dat het bericht werd geplaatst, hoe lang daarna ze ook wordt opgeslagen. Een openbare notitie komt erin op het moment dat ze wordt opgeslagen, dus wanneer de statuspagina haar toont. De tijdlijn zegt wie haar opsloeg. De notitie wordt niet teruggeplaatst in het kanaal, waar het bericht al staat.
+
+De notitie wordt als jou opgeslagen, met jouw rechten. Is je Slack-account nog niet gekoppeld, dan vraagt OneUptime je om het te koppelen, in een bericht dat alleen jij ziet, met een knop die het bericht opslaat zodra je dat hebt gedaan. Een bericht wordt maar één keer opgeslagen, hoeveel mensen er ook op reageren.
 
 ## Het commando /oneuptime
 

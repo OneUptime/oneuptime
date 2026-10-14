@@ -1011,6 +1011,27 @@ jobs:
           Tests/Server/Types/Database/LlmProviderHasAdditionalParamsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated ProjectCallSMSConfig, ProjectSMTPConfig, File and
+      # StatusPage tables into an isolated schema and drives the real
+      # create/read path: the Twilio auth token is stored encrypted (the raw
+      # column is ciphertext, two equal tokens differ), an owner reads it back
+      # decrypted, a filter or sort on it runs against ciphertext and yields
+      # no value oracle, a token written as legacy plaintext still reads back
+      # as itself, a status page's subscriber SMS read the token decrypted
+      # through the page, and a viewer's filter through the page on the token
+      # or the SMTP password is refused.
+      - name: Test the Twilio auth token encryption on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TWILIO_TOKEN_TESTS: "true"
+          TWILIO_TOKEN_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TWILIO_TOKEN_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TWILIO_TOKEN_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProjectCallSMSConfigTokenEncryptionPostgres.test.ts
+          --forceExit
+
       # Runs schema migrations through SchemaMigrationRunner while another
       # session holds their table open and an app connection reads it in a
       # loop: unbounded, the ALTER queues ahead of the reads and they fail;

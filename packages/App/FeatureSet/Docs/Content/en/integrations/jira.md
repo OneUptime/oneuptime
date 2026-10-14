@@ -307,7 +307,7 @@ Tokens expire after a year by default and do not refresh. To avoid replacing one
 ### Open a Jira issue for every incident
 
 :::steps
-1. Create a workflow from scratch named `Incidents to Jira`. Click the dashed block and add the **On Create Incident** trigger. In its **Fields to pass on**, ask for `{"_id": true, "title": true, "description": true, "incidentNumber": true}`. Leave its **Identifier** as `incident-on-create-1`.
+1. Create a workflow from scratch named `Incidents to Jira`. Click the dashed block and add the **On Create Incident** trigger. Its **Fields to pass on** starts with **Title**: click **Add field** and pick **Description** and **Incident Number**. The ID is always passed on. Leave its **Identifier** as `incident-on-create-1`.
 2. Click **Add Component**, add an **API Post (JSON)** block, and connect the trigger's **Success** dot to it. Set its **Identifier** to `create-issue`, its **URL** to `{{global.variables.JIRA_URL}}/rest/api/3/issue`, and, under **More fields**, its **Request Headers** to `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Set its **Request Body** to the issue, and replace `OPS` and `Bug` with your project key and an issue type of that project:
 
@@ -384,14 +384,14 @@ To give everyone in Jira a way back, add an **API Post (JSON)** block after `cre
 }
 ```
 
-Add `projectId` to the trigger's **Fields to pass on** for this, and keep the `.value`: a column holding another record's id arrives as `{"_type": "ObjectID", "value": "..."}`. The `globalId` makes the call safe to repeat: Jira updates the link that carries it instead of adding a second one.
+In the trigger's **Fields to pass on**, click **Add field** and pick **Project ID** for this, and keep the `.value`: a column holding another record's id arrives as `{"_type": "ObjectID", "value": "..."}`. The `globalId` makes the call safe to repeat: Jira updates the link that carries it instead of adding a second one.
 
 ### Comment and transition as the incident moves
 
 Build this as a second workflow, so a failure here never stops issues being opened.
 
 :::steps
-1. Create a workflow named `Incident updates to Jira`, with the **On Update Incident** trigger. Set **Fields to watch** to `{"currentIncidentStateId": true}` and **Fields to pass on** to `{"_id": true, "currentIncidentState": {"name": true}}`.
+1. Create a workflow named `Incident updates to Jira`, with the **On Update Incident** trigger. In **Fields to watch**, click **Add field** and pick **Current Incident State**. In **Fields to pass on**, click **Add field**, open **Current Incident State** and pick **Name**.
 2. Add an **If / Else** block: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, or your resolved state's name.
 3. After its **Yes** side, find the issue with an **API Post (JSON)** block whose **Identifier** is `find-issue`, posting to `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 

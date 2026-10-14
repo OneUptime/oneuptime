@@ -89,6 +89,8 @@ En lista eller en räkning tar en `query`. Ett fält med ett värde matchar det 
 | `Includes` | Något av värdena i `value` |
 | `IsNull`, `NotNull` | Inget värde, eller vilket värde som helst |
 
+Ett fält i en post som resursen namnger filtreras under dess relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` hittar de teammedlemmar vars användare har ett namn som innehåller ”ada”. Att filtrera på ett fält kräver behörighet att läsa det, genom en relation som på själva resursen: ett filter på ett fält du inte får läsa avvisas med en `422` som namnger fältet.
+
 `select` namnger fälten som ska returneras, och `_id` kommer alltid med. `sort` ordnar dem, `ASC` eller `DESC`; utan sortering kommer de nyaste först. En lista returnerar 10 poster om du inte anger `limit`, upp till 10 000, och `skip` hoppar först över så många: fortsätt att öka `skip` med `limit` tills du har `count` av dem. Lägg till `?output-type=csv` i en listbegäran för CSV i stället för JSON.
 
 Till exempel de monitorer vars namn innehåller ”checkout”, skapade sedan början av 2026, de nyaste först:

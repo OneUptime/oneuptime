@@ -5,6 +5,7 @@ import AlertInternalNote from "../../../Models/DatabaseModels/AlertInternalNote"
 import AlertService from "../../Services/AlertService";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
 import AlertInternalNoteService from "../../Services/AlertInternalNoteService";
+import SavedChatMessageNote from "../Notes/SavedChatMessageNote";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -111,13 +112,16 @@ export default class AlertAIContextBuilder {
           _id: true,
           note: true,
           createdAt: true,
+          postedAt: true,
+          savedFromChatMessage: true,
           createdByUser: {
             name: true,
             email: true,
           },
         },
+        // In the order they belong in: a saved chat message when it was written.
         sort: {
-          createdAt: SortOrder.Ascending,
+          postedAt: SortOrder.Ascending,
         },
         limit: 100,
         skip: 0,
@@ -218,13 +222,18 @@ export default class AlertAIContextBuilder {
     if (internalNotes.length > 0) {
       contextText += "# Internal Notes (Private)\n\n";
       for (const note of internalNotes) {
-        const noteTime: string = note.createdAt
-          ? OneUptimeDate.getDateAsFormattedString(note.createdAt)
+        const postedAt: Date | undefined = note.postedAt || note.createdAt;
+        const noteTime: string = postedAt
+          ? OneUptimeDate.getDateAsFormattedString(postedAt)
           : "N/A";
-        const createdBy: string =
-          note.createdByUser?.name?.toString() ||
-          note.createdByUser?.email?.toString() ||
-          "Unknown";
+        // A message saved from a chat is its author's words.
+        const createdBy: string = SavedChatMessageNote.getPromptAuthor({
+          note: note,
+          createdBy:
+            note.createdByUser?.name?.toString() ||
+            note.createdByUser?.email?.toString() ||
+            "Unknown",
+        });
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
         contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;

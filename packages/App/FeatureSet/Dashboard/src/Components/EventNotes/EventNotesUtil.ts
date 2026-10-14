@@ -13,6 +13,10 @@ import HeldPermissionsUtil, {
   HeldPermissions,
 } from "Common/Types/HeldPermissions";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import SavedChatMessage, {
+  SavedChatMessageUtil,
+} from "Common/Types/Workspace/SavedChatMessage";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import SubscriberNotificationResend, {
   SubscriberNotificationResendAction,
 } from "Common/Types/StatusPage/SubscriberNotificationResend";
@@ -51,7 +55,13 @@ export interface NoteRecord {
   postedAt?: Date | undefined;
   createdByUser?: User | undefined;
   attachments?: Array<FileModel> | undefined;
+  // The message's key ("<channel>:<message>"), Slack's or Microsoft Teams'.
   postedFromSlackMessageId?: string | undefined;
+  /*
+   * A note saved from a chat message: who wrote the message, in which chat,
+   * posted when (SavedChatMessage). The note's creator saved it.
+   */
+  savedFromChatMessage?: JSONObject | undefined;
   subscriberNotificationStatusOnNoteCreated?:
     | StatusPageSubscriberNotificationStatus
     | undefined;
@@ -95,20 +105,26 @@ const toDate: ToDateFunction = (
 };
 
 /*
- * The moment a note belongs to. A public note is filed under the time it was
- * posted - what the status page shows, and what someone backdating an update
- * chose - and falls back to when it was written. A private note has only the
- * latter.
+ * The moment a note belongs to: the time it was posted - what the status
+ * page shows for a public note, and what someone backdating an update
+ * chose; for a message saved from Slack or Microsoft Teams, when the
+ * message was written there - falling back to when the note was written.
+ * Every note is sorted by the same time (getNoteSortField).
  */
 export function getNoteTimestamp(
   note: NoteRecord,
-  visibility: NoteVisibility,
+  _visibility: NoteVisibility,
 ): Date | null {
-  if (visibility === "public") {
-    return toDate(note.postedAt) || toDate(note.createdAt);
-  }
+  return toDate(note.postedAt) || toDate(note.createdAt);
+}
 
-  return toDate(note.createdAt);
+/*
+ * The column a feed of notes is sorted by: postedAt, where the note model
+ * has it - every public note, and private notes since a message saved from
+ * a chat is filed when it was written - else createdAt.
+ */
+export function getNoteSortField(model: BaseModel): string {
+  return model.hasColumn("postedAt") ? "postedAt" : "createdAt";
 }
 
 export interface NoteDayGroup<T> {
@@ -188,6 +204,9 @@ const readableValue: ReadableValueFunction = (
 };
 
 export const AUTOMATION_AUTHOR_NAME: string = "OneUptime";
+
+// Who wrote a message the chat did not name.
+export const UNNAMED_CHAT_AUTHOR: string = translationKey("Someone");
 
 /*
  * Who wrote a note. A note with no author was posted by OneUptime itself -
@@ -696,7 +715,9 @@ export function buildNotesSelect(data: {
     _id: true,
     note: true,
     createdAt: true,
+    postedAt: true,
     postedFromSlackMessageId: true,
+    savedFromChatMessage: true,
     createdByUser: {
       _id: true,
       name: true,
@@ -713,7 +734,6 @@ export function buildNotesSelect(data: {
   }
 
   if (data.visibility === "public") {
-    candidates["postedAt"] = true;
     candidates["subscriberNotificationStatusOnNoteCreated"] = true;
     candidates["subscriberNotificationStatusMessage"] = true;
     candidates["subscriberNotificationStatusOnNoteUpdated"] = true;
@@ -846,10 +866,114 @@ export function getNoteFullTimeLabel(date: Date): string {
 }
 
 // "Posted from Slack" and the like, for notes that did not start here.
-export function getNoteSourceLabel(note: NoteRecord): string | null {
-  if (note.postedFromSlackMessageId) {
-    return "via Slack";
+export const VIA_SLACK: string = translationKey("via Slack");
+export const VIA_MICROSOFT_TEAMS: string = translationKey(
+  "via Microsoft Teams",
+);
+// Who saved a note from somebody else's chat message.
+export const NOTE_ADDED_BY: string = translationKey("Note added by {{name}}");
+
+export interface NoteSource {
+  workspaceType: WorkspaceType;
+  // "via Slack", "via Microsoft Teams": English, looked up where it is drawn.
+  label: string;
+}
+
+/*
+ * The chat a note was saved from: the one its savedFromChatMessage names,
+ * else - a note saved before that was recorded - the one its message key
+ * reads as (a Microsoft Teams channel's id starts "19:"). Null for a note
+ * written in OneUptime.
+ */
+export function getNoteSource(note: NoteRecord): NoteSource | null {
+  const workspaceType: WorkspaceType | null =
+    getSavedChatMessage(note)?.workspaceType ||
+    SavedChatMessageUtil.getWorkspaceTypeOfMessageKey(
+      note.postedFromSlackMessageId,
+    );
+
+  if (!workspaceType) {
+    return null;
   }
 
-  return null;
+  return {
+    workspaceType: workspaceType,
+    label:
+      workspaceType === WorkspaceType.MicrosoftTeams
+        ? VIA_MICROSOFT_TEAMS
+        : VIA_SLACK,
+  };
+}
+
+// "via Slack" and the like, for notes that did not start here.
+export function getNoteSourceLabel(note: NoteRecord): string | null {
+  return getNoteSource(note)?.label || null;
+}
+
+// The chat message a note was saved from, as stored on it; null for none.
+export function getSavedChatMessage(note: NoteRecord): SavedChatMessage | null {
+  return SavedChatMessageUtil.read(note.savedFromChatMessage);
+}
+
+export interface NoteAuthor {
+  name: string;
+  // Whether `name` stands in for one nobody gave ("Someone"): English, to look up.
+  isNameStandIn?: boolean | undefined;
+  // Their OneUptime user, for their picture; null for none.
+  userId: ObjectID | null;
+  isAutomation: boolean;
+  /*
+   * Who saved somebody else's chat message as the note: the note's creator,
+   * by name. Undefined when the note is its creator's own words.
+   */
+  savedByName?: string | undefined;
+}
+
+/*
+ * Who a note is by. A note saved from a chat message is the message's
+ * author's words: their OneUptime name and picture when their chat account
+ * is connected to the project, else the name the chat shows - and whoever
+ * saved it is named apart. Any other note is its creator's.
+ */
+export function getNoteAuthor(note: NoteRecord): NoteAuthor {
+  const creator: { name: string; isAutomation: boolean } = getAuthorName(
+    note.createdByUser,
+  );
+  const creatorId: ObjectID | null = getUserId(note.createdByUser);
+  const saved: SavedChatMessage | null = getSavedChatMessage(note);
+
+  if (!saved) {
+    return {
+      name: creator.name,
+      userId: creatorId,
+      isAutomation: creator.isAutomation,
+    };
+  }
+
+  let authorId: ObjectID | null = null;
+
+  try {
+    authorId = saved.authorUserId ? new ObjectID(saved.authorUserId) : null;
+  } catch {
+    authorId = null;
+  }
+
+  const isSavedByAuthor: boolean = Boolean(
+    authorId &&
+      creatorId &&
+      authorId.toString().toLowerCase() === creatorId.toString().toLowerCase(),
+  );
+
+  const author: NoteAuthor = {
+    name: saved.authorName || UNNAMED_CHAT_AUTHOR,
+    isNameStandIn: !saved.authorName,
+    userId: authorId,
+    isAutomation: false,
+  };
+
+  if (!isSavedByAuthor && !creator.isAutomation) {
+    author.savedByName = creator.name;
+  }
+
+  return author;
 }

@@ -47,7 +47,7 @@ Go to **Workflows**, click **Create Workflow**, then **Start from scratch**. Nam
 
 ### Add the trigger
 
-Click the dashed **Choose what starts this workflow** block and pick **On Create Incident**. Click the trigger, and in **Fields to pass on** pick `title`, `description` and `incidentNumberWithPrefix`.
+Click the dashed **Choose what starts this workflow** block and pick **On Create Incident**. Click the trigger: its **Fields to pass on** starts with **Title**, so click **Add field** and pick **Description** and **Incident Number With Prefix**.
 
 ### Open the issue
 

@@ -124,7 +124,11 @@ Reagera på ett meddelande i kanalen för en incident, ett larm, en episod eller
 | 📌 En häftstift-emoji, eller Slacks egen **Pin to channel** | En privat anteckning, som bara ditt team ser |
 | 📢 En megafon- eller högtalar-emoji | En offentlig anteckning, som visas på statussidan. Endast incidenter och schemalagda underhållshändelser. |
 
-Anteckningen sparas som dig, med dina behörigheter, så ditt eget Slack-konto måste vara anslutet. Ett meddelande sparas bara en gång, oavsett hur många som reagerar.
+Anteckningen behåller meddelandet så som Slack visade det: formateringen, länkarna och koden, personerna och kanalerna det nämner, med namn, och filerna och bilderna som länkar till dem. En offentlig anteckning utelämnar filerna och bilderna, eftersom de bara öppnas för ditt team.
+
+Det är orden från den som skrev meddelandet: personens OneUptime-namn när personens Slack-konto är anslutet, annars namnet Slack visar. En privat anteckning placeras i tidslinjen där meddelandet skickades, hur långt efteråt den än sparas. En offentlig anteckning placeras när den sparas, alltså när statussidan visar den. Tidslinjen säger vem som sparade den. Anteckningen skickas inte tillbaka till kanalen, där meddelandet redan finns.
+
+Anteckningen sparas som dig, med dina behörigheter. Om ditt Slack-konto inte är anslutet än ber OneUptime dig ansluta det, i ett meddelande som bara du ser, med en knapp som sparar meddelandet så snart du har gjort det. Ett meddelande sparas bara en gång, oavsett hur många som reagerar.
 
 ## Kommandot /oneuptime
 

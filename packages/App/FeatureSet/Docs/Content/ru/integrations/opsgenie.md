@@ -49,7 +49,7 @@ flowchart TB
 
 ### Добавьте триггер
 
-Нажмите на пунктирный блок **Choose what starts this workflow** и выберите **On Create Incident**. Нажмите на триггер и в **Fields to pass on** выберите `title` и `description`.
+Нажмите на пунктирный блок **Choose what starts this workflow** и выберите **On Create Incident**. Нажмите на триггер: его **Fields to pass on** начинаются с поля **Заголовок**, поэтому нажмите **Добавить поле** и выберите **Описание**.
 
 ### Создайте оповещение
 
@@ -85,7 +85,7 @@ flowchart TB
 :::steps
 ### Добавьте триггер On Update Incident
 
-Создайте рабочий процесс с именем `Close Opsgenie alerts` и выберите триггер **On Update Incident**. В **Fields to watch** выберите `currentIncidentStateId`, чтобы он запускался только при смене состояния. В **Fields to pass on** запросите, является ли новое состояние состоянием устранения:
+Создайте рабочий процесс с именем `Close Opsgenie alerts` и выберите триггер **On Update Incident**. В **Fields to watch** нажмите **Добавить поле** и выберите **Current Incident State**, чтобы он запускался только при смене состояния. В **Fields to pass on** запросите, является ли новое состояние состоянием устранения: нажмите **Добавить поле**, откройте **Current Incident State** и выберите **Is Resolved State**. Или нажмите **Изменить как JSON** и замените JSON на:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 
 Чтобы отправлять серьёзность каждого инцидента как приоритет Opsgenie, добавьте между триггером и блоком **API Post (JSON)** блок **Run Custom JavaScript**.
 
-1. В **Fields to pass on** триггера выберите также `name` серьёзности: `{ "incidentSeverity": { "name": true } }`.
+1. В **Fields to pass on** триггера нажмите **Добавить поле**, откройте **Серьёзность инцидента** и выберите **Имя**.
 2. Задайте **Arguments** блока значение `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, а его **JavaScript Code** — следующий код:
 
    ```javascript

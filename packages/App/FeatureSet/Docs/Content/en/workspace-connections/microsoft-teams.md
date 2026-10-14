@@ -137,7 +137,11 @@ React to a message, or a reply, in the channel OneUptime created for an incident
 | 📌 or 📍 | A private note, seen only by your team |
 | 📣 or 📢 | A public note, shown on the status page. Incidents and scheduled maintenance events only. |
 
-The note is saved as you, with your permissions, so your own Microsoft Teams account must be connected, and the OneUptime app must be in the team.
+The note keeps the message as Microsoft Teams showed it: its formatting, links and code, the people it mentions by name, and its files and images as links to them. A public note leaves the files and images out, since they open only for your team.
+
+It is the words of whoever wrote the message: their OneUptime name when their Microsoft Teams account is connected, otherwise the name Teams shows. A private note is filed in the timeline when the message was posted, however long after it is saved. A public note is filed when it is saved, which is when the status page shows it. The timeline says who saved it. The note is not posted back into the channel, where the message already is.
+
+The note is saved as you, with your permissions, and the OneUptime app must be in the team. If your Microsoft Teams account is not connected yet, OneUptime asks you to connect it, in a reply that mentions you, with a button that saves the message as soon as you have.
 
 ## Talking to the OneUptime bot
 

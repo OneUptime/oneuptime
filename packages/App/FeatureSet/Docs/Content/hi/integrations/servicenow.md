@@ -54,7 +54,7 @@ Table API Basic ऑथ लेता है: यूज़र का नाम औ
 
 ### ट्रिगर जोड़ें
 
-डैश वाले **Choose what starts this workflow** ब्लॉक पर क्लिक करें और **On Create Incident** चुनें। ट्रिगर पर क्लिक करें, और **Fields to pass on** में `title` और `description` चुनें।
+डैश वाले **Choose what starts this workflow** ब्लॉक पर क्लिक करें और **On Create Incident** चुनें। ट्रिगर पर क्लिक करें: उसके **Fields to pass on** में पहले से **शीर्षक** है, इसलिए **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** चुनें।
 
 ### रिकॉर्ड बनाएं
 
@@ -93,7 +93,7 @@ Table API Basic ऑथ लेता है: यूज़र का नाम औ
 :::steps
 ### On Update Incident ट्रिगर जोड़ें
 
-`Resolve ServiceNow incidents` नाम का एक वर्कफ़्लो बनाएं, और उसके ट्रिगर के रूप में **On Update Incident** चुनें। **Fields to watch** में `currentIncidentStateId` चुनें, ताकि यह सिर्फ़ स्थिति बदलने पर चले। **Fields to pass on** में यह मांगें कि नई स्थिति सुलझी हुई है या नहीं:
+`Resolve ServiceNow incidents` नाम का एक वर्कफ़्लो बनाएं, और उसके ट्रिगर के रूप में **On Update Incident** चुनें। **Fields to watch** में **फ़ील्ड जोड़ें** पर क्लिक करें और **Current Incident State** चुनें, ताकि यह सिर्फ़ स्थिति बदलने पर चले। **Fields to pass on** में यह मांगें कि नई स्थिति सुलझी हुई है या नहीं: **फ़ील्ड जोड़ें** पर क्लिक करें, **Current Incident State** खोलें और **Is Resolved State** चुनें। या **JSON के रूप में संपादित करें** पर क्लिक करें और JSON को इससे बदल दें:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

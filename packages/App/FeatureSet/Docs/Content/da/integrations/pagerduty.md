@@ -48,7 +48,7 @@ Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start
 
 ### Tilføj triggeren
 
-Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Incident**. Klik på triggeren, og vælg `title` og `description` i **Fields to pass on**.
+Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Incident**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg **Beskrivelse**.
 
 ### Send trigger-begivenheden
 
@@ -84,7 +84,7 @@ Et workflow har én trigger, så det kræver et andet workflow at løse den, sta
 :::steps
 ### Tilføj triggeren On Update Incident
 
-Opret et workflow med navnet `Resolve PagerDuty incidents`, og vælg **On Update Incident** som trigger. Vælg `currentIncidentStateId` i **Fields to watch**, så det kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand:
+Opret et workflow med navnet `Resolve PagerDuty incidents`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**, så det kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ At kontrollere `isResolvedState` i stedet for navnet på en tilstand bliver ved 
 
 For at sende hver hændelses alvorlighed tilføjer du en **Run Custom JavaScript**-blok mellem triggeren og **API Post (JSON)**-blokken og læser dens svar i brødteksten.
 
-1. Vælg også alvorlighedens `name` i triggerens **Fields to pass on**: `{ "incidentSeverity": { "name": true } }`.
+1. Klik på **Tilføj felt** i triggerens **Fields to pass on**, åbn **Hændelsesalvor**, og vælg **Navn**.
 2. Sæt blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og dens **JavaScript Code** til:
 
    ```javascript

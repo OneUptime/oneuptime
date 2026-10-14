@@ -124,7 +124,11 @@ Reager på en melding i kanalen til en hendelse, et varsel, en episode eller en 
 | 📌 En tegnestift-emoji, eller Slacks egen **Pin to channel** | Et privat notat, som bare teamet ditt ser |
 | 📢 En megafon- eller høyttaler-emoji | Et offentlig notat, vist på statussiden. Bare hendelser og planlagte vedlikeholdsbegivenheter. |
 
-Notatet lagres som deg, med dine tillatelser, så din egen Slack-konto må være koblet til. En melding lagres bare én gang, uansett hvor mange som reagerer.
+Notatet beholder meldingen slik Slack viste den: formateringen, lenkene og koden, personene og kanalene den nevner, ved navn, og filene og bildene som lenker til dem. Et offentlig notat utelater filene og bildene, siden de bare åpnes for teamet ditt.
+
+Det er ordene til den som skrev meldingen: OneUptime-navnet deres når Slack-kontoen deres er koblet til, ellers navnet Slack viser. Et privat notat plasseres på tidslinjen der meldingen ble lagt ut, uansett hvor lenge etterpå det lagres. Et offentlig notat plasseres når det lagres, altså når statussiden viser det. Tidslinjen sier hvem som lagret det. Notatet legges ikke ut igjen i kanalen, der meldingen allerede står.
+
+Notatet lagres som deg, med dine tillatelser. Hvis Slack-kontoen din ikke er koblet til ennå, ber OneUptime deg koble den til, i en melding bare du ser, med en knapp som lagrer meldingen så snart du har gjort det. En melding lagres bare én gang, uansett hvor mange som reagerer.
 
 ## Kommandoen /oneuptime
 

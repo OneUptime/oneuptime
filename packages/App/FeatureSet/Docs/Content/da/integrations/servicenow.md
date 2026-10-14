@@ -54,7 +54,7 @@ Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start
 
 ### Tilføj triggeren
 
-Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Incident**. Klik på triggeren, og vælg `title` og `description` i **Fields to pass on**.
+Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Incident**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg **Beskrivelse**.
 
 ### Opret posten
 
@@ -93,7 +93,7 @@ Et workflow har én trigger, så det kræver et andet workflow at løse den, sta
 :::steps
 ### Tilføj triggeren On Update Incident
 
-Opret et workflow med navnet `Resolve ServiceNow incidents`, og vælg **On Update Incident** som trigger. Vælg `currentIncidentStateId` i **Fields to watch**, så det kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand:
+Opret et workflow med navnet `Resolve ServiceNow incidents`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**, så det kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

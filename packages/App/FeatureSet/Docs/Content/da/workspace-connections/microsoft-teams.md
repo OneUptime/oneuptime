@@ -137,7 +137,11 @@ Reagér på en besked, eller et svar, i den kanal, OneUptime oprettede for en h�
 | 📌 eller 📍 | En privat note, som kun dit team ser |
 | 📣 eller 📢 | En offentlig note, vist på statussiden. Kun hændelser og planlagte vedligeholdelsesbegivenheder. |
 
-Noten gemmes som dig, med dine rettigheder, så din egen Microsoft Teams-konto skal være forbundet, og OneUptime-appen skal være i teamet.
+Noten bevarer beskeden, som Microsoft Teams viste den: dens formatering, links og kode, de personer, den nævner, ved navn, og dens filer og billeder som links til dem. En offentlig note udelader filerne og billederne, da de kun åbner for dit team.
+
+Det er ordene fra den, der skrev beskeden: vedkommendes OneUptime-navn, når deres Microsoft Teams-konto er forbundet, ellers det navn, Teams viser. En privat note placeres på tidslinjen, da beskeden blev slået op, uanset hvor længe efter den gemmes. En offentlig note placeres, når den gemmes, som er når statussiden viser den. Tidslinjen siger, hvem der gemte den. Noten bliver ikke slået op igen i kanalen, hvor beskeden allerede står.
+
+Noten gemmes som dig, med dine rettigheder, og OneUptime-appen skal være i teamet. Hvis din Microsoft Teams-konto ikke er forbundet endnu, beder OneUptime dig om at forbinde den, i et svar der nævner dig, med en knap der gemmer beskeden, så snart du har gjort det.
 
 ## Tal med OneUptime-botten
 

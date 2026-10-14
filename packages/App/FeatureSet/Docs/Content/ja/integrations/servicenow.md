@@ -54,7 +54,7 @@ Table API は Basic 認証を受け付けます。ユーザーの名前とパス
 
 ### トリガーを追加する
 
-点線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックし、**Fields to pass on** で `title` と `description` を選びます。
+点線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックします。その **Fields to pass on** は **タイトル** から始まるので、**フィールドを追加** をクリックして **説明** を選びます。
 
 ### レコードを作成する
 
@@ -93,7 +93,7 @@ Table API は Basic 認証を受け付けます。ユーザーの名前とパス
 :::steps
 ### On Update Incident トリガーを追加する
 
-`Resolve ServiceNow incidents` という名前のワークフローを作成し、トリガーに **On Update Incident** を選びます。**Fields to watch** で `currentIncidentStateId` を選び、状態が変わったときだけ実行されるようにします。**Fields to pass on** で、新しい状態が解決済みの状態かどうかを要求します:
+`Resolve ServiceNow incidents` という名前のワークフローを作成し、トリガーに **On Update Incident** を選びます。**Fields to watch** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選び、状態が変わったときだけ実行されるようにします。**Fields to pass on** で、新しい状態が解決済みの状態かどうかを要求します。**フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **解決済みの状態** を選びます。または **JSON として編集** をクリックし、JSON を次の内容に置き換えます:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

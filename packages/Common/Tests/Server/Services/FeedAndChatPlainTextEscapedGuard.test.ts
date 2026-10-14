@@ -788,7 +788,7 @@ function valuesGivenTo(identifier: ts.Identifier): Array<ts.Expression> {
   return values;
 }
 
-// The name a call is made by: `getNotLinkedMessage` for `this.getNotLinkedMessage(...)`.
+// The name a call is made by: `getConfirmationMessage` for `this.getConfirmationMessage(...)`.
 function calledName(call: ts.CallExpression): string | null {
   if (ts.isPropertyAccessExpression(call.expression)) {
     return call.expression.name.text;
@@ -1604,7 +1604,6 @@ describe("feed and chat Markdown is written with mdText", () => {
     expect(seen.replies).toBeGreaterThan(100);
 
     for (const builder of [
-      "getNotLinkedMessage",
       "getUnexpectedErrorMessage",
       "getConfirmationMessage",
       "getIncidentCreateFailedMessage",

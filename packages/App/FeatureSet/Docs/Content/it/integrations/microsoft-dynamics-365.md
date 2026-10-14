@@ -269,7 +269,7 @@ L'ambito deve essere l'URL del tuo ambiente seguito da `/.default`. Un URL di am
 ### Aprire un caso per ogni incidente
 
 :::steps
-1. Crea da zero un workflow chiamato `Incidents to Dynamics 365`. Fai clic sul blocco tratteggiato e aggiungi il trigger **On Create Incident**. Nei suoi **Fields to pass on**, chiedi `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
+1. Crea da zero un workflow chiamato `Incidents to Dynamics 365`. Fai clic sul blocco tratteggiato e aggiungi il trigger **On Create Incident**. I suoi **Fields to pass on** iniziano con **Titolo**: fai clic su **Aggiungi campo** e scegli **Descrizione** e **Numero dell'incidente**. L'ID viene sempre trasmesso.
 2. Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Success** del trigger. Imposta il suo **Identifier** su `create-case` e il suo **URL** su `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. In **Altri campi**, imposta i suoi **Request Headers** su:
 
@@ -323,7 +323,7 @@ Dynamics 365 include `severitycode` con una sola opzione, quindi imposta invece 
 Costruiscilo come secondo workflow, così un errore qui non impedisce mai l'apertura dei casi.
 
 :::steps
-1. Crea un workflow chiamato `Close Dynamics 365 cases`, con il trigger **On Update Incident**. Imposta **Fields to watch** su `{"currentIncidentStateId": true}` e **Fields to pass on** su `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
+1. Crea un workflow chiamato `Close Dynamics 365 cases`, con il trigger **On Update Incident**. In **Fields to watch**, fai clic su **Aggiungi campo** e scegli **Current Incident State**. In **Fields to pass on**, fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**.
 2. Aggiungi un blocco **If / Else**: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
 3. Dopo il suo lato **Yes**, aggiungi un blocco **API Get (JSON)** con l'**Identifier** `find-case`, le stesse intestazioni senza `Prefer` e questo **URL**:
 
