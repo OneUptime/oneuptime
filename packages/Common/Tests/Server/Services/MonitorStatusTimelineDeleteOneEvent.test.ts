@@ -40,9 +40,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const MONITOR_ID: ObjectID = new ObjectID(
   "5e000000-0000-4000-8000-000000000002",
 );
-const EVENT_ID: ObjectID = new ObjectID(
-  "5e000000-0000-4000-8000-00000000000e",
-);
+const EVENT_ID: ObjectID = new ObjectID("5e000000-0000-4000-8000-00000000000e");
 const BEFORE_ID: ObjectID = new ObjectID(
   "5e000000-0000-4000-8000-00000000000b",
 );

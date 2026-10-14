@@ -102,12 +102,10 @@ describe("Delete Many", () => {
       }) as never);
 
     const fixture: OptionsFixture = makeOptions();
-    const result: RunReturnType = await new DeleteManyBaseModel<
-      MonitorStatusTimeline
-    >(MonitorStatusTimelineService).run(
-      { query: { monitorId: RECORD_ID }, limit: 100 },
-      fixture.options,
-    );
+    const result: RunReturnType =
+      await new DeleteManyBaseModel<MonitorStatusTimeline>(
+        MonitorStatusTimelineService,
+      ).run({ query: { monitorId: RECORD_ID }, limit: 100 }, fixture.options);
 
     expect(result.executePort?.id).toBe("success");
     expect(result.returnValues["items-deleted"]).toBe(12);
@@ -154,12 +152,10 @@ describe("Delete Many", () => {
       });
 
     const fixture: OptionsFixture = makeOptions();
-    const result: RunReturnType = await new DeleteManyBaseModel<
-      MonitorStatusTimeline
-    >(MonitorStatusTimelineService).run(
-      { query: { monitorId: RECORD_ID } },
-      fixture.options,
-    );
+    const result: RunReturnType =
+      await new DeleteManyBaseModel<MonitorStatusTimeline>(
+        MonitorStatusTimelineService,
+      ).run({ query: { monitorId: RECORD_ID } }, fixture.options);
 
     expect(result.executePort?.id).toBe("success");
     expect(fixture.lines).toEqual(["Deleted 4 Monitor Status Event(s)."]);
@@ -216,12 +212,10 @@ describe("Delete One", () => {
       .mockResolvedValue(1 as never);
 
     const fixture: OptionsFixture = makeOptions();
-    const result: RunReturnType = await new DeleteOneBaseModel<
-      MonitorStatusTimeline
-    >(MonitorStatusTimelineService).run(
-      { query: { monitorId: RECORD_ID } },
-      fixture.options,
-    );
+    const result: RunReturnType =
+      await new DeleteOneBaseModel<MonitorStatusTimeline>(
+        MonitorStatusTimelineService,
+      ).run({ query: { monitorId: RECORD_ID } }, fixture.options);
 
     expect(result.returnValues["items-deleted"]).toBe(0);
     expect(fixture.lines).toEqual([

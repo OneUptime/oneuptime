@@ -1,8 +1,9 @@
 import Models from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { NodeDataProp } from "../../../Types/Workflow/Component";
+import ComponentMetadata, {
+  NodeDataProp,
+} from "../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../Types/Workflow/Components/BaseModel";
-import ComponentMetadata from "../../../Types/Workflow/Component";
 import ComponentDocumentation from "../../../Types/Workflow/Documentation/ComponentDocumentation";
 import getComponentDocumentation from "../../../Types/Workflow/Documentation/Index";
 import {
@@ -93,31 +94,28 @@ test("every state timeline but a network site's has delete steps", () => {
   ).toEqual([]);
 });
 
-describe.each(WITH_DELETE_STEPS)(
-  "%s",
-  (tableName: string) => {
-    const model: BaseModel = modelFor(tableName);
+describe.each(WITH_DELETE_STEPS)("%s", (tableName: string) => {
+  const model: BaseModel = modelFor(tableName);
 
-    test.each(["-delete-many", "-delete-one"])(
-      "the %s step's help says what always stays, in the run log's words",
-      (suffix: string) => {
-        const rule: string = describeRowsKeptOnDelete(
-          getRowsKeptOnDelete(tableName)!,
-        );
+  test.each(["-delete-many", "-delete-one"])(
+    "the %s step's help says what always stays, in the run log's words",
+    (suffix: string) => {
+      const rule: string = describeRowsKeptOnDelete(
+        getRowsKeptOnDelete(tableName)!,
+      );
 
-        const kept: Array<string> = notesOf(helpOf(model, suffix)).filter(
-          (text: string): boolean => {
-            return text.includes(rule);
-          },
-        );
+      const kept: Array<string> = notesOf(helpOf(model, suffix)).filter(
+        (text: string): boolean => {
+          return text.includes(rule);
+        },
+      );
 
-        expect(kept).toEqual([
-          `Some ${model.pluralName} always stay: ${rule}. The run's log says how many were kept${getRowsKeptOnDelete(tableName)!.oneRowByIdCanGo ? ", and a query by ID deletes the one it names" : ""}.`,
-        ]);
-      },
-    );
-  },
-);
+      expect(kept).toEqual([
+        `Some ${model.pluralName} always stay: ${rule}. The run's log says how many were kept${getRowsKeptOnDelete(tableName)!.oneRowByIdCanGo ? ", and a query by ID deletes the one it names" : ""}.`,
+      ]);
+    },
+  );
+});
 
 describe("every other table", () => {
   test("has delete steps whose help says nothing of rows that stay", () => {
@@ -144,12 +142,10 @@ describe("every other table", () => {
           continue;
         }
 
-        const help: ComponentDocumentation | null = getComponentDocumentation(
-          {
-            metadata: metadata,
-            stepId: "step-1",
-          },
-        );
+        const help: ComponentDocumentation | null = getComponentDocumentation({
+          metadata: metadata,
+          stepId: "step-1",
+        });
 
         expect({
           step: metadata.id,

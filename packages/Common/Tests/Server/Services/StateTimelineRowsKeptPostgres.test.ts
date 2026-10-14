@@ -39,6 +39,7 @@ import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import { MergedDowntimeTotals } from "../../../Types/StatusPage/MergedDowntimeTotals";
 import {
+  MonitorUptimeDailyAggregate,
   UptimeDailyAggregate,
   UptimeDayBucket,
 } from "../../../Types/StatusPage/UptimeDailyAggregate";
@@ -428,7 +429,10 @@ describePostgres(
     const addMonitorWithTimeline: (data: {
       project: Project;
       spans: Array<{ statusId: string; from: number; to: number | null }>;
-    }) => Promise<{ monitorId: string; eventIds: Array<string> }> = async (data: {
+    }) => Promise<{
+      monitorId: string;
+      eventIds: Array<string>;
+    }> = async (data: {
       project: Project;
       spans: Array<{ statusId: string; from: number; to: number | null }>;
     }): Promise<{ monitorId: string; eventIds: Array<string> }> => {
@@ -514,24 +518,27 @@ describePostgres(
     };
 
     // The job's loop: the call again, until a call removes nothing.
-    const untilDone: (call: () => Promise<number>) => Promise<Array<number>> =
-      async (call: () => Promise<number>): Promise<Array<number>> => {
-        const removed: Array<number> = [];
-        let deletedCount: number = 0;
+    const untilDone: (
+      call: () => Promise<number>,
+    ) => Promise<Array<number>> = async (
+      call: () => Promise<number>,
+    ): Promise<Array<number>> => {
+      const removed: Array<number> = [];
+      let deletedCount: number = 0;
 
-        do {
-          if (removed.length === MAX_PURGE_CALLS) {
-            throw new Error(
-              `The purge loop did not end after ${MAX_PURGE_CALLS} calls: ${removed.join(", ")}`,
-            );
-          }
+      do {
+        if (removed.length === MAX_PURGE_CALLS) {
+          throw new Error(
+            `The purge loop did not end after ${MAX_PURGE_CALLS} calls: ${removed.join(", ")}`,
+          );
+        }
 
-          deletedCount = await call();
-          removed.push(deletedCount);
-        } while (deletedCount > 0);
+        deletedCount = await call();
+        removed.push(deletedCount);
+      } while (deletedCount > 0);
 
-        return removed;
-      };
+      return removed;
+    };
 
     beforeAll(async () => {
       database = new DataSource({
@@ -631,17 +638,16 @@ describePostgres(
           return timeline.service;
         }),
       ]) {
-        getJestSpyOn(service, "onTriggerWorkflow").mockResolvedValue(
-          undefined,
-        );
+        getJestSpyOn(service, "onTriggerWorkflow").mockResolvedValue(undefined);
       }
 
       getJestSpyOn(StatusPageOverviewCache, "afterDelete").mockResolvedValue(
         undefined,
       );
-      getJestSpyOn(NetworkSiteService, "onMonitorStatusChanged").mockResolvedValue(
-        undefined,
-      );
+      getJestSpyOn(
+        NetworkSiteService,
+        "onMonitorStatusChanged",
+      ).mockResolvedValue(undefined);
     });
 
     describe("OneUptime's own retention purge of monitor status events", () => {
@@ -655,7 +661,11 @@ describePostgres(
 
         expect(
           await untilDone(() => {
-            return purgeOlderThan(MonitorStatusTimelineService, "startsAt", 120);
+            return purgeOlderThan(
+              MonitorStatusTimelineService,
+              "startsAt",
+              120,
+            );
           }),
         ).toEqual([0]);
 
@@ -680,7 +690,11 @@ describePostgres(
 
         expect(
           await untilDone(() => {
-            return purgeOlderThan(MonitorStatusTimelineService, "startsAt", 120);
+            return purgeOlderThan(
+              MonitorStatusTimelineService,
+              "startsAt",
+              120,
+            );
           }),
         ).toEqual([0]);
 
@@ -706,7 +720,11 @@ describePostgres(
         // Three rows started more than 120 days ago and all three ended before the last 90 days.
         expect(
           await untilDone(() => {
-            return purgeOlderThan(MonitorStatusTimelineService, "startsAt", 120);
+            return purgeOlderThan(
+              MonitorStatusTimelineService,
+              "startsAt",
+              120,
+            );
           }),
         ).toEqual([3, 0]);
 
@@ -763,7 +781,11 @@ describePostgres(
 
         expect(
           await untilDone(() => {
-            return purgeOlderThan(MonitorStatusTimelineService, "startsAt", 120);
+            return purgeOlderThan(
+              MonitorStatusTimelineService,
+              "startsAt",
+              120,
+            );
           }),
         ).toEqual([1, 0]);
 
@@ -807,7 +829,11 @@ describePostgres(
 
         expect(
           await untilDone(() => {
-            return purgeOlderThan(MonitorStatusTimelineService, "startsAt", 120);
+            return purgeOlderThan(
+              MonitorStatusTimelineService,
+              "startsAt",
+              120,
+            );
           }),
         ).toEqual([1, 0]);
 
@@ -815,9 +841,9 @@ describePostgres(
           coversTheLast90Days,
           current,
         ]);
-        expect((await idsIn("MonitorStatusTimeline")).has(supersededLongAgo)).toBe(
-          false,
-        );
+        expect(
+          (await idsIn("MonitorStatusTimeline")).has(supersededLongAgo),
+        ).toBe(false);
       });
 
       test("on a tie at the newest start, keeps the open row and takes the zero-length one", async () => {
@@ -847,7 +873,11 @@ describePostgres(
 
         expect(
           await untilDone(() => {
-            return purgeOlderThan(MonitorStatusTimelineService, "startsAt", 120);
+            return purgeOlderThan(
+              MonitorStatusTimelineService,
+              "startsAt",
+              120,
+            );
           }),
         ).toEqual([1, 0]);
 
@@ -883,7 +913,11 @@ describePostgres(
 
         expect(
           await untilDone(() => {
-            return purgeOlderThan(MonitorStatusTimelineService, "deletedAt", 30);
+            return purgeOlderThan(
+              MonitorStatusTimelineService,
+              "deletedAt",
+              30,
+            );
           }),
         ).toEqual([1, 0]);
 
@@ -997,8 +1031,7 @@ describePostgres(
          * A window of 10, smaller than the 30 rows the purge matches and must
          * keep: those never take a place in it, so every call removes 10.
          */
-        const calls: Array<{ result: number; statements: Array<string> }> =
-          [];
+        const calls: Array<{ result: number; statements: Array<string> }> = [];
 
         do {
           if (calls.length === MAX_PURGE_CALLS) {
@@ -1354,11 +1387,15 @@ describePostgres(
         const coverage: (aggregate: UptimeDailyAggregate) => Array<string> = (
           aggregate: UptimeDailyAggregate,
         ): Array<string> => {
-          return aggregate.monitors.flatMap((monitor) => {
-            return monitor.buckets.slice(0, -1).map((bucket: UptimeDayBucket) => {
-              return `${monitor.monitorId.toString()} ${bucket.bucketStart.toISOString()} ${Math.round(bucket.coveredSeconds)}/${bucket.daySeconds}`;
-            });
-          });
+          return aggregate.monitors.flatMap(
+            (monitor: MonitorUptimeDailyAggregate) => {
+              return monitor.buckets
+                .slice(0, -1)
+                .map((bucket: UptimeDayBucket) => {
+                  return `${monitor.monitorId.toString()} ${bucket.bucketStart.toISOString()} ${Math.round(bucket.coveredSeconds)}/${bucket.daySeconds}`;
+                });
+            },
+          );
         };
 
         const before: {
@@ -1369,7 +1406,11 @@ describePostgres(
 
         expect(
           await untilDone(() => {
-            return purgeOlderThan(MonitorStatusTimelineService, "startsAt", 120);
+            return purgeOlderThan(
+              MonitorStatusTimelineService,
+              "startsAt",
+              120,
+            );
           }),
         ).toEqual([2, 0]);
 
@@ -1482,12 +1523,7 @@ describePostgres(
             }),
           ),
         ).toEqual(
-          sorted([
-            endsJustAfter,
-            orphanSupersededInside,
-            noStart,
-            current,
-          ]),
+          sorted([endsJustAfter, orphanSupersededInside, noStart, current]),
         );
 
         // Over before the kept history: taken. Deleted before: never kept.

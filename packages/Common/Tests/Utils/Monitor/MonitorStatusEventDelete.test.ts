@@ -70,10 +70,10 @@ describe("the monitor's only event", () => {
         event: { startsAt: daysAgo(3000), endsAt: daysAgo(2000) },
       }),
     ).toEqual({
-        kind: "refuse",
-        refusal: StatusEventDeleteRefusal.OnlyEvent,
-        message: ONLY_STATUS_EVENT_MESSAGE,
-      });
+      kind: "refuse",
+      refusal: StatusEventDeleteRefusal.OnlyEvent,
+      message: ONLY_STATUS_EVENT_MESSAGE,
+    });
   });
 });
 
@@ -182,7 +182,11 @@ describe("the newest event", () => {
         before: { id: BEFORE_ID, startsAt: daysAgo(10), endsAt: daysAgo(1) },
         after: null,
       }),
-    ).toEqual({ kind: "previous-runs-on", previousId: BEFORE_ID, endsAt: null });
+    ).toEqual({
+      kind: "previous-runs-on",
+      previousId: BEFORE_ID,
+      endsAt: null,
+    });
   });
 
   test("closed, as an API write can leave it: the event before it runs on to its end", () => {

@@ -22,9 +22,7 @@ import { FindOperator } from "typeorm";
  * refused here, asked of the same rule.
  */
 
-const EVENT_ID: ObjectID = new ObjectID(
-  "4e000000-0000-4000-8000-00000000000e",
-);
+const EVENT_ID: ObjectID = new ObjectID("4e000000-0000-4000-8000-00000000000e");
 const SITE_ID: ObjectID = new ObjectID("4e000000-0000-4000-8000-000000000051");
 
 interface Hooks {
@@ -110,7 +108,9 @@ test("one event by its id that a delete by query would keep is refused, asked of
 
   await expect(
     hooks.onBeforeDelete(deleteOf({ _id: EVENT_ID.toString() })),
-  ).rejects.toThrow(new BadDataException(NETWORK_SITE_STATUS_EVENT_KEPT_MESSAGE));
+  ).rejects.toThrow(
+    new BadDataException(NETWORK_SITE_STATUS_EVENT_KEPT_MESSAGE),
+  );
 
   expect(counts.length).toBe(1);
   expect(counts[0]!.props).toEqual({ isRoot: true });

@@ -97,9 +97,7 @@ describe("the services of the state timelines", () => {
         serviceOf(tableName);
 
       expect(service).toBeDefined();
-      expect(service!.getRowsKeptOnDeleteByQuery()?.tableName).toBe(
-        tableName,
-      );
+      expect(service!.getRowsKeptOnDeleteByQuery()?.tableName).toBe(tableName);
     },
   );
 
@@ -151,8 +149,11 @@ describe("the models of the state timelines", () => {
         ROWS_KEPT_ON_DELETE_BY_QUERY[tableName]!.parentColumn;
 
       for (const column of [parentColumn, "startsAt", "endsAt"]) {
-        expect({ tableName, column, isColumn: model.isTableColumn(column) })
-          .toEqual({ tableName, column, isColumn: true });
+        expect({
+          tableName,
+          column,
+          isColumn: model.isTableColumn(column),
+        }).toEqual({ tableName, column, isColumn: true });
       }
 
       const indexes: Array<IndexMetadataArgs> =

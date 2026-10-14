@@ -1751,26 +1751,24 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       },
     });
 
-    const stateBeforeThis: MonitorStatusTimeline | null = await this.findOneBy(
-      {
-        query: {
-          _id: QueryHelper.notEquals(event.id!.toString()),
-          monitorId: monitorId,
-          startsAt: QueryHelper.lessThanEqualTo(event.startsAt!),
-        },
-        sort: {
-          startsAt: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          startsAt: true,
-          endsAt: true,
-        },
+    const stateBeforeThis: MonitorStatusTimeline | null = await this.findOneBy({
+      query: {
+        _id: QueryHelper.notEquals(event.id!.toString()),
+        monitorId: monitorId,
+        startsAt: QueryHelper.lessThanEqualTo(event.startsAt!),
       },
-    );
+      sort: {
+        startsAt: SortOrder.Descending,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+        startsAt: true,
+        endsAt: true,
+      },
+    });
 
     const stateAfterThis: MonitorStatusTimeline | null = await this.findOneBy({
       query: {

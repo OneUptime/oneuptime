@@ -81,7 +81,9 @@ export type StatusEventDeleteDecision =
     };
 
 export default class MonitorStatusEventDelete {
-  public static decide(facts: StatusEventDeleteFacts): StatusEventDeleteDecision {
+  public static decide(
+    facts: StatusEventDeleteFacts,
+  ): StatusEventDeleteDecision {
     if (facts.eventCount <= 1) {
       return {
         kind: "refuse",
