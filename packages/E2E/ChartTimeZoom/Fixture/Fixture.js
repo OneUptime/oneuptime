@@ -96,6 +96,9 @@
  *                          named in timedOutFacets, their values empty (a
  *                          resource facet keeps its list, every count 0),
  *                          the way the server sends them
+ *   .timeLimit.attributeValues
+ *                          the search bars' `@key:` value lookups
+ *                          (get-attribute-values, issue #4708)
  *
  * window.__chartTimeZoomTimeLimit, set before the page loads, is where
  * .timeLimit starts, for a spec whose first load is stopped.
@@ -307,6 +310,7 @@ const fixture = {
     lists: false,
     histograms: false,
     facets: [],
+    attributeValues: false,
     ...(window.__chartTimeZoomTimeLimit || {}),
   },
 };
@@ -2862,6 +2866,13 @@ async function handleApi(method, options) {
   if (method === "POST" && endpoint) {
     // A stopped histogram answers as the API does: the error response.
     if (fixture.timeLimit.histograms && endpoint.path.endsWith("/histogram")) {
+      return stoppedAtTimeLimit();
+    }
+    // So does a stopped `@key:` value lookup.
+    if (
+      fixture.timeLimit.attributeValues &&
+      endpoint.path.endsWith("/get-attribute-values")
+    ) {
       return stoppedAtTimeLimit();
     }
     let response;

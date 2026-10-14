@@ -28,6 +28,9 @@ export interface LogSearchSuggestionsProps {
 
 const MAX_VISIBLE_SUGGESTIONS: number = 8;
 
+// The dropdown under the search box, for tests that read what it offers.
+export const SEARCH_SUGGESTIONS_TEST_ID: string = "search-suggestions";
+
 const LogSearchSuggestions: FunctionComponent<LogSearchSuggestionsProps> = (
   props: LogSearchSuggestionsProps,
 ): ReactElement => {
@@ -38,7 +41,10 @@ const LogSearchSuggestions: FunctionComponent<LogSearchSuggestionsProps> = (
   );
 
   return (
-    <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+    <div
+      data-testid={SEARCH_SUGGESTIONS_TEST_ID}
+      className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+    >
       {props.isLoading && (
         <div className="flex w-full items-center px-3 py-2 text-left text-sm text-gray-500">
           <svg
