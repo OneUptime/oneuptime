@@ -185,9 +185,11 @@ describe("a detail card's rows", () => {
       .slice(1);
 
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatch(/^ style="padding: 14px 0; font-family:/);
+    expect(rows[0]).toMatch(
+      /^ style="padding: 14px 0 0; margin: 0 0 14px; font-family:/,
+    );
     expect(rows[1]).toMatch(
-      /^ style="padding: 14px 0; border-top: 1px solid #e2e8f0; font-family:/,
+      /^ style="padding: 14px 0 0; margin: 0 0 14px; border-top: 1px solid #e2e8f0; font-family:/,
     );
   });
 

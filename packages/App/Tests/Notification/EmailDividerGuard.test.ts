@@ -61,7 +61,11 @@ import {
  *     on the edge of a card, a list or a section, and none is drawn above
  *     or under nothing;
  *   - every detail card draws a divider above each row but its first, and
- *     none under any row, and holds nothing but rows.
+ *     none under any row, and holds nothing but rows;
+ *   - every row of a detail card shows something under its label: a row
+ *     whose value is empty is left out, so no card ends - or holds - a
+ *     label over empty space (an alert without a description has no
+ *     "Description:" row).
  *
  * BlankTemplate is a customer's own HTML, sent as written, and is left out.
  */
@@ -184,6 +188,15 @@ const findingsFor: (
         variables: variableSet.name,
         problem: `detail card ${index + 1} holds more than rows: ${card.strayElements.join(", ")}`,
       });
+    }
+
+    for (const row of card.rows) {
+      if (!row.showsValue) {
+        findings.push({
+          variables: variableSet.name,
+          problem: `detail card ${index + 1} shows the label "${row.label}" with nothing under it`,
+        });
+      }
     }
   });
 

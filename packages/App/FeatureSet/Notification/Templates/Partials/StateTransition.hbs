@@ -11,8 +11,11 @@
 
   Like every row of a detail card, it draws its divider above itself, and
   only when another row of the card came before it (detailCardDivider,
-  Utils/EmailDetailCard.ts).
+  Utils/EmailDetailCard.ts), and it shows only when it has something to
+  show: without a current state there is no change to show, and the row
+  is left out rather than drawn as a label over empty space.
 --}}
+{{#if currentState}}
 <div
   class="st-DetailCard-field"
   style="padding: 16px 0;{{#detailCardDivider}} border-top: 1px solid #e2e8f0;{{/detailCardDivider}}"
@@ -73,4 +76,5 @@
     </tbody>
   </table>
 </div>
+{{/if}}
 <!-- /State Transition Block -->

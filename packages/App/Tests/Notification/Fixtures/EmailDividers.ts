@@ -264,7 +264,25 @@ export interface DetailCardRow {
   // Whether the row draws a divider above itself, and below.
   dividerAbove: boolean;
   dividerBelow: boolean;
+  /*
+   * Whether the row shows anything besides its label - text that is not
+   * whitespace, or an image. A row that does not is a label over empty
+   * space.
+   */
+  showsValue: boolean;
 }
+
+// Whether anything in `element` shows: text that is not whitespace, or an image.
+const showsSomething: (element: EmailElement) => boolean = (
+  element: EmailElement,
+): boolean => {
+  return (
+    decodeHtmlEntities(textOf(element)).trim().length > 0 ||
+    findElements(element, (inner: EmailElement): boolean => {
+      return inner.name === "img";
+    }).length > 0
+  );
+};
 
 export interface DetailCard {
   rows: Array<DetailCardRow>;
@@ -299,6 +317,11 @@ export const detailCards: (tree: EmailMarkupTree) => Array<DetailCard> = (
             label: label ? decodeHtmlEntities(textOf(label)).trim() : "",
             dividerAbove: sides.includes("top"),
             dividerBelow: sides.includes("bottom"),
+            showsValue: childElements(row).some(
+              (child: EmailElement): boolean => {
+                return child !== label && showsSomething(child);
+              },
+            ),
           };
         }),
       strayElements: children
