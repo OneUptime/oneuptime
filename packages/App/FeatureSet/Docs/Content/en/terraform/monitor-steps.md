@@ -1,15 +1,48 @@
 # Monitor Steps
 
-`monitor_steps` is the attribute that tells an active monitor *what to check* and *how to decide the result* — the destination, the request, and the criteria that map responses to monitor statuses, incidents, and alerts. It is the most powerful attribute in the provider. This page explains the structure completely.
+`monitor_steps` is the attribute of `oneuptime_monitor` that says what a monitor checks and how each result is judged: the address to check, the request to send, and the criteria that turn a result into a monitor status, an incident or an alert. This page explains every part of it.
 
-## Typed nested attributes, not JSON
+:::cards
+- [How a check is judged](#how-a-check-is-judged): Criteria in order, and the first one that matches.
+- [Write the steps](#write-the-steps): Their shape, a full example, and the two rules for values.
+- [Filter reference](#filter-reference): What a filter can check, and how it compares.
+- [Common mistakes](#common-mistakes): What goes wrong most often, and the fix.
+:::
 
-`monitor_steps` is a **typed nested attribute**: a list of step objects written directly in HCL. There is no `jsonencode()`, no `{_type, value}` envelopes, no camelCase keys, and no hand-written ids — the provider translates your HCL to the API's wire format and the server generates all internal ids: one for every step, criteria, and incident and alert template. It keeps them across every apply — matching each criteria and template to the one it replaces by name, else by position — so probe results stay attached to their step and incidents keep pointing at the criteria that raised them, however often the configuration changes.
+## How a check is judged
+
+Each check gives a result: a probe's answer, a script's return value, or the telemetry the check reads. The step's criteria then judge it in their order. The first criteria whose filters match decides what happens: it can change the monitor's status, open incidents and open alerts. The criteria after it are not looked at for that check.
+
+```mermaid title="How each check is judged"
+flowchart TB
+    R["The result of a check"] --> C1{"Criteria 1:<br/>do its filters match?"}
+    C1 -->|"Yes"| A["That criteria acts:<br/>status, incidents, alerts"]
+    C1 -->|"No"| C2{"Criteria 2:<br/>do its filters match?"}
+    C2 -->|"Yes"| A
+    C2 -->|"No"| D["No criteria matched:<br/>the default status"]
+```
+
+So the order of the criteria matters: list the criteria that alert first, the most severe first, and the healthy one last. [Criteria attributes](#criteria-attributes) explains why, and the one exception.
+
+## Write the steps
+
+`monitor_steps` is a list of typed objects written straight in HCL. There is no `jsonencode()`, no `{_type, value}` wrapper, no camelCase key and no ID to write: the provider turns your HCL into the API's format, and the server gives every step, criteria, incident template and alert template its ID. It keeps those IDs across every apply, matching each criteria and template to the one it replaces by name, else by position, so probe results stay with their step and incidents keep pointing at the criteria that raised them.
+
+```mermaid title="The parts of monitor_steps"
+flowchart TB
+    MS["monitor_steps:<br/>a list of steps"] --> ST["A step: what to check<br/>and how to reach it"]
+    ST --> CR["criteria:<br/>judged in order"]
+    CR --> FI["filters:<br/>the conditions"]
+    CR --> IN["incidents:<br/>what to open"]
+    CR --> AL["alerts:<br/>what to open"]
+```
+
+The smallest useful step checks one address and has one criteria with one filter:
 
 ```hcl
 resource "oneuptime_monitor" "example" {
   name         = "Example"
-  description  = "Minimal shape of monitor_steps"
+  description  = "The smallest monitor_steps"
   monitor_type = "Website"
 
   monitor_steps = [{
@@ -20,7 +53,7 @@ resource "oneuptime_monitor" "example" {
     criteria = [
       {
         name             = "Check if online"
-        description      = "Website responds successfully"
+        description      = "The website responds"
         filter_condition = "All"
 
         filters = [
@@ -35,16 +68,18 @@ resource "oneuptime_monitor" "example" {
 }
 ```
 
-> **Migrating from provider 1.x?** Previously `monitor_steps` was a JSON string written with `jsonencode({ _type = "MonitorSteps", value = { ... } })`. Replace it with the nested blocks on this page: drop the envelopes, convert the camelCase keys to snake_case (`monitorDestination` → `monitor_destination` + `monitor_destination_type`, `filterCondition` → `filter_condition`, `checkOn` → `check_on`), and **delete every `id` field** — server-generated ids are gone from configuration entirely (this also removes the old "hard-coded random ids" confusion from issue [#2291](https://github.com/OneUptime/oneuptime/issues/2291)). Old JSON-string state is not upgraded automatically; re-apply with the new syntax.
+Two rules hold everywhere in `monitor_steps`:
 
-Two conventions apply everywhere in `monitor_steps`:
+- **Leave out what you do not use.** An attribute you do not set is not sent to the API. Never write `[]`, `{}` or `""` as a placeholder: the provider refuses empty strings, lists and maps, so that a missing value always means "not set".
+- **Filter values are strings.** A filter's `value` is a string, even a number: `value = "200"`, not `value = 200`. Numeric settings such as `port` are numbers.
 
-- **Omit what you do not use.** Unset optional attributes are simply not sent to the API. Never pass `[]`, `{}`, or `""` as a placeholder — the provider rejects empty strings, lists, and maps so that "absent" always means "unset".
-- **Filter values are strings.** Comparison values are always strings, even for numbers: `value = "200"`, not `value = 200`. (`port` is the exception — it is a real number.)
+:::details Moving from provider 1.x, where monitor_steps was JSON
+In provider 1.x, `monitor_steps` was a JSON string written with `jsonencode({ _type = "MonitorSteps", value = { ... } })`. Rewrite it as the typed attributes on this page: drop the `_type` and `value` wrappers, write the camelCase keys in snake_case (`monitorDestination` becomes `monitor_destination` and `monitor_destination_type`, `filterCondition` becomes `filter_condition`, `checkOn` becomes `check_on`), and delete every `id`. The server gives all the IDs now, which also ends the hard-coded random IDs of issue [#2291](https://github.com/OneUptime/oneuptime/issues/2291). State saved as a JSON string is not upgraded on its own: apply the new configuration.
+:::
 
-## Complete annotated example
+### A complete example
 
-This is a working configuration from the provider's E2E suite (test `35-monitor-with-steps`) — the canonical "online / offline" website monitor:
+This website monitor is the one the provider's end-to-end tests apply (test `35-monitor-with-steps`): offline when the site does not answer, online when it answers with 200.
 
 ```hcl
 resource "oneuptime_monitor_status" "operational" {
@@ -69,11 +104,11 @@ resource "oneuptime_monitor" "website" {
   monitor_type = "Website"
 
   monitor_steps = [{
-    monitor_destination      = "https://example.com" # what to hit
-    monitor_destination_type = "URL"                 # URL | Hostname | IP
-    request_type             = "GET"                 # HTTP method for Website/API monitors
+    monitor_destination      = "https://example.com" # what to check
+    monitor_destination_type = "URL"                 # URL, Hostname or IP
+    request_type             = "GET"                 # the HTTP method
 
-    criteria = [ # evaluated in order; first match wins, so alerting first and healthy last
+    criteria = [ # judged in order: the first match decides
       {
         name                  = "Offline"
         description           = "Check if website is offline"
@@ -93,7 +128,7 @@ resource "oneuptime_monitor" "website" {
       {
         name                  = "Online"
         description           = "Check if website is online"
-        filter_condition      = "All" # All = AND the filters, Any = OR them
+        filter_condition      = "All" # All: every filter, Any: at least one
         change_monitor_status = true
         create_incidents      = false
         create_alerts         = false
@@ -107,7 +142,7 @@ resource "oneuptime_monitor" "website" {
           {
             check_on    = "Response Status Code"
             filter_type = "Equal To"
-            value       = "200" # comparison values are strings
+            value       = "200" # a string, even for a number
           }
         ]
       }
@@ -116,95 +151,112 @@ resource "oneuptime_monitor" "website" {
 }
 ```
 
-Referencing other Terraform resources — like `oneuptime_monitor_status.operational.id` above — is plain HCL now. This is the recommended way to wire criteria to statuses.
+A criteria refers to a status by its resource, as `oneuptime_monitor_status.offline.id` does here, or to one your project already has through a [data source](/docs/terraform/complete-guide#read-what-already-exists).
 
 ## Step attributes
 
-Each element of `monitor_steps` is one probe target:
+Each item of `monitor_steps` is one thing to check:
 
 | Attribute | Type | Used by | Notes |
-|-----------|------|---------|-------|
-| `monitor_destination` | string | Website, API, Ping, Port, IP, SSL Certificate, NTP | The URL, hostname, or IP to probe. Requires `monitor_destination_type`. |
-| `monitor_destination_type` | string | same | `URL`, `Hostname`, or `IP` — must match the monitor type (URLs for Website/API/SSL Certificate; hostnames or IPs for Ping/Port/IP/NTP). |
-| `port` | number | Port, NTP | TCP port to probe, e.g. `443`. For NTP, the UDP port the time server answers on; `123` when unset. |
-| `request_type` | string | Website, API | HTTP method: `GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `PATCH`. The server defaults to `GET`. |
-| `request_headers` | map(string) | API | Plain string map: `{ "Accept" = "application/json" }`. |
-| `request_body` | string | API | Raw request body string. |
-| `do_not_follow_redirects` | bool | Website, API | Stop at the first response instead of following redirects. |
-| `allow_self_signed_certificates` | bool | Website, API | Accept self-signed TLS certificates. |
-| `tls_client_certificate` | string | Website, API | mTLS client certificate (PEM or `{{monitorSecrets.name}}` reference). |
-| `tls_client_key` | string (sensitive) | Website, API | mTLS client private key. Required together with the certificate. |
-| `tls_client_key_passphrase` | string (sensitive) | Website, API | Passphrase for the client key. |
-| `request_timeout_in_ms` | number | probe-based | Per-step timeout in milliseconds. The probe clamps anything above 60000 to 60000. |
-| `retry_count` | number | probe-based | Retries after the first attempt when a check fails: `0` runs the check once, `3` runs it up to four times. The probe clamps anything above 3 to 3. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | The script this step executes. |
-| `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet`, `Desktop`. |
-| `browser_types` | list(string) | Synthetic | `Chromium`, `Firefox`. |
-| `retry_count_on_error` | number | Synthetic | Retries on script error. |
-| `criteria` | list (required) | all | The decision tree — see below. |
+| --- | --- | --- | --- |
+| `monitor_destination` | string | Website, API, Ping, IP, Port, SSL Certificate, NTP | The URL, hostname or IP address to check. Needs `monitor_destination_type`. |
+| `monitor_destination_type` | string | the same | `URL`, `Hostname` or `IP`, as the monitor type takes: a URL for Website, API and SSL Certificate monitors; a hostname or an IP address for Ping, IP, Port and NTP monitors. |
+| `port` | number | Port, NTP | The TCP port to check, such as `443`. For NTP, the UDP port the time server answers on: `123` when not set. |
+| `request_type` | string | Website, API | The HTTP method: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` or `PATCH`. The server uses `GET` when it is not set. |
+| `request_headers` | map(string) | Website, API | Headers to send: `{ "Accept" = "application/json" }`. |
+| `request_body` | string | API | The request body, as text. |
+| `do_not_follow_redirects` | bool | Website, API | Stop at the first answer instead of following redirects. |
+| `allow_self_signed_certificates` | bool | Website, API | Accept a self-signed TLS certificate. |
+| `tls_client_certificate` | string | Website, API | A client certificate for mutual TLS: PEM, or a `{{monitorSecrets.name}}` reference. |
+| `tls_client_key` | string (sensitive) | Website, API | The client certificate's private key. Set it with the certificate. |
+| `tls_client_key_passphrase` | string (sensitive) | Website, API | The private key's passphrase. |
+| `request_timeout_in_ms` | number | Checks made by a probe | How long one attempt may take, in milliseconds. The probe lowers anything above 60000 to 60000. |
+| `retry_count` | number | Checks made by a probe | Retries after a failed first attempt: `0` checks once, `3` up to four times. The probe lowers anything above 3 to 3. |
+| `custom_code` | string | Custom JavaScript Code, Synthetic | The script the step runs. |
+| `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` and `Desktop`. |
+| `browser_types` | list(string) | Synthetic | `Chromium` and `Firefox`. |
+| `retry_count_on_error` | number | Synthetic | Retries when the script fails: `0` runs it once. |
+| `criteria` | list (required) | All | How each result is judged: see [Criteria attributes](#criteria-attributes). |
 
-Telemetry and infrastructure monitor types carry their query configuration in per-type **escape hatch** attributes — optional strings holding the sub-config's raw JSON, written with `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor`. Example for a Logs monitor:
+### Settings of each monitor type
+
+Monitor types with more to set than an address keep their settings (a log query, a database connection, a cluster to watch) in an attribute of their own, as raw JSON written with `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor` and `iot_monitor`.
+
+Their JSON is the same as the dashboard's, keys in camelCase. An ID in it is written as the API writes one, `{ _type = "ObjectID", value = "..." }`. A Logs monitor that counts errors from one service:
 
 ```hcl
-monitor_steps = [{
-  log_monitor = jsonencode({
-    attributes          = {}
-    body                = "error"
-    severityTexts       = ["Error"]
-    telemetryServiceIds = [oneuptime_telemetry_service.app.id]
-    lastXSecondsOfLogs  = 300
-  })
+resource "oneuptime_service" "checkout" {
+  name = "checkout"
+}
 
-  criteria = [
-    {
-      name             = "Errors found"
-      filter_condition = "Any"
-      filters = [
-        {
-          check_on    = "Log Count"
-          filter_type = "Greater Than"
-          value       = "0"
-        }
-      ]
-    }
-  ]
-}]
+resource "oneuptime_monitor" "checkout_errors" {
+  name         = "Checkout errors"
+  monitor_type = "Logs"
+
+  monitor_steps = [{
+    log_monitor = jsonencode({
+      attributes          = {}
+      body                = "error"
+      severityTexts       = ["Error"]
+      telemetryServiceIds = [{ _type = "ObjectID", value = oneuptime_service.checkout.id }]
+      lastXSecondsOfLogs  = 300
+    })
+
+    criteria = [
+      {
+        name             = "Errors found"
+        filter_condition = "Any"
+
+        filters = [
+          {
+            check_on    = "Log Count"
+            filter_type = "Greater Than"
+            value       = "0"
+          }
+        ]
+      }
+    ]
+  }]
+}
 ```
 
-These escape hatches mirror the dashboard's JSON for each monitor type — an escape hatch, not the default. Everything probe-related is fully typed.
+> [!TIP]
+> The easiest way to get this JSON right: set the monitor up in the dashboard, then open its **Developer** section and **Terraform**. The page writes the monitor's `monitor_steps`, `jsonencode()` and all.
 
 ## Criteria attributes
 
-Each entry of `criteria` is one rule: *if these filters match, do these things.*
+Each item of `criteria` is one rule: when its filters match, do what it says.
 
-**Order matters, and the order is alerting first.** Criteria are evaluated top to bottom and the first one that matches wins — evaluation stops there, and every criteria below it is never looked at on that check. So list your alerting criteria first, most severe first (critical, then warning), and put the "healthy" / recovery criteria **last**.
+The criteria are judged from the top, and the first one that matches decides, so list the criteria that alert first, the most severe first (critical, then warning), and the healthy one last. A healthy criteria at the top is the most common way to build a monitor that never alerts: a broad rule such as `Is Online` is `True`, or a metric value `Greater Than` `0`, matches almost every check, and the criteria below it are never looked at. Put last, it matches only when nothing above it did, which is what you want.
 
-Putting a "healthy" criteria first is the most common way to build a monitor that never alerts. A broad healthy rule — `Is Online` is `True`, or a metric value `Greater Than` `0` — matches on almost every check, claims the evaluation, and the "down" criteria underneath it never runs. Ordered the other way round, the down criteria gets its chance first and the healthy criteria only matches when nothing above it did, which is exactly what you want.
+Grouped metric monitors are the one exception. When a metric monitor's query is grouped (`groupByAttributeKeys` set in the JSON of `metric_monitor`, at `metricViewConfig.queryConfigs[].metricQueryData.groupByAttributeKeys`), the monitor raises one alert or incident for each group (each host, container or mount point), and every criteria is judged, so a critical criteria and a warning one can fire for different hosts on the same check. A host that breaks both is still paged once, by the first criteria that matches, so the most severe still goes first. See [Metrics Monitor](/docs/monitor/metrics-monitor).
 
-**Grouped metric monitors are the one exception to first-match-wins.** When a metric monitor's query is grouped — `groupByAttributeKeys` set inside the escape-hatch JSON, at `metricViewConfig.queryConfigs[].metricQueryData.groupByAttributeKeys` — the monitor raises one alert/incident *per group* (per host, per container, per mountpoint) and every criteria is evaluated, so a "critical" and a "warning" criteria can fire on different hosts on the same check. A host that breaches both still pages once, from the first matching criteria, so most-severe-first still applies. See [Metrics Monitor](/docs/monitor/metrics-monitor).
+| Attribute | Type | What it is |
+| --- | --- | --- |
+| `name` | string (required) | The name the dashboard shows. |
+| `description` | string | The description the dashboard shows. |
+| `filter_condition` | string (required) | `All`: every filter must match. `Any`: one is enough. |
+| `filters` | list (required) | The conditions, at least one: see [Filter reference](#filter-reference). |
+| `change_monitor_status` | bool | Whether a match changes the monitor's status. |
+| `monitor_status_id` | string | The ID of the `oneuptime_monitor_status` to change to. Set it when `change_monitor_status` is `true`. |
+| `create_incidents` | bool | Whether a match opens incidents. |
+| `incidents` | list | The incidents to open. Leave it out unless `create_incidents = true`. |
+| `create_alerts` | bool | Whether a match opens alerts. |
+| `alerts` | list | The alerts to open. Leave it out unless `create_alerts = true`. |
+| `is_enabled` | bool | `true` on the server when not set. Set `false` to keep a criteria without judging with it. |
+| `incident_grouping` | string (JSON) | Incoming Request monitors only: one incident for each value found in the request, such as `jsonencode({ groupByJSONPath = "..." })`. |
 
-| Attribute | Type | Meaning |
-|-----------|------|---------|
-| `name` | string (required) | Shown in the dashboard. |
-| `description` | string | Shown in the dashboard. |
-| `filter_condition` | string (required) | `All` (every filter must match) or `Any` (at least one). |
-| `filters` | list (required) | The conditions — at least one. |
-| `change_monitor_status` | bool | Whether a match changes the monitor status. |
-| `monitor_status_id` | string | The `oneuptime_monitor_status` ID to switch to. Required when `change_monitor_status` is `true`. |
-| `create_incidents` | bool | Whether a match opens an incident. |
-| `incidents` | list | Incident templates — omit unless `create_incidents = true`. |
-| `create_alerts` | bool | Whether a match opens an alert. |
-| `alerts` | list | Alert templates — omit unless `create_alerts = true`. |
-| `is_enabled` | bool | Defaults to `true` server-side; set `false` to keep a criteria without evaluating it. |
-| `incident_grouping` | string (JSON) | Incoming Request monitors only: fan out one incident per extracted payload value (`jsonencode({ groupByJSONPath = "..." })`). |
+### Incidents and alerts
 
-Incident templates (`incidents`) support: `title` (required), `description` (required), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page`, `is_private`. Alert templates (`alerts`) support the same shape with `alert_severity_id` and `auto_resolve_alert`:
+An item of `incidents` takes `title` and `description` (both required), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page` and `is_private`. An item of `alerts` takes the same, with `alert_severity_id` and `auto_resolve_alert`, and without `show_incident_on_status_page`.
+
+This criteria marks the monitor offline, opens an incident that pages the on-call policy, and resolves it when the site is back:
 
 ```hcl
 criteria = [
   {
     name                  = "Offline"
-    description           = "Site is unreachable"
+    description           = "The site is unreachable"
     filter_condition      = "Any"
     change_monitor_status = true
     monitor_status_id     = oneuptime_monitor_status.offline.id
@@ -223,6 +275,7 @@ criteria = [
         description           = "The website did not respond to the probe."
         incident_severity_id  = oneuptime_incident_severity.critical.id
         auto_resolve_incident = true
+        on_call_policy_ids    = [oneuptime_on_call_policy.primary.id]
       }
     ]
   }
@@ -231,59 +284,72 @@ criteria = [
 
 ## Filter reference
 
-A filter has `check_on` (what to inspect), `filter_type` (the comparison), and `value` (the operand — a string; omit it for boolean comparisons like `True` / `False`). Filters that evaluate over a time window additionally take `evaluate_over_time = true`, `evaluate_over_time_minutes`, and `evaluate_over_time_type` (`Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values`, `Any Value`).
+A filter has `check_on` (what to look at), `filter_type` (how to compare) and `value` (what to compare with, as a string; leave it out for true-or-false checks such as `True` and `False`).
 
-`All Values` means "every check in the window breached", so it only matches once the window is actually covered by data — a monitor that has just been created waits for the window to fill rather than matching on its first check. Give it a window at least twice the monitor's `monitoring_interval`, otherwise the window can only ever hold one sample and "all values" means the same thing as "any value". `Any Value` matches on a single breaching check by design.
+A filter can also judge a time window instead of the latest check: set `evaluate_over_time = true`, the window's length in `evaluate_over_time_minutes`, and in `evaluate_over_time_type` how the window is read: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` or `Any Value`.
 
-`evaluate_over_time_no_data_policy` decides what the filter does while the window cannot back it: `Ignore` (the default) does not match, `Trigger` treats the missing data as the failure (heartbeat semantics), and `Treat As Zero` compares the window as a single zero.
+`All Values` means every check in the window broke the rule, so it matches only once the window is covered by data: a monitor that was just created waits for its window to fill instead of matching on its first check. Give it a window at least twice the monitor's `monitoring_interval`; otherwise the window holds one check, and "all values" means the same as "any value". `Any Value` matches on one breaking check, by design.
 
-Common `check_on` values by monitor type:
+`evaluate_over_time_no_data_policy` says what the filter does while the window does not hold enough data: `Ignore` (the default) does not match, `Trigger` treats the missing data as the failure, as a heartbeat does, and `Treat As Zero` compares the window as a single zero.
 
-| Monitor type | Typical `check_on` values |
-|--------------|---------------------------|
-| Any active monitor | `Is Online`, `Response Time (in ms)` |
-| Website / API | `Response Status Code`, `Response Body`, `Response Header`, `JavaScript Expression`, `Is Request Timeout` |
-| SSL Certificate | `Is Valid Certificate`, `Is Self Signed Certificate`, `Is Expired Certificate`, `Expires In Days`, `Expires In Hours` |
-| Ping / IP / Port | `Is Online`, `Response Time (in ms)`, `Packet Loss (in %)`, `Jitter (in ms)` |
-| Incoming Request | `Incoming Request`, `Request Body`, `Request Header` |
-| Server | `CPU Usage (in %)`, `Memory Usage (in %)`, `Disk Usage (in %)` (needs `disk_path`), `Server Process Name` |
-| Logs / Traces / Exceptions / Metrics | `Log Count`, `Span Count`, `Exception Count`, `Metric Value` (metric filters can carry `metric_monitor_options` JSON) |
+### What a filter can check
+
+The `check_on` values each monitor type uses most. The dashboard's criteria editor offers the same ones, and lists them all:
+
+| Monitor type | `check_on` values |
+| --- | --- |
+| Website / API | `Is Online`, `Response Time (in ms)`, `Response Status Code`, `Response Body`, `Response Header`, `Response Header Value`, `JavaScript Expression`, `Is Request Timeout` |
+| Ping / IP | `Is Online`, `Response Time (in ms)`, `Packet Loss (in %)`, `Jitter (in ms)`, `Is Request Timeout` |
+| Port | `Is Online`, `Response Time (in ms)` (the dashboard's total connection time), `Port DNS Lookup Time (in ms)`, `Port TCP Connect Time (in ms)`, `Is Request Timeout` |
+| SSL Certificate | `Is Valid Certificate`, `Is Not A Valid Certificate`, `Is Self Signed Certificate`, `Is Expired Certificate`, `Expires In Days`, `Expires In Hours` |
+| Incoming Request | `Incoming Request`, `Request Body`, `Request Header`, `Request Header Value`, `JavaScript Expression` |
+| Incoming Email | `Email Received`, `Email Subject`, `Email From Address`, `Email To Address`, `Email Body` |
+| Server | `Is Online`, `CPU Usage (in %)`, `Memory Usage (in %)`, `Disk Usage (in %)` (with `disk_path`), `Server Process Name` |
+| Logs | `Log Count` |
+| Traces | `Span Count` |
+| Exceptions | `Exception Count` |
+| Profiles | `Profile Count` |
+| AI / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
+| Metrics | `Metric Value` (metric filters can take `metric_monitor_options` JSON) |
 | Custom Code / Synthetic | `Result Value` (can compare one field of the returned data, named in `custom_code_monitor_options` JSON, e.g. `jsonencode({ resultValuePath = "status" })` — see below), `Error`, `Execution Time (in ms)` |
-| DNS / Domain / DNSSEC | `DNS Is Online`, `DNS Record Value`, `Domain Is Expired`, `DNSSEC Chain Is Valid` |
+| DNS | `DNS Is Online`, `DNS Response Time (in ms)`, `DNS Record Value`, `DNS Record Exists` |
+| Domain | `Domain Expires In Days`, `Domain Is Expired`, `Domain Registrar`, `Domain Name Server` |
+| DNSSEC | `DNSSEC Chain Is Valid`, `DNSSEC DS Record Exists At Parent`, `DNSSEC Signature Expires In Days` |
 | SQL Query | `SQL Is Online`, `SQL Query Row Count`, `SQL Query Scalar Value` |
-| Database Health | `Database Is Online`, `Database Metric` (requires `database_monitor_options` JSON naming the series, e.g. `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`), `Database Collection Error` |
+| Database Health | `Database Is Online`, `Database Metric` (with `database_monitor_options` JSON naming the series, e.g. `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`), `Database Collection Error` |
 | External Status Page | `External Status Page Is Online`, `External Status Page Active Incidents`, `External Status Page Component Status` |
 | NTP | `NTP Is Online`, `NTP Is Synchronized`, `NTP Stratum`, `NTP Clock Offset (in ms)`, `NTP Response Time (in ms)`, `NTP Root Dispersion (in ms)` (`NTP Is Online` and `NTP Is Synchronized` take no `value`) |
-| Network Device (SNMP) | `SNMP Device Is Online` (reachable by ping or SNMP), `SNMP Walk Is Succeeding` (false is reachable-but-not-walkable), `SNMP OID Value` (SNMP filters can carry `snmp_monitor_options` JSON) |
+| Network Device (SNMP) | `SNMP Device Is Online` (it answers ping or SNMP), `SNMP Walk Is Succeeding` (false when it answers but cannot be walked), `SNMP OID Value` (SNMP filters can take `snmp_monitor_options` JSON) |
 
-Common `filter_type` values:
+### How a filter compares
 
-| Category | Values |
-|----------|--------|
-| Boolean | `True`, `False` |
-| Numeric | `Equal To`, `Not Equal To`, `Greater Than`, `Less Than`, `Greater Than Or Equal To`, `Less Than Or Equal To` |
+| Kind | `filter_type` values |
+| --- | --- |
+| True or false | `True`, `False` |
+| Numbers | `Equal To`, `Not Equal To`, `Greater Than`, `Less Than`, `Greater Than Or Equal To`, `Less Than Or Equal To` |
 | Text | `Contains`, `Not Contains`, `Starts With`, `Ends With`, `Is Empty`, `Is Not Empty` |
-| Heartbeat | `Recieved In Minutes`, `Not Recieved In Minutes` *(spelling is as the API expects)* |
-| Scripting | `Evaluates To True` |
-| Anomaly (metrics) | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Heartbeats | `Recieved In Minutes`, `Not Recieved In Minutes` (spelled as the API spells them) |
+| Server processes | `Is Executing`, `Is Not Executing` |
+| Scripts | `Evaluates To True` |
+| Anomalies, for metrics, logs and traces | `Anomalously High`, `Anomalously Low`, `Anomalous` |
 
-Example — degrade an SSL certificate monitor when the certificate expires within 30 days:
+A filter that matches when an SSL certificate expires in 14 days or less:
 
 ```hcl
 filters = [
   {
     check_on    = "Expires In Days"
-    filter_type = "Less Than"
-    value       = "30"
+    filter_type = "Less Than Or Equal To"
+    value       = "14"
   }
 ]
 ```
 
-The provider validates `check_on`, `filter_type`, and the other enum attributes at plan time, so a typo fails before anything is sent to the API. The full lists are visible in the dashboard's criteria editor; anything the dashboard accepts is valid here, using exactly the label the dashboard shows.
+The provider checks `check_on`, `filter_type` and the other fixed lists when it plans, so a typo fails before anything is sent to the API. The values are the API's names for the options of the dashboard's criteria editor.
 
 ### Comparing one field of a script's result
 
-A Custom Code or Synthetic monitor's script returns `data`, and a `Result Value` filter compares it. When `data` is an object or an array, `custom_code_monitor_options` names the one field of it to compare — the **Field Path** of the dashboard's Result Value filter. Use dots for nested fields and `[n]` for array items, and leave the attribute out to compare the whole value:
+A Custom Code or Synthetic monitor's script returns `data`, and a `Result Value` filter compares it. When `data` is an object or an array, `custom_code_monitor_options` names the one field of it to compare: the **Field Path** of the dashboard's Result Value filter. Use dots for nested fields and `[n]` for array items, and leave the attribute out to compare the whole value:
 
 ```hcl
 monitor_steps = [{
@@ -320,24 +386,24 @@ monitor_steps = [{
 
 ## Common mistakes
 
-1. **Passing empty placeholders.** `incidents = []`, `request_headers = {}`, or `description = ""` are rejected — omit the attribute instead. Absent always means "unset".
-2. **Numbers where strings are expected.** Filter `value` is a string even for numeric comparisons: `value = "200"`. Only `port` and the other genuinely numeric attributes (`retry_count`, `request_timeout_in_ms`, `evaluate_over_time_minutes`, ...) take numbers.
-3. **Wrong destination type.** `monitor_destination_type = "URL"` with a bare hostname (or `Hostname` with a full URL) fails probing. Website/API take URLs; Ping/Port take hostnames or IPs.
-4. **`change_monitor_status = true` without `monitor_status_id`.** The criteria then matches but has no status to switch to.
-5. **Writing ids.** There are no `id` attributes anywhere in `monitor_steps` anymore. If you are migrating old JSON, delete them — the server generates ids.
-6. **Escape hatches with hand-built strings.** Write `log_monitor` and friends with `jsonencode()` so Terraform handles quoting and produces canonical JSON (for `metric_monitor`, include the full object shape the dashboard produces — the server normalizes it).
+1. **Empty placeholders.** `incidents = []`, `request_headers = {}` and `description = ""` are refused: leave the attribute out instead.
+2. **A number where a string goes.** A filter's `value` is a string, even for a number: `value = "200"`. Numeric settings such as `port`, `retry_count`, `request_timeout_in_ms` and `evaluate_over_time_minutes` take numbers.
+3. **The wrong destination type.** `monitor_destination_type = "URL"` with a bare hostname, or `Hostname` with a full URL, fails the check. Website and API monitors take URLs; Ping, IP and Port monitors take hostnames or IP addresses.
+4. **A status change with no status.** `change_monitor_status = true` without `monitor_status_id` matches, and has no status to change to.
+5. **IDs.** No item of `monitor_steps` has an `id` attribute. If you are moving from the old JSON, delete them: the server gives the IDs.
+6. **JSON written by hand.** Write `log_monitor` and the other settings with `jsonencode()`, so Terraform quotes them and writes the JSON the same way every time. For `metric_monitor`, give the whole object the dashboard writes: the server normalizes it.
 
 ## When no criteria matches
 
-A check that matches none of the criteria puts the monitor in its *default status*: the project's operational status, the same one the dashboard preselects for a new monitor. Its open incidents whose criteria opted into auto-resolve are resolved too. To keep a status change for every outcome under your control, end the list with a broad "healthy" criteria, as the examples on this page do.
+A check that matches none of the criteria puts the monitor in its default status: the project's operational status, the one the dashboard picks for a new monitor. Its open incidents whose criteria opted into auto-resolve are resolved too. To decide every outcome yourself, end the list with a broad healthy criteria, as the examples on this page do.
 
-## Omitting monitor_steps entirely
+## A monitor without steps
 
-If you omit `monitor_steps`, the server generates a default configuration for the monitor type (for `Website`: check the URL, offline when unreachable) and your Terraform state keeps the attribute `null` — server defaults do **not** cause drift. `Manual` monitors have no active checks and never need steps.
+`monitor_steps` is optional, but a monitor created without it has no criteria to judge a result by: probes skip a monitor without steps, and it stays in the status it started in. Your state keeps the attribute empty, and the plan stays clean. A Manual monitor never needs steps: you set its status yourself. Every other type needs at least one step to check anything.
 
-## Background: the wire format
+## The wire format
 
-On the wire, the API still speaks its typed-envelope JSON — every rich object is wrapped as `{_type, value}`:
+Behind the provider, the API still speaks its own JSON, where every rich object is wrapped as `{_type, value}`:
 
 ```json
 {
@@ -360,9 +426,13 @@ On the wire, the API still speaks its typed-envelope JSON — every rich object 
 }
 ```
 
-The provider builds this envelope from your HCL on write and maps it back on read, ignoring server-managed extras (generated ids, injected defaults). You only need to know this shape when reading raw API responses — for example in scripts that query `monitorSteps` directly.
+The provider builds this from your HCL when it writes, and reads it back into HCL, leaving out what the server manages (the IDs and the defaults it adds). You only meet it when you read the API's answers yourself, for example in a script that reads `monitorSteps`.
 
-## Related pages
+## Next steps
 
-- [Examples](/docs/terraform/examples) — ping, port, SSL, and API variants of this pattern
-- [Troubleshooting](/docs/terraform/troubleshooting) — including "inconsistent result after apply" on monitors
+:::cards
+- [Examples](/docs/terraform/examples): Ping, port, SSL certificate and API monitors, ready to use.
+- [Complete Guide](/docs/terraform/complete-guide): Data sources, state and upgrades.
+- [Metrics Monitor](/docs/monitor/metrics-monitor): Metric queries, grouping and anomalies.
+- [Troubleshooting](/docs/terraform/troubleshooting): Including an inconsistent result after apply on a monitor.
+:::
