@@ -9,9 +9,11 @@ import URL from "../../Types/API/URL";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import SMS from "../../Types/SMS/SMS";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
 
 export class SmsService extends BaseService {
   public constructor() {
@@ -52,6 +54,18 @@ export class SmsService extends BaseService {
       failIfNotSent?: boolean | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
+    // A project a master admin blocked sends nothing (BlockedProjectNotifications).
+    const blockedProjectRefusal: HTTPErrorResponse | null =
+      await BlockedProjectNotifications.getRefusal({
+        channel: "SMS",
+        projectId: options.projectId,
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+      });
+
+    if (blockedProjectRefusal) {
+      return blockedProjectRefusal;
+    }
+
     const body: JSONObject = {
       to: sms.to.toString(),
       message: sms.message,

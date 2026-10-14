@@ -27,16 +27,20 @@ import ObjectID from "../../../Types/ObjectID";
  * ended. When a project's sign-in rules change (it now requires SSO, or
  * another provider, or one of its SSO providers was turned off, on or
  * deleted), each one reads them again and asks the sockets it holds in
- * that project again, as their joins were asked. A change only
- * ever takes something away or makes a server read again: nothing in a
- * message can give anyone more than their reads already give them.
+ * that project again, as their joins were asked. When a master admin
+ * blocks or unblocks a project, each one forgets whether it is blocked and
+ * who hears what in it, and asks the sockets it holds there again: the
+ * project's API requests are refused at once on every server, and its
+ * members stop hearing it. A change only ever takes something away or
+ * makes a server read again: nothing in a message can give anyone more
+ * than their reads already give them.
  *
  * When the channel cannot be reached, a change still applies on the server
  * that made it, and the others catch up as their entries run out: 30
- * seconds for permissions, a minute for a block or a sign-in rule, and the
- * access token's lifetime for a session, whose sockets end when it expires
- * (RealtimeSessions), and for a socket that joined under the old sign-in
- * rules, whose renewal joins again.
+ * seconds for permissions, a minute for a block (of a person or of a
+ * project) or a sign-in rule, and the access token's lifetime for a
+ * session, whose sockets end when it expires (RealtimeSessions), and for a
+ * socket that joined under the old rules, whose renewal joins again.
  */
 
 export enum RealtimeAccessChangeKind {
@@ -52,6 +56,8 @@ export enum RealtimeAccessChangeKind {
    * SSO, a global provider or one of its attachments).
    */
   SignInRulesChanged = "SignInRulesChanged",
+  // A master admin blocked or unblocked a project.
+  ProjectBlockChanged = "ProjectBlockChanged",
 }
 
 export type RealtimeAccessChange =
@@ -76,6 +82,10 @@ export type RealtimeAccessChange =
       kind: RealtimeAccessChangeKind.SignInRulesChanged;
       // Absent: the instance-wide rule, which every project follows.
       projectId?: string | undefined;
+    }
+  | {
+      kind: RealtimeAccessChangeKind.ProjectBlockChanged;
+      projectId: string;
     };
 
 /*
@@ -84,6 +94,12 @@ export type RealtimeAccessChange =
  * holds the sockets, registers it (onSignInRulesChanged).
  */
 export type SignInRulesChangedListener = (projectId?: string) => void;
+
+/*
+ * What a server does with the sockets it holds in a project a master admin
+ * blocked or unblocked. Realtime registers it (onProjectBlockChanged).
+ */
+export type ProjectBlockChangedListener = (projectId: string) => void;
 
 interface RealtimeAccessChangeMessage {
   // The server that announced it, which has applied it already.
@@ -125,6 +141,9 @@ export default class RealtimeAccessChanges {
   private static signInRulesChangedListener: SignInRulesChangedListener | null =
     null;
 
+  private static projectBlockChangedListener: ProjectBlockChangedListener | null =
+    null;
+
   /*
    * Who asks this server's sockets again when sign-in rules change. One
    * listener: Realtime, which holds the sockets.
@@ -133,6 +152,16 @@ export default class RealtimeAccessChanges {
     listener: SignInRulesChangedListener | null,
   ): void {
     RealtimeAccessChanges.signInRulesChangedListener = listener;
+  }
+
+  /*
+   * Who asks this server's sockets in a project again when a master admin
+   * blocks or unblocks it. One listener: Realtime, which holds the sockets.
+   */
+  public static onProjectBlockChanged(
+    listener: ProjectBlockChangedListener | null,
+  ): void {
+    RealtimeAccessChanges.projectBlockChangedListener = listener;
   }
 
   /*
@@ -419,6 +448,22 @@ export default class RealtimeAccessChanges {
 
           return;
         }
+
+        case RealtimeAccessChangeKind.ProjectBlockChanged: {
+          /*
+           * Whether it is blocked is read again here, and who hears what in
+           * it, before any socket is asked again: a member's leaves its
+           * rooms, a master admin's stays.
+           */
+          RealtimeAccessChanges.getProjectService().forgetBlockedStatus(
+            new ObjectID(change.projectId),
+          );
+          RealtimeReaders.forgetProject(change.projectId);
+
+          RealtimeAccessChanges.projectBlockChangedListener?.(change.projectId);
+
+          return;
+        }
       }
     } catch (err) {
       logger.error("Realtime: an access change could not be applied here.");
@@ -555,6 +600,16 @@ export default class RealtimeAccessChanges {
         return {
           kind: RealtimeAccessChangeKind.SignInRulesChanged,
           projectId: isId(projectId) ? projectId : undefined,
+        };
+
+      case RealtimeAccessChangeKind.ProjectBlockChanged:
+        if (!isId(projectId)) {
+          return null;
+        }
+
+        return {
+          kind: RealtimeAccessChangeKind.ProjectBlockChanged,
+          projectId,
         };
 
       default:

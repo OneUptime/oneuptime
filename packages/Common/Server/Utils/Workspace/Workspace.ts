@@ -23,6 +23,7 @@ import UserService from "../../Services/UserService";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
 import PromptText from "../../../Utils/AI/PromptText";
+import BlockedProjectNotifications from "../Notification/BlockedProjectNotifications";
 
 export interface WorkspaceChannelMessage {
   messageId: string;
@@ -243,6 +244,24 @@ export default class WorkspaceUtil {
 
     const responses: Array<WorkspaceSendMessageResponse> = [];
 
+    /*
+     * A project a master admin blocked posts nothing as its bot
+     * (BlockedProjectNotifications): answered as a project with no
+     * workspace connected is, one empty answer per payload.
+     */
+    if (await BlockedProjectNotifications.isBlocked(data.projectId)) {
+      logger.debug(
+        BlockedProjectNotifications.getNotSentReason("Workspace message"),
+        workspaceLogAttributes,
+      );
+
+      return data.messagePayloadsByWorkspace.map(
+        (payload: WorkspaceMessagePayload): WorkspaceSendMessageResponse => {
+          return { workspaceType: payload.workspaceType, threads: [] };
+        },
+      );
+    }
+
     for (const messagePayloadByWorkspace of data.messagePayloadsByWorkspace) {
       const projectAuthToken: WorkspaceProjectAuthToken | null =
         await WorkspaceProjectAuthTokenService.getProjectAuth({
@@ -374,6 +393,16 @@ export default class WorkspaceUtil {
       postLogAttributes,
     );
     logger.debug(data, postLogAttributes);
+
+    // A project a master admin blocked posts nothing (BlockedProjectNotifications).
+    if (await BlockedProjectNotifications.isBlocked(data.projectId)) {
+      logger.debug(
+        BlockedProjectNotifications.getNotSentReason("Workspace message"),
+        postLogAttributes,
+      );
+
+      return { workspaceType: data.workspaceType, threads: [] };
+    }
 
     const result: WorkspaceSendMessageResponse =
       await WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType).sendMessage({

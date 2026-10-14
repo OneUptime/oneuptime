@@ -227,6 +227,7 @@
       "plan": "{{name}} - o plano não inclui clientes MCP",
       "sso": "{{name}} - entre primeiro com o login único",
       "blocked": "{{name}} - não permitido pelo seu administrador",
+      "project-blocked": "{{name}} - o projeto foi bloqueado",
       "not-a-member": "{{name}} - você não é membro"
     },
     "noProjects": "Você ainda não faz parte de nenhum projeto. Crie um projeto ou participe de um e, em seguida, conecte seu cliente MCP novamente.",

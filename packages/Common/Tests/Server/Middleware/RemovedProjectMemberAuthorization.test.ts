@@ -245,6 +245,8 @@ const signIn: SignInFunction = async (userId: ObjectID): Promise<void> => {
 
 describe("UserMiddleware - a user removed from a project is refused on their next request", () => {
   beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     memberships.length = 0;
     mockStore.clear();
     jest.clearAllMocks();

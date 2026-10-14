@@ -192,6 +192,13 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
           DatabaseQueryHelper.lessThanEqualToOrNull(
             OneUptimeDate.getCurrentDate(),
           ),
+        /*
+         * Not a project a master admin blocked: its monitors wait, due, until
+         * it is unblocked (MonitorResource refuses any that slip through).
+         */
+        project: {
+          isBlocked: false,
+        },
       },
       props: {
         isRoot: true,

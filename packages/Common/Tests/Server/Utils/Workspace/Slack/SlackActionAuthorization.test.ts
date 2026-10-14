@@ -209,6 +209,8 @@ beforeEach((): void => {
     plan: PlanType.Enterprise,
     isSubscriptionUnpaid: false,
   });
+  // Not a blocked project: that refusal is BlockedProjectBackgroundWork.test.ts.
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   jest.spyOn(Response, "sendJsonObjectResponse").mockImplementation(() => {});
   jest.spyOn(Response, "sendTextResponse").mockImplementation(() => {});
   jest.spyOn(Response, "sendErrorResponse").mockImplementation(() => {});

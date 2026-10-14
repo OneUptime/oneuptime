@@ -138,6 +138,7 @@ import {
 } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 import { idsOfCondition } from "../../TestingUtils/ScheduledMaintenanceProgressWorld";
+import ProjectService from "../../../../Server/Services/ProjectService";
 
 // The house workaround for @jest/globals vs @types/jest spy typing.
 type SpyLike = {
@@ -419,6 +420,8 @@ function databaseIdsOf(model: Incident | Alert): Array<string> {
 
 describe("MonitorResourceUtil.monitorResource: scheduled maintenance on a database", () => {
   beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     /*
      * The project's incident and alert states: open records are read by
      * the states that are not resolved (Common/Utils/ResolvedState).

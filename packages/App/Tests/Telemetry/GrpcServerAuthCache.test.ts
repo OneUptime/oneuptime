@@ -21,6 +21,14 @@ jest.mock("Common/Server/Services/PayAsYouGoBillingService", () => {
   };
 });
 
+// Whether the key's project is blocked is BlockedProjectBackgroundWork.test.ts.
+jest.mock("Common/Server/Services/ProjectService", () => {
+  return {
+    __esModule: true,
+    default: { isProjectBlocked: jest.fn().mockResolvedValue(false) },
+  };
+});
+
 /*
  * This suite proves the END-TO-END property behind the gRPC auth change:
  * repeated authenticateRequest calls for the same token reach the

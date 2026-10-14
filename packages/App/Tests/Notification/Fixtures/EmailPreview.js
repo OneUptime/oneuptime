@@ -417,6 +417,24 @@ function createRenderer(version) {
   engine.registerHelper("ifNotCond", function (a, b, options) {
     return a !== b ? options.fn(this) : options.inverse(this);
   });
+  // A detail card's dividers sit between its rows, never after the last:
+  // a plain-JS copy of FeatureSet/Notification/Utils/EmailDetailCard.ts.
+  const cardKey = "oneuptimeEmailDetailCard";
+  engine.registerHelper("detailCardStart", (options) => {
+    if (options.data) options.data[cardKey] = { rows: 0, isOpen: true };
+    return "";
+  });
+  engine.registerHelper("detailCardDivider", function (options) {
+    const card = options.data && options.data[cardKey];
+    if (!card || !card.isOpen) return "";
+    card.rows += 1;
+    return card.rows > 1 ? options.fn(this) : "";
+  });
+  engine.registerHelper("detailCardEnd", (options) => {
+    const card = options.data && options.data[cardKey];
+    if (card) card.isOpen = false;
+    return "";
+  });
   for (const file of partialsFor(version)) {
     const source = read(version, `Partials/${file}`);
     engine.registerPartial(file.slice(0, -4), source);

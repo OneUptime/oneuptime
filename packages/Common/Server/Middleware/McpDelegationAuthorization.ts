@@ -18,6 +18,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import ProjectBlockedException from "../../Types/Exception/ProjectBlockedException";
 import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
 import {
@@ -51,7 +52,8 @@ import UserType from "../../Types/UserType";
  * expired, still satisfies the project's SSO rules - was checked by the MCP
  * server before it minted the token, a moment ago, and is not asked again
  * here. What is asked again is the little that could matter for an API call
- * and costs nothing to ask: the token verifies, and the member is not blocked.
+ * and costs nothing to ask: the token verifies, the member is not blocked,
+ * and neither is the project.
  */
 
 const MULTI_TENANT_QUERY_HEADER: string = "is-multi-tenant-query";
@@ -108,6 +110,15 @@ export default class McpDelegationAuthorization {
 
       if (await UserService.isUserBlocked(claims.userId)) {
         throw new NotAuthenticatedException(ExceptionMessages.UserBlocked);
+      }
+
+      /*
+       * The grant's project blocked since the MCP server minted the token: a
+       * delegated request is a member's, never a master admin's, so it is
+       * refused like any member's request there.
+       */
+      if (await ProjectService.isProjectBlocked(claims.projectId)) {
+        throw new ProjectBlockedException();
       }
 
       /*

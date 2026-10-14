@@ -28,7 +28,7 @@
           <tbody>
             {{#each monitors}}
             <tr>
-              <td style="padding: 14px 20px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; word-break: break-word;">
+              <td style="padding: 14px 20px;{{#unless @first}} border-top: 1px solid #e2e8f0;{{/unless}} overflow-wrap: anywhere; word-break: break-word;">
                 <p style="margin: 0; font-size: 15px; line-height: 24px; font-weight: 600;"><a href="{{this.monitorViewLink}}" style="color: #111111; text-decoration: underline; text-underline-offset: 3px;">{{this.monitorName}}</a></p>
               </td>
             </tr>
