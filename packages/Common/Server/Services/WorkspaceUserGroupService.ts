@@ -14,6 +14,7 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger from "../Utils/Logger";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import WorkspaceUserGroupSync from "../Utils/Workspace/UserGroups/WorkspaceUserGroupSync";
 
@@ -29,8 +30,10 @@ import WorkspaceUserGroupSync from "../Utils/Workspace/UserGroups/WorkspaceUserG
  * - A new or changed record is looked at straight away: the group takes the
  *   people on call in its schedules.
  */
-export const NO_SCHEDULE_MESSAGE: string =
-  "A user group follows at least one on-call schedule. To stop OneUptime from updating it, delete it instead.";
+// It names the product as the installation goes by (ProductBrandingText).
+export const getNoScheduleMessage: () => string = (): string => {
+  return `A user group follows at least one on-call schedule. To stop ${ProductBrandingText.getProductName()} from updating it, delete it instead.`;
+};
 
 export const ALREADY_LINKED_MESSAGE: string =
   "This user group already follows on-call schedules in this project. Add the schedule to it instead.";
@@ -93,7 +96,7 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (!this.namesASchedule(data.onCallDutyPolicySchedules)) {
-      throw new BadDataException(NO_SCHEDULE_MESSAGE);
+      throw new BadDataException(getNoScheduleMessage());
     }
   }
 
@@ -106,7 +109,7 @@ export class Service extends ProjectReferencesService<Model> {
     )["onCallDutyPolicySchedules"];
 
     if (schedules !== undefined && !this.namesASchedule(schedules)) {
-      throw new BadDataException(NO_SCHEDULE_MESSAGE);
+      throw new BadDataException(getNoScheduleMessage());
     }
   }
 

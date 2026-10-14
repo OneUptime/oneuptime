@@ -9,9 +9,10 @@ import {
 import type { SpyInstance } from "jest-mock";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import WorkspaceUserGroup from "../../../Models/DatabaseModels/WorkspaceUserGroup";
+import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import WorkspaceUserGroupService, {
   ALREADY_LINKED_MESSAGE,
-  NO_SCHEDULE_MESSAGE,
+  getNoScheduleMessage,
 } from "../../../Server/Services/WorkspaceUserGroupService";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
@@ -174,7 +175,7 @@ describe("what a group record must be", () => {
         createRules(slackGroup({ onCallDutyPolicySchedules: schedules })),
       );
 
-      expect(error.message).toBe(NO_SCHEDULE_MESSAGE);
+      expect(error.message).toBe(getNoScheduleMessage());
     }
   });
 
@@ -206,8 +207,10 @@ describe("what a group record must be", () => {
       ),
     );
 
-    // Not "Workspace Type must be...": an id from another project gets the
-    // answer an id that matches nothing gets.
+    /*
+     * Not "Workspace Type must be...": an id from another project gets the
+     * answer an id that matches nothing gets.
+     */
     expect(error).toBeInstanceOf(ProjectScopedReferenceException);
   });
 
@@ -219,7 +222,7 @@ describe("what a group record must be", () => {
       }),
     );
 
-    expect(error.message).toBe(NO_SCHEDULE_MESSAGE);
+    expect(error.message).toBe(getNoScheduleMessage());
 
     await expect(
       hooks.checkUpdateBeforeReferences({
@@ -238,11 +241,25 @@ describe("what a group record must be", () => {
   });
 
   test("the words say what to do instead", () => {
-    expect(NO_SCHEDULE_MESSAGE).toBe(
+    expect(getNoScheduleMessage()).toBe(
       "A user group follows at least one on-call schedule. To stop OneUptime from updating it, delete it instead.",
     );
     expect(ALREADY_LINKED_MESSAGE).toBe(
       "This user group already follows on-call schedules in this project. Add the schedule to it instead.",
+    );
+  });
+
+  test("an installation that goes by another name says its own name", async () => {
+    jest.spyOn(EnterpriseEdition, "getProductBranding").mockReturnValue({
+      productName: "Acme Paging",
+    });
+
+    const error: Error = await refusal(
+      createRules(slackGroup({ onCallDutyPolicySchedules: [] })),
+    );
+
+    expect(error.message).toBe(
+      "A user group follows at least one on-call schedule. To stop Acme Paging from updating it, delete it instead.",
     );
   });
 });
