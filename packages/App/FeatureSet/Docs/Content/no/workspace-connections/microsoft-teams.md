@@ -6,6 +6,7 @@ Koble OneUptime til Microsoft Teams for å publisere hendelser, varsler, episode
 - [Koble til Microsoft Teams](#koble-til-microsoft-teams): Administratorsamtykke, påloggingen din og appen i hvert team.
 - [Varslingsregler](#varslingsregler): Bestem hvilke hendelser som publiseres hvor, og hvilke som får sin egen kanal.
 - [Snakke med OneUptime-boten](#snakke-med-oneuptime-boten): Kommandoer, spørsmål og skjemaer i en chat med boten.
+- [Vakt-tagger](#vakt-tagger): Hold taggen til et team lik dem som har vakt, og tilkall den.
 - [Handle på hendelser, varsler og begivenheter fra Microsoft Teams](#handle-på-hendelser-varsler-og-begivenheter-fra-microsoft-teams): Knappene på kortene fra OneUptime.
 :::
 
@@ -173,10 +174,31 @@ Bortsett fra `show`-listene er dette ordene som følger etter `/oneuptime` i Sla
 
 I en kanal eller en gruppechat tilkaller `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` Nawaz med en gang. OneUptime oppretter et varsel med meldingen din som tittel, og hver person du nevner med @, får en telefonsamtale, en SMS, en pushvarsling eller en e-post, slik vedkommendes egne vaktregler sier, til noen bekrefter varselet.
 
-- **Hvem som tilkalles med en gang.** Personene du nevner med @, når en melding følger etter dem. OneUptime kjenner igjen en person på OneUptime-kontoen vedkommendes Microsoft Teams-konto er koblet til, eller ellers på vedkommendes e-postadresse i Microsoft Teams. Ingen utenfor prosjektet tilkalles.
-- **Alt annet gir et kort.** Uten noen nevnt med @, som i en personlig chat med boten, uten melding, med en tagg, eller med en person OneUptime ikke kjenner igjen, svarer boten med kortet **Page someone**, med det du skrev ferdig utfylt, og sier hvem den ikke kunne velge. Velg personer, et team, en vaktplan, som tilkaller den som har vakt i den nå, eller en vaktpolicy, som tilkaller gjennom eskaleringsreglene sine, og send det inn. Alle i samtalen kan sende inn kortet, som seg selv. Når det har tilkalt, fjernes kortet, så ingen tilkaller med det to ganger.
+- **Hvem som tilkalles med en gang.** Personene du nevner med @, og dem som har vakt i vaktplanene en tagg du nevner med @, følger (se [Vakt-tagger](#vakt-tagger)), når en melding følger etter dem. OneUptime kjenner igjen en person på OneUptime-kontoen vedkommendes Microsoft Teams-konto er koblet til, eller ellers på vedkommendes e-postadresse i Microsoft Teams. Ingen utenfor prosjektet tilkalles.
+- **Alt annet gir et kort.** Uten noen nevnt med @, som i en personlig chat med boten, uten melding, med en tagg som ikke følger noen vaktplan du kan se, eller med en person OneUptime ikke kjenner igjen, svarer boten med kortet **Page someone**, med det du skrev ferdig utfylt, og sier hvem den ikke kunne velge. Velg personer, et team, en vaktplan, som tilkaller den som har vakt i den nå, eller en vaktpolicy, som tilkaller gjennom eskaleringsreglene sine, og send det inn. Alle i samtalen kan sende inn kortet, som seg selv. Når det har tilkalt, fjernes kortet, så ingen tilkaller med det to ganger.
 - **Hvor det vises.** Samtalen viser tilkallingen som ett kort som holdes oppdatert: hvem som ble tilkalt og hvordan, og hvem som bekreftet. Der boten ikke kan poste det, sier svaret dens hvem som ble tilkalt, med en lenke til varselet.
 - **Hvem som kan tilkalle.** Alle som både kan kjøre en vaktpolicy og opprette et varsel: **Project Owner**, **Project Admin** og **Project Member**, eller **On-Call Member** sammen med **Alert Member** (**Create On-Call Duty Policy Execution Log** og **Create Alert** i en egendefinert rolle). Å tilkalle personer, et team eller en vaktplan direkte, uten en vaktpolicy bak tilkallingen, krever også tilgang til alle vaktpolicyene i prosjektet. Alle andre får beskjed om det i et svar, og ingen tilkalles.
+
+## Vakt-tagger
+
+Hold en tagg i Microsoft Teams, for eksempel `@Payments on-call`, lik dem som har vakt i én eller flere vaktplaner, slik at alle i teamet kan nevne den med @ for å nå dem. OneUptime endrer medlemmene i taggen ved hver overlevering og hver overstyring, og sjekker den hvert 15. minutt.
+
+:::steps
+### Koble en tagg til en vaktplan
+
+Åpne vaktplanen under **Vakttjeneste** > **Vaktplaner**. Klikk **Koble til tagg** i kortet **Tagger i Microsoft Teams**, velg teamet, og gi taggen et navn: teamets tagg med det navnet, eller en ny som OneUptime oppretter. Medlemmene byttes straks ut med dem som har vakt.
+
+### Koble den også til den sekundære vaktplanen
+
+For en tagg med både primær og sekundær vakt kobler du den samme taggen til på siden til den sekundære vaktplanen. En tagg kan følge så mange vaktplaner du vil.
+:::
+
+- **Hva kortet viser.** Hvem som er i hver tagg nå, teamet, de andre vaktplanene den følger, og om den er **Oppdatert**. En tagg inneholder bare personer fra sitt eget team: en som har vakt, men ikke er i teamet, nevnes med årsaken.
+- **Ingen har vakt.** OneUptime tar alle ut av taggen til noen har vakt. En ny tagg trenger noen fra teamet som har vakt, siden Microsoft Teams ikke oppretter tagger uten medlemmer.
+- **Tilkall taggen.** `@OneUptime page @Payments on-call The checkout API is down` tilkaller dem som har vakt i vaktplanene taggen følger. Se [Tilkall noen fra Microsoft Teams](#tilkall-noen-fra-microsoft-teams).
+- **Hva Microsoft 365 krever.** Å endre tagger krever appens tillatelse `TeamworkTag.ReadWrite.All`, som en Microsoft 365-administrator gir med **Gi administratorsamtykke** under **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams**. Hvis organisasjonen din ga samtykke før OneUptime kunne holde tagger oppdatert, gir du det igjen én gang.
+- **Hvem som kan koble til en.** Rollene som kan redigere vaktplaner: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en egendefinert rolle. På OneUptime Cloud krever det abonnementet **Growth** å koble til en.
+- **Koble fra.** OneUptime slutter å endre taggen. Taggen og medlemmene blir værende i Microsoft Teams som de er.
 
 ## Handle på hendelser, varsler og begivenheter fra Microsoft Teams
 

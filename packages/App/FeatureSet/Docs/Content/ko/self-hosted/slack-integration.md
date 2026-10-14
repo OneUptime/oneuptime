@@ -154,6 +154,12 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 
 이전 매니페스트로 Slack 앱을 만들었다면 **OAuth & Permissions > Bot Token Scopes**에 `files:write`를 추가하세요(또는 현재 매니페스트로 앱을 업데이트하세요). 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Connect with Slack**을 다시 선택해 새 스코프가 부여되게 합니다. 그때까지 각 스크린샷은 대체 텍스트로 표시됩니다.
 
+### 온콜 사용자 그룹
+
+스케줄의 Slack 사용자 그룹을 온콜 담당자와 같게 유지하려면([온콜 사용자 그룹](/docs/workspace-connections/slack#온콜-사용자-그룹) 참고) 봇 스코프 `usergroups:read`와 `usergroups:write`가 필요합니다. 생성된 매니페스트에는 이 스코프가 포함되어 있습니다.
+
+이전 매니페스트로 Slack 앱을 만들었다면 **OAuth & Permissions > Bot Token Scopes**에 `usergroups:read`와 `usergroups:write`를 추가하세요(또는 현재 매니페스트로 앱을 업데이트하세요). 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Connect with Slack**을 다시 선택해 새 스코프가 부여되게 합니다. 그때까지 스케줄 카드에는 OneUptime의 Slack 앱이 아직 사용자 그룹을 변경할 수 없다고 표시됩니다.
+
 ### 이전 매니페스트로 만든 앱
 
 이전 OneUptime 매니페스트로 만든 Slack 앱은 `/incident`와 `/maintenance`를 자체 명령으로 등록하며, 이 명령은 다른 앱의 같은 이름 명령과 충돌할 수 있습니다. 이 명령은 계속 작동하고 `/oneuptime incident`, `/oneuptime maintenance`와 같은 양식을 엽니다. `/oneuptime`으로 바꾸려면 서버가 생성하는 매니페스트로 앱을 업데이트하세요. [api.slack.com/apps](https://api.slack.com/apps)에서 앱의 **App Manifest**를 열고 매니페스트를 붙여 넣은 뒤 저장합니다.

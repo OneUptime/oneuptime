@@ -77,6 +77,7 @@ Incoming Webhook이나 Teams 워크플로 URL은 이 봇의 메시징 엔드포�
 - **Channel.ReadBasic.All** - 채널이 존재하는지 확인하고 세부 정보를 가져오는 데 필요
 - **TeamsAppInstallation.ReadForTeam.All** - 진단에 필요. 팀에 실제로 설치된 앱 패키지를 OneUptime이 읽고 이 배포의 클라이언트 ID와 비교할 수 있게 해 주므로, 전송이 실패했을 때 가능한 원인 중 *어느 것*인지 알려 줄 수 있습니다. 이 권한이 없으면 OneUptime은 "설치되지 않음"과 "설치되었지만 다른 사람의 패키지"를 구분하지 못하고 Microsoft가 한 말만 전달합니다. 이 통합을 디버깅하는 데 몇 분이 아니라 며칠이 걸리는 가장 큰 이유가 바로 이것입니다. 부여하세요.
 - **Chat.ReadBasic.WhereInstalled** - 선택 사항. OneUptime 앱이 들어 있는 각 채팅의 이름을 OneUptime이 읽을 수 있게 합니다. 이 권한이 없으면 각 채팅이 매니페스트의 **ChatSettings.Read.Chat** 권한(아래)으로 이를 부여하는데, 이전 매니페스트로 추가된 채팅은 그 채팅에서 앱이 업데이트된 뒤에야 이 권한을 갖습니다.
+- **TeamworkTag.ReadWrite.All** - 선택 사항. OneUptime이 팀의 태그를 그 태그가 따르는 스케줄의 온콜 담당자와 같게 유지할 수 있게 합니다([온콜 태그](/docs/workspace-connections/microsoft-teams#온콜-태그) 참고). 이 권한이 없으면 스케줄 카드에 조직이 아직 OneUptime의 태그 관리를 허용하지 않았다고 표시됩니다.
 
 `ChannelMessage.Send`는 위임된 권한으로만 존재하며, [Microsoft Graph 권한 참조](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend)에는 애플리케이션 권한 버전이 없습니다. 위의 위임된 권한 목록에 그대로 두세요.
 

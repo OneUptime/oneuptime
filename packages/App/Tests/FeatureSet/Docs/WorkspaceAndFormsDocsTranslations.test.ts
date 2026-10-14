@@ -418,6 +418,13 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anything else opens a form.",
     "Where it shows.",
     "Who may page.",
+    // On-call user groups.
+    "What the card shows.",
+    "Nobody on call.",
+    "Paging it.",
+    "What Slack needs.",
+    "Who may connect one.",
+    "Disconnecting.",
   ],
   [TEAMS]: [
     "The project's connection",
@@ -442,6 +449,13 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anything else gets a card.",
     "Where it shows.",
     "Who may page.",
+    // On-call tags.
+    "What the card shows.",
+    "Nobody on call.",
+    "Paging it.",
+    "What Microsoft 365 needs.",
+    "Who may connect one.",
+    "Disconnecting.",
   ],
   [VIDEO]: [],
   [BUILDING]: [
@@ -553,8 +567,9 @@ const PUBLIC_PAGE_MESSAGES: Record<string, Array<PublicPageMessage>> = {
  * with Persian digits as Latin ones and thousands separators dropped.
  */
 const NUMBERS: Record<string, Array<string>> = {
-  [SLACK]: ["7"],
-  [TEAMS]: ["7"],
+  // A connect button's days; how often a user group or tag is checked.
+  [SLACK]: ["7", "15"],
+  [TEAMS]: ["7", "15"],
   [VIDEO]: ["40", "30"],
   [BUILDING]: ["50", "100", "500", "20000", "10000", "512", "128"],
   [SHARING]: ["429", "503"],

@@ -154,6 +154,12 @@ As descrições de incidentes e alertas podem trazer capturas de tela, como a de
 
 Se você criou o seu app do Slack a partir de um manifesto mais antigo, adicione `files:write` em **OAuth & Permissions > Bot Token Scopes** (ou atualize o app a partir do manifesto atual). Depois, selecione de novo **Connect with Slack** em **Configurações do projeto > Espaço de trabalho > Slack**, para que o novo escopo seja concedido. Até lá, cada captura de tela aparece como o seu texto alternativo.
 
+### Grupos de usuários de plantão
+
+Manter o grupo de usuários do Slack de um agendamento igual a quem está de plantão (veja [Grupos de usuários de plantão](/docs/workspace-connections/slack#grupos-de-usuários-de-plantão)) exige os escopos de bot `usergroups:read` e `usergroups:write`. O manifesto gerado os inclui.
+
+Se você criou o seu app do Slack a partir de um manifesto mais antigo, adicione `usergroups:read` e `usergroups:write` em **OAuth & Permissions > Bot Token Scopes** (ou atualize o app a partir do manifesto atual). Depois, selecione de novo **Connect with Slack** em **Configurações do projeto > Espaço de trabalho > Slack**, para que os novos escopos sejam concedidos. Até lá, o cartão do agendamento diz que o app do Slack do OneUptime ainda não tem permissão para alterar grupos de usuários.
+
 ### Apps criados a partir de um manifesto mais antigo
 
 Um app do Slack criado a partir de um manifesto anterior do OneUptime registra `/incident` e `/maintenance` como comandos próprios, que podem conflitar com comandos de mesmo nome de outros apps. Eles continuam funcionando e abrem os mesmos formulários que `/oneuptime incident` e `/oneuptime maintenance`. Para substituí-los por `/oneuptime`, atualize o app a partir do manifesto que o seu servidor gera: em [api.slack.com/apps](https://api.slack.com/apps), abra o **App Manifest** do app, cole o manifesto e salve.

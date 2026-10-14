@@ -154,6 +154,12 @@ Incident and alert descriptions can carry screenshots - a synthetic monitor's, f
 
 If you created your Slack app from an older manifest, add `files:write` under **OAuth & Permissions > Bot Token Scopes** (or update the app from the current manifest). Then select **Connect with Slack** again in **Project Settings > Workspace > Slack**, so the new scope is granted. Until then, each screenshot is shown as its alt text.
 
+### On-call user groups
+
+Keeping a schedule's Slack user group equal to whoever is on call (see [On-call user groups](/docs/workspace-connections/slack#on-call-user-groups)) needs the `usergroups:read` and `usergroups:write` bot scopes. The generated manifest includes them.
+
+If you created your Slack app from an older manifest, add `usergroups:read` and `usergroups:write` under **OAuth & Permissions > Bot Token Scopes** (or update the app from the current manifest). Then select **Connect with Slack** again in **Project Settings > Workspace > Slack**, so the new scopes are granted. Until then, the schedule's card says that OneUptime's Slack app isn't allowed to change user groups yet.
+
 ### Apps created from an older manifest
 
 A Slack app created from an earlier OneUptime manifest registers `/incident` and `/maintenance` as commands of their own, which can clash with other apps' commands of the same name. They keep working, and open the same forms as `/oneuptime incident` and `/oneuptime maintenance`. To replace them with `/oneuptime`, update the app from the manifest your server generates: on [api.slack.com/apps](https://api.slack.com/apps), open the app's **App Manifest**, paste the manifest and save.

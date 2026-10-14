@@ -31,6 +31,7 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import WorkspaceUserGroup from "../../../Models/DatabaseModels/WorkspaceUserGroup";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
@@ -44,6 +45,7 @@ import TeamService from "../../../Server/Services/TeamService";
 import UserService from "../../../Server/Services/UserService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
+import WorkspaceUserGroupService from "../../../Server/Services/WorkspaceUserGroupService";
 import ProductBrandingText from "../../../Server/Utils/ProductBrandingText";
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
@@ -119,6 +121,8 @@ const NAWAZ: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000a2");
 const ANA: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000a3");
 const OUTSIDER: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000a9");
 const PRIMARY: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000d1");
+// A schedule the member may not read.
+const HIDDEN: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000d9");
 const PLATFORM: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000e1");
 const DB_ESCALATION: ObjectID = new ObjectID(
   "c4000000-0000-4000-8000-0000000000f1",
@@ -344,6 +348,28 @@ function scheduleOf(
   return schedule;
 }
 
+/*
+ * A Slack user group OneUptime keeps equal to whoever is on call in
+ * `scheduleIds` (WorkspaceUserGroup), as the project's rows hold it.
+ */
+function userGroupOf(data: {
+  slackGroupId: string;
+  name: string;
+  scheduleIds: Array<ObjectID>;
+}): WorkspaceUserGroup {
+  const row: WorkspaceUserGroup = new WorkspaceUserGroup();
+  row.id = ObjectID.generate();
+  row.workspaceType = WorkspaceType.Slack;
+  row.workspaceGroupId = data.slackGroupId;
+  row.name = data.name;
+  row.onCallDutyPolicySchedules = data.scheduleIds.map(
+    (id: ObjectID): OnCallDutyPolicySchedule => {
+      return scheduleOf(id, "");
+    },
+  );
+  return row;
+}
+
 function memberOf(user: User): TeamMember {
   const member: TeamMember = new TeamMember();
   member.userId = user.id!;
@@ -369,6 +395,9 @@ describe("POST /slack/command: /oneuptime page", () => {
   let outcome: () => Promise<WorkspacePageOutcome>;
   let schedules: Array<OnCallDutyPolicySchedule>;
   let viewsOpenError: string | null;
+  // The project's user groups that follow on-call schedules.
+  let userGroups: Array<WorkspaceUserGroup>;
+  let userGroupsAskedWith: Array<unknown>;
 
   beforeAll(async () => {
     app = await startSlackApp();
@@ -388,6 +417,14 @@ describe("POST /slack/command: /oneuptime page", () => {
     pages = [];
     schedules = [scheduleOf(PRIMARY, "Primary", userOf(NAWAZ))];
     viewsOpenError = null;
+    userGroups = [
+      userGroupOf({
+        slackGroupId: "S0PAYMENTS",
+        name: "Payments on-call",
+        scheduleIds: [PRIMARY],
+      }),
+    ];
+    userGroupsAskedWith = [];
     outcome = async (): Promise<WorkspacePageOutcome> => {
       return {
         result: pagedResult(),
@@ -477,8 +514,15 @@ describe("POST /slack/command: /oneuptime page", () => {
     // What the form offers, as the member may read it.
     jest
       .spyOn(WorkspaceActionAuthorization, "findReadable")
-      .mockImplementation((async (data: { service: unknown }) => {
+      .mockImplementation((async (data: {
+        service: unknown;
+        props: unknown;
+        query: unknown;
+      }) => {
         switch (data.service) {
+          case WorkspaceUserGroupService:
+            userGroupsAskedWith.push({ props: data.props, query: data.query });
+            return userGroups;
           case OnCallDutyPolicyScheduleService:
             return schedules;
           case TeamMemberService:
@@ -875,6 +919,59 @@ describe("POST /slack/command: /oneuptime page", () => {
       );
     });
 
+    test("/oneuptime page @payments-oncall: the user group OneUptime keeps pages the on-call schedules it follows - 'Paging @payments-oncall…', then the page", async () => {
+      const answer: RouteAnswer = await post(
+        "page <!subteam^S0PAYMENTS|@payments-oncall> The checkout API is down",
+      );
+
+      expect(answer.status).toBe(200);
+      expect(answer.body).toBeNull();
+
+      await pagesAfter(1);
+
+      // The project's Slack user groups, read as Simon.
+      expect(userGroupsAskedWith).toEqual([
+        {
+          props: PROPS,
+          query: { projectId: PROJECT_ID, workspaceType: WorkspaceType.Slack },
+        },
+      ]);
+      expect(textOf(sentToSlack()[0]!.data["blocks"])).toBe(
+        "📟 Paging *@payments-oncall*…\n",
+      );
+      expect(sentToSlack()[0]!.data["text"]).toBe("Paging @payments-oncall…");
+      expect(pages).toEqual([
+        {
+          targets: { userIds: [], onCallScheduleIds: [PRIMARY] },
+          message: "The checkout API is down",
+          place: {
+            workspaceType: WorkspaceType.Slack,
+            destinationType: WorkspaceLiveMessageDestinationType.Channel,
+            channelId: CHANNEL_ID,
+            channelName: "ops",
+          },
+          props: PROPS,
+          workspaceType: WorkspaceType.Slack,
+        },
+      ]);
+    });
+
+    test("a person and a user group together: one page, of both", async () => {
+      await post(
+        "page <@U0NAWAZ|nawaz> and <!subteam^S0PAYMENTS|@payments-oncall>: replica is behind",
+      );
+      await pagesAfter(1);
+
+      expect(pages[0]!.targets).toEqual({
+        userIds: [NAWAZ],
+        onCallScheduleIds: [PRIMARY],
+      });
+      expect(pages[0]!.message).toBe("replica is behind");
+      expect(textOf(sentToSlack()[0]!.data["blocks"])).toBe(
+        "📟 Paging *Nawaz Dhandala* and *@payments-oncall*…\n",
+      );
+    });
+
     test("a page that names nobody pageable is told so", async () => {
       outcome = async (): Promise<WorkspacePageOutcome> => {
         throw new BadDataException(
@@ -1033,13 +1130,54 @@ describe("POST /slack/command: /oneuptime page", () => {
       expect(pages).toEqual([]);
     });
 
-    test("a user group: a note says OneUptime cannot page it, and to pick who it means", async () => {
+    test("a user group that follows no on-call schedule: a note says what makes one pageable, and to pick who it means", async () => {
       await post("page <!subteam^S0DB|@oncall-db> db down");
       const view: JSONObject = await openedForm();
 
       expect(notesIn(view)).toBe(
-        "⚠️ OneUptime can't page @oncall-db. Pick the on-call schedule, the team or the people below.\n",
+        "⚠️ OneUptime can't page @oncall-db: it isn't connected to an on-call schedule you can see. Pick the on-call schedule, the team or the people below.\n",
       );
+      expect(messageIn(view)).toBe("db down");
+      expect(pages).toEqual([]);
+    });
+
+    test("@here is nobody to page: a note says so", async () => {
+      await post("page <!here> db down");
+      const view: JSONObject = await openedForm();
+
+      expect(notesIn(view)).toBe(
+        "⚠️ OneUptime can't page @here. Pick the on-call schedule, the team or the people below.\n",
+      );
+      // Nothing to look up for @here.
+      expect(userGroupsAskedWith).toEqual([]);
+    });
+
+    test("a user group OneUptime keeps, with no message: the form, its schedule picked - nothing to say", async () => {
+      await post("page <!subteam^S0PAYMENTS|@payments-oncall>");
+      const view: JSONObject = await openedForm();
+
+      expect(pickedIn(view)).toEqual([`schedule:${PRIMARY.toString()}`]);
+      expect(notesIn(view)).toBe("");
+      expect(pages).toEqual([]);
+    });
+
+    test("a user group that follows only a schedule the member may not read: not paged through it - the form, and the note", async () => {
+      userGroups = [
+        userGroupOf({
+          slackGroupId: "S0PAYMENTS",
+          name: "Payments on-call",
+          scheduleIds: [HIDDEN],
+        }),
+      ];
+
+      await post("page <!subteam^S0PAYMENTS|@payments-oncall> db down");
+      const view: JSONObject = await openedForm();
+
+      expect(notesIn(view)).toBe(
+        "⚠️ OneUptime can't page @payments-oncall: it isn't connected to an on-call schedule you can see. Pick the on-call schedule, the team or the people below.\n",
+      );
+      expect(pickedIn(view)).toEqual([]);
+      expect(pages).toEqual([]);
     });
 
     test("an app created from an older manifest sends '@nawaz' as text: the form, with a note", async () => {

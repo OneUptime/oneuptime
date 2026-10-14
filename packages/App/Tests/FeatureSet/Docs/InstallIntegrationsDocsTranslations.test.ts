@@ -280,6 +280,8 @@ const MICROSOFT_PERMISSIONS: Record<string, Array<string>> = {
     "ChatMessage.Read.Chat",
     "ChatMember.Read.Chat",
     "TeamsAppInstallation.Read.Group",
+    // Keeping a team's tag equal to whoever is on call.
+    "TeamworkTag.ReadWrite.All",
   ],
 };
 

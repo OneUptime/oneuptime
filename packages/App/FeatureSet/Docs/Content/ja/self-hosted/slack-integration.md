@@ -154,6 +154,12 @@ Slack アプリの **Event Subscriptions** で、リクエスト URL を検証�
 
 古いマニフェストから Slack アプリを作成した場合は、 **OAuth & Permissions > Bot Token Scopes** に `files:write` を追加します (または現在のマニフェストからアプリを更新します)。続いて **プロジェクト設定 > ワークスペース > Slack** でもう一度 **Slack で接続** を選択し、新しいスコープを付与します。それまでは、各スクリーンショットは代替テキストとして表示されます。
 
+### オンコールユーザーグループ
+
+スケジュールの Slack ユーザーグループをオンコール担当者と一致させるには ( [オンコールユーザーグループ](/docs/workspace-connections/slack#オンコールユーザーグループ) を参照)、ボットスコープ `usergroups:read` と `usergroups:write` が必要です。生成されるマニフェストにはこれらが含まれています。
+
+古いマニフェストから Slack アプリを作成した場合は、 **OAuth & Permissions > Bot Token Scopes** に `usergroups:read` と `usergroups:write` を追加します (または現在のマニフェストからアプリを更新します)。続いて **プロジェクト設定 > ワークスペース > Slack** でもう一度 **Slack で接続** を選択し、新しいスコープを付与します。それまでは、スケジュールのカードに、OneUptime の Slack アプリにはまだユーザーグループを変更する権限がないと表示されます。
+
 ### 古いマニフェストから作成したアプリ
 
 以前の OneUptime マニフェストから作成した Slack アプリは、`/incident` と `/maintenance` を独自のコマンドとして登録しており、他のアプリの同名コマンドと競合することがあります。これらは引き続き動作し、`/oneuptime incident` と `/oneuptime maintenance` と同じフォームを開きます。`/oneuptime` に置き換えるには、サーバーが生成するマニフェストからアプリを更新します。[api.slack.com/apps](https://api.slack.com/apps) でアプリの **App Manifest** を開き、マニフェストを貼り付けて保存します。

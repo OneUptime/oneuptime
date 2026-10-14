@@ -154,6 +154,12 @@ Beschrijvingen van incidenten en meldingen kunnen screenshots bevatten, bijvoorb
 
 Hebt u uw Slack-app aangemaakt vanuit een ouder manifest, voeg dan `files:write` toe onder **OAuth & Permissions > Bot Token Scopes** (of werk de app bij vanuit het huidige manifest). Kies daarna opnieuw **Connect with Slack** in **Projectinstellingen > Werkruimte > Slack**, zodat de nieuwe scope wordt toegekend. Tot dan wordt elk screenshot getoond als de alternatieve tekst ervan.
 
+### Gebruikersgroepen voor bereikbaarheid
+
+Om de Slack-gebruikersgroep van een schema gelijk te houden aan wie er dienst heeft (zie [Gebruikersgroepen voor bereikbaarheid](/docs/workspace-connections/slack#gebruikersgroepen-voor-bereikbaarheid)), zijn de botscopes `usergroups:read` en `usergroups:write` nodig. Het gegenereerde manifest bevat die.
+
+Hebt u uw Slack-app aangemaakt vanuit een ouder manifest, voeg dan `usergroups:read` en `usergroups:write` toe onder **OAuth & Permissions > Bot Token Scopes** (of werk de app bij vanuit het huidige manifest). Kies daarna opnieuw **Connect with Slack** in **Projectinstellingen > Werkruimte > Slack**, zodat de nieuwe scopes worden toegekend. Tot dan zegt de kaart van het schema dat de Slack-app van OneUptime nog geen gebruikersgroepen mag wijzigen.
+
 ### Apps aangemaakt vanuit een ouder manifest
 
 Een Slack-app die vanuit een eerder OneUptime-manifest is aangemaakt, registreert `/incident` en `/maintenance` als eigen commando's, die kunnen botsen met gelijknamige commando's van andere apps. Ze blijven werken en openen dezelfde formulieren als `/oneuptime incident` en `/oneuptime maintenance`. Werk de app bij vanuit het manifest dat uw server genereert om ze door `/oneuptime` te vervangen: open op [api.slack.com/apps](https://api.slack.com/apps) het **App Manifest** van de app, plak het manifest en sla op.
