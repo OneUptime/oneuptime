@@ -126,6 +126,7 @@ interface PageFixture {
   projectId?: ObjectID | undefined;
   onlyShowScopedIncidents?: boolean | undefined;
   showIncidentsOnStatusPage?: boolean | undefined;
+  sendSubscriberNotifications?: boolean | undefined;
 }
 
 interface ResourceFixture {
@@ -232,6 +233,10 @@ function makePage(fixture: PageFixture): StatusPage {
   page.projectId = fixture.projectId || PROJECT_ID;
   page.onlyShowScopedIncidents = fixture.onlyShowScopedIncidents ?? false;
   page.showIncidentsOnStatusPage = fixture.showIncidentsOnStatusPage ?? true;
+
+  if (fixture.sendSubscriberNotifications !== undefined) {
+    page.sendSubscriberNotifications = fixture.sendSubscriberNotifications;
+  }
   return page;
 }
 
@@ -754,6 +759,96 @@ describe("counts for an incident being declared", () => {
       name: "Site 02",
       reason: IncidentSubscriberAudienceExclusionReason.HidesIncidents,
     });
+  });
+
+  /*
+   * Send Notifications to Subscribers off (Types/StatusPage/
+   * SubscriberNotificationsSwitch): the jobs pass the page over before
+   * reading a subscriber, so the summary leaves it out, with why, and
+   * counts none of its subscribers.
+   */
+  test("a page that sends its subscribers nothing is left out, as the jobs skip it", async () => {
+    useSitePages();
+    pages = pages.map((page: PageFixture): PageFixture => {
+      return page.id === sitePageId(2)
+        ? { ...page, sendSubscriberNotifications: false }
+        : page;
+    });
+
+    const audience: IncidentSubscriberAudienceResult = await audienceFor(
+      draft([SHARED_MONITOR], [sitePageId(1), sitePageId(2)]),
+    );
+
+    expect(names(audience.statusPages)).toEqual(["Site 01"]);
+    expect(
+      audience.excludedStatusPages.find(
+        (excluded: { statusPageId: string }): boolean => {
+          return excluded.statusPageId === sitePageId(2);
+        },
+      ),
+    ).toEqual({
+      statusPageId: sitePageId(2),
+      name: "Site 02",
+      reason: IncidentSubscriberAudienceExclusionReason.NotificationsOff,
+    });
+
+    const counted: Array<string> = (
+      (
+        countActiveSubscribersByChannel.mock.calls[0]![0] as {
+          statusPageIds: Array<ObjectID>;
+        }
+      ).statusPageIds || []
+    ).map((id: ObjectID): string => {
+      return id.toString();
+    });
+    expect(counted).not.toContain(sitePageId(2));
+  });
+
+  test("a page that is off and hides incidents too is said to be off: that is what the team turns back on first", async () => {
+    useSitePages();
+    pages = pages.map((page: PageFixture): PageFixture => {
+      return page.id === sitePageId(2)
+        ? {
+            ...page,
+            sendSubscriberNotifications: false,
+            showIncidentsOnStatusPage: false,
+          }
+        : page;
+    });
+
+    const audience: IncidentSubscriberAudienceResult = await audienceFor(
+      draft([SHARED_MONITOR], [sitePageId(1), sitePageId(2)]),
+    );
+
+    expect(
+      audience.excludedStatusPages.find(
+        (excluded: { statusPageId: string }): boolean => {
+          return excluded.statusPageId === sitePageId(2);
+        },
+      )?.reason,
+    ).toBe(IncidentSubscriberAudienceExclusionReason.NotificationsOff);
+  });
+
+  test("every page off: nobody is reached, and each is said to be off", async () => {
+    useSitePages();
+    pages = pages.map((page: PageFixture): PageFixture => {
+      return { ...page, sendSubscriberNotifications: false };
+    });
+
+    // Not limited to some pages: every page that lists the monitor would be told.
+    const audience: IncidentSubscriberAudienceResult = await audienceFor(
+      draft([SHARED_MONITOR]),
+    );
+
+    expect(IncidentSubscriberAudience.reachesAnyone(audience)).toBe(false);
+    expect(audience.statusPages).toEqual([]);
+    expect(audience.excludedStatusPages.length).toBeGreaterThan(0);
+
+    for (const excluded of audience.excludedStatusPages) {
+      expect(excluded.reason).toBe(
+        IncidentSubscriberAudienceExclusionReason.NotificationsOff,
+      );
+    }
   });
 
   test("a selected page that lists none of the monitors is reported, and not notified", async () => {

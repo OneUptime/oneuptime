@@ -119,7 +119,7 @@ La URL es la única credencial, así que trátala como una contraseña. Consulta
 
 :::steps
 1. Guarda la clave de API de la herramienta como variable global secreta, como se muestra [más abajo](#proteger-las-credenciales).
-2. Crea un flujo de trabajo, haz clic en el bloque discontinuo y elige un disparador de evento, como **On Create Incident**. En sus **Fields to pass on**, marca los campos que quieres enviar, como `title` y `description`.
+2. Crea un flujo de trabajo, haz clic en el bloque discontinuo y elige un disparador de evento, como **On Create Incident**. Haz clic en el disparador: sus **Fields to pass on** empiezan con **Título**, así que haz clic en **Añadir campo** y elige los demás campos que quieres enviar, como **Descripción**.
 3. Haz clic en **Añadir componente** y añade un bloque **API Post (JSON)**. Conecta a él el punto **Success** del disparador.
 4. Rellena su **URL**, sus **Request Headers** con la cabecera `Authorization` y su **Request Body** con los campos del incidente, como `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Haz clic en **Ejecutar flujo de trabajo**, elige un incidente en **Incidente** y ejecútalo. Una ejecución de prueba envía de verdad la solicitud. Después, activa **Habilitado**.

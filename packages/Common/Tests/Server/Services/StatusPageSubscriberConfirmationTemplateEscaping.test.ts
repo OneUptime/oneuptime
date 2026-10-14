@@ -102,7 +102,10 @@ describe("status page subscription emails with a custom email template", () => {
     jest
       .spyOn(StatusPageSubscriberService, "findOneBy")
       .mockResolvedValue(subscriber());
-    jest.spyOn(StatusPageService, "findOneBy").mockResolvedValue(statusPage());
+    // The page, as the one lookup every subscriber message reads it from.
+    jest
+      .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+      .mockResolvedValue([statusPage()]);
     jest
       .spyOn(StatusPageService, "getStatusPageURL")
       .mockResolvedValue(STATUS_PAGE_URL);

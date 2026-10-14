@@ -208,6 +208,8 @@ export default class MicrosoftTeamsActionAnswer {
   public static async sendToPlace(data: {
     place: WorkspaceConnectRequestTeamsPlace;
     answer: WorkspaceAnswer;
+    // A Connect button under the answer (MicrosoftTeamsReactionNoteSync).
+    connectUrl?: URL | undefined;
   }): Promise<boolean> {
     const name: string = MicrosoftTeamsActionAnswer.getMentionName(
       data.place.userName,
@@ -227,6 +229,7 @@ export default class MicrosoftTeamsActionAnswer {
         card: MicrosoftTeamsActionAnswer.buildCard({
           answer: data.answer,
           mention: mention,
+          connectUrl: data.connectUrl,
         }),
         summary: data.answer.text,
       });

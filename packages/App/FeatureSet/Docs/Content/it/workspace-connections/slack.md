@@ -123,7 +123,11 @@ Reagisci a un messaggio nel canale di un incidente, di un avviso, di un episodio
 | 📌 Un'emoji di puntina, o il comando **Pin to channel** di Slack | Una nota privata, visibile solo al tuo team |
 | 📢 Un'emoji di megafono o di altoparlante | Una nota pubblica, mostrata sulla pagina di stato. Solo incidenti ed eventi di manutenzione programmata. |
 
-La nota viene salvata a tuo nome, con i tuoi permessi, quindi il tuo account Slack deve essere collegato. Un messaggio viene salvato una sola volta, per quante persone reagiscano.
+La nota riprende il messaggio così come Slack lo mostrava: la formattazione, i link e il codice, le persone e i canali che menziona con il loro nome, e i file e le immagini come link. Una nota pubblica lascia fuori i file e le immagini, perché si aprono solo per il tuo team.
+
+Sono le parole di chi ha scritto il messaggio: il suo nome in OneUptime se il suo account Slack è collegato, altrimenti il nome che mostra Slack. Una nota privata viene collocata nella cronologia al momento in cui il messaggio è stato pubblicato, per quanto tempo dopo venga salvata. Una nota pubblica viene collocata al momento in cui viene salvata, cioè quando la pagina di stato la mostra. La cronologia dice chi l'ha salvata. La nota non viene ripubblicata nel canale, dove il messaggio c'è già.
+
+La nota viene salvata a tuo nome, con i tuoi permessi. Se il tuo account Slack non è ancora collegato, OneUptime ti chiede di collegarlo, in un messaggio che vedi solo tu, con un pulsante che salva il messaggio non appena l'hai fatto. Un messaggio viene salvato una sola volta, per quante persone reagiscano.
 
 ## Il comando /oneuptime
 

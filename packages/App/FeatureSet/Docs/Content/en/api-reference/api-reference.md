@@ -89,6 +89,8 @@ A list or a count takes a `query`. A field with a value matches that value; an o
 | `Includes` | Any of the values in `value` |
 | `IsNull`, `NotNull` | No value, or any value |
 
+A field of a record the resource names is filtered under its relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` finds the team members whose user's name contains "ada". Filtering by a field needs permission to read it, through a relation as on the resource itself: a filter on a field you may not read is refused with a `422` that names it.
+
 `select` names the fields to return, and `_id` always comes back. `sort` orders them, `ASC` or `DESC`; without one, the newest come first. A list returns 10 records unless you set `limit`, up to 10,000, and `skip` passes over that many first: keep raising `skip` by `limit` until you have `count` of them. Add `?output-type=csv` to a list request for CSV instead of JSON.
 
 For example, the monitors whose name contains "checkout", created since the start of 2026, newest first:

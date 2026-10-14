@@ -89,6 +89,8 @@ Une liste ou un comptage prend une `query`. Un champ avec une valeur correspond 
 | `Includes` | L'une des valeurs de `value` |
 | `IsNull`, `NotNull` | Aucune valeur, ou n'importe quelle valeur |
 
+Un champ d'un enregistrement que la ressource nomme se filtre sous sa relation : `"user": { "name": { "_type": "Search", "value": "ada" } }` trouve les membres d'équipe dont l'utilisateur a un nom qui contient « ada ». Filtrer sur un champ demande l'autorisation de le lire, à travers une relation comme sur la ressource elle-même : un filtre sur un champ que vous ne pouvez pas lire est refusé avec un `422` qui nomme le champ.
+
 `select` nomme les champs à renvoyer, et `_id` revient toujours. `sort` les ordonne, `ASC` ou `DESC` ; sans tri, les plus récents viennent en premier. Une liste renvoie 10 enregistrements tant que vous ne fixez pas `limit`, jusqu'à 10 000, et `skip` en saute d'abord autant : augmentez `skip` de `limit` jusqu'à en avoir `count`. Ajoutez `?output-type=csv` à une requête de liste pour du CSV au lieu de JSON.
 
 Par exemple, les moniteurs dont le nom contient « checkout », créés depuis le début de 2026, les plus récents en premier :

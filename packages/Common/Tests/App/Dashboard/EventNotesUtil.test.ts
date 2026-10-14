@@ -91,15 +91,21 @@ describe("getNoteTimestamp", () => {
     );
   });
 
-  test("files a private note under when it was written, ignoring any posting time", () => {
+  test("files a private note under when it was posted: a chat message saved as a note, when it was written there", () => {
     const note: NoteRecord = {
       createdAt: ago(HOUR),
       postedAt: ago(5 * HOUR),
     };
 
     expect(getNoteTimestamp(note, "private")?.toISOString()).toBe(
-      ago(HOUR).toISOString(),
+      ago(5 * HOUR).toISOString(),
     );
+  });
+
+  test("a private note with no posting time is filed under when it was written", () => {
+    expect(
+      getNoteTimestamp({ createdAt: ago(HOUR) }, "private")?.toISOString(),
+    ).toBe(ago(HOUR).toISOString());
   });
 
   test("reads dates that arrive as strings", () => {
@@ -865,6 +871,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
         "note",
         "postedAt",
         "postedFromSlackMessageId",
+        "savedFromChatMessage",
         "subscriberNotificationStatusMessage",
         "subscriberNotificationStatusMessageOnNoteUpdated",
         "subscriberNotificationStatusOnNoteCreated",
@@ -883,7 +890,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
     });
   });
 
-  test("a private feed asks for none of the public columns", () => {
+  test("a private feed asks for when each note was posted and where it came from, and no subscriber columns", () => {
     const select: Record<string, unknown> = buildNotesSelect({
       model: new IncidentInternalNote(),
       visibility: "private",
@@ -892,7 +899,8 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       isMasterAdmin: false,
     });
 
-    expect(select["postedAt"]).toBeUndefined();
+    expect(select["postedAt"]).toBe(true);
+    expect(select["savedFromChatMessage"]).toBe(true);
     expect(select["subscriberNotificationStatusOnNoteCreated"]).toBeUndefined();
     expect(select["note"]).toBe(true);
     expect(select["attachments"]).toBeDefined();

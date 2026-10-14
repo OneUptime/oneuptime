@@ -151,7 +151,9 @@
       "placeholder": "iscritto@azienda.it",
       "managePrompt": "Inserisci l'e-mail con cui ti sei iscritto",
       "manageDescription": "Ti invieremo un link per gestire l'iscrizione a questo indirizzo e-mail.",
-      "managePlaceholder": "email@tuaazienda.it"
+      "managePlaceholder": "email@tuaazienda.it",
+      "signedInEmailDescription": "Ti iscrivi con l'indirizzo email con cui accedi.",
+      "signInToSubscribe": "Accedi a questa pagina di stato per iscriverti."
     },
     "sms": {
       "title": "Iscriviti via SMS",

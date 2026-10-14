@@ -17,6 +17,7 @@ import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMainten
 import ScheduledMaintenanceStateTimelineService from "Common/Server/Services/ScheduledMaintenanceStateTimelineService";
 import SmsService from "Common/Server/Services/SmsService";
 import AffectedStatusPageResources from "Common/Server/Utils/StatusPage/AffectedStatusPageResources";
+import BlockedProjectStatusPages from "Common/Server/Utils/StatusPage/BlockedProjectStatusPages";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
@@ -40,6 +41,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
@@ -50,6 +52,7 @@ import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 
 RunCron(
   "ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers",
@@ -224,6 +227,28 @@ RunCron(
           );
 
         /*
+         * The pages of a blocked project send nothing, and are left out of
+         * the pages to send from. Say so, rather than that every page hides
+         * maintenance events or had no matching subscriber.
+         */
+        if (
+          statusPages.length === 0 &&
+          (await BlockedProjectStatusPages.isProjectBlocked(event.projectId))
+        ) {
+          await ScheduledMaintenanceStateTimelineService.updateOneById({
+            id: scheduledEventStateTimeline.id!,
+            data: {
+              subscriberNotificationStatus:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+            },
+            props: { isRoot: true, ignoreHooks: true },
+          });
+          continue;
+        }
+
+        /*
          * {{scheduledMaintenanceDescription}} in the format each channel
          * renders: HTML for a custom email body (BlankTemplate adds no markup
          * of its own), plain text for SMS and the email subject, and the
@@ -242,6 +267,14 @@ RunCron(
 
         for (const statuspage of statusPages) {
           if (!statuspage.id) {
+            continue;
+          }
+
+          // The page sends its subscribers nothing (Send Notifications to Subscribers off).
+          if (!isSendingSubscriberNotifications(statuspage)) {
+            logger.debug(
+              `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+            );
             continue;
           }
 
@@ -737,7 +770,7 @@ RunCron(
               feedInfoInMarkdown:
                 mdText`📧 **No notification sent to subscribers** for the state change of [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`.toString(),
               moreInformationInMarkdown:
-                "Subscriber notifications were skipped because all associated status pages either hide scheduled maintenance events or had no matching subscribers.",
+                "Subscriber notifications were skipped because all associated status pages either do not send notifications to their subscribers, hide scheduled maintenance events, or had no matching subscribers.",
               workspaceNotification: {
                 sendWorkspaceNotification: false,
               },

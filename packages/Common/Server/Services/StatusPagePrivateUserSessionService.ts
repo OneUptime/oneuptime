@@ -1,5 +1,6 @@
 import DatabaseService from "./DatabaseService";
 import StatusPagePrivateUserService from "./StatusPagePrivateUserService";
+import StatusPageService from "./StatusPageService";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUserSession";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageOidc from "../../Models/DatabaseModels/StatusPageOidc";
@@ -13,6 +14,12 @@ import Text from "../../Types/Text";
 import logger from "../Utils/Logger";
 import Exception from "../../Types/Exception/Exception";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  capRefreshTokenExpiry,
+  MAX_PRIVATE_USER_SESSION_LENGTH_IN_HOURS,
+  PRIVATE_USER_SESSION_IDLE_DAYS,
+  readPrivateUserSessionLength,
+} from "../../Types/StatusPage/PrivateUserSessionLength";
 import {
   Brackets,
   IsNull,
@@ -93,7 +100,8 @@ const SESSION_NAMES_NO_PROVIDER_SQL: string =
   "session.statusPageSsoId IS NULL AND session.statusPageOidcId IS NULL";
 
 export class Service extends DatabaseService<Model> {
-  private static readonly DEFAULT_REFRESH_TOKEN_TTL_DAYS: number = 30;
+  private static readonly DEFAULT_REFRESH_TOKEN_TTL_DAYS: number =
+    PRIVATE_USER_SESSION_IDLE_DAYS;
   private static readonly LOGIN_CODE_PURPOSE_KEY: string =
     "oneuptimeStatusPageSessionPurpose";
   private static readonly LOGIN_CODE_PURPOSE_VALUE: string = "login-code";
@@ -115,7 +123,11 @@ export class Service extends DatabaseService<Model> {
     const refreshToken: string =
       options.refreshToken || Service.generateRefreshToken();
     const refreshTokenExpiresAt: Date =
-      options.refreshTokenExpiresAt || Service.getRefreshTokenExpiry();
+      options.refreshTokenExpiresAt ||
+      (await this.getRefreshTokenExpiryForPage({
+        statusPageId: options.statusPageId,
+        startedAt: OneUptimeDate.getCurrentDate(),
+      }));
 
     const session: Model = this.buildSessionModel(options, {
       refreshToken,
@@ -186,15 +198,34 @@ export class Service extends DatabaseService<Model> {
    *     while the status page does not require SSO (`requiresSso`, its
    *     Require SSO for Login, read by the caller with the page): Require
    *     SSO for Login lets in only people an SSO provider signs in.
+   *   - Whichever way it signed in, a session counts only for as long as the
+   *     page's Sign Readers Out After allows (`sessionLengthInHours`, read by
+   *     the caller with the page), counted from its sign-in by the
+   *     database's clock: past it, the reader signs in again however active
+   *     they are (Types/StatusPage/PrivateUserSessionLength). No limit when
+   *     the page has none.
    */
   public addSignInRule(
     query: SelectQueryBuilder<Model>,
-    data: { requiresSso: boolean },
+    data: { requiresSso: boolean; sessionLengthInHours?: unknown },
   ): SelectQueryBuilder<Model> {
     // A page that requires SSO counts nothing but an SSO sign-in.
-    return this.addSignInRuleCounting(
+    const ruled: SelectQueryBuilder<Model> = this.addSignInRuleCounting(
       query,
       data.requiresSso ? "1 = 0" : SESSION_NAMES_NO_PROVIDER_SQL,
+    );
+
+    const sessionLengthInHours: number | null = readPrivateUserSessionLength(
+      data.sessionLengthInHours,
+    );
+
+    if (sessionLengthInHours === null) {
+      return ruled;
+    }
+
+    return ruled.andWhere(
+      "session.createdAt > NOW() - make_interval(hours => CAST(:sessionLengthInHours AS integer))",
+      { sessionLengthInHours },
     );
   }
 
@@ -245,9 +276,9 @@ export class Service extends DatabaseService<Model> {
   /*
    * Whether this session still counts by the sign-in rule above
    * (addSignInRule), read now, with its status page's own Require SSO for
-   * Login, in one database read: a refresh and a login code ask it before
-   * they hand the session a new access token. A session whose status page
-   * is gone does not count.
+   * Login and Sign Readers Out After, in one database read: a refresh and a
+   * login code ask it before they hand the session a new access token. A
+   * session whose status page is gone does not count.
    */
   public async doesSignInStillCount(data: {
     sessionId: ObjectID;
@@ -262,7 +293,15 @@ export class Service extends DatabaseService<Model> {
         )
         .where("session._id = :sessionId", {
           sessionId: data.sessionId.toString(),
-        }),
+        })
+        /*
+         * Within the page's Sign Readers Out After, as addSignInRule asks
+         * it. A value outside what can be written (a whole number of hours
+         * from 1 to a year) is no limit there, and is here too.
+         */
+        .andWhere(
+          `(sessionStatusPage.privateUserSessionLengthInHours IS NULL OR sessionStatusPage.privateUserSessionLengthInHours < 1 OR sessionStatusPage.privateUserSessionLengthInHours > ${MAX_PRIVATE_USER_SESSION_LENGTH_IN_HOURS} OR session.createdAt > NOW() - make_interval(hours => sessionStatusPage.privateUserSessionLengthInHours))`,
+        ),
       `sessionStatusPage.requireSsoForLogin IS NOT TRUE AND ${SESSION_NAMES_NO_PROVIDER_SQL}`,
     ).getOne();
 
@@ -289,6 +328,8 @@ export class Service extends DatabaseService<Model> {
         statusPagePrivateUserId: true,
         refreshTokenExpiresAt: true,
         lastActiveAt: true,
+        // When it signed in, which Sign Readers Out After counts from.
+        createdAt: true,
         additionalInfo: true,
         deviceName: true,
         deviceType: true,
@@ -322,7 +363,11 @@ export class Service extends DatabaseService<Model> {
   ): Promise<SessionMetadata> {
     const refreshToken: string = Service.generateRefreshToken();
     const refreshTokenExpiresAt: Date =
-      options.refreshTokenExpiresAt || Service.getRefreshTokenExpiry();
+      options.refreshTokenExpiresAt ||
+      (await this.getRefreshTokenExpiryForPage({
+        statusPageId: options.session.statusPageId,
+        startedAt: options.session.createdAt,
+      }));
 
     const updatePayload: Partial<Model> = this.buildRenewalUpdatePayload({
       options,
@@ -378,7 +423,13 @@ export class Service extends DatabaseService<Model> {
     }
 
     const refreshToken: string = Service.generateRefreshToken();
-    const refreshTokenExpiresAt: Date = Service.getRefreshTokenExpiry();
+    // The login code was issued at the sign-in: the session counts from it.
+    const refreshTokenExpiresAt: Date = await this.getRefreshTokenExpiryForPage(
+      {
+        statusPageId: session.statusPageId,
+        startedAt: session.createdAt,
+      },
+    );
     const renewalOptions: RenewSessionOptions = {
       session,
       ipAddress: options.ipAddress,
@@ -686,6 +737,41 @@ export class Service extends DatabaseService<Model> {
     return OneUptimeDate.getSomeDaysAfter(
       Service.DEFAULT_REFRESH_TOKEN_TTL_DAYS,
     );
+  }
+
+  /*
+   * The refresh token's expiry for a session of this status page being
+   * issued or renewed: 30 days from now, or the end of the page's Sign
+   * Readers Out After for a session that began at `startedAt`, whichever
+   * comes first - so the browser drops the session on time as well as
+   * every read refusing it (addSignInRule). A session whose page or start
+   * is unknown keeps the 30 days; the reads still end it on time.
+   */
+  private async getRefreshTokenExpiryForPage(data: {
+    statusPageId: ObjectID | undefined;
+    startedAt: Date | undefined;
+  }): Promise<Date> {
+    const expiresAt: Date = Service.getRefreshTokenExpiry();
+
+    if (!data.statusPageId || !data.startedAt) {
+      return expiresAt;
+    }
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneById({
+      id: data.statusPageId,
+      select: {
+        privateUserSessionLengthInHours: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return capRefreshTokenExpiry({
+      expiresAt,
+      startedAt: data.startedAt,
+      lengthInHours: statusPage?.privateUserSessionLengthInHours,
+    });
   }
 }
 

@@ -307,7 +307,7 @@ Os tokens expiram depois de um ano por padrão e não se renovam. Para não ter 
 ### Abrir um item do Jira para cada incidente
 
 :::steps
-1. Crie do zero um workflow chamado `Incidents to Jira`. Clique no bloco tracejado e adicione o gatilho **On Create Incident**. Em **Fields to pass on**, peça `{"_id": true, "title": true, "description": true, "incidentNumber": true}`. Deixe o **Identifier** dele como `incident-on-create-1`.
+1. Crie do zero um workflow chamado `Incidents to Jira`. Clique no bloco tracejado e adicione o gatilho **On Create Incident**. Os seus **Fields to pass on** começam com **Título**: clique em **Adicionar campo** e escolha **Descrição** e **Número do incidente**. O ID é sempre repassado. Deixe o **Identifier** dele como `incident-on-create-1`.
 2. Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligue a ele o ponto **Success** do gatilho. Defina o **Identifier** dele como `create-issue`, a **URL** como `{{global.variables.JIRA_URL}}/rest/api/3/issue` e, em **Mais campos**, os **Request Headers** como `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Defina o **Request Body** dele como o item, e troque `OPS` e `Bug` pela chave do seu projeto e por um tipo de item desse projeto:
 
@@ -384,14 +384,14 @@ Para dar a todos no Jira um caminho de volta, adicione depois de `create-issue` 
 }
 ```
 
-Para isso, adicione `projectId` aos **Fields to pass on** do gatilho e mantenha o `.value`: uma coluna que guarda o ID de outro registro chega como `{"_type": "ObjectID", "value": "..."}`. O `globalId` torna a chamada segura de repetir: o Jira atualiza o link que o tem em vez de adicionar um segundo.
+Para isso, em **Fields to pass on** do gatilho, clique em **Adicionar campo** e escolha **ID do Projeto**, e mantenha o `.value`: uma coluna que guarda o ID de outro registro chega como `{"_type": "ObjectID", "value": "..."}`. O `globalId` torna a chamada segura de repetir: o Jira atualiza o link que o tem em vez de adicionar um segundo.
 
 ### Comentar e fazer a transição conforme o incidente avança
 
 Monte isso como um segundo workflow, para que uma falha aqui nunca impeça a abertura dos itens.
 
 :::steps
-1. Crie um workflow chamado `Incident updates to Jira`, com o gatilho **On Update Incident**. Defina **Fields to watch** como `{"currentIncidentStateId": true}` e **Fields to pass on** como `{"_id": true, "currentIncidentState": {"name": true}}`.
+1. Crie um workflow chamado `Incident updates to Jira`, com o gatilho **On Update Incident**. Em **Fields to watch**, clique em **Adicionar campo** e escolha **Current Incident State**. Em **Fields to pass on**, clique em **Adicionar campo**, abra **Current Incident State** e escolha **Nome**.
 2. Adicione um bloco **If / Else**: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, ou o nome do seu estado resolvido.
 3. Depois do lado **Yes** dele, encontre o item com um bloco **API Post (JSON)** cujo **Identifier** seja `find-issue`, publicando em `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 

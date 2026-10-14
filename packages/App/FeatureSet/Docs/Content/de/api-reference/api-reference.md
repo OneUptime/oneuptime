@@ -89,6 +89,8 @@ Eine Liste oder eine Zählung nimmt eine `query`. Ein Feld mit einem Wert passt 
 | `Includes` | Einen der Werte in `value` |
 | `IsNull`, `NotNull` | Keinen Wert oder einen beliebigen Wert |
 
+Ein Feld eines Datensatzes, den die Ressource nennt, wird unter seiner Beziehung gefiltert: `"user": { "name": { "_type": "Search", "value": "ada" } }` findet die Teammitglieder, deren Benutzer einen Namen hat, der „ada“ enthält. Nach einem Feld zu filtern erfordert die Berechtigung, es zu lesen, über eine Beziehung wie an der Ressource selbst: Ein Filter auf ein Feld, das Sie nicht lesen dürfen, wird mit einem `422` abgelehnt, der das Feld nennt.
+
 `select` nennt die Felder, die zurückkommen sollen, und `_id` kommt immer zurück. `sort` ordnet sie, `ASC` oder `DESC`; ohne Sortierung kommen die neuesten zuerst. Eine Liste gibt 10 Datensätze zurück, solange Sie kein `limit` setzen, bis zu 10.000, und `skip` überspringt zuerst so viele: Erhöhen Sie `skip` immer weiter um `limit`, bis Sie `count` davon haben. Hängen Sie `?output-type=csv` an eine Listenanfrage an, um CSV statt JSON zu erhalten.
 
 Zum Beispiel die Monitore, deren Name „checkout“ enthält und die seit Anfang 2026 angelegt wurden, die neuesten zuerst:

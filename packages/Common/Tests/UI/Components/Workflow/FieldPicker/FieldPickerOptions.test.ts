@@ -24,13 +24,33 @@ import {
   getFieldOptions,
   getPanelRows,
   getStoredPaths,
+  isOfferedProjectColumn,
   readChosenFields,
   readStoredValue,
   searchFieldOptions,
   writeChosenFields,
 } from "../../../../../UI/Components/Workflow/FieldPicker/FieldPickerOptions";
+import { ModelSchemaColumn } from "../../../../../UI/Components/Workflow/ModelSchema";
+import TableColumnType from "../../../../../Types/Database/TableColumnType";
 import { INCIDENT_COLUMNS } from "./FieldPickerFixture";
 import { describe, expect, test } from "@jest/globals";
+
+type ProjectColumnFunction = () => ModelSchemaColumn;
+
+// The incident's project column, as /model-schema describes it.
+const projectColumn: ProjectColumnFunction = (): ModelSchemaColumn => {
+  const found: ModelSchemaColumn | undefined = INCIDENT_COLUMNS.find(
+    (candidate: ModelSchemaColumn): boolean => {
+      return candidate.id === "projectId";
+    },
+  );
+
+  if (!found) {
+    throw new Error("The fixture has no project column");
+  }
+
+  return found;
+};
 
 type OptionsFunction = (
   mode: FieldPickerMode,
@@ -107,17 +127,89 @@ describe("Fields to pass on: what the list offers", () => {
         "Created by User ID",
         "Incident Number",
         "Incident Number With Prefix",
+        "Project ID",
         "Updated At",
       ],
     });
   });
 
-  test("the project and the always-empty Deleted At are not offered", () => {
-    expect(paths(options)).not.toContain("projectId");
+  test("the Project, a related record's own project and the always-empty Deleted At are not offered", () => {
     expect(paths(options)).not.toContain("project");
     expect(paths(options)).not.toContain("deletedAt");
     expect(paths(options)).not.toContain("currentIncidentState.deletedAt");
     expect(paths(options)).not.toContain("currentIncidentState.projectId");
+    expect(
+      options.some((option: FieldOption): boolean => {
+        return option.path.startsWith("project.");
+      }),
+    ).toBe(false);
+  });
+
+  /*
+   * A link back to the record in OneUptime is built from its project's ID -
+   * /dashboard/<project id>/incidents/<incident id> - as the Jira and
+   * Microsoft Dynamics 365 templates build theirs. The list left it out, so
+   * their own trigger showed it as a field the incident does not have.
+   */
+  test("the record's project ID is offered, with what OneUptime fills in", () => {
+    const project: Array<FieldOption> = options.filter(
+      (option: FieldOption): boolean => {
+        return option.path === "projectId";
+      },
+    );
+
+    expect(project).toHaveLength(1);
+    expect(project[0]).toEqual(
+      expect.objectContaining({
+        title: "Project ID",
+        shortTitle: "Project ID",
+        group: FieldGroupId.System,
+        aliases: [],
+      }),
+    );
+    expect(project[0]?.isRelation).toBeUndefined();
+    expect(project[0]?.relationPath).toBeUndefined();
+    // Picked, it is stored as the trigger reads it.
+    expect(
+      writeChosenFields({
+        paths: ["title", "projectId"],
+        mode: FieldPickerMode.PassOn,
+      }),
+    ).toBe('{"title":true,"projectId":true}');
+  });
+
+  test("only the project's own ID column: a project column that is a relation stays out", () => {
+    const offered: Array<FieldOption> = getFieldOptions({
+      columns: INCIDENT_COLUMNS.map((candidate: ModelSchemaColumn) => {
+        return candidate.id === "projectId"
+          ? { ...candidate, isRelation: true, type: TableColumnType.Entity }
+          : candidate;
+      }),
+      mode: FieldPickerMode.PassOn,
+      displayColumnId: "title",
+    });
+
+    expect(paths(offered)).not.toContain("projectId");
+    expect(
+      isOfferedProjectColumn(projectColumn(), { mode: FieldPickerMode.PassOn }),
+    ).toBe(true);
+    expect(
+      isOfferedProjectColumn(projectColumn(), { mode: FieldPickerMode.Watch }),
+    ).toBe(false);
+    expect(
+      isOfferedProjectColumn(
+        { ...projectColumn(), isTenantColumn: false },
+        { mode: FieldPickerMode.PassOn },
+      ),
+    ).toBe(false);
+  });
+
+  test("a search for the project finds its ID", () => {
+    expect(
+      searchFieldOptions(options, "project").map((option: FieldOption) => {
+        return option.path;
+      })[0],
+    ).toBe("projectId");
   });
 
   test("but a stored value that names one keeps it listed, so it can be removed", () => {
@@ -436,6 +528,28 @@ describe("reading a stored Fields to pass on", () => {
       unknownPaths: ["nonsense"],
       problems: [],
     });
+  });
+
+  /*
+   * What the Jira and Microsoft Dynamics 365 templates' triggers store: the
+   * project's ID among the fields, to build the link back to the record. It
+   * read as a field the incident does not have - an amber chip saying the
+   * run leaves it out, which the run never did.
+   */
+  test("the project's ID, as the Jira and Dynamics 365 templates store it, is a field like any other", () => {
+    const chosen: ChosenFields = read({
+      _id: true,
+      projectId: true,
+      title: true,
+      currentIncidentState: { name: true },
+    });
+
+    expect(chosen).toEqual({
+      paths: ["_id", "projectId", "title", "currentIncidentState.name"],
+      unknownPaths: [],
+      problems: [],
+    });
+    expect(findFieldOption(options, "projectId")?.title).toBe("Project ID");
   });
 
   test("empty is nothing chosen", () => {

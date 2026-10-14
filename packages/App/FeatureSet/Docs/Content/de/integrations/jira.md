@@ -307,7 +307,7 @@ Tokens laufen standardmäßig nach einem Jahr ab und erneuern sich nicht. Damit 
 ### Für jeden Vorfall ein Jira-Issue anlegen
 
 :::steps
-1. Legen Sie ohne Vorlage einen Workflow namens `Incidents to Jira` an. Klicken Sie auf den gestrichelten Baustein und fügen Sie den Trigger **On Create Incident** hinzu. Fragen Sie in seinen **Fields to pass on** `{"_id": true, "title": true, "description": true, "incidentNumber": true}` ab. Lassen Sie seine **Kennung** bei `incident-on-create-1`.
+1. Legen Sie ohne Vorlage einen Workflow namens `Incidents to Jira` an. Klicken Sie auf den gestrichelten Baustein und fügen Sie den Trigger **On Create Incident** hinzu. Seine **Fields to pass on** beginnen mit **Titel**: Klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallnummer**. Die ID wird immer weitergegeben. Lassen Sie seine **Kennung** bei `incident-on-create-1`.
 2. Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Success** des Triggers damit. Setzen Sie seine **Kennung** auf `create-issue`, seine **URL** auf `{{global.variables.JIRA_URL}}/rest/api/3/issue` und unter **Weitere Felder** seine **Request Headers** auf `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Setzen Sie seinen **Request Body** auf das Issue, und ersetzen Sie `OPS` und `Bug` durch Ihren Projektschlüssel und einen Issue-Typ dieses Projekts:
 
@@ -384,14 +384,14 @@ Um allen in Jira einen Weg zurück zu geben, fügen Sie nach `create-issue` eine
 }
 ```
 
-Fügen Sie dafür `projectId` zu den **Fields to pass on** des Triggers hinzu, und behalten Sie das `.value`: Eine Spalte, die die ID eines anderen Datensatzes hält, kommt als `{"_type": "ObjectID", "value": "..."}` an. Die `globalId` macht den Aufruf wiederholbar: Jira aktualisiert den Link, der sie trägt, statt einen zweiten hinzuzufügen.
+Klicken Sie dafür in den **Fields to pass on** des Triggers auf **Feld hinzufügen** und wählen Sie **Projekt-ID**, und behalten Sie das `.value`: Eine Spalte, die die ID eines anderen Datensatzes hält, kommt als `{"_type": "ObjectID", "value": "..."}` an. Die `globalId` macht den Aufruf wiederholbar: Jira aktualisiert den Link, der sie trägt, statt einen zweiten hinzuzufügen.
 
 ### Kommentieren und übergehen, während sich der Vorfall bewegt
 
 Bauen Sie dies als zweiten Workflow, damit ein Fehler hier nie das Anlegen von Issues stoppt.
 
 :::steps
-1. Legen Sie einen Workflow namens `Incident updates to Jira` an, mit dem Trigger **On Update Incident**. Setzen Sie **Fields to watch** auf `{"currentIncidentStateId": true}` und **Fields to pass on** auf `{"_id": true, "currentIncidentState": {"name": true}}`.
+1. Legen Sie einen Workflow namens `Incident updates to Jira` an, mit dem Trigger **On Update Incident**. Klicken Sie in **Fields to watch** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**. Klicken Sie in **Fields to pass on** auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Name**.
 2. Fügen Sie einen **If / Else**-Baustein hinzu: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved` oder der Name Ihres behobenen Status.
 3. Suchen Sie nach seiner Seite **Yes** das Issue mit einem **API Post (JSON)**-Baustein, dessen **Kennung** `find-issue` ist und der an `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` sendet:
 

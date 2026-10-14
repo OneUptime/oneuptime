@@ -7,6 +7,7 @@ import ScheduledMaintenanceFeed, {
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
+import getSavedChatMessageFeedAuthor from "Common/UI/Components/Feed/SavedChatMessageFeedAuthor";
 import IconProp from "Common/Types/Icon/IconProp";
 import Exception from "Common/Types/Exception/Exception";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -178,7 +179,14 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         textInMarkdown: scheduledMaintenanceFeed.feedInfoInMarkdown || "",
         moreTextInMarkdown:
           scheduledMaintenanceFeed.moreInformationInMarkdown || "",
-        user: scheduledMaintenanceFeed.user,
+        /*
+         * A note saved from a chat message is led by the message's author;
+         * the row's user only saved it (SavedChatMessageFeedAuthor).
+         */
+        ...getSavedChatMessageFeedAuthor({
+          savedFromChatMessage: scheduledMaintenanceFeed.savedFromChatMessage,
+          user: scheduledMaintenanceFeed.user,
+        }),
         itemDateTime:
           scheduledMaintenanceFeed.postedAt ||
           scheduledMaintenanceFeed.createdAt!,
@@ -229,6 +237,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
           },
           scheduledMaintenanceFeedEventType: true,
           postedAt: true,
+          savedFromChatMessage: true,
         },
         skip: 0,
         sort: {

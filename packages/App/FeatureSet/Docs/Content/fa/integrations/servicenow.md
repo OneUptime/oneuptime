@@ -54,7 +54,7 @@ Table API احراز هویت Basic می‌پذیرد: نام کاربر و گذ
 
 ### افزودن تریگر
 
-روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید و **On Create Incident** را برگزینید. روی تریگر کلیک کنید، و در **Fields to pass on** گزینه‌های `title` و `description` را برگزینید.
+روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید و **On Create Incident** را برگزینید. روی تریگر کلیک کنید: **Fields to pass on** آن از پیش **عنوان** را دارد، پس روی **افزودن فیلد** کلیک کنید و **توضیحات** را برگزینید.
 
 ### ساختن رکورد
 
@@ -93,7 +93,7 @@ Table API احراز هویت Basic می‌پذیرد: نام کاربر و گذ
 :::steps
 ### افزودن تریگر On Update Incident
 
-گردش کاری‌ای به نام `Resolve ServiceNow incidents` بسازید، و **On Update Incident** را به عنوان تریگرش برگزینید. در **Fields to watch**، `currentIncidentStateId` را برگزینید تا فقط با تغییر وضعیت اجرا شود. در **Fields to pass on** بخواهید که آیا وضعیت تازه یک وضعیت رفع‌شده است یا نه:
+گردش کاری‌ای به نام `Resolve ServiceNow incidents` بسازید، و **On Update Incident** را به عنوان تریگرش برگزینید. در **Fields to watch** روی **افزودن فیلد** کلیک کنید و **Current Incident State** را برگزینید تا فقط با تغییر وضعیت اجرا شود. در **Fields to pass on** بخواهید که آیا وضعیت تازه یک وضعیت رفع‌شده است یا نه: روی **افزودن فیلد** کلیک کنید، **Current Incident State** را باز کنید و **Is Resolved State** را برگزینید. یا روی **ویرایش به‌صورت JSON** کلیک کنید و JSON را با این جایگزین کنید:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

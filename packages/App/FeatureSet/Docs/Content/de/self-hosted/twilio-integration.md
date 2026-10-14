@@ -36,6 +36,7 @@ Speichern Sie die Zugangsdaten für ein Projekt oder einmal für die ganze Insta
 | --- | --- | --- |
 | Wo | Die Karte **Twilio-Konfiguration** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** | **Admin Dashboard > Einstellungen > Anrufe und SMS** |
 | Wer sie festlegen kann | **Project Owner**, **Project Admin** oder **Create Call and SMS** in einer benutzerdefinierten Rolle | Ein Master-Admin |
+| Wer ihr Auth Token lesen kann | **Project Owner**, **Project Admin** oder **Read Call and SMS** in einer benutzerdefinierten Rolle. Andere, die die Konfiguration sehen können, sehen den Rest davon; das Token wird verschlüsselt gespeichert | Ein Master-Admin |
 | Verwendet für | SMS und Anrufe an die Mitglieder des Projekts, solange sie der Projektstandard ist, die Statusseiten, denen sie zugewiesen ist, und die Richtlinien für eingehende Anrufe, die sie verwenden | SMS und Anrufe an die Mitglieder jedes Projekts, das keine Standardkonfiguration hat |
 
 So fügen Sie eine Projektkonfiguration hinzu:

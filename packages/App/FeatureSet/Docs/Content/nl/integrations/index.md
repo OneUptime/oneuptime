@@ -119,7 +119,7 @@ De URL is het enige inloggegeven, dus behandel hem als een wachtwoord. Zie [Webh
 
 :::steps
 1. Sla de API-sleutel van de tool op als geheime globale variabele, zoals [hieronder](#inloggegevens-veilig-houden) beschreven.
-2. Maak een workflow, klik op het gestippelde blok en kies een gebeurtenistrigger, zoals **On Create Incident**. Vink in de **Fields to pass on** ervan de velden aan die je wilt versturen, zoals `title` en `description`.
+2. Maak een workflow, klik op het gestippelde blok en kies een gebeurtenistrigger, zoals **On Create Incident**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies de andere velden die je wilt versturen, zoals **Beschrijving**.
 3. Klik op **Component toevoegen** en voeg een **API Post (JSON)**-blok toe. Verbind de **Success**-punt van de trigger ermee.
 4. Vul de **URL** in, de **Request Headers** met de `Authorization`-header en de **Request Body** met de velden van het incident, zoals `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Klik op **Workflow uitvoeren**, kies onder **Incident** een incident en voer hem uit. Een testuitvoering stuurt het verzoek echt. Zet daarna **Ingeschakeld** aan.

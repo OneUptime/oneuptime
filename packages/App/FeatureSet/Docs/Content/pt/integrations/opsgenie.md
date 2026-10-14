@@ -49,7 +49,7 @@ Vá para **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois 
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Incident**. Clique no gatilho e, em **Fields to pass on**, escolha `title` e `description`.
+Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Incident**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
 
 ### Criar o alerta
 
@@ -85,7 +85,7 @@ Um workflow tem um só gatilho, então fechar exige um segundo workflow, iniciad
 :::steps
 ### Adicionar o gatilho On Update Incident
 
-Crie um workflow chamado `Close Opsgenie alerts` e escolha **On Update Incident** como gatilho. Em **Fields to watch**, escolha `currentIncidentStateId`, para que ele só rode quando o estado mudar. Em **Fields to pass on**, peça se o novo estado é um estado resolvido:
+Crie um workflow chamado `Close Opsgenie alerts` e escolha **On Update Incident** como gatilho. Em **Fields to watch**, clique em **Adicionar campo** e escolha **Current Incident State**, para que ele só rode quando o estado mudar. Em **Fields to pass on**, peça se o novo estado é um estado resolvido: clique em **Adicionar campo**, abra **Current Incident State** e escolha **Is Resolved State**. Ou clique em **Editar como JSON** e substitua o JSON por:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ Ative **Habilitado** e depois resolva um incidente de teste no OneUptime. O Opsg
 
 Para enviar a gravidade de cada incidente como prioridade do Opsgenie, adicione um bloco **Run Custom JavaScript** entre o gatilho e o bloco **API Post (JSON)**.
 
-1. Em **Fields to pass on** do gatilho, escolha também o `name` da gravidade: `{ "incidentSeverity": { "name": true } }`.
+1. Em **Fields to pass on** do gatilho, clique em **Adicionar campo**, abra **Severidade do incidente** e escolha **Nome**.
 2. Defina os **Arguments** do bloco como `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e o **JavaScript Code** dele como:
 
    ```javascript

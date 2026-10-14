@@ -90,6 +90,16 @@ export interface WorkspaceChannelsCreated {
   membersNotAdded: Array<ChannelMembersNotAdded>;
 }
 
+/*
+ * A channel a message about a record is not posted in: the one a note was
+ * saved from (WorkspaceReactionNote). The message is already there - the
+ * note is it - so posting the note back would only repeat it.
+ */
+export interface WorkspaceChannelToSkip {
+  workspaceType: WorkspaceType;
+  channelId: string;
+}
+
 export interface NotificationFor {
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
@@ -1237,9 +1247,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
       sendWorkspaceNotification: boolean;
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+      // Not posted in this channel (WorkspaceChannelToSkip).
+      exceptChannel?: WorkspaceChannelToSkip | undefined;
     };
   }): Promise<void> {
     let messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> = [];
+    const exceptChannel: WorkspaceChannelToSkip | undefined =
+      data.workspaceNotification.exceptChannel;
 
     // use markdown to create blocks
     messageBlocksByWorkspaceTypes =
@@ -1278,10 +1292,37 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
 
       for (const destination of destinations) {
+        const isSkippingHere: boolean = Boolean(
+          exceptChannel &&
+            exceptChannel.channelId &&
+            exceptChannel.workspaceType ===
+              messageBlocksByWorkspaceType.workspaceType,
+        );
+
+        // A record's own channel, named by id, is simply not posted to.
+        if (
+          isSkippingHere &&
+          destination.channelIds.length > 0 &&
+          destination.channelIds.every((channelId: string): boolean => {
+            return channelId === exceptChannel!.channelId;
+          }) &&
+          destination.channelNames.length === 0 &&
+          (destination.chatIds || []).length === 0
+        ) {
+          continue;
+        }
+
         workspaceNotificationPaylaods.push({
           ...destination,
           messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
           ...(data.notificationText ? { text: data.notificationText } : {}),
+          /*
+           * A channel named by its name is found only when the message is
+           * sent: the sender leaves it out then (exceptChannelIds).
+           */
+          ...(isSkippingHere
+            ? { exceptChannelIds: [exceptChannel!.channelId] }
+            : {}),
         });
       }
     }

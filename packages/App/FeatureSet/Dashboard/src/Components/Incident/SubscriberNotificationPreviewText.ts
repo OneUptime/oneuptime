@@ -32,6 +32,8 @@ const NOTHING_SENT_TEXT: Record<
     SubscriberNotificationPreviewCopy.notifyOff,
   [SubscriberNotificationPreviewNothingSentReason.NoStatusPages]:
     SubscriberNotificationPreviewCopy.noStatusPages,
+  [SubscriberNotificationPreviewNothingSentReason.NotificationsOff]:
+    SubscriberNotificationPreviewCopy.notificationsOff,
 };
 
 const TEMPLATE_CHOICE_TEXT: Record<

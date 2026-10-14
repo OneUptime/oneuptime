@@ -411,6 +411,126 @@ describe("a stored press that is not what create writes reads as nothing", () =>
   });
 });
 
+describe("a pinned message to save once the account is connected", () => {
+  test("a Slack pin round-trips with the message it is on", async () => {
+    const { token } = await WorkspaceConnectRequest.create({
+      workspaceType: WorkspaceType.Slack,
+      projectId: PROJECT_ID,
+      workspaceUserId: "U0JANE",
+      purpose: "save the message you pinned as a private note on this incident",
+      pendingAction: {
+        kind: WorkspacePendingActionKind.SavePrivateNote,
+        eventType: WorkspaceEventType.Incident,
+        eventId: INCIDENT_ID,
+        message: { channelId: "C0INC2", messageId: "1760000000.000200" },
+      },
+      slack: { teamId: "T0TEAM", channelId: "C0INC2" },
+    });
+
+    const record: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.take(token);
+
+    expect(record!.pendingAction).toEqual({
+      kind: WorkspacePendingActionKind.SavePrivateNote,
+      eventType: WorkspaceEventType.Incident,
+      eventId: INCIDENT_ID,
+      message: { channelId: "C0INC2", messageId: "1760000000.000200" },
+    });
+  });
+
+  test("a Microsoft Teams megaphone round-trips with its team", async () => {
+    const { token } = await WorkspaceConnectRequest.create({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      projectId: PROJECT_ID,
+      workspaceUserId: "aad-jane",
+      purpose:
+        "save the message you reacted to as a public note on this incident",
+      pendingAction: {
+        kind: WorkspacePendingActionKind.SavePublicNote,
+        eventType: WorkspaceEventType.Incident,
+        eventId: INCIDENT_ID,
+        message: {
+          channelId: "19:inc-2@thread.tacv2",
+          messageId: "1760000000200",
+          teamId: "graph-team-ops",
+        },
+      },
+      teams: {
+        serviceUrl: "https://smba.trafficmanager.net/teams/",
+        conversationId: "19:inc-2@thread.tacv2;messageid=1760000000100",
+      },
+    });
+
+    const record: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(token);
+
+    expect(record!.pendingAction!.message).toEqual({
+      channelId: "19:inc-2@thread.tacv2",
+      messageId: "1760000000200",
+      teamId: "graph-team-ops",
+    });
+  });
+
+  async function storeNotePress(message: unknown): Promise<string> {
+    const token: string = crypto.randomBytes(32).toString("base64url");
+    store.set(`${NAMESPACE}-${sha256(token)}`, {
+      value: JSON.stringify({
+        workspaceType: WorkspaceType.Slack,
+        projectId: PROJECT_ID.toString(),
+        workspaceUserId: "U0JANE",
+        purpose:
+          "save the message you pinned as a private note on this incident",
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        pendingAction: {
+          kind: WorkspacePendingActionKind.SavePrivateNote,
+          eventType: WorkspaceEventType.Incident,
+          eventId: INCIDENT_ID.toString(),
+          message: message,
+        },
+      }),
+      expiresAt: Date.now() + 60_000,
+    });
+    return token;
+  }
+
+  test.each([
+    ["no message", undefined],
+    ["a message that is not an object", "C0INC2:1760000000.000200"],
+    ["no channel", { messageId: "1760000000.000200" }],
+    ["no message id", { channelId: "C0INC2" }],
+    ["ids that are not text", { channelId: 7, messageId: { ts: 1 } }],
+    [
+      "an id longer than any chat's",
+      { channelId: "C0INC2", messageId: "1".repeat(513) },
+    ],
+  ])(
+    "a note's press with %s is kept without it: nothing to save",
+    async (_case: string, message: unknown) => {
+      const record: WorkspaceConnectRequestRecord | null =
+        await WorkspaceConnectRequest.peek(await storeNotePress(message));
+
+      expect(record).not.toBeNull();
+      expect(record!.pendingAction).toBeUndefined();
+    },
+  );
+
+  test("a team id that is not text is left out, and the message kept", async () => {
+    const record: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(
+        await storeNotePress({
+          channelId: "C0INC2",
+          messageId: "1760000000.000200",
+          teamId: ["graph-team-ops"],
+        }),
+      );
+
+    expect(record!.pendingAction!.message).toEqual({
+      channelId: "C0INC2",
+      messageId: "1760000000.000200",
+    });
+  });
+});
+
 describe("WorkspaceConnectRequest links", () => {
   test("a Slack press opens the person's own Slack settings page in the project, with the token", async () => {
     const url: URL = await WorkspaceConnectRequest.getConnectUrl({

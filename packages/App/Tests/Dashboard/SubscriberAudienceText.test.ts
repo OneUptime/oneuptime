@@ -5,6 +5,7 @@ import {
   buildSubscriberAudienceView,
   describeNotifiedStatusPage,
   isHeldBackByStatusPageScope,
+  isSilencedByStatusPages,
   SubscriberAudienceView,
   TranslateFunction,
 } from "../../FeatureSet/Dashboard/src/Components/Incident/SubscriberAudienceText";
@@ -644,6 +645,7 @@ describe("isHeldBackByStatusPageScope", () => {
     [IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope, true],
     [IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents, true],
     [IncidentSubscriberAudienceExclusionReason.HidesIncidents, false],
+    [IncidentSubscriberAudienceExclusionReason.NotificationsOff, false],
     [IncidentSubscriberAudienceExclusionReason.AlreadyNotified, false],
   ])(
     "a page left out because %s: %s",
@@ -661,6 +663,7 @@ describe("isHeldBackByStatusPageScope", () => {
       IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope,
       IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents,
       IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+      IncidentSubscriberAudienceExclusionReason.NotificationsOff,
       IncidentSubscriberAudienceExclusionReason.AlreadyNotified,
     ];
 
@@ -789,5 +792,155 @@ describe("buildSubscriberAudienceView, translated", () => {
     expect(view({ statusPages: [SITE_03] }, reordered).pages).toEqual([
       "[courriel x41] Site 03",
     ]);
+  });
+});
+
+/*
+ * A status page with Send Notifications to Subscribers off sends its
+ * subscribers nothing (Common/Types/StatusPage/SubscriberNotificationsSwitch):
+ * the summary names it among the pages that will not be told, and when
+ * every page that shows the incident is off, says so first - whoever ticks
+ * "notify subscribers" may not know the pages are switched off.
+ */
+describe("status pages that send their subscribers nothing", () => {
+  const off: (
+    name: string,
+  ) => IncidentSubscriberAudienceResult["excludedStatusPages"][number] = (
+    name: string,
+  ): IncidentSubscriberAudienceResult["excludedStatusPages"][number] => {
+    return excluded(
+      name,
+      IncidentSubscriberAudienceExclusionReason.NotificationsOff,
+    );
+  };
+
+  test("a page that is off is named, with why", () => {
+    expect(
+      view({
+        statusPages: [SITE_03],
+        excludedStatusPages: [off("Site 07")],
+      }).notNotified,
+    ).toEqual(["Site 07 (does not send notifications to its subscribers)"]);
+  });
+
+  test("beside a page that is told, the summary is about whom it tells", () => {
+    const shown: SubscriberAudienceView = view({
+      statusPages: [SITE_03],
+      excludedStatusPages: [off("Site 07")],
+    });
+
+    expect(shown.headline).not.toBe(
+      IncidentStatusPageScopeCopy.audienceNotificationsOffEverywhere,
+    );
+    expect(shown.pages.length).toBeGreaterThan(0);
+  });
+
+  test("every page off: says no one will be notified, and why, as information", () => {
+    const shown: SubscriberAudienceView = view({
+      excludedStatusPages: [off("Site 05"), off("Site 07")],
+    });
+
+    expect(shown.tone).toBe("info");
+    expect(shown.headline).toBe(
+      "No one will be notified: these status pages do not send notifications to their subscribers.",
+    );
+    expect(shown.pages).toEqual([]);
+    expect(shown.notNotified).toEqual([
+      "Site 05 (does not send notifications to its subscribers)",
+      "Site 07 (does not send notifications to its subscribers)",
+    ]);
+  });
+
+  test("it is said even where the summary otherwise says nothing about nobody", () => {
+    expect(
+      viewOrNothing(
+        { excludedStatusPages: [off("Site 05")] },
+        { saysWhenNobodyIsNotified: false },
+      ),
+    ).not.toBeNull();
+    expect(
+      viewOrNothing(
+        { excludedStatusPages: [off("Site 05")] },
+        { saysWhenNobodyIsNotified: true },
+      )!.headline,
+    ).toBe(IncidentStatusPageScopeCopy.audienceNotificationsOffEverywhere);
+  });
+
+  test("the headline is translated", () => {
+    expect(
+      view(
+        { excludedStatusPages: [off("Site 05")] },
+        (text: string): string => {
+          return `[${text}]`;
+        },
+      ).headline,
+    ).toBe(
+      `[${IncidentStatusPageScopeCopy.audienceNotificationsOffEverywhere}]`,
+    );
+  });
+
+  describe("isSilencedByStatusPages", () => {
+    test("every page that shows the incident is off: yes", () => {
+      expect(
+        isSilencedByStatusPages(
+          audience({ excludedStatusPages: [off("Site 05"), off("Site 07")] }),
+        ),
+      ).toBe(true);
+    });
+
+    test("one page is told: no", () => {
+      expect(
+        isSilencedByStatusPages(
+          audience({
+            statusPages: [SITE_03],
+            excludedStatusPages: [off("Site 05")],
+          }),
+        ),
+      ).toBe(false);
+    });
+
+    test("a page the caller cannot see may be told: no", () => {
+      expect(
+        isSilencedByStatusPages(
+          audience({
+            hiddenStatusPageCount: 1,
+            excludedStatusPages: [off("Site 05")],
+          }),
+        ),
+      ).toBe(false);
+    });
+
+    test("another reason besides: no - that one is said as before", () => {
+      expect(
+        isSilencedByStatusPages(
+          audience({
+            excludedStatusPages: [
+              off("Site 05"),
+              excluded(
+                "Site 07",
+                IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+              ),
+            ],
+          }),
+        ),
+      ).toBe(false);
+    });
+
+    test("a picked page that lists none of the monitors: no", () => {
+      expect(
+        isSilencedByStatusPages(
+          audience({
+            excludedStatusPages: [off("Site 05")],
+            selectedStatusPagesNotListingMonitors: [
+              { statusPageId: "d", name: "Site 09" },
+            ],
+          }),
+        ),
+      ).toBe(false);
+    });
+
+    test("no pages at all: no - no monitors is said as before", () => {
+      expect(isSilencedByStatusPages(audience({}))).toBe(false);
+    });
   });
 });

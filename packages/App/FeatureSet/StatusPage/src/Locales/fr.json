@@ -151,7 +151,9 @@
       "placeholder": "abonne@entreprise.fr",
       "managePrompt": "Veuillez saisir l'e-mail avec lequel vous vous êtes abonné",
       "manageDescription": "Nous vous enverrons un lien de gestion d'abonnement à cette adresse e-mail.",
-      "managePlaceholder": "email@votreentreprise.fr"
+      "managePlaceholder": "email@votreentreprise.fr",
+      "signedInEmailDescription": "Vous vous abonnez avec l'adresse e-mail avec laquelle vous vous connectez.",
+      "signInToSubscribe": "Connectez-vous à cette page de statut pour vous y abonner."
     },
     "sms": {
       "title": "S'abonner par SMS",

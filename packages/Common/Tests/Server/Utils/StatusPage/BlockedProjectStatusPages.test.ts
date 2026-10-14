@@ -1,3 +1,4 @@
+import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import StatusPageService from "../../../../Server/Services/StatusPageService";
 import {
@@ -6,6 +7,7 @@ import {
   ExpressRouter,
   NextFunction,
 } from "../../../../Server/Utils/Express";
+import logger from "../../../../Server/Utils/Logger";
 import BlockedProjectStatusPages, {
   STATUS_PAGE_ROUTE_PARAMS,
 } from "../../../../Server/Utils/StatusPage/BlockedProjectStatusPages";
@@ -322,5 +324,149 @@ describe("BlockedProjectStatusPages.isStatusPageOfBlockedProject", () => {
     await expect(
       BlockedProjectStatusPages.isStatusPageOfBlockedProject(BLOCKED_PAGE_ID),
     ).resolves.toBe(false);
+  });
+});
+
+describe("BlockedProjectStatusPages.isProjectBlocked", () => {
+  test("is the project's per-process answer", async () => {
+    await expect(
+      BlockedProjectStatusPages.isProjectBlocked(BLOCKED_PROJECT_ID),
+    ).resolves.toBe(true);
+    await expect(
+      BlockedProjectStatusPages.isProjectBlocked(LIVE_PROJECT_ID),
+    ).resolves.toBe(false);
+
+    expect(isProjectBlocked).toHaveBeenCalledWith(BLOCKED_PROJECT_ID);
+  });
+
+  test.each([
+    ["null", null],
+    ["undefined", undefined],
+  ])(
+    "is false for no project (%s), without a lookup",
+    async (_label: string, projectId: null | undefined) => {
+      await expect(
+        BlockedProjectStatusPages.isProjectBlocked(projectId),
+      ).resolves.toBe(false);
+
+      expect(isProjectBlocked).not.toHaveBeenCalled();
+    },
+  );
+
+  test("is false - failing open - when it cannot be told, and logs why", async () => {
+    isProjectBlocked.mockRejectedValue(new Error("database unavailable"));
+
+    await expect(
+      BlockedProjectStatusPages.isProjectBlocked(BLOCKED_PROJECT_ID),
+    ).resolves.toBe(false);
+
+    expect(
+      (logger.error as jest.Mock).mock.calls.map(
+        (call: Array<unknown>): string => {
+          return String(call[0]);
+        },
+      ),
+    ).toContainEqual(
+      expect.stringContaining(
+        `Could not tell whether project ${BLOCKED_PROJECT_ID.toString()} is blocked`,
+      ),
+    );
+  });
+});
+
+describe("BlockedProjectStatusPages.leaveOutStatusPagesOfBlockedProjects", () => {
+  const SECOND_BLOCKED_PAGE_ID: ObjectID = new ObjectID(
+    "5b000000-0000-4000-8000-000000000003",
+  );
+
+  function statusPage(id: ObjectID, projectId?: ObjectID): StatusPage {
+    const page: StatusPage = new StatusPage();
+    page._id = id.toString();
+
+    if (projectId) {
+      page.projectId = projectId;
+    }
+
+    return page;
+  }
+
+  function idsOf(pages: Array<StatusPage>): Array<string> {
+    return pages.map((page: StatusPage): string => {
+      return page._id!;
+    });
+  }
+
+  test("leaves out the pages of a blocked project and keeps the others, in order", async () => {
+    const kept: Array<StatusPage> =
+      await BlockedProjectStatusPages.leaveOutStatusPagesOfBlockedProjects([
+        statusPage(BLOCKED_PAGE_ID, BLOCKED_PROJECT_ID),
+        statusPage(LIVE_PAGE_ID, LIVE_PROJECT_ID),
+        statusPage(SECOND_BLOCKED_PAGE_ID, BLOCKED_PROJECT_ID),
+      ]);
+
+    expect(idsOf(kept)).toEqual([LIVE_PAGE_ID.toString()]);
+  });
+
+  test("asks each project once, by the page's project, not by the page", async () => {
+    await BlockedProjectStatusPages.leaveOutStatusPagesOfBlockedProjects([
+      statusPage(BLOCKED_PAGE_ID, BLOCKED_PROJECT_ID),
+      statusPage(SECOND_BLOCKED_PAGE_ID, BLOCKED_PROJECT_ID),
+      statusPage(LIVE_PAGE_ID, LIVE_PROJECT_ID),
+    ]);
+
+    expect(isProjectBlocked).toHaveBeenCalledTimes(2);
+    expect(getProjectIdOfStatusPage).not.toHaveBeenCalled();
+  });
+
+  test("tells the same project apart however its id is written", async () => {
+    await BlockedProjectStatusPages.leaveOutStatusPagesOfBlockedProjects([
+      statusPage(BLOCKED_PAGE_ID, BLOCKED_PROJECT_ID),
+      statusPage(
+        SECOND_BLOCKED_PAGE_ID,
+        new ObjectID(BLOCKED_PROJECT_ID.toString().toUpperCase()),
+      ),
+    ]);
+
+    expect(isProjectBlocked).toHaveBeenCalledTimes(1);
+  });
+
+  test("asks about a page read without its project by the page's id", async () => {
+    const kept: Array<StatusPage> =
+      await BlockedProjectStatusPages.leaveOutStatusPagesOfBlockedProjects([
+        statusPage(BLOCKED_PAGE_ID),
+        statusPage(LIVE_PAGE_ID),
+      ]);
+
+    expect(idsOf(kept)).toEqual([LIVE_PAGE_ID.toString()]);
+    expect(getProjectIdOfStatusPage).toHaveBeenCalledTimes(2);
+  });
+
+  test("keeps the pages of a project that cannot be told - failing open", async () => {
+    isProjectBlocked.mockImplementation(async (projectId: ObjectID) => {
+      if (projectId.toString() === BLOCKED_PROJECT_ID.toString()) {
+        throw new Error("database unavailable");
+      }
+
+      return false;
+    });
+
+    const kept: Array<StatusPage> =
+      await BlockedProjectStatusPages.leaveOutStatusPagesOfBlockedProjects([
+        statusPage(BLOCKED_PAGE_ID, BLOCKED_PROJECT_ID),
+        statusPage(LIVE_PAGE_ID, LIVE_PROJECT_ID),
+      ]);
+
+    expect(idsOf(kept)).toEqual([
+      BLOCKED_PAGE_ID.toString(),
+      LIVE_PAGE_ID.toString(),
+    ]);
+  });
+
+  test("asks nothing of no pages", async () => {
+    await expect(
+      BlockedProjectStatusPages.leaveOutStatusPagesOfBlockedProjects([]),
+    ).resolves.toEqual([]);
+
+    expect(isProjectBlocked).not.toHaveBeenCalled();
   });
 });

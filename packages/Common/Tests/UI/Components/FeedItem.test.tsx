@@ -37,6 +37,7 @@ import {
   FeedTimelineTime,
 } from "../../../UI/Components/Feed/FeedTimeline";
 import { FeedBurstKind } from "../../../UI/Components/Feed/FeedEntryKind";
+import getSavedChatMessageFeedAuthor from "../../../UI/Components/Feed/SavedChatMessageFeedAuthor";
 
 /*
  * One entry of a feed: its time, its kind's icon, the person who did it
@@ -687,5 +688,100 @@ describe("a burst's toggle", () => {
 
     expect(document.activeElement).toBe(document.body);
     expect(onFocusTaken).not.toHaveBeenCalled();
+  });
+});
+
+describe("a note saved from a Slack or Microsoft Teams message", () => {
+  /*
+   * As the server writes its entry (SavedChatMessageNote) and the feeds
+   * read its row (SavedChatMessageFeedAuthor): the row's user is Nitin, who
+   * saved it; the entry is Aidil's.
+   */
+  const ENTRY: string = `📄 **Aidil Rahman** posted **private note** for this [Incident INC-8](${LINK}) via Slack (note added by Nitin Kumar):\n\nNot sure what's happening here, is this triggered by something?`;
+
+  test("is led by its author, with a blank picture, and its words are in the note's card", () => {
+    renderEntry({
+      item: item({
+        ...getSavedChatMessageFeedAuthor({
+          savedFromChatMessage: {
+            workspaceType: "Slack",
+            authorName: "Aidil Rahman",
+            postedAt: "2026-10-13T05:00:00.000Z",
+          },
+          user: nitin(),
+        }),
+        isNote: true,
+        textInMarkdown: ENTRY,
+      }),
+    });
+
+    // The sentence the server wrote, its Markdown drawn (a stand-in here).
+    expect(screen.getByTestId("feed-entry-lead")).toHaveTextContent(
+      `**Aidil Rahman** posted **private note** for this [Incident INC-8](${LINK}) via Slack (note added by Nitin Kumar):`,
+    );
+    // Not Nitin's picture before Aidil's words.
+    expect(
+      screen.getByTestId("feed-entry-avatar").getAttribute("src") || "",
+    ).not.toContain(NITIN_ID.toString());
+    expect(screen.getByTestId("feed-entry-body")).toHaveAttribute(
+      "data-note",
+      "true",
+    );
+    expect(screen.getByTestId("feed-entry-body")).toHaveTextContent(
+      "Not sure what's happening here, is this triggered by something?",
+    );
+    expect(screen.queryByTestId("feed-entry-intro")).not.toBeInTheDocument();
+  });
+
+  test("an author with a OneUptime account has their own picture", () => {
+    const aidilId: ObjectID = ObjectID.generate();
+
+    renderEntry({
+      item: item({
+        ...getSavedChatMessageFeedAuthor({
+          savedFromChatMessage: {
+            workspaceType: "MicrosoftTeams",
+            authorName: "Aidil Rahman",
+            authorUserId: aidilId.toString(),
+          },
+          user: nitin(),
+        }),
+        isNote: true,
+        textInMarkdown: ENTRY.replace("via Slack", "via Microsoft Teams"),
+      }),
+    });
+
+    expect(screen.getByTestId("feed-entry-lead")).toHaveTextContent(
+      "**Aidil Rahman** posted **private note** for this",
+    );
+    expect(
+      screen.getByTestId("feed-entry-avatar").getAttribute("src") || "",
+    ).toContain(aidilId.toString());
+  });
+});
+
+describe("getSavedChatMessageFeedAuthor", () => {
+  test("any other row is led by its user", () => {
+    const user: User = nitin();
+
+    expect(
+      getSavedChatMessageFeedAuthor({ savedFromChatMessage: null, user: user }),
+    ).toEqual({ user: user });
+    // A value that is no chat message - a workflow wrote it - is none.
+    expect(
+      getSavedChatMessageFeedAuthor({
+        savedFromChatMessage: { workspaceType: "Discord", authorName: "x" },
+        user: user,
+      }),
+    ).toEqual({ user: user });
+  });
+
+  test("an author the chat named nobody is 'Someone', as the entry says", () => {
+    expect(
+      getSavedChatMessageFeedAuthor({
+        savedFromChatMessage: { workspaceType: "Slack" },
+        user: nitin(),
+      }).authorName,
+    ).toBe("Someone");
   });
 });
