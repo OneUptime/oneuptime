@@ -8,6 +8,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import SyslogSetupGuide from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkEvents/SyslogSetupGuide";
 import {
@@ -404,12 +405,19 @@ describe("a device whose maker is known", () => {
     expect(selectedTab()).toBe("Extreme Networks");
   });
 
-  test("a maker OneUptime has no steps for, or none at all, opens on the first tab", () => {
+  test("a maker OneUptime has no steps of its own for opens on Other devices, not on Cisco's lines", () => {
     renderGuide({ scope: "device", deviceVendor: "Juniper Networks" });
 
-    expect(selectedTab()).toBe("Cisco");
+    expect(selectedTab()).toBe("Other devices");
+    // What any device needs set, and nothing to paste that is another maker's.
+    expect(steps()).toEqual(dataFor(SyslogSetupVendor.Other).steps);
+    expect(configuration()).toBeNull();
+    expect(guide()).toHaveTextContent(
+      "A device whose format OneUptime does not know still has its messages stored",
+    );
+  });
 
-    cleanup();
+  test("a device nothing is known of yet opens on the first tab", () => {
     renderGuide({ scope: "device" });
 
     expect(selectedTab()).toBe("Cisco");
@@ -418,6 +426,27 @@ describe("a device whose maker is known", () => {
     renderGuide({ scope: "device", deviceVendor: "   " });
 
     expect(selectedTab()).toBe("Cisco");
+  });
+
+  test("the maker's steps are there on the first paint: no flash of the first tab's", () => {
+    // Drawn without its effects, the way a first paint is.
+    const holder: HTMLElement = document.createElement("div");
+
+    holder.innerHTML = renderToStaticMarkup(
+      <MemoryRouter>
+        <SyslogSetupGuide scope="device" deviceVendor="MikroTik" />
+      </MemoryRouter>,
+    );
+
+    const selected: Array<Element> = Array.from(
+      holder.querySelectorAll('[role="tab"][aria-selected="true"]'),
+    );
+
+    expect(selected).toHaveLength(1);
+    expect(selected[0]).toHaveTextContent("MikroTik");
+    expect(holder.querySelector("code.hljs")).toHaveTextContent(
+      "/system logging action set remote",
+    );
   });
 
   test("the maker arrives after the page: the guide moves to its steps", () => {

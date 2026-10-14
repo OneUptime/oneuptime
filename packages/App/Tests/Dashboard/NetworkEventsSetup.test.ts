@@ -495,16 +495,28 @@ describe("whose steps a device's guide opens on", () => {
     ).toBe(SyslogSetupVendor.Cisco);
   });
 
-  test("a maker with no steps of its own, or none at all, is nobody's: the guide keeps its first tab", () => {
-    for (const unknown of [
+  test("a maker with no steps of its own opens on Other devices: the steps every device can follow", () => {
+    /*
+     * Cisco's lines to paste are no use on a Juniper switch. Other devices
+     * says what any device needs set, and is the one tab that says its
+     * messages are kept even when none of them is read as an event.
+     */
+    for (const unlisted of [
       "Juniper Networks",
-      "Palo Alto Networks",
-      "Linux",
-      "",
-      "   ",
-      null,
-      undefined,
+      "Juniper Networks, Inc. ex4300-48t Ethernet Switch, kernel JUNOS 20.4R3",
+      "Palo Alto Networks PA-220 series firewall",
+      "Meraki MS220-8P Cloud Managed PoE Switch",
+      "Linux nas 5.10.0-28-amd64 #1 SMP Debian 5.10.209-2 x86_64",
     ]) {
+      expect({
+        unlisted,
+        vendor: getSyslogSetupVendorForDevice(unlisted),
+      }).toEqual({ unlisted, vendor: SyslogSetupVendor.Other });
+    }
+  });
+
+  test("a device nothing is known of yet is nobody's: the guide keeps its first tab", () => {
+    for (const unknown of ["", "   ", "\t\n", null, undefined]) {
       expect({
         unknown,
         vendor: getSyslogSetupVendorForDevice(unknown),
@@ -512,21 +524,35 @@ describe("whose steps a device's guide opens on", () => {
     }
   });
 
-  test("never opens on Other devices: that tab is for what no maker's tab covers", () => {
+  test("Other devices is only where no maker's own steps are: nothing leads to it by name", () => {
     const other: SyslogSetupGuide = guideFor(SyslogSetupVendor.Other);
 
-    // Its parsers name no maker, so nothing can lead to it.
+    // Its parsers name no maker...
     for (const parserId of other.parsers) {
       expect(
         SyslogVendorCatalog.getParser(parserId)?.vendorKeywords || [],
       ).toEqual([]);
     }
 
-    for (const text of ["other", "Other devices", "cef", "linux", "sshd"]) {
-      expect(getSyslogSetupVendorForDevice(text)).not.toBe(
-        SyslogSetupVendor.Other,
-      );
-    }
+    // ...so a maker with steps of its own gets them, whatever else is said of the device.
+    expect(
+      getSyslogSetupVendorForDevice("Linux sophos-fw 4.14.302 #2 SMP x86_64"),
+    ).toBe(SyslogSetupVendor.Sophos);
+    expect(getSyslogSetupVendorForDevice("Other devices, by Cisco")).toBe(
+      SyslogSetupVendor.Cisco,
+    );
+  });
+
+  test("Other devices is a guide the page has: the one a maker with no steps is sent to is drawn", () => {
+    const guides: Array<SyslogSetupGuide> = getSyslogSetupGuides();
+
+    // The last tab, after every maker's own.
+    expect(guides[guides.length - 1]!.vendor).toBe(SyslogSetupVendor.Other);
+    expect(
+      guides.filter((guide: SyslogSetupGuide): boolean => {
+        return guide.vendor === SyslogSetupVendor.Other;
+      }),
+    ).toHaveLength(1);
   });
 
   test("a device two makers' words appear in opens on the first guide that claims it", () => {

@@ -145,6 +145,7 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
   };
 });
 
+import NetworkEventSourcesCard from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkEvents/NetworkEventSourcesCard";
 import NetworkEventsView, {
   NETWORK_EVENTS_ROWS_STEP,
   NETWORK_EVENTS_SETUP_POLL_IN_MS,
@@ -1698,6 +1699,34 @@ describe("who sends syslog without being a device", () => {
     );
   });
 
+  test("a sender whose messages came without a time says nothing of a last message, rather than an empty one", () => {
+    cleanup();
+    render(
+      <MemoryRouter>
+        <NetworkEventSourcesCard
+          sources={[
+            {
+              address: UNKNOWN_ADDRESS,
+              hostname: "unknown-sw",
+              vendor: "Cisco",
+              probeId: PROBE_ID,
+              lastSeenAt: null,
+              messageCount: 1,
+            },
+          ]}
+          onLinked={() => {}}
+        />
+      </MemoryRouter>,
+    );
+
+    const source: HTMLElement = screen.getByTestId("network-event-source");
+
+    expect(source).toHaveTextContent("Cisco");
+    expect(source).not.toHaveTextContent("last message");
+    // And no tooltip that would have no time to say.
+    expect(within(source).getByText("Cisco")).not.toHaveAttribute("title");
+  });
+
   test("is asked for by the mark ingest leaves, over the page's own range", async () => {
     await renderView(NETWORK);
 
@@ -2754,6 +2783,36 @@ describe("one device's Events page", () => {
     expect(
       within(guide).queryByTestId("syslog-setup-global-probe"),
     ).not.toBeInTheDocument();
+  });
+
+  test("before its first message: the guide opens on the steps of the device's own maker", async () => {
+    await renderView(DEVICE, {
+      ...INFO,
+      vendor: "Aruba JL635A 8325-48Y8C, AOS-CX GL.10.13.1000",
+    });
+
+    const guide: HTMLElement = screen.getByTestId("syslog-setup-guide");
+
+    expect(
+      within(guide).getByRole("tab", { selected: true }),
+    ).toHaveTextContent("HPE Aruba");
+    // Its one line to paste, not the first tab's three.
+    expect(
+      within(guide).getByTestId("syslog-setup-configuration"),
+    ).toHaveTextContent("logging <probe-address> udp 5140 severity info");
+  });
+
+  test("a device whose maker has no steps of its own gets the steps every device can follow", async () => {
+    await renderView(DEVICE, {
+      ...INFO,
+      vendor: "Juniper Networks, Inc. ex4300-48t Ethernet Switch",
+    });
+
+    expect(
+      within(screen.getByTestId("syslog-setup-guide")).getByRole("tab", {
+        selected: true,
+      }),
+    ).toHaveTextContent("Other devices");
   });
 
   test("a device polled by a global probe is told its syslog cannot get there", async () => {

@@ -220,10 +220,16 @@ export function getSyslogSetupGuides(): Array<SyslogSetupGuide> {
 }
 
 /*
- * The guide of the maker a device is known to be from - by its Vendor, or
- * by its system description, the way the parsers themselves tell (their
- * vendorKeywords) - or null when nothing names one. A device's page opens
- * its guide on these steps, so a Sophos firewall is not shown Cisco's.
+ * The guide a device's page opens on, by who made the device: its Vendor,
+ * or its system description, read the way the parsers themselves tell a
+ * maker (their vendorKeywords).
+ *
+ * - A maker with steps of its own: those, so a Sophos firewall is not shown
+ *   Cisco's lines to paste.
+ * - A maker with none (Juniper, a Linux server): Other devices - the steps
+ *   every device can follow, and the one place that says its messages are
+ *   kept even when none of them is read as an event.
+ * - Nothing known of the device yet: null, and the guide keeps its first tab.
  */
 export function getSyslogSetupVendorForDevice(
   deviceVendor: string | null | undefined,
@@ -232,12 +238,8 @@ export function getSyslogSetupVendorForDevice(
     return null;
   }
 
+  // In the order the tabs are drawn: the first maker named wins.
   for (const guide of getSyslogSetupGuides()) {
-    // Linux-based devices and CEF: no maker to tell them by.
-    if (guide.vendor === SyslogSetupVendor.Other) {
-      continue;
-    }
-
     for (const parserId of guide.parsers) {
       const parser: SyslogVendorParser | null =
         SyslogVendorCatalog.getParser(parserId);
@@ -248,7 +250,7 @@ export function getSyslogSetupVendorForDevice(
     }
   }
 
-  return null;
+  return SyslogSetupVendor.Other;
 }
 
 /*

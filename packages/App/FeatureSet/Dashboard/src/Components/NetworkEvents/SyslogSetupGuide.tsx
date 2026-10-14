@@ -31,9 +31,10 @@ import React, {
  * they come from (step 3, with the addresses this device is known by).
  *
  * On a device's page the guide opens on the steps of the device's own
- * maker, when OneUptime knows it. A device polled by a global probe is
- * told first that its syslog cannot get there: step 1 then asks for a
- * probe of the reader's own rather than naming the one that cannot hear.
+ * maker, and on Other devices for a maker that has none of its own. A
+ * device polled by a global probe is told first that its syslog cannot get
+ * there: step 1 then asks for a probe of the reader's own rather than
+ * naming the one that cannot hear.
  */
 
 export interface ComponentProps {
@@ -49,7 +50,8 @@ export interface ComponentProps {
   isWaiting?: boolean | undefined;
   /*
    * Who made the device, when it is known (device page): its Vendor and
-   * its system description. The guide opens on that maker's steps.
+   * its system description. The guide opens on that maker's steps, or on
+   * Other devices when the maker has none of its own.
    */
   deviceVendor?: string | undefined;
 }
