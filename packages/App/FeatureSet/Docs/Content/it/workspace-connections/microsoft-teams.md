@@ -136,7 +136,11 @@ Reagisci a un messaggio, o a una risposta, nel canale che OneUptime ha creato pe
 | 📌 o 📍 | Una nota privata, visibile solo al tuo team |
 | 📣 o 📢 | Una nota pubblica, mostrata sulla pagina di stato. Solo incidenti ed eventi di manutenzione programmata. |
 
-La nota viene salvata a tuo nome, con i tuoi permessi, quindi il tuo account Microsoft Teams deve essere collegato, e l'app di OneUptime deve essere nel team.
+La nota riprende il messaggio così come Microsoft Teams lo mostrava: la formattazione, i link e il codice, le persone che menziona con il loro nome, e i file e le immagini come link. Una nota pubblica lascia fuori i file e le immagini, perché si aprono solo per il tuo team.
+
+Sono le parole di chi ha scritto il messaggio: il suo nome in OneUptime se il suo account Microsoft Teams è collegato, altrimenti il nome che mostra Teams. Viene collocata nella cronologia al momento in cui il messaggio è stato pubblicato, per quanto tempo dopo venga salvata, e la cronologia dice chi l'ha salvata. La nota non viene ripubblicata nel canale, dove il messaggio c'è già.
+
+La nota viene salvata a tuo nome, con i tuoi permessi, e l'app di OneUptime deve essere nel team. Se il tuo account Microsoft Teams non è ancora collegato, OneUptime ti chiede di collegarlo, in una risposta che ti menziona, con un pulsante che salva il messaggio non appena l'hai fatto.
 
 ## Parlare con il bot di OneUptime
 

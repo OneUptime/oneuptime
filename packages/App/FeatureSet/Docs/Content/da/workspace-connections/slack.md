@@ -123,7 +123,11 @@ Reagér på en besked i kanalen for en hændelse, advarsel, episode eller planla
 | 📌 En knappenål-emoji, eller Slacks egen **Pin to channel** | En privat note, som kun dit team ser |
 | 📢 En megafon- eller højttaler-emoji | En offentlig note, vist på statussiden. Kun hændelser og planlagte vedligeholdelsesbegivenheder. |
 
-Noten gemmes som dig, med dine rettigheder, så din egen Slack-konto skal være forbundet. En besked gemmes kun én gang, uanset hvor mange der reagerer.
+Noten bevarer beskeden, som Slack viste den: dens formatering, links og kode, de personer og kanaler, den nævner, ved navn, og dens filer og billeder som links til dem. En offentlig note udelader filerne og billederne, da de kun åbner for dit team.
+
+Det er ordene fra den, der skrev beskeden: vedkommendes OneUptime-navn, når deres Slack-konto er forbundet, ellers det navn, Slack viser. Noten placeres på tidslinjen, da beskeden blev slået op, uanset hvor længe efter den gemmes, og tidslinjen siger, hvem der gemte den. Noten bliver ikke slået op igen i kanalen, hvor beskeden allerede står.
+
+Noten gemmes som dig, med dine rettigheder. Hvis din Slack-konto ikke er forbundet endnu, beder OneUptime dig om at forbinde den, i en besked kun du ser, med en knap der gemmer beskeden, så snart du har gjort det. En besked gemmes kun én gang, uanset hvor mange der reagerer.
 
 ## Kommandoen /oneuptime
 

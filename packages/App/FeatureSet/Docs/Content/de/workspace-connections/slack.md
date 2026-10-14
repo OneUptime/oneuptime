@@ -123,7 +123,11 @@ Reagieren Sie auf eine Nachricht im Kanal eines Vorfalls, einer Warnung, einer E
 | 📌 Ein Pin-Emoji oder Slacks eigenes **Pin to channel** | Eine private Notiz, die nur Ihr Team sieht |
 | 📢 Ein Megafon- oder Lautsprecher-Emoji | Eine öffentliche Notiz, die auf der Statusseite erscheint. Nur Vorfälle und geplante Wartungsereignisse. |
 
-Die Notiz wird als Sie gespeichert, mit Ihren Berechtigungen, daher muss Ihr eigenes Slack-Konto verbunden sein. Eine Nachricht wird nur einmal gespeichert, egal wie viele Personen reagieren.
+Die Notiz übernimmt die Nachricht so, wie Slack sie gezeigt hat: ihre Formatierung, Links und Code, die erwähnten Personen und Kanäle mit Namen und ihre Dateien und Bilder als Links darauf. Eine öffentliche Notiz lässt die Dateien und Bilder weg, da sie sich nur für Ihr Team öffnen.
+
+Sie gibt die Worte dessen wieder, der die Nachricht geschrieben hat: mit seinem OneUptime-Namen, wenn sein Slack-Konto verbunden ist, sonst mit dem Namen, den Slack zeigt. Sie wird in der Zeitleiste dort eingeordnet, wo die Nachricht gepostet wurde, egal wie viel später sie gespeichert wird, und die Zeitleiste nennt, wer sie gespeichert hat. Die Notiz wird nicht zurück in den Kanal gepostet, in dem die Nachricht bereits steht.
+
+Die Notiz wird als Sie gespeichert, mit Ihren Berechtigungen. Ist Ihr Slack-Konto noch nicht verbunden, bittet OneUptime Sie in einer Nachricht, die nur Sie sehen, es zu verbinden, mit einer Schaltfläche, die die Nachricht speichert, sobald Sie das getan haben. Eine Nachricht wird nur einmal gespeichert, egal wie viele Personen reagieren.
 
 ## Der Befehl /oneuptime
 
