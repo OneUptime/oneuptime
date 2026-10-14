@@ -81,8 +81,8 @@ describe("archiving", () => {
     expect(table).toContain("userPreferencesKey={tableKey}");
   });
 
-  test("row actions are view-only, with creation disabled only in the archive", () => {
-    expect(table).toContain("isDeleteable={false}");
+  test("rows are viewed and deleted, never edited in place, with creation disabled only in the archive", () => {
+    expect(table).toContain("isDeleteable={true}");
     expect(table).toContain("isEditable={false}");
     expect(table).toContain("isCreateable={!isArchivedView}");
     expect(table).toContain("isViewable={true}");

@@ -148,7 +148,7 @@ describe("the live SLO list leaves archived SLOs out", () => {
     const onFetchSuccess: string = between(
       SLOS_CODE,
       "onFetchSuccess={(data: Array<ServiceLevelObjective>) => {",
-      "isDeleteable={false}",
+      "isDeleteable={true}",
     );
 
     expect(onFetchSuccess).toContain(
@@ -215,11 +215,12 @@ describe("the live SLO list leaves archived SLOs out", () => {
 });
 
 describe("the Archived SLOs page", () => {
-  test("lists only archived SLOs, and cannot create, edit or delete one in place", () => {
+  test("lists only archived SLOs, cannot create or edit one in place, and deletes from each row's menu", () => {
     expect(ARCHIVED_CODE).toContain(squash("query={{ isArchived: true, }}"));
     expect(ARCHIVED_CODE).toContain("isCreateable={false}");
     expect(ARCHIVED_CODE).toContain("isEditable={false}");
-    expect(ARCHIVED_CODE).toContain("isDeleteable={false}");
+    // Delete in each row's ⋯ menu and in Bulk Actions.
+    expect(ARCHIVED_CODE).toContain("isDeleteable={true}");
     expect(ARCHIVED_CODE).toContain("isViewable={true}");
   });
 
