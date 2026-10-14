@@ -1178,6 +1178,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     projectId: ObjectID;
     workspaceUserId: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
+    /*
+     * What the notification of the message says (the card's summary): a
+     * page notifies, so it says something readable, not "sent a card".
+     */
+    text?: string | undefined;
   }): Promise<void> {
     const adaptiveCard: JSONObject = this.buildAdaptiveCardFromMessageBlocks({
       messageBlocks: data.messageBlocks,
@@ -1230,6 +1235,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         chatId: capturedPersonalChat.id,
         projectId: data.projectId,
         adaptiveCard: adaptiveCard,
+        ...(data.text ? { summary: data.text } : {}),
       });
       return;
     }
@@ -1289,6 +1295,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             contentType: "application/vnd.microsoft.card.adaptive",
             content: adaptiveCard,
           });
+
+          if (data.text) {
+            message.summary = data.text;
+          }
 
           await context.sendActivity(message);
         },

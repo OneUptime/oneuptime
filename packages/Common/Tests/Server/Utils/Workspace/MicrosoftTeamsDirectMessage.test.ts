@@ -237,6 +237,24 @@ describe("MicrosoftTeamsUtil.sendDirectMessageToUserAsBot", () => {
       expect(adapter.createConversationAsync).not.toHaveBeenCalled();
     });
 
+    test("a page through a captured chat carries its notification line as the card's summary", async () => {
+      mockProjectAuth({
+        availableChats: { [PERSONAL_CHAT_ID]: personalChat() },
+      });
+      installFakeCreateAdapter();
+
+      await MicrosoftTeamsUtil.sendDirectMessageToUserAsBot({
+        projectId: PROJECT_ID,
+        workspaceUserId: ENTRA_OBJECT_ID,
+        messageBlocks: markdownBlocks(),
+        text: "🚨 New alert assigned to you: AL-3 — Disk full",
+      });
+
+      expect(
+        (sendToChat.mock.calls[0][0] as { summary?: string }).summary,
+      ).toBe("🚨 New alert assigned to you: AL-3 — Disk full");
+    });
+
     test("a personal chat belonging to somebody ELSE is not reused", async () => {
       mockProjectAuth({
         availableChats: {
@@ -337,6 +355,39 @@ describe("MicrosoftTeamsUtil.sendDirectMessageToUserAsBot", () => {
       expect(activity.attachments[0]?.contentType).toBe(
         "application/vnd.microsoft.card.adaptive",
       );
+    });
+
+    /*
+     * A page arrives as this card: what the phone's notification says is its
+     * summary, never "OneUptime sent a card".
+     */
+    test("the card carries the page's notification line as its summary", async () => {
+      mockProjectAuth();
+      const adapter: FakeCreateAdapter = installFakeCreateAdapter();
+
+      await MicrosoftTeamsUtil.sendDirectMessageToUserAsBot({
+        projectId: PROJECT_ID,
+        workspaceUserId: ENTRA_OBJECT_ID,
+        messageBlocks: markdownBlocks(),
+        text: "🚨 New incident assigned to you: INC-8 — Checkout is down",
+      });
+
+      expect(
+        (adapter.sentActivities[0] as { summary?: string }).summary,
+      ).toBe("🚨 New incident assigned to you: INC-8 — Checkout is down");
+    });
+
+    test("without a line, the card is sent as it always was", async () => {
+      mockProjectAuth();
+      const adapter: FakeCreateAdapter = installFakeCreateAdapter();
+
+      await MicrosoftTeamsUtil.sendDirectMessageToUserAsBot({
+        projectId: PROJECT_ID,
+        workspaceUserId: ENTRA_OBJECT_ID,
+        messageBlocks: markdownBlocks(),
+      });
+
+      expect(adapter.sentActivities[0]).not.toHaveProperty("summary");
     });
 
     test("falls back to the commercial-cloud serviceUrl when nothing regional was ever captured", async () => {
