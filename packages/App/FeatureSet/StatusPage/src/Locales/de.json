@@ -151,7 +151,9 @@
       "placeholder": "abonnent@firma.de",
       "managePrompt": "Bitte geben Sie die E-Mail-Adresse ein, mit der Sie abonniert haben",
       "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diese E-Mail-Adresse.",
-      "managePlaceholder": "email@ihrefirma.de"
+      "managePlaceholder": "email@ihrefirma.de",
+      "signedInEmailDescription": "Sie abonnieren mit der E-Mail-Adresse, mit der Sie sich anmelden.",
+      "signInToSubscribe": "Melden Sie sich bei dieser Statusseite an, um sie zu abonnieren."
     },
     "sms": {
       "title": "Per SMS abonnieren",

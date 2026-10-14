@@ -383,8 +383,9 @@ describe("the Branding page", () => {
       ),
     );
 
-    expect(switchRow).toContain(
-      "export type StatusPageSwitchColumn = | SubscriptionSwitchColumn | DisplaySwitchColumn | BrandingSwitchColumn;",
+    // The Branding page's switch is one of the columns a switch row writes.
+    expect(switchRow).toMatch(
+      /export type StatusPageSwitchColumn = [^;]*\| BrandingSwitchColumn[ |;]/,
     );
   });
 

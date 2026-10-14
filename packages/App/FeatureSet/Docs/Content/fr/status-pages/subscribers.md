@@ -47,6 +47,21 @@ Chaque canal a aussi sa propre liste dans le menu latéral de la page de statut,
 
 **Un seul interrupteur ne suffit pas.** L'élément **S'abonner** de la barre de navigation de la page de statut n'apparaît que lorsque **Afficher la page des abonnés** est activé *et* qu'au moins un canal est activé. Si vous activez **E-mail** mais laissez **Afficher la page des abonnés** désactivé, les visiteurs n'ont aucun moyen d'atteindre le formulaire.
 
+## Désactiver toutes les notifications
+
+La première carte de **Paramètres des abonnés**, **Notifications**, contient **Envoyer des notifications aux abonnés** (`sendSubscriberNotifications`), activé par défaut, qui enregistre dès que vous le basculez. Quand il est désactivé, la page de statut n'envoie rien à ses abonnés : aucune notification d'incident, d'épisode, de maintenance planifiée ou d'annonce, aucune note ni aucun post-mortem, et aucun rapport par e-mail, quoi que disent ses canaux et ses types d'événements. Ses abonnés sont conservés, et les visiteurs peuvent toujours s'abonner tant que la page **S'abonner** et un canal sont activés ; un nouvel abonné e-mail reçoit toujours l'e-mail qui confirme l'abonnement. Rien n'est mis de côté pour être envoyé plus tard : quand vous le réactivez, la page informe ses abonnés de ce qui se passe à partir de ce moment.
+
+Tant qu'il est désactivé, le haut de chaque liste d'abonnés l'indique, avec un lien vers **Paramètres des abonnés**. Le résumé de qui sera notifié, sur un incident ou une note publique, cite la page comme une page qui n'envoie pas de notifications à ses abonnés, et le message de statut d'une notification et son élément de fil indiquent pourquoi la page a été laissée de côté. L'interrupteur fonctionne avec toutes les formules. Un rapport de test envoyé à une adresse que vous saisissez part quand même.
+
+## Qui peut s'abonner
+
+La carte **Qui peut s'abonner**, elle aussi sur **Paramètres des abonnés**, réserve les notifications d'une page aux personnes à qui elle est destinée :
+
+- **Seuls les utilisateurs privés peuvent s'abonner** (`limitSubscribersToPrivateUsers`), désactivé par défaut, enregistre dès que vous le basculez. Quand il est activé, seuls les [utilisateurs privés](/docs/status-pages/index#utilisateurs-privés) de la page, qu'ils aient été ajoutés à la main, connectés avec le SSO ou provisionnés par SCIM, peuvent s'abonner, par e-mail, avec l'adresse qu'ils utilisent pour se connecter. La page **S'abonner** remplit cette adresse, ne permet pas de la modifier et ne propose aucun autre canal. Votre équipe ne peut ajouter que l'adresse d'un utilisateur privé, et aucun abonné SMS, Slack, Microsoft Teams ou webhook. Un abonné dont l'adresse n'est pas actuellement celle d'un utilisateur privé de la page — ajouté avant que vous l'activiez, ou lecteur retiré depuis, à la main ou par SCIM — ne reçoit rien et n'est pas compté. Une page publique n'a pas de connexion, si bien que tant qu'il est activé, seule votre équipe peut y ajouter des abonnés.
+- **Domaines d'e-mail autorisés** (`allowedSubscriberEmailDomains`) contient les domaines auxquels l'adresse d'un abonné e-mail peut appartenir, un par ligne, comme `acme.com`. Une adresse sur un sous-domaine correspond aussi (`eu.acme.com` pour `acme.com`), mais pas une adresse qui se termine seulement par les mêmes lettres (`evilacme.com`). Les inscriptions et les ajouts sur tout autre domaine sont refusés, et un abonné e-mail déjà sur un autre domaine ne reçoit rien. Laissez la liste vide pour autoriser n'importe quel domaine. Les abonnés SMS, Slack, Microsoft Teams et webhook n'ont pas de domaine et ne sont pas concernés. Saisissez la liste et choisissez **Enregistrer les domaines** : une entrée qui n'est pas un domaine est signalée avant tout enregistrement, et la liste est enregistrée en minuscules, un domaine par ligne, jusqu'à 100 domaines.
+
+Aucun des deux réglages ne supprime d'abonné, et les désactiver envoie de nouveau à tout le monde. Sur OneUptime Cloud, activer l'un ou l'autre nécessite la formule **Scale** ; les désactiver fonctionne avec toutes les formules.
+
 ## Ce qu'un visiteur voit sur la page S'abonner
 
 La page **S'abonner** a un sous-menu avec un onglet par canal activé. Chaque onglet demande le strict nécessaire :

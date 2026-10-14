@@ -50,6 +50,7 @@ import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new
@@ -95,7 +96,7 @@ const NOTIFICATION_COPY: Record<
 };
 
 const NO_MATCHING_SUBSCRIBERS_MESSAGE: string =
-  "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.";
+  "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.";
 
 const setNotificationStatus: (data: {
   announcementId: ObjectID;
@@ -274,6 +275,14 @@ const notifySubscribersOfAnnouncement: (data: {
       try {
         if (!statuspage.id) {
           logger.debug("Encountered a status page without an id; skipping.");
+          continue;
+        }
+
+        // The page sends its subscribers nothing (Send Notifications to Subscribers off).
+        if (!isSendingSubscriberNotifications(statuspage)) {
+          logger.debug(
+            `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+          );
           continue;
         }
 
@@ -736,7 +745,7 @@ const notifySubscribersOfAnnouncement: (data: {
       );
     } else {
       logger.debug(
-        `No subscribers were notified for announcement ${announcement.id}. All status pages either hide announcements or had no matching subscribers.`,
+        `No subscribers were notified for announcement ${announcement.id}. All status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.`,
       );
     }
 

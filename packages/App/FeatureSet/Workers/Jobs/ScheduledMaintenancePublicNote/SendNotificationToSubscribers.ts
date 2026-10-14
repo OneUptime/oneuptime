@@ -59,6 +59,7 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "Common/Utils/Markdown/FeedMarkdown";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -360,6 +361,14 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
     for (const statuspage of statusPages) {
       if (!statuspage.id) {
         logger.debug("Encountered a status page without an id; skipping.");
+        continue;
+      }
+
+      // The page sends its subscribers nothing (Send Notifications to Subscribers off).
+      if (!isSendingSubscriberNotifications(statuspage)) {
+        logger.debug(
+          `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+        );
         continue;
       }
 
@@ -889,7 +898,7 @@ ${FeedMarkdown.asMarkdown(publicNote.note)}`.toString(),
         feedInfoInMarkdown:
           mdText`📧 **No notification sent to subscribers** for ${copy.feedNotSentSubject} on [Scheduled Maintenance ${event.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(event.projectId!, event.id!)).toString()}).`.toString(),
         moreInformationInMarkdown:
-          "Subscriber notifications were skipped because all associated status pages either hide scheduled maintenance events or had no matching subscribers.",
+          "Subscriber notifications were skipped because all associated status pages either do not send notifications to their subscribers, hide scheduled maintenance events, or had no matching subscribers.",
         workspaceNotification: {
           sendWorkspaceNotification: false,
         },

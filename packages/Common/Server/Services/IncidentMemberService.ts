@@ -20,6 +20,7 @@ import IncidentRoleService from "./IncidentRoleService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import TeamMemberService from "./TeamMemberService";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -175,6 +176,7 @@ export class Service extends ProjectReferencesService<Model> {
             feedInfoInMarkdown:
               mdText`👤 Removed **${user.name.toString()}** (${user.email?.toString()}) as **${roleName}** from [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`.toString(),
             userId: deleteByUserId || undefined,
+            apiKeyActor: FeedApiKeyActorUtil.fromProps(onDelete.deleteBy.props),
             workspaceNotification: {
               sendWorkspaceNotification: true,
               notifyUserId: userId || undefined,
@@ -240,6 +242,7 @@ export class Service extends ProjectReferencesService<Model> {
               projectId: projectId,
             })}** as **${roleName}** to [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`.toString(),
           userId: createdByUserId || undefined,
+          apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
           workspaceNotification: {
             sendWorkspaceNotification: true,
             notifyUserId: userId || undefined,

@@ -1180,6 +1180,26 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
     ]);
   });
 
+  /*
+   * Send Notifications to Subscribers off (Common/Types/StatusPage/
+   * SubscriberNotificationsSwitch): the page is passed over before a single
+   * subscriber is read.
+   */
+  test("sends nothing from a status page that sends its subscribers nothing", async () => {
+    const page: StatusPage = statusPage();
+    page.sendSubscriberNotifications = false;
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+
+    await runJob();
+
+    nothingSent();
+    expect(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).not.toHaveBeenCalled();
+  });
+
   test("skips the move to the scheduled state, which the created notification covers", async () => {
     pendingTimelines = [stateTimeline({ isScheduledState: true })];
 

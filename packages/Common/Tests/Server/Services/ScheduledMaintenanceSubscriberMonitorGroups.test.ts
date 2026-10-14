@@ -292,6 +292,35 @@ describe("scheduled maintenance 'scheduled' and reminder notifications reach a m
     ]);
   });
 
+  /*
+   * Send Notifications to Subscribers off (Types/StatusPage/
+   * SubscriberNotificationsSwitch): the page is passed over before a single
+   * subscriber is read; the other page is told as before.
+   */
+  test("a status page that sends its subscribers nothing tells none of them", async () => {
+    const off: StatusPage = page(EU_PAGE, "Acme EU");
+    off.sendSubscriberNotifications = false;
+    jest
+      .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+      .mockResolvedValue([page(PUBLIC_PAGE, "Acme Status"), off]);
+
+    await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+      scheduledEvent([DB_MONITOR]),
+    ]);
+
+    expect(sentEmails()).toEqual([
+      { to: "everything@acme.com", resourcesAffected: "Backend" },
+      { to: "backend@acme.com", resourcesAffected: "Backend" },
+    ]);
+    expect(
+      jest
+        .mocked(StatusPageSubscriberService.getSubscribersByStatusPage)
+        .mock.calls.map((call: Array<unknown>): string => {
+          return String(call[0]);
+        }),
+    ).not.toContain(EU_PAGE);
+  });
+
   test("tells someone who picked both the monitor and its group once", async () => {
     await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
       scheduledEvent([DB_MONITOR]),
