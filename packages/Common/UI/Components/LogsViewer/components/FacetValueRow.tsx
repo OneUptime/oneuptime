@@ -11,6 +11,12 @@ export interface FacetValueRowProps {
   maxCount: number;
   color?: string | undefined;
   isActive?: boolean | undefined;
+  /*
+   * The facet's counts were stopped at the query time limit (issue #4707):
+   * the row stays, so the value can still be picked to narrow the search,
+   * and shows no count rather than a 0 that is not true.
+   */
+  isCountUnknown?: boolean | undefined;
   onInclude: (value: string) => void;
   onExclude: (value: string) => void;
 }
@@ -31,7 +37,8 @@ const FacetValueRow: FunctionComponent<FacetValueRowProps> = (
    * no telemetry in the range (count 0). Muting those lets the rows that do
    * have data stand out without dropping the rest from the list.
    */
-  const isZeroCount: boolean = props.count === 0 && !isActive;
+  const isZeroCount: boolean =
+    props.count === 0 && !isActive && !props.isCountUnknown;
 
   return (
     <div className="group flex items-center gap-2 py-0.5">
@@ -73,32 +80,41 @@ const FacetValueRow: FunctionComponent<FacetValueRowProps> = (
         </span>
       </button>
 
-      <div className="flex items-center gap-1.5">
-        <div className="w-12">
-          <div className="h-1.5 w-full rounded-full bg-gray-100">
-            <div
-              className={`h-1.5 rounded-full transition-all ${isActive ? "opacity-100" : "opacity-70"}`}
-              style={{
-                width: `${barWidth}%`,
-                backgroundColor: isActive
-                  ? "#6366f1"
-                  : props.color || "#9ca3af",
-              }}
-            />
-          </div>
-        </div>
+      {props.isCountUnknown ? (
         <span
-          className={`min-w-[2rem] text-right font-mono text-[10px] tabular-nums ${
-            isActive
-              ? "font-medium text-indigo-600"
-              : isZeroCount
-                ? "text-gray-300"
-                : "text-gray-400"
-          }`}
+          className="min-w-[2rem] text-right font-mono text-[10px] text-gray-300"
+          title={translator.translateText("Not counted")}
         >
-          {props.count.toLocaleString()}
+          —
         </span>
-      </div>
+      ) : (
+        <div className="flex items-center gap-1.5">
+          <div className="w-12">
+            <div className="h-1.5 w-full rounded-full bg-gray-100">
+              <div
+                className={`h-1.5 rounded-full transition-all ${isActive ? "opacity-100" : "opacity-70"}`}
+                style={{
+                  width: `${barWidth}%`,
+                  backgroundColor: isActive
+                    ? "#6366f1"
+                    : props.color || "#9ca3af",
+                }}
+              />
+            </div>
+          </div>
+          <span
+            className={`min-w-[2rem] text-right font-mono text-[10px] tabular-nums ${
+              isActive
+                ? "font-medium text-indigo-600"
+                : isZeroCount
+                  ? "text-gray-300"
+                  : "text-gray-400"
+            }`}
+          >
+            {props.count.toLocaleString()}
+          </span>
+        </div>
+      )}
 
       <button
         type="button"

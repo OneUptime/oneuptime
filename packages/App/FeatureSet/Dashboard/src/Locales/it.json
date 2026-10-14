@@ -28613,5 +28613,16 @@
   "Only email addresses at these domains, or their subdomains, can subscribe and get notifications. One domain per line, such as acme.com. Leave empty to allow any domain. Phone, Slack, Microsoft Teams and webhook subscribers are not affected.": "Solo gli indirizzi email di questi domini, o dei loro sottodomini, possono iscriversi e ricevere notifiche. Un dominio per riga, ad esempio acme.com. Lascia vuoto per consentire qualsiasi dominio. Gli iscritti via telefono, Slack, Microsoft Teams e webhook non sono interessati.",
   "{{domain}} is not a valid domain. Enter one domain per line, such as acme.com.": "{{domain}} non è un dominio valido. Inserisci un dominio per riga, ad esempio acme.com.",
   "Reader Sessions": "Sessioni dei lettori",
-  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "I lettori non accedono a questa pagina di stato così come è configurata ora, quindi finché questa opzione è attiva i visitatori non possono iscriversi e solo il tuo team può aggiungere iscritti."
+  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "I lettori non accedono a questa pagina di stato così come è configurata ora, quindi finché questa opzione è attiva i visitatori non possono iscriversi e solo il tuo team può aggiungere iscritti.",
+  "Filter counts could not load": "Impossibile caricare i conteggi dei filtri",
+  "Filter counts took too long": "I conteggi dei filtri hanno richiesto troppo tempo",
+  "It was stopped before it finished. Try a shorter time range or more specific filters.": "L'operazione è stata interrotta prima del termine. Prova un intervallo di tempo più breve o filtri più specifici.",
+  "Not counted": "Non conteggiato",
+  "Not counted: this took too long.": "Non conteggiato: ha richiesto troppo tempo.",
+  "Something went wrong. Try again in a moment.": "Qualcosa è andato storto. Riprova tra un momento.",
+  "They were stopped before they finished. Try a shorter time range or more specific filters.": "Sono stati interrotti prima del termine. Prova un intervallo di tempo più breve o filtri più specifici.",
+  "This chart could not load": "Impossibile caricare questo grafico",
+  "This chart took too long to load": "Il caricamento di questo grafico ha richiesto troppo tempo",
+  "This search could not finish": "Impossibile completare questa ricerca",
+  "This search took too long": "Questa ricerca ha richiesto troppo tempo"
 }

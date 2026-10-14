@@ -28613,5 +28613,16 @@
   "Only email addresses at these domains, or their subdomains, can subscribe and get notifications. One domain per line, such as acme.com. Leave empty to allow any domain. Phone, Slack, Microsoft Teams and webhook subscribers are not affected.": "只有這些網域或其子網域的電子郵件地址才能訂閱並接收通知。每行一個網域，例如 acme.com。留空則允許任何網域。電話、Slack、Microsoft Teams 和 Webhook 訂閱者不受影響。",
   "{{domain}} is not a valid domain. Enter one domain per line, such as acme.com.": "{{domain}} 不是有效的網域。請每行輸入一個網域，例如 acme.com。",
   "Reader Sessions": "讀者工作階段",
-  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "依目前的設定，讀者不會登入此狀態頁面，因此開啟此設定時，訪客無法訂閱，只有您的團隊可以新增訂閱者。"
+  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "依目前的設定，讀者不會登入此狀態頁面，因此開啟此設定時，訪客無法訂閱，只有您的團隊可以新增訂閱者。",
+  "Filter counts could not load": "無法載入篩選計數",
+  "Filter counts took too long": "篩選計數耗時過久",
+  "It was stopped before it finished. Try a shorter time range or more specific filters.": "已在完成前停止。請嘗試縮短時間範圍或使用更具體的篩選條件。",
+  "Not counted": "未計數",
+  "Not counted: this took too long.": "未計數：耗時過久。",
+  "Something went wrong. Try again in a moment.": "發生錯誤。請稍後再試一次。",
+  "They were stopped before they finished. Try a shorter time range or more specific filters.": "已在完成前停止。請嘗試縮短時間範圍或使用更具體的篩選條件。",
+  "This chart could not load": "無法載入此圖表",
+  "This chart took too long to load": "此圖表載入耗時過久",
+  "This search could not finish": "此搜尋未能完成",
+  "This search took too long": "此搜尋耗時過久"
 }

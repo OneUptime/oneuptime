@@ -20,6 +20,11 @@ import {
 import useFacetSearchExemptions, {
   FacetSearchExemptions,
 } from "../useFacetSearchExemptions";
+import TelemetryLoadErrorMessage from "./TelemetryLoadErrorMessage";
+import {
+  TelemetryLoadError,
+  TelemetryLoadErrorKind,
+} from "../../../Utils/Telemetry/TelemetryLoadError";
 
 export interface TelemetryFacetSidebarProps {
   facetData: FacetData;
@@ -53,6 +58,14 @@ export interface TelemetryFacetSidebarProps {
    * See getFacetValuesInScope.
    */
   onlyShowValuesInScope?: boolean | undefined;
+  /*
+   * Facets whose counts the server stopped at the query time limit, and why
+   * the facets did not load at all (issue #4707): a note at the top says so,
+   * with a way to try again, and the stopped facets show no counts.
+   */
+  timedOutFacets?: Array<string> | undefined;
+  facetError?: TelemetryLoadError | undefined;
+  onRetryFacets?: (() => void) | undefined;
 }
 
 const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
@@ -157,6 +170,16 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
     showHidden,
   ]);
 
+  const timedOutFacetKeys: Set<string> = new Set<string>(
+    props.timedOutFacets || [],
+  );
+
+  const countsNotice: TelemetryLoadError | undefined =
+    props.facetError ||
+    (timedOutFacetKeys.size > 0
+      ? { kind: TelemetryLoadErrorKind.TimedOut, message: "" }
+      : undefined);
+
   const visibleConfigs: Array<FacetConfig> = visibility.visibleKeys
     .map((key: string): FacetConfig | undefined => {
       return configsByKey.get(key);
@@ -182,6 +205,15 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
         <div className="flex flex-1 items-center justify-center py-8">
           <ComponentLoader />
         </div>
+      )}
+
+      {!props.isLoading && countsNotice && (
+        <TelemetryLoadErrorMessage
+          error={countsNotice}
+          subject="counts"
+          variant="note"
+          onRetry={props.onRetryFacets}
+        />
       )}
 
       <div id={facetListId} className="flex-1 overflow-y-auto">
@@ -217,6 +249,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
                   facetSearch.searchedAtArrivalByKey[config.key],
                 isScoped: props.onlyShowValuesInScope,
               })}
+              isCountStopped={timedOutFacetKeys.has(config.key)}
             />
           );
         })}

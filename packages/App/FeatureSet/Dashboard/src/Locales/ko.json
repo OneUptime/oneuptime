@@ -28613,5 +28613,16 @@
   "Only email addresses at these domains, or their subdomains, can subscribe and get notifications. One domain per line, such as acme.com. Leave empty to allow any domain. Phone, Slack, Microsoft Teams and webhook subscribers are not affected.": "이 도메인 또는 그 하위 도메인의 이메일 주소만 구독하고 알림을 받을 수 있습니다. 한 줄에 도메인 하나씩 입력하세요(예: acme.com). 모든 도메인을 허용하려면 비워 두세요. 전화, Slack, Microsoft Teams, 웹훅 구독자에게는 영향이 없습니다.",
   "{{domain}} is not a valid domain. Enter one domain per line, such as acme.com.": "{{domain}}은(는) 유효한 도메인이 아닙니다. 한 줄에 도메인 하나씩 입력하세요(예: acme.com).",
   "Reader Sessions": "독자 세션",
-  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "현재 설정에서는 독자가 이 상태 페이지에 로그인하지 않으므로, 이 설정이 켜져 있는 동안 방문자는 구독할 수 없으며 팀만 구독자를 추가할 수 있습니다."
+  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "현재 설정에서는 독자가 이 상태 페이지에 로그인하지 않으므로, 이 설정이 켜져 있는 동안 방문자는 구독할 수 없으며 팀만 구독자를 추가할 수 있습니다.",
+  "Filter counts could not load": "필터 개수를 불러오지 못했습니다",
+  "Filter counts took too long": "필터 개수 집계에 시간이 너무 오래 걸렸습니다",
+  "It was stopped before it finished. Try a shorter time range or more specific filters.": "완료되기 전에 중지되었습니다. 기간을 줄이거나 필터를 더 구체적으로 지정해 보세요.",
+  "Not counted": "집계되지 않음",
+  "Not counted: this took too long.": "집계되지 않음: 시간이 너무 오래 걸렸습니다.",
+  "Something went wrong. Try again in a moment.": "문제가 발생했습니다. 잠시 후 다시 시도하세요.",
+  "They were stopped before they finished. Try a shorter time range or more specific filters.": "완료되기 전에 중지되었습니다. 기간을 줄이거나 필터를 더 구체적으로 지정해 보세요.",
+  "This chart could not load": "이 차트를 불러오지 못했습니다",
+  "This chart took too long to load": "이 차트를 불러오는 데 시간이 너무 오래 걸렸습니다",
+  "This search could not finish": "이 검색을 완료하지 못했습니다",
+  "This search took too long": "이 검색에 시간이 너무 오래 걸렸습니다"
 }

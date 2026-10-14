@@ -25,8 +25,11 @@ import ResultTotalUtil, {
   ResultTotal,
 } from "../../Utils/Telemetry/ResultTotal";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Icon from "../Icon/Icon";
+import TelemetryLoadErrorMessage from "./components/TelemetryLoadErrorMessage";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "../../Utils/Telemetry/TelemetryLoadError";
 import IconProp from "../../../Types/Icon/IconProp";
 import useViewerTimeRangeZoom, {
   ViewerTimeRangeZoom,
@@ -37,7 +40,15 @@ export interface TelemetryViewerProps<T> {
   // -- Data --
   items: Array<T>;
   isLoading: boolean;
-  error?: string | undefined;
+  /*
+   * Why the list did not load, shown where the rows go with the toolbar and
+   * filters left in place (issue #4707). A TelemetryLoadError tells a search
+   * that took too long from any other failure; a plain message reads as a
+   * failure.
+   */
+  error?: string | TelemetryLoadError | undefined;
+  // Runs the list's read again from its error. Defaults to onRefresh.
+  onRetry?: (() => void) | undefined;
   onRefresh?: (() => void) | undefined;
   emptyMessage?: string | undefined;
   /*
@@ -96,6 +107,14 @@ export interface TelemetryViewerProps<T> {
   facetData?: FacetData | undefined;
   facetConfigs?: Array<FacetConfig> | undefined;
   facetLoading?: boolean;
+  /*
+   * Facets whose counts the server stopped at the query time limit (the
+   * facets endpoints' timedOutFacets), and why the facets did not load at
+   * all. The sidebar says so instead of "No values" or counts of 0.
+   */
+  timedOutFacets?: Array<string> | undefined;
+  facetError?: TelemetryLoadError | undefined;
+  onRetryFacets?: (() => void) | undefined;
   onFacetInclude?: ((facetKey: string, value: string) => void) | undefined;
   onFacetExclude?: ((facetKey: string, value: string) => void) | undefined;
   /*
@@ -129,6 +148,9 @@ export interface TelemetryViewerProps<T> {
   histogramSeries?: Array<HistogramSeriesOption> | undefined;
   histogramTitle?: string | undefined;
   histogramLoading?: boolean;
+  // Why the chart did not load; it says so in its own card.
+  histogramError?: TelemetryLoadError | undefined;
+  onRetryHistogram?: (() => void) | undefined;
   /*
    * How much time one histogram bar covers, as the query that drew the bars
    * bucketed them. It is what lets a click on a bar open that bar's rows.
@@ -243,9 +265,16 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
     skip: rowsBeforePage,
   });
 
+  const listError: TelemetryLoadError | undefined =
+    typeof props.error === "string"
+      ? props.error
+        ? TelemetryLoadErrorUtil.fromMessage(props.error)
+        : undefined
+      : props.error;
+
   // Not over an empty list: its empty state already says there is nothing.
   const showResultTotal: boolean = Boolean(
-    props.resultTotal && !props.error && props.items.length > 0,
+    props.resultTotal && !listError && props.items.length > 0,
   );
 
   const viewer: ReactElement = (
@@ -382,6 +411,8 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
           <TelemetryHistogram
             buckets={props.histogramBuckets}
             isLoading={props.histogramLoading || false}
+            error={props.histogramError}
+            onRetry={props.onRetryHistogram}
             series={props.histogramSeries}
             title={props.histogramTitle}
             bucketIntervalMs={props.histogramBucketIntervalMs}
@@ -408,6 +439,9 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             isCollapsedOnSmallScreens={!isFacetPanelOpen}
             facetData={props.facetData || {}}
             isLoading={props.facetLoading || false}
+            timedOutFacets={props.timedOutFacets}
+            facetError={props.facetError}
+            onRetryFacets={props.onRetryFacets}
             facetConfigs={props.facetConfigs || []}
             activeFilters={props.activeFilters}
             onIncludeFilter={(key: string, value: string) => {
@@ -435,13 +469,15 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             </div>
           )}
 
-          {props.error && (
-            <div className="p-4">
-              <ErrorMessage message={props.error} />
-            </div>
+          {listError && (
+            <TelemetryLoadErrorMessage
+              error={listError}
+              subject="search"
+              onRetry={props.onRetry || props.onRefresh}
+            />
           )}
 
-          {!props.error && (
+          {!listError && (
             <div className="min-h-0 flex-1 overflow-y-auto">
               {props.isLoading && props.items.length === 0 ? (
                 <div className="flex h-48 items-center justify-center">
@@ -481,30 +517,37 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
           {/*
            * An exact total numbers the pages. Without one the footer does not
            * print the endpoint's lower bound as if it were a total ("of 51"):
-           * it pages forward while more rows follow.
+           * it pages forward while more rows follow. Not under an error: there
+           * are no rows to page through.
            */}
-          <TelemetryPagination
-            currentPage={props.page}
-            totalItems={
-              exactTotalCount === undefined ? props.totalCount : exactTotalCount
-            }
-            hasMore={
-              exactTotalCount === undefined
-                ? props.hasMore ?? props.items.length >= props.pageSize
-                : undefined
-            }
-            itemsOnCurrentPage={
-              props.resultTotal || props.hasMore !== undefined
-                ? props.items.length
-                : undefined
-            }
-            pageSize={props.pageSize}
-            pageSizeOptions={props.pageSizeOptions || DEFAULT_PAGE_SIZE_OPTIONS}
-            onPageChange={props.onPageChange}
-            onPageSizeChange={props.onPageSizeChange}
-            isDisabled={props.isLoading}
-            itemLabel={props.itemLabel}
-          />
+          {!listError && (
+            <TelemetryPagination
+              currentPage={props.page}
+              totalItems={
+                exactTotalCount === undefined
+                  ? props.totalCount
+                  : exactTotalCount
+              }
+              hasMore={
+                exactTotalCount === undefined
+                  ? props.hasMore ?? props.items.length >= props.pageSize
+                  : undefined
+              }
+              itemsOnCurrentPage={
+                props.resultTotal || props.hasMore !== undefined
+                  ? props.items.length
+                  : undefined
+              }
+              pageSize={props.pageSize}
+              pageSizeOptions={
+                props.pageSizeOptions || DEFAULT_PAGE_SIZE_OPTIONS
+              }
+              onPageChange={props.onPageChange}
+              onPageSizeChange={props.onPageSizeChange}
+              isDisabled={props.isLoading}
+              itemLabel={props.itemLabel}
+            />
+          )}
         </div>
       </div>
 

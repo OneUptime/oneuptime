@@ -28613,5 +28613,16 @@
   "Only email addresses at these domains, or their subdomains, can subscribe and get notifications. One domain per line, such as acme.com. Leave empty to allow any domain. Phone, Slack, Microsoft Teams and webhook subscribers are not affected.": "Endast e-postadresser på de här domänerna, eller deras underdomäner, kan prenumerera och få aviseringar. En domän per rad, till exempel acme.com. Lämna tomt för att tillåta alla domäner. Prenumeranter via telefon, Slack, Microsoft Teams och webhook påverkas inte.",
   "{{domain}} is not a valid domain. Enter one domain per line, such as acme.com.": "{{domain}} är inte en giltig domän. Ange en domän per rad, till exempel acme.com.",
   "Reader Sessions": "Läsarsessioner",
-  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "Läsare loggar inte in på den här statussidan så som den är konfigurerad nu, så medan detta är på kan besökare inte prenumerera och endast ditt team kan lägga till prenumeranter."
+  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "Läsare loggar inte in på den här statussidan så som den är konfigurerad nu, så medan detta är på kan besökare inte prenumerera och endast ditt team kan lägga till prenumeranter.",
+  "Filter counts could not load": "Filterantalen kunde inte läsas in",
+  "Filter counts took too long": "Filterantalen tog för lång tid",
+  "It was stopped before it finished. Try a shorter time range or more specific filters.": "Stoppades innan det var klart. Prova ett kortare tidsintervall eller mer specifika filter.",
+  "Not counted": "Inte räknat",
+  "Not counted: this took too long.": "Inte räknat: det tog för lång tid.",
+  "Something went wrong. Try again in a moment.": "Något gick fel. Försök igen om en stund.",
+  "They were stopped before they finished. Try a shorter time range or more specific filters.": "De stoppades innan de var klara. Prova ett kortare tidsintervall eller mer specifika filter.",
+  "This chart could not load": "Det här diagrammet kunde inte läsas in",
+  "This chart took too long to load": "Det tog för lång tid att läsa in det här diagrammet",
+  "This search could not finish": "Den här sökningen kunde inte slutföras",
+  "This search took too long": "Den här sökningen tog för lång tid"
 }

@@ -21,6 +21,9 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "Common/UI/Utils/Telemetry/TelemetryLoadError";
 import {
   ActiveFilter,
   FacetConfig,
@@ -33,7 +36,6 @@ import {
 import Service from "Common/Models/DatabaseModels/Service";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import API from "Common/UI/Utils/API/API";
 import ModelAPI, {
   ListResult as ModelListResult,
 } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -290,7 +292,20 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
   const [totalCount, setTotalCount] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  /*
+   * Why the list did not load (issue #4707): a search that took too long
+   * says so where the rows go, with the filters left to narrow it.
+   */
+  const [error, setError] = useState<TelemetryLoadError | undefined>(undefined);
+  // Why the volume chart did not load; it says so in its own card.
+  const [volumeError, setVolumeError] = useState<
+    TelemetryLoadError | undefined
+  >(undefined);
+  // Facets the time limit stopped, and why the facets did not load at all.
+  const [timedOutFacets, setTimedOutFacets] = useState<Array<string>>([]);
+  const [facetError, setFacetError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
 
   const [volume, setVolume] = useState<SecurityEventVolume | null>(null);
   const [isVolumeLoading, setIsVolumeLoading] = useState<boolean>(true);
@@ -417,13 +432,13 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
         setEvents(result.data);
         setTotalCount(result.count);
         setHasMore(result.hasMore);
-        setError("");
+        setError(undefined);
       } catch (err) {
         if (requestId !== listRequestId.current) {
           return;
         }
 
-        setError(API.getFriendlyMessage(err));
+        setError(TelemetryLoadErrorUtil.fromError(err));
         setEvents([]);
         setTotalCount(0);
         setHasMore(false);
@@ -472,17 +487,19 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
             endDate: endDate,
           }),
         );
-      } catch {
+        setVolumeError(undefined);
+      } catch (err) {
         if (requestId !== volumeRequestId.current) {
           return;
         }
 
         /*
          * The chart is a secondary read of the same rows the list is already
-         * showing. A failed count draws no bars rather than an error banner
-         * over a list that loaded fine.
+         * showing. A failed count never puts a banner over a list that loaded
+         * fine: the chart's own card says why it has no bars (issue #4707).
          */
         setVolume(null);
+        setVolumeError(TelemetryLoadErrorUtil.fromError(err));
       } finally {
         if (requestId === volumeRequestId.current) {
           setIsVolumeLoading(false);
@@ -548,15 +565,39 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
 
       const nextFacetData: FacetData = {};
 
+      const stoppedFacets: Array<string> = [];
+      const failures: Array<unknown> = [];
+
       SECURITY_EVENT_FACET_KEYS.forEach((facetKey: string, index: number) => {
         const result: PromiseSettledResult<Array<FacetValue>> | undefined =
           results[index];
 
         nextFacetData[facetKey] =
           result && result.status === "fulfilled" ? result.value : [];
+
+        if (result && result.status === "rejected") {
+          failures.push(result.reason);
+
+          if (TelemetryLoadErrorUtil.isTimedOut(result.reason)) {
+            stoppedFacets.push(facetKey);
+          }
+        }
       });
 
       setFacetData(nextFacetData);
+      /*
+       * A facet the time limit stopped is named, so the sidebar says so
+       * instead of "No values" (issue #4707). Every facet failing for
+       * another reason is the facets not loading at all.
+       */
+      setTimedOutFacets(stoppedFacets);
+      setFacetError(
+        stoppedFacets.length === 0 &&
+          failures.length > 0 &&
+          failures.length === SECURITY_EVENT_FACET_KEYS.length
+          ? TelemetryLoadErrorUtil.fromError(failures[0])
+          : undefined,
+      );
       setFacetLoading(false);
     }, [listQuery, timeWindow]);
 
@@ -1068,6 +1109,11 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
         facetData={facetData}
         facetConfigs={facetConfigs}
         facetLoading={facetLoading}
+        timedOutFacets={timedOutFacets}
+        facetError={facetError}
+        onRetryFacets={() => {
+          void fetchFacets();
+        }}
         onFacetInclude={handleFacetInclude}
         onFacetExclude={handleFacetExclude}
         // Active filters
@@ -1080,6 +1126,10 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
         histogramSeries={histogramSeries}
         histogramTitle="Security Event Volume"
         histogramLoading={isVolumeLoading}
+        histogramError={volumeError}
+        onRetryHistogram={() => {
+          void fetchVolume();
+        }}
         histogramBucketIntervalMs={volume?.intervalMs}
         onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
         /*

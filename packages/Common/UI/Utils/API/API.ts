@@ -345,8 +345,17 @@ class BaseAPI extends API {
     err: HTTPErrorResponse | Exception | unknown,
   ): string {
     if (err instanceof HTTPErrorResponse) {
+      /*
+       * A gateway's own 502 / 504 carries an HTML page, not a message: the
+       * server could not be reached. A 504 the API itself answered carries
+       * its message — a read stopped at its time limit says it took too long
+       * and what to try (issue #4707) — and that is what the reader needs.
+       */
       if (err.statusCode === 502 || err.statusCode === 504) {
-        return "Error connecting to server. Please try again in few minutes.";
+        return (
+          err.message ||
+          "Error connecting to server. Please try again in few minutes."
+        );
       }
 
       return err.message || "Server Error. Please try again";

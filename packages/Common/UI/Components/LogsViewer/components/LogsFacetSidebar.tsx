@@ -43,6 +43,11 @@ import {
 import useFacetSearchExemptions, {
   FacetSearchExemptions,
 } from "../../TelemetryViewer/useFacetSearchExemptions";
+import TelemetryLoadErrorMessage from "../../TelemetryViewer/components/TelemetryLoadErrorMessage";
+import {
+  TelemetryLoadError,
+  TelemetryLoadErrorKind,
+} from "../../../Utils/Telemetry/TelemetryLoadError";
 
 export interface LogsFacetSidebarProps {
   facetData: FacetData;
@@ -89,6 +94,14 @@ export interface LogsFacetSidebarProps {
    * See getFacetValuesInScope.
    */
   onlyShowValuesInScope?: boolean | undefined;
+  /*
+   * Facets whose counts the server stopped at the query time limit, and why
+   * the facets did not load at all (issue #4707): a note at the top says so,
+   * with a way to try again, and the stopped facets show no counts.
+   */
+  timedOutFacets?: Array<string> | undefined;
+  facetError?: TelemetryLoadError | undefined;
+  onRetryFacets?: (() => void) | undefined;
 }
 
 /*
@@ -377,6 +390,16 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
     showHidden,
   ]);
 
+  const timedOutFacetKeys: Set<string> = new Set<string>(
+    props.timedOutFacets || [],
+  );
+
+  const countsNotice: TelemetryLoadError | undefined =
+    props.facetError ||
+    (timedOutFacetKeys.size > 0
+      ? { kind: TelemetryLoadErrorKind.TimedOut, message: "" }
+      : undefined);
+
   return (
     <div
       id={props.id}
@@ -394,6 +417,15 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
         <div className="flex flex-1 items-center justify-center py-8">
           <ComponentLoader />
         </div>
+      )}
+
+      {!props.isLoading && countsNotice && (
+        <TelemetryLoadErrorMessage
+          error={countsNotice}
+          subject="counts"
+          variant="note"
+          onRetry={props.onRetryFacets}
+        />
       )}
 
       <div id={facetListId} className="flex-1 overflow-y-auto">
@@ -457,6 +489,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
                 searchedAtArrivalText: facetSearch.searchedAtArrivalByKey[key],
                 isScoped: props.onlyShowValuesInScope,
               })}
+              isCountStopped={timedOutFacetKeys.has(key)}
             />
           );
         })}

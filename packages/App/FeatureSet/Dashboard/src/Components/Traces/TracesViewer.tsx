@@ -8,6 +8,9 @@ import React, {
   useState,
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "Common/UI/Utils/Telemetry/TelemetryLoadError";
 import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -717,6 +720,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  /*
+   * Why the span list did not load (issue #4707): a search that took too
+   * long says so, where the rows go, with the filters left to narrow it.
+   */
+  const [listError, setListError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
 
   const [services, setServices] = useState<Array<Service>>([]);
   const [hosts, setHosts] = useState<Array<Host>>([]);
@@ -863,8 +873,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     number | undefined
   >(undefined);
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
+  // Why the chart did not load; it says so in its own card.
+  const [histogramError, setHistogramError] = useState<
+    TelemetryLoadError | undefined
+  >(undefined);
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Facets the server could not count in time, and why the facets did not
+   * load at all: the sidebar says so instead of "No values" or zeros.
+   */
+  const [timedOutFacets, setTimedOutFacets] = useState<Array<string>>([]);
+  const [facetError, setFacetError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
   /*
    * Per-facet search text for resource facets (primaryEntityId / hostId / etc.).
    * When the user types into a facet's search box, this updates and triggers
@@ -1573,6 +1595,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         setIsLoading(true);
       }
       setError("");
+      setListError(undefined);
       const skip: number = (page - 1) * pageSize;
       try {
         const result: ListResult<Span> = await AnalyticsModelAPI.getList<Span>({
@@ -1604,7 +1627,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         if (isSuperseded()) {
           return;
         }
-        setError(API.getFriendlyMessage(err));
+        setListError(TelemetryLoadErrorUtil.fromError(err));
       } finally {
         /*
          * The newest request clears the loader whatever started it: the one
@@ -2048,9 +2071,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
       // Both endpoints bucket by the size this request asked for.
       setHistogramBucketIntervalMs(bucketSizeInMinutes * 60 * 1000);
+      setHistogramError(undefined);
     } else {
       setHistogramBuckets([]);
       setHistogramBucketIntervalMs(undefined);
+      setHistogramError(
+        TelemetryLoadErrorUtil.fromError(histogramResult.reason),
+      );
     }
 
     if (facetsResult.status === "fulfilled") {
@@ -2102,8 +2129,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         { value: "true", count: hasExceptionBucket?.count ?? 0 },
       ];
       setFacetData(mappedFacets);
+
+      // The server names isRootSpan; the sidebar shows it as Span Type.
+      const stopped: Array<string> = Array.isArray(
+        facetsResult.value.data["timedOutFacets"],
+      )
+        ? (facetsResult.value.data["timedOutFacets"] as Array<string>)
+        : [];
+      setTimedOutFacets(
+        stopped.map((facetKey: string): string => {
+          return facetKey === "isRootSpan" ? SPAN_TYPE_FACET_KEY : facetKey;
+        }),
+      );
+      setFacetError(undefined);
     } else {
       setFacetData({});
+      setTimedOutFacets([]);
+      setFacetError(TelemetryLoadErrorUtil.fromError(facetsResult.reason));
     }
 
     setHistogramLoading(false);
@@ -3124,7 +3166,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     <TelemetryViewer<Span>
       items={spans}
       isLoading={isLoading}
-      error={error || undefined}
+      error={listError || error || undefined}
       onRefresh={() => {
         void fetchSpans();
         void fetchHistogramAndFacets();
@@ -3381,6 +3423,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       facetData={facetData}
       facetConfigs={facetConfigs}
       facetLoading={facetLoading}
+      timedOutFacets={timedOutFacets}
+      facetError={facetError}
+      onRetryFacets={() => {
+        void fetchHistogramAndFacets();
+      }}
       onFacetInclude={handleFacetInclude}
       onFacetSearchChange={(facetKey: string, text: string) => {
         setFacetSearchText(
@@ -3420,6 +3467,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           : "Response time"
       }
       histogramLoading={histogramLoading}
+      histogramError={histogramError}
+      onRetryHistogram={() => {
+        void fetchHistogramAndFacets();
+      }}
       histogramBucketIntervalMs={histogramBucketIntervalMs}
       onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
       histogramValueFormatter={

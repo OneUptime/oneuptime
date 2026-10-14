@@ -16,6 +16,8 @@ import useFacetSectionSearch, {
   FacetSectionSearch,
 } from "../../TelemetryViewer/useFacetSectionSearch";
 import { getFacetEmptyStateText } from "../../TelemetryViewer/FacetVisibility";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface FacetSectionProps {
   title: string;
@@ -47,6 +49,12 @@ export interface FacetSectionProps {
    * this time range".
    */
   emptyStateText?: string | undefined;
+  /*
+   * The server stopped this facet's count at the query time limit (issue
+   * #4707). The section says so, and its values (a resource facet still
+   * lists its resources) are shown without counts.
+   */
+  isCountStopped?: boolean | undefined;
 }
 
 const DEFAULT_VISIBLE_COUNT: number = 5;
@@ -55,6 +63,7 @@ const SEARCH_THRESHOLD: number = 6;
 const FacetSection: FunctionComponent<FacetSectionProps> = (
   props: FacetSectionProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [showAll, setShowAll] = useState<boolean>(false);
   const bodyId: string = useId();
@@ -122,6 +131,15 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
 
       {isExpanded && (
         <div id={bodyId} className="mt-1 px-1">
+          {props.isCountStopped && (
+            <p
+              className="px-1.5 pb-1 text-[11px] text-amber-700"
+              data-testid="facet-count-stopped"
+            >
+              {translator.translateText("Not counted: this took too long.")}
+            </p>
+          )}
+
           {showSearch && (
             <div className="mb-1 px-1">
               <FacetSearchInput
@@ -143,6 +161,7 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
                 )}
                 count={facet.count}
                 maxCount={maxCount}
+                isCountUnknown={props.isCountStopped}
                 color={props.valueColorMap?.[facet.value]}
                 isActive={props.activeValues?.has(facet.value) || false}
                 onInclude={(value: string) => {
@@ -155,7 +174,7 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
             );
           })}
 
-          {displayedValues.length === 0 && (
+          {displayedValues.length === 0 && !props.isCountStopped && (
             <p className="px-1.5 py-2 text-[11px] text-gray-400">
               {getFacetEmptyStateText({
                 searchText: searchText,

@@ -150,6 +150,7 @@ import {
   SECURITY_EVENT_SOURCE_FACET_KEY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsFacets";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import { TELEMETRY_VIEWER_LIST_TEST_ID } from "../../../UI/Components/TelemetryViewer/TelemetryViewer";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import AggregateBy from "../../../Types/BaseDatabase/AggregateBy";
@@ -625,7 +626,19 @@ describe("one query behind everything", () => {
       expect(rows()).toHaveLength(2);
     });
 
-    expect(screen.queryByText(/boom/)).toBeNull();
+    /*
+     * The chart and the filter counts each say they could not load, in
+     * their own place (issue #4707); the list is untouched.
+     */
+    expect(
+      await screen.findByText("This chart could not load"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Filter counts could not load"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(TELEMETRY_VIEWER_LIST_TEST_ID),
+    ).not.toHaveTextContent("boom");
   });
 
   test("a failed list is reported, and the rows are cleared", async () => {

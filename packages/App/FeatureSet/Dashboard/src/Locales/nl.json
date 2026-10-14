@@ -28613,5 +28613,16 @@
   "Only email addresses at these domains, or their subdomains, can subscribe and get notifications. One domain per line, such as acme.com. Leave empty to allow any domain. Phone, Slack, Microsoft Teams and webhook subscribers are not affected.": "Alleen e-mailadressen bij deze domeinen, of hun subdomeinen, kunnen zich abonneren en meldingen ontvangen. Eén domein per regel, zoals acme.com. Laat leeg om elk domein toe te staan. Abonnees via telefoon, Slack, Microsoft Teams en webhook worden niet beïnvloed.",
   "{{domain}} is not a valid domain. Enter one domain per line, such as acme.com.": "{{domain}} is geen geldig domein. Voer één domein per regel in, zoals acme.com.",
   "Reader Sessions": "Lezerssessies",
-  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "Lezers loggen niet in op deze statuspagina zoals die nu is ingesteld, dus zolang dit aan staat, kunnen bezoekers zich niet abonneren en kan alleen je team abonnees toevoegen."
+  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "Lezers loggen niet in op deze statuspagina zoals die nu is ingesteld, dus zolang dit aan staat, kunnen bezoekers zich niet abonneren en kan alleen je team abonnees toevoegen.",
+  "Filter counts could not load": "Filtertellingen konden niet worden geladen",
+  "Filter counts took too long": "Het tellen voor de filters duurde te lang",
+  "It was stopped before it finished. Try a shorter time range or more specific filters.": "Gestopt voordat het klaar was. Probeer een korter tijdsbereik of specifiekere filters.",
+  "Not counted": "Niet geteld",
+  "Not counted: this took too long.": "Niet geteld: dit duurde te lang.",
+  "Something went wrong. Try again in a moment.": "Er ging iets mis. Probeer het zo opnieuw.",
+  "They were stopped before they finished. Try a shorter time range or more specific filters.": "Gestopt voordat ze klaar waren. Probeer een korter tijdsbereik of specifiekere filters.",
+  "This chart could not load": "Deze grafiek kon niet worden geladen",
+  "This chart took too long to load": "Het laden van deze grafiek duurde te lang",
+  "This search could not finish": "Deze zoekopdracht kon niet worden voltooid",
+  "This search took too long": "Deze zoekopdracht duurde te lang"
 }
