@@ -99,6 +99,9 @@ export const resolveLogIdentifier: (log: Log, index: number) => string = (
 
 export type LogsTableSortField = "time" | "severityText";
 
+// The list's own box: the rows, their loader and their empty state.
+export const LOGS_TABLE_TEST_ID: string = "logs-table";
+
 const stringifyLogValue: (value: unknown) => string = (
   value: unknown,
 ): string => {
@@ -126,6 +129,14 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const showEmptyState: boolean = !props.isLoading && props.logs.length === 0;
+  /*
+   * Loading with no rows yet - the first page, or a list that waits for a
+   * saved view to apply (issue #4709). The loader gets the room the rows
+   * will take, as the other explorers' lists give theirs, rather than a
+   * strip across the column headings.
+   */
+  const isLoadingFirstRows: boolean =
+    props.isLoading && props.logs.length === 0;
   const activeSortField: LogsTableSortField | undefined = props.sortField;
   const activeSortOrder: SortOrder = props.sortOrder || SortOrder.Descending;
   const selectedColumns: Array<string> = normalizeLogsTableColumns(
@@ -392,7 +403,10 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
   };
 
   return (
-    <div className="relative">
+    <div
+      className={isLoadingFirstRows ? "relative min-h-48" : "relative"}
+      data-testid={LOGS_TABLE_TEST_ID}
+    >
       <div className="overflow-x-auto bg-white">
         <table className="min-w-full">
           <thead className="bg-gray-50/80">

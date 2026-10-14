@@ -552,6 +552,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
               onPageChange={props.onPageChange}
               onPageSizeChange={props.onPageSizeChange}
               isDisabled={props.isLoading}
+              isLoading={props.isLoading && props.items.length === 0}
               itemLabel={props.itemLabel}
             />
           )}
