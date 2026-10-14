@@ -33,6 +33,7 @@ import OnCallPolicyRunMessage from "../../../../Server/Utils/Workspace/LiveMessa
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspacePage, {
   WORKSPACE_PAGE_ACTION,
+  WORKSPACE_PAGE_FORM_TEXT,
   WORKSPACE_PAGE_MAX_CHOICE_LABEL_LENGTH,
   WORKSPACE_PAGE_MAX_TITLE_LENGTH,
   WORKSPACE_PAGE_MAX_WAIT_FOR_RECORD_IN_MS,
@@ -282,7 +283,7 @@ describe("WorkspacePage.resolvePeople: who a chat's @mention is in OneUptime", (
     ).toEqual({
       people: [],
       notTold: [
-        "OneUptime can't tell who @nawaz is: their Slack account isn't connected to OneUptime.",
+        "OneUptime can't tell who @nawaz is: their Slack account isn't connected to OneUptime. Pick them below.",
       ],
     });
   });
@@ -297,7 +298,7 @@ describe("WorkspacePage.resolvePeople: who a chat's @mention is in OneUptime", (
         })
       ).notTold,
     ).toEqual([
-      "OneUptime can't tell who @Stranger Danger is: their Slack account isn't connected to OneUptime.",
+      "OneUptime can't tell who @Stranger Danger is: their Slack account isn't connected to OneUptime. Pick them below.",
     ]);
   });
 
@@ -305,7 +306,7 @@ describe("WorkspacePage.resolvePeople: who a chat's @mention is in OneUptime", (
     expect(
       (await resolve({ person: { workspaceUserId: "U0X", name: "" } })).notTold,
     ).toEqual([
-      "OneUptime can't tell who a person you mentioned is: their Slack account isn't connected to OneUptime.",
+      "OneUptime can't tell who a person you mentioned is: their Slack account isn't connected to OneUptime. Pick them below.",
     ]);
   });
 
@@ -317,7 +318,9 @@ describe("WorkspacePage.resolvePeople: who a chat's @mention is in OneUptime", (
       }),
     ).toEqual({
       people: [],
-      notTold: ["@olga isn't a member of this project."],
+      notTold: [
+        "@olga isn't a member of this project, so OneUptime can't page them.",
+      ],
     });
   });
 
@@ -331,7 +334,7 @@ describe("WorkspacePage.resolvePeople: who a chat's @mention is in OneUptime", (
         })
       ).notTold,
     ).toEqual([
-      "OneUptime can't tell who @Nawaz is: their Microsoft Teams account isn't connected to OneUptime.",
+      "OneUptime can't tell who @Nawaz is: their Microsoft Teams account isn't connected to OneUptime. Pick them below.",
     ]);
   });
 
@@ -361,7 +364,7 @@ describe("WorkspacePage.resolvePeople: who a chat's @mention is in OneUptime", (
       (await resolve({ person: { workspaceUserId: "U0X", name: "x" } }))
         .notTold,
     ).toEqual([
-      "Acme Ops can't tell who @x is: their Slack account isn't connected to Acme Ops.",
+      "Acme Ops can't tell who @x is: their Slack account isn't connected to Acme Ops. Pick them below.",
     ]);
   });
 
@@ -627,11 +630,13 @@ describe("WorkspacePage.getPrefill: the form opens with what was typed", () => {
   function prefill(
     text: WorkspacePageText,
     people?: WorkspacePagePeople | undefined,
+    workspaceType: WorkspaceType = WorkspaceType.Slack,
   ): WorkspacePageFormPrefill {
     return WorkspacePage.getPrefill({
       text: text,
       people: people || { people: [], notTold: [] },
       choices: CHOICES,
+      workspaceType: workspaceType,
     });
   }
 
@@ -763,7 +768,24 @@ describe("WorkspacePage.getPrefill: the form opens with what was typed", () => {
         { people: [{ userId: ANA, name: "Ana Ruiz" }], notTold: [] },
       ).notes,
     ).toEqual([
-      "Ana Ruiz isn't in the list below. Run the command again with them @mentioned to page them at once.",
+      "Ana Ruiz isn't in the list below. To page them, run /oneuptime page again with them @mentioned and a message.",
+    ]);
+  });
+
+  test("in Microsoft Teams, the same note says to type page to the bot", () => {
+    expect(
+      prefill(
+        WorkspacePageTextReader.read([
+          {
+            kind: "person",
+            person: { workspaceUserId: "29:1ana", name: "Ana Ruiz" },
+          },
+        ]),
+        { people: [{ userId: ANA, name: "Ana Ruiz" }], notTold: [] },
+        WorkspaceType.MicrosoftTeams,
+      ).notes,
+    ).toEqual([
+      "Ana Ruiz isn't in the list below. To page them, type page again with them @mentioned and a message.",
     ]);
   });
 });
@@ -807,9 +829,12 @@ describe("WorkspacePage.readTargets and getFormProblems: the form's picks", () =
       WorkspacePage.getFormProblems({ values: [], message: "  \n " }),
     ).toEqual({
       who: "Pick who to page.",
-      message:
-        "Write what the page is about: it is what the people paged are told.",
+      // Short: the hint under the field says what the message is for.
+      message: "Write what the page is about.",
     });
+    expect(WORKSPACE_PAGE_FORM_TEXT.messageHint).toBe(
+      "The people you page get this as the title of a new alert.",
+    );
   });
 
   test("more than a page may name", () => {
@@ -1129,7 +1154,7 @@ describe("WorkspacePage.page: the page itself", () => {
     );
   });
 
-  test("nobody paged and no policy: said as such", () => {
+  test("nobody paged and no policy: said as such, and what to do next", () => {
     expect(
       WorkspacePage.getPagedAnswer({
         result: result({
@@ -1145,9 +1170,29 @@ describe("WorkspacePage.page: the page itself", () => {
       markdown: [
         `⚠️ Nobody was paged about **[Alert AL-12](${ALERT_URL})**: “db down”`,
         "- Team Platform has no members.",
+        "Check who is on call, or page someone yourself.",
       ].join("\n\n"),
       text: "Nobody was paged about Alert AL-12",
     });
+  });
+
+  test("nobody paged where the page cannot be shown: there is no progress to follow, so it says what to do instead", () => {
+    const answer: string = WorkspacePage.getPagedAnswer({
+      result: result({
+        paged: [],
+        isAnyonePaged: false,
+        notPaged: ["Nobody is on call in schedule Secondary right now."],
+      }),
+      message: "db down",
+      isShownAtPlace: false,
+      canBeShownAtPlace: true,
+    }).markdown;
+
+    expect(answer).not.toContain("can't post in this conversation");
+    expect(answer).not.toContain("Follow it on the alert");
+    expect(
+      answer.endsWith("Check who is on call, or page someone yourself."),
+    ).toBe(true);
   });
 
   test("names in an answer are text: none can be a link, a mention or formatting", () => {

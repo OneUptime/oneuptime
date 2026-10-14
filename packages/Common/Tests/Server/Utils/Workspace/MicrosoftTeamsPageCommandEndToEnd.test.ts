@@ -868,6 +868,9 @@ describe("anything else: the Page someone card, with what was typed filled in", 
     expect(who).toMatchObject({
       type: "Input.ChoiceSet",
       label: "Who to page",
+      // As Slack's form says it: Teams draws an empty list blank otherwise.
+      placeholder: "Pick people, a team or a schedule",
+      style: "compact",
       isMultiSelect: true,
       isRequired: true,
       errorMessage: "Pick who to page.",
@@ -884,10 +887,32 @@ describe("anything else: the Page someone card, with what was typed filled in", 
     expect(text).toMatchObject({
       type: "Input.Text",
       label: "Message",
+      placeholder: "What should they look at?",
       isMultiline: true,
       isRequired: true,
+      errorMessage: "Write what the page is about.",
     });
     expect(text["value"]).toBeUndefined();
+
+    // Each field's hint right under it, in the subtle small text of a note.
+    const body: Array<JSONObject> = card["body"] as Array<JSONObject>;
+    const whoAt: number = body.indexOf(who);
+    const textAt: number = body.indexOf(text);
+    expect(body[whoAt + 1]).toMatchObject({
+      type: "TextBlock",
+      text: "A schedule pages whoever is on call in it now. Everybody you pick is paged at once.",
+      isSubtle: true,
+      size: "Small",
+    });
+    expect(body[textAt + 1]).toMatchObject({
+      type: "TextBlock",
+      text: "The people you page get this as the title of a new alert.",
+      isSubtle: true,
+      size: "Small",
+    });
+
+    // What the chat list and a notification show of the card.
+    expect(posts[0]!.activity["summary"]).toBe("Page someone");
     expect(card["actions"]).toEqual([
       {
         type: "Action.Submit",
@@ -932,11 +957,14 @@ describe("anything else: the Page someone card, with what was typed filled in", 
     );
     const card: JSONObject = cardOf(sent(delivery)[0]);
 
+    /*
+     * In the card's own text colour: Teams' light theme draws "Warning"
+     * text as yellow (#f8d22a) on white, which cannot be read.
+     */
     expect((card["body"] as Array<JSONObject>)[1]).toEqual({
       type: "TextBlock",
-      text: "⚠️ OneUptime can't tell who @Nawaz Dhandala is: their Microsoft Teams account isn't connected to OneUptime.",
+      text: "⚠️ OneUptime can't tell who @Nawaz Dhandala is: their Microsoft Teams account isn't connected to OneUptime. Pick them below.",
       wrap: true,
-      color: "Warning",
     });
     expect(elementOf(card, "pageMessage")!["value"]).toBe("db down");
     expect(pages).toEqual([]);
@@ -1063,7 +1091,7 @@ describe("the Page someone card, submitted", () => {
 
     expect(pages).toEqual([]);
     expect(answerOf(sent(delivery)[0])).toBe(
-      "Pick who to page. Write what the page is about: it is what the people paged are told.",
+      "Pick who to page. Write what the page is about.",
     );
     expect(
       delivery.requests.filter((request: ConnectorRequest): boolean => {

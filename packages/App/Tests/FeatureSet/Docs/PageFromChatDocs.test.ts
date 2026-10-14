@@ -265,6 +265,7 @@ describe("the examples, read as the command reads them", () => {
           ],
         },
       ],
+      workspaceType: WorkspaceType.Slack,
     });
 
     expect(prefill).toEqual({

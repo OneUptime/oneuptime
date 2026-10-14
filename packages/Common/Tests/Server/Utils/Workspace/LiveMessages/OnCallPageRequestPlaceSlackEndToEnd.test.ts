@@ -319,7 +319,8 @@ describe("Jane pages Nitin from #ops", () => {
 
       expect(message!.method).toBe("chat.update");
       expect(lines(message).slice(0, 3)).toEqual([
-        `✅ *Nitin* acknowledged ${ALERT_IN_SLACK}, so *Jane Doe* stopped paging`,
+        // Jane's page stopped: Jane did not stop it.
+        `✅ *Nitin* acknowledged ${ALERT_IN_SLACK}, so paging stopped`,
         `“${TITLE}”`,
         "•   *Nitin*: acknowledged · paged once · by SMS and email",
       ]);
@@ -371,7 +372,7 @@ describe("Jane pages Nitin from #ops", () => {
 
       expect(alarms).toHaveLength(1);
       expect(alarms[0]!.text.trim()).toBe(
-        `⚠️ Nobody has acknowledged ${ALERT_IN_SLACK}. *Jane Doe* paged Nitin, and has stopped paging. Someone needs to take it.`,
+        `⚠️ Nobody has acknowledged ${ALERT_IN_SLACK}. *Jane Doe* paged Nitin, and paging has stopped. Someone needs to take it.`,
       );
       expect(alarms[0]!.notification).toBe(
         "Nobody has acknowledged Alert AL-12: someone needs to take it",

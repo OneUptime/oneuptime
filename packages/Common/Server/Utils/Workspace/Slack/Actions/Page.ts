@@ -28,6 +28,7 @@ import Response from "../../../Response";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspacePage, {
   WORKSPACE_PAGE_ACTION,
+  WORKSPACE_PAGE_FORM_TEXT,
   WorkspacePageCandidate,
   WorkspacePageChoice,
   WorkspacePageChoiceGroup,
@@ -81,7 +82,7 @@ const MAX_MESSAGE_LENGTH: number = 3000;
 
 export default class SlackPageActions {
   // What the form is called, in Slack's 24 characters.
-  public static readonly FORM_TITLE: string = "Page someone";
+  public static readonly FORM_TITLE: string = WORKSPACE_PAGE_FORM_TEXT.title;
 
   @CaptureSpan()
   public static isPageAction(data: { actionType: SlackActionType }): boolean {
@@ -418,6 +419,7 @@ export default class SlackPageActions {
       text: data.text,
       people: data.people,
       choices: choices,
+      workspaceType: WorkspaceType.Slack,
     });
 
     try {
@@ -467,9 +469,9 @@ export default class SlackPageActions {
 
     const who: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
-      label: "Who to page",
+      label: WORKSPACE_PAGE_FORM_TEXT.whoLabel,
       blockId: PAGE_FORM_WHO_FIELD,
-      placeholder: "Pick people, a team or a schedule",
+      placeholder: WORKSPACE_PAGE_FORM_TEXT.whoPlaceholder,
       options: [],
       optionGroups: data.choices.map((group: WorkspacePageChoiceGroup) => {
         return {
@@ -484,19 +486,17 @@ export default class SlackPageActions {
       }),
       multiSelect: true,
       initialValues: data.prefill.values,
-      description:
-        "A schedule pages whoever is on call in it now. Everybody you pick is paged at once.",
+      description: WORKSPACE_PAGE_FORM_TEXT.whoHint,
     };
 
     blocks.push(who);
 
     const message: WorkspaceTextAreaBlock = {
       _type: "WorkspaceTextAreaBlock",
-      label: "Message",
+      label: WORKSPACE_PAGE_FORM_TEXT.messageLabel,
       blockId: PAGE_FORM_MESSAGE_FIELD,
-      placeholder: "What should they look at?",
-      description:
-        "What the people you page are told: the title of the alert the page is about.",
+      placeholder: WORKSPACE_PAGE_FORM_TEXT.messagePlaceholder,
+      description: WORKSPACE_PAGE_FORM_TEXT.messageHint,
       ...(data.prefill.message
         ? {
             initialValue: data.prefill.message.substring(0, MAX_MESSAGE_LENGTH),
@@ -509,7 +509,7 @@ export default class SlackPageActions {
     return {
       _type: "WorkspaceModalBlock",
       title: SlackPageActions.FORM_TITLE,
-      submitButtonTitle: "Page",
+      submitButtonTitle: WORKSPACE_PAGE_FORM_TEXT.submit,
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitPageSomeone,
       actionValue: "",

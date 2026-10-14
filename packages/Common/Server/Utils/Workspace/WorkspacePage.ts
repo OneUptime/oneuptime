@@ -39,8 +39,10 @@ import ProductBrandingText from "../ProductBrandingText";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ProjectMembership from "../TeamMember/ProjectMembership";
 import OnCallPolicyRunMessage from "./LiveMessages/OnCallPolicyRunMessage";
+import { WHAT_TO_DO_WHEN_NOBODY_WAS_REACHED } from "./LiveMessages/OnCallPolicyRunMessageView";
 import { WorkspaceAnswer } from "./WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "./WorkspaceActionAuthorization";
+import WorkspaceCommands, { WorkspaceCommandName } from "./WorkspaceCommands";
 import WorkspacePageTextReader, {
   WorkspacePagePerson,
   WorkspacePageText,
@@ -184,6 +186,40 @@ export const WORKSPACE_PAGE_MAX_TITLE_LENGTH: number = 500;
 // What a refusal to page says it is about: "You do not have permission to ...".
 export const WORKSPACE_PAGE_ACTION: string = "page people";
 
+/*
+ * What the Page someone form says, in Slack's modal and Microsoft Teams'
+ * card alike: the same form in both chats, in the same words.
+ */
+export const WORKSPACE_PAGE_FORM_TEXT: {
+  title: string;
+  whoLabel: string;
+  whoPlaceholder: string;
+  whoHint: string;
+  messageLabel: string;
+  messagePlaceholder: string;
+  messageHint: string;
+  submit: string;
+  pickWho: string;
+  pickFewer: string;
+  writeMessage: string;
+} = {
+  // Slack shows 24 characters of a modal's title.
+  title: "Page someone",
+  whoLabel: "Who to page",
+  whoPlaceholder: "Pick people, a team or a schedule",
+  whoHint:
+    "A schedule pages whoever is on call in it now. Everybody you pick is paged at once.",
+  messageLabel: "Message",
+  messagePlaceholder: "What should they look at?",
+  // Who reads the message, and where it goes: a new alert, named by it.
+  messageHint: "The people you page get this as the title of a new alert.",
+  submit: "Page",
+  // A field left wrong, said under it - the hint above says why it matters.
+  pickWho: "Pick who to page.",
+  pickFewer: `Pick ${MAX_ON_CALL_DIRECT_PAGE_TARGETS} at most.`,
+  writeMessage: "Write what the page is about.",
+};
+
 const WHITE_SPACE_RUN: RegExp = /\s+/g;
 
 export default class WorkspacePage {
@@ -305,9 +341,10 @@ export default class WorkspacePage {
       const mentioned: string = WorkspacePage.getMentionedName(candidate);
       const userId: ObjectID | null = userIdOf(candidate);
 
+      // Each note says what to do about it, under the form it opens.
       if (!userId) {
         notTold.push(
-          `${productName} can't tell who ${mentioned} is: their ${workspaceName} account isn't connected to ${productName}.`,
+          `${productName} can't tell who ${mentioned} is: their ${workspaceName} account isn't connected to ${productName}. Pick them below.`,
         );
         continue;
       }
@@ -315,7 +352,9 @@ export default class WorkspacePage {
       const key: string = userId.toString().toLowerCase();
 
       if (!memberUserIds.has(key)) {
-        notTold.push(`${mentioned} isn't a member of this project.`);
+        notTold.push(
+          `${mentioned} isn't a member of this project, so ${productName} can't page them.`,
+        );
         continue;
       }
 
@@ -555,12 +594,14 @@ export default class WorkspacePage {
    * What a form opens with, from what was typed after "page": the people
    * @mentioned that OneUptime can tell, picked; a schedule's, a team's or a
    * policy's name the text starts with, picked, the rest the message; and a
-   * note for each person or group it could not pick.
+   * note for each person or group it could not pick, worded for the chat
+   * the form is in.
    */
   public static getPrefill(data: {
     text: WorkspacePageText;
     people: WorkspacePagePeople;
     choices: Array<WorkspacePageChoiceGroup>;
+    workspaceType: WorkspaceType;
   }): WorkspacePageFormPrefill {
     const values: Array<string> = [];
     const offered: Array<WorkspacePageChoice> = data.choices.flatMap(
@@ -585,10 +626,21 @@ export default class WorkspacePage {
 
     const notes: Array<string> = [...data.people.notTold];
 
+    // "run /oneuptime page" in Slack, "type page" to the Teams bot.
+    const pageUsage: string = WorkspaceCommands.getUsage({
+      workspaceType: data.workspaceType,
+      command: WorkspaceCommandName.Page,
+    });
+    const runPageAgain: string =
+      data.workspaceType === WorkspaceType.Slack
+        ? `run ${pageUsage}`
+        : `type ${pageUsage}`;
+
     for (const person of data.people.people) {
       /*
        * A member the form's list leaves out (past its first hundred) is
-       * said by name: a form cannot pick what it does not offer.
+       * said by name: a form cannot pick what it does not offer. An
+       * @mention and a message page them at once, list or no list.
        */
       if (
         !pick(
@@ -596,7 +648,7 @@ export default class WorkspacePage {
         )
       ) {
         notes.push(
-          `${person.name} isn't in the list below. Run the command again with them @mentioned to page them at once.`,
+          `${person.name} isn't in the list below. To page them, ${runPageAgain} again with them @mentioned and a message.`,
         );
       }
     }
@@ -728,14 +780,13 @@ export default class WorkspacePage {
     );
 
     if (count === 0) {
-      problems.who = "Pick who to page.";
+      problems.who = WORKSPACE_PAGE_FORM_TEXT.pickWho;
     } else if (count > MAX_ON_CALL_DIRECT_PAGE_TARGETS) {
-      problems.who = `Pick ${MAX_ON_CALL_DIRECT_PAGE_TARGETS} at most.`;
+      problems.who = WORKSPACE_PAGE_FORM_TEXT.pickFewer;
     }
 
     if (!data.message.trim()) {
-      problems.message =
-        "Write what the page is about: it is what the people paged are told.";
+      problems.message = WORKSPACE_PAGE_FORM_TEXT.writeMessage;
     }
 
     return problems.who || problems.message ? problems : null;
@@ -914,7 +965,9 @@ export default class WorkspacePage {
       );
     }
 
-    if (lines.length === 0) {
+    const isNobodyPaged: boolean = lines.length === 0;
+
+    if (isNobodyPaged) {
       lines.push(mdText`⚠️ Nobody was paged about ${record}${about}`);
       textParts.push(`Nobody was paged about ${result.record.label}`);
     }
@@ -930,7 +983,13 @@ export default class WorkspacePage {
       );
     }
 
-    if (
+    /*
+     * A page that reached nobody has no progress to follow anywhere: what
+     * to do next, as the run's own message says it where it can be shown.
+     */
+    if (isNobodyPaged) {
+      lines.push(WHAT_TO_DO_WHEN_NOBODY_WAS_REACHED);
+    } else if (
       data.canBeShownAtPlace &&
       !data.isShownAtPlace &&
       result.directPageExecutionLogId

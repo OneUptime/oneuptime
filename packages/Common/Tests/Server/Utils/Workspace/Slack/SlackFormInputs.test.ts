@@ -271,9 +271,14 @@ describe("the Page someone form, as Slack is sent it", () => {
     const message: JSONObject = blocks[2]!["element"] as JSONObject;
     expect(message["multiline"]).toBe(true);
     expect(message["initial_value"]).toBe("db down");
+    // Who reads the message, and that it becomes a new alert's title.
     expect(blocks[2]!["hint"]).toEqual({
       type: "plain_text",
-      text: "What the people you page are told: the title of the alert the page is about.",
+      text: "The people you page get this as the title of a new alert.",
+    });
+    expect(blocks[1]!["hint"]).toEqual({
+      type: "plain_text",
+      text: "A schedule pages whoever is on call in it now. Everybody you pick is paged at once.",
     });
   });
 

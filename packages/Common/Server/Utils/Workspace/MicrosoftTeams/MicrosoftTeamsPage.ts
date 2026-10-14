@@ -19,6 +19,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { WorkspaceAnswer } from "../WorkspaceActionAnswers";
 import { WorkspaceCommandName } from "../WorkspaceCommands";
 import WorkspacePage, {
+  WORKSPACE_PAGE_FORM_TEXT,
   WorkspacePageCandidate,
   WorkspacePageChoice,
   WorkspacePageChoiceGroup,
@@ -396,54 +397,45 @@ export default class MicrosoftTeamsPage {
         const body: Array<JSONObject> = [
           {
             type: "TextBlock",
-            text: "Page someone",
+            text: WORKSPACE_PAGE_FORM_TEXT.title,
             size: "Large",
             weight: "Bolder",
           },
         ];
 
+        /*
+         * In the card's own text colour: Teams draws "Warning" text as
+         * yellow (#f8d22a) on its white light theme, which cannot be read.
+         * The emoji says it is a warning.
+         */
         for (const note of data.prefill.notes) {
           body.push({
             type: "TextBlock",
             text: `⚠️ ${note}`,
             wrap: true,
-            color: "Warning",
           });
         }
 
         body.push({
           type: "Input.ChoiceSet",
           id: MICROSOFT_TEAMS_PAGE_WHO_FIELD,
-          label: "Who to page",
+          label: WORKSPACE_PAGE_FORM_TEXT.whoLabel,
+          placeholder: WORKSPACE_PAGE_FORM_TEXT.whoPlaceholder,
           style: "compact",
           isMultiSelect: true,
           isRequired: true,
-          errorMessage: "Pick who to page.",
+          errorMessage: WORKSPACE_PAGE_FORM_TEXT.pickWho,
           choices: choices,
           ...(values.length > 0 ? { value: values.join(",") } : {}),
         });
 
         body.push(
           MicrosoftTeamsCardChoices.buildNoteElement(
-            "A schedule pages whoever is on call in it now. Everybody you pick is paged at once.",
+            WORKSPACE_PAGE_FORM_TEXT.whoHint,
           ),
         );
 
-        body.push({
-          type: "Input.Text",
-          id: MICROSOFT_TEAMS_PAGE_MESSAGE_FIELD,
-          label: "Message",
-          placeholder: "What should they look at?",
-          isMultiline: true,
-          isRequired: true,
-          errorMessage:
-            "Write what the page is about: it is what the people paged are told.",
-          maxLength: MAX_MESSAGE_LENGTH,
-          ...(data.prefill.message
-            ? { value: data.prefill.message.substring(0, MAX_MESSAGE_LENGTH) }
-            : {}),
-        });
-
+        // What the list leaves out, said under the list itself.
         const leftOut: number = keys.reduce((count: number, key: string) => {
           return (
             count +
@@ -454,10 +446,30 @@ export default class MicrosoftTeamsPage {
         if (leftOut > 0) {
           body.push(
             MicrosoftTeamsCardChoices.buildNoteElement(
-              `${leftOut} more could not fit on this card. @mention a person to page them at once.`,
+              `${leftOut} more ${leftOut === 1 ? "choice" : "choices"} could not fit on this card. @mention a person to page them at once.`,
             ),
           );
         }
+
+        body.push({
+          type: "Input.Text",
+          id: MICROSOFT_TEAMS_PAGE_MESSAGE_FIELD,
+          label: WORKSPACE_PAGE_FORM_TEXT.messageLabel,
+          placeholder: WORKSPACE_PAGE_FORM_TEXT.messagePlaceholder,
+          isMultiline: true,
+          isRequired: true,
+          errorMessage: WORKSPACE_PAGE_FORM_TEXT.writeMessage,
+          maxLength: MAX_MESSAGE_LENGTH,
+          ...(data.prefill.message
+            ? { value: data.prefill.message.substring(0, MAX_MESSAGE_LENGTH) }
+            : {}),
+        });
+
+        body.push(
+          MicrosoftTeamsCardChoices.buildNoteElement(
+            WORKSPACE_PAGE_FORM_TEXT.messageHint,
+          ),
+        );
 
         return {
           type: "AdaptiveCard",
@@ -467,7 +479,7 @@ export default class MicrosoftTeamsPage {
           actions: [
             {
               type: "Action.Submit",
-              title: "Page",
+              title: WORKSPACE_PAGE_FORM_TEXT.submit,
               style: "positive",
               data: {
                 action: MicrosoftTeamsPageActionType.SubmitPageSomeone,
@@ -769,11 +781,14 @@ export default class MicrosoftTeamsPage {
       text: data.text,
       people: data.people,
       choices: choices,
+      workspaceType: WorkspaceType.MicrosoftTeams,
     });
 
     try {
       await MicrosoftTeamsReplies.sendCardWithinSizeLimit({
         turnContext: data.turnContext,
+        // What the chat list and a notification show of the card.
+        summary: WORKSPACE_PAGE_FORM_TEXT.title,
         buildCard: (budgetInBytes: number): JSONObject => {
           return MicrosoftTeamsPage.buildFormCard({
             choices: choices,

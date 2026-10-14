@@ -85,6 +85,11 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
  *   • Nawaz: paged once · by push and SMS
  *
  *   See every step in OneUptime
+ *
+ * A page a PERSON started ends as the paging ending, not as the person
+ * doing something: "✅ Nawaz acknowledged Alert #12, so paging stopped". A
+ * policy or a workflow stops paging itself ("so PolicyX stopped paging");
+ * "so Simon Lee stopped paging" read as if Simon had called his page off.
  */
 
 // How a run's message is drawn for one place.
@@ -244,7 +249,7 @@ export const ON_CALL_RUN_NOT_PAGED: string = "not paged";
  * alarm of a run that reached nobody, and the message of a direct page
  * that did (getMarkdown).
  */
-const WHAT_TO_DO_WHEN_NOBODY_WAS_REACHED: MarkdownText = mdText`Check who is on call, or page someone yourself.`;
+export const WHAT_TO_DO_WHEN_NOBODY_WAS_REACHED: MarkdownText = mdText`Check who is on call, or page someone yourself.`;
 
 // How many of the people paged an alarm names before "and N others".
 const MAX_NAMES_IN_AN_ALARM: number = 5;
@@ -257,10 +262,11 @@ const WHITE_SPACE_RUN: RegExp = /\s+/g;
 
 /*
  * How much of a record's title a message shows, where somebody paged from a
- * chat: an alert's title holds 500 characters; a chat line shows a few
- * hundred before it is a wall of text.
+ * chat: an alert's title holds 500 characters, and the alert's link has all
+ * of it. Two hundred is three lines in a channel and five on a phone; much
+ * more and the quote buries who was paged, which the message is for.
  */
-const MAX_RECORD_TITLE_LENGTH: number = 300;
+export const ON_CALL_RUN_MAX_RECORD_TITLE_LENGTH: number = 200;
 
 export default class OnCallPolicyRunMessageView {
   /*
@@ -354,11 +360,11 @@ export default class OnCallPolicyRunMessageView {
       .replace(WHITE_SPACE_RUN, " ")
       .trim();
 
-    if (title.length <= MAX_RECORD_TITLE_LENGTH) {
+    if (title.length <= ON_CALL_RUN_MAX_RECORD_TITLE_LENGTH) {
       return title;
     }
 
-    return `${title.substring(0, MAX_RECORD_TITLE_LENGTH - 1).trimEnd()}…`;
+    return `${title.substring(0, ON_CALL_RUN_MAX_RECORD_TITLE_LENGTH - 1).trimEnd()}…`;
   }
 
   private static getPlainTextLine(run: OnCallPolicyRun): string {
@@ -367,6 +373,8 @@ export default class OnCallPolicyRunMessageView {
     const pagerNameInSentence: string = this.getPagerName(run, {
       isInSentence: true,
     });
+    // A person's page: the paging stops, not the person (see the header).
+    const isStartedByPerson: boolean = this.isStartedByPerson(run);
 
     switch (run.outcome) {
       case OnCallPolicyRunOutcome.Paging:
@@ -374,6 +382,12 @@ export default class OnCallPolicyRunMessageView {
       case OnCallPolicyRunOutcome.Acknowledged:
         return `${run.acknowledgedByName || "Someone"} acknowledged ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.RecordHandled:
+        if (isStartedByPerson) {
+          return run.outcomeDetail
+            ? `${run.recordLabel} moved to ${run.outcomeDetail}, so paging stopped`
+            : `Paging stopped for ${run.recordLabel}`;
+        }
+
         return run.outcomeDetail
           ? `${run.recordLabel} moved to ${run.outcomeDetail}, so ${pagerNameInSentence} stopped paging`
           : `${pagerName} stopped paging for ${run.recordLabel}`;
@@ -385,9 +399,13 @@ export default class OnCallPolicyRunMessageView {
         return `${pagerName} could not reach anyone for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Failed:
       default:
-        return run.paged.length > 0
-          ? `${pagerName} stopped paging for ${run.recordLabel}`
-          : `${pagerName} could not page anyone for ${run.recordLabel}`;
+        if (run.paged.length > 0) {
+          return isStartedByPerson
+            ? `Paging stopped for ${run.recordLabel}`
+            : `${pagerName} stopped paging for ${run.recordLabel}`;
+        }
+
+        return `${pagerName} could not page anyone for ${run.recordLabel}`;
     }
   }
 
@@ -406,6 +424,8 @@ export default class OnCallPolicyRunMessageView {
     // The policy, or who started a direct page.
     const policy: MarkdownText = this.getPager(run);
     const pagerName: string = this.getPagerName(run);
+    // A person's page: the paging stops, not the person (see the header).
+    const isStartedByPerson: boolean = this.isStartedByPerson(run);
 
     /*
      * A rule that reached nobody is said only while nobody is on the record:
@@ -443,7 +463,7 @@ export default class OnCallPolicyRunMessageView {
           key: ON_CALL_RUN_ALARM_OUTCOME,
           markdown: run.directPage
             ? // Everybody was paged at once, and each page has sent all it had to.
-              mdText`⚠️ Nobody has acknowledged ${record}. ${policy} paged ${this.getPagedNames(run)}, and has stopped paging. Someone needs to take it.`.toString()
+              mdText`⚠️ Nobody has acknowledged ${record}. ${policy} paged ${this.getPagedNames(run)}, and ${isStartedByPerson ? mdText`paging has stopped` : mdText`has stopped paging`}. Someone needs to take it.`.toString()
             : mdText`⚠️ Nobody has acknowledged ${record}. ${policy} paged ${this.getPagedNames(run)}, went through every escalation rule${this.getRepeatsDoneClause(run)} and has stopped paging. Someone needs to take it.`.toString(),
           text: `Nobody has acknowledged ${run.recordLabel}: someone needs to take it`,
         });
@@ -471,6 +491,17 @@ export default class OnCallPolicyRunMessageView {
           run.paged.length > 0
             ? mdText`stopped paging for ${record} before anyone acknowledged`
             : mdText`could not page anyone for ${record}`;
+
+        // A person's page that went wrong part way: the paging stopped.
+        if (isStartedByPerson && run.paged.length > 0) {
+          alarms.push({
+            key: ON_CALL_RUN_ALARM_OUTCOME,
+            markdown:
+              mdText`❌ Paging stopped for ${record} before anyone acknowledged${this.getFailureDetail(run)} Page someone yourself.`.toString(),
+            text: `Paging stopped for ${run.recordLabel} before anyone acknowledged`,
+          });
+          break;
+        }
 
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
@@ -502,20 +533,25 @@ export default class OnCallPolicyRunMessageView {
     const policyInSentence: MarkdownText = this.getPager(run, {
       isInSentence: true,
     });
+    // A person's page: the paging stops, not the person (see the header).
+    const isStartedByPerson: boolean = this.isStartedByPerson(run);
+    const soPagingStopped: MarkdownText = isStartedByPerson
+      ? mdText`so paging stopped`
+      : mdText`so ${policyInSentence} stopped paging`;
 
     switch (run.outcome) {
       case OnCallPolicyRunOutcome.Paging:
         return mdText`📟 ${policy} is paging for ${record}`;
       case OnCallPolicyRunOutcome.Acknowledged:
-        return mdText`✅ **${run.acknowledgedByName || "Someone"}** acknowledged ${record}, so ${policyInSentence} stopped paging`;
+        return mdText`✅ **${run.acknowledgedByName || "Someone"}** acknowledged ${record}, ${soPagingStopped}`;
       case OnCallPolicyRunOutcome.RecordHandled:
         /*
          * In the past tense: the message is not edited once the run is
          * over, and the record may move on to other states after it.
          */
         return run.outcomeDetail
-          ? mdText`✅ ${record} moved to **${run.outcomeDetail}**, so ${policyInSentence} stopped paging`
-          : mdText`✅ ${record} is being handled, so ${policyInSentence} stopped paging`;
+          ? mdText`✅ ${record} moved to **${run.outcomeDetail}**, ${soPagingStopped}`
+          : mdText`✅ ${record} is being handled, ${soPagingStopped}`;
       case OnCallPolicyRunOutcome.PolicyArchived:
         return mdText`⏹️ ${policy} stopped paging for ${record}: the policy was archived`;
       case OnCallPolicyRunOutcome.NobodyAcknowledged:
@@ -527,6 +563,13 @@ export default class OnCallPolicyRunMessageView {
         return mdText`⚠️ ${policy} could not reach anyone for ${record}`;
       case OnCallPolicyRunOutcome.Failed:
       default: {
+        // A person's page that went wrong after paging people: it stopped.
+        if (isStartedByPerson && run.paged.length > 0) {
+          return run.outcomeDetail
+            ? mdText`❌ Paging stopped for ${record}: ${run.outcomeDetail}`
+            : mdText`❌ Paging stopped for ${record}`;
+        }
+
         // Some rules may have paged people before it went wrong.
         const what: MarkdownText =
           run.paged.length > 0
@@ -709,6 +752,22 @@ export default class OnCallPolicyRunMessageView {
     }
 
     return mdText`${ProductBrandingText.getProductName()}`;
+  }
+
+  /*
+   * Whether a person started the run - a page from a chat - and not a
+   * policy, a workflow or the product: its ending is then told as the
+   * paging ending ("so paging stopped"), never as the person stopping it.
+   */
+  private static isStartedByPerson(run: OnCallPolicyRun): boolean {
+    if (!run.directPage) {
+      return false;
+    }
+
+    return (
+      !(run.directPage.startedByWorkflowName || "").trim() &&
+      Boolean((run.directPage.startedByPersonName || "").trim())
+    );
   }
 
   // The same, as plain text: what a notification shows of it.

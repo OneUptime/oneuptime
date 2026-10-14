@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import OnCallPolicyRunMessageView, {
+  ON_CALL_RUN_MAX_RECORD_TITLE_LENGTH,
   OnCallPolicyRun,
   OnCallPolicyRunOutcome,
 } from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessageView";
@@ -67,16 +68,19 @@ describe("where the page was asked from: what it is about, under the first line"
     );
   });
 
-  test("acknowledged: still saying what it was about", () => {
-    expect(
-      OnCallPolicyRunMessageView.getMarkdown(
-        page({
-          outcome: OnCallPolicyRunOutcome.Acknowledged,
-          acknowledgedByName: "Nawaz Dhandala",
-        }),
-        { recordTitle: TITLE },
-      ).split("\n\n")[1],
-    ).toBe(`“${TITLE}”`);
+  test("acknowledged: who did, that paging stopped - Simon did not stop it - and still what it was about", () => {
+    const lines: Array<string> = OnCallPolicyRunMessageView.getMarkdown(
+      page({
+        outcome: OnCallPolicyRunOutcome.Acknowledged,
+        acknowledgedByName: "Nawaz Dhandala",
+      }),
+      { recordTitle: TITLE },
+    ).split("\n\n");
+
+    expect(lines[0]).toBe(
+      `✅ **Nawaz Dhandala** acknowledged ${RECORD}, so paging stopped`,
+    );
+    expect(lines[1]).toBe(`“${TITLE}”`);
   });
 
   test("its notification says it too", () => {
@@ -134,13 +138,20 @@ describe("where the page was asked from: what it is about, under the first line"
     }).split("\n\n")[1]!;
 
     expect(shown.includes("\n")).toBe(false);
-    // The quotes, and 300 characters at most between them.
-    expect(shown.length).toBeLessThanOrEqual(302);
+    /*
+     * The quotes, and 200 characters at most between them: three lines in
+     * a channel, five on a phone - the alert's link has the rest.
+     */
+    expect(ON_CALL_RUN_MAX_RECORD_TITLE_LENGTH).toBe(200);
+    expect(shown.length).toBe(ON_CALL_RUN_MAX_RECORD_TITLE_LENGTH + 2);
     expect(shown.endsWith("…”")).toBe(true);
     expect(
       OnCallPolicyRunMessageView.getPlainText(page(), { recordTitle: title })
         .length,
-    ).toBeLessThanOrEqual("Simon Lee is paging for Alert AL-12: ".length + 300);
+    ).toBeLessThanOrEqual(
+      "Simon Lee is paging for Alert AL-12: ".length +
+        ON_CALL_RUN_MAX_RECORD_TITLE_LENGTH,
+    );
   });
 
   test("a title as long as an alert's, and longer, of white space and words: shown in time that grows with it", () => {

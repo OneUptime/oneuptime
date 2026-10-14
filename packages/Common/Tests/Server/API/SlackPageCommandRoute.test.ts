@@ -1015,7 +1015,7 @@ describe("POST /slack/command: /oneuptime page", () => {
       const view: JSONObject = await openedForm();
 
       expect(notesIn(view)).toBe(
-        "⚠️ OneUptime can't tell who @dana is: their Slack account isn't connected to OneUptime.\n",
+        "⚠️ OneUptime can't tell who @dana is: their Slack account isn't connected to OneUptime. Pick them below.\n",
       );
       expect(pickedIn(view)).toEqual([]);
       expect(messageIn(view)).toBe("db down");
@@ -1026,7 +1026,9 @@ describe("POST /slack/command: /oneuptime page", () => {
       await post("page <@U0NAWAZ|nawaz> <@U0OLGA|olga> db down");
       const view: JSONObject = await openedForm();
 
-      expect(notesIn(view)).toBe("⚠️ @olga isn't a member of this project.\n");
+      expect(notesIn(view)).toBe(
+        "⚠️ @olga isn't a member of this project, so OneUptime can't page them.\n",
+      );
       expect(pickedIn(view)).toEqual([`user:${NAWAZ.toString()}`]);
       expect(pages).toEqual([]);
     });
@@ -1176,8 +1178,7 @@ describe("POST /slack/command: /oneuptime page", () => {
         response_action: "errors",
         errors: {
           pageTargets: "Pick who to page.",
-          pageMessage:
-            "Write what the page is about: it is what the people paged are told.",
+          pageMessage: "Write what the page is about.",
         },
       });
       expect(pages).toEqual([]);
