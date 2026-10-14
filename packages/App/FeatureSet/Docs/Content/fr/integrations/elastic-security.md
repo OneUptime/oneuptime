@@ -44,7 +44,7 @@ Les alertes sont stockées par espace. Ouvrez l'espace où tournent vos règles 
 
 ### Ajouter la connexion dans OneUptime
 
-Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{projectId}/security-events/connections`), cliquez sur **Ajouter une connexion**, choisissez **Elastic Security**, puis cliquez sur **Suivant**. Remplissez les paramètres du tableau ci-dessous, cliquez sur **Suivant**, et collez la clé dans **API key**.
+Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{projectId}/security-events/connections`), cliquez sur **Ajouter une connexion**, choisissez **Elastic Security**, puis cliquez sur **Suivant**. Remplissez les paramètres du tableau ci-dessous, cliquez sur **Suivant**, et collez la clé dans **Clé API**.
 
 ### La tester avant d'enregistrer
 
@@ -55,7 +55,7 @@ Cliquez sur **Test these settings** sous **Test before saving**. Le test s'authe
 | --- | --- |
 | **Kibana URL** | L'adresse depuis laquelle Kibana est servi, par exemple `https://kibana.example.com` ou `https://<deployment>.kb.<region>.cloud.es.io`. Sans chemin : ni `/app/security`, ni `/api`, ni la partie `/s/<space>`. |
 | **Kibana space** | L'ID de l'espace, pas son nom : lettres, chiffres, tirets et traits de soulignement. Laissez-le vide pour l'espace par défaut. |
-| **API key** | La valeur **Base64** de la clé, seule : OneUptime ajoute lui-même le schéma `ApiKey`. Elle est chiffrée, jamais renvoyée par l'API et jamais réaffichée. Remplacez-la avec **Update credentials** sur la connexion. |
+| **Clé API** | La valeur **Base64** de la clé, seule : OneUptime ajoute lui-même le schéma `ApiKey`. Elle est chiffrée, jamais renvoyée par l'API et jamais réaffichée. Remplacez-la avec **Update credentials** sur la connexion. |
 
 L'étape **Polling** contient aussi une **Description** facultative, le **Poll Interval (Minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
 

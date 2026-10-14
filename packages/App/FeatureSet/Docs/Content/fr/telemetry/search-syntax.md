@@ -195,6 +195,7 @@ Les puces font partie de la vue enregistrée et de l'URL de la page : un filtre 
 - Les **clés** d'attribut sont comparées sans tenir compte de la casse pour les filtres par joker, « contient », préfixe et suffixe : inutile de vous rappeler si elle a été ingérée en `requestId` ou en `requestid`.
 - Un filtre `-@k:...` correspond aussi aux lignes qui n'ont jamais eu l'attribut : une ligne sans aucun `platform.team` ne commence évidemment pas par `a`.
 - Les comparaisons numériques fonctionnent sur des valeurs d'attribut stockées en texte ; une valeur qui n'est pas un nombre ne satisfait jamais une comparaison.
+- Sur les journaux et les traces, une valeur exacte, comme `@http.route:/orders`, `@k:(a OR b)` ou une valeur cliquée dans la barre latérale des facettes, est cherchée dans un index : la recherche d'une valeur que peu de lignes portent reste donc rapide sur de longues périodes. Les jokers, « contient », les exclusions et les comparaisons lisent chaque ligne de journal ou span de la période : quand l'une de ces recherches est lente, ajoutez une valeur exacte ou choisissez une période plus courte.
 
 ## Étapes suivantes
 

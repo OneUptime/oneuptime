@@ -297,6 +297,32 @@ Un destino de Ping o Port pegado con espacios alrededor – que es lo que da cop
 
 No hay migración para los destinos ya guardados, así que **vuelva a abrir cada monitor IPv6 Ping, Port y SSL después de actualizar y guárdelo de nuevo**, y compruebe el destino que muestra. Cuente con que los monitores que fallaban de forma permanente en sondas macOS o FreeBSD empiecen a decir la verdad, lo que puede resolver incidentes o abrir otros nuevos.
 
+### Las búsquedas de registros y trazas por valor de atributo usan un índice
+
+Los registros y las trazas filtrados por un valor de atributo, como `@http.route:/orders` o un valor en el que hace clic en la barra lateral de facetas, leían los atributos de cada línea de registro o span del intervalo de tiempo. En una instalación con mucha carga, una búsqueda de unas horas o más podía detenerse en el límite de consulta de 45 segundos. La 14 añade un índice sobre los valores de atributo de las tablas de registros y spans, así que estas búsquedas solo leen las partes de la tabla que pueden contener el valor. La lista, el gráfico, los recuentos de facetas y la exportación devuelven los mismos resultados que antes, más pronto.
+
+Ayuda sobre todo con un valor que tienen pocas filas, como una ruta de petición o un id de usuario, inquilino, pedido o sesión. Un valor que tienen la mayoría de las filas, como `GET`, gana poco, y los comodines, «contiene», las exclusiones, las comparaciones y `@k:*` leen tanto como antes.
+
+No hay nada que hacer. Al arrancar, OneUptime añade el índice a `LogItemV3` y `SpanItemV3` sin reescribirlas, e indexa los registros y spans nuevos a medida que llegan. Después, ClickHouse indexa en segundo plano los que ya tiene, junto a la ingesta y las búsquedas: lee los atributos de cada fila una vez, más o menos el trabajo de una búsqueda sobre todo lo que conserva. Los días más antiguos se vuelven más rápidos a medida que llega a ellos. El índice aumenta unos pocos por ciento el tamaño de estas dos tablas, un 4 % en nuestras mediciones.
+
+Para seguir la indexación en segundo plano, ejecute esto en `clickhouse-client`. Muestra cada tabla que aún se está indexando con el número de partes que le quedan, y nada cuando la indexación ha terminado:
+
+```sql
+SELECT table, parts_to_do
+FROM system.mutations
+WHERE command LIKE '%idx_attribute_values%'
+  AND NOT is_done;
+```
+
+Si la indexación ralentiza una instalación muy grande, deténgala (`oneuptime` es el nombre predeterminado del clúster):
+
+```sql
+KILL MUTATION ON CLUSTER 'oneuptime'
+WHERE command LIKE '%idx_attribute_values%';
+```
+
+Los días a los que aún no ha llegado se buscan entonces como antes, hasta que se vuelvan a fusionar o caduquen.
+
 ### Chart del agente de Kubernetes: el agente de IA de Kubernetes
 
 El chart `kubernetes-agent` ejecuta ahora por defecto el **Agente de IA de Kubernetes**: un pod pequeño y de solo lectura (`component=ai-agent`, imagen `oneuptime/kubernetes-ai-agent`) que permite a OneUptime AI ejecutar `kubectl` mientras investiga un incidente o una alerta en ese clúster. Sustituye al Runner dentro del clúster que instalaba `aiAccess.enabled=true`. No tiene relación con el AI Agent retirado en OneUptime 12 ([Si ejecutaba el AI Agent independiente](#si-ejecutaba-el-ai-agent-independiente)).

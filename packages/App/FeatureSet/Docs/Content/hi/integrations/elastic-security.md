@@ -44,7 +44,7 @@ flowchart TB
 
 ### OneUptime में कनेक्शन जोड़ें
 
-**उत्पाद → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`) खोलें, **कनेक्शन जोड़ें** पर क्लिक करें, **Elastic Security** चुनें, और **अगला** पर क्लिक करें। नीचे दी गई तालिका की सेटिंग्स भरें, **अगला** पर क्लिक करें, और key को **API key** में पेस्ट करें।
+**उत्पाद → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`) खोलें, **कनेक्शन जोड़ें** पर क्लिक करें, **Elastic Security** चुनें, और **अगला** पर क्लिक करें। नीचे दी गई तालिका की सेटिंग्स भरें, **अगला** पर क्लिक करें, और key को **API कुंजी** में पेस्ट करें।
 
 ### सहेजने से पहले इसे टेस्ट करें
 
@@ -55,7 +55,7 @@ flowchart TB
 | --- | --- |
 | **Kibana URL** | वह पता जहां से Kibana दिया जाता है, जैसे `https://kibana.example.com` या `https://<deployment>.kb.<region>.cloud.es.io`। कोई पाथ नहीं: न `/app/security`, न `/api`, न `/s/<space>` वाला हिस्सा। |
 | **Kibana space** | स्पेस की ID, उसका नाम नहीं: अक्षर, अंक, हाइफ़न और अंडरस्कोर। डिफ़ॉल्ट स्पेस के लिए खाली छोड़ें। |
-| **API key** | key का **Base64** मान, अकेले: `ApiKey` स्कीम OneUptime खुद जोड़ता है। यह एन्क्रिप्ट किया जाता है, API इसे कभी नहीं लौटाता, और यह फिर कभी नहीं दिखता। इसे कनेक्शन पर **Update credentials** से बदलें। |
+| **API कुंजी** | key का **Base64** मान, अकेले: `ApiKey` स्कीम OneUptime खुद जोड़ता है। यह एन्क्रिप्ट किया जाता है, API इसे कभी नहीं लौटाता, और यह फिर कभी नहीं दिखता। इसे कनेक्शन पर **Update credentials** से बदलें। |
 
 **Polling** चरण में एक वैकल्पिक **विवरण**, **Poll Interval (Minutes)**, जो `1` से `1440` तक की पूर्ण संख्या है और `5` से शुरू होती है, और **सक्षम** भी है, जो शुरू में चालू रहता है।
 

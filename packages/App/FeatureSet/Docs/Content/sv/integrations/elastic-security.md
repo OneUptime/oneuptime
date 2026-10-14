@@ -44,7 +44,7 @@ Larm sparas per space. Öppna det space där dina regler körs: dess ID är den 
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Elastic Security** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in nyckeln i **API key**.
+Öppna **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Elastic Security** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in nyckeln i **API-nyckel**.
 
 ### Testa den innan du sparar
 
@@ -55,7 +55,7 @@ Klicka på **Test these settings** under **Test before saving**. Testet autentis
 | --- | --- |
 | **Kibana URL** | Adressen som Kibana erbjuds från, till exempel `https://kibana.example.com` eller `https://<deployment>.kb.<region>.cloud.es.io`. Utan sökväg: ingen `/app/security`, ingen `/api` och ingen `/s/<space>`-del. |
 | **Kibana space** | Spacets ID, inte dess namn: bokstäver, siffror, bindestreck och understreck. Lämna tomt för standardspacet. |
-| **API key** | Nyckelns **Base64**-värde, ensamt: OneUptime lägger själv till schemat `ApiKey`. Det krypteras, returneras aldrig av API:t och visas aldrig igen. Ersätt det med **Update credentials** på anslutningen. |
+| **API-nyckel** | Nyckelns **Base64**-värde, ensamt: OneUptime lägger själv till schemat `ApiKey`. Det krypteras, returneras aldrig av API:t och visas aldrig igen. Ersätt det med **Update credentials** på anslutningen. |
 
 Steget **Polling** har också en valfri **Beskrivning**, **Poll Interval (Minutes)**, ett heltal från `1` till `1440` som börjar på `5`, och **Aktiverad**, som börjar påslagen.
 
