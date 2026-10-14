@@ -74,7 +74,7 @@ import { describe, expect, it } from "@jest/globals";
  * Splunk Enterprise Security, Elastic Security, AWS Security Hub and Okta
  * System Log connection pages, and the GitHub, GitLab, Discord and
  * Telegram pages. IntegrationsDocsFacts, AlertingIntegrationsDocsFacts,
- * SecurityConnectionsDocsFacts, SecurityConnectorPagesDocsFacts and
+ * SecurityConnectionsDocsFacts, SplunkElasticAwsOktaDocsFacts and
  * IssueAndChatIntegrationsDocsFacts hold the English pages to the product;
  * this suite holds each translation to its English page:
  *
@@ -147,6 +147,37 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   "integrations/discord": 23,
   "integrations/telegram": 23,
 };
+
+/*
+ * Tab labels that are words, not a product's name: how a workflow is built,
+ * on the Discord and Telegram pages, as on the IRC page. A reader's pick of
+ * a tab is remembered by its label, from page to page, so each language
+ * words these as its IRC page does, and the pick follows the reader from
+ * one chat's page to the next. Every other tab label names a product, and
+ * stays as written.
+ */
+const WORDED_TAB_LABELS: ReadonlyArray<string> = [
+  "From the template",
+  "From scratch",
+];
+const IRC_PAGE: string = "integrations/irc";
+
+// A tab's label as a page in this language writes it.
+function drawnTabLabel(language: string, english: string): string {
+  if (!WORDED_TAB_LABELS.includes(english)) {
+    return english;
+  }
+
+  const englishLabels: Array<string> = tabLabels(readPage("en", IRC_PAGE));
+  const labels: Array<string> = tabLabels(readPage(language, IRC_PAGE));
+  const drawn: string | undefined = labels[englishLabels.indexOf(english)];
+
+  if (!drawn) {
+    throw new Error(`The ${language} IRC page has no tab for ${english}`);
+  }
+
+  return drawn;
+}
 
 // The names, longest first: "Jira Cloud" goes before "Jira" takes its first word.
 const NAMES_LONGEST_FIRST: Array<string> = [...PRODUCT_NAMES].sort(
@@ -771,9 +802,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         );
       });
 
-      it("keeps the tabs' labels, which name products", () => {
+      it("keeps the tabs' labels that name products, and words the others as the IRC page does", () => {
         expect(tabLabels(readPage(language, entry.page))).toEqual(
-          tabLabels(english),
+          tabLabels(english).map((label: string): string => {
+            return drawnTabLabel(language, label);
+          }),
         );
       });
 
@@ -1054,6 +1087,25 @@ describe("the helpers, on these pages' shapes", () => {
             inShape: inEnglishShape(language, page),
           }).toEqual({ language, page, inShape: true });
         }
+      }
+    }
+  });
+
+  it("word a tab that names no product as the IRC page does, and keep every other as written", () => {
+    expect(drawnTabLabel("en", "From the template")).toBe("From the template");
+    expect(drawnTabLabel("de", "Zabbix 7.0")).toBe("Zabbix 7.0");
+
+    for (const language of LANGUAGES) {
+      for (const label of WORDED_TAB_LABELS) {
+        expect({
+          language,
+          label,
+          worded: drawnTabLabel(language, label) !== label,
+        }).toEqual({
+          language,
+          label,
+          worded: true,
+        });
       }
     }
   });
