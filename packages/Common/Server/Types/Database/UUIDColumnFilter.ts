@@ -39,11 +39,12 @@ import { FindOperator } from "typeorm";
  * have refused as a 400 came back as a 500, and Postgres logged it every time.
  * Two shapes did it:
  *
- *   - An object. `{"currentIncidentStateId": {...}}` in a list request, of a
- *     shape the JSON deserializer does not know, reached TypeORM as it was;
- *     the column's transformer (ObjectID.toDatabase) made text of it with
- *     toString(), and Postgres was asked for the uuid "[object Object]" -
- *     once a minute, from a client polling a project's incidents.
+ *   - An object. `{"currentIncidentStateId": {...}}` in a list of a
+ *     project's incidents, of a shape the JSON deserializer does not know,
+ *     reached TypeORM as it was; the column's transformer
+ *     (ObjectID.toDatabase) made text of it with toString(), and Postgres was
+ *     asked for the uuid "[object Object]" - about once a minute, from a
+ *     caller listing on a schedule.
  *   - Text that is not an id. A workflow reference that did not resolve is
  *     left in the step's query as written, and Postgres was asked for the
  *     uuid "{{local.components.monitor-find-one-1.returnValues.model._id}}".
@@ -55,6 +56,11 @@ import { FindOperator } from "typeorm";
  *   - an ObjectID that arrived serialized, `{"_type": "ObjectID", "value":
  *     "<uuid>"}`, as a plain object - nested in an operator, or from a caller
  *     that never deserialized it - is the text it holds;
+ *   - so is one that arrived as that JSON in text. A workflow writes a
+ *     record's id it refers to in quotes - `"{{...model.currentIncidentStateId}}"`,
+ *     as the step builder writes every reference - as the JSON of what the
+ *     record holds there (VMAPI puts an object inside a string as its JSON),
+ *     and Postgres was asked for the uuid "{\n  "_type": "ObjectID", ...";
  *   - anything else that is not an id is refused with a BadDataException
  *     naming the column, and nothing is sent to Postgres.
  *
@@ -84,6 +90,13 @@ const MAX_DESCRIBED_VALUE_LENGTH: number = 80;
 
 // A serialized ObjectID wrapped in another goes this many deep at most.
 const MAX_SERIALIZED_OBJECT_ID_DEPTH: number = 8;
+
+/*
+ * The longest text read as a serialized ObjectID's JSON. Indented and
+ * wrapped in another, one is a few hundred characters; text longer than this
+ * is not parsed at all.
+ */
+const MAX_SERIALIZED_OBJECT_ID_TEXT_LENGTH: number = 1024;
 
 export const EXAMPLE_UUID: string = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -152,7 +165,11 @@ export default class UUIDColumnFilter {
       return value;
     }
 
-    if (typeof value === "string" || value instanceof ObjectID) {
+    if (typeof value === "string") {
+      return this.getIdText(columnName, value);
+    }
+
+    if (value instanceof ObjectID) {
       // Checked, and left for serializeQuery to compare the column with.
       this.getIdText(columnName, value);
       return value;
@@ -251,13 +268,13 @@ export default class UUIDColumnFilter {
       return value;
     }
 
-    if (typeof value === "string" || value instanceof ObjectID) {
-      this.getIdText(columnName, value);
-      return value;
+    if (typeof value === "string" || this.isSerializedObjectID(value)) {
+      return this.getIdText(columnName, value);
     }
 
-    if (this.isSerializedObjectID(value)) {
-      return this.getIdText(columnName, value);
+    if (value instanceof ObjectID) {
+      this.getIdText(columnName, value);
+      return value;
     }
 
     if (Array.isArray(value)) {
@@ -343,7 +360,7 @@ export default class UUIDColumnFilter {
 
   // `value` as the text of one id, or a BadDataException naming the column.
   private static getIdText(columnName: string, value: unknown): string {
-    let id: unknown = value;
+    let id: unknown = this.parseSerializedObjectIDText(value) || value;
 
     for (
       let depth: number = 0;
@@ -399,7 +416,11 @@ export default class UUIDColumnFilter {
     }
 
     if (!Array.isArray(value) && !this.isPlainObject(value)) {
-      return `an instance of ${(value as object).constructor?.name || "a class"}`;
+      const className: string | undefined = (
+        value as { constructor?: { name?: string } }
+      ).constructor?.name;
+
+      return `an instance of ${className || "a class"}`;
     }
 
     let text: string;
@@ -417,6 +438,36 @@ export default class UUIDColumnFilter {
     return text.length > MAX_DESCRIBED_VALUE_LENGTH
       ? `${text.slice(0, MAX_DESCRIBED_VALUE_LENGTH)}…`
       : text;
+  }
+
+  /*
+   * A serialized ObjectID written as JSON text - what a workflow writes for
+   * a quoted reference to a record's id - or null for any other value. Text
+   * Postgres reads as a uuid is never JSON: `{<uuid>}` does not parse.
+   */
+  private static parseSerializedObjectIDText(
+    value: unknown,
+  ): JSONObject | null {
+    if (
+      typeof value !== "string" ||
+      value.length > MAX_SERIALIZED_OBJECT_ID_TEXT_LENGTH
+    ) {
+      return null;
+    }
+
+    const text: string = value.trim();
+
+    if (!text.startsWith("{") || !text.endsWith("}")) {
+      return null;
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(text);
+
+      return this.isSerializedObjectID(parsed) ? (parsed as JSONObject) : null;
+    } catch {
+      return null;
+    }
   }
 
   private static isSerializedObjectID(value: unknown): boolean {

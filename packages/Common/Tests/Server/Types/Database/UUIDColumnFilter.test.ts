@@ -359,6 +359,65 @@ describe("serializeQuery — a serialized ObjectID is the id it holds", () => {
       [STATE_ID, OTHER_STATE_ID, STATE_ID],
     ]);
   });
+
+  /*
+   * A workflow writes a record's id it refers to in quotes as the JSON of
+   * what the record holds there - indented, as VMAPI writes an object into a
+   * string. Postgres was asked for the uuid "{\n  "_type": "ObjectID", ...".
+   */
+  it("reads a serialized ObjectID written as JSON text as its text", () => {
+    expect(
+      serialize(Incident, {
+        currentIncidentStateId: JSON.stringify(
+          { _type: "ObjectID", value: STATE_ID },
+          null,
+          2,
+        ),
+      })["currentIncidentStateId"],
+    ).toBe(STATE_ID);
+
+    expect(
+      serialize(Incident, {
+        currentIncidentStateId: ` {"_type":"ObjectID","value":"${STATE_ID}"} `,
+      })["currentIncidentStateId"],
+    ).toBe(STATE_ID);
+  });
+
+  it("reads that JSON text in a list, in Includes, and given for a relation", () => {
+    const text: string = JSON.stringify({ _type: "ObjectID", value: STATE_ID });
+
+    const result: Record<string, any> = serialize(Incident, {
+      currentIncidentStateId: new Includes([text]),
+      incidentSeverityId: [text],
+      createdByUser: text,
+    });
+
+    expect(params(result["currentIncidentStateId"])).toEqual([[STATE_ID]]);
+    expect(params(result["incidentSeverityId"])).toEqual([[STATE_ID]]);
+    expect(result["createdByUser"]).toBeUndefined();
+    expect(result["createdByUserId"]).toBe(STATE_ID);
+  });
+
+  it.each([
+    ["a record", JSON.stringify({ _id: STATE_ID })],
+    [
+      "an ObjectID holding text that is no id",
+      JSON.stringify({ _type: "ObjectID", value: "abc" }),
+    ],
+    ["JSON that does not parse", `{"_type": "ObjectID", "value": ${STATE_ID}}`],
+    [
+      "more text than an ObjectID's JSON",
+      JSON.stringify({
+        _type: "ObjectID",
+        value: STATE_ID,
+        note: "x".repeat(2000),
+      }),
+    ],
+  ])("refuses JSON text of %s", (_name: string, text: string) => {
+    expect(
+      refusalOf(Incident, { currentIncidentStateId: text }).message,
+    ).toContain('Invalid ID for "currentIncidentStateId"');
+  });
 });
 
 describe("serializeQuery — ids that already worked are unchanged", () => {
