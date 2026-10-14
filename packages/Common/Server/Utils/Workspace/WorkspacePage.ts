@@ -213,8 +213,9 @@ export const WORKSPACE_PAGE_FORM_TEXT: {
   title: "Page someone",
   whoLabel: "Who to page",
   whoPlaceholder: "Pick people, a team or a schedule",
+  // What a schedule and a policy page: a policy does not page all at once.
   whoHint:
-    "A schedule pages whoever is on call in it now. Everybody you pick is paged at once.",
+    "A schedule pages whoever is on call in it now. A policy pages through its escalation rules.",
   messageLabel: "Message",
   messagePlaceholder: "What should they look at?",
   // Who reads the message, and where it goes: a new alert, named by it.

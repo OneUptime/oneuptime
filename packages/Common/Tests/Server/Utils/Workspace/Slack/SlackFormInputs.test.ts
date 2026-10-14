@@ -278,7 +278,7 @@ describe("the Page someone form, as Slack is sent it", () => {
     });
     expect(blocks[1]!["hint"]).toEqual({
       type: "plain_text",
-      text: "A schedule pages whoever is on call in it now. Everybody you pick is paged at once.",
+      text: "A schedule pages whoever is on call in it now. A policy pages through its escalation rules.",
     });
   });
 
@@ -300,7 +300,7 @@ describe("the Page someone form, as Slack is sent it", () => {
 
     expect(crowdedBlocks[0]!["hint"]).toEqual({
       type: "plain_text",
-      text: "A schedule pages whoever is on call in it now. Everybody you pick is paged at once. 52 more people aren't listed. @mention anyone to page them at once.",
+      text: "A schedule pages whoever is on call in it now. A policy pages through its escalation rules. 52 more people aren't listed. @mention anyone to page them at once.",
     });
   });
 

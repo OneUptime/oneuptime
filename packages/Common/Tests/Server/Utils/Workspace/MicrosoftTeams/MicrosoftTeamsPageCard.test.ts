@@ -127,7 +127,7 @@ describe("the Page someone card", () => {
       "⚠️ OneUptime can't tell who @Dana is: their Microsoft Teams account isn't connected to OneUptime. Pick them below.",
       "⚠️ OneUptime can't page @On-call DBAs. Pick the on-call schedule, the team or the people below.",
       "[Input.ChoiceSet pageTargets]",
-      "A schedule pages whoever is on call in it now. Everybody you pick is paged at once.",
+      "A schedule pages whoever is on call in it now. A policy pages through its escalation rules.",
       "[Input.Text pageMessage]",
       "The people you page get this as the title of a new alert.",
     ]);

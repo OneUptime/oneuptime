@@ -900,7 +900,7 @@ describe("anything else: the Page someone card, with what was typed filled in", 
     const textAt: number = body.indexOf(text);
     expect(body[whoAt + 1]).toMatchObject({
       type: "TextBlock",
-      text: "A schedule pages whoever is on call in it now. Everybody you pick is paged at once.",
+      text: "A schedule pages whoever is on call in it now. A policy pages through its escalation rules.",
       isSubtle: true,
       size: "Small",
     });

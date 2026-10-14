@@ -922,7 +922,7 @@ describe("POST /slack/command: /oneuptime page", () => {
       });
       expect(who["hint"]).toEqual({
         type: "plain_text",
-        text: "A schedule pages whoever is on call in it now. Everybody you pick is paged at once.",
+        text: "A schedule pages whoever is on call in it now. A policy pages through its escalation rules.",
       });
       expect((who["element"] as JSONObject)["type"]).toBe(
         "multi_static_select",
