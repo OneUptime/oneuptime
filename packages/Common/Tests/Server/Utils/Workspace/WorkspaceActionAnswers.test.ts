@@ -190,6 +190,9 @@ describe("the Connect prompt", () => {
     [WorkspacePendingActionKind.Resolve, "resolves it"],
     [WorkspacePendingActionKind.MarkAsOngoing, "marks it as ongoing"],
     [WorkspacePendingActionKind.MarkAsComplete, "marks it as complete"],
+    // A pin saves the message it is on.
+    [WorkspacePendingActionKind.SavePrivateNote, "saves it"],
+    [WorkspacePendingActionKind.SavePublicNote, "saves it"],
   ])(
     "%s promises what it does",
     (kind: WorkspacePendingActionKind, phrase: string) => {
@@ -455,6 +458,21 @@ describe("what a press asks to be connected for", () => {
       WorkspacePendingActionKind.MarkAsComplete,
       WorkspaceEventType.ScheduledMaintenance,
       "mark this scheduled maintenance event as complete",
+    ],
+    [
+      WorkspacePendingActionKind.SavePrivateNote,
+      WorkspaceEventType.Incident,
+      "save this message as a private note on this incident",
+    ],
+    [
+      WorkspacePendingActionKind.SavePublicNote,
+      WorkspaceEventType.ScheduledMaintenance,
+      "save this message as a public note on this scheduled maintenance event",
+    ],
+    [
+      WorkspacePendingActionKind.SavePrivateNote,
+      WorkspaceEventType.AlertEpisode,
+      "save this message as a private note on this alert episode",
     ],
   ])(
     "%s on %s: %s",
@@ -909,6 +927,14 @@ describe("a press finished once the account is connected", () => {
     [WorkspacePendingActionKind.Resolve, "resolved"],
     [WorkspacePendingActionKind.MarkAsOngoing, "marked as ongoing"],
     [WorkspacePendingActionKind.MarkAsComplete, "completed"],
+    [
+      WorkspacePendingActionKind.SavePrivateNote,
+      "saved the message as a private note on",
+    ],
+    [
+      WorkspacePendingActionKind.SavePublicNote,
+      "saved the message as a public note on",
+    ],
   ])(
     "%s says what was done",
     async (kind: WorkspacePendingActionKind, verb: string) => {
