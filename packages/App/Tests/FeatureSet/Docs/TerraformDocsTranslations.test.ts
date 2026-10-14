@@ -118,15 +118,18 @@ const PAGE_NAMES: Array<string> = TERRAFORM_PAGES.map(
  * label lines are broken (<br/>) to be no wider than this, counting a
  * Chinese, Japanese or Korean character twice. Each cap is the widest line
  * the 17 languages drew, every diagram drawn in a browser at the column's
- * width without scrolling. A label put back on one line runs its diagram
- * off the column, and the docs scroll it rather than shrink it.
+ * width without scrolling (the widest, the monitor_steps parts diagram in
+ * English, drew 578px: its last three nodes sit side by side, so their
+ * labels break sooner than one node's would). A label put back on one line
+ * runs its diagram off the column, and the docs scroll it rather than
+ * shrink it.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
-  [TERRAFORM_OVERVIEW]: 30,
-  [QUICK_START]: 30,
+  [TERRAFORM_OVERVIEW]: 25,
+  [QUICK_START]: 27,
   [COMPLETE_GUIDE]: 30,
-  [MONITOR_STEPS]: 30,
-  [EXAMPLES]: 30,
+  [MONITOR_STEPS]: 27,
+  [EXAMPLES]: 28,
 };
 
 // The plan API keys need: a plan's name, which every language writes so.

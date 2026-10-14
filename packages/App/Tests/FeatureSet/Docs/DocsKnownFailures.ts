@@ -120,17 +120,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "fa",
     ),
   },
-  "terraform/complete-guide": {
-    codeLanguage: EN,
-  },
   "terraform/importing-resources": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "terraform/index": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "terraform/monitor-steps": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
