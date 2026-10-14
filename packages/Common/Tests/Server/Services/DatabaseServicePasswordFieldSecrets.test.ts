@@ -452,8 +452,10 @@ describe("rows stored in the HashedString envelope before the fix still decrypt"
       expect(decryptSpy).not.toHaveBeenCalled();
     }
 
-    // A HashedString envelope wrapping our ciphertext unwraps, and the inner
-    // ciphertext - which does look encrypted - is decrypted.
+    /*
+     * A HashedString envelope wrapping our ciphertext unwraps, and the inner
+     * ciphertext - which does look encrypted - is decrypted.
+     */
     decryptSpy.mockClear();
     await readApiToken(
       JSON.stringify({ _type: "HashedString", value: innerCipherText }),
