@@ -858,10 +858,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
       it("names every Dashboard label and path the English page names, as this language's Dashboard draws it", () => {
         const translated: string = readPage(language, entry.page);
-        const missing: Array<string> = englishBoldDrawings(
-          language,
-          entry.page,
-        )
+        const missing: Array<string> = englishBoldDrawings(language, entry.page)
           .map((drawing: [string, string]): string => {
             return drawing[1];
           })

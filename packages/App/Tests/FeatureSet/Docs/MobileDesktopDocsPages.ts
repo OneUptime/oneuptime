@@ -27,16 +27,15 @@ export const LINUX: string = "mobile-desktop-apps/linux-installation";
 export const FAQ: string = "mobile-desktop-apps/faq-troubleshooting";
 
 // The Mobile & Desktop Apps nav group, page for page.
-export const MOBILE_DESKTOP_PAGES: ReadonlyArray<MobileDesktopDocsPageEntry> =
-  [
-    { page: APPS_OVERVIEW, navTitle: "Apps Overview" },
-    { page: ANDROID, navTitle: "Android Installation" },
-    { page: IOS, navTitle: "iOS Installation" },
-    { page: WINDOWS, navTitle: "Windows Installation" },
-    { page: MACOS, navTitle: "macOS Installation" },
-    { page: LINUX, navTitle: "Linux Installation" },
-    { page: FAQ, navTitle: "FAQ & Troubleshooting" },
-  ];
+export const MOBILE_DESKTOP_PAGES: ReadonlyArray<MobileDesktopDocsPageEntry> = [
+  { page: APPS_OVERVIEW, navTitle: "Apps Overview" },
+  { page: ANDROID, navTitle: "Android Installation" },
+  { page: IOS, navTitle: "iOS Installation" },
+  { page: WINDOWS, navTitle: "Windows Installation" },
+  { page: MACOS, navTitle: "macOS Installation" },
+  { page: LINUX, navTitle: "Linux Installation" },
+  { page: FAQ, navTitle: "FAQ & Troubleshooting" },
+];
 
 // The pages about the OneUptime On-Call app.
 export const MOBILE_PAGES: ReadonlyArray<string> = [ANDROID, IOS];
