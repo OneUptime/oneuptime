@@ -1,418 +1,118 @@
-# macOS 安裝指南
+# macOS 安裝
 
-在 macOS 上將 OneUptime 安裝為原生桌面應用程式，以實現無縫的監控與事件管理。
+OneUptime 儀表板可以作為應用程式安裝在 Mac 上：從 Safari 將它加入 Dock，或從 Google Chrome 或 Microsoft Edge 安裝。它在自己的視窗中開啟，在 Dock 和啟動台中有自己的圖示，並且可以顯示通知。無需下載任何內容：這個應用程式就是你的 OneUptime 的儀表板，只要你的 OneUptime 是最新的，它就是最新的。
 
-## 安裝方式
+:::cards
+- [安裝應用程式](#安裝應用程式): 從 Safari、Chrome 或 Edge 安裝。
+- [將它保留在 Dock 中](#將它保留在-dock-中): 一鍵開啟，或在登入時開啟。
+- [在這台 Mac 上接收通知](#在這台-mac-上接收通知): 為推播通知註冊應用程式。
+- [疑難排解](#疑難排解): 沒有「加入 Dock」、沒有通知、需要重新登入。
+:::
 
-### 方式 1：Safari（macOS 推薦）
+## 桌面應用程式的運作方式
 
-Safari 提供出色的 PWA 整合，並支援原生 macOS 功能。
-
-1. **在 Safari 中開啟 OneUptime**
-
-   - 啟動 Safari 瀏覽器
-   - 前往您的 OneUptime 執行個體 URL
-   - 登入您的 OneUptime 帳戶
-   - 等待頁面完全載入
-
-2. **安裝 PWA**
-
-   - 點選功能表列中的 **File**
-   - 選擇 **"Add to Dock"**（macOS Sonoma 以上版本）
-   - 或在網址列中尋找 **安裝圖示**
-   - 或者：**File** → **"Add to Home Screen"**（較舊版本的 macOS）
-
-3. **自訂安裝**
-
-   - **應用程式名稱**：如有需要可修改（預設為 OneUptime）
-   - **Dock**：選擇加入 Dock
-   - **Launchpad**：加入 Launchpad 以便輕鬆存取
-
-4. **啟動應用程式**
-   - 在 Dock、Launchpad 或「應用程式」資料夾中找到 OneUptime
-   - 點選以在專屬視窗中啟動
-   - 應用程式獨立於 Safari 瀏覽器運行
-
-### 方式 2：Google Chrome
-
-Chrome 提供強大的 PWA 支援，並擁有出色的桌面整合。
-
-1. **在 Chrome 中開啟 OneUptime**
-
-   - 啟動 Google Chrome
-   - 前往您的 OneUptime 執行個體
-   - 確認您已登入
-   - 允許頁面完整載入
-
-2. **透過功能表安裝**
-
-   - 在網址列中尋找 **安裝圖示**（⊞）
-   - 點選 **"Install OneUptime"**
-   - 或使用 **Chrome 功能表** → **More tools** → **Create shortcut**
-
-3. **安裝選項**
-
-   - 勾選 **"Open as window"** 以獲得原生應用程式體驗
-   - 如有需要可自訂應用程式名稱
-   - 點選 **"Install"** 或 **"Create"**
-
-4. **存取應用程式**
-   - 在「應用程式」資料夾中找到 OneUptime
-   - 或透過 Spotlight 搜尋存取
-   - 釘選至 Dock 以便快速存取
-
-### 方式 3：Microsoft Edge
-
-Edge 提供穩固的 PWA 支援，並具備良好的 macOS 整合。
-
-1. **在 Edge 中開啟 OneUptime**
-
-   - 啟動 Microsoft Edge
-   - 前往 OneUptime URL
-   - 完成登入流程
-
-2. **安裝應用程式**
-   - 點選 **三點功能表** → **Apps** → **Install this site as an app**
-   - 或在網址列中尋找安裝提示
-   - 如有需要可自訂應用程式名稱
-   - 點選 **"Install"**
-
-### 自訂選項
-
-### Dock 與 Launchpad
-
-1. **Dock 位置**：將 OneUptime 拖曳至偏好的 Dock 位置
-2. **Dock 大小**：在 Dock 偏好設定中調整圖示大小
-3. **Launchpad 組織**：建立監控應用程式資料夾
-4. **標記通知**：在 Dock 圖示上顯示事件數量
-
-### 功能表列與通知
-
-1. **通知中心**
-
-   - 系統偏好設定 → 通知 → OneUptime
-   - 設定提醒樣式與傳遞方式
-   - 為不同的事件類型設定優先順序層級
-
-2. **功能表列整合**
-   - Safari PWA 的原生功能表列
-   - 為常用操作自訂功能表項目
-   - 為常見任務設定鍵盤快捷鍵
-
-## 疑難排解
-
-### 安裝問題
-
-**Safari 中無法使用 "Add to Dock"：**
-
-```
-Solutions:
-1. Ensure macOS Sonoma (14.0) or later
-2. Update Safari to latest version
-3. Try alternative: File → Add to Home Screen
-4. Clear Safari cache and try again
-5. Use Chrome or Edge as alternative
+```mermaid title="安裝儀表板會帶來什麼"
+flowchart TB
+    Browser["Safari、Chrome 或 Edge<br/>開啟你的儀表板"]
+    Install["你把它加入 Dock<br/>或安裝為應用程式"]
+    App["在自己視窗中的 OneUptime，<br/>位於 Dock 和啟動台中"]
+    OneUptime["你的 OneUptime<br/>提供儀表板"]
+    Browser --> Install --> App
+    App -->|"每次開啟時<br/>載入儀表板"| OneUptime
 ```
 
-**PWA 無法安裝或當機：**
+Safari 網頁 App 有自己的登入狀態、Cookie 和設定，與 Safari 分開。從 Chrome 或 Edge 安裝的應用程式則與該瀏覽器共享這些內容。
 
-```
-Solutions:
-1. Check macOS version compatibility
-2. Ensure sufficient disk space (100MB+)
-3. Update browser to latest version
-4. Clear browser cache and cookies
-5. Temporarily disable browser extensions
-6. Restart Mac and try installation again
-```
+## 開始之前
 
-**應用程式未出現在「應用程式」中：**
+- 使用 Safari 需要 macOS Sonoma 14 或更高版本。Chrome 和 Edge 可以在它們能執行的任何 macOS 上安裝應用程式。
+- 透過 HTTPS 存取的你的 OneUptime 網址：OneUptime Cloud 上是 `https://oneuptime.com`，或你自己的網址，例如 `https://oneuptime.example.com`。
+- 一個可以登入儀表板的帳號。
 
-```
-Solutions:
-1. Check Launchpad for OneUptime icon
-2. Search with Spotlight (⌘+Space)
-3. Look in browser's PWA management section
-4. Try reinstalling with different browser
-5. Check if installed under different name
-```
+## 安裝應用程式
 
-### 通知問題
+:::tabs
+@tab Safari
+1. 在 Safari 中開啟你的 OneUptime 並登入。
+2. 在任意儀表板頁面上，選擇 **檔案 → 加入 Dock**，或按一下工具列中的分享按鈕，然後按一下 **加入 Dock**。
+3. 保留名稱或修改它，然後按一下 **加入**。
+4. 從 Dock 開啟 OneUptime，並再登入一次：網頁 App 不共享 Safari 的登入狀態。
+@tab Chrome
+1. 在 Chrome 中開啟你的 OneUptime 並登入。
+2. 在任意儀表板頁面上，點選網址列右側的安裝圖示，然後點選 **安裝**。或者開啟 **⋮ → 投放、儲存及分享 → 將頁面安裝為應用程式**。
+3. Chrome 會在自己的視窗中開啟 OneUptime，並將其加入啟動台。
+@tab Edge
+1. 在 Edge 中開啟你的 OneUptime 並登入。
+2. 在任意儀表板頁面上，點選網址列右側的安裝圖示，然後點選 **安裝**。或者開啟 **設定及其他 (…) → 更多工具 → 應用程式 → 將此網站安裝為應用程式**。
+3. Edge 會在自己的視窗中開啟 OneUptime，並將其加入啟動台。
+:::
 
-**macOS 通知無法運作：**
+請在登入後從儀表板頁面安裝：登入頁面不是這個應用程式。Safari 會把網頁 App 儲存在你的個人專屬資料夾中的「應用程式」資料夾裡。
 
-```
-Solutions:
-1. System Preferences → Notifications → OneUptime
-2. Enable "Allow notifications"
-3. Set appropriate alert style (banners/alerts)
-4. Check Do Not Disturb settings
-5. Verify OneUptime notification settings
-6. Grant notification permissions when prompted
-```
+## 將它保留在 Dock 中
+
+- **Dock。** 在應用程式開啟時，按住 Control 鍵並按一下它在 Dock 中的圖示，然後選擇 **選項 → 保留在 Dock 中**。Safari 網頁 App 已經在 Dock 中。
+- **登入時開啟。** 按住 Control 鍵並按一下 Dock 中的圖示，然後選擇 **選項 → 登入時打開**。
+- **Spotlight。** 按下 Command-空白鍵並輸入 OneUptime。
+
+## 在這台 Mac 上接收通知
+
+在每個想接收通知的專案中為推播通知註冊應用程式後，應用程式就會顯示通知。請在網頁 App 內部註冊 Safari 網頁 App：它本身就是一個獨立的瀏覽器。從 Chrome 或 Edge 安裝的應用程式會隨其瀏覽器一起註冊。
+
+:::steps
+### 開啟你的推播裝置
+在應用程式中，開啟 **使用者設定 → 通知方式** 和 **Push Notifications** 分頁。
+
+### 註冊這個應用程式
+按一下 **註冊裝置**，保留建議的 **裝置名稱**（例如 `Safari on macOS`）或修改它，然後再次按一下 **註冊裝置**。當 macOS 或瀏覽器詢問是否允許 OneUptime 傳送通知時，選擇 **允許**。
+
+### 傳送測試
+在 **Browser Registered** 對話方塊中，按一下 **Send Test Notification**。如果什麼都沒有出現，請檢查 Mac 的通知設定：請參閱 [疑難排解](#疑難排解)。
+:::
+
+瀏覽器無法穿透勿擾模式等專注模式響起。對於必須叫醒你的呼叫，請使用開啟了重大警示的行動應用程式：請參閱 [iOS 安裝](/docs/mobile-desktop-apps/ios-installation#穿透靜音模式)。
+
+在自架的 OneUptime 上，瀏覽器通知需要伺服器的 VAPID 金鑰：請參閱 [推播通知](/docs/self-hosted/push-notifications#自架設定)。
+
+## 更新
+
+無需更新任何內容。應用程式每次開啟時都會從你的 OneUptime 載入儀表板，因此你的 OneUptime 升級後它也會隨之變化。如果某個視窗在升級前就已開啟，請按 Command-R 重新載入。
 
 ## 解除安裝
 
-### 完整移除
+:::tabs
+@tab Safari
+在 Finder 中開啟你的個人專屬資料夾，再開啟其中的「應用程式」資料夾，將 OneUptime 拖到垃圾桶。
+@tab Chrome
+在應用程式視窗中開啟 **⋮** 選單，選擇解除安裝該應用程式的選單項目，然後選擇 **移除**。
+@tab Edge
+在 Edge 中開啟 `edge://apps`，在 OneUptime 上選擇 **詳細資料**，然後選擇 **解除安裝**。
+:::
 
-1. **「應用程式」資料夾方式**
-
-   - 開啟「應用程式」資料夾
-   - 找到 OneUptime
-   - 拖曳至「垃圾桶」，或按右鍵 → 移到垃圾桶
-
-2. **Dock 方式**
-
-   - 在 Dock 中對 OneUptime 按右鍵
-   - 選擇「選項」→「從 Dock 中移除」
-   - 然後從「應用程式」資料夾中刪除
-
-3. **瀏覽器 PWA 管理**
-   - **Chrome**：chrome://apps/ → 找到 OneUptime → 移除
-   - **Edge**：edge://apps/ → 找到 OneUptime → 解除安裝
-   - **Safari**：沒有專屬的管理頁面
-
-## 更新與維護
-
-### 自動更新
-
-- OneUptime PWA 在連線時會自動更新
-- 無需透過 App Store 更新
-- 新功能立即可用
-- 重要更新即時套用
+解除安裝應用程式不會取消它的註冊：它的瀏覽器仍會收到通知。要停止通知，請在 **使用者設定 → 通知方式** 的 **Push Notifications** 分頁中，用 **刪除** 刪除它。
 
 ## 疑難排解
 
-### 安裝問題
+:::details Safari 中沒有「加入 Dock」
+從 macOS Sonoma 14 開始，Safari 才能把網頁 App 加入 Dock。請更新 macOS，或改為從 Chrome 或 Edge 安裝應用程式。
+:::
 
-**Safari 中無法使用 "Add to Dock"：**
+:::details 沒有顯示通知
+- 在 **使用者設定 → 通知方式** 的 **Push Notifications** 分頁中，確認應用程式或其瀏覽器已列出，並傳送一則 **測試通知**。
+- 在 Mac 上開啟 **系統設定 → 通知**，確認 OneUptime（或安裝它的瀏覽器）被允許傳送通知，並且沒有專注模式在攔下通知。
+- 如果瀏覽器封鎖了 OneUptime 的通知，請在瀏覽器的網站設定中允許通知，然後重新註冊。
+- 在自架的 OneUptime 上，如果伺服器沒有 VAPID 金鑰，**註冊裝置** 對話方塊會說明這一點。
+:::
 
-```
-Solutions:
-1. Ensure macOS Sonoma (14.0) or later
-2. Update Safari to latest version
-3. Try alternative: File → Add to Home Screen
-4. Clear Safari cache and try again
-5. Use Chrome or Edge as alternative
-```
+:::details 應用程式要求你重新登入
+Safari 網頁 App 有自己的登入狀態：請在應用程式內登入。從 Chrome 或 Edge 安裝的應用程式共享其瀏覽器的登入狀態，因此在瀏覽器中登出或清除其 Cookie，也會讓它登出。
+:::
 
-**PWA 無法安裝或當機：**
+## 後續步驟
 
-```
-Solutions:
-1. Check macOS version compatibility
-2. Ensure sufficient disk space (100MB+)
-3. Update browser to latest version
-4. Clear browser cache and cookies
-5. Temporarily disable browser extensions
-6. Restart Mac and try installation again
-```
-
-**應用程式未出現在「應用程式」中：**
-
-```
-Solutions:
-1. Check Launchpad for OneUptime icon
-2. Search with Spotlight (⌘+Space)
-3. Look in browser's PWA management section
-4. Try reinstalling with different browser
-5. Check if installed under different name
-```
-
-### 效能問題
-
-**效能緩慢或 CPU 使用率過高：**
-
-```
-Solutions:
-1. Check Activity Monitor for resource usage
-2. Close unnecessary applications
-3. Ensure adequate RAM (8GB+ recommended)
-4. Update macOS and browser
-5. Clear browser cache and app data
-6. Restart OneUptime app
-```
-
-**記憶體洩漏或當機：**
-
-```
-Solutions:
-1. Monitor memory usage in Activity Monitor
-2. Restart OneUptime app regularly
-3. Update to latest browser version
-4. Clear browser cache completely
-5. Check Console app for error logs
-6. Report issues with crash logs
-```
-
-### 顯示與視窗問題
-
-**視窗大小或位置問題：**
-
-```
-Solutions:
-1. Manually resize and reposition window
-2. Use Window menu → Zoom (Safari PWAs)
-3. Reset window state by quitting and reopening
-4. Check display scaling in System Preferences
-5. Try different desktop space or full-screen mode
-```
-
-**應用程式無回應：**
-
-```
-Solutions:
-1. Force quit: ⌘+Option+Esc → Select OneUptime
-2. Or right-click Dock icon → Force Quit
-3. Restart the application
-4. Check for macOS and browser updates
-5. Clear app cache and reinstall if necessary
-```
-
-### 通知問題
-
-**macOS 通知無法運作：**
-
-```
-Solutions:
-1. System Preferences → Notifications → OneUptime
-2. Enable "Allow notifications"
-3. Set appropriate alert style (banners/alerts)
-4. Check Do Not Disturb settings
-5. Verify OneUptime notification settings
-6. Grant notification permissions when prompted
-```
-
-## 解除安裝
-
-### 完整移除
-
-1. **「應用程式」資料夾方式**
-
-   - 開啟「應用程式」資料夾
-   - 找到 OneUptime
-   - 拖曳至「垃圾桶」，或按右鍵 → 移到垃圾桶
-
-2. **Dock 方式**
-
-   - 在 Dock 中對 OneUptime 按右鍵
-   - 選擇「選項」→「從 Dock 中移除」
-   - 然後從「應用程式」資料夾中刪除
-
-3. **瀏覽器 PWA 管理**
-   - **Chrome**：chrome://apps/ → 找到 OneUptime → 移除
-   - **Edge**：edge://apps/ → 找到 OneUptime → 解除安裝
-   - **Safari**：沒有專屬的管理頁面
-
-### 徹底解除安裝
-
-移除所有相關資料：
-
-```bash
-# Clear Safari PWA data (general website data)
-rm -rf ~/Library/Safari/Databases
-rm -rf ~/Library/Caches/com.apple.Safari
-
-# Clear Chrome PWA data
-rm -rf ~/Library/Application\ Support/Google/Chrome/Default/Web\ Applications
-
-# Clear Edge PWA data
-rm -rf ~/Library/Application\ Support/Microsoft\ Edge/Default/Web\ Applications
-```
-
-## 更新與維護
-
-### 自動更新
-
-- OneUptime PWA 在連線時會自動更新
-- 無需透過 App Store 更新
-- 新功能立即可用
-- 重要更新即時套用
-
-### 手動更新流程
-
-強制更新應用程式：
-
-1. **Safari PWA**：在 Safari 瀏覽器中重新整理
-2. **Chrome PWA**：對應用程式按右鍵 → 重新載入，或按 ⌘+R
-3. **完整重新整理**：關閉應用程式、重新開啟瀏覽器、前往 OneUptime
-
-### 維護排程
-
-定期維護以達到最佳效能：
-
-**每週：**
-
-- 重新啟動 OneUptime 應用程式
-- 若遇到問題，清除瀏覽器快取
-- 檢查 macOS 更新
-
-**每月：**
-
-- 檢視儲存空間使用情況，必要時進行清理
-- 若未自動更新，請更新瀏覽器
-- 確認通知設定仍正常運作
-
-## 與 macOS 功能整合
-
-### Shortcuts App 整合
-
-為 OneUptime 建立自訂捷徑：
-
-1. 開啟 **Shortcuts** 應用程式
-2. 建立 **New Shortcut**
-3. 加入 **"Open App"** 動作
-4. 選擇 **OneUptime**
-5. 加入 Siri 以進行語音啟動
-
-### Automator 整合
-
-自動化 OneUptime 任務：
-
-1. 啟動 **Automator**
-2. 建立 **Application** 或 **Workflow**
-3. 加入 **"Launch Application"** 動作
-4. 選擇 OneUptime PWA
-5. 加入額外的自動化步驟
-
-### Terminal 整合
-
-透過 Terminal 管理 OneUptime：
-
-```bash
-# Create alias for quick OneUptime launch
-echo 'alias oneuptime="open -a \"OneUptime\""' >> ~/.zshrc
-
-# Function to check if OneUptime is running
-oneuptime_status() {
-    if pgrep -f "OneUptime" > /dev/null; then
-        echo "OneUptime is running"
-    else
-        echo "OneUptime is not running"
-    fi
-}
-```
-
-## 安全性與隱私
-
-### macOS 安全功能
-
-1. **Gatekeeper**：確保 PWA 安裝來自可信任的來源
-2. **系統完整性保護**：保護系統檔案
-3. **FileVault**：加密磁碟以保護資料
-4. **Keychain**：安全儲存憑證
-
-### 隱私考量
-
-1. **定位服務**：如監控所需，請進行設定
-2. **相機/麥克風**：依需求授予權限
-3. **螢幕錄製**：某些監控功能可能需要
-4. **網路存取**：確保防火牆設定正確
-
-### 最佳實務
-
-1. **定期更新**：保持 macOS 與瀏覽器為最新版本
-2. **強式驗證**：可用時請使用 Touch ID/Face ID
-3. **網路安全**：使用 VPN 進行遠端監控存取
-4. **資料備份**：定期的 Time Machine 備份會包含 PWA 資料
-5. **權限檢視**：定期檢視已授予的權限
+:::cards
+- [iOS 安裝](/docs/mobile-desktop-apps/ios-installation): 在 iPhone 上接收呼叫，並使用重大警示。
+- [Windows 安裝](/docs/mobile-desktop-apps/windows-installation): 在 Windows 上使用同一個應用程式。
+- [常見問題與疑難排解](/docs/mobile-desktop-apps/faq-troubleshooting): 關於兩個應用程式的解答。
+- [您的帳戶](/docs/introduction/your-account): OneUptime 如何在每個專案中聯絡你。
+:::
