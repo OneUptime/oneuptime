@@ -48,7 +48,7 @@ Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **S
 
 ### Legg til triggeren
 
-Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **On Create Incident**. Klikk på triggeren, og velg `title` og `description` i **Fields to pass on**.
+Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **On Create Incident**. Klikk på triggeren: **Fields to pass on** starter med **Tittel**, så klikk på **Legg til felt**, og velg **Beskrivelse**.
 
 ### Send trigger-hendelsen
 
@@ -72,7 +72,7 @@ Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og kobl
 
 ### Test den, og slå den deretter på
 
-Klikk på **Kjør arbeidsflyt**, skriv inn **Hendelse-ID** for en testhendelse, og kjør den. Trinnet **API Post (JSON)** viser et `202`-svar med `"status": "success"`, og PagerDuty oppretter en hendelse. Slå deretter på **Aktivert** øverst i **Bygger**.
+Klikk på **Kjør arbeidsflyt**, velg en testhendelse under **Hendelse**, og kjør den. Trinnet **API Post (JSON)** viser et `202`-svar med `"status": "success"`, og PagerDuty oppretter en hendelse. Slå deretter på **Aktivert** øverst i **Bygger**.
 :::
 
 Blokken sender JSON, så den trenger ingen `Content-Type`-overskrift. PagerDutys `severity` er en av `critical`, `error`, `warning` og `info`: se [Knytt alvorlighetsgrader til PagerDuty](#knytt-alvorlighetsgrader-til-pagerduty) for å sende hver hendelses egen.
@@ -84,7 +84,7 @@ En arbeidsflyt har én trigger, så det trengs en annen arbeidsflyt for å løse
 :::steps
 ### Legg til triggeren On Update Incident
 
-Opprett en arbeidsflyt som heter `Resolve PagerDuty incidents`, og velg **On Update Incident** som trigger. Velg `currentIncidentStateId` i **Fields to watch**, slik at den bare kjører når tilstanden endres. Spør i **Fields to pass on** om den nye tilstanden er en løst tilstand:
+Opprett en arbeidsflyt som heter `Resolve PagerDuty incidents`, og velg **On Update Incident** som trigger. Klikk på **Legg til felt** i **Fields to watch**, og velg **Current Incident State**, slik at den bare kjører når tilstanden endres. Spør i **Fields to pass on** om den nye tilstanden er en løst tilstand: klikk på **Legg til felt**, åpne **Current Incident State**, og velg **Is Resolved State**. Eller klikk på **Rediger som JSON**, og erstatt JSON-en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ Slå på **Aktivert**, og løs deretter en testhendelse i OneUptime. PagerDuty l
 
 For å sende hver hendelses alvorlighetsgrad legger du til en **Run Custom JavaScript**-blokk mellom triggeren og **API Post (JSON)**-blokken, og leser svaret i innholdet.
 
-1. Velg også alvorlighetsgradens `name` i triggerens **Fields to pass on**: `{ "incidentSeverity": { "name": true } }`.
+1. Klikk på **Legg til felt** i triggerens **Fields to pass on**, åpne **Hendelsesalvor**, og velg **Navn**.
 2. Sett blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og **JavaScript Code** til:
 
    ```javascript

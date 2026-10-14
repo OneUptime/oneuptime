@@ -435,6 +435,29 @@ describe("an incident in its Microsoft Teams channel", () => {
     expect(connector.posts()[0]!.text).toContain("Jane Doe");
     expect(connector.posts()[0]!.text).toContain("Rolled back the deploy.");
   });
+
+  test("a message saved as a note is not posted back into the channel it is in", async () => {
+    await world.incidentNoteSavedFromChat({
+      text: "Rolled back the deploy.",
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      channelId: TEAMS_CHANNEL,
+    });
+
+    // The message is there already: nothing more is said in the channel.
+    expect(connector.requests).toEqual([]);
+  });
+
+  test("a message saved as a note from another channel is posted to the incident's", async () => {
+    await world.incidentNoteSavedFromChat({
+      text: "Rolled back the deploy.",
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      channelId: "19:somewhere-else@thread.tacv2",
+    });
+
+    expect(connector.posts()).toHaveLength(1);
+    expect(connector.posts()[0]!.conversationId).toBe(TEAMS_CHANNEL);
+    expect(connector.posts()[0]!.text).toContain("Rolled back the deploy.");
+  });
 });
 
 describe("a card edit Teams refuses because the post is gone", () => {

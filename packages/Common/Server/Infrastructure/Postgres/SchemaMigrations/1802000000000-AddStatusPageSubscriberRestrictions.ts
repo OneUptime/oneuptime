@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * it was. Adding a column with a constant default, or none, rewrites no
  * rows.
  */
-export class AddStatusPageSubscriberRestrictions1801900000000
+export class AddStatusPageSubscriberRestrictions1802000000000
   implements MigrationInterface
 {
-  public name: string = "AddStatusPageSubscriberRestrictions1801900000000";
+  public name: string = "AddStatusPageSubscriberRestrictions1802000000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

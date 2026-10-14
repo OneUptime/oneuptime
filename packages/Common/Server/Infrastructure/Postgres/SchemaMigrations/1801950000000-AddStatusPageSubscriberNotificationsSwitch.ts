@@ -10,11 +10,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * existing page, so the upgrade sends exactly what it sent before. Adding a
  * column with a constant default rewrites no rows.
  */
-export class AddStatusPageSubscriberNotificationsSwitch1801850000000
+export class AddStatusPageSubscriberNotificationsSwitch1801950000000
   implements MigrationInterface
 {
   public name: string =
-    "AddStatusPageSubscriberNotificationsSwitch1801850000000";
+    "AddStatusPageSubscriberNotificationsSwitch1801950000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

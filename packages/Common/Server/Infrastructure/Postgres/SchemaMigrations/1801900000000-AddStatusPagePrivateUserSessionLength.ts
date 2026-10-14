@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * every existing page keeps no limit until someone sets one, so nobody is
  * signed out by the upgrade.
  */
-export class AddStatusPagePrivateUserSessionLength1801800000000
+export class AddStatusPagePrivateUserSessionLength1801900000000
   implements MigrationInterface
 {
-  public name: string = "AddStatusPagePrivateUserSessionLength1801800000000";
+  public name: string = "AddStatusPagePrivateUserSessionLength1801900000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

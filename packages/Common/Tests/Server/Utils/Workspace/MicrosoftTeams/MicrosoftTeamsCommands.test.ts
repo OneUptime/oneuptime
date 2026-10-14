@@ -139,6 +139,7 @@ describe("MicrosoftTeamsCommands.getManifestCommands: what Teams suggests after 
       WorkspaceCommandName.Incident,
       WorkspaceCommandName.Maintenance,
       WorkspaceCommandName.OnCall,
+      WorkspaceCommandName.Page,
       WorkspaceCommandName.Ask,
       MicrosoftTeamsListCommand.ActiveIncidents,
       MicrosoftTeamsListCommand.ActiveAlerts,
@@ -154,7 +155,7 @@ describe("MicrosoftTeamsCommands.getManifestCommands: what Teams suggests after 
     }
   });
 
-  test("a command that opens a form says a title may follow it; the others say what they do", () => {
+  test("a command that opens a form says a title may follow it; page says who and what follow it; the others say what they do", () => {
     const descriptions: Record<string, string> = {};
 
     for (const command of MicrosoftTeamsCommands.getManifestCommands()) {
@@ -170,6 +171,9 @@ describe("MicrosoftTeamsCommands.getManifestCommands: what Teams suggests after 
       "Schedule maintenance. Type a title after it.",
     );
     expect(descriptions["oncall"]).toBe("See who is on call right now.");
+    expect(descriptions["page"]).toBe(
+      "Page a person, a team or whoever is on call. Mention who, then type a message.",
+    );
     expect(descriptions["help"]).toBe("List every command.");
   });
 });
@@ -362,6 +366,7 @@ describe("the welcome card a new installation gets", () => {
       "- **incident [title]**: declare an incident",
       "- **maintenance [title]**: schedule maintenance",
       "- **oncall**: see who is on call right now",
+      "- **page [who] [message]**: page a person, a team or whoever is on call",
       "- **ask [question]**: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
       "- **show active incidents**, **show active alerts**: list what is open right now",
       "- **show scheduled maintenance**, **show ongoing maintenance**: list upcoming and ongoing maintenance",

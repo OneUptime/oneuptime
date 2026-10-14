@@ -49,7 +49,7 @@ flowchart TB
 
 ### 添加触发器
 
-点击虚线的 **Choose what starts this workflow** 块，选择 **On Create Incident**。点击该触发器，在 **Fields to pass on** 中选择 `title` 和 `description`。
+点击虚线的 **Choose what starts this workflow** 块，选择 **On Create Incident**。点击该触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述**。
 
 ### 创建告警
 
@@ -73,7 +73,7 @@ flowchart TB
 
 ### 测试，然后启用
 
-点击 **运行工作流**，输入一个测试事件的 **事件 ID**，然后运行。**API Post (JSON)** 步骤会显示 `202` 响应，片刻之后告警会出现在 Opsgenie 中。然后在 **生成器** 顶部打开 **已启用**。
+点击 **运行工作流**，在 **事件** 中选择一个测试事件，然后运行。**API Post (JSON)** 步骤会显示 `202` 响应，片刻之后告警会出现在 Opsgenie 中。然后在 **生成器** 顶部打开 **已启用**。
 :::
 
 Opsgenie 的认证方式是单词 `GenieKey`、一个空格，然后是密钥。Opsgenie 把 `message` 限制为 130 个字符，它的优先级从 `P1` 到 `P5`：要发送每个事件自己的优先级，请参见 [映射优先级](#映射优先级)。
@@ -85,7 +85,7 @@ Opsgenie 的认证方式是单词 `GenieKey`、一个空格，然后是密钥。
 :::steps
 ### 添加 On Update Incident 触发器
 
-创建一个名为 `Close Opsgenie alerts` 的工作流，选择 **On Update Incident** 作为触发器。在 **Fields to watch** 中选择 `currentIncidentStateId`，使它只在状态变化时运行。在 **Fields to pass on** 中请求新状态是否为已解决状态：
+创建一个名为 `Close Opsgenie alerts` 的工作流，选择 **On Update Incident** 作为触发器。在 **Fields to watch** 中点击 **添加字段** 并选择 **Current Incident State**，使它只在状态变化时运行。在 **Fields to pass on** 中请求新状态是否为已解决状态：点击 **添加字段**，展开 **Current Incident State** 并选择 **Is Resolved State**。也可以点击 **以 JSON 编辑**，把 JSON 替换为：
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 
 要把每个事件的严重程度作为 Opsgenie 优先级发送，请在触发器和 **API Post (JSON)** 块之间添加一个 **Run Custom JavaScript** 块。
 
-1. 在触发器的 **Fields to pass on** 中，同时选择严重程度的 `name`：`{ "incidentSeverity": { "name": true } }`。
+1. 在触发器的 **Fields to pass on** 中点击 **添加字段**，展开 **事件严重性** 并选择 **名称**。
 2. 把该块的 **Arguments** 设为 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`，**JavaScript Code** 设为：
 
    ```javascript

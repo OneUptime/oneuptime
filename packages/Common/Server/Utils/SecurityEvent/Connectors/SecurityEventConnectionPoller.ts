@@ -32,6 +32,7 @@ import ConnectorErrorMessage from "../ConnectorErrorMessage";
 import SecurityEventDedupe from "../SecurityEventDedupe";
 import { buildSecurityEventDbRow } from "../SecurityEventRow";
 import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
+import { isRequestTimeoutMessage } from "./RequestTimeoutMessage";
 import SecurityEventConnectorRegistry from "./SecurityEventConnectorRegistry";
 import {
   ConnectorFetchBudget,
@@ -106,14 +107,6 @@ export const MAX_CHUNK_MINUTES: number = 24 * 60;
  */
 export const MIN_CHUNK_MINUTES: number = 1;
 
-/*
- * Transport deadlines as connectors and the shared HTTP client word them:
- * "timed out after N seconds" (Sentinel, AWS Security Hub), axios's
- * "timeout of Nms exceeded" (surfaced inside "... did not complete: ...")
- * and a socket-level ETIMEDOUT.
- */
-const TIMEOUT_ERROR_PATTERN: RegExp =
-  /timed out|timeout of \d+ms exceeded|ETIMEDOUT/i;
 /*
  * Only for a catalog entry without a usable cursorOverlapInMinutes, so a
  * malformed definition still re-reads the boundary instead of skipping it.
@@ -957,7 +950,7 @@ export default class SecurityEventConnectionPoller {
        */
       if (
         chunkMinutes > MIN_CHUNK_MINUTES &&
-        TIMEOUT_ERROR_PATTERN.test(result.error || "")
+        isRequestTimeoutMessage(result.error)
       ) {
         const nextChunkMinutes: number = Math.max(
           MIN_CHUNK_MINUTES,

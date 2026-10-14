@@ -136,7 +136,11 @@ Reagisci a un messaggio, o a una risposta, nel canale che OneUptime ha creato pe
 | 📌 o 📍 | Una nota privata, visibile solo al tuo team |
 | 📣 o 📢 | Una nota pubblica, mostrata sulla pagina di stato. Solo incidenti ed eventi di manutenzione programmata. |
 
-La nota viene salvata a tuo nome, con i tuoi permessi, quindi il tuo account Microsoft Teams deve essere collegato, e l'app di OneUptime deve essere nel team.
+La nota riprende il messaggio così come Microsoft Teams lo mostrava: la formattazione, i link e il codice, le persone che menziona con il loro nome, e i file e le immagini come link. Una nota pubblica lascia fuori i file e le immagini, perché si aprono solo per il tuo team.
+
+Sono le parole di chi ha scritto il messaggio: il suo nome in OneUptime se il suo account Microsoft Teams è collegato, altrimenti il nome che mostra Teams. Una nota privata viene collocata nella cronologia al momento in cui il messaggio è stato pubblicato, per quanto tempo dopo venga salvata. Una nota pubblica viene collocata al momento in cui viene salvata, cioè quando la pagina di stato la mostra. La cronologia dice chi l'ha salvata. La nota non viene ripubblicata nel canale, dove il messaggio c'è già.
+
+La nota viene salvata a tuo nome, con i tuoi permessi, e l'app di OneUptime deve essere nel team. Se il tuo account Microsoft Teams non è ancora collegato, OneUptime ti chiede di collegarlo, in una risposta che ti menziona, con un pulsante che salva il messaggio non appena l'hai fatto.
 
 ## Parlare con il bot di OneUptime
 
@@ -148,6 +152,7 @@ Scrivi al bot in una chat personale, oppure menziona OneUptime con @ in un canal
 | `incident [title]` | Apre il modulo dell'incidente, con il titolo compilato. |
 | `maintenance [title]` | Apre il modulo della manutenzione programmata, con il titolo compilato. |
 | `oncall` | Elenca chi è reperibile in questo momento in ogni pianificazione di reperibilità che puoi vedere, fino a quando, e chi è il prossimo. |
+| `page [who] [message]` | Chiama le persone che menzioni con @ per il tuo messaggio, oppure invia una scheda per scegliere chi chiamare. Vedi [Chiamare qualcuno da Microsoft Teams](#chiamare-qualcuno-da-microsoft-teams). |
 | `ask [question]`, o qualsiasi domanda in linguaggio naturale | OneUptime AI risponde su log, trace, metriche, incidenti e monitor, per esempio "quali monitor sono giù in questo momento?". Le risposte si limitano a leggere. |
 | `show active incidents`, `show active alerts` | Elenca ciò che è aperto adesso. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Elenca gli eventi di manutenzione in arrivo, o in corso. |
@@ -163,6 +168,15 @@ Scrivere `incident` o `maintenance` al bot di OneUptime apre un modulo per la pe
 - **Cosa può indicare un modulo.** In un canale o in una chat di gruppo chiunque vi partecipi può inviare il modulo, e viene inviato a nome di chi lo fa, con i suoi permessi. L'incidente o l'evento viene creato con quei permessi e attribuito a quella persona. Un monitor, una policy di reperibilità, un'etichetta, una gravità o uno stato che non può leggere, o uno di un altro progetto, viene rifiutato come uno che il progetto non ha, e non viene creato nulla: il bot risponde "One of the values you picked ... is not available in this project any more. Please pick it again."
 
 **Execute On-Call Policy** su un incidente, un avviso o un episodio funziona allo stesso modo: richiede il permesso di eseguire una policy di reperibilità (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, oppure **Create On-Call Duty Policy Execution Log** in un ruolo personalizzato) e di leggere quell'incidente, avviso o episodio, e offre le policy di reperibilità attive che la persona può leggere. Anche visualizzare un monitor o una policy di reperibilità da una scheda lo legge a nome della persona che ha premuto il pulsante.
+
+## Chiamare qualcuno da Microsoft Teams
+
+In un canale o in una chat di gruppo, `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` chiama subito Nawaz. OneUptime crea un avviso il cui titolo è il tuo messaggio, e ogni persona che menzioni con @ riceve una telefonata, un SMS, una notifica push o un'email, come dicono le sue regole di reperibilità, finché qualcuno non conferma l'avviso.
+
+- **Chi viene chiamato subito.** Le persone che menzioni con @, quando le segue un messaggio. OneUptime riconosce una persona dall'account OneUptime a cui è collegato il suo account Microsoft Teams, oppure dal suo indirizzo email in Microsoft Teams. Nessuno al di fuori del progetto viene chiamato.
+- **Tutto il resto riceve una scheda.** Senza nessuno menzionato con @, come in una chat personale con il bot, senza messaggio, con un tag, o con una persona che OneUptime non riesce a riconoscere, il bot risponde con la scheda **Page someone**, con quello che hai scritto già compilato, e dice chi non è riuscito a scegliere. Scegli persone, un team, una pianificazione di reperibilità, che chiama chi è reperibile in essa in quel momento, o una policy di reperibilità, che chiama tramite le sue regole di escalation, e inviala. Chiunque nella conversazione può inviare la scheda, a proprio nome. Una volta che ha chiamato, la scheda viene rimossa, così nessuno chiama due volte con essa.
+- **Dove si vede.** La conversazione mostra la chiamata come una sola scheda, tenuta aggiornata: chi è stato chiamato e come, e chi ha confermato. Dove il bot non può pubblicarla, la sua risposta dice chi è stato chiamato, con un link all'avviso.
+- **Chi può chiamare.** Chiunque possa sia eseguire una policy di reperibilità sia creare un avviso: **Project Owner**, **Project Admin** e **Project Member**, oppure **On-Call Member** insieme ad **Alert Member** (**Create On-Call Duty Policy Execution Log** e **Create Alert** in un ruolo personalizzato). Chiamare direttamente persone, un team o una pianificazione, senza una policy di reperibilità dietro la chiamata, richiede anche l'accesso a tutte le policy di reperibilità del progetto. A chiunque altro viene detto in una risposta, e nessuno viene chiamato.
 
 ## Agire su incidenti, avvisi ed eventi da Microsoft Teams
 

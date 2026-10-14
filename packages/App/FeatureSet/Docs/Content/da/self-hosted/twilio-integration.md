@@ -36,6 +36,7 @@ Gem legitimationsoplysningerne for ét projekt eller én gang for hele installat
 | --- | --- | --- |
 | Hvor | Kortet **Twilio-konfiguration** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** | **Admin Dashboard > Indstillinger > Opkald og SMS** |
 | Hvem kan sætte den | **Project Owner**, **Project Admin** eller **Create Call and SMS** i en brugerdefineret rolle | En master-admin |
+| Hvem kan læse dens Auth Token | **Project Owner**, **Project Admin** eller **Read Call and SMS** i en brugerdefineret rolle. Andre, der kan se konfigurationen, ser resten af den; tokenet gemmes krypteret | En master-admin |
 | Bruges til | SMS og opkald til projektets medlemmer, så længe den er projektstandarden, de statussider, den er tildelt, og de politikker for indgående opkald, der bruger den | SMS og opkald til medlemmerne af ethvert projekt, der ikke har en standardkonfiguration |
 
 Sådan tilføjer du en projektkonfiguration:

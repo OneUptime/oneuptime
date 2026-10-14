@@ -307,7 +307,7 @@ Tokens löper som standard ut efter ett år och förnyas inte. För att slippa b
 ### Skapa ett Jira-ärende för varje incident
 
 :::steps
-1. Skapa ett arbetsflöde från grunden som heter `Incidents to Jira`. Klicka på det streckade blocket och lägg till utlösaren **On Create Incident**. Be om `{"_id": true, "title": true, "description": true, "incidentNumber": true}` i dess **Fields to pass on**. Låt dess **Identifier** vara `incident-on-create-1`.
+1. Skapa ett arbetsflöde från grunden som heter `Incidents to Jira`. Klicka på det streckade blocket och lägg till utlösaren **On Create Incident**. Dess **Fields to pass on** börjar med **Titel**: klicka på **Lägg till fält** och välj **Beskrivning** och **Incidentnummer**. ID:t skickas alltid vidare. Låt dess **Identifier** vara `incident-on-create-1`.
 2. Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block och koppla utlösarens **Success**-punkt till det. Ställ in dess **Identifier** på `create-issue`, dess **URL** på `{{global.variables.JIRA_URL}}/rest/api/3/issue` och, under **Fler fält**, dess **Request Headers** på `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Ställ in dess **Request Body** på ärendet, och ersätt `OPS` och `Bug` med din projektnyckel och en ärendetyp i det projektet:
 
@@ -384,14 +384,14 @@ För att ge alla i Jira en väg tillbaka lägger du efter `create-issue` till et
 }
 ```
 
-Lägg till `projectId` i utlösarens **Fields to pass on** för detta, och behåll `.value`: en kolumn som innehåller en annan posts ID kommer fram som `{"_type": "ObjectID", "value": "..."}`. `globalId` gör anropet säkert att upprepa: Jira uppdaterar länken som har det i stället för att lägga till en andra.
+Klicka för detta på **Lägg till fält** i utlösarens **Fields to pass on**, välj **Projekt-ID**, och behåll `.value`: en kolumn som innehåller en annan posts ID kommer fram som `{"_type": "ObjectID", "value": "..."}`. `globalId` gör anropet säkert att upprepa: Jira uppdaterar länken som har det i stället för att lägga till en andra.
 
 ### Kommentera och gör övergångar medan incidenten fortskrider
 
 Bygg detta som ett andra arbetsflöde, så att ett fel här aldrig hindrar att ärenden skapas.
 
 :::steps
-1. Skapa ett arbetsflöde som heter `Incident updates to Jira`, med utlösaren **On Update Incident**. Ställ in **Fields to watch** på `{"currentIncidentStateId": true}` och **Fields to pass on** på `{"_id": true, "currentIncidentState": {"name": true}}`.
+1. Skapa ett arbetsflöde som heter `Incident updates to Jira`, med utlösaren **On Update Incident**. Klicka på **Lägg till fält** i **Fields to watch** och välj **Current Incident State**. Klicka på **Lägg till fält** i **Fields to pass on**, öppna **Current Incident State** och välj **Namn**.
 2. Lägg till ett **If / Else**-block: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, eller namnet på din lösta status.
 3. Hitta ärendet efter dess **Yes**-sida med ett **API Post (JSON)**-block vars **Identifier** är `find-issue`, som publicerar till `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 

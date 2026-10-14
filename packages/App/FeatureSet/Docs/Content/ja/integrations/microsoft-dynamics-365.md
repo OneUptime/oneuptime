@@ -269,7 +269,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### インシデントごとにサポート案件を作成する
 
 :::steps
-1. `Incidents to Dynamics 365` という名前のワークフローをゼロから作成します。点線のブロックをクリックし、**On Create Incident** トリガーを追加します。その **Fields to pass on** で `{"_id": true, "title": true, "description": true, "incidentNumber": true}` を要求します。
+1. `Incidents to Dynamics 365` という名前のワークフローをゼロから作成します。点線のブロックをクリックし、**On Create Incident** トリガーを追加します。その **Fields to pass on** は **タイトル** から始まります。**フィールドを追加** をクリックし、**説明** と **インシデント番号** を選びます。ID は常に引き渡されます。
 2. **コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **Success** の点をそのブロックに接続します。**識別子** を `create-case`、**URL** を `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber` に設定します。
 3. **その他の項目** で、**Request Headers** を次のように設定します:
 
@@ -323,7 +323,7 @@ Dynamics 365 の `severitycode` には選択肢が 1 つしかないため、代
 これは 2 つ目のワークフローとして構築し、ここでの失敗がサポート案件の作成を妨げないようにします。
 
 :::steps
-1. **On Update Incident** トリガーを持つ `Close Dynamics 365 cases` という名前のワークフローを作成します。**Fields to watch** を `{"currentIncidentStateId": true}`、**Fields to pass on** を `{"_id": true, "currentIncidentState": {"isResolvedState": true}}` に設定します。
+1. **On Update Incident** トリガーを持つ `Close Dynamics 365 cases` という名前のワークフローを作成します。**Fields to watch** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選びます。**Fields to pass on** で **フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **解決済みの状態** を選びます。
 2. **If / Else** ブロックを追加します: **Value to check** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**Comparison** を **is true** にします。
 3. その **Yes** 側の後に、**識別子** が `find-case` で、`Prefer` を除いた同じヘッダーと次の **URL** を持つ **API Get (JSON)** ブロックを追加します:
 

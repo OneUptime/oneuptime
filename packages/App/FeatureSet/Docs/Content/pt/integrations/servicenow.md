@@ -54,7 +54,7 @@ Vá para **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois 
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Incident**. Clique no gatilho e, em **Fields to pass on**, escolha `title` e `description`.
+Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Incident**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
 
 ### Criar o registro
 
@@ -81,7 +81,7 @@ E o **Request Body** como:
 
 ### Testar e depois ativar
 
-Clique em **Executar fluxo de trabalho**, informe o **ID do incidente** de um incidente de teste e execute. A etapa **API Post (JSON)** mostra uma resposta `201` com o novo registro, o `sys_id` e o `number` dele, como `INC0012345`. Depois, ative **Habilitado** no topo do **Construtor**.
+Clique em **Executar fluxo de trabalho**, escolha um incidente de teste em **Incidente** e execute. A etapa **API Post (JSON)** mostra uma resposta `201` com o novo registro, o `sys_id` e o `number` dele, como `INC0012345`. Depois, ative **Habilitado** no topo do **Construtor**.
 :::
 
 `urgency` e `impact` aceitam `1` para alto, `2` para médio e `3` para baixo, e o ServiceNow calcula a prioridade a partir dos dois. Qualquer outra coluna da tabela `incident` pode ir no corpo, com o nome da coluna.
@@ -93,7 +93,7 @@ Um workflow tem um só gatilho, então resolver exige um segundo workflow, inici
 :::steps
 ### Adicionar o gatilho On Update Incident
 
-Crie um workflow chamado `Resolve ServiceNow incidents` e escolha **On Update Incident** como gatilho. Em **Fields to watch**, escolha `currentIncidentStateId`, para que ele só rode quando o estado mudar. Em **Fields to pass on**, peça se o novo estado é um estado resolvido:
+Crie um workflow chamado `Resolve ServiceNow incidents` e escolha **On Update Incident** como gatilho. Em **Fields to watch**, clique em **Adicionar campo** e escolha **Current Incident State**, para que ele só rode quando o estado mudar. Em **Fields to pass on**, peça se o novo estado é um estado resolvido: clique em **Adicionar campo**, abra **Current Incident State** e escolha **Is Resolved State**. Ou clique em **Editar como JSON** e substitua o JSON por:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

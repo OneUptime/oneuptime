@@ -205,10 +205,10 @@ export default class MicrosoftTeamsAPI {
        * higher than the installed one. Release images carry APP_VERSION; a
        * build without it uses this fallback, so bump it whenever the manifest
        * changes (1.6.0: ChatSettings.Read.Chat added; 1.7.0: the commands
-       * are the words Slack's /oneuptime takes).
+       * are the words Slack's /oneuptime takes; 1.8.0: page).
        */
       version: AppVersion.toLowerCase().includes("unknown")
-        ? "1.7.0"
+        ? "1.8.0"
         : AppVersion,
       id: MicrosoftTeamsAppClientId,
       developer: {

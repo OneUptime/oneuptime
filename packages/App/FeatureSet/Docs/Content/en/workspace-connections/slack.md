@@ -123,7 +123,11 @@ React to a message in the channel of an incident, alert, episode or scheduled ma
 | 📌 A pin emoji, or Slack's own **Pin to channel** | A private note, seen only by your team |
 | 📢 A megaphone or loudspeaker emoji | A public note, shown on the status page. Incidents and scheduled maintenance events only. |
 
-The note is saved as you, with your permissions, so your own Slack account must be connected. A message is saved only once, however many people react.
+The note keeps the message as Slack showed it: its formatting, links and code, the people and channels it mentions by name, and its files and images as links to them. A public note leaves the files and images out, since they open only for your team.
+
+It is the words of whoever wrote the message: their OneUptime name when their Slack account is connected, otherwise the name Slack shows. A private note is filed in the timeline when the message was posted, however long after it is saved. A public note is filed when it is saved, which is when the status page shows it. The timeline says who saved it. The note is not posted back into the channel, where the message already is.
+
+The note is saved as you, with your permissions. If your Slack account is not connected yet, OneUptime asks you to connect it, in a message only you see, with a button that saves the message as soon as you have. A message is saved only once, however many people react.
 
 ## The /oneuptime command
 
@@ -135,6 +139,7 @@ OneUptime has one command in Slack, `/oneuptime`. The word you type after it say
 | `/oneuptime incident [title]` | Opens the incident form, with the title filled in. |
 | `/oneuptime maintenance [title]` | Opens the scheduled maintenance form, with the title filled in. |
 | `/oneuptime oncall` | Lists who is on call right now in each on-call schedule you can see, until when, and who is next. |
+| `/oneuptime page [who] [message]` | Pages the people you @mention about your message, or opens a form to pick who to page. See [Paging someone from Slack](#paging-someone-from-slack). |
 | `/oneuptime ask [question]`, or any question | OneUptime AI answers about your logs, traces, metrics, incidents and monitors. |
 
 The answers to `help` and `oncall` are messages only you see, under the command. A first word that looks like a command misspelt, such as `incidnet`, gets the command it looks like, not an answer from OneUptime AI. The incident and maintenance forms act as you: see [Creating incidents and maintenance from Slack](#creating-incidents-and-maintenance-from-slack).
@@ -161,6 +166,15 @@ OneUptime answers only what is addressed to it.
 - **What a form may name.** The incident or event is created with your own permissions and credited to you. A monitor, on-call policy, label, severity or status you may not read, or one of another project, is refused like one the project does not have, even from a form opened before your access changed, and nothing is created. OneUptime tells you why in the channel, in a message only you see.
 
 **Execute On-Call Policy** on an incident, alert or episode works the same way: it needs permission to execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Create On-Call Duty Policy Execution Log** in a custom role) and to read that incident, alert or episode, and offers the live on-call policies you may read.
+
+## Paging someone from Slack
+
+`/oneuptime page @nawaz The checkout API is throwing 500s` pages Nawaz straight away. OneUptime creates an alert whose title is your message, and each person you @mention gets a phone call, an SMS, a push notification or an email, as their own on-call rules say, until somebody acknowledges the alert.
+
+- **Who is paged at once.** The people you @mention, when a message follows them. OneUptime knows a person by the OneUptime account their Slack account is connected to, or else by the email address Slack has for them. Nobody outside the project is paged.
+- **Anything else opens a form.** With nobody @mentioned, no message, a user group or `@here`, or a person OneUptime cannot tell, the **Page someone** form opens with what you typed filled in, and says whom it could not pick. Pick people, a team, an on-call schedule, which pages whoever is on call in it now, or an on-call policy, which pages through its escalation rules, and submit it. A name you type first, as in `/oneuptime page Primary The disk is full`, picks the schedule, team or policy of that name.
+- **Where it shows.** The channel shows the page as one message, kept up to date: who was paged and how, and who acknowledged. Where OneUptime cannot post, such as a private channel it was not invited to, a message only you see says who was paged, with a link to the alert.
+- **Who may page.** Anyone who may both execute an on-call policy and create an alert: **Project Owner**, **Project Admin** and **Project Member**, or **On-Call Member** with **Alert Member** (**Create On-Call Duty Policy Execution Log** and **Create Alert** in a custom role). Paging people, a team or a schedule directly, with no on-call policy behind the page, also takes access to every on-call policy of the project. Anyone else is told so where they ran the command, and nobody is paged.
 
 ## Acting on incidents, alerts and events from Slack
 

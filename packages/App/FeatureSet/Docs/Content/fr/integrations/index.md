@@ -84,7 +84,7 @@ Commencez par le haut du tableau : plus une façon est haute, moins il y a à ma
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Les deux | Une connexion intégrée : canaux d'incident, actions depuis Teams et astreinte. |
 | [Mattermost](/docs/workflows/components#mattermost) | Sortant | Publie les mises à jour d'incident dans un canal Mattermost. |
 | [Discord](/docs/integrations/discord) | Sortant | Publie les mises à jour d'incident dans un canal Discord. |
-| [Telegram](/docs/integrations/telegram) | Sortant | Envoie les mises à jour d'incident dans un chat Telegram. |
+| [Telegram](/docs/integrations/telegram) | Sortant | Envoie un message dans un chat Telegram quand une alerte se déclenche. |
 | [IRC](/docs/integrations/irc) | Sortant | Publie les mises à jour d'incident dans un canal IRC. |
 
 > [!TIP]
@@ -119,10 +119,10 @@ L'URL est le seul identifiant, traitez-la donc comme un mot de passe. Voir [Webh
 
 :::steps
 1. Enregistrez la clé d'API de l'outil comme variable globale secrète, comme indiqué [plus bas](#protéger-les-identifiants).
-2. Créez un workflow, cliquez sur le bloc en pointillés et choisissez un déclencheur d'événement, par exemple **On Create Incident**. Dans ses **Fields to pass on**, cochez les champs à envoyer, par exemple `title` et `description`.
+2. Créez un workflow, cliquez sur le bloc en pointillés et choisissez un déclencheur d'événement, par exemple **On Create Incident**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez les autres champs à envoyer, par exemple **Description**.
 3. Cliquez sur **Ajouter un composant** et ajoutez un bloc **API Post (JSON)**. Reliez-y le point **Success** du déclencheur.
 4. Remplissez son **URL**, ses **Request Headers** avec l'en-tête `Authorization`, et son **Request Body** avec les champs de l'incident, par exemple `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-5. Cliquez sur **Exécuter le flux de travail**, saisissez l'**ID d'incident** d'un incident et lancez-le. Une exécution de test envoie vraiment la requête. Activez ensuite **Activé**.
+5. Cliquez sur **Exécuter le flux de travail**, choisissez un incident sous **Incident** et lancez-le. Une exécution de test envoie vraiment la requête. Activez ensuite **Activé**.
 :::
 
 Quand l'outil a besoin de données remaniées d'abord, ajoutez un bloc [Run Custom JavaScript](/docs/workflows/components#custom-code) entre les deux. La recette est la même pour Zendesk, New Relic, AWS (via SNS), StatusCake et tous les autres : seuls l'URL et le corps changent.

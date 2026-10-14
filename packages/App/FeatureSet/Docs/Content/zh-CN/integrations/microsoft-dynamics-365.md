@@ -269,7 +269,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### 为每个事件创建案例
 
 :::steps
-1. 从零开始创建一个名为 `Incidents to Dynamics 365` 的工作流。点击虚线块，添加 **On Create Incident** 触发器。在它的 **Fields to pass on** 中请求 `{"_id": true, "title": true, "description": true, "incidentNumber": true}`。
+1. 从零开始创建一个名为 `Incidents to Dynamics 365` 的工作流。点击虚线块，添加 **On Create Incident** 触发器。它的 **Fields to pass on** 已经包含 **标题**：点击 **添加字段** 并选择 **描述** 和 **事件编号**。ID 总会被传递。
 2. 点击 **添加组件**，添加一个 **API Post (JSON)** 块，并把触发器的 **Success** 点连接到它。把它的 **Identifier** 设为 `create-case`，**URL** 设为 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`。
 3. 在 **更多字段** 下，把它的 **Request Headers** 设为：
 
@@ -323,7 +323,7 @@ Dynamics 365 自带的 `severitycode` 只有一个选项，所以请改为设置
 把这部分构建为第二个工作流，这样这里的失败永远不会妨碍创建案例。
 
 :::steps
-1. 创建一个名为 `Close Dynamics 365 cases` 的工作流，使用 **On Update Incident** 触发器。把 **Fields to watch** 设为 `{"currentIncidentStateId": true}`，**Fields to pass on** 设为 `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`。
+1. 创建一个名为 `Close Dynamics 365 cases` 的工作流，使用 **On Update Incident** 触发器。在 **Fields to watch** 中点击 **添加字段** 并选择 **Current Incident State**。在 **Fields to pass on** 中点击 **添加字段**，展开 **Current Incident State** 并选择 **Is Resolved State**。
 2. 添加一个 **If / Else** 块：**Value to check** 为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**Comparison** 为 **is true**。
 3. 在它的 **Yes** 一侧之后，添加一个 **API Get (JSON)** 块，**Identifier** 为 `find-case`，使用不含 `Prefer` 的相同请求头和以下 **URL**：
 

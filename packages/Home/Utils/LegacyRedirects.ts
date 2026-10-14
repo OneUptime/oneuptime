@@ -49,7 +49,11 @@ export const LegacyRedirects: ReadonlyArray<LegacyRedirect> = [
   { from: "/table/pingdom", to: "/compare/pingdom" },
   { from: "/table/statuspage.io", to: "/compare/statuspage.io" },
 
-  // Compliance documents that were PDFs and are now pages of the legal center.
+  /*
+   * Compliance documents that were PDFs and are now pages of the legal center.
+   * They reach Home only through nginx's `location ^~ /files/`
+   * (Nginx/default.conf.template): the app's /file location would take them.
+   */
   { from: "/files/soc-3.pdf", to: "/legal/soc-3" },
   { from: "/files/pci.pdf", to: "/legal/pci" },
   { from: "/files/iso-27001.pdf", to: "/legal/iso-27001" },

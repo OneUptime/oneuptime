@@ -44,6 +44,7 @@ import {
   statuspagePaged,
   statuspageSubscribers,
 } from "./AtlassianStatuspageFixtures";
+import * as BetterStack from "./BetterStackFixtures";
 import {
   GRAFANA_API_URL,
   GRAFANA_HOST,
@@ -1511,6 +1512,53 @@ describe("ToolImportRunExecutor: uptime and status page tools read over their AP
         },
       ),
     ).toEqual(["sub-3", "sub-4"]);
+  });
+
+  test("a Better Stack run is read past the subscribers earlier imports of it brought over", async () => {
+    const subscribers: Array<Record<string, unknown>> =
+      BetterStack.betterStackSubscribers(5, 0);
+    const ids: Array<string> = subscribers.map(
+      (subscriber: Record<string, unknown>): string => {
+        return subscriber["id"] as string;
+      },
+    );
+
+    (
+      ToolImportProjectStateReader.readImportedSubscriberIds as jest.Mock
+    ).mockResolvedValue(new Set<string>(ids.slice(0, 3)));
+
+    const api: FixtureApi = BetterStack.betterStackApi().add({
+      path: `/api/v2/status-pages/${BetterStack.PUBLIC_PAGE_ID}/subscribers`,
+      answers: [BetterStack.betterStackPaged(subscribers)],
+    });
+    ToolImportRunExecutor.transportFactory = () => {
+      return api.transport;
+    };
+
+    const runId: string = runs.add({
+      source: ToolImportSource.BetterStack,
+      status: ToolImportRunStatus.Reading,
+      apiKey: BetterStack.BETTER_STACK_TOKEN,
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    const row: Record<string, unknown> = runs.get(runId);
+
+    expect(
+      ToolImportProjectStateReader.readImportedSubscriberIds,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      source: ToolImportSource.BetterStack,
+    });
+    expect(row["status"]).toBe(ToolImportRunStatus.ReadyToReview);
+    expect(
+      ((row["snapshot"] as ToolImportSnapshot).statusPageSubscribers || []).map(
+        (subscriber: ImportedStatusPageSubscriber): string => {
+          return subscriber.sourceId;
+        },
+      ),
+    ).toEqual(ids.slice(3));
   });
 
   test("a tool that brings no subscribers does not look for the ones brought over", async () => {

@@ -1,6 +1,6 @@
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleTable from "../../Components/Workspace/WorkspaceNotificationRulesTable";
-import MicrosoftTeamsReactionNotesTips from "../../Components/MicrosoftTeams/MicrosoftTeamsReactionNotesTips";
+import WorkspaceReactionNotesTips from "../../Components/Workspace/WorkspaceReactionNotesTips";
 import PageComponentProps from "../PageComponentProps";
 import WorkspaceConnectionGate from "../../Components/Workspace/WorkspaceConnectionGate";
 import WorkspacePlanLeftoverGate from "../../Components/Workspace/WorkspacePlanLeftoverGate";
@@ -21,7 +21,8 @@ const IncidentsPage: FunctionComponent<
             workspaceType={WorkspaceType.MicrosoftTeams}
             eventType={NotificationRuleEventType.ScheduledMaintenance}
           />
-          <MicrosoftTeamsReactionNotesTips
+          <WorkspaceReactionNotesTips
+            workspaceType={WorkspaceType.MicrosoftTeams}
             resourceName="scheduled maintenance event"
             supportsPublicNotes={true}
           />

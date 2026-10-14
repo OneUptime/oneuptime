@@ -136,7 +136,11 @@ flowchart TB
 | 📌 或 📍 | 僅您的團隊可見的私人備註 |
 | 📣 或 📢 | 顯示在狀態頁面上的公開備註。僅限事件和排定維護活動。 |
 
-備註以您的身分、依您的權限儲存，因此您自己的 Microsoft Teams 帳戶必須已連接，並且 OneUptime 應用程式必須在該團隊中。
+備註會保留訊息在 Microsoft Teams 中的樣子：格式、連結和程式碼，以名字顯示的被提及的人，以及指向其檔案和圖片的連結。公開備註會去掉檔案和圖片，因為它們只對您的團隊開放。
+
+備註是寫這則訊息的人的原話：如果此人的 Microsoft Teams 帳戶已連接，顯示其 OneUptime 名稱，否則顯示 Teams 中的名字。私人備註無論多久之後才儲存，都會排在時間軸上訊息發布的時間點。公開備註排在儲存的時間點，狀態頁面也從那時起顯示它。時間軸會顯示是誰儲存的。備註不會再發回頻道，因為訊息已經在那裡了。
+
+備註以您的身分、依您的權限儲存，並且 OneUptime 應用程式必須在該團隊中。如果您的 Microsoft Teams 帳戶尚未連接，OneUptime 會在一則提及您的回覆中請您連接，並附上一個按鈕，您一連接就會儲存該訊息。
 
 ## 與 OneUptime 機器人對話
 
@@ -148,6 +152,7 @@ flowchart TB
 | `incident [title]` | 開啟已填好標題的事件表單。 |
 | `maintenance [title]` | 開啟已填好標題的排定維護表單。 |
 | `oncall` | 列出您看得到的每個待命排程中目前由誰待命、待命到何時，以及下一位是誰。 |
+| `page [who] [message]` | 就您的訊息呼叫您 @提及的人，或傳送一張卡片來選擇要呼叫的人。請參閱 [從 Microsoft Teams 呼叫他人](#從-microsoft-teams-呼叫他人)。 |
 | `ask [question]`，或任何日常語言的問題 | OneUptime AI 回答有關記錄、追蹤、指標、事件和監測器的問題，例如「現在有哪些監測器停擺了？」。回答只讀取資料。 |
 | `show active incidents`、 `show active alerts` | 列出目前尚未結束的項目。 |
 | `show scheduled maintenance`、 `show ongoing maintenance` | 列出即將進行或正在進行的維護活動。 |
@@ -163,6 +168,15 @@ flowchart TB
 - **表單可以指定什麼。** 在頻道或群組聊天中，任何在場的人都可以提交表單，並且以提交者的身分、依其自己的權限提交。事件或活動以這些權限建立，並記在此人名下。此人無法讀取的監測器、待命策略、標籤、嚴重程度或狀態，或屬於其他專案的，都會像專案中不存在一樣被拒絕，並且不會建立任何內容：機器人會回覆 "One of the values you picked ... is not available in this project any more. Please pick it again."
 
 事件、警示或片段上的 **Execute On-Call Policy** 也以同樣方式運作：它需要執行待命策略的權限（ **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自訂角色中的 **Create On-Call Duty Policy Execution Log** ）以及讀取該事件、警示或片段的權限，並提供此人可以讀取的有效待命策略。從卡片檢視監測器或待命策略時，也會以按下按鈕的人的身分讀取。
+
+## 從 Microsoft Teams 呼叫他人
+
+在頻道或群組聊天中，`@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` 會立即呼叫 Nawaz。OneUptime 會建立一則以您的訊息為標題的警示，您 @提及的每個人都會依其本人的待命規則收到電話、簡訊、推播通知或電子郵件，直到有人確認該警示。
+
+- **立即被呼叫的人。** 您 @提及的人，前提是其後跟有訊息。OneUptime 透過此人的 Microsoft Teams 帳戶所連接的 OneUptime 帳戶識別此人，否則透過此人在 Microsoft Teams 中的電子郵件地址識別。專案以外的人不會被呼叫。
+- **其他情況會收到卡片。** 如果沒有 @提及任何人（例如在與機器人的個人聊天中）、沒有訊息、提及了標籤，或有 OneUptime 無法識別的人，機器人會以 **Page someone** 卡片回覆，其中已填入您輸入的內容，並說明哪些人無法選取。選擇人員、團隊、待命排程（呼叫此刻在該排程中待命的人）或待命策略（依其上報規則呼叫），然後提交。對話中的任何人都可以以自己的身分提交該卡片。呼叫完成後，卡片會被移除，以免有人用它重複呼叫。
+- **顯示位置。** 對話會以一張持續更新的卡片顯示這次呼叫：呼叫了誰、如何呼叫，以及誰已確認。機器人無法張貼它時，它的回覆會告訴您呼叫了誰，並附上警示的連結。
+- **誰可以呼叫。** 既能執行待命策略又能建立警示的人： **Project Owner**、 **Project Admin** 和 **Project Member**，或同時擁有 **On-Call Member** 和 **Alert Member** 的人（自訂角色中的 **Create On-Call Duty Policy Execution Log** 和 **Create Alert** ）。不經待命策略直接呼叫人員、團隊或待命排程，還需要存取專案中所有待命策略的權限。其他任何人都會在回覆中收到告知，並且不會呼叫任何人。
 
 ## 從 Microsoft Teams 處理事件、警示和活動
 

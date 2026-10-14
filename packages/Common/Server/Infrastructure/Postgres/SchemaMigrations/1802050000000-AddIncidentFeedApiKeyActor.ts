@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * key. Nullable columns with no default rewrite no rows, and nothing is
  * indexed.
  */
-export class AddIncidentFeedApiKeyActor1801950000000
+export class AddIncidentFeedApiKeyActor1802050000000
   implements MigrationInterface
 {
-  public name: string = "AddIncidentFeedApiKeyActor1801950000000";
+  public name: string = "AddIncidentFeedApiKeyActor1802050000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "IncidentFeed" ADD "apiKeyId" uuid`);
