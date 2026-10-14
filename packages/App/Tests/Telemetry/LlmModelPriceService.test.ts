@@ -31,6 +31,10 @@ jest.mock("Common/Server/Services/DatabaseService", () => {
         // no-op: delete-permission config, same.
       }
 
+      public keepRowsOnDeleteByQuery(): void {
+        // no-op: the rows a delete by query keeps, config too.
+      }
+
       public findBy(...args: Array<unknown>): Promise<Array<unknown>> {
         return mockFindBy(...args);
       }
