@@ -3,6 +3,7 @@ import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "../../Types/AnalyticsDatabase/RetentionTtl";
+import { attributeValuesSkipIndex } from "../../Types/AnalyticsDatabase/AttributeValueIndex";
 import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
@@ -255,6 +256,16 @@ export default class Log extends AnalyticsBaseModel {
       defaultValue: {},
       type: TableColumnType.MapStringString,
       mapKeysColumn: "attributeKeys",
+      /*
+       * A bloom filter over every attribute VALUE, so a search for one value
+       * (`@http.route:/orders`, a clicked facet chip) skips the granules that
+       * hold no such value instead of decompressing the whole map - the
+       * widest column of the table - for every row in the time range.
+       * idx_attribute_keys cannot do this: almost every granule carries
+       * almost every key. See AttributeValueIndex for which filters can use
+       * it and how an existing install gets it.
+       */
+      skipIndex: attributeValuesSkipIndex(),
       accessControl: {
         read: [
           Permission.ProjectOwner,
