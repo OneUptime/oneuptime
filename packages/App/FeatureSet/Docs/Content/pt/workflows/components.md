@@ -17,6 +17,7 @@ Raramente você vai precisar dela aberta enquanto monta. As configurações de c
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Publicar em uma ferramenta de chat                            | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) ou [Mattermost](#mattermost) |
 | Enviar um e-mail pelo seu próprio servidor de e-mail          | [Email](#email)                                                   |
+| Acionar uma pessoa, uma equipe ou quem estiver de plantão | [Paging](#paging) |
 | Chamar qualquer outra API ou um serviço seu                   | [API](#api)                                                       |
 | Resumir, classificar ou redigir texto                         | [Generate Text with AI](#generate-text-with-ai)                   |
 | Seguir um caminho ou outro conforme um valor                  | [Conditions](#conditions)                                         |
@@ -198,6 +199,49 @@ Envie um e-mail por um servidor SMTP que você informa no bloco. O bloco se cham
 O bloco se conecta direto ao servidor das configurações dele. Ele não usa as configurações de [SMTP](/docs/emails/smtp) do seu projeto nem o servidor de e-mail do próprio OneUptime, e os e-mails que ele envia não aparecem nos registros de notificação. Para conferir o que ele fez, veja as [Execuções](/docs/workflows/runs-and-logs) do workflow.
 
 Conexões a endereços de loopback (`localhost`, `127.0.0.1`), link-local e de metadados de nuvem são recusadas. No OneUptime Cloud, um host SMTP em um endereço de rede privada, ou um nome que resolve para um, também é recusado. Instalações self-hosted conseguem alcançar um servidor de e-mail na própria rede, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` esteja definido como `true`. Um host recusado toma a saída **Error**, e nada é enviado.
+
+## Paging
+
+Acione pessoas a partir de um workflow: cada uma recebe uma ligação, um SMS, uma notificação push ou um e-mail, conforme as próprias regras de plantão, até alguém confirmar. Há um bloco para cada jeito de dizer quem acionar. No painel **Adicionar componente**, pesquise `page`.
+
+| Bloco                       | Quem ele aciona |
+| --------------------------- | --------------- |
+| **Page Users**              | As pessoas que você indicar. |
+| **Page a Team**             | Todos os membros de uma equipe. |
+| **Page Whoever Is On Call** | Quem estiver de plantão em um agendamento de plantão quando o bloco rodar. |
+| **Page an On-Call Policy**  | Uma política de plantão, que aciona pelas regras de escalonamento dela e se repete como estiver configurada. |
+
+Os três primeiros acionam ao mesmo tempo todos os que indicam, e mais ninguém depois. Para um escalonamento, use **Page an On-Call Policy**.
+
+Para acionar só quando algo for verdade, coloque [If / Else](#conditions) antes do bloco e conecte a ele a saída que deve acionar. Com mais de dois caminhos, [Switch / Case](#switch-case) segue um caminho para cada valor, e cada caminho pode acionar outra pessoa.
+
+```mermaid title="Acionar quem está de plantão, mas só em incidentes críticos"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+Quando você cria um workflow, os modelos em **Plantão** têm este pronto, e um que aciona conforme a gravidade com **Switch / Case**. Um modelo deixa para você escolher quem acionar: o workflow abre no Construtor, onde cada bloco de acionamento diz **Click to set up**.
+
+| Configuração | O que faz |
+| ------------ | --------- |
+| **Users**, **Teams**, **On-Call Schedules** ou **On-Call Policies** | Quem acionar: cada bloco tem a que combina com o nome dele. Escolha pelo nome, ou pressione **{ }** no fim da linha para adicionar um valor de um bloco anterior. Um valor pode trazer um ID ou vários e, em **Users**, um endereço de e-mail. |
+| **Page About** | Do que trata o acionamento: **A new alert**, **An incident** ou **An alert**. Confirmar o acionamento também o confirma. |
+| **Title** e **Message** | Para um alerta novo. O OneUptime cria um alerta com eles, e ele fica entre os seus alertas como qualquer outro. |
+| **Incident ID** ou **Alert ID** | Para um incidente ou um alerta que já existe, normalmente aquele com que o workflow começou: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | Para um alerta novo, em **Mais campos**. Ela decide quais regras de plantão de cada pessoa a acionam. Deixada vazia, é a mais grave do projeto. |
+
+Um bloco adicionado a um workflow que começa em um incidente ou em um alerta já vem configurado para acionar sobre esse registro, então só pergunta quem acionar.
+
+**Success** roda assim que pelo menos uma pessoa é acionada, ou uma política começou. **Error** roda quando ninguém foi acionado, e o valor **Error** do bloco diz por quê, por exemplo que não há ninguém de plantão no agendamento. **Summary** diz em uma frase quem foi acionado e quem ficou de fora, pronta para publicar em um canal, e **Paged Users** lista as pessoas acionadas.
+
+Quem está ausente não é acionado: é acionado no lugar quem a substituição de usuário dessa pessoa nomeia para cobri-la. Um acionamento indica no máximo 100 pessoas, equipes e agendamentos. Veja [Como cada pessoa é contatada](/docs/on-call/escalation-rules#como-cada-pessoa-é-contatada).
+
+Um acionamento sem política de plantão por trás aparece junto às execuções das políticas como **Acionamento direto**: nos logs de plantão do incidente ou do alerta, no feed e no canal do Slack ou do Microsoft Teams dele, e nos logs de cada pessoa acionada. Ele fica aberto por 30 minutos, e depois enquanto ainda houver acionamentos saindo. Se até lá ninguém tiver confirmado, ele termina sem acionar mais ninguém.
+
+> [!WARNING]
+> **Executar fluxo de trabalho** aciona pessoas de verdade, esteja o workflow ligado ou não, e **Run just this step** também. Indique você mesmo enquanto testa.
 
 ## Custom Code
 

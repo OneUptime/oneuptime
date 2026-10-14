@@ -137,6 +137,11 @@ describe("the start view leads with what people use", () => {
     renderPicker();
 
     expect(buttonNames(section("More components"))).toEqual([
+      // The Page steps lead them: paging somebody is what a workflow is often for.
+      "Page Users",
+      "Page a Team",
+      "Page Whoever Is On Call",
+      "Page an On-Call Policy",
       "Generate Text with AI",
       "API Put (JSON)",
       "API Patch (JSON)",

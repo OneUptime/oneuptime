@@ -14,6 +14,11 @@
  * - Choices from a fixed list (an operator, a value type, a workflow, an
  *   incident template) get nothing either: a value from a run is not one of
  *   the choices.
+ * - A choice of a few answers, each with a line of its own (what a Page
+ *   step's page is about), is asked as rows of radio buttons.
+ * - A list of the project's people, teams, on-call schedules or on-call
+ *   policies (who a Page step pages) is the people picker, with { } at the
+ *   end of its row: a value from an earlier step joins the list as a chip.
  *
  * The row editor, field picker and schedule picker are chosen before this, in
  * ArgumentsForm, for the settings that have them.
@@ -40,6 +45,10 @@ export enum ArgumentControl {
   HTMLCode = "HTMLCode",
   /** Key/value rows whose values are chip editors. */
   KeyValueRows = "KeyValueRows",
+  /** A row of radio buttons per choice (Choice/ChoiceSettingField). */
+  ChoiceRows = "ChoiceRows",
+  /** The people picker with value chips (RecordList/RecordListField). */
+  RecordList = "RecordList",
   /** The control componentInputTypeToFormFieldType picks, with no picker. */
   Plain = "Plain",
 }
@@ -71,7 +80,17 @@ const CHOICE_TYPES: Array<ComponentInputType> = [
   ComponentInputType.ValueType,
   ComponentInputType.WorkflowSelect,
   ComponentInputType.IncidentTemplateSelect,
+  ComponentInputType.AlertSeveritySelect,
+  ComponentInputType.Choice,
   ComponentInputType.CronTab,
+];
+
+// Component.RECORD_LIST_INPUT_TYPES, repeated so this file stays pure.
+const RECORD_LIST_TYPES: Array<ComponentInputType> = [
+  ComponentInputType.UserList,
+  ComponentInputType.TeamList,
+  ComponentInputType.OnCallScheduleList,
+  ComponentInputType.OnCallPolicyList,
 ];
 
 export type ArgumentControlForFunction = (data: {
@@ -142,6 +161,18 @@ export const argumentControlFor: ArgumentControlForFunction = (data: {
    */
   if (CHOICE_TYPES.includes(type) && containsTemplateExpression(data.value)) {
     return ArgumentControl.Text;
+  }
+
+  /*
+   * A list holds its values from earlier steps as entries of their own,
+   * beside the records picked, so it is the same control either way.
+   */
+  if (RECORD_LIST_TYPES.includes(type)) {
+    return ArgumentControl.RecordList;
+  }
+
+  if (type === ComponentInputType.Choice) {
+    return ArgumentControl.ChoiceRows;
   }
 
   return ArgumentControl.Plain;

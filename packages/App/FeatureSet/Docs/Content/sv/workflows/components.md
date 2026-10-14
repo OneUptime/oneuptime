@@ -17,6 +17,7 @@ Du behöver sällan ha den öppen medan du bygger. Varje blocks inställningar s
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Posta i ett chattverktyg                                      | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) eller [Mattermost](#mattermost) |
 | Skicka e-post via din egen e-postserver                       | [Email](#email)                                                   |
+| Larma en person, ett team eller den som har jour | [Paging](#paging) |
 | Anropa vilket annat API som helst, eller din egen tjänst      | [API](#api)                                                       |
 | Sammanfatta, klassificera eller skriva utkast till text       | [Generate Text with AI](#generate-text-with-ai)                   |
 | Ta den ena eller andra vägen beroende på ett värde            | [Conditions](#conditions)                                         |
@@ -198,6 +199,49 @@ Skicka ett e-postmeddelande via en SMTP-server som du anger på blocket. Blocket
 Blocket ansluter direkt till servern i sina inställningar. Det använder inte ditt projekts [SMTP](/docs/emails/smtp)-inställningar eller OneUptimes egen e-postserver, och e-postmeddelandena det skickar visas inte i aviseringsloggarna. För att kontrollera vad det gjorde tittar du på arbetsflödets [Körningar](/docs/workflows/runs-and-logs).
 
 Anslutningar till loopback- (`localhost`, `127.0.0.1`), link-local- och molnmetadata-adresser avvisas. I OneUptime Cloud avvisas även en SMTP-värd på en privat nätverksadress, eller ett namn som pekar på en. Självhostade installationer kan nå en e-postserver på sitt eget nätverk, om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är satt till `true`. En avvisad värd tar utgången **Error**, och inget skickas.
+
+## Paging
+
+Larma personer från ett arbetsflöde: varje person får ett samtal, ett sms, en pushavisering eller ett e-postmeddelande, så som personens egna jourregler säger, tills någon bekräftar. Det finns ett block för varje sätt att säga vem som ska larmas. Sök efter `page` i panelen **Lägg till komponent**.
+
+| Block                       | Vem det larmar |
+| --------------------------- | -------------- |
+| **Page Users**              | De personer du anger. |
+| **Page a Team**             | Varje medlem i ett team. |
+| **Page Whoever Is On Call** | Den som har jour i ett jourschema när blocket körs. |
+| **Page an On-Call Policy**  | En jourpolicy, som larmar genom sina eskaleringsregler och upprepas så som den är inställd. |
+
+De tre första larmar alla de anger samtidigt, och ingen annan därefter. Använd **Page an On-Call Policy** för eskalering.
+
+Vill du bara larma när något är sant sätter du [If / Else](#conditions) framför blocket och kopplar utgången som ska larma till det. Med fler än två vägar tar [Switch / Case](#switch-case) en väg för varje värde, och varje väg kan larma någon annan.
+
+```mermaid title="Larma den som har jour, men bara vid kritiska incidenter"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+När du skapar ett arbetsflöde har mallarna under **Jour** det här färdigt, och ett som larmar efter allvarlighetsgrad med **Switch / Case**. En mall lämnar åt dig vem som larmas: arbetsflödet öppnas i Byggaren, där varje larmblock säger **Click to set up**.
+
+| Inställning | Vad den gör |
+| ----------- | ----------- |
+| **Users**, **Teams**, **On-Call Schedules** eller **On-Call Policies** | Vem som larmas: varje block har den som hör till dess namn. Välj efter namn, eller tryck på **{ }** i slutet av raden för att lägga till ett värde från ett tidigare block. Ett värde kan innehålla ett ID eller flera och, för **Users**, en e-postadress. |
+| **Page About** | Vad larmet gäller: **A new alert**, **An incident** eller **An alert**. Att bekräfta larmet bekräftar också det. |
+| **Title** och **Message** | För ett nytt larm. OneUptime skapar ett larm av dem, och det finns kvar bland dina larm som alla andra. |
+| **Incident ID** eller **Alert ID** | För en incident eller ett larm som redan finns, oftast det som arbetsflödet startade på: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | För ett nytt larm, under **Fler fält**. Den avgör vilka av varje persons jourregler som larmar personen. Lämnas den tom är det projektets allvarligaste. |
+
+Ett block som läggs till i ett arbetsflöde som startar på en incident eller ett larm är redan inställt på att larma om den posten, så det frågar bara vem som ska larmas.
+
+**Success** körs så snart minst en person har larmats, eller en policy har startat. **Error** körs när ingen larmades, och blockets värde **Error** säger varför, till exempel att ingen har jour i schemat. **Summary** säger i en mening vem som larmades och vem som utelämnades, färdig att lägga upp i en kanal, och **Paged Users** listar de personer som larmades.
+
+Den som är borta larmas inte: i stället larmas den som personens användaråsidosättning anger som ersättare. En utlarmning anger högst 100 personer, team och scheman. Se [Så nås varje person](/docs/on-call/escalation-rules#så-nås-varje-person).
+
+En utlarmning utan jourpolicy bakom sig står bland policyernas körningar som **Direkt utlarmning**: i jourloggarna för incidenten eller larmet, i dess flöde och dess Slack- eller Microsoft Teams-kanal, och i loggarna hos varje person som larmades. Den är öppen i 30 minuter, och därefter så länge larm fortfarande går ut. Har ingen bekräftat då avslutas den utan att larma någon annan.
+
+> [!WARNING]
+> **Kör arbetsflöde** larmar personer på riktigt, oavsett om arbetsflödet är på eller av, och det gör **Run just this step** också. Ange dig själv medan du testar.
 
 ## Custom Code
 

@@ -180,6 +180,17 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     // Execute Workflow: its setting, and the trigger it needs.
     "Workflow",
     "Manual",
+    // The Page steps: their settings and the sentence they return.
+    "Users",
+    "Teams",
+    "On-Call Schedules",
+    "On-Call Policies",
+    "Title",
+    "Message",
+    "Incident ID",
+    "Alert ID",
+    "Severity",
+    "Summary",
     // The record steps.
     "Incident Template",
     "Query",
@@ -662,6 +673,7 @@ const STEP_HELP_LINKS_TO_STEPS: Array<StepHelpLink> = [
   "json",
   "conditions",
   "switchCase",
+  "paging",
   "sleep",
   "log",
   "executeWorkflow",

@@ -13,6 +13,13 @@
  *                         on the canvas, connected to nothing yet
  * ?scenario=switch-full   a Switch / Case holding every case a step can
  *                         (25, named like severities), Default to log-1
+ * ?scenario=page...       the Page steps, and the project their settings
+ *                         pick people from (PageScenarios.js)
+ * ?page=on-call-logs      the Dashboard's real on-call logs table, with
+ *                         pages that have no policy behind them among a
+ *                         policy's runs (OnCallLogs.js)
+ * ?page=on-call-timeline  the real timeline table of one such page
+ *                         (OnCallLogs.js)
  *
  * ?page=create-workflow   the Workflows page's Create Workflow button and the
  *                         real "Create a workflow" dialog it opens, with the
@@ -35,6 +42,12 @@ import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import CreateWorkflowModal from "../../../App/FeatureSet/Dashboard/src/Components/Workflow/CreateWorkflowModal";
+import {
+  OnCallLogsPage,
+  OnCallTimelinePage,
+  installOnCallLogs,
+} from "./OnCallLogs";
+import { getPageScenario, installPageProject } from "./PageScenarios";
 
 const params = new URLSearchParams(window.location.search);
 const scenario = params.get("scenario") || "graph";
@@ -158,6 +171,15 @@ if (scenario === "empty") {
       targetHandle: "in",
     },
   ];
+}
+
+// The Page steps' scenarios bring their own graph and their own project.
+const pageScenario = getPageScenario(scenario, step, edge);
+
+if (pageScenario) {
+  initialNodes = pageScenario.nodes;
+  initialEdges = pageScenario.edges;
+  installPageProject(params);
 }
 
 // What the builder hands its page to save, for the spec to read.
@@ -305,6 +327,12 @@ function CreateWorkflowPage() {
 if (fixturePage === "create-workflow") {
   installServerStandIns();
   createRoot(document.getElementById("root")).render(<CreateWorkflowPage />);
+} else if (fixturePage === "on-call-logs") {
+  installOnCallLogs();
+  createRoot(document.getElementById("root")).render(<OnCallLogsPage />);
+} else if (fixturePage === "on-call-timeline") {
+  installOnCallLogs();
+  createRoot(document.getElementById("root")).render(<OnCallTimelinePage />);
 } else {
   createRoot(document.getElementById("root")).render(<App />);
 }

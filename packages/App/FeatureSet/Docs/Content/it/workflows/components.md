@@ -17,6 +17,7 @@ Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni 
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Pubblicare in uno strumento di chat                           | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) o [Mattermost](#mattermost) |
 | Inviare un'email tramite il tuo server di posta               | [Email](#email)                                                   |
+| Chiamare una persona, un team o chi è reperibile | [Paging](#paging) |
 | Chiamare qualsiasi altra API o un tuo servizio                | [API](#api)                                                       |
 | Riassumere, classificare o scrivere testo                     | [Generate Text with AI](#generate-text-with-ai)                   |
 | Prendere un percorso o un altro in base a un valore           | [Conditions](#conditions)                                         |
@@ -198,6 +199,49 @@ Invia un'email tramite un server SMTP che indichi sul blocco. Il blocco si chiam
 Il blocco si collega direttamente al server indicato nelle sue impostazioni. Non usa le impostazioni [SMTP](/docs/emails/smtp) del tuo progetto né il server di posta di OneUptime, e le email che invia non compaiono nei registri delle notifiche. Per controllare cosa ha fatto, guarda le [Esecuzioni](/docs/workflows/runs-and-logs) del workflow.
 
 Le connessioni agli indirizzi di loopback (`localhost`, `127.0.0.1`), link-local e di metadati cloud vengono rifiutate. Su OneUptime Cloud, anche un host SMTP su un indirizzo di rete privata, o un nome che si risolve in uno, viene rifiutato. Le installazioni self-hosted possono raggiungere un server di posta sulla propria rete, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia impostato su `true`. Un host rifiutato prende l'uscita **Error**, e non viene inviato nulla.
+
+## Paging
+
+Chiama delle persone da un workflow: ognuna riceve una telefonata, un SMS, una notifica push o un'email, come dicono le sue regole di reperibilità, finché qualcuno conferma. C'è un blocco per ogni modo di dire chi chiamare. Nel pannello **Aggiungi componente**, cerca `page`.
+
+| Blocco                      | Chi chiama |
+| --------------------------- | ---------- |
+| **Page Users**              | Le persone che indichi. |
+| **Page a Team**             | Ogni membro di un team. |
+| **Page Whoever Is On Call** | Chi è reperibile in una pianificazione di reperibilità quando il blocco viene eseguito. |
+| **Page an On-Call Policy**  | Una policy di reperibilità, che chiama seguendo le sue regole di escalation e si ripete come è impostata. |
+
+I primi tre chiamano insieme tutte le persone che indicano, e nessun altro dopo. Per un'escalation, usa **Page an On-Call Policy**.
+
+Per chiamare solo quando qualcosa è vero, metti [If / Else](#conditions) davanti al blocco e collegagli l'uscita che deve chiamare. Con più di due percorsi, [Switch / Case](#switch-case) prende un percorso per ogni valore, e ogni percorso può chiamare qualcun altro.
+
+```mermaid title="Chiamare chi è reperibile, ma solo per gli incidenti critici"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+Quando crei un workflow, i modelli sotto **Reperibilità** hanno questo già pronto, e uno che chiama in base alla gravità con **Switch / Case**. Un modello lascia a te chi chiamare: il workflow si apre nel Costruttore, dove ogni blocco di chiamata dice **Click to set up**.
+
+| Impostazione | Cosa fa |
+| ------------ | ------- |
+| **Users**, **Teams**, **On-Call Schedules** o **On-Call Policies** | Chi chiamare: ogni blocco ha quella che va con il suo nome. Scegli per nome, oppure premi **{ }** alla fine della riga per aggiungere un valore da un blocco precedente. Un valore può contenere un ID o più di uno e, per **Users**, un indirizzo email. |
+| **Page About** | Di cosa tratta la chiamata: **A new alert**, **An incident** o **An alert**. Confermare la chiamata conferma anche quello. |
+| **Title** e **Message** | Per un nuovo avviso. OneUptime ne crea un avviso, che resta tra i tuoi avvisi come qualsiasi altro. |
+| **Incident ID** o **Alert ID** | Per un incidente o un avviso che esiste già, di solito quello da cui è partito il workflow: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | Per un nuovo avviso, sotto **Altri campi**. Decide quali regole di reperibilità di ciascuna persona la chiamano. Lasciata vuota, è la più grave del progetto. |
+
+Un blocco aggiunto a un workflow che parte da un incidente o da un avviso è già impostato per chiamare riguardo a quel record, quindi chiede soltanto chi chiamare.
+
+**Success** viene eseguito appena almeno una persona è stata chiamata, o una policy è partita. **Error** viene eseguito quando non è stato chiamato nessuno, e il valore **Error** del blocco dice perché, ad esempio che nella pianificazione nessuno è reperibile. **Summary** dice in una frase chi è stato chiamato e chi è stato escluso, pronta da pubblicare in un canale, e **Paged Users** elenca le persone chiamate.
+
+Chi è assente non viene chiamato: al suo posto viene chiamato chi la sua sostituzione utente indica per sostituirlo. Una chiamata indica al massimo 100 persone, team e pianificazioni. Vedi [Come viene raggiunta ogni persona](/docs/on-call/escalation-rules#come-viene-raggiunta-ogni-persona).
+
+Una chiamata senza una policy di reperibilità alle spalle è elencata con le esecuzioni delle policy come **Chiamata diretta**: nei log di reperibilità dell'incidente o dell'avviso, nel suo feed e nel suo canale Slack o Microsoft Teams, e nei log di ogni persona chiamata. Resta aperta per 30 minuti, e poi finché partono ancora chiamate. Se per allora nessuno ha confermato, finisce senza chiamare nessun altro.
+
+> [!WARNING]
+> **Esegui flusso di lavoro** chiama delle persone per davvero, che il workflow sia attivo o no, e così fa **Run just this step**. Indica te stesso mentre fai le prove.
 
 ## Custom Code
 

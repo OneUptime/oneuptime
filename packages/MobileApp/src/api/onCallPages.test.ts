@@ -101,6 +101,97 @@ describe("fetchMyOnCallPages", () => {
     expect(pages[0]?.acknowledgedAt).toBeNull();
   });
 
+  /*
+   * A workflow's Page steps page people with no on-call policy behind the
+   * page. Such a page has no policy to name, and the card must not say its
+   * policy is "unavailable", as if something had been lost.
+   */
+  test("asks for each page's policy id, which is what tells a direct page apart", async () => {
+    await fetchMyOnCallPages(PROJECT);
+
+    const calls: Array<Array<unknown>> = postSpy().mock.calls;
+    const body: { select: Record<string, unknown> } = calls[
+      calls.length - 1
+    ]![1] as { select: Record<string, unknown> };
+
+    expect(body.select["onCallDutyPolicyId"]).toBe(true);
+    expect(body.select["onCallDutyPolicy"]).toEqual({ _id: true, name: true });
+  });
+
+  test("a page with no policy is a direct page", async () => {
+    postSpy().mockResolvedValue({
+      data: {
+        data: [
+          {
+            _id: "log-1",
+            createdAt: "2026-03-03T12:00:00.000Z",
+            status: "Completed",
+            onCallDutyPolicyId: null,
+            triggeredByIncident: { _id: "incident-9", title: "Replica lag" },
+          },
+        ],
+      },
+    } as never);
+
+    const pages: OnCallPageItem[] = await fetchMyOnCallPages(PROJECT);
+
+    expect(pages[0]?.isDirectPage).toBe(true);
+    expect(pages[0]?.policyName).toBeUndefined();
+    // Everything else about it is a page's.
+    expect(pages[0]?.triggeredByIncident).toEqual({
+      _id: "incident-9",
+      title: "Replica lag",
+    });
+  });
+
+  test("a policy's page is not, by its policy or by its policy's id alone", async () => {
+    postSpy().mockResolvedValue({
+      data: {
+        data: [
+          {
+            _id: "log-1",
+            createdAt: "2026-03-03T12:00:00.000Z",
+            onCallDutyPolicyId: "policy-1",
+            onCallDutyPolicy: { _id: "policy-1", name: "Database" },
+          },
+          {
+            // Its policy could not be read: still not a direct page.
+            _id: "log-2",
+            createdAt: "2026-03-03T12:00:00.000Z",
+            onCallDutyPolicyId: "policy-2",
+          },
+          {
+            // The id as the API serialises it.
+            _id: "log-3",
+            createdAt: "2026-03-03T12:00:00.000Z",
+            onCallDutyPolicyId: { _type: "ObjectID", value: "policy-3" },
+          },
+        ],
+      },
+    } as never);
+
+    const pages: OnCallPageItem[] = await fetchMyOnCallPages(PROJECT);
+
+    expect(
+      pages.map((page: OnCallPageItem): boolean | undefined => {
+        return page.isDirectPage;
+      }),
+    ).toEqual([undefined, undefined, undefined]);
+  });
+
+  test("a row that came without a policy id at all is not guessed to be direct", () => {
+    /*
+     * An older server, or a caller that did not ask: nothing says whether
+     * the page had a policy, so the card keeps saying it cannot tell.
+     */
+    const page: OnCallPageItem | null = toOnCallPageItem(
+      { _id: "log-1", createdAt: "2026-03-03T12:00:00.000Z" },
+      PROJECT,
+    );
+
+    expect(page?.isDirectPage).toBeUndefined();
+  });
+
   test("drops rows with no id", async () => {
     postSpy().mockResolvedValue({
       data: { data: [{ createdAt: "2026-03-03T12:00:00.000Z" }] },

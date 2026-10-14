@@ -17,6 +17,7 @@ Je hebt haar zelden open nodig tijdens het bouwen. De instellingen van elk blok 
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | In een chattool te posten                                     | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) of [Mattermost](#mattermost) |
 | Een e-mail via je eigen mailserver te sturen                  | [Email](#email)                                                   |
+| Een persoon, een team of wie bereikbaarheidsdienst heeft op te roepen | [Paging](#paging) |
 | Een andere API of je eigen dienst aan te roepen               | [API](#api)                                                       |
 | Tekst samen te vatten, te classificeren of op te stellen      | [Generate Text with AI](#generate-text-with-ai)                   |
 | Afhankelijk van een waarde het ene of het andere pad te nemen | [Conditions](#conditions)                                         |
@@ -198,6 +199,49 @@ Stuur een e-mail via een SMTP-server die je in het blok invult. Het blok heet **
 Het blok verbindt rechtstreeks met de server in zijn instellingen. Het gebruikt niet de [SMTP](/docs/emails/smtp)-instellingen van je project of de eigen mailserver van OneUptime, en de e-mails die het verstuurt, verschijnen niet in de meldingslogboeken. Bekijk de [Uitvoeringen](/docs/workflows/runs-and-logs) van de workflow om te controleren wat het deed.
 
 Verbindingen naar loopback- (`localhost`, `127.0.0.1`), link-local- en cloudmetadata-adressen worden geweigerd. In OneUptime Cloud wordt ook een SMTP-host op een privénetwerkadres, of een naam die daarnaar verwijst, geweigerd. Zelf gehoste installaties kunnen een mailserver op hun eigen netwerk bereiken, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` op `true` staat. Een geweigerde host neemt de uitgang **Error**, en er wordt niets verstuurd.
+
+## Paging
+
+Roep mensen op vanuit een workflow: ieder krijgt een telefoontje, een sms, een pushmelding of een e-mail, zoals de eigen bereikbaarheidsregels bepalen, totdat iemand bevestigt. Er is een blok voor elke manier om te zeggen wie wordt opgeroepen. Zoek in het paneel **Component toevoegen** naar `page`.
+
+| Blok                        | Wie het oproept |
+| --------------------------- | --------------- |
+| **Page Users**              | De mensen die je noemt. |
+| **Page a Team**             | Elk lid van een team. |
+| **Page Whoever Is On Call** | Wie in een bereikbaarheidsschema dienst heeft op het moment dat het blok draait. |
+| **Page an On-Call Policy**  | Een bereikbaarheidsbeleid, dat oproept via zijn escalatieregels en zich herhaalt zoals het is ingesteld. |
+
+De eerste drie roepen iedereen die ze noemen tegelijk op, en daarna niemand meer. Gebruik voor escalatie **Page an On-Call Policy**.
+
+Om alleen op te roepen wanneer iets waar is, zet je [If / Else](#conditions) vóór het blok en verbind je de uitgang die moet oproepen ermee. Met meer dan twee wegen neemt [Switch / Case](#switch-case) een pad voor elke waarde, en elk pad kan iemand anders oproepen.
+
+```mermaid title="Roep op wie dienst heeft, maar alleen bij kritieke incidenten"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+Als je een workflow maakt, hebben de sjablonen onder **Bereikbaarheid** deze klaarstaan, en een die met **Switch / Case** op ernst oproept. Een sjabloon laat aan jou over wie wordt opgeroepen: de workflow opent in de Bouwer, waar elk oproepblok **Click to set up** zegt.
+
+| Instelling | Wat het doet |
+| ---------- | ------------ |
+| **Users**, **Teams**, **On-Call Schedules** of **On-Call Policies** | Wie wordt opgeroepen: elk blok heeft de instelling die bij zijn naam hoort. Kies op naam, of druk op **{ }** aan het eind van de rij om een waarde uit een eerder blok toe te voegen. Een waarde kan één ID of meerdere bevatten en, bij **Users**, een e-mailadres. |
+| **Page About** | Waar de oproep over gaat: **A new alert**, **An incident** of **An alert**. De oproep bevestigen bevestigt dat ook. |
+| **Title** en **Message** | Voor een nieuwe waarschuwing. OneUptime maakt er een waarschuwing van, en die blijft tussen je waarschuwingen staan zoals elke andere. |
+| **Incident ID** of **Alert ID** | Voor een incident of een waarschuwing die er al is, meestal die waarmee de workflow begon: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | Voor een nieuwe waarschuwing, onder **Meer velden**. Die bepaalt welke bereikbaarheidsregels van ieder persoon hem of haar oproepen. Leeg gelaten is het de ernstigste van het project. |
+
+Een blok dat wordt toegevoegd aan een workflow die met een incident of een waarschuwing begint, is al ingesteld om over dat record op te roepen, zodat het alleen nog vraagt wie wordt opgeroepen.
+
+**Success** draait zodra ten minste één persoon is opgeroepen, of één beleid is gestart. **Error** draait wanneer niemand is opgeroepen, en de waarde **Error** van het blok zegt waarom, bijvoorbeeld dat niemand in het schema dienst heeft. **Summary** zegt in één zin wie is opgeroepen en wie is overgeslagen, klaar om in een kanaal te plaatsen, en **Paged Users** somt de opgeroepen mensen op.
+
+Iemand die afwezig is, wordt niet opgeroepen: in plaats daarvan wordt opgeroepen wie de override van die persoon als vervanger noemt. Een oproep noemt hoogstens 100 personen, teams en schema's. Zie [Hoe iedere persoon wordt bereikt](/docs/on-call/escalation-rules#hoe-iedere-persoon-wordt-bereikt).
+
+Een oproep zonder bereikbaarheidsbeleid erachter staat tussen de uitvoeringen van het beleid als **Directe oproep**: in de bereikbaarheidslogboeken van het incident of de waarschuwing, in de feed en het Slack- of Microsoft Teams-kanaal daarvan, en in de logboeken van elke opgeroepen persoon. Hij blijft 30 minuten open, en daarna zolang er nog oproepen uitgaan. Heeft tegen die tijd niemand bevestigd, dan eindigt hij zonder iemand anders op te roepen.
+
+> [!WARNING]
+> **Workflow uitvoeren** roept mensen echt op, of de workflow nu aan of uit staat, en **Run just this step** ook. Vul jezelf in terwijl je test.
 
 ## Custom Code
 

@@ -17,6 +17,7 @@
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | 在聊天工具中張貼訊息                                          | [Slack](#slack)、[Microsoft Teams](#microsoft-teams)、[Discord](#discord)、[Telegram](#telegram)、[IRC](#irc) 或 [Mattermost](#mattermost) |
 | 透過你自己的郵件伺服器寄送電子郵件                            | [Email](#email)                                                   |
+| 呼叫某個人、某個團隊或目前待命的人 | [Paging](#paging) |
 | 呼叫其他任何 API 或你自己的服務                               | [API](#api)                                                       |
 | 摘要、分類或草擬文字                                          | [Generate Text with AI](#generate-text-with-ai)                   |
 | 依某個值走這條或那條路徑                                      | [Conditions](#conditions)                                         |
@@ -198,6 +199,49 @@ SMTP 伺服器接受了訊息時觸發 **Success**。SMTP 主機被拒絕、無�
 區塊會直接連線到它設定中的伺服器。它不使用專案的 [SMTP](/docs/emails/smtp) 設定或 OneUptime 自己的郵件伺服器，它寄出的郵件也不會出現在通知日誌中。要檢查它做了什麼，請查看工作流程的 [執行記錄](/docs/workflows/runs-and-logs)。
 
 到回送位址（`localhost`、`127.0.0.1`）、link-local 位址和雲端中繼資料位址的連線會被拒絕。在 OneUptime Cloud 上，位於私人網路位址的 SMTP 主機，或解析到這類位址的名稱，也會被拒絕。自行託管的安裝可以連線到它們自己網路中的郵件伺服器，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 被設定為 `true`。被拒絕的主機會走 **Error** 輸出，不會寄出任何東西。
+
+## Paging
+
+從工作流程中呼叫人員：每個人會依各自的待命規則接到電話、簡訊、推播通知或電子郵件，直到有人確認。指定呼叫對象的每種方式各有一個區塊。在 **新增元件** 面板中搜尋 `page`。
+
+| 區塊                        | 呼叫誰 |
+| --------------------------- | ------ |
+| **Page Users**              | 你指定的人。 |
+| **Page a Team**             | 團隊的每位成員。 |
+| **Page Whoever Is On Call** | 區塊執行時，待命排程中正在待命的人。 |
+| **Page an On-Call Policy**  | 一個待命策略，它依自己的升級規則呼叫，並依設定重複。 |
+
+前三個區塊會同時呼叫它們指定的所有人，之後不再呼叫其他人。需要升級時，請使用 **Page an On-Call Policy**。
+
+如果只想在某個條件成立時呼叫，把 [If / Else](#conditions) 放在這個區塊前面，並把應當呼叫的輸出連接到它。有兩條以上的路徑時，[Switch / Case](#switch-case) 為每個值走一條路徑，每條路徑可以呼叫不同的人。
+
+```mermaid title="只在發生重大事件時呼叫待命的人"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+建立工作流程時， **待命** 底下的範本裡已經備好了這個工作流程，還有一個用 **Switch / Case** 依嚴重程度呼叫的範本。呼叫誰由你決定：工作流程會在建構器中開啟，每個呼叫區塊上都顯示 **Click to set up**。
+
+| 設定 | 作用 |
+| ---- | ---- |
+| **Users**、**Teams**、**On-Call Schedules** 或 **On-Call Policies** | 呼叫誰：每個區塊都有與其名稱對應的那一項。依名稱選擇，或按列尾的 **{ }** 新增前面區塊的一個值。一個值可以包含一個或多個 ID；對於 **Users**，還可以是電子郵件地址。 |
+| **Page About** | 呼叫是關於什麼的： **A new alert**、**An incident** 或 **An alert**。確認呼叫也就確認了它。 |
+| **Title** 和 **Message** | 用於新警示。OneUptime 會用它們建立一個警示，它和其他警示一樣留在你的警示清單中。 |
+| **Incident ID** 或 **Alert ID** | 用於已經存在的事件或警示，通常是啟動這個工作流程的那一個：`{{local.components.incident-on-create-1.returnValues.model._id}}`。 |
+| **Severity** | 用於新警示，位於 **更多欄位** 底下。它決定每個人的哪些待命規則會呼叫他們。留空時，使用專案中最嚴重的等級。 |
+
+新增到由事件或警示啟動的工作流程中的區塊，已經設定為針對該記錄進行呼叫，因此只需要指定呼叫誰。
+
+至少呼叫到一個人，或有一個策略已啟動時，執行 **Success**。沒有呼叫到任何人時執行 **Error**，區塊的 **Error** 值會說明原因，例如排程中沒有人在待命。 **Summary** 用一句話說明呼叫了誰、略過了誰，可以直接發到頻道裡； **Paged Users** 列出被呼叫的人。
+
+不在崗的人不會被呼叫：會改為呼叫其使用者覆寫指定的代班人。一次呼叫最多指定 100 個人員、團隊和排程。參見 [如何聯絡到每個人](/docs/on-call/escalation-rules#如何聯絡到每個人)。
+
+背後沒有待命策略的呼叫，會與策略的執行紀錄列在一起，顯示為 **直接呼叫**：出現在事件或警示的待命記錄、它的動態和它的 Slack 或 Microsoft Teams 頻道中，以及每個被呼叫的人的記錄中。它會保持開啟 30 分鐘，此後只要還有呼叫在發出就繼續保持。如果到那時仍無人確認，它就此結束，不再呼叫其他人。
+
+> [!WARNING]
+> 無論工作流程是開啟還是關閉， **執行工作流程** 都會實際呼叫人員， **Run just this step** 也一樣。測試時請指定你自己。
 
 ## Custom Code
 
