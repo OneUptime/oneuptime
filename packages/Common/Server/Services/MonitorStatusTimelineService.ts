@@ -102,6 +102,17 @@ export interface MergedDowntimeRow {
   downtimeSeconds: string | number | null;
 }
 
+/*
+ * What onBeforeDelete hands onDeleteSuccess for one status event deleted by
+ * its id: the event, its monitor, and the event before it that runs on over
+ * its time once it is gone (null when there is none: the oldest event).
+ */
+export interface StatusEventDeleteCarryForward {
+  monitorId: ObjectID;
+  eventId: ObjectID;
+  previousRunsOn: { previousId: ObjectID; endsAt: Date | null } | null;
+}
+
 export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
   public constructor() {
     super(MonitorStatusTimeline);
@@ -1799,41 +1810,73 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       throw new BadDataException(decision.message);
     }
 
-    if (decision.kind === "previous-runs-on") {
-      /*
-       * Written as null, never left out, when the event before it becomes
-       * the current status again: a column left out of an update is not
-       * written at all.
-       */
-      await this.updateOneById({
-        id: decision.previousId,
-        data: {
-          endsAt: decision.endsAt,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    /*
+     * The event before it runs on once the event is gone (onDeleteSuccess),
+     * never before: a delete refused after this hook, or one that removed
+     * nothing, leaves the timeline as it was.
+     */
+    const carryForward: StatusEventDeleteCarryForward = {
+      monitorId: monitorId,
+      eventId: event.id!,
+      previousRunsOn:
+        decision.kind === "previous-runs-on"
+          ? { previousId: decision.previousId, endsAt: decision.endsAt }
+          : null,
+    };
 
-    logger.debug(
-      `Monitor status event ${event.id?.toString()} deleted: ${decision.kind}.`,
-      {
-        monitorId: monitorId.toString(),
-      } as LogAttributes,
-    );
-
-    return { deleteBy, carryForward: monitorId };
+    return { deleteBy, carryForward: carryForward };
   }
 
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<MonitorStatusTimeline>,
-    _itemIdsBeforeDelete: ObjectID[],
+    itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<MonitorStatusTimeline>> {
-    if (onDelete.carryForward) {
-      // this is monitorId.
-      const monitorId: ObjectID = onDelete.carryForward as ObjectID;
+    const carryForward: StatusEventDeleteCarryForward | null =
+      onDelete.carryForward || null;
+
+    /*
+     * Only for the one event deleted by its id (onBeforeDelete), once it is
+     * gone: a delete by query moves no event, and leaves every monitor's
+     * current status where it was.
+     */
+    const eventWasDeleted: boolean = Boolean(
+      carryForward &&
+        itemIdsBeforeDelete.some((id: ObjectID): boolean => {
+          return (
+            id.toString().toLowerCase() ===
+            carryForward.eventId.toString().toLowerCase()
+          );
+        }),
+    );
+
+    if (carryForward && eventWasDeleted) {
+      const monitorId: ObjectID = carryForward.monitorId;
+
+      if (carryForward.previousRunsOn) {
+        /*
+         * The event before it runs on over its time: to where the next event
+         * starts, or on, as the current status again (MonitorStatusEventDelete).
+         * Written as null, never left out, when it runs on: a column left out
+         * of an update is not written at all.
+         */
+        await this.updateOneById({
+          id: carryForward.previousRunsOn.previousId,
+          data: {
+            endsAt: carryForward.previousRunsOn.endsAt,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
+      logger.debug(
+        `Monitor status event ${carryForward.eventId.toString()} deleted; the event before it ${carryForward.previousRunsOn ? "runs on over its time" : "was none: the history now starts later"}.`,
+        {
+          monitorId: monitorId.toString(),
+        } as LogAttributes,
+      );
 
       // get last status of this monitor.
       const monitorStatusTimeline: MonitorStatusTimeline | null =
