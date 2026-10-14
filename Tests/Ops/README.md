@@ -749,7 +749,10 @@ Dockerfile for production and development and runs
 `docker buildx build --check` over the production render for the default,
 `community` and `enterprise` targets and over the development render. That
 resolves each target's stage graph with BuildKit itself, which the jest suite
-cannot. It runs on every PR from the "Ops Config Test" workflow.
+cannot. It runs on every PR from the "Ops Config Test" workflow. Each check goes
+through `Scripts/GHA/buildx_check.sh`: when public.ecr.aws refuses the base
+images with its anonymous-quota 429, it checks again with them taken from
+Docker Hub (the same images under the same digests).
 
 ```sh
 cd Tests/Ops && npm run lint-app-dockerfile
@@ -940,9 +943,10 @@ suite holds them to the repository:
   copy.
 
 The "Ops Config Test" workflow also runs `docker buildx build --check` over
-the Dockerfile. It does not build the image: that is about 10 GB, more than a
-standard runner has to spare, and the scanner emails security@oneuptime.com
-when its build fails. `.oss-scanner/README.md` says how to build it locally
+the Dockerfile, through `Scripts/GHA/buildx_check.sh` (the same fallback to
+Docker Hub when public.ecr.aws refuses the base images). It does not build the
+image: that is about 10 GB, more than a standard runner has to spare, and the
+scanner emails security@oneuptime.com when its build fails. `.oss-scanner/README.md` says how to build it locally
 with the scanner's own tools.
 
 ### `agent-ebpf-e2e/`
