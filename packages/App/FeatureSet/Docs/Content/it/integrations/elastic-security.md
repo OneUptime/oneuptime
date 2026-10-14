@@ -44,7 +44,7 @@ Gli alert sono salvati per spazio. Apri lo spazio in cui girano le tue regole: i
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Elastic Security** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla la chiave in **API key**.
+Apri **Prodotti → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Elastic Security** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla la chiave in **Chiave API**.
 
 ### Provarla prima di salvare
 
@@ -55,7 +55,7 @@ Fai clic su **Test these settings** sotto **Test before saving**. Il test si aut
 | --- | --- |
 | **Kibana URL** | L'indirizzo da cui viene servito Kibana, per esempio `https://kibana.example.com` o `https://<deployment>.kb.<region>.cloud.es.io`. Senza percorso: né `/app/security`, né `/api`, né la parte `/s/<space>`. |
 | **Kibana space** | L'ID dello spazio, non il suo nome: lettere, cifre, trattini e trattini bassi. Lascialo vuoto per lo spazio predefinito. |
-| **API key** | Il valore **Base64** della chiave, da solo: OneUptime aggiunge da sé lo schema `ApiKey`. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Update credentials** sulla connessione. |
+| **Chiave API** | Il valore **Base64** della chiave, da solo: OneUptime aggiunge da sé lo schema `ApiKey`. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Update credentials** sulla connessione. |
 
 Il passaggio **Polling** ha anche una **Descrizione** facoltativa, il **Poll Interval (Minutes)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo.
 
