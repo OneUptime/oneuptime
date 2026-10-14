@@ -568,7 +568,7 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
           tableId: "scheduled-maintenance-templates-table",
         }}
         name="Settings > Scheduled Maintenance Templates"
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={true}
         isViewable={true}

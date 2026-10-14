@@ -59,8 +59,21 @@ function toHistogramData(
   };
 }
 
+export interface UseLogsHistogramOptions {
+  /*
+   * False holds the request back: the caller does not know yet which query
+   * it will show (the logs explorer waiting for a saved view to apply on
+   * load, issue #4709). The chart reads as loading meanwhile, since a
+   * request will follow, and the query handed over when this turns true is
+   * the one fetched - once, not the one before it and then that one.
+   * Defaults to true.
+   */
+  isEnabled?: boolean | undefined;
+}
+
 export type UseLogsHistogramFunction = (
   fetchBuckets: FetchHistogramBucketsFunction,
+  options?: UseLogsHistogramOptions | undefined,
 ) => LogsHistogramState;
 
 /**
@@ -83,7 +96,10 @@ export type UseLogsHistogramFunction = (
  */
 const useLogsHistogram: UseLogsHistogramFunction = (
   fetchBuckets: FetchHistogramBucketsFunction,
+  options?: UseLogsHistogramOptions | undefined,
 ): LogsHistogramState => {
+  const isEnabled: boolean = options?.isEnabled ?? true;
+
   const [histogram, setHistogram] =
     useState<LogsHistogramData>(EMPTY_HISTOGRAM);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -148,13 +164,18 @@ const useLogsHistogram: UseLogsHistogramFunction = (
     );
 
   useEffect(() => {
+    if (!isEnabled) {
+      return;
+    }
+
     void refresh();
-  }, [refresh]);
+  }, [refresh, isEnabled]);
 
   return {
     buckets: histogram.buckets,
     bucketIntervalMs: histogram.bucketIntervalMs,
-    isLoading: isLoading,
+    // Held back, the chart is waiting for its first request.
+    isLoading: isLoading || !isEnabled,
     error: error,
     refresh: refresh,
   };

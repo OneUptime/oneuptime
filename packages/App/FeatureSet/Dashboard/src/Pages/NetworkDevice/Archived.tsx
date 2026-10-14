@@ -29,7 +29,7 @@ const NetworkDeviceArchivedPage: FunctionComponent<
         query={{
           isArchived: true,
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
@@ -40,8 +40,6 @@ const NetworkDeviceArchivedPage: FunctionComponent<
          */
         bulkActions={{
           buttons: [...unarchiveBulkActions],
-          deleteConfirmationWarning:
-            "Their interfaces, links, endpoints and any monitor OneUptime created for them - with that monitor's history - are deleted too. Unarchive them instead if you only want them back in the main list.",
         }}
         name="Archived Network Devices"
         cardProps={{

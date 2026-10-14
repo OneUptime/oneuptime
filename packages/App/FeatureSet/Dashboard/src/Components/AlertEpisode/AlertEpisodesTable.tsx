@@ -267,7 +267,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
         }}
         modelType={AlertEpisode}
         id="alert-episodes-table"
-        isDeleteable={false}
+        isDeleteable={true}
         query={props.query || {}}
         isEditable={false}
         isCreateable={false}

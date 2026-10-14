@@ -100,7 +100,7 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
           tableId: `subscriber-notification-templates-table-${notificationMethod.toLowerCase().replace(/\s+/g, "-")}`,
         }}
         name={`Settings > Subscriber Notification Templates > ${notificationMethod}`}
-        isDeleteable={false}
+        isDeleteable={true}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         isEditable={false}
         isCreateable={true}

@@ -61,6 +61,10 @@ const OTHER_WORKFLOW_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
 
+// DeleteConsequences' sentence for a workflow, under every Delete of one.
+const WORKFLOW_CONSEQUENCE: string =
+  "Deleting a workflow also deletes its variables and run logs.";
+
 type MakeModelFunction = <T extends BaseModel>(
   modelType: { new (): T },
   values: JSONObject,
@@ -152,9 +156,10 @@ describe("ModelDelete names the record", () => {
       />,
     );
 
+    // Then what goes with it (DeleteConsequences), as a list's Delete says.
     await waitFor(() => {
       expect(textOf("model-delete-card-message")).toBe(
-        "Permanently delete Notify on-call. This action cannot be undone.",
+        `Permanently delete Notify on-call. This action cannot be undone. ${WORKFLOW_CONSEQUENCE}`,
       );
     });
   });
@@ -295,7 +300,7 @@ describe("ModelDelete names the record", () => {
     );
 
     expect(textOf("model-delete-card-message")).toBe(
-      "Permanently delete Notify on-call. This action cannot be undone.",
+      `Permanently delete Notify on-call. This action cannot be undone. ${WORKFLOW_CONSEQUENCE}`,
     );
 
     openDialog("Delete Workflow");

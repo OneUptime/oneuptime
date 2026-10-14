@@ -29,7 +29,7 @@ const RumArchivedPage: FunctionComponent<
         query={{
           isArchived: true,
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={false}
         isViewable={true}

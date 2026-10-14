@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import ServiceElement from "../../Components/Service/ServiceElement";
 import PageComponentProps from "../PageComponentProps";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -74,7 +75,8 @@ const ServicesPage: FunctionComponent<
         saveFilterProps={{
           tableId: "service-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         bulkActions={{

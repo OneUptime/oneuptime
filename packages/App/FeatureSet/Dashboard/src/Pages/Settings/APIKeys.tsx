@@ -109,7 +109,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
         saveFilterProps={{
           tableId: "settings-api-keys-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         showViewIdButton={false}
         isCreateable={true}

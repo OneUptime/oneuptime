@@ -1,3 +1,4 @@
+import DeleteConsequenceParagraph from "./DeleteConsequenceParagraph";
 import NamedSentence from "./NamedSentence";
 import {
   getGlobalTranslator,
@@ -188,12 +189,19 @@ const DeleteConfirmationMessage: FunctionComponent<ComponentProps> = (
     translateUnnamedDeleteSentence({ typeLabel: props.typeLabel, kind: kind })
   );
 
+  // The question's own sentences: that it cannot be undone.
   const trailingSentences: Array<string> = getTrailingSentences({
     name: name,
     typeLabel: props.typeLabel,
     isIrreversible: props.isIrreversible,
-    warning: props.warning,
   });
+
+  /*
+   * What goes with it is a paragraph of its own under the question: read
+   * together, four sentences were one dense block, and the records that go
+   * with this one - the thing most worth noticing - sat in the middle of it.
+   */
+  const warning: string = props.warning?.trim() || "";
 
   return (
     <span data-testid={props.dataTestId || "delete-confirmation-message"}>
@@ -209,6 +217,15 @@ const DeleteConfirmationMessage: FunctionComponent<ComponentProps> = (
           </React.Fragment>
         );
       })}
+      {warning ? (
+        <DeleteConsequenceParagraph
+          hasTextBefore={Boolean(firstSentence) || trailingSentences.length > 0}
+        >
+          {warning}
+        </DeleteConsequenceParagraph>
+      ) : (
+        <></>
+      )}
     </span>
   );
 };

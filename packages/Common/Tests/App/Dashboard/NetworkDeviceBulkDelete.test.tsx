@@ -19,20 +19,21 @@ import {
  * delete any of them. Deleting a batch of stale, duplicated or test devices
  * out of a fleet of 7,489 meant deleting them one at a time.
  *
- * The action itself is ModelTable's - it adds a default bulk "Delete" to any
- * table that already offers bulk actions, for anyone the model lets delete
- * (asserted end to end in BaseModelTableBulkDelete.test.tsx). Two things about
- * these pages have to hold for that to reach the user, and neither is visible
- * from the component:
+ * The action itself is ModelTable's - it adds a default bulk "Delete" to a
+ * table whose rows are deleted from it (`isDeleteable`, which also puts
+ * Delete in each row's ⋯ menu) and that offers bulk actions, for anyone the
+ * model lets delete (asserted end to end in BaseModelTableBulkDelete.test.tsx).
+ * Three things about these pages have to hold for that to reach the user, and
+ * none is visible from the component:
  *
  *   1. the page keeps handing ModelTable a non-empty `bulkActions` - the
- *      default Delete is not injected into a table that offers none, because
- *      the row checkboxes only exist for tables that do;
- *   2. the page fills in what the generic confirmation cannot know. Deleting
- *      a device takes its interfaces, links, endpoints and auto-created
- *      monitor with it, and Archive is the reversible alternative. "This
- *      action cannot be undone" on its own does not say that, and at 900 rows
- *      the difference is not recoverable.
+ *      row checkboxes only exist for tables that offer bulk actions;
+ *   2. the page's rows are deleted from it (`isDeleteable`);
+ *   3. the confirmation says what the generic sentence cannot. Deleting a
+ *      device takes its interfaces, links, endpoints and auto-created monitor
+ *      with it - DeleteConsequences' sentence, said by every Delete of a
+ *      device - and on the live list Archive is the reversible alternative.
+ *      At 900 rows the difference is not recoverable.
  *
  * ModelTable is replaced by a prop recorder here: the point is what these two
  * pages hand it, not re-testing the table.
@@ -89,6 +90,7 @@ type CapturedBulkActions = {
 type CapturedTableProps = {
   bulkActions?: CapturedBulkActions | undefined;
   isDeleteable?: boolean | undefined;
+  deleteConfirmationWarning?: string | undefined;
   cardProps?: { description?: string | undefined } | undefined;
   searchableFields?: Array<string> | undefined;
   selectMoreFields?: Record<string, unknown> | undefined;
@@ -212,6 +214,8 @@ import NetworkDeviceArchivedPage from "../../../../App/FeatureSet/Dashboard/src/
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { SHORTEN_DEVICE_NAMES_ACTION_TITLE } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/useBulkShortenDeviceNames";
 import Route from "../../../Types/API/Route";
+import { getDeleteConsequence } from "../../../UI/Components/DeleteConfirmation/DeleteConsequences";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../../../App/FeatureSet/Dashboard/src/Components/Archive/ResourceArchiveCopy";
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route("/dashboard/network-devices"),
@@ -307,18 +311,17 @@ describe("Network Devices bulk delete wiring", () => {
     });
 
     /*
-     * The page deliberately has no per-row Delete. Bulk deletion does not hang
-     * off that flag, and this is here so that stays a deliberate pairing
-     * rather than looking like an oversight in either direction.
+     * Delete in each row's ⋯ menu as well: one switch for the row's Delete
+     * and the bulk one, so the two always go together.
      */
-    test("has no per-row Delete button", async () => {
+    test("deletes from each row's menu too", async () => {
       const props: CapturedTableProps = await renderPage(
         NetworkDevicesPage as unknown as (
           props: PageComponentProps,
         ) => ReactElement,
       );
 
-      expect(props.isDeleteable).toBe(false);
+      expect(props.isDeleteable).toBe(true);
     });
 
     /*
@@ -367,13 +370,16 @@ describe("Network Devices bulk delete wiring", () => {
         ) => ReactElement,
       );
 
-      const warning: string =
-        props.bulkActions?.deleteConfirmationWarning || "";
+      // What leaves with a device: the model's own sentence, said by every Delete.
+      const consequence: string = getDeleteConsequence("NetworkDevice");
 
-      expect(warning).toContain("interfaces");
-      expect(warning).toContain("links");
-      expect(warning).toContain("monitor");
-      expect(warning.toLowerCase()).toContain("archive");
+      expect(consequence).toContain("interfaces");
+      expect(consequence).toContain("links");
+      expect(consequence).toContain("monitor");
+
+      // Archive, the reversible alternative, in the row's and the bulk dialog.
+      expect(props.deleteConfirmationWarning).toBe(ARCHIVE_INSTEAD_OF_DELETE);
+      expect(props.bulkActions?.deleteConfirmationWarning).toBeUndefined();
     });
   });
 
@@ -391,22 +397,22 @@ describe("Network Devices bulk delete wiring", () => {
     });
 
     /*
-     * Archiving then deleting is the clean-up path the issue describes, so
-     * the warning here points back at Unarchive rather than at Archive.
+     * Archiving then deleting is the clean-up path the issue describes: here
+     * the devices are off the main list already, so the dialog says what
+     * goes with them (DeleteConsequences) and offers no way round it - as
+     * every Archived page's Delete does.
      */
-    test("warns what leaves with the devices, and points at Unarchive", async () => {
+    test("deletes from each row's menu too, saying only what leaves with the devices", async () => {
       const props: CapturedTableProps = await renderPage(
         NetworkDeviceArchivedPage as unknown as (
           props: PageComponentProps,
         ) => ReactElement,
       );
 
-      const warning: string =
-        props.bulkActions?.deleteConfirmationWarning || "";
-
-      expect(warning).toContain("interfaces");
-      expect(warning).toContain("monitor");
-      expect(warning.toLowerCase()).toContain("unarchive");
+      expect(props.isDeleteable).toBe(true);
+      expect(props.deleteConfirmationWarning).toBeUndefined();
+      expect(props.bulkActions?.deleteConfirmationWarning).toBeUndefined();
+      expect(getDeleteConsequence("NetworkDevice")).toContain("interfaces");
     });
 
     test("tells the reader the list is where devices get deleted for good", async () => {

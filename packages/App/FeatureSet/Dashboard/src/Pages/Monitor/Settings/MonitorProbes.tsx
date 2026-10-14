@@ -160,7 +160,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           saveFilterProps={{
             tableId: "settings-project-probes-table",
           }}
-          isDeleteable={false}
+          isDeleteable={true}
           isEditable={false}
           isViewable={true}
           isCreateable={true}

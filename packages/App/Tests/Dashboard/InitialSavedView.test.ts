@@ -4,6 +4,7 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import {
   InitialSavedViewResolution,
   buildUrlScopeOverrides,
+  mayApplyInitialSavedView,
   resolveInitialSavedView,
 } from "../../FeatureSet/Dashboard/src/Utils/InitialSavedView";
 
@@ -535,5 +536,142 @@ describe("buildUrlScopeOverrides under the explorer's shallow merge", () => {
         ).search,
       ).toBe("http.status_code:500");
     }
+  });
+});
+
+/*
+ * Whether an explorer waits for its saved views before its first reads
+ * (issue #4709). Reading first and applying the view a moment later sent the
+ * list, the chart and the facets twice on every load a view applied to - the
+ * project default on a plain open, and every reload once a view is selected
+ * (the URL carries it). Waiting is only worth it where a view CAN apply, and
+ * must happen wherever one can: so the answer is held to the resolver
+ * itself, over every input it reads.
+ */
+describe("mayApplyInitialSavedView", () => {
+  const URL_IDS: Array<string | null | undefined> = [
+    undefined,
+    null,
+    "",
+    "   ",
+    DV_IMS.id,
+    "view-gone",
+  ];
+  const VIEW_LISTS: Array<Array<FakeSavedView>> = [
+    [],
+    [DV_IMS],
+    [TEAM_DEFAULT],
+    [DV_IMS, TEAM_DEFAULT],
+  ];
+
+  test("whenever a view would apply, the explorer waits for it", () => {
+    for (const urlSavedViewId of URL_IDS) {
+      for (const hasUrlScope of [true, false]) {
+        for (const hostOwnsView of [true, false]) {
+          for (const savedViews of VIEW_LISTS) {
+            const resolution: InitialSavedViewResolution<FakeSavedView> =
+              resolve({
+                savedViews,
+                urlSavedViewId,
+                hasUrlScope,
+                hostOwnsView,
+              });
+
+            if (resolution.savedView) {
+              expect(
+                mayApplyInitialSavedView({
+                  urlSavedViewId,
+                  hasUrlScope,
+                  hostOwnsView,
+                }),
+              ).toBe(true);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  test("it waits only where some list of views would make one apply", () => {
+    for (const urlSavedViewId of URL_IDS) {
+      for (const hasUrlScope of [true, false]) {
+        for (const hostOwnsView of [true, false]) {
+          if (
+            !mayApplyInitialSavedView({
+              urlSavedViewId,
+              hasUrlScope,
+              hostOwnsView,
+            })
+          ) {
+            continue;
+          }
+
+          // The view the link names, if it names one, and a project default.
+          const named: FakeSavedView = {
+            id: (urlSavedViewId || "").trim() || "view-named",
+            name: "Named",
+            isDefault: false,
+          };
+
+          expect(
+            resolve({
+              savedViews: [named, TEAM_DEFAULT],
+              urlSavedViewId,
+              hasUrlScope,
+              hostOwnsView,
+            }).savedView,
+          ).not.toBeNull();
+        }
+      }
+    }
+  });
+
+  test("a link that names a view waits, even with a scope of its own or inside a host", () => {
+    for (const hasUrlScope of [true, false]) {
+      for (const hostOwnsView of [true, false]) {
+        expect(
+          mayApplyInitialSavedView({
+            urlSavedViewId: DV_IMS.id,
+            hasUrlScope,
+            hostOwnsView,
+          }),
+        ).toBe(true);
+      }
+    }
+  });
+
+  test("a plain open waits for a project default", () => {
+    expect(
+      mayApplyInitialSavedView({
+        urlSavedViewId: null,
+        hasUrlScope: false,
+        hostOwnsView: false,
+      }),
+    ).toBe(true);
+  });
+
+  test("a link with a scope of its own, or a page that owns the view, never waits", () => {
+    expect(
+      mayApplyInitialSavedView({
+        urlSavedViewId: null,
+        hasUrlScope: true,
+        hostOwnsView: false,
+      }),
+    ).toBe(false);
+    expect(
+      mayApplyInitialSavedView({
+        urlSavedViewId: undefined,
+        hasUrlScope: false,
+        hostOwnsView: true,
+      }),
+    ).toBe(false);
+    // A blank id names nothing.
+    expect(
+      mayApplyInitialSavedView({
+        urlSavedViewId: "   ",
+        hasUrlScope: true,
+        hostOwnsView: false,
+      }),
+    ).toBe(false);
   });
 });

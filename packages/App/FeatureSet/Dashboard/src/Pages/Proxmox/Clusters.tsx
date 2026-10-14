@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -184,7 +185,8 @@ const ProxmoxClusters: FunctionComponent<
           });
           return Promise.resolve(item);
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         showRefreshButton={true}

@@ -42,6 +42,18 @@ export interface ResourceArchiveCopy {
   noArchivedItemsMessage: string;
 }
 
+/*
+ * Said after the Delete question on a live list of an archivable resource -
+ * in a row's Delete dialog and in a bulk Delete's - after what the record
+ * takes with it: archiving takes it off the list too, keeps everything, and
+ * is undone with one click. The gentler way to the same end, at the moment
+ * the irreversible one is chosen. Not said on an Archived page, where the
+ * record is off the list already.
+ */
+export const ARCHIVE_INSTEAD_OF_DELETE: string = translationKey(
+  "To take it off this list and keep everything, archive it instead.",
+);
+
 export const WORKFLOW_ARCHIVE_COPY: ResourceArchiveCopy = {
   singularName: translationKey("workflow"),
   pluralName: translationKey("workflows"),

@@ -20,6 +20,8 @@ right after a drag" below).
 | Host overview | `HOST_VIEW` `/dashboard/:projectId/host/:id` | `Pages/Host/View/{Layout,Overview}` |
 | Traces explorer | `TRACES` `/dashboard/:projectId/traces` | `Pages/Traces/{Layout,Index}`: `TracesViewer` ("Traces over time" histogram, facets, span list, saved views) |
 | Logs explorer | `LOGS` `/dashboard/:projectId/logs` | `Pages/Logs/{Layout,Index}`: the Dashboard's `LogsViewer` ("Log Volume" histogram, facets, log list, saved views) |
+| Exceptions explorer | `EXCEPTIONS_UNRESOLVED` `/dashboard/:projectId/exceptions/unresolved` | `Pages/Exceptions/{Layout,Unresolved}`: `ExceptionsViewer` ("Exceptions over time" histogram, facets, the error-class counts, exception list) |
+| Metrics explorer | `METRICS` `/dashboard/:projectId/metrics` | `Pages/Metrics/{Layout,Index}`: `MetricsViewer` (the metric list, a sparkline per row, the Service facet, saved views) |
 
 Each page renders inside its production layout: the View layout (`ModelPage`,
 breadcrumbs, side menu with its count badges) for the cluster and host pages, the
@@ -90,16 +92,28 @@ fixes the browser clock to `2026-09-21T12:00:00Z`, so "Past 30 Minutes" is alway
   when the request names none). checkout-api's calls to payments-worker time out in
   a burst at 11:43. The `Log` table's two Kubernetes warning events are listed and
   counted with the generated lines.
+- One saved logs view, "Checkout errors" (`dataset.logSavedViewId`): checkout-api's
+  errors over the past day. It is not the project default, so it applies only where a
+  link names it (`?savedView=`); every other page load opens the Logs explorer as it
+  would with no saved views at all.
+- Five exception groups (`TelemetryException`), all unresolved and last seen in the
+  past day, one or two per service, in classes the default "Issues" lens shows (the
+  fixture does not model the lens's `IncludesNone`, which matches every row here). The
+  Exceptions explorer's chart and facet counts are read off the same rows: a group's
+  occurrences fall in the minute it was last seen.
+- The Metrics explorer lists the `MetricType` rows above and draws each row's sparkline
+  from the series catalogue; its Service facet lists the four services, each counted
+  zero.
 - Empty on purpose: incidents, alerts, scheduled maintenance, monitors, dismissals,
-  change events, exemplars (raw `Metric` rows with a trace id), trace and log saved
-  views, Docker and Podman hosts.
+  change events, exemplars (raw `Metric` rows with a trace id), trace saved views,
+  Docker and Podman hosts.
 
 Any route not listed above renders a "Not modelled" stub (`data-testid="stub-page"`).
 
 ## What the fixture records
 
 `window.__chartTimeZoomFixture` holds `dataset` (ids and identifiers), `requests`,
-`unhandled`, two gates and `timeLimit`.
+`unhandled`, three gates and `timeLimit`.
 
 Every data request is appended to `requests` in order, as
 `{ seq, kind, modelName, ... }`:
@@ -118,19 +132,25 @@ on it. That includes an `analytics.count` of any table but the generated ones
 (`SpanItemV3`, `LogItemV3`), and a list or count of those that does not filter
 its time column by an `InBetween`.
 
-The gates let a spec pick the moment data lands. Both answer at once by default,
-so the other specs never see them:
+The gates let a spec pick the moment data lands. All three answer at once by
+default, so the other specs never see them:
 
 | Gate | Holds |
 |---|---|
 | `histogramGate` | the explorers' `/telemetry/traces/histogram`, `/telemetry/traces/facets`, `/telemetry/traces/analytics`, `/telemetry/logs/histogram` and `/telemetry/logs/facets` answers (the Traces explorer awaits its histogram and facets together) |
 | `aggregateGate` | every modelled `AnalyticsModelAPI.aggregate` answer |
+| `listGate` | the `ModelAPI.getList` answers of the tables named in `listGate.tables` (none by default), such as an explorer's saved views (`LogSavedView`) or its service list (`Service`) |
 
 With `gate.mode = "manual"` later answers wait in `gate.pending`, each described as
-`{ seq, url` or `metricName, window, response }` (`response` only on the explorer
-answers); `gate.deliver()` answers everything pending, in order, and returns how
-many it answered. Setting `mode` back to `"immediate"` does not release what is
-already held: `deliver()` does.
+`{ seq, url`, `metricName` or `modelName, window, response }` (`response` only on
+the explorer answers); `gate.deliver()` answers everything pending, in order, and
+returns how many it answered. Setting `mode` back to `"immediate"` does not release
+what is already held: `deliver()` does.
+
+An explorer reads its saved views and its service list as it mounts, before a spec
+can reach the page, so `window.__chartTimeZoomGates`, set before the page loads
+(`page.addInitScript`), is what each gate starts with:
+`{ listGate: { mode: "manual", tables: ["LogSavedView"] } }`.
 
 `timeLimit` names the reads ClickHouse stops at the query time limit (issue #4707).
 Each one answers as the API answers such a read, a 504 with the API's sentence,
@@ -371,6 +391,51 @@ issue #4707 in a real browser:
   them;
 - a chart that stopped alone says so in its own card, and its Try again draws it;
 - at 390 px the message and its Try again fit the screen, with no sideways scroll.
+
+## Explorers: one list read per page load
+
+`ExplorerListRequests.spec.ts` (11 tests, same fixture and command) pins issue #4709 in
+a real browser: every load of the Logs explorer read its log list twice, and the
+second read put a page the URL restored back to page 1; the Exceptions and Metrics
+explorers read their lists (and their charts, facets and sparklines) twice on every
+load as well. The spec installs the browser clock at the fixture's moment and lets it
+tick, as a real page's does, so a window resolved again a moment later is a later
+window. It counts the reads the page recorded - the lists (`analytics.getList` of
+`LogItemV3` and `SpanItemV3`, `getList` of `TelemetryException` and `MetricType`) and
+the chart, facet, count and aggregate reads beside them:
+
+- a link and then a reload of `?range=Past 1 Day&page=3`: one read each time, for page
+  3 over exactly a day, and `?page=3` stays (before: page 3, then page 1, its window
+  about 70 ms later);
+- a link with chips and a custom window: one read, of exactly that window and chip;
+- an old link to page 40 of what is one page: page 40, then page 1 - not one read per
+  page on the way back (before: 40 reads);
+- a link that names the saved view, a window and page 2: one read, of the view's query
+  under the link's window, on page 2 (before: three);
+- turning Live on: one read, up to now; turning it off: none;
+- the Traces explorer, reloaded with `?range=Past 1 Day&page=2`: one read, page 2 kept
+  (this one already held; it guards it);
+- the Exceptions explorer, a link and a reload with `?range=Past 1 Day`: one list read,
+  one chart and one facet read, and the error-class counts once (five, and the tab's
+  badge) - before, all of them again when the service list landed;
+- the Metrics explorer, a link and a reload: one metric list read and one aggregate per
+  row's sparkline - before, the list and every sparkline twice.
+
+Where an explorer now waits to know what it will show before it reads, three more
+tests hold that wait open with `listGate` and look at the page meanwhile: nothing is
+read, every part of the explorer says it is loading, and nothing says there is
+nothing to show; then, once released, one read:
+
+- the Logs explorer on a link that names the saved view, while the saved views load:
+  the list's loader in the room its rows will take (at least 192 px), the footer's
+  "Loading...", no "No logs found"; then one read of the view, on the link's page 2;
+- the Exceptions explorer on a `@service:checkout-api` link, while the service names
+  load: "Loading..." in the footer, the facet sidebar's loader alone (no "No values in
+  this time range" under every facet), no "No exceptions found"; then one list read,
+  checkout-api's two groups only;
+- the Metrics explorer on a `service:checkout-api` link, while the service names load:
+  "Loading..." and no "No metrics found"; then one read, whose empty answer only now
+  says so.
 
 ## Run it
 

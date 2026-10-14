@@ -150,7 +150,7 @@ describe("MetricsViewer's locked chips carry their search syntax", () => {
      * attribute chip it names takes its syntax from the attribute alone, so
      * nothing about the scope reaches the chip builder.
      */
-    expect(call).toContain("attributeFilters: props.attributeFilters,");
+    expect(call).toContain("attributeFilters: attributeFilters,");
     expect(call).not.toContain("entityScope");
   });
 
@@ -440,7 +440,7 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
       "}",
     );
 
-    expect(call).toContain("entityKeysFilter: props.entityKeysFilter,");
+    expect(call).toContain("entityKeysFilter: entityKeysFilter,");
     expect(call).toContain("entityKeyDisplays: props.entityKeyDisplays,");
 
     /*
@@ -455,9 +455,9 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
   test("recomputes the chips when the entity keys or their names change, and not on the entity scope it never reads", () => {
     const dependencies: Array<string> = dependenciesOf(MEMO);
 
-    expect(dependencies).toContain("props.entityKeysFilter");
+    expect(dependencies).toContain("entityKeysFilter");
     expect(dependencies).toContain("props.entityKeyDisplays");
-    expect(dependencies).not.toContain("props.entityScope");
+    expect(dependencies).not.toContain("entityScope");
   });
 
   test("the page's display map reaches only the chip builder and the detail callback", () => {
@@ -487,7 +487,7 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
     const body: string = bodyAfter(ROW_CLICK, "(metric: MetricType)");
     const entityKeyScope: string = blockAfter(
       body,
-      "if (props.entityKeysFilter !== undefined)",
+      "if (entityKeysFilter !== undefined)",
       "{",
       "}",
     );
@@ -498,13 +498,13 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
      * entity keys must retain their membership semantics.
      */
     expect(entityKeyScope).toContain(
-      "const singleEntityKey: string | undefined = props.entityKeysFilter.length === 1 ? props.entityKeysFilter[0] : undefined;",
+      "const singleEntityKey: string | undefined = entityKeysFilter.length === 1 ? entityKeysFilter[0] : undefined;",
     );
     expect(entityKeyScope).toContain(
       "const searchAttributes: Record<string, string> | undefined = singleEntityKey ? props.entityKeyDisplays?.[singleEntityKey]?.searchAttributes : undefined;",
     );
     expect(entityKeyScope).toContain(
-      'if (searchAttributes && Object.keys(searchAttributes).length > 0) { Object.assign(eventScope, searchAttributes); } else { eventScope["entityKeys"] = new Includes(props.entityKeysFilter); }',
+      'if (searchAttributes && Object.keys(searchAttributes).length > 0) { Object.assign(eventScope, searchAttributes); } else { eventScope["entityKeys"] = new Includes(entityKeysFilter); }',
     );
     expect(indexesOf(body, "props.entityKeyDisplays")).toHaveLength(1);
 
@@ -518,7 +518,7 @@ describe("MetricsViewer pins an entity-key scope as a locked chip", () => {
   test("the detail callback recomputes when entity search attributes change", () => {
     const dependencies: Array<string> = dependenciesOf(ROW_CLICK);
 
-    expect(dependencies).toContain("props.entityKeysFilter");
+    expect(dependencies).toContain("entityKeysFilter");
     expect(dependencies).toContain("props.entityKeyDisplays");
     // One raw lookup in the callback body and one dependency, with no other use.
     expect(indexesOf(ROW_CLICK, "props.entityKeyDisplays")).toHaveLength(2);
@@ -650,7 +650,7 @@ describe("an entity-key scope makes the metrics list a scoped page, as an entity
   test("a non-empty entity-key filter counts, beside the entity scope", () => {
     const memo: string = hookFrom(METRICS_VIEWER, IS_SCOPED_MARKER);
 
-    expect(memo).toContain("props.entityKeysFilter");
+    expect(memo).toContain("entityKeysFilter");
     expect(memo).toContain(".length > 0");
 
     const returned: string = memo.slice(
@@ -659,7 +659,7 @@ describe("an entity-key scope makes the metrics list a scoped page, as an entity
     );
 
     expect(returned).toContain("hasEntityKeysFilter");
-    expect(returned).toContain("Boolean(props.entityScope)");
+    expect(returned).toContain("Boolean(entityScope)");
   });
 
   test("recomputes when the entity keys change", () => {
@@ -667,8 +667,8 @@ describe("an entity-key scope makes the metrics list a scoped page, as an entity
       hookFrom(METRICS_VIEWER, IS_SCOPED_MARKER),
     );
 
-    expect(dependencies).toContain("props.entityKeysFilter");
-    expect(dependencies).toContain("props.entityScope");
+    expect(dependencies).toContain("entityKeysFilter");
+    expect(dependencies).toContain("entityScope");
   });
 
   test("scoped, the Service facet is not offered: no facet configs and no sidebar", () => {
@@ -737,11 +737,7 @@ describe("an entity-key scope makes the metrics list a scoped page, as an entity
       "const skipsServiceList: boolean = useMemo(",
     );
 
-    for (const scope of [
-      "props.serviceIds",
-      "props.attributeFilters",
-      "props.entityScope",
-    ]) {
+    for (const scope of ["serviceIds", "attributeFilters", "entityScope"]) {
       expect(flag).toContain(scope);
     }
 

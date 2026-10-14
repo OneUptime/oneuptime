@@ -65,7 +65,7 @@ const MonitorGroupPage: FunctionComponent<
         saveFilterProps={{
           tableId: "monitor-groups-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         showViewIdButton={true}
         isEditable={false}
         isCreateable={true}

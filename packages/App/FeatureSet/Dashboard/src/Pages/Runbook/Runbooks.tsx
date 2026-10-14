@@ -93,7 +93,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
         saveFilterProps={{
           tableId: "runbooks-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={true}
         bulkActions={{

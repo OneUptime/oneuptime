@@ -94,6 +94,12 @@ const MonitorGroupMonitors: FunctionComponent<
     <Fragment>
       <MonitorsTable
         disableCreate={true}
+        /*
+         * The group's members: the row's action is Unassign. Deleting a
+         * monitor from here would delete it everywhere, not take it out of
+         * this group - that belongs on the Monitors list.
+         */
+        isDeleteable={false}
         query={{
           _id: new Includes(monitorIds || []),
         }}
