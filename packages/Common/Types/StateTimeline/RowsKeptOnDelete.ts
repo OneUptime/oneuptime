@@ -137,17 +137,22 @@ export function getRowsKeptOnDelete(
 }
 
 /*
- * "a delete by query leaves each incident's current state, so status pages
- * always show it" - the rule as one clause, for help text and logs.
+ * "each incident's current state, so status pages always show it" - what
+ * always stays, and why, as one clause the help and the run log both put
+ * after "always stay:". Said in the reader's words: a workflow builder knows
+ * they wrote a query, not that it is "a delete by query".
  */
 export function describeRowsKeptOnDelete(kept: RowsKeptOnDelete): string {
-  return `a delete by query leaves ${kept.whatStays}${kept.why ? `, ${kept.why}` : ""}`;
+  return `${kept.whatStays}${kept.why ? `, ${kept.why}` : ""}`;
 }
 
 /*
  * The line a workflow step writes to its run's log when a delete by query
- * left rows it matched: "Kept 3 Monitor Status Events: a delete by query
- * leaves ... To delete one specific Monitor Status Event, query it by its ID."
+ * left rows it matched: "Kept 3 Monitor Status Events, because some always
+ * stay: each monitor's current status, ... To delete one particular Monitor
+ * Status Event, query it by its ID." - the step help's Tip, in the same
+ * words ("Some Monitor Status Events always stay: ..."), so the run explains
+ * itself in the terms the step was set up with.
  */
 export function describeRowsKeptByDelete(data: {
   count: number;
@@ -159,8 +164,8 @@ export function describeRowsKeptByDelete(data: {
   const rows: string = data.count === 1 ? data.one : data.many;
 
   const byId: string = data.kept.oneRowByIdCanGo
-    ? ` To delete one specific ${data.one}, query it by its ID.`
+    ? ` To delete one particular ${data.one}, query it by its ID.`
     : "";
 
-  return `Kept ${data.count} ${rows}: ${describeRowsKeptOnDelete(data.kept)}.${byId}`;
+  return `Kept ${data.count} ${rows}, because some always stay: ${describeRowsKeptOnDelete(data.kept)}.${byId}`;
 }

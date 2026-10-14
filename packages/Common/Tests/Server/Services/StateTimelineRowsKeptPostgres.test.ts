@@ -1135,7 +1135,7 @@ describePostgres(
         // The year-long row and the row before the change 20 days ago matched and stayed.
         expect(logs).toEqual([
           "Deleted 2 Monitor Status Event(s).",
-          "Kept 2 Monitor Status Events: a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor gray. To delete one specific Monitor Status Event, query it by its ID.",
+          "Kept 2 Monitor Status Events, because some always stay: each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor gray. To delete one particular Monitor Status Event, query it by its ID.",
         ]);
       });
 

@@ -4,6 +4,7 @@ import MonitorStatusTimelineReconciler, {
   RESTORE_GRACE_PERIOD_IN_MINUTES,
   RESTORED_STATUS_EVENT_ROOT_CAUSE,
   RestoreMissingStatusTimelinesResult,
+  getRestoredStatusEventRootCause,
 } from "../../../../Server/Utils/Monitor/MonitorStatusTimelineReconciler";
 import DatabaseNotConnectedException from "../../../../Types/Exception/DatabaseNotConnectedException";
 import ObjectID from "../../../../Types/ObjectID";
@@ -146,9 +147,22 @@ test("writes one open row per monitor with no live row, guarded against a second
 
 test("keeps the root cause readable: it says the history was deleted and where the status is recorded from", () => {
   expect(RESTORED_STATUS_EVENT_ROOT_CAUSE).toBe(
-    "Restored by OneUptime. This monitor's status history had been deleted, so OneUptime recorded its current status again, from the last status change it has a record of (or from when the monitor was created).",
+    "Restored by OneUptime. This monitor's status history had been deleted, so its current status was recorded again, starting at its last recorded status change (or when the monitor was created).",
   );
   expect(RESTORE_GRACE_PERIOD_IN_MINUTES).toBe(60);
+});
+
+test("names the product the installation goes by, once, as the first words", () => {
+  const rootCause: string = getRestoredStatusEventRootCause("Acme Status");
+
+  expect(rootCause.startsWith("Restored by Acme Status. ")).toBe(true);
+  expect(rootCause.split("Acme Status").length - 1).toBe(1);
+  expect(rootCause).not.toContain("OneUptime");
+
+  // An installation with OneUptime's own name writes the constant.
+  expect(getRestoredStatusEventRootCause()).toBe(
+    RESTORED_STATUS_EVENT_ROOT_CAUSE,
+  );
 });
 
 test("fails plainly when the database is not connected", async () => {

@@ -28735,6 +28735,10 @@
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} 正在值班，但不在该组中：此人是 Slack 中的访客，而 Slack 不允许访客加入用户组。",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} 正在值班，但不在该标记中：标记只能包含其团队的成员，而此人不在 {{team}} 团队中。请在 Microsoft Teams 中将此人添加到该团队。",
   "{{remaining}} of the error budget left": "错误预算剩余 {{remaining}}",
-  "This is the monitor's oldest status event and it covers part of the last {{days}} days, so it can't be deleted: status pages would show that time gray.": "这是该监视器最早的状态事件，且覆盖了最近 {{days}} 天中的一部分，因此无法删除：删除后状态页面会将这段时间显示为灰色。",
-  "This is the monitor's only status event, so it can't be deleted: the monitor would have no status, and status pages would show it gray.": "这是该监视器唯一的状态事件，因此无法删除：删除后监视器将没有状态，状态页面会将其显示为灰色。"
+  "Are you sure you want to delete the {{status}} status event that started {{startsAt}}?": "确定要删除开始于 {{startsAt}} 的 {{status}} 状态事件吗？",
+  "It ended more than {{days}} days ago, so status pages no longer show it.": "它已在超过 {{days}} 天前结束，因此状态页面不再显示它。",
+  "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.": "监视器最早的状态事件在覆盖最近 {{days}} 天中的一部分时无法删除：删除后状态页面会将这段时间显示为灰色。要替换它，请先添加一个在它之前开始的状态事件，然后删除此事件。",
+  "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.": "无法删除监视器唯一的状态事件：删除后监视器将没有状态，状态页面会将其显示为灰色。要更改其状态，请添加新的状态事件。",
+  "{{status}}, the status before it, becomes the monitor's current status again.": "其之前的状态 {{status}} 将重新成为监视器的当前状态。",
+  "{{status}}, the status before it, takes over its time.": "其之前的状态 {{status}} 将接管这段时间。"
 }

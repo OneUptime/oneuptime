@@ -352,6 +352,15 @@ export interface BaseTableProps<
   showAs?: ShowAs | undefined;
   singularName?: string | undefined;
   pluralName?: string | undefined;
+  /*
+   * What one row is called wherever the table names it - its checkbox and
+   * its ⋯ for a screen reader, the rows a bulk action lists before and after
+   * it runs, the per-row Delete question - for a model with no name column
+   * of its own. A monitor's status event has none: without this, a bulk
+   * Delete listed the one it skipped by its id. Return "" to fall back to the
+   * row's name column, as a table without the prop does.
+   */
+  getItemName?: ((item: TBaseModel) => string) | undefined;
   actionButtons?: Array<ActionButtonSchema<TBaseModel>> | undefined;
   deleteButtonText?: string | undefined;
   onCreateEditModalClose?: (() => void) | undefined;
@@ -668,7 +677,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * never guesses at a name it was not given.
    */
   const getItemLabel: GetItemLabelFunction = (item: unknown): string => {
-    return getRecordDisplayName(item, { model: model });
+    const givenName: string =
+      item && props.getItemName
+        ? props.getItemName(item as TBaseModel).trim()
+        : "";
+
+    return givenName || getRecordDisplayName(item, { model: model });
   };
 
   // The header's create button, "<verb> <noun>".
@@ -3861,7 +3875,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         bulkSelectionTotalCount={bulkSelectionTotalCount}
         matchBulkSelectedItemByField={matchBulkSelectedItemByField || "_id"}
         bulkItemToString={(item: TBaseModel) => {
-          const label: string = props.singularName || item.singularName || "";
+          /*
+           * The kind of row in the reader's language, like the rest of the
+           * bulk dialog around it ("Monitor-Statusereignis: ..." in German).
+           */
+          const label: string = tx(
+            props.singularName || item.singularName || "",
+          );
           // Same deriver the delete confirmation uses, so the two cannot drift.
           const name: string = getItemLabel(item);
           if (name) {
@@ -3966,7 +3986,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         isDragDisabled={isDragDisabled}
         dragDisabledReason={dragDisabledReason}
         itemToString={(item: TBaseModel): string => {
-          const label: string = props.singularName || item.singularName || "";
+          const label: string = tx(
+            props.singularName || item.singularName || "",
+          );
           const name: string = getItemLabel(item);
           return name && label ? `${label}: ${name}` : name || label;
         }}

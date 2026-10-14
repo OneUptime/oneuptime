@@ -1,5 +1,6 @@
 import MonitorStatusEventDelete, {
   OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
+  OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_TEMPLATE,
   ONLY_STATUS_EVENT_MESSAGE,
   StatusEventDeleteDecision,
   StatusEventDeleteFacts,
@@ -257,13 +258,54 @@ describe("an event in the middle", () => {
 });
 
 describe("the refusals", () => {
-  test("say what would happen in plain words, and what to do instead", () => {
+  test("say the rule, what would go gray, and what to do instead", () => {
     expect(ONLY_STATUS_EVENT_MESSAGE).toBe(
-      "This is the monitor's only status event, so it can't be deleted: the monitor would be left with no status, and status pages would show it gray. To change the monitor's status, add a new status event.",
+      "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.",
     );
     expect(OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE).toBe(
-      "This is the monitor's oldest status event and it covers part of the last 90 days, so it can't be deleted: that time would be left with no status, and status pages would show it gray. To change the status for that time, add a status event with the same start, then delete this one.",
+      "The monitor's oldest status event can't be deleted while it covers part of the last 90 days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.",
     );
+  });
+
+  test("fill the Dashboard's translation key with the kept history's length", () => {
+    // The tooltip looks the template up; the server sends it filled in.
+    expect(OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_TEMPLATE).toContain(
+      "the last {{days}} days",
+    );
+    expect(OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE).toBe(
+      OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_TEMPLATE.split("{{days}}").join(
+        String(KEPT_STATUS_HISTORY_DAYS),
+      ),
+    );
+    expect(OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE).not.toContain("{{");
+  });
+
+  test("the way round the oldest event's refusal works: an event that starts before it gives it one to hand its time to", () => {
+    // The refused delete: the oldest event, still in the kept history.
+    expect(
+      decide({
+        event: { startsAt: daysAgo(365), endsAt: daysAgo(20) },
+        before: null,
+        after: { startsAt: daysAgo(20) },
+      }).kind,
+    ).toBe("refuse");
+
+    // Once an event starts before it, it is no longer the oldest: it can go.
+    expect(
+      decide({
+        event: { startsAt: daysAgo(365), endsAt: daysAgo(20) },
+        before: {
+          id: BEFORE_ID,
+          startsAt: daysAgo(366),
+          endsAt: daysAgo(365),
+        },
+        after: { startsAt: daysAgo(20) },
+      }),
+    ).toEqual({
+      kind: "previous-runs-on",
+      previousId: BEFORE_ID,
+      endsAt: daysAgo(20),
+    });
   });
 });
 

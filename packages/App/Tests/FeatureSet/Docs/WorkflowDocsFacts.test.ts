@@ -1088,7 +1088,7 @@ describe("the components page", () => {
         one: "Monitor Status Event",
         many: "Monitor Status Events",
       }),
-    ).toContain("Kept 2 Monitor Status Events: ");
+    ).toContain("Kept 2 Monitor Status Events, because some always stay: ");
 
     expect(page).toContain(
       "To delete one particular event, query it by its `_id`.",

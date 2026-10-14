@@ -7,7 +7,12 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { KEPT_STATUS_HISTORY_DAYS } from "../../Types/StateTimeline/RowsKeptOnDelete";
 
-export const NETWORK_SITE_STATUS_EVENT_KEPT_MESSAGE: string = `This status event is the site's current status, or covers part of its last ${KEPT_STATUS_HISTORY_DAYS} days, so it can't be deleted: a site's status history is written by its rollups, and its uptime is worked out from it. Status events that ended more than ${KEPT_STATUS_HISTORY_DAYS} days ago can be deleted.`;
+/*
+ * Said like a monitor's refusals (MonitorStatusEventDelete): the rule, what it
+ * protects, and what can go instead. Only the API reaches it - the site's
+ * Status Timeline page offers no Delete.
+ */
+export const NETWORK_SITE_STATUS_EVENT_KEPT_MESSAGE: string = `A site's current status, and every status event that covers part of its last ${KEPT_STATUS_HISTORY_DAYS} days, can't be deleted: the site's uptime is worked out from them. Status events that ended more than ${KEPT_STATUS_HISTORY_DAYS} days ago can be deleted.`;
 
 /*
  * A network site's status history: one row per change of its rolled-up

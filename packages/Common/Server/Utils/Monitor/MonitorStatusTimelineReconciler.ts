@@ -5,6 +5,7 @@ import DatabaseNotConnectedException from "../../../Types/Exception/DatabaseNotC
 import ObjectID from "../../../Types/ObjectID";
 import { MonitorFeedEventType } from "../../../Models/DatabaseModels/MonitorFeed";
 import logger from "../Logger";
+import ProductBrandingText from "../ProductBrandingText";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 /*
@@ -95,8 +96,22 @@ const MAX_ROUNDS: number = 100000;
  * a monitor created in the last RESTORE_GRACE_PERIOD_IN_MINUTES, which may still be writing its
  * first row.
  */
+/*
+ * What the restored row's View Cause says. It names the product, so an installation that goes
+ * by a name of its own (a product name a licence replaces) has its own name here, as on its
+ * pages: the default is the name the installation goes by when the row is written.
+ */
+export const getRestoredStatusEventRootCause: (
+  productName?: string,
+) => string = (
+  productName: string = ProductBrandingText.getProductName(),
+): string => {
+  return `Restored by ${productName}. This monitor's status history had been deleted, so its current status was recorded again, starting at its last recorded status change (or when the monitor was created).`;
+};
+
+// The root cause as an installation with OneUptime's own name writes it.
 export const RESTORED_STATUS_EVENT_ROOT_CAUSE: string =
-  "Restored by OneUptime. This monitor's status history had been deleted, so OneUptime recorded its current status again, from the last status change it has a record of (or from when the monitor was created).";
+  getRestoredStatusEventRootCause("OneUptime");
 
 // A monitor this new may still be writing its first status row (MonitorService.onCreateSuccess).
 export const RESTORE_GRACE_PERIOD_IN_MINUTES: number = 60;
@@ -389,7 +404,7 @@ export default class MonitorStatusTimelineReconciler {
 
   /*
    * Gives every monitor with no status timeline left its current status back as one row (see
-   * RESTORED_STATUS_EVENT_ROOT_CAUSE above). Idempotent: a restored monitor has a row, so a
+   * getRestoredStatusEventRootCause above). Idempotent: a restored monitor has a row, so a
    * second run restores nothing. Batched, a statement per batch, until a batch comes back short.
    */
   @CaptureSpan()
@@ -521,7 +536,7 @@ export default class MonitorStatusTimelineReconciler {
     const rows: Array<{ monitorId: string }> = await dataSource.query(sql, [
       data.createdBefore,
       data.batchSize,
-      RESTORED_STATUS_EVENT_ROOT_CAUSE,
+      getRestoredStatusEventRootCause(),
       MonitorFeedEventType.MonitorStatusChanged,
       data.now,
     ]);

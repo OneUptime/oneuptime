@@ -160,6 +160,6 @@ test("an event the delete does not reach is not asked about", async () => {
 
 test("the refusal says why, and which events can go", () => {
   expect(NETWORK_SITE_STATUS_EVENT_KEPT_MESSAGE).toBe(
-    "This status event is the site's current status, or covers part of its last 90 days, so it can't be deleted: a site's status history is written by its rollups, and its uptime is worked out from it. Status events that ended more than 90 days ago can be deleted.",
+    "A site's current status, and every status event that covers part of its last 90 days, can't be deleted: the site's uptime is worked out from them. Status events that ended more than 90 days ago can be deleted.",
   );
 });

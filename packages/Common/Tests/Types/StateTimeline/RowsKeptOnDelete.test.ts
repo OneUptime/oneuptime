@@ -119,20 +119,29 @@ describe("getRowsKeptOnDelete", () => {
 });
 
 describe("the words", () => {
-  test("say the rule as one clause, with its reason when it has one", () => {
+  test("say what stays as one clause, with its reason when it has one", () => {
     expect(
       describeRowsKeptOnDelete(
         ROWS_KEPT_ON_DELETE_BY_QUERY["MonitorStatusTimeline"]!,
       ),
     ).toBe(
-      "a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor gray",
+      "each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor gray",
     );
 
     expect(
       describeRowsKeptOnDelete(
         ROWS_KEPT_ON_DELETE_BY_QUERY["AlertStateTimeline"]!,
       ),
-    ).toBe("a delete by query leaves each alert's current state");
+    ).toBe("each alert's current state");
+  });
+
+  test("speak the reader's words: what they wrote is a query, not 'a delete by query'", () => {
+    for (const kept of Object.values(ROWS_KEPT_ON_DELETE_BY_QUERY)) {
+      const clause: string = describeRowsKeptOnDelete(kept);
+
+      expect(clause).not.toContain("delete by query");
+      expect(clause.startsWith("each ")).toBe(true);
+    }
   });
 
   test("say in a run's log how many stayed, in the model's names, and how to delete one", () => {
@@ -144,7 +153,7 @@ describe("the words", () => {
         many: "Monitor Status Events",
       }),
     ).toBe(
-      "Kept 3 Monitor Status Events: a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor gray. To delete one specific Monitor Status Event, query it by its ID.",
+      "Kept 3 Monitor Status Events, because some always stay: each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor gray. To delete one particular Monitor Status Event, query it by its ID.",
     );
   });
 
@@ -157,7 +166,7 @@ describe("the words", () => {
         many: "Incident State Timelines",
       }),
     ).toBe(
-      "Kept 1 Incident State Timeline: a delete by query leaves each incident's current state, so status pages always show it. To delete one specific Incident State Timeline, query it by its ID.",
+      "Kept 1 Incident State Timeline, because some always stay: each incident's current state, so status pages always show it. To delete one particular Incident State Timeline, query it by its ID.",
     );
   });
 
@@ -170,7 +179,7 @@ describe("the words", () => {
         many: "Network Site Status Events",
       }),
     ).toBe(
-      "Kept 2 Network Site Status Events: a delete by query leaves each site's current status, and every status event that covers part of the last 90 days, so a site's uptime never loses its data.",
+      "Kept 2 Network Site Status Events, because some always stay: each site's current status, and every status event that covers part of the last 90 days, so a site's uptime never loses its data.",
     );
   });
 });

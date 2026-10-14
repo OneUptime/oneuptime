@@ -31,7 +31,10 @@ import { KEPT_STATUS_HISTORY_DAYS } from "../../Types/StateTimeline/RowsKeptOnDe
  *
  * Shared: the service refuses with these rules (MonitorStatusTimelineService
  * onBeforeDelete), and the monitor's Status Timeline page locks Delete on the
- * one event they would refuse (getLockedOldestEvent), saying why.
+ * one event they would refuse (getLockedOldestEvent), saying why - in the
+ * same words, so the API, a workflow step's error, the page's tooltip and a
+ * bulk Delete's list of what it skipped all read alike. Each says the rule,
+ * what would go gray, and what to do instead.
  */
 
 // Why a delete of one status event is refused.
@@ -41,9 +44,22 @@ export enum StatusEventDeleteRefusal {
 }
 
 export const ONLY_STATUS_EVENT_MESSAGE: string =
-  "This is the monitor's only status event, so it can't be deleted: the monitor would be left with no status, and status pages would show it gray. To change the monitor's status, add a new status event.";
+  "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.";
 
-export const OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE: string = `This is the monitor's oldest status event and it covers part of the last ${KEPT_STATUS_HISTORY_DAYS} days, so it can't be deleted: that time would be left with no status, and status pages would show it gray. To change the status for that time, add a status event with the same start, then delete this one.`;
+/*
+ * The Dashboard's translation key, with {{days}} for KEPT_STATUS_HISTORY_DAYS.
+ * The way round the refusal is to add an event that starts BEFORE this one -
+ * this one then has an event before it to take its time, so it can go. Not
+ * "at the same time": the Dashboard's Starts At field is to the minute, and
+ * an event's start rarely is.
+ */
+export const OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_TEMPLATE: string =
+  "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.";
+
+export const OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE: string =
+  OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_TEMPLATE.split("{{days}}").join(
+    String(KEPT_STATUS_HISTORY_DAYS),
+  );
 
 export interface StatusEventInTimeline {
   startsAt?: Date | undefined;
