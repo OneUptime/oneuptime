@@ -30,6 +30,7 @@ import IncidentStatusPageScope, {
   ResolvedIncidentStatusPages,
   StatusPageExclusionReason,
 } from "./IncidentStatusPageScope";
+import { isSendingSubscriberNotifications } from "../../../Types/StatusPage/SubscriberNotificationsSwitch";
 
 /*
  * Who an incident's status page notifications would reach (see
@@ -404,6 +405,15 @@ export default class IncidentSubscriberAudienceBuilder {
 
     for (const statusPage of data.inputs.resolved.statusPages) {
       if (!isProjectPage(statusPage)) {
+        continue;
+      }
+
+      // The jobs skip a page that sends its subscribers nothing.
+      if (!isSendingSubscriberNotifications(statusPage)) {
+        excludedPages.push({
+          statusPage: statusPage,
+          reason: IncidentSubscriberAudienceExclusionReason.NotificationsOff,
+        });
         continue;
       }
 

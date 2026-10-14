@@ -136,7 +136,11 @@ Reagér på en besked, eller et svar, i den kanal, OneUptime oprettede for en h�
 | 📌 eller 📍 | En privat note, som kun dit team ser |
 | 📣 eller 📢 | En offentlig note, vist på statussiden. Kun hændelser og planlagte vedligeholdelsesbegivenheder. |
 
-Noten gemmes som dig, med dine rettigheder, så din egen Microsoft Teams-konto skal være forbundet, og OneUptime-appen skal være i teamet.
+Noten bevarer beskeden, som Microsoft Teams viste den: dens formatering, links og kode, de personer, den nævner, ved navn, og dens filer og billeder som links til dem. En offentlig note udelader filerne og billederne, da de kun åbner for dit team.
+
+Det er ordene fra den, der skrev beskeden: vedkommendes OneUptime-navn, når deres Microsoft Teams-konto er forbundet, ellers det navn, Teams viser. En privat note placeres på tidslinjen, da beskeden blev slået op, uanset hvor længe efter den gemmes. En offentlig note placeres, når den gemmes, som er når statussiden viser den. Tidslinjen siger, hvem der gemte den. Noten bliver ikke slået op igen i kanalen, hvor beskeden allerede står.
+
+Noten gemmes som dig, med dine rettigheder, og OneUptime-appen skal være i teamet. Hvis din Microsoft Teams-konto ikke er forbundet endnu, beder OneUptime dig om at forbinde den, i et svar der nævner dig, med en knap der gemmer beskeden, så snart du har gjort det.
 
 ## Tal med OneUptime-botten
 
@@ -148,6 +152,7 @@ Skriv til botten i en personlig chat, eller nævn OneUptime med @ i en kanal ell
 | `incident [title]` | Åbner hændelsesformularen med titlen udfyldt. |
 | `maintenance [title]` | Åbner formularen til planlagt vedligeholdelse med titlen udfyldt. |
 | `oncall` | Viser, hvem der har vagt lige nu i hver vagtplan, du kan se, til hvornår, og hvem der er den næste. |
+| `page [who] [message]` | Tilkalder de personer, du nævner med @, om din besked, eller sender et kort, hvor du vælger, hvem der skal tilkaldes. Se [Tilkald nogen fra Microsoft Teams](#tilkald-nogen-fra-microsoft-teams). |
 | `ask [question]`, eller ethvert spørgsmål på almindeligt sprog | OneUptime AI svarer om dine logs, traces, metrikker, hændelser og monitorer, for eksempel "hvilke monitorer er nede lige nu?". Svar læser kun. |
 | `show active incidents`, `show active alerts` | Viser, hvad der er åbent nu. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Viser kommende, eller igangværende, vedligeholdelsesbegivenheder. |
@@ -163,6 +168,15 @@ At skrive `incident` eller `maintenance` til OneUptime-botten åbner en formular
 - **Hvad en formular må nævne.** I en kanal eller en gruppechat må alle, der er til stede, indsende formularen, og den indsendes som den, der gør det, med vedkommendes egne rettigheder. Hændelsen eller begivenheden oprettes med de rettigheder og krediteres den person. En monitor, vagtpolitik, etiket, alvorlighed eller status, personen ikke må læse, eller en fra et andet projekt, afvises som en, projektet ikke har, og intet oprettes: botten svarer "One of the values you picked ... is not available in this project any more. Please pick it again."
 
 **Execute On-Call Policy** på en hændelse, advarsel eller episode virker på samme måde: den kræver rettighed til at køre en vagtpolitik (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member**, eller **Create On-Call Duty Policy Execution Log** i en brugerdefineret rolle) og til at læse den hændelse, advarsel eller episode, og den tilbyder de aktive vagtpolitikker, personen må læse. At se en monitor eller en vagtpolitik fra et kort læser den også som den person, der trykkede på knappen.
+
+## Tilkald nogen fra Microsoft Teams
+
+I en kanal eller en gruppechat tilkalder `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` Nawaz med det samme. OneUptime opretter en advarsel med din besked som titel, og hver person, du nævner med @, får et opkald, en SMS, en push-notifikation eller en e-mail, som deres egne vagtregler siger, indtil nogen kvitterer for advarslen.
+
+- **Hvem der tilkaldes med det samme.** De personer, du nævner med @, når en besked følger efter dem. OneUptime kender en person på den OneUptime-konto, personens Microsoft Teams-konto er forbundet med, eller ellers på personens e-mailadresse i Microsoft Teams. Ingen uden for projektet tilkaldes.
+- **Alt andet giver et kort.** Hvis ingen er nævnt med @, som i en personlig chat med botten, der ikke er nogen besked, du nævner et tag, eller OneUptime ikke kan se, hvem en person er, svarer botten med kortet **Page someone**, med det, du skrev, udfyldt, og det siger, hvem det ikke kunne vælge. Vælg personer, et team, en vagtplan, som tilkalder den, der har vagt i den nu, eller en vagtpolitik, som tilkalder via sine eskaleringsregler, og indsend det. Alle i samtalen må indsende kortet, som sig selv. Når det har tilkaldt, fjernes kortet, så ingen tilkalder med det to gange.
+- **Hvor det vises.** Samtalen viser tilkaldet som ét kort, der holdes opdateret: hvem der blev tilkaldt og hvordan, og hvem der kvitterede. Hvor botten ikke kan skrive det, fortæller dens svar, hvem der blev tilkaldt, med et link til advarslen.
+- **Hvem der må tilkalde.** Alle, der både må køre en vagtpolitik og oprette en advarsel: **Project Owner**, **Project Admin** og **Project Member**, eller **On-Call Member** sammen med **Alert Member** (**Create On-Call Duty Policy Execution Log** og **Create Alert** i en brugerdefineret rolle). At tilkalde personer, et team eller en vagtplan direkte, uden en vagtpolitik bag tilkaldet, kræver også adgang til alle projektets vagtpolitikker. Alle andre får det at vide i et svar, og ingen tilkaldes.
 
 ## Handl på hændelser, advarsler og begivenheder fra Microsoft Teams
 

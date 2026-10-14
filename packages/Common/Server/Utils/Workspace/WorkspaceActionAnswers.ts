@@ -11,6 +11,9 @@ import URL from "../../../Types/API/URL";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import WorkspaceNoteReactionUtil, {
+  WorkspaceNoteType,
+} from "../../../Types/Workspace/WorkspaceNoteReaction";
 import AcknowledgedStateUtil from "../../../Utils/AcknowledgedState";
 import FeedMarkdown, {
   MarkdownText,
@@ -140,11 +143,16 @@ export default class WorkspaceActionAnswers {
   /*
    * What a press that OneUptime can finish asks to be connected for:
    * "acknowledge this incident", "mark this scheduled maintenance event as
-   * ongoing".
+   * ongoing". A pinned message names the message by how it was chosen in
+   * that chat - "save the message you pinned as a private note on this
+   * incident" (WorkspaceNoteReactionUtil.getSavedMessageWords) - as the
+   * prompt is not next to it.
    */
   public static getPendingActionPurpose(data: {
     kind: WorkspacePendingActionKind;
     eventType: WorkspaceEventType;
+    // The chat the press is in: how a pinned message is named.
+    workspaceType?: WorkspaceType | undefined;
   }): string {
     const noun: string = WorkspaceMemberActions.getNoun(data.eventType);
 
@@ -157,6 +165,16 @@ export default class WorkspaceActionAnswers {
         return `mark this ${noun} as ongoing`;
       case WorkspacePendingActionKind.MarkAsComplete:
         return `mark this ${noun} as complete`;
+      case WorkspacePendingActionKind.SavePrivateNote:
+        return `save ${WorkspaceNoteReactionUtil.getSavedMessageWords({
+          noteType: WorkspaceNoteType.Private,
+          workspaceType: data.workspaceType,
+        })} as a private note on this ${noun}`;
+      case WorkspacePendingActionKind.SavePublicNote:
+        return `save ${WorkspaceNoteReactionUtil.getSavedMessageWords({
+          noteType: WorkspaceNoteType.Public,
+          workspaceType: data.workspaceType,
+        })} as a public note on this ${noun}`;
     }
   }
 
@@ -477,11 +495,14 @@ export default class WorkspaceActionAnswers {
         return "marks it as ongoing";
       case WorkspacePendingActionKind.MarkAsComplete:
         return "marks it as complete";
+      case WorkspacePendingActionKind.SavePrivateNote:
+      case WorkspacePendingActionKind.SavePublicNote:
+        return "saves it";
     }
   }
 
   // "acknowledged", as "You acknowledged ..." says it.
-  private static getDoneVerb(kind: WorkspacePendingActionKind): string {
+  public static getDoneVerb(kind: WorkspacePendingActionKind): string {
     switch (kind) {
       case WorkspacePendingActionKind.Acknowledge:
         return "acknowledged";
@@ -491,6 +512,10 @@ export default class WorkspaceActionAnswers {
         return "marked as ongoing";
       case WorkspacePendingActionKind.MarkAsComplete:
         return "completed";
+      case WorkspacePendingActionKind.SavePrivateNote:
+        return "saved the message as a private note on";
+      case WorkspacePendingActionKind.SavePublicNote:
+        return "saved the message as a public note on";
     }
   }
 

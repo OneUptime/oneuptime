@@ -1,68 +1,122 @@
-# OneUptime CLI
+# CLI 概要
 
-OneUptime CLI は、ターミナルから OneUptime リソースを直接管理するためのコマンドラインインターフェースです。モニター、インシデント、アラート、ステータスページなどに対する完全な CRUD 操作をサポートしています。
+OneUptime の CLI である `oneuptime` は、ターミナルやスクリプトから OneUptime プロジェクトを管理します。プロジェクトの API キーを使って、モニター、インシデント、アラート、ステータスページなど、OneUptime の API が提供するレコードの一覧表示、読み取り、作成、変更、削除、件数の取得ができます。
 
-## 機能
+:::cards
+- [CLI のしくみ](#cli-のしくみ): 1 つのコマンドで、1 回の API リクエストと 1 つの応答。
+- [CLI をインストールする](#cli-をインストールする): npm コマンド 1 つと、選ぶべきバージョン。
+- [最初のコマンドを実行する](#最初のコマンドを実行する): API キーを保存し、インシデントを一覧表示します。
+- [コマンド一覧](#コマンド一覧): すべてのコマンドと、それを説明するページ。
+:::
 
-- 本番、ステージング、開発環境のための名前付きコンテキストによる**マルチ環境サポート**
-- OneUptime インスタンスから利用可能なリソースを自動検出する**オート検出**
-- CLI フラグ、環境変数、または保存されたコンテキスト経由の**柔軟な認証**
-- JSON、テーブル、ワイド表示モードを備えた**スマートな出力フォーマット**
-- CI/CD パイプラインと自動化ワークフロー向けに**スクリプト対応**
+## CLI のしくみ
 
-## インストール
+各コマンドは OneUptime の REST API に 1 回リクエストを送り、応答を出力します。CLI は API キーと OneUptime のアドレスを、フラグ、環境変数、または `oneuptime login` が保存したコンテキストから取得します。コマンドが何を読み取り、何を変更できるかはキーが決めます。これは API とまったく同じです。
+
+```mermaid title="1 つのコマンドで 1 回のリクエスト"
+flowchart TB
+    T["ターミナル<br/>または CI ジョブ"] -->|"oneuptime incident list"| C["oneuptime CLI"]
+    K["API キーと URL:<br/>フラグ、環境変数<br/>または保存した<br/>コンテキスト"] --> C
+    C -->|"POST /api/incident/get-list"| A["OneUptime の REST API"]
+    A -->|"キーが読み取れる<br/>レコードを JSON で"| C
+    C -->|"ターミナルでは表、<br/>パイプでは JSON"| T
+```
+
+レコード用のコマンドは CLI に含まれています。OneUptime の API がツールに公開しているレコードの種類ごとに 1 つあり、[MCP サーバー](/docs/ai/mcp-server)がツールを持つレコードと同じです。一覧を見るには `oneuptime resources` を実行します。
+
+## はじめる前に
+
+- **Node.js と npm**: CLI をインストールするための、現在の LTS リリース。
+- **プロジェクトの API キー。** **プロジェクト設定 → 詳細 → API キー** で **API キーを作成** から作成します。[API キーを作成する](/docs/api-reference/api-reference#api-キーを作成する)を参照してください。
+- **OneUptime Cloud では Growth プラン以上。** プロジェクトの API キーはこのプランでのみ動作します。[プラン未満の API キーと SCIM](/docs/api-reference/api-reference#プラン未満の-api-キーと-scim)を参照してください。
+
+## CLI をインストールする
+
+npm から `@oneuptime/cli` パッケージをインストールします。`oneuptime` コマンドが追加され、`--version` でインストールしたバージョンが表示されます。
 
 ```bash
 npm install -g @oneuptime/cli
+oneuptime --version
 ```
 
-## クイックスタート
+CLI は OneUptime と一緒にリリースされ、同じバージョン番号を持ちます。セルフホストの OneUptime では、コマンドがサーバーのレコードと一致するように、お使いの OneUptime と同じバージョンの CLI をインストールしてください。
 
 ```bash
-# OneUptime インスタンスに認証する
+npm install -g @oneuptime/cli@<your-oneuptime-version>
+```
+
+## 最初のコマンドを実行する
+
+:::steps
+### API キーを保存する
+
+キーと OneUptime のアドレスでログインします。CLI はこれらを `default` という名前のコンテキストとして保存し、以降はそれを使います。
+
+```bash
 oneuptime login <your-api-key> https://oneuptime.com
+```
 
-# モニターを一覧表示する
-oneuptime monitor list
+`Logged in successfully. Context "default" is now active.` と応答します。セルフホストの OneUptime では、`https://oneuptime.com` の代わりにそのアドレスを使ってください。
 
-# 特定のインシデントを表示する
-oneuptime incident get <incident-id>
+### インシデントを一覧表示する
 
-# 利用可能なすべてのリソースを確認する
+```bash
+oneuptime incident list
+```
+
+最新の 10 件のインシデントが表として表示されます。`login` はキーを確認せずに保存するため、キーが動作することを最初に示すのはこのコマンドです。拒否された場合は[トラブルシューティング](/docs/cli/authentication#トラブルシューティング)を参照してください。
+
+### ほかに何を管理できるかを確認する
+
+```bash
 oneuptime resources
 ```
 
-## ドキュメント
+一覧には、扱えるレコードの種類と、そのコマンド(`monitor`、`status-page`、`on-call-policy` など)が表示されます。
+:::
 
-| ガイド                                         | 説明                                             |
-| ---------------------------------------------- | ------------------------------------------------ |
-| [認証](./authentication.md)                    | ログイン、コンテキスト、認証情報の管理           |
-| [リソース操作](./resource-operations.md)       | モニター、インシデント、アラートなどの CRUD 操作 |
-| [出力フォーマット](./output-formats.md)        | JSON、テーブル、ワイド出力モード                 |
-| [スクリプトと CI/CD](./scripting.md)           | 自動化、環境変数、パイプラインの使用             |
-| [コマンドリファレンス](./command-reference.md) | すべてのコマンドとオプションの完全なリファレンス |
+## コマンド一覧
+
+| コマンド | 内容 | 詳細 |
+| --- | --- | --- |
+| `oneuptime login <api-key> <instance-url>` | API キーとアドレスをコンテキストとして保存します | [認証](/docs/cli/authentication#ログインする) |
+| `oneuptime context list`, `use`, `current`, `delete` | 保存したコンテキストの一覧表示、切り替え、表示、削除 | [認証](/docs/cli/authentication#コンテキスト) |
+| `oneuptime whoami` | 次のコマンドが使う URL と API キーを表示します | [認証](/docs/cli/authentication#cli-が使う値を確認する) |
+| `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 一種類のレコードを扱います | [リソース操作](/docs/cli/resource-operations) |
+| `oneuptime resources` | レコードの種類をそのコマンドとともに一覧表示します | [コマンド リファレンス](/docs/cli/command-reference#oneuptime-resources) |
+| `oneuptime version` | CLI のバージョンを表示します | [コマンド リファレンス](/docs/cli/command-reference#oneuptime-version) |
+| `oneuptime help [command]` | コマンドのヘルプを表示します | [ヘルプを表示する](#ヘルプを表示する) |
 
 ## グローバルオプション
 
-以下のフラグはすべてのコマンドで使用できます。
+これらのオプションは、すべてのコマンドで、コマンドの前後どちらにでも書けます。
 
-| フラグ                  | 説明                                      |
-| ----------------------- | ----------------------------------------- |
-| `--api-key <key>`       | このコマンドの API キーを上書き           |
-| `--url <url>`           | このコマンドのインスタンス URL を上書き   |
-| `--context <name>`      | 特定の名前付きコンテキストを使用          |
-| `-o, --output <format>` | 出力フォーマット: `json`、`table`、`wide` |
-| `--no-color`            | カラー出力を無効化                        |
-| `--help`                | コマンドヘルプを表示                      |
-| `--version`             | CLI バージョンを表示                      |
+| オプション | 内容 |
+| --- | --- |
+| `--api-key <key>` | このコマンドで使う API キー(保存したキーの代わり) |
+| `--url <url>` | このコマンドで使う OneUptime のアドレス |
+| `--context <name>` | このコマンドで使う保存済みコンテキスト(現在のコンテキストの代わり) |
+| `-o, --output <format>` | `table`、`json`、`wide`: [出力形式](/docs/cli/output-formats)を参照 |
+| `--no-color` | 色なしで出力します |
+| `-V, --version` | CLI のバージョンを表示します |
+| `-h, --help` | コマンドのヘルプを表示します |
 
-## ヘルプの取得
+## ヘルプを表示する
+
+すべてのコマンドに、引数、オプション、既定値を示す独自のヘルプがあります。
 
 ```bash
-# 一般的なヘルプ
 oneuptime --help
-
-# 特定のコマンドのヘルプ
-oneuptime monitor --help
-oneuptime monitor list --help
+oneuptime help incident
+oneuptime incident list --help
 ```
+
+## 次のステップ
+
+:::cards
+- [認証](/docs/cli/authentication): 環境ごとのコンテキストと、コマンドが使うキー。
+- [リソース操作](/docs/cli/resource-operations): レコードの一覧表示、読み取り、作成、変更、削除、件数の取得。
+- [出力形式](/docs/cli/output-formats): 人には表、スクリプトには JSON。
+- [スクリプト & CI/CD](/docs/cli/scripting): 終了コード、jq、パイプライン。
+- [コマンド リファレンス](/docs/cli/command-reference): すべてのコマンド、オプション、既定値。
+:::

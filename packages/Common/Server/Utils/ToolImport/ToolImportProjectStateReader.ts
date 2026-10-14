@@ -323,12 +323,13 @@ export default class ToolImportProjectStateReader {
   /*
    * The project's monitors of the types an import creates, with what each
    * checks - for matching an imported check to the same monitor
-   * (getToolImportMonitorMatchKey) - read as OneUptime.
+   * (getToolImportMonitorMatchKey) - every one, however many there are,
+   * read as OneUptime.
    */
   public static async readExistingMonitors(
     projectId: ObjectID,
   ): Promise<Array<ToolImportExistingMonitor>> {
-    const monitors: Array<Monitor> = await MonitorService.findBy({
+    const monitors: Array<Monitor> = await MonitorService.findAllBy({
       query: {
         projectId: projectId,
         monitorType: QueryHelper.any(
@@ -341,8 +342,7 @@ export default class ToolImportProjectStateReader {
         monitorType: true,
         monitorSteps: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
+      sort: { _id: SortOrder.Ascending },
       props: { isRoot: true },
     });
 
@@ -399,24 +399,24 @@ export default class ToolImportProjectStateReader {
   }
 
   /*
-   * The project's status page subscribers by email - every one, as a
-   * record an earlier import may have made, and each page's emails, for
-   * matching someone who already follows the page - read as OneUptime.
+   * The project's status page subscribers by email - every one, however
+   * many there are, as a record an earlier import may have made, and each
+   * page's emails, for matching someone who already follows the page -
+   * read as OneUptime.
    */
   private static async readExistingSubscribers(projectId: ObjectID): Promise<{
     records: Array<ToolImportExistingRecord>;
     emailsByStatusPageId: Map<string, Set<string>>;
   }> {
     const subscribers: Array<StatusPageSubscriber> =
-      await StatusPageSubscriberService.findBy({
+      await StatusPageSubscriberService.findAllBy({
         query: { projectId: projectId },
         select: {
           _id: true,
           statusPageId: true,
           subscriberEmail: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
+        sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
       });
 
@@ -449,11 +449,16 @@ export default class ToolImportProjectStateReader {
     return { records: records, emailsByStatusPageId: emailsByStatusPageId };
   }
 
-  // Everyone with a membership in the project, invitations included, by email.
+  /*
+   * Everyone with a membership in the project, invitations included, by
+   * email - every membership, however many there are: who an imported
+   * person already is, and whether someone an earlier import invited is
+   * still a member (readPreviousRecords).
+   */
   public static async readMembersByEmail(
     projectId: ObjectID,
   ): Promise<Map<string, string>> {
-    const memberships: Array<TeamMember> = await TeamMemberService.findBy({
+    const memberships: Array<TeamMember> = await TeamMemberService.findAllBy({
       query: { projectId: projectId },
       select: {
         userId: true,
@@ -461,8 +466,7 @@ export default class ToolImportProjectStateReader {
           email: true,
         },
       },
-      limit: LIMIT_MAX,
-      skip: 0,
+      sort: { _id: SortOrder.Ascending },
       props: { isRoot: true },
     });
 
@@ -479,15 +483,20 @@ export default class ToolImportProjectStateReader {
     return byEmail;
   }
 
+  /*
+   * The project's records of a kind, by id and name - every one, however
+   * many there are: what an import's items are matched to by name, and
+   * what tells whether a record an earlier import made is still there
+   * (readPreviousRecords).
+   */
   private static async readNamedRecords(
     service: DatabaseService<BaseModel>,
     projectId: ObjectID,
   ): Promise<Array<ToolImportExistingRecord>> {
-    const records: Array<BaseModel> = await service.findBy({
+    const records: Array<BaseModel> = await service.findAllBy({
       query: { projectId: projectId } as never,
       select: { _id: true, name: true } as never,
-      limit: LIMIT_MAX,
-      skip: 0,
+      sort: { _id: SortOrder.Ascending },
       props: { isRoot: true },
     });
 
@@ -509,7 +518,9 @@ export default class ToolImportProjectStateReader {
   /*
    * Every record an earlier import of this tool brought over, and whether
    * it is still in the project: a person while they are a member, any other
-   * record while it exists.
+   * record while it exists. Every one, however many imports it took: a
+   * record left out would leave its item looking new, to be matched by name
+   * or made again.
    */
   private static async readPreviousRecords(data: {
     projectId: ObjectID;
@@ -521,7 +532,7 @@ export default class ToolImportProjectStateReader {
     >;
   }): Promise<Array<ToolImportPreviousRecord>> {
     const records: Array<ToolImportRecord> =
-      await ToolImportRecordService.findBy({
+      await ToolImportRecordService.findAllBy({
         query: { projectId: data.projectId, source: data.source },
         select: {
           kind: true,
@@ -529,8 +540,7 @@ export default class ToolImportProjectStateReader {
           recordId: true,
           isComplete: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
+        sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
       });
 

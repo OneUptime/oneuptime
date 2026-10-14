@@ -1,230 +1,214 @@
 # Ressourceoperationer
 
-OneUptime CLI leverer fulde CRUD-operationer (Opret, Læs, Opdater, Slet) for alle understøttede ressourcer. Ressourcer opdages automatisk fra din OneUptime-instans.
+Hver slags post er sin egen kommando, for eksempel `incident`, `monitor` eller `status-page`, og hver tager de samme operationer: `list`, `get`, `create`, `update`, `delete` og `count`. Denne side viser hver operation med filtre, sider og den JSON, en post skrives i.
 
-## Tilgængelige ressourcer
+:::cards
+- [Find kommandoen til en post](#find-kommandoen-til-en-post): oneuptime resources viser dem alle.
+- [Vis poster](#vis-poster): Filtrér, sortér og bladr.
+- [Opret en post](#opret-en-post): Fra JSON på kommandolinjen eller i en fil.
+- [Slet en post](#slet-en-post): Med det samme og uden fortryd.
+:::
 
-Kør følgende kommando for at se alle tilgængelige ressourcetyper:
+## Sådan hænger operationerne sammen
+
+At læse, ændre og slette en post kræver dens ID. At vise, tælle og oprette kræver ingen, og en liste eller en oprettelse giver dig de ID'er, de andre tager:
+
+```mermaid title="Hvor en posts ID kommer fra"
+flowchart TB
+    L["list<br/>finder poster"] -->|"_id for hver"| G["get<br/>læser én post"]
+    C["create<br/>tilføjer en post"] -->|"den nye _id"| G
+    G --> U["update<br/>ændrer den"]
+    U --> D["delete<br/>fjerner den"]
+```
+
+Et ID er et UUID, for eksempel `6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11`. Du kan også kopiere et fra postens side i OneUptime: se [Find en ressources ID](/docs/api-reference/api-reference#find-en-ressources-id).
+
+## Find kommandoen til en post
 
 ```bash
 oneuptime resources
 ```
 
-Du kan filtrere efter type:
+Listen viser hver slags post med dens kommando, dens navne, dens type og dens API-sti. Der er to typer:
+
+| Type | Hvad den indeholder | Operationer |
+| --- | --- | --- |
+| `database` | Poster, du administrerer: monitorer, hændelser, advarsler, statussider, teams og mere | `list`, `get`, `create`, `update`, `delete`, `count` |
+| `analytics` | Telemetri: logs, spans, målinger, undtagelser og andre begivenheder | `list`, `create`, `count` |
+
+Vis én type med `oneuptime resources --type database` eller `--type analytics`. [Kommandoreference](/docs/cli/command-reference#ressourcer) viser hver kommando.
+
+## Vis poster
 
 ```bash
-# Vis kun databaseressourcer
-oneuptime resources --type database
-
-# Vis kun analyticsressourcer
-oneuptime resources --type analytics
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
 ```
 
-Almindelige ressourcer inkluderer:
-
-| Ressource                   | Kommando                                |
-| --------------------------- | --------------------------------------- |
-| Incident                    | `oneuptime incident`                    |
-| Alert                       | `oneuptime alert`                       |
-| Monitor                     | `oneuptime monitor`                     |
-| Monitor Status              | `oneuptime monitor-status`              |
-| Incident State              | `oneuptime incident-state`              |
-| Status Page                 | `oneuptime status-page`                 |
-| On-Call Policy              | `oneuptime on-call-policy`              |
-| Team                        | `oneuptime team`                        |
-| Scheduled Maintenance Event | `oneuptime scheduled-maintenance-event` |
-
-## List ressourcer
-
-Hent en liste over ressourcer med valgfri filtrering, paginering og sortering.
+| Indstilling | Hvad den gør | Standard |
+| --- | --- | --- |
+| `--query <json>` | Returnerer kun de poster, der matcher: se [Filtrér en liste](#filtrér-en-liste) | Hver post, nøglen må læse |
+| `--limit <n>` | Det største antal poster, der returneres, op til 10.000 | `10` |
+| `--skip <n>` | Hvor mange matchende poster der springes over først | `0` |
+| `--sort <json>` | Rækkefølgen, for eksempel `{"createdAt":"ASC"}`, eller `"DESC"` for de nyeste først | De nyeste først |
+| `-o, --output <format>` | `table`, `json` eller `wide` | `table` i en terminal, `json` i en pipe |
 
 ```bash
-oneuptime <resource> list [options]
-```
-
-**Indstillinger:**
-
-| Indstilling             | Beskrivelse                        | Standard |
-| ----------------------- | ---------------------------------- | -------- |
-| `--query <json>`        | Filterkriterier som JSON           | Ingen    |
-| `--limit <n>`           | Maks. antal resultater             | `10`     |
-| `--skip <n>`            | Antal resultater der springes over | `0`      |
-| `--sort <json>`         | Sorteringsrækkefølge som JSON      | Ingen    |
-| `-o, --output <format>` | Outputformat                       | `table`  |
-
-**Eksempler:**
-
-```bash
-# List de 10 seneste incidents
+# The ten newest incidents
 oneuptime incident list
 
-# Filtrer incidents efter tilstands-ID
-oneuptime incident list --query '{"currentIncidentStateId":"<state-id>"}'
+# The oldest monitors first, 50 at a time: the second page
+oneuptime monitor list --sort '{"createdAt":"ASC"}' --limit 50 --skip 50
 
-# List med paginering
-oneuptime incident list --limit 20 --skip 40
-
-# Sortér efter oprettelsesdato (faldende)
-oneuptime incident list --sort '{"createdAt":-1}'
-
-# Output som JSON
+# Every field of each incident, as JSON
 oneuptime incident list -o json
 ```
 
-## Hent en ressource
+En liste beder OneUptime om hvert felt i hver post, som nøglen må læse. En tabel viser seks af dem; JSON viser dem alle (se [Outputformater](/docs/cli/output-formats)). For at bladre gennem alle poster øger du `--skip` med `--limit`, indtil en side kommer tom tilbage; `count` fortæller, hvor mange der er.
 
-Hent en enkelt ressource efter dens ID.
+### Filtrér en liste
+
+`--query` tager det samme filter som API'et: et felt med en værdi matcher den værdi, og et objekt med en `_type` sammenligner.
+
+| Filter | Matcher |
+| --- | --- |
+| `{"title":"Checkout API is down"}` | Poster med præcis den værdi |
+| `{"title":{"_type":"Search","value":"checkout"}}` | Tekst, der indeholder værdien |
+| `{"createdAt":{"_type":"GreaterThan","value":"2026-10-01T00:00:00.000Z"}}` | Senere datoer eller større tal |
+| `{"currentIncidentState":{"isResolvedState":false}}` | Et felt i en post, som ressourcen nævner: her hændelser, der ikke er løst |
 
 ```bash
-oneuptime <resource> get <id>
+oneuptime incident list --query '{"title":{"_type":"Search","value":"checkout"}}'
 ```
 
-**Argumenter:**
+[Filtrér, sortér og bladr](/docs/api-reference/api-reference#filtrér-sortér-og-bladr) i API-referencen viser hver `_type`.
 
-| Argument | Beskrivelse            |
-| -------- | ---------------------- |
-| `<id>`   | Ressource-ID'et (UUID) |
-
-**Eksempler:**
+## Læs en post
 
 ```bash
-# Hent et specifikt incident
-oneuptime incident get 550e8400-e29b-41d4-a716-446655440000
-
-# Hent en monitor som JSON
-oneuptime monitor get abc-123 -o json
+oneuptime <resource> get <id> [-o <format>]
 ```
 
-## Opret en ressource
-
-Opret en ny ressource fra inline JSON eller en fil.
-
 ```bash
-oneuptime <resource> create [options]
+oneuptime incident get 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 ```
 
-**Indstillinger:**
+En tabel viser én række for hvert felt i posten, med hver værdi skåret af ved 60 tegn; `-o json` viser værdierne hele. Et ID, der ikke nævner nogen post, din nøgle må læse, får svaret `Not found`, og kommandoen afslutter med koden `3`.
 
-| Indstilling             | Beskrivelse                           |
-| ----------------------- | ------------------------------------- |
-| `--data <json>`         | Ressourcedata som et JSON-objekt      |
-| `--file <path>`         | Sti til en JSON-fil med ressourcedata |
-| `-o, --output <format>` | Outputformat                          |
-
-Du skal angive enten `--data` eller `--file`.
-
-**Eksempler:**
+## Opret en post
 
 ```bash
-# Opret et incident med inline JSON
-oneuptime incident create --data '{"title":"API Outage","currentIncidentStateId":"<state-id>","incidentSeverityId":"<severity-id>","declaredAt":"2025-01-15T10:30:00Z"}'
+oneuptime <resource> create --data <json> [-o <format>]
+oneuptime <resource> create --file <path> [-o <format>]
+```
 
-# Opret fra en JSON-fil
+`--data` tager posten som JSON, og `--file` læser den fra en JSON-fil. Angiv én af de to; angiver du begge, bruges filen. Felterne er API'ets, og [API-referencen](/reference) viser hver ressources. Projektet kommer fra API-nøglen, så en post nævner det aldrig.
+
+```bash
+# A manual monitor
+oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}'
+
+# An incident with one of your severities
+oneuptime incident create --data '{"title":"Checkout API is down","incidentSeverityId":"<severity-id>"}'
+
+# The same incident, from a file
 oneuptime incident create --file incident.json
-
-# Opret og output som JSON for at fange ID'et
-oneuptime monitor create --data '{"name":"API Health Check"}' -o json
 ```
 
-## Opdater en ressource
-
-Opdater en eksisterende ressource efter ID.
+CLI'en udskriver den nye post med dens `_id`. En hændelse starter i dit projekts oprettet-tilstand, medmindre `currentIncidentStateId` nævner en anden: se [Den tilstand, en ny post starter i](/docs/api-reference/api-reference#den-tilstand-en-ny-post-starter-i). Sådan finder du ID'erne for dine alvorlighedsgrader:
 
 ```bash
-oneuptime <resource> update <id> [options]
+oneuptime incident-severity list -o json | jq -r '.[] | "\(._id)  \(.name)"'
 ```
 
-**Argumenter:**
+> [!TIP]
+> På Windows skal du lægge JSON'en i en fil og bruge `--file`: PowerShell og kommandoprompten sætter anførselstegn om JSON på kommandolinjen på en anden måde end Bash.
 
-| Argument | Beskrivelse     |
-| -------- | --------------- |
-| `<id>`   | Ressource-ID'et |
-
-**Indstillinger:**
-
-| Indstilling             | Beskrivelse                                   |
-| ----------------------- | --------------------------------------------- |
-| `--data <json>`         | Felter der skal opdateres som JSON (påkrævet) |
-| `-o, --output <format>` | Outputformat                                  |
-
-**Eksempler:**
+## Opdatér en post
 
 ```bash
-# Skift incidenttilstand (f.eks. til løst)
-oneuptime incident update abc-123 --data '{"currentIncidentStateId":"<resolved-state-id>"}'
-
-# Omdøb en monitor
-oneuptime monitor update abc-123 --data '{"name":"Updated Monitor Name"}'
+oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-## Slet en ressource
-
-Slet en ressource efter ID.
+`--data` er påkrævet og indeholder kun de felter, der skal ændres:
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+# Rename a monitor
+oneuptime monitor update <monitor-id> --data '{"name":"Checkout API (EU)"}'
+
+# Move an incident to your resolved state
+oneuptime incident update <incident-id> --data '{"currentIncidentStateId":"<resolved-state-id>"}'
 ```
 
-**Argumenter:**
-
-| Argument | Beskrivelse     |
-| -------- | --------------- |
-| `<id>`   | Ressource-ID'et |
-
-**Indstillinger:**
-
-| Indstilling | Beskrivelse                    |
-| ----------- | ------------------------------ |
-| `--force`   | Spring bekræftelsesprompt over |
-
-**Eksempler:**
+OneUptime svarer på en opdatering med et tomt objekt: CLI'en udskriver en tom linje, eller `{}` med `-o json`. Kør `get` for at se posten, som den er nu. Flytter du en hændelse til en anden tilstand på denne måde, registreres ændringen på dens tidslinje, som dashboardet gør, og en tilstand før den aktuelle afvises. Sådan finder du ID'et for den løste tilstand, den første i dit projekts rækkefølge:
 
 ```bash
-oneuptime incident delete abc-123
-oneuptime monitor delete 550e8400-e29b-41d4-a716-446655440000
-
-# Spring bekræftelse over
-oneuptime monitor delete 550e8400-e29b-41d4-a716-446655440000 --force
+oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order":"ASC"}' --limit 1 -o json | jq -r '.[0]._id'
 ```
 
-## Tæl ressourcer
-
-Tæl ressourcer, der matcher valgfrie filterkriterier.
+## Slet en post
 
 ```bash
-oneuptime <resource> count [options]
+oneuptime <resource> delete <id>
 ```
 
-**Indstillinger:**
+```bash
+oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
+```
 
-| Indstilling      | Beskrivelse              |
-| ---------------- | ------------------------ |
-| `--query <json>` | Filterkriterier som JSON |
+Den svarer `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.`
 
-**Eksempler:**
+> [!CAUTION]
+> `delete` fjerner posten med det samme. CLI'en beder dig ikke bekræfte, og det kan ikke fortrydes. Den accepterer `--force` til scripts, der er skrevet med det, og `--force` ændrer intet.
+
+## Tæl poster
 
 ```bash
-# Tæl alle incidents
+oneuptime <resource> count [--query <json>]
+```
+
+```bash
+# Every incident
 oneuptime incident count
 
-# Tæl incidents efter tilstand
-oneuptime incident count --query '{"currentIncidentStateId":"<state-id>"}'
-
-# Tæl monitorer
-oneuptime monitor count
+# Incidents that are not resolved
+oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}'
 ```
 
-## Analytics-ressourcer
+CLI'en udskriver ét tal, det samme i en tabel og i JSON, så et script kan læse det, som det er.
 
-Analytics-ressourcer understøtter et begrænset sæt af operationer sammenlignet med databaseressourcer:
+## Hvad hver type kan
 
-| Operation | Understøttet |
-| --------- | ------------ |
-| `list`    | Ja           |
-| `create`  | Ja           |
-| `count`   | Ja           |
-| `get`     | Nej          |
-| `update`  | Nej          |
-| `delete`  | Nej          |
+| Operation | `database` | `analytics` |
+| --- | --- | --- |
+| `list` | Ja | Ja |
+| `get` | Ja | Nej |
+| `create` | Ja | Ja |
+| `update` | Ja | Nej |
+| `delete` | Ja | Nej |
+| `count` | Ja | Ja |
 
-Brug `oneuptime resources --type analytics` for at se, hvilke analytics-ressourcer der er tilgængelige på din instans.
+## Fejlfinding
+
+:::details Meddelelsen "Not found: API error (404)"
+Posten findes ikke, ligger i et andet projekt, eller nøglen må ikke læse den: OneUptime svarer det samme i hvert tilfælde. Tjek ID'et med `list` og nøglens tilladelser. Kommandoen afslutter med koden `3`.
+:::
+
+:::details Meddelelsen "API error (422): You do not have permissions to select on"
+En liste eller en læsning beder om hvert felt i posten, og nøglen må ikke læse et af dem: meddelelsen nævner feltet og de tilladelser, der må læse det. Giv nøglen én af de tilladelser.
+:::
+
+:::details Meddelelsen "Error: Invalid JSON"
+Værdien af `--query`, `--sort` eller `--data` er ikke JSON. Sæt den i enkelte anførselstegn i Bash og zsh; læg på Windows en post i en fil, og brug `--file`.
+:::
+
+:::details API error (400) ved en oprettelse eller en opdatering
+OneUptime afviste et felt: meddelelsen nævner det. `No fields to update` betyder, at `--data` ikke indeholdt noget felt at ændre.
+:::
+
+## Næste skridt
+
+:::cards
+- [Outputformater](/docs/cli/output-formats): Læs svarene som tabeller eller som JSON.
+- [Scripting og CI/CD](/docs/cli/scripting): Brug disse operationer i scripts og pipelines.
+- [Kommandoreference](/docs/cli/command-reference): Hver kommando, indstilling og standardværdi.
+:::

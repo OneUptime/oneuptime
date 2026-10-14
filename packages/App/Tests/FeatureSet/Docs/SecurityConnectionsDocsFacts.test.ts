@@ -1,27 +1,50 @@
 import {
+  AWS_SECURITY_HUB,
   CROWDSTRIKE,
   DEFENDER,
+  ELASTIC,
   GOOGLE_SECOPS,
+  OKTA,
   SECURITY_CONNECTION_PAGES,
   SENTINEL,
+  SPLUNK,
 } from "./IntegrationsDocsPages";
-import { scanMarkdown } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
-import { escapeRegExp } from "./DocsTranslationChecks";
 import {
   bold,
-  boldIn,
   codeIn,
   englishPage,
   englishSection,
   readRepoFile,
   tableWithHeader,
 } from "./InventoryAndApiDocsSupport";
+import {
+  DAY_IN_MS,
+  FakePeer,
+  WINDOW_END,
+  WINDOW_START,
+  createdAt,
+  definitionOf,
+  fakePeer,
+  fetchWindow,
+  fieldsOf,
+  firstCellNames,
+  json,
+  messageOf,
+  neverAnswers,
+  quotedBlock,
+  quotedMessages,
+  quotes,
+  text,
+  unreachable,
+  withoutTimes,
+} from "./SecurityConnectionsDocsSupport";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "Common/Server/Utils/DataSource/HttpFetch";
+import AwsSecurityHubConnector from "Common/Server/Utils/SecurityEvent/Connectors/AwsSecurityHub/AwsSecurityHubConnector";
 import ConnectorPlatformHealth from "Common/Server/Utils/SecurityEvent/Connectors/ConnectorPlatformHealth";
 import CrowdStrikeFalconClient, {
   CROWDSTRIKE_ALERTS_OFFSET_CEILING,
@@ -38,7 +61,9 @@ import MicrosoftSentinelClient, {
   MICROSOFT_SENTINEL_CLOUD_ENDPOINTS,
   MICROSOFT_SENTINEL_DEFAULT_PAGE_SIZE,
 } from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftSentinel/MicrosoftSentinelClient";
+import ElasticSecurityConnector from "Common/Server/Utils/SecurityEvent/Connectors/ElasticSecurity/ElasticSecurityConnector";
 import MicrosoftSentinelConnector from "Common/Server/Utils/SecurityEvent/Connectors/MicrosoftSentinel/MicrosoftSentinelConnector";
+import OktaConnector from "Common/Server/Utils/SecurityEvent/Connectors/Okta/OktaConnector";
 import SecurityEventConnectionPoller, {
   DEFAULT_INITIAL_LOOKBACK_IN_MINUTES,
   MAX_CHUNK_MINUTES,
@@ -50,6 +75,7 @@ import SecurityEventConnectionPoller, {
 import SecurityEventConnectionTester, {
   CONNECTION_TEST_REQUEST_TIMEOUT_IN_MS,
 } from "Common/Server/Utils/SecurityEvent/Connectors/SecurityEventConnectionTester";
+import SplunkConnector from "Common/Server/Utils/SecurityEvent/Connectors/Splunk/SplunkConnector";
 import {
   ConnectorFetchResult,
   ConnectorTransport,
@@ -61,8 +87,8 @@ import Permission from "Common/Types/Permission";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import {
   ConnectorField,
+  SecurityEventConnectorCatalog,
   SecurityEventConnectorDefinition,
-  getSecurityEventConnectorDefinition,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import { SecurityConnectorCheck } from "Common/Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
@@ -76,7 +102,11 @@ import { describe, expect, it } from "@jest/globals";
 /*
  * Docs overhaul task 28b: what the Google SecOps, Microsoft Sentinel,
  * Microsoft Defender XDR and CrowdStrike Falcon pages say about their
- * Security Events connections, held to the code that makes it true.
+ * Security Events connections, held to the code that makes it true. Task
+ * 28c's Splunk Enterprise Security, Elastic Security, AWS Security Hub and
+ * Okta System Log pages share the layout, so the tests of what every
+ * connection page says (the form, polling, the test's checklist) hold
+ * them too, and SplunkElasticAwsOktaDocsFacts holds what is theirs alone.
  *
  * The connectors take their HTTP transport as an argument, so this suite
  * runs them: a fake Microsoft Entra ID, Graph, Azure Resource Manager or
@@ -92,14 +122,10 @@ import { describe, expect, it } from "@jest/globals";
  * these English pages, line for line.
  */
 
-const MINUTE_IN_MS: number = 60 * 1000;
-const DAY_IN_MS: number = 24 * 60 * MINUTE_IN_MS;
 const TENANT_ID: string = "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c";
 const CLIENT_ID: string = "00001111-aaaa-2222-bbbb-3333cccc4444";
 const SUBSCRIPTION_ID: string = "d0cfe6b2-9ac0-4464-9919-dccaee2e48c0";
 const SECRET: string = "a-client-secret-for-the-tests";
-const ISO_TIME: RegExp = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g;
-const ELLIPSIS: string = "...";
 
 interface ConnectionPage {
   page: string;
@@ -124,136 +150,33 @@ const CONNECTION_PAGES: Array<ConnectionPage> = [
     provider: SecurityEventConnectorProvider.CrowdStrikeFalcon,
     messagePrefix: "CrowdStrike Falcon",
   },
+  {
+    page: SPLUNK,
+    provider: SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+    messagePrefix: "Splunk Enterprise Security",
+  },
+  {
+    page: ELASTIC,
+    provider: SecurityEventConnectorProvider.ElasticSecurity,
+    messagePrefix: "Elastic Security",
+  },
+  {
+    page: AWS_SECURITY_HUB,
+    provider: SecurityEventConnectorProvider.AwsSecurityHub,
+    messagePrefix: "AWS Security Hub",
+  },
+  {
+    page: OKTA,
+    provider: SecurityEventConnectorProvider.OktaSystemLog,
+    messagePrefix: "Okta System Log",
+  },
 ];
-
-function definitionOf(
-  provider: SecurityEventConnectorProvider,
-): SecurityEventConnectorDefinition {
-  const definition: SecurityEventConnectorDefinition | undefined =
-    getSecurityEventConnectorDefinition(provider);
-
-  if (!definition) {
-    throw new Error(`No catalog entry for ${provider}`);
-  }
-
-  return definition;
-}
-
-function fieldsOf(
-  provider: SecurityEventConnectorProvider,
-): Array<ConnectorField> {
-  const definition: SecurityEventConnectorDefinition = definitionOf(provider);
-
-  return [...definition.configFields, ...definition.secretFields];
-}
-
-/*
- * A fake HTTP peer: answers each request in turn with what `answer` gives
- * it, and keeps the requests it saw.
- */
-interface FakePeer {
-  transport: ConnectorTransport;
-  requests: Array<DataSourceHttpRequest>;
-}
-
-function fakePeer(
-  answer: (
-    request: DataSourceHttpRequest,
-    index: number,
-  ) => DataSourceHttpResponse | Promise<DataSourceHttpResponse>,
-): FakePeer {
-  const requests: Array<DataSourceHttpRequest> = [];
-
-  return {
-    requests,
-    transport: async (
-      request: DataSourceHttpRequest,
-    ): Promise<DataSourceHttpResponse> => {
-      requests.push(request);
-      return answer(request, requests.length - 1);
-    },
-  };
-}
-
-function json(status: number, body: unknown): DataSourceHttpResponse {
-  return {
-    statusCode: status,
-    bodyText: JSON.stringify(body),
-    bodyJson: body,
-    headers: {},
-  };
-}
-
-function text(status: number, body: string): DataSourceHttpResponse {
-  return {
-    statusCode: status,
-    bodyText: body,
-    bodyJson: undefined,
-    headers: {},
-  };
-}
-
-// A transport that fails before any answer, as a refused connection does.
-function unreachable(): DataSourceHttpResponse {
-  throw new Error("connect ECONNREFUSED 203.0.113.10:443");
-}
-
-// A transport that never answers.
-function neverAnswers(): Promise<DataSourceHttpResponse> {
-  return new Promise<DataSourceHttpResponse>((): void => {
-    // Never settles: the client's own deadline decides.
-  });
-}
 
 const TOKEN: DataSourceHttpResponse = json(200, {
   token_type: "Bearer",
   expires_in: 3599,
   access_token: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.e30.c2ln",
 });
-
-async function messageOf(run: () => Promise<unknown>): Promise<string> {
-  try {
-    await run();
-  } catch (error) {
-    return (error as Error).message;
-  }
-
-  throw new Error("Expected the call to fail");
-}
-
-/*
- * Whether a message a page quotes is the start of one the code produced.
- * The pages write "..." where the message goes on with what the request
- * said, such as the status in "(HTTP ...)".
- */
-function quotes(quoted: string, produced: Array<string>): boolean {
-  const pattern: RegExp = new RegExp(
-    `^${quoted.split(ELLIPSIS).map(escapeRegExp).join("[\\s\\S]*?")}`,
-  );
-
-  return produced.some((message: string): boolean => {
-    return pattern.test(message);
-  });
-}
-
-// The inline code spans of a text that start with a connection's prefix.
-function quotedMessages(
-  section: string,
-  prefixes: Array<string>,
-): Array<string> {
-  return codeIn(section).filter((span: string): boolean => {
-    return prefixes.some((prefix: string): boolean => {
-      return span.startsWith(prefix);
-    });
-  });
-}
-
-// The bold names in the first cell of every row of a table.
-function firstCellNames(rows: Array<Array<string>>): Array<string> {
-  return rows.flatMap((row: Array<string>): Array<string> => {
-    return boldIn(row[0] as string);
-  });
-}
 
 function sentinelSettings(): SecurityConnectorSettings {
   return {
@@ -280,6 +203,44 @@ function defenderSettings(): SecurityConnectorSettings {
   };
 }
 
+/*
+ * Settings the Splunk, Elastic Security, AWS Security Hub and Okta forms
+ * accept, for the tests every connection page shares.
+ */
+const OTHER_CONNECTION_SETTINGS: Partial<
+  Record<SecurityEventConnectorProvider, SecurityConnectorSettings>
+> = {
+  [SecurityEventConnectorProvider.SplunkEnterpriseSecurity]: {
+    provider: SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+    config: {
+      url: "https://splunk.example.com:8089",
+      searchString: "index=notable",
+    },
+    secrets: { apiToken: "a-splunk-authentication-token" },
+    alertingOnly: false,
+  },
+  [SecurityEventConnectorProvider.ElasticSecurity]: {
+    provider: SecurityEventConnectorProvider.ElasticSecurity,
+    config: { kibanaUrl: "https://kibana.example.com", space: "" },
+    secrets: {
+      apiKey: "VnVhQ2ZHY0JDZGJrUW0tZTVhT3g6dWkybHAyYXhUTm1zeWFrdzl0dk5udw==",
+    },
+    alertingOnly: false,
+  },
+  [SecurityEventConnectorProvider.AwsSecurityHub]: {
+    provider: SecurityEventConnectorProvider.AwsSecurityHub,
+    config: { region: "us-east-1", accessKeyId: "TESTONLYACCESSKEY001" },
+    secrets: { secretAccessKey: SECRET },
+    alertingOnly: false,
+  },
+  [SecurityEventConnectorProvider.OktaSystemLog]: {
+    provider: SecurityEventConnectorProvider.OktaSystemLog,
+    config: { orgUrl: "https://acme.okta.com", filter: "" },
+    secrets: { apiToken: "00a-test-okta-api-token" },
+    alertingOnly: false,
+  },
+};
+
 function crowdStrikeSettings(): SecurityConnectorSettings {
   return {
     provider: SecurityEventConnectorProvider.CrowdStrikeFalcon,
@@ -301,6 +262,22 @@ function connectorFor(
     return new MicrosoftDefenderXdrConnector(transport);
   }
 
+  if (provider === SecurityEventConnectorProvider.SplunkEnterpriseSecurity) {
+    return new SplunkConnector(transport);
+  }
+
+  if (provider === SecurityEventConnectorProvider.ElasticSecurity) {
+    return new ElasticSecurityConnector(transport);
+  }
+
+  if (provider === SecurityEventConnectorProvider.AwsSecurityHub) {
+    return new AwsSecurityHubConnector(transport);
+  }
+
+  if (provider === SecurityEventConnectorProvider.OktaSystemLog) {
+    return new OktaConnector(transport);
+  }
+
   return new CrowdStrikeFalconConnector(transport);
 }
 
@@ -315,7 +292,10 @@ function settingsFor(
     return defenderSettings();
   }
 
-  return crowdStrikeSettings();
+  const other: SecurityConnectorSettings | undefined =
+    OTHER_CONNECTION_SETTINGS[provider];
+
+  return other || crowdStrikeSettings();
 }
 
 function sentinelClient(
@@ -362,30 +342,6 @@ function crowdStrikeClient(
   });
 }
 
-const WINDOW_START: Date = new Date("2026-09-14T00:00:00.000Z");
-const WINDOW_END: Date = new Date("2026-09-15T00:00:00.000Z");
-
-async function fetchWindow(
-  connector: SecurityEventConnector,
-  settings: SecurityConnectorSettings,
-): Promise<ConnectorFetchResult> {
-  return connector.fetchEvents(
-    settings,
-    { startTime: WINDOW_START, endTime: WINDOW_END },
-    {
-      maxRequests: MAX_FETCH_REQUESTS,
-      maxEvents: 10000,
-      requestTimeoutInMs: 5000,
-      sampleLimit: 5,
-    },
-  );
-}
-
-// A time inside the window, `index` seconds after its start.
-function createdAt(index: number): string {
-  return new Date(WINDOW_START.getTime() + index * 1000).toISOString();
-}
-
 function sentinelIncident(
   index: number,
   created: string = createdAt(index),
@@ -425,25 +381,6 @@ function falconAlert(
     severity_name: "High",
     status: "new",
   };
-}
-
-// The page's ```text block that starts with a warning.
-function quotedBlock(page: string, start: string): string {
-  const block: { code: string } | undefined = scanMarkdown(
-    englishPage(page),
-  ).fences.find((fence: { lang: string; code: string }): boolean => {
-    return fence.lang === "text" && fence.code.trim().startsWith(start);
-  });
-
-  if (!block) {
-    throw new Error(`${page} quotes no block starting "${start}"`);
-  }
-
-  return block.code.trim();
-}
-
-function withoutTimes(value: string): string {
-  return value.replace(ISO_TIME, "<time>");
 }
 
 describe("every connection page's form", () => {
@@ -573,8 +510,25 @@ describe("every connection page's form", () => {
   });
 });
 
+/*
+ * How far before the saved cursor each provider's polls start, as its page
+ * says: a minute for most, longer where a record becomes readable after its
+ * creation time (AWS Security Hub's delivery, Okta's delayed events).
+ */
+const OVERLAP_IN_MINUTES: Partial<
+  Record<SecurityEventConnectorProvider, number>
+> = {
+  [SecurityEventConnectorProvider.MicrosoftSentinel]: 1,
+  [SecurityEventConnectorProvider.MicrosoftDefenderXdr]: 1,
+  [SecurityEventConnectorProvider.CrowdStrikeFalcon]: 1,
+  [SecurityEventConnectorProvider.SplunkEnterpriseSecurity]: 1,
+  [SecurityEventConnectorProvider.ElasticSecurity]: 1,
+  [SecurityEventConnectorProvider.AwsSecurityHub]: 30,
+  [SecurityEventConnectorProvider.OktaSystemLog]: 15,
+};
+
 describe("every connection page's polling", () => {
-  it("polls from a cursor: 24 hours back at first, then from 1 minute before the cursor, at most 24 hours a poll", () => {
+  it("polls from a cursor: 24 hours back at first, then from the provider's overlap before the cursor, at most 24 hours a poll", () => {
     const now: Date = new Date("2026-09-20T12:00:00.000Z");
 
     expect(DEFAULT_INITIAL_LOOKBACK_IN_MINUTES).toBe(24 * 60);
@@ -605,9 +559,15 @@ describe("every connection page's polling", () => {
       const catchingUp: { startTime: Date; endTime: Date } =
         SecurityEventConnectionPoller.getWindow(behind, { type: "poll" }, now);
 
-      expect(definition.cursorOverlapInMinutes).toBe(1);
+      const overlap: number = definition.cursorOverlapInMinutes;
+
+      expect(OVERLAP_IN_MINUTES[entry.provider]).toBe(overlap);
       expect(now.getTime() - first.startTime.getTime()).toBe(DAY_IN_MS);
-      expect(next.startTime.toISOString()).toBe("2026-09-20T11:54:00.000Z");
+      expect(next.startTime.toISOString()).toBe(
+        new Date(
+          new Date("2026-09-20T11:55:00.000Z").getTime() - overlap * 60 * 1000,
+        ).toISOString(),
+      );
       expect(next.endTime.getTime()).toBe(now.getTime());
       expect(catchingUp.endTime.toISOString()).toBe("2026-09-11T00:00:00.000Z");
 
@@ -615,7 +575,7 @@ describe("every connection page's polling", () => {
 
       expect(page).toContain(`${bold("The first poll looks back 24 hours")}`);
       expect(page).toContain(
-        bold("Every later poll starts 1 minute before the saved cursor"),
+        `**Every later poll starts ${overlap} minute${overlap === 1 ? "" : "s"} before the saved cursor`,
       );
       expect(page).toContain(
         bold("A poll reads at most 24 hours past the cursor."),
@@ -1688,20 +1648,29 @@ describe("Google SecOps", () => {
   });
 });
 
-describe("the four pages together", () => {
-  it("cover every Security Events connection this task rewrote, by the docs path the catalog links to", () => {
-    for (const page of SECURITY_CONNECTION_PAGES) {
-      expect(
-        [
-          SecurityEventConnectorProvider.GoogleSecOps,
-          SecurityEventConnectorProvider.MicrosoftSentinel,
-          SecurityEventConnectorProvider.MicrosoftDefenderXdr,
-          SecurityEventConnectorProvider.CrowdStrikeFalcon,
-        ].map((provider: SecurityEventConnectorProvider): string => {
-          return definitionOf(provider).docsPath;
-        }),
-      ).toContain(`/docs/${page}`);
-    }
+describe("every connection page together", () => {
+  it("cover every Security Events connection of the catalog, one page each, by the docs path the catalog links to", () => {
+    expect(
+      SECURITY_CONNECTION_PAGES.map((page: string): string => {
+        return `/docs/${page}`;
+      }).sort(),
+    ).toEqual(
+      SecurityEventConnectorCatalog.map(
+        (definition: SecurityEventConnectorDefinition): string => {
+          return definition.docsPath;
+        },
+      ).sort(),
+    );
+    // Every page but Google SecOps's is read by the tests every page shares.
+    expect(
+      CONNECTION_PAGES.map((entry: ConnectionPage): string => {
+        return entry.page;
+      }).sort(),
+    ).toEqual(
+      SECURITY_CONNECTION_PAGES.filter((page: string): boolean => {
+        return page !== GOOGLE_SECOPS;
+      }).sort(),
+    );
   });
 
   it("open the Connections tab from the Products menu, at the route the Dashboard serves", () => {

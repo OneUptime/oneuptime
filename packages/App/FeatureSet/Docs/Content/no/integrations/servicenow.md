@@ -54,7 +54,7 @@ Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **S
 
 ### Legg til triggeren
 
-Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **On Create Incident**. Klikk på triggeren, og velg `title` og `description` i **Fields to pass on**.
+Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **On Create Incident**. Klikk på triggeren: **Fields to pass on** starter med **Tittel**, så klikk på **Legg til felt**, og velg **Beskrivelse**.
 
 ### Opprett posten
 
@@ -81,7 +81,7 @@ Og **Request Body** til:
 
 ### Test den, og slå den deretter på
 
-Klikk på **Kjør arbeidsflyt**, skriv inn **Hendelse-ID** for en testhendelse, og kjør den. Trinnet **API Post (JSON)** viser et `201`-svar med den nye posten, med `sys_id` og `number`, f.eks. `INC0012345`. Slå deretter på **Aktivert** øverst i **Bygger**.
+Klikk på **Kjør arbeidsflyt**, velg en testhendelse under **Hendelse**, og kjør den. Trinnet **API Post (JSON)** viser et `201`-svar med den nye posten, med `sys_id` og `number`, f.eks. `INC0012345`. Slå deretter på **Aktivert** øverst i **Bygger**.
 :::
 
 `urgency` og `impact` tar `1` for høy, `2` for middels og `3` for lav, og ServiceNow regner ut prioriteten fra de to. Enhver annen kolonne i tabellen `incident` kan legges i innholdet under kolonnenavnet sitt.
@@ -93,7 +93,7 @@ En arbeidsflyt har én trigger, så det trengs en annen arbeidsflyt for å løse
 :::steps
 ### Legg til triggeren On Update Incident
 
-Opprett en arbeidsflyt som heter `Resolve ServiceNow incidents`, og velg **On Update Incident** som trigger. Velg `currentIncidentStateId` i **Fields to watch**, slik at den bare kjører når tilstanden endres. Spør i **Fields to pass on** om den nye tilstanden er en løst tilstand:
+Opprett en arbeidsflyt som heter `Resolve ServiceNow incidents`, og velg **On Update Incident** som trigger. Klikk på **Legg til felt** i **Fields to watch**, og velg **Current Incident State**, slik at den bare kjører når tilstanden endres. Spør i **Fields to pass on** om den nye tilstanden er en løst tilstand: klikk på **Legg til felt**, åpne **Current Incident State**, og velg **Is Resolved State**. Eller klikk på **Rediger som JSON**, og erstatt JSON-en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

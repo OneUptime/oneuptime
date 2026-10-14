@@ -69,7 +69,8 @@ export interface ToolImportReadContext {
    * have more subscribers than one read collects, and nothing else an
    * import brings names one, so a read can pass over these without
    * collecting or counting them, and each import reads the next ones (as
-   * the Atlassian Statuspage adapter does). Not given: none.
+   * the Atlassian Statuspage and Better Stack adapters do). Not given:
+   * none.
    */
   importedSubscriberIds?: ReadonlySet<string> | undefined;
 }

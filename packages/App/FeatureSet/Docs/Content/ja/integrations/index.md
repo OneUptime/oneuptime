@@ -84,7 +84,7 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | 双方向 | 組み込みの接続: インシデントチャンネル、Teams からの操作、オンコール。 |
 | [Mattermost](/docs/workflows/components#mattermost) | アウトバウンド | インシデントの更新を Mattermost のチャンネルに投稿します。 |
 | [Discord](/docs/integrations/discord) | アウトバウンド | インシデントの更新を Discord のチャンネルに投稿します。 |
-| [Telegram](/docs/integrations/telegram) | アウトバウンド | インシデントの更新を Telegram のチャットに送信します。 |
+| [Telegram](/docs/integrations/telegram) | アウトバウンド | アラートが発生したときに Telegram のチャットにメッセージを送信します。 |
 | [IRC](/docs/integrations/irc) | アウトバウンド | インシデントの更新を IRC のチャンネルに投稿します。 |
 
 > [!TIP]
@@ -119,10 +119,10 @@ URL が唯一の認証情報なので、パスワードと同じように扱っ�
 
 :::steps
 1. ツールの API キーを、[下記](#認証情報を安全に保つ) のとおりシークレットのグローバル変数として保存します。
-2. ワークフローを作成し、点線のブロックをクリックして、**On Create Incident** などのイベントトリガーを選びます。その **Fields to pass on** で、`title` や `description` など送信するフィールドにチェックを入れます。
+2. ワークフローを作成し、点線のブロックをクリックして、**On Create Incident** などのイベントトリガーを選びます。トリガーをクリックします。その **Fields to pass on** は **タイトル** から始まるので、**フィールドを追加** をクリックし、**説明** など送信するほかのフィールドを選びます。
 3. **コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加します。トリガーの **Success** の点をそのブロックに接続します。
 4. **URL** を入力し、**Request Headers** に `Authorization` ヘッダーを、**Request Body** に `{{local.components.incident-on-create-1.returnValues.model.title}}` などのインシデントのフィールドを入力します。
-5. **ワークフローを実行** をクリックし、インシデントの **インシデント ID** を入力して実行します。テスト実行でも実際にリクエストが送信されます。その後、**有効** をオンにします。
+5. **ワークフローを実行** をクリックし、**インシデント** でインシデントを選んで実行します。テスト実行でも実際にリクエストが送信されます。その後、**有効** をオンにします。
 :::
 
 ツールが別の形のデータを必要とする場合は、2 つのブロックの間に [Run Custom JavaScript](/docs/workflows/components#custom-code) ブロックを追加します。Zendesk、New Relic、AWS (SNS 経由)、StatusCake など、その他すべてのツールでも手順は同じで、変わるのは URL と本文だけです。

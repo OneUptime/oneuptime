@@ -1,3 +1,5 @@
+import WorkspaceType from "./WorkspaceType";
+
 /*
  * Reacting to a chat message with one of these emojis saves the message as a
  * note on the incident / alert / scheduled maintenance / episode the channel
@@ -80,6 +82,26 @@ export default class WorkspaceNoteReactionUtil {
     reaction: string | WorkspaceReaction | undefined | null,
   ): boolean {
     return this.getNoteType(reaction) !== null;
+  }
+
+  /*
+   * The message somebody asked to save, as an answer to them names it.
+   * Never "this message": the answer is not next to it - Slack shows a
+   * message only one person sees at the foot of the channel, and Microsoft
+   * Teams' reply sits at the end of the message's thread - so "this" would
+   * read as the answer itself. A private note in Slack comes from its own
+   * Pin or a 📌: "the message you pinned". Anything else - a 📣, and every
+   * note in Microsoft Teams, where only a reaction saves one (its Pin is
+   * not told to apps) - is "the message you reacted to".
+   */
+  public static getSavedMessageWords(data: {
+    noteType: WorkspaceNoteType;
+    workspaceType?: WorkspaceType | undefined;
+  }): string {
+    return data.noteType === WorkspaceNoteType.Private &&
+      data.workspaceType === WorkspaceType.Slack
+      ? "the message you pinned"
+      : "the message you reacted to";
   }
 
   private static getNoteTypeForValue(

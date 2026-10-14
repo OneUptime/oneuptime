@@ -34,6 +34,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 
 /*
  * An incident's or an episode's title is plain text - an incident's is typed
@@ -499,6 +500,7 @@ export class Service extends ProjectReferencesService<Model> {
       feedInfoInMarkdown:
         mdText`Added to ${episodeMention.subject}${episodeMention.titleSuffix}`.toString(),
       userId: createdItem.addedByUserId || undefined,
+      apiKeyActor: FeedApiKeyActorUtil.fromProps(_onCreate.createBy.props),
     });
 
     return createdItem;
@@ -624,6 +626,9 @@ export class Service extends ProjectReferencesService<Model> {
               displayColor: Green500,
               feedInfoInMarkdown:
                 mdText`Removed from ${episodeMention.subject}${episodeMention.titleSuffix}`.toString(),
+              apiKeyActor: FeedApiKeyActorUtil.fromProps(
+                onDelete.deleteBy.props,
+              ),
             });
           }
         }

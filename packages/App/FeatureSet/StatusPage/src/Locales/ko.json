@@ -151,7 +151,9 @@
       "placeholder": "subscriber@company.kr",
       "managePrompt": "구독 시 사용한 이메일을 입력해주세요",
       "manageDescription": "구독 관리 링크를 이 이메일로 보내드리겠습니다.",
-      "managePlaceholder": "email@yourcompany.kr"
+      "managePlaceholder": "email@yourcompany.kr",
+      "signedInEmailDescription": "로그인에 사용하는 이메일 주소로 구독합니다.",
+      "signInToSubscribe": "구독하려면 이 상태 페이지에 로그인하세요."
     },
     "sms": {
       "title": "SMS로 구독",

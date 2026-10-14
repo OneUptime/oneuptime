@@ -98,6 +98,19 @@ export interface WorkspaceDropdownBlock extends WorkspaceMessageBlock {
   description?: string | undefined;
   multiSelect?: boolean | undefined;
   optional?: boolean | undefined;
+  /*
+   * The options in groups, each under its label - "On-call schedules",
+   * "People" - in place of `options`: a Slack select draws each label over
+   * its options.
+   */
+  optionGroups?: Array<WorkspaceDropdownOptionGroup> | undefined;
+  // A multi-select's picks as the form opens: values of its options.
+  initialValues?: Array<string> | undefined;
+}
+
+export interface WorkspaceDropdownOptionGroup {
+  label: string;
+  options: Array<DropdownOption>;
 }
 
 export interface WorkspaceModalBlock extends WorkspaceMessageBlock {
@@ -139,4 +152,10 @@ export default interface WorkspaceMessagePayload {
    * notification, and Teams says only that a card was sent.
    */
   text?: string | undefined;
+  /*
+   * Channels, by id, not to post in even when a name above resolves to one:
+   * a note saved from a message is not posted back into the channel the
+   * message is in, where it would only repeat it.
+   */
+  exceptChannelIds?: Array<string> | undefined;
 }

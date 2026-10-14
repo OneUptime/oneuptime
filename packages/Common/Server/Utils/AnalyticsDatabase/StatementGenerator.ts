@@ -32,6 +32,7 @@ import CommonModel, {
 import AnalyticsTableColumn, {
   ColumnCodecConfig,
   ColumnCodecValue,
+  SkipIndexExpression,
   SkipIndexType,
 } from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
@@ -2056,22 +2057,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     );
 
     for (const col of skipIndexColumns) {
-      const idx: AnalyticsTableColumn["skipIndex"] = col.skipIndex!;
-      const paramsStr: string =
-        idx.params && idx.params.length > 0 ? `(${idx.params.join(", ")})` : "";
-      /*
-       * tokenbf_v1 and ngrambf_v1 indexes do not support Nullable columns in ClickHouse.
-       * Wrap with assumeNotNull() for Nullable (non-required) columns.
-       */
-      const needsAssumeNotNull: boolean =
-        !col.required &&
-        (idx.type === SkipIndexType.TokenBF ||
-          idx.type === SkipIndexType.NgramBF);
-      const columnExpr: string = needsAssumeNotNull
-        ? `assumeNotNull(${col.key})`
-        : col.key;
       columns.append(
-        `, INDEX ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
+        `, INDEX ${StatementGenerator.toSkipIndexDefinition(col)}`,
       );
     }
 
@@ -2291,6 +2278,66 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return statement;
   }
 
+  /*
+   * What a column's skip index is built over: the column itself, the column
+   * under assumeNotNull() for the index types that refuse a Nullable column,
+   * or the expression the index declares (see SkipIndexExpression). Shared by
+   * CREATE TABLE and ADD INDEX, so a table created fresh and a table that
+   * gained the index on a later boot carry the same definition.
+   */
+  public static toSkipIndexExpression(column: AnalyticsTableColumn): string {
+    const idx: AnalyticsTableColumn["skipIndex"] = column.skipIndex;
+
+    if (!idx) {
+      throw new BadDataException(`Column ${column.key} has no skip index.`);
+    }
+
+    if (idx.expression === SkipIndexExpression.MapValues) {
+      if (column.type !== TableColumnType.MapStringString) {
+        throw new BadDataException(
+          `Skip index ${idx.name} is built over mapValues(), but column ${column.key} is not a Map(String, String).`,
+        );
+      }
+
+      return `mapValues(${column.key})`;
+    }
+
+    if (idx.expression !== undefined) {
+      throw new BadDataException(
+        `Skip index ${idx.name} declares an unknown expression.`,
+      );
+    }
+
+    /*
+     * tokenbf_v1 and ngrambf_v1 indexes do not support Nullable columns in
+     * ClickHouse. Wrap with assumeNotNull() for Nullable (non-required)
+     * columns.
+     */
+    const needsAssumeNotNull: boolean =
+      !column.required &&
+      (idx.type === SkipIndexType.TokenBF ||
+        idx.type === SkipIndexType.NgramBF);
+
+    return needsAssumeNotNull ? `assumeNotNull(${column.key})` : column.key;
+  }
+
+  /*
+   * `<name> <expression> TYPE <type>(<params>) GRANULARITY <n>` - what
+   * follows `INDEX` in CREATE TABLE and `ADD INDEX IF NOT EXISTS` in ALTER.
+   */
+  public static toSkipIndexDefinition(column: AnalyticsTableColumn): string {
+    const idx: AnalyticsTableColumn["skipIndex"] = column.skipIndex;
+
+    if (!idx) {
+      throw new BadDataException(`Column ${column.key} has no skip index.`);
+    }
+
+    const paramsStr: string =
+      idx.params && idx.params.length > 0 ? `(${idx.params.join(", ")})` : "";
+
+    return `${idx.name} ${StatementGenerator.toSkipIndexExpression(column)} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`;
+  }
+
   public toAddSkipIndexStatement(
     column: AnalyticsTableColumn,
   ): Statement | null {
@@ -2298,17 +2345,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       return null;
     }
 
-    const idx: AnalyticsTableColumn["skipIndex"] = column.skipIndex;
-    const paramsStr: string =
-      idx.params && idx.params.length > 0 ? `(${idx.params.join(", ")})` : "";
-
-    const needsAssumeNotNull: boolean =
-      !column.required &&
-      (idx.type === SkipIndexType.TokenBF ||
-        idx.type === SkipIndexType.NgramBF);
-    const columnExpr: string = needsAssumeNotNull
-      ? `assumeNotNull(${column.key})`
-      : column.key;
+    const indexDefinition: string =
+      StatementGenerator.toSkipIndexDefinition(column);
 
     const databaseName: string = this.database.getDatasourceOptions().database!;
     const statement: Statement = new Statement();
@@ -2319,7 +2357,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
      * fails with "Missing columns: '<col>'" (Code 47).
      */
     statement.append(
-      `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)}${onClusterClause()} ADD INDEX IF NOT EXISTS ${idx.name} ${columnExpr} TYPE ${idx.type}${paramsStr} GRANULARITY ${idx.granularity}`,
+      `ALTER TABLE ${databaseName}.${getStorageTableName(this.model.tableName)}${onClusterClause()} ADD INDEX IF NOT EXISTS ${indexDefinition}`,
     );
 
     logger.debug(`${this.model.tableName} Add Skip Index Statement`);

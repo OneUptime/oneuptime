@@ -54,7 +54,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul begin
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger en kies in **Fields to pass on** `title` en `description`.
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
 
 ### Het record aanmaken
 
@@ -81,7 +81,7 @@ En de **Request Body** op:
 
 ### Testen en daarna aanzetten
 
-Klik op **Workflow uitvoeren**, vul de **Incident-ID** van een testincident in en voer hem uit. De stap **API Post (JSON)** toont een `201`-antwoord met het nieuwe record, met zijn `sys_id` en zijn `number`, zoals `INC0012345`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API Post (JSON)** toont een `201`-antwoord met het nieuwe record, met zijn `sys_id` en zijn `number`, zoals `INC0012345`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
 :::
 
 `urgency` en `impact` nemen `1` voor hoog, `2` voor gemiddeld en `3` voor laag, en ServiceNow leidt de prioriteit uit die twee af. Elke andere kolom van de tabel `incident` kan in de body, onder zijn kolomnaam.
@@ -93,7 +93,7 @@ Een workflow heeft één trigger, dus voor het oplossen is een tweede workflow n
 :::steps
 ### De trigger On Update Incident toevoegen
 
-Maak een workflow met de naam `Resolve ServiceNow incidents` en kies **On Update Incident** als trigger. Kies in **Fields to watch** `currentIncidentStateId`, zodat hij alleen draait wanneer de status verandert. Vraag in **Fields to pass on** of de nieuwe status een opgeloste status is:
+Maak een workflow met de naam `Resolve ServiceNow incidents` en kies **On Update Incident** als trigger. Klik in **Fields to watch** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Fields to pass on** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

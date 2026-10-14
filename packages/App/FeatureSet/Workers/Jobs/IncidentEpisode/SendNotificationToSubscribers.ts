@@ -52,6 +52,7 @@ import SubscriberNotificationDeliveryRecord, {
   StatusPageDeliverySkipReason,
   SubscriberNotificationRetryScope,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 import SubscriberNotificationTiming, {
   SubscriberNotificationRunClock,
   SubscriberNotificationSendWindow,
@@ -379,6 +380,21 @@ RunCron(
                     projectId: episode.projectId?.toString(),
                     incidentEpisodeId: episode.id?.toString(),
                   },
+                );
+                continue;
+              }
+
+              /*
+               * The page sends its subscribers nothing (Send Notifications to
+               * Subscribers off): passed over with why, and not recorded as told.
+               */
+              if (!isSendingSubscriberNotifications(statuspage)) {
+                logger.debug(
+                  `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+                );
+                deliveryRecord.skipStatusPage(
+                  statuspage,
+                  StatusPageDeliverySkipReason.NotificationsOff,
                 );
                 continue;
               }
@@ -1071,7 +1087,7 @@ RunCron(
               feedInfoInMarkdown:
                 mdText`📧 **No notification sent to subscribers** for the creation of [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).`.toString(),
               moreInformationInMarkdown: [
-                "Subscriber notifications were skipped because every associated status page either hides episodes, is left out by the status page scope of the episode's incidents, or had no matching subscribers.",
+                "Subscriber notifications were skipped because every associated status page either does not send notifications to its subscribers, hides episodes, is left out by the status page scope of the episode's incidents, or had no matching subscribers.",
                 deliveryMarkdown,
               ]
                 .filter(Boolean)

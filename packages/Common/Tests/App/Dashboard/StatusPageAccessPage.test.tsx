@@ -79,6 +79,13 @@ jest.mock(
   },
 );
 
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageSessionLengthCard",
+  () => {
+    return { __esModule: true, default: mockRecorder("session-length-card") };
+  },
+);
+
 import StatusPageAccessPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/AuthenticationSettings";
 import StatusPageAccessCopy, {
   STATUS_PAGE_ACCESS_ADVANCED_SECTION_TEST_ID,
@@ -208,7 +215,7 @@ function advancedSection(): HTMLElement {
 }
 
 describe("the page", () => {
-  test("opens on who can see the page, then a folded Advanced section with the IP allowlist", async () => {
+  test("opens on who can see the page, then how long readers stay signed in, then a folded Advanced section with the IP allowlist", async () => {
     await renderPage();
 
     const cards: Array<string | null> = screen
@@ -217,7 +224,11 @@ describe("the page", () => {
         return element.getAttribute("data-card");
       });
 
-    expect(cards).toEqual(["access-card", ALLOWLIST_CARD]);
+    expect(cards).toEqual([
+      "access-card",
+      "session-length-card",
+      ALLOWLIST_CARD,
+    ]);
 
     expect(
       within(advancedSection()).getAllByTestId("recorded-card").length,
@@ -233,6 +244,24 @@ describe("the page", () => {
     expect(
       (propsOf("access-card")["statusPageId"] as ObjectID).toString(),
     ).toBe(STATUS_PAGE_ID);
+  });
+
+  test("how long readers stay signed in is this status page's, and not folded away", async () => {
+    await renderPage();
+
+    expect(
+      (propsOf("session-length-card")["statusPageId"] as ObjectID).toString(),
+    ).toBe(STATUS_PAGE_ID);
+    expect(
+      within(advancedSection()).queryByText("session-length-card"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(advancedSection())
+        .getAllByTestId("recorded-card")
+        .map((element: HTMLElement): string | null => {
+          return element.getAttribute("data-card");
+        }),
+    ).not.toContain("session-length-card");
   });
 
   test("no card is left of the switches and the password button", async () => {

@@ -245,6 +245,13 @@ const App: () => JSX.Element = () => {
     useState<boolean>(false);
   const [enableWebhookSubscribers, setenableWebhookSubscribers] =
     useState<boolean>(false);
+  /*
+   * The page takes only its private users as subscribers: a reader
+   * subscribes by email, with the address they sign in with
+   * (Common/Types/StatusPage/SubscriberRestrictions).
+   */
+  const [subscribeWithSignInEmail, setSubscribeWithSignInEmail] =
+    useState<boolean>(false);
   const [statusPageName, setStatusPageName] = useState<string>("");
   const [statusPageLogoFileId, setStatusPageLogoFileId] = useState<string>("");
   const [isPrivateStatusPage, setIsPrivateStatusPage] =
@@ -369,10 +376,26 @@ const App: () => JSX.Element = () => {
           allowSubscribersToChooseEventTypes,
         );
 
-        setenableSMSSubscribers(enableSMSSubscribers);
-        setenableSlackSubscribers(enableSlackSubscribers);
-        setenableMicrosoftTeamsSubscribers(enableMicrosoftTeamsSubscribers);
-        setenableWebhookSubscribers(enableWebhookSubscribers);
+        const limitSubscribersToPrivateUsers: boolean =
+          JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.limitSubscribersToPrivateUsers",
+          ) === true;
+
+        // A page that takes only its private users takes only their email.
+        setSubscribeWithSignInEmail(limitSubscribersToPrivateUsers);
+        setenableSMSSubscribers(
+          enableSMSSubscribers && !limitSubscribersToPrivateUsers,
+        );
+        setenableSlackSubscribers(
+          enableSlackSubscribers && !limitSubscribersToPrivateUsers,
+        );
+        setenableMicrosoftTeamsSubscribers(
+          enableMicrosoftTeamsSubscribers && !limitSubscribersToPrivateUsers,
+        );
+        setenableWebhookSubscribers(
+          enableWebhookSubscribers && !limitSubscribersToPrivateUsers,
+        );
         setenableEmailSubscribers(enableEmailSubscribers);
 
         StatusPageUtil.setIsPrivateStatusPage(isPrivateStatusPage);
@@ -583,6 +606,7 @@ const App: () => JSX.Element = () => {
             element={
               <EmailSubscribe
                 pageRoute={RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route}
+                subscribeWithSignInEmail={subscribeWithSignInEmail}
                 allowSubscribersToChooseResources={
                   allowSubscribersToChooseResources
                 }
@@ -789,6 +813,7 @@ const App: () => JSX.Element = () => {
                   onPageLoadComplete();
                 }}
                 pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route}
+                subscribeWithSignInEmail={subscribeWithSignInEmail}
                 allowSubscribersToChooseResources={
                   allowSubscribersToChooseResources
                 }

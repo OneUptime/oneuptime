@@ -49,7 +49,7 @@ flowchart TB
 
 ### ट्रिगर जोड़ें
 
-डैश वाले **Choose what starts this workflow** ब्लॉक पर क्लिक करें और **On Create Incident** चुनें। ट्रिगर पर क्लिक करें, और **Fields to pass on** में `title` और `description` चुनें।
+डैश वाले **Choose what starts this workflow** ब्लॉक पर क्लिक करें और **On Create Incident** चुनें। ट्रिगर पर क्लिक करें: उसके **Fields to pass on** में पहले से **शीर्षक** है, इसलिए **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** चुनें।
 
 ### अलर्ट बनाएं
 
@@ -73,7 +73,7 @@ flowchart TB
 
 ### टेस्ट करें, फिर चालू करें
 
-**वर्कफ़्लो चलाएं** पर क्लिक करें, किसी टेस्ट घटना की **घटना ID** डालें, और चलाएं। **API Post (JSON)** चरण `202` जवाब दिखाता है, और थोड़ी देर बाद अलर्ट Opsgenie में दिखता है। फिर **बिल्डर** के ऊपर **सक्षम** चालू करें।
+**वर्कफ़्लो चलाएं** पर क्लिक करें, **घटना** के नीचे कोई टेस्ट घटना चुनें, और चलाएं। **API Post (JSON)** चरण `202` जवाब दिखाता है, और थोड़ी देर बाद अलर्ट Opsgenie में दिखता है। फिर **बिल्डर** के ऊपर **सक्षम** चालू करें।
 :::
 
 Opsgenie की स्कीम है: शब्द `GenieKey`, एक स्पेस, फिर कुंजी। Opsgenie `message` को 130 अक्षरों तक सीमित रखता है, और उसकी प्राथमिकताएं `P1` से `P5` तक होती हैं। हर घटना की अपनी प्राथमिकता भेजने के लिए [प्राथमिकताएं मैप करें](#प्राथमिकताएं-मैप-करें) देखें।
@@ -85,7 +85,7 @@ Opsgenie की स्कीम है: शब्द `GenieKey`, एक स्�
 :::steps
 ### On Update Incident ट्रिगर जोड़ें
 
-`Close Opsgenie alerts` नाम का एक वर्कफ़्लो बनाएं, और उसके ट्रिगर के रूप में **On Update Incident** चुनें। **Fields to watch** में `currentIncidentStateId` चुनें, ताकि यह सिर्फ़ स्थिति बदलने पर चले। **Fields to pass on** में यह मांगें कि नई स्थिति सुलझी हुई है या नहीं:
+`Close Opsgenie alerts` नाम का एक वर्कफ़्लो बनाएं, और उसके ट्रिगर के रूप में **On Update Incident** चुनें। **Fields to watch** में **फ़ील्ड जोड़ें** पर क्लिक करें और **Current Incident State** चुनें, ताकि यह सिर्फ़ स्थिति बदलने पर चले। **Fields to pass on** में यह मांगें कि नई स्थिति सुलझी हुई है या नहीं: **फ़ील्ड जोड़ें** पर क्लिक करें, **Current Incident State** खोलें और **Is Resolved State** चुनें। या **JSON के रूप में संपादित करें** पर क्लिक करें और JSON को इससे बदल दें:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 
 हर घटना की गंभीरता को Opsgenie प्राथमिकता के रूप में भेजने के लिए, ट्रिगर और **API Post (JSON)** ब्लॉक के बीच एक **Run Custom JavaScript** ब्लॉक जोड़ें।
 
-1. ट्रिगर के **Fields to pass on** में गंभीरता का `name` भी चुनें: `{ "incidentSeverity": { "name": true } }`।
+1. ट्रिगर के **Fields to pass on** में **फ़ील्ड जोड़ें** पर क्लिक करें, **घटना गंभीरता** खोलें और **नाम** चुनें।
 2. ब्लॉक के **Arguments** को `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` पर, और उसके **JavaScript Code** को इस पर सेट करें:
 
    ```javascript

@@ -85,6 +85,16 @@ enum SlackActionType {
   ShowOnCall = "ShowOnCall",
 
   /*
+   * `/oneuptime page [who] [message]`: pages the people @mentioned at
+   * once, or opens the Page someone form with what was typed filled in
+   * (SlackPageActions). Its value is the command's text as Slack sent it,
+   * people's ids and all.
+   */
+  PageSomeone = "PageSomeone",
+  // The Page someone form, submitted.
+  SubmitPageSomeone = "SubmitPageSomeone",
+
+  /*
    * The Join call button of an incident or alert video call. It is a link
    * button - Slack opens the meeting itself - but Slack still reports the
    * click, which only has to be acknowledged.

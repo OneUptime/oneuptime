@@ -47,6 +47,21 @@ Elk kanaal heeft ook een eigen lijst in het zijmenu van de statuspagina, onder *
 
 **Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt alleen wanneer **Abonneepagina weergeven** aan staat *en* minstens één kanaal aan staat. Als u **E-mail** aanzet maar **Abonneepagina weergeven** uit laat, kunnen bezoekers het formulier niet bereiken.
 
+## Alle meldingen uitzetten
+
+De eerste kaart op **Abonneeinstellingen**, **Meldingen**, bevat **Meldingen naar abonnees sturen** (`sendSubscriberNotifications`), standaard aan, die wordt opgeslagen zodra u hem omzet. Staat hij uit, dan stuurt de statuspagina haar abonnees niets: geen melding over een incident, episode, gepland onderhoud of aankondiging, geen notitie of postmortem en geen e-mailrapport, wat haar kanalen en gebeurtenistypen ook zeggen. Haar abonnees blijven bewaard, en bezoekers kunnen zich nog steeds abonneren zolang de pagina **Abonneren** en een kanaal aan staan; een nieuwe e-mailabonnee krijgt nog steeds de e-mail die het abonnement bevestigt. Er wordt niets achtergehouden om later te verzenden: zet u hem weer aan, dan vertelt de pagina haar abonnees over wat er vanaf dat moment gebeurt.
+
+Zolang hij uit staat, vermeldt de bovenkant van elke abonneelijst dat, met een link terug naar **Abonneeinstellingen**. De samenvatting van wie er bericht krijgt, bij een incident of een openbare notitie, noemt de pagina als een pagina die geen meldingen naar haar abonnees stuurt, en het statusbericht van een melding en de vermelding ervan in de feed zeggen waarom de pagina is overgeslagen. Het werkt op elk abonnement. Een testrapport dat naar een adres wordt gestuurd dat u invoert, wordt nog steeds verzonden.
+
+## Wie zich kan abonneren
+
+De kaart **Wie zich kan abonneren**, ook op **Abonneeinstellingen**, beperkt de meldingen van een pagina tot de mensen voor wie de pagina bedoeld is:
+
+- **Alleen privégebruikers kunnen zich abonneren** (`limitSubscribersToPrivateUsers`), standaard uit, wordt opgeslagen zodra u hem omzet. Staat hij aan, dan kunnen alleen de [privégebruikers](/docs/status-pages/index#privégebruikers) van de pagina, of ze nu handmatig zijn toegevoegd, met SSO zijn ingelogd of door SCIM zijn ingericht, zich abonneren, via e-mail en met het adres waarmee ze inloggen. De pagina **Abonneren** vult dat adres in, laat het niet wijzigen en biedt geen ander kanaal aan. Uw team kan alleen het adres van een privégebruiker toevoegen, en geen SMS-, Slack-, Microsoft Teams- of webhookabonnee. Een abonnee wiens adres nu niet van een privégebruiker van de pagina is, of het nu een abonnee is die is toegevoegd voordat u hem aanzette of een lezer die sindsdien handmatig of door SCIM is verwijderd, krijgt niets en wordt niet meegeteld. Op een openbare pagina logt niemand in, dus zolang hij daar aan staat, kan alleen uw team abonnees toevoegen.
+- **Toegestane e-maildomeinen** (`allowedSubscriberEmailDomains`) bevat de domeinen waarop het adres van een e-mailabonnee mag liggen, één per regel, zoals `acme.com`. Een adres op een subdomein komt ook overeen (`eu.acme.com` voor `acme.com`), maar niet een adres dat alleen op dezelfde letters eindigt (`evilacme.com`). Aanmeldingen en toevoegingen op elk ander domein worden geweigerd, en een e-mailabonnee die al op een ander domein zit, krijgt niets. Laat het veld leeg om elk domein toe te staan. SMS-, Slack-, Microsoft Teams- en webhookabonnees hebben geen domein en worden er niet door beïnvloed. Typ de lijst en kies **Domeinen opslaan**: een item dat geen domein is, wordt genoemd voordat er iets wordt opgeslagen, en de lijst wordt in kleine letters opgeslagen, één domein per regel, tot 100 domeinen.
+
+Geen van beide instellingen verwijdert een abonnee, en ze uitzetten stuurt weer naar iedereen. Op OneUptime Cloud heeft het aanzetten van een van beide het abonnement **Scale** nodig; ze uitzetten werkt op elk abonnement.
+
 ## Wat een bezoeker op de pagina Abonneren ziet
 
 De pagina **Abonneren** heeft een submenu met één tabblad per ingeschakeld kanaal. Elk tabblad vraagt om het minimum dat het nodig heeft:

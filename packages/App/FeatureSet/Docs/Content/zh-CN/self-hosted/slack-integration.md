@@ -143,7 +143,7 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 
 | 功能 | 作用 | 路由 |
 | --- | --- | --- |
-| `/oneuptime` | 声明事件、安排维护、查看谁在值班以及询问 OneUptime AI；`/oneuptime help` 会列出所有命令 | `POST /api/slack/command` |
+| `/oneuptime` | 声明事件、安排维护、查看谁在值班、呼叫他人以及询问 OneUptime AI；`/oneuptime help` 会列出所有命令 | `POST /api/slack/command` |
 | **Create New Incident** 和 **Create Scheduled Event** 快捷方式 | 通过 Slack 的快捷方式声明事件或安排维护 | `POST /api/slack/interactive` |
 | OneUptime 消息中的按钮和表单 | 确认、解决、添加备注、更改状态、运行值班策略 | `POST /api/slack/interactive` 和 `POST /api/slack/options-load` |
 | 事件 | 提及、消息、表情回应和置顶，例如把一条消息保存为备注 | `POST /api/slack/events` |
@@ -156,7 +156,9 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 
 ### 用较旧清单创建的应用
 
-用较早的 OneUptime 清单创建的 Slack 应用会把 `/incident` 和 `/maintenance` 注册为独立的命令，它们可能与其他应用的同名命令冲突。它们仍然可用，并打开与 `/oneuptime incident` 和 `/oneuptime maintenance` 相同的表单。要用 `/oneuptime` 替换它们，请用你的服务器生成的清单更新应用：在 [api.slack.com/apps](https://api.slack.com/apps) 中打开应用的 **App Manifest**，粘贴清单并保存。权限范围保持不变，因此无需重新安装应用。
+用较早的 OneUptime 清单创建的 Slack 应用会把 `/incident` 和 `/maintenance` 注册为独立的命令，它们可能与其他应用的同名命令冲突。它们仍然可用，并打开与 `/oneuptime incident` 和 `/oneuptime maintenance` 相同的表单。要用 `/oneuptime` 替换它们，请用你的服务器生成的清单更新应用：在 [api.slack.com/apps](https://api.slack.com/apps) 中打开应用的 **App Manifest**，粘贴清单并保存。
+
+在 `/oneuptime page` 推出之前创建的应用也需要同样的更新：在更新之前，`/oneuptime page` 无法识别你 @提及的人，会打开一个表单让你选择他们，而不是立即呼叫他们。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **Connect with Slack**，以授予清单新增的 `users:read.email` 权限范围：有了它，Slack 账户未连接到 OneUptime 的人也能通过其电子邮件地址找到。
 
 ## 自托管部署的网络访问
 

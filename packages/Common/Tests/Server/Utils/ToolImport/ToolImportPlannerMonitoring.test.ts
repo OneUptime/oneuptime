@@ -3,8 +3,10 @@ import {
   buildToolImportPlan,
   ToolImportAccess,
   ToolImportExistingMonitor,
+  ToolImportPreviousRecord,
   ToolImportProjectState,
 } from "../../../../Server/Utils/ToolImport/ToolImportPlanner";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import DnsRecordType from "../../../../Types/Monitor/DnsMonitor/DnsRecordType";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import {
@@ -1052,5 +1054,102 @@ describe("ToolImportPlanner: status page subscribers", () => {
         );
       }),
     ).toHaveLength(total);
+  });
+});
+
+describe("ToolImportPlanner: a page imported again, after imports of its subscribers", () => {
+  test("the first import's page and components are already imported - renamed in OneUptime since, never made again - their records the oldest of more than one read's worth", () => {
+    // Two imports of the page's subscribers since: more records than one read returns.
+    const subscriberRecords: Array<ToolImportPreviousRecord> = Array.from(
+      { length: LIMIT_MAX + 1 },
+      (_value: unknown, index: number): ToolImportPreviousRecord => {
+        return {
+          kind: ToolImportResourceKind.StatusPageSubscriber,
+          sourceId: `sub-${index}`,
+          recordId: `subscriber-${index}`,
+          isComplete: true,
+          // The first one brought over was deleted in OneUptime since.
+          stillExists: index > 0,
+        };
+      },
+    );
+
+    const result: ToolImportPlan = plan(
+      {
+        source: ToolImportSource.AtlassianStatuspage,
+        monitors: [
+          monitor("web", {
+            name: "Web app",
+            sourceType: "component",
+            monitorType: MonitorType.Manual,
+            destination: undefined,
+            intervalSeconds: undefined,
+          }),
+        ],
+        statusPages: [statusPage("acme", ["web"], { name: "Acme" })],
+        statusPageSubscribers: [
+          // Gone from OneUptime, so read again: offered again, with why.
+          subscriber("sub-0", "acme"),
+          subscriber("new", "acme"),
+        ],
+      },
+      projectState({
+        // Both renamed in OneUptime since: nothing there has the tool's names.
+        existingByKind: new Map([
+          [
+            ToolImportResourceKind.StatusPage,
+            [{ id: "SP-1", name: "Acme Status" }],
+          ],
+        ]),
+        existingMonitors: [
+          {
+            id: "M-1",
+            name: "Web application",
+            monitorType: MonitorType.Manual,
+            addressKey: null,
+          },
+        ],
+        previousRecords: [
+          {
+            kind: ToolImportResourceKind.StatusPage,
+            sourceId: "acme",
+            recordId: "SP-1",
+            isComplete: true,
+            stillExists: true,
+          },
+          {
+            kind: ToolImportResourceKind.Monitor,
+            sourceId: "web",
+            recordId: "M-1",
+            isComplete: true,
+            stillExists: true,
+          },
+          ...subscriberRecords,
+        ],
+      }),
+    );
+
+    expect(
+      item(result, ToolImportResourceKind.StatusPage, "acme"),
+    ).toMatchObject({
+      action: ToolImportAction.AlreadyImported,
+      existingRecordId: "SP-1",
+      reason: makeToolImportNote(ToolImportNoteCode.AlreadyImported),
+    });
+    expect(monitorItem(result, "web")).toMatchObject({
+      action: ToolImportAction.AlreadyImported,
+      existingRecordId: "M-1",
+    });
+    expect(
+      item(result, ToolImportResourceKind.StatusPageSubscriber, "sub-0"),
+    ).toMatchObject({
+      action: ToolImportAction.Create,
+      notes: [
+        makeToolImportNote(ToolImportNoteCode.ImportedBeforeDeletedSince),
+      ],
+    });
+    expect(
+      item(result, ToolImportResourceKind.StatusPageSubscriber, "new"),
+    ).toMatchObject({ action: ToolImportAction.Create, notes: [] });
   });
 });
