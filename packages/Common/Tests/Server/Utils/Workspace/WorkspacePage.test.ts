@@ -15,6 +15,7 @@ import Team from "../../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
 import WorkspaceLiveMessage from "../../../../Models/DatabaseModels/WorkspaceLiveMessage";
+import WorkspaceUserGroup from "../../../../Models/DatabaseModels/WorkspaceUserGroup";
 import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import OnCallPageService, {
@@ -26,6 +27,7 @@ import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import TeamService from "../../../../Server/Services/TeamService";
 import UserService from "../../../../Server/Services/UserService";
 import WorkspaceLiveMessageService from "../../../../Server/Services/WorkspaceLiveMessageService";
+import WorkspaceUserGroupService from "../../../../Server/Services/WorkspaceUserGroupService";
 import logger from "../../../../Server/Utils/Logger";
 import ProductBrandingText from "../../../../Server/Utils/ProductBrandingText";
 import ProjectMembership from "../../../../Server/Utils/TeamMember/ProjectMembership";
@@ -40,11 +42,13 @@ import WorkspacePage, {
   WORKSPACE_PAGE_MAX_WAIT_FOR_RECORD_IN_MS,
   WorkspacePageChoiceGroup,
   WorkspacePageFormPrefill,
+  WorkspacePageGroups,
   WorkspacePageOutcome,
   WorkspacePagePeople,
   WorkspacePageTargetKind,
 } from "../../../../Server/Utils/Workspace/WorkspacePage";
 import WorkspacePageTextReader, {
+  WorkspacePageGroup,
   WorkspacePageText,
 } from "../../../../Server/Utils/Workspace/WorkspacePageText";
 import URL from "../../../../Types/API/URL";
@@ -834,6 +838,463 @@ describe("WorkspacePage.getPrefill: the form opens with what was typed", () => {
     ).toEqual([
       "Ana Ruiz isn't in the list below. To page them, type page again with them @mentioned and a message.",
     ]);
+  });
+});
+
+/*
+ * CUSTOMER FEEDBACK #3 MEETS #4: "/oneuptime page @payments-oncall ..." - a
+ * Slack user group (a Microsoft Teams tag) OneUptime keeps equal to whoever
+ * is on call pages the on-call schedules it follows.
+ */
+describe("WorkspacePage.resolveGroups: a group that follows on-call schedules is paged as them", () => {
+  const PAYMENTS: WorkspacePageGroup = {
+    name: "payments-oncall",
+    workspaceGroupId: "S0PAYMENTS",
+  };
+  const DATABASE: WorkspacePageGroup = {
+    name: "db-oncall",
+    workspaceGroupId: "S0DATABASE",
+  };
+  const HERE: WorkspacePageGroup = { name: "here", workspaceGroupId: "" };
+
+  let rows: Array<WorkspaceUserGroup>;
+  let readableScheduleIds: Array<ObjectID>;
+  let asked: Array<{ service: unknown; props: unknown; query: unknown }>;
+
+  function rowOf(data: {
+    workspaceGroupId: string;
+    name: string;
+    scheduleIds: Array<ObjectID>;
+  }): WorkspaceUserGroup {
+    const row: WorkspaceUserGroup = new WorkspaceUserGroup();
+    row.id = ObjectID.generate();
+    row.workspaceGroupId = data.workspaceGroupId;
+    row.name = data.name;
+    row.onCallDutyPolicySchedules = data.scheduleIds.map(
+      (id: ObjectID): OnCallDutyPolicySchedule => {
+        const schedule: OnCallDutyPolicySchedule =
+          new OnCallDutyPolicySchedule();
+        schedule.id = id;
+        return schedule;
+      },
+    );
+    return row;
+  }
+
+  beforeEach(() => {
+    rows = [
+      rowOf({
+        workspaceGroupId: "S0PAYMENTS",
+        name: "Payments on-call",
+        scheduleIds: [PRIMARY, SECONDARY],
+      }),
+    ];
+    readableScheduleIds = [PRIMARY, SECONDARY];
+    asked = [];
+
+    jest
+      .spyOn(WorkspaceActionAuthorization, "findReadable")
+      .mockImplementation((async (data: {
+        service: unknown;
+        props: unknown;
+        query: { _id?: unknown };
+      }) => {
+        asked.push({
+          service: data.service,
+          props: data.props,
+          query: data.query,
+        });
+
+        if (data.service === WorkspaceUserGroupService) {
+          return rows;
+        }
+
+        if (data.service === OnCallDutyPolicyScheduleService) {
+          return readableScheduleIds
+            .filter((id: ObjectID): boolean => {
+              return JSON.stringify(data.query._id).includes(id.toString());
+            })
+            .map((id: ObjectID): OnCallDutyPolicySchedule => {
+              const schedule: OnCallDutyPolicySchedule =
+                new OnCallDutyPolicySchedule();
+              schedule.id = id;
+              return schedule;
+            });
+        }
+
+        return [];
+      }) as never);
+  });
+
+  async function resolve(
+    groups: Array<WorkspacePageGroup>,
+    workspaceType: WorkspaceType = WorkspaceType.Slack,
+  ): Promise<WorkspacePageGroups> {
+    return await WorkspacePage.resolveGroups({
+      projectId: PROJECT_ID,
+      workspaceType: workspaceType,
+      groups: groups,
+      props: PROPS,
+    });
+  }
+
+  test("@payments-oncall, which follows Primary and Secondary: paged as both", async () => {
+    expect(await resolve([PAYMENTS])).toEqual({
+      paged: [{ name: "payments-oncall", scheduleIds: [PRIMARY, SECONDARY] }],
+      notPaged: [],
+    });
+  });
+
+  test("read as the member who asked: the project's groups of this chat, then the schedules they follow", async () => {
+    await resolve([PAYMENTS]);
+
+    expect(asked).toEqual([
+      {
+        service: WorkspaceUserGroupService,
+        props: PROPS,
+        query: { projectId: PROJECT_ID, workspaceType: WorkspaceType.Slack },
+      },
+      {
+        service: OnCallDutyPolicyScheduleService,
+        props: PROPS,
+        query: expect.objectContaining({ projectId: PROJECT_ID }),
+      },
+    ]);
+  });
+
+  test("a schedule the member may not read is not paged through a group - and a group with none they may read pages nobody", async () => {
+    rows.push(
+      rowOf({
+        workspaceGroupId: "S0DATABASE",
+        name: "Database on-call",
+        scheduleIds: [SECONDARY],
+      }),
+    );
+    readableScheduleIds = [PRIMARY];
+
+    expect(await resolve([PAYMENTS, DATABASE])).toEqual({
+      paged: [{ name: "payments-oncall", scheduleIds: [PRIMARY] }],
+      notPaged: [DATABASE],
+    });
+  });
+
+  test("a group OneUptime does not keep, and @here: not paged, kept to be said", async () => {
+    expect(await resolve([DATABASE, HERE])).toEqual({
+      paged: [],
+      notPaged: [DATABASE, HERE],
+    });
+  });
+
+  test("@here alone: nothing is read", async () => {
+    expect(await resolve([HERE])).toEqual({ paged: [], notPaged: [HERE] });
+    expect(asked).toEqual([]);
+  });
+
+  test("the groups the member may not read at all: nobody paged through them", async () => {
+    rows = [];
+
+    expect(await resolve([PAYMENTS])).toEqual({
+      paged: [],
+      notPaged: [PAYMENTS],
+    });
+  });
+
+  test("a group that follows no schedule any more pages nobody", async () => {
+    rows[0]!.onCallDutyPolicySchedules = [];
+
+    expect(await resolve([PAYMENTS])).toEqual({
+      paged: [],
+      notPaged: [PAYMENTS],
+    });
+  });
+
+  test("Slack: a group is the user group of its id - another of the same name is not it", async () => {
+    expect(
+      await resolve([
+        { name: "Payments on-call", workspaceGroupId: "S0SOMEOTHER" },
+      ]),
+    ).toEqual({
+      paged: [],
+      notPaged: [{ name: "Payments on-call", workspaceGroupId: "S0SOMEOTHER" }],
+    });
+  });
+
+  test("one group mentioned twice - under two names - is paged once", async () => {
+    rows[0]!.workspaceType = WorkspaceType.MicrosoftTeams;
+
+    expect(
+      await resolve(
+        [
+          { name: "Payments on-call", workspaceGroupId: "S0PAYMENTS" },
+          { name: "payments on-call", workspaceGroupId: "tag-by-another-id" },
+        ],
+        WorkspaceType.MicrosoftTeams,
+      ),
+    ).toEqual({
+      paged: [{ name: "Payments on-call", scheduleIds: [PRIMARY, SECONDARY] }],
+      notPaged: [],
+    });
+  });
+
+  test("Microsoft Teams: a tag by the id Teams mentioned it with, or else by its name - in any case - when one tag of that name follows schedules", async () => {
+    rows = [
+      rowOf({
+        workspaceGroupId: "tag-payments",
+        name: "Payments on-call",
+        scheduleIds: [PRIMARY],
+      }),
+    ];
+
+    expect(
+      await resolve(
+        [{ name: "payments ON-CALL", workspaceGroupId: "19:mention-id" }],
+        WorkspaceType.MicrosoftTeams,
+      ),
+    ).toEqual({
+      paged: [{ name: "payments ON-CALL", scheduleIds: [PRIMARY] }],
+      notPaged: [],
+    });
+    expect(asked[0]!.query).toEqual({
+      projectId: PROJECT_ID,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+    });
+  });
+
+  test("Microsoft Teams: two tags of that name in two teams - neither is guessed at", async () => {
+    rows = [
+      rowOf({
+        workspaceGroupId: "tag-payments-1",
+        name: "On-call",
+        scheduleIds: [PRIMARY],
+      }),
+      rowOf({
+        workspaceGroupId: "tag-payments-2",
+        name: "On-call",
+        scheduleIds: [SECONDARY],
+      }),
+    ];
+
+    const onCall: WorkspacePageGroup = {
+      name: "On-call",
+      workspaceGroupId: "19:mention-id",
+    };
+
+    expect(await resolve([onCall], WorkspaceType.MicrosoftTeams)).toEqual({
+      paged: [],
+      notPaged: [onCall],
+    });
+  });
+});
+
+describe("WorkspacePage.isReadyToPage, getTargets and getPagedNames: a group pages at once, like a person", () => {
+  const NOBODY: WorkspacePagePeople = { people: [], notTold: [] };
+  const NAWAZ_PERSON: WorkspacePagePeople = {
+    people: [{ userId: NAWAZ, name: "Nawaz Dhandala" }],
+    notTold: [],
+  };
+  const PAYMENTS_PAGED: WorkspacePageGroups = {
+    paged: [{ name: "payments-oncall", scheduleIds: [PRIMARY, SECONDARY] }],
+    notPaged: [],
+  };
+  const NO_GROUPS: WorkspacePageGroups = { paged: [], notPaged: [] };
+
+  function textOf(message: string): WorkspacePageText {
+    return {
+      people: [],
+      groups: [],
+      unknownNames: [],
+      message: message,
+    };
+  }
+
+  test("a group that follows schedules, and a message: paged at once", () => {
+    expect(
+      WorkspacePage.isReadyToPage({
+        text: textOf("db down"),
+        people: NOBODY,
+        groups: PAYMENTS_PAGED,
+      }),
+    ).toBe(true);
+  });
+
+  test("no message, nobody to page, or anybody named it cannot page: the form opens", () => {
+    for (const [text, people, groups] of [
+      [textOf(""), NOBODY, PAYMENTS_PAGED],
+      [textOf("db down"), NOBODY, NO_GROUPS],
+      [
+        textOf("db down"),
+        NOBODY,
+        {
+          paged: PAYMENTS_PAGED.paged,
+          notPaged: [{ name: "here", workspaceGroupId: "" }],
+        },
+      ],
+      [
+        textOf("db down"),
+        { people: [], notTold: ["OneUptime can't tell who @x is."] },
+        PAYMENTS_PAGED,
+      ],
+      [
+        { ...textOf("db down"), unknownNames: ["@ana"] },
+        NOBODY,
+        PAYMENTS_PAGED,
+      ],
+    ] as Array<[WorkspacePageText, WorkspacePagePeople, WorkspacePageGroups]>) {
+      expect(
+        WorkspacePage.isReadyToPage({
+          text: text,
+          people: people,
+          groups: groups,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("people alone page as they always did: no schedules named", () => {
+    expect(
+      WorkspacePage.isReadyToPage({
+        text: textOf("db down"),
+        people: NAWAZ_PERSON,
+        groups: NO_GROUPS,
+      }),
+    ).toBe(true);
+    expect(
+      WorkspacePage.getTargets({ people: NAWAZ_PERSON, groups: NO_GROUPS }),
+    ).toEqual({ userIds: [NAWAZ] });
+  });
+
+  test("the people, and each schedule the groups follow once", () => {
+    expect(
+      WorkspacePage.getTargets({
+        people: NAWAZ_PERSON,
+        groups: {
+          paged: [
+            ...PAYMENTS_PAGED.paged,
+            { name: "primary-oncall", scheduleIds: [PRIMARY] },
+          ],
+          notPaged: [],
+        },
+      }),
+    ).toEqual({
+      userIds: [NAWAZ],
+      onCallScheduleIds: [PRIMARY, SECONDARY],
+    });
+  });
+
+  test("who the person who paged is told is paged: the people by name, a group as they @mentioned it", () => {
+    expect(
+      WorkspacePage.getPagedNames({
+        people: NAWAZ_PERSON,
+        groups: PAYMENTS_PAGED,
+      }),
+    ).toEqual(["Nawaz Dhandala", "@payments-oncall"]);
+  });
+});
+
+describe("WorkspacePage.getPrefill: groups @mentioned", () => {
+  const CHOICES: Array<WorkspacePageChoiceGroup> = [
+    {
+      kind: WorkspacePageTargetKind.Schedule,
+      label: "On-call schedules",
+      choices: [
+        {
+          value: `schedule:${PRIMARY.toString()}`,
+          name: "Primary",
+          label: "Primary (Nawaz Dhandala on call now)",
+        },
+      ],
+    },
+  ];
+
+  function prefillOf(
+    groups: WorkspacePageGroups,
+    workspaceType: WorkspaceType = WorkspaceType.Slack,
+  ): WorkspacePageFormPrefill {
+    return WorkspacePage.getPrefill({
+      text: {
+        people: [],
+        groups: [...groups.notPaged],
+        unknownNames: [],
+        message: "",
+      },
+      people: { people: [], notTold: [] },
+      groups: groups,
+      choices: CHOICES,
+      workspaceType: workspaceType,
+    });
+  }
+
+  test("a group that follows schedules, with no message: its schedules picked, nothing to say", () => {
+    expect(
+      prefillOf({
+        paged: [{ name: "payments-oncall", scheduleIds: [PRIMARY] }],
+        notPaged: [],
+      }),
+    ).toEqual({
+      values: [`schedule:${PRIMARY.toString()}`],
+      message: "",
+      notes: [],
+    });
+  });
+
+  test("its schedules past the form's list: said, with how to page it anyway", () => {
+    expect(
+      prefillOf({
+        paged: [{ name: "payments-oncall", scheduleIds: [SECONDARY] }],
+        notPaged: [],
+      }).notes,
+    ).toEqual([
+      "The on-call schedules @payments-oncall follows aren't in the list below. To page them, run /oneuptime page again with @payments-oncall and a message.",
+    ]);
+  });
+
+  test("a user group that follows no schedule the member can see: what makes one pageable, and to pick who it means", () => {
+    expect(
+      prefillOf({
+        paged: [],
+        notPaged: [{ name: "oncall-db", workspaceGroupId: "S0DB" }],
+      }).notes,
+    ).toEqual([
+      "OneUptime pages a user group only when it follows an on-call schedule you can see, and @oncall-db doesn't. Pick the on-call schedule, the team or the people below.",
+    ]);
+  });
+
+  test("in Microsoft Teams, a tag", () => {
+    expect(
+      prefillOf(
+        {
+          paged: [],
+          notPaged: [{ name: "On-call DBAs", workspaceGroupId: "tag-1" }],
+        },
+        WorkspaceType.MicrosoftTeams,
+      ).notes,
+    ).toEqual([
+      "OneUptime pages a tag only when it follows an on-call schedule you can see, and @On-call DBAs doesn't. Pick the on-call schedule, the team or the people below.",
+    ]);
+  });
+
+  test("@here is no group anybody keeps: OneUptime can't page it", () => {
+    expect(
+      WorkspacePage.getGroupNote({
+        group: { name: "here", workspaceGroupId: "" },
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toBe(
+      "OneUptime can't page @here. Pick the on-call schedule, the team or the people below.",
+    );
+  });
+
+  test("the product's name is the one the installation goes by", () => {
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("Acme Pager");
+
+    expect(
+      WorkspacePage.getGroupNote({
+        group: { name: "oncall-db", workspaceGroupId: "S0DB" },
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toContain("Acme Pager pages a user group only when");
   });
 });
 

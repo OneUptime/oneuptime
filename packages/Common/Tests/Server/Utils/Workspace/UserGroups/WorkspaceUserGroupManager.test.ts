@@ -28,6 +28,7 @@ import UserGroupsWorld, {
   FakeSlackGroup,
   FakeTag,
   PROJECT_ID,
+  SLACK_TEAM_ID,
   TEAM_PAYMENTS,
   WorldGroupRow,
   WorldPerson,
@@ -111,8 +112,8 @@ async function refusalOf(promise: Promise<unknown>): Promise<Error> {
 
 describe("connecting a Slack user group to a schedule", () => {
   test("an existing group: it is linked with the person's props, and holds whoever is on call at once", async () => {
-    const view: WorkspaceUserGroupView = await WorkspaceUserGroupManager.connect(
-      {
+    const view: WorkspaceUserGroupView =
+      await WorkspaceUserGroupManager.connect({
         request: {
           onCallDutyPolicyScheduleId: primary.id.toString(),
           workspaceType: WorkspaceType.Slack,
@@ -120,8 +121,7 @@ describe("connecting a Slack user group to a schedule", () => {
         },
         projectId: PROJECT_ID,
         props: PROPS,
-      },
-    );
+      });
 
     expect(world.writes).toEqual([
       {
@@ -168,8 +168,8 @@ describe("connecting a Slack user group to a schedule", () => {
       schedules: [secondary],
     });
 
-    const view: WorkspaceUserGroupView = await WorkspaceUserGroupManager.connect(
-      {
+    const view: WorkspaceUserGroupView =
+      await WorkspaceUserGroupManager.connect({
         request: {
           onCallDutyPolicyScheduleId: primary.id.toString(),
           workspaceType: WorkspaceType.Slack,
@@ -177,8 +177,7 @@ describe("connecting a Slack user group to a schedule", () => {
         },
         projectId: PROJECT_ID,
         props: PROPS,
-      },
-    );
+      });
 
     expect(world.groups.size).toBe(1);
     expect(world.writes).toEqual([
@@ -219,9 +218,77 @@ describe("connecting a Slack user group to a schedule", () => {
     expect(paymentsOnCall.users).toEqual(["U0ANA"]);
   });
 
+  test("a group turned off in Slack: connecting turns it back on before it is linked, as the form says", async () => {
+    const dormant: FakeSlackGroup = world.slack.addGroup({
+      name: "Checkout on-call",
+      handle: "checkout-oncall",
+      users: ["U0BOB"],
+      isTurnedOff: true,
+    });
+
+    const view: WorkspaceUserGroupView =
+      await WorkspaceUserGroupManager.connect({
+        request: {
+          onCallDutyPolicyScheduleId: primary.id.toString(),
+          workspaceType: WorkspaceType.Slack,
+          workspaceGroupId: dormant.id,
+        },
+        projectId: PROJECT_ID,
+        props: PROPS,
+      });
+
+    const methods: Array<string> = world.slack.methods();
+
+    // Turned on first (with the workspace named), then linked and filled.
+    expect(world.slack.calls("usergroups.enable")).toEqual([
+      expect.objectContaining({
+        usergroup: dormant.id,
+        team_id: SLACK_TEAM_ID,
+      }),
+    ]);
+    expect(methods.indexOf("usergroups.enable")).toBeLessThan(
+      methods.indexOf("usergroups.users.update"),
+    );
+    expect(dormant.dateDelete).toBe(0);
+    expect(dormant.users).toEqual(["U0ANA"]);
+    expect(world.writes).toEqual([
+      expect.objectContaining({ kind: "create", props: PROPS }),
+    ]);
+    expect(view.isTurnedOff).toBe(false);
+    expect(view.problem).toBeNull();
+  });
+
+  test("a group Slack will not turn back on: refused in plain words, nothing linked", async () => {
+    const dormant: FakeSlackGroup = world.slack.addGroup({
+      name: "Checkout on-call",
+      handle: "checkout-oncall",
+      users: [],
+      isTurnedOff: true,
+    });
+    world.slack.isAdminsOnly = true;
+
+    const error: Error = await refusalOf(
+      WorkspaceUserGroupManager.connect({
+        request: {
+          onCallDutyPolicyScheduleId: primary.id.toString(),
+          workspaceType: WorkspaceType.Slack,
+          workspaceGroupId: dormant.id,
+        },
+        projectId: PROJECT_ID,
+        props: PROPS,
+      }),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toContain("workspace owners and admins");
+    expect(world.writes).toEqual([]);
+    expect(world.groups.size).toBe(0);
+    expect(dormant.dateDelete).not.toBe(0);
+  });
+
   test("a new group: made in Slack with the name and handle typed - '@' or not - and a description saying what keeps it", async () => {
-    const view: WorkspaceUserGroupView = await WorkspaceUserGroupManager.connect(
-      {
+    const view: WorkspaceUserGroupView =
+      await WorkspaceUserGroupManager.connect({
         request: {
           onCallDutyPolicyScheduleId: primary.id.toString(),
           workspaceType: WorkspaceType.Slack,
@@ -230,8 +297,7 @@ describe("connecting a Slack user group to a schedule", () => {
         },
         projectId: PROJECT_ID,
         props: PROPS,
-      },
-    );
+      });
 
     expect(world.slack.calls("usergroups.create")).toEqual([
       {
@@ -398,8 +464,8 @@ describe("connecting a Slack user group to a schedule", () => {
   test("linked, but Slack refuses the change: the group is linked all the same, and the card says what to do", async () => {
     world.slack.isAdminsOnly = true;
 
-    const view: WorkspaceUserGroupView = await WorkspaceUserGroupManager.connect(
-      {
+    const view: WorkspaceUserGroupView =
+      await WorkspaceUserGroupManager.connect({
         request: {
           onCallDutyPolicyScheduleId: primary.id.toString(),
           workspaceType: WorkspaceType.Slack,
@@ -407,8 +473,7 @@ describe("connecting a Slack user group to a schedule", () => {
         },
         projectId: PROJECT_ID,
         props: PROPS,
-      },
-    );
+      });
 
     expect(world.groups.size).toBe(1);
     expect(view.problem).toBe(WorkspaceUserGroupProblem.AdminsOnly);
@@ -454,8 +519,8 @@ describe("connecting a Microsoft Teams tag", () => {
       BOB_AAD,
     ]);
 
-    const view: WorkspaceUserGroupView = await WorkspaceUserGroupManager.connect(
-      {
+    const view: WorkspaceUserGroupView =
+      await WorkspaceUserGroupManager.connect({
         request: {
           onCallDutyPolicyScheduleId: primary.id.toString(),
           workspaceType: WorkspaceType.MicrosoftTeams,
@@ -464,18 +529,17 @@ describe("connecting a Microsoft Teams tag", () => {
         },
         projectId: PROJECT_ID,
         props: PROPS,
-      },
-    );
+      });
 
     const row: WorldGroupRow = world.groups.get(view.workspaceUserGroupId)!;
     expect(row.workspaceTeamId).toBe(TEAM_PAYMENTS);
     expect(row.workspaceGroupId).toBe(tag.id);
     expect(
-      world.graph.tag(TEAM_PAYMENTS, tag.id)!.members.map(
-        (member: { userId: string }): string => {
+      world.graph
+        .tag(TEAM_PAYMENTS, tag.id)!
+        .members.map((member: { userId: string }): string => {
           return member.userId;
-        },
-      ),
+        }),
     ).toEqual([ANA_AAD]);
     expect(view.teamName).toBe("Payments");
     expect(view.handle).toBeNull();
@@ -486,8 +550,8 @@ describe("connecting a Microsoft Teams tag", () => {
       BOB_AAD,
     ]);
 
-    const view: WorkspaceUserGroupView = await WorkspaceUserGroupManager.connect(
-      {
+    const view: WorkspaceUserGroupView =
+      await WorkspaceUserGroupManager.connect({
         request: {
           onCallDutyPolicyScheduleId: primary.id.toString(),
           workspaceType: WorkspaceType.MicrosoftTeams,
@@ -496,8 +560,7 @@ describe("connecting a Microsoft Teams tag", () => {
         },
         projectId: PROJECT_ID,
         props: PROPS,
-      },
-    );
+      });
 
     expect(world.groups.get(view.workspaceUserGroupId)!.workspaceGroupId).toBe(
       tag.id,
@@ -506,8 +569,8 @@ describe("connecting a Microsoft Teams tag", () => {
   });
 
   test("a new tag is made with whoever from the team is on call now - Teams makes no empty tag", async () => {
-    const view: WorkspaceUserGroupView = await WorkspaceUserGroupManager.connect(
-      {
+    const view: WorkspaceUserGroupView =
+      await WorkspaceUserGroupManager.connect({
         request: {
           onCallDutyPolicyScheduleId: primary.id.toString(),
           workspaceType: WorkspaceType.MicrosoftTeams,
@@ -516,8 +579,7 @@ describe("connecting a Microsoft Teams tag", () => {
         },
         projectId: PROJECT_ID,
         props: PROPS,
-      },
-    );
+      });
 
     const create: { body: unknown } | undefined = world.graph.requests.find(
       (request: { method: string; path: string }): boolean => {
@@ -731,7 +793,11 @@ describe("the card's groups for a schedule", () => {
       handle: "payments-oncall",
       schedules: [secondary, primary],
     });
-    const tag: FakeTag = world.graph.addTag(TEAM_PAYMENTS, "Payments on-call", []);
+    const tag: FakeTag = world.graph.addTag(
+      TEAM_PAYMENTS,
+      "Payments on-call",
+      [],
+    );
     world.addGroup({
       workspaceType: WorkspaceType.MicrosoftTeams,
       workspaceGroupId: tag.id,
@@ -1044,7 +1110,9 @@ describe("the words for a refusal while connecting", () => {
   test("a product name a licence replaces is used where the product is named", async () => {
     const ProductBrandingText: typeof import("../../../../../Server/Utils/ProductBrandingText").default =
       (await import("../../../../../Server/Utils/ProductBrandingText")).default;
-    jest.spyOn(ProductBrandingText, "getProductName").mockReturnValue("Acme Ops");
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("Acme Ops");
 
     expect(
       text(WorkspaceType.Slack, WorkspaceUserGroupProblem.MissingScope),

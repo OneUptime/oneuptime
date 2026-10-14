@@ -33,6 +33,7 @@ import WorkspacePage, {
   WorkspacePageChoice,
   WorkspacePageChoiceGroup,
   WorkspacePageFormPrefill,
+  WorkspacePageGroups,
   WorkspacePageOutcome,
   WorkspacePagePeople,
   WorkspacePagePlace,
@@ -57,7 +58,9 @@ import SlackActionAuthorization from "./Authorization";
  *
  *   - people @mentioned, OneUptime can tell them all, and a message: they
  *     are paged now. "📟 Paging Nawaz Dhandala…" only the person who ran it
- *     sees, then the page's message in the channel, edited as it goes;
+ *     sees, then the page's message in the channel, edited as it goes. A
+ *     user group @mentioned that follows on-call schedules pages them -
+ *     whoever is on call in them now - the same way;
  *   - anything else: the Page someone form (a modal), with what was typed
  *     filled in - who to page, picked from the project's on-call schedules,
  *     people, teams and on-call policies, and the message. Submitted, it
@@ -132,30 +135,40 @@ export default class SlackPageActions {
       return;
     }
 
-    const people: WorkspacePagePeople = await WorkspacePage.resolvePeople({
-      projectId: slackRequest.projectId!,
-      workspaceType: WorkspaceType.Slack,
-      candidates: await SlackPageActions.getCandidates({
-        projectId: slackRequest.projectId!,
-        projectAuthToken: slackRequest.projectAuthToken!,
-        people: text.people,
-      }),
-    });
+    const [people, groups]: [WorkspacePagePeople, WorkspacePageGroups] =
+      await Promise.all([
+        (async (): Promise<WorkspacePagePeople> => {
+          return await WorkspacePage.resolvePeople({
+            projectId: slackRequest.projectId!,
+            workspaceType: WorkspaceType.Slack,
+            candidates: await SlackPageActions.getCandidates({
+              projectId: slackRequest.projectId!,
+              projectAuthToken: slackRequest.projectAuthToken!,
+              people: text.people,
+            }),
+          });
+        })(),
+        WorkspacePage.resolveGroups({
+          projectId: slackRequest.projectId!,
+          workspaceType: WorkspaceType.Slack,
+          groups: text.groups,
+          props: props,
+        }),
+      ]);
 
-    const isReadyToPage: boolean =
-      text.people.length > 0 &&
-      people.people.length > 0 &&
-      people.notTold.length === 0 &&
-      text.groups.length === 0 &&
-      text.unknownNames.length === 0 &&
-      text.message.length > 0;
-
-    if (!isReadyToPage) {
+    if (
+      !WorkspacePage.isReadyToPage({
+        text: text,
+        people: people,
+        groups: groups,
+      })
+    ) {
       return await SlackPageActions.openForm({
         slackRequest: slackRequest,
         props: props,
         text: text,
         people: people,
+        groups: groups,
       });
     }
 
@@ -170,9 +183,7 @@ export default class SlackPageActions {
       await SlackActionAnswer.answer({
         place: place,
         answer: SlackPageActions.getPagingAnswer(
-          people.people.map((person: { name: string }): string => {
-            return person.name;
-          }),
+          WorkspacePage.getPagedNames({ people: people, groups: groups }),
         ),
       });
     }
@@ -180,11 +191,7 @@ export default class SlackPageActions {
     await SlackPageActions.pageAndAnswer({
       slackRequest: slackRequest,
       props: props,
-      targets: {
-        userIds: people.people.map((person: { userId: ObjectID }): ObjectID => {
-          return person.userId;
-        }),
-      },
+      targets: WorkspacePage.getTargets({ people: people, groups: groups }),
       message: text.message,
       channelName:
         typeof (data.req.body as JSONObject | undefined)?.["channel_name"] ===
@@ -385,6 +392,7 @@ export default class SlackPageActions {
     props: DatabaseCommonInteractionProps;
     text: WorkspacePageText;
     people: WorkspacePagePeople;
+    groups: WorkspacePageGroups;
   }): Promise<void> {
     const { slackRequest } = data;
 
@@ -418,6 +426,7 @@ export default class SlackPageActions {
     const prefill: WorkspacePageFormPrefill = WorkspacePage.getPrefill({
       text: data.text,
       people: data.people,
+      groups: data.groups,
       choices: choices,
       workspaceType: WorkspaceType.Slack,
     });

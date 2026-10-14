@@ -24,6 +24,7 @@ import WorkspacePage, {
   WorkspacePageChoice,
   WorkspacePageChoiceGroup,
   WorkspacePageFormPrefill,
+  WorkspacePageGroups,
   WorkspacePageOutcome,
   WorkspacePagePeople,
   WorkspacePagePlace,
@@ -53,7 +54,8 @@ import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
  * The people the message @mentions, besides the bot, are paged at once when
  * OneUptime can tell them all and there is a message: the bot shows it is
  * working, then the page's card follows in the conversation, edited as it
- * goes. Anything else gets the Page someone card - who to page, picked from
+ * goes. A tag @mentioned that follows on-call schedules pages them -
+ * whoever is on call in them now - the same way. Anything else gets the Page someone card - who to page, picked from
  * the project's on-call schedules, people, teams and on-call policies, and
  * the message - with what was typed filled in. Submitted, it pages the same
  * way, as whoever submits it, and the card goes, so it is not sent twice.
@@ -125,31 +127,41 @@ export default class MicrosoftTeamsPage {
       MicrosoftTeamsPage.getPageTokens(activity),
     );
 
-    const people: WorkspacePagePeople = await WorkspacePage.resolvePeople({
-      projectId: projectId,
-      workspaceType: WorkspaceType.MicrosoftTeams,
-      candidates: await MicrosoftTeamsPage.getCandidates({
-        turnContext: turnContext,
-        projectId: projectId,
-        people: text.people,
-      }),
-    });
+    const [people, groups]: [WorkspacePagePeople, WorkspacePageGroups] =
+      await Promise.all([
+        (async (): Promise<WorkspacePagePeople> => {
+          return await WorkspacePage.resolvePeople({
+            projectId: projectId,
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            candidates: await MicrosoftTeamsPage.getCandidates({
+              turnContext: turnContext,
+              projectId: projectId,
+              people: text.people,
+            }),
+          });
+        })(),
+        WorkspacePage.resolveGroups({
+          projectId: projectId,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          groups: text.groups,
+          props: props,
+        }),
+      ]);
 
-    const isReadyToPage: boolean =
-      text.people.length > 0 &&
-      people.people.length > 0 &&
-      people.notTold.length === 0 &&
-      text.groups.length === 0 &&
-      text.unknownNames.length === 0 &&
-      text.message.length > 0;
-
-    if (!isReadyToPage) {
+    if (
+      !WorkspacePage.isReadyToPage({
+        text: text,
+        people: people,
+        groups: groups,
+      })
+    ) {
       await MicrosoftTeamsPage.sendForm({
         turnContext: turnContext,
         projectId: projectId,
         props: props,
         text: text,
         people: people,
+        groups: groups,
       });
       return;
     }
@@ -159,11 +171,7 @@ export default class MicrosoftTeamsPage {
       activity: activity,
       projectId: projectId,
       props: props,
-      targets: {
-        userIds: people.people.map((person: { userId: ObjectID }): ObjectID => {
-          return person.userId;
-        }),
-      },
+      targets: WorkspacePage.getTargets({ people: people, groups: groups }),
       message: text.message,
     });
   }
@@ -316,10 +324,15 @@ export default class MicrosoftTeamsPage {
       if (mentionedId && mentionedId === botId) {
         // The bot itself: the message is to it, not about it.
       } else if (mentionedId && !MicrosoftTeamsPage.isPersonId(mentionedId)) {
-        // A tag, a channel or a team: named, not paged.
+        /*
+         * A tag, a channel or a team: a group, with the id Teams mentioned.
+         * A tag that follows on-call schedules is paged as them
+         * (WorkspacePage.resolveGroups); anything else is named, not paged.
+         */
         tokens.push({
           kind: "group",
           name: MicrosoftTeamsPage.decodeEntities(name).trim(),
+          workspaceGroupId: mentionedId,
         });
       } else if (mentionedId) {
         tokens.push({
@@ -758,6 +771,7 @@ export default class MicrosoftTeamsPage {
     props: DatabaseCommonInteractionProps;
     text: WorkspacePageText;
     people: WorkspacePagePeople;
+    groups: WorkspacePageGroups;
   }): Promise<void> {
     let choices: Array<WorkspacePageChoiceGroup>;
 
@@ -791,6 +805,7 @@ export default class MicrosoftTeamsPage {
     const prefill: WorkspacePageFormPrefill = WorkspacePage.getPrefill({
       text: data.text,
       people: data.people,
+      groups: data.groups,
       choices: choices,
       workspaceType: WorkspaceType.MicrosoftTeams,
     });
