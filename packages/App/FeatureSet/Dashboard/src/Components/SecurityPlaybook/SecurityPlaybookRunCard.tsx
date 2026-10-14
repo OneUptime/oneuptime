@@ -100,7 +100,7 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
         </div>
 
         {isWaiting ? (
-          <div className="flex flex-shrink-0 items-center gap-2">
+          <div className="ml-auto flex flex-shrink-0 items-center gap-2">
             <Button
               title="Reject"
               icon={IconProp.Close}

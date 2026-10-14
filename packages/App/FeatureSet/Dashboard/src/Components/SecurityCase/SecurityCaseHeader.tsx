@@ -150,7 +150,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
           )}
         </div>
 
-        <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+        <div className="flex flex-shrink-0 flex-wrap items-center gap-2 self-end lg:self-auto">
           {!isMine && !isClosed ? (
             <Button
               title="Assign to Me"

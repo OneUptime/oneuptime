@@ -88,6 +88,8 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         cardProps={{
+          // Its search and buttons drop under the title beside the side menu.
+          headerLayout: "stacked",
           title: "Detection Rules",
           description:
             "Sigma rules evaluated on a schedule against your security events. Sigma is an open YAML format for describing detections — a matching rule can raise an alert and write a Detection Finding back into the event stream.",

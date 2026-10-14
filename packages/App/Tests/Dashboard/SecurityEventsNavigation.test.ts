@@ -117,6 +117,23 @@ describe("the Security Events menu", () => {
     );
   });
 
+  test("folds away the sections for setting up, and keeps the working ones open", () => {
+    expect(
+      SECURITY_EVENTS_MENU.map(
+        (section: SecurityEventsMenuSection): [string, boolean] => {
+          return [section.title, Boolean(section.startsCollapsed)];
+        },
+      ),
+    ).toEqual([
+      ["Overview", false],
+      ["Investigate", false],
+      ["Detect", true],
+      // Playbook Runs' count of the steps waiting for approval stays on screen.
+      ["Respond", false],
+      ["Sources", true],
+    ]);
+  });
+
   test("counts what is waiting beside Cases and Playbook Runs, and nowhere else", () => {
     expect(
       getSecurityEventsMenuItems()

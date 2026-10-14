@@ -10,6 +10,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { SecurityEntity } from "Common/Types/SecurityCase/SecurityEntity";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
@@ -207,16 +208,27 @@ const SecurityCaseDetections: FunctionComponent<ComponentProps> = (
         filters={[]}
         columns={[
           {
-            field: { title: true },
+            /*
+             * What fired and what it is about, in one column that wraps, so
+             * the table fits the case page's main column: the title, its
+             * source and rule, then the entities it names.
+             */
+            field: { title: true, entities: true },
             title: "Detection",
             type: FieldType.Element,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-lg",
             getElement: (item: SecurityDetection): ReactElement => {
+              const entities: Array<SecurityEntity> = readSecurityEntities(
+                item.entities,
+              );
+
               return (
-                <div className="min-w-0">
-                  <div className="truncate font-medium text-gray-900">
+                <div className="min-w-[12rem]">
+                  <div className="line-clamp-2 break-words font-medium text-gray-900">
                     {item.title || ""}
                   </div>
-                  <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-gray-500">
                     <Icon
                       icon={getSecurityDetectionSourceIcon(item.source)}
                       className="h-3 w-3 text-gray-400"
@@ -225,11 +237,18 @@ const SecurityCaseDetections: FunctionComponent<ComponentProps> = (
                       {item.source ? translator.translateText(item.source) : ""}
                     </span>
                     {item.ruleName && item.ruleName !== item.title ? (
-                      <span className="truncate">· {item.ruleName}</span>
+                      <span>· {item.ruleName}</span>
                     ) : (
                       <></>
                     )}
                   </div>
+                  {entities.length > 0 ? (
+                    <div className="mt-1.5">
+                      <SecurityEntityChips entities={entities} limit={2} />
+                    </div>
+                  ) : (
+                    <></>
+                  )}
                 </div>
               );
             },
@@ -240,20 +259,6 @@ const SecurityCaseDetections: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             getElement: (item: SecurityDetection): ReactElement => {
               return <SecurityEventSeverityPill severityName={item.severity} />;
-            },
-          },
-          {
-            field: { groupValue: true },
-            title: "About",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: SecurityDetection): ReactElement => {
-              return (
-                <SecurityEntityChips
-                  entities={readSecurityEntities(item.entities)}
-                  limit={2}
-                />
-              );
             },
           },
           {
@@ -274,8 +279,24 @@ const SecurityCaseDetections: FunctionComponent<ComponentProps> = (
           {
             field: { lastSeenAt: true },
             title: "Last Seen",
-            type: FieldType.DateTime,
-            noValueMessage: "-",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: SecurityDetection): ReactElement => {
+              if (!item.lastSeenAt) {
+                return <span className="text-sm text-gray-400">-</span>;
+              }
+
+              return (
+                <span
+                  className="text-sm text-gray-700"
+                  title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                    item.lastSeenAt,
+                  )}
+                >
+                  {OneUptimeDate.fromNow(item.lastSeenAt)}
+                </span>
+              );
+            },
           },
         ]}
       />

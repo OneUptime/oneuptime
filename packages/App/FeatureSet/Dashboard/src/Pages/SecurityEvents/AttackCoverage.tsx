@@ -199,6 +199,7 @@ const AttackCoveragePage: FunctionComponent<
       <Card
         title="MITRE ATT&CK Coverage"
         description="Each column is a tactic - what an attacker is trying to do - and each cell a technique - how. A lit cell is covered by at least one enabled detection rule; an outlined one is covered by a rule in the library you have not added yet. Select a technique to see the rules behind it."
+        headerLayout="stacked"
         rightElement={
           <Toggle
             title="Only covered techniques"
@@ -212,8 +213,14 @@ const AttackCoveragePage: FunctionComponent<
         {isLoading ? (
           <div className="h-96 animate-pulse rounded-lg bg-gray-100" />
         ) : (
-          <div className="-mx-1 overflow-x-auto pb-2">
-            <div className="flex min-w-max gap-2 px-1">
+          /*
+           * The matrix scrolls inside the card, both ways: fifteen tactics
+           * are wider than any screen, and the longest column runs to forty
+           * techniques. Each tactic's header stays in view as its column
+           * scrolls under it.
+           */
+          <div className="-mx-1 max-h-[44rem] overflow-auto pb-2">
+            <div className="flex min-w-max items-start gap-2 px-1">
               {tactics.map((summary: TacticCoverageSummary): ReactElement => {
                 const techniques: ReadonlyArray<readonly [string, string]> =
                   MITRE_TACTIC_TECHNIQUES[summary.tactic.id] || [];
@@ -233,7 +240,7 @@ const AttackCoveragePage: FunctionComponent<
                       target="_blank"
                       rel="noopener noreferrer"
                       title={summary.tactic.goal}
-                      className="block rounded-t-lg bg-gray-900 px-2 py-2 text-white hover:bg-gray-800"
+                      className="sticky top-0 z-10 block rounded-t-lg bg-gray-900 px-2 py-2 text-white hover:bg-gray-800"
                     >
                       <span className="block truncate text-xs font-semibold">
                         {summary.tactic.name}

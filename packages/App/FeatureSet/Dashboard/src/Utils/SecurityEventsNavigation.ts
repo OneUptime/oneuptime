@@ -36,6 +36,11 @@ export interface SecurityEventsMenuItem {
 export interface SecurityEventsMenuSection {
   title: string;
   items: Array<SecurityEventsMenuItem>;
+  /*
+   * Folded away until someone opens it, or is on one of its pages: setting
+   * detections and sources up is not what most visits are for.
+   */
+  startsCollapsed?: boolean | undefined;
 }
 
 export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
@@ -77,6 +82,7 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
   },
   {
     title: "Detect",
+    startsCollapsed: true,
     items: [
       {
         page: PageMap.SECURITY_EVENTS_DETECTION_RULES,
@@ -123,6 +129,7 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
   },
   {
     title: "Sources",
+    startsCollapsed: true,
     items: [
       {
         page: PageMap.SECURITY_EVENTS_CONNECTIONS,

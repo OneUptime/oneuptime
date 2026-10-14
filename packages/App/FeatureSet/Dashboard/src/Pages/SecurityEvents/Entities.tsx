@@ -196,6 +196,7 @@ const SecurityEntitiesPage: FunctionComponent<
       <Card
         title="Riskiest Entities"
         description="The entities named by the most findings: detection rule matches, threat intelligence matches and alerts from connected products. Open one in Correlate to see everything it touched."
+        headerLayout="stacked"
         rightElement={
           <div className="flex items-center gap-1">
             {ENTITY_WINDOWS_IN_DAYS.map((window: number): ReactElement => {

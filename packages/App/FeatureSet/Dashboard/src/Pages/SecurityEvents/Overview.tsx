@@ -42,7 +42,7 @@ import {
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -67,16 +67,21 @@ const ATTENTION_TONES: Record<string, string> = {
   gray: "border-gray-200 bg-white text-gray-700",
 };
 
+/*
+ * A count and what it counts, the words agreeing with the number ("1 open
+ * case", "2 open cases"): the label is a plural template without the count,
+ * which the tile draws on its own, larger.
+ */
 const AttentionTile: FunctionComponent<{
   icon: IconProp;
   count: number;
-  label: string;
+  label: PluralTemplate;
   tone: string;
   to: Route;
 }> = (props: {
   icon: IconProp;
   count: number;
-  label: string;
+  label: PluralTemplate;
   tone: string;
   to: Route;
 }): ReactElement => {
@@ -97,7 +102,7 @@ const AttentionTile: FunctionComponent<{
           {translator.formatNumber(props.count)}
         </span>
         <span className="text-sm font-medium">
-          {translator.translateText(props.label)}
+          {translator.translatePlural(props.label, props.count)}
         </span>
       </>
     </AppLink>
@@ -295,21 +300,30 @@ const SecurityOverviewPage: FunctionComponent<
         <AttentionTile
           icon={IconProp.User}
           count={overview.myOpenCases}
-          label="open cases assigned to you"
+          label={{
+            one: "open case assigned to you",
+            other: "open cases assigned to you",
+          }}
           tone="indigo"
           to={route(PageMap.SECURITY_CASES)}
         />
         <AttentionTile
           icon={IconProp.UserGroup}
           count={metrics.unassignedOpenCases}
-          label="open cases nobody has picked up"
+          label={{
+            one: "open case nobody has picked up",
+            other: "open cases nobody has picked up",
+          }}
           tone="red"
           to={route(PageMap.SECURITY_CASES)}
         />
         <AttentionTile
           icon={IconProp.Pause}
           count={overview.runsWaitingForApproval}
-          label="playbook steps waiting for approval"
+          label={{
+            one: "playbook step waiting for approval",
+            other: "playbook steps waiting for approval",
+          }}
           tone="amber"
           to={route(PageMap.SECURITY_PLAYBOOK_RUNS)}
         />
@@ -392,7 +406,12 @@ const SecurityOverviewPage: FunctionComponent<
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {/*
+       * Three across only from xl: beside the side menu a third of the page
+       * is too narrow for a tactic's name. Below that the tactics take the
+       * second row's whole width.
+       */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         <Card
           title="Open Cases"
           description="The queue right now, by priority and by where each case stands."
@@ -422,15 +441,17 @@ const SecurityOverviewPage: FunctionComponent<
             emptyText="No case was closed in the last 30 days."
           />
         </Card>
-        <Card
-          title="MITRE ATT&CK Tactics"
-          description="The attacker goals behind the cases of the last 30 days."
-        >
-          <RankedBars
-            items={topTactics}
-            emptyText="No case in the last 30 days is mapped to an ATT&CK tactic."
-          />
-        </Card>
+        <div className="md:col-span-2 xl:col-span-1">
+          <Card
+            title="MITRE ATT&CK Tactics"
+            description="The attacker goals behind the cases of the last 30 days."
+          >
+            <RankedBars
+              items={topTactics}
+              emptyText="No case in the last 30 days is mapped to an ATT&CK tactic."
+            />
+          </Card>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -85,6 +85,8 @@ const SecurityPlaybookRunsPage: FunctionComponent<
     <Card
       title="Playbook Runs"
       description="Every playbook run, with each step and what it did. A step that needs approval holds its run here until someone approves or rejects it."
+      // The views drop under the title beside the side menu.
+      headerLayout="stacked"
       rightElement={
         <div className="flex flex-wrap items-center gap-1">
           {PLAYBOOK_RUN_VIEWS.map((item: RunViewDefinition): ReactElement => {

@@ -7,6 +7,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import Route from "Common/Types/API/Route";
+import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Green, Gray500 } from "Common/Types/BrandColors";
 import { JSONArray } from "Common/Types/JSON";
@@ -171,6 +172,7 @@ const SecurityPlaybooksPage: FunctionComponent<
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        viewButtonText="View"
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         viewPageRoute={RouteUtil.populateRouteParams(
@@ -188,6 +190,8 @@ const SecurityPlaybooksPage: FunctionComponent<
           return Promise.resolve(item);
         }}
         cardProps={{
+          // Its search and buttons drop under the title beside the side menu.
+          headerLayout: "stacked",
           title: "Playbooks",
           description:
             "A playbook is a response that runs on a case: assign it, check threat intel, notify, page on-call, declare an incident, contain a user or host. It runs by itself when a case opens or grows, or when someone runs it from a case.",
@@ -283,17 +287,19 @@ const SecurityPlaybooksPage: FunctionComponent<
             field: { name: true },
             title: "Playbook",
             type: FieldType.Element,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-xl",
             getElement: (item: SecurityPlaybook): ReactElement => {
               const stepCount: number = Array.isArray(item.steps)
                 ? item.steps.length
                 : 0;
 
               return (
-                <div className="min-w-0">
-                  <div className="truncate font-medium text-gray-900">
+                <div className="min-w-[14rem]">
+                  <div className="break-words font-medium text-gray-900">
                     {item.name || ""}
                   </div>
-                  <div className="mt-0.5 text-xs text-gray-500">
+                  <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">
                     {translator.translatePlural(
                       { one: "{{count}} step", other: "{{count}} steps" },
                       stepCount,
@@ -322,21 +328,23 @@ const SecurityPlaybooksPage: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: SecurityPlaybook): ReactElement => {
               return (
-                <span className="text-sm text-gray-700">
-                  {translator.translateText(item.trigger || "") || item.trigger}
+                <div className="text-sm text-gray-700">
+                  <div>
+                    {translator.translateText(item.trigger || "") ||
+                      item.trigger}
+                  </div>
                   {item.minimumPriority ? (
-                    <span className="text-gray-500">
-                      {" · "}
+                    <div className="text-xs text-gray-500">
                       {translator.translateTemplate("{{priority}} and up", {
                         priority:
                           translator.translateText(item.minimumPriority) ||
                           item.minimumPriority,
                       })}
-                    </span>
+                    </div>
                   ) : (
                     <></>
                   )}
-                </span>
+                </div>
               );
             },
           },
@@ -349,9 +357,28 @@ const SecurityPlaybooksPage: FunctionComponent<
           {
             field: { lastRunAt: true },
             title: "Last Run",
-            type: FieldType.DateTime,
-            noValueMessage: "Never",
+            type: FieldType.Element,
             hideOnMobile: true,
+            getElement: (item: SecurityPlaybook): ReactElement => {
+              if (!item.lastRunAt) {
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Never")}
+                  </span>
+                );
+              }
+
+              return (
+                <span
+                  className="text-sm text-gray-700"
+                  title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                    item.lastRunAt,
+                  )}
+                >
+                  {OneUptimeDate.fromNow(item.lastRunAt)}
+                </span>
+              );
+            },
           },
         ]}
       />

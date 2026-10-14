@@ -23,6 +23,7 @@ import {
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import Label from "Common/Models/DatabaseModels/Label";
 import Route from "Common/Types/API/Route";
+import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -30,6 +31,7 @@ import ObjectID from "Common/Types/ObjectID";
 import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Types/SecurityCase/SecurityCaseStatus";
 import SecurityCaseVerdict from "Common/Types/SecurityCase/SecurityCaseVerdict";
+import { SecurityEntity } from "Common/Types/SecurityCase/SecurityEntity";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -185,6 +187,7 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        viewButtonText="View"
         createVerb="Open"
         createEditModalWidth={ModalWidth.Large}
         sortBy="lastDetectedAt"
@@ -193,8 +196,14 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
         viewPageRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.SECURITY_CASES] as Route,
         )}
-        showViewIdButton={true}
+        /*
+         * No row menu with the record's ID: each row names its case by number,
+         * and the case's page has the ID line. The queue keeps its width for
+         * the case itself.
+         */
         cardProps={{
+          // Its search and buttons drop under the title beside the side menu.
+          headerLayout: "stacked",
           title: "Security Cases",
           description:
             "Each case is one thing to look into: the detections about the same user, host or address, grouped together as they fire. Pick one up, work it, and close it with a verdict.",
@@ -351,14 +360,26 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
         ]}
         columns={[
           {
-            field: { title: true },
+            /*
+             * What the case is, what raised it and who or what it is about,
+             * in one column that wraps: the title over at most two lines,
+             * then its source and the first entities it names. The other
+             * columns are short values, so the queue fits beside the side
+             * menu.
+             */
+            field: { title: true, entities: true },
             title: "Case",
             type: FieldType.Element,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-xl",
             getElement: (item: SecurityCase): ReactElement => {
               const detections: number = item.detectionCount || 0;
+              const entities: Array<SecurityEntity> = readSecurityEntities(
+                item.entities,
+              );
 
               return (
-                <div className="min-w-0">
+                <div className="min-w-[14rem]">
                   <AppLink
                     className="group block min-w-0"
                     to={RouteUtil.populateRouteParams(
@@ -366,14 +387,14 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
                       { modelId: new ObjectID(item._id!.toString()) },
                     )}
                   >
-                    <span className="block truncate font-medium text-gray-900 group-hover:underline">
+                    <span className="line-clamp-2 break-words font-medium text-gray-900 group-hover:underline">
                       <span className="mr-1.5 font-mono text-xs text-gray-500">
                         {item.caseNumberWithPrefix || ""}
                       </span>
                       {item.title || ""}
                     </span>
                   </AppLink>
-                  <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-gray-500">
                     <Icon
                       icon={getSecurityDetectionSourceIcon(item.source)}
                       className="h-3 w-3 text-gray-400"
@@ -392,6 +413,13 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
                       )}
                     </span>
                   </div>
+                  {entities.length > 0 ? (
+                    <div className="mt-1.5">
+                      <SecurityEntityChips entities={entities} limit={2} />
+                    </div>
+                  ) : (
+                    <></>
+                  )}
                 </div>
               );
             },
@@ -450,24 +478,11 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
-            field: { entities: true },
-            title: "Entities",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: SecurityCase): ReactElement => {
-              return (
-                <SecurityEntityChips
-                  entities={readSecurityEntities(item.entities)}
-                  limit={3}
-                />
-              );
-            },
-          },
-          {
             field: { labels: { name: true, color: true } },
             title: "Labels",
             type: FieldType.EntityArray,
             hideOnMobile: true,
+            isHiddenByDefault: true,
             getElement: (item: SecurityCase): ReactElement => {
               return <LabelsElement labels={item.labels || []} />;
             },
@@ -475,8 +490,24 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
           {
             field: { lastDetectedAt: true },
             title: "Last Detection",
-            type: FieldType.DateTime,
-            noValueMessage: "-",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: SecurityCase): ReactElement => {
+              if (!item.lastDetectedAt) {
+                return <span className="text-sm text-gray-400">-</span>;
+              }
+
+              return (
+                <span
+                  className="text-sm text-gray-700"
+                  title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                    item.lastDetectedAt,
+                  )}
+                >
+                  {OneUptimeDate.fromNow(item.lastDetectedAt)}
+                </span>
+              );
+            },
           },
         ]}
       />

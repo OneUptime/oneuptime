@@ -82,13 +82,18 @@ const RankedBars: FunctionComponent<ComponentProps> = (
               </span>
             </div>
             <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${Math.max(2, (item.count / max) * 100)}%`,
-                  backgroundColor: item.color || "#6366f1",
-                }}
-              />
+              {/* Nothing to draw for a zero: the track alone says none. */}
+              {item.count > 0 ? (
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.max(2, (item.count / max) * 100)}%`,
+                    backgroundColor: item.color || "#6366f1",
+                  }}
+                />
+              ) : (
+                <></>
+              )}
             </div>
           </li>
         );

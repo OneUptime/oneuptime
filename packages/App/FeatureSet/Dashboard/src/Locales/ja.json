@@ -28592,7 +28592,6 @@
   "A workflow that starts on a webhook. It receives the case as the webhook's body.": "A workflow that starts on a webhook. It receives the case as the webhook's body.",
   "ATT&CK Coverage": "ATT&CK Coverage",
   "ATT&CK coverage figures": "ATT&CK coverage figures",
-  "About": "About",
   "Activity is not available: {{reason}}": "Activity is not available: {{reason}}",
   "Add All {{count}} Rules": "Add All {{count}} Rules",
   "Add All {{count}} Rules_one": "Add {{count}} Rule",
@@ -28986,5 +28985,8 @@
   "{{type}}: {{value}} - open it in Correlate": "{{type}}: {{value}} - open it in Correlate",
   "Assignment": "Assignment",
   "Step {{number}} ({{title}}) is removed from the playbook. Runs already under way keep the steps they started with.": "Step {{number}} ({{title}}) is removed from the playbook. Runs already under way keep the steps they started with.",
-  "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.": "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead."
+  "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.": "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.",
+  "open cases assigned to you_one": "open case assigned to you",
+  "open cases nobody has picked up_one": "open case nobody has picked up",
+  "playbook steps waiting for approval_one": "playbook step waiting for approval"
 }

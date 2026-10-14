@@ -43,6 +43,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -341,6 +342,8 @@ const SecurityPlaybookViewPage: FunctionComponent<
             id: "security-playbook-detail",
             modelId: playbookId,
             showDetailsInNumberOfColumns: 3,
+            // The grid sizes each field (the default style also narrows it).
+            style: DetailStyle.Compact,
             fields: [
               {
                 field: { name: true },
@@ -386,6 +389,7 @@ const SecurityPlaybookViewPage: FunctionComponent<
                 title: "Description",
                 fieldType: FieldType.LongText,
                 placeholder: "No description.",
+                colSpan: 3,
               },
             ],
           }}

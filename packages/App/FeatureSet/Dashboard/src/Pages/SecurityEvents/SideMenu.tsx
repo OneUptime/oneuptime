@@ -71,6 +71,7 @@ const SecurityEventsSideMenu: FunctionComponent = (): ReactElement => {
     (section: SecurityEventsMenuSection): SideMenuSectionProps => {
       return {
         title: section.title,
+        defaultCollapsed: section.startsCollapsed || false,
         items: section.items.map(
           (item: SecurityEventsMenuItem): SideMenuItemProps => {
             const count: MenuBadgeCount | undefined = getBadgeCount(item.badge);
