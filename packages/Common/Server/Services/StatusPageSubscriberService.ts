@@ -21,6 +21,8 @@ import ProjectService, { CurrentPlan } from "./ProjectService";
 import SmsService from "./SmsService";
 import StatusPageService from "./StatusPageService";
 import { STATUS_PAGE_ARCHIVED_NO_NEW_SUBSCRIBERS_MESSAGE } from "../../Types/StatusPage/StatusPageArchive";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_NO_NEW_SUBSCRIBERS_MESSAGE } from "../../Types/StatusPage/StatusPageProjectBlock";
+import BlockedProjectStatusPages from "../Utils/StatusPage/BlockedProjectStatusPages";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
@@ -551,9 +553,23 @@ export class Service extends ProjectReferencesService<Model> {
       } as LogAttributes);
 
       /*
-       * An archived page is left out above. Someone adding a subscriber to
-       * it from the dashboard should hear why, not "not found".
+       * An archived page, and a page of a blocked project, is left out above.
+       * Someone adding a subscriber to one from the dashboard should hear
+       * why, not "not found" - the block first, which unarchiving would not
+       * lift. A visitor never gets this far: the public routes answer both
+       * as missing pages.
        */
+      if (
+        data.data.statusPageId &&
+        (await BlockedProjectStatusPages.isStatusPageOfBlockedProject(
+          data.data.statusPageId,
+        ))
+      ) {
+        throw new BadDataException(
+          STATUS_PAGE_OF_BLOCKED_PROJECT_NO_NEW_SUBSCRIBERS_MESSAGE,
+        );
+      }
+
       if (
         data.data.statusPageId &&
         (await StatusPageService.isStatusPageArchived(data.data.statusPageId))
@@ -1664,38 +1680,13 @@ Stay informed about service availability! 🚀`.toString();
     // Its unsubscribe link needs its token (see ensureUnsubscribeTokens).
     await this.ensureUnsubscribeTokens([subscriber]);
 
-    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
-      query: {
-        _id: subscriber.statusPageId.toString(),
-      },
-      select: {
-        ...STATUS_PAGE_EMAIL_LOGO_SELECT,
-        isPublicStatusPage: true,
-        pageTitle: true,
-        name: true,
-        smtpConfig: {
-          _id: true,
-          transportType: true,
-          hostname: true,
-          port: true,
-          username: true,
-          password: true,
-          fromEmail: true,
-          fromName: true,
-          secure: true,
-          authType: true,
-          clientId: true,
-          clientSecret: true,
-          tokenUrl: true,
-          scope: true,
-          oauthProviderType: true,
-        },
-      },
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    /*
+     * Read as every subscriber message reads its page: an archived page, or
+     * a page of a blocked project, asks nobody to confirm.
+     */
+    const statusPage: StatusPage | undefined = (
+      await this.getStatusPagesToSendNotification([subscriber.statusPageId])
+    )[0];
     logger.debug(`Found Status Page: ${JSON.stringify(statusPage)}`, {
       statusPageSubscriberId: data.subscriberId?.toString(),
     } as LogAttributes);
@@ -1896,38 +1887,14 @@ Stay informed about service availability! 🚀`.toString();
     // Its unsubscribe link needs its token (see ensureUnsubscribeTokens).
     await this.ensureUnsubscribeTokens([subscriber]);
 
-    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
-      query: {
-        _id: subscriber.statusPageId.toString(),
-      },
-      select: {
-        ...STATUS_PAGE_EMAIL_LOGO_SELECT,
-        isPublicStatusPage: true,
-        pageTitle: true,
-        name: true,
-        smtpConfig: {
-          _id: true,
-          transportType: true,
-          hostname: true,
-          port: true,
-          username: true,
-          password: true,
-          fromEmail: true,
-          fromName: true,
-          secure: true,
-          authType: true,
-          clientId: true,
-          clientSecret: true,
-          tokenUrl: true,
-          scope: true,
-          oauthProviderType: true,
-        },
-      },
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    /*
+     * Read as every subscriber message reads its page: an archived page, or
+     * a page of a blocked project, sends nothing - not even to someone who
+     * confirms through a link it sent before.
+     */
+    const statusPage: StatusPage | undefined = (
+      await this.getStatusPagesToSendNotification([subscriber.statusPageId])
+    )[0];
     logger.debug(`Found Status Page: ${JSON.stringify(statusPage)}`, {
       statusPageSubscriberId: data.subscriberId?.toString(),
     } as LogAttributes);
@@ -2697,9 +2664,9 @@ Stay informed about service availability! 🚀`.toString();
         /*
          * Every subscriber notification - incidents, episodes, notes,
          * postmortems, scheduled maintenance, announcements, reports, and the
-         * confirmation a new subscription sends - finds its status pages
-         * here, so leaving archived pages out is what makes an archived page
-         * send nothing at all.
+         * confirmations a subscription sends - finds its status pages here,
+         * so leaving archived pages out is what makes an archived page send
+         * nothing at all. The pages of a blocked project are left out below.
          */
         isArchived: false,
       },
@@ -2769,10 +2736,23 @@ Stay informed about service availability! 🚀`.toString();
       },
     });
 
-    logger.debug("Found status pages:", {} as LogAttributes);
-    logger.debug(statusPages, {} as LogAttributes);
+    /*
+     * Nor do the pages of a project a master admin blocked send anything:
+     * they answer as if they did not exist, the unsubscribe page every
+     * message links to included (BlockedProjectStatusPages). Asked once per
+     * project, of the per-process answer (ProjectService.isProjectBlocked),
+     * so a notification adds no query; a page whose project cannot be told
+     * sends as usual.
+     */
+    const statusPagesToNotify: Array<StatusPage> =
+      await BlockedProjectStatusPages.leaveOutStatusPagesOfBlockedProjects(
+        statusPages,
+      );
 
-    return statusPages;
+    logger.debug("Found status pages:", {} as LogAttributes);
+    logger.debug(statusPagesToNotify, {} as LogAttributes);
+
+    return statusPagesToNotify;
   }
 
   @CaptureSpan()
