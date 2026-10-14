@@ -17,8 +17,12 @@ import { DataSource, EntityManager } from "typeorm";
  * of it when creates race.
  */
 
-const PROJECT_A: ObjectID = new ObjectID("6a000000-0000-4000-8000-000000000001");
-const PROJECT_B: ObjectID = new ObjectID("6a000000-0000-4000-8000-000000000002");
+const PROJECT_A: ObjectID = new ObjectID(
+  "6a000000-0000-4000-8000-000000000001",
+);
+const PROJECT_B: ObjectID = new ObjectID(
+  "6a000000-0000-4000-8000-000000000002",
+);
 
 interface FakeTransaction {
   statements: Array<{ sql: string; parameters: Array<unknown> }>;

@@ -259,7 +259,9 @@ describe("what the dashboard is told", () => {
       isSubscriptionUnpaid: false,
       activeMonitorsLimit: 500,
     });
-    jest.spyOn(ActiveMonitorLimit, "countActiveMonitors").mockResolvedValue(2881);
+    jest
+      .spyOn(ActiveMonitorLimit, "countActiveMonitors")
+      .mockResolvedValue(2881);
 
     await expect(ActiveMonitorLimit.getStatus(PROJECT_ID)).resolves.toEqual({
       limit: { limit: 500, kind: ActiveMonitorLimitKind.Plan },
@@ -410,7 +412,9 @@ describe("asking for room", () => {
   );
 
   test("counts every monitor a write adds at once", async () => {
-    jest.spyOn(ActiveMonitorLimit, "countActiveMonitors").mockResolvedValue(498);
+    jest
+      .spyOn(ActiveMonitorLimit, "countActiveMonitors")
+      .mockResolvedValue(498);
 
     await expect(
       ActiveMonitorLimit.getRefusal({ projectId: PROJECT_ID, adding: 2 }),
@@ -505,9 +509,9 @@ describe("the limit a create's INSERT is decided against", () => {
     await expect(limit!.check(fakeManager(500, []))).rejects.toThrow(
       "This project has reached its plan's limit of 500 active monitors, so no more can be added.",
     );
-    await expect(
-      limit!.check(fakeManager(2881, [])),
-    ).rejects.toBeInstanceOf(BadDataException);
+    await expect(limit!.check(fakeManager(2881, []))).rejects.toBeInstanceOf(
+      BadDataException,
+    );
   });
 
   test.each(
@@ -549,9 +553,11 @@ describe("the count kept on the project", () => {
         projectId: PROJECT_ID,
       }),
     );
-    expect(statements.map((statement: RecordedStatement) => {
-      return statement.sql;
-    })).toEqual([
+    expect(
+      statements.map((statement: RecordedStatement) => {
+        return statement.sql;
+      }),
+    ).toEqual([
       ActiveMonitorLimit.COUNT_STATEMENT,
       ActiveMonitorLimit.WRITE_COUNT_STATEMENT,
     ]);

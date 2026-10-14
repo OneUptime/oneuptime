@@ -8,7 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { SpyInstance } from "jest-mock";
+import { getJestSpyOn } from "../../Spy";
 import fs from "fs";
 import path from "path";
 import React from "react";
@@ -28,12 +28,48 @@ import {
   ActiveMonitorLimitKind,
   ActiveMonitorLimitStatus,
 } from "../../../Types/Monitor/ActiveMonitorLimit";
+import { APP_API_URL } from "../../../UI/Config";
 import API from "../../../UI/Utils/API/API";
 import {
   createTranslator,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
 import { goTo, PROJECT_ID, routeFor } from "./SideMenuHarness";
+
+interface MutableConfig {
+  billingEnabled: boolean;
+}
+
+const config: MutableConfig = { billingEnabled: true };
+
+(
+  globalThis as unknown as { __activeMonitorLimitConfig: MutableConfig }
+).__activeMonitorLimitConfig = config;
+
+/*
+ * BILLING_ENABLED is read when the module loads, so it is a getter here,
+ * switchable per test: a self-hosted install has no plans, and the notice
+ * asks nothing there.
+ */
+jest.mock("../../../UI/Config", () => {
+  const mocked: Record<string, unknown> = {
+    ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
+  };
+
+  Object.defineProperty(mocked, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return Boolean(
+        (
+          globalThis as unknown as {
+            __activeMonitorLimitConfig: MutableConfig | undefined;
+          }
+        ).__activeMonitorLimitConfig?.billingEnabled,
+      );
+    },
+  });
+
+  return mocked;
+});
 
 jest.mock("react-i18next", () => {
   return {
@@ -63,7 +99,7 @@ jest.mock("react-i18next", () => {
 
 const NOTICE: string = "active-monitor-limit-notice";
 
-let getSpy: SpyInstance<typeof API.get>;
+let getSpy: ReturnType<typeof getJestSpyOn>;
 
 function answer(status: ActiveMonitorLimitStatus | JSONObject | null): void {
   getSpy.mockResolvedValue(
@@ -71,7 +107,7 @@ function answer(status: ActiveMonitorLimitStatus | JSONObject | null): void {
       200,
       status === null
         ? ({} as JSONObject)
-        : ("limit" in status
+        : (("limit" in status
             ? {
                 limit: status["limit"]
                   ? {
@@ -81,7 +117,7 @@ function answer(status: ActiveMonitorLimitStatus | JSONObject | null): void {
                   : null,
                 activeMonitors: status["activeMonitors"] as number | null,
               }
-            : status) as JSONObject,
+            : status) as JSONObject),
       {},
     ) as never,
   );
@@ -116,8 +152,9 @@ const FREE_10: ActiveMonitorLimitStatus["limit"] = {
 };
 
 beforeEach(() => {
+  config.billingEnabled = true;
   goTo(`/dashboard/${PROJECT_ID}/monitors/create`);
-  getSpy = jest.spyOn(API, "get");
+  getSpy = getJestSpyOn(API, "get");
 });
 
 afterEach(() => {
@@ -134,7 +171,11 @@ describe("what it asks", () => {
 
     const url: URL = (getSpy.mock.calls[0]![0] as { url: URL }).url;
     expect(new window.URL(url.toString()).pathname).toBe(
-      `/api${ACTIVE_MONITOR_LIMIT_ROUTE}`,
+      new window.URL(
+        URL.fromString(APP_API_URL.toString())
+          .addRoute(ACTIVE_MONITOR_LIMIT_ROUTE)
+          .toString(),
+      ).pathname,
     );
   });
 });
@@ -165,7 +206,9 @@ describe("on Create Monitor (at the limit or past it)", () => {
 
     const notice: HTMLElement = await screen.findByTestId(NOTICE);
 
-    expect(notice).toHaveTextContent("You've reached your plan's monitor limit");
+    expect(notice).toHaveTextContent(
+      "You've reached your plan's monitor limit",
+    );
     expect(notice).toHaveTextContent(
       "Your plan includes 500 active monitors, and this project has 500.",
     );
@@ -195,10 +238,7 @@ describe("on Create Monitor (at the limit or past it)", () => {
     );
 
     const link: HTMLElement = screen.getByRole("link", { name: "View plan" });
-    expect(link).toHaveAttribute(
-      "href",
-      routeFor(PageMap.SETTINGS_BILLING),
-    );
+    expect(link).toHaveAttribute("href", routeFor(PageMap.SETTINGS_BILLING));
   });
 
   // The support report's project.
@@ -239,9 +279,10 @@ describe("on Create Monitor (at the limit or past it)", () => {
       "The Free plan includes 10 active monitors, and this project has 10.",
     );
     expect(notice).toHaveTextContent("Upgrade your plan to add more.");
-    expect(
-      screen.getByRole("link", { name: "View plans" }),
-    ).toHaveAttribute("href", routeFor(PageMap.SETTINGS_BILLING));
+    expect(screen.getByRole("link", { name: "View plans" })).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SETTINGS_BILLING),
+    );
   });
 });
 
@@ -263,6 +304,21 @@ describe("on the monitor list (past the limit only)", () => {
     expect(await screen.findByTestId(NOTICE)).toHaveTextContent(
       "This project has more active monitors than its plan includes",
     );
+  });
+});
+
+describe("on a self-hosted install", () => {
+  test("there are no plans: nothing is asked and nothing drawn", async () => {
+    config.billingEnabled = false;
+    answer({ limit: PLAN_500, activeMonitors: 2881 });
+
+    renderNotice(ActiveMonitorLimitNoticeShowWhen.AtOrOverLimit);
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 50);
+    });
+
+    expect(getSpy).not.toHaveBeenCalled();
+    expect(screen.queryByTestId(NOTICE)).toBeNull();
   });
 });
 

@@ -47,7 +47,9 @@
  *              GET /monitor/active-monitor-limit answers it: none (default,
  *              no limit) | under (499 of a plan's 500) | at (500 of 500) |
  *              over (2,881 of 500: the support report's project) | free-at
- *              (10 of the Free plan's 10) | fail (the request fails).
+ *              (10 of the Free plan's 10) | fail (the request fails). The
+ *              Dashboard asks it only on a billed install: add ?billing=true
+ *              (handled by server.js, as BILLING_ENABLED).
  *   ?theme=    dark adds html.dark (handled by server.js).
  *
  * Every read is recorded on window.__monitorOverviewFixture: getItemRequests,

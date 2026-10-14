@@ -603,8 +603,9 @@ test.describe("Create Monitor, start to finish", () => {
  * monitor at the limit (Common/Server/Utils/Billing/ActiveMonitorLimit);
  * the page says so above the form before anything is filled in
  * (Components/Monitor/ActiveMonitorLimitNotice), from
- * GET /monitor/active-monitor-limit (?monitorLimit= in the fixture). The
- * form stays: a Manual monitor never counts.
+ * GET /monitor/active-monitor-limit (?monitorLimit= in the fixture), on a
+ * billed install (?billing=true): a self-hosted one has no plans and asks
+ * nothing. The form stays: a Manual monitor never counts.
  */
 test.describe("Create Monitor at the plan's monitor limit", () => {
   function notice(page: Page): Locator {
@@ -627,7 +628,8 @@ test.describe("Create Monitor at the plan's monitor limit", () => {
         (request: { method: string; url: string }): boolean => {
           return (
             request.method === "GET" &&
-            new URL(request.url).pathname === "/api/monitor/active-monitor-limit"
+            new URL(request.url).pathname ===
+              "/api/monitor/active-monitor-limit"
           );
         },
       ).length;
@@ -639,16 +641,36 @@ test.describe("Create Monitor at the plan's monitor limit", () => {
   }: {
     page: Page;
   }) => {
-    await openCreate(page);
+    await openCreate(page, "?billing=true");
 
-    await expect.poll(() => limitRequests(page)).toBe(1);
+    await expect
+      .poll(() => {
+        return limitRequests(page);
+      })
+      .toBe(1);
+    await expect(notice(page)).toHaveCount(0);
+  });
+
+  test("a self-hosted install has no plans: nothing is asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCreate(page, "?monitorLimit=over");
+
+    await expect(option(page, "Website")).toBeVisible();
+    expect(await limitRequests(page)).toBe(0);
     await expect(notice(page)).toHaveCount(0);
   });
 
   test("under the limit, nothing", async ({ page }: { page: Page }) => {
-    await openCreate(page, "?monitorLimit=under");
+    await openCreate(page, "?billing=true&monitorLimit=under");
 
-    await expect.poll(() => limitRequests(page)).toBe(1);
+    await expect
+      .poll(() => {
+        return limitRequests(page);
+      })
+      .toBe(1);
     await expect(notice(page)).toHaveCount(0);
   });
 
@@ -657,7 +679,10 @@ test.describe("Create Monitor at the plan's monitor limit", () => {
   }: {
     page: Page;
   }) => {
-    const form: Locator = await openCreate(page, "?monitorLimit=at");
+    const form: Locator = await openCreate(
+      page,
+      "?billing=true&monitorLimit=at",
+    );
 
     await expect(notice(page)).toBeVisible();
     await expect(notice(page)).toContainText(
@@ -683,9 +708,7 @@ test.describe("Create Monitor at the plan's monitor limit", () => {
     );
 
     // Above the form, which stays: a Manual monitor never counts.
-    const noticeBox: { y: number; height: number } = await boxOf(
-      notice(page),
-    );
+    const noticeBox: { y: number; height: number } = await boxOf(notice(page));
     const formBox: { y: number } = await boxOf(form);
     expect(noticeBox.y + noticeBox.height).toBeLessThanOrEqual(formBox.y);
     await expect(option(page, "Website")).toBeVisible();
@@ -699,7 +722,7 @@ test.describe("Create Monitor at the plan's monitor limit", () => {
   }: {
     page: Page;
   }) => {
-    await openCreate(page, "?monitorLimit=over");
+    await openCreate(page, "?billing=true&monitorLimit=over");
 
     await expect(notice(page)).toContainText(
       "This project has more active monitors than its plan includes",
@@ -719,7 +742,7 @@ test.describe("Create Monitor at the plan's monitor limit", () => {
   }: {
     page: Page;
   }) => {
-    await openCreate(page, "?monitorLimit=free-at");
+    await openCreate(page, "?billing=true&monitorLimit=free-at");
 
     await expect(notice(page)).toContainText(
       "You've reached the Free plan's monitor limit",
@@ -740,9 +763,13 @@ test.describe("Create Monitor at the plan's monitor limit", () => {
   }: {
     page: Page;
   }) => {
-    await openCreate(page, "?monitorLimit=fail");
+    await openCreate(page, "?billing=true&monitorLimit=fail");
 
-    await expect.poll(() => limitRequests(page)).toBe(1);
+    await expect
+      .poll(() => {
+        return limitRequests(page);
+      })
+      .toBe(1);
     await expect(notice(page)).toHaveCount(0);
     await expect(option(page, "Website")).toBeVisible();
   });
@@ -753,7 +780,7 @@ test.describe("Create Monitor at the plan's monitor limit", () => {
     page: Page;
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await openCreate(page, "?monitorLimit=over");
+    await openCreate(page, "?billing=true&monitorLimit=over");
 
     await expect(notice(page)).toBeVisible();
 
@@ -777,7 +804,7 @@ test.describe("Create Monitor at the plan's monitor limit", () => {
   }: {
     page: Page;
   }) => {
-    await openCreate(page, "?theme=dark&monitorLimit=over");
+    await openCreate(page, "?theme=dark&billing=true&monitorLimit=over");
 
     await expect(notice(page)).toBeVisible();
 

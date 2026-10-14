@@ -11,7 +11,7 @@ import ActiveMonitorLimitUtil, {
 } from "Common/Types/Monitor/ActiveMonitorLimit";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Link from "Common/UI/Components/Link/Link";
-import { APP_API_URL } from "Common/UI/Config";
+import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -39,7 +39,8 @@ import React, {
  *
  * Nothing is drawn while the status loads, when it cannot be read, or when
  * the project has no limit: the server's refusal says the same, in the same
- * terms, if it comes to that.
+ * terms, if it comes to that. A self-hosted install has no plans, so there
+ * nothing is asked at all.
  */
 
 export enum ActiveMonitorLimitNoticeShowWhen {
@@ -116,9 +117,7 @@ export const getActiveMonitorLimitNoticeCopy: (data: {
     status.limit.kind === ActiveMonitorLimitKind.FreePlan;
   const isOverLimit: boolean = ActiveMonitorLimitUtil.isOverLimit(status);
   const limit: number = status.limit.limit;
-  const activeMonitors: string = translator.formatNumber(
-    status.activeMonitors,
-  );
+  const activeMonitors: string = translator.formatNumber(status.activeMonitors);
 
   let title: string;
 
@@ -184,6 +183,43 @@ export const getActiveMonitorLimitNoticeCopy: (data: {
   };
 };
 
+/*
+ * For an action that makes several monitors at once: the plan's limit, as
+ * one paragraph, when the project has no room for any active monitor - a
+ * reason about the project, said once rather than against every item - or
+ * null when it has room, when it cannot tell, and on an install without
+ * plans. The server holds every create to the limit either way.
+ */
+export const readActiveMonitorLimitRefusal: (
+  translator: Translator,
+) => Promise<string | null> = async (
+  translator: Translator,
+): Promise<string | null> => {
+  if (!BILLING_ENABLED) {
+    return null;
+  }
+
+  let status: ActiveMonitorLimitStatus;
+
+  try {
+    status = await fetchActiveMonitorLimitStatus();
+  } catch {
+    return null;
+  }
+
+  if (!ActiveMonitorLimitUtil.isAtOrOverLimit(status)) {
+    return null;
+  }
+
+  const copy: ActiveMonitorLimitNoticeCopy | null =
+    getActiveMonitorLimitNoticeCopy({
+      status: status,
+      translator: translator,
+    });
+
+  return copy ? joinSentences([...copy.state, copy.action]) : null;
+};
+
 const ActiveMonitorLimitNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -193,6 +229,10 @@ const ActiveMonitorLimitNotice: FunctionComponent<ComponentProps> = (
   );
 
   useEffect(() => {
+    if (!BILLING_ENABLED) {
+      return;
+    }
+
     let isCurrent: boolean = true;
 
     fetchActiveMonitorLimitStatus()

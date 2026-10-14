@@ -108,7 +108,10 @@ export default class ActiveMonitorLimitUtil {
   }
 
   // How many more active monitors fit: 0 at the limit and past it.
-  public static getRoom(data: { limit: number; activeMonitors: number }): number {
+  public static getRoom(data: {
+    limit: number;
+    activeMonitors: number;
+  }): number {
     return Math.max(0, data.limit - data.activeMonitors);
   }
 

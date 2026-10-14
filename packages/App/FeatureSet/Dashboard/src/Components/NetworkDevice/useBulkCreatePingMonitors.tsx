@@ -30,6 +30,7 @@ import PermissionGate, {
 import ProbeUtil from "../../Utils/Probe";
 import { provisionPingMonitorForDevice } from "./PingMonitorProvisioning";
 import PingMonitorSeedIds from "./PingMonitorSeedIds";
+import { readActiveMonitorLimitRefusal } from "../Monitor/ActiveMonitorLimitNotice";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -252,6 +253,22 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
      * scrolled past. onBulkActionStart is deliberately not called before
      * this resolves, so the table's progress modal never opens on nothing.
      */
+    /*
+     * A project with no room under its plan's limit on active monitors can
+     * get no Ping monitor at all - a reason about the project, so it is said
+     * once, in the same modal, and the action never starts. With some room
+     * left the action runs, and the creates past it are refused one by one,
+     * in the server's words (ActiveMonitorLimit).
+     */
+    const limitRefusal: string | null =
+      await readActiveMonitorLimitRefusal(translator);
+
+    if (limitRefusal) {
+      setStartupError(limitRefusal);
+      setBulkActionProps(null);
+      return;
+    }
+
     let seedIds: MonitorCriteriaSeedIds;
 
     try {

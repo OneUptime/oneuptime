@@ -111,8 +111,7 @@ export default class ActiveMonitorLimit {
     }
 
     const currentPlan: CurrentPlan =
-      data.currentPlan ||
-      (await ProjectService.getCurrentPlan(data.projectId));
+      data.currentPlan || (await ProjectService.getCurrentPlan(data.projectId));
 
     return this.getLimitOfPlan(currentPlan);
   }

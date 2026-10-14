@@ -302,14 +302,12 @@ describe("GET /monitor/active-monitor-limit", () => {
   });
 
   test("refuses a member who may not read monitors", async () => {
-    mockCaller([Permission.ReadIncident]);
+    mockCaller([Permission.ReadProjectIncident]);
 
     const result: RouteCallResult = await callRoute();
 
     expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
-    expect((result.thrownToNext as Exception).message).toBe(
-      PERMISSION_MESSAGE,
-    );
+    expect((result.thrownToNext as Exception).message).toBe(PERMISSION_MESSAGE);
     expectNothingCounted();
   });
 

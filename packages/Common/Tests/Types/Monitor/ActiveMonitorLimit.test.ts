@@ -152,9 +152,9 @@ describe("room under the limit", () => {
 
 describe("at the limit, and past it", () => {
   test("a project with no limit is neither", () => {
-    expect(ActiveMonitorLimitUtil.isAtOrOverLimit(NO_ACTIVE_MONITOR_LIMIT)).toBe(
-      false,
-    );
+    expect(
+      ActiveMonitorLimitUtil.isAtOrOverLimit(NO_ACTIVE_MONITOR_LIMIT),
+    ).toBe(false);
     expect(ActiveMonitorLimitUtil.isOverLimit(NO_ACTIVE_MONITOR_LIMIT)).toBe(
       false,
     );

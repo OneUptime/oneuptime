@@ -721,8 +721,9 @@ export default class ToolImportProjectStateReader {
      * (ActiveMonitorLimit), whoever imports: the creates are held to it.
      */
     if (brings(ToolImportResourceKind.Monitor)) {
-      const monitorRoom: ToolImportPlanRoom | null =
-        await this.readMonitorRoom(data.projectId);
+      const monitorRoom: ToolImportPlanRoom | null = await this.readMonitorRoom(
+        data.projectId,
+      );
 
       if (monitorRoom) {
         planRoomByKind.set(ToolImportResourceKind.Monitor, monitorRoom);

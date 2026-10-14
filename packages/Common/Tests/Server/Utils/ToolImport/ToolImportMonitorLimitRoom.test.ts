@@ -81,13 +81,11 @@ describe("the monitors an import has room for", () => {
 
     const access: ToolImportAccess = await readAccess();
 
-    expect(access.planRoomByKind?.get(ToolImportResourceKind.Monitor)).toEqual(
-      {
-        room: 3,
-        limit: 500,
-        noteCode: ToolImportNoteCode.MonitorLimitReached,
-      },
-    );
+    expect(access.planRoomByKind?.get(ToolImportResourceKind.Monitor)).toEqual({
+      room: 3,
+      limit: 500,
+      noteCode: ToolImportNoteCode.MonitorLimitReached,
+    });
     expect(status).toHaveBeenCalledWith(PROJECT_ID);
   });
 
@@ -100,13 +98,11 @@ describe("the monitors an import has room for", () => {
 
     const access: ToolImportAccess = await readAccess();
 
-    expect(access.planRoomByKind?.get(ToolImportResourceKind.Monitor)).toEqual(
-      {
-        room: 0,
-        limit: 500,
-        noteCode: ToolImportNoteCode.MonitorLimitReached,
-      },
-    );
+    expect(access.planRoomByKind?.get(ToolImportResourceKind.Monitor)).toEqual({
+      room: 0,
+      limit: 500,
+      noteCode: ToolImportNoteCode.MonitorLimitReached,
+    });
   });
 
   test("on the Free plan: its room, with the Free plan's note", async () => {
@@ -117,13 +113,11 @@ describe("the monitors an import has room for", () => {
 
     const access: ToolImportAccess = await readAccess();
 
-    expect(access.planRoomByKind?.get(ToolImportResourceKind.Monitor)).toEqual(
-      {
-        room: 6,
-        limit: 10,
-        noteCode: ToolImportNoteCode.MonitorPlanLimit,
-      },
-    );
+    expect(access.planRoomByKind?.get(ToolImportResourceKind.Monitor)).toEqual({
+      room: 6,
+      limit: 10,
+      noteCode: ToolImportNoteCode.MonitorPlanLimit,
+    });
   });
 
   test("a project whose plan sets no limit has no monitor room to count", async () => {

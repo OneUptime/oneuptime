@@ -99,9 +99,7 @@ describe("Project > Subscription > Active Monitors", () => {
   });
 
   test("it edits the limit the Project model declares, and nothing else", () => {
-    expect(projectModelSource).toContain(
-      "public activeMonitorsLimit?: number",
-    );
+    expect(projectModelSource).toContain("public activeMonitorsLimit?: number");
     expect(formFields).toContain("activeMonitorsLimit: true");
     expect(formFields).not.toContain("currentActiveMonitorsCount");
   });

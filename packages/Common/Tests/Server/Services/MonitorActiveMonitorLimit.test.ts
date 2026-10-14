@@ -204,13 +204,16 @@ describe("creating a monitor in a project whose plan caps active monitors", () =
     Object.values(MonitorType).filter((type: MonitorType) => {
       return type !== MonitorType.Manual;
     }),
-  )("a %s monitor is refused at the limit", async (monitorType: MonitorType) => {
-    withActiveMonitors(500);
+  )(
+    "a %s monitor is refused at the limit",
+    async (monitorType: MonitorType) => {
+      withActiveMonitors(500);
 
-    await expect(
-      hooks.onBeforeCreate(createInput(monitorType)),
-    ).rejects.toBeInstanceOf(BadDataException);
-  });
+      await expect(
+        hooks.onBeforeCreate(createInput(monitorType)),
+      ).rejects.toBeInstanceOf(BadDataException);
+    },
+  );
 
   test("a Manual monitor is never limited: created past the limit, nothing counted", async () => {
     withActiveMonitors(2881);
@@ -459,8 +462,8 @@ describe("deleting monitors counts their projects again", () => {
     );
 
     expect(
-      report.mock.calls.map((call: Parameters<typeof report>): string => {
-        return call[0].toString();
+      report.mock.calls.map((call: Array<unknown>): string => {
+        return String(call[0]);
       }),
     ).toEqual([PROJECT_ID.toString(), OTHER_PROJECT_ID.toString()]);
   });
