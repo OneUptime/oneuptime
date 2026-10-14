@@ -72,7 +72,7 @@ Each monitor's `monitor_steps` say what it checks and how each result is judged:
 
 ### Website monitor
 
-Offline when the site does not answer, online when it answers with 200. The end-to-end test `35-monitor-with-steps` applies this monitor:
+Offline when the site does not answer, online when it answers with 200. The end-to-end test `35-monitor-with-steps` applies a monitor with these checks:
 
 ```hcl
 resource "oneuptime_monitor" "website" {

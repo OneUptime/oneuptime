@@ -79,7 +79,7 @@ In provider 1.x, `monitor_steps` was a JSON string written with `jsonencode({ _t
 
 ### A complete example
 
-This website monitor is the one the provider's end-to-end tests apply (test `35-monitor-with-steps`): offline when the site does not answer, online when it answers with 200.
+This website monitor checks what the website monitor of the provider's end-to-end tests checks (test `35-monitor-with-steps`): offline when the site does not answer, online when it answers with 200.
 
 ```hcl
 resource "oneuptime_monitor_status" "operational" {

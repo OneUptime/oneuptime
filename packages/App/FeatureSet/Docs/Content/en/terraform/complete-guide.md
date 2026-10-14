@@ -20,8 +20,8 @@ The provider takes two settings. Each comes from the provider block, or else fro
 
 ```mermaid title="Where the provider finds its key and address"
 flowchart TB
-    B["1. The provider block:<br/>api_key, oneuptime_url"] --> E["2. Environment variables:<br/>ONEUPTIME_API_KEY,<br/>ONEUPTIME_URL"]
-    E --> N["3. Neither: no key stops<br/>the run, no address<br/>means oneuptime.com"]
+    B["1. The provider block:<br/>api_key and<br/>oneuptime_url"] --> E["2. Environment variables:<br/>ONEUPTIME_API_KEY<br/>and ONEUPTIME_URL"]
+    E --> N["3. Neither: no key<br/>stops the run, and<br/>no address means<br/>OneUptime Cloud"]
 ```
 
 `oneuptime_url` is your OneUptime's address, without `/api`: the provider adds `https://` when the address has no scheme, and `/api` at the end. `api_key` is sensitive, so Terraform never prints it.
