@@ -732,9 +732,17 @@ describe("a new window refetches the timeseries", () => {
       </TimeRangeZoomProvider>,
     );
 
+    /*
+     * Where the chart was, it says it could not load (issue #4707) — not
+     * "No data available", which a window that never answered is not.
+     */
     expect(
-      await screen.findByText("No data available for the selected query"),
+      await screen.findByText("This chart could not load"),
     ).toBeInTheDocument();
+    expect(screen.getByText("boom")).toBeInTheDocument();
+    expect(
+      screen.queryByText("No data available for the selected query"),
+    ).toBeNull();
     expect(screen.queryByTestId(`bucket-${BUCKET_A}`)).toBeNull();
   });
 });

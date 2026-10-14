@@ -196,6 +196,7 @@ I chip fanno parte della vista salvata e dell'URL della pagina, quindi un filtro
 - Un filtro `-@k:...` corrisponde anche alle righe che non hanno mai avuto l'attributo: una riga senza `platform.team` ovviamente non inizia con `a`.
 - I confronti numerici funzionano su valori di attributo memorizzati come testo; un valore che non è un numero non soddisfa mai un confronto.
 - Su log e tracce, un valore esatto, come `@http.route:/orders`, `@k:(a OR b)` o un valore su cui fate clic nella barra laterale delle faccette, viene cercato in un indice, quindi la ricerca di un valore che hanno poche righe resta veloce anche su intervalli di tempo lunghi. Caratteri jolly, «contiene», esclusioni e confronti leggono ogni riga di log o span dell'intervallo: quando una di queste ricerche è lenta, aggiungete un valore esatto o scegliete un intervallo più breve.
+- Una ricerca che dura più di 45 secondi viene interrotta. L'explorer lo segnala dove sarebbero i risultati, lascia la ricerca e i filtri come erano e offre **Riprova**; il grafico e i conteggi dei filtri lo segnalano al proprio posto quando esauriscono il tempo. Per portarla a termine, scegliete un intervallo più breve o aggiungete un valore esatto.
 
 ## Passaggi successivi
 

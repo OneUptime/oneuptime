@@ -249,13 +249,19 @@ describe("LogAggregationService scan memory bound", () => {
     },
   );
 
+  /*
+   * The cap stops the read with an error (issue #4707): ClickHouse answers
+   * a grouped read it breaks off with an empty body, which surfaced as a
+   * bare "Server Error".
+   */
   test.each(BOUNDED_BUILDERS)(
-    "%s keeps its execution-time cap in break mode",
+    "%s keeps its execution-time cap and stops with an error at it",
     (builder: string, request: unknown) => {
       const query: string = build(builder, request).query;
 
       expect(query).toContain("max_execution_time = 45");
-      expect(query).toContain("timeout_overflow_mode = 'break'");
+      expect(query).toContain("timeout_overflow_mode = 'throw'");
+      expect(query).not.toContain("timeout_overflow_mode = 'break'");
     },
   );
 

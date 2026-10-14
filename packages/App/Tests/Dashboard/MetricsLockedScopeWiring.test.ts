@@ -613,13 +613,24 @@ const memoDependencies: MemoDependenciesFunction = (
 
 type HookFromFunction = (source: string, marker: string) => string;
 
-// A hook from its declaration through the `]);` closing its dependency list.
+/*
+ * A hook from its declaration through the `}, [...]);` closing its
+ * dependency list - not the first `]);` in its body, which a setter handed
+ * an empty array (`setTimedOutFacets([]);`) also ends with.
+ */
 const hookFrom: HookFromFunction = (source: string, marker: string): string => {
   const start: number = source.indexOf(marker);
 
   expect(start).toBeGreaterThanOrEqual(0);
 
-  return source.slice(start, source.indexOf("]);", start) + "]);".length);
+  const dependencyList: RegExp = /\}, \[[^\]]*\]\);/g;
+  dependencyList.lastIndex = start;
+
+  const closing: RegExpExecArray | null = dependencyList.exec(source);
+
+  expect(closing).not.toBeNull();
+
+  return source.slice(start, closing!.index + closing![0].length);
 };
 
 /*

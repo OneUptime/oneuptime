@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { HistogramBucket } from "./types";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "../../Utils/Telemetry/TelemetryLoadError";
 
 export interface LogsHistogramRefreshOptions {
   /**
@@ -24,6 +27,12 @@ export interface LogsHistogramState {
   /** Width of one bucket in `buckets`; undefined when the query did not say. */
   bucketIntervalMs: number | undefined;
   isLoading: boolean;
+  /*
+   * Why the last load failed — a search stopped at the time limit, or any
+   * other failure — until the next one succeeds (issue #4707). The chart
+   * says so in its card instead of vanishing as if the window held nothing.
+   */
+  error: TelemetryLoadError | undefined;
   refresh: (options?: LogsHistogramRefreshOptions) => Promise<void>;
 }
 
@@ -65,7 +74,7 @@ export type UseLogsHistogramFunction = (
  * - it does not raise the loading flag, so the chart does not flash a loader
  *   every few seconds;
  * - it keeps the buckets already on screen if the request fails, so one bad
- *   response does not blank the chart;
+ *   response does not blank the chart, and raises no error;
  * - it is dropped while an earlier poll is still running, so a slow
  *   aggregation cannot pile requests up behind it.
  *
@@ -78,6 +87,7 @@ const useLogsHistogram: UseLogsHistogramFunction = (
   const [histogram, setHistogram] =
     useState<LogsHistogramData>(EMPTY_HISTOGRAM);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<TelemetryLoadError | undefined>(undefined);
 
   const silentRequestInFlight: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
@@ -107,6 +117,7 @@ const useLogsHistogram: UseLogsHistogramFunction = (
           silentRequestInFlight.current = true;
         } else {
           setIsLoading(true);
+          setError(undefined);
         }
 
         try {
@@ -114,11 +125,16 @@ const useLogsHistogram: UseLogsHistogramFunction = (
 
           if (currentQuery.current === fetchBuckets) {
             setHistogram(next);
+            setError(undefined);
           }
-        } catch {
-          // The histogram is non-critical; degrade rather than fail the page.
+        } catch (err) {
+          /*
+           * The histogram is non-critical: it never fails the page. It says
+           * why it is missing, in its own card.
+           */
           if (!isSilent && currentQuery.current === fetchBuckets) {
             setHistogram(EMPTY_HISTOGRAM);
+            setError(TelemetryLoadErrorUtil.fromError(err));
           }
         } finally {
           if (isSilent) {
@@ -139,6 +155,7 @@ const useLogsHistogram: UseLogsHistogramFunction = (
     buckets: histogram.buckets,
     bucketIntervalMs: histogram.bucketIntervalMs,
     isLoading: isLoading,
+    error: error,
     refresh: refresh,
   };
 };

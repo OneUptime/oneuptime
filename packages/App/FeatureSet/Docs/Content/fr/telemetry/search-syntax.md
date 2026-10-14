@@ -196,6 +196,7 @@ Les puces font partie de la vue enregistrée et de l'URL de la page : un filtre 
 - Un filtre `-@k:...` correspond aussi aux lignes qui n'ont jamais eu l'attribut : une ligne sans aucun `platform.team` ne commence évidemment pas par `a`.
 - Les comparaisons numériques fonctionnent sur des valeurs d'attribut stockées en texte ; une valeur qui n'est pas un nombre ne satisfait jamais une comparaison.
 - Sur les journaux et les traces, une valeur exacte, comme `@http.route:/orders`, `@k:(a OR b)` ou une valeur cliquée dans la barre latérale des facettes, est cherchée dans un index : la recherche d'une valeur que peu de lignes portent reste donc rapide sur de longues périodes. Les jokers, « contient », les exclusions et les comparaisons lisent chaque ligne de journal ou span de la période : quand l'une de ces recherches est lente, ajoutez une valeur exacte ou choisissez une période plus courte.
+- Une recherche qui dure plus de 45 secondes est arrêtée. L'explorateur l'indique là où les résultats s'afficheraient, garde votre recherche et vos filtres tels quels et propose **Réessayer** ; le graphique et le décompte des filtres l'indiquent à leur propre place quand ils manquent de temps. Pour qu'elle aboutisse, choisissez une période plus courte ou ajoutez une valeur exacte.
 
 ## Étapes suivantes
 

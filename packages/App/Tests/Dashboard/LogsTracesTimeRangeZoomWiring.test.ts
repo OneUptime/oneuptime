@@ -387,7 +387,10 @@ describe("Logs Analytics drops superseded responses", () => {
     expect(source).toContain(
       'if (isStale()) { return; } const data: unknown = response.data["data"] || []; setResultGroupByFields(requestGroupBy);',
     );
-    expect(source).toContain("} catch { if (isStale()) { return; }");
+    // Before the error it now shows (issue #4707), as before every write.
+    expect(source).toContain(
+      "} catch (err) { if (isStale()) { return; } setLoadError(TelemetryLoadErrorUtil.fromError(err));",
+    );
     expect(source).toContain(
       "} finally { if (!isStale()) { setIsLoading(false); } }",
     );

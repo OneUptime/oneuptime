@@ -365,8 +365,21 @@ class BaseAPI extends API {
     err: HTTPErrorResponse | Exception | unknown,
   ): string {
     if (err instanceof HTTPErrorResponse) {
+      /*
+       * A gateway's own 502 / 504 is a page, not a message: the server could
+       * not be reached. A 504 the API itself answered is JSON whose message
+       * says what happened — a read stopped at its time limit says it took
+       * too long and what to try (issue #4707) — and that is what the reader
+       * needs.
+       */
       if (err.statusCode === 502 || err.statusCode === 504) {
-        return "Error connecting to server. Please try again in few minutes.";
+        const apiMessage: string =
+          err.statusCode === 504 ? BaseAPI.getJsonErrorMessage(err) : "";
+
+        return (
+          apiMessage ||
+          "Error connecting to server. Please try again in few minutes."
+        );
       }
 
       return err.message || "Server Error. Please try again";
@@ -404,6 +417,30 @@ class BaseAPI extends API {
     }
 
     return "Server Error. Please try again";
+  }
+
+  /*
+   * The message of a JSON error body — `{ error }` from the API's error
+   * handler, `{ message }` from Response.sendErrorResponse — or "" for any
+   * other body. A page (a gateway's HTML) is kept under `data` by
+   * HTTPResponse, so it is never read as a message here.
+   */
+  private static getJsonErrorMessage(err: HTTPErrorResponse): string {
+    const body: JSONObject | undefined = err.data;
+
+    if (!body) {
+      return "";
+    }
+
+    for (const key of ["error", "message"]) {
+      const value: unknown = body[key];
+
+      if (typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+
+    return "";
   }
 }
 

@@ -140,6 +140,7 @@ import ResourceFacetResolver from "../Utils/Telemetry/ResourceFacetResolver";
 import ResourceFacetPlanner, {
   ListedResourceFacets,
 } from "../Utils/Telemetry/ResourceFacetPlanner";
+import TimedOutFacets from "../Utils/Telemetry/TimedOutFacets";
 import { RESOURCE_FACET_CATALOG_KEYS } from "../../Types/Telemetry/ResourceFacetCatalog";
 import ResourceEntityFilter, {
   ResourceEntityScope,
@@ -932,8 +933,12 @@ router.post(
        * counts merged in, so low-volume resources stay visible and search
        * reaches resources outside the window. Their lists are fetched FIRST:
        * a resource type the project has none of skips its ClickHouse scan
-       * entirely (see ResourceFacetPlanner).
+       * entirely (see ResourceFacetPlanner). A facet whose count was stopped
+       * at the time limit is named in timedOutFacets, so the sidebar says so
+       * rather than show "No values" or every resource at 0.
        */
+      const timedOutFacets: TimedOutFacets = new TimedOutFacets();
+
       const facets: Record<
         string,
         Array<FacetValue>
@@ -960,12 +965,15 @@ router.post(
             sessionIds,
             attributes,
           };
-          return LogAggregationService.getFacetValues(request);
+          return timedOutFacets.watch(facetKey, () => {
+            return LogAggregationService.getFacetValues(request);
+          });
         },
       });
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
+        timedOutFacets: timedOutFacets.toArray(),
       });
     } catch (err: unknown) {
       next(err);
@@ -1411,6 +1419,20 @@ router.post(
       const wantsRootSpan: boolean = facetKeys.includes("isRootSpan");
       const wantsHasException: boolean = facetKeys.includes("hasException");
 
+      /*
+       * The facets a count source could not finish in time: each source
+       * still degrades on its own, and the facets it leaves uncounted are
+       * named in timedOutFacets (see the log facets endpoint).
+       */
+      const timedOutFacets: TimedOutFacets = new TimedOutFacets();
+      const resourceCountKeys: Array<string> = facetKeys.filter(
+        (key: string): boolean => {
+          return (
+            ResourceFacetResolver.isResourceFacet(key) || key === "statusCode"
+          );
+        },
+      );
+
       const emptyAccurate: {
         serviceCounts: Map<string, number>;
         statusCounts: Map<string, number>;
@@ -1444,18 +1466,22 @@ router.post(
         { withExceptionCount: number; withoutExceptionCount: number } | null,
       ] = await Promise.all([
         sampledKeys.length > 0
-          ? TraceAggregationService.getFacetValuesFromSample({
-              ...multiRequest,
-              facetKeys: sampledKeys,
-            }).catch((): Record<string, Array<TraceFacetValue>> => {
-              return Object.fromEntries(
-                sampledKeys.map(
-                  (key: string): [string, Array<TraceFacetValue>] => {
-                    return [key, []];
-                  },
-                ),
-              );
-            })
+          ? timedOutFacets
+              .watch(sampledKeys, () => {
+                return TraceAggregationService.getFacetValuesFromSample({
+                  ...multiRequest,
+                  facetKeys: sampledKeys,
+                });
+              })
+              .catch((): Record<string, Array<TraceFacetValue>> => {
+                return Object.fromEntries(
+                  sampledKeys.map(
+                    (key: string): [string, Array<TraceFacetValue>] => {
+                      return [key, []];
+                    },
+                  ),
+                );
+              })
           : Promise.resolve({} as Record<string, Array<TraceFacetValue>>),
         resourceListing,
         resourceListing.then(
@@ -1474,30 +1500,56 @@ router.post(
               return Promise.resolve(emptyAccurate);
             }
 
-            return TraceAggregationService.getResourceFacetCounts(
-              multiRequest,
-            ).catch(() => {
-              /*
-               * Degrade gracefully: resource facets still enumerate via
-               * Postgres (count 0), statusCode falls back to empty.
-               */
-              return emptyAccurate;
-            });
+            /*
+             * A stop leaves uncounted statusCode and the resource facets
+             * that listed rows to merge counts into. A resource facet that
+             * listed nothing answers [] counted or not (the project has none
+             * of that resource), so it is not named: the sidebar would show
+             * an empty type as "Not counted" rather than fold it away.
+             */
+            const uncountedOnStop: Array<string> = resourceCountKeys.filter(
+              (key: string): boolean => {
+                return (
+                  key === "statusCode" ||
+                  ResourceFacetPlanner.hasListedEntities(listed, key)
+                );
+              },
+            );
+
+            return timedOutFacets
+              .watch(uncountedOnStop, () => {
+                return TraceAggregationService.getResourceFacetCounts(
+                  multiRequest,
+                );
+              })
+              .catch(() => {
+                /*
+                 * Degrade gracefully: resource facets still enumerate via
+                 * Postgres (count 0), statusCode falls back to empty.
+                 */
+                return emptyAccurate;
+              });
           },
         ),
         wantsRootSpan
-          ? TraceAggregationService.getRootSpanCounts(multiRequest).catch(
-              () => {
+          ? timedOutFacets
+              .watch("isRootSpan", () => {
+                return TraceAggregationService.getRootSpanCounts(multiRequest);
+              })
+              .catch(() => {
                 return null;
-              },
-            )
+              })
           : Promise.resolve(null),
         wantsHasException
-          ? TraceAggregationService.getHasExceptionCounts(multiRequest).catch(
-              () => {
+          ? timedOutFacets
+              .watch("hasException", () => {
+                return TraceAggregationService.getHasExceptionCounts(
+                  multiRequest,
+                );
+              })
+              .catch(() => {
                 return null;
-              },
-            )
+              })
           : Promise.resolve(null),
       ]);
 
@@ -1571,6 +1623,7 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
+        timedOutFacets: timedOutFacets.toArray(),
       });
     } catch (err: unknown) {
       next(err);
@@ -2210,8 +2263,10 @@ router.post(
        * Resource facets answer with the Postgres source-of-truth list
        * (filtered by facetSearchText, enriched with displayName), listed
        * first so a type with no rows skips its count query. Same flow as the
-       * log facets endpoint.
+       * log facets endpoint, timedOutFacets included.
        */
+      const timedOutFacets: TimedOutFacets = new TimedOutFacets();
+
       const facets: Record<
         string,
         Array<ExceptionFacetValue>
@@ -2236,12 +2291,15 @@ router.post(
             escaped,
             messageSearchText,
           };
-          return ExceptionAggregationService.getFacetValues(request);
+          return timedOutFacets.watch(facetKey, () => {
+            return ExceptionAggregationService.getFacetValues(request);
+          });
         },
       });
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
+        timedOutFacets: timedOutFacets.toArray(),
       });
     } catch (err: unknown) {
       next(err);
@@ -2322,8 +2380,10 @@ router.post(
        * with the Postgres source-of-truth list (filtered by facetSearchText,
        * enriched with displayName), listed first so a type with no rows
        * skips its count query. Same flow as the log / exception facets
-       * endpoints.
+       * endpoints, timedOutFacets included.
        */
+      const timedOutFacets: TimedOutFacets = new TimedOutFacets();
+
       const facets: Record<
         string,
         Array<MetricFacetValue>
@@ -2344,12 +2404,15 @@ router.post(
             metricNames,
             attributes,
           };
-          return MetricAggregationService.getFacetValues(request);
+          return timedOutFacets.watch(facetKey, () => {
+            return MetricAggregationService.getFacetValues(request);
+          });
         },
       });
 
       return Response.sendJsonObjectResponse(req, res, {
         facets: facets as unknown as JSONObject,
+        timedOutFacets: timedOutFacets.toArray(),
       });
     } catch (err: unknown) {
       next(err);
@@ -2894,6 +2957,22 @@ router.post(
         ? (body["sessionIds"] as Array<string>)
         : undefined;
 
+      /*
+       * The filters the histogram and the facets take, read the same way.
+       * The export used to drop these three, so a file could hold every row
+       * of the window while the search showed a handful.
+       */
+      const entityKeys: Array<string> | undefined = body["entityKeys"]
+        ? (body["entityKeys"] as Array<string>)
+        : undefined;
+
+      const attributes: LogAttributeFilters | undefined = body["attributes"]
+        ? (body["attributes"] as LogAttributeFilters)
+        : undefined;
+
+      const resourceScopes: Array<ResourceEntityScope> | undefined =
+        await resolveResourceScopesFromBody(body, databaseProps.tenantId);
+
       const serviceFilter: TelemetryServiceFilter =
         await TelemetryReadAccess.getServiceFilter({
           modelType: Log,
@@ -2908,11 +2987,14 @@ router.post(
           endTime,
           limit,
           ...serviceFilter,
+          entityKeys,
+          resourceScopes,
           severityTexts,
           bodySearchText,
           traceIds,
           spanIds,
           sessionIds,
+          attributes,
         },
       );
 

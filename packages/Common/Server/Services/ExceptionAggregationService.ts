@@ -3,7 +3,10 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -181,15 +184,11 @@ export class ExceptionAggregationService {
 
     /*
      * Defense in depth: cap histogram runtime below nginx's 60s
-     * proxy_read_timeout. 'break' returns partial aggregated results
-     * rather than throwing, which is acceptable for a density viz.
+     * proxy_read_timeout, and say so when it is reached (see
+     * INTERACTIVE_READ_TIME_LIMIT) rather than draw a chart that looks
+     * complete.
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -290,14 +289,11 @@ export class ExceptionAggregationService {
 
     /*
      * Defense in depth: cap individual facet query runtime below nginx's
-     * 60s proxy_read_timeout so a slow facet never starves the endpoint.
+     * 60s proxy_read_timeout so a slow facet never starves the endpoint. A
+     * facet stopped at the limit is named in the facets endpoint's
+     * timedOutFacets.
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
