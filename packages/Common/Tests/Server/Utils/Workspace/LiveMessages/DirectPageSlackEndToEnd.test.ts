@@ -16,6 +16,9 @@ import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../../Utils/API";
 import OnCallDutyPolicyExecutionLogTimeline from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import { OnCallDirectPageRun } from "../../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
+import OnCallPolicyRunMessage, {
+  OnCallPolicyRunReading,
+} from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import QuietChannelsWorld, {
   DASHBOARD,
   FeedEntry,
@@ -51,11 +54,13 @@ jest.mock("../../../../../Server/Utils/Logger");
  * database in memory, and stands in for each person's notification rules
  * going out).
  *
- * What it must come to: ONE message in the channel for the page, edited as
- * the page goes, naming the workflow where a policy's run names the policy
- * and no escalation rule; a new message only when somebody has to act; and
- * in the incident's feed one entry for everybody paged and every target
- * that reached nobody.
+ * What it must come to: ONE message in the channel for the page, posted
+ * once the page's one pass over the people it names is done - so its first
+ * post, and the notification of it, already say what the page came to -
+ * and edited after that; naming the workflow where a policy's run names the
+ * policy, and no escalation rule; a new message only when somebody has to
+ * act; and in the incident's feed one entry for everybody paged and every
+ * target that reached nobody.
  */
 
 const SLACK_INCIDENT_CHANNEL: string = "C0INC8";
@@ -272,15 +277,26 @@ describe("a workflow pages a person, two teams and two schedules about an incide
     expect(pageMessages()[0]!.threadTs).toBe("");
   });
 
-  test("everything after that is an edit of that one message", () => {
+  test("it is posted once the page has gone through everybody it names: the first post already lists them all", () => {
     const posted: SlackRequest = pageMessages()[0]!;
 
-    expect(slack.updates().length).toBeGreaterThan(0);
-
-    for (const update of slack.updates()) {
-      expect(update.ts).toBe(posted.ts);
-      expect(update.channel).toBe(SLACK_INCIDENT_CHANNEL);
-    }
+    /*
+     * Posted at the page's first step instead, the message said "is paging"
+     * over one name and was edited five times in the same second.
+     */
+    expect(headline(posted)).toBe(
+      `📟 Workflow ${WORKFLOW_IN_SLACK} is paging for ${INCIDENT_IN_SLACK}`,
+    );
+    expect(listOf(posted)).toEqual([
+      "•   *Nitin*: paged once · by SMS and email",
+      "•   *Jane Doe*: paged once · by SMS and email",
+      "•   *NB User 3*: paged once · by SMS and email",
+      "•   Team *Night Shift* has no members",
+      "•   *NB User 2*: not paged · not a member of this project",
+      "•   Nobody was on call in schedule *sec*",
+    ]);
+    // Nothing had to be put right afterwards.
+    expect(slack.updates()).toEqual([]);
   });
 
   test("it names the workflow, as a link to it, where a policy's run names the policy", () => {
@@ -436,6 +452,19 @@ describe("a workflow pages a person, two teams and two schedules about an incide
       expect(listOf(pageMessageNow())[0]).toBe(
         "•   *Nitin*: acknowledged · paged once · by SMS and email",
       );
+    });
+
+    test("everything after the first post is an edit of that one message", () => {
+      const posted: SlackRequest = pageMessages()[0]!;
+
+      expect(slack.updates().length).toBeGreaterThan(0);
+
+      for (const update of slack.updates()) {
+        expect(update.ts).toBe(posted.ts);
+        expect(update.channel).toBe(SLACK_INCIDENT_CHANNEL);
+      }
+
+      expect(pageMessages()).toHaveLength(1);
     });
 
     test("no alarm is raised: somebody is on it", () => {
@@ -596,22 +625,88 @@ describe("a page that reaches nobody", () => {
     expect(list[3]).toBe("•   Nobody was on call in schedule *sec*");
   });
 
-  test("ONE alarm says nobody was paged, why, and what to do", () => {
-    const alarms: Array<SlackRequest> = slack
-      .posts()
-      .filter((post: SlackRequest): boolean => {
+  /*
+   * The page is over the moment it starts: nobody was paged. The channel is
+   * told so ONCE, by the page's own message. It used to be told twice in
+   * the same second - the message, posted at the page's first step as "is
+   * paging" and edited at once, and then an alarm that gave the same four
+   * reasons over again.
+   */
+  test("the channel is told once: the page's message is new, so no alarm is raised on top of it", () => {
+    // The incident's own message, and the page's.
+    expect(slack.posts()).toHaveLength(2);
+    expect(pageMessages()).toHaveLength(1);
+    expect(
+      slack.posts().filter((post: SlackRequest): boolean => {
         return post.text.indexOf("⚠️ Nobody was paged") === 0;
+      }),
+    ).toEqual([]);
+  });
+
+  /*
+   * No alarm follows the message, so what an alarm ends with - what to do
+   * next - is in the message itself: after the reasons, before the link.
+   */
+  test("with no alarm to say it, the message itself says what to do next - once", () => {
+    const whatToDo: string = "Check who is on call, or page someone yourself.";
+    const lines: Array<string> = pageMessageNow()
+      .text.split("\n")
+      .filter((textLine: string): boolean => {
+        return textLine.trim().length > 0;
       });
 
-    expect(alarms).toHaveLength(1);
-    expect(alarms[0]!.text).toContain(
-      `⚠️ Nobody was paged for ${INCIDENT_IN_SLACK}: workflow ${WORKFLOW_IN_SLACK} could not reach anyone (team Night Shift has no members; Jane Doe: away until `,
+    expect(
+      lines.filter((textLine: string): boolean => {
+        return textLine === whatToDo;
+      }),
+    ).toHaveLength(1);
+
+    const at: number = lines.indexOf(whatToDo);
+
+    expect(lines[at - 1]).toBe("•   Nobody was on call in schedule *sec*");
+    expect(lines[at + 1]!.indexOf("See every step in OneUptime")).not.toBe(-1);
+    expect(lines).toHaveLength(at + 2);
+
+    // Nowhere else in the channel: the incident's own message has none.
+    for (const post of slack.posts()) {
+      if (post.ts !== pageMessageNow().ts) {
+        expect(post.text).not.toContain(whatToDo);
+      }
+    }
+  });
+
+  test('its first post already says the workflow could not reach anyone: it never said "is paging"', () => {
+    const posted: SlackRequest = pageMessages()[0]!;
+
+    expect(headline(posted)).toBe(
+      `⚠️ Workflow ${WORKFLOW_IN_SLACK} could not reach anyone for ${INCIDENT_IN_SLACK}`,
     );
-    expect(alarms[0]!.text).toContain(
-      "; NB User 2: not a member of this project; nobody was on call in schedule sec). Check who is on call, or page someone yourself.",
+    expect(listOf(posted)).toHaveLength(4);
+    // Posted as it stands: nothing edits it.
+    expect(slack.updates()).toEqual([]);
+
+    for (const request of slack.requests) {
+      expect(request.text).not.toContain("is paging for");
+    }
+  });
+
+  test("its notification says nobody could be reached - not that somebody is being paged", () => {
+    expect(pageMessages()[0]!.notification).toBe(
+      "Workflow Page the on-call engineer could not reach anyone for Incident INC-8",
     );
-    expect(alarms[0]!.notification).toBe("Nobody was paged for Incident INC-8");
-    expect(alarms[0]!.text).not.toContain("escalation rule");
+
+    for (const post of slack.posts()) {
+      expect(post.notification || "").not.toContain("is paging");
+    }
+  });
+
+  test("it is not said again, however often the run is looked at afterwards", async () => {
+    await world.directPageTick(1);
+    await world.directPageTick(ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES);
+    await world.settle();
+
+    expect(slack.posts()).toHaveLength(2);
+    expect(pageMessages()).toHaveLength(1);
   });
 
   test("when Jane is back is a moment Slack shows in each reader's own time", () => {
@@ -629,6 +724,73 @@ describe("a page that reaches nobody", () => {
       "Workflow **Page the on-call engineer** paged nobody: nobody was on call in schedule **sec**.",
       "Workflow **Page the on-call engineer** paged nobody.",
     ]);
+  });
+});
+
+/*
+ * WHEN THE PAGE'S MESSAGE IS FIRST POSTED.
+ *
+ * A direct page pages everybody it names in one pass: its run is "started"
+ * while that goes on, "executing" once somebody was paged, and over at once
+ * when nobody was. Each step of the pass asks for the message to be brought
+ * up to date, and the message is not posted for any of them: it waits for
+ * the pass to end, so that its first post - and the one notification people
+ * get of it - says what the page came to.
+ */
+describe("when a direct page's message is first posted", () => {
+  test.each([
+    [OnCallDutyPolicyStatus.Scheduled, false],
+    [OnCallDutyPolicyStatus.Started, false],
+    [OnCallDutyPolicyStatus.Executing, true],
+    [OnCallDutyPolicyStatus.Completed, true],
+    [OnCallDutyPolicyStatus.CompletedWithNoNotifications, true],
+    [OnCallDutyPolicyStatus.Error, true],
+  ])(
+    "with its run %s, it has something to post: %s",
+    async (status: OnCallDutyPolicyStatus, expected: boolean) => {
+      await declareIncident();
+      await world.startDirectPage({ targets: { userIds: [NITIN] } });
+
+      // The run as it stands at that point of the page, steps and all.
+      world.run!.status = status;
+
+      const reading: OnCallPolicyRunReading | null =
+        await OnCallPolicyRunMessage.readRun(world.run!.id!);
+
+      expect(reading).not.toBeNull();
+      expect(reading!.run.directPage).toBeDefined();
+      expect(reading!.hasStarted).toBe(expected);
+    },
+  );
+
+  test("a pass still under way - its steps written, its paging begun - is not posted yet", async () => {
+    await declareIncident();
+    await world.startDirectPage({
+      targets: { userIds: [NITIN], teamIds: [TEAM_PLATFORM] },
+    });
+
+    // Back to the middle of the pass: the run "started", the steps there.
+    world.run!.status = OnCallDutyPolicyStatus.Started;
+
+    expect(world.steps.length).toBeGreaterThan(0);
+    expect(world.run!.lastEscalationRuleExecutedAt).toBeDefined();
+
+    const reading: OnCallPolicyRunReading | null =
+      await OnCallPolicyRunMessage.readRun(world.run!.id!);
+
+    expect(reading!.hasStarted).toBe(false);
+  });
+
+  test("an on-call policy's run is posted as it always was: once its first rule is under way", async () => {
+    await declareIncident();
+    await world.startRun();
+
+    const reading: OnCallPolicyRunReading | null =
+      await OnCallPolicyRunMessage.readRun(world.run!.id!);
+
+    expect(reading!.run.directPage).toBeUndefined();
+    expect(reading!.hasStarted).toBe(true);
+    expect(world.run!.lastExecutedEscalationRuleId).toBeDefined();
   });
 });
 

@@ -617,13 +617,21 @@ export default class OnCallPolicyRunMessage {
     /*
      * Read from the run itself: a rule is under way (OneUptime records the
      * rule on the run before it writes the rule's first step), or the run
-     * is over. A direct page has no rule: it has started once its paging
-     * has (the run records when, before its first step is written).
+     * is over.
+     *
+     * A direct page has no rule, and pages everybody it names in one pass.
+     * Its message waits for the end of that pass - the run is "executing"
+     * once somebody was paged, and over at once when nobody was - so the
+     * first post already says what the page came to. Posted at the pass's
+     * first step instead, a page that reached nobody told the channel
+     * "is paging for Incident INC-8" in one notification and "Nobody was
+     * paged" in a second message a moment later.
      */
     const hasStarted: boolean =
       run.outcome !== OnCallPolicyRunOutcome.Paging ||
       Boolean(executionLog.lastExecutedEscalationRuleId) ||
-      (isDirectPage && Boolean(executionLog.lastEscalationRuleExecutedAt));
+      (isDirectPage &&
+        executionLog.status === OnCallDutyPolicyStatus.Executing);
 
     return {
       projectId: projectId,

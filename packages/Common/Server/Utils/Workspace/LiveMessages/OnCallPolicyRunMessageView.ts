@@ -59,6 +59,19 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
  *   • Nobody was on call in schedule Secondary
  *
  *   See every step in OneUptime
+ *
+ * Its message is first posted once it has gone through everybody it names
+ * (OnCallPolicyRunMessage), so a direct page that reached nobody is that
+ * one message, with no alarm after it - and says what to do next itself:
+ *
+ *   ⚠️ Workflow Page the on-call engineer could not reach anyone for
+ *   Incident INC-8
+ *
+ *   • Nobody was on call in schedule Secondary
+ *
+ *   Check who is on call, or page someone yourself.
+ *
+ *   See every step in OneUptime
  */
 
 // How a run stands, as the message tells it.
@@ -204,6 +217,13 @@ export const ON_CALL_RUN_ALARM_OUTCOME: string = "outcome";
 // The reason of a person skipped without one: they were just not paged.
 export const ON_CALL_RUN_NOT_PAGED: string = "not paged";
 
+/*
+ * What somebody who reads "nobody could be reached" does next. It ends the
+ * alarm of a run that reached nobody, and the message of a direct page
+ * that did (getMarkdown).
+ */
+const WHAT_TO_DO_WHEN_NOBODY_WAS_REACHED: MarkdownText = mdText`Check who is on call, or page someone yourself.`;
+
 // How many of the people paged an alarm names before "and N others".
 const MAX_NAMES_IN_AN_ALARM: number = 5;
 
@@ -243,6 +263,20 @@ export default class OnCallPolicyRunMessageView {
 
     if (people.length > 0) {
       parts.push(FeedMarkdown.bulletList(people));
+    }
+
+    /*
+     * A direct page that reached nobody is over as soon as it has gone
+     * through the people it names, and its message is first posted then
+     * (OnCallPolicyRunMessage): this message is all the channel is told. A
+     * first post raises no alarm on top of itself, so it says what the
+     * alarm would have - what to do next - itself.
+     */
+    if (
+      run.directPage &&
+      run.outcome === OnCallPolicyRunOutcome.NobodyReached
+    ) {
+      parts.push(WHAT_TO_DO_WHEN_NOBODY_WAS_REACHED);
     }
 
     parts.push(
@@ -347,8 +381,8 @@ export default class OnCallPolicyRunMessageView {
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
           markdown: run.directPage
-            ? mdText`⚠️ Nobody was paged for ${record}: ${this.getPager(run, { isInSentence: true })} could not reach anyone${this.getNotPagedClause(run)}. Check who is on call, or page someone yourself.`.toString()
-            : mdText`⚠️ Nobody was paged for ${record}: no escalation rule of ${policy} reached anyone. Check who is on call, or page someone yourself.`.toString(),
+            ? mdText`⚠️ Nobody was paged for ${record}: ${this.getPager(run, { isInSentence: true })} could not reach anyone${this.getNotPagedClause(run)}. ${WHAT_TO_DO_WHEN_NOBODY_WAS_REACHED}`.toString()
+            : mdText`⚠️ Nobody was paged for ${record}: no escalation rule of ${policy} reached anyone. ${WHAT_TO_DO_WHEN_NOBODY_WAS_REACHED}`.toString(),
           text: `Nobody was paged for ${run.recordLabel}`,
         });
         break;

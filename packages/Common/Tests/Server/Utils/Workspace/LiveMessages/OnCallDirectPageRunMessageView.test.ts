@@ -31,6 +31,11 @@ const RECORD_URL: string = "https://oneuptime.test/dashboard/p/incidents/inc-8";
 const RECORD: string = `**[Incident INC-8](${RECORD_URL})**`;
 const WORKFLOW_LINK: string = `**[Page the on-call engineer](${WORKFLOW_URL})**`;
 
+// What a reader of "nobody could be reached" does next.
+const WHAT_TO_DO: string = "Check who is on call, or page someone yourself.";
+const WHAT_TO_DO_AT_THE_END: RegExp =
+  /\. Check who is on call, or page someone yourself\.$/;
+
 const BY_WORKFLOW: OnCallDirectPageRun = {
   startedByWorkflowName: "Page the on-call engineer",
   startedByWorkflowUrl: WORKFLOW_URL,
@@ -482,7 +487,7 @@ describe("a direct page that reached nobody", () => {
     expect(AWAY_UNTIL_SHOWN).not.toContain("UTC");
   });
 
-  test("its message says so, and lists why for each target", () => {
+  test("its message says so, lists why for each target, and says what to do next", () => {
     expect(OnCallPolicyRunMessageView.getMarkdown(page(NOBODY_REACHED))).toBe(
       [
         `⚠️ Workflow ${WORKFLOW_LINK} could not reach anyone for ${RECORD}`,
@@ -492,9 +497,89 @@ describe("a direct page that reached nobody", () => {
           "- Nobody was on call in schedule **Secondary**",
           "- Team **Platform** has no members",
         ].join("\n"),
+        WHAT_TO_DO,
         `[See every step in OneUptime](${RUN_URL})`,
       ].join("\n\n"),
     );
+  });
+
+  /*
+   * The message is the only thing the channel is told of such a page: it is
+   * first posted when the page is over, and a first post raises no alarm on
+   * top of itself. So what the alarm ends with, the message ends with.
+   */
+  test("what to do is the alarm's own closing sentence, once, between the reasons and the link", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+      page(NOBODY_REACHED),
+    );
+    const paragraphs: Array<string> = markdown.split("\n\n");
+
+    expect(paragraphs).toHaveLength(4);
+    expect(paragraphs[2]).toBe(WHAT_TO_DO);
+    expect(markdown.split(WHAT_TO_DO)).toHaveLength(2);
+
+    expect(
+      OnCallPolicyRunMessageView.getAlarms(page(NOBODY_REACHED))[0]!.markdown,
+    ).toMatch(WHAT_TO_DO_AT_THE_END);
+  });
+
+  test("with nothing to say why, it is the headline, what to do and the link", () => {
+    expect(
+      OnCallPolicyRunMessageView.getMarkdown(
+        page({ ...NOBODY_REACHED, notPaged: [] }),
+      ),
+    ).toBe(
+      [
+        `⚠️ Workflow ${WORKFLOW_LINK} could not reach anyone for ${RECORD}`,
+        WHAT_TO_DO,
+        `[See every step in OneUptime](${RUN_URL})`,
+      ].join("\n\n"),
+    );
+  });
+
+  test("a page a person started says it too", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+      page({
+        ...NOBODY_REACHED,
+        directPage: { startedByPersonName: "Sam Lee" },
+      }),
+    );
+
+    expect(markdown.split("\n\n")[0]).toBe(
+      `⚠️ **Sam Lee** could not reach anyone for ${RECORD}`,
+    );
+    expect(markdown.split("\n\n")).toContain(WHAT_TO_DO);
+  });
+
+  test("no other way a direct page stands says it: only this one is all the channel is told", () => {
+    for (const outcome of Object.values(OnCallPolicyRunOutcome)) {
+      if (outcome === OnCallPolicyRunOutcome.NobodyReached) {
+        continue;
+      }
+
+      expect(
+        OnCallPolicyRunMessageView.getMarkdown(
+          page({ outcome: outcome, acknowledgedByName: "Nitin" }),
+        ),
+      ).not.toContain(WHAT_TO_DO);
+    }
+  });
+
+  test("a policy's run that reached nobody leaves it to its alarm: its message was posted when its first rule began", () => {
+    const policyRun: OnCallPolicyRun = page({
+      ...NOBODY_REACHED,
+      directPage: undefined,
+      policyName: "PolicyX",
+      policyUrl: "https://oneuptime.test/dashboard/p/on-call-duty/policies/1",
+      ruleCount: 2,
+    });
+
+    expect(OnCallPolicyRunMessageView.getMarkdown(policyRun)).not.toContain(
+      WHAT_TO_DO,
+    );
+    expect(
+      OnCallPolicyRunMessageView.getAlarms(policyRun)[0]!.markdown,
+    ).toMatch(WHAT_TO_DO_AT_THE_END);
   });
 
   test("it raises one alarm that says why nobody was reached and what to do", () => {

@@ -612,9 +612,11 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     Service.assertTriggerMatchesEventType(options);
 
     /*
-     * When the page went out, on the run: its Slack and Microsoft Teams
-     * message is posted once the run has started (OnCallPolicyRunMessage),
-     * and a run that names no rule says so by this.
+     * When the page went out, on the run: how long it has waited for
+     * somebody to acknowledge is counted from here
+     * (OnCallDutyPolicyExecutionLog:ExecutePendingExecutions). Its Slack and
+     * Microsoft Teams message is posted once this pass is over
+     * (OnCallPolicyRunMessage), so its first post says who was paged.
      */
     await OnCallDutyPolicyExecutionLogService.updateOneById({
       id: options.onCallPolicyExecutionLogId,
