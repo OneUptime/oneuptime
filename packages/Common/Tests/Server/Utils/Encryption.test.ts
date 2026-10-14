@@ -67,4 +67,35 @@ describe("Encryption", () => {
       expect(await Encryption.decrypt(second)).toEqual(plainText);
     });
   });
+
+  describe("looksEncrypted", () => {
+    test("is true for anything this class encrypts", async () => {
+      for (const plainText of [
+        "a",
+        "super-secret-value",
+        "0123456789abcdef0123456789abcdef",
+        "a".repeat(5000),
+      ]) {
+        expect(
+          Encryption.looksEncrypted(await Encryption.encrypt(plainText)),
+        ).toBe(true);
+      }
+    });
+
+    test("is false for a plaintext value that was never encrypted", () => {
+      for (const plainText of [
+        "",
+        "0123456789abcdef0123456789abcdef",
+        "AC0123456789abcdef0123456789abcde",
+        "a Twilio auth token stored before the column was a secret",
+      ]) {
+        expect(Encryption.looksEncrypted(plainText)).toBe(false);
+      }
+    });
+
+    test("every value starts with the one prefix", async () => {
+      const cipherText: string = await Encryption.encrypt("anything");
+      expect(cipherText.startsWith(Encryption.CIPHERTEXT_PREFIX)).toBe(true);
+    });
+  });
 });

@@ -114,6 +114,7 @@ import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMoni
 import AddSessionReplayEngagementColumns from "./AddSessionReplayEngagementColumns";
 import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
 import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
+import EncryptProjectCallSMSConfigTwilioAuthToken from "./EncryptProjectCallSMSConfigTwilioAuthToken";
 import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
@@ -706,6 +707,12 @@ const DataMigrations: Array<DataMigrationBase> = [
    * last slot AddAuditLogMcpClientColumns asserts for itself. Idempotent.
    */
   new AddMissingIdsToMonitorSteps(),
+  /*
+   * Encrypts the Twilio auth tokens that were stored as plaintext before the
+   * column became a secret. No ordering requirement, so it sits before the
+   * last slot AddAuditLogMcpClientColumns asserts for itself. Idempotent.
+   */
+  new EncryptProjectCallSMSConfigTwilioAuthToken(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

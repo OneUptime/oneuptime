@@ -36,6 +36,7 @@ Salva le credenziali per un progetto, oppure una sola volta per l'intera install
 | --- | --- | --- |
 | Dove | La scheda **Configurazione Twilio** in **Impostazioni del progetto > Notifiche > Impostazioni notifiche** | **Admin Dashboard > Impostazioni > Chiamate e SMS** |
 | Chi può impostarla | **Project Owner**, **Project Admin**, oppure **Create Call and SMS** in un ruolo personalizzato | Un amministratore principale |
+| Chi può leggerne l'Auth Token | **Project Owner**, **Project Admin**, oppure **Read Call and SMS** in un ruolo personalizzato. Gli altri che vedono la configurazione ne vedono il resto; il token è salvato cifrato | Un amministratore principale |
 | Usata per | SMS e chiamate ai membri del progetto finché è la predefinita del progetto, le pagine di stato a cui è assegnata e le policy delle chiamate in arrivo che la usano | SMS e chiamate ai membri di qualsiasi progetto che non ha una configurazione predefinita |
 
 Per aggiungere una configurazione di progetto:

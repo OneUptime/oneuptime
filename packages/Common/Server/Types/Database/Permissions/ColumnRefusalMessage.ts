@@ -104,6 +104,19 @@ export default class ColumnRefusalMessage {
   }
 
   /*
+   * A column of a related record a query filters on through a relation -
+   * `{ smtpConfig: { password: ... } }` - that the caller may not read.
+   */
+  public static getRelationQueryRefusal(data: {
+    column: string;
+    relatedModelName: string;
+    relationColumn: string;
+    permissions: Array<Permission>;
+  }): string {
+    return `You do not have permissions to query on - ${data.column} of ${data.relatedModelName} through ${data.relationColumn}. ${ColumnRefusalMessage.getWhoMay("query", data.permissions)}`;
+  }
+
+  /*
    * A column a create or an update writes that the caller may not write.
    * With no list, the first sentence alone: a refusal that is not about
    * permissions (IncidentService's second template).

@@ -36,6 +36,7 @@ Spara autentiseringsuppgifterna för ett projekt, eller en gång för hela insta
 | --- | --- | --- |
 | Var | Kortet **Twilio-konfiguration** under **Projektinställningar > Aviseringar > Aviseringsinställningar** | **Admin Dashboard > Inställningar > Samtal och SMS** |
 | Vem kan ange den | **Project Owner**, **Project Admin** eller **Create Call and SMS** i en anpassad roll | En master admin |
+| Vem kan läsa dess Auth Token | **Project Owner**, **Project Admin** eller **Read Call and SMS** i en anpassad roll. Andra som ser konfigurationen ser resten av den; token lagras krypterad | En master admin |
 | Används för | SMS och samtal till projektets medlemmar så länge den är projektstandard, de statussidor den är tilldelad och de policyer för inkommande samtal som använder den | SMS och samtal till medlemmarna i alla projekt som saknar standardkonfiguration |
 
 Så lägger du till en projektkonfiguration:
