@@ -113,6 +113,12 @@ const SOURCES: Record<string, string> = {
     "Common/Server/Services/WorkspaceNotificationRuleService.ts",
   teamsReactionJob:
     "App/FeatureSet/Workers/Jobs/MicrosoftTeams/SyncReactionNotes.ts",
+  slackReactionNote: `${WORKSPACE_UTILS}/Slack/Actions/ReactionNote.ts`,
+  teamsReactionNoteSync: `${WORKSPACE_UTILS}/MicrosoftTeams/ReactionNoteSync.ts`,
+  reactionNote: `${WORKSPACE_UTILS}/WorkspaceReactionNote.ts`,
+  savedChatMessageAuthor: `${WORKSPACE_UTILS}/SavedChatMessageAuthor.ts`,
+  incidentInternalNoteService:
+    "Common/Server/Services/IncidentInternalNoteService.ts",
   videoCallMessages: "Common/Server/Utils/VideoCall/VideoCallMessages.ts",
   videoCallTokenStore:
     "Common/Server/Utils/VideoCall/OAuth/VideoCallOAuthTokenStore.ts",
@@ -821,6 +827,79 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       "pin_added",
     );
     expect(englishPage(SLACK)).toContain("Slack's own **Pin to channel**");
+  });
+
+  it("saves a message as its author's words, filed when it was posted, with no files on a public note, and not back in its channel", () => {
+    for (const [page, source, noteType] of [
+      [SLACK, "slackReactionNote", "noteType"],
+      [TEAMS, "teamsReactionNoteSync", "reaction.noteType"],
+    ] as Array<[string, string, string]>) {
+      const notes: string = section(
+        englishPage(page),
+        2,
+        "Saving messages as notes",
+      );
+
+      // Files and images are links in a private note, left out of a public one.
+      expect(notes).toContain(
+        "its files and images as links to them. A public note leaves the files and images out, since they open only for your team.",
+      );
+      expect(readSource(source)).toContain(
+        `withoutAttachments: ${noteType} === WorkspaceNoteType.Public`,
+      );
+
+      // Whose words they are, when they were posted, and who saved them.
+      expect(notes).toContain(
+        "It is the words of whoever wrote the message: their OneUptime name when their",
+      );
+      // A private note at the message's time; a public one when it is published.
+      expect(notes).toContain(
+        "A private note is filed in the timeline when the message was posted, however long after it is saved.",
+      );
+      expect(notes).toContain(
+        "A public note is filed when it is saved, which is when the status page shows it. The timeline says who saved it.",
+      );
+      expect(notes).toContain(
+        "The note is not posted back into the channel, where the message already is.",
+      );
+    }
+
+    // The author's OneUptime name, when their chat account is connected.
+    expect(readSource("savedChatMessageAuthor")).toContain(
+      "getConnectedMember",
+    );
+    // A private note is filed when its message was posted; a public one is not.
+    expect(readSource("reactionNote")).toContain("getNotePostedAt");
+    expect(readSource("reactionNote")).toContain(
+      "if (data.noteType !== WorkspaceNoteType.Private) {\n      return undefined;\n    }",
+    );
+    // Its timeline entry skips the channel the message is in.
+    expect(readSource("incidentInternalNoteService")).toContain(
+      "exceptChannel: SavedChatMessageNote.getSourceChannel(",
+    );
+
+    // Somebody not connected is asked once, where only they see it in Slack.
+    expect(
+      section(englishPage(SLACK), 2, "Saving messages as notes"),
+    ).toContain(
+      "If your Slack account is not connected yet, OneUptime asks you to connect it, in a message only you see, with a button that saves the message as soon as you have.",
+    );
+    expect(readSource("slackReactionNote")).toContain(
+      "SlackConnectPrompt.promptOnce(",
+    );
+
+    // In Microsoft Teams, in a reply that mentions them, with its Connect button.
+    expect(
+      section(englishPage(TEAMS), 2, "Saving messages as notes"),
+    ).toContain(
+      "If your Microsoft Teams account is not connected yet, OneUptime asks you to connect it, in a reply that mentions you, with a button that saves the message as soon as you have.",
+    );
+    expect(readSource("teamsReactionNoteSync")).toContain(
+      "MicrosoftTeamsActionAnswer.sendToPlace(",
+    );
+    expect(readSource("teamsReactionNoteSync")).toContain(
+      "connectUrl: link.url",
+    );
   });
 
   it("picks a Microsoft Teams reaction up within a minute, as its job runs", () => {

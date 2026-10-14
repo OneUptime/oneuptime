@@ -16,31 +16,33 @@
 # gomplate is needed. Run from anywhere:
 #
 #   bash Tests/Ops/lint-app-dockerfile.sh
+#
+# Each check goes through Scripts/GHA/buildx_check.sh, which gives it an empty
+# context (--check reads only the Dockerfile) and, when public.ecr.aws refuses
+# the base images with its anonymous-quota 429, checks again with them taken
+# from Docker Hub.
 
 set -euo pipefail
 
 OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${OPS_DIR}/../.." && pwd)"
 TEMPLATE="${REPO_ROOT}/packages/App/Dockerfile.tpl"
+BUILDX_CHECK="${REPO_ROOT}/Scripts/GHA/buildx_check.sh"
 
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
-
-# --check reads only the Dockerfile, so an empty context is enough and keeps
-# the check from uploading the repository.
-CONTEXT="${WORK_DIR}/context"
-mkdir -p "$CONTEXT"
 
 node "${OPS_DIR}/Utils/DockerfileTemplate.js" "$TEMPLATE" production > "${WORK_DIR}/Dockerfile.production"
 node "${OPS_DIR}/Utils/DockerfileTemplate.js" "$TEMPLATE" development > "${WORK_DIR}/Dockerfile.development"
 
 FAILED=0
 
+# check <label> <dockerfile> [<docker buildx build option>...]
 check() {
 	local label="$1"
 	shift
 	echo "── ${label}"
-	if docker buildx build --check "$@" "$CONTEXT"; then
+	if bash "$BUILDX_CHECK" "$@"; then
 		echo "✅ ${label}"
 	else
 		echo "❌ ${label}" >&2
@@ -48,10 +50,10 @@ check() {
 	fi
 }
 
-check "production, default target" -f "${WORK_DIR}/Dockerfile.production"
-check "production, --target community" -f "${WORK_DIR}/Dockerfile.production" --target community
-check "production, --target enterprise" -f "${WORK_DIR}/Dockerfile.production" --target enterprise
-check "development" -f "${WORK_DIR}/Dockerfile.development"
+check "production, default target" "${WORK_DIR}/Dockerfile.production"
+check "production, --target community" "${WORK_DIR}/Dockerfile.production" --target community
+check "production, --target enterprise" "${WORK_DIR}/Dockerfile.production" --target enterprise
+check "development" "${WORK_DIR}/Dockerfile.development"
 
 if [[ "$FAILED" -ne 0 ]]; then
 	echo "❌ BuildKit rejected the App Dockerfile" >&2

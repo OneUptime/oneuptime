@@ -66,12 +66,23 @@ jest.mock(
 );
 
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsReactionNotesTips",
+  "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceReactionNotesTips",
   () => {
     return {
       __esModule: true,
-      default: (): ReactElement => {
-        return <div data-testid="teams-tips" />;
+      default: (props: {
+        workspaceType: string;
+        resourceName: string;
+        supportsPublicNotes: boolean;
+      }): ReactElement => {
+        return (
+          <div
+            data-testid="reaction-notes-tips"
+            data-workspace-type={props.workspaceType}
+            data-resource-name={props.resourceName}
+            data-public-notes={String(props.supportsPublicNotes)}
+          />
+        );
       },
     };
   },
@@ -500,6 +511,73 @@ describe("a product's Slack or Microsoft Teams page", () => {
       ).not.toBeInTheDocument();
     },
   );
+
+  /*
+   * Saving a chat message as a note works the same in both chats: each
+   * record's Slack and Microsoft Teams pages show the one tips card, for
+   * their own chat, with a public note only where the record has them.
+   */
+  test.each([
+    ["Incidents > Slack", 0, WorkspaceType.Slack, "incident", "true"],
+    [
+      "Incidents > Microsoft Teams",
+      1,
+      WorkspaceType.MicrosoftTeams,
+      "incident",
+      "true",
+    ],
+    ["Alerts > Slack", 2, WorkspaceType.Slack, "alert", "false"],
+    [
+      "Alerts > Microsoft Teams",
+      3,
+      WorkspaceType.MicrosoftTeams,
+      "alert",
+      "false",
+    ],
+    [
+      "Scheduled Maintenance > Slack",
+      4,
+      WorkspaceType.Slack,
+      "scheduled maintenance event",
+      "true",
+    ],
+    [
+      "Scheduled Maintenance > Microsoft Teams",
+      5,
+      WorkspaceType.MicrosoftTeams,
+      "scheduled maintenance event",
+      "true",
+    ],
+  ])(
+    "%s: the emoji reaction tips for its own chat",
+    async (
+      _name: string,
+      index: number,
+      workspaceType: WorkspaceType,
+      resourceName: string,
+      publicNotes: string,
+    ) => {
+      const page: WorkspacePage = PAGES[index]!;
+      connect(page.workspaceType);
+      await renderPage(page);
+
+      const tips: HTMLElement = screen.getByTestId("reaction-notes-tips");
+
+      expect(tips).toHaveAttribute("data-workspace-type", workspaceType);
+      expect(tips).toHaveAttribute("data-resource-name", resourceName);
+      expect(tips).toHaveAttribute("data-public-notes", publicNotes);
+    },
+  );
+
+  test("the monitor and on-call pages have no reaction tips: nothing there is saved as a note", async () => {
+    for (const page of PAGES.slice(6)) {
+      connect(page.workspaceType);
+      await renderPage(page);
+
+      expect(screen.queryByTestId("reaction-notes-tips")).toBeNull();
+      cleanup();
+    }
+  });
 
   test("the remembered answer is not enough to draw the rules of a workspace", async () => {
     window.localStorage.setItem(

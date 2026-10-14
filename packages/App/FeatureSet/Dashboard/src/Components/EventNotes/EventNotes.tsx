@@ -42,6 +42,7 @@ import {
   canWriteNoteColumn,
   getNoteId,
   getNotesCopy,
+  getNoteSortField,
   getNoteTimestamp,
   groupNotesByDay,
   hasNotificationInFlight,
@@ -243,8 +244,8 @@ function EventNotes<TNote extends BaseModel>(
     heldPermissions.blocked.join(","),
   ]);
 
-  const timestampField: string =
-    isPublic && model.hasColumn("postedAt") ? "postedAt" : "createdAt";
+  // The time each note is filed under (getNoteTimestamp), as the server sorts.
+  const timestampField: string = getNoteSortField(model);
 
   /*
    * initial: the first load, drawn as a skeleton.

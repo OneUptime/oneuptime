@@ -808,6 +808,45 @@ describe("what still reaches the channel as it always did", () => {
     expect(slack.posts()[0]!.text).toContain("Jane Doe");
     expect(slack.posts()[0]!.text).toContain("Restarted the primary database.");
   });
+
+  test("a message saved as a note is not posted back into the channel it is in", async () => {
+    await world.incidentNoteSavedFromChat({
+      text: "Not sure what's happening here, is this triggered by something?",
+      workspaceType: WorkspaceType.Slack,
+      channelId: SLACK_INCIDENT_CHANNEL,
+    });
+
+    // The message is there already: nothing more is said in #inc-inc-8.
+    expect(slack.requests).toEqual([]);
+    // The note is in the incident's timeline all the same.
+    expect(world.feed).toEqual([
+      expect.objectContaining({ eventType: "PrivateNote" }),
+    ]);
+  });
+
+  test("a message saved as a note from another channel is posted to the incident's", async () => {
+    await world.incidentNoteSavedFromChat({
+      text: "Not sure what's happening here, is this triggered by something?",
+      workspaceType: WorkspaceType.Slack,
+      channelId: "C0SOMEWHEREELSE",
+    });
+
+    expect(slack.posts()).toHaveLength(1);
+    expect(slack.posts()[0]!.channel).toBe(SLACK_INCIDENT_CHANNEL);
+    expect(slack.posts()[0]!.text).toContain(
+      "📄 \u200B*Aidil Rahman*\u200B posted \u200B*private note*\u200B for this",
+    );
+  });
+
+  test("a Microsoft Teams message's note is still posted in Slack", async () => {
+    await world.incidentNoteSavedFromChat({
+      text: "Rolled back.",
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      channelId: SLACK_INCIDENT_CHANNEL,
+    });
+
+    expect(slack.posts()).toHaveLength(1);
+  });
 });
 
 describe("an alert, in its Slack channel", () => {

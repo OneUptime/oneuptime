@@ -307,7 +307,7 @@ Los tokens caducan al cabo de un año por defecto y no se renuevan. Para no tene
 ### Abrir una incidencia de Jira por cada incidente
 
 :::steps
-1. Crea desde cero un flujo de trabajo llamado `Incidents to Jira`. Haz clic en el bloque discontinuo y añade el disparador **On Create Incident**. En sus **Fields to pass on**, pide `{"_id": true, "title": true, "description": true, "incidentNumber": true}`. Deja su **Identificador** como `incident-on-create-1`.
+1. Crea desde cero un flujo de trabajo llamado `Incidents to Jira`. Haz clic en el bloque discontinuo y añade el disparador **On Create Incident**. Sus **Fields to pass on** empiezan con **Título**: haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente**. El ID siempre se transmite. Deja su **Identificador** como `incident-on-create-1`.
 2. Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Success** del disparador. Pon su **Identificador** en `create-issue`, su **URL** en `{{global.variables.JIRA_URL}}/rest/api/3/issue` y, en **Más campos**, sus **Request Headers** en `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Pon su **Request Body** en la incidencia, y sustituye `OPS` y `Bug` por la clave de tu proyecto y un tipo de incidencia de ese proyecto:
 
@@ -384,14 +384,14 @@ Para dar a todos en Jira un camino de vuelta, añade después de `create-issue` 
 }
 ```
 
-Para esto, añade `projectId` a los **Fields to pass on** del disparador, y conserva el `.value`: una columna que contiene el ID de otro registro llega como `{"_type": "ObjectID", "value": "..."}`. El `globalId` hace que la llamada se pueda repetir sin riesgo: Jira actualiza el enlace que lo lleva en lugar de añadir un segundo.
+Para esto, en los **Fields to pass on** del disparador, haz clic en **Añadir campo** y elige **ID del proyecto**, y conserva el `.value`: una columna que contiene el ID de otro registro llega como `{"_type": "ObjectID", "value": "..."}`. El `globalId` hace que la llamada se pueda repetir sin riesgo: Jira actualiza el enlace que lo lleva en lugar de añadir un segundo.
 
 ### Comentar y hacer la transición a medida que avanza el incidente
 
 Constrúyelo como un segundo flujo de trabajo, para que un fallo aquí nunca impida abrir incidencias.
 
 :::steps
-1. Crea un flujo de trabajo llamado `Incident updates to Jira`, con el disparador **On Update Incident**. Pon **Fields to watch** en `{"currentIncidentStateId": true}` y **Fields to pass on** en `{"_id": true, "currentIncidentState": {"name": true}}`.
+1. Crea un flujo de trabajo llamado `Incident updates to Jira`, con el disparador **On Update Incident**. En **Fields to watch**, haz clic en **Añadir campo** y elige **Estado actual del incidente**. En **Fields to pass on**, haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Nombre**.
 2. Añade un bloque **If / Else**: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, o el nombre de tu estado resuelto.
 3. Después de su lado **Yes**, encuentra la incidencia con un bloque **API Post (JSON)** cuyo **Identificador** sea `find-issue`, que publique en `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 

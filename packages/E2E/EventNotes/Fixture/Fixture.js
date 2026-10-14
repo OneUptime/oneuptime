@@ -358,7 +358,12 @@ function note(modelType, parentKey, parentId, spec) {
     note: spec.note,
     createdAt,
     updatedAt: createdAt,
-    postedAt: spec.postedAt || (spec.isPublic ? createdAt : undefined),
+    /*
+     * Every note is filed at postedAt, private ones too: the services set it
+     * on create, and AddSavedChatMessageToNotes1801800000000 filled it in
+     * from createdAt for the private notes written before.
+     */
+    postedAt: spec.postedAt || createdAt,
     createdByUser: spec.by || undefined,
     createdByUserId: spec.by ? spec.by.id : undefined,
     attachments: spec.attachments || [],
@@ -786,8 +791,9 @@ ModelAPI.createOrUpdate = async (options) => {
   record.createdAt = NOW;
   record.createdByUser = people.maya;
   record.createdByUserId = people.maya.id;
+  // As every note service does on create, a private note's included.
+  record.postedAt = record.postedAt || NOW;
   if (isPublicNote) {
-    record.postedAt = record.postedAt || NOW;
     const shouldNotify =
       record.shouldStatusPageSubscribersBeNotifiedOnNoteCreated !== false;
     record.subscriberNotificationStatusOnNoteCreated = shouldNotify

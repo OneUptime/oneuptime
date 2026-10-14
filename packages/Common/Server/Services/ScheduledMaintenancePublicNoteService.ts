@@ -26,6 +26,10 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import SavedChatMessage from "../../Types/Workspace/SavedChatMessage";
+import SavedChatMessageNote, {
+  SavedChatMessageNoteKind,
+} from "../Utils/Notes/SavedChatMessageNote";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -216,6 +220,24 @@ export class Service extends ProjectReferencesService<Model> {
       "/scheduled-maintenance-public-note/attachment",
     );
 
+    const scheduledMaintenanceNumberDisplay: string =
+      scheduledMaintenanceNumberResult.numberWithPrefix ||
+      "#" + scheduledMaintenanceNumberResult.number;
+    const scheduledMaintenanceLink: string = (
+      await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+        projectId!,
+        scheduledMaintenanceId!,
+      )
+    ).toString();
+
+    /*
+     * A message saved as a public note: its entry names who wrote it and
+     * who saved it, and is not posted back into the channel the message is
+     * in. Like any public note it is filed when it was published.
+     */
+    const saved: SavedChatMessage | null =
+      SavedChatMessageNote.read(createdItem);
+
     await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
       scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
       projectId: createdItem.projectId!,
@@ -223,14 +245,33 @@ export class Service extends ProjectReferencesService<Model> {
         ScheduledMaintenanceFeedEventType.PublicNote,
       displayColor: Indigo500,
       userId: userId || undefined,
-      feedInfoInMarkdown:
-        mdText`📄 posted **public note** for this [Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) on status page:
-    
+      ...(saved ? { savedFromChatMessage: saved } : {}),
+      feedInfoInMarkdown: saved
+        ? SavedChatMessageNote.getFeedMarkdown({
+            saved: saved,
+            noteKind: SavedChatMessageNoteKind.Public,
+            record: mdText`[Scheduled Maintenance ${scheduledMaintenanceNumberDisplay}](${scheduledMaintenanceLink})`,
+            savedByName: await SavedChatMessageNote.getSavedByName({
+              saved: saved,
+              userId: userId,
+            }),
+            note: SavedChatMessageNote.getNoteMarkdown({
+              note: createdItem.note,
+              attachments: attachmentsMarkdown,
+            }),
+          }).toString()
+        : mdText`📄 posted **public note** for this [Scheduled Maintenance ${scheduledMaintenanceNumberDisplay}](${scheduledMaintenanceLink}) on status page:
+
 ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
               `.toString(),
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: userId || undefined,
+        // A saved message's entry names its people itself.
+        notifyUserId: saved ? undefined : userId || undefined,
+        exceptChannel: SavedChatMessageNote.getSourceChannel({
+          saved: saved,
+          messageKey: createdItem.postedFromSlackMessageId,
+        }),
       },
     });
 
@@ -314,6 +355,9 @@ ${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
    * create the note and their read of the scheduled maintenance event, it is held to the
    * project's plan, and it is theirs - DatabaseService stamps them as its
    * creator.
+   *
+   * A message saved as a note keeps who wrote it, in which chat and when
+   * (savedFromChatMessage, SavedChatMessageNote). It is published now, as any public note is.
    */
   @CaptureSpan()
   public async addNote(data: {
@@ -321,6 +365,7 @@ ${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
     projectId: ObjectID;
     note: string;
     postedFromSlackMessageId?: string | undefined;
+    savedFromChatMessage?: SavedChatMessage | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<Model> {
     const publicNote: Model = new Model();
@@ -333,10 +378,25 @@ ${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
       publicNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
     }
 
-    return this.create({
-      data: publicNote,
-      props: data.props,
+    return await SavedChatMessageNote.create({
+      createBy: {
+        data: publicNote,
+        props: data.props,
+      },
+      savedFromChatMessage: data.savedFromChatMessage,
+      create: (createBy: CreateBy<Model>): Promise<Model> => {
+        return this.create(createBy);
+      },
     });
+  }
+
+  // Where a message saved as a note came from: no caller may write it.
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+    SavedChatMessageNote.writeHandedOver(onCreate.createBy);
   }
 
   @CaptureSpan()

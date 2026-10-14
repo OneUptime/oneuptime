@@ -1700,6 +1700,26 @@ export default class SlackUtil extends WorkspaceBase {
       }
     }
 
+    /*
+     * A channel the message is not for: the one a note it repeats was
+     * saved from (WorkspaceMessagePayload.exceptChannelIds) - named here
+     * by its name too, so it is left out once the name is resolved.
+     */
+    const exceptChannelIds: Array<string> =
+      data.workspaceMessagePayload.exceptChannelIds || [];
+
+    if (exceptChannelIds.length > 0) {
+      for (
+        let index: number = workspaceChannelsToPostTo.length - 1;
+        index >= 0;
+        index--
+      ) {
+        if (exceptChannelIds.includes(workspaceChannelsToPostTo[index]!.id)) {
+          workspaceChannelsToPostTo.splice(index, 1);
+        }
+      }
+    }
+
     logger.debug("Channel IDs to post to:", sendMsgLogAttributes);
     logger.debug(workspaceChannelsToPostTo, sendMsgLogAttributes);
 
@@ -2027,6 +2047,11 @@ export default class SlackUtil extends WorkspaceBase {
     channelId: string;
     threadTs: string;
     text: string;
+    /*
+     * Leave the message's links without a preview: a short answer whose
+     * link goes to OneUptime gains nothing from a card about OneUptime.
+     */
+    withoutLinkPreviews?: boolean | undefined;
   }): Promise<void> {
     const threadLogAttributes: LogAttributes = { channelId: data.channelId };
 
@@ -2040,6 +2065,9 @@ export default class SlackUtil extends WorkspaceBase {
           channel: data.channelId,
           thread_ts: data.threadTs,
           text: data.text,
+          ...(data.withoutLinkPreviews
+            ? { unfurl_links: false, unfurl_media: false }
+            : {}),
         },
         headers: {
           Authorization: `Bearer ${data.authToken}`,
@@ -2073,6 +2101,91 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     logger.debug("Thread message sent successfully.", threadLogAttributes);
+  }
+
+  /*
+   * A message as Slack hands it over - its text, blocks, files, author and
+   * ts - found by its ts in its channel, or in a thread of it
+   * (getMessageDetailsByTimestamp). Null when Slack has no such message.
+   */
+  @CaptureSpan()
+  public static async getMessage(data: {
+    authToken: string;
+    channelId: string;
+    messageTs: string;
+  }): Promise<JSONObject | null> {
+    return (
+      (await this.findMessageByTimestamp({
+        ...data,
+        apiMethod: "conversations.history",
+      })) ||
+      (await this.findMessageByTimestamp({
+        ...data,
+        apiMethod: "conversations.replies",
+      }))
+    );
+  }
+
+  /*
+   * The name Slack shows for a person - their display name, else their full
+   * name, else their handle - and whether they are a bot. Null when Slack
+   * does not say (an unknown user, a user of another workspace in a shared
+   * channel, a refusal).
+   */
+  @CaptureSpan()
+  public static async getUserDisplayName(data: {
+    authToken: string;
+    userId: string;
+  }): Promise<{ name: string; isBot: boolean } | null> {
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post<JSONObject>({
+        url: URL.fromString("https://slack.com/api/users.info"),
+        data: {
+          user: data.userId,
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/x-www-form-urlencoded",
+        },
+        options: {
+          retries: 1,
+        },
+      });
+
+    if (
+      response instanceof HTTPErrorResponse ||
+      (response.jsonData as JSONObject)?.["ok"] !== true
+    ) {
+      logger.debug("Slack did not say who a user is.");
+      return null;
+    }
+
+    const user: JSONObject | undefined = (response.jsonData as JSONObject)[
+      "user"
+    ] as JSONObject | undefined;
+    const profile: JSONObject | undefined = user?.["profile"] as
+      | JSONObject
+      | undefined;
+
+    const name: string =
+      [
+        profile?.["display_name"],
+        profile?.["real_name"],
+        user?.["real_name"],
+        user?.["name"],
+      ]
+        .map((value: unknown): string => {
+          return typeof value === "string" ? value.trim() : "";
+        })
+        .find((value: string): boolean => {
+          return value.length > 0;
+        }) || "";
+
+    if (!name) {
+      return null;
+    }
+
+    return { name: name, isBot: user?.["is_bot"] === true };
   }
 
   @CaptureSpan()

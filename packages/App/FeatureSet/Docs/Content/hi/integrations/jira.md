@@ -307,7 +307,7 @@ Jira Cloud खाते के ईमेल और एक API टोकन स�
 ### हर घटना के लिए Jira इश्यू खोलें
 
 :::steps
-1. शुरू से `Incidents to Jira` नाम का वर्कफ़्लो बनाएं। डैश वाले ब्लॉक पर क्लिक करें और **On Create Incident** ट्रिगर जोड़ें। उसके **Fields to pass on** में `{"_id": true, "title": true, "description": true, "incidentNumber": true}` मांगें। उसका **Identifier** `incident-on-create-1` ही रहने दें।
+1. शुरू से `Incidents to Jira` नाम का वर्कफ़्लो बनाएं। डैश वाले ब्लॉक पर क्लिक करें और **On Create Incident** ट्रिगर जोड़ें। उसके **Fields to pass on** में पहले से **शीर्षक** है: **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** और **घटना संख्या** चुनें। ID हमेशा आगे भेजा जाता है। उसका **Identifier** `incident-on-create-1` ही रहने दें।
 2. **घटक जोड़ें** पर क्लिक करें, एक **API Post (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **Success** बिंदु को उससे जोड़ें। उसका **Identifier** `create-issue` पर, उसका **URL** `{{global.variables.JIRA_URL}}/rest/api/3/issue` पर, और **और फ़ील्ड** के नीचे उसके **Request Headers** को `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}` पर सेट करें।
 3. उसकी **Request Body** को इश्यू पर सेट करें, और `OPS` और `Bug` को अपनी प्रोजेक्ट कुंजी और उस प्रोजेक्ट के किसी इश्यू प्रकार से बदलें:
 
@@ -384,14 +384,14 @@ Jira में सभी को वापस आने का रास्ता
 }
 ```
 
-इसके लिए ट्रिगर के **Fields to pass on** में `projectId` जोड़ें, और `.value` बनाए रखें: किसी दूसरे रिकॉर्ड का ID रखने वाला कॉलम `{"_type": "ObjectID", "value": "..."}` के रूप में आता है। `globalId` कॉल को दोहराने के लिए सुरक्षित बनाता है: Jira दूसरा लिंक जोड़ने के बजाय उस लिंक को अपडेट करता है जिस पर यह होता है।
+इसके लिए ट्रिगर के **Fields to pass on** में **फ़ील्ड जोड़ें** पर क्लिक करें और **प्रोजेक्ट ID** चुनें, और `.value` बनाए रखें: किसी दूसरे रिकॉर्ड का ID रखने वाला कॉलम `{"_type": "ObjectID", "value": "..."}` के रूप में आता है। `globalId` कॉल को दोहराने के लिए सुरक्षित बनाता है: Jira दूसरा लिंक जोड़ने के बजाय उस लिंक को अपडेट करता है जिस पर यह होता है।
 
 ### घटना आगे बढ़ने पर टिप्पणी और ट्रांज़िशन करें
 
 इसे दूसरे वर्कफ़्लो के रूप में बनाएं, ताकि यहां की विफलता इश्यू खुलने से कभी न रोके।
 
 :::steps
-1. **On Update Incident** ट्रिगर के साथ `Incident updates to Jira` नाम का वर्कफ़्लो बनाएं। **Fields to watch** को `{"currentIncidentStateId": true}` पर और **Fields to pass on** को `{"_id": true, "currentIncidentState": {"name": true}}` पर सेट करें।
+1. **On Update Incident** ट्रिगर के साथ `Incident updates to Jira` नाम का वर्कफ़्लो बनाएं। **Fields to watch** में **फ़ील्ड जोड़ें** पर क्लिक करें और **Current Incident State** चुनें। **Fields to pass on** में **फ़ील्ड जोड़ें** पर क्लिक करें, **Current Incident State** खोलें और **नाम** चुनें।
 2. एक **If / Else** ब्लॉक जोड़ें: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, या आपकी सुलझी हुई स्थिति का नाम।
 3. उसकी **Yes** साइड के बाद, एक **API Post (JSON)** ब्लॉक से इश्यू ढूंढें, जिसका **Identifier** `find-issue` हो, और जो `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` पर पोस्ट करे:
 
