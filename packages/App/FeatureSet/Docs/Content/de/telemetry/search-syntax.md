@@ -195,6 +195,7 @@ Chips gehören zur gespeicherten Ansicht und zur URL der Seite, ein Filter über
 - Attribut-**Schlüssel** werden bei Platzhalter-, Enthält- sowie Präfix- und Suffixfiltern ohne Rücksicht auf Groß- und Kleinschreibung abgeglichen; Sie müssen sich also nicht merken, ob er als `requestId` oder `requestid` aufgenommen wurde.
 - Ein Filter `-@k:...` trifft auch auf Zeilen zu, die das Attribut nie hatten – eine Zeile ganz ohne `platform.team` beginnt selbstverständlich nicht mit `a`.
 - Zahlenvergleiche funktionieren mit Attributwerten, die als Text gespeichert sind; ein Wert, der keine Zahl ist, erfüllt nie einen Vergleich.
+- Bei Protokollen und Traces wird ein exakter Wert, etwa `@http.route:/orders`, `@k:(a OR b)` oder ein in der Facetten-Seitenleiste angeklickter Wert, in einem Index nachgeschlagen, sodass die Suche nach einem Wert, den wenige Zeilen tragen, auch über lange Zeiträume schnell bleibt. Platzhalter, Enthält-Filter, Ausschlüsse und Vergleiche lesen jede Protokollzeile und jeden Span im Zeitraum: Ist eine solche Suche langsam, fügen Sie einen exakten Wert hinzu oder wählen Sie einen kürzeren Zeitraum.
 
 ## Nächste Schritte
 

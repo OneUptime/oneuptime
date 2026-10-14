@@ -16,6 +16,11 @@ export interface SubscribePageProps extends PageComponentProps {
   enableWebhookSubscribers: boolean;
   allowSubscribersToChooseResources: boolean;
   allowSubscribersToChooseEventTypes: boolean;
+  /*
+   * The page takes only its private users as subscribers: the email
+   * subscribe page subscribes the address the reader signed in with.
+   */
+  subscribeWithSignInEmail?: boolean | undefined;
 }
 
 /*

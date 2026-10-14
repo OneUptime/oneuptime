@@ -819,6 +819,34 @@ describe("FeedMarkdown helpers", () => {
     );
   });
 
+  test("textInLine: escaped as a value is, but as text inside its line", () => {
+    // What starts a block at a line's start is left as typed.
+    expect(FeedMarkdown.textInLine(" - rolled back").toString()).toBe(
+      " - rolled back",
+    );
+    expect(FeedMarkdown.textInLine("# 1. + > = |").toString()).toBe(
+      "# 1. + > = |",
+    );
+    // Everything else is escaped as in a sentence.
+    expect(
+      FeedMarkdown.textInLine(
+        "*a* [b](https://x.example) <c> `d` <!here>",
+      ).toString(),
+    ).toBe(
+      `\\*a\\* \\[b\\](https://x.example) \\<c> \\\`d\\\` \\<${WORD_JOINER}!here>`,
+    );
+    expect(FeedMarkdown.textInLine(null).toString()).toBe("");
+
+    // After words on a line, it reads as typed in every renderer.
+    const markdown: string =
+      mdText`**Update**${FeedMarkdown.textInLine(" - # x")}`.toString();
+
+    expect(markdown).toBe("**Update** - # x");
+    expect(renderAsDashboard([markdown])[0]).toBe(
+      "<p><strong>Update</strong> - # x</p>",
+    );
+  });
+
   test("bulletList: one bullet per item, each item as text", () => {
     expect(
       FeedMarkdown.bulletList(["prod", "-canary", mdText`**x**`]).toString(),

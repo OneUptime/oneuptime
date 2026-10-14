@@ -9,6 +9,12 @@ export interface ComponentProps {
   userId: ObjectID | null;
   name: string;
   isAutomation?: boolean | undefined;
+  /*
+   * The author has no name, only a stand-in for one ("Someone": a chat that
+   * did not say who wrote a message): a person, rather than the stand-in's
+   * initials, which would read as somebody's.
+   */
+  isNameless?: boolean | undefined;
   size?: "sm" | "md" | undefined;
 }
 
@@ -35,7 +41,8 @@ export function getInitialsColor(seed: string): string {
 
 /*
  * The author's profile picture, with their initials when there is no picture
- * to load (or it fails to), and the OneUptime mark for notes nobody typed.
+ * to load (or it fails to), the OneUptime mark for notes nobody typed, and a
+ * plain person for an author nobody named.
  */
 const NoteAvatar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -67,6 +74,18 @@ const NoteAvatar: FunctionComponent<ComponentProps> = (
         }}
         className={`${sizeClassName} shrink-0 rounded-full bg-gray-100 object-cover ring-4 ring-white`}
       />
+    );
+  }
+
+  if (props.isNameless) {
+    return (
+      <span
+        aria-hidden="true"
+        className={`${sizeClassName} flex shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 ring-4 ring-white`}
+        data-testid="note-avatar-nameless"
+      >
+        <Icon icon={IconProp.User} className="h-4 w-4" />
+      </span>
     );
   }
 

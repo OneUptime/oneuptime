@@ -3,11 +3,11 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
-import { appendAttributeOperatorFilter } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
+import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import LogDatabaseService from "./LogService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
-import { JSONObject, ObjectType } from "../../Types/JSON";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -1059,87 +1059,24 @@ export class LogAggregationService {
       );
     }
 
-    if (request.attributes && Object.keys(request.attributes).length > 0) {
-      for (const [attrKey, attrValue] of Object.entries(request.attributes)) {
-        LogAggregationService.validateFacetKey(attrKey);
-
-        /*
-         * Match attribute keys case-insensitively — keys in the data come
-         * from many sources (OTEL conventions are dot.lowercase, app code
-         * often uses camelCase like `requestId`), and forcing users to
-         * remember the exact casing is a poor experience. The user-supplied
-         * key is validated above.
-         */
-        if (Array.isArray(attrValue)) {
-          if (attrValue.length === 0) {
-            continue;
-          }
-          statement.append(
-            SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-              type: TableColumnType.Text,
-              value: attrKey,
-            }}) AND v IN (${{
-              type: TableColumnType.Text,
-              value: new Includes(attrValue),
-            }}), mapKeys(attributes), mapValues(attributes))`,
-          );
-        } else if (typeof attrValue === "object" && attrValue !== null) {
-          LogAggregationService.appendAttributeOperatorFilter(
-            statement,
-            attrKey,
-            attrValue as unknown as Record<string, unknown>,
-          );
-        } else if (attrValue === "") {
-          /*
-           * A blank equality value is "missing or empty", not "present and
-           * empty": the list query compares `attributes['k'] = ''`, and a Map
-           * subscript returns the type default for a key the row does not
-           * carry, so rows without the attribute match too. Routed through the
-           * operator builder so a bare "" and an explicit EqualTo("") — the
-           * same filter written two ways — cannot disagree.
-           */
-          LogAggregationService.appendAttributeOperatorFilter(
-            statement,
-            attrKey,
-            { _type: ObjectType.IsNull },
-          );
-        } else {
-          statement.append(
-            SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-              type: TableColumnType.Text,
-              value: attrKey,
-            }}) AND v = ${{
-              type: TableColumnType.Text,
-              value: attrValue,
-            }}, mapKeys(attributes), mapValues(attributes))`,
-          );
-        }
-      }
-    }
-  }
-
-  /*
-   * Attribute filter rows carry an operator (`contains`, `is any of`,
-   * `is empty`, `matches`, ...) as well as a value, and the operator travels
-   * over the wire as the serialized `{_type, value}` shape every
-   * QueryOperator's toJSON() produces. The list query compiles those through
-   * StatementGenerator; these aggregation endpoints (histogram, facets,
-   * export) used to treat anything non-array as a plain string, so an
-   * operator object bound as "[object Object]", matched nothing, and left the
-   * log monitor preview showing an empty chart beside a populated list.
-   *
-   * The compilation itself lives in AttributeFilterStatement so the trace,
-   * metric and exception builders answer identically — see the comment there.
-   */
-  private static appendAttributeOperatorFilter(
-    statement: Statement,
-    attrKey: string,
-    attrValue: Record<string, unknown>,
-  ): void {
-    appendAttributeOperatorFilter({
-      statement,
-      attributeKey: attrKey,
-      operator: attrValue,
+    /*
+     * Attribute filters: a value, a list ("is any of"), a blank ("is empty")
+     * or an operator (`contains`, `matches`, `>`, ...) in the `{_type,
+     * value}` shape every QueryOperator's toJSON() produces. Keys match
+     * case-insensitively - keys in the data come from many sources (OTEL
+     * conventions are dot.lowercase, app code often uses camelCase like
+     * `requestId`) - and an exact value is looked up in the attribute value
+     * index first, so a search for a rare value skips the granules that do
+     * not hold it (#4706). The compilation lives in AttributeFilterStatement
+     * so the trace and metric charts answer identically; each key is
+     * validated before it reaches SQL.
+     */
+    appendAttributeFilters({
+      statement: statement,
+      attributes: request.attributes,
+      validateKey: (attributeKey: string): void => {
+        LogAggregationService.validateFacetKey(attributeKey);
+      },
     });
   }
 

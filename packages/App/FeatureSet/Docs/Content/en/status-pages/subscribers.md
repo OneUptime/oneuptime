@@ -47,6 +47,21 @@ Each channel also gets its own list in the status page side menu under **Subscri
 
 **One switch is not enough.** The **Subscribe** item in the status page nav bar only appears when **Show Subscriber Page** is on *and* at least one channel is on. If you turn on **Email** but leave **Show Subscriber Page** off, visitors have no way to reach the form.
 
+## Turning every notification off
+
+The first card on **Subscriber Settings**, **Notifications**, holds **Send Notifications to Subscribers** (`sendSubscriberNotifications`), on by default, which saves the moment you flip it. Off, the status page sends its subscribers nothing: no incident, episode, scheduled maintenance or announcement notification, no note or postmortem, and no email report, whatever its channels and event types say. Its subscribers are kept, and visitors can still subscribe while the **Subscribe** page and a channel are on; a new email subscriber still gets the email that confirms the subscription. Nothing is held back to be sent later: turned on again, the page tells its subscribers about what happens from then on.
+
+While it is off, the top of every subscriber list says so, with a link back to **Subscriber Settings**. The summary of who will be notified, on an incident or a public note, names the page as one that does not send notifications to its subscribers, and a notification's status message and its feed item say why the page was passed over. It works on every plan. A test report sent to an address you type still goes.
+
+## Who can subscribe
+
+The **Who Can Subscribe** card, also on **Subscriber Settings**, keeps a page's notifications to the people it is for:
+
+- **Only Private Users Can Subscribe** (`limitSubscribersToPrivateUsers`), off by default, saves the moment you flip it. On, only the page's [private users](/docs/status-pages/index#private-users), whether added by hand, signed in with SSO or provisioned by SCIM, can subscribe, by email, with the address they sign in with. The **Subscribe** page fills that address in, does not let it be changed and offers no other channel. Your team can add only a private user's address, and no SMS, Slack, Microsoft Teams or webhook subscriber. A subscriber whose address is not a private user of the page now, one added before you turned it on or a reader removed since, by hand or by SCIM, is sent nothing and is not counted. A public page has no sign-in, so while it is on there only your team can add subscribers.
+- **Allowed Email Domains** (`allowedSubscriberEmailDomains`) holds the domains an email subscriber's address may be at, one per line, such as `acme.com`. An address at a subdomain matches too (`eu.acme.com` for `acme.com`), but not one that only ends with the same letters (`evilacme.com`). Sign-ups and additions at any other domain are refused, and an email subscriber already at another domain is sent nothing. Leave it empty to allow any domain. SMS, Slack, Microsoft Teams and webhook subscribers have no domain and are not affected. Type the list and choose **Save Domains**: an entry that is not a domain is named before anything is saved, and the list is saved in lower case, one domain per line, up to 100 of them.
+
+Neither setting deletes a subscriber, and turning them off sends to everyone again. On OneUptime Cloud, turning either on needs the **Scale** plan; turning them off works on every plan.
+
 ## What a visitor sees on the Subscribe page
 
 The **Subscribe** page has a sub-menu with one tab per enabled channel. Each tab asks for the minimum it needs:

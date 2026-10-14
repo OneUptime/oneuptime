@@ -6,6 +6,7 @@ import AlertFeed, {
 } from "Common/Models/DatabaseModels/AlertFeed";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
+import getSavedChatMessageFeedAuthor from "Common/UI/Components/Feed/SavedChatMessageFeedAuthor";
 import IconProp from "Common/Types/Icon/IconProp";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -172,7 +173,14 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
       key: alertFeed.id!.toString(),
       textInMarkdown: feedItemMarkdown.textInMarkdown,
       moreTextInMarkdown: feedItemMarkdown.moreTextInMarkdown,
-      user: alertFeed.user,
+      /*
+       * A note saved from a chat message is led by the message's author;
+       * the row's user only saved it (SavedChatMessageFeedAuthor).
+       */
+      ...getSavedChatMessageFeedAuthor({
+        savedFromChatMessage: alertFeed.savedFromChatMessage,
+        user: alertFeed.user,
+      }),
       itemDateTime: alertFeed.postedAt || alertFeed.createdAt!,
       color: getFeedEntryColor({
         kind: kind,
@@ -221,6 +229,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
           },
           alertFeedEventType: true,
           postedAt: true,
+          savedFromChatMessage: true,
         },
         skip: 0,
         sort: {

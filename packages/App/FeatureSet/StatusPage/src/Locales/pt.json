@@ -151,7 +151,9 @@
       "placeholder": "assinante@empresa.com",
       "managePrompt": "Por favor, digite o e-mail com o qual você se inscreveu",
       "manageDescription": "Enviaremos um link de gerenciamento de inscrição para este e-mail.",
-      "managePlaceholder": "email@suaempresa.com"
+      "managePlaceholder": "email@suaempresa.com",
+      "signedInEmailDescription": "Você se inscreve com o endereço de e-mail com o qual faz login.",
+      "signInToSubscribe": "Faça login nesta página de status para se inscrever."
     },
     "sms": {
       "title": "Inscrever-se por SMS",

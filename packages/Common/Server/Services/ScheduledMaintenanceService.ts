@@ -123,6 +123,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import { isSendingSubscriberNotifications } from "../../Types/StatusPage/SubscriberNotificationsSwitch";
 
 /*
  * The attachments whose membership an ongoing event acts on. Monitors are
@@ -374,6 +375,14 @@ export class Service extends ProjectReferencesService<Model> {
 
       for (const statuspage of statusPages) {
         if (!statuspage.id) {
+          continue;
+        }
+
+        // The page sends its subscribers nothing (Send Notifications to Subscribers off).
+        if (!isSendingSubscriberNotifications(statuspage)) {
+          logger.debug(
+            `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+          );
           continue;
         }
 

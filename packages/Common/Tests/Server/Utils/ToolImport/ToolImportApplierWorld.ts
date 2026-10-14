@@ -129,6 +129,7 @@ export function idsNamedBy(value: unknown): Set<string> | null {
 
 // A read of a table, as DatabaseService.findBy is asked for one.
 export interface TableRead {
+  select?: Record<string, unknown> | undefined;
   sort?: Record<string, unknown> | undefined;
   skip?: unknown;
   limit?: unknown;
