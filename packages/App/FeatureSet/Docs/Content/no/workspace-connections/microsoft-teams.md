@@ -138,7 +138,7 @@ Reager på en melding, eller et svar, i kanalen OneUptime opprettet for en hende
 
 Notatet beholder meldingen slik Microsoft Teams viste den: formateringen, lenkene og koden, personene den nevner, ved navn, og filene og bildene som lenker til dem. Et offentlig notat utelater filene og bildene, siden de bare åpnes for teamet ditt.
 
-Det er ordene til den som skrev meldingen: OneUptime-navnet deres når Microsoft Teams-kontoen deres er koblet til, ellers navnet Teams viser. Notatet plasseres på tidslinjen der meldingen ble lagt ut, uansett hvor lenge etterpå det lagres, og tidslinjen sier hvem som lagret det. Notatet legges ikke ut igjen i kanalen, der meldingen allerede står.
+Det er ordene til den som skrev meldingen: OneUptime-navnet deres når Microsoft Teams-kontoen deres er koblet til, ellers navnet Teams viser. Et privat notat plasseres på tidslinjen der meldingen ble lagt ut, uansett hvor lenge etterpå det lagres. Et offentlig notat plasseres når det lagres, altså når statussiden viser det. Tidslinjen sier hvem som lagret det. Notatet legges ikke ut igjen i kanalen, der meldingen allerede står.
 
 Notatet lagres som deg, med dine tillatelser, og OneUptime-appen må være i teamet. Hvis Microsoft Teams-kontoen din ikke er koblet til ennå, ber OneUptime deg koble den til, i et svar som nevner deg, med en knapp som lagrer meldingen så snart du har gjort det.
 

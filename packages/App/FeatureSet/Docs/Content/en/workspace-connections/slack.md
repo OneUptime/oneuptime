@@ -125,7 +125,7 @@ React to a message in the channel of an incident, alert, episode or scheduled ma
 
 The note keeps the message as Slack showed it: its formatting, links and code, the people and channels it mentions by name, and its files and images as links to them. A public note leaves the files and images out, since they open only for your team.
 
-It is the words of whoever wrote the message: their OneUptime name when their Slack account is connected, otherwise the name Slack shows. It is filed in the timeline when the message was posted, however long after it is saved, and the timeline says who saved it. The note is not posted back into the channel, where the message already is.
+It is the words of whoever wrote the message: their OneUptime name when their Slack account is connected, otherwise the name Slack shows. A private note is filed in the timeline when the message was posted, however long after it is saved. A public note is filed when it is saved, which is when the status page shows it. The timeline says who saved it. The note is not posted back into the channel, where the message already is.
 
 The note is saved as you, with your permissions. If your Slack account is not connected yet, OneUptime asks you to connect it, in a message only you see, with a button that saves the message as soon as you have. A message is saved only once, however many people react.
 

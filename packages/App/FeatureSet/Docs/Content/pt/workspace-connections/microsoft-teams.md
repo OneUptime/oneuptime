@@ -138,7 +138,7 @@ Reaja a uma mensagem, ou a uma resposta, no canal que o OneUptime criou para um 
 
 A nota mantém a mensagem como o Microsoft Teams a mostrava: a formatação, os links e o código, as pessoas que ela menciona pelo nome, e os arquivos e as imagens como links para eles. Uma nota pública deixa os arquivos e as imagens de fora, já que eles só abrem para a sua equipe.
 
-São as palavras de quem escreveu a mensagem: o nome dessa pessoa no OneUptime quando a conta do Microsoft Teams dela está conectada; caso contrário, o nome que o Teams mostra. A nota entra na linha do tempo no momento em que a mensagem foi publicada, não importa quanto tempo depois seja salva, e a linha do tempo diz quem a salvou. A nota não é publicada de volta no canal, onde a mensagem já está.
+São as palavras de quem escreveu a mensagem: o nome dessa pessoa no OneUptime quando a conta do Microsoft Teams dela está conectada; caso contrário, o nome que o Teams mostra. Uma nota privada entra na linha do tempo no momento em que a mensagem foi publicada, não importa quanto tempo depois seja salva. Uma nota pública entra no momento em que é salva, que é quando a página de status a mostra. A linha do tempo diz quem a salvou. A nota não é publicada de volta no canal, onde a mensagem já está.
 
 A nota é salva como você, com as suas permissões, e o app do OneUptime precisa estar na equipe. Se a sua conta do Microsoft Teams ainda não estiver conectada, o OneUptime pede que você a conecte, em uma resposta que menciona você, com um botão que salva a mensagem assim que você fizer isso.
 

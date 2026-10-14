@@ -138,7 +138,7 @@ Reagera på ett meddelande, eller ett svar, i den kanal som OneUptime skapade f�
 
 Anteckningen behåller meddelandet så som Microsoft Teams visade det: formateringen, länkarna och koden, personerna det nämner, med namn, och filerna och bilderna som länkar till dem. En offentlig anteckning utelämnar filerna och bilderna, eftersom de bara öppnas för ditt team.
 
-Det är orden från den som skrev meddelandet: personens OneUptime-namn när personens Microsoft Teams-konto är anslutet, annars namnet Teams visar. Anteckningen placeras i tidslinjen där meddelandet skickades, hur långt efteråt den än sparas, och tidslinjen säger vem som sparade den. Anteckningen skickas inte tillbaka till kanalen, där meddelandet redan finns.
+Det är orden från den som skrev meddelandet: personens OneUptime-namn när personens Microsoft Teams-konto är anslutet, annars namnet Teams visar. En privat anteckning placeras i tidslinjen där meddelandet skickades, hur långt efteråt den än sparas. En offentlig anteckning placeras när den sparas, alltså när statussidan visar den. Tidslinjen säger vem som sparade den. Anteckningen skickas inte tillbaka till kanalen, där meddelandet redan finns.
 
 Anteckningen sparas som dig, med dina behörigheter, och OneUptime-appen måste finnas i teamet. Om ditt Microsoft Teams-konto inte är anslutet än ber OneUptime dig ansluta det, i ett svar som nämner dig, med en knapp som sparar meddelandet så snart du har gjort det.
 

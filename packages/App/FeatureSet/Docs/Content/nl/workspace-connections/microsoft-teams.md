@@ -138,7 +138,7 @@ Reageer op een bericht, of een antwoord, in het kanaal dat OneUptime aanmaakte v
 
 De notitie houdt het bericht zoals Microsoft Teams het liet zien: de opmaak, links en code, de personen die het noemt bij naam, en de bestanden en afbeeldingen als links ernaar. Een openbare notitie laat de bestanden en afbeeldingen weg, omdat die alleen voor je team opengaan.
 
-Het zijn de woorden van wie het bericht schreef: diens OneUptime-naam als diens Microsoft Teams-account gekoppeld is, anders de naam die Teams toont. De notitie komt in de tijdlijn op het moment dat het bericht werd geplaatst, hoe lang daarna ze ook wordt opgeslagen, en de tijdlijn zegt wie haar opsloeg. De notitie wordt niet teruggeplaatst in het kanaal, waar het bericht al staat.
+Het zijn de woorden van wie het bericht schreef: diens OneUptime-naam als diens Microsoft Teams-account gekoppeld is, anders de naam die Teams toont. Een privénotitie komt in de tijdlijn op het moment dat het bericht werd geplaatst, hoe lang daarna ze ook wordt opgeslagen. Een openbare notitie komt erin op het moment dat ze wordt opgeslagen, dus wanneer de statuspagina haar toont. De tijdlijn zegt wie haar opsloeg. De notitie wordt niet teruggeplaatst in het kanaal, waar het bericht al staat.
 
 De notitie wordt als jou opgeslagen, met jouw rechten, en de OneUptime-app moet in het team zitten. Is je Microsoft Teams-account nog niet gekoppeld, dan vraagt OneUptime je om het te koppelen, in een antwoord dat jou noemt, met een knop die het bericht opslaat zodra je dat hebt gedaan.
 

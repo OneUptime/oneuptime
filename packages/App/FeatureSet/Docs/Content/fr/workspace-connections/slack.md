@@ -125,7 +125,7 @@ Réagissez à un message dans le canal d'un incident, d'une alerte, d'un épisod
 
 La note reprend le message tel que Slack l'affichait : sa mise en forme, ses liens et son code, les personnes et les canaux qu'il mentionne par leur nom, et ses fichiers et images sous forme de liens. Une note publique laisse de côté les fichiers et les images, puisqu'ils ne s'ouvrent que pour votre équipe.
 
-Ce sont les mots de la personne qui a écrit le message : son nom dans OneUptime quand son compte Slack est connecté, sinon le nom qu'affiche Slack. La note est placée dans la chronologie au moment où le message a été publié, même si elle est enregistrée bien plus tard, et la chronologie indique qui l'a enregistrée. La note n'est pas republiée dans le canal, où le message se trouve déjà.
+Ce sont les mots de la personne qui a écrit le message : son nom dans OneUptime quand son compte Slack est connecté, sinon le nom qu'affiche Slack. Une note privée est placée dans la chronologie au moment où le message a été publié, même si elle est enregistrée bien plus tard. Une note publique est placée au moment où elle est enregistrée, c'est-à-dire quand la page de statut l'affiche. La chronologie indique qui l'a enregistrée. La note n'est pas republiée dans le canal, où le message se trouve déjà.
 
 La note est enregistrée en votre nom, avec vos autorisations. Si votre compte Slack n'est pas encore connecté, OneUptime vous demande de le connecter, dans un message que vous seul voyez, avec un bouton qui enregistre le message dès que c'est fait. Un message n'est enregistré qu'une fois, quel que soit le nombre de personnes qui réagissent.
 

@@ -852,8 +852,12 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       expect(notes).toContain(
         "It is the words of whoever wrote the message: their OneUptime name when their",
       );
+      // A private note at the message's time; a public one when it is published.
       expect(notes).toContain(
-        "It is filed in the timeline when the message was posted, however long after it is saved, and the timeline says who saved it.",
+        "A private note is filed in the timeline when the message was posted, however long after it is saved.",
+      );
+      expect(notes).toContain(
+        "A public note is filed when it is saved, which is when the status page shows it. The timeline says who saved it.",
       );
       expect(notes).toContain(
         "The note is not posted back into the channel, where the message already is.",
@@ -864,8 +868,11 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(readSource("savedChatMessageAuthor")).toContain(
       "getConnectedMember",
     );
-    // A private note is filed when its message was posted.
+    // A private note is filed when its message was posted; a public one is not.
     expect(readSource("reactionNote")).toContain("getNotePostedAt");
+    expect(readSource("reactionNote")).toContain(
+      "if (data.noteType !== WorkspaceNoteType.Private) {\n      return undefined;\n    }",
+    );
     // Its timeline entry skips the channel the message is in.
     expect(readSource("incidentInternalNoteService")).toContain(
       "exceptChannel: SavedChatMessageNote.getSourceChannel(",
