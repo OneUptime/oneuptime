@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "온콜 정책 {{count}}개",
   "{{count}} on-call policies_one": "온콜 정책 {{count}}개",
   "{{policyName}} (archived)": "{{policyName}}(보관됨)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "필요한 사람을 호출하고 온콜 에스컬레이션을 처음부터 끝까지 따라갑니다."
+  "Page the right people, and follow an on-call escalation from start to finish.": "필요한 사람을 호출하고 온콜 에스컬레이션을 처음부터 끝까지 따라갑니다.",
+  "Execution Timeline": "실행 타임라인",
+  "Nobody has been paged so far.": "지금까지 호출된 사람이 없습니다.",
+  "Team {{teamName}} has no members": "{{teamName}} 팀에 구성원이 없습니다",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "이 호출은 아무에게도 닿지 않았습니다. 보통 온콜 스케줄에 당번이 없었거나, 팀에 구성원이 없었거나, 지정한 사람이 부재 중이었기 때문입니다.",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "누가 언제 호출되었고 인지했는지 보여 줍니다. 건너뛴 사람이나 실패한 호출은 상태 메시지에 이유가 나옵니다."
 }

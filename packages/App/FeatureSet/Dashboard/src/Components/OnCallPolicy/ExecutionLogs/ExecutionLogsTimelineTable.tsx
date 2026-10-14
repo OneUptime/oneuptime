@@ -21,8 +21,27 @@ import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/O
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+
+/*
+ * The card of one run's steps. It is the timeline of an on-call policy's
+ * run and of a direct page alike - a direct page has no policy - so neither
+ * its title nor its description names a policy.
+ */
+export const EXECUTION_TIMELINE_TITLE: string =
+  translationKey("Execution Timeline");
+export const EXECUTION_TIMELINE_DESCRIPTION: string = translationKey(
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.",
+);
+
+/*
+ * A direct page names teams, and a team can have nobody in it. Its step
+ * names nobody - there was nobody to page - so it says which team that was.
+ */
+export const TEAM_HAS_NO_MEMBERS_TEMPLATE: string = translationKey(
+  "Team {{teamName}} has no members",
+);
 
 export interface ComponentProps {
   onCallPolicyExecutionLogId: ObjectID;
@@ -52,9 +71,8 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         isCreateable={false}
         cardProps={{
-          title: "Policy Execution Timeline",
-          description:
-            "You can view the timeline of the execution of the policy here. You can also view the status of the notification sent out to the users.",
+          title: EXECUTION_TIMELINE_TITLE,
+          description: EXECUTION_TIMELINE_DESCRIPTION,
         }}
         selectMoreFields={{
           statusMessage: true,
@@ -68,6 +86,14 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
            * from a duplicate-notification skip.
            */
           onCallDutySchedule: {
+            _id: true,
+            name: true,
+          },
+          /*
+           * The team a step is about: the one a direct page named that had
+           * no members is the only thing such a step can say.
+           */
+          userBelongsToTeam: {
             _id: true,
             name: true,
           },
@@ -217,6 +243,35 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                     <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
                     {translator.translateText("No one was on call")}
                   </span>
+                );
+              }
+
+              /*
+               * A step about a team with no recipient is a team a direct
+               * page named that has no members. It says which team, where
+               * "-" left the row saying nothing at all.
+               */
+              const teamName: string = (item["userBelongsToTeam"]?.name || "")
+                .toString()
+                .trim();
+
+              if (teamName) {
+                return (
+                  <div
+                    data-testid="on-call-timeline-team-has-no-members"
+                    className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
+                  >
+                    <Icon
+                      icon={IconProp.Alert}
+                      className="h-3.5 w-3.5 flex-shrink-0"
+                    />
+                    <span className="min-w-0 whitespace-normal break-words">
+                      {translator.translateTemplate(
+                        TEAM_HAS_NO_MEMBERS_TEMPLATE,
+                        { teamName: teamName },
+                      )}
+                    </span>
+                  </div>
                 );
               }
 

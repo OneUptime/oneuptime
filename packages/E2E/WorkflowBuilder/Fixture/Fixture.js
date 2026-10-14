@@ -15,8 +15,11 @@
  *                         (25, named like severities), Default to log-1
  * ?scenario=page...       the Page steps, and the project their settings
  *                         pick people from (PageScenarios.js)
- * ?page=direct-page       what the on-call logs say of a page with no
- *                         policy behind it (PageScenarios.js)
+ * ?page=on-call-logs      the Dashboard's real on-call logs table, with
+ *                         pages that have no policy behind them among a
+ *                         policy's runs (OnCallLogs.js)
+ * ?page=on-call-timeline  the real timeline table of one such page
+ *                         (OnCallLogs.js)
  *
  * ?page=create-workflow   the Workflows page's Create Workflow button and the
  *                         real "Create a workflow" dialog it opens, with the
@@ -40,10 +43,11 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import CreateWorkflowModal from "../../../App/FeatureSet/Dashboard/src/Components/Workflow/CreateWorkflowModal";
 import {
-  DirectPageLogsPage,
-  getPageScenario,
-  installPageProject,
-} from "./PageScenarios";
+  OnCallLogsPage,
+  OnCallTimelinePage,
+  installOnCallLogs,
+} from "./OnCallLogs";
+import { getPageScenario, installPageProject } from "./PageScenarios";
 
 const params = new URLSearchParams(window.location.search);
 const scenario = params.get("scenario") || "graph";
@@ -323,8 +327,12 @@ function CreateWorkflowPage() {
 if (fixturePage === "create-workflow") {
   installServerStandIns();
   createRoot(document.getElementById("root")).render(<CreateWorkflowPage />);
-} else if (fixturePage === "direct-page") {
-  createRoot(document.getElementById("root")).render(<DirectPageLogsPage />);
+} else if (fixturePage === "on-call-logs") {
+  installOnCallLogs();
+  createRoot(document.getElementById("root")).render(<OnCallLogsPage />);
+} else if (fixturePage === "on-call-timeline") {
+  installOnCallLogs();
+  createRoot(document.getElementById("root")).render(<OnCallTimelinePage />);
 } else {
   createRoot(document.getElementById("root")).render(<App />);
 }

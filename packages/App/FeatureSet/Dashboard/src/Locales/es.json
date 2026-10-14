@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "{{count}} políticas de guardia",
   "{{count}} on-call policies_one": "{{count}} política de guardia",
   "{{policyName}} (archived)": "{{policyName}} (archivada)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "Avisa a las personas adecuadas y sigue un escalado de guardia de principio a fin."
+  "Page the right people, and follow an on-call escalation from start to finish.": "Avisa a las personas adecuadas y sigue un escalado de guardia de principio a fin.",
+  "Execution Timeline": "Cronología de ejecución",
+  "Nobody has been paged so far.": "Todavía no se ha avisado a nadie.",
+  "Team {{teamName}} has no members": "El equipo {{teamName}} no tiene miembros",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "Este aviso no llegó a nadie. Normalmente, la programación de guardia no tenía a nadie de guardia, el equipo no tenía miembros o las personas indicadas estaban ausentes.",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "A quién se avisó, cuándo y si lo reconoció. Si se omitió a alguien o falló un aviso, su mensaje de estado explica por qué."
 }

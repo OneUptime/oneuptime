@@ -17,11 +17,6 @@
  *                             it starts as a page about that incident
  * ?scenario=page-alert        just On Create Alert, for the same
  *
- * ?page=direct-page            what the on-call logs draw where a run's
- *                              policy would be named, for a page with no
- *                              policy behind it: the real label, in the
- *                              narrow column a logs table gives it
- *
  * The settings pick from the project through the API, which is not here.
  * installPageProject stands in for it: the project's people, teams, on-call
  * schedules, on-call policies and alert severities, answering a search by
@@ -39,10 +34,8 @@ import Search from "Common/Types/BaseDatabase/Search";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
-import DirectPageLabel from "Common/UI/Components/OnCallDirectPage/DirectPageLabel";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React from "react";
 
 export const PAGE_PROJECT_ID = "22222222-2222-4222-8222-222222222222";
 
@@ -349,67 +342,4 @@ export function installPageProject(params) {
 
     return result([]);
   };
-}
-
-/*
- * The on-call logs' first column, as wide as a logs table draws it on a
- * laptop (the cell is 14rem): a policy's run names its policy, and a direct
- * page says what it is and what started it.
- */
-export function DirectPageLogsPage() {
-  const cell = {
-    width: "14rem",
-    padding: "12px 16px",
-    verticalAlign: "top",
-  };
-
-  return (
-    <div style={{ padding: "16px" }}>
-      <table
-        data-testid="on-call-logs"
-        className="rounded-lg border border-gray-200 bg-white text-sm text-gray-900"
-      >
-        <thead>
-          <tr>
-            <th style={cell} className="text-left font-medium text-gray-500">
-              Policy Name
-            </th>
-            <th style={cell} className="text-left font-medium text-gray-500">
-              Triggered By
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr data-testid="run-policy">
-            <td style={cell}>Critical</td>
-            <td style={cell}>Incident: Checkout is down</td>
-          </tr>
-          <tr data-testid="run-direct-workflow">
-            <td style={cell}>
-              <DirectPageLabel
-                dataTestId="direct-workflow"
-                workflowName="Page whoever is on call for critical incidents in the payments platform"
-              />
-            </td>
-            <td style={cell}>Incident: Checkout is down</td>
-          </tr>
-          <tr data-testid="run-direct-person">
-            <td style={cell}>
-              <DirectPageLabel
-                dataTestId="direct-person"
-                startedBy={<span data-testid="started-by">Jane Doe</span>}
-              />
-            </td>
-            <td style={cell}>Alert: Database CPU is above 90%</td>
-          </tr>
-          <tr data-testid="run-direct-plain">
-            <td style={cell}>
-              <DirectPageLabel dataTestId="direct-plain" />
-            </td>
-            <td style={cell}>Alert: Disk is full</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  );
 }

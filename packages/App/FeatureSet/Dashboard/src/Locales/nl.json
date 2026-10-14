@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "Bereikbaarheidsbeleid: {{count}}",
   "{{count}} on-call policies_one": "{{count}} bereikbaarheidsbeleid",
   "{{policyName}} (archived)": "{{policyName}} (gearchiveerd)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "Roep de juiste mensen op en volg een escalatie van de bereikbaarheidsdienst van begin tot eind."
+  "Page the right people, and follow an on-call escalation from start to finish.": "Roep de juiste mensen op en volg een escalatie van de bereikbaarheidsdienst van begin tot eind.",
+  "Execution Timeline": "Tijdlijn van de uitvoering",
+  "Nobody has been paged so far.": "Er is tot nu toe niemand opgeroepen.",
+  "Team {{teamName}} has no members": "Team {{teamName}} heeft geen leden",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "Deze oproep heeft niemand bereikt. Meestal had het bereikbaarheidsschema niemand van dienst, had het team geen leden of waren de genoemde personen afwezig.",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "Wie is opgeroepen, wanneer, en of die persoon heeft bevestigd. Als iemand is overgeslagen of een oproep is mislukt, staat in het statusbericht waarom."
 }

@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "Политик дежурств: {{count}}",
   "{{count}} on-call policies_one": "{{count}} политика дежурства",
   "{{policyName}} (archived)": "{{policyName}} (в архиве)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "Вызывайте нужных людей и следите за эскалацией дежурства от начала до конца."
+  "Page the right people, and follow an on-call escalation from start to finish.": "Вызывайте нужных людей и следите за эскалацией дежурства от начала до конца.",
+  "Execution Timeline": "Хронология выполнения",
+  "Nobody has been paged so far.": "Пока никого не вызывали.",
+  "Team {{teamName}} has no members": "В команде {{teamName}} нет участников",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "Этот вызов ни до кого не дошёл. Обычно в расписании дежурств никто не дежурил, в команде не было участников или указанные люди отсутствовали.",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "Кого вызвали, когда и подтвердили ли они вызов. Если кого-то пропустили или вызов не удался, причина указана в сообщении о статусе."
 }

@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "{{count}} Bereitschaftsrichtlinien",
   "{{count}} on-call policies_one": "{{count}} Bereitschaftsrichtlinie",
   "{{policyName}} (archived)": "{{policyName}} (archiviert)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "Alarmieren Sie die richtigen Personen und verfolgen Sie eine Bereitschaftseskalation von Anfang bis Ende."
+  "Page the right people, and follow an on-call escalation from start to finish.": "Alarmieren Sie die richtigen Personen und verfolgen Sie eine Bereitschaftseskalation von Anfang bis Ende.",
+  "Execution Timeline": "Zeitachse der Ausführung",
+  "Nobody has been paged so far.": "Bisher wurde niemand alarmiert.",
+  "Team {{teamName}} has no members": "Team {{teamName}} hat keine Mitglieder",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "Diese Alarmierung hat niemanden erreicht. Meist hatte im Bereitschaftsplan niemand Bereitschaft, das Team hatte keine Mitglieder oder die genannten Personen waren abwesend.",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "Wer alarmiert wurde, wann, und ob die Person bestätigt hat. Wurde jemand übersprungen oder ist eine Alarmierung fehlgeschlagen, nennt die Statusmeldung den Grund."
 }

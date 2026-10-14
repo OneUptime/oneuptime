@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "{{count}} ऑन-कॉल नीतियां",
   "{{count}} on-call policies_one": "{{count}} ऑन-कॉल नीति",
   "{{policyName}} (archived)": "{{policyName}} (संग्रहीत)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "सही लोगों को बुलाएं और किसी ऑन-कॉल एस्केलेशन को शुरू से आख़िर तक ट्रैक करें।"
+  "Page the right people, and follow an on-call escalation from start to finish.": "सही लोगों को बुलाएं और किसी ऑन-कॉल एस्केलेशन को शुरू से आख़िर तक ट्रैक करें।",
+  "Execution Timeline": "निष्पादन समयरेखा",
+  "Nobody has been paged so far.": "अब तक किसी को नहीं बुलाया गया है।",
+  "Team {{teamName}} has no members": "टीम {{teamName}} में कोई सदस्य नहीं है",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "यह बुलावा किसी तक नहीं पहुंचा। आम तौर पर ऑन-कॉल अनुसूची में कोई ऑन-कॉल नहीं था, टीम में कोई सदस्य नहीं था, या जिनका नाम दिया गया था वे उपलब्ध नहीं थे।",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "किसे बुलाया गया, कब, और क्या उन्होंने स्वीकार किया। अगर किसी को छोड़ा गया या कोई बुलावा विफल रहा, तो उसका स्थिति संदेश कारण बताता है।"
 }

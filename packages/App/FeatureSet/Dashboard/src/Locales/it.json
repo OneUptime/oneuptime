@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "{{count}} policy di reperibilità",
   "{{count}} on-call policies_one": "{{count}} policy di reperibilità",
   "{{policyName}} (archived)": "{{policyName}} (archiviata)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "Chiama le persone giuste e segui un'escalation di reperibilità dall'inizio alla fine."
+  "Page the right people, and follow an on-call escalation from start to finish.": "Chiama le persone giuste e segui un'escalation di reperibilità dall'inizio alla fine.",
+  "Execution Timeline": "Cronologia di esecuzione",
+  "Nobody has been paged so far.": "Finora non è stato chiamato nessuno.",
+  "Team {{teamName}} has no members": "Il team {{teamName}} non ha membri",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "Questa chiamata non ha raggiunto nessuno. Di solito nella pianificazione di reperibilità non c'era nessuno reperibile, il team non aveva membri o le persone indicate erano assenti.",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "Chi è stato chiamato, quando e se ha riconosciuto la chiamata. Se qualcuno è stato saltato o una chiamata non è riuscita, il suo messaggio di stato spiega perché."
 }

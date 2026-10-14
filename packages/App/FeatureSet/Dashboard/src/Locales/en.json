@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "{{count}} on-call policies",
   "{{count}} on-call policies_one": "{{count}} on-call policy",
   "{{policyName}} (archived)": "{{policyName}} (archived)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "Page the right people, and follow an on-call escalation from start to finish."
+  "Page the right people, and follow an on-call escalation from start to finish.": "Page the right people, and follow an on-call escalation from start to finish.",
+  "Execution Timeline": "Execution Timeline",
+  "Nobody has been paged so far.": "Nobody has been paged so far.",
+  "Team {{teamName}} has no members": "Team {{teamName}} has no members",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why."
 }

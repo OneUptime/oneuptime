@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "{{count}} jourpolicyer",
   "{{count}} on-call policies_one": "{{count}} jourpolicy",
   "{{policyName}} (archived)": "{{policyName}} (arkiverad)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "Larma rätt personer och följ en joureskalering från början till slut."
+  "Page the right people, and follow an on-call escalation from start to finish.": "Larma rätt personer och följ en joureskalering från början till slut.",
+  "Execution Timeline": "Tidslinje för körningen",
+  "Nobody has been paged so far.": "Ingen har larmats hittills.",
+  "Team {{teamName}} has no members": "Teamet {{teamName}} har inga medlemmar",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "Den här utlarmningen nådde ingen. Oftast hade jourschemat ingen i jour, teamet hade inga medlemmar eller så var de angivna personerna borta.",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "Vem som larmades, när, och om de bekräftade. Om någon hoppades över eller en utlarmning misslyckades står orsaken i statusmeddelandet."
 }

@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "{{count}} 个值班策略",
   "{{count}} on-call policies_one": "{{count}} 个值班策略",
   "{{policyName}} (archived)": "{{policyName}}（已归档）",
-  "Page the right people, and follow an on-call escalation from start to finish.": "呼叫合适的人员，并从头到尾跟进一次值班升级。"
+  "Page the right people, and follow an on-call escalation from start to finish.": "呼叫合适的人员，并从头到尾跟进一次值班升级。",
+  "Execution Timeline": "执行时间线",
+  "Nobody has been paged so far.": "目前尚未呼叫任何人。",
+  "Team {{teamName}} has no members": "团队 {{teamName}} 没有成员",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "此次呼叫未联系到任何人。通常是因为值班计划中无人值班、团队没有成员，或被指定的人员不在。",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "呼叫了谁、何时呼叫，以及对方是否已确认。如果有人被跳过或某次呼叫失败，其状态消息会说明原因。"
 }

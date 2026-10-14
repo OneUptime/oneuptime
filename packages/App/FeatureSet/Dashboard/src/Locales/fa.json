@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "{{count}} سیاست آنکال",
   "{{count}} on-call policies_one": "{{count}} سیاست آنکال",
   "{{policyName}} (archived)": "{{policyName}} (بایگانی‌شده)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "افراد مناسب را فرا بخوانید و یک تشدید آنکال را از ابتدا تا انتها دنبال کنید."
+  "Page the right people, and follow an on-call escalation from start to finish.": "افراد مناسب را فرا بخوانید و یک تشدید آنکال را از ابتدا تا انتها دنبال کنید.",
+  "Execution Timeline": "خط زمانی اجرا",
+  "Nobody has been paged so far.": "تا کنون کسی فراخوانده نشده است.",
+  "Team {{teamName}} has no members": "تیم {{teamName}} عضوی ندارد",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "این فراخوانی به کسی نرسید. معمولاً در زمان‌بندی آنکال کسی کشیک نبوده، تیم عضوی نداشته یا افراد نام‌برده حضور نداشته‌اند.",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "چه کسی فراخوانده شد، چه زمانی، و آیا تأیید کرد. اگر کسی نادیده گرفته شده یا یک فراخوانی ناموفق بوده، پیام وضعیتش علت را می‌گوید."
 }

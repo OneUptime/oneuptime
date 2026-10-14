@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "{{count}} politiques d'astreinte",
   "{{count}} on-call policies_one": "{{count}} politique d'astreinte",
   "{{policyName}} (archived)": "{{policyName}} (archivée)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "Alertez les bonnes personnes et suivez une escalade d'astreinte du début à la fin."
+  "Page the right people, and follow an on-call escalation from start to finish.": "Alertez les bonnes personnes et suivez une escalade d'astreinte du début à la fin.",
+  "Execution Timeline": "Chronologie d'exécution",
+  "Nobody has been paged so far.": "Personne n'a été alerté pour le moment.",
+  "Team {{teamName}} has no members": "L'équipe {{teamName}} n'a aucun membre",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "Cet appel n'a atteint personne. En général, personne n'était d'astreinte dans le planning, l'équipe n'avait aucun membre ou les personnes désignées étaient absentes.",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "Qui a été alerté, quand, et si l'alerte a été prise en compte. Si quelqu'un a été ignoré ou si un appel a échoué, son message d'état en donne la raison."
 }

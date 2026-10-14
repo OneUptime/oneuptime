@@ -49,15 +49,42 @@ describe("the label", () => {
     );
   });
 
-  test("is drawn in the page colour, with an icon before the words", () => {
+  /*
+   * The label says what kind of row this is, not how the page went, so it
+   * is a quiet grey. A logs table keeps its colours for the status pills,
+   * and a pink label beside a red "Error" pill read as a second alarm.
+   */
+  test("is a quiet grey tag, with an icon before the words", () => {
     render(<DirectPageLabel />);
 
     const label: HTMLElement = screen.getByTestId("on-call-direct-page-label");
 
-    expect(label).toHaveClass("bg-pink-50", "text-pink-700", "ring-pink-200");
+    expect(label).toHaveClass("bg-gray-100", "text-gray-700", "ring-gray-200");
     expect(label.querySelector("svg")).not.toBeNull();
     // On one line, however narrow its column.
     expect(label).toHaveClass("whitespace-nowrap");
+  });
+
+  test.each(["pink", "red", "rose", "amber", "yellow", "green"])(
+    "carries no %s: those colours say how a run went",
+    (colour: string) => {
+      render(<DirectPageLabel workflowName="Escalate" />);
+
+      expect(screen.getByTestId("on-call-direct-page").innerHTML).not.toContain(
+        `-${colour}-`,
+      );
+    },
+  );
+
+  test("the icon sits in an element that may hold it: the label is not a span", () => {
+    render(<DirectPageLabel />);
+
+    const label: HTMLElement = screen.getByTestId("on-call-direct-page-label");
+
+    // The icon is drawn inside a div of its own, which a span may not hold.
+    expect(label.tagName).toBe("DIV");
+    expect(label.querySelector("div svg")).not.toBeNull();
+    expect(label.closest("span")).toBeNull();
   });
 
   test("alone, it is all there is: no workflow, nobody", () => {
@@ -87,7 +114,60 @@ describe("what started the page", () => {
     expect(screen.getByTestId("on-call-direct-page-workflow")).toHaveClass(
       "break-words",
       "max-w-full",
+      /*
+       * Said here, not left to the cell: a table cell stays on one line
+       * unless told otherwise, and what is inside it inherits that.
+       */
+      "whitespace-normal",
     );
+  });
+
+  describe("a page that can open the workflow draws its name itself", () => {
+    test("the name is handed over as text, and what comes back is drawn in its place", () => {
+      const seen: Array<string> = [];
+
+      render(
+        <DirectPageLabel
+          workflowName="  Page on-call for critical incidents  "
+          renderWorkflowName={(name: string) => {
+            seen.push(name);
+            return <a href="/workflows/1/builder">{name}</a>;
+          }}
+        />,
+      );
+
+      // Trimmed, as the name is when it is drawn as text.
+      expect(seen).toEqual(["Page on-call for critical incidents"]);
+
+      const link: HTMLElement = screen.getByRole("link", {
+        name: "Page on-call for critical incidents",
+      });
+
+      expect(link).toHaveAttribute("href", "/workflows/1/builder");
+      // "Workflow:" stays outside the link, around it in the sentence.
+      expect(
+        screen.getByTestId("on-call-direct-page-workflow"),
+      ).toHaveTextContent("Workflow: Page on-call for critical incidents");
+      expect(link).not.toHaveTextContent("Workflow:");
+    });
+
+    test("with no name there is nothing to draw, and it is not asked to", () => {
+      let asked: number = 0;
+
+      render(
+        <DirectPageLabel
+          workflowName="   "
+          renderWorkflowName={(name: string) => {
+            asked++;
+            return <a href="/x">{name}</a>;
+          }}
+        />,
+      );
+
+      expect(asked).toBe(0);
+      expect(screen.queryByTestId("on-call-direct-page-workflow")).toBeNull();
+      expect(screen.queryByRole("link")).toBeNull();
+    });
   });
 
   test.each([undefined, null, "", "   "])(

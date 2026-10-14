@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "{{count}} políticas de plantão",
   "{{count}} on-call policies_one": "{{count}} política de plantão",
   "{{policyName}} (archived)": "{{policyName}} (arquivada)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "Acione as pessoas certas e acompanhe um escalonamento de plantão do início ao fim."
+  "Page the right people, and follow an on-call escalation from start to finish.": "Acione as pessoas certas e acompanhe um escalonamento de plantão do início ao fim.",
+  "Execution Timeline": "Linha do tempo de execução",
+  "Nobody has been paged so far.": "Ninguém foi acionado até o momento.",
+  "Team {{teamName}} has no members": "A equipe {{teamName}} não tem membros",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "Este acionamento não alcançou ninguém. Normalmente, o agendamento de plantão não tinha ninguém de plantão, a equipe não tinha membros ou as pessoas indicadas estavam ausentes.",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "Quem foi acionado, quando e se confirmou. Se alguém foi ignorado ou um acionamento falhou, a mensagem de status explica o motivo."
 }

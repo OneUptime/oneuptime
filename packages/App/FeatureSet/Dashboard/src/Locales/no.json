@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "{{count}} vaktpolicyer",
   "{{count}} on-call policies_one": "{{count}} vaktpolicy",
   "{{policyName}} (archived)": "{{policyName}} (arkivert)",
-  "Page the right people, and follow an on-call escalation from start to finish.": "Tilkall de riktige personene, og følg en vakteskalering fra start til slutt."
+  "Page the right people, and follow an on-call escalation from start to finish.": "Tilkall de riktige personene, og følg en vakteskalering fra start til slutt.",
+  "Execution Timeline": "Tidslinje for utførelsen",
+  "Nobody has been paged so far.": "Ingen har blitt tilkalt så langt.",
+  "Team {{teamName}} has no members": "Teamet {{teamName}} har ingen medlemmer",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "Denne tilkallingen nådde ingen. Som regel hadde vaktplanen ingen på vakt, teamet hadde ingen medlemmer, eller personene som ble oppgitt, var borte.",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "Hvem som ble tilkalt, når, og om de bekreftet. Hvis noen ble hoppet over eller en tilkalling mislyktes, forteller statusmeldingen hvorfor."
 }

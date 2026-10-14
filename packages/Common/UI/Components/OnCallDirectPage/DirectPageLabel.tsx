@@ -10,14 +10,17 @@
  * row said "No on-call policy." of these, which reads as something that
  * went wrong. This says what the row is, and what started it.
  *
- * The page's colour is the Page steps' own on the workflow canvas.
+ * The label is a quiet grey: it says what kind of row this is, not how the
+ * page went. A logs table keeps its colours for that - the status pills -
+ * and a pink label beside a red "Error" pill read as a second alarm.
  */
 
 import IconProp from "../../../Types/Icon/IconProp";
 import { translationKey, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
-import React, { FunctionComponent, ReactElement } from "react";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export const DIRECT_PAGE_LABEL: string = translationKey("Direct page");
 
@@ -37,6 +40,11 @@ export interface ComponentProps {
    * triggeredByWorkflowName), when a workflow did.
    */
   workflowName?: string | null | undefined;
+  /*
+   * Draws the workflow's name where the page can do more with it than show
+   * it - a link to the workflow. Left out, the name is text.
+   */
+  renderWorkflowName?: ((workflowName: string) => ReactNode) | undefined;
   /*
    * Who started the page, when a person did, as the page draws people.
    * Shown under the label.
@@ -58,23 +66,37 @@ const DirectPageLabel: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid={dataTestId} className="flex flex-col items-start gap-1">
-      <span
+      {/*
+       * A div, not a span: the icon is drawn in a div of its own, which a
+       * span may not hold.
+       */}
+      <div
         title={explanation}
         data-testid={`${dataTestId}-label`}
-        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-pink-50 px-2 py-1 text-xs font-medium text-pink-700 ring-1 ring-inset ring-pink-200"
+        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
       >
-        <Icon icon={IconProp.Call} className="h-3.5 w-3.5 flex-shrink-0" />
-        {translator.translateText(DIRECT_PAGE_LABEL) || DIRECT_PAGE_LABEL}
+        <Icon
+          icon={IconProp.Call}
+          className="h-3.5 w-3.5 flex-shrink-0 text-gray-500"
+        />
+        <span>
+          {translator.translateText(DIRECT_PAGE_LABEL) || DIRECT_PAGE_LABEL}
+        </span>
         <span className="sr-only">{`. ${explanation}`}</span>
-      </span>
+      </div>
       {workflowName ? (
         <span
           data-testid={`${dataTestId}-workflow`}
-          className="max-w-full break-words text-xs text-gray-500"
+          className="max-w-full whitespace-normal break-words text-xs font-normal text-gray-500"
         >
-          {translator.translateTemplate(DIRECT_PAGE_WORKFLOW_TEMPLATE, {
-            workflowName: workflowName,
-          })}
+          <TranslatedSentence
+            template={DIRECT_PAGE_WORKFLOW_TEMPLATE}
+            slots={{
+              workflowName: props.renderWorkflowName
+                ? props.renderWorkflowName(workflowName)
+                : workflowName,
+            }}
+          />
         </span>
       ) : (
         <></>

@@ -28320,5 +28320,10 @@
   "{{count}} on-call policies": "{{count}} 件のオンコールポリシー",
   "{{count}} on-call policies_one": "{{count}} 件のオンコールポリシー",
   "{{policyName}} (archived)": "{{policyName}}（アーカイブ済み）",
-  "Page the right people, and follow an on-call escalation from start to finish.": "適切な担当者を呼び出し、オンコールのエスカレーションを最初から最後まで追います。"
+  "Page the right people, and follow an on-call escalation from start to finish.": "適切な担当者を呼び出し、オンコールのエスカレーションを最初から最後まで追います。",
+  "Execution Timeline": "実行タイムライン",
+  "Nobody has been paged so far.": "これまでに呼び出された人はいません。",
+  "Team {{teamName}} has no members": "チーム {{teamName}} にはメンバーがいません",
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.": "この呼び出しは誰にも届きませんでした。通常は、オンコールスケジュールに担当者がいなかった、チームにメンバーがいなかった、または指定した人が不在だったことが原因です。",
+  "Who was paged, when, and whether they acknowledged. If someone was skipped or a page failed, its status message says why.": "誰がいつ呼び出され、確認したかどうか。スキップされた人や失敗した呼び出しは、ステータスメッセージに理由が表示されます。"
 }
