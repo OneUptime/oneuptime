@@ -1,152 +1,187 @@
-# スクリプティングと CI/CD
+# スクリプト & CI/CD
 
-OneUptime CLI は自動化向けに設計されています。環境変数ベースの認証、プログラムによる解析のための JSON 出力、パイプライン統合のための適切な終了コードをサポートしています。
+CLI はスクリプトでもターミナルと同じように動作します。API キーを環境変数で渡し、応答を JSON として読み、何が起きたかを終了コードでスクリプトに伝えます。このページでは、それぞれの方法と、GitHub Actions、GitLab CI、Docker 用の完全なパイプラインを紹介します。
 
-## 環境変数
+:::cards
+- [スクリプトに API キーを渡す](#スクリプトに-api-キーを渡す): 環境変数を 2 つ設定し、保存したコンテキストは使いません。
+- [終了コード](#終了コード): 成功時は 0、失敗時はその理由。
+- [jq で応答を読む](#jq-で応答を読む): JSON から ID、タイトル、日付を取り出します。
+- [パイプラインの例](#パイプラインの例): GitHub Actions、GitLab CI、Docker。
+:::
 
-保存されたコンテキストなしで認証するには、以下の環境変数を設定します。
+## スクリプトでの CLI の使い方
 
-```bash
-export ONEUPTIME_API_KEY=sk-your-api-key
-export ONEUPTIME_URL=https://oneuptime.com
+デプロイは、まず OneUptime にインシデントが未解決かどうかを尋ね、未解決なら止めることができます。
+
+```mermaid title="インシデントが未解決の間は待つデプロイ"
+flowchart TB
+    J["CI ジョブが開始"] --> S["シークレットが<br/>ONEUPTIME_API_KEY<br/>と ONEUPTIME_URL を設定"]
+    S --> Q["oneuptime incident count<br/>で未解決の件数"]
+    Q -->|"0"| D["デプロイ"]
+    Q -->|"1 以上"| X["停止: 未解決の<br/>インシデントあり"]
+    Q -->|"終了コード 2"| A["停止: API キー<br/>を確認"]
 ```
 
-これらは保存されたコンテキストよりも優先されますが、CLI フラグで上書きできます。
+## スクリプトに API キーを渡す
+
+CI システムのシークレットから `ONEUPTIME_API_KEY` と `ONEUPTIME_URL` を設定します。そうすれば CLI に `login` も設定ファイルも必要ありません。1 つのコマンドについてはフラグがこれらより優先され、これらは保存したコンテキストより優先されます。
+
+```bash
+export ONEUPTIME_API_KEY="$CI_ONEUPTIME_API_KEY"
+export ONEUPTIME_URL="https://oneuptime.com"
+oneuptime incident count
+```
+
+> [!TIP]
+> パイプラインごとに、必要なアクセスだけを持つ専用の API キーを用意してください。読み取るだけのチェックには、読み取るだけのキーが必要です。パイプラインを廃止したら、そのキーを OneUptime で削除してください。
+
+1 台のマシンで複数のプロジェクトのジョブを実行する場合は、プロジェクトごとにコンテキストを保存し、すべてのコマンドでそれを指定して、ジョブがほかのジョブの現在のコンテキストを使わないようにします。
+
+```bash
+oneuptime --context production incident count
+oneuptime --context staging monitor count
+```
 
 ## 終了コード
 
-| コード | 意味                                   |
-| ------ | -------------------------------------- |
-| `0`    | 成功                                   |
-| `1`    | 一般的なエラー                         |
-| `2`    | 認証エラー（認証情報が欠落または無効） |
-| `3`    | 見つからない（404）                    |
+| コード | 意味 | 例 |
+| --- | --- | --- |
+| `0` | 成功した | 一覧(何も見つからない場合も含む) |
+| `1` | 失敗した | OneUptime がリクエストを拒否した(`API error (422)` など)、無効な JSON、オプションの不足または不明なオプション、保存されていないコンテキスト |
+| `2` | 使える API キーがない | 認証情報が見つからない、無効な API キー、プラン未満のキー(`402`)、`401` |
+| `3` | 見つからない | OneUptime が `404` を返した: レコードが存在しない、別のプロジェクトにある、またはキーが読み取れない |
 
-スクリプトでエラーを処理するために終了コードを使用します。
+`whoami` と `context current` は、何も保存されていなくても `0` で終了します。設定されている内容を報告するだけで、確認はしないためです。スクリプトはコードでそれぞれの場合を区別します。
 
 ```bash
-if ! oneuptime monitor list > /dev/null 2>&1; then
-  echo "Failed to list monitors"
-  exit 1
-fi
+oneuptime incident get "$INCIDENT_ID" -o json > incident.json
+case $? in
+  0) echo "Saved the incident to incident.json" ;;
+  2) echo "Check ONEUPTIME_API_KEY and ONEUPTIME_URL" >&2; exit 1 ;;
+  3) echo "There is no incident $INCIDENT_ID" >&2; exit 1 ;;
+  *) echo "OneUptime refused the request" >&2; exit 1 ;;
+esac
 ```
 
-## jq を使用した JSON 処理
+エラーメッセージは標準エラー出力に出るため、`incident.json` には応答だけが入ります。
 
-機械可読な出力を生成するために `-o json` を使用します。
+## jq で応答を読む
+
+スクリプトには `-o json` を書いてください。パイプの中では CLI はいずれにしても JSON を出力しますが、このフラグがあれば、どこで実行してもスクリプトが動作し続けます。
 
 ```bash
-# すべてのインシデントタイトルを抽出
-oneuptime incident list -o json | jq '.[].title'
+# The title of each incident
+oneuptime incident list -o json | jq -r '.[].title'
 
-# 新しく作成したモニターの ID を取得
-NEW_ID=$(oneuptime monitor create --data '{"name":"API Health"}' -o json | jq -r '._id')
-echo "Created monitor: $NEW_ID"
+# The ID of a new monitor
+MONITOR_ID=$(oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}' -o json | jq -r '._id')
 
-# 重大度別にインシデントをカウント
-oneuptime incident count --query '{"incidentSeverityId":"<severity-id>"}'
+# When each incident was created: dates come as objects
+oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
+
+# The newest 100 incidents as CSV
+oneuptime incident list --limit 100 -o json | jq -r '.[] | [._id, .title, .createdAt.value] | @csv'
 ```
 
-## ファイルからリソースを作成する
-
-バージョン管理されたインフラに役立てるため、JSON ファイルからリソースを作成するには `--file` を使用します。
+件数の取得は数値を 1 つだけ出力するので、そのまま比較できます。
 
 ```bash
-# monitor.json
-# {
-#   "name": "API Health Check",
-#   "projectId": "your-project-id"
-# }
-
-oneuptime monitor create --file monitor.json
+OPEN=$(oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}')
+echo "$OPEN incidents are open"
 ```
 
-## バッチ操作
+## ファイルからレコードを作成する
 
-ループで複数のリソースを処理します。
+レコードを JSON ファイルとしてコードの隣に置き、そこから作成します。
+
+```json title="monitors/checkout-api.json"
+{
+  "name": "Checkout API",
+  "monitorType": "Manual"
+}
+```
 
 ```bash
-# JSON 配列ファイルから複数のモニターを作成
-cat monitors.json | jq -r '.[] | @json' | while read monitor; do
-  oneuptime monitor create --data "$monitor"
+oneuptime monitor create --file monitors/checkout-api.json
+```
+
+1 つの JSON 配列から多数のレコードを、1 件ずつ作成します。
+
+```bash
+jq -c '.[]' monitors.json | while IFS= read -r monitor; do
+  oneuptime monitor create --data "$monitor" -o json | jq -r '._id'
 done
 ```
 
-## CI/CD パイプラインの例
+> [!NOTE]
+> 実行するたびに新しいレコードが作成されます。モニターやステータスページをファイルと同期させ、変わった部分だけを変更し、なくなったものを削除するには、[Terraform プロバイダー](/docs/terraform/index)を使ってください。
 
-### GitHub Actions
+## パイプラインの例
 
-```yaml
-name: Check Active Incidents
+:::tabs
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  push:
+    branches: [main]
 
 jobs:
-  health-check:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Install OneUptime CLI
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install the OneUptime CLI
         run: npm install -g @oneuptime/cli
-
-      - name: Check for active incidents
+      - name: Stop while an incident is open
         env:
           ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
           ONEUPTIME_URL: https://oneuptime.com
         run: |
-          INCIDENT_COUNT=$(oneuptime incident count)
-          if [ "$INCIDENT_COUNT" -gt 0 ]; then
-            echo "WARNING: $INCIDENT_COUNT incidents found"
+          OPEN=$(oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}')
+          if [ "$OPEN" -gt 0 ]; then
+            echo "$OPEN incidents are open: not deploying."
             exit 1
           fi
+      - name: Deploy
+        run: ./deploy.sh
 ```
-
-### 汎用 CI/CD スクリプト
-
-```bash
-#!/bin/bash
-set -e
-
-export ONEUPTIME_API_KEY="$CI_ONEUPTIME_API_KEY"
-export ONEUPTIME_URL="$CI_ONEUPTIME_URL"
-
-# デプロイインシデントを作成して ID を取得
-# 注意: currentIncidentStateId と incidentSeverityId はプロジェクト内の既存の状態/重大度 ID を参照する必要があります
-INCIDENT_ID=$(oneuptime incident create --data '{
-  "title": "Deployment Started",
-  "currentIncidentStateId": "'"$INVESTIGATING_STATE_ID"'",
-  "incidentSeverityId": "'"$SEVERITY_ID"'",
-  "declaredAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
-}' -o json | jq -r '._id')
-
-# ここにデプロイステップを実行...
-
-# デプロイ成功後にインシデントを解決
-oneuptime incident update "$INCIDENT_ID" --data '{"currentIncidentStateId":"'"$RESOLVED_STATE_ID"'"}'
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+check-incidents:
+  stage: test
+  image: node:lts
+  variables:
+    ONEUPTIME_URL: https://oneuptime.com
+  script:
+    - npm install -g @oneuptime/cli
+    - OPEN=$(oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}')
+    - echo "$OPEN incidents are open"
+    - test "$OPEN" -eq 0
 ```
-
-### Docker
-
-```dockerfile
-FROM node:26-slim
+@tab Docker
+```dockerfile title="Dockerfile"
+FROM node:lts-slim
 RUN npm install -g @oneuptime/cli
-ENV ONEUPTIME_API_KEY=""
-ENV ONEUPTIME_URL=""
 ENTRYPOINT ["oneuptime"]
 ```
+:::
+
+GitHub Actions では、リポジトリの **Settings → Secrets and variables → Actions** に `ONEUPTIME_API_KEY` を追加します。GitLab では、マスクされた CI/CD 変数として追加します。Docker イメージでは、実行のたびに変数を渡します。
 
 ```bash
-docker run --rm \
-  -e ONEUPTIME_API_KEY=sk-abc123 \
-  -e ONEUPTIME_URL=https://oneuptime.com \
-  oneuptime-cli incident list
+docker build -t oneuptime-cli .
+docker run --rm -e ONEUPTIME_API_KEY -e ONEUPTIME_URL oneuptime-cli incident count
 ```
 
-## スクリプトでの特定コンテキストの使用
+## 次のステップ
 
-複数のコンテキストが保存されている場合、特定のコンテキストを指定します。
-
-```bash
-oneuptime --context production incident list
-oneuptime --context staging monitor count
-```
+:::cards
+- [認証](/docs/cli/authentication): 複数設定されているときにコマンドが使うキー。
+- [出力形式](/docs/cli/output-formats): スクリプトが読む JSON。
+- [リソース操作](/docs/cli/resource-operations): フィルター、ページ送り、レコードのフィールド。
+- [Terraform プロバイダー](/docs/terraform/index): OneUptime の設定をファイルで管理します。
+:::
