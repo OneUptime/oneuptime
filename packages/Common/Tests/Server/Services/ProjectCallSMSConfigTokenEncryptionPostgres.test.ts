@@ -1,11 +1,17 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import BaseAPI from "../../../Server/API/BaseAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
+import StatusPageService from "../../../Server/Services/StatusPageService";
+import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
 import Encryption from "../../../Server/Utils/Encryption";
 import Search from "../../../Types/BaseDatabase/Search";
+import StartsWith from "../../../Types/BaseDatabase/StartsWith";
+import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
+import Phone from "../../../Types/Phone";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -50,6 +56,14 @@ import { DataSource } from "typeorm";
  *   - A token written before the column was encrypted (legacy plaintext)
  *     still reads back as itself: the read tolerates the window before the
  *     backfill runs.
+ *   - A status page's subscriber SMS read the page's Twilio config THROUGH
+ *     the page (a relation), and get the token decrypted - the token itself,
+ *     never the ciphertext the database holds, which Twilio would refuse.
+ *   - A caller who may read a status page but not a credential of the
+ *     config it names cannot filter the page by that credential: neither
+ *     the Twilio token nor the SMTP password (stored as written) answers a
+ *     guess through the relation, while a filter on a column the relation
+ *     may show still works.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -78,6 +92,7 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
   const projectId: ObjectID = ObjectID.generate();
   const TOKEN: string = "0123456789abcdef0123456789abcdef";
   const SID: string = "AC0123456789abcdef0123456789abcde";
+  const SMTP_PASSWORD: string = "s3cret-smtp-password";
   let database: DataSource;
   let props: DatabaseCommonInteractionProps;
 
@@ -94,6 +109,15 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
   function viewer(): DatabaseCommonInteractionProps {
     return {
       ...customDomainCaller({ permissions: [Permission.Viewer], projectId }),
+      ...ON_HIGHEST_PLAN,
+    };
+  }
+
+  function callerWith(
+    permissions: Array<Permission>,
+  ): DatabaseCommonInteractionProps {
+    return {
+      ...customDomainCaller({ permissions, projectId }),
       ...ON_HIGHEST_PLAN,
     };
   }
@@ -125,6 +149,31 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
     rows: Array<ProjectCallSMSConfig>;
     error: string | undefined;
   }> {
+    return await listRoute<ProjectCallSMSConfig>(
+      "/call-sms-config/get-list",
+      body,
+    );
+  }
+
+  async function listStatusPages(body: JSONObject): Promise<{
+    rows: Array<StatusPage>;
+    error: string | undefined;
+  }> {
+    return await listRoute<StatusPage>("/status-page/get-list", body);
+  }
+
+  /*
+   * A get-list through BaseAPI, the body serialized as a client sends it
+   * (operators as {_type, value}), so the route deserializes it as it does
+   * a real request.
+   */
+  async function listRoute<T>(
+    route: string,
+    body: JSONObject,
+  ): Promise<{
+    rows: Array<T>;
+    error: string | undefined;
+  }> {
     const sendArray: MockedFn =
       Response.sendEntityArrayResponse as unknown as MockedFn;
     /*
@@ -140,7 +189,7 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
     } as unknown as ExpressRequest;
     const next: MockedFn = jest.fn();
     await mockRouter
-      .match("POST", "/call-sms-config/get-list")
+      .match("POST", route)
       .handlerFunction(
         req,
         {} as ExpressResponse,
@@ -151,9 +200,57 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
       | undefined;
     const lastCall: Array<unknown> | undefined =
       sendArray.mock.calls[sendArray.mock.calls.length - 1];
-    const rows: Array<ProjectCallSMSConfig> =
-      (lastCall?.[2] as Array<ProjectCallSMSConfig>) || [];
+    const rows: Array<T> = (lastCall?.[2] as Array<T>) || [];
     return { rows, error: error?.message };
+  }
+
+  // A config a status page can send SMS through: SID, token and a number.
+  async function createSendingConfig(): Promise<ObjectID> {
+    const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+    config.projectId = projectId;
+    config.name = "Production Twilio";
+    config.twilioAccountSID = SID;
+    config.twilioAuthToken = TOKEN;
+    config.twilioPrimaryPhoneNumber = new Phone("+15551234567");
+    const created: ProjectCallSMSConfig =
+      await ProjectCallSMSConfigService.create({
+        data: config,
+        props: { isRoot: true },
+      });
+    return created.id!;
+  }
+
+  // An SMTP config, its password stored as written (that column is not encrypted).
+  async function createSmtpConfig(): Promise<ObjectID> {
+    const id: ObjectID = ObjectID.generate();
+    await database.query(
+      `INSERT INTO "${schema}"."ProjectSMTPConfig" ("_id","projectId","name","slug","version","fromEmail","fromName","hostname","port","username","password") VALUES ($1,$2,'Mail',$3,1,'alerts@example.com','Alerts','smtp.example.com',587,'mailer',$4)`,
+      [
+        id.toString(),
+        projectId.toString(),
+        `mail-${id.toString()}`,
+        SMTP_PASSWORD,
+      ],
+    );
+    return id;
+  }
+
+  async function createStatusPage(data: {
+    callSmsConfigId?: ObjectID | undefined;
+    smtpConfigId?: ObjectID | undefined;
+  }): Promise<ObjectID> {
+    const id: ObjectID = ObjectID.generate();
+    await database.query(
+      `INSERT INTO "${schema}"."StatusPage" ("_id","projectId","name","slug","version","callSmsConfigId","smtpConfigId") VALUES ($1,$2,'Status',$3,1,$4,$5)`,
+      [
+        id.toString(),
+        projectId.toString(),
+        `status-${id.toString()}`,
+        data.callSmsConfigId ? data.callSmsConfigId.toString() : null,
+        data.smtpConfigId ? data.smtpConfigId.toString() : null,
+      ],
+    );
+    return id;
   }
 
   beforeAll(async () => {
@@ -174,7 +271,13 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
     });
     await database.initialize();
     await database.query(`CREATE SCHEMA "${schema}"`);
-    for (const table of ["Project", "ProjectCallSMSConfig"]) {
+    for (const table of [
+      "Project",
+      "ProjectCallSMSConfig",
+      "ProjectSMTPConfig",
+      "File",
+      "StatusPage",
+    ]) {
       await database.query(
         `CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
       );
@@ -197,6 +300,7 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
 
     mockRouter.routes.length = 0;
     new BaseAPI(ProjectCallSMSConfig, ProjectCallSMSConfigService);
+    new BaseAPI(StatusPage, StatusPageService);
   });
 
   afterAll(async () => {
@@ -208,6 +312,8 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
   });
 
   beforeEach(async () => {
+    await database.query(`DELETE FROM "${schema}"."StatusPage"`);
+    await database.query(`DELETE FROM "${schema}"."ProjectSMTPConfig"`);
     await database.query(`DELETE FROM "${schema}"."ProjectCallSMSConfig"`);
     props = owner();
   });
@@ -329,5 +435,187 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
     expect(rows).toHaveLength(1);
     // Read path hands back the not-yet-encrypted value untouched.
     expect(rows[0]!.twilioAuthToken).toBe(TOKEN);
+  });
+
+  describe("a status page's Twilio config, read through the page", () => {
+    test("the subscriber notifications get the token itself, decrypted, to send with", async () => {
+      const configId: ObjectID = await createSendingConfig();
+      const statusPageId: ObjectID = await createStatusPage({
+        callSmsConfigId: configId,
+      });
+
+      // Stored encrypted, as every config's token now is.
+      expect(
+        Encryption.looksEncrypted((await rawToken(configId)) as string),
+      ).toBe(true);
+
+      /*
+       * Every status page SMS - incidents, notes, maintenance,
+       * announcements, episodes, postmortems, reports - finds its pages
+       * and their Twilio config here, the config joined into the page.
+       */
+      const statusPages: Array<StatusPage> =
+        await StatusPageSubscriberService.getStatusPagesToSendNotification([
+          statusPageId,
+        ]);
+
+      expect(statusPages).toHaveLength(1);
+      expect(statusPages[0]!.callSmsConfig?.twilioAuthToken).toBe(TOKEN);
+      expect(statusPages[0]!.callSmsConfig?.twilioAccountSID).toBe(SID);
+
+      // What the senders hand the SMS service: the token, never ciphertext.
+      const twilioConfig: TwilioConfig | undefined =
+        ProjectCallSMSConfigService.toTwilioConfig(
+          statusPages[0]!.callSmsConfig,
+        );
+      expect(twilioConfig?.authToken).toBe(TOKEN);
+      expect(twilioConfig?.accountSid).toBe(SID);
+    });
+
+    test("the confirmation SMS a new subscriber gets reads the token decrypted too", async () => {
+      const configId: ObjectID = await createSendingConfig();
+      const statusPageId: ObjectID = await createStatusPage({
+        callSmsConfigId: configId,
+      });
+
+      // The read StatusPageSubscriberService makes for 'You have subscribed'.
+      const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+        query: { _id: statusPageId.toString() },
+        select: {
+          callSmsConfig: {
+            _id: true,
+            twilioAccountSID: true,
+            twilioAuthToken: true,
+            twilioPrimaryPhoneNumber: true,
+            twilioSecondaryPhoneNumbers: true,
+          },
+        },
+        props: { isRoot: true, ignoreHooks: true },
+      });
+
+      expect(statusPage?.callSmsConfig?.twilioAuthToken).toBe(TOKEN);
+      expect(
+        ProjectCallSMSConfigService.toTwilioConfig(statusPage!.callSmsConfig)
+          ?.authToken,
+      ).toBe(TOKEN);
+    });
+
+    test("a token still stored as legacy plaintext reads as itself through the page (upgrade window)", async () => {
+      const legacyId: ObjectID = ObjectID.generate();
+      await database.query(
+        `INSERT INTO "${schema}"."ProjectCallSMSConfig" ("_id","projectId","name","slug","twilioAccountSID","twilioAuthToken","twilioPrimaryPhoneNumber","version") VALUES ($1,$2,'Legacy',$3,$4,$5,'+15551234567',1)`,
+        [
+          legacyId.toString(),
+          projectId.toString(),
+          `legacy-${legacyId.toString()}`,
+          SID,
+          TOKEN,
+        ],
+      );
+      const statusPageId: ObjectID = await createStatusPage({
+        callSmsConfigId: legacyId,
+      });
+
+      const statusPages: Array<StatusPage> =
+        await StatusPageSubscriberService.getStatusPagesToSendNotification([
+          statusPageId,
+        ]);
+
+      expect(statusPages[0]!.callSmsConfig?.twilioAuthToken).toBe(TOKEN);
+    });
+  });
+
+  describe("filtering status pages by a credential of the config they name", () => {
+    test("a viewer is refused a filter on the Twilio token through the page", async () => {
+      const configId: ObjectID = await createSendingConfig();
+      await createStatusPage({ callSmsConfigId: configId });
+
+      for (const permissions of [
+        [Permission.Viewer],
+        [Permission.ProjectMember],
+        [Permission.StatusPageViewer],
+        [Permission.StatusPageAdmin],
+      ]) {
+        props = callerWith(permissions);
+        const { rows, error } = await listStatusPages({
+          query: {
+            callSmsConfig: { twilioAuthToken: new StartsWith(TOKEN[0]!) },
+          },
+          select: { name: true },
+        });
+
+        expect(error).toBe(
+          "You do not have permissions to query on - twilioAuthToken of Call and SMS Config through callSmsConfig. You need one of these permissions: Project Owner, Project Admin, Read Call and SMS.",
+        );
+        expect(rows).toHaveLength(0);
+      }
+    });
+
+    test("a viewer is refused a filter on the SMTP password through the page", async () => {
+      const smtpConfigId: ObjectID = await createSmtpConfig();
+      await createStatusPage({ smtpConfigId });
+
+      for (const permissions of [
+        [Permission.Viewer],
+        [Permission.ProjectMember],
+        [Permission.StatusPageViewer],
+      ]) {
+        props = callerWith(permissions);
+
+        for (const guess of [
+          new StartsWith(SMTP_PASSWORD.slice(0, 1)),
+          new Search(SMTP_PASSWORD.slice(1, 4)),
+          SMTP_PASSWORD,
+        ]) {
+          const { rows, error } = await listStatusPages({
+            query: { smtpConfig: { password: guess } },
+            select: { name: true },
+          });
+
+          expect(error).toContain(
+            "You do not have permissions to query on - password of SMTP Config through smtpConfig.",
+          );
+          expect(rows).toHaveLength(0);
+        }
+      }
+    });
+
+    test("an owner's filter through the page reaches Postgres, and the token's ciphertext answers no guess", async () => {
+      const configId: ObjectID = await createSendingConfig();
+      await createStatusPage({ callSmsConfigId: configId });
+
+      props = owner();
+      const { rows, error } = await listStatusPages({
+        query: {
+          callSmsConfig: { twilioAuthToken: new StartsWith(TOKEN.slice(0, 4)) },
+        },
+        select: { name: true },
+      });
+
+      expect(error).toBeUndefined();
+      expect(rows).toHaveLength(0);
+    });
+
+    test("a filter on a column the relation may show still works for a viewer", async () => {
+      const configId: ObjectID = await createSendingConfig();
+      const statusPageId: ObjectID = await createStatusPage({
+        callSmsConfigId: configId,
+      });
+      // A page with no config, which the filter must leave out.
+      await createStatusPage({});
+
+      props = viewer();
+      const { rows, error } = await listStatusPages({
+        query: { callSmsConfig: { name: new Search("Production") } },
+        select: { name: true },
+      });
+
+      expect(error).toBeUndefined();
+      expect(
+        rows.map((row: StatusPage): string => {
+          return row.id!.toString();
+        }),
+      ).toEqual([statusPageId.toString()]);
+    });
   });
 });

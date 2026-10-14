@@ -403,6 +403,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private userAttributionColumns: Array<string> | null = null;
   private realtimeReadAccess: RealtimeReadAccess | null = null;
 
+  /*
+   * The relations of this model whose records carry encrypted columns, and
+   * those columns - what decrypt() decrypts in a record read through a
+   * relation. Worked out once, on the first read. See decryptRelatedRecords.
+   */
+  private relationsWithEncryptedColumns: Array<{
+    column: string;
+    encryptedColumns: Array<string>;
+  }> | null = null;
+
   // The plain services that read a create's parents. See getParentReader.
   private static parentReaders: Map<
     { new (): BaseModel },
@@ -1583,14 +1593,32 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   protected async decrypt(data: TBaseModel): Promise<TBaseModel> {
-    for (const key of data.getEncryptedColumns().columns) {
-      if (!data.hasValue(key)) {
+    await DatabaseService.decryptColumns(
+      data as unknown as Record<string, unknown>,
+      data.getEncryptedColumns().columns,
+    );
+
+    await this.decryptRelatedRecords(data);
+
+    return data;
+  }
+
+  /*
+   * Decrypts `columns` of one record in place: a record this service read,
+   * or one read with it through a relation.
+   */
+  private static async decryptColumns(
+    record: Record<string, unknown>,
+    columns: Array<string>,
+  ): Promise<void> {
+    for (const key of columns) {
+      if (!record[key]) {
         continue;
       }
 
       // If data is an object.
-      if (typeof data.getValue(key) === Typeof.Object) {
-        const dataObj: JSONObject = data.getValue(key) as JSONObject;
+      if (typeof record[key] === Typeof.Object) {
+        const dataObj: JSONObject = record[key] as JSONObject;
 
         for (const key in dataObj) {
           const value: string = dataObj[key] as string;
@@ -1604,22 +1632,103 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             : value;
         }
 
-        data.setValue(key, dataObj);
+        record[key] = dataObj;
       } else {
         //If its string or other type.
         const value: string = DatabaseService.unwrapHashedStringEnvelope(
-          (data as any)[key],
+          record[key] as string,
         );
-        data.setValue(
-          key,
-          Encryption.looksEncrypted(value)
-            ? await Encryption.decrypt(value)
-            : value,
+        record[key] = Encryption.looksEncrypted(value)
+          ? await Encryption.decrypt(value)
+          : value;
+      }
+    }
+  }
+
+  /*
+   * A RECORD READ THROUGH A RELATION READS LIKE ONE READ BY ITSELF.
+   *
+   * A read that selects a relation's columns - a status page with the
+   * Twilio config it sends its subscribers' SMS through - gets the related
+   * record joined into it, and that record's encrypted columns came back as
+   * the ciphertext the database holds: only the columns of the model read
+   * were decrypted. So whatever read a credential that way used the
+   * ciphertext as the credential, and every status page SMS sent through a
+   * project's own Twilio config failed once its auth token was stored
+   * encrypted. Every record a read returns, joined or not, now holds its
+   * encrypted columns decrypted, as a read of its own table would.
+   *
+   * It shows a request nothing it did not see before: the permission layer
+   * lets a request select a related record's column only when the column
+   * is marked canReadOnRelationQuery
+   * (QueryPermission.checkRelationQueryPermission), and no encrypted column
+   * is (EncryptedColumnsStayOffRelations), so a joined secret reaches
+   * OneUptime's own reads alone - the reads that need it to send what they
+   * send.
+   */
+  private async decryptRelatedRecords(data: TBaseModel): Promise<void> {
+    if (!this.relationsWithEncryptedColumns) {
+      this.relationsWithEncryptedColumns =
+        this.findRelationsWithEncryptedColumns();
+    }
+
+    for (const relation of this.relationsWithEncryptedColumns) {
+      const related: unknown = (data as unknown as Record<string, unknown>)[
+        relation.column
+      ];
+
+      if (!related || typeof related !== Typeof.Object) {
+        continue;
+      }
+
+      const relatedRecords: Array<unknown> = Array.isArray(related)
+        ? related
+        : [related];
+
+      for (const relatedRecord of relatedRecords) {
+        if (!relatedRecord || typeof relatedRecord !== Typeof.Object) {
+          continue;
+        }
+
+        await DatabaseService.decryptColumns(
+          relatedRecord as Record<string, unknown>,
+          relation.encryptedColumns,
         );
       }
     }
+  }
 
-    return data;
+  private findRelationsWithEncryptedColumns(): Array<{
+    column: string;
+    encryptedColumns: Array<string>;
+  }> {
+    const relations: Array<{
+      column: string;
+      encryptedColumns: Array<string>;
+    }> = [];
+
+    for (const column of this.model.getTableColumns().columns) {
+      const metadata: TableColumnMetadata =
+        this.model.getTableColumnMetadata(column);
+
+      if (
+        !metadata ||
+        !metadata.modelType ||
+        (metadata.type !== TableColumnType.Entity &&
+          metadata.type !== TableColumnType.EntityArray)
+      ) {
+        continue;
+      }
+
+      const encryptedColumns: Array<string> =
+        new metadata.modelType().getEncryptedColumns().columns;
+
+      if (encryptedColumns.length > 0) {
+        relations.push({ column, encryptedColumns });
+      }
+    }
+
+    return relations;
   }
 
   protected async onBeforeDelete(
