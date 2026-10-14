@@ -101,6 +101,12 @@ export interface WorkspacePageChoiceGroup {
   // "On-call schedules", "People", "Teams", "On-call policies".
   label: string;
   choices: Array<WorkspacePageChoice>;
+  /*
+   * How many more of this kind there are than the list holds - the
+   * project's people past the first WORKSPACE_PAGE_MAX_CHOICES_PER_KIND.
+   * A form says so, and how to page them anyway: by an @mention.
+   */
+  notShownCount?: number | undefined;
 }
 
 /*
@@ -533,10 +539,16 @@ export default class WorkspacePage {
     });
 
     if (people.length > 0) {
+      const notShownCount: number = Math.max(
+        0,
+        people.length - WORKSPACE_PAGE_MAX_CHOICES_PER_KIND,
+      );
+
       groups.push({
         kind: WorkspacePageTargetKind.Person,
         label: "People",
         choices: people.slice(0, WORKSPACE_PAGE_MAX_CHOICES_PER_KIND),
+        ...(notShownCount > 0 ? { notShownCount: notShownCount } : {}),
       });
     }
 
@@ -1009,6 +1021,30 @@ export default class WorkspacePage {
       markdown: FeedMarkdown.join(lines, "\n\n").toString(),
       text: textParts.join(". "),
     };
+  }
+
+  /*
+   * What a form says under its list when the project has more people than
+   * the list holds: they can still be paged, by an @mention. Empty when
+   * the list holds everybody.
+   */
+  public static getNotShownNote(
+    choices: Array<WorkspacePageChoiceGroup>,
+  ): string {
+    const count: number = choices.reduce(
+      (total: number, group: WorkspacePageChoiceGroup): number => {
+        return total + (group.notShownCount || 0);
+      },
+      0,
+    );
+
+    if (count <= 0) {
+      return "";
+    }
+
+    return count === 1
+      ? "1 more person isn't listed. @mention anyone to page them at once."
+      : `${count} more people aren't listed. @mention anyone to page them at once.`;
   }
 
   /*

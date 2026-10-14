@@ -486,7 +486,15 @@ export default class SlackPageActions {
       }),
       multiSelect: true,
       initialValues: data.prefill.values,
-      description: WORKSPACE_PAGE_FORM_TEXT.whoHint,
+      // And, past the list's hundred people, how to page the others.
+      description: [
+        WORKSPACE_PAGE_FORM_TEXT.whoHint,
+        WorkspacePage.getNotShownNote(data.choices),
+      ]
+        .filter((sentence: string): boolean => {
+          return sentence.length > 0;
+        })
+        .join(" "),
     };
 
     blocks.push(who);

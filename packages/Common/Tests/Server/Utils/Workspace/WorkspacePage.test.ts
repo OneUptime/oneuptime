@@ -35,6 +35,7 @@ import WorkspacePage, {
   WORKSPACE_PAGE_ACTION,
   WORKSPACE_PAGE_FORM_TEXT,
   WORKSPACE_PAGE_MAX_CHOICE_LABEL_LENGTH,
+  WORKSPACE_PAGE_MAX_CHOICES_PER_KIND,
   WORKSPACE_PAGE_MAX_TITLE_LENGTH,
   WORKSPACE_PAGE_MAX_WAIT_FOR_RECORD_IN_MS,
   WorkspacePageChoiceGroup,
@@ -543,6 +544,52 @@ describe("WorkspacePage.getChoices: what the Page someone form offers", () => {
       projectId: PROJECT_ID,
       isArchived: false,
     });
+  });
+
+  test("a project with more people than a list holds: the first hundred, and how many more there are", async () => {
+    teamMembers = Array.from({ length: 152 }, (_: unknown, index: number) => {
+      const user: User = new User();
+      user.id = ObjectID.generate();
+      user.name = `Person ${String(index).padStart(3, "0")}` as never;
+      user.email = new Email(`person${index}@example.com`);
+      return member(user);
+    });
+
+    const people: WorkspacePageChoiceGroup = (await choices()).find(
+      (group: WorkspacePageChoiceGroup): boolean => {
+        return group.kind === WorkspacePageTargetKind.Person;
+      },
+    )!;
+
+    expect(people.choices).toHaveLength(WORKSPACE_PAGE_MAX_CHOICES_PER_KIND);
+    expect(people.choices[0]!.name).toBe("Person 000");
+    expect(people.notShownCount).toBe(52);
+    // The form says so, and how to page the others.
+    expect(WorkspacePage.getNotShownNote(await choices())).toBe(
+      "52 more people aren't listed. @mention anyone to page them at once.",
+    );
+  });
+
+  test("a list that holds everybody says nothing of who is not in it", async () => {
+    const groups: Array<WorkspacePageChoiceGroup> = await choices();
+
+    for (const group of groups) {
+      expect(group.notShownCount).toBeUndefined();
+    }
+    expect(WorkspacePage.getNotShownNote(groups)).toBe("");
+  });
+
+  test("one more person: said as one", () => {
+    expect(
+      WorkspacePage.getNotShownNote([
+        {
+          kind: WorkspacePageTargetKind.Person,
+          label: "People",
+          choices: [],
+          notShownCount: 1,
+        },
+      ]),
+    ).toBe("1 more person isn't listed. @mention anyone to page them at once.");
   });
 
   test("a kind the member may read none of is left out", async () => {

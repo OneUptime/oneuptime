@@ -406,12 +406,13 @@ export default class MicrosoftTeamsPage {
         /*
          * In the card's own text colour: Teams draws "Warning" text as
          * yellow (#f8d22a) on its white light theme, which cannot be read.
-         * The emoji says it is a warning.
+         * The emoji says it is a warning. A note names what the message
+         * named - a tag, a person - so it is placed as text, as Slack's are.
          */
         for (const note of data.prefill.notes) {
           body.push({
             type: "TextBlock",
-            text: `⚠️ ${note}`,
+            text: mdText`⚠️ ${note}`.toString(),
             wrap: true,
           });
         }
@@ -435,13 +436,23 @@ export default class MicrosoftTeamsPage {
           ),
         );
 
-        // What the list leaves out, said under the list itself.
-        const leftOut: number = keys.reduce((count: number, key: string) => {
-          return (
-            count +
-            (lists[key]!.choices.length - (shown[key]?.choices.length || 0))
+        /*
+         * What the list leaves out - to fit the card, or the people past
+         * the hundred a list holds - said under the list itself.
+         */
+        const leftOut: number =
+          keys.reduce((count: number, key: string) => {
+            return (
+              count +
+              (lists[key]!.choices.length - (shown[key]?.choices.length || 0))
+            );
+          }, 0) +
+          data.choices.reduce(
+            (count: number, group: WorkspacePageChoiceGroup): number => {
+              return count + (group.notShownCount || 0);
+            },
+            0,
           );
-        }, 0);
 
         if (leftOut > 0) {
           body.push(

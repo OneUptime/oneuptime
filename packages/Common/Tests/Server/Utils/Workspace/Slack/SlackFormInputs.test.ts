@@ -282,6 +282,28 @@ describe("the Page someone form, as Slack is sent it", () => {
     });
   });
 
+  test("a project with more people than the list holds: the hint says so, and how to page them anyway", () => {
+    const crowded: WorkspaceModalBlock = SlackPageActions.getFormModal({
+      choices: [
+        {
+          kind: WorkspacePageTargetKind.Person,
+          label: "People",
+          choices: [{ value: "user:1", name: "Ana Ruiz", label: "Ana Ruiz" }],
+          notShownCount: 52,
+        },
+      ],
+      prefill: { values: [], message: "", notes: [] },
+    });
+    const crowdedBlocks: Array<JSONObject> = SlackUtil.getModalBlock({
+      payloadModalBlock: crowded,
+    })["blocks"] as Array<JSONObject>;
+
+    expect(crowdedBlocks[0]!["hint"]).toEqual({
+      type: "plain_text",
+      text: "A schedule pages whoever is on call in it now. Everybody you pick is paged at once. 52 more people aren't listed. @mention anyone to page them at once.",
+    });
+  });
+
   test("with nothing to say first, the form opens on who to page", () => {
     const plain: WorkspaceModalBlock = SlackPageActions.getFormModal({
       choices: [],
