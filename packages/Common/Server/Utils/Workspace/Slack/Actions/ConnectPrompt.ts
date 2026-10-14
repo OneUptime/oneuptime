@@ -268,6 +268,11 @@ const CREATE_SCHEDULED_MAINTENANCE: CommandPress = {
   shortcut: "Create Scheduled Event",
 };
 
+const PAGE_SOMEONE: CommandPress = {
+  purpose: "page someone",
+  command: WorkspaceCommandName.Page,
+};
+
 const COMMAND_PRESSES: Partial<Record<SlackActionType, CommandPress>> = {
   [SlackActionType.NewIncident]: CREATE_INCIDENT,
   [SlackActionType.SubmitNewIncident]: CREATE_INCIDENT,
@@ -277,6 +282,12 @@ const COMMAND_PRESSES: Partial<Record<SlackActionType, CommandPress>> = {
     purpose: "see who is on call",
     command: WorkspaceCommandName.OnCall,
   },
+  /*
+   * A page is never sent for somebody once they connect: they run the
+   * command again, so nobody is woken by a page its sender has forgotten.
+   */
+  [SlackActionType.PageSomeone]: PAGE_SOMEONE,
+  [SlackActionType.SubmitPageSomeone]: PAGE_SOMEONE,
 };
 
 export default class SlackConnectPrompt {

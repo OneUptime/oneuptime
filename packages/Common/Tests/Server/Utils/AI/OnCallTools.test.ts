@@ -680,13 +680,66 @@ describe("query_on_call_pages", () => {
     expect(result.dataForLlm).not.toContain("Workflow:");
   });
 
-  test("the tool tells the model that direct pages are listed too", () => {
+  test("the tool tells the model that direct pages are listed too - a workflow's and a person's from Slack or Microsoft Teams", () => {
     expect(QueryOnCallPagesTool.description).toContain(
-      "direct pages a workflow sent with no policy",
+      "direct pages a workflow or a person in Slack or Microsoft Teams sent with no policy",
+    );
+    expect(QueryOnCallPagesTool.description).toContain(
+      "startedBy names the workflow or the person who paged",
     );
     expect(QueryOnCallPagesTool.description).toContain(
       DIRECT_PAGE_POLICY_LABEL,
     );
+  });
+
+  /*
+   * `/oneuptime page @alice ...` in Slack or Microsoft Teams pages with no
+   * policy, started by the person who ran it. "Who paged Alice?" has a
+   * person for its answer.
+   */
+  test("a direct page somebody started from a chat names them", async () => {
+    const directPage: OnCallDutyPolicyExecutionLog = buildExecutionLog();
+
+    delete directPage.onCallDutyPolicy;
+    directPage.triggeredByUser = buildUser("Simon Lee");
+
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
+      .mockResolvedValue([directPage] as never);
+    jest.spyOn(UserOnCallLogService, "findBy").mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryOnCallPagesTool.execute(
+      {},
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain(DIRECT_PAGE_POLICY_LABEL);
+    expect(result.dataForLlm).toContain("Person: Simon Lee");
+    expect(result.dataForLlm).not.toContain("Workflow:");
+  });
+
+  test("a policy's run somebody started by hand is not a direct page: no 'Person' is said of it", async () => {
+    const run: OnCallDutyPolicyExecutionLog = buildExecutionLog();
+    run.triggeredByUser = buildUser("Simon Lee");
+
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
+      .mockResolvedValue([run] as never);
+    jest.spyOn(UserOnCallLogService, "findBy").mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryOnCallPagesTool.execute(
+      {},
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("Payments primary");
+    expect(result.dataForLlm).not.toContain("Person:");
   });
 
   test("policy and incident filters reach the service query", async () => {

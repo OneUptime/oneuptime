@@ -148,6 +148,7 @@ OneUptime 이 인시던트, 경고, 에피소드, 예정된 유지 관리 이벤
 | `incident [title]` | 제목이 채워진 인시던트 양식을 엽니다. |
 | `maintenance [title]` | 제목이 채워진 예정된 유지 관리 양식을 엽니다. |
 | `oncall` | 볼 수 있는 각 온콜 스케줄에서 지금 온콜인 사람, 언제까지인지, 다음은 누구인지 나열합니다. |
+| `page [who] [message]` | @멘션한 사람들을 메시지 내용으로 호출하거나, 누구를 호출할지 고르는 카드를 보냅니다. [Microsoft Teams 에서 누군가 호출하기](#microsoft-teams-에서-누군가-호출하기) 를 참조하세요. |
 | `ask [question]`, 또는 일상적인 말로 하는 모든 질문 | OneUptime AI 가 로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 답변합니다. 예를 들어 "지금 다운된 모니터는?" 입니다. 답변은 읽기만 합니다. |
 | `show active incidents`, `show active alerts` | 지금 열려 있는 것을 나열합니다. |
 | `show scheduled maintenance`, `show ongoing maintenance` | 예정된, 또는 진행 중인 유지 관리 이벤트를 나열합니다. |
@@ -163,6 +164,15 @@ OneUptime 봇에게 `incident` 또는 `maintenance` 를 입력하면, 개인 채
 - **양식이 지정할 수 있는 것.** 채널이나 그룹 채팅에서는 그곳에 있는 누구나 양식을 제출할 수 있으며, 제출한 사람으로서 그 사람의 권한으로 제출됩니다. 인시던트나 이벤트는 그 권한으로 만들어지고 그 사람의 작업으로 기록됩니다. 그 사람이 읽을 수 없는 모니터, 온콜 정책, 레이블, 심각도, 상태, 또는 다른 프로젝트의 것은 프로젝트에 없는 것처럼 거부되며 아무것도 만들어지지 않습니다. 봇은 "One of the values you picked ... is not available in this project any more. Please pick it again." 라고 응답합니다.
 
 인시던트, 경고, 에피소드의 **Execute On-Call Policy** 도 같은 방식으로 작동합니다. 온콜 정책을 실행할 권한 ( **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin**, **On-Call Member**, 또는 사용자 지정 역할의 **Create On-Call Duty Policy Execution Log** ) 과 해당 인시던트, 경고, 에피소드를 읽을 권한이 필요하며, 그 사람이 읽을 수 있는 활성 온콜 정책이 제공됩니다. 카드에서 모니터나 온콜 정책을 볼 때도 버튼을 누른 사람으로서 읽습니다.
+
+## Microsoft Teams 에서 누군가 호출하기
+
+채널이나 그룹 채팅에서 `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` 는 Nawaz 를 바로 호출합니다. OneUptime 은 메시지를 제목으로 하는 경고를 만들고, @멘션한 각 사람은 자신의 온콜 규칙에 따라 누군가 경고를 확인할 때까지 전화, SMS, 푸시 알림 또는 이메일을 받습니다.
+
+- **바로 호출되는 사람.** @멘션한 사람 뒤에 메시지가 이어질 때, 그 사람들입니다. OneUptime 은 그 사람의 Microsoft Teams 계정이 연결된 OneUptime 계정으로, 그렇지 않으면 Microsoft Teams 에 있는 그 사람의 이메일 주소로 사람을 알아봅니다. 프로젝트 밖의 사람은 호출되지 않습니다.
+- **그 밖의 경우에는 카드가 옵니다.** 아무도 @멘션하지 않았거나 (봇과의 개인 채팅처럼), 메시지가 없거나, 태그를 지정했거나, OneUptime 이 알아볼 수 없는 사람이 있으면, 봇이 입력한 내용이 채워진 **Page someone** 카드로 응답하고, 고르지 못한 사람을 알려 줍니다. 사람, 팀, 온콜 스케줄 (지금 그 스케줄에서 온콜인 사람을 호출합니다) 또는 온콜 정책 (에스컬레이션 규칙에 따라 호출합니다) 을 골라 제출하세요. 대화에 있는 누구나 자신으로서 카드를 제출할 수 있습니다. 호출이 끝나면 카드가 제거되므로, 아무도 같은 카드로 두 번 호출하지 않습니다.
+- **표시되는 곳.** 대화에는 호출이 하나의 카드로 표시되고 계속 최신 상태로 유지됩니다. 누가 어떻게 호출되었는지, 누가 확인했는지가 나옵니다. 봇이 그 카드를 게시할 수 없으면, 봇의 답글이 누가 호출되었는지를 경고 링크와 함께 알려 줍니다.
+- **호출할 수 있는 사람.** 온콜 정책 실행과 경고 생성을 모두 할 수 있는 사람입니다. **Project Owner**, **Project Admin**, **Project Member**, 또는 **On-Call Member** 와 **Alert Member** 를 함께 가진 사람 (사용자 지정 역할에서는 **Create On-Call Duty Policy Execution Log** 와 **Create Alert** ) 입니다. 온콜 정책 없이 사람, 팀 또는 스케줄을 직접 호출하려면 프로젝트의 모든 온콜 정책에 대한 액세스도 필요합니다. 그 밖의 사람에게는 답글로 그렇게 알리며, 아무도 호출되지 않습니다.
 
 ## Microsoft Teams 에서 인시던트, 경고, 이벤트 조치하기
 

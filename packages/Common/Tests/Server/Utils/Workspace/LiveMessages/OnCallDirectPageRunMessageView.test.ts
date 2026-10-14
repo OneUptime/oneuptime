@@ -335,7 +335,7 @@ describe("a direct page that somebody answered", () => {
     );
   });
 
-  test("a person who started the page reads the same inside a sentence", () => {
+  test("a person's page: the paging stopped - the person did not stop it", () => {
     expect(
       OnCallPolicyRunMessageView.getMarkdown(
         page({
@@ -344,9 +344,7 @@ describe("a direct page that somebody answered", () => {
           acknowledgedByName: "Nitin",
         }),
       ).split("\n\n")[0],
-    ).toBe(
-      `✅ **Nitin** acknowledged ${RECORD}, so **Sam Lee** stopped paging`,
-    );
+    ).toBe(`✅ **Nitin** acknowledged ${RECORD}, so paging stopped`);
   });
 
   test("the people stay listed once it is over, with who acknowledged", () => {
@@ -696,5 +694,218 @@ describe("every way a direct page can stand", () => {
         OnCallPolicyRunMessageView.getAlarms(run).length,
       ).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+/*
+ * A PAGE A PERSON STARTED - `/oneuptime page` in Slack, "page" typed to the
+ * Microsoft Teams bot. It ends as the paging ending: "so paging stopped".
+ * "so Sam Lee stopped paging" read as if Sam had called his own page off,
+ * when it was somebody acknowledging, the record moving on or the page
+ * running its course that stopped it. Whatever Sam did is still said where
+ * he did it: he is paging, he paged, he could not reach anyone.
+ */
+describe("a direct page a person started", () => {
+  const BY_SAM: OnCallDirectPageRun = { startedByPersonName: "Sam Lee" };
+
+  function samPage(overrides: Partial<OnCallPolicyRun> = {}): OnCallPolicyRun {
+    return page({ directPage: BY_SAM, ...overrides });
+  }
+
+  function headline(run: OnCallPolicyRun): string {
+    return OnCallPolicyRunMessageView.getMarkdown(run).split("\n\n")[0]!;
+  }
+
+  test("paging: the person is who is paging", () => {
+    const run: OnCallPolicyRun = samPage();
+
+    expect(headline(run)).toBe(`📟 **Sam Lee** is paging for ${RECORD}`);
+    expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
+      "Sam Lee is paging for Incident INC-8",
+    );
+  });
+
+  test("acknowledged: who acknowledged, and that paging stopped", () => {
+    const run: OnCallPolicyRun = samPage({
+      outcome: OnCallPolicyRunOutcome.Acknowledged,
+      acknowledgedByName: "Nitin",
+    });
+
+    expect(headline(run)).toBe(
+      `✅ **Nitin** acknowledged ${RECORD}, so paging stopped`,
+    );
+    expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
+      "Nitin acknowledged Incident INC-8",
+    );
+    expect(OnCallPolicyRunMessageView.getAlarms(run)).toEqual([]);
+  });
+
+  test("the record moved on: its state, and that paging stopped", () => {
+    const run: OnCallPolicyRun = samPage({
+      outcome: OnCallPolicyRunOutcome.RecordHandled,
+      outcomeDetail: "Resolved",
+    });
+
+    expect(headline(run)).toBe(
+      `✅ ${RECORD} moved to **Resolved**, so paging stopped`,
+    );
+    expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
+      "Incident INC-8 moved to Resolved, so paging stopped",
+    );
+  });
+
+  test("the record handled some other way: that paging stopped", () => {
+    const run: OnCallPolicyRun = samPage({
+      outcome: OnCallPolicyRunOutcome.RecordHandled,
+    });
+
+    expect(headline(run)).toBe(
+      `✅ ${RECORD} is being handled, so paging stopped`,
+    );
+    expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
+      "Paging stopped for Incident INC-8",
+    );
+  });
+
+  test("nobody acknowledged: who the person paged, and that paging has stopped", () => {
+    const run: OnCallPolicyRun = samPage({
+      outcome: OnCallPolicyRunOutcome.NobodyAcknowledged,
+    });
+
+    expect(headline(run)).toBe(
+      `⚠️ **Sam Lee** paged for ${RECORD} and nobody acknowledged`,
+    );
+    expect(OnCallPolicyRunMessageView.getAlarms(run)).toEqual([
+      {
+        key: ON_CALL_RUN_ALARM_OUTCOME,
+        markdown: `⚠️ Nobody has acknowledged ${RECORD}. **Sam Lee** paged Nitin and Jane Doe, and paging has stopped. Someone needs to take it.`,
+        text: "Nobody has acknowledged Incident INC-8: someone needs to take it",
+      },
+    ]);
+  });
+
+  test("reached nobody: the person could not reach anyone, and what to do", () => {
+    const run: OnCallPolicyRun = samPage({
+      outcome: OnCallPolicyRunOutcome.NobodyReached,
+      paged: [],
+    });
+
+    expect(headline(run)).toBe(
+      `⚠️ **Sam Lee** could not reach anyone for ${RECORD}`,
+    );
+    expect(OnCallPolicyRunMessageView.getMarkdown(run)).toContain(WHAT_TO_DO);
+  });
+
+  test("failed part way: paging stopped, why, and to page someone", () => {
+    const run: OnCallPolicyRun = samPage({
+      outcome: OnCallPolicyRunOutcome.Failed,
+      outcomeDetail: "The schedule could not be read.",
+    });
+
+    expect(headline(run)).toBe(
+      `❌ Paging stopped for ${RECORD}: The schedule could not be read.`,
+    );
+    expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
+      "Paging stopped for Incident INC-8",
+    );
+    expect(OnCallPolicyRunMessageView.getAlarms(run)).toEqual([
+      {
+        key: ON_CALL_RUN_ALARM_OUTCOME,
+        markdown: `❌ Paging stopped for ${RECORD} before anyone acknowledged: The schedule could not be read. Page someone yourself.`,
+        text: "Paging stopped for Incident INC-8 before anyone acknowledged",
+      },
+    ]);
+  });
+
+  test("failed before anybody was paged: the person could not page anyone", () => {
+    const run: OnCallPolicyRun = samPage({
+      outcome: OnCallPolicyRunOutcome.Failed,
+      paged: [],
+    });
+
+    expect(headline(run)).toBe(
+      `❌ **Sam Lee** could not page anyone for ${RECORD}`,
+    );
+    expect(OnCallPolicyRunMessageView.getAlarms(run)[0]!.text).toBe(
+      "Sam Lee could not page anyone for Incident INC-8",
+    );
+  });
+
+  test("no ending of a person's page says the person stopped paging", () => {
+    // A direct page has no policy that could be archived under it.
+    const outcomes: Array<OnCallPolicyRunOutcome> = Object.values(
+      OnCallPolicyRunOutcome,
+    ).filter((outcome: OnCallPolicyRunOutcome): boolean => {
+      return outcome !== OnCallPolicyRunOutcome.PolicyArchived;
+    });
+
+    expect(outcomes.length).toBe(
+      Object.values(OnCallPolicyRunOutcome).length - 1,
+    );
+
+    for (const outcome of outcomes) {
+      for (const paged of [page().paged, []]) {
+        const run: OnCallPolicyRun = samPage({
+          outcome: outcome,
+          acknowledgedByName: "Nitin",
+          outcomeDetail: "Resolved",
+          paged: paged,
+        });
+        const said: Array<string> = [
+          OnCallPolicyRunMessageView.getMarkdown(run),
+          OnCallPolicyRunMessageView.getPlainText(run),
+          ...OnCallPolicyRunMessageView.getAlarms(run).flatMap(
+            (alarm: OnCallPolicyRunAlarm): Array<string> => {
+              return [alarm.markdown, alarm.text];
+            },
+          ),
+        ];
+
+        for (const text of said) {
+          expect({ outcome, text }).toEqual({
+            outcome,
+            text: expect.not.stringContaining("Sam Lee** stopped paging"),
+          });
+          expect({ outcome, text }).toEqual({
+            outcome,
+            text: expect.not.stringContaining("Sam Lee stopped paging"),
+          });
+          expect({ outcome, text }).toEqual({
+            outcome,
+            text: expect.not.stringContaining("has stopped paging"),
+          });
+        }
+      }
+    }
+  });
+
+  test("a workflow and the product still stop paging themselves", () => {
+    const acknowledged: Partial<OnCallPolicyRun> = {
+      outcome: OnCallPolicyRunOutcome.Acknowledged,
+      acknowledgedByName: "Nitin",
+    };
+
+    expect(headline(page(acknowledged))).toBe(
+      `✅ **Nitin** acknowledged ${RECORD}, so workflow ${WORKFLOW_LINK} stopped paging`,
+    );
+
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("Acme Ops");
+
+    expect(headline(page({ ...acknowledged, directPage: {} }))).toBe(
+      `✅ **Nitin** acknowledged ${RECORD}, so Acme Ops stopped paging`,
+    );
+    // A workflow's name wins over the person's, as everywhere else.
+    expect(
+      headline(
+        page({
+          ...acknowledged,
+          directPage: { ...BY_WORKFLOW, startedByPersonName: "Sam Lee" },
+        }),
+      ),
+    ).toBe(
+      `✅ **Nitin** acknowledged ${RECORD}, so workflow ${WORKFLOW_LINK} stopped paging`,
+    );
   });
 });

@@ -868,10 +868,10 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
               workspaceType: WorkspaceType.Slack,
               command: definition.name,
             });
+            // "[title]", "[who] [message]", or nothing.
+            const hint: string = WorkspaceCommands.getArgumentHint(definition);
 
-            return definition.argument
-              ? `${usage} [${definition.argument}]`
-              : usage;
+            return hint ? `${usage} ${hint}` : usage;
           },
         ),
       ),
@@ -1002,9 +1002,12 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         });
       });
 
-    expect(commands).toHaveLength(9);
+    expect(commands).toHaveLength(10);
 
-    // What Teams suggests after @OneUptime: the same commands, each alone.
+    /*
+     * What Teams suggests after @OneUptime: the same commands, each alone -
+     * "page [who] [message]" is "page".
+     */
     expect(
       sorted(
         MicrosoftTeamsCommands.getManifestCommands().map(
@@ -1016,17 +1019,17 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     ).toEqual(
       sorted(
         commands.map((command: string): string => {
-          return command.replace(/ \[[^\]]+\]$/, "");
+          return command.split(" [")[0] as string;
         }),
       ),
     );
 
     // The words that follow /oneuptime in Slack are the bot's too.
     for (const definition of WORKSPACE_COMMANDS) {
+      const hint: string = WorkspaceCommands.getArgumentHint(definition);
+
       expect(commands).toContain(
-        definition.argument
-          ? `${definition.name} [${definition.argument}]`
-          : definition.name,
+        hint ? `${definition.name} ${hint}` : definition.name,
       );
     }
     expect(englishPage(TEAMS)).toContain(

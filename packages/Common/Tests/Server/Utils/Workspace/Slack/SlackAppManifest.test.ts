@@ -10,6 +10,7 @@ import SlackCommandParser, {
 } from "../../../../../Server/Utils/Workspace/Slack/SlackCommandParser";
 import WorkspaceCommands, {
   WORKSPACE_COMMANDS,
+  WorkspaceCommandDefinition,
 } from "../../../../../Server/Utils/Workspace/WorkspaceCommands";
 
 /*
@@ -17,9 +18,14 @@ import WorkspaceCommands, {
  *
  * Customer feedback #5: "I noticed it registers as /incident, /maintenance.
  * This can easily conflict with the other apps we have." The app registers
- * one command of its own, /oneuptime; incident, maintenance, oncall, ask and
- * help are words after it. Self-hosted servers create their Slack app from
- * this manifest, and OneUptime Cloud's app is updated to match it.
+ * one command of its own, /oneuptime; incident, maintenance, oncall, page,
+ * ask and help are words after it. Self-hosted servers create their Slack
+ * app from this manifest, and OneUptime Cloud's app is updated to match it.
+ *
+ * `/oneuptime page @nawaz ...` pages the person behind the mention, so the
+ * command has Slack send people as ids (should_escape), and the app may
+ * read the email address Slack has for somebody whose Slack account is not
+ * connected (users:read.email).
  *
  * An app created from an older manifest keeps /incident and /maintenance
  * until it is updated: those still open their forms (SlackCommandParser),
@@ -66,12 +72,32 @@ describe("the Slack app manifest's commands", () => {
         command: "/oneuptime",
         url: "{{SERVER_URL}}/api/slack/command",
         description:
-          "Declare an incident, schedule maintenance, see who is on call or ask OneUptime AI",
+          "Declare an incident, schedule maintenance, see who is on call, page someone or ask OneUptime AI",
         usage_hint:
-          "incident [title] | maintenance [title] | oncall | ask [question] | help",
-        should_escape: false,
+          "incident [title] | maintenance [title] | oncall | page [who] [message] | ask [question] | help",
+        should_escape: true,
       },
     ]);
+  });
+
+  /*
+   * With escaping off, Slack sends "@nawaz" as the text typed - a name
+   * anybody may go by. With it on, a person is <@U0123|nawaz>: the page goes
+   * to the account behind the id. A title or a question is read back as
+   * typed either way (SlackCommandParser.toPlainText).
+   */
+  test("Slack sends the people a command @mentions as ids, so a page reaches the person meant", () => {
+    expect(slashCommands[0]!.should_escape).toBe(true);
+  });
+
+  test("the app may read the email address Slack has for a person, to page one whose Slack account is not connected", () => {
+    const scopes: Array<string> = (
+      (manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject
+    )["bot"] as unknown as Array<string>;
+
+    expect(scopes).toEqual(
+      expect.arrayContaining(["users:read", "users:read.email"]),
+    );
   });
 
   test("the command is the one the server reads its words after", () => {
@@ -82,13 +108,14 @@ describe("the Slack app manifest's commands", () => {
     const hint: string = slashCommands[0]!.usage_hint;
 
     expect(hint.split(" | ")).toEqual(
-      WORKSPACE_COMMANDS.map(
-        (definition: { name: string; argument: string }) => {
-          return definition.argument
-            ? `${definition.name} [${definition.argument}]`
-            : definition.name;
-        },
-      ),
+      WORKSPACE_COMMANDS.map((definition: WorkspaceCommandDefinition) => {
+        const argumentHint: string =
+          WorkspaceCommands.getArgumentHint(definition);
+
+        return argumentHint
+          ? `${definition.name} ${argumentHint}`
+          : definition.name;
+      }),
     );
   });
 

@@ -148,6 +148,7 @@ Send boten en melding i en personlig chat, eller nevn OneUptime med @ i en kanal
 | `incident [title]` | Åpner hendelsesskjemaet med tittelen fylt ut. |
 | `maintenance [title]` | Åpner skjemaet for planlagt vedlikehold med tittelen fylt ut. |
 | `oncall` | Viser hvem som har vakt akkurat nå i hver vaktplan du kan se, til når, og hvem som er neste. |
+| `page [who] [message]` | Tilkaller personene du nevner med @, om meldingen din, eller sender et kort der du velger hvem som skal tilkalles. Se [Tilkall noen fra Microsoft Teams](#tilkall-noen-fra-microsoft-teams). |
 | `ask [question]`, eller et hvilket som helst spørsmål på vanlig språk | OneUptime AI svarer om logger, traces, målinger, hendelser og monitorer, for eksempel "hvilke monitorer er nede akkurat nå?". Svar leser bare. |
 | `show active incidents`, `show active alerts` | Viser det som er åpent nå. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Viser kommende, eller pågående, vedlikeholdsbegivenheter. |
@@ -163,6 +164,15 @@ Bortsett fra `show`-listene er dette ordene som følger etter `/oneuptime` i Sla
 - **Hva et skjema kan nevne.** I en kanal eller en gruppechat kan alle som er der sende inn skjemaet, og det sendes inn som den som gjør det, med vedkommendes egne tillatelser. Hendelsen eller begivenheten opprettes med de tillatelsene og krediteres den personen. En monitor, vaktpolicy, etikett, alvorlighetsgrad eller status personen ikke kan lese, eller en fra et annet prosjekt, avvises som en prosjektet ikke har, og ingenting opprettes: boten svarer "One of the values you picked ... is not available in this project any more. Please pick it again."
 
 **Execute On-Call Policy** på en hendelse, et varsel eller en episode fungerer på samme måte: den krever tillatelse til å kjøre en vaktpolicy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member**, eller **Create On-Call Duty Policy Execution Log** i en egendefinert rolle) og til å lese den hendelsen, det varselet eller den episoden, og den tilbyr de aktive vaktpolicyene personen kan lese. Å se en monitor eller en vaktpolicy fra et kort leser den også som personen som trykket på knappen.
+
+## Tilkall noen fra Microsoft Teams
+
+I en kanal eller en gruppechat tilkaller `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` Nawaz med en gang. OneUptime oppretter et varsel med meldingen din som tittel, og hver person du nevner med @, får en telefonsamtale, en SMS, en pushvarsling eller en e-post, slik vedkommendes egne vaktregler sier, til noen bekrefter varselet.
+
+- **Hvem som tilkalles med en gang.** Personene du nevner med @, når en melding følger etter dem. OneUptime kjenner igjen en person på OneUptime-kontoen vedkommendes Microsoft Teams-konto er koblet til, eller ellers på vedkommendes e-postadresse i Microsoft Teams. Ingen utenfor prosjektet tilkalles.
+- **Alt annet gir et kort.** Uten noen nevnt med @, som i en personlig chat med boten, uten melding, med en tagg, eller med en person OneUptime ikke kjenner igjen, svarer boten med kortet **Page someone**, med det du skrev ferdig utfylt, og sier hvem den ikke kunne velge. Velg personer, et team, en vaktplan, som tilkaller den som har vakt i den nå, eller en vaktpolicy, som tilkaller gjennom eskaleringsreglene sine, og send det inn. Alle i samtalen kan sende inn kortet, som seg selv. Når det har tilkalt, fjernes kortet, så ingen tilkaller med det to ganger.
+- **Hvor det vises.** Samtalen viser tilkallingen som ett kort som holdes oppdatert: hvem som ble tilkalt og hvordan, og hvem som bekreftet. Der boten ikke kan poste det, sier svaret dens hvem som ble tilkalt, med en lenke til varselet.
+- **Hvem som kan tilkalle.** Alle som både kan kjøre en vaktpolicy og opprette et varsel: **Project Owner**, **Project Admin** og **Project Member**, eller **On-Call Member** sammen med **Alert Member** (**Create On-Call Duty Policy Execution Log** og **Create Alert** i en egendefinert rolle). Å tilkalle personer, et team eller en vaktplan direkte, uten en vaktpolicy bak tilkallingen, krever også tilgang til alle vaktpolicyene i prosjektet. Alle andre får beskjed om det i et svar, og ingen tilkalles.
 
 ## Handle på hendelser, varsler og begivenheter fra Microsoft Teams
 
