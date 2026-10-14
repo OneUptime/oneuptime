@@ -69,6 +69,35 @@ export const SECURITY_CASE_OPENED_BY_DETECTION_KEY: string =
   "openedByDetection";
 export const SECURITY_CASE_PLAYBOOK_NAME_KEY: string = "playbookName";
 
+/*
+ * The case's two references, as a write can name them: a form writes the
+ * relation ({ assignedToUser: { _id } }), a server caller the ID column. The
+ * hooks fold the relation into the ID column before they read it.
+ */
+const ASSIGNEE_KEYS: Array<string> = ["assignedToUserId", "assignedToUser"];
+const ASSIGNED_TEAM_KEYS: Array<string> = [
+  "assignedToTeamId",
+  "assignedToTeam",
+];
+
+/*
+ * A reference cleared through its relation ({ assignedToUser: null }) is
+ * cleared in its ID column too, so a hook that reads the ID column sees the
+ * clear.
+ */
+function clearIdColumnsClearedByRelation(data: JSONObject): void {
+  for (const [idColumn, relation] of [ASSIGNEE_KEYS, ASSIGNED_TEAM_KEYS]) {
+    if (
+      idColumn &&
+      relation &&
+      data[relation] === null &&
+      data[idColumn] === undefined
+    ) {
+      data[idColumn] = null;
+    }
+  }
+}
+
 // The case columns whose change the update hooks look at.
 interface CaseStateBeforeUpdate {
   id: string;
@@ -208,6 +237,17 @@ export class Service extends ProjectReferencesService<Model> {
 
     this.normalizeWrite(data as unknown as JSONObject);
 
+    RelationIdUtil.readIntoIdColumn(
+      data as unknown as JSONObject,
+      ASSIGNEE_KEYS,
+      "Assignee",
+    );
+    RelationIdUtil.readIntoIdColumn(
+      data as unknown as JSONObject,
+      ASSIGNED_TEAM_KEYS,
+      "Team",
+    );
+
     data.priority = data.priority || SecurityCasePriority.Medium;
     data.status = data.status || SecurityCaseStatus.New;
 
@@ -301,6 +341,10 @@ export class Service extends ProjectReferencesService<Model> {
     const data: JSONObject = updateBy.data as unknown as JSONObject;
 
     this.normalizeWrite(data);
+
+    RelationIdUtil.readIntoIdColumn(data, ASSIGNEE_KEYS, "Assignee");
+    RelationIdUtil.readIntoIdColumn(data, ASSIGNED_TEAM_KEYS, "Team");
+    clearIdColumnsClearedByRelation(data);
 
     const watchesState: boolean =
       data["status"] !== undefined ||
