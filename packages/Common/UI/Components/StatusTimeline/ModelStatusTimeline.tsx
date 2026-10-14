@@ -894,6 +894,8 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
           ...headerButtons,
           {
             ...getRefreshButton(),
+            // An icon alone: the tooltip is its name for a screen reader too.
+            tooltip: "Refresh",
             buttonSize: ButtonSize.Small,
             onClick: refresh,
             disabled: isRefreshing,

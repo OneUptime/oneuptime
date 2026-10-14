@@ -1,5 +1,6 @@
 import Tooltip from "../Tooltip/Tooltip";
 import {
+  DEFAULT_BAND_WIDTH_PX,
   getNextStatusTimelineMarkIndex,
   getStatusTimelineContinuationMask,
   getStatusTimelineTicks,
@@ -311,6 +312,13 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
 
   const marks: Array<StatusTimelineBandMark> = props.layout.marks;
 
+  /*
+   * Until it has been measured (the first paint), the band is the width the
+   * layout assumed: labels and fades are judged at that width too.
+   */
+  const widthPx: number =
+    props.widthPx > 0 ? props.widthPx : DEFAULT_BAND_WIDTH_PX;
+
   // The band's width, so the layout knows how wide a pixel of time is.
   useLayoutEffect(() => {
     const element: HTMLDivElement | null = bandRef.current;
@@ -562,7 +570,7 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
   // The ticks whose labels fit between the two ends' and each other.
   const allTicks: Array<StatusTimelineTick> = getStatusTimelineTicks({
     window: props.window,
-    widthPx: props.widthPx,
+    widthPx: widthPx,
     timezone: props.clock.timezone,
   });
   const tickLabels: Array<string> = allTicks.map(
@@ -575,7 +583,7 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
       ticks: allTicks.map((tick: StatusTimelineTick, index: number) => {
         return { left: tick.left, label: tickLabels[index] || "" };
       }),
-      widthPx: props.widthPx,
+      widthPx: widthPx,
       startLabel: startLabel,
       endLabel: props.isAtNow ? nowLabel : undefined,
     }).map((index: number) => {
@@ -620,7 +628,7 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
               ? props.notLoadedLabel
               : translator.translateText(GAP_TEXT[gap.kind]) ||
                 GAP_TEXT[gap.kind];
-          const gapWidthPx: number = (gap.width / 100) * props.widthPx;
+          const gapWidthPx: number = (gap.width / 100) * widthPx;
 
           /*
            * Time with no status is the band's own empty track, finely
@@ -648,7 +656,7 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
                 {gapWidthPx >= GAP_LABEL_MIN_WIDTH_PX &&
                   gap.kind !== StatusTimelineGapKind.Future && (
                     <span
-                      className="flex min-w-0 items-center gap-2 px-2 text-xs text-gray-500"
+                      className="flex min-w-0 items-center gap-2 px-2 text-xs text-gray-600"
                       data-testid="status-timeline-gap-label"
                     >
                       <span className="truncate">{text}</span>
@@ -755,7 +763,7 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
                    */
                   ...getContinuationMaskStyle({
                     mark: mark,
-                    widthPx: props.widthPx,
+                    widthPx: widthPx,
                   }),
                 }}
                 onFocus={() => {
