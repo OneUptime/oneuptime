@@ -1,4 +1,5 @@
 import { DEFAULT_DOCS_LANGUAGE } from "./I18n";
+import DocsNav, { NavGroup } from "./Nav";
 import { ExpressRequest } from "Common/Server/Utils/Express";
 
 /*
@@ -45,6 +46,59 @@ export const getLegacyDocsPageTarget: (
   }
 
   return `/docs/${DEFAULT_DOCS_LANGUAGE}/${encodeURIComponent(categoryPath)}/${encodeURIComponent(pagePath)}`;
+};
+
+/*
+ * A category's own address, /docs/<category> or /docs/<lang>/<category>, is
+ * not a page. The website, old emails, search results and people typing an
+ * address still ask for it, so it opens the category's first page in the
+ * nav: where its pages start, and its overview wherever it has one. A name
+ * that is not a category of the nav is not an address of the docs.
+ */
+
+// A nav link to a docs page: /docs/<category>/<page>.
+const NAV_PAGE_URL: RegExp = /^\/docs\/([^/?#]+)\/([^/?#]+)$/;
+
+/*
+ * The first page of a category in the nav, as "category/page", or null when
+ * the nav has no such category. The name is matched in any case, as the docs
+ * serve every page in lower case.
+ */
+export const getDocsCategoryFirstPage: (
+  category: string,
+  nav?: Array<NavGroup>,
+) => string | null = (
+  category: string,
+  nav: Array<NavGroup> = DocsNav,
+): string | null => {
+  const categoryPath: string = category.toLowerCase();
+
+  for (const group of nav) {
+    for (const link of group.links) {
+      const page: RegExpMatchArray | null = link.url
+        .toLowerCase()
+        .match(NAV_PAGE_URL);
+
+      if (page && page[1] === categoryPath) {
+        return `${page[1]}/${page[2]}`;
+      }
+    }
+  }
+
+  return null;
+};
+
+/*
+ * Where a category's own address goes, in the given language: its first
+ * page, or null for a name that is not a category of the nav.
+ */
+export const getDocsCategoryTarget: (
+  category: string,
+  lang: string,
+) => string | null = (category: string, lang: string): string | null => {
+  const page: string | null = getDocsCategoryFirstPage(category);
+
+  return page === null ? null : `/docs/${lang}/${page}`;
 };
 
 /*
