@@ -846,6 +846,22 @@ describe("WorkspacePage.getTitle: the alert's title, from the message", () => {
     expect(title).toHaveLength(WORKSPACE_PAGE_MAX_TITLE_LENGTH);
     expect(title.endsWith("…")).toBe(true);
   });
+
+  test("a message as long as a chat sends, and longer, of white space and words: read in time that grows with it", () => {
+    const started: number = Date.now();
+
+    for (const message of [
+      " \t\n".repeat(400_000 / 3),
+      "a \u{a0}".repeat(400_000 / 3),
+      `${" ".repeat(400_000)}x${"\n".repeat(400_000)}`,
+    ]) {
+      expect(WorkspacePage.getTitle(message).length).toBeLessThanOrEqual(
+        WORKSPACE_PAGE_MAX_TITLE_LENGTH,
+      );
+    }
+
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
 });
 
 describe("WorkspacePage.page: the page itself", () => {

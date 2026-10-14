@@ -143,6 +143,28 @@ describe("where the page was asked from: what it is about, under the first line"
     ).toBeLessThanOrEqual("Simon Lee is paging for Alert AL-12: ".length + 300);
   });
 
+  test("a title as long as an alert's, and longer, of white space and words: shown in time that grows with it", () => {
+    const started: number = Date.now();
+
+    for (const recordTitle of [
+      " \t\n".repeat(400_000 / 3),
+      "a \u{a0}".repeat(400_000 / 3),
+      `${" ".repeat(400_000)}x${"\n".repeat(400_000)}`,
+    ]) {
+      const line: string | undefined = OnCallPolicyRunMessageView.getMarkdown(
+        page(),
+        { recordTitle: recordTitle },
+      ).split("\n\n")[1];
+
+      expect(line!.includes("\n")).toBe(false);
+      OnCallPolicyRunMessageView.getPlainText(page(), {
+        recordTitle: recordTitle,
+      });
+    }
+
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
   test("a record with no title, or one of spaces: no line for it", () => {
     for (const recordTitle of ["", "   ", undefined]) {
       expect(
