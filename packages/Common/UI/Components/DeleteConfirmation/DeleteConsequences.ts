@@ -42,8 +42,11 @@ export const ADDED_BACK_BY_INGEST_SENTENCE: string = translationKey(
 export interface DeleteSideEffect {
   // The service file, under Common/Server/Services, without ".ts".
   service: string;
-  // Text its delete hook holds, which does the work the sentence describes.
-  text: string;
+  /*
+   * Code its source holds that does the work the sentence describes (the
+   * delete hook, or ingest's find-or-create), word for word.
+   */
+  code: string;
 }
 
 export interface DeleteConsequence {
@@ -180,7 +183,7 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       sideEffects: [
         {
           service: "IncomingCallPolicyService",
-          text: "releaseIncomingCallPhoneNumber(",
+          code: "releaseIncomingCallPhoneNumber(",
         },
       ],
     },
@@ -219,7 +222,7 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       ],
       addedBackBy: {
         service: "OpenTelemetryIngestService",
-        text: "await ServiceService.create(",
+        code: "await ServiceService.create(",
       },
     },
     NetworkDevice: {
@@ -230,7 +233,7 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       sideEffects: [
         {
           service: "NetworkDeviceService",
-          text: "autoProvisionedNetworkDeviceId: device.id",
+          code: "autoProvisionedNetworkDeviceId: device.id",
         },
       ],
     },
@@ -248,7 +251,7 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       sideEffects: [
         {
           service: "TeamService",
-          text: "await TeamMemberService.deleteBy(",
+          code: "await TeamMemberService.deleteBy(",
         },
       ],
     },
@@ -294,7 +297,7 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       deletedWith: ["IoTDeviceCredential"],
       addedBackBy: {
         service: "IoTFleetService",
-        text: "public async findOrCreateByName(",
+        code: "public async findOrCreateByName(",
       },
     },
     DatabaseServer: {
@@ -304,7 +307,7 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       deletedWith: ["DatabaseServerEndpoint"],
       addedBackBy: {
         service: "DatabaseServerService",
-        text: "public async findOrCreateByEndpoint(",
+        code: "public async findOrCreateByEndpoint(",
       },
     },
     /*
@@ -316,85 +319,85 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
     Host: {
       addedBackBy: {
         service: "HostService",
-        text: "public async findOrCreateByHostIdentifier(",
+        code: "public async findOrCreateByHostIdentifier(",
       },
     },
     DockerHost: {
       addedBackBy: {
         service: "DockerHostService",
-        text: "public async findOrCreateByHostIdentifier(",
+        code: "public async findOrCreateByHostIdentifier(",
       },
     },
     PodmanHost: {
       addedBackBy: {
         service: "PodmanHostService",
-        text: "public async findOrCreateByHostIdentifier(",
+        code: "public async findOrCreateByHostIdentifier(",
       },
     },
     KubernetesCluster: {
       addedBackBy: {
         service: "KubernetesClusterService",
-        text: "public async findOrCreateByClusterIdentifier(",
+        code: "public async findOrCreateByClusterIdentifier(",
       },
     },
     DockerSwarmCluster: {
       addedBackBy: {
         service: "DockerSwarmClusterService",
-        text: "public async findOrCreateByName(",
+        code: "public async findOrCreateByName(",
       },
     },
     ProxmoxCluster: {
       addedBackBy: {
         service: "ProxmoxClusterService",
-        text: "public async findOrCreateByName(",
+        code: "public async findOrCreateByName(",
       },
     },
     VMwareVCenter: {
       addedBackBy: {
         service: "VMwareVCenterService",
-        text: "public async findOrCreateByName(",
+        code: "public async findOrCreateByName(",
       },
     },
     CephCluster: {
       addedBackBy: {
         service: "CephClusterService",
-        text: "public async findOrCreateByName(",
+        code: "public async findOrCreateByName(",
       },
     },
     StorageArray: {
       addedBackBy: {
         service: "StorageArrayService",
-        text: "public async findOrCreateByName(",
+        code: "public async findOrCreateByName(",
       },
     },
     ServerlessFunction: {
       addedBackBy: {
         service: "ServerlessFunctionService",
-        text: "public async findOrCreateByFunctionIdentifier(",
+        code: "public async findOrCreateByFunctionIdentifier(",
       },
     },
     MessageQueue: {
       addedBackBy: {
         service: "MessageQueueService",
-        text: "public async findOrCreateByIdentity(",
+        code: "public async findOrCreateByIdentity(",
       },
     },
     CloudResource: {
       addedBackBy: {
         service: "CloudResourceService",
-        text: "public async findOrCreateByResourceIdentifier(",
+        code: "public async findOrCreateByResourceIdentifier(",
       },
     },
     RumApplication: {
       addedBackBy: {
         service: "RumApplicationService",
-        text: "public async findOrCreateByAppIdentifier(",
+        code: "public async findOrCreateByAppIdentifier(",
       },
     },
     InventoryItem: {
       addedBackBy: {
         service: "InventoryItemService",
-        text: "private async upsertEntity(",
+        code: "private async upsertEntity(",
       },
     },
   };

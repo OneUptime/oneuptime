@@ -10,6 +10,10 @@ import CreatedByUser from "../Utils/Database/CreatedByUser";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  ONLY_STATE_DELETE_MESSAGES,
+  StateTimelineRecord,
+} from "../../Utils/StateTimeline/StateTimelineRowDelete";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -664,7 +668,7 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
 
         if (episodeStateTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only state timeline. Episode should have at least one state in its timeline.",
+            ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.IncidentEpisode],
           );
         }
 
@@ -745,16 +749,11 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
             },
           });
 
-          // Update the next state to start at the start of this state.
-          await this.updateOneById({
-            id: stateAfterThis.id!,
-            data: {
-              startsAt: episodeStateTimelineToBeDeleted.startsAt!,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          /*
+           * The state after it keeps its start: it is when that state really
+           * began. Moving it back to this one's start as well made the two
+           * cover this state's time twice (StateTimelineRowDelete).
+           */
           logger.debug("This state is in the middle.", {
             incidentEpisodeId: episodeId?.toString(),
           } as LogAttributes);

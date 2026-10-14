@@ -15,6 +15,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
+import useStateTimelineRowDelete, {
+  StateTimelineRowDeleteProps,
+} from "../../../Components/StateTimeline/StateTimelineRowDelete";
+import { StateTimelineRecord } from "Common/Utils/StateTimeline/StateTimelineRowDelete";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
@@ -22,6 +26,19 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  /*
+   * The episode's only state can't be deleted, and every other row's Delete
+   * says what deleting it does (StateTimelineRowDelete).
+   */
+  const stateRowDelete: StateTimelineRowDeleteProps<AlertEpisodeStateTimeline> =
+    useStateTimelineRowDelete<AlertEpisodeStateTimeline>({
+      record: StateTimelineRecord.AlertEpisode,
+      modelType: AlertEpisodeStateTimeline,
+      recordIdColumn: "alertEpisodeId",
+      recordId: modelId,
+      stateColumn: "alertState",
+    });
 
   return (
     <Fragment>
@@ -35,6 +52,11 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
         }}
         isEditable={false}
         isDeleteable={true}
+        getDeleteDisabledReason={stateRowDelete.getDeleteDisabledReason}
+        getDeleteConfirmation={stateRowDelete.getDeleteConfirmation}
+        getItemName={stateRowDelete.getItemName}
+        deleteConfirmationWarning={stateRowDelete.deleteConfirmationWarning}
+        onFetchSuccess={stateRowDelete.onFetchSuccess}
         isCreateable={true}
         isViewable={false}
         showViewIdButton={true}

@@ -14,6 +14,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import useStateTimelineRowDelete, {
+  StateTimelineRowDeleteProps,
+} from "../../../Components/StateTimeline/StateTimelineRowDelete";
+import { StateTimelineRecord } from "Common/Utils/StateTimeline/StateTimelineRowDelete";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
@@ -31,6 +35,19 @@ const ScheduledMaintenanceViewStateTimeline: FunctionComponent<
   PageComponentProps
 > = (props: PageComponentProps): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  /*
+   * The event's only state can't be deleted, and every other row's Delete
+   * says what deleting it does (StateTimelineRowDelete).
+   */
+  const stateRowDelete: StateTimelineRowDeleteProps<ScheduledMaintenanceStateTimeline> =
+    useStateTimelineRowDelete<ScheduledMaintenanceStateTimeline>({
+      record: StateTimelineRecord.ScheduledMaintenance,
+      modelType: ScheduledMaintenanceStateTimeline,
+      recordIdColumn: "scheduledMaintenanceId",
+      recordId: modelId,
+      stateColumn: "scheduledMaintenanceState",
+    });
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
   const handleResendNotification: (
@@ -65,6 +82,11 @@ const ScheduledMaintenanceViewStateTimeline: FunctionComponent<
         }}
         name="Scheduled Maintenance Events > State Timeline"
         isDeleteable={true}
+        getDeleteDisabledReason={stateRowDelete.getDeleteDisabledReason}
+        getDeleteConfirmation={stateRowDelete.getDeleteConfirmation}
+        getItemName={stateRowDelete.getItemName}
+        deleteConfirmationWarning={stateRowDelete.deleteConfirmationWarning}
+        onFetchSuccess={stateRowDelete.onFetchSuccess}
         isCreateable={true}
         showViewIdButton={true}
         isViewable={false}
