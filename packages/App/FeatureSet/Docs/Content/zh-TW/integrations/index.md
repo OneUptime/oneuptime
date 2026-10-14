@@ -119,7 +119,7 @@ URL 是唯一的憑證，所以要像對待密碼一樣對待它。請參閱 [We
 
 :::steps
 1. 按照[下文](#妥善保管憑證)所示，把該工具的 API 金鑰儲存為一個密鑰全域變數。
-2. 建立一個工作流程，點選虛線區塊並選擇一個事件觸發器，例如 **On Create Incident**。在它的 **Fields to pass on** 中勾選要傳送的欄位，例如 `title` 和 `description`。
+2. 建立一個工作流程，點選虛線區塊並選擇一個事件觸發器，例如 **On Create Incident**。點選該觸發器：它的 **Fields to pass on** 已經包含 **標題**，所以點選 **新增欄位**，再選擇要傳送的其他欄位，例如 **描述**。
 3. 點選 **新增元件**，新增一個 **API Post (JSON)** 區塊。把觸發器的 **Success** 點連接到它。
 4. 填寫它的 **URL**，在 **Request Headers** 中填入 `Authorization` 標頭，在 **Request Body** 中填入事件的欄位，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。
 5. 點選 **執行工作流程**，在 **事件** 中選擇一個事件，然後執行。測試執行會真的傳送請求。然後開啟 **已啟用**。

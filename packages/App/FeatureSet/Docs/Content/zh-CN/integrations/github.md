@@ -60,7 +60,7 @@ flowchart TB
 
 ### 添加触发器
 
-点击虚线的 **Choose what starts this workflow** 块，然后选择 **On Create Incident**。点击触发器，在 **Fields to pass on** 中选择 `title`、`description` 和 `incidentNumberWithPrefix`。
+点击虚线的 **Choose what starts this workflow** 块，然后选择 **On Create Incident**。点击触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述** 和 **Incident Number With Prefix**。
 
 ### 打开 issue
 
