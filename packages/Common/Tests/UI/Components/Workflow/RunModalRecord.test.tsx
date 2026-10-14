@@ -26,7 +26,10 @@ import {
 import React, { ReactElement } from "react";
 import type { Mock } from "jest-mock";
 
-// The code editor does not run under jsdom; the field only has to hold text.
+/*
+ * The code editor does not run under jsdom; the field only has to hold text,
+ * and say it is invalid the way the real editor's text box does.
+ */
 jest.mock("../../../../UI/Components/CodeEditor/CodeEditor", () => {
   return {
     __esModule: true,
@@ -36,6 +39,7 @@ jest.mock("../../../../UI/Components/CodeEditor/CodeEditor", () => {
       return (
         <textarea
           aria-labelledby={props.ariaLabelledby}
+          aria-invalid={props.ariaInvalid || props.error ? true : undefined}
           data-testid="code-editor"
           value={typeof raw === "string" ? raw : JSON.stringify(raw)}
           onChange={(event: React.ChangeEvent<HTMLTextAreaElement>): void => {
@@ -546,17 +550,20 @@ describe("running any other trigger", () => {
    * Request Body that is not JSON is the editor's to say; Run pressed over
    * it used to open "Please fix errors" as well.
    */
-  test("Run over a value that cannot be sent opens no dialog about errors", async () => {
+  test("Run over a value that cannot be sent opens no dialog about errors, and puts the focus in the editor", async () => {
     const harness: Harness = renderPanel(builtIn(ComponentID.Manual));
+    const editor: HTMLElement = screen.getByTestId("code-editor");
 
-    fireEvent.change(screen.getByTestId("code-editor"), {
+    fireEvent.change(editor, {
       target: { value: "{ not json" },
     });
     pressRun();
 
     await waitFor(() => {
-      expect(screen.queryByText("Please fix errors")).toBeNull();
+      expect(editor).toHaveFocus();
     });
+    expect(editor).toHaveAttribute("aria-invalid", "true");
+    expect(screen.queryByText("Please fix errors")).toBeNull();
     expect(screen.queryByText("Run this workflow now?")).toBeNull();
     expect(harness.onRun).not.toHaveBeenCalled();
   });
