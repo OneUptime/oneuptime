@@ -110,7 +110,7 @@ I due delimitatori devono essere diversi, non devono contenersi a vicenda e non 
 
 ### Esempio: firewall Sophos XGS
 
-Quando un firewall Sophos XGS invia syslog a una [sonda](/docs/monitor/network-device-monitor), ogni messaggio viene memorizzato come log del dispositivo di rete, con il messaggio syslog come corpo. Per analizzarlo:
+OneUptime legge da solo il syslog di Sophos e FortiGate come attributi `sophos.*` e `fortigate.*` (vedete [Eventi di rete](/docs/monitor/network-events)); questo esempio costruisce la stessa cosa a mano, come fareste per un formato che non conosce. Quando un firewall Sophos XGS invia syslog a una [sonda](/docs/monitor/network-device-monitor), ogni messaggio viene memorizzato come log del dispositivo di rete, con il messaggio syslog come corpo. Per analizzarlo:
 
 :::steps
 #### Creare una pipeline per il firewall
@@ -199,7 +199,7 @@ Sposta il valore di un attributo (**Chiave di origine**) in un altro (**Chiave d
 
 ## Processore di categoria
 
-Valuta in ordine un elenco di regole e memorizza in un attributo di destinazione il nome della prima regola il cui filtro corrisponde, così potete trovare in una volta sola tutti i log «Payment Error». Impostate **Attributo di destinazione** (`category` per impostazione predefinita), poi aggiungete delle **Regole di categoria**: un **Category name** e le condizioni in **When logs match**. Vince la prima regola che corrisponde; un log che non ne soddisfa nessuna resta invariato.
+Valuta in ordine un elenco di regole e memorizza in un attributo di destinazione il nome della prima regola il cui filtro corrisponde, così potete trovare in una volta sola tutti i log «Payment Error». Impostate **Attributo di destinazione** (`category` per impostazione predefinita), poi aggiungete delle **Regole di categoria**: un **Category name** e le condizioni in **When logs match**. Vince la prima regola che corrisponde; un log che non ne soddisfa nessuna resta invariato. Sui log di un dispositivo di rete, una regola con il nome di un evento (`ups.on_battery`) sotto l'attributo di destinazione `event.name` fa del log un [evento di rete](/docs/monitor/network-events#i-tuoi-eventi).
 
 ## Passaggi successivi
 

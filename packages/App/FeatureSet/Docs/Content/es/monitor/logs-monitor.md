@@ -63,6 +63,7 @@ Haz clic en **Crear monitor**. El monitor se abre en su página **Vista general*
 | **Registros del monitor durante (tiempo)** | Registros de los últimos 5 segundos hasta las últimas 24 horas. | **Último minuto** |
 | **Gravedad del registro** | Registros con cualquiera de las gravedades elegidas. | Vacío: todas las gravedades |
 | **Group by Attributes** | No es un filtro: cuenta por separado cada combinación de valores de estos atributos. | Vacío: un solo recuento |
+| **Resuelto por atributos** | No es un filtro: el registro que resuelve un grupo. Aparece en cuanto **Group by Attributes** tiene un atributo; consulta [Resuelto por un registro](#resuelto-por-un-registro). | Vacío: un grupo se resuelve cuando sus registros cesan |
 | **Filtrar por servicio de telemetría** (en **Más campos**) | Registros de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
 | **Filtrar por entidad de infraestructura** (en **Más campos**) | Registros de cualquiera de los hosts, pods, contenedores y otras entidades elegidos. | Vacío: todas las entidades |
 | **Filtrar por atributos** (en **Más campos**) | Registros cuyos atributos cumplen todas las condiciones. Cada condición tiene su propio operador, como «es igual a» o «contiene». | Vacío: ninguna condición |
@@ -170,7 +171,21 @@ flowchart TB
 
 La alerta o el incidente de cada grupo se resuelve por su cuenta. En cuanto un grupo deja de cumplir los criterios (`HQ-Branch1` ya no registra terminaciones dentro de la ventana de tiempo), su alerta se resuelve, mientras que la de `Branch2` sigue abierta hasta que `Branch2` también pare. La recuperación de un grupo nunca cierra la alerta de otro.
 
-Un monitor de registros ve eventos, no estados: la alerta de un grupo se resuelve en cuanto ese grupo no ha registrado nada que cumpla los criterios durante una ventana de tiempo completa, haya vuelto el túnel o no.
+Un monitor de registros ve eventos, no estados: la alerta de un grupo se resuelve en cuanto ese grupo no ha registrado nada que cumpla los criterios durante una ventana de tiempo completa, haya vuelto el túnel o no, salvo que el monitor nombre el registro que dice que ha vuelto, como se explica abajo.
+
+### Resuelto por un registro
+
+Un dispositivo que notifica un túnel caído suele notificar también que ha vuelto. **Resuelto por atributos** nombra ese registro: con él configurado, la alerta o el incidente de un grupo sigue abierto hasta que llega un registro con esos atributos para el mismo grupo, en vez de resolverse cuando los registros del grupo cesan.
+
+Toma un monitor que cuenta los registros con `event.name` = `vpn.tunnel_down`, agrupados por `event.device` y `vpn.tunnel.name`, con **Resuelto por atributos** configurado como `event.name` = `vpn.tunnel_up`. La caída del túnel `HQ-Branch1` abre su alerta. La alerta sigue abierta toda la noche, aunque el firewall no registre nada más sobre el túnel, y se resuelve cuando el firewall notifica que `HQ-Branch1` ha vuelto. Si el túnel vuelve a caer, se abre una alerta nueva.
+
+- El campo aparece en cuanto **Group by Attributes** tiene un atributo. Admite hasta 10 atributos, y un registro de resolución los lleva todos.
+- Un registro de resolución pertenece a un grupo cuando tiene los valores del grupo para los atributos de agrupación, así que ambos tipos de registro deben llevar esos atributos.
+- Los servicios de telemetría y la ventana de tiempo del monitor se aplican también a los registros de resolución. Sus filtros de texto y de gravedad, no: describen el problema.
+- Un grupo cuyo registro más reciente es de resolución se cierra. Uno que volvió a registrar el problema después sigue abierto.
+- Puedes seguir resolviendo una alerta tú mismo.
+
+[Eventos de red](/docs/monitor/network-events) crea estos monitores por ti, con un clic por alerta.
 
 ### Ejemplo: una alerta por túnel IPsec de Sophos
 

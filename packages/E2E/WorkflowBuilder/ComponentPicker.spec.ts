@@ -141,7 +141,7 @@ test.describe("Workflow builder: the Add Component picker", () => {
         .getByTestId("workflow-component-picker")
         .getByRole("button")
         .count(),
-    ).toBeLessThan(40);
+    ).toBeLessThan(50);
     await expect(
       panel.getByRole("button", { name: "Add to Workflow" }),
     ).toHaveCount(0);

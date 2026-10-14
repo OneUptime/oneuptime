@@ -110,7 +110,7 @@ De to skilletegn skal være forskellige, må ikke indeholde hinanden og må ikke
 
 ### Eksempel: Sophos XGS-firewall
 
-Når en Sophos XGS-firewall sender syslog til en [probe](/docs/monitor/network-device-monitor), gemmes hver besked som en log for netværksenheden med syslog-beskeden som indhold. Sådan fortolker du den:
+OneUptime læser selv syslog fra Sophos og FortiGate som `sophos.*`- og `fortigate.*`-attributter (se [Netværksbegivenheder](/docs/monitor/network-events)); dette eksempel bygger det samme i hånden, som du ville gøre for et format, det ikke kender. Når en Sophos XGS-firewall sender syslog til en [probe](/docs/monitor/network-device-monitor), gemmes hver besked som en log for netværksenheden med syslog-beskeden som indhold. Sådan fortolker du den:
 
 :::steps
 #### Opret en pipeline til firewallen
@@ -199,7 +199,7 @@ Flytter værdien fra én attribut (**Kildenøgle**) til en anden (**Målnøgle**
 
 ## Kategoriprocessor
 
-Evaluerer en liste af regler i rækkefølge og gemmer navnet på den første regel, hvis filter matcher, i en målattribut, så du kan finde alle "Payment Error"-logs på én gang. Sæt **Målattribut** (`category` som standard), og tilføj derefter **Kategoriregler**: et **Category name** og betingelserne under **When logs match**. Den første regel, der matcher, vinder; en log, der ikke matcher nogen, forbliver uændret.
+Evaluerer en liste af regler i rækkefølge og gemmer navnet på den første regel, hvis filter matcher, i en målattribut, så du kan finde alle "Payment Error"-logs på én gang. Sæt **Målattribut** (`category` som standard), og tilføj derefter **Kategoriregler**: et **Category name** og betingelserne under **When logs match**. Den første regel, der matcher, vinder; en log, der ikke matcher nogen, forbliver uændret. På en netværksenheds logs gør en regel, der er navngivet som en begivenhed (`ups.on_battery`), under målattributten `event.name` loggen til en [netværksbegivenhed](/docs/monitor/network-events#dine-egne-begivenheder).
 
 ## Næste trin
 

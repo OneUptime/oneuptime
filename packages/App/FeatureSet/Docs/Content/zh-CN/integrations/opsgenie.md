@@ -49,7 +49,7 @@ flowchart TB
 
 ### 添加触发器
 
-点击虚线的 **Choose what starts this workflow** 块，选择 **On Create Incident**。点击该触发器，在 **Select Fields** 中选择 `title` 和 `description`。
+点击虚线的 **Choose what starts this workflow** 块，选择 **On Create Incident**。点击该触发器，在 **Fields to pass on** 中选择 `title` 和 `description`。
 
 ### 创建告警
 
@@ -85,7 +85,7 @@ Opsgenie 的认证方式是单词 `GenieKey`、一个空格，然后是密钥。
 :::steps
 ### 添加 On Update Incident 触发器
 
-创建一个名为 `Close Opsgenie alerts` 的工作流，选择 **On Update Incident** 作为触发器。在 **Listen on** 中选择 `currentIncidentStateId`，使它只在状态变化时运行。在 **Select Fields** 中请求新状态是否为已解决状态：
+创建一个名为 `Close Opsgenie alerts` 的工作流，选择 **On Update Incident** 作为触发器。在 **Fields to watch** 中选择 `currentIncidentStateId`，使它只在状态变化时运行。在 **Fields to pass on** 中请求新状态是否为已解决状态：
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 
 要把每个事件的严重程度作为 Opsgenie 优先级发送，请在触发器和 **API Post (JSON)** 块之间添加一个 **Run Custom JavaScript** 块。
 
-1. 在触发器的 **Select Fields** 中，同时选择严重程度的 `name`：`{ "incidentSeverity": { "name": true } }`。
+1. 在触发器的 **Fields to pass on** 中，同时选择严重程度的 `name`：`{ "incidentSeverity": { "name": true } }`。
 2. 把该块的 **Arguments** 设为 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`，**JavaScript Code** 设为：
 
    ```javascript

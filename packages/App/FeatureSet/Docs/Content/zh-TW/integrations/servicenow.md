@@ -54,7 +54,7 @@ Table API 使用 Basic 驗證：把使用者名稱和密碼編碼在一起。
 
 ### 新增觸發器
 
-點選虛線的 **Choose what starts this workflow** 區塊，選擇 **On Create Incident**。點選該觸發器，在 **Select Fields** 中選擇 `title` 和 `description`。
+點選虛線的 **Choose what starts this workflow** 區塊，選擇 **On Create Incident**。點選該觸發器，在 **Fields to pass on** 中選擇 `title` 和 `description`。
 
 ### 建立記錄
 
@@ -93,7 +93,7 @@ Table API 使用 Basic 驗證：把使用者名稱和密碼編碼在一起。
 :::steps
 ### 新增 On Update Incident 觸發器
 
-建立一個名為 `Resolve ServiceNow incidents` 的工作流程，選擇 **On Update Incident** 作為觸發器。在 **Listen on** 中選擇 `currentIncidentStateId`，使它只在狀態變化時執行。在 **Select Fields** 中請求新狀態是否為已解決狀態：
+建立一個名為 `Resolve ServiceNow incidents` 的工作流程，選擇 **On Update Incident** 作為觸發器。在 **Fields to watch** 中選擇 `currentIncidentStateId`，使它只在狀態變化時執行。在 **Fields to pass on** 中請求新狀態是否為已解決狀態：
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

@@ -28,7 +28,7 @@ flowchart TB
 OneUptime responde en cuanto ha leído los mensajes de la solicitud, y los analiza y guarda un momento después. El texto del mensaje queda en el cuerpo del registro; todo lo demás se convierte en un atributo.
 
 > [!TIP]
-> Los dispositivos de red que monitorizas con una sonda de OneUptime pueden enviar su syslog directamente a la sonda por UDP, sin relé; los registros aparecen entonces en el dispositivo en OneUptime. Consulta [Guías por fabricante de red](/docs/monitor/network-vendor-guides).
+> Los dispositivos de red pueden enviar su syslog directamente a una sonda de OneUptime, por UDP o TCP, sin relé; OneUptime lee entonces los mensajes de cada fabricante como eventos en el dispositivo. Consulta [Eventos de red](/docs/monitor/network-events).
 
 ## Antes de empezar
 
@@ -200,7 +200,7 @@ OneUptime añade automáticamente los siguientes atributos a cada entrada de reg
 
 Estos atributos se pueden buscar en el explorador de **Productos → Registros**, por ejemplo `@syslog.severity.name:error` o `@syslog.hostname:web-01`. Consulta [Sintaxis de búsqueda](/docs/telemetry/search-syntax).
 
-El mensaje en sí queda en el cuerpo del registro. Cortafuegos como Sophos XGS y Fortinet FortiGate lo escriben como pares `key=value` (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`); añade un procesador **Key=Value Parser** en una [canalización de registros](/docs/telemetry/log-pipelines#keyvalue-parser) para convertir también esos pares en atributos.
+El mensaje en sí queda en el cuerpo del registro. Un mensaje en el formato de un fabricante de red se lee más a fondo: los pares `key=value` de un cortafuegos Sophos o FortiGate (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) se convierten en atributos `sophos.*` y `fortigate.*`, y lo que pasó se convierte en un [evento de red](/docs/monitor/network-events). Para cualquier otro formato `key=value`, añade un procesador **Key=Value Parser** en una [canalización de registros](/docs/telemetry/log-pipelines#keyvalue-parser) para convertir los pares en atributos.
 
 ### Severidad
 

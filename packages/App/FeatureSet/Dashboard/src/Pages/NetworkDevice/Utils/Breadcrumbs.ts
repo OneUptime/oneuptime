@@ -22,6 +22,11 @@ export function getNetworkDeviceBreadcrumbs(
       "Network",
       "Traffic",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_EVENTS, [
+      "Project",
+      "Network",
+      "Events",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW, [
       "Project",
       "Network",
@@ -56,6 +61,12 @@ export function getNetworkDeviceBreadcrumbs(
       "Network",
       "View Device",
       "Traffic",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_EVENTS, [
+      "Project",
+      "Network",
+      "View Device",
+      "Events",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_MONITORS, [
       "Project",

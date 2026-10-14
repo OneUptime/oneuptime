@@ -31,6 +31,20 @@ import AlertEpisode from "./AlertEpisode";
 import IncidentEpisode from "./IncidentEpisode";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
+/*
+ * ONE PAGE: PEOPLE PAGED ABOUT AN INCIDENT, AN ALERT OR AN EPISODE, AND WHAT
+ * CAME OF IT.
+ *
+ * Most pages are an on-call policy's run: the policy's escalation rules page
+ * people in turn until somebody acknowledges. A page can also be direct -
+ * people named one by one, a team's members, whoever is on call in a
+ * schedule - with no policy behind it: a workflow's Page Users, Page a Team
+ * and Page Whoever Is On Call steps start those (OnCallPageService). A
+ * direct page has no onCallDutyPolicyId, and pages everybody it names once,
+ * straight away; each person is reached through their own On-Call Rules
+ * either way, and acknowledging the page acknowledges the record
+ * (Types/OnCallDutyPolicy/OnCallDirectPage).
+ */
 @TableBillingAccessControl({
   create: PlanType.Growth,
   read: PlanType.Growth,
@@ -226,19 +240,24 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Empty for a direct page, which no on-call policy is behind. Not
+   * `required`, so OneUptime's own create of one passes DatabaseService
+   * .checkRequiredFields; every other create still has to name the policy
+   * it runs (OnCallDutyPolicyExecutionLogService.onBeforeCreate).
+   */
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy ID",
     description:
-      "ID of your On-Call Policy which belongs to this execution log event.",
+      "ID of the On-Call Policy this execution log is a run of. Required when you create one. Empty for a direct page: people, a team or an on-call schedule paged without an on-call policy.",
     example: "e5f6a7b8-c9d0-1234-ef01-345678901234",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyId?: ObjectID = undefined;
@@ -1328,4 +1347,74 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredByUserId?: ObjectID = undefined;
+
+  /*
+   * The workflow whose step started this page, and the name it had then:
+   * a Page step, or a step that creates an execution log. Kept as the id
+   * and the name rather than as a relation, as the audit log keeps them: the
+   * page's feed, its Slack and Microsoft Teams message and the Dashboard say
+   * "Workflow <name>" to people who may not read workflows, and long after
+   * the workflow is renamed or deleted.
+   *
+   * No caller may write either: OneUptime stamps them once a create has
+   * passed every check (OnCallDutyPolicyExecutionLogService
+   * .onCreatePermitted).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Triggered by Workflow ID",
+    description:
+      "ID of the workflow whose step started this page, when a workflow did.",
+    example: "0a1b2c3d-4e5f-6789-abcd-ef0123456789",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByWorkflowId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Triggered by Workflow Name",
+    description:
+      "Name of the workflow whose step started this page, as it was then.",
+    example: "Page the on-call engineer for critical incidents",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public triggeredByWorkflowName?: string = undefined;
 }

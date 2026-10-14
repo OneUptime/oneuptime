@@ -48,7 +48,7 @@ Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **
 
 ### Añadir el disparador
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador y, en **Select Fields**, elige `title` y `description`.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador y, en **Fields to pass on**, elige `title` y `description`.
 
 ### Enviar el evento de disparo
 
@@ -84,7 +84,7 @@ Un flujo de trabajo tiene un solo disparador, así que resolver requiere un segu
 :::steps
 ### Añadir el disparador On Update Incident
 
-Crea un flujo de trabajo llamado `Resolve PagerDuty incidents` y elige **On Update Incident** como disparador. En **Listen on**, elige `currentIncidentStateId`, para que solo se ejecute cuando cambie el estado. En **Select Fields**, pide si el nuevo estado es un estado resuelto:
+Crea un flujo de trabajo llamado `Resolve PagerDuty incidents` y elige **On Update Incident** como disparador. En **Fields to watch**, elige `currentIncidentStateId`, para que solo se ejecute cuando cambie el estado. En **Fields to pass on**, pide si el nuevo estado es un estado resuelto:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ Comprobar `isResolvedState` en lugar del nombre de un estado sigue funcionando c
 
 Para enviar la gravedad de cada incidente, añade un bloque **Run Custom JavaScript** entre el disparador y el bloque **API Post (JSON)**, y lee su respuesta en el cuerpo.
 
-1. En los **Select Fields** del disparador, elige también el `name` de la gravedad: `{ "incidentSeverity": { "name": true } }`.
+1. En los **Fields to pass on** del disparador, elige también el `name` de la gravedad: `{ "incidentSeverity": { "name": true } }`.
 2. Pon los **Arguments** del bloque en `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, y su **JavaScript Code** en:
 
    ```javascript

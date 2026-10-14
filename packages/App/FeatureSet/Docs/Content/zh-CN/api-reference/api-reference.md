@@ -242,7 +242,7 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 isVisibleOnStatusPage must be true or false.
 ```
 
-以记录现有的值写入的更新不会改变任何东西：它不会启动记录的 **On Update** 工作流，不会发送实时更新，也不会添加审计日志条目。写在 `false` 上的 `false` 算作相同的值，写在 `false` 上的 `"false"`、以文本写入的数字、以另一种格式写入的同一时刻，以及以任意顺序写入的相同标签也都一样。当更新更改了一些值、又把另一些值按原样写回时，其审计日志条目只列出更改了的值，工作流的 **Listen on** 也只会收到这些值。
+以记录现有的值写入的更新不会改变任何东西：它不会启动记录的 **On Update** 工作流，不会发送实时更新，也不会添加审计日志条目。写在 `false` 上的 `false` 算作相同的值，写在 `false` 上的 `"false"`、以文本写入的数字、以另一种格式写入的同一时刻，以及以任意顺序写入的相同标签也都一样。当更新更改了一些值、又把另一些值按原样写回时，其审计日志条目只列出更改了的值，工作流的 **Fields to watch** 也只会收到这些值。
 
 ### 项目的购买渠道
 

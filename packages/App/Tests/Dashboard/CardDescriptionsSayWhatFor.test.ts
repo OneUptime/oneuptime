@@ -151,7 +151,7 @@ const LIST_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Pages/UserSettings/OnCallLogs.tsx",
-    "Each time an on-call policy paged you in this project. Open one to see every notification sent and whether it was delivered.",
+    "Each time you were paged in this project, by an on-call policy or directly. Open one to see every notification sent and whether it was delivered.",
   ],
   [
     "Pages/UserSettings/OnCallLogsTimeline.tsx",
@@ -159,7 +159,7 @@ const LIST_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTable.tsx",
-    "Each time an on-call policy ran: what triggered it and who acknowledged it. Open one to see every notification it sent and whether it was delivered.",
+    "Each time an on-call policy ran or people were paged directly: what triggered it and who acknowledged it. Open one to see every notification it sent and whether it was delivered.",
   ],
   [
     "Pages/Monitor/View/Logs.tsx",

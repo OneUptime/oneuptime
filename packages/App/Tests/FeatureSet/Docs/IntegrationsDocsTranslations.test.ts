@@ -5,6 +5,7 @@ import {
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
   DYNAMICS,
+  FIRST_TASK_PAGE_COUNT,
   INTEGRATIONS_PAGES,
   IntegrationsDocsPageEntry,
   JIRA,
@@ -37,7 +38,11 @@ import {
   tables,
   unbalancedLines,
 } from "./DocsPageShape";
-import { PERSIAN_PATH_SEPARATOR } from "./DocsProductsMenu";
+import {
+  PERSIAN_PATH_SEPARATOR,
+  PRODUCTS_MENU,
+  drawnPath,
+} from "./DocsProductsMenu";
 import {
   CARD_LINE,
   anchorProblems,
@@ -63,8 +68,15 @@ import { describe, expect, it } from "@jest/globals";
 /*
  * Docs overhaul task 28a: the Integrations Overview and the Zabbix, Jira,
  * PagerDuty, Opsgenie, ServiceNow and Microsoft Dynamics 365 pages, in
- * every docs language. IntegrationsDocsFacts holds the English pages to the
- * product; this suite holds each translation to its English page:
+ * every docs language; and task 28b: the Prometheus Alertmanager, Grafana
+ * and Datadog pages, and the Google SecOps, Microsoft Sentinel, Microsoft
+ * Defender XDR and CrowdStrike Falcon connection pages; and task 28c: the
+ * Splunk Enterprise Security, Elastic Security, AWS Security Hub and Okta
+ * System Log connection pages, and the GitHub, GitLab, Discord and
+ * Telegram pages. IntegrationsDocsFacts, AlertingIntegrationsDocsFacts,
+ * SecurityConnectionsDocsFacts, SplunkElasticAwsOktaDocsFacts and
+ * IssueAndChatIntegrationsDocsFacts hold the English pages to the product;
+ * this suite holds each translation to its English page:
  *
  *   - line for line: the same number of lines, each heading, table row,
  *     fence, component line and tab on the English one's line, so a later
@@ -79,7 +91,9 @@ import { describe, expect, it } from "@jest/globals";
  * And it names OneUptime the way that language's Dashboard draws it,
  * Persian included: a bold label by drawnActionLabel, a menu path segment
  * by segment, one bold span joined by " → " (in Persian a bold span per
- * segment joined by " > ", with no "→" left in the prose). What every
+ * segment joined by " > ", with no "→" left in the prose). A path that
+ * opens a product from the Products menu draws it as the menu does
+ * (drawnPath), as the Security Events pages do. What every
  * language keeps as written stays so: what a workflow step defines (its
  * title, settings, outputs and comparisons, as the workflow pages keep
  * them), the templates' names and settings, which the Dashboard shows in
@@ -117,7 +131,53 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   "integrations/opsgenie": 20,
   "integrations/servicenow": 24,
   "integrations/microsoft-dynamics-365": 24,
+  "integrations/prometheus-alertmanager": 22,
+  "integrations/grafana": 23,
+  "integrations/datadog": 22,
+  "integrations/google-secops": 23,
+  "integrations/microsoft-sentinel": 22,
+  "integrations/microsoft-defender-xdr": 22,
+  "integrations/crowdstrike-falcon": 21,
+  "integrations/splunk": 22,
+  "integrations/elastic-security": 21,
+  "integrations/aws-security-hub": 22,
+  "integrations/okta": 23,
+  "integrations/github": 21,
+  "integrations/gitlab": 20,
+  "integrations/discord": 20,
+  "integrations/telegram": 18,
 };
+
+/*
+ * Tab labels that are words, not a product's name: how a workflow is built,
+ * on the Discord and Telegram pages, as on the IRC page. A reader's pick of
+ * a tab is remembered by its label, from page to page, so each language
+ * words these as its IRC page does, and the pick follows the reader from
+ * one chat's page to the next. Every other tab label names a product, and
+ * stays as written.
+ */
+const WORDED_TAB_LABELS: ReadonlyArray<string> = [
+  "From the template",
+  "From scratch",
+];
+const IRC_PAGE: string = "integrations/irc";
+
+// A tab's label as a page in this language writes it.
+function drawnTabLabel(language: string, english: string): string {
+  if (!WORDED_TAB_LABELS.includes(english)) {
+    return english;
+  }
+
+  const englishLabels: Array<string> = tabLabels(readPage("en", IRC_PAGE));
+  const labels: Array<string> = tabLabels(readPage(language, IRC_PAGE));
+  const drawn: string | undefined = labels[englishLabels.indexOf(english)];
+
+  if (!drawn) {
+    throw new Error(`The ${language} IRC page has no tab for ${english}`);
+  }
+
+  return drawn;
+}
 
 // The names, longest first: "Jira Cloud" goes before "Jira" takes its first word.
 const NAMES_LONGEST_FIRST: Array<string> = [...PRODUCT_NAMES].sort(
@@ -205,9 +265,16 @@ function dashboardPaths(page: string): Array<Array<string>> {
 /*
  * A path through the Dashboard's menus, as a page in a language writes it:
  * each segment as the Dashboard draws it, in one bold span joined by " → ";
- * in Persian, a bold span per segment joined by " > ".
+ * in Persian, a bold span per segment joined by " > ". A path from the
+ * Products menu names its product as the menu draws it, which some
+ * languages word apart from the flat label: the Persian menu reads the
+ * Security Events product in Persian where its flat label is English.
  */
 function drawnMenuPath(language: string, segments: Array<string>): string {
+  if (segments[0] === PRODUCTS_MENU) {
+    return drawnPath(language, segments);
+  }
+
   const drawn: Array<string> = segments.map((segment: string): string => {
     return drawnActionLabel(language, segment);
   });
@@ -452,17 +519,29 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("follow the Integrations nav group, page for page, from its first link", () => {
-    expect(
-      navGroup("Integrations")
-        .links.slice(0, INTEGRATIONS_PAGES.length)
-        .map((link: NavLink): Array<string> => {
-          return [link.url, link.title];
-        }),
-    ).toEqual(
-      INTEGRATIONS_PAGES.map((entry: IntegrationsDocsPageEntry) => {
+  it("follow the Integrations nav group's order, task 28a's pages first", () => {
+    const links: Array<Array<string>> = navGroup("Integrations").links.map(
+      (link: NavLink): Array<string> => {
+        return [link.url, link.title];
+      },
+    );
+    const listed: Array<Array<string>> = INTEGRATIONS_PAGES.map(
+      (entry: IntegrationsDocsPageEntry): Array<string> => {
         return [`/docs/${entry.page}`, entry.navTitle];
+      },
+    );
+
+    // Every page, under its nav title, in the nav's order.
+    expect(
+      links.filter((link: Array<string>): boolean => {
+        return listed.some((entry: Array<string>): boolean => {
+          return entry[0] === link[0];
+        });
       }),
+    ).toEqual(listed);
+    // Task 28a's pages are the group's first links.
+    expect(links.slice(0, FIRST_TASK_PAGE_COUNT)).toEqual(
+      listed.slice(0, FIRST_TASK_PAGE_COUNT),
     );
   });
 
@@ -723,9 +802,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         );
       });
 
-      it("keeps the tabs' labels, which name products", () => {
+      it("keeps the tabs' labels that name products, and words the others as the IRC page does", () => {
         expect(tabLabels(readPage(language, entry.page))).toEqual(
-          tabLabels(english),
+          tabLabels(english).map((label: string): string => {
+            return drawnTabLabel(language, label);
+          }),
         );
       });
 
@@ -1006,6 +1087,25 @@ describe("the helpers, on these pages' shapes", () => {
             inShape: inEnglishShape(language, page),
           }).toEqual({ language, page, inShape: true });
         }
+      }
+    }
+  });
+
+  it("word a tab that names no product as the IRC page does, and keep every other as written", () => {
+    expect(drawnTabLabel("en", "From the template")).toBe("From the template");
+    expect(drawnTabLabel("de", "Zabbix 7.0")).toBe("Zabbix 7.0");
+
+    for (const language of LANGUAGES) {
+      for (const label of WORDED_TAB_LABELS) {
+        expect({
+          language,
+          label,
+          worded: drawnTabLabel(language, label) !== label,
+        }).toEqual({
+          language,
+          label,
+          worded: true,
+        });
       }
     }
   });

@@ -212,8 +212,8 @@ Les journaux d'appels entrants sont disponibles comme déclencheurs de workflow 
 Pour ne réagir qu'aux appels manqués, par exemple pour les publier dans Slack ou Microsoft Teams ou ouvrir un ticket :
 
 :::steps
-1. Ajoutez le déclencheur **On Update Incoming Call Log**. Réglez **Listen on** sur **Ended At**, et sélectionnez les champs à utiliser, comme **Status**, **Caller Phone Number** et **Routing Phone Number**.
-2. Ajoutez une étape **If / Else**. Testez le **Status** du déclencheur avec la comparaison **is not equal to** et `Completed`.
+1. Ajoutez le déclencheur **On Update Incoming Call Log**. Réglez **Fields to watch** sur **Ended At**, et sélectionnez les champs à utiliser, comme **Status**, **Caller Phone Number** et **Routing Phone Number**.
+2. Ajoutez une étape **If / Else**. Testez le **Status** du déclencheur avec la comparaison **n'est pas égal à** et `Completed`.
 3. Reliez vos étapes au port **Yes**.
 :::
 

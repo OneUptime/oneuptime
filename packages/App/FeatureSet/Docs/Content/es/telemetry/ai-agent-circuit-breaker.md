@@ -125,11 +125,11 @@ Abre **Productos → Flujos de trabajo** y haz clic en **Crear flujo de trabajo*
 
 ### Añade el desencadenante
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Alert** en el panel **Añadir desencadenante**. Haz clic en el desencadenante, marca el título y la descripción en **Select Fields** y haz clic en **Guardar**. El ID del bloque, `alert-on-create-1`, es como los bloques posteriores se refieren a él.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Alert** en el panel **Añadir desencadenante**. Haz clic en el desencadenante: **Fields to pass on** empieza con el título, así que haz clic en **Añadir campo**, marca la descripción y haz clic en **Guardar**. El ID del bloque, `alert-on-create-1`, es como los bloques posteriores se refieren a él.
 
 ### Comprueba el título
 
-Haz clic en **Añadir componente**, elige **If / Else** y conecta el punto **Success** del desencadenante con él. Pon **Value to check** en el título de la alerta (haz clic en **{ }** y elígelo), **Comparison** en **contiene** y **Compare with** en el comienzo que comparten los títulos de tus detonantes, como `LLM budget exceeded`.
+Haz clic en **Añadir componente**, elige **If / Else** y conecta el punto **Success** del desencadenante con él. Pon **Valor que comprobar** en el título de la alerta (haz clic en **{ }** y elígelo), **Comparación** en **contiene** y **Comparar con** en el comienzo que comparten los títulos de tus detonantes, como `LLM budget exceeded`.
 
 ### Llama a tu endpoint
 
@@ -189,7 +189,7 @@ Comprueba que **Habilitado** está activado en la parte superior del **Construct
 :::
 
 :::details El flujo de trabajo se ejecuta, pero siempre toma la rama No
-El título está vacío o no coincide. Un campo que no está marcado en **Select Fields** del desencadenante llega vacío, así que marca el título. Después compara el título de la alerta con **Compare with**: **contiene** debe encontrar ese texto exacto en él.
+El título está vacío o no coincide. Un campo que no está en **Fields to pass on** del desencadenante llega vacío, así que añade ahí el título. Después compara el título de la alerta con **Comparar con**: **contiene** debe encontrar ese texto exacto en él.
 :::
 
 :::details Tu endpoint responde 401

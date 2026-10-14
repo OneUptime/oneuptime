@@ -4,9 +4,16 @@ import LogSeverity from "Common/Types/Log/LogSeverity";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import SnmpTrap from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
+import {
+  getSnmpTrapEventAttributes,
+  getSnmpTrapInterfaceIndex,
+} from "Common/Utils/NetworkEvent/SnmpTrapEvent";
+import { markNetworkEvent } from "Common/Utils/NetworkEvent/NetworkEventLog";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import LogService from "Common/Server/Services/LogService";
+import NetworkInterfaceService from "Common/Server/Services/NetworkInterfaceService";
 import OTelIngestService, {
   TelemetryServiceMetadata,
   getScalarEntityKeyColumns,
@@ -111,6 +118,53 @@ export default class SnmpTrapLogWriter {
     }
   }
 
+  /*
+   * The name of the interface a link trap is about, when the trap gives
+   * only its index (all RFC 2863 asks of it): the name the device's last
+   * walk recorded for that index. Undefined when the trap names its
+   * interface itself, when it is not a link trap, and when the device has
+   * no such interface on record - the event then says "ifIndex N".
+   *
+   * A lookup that fails leaves the name out; it never loses the trap.
+   */
+  private static async findInterfaceName(
+    snmpTrap: SnmpTrap,
+    device: NetworkDevice | null,
+  ): Promise<string | undefined> {
+    if (!device?.id) {
+      return undefined;
+    }
+
+    const interfaceIndex: number | null = getSnmpTrapInterfaceIndex(snmpTrap);
+
+    if (interfaceIndex === null) {
+      return undefined;
+    }
+
+    try {
+      const networkInterface: NetworkInterface | null =
+        await NetworkInterfaceService.findOneBy({
+          query: {
+            networkDeviceId: device.id,
+            interfaceIndex: interfaceIndex,
+          },
+          select: {
+            name: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      return networkInterface?.name?.trim() || undefined;
+    } catch (err) {
+      logger.error("SNMP trap log writer: error reading the interface:");
+      logger.error(err);
+
+      return undefined;
+    }
+  }
+
   private static async buildTrapLogRow(data: {
     snmpTrap: SnmpTrap;
     probeId: ObjectID;
@@ -136,6 +190,17 @@ export default class SnmpTrapLogWriter {
       data.serviceCache[serviceCacheKey]!;
 
     const attributes: Dictionary<AttributeType | Array<AttributeType>> = {
+      /*
+       * linkDown, linkUp, coldStart and warmStart are the same events a
+       * device also reports over syslog: stored under the same name, so
+       * what is built on the event finds them either way.
+       */
+      ...getSnmpTrapEventAttributes(snmpTrap, {
+        interfaceName: await SnmpTrapLogWriter.findInterfaceName(
+          snmpTrap,
+          data.device,
+        ),
+      }),
       ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
         serviceId: serviceMetadata.primaryEntityId,
         serviceName: serviceName,
@@ -163,6 +228,11 @@ export default class SnmpTrapLogWriter {
     if (data.device?.name) {
       attributes["networkDevice.name"] = data.device.name;
     }
+
+    // Which device a trap that is an event is about: its name, else its address.
+    markNetworkEvent(attributes as JSONObject, {
+      device: data.device?.name?.trim() || snmpTrap.sourceIpAddress,
+    });
 
     /*
      * Varbinds land as a JSON attribute (queryable, bounded) and the body

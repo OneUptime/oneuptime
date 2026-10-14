@@ -1,146 +1,174 @@
-# Prometheus Alertmanager 集成
+# Prometheus Alertmanager
 
-把 [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) 的通知变成 OneUptime 事件。Prometheus 评估你的告警规则，Alertmanager 负责路由，OneUptime 负责记录并升级。
+把 [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) 告警发送到 OneUptime，让每个触发的告警都成为一个呼叫值班团队的事件，并在告警恢复时解决。Alertmanager 把通知发布到 Webhook 接收器，因此两边都无需安装任何东西。
 
-这个集成是 **入站** 的，有两种构建方式：
+:::cards
+- [选择 OneUptime 接收告警的方式](#选择-oneuptime-接收告警的方式): Incoming Request 监视器，或你自己的工作流。
+- [用监视器接收告警](#用监视器接收告警): 每个告警一个事件，恢复时自动解决。
+- [配置 Alertmanager](#配置-alertmanager): 一个 Webhook 接收器，以及使用它的路由。
+- [故障排除](#故障排除): 告警没有到达，或事件一直未关闭时。
+:::
 
-| 方式                                                                 | 适用场景                                                                                       |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| **[传入请求监控器](/docs/monitor/incoming-request-monitor)**（推荐） | 你希望告警变成带值班升级的事件，每条告警一个事件，并在恢复时自动解决。没有自定义逻辑需要维护。 |
-| **[工作流](/docs/workflows/index) 配 Webhook 触发器**                | 你需要 OneUptime 原生不提供的路由逻辑——调用其他系统、改造负载、条件分支。                      |
+## 工作方式
 
-```text
-Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneUptime  ──►  Incident + on-call
+```mermaid title="从触发的告警到事件"
+flowchart TB
+    rule["Prometheus<br/>规则触发"] --> group["Alertmanager<br/>对告警分组"]
+    group --> post["接收器把告警<br/>发布到 OneUptime"]
+    post --> status{"每个告警的<br/>状态"}
+    status -->|"firing"| open["事件已创建，<br/>呼叫值班人员"]
+    status -->|"resolved"| resolve["事件已解决"]
 ```
 
-## 前提条件
+Prometheus 评估你的告警规则，并把触发的告警发送给 Alertmanager。Alertmanager 按路由 `group_by` 中的标签对告警分组，并把每个组作为一个 JSON 通知发布到 Webhook 接收器。通知的 `alerts` 列表包含该组的每个告警，每个告警都有自己的 `status`（`firing` 或 `resolved`）、标签和注解，以及标识它的 `fingerprint`。
 
-- 一套你可以编辑 `alertmanager.yml` 的 Prometheus + Alertmanager 环境。
-- Alertmanager 必须能通过 HTTPS 访问到你的 OneUptime 实例。
-- 一个你可以创建监控器（或工作流）的 OneUptime 项目。
+## 开始之前
 
-## 方案 1 —— 传入请求监控器
+- 一个你可以编辑其 `alertmanager.yml`，并且能够通过 HTTPS 访问你的 OneUptime 的 Alertmanager。
+- 在 OneUptime 中创建监视器的权限；如果选择工作流方式，则需要创建工作流的权限。
 
-### 步骤 1 —— 创建监控器
+## 选择 OneUptime 接收告警的方式
 
-1. 进入 **监控器 → 创建监控器**，选择 **传入请求**。
-2. 打开该监控器，点击左侧菜单中的 **Documentation**。复制 URL：
+先设置 OneUptime：它会给你 Alertmanager 要发送到的 URL。
 
-   ```
-   https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
-   ```
+| 方式 | 适用情况 |
+| --- | --- |
+| Incoming Request 监视器（推荐） | 你希望每个告警都成为一个呼叫值班人员的事件，并在告警恢复时解决。无需构建任何东西。 |
+| 带 Webhook 触发器的工作流 | 你需要自己的逻辑：先过滤告警、转换格式或调用其他系统。工作流为每个通知（而不是每个告警）打开一个事件，并且不会在恢复时解决它。 |
 
-   自托管时请使用你自己的主机。路径中的密钥是唯一的凭据。
+两者从同一个接收器收到相同的 JSON，所以你可以先用其中一种，之后只需修改 `alertmanager.yml` 中的一个 URL 就能切换。
 
-### 步骤 2 —— 让 Alertmanager 指向它
+## 用监视器接收告警
 
-在 `alertmanager.yml` 中：
+[Incoming Request 监视器](/docs/monitor/incoming-request-monitor) 会给你一个 URL，它的条件决定每个通知做什么。
 
-```yaml
-receivers:
-  - name: oneuptime
-    webhook_configs:
-      - url: "https://oneuptime.com/heartbeat/YOUR_SECRET_KEY"
-        send_resolved: true
+:::steps
+### 创建监视器
 
+前往 **监视器**，点击 **创建监视器**。在 **监视器类型** 下选择 **Incoming Request**，将其命名为 `Alertmanager`，然后点击 **下一步**。
+
+### 为每个触发的告警声明事件
+
+在 **标准** 步骤中，打开第一个条件，也就是把监视器标记为离线的那个。把它的过滤器设为 **请求主体**、**包含**、`"status":"firing"`。这个条件在过滤器匹配时已经会声明事件。填写事件信息：
+
+- **事件标题**：`{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`。
+- **严重程度**：这些告警应有的事件严重程度。
+- **值班** 下的 **值班策略**：要呼叫的策略。
+- **更多字段** 下的 **自动解决事件**：保持开启，它默认就是开启的。关闭后会忽略恢复，事件将一直保持打开。
+
+### 每个告警一个事件
+
+在同一个条件中，打开 **设置** 并开启 **Group incidents and alerts by a payload field**。按下表填写，让每个告警都有自己的事件，并由它的恢复来解决：
+
+| 字段 | 值 |
+| --- | --- |
+| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
+| **Field that signals recovery** | `requestBody.alerts[*].status` |
+| **Value that means recovered** | `resolved` |
+
+### 让监视器恢复在线
+
+打开第二个条件，也就是把监视器标记为在线的那个，把它的过滤器设为 **请求主体**、**包含**、`"status":"resolved"`。
+
+### 复制 URL
+
+点击 **创建监视器**。监视器的 **概览** 页面会显示它的 **Heartbeat URL**。复制它供 Alertmanager 使用：
+
+```text
+https://oneuptime.com/heartbeat/<secret key>
+```
+
+自托管安装使用自己的主机来代替 `oneuptime.com`。
+:::
+
+`[*]` 会读取通知中的每个告警，因此包含三个告警的通知可以打开三个事件，数量最多为 **Max incidents per request**（不修改则为 `100`）。每个告警自己的 `status` 决定它的事件如何处理：当通知中的一个告警已解决、另外两个仍在触发时，只有已解决告警的事件会被关闭。每项设置的作用请参见 [接收来自其他系统的告警](/docs/monitor/incoming-request-monitor#接收来自其他系统的告警)。
+
+> [!WARNING]
+> 请按同一个通知内各告警之间互不相同的值分组。Alertmanager 的 `fingerprint` 是告警整个标签集的哈希，所以总是不同。路由 `group_by` 中的标签则永远相同：正是它们把告警放进了同一个通知。在下面的路由中按 `requestBody.alerts[*].labels.alertname` 分组，会把通知中的所有告警合并成一个事件，而该事件会跟随第一个告警的状态。
+
+## 为事件命名
+
+上面的标题读取通知中所有告警共有的标签：`commonLabels` 包含这些标签，`commonAnnotations` 包含它们共有的注解。下面的路由按 `alertname` 和 `instance` 分组，因此两者都有。在 **描述** 下，为事件设置一个 **事件描述**，例如：
+
+```text
+{{requestBody.commonAnnotations.summary}}
+
+{{requestBody.commonAnnotations.description}}
+Severity: {{requestBody.commonLabels.severity}}
+Alertmanager: {{requestBody.externalURL}}
+```
+
+- 分组键也是一个变量，以其路径的最后一段命名：`{{fingerprint}}`。它是一个哈希，所以对响应者毫无意义。
+- `{{requestBody.alerts[0].annotations.summary}}` 读取通知中的第一个告警，而它并不总是打开该事件的那个告警。
+- 引用通知中不存在的字段时，该引用会连同花括号按原样保留，而不会被清空。
+
+可以使用的所有变量请参见 [事件与告警模板](/docs/monitor/incident-alert-templating)。
+
+## 配置 Alertmanager
+
+:::steps
+### 添加 Webhook 接收器
+
+在 `alertmanager.yml` 中添加一个发布到你复制的 URL 的接收器，并把它设为路由的接收器：
+
+```yaml title="alertmanager.yml"
 route:
   receiver: oneuptime
   group_by: ["alertname", "instance"]
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 4h
+
+receivers:
+  - name: oneuptime
+    webhook_configs:
+      - url: "https://oneuptime.com/heartbeat/<secret key>"
+        send_resolved: true
 ```
 
-`send_resolved: true` 是必需的——正是它告诉 OneUptime 某条告警已经恢复。用 `curl -X POST http://localhost:9093/-/reload` 重新加载 Alertmanager，或者重启它。
+`send_resolved: true` 是 Alertmanager 的默认值，写出来是为了让它保持开启：没有它，OneUptime 永远不会得知告警已恢复。Alertmanager 发送 `Content-Type: application/json`，监视器需要它才能读取通知中的字段。
 
-Alertmanager 会发送 `Content-Type: application/json`，OneUptime 需要它才能从负载中读取字段。
+### 重新加载 Alertmanager
 
-### 步骤 3 —— 配置条件
-
-打开监控器的 **Criteria**，编辑第一个条件。
-
-**过滤器**
-
-- **Filter Type**：`JavaScript Expression`
-- **Filter Condition**：`Evaluates To True`
-- **Value**：`"{{requestBody.status}}" === "firing"`
-
-  占位符两侧的引号是字符串比较所必需的。如果你不想用表达式，`Request Body` / `Contains` / `"status":"firing"` 的过滤器同样可行。
-
-**动作**
-
-- 打开 _When filters match, change monitor status_，设为 **Offline**（或 Degraded）。
-- 打开 _When filters match, declare an incident_。设置 **Title**、**Severity** 以及需要呼叫的 **On-Call Policies**。
-- 在该事件的 **More fields** 下打开 **Auto Resolve Incident**。否则恢复通知会被忽略，事件将永远处于打开状态。
-
-**Settings → Group incidents and alerts by a payload field**
-
-打开它，这样同一个端点就能同时保持多个事件——每条告警一个——而不是每次通知只有一个事件。
-
-| 字段                               | 值                                  |
-| ---------------------------------- | ----------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].fingerprint` |
-| Field that signals recovery        | `requestBody.alerts[*].status`      |
-| Value that means recovered         | `resolved`                          |
-| Max incidents per request          | `100`                               |
-
-`[*]` 会在 Alertmanager 的 `alerts` 数组上展开，为每个 **不同的** 提取值创建一个事件。因为两个路径都用了 `[*]`，恢复是按告警逐条判断的：在一条已解决、两条仍在触发的负载中，只有已解决的那条会被关闭。
-
-> **Warning:** 请按每条告警真正唯一的字段来分组。Alertmanager 的 `fingerprint` 是告警完整标签集的哈希，因此它总是唯一的。标签只有在一次通知 **内部** 发生变化时才可用——而任何列在路由 `group_by` 中的标签永远不会变化，因为正是它定义了聚合分组。在上面的 `group_by: ["alertname", "instance"]` 下，按 `requestBody.alerts[*].labels.alertname` 分组会从负载中的每条告警提取出相同的值，于是它们全部合并成一个事件。更糟的是，重复的值只保留 **第一次** 出现，因此如果负载中第一条告警是 `resolved`，就会在其余告警仍在触发时把该事件关闭。
-
-### 步骤 4 —— 编写事件标题和描述
-
-分组键会以路径最后一段命名的变量提供，因此 `requestBody.alerts[*].fingerprint` 给你的是 `{{fingerprint}}`。它是一个哈希，不适合展示给响应人员——请改用整个通知共享的标签来拟定事件标题。`commonLabels` 承载路由 `group_by` 中的每个标签，因此在上面的配置下 `alertname` 和 `instance` 都可用：
-
-- **Title**：`{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`
-- **Description**：
-
-  ```
-  {{requestBody.commonAnnotations.summary}}
-
-  {{requestBody.commonAnnotations.description}}
-  Severity: {{requestBody.commonLabels.severity}}
-  Alertmanager: {{requestBody.externalURL}}
-  ```
-
-`commonLabels` 和 `commonAnnotations` 保存的是整个通知共享的字段。像 `requestBody.alerts[0].annotations.summary` 这样的单条告警路径始终读取负载中的 _第一_ 条告警，而不是这个事件所对应的那一条——所以如果你希望每个事件带上各自的注解文本，就要把 `group_by` 收得更紧。无法解析的路径会连同花括号原样输出，而不是留空。完整变量列表见 [事件与告警动态模板](/docs/monitor/incident-alert-templating)。
-
-### 步骤 5 —— 把监控器恢复为 Operational（可选）
-
-条件只在匹配时才起作用，因此请添加第二个条件，避免一切平息后监控器仍停留在 Offline：
-
-- **Filter Type**：`JavaScript Expression`，**Value**：`"{{requestBody.status}}" === "resolved"`
-- _Change monitor status to_ **Operational**，并且不创建任何事件。
-
-### 步骤 6 —— 测试
+重新加载配置，或重启 Alertmanager：
 
 ```bash
-curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+curl -X POST http://localhost:9093/-/reload
+```
+:::
+
+该路由保留 Alertmanager 的默认时间设置。它在发送新组之前等待 `30s`（`group_wait`），在发送带有新告警的组之前等待 `5m`（`group_interval`），在重复未变化的通知之前等待 `4h`（`repeat_interval`）。
+
+## 测试
+
+像 Alertmanager 那样，向 OneUptime 发送一个包含两个触发告警的通知：
+
+```bash
+curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   -H "Content-Type: application/json" \
   -d '{
     "version": "4",
     "status": "firing",
-    "commonLabels": { "alertname": "HighCPU", "severity": "critical" },
-    "commonAnnotations": { "summary": "CPU above 90% for 5m" },
+    "receiver": "oneuptime",
+    "groupLabels": { "alertname": "DiskFull", "instance": "web-1" },
+    "commonLabels": { "alertname": "DiskFull", "instance": "web-1", "severity": "critical" },
+    "commonAnnotations": { "summary": "Disk almost full on web-1" },
     "externalURL": "http://alertmanager:9093",
     "alerts": [
       {
         "status": "firing",
-        "labels": { "alertname": "HighCPU", "instance": "web-1" },
+        "labels": { "alertname": "DiskFull", "instance": "web-1", "severity": "critical", "device": "/dev/sda1" },
         "fingerprint": "a1b2c3d4e5f60001"
       },
       {
         "status": "firing",
-        "labels": { "alertname": "HighCPU", "instance": "web-2" },
+        "labels": { "alertname": "DiskFull", "instance": "web-1", "severity": "critical", "device": "/dev/sdb1" },
         "fingerprint": "a1b2c3d4e5f60002"
       }
     ]
   }'
 ```
 
-你应该得到两个事件——每个 `fingerprint` 一个。把两条告警的 `status` 都改为 `resolved` 再发一次，两个事件都应该关闭。
+会打开两个事件，每个 `fingerprint` 一个，标题都是 `DiskFull on web-1`。把每个 `status` 都设为 `resolved` 后发送同样的请求，两个事件都会被解决。
 
-你也可以用 `amtool` 触发一条真实告警：
+要测试从 Alertmanager 开始的完整路径，请用 `amtool` 触发一个告警。Alertmanager 会在 `group_wait` 之后发送它，并在几分钟后告警过期时发送它的恢复：
 
 ```bash
 amtool alert add test_alert severity=warning \
@@ -148,49 +176,60 @@ amtool alert add test_alert severity=warning \
   --alertmanager.url=http://localhost:9093
 ```
 
-## 方案 2 —— 工作流
+## 用工作流接收告警
 
-当你需要超出「告警变成事件」的逻辑时使用它。
+当你需要在 Alertmanager 和事件之间加入自己的步骤时，请使用 [工作流](/docs/workflows/index)。
 
-1. 打开 **工作流 → 创建工作流**，命名为 `Alertmanager → Incidents`，并打开 **生成器**。
-2. 添加 **Webhook** 触发器并**复制其 URL**。将模块重命名为 `Alertmanager`。
-3. 添加连接到触发器的 **条件** 模块：
-   - **Left**：`{{Alertmanager.Request Body.status}}`
-   - **Operator**：`==`
-   - **Right**：`firing`
-4. 从 **是** 出发，添加 **创建事件** 模块：
-   - **标题**：`{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **描述**：`{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **严重程度**：选择一个（或先对 `{{Alertmanager.Request Body.commonLabels.severity}}` 进行分支）。
-5. **保存**，然后把上面步骤 2 中 `webhook_configs` 的 URL 改指向该工作流的 URL。
+:::steps
+### 创建工作流
 
-若要每条告警一个事件，添加一个 [Custom Code](/docs/workflows/components#custom-code) 模块，循环遍历 `Request Body.alerts`。配合 `send_resolved: true`，再添加第二条基于 `status == resolved` 的 **条件** 分支，找到对应事件并用 **Update Incident** 将其移到你的已解决状态。
+前往 **工作流**，点击 **创建工作流**，然后点击 **从零开始**。将其命名为 `Alertmanager alerts`，然后点击 **创建工作流**。
 
-## 死人开关
+### 添加 Webhook 触发器
 
-两种方案都无法告诉你 Prometheus 自身何时停止工作——没有告警到达，看起来和一切正常一模一样。通常的做法是设置一条始终触发的告警，把它路由到一个按计划等待它的监控器。[kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) 自带一条名为 `Watchdog` 的规则；在纯 Prometheus 上，添加一条表达式恒为真的告警规则（`vector(1)`）。
+点击虚线的 **Choose what starts this workflow** 块并选择 **Webhook**。点击该触发器，然后点击 **复制 URL**，把该 URL 用在 `alertmanager.yml` 的接收器中。
 
-再创建 **第二个** 传入请求监控器，用较短的 `repeat_interval` 把 `Watchdog` 路由到它，并给该监控器设置 **Filter Type: Incoming Request** / **Filter Condition: Not Recieved In Minutes** 条件。这是「请求缺失」条件唯一适合放在告警接收器上的场景。
+### 检查通知是否为触发状态
 
-下面是步骤 2 的配置，加入了 watchdog 的路由与接收器——子路由会在父路由自身的接收器之前匹配，因此 `Watchdog` 会走向第二个监控器，其余仍然进入第一个：
+点击 **添加组件**，添加一个 **If / Else** 块，并把触发器的 **Out** 点连接到它。把 **Value to check** 设为 `{{local.components.webhook-1.returnValues.request-body.status}}`，**Comparison** 设为 **is equal to**，**Compare with** 设为 `firing`。
 
-```yaml
-receivers:
-  - name: oneuptime
-    webhook_configs:
-      - url: "https://oneuptime.com/heartbeat/YOUR_SECRET_KEY"
-        send_resolved: true
+### 声明事件
 
-  - name: oneuptime-watchdog
-    webhook_configs:
-      - url: "https://oneuptime.com/heartbeat/WATCHDOG_SECRET_KEY"
+添加一个 **Create One Incident** 块，并把 **If / Else** 块的 **Yes** 一侧连接到它。在 **Incident Template** 中选择一个设置了严重程度和要呼叫的值班策略的模板（参见 [事件模板](/docs/incidents/settings#事件模板)）。在 **JSON Object** 中设置来自 Alertmanager 的内容：
 
+```json
+{
+  "title": "{{local.components.webhook-1.returnValues.request-body.commonLabels.alertname}}",
+  "description": "{{local.components.webhook-1.returnValues.request-body.commonAnnotations.summary}}\nAlertmanager: {{local.components.webhook-1.returnValues.request-body.externalURL}}"
+}
+```
+
+如果不使用模板，**JSON Object** 中还需要 `incidentSeverityId`，即项目中某个事件严重程度的 ID。
+
+### 启用工作流
+
+在 **生成器** 顶部打开 **已启用**。处于关闭状态的工作流会以 `400` 回应 Alertmanager。
+:::
+
+一次运行处理一个通知，所以无论通知包含多少个告警，它都只声明一个事件。`resolved` 的通知会走向 **If / Else** 块的 **No** 一侧，那里没有连接任何东西，因此运行到此结束。要让每个告警一个事件并在恢复时解决，请使用监视器。
+
+## 监控 Alertmanager 本身
+
+两种方式都不会察觉 Prometheus 或 Alertmanager 停止工作：没有告警到达，看起来和一切正常完全一样。因此，请把一个始终在触发的告警路由到第二个监视器，当该告警不再到达时由它声明事件。[kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) 自带这样一个名为 `Watchdog` 的告警。在普通的 Prometheus 上，添加一条名为 `Watchdog`、表达式始终为真的告警规则，例如 `vector(1)`。
+
+:::steps
+### 创建看门狗监视器
+
+创建第二个 Incoming Request 监视器，命名为 `Alertmanager watchdog`。把它第一个条件（把监视器标记为离线的那个）的过滤器设为 **Incoming Request**、**Not Recieved In Minutes**、`10`，把第二个条件的过滤器设为 **Incoming Request**、**Recieved In Minutes**、`10`。仪表板上这两项就是这样拼写的。复制新监视器的 **Heartbeat URL**。
+
+### 把看门狗告警路由到它
+
+为看门狗监视器的 URL 添加一个接收器，并添加一个每五分钟把 `Watchdog` 发送给它的路由。子路由会先于父路由的接收器匹配，因此 `Watchdog` 会发往看门狗监视器，其他所有告警仍发往第一个监视器：
+
+```yaml title="alertmanager.yml"
 route:
   receiver: oneuptime
   group_by: ["alertname", "instance"]
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 4h
   routes:
     - receiver: oneuptime-watchdog
       matchers:
@@ -198,21 +237,66 @@ route:
       group_wait: 0s
       group_interval: 5m
       repeat_interval: 5m
+
+receivers:
+  - name: oneuptime
+    webhook_configs:
+      - url: "https://oneuptime.com/heartbeat/<secret key>"
+        send_resolved: true
+  - name: oneuptime-watchdog
+    webhook_configs:
+      - url: "https://oneuptime.com/heartbeat/<watchdog secret key>"
 ```
+:::
 
-## 故障排查
+当看门狗告警十分钟没有到达时，看门狗监视器会变为离线并声明事件。下一个看门狗通知会让监视器恢复在线并解决该事件。
 
-- **什么都没收到** —— 确认 Alertmanager 能访问该 URL；检查它的日志有无投递错误。OneUptime 会在做任何校验之前就用空的 `200` 回应每个请求，所以 `200` 并不能确认负载被接受。请改看监控器的时间线。
-- **事件能打开但从不关闭** —— 检查 Alertmanager 中的 `send_resolved: true`、条件里的恢复字段与取值（比较区分大小写），以及事件 **More fields** 下的 **Auto Resolve Incident**。还有两个更隐蔽的原因：当负载中不同键的数量超过 **Max incidents per request** 时，超出上限的键对恢复同样不可见；另外，如果在某条 `resolved` 通知被评估之前，就到达了一条关于其他告警的通知，入口合并（见下）会跳过这条 `resolved` 通知，该事件也就会被永久搁置，因为 Alertmanager 会重复发送触发通知，却不会重复发送恢复通知。这些只能手动关闭。
-- **完全没有事件，监控器状态也没变** —— 分组路径必须以字面量 `requestBody.` 开头，且路径中只有第一个 `[*]` 是通配符。这两个错误都会静默失败。
-- **事件文本中显示原始的 `{{...}}` 占位符** —— 路径没有解析成功，而 OneUptime 会原样保留未解析的占位符，而不是清空它们。不同规则设置的注解不同，所以请引用你的规则中确实存在的字段（`commonAnnotations` 还是每条告警各自的 `annotations`）。
-- **一份满是告警的负载只产生一个事件** —— 你按一个在通知内部不变的标签做了分组，通常正是路由 `group_by` 中的那个标签。请改用 `requestBody.alerts[*].fingerprint` 分组。
-- **事件太多** —— 放宽 `group_by` / `group_interval`，让 Alertmanager 把相关告警合并。调低 **Max incidents per request** 能限制数量，但也会让超出上限的键对恢复不可见。
-- **在密集突发时似乎有些通知被跳过** —— 发往同一监控器的请求会在入口处合并，以免单个发送方压垮监控器：如果在较早的请求被评估之前，同一监控器又收到了更新的请求，则只评估更新的那条。一次突发中的最后一条通知总会被评估，但之前的通知会被跳过，即使后一条通知涉及的是其他告警，因为 Alertmanager 会把每个 `group_by` 分组作为单独的通知发送到同一个 URL。增大 `group_wait` 和 `group_interval` 可以把它们拉开。合并由应用容器的环境变量 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED` 控制，默认开启；需要每次负载都被评估的自托管运维人员，可以在该容器上把它设为 `false`。
+## 故障排除
 
-## 接下来读什么
+:::details OneUptime 没有收到任何内容
+- 检查 Alertmanager 的日志中是否有投递到接收器时的错误。
+- 监视器会在检查任何内容之前立即回应 `200`，即使密钥错误也是如此。请查看监视器的时间线，确认通知是否到达。
+- 处于关闭状态的工作流会回应 `400`。在它的 **生成器** 顶部打开 **已启用**。
+:::
 
-- [传入请求监控器](/docs/monitor/incoming-request-monitor) —— 该监控器类型、它的条件以及完整的事件分组说明。
-- [集成概述](/docs/integrations/index) —— 入站与出站模式。
-- [Grafana](/docs/integrations/grafana) —— 同样的思路，用于 Grafana 告警。
-- [Webhook 触发器](/docs/workflows/triggers#webhook) —— 工作流接收 URL 的工作原理。
+:::details 事件被创建但从未被解决
+- 检查没有接收器设置了 `send_resolved: false`：那样 Alertmanager 永远不会发送恢复。
+- 条件中的事件需要开启 **更多字段** 下的 **自动解决事件**。
+- **Field that signals recovery** 必须是 `requestBody.alerts[*].status`，**Value that means recovered** 必须恰好是 `resolved`。比较区分大小写。
+- 通知中超出 **Max incidents per request** 的告警根本不会被读取，所以它们的恢复也会丢失。
+- 在突发中被跳过的恢复（见下文）会让它的事件永远保持打开：Alertmanager 会重复发送触发中的告警，但从不重复发送恢复。请手动解决这样的事件。
+:::
+
+:::details 完全没有打开事件
+分组路径必须以 `requestBody.` 开头，并且路径中只有第一个 `[*]` 会读取列表。违反任一规则的路径不会匹配任何内容，也不会报错。
+:::
+
+:::details 一个装满告警的通知只得到一个事件
+你按一个在通知内所有告警中都相同的标签分组了，最常见的是路由 `group_by` 中的标签。请改为按 `requestBody.alerts[*].fingerprint` 分组。
+:::
+
+:::details 事件显示的是引用而不是值
+引用了通知中不存在的字段时，该引用会连同花括号按原样保留。不同的规则设置不同的注解，所以请使用你的规则实际设置的字段：`commonAnnotations` 中的字段，或每个告警 `annotations` 中的字段。
+:::
+
+:::details 事件太多
+让路由按更少的标签分组，或调大 `group_interval`，让 Alertmanager 把相关告警一起发送。调低 **Max incidents per request** 可以限制一个通知产生的事件数，但超出上限的告警不会被读取，所以它们的恢复也会丢失。
+:::
+
+:::details 突发中有些通知被跳过
+当较新的请求在较早的请求被评估之前到达监视器时，OneUptime 只评估较新的那个，以免单个发送方压垮监视器。突发中的最后一个通知总会被评估，但关于其他告警的较早通知可能被跳过，因为 Alertmanager 把每个组都发送到同一个 URL。请调大 `group_wait` 和 `group_interval`，拉开通知之间的间隔。在自托管安装中，请在 OneUptime 应用的环境中设置 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`，以评估每个请求。
+:::
+
+## 安全
+
+- **像对待密码一样对待 URL。** 任何拥有它的人都可以创建事件。如果泄露，请重置它：在监视器的 **设置** 页面使用 **重置传入请求密钥**，或在工作流的 **Webhook** 触发器中使用 **重置 URL**。然后更新 `alertmanager.yml` 中接收器的 `url`。
+- **自托管？** 让 Alertmanager 能够穿过防火墙，通过 HTTPS 访问你的 OneUptime。
+
+## 后续步骤
+
+:::cards
+- [入站请求监控](/docs/monitor/incoming-request-monitor): 接收告警的监视器的所有设置。
+- [Grafana](/docs/integrations/grafana): 适用于 Grafana 告警的相同设置。
+- [升级规则](/docs/on-call/escalation-rules): 决定值班策略呼叫谁、何时呼叫。
+- [集成概述](/docs/integrations/index): 你可以连接的其他工具。
+:::

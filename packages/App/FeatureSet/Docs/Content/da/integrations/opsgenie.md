@@ -49,7 +49,7 @@ Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start
 
 ### Tilføj triggeren
 
-Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Incident**. Klik på triggeren, og vælg `title` og `description` i **Select Fields**.
+Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Incident**. Klik på triggeren, og vælg `title` og `description` i **Fields to pass on**.
 
 ### Opret alarmen
 
@@ -85,7 +85,7 @@ Et workflow har én trigger, så det kræver et andet workflow at lukke den, sta
 :::steps
 ### Tilføj triggeren On Update Incident
 
-Opret et workflow med navnet `Close Opsgenie alerts`, og vælg **On Update Incident** som trigger. Vælg `currentIncidentStateId` i **Listen on**, så det kun kører, når tilstanden ændres. Spørg i **Select Fields**, om den nye tilstand er en løst tilstand:
+Opret et workflow med navnet `Close Opsgenie alerts`, og vælg **On Update Incident** som trigger. Vælg `currentIncidentStateId` i **Fields to watch**, så det kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ Slå **Aktiveret** til, og løs derefter en testhændelse i OneUptime. Opsgenie 
 
 For at sende hver hændelses alvorlighed som en Opsgenie-prioritet tilføjer du en **Run Custom JavaScript**-blok mellem triggeren og **API Post (JSON)**-blokken.
 
-1. Vælg også alvorlighedens `name` i triggerens **Select Fields**: `{ "incidentSeverity": { "name": true } }`.
+1. Vælg også alvorlighedens `name` i triggerens **Fields to pass on**: `{ "incidentSeverity": { "name": true } }`.
 2. Sæt blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og dens **JavaScript Code** til:
 
    ```javascript

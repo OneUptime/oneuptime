@@ -125,11 +125,11 @@ Ouvrez **Produits → Flux de travail** et cliquez sur **Créer un flux de trava
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Alert** dans le panneau **Add Trigger**. Cliquez sur le déclencheur, cochez le titre et la description dans **Select Fields**, puis cliquez sur **Enregistrer**. L'ID affiché sur le bloc, `alert-on-create-1`, est la façon dont les blocs suivants s'y réfèrent.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Alert** dans le panneau **Add Trigger**. Cliquez sur le déclencheur : **Fields to pass on** commence avec le titre, alors cliquez sur **Ajouter un champ**, cochez la description, puis cliquez sur **Enregistrer**. L'ID affiché sur le bloc, `alert-on-create-1`, est la façon dont les blocs suivants s'y réfèrent.
 
 ### Vérifier le titre
 
-Cliquez sur **Ajouter un composant**, choisissez **If / Else** et reliez-lui le point **Success** du déclencheur. Réglez **Value to check** sur le titre de l'alerte (cliquez sur **{ }** et choisissez-le), **Comparison** sur **contient**, et **Compare with** sur le début commun aux titres de vos déclencheurs, par exemple `LLM budget exceeded`.
+Cliquez sur **Ajouter un composant**, choisissez **If / Else** et reliez-lui le point **Success** du déclencheur. Réglez **Valeur à vérifier** sur le titre de l'alerte (cliquez sur **{ }** et choisissez-le), **Comparaison** sur **contient**, et **Comparer avec** sur le début commun aux titres de vos déclencheurs, par exemple `LLM budget exceeded`.
 
 ### Appeler votre endpoint
 
@@ -189,7 +189,7 @@ Vérifiez que **Activé** est activé en haut du **Constructeur** : les flux de 
 :::
 
 :::details Le flux de travail s'exécute, mais prend toujours la branche No
-Le titre est vide ou ne correspond pas. Un champ non coché dans **Select Fields** du déclencheur arrive vide, donc cochez le titre. Comparez ensuite le titre de l'alerte avec **Compare with** : **contient** doit y trouver exactement ce texte.
+Le titre est vide ou ne correspond pas. Un champ qui n'est pas dans **Fields to pass on** du déclencheur arrive vide, donc ajoutez-y le titre. Comparez ensuite le titre de l'alerte avec **Comparer avec** : **contient** doit y trouver exactement ce texte.
 :::
 
 :::details Votre endpoint répond 401

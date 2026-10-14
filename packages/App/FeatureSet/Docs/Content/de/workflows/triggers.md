@@ -32,7 +32,7 @@ Gut für: Ein-Klick-Automatisierungen, für die Sie eine Schaltfläche möchten,
 
 **Rückkehren**: **JSON** – womit die Ausführung gestartet wurde.
 
-- Aus **Arbeitsablauf ausführen** ist es das JSON, das Sie eingetippt haben, als Text. Um ein Feld daraus zu lesen, schicken Sie es zuerst durch einen **Text to JSON**-Baustein.
+- Aus **Arbeitsablauf ausführen** ist es das JSON, das Sie eingetippt haben. Um ein Feld daraus zu lesen, hängen Sie den Namen des Feldes an den Verweis an, wie in `{{local.components.manual-1.returnValues.value.name}}`.
 - Aus einem **Execute Workflow**-Baustein ist jeder Schlüssel seiner **Arguments** ein eigener Wert. Mit `{"customerId": "42"}` liest ein späterer Baustein `{{local.components.manual-1.returnValues.customerId}}`, wobei `manual-1` die ID des manuellen Triggers ist.
 
 ## Schedule
@@ -96,7 +96,7 @@ sequenceDiagram
 
 Lesen Sie ein Feld, indem Sie seinen Namen an den Verweis anhängen, wie in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
-Ist eine Anfrage eingetroffen, weiß die Werteauswahl in jedem Baustein nach dem Trigger, was darin war: Sie listet die Felder des Bodys, die Header und die Abfrageparameter auf, jedes mit seinem Inhalt, sodass Sie `incident.title` wählen können, statt einen Pfad zu tippen. Bis dahin sagt sie, dass noch keine Anfrage eingetroffen ist, und bietet **Copy test request** an, einen `curl`-Befehl für die URL; die Felder erscheinen, sobald die Ausführung, die diese Anfrage startet, beendet ist. Siehe [Werte aus früheren Bausteinen verwenden](/docs/workflows/authoring#werte-aus-früheren-bausteinen-verwenden).
+Ist eine Anfrage eingetroffen, weiß die Werteauswahl in jedem Baustein nach dem Trigger, was darin war: Sie listet die Felder des Bodys, die Header und die Abfrageparameter auf, jedes mit seinem Inhalt, sodass Sie `incident.title` wählen können, statt einen Pfad zu tippen. Bis dahin sagt sie, dass noch keine Anfrage eingetroffen ist, und bietet **Testanfrage kopieren** an, einen `curl`-Befehl für die URL; die Felder erscheinen, sobald die Ausführung, die diese Anfrage startet, beendet ist. Siehe [Werte aus früheren Bausteinen verwenden](/docs/workflows/authoring#werte-aus-früheren-bausteinen-verwenden).
 
 Um den Workflow ohne das andere Tool zu testen, klicken Sie im **Editor** auf **Arbeitsablauf ausführen** und tippen Header, Abfrageparameter und einen Body ein.
 
@@ -161,24 +161,24 @@ Fast alles in OneUptime – Monitore, Vorfälle, Warnungen, geplante Wartungen, 
 
 So bauen Sie "wenn X in OneUptime passiert, tue Y", ohne Dinge in einer Schleife prüfen zu müssen.
 
-**On Update** lässt sich mit **Listen on** auf einige Felder eingrenzen: Dann löst er nur aus, wenn eine Änderung eines davon ändert, auf welchen Wert auch immer – einen Schalter auszuschalten oder ein Feld zu leeren zählt.
+**On Update** lässt sich mit **Fields to watch** auf einige Felder eingrenzen: Dann löst er nur aus, wenn eine Änderung eines davon ändert, auf welchen Wert auch immer – einen Schalter auszuschalten oder ein Feld zu leeren zählt.
 
 ```mermaid title="Wann ein On-Update-Trigger auslöst"
 flowchart TB
     save["Ein Datensatz wird gespeichert"] --> changed{"Hat sich ein Wert geändert?"}
     changed -->|"Nein"| nothing["Nichts löst aus"]
-    changed -->|"Ja"| listen{"Listen on gesetzt?"}
+    changed -->|"Ja"| listen{"Fields to watch gesetzt?"}
     listen -->|"Nein"| fires["Der Workflow läuft"]
     listen -->|"Ja"| field{"Hat sich eines seiner Felder geändert?"}
     field -->|"Ja"| fires
     field -->|"Nein"| nothing
 ```
 
-**On Create** und **On Update** reichen den Datensatz an den nächsten Baustein weiter, mit den Feldern, die Sie unter **Select Fields** des Triggers wählen. Zum Beispiel reicht der Trigger **Incident → On Create** den neuen Vorfall weiter, sodass der nächste Baustein seinen Titel, seine Beschreibung, seinen Schweregrad oder jedes andere ausgewählte Feld lesen kann, etwa `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ein Feld, das Sie nicht ausgewählt haben, kommt leer an.
+**On Create** und **On Update** reichen den Datensatz an den nächsten Baustein weiter, mit den Feldern, die Sie unter **Fields to pass on** des Triggers wählen. Zum Beispiel reicht der Trigger **Incident → On Create** den neuen Vorfall weiter, sodass der nächste Baustein seinen Titel, seine Beschreibung, seinen Schweregrad oder jedes andere ausgewählte Feld lesen kann, etwa `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ein Feld, das Sie nicht ausgewählt haben, kommt leer an.
 
 **On Delete** reicht nur die ID des gelöschten Datensatzes weiter: Der Datensatz ist weg, wenn der Workflow läuft, daher lassen sich seine anderen Felder nicht lesen.
 
-Um einen Ereignis-Trigger zu testen, ohne auf das Ereignis zu warten, klicken Sie im **Editor** auf **Arbeitsablauf ausführen** und geben die ID eines vorhandenen Datensatzes ein, etwa eine **Vorfall-ID**. Die Ausführung liest diesen Datensatz mit den Feldern, die Sie ausgewählt haben.
+Um einen Ereignis-Trigger zu testen, ohne auf das Ereignis zu warten, klicken Sie im **Editor** auf **Arbeitsablauf ausführen** und wählen einen vorhandenen Datensatz aus: Die neuesten sind aufgelistet, und wenn Sie die Nummer eines Datensatzes oder einen Teil seines Namens eintippen, finden Sie einen anderen. Die Ausführung liest diesen Datensatz mit den Feldern, die Sie ausgewählt haben, als wäre das Ereignis gerade bei ihm eingetreten; der Datensatz selbst wird weder geändert noch gelöscht.
 
 ### Die am häufigsten genutzten Ereignisse
 

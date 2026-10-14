@@ -38,7 +38,15 @@ const EXPECTED: Record<ComponentInputType, ArgumentControl> = {
   [ComponentInputType.ValueType]: ArgumentControl.Plain,
   [ComponentInputType.WorkflowSelect]: ArgumentControl.Plain,
   [ComponentInputType.IncidentTemplateSelect]: ArgumentControl.Plain,
+  [ComponentInputType.AlertSeveritySelect]: ArgumentControl.Plain,
   [ComponentInputType.CronTab]: ArgumentControl.Plain,
+  // A choice of a few answers, each with a line saying what it means.
+  [ComponentInputType.Choice]: ArgumentControl.ChoiceRows,
+  // Who a Page step pages: the people picker, with a chip per value.
+  [ComponentInputType.UserList]: ArgumentControl.RecordList,
+  [ComponentInputType.TeamList]: ArgumentControl.RecordList,
+  [ComponentInputType.OnCallScheduleList]: ArgumentControl.RecordList,
+  [ComponentInputType.OnCallPolicyList]: ArgumentControl.RecordList,
   // Edited in the step's own settings (Workflow/Switch), never as a field.
   [ComponentInputType.SwitchCases]: ArgumentControl.Plain,
 };
@@ -80,4 +88,76 @@ describe("argumentControlFor", () => {
       }),
     ).toBe(ArgumentControl.Text);
   });
+
+  test("what a page is about is a row per answer, whichever answer is stored - or none, or one that is not an answer", () => {
+    for (const value of [
+      undefined,
+      null,
+      "",
+      "new-alert",
+      "incident",
+      "alert",
+      "postmortem",
+      7,
+    ]) {
+      expect(
+        argumentControlFor({ type: ComponentInputType.Choice, value: value }),
+      ).toBe(ArgumentControl.ChoiceRows);
+    }
+  });
+
+  test("held as a value from an earlier step, it is shown as that value: the rows have no answer for it", () => {
+    expect(
+      argumentControlFor({
+        type: ComponentInputType.Choice,
+        value: "{{local.variables.about}}",
+      }),
+    ).toBe(ArgumentControl.Text);
+  });
+
+  test("a severity is the list of the project's severities, and a value from a step is shown as that value", () => {
+    expect(
+      argumentControlFor({
+        type: ComponentInputType.AlertSeveritySelect,
+        value: "5e000000-0000-4000-8000-0000000000c1",
+      }),
+    ).toBe(ArgumentControl.Plain);
+    expect(
+      argumentControlFor({
+        type: ComponentInputType.AlertSeveritySelect,
+        value:
+          "{{local.components.alert-on-create-1.returnValues.model.alertSeverityId}}",
+      }),
+    ).toBe(ArgumentControl.Text);
+  });
+
+  test.each([
+    ComponentInputType.UserList,
+    ComponentInputType.TeamList,
+    ComponentInputType.OnCallScheduleList,
+    ComponentInputType.OnCallPolicyList,
+  ])(
+    "%s is the list control whatever it holds: a value from a step is an entry of its own, not the whole setting",
+    (type: ComponentInputType) => {
+      const owners: string =
+        "{{local.components.incident-on-create-1.returnValues.model.ownerUsers}}";
+
+      for (const value of [
+        undefined,
+        null,
+        "",
+        [],
+        ["10000000-0000-4000-8000-000000000001"],
+        [owners],
+        ["10000000-0000-4000-8000-000000000001", owners],
+        // As a workflow written by hand may store it.
+        owners,
+        "jane@example.com",
+      ]) {
+        expect(argumentControlFor({ type: type, value: value })).toBe(
+          ArgumentControl.RecordList,
+        );
+      }
+    },
+  );
 });

@@ -119,7 +119,7 @@ A URL é a única credencial, então trate-a como uma senha. Veja [Webhook](/doc
 
 :::steps
 1. Salve a chave de API da ferramenta como uma variável global secreta, como mostrado [abaixo](#proteger-as-credenciais).
-2. Crie um workflow, clique no bloco tracejado e escolha um gatilho de evento, como **On Create Incident**. Em **Select Fields**, marque os campos a enviar, como `title` e `description`.
+2. Crie um workflow, clique no bloco tracejado e escolha um gatilho de evento, como **On Create Incident**. Em **Fields to pass on**, marque os campos a enviar, como `title` e `description`.
 3. Clique em **Adicionar componente** e adicione um bloco **API Post (JSON)**. Ligue a ele o ponto **Success** do gatilho.
 4. Preencha a **URL**, os **Request Headers** com o cabeçalho `Authorization` e o **Request Body** com os campos do incidente, como `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Clique em **Executar fluxo de trabalho**, informe o **ID do incidente** de um incidente e execute. Uma execução de teste envia a requisição de verdade. Depois, ative **Habilitado**.

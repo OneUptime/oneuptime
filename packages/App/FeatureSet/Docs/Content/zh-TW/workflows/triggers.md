@@ -26,13 +26,13 @@
 
 ## Manual
 
-隨時執行工作流程：在 **建構器** 頁面點選 **執行工作流程**，填寫觸發器的 **JSON**，點選 **Run Workflow Manually**，然後用 **Run** 確認。另一個工作流程也可以用 **Execute Workflow** 區塊啟動它。
+隨時執行工作流程：在 **建構器** 頁面點選 **執行工作流程**，填寫觸發器的 **JSON**，點選 **手動執行工作流程**，然後用 **執行** 確認。另一個工作流程也可以用 **Execute Workflow** 區塊啟動它。
 
 適用於：你想用一個按鈕觸發的一鍵式自動化，例如「輪替這個金鑰」或「傳送一則測試警示」，以及在工作流程之間共用的邏輯。
 
 **Returns**: **JSON** —— 啟動這次執行時傳入的內容。
 
-- 從 **執行工作流程** 啟動時，它是你輸入的 JSON，以文字形式到達。要讀取其中的欄位，先讓它經過一個 **Text to JSON** 區塊。
+- 從 **執行工作流程** 啟動時，它是你輸入的 JSON。要讀取其中的欄位，把欄位名稱加到參照後面，例如 `{{local.components.manual-1.returnValues.value.name}}`。
 - 從 **Execute Workflow** 區塊啟動時，區塊的 **Arguments** 中的每個鍵都是一個獨立的值。對於 `{"customerId": "42"}`，後續區塊會讀取 `{{local.components.manual-1.returnValues.customerId}}`，其中 `manual-1` 是 Manual 觸發器的 ID。
 
 ## Schedule
@@ -96,7 +96,7 @@ sequenceDiagram
 
 要讀取單一欄位，把它的名稱加到參照後面，例如 `{{local.components.webhook-1.returnValues.request-body.message}}`。
 
-請求到達後，觸發器之後每個區塊中的值選擇器都會知道裡面有什麼：它會列出內文的欄位、標頭和查詢參數，各自附上內容，因此你可以選擇 `incident.title`，而不必輸入路徑。在那之前，它會說明還沒有請求到達，並提供 **Copy test request**，也就是一條傳往該 URL 的 `curl` 指令；一旦請求啟動的那次執行結束，欄位就會出現。請參閱 [使用前面區塊的值](/docs/workflows/authoring#使用前面區塊的值)。
+請求到達後，觸發器之後每個區塊中的值選擇器都會知道裡面有什麼：它會列出內文的欄位、標頭和查詢參數，各自附上內容，因此你可以選擇 `incident.title`，而不必輸入路徑。在那之前，它會說明還沒有請求到達，並提供 **複製測試請求**，也就是一條傳往該 URL 的 `curl` 指令；一旦請求啟動的那次執行結束，欄位就會出現。請參閱 [使用前面區塊的值](/docs/workflows/authoring#使用前面區塊的值)。
 
 要在沒有那個工具的情況下測試工作流程，在 **建構器** 中點選 **執行工作流程**，然後輸入標頭、查詢參數和內文。
 
@@ -161,24 +161,24 @@ OneUptime 中幾乎所有東西——監測器、事件、警示、排定的維�
 
 如此一來，你就能建構「當 OneUptime 中發生 X 時，就做 Y」，而不必在迴圈中反覆檢查。
 
-**On Update** 可以用 **Listen on** 限定在某些欄位上：這樣只有在更新把其中某個欄位改成任何值時才會觸發——關閉開關或清空欄位也算。
+**On Update** 可以用 **Fields to watch** 限定在某些欄位上：這樣只有在更新把其中某個欄位改成任何值時才會觸發——關閉開關或清空欄位也算。
 
 ```mermaid title="On Update 觸發器何時觸發"
 flowchart TB
     save["記錄被儲存"] --> changed{"有值發生變化嗎？"}
     changed -->|"否"| nothing["什麼都不觸發"]
-    changed -->|"是"| listen{"設定了 Listen on 嗎？"}
+    changed -->|"是"| listen{"設定了 Fields to watch 嗎？"}
     listen -->|"否"| fires["工作流程執行"]
     listen -->|"是"| field{"其中某個欄位變了嗎？"}
     field -->|"是"| fires
     field -->|"否"| nothing
 ```
 
-**On Create** 和 **On Update** 會把記錄傳給下一個區塊，並帶上你在觸發器的 **Select Fields** 中選擇的欄位。例如，**Incident → On Create** 觸發器會傳下新的事件，下一個區塊就能讀取它的標題、描述、嚴重程度或你選擇的任何其他欄位，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你沒有選擇的欄位到達時為空。
+**On Create** 和 **On Update** 會把記錄傳給下一個區塊，並帶上你在觸發器的 **Fields to pass on** 中選擇的欄位。例如，**Incident → On Create** 觸發器會傳下新的事件，下一個區塊就能讀取它的標題、描述、嚴重程度或你選擇的任何其他欄位，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你沒有選擇的欄位到達時為空。
 
 **On Delete** 只會傳下被刪除記錄的 ID：工作流程執行時記錄已經不在了，所以無法讀取它的其他欄位。
 
-要不等事件發生就測試事件觸發器，在 **建構器** 中點選 **執行工作流程**，然後輸入一筆現有記錄的 ID，例如 **事件 ID**。這次執行會讀取那筆記錄以及你選擇的欄位。
+要不等事件發生就測試事件觸發器，在 **建構器** 中點選 **執行工作流程**，然後選擇一筆現有記錄：清單中會列出最近的記錄，輸入記錄的編號或名稱的一部分可以找到其他記錄。這次執行會讀取那筆記錄以及你選擇的欄位，就像事件剛剛發生在它身上一樣；記錄本身不會被變更或刪除。
 
 ### 團隊最常用的事件
 

@@ -97,14 +97,14 @@ Most settings can use a value from an earlier block or a variable — that's how
 
 In the setting, a value shows as a chip such as **Webhook › Request Body**. Hover it to see the reference it stands for, `{{local.components.webhook-1.returnValues.request-body}}`, which is what's saved. The cursor steps over a chip in one go, **Backspace** removes it whole, and copying it copies the reference. If you know the syntax, type `{{` instead: the same list opens under the setting, narrowed down as you type.
 
-- **Only values that will exist are offered.** That's the trigger and the blocks that run before this one. A block that runs later has no output yet. Until a block is connected, only the trigger's values are listed, and the list says so.
-- **A record opens to its fields.** A Find One or On Create block returns a whole record. Pick it to see its fields, starting with the ones the block's **Select Fields** reads. A JSON value or a set of headers can be opened to a box where you type a path, such as `title` or `alerts[0].status`.
+- **Values that are there come first, and the rest are listed apart.** The trigger and the blocks that run before this one are offered. A block that runs before this one only on some runs — after one output of an **If / Else**, say — says so, because its values can be empty here. A block that runs later, or on a branch that doesn't lead here, is listed at the end, folded and greyed, with why, and its values can't be picked. Until a block is connected, only the trigger's values are listed, and the list says so.
+- **A record opens to its fields.** A Find One or On Create block returns a whole record. Pick it to see its fields: first the ones the block passes on, which its **Fields to pass on** names, then, apart, the ones it doesn't, which are empty here. A JSON value or a set of headers can be opened to a box where you type a path, such as `title` or `alerts[0].status`.
 - **Once a block has run, the list knows what's inside its values.** Each value says what it held in the latest run — `"production"`, or `3 fields` — and a JSON value or a set of headers opens to the fields it had, each with what it held. So from a Webhook's **Request Body** you pick **incident.title** instead of typing a path. Searching finds these fields too: type `title`, or `{{` and the start of a path. A record's fields show what they held as well. The fields come from the latest run, so one that a later request leaves out is empty in that run. A value that looks like a secret, such as an `Authorization` header, a token or a password, is listed without what it held.
-- **A Webhook that hasn't received a request yet says so** at the top of its values, with **Copy test request**: a `curl` command that sends `{"message": "Hello"}` to the workflow's webhook URL. Run it in a terminal while the list is open, and the request's fields turn up in it once the run it starts has finished, usually within seconds. The workflow has to be enabled, or the request is turned away. Only people who can see the webhook URL get the button. An Incoming Email trigger that hasn't received an email yet says so in the same place; send an email to its address, and its headers and attachments turn up the same way.
+- **A Webhook that hasn't received a request yet says so** at the top of its values, with **Copy test request**: a `curl` command that sends `{"message": "Hello"}` to the workflow's webhook URL. Run it in a terminal while the list is open, and the request's fields turn up in it once the run it starts has finished, usually within seconds. Only people who can see the webhook URL get the button. While the workflow is off, its URL turns requests away, so the list offers **Test with Run Workflow** instead: the fields of the request you send from there turn up the same way. An Incoming Email trigger that hasn't received an email yet says so in the same place; send an email to its address, and its headers and attachments turn up the same way.
 - **Code editors have Insert value in their toolbar.** In JSON it adds the quotes a value needs inside a document. **Run Custom JavaScript** reads values through its **Arguments**, so its code has no picker.
 - **Numbers, passwords, switches and dates keep their own control,** with **{ }** beside it. A picked value replaces the control, and **abc** goes back to typing one.
 
-A chip turns amber when what it reads isn't there: a block that was renamed or deleted, a value the block doesn't return, a block that runs later, or a variable that doesn't exist. Its tooltip says which. See [Variables](/docs/workflows/variables) for the reference syntax.
+A chip turns amber when what it reads isn't there: a block that was renamed or deleted, a value the block doesn't return, a block that runs later, a record's field its block doesn't pass on, or a variable that doesn't exist. Its tooltip says which. See [Variables](/docs/workflows/variables) for the reference syntax.
 
 ## Checks as you build
 
@@ -131,13 +131,13 @@ The quickest way to feel out the canvas is a two-block workflow you start by han
 2. Click **Add Component**, then click **Log** under **Popular**. The new block lands below the trigger. Connect the trigger's **Execute** dot down to the Log block's input dot.
 3. Click the Log block, which says **Click to set up**, and type `Hello from ` in its **Value**. Click **{ }**, then click **JSON** under **Manual**. The setting shows **Manual › JSON**, and saves `{{local.components.manual-1.returnValues.value}}`. `manual-1` is the trigger's **Identifier**, shown on the trigger block. Click **Save**.
 4. Back on the **Builder**, click **Run Workflow**, put `{ "name": "Ada" }` in the **JSON** field, click **Run Workflow Manually**, and confirm with **Run**. The workflow is still off, and it doesn't need to be on: a run you start yourself is a **Test run**.
-5. A **Workflow Run** panel opens by itself and follows the run. It says **Test run** at the top, and the log shows `Value:` followed by `Hello from { "name": "Ada" }`.
+5. A **Workflow Run** panel opens by itself and follows the run. It says **Test run** at the top, and the log shows `Value:` followed by `Hello from` and the JSON you typed.
 :::
 
 That cycle — add, connect, configure, run, read the log — is how you'll build every workflow.
 
 > [!TIP]
-> JSON typed into **Run Workflow** reaches the Manual trigger as the text you typed. To read one field of it, such as `name`, add a **Text to JSON** block, put the trigger's **JSON** in its **Text**, and read the field from that block's **JSON**: `{{local.components.text-to-json-1.returnValues.json.name}}`.
+> JSON typed into **Run Workflow** reaches the Manual trigger as JSON. To read one field of it, such as `name`, add the field's name to the reference: `{{local.components.manual-1.returnValues.value.name}}`. Once the workflow has run, the value picker lists the fields too: open **JSON** under **Manual**.
 
 ## Turning it on
 

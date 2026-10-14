@@ -17,6 +17,7 @@ Du får sjældent brug for at have den åben, mens du bygger. Hver bloks indstil
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Poste i et chatværktøj                                        | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) eller [Mattermost](#mattermost) |
 | Sende en e-mail gennem din egen mailserver                    | [Email](#email)                                                   |
+| Tilkalde en person, et team eller den, der har vagt | [Paging](#paging) |
 | Kalde enhver anden API eller din egen tjeneste                | [API](#api)                                                       |
 | Opsummere, klassificere eller skrive udkast til tekst         | [Generate Text with AI](#generate-text-with-ai)                   |
 | Tage den ene eller den anden vej afhængigt af en værdi        | [Conditions](#conditions)                                         |
@@ -199,6 +200,49 @@ Blokken forbinder direkte til serveren i sine indstillinger. Den bruger ikke dit
 
 Forbindelser til loopback- (`localhost`, `127.0.0.1`), link-local- og cloudmetadata-adresser afvises. I OneUptime Cloud afvises også en SMTP-vært på en privat netværksadresse eller et navn, der peger på en. Selvhostede installationer kan nå en mailserver på deres eget netværk, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er sat til `true`. En afvist vært tager udgangen **Error**, og intet sendes.
 
+## Paging
+
+Tilkald personer fra et workflow: hver person får et opkald, en sms, en pushnotifikation eller en e-mail, som personens egne vagtregler siger, indtil nogen kvitterer. Der er en blok for hver måde at sige, hvem der skal tilkaldes. Søg efter `page` i panelet **Tilføj komponent**.
+
+| Blok                        | Hvem den tilkalder |
+| --------------------------- | ------------------ |
+| **Page Users**              | De personer, du nævner. |
+| **Page a Team**             | Alle medlemmer af et team. |
+| **Page Whoever Is On Call** | Den, der har vagt i en vagtplan, når blokken kører. |
+| **Page an On-Call Policy**  | En vagtpolitik, som tilkalder gennem sine eskaleringsregler og gentager sig, som den er sat til. |
+
+De første tre tilkalder alle, de nævner, på én gang, og ingen andre bagefter. Brug **Page an On-Call Policy** til eskalering.
+
+Vil du kun tilkalde, når noget er sandt, så sæt [If / Else](#conditions) foran blokken, og forbind den udgang, der skal tilkalde, med den. Med mere end to veje tager [Switch / Case](#switch-case) en vej for hver værdi, og hver vej kan tilkalde en anden.
+
+```mermaid title="Tilkald den, der har vagt, men kun ved kritiske hændelser"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+Når du opretter et workflow, har skabelonerne under **Vagt** dette klar, og et, der tilkalder efter alvorlighed med **Switch / Case**. En skabelon overlader til dig, hvem der tilkaldes: workflowet åbner i Byggeren, hvor hver tilkaldeblok siger **Click to set up**.
+
+| Indstilling | Hvad den gør |
+| ----------- | ------------ |
+| **Users**, **Teams**, **On-Call Schedules** eller **On-Call Policies** | Hvem der tilkaldes: hver blok har den, der hører til dens navn. Vælg efter navn, eller tryk på **{ }** for enden af rækken for at tilføje en værdi fra en tidligere blok. En værdi kan indeholde ét ID eller flere og, for **Users**, en e-mailadresse. |
+| **Page About** | Hvad tilkaldet handler om: **A new alert**, **An incident** eller **An alert**. At kvittere for tilkaldet kvitterer også for det. |
+| **Title** og **Message** | Til en ny advarsel. OneUptime opretter en advarsel ud fra dem, og den bliver blandt dine advarsler som enhver anden. |
+| **Incident ID** eller **Alert ID** | Til en hændelse eller en advarsel, der allerede findes, som regel den, workflowet startede på: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | Til en ny advarsel, under **Flere felter**. Den afgør, hvilke af hver persons vagtregler der tilkalder personen. Står den tom, er det projektets mest alvorlige. |
+
+En blok, der føjes til et workflow, som starter på en hændelse eller en advarsel, er allerede sat til at tilkalde om den post, så den kun spørger, hvem der skal tilkaldes.
+
+**Success** kører, så snart mindst én person er tilkaldt, eller én politik er startet. **Error** kører, når ingen blev tilkaldt, og blokkens værdi **Error** siger hvorfor, for eksempel at ingen har vagt i vagtplanen. **Summary** siger i én sætning, hvem der blev tilkaldt, og hvem der blev udeladt, klar til at slå op i en kanal, og **Paged Users** oplister de tilkaldte personer.
+
+En person, der er fraværende, tilkaldes ikke: i stedet tilkaldes den, personens brugeroverride nævner som dækning. Et tilkald nævner højst 100 personer, teams og vagtplaner. Se [Sådan nås hver person](/docs/on-call/escalation-rules#sådan-nås-hver-person).
+
+Et tilkald uden en vagtpolitik bag sig står sammen med politikkernes kørsler som **Direkte tilkald**: i vagtloggene for hændelsen eller advarslen, i dens feed og dens Slack- eller Microsoft Teams-kanal og i loggene hos hver tilkaldt person. Det står åbent i 30 minutter, og derefter så længe der stadig går tilkald ud. Har ingen kvitteret til den tid, slutter det uden at tilkalde andre.
+
+> [!WARNING]
+> **Kør arbejdsgang** tilkalder personer i virkeligheden, uanset om workflowet er slået til eller fra, og det gør **Run just this step** også. Angiv dig selv, mens du tester.
+
 ## Custom Code
 
 Kør et par linjer JavaScript, når de andre blokke ikke kan det, du har brug for. Blokken hedder **Run Custom JavaScript**.
@@ -247,27 +291,27 @@ Dens indstillinger læses som en sætning: **Hvis** *værdi, der skal tjekkes* *
 
 | Indstilling        | Hvad den gør                                                                                                                             |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Value to check** | Som regel en værdi fra en tidligere blok. Tryk på **{ }** i feltet for at vælge en, eller skriv `{{`.                                    |
-| **Comparison**     | Hvordan der sammenlignes, med ord. Sammenligningerne står nedenfor.                                                                      |
-| **Compare with**   | Det, der sammenlignes med, skrevet eller valgt på samme måde. **er tom**, **er ikke tom**, **is true** og **is false** bruger det ikke.   |
-| **Compare as**     | Foldet væk under sammenligningen: **Text**, **Tal** eller **True / False**. Vælg **Text** for at sortere datoer skrevet `2026-10-01`, eller **Tal** for at gøre `200` og `200.0` ens. |
+| **Værdi, der skal tjekkes** | Som regel en værdi fra en tidligere blok. Tryk på **{ }** i feltet for at vælge en, eller skriv `{{`.                                    |
+| **Sammenligning**     | Hvordan der sammenlignes, med ord. Sammenligningerne står nedenfor.                                                                      |
+| **Sammenlign med**   | Det, der sammenlignes med, skrevet eller valgt på samme måde. **er tom**, **er ikke tom**, **er sand** og **er falsk** bruger det ikke.   |
+| **Sammenlign som**     | Foldet væk under sammenligningen: **Text**, **Tal** eller **Sand / Falsk**. Vælg **Text** for at sortere datoer skrevet `2026-10-01`, eller **Tal** for at gøre `200` og `200.0` ens. |
 
 Sammenligningerne:
 
-- **is equal to** og **is not equal to**;
+- **er lig med** og **er ikke lig med**;
 - for tekst: **indeholder**, **indeholder ikke**, **starter med** og **slutter med**;
-- for tal: **er større end**, **is greater than or equal to**, **er mindre end** og **is less than or equal to**;
+- for tal: **er større end**, **er større end eller lig med**, **er mindre end** og **er mindre end eller lig med**;
 - **er tom** og **er ikke tom**, som tjekker, om værdien overhovedet er der;
-- **is true** og **is false**.
+- **er sand** og **er falsk**.
 
-Talsammenligningerne sammenligner tal, og tekstsammenligningerne sammenligner tekst, så du har sjældent brug for **Compare as**. Sådan sammenlignes værdierne:
+Talsammenligningerne sammenligner tal, og tekstsammenligningerne sammenligner tekst, så du har sjældent brug for **Sammenlign som**. Sådan sammenlignes værdierne:
 
 - Som tekst tæller store bogstaver: `Error` er ikke `error`.
 - Som tal tæller tekst, der ikke er et tal, som `0`. Indstillingerne gør opmærksom på en sådan skrevet værdi.
 - Som sand eller falsk tæller kun `true` som sand.
 - **er tom** opfyldes af slet ingenting, blank tekst, en tom liste eller et tomt objekt, eller en værdi, som den tidligere blok ikke havde, som et felt, webhooken ikke sendte. `0` og `false` er værdier, så de er ikke tomme.
 
-**Yes** kører, når betingelsen er opfyldt, og **No**, når den ikke er. Blokke, der blev sat op, før indstillingerne havde disse navne, kører præcis som før. Et gammelt valg tilbydes ikke længere: at sammenligne en værdi som **Null** eller **Undefined**, hvilket ignorerede, hvad værdien indeholdt. En blok, der stadig bruger det, siger det, når du åbner den; vælg **er tom** for at tjekke for en manglende værdi.
+**Yes** kører, når betingelsen er opfyldt, og **No**, når den ikke er. Blokke, der blev sat op, før indstillingerne havde disse navne, kører præcis som før. Et gammelt valg tilbydes ikke længere: at sammenligne en værdi som **Null** eller **Udefineret**, hvilket ignorerede, hvad værdien indeholdt. En blok, der stadig bruger det, siger det, når du åbner den; vælg **er tom** for at tjekke for en manglende værdi.
 
 ## Switch / Case
 
@@ -277,12 +321,12 @@ Den sammenligner én værdi med hvert af sine tilfælde efter tur, fra toppen, o
 
 | Indstilling        | Hvad den gør |
 | ------------------ | ------------ |
-| **Value to check** | Den værdi, hvert tilfælde sammenlignes med, som regel fra en tidligere blok. Tryk på **{ }** i feltet for at vælge en, eller skriv `{{`. |
+| **Værdi, der skal tjekkes** | Den værdi, hvert tilfælde sammenlignes med, som regel fra en tidligere blok. Tryk på **{ }** i feltet for at vælge en, eller skriv `{{`. |
 | **Cases**          | En sammenligning og en værdi for hver vej, tjekket fra toppen. Tryk på **Tilføj tilfælde** for at tilføje et til, og træk et tilfælde i dets greb for at flytte det. En blok kan have højst 25 tilfælde. |
 
-Hvert tilfælde er en udgang på lærredet, opkaldt efter sin værdi: et tilfælde, der spørger **is equal to** `production`, er udgangen *production*, og et, der spørger **er større end** `500`, er *is greater than 500*. **Default** er altid den sidste udgang. Forbind hver udgang med det, der skal køre bagefter.
+Hvert tilfælde er en udgang på lærredet, opkaldt efter sin værdi: et tilfælde, der spørger **er lig med** `production`, er udgangen *production*, og et, der spørger **er større end** `500`, er *is greater than 500*. **Default** er altid den sidste udgang. Forbind hver udgang med det, der skal køre bagefter.
 
-Et tilfælde passer præcis, når en [If / Else](#conditions) med samme sammenligning og værdi ville tage **Yes**: sammenligningerne er de samme, og værdierne sammenlignes på samme måde. **Compare as** er foldet væk under tilfældene, med et valg for hvert tilfælde.
+Et tilfælde passer præcis, når en [If / Else](#conditions) med samme sammenligning og værdi ville tage **Yes**: sammenligningerne er de samme, og værdierne sammenlignes på samme måde. **Sammenlign som** er foldet væk under tilfældene, med et valg for hvert tilfælde.
 
 Når du fjerner et tilfælde, der har en forbindelse, viser indstillingerne, hvilke blokke det førte til, og **Gendan** henter tilfældet tilbage. Når du gemmer, fjernes forbindelsen sammen med tilfældet. Byggerens tjek gør opmærksom på et tilfælde, som intet er forbundet til, og på et tilfælde, der aldrig bliver valgt, fordi et tilfælde ovenover spørger om det samme.
 
@@ -366,7 +410,7 @@ En forespørgsel er altid begrænset til det projekt, workflowet kører i. Du ka
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-En nøgle, der ikke er en kolonne, ignoreres i stedet for at blive afvist — kørslens log nævner dem, der blev droppet, så kig der, når et felt ikke lander. **Select Fields**, på Find-komponenterne og triggerne, bruger de samme kolonnenøgler med værdien `true`: `{"_id": true, "name": true}`.
+En nøgle, der ikke er en kolonne, ignoreres i stedet for at blive afvist — kørslens log nævner dem, der blev droppet, så kig der, når et felt ikke lander. **Fields to pass on**, på Find-komponenterne og triggerne, vælges fra en liste; dens **Rediger som JSON** viser de samme kolonnenøgler med værdien `true`: `{"_id": true, "name": true}`.
 
 **Brugerdefinerede felter** er én kolonne, `customFields`, der rummer hvert brugerdefineret felts værdi under feltets navn. Update-komponenterne ændrer kun de brugerdefinerede felter, du nævner, og alle andre beholder deres værdi:
 

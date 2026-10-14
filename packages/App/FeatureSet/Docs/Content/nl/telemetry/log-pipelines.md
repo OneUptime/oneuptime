@@ -110,7 +110,7 @@ De twee scheidingstekens moeten verschillen, mogen elkaar niet bevatten en mogen
 
 ### Voorbeeld: Sophos XGS-firewall
 
-Wanneer een Sophos XGS-firewall syslog naar een [probe](/docs/monitor/network-device-monitor) stuurt, wordt elk bericht opgeslagen als logboek van het netwerkapparaat, met het syslog-bericht als tekst. Zo parset u het:
+OneUptime leest syslog van Sophos en FortiGate zelf als `sophos.*`- en `fortigate.*`-attributen (zie [Netwerkgebeurtenissen](/docs/monitor/network-events)); dit voorbeeld bouwt hetzelfde met de hand, zoals u dat zou doen voor een formaat dat OneUptime niet kent. Wanneer een Sophos XGS-firewall syslog naar een [probe](/docs/monitor/network-device-monitor) stuurt, wordt elk bericht opgeslagen als logboek van het netwerkapparaat, met het syslog-bericht als tekst. Zo parset u het:
 
 :::steps
 #### Een pipeline voor de firewall maken
@@ -199,7 +199,7 @@ Verplaatst de waarde van het ene attribuut (**Bronsleutel**) naar een ander (**D
 
 ## Categorieverwerker
 
-Evalueert een lijst regels op volgorde en slaat de naam van de eerste regel waarvan het filter overeenkomt op in een doelattribuut, zodat u in één keer alle "Payment Error"-logboeken vindt. Stel **Doelattribuut** in (standaard `category`) en voeg dan **Categorieregels** toe: een **Category name** en de voorwaarden onder **When logs match**. De eerste overeenkomende regel wint; een logboek dat op geen enkele overeenkomt, blijft ongewijzigd.
+Evalueert een lijst regels op volgorde en slaat de naam van de eerste regel waarvan het filter overeenkomt op in een doelattribuut, zodat u in één keer alle "Payment Error"-logboeken vindt. Stel **Doelattribuut** in (standaard `category`) en voeg dan **Categorieregels** toe: een **Category name** en de voorwaarden onder **When logs match**. De eerste overeenkomende regel wint; een logboek dat op geen enkele overeenkomt, blijft ongewijzigd. Op de logboeken van een netwerkapparaat maakt een regel met de naam van een gebeurtenis (`ups.on_battery`) onder het doelattribuut `event.name` van het logboek een [netwerkgebeurtenis](/docs/monitor/network-events#je-eigen-gebeurtenissen).
 
 ## Volgende stappen
 

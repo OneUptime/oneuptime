@@ -23,15 +23,22 @@ import {
   useValuePicker,
 } from "./ValuePickerContext";
 import {
+  ValueAvailability,
+  ValueAvailabilityState,
   ValueSuggestion,
   ValueSuggestionGroup,
   ValueSuggestionNote,
+  ValueSuggestionSentence,
   appendPathToReference,
   filterSuggestionGroups,
   suggestionMatches,
 } from "./ValueSuggestion";
-import { NOT_SELECTED_BADGE } from "./StepValueSource";
-import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import { StepSampleCopy } from "./StepSampleSource";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
 import React, {
@@ -54,6 +61,40 @@ export const NOTE_REFRESH_MAX_MS: number = 10 * 60 * 1000;
 
 // How long "Copied!" stays on a note's Copy button.
 const COPIED_FEEDBACK_MS: number = 2000;
+
+/*
+ * How long the steps that cannot be used are kept in view after they are
+ * opened, while their styles arrive and their lines wrap.
+ */
+export const UNAVAILABLE_SETTLE_MS: number = 2000;
+
+export const ValuePickerMenuCopy: {
+  readonly notAvailable: PluralTemplate;
+  readonly notAvailableHint: string;
+  readonly notAvailableTitle: string;
+  readonly notPassedOnTitle: string;
+  readonly fieldCount: PluralTemplate;
+} = {
+  // A plural, written whole so the extractor reads both forms.
+  notAvailable: {
+    one: "{{count}} step isn't available here",
+    other: "{{count}} steps aren't available here",
+  },
+  notAvailableHint: translationKey(
+    "Their values aren't there when this step runs.",
+  ),
+  notAvailableTitle: translationKey("Not available here"),
+  // Over a record's fields its step does not pass on, and how many there are.
+  notPassedOnTitle: translationKey("Not passed on"),
+  fieldCount: { one: "{{count}} field", other: "{{count}} fields" },
+};
+
+/*
+ * Room kept clear at the bottom of a record's fields while the heading of
+ * the ones that are not passed on is pinned there, so the field the keys are
+ * on is scrolled to above it, not under it.
+ */
+export const EMPTY_HERE_HEADING_ROOM: string = "2.5rem";
 
 export const HIDDEN_SAMPLE_TEXT: string = translationKey("hidden");
 export const HIDDEN_SAMPLE_TITLE: string = translationKey(
@@ -110,6 +151,11 @@ interface MenuOption {
   reference: string;
   /** Picking this opens it rather than inserting it. */
   opens?: boolean | undefined;
+  /*
+   * A record's field its step does not pass on: it can be picked, but is
+   * empty here, so it is drawn quieter, under why.
+   */
+  isEmptyHere?: boolean | undefined;
   /** Shows a separate "look inside" button. */
   canLookInside?: boolean | undefined;
   item?: ValueSuggestion | undefined;
@@ -122,6 +168,10 @@ interface OptionSection {
   subtitle?: string | undefined;
   iconProp?: IconProp | undefined;
   note?: ValueSuggestionNote | undefined;
+  // A step before this one on some runs only says so under its name.
+  availability?: ValueAvailability | undefined;
+  // Above a record's fields that are empty here: whose they are.
+  emptyHereNote?: ValueSuggestionSentence | undefined;
   options: Array<MenuOption>;
 }
 
@@ -146,12 +196,21 @@ const findItem: FindItemFunction = (
   return undefined;
 };
 
-const BADGE_CLASS: Record<string, string> = {
-  [NOT_SELECTED_BADGE]: "border-gray-200 bg-gray-50 text-gray-500",
-};
-
 const DEFAULT_BADGE_CLASS: string =
   "border-amber-200 bg-amber-50 text-amber-700";
+
+type TranslateSentenceFunction = (
+  translator: Translator,
+  sentence: ValueSuggestionSentence,
+) => string;
+
+// A picker sentence in the reader's language.
+const translateSentence: TranslateSentenceFunction = (
+  translator: Translator,
+  sentence: ValueSuggestionSentence,
+): string => {
+  return translator.translateTemplate(sentence.template, sentence.values || {});
+};
 
 const ValuePickerMenu: React.ForwardRefExoticComponent<
   ValuePickerMenuProps & React.RefAttributes<ValuePickerMenuHandle>
@@ -173,14 +232,86 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
 
     const searchRef: React.MutableRefObject<HTMLInputElement | null> =
       useRef<HTMLInputElement | null>(null);
+    const listRef: React.MutableRefObject<HTMLDivElement | null> =
+      useRef<HTMLDivElement | null>(null);
+    const emptyHereHeadingRef: React.MutableRefObject<HTMLDivElement | null> =
+      useRef<HTMLDivElement | null>(null);
+    const emptyHereGroupRef: React.MutableRefObject<HTMLDivElement | null> =
+      useRef<HTMLDivElement | null>(null);
 
     const query: string = props.hasSearchBox ? search : props.query || "";
 
-    const groups: Array<ValueSuggestionGroup> = useMemo(() => {
+    const allGroups: Array<ValueSuggestionGroup> = useMemo(() => {
       return props.groupFilter
         ? picker.groups.filter(props.groupFilter)
         : picker.groups;
     }, [picker.groups, props.groupFilter]);
+
+    /*
+     * What can be used here, and what cannot: the steps whose values are not
+     * there when this one runs are listed apart, after everything else.
+     */
+    const groups: Array<ValueSuggestionGroup> = useMemo(() => {
+      return allGroups.filter((group: ValueSuggestionGroup): boolean => {
+        return group.availability?.state !== ValueAvailabilityState.Unavailable;
+      });
+    }, [allGroups]);
+
+    const unavailableGroups: Array<ValueSuggestionGroup> = useMemo(() => {
+      return allGroups.filter((group: ValueSuggestionGroup): boolean => {
+        return group.availability?.state === ValueAvailabilityState.Unavailable;
+      });
+    }, [allGroups]);
+
+    const [isUnavailableOpen, setIsUnavailableOpen] = useState<boolean>(false);
+    const unavailableRef: React.MutableRefObject<HTMLDivElement | null> =
+      useRef<HTMLDivElement | null>(null);
+
+    /*
+     * The steps that cannot be used are at the end of the list, so opened
+     * they were under its fold: the line said "1 step isn't available here"
+     * and showed nothing. Opening it brings them into view.
+     *
+     * And keeps them there while they settle. The Dashboard builds a class's
+     * style the first time the class is drawn, so a moment after the block
+     * opens its reasons get their indent, the longer ones wrap onto another
+     * line, and the last step would end under the list's edge.
+     */
+    useEffect(() => {
+      const block: HTMLDivElement | null = unavailableRef.current;
+
+      if (
+        !isUnavailableOpen ||
+        !block ||
+        typeof block.scrollIntoView !== "function"
+      ) {
+        return;
+      }
+
+      const reveal: () => void = (): void => {
+        block.scrollIntoView({ block: "nearest" });
+      };
+
+      reveal();
+
+      if (typeof ResizeObserver === "undefined") {
+        return;
+      }
+
+      const observer: ResizeObserver = new ResizeObserver(reveal);
+
+      observer.observe(block);
+
+      // Settled: from here on the list is the reader's to scroll.
+      const settled: ReturnType<typeof setTimeout> = setTimeout(() => {
+        observer.disconnect();
+      }, UNAVAILABLE_SETTLE_MS);
+
+      return () => {
+        clearTimeout(settled);
+        observer.disconnect();
+      };
+    }, [isUnavailableOpen]);
 
     /*
      * The opened value as the list has it now. A request can arrive while it
@@ -323,15 +454,41 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
               sample: child.sample,
               isSampleHidden: child.isSampleHidden,
               reference: child.reference,
+              isEmptyHere: child.isEmptyHere,
             };
           });
 
-        return [
+        /*
+         * The fields that are there first; the ones its step does not pass
+         * on after them, apart, under whose they are and how to pass them on.
+         */
+        const usable: Array<MenuOption> = children.filter(
+          (child: MenuOption): boolean => {
+            return !child.isEmptyHere;
+          },
+        );
+        const emptyHere: Array<MenuOption> = children.filter(
+          (child: MenuOption): boolean => {
+            return Boolean(child.isEmptyHere);
+          },
+        );
+
+        const drillSections: Array<OptionSection> = [
           {
             key: "drill",
-            options: childQuery.trim() === "" ? [whole, ...children] : children,
+            options: childQuery.trim() === "" ? [whole, ...usable] : usable,
           },
         ];
+
+        if (emptyHere.length > 0) {
+          drillSections.push({
+            key: "drill-empty-here",
+            emptyHereNote: drillItem.drillIn?.emptyHereNote,
+            options: emptyHere,
+          });
+        }
+
+        return drillSections;
       }
 
       return filterSuggestionGroups(groups, query).map(
@@ -342,6 +499,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             subtitle: group.subtitle,
             iconProp: group.iconProp,
             note: group.note,
+            availability: group.availability,
             options: group.items.map((item: ValueSuggestion): MenuOption => {
               return {
                 key: item.reference,
@@ -447,6 +605,28 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
       setSearch("");
       setPath("");
       setPathError(null);
+    };
+
+    type ShowEmptyHereFunction = () => void;
+
+    /*
+     * A press on the heading of the fields that are not passed on brings
+     * them up: the heading to the top of the list, where it is no longer
+     * pinned, and the line that says what to do and the fields under it.
+     */
+    const showEmptyHere: ShowEmptyHereFunction = (): void => {
+      const list: HTMLDivElement | null = listRef.current;
+      const group: HTMLDivElement | null = emptyHereGroupRef.current;
+
+      if (!list || !group) {
+        return;
+      }
+
+      // The heading's own place is right above the fields it is over.
+      list.scrollTop +=
+        group.getBoundingClientRect().top -
+        list.getBoundingClientRect().top -
+        (emptyHereHeadingRef.current?.offsetHeight || 0);
     };
 
     type InsertPathFunction = () => void;
@@ -559,13 +739,21 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
     type RenderOptionFunction = (
       option: MenuOption,
       index: number,
+      caveatId?: string | undefined,
     ) => ReactElement;
 
     const renderOption: RenderOptionFunction = (
       option: MenuOption,
       index: number,
+      caveatId?: string | undefined,
     ): ReactElement => {
       const isActive: boolean = index === activeIndex;
+      /*
+       * What a row says besides its name is gray-500 on the list's white,
+       * and a shade darker on the row the pointer or the keys are on, whose
+       * tint would otherwise leave it at 4.3:1.
+       */
+      const quiet: string = isActive ? "text-gray-600" : "text-gray-500";
 
       return (
         <div
@@ -573,9 +761,11 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
           id={optionId(index)}
           role="option"
           aria-selected={isActive}
+          aria-describedby={caveatId}
           title={option.reference}
           data-testid="value-picker-option"
           data-reference={option.reference}
+          data-empty-here={option.isEmptyHere ? "true" : undefined}
           className={`mx-1 flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 ${
             isActive ? "bg-indigo-50" : ""
           }`}
@@ -594,24 +784,28 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
         >
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
-              <span className="truncate text-sm text-gray-900">
+              <span
+                data-part="name"
+                className={`truncate text-sm ${
+                  option.isEmptyHere ? quiet : "text-gray-900"
+                }`}
+              >
                 {option.label}
               </span>
               {(option.badges || []).map((badge: string) => {
                 return (
                   <span
                     key={badge}
-                    className={`shrink-0 rounded border px-1 text-[10px] font-medium leading-4 ${
-                      BADGE_CLASS[badge] || DEFAULT_BADGE_CLASS
-                    }`}
+                    className={`shrink-0 rounded border px-1 text-[10px] font-medium leading-4 ${DEFAULT_BADGE_CLASS}`}
                   >
                     {badge}
                   </span>
                 );
               })}
             </div>
-            {option.description && (
-              <div className="truncate text-xs text-gray-500">
+            {/* An empty-here field's section says why; each says no more. */}
+            {option.description && !option.isEmptyHere && (
+              <div data-part="detail" className={`truncate text-xs ${quiet}`}>
                 {translator.translateText(option.description)}
               </div>
             )}
@@ -622,7 +816,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
            */}
           {option.isSampleHidden ? (
             <div
-              className="mt-0.5 flex max-w-[45%] shrink-0 items-center gap-1 text-xs text-gray-400"
+              className={`mt-0.5 flex max-w-[45%] shrink-0 items-center gap-1 text-xs ${quiet}`}
               title={translator.translateText(HIDDEN_SAMPLE_TITLE)}
               data-testid="value-picker-sample"
               data-hidden="true"
@@ -634,7 +828,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             </div>
           ) : option.sample !== undefined ? (
             <span
-              className="mt-0.5 max-w-[45%] shrink-0 truncate text-xs text-gray-500"
+              className={`mt-0.5 max-w-[45%] shrink-0 truncate text-xs ${quiet}`}
               title={option.sample}
               data-testid="value-picker-sample"
             >
@@ -642,7 +836,10 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             </span>
           ) : null}
           {option.typeLabel && (
-            <span className="mt-0.5 shrink-0 rounded border border-gray-200 px-1.5 text-[10px] font-medium uppercase leading-4 tracking-wide text-gray-500">
+            <span
+              data-part="kind"
+              className={`mt-0.5 shrink-0 rounded border border-gray-200 px-1.5 text-[10px] font-medium uppercase leading-4 tracking-wide ${quiet}`}
+            >
               {translator.translateText(option.typeLabel)}
             </span>
           )}
@@ -718,8 +915,29 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             />
             <span>{translator.translateText(note.text)}</span>
           </div>
-          {copyText || note.waitingText ? (
+          {copyText ||
+          note.waitingText ||
+          (note.offersTestRun && picker.onTestRun) ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 pl-5">
+              {note.offersTestRun && picker.onTestRun ? (
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
+                  data-testid="value-picker-note-test-run"
+                  onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
+                    // The focus stays in the search box, or the field.
+                    event.preventDefault();
+                  }}
+                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                    event.stopPropagation();
+                    picker.onTestRun?.();
+                  }}
+                >
+                  <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
+                  {translator.translateText(StepSampleCopy.testWithRunWorkflow)}
+                </button>
+              ) : null}
               {copyText ? (
                 <button
                   type="button"
@@ -767,17 +985,180 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
       );
     };
 
+    type RenderUnavailableFunction = () => ReactElement | null;
+
+    /*
+     * The steps whose values are not there when this step runs, after
+     * everything that is, greyed and never picked: each says why, so a step
+     * missing from the list above is explained rather than looked for.
+     * Folded while browsing; a search shows the matching values of each.
+     */
+    const renderUnavailable: RenderUnavailableFunction =
+      (): ReactElement | null => {
+        if (unavailableGroups.length === 0) {
+          return null;
+        }
+
+        const isSearching: boolean = query.trim() !== "";
+        const matching: Array<ValueSuggestionGroup> = isSearching
+          ? filterSuggestionGroups(unavailableGroups, query)
+          : unavailableGroups;
+
+        if (matching.length === 0) {
+          return null;
+        }
+
+        const isOpen: boolean = isSearching || isUnavailableOpen;
+
+        return (
+          <div
+            ref={unavailableRef}
+            className="mx-1 mt-1 border-t border-gray-100 pt-1"
+            data-testid="value-picker-unavailable"
+          >
+            {/*
+             * The words that explain - this title, the line under the fold
+             * and each step's reason - are gray-500: they are there to be
+             * read. Only the values that cannot be picked are fainter.
+             */}
+            {isSearching ? (
+              <div className="px-2 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                {translator.translateText(
+                  ValuePickerMenuCopy.notAvailableTitle,
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-expanded={isOpen}
+                data-testid="value-picker-unavailable-toggle"
+                className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
+                  // The focus stays where it is: the search box, or the field.
+                  event.preventDefault();
+                }}
+                onClick={() => {
+                  setIsUnavailableOpen(!isUnavailableOpen);
+                }}
+              >
+                <Icon
+                  icon={isOpen ? IconProp.ChevronDown : IconProp.ChevronRight}
+                  className="h-3.5 w-3.5 shrink-0 text-gray-400"
+                />
+                <span className="font-medium">
+                  {translator.translatePlural(
+                    ValuePickerMenuCopy.notAvailable,
+                    matching.length,
+                  )}
+                </span>
+              </button>
+            )}
+
+            {isOpen && !isSearching ? (
+              <p
+                className="px-2 pb-1 text-xs text-gray-500"
+                data-testid="value-picker-unavailable-hint"
+              >
+                {translator.translateText(ValuePickerMenuCopy.notAvailableHint)}
+              </p>
+            ) : null}
+
+            {isOpen
+              ? matching.map((group: ValueSuggestionGroup) => {
+                  return (
+                    <div
+                      key={group.id}
+                      className="px-2 py-1"
+                      data-testid="value-picker-unavailable-step"
+                      data-step={group.subtitle}
+                    >
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        {group.iconProp ? (
+                          <Icon
+                            icon={group.iconProp}
+                            className="h-3.5 w-3.5 shrink-0 text-gray-300"
+                          />
+                        ) : null}
+                        <span
+                          className="truncate text-xs font-semibold text-gray-500"
+                          data-part="step-name"
+                        >
+                          {translator.translateText(group.title)}
+                        </span>
+                        {group.subtitle ? (
+                          <span
+                            className="truncate text-[11px] text-gray-500"
+                            data-part="step-id"
+                          >
+                            {group.subtitle}
+                          </span>
+                        ) : null}
+                      </div>
+                      {group.availability ? (
+                        <p
+                          className="pl-5 text-xs text-gray-500"
+                          data-testid="value-picker-unavailable-reason"
+                        >
+                          {translateSentence(
+                            translator,
+                            group.availability.reason,
+                          )}
+                        </p>
+                      ) : null}
+                      {isSearching
+                        ? group.items.map((item: ValueSuggestion) => {
+                            return (
+                              <div
+                                key={item.reference}
+                                aria-disabled="true"
+                                title={item.reference}
+                                data-testid="value-picker-unavailable-value"
+                                data-reference={item.reference}
+                                className="mt-0.5 flex min-w-0 cursor-not-allowed items-center gap-2 rounded-md py-1 pl-5 pr-1"
+                              >
+                                <span className="truncate text-sm text-gray-400">
+                                  {item.label}
+                                </span>
+                                {item.typeLabel ? (
+                                  <span className="ml-auto shrink-0 rounded border border-gray-200 px-1.5 text-[10px] font-medium uppercase leading-4 tracking-wide text-gray-400">
+                                    {translator.translateText(item.typeLabel)}
+                                  </span>
+                                ) : null}
+                              </div>
+                            );
+                          })
+                        : null}
+                    </div>
+                  );
+                })
+              : null}
+          </div>
+        );
+      };
+
     const drillNote: string | undefined = drillItem?.drillIn?.note;
+
+    const hasEmptyHereSection: boolean = sections.some(
+      (section: OptionSection): boolean => {
+        return Boolean(section.emptyHereNote);
+      },
+    );
 
     let optionIndex: number = 0;
 
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         {drill && (
-          <div className="flex items-center gap-1 border-b border-gray-100 px-2 py-1.5">
+          <div className="flex items-center gap-1 border-b border-gray-100 px-2 py-1">
+            {/*
+             * The way out of a record's fields: 24px tall, a target a finger
+             * can hit. The row around it gives up what the button gains, so
+             * the list under it is where it was.
+             */}
             <button
               type="button"
-              className="flex items-center gap-0.5 rounded px-1 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              className="flex items-center gap-0.5 rounded px-1 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               data-testid="value-picker-back"
               onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
                 event.preventDefault();
@@ -867,7 +1248,13 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 })
               : translator.translateText("Values")
           }
+          ref={listRef}
           className="min-h-0 flex-1 overflow-y-auto py-1"
+          style={
+            hasEmptyHereSection
+              ? { scrollPaddingBottom: EMPTY_HERE_HEADING_ROOM }
+              : undefined
+          }
         >
           {showNotConnected && (
             <div
@@ -899,44 +1286,190 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             </div>
           )}
 
-          {sections.map((section: OptionSection) => {
+          {sections.map((section: OptionSection, sectionIndex: number) => {
             const headerId: string = `${listboxId}-${section.key}`;
 
+            /*
+             * A record's own section with nothing left in it - a search that
+             * only finds fields that are not passed on - is not drawn: it
+             * was an empty band over the heading of the ones that are.
+             */
+            if (
+              section.options.length === 0 &&
+              !section.title &&
+              !section.note &&
+              !section.emptyHereNote
+            ) {
+              return null;
+            }
+
+            // Whether any value is listed above this section.
+            const hasValuesAbove: boolean = sections
+              .slice(0, sectionIndex)
+              .some((earlier: OptionSection): boolean => {
+                return earlier.options.length > 0;
+              });
+            /*
+             * The line over a section's values that says what sets them
+             * apart - they can be empty on some runs, or are not passed on -
+             * is what the eye reads before it reads them. Each of the values
+             * is described by it too, so someone walking the list by ear
+             * hears it with the value the keys are on.
+             */
+            const hasCaveat: boolean =
+              section.availability?.state ===
+                ValueAvailabilityState.Sometimes ||
+              Boolean(section.emptyHereNote);
+            const caveatId: string | undefined = hasCaveat
+              ? `${headerId}-caveat`
+              : undefined;
+
+            const isEmptyHere: boolean = Boolean(section.emptyHereNote);
+
             return (
-              <div
-                key={section.key}
-                role="group"
-                aria-labelledby={section.title ? headerId : undefined}
-                className="pb-1"
-              >
-                {section.title && (
+              <React.Fragment key={section.key}>
+                {/*
+                 * The heading over a record's fields that are not passed on.
+                 * It is pinned to the foot of the list for as long as they
+                 * are below it: a step that passes on four fields fills the
+                 * list with them, and nothing said there were sixty more, or
+                 * that they would be empty. Scrolled to, it lets go and
+                 * leads them like any heading. It is its own child of the
+                 * list, not the group's: a pinned element keeps inside its
+                 * parent, and the group is what is out of sight. Pinned, it
+                 * goes down over the list's own bottom padding (py-1), or
+                 * the rows passing under it show in that gap.
+                 *
+                 * The line over it divides it from the fields above: with
+                 * none above - a search found only fields that are not
+                 * passed on - there is nothing to divide it from.
+                 */}
+                {isEmptyHere ? (
                   <div
-                    id={headerId}
-                    className="flex min-w-0 items-center gap-1.5 px-3 pb-1 pt-2"
+                    ref={emptyHereHeadingRef}
+                    className={`sticky -bottom-1 z-10 bg-white px-1 ${
+                      hasValuesAbove ? "pt-1" : ""
+                    }`}
+                    data-testid="value-picker-empty-here-heading"
+                    data-divided={hasValuesAbove ? "true" : "false"}
                   >
-                    {section.iconProp && (
-                      <Icon
-                        icon={section.iconProp}
-                        className="h-3.5 w-3.5 shrink-0 text-gray-400"
-                      />
-                    )}
-                    <span className="truncate text-xs font-semibold text-gray-700">
-                      {translator.translateText(section.title)}
-                    </span>
-                    {section.subtitle && (
-                      <span className="truncate text-[11px] text-gray-400">
-                        {translator.translateText(section.subtitle)}
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      id={headerId}
+                      data-testid="value-picker-empty-here-toggle"
+                      className={`flex w-full items-center gap-2 px-2 pb-1 text-left text-[11px] text-gray-500 hover:text-gray-700 focus:outline-none ${
+                        hasValuesAbove
+                          ? "border-t border-gray-100 pt-2"
+                          : "pt-1"
+                      }`}
+                      onMouseDown={(
+                        event: React.MouseEvent<HTMLButtonElement>,
+                      ) => {
+                        // The focus stays where it is: the search box, or the field.
+                        event.preventDefault();
+                      }}
+                      onClick={showEmptyHere}
+                    >
+                      <span
+                        className="min-w-0 truncate font-semibold uppercase tracking-wider"
+                        data-part="group-title"
+                      >
+                        {translator.translateText(
+                          ValuePickerMenuCopy.notPassedOnTitle,
+                        )}
                       </span>
-                    )}
+                      <span
+                        className="ml-auto shrink-0"
+                        data-part="group-count"
+                      >
+                        {translator.translatePlural(
+                          ValuePickerMenuCopy.fieldCount,
+                          section.options.length,
+                        )}
+                      </span>
+                    </button>
                   </div>
-                )}
-                {renderNote(section)}
-                {section.options.map((option: MenuOption) => {
-                  return renderOption(option, optionIndex++);
-                })}
-              </div>
+                ) : null}
+                <div
+                  ref={isEmptyHere ? emptyHereGroupRef : undefined}
+                  role="group"
+                  aria-labelledby={
+                    section.title || isEmptyHere ? headerId : undefined
+                  }
+                  aria-describedby={caveatId}
+                  className="pb-1"
+                >
+                  {section.title && (
+                    <div
+                      id={headerId}
+                      className="flex min-w-0 items-center gap-1.5 px-3 pb-1 pt-2"
+                    >
+                      {section.iconProp && (
+                        <Icon
+                          icon={section.iconProp}
+                          className="h-3.5 w-3.5 shrink-0 text-gray-400"
+                        />
+                      )}
+                      <span
+                        className="truncate text-xs font-semibold text-gray-700"
+                        data-part="group-title"
+                      >
+                        {translator.translateText(section.title)}
+                      </span>
+                      {/*
+                       * A step's ID, which is all that tells two steps of one
+                       * kind apart - or a line about the group. Read, either
+                       * way: gray-500, not the gray-400 of decoration.
+                       */}
+                      {section.subtitle && (
+                        <span
+                          className="truncate text-[11px] text-gray-500"
+                          data-part="group-subtitle"
+                        >
+                          {translator.translateText(section.subtitle)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {section.availability?.state ===
+                  ValueAvailabilityState.Sometimes ? (
+                    <div
+                      id={caveatId}
+                      className="mx-1 mb-1 flex items-start gap-1.5 px-2 text-xs text-amber-700"
+                      data-testid="value-picker-sometimes"
+                    >
+                      <Icon
+                        icon={IconProp.ExclaimationCircle}
+                        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
+                      />
+                      <span>
+                        {translateSentence(
+                          translator,
+                          section.availability.reason,
+                        )}
+                      </span>
+                    </div>
+                  ) : null}
+                  {section.emptyHereNote ? (
+                    <div
+                      id={caveatId}
+                      className="mx-1 mb-1 px-2 text-xs text-gray-500"
+                      data-testid="value-picker-empty-here-note"
+                    >
+                      {translateSentence(translator, section.emptyHereNote)}
+                    </div>
+                  ) : null}
+                  {renderNote(section)}
+                  {section.options.map((option: MenuOption) => {
+                    return renderOption(option, optionIndex++, caveatId);
+                  })}
+                </div>
+              </React.Fragment>
             );
           })}
+
+          {!drill ? renderUnavailable() : null}
 
           {drill && drillChildren?.status === ChildrenStatus.Loading && (
             <div className="px-3 py-2 text-xs text-gray-500">
@@ -958,16 +1491,19 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             </div>
           )}
 
-          {!drill && options.length === 0 && query.trim() !== "" && (
-            <div
-              className="px-3 py-2 text-xs text-gray-500"
-              data-testid="value-picker-no-match"
-            >
-              {translator.translateTemplate("No values match “{{search}}”.", {
-                search: query.trim(),
-              })}
-            </div>
-          )}
+          {!drill &&
+            options.length === 0 &&
+            query.trim() !== "" &&
+            filterSuggestionGroups(unavailableGroups, query).length === 0 && (
+              <div
+                className="px-3 py-2 text-xs text-gray-500"
+                data-testid="value-picker-no-match"
+              >
+                {translator.translateTemplate("No values match “{{search}}”.", {
+                  search: query.trim(),
+                })}
+              </div>
+            )}
 
           {!drill &&
             !hasAnyValues &&

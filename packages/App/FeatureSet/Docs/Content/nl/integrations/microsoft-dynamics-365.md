@@ -269,7 +269,7 @@ De scope moet je omgevings-URL zijn gevolgd door `/.default`. Een verkeerde omge
 ### Een case openen voor elk incident
 
 :::steps
-1. Maak vanaf nul een workflow met de naam `Incidents to Dynamics 365`. Klik op het gestippelde blok en voeg de trigger **On Create Incident** toe. Vraag in de **Select Fields** ervan om `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
+1. Maak vanaf nul een workflow met de naam `Incidents to Dynamics 365`. Klik op het gestippelde blok en voeg de trigger **On Create Incident** toe. Vraag in de **Fields to pass on** ervan om `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
 2. Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Success**-punt van de trigger ermee. Stel de **Identifier** in op `create-case` en de **URL** op `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Stel onder **Meer velden** de **Request Headers** in op:
 
@@ -323,7 +323,7 @@ Dynamics 365 levert `severitycode` met één enkele optie, dus stel in plaats da
 Bouw dit als een tweede workflow, zodat een fout hier nooit verhindert dat er cases worden geopend.
 
 :::steps
-1. Maak een workflow met de naam `Close Dynamics 365 cases`, met de trigger **On Update Incident**. Stel **Listen on** in op `{"currentIncidentStateId": true}` en **Select Fields** op `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
+1. Maak een workflow met de naam `Close Dynamics 365 cases`, met de trigger **On Update Incident**. Stel **Fields to watch** in op `{"currentIncidentStateId": true}` en **Fields to pass on** op `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
 2. Voeg een **If / Else**-blok toe: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
 3. Voeg na de **Yes**-kant ervan een **API Get (JSON)**-blok toe met de **Identifier** `find-case`, dezelfde headers zonder `Prefer` en deze **URL**:
 

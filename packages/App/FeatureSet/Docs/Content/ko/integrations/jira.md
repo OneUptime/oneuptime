@@ -307,7 +307,7 @@ Jira Cloud는 [템플릿이 묻는 내용](#템플릿이-묻는-내용)에서처
 ### 인시던트마다 Jira 이슈 열기
 
 :::steps
-1. `Incidents to Jira`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **On Create Incident** 트리거를 추가합니다. 그 **Select Fields**에서 `{"_id": true, "title": true, "description": true, "incidentNumber": true}`를 요청합니다. **Identifier**는 `incident-on-create-1` 그대로 둡니다.
+1. `Incidents to Jira`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **On Create Incident** 트리거를 추가합니다. 그 **Fields to pass on**에서 `{"_id": true, "title": true, "description": true, "incidentNumber": true}`를 요청합니다. **Identifier**는 `incident-on-create-1` 그대로 둡니다.
 2. **구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **Success** 점을 이 블록에 연결합니다. **Identifier**를 `create-issue`로, **URL**을 `{{global.variables.JIRA_URL}}/rest/api/3/issue`로 설정하고, **추가 필드**에서 **Request Headers**를 `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`로 설정합니다.
 3. **Request Body**를 이슈로 설정하고, `OPS`와 `Bug`를 자신의 프로젝트 키와 그 프로젝트의 이슈 유형으로 바꿉니다:
 
@@ -384,14 +384,14 @@ Jira의 모든 사람에게 돌아갈 길을 주려면, `create-issue` 뒤에 `{
 }
 ```
 
-이를 위해 트리거의 **Select Fields**에 `projectId`를 추가하고, `.value`는 그대로 두세요. 다른 레코드의 ID를 담은 열은 `{"_type": "ObjectID", "value": "..."}`로 도착합니다. `globalId` 덕분에 호출을 안전하게 반복할 수 있습니다. Jira는 두 번째 링크를 추가하지 않고 이 값을 가진 링크를 업데이트합니다.
+이를 위해 트리거의 **Fields to pass on**에 `projectId`를 추가하고, `.value`는 그대로 두세요. 다른 레코드의 ID를 담은 열은 `{"_type": "ObjectID", "value": "..."}`로 도착합니다. `globalId` 덕분에 호출을 안전하게 반복할 수 있습니다. Jira는 두 번째 링크를 추가하지 않고 이 값을 가진 링크를 업데이트합니다.
 
 ### 인시던트가 진행될 때 댓글을 달고 전환하기
 
 이것은 두 번째 워크플로로 만들어, 여기서의 실패가 이슈 열기를 막지 않게 하세요.
 
 :::steps
-1. **On Update Incident** 트리거가 있는 `Incident updates to Jira`라는 워크플로를 만듭니다. **Listen on**을 `{"currentIncidentStateId": true}`로, **Select Fields**를 `{"_id": true, "currentIncidentState": {"name": true}}`로 설정합니다.
+1. **On Update Incident** 트리거가 있는 `Incident updates to Jira`라는 워크플로를 만듭니다. **Fields to watch**을 `{"currentIncidentStateId": true}`로, **Fields to pass on**를 `{"_id": true, "currentIncidentState": {"name": true}}`로 설정합니다.
 2. **If / Else** 블록을 추가합니다: **Value to check**는 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison**은 **is equal to**, **Compare with**는 `Resolved` 또는 자신의 해결 상태 이름입니다.
 3. 그 **Yes** 쪽 뒤에서, **Identifier**가 `find-issue`이고 `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`로 게시하는 **API Post (JSON)** 블록으로 이슈를 찾습니다:
 

@@ -63,6 +63,7 @@ Cliquez sur **Créer un moniteur**. Le moniteur s'ouvre sur sa page **Vue d'ense
 | **Surveiller les journaux pendant (durée)** | Les journaux des 5 dernières secondes jusqu'aux 24 dernières heures. | **Dernière minute** |
 | **Gravité du journal** | Les journaux ayant l'une des gravités choisies. | Vide : toutes les gravités |
 | **Group by Attributes** | Pas un filtre : compte séparément chaque combinaison de valeurs de ces attributs. | Vide : un seul décompte |
+| **Résolu par attributs** | Pas un filtre : le journal qui résout un groupe. Apparaît dès que **Group by Attributes** a un attribut ; voir [Résolu par un journal](#résolu-par-un-journal). | Vide : un groupe se résout quand ses journaux s'arrêtent |
 | **Filtrer par service de télémétrie** (sous **Plus de champs**) | Les journaux de l'un des services choisis. | Vide : tous les services |
 | **Filtrer par entité d'infrastructure** (sous **Plus de champs**) | Les journaux de l'un des hôtes, pods, conteneurs et autres entités choisis. | Vide : toutes les entités |
 | **Filtrer par attributs** (sous **Plus de champs**) | Les journaux dont les attributs remplissent chaque condition. Chaque condition a son propre opérateur, comme « égal à » ou « contient ». | Vide : aucune condition |
@@ -170,7 +171,21 @@ flowchart TB
 
 L'alerte ou l'incident de chaque groupe se résout de son côté. Dès qu'un groupe ne remplit plus les critères – `HQ-Branch1` ne journalise plus d'interruption dans la fenêtre de temps –, son alerte se résout, tandis que celle de `Branch2` reste ouverte jusqu'à ce que `Branch2` s'arrête aussi. Le rétablissement d'un groupe ne ferme jamais l'alerte d'un autre.
 
-Un moniteur de journaux voit des événements, pas un état : l'alerte d'un groupe se résout dès que ce groupe n'a rien journalisé qui remplisse les critères pendant toute une fenêtre de temps, que le tunnel soit revenu ou non.
+Un moniteur de journaux voit des événements, pas un état : l'alerte d'un groupe se résout dès que ce groupe n'a rien journalisé qui remplisse les critères pendant toute une fenêtre de temps, que le tunnel soit revenu ou non – sauf si le moniteur nomme le journal qui dit qu'il est revenu, comme ci-dessous.
+
+### Résolu par un journal
+
+Un équipement qui signale un tunnel tombé signale en général son retour. **Résolu par attributs** nomme ce journal : une fois ce champ renseigné, l'alerte ou l'incident d'un groupe reste ouvert jusqu'à ce qu'un journal portant ces attributs arrive pour le même groupe, au lieu de se résoudre quand les journaux du groupe s'arrêtent.
+
+Prenez un moniteur qui compte les journaux avec `event.name` = `vpn.tunnel_down`, regroupés par `event.device` et `vpn.tunnel.name`, avec **Résolu par attributs** réglé sur `event.name` = `vpn.tunnel_up`. La chute du tunnel `HQ-Branch1` ouvre son alerte. L'alerte reste ouverte toute la nuit, bien que le pare-feu ne journalise plus rien au sujet du tunnel, et se résout quand le pare-feu signale `HQ-Branch1` rétabli. Si le tunnel tombe de nouveau, une nouvelle alerte s'ouvre.
+
+- Le champ apparaît dès que **Group by Attributes** a un attribut. Il accepte jusqu'à 10 attributs, et un journal de résolution les porte tous.
+- Un journal de résolution appartient à un groupe quand il a les valeurs du groupe pour les attributs de regroupement : les deux sortes de journaux doivent donc porter ces attributs.
+- Les services de télémétrie et la fenêtre de temps du moniteur s'appliquent aussi aux journaux de résolution. Ses filtres de texte et de gravité, non : ils décrivent le problème.
+- Un groupe dont le journal le plus récent est un journal de résolution est fermé. Un groupe qui a de nouveau journalisé le problème après lui reste ouvert.
+- Vous pouvez toujours résoudre une alerte vous-même.
+
+[Événements réseau](/docs/monitor/network-events) crée ces moniteurs pour vous, en un clic par alerte.
 
 ### Exemple : une alerte par tunnel IPsec Sophos
 

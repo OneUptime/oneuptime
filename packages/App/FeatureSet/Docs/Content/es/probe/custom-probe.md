@@ -335,13 +335,13 @@ Una sonda solo abre conexiones salientes, salvo que active un escuchador o mante
 | --- | --- | --- | --- |
 | Solicitudes entrantes y heartbeats | `PROBE_INGRESS_PORT` | Desactivado | [Ingress de solicitudes entrantes](/docs/probe/incoming-request-ingress) |
 | Traps SNMP | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Activado, UDP 162 | [Monitor de dispositivos de red](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Desactivado, UDP 5140 | [Guías por fabricante de red](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Activado, UDP y TCP 5140 | [Eventos de red](/docs/monitor/network-events) |
 | NetFlow, IPFIX y sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | Activado, UDP 2055, 4739 y 6343 | [Tráfico de red](/docs/monitor/network-traffic) |
 | Comprobaciones de salud | `PORT` | Activado, TCP 3874 | `/status/live` y `/status/ready` |
 
 Dentro de un contenedor, un puerto solo es accesible desde otras máquinas con la red del host o si lo publica.
 
-El receptor de syslog reenvía como máximo `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` mensajes por minuto, `600` de forma predeterminada, descarta el resto y registra cuántos descartó.
+El receptor de syslog reenvía como máximo `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` mensajes por minuto, `600` de forma predeterminada. Pasado ese límite sigue reenviando los mensajes que lee como eventos de red, hasta otros tantos, descarta el resto y registra cuántos descartó.
 
 `PROBE_NAME` y `PROBE_DESCRIPTION` solo los leen las sondas que se registran a sí mismas con `REGISTER_PROBE_KEY`, como las sondas que una instalación autoalojada ejecuta para todos los proyectos. Una sonda personalizada toma su nombre y su descripción del panel.
 

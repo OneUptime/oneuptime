@@ -10,7 +10,10 @@ import {
 } from "../Forms/Types/Field";
 import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
 import FormValues from "../Forms/Types/FormValues";
+import ChoiceSettingField from "./Choice/ChoiceSettingField";
 import ConditionEditor from "./Condition/ConditionEditor";
+import RecordListField from "./RecordList/RecordListField";
+import { getRecordListKind } from "./RecordList/RecordListKinds";
 import SwitchEditor from "./Switch/SwitchEditor";
 import { OutputConnections } from "./Switch/SwitchModel";
 import CronScheduleField from "./CronScheduleField";
@@ -18,7 +21,7 @@ import ModelColumnEditor, {
   ModelColumnEditorMode,
   RecordIntent,
 } from "./ModelColumnEditor";
-import ModelFieldPicker from "./ModelFieldPicker";
+import ModelFieldPicker, { FieldPickerMode } from "./ModelFieldPicker";
 import {
   ArgumentFormFieldType,
   componentInputTypeToFormFieldType,
@@ -51,10 +54,12 @@ import {
   ComponentInputType,
   NodeDataProp,
   isArgumentRequired,
+  isArgumentShown,
   isJSON5ToleratedInputType,
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import { DropdownOption } from "../Dropdown/Dropdown";
+import { PeoplePickerKind } from "../PeoplePicker/PeoplePickerTypes";
 import {
   getRecordChoiceSource,
   getRecordChoiceTypes,
@@ -102,8 +107,18 @@ export interface ComponentProps {
    * id. A Switch / Case says where each case's output leads.
    */
   outputConnections?: OutputConnections | undefined;
+  /*
+   * The workflow is turned off: its trigger refuses real requests, so the
+   * value picker says a test run fills a Webhook's fields in, and offers one
+   * (onTestRun) where it can.
+   */
+  isWorkflowOff?: boolean | undefined;
+  onTestRun?: (() => void) | undefined;
   onFormChange: (value: NodeDataProp) => void;
 }
+
+// The On Update trigger's Fields to watch, as it is stored.
+const WATCHED_FIELDS_ARGUMENT_ID: string = "listen-on";
 
 const SINGLE_FIELD_KINDS: Partial<
   Record<ArgumentControl, ValueSingleFieldKind>
@@ -351,6 +366,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       | ((editor: CodeEditorActions) => ReactNode)
       | undefined;
     customElementDrawsOwnLabel?: boolean | undefined;
+    // A setting that words its own help (a field list), in place of the usual.
+    description?: string | undefined;
   };
 
   const fieldForArgument: FieldForArgumentFunction = (
@@ -363,10 +380,11 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         : null;
 
     /*
-     * Database Select args (the "Select Fields" / "Listen on" trigger inputs)
-     * get a tree-style field picker backed by the model's schema, instead of
-     * a raw JSON textarea. We need a tableName on the component metadata to
-     * fetch the column list; without it, fall back to the JSON editor.
+     * Database Select args - a record step's Fields to pass on, and the On
+     * Update trigger's Fields to watch - are chips picked from the model's
+     * fields (ModelFieldPicker), instead of a raw JSON textarea. We need a
+     * tableName on the component metadata to fetch the column list; without
+     * it, fall back to the JSON editor.
      */
     if (
       arg.type === ComponentInputType.Select &&
@@ -374,6 +392,15 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     ) {
       return {
         fieldType: FormFieldSchemaType.CustomComponent,
+        /*
+         * A field list's help is what the list is for, without the
+         * "Optional." or "Required." every other setting's help starts with.
+         * Fields to watch already reads "(Optional)" beside its name and
+         * says what leaving it empty does, and both lists say what empty
+         * means in the list itself; "Optional. ... Leave it empty to ..."
+         * under "(Optional)" said one thing three times.
+         */
+        description: arg.description,
         getCustomElement: (
           _values: FormValues<JSONObject>,
           customProps: CustomElementProps,
@@ -381,13 +408,20 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           return (
             <ModelFieldPicker
               tableName={component.metadata.tableName as string}
+              mode={
+                arg.id === WATCHED_FIELDS_ARGUMENT_ID
+                  ? FieldPickerMode.Watch
+                  : FieldPickerMode.PassOn
+              }
               initialValue={customProps.initialValue}
               onChange={(value: string) => {
                 void customProps.onChange?.(value);
               }}
+              onBlur={customProps.onBlur}
               placeholder={customProps.placeholder}
               error={customProps.error}
               tabIndex={customProps.tabIndex}
+              ariaLabelledby={customProps.ariaLabelledby}
             />
           );
         },
@@ -525,6 +559,62 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               tabIndex={customProps.tabIndex}
               dataTestId={`workflow-argument-${arg.id}`}
               onBlur={customProps.onBlur}
+            />
+          );
+        },
+      };
+    }
+
+    /*
+     * Who a Page step pages: the project's people, teams, on-call schedules
+     * or on-call policies, picked by name, and any values from earlier
+     * steps beside them (RecordList/RecordListField).
+     */
+    const recordListKind: PeoplePickerKind | null = getRecordListKind(arg.type);
+
+    if (control === ArgumentControl.RecordList && recordListKind) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <RecordListField
+              kind={recordListKind}
+              value={(values as JSONObject)[arg.id]}
+              onChange={(value: Array<string>) => {
+                void customProps.onChange?.(value);
+              }}
+              ariaLabelledby={customProps.ariaLabelledby}
+              error={customProps.error}
+              dataTestId={`workflow-argument-${arg.id}`}
+              onBlur={customProps.onBlur}
+            />
+          );
+        },
+      };
+    }
+
+    /*
+     * A choice of a few answers - what a Page step's page is about - with
+     * every answer and what it means on the page (Choice/ChoiceSettingField).
+     */
+    if (control === ArgumentControl.ChoiceRows && (arg.choices || []).length) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <ChoiceSettingField
+              argument={arg}
+              value={(values as JSONObject)[arg.id]}
+              onChange={(value: string) => {
+                void customProps.onChange?.(value);
+              }}
+              dataTestId={`workflow-argument-${arg.id}`}
             />
           );
         },
@@ -727,6 +817,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         valueSources={props.valueSources}
         sources={props.valueSuggestionSources}
         webhookUrl={props.webhookUrl}
+        isWorkflowOff={props.isWorkflowOff}
+        onTestRun={props.onTestRun}
       >
         <SwitchEditor
           arguments={component.arguments}
@@ -753,6 +845,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         valueSources={props.valueSources}
         sources={props.valueSuggestionSources}
         webhookUrl={props.webhookUrl}
+        isWorkflowOff={props.isWorkflowOff}
+        onTestRun={props.onTestRun}
       >
         <ConditionEditor
           arguments={component.arguments}
@@ -771,6 +865,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       valueSources={props.valueSources}
       sources={props.valueSuggestionSources}
       webhookUrl={props.webhookUrl}
+      isWorkflowOff={props.isWorkflowOff}
+      onTestRun={props.onTestRun}
     >
       <div>
         {component.metadata.arguments &&
@@ -825,6 +921,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       customProps: CustomElementProps,
                     ) => ReactElement | undefined;
                     customElementDrawsOwnLabel?: boolean | undefined;
+                    description?: string | undefined;
                   } = fieldForArgument(arg, argIndex);
 
                   /*
@@ -837,29 +934,53 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
                   const isAdvanced: boolean = isCollapsibleAdvanced(arg);
 
+                  /*
+                   * A choice is always made - an empty one is its first
+                   * answer - so it is neither "required" nor "optional":
+                   * its help says only what it is for.
+                   */
+                  const isChoice: boolean =
+                    arg.type === ComponentInputType.Choice &&
+                    (arg.choices || []).length > 0;
+
                   return {
                     title: `${arg.name}`,
                     collapsibleSection: isAdvanced
                       ? moreFieldsSection
                       : undefined,
-                    description: describeArgument(
-                      translator,
-                      arg,
-                      component.arguments,
-                    ),
+                    description: isChoice
+                      ? translator.translateText(arg.description)
+                      : describeArgument(translator, arg, component.arguments),
+                    hideOptionalLabel: isChoice ? true : undefined,
+                    /*
+                     * A setting that goes with one answer of another - a
+                     * Page step's Title, with "A new alert" - is on the form
+                     * only while that answer is the one chosen.
+                     */
+                    showIf: arg.shownWhen
+                      ? (values: FormValues<JSONObject>): boolean => {
+                          return isArgumentShown(arg, values as JSONObject);
+                        }
+                      : undefined,
                     field: {
                       [arg.id]: true,
                     },
                     /*
                      * A setting another one can make unnecessary - Create One
                      * Incident's JSON Object, once an Incident Template is
-                     * picked - is required only while that one does not.
+                     * picked - is required only while that one does not. So
+                     * is a setting that goes with one answer of another: it
+                     * is required while that answer is the one chosen.
                      */
-                    required: arg.notRequiredWhen
-                      ? (values: FormValues<JSONObject>): boolean => {
-                          return isArgumentRequired(arg, values as JSONObject);
-                        }
-                      : arg.required,
+                    required:
+                      arg.notRequiredWhen || arg.shownWhen
+                        ? (values: FormValues<JSONObject>): boolean => {
+                            return isArgumentRequired(
+                              arg,
+                              values as JSONObject,
+                            );
+                          }
+                        : arg.required,
                     placeholder: arg.placeholder,
                     /*
                      * Some argument types are read back with JSON5 rather than

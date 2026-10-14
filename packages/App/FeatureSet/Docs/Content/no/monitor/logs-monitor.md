@@ -63,6 +63,7 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | **Overvåk logger i (tid)** | Logger fra de siste 5 sekundene opp til de siste 24 timene. | **Siste 1 minutt** |
 | **Loggalvorlighetsgrad** | Logger med en av de valgte alvorlighetsgradene. | Tom: alle alvorlighetsgrader |
 | **Group by Attributes** | Ikke et filter: teller hver kombinasjon av disse attributtenes verdier for seg. | Tom: én telling |
+| **Løst av attributter** | Ikke et filter: loggen som løser en gruppe. Vises så snart **Group by Attributes** har et attributt; se [Løst av en logg](#løst-av-en-logg). | Tom: en gruppe løses når loggene dens stopper |
 | **Filtrer etter telemetritjeneste** (under **Flere felt**) | Logger fra en av de valgte tjenestene. | Tom: alle tjenester |
 | **Filter by Infrastructure Entity** (under **Flere felt**) | Logger fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
 | **Filtrer etter attributter** (under **Flere felt**) | Logger der attributtene oppfyller alle vilkår. Hvert vilkår har sin egen operator, som «er lik» eller «inneholder». | Tom: ingen vilkår |
@@ -170,7 +171,21 @@ flowchart TB
 
 Hver gruppes varsel eller hendelse løses for seg. Så snart en gruppe ikke lenger oppfyller kriteriene (`HQ-Branch1` logger ikke flere avslutninger innenfor tidsvinduet), løses varselet dens, mens varselet for `Branch2` forblir åpent til `Branch2` også stopper. At én gruppe kommer seg, lukker aldri en annen gruppes varsel.
 
-En loggmonitor ser hendelser i loggen, ikke tilstander: en gruppes varsel løses så snart gruppen ikke har logget noe som oppfyller kriteriene i et helt tidsvindu, enten tunnelen er oppe igjen eller ikke.
+En loggmonitor ser hendelser i loggen, ikke tilstander: en gruppes varsel løses så snart gruppen ikke har logget noe som oppfyller kriteriene i et helt tidsvindu, enten tunnelen er oppe igjen eller ikke - med mindre monitoren nevner loggen som sier at den er oppe igjen, som nedenfor.
+
+### Løst av en logg
+
+En enhet som melder en tunnel nede, melder som regel også når den er oppe igjen. **Løst av attributter** nevner den loggen: når feltet er satt, forblir en gruppes varsel eller hendelse åpen til en logg med de attributtene kommer for den samme gruppen, i stedet for å løses når gruppens logger stopper.
+
+Ta en monitor som teller logger med `event.name` = `vpn.tunnel_down`, gruppert etter `event.device` og `vpn.tunnel.name`, med **Løst av attributter** satt til `event.name` = `vpn.tunnel_up`. Når tunnelen `HQ-Branch1` går ned, åpner det varselet dens. Varselet forblir åpent gjennom natten, selv om brannmuren ikke logger noe mer om tunnelen, og løses når brannmuren melder `HQ-Branch1` oppe igjen. Faller tunnelen på nytt, åpner det et nytt varsel.
+
+- Feltet vises så snart **Group by Attributes** har et attributt. Det tar opptil 10 attributter, og en løsende logg bærer alle.
+- En løsende logg hører til en gruppe når den har gruppens verdier for group by-attributtene, så begge typer logger må bære de attributtene.
+- Monitorens telemetritjenester og tidsvindu gjelder også for løsende logger. Tekst- og alvorlighetsfiltrene gjør ikke det: de beskriver problemet.
+- En gruppe der den nyeste loggen er en løsende, lukkes. En gruppe som logget problemet på nytt etterpå, forblir åpen.
+- Du kan fortsatt løse et varsel selv.
+
+[Nettverkshendelser](/docs/monitor/network-events) oppretter disse monitorene for deg, ett klikk per varsel.
 
 ### Eksempel: ett varsel per Sophos-IPsec-tunnel
 

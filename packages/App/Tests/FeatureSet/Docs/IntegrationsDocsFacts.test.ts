@@ -1,7 +1,11 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
+  ALERTING_PAGES,
+  CHAT_STEP_PAGES,
   DYNAMICS,
+  GROUPING_VARIABLES,
   INTEGRATIONS_PAGES,
+  ISSUE_PAGES,
   IntegrationsDocsPageEntry,
   JIRA,
   OPSGENIE,
@@ -58,7 +62,10 @@ import ComponentMetadata, {
 } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import Components from "Common/Types/Workflow/Components";
-import RecordComponents from "Common/Types/Workflow/Components/BaseModel";
+import RecordComponents, {
+  SELECT_FIELDS_NAME,
+  WATCHED_FIELDS_NAME,
+} from "Common/Types/Workflow/Components/BaseModel";
 import {
   CONDITION_COMPARISONS,
   ConditionComparison,
@@ -349,11 +356,21 @@ describe("every page: the workflow steps it names", () => {
         // A Jira automation rule's smart values, sent back to the workflow.
         "issue.",
       ];
+      /*
+       * And the variable a monitor's grouping adds, named after the last
+       * segment of its path (AlertingIntegrationsDocsFacts holds each to
+       * the grouping the page sets).
+       */
+      const groupingVariables: ReadonlyArray<string> =
+        GROUPING_VARIABLES[entry.page] || [];
       const wrong: Array<string> = referencesOf(entry.page).filter(
         (reference: string): boolean => {
-          return !roots.some((root: string): boolean => {
-            return reference.startsWith(root);
-          });
+          return (
+            !groupingVariables.includes(reference) &&
+            !roots.some((root: string): boolean => {
+              return reference.startsWith(root);
+            })
+          );
         },
       );
 
@@ -364,7 +381,16 @@ describe("every page: the workflow steps it names", () => {
     },
   );
 
-  it.each([OVERVIEW, ZABBIX, PAGERDUTY, OPSGENIE, SERVICENOW])(
+  it.each([
+    OVERVIEW,
+    ZABBIX,
+    PAGERDUTY,
+    OPSGENIE,
+    SERVICENOW,
+    ...ALERTING_PAGES,
+    ...ISSUE_PAGES,
+    ...CHAT_STEP_PAGES,
+  ])(
     "%s names each block by the identifier the Builder gives it: its step's id, then -1",
     (page: string) => {
       const ids: Set<string> = stepIds();
@@ -1040,17 +1066,30 @@ describe("PagerDuty, Opsgenie and ServiceNow", () => {
         incident.getTableColumnMetadata("currentIncidentStateId"),
       ).toBeTruthy();
       expect(state.getTableColumnMetadata("isResolvedState")).toBeTruthy();
+      /*
+       * The trigger's two settings, by the names the builder draws them
+       * with: Fields to watch and Fields to pass on (they were Listen on
+       * and Select Fields).
+       */
+      expect(WATCHED_FIELDS_NAME).toBe("Fields to watch");
+      expect(SELECT_FIELDS_NAME).toBe("Fields to pass on");
       expect(
         (onUpdate.arguments as Array<Argument>).map((argument: Argument) => {
           return argument.name;
         }),
-      ).toEqual(expect.arrayContaining(["Listen on", "Select Fields"]));
+      ).toEqual(
+        expect.arrayContaining([WATCHED_FIELDS_NAME, SELECT_FIELDS_NAME]),
+      );
 
       const markdown: string = englishPage(page);
 
       expect(markdown).toContain(
-        `In ${bold("Listen on")}, pick \`currentIncidentStateId\``,
+        `In ${bold(WATCHED_FIELDS_NAME)}, pick \`currentIncidentStateId\``,
       );
+      // Its other setting is named on the page too, and neither by its old name.
+      expect(markdown).toContain(`In ${bold(SELECT_FIELDS_NAME)}, ask for`);
+      expect(markdown).not.toContain("Listen on");
+      expect(markdown).not.toContain("Select Fields");
       expect(markdown).toContain(
         '{ "_id": true, "currentIncidentState": { "isResolvedState": true } }',
       );

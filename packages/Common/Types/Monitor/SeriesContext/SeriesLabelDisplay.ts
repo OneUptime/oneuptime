@@ -177,6 +177,28 @@ const FriendlyLabelNames: Record<string, string> = {
   "device.name": "Device",
 
   /*
+   * --- Network events ---
+   *
+   * What a device's syslog and its standard traps are read into
+   * (NetworkEventAttribute): which device, and what on it. A Logs monitor
+   * on an event groups by these, so "Interface down" reads "Interface:
+   * Gi0/1, Device: Core Switch" on its alert.
+   */
+  "event.device": "Device",
+  "networkDevice.name": "Device",
+  "network.interface.name": "Interface",
+  "vpn.tunnel.name": "Tunnel",
+  "network.gateway.name": "Gateway",
+  "network.peer.address": "Neighbor",
+  "hw.name": "Component",
+  "ha.peer": "Peer",
+  "ha.role": "Role",
+  "user.name": "User",
+  "client.mac": "Client",
+  "client.address": "Client Address",
+  "wifi.ssid": "Wi-Fi Network",
+
+  /*
    * --- Databases ---
    *
    * Ingest stamps every row of a database's own telemetry with the
@@ -254,6 +276,20 @@ const LabelPriority: Record<string, number> = {
   host: 30,
   "device.id": 25,
   "device.name": 25,
+  /*
+   * Network events: what the event happened to (the interface, the
+   * tunnel, the neighbour) first, then the device that reported it.
+   */
+  "network.interface.name": 25,
+  "vpn.tunnel.name": 25,
+  "network.gateway.name": 25,
+  "network.peer.address": 25,
+  "hw.name": 25,
+  "ha.peer": 25,
+  "user.name": 28,
+  "client.mac": 28,
+  "event.device": 40,
+  "networkDevice.name": 40,
   "proxmox.vm.name": 25,
   vmid: 25,
   /*

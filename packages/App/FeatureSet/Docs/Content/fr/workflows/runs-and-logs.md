@@ -108,7 +108,7 @@ Un téléchargement ne contient rien que vous ne pourriez déjà lire dans l'ex�
 
 :::details Mon workflow ne s'est pas exécuté
 1. Assurez-vous que le workflow est **Activé** : l'interrupteur se trouve en haut de son **Constructeur**, qui l'indique au-dessus du canevas quand le workflow est désactivé. Les nouveaux workflows démarrent désactivés, et tant qu'un workflow est désactivé, son déclencheur ne le lance pas : seuls **Exécuter le flux de travail** et **Run just this step** le font, en tant qu'exécutions de test. Un appel de webhook vers lui reçoit HTTP 400 avec un message expliquant comment l'activer.
-2. Pour un déclencheur d'événement OneUptime, vérifiez que l'événement a bien eu lieu : ouvrez l'enregistrement et consultez son historique. Un déclencheur **On Update** avec **Listen on** ne se produit que si l'un de ces champs a changé.
+2. Pour un déclencheur d'événement OneUptime, vérifiez que l'événement a bien eu lieu : ouvrez l'enregistrement et consultez son historique. Un déclencheur **On Update** avec **Fields to watch** ne se produit que si l'un de ces champs a changé.
 3. Pour un déclencheur webhook, vérifiez que l'autre système envoie bien vers la bonne URL. La plupart des outils journalisent l'envoi d'un webhook — regardez-y.
 4. Pour un déclencheur de planification, vérifiez que l'expression cron correspond à l'heure attendue. Les planifications s'exécutent en UTC.
 

@@ -31,6 +31,7 @@ import Log from "./Log";
 import MattermostSendMessageToChannel from "./Mattermost/SendMessageToChannel";
 import ManualTrigger from "./Manual";
 import MicrosoftTeamsSendMessageToChannel from "./MicrosoftTeams/SendMessageToChannel";
+import Page from "./OnCall/Page";
 import Schedule from "./Schedule";
 import SlackSendMessageToChannel from "./Slack/SendMessageToChannel";
 import Sleep from "./Sleep";
@@ -72,6 +73,11 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.Switch]: new Switch(),
   [ComponentID.WorkflowRun]: new ExecuteWorkflow(),
   [ComponentID.Sleep]: new Sleep(),
+  // The Page steps: one runtime, told which of the four it is.
+  [ComponentID.PageUsers]: new Page(ComponentID.PageUsers),
+  [ComponentID.PageTeam]: new Page(ComponentID.PageTeam),
+  [ComponentID.PageOnCall]: new Page(ComponentID.PageOnCall),
+  [ComponentID.PageOnCallPolicy]: new Page(ComponentID.PageOnCallPolicy),
 };
 
 for (const baseModelService of Services) {

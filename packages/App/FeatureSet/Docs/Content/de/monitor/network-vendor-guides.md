@@ -31,7 +31,7 @@ flowchart TB
 
 - Ein [Netzwerkgerät](/docs/monitor/network-device-monitor) pro Box, abgefragt von einer Sonde, die es erreicht, mit einer Hersteller-Vorlage, die die richtigen Integritäts-OIDs und [SNMP-Tabellen](/docs/monitor/network-device-monitor#snmp-tabellen) mitbringt.
 - Ein Netzwerkgerät-Monitor pro Gerät für Warnungen. Legen Sie ihn von der Seite des Geräts aus an, damit die [empfohlenen Warnungen](/docs/monitor/network-device-monitor#empfohlenes-warnungspaket) für Sie ausgefüllt werden, einschließlich einer Warnung pro Zeile für jede Tabelle, die weiß, wie gesund aussieht. Für eine Flotte hält eine [Warnungsrichtlinie](/docs/monitor/network-device-monitor#warnungsrichtlinien) auf jedem Gerät einen.
-- Für das, was ein Hersteller nur in seinen Logs meldet: Syslog an die Sonde, eine [Log-Pipeline](/docs/telemetry/log-pipelines), die jede Zeile in Attribute verwandelt, [Logs-Monitore mit Group By](/docs/monitor/logs-monitor#warnungen-pro-gruppe-group-by), um einmal pro Tunnel oder Gateway zu warnen, und [Log-Aufzeichnungsregeln](/docs/telemetry/log-recording-rules), um die Zahlen in diesen Logs als Diagramme zu zeigen.
+- Für das, was ein Hersteller nur in seinen Logs meldet: Syslog an die Sonde, das OneUptime von selbst als [Netzwerkereignisse](/docs/monitor/network-events) liest, [Logs-Monitore mit Group By](/docs/monitor/logs-monitor#warnungen-pro-gruppe-group-by), um einmal pro Tunnel oder Gateway zu warnen, und [Log-Aufzeichnungsregeln](/docs/telemetry/log-recording-rules), um die Zahlen in diesen Logs als Diagramme zu zeigen.
 
 ## Sophos Firewall (XGS / SFOS)
 
@@ -71,20 +71,20 @@ Ein Tunnel, den Sophos als aktiv meldet, hat nur seine Security Associations auf
 ### Gateways und SD-WAN aus dem Syslog
 
 :::steps
-1. Schalten Sie den Syslog-Empfänger der Sonde ein: Setzen Sie `PROBE_SYSLOG_RECEIVER_ENABLED=true` auf der Sonde. Er lauscht standardmäßig auf UDP 5140 (`PROBE_SYSLOG_RECEIVER_PORT` ändert das); veröffentlichen Sie den Port, wenn die Sonde in Docker läuft. Nachrichten werden dem Netzwerkgerät zugeordnet, dessen Hostname, oder eine seiner **Weitere Adressen**, die Adresse des Absenders ist, und erscheinen auf der Seite **Protokolle** des Geräts.
+1. Der Syslog-Empfänger der Sonde ist standardmäßig eingeschaltet. Er lauscht auf Port 5140, über UDP und TCP (`PROBE_SYSLOG_RECEIVER_PORT` ändert das); veröffentlichen Sie den Port, wenn die Sonde in Docker läuft. Nachrichten werden dem Netzwerkgerät zugeordnet, dessen Hostname, oder eine seiner **Weitere Adressen**, die Adresse des Absenders ist, und erscheinen auf den Seiten **Ereignisse** und **Protokolle** des Geräts.
 2. Fügen Sie auf der Firewall unter **System services → Log settings** einen Syslog-Server hinzu, der auf die Sonde und diesen Port zeigt, und kreuzen Sie die Log-Typen **Event** für IPsec und Gateways und den Log-Typ **SD-WAN** an: Die SLA-Logs bleiben aus, bis er angekreuzt ist.
-3. Legen Sie unter **Protokolle → Einstellungen → Pipelines** eine Pipeline an, deren Filter die Logs der Firewall erfasst, etwa `attributes.networkDevice.name = 'hq-firewall'`, und fügen Sie einen **Key=Value Parser** mit **Zielpräfix** `sophos` hinzu. Fügen Sie eine Zeile der Firewall in seinen Tester ein, um die genauen Attributnamen Ihrer SFOS-Version zu sehen; [das Sophos-Beispiel](/docs/telemetry/log-pipelines#beispiel-sophos-xgs-firewall) geht es Schritt für Schritt durch.
-4. Legen Sie [Logs-Monitore](/docs/monitor/logs-monitor) auf den Logs der Firewall an, jeden mit **Group by Attributes**, damit jeder Tunnel und jedes Gateway einzeln warnt, und dem Kriterium **Log Count** **Greater Than** `0` über einige Minuten. Die Zeilen unten sind die drei für den Anfang.
+3. Es gibt nichts zu parsen. OneUptime liest die `key=value`-Felder der Firewall in `sophos.*`-Attribute und liest daraus Tunnel, Gateways, SD-WAN-SLA-Änderungen, Failover und Anmeldungen als [Netzwerkereignisse](/docs/monitor/network-events). Öffnen Sie ein Log auf der Seite **Protokolle** des Geräts, um die genauen Attributnamen Ihrer SFOS-Version zu sehen.
+4. Klicken Sie auf der Seite **Ereignisse** des Geräts auf **Warnung erstellen** und wählen Sie eine Warnung. Sie öffnet einen ausgefüllten [Logs-Monitor](/docs/monitor/logs-monitor), mit **Group by Attributes**, damit jeder Tunnel und jedes Gateway einzeln warnt, und **Behoben durch Attribute**, damit jede Warnung schließt, wenn die Firewall die Rückkehr meldet. Die Zeilen unten sind die drei für den Anfang.
 5. Zeigen Sie die SD-WAN-Qualität als Diagramm: Mit eingeschaltetem SD-WAN-Logging schreibt die Firewall eine SLA-Zusammenfassung pro Profil und Gateway (`latency`, `jitter`, `packet_loss`). Legen Sie unter **Protokolle → Einstellungen → Aufzeichnungsregeln** eine Regel pro Zahl an, etwa den Durchschnitt von `sophos.latency` gruppiert nach `sophos.gw_name` und `sophos.profile_name`, und zeigen Sie die Ergebnisse als Diagramm, oder warnen Sie dafür mit einem [Metrik-Monitor](/docs/monitor/metrics-monitor), der nach Gateway gruppiert. [Log-Aufzeichnungsregeln](/docs/telemetry/log-recording-rules) geht dieses Beispiel durch.
 :::
 
-| Warnung | Zu zählende Logs | Gruppieren nach |
-| --- | --- | --- |
-| IPsec-Tunnel beendet | Attribut `sophos.log_component` = `IPSec`, Body enthält `terminated` | `sophos.con_name` |
-| Gateway ausgefallen | Attribut `sophos.log_component` = `Gateway`, Body enthält `is Down` | `sophos.gatewayname` |
-| SD-WAN-SLA nicht erfüllt | Attribut `sophos.log_type` = `SD-WAN`, Body enthält `SLA not met` | `sophos.gw_name` |
+| Warnung | Gezähltes Ereignis | Eine Warnung pro | Geschlossen durch |
+| --- | --- | --- | --- |
+| Ein VPN-Tunnel fällt aus | `vpn.tunnel_down` | `vpn.tunnel.name` | `vpn.tunnel_up` |
+| Eine WAN-Verbindung fällt aus | `gateway.down` | `network.gateway.name` | `gateway.up` |
+| SD-WAN-Verbindung unter ihrem SLA | `sdwan.sla_not_met` | `network.gateway.name` | `sdwan.sla_met` |
 
-Die Syslog-Ereignisse ergänzen die SNMP-Tabelle: Sie kommen in dem Moment, in dem ein Tunnel abbricht, während die Tabelle auch einen Tunnel erfasst, der nie zustande kam.
+Die ersten beiden stehen in der Liste **Warnung erstellen**; für die dritte öffnen Sie eines ihrer Ereignisse und klicken auf **Warnung für dieses Ereignis erstellen**. Die Syslog-Ereignisse ergänzen die SNMP-Tabelle: Sie kommen in dem Moment, in dem ein Tunnel abbricht, während die Tabelle auch einen Tunnel erfasst, der nie zustande kam.
 
 ### Traps
 
@@ -153,7 +153,7 @@ Der Tunnelstatus braucht SFOS v20 oder neuer. Prüfen Sie auch, ob die SNMP-Ansi
 :::
 
 :::details Von der Firewall kommt kein Syslog an
-Der Syslog-Empfänger der Sonde ist standardmäßig aus: Setzen Sie `PROBE_SYSLOG_RECEIVER_ENABLED=true` und veröffentlichen Sie UDP 5140, oder Ihren `PROBE_SYSLOG_RECEIVER_PORT`, zur Sonde. Nachrichten werden einem Gerät über die Adresse des Absenders zugeordnet, der Hostname der Firewall in OneUptime, oder eine ihrer **Weitere Adressen**, muss also die Adresse sein, von der sie Syslog sendet.
+Die Sonde lauscht auf Port 5140 auf Syslog, über UDP und TCP, sofern sie nicht mit `PROBE_SYSLOG_RECEIVER_ENABLED=false` gestartet wurde: Veröffentlichen Sie diesen Port, oder Ihren `PROBE_SYSLOG_RECEIVER_PORT`, wenn die Sonde in Docker läuft. Nachrichten werden einem Gerät über die Adresse des Absenders zugeordnet, der Hostname der Firewall in OneUptime, oder eine ihrer **Weitere Adressen**, muss also die Adresse sein, von der sie Syslog sendet; bis dahin stehen sie auf der Seite **Ereignisse** des Netzwerks als **Noch kein Gerät**.
 :::
 
 :::details Ein Fabric-Engine-Switch hat die EXOS-Vorlage bekommen
@@ -168,6 +168,7 @@ Die Gesamtzahl der Clients braucht Firmware 6.5.3 oder neuer. Auf älterer Firmw
 
 :::cards
 - [Netzwerkgeräte-Überwachung](/docs/monitor/network-device-monitor): Alles, was ein Gerät erfasst, und jedes Kriterium, für das es warnen kann.
+- [Netzwerkereignisse](/docs/monitor/network-events): Was das Syslog jedes Herstellers sagt, als Ereignisse und Warnungen.
 - [Log-Pipelines](/docs/telemetry/log-pipelines): Firewall-Logs in Attribute zerlegen.
 - [Logs-Monitor](/docs/monitor/logs-monitor): Einmal pro Tunnel oder Gateway warnen.
 :::

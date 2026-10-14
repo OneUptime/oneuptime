@@ -684,7 +684,7 @@ API, SSO, or the Slack and Microsoft Teams apps.
   as 0, the same labels in another order - no longer starts its **On
   Update** workflows, sends a live update or adds an audit log entry, and
   an entry for a real change lists only the fields that changed. A
-  workflow's **Listen on** now hears only the fields an update changes, and
+  workflow's **Fields to watch** now hears only the fields an update changes, and
   hears every change to them: one listening on a switch also runs when the
   switch is turned off, which it used to miss. See
   [Switches](/docs/api-reference/api-reference#switches).
@@ -1285,6 +1285,17 @@ API, SSO, or the Slack and Microsoft Teams apps.
   installation that set its own `ENCRYPTION_SECRET`, as
   [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
   shows, sees no change.
+- **A workflow's field lists have plain names, and a watched related record
+  is heard.** An **On Update** trigger's **Listen on** is now
+  **Fields to watch**, and **Select Fields** is **Fields to pass on**. Both
+  are picked from a list, and a saved workflow keeps the fields it had. A
+  trigger that watched a related record itself, such as
+  `{"currentIncidentState": true}`, never ran, because an update changes the
+  record's `currentIncidentStateId`: it now runs when that ID changes, so
+  check any workflow that has been quietly idle. **Run Workflow** finds a
+  record by its number or name as well as its ID, and sends the JSON typed
+  for a trigger as JSON: a Manual trigger's **JSON** arrives as an object,
+  so a later step reads a field of it without a **Text to JSON** step.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

@@ -1,5 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
+import AppLink from "../../../Components/AppLink/AppLink";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -124,21 +128,38 @@ const NetworkDeviceLogs: FunctionComponent<
           <div className="space-y-3 text-sm text-gray-600">
             <p>
               <TranslatedSentence
-                template="Device logs are collected by your {{probe}}. It listens for {{snmpTraps}} on UDP port 162 and for {{syslog}} messages on UDP port 5140 (syslog is off by default — enable it with {{setting}} on the probe). Point this device's syslog and trap destinations at the probe's IP address and messages will appear here within a few minutes."
+                template="Device logs are collected by your {{probe}}. It listens for {{snmpTraps}} on UDP port 162 and for {{syslog}} on port 5140, over UDP and TCP. Point this device's syslog and trap destinations at the probe's IP address and messages appear here within a minute."
                 slots={{
                   probe: <strong>{translator.translateText("probe")}</strong>,
                   snmpTraps: (
                     <strong>{translator.translateText("SNMP traps")}</strong>
                   ),
                   syslog: <strong>{translator.translateText("syslog")}</strong>,
-                  setting: <code>PROBE_SYSLOG_RECEIVER_ENABLED=true</code>,
                 }}
               />
             </p>
             <p className="text-gray-500">
               {translator.translateText(
-                "On most routers and switches this is two steps: add a remote syslog server pointing at the probe, then add the probe as an SNMP trap receiver. Messages are matched to this device by the sender IP address, which must equal this device's hostname/IP as registered here.",
+                "On most routers and switches this is two steps: add a remote syslog server pointing at the probe, then add the probe as an SNMP trap receiver. Messages are matched to this device by the address they come from: its hostname, or one of its Other Addresses.",
               )}
+            </p>
+            <p className="text-gray-500">
+              <TranslatedSentence
+                template="What OneUptime reads out of these messages as events - a link going down, a tunnel, a restart - is on this device's {{events}} page, with each vendor's set-up steps."
+                slots={{
+                  events: (
+                    <AppLink
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.NETWORK_DEVICE_VIEW_EVENTS] as Route,
+                        { modelId: modelId },
+                      )}
+                      className="font-medium text-indigo-600 hover:underline"
+                    >
+                      {translator.translateText("Events") || ""}
+                    </AppLink>
+                  ),
+                }}
+              />
             </p>
           </div>
         </Card>

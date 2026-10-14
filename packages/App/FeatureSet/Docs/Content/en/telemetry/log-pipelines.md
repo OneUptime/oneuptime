@@ -110,7 +110,7 @@ The two delimiters must be different, must not contain one another, and cannot c
 
 ### Example: Sophos XGS Firewall
 
-When a Sophos XGS firewall sends syslog to a [probe](/docs/monitor/network-device-monitor), each message is stored as a log of the network device, with the syslog message as its body. To parse it:
+OneUptime reads Sophos and FortiGate syslog into `sophos.*` and `fortigate.*` attributes on its own (see [Network Events](/docs/monitor/network-events)); this example builds the same by hand, as you would for a format it does not know. When a Sophos XGS firewall sends syslog to a [probe](/docs/monitor/network-device-monitor), each message is stored as a log of the network device, with the syslog message as its body. To parse it:
 
 :::steps
 #### Create a pipeline for the firewall
@@ -199,7 +199,7 @@ Moves the value of one attribute (**Source Key**) to another (**Target Key**), f
 
 ## Category Processor
 
-Evaluates a list of rules in order and stores the name of the first rule whose filter matches under a target attribute, so you can search for every "Payment Error" log at once. Set **Target Attribute** (`category` by default), then add **Category Rules**: a **Category name** and the conditions under **When logs match**. The first matching rule wins; a log that matches none is left unchanged.
+Evaluates a list of rules in order and stores the name of the first rule whose filter matches under a target attribute, so you can search for every "Payment Error" log at once. Set **Target Attribute** (`category` by default), then add **Category Rules**: a **Category name** and the conditions under **When logs match**. The first matching rule wins; a log that matches none is left unchanged. On a network device's logs, a rule named like an event (`ups.on_battery`) under the target attribute `event.name` makes the log a [network event](/docs/monitor/network-events#your-own-events).
 
 ## Next steps
 
