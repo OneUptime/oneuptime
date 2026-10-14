@@ -28735,14 +28735,21 @@
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} 正在待命，但不在該群組中：此人是 Slack 中的訪客，而 Slack 不允許訪客加入使用者群組。",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} 正在待命，但不在該標籤中：標籤只能包含其團隊的成員，而此人不在 {{team}} 團隊中。請在 Microsoft Teams 中將此人加入該團隊。",
   "{{remaining}} of the error budget left": "錯誤預算剩餘 {{remaining}}",
+  "Are you sure you want to delete the {{status}} status event that started {{startsAt}}?": "確定要刪除開始於 {{startsAt}} 的 {{status}} 狀態事件嗎？",
   "Filter counts could not load": "無法載入篩選計數",
   "Filter counts took too long": "篩選計數耗時過久",
+  "It ended more than {{days}} days ago, so status pages no longer show it.": "它已在超過 {{days}} 天前結束，因此狀態頁面不再顯示它。",
   "It was stopped before it finished. Try a shorter time range or more specific filters.": "已在完成前停止。請嘗試縮短時間範圍或使用更具體的篩選條件。",
   "Not counted": "未計數",
   "Something went wrong. Try again in a moment.": "發生錯誤。請稍後再試一次。",
+  "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.": "監測器最早的狀態事件在涵蓋最近 {{days}} 天中的一部分時無法刪除：刪除後狀態頁面會將這段時間顯示為灰色。若要取代它，請先新增一個在它之前開始的狀態事件，然後刪除此事件。",
+  "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.": "無法刪除監測器唯一的狀態事件：刪除後監測器將沒有狀態，狀態頁面會將其顯示為灰色。若要變更其狀態，請新增狀態事件。",
   "This chart could not load": "無法載入此圖表",
   "This chart took too long to load": "此圖表載入耗時過久",
   "This search could not finish": "此搜尋未能完成",
   "This search took too long": "此搜尋耗時過久",
-  "Try a shorter time range or more specific filters.": "請嘗試縮短時間範圍或使用更具體的篩選條件。"
+  "Try a shorter time range or more specific filters.": "請嘗試縮短時間範圍或使用更具體的篩選條件。",
+  "{{status}}, the status before it, becomes the monitor's current status again.": "其之前的狀態 {{status}} 將重新成為監測器的目前狀態。",
+  "{{status}}, the status before it, takes over its time.": "其之前的狀態 {{status}} 將接管這段時間。",
+  "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.": "每個被刪除事件的時間由其之前的狀態接管，因此刪除最新的事件會改變監測器的目前狀態。"
 }

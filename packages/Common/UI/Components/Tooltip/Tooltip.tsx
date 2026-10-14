@@ -1,4 +1,5 @@
 import Tippy from "@tippyjs/react";
+import { Placement } from "tippy.js";
 import React, {
   cloneElement,
   FunctionComponent,
@@ -41,6 +42,14 @@ export interface ComponentProps {
    * From the keyboard it still shows the moment the item takes focus.
    */
   isShownOnKeyboardFocusOnly?: boolean | undefined;
+  /*
+   * Which side of its trigger the tooltip opens on: "top" unless given.
+   * fallbackPlacements are the sides it may move to, in order, when that one
+   * has no room. An item of a menu opens to the side, so the reason a locked
+   * item gives never covers the items above it (MoreMenuItem).
+   */
+  placement?: Placement | undefined;
+  fallbackPlacements?: Array<Placement> | undefined;
 }
 
 interface PopupProps extends ComponentProps {
@@ -124,7 +133,21 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
       maxWidth={isRich ? 380 : 350}
       delay={isRich ? [120, 80] : [0, 0]}
       duration={[200, 150]}
-      placement={isRich ? "top" : "top"}
+      placement={props.placement || "top"}
+      {...(props.fallbackPlacements && props.fallbackPlacements.length > 0
+        ? {
+            popperOptions: {
+              modifiers: [
+                {
+                  name: "flip",
+                  options: {
+                    fallbackPlacements: props.fallbackPlacements,
+                  },
+                },
+              ],
+            },
+          }
+        : {})}
       {...themeProps}
       {...animationProps}
       {...keyboardFocusOnlyProps}

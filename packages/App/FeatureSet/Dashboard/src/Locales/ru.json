@@ -28735,14 +28735,21 @@
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} дежурит, но не входит в группу: этот человек — гость в Slack, а Slack не добавляет гостей в группы пользователей.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} дежурит, но не входит в тег: в тег входят только участники его команды, а этого человека нет в команде {{team}}. Добавьте его в команду в Microsoft Teams.",
   "{{remaining}} of the error budget left": "Осталось {{remaining}} бюджета ошибок",
+  "Are you sure you want to delete the {{status}} status event that started {{startsAt}}?": "Вы уверены, что хотите удалить событие статуса {{status}}, начавшееся {{startsAt}}?",
   "Filter counts could not load": "Не удалось загрузить количество по фильтрам",
   "Filter counts took too long": "Подсчёт по фильтрам занял слишком много времени",
+  "It ended more than {{days}} days ago, so status pages no longer show it.": "Оно закончилось более {{days}} дней назад, поэтому страницы состояния его больше не показывают.",
   "It was stopped before it finished. Try a shorter time range or more specific filters.": "Выполнение остановлено до завершения. Попробуйте более короткий временной диапазон или более точные фильтры.",
   "Not counted": "Не подсчитано",
   "Something went wrong. Try again in a moment.": "Что-то пошло не так. Повторите попытку через минуту.",
+  "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.": "Самое раннее событие статуса монитора нельзя удалить, пока оно охватывает часть последних {{days}} дней: страницы состояния покажут этот период серым. Чтобы заменить его, добавьте событие статуса, которое начинается раньше, а затем удалите это.",
+  "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.": "Единственное событие статуса монитора нельзя удалить: у монитора не останется статуса, и страницы состояния покажут его серым. Чтобы изменить статус, добавьте новое событие статуса.",
   "This chart could not load": "Не удалось загрузить этот график",
   "This chart took too long to load": "Загрузка этого графика заняла слишком много времени",
   "This search could not finish": "Не удалось завершить этот поиск",
   "This search took too long": "Этот поиск занял слишком много времени",
-  "Try a shorter time range or more specific filters.": "Попробуйте более короткий временной диапазон или более точные фильтры."
+  "Try a shorter time range or more specific filters.": "Попробуйте более короткий временной диапазон или более точные фильтры.",
+  "{{status}}, the status before it, becomes the monitor's current status again.": "{{status}}, предыдущий статус, снова становится текущим статусом монитора.",
+  "{{status}}, the status before it, takes over its time.": "{{status}}, предыдущий статус, теперь охватывает этот период.",
+  "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.": "Статус перед каждым удалённым событием теперь охватывает его период, поэтому удаление самого нового события меняет текущий статус монитора."
 }

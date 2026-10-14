@@ -28735,14 +28735,21 @@
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} está de guardia, pero no está en el grupo: es invitado en Slack, y Slack deja a los invitados fuera de los grupos de usuarios.",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} está de guardia, pero no está en la etiqueta: una etiqueta solo incluye a miembros de su equipo, y esta persona no está en el equipo {{team}}. Añádela al equipo en Microsoft Teams.",
   "{{remaining}} of the error budget left": "Queda el {{remaining}} del presupuesto de errores",
+  "Are you sure you want to delete the {{status}} status event that started {{startsAt}}?": "¿Seguro que quieres eliminar el evento de estado {{status}} que empezó el {{startsAt}}?",
   "Filter counts could not load": "No se pudieron cargar los recuentos de los filtros",
   "Filter counts took too long": "Los recuentos de los filtros tardaron demasiado",
+  "It ended more than {{days}} days ago, so status pages no longer show it.": "Terminó hace más de {{days}} días, así que las páginas de estado ya no lo muestran.",
   "It was stopped before it finished. Try a shorter time range or more specific filters.": "Se detuvo antes de terminar. Prueba con un intervalo de tiempo más corto o con filtros más específicos.",
   "Not counted": "Sin contar",
   "Something went wrong. Try again in a moment.": "Algo salió mal. Vuelve a intentarlo en un momento.",
+  "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.": "El evento de estado más antiguo del monitor no se puede eliminar mientras cubra parte de los últimos {{days}} días: las páginas de estado mostrarían ese periodo en gris. Para reemplazarlo, añade un evento de estado que empiece antes y luego elimina este.",
+  "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.": "El único evento de estado del monitor no se puede eliminar: el monitor se quedaría sin estado y las páginas de estado lo mostrarían en gris. Para cambiar su estado, añade un nuevo evento de estado.",
   "This chart could not load": "No se pudo cargar este gráfico",
   "This chart took too long to load": "Este gráfico tardó demasiado en cargar",
   "This search could not finish": "Esta búsqueda no pudo terminar",
   "This search took too long": "Esta búsqueda tardó demasiado",
-  "Try a shorter time range or more specific filters.": "Prueba con un intervalo de tiempo más corto o con filtros más específicos."
+  "Try a shorter time range or more specific filters.": "Prueba con un intervalo de tiempo más corto o con filtros más específicos.",
+  "{{status}}, the status before it, becomes the monitor's current status again.": "{{status}}, el estado anterior, vuelve a ser el estado actual del monitor.",
+  "{{status}}, the status before it, takes over its time.": "{{status}}, el estado anterior, pasa a cubrir ese periodo.",
+  "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.": "El estado anterior a cada evento eliminado pasa a cubrir su periodo, así que eliminar el más reciente cambia el estado actual del monitor."
 }

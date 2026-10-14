@@ -28735,14 +28735,21 @@
   "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.": "{{name}} はオンコール中ですが、グループに含まれていません：Slack のゲストであり、Slack ではゲストをユーザーグループに入れられません。",
   "{{name}} is on call but isn't in the tag: a tag holds only people in its team, and they aren't in the {{team}} team. Add them to it in Microsoft Teams.": "{{name}} はオンコール中ですが、タグに含まれていません：タグにはそのチームのメンバーしか入れられず、この人は {{team}} チームのメンバーではありません。Microsoft Teams でチームに追加してください。",
   "{{remaining}} of the error budget left": "エラーバジェットの残り {{remaining}}",
+  "Are you sure you want to delete the {{status}} status event that started {{startsAt}}?": "{{startsAt}} に始まった {{status}} のステータスイベントを削除してもよろしいですか？",
   "Filter counts could not load": "フィルターの件数を読み込めませんでした",
   "Filter counts took too long": "フィルターの件数の集計に時間がかかりすぎました",
+  "It ended more than {{days}} days ago, so status pages no longer show it.": "{{days}} 日以上前に終了しているため、ステータスページにはもう表示されません。",
   "It was stopped before it finished. Try a shorter time range or more specific filters.": "完了する前に停止しました。時間範囲を短くするか、フィルターを絞り込んでください。",
   "Not counted": "未集計",
   "Something went wrong. Try again in a moment.": "問題が発生しました。しばらくしてから再試行してください。",
+  "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.": "モニターの最も古いステータスイベントは、過去 {{days}} 日間の一部を含む間は削除できません。削除するとステータスページでその期間がグレー表示になります。置き換えるには、それより前に始まるステータスイベントを追加してから、このイベントを削除してください。",
+  "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.": "モニターの唯一のステータスイベントは削除できません。削除するとモニターのステータスがなくなり、ステータスページでグレー表示になります。ステータスを変更するには、新しいステータスイベントを追加してください。",
   "This chart could not load": "このグラフを読み込めませんでした",
   "This chart took too long to load": "このグラフの読み込みに時間がかかりすぎました",
   "This search could not finish": "この検索を完了できませんでした",
   "This search took too long": "この検索に時間がかかりすぎました",
-  "Try a shorter time range or more specific filters.": "時間範囲を短くするか、フィルターを絞り込んでください。"
+  "Try a shorter time range or more specific filters.": "時間範囲を短くするか、フィルターを絞り込んでください。",
+  "{{status}}, the status before it, becomes the monitor's current status again.": "その前のステータスである {{status}} が、再びモニターの現在のステータスになります。",
+  "{{status}}, the status before it, takes over its time.": "その前のステータスである {{status}} が、この期間を引き継ぎます。",
+  "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.": "削除した各イベントの期間は、その前のステータスが引き継ぎます。そのため、最新のイベントを削除するとモニターの現在のステータスが変わります。"
 }
