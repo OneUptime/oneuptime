@@ -1196,7 +1196,9 @@ describePostgres(
               ruleType: ComplianceRuleType.HasIncidentOnCallRules,
               incidentSeverities: ["not-a-uuid"],
             },
-            message: 'Invalid ID format: "not-a-uuid".',
+            // Refused before any hook, as every write's ids are (DatabaseService).
+            message:
+              'Invalid ID for "incidentSeverities" in the data: "not-a-uuid".',
           },
         ];
 
@@ -1268,16 +1270,30 @@ describePostgres(
          * What BaseAPI.updateItem hands the hooks: the JSON body, deserialized
          * (an `{_type: "ObjectID"}` value becomes an ObjectID), not models.
          * The save reads an `_id` only when it is a string, and otherwise the
-         * item's `id`.
+         * item's `id`. An `_id` that is no id at all (a number, a boolean) is
+         * refused before any hook, as every id a write gives is
+         * (DatabaseService.refuseUnstorableIdValues). An ObjectID `_id` passes
+         * that check, so the hook must check the `id` the save writes.
          */
-        for (const item of [
-          { _id: 1, id: otherProjectCritical.toString() },
-          { _id: true, id: otherProjectCritical.toString() },
-          { _id: critical, id: otherProjectCritical.toString() },
+        for (const { item, message } of [
+          {
+            item: { _id: 1, id: otherProjectCritical.toString() },
+            message:
+              'Invalid ID for "incidentSeverities" in the data: the value 1.',
+          },
+          {
+            item: { _id: true, id: otherProjectCritical.toString() },
+            message:
+              'Invalid ID for "incidentSeverities" in the data: the value true.',
+          },
+          {
+            item: { _id: critical, id: otherProjectCritical.toString() },
+            message: FOREIGN_SEVERITY_MESSAGE,
+          },
         ]) {
           await expect(
             updateRule(id, { incidentSeverities: [item] as never }),
-          ).rejects.toThrow(FOREIGN_SEVERITY_MESSAGE);
+          ).rejects.toThrow(message);
 
           await expect(
             createRule({
@@ -1285,7 +1301,7 @@ describePostgres(
               notificationChannels: [ComplianceNotificationChannel.Push],
               incidentSeverities: [item as unknown as JSONObject],
             }),
-          ).rejects.toThrow(FOREIGN_SEVERITY_MESSAGE);
+          ).rejects.toThrow(message);
         }
 
         /*
