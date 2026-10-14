@@ -108,7 +108,10 @@ function everyNode(root: ts.Node): Array<ts.Node> {
 }
 
 // A call of a method by name: x.command(...), x.option(...).
-function isMethodCall(node: ts.Node, method: string): node is ts.CallExpression {
+function isMethodCall(
+  node: ts.Node,
+  method: string,
+): node is ts.CallExpression {
   return (
     ts.isCallExpression(node) &&
     ts.isPropertyAccessExpression(node.expression) &&
@@ -222,7 +225,9 @@ function optionsOf(calls: Array<ChainedCall>): Array<CliOption> {
         !ts.isIdentifier(added.expression) ||
         added.expression.text !== "createOutputOption"
       ) {
-        throw new Error("An .addOption() adds something else than the output option");
+        throw new Error(
+          "An .addOption() adds something else than the output option",
+        );
       }
 
       options.push({

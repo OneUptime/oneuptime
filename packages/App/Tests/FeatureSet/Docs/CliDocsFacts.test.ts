@@ -171,10 +171,7 @@ function operationList(operations: ReadonlyArray<string>): string {
 }
 
 function commandSection(command: CliCommand): string {
-  return englishSection(
-    COMMAND_REFERENCE,
-    `### \`oneuptime ${command.path}\``,
-  );
+  return englishSection(COMMAND_REFERENCE, `### \`oneuptime ${command.path}\``);
 }
 
 // What a reader types for an option: its short flag when it has one.
@@ -184,6 +181,12 @@ function typedFlag(option: CliOption): string {
 
 describe("the command reference", () => {
   const program: CliProgram = readCliProgram();
+  // Each command by its path, for the tests that run once per command.
+  const commandsByPath: Array<[string, CliCommand]> = program.commands.map(
+    (command: CliCommand): [string, CliCommand] => {
+      return [command.path, command];
+    },
+  );
 
   it("reads the CLI's commands from its sources", () => {
     // The reading itself, held to what the CLI's sources plainly build.
@@ -241,9 +244,7 @@ describe("the command reference", () => {
     );
   });
 
-  it.each(readCliProgram().commands.map((command: CliCommand) => {
-    return [command.path, command];
-  }))(
+  it.each(commandsByPath)(
     "writes the usage of oneuptime %s with its arguments and options",
     (_path: string, command: CliCommand) => {
       const usage: string = (codeBlocksOf(commandSection(command))[0] || [
@@ -263,9 +264,7 @@ describe("the command reference", () => {
     },
   );
 
-  it.each(readCliProgram().commands.map((command: CliCommand) => {
-    return [command.path, command];
-  }))(
+  it.each(commandsByPath)(
     "gives every option of oneuptime %s a row with its default and whether it is required",
     (_path: string, command: CliCommand) => {
       const text: string = commandSection(command);
@@ -283,9 +282,10 @@ describe("the command reference", () => {
          * the two" for create's --data and --file, which the action checks).
          */
         if (tables(text)[0]?.[0]?.[1] === "Required") {
-          expect({ option: option.flags, required: row[1] === "Yes" }).toEqual(
-            { option: option.flags, required: option.required },
-          );
+          expect({ option: option.flags, required: row[1] === "Yes" }).toEqual({
+            option: option.flags,
+            required: option.required,
+          });
         }
       }
     },
@@ -321,7 +321,9 @@ describe("the command reference", () => {
     expect(cliSource("Core/OutputFormatter.ts")).toContain(
       "enablePositionalOptions, Commander lets the root program consume its\n * global -o wherever it appears on the command line",
     );
-    expect(flat(englishSection(COMMAND_REFERENCE, "## Global options"))).toContain(
+    expect(
+      flat(englishSection(COMMAND_REFERENCE, "## Global options")),
+    ).toContain(
       "The options go before or after the command: `oneuptime --context staging incident list` and `oneuptime incident list --context staging` do the same.",
     );
     expect(englishPage(CLI_OVERVIEW)).toContain(
@@ -334,7 +336,10 @@ describe("the command reference", () => {
       program.operationsByType["database"] || [];
     const telemetry: ReadonlyArray<string> =
       program.operationsByType["analytics"] || [];
-    const resources: string = englishSection(COMMAND_REFERENCE, "### Resources");
+    const resources: string = englishSection(
+      COMMAND_REFERENCE,
+      "### Resources",
+    );
 
     expect(resources).toContain(`Records take ${operationList(records)}:`);
     expect(resources).toContain(`Telemetry takes ${operationList(telemetry)}:`);
@@ -359,12 +364,12 @@ describe("the command reference", () => {
       "Type",
     );
 
-    expect(codeIn(rowStartingWith(types, "`database`")[2] as string)).toEqual(
-      [...records],
-    );
-    expect(codeIn(rowStartingWith(types, "`analytics`")[2] as string)).toEqual(
-      [...telemetry],
-    );
+    expect(codeIn(rowStartingWith(types, "`database`")[2] as string)).toEqual([
+      ...records,
+    ]);
+    expect(codeIn(rowStartingWith(types, "`analytics`")[2] as string)).toEqual([
+      ...telemetry,
+    ]);
 
     const canDo: Array<Array<string>> = tableWithHeader(
       englishSection(RESOURCE_OPERATIONS, "## What each type can do"),
@@ -421,16 +426,32 @@ describe("the command reference", () => {
       "Operation",
     );
     const expected: Array<[string, string, string]> = [
-      ["list", "`POST /api/<path>/get-list`", "fullPath = `/api${apiPath}/get-list`;"],
+      [
+        "list",
+        "`POST /api/<path>/get-list`",
+        "fullPath = `/api${apiPath}/get-list`;",
+      ],
       [
         "get",
         "`POST /api/<path>/<id>/get-item`",
         "fullPath = `/api${apiPath}/${id}/get-item`;",
       ],
       ["create", "`POST /api/<path>`", "fullPath = `/api${apiPath}`;"],
-      ["update", "`PUT /api/<path>/<id>/`", "fullPath = `/api${apiPath}/${id}/`;"],
-      ["delete", "`DELETE /api/<path>/<id>/`", "fullPath = `/api${apiPath}/${id}/`;"],
-      ["count", "`POST /api/<path>/count`", "fullPath = `/api${apiPath}/count`;"],
+      [
+        "update",
+        "`PUT /api/<path>/<id>/`",
+        "fullPath = `/api${apiPath}/${id}/`;",
+      ],
+      [
+        "delete",
+        "`DELETE /api/<path>/<id>/`",
+        "fullPath = `/api${apiPath}/${id}/`;",
+      ],
+      [
+        "count",
+        "`POST /api/<path>/count`",
+        "fullPath = `/api${apiPath}/count`;",
+      ],
     ];
 
     for (const [operation, request, route] of expected) {
@@ -551,7 +572,7 @@ describe("Authentication", () => {
       "ConfigManager.addContext(context); ConfigManager.setCurrentContext(context.name);",
     );
     expect(commands).toContain(
-      "printSuccess(\n            `Logged in successfully. Context \"${context.name}\" is now active.`,",
+      'printSuccess(\n            `Logged in successfully. Context "${context.name}" is now active.`,',
     );
     expect(page).toContain(
       "`oneuptime login` saves an API key and your OneUptime's address as a context, and makes it the current context:",
@@ -583,7 +604,9 @@ describe("Authentication", () => {
       'const CONFIG_FILE: string = path.join(CONFIG_DIR, "config.json");',
     );
     expect(config).toContain("mode: 0o600,");
-    expect(flat(englishSection(AUTHENTICATION, "## The configuration file"))).toContain(
+    expect(
+      flat(englishSection(AUTHENTICATION, "## The configuration file")),
+    ).toContain(
       "`oneuptime login` saves contexts in `~/.oneuptime/config.json`, in your home folder (`%USERPROFILE%\\.oneuptime\\config.json` on Windows). The CLI creates it so that only your user can read and write it (mode `0600`):",
     );
   });
@@ -627,12 +650,16 @@ describe("Authentication", () => {
       return resolve.indexOf(marker);
     });
 
-    expect(order.every((at: number): boolean => {
-      return at >= 0;
-    })).toBe(true);
-    expect([...order].sort((a: number, b: number): number => {
-      return a - b;
-    })).toEqual(order);
+    expect(
+      order.every((at: number): boolean => {
+        return at >= 0;
+      }),
+    ).toBe(true);
+    expect(
+      [...order].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(order);
 
     // Each value apart: a flag replaces what the environment or a context gives.
     expect(resolve).toContain(
@@ -706,7 +733,9 @@ describe("Authentication", () => {
     expect(utility).toContain(
       '"Not authenticated. Run `oneuptime login` to authenticate."',
     );
-    expect(flat(englishSection(AUTHENTICATION, "## Check what the CLI will use"))).toContain(
+    expect(
+      flat(englishSection(AUTHENTICATION, "## Check what the CLI will use")),
+    ).toContain(
       "The `Context` line appears only when the URL and the key are that context's own, not values a flag or an environment variable replaced. `whoami` reads your settings without calling OneUptime: it shows what a command will send, not whether OneUptime accepts it.",
     );
   });
@@ -728,7 +757,9 @@ describe("Authentication", () => {
     expect(troubleshooting).toContain(
       "`Authentication error: No credentials found.` means no flag, environment variable or saved context gave the command its API key and URL.",
     );
-    expect(troubleshooting).toContain(':::details Context "staging" does not exist');
+    expect(troubleshooting).toContain(
+      ':::details Context "staging" does not exist',
+    );
     expect(troubleshooting).toContain(
       "`Error: Request failed to https://...` means the CLI could not reach OneUptime at that address.",
     );
@@ -747,7 +778,9 @@ describe("Authentication", () => {
       "## Troubleshooting",
     );
 
-    expect(troubleshooting).toContain(":::details API error (400): Invalid API Key");
+    expect(troubleshooting).toContain(
+      ":::details API error (400): Invalid API Key",
+    );
     expect(troubleshooting).toContain(
       ":::details API error (402): API keys need the Growth plan",
     );
@@ -806,9 +839,9 @@ describe("exit codes", () => {
 
   it("exits with 1 for a refusal, an invalid value and Commander's own errors, and 0 from whoami and context current with nothing saved", () => {
     expect(handler).toContain('if (message.includes("API error")) {');
-    expect(handler.trim().endsWith("process.exit(ExitCode.GeneralError);\n}")).toBe(
-      true,
-    );
+    expect(
+      handler.trim().endsWith("process.exit(ExitCode.GeneralError);\n}"),
+    ).toBe(true);
 
     const utility: string = cliSource("Commands/UtilityCommands.ts");
     const whoami: string = utility.slice(
@@ -871,7 +904,7 @@ describe("Resource Operations", () => {
     expect(orders).toContain('Ascending = "ASC",');
     expect(orders).toContain('Descending = "DESC",');
     expect(englishPage(RESOURCE_OPERATIONS)).toContain(
-      "| `--sort <json>` | The order, such as `{\"createdAt\":\"ASC\"}`, or `\"DESC\"` for newest first | Newest first |",
+      '| `--sort <json>` | The order, such as `{"createdAt":"ASC"}`, or `"DESC"` for newest first | Newest first |',
     );
     // No numeric sort order anywhere: the analytics API reads ASC and DESC only.
     for (const entry of [RESOURCE_OPERATIONS, COMMAND_REFERENCE, SCRIPTING]) {
@@ -915,7 +948,10 @@ describe("Resource Operations", () => {
       "Common/Models/DatabaseModels/Monitor.ts",
     );
     const monitorType: string = monitor.slice(
-      monitor.lastIndexOf("@TableColumn", monitor.indexOf("public monitorType?")),
+      monitor.lastIndexOf(
+        "@TableColumn",
+        monitor.indexOf("public monitorType?"),
+      ),
       monitor.indexOf("public monitorType?"),
     );
 
@@ -961,10 +997,12 @@ describe("Resource Operations", () => {
       api.indexOf("public async createItem("),
     );
 
-    expect(update).toContain("return Response.sendEmptySuccessResponse(req, res);");
-    expect(
-      readRepoFile("Common/Server/Utils/Response.ts"),
-    ).toContain("oneUptimeResponse.status(200).send({} as EmptyResponse);");
+    expect(update).toContain(
+      "return Response.sendEmptySuccessResponse(req, res);",
+    );
+    expect(readRepoFile("Common/Server/Utils/Response.ts")).toContain(
+      "oneUptimeResponse.status(200).send({} as EmptyResponse);",
+    );
     // An update that changes no field is refused, as the troubleshooting says.
     expect(update).toContain("No fields to update.");
     expect(englishSection(RESOURCE_OPERATIONS, "## Troubleshooting")).toContain(
@@ -1026,9 +1064,7 @@ describe("Output Formats", () => {
     expect(flat(formatter)).toContain(
       "if (!process.stdout.isTTY) { return OutputFormat.JSON; } return OutputFormat.Table;",
     );
-    expect(page).toContain(
-      'T -->|"no: a pipe or a file"| J["json"]',
-    );
+    expect(page).toContain('T -->|"no: a pipe or a file"| J["json"]');
   });
 
   it("names the commands that take -o: those whose sources add the output option", () => {
@@ -1059,16 +1095,16 @@ describe("Output Formats", () => {
 
   it("lays out a table as formatTable does: six columns, the priority ones first, values cut to 57 characters and '...'", () => {
     expect(formatter).toContain("if (!wide && columns.length > 6) {");
-    expect(formatter).toContain("columns = [...prioritized, ...remaining].slice(0, 6);");
+    expect(formatter).toContain(
+      "columns = [...prioritized, ...remaining].slice(0, 6);",
+    );
     expect(flat(formatter)).toContain(
       'const priority: string[] = [ "_id", "name", "title", "status", "createdAt", "updatedAt", ];',
     );
     expect(formatter).toContain(
       "function truncateValue(val: JSONValue, maxLen: number = 60): string {",
     );
-    expect(formatter).toContain(
-      'return str.substring(0, maxLen - 3) + "...";',
-    );
+    expect(formatter).toContain('return str.substring(0, maxLen - 3) + "...";');
     expect(formatter).toContain(
       "const firstItem: JSONObject = items[0] as JSONObject;",
     );
@@ -1102,7 +1138,9 @@ describe("Output Formats", () => {
       'OneUptime sends dates and the IDs of other records as objects, such as `{"_type":"DateTime","value":"2026-10-14T09:12:44.000Z"}`, and a table shows them as that text.',
     );
     expect(
-      readRepoFile("App/FeatureSet/Docs/Content/en/api-reference/api-reference.md"),
+      readRepoFile(
+        "App/FeatureSet/Docs/Content/en/api-reference/api-reference.md",
+      ),
     ).toContain(
       'Dates and IDs other than `_id` come back wrapped, as `{ "_type": "DateTime", "value": "..." }` and `{ "_type": "ObjectID", "value": "..." }`: read them from `value`.',
     );
@@ -1129,12 +1167,15 @@ describe("the overview", () => {
   const page: string = englishPage(CLI_OVERVIEW);
 
   it("installs the package the CLI publishes, whose bin is oneuptime, released with OneUptime under its version", () => {
-    const manifest: { name: string; version: string; bin: Record<string, string> } =
-      JSON.parse(readRepoFile("CLI/package.json")) as {
-        name: string;
-        version: string;
-        bin: Record<string, string>;
-      };
+    const manifest: {
+      name: string;
+      version: string;
+      bin: Record<string, string>;
+    } = JSON.parse(readRepoFile("CLI/package.json")) as {
+      name: string;
+      version: string;
+      bin: Record<string, string>;
+    };
 
     expect(manifest.name).toBe("@oneuptime/cli");
     expect(Object.keys(manifest.bin)).toEqual(["oneuptime"]);
@@ -1142,7 +1183,9 @@ describe("the overview", () => {
     expect(readRepoFile("../Scripts/NPM/PublishAllPackages.sh")).toContain(
       'publish_to_npm "packages/CLI"',
     );
-    expect(page).toContain(`npm install -g ${manifest.name}\noneuptime --version`);
+    expect(page).toContain(
+      `npm install -g ${manifest.name}\noneuptime --version`,
+    );
     expect(page).toContain(
       "The CLI is released with OneUptime and has the same version number.",
     );
@@ -1203,7 +1246,9 @@ describe("the overview", () => {
       "Create one in **Project Settings → Advanced → API Keys** with **Create API Key**: see [Create an API key](/docs/api-reference/api-reference#create-an-api-key).",
     );
     expect(
-      readRepoFile("App/FeatureSet/Docs/Content/en/api-reference/api-reference.md"),
+      readRepoFile(
+        "App/FeatureSet/Docs/Content/en/api-reference/api-reference.md",
+      ),
     ).toContain(
       "Open **Project Settings → Advanced → API Keys** and click **Create API Key**.",
     );

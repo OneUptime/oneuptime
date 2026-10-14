@@ -40,7 +40,11 @@ const DOCS_DIR: string = path.join(
   "en",
   "cli",
 );
-const CONFIG_FILE: string = path.join(os.homedir(), ".oneuptime", "config.json");
+const CONFIG_FILE: string = path.join(
+  os.homedir(),
+  ".oneuptime",
+  "config.json",
+);
 
 // The keys and addresses the pages' examples use.
 const PRODUCTION_KEY: string = "4f1c3a2e-9b7d-4c1e-8a6f-2d5b7e9c0a13";
@@ -486,12 +490,16 @@ describe("the CLI docs hold the real program", () => {
       delete process.env["ONEUPTIME_API_KEY"];
       delete process.env["ONEUPTIME_URL"];
       mockExecuteApiRequest.mockReset();
-      jest.spyOn(console, "log").mockImplementation((...args: Array<unknown>) => {
-        printed.push(args.map(String).join(" "));
-      });
-      jest.spyOn(console, "error").mockImplementation((...args: Array<unknown>) => {
-        printed.push(args.map(String).join(" "));
-      });
+      jest
+        .spyOn(console, "log")
+        .mockImplementation((...args: Array<unknown>) => {
+          printed.push(args.map(String).join(" "));
+        });
+      jest
+        .spyOn(console, "error")
+        .mockImplementation((...args: Array<unknown>) => {
+          printed.push(args.map(String).join(" "));
+        });
       jest.spyOn(process, "exit").mockImplementation((() => {
         // A command that exits stops here in the real CLI.
       }) as never);
@@ -557,16 +565,18 @@ describe("the CLI docs hold the real program", () => {
     it("lists contexts as the authentication page shows, the last login current", async () => {
       await loginToBoth();
 
-      const table: string = (await run(["context", "list", "-o", "table"])).join(
-        "\n",
-      );
+      const table: string = (
+        await run(["context", "list", "-o", "table"])
+      ).join("\n");
       const shown: Array<CodeBlock> = codeBlocks(
         section(docsPage("authentication"), "### List them"),
       );
 
-      expect(shown.map((block: CodeBlock): string => {
-        return block.lang;
-      })).toEqual(["bash", "text"]);
+      expect(
+        shown.map((block: CodeBlock): string => {
+          return block.lang;
+        }),
+      ).toEqual(["bash", "text"]);
       expect((shown[0] as CodeBlock).code).toBe("oneuptime context list");
       expect(table).toBe((shown[1] as CodeBlock).code);
     });
@@ -660,7 +670,14 @@ describe("the CLI docs hold the real program", () => {
       });
 
       await expect(
-        built.parseAsync(["node", "oneuptime", "incident", "list", "-o", "yaml"]),
+        built.parseAsync([
+          "node",
+          "oneuptime",
+          "incident",
+          "list",
+          "-o",
+          "yaml",
+        ]),
       ).rejects.toBeInstanceOf(CommanderError);
 
       const shown: CodeBlock = codeBlocks(
@@ -683,11 +700,27 @@ describe("the CLI docs hold the real program", () => {
         [["incident", "count", "-o", "table"], { count: 12 }],
         [["incident", "count", "-o", "json"], { count: 12 }],
         [
-          ["incident", "update", EXAMPLE_ID, "--data", '{"title":"x"}', "-o", "table"],
+          [
+            "incident",
+            "update",
+            EXAMPLE_ID,
+            "--data",
+            '{"title":"x"}',
+            "-o",
+            "table",
+          ],
           {},
         ],
         [
-          ["incident", "update", EXAMPLE_ID, "--data", '{"title":"x"}', "-o", "json"],
+          [
+            "incident",
+            "update",
+            EXAMPLE_ID,
+            "--data",
+            '{"title":"x"}',
+            "-o",
+            "json",
+          ],
           {},
         ],
         [["monitor", "delete", EXAMPLE_ID, "-o", "json"], {}],
@@ -771,14 +804,27 @@ describe("the CLI docs hold the real program", () => {
 
       mockExecuteApiRequest.mockResolvedValue({ count: 1 });
       await run(["incident", "count", "-o", "json"]);
-      await run(["incident", "count", "--api-key", "flag-key-0000", "-o", "json"]);
+      await run([
+        "incident",
+        "count",
+        "--api-key",
+        "flag-key-0000",
+        "-o",
+        "json",
+      ]);
 
       // The environment's key with the current context's URL, then the flag's.
       expect(mockExecuteApiRequest.mock.calls[0][0]).toEqual(
-        expect.objectContaining({ apiKey: "env-key-0000", apiUrl: STAGING_URL }),
+        expect.objectContaining({
+          apiKey: "env-key-0000",
+          apiUrl: STAGING_URL,
+        }),
       );
       expect(mockExecuteApiRequest.mock.calls[1][0]).toEqual(
-        expect.objectContaining({ apiKey: "flag-key-0000", apiUrl: STAGING_URL }),
+        expect.objectContaining({
+          apiKey: "flag-key-0000",
+          apiUrl: STAGING_URL,
+        }),
       );
       expect(docsPage("authentication")).toContain(
         "So you can mix them: an API key from an environment variable with the URL of the current context, for example.",

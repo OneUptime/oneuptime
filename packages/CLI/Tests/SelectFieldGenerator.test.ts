@@ -146,8 +146,7 @@ describe("SelectFieldGenerator", () => {
           expect(select).toHaveProperty("createdAt", true);
 
           for (const column of model.getTableColumns()) {
-            const read: Array<unknown> | undefined =
-              column.accessControl?.read;
+            const read: Array<unknown> | undefined = column.accessControl?.read;
 
             if (read && read.length > 0) {
               expect({ resource: resource.name, [column.key]: true }).toEqual({
