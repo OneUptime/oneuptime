@@ -107,6 +107,32 @@ describe("AppliedFilters", () => {
     expect(getGlyphOfSvg(svg)).toBe(getGlyphOfIcon(IconProp.Filter));
   });
 
+  /*
+   * "Ausführungs-ID ist gleich 0193c0de-2222" on a phone ran out past the
+   * box's right edge: chips never wrapped. A chip wider than the box now
+   * wraps inside itself; one that fits still sits on one line, because the
+   * list moves a chip to a line of its own before the chip has to wrap.
+   */
+  test("lets a chip too wide for the box wrap inside it, not run past its edge", () => {
+    render(
+      <AppliedFilters
+        dataTestId="applied"
+        title="Arbeitsablauf-Ausführungen gefiltert nach"
+        chips={[<span key="a">Ausführungs-ID ist gleich 0193c0de-2222</span>]}
+        onClearFilters={jest.fn<() => void>()}
+      />,
+    );
+
+    const chip: Element | null = screen
+      .getByTestId("applied")
+      .querySelector(".rounded-full");
+
+    expect(chip).not.toBeNull();
+    expect(chip).toHaveClass("max-w-full", "min-w-0", "break-words");
+    expect(chip).not.toHaveClass("whitespace-nowrap");
+    expect(chip!.parentElement).toHaveClass("flex", "flex-wrap");
+  });
+
   test("leaves the box without a test id when it is given none, as the tables draw it", () => {
     const { container } = render(
       <AppliedFilters

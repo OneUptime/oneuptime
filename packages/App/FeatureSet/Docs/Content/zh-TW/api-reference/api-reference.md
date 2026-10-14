@@ -112,6 +112,12 @@ curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
 
 日期和 `_id` 以外的 ID 會經過包裝後傳回，形如 `{ "_type": "DateTime", "value": "..." }` 和 `{ "_type": "ObjectID", "value": "..." }`：請從 `value` 中讀取。
 
+請求用來篩選或寫入的每個 ID——`_id`、`monitorId` 這樣的欄位，以及關聯列出的每筆記錄，例如 `"labels": [{ "_id": "..." }]`——都是 UUID，以文字形式傳送，或像傳回時那樣包裝後傳送。其他任何內容，例如不是 UUID 的文字，或代替 ID 的物件，都會被拒絕，並傳回一個指明欄位的 `400`，說明它在 `query` 還是 `data` 中，而且不會讀取或寫入任何內容：
+
+```text
+Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUID, such as "550e8400-e29b-41d4-a716-446655440000".
+```
+
 ### 狀態碼
 
 | 狀態碼 | 意義 | 深入了解 |

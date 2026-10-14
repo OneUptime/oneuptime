@@ -350,12 +350,17 @@ describe("QueryUtil.serializeQuery — a relation filtered by an id", () => {
     );
   });
 
+  /*
+   * The key is a uuid column, so an object there is no id at all, and it is
+   * refused as one (UUIDColumnFilter) before it would have to be kept next
+   * to the relation's id. Never dropped either way.
+   */
   it("refuses a key filter it cannot keep next to the relation's id", () => {
     expect(() => {
       QueryUtil.serializeQuery(TeamMember, {
         teamId: { unexpected: true },
         team: ObjectID.generate().toString(),
       } as any);
-    }).toThrow("Cannot combine the filter on team with the filter on teamId.");
+    }).toThrow('Invalid ID for "teamId" in the query');
   });
 });

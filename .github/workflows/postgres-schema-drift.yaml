@@ -906,6 +906,24 @@ jobs:
           Tests/Server/Types/Database/QueryUtilIncludesAnyOfGroupsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated Incident table into an isolated schema and runs
+      # list filters on its uuid columns: the statement production logged
+      # ("invalid input syntax for type uuid: "[object Object]"") is refused
+      # with a 400 before Postgres sees it, a serialized ObjectID finds the
+      # incidents it names, and what the query layer reads as a uuid is
+      # exactly what Postgres's uuid input accepts.
+      - name: Test filters on uuid columns on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_UUID_COLUMN_FILTER_TESTS: "true"
+          UUID_COLUMN_FILTER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          UUID_COLUMN_FILTER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          UUID_COLUMN_FILTER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Types/Database/UUIDColumnFilterPostgres.test.ts
+          --forceExit
+
       - name: Test the inventory overview and status facets on migrated Postgres
         working-directory: packages/Common
         env:

@@ -418,6 +418,11 @@ describe("ReadPermission.checkReadBlockPermission", () => {
     },
   );
 
+  /*
+   * `_id` is a uuid column, so an object there is no id at all: serializing
+   * the caller's ID condition refuses it (UUIDColumnFilter) before it would
+   * have to be kept next to the block's condition.
+   */
   it("rejects an unsupported ID condition before changing the caller's query", async () => {
     const idFilter: Record<string, unknown> = { comparison: "unsupported" };
     const labels: Includes = new Includes([ObjectID.generate().toString()]);
@@ -429,7 +434,7 @@ describe("ReadPermission.checkReadBlockPermission", () => {
         query,
         makeProps([blockPermission(Permission.ProjectMember, [blockedLabelA])]),
       ),
-    ).rejects.toThrow("unsupported ID filter");
+    ).rejects.toThrow('Invalid ID for "_id" in the query');
     expect(query).toEqual({ projectId, _id: idFilter, labels });
   });
 

@@ -1,144 +1,162 @@
-# Veelgestelde Vragen en Probleemoplossing
+# Veelgestelde vragen en probleemoplossing
 
-Veelgestelde vragen en oplossingen voor de OneUptime mobiele en desktop apps.
+Antwoorden op veelgestelde vragen over de mobiele en desktop-apps van OneUptime, en oplossingen voor wat het vaakst misgaat: het aanmelden, meldingen die niet aankomen en een telefoon die zich opnieuw moet registreren.
 
-## Hoe distribueert OneUptime zijn apps?
+:::cards
+- [Vragen over de mobiele app](#vragen-over-de-mobiele-app): Apparaten, projecten, zelf hosten en beveiliging.
+- [Vragen over de desktop-app](#vragen-over-de-desktop-app): Wat de desktop-app is, en wat hij niet kan.
+- [Wanneer een telefoon zich opnieuw moet registreren](#wanneer-een-telefoon-zich-opnieuw-moet-registreren): Waarom een telefoon geen oproepen meer krijgt, en hoe hij terugkomt.
+- [Probleemoplossing](#probleemoplossing): Problemen met aanmelden, meldingen en installeren.
+:::
 
-- **Mobiel (iOS en Android):** OneUptime levert een native app genaamd **OneUptime On-Call**. Deze is gepubliceerd in de [Apple App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) en [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). Een ondertekende [APK-download](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) is ook beschikbaar voor Android apparaten zonder Google Play.
-- **Desktop (Windows, macOS, Linux):** Het OneUptime webdashboard is een Progressive Web App (PWA). U kunt het als een desktopapplicatie installeren rechtstreeks vanuit een op Chromium gebaseerde browser of Safari — er is geen storeaccount vereist.
+## Vragen over de mobiele app
 
-## Veelgestelde Vragen Mobiele App
+:::details Is de app gratis?
+Ja. OneUptime On-Call is gratis in de App Store, op Google Play en als APK op GitHub. U meldt zich aan met uw OneUptime-account.
+:::
 
-### Welke apparaten worden ondersteund?
+:::details Op welke telefoons en tablets draait hij?
+Op iPhones en iPads met iOS of iPadOS 16.4 of nieuwer, en op Android-telefoons en -tablets met Android 7.0 of nieuwer.
+:::
 
-- **iOS:** iPhone of iPad met iOS 15.0 of later.
-- **Android:** Telefoons en tablets met Android 8.0 (Oreo) of later.
+:::details Werkt hij met een zelf gehost OneUptime?
+Ja. Voer het `https://`-adres van uw OneUptime in wanneer de app start, of tik op het aanmeldscherm op **Change Server**. Standaard stuurt uw server oproepen naar telefoons via de push-relay van OneUptime, en heeft dus geen account bij Apple, Google of Expo nodig: zie [Pushmeldingen](/docs/self-hosted/push-notifications).
+:::
 
-### Is de app gratis?
+:::details Kan ik hem met meerdere projecten gebruiken?
+Ja. De app registreert de telefoon in elk project waarvan u lid bent, zodat elk project u kan oproepen. Hij toont één project tegelijk: tik bovenaan een scherm op de naam van het project om te wisselen.
+:::
 
-Ja. De OneUptime On-Call app is gratis te installeren. U logt in met uw bestaande OneUptime account.
+:::details Kan ik me op meer dan één telefoon aanmelden?
+Ja. Elke telefoon of tablet is een eigen pushapparaat, met eigen bereikbaarheidsregels en een eigen instelling voor kritieke meldingen.
+:::
 
-### Kan ik de app gebruiken met een zelf-gehoste OneUptime instantie?
+:::details Wat kan ik in de app doen?
+- **Home**: wat in het project aandacht nodig heeft: actieve incidenten en waarschuwingen, monitors met problemen en gegroepeerde gebeurtenissen.
+- **Monitors**: alle monitors, gefilterd op gezondheid, met hun details.
+- **Inbox**: incidenten en waarschuwingen, en de episodes die ze groeperen. Open er een om **Acknowledge**, **Resolve** of **Add Note** te gebruiken.
+- **On-Call**: of u dienst hebt en tot wanneer, wie nog meer, de oproepen die naar u gingen, en **Cover for me**, dat uw oproepen een tijdje aan een collega overdraagt.
+- **Settings**: uw projecten en single sign-on, het uiterlijk, kritieke meldingen en het alarmgeluid, **Biometrics Login**, uw agendafeed voor diensten, en **Log Out**.
 
-Ja. Bij de eerste start vraagt de app om een **Server URL**. Voer de URL van uw zelf-gehoste instantie in (bijvoorbeeld `https://oneuptime.example.com`). De app valideert of de server bereikbaar is voordat u kunt inloggen.
+Al het andere vindt u in het dashboard.
+:::
 
-Volg voor pushmeldingen op zelf-gehoste instanties de handleiding [Pushmeldingen](/docs/self-hosted/push-notifications).
+:::details Kan ik een oproep vanuit de melding bevestigen?
+Nee. Tik op de melding: de app opent het incident, de waarschuwing of de episode waar het om gaat, in het juiste project, en daar bevestigt u. Is de app vergrendeld of bent u afgemeld, dan opent hij de oproep zodra u binnen bent.
+:::
 
-### Hoe worden updates geleverd?
+:::details Is mijn aanmelding veilig op de telefoon?
+De app praat met uw OneUptime alleen via HTTPS. Uw aanmelding wordt bewaard in de eigen opslag van de app op de telefoon, en **Log Out** wist haar en meldt de sessie ook op de server af. Schakel **Biometrics Login** in om de app bij elke start om uw gezicht, vingerafdruk of toegangscode te laten vragen.
+:::
 
-- **iOS:** Via de App Store. Schakel automatische updates in via **Instellingen → App Store**, of werk handmatig bij vanuit uw App Store profiel.
-- **Android (Google Play):** Automatische updates zijn standaard ingeschakeld.
-- **Android (APK sideload):** Download en installeer de nieuwste APK via de bovenstaande GitHub Releases-link.
+:::details Werkt de app offline?
+Nee. Zonder verbinding toont hij bovenaan het scherm **No internet connection**, en gaat hij verder zodra de verbinding terug is.
+:::
 
-### Waarom ontvang ik geen pushmeldingen?
+## Vragen over de desktop-app
 
-Mobiele push maakt gebruik van APNs (iOS) en FCM (Android) via Expo Push. Controleer het volgende:
+:::details Wat is de desktop-app?
+Het OneUptime-dashboard, vanuit uw browser als app geïnstalleerd: een eigen venster, een pictogram in het menu Start, het Dock of uw app-starter, en meldingen. Hij doet alles wat het dashboard doet, omdat hij het dashboard is.
+:::
 
-1. Meldingen zijn op besturingssysteemniveau ingeschakeld voor **OneUptime On-Call**.
-2. Batterijoptimalisatie is uitgeschakeld en achtergrondactiviteit is toegestaan (Android).
-3. Niet storen of Focus modi zijn uitgeschakeld, of de app staat op de uitzonderingslijst.
-4. U bent ingelogd — het push-token wordt pas bij de server geregistreerd nadat u bent ingelogd.
-5. De telefoon is in OneUptime onder **User Settings > Notification Methods > Push** niet gemarkeerd als **Ontvangt geen meldingen**. Is dat wel zo, open dan de app op de telefoon terwijl u bent ingelogd om hem opnieuw te registreren.
-6. **Alleen zelf-gehost:** Pushmeldingen zijn geconfigureerd op uw OneUptime instantie. Zie de handleiding [Pushmeldingen](/docs/self-hosted/push-notifications).
+:::details Waarom staat hij in geen enkele store?
+Dat hoeft niet. De app laadt het dashboard bij elke start van uw OneUptime, dus hij is altijd de versie die uw OneUptime draait, op Windows, macOS en Linux gelijk, zonder dat er iets bij te werken is.
+:::
 
-### Zijn de gegevens op mijn telefoon veilig?
+:::details Kan hij me wekken zoals de telefoon?
+Nee. Browsers kunnen Niet storen of een Focus niet negeren, dus een desktopmelding klinkt niet harder dan de computer toestaat. Gebruik voor oproepen die u moeten wekken de mobiele app met kritieke meldingen.
+:::
 
-- Al het API-verkeer maakt gebruik van HTTPS.
-- Toegangs- en vernieuwingstokens worden opgeslagen in de beveiligde sleutelopslag van het apparaat (Keychain op iOS, Keystore op Android).
-- U kunt Face ID / Touch ID / vingerafdrukontgrendeling vereisen vanuit het scherm **Instellingen** binnen de app.
+:::details Werkt hij offline?
+Nee. Hij heeft een verbinding met uw OneUptime nodig, net als het dashboard in een browsertabblad.
+:::
 
-### Kan ik de app op meerdere apparaten installeren?
+## Wanneer een telefoon zich opnieuw moet registreren
 
-Ja. Log in met hetzelfde OneUptime account op zoveel apparaten als u nodig hebt. Elk apparaat ontvangt zijn eigen pushmeldingen.
+OneUptime stuurt de oproepen van een telefoon via Expo, dat ze aan Apple of Google doorgeeft. Wanneer Expo zegt dat de telefoon niet meer bereikbaar is, stuurt OneUptime er niets meer naartoe, tot de app hem opnieuw registreert.
 
-### Hoe verwijder ik de app?
+```mermaid title="Hoe een telefoon geen oproepen meer krijgt, en hoe hij terugkomt"
+flowchart TB
+    Registered["De telefoon is<br/>geregistreerd, en<br/>oproepen bereiken hem"]
+    Gone["Expo meldt hem weg: een<br/>push wordt geweigerd, of<br/>zijn ontvangstbewijs zegt<br/>het zo'n 15 minuten later"]
+    Marked["OneUptime markeert<br/>hem als Ontvangt geen<br/>meldingen en stopt met<br/>sturen; zijn regels blijven"]
+    Open["U opent de app terwijl<br/>u bent aangemeld"]
+    Renewed["De app registreert zich<br/>opnieuw, vernieuwt zijn<br/>pushtoken, en oproepen<br/>bereiken hem weer"]
+    Registered --> Gone --> Marked --> Open --> Renewed
+```
 
-- **iOS:** Houd het pictogram ingedrukt → **Verwijder app** → **Verwijder app**.
-- **Android:** Houd het pictogram ingedrukt → **Verwijderen**, of **Instellingen → Apps → OneUptime On-Call → Verwijderen**.
+Expo meldt een telefoon weg wanneer de app ervan is verwijderd, of wanneer zijn pushtoken niet meer geldig is. De telefoon wordt niet verwijderd: **Gebruikersinstellingen → Meldingsmethoden** toont hem op het tabblad **Push Notifications** als **Ontvangt geen meldingen**, en de dienstentijdlijn van een oproep die hem niet bereikte, zegt waarom. Uw andere telefoons en meldingsmethoden worden zoals altijd opgeroepen.
 
-Uw OneUptime account en gegevens worden op de server opgeslagen en worden niet verwijderd wanneer u de app verwijdert.
+De app registreert de telefoon bij elke start, wanneer u zich aanmeldt, en wanneer u naar de app terugkeert, hooguit eens per vijf minuten. Bij het registreren vraagt de app Expo opnieuw om het pushtoken, wat het vernieuwt, en de telefoon krijgt weer oproepen met de regels die hij had.
 
-## Veelgestelde Vragen Desktop App (PWA)
+| Wat er gebeurde | Wat te doen | Wat OneUptime doet |
+| --- | --- | --- |
+| De app is nog geïnstalleerd | Open hem terwijl u bent aangemeld | De telefoon krijgt weer meldingen, met zijn regels |
+| U hebt de app op een iPhone of iPad opnieuw geïnstalleerd | Installeer hem en meld u aan | Meestal komt dezelfde vermelding terug, met haar regels |
+| U hebt de app op Android opnieuw geïnstalleerd | Installeer hem, meld u aan en verwijder de oude vermelding | Een nieuwe vermelding met de standaardregels; de oude blijft gemarkeerd |
+| Een nieuwe telefoon, ingesteld vanuit een back-up van de oude | Open de app op de nieuwe telefoon | Is de vermelding van de oude telefoon gemarkeerd, dan neemt de nieuwe die over, met haar regels; anders krijgt de nieuwe telefoon een eigen vermelding |
+| Een nieuwe telefoon, vanaf nul ingesteld | Meld u aan en verwijder de oude vermelding | Een nieuwe vermelding met de standaardregels |
+| U hebt zich in de app afgemeld | Meld u opnieuw aan | Afmelden haalde de telefoon en zijn regels weg; hij komt terug met de standaardregels |
 
-### Wat is een Progressive Web App (PWA)?
-
-Een Progressive Web App is een webapplicatie die kan worden geïnstalleerd zoals een native desktop app. Eenmaal geïnstalleerd, draait deze in zijn eigen venster, heeft het zijn eigen pictogram in uw launcher en kan het desktopmeldingen afleveren — zonder gebruik te maken van de Windows Store, Mac App Store of een ander distributiekanaal.
-
-### Waarom gebruikt de desktop app PWA-technologie?
-
-- **Onmiddellijke updates** — de app blijft synchroon met uw OneUptime instantie zodra u implementeert.
-- **Geen storeaccount vereist** — installeer rechtstreeks vanuit elke moderne browser.
-- **Eén codebase** — hetzelfde dashboard draait op Windows, macOS en Linux.
-
-### Waarom verschijnt de knop "Install" niet?
-
-1. Gebruik een op Chromium gebaseerde browser (Chrome, Edge, Brave, Arc) of Safari (macOS Sonoma+).
-2. Bevestig dat uw OneUptime instantie via HTTPS met een geldig certificaat wordt aangeboden.
-3. Wis uw browsercache en herlaad de pagina.
-4. De app is mogelijk al geïnstalleerd — controleer uw Programma's / Startmenu.
-
-### Hoe werk ik de desktop app bij?
-
-De PWA werkt automatisch bij wanneer u deze opent terwijl u online bent. Om een update te forceren, vernieuwt u het venster met **Ctrl+R** (Windows/Linux) of **Cmd+R** (macOS).
-
-### Hoe verwijder ik de desktop PWA?
-
-- **Windows:** **Instellingen → Apps → OneUptime → Verwijderen**, of klik met de rechtermuisknop op het Startmenu-item.
-- **macOS:** Sleep de app vanuit **Programma's** naar de Prullenmand, of klik met de rechtermuisknop op het Dock-pictogram en kies **Verwijderen**.
-- **Linux:** Gebruik de verwijderoptie van uw applicatielauncher, of verwijder het relevante `.desktop` bestand.
+Ook een browser kan stoppen met meldingen ontvangen, wanneer zijn pushabonnement verloopt. Het dashboard vernieuwt het als het kan; blijft de browser gemarkeerd, registreer hem dan opnieuw met **Apparaat registreren** in die browser.
 
 ## Probleemoplossing
 
-### Problemen met de Mobiele App
+### Aanmelden
 
-**App logt niet in / "Netwerkfout":**
+:::details „Could not connect to the server”
+De app kon `https://<your-oneuptime>/api/status` niet bereiken. Controleer het adres, inclusief `https://`: de app maakt geen verbinding via gewoon HTTP. Staat uw OneUptime in een privénetwerk, verbind de telefoon er dan eerst mee, bijvoorbeeld via uw VPN. Geopend in de browser van de telefoon toont dat adres `{"status":"ok"}` als de telefoon OneUptime kan bereiken.
+:::
 
-- Bevestig dat de **Server URL** correct is en bereikbaar is vanaf uw telefoon.
-- Controleer of uw telefoon verbonden is met het internet.
-- Voor zelf-gehoste instanties achter een VPN, zorg ervoor dat de VPN actief is.
+:::details „No SSO configuration found for the email”
+Geen van de projecten waarvan dat e-mailadres lid is, heeft single sign-on ingesteld, of het e-mailadres heeft geen account op dit OneUptime. Controleer het e-mailadres, of meld u aan met uw wachtwoord. Providers die uw beheerder voor de hele installatie heeft ingesteld, staan vóór het e-mailveld.
+:::
 
-**Pushmeldingen vertraagd of ontbrekend (Android):**
+:::details Een beveiligingssleutel is uw enige tweede factor
+De app kan geen beveiligingssleutel gebruiken. Meld u aan met een van uw back-upcodes, of voeg in het dashboard een authenticator-app aan uw account toe: zie [Tweestapsverificatie inschakelen](/docs/introduction/your-account#tweestapsverificatie-inschakelen).
+:::
 
-- Schakel batterijoptimalisatie uit: **Instellingen → Apps → OneUptime On-Call → Batterij → Onbeperkt**.
-- Schakel Databesparing uit voor de app.
-- Op Samsung apparaten schakelt u **Apparaatonderhoud → Batterij → Limieten voor achtergrondgebruik** uit voor OneUptime On-Call.
+:::details Aanmelden met een passkey mislukt
+Passkeys vereisen dat het adres van uw OneUptime met `https://` begint, en een passkey die u voor dit OneUptime hebt toegevoegd: zie [Een passkey toevoegen](/docs/introduction/your-account#een-passkey-toevoegen). Tik op het aanmeldscherm op **Change Server** om een andere server te gebruiken.
+:::
 
-**Pushmeldingen vertraagd of ontbrekend (iOS):**
+### Meldingen
 
-- Vermijd het geforceerd afsluiten van de app — iOS kan aflevering op de achtergrond pauzeren.
-- Schakel de Energiebesparingsmodus uit terwijl u dienst hebt.
-- Voeg OneUptime On-Call toe aan de lijst met toegestane apps van elke actieve Focus modus.
+:::details Geen meldingen op de telefoon
+- Controleer of de telefoon meldingen van OneUptime On-Call toestaat, en of Niet storen of een Focus ze niet tegenhoudt.
+- Controleer in **Gebruikersinstellingen → Meldingsmethoden**, tabblad **Push Notifications**, of de telefoon in de lijst staat, en stuur hem een **Testmelding**.
+- Is hij gemarkeerd als **Ontvangt geen meldingen**, open dan de app terwijl u bent aangemeld: zie [Wanneer een telefoon zich opnieuw moet registreren](#wanneer-een-telefoon-zich-opnieuw-moet-registreren).
+- Controleer uw bereikbaarheidsregels onder **Gebruikersinstellingen → Bereikbaarheidsregels**: die bepalen welke oproepen welke methode bereiken.
+- Controleer bij een zelf gehost OneUptime of de server zijn push-relay bereikt: zie [Pushmeldingen](/docs/self-hosted/push-notifications#netwerktoegang).
+:::
 
-**Face ID / Touch ID / vingerafdruk werkt niet:**
+:::details Oproepen komen op Android te laat aan
+Zet het batterijgebruik van de app in de Android-instellingen voor OneUptime On-Call op **Onbeperkt**, en laat de app buiten elke lijst voor batterijbesparing: zie [Voorkomen dat oproepen te laat aankomen](/docs/mobile-desktop-apps/android-installation#voorkomen-dat-oproepen-te-laat-aankomen).
+:::
 
-- Zorg ervoor dat biometrische gegevens zijn ingeschreven in uw OS-instellingen.
-- Schakel biometrische ontgrendeling opnieuw in vanuit het scherm **Instellingen** binnen de OneUptime On-Call app.
+:::details Kritieke meldingen klinken niet door de stille modus heen
+Open in de app **Settings**: de regel onder **Critical On-Call Alerts** zegt wat er op die telefoon ontbreekt. Controleer daarna onder **Gebruikersinstellingen → Bereikbaarheidsregels** of de bereikbaarheidsregel die de oproep stuurde op **Kritieke waarschuwing** staat, niet op **Normaal**. Elke telefoon heeft een eigen schakelaar.
+:::
 
-### Problemen met de Desktop App (PWA)
+### Desktop-app
 
-**Installatieknop ontbreekt:**
+:::details Geen installatiepictogram in de adresbalk
+Installeer vanaf een dashboardpagina na het aanmelden, via `https://`, in Edge of Chrome, of in Safari op macOS Sonoma 14 of nieuwer. Verschijnt het pictogram niet, dan installeert ook het menu van de browser de app: zie [Windows-installatie](/docs/mobile-desktop-apps/windows-installation#de-app-installeren).
+:::
 
-- Gebruik een ondersteunde browser (op Chromium gebaseerd of Safari op macOS Sonoma+).
-- Zorg ervoor dat de OneUptime instantie via HTTPS wordt aangeboden.
-- Wacht tot de pagina volledig is geladen en controleer vervolgens de adresbalk op het installatiepictogram.
+:::details Geen desktopmeldingen
+Registreer de browser onder **Gebruikersinstellingen → Meldingsmethoden**, tabblad **Push Notifications**, met **Apparaat registreren**, sta meldingen toe wanneer erom wordt gevraagd, en controleer de meldingsinstellingen van de computer zelf. Een zelf gehost OneUptime heeft zijn VAPID-sleutels nodig voor browsermeldingen.
+:::
 
-**Desktopmeldingen verschijnen niet:**
+## Hulp krijgen
 
-- Sta meldingen toe wanneer de browser daarom vraagt.
-- Controleer de OS-meldingsinstellingen (Windows Focus-assistent, macOS Berichtgeving, Linux meldingsdaemon).
-- Voor zelf-gehoste instanties, zorg ervoor dat de [Pushmeldingen](/docs/self-hosted/push-notifications) configuratie volledig is.
+Klopt hier iets niet met wat u ziet, [open dan een issue op GitHub](https://github.com/OneUptime/oneuptime/issues) met de versie van uw app, onderaan het scherm **Settings**, en het platform dat u gebruikt.
 
-**App toont niet de nieuwste gegevens:**
+## Volgende stappen
 
-- Vernieuw met **Ctrl+R** / **Cmd+R**.
-- Sluit en heropen het venster.
-- Controleer uw netwerkverbinding.
-
-## Ondersteuning
-
-Als u nog hulp nodig hebt:
-
-- Mobiel: zie de installatiehandleidingen voor [iOS](./ios-installation.md) of [Android](./android-installation.md).
-- Desktop: zie de installatiehandleidingen voor [Windows](./windows-installation.md), [macOS](./macos-installation.md) of [Linux](./linux-installation.md).
-- Open een issue op de [OneUptime GitHub repository](https://github.com/OneUptime/oneuptime).
-- Neem contact op met ondersteuning via uw OneUptime dashboard.
+:::cards
+- [Apps – Overzicht](/docs/mobile-desktop-apps/index): Welke app u gebruikt, en hoe de apps OneUptime bereiken.
+- [Android-installatie](/docs/mobile-desktop-apps/android-installation): De app op Android installeren en instellen.
+- [iOS-installatie](/docs/mobile-desktop-apps/ios-installation): De app op een iPhone of iPad installeren en instellen.
+- [Pushmeldingen](/docs/self-hosted/push-notifications): Hoe een zelf gehost OneUptime oproepen stuurt, en de fouten van Expo.
+:::

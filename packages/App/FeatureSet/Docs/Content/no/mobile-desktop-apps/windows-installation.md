@@ -1,182 +1,112 @@
-# Installasjonsveiledning for Windows
+# Windows-installasjon
 
-Installer OneUptime som en skrivebordsapplikasjon på Windows for omfattende overvåking og hendelseshåndtering.
+OneUptime-dashbordet installeres på Windows som en app, fra Microsoft Edge eller Google Chrome. Det åpnes i sitt eget vindu, med eget ikon på oppgavelinjen og i Start-menyen, og kan vise varsler. Det er ingenting å laste ned: appen er dashbordet til ditt OneUptime, og den er oppdatert så snart ditt OneUptime er det.
 
-## Installasjonsmetoder
+:::cards
+- [Installer appen](#installer-appen): Fra Edge eller Chrome, med noen få klikk.
+- [Fest den, og start den med Windows](#fest-den-og-start-den-med-windows): Hold den ett klikk unna.
+- [Få varsler på denne datamaskinen](#få-varsler-på-denne-datamaskinen): Registrer nettleseren for push-varsler.
+- [Feilsøking](#feilsøking): Ingen installeringsikon, ingen varsler, logg inn igjen.
+:::
 
-### Metode 1: Microsoft Edge (anbefalt)
+## Slik fungerer skrivebordsappen
 
-Edge gir den beste Windows PWA-integrasjonen med innebygde funksjoner.
+```mermaid title="Hva du får når du installerer dashbordet"
+flowchart TB
+    Browser["Edge eller Chrome åpner<br/>dashbordet ditt"]
+    Install["Du installerer det<br/>som en app"]
+    App["OneUptime i eget vindu,<br/>på oppgavelinjen og<br/>i Start-menyen"]
+    OneUptime["Ditt OneUptime leverer<br/>dashbordet"]
+    Browser --> Install --> App
+    App -->|"henter dashbordet<br/>hver gang den åpnes"| OneUptime
+```
 
-1. **Åpne OneUptime i Edge**
+Den installerte appen deler innlogging, innstillinger og varseltillatelse med nettleseren sin. Lukk nettleseren, og appen fortsetter i sitt eget vindu.
 
-   - Start Microsoft Edge-nettleseren
-   - Naviger til URL-en for OneUptime-instansen din
-   - Logg inn på OneUptime-kontoen din
-   - Vent til siden er fullstendig lastet
+## Før du begynner
 
-2. **Installer appen**
+- Windows 10 eller Windows 11, med en nyere Microsoft Edge eller Google Chrome.
+- Adressen til ditt OneUptime, over HTTPS: `https://oneuptime.com` på OneUptime Cloud, eller din egen, for eksempel `https://oneuptime.example.com`.
+- En konto du kan logge inn på dashbordet med.
 
-   - Se etter **installikonet** (⊞) i adressefeltet
-   - Klikk knappen **"Installer OneUptime"**
-   - Eller klikk **menyen med tre punkter** → **Apper** → **Installer dette nettstedet som en app**
+## Installer appen
 
-3. **Tilpass installasjonen**
+:::tabs
+@tab Edge
+1. Åpne ditt OneUptime i Edge, og logg inn.
+2. Klikk på installeringsikonet til høyre i adresselinjen på en hvilken som helst dashbordside, og deretter på **Installer**. Eller åpne **Innstillinger og mer (…) → Flere verktøy → Apper → Installer dette nettstedet som en app**.
+3. Edge åpner OneUptime i eget vindu og tilbyr kanskje å feste det til oppgavelinjen eller Start.
+@tab Chrome
+1. Åpne ditt OneUptime i Chrome, og logg inn.
+2. Klikk på installeringsikonet til høyre i adresselinjen på en hvilken som helst dashbordside, og deretter på **Installer**. Eller åpne **⋮ → Cast, lagre og del → Installer siden som app…**.
+3. Chrome åpner OneUptime i eget vindu og legger det til i Start-menyen.
+:::
 
-   - **Appnavn**: Endre om ønskelig (standard: OneUptime)
-   - **Start-meny**: Velg om du vil legge til i Start-menyen
-   - **Oppgavelinje**: Alternativ for å feste til oppgavelinjen
-   - **Skrivebord**: Opprett snarvei på skrivebordet
+Installer fra en dashbordside etter at du har logget inn: innloggingssiden er ikke appen. Søk etter OneUptime i Start-menyen for å åpne den senere.
 
-4. **Fullfør installasjonen**
-   - Klikk **"Installer"** for å fullføre
-   - OneUptime åpner i sitt eget vindu
-   - Finn det i Start-menyen under installerte apper
+## Fest den, og start den med Windows
 
-### Metode 2: Google Chrome
+- **Oppgavelinjen.** Høyreklikk på appens ikon på oppgavelinjen mens den er åpen, og velg **Fest til oppgavelinjen**.
+- **Start med Windows.** Åpne `edge://apps` i Edge, velg **Detaljer** for OneUptime, og slå på **Start automatisk ved pålogging på enheten**. Den samme siden fester appen til oppgavelinjen eller Start, eller legger en snarvei på skrivebordet.
 
-Chrome tilbyr utmerket PWA-støtte med rik skrivebordsintegrasjon.
+## Få varsler på denne datamaskinen
 
-1. **Åpne OneUptime i Chrome**
+Appen viser varsler gjennom nettleseren sin, når du har registrert nettleseren for push-varsler i hvert prosjekt du vil ha dem fra.
 
-   - Start Google Chrome
-   - Gå til OneUptime-instansen din
-   - Sørg for at du er logget inn
-   - Vent til siden er fullstendig lastet
+:::steps
+### Åpne push-enhetene dine
+Åpne **Brukerinnstillinger → Varselmetoder** og fanen **Push Notifications** i appen.
 
-2. **Installer via adressefeltet**
+### Registrer denne nettleseren
+Klikk på **Registrer enhet**, behold det foreslåtte **Enhetsnavn**, for eksempel `Edge on Windows`, eller endre det, og klikk på **Registrer enhet** igjen. Når nettleseren spør om OneUptime kan vise varsler, velger du **Tillat**.
 
-   - Se etter **installikonet** (⊞) i adressefeltet
-   - Klikk **"Installer OneUptime"**
-   - Eller bruk menyen: **tre punkter** → **Flere verktøy** → **Opprett snarvei**
+### Send en test
+Klikk på **Send Test Notification** i dialogen **Browser Registered**. Vises ingenting, ser du på Windows' egne varselinnstillinger: se [Feilsøking](#feilsøking).
+:::
 
-3. **Installasjonsalternativer**
+En nettleser ringer ikke høyere enn Windows tillater: den kan ikke overstyre Ikke forstyrr. Bruk mobilappen med kritiske varsler for varsler som må vekke deg: se [Android-installasjon](/docs/mobile-desktop-apps/android-installation#ring-gjennom-lydløs) eller [iOS-installasjon](/docs/mobile-desktop-apps/ios-installation#ring-gjennom-lydløs).
 
-   - Huk av **"Åpne som vindu"** for app-lignende opplevelse
-   - Tilpass appnavnet om ønskelig
-   - Klikk **"Installer"** eller **"Opprett"**
+På et selvdriftet OneUptime trenger nettleservarsler serverens VAPID-nøkler: se [Push-varsler](/docs/self-hosted/push-notifications#selvhostet-oppsett).
 
-4. **Start appen**
-   - Finn OneUptime i Windows Start-menyen
-   - Eller start fra snarveien på skrivebordet
-   - Appen åpner i dedikert vindu
+## Oppdateringer
 
-### Metode 3: Firefox
+Det er ingenting å oppdatere. Appen henter dashbordet fra ditt OneUptime hver gang den åpnes, så den endrer seg når ditt OneUptime oppgraderes. Har et vindu vært åpent siden oppgraderingen, laster du det inn på nytt med Ctrl+R.
 
-Firefox støtter PWA-installasjon med grunnleggende skrivebordsintegrasjon.
+## Avinstaller
 
-1. **Åpne OneUptime i Firefox**
+:::tabs
+@tab Edge
+Åpne `edge://apps`, velg **Detaljer** for OneUptime, og deretter **Avinstaller**.
+@tab Chrome
+Åpne menyen **⋮** i appens vindu, velg elementet som avinstallerer appen, og deretter **Fjern**.
+:::
 
-   - Start Firefox-nettleseren
-   - Naviger til OneUptime-URL-en
-   - Fullfør innloggingsprosessen
+Windows viser også appen under **Innstillinger → Apper → Installerte apper**, der **Avinstaller** også fjerner den.
 
-2. **Installer PWA**
-   - Se etter **installasjonsforespørsel** eller -banner
-   - Eller klikk **meny** → **Installer**
-   - Hvis tilgjengelig, klikk tilsvarende **"Legg til på startskjerm"**
-
-### Oppstartkonfigurasjon
-
-1. **Autostart**: Konfigurer OneUptime til å starte med Windows
-   - Høyreklikk på oppgavelinjen → Oppgavebehandler → Oppstart
-   - Aktiver OneUptime om ønskelig
-2. **Standardstørrelse**: Angi foretrukket vindusstørrelse og -posisjon
-
-### Varselinnstillinger
-
-1. **Windows-varsler**
-
-   - Innstillinger → System → Varsler og handlinger
-   - Finn OneUptime og konfigurer varselpreferanser
-   - Aktiver bannervarsler for hendelser
-
-2. **Fokushjelp**
-   - Konfigurer innstillinger for Ikke forstyrr
-   - Tillat kritiske OneUptime-varsler
-   - Sett prioritetsnivåer for ulike varseltyper
-
-## Avanserte installasjonsalternativer
+Å avinstallere appen avregistrerer ikke nettleseren: den får fortsatt varsler. For å stoppe dem sletter du nettleseren under **Brukerinnstillinger → Varselmetoder**, på fanen **Push Notifications**, med **Slett**.
 
 ## Feilsøking
 
-### Installasjonsproblemer
+:::details Ingen installeringsikon i adresselinjen
+Åpne en dashbordside etter innlogging, ikke innloggingssiden, og sjekk at adressen begynner med `https://`: nettlesere installerer bare apper fra sikre nettsteder. Vises ikonet fortsatt ikke, bruker du nettleserens meny som over. Andre nettlesere installerer kanskje ikke nettsteder som apper; bruk Edge eller Chrome.
+:::
 
-**Installeringsknapp vises ikke:**
+:::details Det vises ingen varsler
+- Sjekk under **Brukerinnstillinger → Varselmetoder**, på fanen **Push Notifications**, at denne nettleseren står i listen, og send den et **Testvarsel**.
+- Åpne **Innstillinger → System → Varsler** i Windows: varsler må være på, også for nettleseren, og Ikke forstyrr av. Windows 10 kaller siden «Varsler og handlinger».
+- Blokkerer nettleseren varsler for OneUptime, klikker du på ikonet til venstre i adresselinjen, tillater varsler for nettstedet og registrerer nettleseren på nytt.
+- På et selvdriftet OneUptime sier dialogen **Registrer enhet** fra når serveren ikke har VAPID-nøkler.
+:::
 
-```
-Løsninger:
-1. Sørg for at du bruker Edge eller Chrome (anbefalte nettlesere)
-2. Bekreft HTTPS-tilkobling til OneUptime-instansen
-3. Tøm nettleserens hurtigbuffer og informasjonskapsler
-4. Oppdater nettleseren til nyeste versjon
-5. Sjekk om PWA-kravene er oppfylt på serveren
-6. Deaktiver nettleserutvidelser midlertidig
-```
+:::details Appen ber deg logge inn igjen
+Appen deler nettleserens innlogging. Logger du ut i nettleseren, eller sletter informasjonskapslene, logges appen også ut.
+:::
 
-**Installasjonen mislykkes eller krasjer:**
+## Neste trinn
 
-```
-Løsninger:
-1. Kjør nettleseren som administrator
-2. Sjekk Windows-innstillinger for brukerkontokontroll (UAC)
-3. Sørg for tilstrekkelig diskplass (minimum 100 MB)
-4. Deaktiver antivirusprogramvare midlertidig
-5. Tøm nettleserdata fullstendig
-6. Start Windows på nytt og prøv igjen
-```
-
-**Appen vises ikke i Start-menyen:**
-
-```
-Løsninger:
-1. Søk etter "OneUptime" i Windows-søk
-2. Sjekk om det er installert under et annet navn
-3. Se i seksjonen "Nylig lagt til" apper
-4. Installer på nytt og sørg for at "Legg til i Start-menyen" er huket av
-5. Opprett snarvei manuelt om nødvendig
-```
-
-### Varslingsproblemer
-
-**Windows-varsler fungerer ikke:**
-
-```
-Løsninger:
-1. Windows Innstillinger → System → Varsler og handlinger
-2. Aktiver varsler for OneUptime
-3. Sjekk Fokushjelp-innstillinger
-4. Sørg for varselstillatelser i OneUptime
-5. Test med enkelt varsel først
-```
-
-## Avinstallasjon
-
-### Fullstendig fjerning
-
-1. **Windows Innstillinger-metode**
-
-   - Innstillinger → Apper → Apper og funksjoner
-   - Søk etter "OneUptime"
-   - Klikk og velg "Avinstaller"
-
-2. **Nettlesermetode**
-
-   - Åpne Edge/Chrome
-   - Gå til edge://apps/ eller chrome://apps/
-   - Finn OneUptime
-   - Klikk alternativer → Avinstaller
-
-3. **Start-meny-metode**
-   - Høyreklikk OneUptime i Start-menyen
-   - Velg "Avinstaller"
-   - Bekreft fjerning
-
-## Oppdateringer og vedlikehold
-
-### Automatiske oppdateringer
-
-- OneUptime PWA oppdateres automatisk når den er tilkoblet
-- Ingen manuell intervensjon påkrevd
-- Oppdateringer brukes umiddelbart ved omstart
-- Kritiske oppdateringer distribueres umiddelbart
+:::cards
+- [macOS-installasjon](/docs/mobile-desktop-apps/macos-installation): Den samme appen på en Mac.
+- [Android-installasjon](/docs/mobile-desktop-apps/android-installation): Bli varslet på telefonen din.
+- [Vanlige spørsmål og feilsøking](/docs/mobile-desktop-apps/faq-troubleshooting): Svar om begge appene.
+- [Kontoen din](/docs/introduction/your-account): Slik når OneUptime deg i hvert prosjekt.
+:::

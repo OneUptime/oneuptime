@@ -18,6 +18,7 @@ import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseMo
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { applyTenantColumn, logUnknownColumns } from "./ModelArguments";
 import logComponentError from "./LogComponentError";
+import { assertIdsAreResolved } from "./UnresolvedIdReference";
 
 export default class CreateOneBaseModel<
   TBaseModel extends BaseModel,
@@ -108,6 +109,14 @@ export default class CreateOneBaseModel<
         );
       }
 
+      // An ID still written as a {{...}} reference stops the step. See the helper.
+      assertIdsAreResolved({
+        json: args["json"] as JSONObject,
+        model: this.modelService.getModel(),
+        metadata: this.getMetadata(),
+        argumentId: "json",
+      });
+
       /*
        * Checked before applyTenantColumn rather than after: the report should
        * name the keys the builder actually typed, and the tenant column the
@@ -155,7 +164,8 @@ export default class CreateOneBaseModel<
         executePort: successPort,
       };
     } catch (err: any) {
-      logComponentError({
+      // Said in the run log, and again under the step's Error output.
+      const reason: string = logComponentError({
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
@@ -165,6 +175,7 @@ export default class CreateOneBaseModel<
       return {
         returnValues: {},
         executePort: errorPort,
+        executePortReason: reason,
       };
     }
   }

@@ -112,6 +112,12 @@ curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
 
 날짜와 `_id`가 아닌 ID는 `{ "_type": "DateTime", "value": "..." }`, `{ "_type": "ObjectID", "value": "..." }`처럼 감싸진 채 돌아오므로 `value`에서 읽으세요.
 
+요청이 필터에 쓰거나 기록하는 모든 ID(`_id`, `monitorId` 같은 필드, `"labels": [{ "_id": "..." }]`처럼 관계가 나열하는 각 레코드)는 UUID이며, 텍스트로 보내거나 돌아올 때와 같은 방식으로 감싸서 보냅니다. UUID가 아닌 텍스트나 ID 대신 넣은 객체 같은 다른 값은 필드를 알려 주고 그것이 `query`와 `data` 중 어디에 있었는지 말해 주는 `400`으로 거부되며, 아무것도 읽거나 쓰지 않습니다.
+
+```text
+Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUID, such as "550e8400-e29b-41d4-a716-446655440000".
+```
+
 ### 상태 코드
 
 | 코드 | 의미 | 더 읽기 |

@@ -112,6 +112,12 @@ curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
 
 日付と `_id` 以外の ID は、`{ "_type": "DateTime", "value": "..." }` や `{ "_type": "ObjectID", "value": "..." }` のように包まれて返るので、`value` から読み取ってください。
 
+リクエストが絞り込みに使う ID や書き込む ID (`_id`、`monitorId` のようなフィールド、`"labels": [{ "_id": "..." }]` のようにリレーションが並べる各レコード) は UUID で、テキストとして送るか、返ってくるときと同じように包んで送ります。UUID ではないテキストや ID の代わりのオブジェクトなど、それ以外のものは、フィールドを示し、それが `query` と `data` のどちらにあったかを伝える `400` で拒否され、何も読み書きされません。
+
+```text
+Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUID, such as "550e8400-e29b-41d4-a716-446655440000".
+```
+
 ### ステータスコード
 
 | コード | 意味 | 詳細 |
