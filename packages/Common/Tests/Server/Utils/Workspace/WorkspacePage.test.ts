@@ -74,20 +74,14 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const SIMON: ObjectID = new ObjectID("e1000000-0000-4000-8000-0000000000a1");
 const NAWAZ: ObjectID = new ObjectID("e1000000-0000-4000-8000-0000000000a2");
 const ANA: ObjectID = new ObjectID("e1000000-0000-4000-8000-0000000000a3");
-const OUTSIDER: ObjectID = new ObjectID(
-  "e1000000-0000-4000-8000-0000000000a9",
-);
-const ALERT_ID: ObjectID = new ObjectID(
-  "e1000000-0000-4000-8000-0000000000b1",
-);
+const OUTSIDER: ObjectID = new ObjectID("e1000000-0000-4000-8000-0000000000a9");
+const ALERT_ID: ObjectID = new ObjectID("e1000000-0000-4000-8000-0000000000b1");
 const RUN_ID: ObjectID = new ObjectID("e1000000-0000-4000-8000-0000000000c1");
 const PRIMARY: ObjectID = new ObjectID("e1000000-0000-4000-8000-0000000000d1");
 const SECONDARY: ObjectID = new ObjectID(
   "e1000000-0000-4000-8000-0000000000d2",
 );
-const PLATFORM: ObjectID = new ObjectID(
-  "e1000000-0000-4000-8000-0000000000e1",
-);
+const PLATFORM: ObjectID = new ObjectID("e1000000-0000-4000-8000-0000000000e1");
 const DB_ESCALATION: ObjectID = new ObjectID(
   "e1000000-0000-4000-8000-0000000000f1",
 );
@@ -111,7 +105,8 @@ function userOf(id: ObjectID, email?: string): User {
   user.id = id;
   user.name = (NAMES[id.toString()] || "") as never;
   user.email = new Email(
-    email || `${(NAMES[id.toString()] || "x").split(" ")[0]!.toLowerCase()}@example.com`,
+    email ||
+      `${(NAMES[id.toString()] || "x").split(" ")[0]!.toLowerCase()}@example.com`,
   );
   return user;
 }
@@ -146,7 +141,9 @@ function result(data?: Partial<OnCallPageResult>): OnCallPageResult {
 }
 
 beforeEach(() => {
-  jest.spyOn(ProductBrandingText, "getProductName").mockReturnValue("OneUptime");
+  jest
+    .spyOn(ProductBrandingText, "getProductName")
+    .mockReturnValue("OneUptime");
 });
 
 afterEach(() => {
@@ -159,9 +156,11 @@ describe("WorkspacePage.assertMayPage: who may page", () => {
 
     jest
       .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
-      .mockImplementation(async (data: { modelType: unknown; action: string }) => {
-        asked.push([data.modelType, data.action]);
-      });
+      .mockImplementation(
+        async (data: { modelType: unknown; action: string }) => {
+          asked.push([data.modelType, data.action]);
+        },
+      );
 
     await expect(WorkspacePage.assertMayPage(PROPS)).resolves.toBeUndefined();
 
@@ -215,22 +214,20 @@ describe("WorkspacePage.resolvePeople: who a chat's @mention is in OneUptime", (
     ];
     emailsAsked = [];
 
-    jest
-      .spyOn(UserService, "findBy")
-      .mockImplementation((async (data: {
-        query: { email?: unknown; _id?: unknown };
-      }): Promise<Array<User>> => {
-        if (data.query.email) {
-          emailsAsked.push(data.query.email);
-          return users.filter((user: User): boolean => {
-            return JSON.stringify(data.query.email)
-              .toLowerCase()
-              .includes(`"${user.email!.toString().toLowerCase()}"`);
-          });
-        }
+    jest.spyOn(UserService, "findBy").mockImplementation((async (data: {
+      query: { email?: unknown; _id?: unknown };
+    }): Promise<Array<User>> => {
+      if (data.query.email) {
+        emailsAsked.push(data.query.email);
+        return users.filter((user: User): boolean => {
+          return JSON.stringify(data.query.email)
+            .toLowerCase()
+            .includes(`"${user.email!.toString().toLowerCase()}"`);
+        });
+      }
 
-        return users;
-      }) as never);
+      return users;
+    }) as never);
     jest
       .spyOn(ProjectMembership, "getMemberUserIds")
       .mockImplementation(async () => {
@@ -239,7 +236,9 @@ describe("WorkspacePage.resolvePeople: who a chat's @mention is in OneUptime", (
   });
 
   async function resolve(
-    ...candidates: Parameters<typeof WorkspacePage.resolvePeople>[0]["candidates"]
+    ...candidates: Parameters<
+      typeof WorkspacePage.resolvePeople
+    >[0]["candidates"]
   ): Promise<WorkspacePagePeople> {
     return await WorkspacePage.resolvePeople({
       projectId: PROJECT_ID,
@@ -304,8 +303,7 @@ describe("WorkspacePage.resolvePeople: who a chat's @mention is in OneUptime", (
 
   test("a mention with no name at all is said as such", async () => {
     expect(
-      (await resolve({ person: { workspaceUserId: "U0X", name: "" } }))
-        .notTold,
+      (await resolve({ person: { workspaceUserId: "U0X", name: "" } })).notTold,
     ).toEqual([
       "OneUptime can't tell who a person you mentioned is: their Slack account isn't connected to OneUptime.",
     ]);
@@ -413,7 +411,12 @@ describe("WorkspacePage.getChoices: what the Page someone form offers", () => {
       schedule(PRIMARY, "Primary", userOf(NAWAZ)),
       schedule(SECONDARY, "Secondary"),
     ];
-    teamMembers = [member(userOf(SIMON)), member(userOf(NAWAZ)), member(userOf(ANA)), member(userOf(NAWAZ))];
+    teamMembers = [
+      member(userOf(SIMON)),
+      member(userOf(NAWAZ)),
+      member(userOf(ANA)),
+      member(userOf(NAWAZ)),
+    ];
     const team: Team = new Team();
     team.id = PLATFORM;
     team.name = "Platform";
@@ -670,7 +673,9 @@ describe("WorkspacePage.getPrefill: the form opens with what was typed", () => {
 
   test("a schedule's name typed first: picked, and the rest is the message - the longest name wins", () => {
     expect(
-      prefill(WorkspacePageTextReader.readText("primary database: replica lag")),
+      prefill(
+        WorkspacePageTextReader.readText("primary database: replica lag"),
+      ),
     ).toEqual({
       values: [`schedule:${SECONDARY.toString()}`],
       message: "replica lag",
@@ -687,7 +692,9 @@ describe("WorkspacePage.getPrefill: the form opens with what was typed", () => {
 
   test("a person's name typed first is no pick: a person is @mentioned", () => {
     expect(
-      prefill(WorkspacePageTextReader.readText("Nawaz Dhandala the DB is down")),
+      prefill(
+        WorkspacePageTextReader.readText("Nawaz Dhandala the DB is down"),
+      ),
     ).toEqual({
       values: [],
       message: "Nawaz Dhandala the DB is down",
@@ -862,7 +869,9 @@ describe("WorkspacePage.page: the page itself", () => {
         pageRequests.push(request);
         return pageResult;
       });
-    jest.spyOn(UserService, "findBy").mockResolvedValue([userOf(SIMON)] as never);
+    jest
+      .spyOn(UserService, "findBy")
+      .mockResolvedValue([userOf(SIMON)] as never);
     jest
       .spyOn(WorkspaceLiveMessageService, "findByMessageKey")
       .mockImplementation((async (data: {

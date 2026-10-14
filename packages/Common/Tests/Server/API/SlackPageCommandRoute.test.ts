@@ -37,6 +37,7 @@ import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicySe
 import {
   OnCallPageRecordType,
   OnCallPageResult,
+  OnCallPageTargets,
 } from "../../../Server/Services/OnCallPageService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
@@ -54,7 +55,6 @@ import WorkspacePage, {
   WorkspacePageOutcome,
   WorkspacePagePlace,
 } from "../../../Server/Utils/Workspace/WorkspacePage";
-import { OnCallPageTargets } from "../../../Server/Services/OnCallPageService";
 import { CONNECT_REQUEST_TOKEN_PATTERN } from "../../../Types/Workspace/ConnectCallback";
 
 /*
@@ -117,19 +117,13 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const SIMON: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000a1");
 const NAWAZ: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000a2");
 const ANA: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000a3");
-const OUTSIDER: ObjectID = new ObjectID(
-  "c4000000-0000-4000-8000-0000000000a9",
-);
+const OUTSIDER: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000a9");
 const PRIMARY: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000d1");
-const PLATFORM: ObjectID = new ObjectID(
-  "c4000000-0000-4000-8000-0000000000e1",
-);
+const PLATFORM: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000e1");
 const DB_ESCALATION: ObjectID = new ObjectID(
   "c4000000-0000-4000-8000-0000000000f1",
 );
-const ALERT_ID: ObjectID = new ObjectID(
-  "c4000000-0000-4000-8000-0000000000b1",
-);
+const ALERT_ID: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000b1");
 const RUN_ID: ObjectID = new ObjectID("c4000000-0000-4000-8000-0000000000c1");
 
 const ALERT_URL: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/alerts/${ALERT_ID.toString()}`;
@@ -334,7 +328,11 @@ function formSubmission(data: {
   };
 }
 
-function scheduleOf(id: ObjectID, name: string, onCall?: User): OnCallDutyPolicySchedule {
+function scheduleOf(
+  id: ObjectID,
+  name: string,
+  onCall?: User,
+): OnCallDutyPolicySchedule {
   const schedule: OnCallDutyPolicySchedule = new OnCallDutyPolicySchedule();
   schedule.id = id;
   schedule.name = name;
@@ -388,9 +386,7 @@ describe("POST /slack/command: /oneuptime page", () => {
     mayCreateAlert = true;
     members = [SIMON, NAWAZ, ANA];
     pages = [];
-    schedules = [
-      scheduleOf(PRIMARY, "Primary", userOf(NAWAZ)),
-    ];
+    schedules = [scheduleOf(PRIMARY, "Primary", userOf(NAWAZ))];
     viewsOpenError = null;
     outcome = async (): Promise<WorkspacePageOutcome> => {
       return {
@@ -463,19 +459,21 @@ describe("POST /slack/command: /oneuptime page", () => {
       });
     jest
       .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
-      .mockImplementation(async (data: { modelType: unknown; action: string }) => {
-        if (data.modelType === OnCallDutyPolicyExecutionLog && !mayPage) {
-          throw new NotAuthorizedException(
-            `You do not have permission to ${data.action}.`,
-          );
-        }
+      .mockImplementation(
+        async (data: { modelType: unknown; action: string }) => {
+          if (data.modelType === OnCallDutyPolicyExecutionLog && !mayPage) {
+            throw new NotAuthorizedException(
+              `You do not have permission to ${data.action}.`,
+            );
+          }
 
-        if (data.modelType === Alert && !mayCreateAlert) {
-          throw new NotAuthorizedException(
-            `You do not have permission to ${data.action}. You do not have permissions to create Alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin.`,
-          );
-        }
-      });
+          if (data.modelType === Alert && !mayCreateAlert) {
+            throw new NotAuthorizedException(
+              `You do not have permission to ${data.action}. You do not have permissions to create Alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin.`,
+            );
+          }
+        },
+      );
     // What the form offers, as the member may read it.
     jest
       .spyOn(WorkspaceActionAuthorization, "findReadable")
@@ -512,37 +510,39 @@ describe("POST /slack/command: /oneuptime page", () => {
           }),
         );
       });
-    jest
-      .spyOn(UserService, "findBy")
-      .mockImplementation((async (data: { query: { email?: unknown } }) => {
-        const everybody: Array<User> = [SIMON, NAWAZ, ANA, OUTSIDER].map(
-          (id: ObjectID): User => {
-            return userOf(id);
-          },
-        );
+    jest.spyOn(UserService, "findBy").mockImplementation((async (data: {
+      query: { email?: unknown };
+    }) => {
+      const everybody: Array<User> = [SIMON, NAWAZ, ANA, OUTSIDER].map(
+        (id: ObjectID): User => {
+          return userOf(id);
+        },
+      );
 
-        if (data.query.email) {
-          return everybody.filter((user: User): boolean => {
-            return JSON.stringify(data.query.email).includes(
-              `"${user.email!.toString()}"`,
-            );
-          });
-        }
+      if (data.query.email) {
+        return everybody.filter((user: User): boolean => {
+          return JSON.stringify(data.query.email).includes(
+            `"${user.email!.toString()}"`,
+          );
+        });
+      }
 
-        return everybody;
-      }) as never);
+      return everybody;
+    }) as never);
     jest
       .spyOn(WorkspacePage, "page")
-      .mockImplementation(async (data: Parameters<typeof WorkspacePage.page>[0]) => {
-        pages.push({
-          targets: data.targets,
-          message: data.message,
-          place: data.place,
-          props: data.props,
-          workspaceType: data.workspaceType,
-        });
-        return await outcome();
-      });
+      .mockImplementation(
+        async (data: Parameters<typeof WorkspacePage.page>[0]) => {
+          pages.push({
+            targets: data.targets,
+            message: data.message,
+            place: data.place,
+            props: data.props,
+            workspaceType: data.workspaceType,
+          });
+          return await outcome();
+        },
+      );
     jest
       .spyOn(DatabaseConfig, "getDashboardUrl")
       .mockResolvedValue(URL.fromString(DASHBOARD_URL));
@@ -684,7 +684,9 @@ describe("POST /slack/command: /oneuptime page", () => {
   function textOf(blocks: unknown): string {
     return ((blocks as Array<JSONObject> | undefined) || [])
       .map((block: JSONObject): string => {
-        return String((block["text"] as JSONObject | undefined)?.["text"] || "");
+        return String(
+          (block["text"] as JSONObject | undefined)?.["text"] || "",
+        );
       })
       .join("\n")
       .split(ZERO_WIDTH_SPACE)
@@ -934,7 +936,10 @@ describe("POST /slack/command: /oneuptime page", () => {
             (group["label"] as JSONObject)["text"],
             (group["options"] as Array<JSONObject>).map(
               (option: JSONObject) => {
-                return [(option["text"] as JSONObject)["text"], option["value"]];
+                return [
+                  (option["text"] as JSONObject)["text"],
+                  option["value"],
+                ];
               },
             ),
           ];
@@ -1021,9 +1026,7 @@ describe("POST /slack/command: /oneuptime page", () => {
       await post("page <@U0NAWAZ|nawaz> <@U0OLGA|olga> db down");
       const view: JSONObject = await openedForm();
 
-      expect(notesIn(view)).toBe(
-        "⚠️ @olga isn't a member of this project.\n",
-      );
+      expect(notesIn(view)).toBe("⚠️ @olga isn't a member of this project.\n");
       expect(pickedIn(view)).toEqual([`user:${NAWAZ.toString()}`]);
       expect(pages).toEqual([]);
     });

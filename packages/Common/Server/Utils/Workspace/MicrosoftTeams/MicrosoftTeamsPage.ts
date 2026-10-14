@@ -159,11 +159,9 @@ export default class MicrosoftTeamsPage {
       projectId: projectId,
       props: props,
       targets: {
-        userIds: people.people.map(
-          (person: { userId: ObjectID }): ObjectID => {
-            return person.userId;
-          },
-        ),
+        userIds: people.people.map((person: { userId: ObjectID }): ObjectID => {
+          return person.userId;
+        }),
       },
       message: text.message,
     });

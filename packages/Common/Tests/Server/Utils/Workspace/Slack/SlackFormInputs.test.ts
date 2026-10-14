@@ -8,9 +8,7 @@ import {
   WorkspaceTextAreaBlock,
   WorkspaceTextBoxBlock,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
-import {
-  WorkspacePageTargetKind,
-} from "../../../../../Server/Utils/Workspace/WorkspacePage";
+import { WorkspacePageTargetKind } from "../../../../../Server/Utils/Workspace/WorkspacePage";
 
 /*
  * A SLACK FORM'S FIELDS, AS SLACK IS SENT THEM.
@@ -44,7 +42,9 @@ describe("a select with its options in groups", () => {
       optionGroups: [
         {
           label: "On-call schedules",
-          options: [{ label: "Primary (Ana on call now)", value: "schedule:1" }],
+          options: [
+            { label: "Primary (Ana on call now)", value: "schedule:1" },
+          ],
         },
         {
           label: "People",
@@ -236,7 +236,9 @@ describe("the Page someone form, as Slack is sent it", () => {
     },
   });
 
-  const view: JSONObject = SlackUtil.getModalBlock({ payloadModalBlock: modal });
+  const view: JSONObject = SlackUtil.getModalBlock({
+    payloadModalBlock: modal,
+  });
   const blocks: Array<JSONObject> = view["blocks"] as Array<JSONObject>;
 
   test("its title, its buttons, and the action its submission is", () => {
@@ -249,9 +251,11 @@ describe("the Page someone form, as Slack is sent it", () => {
   });
 
   test("a note first, then who to page, then the message - each filled in", () => {
-    expect(blocks.map((block: JSONObject) => {
-      return block["type"];
-    })).toEqual(["section", "input", "input"]);
+    expect(
+      blocks.map((block: JSONObject) => {
+        return block["type"];
+      }),
+    ).toEqual(["section", "input", "input"]);
     expect(
       String((blocks[0]!["text"] as JSONObject)["text"])
         .split(String.fromCharCode(0x200b))

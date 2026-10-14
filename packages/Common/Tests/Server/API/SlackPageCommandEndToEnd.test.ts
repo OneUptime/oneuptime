@@ -456,9 +456,9 @@ afterEach(() => {
 
 describe("Jane: /oneuptime page @nitin The checkout API is throwing 500s, in #ops", () => {
   beforeEach(async () => {
-    expect(
-      await postCommand(app.port, `page <@U0NITIN|nitin> ${TITLE}`),
-    ).toBe(200);
+    expect(await postCommand(app.port, `page <@U0NITIN|nitin> ${TITLE}`)).toBe(
+      200,
+    );
 
     await settled();
   });

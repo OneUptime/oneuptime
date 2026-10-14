@@ -169,7 +169,11 @@ async function startFakeBotConnector(): Promise<FakeBotConnector> {
 
           if (!known) {
             res.writeHead(404, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: { code: "MemberNotFoundInConversation" } }));
+            res.end(
+              JSON.stringify({
+                error: { code: "MemberNotFoundInConversation" },
+              }),
+            );
             return;
           }
 
@@ -281,7 +285,8 @@ const ANA_IN_TEAMS: JSONObject = {
   userPrincipalName: "ana@example.com",
 };
 const PERSONAL_CONVERSATION_ID: string = "a:4221-personal-chat";
-const CHANNEL_CONVERSATION_ID: string = "19:ops-4221@thread.tacv2;messageid=1760000000001";
+const CHANNEL_CONVERSATION_ID: string =
+  "19:ops-4221@thread.tacv2;messageid=1760000000001";
 const CHANNEL_ID: string = "19:ops-4221@thread.tacv2";
 const TEAM_THREAD_ID: string = "19:ops-team-4221@thread.tacv2";
 const GRAPH_TEAM_ID: string = "aaaa4221-0000-4000-8000-000000000001";
@@ -291,9 +296,7 @@ const SIMON: ObjectID = new ObjectID("d4000000-0000-4000-8000-0000000000a1");
 const NAWAZ: ObjectID = new ObjectID("d4000000-0000-4000-8000-0000000000a2");
 const ANA: ObjectID = new ObjectID("d4000000-0000-4000-8000-0000000000a3");
 const PRIMARY: ObjectID = new ObjectID("d4000000-0000-4000-8000-0000000000d1");
-const ALERT_ID: ObjectID = new ObjectID(
-  "d4000000-0000-4000-8000-0000000000b1",
-);
+const ALERT_ID: ObjectID = new ObjectID("d4000000-0000-4000-8000-0000000000b1");
 
 const NAMES: Record<string, string> = {
   [SIMON.toString()]: "Simon Lee",
@@ -554,13 +557,15 @@ beforeEach(() => {
     });
   jest
     .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
-    .mockImplementation(async (data: { modelType: unknown; action: string }) => {
-      if (!mayPage && data.modelType === OnCallDutyPolicyExecutionLog) {
-        throw new NotAuthorizedException(
-          `You do not have permission to ${data.action}. You need one of these permissions: Project Member.`,
-        );
-      }
-    });
+    .mockImplementation(
+      async (data: { modelType: unknown; action: string }) => {
+        if (!mayPage && data.modelType === OnCallDutyPolicyExecutionLog) {
+          throw new NotAuthorizedException(
+            `You do not have permission to ${data.action}. You need one of these permissions: Project Member.`,
+          );
+        }
+      },
+    );
 
   // Who is who, and who is a member.
   jest
@@ -575,21 +580,21 @@ beforeEach(() => {
         },
       );
     }) as never);
-  jest
-    .spyOn(UserService, "findBy")
-    .mockImplementation((async (data: { query: { email?: unknown } }) => {
-      const everybody: Array<User> = [SIMON, NAWAZ, ANA].map(userOf);
+  jest.spyOn(UserService, "findBy").mockImplementation((async (data: {
+    query: { email?: unknown };
+  }) => {
+    const everybody: Array<User> = [SIMON, NAWAZ, ANA].map(userOf);
 
-      if (data.query.email) {
-        return everybody.filter((user: User): boolean => {
-          return JSON.stringify(data.query.email).includes(
-            `"${user.email!.toString()}"`,
-          );
-        });
-      }
+    if (data.query.email) {
+      return everybody.filter((user: User): boolean => {
+        return JSON.stringify(data.query.email).includes(
+          `"${user.email!.toString()}"`,
+        );
+      });
+    }
 
-      return everybody;
-    }) as never);
+    return everybody;
+  }) as never);
   jest
     .spyOn(ProjectMembership, "getMemberUserIds")
     .mockImplementation(async () => {
@@ -627,16 +632,18 @@ beforeEach(() => {
 
   jest
     .spyOn(WorkspacePage, "page")
-    .mockImplementation(async (data: Parameters<typeof WorkspacePage.page>[0]) => {
-      pages.push({
-        targets: data.targets,
-        message: data.message,
-        place: data.place,
-        props: data.props,
-        workspaceType: data.workspaceType,
-      });
-      return await outcome();
-    });
+    .mockImplementation(
+      async (data: Parameters<typeof WorkspacePage.page>[0]) => {
+        pages.push({
+          targets: data.targets,
+          message: data.message,
+          place: data.place,
+          props: data.props,
+          workspaceType: data.workspaceType,
+        });
+        return await outcome();
+      },
+    );
 
   jest.spyOn(DatabaseConfig, "getDashboardUrl").mockImplementation(() => {
     return Promise.resolve(URL.fromString(DASHBOARD_URL));
@@ -734,11 +741,9 @@ describe("page @Nawaz <message>: paged at once", () => {
 
   test("in a channel: after @OneUptime, the page is shown in the channel, of the team Graph knows it by", async () => {
     await deliver(
-      message(
-        "page <at>Nawaz Dhandala</at>: db down",
-        "channel",
-        [NAWAZ_IN_TEAMS],
-      ),
+      message("page <at>Nawaz Dhandala</at>: db down", "channel", [
+        NAWAZ_IN_TEAMS,
+      ]),
     );
 
     expect(pages[0]!.message).toBe("db down");
@@ -797,7 +802,8 @@ describe("page @Nawaz <message>: paged at once", () => {
         result: undefined as never,
         isShownAtPlace: false,
         answer: {
-          markdown: "📟 Paged **Nawaz Dhandala** about **Alert AL-12**: “db down”",
+          markdown:
+            "📟 Paged **Nawaz Dhandala** about **Alert AL-12**: “db down”",
           text: "Paged Nawaz Dhandala about Alert AL-12",
         },
       };

@@ -297,7 +297,9 @@ export default class WorkspaceCommands {
    * the docs write it: "[title]", "[who] [message]" - or "" for a command
    * that takes nothing after it.
    */
-  public static getArgumentHint(definition: WorkspaceCommandDefinition): string {
+  public static getArgumentHint(
+    definition: WorkspaceCommandDefinition,
+  ): string {
     if (!definition.argument) {
       return "";
     }

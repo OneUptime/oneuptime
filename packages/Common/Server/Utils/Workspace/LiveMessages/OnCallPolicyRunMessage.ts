@@ -342,10 +342,7 @@ export default class OnCallPolicyRunMessage {
         });
       }
 
-      if (
-        pageRequestPlaces.length > 0 ||
-        keptAtPageRequestPlaces.length > 0
-      ) {
+      if (pageRequestPlaces.length > 0 || keptAtPageRequestPlaces.length > 0) {
         await this.syncPageRequestPlaces({
           reading: reading,
           messageKey: messageKey,
@@ -374,54 +371,54 @@ export default class OnCallPolicyRunMessage {
     const { reading, markdownBlock, alarms, endedAs } = data;
     const kept: Array<WorkspaceLiveMessage> = data.keptEverywhere;
 
-      const raised: Array<string> = this.getRaisedAlarms(kept);
+    const raised: Array<string> = this.getRaisedAlarms(kept);
 
-      const newAlarms: Array<OnCallPolicyRunAlarm> = alarms.filter(
-        (alarm: OnCallPolicyRunAlarm): boolean => {
-          return !raised.includes(alarm.key);
-        },
-      );
+    const newAlarms: Array<OnCallPolicyRunAlarm> = alarms.filter(
+      (alarm: OnCallPolicyRunAlarm): boolean => {
+        return !raised.includes(alarm.key);
+      },
+    );
 
-      for (const alarm of newAlarms) {
-        try {
-          await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
-            {
-              projectId: reading.projectId,
-              notificationFor: reading.notificationFor,
-              feedInfoInMarkdown: alarm.markdown,
-              // An alarm is posted to be seen: its notification says what is wrong.
-              notificationText: alarm.text,
-              workspaceNotification: {
-                sendWorkspaceNotification: true,
-              },
+    for (const alarm of newAlarms) {
+      try {
+        await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
+          {
+            projectId: reading.projectId,
+            notificationFor: reading.notificationFor,
+            feedInfoInMarkdown: alarm.markdown,
+            // An alarm is posted to be seen: its notification says what is wrong.
+            notificationText: alarm.text,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
             },
-          );
-        } catch (err) {
-          logger.error("Could not post an on-call alarm to Slack / Teams.", {
-            projectId: reading.projectId.toString(),
-          } as LogAttributes);
-          logger.error(err, {
-            projectId: reading.projectId.toString(),
-          } as LogAttributes);
-        }
-
-        raised.push(alarm.key);
-      }
-
-      for (const keptMessage of kept) {
-        await WorkspaceLiveMessages.updateKept({
-          keptMessage: keptMessage,
-          messageBlocks: [markdownBlock],
-          text: OnCallPolicyRunMessageView.getPlainText(reading.run),
-          messageData: {
-            ...(keptMessage.messageData || {}),
-            alarms: [...raised],
-            ...(endedAs ? { endedAs: endedAs } : {}),
           },
-          // The alarms were posted, edit or no edit: never post them again.
-          rememberIfNotEdited: true,
-        });
+        );
+      } catch (err) {
+        logger.error("Could not post an on-call alarm to Slack / Teams.", {
+          projectId: reading.projectId.toString(),
+        } as LogAttributes);
+        logger.error(err, {
+          projectId: reading.projectId.toString(),
+        } as LogAttributes);
       }
+
+      raised.push(alarm.key);
+    }
+
+    for (const keptMessage of kept) {
+      await WorkspaceLiveMessages.updateKept({
+        keptMessage: keptMessage,
+        messageBlocks: [markdownBlock],
+        text: OnCallPolicyRunMessageView.getPlainText(reading.run),
+        messageData: {
+          ...(keptMessage.messageData || {}),
+          alarms: [...raised],
+          ...(endedAs ? { endedAs: endedAs } : {}),
+        },
+        // The alarms were posted, edit or no edit: never post them again.
+        rememberIfNotEdited: true,
+      });
+    }
   }
 
   /*

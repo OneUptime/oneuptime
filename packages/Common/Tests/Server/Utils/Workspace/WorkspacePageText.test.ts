@@ -17,8 +17,14 @@ import WorkspacePageTextReader, {
  * start only fills the form in (startsWithName), never pages by itself.
  */
 
-const NAWAZ: WorkspacePagePerson = { workspaceUserId: "U0NAWAZ", name: "nawaz" };
-const SIMON: WorkspacePagePerson = { workspaceUserId: "U0SIMON", name: "simon" };
+const NAWAZ: WorkspacePagePerson = {
+  workspaceUserId: "U0NAWAZ",
+  name: "nawaz",
+};
+const SIMON: WorkspacePagePerson = {
+  workspaceUserId: "U0SIMON",
+  name: "simon",
+};
 const ANA: WorkspacePagePerson = { workspaceUserId: "U0ANA", name: "Ana Ruiz" };
 
 function person(who: WorkspacePagePerson): WorkspacePageToken {
@@ -40,7 +46,11 @@ function read(...tokens: Array<WorkspacePageToken>): WorkspacePageText {
 describe("who: the people @mentioned before the message", () => {
   test("/oneuptime page @nawaz The checkout API is throwing 500s", () => {
     expect(
-      read(text(" "), person(NAWAZ), text(" The checkout API is throwing 500s")),
+      read(
+        text(" "),
+        person(NAWAZ),
+        text(" The checkout API is throwing 500s"),
+      ),
     ).toEqual({
       people: [NAWAZ],
       groups: [],
@@ -56,7 +66,12 @@ describe("who: the people @mentioned before the message", () => {
     ],
     [
       "a comma",
-      [person(NAWAZ), text(", "), person(SIMON), text(" the replica is behind")],
+      [
+        person(NAWAZ),
+        text(", "),
+        person(SIMON),
+        text(" the replica is behind"),
+      ],
     ],
     [
       "a comma with no space",
@@ -82,11 +97,21 @@ describe("who: the people @mentioned before the message", () => {
     ],
     [
       '"&"',
-      [person(NAWAZ), text(" & "), person(SIMON), text(" the replica is behind")],
+      [
+        person(NAWAZ),
+        text(" & "),
+        person(SIMON),
+        text(" the replica is behind"),
+      ],
     ],
     [
       '"+"',
-      [person(NAWAZ), text(" + "), person(SIMON), text(" the replica is behind")],
+      [
+        person(NAWAZ),
+        text(" + "),
+        person(SIMON),
+        text(" the replica is behind"),
+      ],
     ],
     [
       "nothing at all",
@@ -193,9 +218,9 @@ describe("the message: everything after who, as typed", () => {
   });
 
   test("a message over several lines keeps its lines", () => {
-    expect(
-      read(person(NAWAZ), text("\nline one\nline two\n")).message,
-    ).toBe("line one\nline two");
+    expect(read(person(NAWAZ), text("\nline one\nline two\n")).message).toBe(
+      "line one\nline two",
+    );
   });
 
   test("a message with marks that mean something in Markdown is kept as typed: it is text", () => {
@@ -293,9 +318,7 @@ describe("who OneUptime cannot tell: groups and names sent as text", () => {
   });
 
   test("an email address in the message is not a name", () => {
-    expect(
-      read(person(NAWAZ), text(" mail ops@example.com")),
-    ).toEqual({
+    expect(read(person(NAWAZ), text(" mail ops@example.com"))).toEqual({
       people: [NAWAZ],
       groups: [],
       unknownNames: [],

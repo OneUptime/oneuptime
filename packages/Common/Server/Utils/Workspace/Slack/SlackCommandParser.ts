@@ -227,17 +227,11 @@ export default class SlackCommandParser {
     if (target.startsWith("!subteam^")) {
       return {
         kind: "group",
-        name:
-          label.replace(LEADING_AT, "") ||
-          target.slice("!subteam^".length),
+        name: label.replace(LEADING_AT, "") || target.slice("!subteam^".length),
       };
     }
 
-    if (
-      target === "!here" ||
-      target === "!channel" ||
-      target === "!everyone"
-    ) {
+    if (target === "!here" || target === "!channel" || target === "!everyone") {
       return { kind: "group", name: target.slice(1) };
     }
 

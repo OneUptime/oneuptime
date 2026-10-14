@@ -180,11 +180,9 @@ export default class SlackPageActions {
       slackRequest: slackRequest,
       props: props,
       targets: {
-        userIds: people.people.map(
-          (person: { userId: ObjectID }): ObjectID => {
-            return person.userId;
-          },
-        ),
+        userIds: people.people.map((person: { userId: ObjectID }): ObjectID => {
+          return person.userId;
+        }),
       },
       message: text.message,
       channelName:
@@ -500,7 +498,9 @@ export default class SlackPageActions {
       description:
         "What the people you page are told: the title of the alert the page is about.",
       ...(data.prefill.message
-        ? { initialValue: data.prefill.message.substring(0, MAX_MESSAGE_LENGTH) }
+        ? {
+            initialValue: data.prefill.message.substring(0, MAX_MESSAGE_LENGTH),
+          }
         : {}),
     };
 
@@ -555,7 +555,9 @@ export default class SlackPageActions {
 
     return await Promise.all(
       data.people.map(
-        async (person: WorkspacePagePerson): Promise<WorkspacePageCandidate> => {
+        async (
+          person: WorkspacePagePerson,
+        ): Promise<WorkspacePageCandidate> => {
           const connection: WorkspaceUserAuthToken | undefined = connected.find(
             (token: WorkspaceUserAuthToken): boolean => {
               return token.workspaceUserId === person.workspaceUserId;

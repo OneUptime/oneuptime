@@ -528,8 +528,7 @@ export default class WorkspacePage {
         return Boolean(policy.id);
       })
       .map((policy: OnCallDutyPolicy): WorkspacePageChoice => {
-        const name: string =
-          policy.name?.toString().trim() || "Unnamed policy";
+        const name: string = policy.name?.toString().trim() || "Unnamed policy";
 
         return {
           value: WorkspacePage.toValue(
@@ -592,7 +591,9 @@ export default class WorkspacePage {
        * said by name: a form cannot pick what it does not offer.
        */
       if (
-        !pick(WorkspacePage.toValue(WorkspacePageTargetKind.Person, person.userId))
+        !pick(
+          WorkspacePage.toValue(WorkspacePageTargetKind.Person, person.userId),
+        )
       ) {
         notes.push(
           `${person.name} isn't in the list below. Run the command again with them @mentioned to page them at once.`,

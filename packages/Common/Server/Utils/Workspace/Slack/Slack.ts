@@ -289,18 +289,19 @@ export default class SlackUtil extends WorkspaceBase {
         ((response.jsonData as JSONObject)["user"] as JSONObject) || {};
       const profile: JSONObject = (user["profile"] as JSONObject) || {};
 
-      const name: string = [
-        profile["display_name"],
-        profile["real_name"],
-        user["real_name"],
-        user["name"],
-      ]
-        .map((value: unknown): string => {
-          return typeof value === "string" ? value.trim() : "";
-        })
-        .find((value: string): boolean => {
-          return value.length > 0;
-        }) || "";
+      const name: string =
+        [
+          profile["display_name"],
+          profile["real_name"],
+          user["real_name"],
+          user["name"],
+        ]
+          .map((value: unknown): string => {
+            return typeof value === "string" ? value.trim() : "";
+          })
+          .find((value: string): boolean => {
+            return value.length > 0;
+          }) || "";
 
       const email: string =
         typeof profile["email"] === "string"

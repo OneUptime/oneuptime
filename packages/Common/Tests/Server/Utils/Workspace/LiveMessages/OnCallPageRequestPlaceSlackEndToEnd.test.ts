@@ -143,7 +143,11 @@ class FakeSlack {
 
   public posts(channel: string): Array<SlackRequest> {
     return this.requests.filter((request: SlackRequest): boolean => {
-      return request.method === "chat.postMessage" && request.channel === channel && request.ts !== "";
+      return (
+        request.method === "chat.postMessage" &&
+        request.channel === channel &&
+        request.ts !== ""
+      );
     });
   }
 

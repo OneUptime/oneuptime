@@ -140,9 +140,7 @@ describe("where the page was asked from: what it is about, under the first line"
     expect(
       OnCallPolicyRunMessageView.getPlainText(page(), { recordTitle: title })
         .length,
-    ).toBeLessThanOrEqual(
-      "Simon Lee is paging for Alert AL-12: ".length + 300,
-    );
+    ).toBeLessThanOrEqual("Simon Lee is paging for Alert AL-12: ".length + 300);
   });
 
   test("a record with no title, or one of spaces: no line for it", () => {
@@ -163,9 +161,7 @@ describe("where the page was asked from: what it is about, under the first line"
 
 describe("everywhere else: the message as it was", () => {
   test("no title line, and the notification without it", () => {
-    expect(OnCallPolicyRunMessageView.getMarkdown(page())).not.toContain(
-      TITLE,
-    );
+    expect(OnCallPolicyRunMessageView.getMarkdown(page())).not.toContain(TITLE);
     expect(
       OnCallPolicyRunMessageView.getMarkdown(page()).split("\n\n")[1],
     ).toBe("- **Nawaz Dhandala**: paged once · by push");

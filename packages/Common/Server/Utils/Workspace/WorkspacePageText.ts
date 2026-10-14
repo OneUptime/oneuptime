@@ -122,32 +122,34 @@ export default class WorkspacePageTextReader {
      * text - comes next after `index` in the text token (skipping white
      * space), or as the next token when the text token ends first.
      */
-    const isMentionNext: (fromToken: number, fromPosition: number) => boolean =
-      (fromToken: number, fromPosition: number): boolean => {
-        let current: number = fromToken;
-        let at: number = fromPosition;
+    const isMentionNext: (
+      fromToken: number,
+      fromPosition: number,
+    ) => boolean = (fromToken: number, fromPosition: number): boolean => {
+      let current: number = fromToken;
+      let at: number = fromPosition;
 
-        while (current < tokens.length) {
-          const token: WorkspacePageToken = tokens[current]!;
+      while (current < tokens.length) {
+        const token: WorkspacePageToken = tokens[current]!;
 
-          if (token.kind !== "text") {
-            return true;
-          }
-
-          while (at < token.text.length && isWhiteSpace(token.text[at])) {
-            at++;
-          }
-
-          if (at < token.text.length) {
-            return token.text[at] === "@" && at + 1 < token.text.length;
-          }
-
-          current++;
-          at = 0;
+        if (token.kind !== "text") {
+          return true;
         }
 
-        return false;
-      };
+        while (at < token.text.length && isWhiteSpace(token.text[at])) {
+          at++;
+        }
+
+        if (at < token.text.length) {
+          return token.text[at] === "@" && at + 1 < token.text.length;
+        }
+
+        current++;
+        at = 0;
+      }
+
+      return false;
+    };
 
     // ---- who -------------------------------------------------------------
 
@@ -231,7 +233,8 @@ export default class WorkspacePageTextReader {
       const token: WorkspacePageToken = tokens[index]!;
 
       if (token.kind === "text") {
-        message += index === tokenIndex ? token.text.substring(position) : token.text;
+        message +=
+          index === tokenIndex ? token.text.substring(position) : token.text;
         continue;
       }
 

@@ -100,7 +100,6 @@ describe("the Slack app manifest's commands", () => {
     );
   });
 
-
   test("the command is the one the server reads its words after", () => {
     expect(slashCommands[0]!.command).toBe(WorkspaceCommands.SLACK_COMMAND);
   });
