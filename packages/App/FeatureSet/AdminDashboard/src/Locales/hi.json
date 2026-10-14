@@ -358,7 +358,14 @@
       "amountTooPrecise": "राशि में दो से अधिक दशमलव स्थान नहीं हो सकते।",
       "reasonRequired": "कृपया इस समायोजन के लिए एक कारण दर्ज करें।",
       "adjustBalanceStepBalance": "शेष राशि",
-      "adjustBalanceStepAmount": "राशि और कारण"
+      "adjustBalanceStepAmount": "राशि और कारण",
+      "monitorLimitCardTitle": "सक्रिय मॉनिटर",
+      "monitorLimitCardDescription": "मैनुअल मॉनिटर को छोड़कर हर मॉनिटर गिना जाता है, चाहे वह चालू हो या नहीं। सीमा पर पहुँचने पर प्रोजेक्ट तब तक कोई सक्रिय मॉनिटर नहीं जोड़ सकता जब तक उसकी संख्या कम न हो; मौजूदा मॉनिटर चलते रहते हैं। रीसेलर से खरीदा गया प्लान सीमा तय करता है, और रीसेलर का अगला टियर बदलाव इसे फिर से लिखता है।",
+      "monitorLimitEditButton": "मॉनिटर सीमा संपादित करें",
+      "fieldActiveMonitors": "सक्रिय मॉनिटर",
+      "fieldMonitorLimit": "सक्रिय मॉनिटर की सीमा",
+      "fieldMonitorLimitDescription": "इस प्रोजेक्ट में अधिकतम कितने सक्रिय मॉनिटर हो सकते हैं। कोई सीमा न रखने के लिए खाली छोड़ें।",
+      "noMonitorLimit": "कोई सीमा नहीं"
     },
     "projectSupport": {
       "title": "ग्राहक सहायता पहुँच",

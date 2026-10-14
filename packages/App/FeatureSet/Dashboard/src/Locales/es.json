@@ -29188,5 +29188,19 @@
   "Playbook Run": "Playbook Run",
   "Playbook Step": "Playbook Step",
   "Priority Changed": "Priority Changed",
-  "Response Action": "Response Action"
+  "Response Action": "Response Action",
+  "Every monitor it has keeps running, but no new one can be added until it has fewer than {{limit}}.": "Todos sus monitores siguen funcionando, pero no se puede añadir ninguno nuevo hasta que tenga menos de {{limit}}.",
+  "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.": "Los monitores manuales no cuentan para el límite. Los monitores desactivados o archivados sí.",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "El plan Free incluye {{count}} monitores activos, y este proyecto tiene {{activeMonitors}}.",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "El plan Free incluye {{count}} monitor activo, y este proyecto tiene {{activeMonitors}}.",
+  "This project has more active monitors than its plan includes": "Este proyecto tiene más monitores activos de los que incluye su plan",
+  "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.": "El plan de este proyecto incluye {{limit}} monitores activos, y al proyecto no le queda espacio para este. Elimina los monitores que ya no necesites, o cambia el plan, para traerlo.",
+  "To add more, delete monitors you no longer need or change your plan.": "Para añadir más, elimina los monitores que ya no necesites o cambia tu plan.",
+  "Upgrade your plan to add more.": "Mejora tu plan para añadir más.",
+  "View plan": "Ver plan",
+  "You've reached the Free plan's monitor limit": "Has alcanzado el límite de monitores del plan Free",
+  "You've reached your plan's monitor limit": "Has alcanzado el límite de monitores de tu plan",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Tu plan incluye {{count}} monitores activos, y este proyecto tiene {{activeMonitors}}.",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Tu plan incluye {{count}} monitor activo, y este proyecto tiene {{activeMonitors}}.",
+  "View plans": "Ver planes"
 }

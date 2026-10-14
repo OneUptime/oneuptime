@@ -358,7 +358,14 @@
       "amountTooPrecise": "The amount cannot have more than two decimal places.",
       "reasonRequired": "Please enter a reason for this adjustment.",
       "adjustBalanceStepBalance": "Balance",
-      "adjustBalanceStepAmount": "Amount & Reason"
+      "adjustBalanceStepAmount": "Amount & Reason",
+      "monitorLimitCardTitle": "Active Monitors",
+      "monitorLimitCardDescription": "Every monitor but a Manual one counts, whether it is turned on or not. At its limit the project can add no active monitor until it has fewer, and the ones it has keep running. A plan bought from a reseller sets the limit, and the reseller's next change of tier writes it again.",
+      "monitorLimitEditButton": "Edit Monitor Limit",
+      "fieldActiveMonitors": "Active Monitors",
+      "fieldMonitorLimit": "Active Monitor Limit",
+      "fieldMonitorLimitDescription": "The most active monitors this project may have. Leave it empty for no limit.",
+      "noMonitorLimit": "No limit"
     },
     "projectSupport": {
       "title": "Customer Support Access",

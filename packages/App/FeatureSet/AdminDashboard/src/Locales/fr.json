@@ -358,7 +358,14 @@
       "amountTooPrecise": "Le montant ne peut pas avoir plus de deux décimales.",
       "reasonRequired": "Veuillez saisir un motif pour cet ajustement.",
       "adjustBalanceStepBalance": "Solde",
-      "adjustBalanceStepAmount": "Montant et motif"
+      "adjustBalanceStepAmount": "Montant et motif",
+      "monitorLimitCardTitle": "Moniteurs actifs",
+      "monitorLimitCardDescription": "Tous les moniteurs sauf les manuels comptent, qu'ils soient activés ou non. À sa limite, le projet ne peut ajouter aucun moniteur actif tant qu'il n'en a pas moins ; ceux qu'il a continuent de fonctionner. Une offre achetée auprès d'un revendeur fixe la limite, et le prochain changement de palier du revendeur la réécrit.",
+      "monitorLimitEditButton": "Modifier la limite de moniteurs",
+      "fieldActiveMonitors": "Moniteurs actifs",
+      "fieldMonitorLimit": "Limite de moniteurs actifs",
+      "fieldMonitorLimitDescription": "Le nombre maximal de moniteurs actifs de ce projet. Laissez vide pour aucune limite.",
+      "noMonitorLimit": "Aucune limite"
     },
     "projectSupport": {
       "title": "Accès du support client",

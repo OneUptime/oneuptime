@@ -594,3 +594,200 @@ test.describe("Create Monitor, start to finish", () => {
     expect(creates[0]!.data["monitoringInterval"]).toBeUndefined();
   });
 });
+
+/*
+ * THE PLAN'S LIMIT ON ACTIVE MONITORS, ON CREATE MONITOR.
+ *
+ * The support report: a project bought from a reseller with a plan of 500
+ * active monitors had 2,881. The server now refuses every new active
+ * monitor at the limit (Common/Server/Utils/Billing/ActiveMonitorLimit);
+ * the page says so above the form before anything is filled in
+ * (Components/Monitor/ActiveMonitorLimitNotice), from
+ * GET /monitor/active-monitor-limit (?monitorLimit= in the fixture). The
+ * form stays: a Manual monitor never counts.
+ */
+test.describe("Create Monitor at the plan's monitor limit", () => {
+  function notice(page: Page): Locator {
+    return page.getByTestId("active-monitor-limit-notice");
+  }
+
+  async function limitRequests(page: Page): Promise<number> {
+    return page.evaluate((): number => {
+      const state:
+        | { apiRequests?: Array<{ method: string; url: string }> }
+        | undefined = (
+        window as unknown as {
+          __monitorOverviewFixture?: {
+            apiRequests?: Array<{ method: string; url: string }>;
+          };
+        }
+      ).__monitorOverviewFixture;
+
+      return (state?.apiRequests || []).filter(
+        (request: { method: string; url: string }): boolean => {
+          return (
+            request.method === "GET" &&
+            new URL(request.url).pathname === "/api/monitor/active-monitor-limit"
+          );
+        },
+      ).length;
+    });
+  }
+
+  test("a project with no limit sees nothing above the form, and asks once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCreate(page);
+
+    await expect.poll(() => limitRequests(page)).toBe(1);
+    await expect(notice(page)).toHaveCount(0);
+  });
+
+  test("under the limit, nothing", async ({ page }: { page: Page }) => {
+    await openCreate(page, "?monitorLimit=under");
+
+    await expect.poll(() => limitRequests(page)).toBe(1);
+    await expect(notice(page)).toHaveCount(0);
+  });
+
+  test("at a plan's own limit: above the form, which limit, how many, what to do and what counts, with the plan a click away", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const form: Locator = await openCreate(page, "?monitorLimit=at");
+
+    await expect(notice(page)).toBeVisible();
+    await expect(notice(page)).toContainText(
+      "You've reached your plan's monitor limit",
+    );
+    await expect(notice(page)).toContainText(
+      "Your plan includes 500 active monitors, and this project has 500.",
+    );
+    await expect(notice(page)).toContainText(
+      "To add more, delete monitors you no longer need or change your plan.",
+    );
+    await expect(notice(page)).toContainText(
+      "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.",
+    );
+    await expect(notice(page)).not.toContainText("keeps running");
+
+    const viewPlan: Locator = notice(page).getByRole("link", {
+      name: "View plan",
+    });
+    await expect(viewPlan).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/billing`,
+    );
+
+    // Above the form, which stays: a Manual monitor never counts.
+    const noticeBox: { y: number; height: number } = await boxOf(
+      notice(page),
+    );
+    const formBox: { y: number } = await boxOf(form);
+    expect(noticeBox.y + noticeBox.height).toBeLessThanOrEqual(formBox.y);
+    await expect(option(page, "Website")).toBeVisible();
+
+    await screenshot(page, "create-monitor-limit-at");
+  });
+
+  // The support report's project: 2,881 active monitors on a plan of 500.
+  test("past a plan's own limit: its monitors keep running, and when it can add again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCreate(page, "?monitorLimit=over");
+
+    await expect(notice(page)).toContainText(
+      "This project has more active monitors than its plan includes",
+    );
+    await expect(notice(page)).toContainText(
+      "Your plan includes 500 active monitors, and this project has 2,881.",
+    );
+    await expect(notice(page)).toContainText(
+      "Every monitor it has keeps running, but no new one can be added until it has fewer than 500.",
+    );
+
+    await screenshot(page, "create-monitor-limit-over");
+  });
+
+  test("at the Free plan's limit: upgrade", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCreate(page, "?monitorLimit=free-at");
+
+    await expect(notice(page)).toContainText(
+      "You've reached the Free plan's monitor limit",
+    );
+    await expect(notice(page)).toContainText(
+      "The Free plan includes 10 active monitors, and this project has 10.",
+    );
+    await expect(notice(page)).toContainText("Upgrade your plan to add more.");
+    await expect(
+      notice(page).getByRole("link", { name: "View plans" }),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/settings/billing`);
+
+    await screenshot(page, "create-monitor-limit-free");
+  });
+
+  test("a limit that cannot be read draws nothing, and the form works", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCreate(page, "?monitorLimit=fail");
+
+    await expect.poll(() => limitRequests(page)).toBe(1);
+    await expect(notice(page)).toHaveCount(0);
+    await expect(option(page, "Website")).toBeVisible();
+  });
+
+  test("fits a phone: the notice wraps inside the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openCreate(page, "?monitorLimit=over");
+
+    await expect(notice(page)).toBeVisible();
+
+    const overflow: number = await page.evaluate((): number => {
+      return (
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth
+      );
+    });
+    expect(overflow).toBeLessThanOrEqual(0);
+
+    const box: { x: number; width: number } = await boxOf(notice(page));
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(390);
+
+    await screenshot(page, "create-monitor-limit-phone");
+  });
+
+  test("dark mode: the notice sits on a dark surface", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCreate(page, "?theme=dark&monitorLimit=over");
+
+    await expect(notice(page)).toBeVisible();
+
+    const background: string = await notice(page).evaluate(
+      (element: Element): string => {
+        return getComputedStyle(element).backgroundColor;
+      },
+    );
+    expect(background).not.toBe(WHITE_RGB);
+
+    await screenshot(page, "create-monitor-limit-dark");
+  });
+});

@@ -29188,5 +29188,19 @@
   "Playbook Run": "Playbook Run",
   "Playbook Step": "Playbook Step",
   "Priority Changed": "Priority Changed",
-  "Response Action": "Response Action"
+  "Response Action": "Response Action",
+  "Every monitor it has keeps running, but no new one can be added until it has fewer than {{limit}}.": "इसके सभी मॉनिटर चलते रहेंगे, लेकिन जब तक इनकी संख्या {{limit}} से कम नहीं हो जाती, कोई नया मॉनिटर नहीं जोड़ा जा सकता।",
+  "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.": "मैनुअल मॉनिटर सीमा में नहीं गिने जाते। बंद किए गए या संग्रहीत मॉनिटर गिने जाते हैं।",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Free प्लान में {{count}} सक्रिय मॉनिटर शामिल हैं, और इस प्रोजेक्ट में {{activeMonitors}} हैं।",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Free प्लान में {{count}} सक्रिय मॉनिटर शामिल है, और इस प्रोजेक्ट में {{activeMonitors}} हैं।",
+  "This project has more active monitors than its plan includes": "इस प्रोजेक्ट में इसके प्लान में शामिल संख्या से अधिक सक्रिय मॉनिटर हैं",
+  "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.": "इस प्रोजेक्ट के प्लान में {{limit}} सक्रिय मॉनिटर शामिल हैं, और इस प्रोजेक्ट में इसके लिए जगह नहीं बची। इसे लाने के लिए, जिन मॉनिटर की अब ज़रूरत नहीं है उन्हें हटाएं या प्लान बदलें।",
+  "To add more, delete monitors you no longer need or change your plan.": "और जोड़ने के लिए, जिन मॉनिटर की अब ज़रूरत नहीं है उन्हें हटाएं या अपना प्लान बदलें।",
+  "Upgrade your plan to add more.": "और जोड़ने के लिए अपना प्लान अपग्रेड करें।",
+  "View plan": "प्लान देखें",
+  "You've reached the Free plan's monitor limit": "आप Free प्लान की मॉनिटर सीमा तक पहुँच गए हैं",
+  "You've reached your plan's monitor limit": "आप अपने प्लान की मॉनिटर सीमा तक पहुँच गए हैं",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "आपके प्लान में {{count}} सक्रिय मॉनिटर शामिल हैं, और इस प्रोजेक्ट में {{activeMonitors}} हैं।",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "आपके प्लान में {{count}} सक्रिय मॉनिटर शामिल है, और इस प्रोजेक्ट में {{activeMonitors}} हैं।",
+  "View plans": "प्लान की तुलना करें"
 }

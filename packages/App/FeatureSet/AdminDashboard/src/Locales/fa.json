@@ -358,7 +358,14 @@
       "amountTooPrecise": "مبلغ نمی‌تواند بیش از دو رقم اعشار داشته باشد.",
       "reasonRequired": "لطفاً دلیلی برای این تنظیم وارد کنید.",
       "adjustBalanceStepBalance": "موجودی",
-      "adjustBalanceStepAmount": "مبلغ و دلیل"
+      "adjustBalanceStepAmount": "مبلغ و دلیل",
+      "monitorLimitCardTitle": "مانیتورهای فعال",
+      "monitorLimitCardDescription": "همه مانیتورها به جز مانیتورهای دستی، روشن یا خاموش، شمرده می‌شوند. در سقف، پروژه تا وقتی تعدادشان کمتر نشود نمی‌تواند مانیتور فعال جدیدی اضافه کند؛ مانیتورهای موجود همچنان کار می‌کنند. طرحی که از فروشنده مجدد خریداری شده سقف را تعیین می‌کند و تغییر سطح بعدی فروشنده آن را دوباره می‌نویسد.",
+      "monitorLimitEditButton": "ویرایش سقف مانیتورها",
+      "fieldActiveMonitors": "مانیتورهای فعال",
+      "fieldMonitorLimit": "سقف مانیتورهای فعال",
+      "fieldMonitorLimitDescription": "بیشترین تعداد مانیتور فعالی که این پروژه می‌تواند داشته باشد. برای نداشتن سقف، خالی بگذارید.",
+      "noMonitorLimit": "بدون سقف"
     },
     "projectSupport": {
       "title": "دسترسی پشتیبانی مشتری",

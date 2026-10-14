@@ -548,6 +548,69 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
         />
 
         {/*
+         * What the plan lets the project have in active monitors - every
+         * monitor but a Manual one (Common/Server/Utils/Billing/
+         * ActiveMonitorLimit). A plan bought from a reseller writes the limit;
+         * staff see how many the project has beside it and can change it
+         * here. The count is the one the bill reports
+         * (Project.currentActiveMonitorsCount).
+         */}
+        <CardModelDetail<Project>
+          name="Project Active Monitors"
+          modelAPI={AdminModelAPI}
+          refresher={refresher}
+          cardProps={{
+            title: t("pages.projectSubscription.monitorLimitCardTitle"),
+            description: t(
+              "pages.projectSubscription.monitorLimitCardDescription",
+            ),
+          }}
+          isEditable={true}
+          editButtonText={t("pages.projectSubscription.monitorLimitEditButton")}
+          formFields={[
+            {
+              field: {
+                activeMonitorsLimit: true,
+              },
+              title: t("pages.projectSubscription.fieldMonitorLimit"),
+              description: t(
+                "pages.projectSubscription.fieldMonitorLimitDescription",
+              ),
+              fieldType: FormFieldSchemaType.Number,
+              required: false,
+              placeholder: t("pages.projectSubscription.noMonitorLimit"),
+              validation: {
+                minValue: 1,
+              },
+            },
+          ]}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project-active-monitors",
+            refresher: refresher,
+            fields: [
+              {
+                field: {
+                  currentActiveMonitorsCount: true,
+                },
+                title: t("pages.projectSubscription.fieldActiveMonitors"),
+                fieldType: FieldType.Number,
+                placeholder: "0",
+              },
+              {
+                field: {
+                  activeMonitorsLimit: true,
+                },
+                title: t("pages.projectSubscription.fieldMonitorLimit"),
+                fieldType: FieldType.Number,
+                placeholder: t("pages.projectSubscription.noMonitorLimit"),
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
+
+        {/*
          * Prepaid balances live next to the subscription because they are the
          * other half of what the customer owes: the plan is invoiced, these
          * are drawn down. Staff correct them here when a charge was wrong or

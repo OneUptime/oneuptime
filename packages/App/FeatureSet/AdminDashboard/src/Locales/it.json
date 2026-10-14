@@ -358,7 +358,14 @@
       "amountTooPrecise": "L'importo non può avere più di due cifre decimali.",
       "reasonRequired": "Inserisci un motivo per questa rettifica.",
       "adjustBalanceStepBalance": "Saldo",
-      "adjustBalanceStepAmount": "Importo e motivo"
+      "adjustBalanceStepAmount": "Importo e motivo",
+      "monitorLimitCardTitle": "Monitor attivi",
+      "monitorLimitCardDescription": "Conta ogni monitor tranne quelli manuali, che sia attivato o no. Al limite il progetto non può aggiungere monitor attivi finché non ne ha meno; quelli che ha continuano a funzionare. Un piano acquistato da un rivenditore fissa il limite, e il prossimo cambio di livello del rivenditore lo riscrive.",
+      "monitorLimitEditButton": "Modifica limite monitor",
+      "fieldActiveMonitors": "Monitor attivi",
+      "fieldMonitorLimit": "Limite di monitor attivi",
+      "fieldMonitorLimitDescription": "Il numero massimo di monitor attivi che questo progetto può avere. Lascia vuoto per nessun limite.",
+      "noMonitorLimit": "Nessun limite"
     },
     "projectSupport": {
       "title": "Accesso dell'assistenza clienti",

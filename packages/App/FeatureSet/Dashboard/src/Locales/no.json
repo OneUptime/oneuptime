@@ -29188,5 +29188,19 @@
   "Playbook Run": "Playbook Run",
   "Playbook Step": "Playbook Step",
   "Priority Changed": "Priority Changed",
-  "Response Action": "Response Action"
+  "Response Action": "Response Action",
+  "Every monitor it has keeps running, but no new one can be added until it has fewer than {{limit}}.": "Alle prosjektets monitorer fortsetter å kjøre, men ingen nye kan legges til før det er færre enn {{limit}}.",
+  "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.": "Manuelle monitorer teller ikke mot grensen. Det gjør deaktiverte og arkiverte monitorer.",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Free-abonnementet inkluderer {{count}} aktive monitorer, og dette prosjektet har {{activeMonitors}}.",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Free-abonnementet inkluderer {{count}} aktiv monitor, og dette prosjektet har {{activeMonitors}}.",
+  "This project has more active monitors than its plan includes": "Dette prosjektet har flere aktive monitorer enn abonnementet inkluderer",
+  "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.": "Prosjektets abonnement inkluderer {{limit}} aktive monitorer, og prosjektet har ikke plass til denne. Slett monitorer du ikke lenger trenger, eller bytt abonnement, for å overføre den.",
+  "To add more, delete monitors you no longer need or change your plan.": "Slett monitorer du ikke lenger trenger, eller bytt abonnement, for å legge til flere.",
+  "Upgrade your plan to add more.": "Oppgrader abonnementet ditt for å legge til flere.",
+  "View plan": "Se abonnement",
+  "You've reached the Free plan's monitor limit": "Du har nådd Free-abonnementets grense for monitorer",
+  "You've reached your plan's monitor limit": "Du har nådd abonnementets grense for monitorer",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Abonnementet ditt inkluderer {{count}} aktive monitorer, og dette prosjektet har {{activeMonitors}}.",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Abonnementet ditt inkluderer {{count}} aktiv monitor, og dette prosjektet har {{activeMonitors}}.",
+  "View plans": "Se abonnementer"
 }

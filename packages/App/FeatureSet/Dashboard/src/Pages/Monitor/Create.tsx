@@ -128,6 +128,9 @@ import {
 import ProbeUtil from "../../Utils/Probe";
 import MonitorProbeSelectionUtil from "Common/Utils/Monitor/MonitorProbeSelectionUtil";
 import { MonitorPayAsYouGoCard } from "../../Components/Billing/PayAsYouGo";
+import ActiveMonitorLimitNotice, {
+  ActiveMonitorLimitNoticeShowWhen,
+} from "../../Components/Monitor/ActiveMonitorLimitNotice";
 import {
   shouldDropDefaultMonitoringInterval,
   withDefaultMonitoringInterval,
@@ -1433,6 +1436,13 @@ const MonitorCreate: FunctionComponent<
        * a Free plan project is told the rate before it picks a type.
        */}
       <MonitorPayAsYouGoCard />
+      {/*
+       * At the plan's limit on active monitors, said before the form is
+       * filled in: the server refuses every one but a Manual monitor.
+       */}
+      <ActiveMonitorLimitNotice
+        showWhen={ActiveMonitorLimitNoticeShowWhen.AtOrOverLimit}
+      />
       <Card
         title="Create New Monitor"
         description={

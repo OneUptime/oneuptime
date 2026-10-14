@@ -43,6 +43,11 @@
  *              refresh-status  every refresh-status request fails
  *   ?nav=1     shows links to every fixture monitor in the header, to move
  *              between monitors on the same, still-mounted route.
+ *   ?monitorLimit=  the project's limit on active monitors, as
+ *              GET /monitor/active-monitor-limit answers it: none (default,
+ *              no limit) | under (499 of a plan's 500) | at (500 of 500) |
+ *              over (2,881 of 500: the support report's project) | free-at
+ *              (10 of the Free plan's 10) | fail (the request fails).
  *   ?theme=    dark adds html.dark (handled by server.js).
  *
  * Every read is recorded on window.__monitorOverviewFixture: getItemRequests,
@@ -196,6 +201,23 @@ const failures = listParam("fail");
 const showNav = params.get("nav") === "1";
 
 /*
+ * The project's limit on active monitors (Types/Monitor/ActiveMonitorLimit),
+ * as the server's JSON carries it.
+ */
+const MONITOR_LIMITS = {
+  none: { limit: null, activeMonitors: null },
+  under: { limit: { limit: 500, kind: "Plan" }, activeMonitors: 499 },
+  at: { limit: { limit: 500, kind: "Plan" }, activeMonitors: 500 },
+  over: { limit: { limit: 500, kind: "Plan" }, activeMonitors: 2881 },
+  "free-at": { limit: { limit: 10, kind: "FreePlan" }, activeMonitors: 10 },
+};
+const monitorLimitMode =
+  params.get("monitorLimit") === "fail" ||
+  Object.keys(MONITOR_LIMITS).includes(params.get("monitorLimit"))
+    ? params.get("monitorLimit")
+    : "none";
+
+/*
  * What every signed-in user holds (AccessTokenService's global permissions),
  * plus the one project permission of the role.
  */
@@ -277,6 +299,7 @@ const fixture = {
     history: historyMode,
     role: roleMode,
     fail: Array.from(failures),
+    monitorLimit: monitorLimitMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -2205,6 +2228,16 @@ async function handleApi(method, options) {
     headers: serialize(options.headers) || {},
   });
   const parsed = new window.URL(url);
+
+  if (
+    method === "GET" &&
+    parsed.pathname.endsWith("/monitor/active-monitor-limit")
+  ) {
+    if (monitorLimitMode === "fail") {
+      throw fail(500, "The monitor limit could not be read.");
+    }
+    return ok(MONITOR_LIMITS[monitorLimitMode]);
+  }
 
   if (
     method === "GET" &&

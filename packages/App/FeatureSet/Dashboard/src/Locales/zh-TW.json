@@ -29188,5 +29188,19 @@
   "Playbook Run": "Playbook Run",
   "Playbook Step": "Playbook Step",
   "Priority Changed": "Priority Changed",
-  "Response Action": "Response Action"
+  "Response Action": "Response Action",
+  "Every monitor it has keeps running, but no new one can be added until it has fewer than {{limit}}.": "現有監測器都會繼續運作，但在少於 {{limit}} 個之前無法新增監測器。",
+  "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.": "手動監測器不計入上限。已停用或已封存的監測器會計入。",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Free 方案包含 {{count}} 個作用中的監測器，此專案有 {{activeMonitors}} 個。",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Free 方案包含 {{count}} 個作用中的監測器，此專案有 {{activeMonitors}} 個。",
+  "This project has more active monitors than its plan includes": "此專案作用中的監測器超過其方案包含的數量",
+  "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.": "此專案的方案包含 {{limit}} 個作用中的監測器，此專案已沒有空間容納這一個。請刪除不再需要的監測器或變更方案，以匯入它。",
+  "To add more, delete monitors you no longer need or change your plan.": "如需新增更多，請刪除不再需要的監測器或變更方案。",
+  "Upgrade your plan to add more.": "請升級方案以新增更多。",
+  "View plan": "檢視方案",
+  "You've reached the Free plan's monitor limit": "已達到 Free 方案的監測器上限",
+  "You've reached your plan's monitor limit": "已達到您方案的監測器上限",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "您的方案包含 {{count}} 個作用中的監測器，此專案有 {{activeMonitors}} 個。",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "您的方案包含 {{count}} 個作用中的監測器，此專案有 {{activeMonitors}} 個。",
+  "View plans": "比較方案"
 }

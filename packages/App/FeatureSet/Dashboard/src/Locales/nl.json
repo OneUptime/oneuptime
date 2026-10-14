@@ -29188,5 +29188,19 @@
   "Playbook Run": "Playbook Run",
   "Playbook Step": "Playbook Step",
   "Priority Changed": "Priority Changed",
-  "Response Action": "Response Action"
+  "Response Action": "Response Action",
+  "Every monitor it has keeps running, but no new one can be added until it has fewer than {{limit}}.": "Alle monitoren blijven draaien, maar er kan geen nieuwe worden toegevoegd totdat het project er minder dan {{limit}} heeft.",
+  "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.": "Handmatige monitoren tellen niet mee voor de limiet. Uitgeschakelde of gearchiveerde monitoren wel.",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Het Free-abonnement omvat {{count}} actieve monitoren, en dit project heeft er {{activeMonitors}}.",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Het Free-abonnement omvat {{count}} actieve monitor, en dit project heeft er {{activeMonitors}}.",
+  "This project has more active monitors than its plan includes": "Dit project heeft meer actieve monitoren dan het abonnement omvat",
+  "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.": "Het abonnement van dit project omvat {{limit}} actieve monitoren, en het project heeft geen ruimte meer voor deze. Verwijder monitoren die je niet meer nodig hebt, of wijzig het abonnement, om hem over te nemen.",
+  "To add more, delete monitors you no longer need or change your plan.": "Verwijder monitoren die je niet meer nodig hebt of wijzig je abonnement om er meer toe te voegen.",
+  "Upgrade your plan to add more.": "Upgrade je abonnement om er meer toe te voegen.",
+  "View plan": "Abonnement bekijken",
+  "You've reached the Free plan's monitor limit": "Je hebt de monitorlimiet van het Free-abonnement bereikt",
+  "You've reached your plan's monitor limit": "Je hebt de monitorlimiet van je abonnement bereikt",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Je abonnement omvat {{count}} actieve monitoren, en dit project heeft er {{activeMonitors}}.",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Je abonnement omvat {{count}} actieve monitor, en dit project heeft er {{activeMonitors}}.",
+  "View plans": "Abonnementen bekijken"
 }

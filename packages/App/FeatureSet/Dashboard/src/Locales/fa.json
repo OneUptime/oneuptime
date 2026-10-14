@@ -29188,5 +29188,19 @@
   "Playbook Run": "Playbook Run",
   "Playbook Step": "Playbook Step",
   "Priority Changed": "Priority Changed",
-  "Response Action": "Response Action"
+  "Response Action": "Response Action",
+  "Every monitor it has keeps running, but no new one can be added until it has fewer than {{limit}}.": "همه مانیتورهای آن همچنان کار می‌کنند، اما تا وقتی تعدادشان کمتر از {{limit}} نشود، مانیتور جدیدی نمی‌توان اضافه کرد.",
+  "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.": "مانیتورهای دستی در این سقف حساب نمی‌شوند. مانیتورهای خاموش یا بایگانی‌شده حساب می‌شوند.",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "طرح Free شامل {{count}} مانیتور فعال است و این پروژه {{activeMonitors}} مانیتور دارد.",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "طرح Free شامل {{count}} مانیتور فعال است و این پروژه {{activeMonitors}} مانیتور دارد.",
+  "This project has more active monitors than its plan includes": "این پروژه بیش از تعدادی که طرحش شامل می‌شود مانیتور فعال دارد",
+  "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.": "طرح این پروژه شامل {{limit}} مانیتور فعال است و این پروژه دیگر جایی برای این یکی ندارد. برای انتقال آن، مانیتورهایی را که دیگر لازم ندارید حذف کنید یا طرح را تغییر دهید.",
+  "To add more, delete monitors you no longer need or change your plan.": "برای افزودن موارد بیشتر، مانیتورهایی را که دیگر لازم ندارید حذف کنید یا طرح خود را تغییر دهید.",
+  "Upgrade your plan to add more.": "برای افزودن موارد بیشتر، طرح خود را ارتقا دهید.",
+  "View plan": "مشاهده طرح",
+  "You've reached the Free plan's monitor limit": "به سقف مانیتورهای طرح Free رسیده‌اید",
+  "You've reached your plan's monitor limit": "به سقف مانیتورهای طرح خود رسیده‌اید",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "طرح شما شامل {{count}} مانیتور فعال است و این پروژه {{activeMonitors}} مانیتور دارد.",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "طرح شما شامل {{count}} مانیتور فعال است و این پروژه {{activeMonitors}} مانیتور دارد.",
+  "View plans": "مشاهده طرح‌ها"
 }

@@ -29188,5 +29188,19 @@
   "Playbook Run": "Playbook Run",
   "Playbook Step": "Playbook Step",
   "Priority Changed": "Priority Changed",
-  "Response Action": "Response Action"
+  "Response Action": "Response Action",
+  "Every monitor it has keeps running, but no new one can be added until it has fewer than {{limit}}.": "Alle vorhandenen Monitore laufen weiter, aber es kann kein neuer hinzugefügt werden, bis es weniger als {{limit}} sind.",
+  "Manual monitors don't count towards the limit. Monitors that are turned off or archived do.": "Manuelle Monitore zählen nicht zum Limit. Deaktivierte oder archivierte Monitore schon.",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Der Free-Tarif umfasst {{count}} aktive Monitore, und dieses Projekt hat {{activeMonitors}}.",
+  "The Free plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Der Free-Tarif umfasst {{count}} aktiven Monitor, und dieses Projekt hat {{activeMonitors}}.",
+  "This project has more active monitors than its plan includes": "Dieses Projekt hat mehr aktive Monitore, als sein Tarif umfasst",
+  "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.": "Der Tarif dieses Projekts umfasst {{limit}} aktive Monitore, und im Projekt ist kein Platz mehr für diesen. Löschen Sie Monitore, die Sie nicht mehr benötigen, oder ändern Sie den Tarif, um ihn zu übernehmen.",
+  "To add more, delete monitors you no longer need or change your plan.": "Um weitere hinzuzufügen, löschen Sie Monitore, die Sie nicht mehr benötigen, oder ändern Sie Ihren Tarif.",
+  "Upgrade your plan to add more.": "Wechseln Sie zu einem höheren Tarif, um weitere hinzuzufügen.",
+  "View plan": "Tarif anzeigen",
+  "You've reached the Free plan's monitor limit": "Sie haben das Monitor-Limit des Free-Tarifs erreicht",
+  "You've reached your plan's monitor limit": "Sie haben das Monitor-Limit Ihres Tarifs erreicht",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Ihr Tarif umfasst {{count}} aktive Monitore, und dieses Projekt hat {{activeMonitors}}.",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Ihr Tarif umfasst {{count}} aktiven Monitor, und dieses Projekt hat {{activeMonitors}}.",
+  "View plans": "Tarife anzeigen"
 }
