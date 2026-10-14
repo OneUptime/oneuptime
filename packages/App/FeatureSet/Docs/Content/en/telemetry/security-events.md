@@ -30,7 +30,7 @@ Open **Products → Security Events**, under **Observability**. Its menu:
 | Page | Section | What it is for |
 | --- | --- | --- |
 | **Overview** | Overview | What needs someone now, and how fast cases are handled |
-| **Cases** | Overview | The queue of what was detected, grouped by what it is about |
+| **Security Cases** | Overview | The queue of what was detected, grouped by what it is about |
 | **Events** | Investigate | Search and filter every event, and open one to see all its fields |
 | **Correlate** | Investigate | A graph of the events that share a host, a user or an IP address |
 | **Entities** | Investigate | The users, hosts and addresses your findings name most |
@@ -237,7 +237,7 @@ flowchart TB
 2. In **Basic Info**, give it a **Name**, and keep **Enabled** on.
 3. In **Sigma Rule**, paste the rule's YAML into **Sigma Rule (YAML)**. It is parsed when you save, so a mistake shows in the form.
 4. In **Evaluation**, set how often it runs and how many matches it takes; see [Evaluation settings](#evaluation-settings).
-5. In **Cases**, keep **Open a Case on Match** on to group its matches into cases, by the value the rule groups by.
+5. In **Security Cases**, keep **Open a Case on Match** on to group its matches into cases, by the value the rule groups by.
 6. In **On Match**, choose what else a match does: **Create Alert on Match** (on), **Create Incident on Match** (off) and **Write Detection Finding on Match** (on), with an optional **Alert Severity** and **Incident Severity**.
 :::
 

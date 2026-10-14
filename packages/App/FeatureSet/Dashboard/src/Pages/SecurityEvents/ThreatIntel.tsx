@@ -142,7 +142,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           { title: "Basic Info", id: "basic-info" },
           { title: "TAXII Server", id: "taxii-server" },
           { title: "Authentication", id: "authentication" },
-          { title: "Cases", id: "cases" },
+          { title: "Security Cases", id: "cases" },
           { title: "On Match", id: "matching" },
         ]}
         formFields={[

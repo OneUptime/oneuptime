@@ -90,7 +90,7 @@ describe("the Security Events menu", () => {
         },
       ),
     ).toEqual([
-      ["Overview", "Cases"],
+      ["Overview", "Security Cases"],
       ["Events", "Correlate", "Entities"],
       [
         "Detection Rules",
@@ -127,7 +127,7 @@ describe("the Security Events menu", () => {
           return [item.title, item.badge || ""];
         }),
     ).toEqual([
-      ["Cases", "openCases"],
+      ["Security Cases", "openCases"],
       ["Playbook Runs", "runsWaitingForApproval"],
     ]);
   });

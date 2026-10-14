@@ -304,7 +304,7 @@ const SecurityPlaybookViewPage: FunctionComponent<
             {
               field: { trigger: true },
               stepId: "when",
-              title: "Runs",
+              title: "Trigger",
               description:
                 "Case Opened: once, as a case opens. Detection Added: each time a new detection joins an open case. Manual: only when someone runs it.",
               fieldType: FormFieldSchemaType.Dropdown,
@@ -361,7 +361,7 @@ const SecurityPlaybookViewPage: FunctionComponent<
               },
               {
                 field: { trigger: true },
-                title: "Runs",
+                title: "Trigger",
                 fieldType: FieldType.Text,
               },
               {

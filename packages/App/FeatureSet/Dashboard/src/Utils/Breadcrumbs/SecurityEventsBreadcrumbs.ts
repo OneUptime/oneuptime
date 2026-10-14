@@ -20,12 +20,12 @@ export function getSecurityEventsBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_CASES, [
       "Project",
       "Security Events",
-      "Cases",
+      "Security Cases",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_CASE_VIEW, [
       "Project",
       "Security Events",
-      "Cases",
+      "Security Cases",
       "View Case",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_CORRELATE, [

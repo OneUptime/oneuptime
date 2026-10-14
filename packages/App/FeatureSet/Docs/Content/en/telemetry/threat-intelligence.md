@@ -35,7 +35,7 @@ Open **Products → Security Events → Threat Intel**.
 
 ### Create the feed
 
-Click **Create Threat Intel Feed** and fill in its five steps: **Basic Info**, **TAXII Server**, **Authentication**, **Cases** and **On Match**. The fields are in the table below.
+Click **Create Threat Intel Feed** and fill in its five steps: **Basic Info**, **TAXII Server**, **Authentication**, **Security Cases** and **On Match**. The fields are in the table below.
 
 ### Check the first poll
 

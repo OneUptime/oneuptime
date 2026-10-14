@@ -26,7 +26,7 @@ flowchart TB
     work --> close["Closed with a verdict"]
 ```
 
-Open **Products → Security Events → Cases**. The queue opens on the open cases; **Assigned to Me**, **Unassigned**, **Closed** and **All** are the other views.
+Open **Products → Security Events → Security Cases**. The queue opens on the open cases; **Assigned to Me**, **Unassigned**, **Closed** and **All** are the other views.
 
 ## Before you begin
 
@@ -44,10 +44,10 @@ Each of these can also be granted on its own, from creating a case to approving 
 
 | Source | Opens a case when | Turn it off with |
 | --- | --- | --- |
-| Detection rules | A rule matches | **Open a Case on Match**, on the rule's **Cases** step |
-| Threat intelligence | An event names a known indicator | **Open a Case on Match**, on the feed's **Cases** step |
+| Detection rules | A rule matches | **Open a Case on Match**, on the rule's **Security Cases** step |
+| Threat intelligence | An event names a known indicator | **Open a Case on Match**, on the feed's **Security Cases** step |
 | Connected products | A product's own alert is imported at or above the connection's threshold | **Open Cases From** set to **Never**, in the connection's **Polling** step |
-| People | Someone opens one from **Cases**, or with **Open Case** in an event's panel | None |
+| People | Someone opens one from **Security Cases**, or with **Open Case** in an event's panel | None |
 
 Every source is on by default. A connection opens cases for **High and above** unless you choose another level; the alerts below it are still imported as events.
 
@@ -114,7 +114,7 @@ A playbook is a list of steps that run on a case. Create one under **Products �
 
 ### When a playbook runs
 
-| Runs | When |
+| Trigger | When it runs |
 | --- | --- |
 | Case Opened | Once, as a case opens |
 | Detection Added | Each time a new detection joins an open case |
@@ -229,11 +229,11 @@ A project with no cases and no detections yet shows, above these, the three step
 ## Troubleshooting
 
 :::details A rule matches, but no case opens
-Check **Open a Case on Match** on the rule's **Cases** step. A detection about an entity that already has an open case joins that case instead of opening another: look for it under **Detections** on the open case.
+Check **Open a Case on Match** on the rule's **Security Cases** step. A detection about an entity that already has an open case joins that case instead of opening another: look for it under **Detections** on the open case.
 :::
 
 :::details A playbook did not run
-Check that it is enabled, that its **Runs** setting fits (Case Opened runs once, as a case opens), and that the case meets its **For Cases At Least**, **Only For Detections From** and **Only For These Detection Rules** settings. A case opened by hand has no detection, so a playbook limited to a source or to rules does not run on it.
+Check that it is enabled, that its **Trigger** fits (Case Opened runs once, as a case opens), and that the case meets its **For Cases At Least**, **Only For Detections From** and **Only For These Detection Rules** settings. A case opened by hand has no detection, so a playbook limited to a source or to rules does not run on it.
 :::
 
 :::details A Contain step failed

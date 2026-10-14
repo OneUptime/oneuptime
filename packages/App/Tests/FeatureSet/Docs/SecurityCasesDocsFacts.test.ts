@@ -87,10 +87,7 @@ function section(markdown: string, heading: string): string {
     .join("\n");
 }
 
-function rowsOf(
-  heading: string,
-  which: number = 0,
-): Array<Array<string>> {
+function rowsOf(heading: string, which: number = 0): Array<Array<string>> {
   const found: Array<Array<Array<string>>> = tables(
     section(englishPage(), heading),
   );
@@ -127,15 +124,15 @@ describe("Security Cases and Playbooks docs", () => {
 
   it("opens the queue where the menu puts it, with the views the queue offers", () => {
     expect(page).toContain(
-      "Open **Products → Security Events → Cases**. The queue opens on the open cases; **Assigned to Me**, **Unassigned**, **Closed** and **All** are the other views.",
+      "Open **Products → Security Events → Security Cases**. The queue opens on the open cases; **Assigned to Me**, **Unassigned**, **Closed** and **All** are the other views.",
     );
     expect(
       SECURITY_CASE_QUEUE_VIEWS.map((view: { title: string }): string => {
         return view.title;
       }),
-    ).toEqual(["Open", "Assigned to Me", "Unassigned", "Closed", "All"]);
+    ).toEqual(["Open Cases", "Assigned to Me", "Unassigned", "Closed", "All"]);
     expect(source(`${DASHBOARD}/Utils/SecurityEventsNavigation.ts`)).toContain(
-      'title: "Cases",',
+      'title: "Security Cases",',
     );
   });
 
@@ -204,14 +201,14 @@ describe("Security Cases and Playbooks docs", () => {
     );
 
     for (const form of [rules, feeds]) {
-      expect(form).toContain(
-        'title: "Open a Case on Match", stepId: "cases",',
-      );
-      expect(form).toContain('{ title: "Cases", id: "cases" }');
+      expect(form).toContain('title: "Open a Case on Match", stepId: "cases",');
+      expect(form).toContain('{ title: "Security Cases", id: "cases" }');
     }
 
     expect(connections).toContain('title: "Open Cases From",');
-    expect(connections).toContain('initialValues["caseMinimumSeverity"] = "High";');
+    expect(connections).toContain(
+      'initialValues["caseMinimumSeverity"] = "High";',
+    );
     expect(connections).toContain('High: translationKey("High and above"),');
     expect(page).toContain(
       "A connection opens cases for **High and above** unless you choose another level",
@@ -285,10 +282,15 @@ describe("Security Cases and Playbooks docs", () => {
     expect(page).toContain("over the last day, week or month");
   });
 
-  it("lists the triggers a playbook runs on", () => {
+  it("lists the triggers a playbook runs on, under the name the form gives them", () => {
     expect(column(rowsOf("When a playbook runs"), 0)).toEqual([
       ...SECURITY_PLAYBOOK_TRIGGERS,
     ]);
+    expect(page).toContain("| Trigger | When it runs |");
+    expect(page).toContain("that its **Trigger** fits");
+    expect(
+      flat(source(`${DASHBOARD}/Pages/SecurityEvents/Playbooks.tsx`)),
+    ).toContain('field: { trigger: true }, stepId: "when", title: "Trigger",');
   });
 
   it("lists every step a playbook can take, by category and title, in the picker's order", () => {
@@ -340,12 +342,9 @@ describe("Security Cases and Playbooks docs", () => {
       return action.title;
     });
 
-    expect(
-      column(containRows, 0)
-        .join(", ")
-        .split(", ")
-        .sort(),
-    ).toEqual([...containTitles].sort());
+    expect(column(containRows, 0).join(", ").split(", ").sort()).toEqual(
+      [...containTitles].sort(),
+    );
     expect(page).toContain(
       `A Contain step acts on at most ${CONTAINMENT_ENTITY_LIMIT} of the case's users or hosts.`,
     );

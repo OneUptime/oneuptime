@@ -1561,7 +1561,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.SECURITY_CASES,
-            title: "Cases",
+            title: "Security Cases",
             icon: IconProp.ShieldExclamation,
             keywords: [
               "security cases",

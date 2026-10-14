@@ -120,7 +120,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           { title: "Basic Info", id: "basic-info" },
           { title: "Sigma Rule", id: "sigma-rule" },
           { title: "Evaluation", id: "evaluation" },
-          { title: "Cases", id: "cases" },
+          { title: "Security Cases", id: "cases" },
           { title: "On Match", id: "on-match" },
         ]}
         formFields={[

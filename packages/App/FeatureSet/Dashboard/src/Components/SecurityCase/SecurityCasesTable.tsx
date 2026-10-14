@@ -195,7 +195,7 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
         )}
         showViewIdButton={true}
         cardProps={{
-          title: "Cases",
+          title: "Security Cases",
           description:
             "Each case is one thing to look into: the detections about the same user, host or address, grouped together as they fire. Pick one up, work it, and close it with a verdict.",
         }}

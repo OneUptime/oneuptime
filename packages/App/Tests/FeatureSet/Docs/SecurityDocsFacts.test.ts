@@ -465,7 +465,7 @@ describe("the Security Events page", () => {
 
     expect(titles).toEqual([
       "Overview",
-      "Cases",
+      "Security Cases",
       "Events",
       "Correlate",
       "Entities",
@@ -1142,13 +1142,19 @@ describe("the Security Events page", () => {
     const steps: Array<string> = numberedSteps(page, "Create a rule");
 
     expect(form).toContain(
-      'formSteps={[ { title: "Basic Info", id: "basic-info" }, { title: "Sigma Rule", id: "sigma-rule" }, { title: "Evaluation", id: "evaluation" }, { title: "Cases", id: "cases" }, { title: "On Match", id: "on-match" }, ]}',
+      'formSteps={[ { title: "Basic Info", id: "basic-info" }, { title: "Sigma Rule", id: "sigma-rule" }, { title: "Evaluation", id: "evaluation" }, { title: "Security Cases", id: "cases" }, { title: "On Match", id: "on-match" }, ]}',
     );
     expect(
       steps.slice(1).map((step: string): string => {
         return boldSpans(step)[0] as string;
       }),
-    ).toEqual(["Basic Info", "Sigma Rule", "Evaluation", "Cases", "On Match"]);
+    ).toEqual([
+      "Basic Info",
+      "Sigma Rule",
+      "Evaluation",
+      "Security Cases",
+      "On Match",
+    ]);
     expect(form).toContain(
       "createInitialValues={{ isEnabled: true, evaluationIntervalInMinutes: 5,",
     );
@@ -1728,10 +1734,10 @@ describe("the Threat Intelligence page", () => {
     const rows: Array<Array<string>> = rowsOf(page, "Subscribe a feed");
 
     expect(form).toContain(
-      'formSteps={[ { title: "Basic Info", id: "basic-info" }, { title: "TAXII Server", id: "taxii-server" }, { title: "Authentication", id: "authentication" }, { title: "Cases", id: "cases" }, { title: "On Match", id: "matching" }, ]}',
+      'formSteps={[ { title: "Basic Info", id: "basic-info" }, { title: "TAXII Server", id: "taxii-server" }, { title: "Authentication", id: "authentication" }, { title: "Security Cases", id: "cases" }, { title: "On Match", id: "matching" }, ]}',
     );
     expect(page).toContain(
-      "Click **Create Threat Intel Feed** and fill in its five steps: **Basic Info**, **TAXII Server**, **Authentication**, **Cases** and **On Match**.",
+      "Click **Create Threat Intel Feed** and fill in its five steps: **Basic Info**, **TAXII Server**, **Authentication**, **Security Cases** and **On Match**.",
     );
 
     for (const row of rows) {

@@ -61,7 +61,7 @@ const EXPECTED: Array<{ section: string; links: Array<[string, string]> }> = [
     section: "Overview",
     links: [
       ["Overview", PageMap.SECURITY_EVENTS_OVERVIEW],
-      ["Cases", PageMap.SECURITY_CASES],
+      ["Security Cases", PageMap.SECURITY_CASES],
     ],
   },
   {

@@ -36,7 +36,7 @@ export interface SecurityCaseQueueView {
 export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
   {
     key: "open",
-    title: translationKey("Open"),
+    title: translationKey("Open Cases"),
     description: translationKey("Every case that is not closed."),
     emptyMessage: translationKey(
       "No open cases. New ones appear here as detections fire.",

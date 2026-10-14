@@ -345,9 +345,13 @@ describe("a step's one-line summary", () => {
 
 describe("the playbook templates", () => {
   test.each(
-    SECURITY_PLAYBOOK_TEMPLATES.map((template: SecurityPlaybookTemplate) => {
-      return [template.key, template];
-    }),
+    SECURITY_PLAYBOOK_TEMPLATES.map(
+      (
+        template: SecurityPlaybookTemplate,
+      ): [string, SecurityPlaybookTemplate] => {
+        return [template.key, template];
+      },
+    ),
   )(
     "%s is a working playbook as it is",
     (_key: string, template: SecurityPlaybookTemplate) => {

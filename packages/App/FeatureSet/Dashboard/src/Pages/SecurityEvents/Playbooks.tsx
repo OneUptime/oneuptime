@@ -220,7 +220,7 @@ const SecurityPlaybooksPage: FunctionComponent<
           {
             field: { trigger: true },
             stepId: "when",
-            title: "Runs",
+            title: "Trigger",
             description:
               "Case Opened: once, as a case opens. Detection Added: each time a new detection joins an open case. Manual: only when someone runs it.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -270,7 +270,7 @@ const SecurityPlaybooksPage: FunctionComponent<
           },
           {
             field: { trigger: true },
-            title: "Runs",
+            title: "Trigger",
             type: FieldType.Dropdown,
             filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               SecurityPlaybookTrigger,
@@ -318,7 +318,7 @@ const SecurityPlaybooksPage: FunctionComponent<
           },
           {
             field: { trigger: true },
-            title: "Runs",
+            title: "Trigger",
             type: FieldType.Element,
             getElement: (item: SecurityPlaybook): ReactElement => {
               return (

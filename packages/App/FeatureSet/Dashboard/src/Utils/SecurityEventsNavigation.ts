@@ -49,7 +49,7 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
       },
       {
         page: PageMap.SECURITY_CASES,
-        title: "Cases",
+        title: "Security Cases",
         icon: IconProp.ShieldExclamation,
         badge: "openCases",
       },
