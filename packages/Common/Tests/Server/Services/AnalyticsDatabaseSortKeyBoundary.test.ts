@@ -735,7 +735,9 @@ describe("AnalyticsDatabaseService sort key page bound", () => {
       return (left: Row, right: Row): number => {
         return (
           sign(sorting.key) * (left.key - right.key) ||
-          (sorting.second ? sign(sorting.second) * (left.second - right.second) : 0) ||
+          (sorting.second
+            ? sign(sorting.second) * (left.second - right.second)
+            : 0) ||
           sign(tiebreak) * left._id.localeCompare(right._id)
         );
       };
@@ -944,7 +946,13 @@ describe("AnalyticsDatabaseService sort key page bound", () => {
 
           for (const limit of [1, 2, 3, 5, 7, 13, 50]) {
             for (let skip: number = 0; skip <= size + limit; skip++) {
-              expect([size, keys, limit, skip, boundedPage(rows, sorting, skip, limit, random)]).toEqual([
+              expect([
+                size,
+                keys,
+                limit,
+                skip,
+                boundedPage(rows, sorting, skip, limit, random),
+              ]).toEqual([
                 size,
                 keys,
                 limit,
@@ -966,12 +974,23 @@ describe("AnalyticsDatabaseService sort key page bound", () => {
         const random: SeededRandom = seededRandom(14710);
 
         for (let round: number = 0; round < 20; round++) {
-          const rows: Array<Row> = dataset(random, 120, 1 + random(12), 1 + random(4));
+          const rows: Array<Row> = dataset(
+            random,
+            120,
+            1 + random(12),
+            1 + random(4),
+          );
           const limit: number = 1 + random(17);
           const seen: Array<string> = [];
 
           for (let skip: number = 0; ; skip += limit) {
-            const page: Array<string> = boundedPage(rows, sorting, skip, limit, random);
+            const page: Array<string> = boundedPage(
+              rows,
+              sorting,
+              skip,
+              limit,
+              random,
+            );
 
             if (page.length === 0) {
               break;
@@ -980,7 +999,9 @@ describe("AnalyticsDatabaseService sort key page bound", () => {
             seen.push(...page);
           }
 
-          expect(seen).toStrictEqual(unboundedPage(rows, sorting, 0, rows.length));
+          expect(seen).toStrictEqual(
+            unboundedPage(rows, sorting, 0, rows.length),
+          );
         }
       },
     );
@@ -1018,9 +1039,11 @@ describe("AnalyticsDatabaseService sort key page bound", () => {
     });
 
     test("a page past the last match has no values, so the wide read admits no row", () => {
-      const rows: Array<Row> = [3, 2, 1].map((key: number, index: number): Row => {
-        return { key, second: 0, _id: `r${index}`, matches: true };
-      });
+      const rows: Array<Row> = [3, 2, 1].map(
+        (key: number, index: number): Row => {
+          return { key, second: 0, _id: `r${index}`, matches: true };
+        },
+      );
 
       expect(
         pageBound(rows, { key: SortOrder.Descending }, 3, 2, seededRandom(2)),
@@ -1031,15 +1054,19 @@ describe("AnalyticsDatabaseService sort key page bound", () => {
     });
 
     test("no match at all gives no values: the column default is never a value", () => {
-      const rows: Array<Row> = [0, 0, 4].map((key: number, index: number): Row => {
-        return { key, second: 0, _id: `r${index}`, matches: false };
-      });
+      const rows: Array<Row> = [0, 0, 4].map(
+        (key: number, index: number): Row => {
+          return { key, second: 0, _id: `r${index}`, matches: false };
+        },
+      );
 
       // A real key equal to the type default (0 / 1970) changes nothing.
       expect(
         pageBound(rows, { key: SortOrder.Descending }, 0, 5, seededRandom(3)),
       ).toStrictEqual({ values: [], offset: 0 });
-      expect(boundedPage(rows, { key: SortOrder.Ascending }, 0, 5, seededRandom(3))).toStrictEqual([]);
+      expect(
+        boundedPage(rows, { key: SortOrder.Ascending }, 0, 5, seededRandom(3)),
+      ).toStrictEqual([]);
     });
   });
 
@@ -1064,13 +1091,16 @@ describe("AnalyticsDatabaseService sort key page bound", () => {
     const layout: (matches: (index: number) => boolean) => Array<Laid> = (
       matches: (index: number) => boolean,
     ): Array<Laid> => {
-      return Array.from({ length: 64 * GRANULE_ROWS }, (_unused: unknown, index: number) => {
-        return {
-          key: index,
-          matches: matches(index),
-          granule: Math.floor(index / GRANULE_ROWS),
-        };
-      });
+      return Array.from(
+        { length: 64 * GRANULE_ROWS },
+        (_unused: unknown, index: number) => {
+          return {
+            key: index,
+            matches: matches(index),
+            granule: Math.floor(index / GRANULE_ROWS),
+          };
+        },
+      );
     };
 
     // The first skip + limit matching key values, newest first.
@@ -1094,7 +1124,10 @@ describe("AnalyticsDatabaseService sort key page bound", () => {
     const granulesWhere: (
       rows: Array<Laid>,
       admit: (row: Laid) => boolean,
-    ) => number = (rows: Array<Laid>, admit: (row: Laid) => boolean): number => {
+    ) => number = (
+      rows: Array<Laid>,
+      admit: (row: Laid) => boolean,
+    ): number => {
       return new Set(
         rows.filter(admit).map((row: Laid): number => {
           return row.granule;
@@ -1157,7 +1190,9 @@ describe("AnalyticsDatabaseService sort key page bound", () => {
         return index % 50 === 0;
       });
 
-      expect(rangeBoundGranules(rows, 1000, 100)).toBeGreaterThan(ALL_GRANULES / 2);
+      expect(rangeBoundGranules(rows, 1000, 100)).toBeGreaterThan(
+        ALL_GRANULES / 2,
+      );
       expect(pageBoundGranules(rows, 1000, 100)).toBe(0);
     });
 

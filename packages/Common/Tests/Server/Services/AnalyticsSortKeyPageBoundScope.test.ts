@@ -50,7 +50,7 @@ const ALL_MODELS: Array<[string, ModelType]> = fs
   })
   .sort()
   .map((file: string): [string, ModelType] => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const loaded: { default: ModelType } = require(
       path.join(MODELS_DIRECTORY, file),
     );
@@ -108,9 +108,7 @@ describe("the sort-key page bound across every analytics model", () => {
       ALL_MODELS.map(([file]: [string, ModelType]): string => {
         return file;
       }),
-    ).toEqual(
-      expect.arrayContaining(["Log", "Span", "Metric", "AuditLog"]),
-    );
+    ).toEqual(expect.arrayContaining(["Log", "Span", "Metric", "AuditLog"]));
   });
 
   test.each(ALL_MODELS)(

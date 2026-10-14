@@ -1771,7 +1771,7 @@ export default class AnalyticsDatabaseService<
    * LogItemV3, a 30-day range, one page of 101: no match 32.0M rows read ->
    * 16.0M (the unbounded find: 16.0M); 60 matches 32.4M -> 17.0M; a 0.1%
    * filter 10,000 rows deep 26.2M -> 16.1M; no filter 0.38M either way
-   * (unbounded: 10.8M). The real-ClickHouse suite
+   * (unbounded: 11.0M). The real-ClickHouse suite
    * (App Tests/Telemetry/PagedFindBoundClickhouse) holds these.
    *
    * Every piece is a performance gate except one: the leading key must not

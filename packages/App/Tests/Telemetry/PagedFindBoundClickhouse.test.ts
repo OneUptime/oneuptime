@@ -304,7 +304,10 @@ const FILTERS: Array<FilterCase> = [
   },
 ];
 
-const NEWEST_FIRST: SortSpec = { lead: "time", leadOrder: SortOrder.Descending };
+const NEWEST_FIRST: SortSpec = {
+  lead: "time",
+  leadOrder: SortOrder.Descending,
+};
 const OLDEST_FIRST: SortSpec = { lead: "time", leadOrder: SortOrder.Ascending };
 
 function toServiceSort(sort: SortSpec): Record<string, SortOrder> {
@@ -320,10 +323,7 @@ function toServiceSort(sort: SortSpec): Record<string, SortOrder> {
 }
 
 // Pages of one size from every offset worth checking: the first pages, the last, those across the tie group of 600.
-function offsetsToCheck(
-  expected: Array<string>,
-  limit: number,
-): Array<number> {
+function offsetsToCheck(expected: Array<string>, limit: number): Array<number> {
   const offsets: Set<number> = new Set<number>();
   const pages: number = Math.ceil(expected.length / limit) + 1;
 
@@ -626,7 +626,8 @@ integration("a paged find against ClickHouse (#4710)", () => {
      * own one-shard `default` cluster gives this suite the same shape.
      */
     const clusters: { json: () => Promise<unknown> } = await client.query({
-      query: "SELECT count() AS shards FROM system.clusters WHERE cluster = 'default'",
+      query:
+        "SELECT count() AS shards FROM system.clusters WHERE cluster = 'default'",
       format: "JSONEachRow",
     });
     const [cluster] = (await clusters.json()) as Array<{
@@ -636,10 +637,13 @@ integration("a paged find against ClickHouse (#4710)", () => {
     expect(Number(cluster!.shards)).toBeGreaterThanOrEqual(1);
 
     // Measured without the query condition cache, so a repeat read is not cheaper for an earlier one.
-    const conditionCache: { json: () => Promise<unknown> } = await client.query({
-      query: "SELECT count() AS present FROM system.settings WHERE name = 'use_query_condition_cache'",
-      format: "JSONEachRow",
-    });
+    const conditionCache: { json: () => Promise<unknown> } = await client.query(
+      {
+        query:
+          "SELECT count() AS present FROM system.settings WHERE name = 'use_query_condition_cache'",
+        format: "JSONEachRow",
+      },
+    );
     const [cache] = (await conditionCache.json()) as Array<{
       present: string | number;
     }>;
@@ -768,20 +772,34 @@ integration("a paged find against ClickHouse (#4710)", () => {
     }
 
     // Another project's rows in the same seconds, matching every filter: never part of a page.
-    await insert(OTHER_PROJECT_ID, OTHER_ID_PREFIX, 0, OTHER_ROWS, "intDiv(number, 2) * 100", {
-      service: `'${SERVICES[0]!}'`,
-      severity: "'Fatal'",
-      body: "'other project needle-4710'",
-      retention: `toDateTime('${live}')`,
-    });
+    await insert(
+      OTHER_PROJECT_ID,
+      OTHER_ID_PREFIX,
+      0,
+      OTHER_ROWS,
+      "intDiv(number, 2) * 100",
+      {
+        service: `'${SERVICES[0]!}'`,
+        severity: "'Fatal'",
+        body: "'other project needle-4710'",
+        retention: `toDateTime('${live}')`,
+      },
+    );
 
     // The deep project: two rows a second, enough rows to page past 131,072.
-    await insert(DEEP_PROJECT_ID, DEEP_ID_PREFIX, 0, DEEP_ROWS, "intDiv(number, 2)", {
-      service: `'${SERVICES[1]!}'`,
-      severity: "'Information'",
-      body: "'deep'",
-      retention: `toDateTime('${live}')`,
-    });
+    await insert(
+      DEEP_PROJECT_ID,
+      DEEP_ID_PREFIX,
+      0,
+      DEEP_ROWS,
+      "intDiv(number, 2)",
+      {
+        service: `'${SERVICES[1]!}'`,
+        severity: "'Information'",
+        body: "'deep'",
+        retention: `toDateTime('${live}')`,
+      },
+    );
 
     // Audit log entries: 25 to a second, so every page boundary falls inside a tie.
     await client.command({
@@ -852,7 +870,13 @@ integration("a paged find against ClickHouse (#4710)", () => {
         return row.expired;
       }).length,
     ).toBe(ROWS / 50);
-    expect(new Set(FIXTURE.map((row: FixtureRow) => row.id)).size).toBe(ROWS);
+    expect(
+      new Set(
+        FIXTURE.map((row: FixtureRow) => {
+          return row.id;
+        }),
+      ).size,
+    ).toBe(ROWS);
   });
 
   test("the explorer's list find carries the page bound", () => {
@@ -889,7 +913,12 @@ integration("a paged find against ClickHouse (#4710)", () => {
                 sort.leadOrder,
                 limit,
                 skip,
-                await findPage(projectWindow(PROJECT_ID, query), sort, skip, limit),
+                await findPage(
+                  projectWindow(PROJECT_ID, query),
+                  sort,
+                  skip,
+                  limit,
+                ),
               ]).toEqual([
                 sort.leadOrder,
                 limit,
@@ -956,7 +985,12 @@ integration("a paged find against ClickHouse (#4710)", () => {
         skip += 50
       ) {
         seen.push(
-          ...(await findPage(projectWindow(PROJECT_ID, {}), NEWEST_FIRST, skip, 50)),
+          ...(await findPage(
+            projectWindow(PROJECT_ID, {}),
+            NEWEST_FIRST,
+            skip,
+            50,
+          )),
         );
       }
 
@@ -978,10 +1012,10 @@ integration("a paged find against ClickHouse (#4710)", () => {
       }, sort);
 
       for (const skip of offsetsToCheck(expected, 50)) {
-        expect([skip, await findPage(projectWindow(PROJECT_ID, {}), sort, skip, 50)]).toEqual([
+        expect([
           skip,
-          expected.slice(skip, skip + 50),
-        ]);
+          await findPage(projectWindow(PROJECT_ID, {}), sort, skip, 50),
+        ]).toEqual([skip, expected.slice(skip, skip + 50)]);
       }
     });
 
@@ -999,17 +1033,29 @@ integration("a paged find against ClickHouse (#4710)", () => {
         // A third of the rows tie on each service: pages inside and across those ties.
         const third: number = Math.floor(expected.length / 3);
 
-        for (const skip of [0, 50, third - 25, third, third + 1, 2 * third - 7, expected.length - 30, expected.length]) {
-          expect([skip, await findPage(projectWindow(PROJECT_ID, {}), sort, skip, 50)]).toEqual([
+        for (const skip of [
+          0,
+          50,
+          third - 25,
+          third,
+          third + 1,
+          2 * third - 7,
+          expected.length - 30,
+          expected.length,
+        ]) {
+          expect([
             skip,
-            expected.slice(skip, skip + 50),
-          ]);
+            await findPage(projectWindow(PROJECT_ID, {}), sort, skip, 50),
+          ]).toEqual([skip, expected.slice(skip, skip + 50)]);
         }
 
         expect(
-          findStatement(projectWindow(PROJECT_ID, {}), sort, 0, 50).query.startsWith(
-            "WITH (",
-          ),
+          findStatement(
+            projectWindow(PROJECT_ID, {}),
+            sort,
+            0,
+            50,
+          ).query.startsWith("WITH ("),
         ).toBe(true);
       },
     );
@@ -1133,7 +1179,10 @@ integration("a paged find against ClickHouse (#4710)", () => {
       "%s: a page 131,100 rows deep, the last page and one past it, and the 10,001 rows an API caller can ask for",
       async (_label: string, order: SortOrder) => {
         const sort: SortSpec = { lead: "time", leadOrder: order };
-        const query: Record<string, unknown> = projectWindow(DEEP_PROJECT_ID, {});
+        const query: Record<string, unknown> = projectWindow(
+          DEEP_PROJECT_ID,
+          {},
+        );
 
         for (const [skip, limit] of [
           [131100, 101],
@@ -1153,7 +1202,9 @@ integration("a paged find against ClickHouse (#4710)", () => {
             limit,
             await ids(unbounded(statement, skip)),
           ]);
-          expect(page).toHaveLength(Math.max(0, Math.min(limit, DEEP_ROWS - skip)));
+          expect(page).toHaveLength(
+            Math.max(0, Math.min(limit, DEEP_ROWS - skip)),
+          );
         }
       },
     );
@@ -1173,7 +1224,9 @@ integration("a paged find against ClickHouse (#4710)", () => {
         params: statement.query_params,
       });
       const plain: ReadStats = await readStats(unbounded(statement, 0));
-      const before: ReadStats = await readStats(beforeTheFix(statement, 0, true));
+      const before: ReadStats = await readStats(
+        beforeTheFix(statement, 0, true),
+      );
 
       expect(plain.marks).toBeGreaterThan(100);
       expect(bounded.marks).toBe(plain.marks);
@@ -1211,16 +1264,23 @@ integration("a paged find against ClickHouse (#4710)", () => {
           101,
         );
 
-        expect(await ids({ query: statement.query, params: statement.query_params })).toEqual([]);
+        expect(
+          await ids({ query: statement.query, params: statement.query_params }),
+        ).toEqual([]);
 
         const bounded: ReadStats = await readStats({
           query: statement.query,
           params: statement.query_params,
         });
         const plain: ReadStats = await readStats(unbounded(statement, skip));
-        const before: ReadStats = await readStats(beforeTheFix(statement, skip, true));
+        const before: ReadStats = await readStats(
+          beforeTheFix(statement, skip, true),
+        );
 
-        expect([filter.label, bounded.marks]).toEqual([filter.label, plain.marks]);
+        expect([filter.label, bounded.marks]).toEqual([
+          filter.label,
+          plain.marks,
+        ]);
         expect(before.marks).toBeGreaterThan(plain.marks + plain.marks / 2);
       }
     });
@@ -1239,7 +1299,9 @@ integration("a paged find against ClickHouse (#4710)", () => {
         params: statement.query_params,
       });
       const plain: ReadStats = await readStats(unbounded(statement, 0));
-      const before: ReadStats = await readStats(beforeTheFix(statement, 0, true));
+      const before: ReadStats = await readStats(
+        beforeTheFix(statement, 0, true),
+      );
 
       expect(holding).toBeGreaterThanOrEqual(6);
       expect(holding).toBeLessThanOrEqual(12);
@@ -1263,7 +1325,9 @@ integration("a paged find against ClickHouse (#4710)", () => {
         params: statement.query_params,
       });
       const plain: ReadStats = await readStats(unbounded(statement, skip));
-      const before: ReadStats = await readStats(beforeTheFix(statement, skip, true));
+      const before: ReadStats = await readStats(
+        beforeTheFix(statement, skip, true),
+      );
 
       expect(holding).toBeLessThanOrEqual(2 * 20);
       expect(bounded.marks).toBeLessThanOrEqual(plain.marks + 2 * holding);
