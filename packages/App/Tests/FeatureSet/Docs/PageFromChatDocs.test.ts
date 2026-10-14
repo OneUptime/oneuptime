@@ -1,0 +1,476 @@
+import Alert from "Common/Models/DatabaseModels/Alert";
+import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import { ON_CALL_DIRECT_PAGE_NOT_ALLOWED_MESSAGE } from "Common/Server/Services/OnCallPageService";
+import slugify from "Common/Server/Types/MarkdownSlugify";
+import MicrosoftTeamsPage from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsPage";
+import SlackPageActions from "Common/Server/Utils/Workspace/Slack/Actions/Page";
+import SlackCommandParser from "Common/Server/Utils/Workspace/Slack/SlackCommandParser";
+import WorkspaceActionAuthorization from "Common/Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceCommands, {
+  WORKSPACE_COMMANDS,
+  WorkspaceCommandDefinition,
+  WorkspaceCommandName,
+} from "Common/Server/Utils/Workspace/WorkspaceCommands";
+import WorkspacePage, {
+  WorkspacePageFormPrefill,
+  WorkspacePageTargetKind,
+} from "Common/Server/Utils/Workspace/WorkspacePage";
+import WorkspacePageTextReader, {
+  WorkspacePageText,
+} from "Common/Server/Utils/Workspace/WorkspacePageText";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import Permission, {
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+
+/*
+ * PAGING SOMEONE FROM SLACK AND MICROSOFT TEAMS, AS THE ENGLISH DOCS SAY IT.
+ *
+ * `/oneuptime page @nawaz The checkout API is throwing 500s` in Slack, and
+ * "page" typed to the Microsoft Teams bot (customer feedback #4). The pages
+ * give an example of each, name the form a page opens, say who may page and
+ * what the Slack app needs from Slack for it. Each of those is read here
+ * from what the product does: the examples are read by the command's own
+ * reader, the form's title is the server's, the roles are the models' own,
+ * and the scope and the escaping are the manifest's. A change to any of
+ * them fails here until the pages say so too.
+ */
+
+const CONTENT_DIR: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/Docs/Content/en",
+);
+
+const MANIFEST_PATH: string = path.resolve(
+  __dirname,
+  "../../../../Common/Server/Utils/Workspace/Slack/app-manifest.json",
+);
+
+const SLACK_HEADING: string = "Paging someone from Slack";
+const TEAMS_HEADING: string = "Paging someone from Microsoft Teams";
+
+function read(page: string): string {
+  return fs.readFileSync(path.join(CONTENT_DIR, page), "utf8");
+}
+
+const SLACK_PAGE: string = read("workspace-connections/slack.md");
+const TEAMS_PAGE: string = read("workspace-connections/microsoft-teams.md");
+const SELF_HOSTED_PAGE: string = read("self-hosted/slack-integration.md");
+
+// The text under a heading, up to the next heading of its level or above.
+function section(markdown: string, heading: string): string {
+  const lines: Array<string> = markdown.split("\n");
+  const start: number = lines.indexOf(heading);
+
+  expect({ heading, found: start >= 0 }).toEqual({ heading, found: true });
+
+  const level: number = heading.indexOf(" ");
+  const rest: Array<string> = lines.slice(start + 1);
+  const end: number = rest.findIndex((line: string): boolean => {
+    const hashes: number = line.indexOf(" ");
+
+    return line.startsWith("#") && hashes > 0 && hashes <= level;
+  });
+
+  return (end === -1 ? rest : rest.slice(0, end)).join("\n");
+}
+
+// The one bullet of a section that starts with `lead`.
+function bullet(text: string, lead: string): string {
+  const line: string | undefined = text.split("\n").find((item: string) => {
+    return item.startsWith(`- **${lead}**`);
+  });
+
+  expect({ lead, found: Boolean(line) }).toEqual({ lead, found: true });
+
+  return line as string;
+}
+
+// The table row of a page whose first cell is `cell`.
+function row(markdown: string, cell: string): string {
+  const line: string | undefined = markdown
+    .split("\n")
+    .find((item: string): boolean => {
+      return item.startsWith(`| ${cell} |`);
+    });
+
+  expect({ cell, found: Boolean(line) }).toEqual({ cell, found: true });
+
+  return line as string;
+}
+
+const ALL_PERMISSIONS: Array<PermissionProps> =
+  PermissionHelper.getAllPermissionProps();
+
+// The titles of the roles (not single permissions) among `permissions`.
+function roleTitles(permissions: Array<Permission>): Array<string> {
+  return ALL_PERMISSIONS.filter((props: PermissionProps): boolean => {
+    return props.isRolePermission && permissions.includes(props.permission);
+  }).map((props: PermissionProps): string => {
+    return props.title;
+  });
+}
+
+// The titles of the single permissions (not roles) among `permissions`.
+function permissionTitles(permissions: Array<Permission>): Array<string> {
+  return ALL_PERMISSIONS.filter((props: PermissionProps): boolean => {
+    return !props.isRolePermission && permissions.includes(props.permission);
+  }).map((props: PermissionProps): string => {
+    return props.title;
+  });
+}
+
+// Every bold span of a text that is a role's title, in order.
+function boldRoleTitles(text: string): Array<string> {
+  const roles: Set<string> = new Set(
+    ALL_PERMISSIONS.filter((props: PermissionProps): boolean => {
+      return props.isRolePermission;
+    }).map((props: PermissionProps): string => {
+      return props.title;
+    }),
+  );
+
+  return text
+    .split("**")
+    .filter((_part: string, index: number): boolean => {
+      // The odd parts are inside a pair of "**".
+      return index % 2 === 1;
+    })
+    .filter((title: string): boolean => {
+      return roles.has(title);
+    });
+}
+
+const RUN_ROLES: Array<string> = roleTitles(
+  new OnCallDutyPolicyExecutionLog().getCreatePermissions(),
+);
+const ALERT_ROLES: Array<string> = roleTitles(
+  new Alert().getCreatePermissions(),
+);
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+describe("the command, in each page's table", () => {
+  const page: WorkspaceCommandDefinition = WORKSPACE_COMMANDS.find(
+    (definition: WorkspaceCommandDefinition): boolean => {
+      return definition.name === WorkspaceCommandName.Page;
+    },
+  ) as WorkspaceCommandDefinition;
+
+  test("Slack's row is the command as its help writes it, and links to the section that says how it pages", () => {
+    const usage: string = `${WorkspaceCommands.getUsage({
+      workspaceType: WorkspaceType.Slack,
+      command: WorkspaceCommandName.Page,
+    })} ${WorkspaceCommands.getArgumentHint(page)}`;
+
+    expect(usage).toBe("/oneuptime page [who] [message]");
+
+    const line: string = row(SLACK_PAGE, `\`${usage}\``);
+
+    expect(line).toContain(`(#${slugify(SLACK_HEADING)})`);
+    expect(SLACK_PAGE.split("\n")).toContain(`## ${SLACK_HEADING}`);
+  });
+
+  test("Microsoft Teams' row is the same words, typed to the bot, and links to its own section", () => {
+    const usage: string = `${page.name} ${WorkspaceCommands.getArgumentHint(page)}`;
+    const line: string = row(TEAMS_PAGE, `\`${usage}\``);
+
+    expect(line).toContain(`(#${slugify(TEAMS_HEADING)})`);
+    expect(TEAMS_PAGE.split("\n")).toContain(`## ${TEAMS_HEADING}`);
+  });
+});
+
+describe("the examples, read as the command reads them", () => {
+  test("Slack: `/oneuptime page @nawaz The checkout API is throwing 500s` names one person, and the rest is the message", () => {
+    const text: string = section(SLACK_PAGE, `## ${SLACK_HEADING}`);
+
+    expect(text).toContain(
+      "`/oneuptime page @nawaz The checkout API is throwing 500s` pages Nawaz straight away.",
+    );
+
+    // As Slack sends it, the person escaped (the manifest's should_escape).
+    const read: WorkspacePageText = WorkspacePageTextReader.read(
+      SlackCommandParser.getPageTokens(
+        "page <@U0123ABCD|nawaz> The checkout API is throwing 500s",
+      ),
+    );
+
+    expect(read).toEqual({
+      people: [{ workspaceUserId: "U0123ABCD", name: "nawaz" }],
+      groups: [],
+      unknownNames: [],
+      message: "The checkout API is throwing 500s",
+    });
+  });
+
+  test("Slack: a user group or `@here` is not a person - the form opens, and says so", () => {
+    const text: string = section(SLACK_PAGE, `## ${SLACK_HEADING}`);
+
+    expect(bullet(text, "Anything else opens a form.")).toContain(
+      "a user group or `@here`",
+    );
+
+    for (const [sent, group] of [
+      ["page <!here> The checkout API is down", "here"],
+      ["page <!subteam^S0123|@oncall-db> The replica is behind", "oncall-db"],
+    ] as Array<[string, string]>) {
+      const read: WorkspacePageText = WorkspacePageTextReader.read(
+        SlackCommandParser.getPageTokens(sent),
+      );
+
+      expect({ sent, people: read.people, groups: read.groups }).toEqual({
+        sent,
+        people: [],
+        groups: [group],
+      });
+      expect(WorkspacePage.getGroupNote(group)).toContain(`@${group}`);
+    }
+  });
+
+  test("Slack: `/oneuptime page Primary The disk is full` picks the schedule named Primary in the form, and the rest is the message", () => {
+    const text: string = section(SLACK_PAGE, `## ${SLACK_HEADING}`);
+
+    expect(bullet(text, "Anything else opens a form.")).toContain(
+      "A name you type first, as in `/oneuptime page Primary The disk is full`, picks the schedule, team or policy of that name.",
+    );
+
+    const scheduleId: ObjectID = ObjectID.generate();
+    const prefill: WorkspacePageFormPrefill = WorkspacePage.getPrefill({
+      text: WorkspacePageTextReader.read(
+        SlackCommandParser.getPageTokens("page Primary The disk is full"),
+      ),
+      people: { people: [], notTold: [] },
+      choices: [
+        {
+          kind: WorkspacePageTargetKind.Schedule,
+          label: "On-call schedules",
+          choices: [
+            {
+              value: WorkspacePage.toValue(
+                WorkspacePageTargetKind.Schedule,
+                scheduleId,
+              ),
+              name: "Primary",
+              label: "Primary (nobody on call now)",
+            },
+          ],
+        },
+      ],
+      workspaceType: WorkspaceType.Slack,
+    });
+
+    expect(prefill).toEqual({
+      values: [`schedule:${scheduleId.toString()}`],
+      message: "The disk is full",
+      notes: [],
+    });
+  });
+
+  test("Microsoft Teams: `@OneUptime page @Nawaz Dhandala ...` names one person besides the bot, and the rest is the message", () => {
+    const text: string = section(TEAMS_PAGE, `## ${TEAMS_HEADING}`);
+
+    expect(text).toContain(
+      "In a channel or a group chat, `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` pages Nawaz straight away.",
+    );
+
+    // As Teams sends it: each mention a tag in the text, and an entity.
+    const activity: JSONObject = {
+      text: "<at>OneUptime</at> page <at>Nawaz Dhandala</at> The checkout API is throwing 500s",
+      recipient: { id: "28:oneuptime-bot" },
+      entities: [
+        {
+          type: "mention",
+          text: "<at>OneUptime</at>",
+          mentioned: { id: "28:oneuptime-bot", name: "OneUptime" },
+        },
+        {
+          type: "mention",
+          text: "<at>Nawaz Dhandala</at>",
+          mentioned: { id: "29:nawaz", name: "Nawaz Dhandala" },
+        },
+      ],
+    };
+
+    expect(
+      WorkspacePageTextReader.read(MicrosoftTeamsPage.getPageTokens(activity)),
+    ).toEqual({
+      people: [{ workspaceUserId: "29:nawaz", name: "Nawaz Dhandala" }],
+      groups: [],
+      unknownNames: [],
+      message: "The checkout API is throwing 500s",
+    });
+  });
+});
+
+describe("the form a page opens, by the name it is drawn with", () => {
+  test("Slack's modal is titled as the page names it, in Slack's 24 characters", () => {
+    const text: string = section(SLACK_PAGE, `## ${SLACK_HEADING}`);
+
+    expect(SlackPageActions.FORM_TITLE.length).toBeLessThanOrEqual(24);
+    expect(bullet(text, "Anything else opens a form.")).toContain(
+      `the **${SlackPageActions.FORM_TITLE}** form opens`,
+    );
+  });
+
+  test("Microsoft Teams' card is titled the same, and the page names it so", () => {
+    const text: string = section(TEAMS_PAGE, `## ${TEAMS_HEADING}`);
+    const card: JSONObject = MicrosoftTeamsPage.buildFormCard({
+      choices: [
+        {
+          kind: WorkspacePageTargetKind.Person,
+          label: "People",
+          choices: [
+            {
+              value: WorkspacePage.toValue(
+                WorkspacePageTargetKind.Person,
+                ObjectID.generate(),
+              ),
+              name: "Nawaz Dhandala",
+              label: "Nawaz Dhandala",
+            },
+          ],
+        },
+      ],
+      prefill: { values: [], message: "", notes: [] },
+      budgetInBytes: 100000,
+    });
+    const title: JSONObject = (card["body"] as Array<JSONObject>)[0]!;
+
+    expect(title["text"]).toBe(SlackPageActions.FORM_TITLE);
+    expect(bullet(text, "Anything else gets a card.")).toContain(
+      `the bot answers with the **${SlackPageActions.FORM_TITLE}** card`,
+    );
+  });
+});
+
+describe("who may page, as the models and the page's own check hold it", () => {
+  test("a page asks to start an on-call run and to create an alert - nothing else, before anything is shown", async () => {
+    const asked: Array<string> = [];
+
+    jest
+      .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
+      .mockImplementation(
+        async (
+          data: Parameters<
+            typeof WorkspaceActionAuthorization.assertCanCreate
+          >[0],
+        ): Promise<void> => {
+          asked.push(data.modelType.name);
+        },
+      );
+
+    await WorkspacePage.assertMayPage({
+      userId: ObjectID.generate(),
+      tenantId: ObjectID.generate(),
+    } as DatabaseCommonInteractionProps);
+
+    expect(asked).toEqual([OnCallDutyPolicyExecutionLog.name, Alert.name]);
+  });
+
+  test.each([
+    { name: "Slack", markdown: SLACK_PAGE, heading: SLACK_HEADING },
+    { name: "Microsoft Teams", markdown: TEAMS_PAGE, heading: TEAMS_HEADING },
+  ])(
+    "$name names exactly the roles that hold both, then a pair that does together",
+    (page: { markdown: string; heading: string }) => {
+      const line: string = bullet(
+        section(page.markdown, `## ${page.heading}`),
+        "Who may page.",
+      );
+      const [both, pair] = line.split(", or ") as [string, string];
+
+      // Each role that may both start a run and create an alert.
+      expect(boldRoleTitles(both).sort()).toEqual(
+        RUN_ROLES.filter((role: string): boolean => {
+          return ALERT_ROLES.includes(role);
+        }).sort(),
+      );
+
+      // A role that may start a run, with one that may create an alert.
+      const [runRole, alertRole] = boldRoleTitles(pair) as [string, string];
+
+      expect(RUN_ROLES).toContain(runRole);
+      expect(ALERT_ROLES).not.toContain(runRole);
+      expect(ALERT_ROLES).toContain(alertRole);
+      expect(RUN_ROLES).not.toContain(alertRole);
+
+      // And the single permissions a custom role holds them by.
+      for (const title of [
+        ...permissionTitles(
+          new OnCallDutyPolicyExecutionLog().getCreatePermissions(),
+        ),
+        ...permissionTitles(new Alert().getCreatePermissions()),
+      ]) {
+        expect(line).toContain(`**${title}**`);
+      }
+
+      // A direct page asks more, in the service's own words.
+      expect(ON_CALL_DIRECT_PAGE_NOT_ALLOWED_MESSAGE).toContain(
+        "takes access to every on-call policy of the project",
+      );
+      expect(line).toContain(
+        "also takes access to every on-call policy of the project",
+      );
+    },
+  );
+});
+
+describe("what the Slack app needs from Slack, as its manifest asks for it", () => {
+  const manifest: {
+    features: {
+      slash_commands: Array<{
+        command: string;
+        usage_hint: string;
+        should_escape: boolean;
+      }>;
+    };
+    oauth_config: { scopes: { bot: Array<string> } };
+  } = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf8"));
+  const command: {
+    command: string;
+    usage_hint: string;
+    should_escape: boolean;
+  } = manifest.features.slash_commands[0]!;
+
+  test("people come escaped, and an email address can be read for one whose account is not connected", () => {
+    expect(command.should_escape).toBe(true);
+    expect(manifest.oauth_config.scopes.bot).toEqual(
+      expect.arrayContaining(["users:read", "users:read.email"]),
+    );
+    expect(command.usage_hint).toContain("page [who] [message]");
+
+    expect(
+      bullet(
+        section(SLACK_PAGE, `## ${SLACK_HEADING}`),
+        "Who is paged at once.",
+      ),
+    ).toContain("or else by the email address Slack has for them");
+  });
+
+  test("the self-hosted guide lists paging among the command's features, and says an older app needs the update and the new scope", () => {
+    expect(row(SELF_HOSTED_PAGE, "`/oneuptime`")).toContain("page someone");
+
+    const olderApps: string = section(
+      SELF_HOSTED_PAGE,
+      "### Apps created from an older manifest",
+    );
+
+    expect(olderApps).toContain(
+      "An app created before `/oneuptime page` needs the same update",
+    );
+    expect(olderApps).toContain(
+      "so the `users:read.email` scope the manifest adds is granted",
+    );
+    // The scopes changed: the old promise of no reinstall is gone.
+    expect(olderApps).not.toContain("needs no reinstall");
+  });
+});

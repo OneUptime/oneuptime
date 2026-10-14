@@ -49,7 +49,7 @@ Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis 
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur et, dans **Fields to pass on**, choisissez `title` et `description`.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description**.
 
 ### Créer l'alerte
 
@@ -73,7 +73,7 @@ Et son **Request Body** sur :
 
 ### Tester, puis activer
 
-Cliquez sur **Exécuter le flux de travail**, saisissez l'**ID d'incident** d'un incident de test et lancez-le. L'étape **API Post (JSON)** affiche une réponse `202`, et l'alerte apparaît dans Opsgenie un instant plus tard. Activez ensuite **Activé** en haut du **Constructeur**.
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `202`, et l'alerte apparaît dans Opsgenie un instant plus tard. Activez ensuite **Activé** en haut du **Constructeur**.
 :::
 
 Le schéma d'Opsgenie est le mot `GenieKey`, une espace, puis la clé. Opsgenie limite `message` à 130 caractères, et ses priorités vont de `P1` à `P5` : pour envoyer celle de chaque incident, voir [Faire correspondre les priorités](#faire-correspondre-les-priorités).
@@ -85,7 +85,7 @@ Un workflow a un seul déclencheur, la fermeture demande donc un second workflow
 :::steps
 ### Ajouter le déclencheur On Update Incident
 
-Créez un workflow nommé `Close Opsgenie alerts` et choisissez **On Update Incident** comme déclencheur. Dans **Fields to watch**, choisissez `currentIncidentStateId`, pour qu'il ne s'exécute que quand l'état change. Dans **Fields to pass on**, demandez si le nouvel état est un état résolu :
+Créez un workflow nommé `Close Opsgenie alerts` et choisissez **On Update Incident** comme déclencheur. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Fields to pass on**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ Activez **Activé**, puis résolvez un incident de test dans OneUptime. Opsgenie
 
 Pour envoyer la gravité de chaque incident comme priorité Opsgenie, ajoutez un bloc **Run Custom JavaScript** entre le déclencheur et le bloc **API Post (JSON)**.
 
-1. Dans les **Fields to pass on** du déclencheur, choisissez aussi le `name` de la gravité : `{ "incidentSeverity": { "name": true } }`.
+1. Dans les **Fields to pass on** du déclencheur, cliquez sur **Ajouter un champ**, ouvrez **Gravité de l'incident** et choisissez **Nom**.
 2. Réglez les **Arguments** du bloc sur `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, et son **JavaScript Code** sur :
 
    ```javascript

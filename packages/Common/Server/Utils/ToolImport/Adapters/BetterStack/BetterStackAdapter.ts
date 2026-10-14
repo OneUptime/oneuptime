@@ -61,7 +61,10 @@ import {
  * Auth is `Authorization: Bearer <token>` against incidents.betterstack.com.
  * Lists follow JSON:API: `data` of { id, type, attributes }, paged with
  * `per_page` (at most 250) and `page` (from 1); `pagination.next` says
- * whether there is another page, and is never followed itself.
+ * whether there is another page, and is never followed itself. A page can
+ * have more subscribers than one read collects: the ones earlier imports
+ * brought over are read past without being counted, so each import reads
+ * the next ones.
  *
  * How Better Stack's ideas map:
  *  - Status, expected status code, keyword and keyword absence monitors
@@ -129,6 +132,15 @@ interface PagedRead {
   hasMore: boolean;
 }
 
+// A status page, the items it tracks by hand and its subscribers.
+interface BetterStackPageRead {
+  statusPage: ImportedStatusPage;
+  items: Array<ImportedMonitor>;
+  subscribers: Array<ImportedStatusPageSubscriber>;
+  // The page had more subscribers than one read collects.
+  hasMoreSubscribers?: boolean | undefined;
+}
+
 export default class BetterStackAdapter implements ToolImportAdapter {
   public source: ToolImportSource = ToolImportSource.BetterStack;
 
@@ -194,11 +206,7 @@ export default class BetterStackAdapter implements ToolImportAdapter {
 
       await context.onProgress?.(ToolImportResourceKind.StatusPage);
 
-      const pages: Array<{
-        statusPage: ImportedStatusPage;
-        items: Array<ImportedMonitor>;
-        subscribers: Array<ImportedStatusPageSubscriber>;
-      }> = await readOptionalList({
+      const pages: Array<BetterStackPageRead> = await readOptionalList({
         kind: ToolImportResourceKind.StatusPage,
         notes: snapshot.notes,
         read: async () => {
@@ -207,11 +215,7 @@ export default class BetterStackAdapter implements ToolImportAdapter {
             "/api/v2/status-pages",
           );
 
-          const read: Array<{
-            statusPage: ImportedStatusPage;
-            items: Array<ImportedMonitor>;
-            subscribers: Array<ImportedStatusPageSubscriber>;
-          }> = [];
+          const read: Array<BetterStackPageRead> = [];
 
           for (const page of capRecords({
             kind: ToolImportResourceKind.StatusPage,
@@ -219,7 +223,14 @@ export default class BetterStackAdapter implements ToolImportAdapter {
             notes: snapshot.notes,
             hasMore: list.hasMore,
           })) {
-            read.push(await this.readStatusPage(client, page, snapshot.notes));
+            read.push(
+              await this.readStatusPage(
+                client,
+                page,
+                snapshot.notes,
+                context.importedSubscriberIds,
+              ),
+            );
           }
 
           return read;
@@ -228,7 +239,7 @@ export default class BetterStackAdapter implements ToolImportAdapter {
 
       // Items tracked by hand become manual monitors, after the checks.
       const items: Array<ImportedMonitor> = pages.flatMap(
-        (page: { items: Array<ImportedMonitor> }): Array<ImportedMonitor> => {
+        (page: BetterStackPageRead): Array<ImportedMonitor> => {
           return page.items;
         },
       );
@@ -241,7 +252,7 @@ export default class BetterStackAdapter implements ToolImportAdapter {
       });
 
       snapshot.statusPages = pages.map(
-        (page: { statusPage: ImportedStatusPage }): ImportedStatusPage => {
+        (page: BetterStackPageRead): ImportedStatusPage => {
           return page.statusPage;
         },
       );
@@ -251,13 +262,14 @@ export default class BetterStackAdapter implements ToolImportAdapter {
       snapshot.statusPageSubscribers = capRecords({
         kind: ToolImportResourceKind.StatusPageSubscriber,
         records: pages.flatMap(
-          (page: {
-            subscribers: Array<ImportedStatusPageSubscriber>;
-          }): Array<ImportedStatusPageSubscriber> => {
+          (page: BetterStackPageRead): Array<ImportedStatusPageSubscriber> => {
             return page.subscribers;
           },
         ),
         notes: snapshot.notes,
+        hasMore: pages.some((page: BetterStackPageRead): boolean => {
+          return page.hasMoreSubscribers === true;
+        }),
       });
     } catch (error) {
       throw toFatalReadError({
@@ -277,11 +289,15 @@ export default class BetterStackAdapter implements ToolImportAdapter {
   /*
    * Every record of a list: `per_page` and `page` in, `data` and
    * `pagination.next` out. Stops at the last page, at an empty one, and
-   * once it holds the records one read collects.
+   * once it holds the records one read collects
+   * (TOOL_IMPORT_MAX_RECORDS_PER_KIND); `hasMore` says when there were
+   * more. Records whose ids are in `passOver` are read past: neither kept
+   * nor counted towards that limit.
    */
   private async readPaged(
     client: ToolImportHttpClient,
     path: string,
+    passOver?: ReadonlySet<string> | undefined,
   ): Promise<PagedRead> {
     const records: Array<Record<string, unknown>> = [];
 
@@ -290,7 +306,13 @@ export default class BetterStackAdapter implements ToolImportAdapter {
         await client.getJson(path, { per_page: PAGE_SIZE, page: page }),
       );
       const data: Array<unknown> = asArray(body["data"]);
-      records.push(...data.map(asRecord));
+      records.push(
+        ...data
+          .map(asRecord)
+          .filter((record: Record<string, unknown>): boolean => {
+            return !passOver?.has(asString(record["id"]));
+          }),
+      );
 
       if (
         data.length === 0 ||
@@ -300,7 +322,10 @@ export default class BetterStackAdapter implements ToolImportAdapter {
       }
 
       if (records.length >= TOOL_IMPORT_MAX_RECORDS_PER_KIND) {
-        return { records: records, hasMore: true };
+        return {
+          records: records.slice(0, TOOL_IMPORT_MAX_RECORDS_PER_KIND),
+          hasMore: true,
+        };
       }
     }
   }
@@ -535,16 +560,14 @@ export default class BetterStackAdapter implements ToolImportAdapter {
   /*
    * A status page with its sections, what it shows and its subscribers.
    * Items it tracks by hand come back as manual monitors of their own.
+   * Subscribers earlier imports brought over are read past.
    */
   private async readStatusPage(
     client: ToolImportHttpClient,
     raw: Record<string, unknown>,
     notes: Array<ToolImportNote>,
-  ): Promise<{
-    statusPage: ImportedStatusPage;
-    items: Array<ImportedMonitor>;
-    subscribers: Array<ImportedStatusPageSubscriber>;
-  }> {
+    importedSubscriberIds: ReadonlySet<string> | undefined,
+  ): Promise<BetterStackPageRead> {
     const id: string = asString(raw["id"]);
     const base: string = `/api/v2/status-pages/${encodeURIComponent(id)}`;
 
@@ -558,12 +581,21 @@ export default class BetterStackAdapter implements ToolImportAdapter {
     );
     // A page whose subscribers the token may not read is said once.
     const subscriberNotes: Array<ToolImportNote> = [];
+    let hasMoreSubscribers: boolean = false;
     const subscribers: Array<Record<string, unknown>> = (
       await readOptionalList<Record<string, unknown>>({
         kind: ToolImportResourceKind.StatusPageSubscriber,
         notes: subscriberNotes,
         read: async (): Promise<Array<Record<string, unknown>>> => {
-          return (await this.readPaged(client, `${base}/subscribers`)).records;
+          const list: PagedRead = await this.readPaged(
+            client,
+            `${base}/subscribers`,
+            // Already in OneUptime: read past, so this read collects the next ones.
+            importedSubscriberIds,
+          );
+
+          hasMoreSubscribers = list.hasMore;
+          return list.records;
         },
       })
     ).filter((subscriber: Record<string, unknown>): boolean => {
@@ -580,12 +612,15 @@ export default class BetterStackAdapter implements ToolImportAdapter {
       }
     }
 
-    return this.toStatusPage({
-      page: raw,
-      sections: sections.records,
-      resources: resources.records,
-      subscribers: subscribers,
-    });
+    return {
+      ...this.toStatusPage({
+        page: raw,
+        sections: sections.records,
+        resources: resources.records,
+        subscribers: subscribers,
+      }),
+      hasMoreSubscribers: hasMoreSubscribers,
+    };
   }
 
   public toStatusPage(data: {
@@ -593,11 +628,7 @@ export default class BetterStackAdapter implements ToolImportAdapter {
     sections: Array<Record<string, unknown>>;
     resources: Array<Record<string, unknown>>;
     subscribers: Array<Record<string, unknown>>;
-  }): {
-    statusPage: ImportedStatusPage;
-    items: Array<ImportedMonitor>;
-    subscribers: Array<ImportedStatusPageSubscriber>;
-  } {
+  }): BetterStackPageRead {
     const id: string = asString(data.page["id"]);
     const attributes: Record<string, unknown> = asRecord(
       data.page["attributes"],

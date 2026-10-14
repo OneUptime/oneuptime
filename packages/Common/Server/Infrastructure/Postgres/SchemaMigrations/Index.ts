@@ -686,6 +686,7 @@ import { SplitWebAuthnChallengeByPurpose1791800000000 } from "./1791800000000-Sp
 import { AddSeverityAndStateToNotificationEmailRollup1791900000000 } from "./1791900000000-AddSeverityAndStateToNotificationEmailRollup";
 import { AddVMwareTables1792000000000 } from "./1792000000000-AddVMwareTables";
 import { AddGitHubCommandSettingsToCodeRepository1792100000000 } from "./1792100000000-AddGitHubCommandSettingsToCodeRepository";
+import { TwilioAuthTokenEncryptedColumn1801800000000 } from "./1801800000000-TwilioAuthTokenEncryptedColumn";
 
 export default [
   InitialMigration,
@@ -1376,4 +1377,5 @@ export default [
   AddCriticalAlertSoundVolumeAndPushRepeat1801650000000,
   AddInstanceTokenSigningKey1801700000000,
   AddOnCallDirectPages1801750000000,
+  TwilioAuthTokenEncryptedColumn1801800000000,
 ];

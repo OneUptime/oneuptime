@@ -307,7 +307,7 @@ Jira Cloud 接受由帳戶的電子郵件和 API 權杖編碼在一起構成的 
 ### 為每個事件建立 Jira 問題
 
 :::steps
-1. 從零開始建立一個名為 `Incidents to Jira` 的工作流程。點選虛線區塊，新增 **On Create Incident** 觸發器。在它的 **Fields to pass on** 中請求 `{"_id": true, "title": true, "description": true, "incidentNumber": true}`。它的 **Identifier** 保持為 `incident-on-create-1`。
+1. 從零開始建立一個名為 `Incidents to Jira` 的工作流程。點選虛線區塊，新增 **On Create Incident** 觸發器。它的 **Fields to pass on** 已經包含 **標題**：點選 **新增欄位** 並選擇 **描述** 和 **事件編號**。ID 一定會被傳遞。它的 **Identifier** 保持為 `incident-on-create-1`。
 2. 點選 **新增元件**，新增一個 **API Post (JSON)** 區塊，並把觸發器的 **Success** 點連接到它。把它的 **Identifier** 設為 `create-issue`，**URL** 設為 `{{global.variables.JIRA_URL}}/rest/api/3/issue`，並在 **更多欄位** 下把 **Request Headers** 設為 `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`。
 3. 把它的 **Request Body** 設為問題內容，並把 `OPS` 和 `Bug` 替換為你的專案鍵和該專案中的一個問題類型：
 
@@ -384,14 +384,14 @@ Jira 管理員也可以改為新增一個短文字自訂欄位，例如命名為
 }
 ```
 
-為此請把 `projectId` 加到觸發器的 **Fields to pass on** 中，並保留 `.value`：儲存另一條記錄 ID 的欄位會以 `{"_type": "ObjectID", "value": "..."}` 的形式到達。`globalId` 讓這個呼叫可以安全地重複執行：Jira 會更新帶有它的連結，而不是再新增一個。
+為此請在觸發器的 **Fields to pass on** 中點選 **新增欄位** 並選擇 **專案 ID**，並保留 `.value`：儲存另一條記錄 ID 的欄位會以 `{"_type": "ObjectID", "value": "..."}` 的形式到達。`globalId` 讓這個呼叫可以安全地重複執行：Jira 會更新帶有它的連結，而不是再新增一個。
 
 ### 隨事件進展發表留言並轉換
 
 把這部分建置為第二個工作流程，這樣這裡的失敗永遠不會妨礙建立問題。
 
 :::steps
-1. 建立一個名為 `Incident updates to Jira` 的工作流程，使用 **On Update Incident** 觸發器。把 **Fields to watch** 設為 `{"currentIncidentStateId": true}`，**Fields to pass on** 設為 `{"_id": true, "currentIncidentState": {"name": true}}`。
+1. 建立一個名為 `Incident updates to Jira` 的工作流程，使用 **On Update Incident** 觸發器。在 **Fields to watch** 中點選 **新增欄位** 並選擇 **Current Incident State**。在 **Fields to pass on** 中點選 **新增欄位**，展開 **Current Incident State** 並選擇 **名稱**。
 2. 新增一個 **If / Else** 區塊：**Value to check** 為 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`，**Comparison** 為 **is equal to**，**Compare with** 為 `Resolved` 或你的已解決狀態的名稱。
 3. 在它的 **Yes** 一側之後，用一個 **Identifier** 為 `find-issue` 的 **API Post (JSON)** 區塊查詢問題，發布到 `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`：
 

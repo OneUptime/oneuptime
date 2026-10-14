@@ -48,7 +48,7 @@ flowchart TB
 
 ### 添加触发器
 
-点击虚线的 **Choose what starts this workflow** 块，选择 **On Create Incident**。点击该触发器，在 **Fields to pass on** 中选择 `title` 和 `description`。
+点击虚线的 **Choose what starts this workflow** 块，选择 **On Create Incident**。点击该触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述**。
 
 ### 发送 trigger 事件
 
@@ -72,7 +72,7 @@ flowchart TB
 
 ### 测试，然后启用
 
-点击 **运行工作流**，输入一个测试事件的 **事件 ID**，然后运行。**API Post (JSON)** 步骤会显示带有 `"status": "success"` 的 `202` 响应，PagerDuty 会创建一个事件。然后在 **生成器** 顶部打开 **已启用**。
+点击 **运行工作流**，在 **事件** 中选择一个测试事件，然后运行。**API Post (JSON)** 步骤会显示带有 `"status": "success"` 的 `202` 响应，PagerDuty 会创建一个事件。然后在 **生成器** 顶部打开 **已启用**。
 :::
 
 该块发送的是 JSON，因此不需要 `Content-Type` 请求头。PagerDuty 的 `severity` 是 `critical`、`error`、`warning` 和 `info` 之一：要发送每个事件自己的严重程度，请参见 [映射严重程度](#映射严重程度)。
@@ -84,7 +84,7 @@ flowchart TB
 :::steps
 ### 添加 On Update Incident 触发器
 
-创建一个名为 `Resolve PagerDuty incidents` 的工作流，选择 **On Update Incident** 作为触发器。在 **Fields to watch** 中选择 `currentIncidentStateId`，使它只在状态变化时运行。在 **Fields to pass on** 中请求新状态是否为已解决状态：
+创建一个名为 `Resolve PagerDuty incidents` 的工作流，选择 **On Update Incident** 作为触发器。在 **Fields to watch** 中点击 **添加字段** 并选择 **Current Incident State**，使它只在状态变化时运行。在 **Fields to pass on** 中请求新状态是否为已解决状态：点击 **添加字段**，展开 **Current Incident State** 并选择 **Is Resolved State**。也可以点击 **以 JSON 编辑**，把 JSON 替换为：
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ flowchart TB
 
 要发送每个事件的严重程度，请在触发器和 **API Post (JSON)** 块之间添加一个 **Run Custom JavaScript** 块，并在请求主体中读取它的结果。
 
-1. 在触发器的 **Fields to pass on** 中，同时选择严重程度的 `name`：`{ "incidentSeverity": { "name": true } }`。
+1. 在触发器的 **Fields to pass on** 中点击 **添加字段**，展开 **事件严重性** 并选择 **名称**。
 2. 把该块的 **Arguments** 设为 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`，**JavaScript Code** 设为：
 
    ```javascript

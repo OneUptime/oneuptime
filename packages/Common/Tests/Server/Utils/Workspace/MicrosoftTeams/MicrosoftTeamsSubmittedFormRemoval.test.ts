@@ -148,7 +148,13 @@ import MicrosoftTeamsIncidentActions from "../../../../../Server/Utils/Workspace
 import MicrosoftTeamsIncidentEpisodeActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/IncidentEpisode";
 import MicrosoftTeamsScheduledMaintenanceActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ScheduledMaintenance";
 import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import MicrosoftTeamsPage from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsPage";
 import MicrosoftTeamsReplies from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
+import WorkspacePage, {
+  WorkspacePageOutcome,
+} from "../../../../../Server/Utils/Workspace/WorkspacePage";
+import { OnCallPageRecordType } from "../../../../../Server/Services/OnCallPageService";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
   WorkspaceEvent,
@@ -1693,6 +1699,229 @@ describe("the same submits, delivered to handleBotInvokeActivity as Teams sends 
   );
 });
 
+/*
+ * THE PAGE SOMEONE CARD ("page" typed to the bot, MicrosoftTeamsPage). Its
+ * confirmation is not a reply of the turn: the page's own card, posted in
+ * the conversation and edited as the page goes (WorkspacePage.page). What
+ * the turn sends is the typing indicator while the page goes out - and a
+ * reply only when the page has something the conversation does not show.
+ * Its removal follows the same rules as every other form's: best-effort,
+ * after the page, awaited, and never for a page that did not go out - the
+ * card is how the person tries again.
+ */
+const PAGE_CARD_SUBMIT: JSONObject = {
+  action: "SubmitPageSomeone",
+  pageTargets: `user:${USER_ID.toString()}`,
+  pageMessage: "The checkout API is down",
+};
+
+// The typing indicator, as the fake turn records it.
+const TYPING: TurnEvent = {
+  kind: "reply",
+  text: JSON.stringify({ type: "typing" }),
+};
+
+function pageCardActivity(options?: {
+  withoutForm?: boolean | undefined;
+}): JSONObject {
+  const activity: JSONObject = {
+    type: "message",
+    id: SUBMIT_ACTIVITY_ID,
+    from: { id: "29:teams-user", aadObjectId: TEAMS_USER_ID, name: "Alex" },
+    recipient: { id: BOT_ID },
+    conversation: { conversationType: "personal", id: "a:personal-chat" },
+    channelData: { tenant: { id: TENANT_ID } },
+    value: PAGE_CARD_SUBMIT,
+  };
+
+  if (!options?.withoutForm) {
+    activity["replyToId"] = FORM_ACTIVITY_ID;
+  }
+
+  return activity;
+}
+
+// The page goes out - shown in the conversation - or fails with `failure`.
+function stubPage(failure?: Error): WriteCheck {
+  const page: SpyInstance<typeof WorkspacePage.page> = jest
+    .spyOn(WorkspacePage, "page")
+    .mockImplementation((): Promise<WorkspacePageOutcome> => {
+      return writeOutcome(
+        {
+          result: {
+            record: {
+              type: OnCallPageRecordType.Alert,
+              id: CREATED_ID,
+              label: "Alert AL-12",
+              title: "The checkout API is down",
+              url: URL.fromString(DASHBOARD_URL),
+              isNew: true,
+            },
+            paged: [],
+            startedPolicies: [],
+            notPaged: [],
+            isAnyonePaged: true,
+            directPageExecutionLogId: CREATED_ID,
+            summary: "",
+          },
+          isShownAtPlace: true,
+          answer: null,
+        },
+        failure,
+      );
+    });
+
+  return (): void => {
+    expect(page).toHaveBeenCalledTimes(1);
+    expect(page).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        props: MEMBER_PROPS,
+        targets: expect.objectContaining({ userIds: [USER_ID] }),
+        message: "The checkout API is down",
+      }),
+    );
+  };
+}
+
+function submitPageCard(turnContext: TurnContext): Promise<void> {
+  return MicrosoftTeamsPage.handleSubmit({
+    turnContext: turnContext,
+    value: PAGE_CARD_SUBMIT,
+    projectId: PROJECT_ID,
+    databaseProps: MEMBER_PROPS,
+  });
+}
+
+describe("the Page someone card, submitted", (): void => {
+  test("Teams refuses to remove it (404): the page stands, nothing is thrown, the refusal is logged at debug", async (): Promise<void> => {
+    const pageWentOut: WriteCheck = stubPage();
+    const turn: FakeTurn = createFakeTurn({
+      activity: pageCardActivity(),
+      deleteError: formAlreadyGone(),
+    });
+
+    await expect(submitPageCard(turn.turnContext)).resolves.toBeUndefined();
+
+    pageWentOut();
+    expect(turn.events).toEqual([
+      TYPING,
+      { kind: "delete", activityId: FORM_ACTIVITY_ID },
+    ]);
+    expectNoFailureReply(turn);
+    expect(errorLog).not.toHaveBeenCalled();
+    expect(refusedRemovalsLogged()).toEqual([
+      `${REMOVAL_REFUSED_LOG_PREFIX}RestError 404 ActivityNotFoundInConversation: The activity was not found in the conversation.`,
+    ]);
+  });
+
+  test("removed once the page has gone out - and the handler returns only once Teams has answered", async (): Promise<void> => {
+    stubPage();
+    const removal: DelayedRemoval = delayedRemoval();
+    const turn: FakeTurn = createFakeTurn({
+      activity: pageCardActivity(),
+      removalAnswered: removal.answered,
+    });
+
+    const handled: Promise<void> = submitPageCard(turn.turnContext);
+
+    const settledFirst: string = await Promise.race([
+      handled.then((): string => {
+        return "the handler";
+      }),
+      afterQueuedCallbacks().then((): string => {
+        return "the wait";
+      }),
+    ]);
+
+    expect(settledFirst).toBe("the wait");
+    expect(turn.events).toEqual([
+      TYPING,
+      { kind: "delete", activityId: FORM_ACTIVITY_ID },
+    ]);
+
+    removal.answer();
+
+    await expect(handled).resolves.toBeUndefined();
+    expect(errorLog).not.toHaveBeenCalled();
+  });
+
+  test("a submit that does not say which card it came from: paged, and Teams is not asked to remove anything", async (): Promise<void> => {
+    const pageWentOut: WriteCheck = stubPage();
+    const turn: FakeTurn = createFakeTurn({
+      activity: pageCardActivity({ withoutForm: true }),
+    });
+
+    await expect(submitPageCard(turn.turnContext)).resolves.toBeUndefined();
+
+    pageWentOut();
+    expect(turn.events).toEqual([TYPING]);
+  });
+
+  test("a page that was refused keeps its card - it is how the person tries again", async (): Promise<void> => {
+    stubPage(new NotAuthorizedException("You may not page these people."));
+    const turn: FakeTurn = createFakeTurn({ activity: pageCardActivity() });
+
+    await expect(submitPageCard(turn.turnContext)).resolves.toBeUndefined();
+
+    // Typing, then the refusal: no removal.
+    expect(turn.events).toHaveLength(2);
+    expect(turn.events[0]).toEqual(TYPING);
+    expect(turn.events[1]!.kind).toBe("reply");
+    expect(
+      turn.events[1]!.kind === "reply" ? turn.events[1]!.text : "",
+    ).toContain("Could not page: You may not page these people.");
+  });
+
+  describe("delivered to handleBotInvokeActivity as Teams sends it", (): void => {
+    beforeEach((): void => {
+      stubInvokeLookups();
+    });
+
+    test("the page, then the card's removal - no 'Sorry, that action failed', even when Teams refuses the removal", async (): Promise<void> => {
+      const pageWentOut: WriteCheck = stubPage();
+      const activity: JSONObject = pageCardActivity();
+      const turn: FakeTurn = createFakeTurn({
+        activity: activity,
+        deleteError: formAlreadyGone(),
+      });
+
+      await expect(
+        MicrosoftTeamsUtil.handleBotInvokeActivity({
+          activity: activity,
+          turnContext: turn.turnContext,
+        }),
+      ).resolves.toBeUndefined();
+
+      pageWentOut();
+      expect(turn.events).toEqual([
+        TYPING,
+        { kind: "delete", activityId: FORM_ACTIVITY_ID },
+      ]);
+      expectNoFailureReply(turn);
+      expect(errorLog).not.toHaveBeenCalled();
+    });
+
+    test("a page that fails unexpectedly: one reply that says so, and the card stays to send again", async (): Promise<void> => {
+      stubPage(databaseUnreachable());
+      const activity: JSONObject = pageCardActivity();
+      const turn: FakeTurn = createFakeTurn({ activity: activity });
+
+      await expect(
+        MicrosoftTeamsUtil.handleBotInvokeActivity({
+          activity: activity,
+          turnContext: turn.turnContext,
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(turn.events).toEqual([
+        TYPING,
+        { kind: "reply", text: ACTION_FAILED },
+      ]);
+    });
+  });
+});
+
 // Every TypeScript file below a directory, as a path relative to it.
 function typeScriptFilesBelow(
   directory: string,
@@ -1756,13 +1985,14 @@ describe("the forms above are every form removal there is", (): void => {
         continue;
       }
 
-      const submitsDrivenAbove: number = new Set(
-        SUBMITTED_FORMS.filter((form: SubmittedForm) => {
-          return FAMILY_SOURCE_FILES[form.family] === relativePath;
-        }).map((form: SubmittedForm) => {
-          return form.actionType;
-        }),
-      ).size;
+      const submitsDrivenAbove: number =
+        new Set(
+          SUBMITTED_FORMS.filter((form: SubmittedForm) => {
+            return FAMILY_SOURCE_FILES[form.family] === relativePath;
+          }).map((form: SubmittedForm) => {
+            return form.actionType;
+          }),
+        ).size + (relativePath === "MicrosoftTeamsPage.ts" ? 1 : 0);
 
       /*
        * A new handler that removes a message must do it best-effort and get

@@ -49,7 +49,7 @@ flowchart TB
 
 ### افزودن تریگر
 
-روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید و **On Create Incident** را برگزینید. روی تریگر کلیک کنید، و در **Fields to pass on** گزینه‌های `title` و `description` را برگزینید.
+روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید و **On Create Incident** را برگزینید. روی تریگر کلیک کنید: **Fields to pass on** آن از پیش **عنوان** را دارد، پس روی **افزودن فیلد** کلیک کنید و **توضیحات** را برگزینید.
 
 ### ساختن هشدار
 
@@ -73,7 +73,7 @@ flowchart TB
 
 ### آزمایش، سپس روشن کردن
 
-روی **اجرای گردش کاری** کلیک کنید، **شناسه حادثه** یک حادثه آزمایشی را وارد کنید و اجرا کنید. گام **API Post (JSON)** پاسخ `202` را نشان می‌دهد، و هشدار کمی بعد در Opsgenie ظاهر می‌شود. سپس در بالای **سازنده** گزینه **فعال** را روشن کنید.
+روی **اجرای گردش کاری** کلیک کنید، زیر **حادثه** یک حادثهٔ آزمایشی را برگزینید و اجرا کنید. گام **API Post (JSON)** پاسخ `202` را نشان می‌دهد، و هشدار کمی بعد در Opsgenie ظاهر می‌شود. سپس در بالای **سازنده** گزینه **فعال** را روشن کنید.
 :::
 
 طرح Opsgenie واژه `GenieKey`، یک فاصله، و سپس کلید است. Opsgenie طول `message` را تا ۱۳۰ نویسه نگه می‌دارد، و اولویت‌هایش از `P1` تا `P5` هستند: برای فرستادن اولویت خود هر حادثه، [نگاشت اولویت‌ها](#نگاشت-اولویتها) را ببینید.
@@ -85,7 +85,7 @@ flowchart TB
 :::steps
 ### افزودن تریگر On Update Incident
 
-گردش کاری‌ای به نام `Close Opsgenie alerts` بسازید، و **On Update Incident** را به عنوان تریگرش برگزینید. در **Fields to watch**، `currentIncidentStateId` را برگزینید تا فقط با تغییر وضعیت اجرا شود. در **Fields to pass on** بخواهید که آیا وضعیت تازه یک وضعیت رفع‌شده است یا نه:
+گردش کاری‌ای به نام `Close Opsgenie alerts` بسازید، و **On Update Incident** را به عنوان تریگرش برگزینید. در **Fields to watch** روی **افزودن فیلد** کلیک کنید و **Current Incident State** را برگزینید تا فقط با تغییر وضعیت اجرا شود. در **Fields to pass on** بخواهید که آیا وضعیت تازه یک وضعیت رفع‌شده است یا نه: روی **افزودن فیلد** کلیک کنید، **Current Incident State** را باز کنید و **Is Resolved State** را برگزینید. یا روی **ویرایش به‌صورت JSON** کلیک کنید و JSON را با این جایگزین کنید:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 
 برای فرستادن شدت هر حادثه به عنوان یک اولویت Opsgenie، یک بلوک **Run Custom JavaScript** میان تریگر و بلوک **API Post (JSON)** اضافه کنید.
 
-1. در **Fields to pass on** تریگر، `name` شدت را هم برگزینید: `{ "incidentSeverity": { "name": true } }`.
+1. در **Fields to pass on** تریگر روی **افزودن فیلد** کلیک کنید، **شدت حادثه** را باز کنید و **نام** را برگزینید.
 2. **Arguments** بلوک را روی `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` و **JavaScript Code** آن را روی این بگذارید:
 
    ```javascript

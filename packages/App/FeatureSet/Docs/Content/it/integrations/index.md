@@ -84,7 +84,7 @@ Parti dall'alto della tabella: più un modo è in alto, meno c'è da mantenere.
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Entrambe | Una connessione integrata: canali per gli incidenti, azioni da Teams e reperibilità. |
 | [Mattermost](/docs/workflows/components#mattermost) | In uscita | Pubblica gli aggiornamenti degli incidenti in un canale Mattermost. |
 | [Discord](/docs/integrations/discord) | In uscita | Pubblica gli aggiornamenti degli incidenti in un canale Discord. |
-| [Telegram](/docs/integrations/telegram) | In uscita | Invia gli aggiornamenti degli incidenti a una chat Telegram. |
+| [Telegram](/docs/integrations/telegram) | In uscita | Invia un messaggio a una chat Telegram quando scatta un avviso. |
 | [IRC](/docs/integrations/irc) | In uscita | Pubblica gli aggiornamenti degli incidenti in un canale IRC. |
 
 > [!TIP]
@@ -119,10 +119,10 @@ L'URL è l'unica credenziale, quindi trattalo come una password. Vedi [Webhook](
 
 :::steps
 1. Salva la chiave API dello strumento come variabile globale segreta, come mostrato [più sotto](#proteggere-le-credenziali).
-2. Crea un workflow, fai clic sul blocco tratteggiato e scegli un trigger di evento, come **On Create Incident**. Nei suoi **Fields to pass on**, spunta i campi da inviare, come `title` e `description`.
+2. Crea un workflow, fai clic sul blocco tratteggiato e scegli un trigger di evento, come **On Create Incident**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli gli altri campi da inviare, come **Descrizione**.
 3. Fai clic su **Aggiungi componente** e aggiungi un blocco **API Post (JSON)**. Collegagli il punto **Success** del trigger.
 4. Compila il suo **URL**, i suoi **Request Headers** con l'intestazione `Authorization` e il suo **Request Body** con i campi dell'incidente, come `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-5. Fai clic su **Esegui flusso di lavoro**, inserisci l'**ID incidente** di un incidente ed eseguilo. Un'esecuzione di prova invia davvero la richiesta. Poi attiva **Abilitato**.
+5. Fai clic su **Esegui flusso di lavoro**, scegli un incidente sotto **Incidente** ed eseguilo. Un'esecuzione di prova invia davvero la richiesta. Poi attiva **Abilitato**.
 :::
 
 Quando lo strumento vuole i dati in un'altra forma, aggiungi un blocco [Run Custom JavaScript](/docs/workflows/components#custom-code) tra i due. La ricetta è la stessa per Zendesk, New Relic, AWS (tramite SNS), StatusCake e tutti gli altri: cambiano solo l'URL e il corpo.

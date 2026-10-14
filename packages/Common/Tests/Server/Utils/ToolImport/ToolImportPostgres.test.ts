@@ -1740,7 +1740,12 @@ describePostgres("an import from another tool, against Postgres", () => {
     expect(created).toBe(12 + 2 + 2);
     expect(await countRows("ToolImportRecord")).toBe(created);
 
-    // Read again: everything is already imported, and nothing is offered.
+    /*
+     * Read again: everything is already imported, and nothing is offered.
+     * The subscribers who came over are read past rather than listed again
+     * (the read looks them up in what the import remembered); the one who
+     * never confirmed is still named as not brought over.
+     */
     const again: ToolImportPlan = await previewOf(
       await readBetterStack(SAM_ID),
       SAM_ID,
@@ -1763,13 +1768,25 @@ describePostgres("an import from another tool, against Postgres", () => {
     ).toEqual(
       first.report.items
         .filter((item: ToolImportReportItem): boolean => {
-          return item.outcome === ToolImportOutcome.Created;
+          return (
+            item.outcome === ToolImportOutcome.Created &&
+            item.kind !== ToolImportResourceKind.StatusPageSubscriber
+          );
         })
         .map((item: ToolImportReportItem): string => {
           return item.key;
         })
         .sort(),
     );
+    expect(
+      again.items
+        .filter((item: ToolImportPlanItem): boolean => {
+          return item.kind === ToolImportResourceKind.StatusPageSubscriber;
+        })
+        .map((item: ToolImportPlanItem): [string, ToolImportAction] => {
+          return [item.sourceId, item.action];
+        }),
+    ).toEqual([["72", ToolImportAction.Skip]]);
   }, 240000);
 
   test("without a payment method (billing on), monitors that are checked are not offered; the manual one and the pages still come", async () => {

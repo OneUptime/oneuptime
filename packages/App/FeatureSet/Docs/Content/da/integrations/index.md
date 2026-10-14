@@ -84,7 +84,7 @@ Start fra toppen af tabellen: jo højere en måde står, jo mindre er der at ved
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Begge | En indbygget forbindelse: hændelseskanaler, handlinger fra Teams og vagter. |
 | [Mattermost](/docs/workflows/components#mattermost) | Udgående | Sender opdateringer om hændelser til en Mattermost-kanal. |
 | [Discord](/docs/integrations/discord) | Udgående | Sender opdateringer om hændelser til en Discord-kanal. |
-| [Telegram](/docs/integrations/telegram) | Udgående | Sender opdateringer om hændelser til en Telegram-chat. |
+| [Telegram](/docs/integrations/telegram) | Udgående | Sender en besked til en Telegram-chat, når en advarsel udløses. |
 | [IRC](/docs/integrations/irc) | Udgående | Sender opdateringer om hændelser til en IRC-kanal. |
 
 > [!TIP]
@@ -119,10 +119,10 @@ URL'en er den eneste loginoplysning, så behandl den som en adgangskode. Se [Web
 
 :::steps
 1. Gem værktøjets API-nøgle som en hemmelig global variabel, som vist [nedenfor](#hold-loginoplysninger-sikre).
-2. Opret et workflow, klik på den stiplede blok, og vælg en begivenhedstrigger, f.eks. **On Create Incident**. Sæt i dens **Fields to pass on** flueben ved de felter, der skal sendes, f.eks. `title` og `description`.
+2. Opret et workflow, klik på den stiplede blok, og vælg en begivenhedstrigger, f.eks. **On Create Incident**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, der skal sendes, f.eks. **Beskrivelse**.
 3. Klik på **Tilføj komponent**, og tilføj en **API Post (JSON)**-blok. Forbind triggerens **Success**-punkt med den.
 4. Udfyld dens **URL**, dens **Request Headers** med `Authorization`-headeren og dens **Request Body** med hændelsens felter, f.eks. `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-5. Klik på **Kør arbejdsgang**, indtast **Hændelses-ID** for en hændelse, og kør den. En testkørsel sender anmodningen for alvor. Slå derefter **Aktiveret** til.
+5. Klik på **Kør arbejdsgang**, vælg en hændelse under **Hændelse**, og kør den. En testkørsel sender anmodningen for alvor. Slå derefter **Aktiveret** til.
 :::
 
 Når værktøjet skal have dataene i en anden form, tilføjer du en [Run Custom JavaScript](/docs/workflows/components#custom-code)-blok mellem de to. Opskriften er den samme for Zendesk, New Relic, AWS (via SNS), StatusCake og alle de andre: kun URL'en og brødteksten ændrer sig.

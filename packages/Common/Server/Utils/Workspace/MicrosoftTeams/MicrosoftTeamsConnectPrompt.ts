@@ -27,6 +27,7 @@ import {
   MicrosoftTeamsAlertEpisodeActionType,
   MicrosoftTeamsIncidentActionType,
   MicrosoftTeamsIncidentEpisodeActionType,
+  MicrosoftTeamsPageActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
 } from "./Actions/ActionTypes";
 import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
@@ -301,6 +302,17 @@ const CREATE_PRESSES: ReadonlyMap<
     {
       purpose: "create a scheduled maintenance event",
       command: WorkspaceCommandName.Maintenance,
+    },
+  ],
+  /*
+   * A page is never sent for somebody once they connect: they type the
+   * command again, so nobody is woken by a page its sender has forgotten.
+   */
+  [
+    MicrosoftTeamsPageActionType.SubmitPageSomeone,
+    {
+      purpose: "page someone",
+      command: WorkspaceCommandName.Page,
     },
   ],
 ]);

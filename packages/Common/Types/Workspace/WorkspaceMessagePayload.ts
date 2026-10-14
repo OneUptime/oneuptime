@@ -98,6 +98,19 @@ export interface WorkspaceDropdownBlock extends WorkspaceMessageBlock {
   description?: string | undefined;
   multiSelect?: boolean | undefined;
   optional?: boolean | undefined;
+  /*
+   * The options in groups, each under its label - "On-call schedules",
+   * "People" - in place of `options`: a Slack select draws each label over
+   * its options.
+   */
+  optionGroups?: Array<WorkspaceDropdownOptionGroup> | undefined;
+  // A multi-select's picks as the form opens: values of its options.
+  initialValues?: Array<string> | undefined;
+}
+
+export interface WorkspaceDropdownOptionGroup {
+  label: string;
+  options: Array<DropdownOption>;
 }
 
 export interface WorkspaceModalBlock extends WorkspaceMessageBlock {

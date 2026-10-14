@@ -143,7 +143,7 @@ The manifest sets up these features. Each one reaches your server on the route s
 
 | Feature | What it does | Route |
 | --- | --- | --- |
-| `/oneuptime` | Declare an incident, schedule maintenance, see who is on call and ask OneUptime AI; `/oneuptime help` lists every command | `POST /api/slack/command` |
+| `/oneuptime` | Declare an incident, schedule maintenance, see who is on call, page someone and ask OneUptime AI; `/oneuptime help` lists every command | `POST /api/slack/command` |
 | The **Create New Incident** and **Create Scheduled Event** shortcuts | Declare an incident or schedule maintenance from Slack's shortcuts | `POST /api/slack/interactive` |
 | Buttons and forms on OneUptime messages | Acknowledge, resolve, add a note, change the state, run an on-call policy | `POST /api/slack/interactive` and `POST /api/slack/options-load` |
 | Events | Mentions, messages, reactions and pins, for example saving a message as a note | `POST /api/slack/events` |
@@ -156,7 +156,9 @@ If you created your Slack app from an older manifest, add `files:write` under **
 
 ### Apps created from an older manifest
 
-A Slack app created from an earlier OneUptime manifest registers `/incident` and `/maintenance` as commands of their own, which can clash with other apps' commands of the same name. They keep working, and open the same forms as `/oneuptime incident` and `/oneuptime maintenance`. To replace them with `/oneuptime`, update the app from the manifest your server generates: on [api.slack.com/apps](https://api.slack.com/apps), open the app's **App Manifest**, paste the manifest and save. The scopes stay the same, so the app needs no reinstall.
+A Slack app created from an earlier OneUptime manifest registers `/incident` and `/maintenance` as commands of their own, which can clash with other apps' commands of the same name. They keep working, and open the same forms as `/oneuptime incident` and `/oneuptime maintenance`. To replace them with `/oneuptime`, update the app from the manifest your server generates: on [api.slack.com/apps](https://api.slack.com/apps), open the app's **App Manifest**, paste the manifest and save.
+
+An app created before `/oneuptime page` needs the same update: until it has it, `/oneuptime page` cannot tell who you @mention, and opens a form to pick them instead of paging them at once. Then select **Connect with Slack** again in **Project Settings > Workspace > Slack**, so the `users:read.email` scope the manifest adds is granted: with it, a person whose Slack account is not connected to OneUptime is found by their email address.
 
 ## Network access for self-hosted deployments
 
