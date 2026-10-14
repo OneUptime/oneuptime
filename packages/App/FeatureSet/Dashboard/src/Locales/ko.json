@@ -28582,5 +28582,9 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "\"{{key}}\"은(는) 관련 레코드 전체를 전달합니다. 다음 단계에 필요한 필드를 선택하세요.",
   "Not passed on": "전달되지 않는 필드",
   "Pick at least one field.": "필드를 하나 이상 선택하세요.",
-  "Pick one from the list, or paste its ID.": "목록에서 선택하거나 ID를 붙여넣으세요."
+  "Pick one from the list, or paste its ID.": "목록에서 선택하거나 ID를 붙여넣으세요.",
+  "Note added by {{name}}": "{{name}}님이 메모를 추가함",
+  "Saved From Chat Message": "채팅 메시지에서 저장됨",
+  "via Microsoft Teams": "Microsoft Teams에서",
+  "via Slack": "Slack에서"
 }

@@ -28582,5 +28582,9 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "\"{{key}}\" geeft het hele gekoppelde record door. Kies de velden ervan die de volgende stappen nodig hebben.",
   "Not passed on": "Niet doorgegeven",
   "Pick at least one field.": "Kies ten minste één veld.",
-  "Pick one from the list, or paste its ID.": "Kies er een uit de lijst, of plak de ID."
+  "Pick one from the list, or paste its ID.": "Kies er een uit de lijst, of plak de ID.",
+  "Note added by {{name}}": "Notitie toegevoegd door {{name}}",
+  "Saved From Chat Message": "Opgeslagen uit chatbericht",
+  "via Microsoft Teams": "vanuit Microsoft Teams",
+  "via Slack": "vanuit Slack"
 }

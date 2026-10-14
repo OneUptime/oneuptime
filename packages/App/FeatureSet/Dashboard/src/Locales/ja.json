@@ -28582,5 +28582,9 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "「{{key}}」は関連レコード全体を渡します。次のステップに必要なフィールドを選んでください。",
   "Not passed on": "渡されないフィールド",
   "Pick at least one field.": "フィールドを 1 つ以上選んでください。",
-  "Pick one from the list, or paste its ID.": "一覧から選ぶか、ID を貼り付けてください。"
+  "Pick one from the list, or paste its ID.": "一覧から選ぶか、ID を貼り付けてください。",
+  "Note added by {{name}}": "{{name}} がメモを追加",
+  "Saved From Chat Message": "チャットメッセージから保存",
+  "via Microsoft Teams": "Microsoft Teams から",
+  "via Slack": "Slack から"
 }

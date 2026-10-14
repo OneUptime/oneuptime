@@ -28582,5 +28582,9 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.",
   "Not passed on": "Not passed on",
   "Pick at least one field.": "Pick at least one field.",
-  "Pick one from the list, or paste its ID.": "Pick one from the list, or paste its ID."
+  "Pick one from the list, or paste its ID.": "Pick one from the list, or paste its ID.",
+  "Note added by {{name}}": "Note added by {{name}}",
+  "Saved From Chat Message": "Saved From Chat Message",
+  "via Microsoft Teams": "via Microsoft Teams",
+  "via Slack": "via Slack"
 }

@@ -28582,5 +28582,9 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "\"{{key}}\" पूरा जुड़ा हुआ रिकॉर्ड आगे भेजता है। उसमें से वे फ़ील्ड चुनें जिनकी अगले चरणों को ज़रूरत है।",
   "Not passed on": "आगे नहीं भेजे जाते",
   "Pick at least one field.": "कम से कम एक फ़ील्ड चुनें।",
-  "Pick one from the list, or paste its ID.": "सूची से कोई एक चुनें, या उसकी ID पेस्ट करें।"
+  "Pick one from the list, or paste its ID.": "सूची से कोई एक चुनें, या उसकी ID पेस्ट करें।",
+  "Note added by {{name}}": "{{name}} द्वारा जोड़ा गया नोट",
+  "Saved From Chat Message": "चैट संदेश से सहेजा गया",
+  "via Microsoft Teams": "Microsoft Teams के ज़रिए",
+  "via Slack": "Slack के ज़रिए"
 }

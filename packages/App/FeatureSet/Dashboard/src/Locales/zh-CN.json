@@ -28582,5 +28582,9 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "“{{key}}”会传递整条相关记录。请从中选择后续步骤需要的字段。",
   "Not passed on": "未传递的字段",
   "Pick at least one field.": "请至少选择一个字段。",
-  "Pick one from the list, or paste its ID.": "从列表中选择一个，或粘贴其 ID。"
+  "Pick one from the list, or paste its ID.": "从列表中选择一个，或粘贴其 ID。",
+  "Note added by {{name}}": "由 {{name}} 添加的备注",
+  "Saved From Chat Message": "从聊天消息保存",
+  "via Microsoft Teams": "来自 Microsoft Teams",
+  "via Slack": "来自 Slack"
 }

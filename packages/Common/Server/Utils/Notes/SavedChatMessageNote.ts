@@ -94,7 +94,9 @@ export default class SavedChatMessageNote {
   }
 
   // The chat message a note was saved from, as stored on it; null for none.
-  public static read(note: BaseModel | null | undefined): SavedChatMessage | null {
+  public static read(
+    note: BaseModel | null | undefined,
+  ): SavedChatMessage | null {
     if (!note) {
       return null;
     }
@@ -214,6 +216,33 @@ ${data.note}`;
       logger.debug(err);
       return null;
     }
+  }
+
+  /*
+   * Who wrote a note, as a prompt to OneUptime AI names them: its creator -
+   * or, for a message saved from a chat, its author and the chat, "Aidil
+   * Rahman (via Slack, saved by Nitin Kumar)" - so the model reads whose
+   * words they are, not the words of whoever pinned them.
+   */
+  public static getPromptAuthor(data: {
+    note: BaseModel;
+    // The note's creator, by name.
+    createdBy: string;
+  }): string {
+    const saved: SavedChatMessage | null = SavedChatMessageNote.read(data.note);
+
+    if (!saved) {
+      return data.createdBy;
+    }
+
+    const author: string = SavedChatMessageNote.getAuthorName(saved);
+    const workspaceName: string = SavedChatMessageUtil.getWorkspaceName(
+      saved.workspaceType,
+    );
+
+    return author === data.createdBy
+      ? `${author} (via ${workspaceName})`
+      : `${author} (via ${workspaceName}, saved by ${data.createdBy})`;
   }
 
   /*

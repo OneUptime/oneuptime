@@ -28582,5 +28582,9 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "”{{key}}” skickar vidare hela den relaterade posten. Välj de fält från den som nästa steg behöver.",
   "Not passed on": "Skickas inte vidare",
   "Pick at least one field.": "Välj minst ett fält.",
-  "Pick one from the list, or paste its ID.": "Välj en i listan, eller klistra in dess ID."
+  "Pick one from the list, or paste its ID.": "Välj en i listan, eller klistra in dess ID.",
+  "Note added by {{name}}": "Anteckning tillagd av {{name}}",
+  "Saved From Chat Message": "Sparad från chattmeddelande",
+  "via Microsoft Teams": "från Microsoft Teams",
+  "via Slack": "från Slack"
 }

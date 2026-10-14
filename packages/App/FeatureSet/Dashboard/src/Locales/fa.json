@@ -28582,5 +28582,9 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "«{{key}}» کل رکورد مرتبط را منتقل می‌کند. فیلدهایی از آن را که گام‌های بعدی لازم دارند انتخاب کنید.",
   "Not passed on": "منتقل نمی‌شوند",
   "Pick at least one field.": "دست‌کم یک فیلد انتخاب کنید.",
-  "Pick one from the list, or paste its ID.": "یکی را از فهرست انتخاب کنید، یا شناسه‌اش را جای‌گذاری کنید."
+  "Pick one from the list, or paste its ID.": "یکی را از فهرست انتخاب کنید، یا شناسه‌اش را جای‌گذاری کنید.",
+  "Note added by {{name}}": "یادداشت افزوده‌شده توسط {{name}}",
+  "Saved From Chat Message": "ذخیره‌شده از پیام گفت‌وگو",
+  "via Microsoft Teams": "از طریق Microsoft Teams",
+  "via Slack": "از طریق Slack"
 }

@@ -28582,5 +28582,9 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "「{{key}}」會傳遞整筆相關記錄。請從中選擇後續步驟需要的欄位。",
   "Not passed on": "未傳遞的欄位",
   "Pick at least one field.": "請至少選擇一個欄位。",
-  "Pick one from the list, or paste its ID.": "從清單中選擇一個，或貼上其 ID。"
+  "Pick one from the list, or paste its ID.": "從清單中選擇一個，或貼上其 ID。",
+  "Note added by {{name}}": "由 {{name}} 新增的備註",
+  "Saved From Chat Message": "從聊天訊息儲存",
+  "via Microsoft Teams": "來自 Microsoft Teams",
+  "via Slack": "來自 Slack"
 }

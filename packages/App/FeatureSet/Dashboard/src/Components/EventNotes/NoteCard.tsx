@@ -11,21 +11,26 @@ import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import API from "Common/UI/Utils/API/API";
 import Clipboard from "Common/UI/Utils/Clipboard";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import {
+  NOTE_ADDED_BY,
+  NoteAuthor,
   NoteNotificationSummary,
   NoteRecord,
+  NoteSource,
   NotesCopy,
   NoteVisibility,
-  getAuthorName,
+  getNoteAuthor,
   getNoteFullTimeLabel,
   getNoteId,
-  getNoteSourceLabel,
+  getNoteSource,
   getNoteTimeLabel,
   getNoteTimestamp,
   getPostedNotificationSummary,
   getUpdateNotificationSummary,
-  getUserId,
 } from "./EventNotesUtil";
 import NoteAttachments from "./NoteAttachments";
 import NoteAvatar from "./NoteAvatar";
@@ -76,16 +81,23 @@ const NoteCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
 
   const noteId: string | null = getNoteId(props.note);
-  const author: { name: string; isAutomation: boolean } = getAuthorName(
-    props.note.createdByUser,
-  );
+  /*
+   * A message saved from Slack or Microsoft Teams is its author's words,
+   * filed when they wrote it; whoever saved it is named after the chat.
+   */
+  const author: NoteAuthor = getNoteAuthor(props.note);
+  // A name somebody has is shown as it is; only the stand-in for none is looked up.
+  const authorName: string = author.isNameStandIn
+    ? tx(author.name)
+    : author.name;
   const timestamp: Date | null = getNoteTimestamp(props.note, props.visibility);
-  const sourceLabel: string | null = getNoteSourceLabel(props.note);
+  const source: NoteSource | null = getNoteSource(props.note);
 
   const [editValues, setEditValues] = useState<NoteComposerValues | null>(null);
   const [editError, setEditError] = useState<string>("");
@@ -259,8 +271,8 @@ const NoteCard: FunctionComponent<ComponentProps> = (
 
       <div className="relative z-10 pt-0.5">
         <NoteAvatar
-          userId={getUserId(props.note.createdByUser)}
-          name={author.name}
+          userId={author.userId}
+          name={authorName}
           isAutomation={author.isAutomation}
         />
       </div>
@@ -271,7 +283,7 @@ const NoteCard: FunctionComponent<ComponentProps> = (
             ? "border-transparent"
             : "border-gray-200 shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
         }`}
-        aria-label={`${author.name}, ${
+        aria-label={`${authorName}, ${
           timestamp ? getNoteFullTimeLabel(timestamp) : ""
         }`}
       >
@@ -307,7 +319,7 @@ const NoteCard: FunctionComponent<ComponentProps> = (
                 className="min-w-0 truncate text-sm font-semibold text-gray-900"
                 data-testid="note-author"
               >
-                {author.name}
+                {authorName}
               </span>
               {timestamp && (
                 <Tooltip text={getNoteFullTimeLabel(timestamp)}>
@@ -320,10 +332,30 @@ const NoteCard: FunctionComponent<ComponentProps> = (
                   </time>
                 </Tooltip>
               )}
-              {sourceLabel && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
-                  <Icon icon={IconProp.Slack} className="h-3 w-3" />
-                  {tx(sourceLabel)}
+              {source && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
+                  data-testid="note-source"
+                >
+                  <Icon
+                    icon={
+                      source.workspaceType === WorkspaceType.MicrosoftTeams
+                        ? IconProp.MicrosoftTeams
+                        : IconProp.Slack
+                    }
+                    className="h-3 w-3"
+                  />
+                  {tx(source.label)}
+                </span>
+              )}
+              {author.savedByName && (
+                <span
+                  className="min-w-0 truncate text-xs text-gray-500"
+                  data-testid="note-saved-by"
+                >
+                  {translator.translateTemplate(NOTE_ADDED_BY, {
+                    name: author.savedByName,
+                  })}
                 </span>
               )}
 

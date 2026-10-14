@@ -28582,5 +28582,9 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "\"{{key}}\" sender hele den relaterede post videre. Vælg de felter fra den, som de næste trin har brug for.",
   "Not passed on": "Sendes ikke videre",
   "Pick at least one field.": "Vælg mindst ét felt.",
-  "Pick one from the list, or paste its ID.": "Vælg en fra listen, eller indsæt dens ID."
+  "Pick one from the list, or paste its ID.": "Vælg en fra listen, eller indsæt dens ID.",
+  "Note added by {{name}}": "Note tilføjet af {{name}}",
+  "Saved From Chat Message": "Gemt fra chatbesked",
+  "via Microsoft Teams": "fra Microsoft Teams",
+  "via Slack": "fra Slack"
 }

@@ -28582,5 +28582,9 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "«{{key}}» передаёт связанную запись целиком. Выберите из неё поля, которые нужны следующим шагам.",
   "Not passed on": "Не передаются дальше",
   "Pick at least one field.": "Выберите хотя бы одно поле.",
-  "Pick one from the list, or paste its ID.": "Выберите из списка или вставьте ID."
+  "Pick one from the list, or paste its ID.": "Выберите из списка или вставьте ID.",
+  "Note added by {{name}}": "Заметку добавил пользователь {{name}}",
+  "Saved From Chat Message": "Сохранено из сообщения чата",
+  "via Microsoft Teams": "из Microsoft Teams",
+  "via Slack": "из Slack"
 }

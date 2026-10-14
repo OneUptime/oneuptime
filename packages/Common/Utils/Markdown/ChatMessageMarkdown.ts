@@ -3,7 +3,6 @@ import FeedMarkdown, {
   MarkdownValue,
   mdText,
 } from "./FeedMarkdown";
-import ArrayUtil from "../Array";
 
 /*
  * A SLACK OR MICROSOFT TEAMS MESSAGE, AS THE MARKDOWN OF A NOTE.

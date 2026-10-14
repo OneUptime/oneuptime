@@ -28582,5 +28582,9 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "«{{key}}» trasmette l'intero record collegato. Scegline i campi che servono ai passaggi successivi.",
   "Not passed on": "Non trasmessi",
   "Pick at least one field.": "Scegli almeno un campo.",
-  "Pick one from the list, or paste its ID.": "Scegline uno dall'elenco, oppure incolla il suo ID."
+  "Pick one from the list, or paste its ID.": "Scegline uno dall'elenco, oppure incolla il suo ID.",
+  "Note added by {{name}}": "Nota aggiunta da {{name}}",
+  "Saved From Chat Message": "Salvato da un messaggio di chat",
+  "via Microsoft Teams": "da Microsoft Teams",
+  "via Slack": "da Slack"
 }
