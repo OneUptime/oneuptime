@@ -1,118 +1,178 @@
-# Интеграции
+# Обзор интеграций
 
-OneUptime подключается к инструментам, которыми уже пользуется ваша команда, — Zabbix, Jira, PagerDuty, Slack и многим другим, — через **[Workflows](/docs/workflows/index)**, встроенный движок автоматизации. Устанавливать отдельные плагины не нужно. Вы собираете интеграцию на холсте с перетаскиванием, и она запускается всякий раз, когда что-то происходит.
+OneUptime работает с инструментами, которыми ваша команда уже пользуется. Инструменты оповещения создают в нём инциденты, а OneUptime создаёт тикеты, вызовы дежурных и сообщения в чатах других инструментов. Одни инструменты подключаются через форму, другие — через готовый шаблон рабочего процесса. Любой другой инструмент с вебхуком или API подключается через рабочий процесс, который вы создаёте сами.
 
-Эта страница объясняет два паттерна, которые используют все интеграции. Как только вы их поймёте, вы сможете подключить OneUptime практически к чему угодно — даже к инструментам, у которых нет собственной страницы здесь.
+:::cards
+- [Выбор способа подключения](#выбор-способа-подключения): Четыре способа подключения и когда использовать каждый.
+- [Каталог](#каталог): Все инструменты с руководствами, сгруппированные по назначению.
+- [Создание собственной интеграции](#создание-собственной-интеграции): Схемы входящих и исходящих интеграций для любого другого инструмента.
+- [Защита учётных данных](#защита-учётных-данных): Секретные переменные и заголовки, которые ожидает каждый инструмент.
+:::
 
-## Два паттерна
+## Как работают интеграции
 
-Каждая интеграция передаёт данные в одном из двух направлений (многие используют оба).
+Каждая интеграция передаёт данные в одном направлении или в обоих. **Входящее**: другой инструмент сообщает OneUptime, что что-то не так, и OneUptime создаёт инцидент или оповещение и вызывает дежурную команду. **Исходящее**: в OneUptime что-то происходит, и рабочий процесс сообщает об этом другому инструменту: создаёт тикет, вызывает кого-то или публикует сообщение.
 
-### Входящий — другой инструмент отправляет данные в OneUptime
-
-Используйте этот паттерн, когда внешняя система должна _создать или обновить что-то в OneUptime_ — обычно открыть инцидент или оповещение, когда обнаруживает проблему.
-
-1. Создайте рабочий процесс, начинающийся с **[триггера Webhook](/docs/workflows/triggers#webhook)**. OneUptime выдаст вам уникальный URL.
-2. В другом инструменте настройте webhook или действие уведомления, которое отправляет `POST` на этот URL при наступлении события.
-3. В рабочем процессе прочитайте входящую нагрузку и используйте компонент **Create Incident** (или Create Alert), чтобы зафиксировать её.
-
-```text
-Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
+```mermaid title="Входящее и исходящее"
+flowchart TB
+    tool["Инструмент оповещений<br/>или безопасности"] -->|"входящее"| record["Инцидент или<br/>оповещение,<br/>дежурный вызван"]
+    record -->|"исходящее"| workflow["Рабочий процесс,<br/>например<br/>On Create Incident"]
+    workflow -->|"вызов API<br/>или сообщение"| other["Тикеты, вызовы<br/>или чат"]
+    other -.->|"обратный вебхук"| record
 ```
 
-> **Совет:** Именно для инструментов оповещения **[монитор Incoming Request](/docs/monitor/incoming-request-monitor)** обычно оказывается лучшим входящим путём. Он даёт вам URL вебхука без построения рабочего процесса, открывает по одному инциденту на каждое оповещение в нагрузке, эскалирует на политику дежурств и закрывает каждый инцидент, когда инструмент сообщает о восстановлении. Берите рабочий процесс, когда нужна логика, которой у OneUptime нет из коробки. Разобранный пример — в [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager).
+Двусторонняя интеграция, например Jira или Dynamics 365, использует оба направления: один рабочий процесс отправляет инцидент наружу, а другой, запускаемый вебхуком другого инструмента, возвращает изменения обратно.
 
-### Исходящий — OneUptime отправляет данные в другой инструмент
+## Выбор способа подключения
 
-Используйте этот паттерн, когда _что-то в OneUptime должно отобразиться в другом инструменте_ — открыть тикет в Jira, вызвать кого-то через PagerDuty, опубликовать в Slack.
+| Способ | Лучше всего подходит для | Примеры |
+| --- | --- | --- |
+| Встроенное подключение | Инструментов, к которым OneUptime подключается сам. Вы заполняете форму, и ничего не нужно создавать. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), подключения [Событий безопасности](/docs/telemetry/security-events) |
+| Шаблон рабочего процесса | Тикет-систем, синхронизируемых в обе стороны, и сообщений в чатах. Вы выбираете шаблон и заполняете несколько настроек. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| Монитор Incoming Request | Инструментов оповещения, которые отправляют вебхук. Вы получаете один инцидент на оповещение, переданный дежурным и устранённый, когда оповещение восстанавливается, без рабочего процесса. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| Рабочий процесс, который вы создаёте | Любого инструмента с вебхуком или REST API и любой собственной логики. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
-1. Создайте рабочий процесс с **[триггером события OneUptime](/docs/workflows/triggers#oneuptime-event-triggers)** — например, **Incident → On Create**.
-2. Добавьте **[компонент API](/docs/workflows/components#api)**, который вызывает REST API другого инструмента с деталями инцидента.
-3. Храните любые API-ключи как **секретные [глобальные переменные](/docs/workflows/variables#global-variables)**, чтобы они никогда не появлялись в рабочем процессе или его журналах.
-
-```text
-OneUptime Incident → On Create  ──►  API component  ──►  Jira / PagerDuty / ServiceNow / GitHub
-```
+Начинайте с верха таблицы: чем выше способ, тем меньше его нужно сопровождать.
 
 ## Каталог
 
-| Инструмент                                                            | Направление            | Что делает                                                                            |
-| --------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------- |
-| [Zabbix](/docs/integrations/zabbix)                                   | Входящий               | Превращает проблемы Zabbix в инциденты OneUptime (и разрешает их при восстановлении). |
-| [Jira](/docs/integrations/jira)                                       | Исходящий (+ входящий) | Открывает задачу Jira для каждого инцидента; синхронизирует статус обратно.           |
-| [PagerDuty](/docs/integrations/pagerduty)                             | Исходящий (+ входящий) | Создаёт и разрешает события PagerDuty из инцидентов OneUptime.                        |
-| [Opsgenie](/docs/integrations/opsgenie)                               | Исходящий (+ входящий) | Создаёт и закрывает оповещения Opsgenie.                                              |
-| [ServiceNow](/docs/integrations/servicenow)                           | Исходящий (+ входящий) | Открывает инциденты ServiceNow из OneUptime.                                          |
-| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | Исходящий (+ входящий) | Открывает и закрывает обращения Dynamics 365 из инцидентов OneUptime.                 |
-| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Входящий               | Преобразует уведомления Alertmanager в инциденты.                                     |
-| [Grafana](/docs/integrations/grafana)                                 | Входящий               | Преобразует оповещения Grafana в инциденты.                                           |
-| [Datadog](/docs/integrations/datadog)                                 | Входящий               | Преобразует оповещения мониторов Datadog в инциденты.                                 |
-| [Huntress](/docs/integrations/huntress)                               | Входящий             | Вызывает дежурных по отчётам об инцидентах Huntress и устраняет инцидент, когда отчёт закрыт. |
-| [GitHub](/docs/integrations/github)                                   | Исходящий              | Открывает задачу GitHub для инцидента.                                                |
-| [GitLab](/docs/integrations/gitlab)                                   | Исходящий              | Открывает задачу GitLab для инцидента.                                                |
-| [Discord](/docs/integrations/discord)                                 | Исходящий              | Публикует обновления инцидентов в канал Discord.                                      |
-| [Telegram](/docs/integrations/telegram)                               | Исходящий              | Отправляет обновления инцидентов в чат Telegram.                                      |
-| [IRC](/docs/integrations/irc)                                         | Исходящий              | Публикует обновления инцидентов в канал IRC.                                          |
-| [Slack](/docs/workspace-connections/slack)                            | Оба                    | Нативное подключение рабочего пространства — каналы, оповещения и дежурства.          |
-| [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Оба                    | Нативное подключение рабочего пространства.                                           |
+### Инструменты мониторинга и оповещения
 
-> **Slack и Microsoft Teams** имеют более глубокую нативную интеграцию, выходящую за рамки рабочих процессов: автоматические каналы инцидентов, двусторонние действия и уведомления о дежурствах. Для них используйте подключения рабочих пространств [Slack](/docs/workspace-connections/slack) и [Microsoft Teams](/docs/workspace-connections/microsoft-teams), а не собирайте рабочий процесс вручную.
+| Инструмент | Направление | Что делает |
+| --- | --- | --- |
+| [Zabbix](/docs/integrations/zabbix) | Входящее | Превращает проблемы Zabbix в инциденты и устраняет их, когда Zabbix восстанавливается. |
+| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Входящее | Превращает уведомления Alertmanager в инциденты. |
+| [Grafana](/docs/integrations/grafana) | Входящее | Превращает оповещения Grafana в инциденты. |
+| [Datadog](/docs/integrations/datadog) | Входящее | Превращает оповещения мониторов Datadog в инциденты. |
 
-## Работа с секретами
+### Инструменты безопасности
 
-Никогда не вставляйте API-ключ или токен прямо в блок. Вместо этого:
+| Инструмент | Направление | Что делает |
+| --- | --- | --- |
+| [Huntress](/docs/integrations/huntress) | Входящее | Вызывает дежурных по отчётам об инцидентах Huntress и устраняет инцидент, когда отчёт закрывается. |
+| [Google SecOps](/docs/integrations/google-secops) | Входящее | Передаёт обнаружения Google SecOps в События безопасности. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Входящее | Передаёт инциденты Microsoft Sentinel в События безопасности. |
+| [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | Входящее | Передаёт оповещения Microsoft Defender XDR в События безопасности. |
+| [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | Входящее | Передаёт оповещения CrowdStrike Falcon в События безопасности. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | Входящее | Передаёт notable events Splunk в События безопасности. |
+| [Elastic Security](/docs/integrations/elastic-security) | Входящее | Передаёт оповещения об обнаружениях Elastic Security в События безопасности. |
+| [AWS Security Hub](/docs/integrations/aws-security-hub) | Входящее | Передаёт находки AWS Security Hub в События безопасности. |
+| [Okta System Log](/docs/integrations/okta) | Входящее | Передаёт входы, изменения учётных записей и обнаружения угроз Okta в События безопасности. |
 
-1. Перейдите в **Рабочие процессы → Глобальные переменные**.
-2. Создайте переменную — например, `JIRA_AUTH` — и включите **Секрет**.
-3. Ссылайтесь на неё в любом месте через `{{global.variables.JIRA_AUTH}}`.
+### Тикеты и управление ИТ-услугами
 
-Секретные переменные скрываются в интерфейсе после сохранения и очищаются из журналов запусков. См. [Переменные](/docs/workflows/variables#global-variables).
+| Инструмент | Направление | Что делает |
+| --- | --- | --- |
+| [Jira](/docs/integrations/jira) | Оба | Создаёт задачу Jira для каждого инцидента или оповещения и возвращает изменения статуса и комментарии. |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) | Оба | Создаёт обращение Dynamics 365 для каждого инцидента или оповещения и возвращает изменения статуса и заметки. |
+| [ServiceNow](/docs/integrations/servicenow) | Исходящее | Создаёт инцидент ServiceNow для каждого инцидента OneUptime и устраняет его вместе с инцидентом. |
+| [GitHub](/docs/integrations/github) | Исходящее | Создаёт issue в GitHub для инцидента. |
+| [GitLab](/docs/integrations/gitlab) | Исходящее | Создаёт issue в GitLab для инцидента. |
 
-## Шпаргалка по аутентификации
+### Инструменты вызова дежурных
 
-Большинству исходящих интеграций требуется заголовок `Authorization` в блоке API. Распространённые схемы:
+| Инструмент | Направление | Что делает |
+| --- | --- | --- |
+| [PagerDuty](/docs/integrations/pagerduty) | Исходящее | Запускает инцидент PagerDuty для каждого инцидента OneUptime и устраняет его вместе с инцидентом. |
+| [Opsgenie](/docs/integrations/opsgenie) | Исходящее | Создаёт оповещение Opsgenie для каждого инцидента OneUptime и закрывает его вместе с инцидентом. |
 
-| Схема                          | Значение заголовка                                        | Используется в                     |
-| ------------------------------ | --------------------------------------------------------- | ---------------------------------- |
-| Bearer-токен                   | `Bearer {{global.variables.TOKEN}}`                       | GitHub, многие современные API     |
-| Basic auth                     | `Basic {{global.variables.BASE64_USER_PASS}}`             | Jira Cloud, ServiceNow             |
-| Заголовок с API-ключом         | `GenieKey {{global.variables.OPSGENIE_KEY}}`              | Opsgenie                           |
-| Токен в теле                   | поле `routing_key` в теле JSON                            | PagerDuty Events API               |
-| Заголовок с приватным токеном  | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}`        | GitLab                             |
-| OAuth 2.0 client credentials   | `Bearer <token fetched by an earlier API block>`          | Microsoft Dynamics 365 (Dataverse) |
+### Чат-инструменты
 
-Для Basic auth: закодируйте `username:password` (или `email:api_token`) в base64 **один раз**, затем сохраните результат как секрет. На macOS/Linux:
+| Инструмент | Направление | Что делает |
+| --- | --- | --- |
+| [Slack](/docs/workspace-connections/slack) | Оба | Встроенное подключение: каналы инцидентов, действия из Slack и дежурства. |
+| [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Оба | Встроенное подключение: каналы инцидентов, действия из Teams и дежурства. |
+| [Mattermost](/docs/workflows/components#mattermost) | Исходящее | Публикует обновления инцидентов в канале Mattermost. |
+| [Discord](/docs/integrations/discord) | Исходящее | Публикует обновления инцидентов в канале Discord. |
+| [Telegram](/docs/integrations/telegram) | Исходящее | Отправляет обновления инцидентов в чат Telegram. |
+| [IRC](/docs/integrations/irc) | Исходящее | Публикует обновления инцидентов в канале IRC. |
+
+> [!TIP]
+> У Slack и Microsoft Teams также есть шаги рабочих процессов. Используйте встроенное подключение для каналов инцидентов и дежурств, а шаг рабочего процесса — когда вам нужно только сообщение в канале.
+
+## Переход с другого инструмента
+
+Чтобы уйти с другого инструмента дежурств, мониторинга доступности или страниц статуса, перенесите свою команду, а не связывайте два инструмента. **Настройки проекта → Импорт из другого инструмента** читает вашу учётную запись по ключу API, показывает найденное и создаёт то, что вы отметите. Для каждого инструмента есть руководство:
+
+- Инструменты дежурств и инцидентов: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) и [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
+- Инструменты мониторинга доступности и страниц статуса: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) и [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).
+
+## Создание собственной интеграции
+
+Инструмент без руководства всё равно укладывается в одну из двух схем. Если он умеет отправлять вебхук, используйте входящую схему. Если у него есть REST API, используйте исходящую. Обе схемы — это рабочие процессы: чтобы начать, см. [Обзор рабочих процессов](/docs/workflows/index).
+
+### Входящее: другой инструмент отправляет данные в OneUptime
+
+Для инструмента оповещения начните с [монитора Incoming Request](/docs/monitor/incoming-request-monitor#приём-оповещений-от-другой-системы): он создаёт один инцидент на оповещение и устраняет его при восстановлении, без какой-либо сборки. Создавайте рабочий процесс, когда вам нужна собственная логика:
+
+:::steps
+1. Откройте **Рабочие процессы**, нажмите **Создать рабочий процесс**, затем **Начать с нуля**. Назовите рабочий процесс и нажмите **Создать рабочий процесс**.
+2. Нажмите на пунктирный блок **Choose what starts this workflow** и выберите **Webhook**. Нажмите на триггер, затем на **Скопировать URL**.
+3. В другом инструменте отправьте его вебхук на этот URL как `POST` с `Content-Type: application/json`.
+4. Добавьте блоки, которые его обрабатывают. Они читают запрос по ссылкам вида `{{local.components.webhook-1.returnValues.request-body.status}}`: блок **If / Else** для проверки поля, затем **Create One Incident** для объявления инцидента.
+5. Включите **Включено** вверху окна **Конструктор**, отправьте тестовый запрос из другого инструмента и откройте **Журналы → Запуски**, чтобы посмотреть, что пришло.
+:::
+
+URL — единственные учётные данные, поэтому обращайтесь с ним как с паролем. См. [Webhook](/docs/workflows/triggers#webhook).
+
+### Исходящее: OneUptime отправляет данные в другой инструмент
+
+:::steps
+1. Сохраните ключ API инструмента как секретную глобальную переменную, как показано [ниже](#защита-учётных-данных).
+2. Создайте рабочий процесс, нажмите на пунктирный блок и выберите триггер события, например **On Create Incident**. В его **Select Fields** отметьте поля для отправки, например `title` и `description`.
+3. Нажмите **Добавить компонент** и добавьте блок **API Post (JSON)**. Соедините с ним точку **Success** триггера.
+4. Заполните его **URL**, **Request Headers** с заголовком `Authorization` и **Request Body** с полями инцидента, например `{{local.components.incident-on-create-1.returnValues.model.title}}`.
+5. Нажмите **Запустить рабочий процесс**, введите **ID инцидента** какого-либо инцидента и запустите. Тестовый запуск действительно отправляет запрос. Затем включите **Включено**.
+:::
+
+Если инструменту нужны данные в другом виде, добавьте между ними блок [Run Custom JavaScript](/docs/workflows/components#custom-code). Рецепт одинаков для Zendesk, New Relic, AWS (через SNS), StatusCake и всех остальных: меняются только URL и тело.
+
+## Защита учётных данных
+
+Никогда не вставляйте ключ API или токен в блок. Сохраните его один раз как секретную глобальную переменную:
+
+:::steps
+1. Перейдите в **Рабочие процессы → Глобальные переменные** и нажмите **Создать: Рабочий процесс Переменная**.
+2. Задайте имя, например `JIRA_AUTH`, и нажмите **Далее**.
+3. Вставьте ключ в **Содержимое**, включите **Секрет** и нажмите **Создать: Рабочий процесс Переменная**.
+:::
+
+Любой блок читает её как `{{global.variables.JIRA_AUTH}}`. Содержимое переменной нельзя прочитать после сохранения, а содержимое секретной переменной заменяется на `[REDACTED]` в журналах запусков. Для токенов с истекающим сроком, например токенов Microsoft Entra ID, [переменная OAuth 2.0](/docs/workflows/variables#переменные-oauth-20-токены-которые-обновляются-сами) сама получает новый. См. [Переменные рабочего процесса](/docs/workflows/variables#глобальные-переменные).
+
+### Шпаргалка по аутентификации
+
+Большинство исходящих интеграций передают ключ в заголовке запроса. Распространённые варианты:
+
+| Схема | Что отправлять | Кто использует |
+| --- | --- | --- |
+| Токен Bearer | `Authorization: Bearer {{global.variables.TOKEN}}` | GitHub и большинство современных API |
+| Аутентификация Basic | `Authorization: Basic {{global.variables.BASE64_USER_PASS}}` | Jira Cloud, ServiceNow |
+| Заголовок с ключом API | `Authorization: GenieKey {{global.variables.OPSGENIE_KEY}}` | Opsgenie |
+| Заголовок с приватным токеном | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab |
+| Ключ в теле | `routing_key` в теле JSON | PagerDuty Events API |
+| Учётные данные клиента OAuth 2.0 | `Authorization: Bearer {{local.variables.dynamicsAccessToken}}` из переменной OAuth 2.0 | Microsoft Dynamics 365 |
+
+Для аутентификации Basic один раз закодируйте `username:password` или `email:api_token` и сохраните результат как секрет. В macOS или Linux:
 
 ```bash
-printf '%s' 'you@example.com:your_api_token' | base64
+printf '%s' 'you@example.com:your_api_token' | base64 | tr -d '\n'
 ```
 
-## Нет вашего инструмента?
+Используйте `printf`, а не `echo`: `echo` добавляет перевод строки, который кодируется вместе с остальным и ломает учётные данные. `tr` удерживает длинный результат в одной строке.
 
-Практически любой инструмент подходит под один из двух паттернов выше:
+## Самостоятельно размещённые установки
 
-- Если инструмент умеет **отправлять webhook** при наступлении события — используйте **входящий** паттерн: направьте его webhook на [монитор Incoming Request](/docs/monitor/incoming-request-monitor), если это инструмент оповещения, или на триггер Webhook в OneUptime, если нужна своя логика.
-- Если у инструмента есть **REST API** — используйте **исходящий** паттерн: вызовите его из **компонента API**.
-- Если нужно преобразовать данные между двумя частями — добавьте блок **[Custom Code](/docs/workflows/components#custom-code)**.
+Самостоятельно размещённый OneUptime обращается к другим инструментам из вашей сети, а другие инструменты обращаются к нему из своих:
 
-Это охватывает длинный хвост: Zendesk, AWS CloudWatch (через SNS), New Relic, Splunk, StatusCake и т. д. Рецепт одинаков; меняются только URL и нагрузка.
+- **Исходящее:** запросы рабочих процессов к адресам частной сети отклоняются, если администратор их не разрешил. См. [Исходящий сетевой доступ](/docs/workflows/configuration#исходящий-доступ-в-сеть).
+- **Входящее:** вебхуки инструмента должны доходить до вашего OneUptime по HTTPS, поэтому облачному инструменту нужен публичный адрес для вызова.
+- **Встроенные интеграции** имеют каждая своё руководство по настройке: [Slack](/docs/self-hosted/slack-integration), [Microsoft Teams](/docs/self-hosted/microsoft-teams-integration), [GitHub](/docs/self-hosted/github-integration), [Twilio](/docs/self-hosted/twilio-integration), [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email) и [Push Notifications](/docs/self-hosted/push-notifications).
 
-## Что читать дальше
+## Дальнейшие шаги
 
-- [Обзор рабочих процессов](/docs/workflows/index) — как работает движок автоматизации.
-- [Триггеры](/docs/workflows/triggers) — Webhook и триггеры событий OneUptime подробно.
-- [Компоненты](/docs/workflows/components) — компоненты API, Webhook и данных.
-- [Переменные](/docs/workflows/variables) — секреты и передача данных между блоками.
-- [Монитор Incoming Request](/docs/monitor/incoming-request-monitor) — входящий путь для инструментов оповещения без рабочих процессов.
-- [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) и [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — полные рабочие примеры.
-
-## Сетевой доступ для самостоятельных развертываний
-
-Требования к сети теперь описаны в руководстве по настройке каждой интеграции. Выберите интеграцию:
-
-- [Интеграция с GitHub](/docs/self-hosted/github-integration)
-- [Интеграция входящей электронной почты SendGrid](/docs/self-hosted/sendgrid-inbound-email)
-- [Интеграция со Slack](/docs/self-hosted/slack-integration)
-- [Интеграция с Microsoft Teams](/docs/self-hosted/microsoft-teams-integration)
-- [Интеграция SMS и голосовых звонков Twilio](/docs/self-hosted/twilio-integration)
-- [Push-уведомления](/docs/self-hosted/push-notifications)
+:::cards
+- [Обзор рабочих процессов](/docs/workflows/index): Как выполняются рабочие процессы и как создать первый.
+- [Мониторинг входящих запросов](/docs/monitor/incoming-request-monitor): Получайте оповещения от любого инструмента без рабочего процесса.
+- [Jira](/docs/integrations/jira): Полная двусторонняя интеграция на основе шаблонов.
+- [Переменные рабочего процесса](/docs/workflows/variables): Передавайте данные между блоками и держите секреты вне их.
+:::
