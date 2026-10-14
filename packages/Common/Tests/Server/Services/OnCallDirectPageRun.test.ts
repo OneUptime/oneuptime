@@ -1192,7 +1192,7 @@ describe("a direct page's run", () => {
       expect(policyRead).not.toHaveBeenCalled();
     });
 
-    test("started by a person, it names them as a link", async () => {
+    test("started by a person, it names them as a link - and it is their page that stopped, not them", async () => {
       const started: OnCallDirectPageRun = await startDirectPage({
         about: "alert",
         startedBy: { userId: JANE },
@@ -1206,7 +1206,7 @@ describe("a direct page's run", () => {
 
       expect(alertFeed).toHaveLength(1);
       expect(alertFeed[0]!.markdown).toBe(
-        `**[Jane Doe](https://oneuptime.test/users/${JANE.toString()})** stopped paging: nobody acknowledged.`,
+        `The page from **[Jane Doe](https://oneuptime.test/users/${JANE.toString()})** stopped: nobody acknowledged.`,
       );
       expect(UserService.getUserMarkdownString).toHaveBeenCalledWith({
         userId: expect.objectContaining({ id: JANE.toString() }),

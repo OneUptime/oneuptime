@@ -34,9 +34,9 @@
       {
         "command": "/oneuptime",
         "url": "{{SERVER_URL}}/api/slack/command",
-        "description": "Declare an incident, schedule maintenance, see who is on call or ask OneUptime AI",
-        "usage_hint": "incident [title] | maintenance [title] | oncall | ask [question] | help",
-        "should_escape": false
+        "description": "Declare an incident, schedule maintenance, see who is on call, page someone or ask OneUptime AI",
+        "usage_hint": "incident [title] | maintenance [title] | oncall | page [who] [message] | ask [question] | help",
+        "should_escape": true
       }
     ]
   },
@@ -56,6 +56,7 @@
         "chat:write",
         "files:write",
         "users:read",
+        "users:read.email",
         "groups:read",
         "groups:write",
         "groups:history",

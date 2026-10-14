@@ -585,6 +585,121 @@ describe("where a direct page stands", () => {
   });
 });
 
+/*
+ * A page a PERSON started - from Slack or Microsoft Teams - ends as their
+ * page ending, the words its chat message uses ("so paging stopped"): the
+ * person did not stop it. What the person did is still theirs: they are
+ * about to page, started paging, are paging, paged nobody.
+ */
+describe("where a direct page a person started stands", () => {
+  const BY_SAM: OnCallDirectPagePager = { startedByUser: SAM };
+
+  function status(
+    pageStatus: OnCallDutyPolicyStatus,
+    statusMessage?: string | undefined,
+  ): string {
+    return OnCallFeedText.getDirectPageStatusMarkdown({
+      status: pageStatus,
+      pager: BY_SAM,
+      statusMessage: statusMessage,
+    });
+  }
+
+  test("nobody acknowledged: the page from them stopped", () => {
+    expect(
+      status(
+        OnCallDutyPolicyStatus.Completed,
+        ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+      ),
+    ).toBe(`The page from ${SAM_MD} stopped: nobody acknowledged.`);
+  });
+
+  test.each<[string, string]>([
+    ["incident", "the incident is acknowledged or resolved."],
+    ["alert", "the alert is acknowledged or resolved."],
+  ])(
+    "its %s was handled: the page from them stopped, and why",
+    (recordKind: string, ending: string) => {
+      expect(
+        status(
+          OnCallDutyPolicyStatus.Completed,
+          getOnCallPolicyRunRecordHandledMessage(recordKind),
+        ),
+      ).toBe(`The page from ${SAM_MD} stopped because ${ending}`);
+    },
+  );
+
+  test("any other ending, with its message", () => {
+    expect(
+      status(OnCallDutyPolicyStatus.Completed, "Stopped by an administrator"),
+    ).toBe(`The page from ${SAM_MD} stopped.\n\nStopped by an administrator.`);
+  });
+
+  test("an error: the page from them stopped with it", () => {
+    expect(
+      status(
+        OnCallDutyPolicyStatus.Error,
+        "User notification rules could not be read",
+      ),
+    ).toBe(
+      `The page from ${SAM_MD} stopped with an error.\n\nUser notification rules could not be read.`,
+    );
+  });
+
+  test.each<[OnCallDutyPolicyStatus, string | undefined, string]>([
+    [OnCallDutyPolicyStatus.Scheduled, "Scheduled.", "is about to page."],
+    [OnCallDutyPolicyStatus.Started, "Paging started...", "started paging."],
+    [OnCallDutyPolicyStatus.Executing, undefined, "is paging."],
+    [
+      OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+      ON_CALL_DIRECT_PAGE_NOBODY_PAGED_MESSAGE,
+      "paged nobody.",
+    ],
+  ])(
+    "what they did is still theirs: %s",
+    (
+      pageStatus: OnCallDutyPolicyStatus,
+      statusMessage: string | undefined,
+      ending: string,
+    ) => {
+      expect(status(pageStatus, statusMessage)).toBe(`${SAM_MD} ${ending}`);
+    },
+  );
+
+  test("no status says the person stopped paging", () => {
+    for (const pageStatus of Object.values(OnCallDutyPolicyStatus)) {
+      for (const statusMessage of [
+        ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+        getOnCallPolicyRunRecordHandledMessage("alert"),
+        "Stopped by an administrator",
+        undefined,
+      ]) {
+        const text: string = status(pageStatus, statusMessage);
+
+        // "The page from Sam stopped", never "Sam stopped ...".
+        expect({ pageStatus, startsWithSam: text.startsWith(SAM_MD) }).toEqual({
+          pageStatus,
+          startsWithSam: !text.includes(" stopped"),
+        });
+        expect({ pageStatus, text }).toEqual({
+          pageStatus,
+          text: expect.not.stringContaining("stopped paging"),
+        });
+      }
+    }
+  });
+
+  test("a workflow's page still stops paging itself, when both are known", () => {
+    expect(
+      OnCallFeedText.getDirectPageStatusMarkdown({
+        status: OnCallDutyPolicyStatus.Completed,
+        pager: { ...WORKFLOW, startedByUser: SAM },
+        statusMessage: ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+      }),
+    ).toBe(`${WORKFLOW_MD} stopped paging: nobody acknowledged.`);
+  });
+});
+
 describe("a policy's run a workflow's step started", () => {
   test("says the workflow started the policy", () => {
     expect(

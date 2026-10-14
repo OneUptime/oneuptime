@@ -20,6 +20,7 @@ import SlackActionType from "./ActionTypes";
 import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
 import SlackAuthAction, { SlackAction, SlackRequest } from "./Auth";
 import SlackIncidentActions from "./Incident";
+import SlackPageActions from "./Page";
 import SlackScheduledMaintenanceActions from "./ScheduledMaintenance";
 
 /*
@@ -38,9 +39,12 @@ import SlackScheduledMaintenanceActions from "./ScheduledMaintenance";
  *                                          filled in, as /incident and
  *                                          /maintenance opened it
  *   oncall                                 who is on call right now
+ *   page [who] [message]                   pages the people @mentioned, or
+ *                                          opens the Page someone form
+ *                                          (SlackPageActions)
  *   ask [question], or any other text      a question for OneUptime AI
  *
- * The forms and who is on call act as the OneUptime member the Slack
+ * The forms, who is on call and a page act as the OneUptime member the Slack
  * account is connected to, like every button (SlackAuthAction): somebody
  * not connected is asked to connect, with a Connect button, and to run the
  * command again - named as they typed it. A question for OneUptime AI is
@@ -86,6 +90,7 @@ export default class SlackCommandActions {
       case WorkspaceCommandName.Incident:
       case WorkspaceCommandName.Maintenance:
       case WorkspaceCommandName.OnCall:
+      case WorkspaceCommandName.Page:
         return await SlackCommandActions.runAsMember(data);
       case WorkspaceCommandName.Ask:
         return await data.askQuestion(request.input.text);
@@ -212,6 +217,13 @@ export default class SlackCommandActions {
       case SlackActionType.ShowOnCall:
         return await SlackCommandActions.showOnCall({
           slackRequest: slackRequest,
+          req: data.req,
+          res: data.res,
+        });
+      case SlackActionType.PageSomeone:
+        return await SlackPageActions.handlePageCommand({
+          slackRequest: slackRequest,
+          action: action,
           req: data.req,
           res: data.res,
         });

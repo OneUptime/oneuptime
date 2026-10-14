@@ -143,7 +143,7 @@ Slack アプリの **Event Subscriptions** で、リクエスト URL を検証�
 
 | 機能 | 内容 | ルート |
 | --- | --- | --- |
-| `/oneuptime` | インシデントの宣言、メンテナンスの予定、オンコール担当者の確認、OneUptime AI への質問。`/oneuptime help` ですべてのコマンドを一覧表示します | `POST /api/slack/command` |
+| `/oneuptime` | インシデントの宣言、メンテナンスの予定、オンコール担当者の確認、誰かの呼び出し、OneUptime AI への質問。`/oneuptime help` ですべてのコマンドを一覧表示します | `POST /api/slack/command` |
 | **Create New Incident** と **Create Scheduled Event** ショートカット | Slack のショートカットからインシデントを宣言する、またはメンテナンスを予定する | `POST /api/slack/interactive` |
 | OneUptime のメッセージにあるボタンとフォーム | 確認、解決、メモの追加、状態の変更、オンコールポリシーの実行 | `POST /api/slack/interactive` と `POST /api/slack/options-load` |
 | イベント | メンション、メッセージ、リアクション、ピン留め。たとえばメッセージをメモとして保存する | `POST /api/slack/events` |
@@ -156,7 +156,9 @@ Slack アプリの **Event Subscriptions** で、リクエスト URL を検証�
 
 ### 古いマニフェストから作成したアプリ
 
-以前の OneUptime マニフェストから作成した Slack アプリは、`/incident` と `/maintenance` を独自のコマンドとして登録しており、他のアプリの同名コマンドと競合することがあります。これらは引き続き動作し、`/oneuptime incident` と `/oneuptime maintenance` と同じフォームを開きます。`/oneuptime` に置き換えるには、サーバーが生成するマニフェストからアプリを更新します。[api.slack.com/apps](https://api.slack.com/apps) でアプリの **App Manifest** を開き、マニフェストを貼り付けて保存します。スコープは変わらないため、アプリを再インストールする必要はありません。
+以前の OneUptime マニフェストから作成した Slack アプリは、`/incident` と `/maintenance` を独自のコマンドとして登録しており、他のアプリの同名コマンドと競合することがあります。これらは引き続き動作し、`/oneuptime incident` と `/oneuptime maintenance` と同じフォームを開きます。`/oneuptime` に置き換えるには、サーバーが生成するマニフェストからアプリを更新します。[api.slack.com/apps](https://api.slack.com/apps) でアプリの **App Manifest** を開き、マニフェストを貼り付けて保存します。
+
+`/oneuptime page` より前に作成したアプリにも、同じ更新が必要です。更新されるまで、`/oneuptime page` は @メンションした人を特定できず、すぐに呼び出す代わりに、その人を選ぶフォームを開きます。続いて **プロジェクト設定 > ワークスペース > Slack** でもう一度 **Slack で接続** を選択し、マニフェストが追加する `users:read.email` スコープを付与します。これにより、Slack アカウントが OneUptime に接続されていない人も、メールアドレスで見つかります。
 
 ## セルフホスト環境のネットワークアクセス
 
