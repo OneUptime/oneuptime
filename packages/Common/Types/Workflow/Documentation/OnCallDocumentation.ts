@@ -45,9 +45,17 @@ interface PageStepHelp {
   successMeans: string;
   // The step's own topics, before the ones every Page step has.
   topics: Array<ComponentDocumentationTopic>;
+  /*
+   * What posting its Summary to a channel tells the channel, as the title
+   * of that example: who was paged, or that a policy has started.
+   */
+  summaryExampleTitle: string;
   // What its Summary reads like.
   summaryExample: string;
 }
+
+// The three steps that page people say who they paged.
+const TELL_WHO_WAS_PAGED: string = "Tell a channel who was paged";
 
 /*
  * A test run is not a rehearsal for these steps: Run Workflow runs them as
@@ -140,7 +148,7 @@ const buildPageDocumentation: BuildPageDocumentationFunction = (
     examples: [
       aboutExample(context, help),
       {
-        title: "Tell a channel who was paged",
+        title: help.summaryExampleTitle,
         code: ownReference(context, "summary"),
         description: `Put it in a message step after this one. It reads like "${help.summaryExample}"`,
       },
@@ -217,6 +225,7 @@ export const getPageUsersDocumentation: OnCallDocumentationFunction = (
     notes: [DIRECT_PAGE_NOTE],
     successMeans: "somebody is paged",
     topics: [WHO_IS_LEFT_OUT_TOPIC],
+    summaryExampleTitle: TELL_WHO_WAS_PAGED,
     summaryExample: "Paged Jane Doe about Alert #12.",
   });
 };
@@ -242,6 +251,7 @@ export const getPageTeamDocumentation: OnCallDocumentationFunction = (
       },
       WHO_IS_LEFT_OUT_TOPIC,
     ],
+    summaryExampleTitle: TELL_WHO_WAS_PAGED,
     summaryExample:
       "Paged Jane Doe (member of Platform) and John Roe (member of Platform) about Alert #12.",
   });
@@ -268,6 +278,7 @@ export const getPageOnCallDocumentation: OnCallDocumentationFunction = (
       },
       WHO_IS_LEFT_OUT_TOPIC,
     ],
+    summaryExampleTitle: TELL_WHO_WAS_PAGED,
     summaryExample: "Paged Jane Doe (on call in Primary) about Alert #12.",
   });
 };
@@ -298,6 +309,8 @@ export const getPageOnCallPolicyDocumentation: OnCallDocumentationFunction = (
         ],
       },
     ],
+    // It starts a policy: who the policy pages is the policy's to say.
+    summaryExampleTitle: "Tell a channel which policy started",
     summaryExample: "Started on-call policy Critical Escalation for Alert #12.",
   });
 };
