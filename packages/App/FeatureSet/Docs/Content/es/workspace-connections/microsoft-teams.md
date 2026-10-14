@@ -152,6 +152,7 @@ Escribe al bot en un chat personal, o menciona a OneUptime con @ en un canal o u
 | `incident [title]` | Abre el formulario de incidente, con el título rellenado. |
 | `maintenance [title]` | Abre el formulario de mantenimiento programado, con el título rellenado. |
 | `oncall` | Lista quién está de guardia ahora mismo en cada programación de guardia que puedes ver, hasta cuándo y quién va después. |
+| `page [who] [message]` | Avisa a las personas que mencionas con @ sobre tu mensaje, o envía una tarjeta para elegir a quién avisar. Consulta [Avisar a alguien desde Microsoft Teams](#avisar-a-alguien-desde-microsoft-teams). |
 | `ask [question]`, o cualquier pregunta en lenguaje natural | OneUptime AI responde sobre tus registros, trazas, métricas, incidentes y monitores, por ejemplo "¿Qué monitores están caídos ahora mismo?". Las respuestas solo leen. |
 | `show active incidents`, `show active alerts` | Lista lo que está abierto ahora. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Lista los eventos de mantenimiento próximos, o en curso. |
@@ -167,6 +168,15 @@ Escribir `incident` o `maintenance` al bot de OneUptime abre un formulario para 
 - **Qué puede nombrar un formulario.** En un canal o un chat de grupo, cualquiera de los presentes puede enviar el formulario, y se envía como quien lo hace, con sus propios permisos. El incidente o el evento se crea con esos permisos y se atribuye a esa persona. Un monitor, una política de guardia, una etiqueta, una gravedad o un estado que no puede leer, o uno de otro proyecto, se rechaza como uno que el proyecto no tiene, y no se crea nada: el bot responde "One of the values you picked ... is not available in this project any more. Please pick it again."
 
 **Execute On-Call Policy** en un incidente, una alerta o un episodio funciona igual: necesita permiso para ejecutar una política de guardia (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** y **On-Call Member**, o **Create On-Call Duty Policy Execution Log** en un rol personalizado) y para leer ese incidente, alerta o episodio, y ofrece las políticas de guardia activas que la persona puede leer. Ver un monitor o una política de guardia desde una tarjeta también lo lee como la persona que pulsó el botón.
+
+## Avisar a alguien desde Microsoft Teams
+
+En un canal o un chat de grupo, `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` avisa a Nawaz de inmediato. OneUptime crea una alerta cuyo título es tu mensaje, y cada persona que mencionas con @ recibe una llamada, un SMS, una notificación push o un correo electrónico, según sus propias reglas de guardia, hasta que alguien reconoce la alerta.
+
+- **A quién se avisa de inmediato.** A las personas que mencionas con @, cuando un mensaje las sigue. OneUptime identifica a una persona por la cuenta de OneUptime a la que está conectada su cuenta de Microsoft Teams, o si no, por su dirección de correo electrónico en Microsoft Teams. Nunca se avisa a nadie de fuera del proyecto.
+- **Todo lo demás recibe una tarjeta.** Sin nadie mencionado con @, como en un chat personal con el bot, sin mensaje, con una etiqueta, o con una persona que OneUptime no puede identificar, el bot responde con la tarjeta **Page someone**, con lo que escribiste ya rellenado, y dice a quién no pudo elegir. Elige personas, un equipo, una programación de guardia, que avisa a quien esté de guardia en ella ahora, o una política de guardia, que avisa mediante sus reglas de escalado, y envíala. Cualquiera en la conversación puede enviar la tarjeta, en su propio nombre. Una vez que ha avisado, la tarjeta se elimina, para que nadie avise con ella dos veces.
+- **Dónde se muestra.** La conversación muestra el aviso como una sola tarjeta, que se mantiene al día: a quién se avisó y cómo, y quién lo reconoció. Donde el bot no puede publicarla, su respuesta dice a quién se avisó, con un enlace a la alerta.
+- **Quién puede avisar.** Quien pueda tanto ejecutar una política de guardia como crear una alerta: **Project Owner**, **Project Admin** y **Project Member**, o **On-Call Member** junto con **Alert Member** (**Create On-Call Duty Policy Execution Log** y **Create Alert** en un rol personalizado). Avisar directamente a personas, a un equipo o a una programación, sin una política de guardia detrás del aviso, requiere además acceso a todas las políticas de guardia del proyecto. A cualquier otra persona se le indica en una respuesta, y no se avisa a nadie.
 
 ## Actuar sobre incidentes, alertas y eventos desde Microsoft Teams
 

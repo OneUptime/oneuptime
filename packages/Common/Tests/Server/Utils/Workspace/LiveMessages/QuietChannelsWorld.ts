@@ -318,6 +318,11 @@ export default class QuietChannelsWorld {
   public runFor: "incident" | "alert" = "incident";
   public recordAcknowledged: boolean = false;
   public recordStateName: string = "Identified";
+  /*
+   * The record's title, when a suite reads it: a page from a chat shows it
+   * where it was asked for (OnCallPolicyRunMessage's page request places).
+   */
+  public recordTitle: string | undefined = undefined;
 
   // The people in the project, and the rule's people for a new channel.
   public members: Set<string> = new Set<string>([
@@ -610,6 +615,11 @@ export default class QuietChannelsWorld {
         incident.projectId = PROJECT_ID;
         incident.incidentNumber = 8;
         incident.incidentNumberWithPrefix = "INC-8";
+
+        if (this.recordTitle !== undefined) {
+          incident.title = this.recordTitle;
+        }
+
         const state: IncidentState = new IncidentState();
         state.name = this.recordStateName;
         incident.currentIncidentState = state;
@@ -640,6 +650,11 @@ export default class QuietChannelsWorld {
         alert.projectId = PROJECT_ID;
         alert.alertNumber = 12;
         alert.alertNumberWithPrefix = "AL-12";
+
+        if (this.recordTitle !== undefined) {
+          alert.title = this.recordTitle;
+        }
+
         const state: AlertState = new AlertState();
         state.name = this.recordStateName;
         alert.currentAlertState = state;

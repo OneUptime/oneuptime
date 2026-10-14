@@ -139,6 +139,7 @@ OneUptime a une seule commande dans Slack, `/oneuptime`. Le mot que vous tapez a
 | `/oneuptime incident [title]` | Ouvre le formulaire d'incident, avec le titre rempli. |
 | `/oneuptime maintenance [title]` | Ouvre le formulaire de maintenance planifiée, avec le titre rempli. |
 | `/oneuptime oncall` | Liste qui est d'astreinte en ce moment dans chaque planning d'astreinte que vous pouvez voir, jusqu'à quand, et qui est le suivant. |
+| `/oneuptime page [who] [message]` | Alerte les personnes que vous mentionnez avec @ au sujet de votre message, ou ouvre un formulaire pour choisir qui alerter. Voir [Alerter quelqu'un depuis Slack](#alerter-quelquun-depuis-slack). |
 | `/oneuptime ask [question]`, ou toute question | OneUptime AI répond sur vos journaux, traces, métriques, incidents et moniteurs. |
 
 Les réponses à `help` et `oncall` sont des messages que vous seul voyez, sous la commande. Un premier mot qui ressemble à une commande mal tapée, comme `incidnet`, reçoit la commande à laquelle il ressemble, pas une réponse de OneUptime AI. Les formulaires d'incident et de maintenance agissent en votre nom : voir [Créer des incidents et des maintenances depuis Slack](#créer-des-incidents-et-des-maintenances-depuis-slack).
@@ -165,6 +166,15 @@ OneUptime ne répond qu'à ce qui lui est adressé.
 - **Ce qu'un formulaire peut nommer.** L'incident ou l'événement est créé avec vos propres autorisations et vous est attribué. Un moniteur, une politique d'astreinte, une étiquette, une gravité ou un état que vous ne pouvez pas lire, ou qui appartient à un autre projet, est refusé comme un élément que le projet n'a pas, même depuis un formulaire ouvert avant que votre accès change, et rien n'est créé. OneUptime vous dit pourquoi dans le canal, dans un message que vous seul voyez.
 
 **Execute On-Call Policy** sur un incident, une alerte ou un épisode fonctionne de la même façon : il demande l'autorisation d'exécuter une politique d'astreinte (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** et **On-Call Member**, ou **Create On-Call Duty Policy Execution Log** dans un rôle personnalisé) et de lire cet incident, cette alerte ou cet épisode, et propose les politiques d'astreinte actives que vous pouvez lire.
+
+## Alerter quelqu'un depuis Slack
+
+`/oneuptime page @nawaz The checkout API is throwing 500s` alerte Nawaz immédiatement. OneUptime crée une alerte dont le titre est votre message, et chaque personne que vous mentionnez avec @ reçoit un appel téléphonique, un SMS, une notification push ou un e-mail, selon ses propres règles d'astreinte, jusqu'à ce que quelqu'un accuse réception de l'alerte.
+
+- **Qui est alerté immédiatement.** Les personnes que vous mentionnez avec @, quand un message les suit. OneUptime reconnaît une personne au compte OneUptime auquel son compte Slack est connecté, ou sinon à l'adresse e-mail que Slack a pour elle. Personne en dehors du projet n'est alerté.
+- **Tout le reste ouvre un formulaire.** Sans personne mentionnée avec @, sans message, avec un groupe d'utilisateurs ou `@here`, ou avec une personne que OneUptime ne reconnaît pas, le formulaire **Page someone** s'ouvre avec ce que vous avez tapé déjà rempli, et indique qui il n'a pas pu choisir. Choisissez des personnes, une équipe, un planning d'astreinte, qui alerte la personne d'astreinte dans ce planning en ce moment, ou une politique d'astreinte, qui alerte selon ses règles d'escalade, puis soumettez-le. Un nom que vous tapez en premier, comme dans `/oneuptime page Primary The disk is full`, choisit le planning, l'équipe ou la politique de ce nom.
+- **Où cela s'affiche.** Le canal en affiche le suivi comme un seul message, tenu à jour : qui a été alerté et comment, et qui a accusé réception. Là où OneUptime ne peut pas publier, comme dans un canal privé auquel il n'a pas été invité, un message que vous seul voyez indique qui a été alerté, avec un lien vers l'alerte.
+- **Qui peut alerter.** Toute personne qui peut à la fois exécuter une politique d'astreinte et créer une alerte : **Project Owner**, **Project Admin** et **Project Member**, ou **On-Call Member** avec **Alert Member** (**Create On-Call Duty Policy Execution Log** et **Create Alert** dans un rôle personnalisé). Alerter directement des personnes, une équipe ou un planning, sans politique d'astreinte derrière l'alerte, demande aussi l'accès à toutes les politiques d'astreinte du projet. Tous les autres en sont informés là où ils ont lancé la commande, et personne n'est alerté.
 
 ## Agir sur les incidents, alertes et événements depuis Slack
 

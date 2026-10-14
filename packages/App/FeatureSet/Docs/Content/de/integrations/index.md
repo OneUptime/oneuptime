@@ -84,7 +84,7 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Beide | Eine eingebaute Verbindung: Vorfallkanäle, Aktionen aus Teams und Bereitschaft. |
 | [Mattermost](/docs/workflows/components#mattermost) | Ausgehend | Schreibt Vorfall-Updates in einen Mattermost-Kanal. |
 | [Discord](/docs/integrations/discord) | Ausgehend | Schreibt Vorfall-Updates in einen Discord-Kanal. |
-| [Telegram](/docs/integrations/telegram) | Ausgehend | Sendet Vorfall-Updates in einen Telegram-Chat. |
+| [Telegram](/docs/integrations/telegram) | Ausgehend | Sendet eine Nachricht an einen Telegram-Chat, wenn eine Warnung ausgelöst wird. |
 | [IRC](/docs/integrations/irc) | Ausgehend | Schreibt Vorfall-Updates in einen IRC-Kanal. |
 
 > [!TIP]
@@ -122,7 +122,7 @@ Die URL ist der einzige Berechtigungsnachweis, behandeln Sie sie also wie ein Pa
 2. Legen Sie einen Workflow an, klicken Sie auf den gestrichelten Baustein und wählen Sie einen Ereignis-Trigger, etwa **On Create Incident**. Kreuzen Sie in seinen **Fields to pass on** die Felder an, die gesendet werden sollen, etwa `title` und `description`.
 3. Klicken Sie auf **Komponente hinzufügen** und fügen Sie einen **API Post (JSON)**-Baustein hinzu. Verbinden Sie den Punkt **Success** des Triggers damit.
 4. Füllen Sie seine **URL** aus, seine **Request Headers** mit dem `Authorization`-Header und seinen **Request Body** mit den Feldern des Vorfalls, etwa `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-5. Klicken Sie auf **Arbeitsablauf ausführen**, geben Sie die **Vorfall-ID** eines Vorfalls ein und führen Sie ihn aus. Ein Testlauf sendet die Anfrage wirklich. Schalten Sie danach **Aktiviert** ein.
+5. Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Vorfall aus und führen Sie ihn aus. Ein Testlauf sendet die Anfrage wirklich. Schalten Sie danach **Aktiviert** ein.
 :::
 
 Braucht das Werkzeug die Daten zuerst umgeformt, fügen Sie dazwischen einen [Run Custom JavaScript](/docs/workflows/components#custom-code)-Baustein ein. Das Rezept ist dasselbe für Zendesk, New Relic, AWS (über SNS), StatusCake und alle weiteren: Nur die URL und der Body ändern sich.

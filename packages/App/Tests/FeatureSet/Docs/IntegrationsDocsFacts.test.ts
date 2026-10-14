@@ -117,7 +117,9 @@ import vm from "vm";
  * (the Jira settings each template asks for), WorkflowTemplatePickerDocs,
  * WorkflowWebhookUrlDocs, WorkflowRunsDocs, WorkflowTurnOnDocs,
  * DeclareIncidentStepsDocs, HuntressIntegrationDocs, IrcIntegrationDocs
- * and TemplateMissingValueClaims.
+ * and TemplateMissingValueClaims. IssueAndChatIntegrationsDocsFacts holds
+ * how every integrations page tests its workflow with Run Workflow, these
+ * pages' too, in every language, and what the Overview's chat rows say.
  */
 
 const DASHBOARD: string = "App/FeatureSet/Dashboard/src";

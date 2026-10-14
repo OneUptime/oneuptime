@@ -139,6 +139,7 @@ OneUptime har ett enda kommando i Slack, `/oneuptime`. Ordet du skriver efter de
 | `/oneuptime incident [title]` | Öppnar incidentformuläret med titeln ifylld. |
 | `/oneuptime maintenance [title]` | Öppnar formuläret för schemalagt underhåll med titeln ifylld. |
 | `/oneuptime oncall` | Visar vem som har jour just nu i varje jourschema du kan se, till när, och vem som är nästa. |
+| `/oneuptime page [who] [message]` | Larmar personerna du nämner med @ om ditt meddelande, eller öppnar ett formulär där du väljer vem som ska larmas. Se [Larma någon från Slack](#larma-någon-från-slack). |
 | `/oneuptime ask [question]`, eller vilken fråga som helst | OneUptime AI svarar om dina loggar, traces, mätvärden, incidenter och monitorer. |
 
 Svaren på `help` och `oncall` är meddelanden som bara du ser, under kommandot. Ett första ord som ser ut som ett felstavat kommando, som `incidnet`, får kommandot det liknar, inte ett svar från OneUptime AI. Formulären för incidenter och underhåll agerar som dig: se [Skapa incidenter och underhåll från Slack](#skapa-incidenter-och-underhåll-från-slack).
@@ -165,6 +166,15 @@ OneUptime svarar bara på det som riktas till den.
 - **Vad ett formulär får ange.** Incidenten eller händelsen skapas med dina egna behörigheter och tillskrivs dig. En monitor, jourpolicy, etikett, allvarlighetsgrad eller status som du inte får läsa, eller en från ett annat projekt, avvisas som en som projektet inte har, även från ett formulär som öppnades innan din åtkomst ändrades, och inget skapas. OneUptime berättar varför i kanalen, i ett meddelande som bara du ser.
 
 **Execute On-Call Policy** på en incident, ett larm eller en episod fungerar på samma sätt: den kräver behörighet att köra en jourpolicy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** och **On-Call Member**, eller **Create On-Call Duty Policy Execution Log** i en anpassad roll) och att läsa den incidenten, det larmet eller den episoden, och den erbjuder de aktiva jourpolicyer som du får läsa.
+
+## Larma någon från Slack
+
+`/oneuptime page @nawaz The checkout API is throwing 500s` larmar Nawaz direkt. OneUptime skapar ett larm med ditt meddelande som rubrik, och varje person du nämner med @ får ett telefonsamtal, ett sms, en pushnotis eller ett mejl, så som personens egna jourregler säger, tills någon bekräftar larmet.
+
+- **Vem som larmas direkt.** Personerna du nämner med @, när ett meddelande följer efter dem. OneUptime känner igen en person på det OneUptime-konto som personens Slack-konto är anslutet till, eller annars på den e-postadress Slack har för personen. Ingen utanför projektet larmas.
+- **Allt annat öppnar ett formulär.** Utan någon nämnd med @, utan meddelande, med en användargrupp eller `@here`, eller med en person som OneUptime inte känner igen, öppnas formuläret **Page someone** med det du skrev ifyllt, och det säger vem det inte kunde välja. Välj personer, ett team, ett jourschema, som larmar den som har jour i det just nu, eller en jourpolicy, som larmar genom sina eskaleringsregler, och skicka det. Ett namn du skriver först, som i `/oneuptime page Primary The disk is full`, väljer schemat, teamet eller policyn med det namnet.
+- **Var det syns.** Kanalen visar larmningen som ett enda meddelande som hålls uppdaterat: vem som larmades och hur, och vem som bekräftade. Där OneUptime inte kan posta, till exempel i en privat kanal den inte har bjudits in till, säger ett meddelande som bara du ser vem som larmades, med en länk till larmet.
+- **Vem som får larma.** Alla som får både köra en jourpolicy och skapa ett larm: **Project Owner**, **Project Admin** och **Project Member**, eller **On-Call Member** tillsammans med **Alert Member** (**Create On-Call Duty Policy Execution Log** och **Create Alert** i en anpassad roll). Att larma personer, ett team eller ett schema direkt, utan en jourpolicy bakom larmningen, kräver också åtkomst till alla projektets jourpolicyer. Alla andra får veta det där de körde kommandot, och ingen larmas.
 
 ## Agera på incidenter, larm och händelser från Slack
 

@@ -139,6 +139,7 @@ OneUptime ha un solo comando in Slack, `/oneuptime`. La parola che scrivi dopo d
 | `/oneuptime incident [title]` | Apre il modulo dell'incidente, con il titolo compilato. |
 | `/oneuptime maintenance [title]` | Apre il modulo della manutenzione programmata, con il titolo compilato. |
 | `/oneuptime oncall` | Elenca chi è reperibile in questo momento in ogni pianificazione di reperibilità che puoi vedere, fino a quando, e chi è il prossimo. |
+| `/oneuptime page [who] [message]` | Chiama le persone che menzioni con @ per il tuo messaggio, oppure apre un modulo per scegliere chi chiamare. Vedi [Chiamare qualcuno da Slack](#chiamare-qualcuno-da-slack). |
 | `/oneuptime ask [question]`, o qualsiasi domanda | OneUptime AI risponde su log, trace, metriche, incidenti e monitor. |
 
 Le risposte a `help` e `oncall` sono messaggi che vedi solo tu, sotto il comando. Una prima parola che sembra un comando scritto male, come `incidnet`, riceve il comando a cui somiglia, non una risposta di OneUptime AI. I moduli di incidente e di manutenzione agiscono a tuo nome: vedi [Creare incidenti e manutenzioni da Slack](#creare-incidenti-e-manutenzioni-da-slack).
@@ -165,6 +166,15 @@ OneUptime risponde solo a ciò che è rivolto a lui.
 - **Cosa può indicare un modulo.** L'incidente o l'evento viene creato con i tuoi permessi e attribuito a te. Un monitor, una policy di reperibilità, un'etichetta, una gravità o uno stato che non puoi leggere, o uno di un altro progetto, viene rifiutato come uno che il progetto non ha, anche da un modulo aperto prima che il tuo accesso cambiasse, e non viene creato nulla. OneUptime ti spiega il motivo nel canale, in un messaggio che vedi solo tu.
 
 **Execute On-Call Policy** su un incidente, un avviso o un episodio funziona allo stesso modo: richiede il permesso di eseguire una policy di reperibilità (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, oppure **Create On-Call Duty Policy Execution Log** in un ruolo personalizzato) e di leggere quell'incidente, avviso o episodio, e offre le policy di reperibilità attive che puoi leggere.
+
+## Chiamare qualcuno da Slack
+
+`/oneuptime page @nawaz The checkout API is throwing 500s` chiama subito Nawaz. OneUptime crea un avviso il cui titolo è il tuo messaggio, e ogni persona che menzioni con @ riceve una telefonata, un SMS, una notifica push o un'email, come dicono le sue regole di reperibilità, finché qualcuno non conferma l'avviso.
+
+- **Chi viene chiamato subito.** Le persone che menzioni con @, quando le segue un messaggio. OneUptime riconosce una persona dall'account OneUptime a cui è collegato il suo account Slack, oppure dall'indirizzo email che Slack ha per lei. Nessuno al di fuori del progetto viene chiamato.
+- **Tutto il resto apre un modulo.** Senza nessuno menzionato con @, senza messaggio, con un gruppo di utenti o `@here`, o con una persona che OneUptime non riesce a riconoscere, si apre il modulo **Page someone** con quello che hai scritto già compilato, e dice chi non è riuscito a scegliere. Scegli persone, un team, una pianificazione di reperibilità, che chiama chi è reperibile in essa in quel momento, o una policy di reperibilità, che chiama tramite le sue regole di escalation, e invialo. Un nome che scrivi per primo, come in `/oneuptime page Primary The disk is full`, sceglie la pianificazione, il team o la policy con quel nome.
+- **Dove si vede.** Il canale mostra la chiamata come un solo messaggio, tenuto aggiornato: chi è stato chiamato e come, e chi ha confermato. Dove OneUptime non può pubblicare, come in un canale privato in cui non è stato invitato, un messaggio che vedi solo tu dice chi è stato chiamato, con un link all'avviso.
+- **Chi può chiamare.** Chiunque possa sia eseguire una policy di reperibilità sia creare un avviso: **Project Owner**, **Project Admin** e **Project Member**, oppure **On-Call Member** insieme ad **Alert Member** (**Create On-Call Duty Policy Execution Log** e **Create Alert** in un ruolo personalizzato). Chiamare direttamente persone, un team o una pianificazione, senza una policy di reperibilità dietro la chiamata, richiede anche l'accesso a tutte le policy di reperibilità del progetto. A chiunque altro viene detto dove ha eseguito il comando, e nessuno viene chiamato.
 
 ## Agire su incidenti, avvisi ed eventi da Slack
 

@@ -81,7 +81,7 @@ Och **Request Body** på:
 
 ### Testa det och slå sedan på det
 
-Klicka på **Kör arbetsflöde**, ange **Incident-ID** för en testincident och kör det. Steget **API Post (JSON)** visar ett `201`-svar med den nya posten, med dess `sys_id` och dess `number`, t.ex. `INC0012345`. Slå sedan på **Aktiverad** högst upp i **Byggare**.
+Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API Post (JSON)** visar ett `201`-svar med den nya posten, med dess `sys_id` och dess `number`, t.ex. `INC0012345`. Slå sedan på **Aktiverad** högst upp i **Byggare**.
 :::
 
 `urgency` och `impact` tar `1` för hög, `2` för medel och `3` för låg, och ServiceNow räknar fram prioriteten från de två. Alla andra kolumner i tabellen `incident` kan läggas i innehållet under sitt kolumnnamn.

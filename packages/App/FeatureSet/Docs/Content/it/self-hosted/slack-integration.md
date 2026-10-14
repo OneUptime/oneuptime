@@ -143,7 +143,7 @@ Il manifest configura queste funzionalità. Ognuna raggiunge il tuo server sulla
 
 | Funzionalità | Cosa fa | Route |
 | --- | --- | --- |
-| `/oneuptime` | Dichiarare un incidente, programmare una manutenzione, vedere chi è reperibile e chiedere a OneUptime AI; `/oneuptime help` elenca tutti i comandi | `POST /api/slack/command` |
+| `/oneuptime` | Dichiarare un incidente, programmare una manutenzione, vedere chi è reperibile, chiamare qualcuno e chiedere a OneUptime AI; `/oneuptime help` elenca tutti i comandi | `POST /api/slack/command` |
 | Le scorciatoie **Create New Incident** e **Create Scheduled Event** | Dichiarare un incidente o programmare una manutenzione dalle scorciatoie di Slack | `POST /api/slack/interactive` |
 | Pulsanti e moduli nei messaggi di OneUptime | Prendere in carico, risolvere, aggiungere una nota, cambiare lo stato, eseguire una policy di reperibilità | `POST /api/slack/interactive` e `POST /api/slack/options-load` |
 | Eventi | Menzioni, messaggi, reazioni e pin, per esempio per salvare un messaggio come nota | `POST /api/slack/events` |
@@ -156,7 +156,9 @@ Se hai creato la tua app Slack da un manifest più vecchio, aggiungi `files:writ
 
 ### App create da un manifest più vecchio
 
-Un'app Slack creata da un manifest OneUptime precedente registra `/incident` e `/maintenance` come comandi propri, che possono entrare in conflitto con i comandi con lo stesso nome di altre app. Continuano a funzionare e aprono gli stessi moduli di `/oneuptime incident` e `/oneuptime maintenance`. Per sostituirli con `/oneuptime`, aggiorna l'app dal manifest che genera il tuo server: su [api.slack.com/apps](https://api.slack.com/apps), apri la pagina **App Manifest** dell'app, incolla il manifest e salva. Gli scope restano gli stessi, quindi l'app non va reinstallata.
+Un'app Slack creata da un manifest OneUptime precedente registra `/incident` e `/maintenance` come comandi propri, che possono entrare in conflitto con i comandi con lo stesso nome di altre app. Continuano a funzionare e aprono gli stessi moduli di `/oneuptime incident` e `/oneuptime maintenance`. Per sostituirli con `/oneuptime`, aggiorna l'app dal manifest che genera il tuo server: su [api.slack.com/apps](https://api.slack.com/apps), apri la pagina **App Manifest** dell'app, incolla il manifest e salva.
+
+Un'app creata prima di `/oneuptime page` ha bisogno dello stesso aggiornamento: finché non lo ha, `/oneuptime page` non riesce a riconoscere chi menzioni con @, e apre un modulo per sceglierli invece di chiamarli subito. Poi seleziona di nuovo **Connect with Slack** in **Impostazioni del progetto > Area di lavoro > Slack**, perché venga concesso lo scope `users:read.email` che il manifest aggiunge: con esso, una persona il cui account Slack non è collegato a OneUptime viene trovata dal suo indirizzo email.
 
 ## Accesso di rete per le installazioni self-hosted
 

@@ -119,6 +119,7 @@ import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMainte
 import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
 import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplicator";
 import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
+import MicrosoftTeamsPage from "./MicrosoftTeamsPage";
 import MicrosoftTeamsCommands, {
   MicrosoftTeamsListCommand,
 } from "./MicrosoftTeamsCommands";
@@ -3791,6 +3792,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
               projectId: projectId,
             });
             return;
+          case WorkspaceCommandName.Page:
+            /*
+             * "page @Nawaz <message>" pages at once; anything else opens
+             * the Page someone card. The people are read from the
+             * message's own mentions, which the text above has dropped.
+             */
+            await MicrosoftTeamsPage.handleCommand({
+              turnContext: data.turnContext,
+              activity: data.activity,
+              projectId: projectId,
+            });
+            return;
           case WorkspaceCommandName.Ask:
           case null:
             /*
@@ -5142,6 +5155,17 @@ All monitoring checks are passing normally.`;
           } as MicrosoftTeamsRequest,
           databaseProps,
         );
+        return;
+      }
+
+      // The Page someone card of "page", submitted.
+      if (MicrosoftTeamsPage.isPageAction(actionType)) {
+        await MicrosoftTeamsPage.handleSubmit({
+          turnContext: data.turnContext,
+          value: value,
+          projectId: projectId,
+          databaseProps: databaseProps,
+        });
         return;
       }
 

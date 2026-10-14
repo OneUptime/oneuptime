@@ -81,7 +81,7 @@ Et son **Request Body** sur :
 
 ### Tester, puis activer
 
-Cliquez sur **Exécuter le flux de travail**, saisissez l'**ID d'incident** d'un incident de test et lancez-le. L'étape **API Post (JSON)** affiche une réponse `201` contenant le nouvel enregistrement, avec son `sys_id` et son `number`, par exemple `INC0012345`. Activez ensuite **Activé** en haut du **Constructeur**.
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `201` contenant le nouvel enregistrement, avec son `sys_id` et son `number`, par exemple `INC0012345`. Activez ensuite **Activé** en haut du **Constructeur**.
 :::
 
 `urgency` et `impact` prennent `1` pour élevé, `2` pour moyen et `3` pour faible, et ServiceNow en déduit la priorité. Toute autre colonne de la table `incident` peut aller dans le corps, sous son nom de colonne.

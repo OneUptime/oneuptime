@@ -139,6 +139,7 @@ O OneUptime tem um único comando no Slack, `/oneuptime`. A palavra que você di
 | `/oneuptime incident [title]` | Abre o formulário de incidente, com o título preenchido. |
 | `/oneuptime maintenance [title]` | Abre o formulário de manutenção programada, com o título preenchido. |
 | `/oneuptime oncall` | Lista quem está de plantão agora em cada agendamento de plantão que você pode ver, até quando, e quem é o próximo. |
+| `/oneuptime page [who] [message]` | Aciona as pessoas que você menciona com @ sobre a sua mensagem, ou abre um formulário para escolher quem acionar. Consulte [Acionar alguém pelo Slack](#acionar-alguém-pelo-slack). |
 | `/oneuptime ask [question]`, ou qualquer pergunta | O OneUptime AI responde sobre seus logs, traces, métricas, incidentes e monitores. |
 
 As respostas a `help` e `oncall` são mensagens que só você vê, abaixo do comando. Uma primeira palavra que parece um comando digitado errado, como `incidnet`, recebe o comando com que se parece, não uma resposta do OneUptime AI. Os formulários de incidente e de manutenção agem como você: consulte [Criar incidentes e manutenções pelo Slack](#criar-incidentes-e-manutenções-pelo-slack).
@@ -165,6 +166,15 @@ O OneUptime só responde ao que é dirigido a ele.
 - **O que um formulário pode indicar.** O incidente ou evento é criado com as suas próprias permissões e atribuído a você. Um monitor, política de plantão, rótulo, gravidade ou status que você não pode ler, ou um de outro projeto, é recusado como um que o projeto não tem, mesmo em um formulário aberto antes de o seu acesso mudar, e nada é criado. O OneUptime explica o motivo no canal, em uma mensagem que só você vê.
 
 **Execute On-Call Policy** em um incidente, alerta ou episódio funciona do mesmo jeito: requer permissão para executar uma política de plantão (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, ou **Create On-Call Duty Policy Execution Log** em uma função personalizada) e para ler esse incidente, alerta ou episódio, e oferece as políticas de plantão ativas que você pode ler.
+
+## Acionar alguém pelo Slack
+
+`/oneuptime page @nawaz The checkout API is throwing 500s` aciona o Nawaz na hora. O OneUptime cria um alerta cujo título é a sua mensagem, e cada pessoa que você menciona com @ recebe uma ligação, um SMS, uma notificação push ou um e-mail, conforme as próprias regras de plantão dela, até que alguém confirme o alerta.
+
+- **Quem é acionado na hora.** As pessoas que você menciona com @, quando uma mensagem vem depois delas. O OneUptime reconhece uma pessoa pela conta do OneUptime à qual a conta do Slack dela está conectada, ou então pelo endereço de e-mail que o Slack tem dela. Ninguém de fora do projeto é acionado.
+- **Todo o resto abre um formulário.** Sem ninguém mencionado com @, sem mensagem, com um grupo de usuários ou `@here`, ou com uma pessoa que o OneUptime não reconhece, o formulário **Page someone** se abre com o que você digitou já preenchido, e diz quem ele não conseguiu escolher. Escolha pessoas, uma equipe, um agendamento de plantão, que aciona quem estiver de plantão nele agora, ou uma política de plantão, que aciona pelas regras de escalonamento dela, e envie. Um nome que você digita primeiro, como em `/oneuptime page Primary The disk is full`, escolhe o agendamento, a equipe ou a política com esse nome.
+- **Onde aparece.** O canal mostra o acionamento como uma única mensagem, mantida atualizada: quem foi acionado e como, e quem confirmou. Onde o OneUptime não pode publicar, como em um canal privado para o qual não foi convidado, uma mensagem que só você vê diz quem foi acionado, com um link para o alerta.
+- **Quem pode acionar.** Quem pode tanto executar uma política de plantão quanto criar um alerta: **Project Owner**, **Project Admin** e **Project Member**, ou **On-Call Member** junto com **Alert Member** (**Create On-Call Duty Policy Execution Log** e **Create Alert** em uma função personalizada). Acionar pessoas, uma equipe ou um agendamento diretamente, sem uma política de plantão por trás do acionamento, também exige acesso a todas as políticas de plantão do projeto. Qualquer outra pessoa é avisada onde executou o comando, e ninguém é acionado.
 
 ## Agir sobre incidentes, alertas e eventos pelo Slack
 

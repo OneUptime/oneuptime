@@ -152,6 +152,7 @@ Skriv till boten i en personlig chatt, eller nämn OneUptime med @ i en kanal el
 | `incident [title]` | Öppnar incidentformuläret med titeln ifylld. |
 | `maintenance [title]` | Öppnar formuläret för schemalagt underhåll med titeln ifylld. |
 | `oncall` | Visar vem som har jour just nu i varje jourschema du kan se, till när, och vem som är nästa. |
+| `page [who] [message]` | Larmar personerna du nämner med @ om ditt meddelande, eller skickar ett kort där du väljer vem som ska larmas. Se [Larma någon från Microsoft Teams](#larma-någon-från-microsoft-teams). |
 | `ask [question]`, eller vilken fråga som helst på vanligt språk | OneUptime AI svarar om dina loggar, traces, mätvärden, incidenter och monitorer, till exempel "vilka monitorer är nere just nu?". Svar läser bara. |
 | `show active incidents`, `show active alerts` | Visar det som är öppet nu. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Visar kommande, eller pågående, underhållshändelser. |
@@ -167,6 +168,15 @@ Att skriva `incident` eller `maintenance` till OneUptime-boten öppnar ett formu
 - **Vad ett formulär får ange.** I en kanal eller en gruppchatt får alla som är där skicka formuläret, och det skickas som den som gör det, med personens egna behörigheter. Incidenten eller händelsen skapas med de behörigheterna och tillskrivs den personen. En monitor, jourpolicy, etikett, allvarlighetsgrad eller status som personen inte får läsa, eller en från ett annat projekt, avvisas som en som projektet inte har, och inget skapas: boten svarar "One of the values you picked ... is not available in this project any more. Please pick it again."
 
 **Execute On-Call Policy** på en incident, ett larm eller en episod fungerar på samma sätt: den kräver behörighet att köra en jourpolicy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** och **On-Call Member**, eller **Create On-Call Duty Policy Execution Log** i en anpassad roll) och att läsa den incidenten, det larmet eller den episoden, och den erbjuder de aktiva jourpolicyer som personen får läsa. Att visa en monitor eller en jourpolicy från ett kort läser den också som den person som tryckte på knappen.
+
+## Larma någon från Microsoft Teams
+
+I en kanal eller en gruppchatt larmar `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` Nawaz direkt. OneUptime skapar ett larm med ditt meddelande som rubrik, och varje person du nämner med @ får ett telefonsamtal, ett sms, en pushnotis eller ett mejl, så som personens egna jourregler säger, tills någon bekräftar larmet.
+
+- **Vem som larmas direkt.** Personerna du nämner med @, när ett meddelande följer efter dem. OneUptime känner igen en person på det OneUptime-konto som personens Microsoft Teams-konto är anslutet till, eller annars på personens e-postadress i Microsoft Teams. Ingen utanför projektet larmas.
+- **Allt annat får ett kort.** Utan någon nämnd med @, som i en personlig chatt med boten, utan meddelande, med en tagg, eller med en person som OneUptime inte känner igen, svarar boten med kortet **Page someone**, med det du skrev ifyllt, och säger vem den inte kunde välja. Välj personer, ett team, ett jourschema, som larmar den som har jour i det just nu, eller en jourpolicy, som larmar genom sina eskaleringsregler, och skicka kortet. Alla i konversationen får skicka kortet, som sig själva. När det har larmat tas kortet bort, så att ingen larmar med det två gånger.
+- **Var det syns.** Konversationen visar larmningen som ett enda kort som hålls uppdaterat: vem som larmades och hur, och vem som bekräftade. Där boten inte kan posta det, säger dess svar vem som larmades, med en länk till larmet.
+- **Vem som får larma.** Alla som får både köra en jourpolicy och skapa ett larm: **Project Owner**, **Project Admin** och **Project Member**, eller **On-Call Member** tillsammans med **Alert Member** (**Create On-Call Duty Policy Execution Log** och **Create Alert** i en anpassad roll). Att larma personer, ett team eller ett schema direkt, utan en jourpolicy bakom larmningen, kräver också åtkomst till alla projektets jourpolicyer. Alla andra får veta det i ett svar, och ingen larmas.
 
 ## Agera på incidenter, larm och händelser från Microsoft Teams
 

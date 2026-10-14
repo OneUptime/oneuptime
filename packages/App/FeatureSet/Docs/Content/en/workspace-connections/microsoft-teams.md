@@ -152,6 +152,7 @@ Message the bot in a personal chat, or @mention OneUptime in a channel or a grou
 | `incident [title]` | Opens the incident form, with the title filled in. |
 | `maintenance [title]` | Opens the scheduled maintenance form, with the title filled in. |
 | `oncall` | Lists who is on call right now in each on-call schedule you can see, until when, and who is next. |
+| `page [who] [message]` | Pages the people you @mention about your message, or sends a card to pick who to page. See [Paging someone from Microsoft Teams](#paging-someone-from-microsoft-teams). |
 | `ask [question]`, or any question in plain language | OneUptime AI answers about your logs, traces, metrics, incidents and monitors, for example "which monitors are down right now?". Answers only read. |
 | `show active incidents`, `show active alerts` | Lists what is open now. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Lists upcoming, or ongoing, maintenance events. |
@@ -167,6 +168,15 @@ Typing `incident` or `maintenance` to the OneUptime bot opens a form for the per
 - **What a form may name.** In a channel or a group chat anyone there may submit the form, and it is submitted as whoever does, with their own permissions. The incident or event is created with those permissions and credited to that person. A monitor, on-call policy, label, severity or status they may not read, or one of another project, is refused like one the project does not have, and nothing is created: the bot answers "One of the values you picked ... is not available in this project any more. Please pick it again."
 
 **Execute On-Call Policy** on an incident, alert or episode works the same way: it needs permission to execute an on-call policy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Create On-Call Duty Policy Execution Log** in a custom role) and to read that incident, alert or episode, and offers the live on-call policies the person may read. Viewing a monitor or an on-call policy from a card reads it as the person who pressed the button, too.
+
+## Paging someone from Microsoft Teams
+
+In a channel or a group chat, `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` pages Nawaz straight away. OneUptime creates an alert whose title is your message, and each person you @mention gets a phone call, an SMS, a push notification or an email, as their own on-call rules say, until somebody acknowledges the alert.
+
+- **Who is paged at once.** The people you @mention, when a message follows them. OneUptime knows a person by the OneUptime account their Microsoft Teams account is connected to, or else by their email address in Microsoft Teams. Nobody outside the project is paged.
+- **Anything else gets a card.** With nobody @mentioned, as in a personal chat with the bot, no message, a tag, or a person OneUptime cannot tell, the bot answers with the **Page someone** card, what you typed filled in, and says whom it could not pick. Pick people, a team, an on-call schedule, which pages whoever is on call in it now, or an on-call policy, which pages through its escalation rules, and submit it. Anyone in the conversation may submit the card, as themselves. Once it has paged, the card is removed, so nobody pages with it twice.
+- **Where it shows.** The conversation shows the page as one card, kept up to date: who was paged and how, and who acknowledged. Where the bot cannot post it, its reply says who was paged, with a link to the alert.
+- **Who may page.** Anyone who may both execute an on-call policy and create an alert: **Project Owner**, **Project Admin** and **Project Member**, or **On-Call Member** with **Alert Member** (**Create On-Call Duty Policy Execution Log** and **Create Alert** in a custom role). Paging people, a team or a schedule directly, with no on-call policy behind the page, also takes access to every on-call policy of the project. Anyone else is told so in a reply, and nobody is paged.
 
 ## Acting on incidents, alerts and events from Microsoft Teams
 
