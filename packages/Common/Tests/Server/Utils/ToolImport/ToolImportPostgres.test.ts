@@ -21,10 +21,12 @@ import {
   ToolImportHttpRequest,
   ToolImportTransport,
 } from "../../../../Server/Utils/ToolImport/ToolImportHttpClient";
+import ToolImportProjectStateReader from "../../../../Server/Utils/ToolImport/ToolImportProjectStateReader";
 import ToolImportRunExecutor from "../../../../Server/Utils/ToolImport/ToolImportRunExecutor";
 import { ActiveMonitoringMeteredPlan } from "../../../../Server/Types/Billing/MeteredPlan/AllMeteredPlans";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../../Types/JSON";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
@@ -1098,6 +1100,48 @@ describePostgres("an import from another tool, against Postgres", () => {
     expect(await countAll()).toEqual({
       ...before,
       TeamMember: before.TeamMember - 1,
+    });
+  }, 180000);
+
+  test("someone already in the project is matched by their email however many people joined after them", async () => {
+    /*
+     * As many people as one read returns join after Sam, Bob and Mia: in
+     * one statement, so every one of them later than those three.
+     */
+    await database.query(
+      `INSERT INTO "${schema}"."User" ("_id", "version", "email", "name", "slug", "isEmailVerified")
+         SELECT gen_random_uuid(), 1, 'joined-' || n || '@acme.test', 'Joined ' || n, 'joined-' || n, true
+           FROM generate_series(1, $1::int) AS n`,
+      [LIMIT_MAX],
+    );
+    await database.query(
+      `INSERT INTO "${schema}"."TeamMember" ("_id", "version", "projectId", "userId", "teamId", "hasAcceptedInvitation", "invitationAcceptedAt")
+         SELECT gen_random_uuid(), 1, $1::uuid, "_id", $2::uuid, true, now()
+           FROM "${schema}"."User" WHERE "slug" LIKE 'joined-%'`,
+      [PROJECT_ID.toString(), MEMBERS_TEAM_ID.toString()],
+    );
+
+    expect(await countRows("TeamMember")).toBe(LIMIT_MAX + 3);
+
+    // Every membership, a page at a time, each with its person's email.
+    const members: Map<string, string> =
+      await ToolImportProjectStateReader.readMembersByEmail(PROJECT_ID);
+
+    expect(members.size).toBe(LIMIT_MAX + 3);
+    expect(members.get("sam@acme.test")).toBe(SAM_ID.toString());
+    expect(members.get(BOB_EMAIL)).toBe(BOB_MEMBER_ID.toString());
+    expect(members.get("mia@acme.test")).toBe(MIA_ID.toString());
+    expect(members.has(`joined-${LIMIT_MAX}@acme.test`)).toBe(true);
+
+    // Opsgenie's Bob is matched to that membership, not invited again.
+    const plan: ToolImportPlan = await previewOf(
+      await readOpsGenie(SAM_ID),
+      SAM_ID,
+    );
+
+    expect(itemNamed(plan, "Bob Marley")).toMatchObject({
+      action: ToolImportAction.Match,
+      existingRecordId: BOB_MEMBER_ID.toString(),
     });
   }, 180000);
 
