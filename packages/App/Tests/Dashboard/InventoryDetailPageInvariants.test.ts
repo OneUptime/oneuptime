@@ -299,9 +299,7 @@ describe("addressable telemetry pages", () => {
 
     expect(exceptions).toContain("<ExceptionsViewer");
     expect(exceptions).toContain("entityKeysFilter={[signal.entityKey]}");
-    expect(viewer).toContain(
-      "buildExceptionEntityKeyScope(props.entityKeysFilter)",
-    );
+    expect(viewer).toContain("buildExceptionEntityKeyScope(entityKeysFilter)");
     expect(viewer).toContain("applyExceptionGroupQueryScope({");
     expect(exceptions).toContain(
       'emptyMessage="No exceptions found for this inventory item."',
