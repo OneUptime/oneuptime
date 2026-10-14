@@ -61,7 +61,7 @@ Abra **Configurações do usuário** > **Calendário** > **Feed de calendário**
 Clique em **Gerar link do calendário**. O cartão **Subscrever os seus turnos de prevenção** agora oferece um único fluxo de assinatura:
 
 - **Adicionar ao seu calendário**: **Google Agenda** abre o Google Agenda, que pergunta se deve adicionar o calendário. **Calendário da Apple / Outlook** abre a forma `webcal://` do link no app com que seu computador ou celular assina: o Calendário da Apple no Mac, iPhone ou iPad, o Outlook no Windows.
-- **Ou copie o link**: **Copiar link** copia o link `https://` para qualquer outro app que assine um calendário por URL. O link fica oculto na página até você clicar para mostrá-lo.
+- **Ou copie o link**: **Copiar link** copia o link `https://` para qualquer outro app que assine um calendário por URL, sem mostrá-lo. O link fica oculto na página até você clicar em **Mostrar**.
 
 ### Assine o link
 
@@ -78,19 +78,27 @@ Clique em **Editar definições** no cartão **Definições do feed de calendár
 | **Dias de turnos passados** | Até onde o calendário volta (2 por padrão, no máximo 60). |
 | **Dias futuros** | Até onde o calendário vai à frente (90 por padrão, entre 7 e 180). |
 
-A linha de status mostra quando o link foi lido pela última vez, por qual app de calendário, quantas vezes, e os quatro últimos caracteres do token para você distinguir os links. Se nada tiver lido o link depois de dois dias, a página pergunta se o servidor está acessível pela internet (veja Solução de problemas).
+O painel **Status**, ao lado das opções de assinatura, diz se o link funciona: quando foi lido pela última vez e por qual app de calendário, quantas vezes aproximadamente, e os quatro últimos caracteres do token para você distinguir os links. O selo dele mostra:
+
+- **Ativo**: um app de calendário leu o link.
+- **A aguardar a primeira sincronização**: nada leu o link ainda. A maioria dos apps lê poucos minutos depois da assinatura; o Google Agenda pode levar algumas horas.
+- **Ainda não obtido**: nada leu o link nos dois dias desde que ele foi criado, então a página pergunta se o servidor está acessível de onde o seu app de calendário roda (veja Solução de problemas).
+- **Desabilitado**: o link serve um calendário vazio até você clicar em **Ativar link**.
+- **Precisa de ser regenerado**: o link guardado não pode mais ser lido, geralmente porque o segredo de criptografia do servidor mudou. **Regenerar link** cria um novo.
 
 ### Gerencie o link
+
+O resto fica no menu **⋯** do cartão. **Regenerar link** e **Excluir link** pedem confirmação antes de agir.
 
 | Ação | O que acontece |
 | --- | --- |
 | **Regenerar link** | Cria um token novo. Todo app que assinou o link antigo para de atualizar: por 30 dias o link antigo serve um calendário vazio para que esses apps esvaziem a cópia deles; depois responde 404. Assine de novo com o link novo. |
-| **Desativar** | Mantém o link, mas serve um calendário vazio até você reativá-lo. |
-| **Excluir** | Remove o link. Os apps que ainda o consultam recebem 404 e continuam mostrando o que leram por último — desative antes se quiser que eles se esvaziem. |
+| **Desativar link** | Mantém o link, mas serve um calendário vazio até você clicar em **Ativar link**, no mesmo menu ou no painel **Status**. |
+| **Excluir link** | Remove o link. Os apps que ainda o consultam recebem 404 e continuam mostrando o que leram por último — desative antes se quiser que eles se esvaziem. |
 
 ### Próximos turnos e cobertura
 
-A página também lista seus **Upcoming shifts** (os próximos 30 dias) e o cartão **Lembrar-me antes dos turnos**, descrito mais abaixo. Cada um dos seus turnos tem um link **Obter cobertura**: ele abre as substituições de usuário no projeto do turno com uma nova substituição já preenchida para esse turno, você como **Quem está ausente?** e os horários do turno como **Começa** e **Termina** (a partir de agora, se o turno já começou), então só falta **Quem cobre?**. A substituição envia todos os seus acionamentos desses horários para quem cobre você, a partir de todas as políticas de plantão; um turno que só existe dentro de uma política é coberto na página de substituições de usuário dessa política. Um turno em que você cobre outra pessoa não tem **Obter cobertura**: as substituições não se encadeiam, então cobrir uma cobertura não mudaria nada.
+A página também lista seus **Upcoming shifts** (os próximos 30 dias) e o cartão **Lembrar-me antes dos turnos**, descrito mais abaixo. Cada um dos seus turnos tem um link **Obter cobertura**: ele abre as substituições de usuário no projeto do turno com uma nova substituição já preenchida para esse turno, você como **Quem está ausente?** e os horários do turno como **Começa** e **Termina** (a partir de agora, se o turno já começou), então só falta **Quem cobre?**. A substituição envia todos os seus acionamentos desses horários para quem cobre você, a partir de todas as políticas de plantão; um turno que só existe dentro de uma política é coberto na página de substituições de usuário dessa política. Se você deixar **Quem cobre?** como **Próxima pessoa da rotação**, em vez disso você é pulado: cada um dos seus turnos vai para a próxima pessoa da rotação que não está ausente. Um turno em que você cobre outra pessoa não tem **Obter cobertura**: as substituições não se encadeiam, então cobrir uma cobertura não mudaria nada.
 
 O mesmo link pessoal, filtrado para um agendamento com `?schedule=<id>`, é oferecido como **Apenas os meus turnos nesta escala** na página de cada agendamento, e o banner de plantão e a página **Minhas Políticas de Plantão** trazem um link **Adicionar os seus turnos ao seu calendário** para a página acima.
 
@@ -109,7 +117,7 @@ Use **Google Agenda** ou **Calendário da Apple / Outlook** no OneUptime quando 
 
 O botão **Google Agenda** abre a página do Google para adicionar por URL, `https://calendar.google.com/calendar/r?cid=` seguido da forma `webcal://` do link, codificada com porcentagem. Essa página só aceita a forma `webcal://`: com a forma `https://`, o Google responde "Unable to add calendar. Check the URL.". **Do URL** aceita as duas formas.
 
-O Google lê o feed **dos servidores do Google**, então o servidor do OneUptime precisa estar acessível pela internet — o OneUptime Cloud sempre está; para uma instalação auto-hospedada, veja Solução de problemas. A primeira leitura costuma acontecer poucos minutos depois da assinatura; depois o Google atualiza mais ou menos a cada 8 a 24 horas, às vezes mais. Não há botão de atualizar para calendários assinados, e o Google ignora as dicas de atualização do feed. A linha de status da página do feed mostra **Última obtenção … por Google Calendar** assim que o Google lê o link.
+O Google lê o feed **dos servidores do Google**, então o servidor do OneUptime precisa estar acessível pela internet — o OneUptime Cloud sempre está; para uma instalação auto-hospedada, veja Solução de problemas. A primeira leitura costuma acontecer poucos minutos depois da assinatura; depois o Google atualiza mais ou menos a cada 8 a 24 horas, às vezes mais. Não há botão de atualizar para calendários assinados, e o Google ignora as dicas de atualização do feed. O status no cartão mostra **Última obtenção … por Google Calendar** assim que o Google lê o link.
 
 O nome e o fuso horário do calendário são lidos **só na primeira assinatura**: renomear um agendamento depois não renomeia o calendário no Google — remova e adicione de novo se o nome importar. O Google descarta os lembretes contidos em arquivos de calendário, então configure notificações padrão para esse calendário nas configurações do Google ou, melhor, use os lembretes do OneUptime. O Google se lembra de um endereço que não conseguiu ler: depois de corrigir o que o impedia, adicione o link de novo com `?nocache=1` no final (o OneUptime ignora parâmetros de consulta desconhecidos, então o feed não muda) ou regenere o link. O app do Google Agenda no Android e no iOS não assina por URL; adicione o link em um computador e ele aparece no celular.
 @tab Outlook na web
@@ -194,7 +202,7 @@ Um link compartilhado pertence ao **projeto**, não a quem o copiou, e mostra o 
 
 ### Feed do agendamento
 
-Na página de um agendamento, o cartão **Subscrever esta escala** tem duas metades: **Apenas os meus turnos nesta escala** (o seu link pessoal com um filtro de agendamento) e **Turnos de todos nesta escala (link de equipa partilhado)**. Quem tem a permissão **Editar** nos agendamentos pode publicá-lo com **Publicar link partilhado**, renová-lo com **Regenerar link** ou pará-lo com **Desativar**; quem pode ler o agendamento pode copiá-lo. O cartão mostra quando o link foi renovado pela última vez.
+Na página de um agendamento, o cartão **Subscrever esta escala** tem duas metades: **Apenas os meus turnos nesta escala** (o seu link pessoal com um filtro de agendamento) e **Turnos de todos nesta escala (link de equipa partilhado)**. Quem tem a permissão **Editar** nos agendamentos pode publicá-lo com **Publicar link partilhado** e, no menu **⋯** do cartão, renová-lo com **Regenerar link** ou pará-lo com **Desativar link**; quem pode ler o agendamento pode copiá-lo. O status do cartão mostra quando o link foi renovado pela última vez.
 
 ### Feed do projeto
 
@@ -231,7 +239,7 @@ O feed mostra a rotação **como está configurada agora**, inclusive para os di
 
 - O token no link é a única credencial. Quem tem o link vê os turnos — nomes, agendamentos, políticas — até ele ser regenerado. Não cole links em salas de chat nem em tickets; quando uma equipe precisar de um calendário, compartilhe o link do agendamento ou do projeto em vez do seu link pessoal.
 - Os links são por projeto. Um link pessoal vazado expõe os turnos de um projeto, não de todos os projetos dos quais você faz parte.
-- Regenerar um link coloca o token antigo em um período de carência de 30 dias (calendário vazio, depois 404). **Desativar** serve um calendário vazio. Um link desconhecido ou expirado responde com um 404 simples, sem pistas. Calendários vazios fazem os apps assinantes esvaziarem a cópia; um 404 faz com que a mantenham, por isso desativar e regenerar servem calendários vazios.
+- Regenerar um link coloca o token antigo em um período de carência de 30 dias (calendário vazio, depois 404). **Desativar link** serve um calendário vazio. Um link desconhecido ou expirado responde com um 404 simples, sem pistas. Calendários vazios fazem os apps assinantes esvaziarem a cópia; um 404 faz com que a mantenham, por isso desativar e regenerar servem calendários vazios.
 - Os tokens são guardados com hash; a cópia mostrada na página de configurações é criptografada com `ENCRYPTION_SECRET`. Defina essa variável com um segredo de verdade em uma instalação auto-hospedada — o servidor avisa na inicialização quando ela não está definida ou ainda é um dos valores de exemplo que este repositório traz (`secret`, ou o `please-change-this-to-random-value` que o `config.example.env` define). Se você a mudar depois, a página oferece **Regenerar link** porque a cópia guardada não pode mais ser lida; o feed continua funcionando até você fazer isso.
 - As respostas dos feeds são marcadas com `Cache-Control: private`, excluídas dos buscadores (`X-Robots-Tag: noindex`) e têm limite de taxa por link e por endereço de cliente.
 
@@ -277,7 +285,7 @@ Versões antigas do OneUptime colocavam a forma `https://` do link no botão **G
 :::
 
 :::details O Google Agenda mostra o calendário, mas nenhum turno
-Verifique primeiro a linha de status da página do feed. **Última obtenção … por Google Calendar** significa que o Google leu o link: abra o link em um navegador e veja o que ele serve — um calendário vazio informa o motivo em `X-WR-CALDESC` (veja "O calendário está vazio" abaixo).
+Verifique primeiro o status no cartão. **Última obtenção … por Google Calendar** significa que o Google leu o link: abra o link em um navegador e veja o que ele serve — um calendário vazio informa o motivo em `X-WR-CALDESC` (veja "O calendário está vazio" abaixo).
 
 **Ainda não obtido** significa que o Google não conseguiu lê-lo: de uma máquina fora da sua rede, `curl -sI <link>` precisa responder `200` com `Content-Type: text/calendar` na hora. Um redirecionamento, uma página de login, um firewall ou uma verificação antibots na frente do OneUptime barra o leitor do Google; um loop de redirecionamento das versões antigas do OneUptime também barrava, em instalações com `PROVISION_SSL=true` cujo TLS termina antes do Nginx. Quando ele responder `200`, adicione o link de novo com `?nocache=1` no final para o Google lê-lo outra vez.
 :::
@@ -285,7 +293,7 @@ Verifique primeiro a linha de status da página do feed. **Última obtenção �
 :::details Nada leu o link, ou "Não foi possível buscar a URL"
 O Google Agenda, o Outlook na web, o Fastmail e o Proton leem **dos próprios servidores**, então o host do OneUptime precisa estar acessível pela internet pública com um certificado em que eles confiem. Uma instalação em rede privada, atrás de uma VPN ou com uma autoridade certificadora interna fica inacessível para eles, não importa o que você cole.
 
-O Calendário da Apple, o Thunderbird e o Outlook clássico leem do dispositivo, então funcionam onde quer que o dispositivo consiga abrir o painel — depois de confiar no certificado nesse dispositivo, se for autoassinado. A linha de status da página do feed diz se algo já leu o link; `curl -I` no link de fora da sua rede é a verificação mais rápida:
+O Calendário da Apple, o Thunderbird e o Outlook clássico leem do dispositivo, então funcionam onde quer que o dispositivo consiga abrir o painel — depois de confiar no certificado nesse dispositivo, se for autoassinado. O status no cartão diz se algo já leu o link; `curl -I` no link de fora da sua rede é a verificação mais rápida:
 
 ```bash
 curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"

@@ -83,10 +83,15 @@ import { AddVMwareProbeCollectionIndexes1801350000000 } from "./1801350000000-Ad
 import { AddWorkflowLogTestRun1801400000000 } from "./1801400000000-AddWorkflowLogTestRun";
 import { AddWorkflowLogStartedByForeignKey1801450000000 } from "./1801450000000-AddWorkflowLogStartedByForeignKey";
 import { AddWorkspaceLiveMessage1801500000000 } from "./1801500000000-AddWorkspaceLiveMessage";
-import { AddStatusPagePrivateUserSessionLength1801600000000 } from "./1801600000000-AddStatusPagePrivateUserSessionLength";
-import { AddStatusPageSubscriberNotificationsSwitch1801700000000 } from "./1801700000000-AddStatusPageSubscriberNotificationsSwitch";
-import { AddStatusPageSubscriberRestrictions1801800000000 } from "./1801800000000-AddStatusPageSubscriberRestrictions";
-import { AddIncidentFeedApiKeyActor1801900000000 } from "./1801900000000-AddIncidentFeedApiKeyActor";
+import { MakeUserOverrideCoverOptional1801550000000 } from "./1801550000000-MakeUserOverrideCoverOptional";
+import { AddUserNotificationRulePushNotificationLevel1801600000000 } from "./1801600000000-AddUserNotificationRulePushNotificationLevel";
+import { AddCriticalAlertSoundVolumeAndPushRepeat1801650000000 } from "./1801650000000-AddCriticalAlertSoundVolumeAndPushRepeat";
+import { AddInstanceTokenSigningKey1801700000000 } from "./1801700000000-AddInstanceTokenSigningKey";
+import { AddOnCallDirectPages1801750000000 } from "./1801750000000-AddOnCallDirectPages";
+import { AddStatusPagePrivateUserSessionLength1801800000000 } from "./1801800000000-AddStatusPagePrivateUserSessionLength";
+import { AddStatusPageSubscriberNotificationsSwitch1801850000000 } from "./1801850000000-AddStatusPageSubscriberNotificationsSwitch";
+import { AddStatusPageSubscriberRestrictions1801900000000 } from "./1801900000000-AddStatusPageSubscriberRestrictions";
+import { AddIncidentFeedApiKeyActor1801950000000 } from "./1801950000000-AddIncidentFeedApiKeyActor";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1370,8 +1375,13 @@ export default [
   AddWorkflowLogTestRun1801400000000,
   AddWorkflowLogStartedByForeignKey1801450000000,
   AddWorkspaceLiveMessage1801500000000,
-  AddStatusPagePrivateUserSessionLength1801600000000,
-  AddStatusPageSubscriberNotificationsSwitch1801700000000,
-  AddStatusPageSubscriberRestrictions1801800000000,
-  AddIncidentFeedApiKeyActor1801900000000,
+  MakeUserOverrideCoverOptional1801550000000,
+  AddUserNotificationRulePushNotificationLevel1801600000000,
+  AddCriticalAlertSoundVolumeAndPushRepeat1801650000000,
+  AddInstanceTokenSigningKey1801700000000,
+  AddOnCallDirectPages1801750000000,
+  AddStatusPagePrivateUserSessionLength1801800000000,
+  AddStatusPageSubscriberNotificationsSwitch1801850000000,
+  AddStatusPageSubscriberRestrictions1801900000000,
+  AddIncidentFeedApiKeyActor1801950000000,
 ];

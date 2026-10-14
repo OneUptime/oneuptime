@@ -335,13 +335,13 @@ Docker Engine 27 и новее выбирает для сети подсеть I
 | --- | --- | --- | --- |
 | Входящие запросы и heartbeat | `PROBE_INGRESS_PORT` | Выключен | [Ingress для входящих запросов](/docs/probe/incoming-request-ingress) |
 | Трапы SNMP | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Включён, UDP 162 | [Мониторинг сетевых устройств](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Выключен, UDP 5140 | [Руководства по сетевым вендорам](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Включён, UDP и TCP 5140 | [Сетевые события](/docs/monitor/network-events) |
 | NetFlow, IPFIX и sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | Включён, UDP 2055, 4739 и 6343 | [Сетевой трафик](/docs/monitor/network-traffic) |
 | Проверки работоспособности | `PORT` | Включён, TCP 3874 | `/status/live` и `/status/ready` |
 
 Внутри контейнера порт доступен с других машин только при сети хоста или если вы его опубликуете.
 
-Приёмник syslog пересылает не более `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` сообщений в минуту, по умолчанию `600`, отбрасывает остальные и пишет в журнал, сколько отбросил.
+Приёмник syslog пересылает не более `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` сообщений в минуту, по умолчанию `600`. Сверх этого он всё равно пересылает сообщения, которые читает как сетевые события, — ещё столько же, отбрасывает остальные и пишет в журнал, сколько отбросил.
 
 `PROBE_NAME` и `PROBE_DESCRIPTION` читают только зонды, которые сами регистрируются с `REGISTER_PROBE_KEY`, например зонды, которые самостоятельно размещённая установка запускает для всех проектов. Пользовательский зонд берёт своё имя и описание из панели.
 

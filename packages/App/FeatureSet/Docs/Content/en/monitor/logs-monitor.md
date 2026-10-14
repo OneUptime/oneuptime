@@ -63,6 +63,7 @@ Click **Create Monitor**. The monitor opens on its **Overview** page, and its fi
 | **Monitor Logs for (time)** | Logs from the last 5 seconds up to the last 24 hours. | **Last 1 minute** |
 | **Log Severity** | Logs with any of the chosen severities. | Empty: every severity |
 | **Group by Attributes** | Not a filter: counts each combination of these attributes' values separately. | Empty: one count |
+| **Resolved by Attributes** | Not a filter: the log that resolves a group. Shows once **Group by Attributes** has an attribute; see [Resolved by a log](#resolved-by-a-log). | Empty: a group resolves when its logs stop |
 | **Filter by Telemetry Service** (under **More fields**) | Logs from any of the chosen services. | Empty: every service |
 | **Filter by Infrastructure Entity** (under **More fields**) | Logs from any of the chosen hosts, pods, containers and other entities. | Empty: every entity |
 | **Filter by Attributes** (under **More fields**) | Logs whose attributes meet every condition. Each condition has its own operator, such as equals or contains. | Empty: no condition |
@@ -170,7 +171,21 @@ flowchart TB
 
 Each group's alert or incident resolves on its own. Once a group stops meeting the criteria - `HQ-Branch1` logs no more terminations within the time window - its alert resolves, while `Branch2`'s stays open until `Branch2` stops too. One group recovering never closes another group's alert.
 
-A Logs monitor sees events, not state: a group's alert resolves once that group has logged nothing that meets the criteria for a whole time window, whether or not the tunnel is back.
+A Logs monitor sees events, not state: a group's alert resolves once that group has logged nothing that meets the criteria for a whole time window, whether or not the tunnel is back - unless the monitor names the log that says it is back, as below.
+
+### Resolved by a log
+
+A device that reports a tunnel down usually reports it back up. **Resolved by Attributes** names that log: with it set, a group's alert or incident stays open until a log with those attributes arrives for the same group, instead of resolving when the group's logs stop.
+
+Take a monitor that counts logs with `event.name` = `vpn.tunnel_down`, grouped by `event.device` and `vpn.tunnel.name`, with **Resolved by Attributes** set to `event.name` = `vpn.tunnel_up`. Tunnel `HQ-Branch1` going down opens its alert. The alert stays open through the night, though the firewall logs nothing more about the tunnel, and resolves when the firewall reports `HQ-Branch1` up. The tunnel dropping again opens a new alert.
+
+- The field shows once **Group by Attributes** has an attribute. It takes up to 10 attributes, and a resolving log carries all of them.
+- A resolving log belongs to a group when it has the group's values for the group-by attributes, so both kinds of log must carry those attributes.
+- The monitor's telemetry services and time window apply to resolving logs too. Its text and severity filters do not: they describe the problem.
+- A group whose newest log is a resolving one is closed. One that logged the problem again after it stays open.
+- You can still resolve an alert yourself.
+
+[Network Events](/docs/monitor/network-events) creates these monitors for you, one click per alert.
 
 ### Example: one alert per Sophos IPsec tunnel
 

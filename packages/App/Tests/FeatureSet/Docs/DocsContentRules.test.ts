@@ -13,8 +13,10 @@ import {
   checkRule,
   compareWithKnownFailures,
   formatFailure,
+  isPlaceholderAddress,
   knownFailingPages,
   languagesOfScope,
+  placeholderAddressesOf,
   ruleById,
   shapeOf,
 } from "./DocsContentRules";
@@ -759,6 +761,185 @@ describe("the rules, on pages written here", () => {
           },
         }),
       ).toEqual([]);
+    });
+  });
+
+  describe("placeholderLinks", () => {
+    const FIX: string = "(write the address as code, between backticks)";
+
+    it("reports a link to a placeholder address, however the placeholder is written", async () => {
+      expect(
+        await failuresOf("placeholderLinks", {
+          pages: {
+            en: {
+              "a/capitals": md(
+                "# Capitals",
+                "",
+                "Open [your organization](/PROJECT-ID/ORG-ID).",
+              ),
+              "a/bare": md(
+                "# Bare",
+                "",
+                "Send heartbeats to https://oneuptime.com/heartbeat/YOUR_SECRET_KEY now.",
+              ),
+              "a/braces": md(
+                "# Braces",
+                "",
+                "Call [the API](https://oneuptime.com/api/{resource}/get-item).",
+              ),
+              "a/parameter": md(
+                "# Parameter",
+                "",
+                "Read [it](/api/monitor/:id).",
+              ),
+              "a/your": md(
+                "# Your",
+                "",
+                "Open [the project](https://oneuptime.com/dashboard/your-project-id).",
+              ),
+            },
+          },
+        }),
+      ).toEqual([
+        `a/bare links to the placeholder https://oneuptime.com/heartbeat/YOUR_SECRET_KEY ${FIX}`,
+        `a/braces links to the placeholder https://oneuptime.com/api/{resource}/get-item ${FIX}`,
+        `a/capitals links to the placeholder /PROJECT-ID/ORG-ID ${FIX}`,
+        `a/parameter links to the placeholder /api/monitor/:id ${FIX}`,
+        `a/your links to the placeholder https://oneuptime.com/dashboard/your-project-id ${FIX}`,
+      ]);
+    });
+
+    it("reports a placeholder address shown as text, whole, wherever a link stops in it", async () => {
+      expect(
+        await failuresOf("placeholderLinks", {
+          pages: {
+            en: {
+              "a/path": md(
+                "# Path",
+                "",
+                "Each dashboard opens at /dashboards/<id>/view in a browser.",
+              ),
+              "a/start": md(
+                "# Start",
+                "",
+                "A paragraph before.",
+                "",
+                "/dashboards/<id>/view is where it opens.",
+              ),
+              "a/split": md(
+                "# Split",
+                "",
+                "Visit https://oneuptime.com/dashboard/<project-id>/monitors.",
+              ),
+            },
+          },
+        }),
+      ).toEqual([
+        `a/path shows the placeholder /dashboards/<id>/view as text ${FIX}`,
+        `a/split shows the placeholder https://oneuptime.com/dashboard/<project-id>/monitors as text ${FIX}`,
+        `a/start shows the placeholder /dashboards/<id>/view as text ${FIX}`,
+      ]);
+    });
+
+    it("reports a placeholder in every language it is in, with the address as the translation writes it", async () => {
+      expect(
+        await failuresOf(
+          "placeholderLinks",
+          {
+            pages: {
+              en: { "a/one": md("# One", "", "Open `/PROJECT-ID/ORG-ID`.") },
+              de: {
+                "a/one": md(
+                  "# Eins",
+                  "",
+                  "Öffnen Sie [es](/PROJECT-ID/ORG-ID).",
+                ),
+              },
+            },
+          },
+          "de",
+        ),
+      ).toEqual([`a/one links to the placeholder /PROJECT-ID/ORG-ID ${FIX}`]);
+    });
+
+    it("passes placeholder addresses written as code, and real addresses", async () => {
+      expect(
+        await failuresOf("placeholderLinks", {
+          pages: {
+            en: {
+              "a/code": md(
+                "# Code",
+                "",
+                "Send heartbeats to `https://oneuptime.com/heartbeat/YOUR_SECRET_KEY`.",
+                "",
+                "Each dashboard opens at `/dashboards/<id>/view`, as [the guide](/docs/dashboards/index) says.",
+                "",
+                "```bash",
+                "curl https://oneuptime.com/api/monitor/<id>/get-item -H 'ApiKey: YOUR_API_KEY'",
+                "```",
+              ),
+              "a/real": md(
+                "# Real",
+                "",
+                "See [the RFC](https://www.rfc-editor.org/rfc/rfc9083), [UTF-8](https://en.wikipedia.org/wiki/UTF-8),",
+                "[AWS](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html),",
+                "[a heading](#create-the-monitor), [mail](mailto:support@oneuptime.com) and https://oneuptime.com/pricing.",
+                "",
+                "It reads I/O, TCP/IP and CI/CD-pipelines as words, and 24/7 as a number.",
+              ),
+            },
+          },
+        }),
+      ).toEqual([]);
+    });
+
+    it("reads an address's parts, not its query or its fragment", () => {
+      for (const address of [
+        "/PROJECT-ID/ORG-ID",
+        "https://<host>/api/video-call-oauth/zoom/callback",
+        "https://oneuptime.com/status-page-api/overview/YOUR_STATUS_PAGE_ID",
+        "/dashboards/%3Cid%3E/view",
+        "/api/{resource}/get-item",
+        "/monitor/:monitorId",
+        "https://oneuptime.com/dashboard/your-project-id/monitors",
+        "https://hooks.example.com/notify/your_api_key",
+      ]) {
+        expect({ address, placeholder: isPlaceholderAddress(address) }).toEqual(
+          {
+            address,
+            placeholder: true,
+          },
+        );
+      }
+
+      for (const address of [
+        "/docs/en/monitor/website-monitor#criteria",
+        // A page whose name starts "your-" is a page, not a value to fill in.
+        "/docs/en/introduction/your-account",
+        "https://api.example.com/health?cb={{timestamp}}",
+        "https://help.okta.com/okta_help.htm?id=ext_Security_Administrators",
+        "https://en.wikipedia.org/wiki/UTF-8",
+        "https://www.rfc-editor.org/rfc/rfc9083",
+        "https://docs.aws.amazon.com/IAM/latest/UserGuide/x.html",
+        "https://example.com:8080/a",
+        "mailto:support@oneuptime.com",
+      ]) {
+        expect({ address, placeholder: isPlaceholderAddress(address) }).toEqual(
+          {
+            address,
+            placeholder: false,
+          },
+        );
+      }
+    });
+
+    it("finds what a rendered page links to and shows, once each", () => {
+      expect(
+        placeholderAddressesOf(
+          '<p>See <a href="/PROJECT-ID/ORG-ID">/PROJECT-ID/ORG-ID</a> and <a href="/PROJECT-ID/ORG-ID">again</a>, ' +
+            "/a/&lt;id&gt; and /a/&lt;id&gt;.</p><pre><code>/b/&lt;id&gt;</code></pre>",
+        ),
+      ).toEqual({ links: ["/PROJECT-ID/ORG-ID"], text: ["/a/<id>"] });
     });
   });
 

@@ -181,6 +181,36 @@ describe("Icon map pin", () => {
 });
 
 /*
+ * BellAlert says "this rings": a critical alert's pill on On-Call Rules, the
+ * "On" of a phone's critical alerts on the push devices card, the alert roles
+ * and alert feed items. It used to draw Heroicons' bell-snooze - the bell with
+ * a "Z" inside it - so all of them showed a snoozed bell.
+ */
+describe("Icon bell alert", () => {
+  const BELL: string =
+    "M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0";
+
+  it("draws the bell ringing: the two strokes at its shoulders", () => {
+    expect(getIconPath(IconProp.BellAlert)).toBe(
+      `${BELL}M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5`,
+    );
+  });
+
+  it("is not the snoozed bell, with a Z drawn inside it", () => {
+    expect(getIconPath(IconProp.BellAlert)).not.toBe(
+      `${BELL}M10.5 8.25h3l-3 4.5h3`,
+    );
+  });
+
+  it("is neither the plain bell nor the silenced one", () => {
+    const alert: string = getIconPath(IconProp.BellAlert);
+
+    expect(alert).not.toBe(getIconPath(IconProp.Bell));
+    expect(alert).not.toBe(getIconPath(IconProp.BellSlash));
+  });
+});
+
+/*
  * Every item in a menu of the product has an icon, and an item names its
  * icon with an IconProp - so an IconProp that Icon does not draw would put an
  * empty slot back in the menu, the very gap that was closed. ClockIcon,

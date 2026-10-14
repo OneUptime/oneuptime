@@ -87,7 +87,7 @@ sequenceDiagram
 工作流会在 **生成器** 中打开，包含三个步骤：**On Create Incident**；**Send Message to IRC**，用两行发布事件的编号、标题、严重程度和状态；以及接在其 **错误** 输出上的 **日志** 步骤，用来记录消息为何没有送达。服务器和频道保存为工作流变量 `ircServer` 和 `ircChannel`。如果你在上一步保存了密码，点击 **Send Message to IRC**，打开 **更多字段**，用各设置的 **{ }** 按钮选择对应的变量。
 @tab 从零开始
 1. 打开 **工作流**，点击 **创建工作流**，选择 **从零开始**，给工作流命名，然后点击 **创建工作流**。
-2. 在 **生成器** 中点击 **Choose what starts this workflow**，在 **Popular** 下选择 **On Create Incident**。点击该触发器，在 **Select Fields** 中选择消息要显示的事件字段，例如标题。
+2. 在 **生成器** 中点击 **Choose what starts this workflow**，在 **Popular** 下选择 **On Create Incident**。点击该触发器，在 **Fields to pass on** 中选择消息要显示的事件字段，例如标题。
 3. 点击 **添加组件**，搜索 `irc`，点击 **Send Message to IRC**。把触发器的 **成功** 输出连到这个步骤。
 4. 点击新步骤，填写 **IRC Server**、**Channel** 和 **Message Text**。**Message Text** 中的 **{ }** 按钮可以插入事件的字段，例如标题。
 5. 如果你在上一步保存了密码，打开 **更多字段**。在 **Server Password**、**SASL Password** 或 **Channel Key** 中点击 **{ }**，在 **Global variables** 下选择变量。在 **SASL Username** 中填入你的账号名。
@@ -97,7 +97,7 @@ sequenceDiagram
 
 打开 **生成器** 顶部的 **已启用** 开关。从现在起，每个新事件都会发布到频道。
 
-如果想在不新建事件的情况下测试，点击 **运行工作流**，在 **事件 ID** 中填入一个已有事件的 ID。事件页面上会显示它的 ID。点击 **Run Workflow Manually**，再用 **Run** 确认。**工作流运行** 面板会跟踪这次运行：IRC 步骤的日志会说明发送了多少行，例如 `Sent 2 lines to #your-channel.`，消息也会出现在频道里。如果步骤走了 **错误**，它的日志会说明原因：参见[故障排查](#故障排查)。
+如果想在不新建事件的情况下测试，点击 **运行工作流**，在 **事件** 下选择一个已有的事件：列表中会列出最近的事件，输入它的编号或标题的一部分可以找到其他事件。点击 **手动运行工作流**，再用 **运行** 确认。**工作流运行** 面板会跟踪这次运行：IRC 步骤的日志会说明发送了多少行，例如 `Sent 2 lines to #your-channel.`，消息也会出现在频道里。如果步骤走了 **错误**，它的日志会说明原因：参见[故障排查](#故障排查)。
 :::
 
 ## 提示

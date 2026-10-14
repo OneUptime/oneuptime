@@ -89,6 +89,8 @@ Een regel aanmaken gaat in vier stappen:
 
 Een kanaal dat de regel aanmaakt, krijgt zijn naam van **New Microsoft Teams Channel Name** gevolgd door het nummer van het record, zoals `oneuptime-incident-42`, en alleen een aangemaakt kanaal krijgt de mensen die de regel uitnodigt. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal. Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen en chats geplaatst.
 
+Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen kanaal heeft **Openen in Microsoft Teams** in de kop van zijn pagina in OneUptime, naast de statusknoppen. Die opent dat kanaal in een nieuw tabblad, in de Microsoft Teams-app of in de browser. Een record met twee eigen kanalen toont ze allebei onder de knop. Een record met kanalen in zowel Slack als Microsoft Teams heeft in plaats daarvan één knop **Kanaal openen**, die ze allemaal toont. De bestaande kanalen en chats waarin uw regels posten, worden niet aangeboden.
+
 Kanalen en chats blijven leesbaar: elke gebeurtenis wordt één keer geplaatst, en de eerste status van een record staat in de kaart die het record aankondigt, niet in een eigen kaart. Een uitvoering van een bereikbaarheidsbeleid is één kaart die wordt bewerkt terwijl de uitvoering escaleert: wie werd opgeroepen, hoe vaak en hoe, wie niet en waarom, en wie bevestigde. Een nieuwe kaart wordt alleen geplaatst als iemand moet handelen: een escalatieregel bereikte niemand, of de uitvoering eindigde zonder dat iemand bevestigde. Dat de eigenaren van het record of de abonnees van de statuspagina bericht kregen, blijft in zijn feed in OneUptime staan.
 
 **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** toont de kanalen die OneUptime in je teams ziet, en de chats waaraan het is toegevoegd, met **Test verzenden** naast elk ervan. Een chat verschijnt zodra de OneUptime-app er in Microsoft Teams aan wordt toegevoegd; **Refresh Chats** haalt nieuwe chats en hun huidige namen op.
@@ -143,17 +145,18 @@ Stuur de bot een bericht in een persoonlijke chat, of noem OneUptime met @ in ee
 | Bericht | Wat de bot doet |
 | --- | --- |
 | `help` | Toont wat hij kan. |
-| `ask <question>`, of elke vraag in gewone taal | OneUptime AI beantwoordt vragen over je logs, traces, metrieken, incidenten en monitoren, bijvoorbeeld "welke monitoren liggen er nu uit?". Antwoorden lezen alleen. |
-| `create incident [title]` | Opent het incidentformulier, met de titel ingevuld. |
-| `create maintenance [title]` | Opent het formulier voor gepland onderhoud, met de titel ingevuld. |
+| `incident [title]` | Opent het incidentformulier, met de titel ingevuld. |
+| `maintenance [title]` | Opent het formulier voor gepland onderhoud, met de titel ingevuld. |
+| `oncall` | Toont wie er nu dienst heeft in elk bereikbaarheidsschema dat je kunt zien, tot wanneer, en wie de volgende is. |
+| `ask [question]`, of elke vraag in gewone taal | OneUptime AI beantwoordt vragen over je logs, traces, metrieken, incidenten en monitoren, bijvoorbeeld "welke monitoren liggen er nu uit?". Antwoorden lezen alleen. |
 | `show active incidents`, `show active alerts` | Toont wat er nu openstaat. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Toont komende, of lopende, onderhoudsgebeurtenissen. |
 
-OneUptime AI vragen stellen vereist dat AI voor het project aanstaat. Zie [AI vragen](/docs/ai/ask-ai).
+Op de `show`-lijsten na zijn dit de woorden die in Slack na `/oneuptime` komen; `create incident` en `create maintenance` werken ook nog. OneUptime AI vragen stellen vereist dat je eigen Microsoft Teams-account gekoppeld is en dat AI voor het project aanstaat. Is je account niet gekoppeld, dan vraagt de bot je één keer per thread of chat om het te koppelen, met een knop **Connect Microsoft Teams account**. Zie [AI vragen](/docs/ai/ask-ai).
 
 ## Incidenten en onderhoud aanmaken vanuit Microsoft Teams
 
-`create incident` of `create maintenance` typen aan de OneUptime-bot opent een formulier voor de persoon die het typte, in een persoonlijke chat, een kanaal of een groepschat. Het wordt ingevuld als die persoon: als het OneUptime-account waaraan diens Microsoft Teams-account is gekoppeld (zie [Microsoft Teams koppelen](#microsoft-teams-koppelen)), met de rechten van dat account in het project. Iemand van wie het account niet gekoppeld is, of van wie het OneUptime-account geen lid meer is van het project, krijgt in een antwoord dat diegene noemt te horen wat te doen, in plaats van het formulier.
+`incident` of `maintenance` typen aan de OneUptime-bot opent een formulier voor de persoon die het typte, in een persoonlijke chat, een kanaal of een groepschat. Het wordt ingevuld als die persoon: als het OneUptime-account waaraan diens Microsoft Teams-account is gekoppeld (zie [Microsoft Teams koppelen](#microsoft-teams-koppelen)), met de rechten van dat account in het project. Iemand van wie het account niet gekoppeld is, of van wie het OneUptime-account geen lid meer is van het project, krijgt in een antwoord dat diegene noemt te horen wat te doen, in plaats van het formulier.
 
 - **Wie ze mag gebruiken.** De mensen die in OneUptime een incident mogen melden of een geplande onderhoudsgebeurtenis mogen aanmaken: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** en **Incident Member** voor een incident (**Create Incident** in een aangepaste rol), en **Scheduled Maintenance Admin** en **Scheduled Maintenance Member** voor een gebeurtenis (**Create Scheduled Maintenance**). Ieder ander krijgt dat te horen, en krijgt geen formulier.
 - **Wat een formulier aanbiedt.** Elke lijst — ernstniveaus, monitoren, monitorstatussen, bereikbaarheidsbeleid en labels — bevat wat de persoon die erom vroeg mag lezen, net als dezelfde lijst in OneUptime, en de "not shown"-notities op de kaart tellen alleen die: met een rol die tot enkele labels beperkt is, de monitoren en het bereikbaarheidsbeleid met die labels. Een lijst die hij helemaal niet mag lezen, blijft weg. Gearchiveerd bereikbaarheidsbeleid wordt nooit aangeboden.

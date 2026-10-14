@@ -43,8 +43,13 @@ import WorkspaceNotificationRuleService, {
 import logger, { LogAttributes } from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
+import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
+import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
+import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 import OnCallPolicyRunMessageView, {
   ON_CALL_RUN_NOT_PAGED,
+  OnCallDirectPageRun,
   OnCallPolicyRun,
   OnCallPolicyRunAlarm,
   OnCallPolicyRunNotPaged,
@@ -53,10 +58,6 @@ import OnCallPolicyRunMessageView, {
   OnCallPolicyRunRule,
 } from "./OnCallPolicyRunMessageView";
 import WorkspaceLiveMessages from "./WorkspaceLiveMessages";
-
-// What the timeline says when a rule paged somebody twice: not worth a line.
-const ALREADY_NOTIFIED_TIMELINE_MESSAGE: string =
-  "Skipped because notification sent to this user already.";
 
 // "Skipped because ..." at the start of a timeline message, and its full stop.
 const SKIPPED_BECAUSE_PREFIX: RegExp = /^skipped because\s+/i;
@@ -140,6 +141,11 @@ interface RefreshInFlight {
  * together - while one runs, any number of new ones become one more run
  * after it - and the work on the run's message is serialised across
  * processes (WorkspaceLiveMessages.withLock).
+ *
+ * A direct page - people, a team or a schedule paged with no policy behind
+ * the page (Types/OnCallDutyPolicy/OnCallDirectPage) - is a run like any
+ * other here: one message, edited as its pages go out and are answered,
+ * naming who started the page where a policy's run names the policy.
  */
 export default class OnCallPolicyRunMessage {
   private static inFlight: Map<string, RefreshInFlight> = new Map<
@@ -431,21 +437,28 @@ export default class OnCallPolicyRunMessage {
             name: true,
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
           },
+          // Who started a direct page.
+          triggeredByWorkflowId: true,
+          triggeredByWorkflowName: true,
+          triggeredByUserId: true,
+          triggeredByUser: {
+            name: true,
+            email: true,
+          },
         },
         props: {
           isRoot: true,
         },
       });
 
-    if (
-      !executionLog ||
-      !executionLog.projectId ||
-      !executionLog.onCallDutyPolicyId
-    ) {
+    if (!executionLog || !executionLog.projectId) {
       return null;
     }
 
     const projectId: ObjectID = executionLog.projectId;
+
+    // No policy: people, a team or a schedule paged directly.
+    const isDirectPage: boolean = isOnCallDirectPage(executionLog);
 
     const connected: Array<unknown> =
       await WorkspaceLiveMessages.getConnectedWorkspaceTypes(projectId);
@@ -460,27 +473,34 @@ export default class OnCallPolicyRunMessage {
       return null;
     }
 
+    /*
+     * A direct page has no escalation rules - and none are read for it: with
+     * no policy to match on, the read would hand back every rule of the
+     * project.
+     */
     const rules: Array<OnCallDutyPolicyEscalationRule> =
-      await OnCallDutyPolicyEscalationRuleService.findBy({
-        query: {
-          projectId: projectId,
-          onCallDutyPolicyId: executionLog.onCallDutyPolicyId,
-        },
-        select: {
-          _id: true,
-          name: true,
-          order: true,
-          escalateAfterInMinutes: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: {
-          isRoot: true,
-        },
-      });
+      isDirectPage || !executionLog.onCallDutyPolicyId
+        ? []
+        : await OnCallDutyPolicyEscalationRuleService.findBy({
+            query: {
+              projectId: projectId,
+              onCallDutyPolicyId: executionLog.onCallDutyPolicyId,
+            },
+            select: {
+              _id: true,
+              name: true,
+              order: true,
+              escalateAfterInMinutes: true,
+            },
+            sort: {
+              order: SortOrder.Ascending,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: {
+              isRoot: true,
+            },
+          });
 
     const timeline: Array<OnCallDutyPolicyExecutionLogTimeline> =
       await OnCallDutyPolicyExecutionLogTimelineService.findBy({
@@ -505,6 +525,11 @@ export default class OnCallPolicyRunMessage {
           onCallDutyPolicyEscalationRuleId: true,
           onCallDutyScheduleId: true,
           onCallDutySchedule: {
+            name: true,
+          },
+          // The team a direct page named, for one with nobody in it.
+          userBelongsToTeamId: true,
+          userBelongsToTeam: {
             name: true,
           },
           isAcknowledged: true,
@@ -549,11 +574,13 @@ export default class OnCallPolicyRunMessage {
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
-    const policyUrl: URL =
-      await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-        projectId,
-        executionLog.onCallDutyPolicyId,
-      );
+    const policyUrl: URL | null =
+      !isDirectPage && executionLog.onCallDutyPolicyId
+        ? await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+            projectId,
+            executionLog.onCallDutyPolicyId,
+          )
+        : null;
 
     const runUrl: URL = URL.fromString(dashboardUrl.toString()).addRoute(
       `/${projectId.toString()}/on-call-duty/execution-logs/${executionLogId.toString()}`,
@@ -564,10 +591,16 @@ export default class OnCallPolicyRunMessage {
       rules: rules,
       timeline: timeline,
       deliveries: deliveries,
-      policyUrl: policyUrl.toString(),
+      policyUrl: policyUrl ? policyUrl.toString() : "",
       runUrl: runUrl.toString(),
       recordLabel: record.label,
       recordUrl: record.url.toString(),
+      directPage: isDirectPage
+        ? this.getDirectPage({
+            executionLog: executionLog,
+            dashboardUrl: dashboardUrl,
+          })
+        : undefined,
     });
 
     const outcome: {
@@ -585,10 +618,20 @@ export default class OnCallPolicyRunMessage {
      * Read from the run itself: a rule is under way (OneUptime records the
      * rule on the run before it writes the rule's first step), or the run
      * is over.
+     *
+     * A direct page has no rule, and pages everybody it names in one pass.
+     * Its message waits for the end of that pass - the run is "executing"
+     * once somebody was paged, and over at once when nobody was - so the
+     * first post already says what the page came to. Posted at the pass's
+     * first step instead, a page that reached nobody told the channel
+     * "is paging for Incident INC-8" in one notification and "Nobody was
+     * paged" in a second message a moment later.
      */
     const hasStarted: boolean =
       run.outcome !== OnCallPolicyRunOutcome.Paging ||
-      Boolean(executionLog.lastExecutedEscalationRuleId);
+      Boolean(executionLog.lastExecutedEscalationRuleId) ||
+      (isDirectPage &&
+        executionLog.status === OnCallDutyPolicyStatus.Executing);
 
     return {
       projectId: projectId,
@@ -596,6 +639,44 @@ export default class OnCallPolicyRunMessage {
       run: run,
       hasStarted: hasStarted,
     };
+  }
+
+  /*
+   * Who started a direct page, for its message to name: the workflow whose
+   * step did - by the name the run recorded, as a link to it in the
+   * Dashboard when the run recorded which workflow it was - or the person.
+   */
+  private static getDirectPage(data: {
+    executionLog: OnCallDutyPolicyExecutionLog;
+    dashboardUrl: URL;
+  }): OnCallDirectPageRun {
+    const executionLog: OnCallDutyPolicyExecutionLog = data.executionLog;
+    const workflowName: string = (
+      executionLog.triggeredByWorkflowName || ""
+    ).trim();
+
+    if (workflowName) {
+      return {
+        startedByWorkflowName: workflowName,
+        ...(executionLog.triggeredByWorkflowId && executionLog.projectId
+          ? {
+              startedByWorkflowUrl: URL.fromString(data.dashboardUrl.toString())
+                .addRoute(
+                  `/${executionLog.projectId.toString()}/workflows/${executionLog.triggeredByWorkflowId.toString()}/builder`,
+                )
+                .toString(),
+            }
+          : {}),
+      };
+    }
+
+    if (executionLog.triggeredByUserId) {
+      return {
+        startedByPersonName: this.getPersonName(executionLog.triggeredByUser),
+      };
+    }
+
+    return {};
   }
 
   /*
@@ -611,6 +692,8 @@ export default class OnCallPolicyRunMessage {
     runUrl: string;
     recordLabel: string;
     recordUrl: string;
+    // Set for a direct page: who started it.
+    directPage?: OnCallDirectPageRun | undefined;
   }): OnCallPolicyRun {
     const executionLog: OnCallDutyPolicyExecutionLog = data.executionLog;
 
@@ -682,24 +765,36 @@ export default class OnCallPolicyRunMessage {
       notPaged.push(entry);
     };
 
-    // Per escalation rule: why it paged fewer people, for a rule that reached nobody.
-    const reasonsByRuleId: Map<string, Array<string>> = new Map<
+    /*
+     * Per escalation rule: why it paged fewer people, for a rule that reached
+     * nobody - text, or Markdown holding a moment ("away until <time>").
+     */
+    const reasonsByRuleId: Map<string, Array<string | MarkdownText>> = new Map<
       string,
-      Array<string>
+      Array<string | MarkdownText>
     >();
 
     const addRuleReason: (
       ruleId: ObjectID | undefined | null,
-      reason: string,
-    ) => void = (ruleId: ObjectID | undefined | null, reason: string): void => {
+      reason: string | MarkdownText,
+    ) => void = (
+      ruleId: ObjectID | undefined | null,
+      reason: string | MarkdownText,
+    ): void => {
       if (!ruleId) {
         return;
       }
 
-      const reasons: Array<string> =
+      const reasons: Array<string | MarkdownText> =
         reasonsByRuleId.get(ruleId.toString()) || [];
 
-      if (!reasons.includes(reason)) {
+      const isSaid: boolean = reasons.some(
+        (said: string | MarkdownText): boolean => {
+          return said.toString() === reason.toString();
+        },
+      );
+
+      if (!isSaid) {
         reasons.push(reason);
       }
 
@@ -769,7 +864,7 @@ export default class OnCallPolicyRunMessage {
            * Paged by this rule already, through another of its targets: the
            * same person, counted where they were first paged.
            */
-          if (step.statusMessage === ALREADY_NOTIFIED_TIMELINE_MESSAGE) {
+          if (step.statusMessage === ALREADY_PAGED_TIMELINE_MESSAGE) {
             continue;
           }
 
@@ -778,6 +873,25 @@ export default class OnCallPolicyRunMessage {
             stepIndex,
             "not reached",
           );
+
+          /*
+           * Away with nobody named to cover (a user override that skips
+           * them): until when, in each reader's own time.
+           */
+          const awayUntil: Date | null = readAwayUntil(step.statusMessage);
+
+          if (awayUntil) {
+            addNotPaged(`person:${userId}:away`, {
+              personName: name,
+              reason: "away",
+              awayUntil: awayUntil,
+            });
+            addRuleReason(
+              step.onCallDutyPolicyEscalationRuleId,
+              OnCallPolicyRunMessageView.getAwayReason(name, awayUntil),
+            );
+            continue;
+          }
 
           const reason: string = this.getSkipReason(step.statusMessage);
 
@@ -888,6 +1002,18 @@ export default class OnCallPolicyRunMessage {
         continue;
       }
 
+      /*
+       * A direct page's step about a team: the team it named has no
+       * members, so nobody was paged through it.
+       */
+      if (data.directPage && step.userBelongsToTeamId) {
+        addNotPaged(`team:${step.userBelongsToTeamId.toString()}`, {
+          teamName: step.userBelongsToTeam?.name?.trim() || "(unnamed)",
+          reason: "has no members",
+        });
+        continue;
+      }
+
       // A step with no person and no schedule: the rule found nobody to page.
       countStep(
         step.onCallDutyPolicyEscalationRuleId,
@@ -989,7 +1115,7 @@ export default class OnCallPolicyRunMessage {
 
     // A rule that reached nobody, with nothing else to say why: it has nobody to page.
     for (const rule of rulesThatReachedNobody) {
-      const reasons: Array<string> =
+      const reasons: Array<string | MarkdownText> =
         reasonsByRuleId.get(rule.id!.toString()) || [];
 
       if (reasons.length === 0) {
@@ -1068,9 +1194,11 @@ export default class OnCallPolicyRunMessage {
         : undefined;
 
     return {
-      policyName:
-        executionLog.onCallDutyPolicy?.name?.trim() || "On-call policy",
+      policyName: data.directPage
+        ? ""
+        : executionLog.onCallDutyPolicy?.name?.trim() || "On-call policy",
       policyUrl: data.policyUrl,
+      ...(data.directPage ? { directPage: data.directPage } : {}),
       runUrl: data.runUrl,
       recordLabel: data.recordLabel,
       recordUrl: data.recordUrl,

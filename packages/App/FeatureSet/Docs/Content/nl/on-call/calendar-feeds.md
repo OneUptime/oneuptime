@@ -61,7 +61,7 @@ Open **Gebruikersinstellingen** > **Agenda** > **Agendafeed** in het project waa
 Klik op **Agendalink genereren**. De kaart **Abonneren op uw oproepdiensten** biedt nu één manier om je te abonneren:
 
 - **Toevoegen aan uw agenda**: **Google Agenda** opent Google Agenda, dat vraagt of de agenda moet worden toegevoegd. **Apple Agenda / Outlook** opent de `webcal://`-vorm van de link in de app waarmee je computer of telefoon zich abonneert: Apple Agenda op een Mac, iPhone of iPad, Outlook op Windows.
-- **Of kopieer de link**: **Link kopiëren** kopieert de `https://`-link voor elke andere app die zich via een URL op een agenda kan abonneren. De link blijft verborgen op de pagina tot je klikt om hem te tonen.
+- **Of kopieer de link**: **Link kopiëren** kopieert de `https://`-link voor elke andere app die zich via een URL op een agenda kan abonneren, zonder hem te tonen. De link blijft verborgen op de pagina tot je op **Tonen** klikt.
 
 ### Abonneer je op de link
 
@@ -78,19 +78,27 @@ Klik op **Instellingen bewerken** op de kaart **Instellingen agendafeed** om te 
 | **Dagen aan eerdere diensten** | Hoe ver de agenda terugreikt (standaard 2, hooguit 60). |
 | **Dagen vooruit** | Hoe ver de agenda vooruitreikt (standaard 90, tussen 7 en 180). |
 
-De statusregel toont wanneer de link voor het laatst is opgehaald, door welke agenda-app, hoe vaak, en de laatste vier tekens van het token, zodat je links uit elkaar kunt houden. Heeft na twee dagen niets de link opgehaald, dan vraagt de pagina of de server vanaf internet bereikbaar is (zie Probleemoplossing).
+Het paneel **Status** naast de abonneeropties zegt of de link werkt: wanneer hij voor het laatst is opgehaald en door welke agenda-app, ongeveer hoe vaak, en de laatste vier tekens van het token, zodat je links uit elkaar kunt houden. De badge toont:
+
+- **Actief**: een agenda-app heeft de link opgehaald.
+- **Wacht op eerste synchronisatie**: nog niets heeft de link opgehaald. De meeste apps doen dat binnen enkele minuten na het abonneren; Google Agenda kan er een paar uur over doen.
+- **Nog niet opgehaald**: niets heeft de link opgehaald in de twee dagen sinds hij is gemaakt, dus vraagt de pagina of de server bereikbaar is vanaf de plek waar je agenda-app draait (zie Probleemoplossing).
+- **Uitgeschakeld**: de link levert een lege agenda tot je op **Link inschakelen** klikt.
+- **Moet opnieuw worden gegenereerd**: de opgeslagen link is niet meer te lezen, meestal omdat het versleutelingsgeheim van de server is veranderd. **Link opnieuw genereren** maakt een nieuwe.
 
 ### De link beheren
+
+De rest staat in het menu **⋯** van de kaart. **Link opnieuw genereren** en **Link verwijderen** vragen eerst om bevestiging.
 
 | Actie | Wat er gebeurt |
 | --- | --- |
 | **Link opnieuw genereren** | Maakt een nieuw token aan. Elke app die op de oude link is geabonneerd, wordt niet meer bijgewerkt: 30 dagen lang levert de oude link een lege agenda, zodat die apps hun kopie leegmaken, daarna geeft hij 404. Abonneer je opnieuw met de nieuwe link. |
-| **Uitschakelen** | Houdt de link, maar levert een lege agenda tot je hem weer inschakelt. |
-| **Verwijderen** | Verwijdert de link. Apps die hem nog ophalen, krijgen 404 en blijven tonen wat ze het laatst hebben opgehaald — schakel hem eerst uit als je wilt dat ze leeglopen. |
+| **Link uitschakelen** | Houdt de link, maar levert een lege agenda tot je op **Link inschakelen** klikt, in hetzelfde menu of in het paneel **Status**. |
+| **Link verwijderen** | Verwijdert de link. Apps die hem nog ophalen, krijgen 404 en blijven tonen wat ze het laatst hebben opgehaald — schakel hem eerst uit als je wilt dat ze leeglopen. |
 
 ### Komende diensten en vervanging
 
-De pagina toont ook je **Upcoming shifts** (de komende 30 dagen) en de kaart **Herinner mij vóór diensten**, die verderop wordt beschreven. Elk van je eigen diensten heeft een link **Vervanging regelen**: die opent de overrides van gebruikers in het project van de dienst, met een nieuwe override die al voor die dienst is ingevuld, met jou als **Wie is afwezig?** en de tijden van de dienst als **Begint** en **Eindigt** (vanaf nu, als de dienst al is begonnen), zodat alleen **Wie vervangt?** nog overblijft. De override stuurt al je oproepen in die tijd naar de persoon die je vervangt, vanuit elk bereikbaarheidsbeleid; een dienst die alleen binnen één beleid bestaat, wordt in plaats daarvan op de pagina met overrides van gebruikers van dat beleid vervangen. Een dienst waarin jij iemand anders vervangt, heeft geen **Vervanging regelen**: overrides worden niet aan elkaar gekoppeld, dus vervanging voor een vervanging zou niets veranderen.
+De pagina toont ook je **Upcoming shifts** (de komende 30 dagen) en de kaart **Herinner mij vóór diensten**, die verderop wordt beschreven. Elk van je eigen diensten heeft een link **Vervanging regelen**: die opent de overrides van gebruikers in het project van de dienst, met een nieuwe override die al voor die dienst is ingevuld, met jou als **Wie is afwezig?** en de tijden van de dienst als **Begint** en **Eindigt** (vanaf nu, als de dienst al is begonnen), zodat alleen **Wie vervangt?** nog overblijft. De override stuurt al je oproepen in die tijd naar de persoon die je vervangt, vanuit elk bereikbaarheidsbeleid; een dienst die alleen binnen één beleid bestaat, wordt in plaats daarvan op de pagina met overrides van gebruikers van dat beleid vervangen. Laat je **Wie vervangt?** op **Volgende persoon in de rotatie** staan, dan word je in plaats daarvan overgeslagen: elk van je beurten gaat naar de volgende persoon in de rotatie die niet afwezig is. Een dienst waarin jij iemand anders vervangt, heeft geen **Vervanging regelen**: overrides worden niet aan elkaar gekoppeld, dus vervanging voor een vervanging zou niets veranderen.
 
 Dezelfde persoonlijke link, gefilterd op één rooster met `?schedule=<id>`, wordt op de pagina van elk rooster aangeboden als **Alleen mijn diensten in dit rooster**, en de bereikbaarheidsbanner en de pagina **Mijn bereikbaarheidsbeleid** hebben een link **Uw diensten aan uw agenda toevoegen** naar de pagina hierboven.
 
@@ -109,7 +117,7 @@ Gebruik **Google Agenda** of **Apple Agenda / Outlook** in OneUptime waar je app
 
 De knop **Google Agenda** opent de pagina van Google om een agenda via een URL toe te voegen, `https://calendar.google.com/calendar/r?cid=` gevolgd door de `webcal://`-vorm van de link, procentgecodeerd. Die pagina neemt alleen de `webcal://`-vorm aan: met de `https://`-vorm erin antwoordt Google "Unable to add calendar. Check the URL." **Via URL** neemt beide vormen aan.
 
-Google haalt de feed op **vanaf de servers van Google**, dus de OneUptime-server moet vanaf internet bereikbaar zijn — OneUptime Cloud is dat altijd; zie voor een zelfgehoste installatie Probleemoplossing. De eerste keer ophalen gebeurt meestal binnen enkele minuten na het abonneren; daarna ververst Google ongeveer elke 8 tot 24 uur, soms langer. Er is geen verversknop voor geabonneerde agenda's, en Google negeert de verversingshints in de feed. De statusregel op de feedpagina meldt **Laatst opgehaald … door Google Calendar** zodra Google de link heeft gelezen.
+Google haalt de feed op **vanaf de servers van Google**, dus de OneUptime-server moet vanaf internet bereikbaar zijn — OneUptime Cloud is dat altijd; zie voor een zelfgehoste installatie Probleemoplossing. De eerste keer ophalen gebeurt meestal binnen enkele minuten na het abonneren; daarna ververst Google ongeveer elke 8 tot 24 uur, soms langer. Er is geen verversknop voor geabonneerde agenda's, en Google negeert de verversingshints in de feed. De status op de kaart meldt **Laatst opgehaald … door Google Calendar** zodra Google de link heeft gelezen.
 
 De naam en de tijdzone van de agenda worden **alleen bij het eerste abonnement** gelezen: een rooster later hernoemen hernoemt de agenda in Google niet — verwijder hem en voeg hem opnieuw toe als de naam belangrijk is. Google laat herinneringen in agendabestanden vallen, dus stel standaardmeldingen voor die agenda in bij de instellingen van Google, of beter: gebruik de eigen herinneringen van OneUptime. Google onthoudt een adres dat het niet kon lezen: voeg na het verhelpen van de oorzaak de link opnieuw toe met `?nocache=1` erachter (OneUptime negeert onbekende queryparameters, dus de feed zelf verandert niet) of genereer de link opnieuw. De Google Agenda-app op Android en iOS kan zich niet via een URL abonneren; voeg de link op een computer toe en hij verschijnt op de telefoon.
 @tab Outlook op het web
@@ -194,7 +202,7 @@ Een gedeelde link hoort bij het **project**, niet bij wie hem heeft gekopieerd, 
 
 ### Roosterfeed
 
-Op de pagina van een rooster heeft de kaart **Abonneren op dit rooster** twee helften: **Alleen mijn diensten in dit rooster** (je persoonlijke link met een roosterfilter) en **Diensten van iedereen in dit rooster (gedeelde teamlink)**. Iedereen met de machtiging **Bewerken** op roosters kan **Gedeelde link publiceren** gebruiken, of de link met **Link opnieuw genereren** vernieuwen of met **Uitschakelen** uitzetten; iedereen die het rooster mag lezen, mag hem kopiëren. De kaart toont wanneer de link voor het laatst is vernieuwd.
+Op de pagina van een rooster heeft de kaart **Abonneren op dit rooster** twee helften: **Alleen mijn diensten in dit rooster** (je persoonlijke link met een roosterfilter) en **Diensten van iedereen in dit rooster (gedeelde teamlink)**. Iedereen met de machtiging **Bewerken** op roosters kan **Gedeelde link publiceren** gebruiken, en de link via het menu **⋯** van de kaart met **Link opnieuw genereren** vernieuwen of met **Link uitschakelen** uitzetten; iedereen die het rooster mag lezen, mag hem kopiëren. De status op de kaart toont wanneer de link voor het laatst is vernieuwd.
 
 ### Projectfeed
 
@@ -231,7 +239,7 @@ De feed toont de rotatie **zoals die nu is ingesteld**, ook voor dagen in het ve
 
 - Het token in de link is het enige inloggegeven. Iedereen die de link heeft, ziet de diensten — namen, roosters, beleid — totdat hij opnieuw wordt gegenereerd. Plak links niet in chatkanalen of tickets; heeft een team een agenda nodig, deel dan de rooster- of projectlink in plaats van je persoonlijke.
 - Links zijn per project. Een uitgelekte persoonlijke link stelt de diensten van één project bloot, niet van elk project waarvan je lid bent.
-- Een link opnieuw genereren zet het oude token in een respijtperiode van 30 dagen (lege agenda, daarna 404). **Uitschakelen** levert een lege agenda. Een onbekende of verlopen link geeft een kale 404 zonder hint. Lege agenda's laten geabonneerde apps hun kopie leegmaken; een 404 laat ze die bewaren, daarom leveren uitschakelen en opnieuw genereren lege agenda's.
+- Een link opnieuw genereren zet het oude token in een respijtperiode van 30 dagen (lege agenda, daarna 404). **Link uitschakelen** levert een lege agenda. Een onbekende of verlopen link geeft een kale 404 zonder hint. Lege agenda's laten geabonneerde apps hun kopie leegmaken; een 404 laat ze die bewaren, daarom leveren uitschakelen en opnieuw genereren lege agenda's.
 - Tokens worden gehasht opgeslagen; de kopie op de instellingenpagina is versleuteld met `ENCRYPTION_SECRET`. Stel die variabele op een zelfgehoste installatie in op een echt geheim — de server waarschuwt bij het opstarten wanneer hij niet is ingesteld of nog een van de plaatshouders is die deze repository meelevert (`secret`, of de `please-change-this-to-random-value` die `config.example.env` instelt). Wijzig je hem later, dan biedt de pagina **Link opnieuw genereren** aan, omdat de opgeslagen kopie niet meer kan worden gelezen; de feed blijft werken tot je dat doet.
 - Feedantwoorden zijn gemarkeerd met `Cache-Control: private`, worden uitgesloten van zoekmachines (`X-Robots-Tag: noindex`) en hebben een snelheidslimiet per link en per clientadres.
 
@@ -277,7 +285,7 @@ Oudere versies van OneUptime zetten de `https://`-vorm van de link in de knop **
 :::
 
 :::details Google Agenda toont de agenda, maar geen diensten
-Controleer eerst de statusregel op de feedpagina. **Laatst opgehaald … door Google Calendar** betekent dat Google de link heeft gelezen: open de link in een browser en kijk wat hij levert — een lege agenda noemt zijn reden in `X-WR-CALDESC` (zie "De agenda is leeg" hieronder).
+Controleer eerst de status op de kaart. **Laatst opgehaald … door Google Calendar** betekent dat Google de link heeft gelezen: open de link in een browser en kijk wat hij levert — een lege agenda noemt zijn reden in `X-WR-CALDESC` (zie "De agenda is leeg" hieronder).
 
 **Nog niet opgehaald** betekent dat Google hem niet kon lezen: vanaf een machine buiten je netwerk moet `curl -sI <link>` meteen `200` antwoorden met `Content-Type: text/calendar`. Een doorverwijzing, een inlogpagina, een firewall of een botcontrole vóór OneUptime houdt de ophaler van Google tegen; dat deed in oudere versies van OneUptime ook een doorverwijzingslus, op installaties met `PROVISION_SSL=true` waarvan TLS vóór Nginx eindigt. Zodra hij `200` antwoordt, voeg je de link opnieuw toe met `?nocache=1` erachter, zodat Google hem opnieuw leest.
 :::
@@ -285,7 +293,7 @@ Controleer eerst de statusregel op de feedpagina. **Laatst opgehaald … door Go
 :::details Niets heeft de link opgehaald, of "Kan de URL niet ophalen"
 Google Agenda, Outlook op het web, Fastmail en Proton halen op **vanaf hun eigen servers**, dus de OneUptime-host moet vanaf het openbare internet bereikbaar zijn met een certificaat dat zij vertrouwen. Een installatie op een privénetwerk, achter een VPN of met een interne certificeringsinstantie is voor hen onbereikbaar, wat je ook plakt.
 
-Apple Agenda, Thunderbird en de klassieke Outlook halen op vanaf het apparaat, dus ze werken overal waar het apparaat het dashboard kan openen — nadat het certificaat op dat apparaat is vertrouwd als het zelfondertekend is. De statusregel op de feedpagina vertelt of iets de link al heeft opgehaald; `curl -I` op de link vanaf buiten je netwerk is de snelste controle:
+Apple Agenda, Thunderbird en de klassieke Outlook halen op vanaf het apparaat, dus ze werken overal waar het apparaat het dashboard kan openen — nadat het certificaat op dat apparaat is vertrouwd als het zelfondertekend is. De status op de kaart vertelt of iets de link al heeft opgehaald; `curl -I` op de link vanaf buiten je netwerk is de snelste controle:
 
 ```bash
 curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"

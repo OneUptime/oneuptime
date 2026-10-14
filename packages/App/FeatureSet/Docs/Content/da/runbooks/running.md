@@ -49,7 +49,7 @@ Sådan starter du en manuelt:
 @tab Fra en begivenhed
 1. Åbn hændelsen, advarslen eller den planlagte vedligeholdelsesbegivenhed, og gå til dens side **Runbooks**.
 2. Klik på **Kør runbook**. Dialogen **Kør en runbook** viser projektets runbooks, der er slået til.
-3. Klik på **Run** ud for runbooket. Kørslen vises på begivenhedens liste: klik på **Vis** for at åbne den.
+3. Klik på **Kør** ud for runbooket. Kørslen vises på begivenhedens liste: klik på **Vis** for at åbne den.
 @tab Fra runbooket
 1. Åbn runbooket fra **Runbooks**.
 2. Klik på **Run Now** på dets **Oversigt**.

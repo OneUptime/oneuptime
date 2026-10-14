@@ -210,7 +210,7 @@ OAuth 2.0 変数のページにある **アクセストークン** カードに�
 - ヘッダーと本文のフィールド（文字列の値の中）。
 - **If / Else** ブロックの両辺。
 
-JSON の欄 — レコードのコンポーネントの **Data (JSON Object)**、**Query**、**Select Fields**、API ブロックの **Request Body**、**Run Custom JavaScript** の **Arguments** — では、参照は置かれた場所に応じて埋められます。
+JSON の欄 — レコードのコンポーネントの **Data (JSON Object)** と **Query**、API ブロックの **Request Body**、**Run Custom JavaScript** の **Arguments** — では、参照は置かれた場所に応じて埋められます。
 
 - **引用符の中ではテキストです。** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` は値を文字列の中に入れます。値に含まれる引用符、バックスラッシュ、改行はエスケープされるので、JSON は有効なまま、値は 1 つの文字列のままです。
 - **単独では値そのものです。** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` はオブジェクト全体を挿入し、リストはリストのまま、数値は数値のままです。それ自体が JSON であるテキスト — `5`、`true`、またはブロックが JSON テキストとして返したオブジェクト — は、その値として挿入されます。それ以外のテキストは文字列として挿入されます。
@@ -238,7 +238,7 @@ JSON の欄 — レコードのコンポーネントの **Data (JSON Object)**�
 Webhook が `{ "service": "checkout", "status": "failed" }` のような本文とともに届きます。これを OneUptime のインシデントにするには:
 
 1. ID が `ci-webhook` の **Webhook** トリガー。
-2. **If / Else** ブロック: **Value to check** は Webhook の Request Body の `status` フィールド（`{{local.components.ci-webhook.returnValues.request-body.status}}`）、**Comparison** は **is equal to**、**Compare with** は `failed`。
+2. **If / Else** ブロック: **確認する値** は Webhook の Request Body の `status` フィールド（`{{local.components.ci-webhook.returnValues.request-body.status}}`）、**比較** は **と等しい**、**比較対象** は `failed`。
 3. **Yes** のブランチから、次の内容の **Create One Incident** ブロック:
    - タイトル: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 説明: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`

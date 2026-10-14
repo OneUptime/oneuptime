@@ -43,7 +43,7 @@ Enheten og monitoren gjør forskjellige jobber:
 
 - **En sonde som kan nå enheten.** Sonden pinger og walker enheten fra sitt eget nettverk, så en enhet på en privat adresse trenger en [egendefinert sonde](/docs/probe/custom-probe) inne i det nettverket: en sonde på det offentlige internett kan ikke nå den.
 - **SNMP, for mer enn ping.** Valgfritt. En v1- eller v2c-community string, eller en SNMPv3-bruker, satt opp på enheten, med UDP 161 åpen fra sonden. Uten det blir enheten bare pinget.
-- **Traps, syslog og flyter.** Valgfritt. Sonden tar imot SNMP-traps på UDP 162, syslog på UDP 5140 når du slår det på, og flytposter på UDP 2055, 4739 og 6343, så åpne dem fra enhetene dine til sonden.
+- **Traps, syslog og flyter.** Valgfritt. Sonden tar imot SNMP-traps på UDP 162, syslog på UDP og TCP 5140, og flytposter på UDP 2055, 4739 og 6343, så åpne dem fra enhetene dine til sonden.
 
 ## Nettverksoversikten
 
@@ -62,7 +62,7 @@ Under den sier én linje om noe oppretter en hendelse når en enhet går ned: hv
 
 Før noe er lagt til, viser oversikten i stedet de to måtene å komme i gang på: **Finn enheter** skanner et adresseområde slik at du kan velge hva du vil legge til, best for et helt nettverk eller en ny lokasjon, og **Legg til én enhet** legger til én etter IP-adresse eller vertsnavn.
 
-Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Devices**, **Lokasjoner**, **Map**, **Traffic** og **Discovery**. Resten er foldet inn i seksjoner, og en seksjon folder seg ut av seg selv på hver av sidene sine:
+Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Devices**, **Lokasjoner**, **Map**, **Traffic**, **Hendelser** og **Discovery**. Resten er foldet inn i seksjoner, og en seksjon folder seg ut av seg selv på hver av sidene sine:
 
 | Seksjon | Sider |
 | --- | --- |
@@ -413,6 +413,7 @@ Produsentene deler opp disse opplysningene ulikt, og siden setter dem sammen igj
 - UniFi rapporterer kanal, sendeeffekt og klienter per SSID: en radio henter dem fra SSID-ene på båndet sitt.
 - Aruba teller klienter per radio: et tilgangspunkts klienter er radioenes.
 - Et grensesnitt som ikke sender ut noe nettverk (IQ Engine viser hvert grensesnitt, med N/A for dem), vises ikke som SSID.
+- Et nettverk et tilgangspunkt kjører for seg selv, er ikke en SSID, så det blir verken vist eller telt: UniFis trådløse mesh-forbindelse (`vwire-…`) og nettverket for å adoptere nye UniFi-enheter (`element-…`), og WDS- og mesh-tjenestene til en Extreme-kontroller. En skjult SSID du har opprettet selv, vises som alle andre.
 
 På en enhet som ikke rapporterer Wi-Fi ennå, nevner siden produsentens mal, matchet fra siste polling på samme måte som automatisk bruk matcher den, og bruker den med **Bruk mal**; radioene dukker opp etter neste polling.
 
@@ -489,7 +490,7 @@ En undersøkelse fra OneUptime AI av en hendelse eller et varsel fra en nettverk
 
 ### Enhetsidentitet
 
-Etter det første vellykkede walket leser OneUptime SNMPv2-systemgruppen og, der enheten støtter det, ENTITY-MIB, og fyller ut enhetens oppføring: systemnavn, beskrivelse, plassering, kontakt, oppetid, produsent, modell, serienummer og fastvareversjon. Produsentens enterprise-OID (`sysObjectID`) er enhetens fingeravtrykk: den navngir produsenten og velger den tilsvarende produsentmalen. De samme opplysningene vises i [inventaret](/docs/inventory/cmdb-sync#network-device-asset-attributes) sammen med alle de andre ressursene dine.
+Etter det første vellykkede walket leser OneUptime SNMPv2-systemgruppen og, der enheten støtter det, ENTITY-MIB, og fyller ut enhetens oppføring: systemnavn, beskrivelse, plassering, kontakt, oppetid, produsent, modell, serienummer og fastvareversjon. Produsentens enterprise-OID (`sysObjectID`) er enhetens fingeravtrykk: den navngir produsenten og velger den tilsvarende produsentmalen. De samme opplysningene vises i [inventaret](/docs/inventory/cmdb-sync#eiendelsattributter-for-nettverksenheter) sammen med alle de andre ressursene dine.
 
 En enhet med bare ping beholder navnet og adressen du, eller en discovery-skanning, ga den: det finnes ingen SNMP-agent å spørre om noe bedre.
 
@@ -1056,6 +1057,7 @@ Et svar med enhetens beskrivelse betyr at sonden kan walke den med den påloggin
 :::cards
 - [Nettverkslokasjoner](/docs/monitor/network-sites): Grupper enheter i steder og oppsummer helsen deres oppover i treet.
 - [Nettverkstrafikk](/docs/monitor/network-traffic): Se hvem som snakker med hvem, ut fra enhetenes flytposter.
+- [Nettverkshendelser](/docs/monitor/network-events): Se hva enhetene dine rapporterer i sysloggen, og bli varslet om det.
 - [Guider per nettverksleverandør](/docs/monitor/network-vendor-guides): Sophos, Extreme og Cambium, fra start til slutt.
 - [Pakkeopptak](/docs/probe/packet-capture): Ta opp pakker på en enhets sonde for Wireshark.
 :::

@@ -19,6 +19,7 @@ import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeServic
 import OnCallDutyPolicyExecutionLogTimelineService from "Common/Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import { isOnCallDirectPage } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
 
 RunCron(
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions",
@@ -220,6 +221,24 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
 
         return;
       }
+    }
+
+    /*
+     * A direct page - people, a team or a schedule paged with no on-call
+     * policy behind the page - has no escalation rules to go through and
+     * none to look up: with no policy to match on, the lookup below would
+     * find another policy's rule. It paged everybody when it started, and
+     * ends once their pages are over and it has waited for somebody to
+     * acknowledge.
+     */
+    if (isOnCallDirectPage(executionLog)) {
+      await OnCallDutyPolicyExecutionLogService.endDirectPageIfItsPagesAreOver({
+        executionLogId: executionLog.id!,
+        pagingStartedAt:
+          executionLog.lastEscalationRuleExecutedAt || executionLog.createdAt,
+      });
+
+      return;
     }
 
     // check if this execution needs to be executed.

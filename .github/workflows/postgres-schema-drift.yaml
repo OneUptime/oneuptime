@@ -309,6 +309,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/WorkflowIncomingEmailSecretKeyPostgres.test.ts --forceExit
 
+      # Clones the migrated Incident, Alert, Scheduled Maintenance, episode and
+      # Monitor tables - each with its label and owner tables - into an
+      # isolated schema, and looks records up the way Run Workflow does: by
+      # number (INC-8, 8), by the words of a name and by ID, through each
+      # model's own service. So the statements the lookup builds are run by
+      # Postgres, and every read is the caller's own: held to the workflow's
+      # project, to a label the caller is held to, and away from private
+      # records they do not own.
+      - name: Test Run Workflow's record lookup on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RUN_RECORD_SEARCH_TESTS: "true"
+          RUN_RECORD_SEARCH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RUN_RECORD_SEARCH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RUN_RECORD_SEARCH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Workflow/RunRecordSearchPostgres.test.ts --forceExit
+
       # Clones the migrated HuntressConnection and HuntressIncidentReport tables
       # into an isolated schema: the signing secret is written encrypted and a
       # new one clears the last refusal, and of two deliveries racing to claim
@@ -1356,6 +1375,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/InstanceReceivingPeriodPostgres.test.ts --forceExit
+
+      # Clones the migrated InstanceTokenSigningKey table into an isolated
+      # schema and boots app processes against it with a shipped
+      # ENCRYPTION_SECRET: the first stores one 256-bit key and every later
+      # process and restart signs with it, processes starting at once all get
+      # the same key, a session one process signs is accepted by the others
+      # while one signed with the shipped value is accepted by none, a damaged
+      # row fails the boot, and an installation with its own ENCRYPTION_SECRET
+      # never writes the table.
+      - name: Test the installation's token signing key on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TOKEN_SIGNING_KEY_TESTS: "true"
+          TOKEN_SIGNING_KEY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TOKEN_SIGNING_KEY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TOKEN_SIGNING_KEY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/InstanceTokenSigningKeyPostgres.test.ts --forceExit
 
       # Clones the migrated Project, NetworkSiteType, NetworkSite,
       # NetworkDevice and NetworkSiteStatusTimeline tables, with the foreign

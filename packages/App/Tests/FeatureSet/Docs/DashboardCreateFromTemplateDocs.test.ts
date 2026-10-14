@@ -90,7 +90,7 @@ describe("the English guides", () => {
 
   it("say Create opens the new dashboard, a blank one with Add Widget", () => {
     expect(introOf(authoring)).toBe(
-      'To create a dashboard, open **Dashboards → Create Dashboard** and pick a template, or **Blank Dashboard** to start from scratch. A template fills in the dashboard\'s name for you (numbered, as in "Kubernetes Dashboard 2", when the project already has one); a blank dashboard asks you for a name. Click **Create Dashboard** and the new dashboard opens. A blank one opens on its empty canvas, with an **Add Widget** button for its first widget.',
+      'To create a dashboard, open **Products → Dashboards**, click **Create Dashboard** and pick a template, or **Blank Dashboard** to start from scratch. A template fills in the dashboard\'s name for you (numbered, as in "Kubernetes Dashboard 2", when the project already has one); a blank dashboard asks you for a name. Click **Create Dashboard** and the new dashboard opens. A blank one opens on its empty canvas, with an **Add Widget** button for its first widget.',
     );
   });
 
@@ -100,9 +100,9 @@ describe("the English guides", () => {
     expect(overview).not.toContain("pick a name. The canvas opens empty.");
   });
 
-  it("open the widget palette with Add Widget, wherever it is", () => {
+  it("open the widget catalog with Add Widget, wherever it is", () => {
     expect(authoring).toContain(
-      "1. Click **Add Widget** to open the widget palette: on the canvas of an empty dashboard, or in the toolbar while you edit the dashboard.",
+      "Click **Add Widget**: in the toolbar while you edit, or on the canvas of an empty dashboard.",
     );
   });
 

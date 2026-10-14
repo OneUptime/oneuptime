@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Personens varselmetoder"]
 ```
 
-En brukeroverstyring som gjelder for en person, sender varslene til den som dekker for personen i stedet.
+En brukeroverstyring som gjelder for en person, sender varslene til den som dekker for personen i stedet. En overstyring som ikke navngir noen til å dekke, hopper over personen: personen får ingen varsler, kjøringen av retningslinjen viser at personen er borte og til når, og i en vaktplan går hver av personens vakter til neste person i rotasjonen.
 
 Hver melding er en som leverandøren tar imot, så et varsel går alltid ut. Så mye bærer hver kanal:
 

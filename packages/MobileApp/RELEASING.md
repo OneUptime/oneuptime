@@ -51,6 +51,10 @@ Useful entry points:
 
 Google's `/u/4/` selects a signed-in browser account; that index can change. If a
 link opens the wrong account, switch to the account with this developer/app ID.
+For 1.6.0 (October 2026) the developer account, **HackerBay Inc**, was under the
+HackerBay Google account at `/u/3/`, while `/u/4/` belonged to an unrelated
+account that showed a terms-of-service page. A terms page or a "Choose developer
+account" list without HackerBay Inc means the wrong account, not a blocker.
 Find future drafts through the console; the `/releases/3/` path from 1.1.0 must not
 be reused for a different release.
 
@@ -320,6 +324,9 @@ track, privacy changes, warnings, and rollout scope.
    Create a production release or resume the matching draft.
 2. Upload the validated AAB. Wait for upload and processing to finish; navigating
    away during upload can cancel it. Confirm the displayed version code/name.
+   The Chrome extension's file-upload tool takes at most 10 MB and the AAB is
+   about 68 MB, so either a person drops the AAB onto the upload area, or EAS
+   Submit puts it in the draft (see the end of this section).
 3. Set the release name and factual release notes. Google uses language tags:
 
    ```text
@@ -348,10 +355,27 @@ The 1.1.0 AAB showed only a missing-deobfuscation-file warning. Its R8/minificat
 was disabled, so no mapping existed or was required; native debug symbols were
 present. For a future obfuscated build, upload that build's actual mapping file.
 
-The `android:submit` npm script is available, but the current submit profile is
-empty. Do not assume it selects production or completes review/rollout. If moving
-to EAS/API submission, inspect the configured track, release status, credentials,
-and remaining Play Console steps first. See
+EAS Submit can put the validated AAB into a production **draft** instead of an
+upload in Chrome. `eas.json`'s `submit.production.android` sets
+`track: production` and `releaseStatus: draft`, so it never publishes or sends
+anything for review by itself. It uses the Google service account stored in EAS,
+`firebase-adminsdk-fbsvc@oneuptime-on-call.iam.gserviceaccount.com`. Since 13
+October 2026 that account has app-level release permissions for OneUptime On-Call
+in Play Console (no account-wide permissions), and the Google Play Android
+Developer API is enabled on its Cloud project, `oneuptime-on-call`. From the
+snapshot's app directory:
+
+```bash
+EAS_NO_VCS=1 EAS_PROJECT_ROOT="$release_app_root" \
+  eas submit --platform android --id "$android_build_id" \
+  --profile production --non-interactive --wait
+```
+
+Then continue from step 3 on the draft it created: release notes, review,
+**Save**, and the Publishing overview submission. The 1.6.0 release was the first
+after this setup and still uploaded its AAB by hand, so the first release that
+uses EAS Submit should confirm the route end to end. Without those permissions
+or the API, EAS Submit fails before uploading anything. See
 [Google's release instructions](https://support.google.com/googleplay/android-developer/answer/9859348?hl=en).
 
 ## 6. Upload iOS, then submit App Review

@@ -150,6 +150,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     return { file: file!, form: form!, reason: reason! };
   }),
   {
+    file: `${DASHBOARD}/Components/NotificationRule/OnCallRulesTable.tsx`,
+    form: "ModelTable: notification-rules",
+    reason:
+      "Adding an on-call rule: how to notify (the notification method) and when (notify after). Picking a phone adds its two push settings - critical or standard, and whether to repeat until acknowledged - right below the method they belong to, both already answered; a browser adds only the repeat, and every other method neither. Two rows for most methods and four for a phone, all about the one notification being added: a step between them would only put Add behind a Next.",
+  },
+  {
     file: "packages/App/FeatureSet/StatusPage/src/Pages/Subscribe/UpdateSubscription.tsx",
     form: "ModelForm: Status Page > Update Subscription",
     reason:
@@ -221,6 +227,16 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     form: "ModelTable: On-Call Policy > User Overrides",
     reason:
       "Adding a user override: who is away (you, to start with), who covers, when it starts (now) and when it ends - four short rows, two of them filled in. They are read back together before saving, so nobody books an override the wrong way round or for the wrong week. As two steps (Users, Time Window) the end only came after a Next, a page away from who it was for.",
+  },
+  /*
+   * "Skip until..." on a person in a schedule layer opens the same form
+   * (task oncall-skip-user-until).
+   */
+  {
+    file: `${DASHBOARD}/Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal.tsx`,
+    form: "ModelFormModal: Skip in the rotation",
+    reason:
+      "Skipping somebody in the rotation until a date: the Add User Override form, opened from their row with three of its four short rows filled in - them as who is away, the rotation as who covers, now as the start. Only when they are back is left, and the whole of it is read back on one page before it is saved.",
   },
   /*
    * "Log and trace drop filters, scrub rules and pipelines start from what

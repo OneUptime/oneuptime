@@ -1765,8 +1765,11 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    // if slack incoming webhook is provided, then send a message to the slack channel.
-    if (createdItem.slackIncomingWebhookUrl) {
+    // if slack incoming webhook is provided and sendYouHaveSubscribedMessage is true, then send a message to the slack channel.
+    if (
+      createdItem.slackIncomingWebhookUrl &&
+      createdItem.sendYouHaveSubscribedMessage
+    ) {
       logger.debug("Sending Slack notification for new subscriber.", {
         projectId: createdItem.projectId?.toString(),
       } as LogAttributes);

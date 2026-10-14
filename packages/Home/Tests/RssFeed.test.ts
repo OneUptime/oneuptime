@@ -1,4 +1,4 @@
-import type { BlogPostHeader } from "../Utils/BlogPost";
+import type { BlogPostHeader, BlogTagSummary } from "../Utils/BlogPost";
 
 /*
  * The RSS feed is machine-read by aggregators, so a single unescaped `&` or `<`
@@ -41,15 +41,20 @@ const makePost: MakePostFunction = (
 
 interface RssModule {
   generateBlogRssFeed: () => Promise<string>;
-  generateTagRssFeed: (tagName: string) => Promise<string>;
+  generateTagRssFeed: (tag: BlogTagSummary) => Promise<string>;
 }
 
 const HOME_URL: string = "https://oneuptime.com/";
+
+// The mocked BlogPostUtil.getBlogPostList of the module loadRss loaded last.
+let getBlogPostListMock: jest.Mock = jest.fn();
 
 type LoadRssFunction = (posts: Array<BlogPostHeader>) => RssModule;
 
 const loadRss: LoadRssFunction = (posts: Array<BlogPostHeader>): RssModule => {
   jest.resetModules();
+
+  getBlogPostListMock = jest.fn().mockResolvedValue(posts);
 
   jest.doMock("../Utils/BlogPost", () => {
     return {
@@ -61,7 +66,7 @@ const loadRss: LoadRssFunction = (posts: Array<BlogPostHeader>): RssModule => {
             return HOME_URL;
           },
         }),
-        getBlogPostList: jest.fn().mockResolvedValue(posts),
+        getBlogPostList: getBlogPostListMock,
         getTags: jest.fn().mockResolvedValue([]),
       },
     };
@@ -87,15 +92,15 @@ const renderBlogFeed: RenderBlogFeedFunction = async (
 
 type RenderTagFeedFunction = (
   posts: Array<BlogPostHeader>,
-  tagName: string,
+  tag: BlogTagSummary,
 ) => Promise<string>;
 
 const renderTagFeed: RenderTagFeedFunction = async (
   posts: Array<BlogPostHeader>,
-  tagName: string,
+  tag: BlogTagSummary,
 ): Promise<string> => {
   const mod: RssModule = loadRss(posts);
-  return mod.generateTagRssFeed(tagName);
+  return mod.generateTagRssFeed(tag);
 };
 
 describe("RssFeed generateBlogRssFeed", () => {
@@ -198,29 +203,69 @@ describe("RssFeed generateTagRssFeed", () => {
     jest.resetModules();
   });
 
-  test("titles the feed with the humanized tag name and links to the tag feed URL", async () => {
-    const xml: string = await renderTagFeed(
-      [makePost({ title: "Tag Post" })],
-      "incident-management",
-    );
+  test("titles the feed with the tag's name and links to the tag's feed URL", async () => {
+    const xml: string = await renderTagFeed([makePost({ title: "Tag Post" })], {
+      slug: "incident-management",
+      name: "Incident Management",
+    });
 
-    // Dashes become spaced Title Case for the human-facing feed title.
     expect(xml).toContain(
       "<title>OneUptime Blog - Incident Management</title>",
     );
     expect(xml).toContain(
       'href="https://oneuptime.com/blog/tag/incident-management/rss.xml"',
     );
+    expect(xml).toContain(
+      "<link>https://oneuptime.com/blog/tag/incident-management</link>",
+    );
   });
 
-  test("URL-encodes a tag with special characters in the feed link", async () => {
-    const xml: string = await renderTagFeed(
-      [makePost({ title: "Tag Post" })],
-      "c++ & go",
-    );
+  test("reads the tag's posts by its slug", async () => {
+    await renderTagFeed([makePost({ title: "Tag Post" })], {
+      slug: "ci-cd",
+      name: "CI/CD",
+    });
 
-    expect(xml).toContain(encodeURIComponent("c++ & go"));
-    // The raw tag must not leak unencoded into the URL attribute.
-    expect(xml).not.toContain("tag/c++ & go/rss.xml");
+    expect(getBlogPostListMock).toHaveBeenCalledWith("ci-cd");
+  });
+
+  test("a tag with a slash in its name links to its one address, never to two path segments", async () => {
+    const xml: string = await renderTagFeed([makePost({ title: "Tag Post" })], {
+      slug: "ci-cd",
+      name: "CI/CD",
+    });
+
+    // The name reads as the posts write it; the links use the slug.
+    expect(xml).toContain("<title>OneUptime Blog - CI/CD</title>");
+    expect(xml).toContain(
+      'href="https://oneuptime.com/blog/tag/ci-cd/rss.xml"',
+    );
+    expect(xml).toContain("<link>https://oneuptime.com/blog/tag/ci-cd</link>");
+    expect(xml).not.toContain("/blog/tag/ci/cd");
+    expect(xml).not.toContain("ci%2Fcd");
+  });
+
+  test("percent-encodes a slug in another script in the feed links", async () => {
+    const xml: string = await renderTagFeed([makePost({ title: "Tag Post" })], {
+      slug: "日本語",
+      name: "日本語",
+    });
+
+    expect(xml).toContain(
+      'href="https://oneuptime.com/blog/tag/%E6%97%A5%E6%9C%AC%E8%AA%9E/rss.xml"',
+    );
+    expect(xml).toContain("<title>OneUptime Blog - 日本語</title>");
+  });
+
+  test("escapes a tag name with XML-significant characters in the feed title", async () => {
+    const xml: string = await renderTagFeed([makePost({ title: "Tag Post" })], {
+      slug: "r-and-d",
+      name: "R&D <Labs>",
+    });
+
+    expect(xml).toContain(
+      "<title>OneUptime Blog - R&amp;D &lt;Labs&gt;</title>",
+    );
+    expect(xml).not.toContain("R&D <Labs>");
   });
 });

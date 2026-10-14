@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28113,
-    "untranslated": 4720
+    "keys": 28484,
+    "untranslated": 4714
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -170,6 +170,7 @@
     "Enterprise Edition",
     "Episode",
     "Eritrea",
+    "Failover",
     "Fatal",
     "Favicon",
     "Feed",
@@ -184,6 +185,7 @@
     "Frustration",
     "GKE Autopilot",
     "Gambia",
+    "Gateway",
     "Ghana",
     "Gi1/0/24",
     "Gibraltar",
@@ -211,6 +213,7 @@
     "HackerBay, Inc.",
     "Haiti",
     "Handle",
+    "Hardware",
     "Hash",
     "Honduras",
     "Hop",
@@ -299,6 +302,7 @@
     "Niue",
     "No Auth, No Priv",
     "Normal",
+    "Null",
     "OID",
     "OIDs",
     "OK",
@@ -351,6 +355,7 @@
     "Position",
     "PostgreSQL db.prod.internal:5432",
     "Postmortem",
+    "Problem",
     "Profiler",
     "Prompt",
     "Puerto Rico",
@@ -450,6 +455,7 @@
     "Traceroute",
     "Traces",
     "Transport",
+    "Tunnel",
     "Turkmenistan",
     "Tuvalu",
     "Twilio Account SID",

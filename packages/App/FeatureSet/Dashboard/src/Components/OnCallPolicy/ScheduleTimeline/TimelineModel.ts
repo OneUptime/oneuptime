@@ -23,6 +23,11 @@ export interface TimelineOverride {
   end: Date;
   // Scoped to one on-call policy rather than global.
   isPolicyScoped: boolean;
+  /*
+   * Nobody was named to cover: the original user is away and skipped, and
+   * the rotation gave the shift to the next person who is not away.
+   */
+  isSkip: boolean;
 }
 
 export interface TimelineShift extends TimeInterval {
@@ -150,6 +155,7 @@ export default class TimelineModel {
                         isPolicyScoped: Boolean(
                           shift.override.onCallDutyPolicyId,
                         ),
+                        isSkip: shift.override.isSkip === true,
                       }
                     : null,
                 };

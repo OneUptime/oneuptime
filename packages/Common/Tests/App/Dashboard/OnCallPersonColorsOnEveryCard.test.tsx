@@ -455,6 +455,7 @@ function timelineShift(
           start,
           end,
           isPolicyScoped: false,
+          isSkip: false,
         }
       : null,
   };

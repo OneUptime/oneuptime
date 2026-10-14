@@ -1,92 +1,128 @@
-# Variabler & filtre
+# Dashbord-variabler & filtre
 
-En variabel gjør ett enkelt dashbord om til en mal. Legg til en `service`-variabel på dashbordet ditt, og de samme diagrammene rendres på nytt for `checkout`, `payments` eller `search` — seerne velger fra en nedtrekksliste øverst i stedet for at du bygger tre nesten identiske dashbord.
+En variabel er en velger i dashbordets verktøylinje. Legg til en variabel `service`, og de samme diagrammene viser `checkout`, `payments` eller `search`: seerne velger i verktøylinjen i stedet for at du bygger tre nesten like dashbord.
 
-## Variabeltyper
+:::cards
+- [Legg til en variabel](#legg-til-en-variabel): Gi den et navn, velg hvor verdiene kommer fra, og lagre.
+- [Variabelkilder](#variabelkilder): Telemetry Attribute, Project Labels, Custom List og Text Input.
+- [Slik bruker widgets en variabel](#slik-bruker-widgets-en-variabel): Hvilke widgets som følger hvilke variabler.
+- [Lenker som beholder utvalget](#lenker-som-beholder-utvalget): Send en lenke som åpnes på den samme tjenesten.
+:::
 
-Legg til variabler under **Dashbord → Innstillinger → Variabler**. Hver variabel har et navn (brukt som `{{name}}` i widgetene dine), en valgfri etikett og en type.
+## Slik fungerer en variabel
 
-### Egendefinert liste
+Du definerer variabler mens du redigerer dashbordet, og de lagres sammen med det. I visningsmodus er hver av dem en velger i verktøylinjen. Når en seer velger en verdi, leser hver widget som følger variabelen, dataene sine på nytt, og sidens lenke beholder valget.
 
-En statisk nedtrekksliste. Du skriver inn alternativene selv.
-
-Bruk den når: valgene er små og faste. `environment` med verdiene `prod, staging, dev`. `region` med verdiene `us-east-1, eu-west-1, ap-south-1`.
-
-### Spørring
-
-Alternativene kommer fra en spørring mot dataene dine.
-
-Bruk den når: valgene endres over tid og du vil at nedtrekkslisten skal følge med. "Hver kunde-ID sett i de siste 24 timene." Spørringen kjøres mot prosjektets data og resultatene blir nedtrekkslisten.
-
-### Tekst-inndata
-
-Et fritekstfelt. Det seeren skriver blir brukt.
-
-Bruk den når: du vil at dashbordet skal fungere som et søkeverktøy. Filtrer etter IP-adresse, forespørsel-ID eller en hvilken som helst annen fritekstverdi.
-
-### Telemetri-attributt
-
-Alternativene er de distinkte verdiene av et attributt i telemetrien din over dashbordets tidsperiode.
-
-Konfigurer **attributt-nøkkelen** (for eksempel `service.name`, `host.name`, `k8s.cluster.name`). Nedtrekkslisten fylles med hver distinkt verdi sett i loggene, metrikkene og sporingene dine.
-
-Bruk den når: valgene matcher taggene du allerede sender med telemetrien din. Dette er den vanligste typen fordi den oppdateres automatisk — når du sender en ny tjeneste merket `service.name = inventory`, dukker det navnet opp i nedtrekkslisten uten at du redigerer dashbordet.
-
-## Fler-valg
-
-Hver variabel kan tillate flere valg. Når det er på, kan seeren velge én eller flere verdier; dashbordet filtrerer til hvilken som helst av dem.
-
-Bruk fler-valg når: du vil sammenligne "checkout og payments sammen" uten å forlate dashbordet. Unngå det når matematikken ikke fungerer på tvers av valgte verdier (for eksempel å beregne gjennomsnitt av gjennomsnitt).
-
-## Standardverdier
-
-Hver variabel kan ha en standardverdi. Dashbordet rendres med standardverdien til seeren endrer den. For offentlige dashbord er standarden det besøkende ser først.
-
-## Hvordan bruke en variabel i en widget
-
-Hvor enn en widget tar et filter — en metrikks `WHERE`, en listes filter, en loggstrøms attributt-match — kan du bruke `{{variable_name}}`.
-
-For eksempel et diagram filtrert etter tjeneste:
-
-```
-service.name = '{{service}}'
+```mermaid title="Fra å definere en variabel til en seers valg"
+flowchart TB
+    A["Redigering: Variabler,<br/>deretter Legg til<br/>variabel"] --> B["Lagre variabler,<br/>deretter Lagre<br/>endringer"]
+    B --> C["Visning: en velger<br/>i verktøylinjen"]
+    C --> D["En seer velger<br/>en verdi"]
+    D --> E["Widgetene som følger<br/>variabelen, leser<br/>på nytt"]
+    D --> F["Sidens lenke<br/>beholder valget"]
 ```
 
-Når nedtrekkslisten er satt til `checkout`, filtrerer diagrammet til checkout-tjenesten. Når seeren bytter til `payments`, rendres diagrammet på nytt for payments.
+## Legg til en variabel
 
-For **Telemetry Attribute**-variabler vet OneUptime hvilket attributt variabelen mapper til og bruker filteret på hver widget som bruker det samme attributtet — du trenger ikke redigere hver widget for hånd.
+:::steps
+### Åpne variabeldialogen
 
-## Tidsperiode
+Åpne dashbordet, velg **⋯ → Edit Dashboard**, og klikk på **Variabler** i verktøylinjen. Dialogen **Dashbordvariabler** viser dashbordets variabler; knappen i verktøylinjen teller dem.
 
-Dashbordets header har en global tidsperiode. Hver metrikk-widget spør mot dette vinduet. Alternativer:
+### Legg til en
 
-- **Forhåndsinnstillinger** — siste time, 24 timer, 7 dager, 30 dager, 90 dager (avhengig av dataoppbevaringen din).
-- **Egendefinert** — velg et start- og sluttidspunkt.
+Klikk på **Legg til variabel**. En ny variabel leser et telemetriattributt; velg en annen **Kilde** hvis du trenger det.
 
-Tidsperioden er en del av dashbordets URL — å dele URL-en deler vinduet. Nyttig under en hendelse: fest tidsperioden til "10:00–10:30 UTC i dag" og lim inn lenken i hendelseskanalen.
+### Fyll den ut
 
-## Oppdateringsintervall
+Gi den et **Navn**, som widgets og lenker bruker, for eksempel `service`: bokstaver, sifre og understreker, som begynner med en bokstav eller en understrek og er forskjellig fra dashbordets andre navn. Legg til en **Etikett** for verktøylinjen om du vil, en **Standard** å starte på, og huk av for **Allow multi-select** for å la seerne velge flere verdier.
 
-Ved siden av tidsperioden, velg hvor ofte widgets spør på nytt:
+### Lagre den
 
-- **Av** — widgets spør én gang når siden lastes.
-- **5s / 10s / 30s / 1m / 5m / 15m** — auto-oppdatering.
+Klikk på **Lagre variabler**, og deretter på **Lagre endringer** i verktøylinjen. Variabelens velger vises i verktøylinjen når dashbordet er tilbake i visningsmodus.
+:::
 
-Auto-oppdatering er bra for en vegg-TV eller en live hendelsesvisning. La det være av når du undersøker slik at visningen står stille mens du ser.
+For å endre eller fjerne en variabel senere åpner du dialogen igjen: endre feltene, eller klikk på søppelbøtta ved siden av.
 
-## Sette det sammen
+## Variabelkilder
 
-Et tjeneste-malet dashbord har vanligvis:
+**Kilde** avgjør hvor en variabels verdier kommer fra, og hvilke widgets som følger den.
 
-1. En `service`-variabel av typen **Telemetry Attribute** for `service.name`. Standard: den tjenesten du følger mest med på. Fler-valg av (slik at diagrammer alltid viser én om gangen).
-2. En `environment`-variabel av typen **Egendefinert liste**. Standard: `prod`.
-3. En `cluster`-variabel av typen **Telemetry Attribute** for `k8s.cluster.name`. Fler-valg på (slik at du kan sammenligne på tvers av klynger).
-4. Widgets som refererer til disse variablene i filtrene sine.
+| Kilde | Hvor verdiene kommer fra | Flervalg |
+| --- | --- | --- |
+| Telemetry Attribute | Verdiene til én attributtnøkkel i metrikkene dine, for eksempel `service.name` | Ja |
+| Project Labels | Prosjektetikettene du tillater, fra 1 til 1 000 | Ja |
+| Custom List | Verdier du skriver, atskilt med komma, for eksempel `prod, staging` | Ja |
+| Text Input | Det seeren skriver | Nei |
 
-Resultatet: ett dashbord, hver tjeneste dekket, tre nedtrekkslister øverst.
+### Telemetry Attribute
 
-## Hvor du leser videre
+Angi **Attributtnøkkel**, for eksempel `service.name`, `host.name` eller `k8s.namespace.name`; feltet foreslår nøklene telemetrien din har. Velgeren tilbyr opptil 100 verdier for den nøkkelen, lest fra metrikkene dine fra det siste døgnet, så en ny tjeneste dukker opp i den uten at du redigerer dashbordet.
 
-- [Widgets](/docs/dashboards/widgets) — hvordan hver widget bruker et filter.
-- [Deling & offentlige dashbord](/docs/dashboards/sharing) — variabler og delte lenker.
-- [Lage et dashbord](/docs/dashboards/authoring) — lerret-mekanikken.
+Dette er den vanligste kilden, fordi den ikke trenger en egen liste: verdiene er de du allerede sender.
+
+### Project Labels
+
+Velg eksisterende prosjektetiketter som skal tilbys som en nedtrekksliste på dashbordet. Opprett for eksempel en variabel med navnet `UNIT`, sett kilden til **Project Labels**, og velg etikettene `0660` og `0661`.
+
+Dashbordet lagrer ID-ene og visningsnavnene til de valgte etikettene. Filtreringen bruker ID-ene, så å gi en prosjektetikett nytt navn bryter ikke koblingen. Visningsnavnene lagres sammen med dashbordet; velg en omdøpt etikett på nytt i variabelredigeringen for å oppdatere visningsnavnet. Offentlige dashbord viser de samme lagrede valgene.
+
+I en widget **Overvåkingsliste** åpner du **Filtre → Label Variable** og velger `UNIT`. Når du velger `0660`, vises nå overvåkingene som har den etiketten. Andre widgets påvirkes ikke, med mindre de uttrykkelig støtter og kobler variabelen: **SLO List** har den samme innstillingen **Label Variable**.
+
+Faste widgetfiltre gjelder fortsatt. Med en fast etikett `network` og `UNIT` satt til `0660` må en overvåking for eksempel ha begge etikettene. Flere valgte enheter samsvarer med hvilken som helst av dem. Å velge **Alle** fjerner bare variabelens betingelse og beholder de faste filtrene for etikett, status og overvåkingstype.
+
+En manglende variabel eller et valg utenfor de konfigurerte valgene viser en feil. En valgt etikett uten samsvarende overvåkinger viser den tomme listen. Fjern widgetens kobling uttrykkelig når den ikke lenger trengs.
+
+### Custom List og Text Input
+
+En Custom List tilbyr verdiene du skriver, atskilt med komma. En Text Input lar seeren skrive en hvilken som helst verdi, for eksempel en IP-adresse eller en forespørsels-ID. Ingen av dem filtrerer en widget alene: verdiene havner der du skriver `{{name}}` (se nedenfor).
+
+En Query-variabel fra et eldre dashbord beholdes og viser et tekstfelt i verktøylinjen: OneUptime laster ikke lenger verdiene fra en spørring.
+
+## Flervalg og standardverdier
+
+Med **Allow multi-select** avhuket velger seerne én eller flere verdier, og widgetene viser hvilken som helst av dem. Et tomt utvalg betyr **Alle**, og en flervalgsvariabel starter alltid på **Alle**, så **Standard** er nedtonet.
+
+En enkeltvalgsvariabel starter på sin **Standard**, eller på **Alle** når den ikke har noen. **Alle** fjerner variabelens filter, så widgetene viser alt.
+
+Bruk flervalg til å sammenligne "checkout og payments sammen" uten å forlate dashbordet. Unngå det der tallene ikke kan legges sammen på tvers av verdier, for eksempel et gjennomsnitt av gjennomsnitt.
+
+## Slik bruker widgets en variabel
+
+Hver kilde når widgetene på sin egen måte:
+
+- Variabler av typen **Telemetry Attribute** filtrerer widgets uten at du trenger å stille inn noe på dem: alle metrikkdiagrammer, verdier, målere og tabeller; **Log Chart**, **Loggstrøm**, **Trace Chart** og **Trace Table**; og infrastrukturlistene der ressursene har attributtet, for eksempel `host.name` på vertslister og `k8s.namespace.name` på Kubernetes-lister. Et diagram over en metrikk uten attributtet viser ingen data mens en verdi er valgt: velg **Alle** for å se det igjen. **Sporliste** og hendelses- og varsellistene følger dem ikke.
+- Variabler av typen **Project Labels** filtrerer en **Overvåkingsliste** eller en **SLO List** der **Label Variable** nevner dem.
+- **Enhver variabel** kan skrives inn i tekst som `{{name}}`: i en [HTML-widget](/docs/dashboards/widgets#html), i spørringen til en [ekstern datakilde](/docs/dashboards/data-sources), og i tittelen på en **Overvåkingsliste** eller en **SLO List**. En tittel som `{{UNIT}} NETWORK` viser `0660 NETWORK`, `0660, 0661 NETWORK` eller `All NETWORK`. En tittel styrer bare den viste teksten; konfigurer **Label Variable** for å filtrere overvåkingsspørringen.
+
+[SLO-widgeten](/docs/dashboards/widgets#slo) kan følge en Telemetry Attribute-variabel på nøkkelen `sloName`, slik at seerne velger hvilket SLO den viser.
+
+## Lenker som beholder utvalget
+
+Sidens lenke bærer hver variabels valg som `?var-<name>=<value>`, med flere verdier atskilt med komma, så en lenke du kopierer, åpnes med det samme utvalget, også en uttrykkelig **Alle**. En lenke som denne åpnes på tjenesten payments:
+
+```text title="A dashboard link with a variable"
+https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
+```
+
+Lenken bærer bare variablene. Tidsintervallet starter på den siste timen ved hvert besøk, så fortell dem du sender den til, hvilket tidsrom de skal se på, eller zoom inn når de har åpnet den.
+
+## Et eksempel: ett dashbord for hver tjeneste
+
+Et tjenestedashbord har som regel:
+
+1. En variabel `service`, kilde Telemetry Attribute, attributtnøkkel `service.name`, med den travleste tjenesten din som standard. La flervalg være av, slik at diagrammene viser én tjeneste om gangen.
+2. En variabel `namespace`, kilde Telemetry Attribute, attributtnøkkel `k8s.namespace.name`, med flervalg på for å sammenligne navnerom.
+3. En variabel `environment`, kilde Custom List, verdier `prod, staging`, brukt som `{{environment}}` i spørringen til en datakilde.
+4. Widgets som leser disse attributtene: diagrammer og verdier for tjenestens metrikker, en loggstrøm og en liste over Kubernetes-pods.
+
+Resultatet: ett dashbord for hver tjeneste, med tre velgere øverst.
+
+## Neste steg
+
+:::cards
+- [Dashbord-widgets](/docs/dashboards/widgets): Hvilke widgets som følger hvilke variabler.
+- [Eksterne datakilder](/docs/dashboards/data-sources): Sett en variabel inn i en PromQL- eller SQL-spørring.
+- [Deling & offentlige dashbord](/docs/dashboards/sharing): Variabler på et offentlig dashbord.
+- [Opprette et dashbord](/docs/dashboards/authoring): Redigeringsmodus, lagring og tidsintervallet.
+:::

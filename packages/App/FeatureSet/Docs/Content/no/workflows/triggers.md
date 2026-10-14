@@ -26,13 +26,13 @@ En arbeidsflyt kan bare ha én trigger. Trenger du to måter å starte den samme
 
 ## Manual
 
-Kjør arbeidsflyten når du vil: klikk på **Kjør arbeidsflyt** på siden **Bygger**, fyll ut triggerens **JSON**, klikk på **Run Workflow Manually**, og bekreft med **Run**. En annen arbeidsflyt kan også starte den med en **Execute Workflow**-blokk.
+Kjør arbeidsflyten når du vil: klikk på **Kjør arbeidsflyt** på siden **Bygger**, fyll ut triggerens **JSON**, klikk på **Kjør arbeidsflyten manuelt**, og bekreft med **Kjør**. En annen arbeidsflyt kan også starte den med en **Execute Workflow**-blokk.
 
 Bra for: automatisering med ett klikk som du vil ha en knapp for, som «roter denne nøkkelen» eller «send et testvarsel», og logikk du deler mellom arbeidsflyter.
 
 **Returns**: **JSON** — det kjøringen ble startet med.
 
-- Fra **Kjør arbeidsflyt** er det JSON-en du skrev, som tekst. For å lese et felt i den sender du den først gjennom en **Text to JSON**-blokk.
+- Fra **Kjør arbeidsflyt** er det JSON-en du skrev. For å lese et felt i den legger du feltets navn til referansen, som i `{{local.components.manual-1.returnValues.value.name}}`.
 - Fra en **Execute Workflow**-blokk er hver nøkkel i blokkens **Arguments** en verdi for seg. Med `{"customerId": "42"}` leser en senere blokk `{{local.components.manual-1.returnValues.customerId}}`, der `manual-1` er ID-en til Manual-triggeren.
 
 ## Schedule
@@ -96,7 +96,7 @@ sequenceDiagram
 
 Les ett enkelt felt ved å legge navnet til referansen, som i `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
-Når en forespørsel har kommet, vet verdivelgeren i hver blokk etter triggeren hva som var i den: den viser feltene i bodyen, headerne og spørringsparameterne, hvert med innholdet sitt, slik at du kan velge `incident.title` i stedet for å skrive en sti. Inntil da sier den at ingen forespørsel har kommet, og tilbyr **Copy test request**, en `curl`-kommando til URL-en; feltene dukker opp så snart kjøringen forespørselen starter, er ferdig. Se [Bruk verdier fra tidligere blokker](/docs/workflows/authoring#bruk-verdier-fra-tidligere-blokker).
+Når en forespørsel har kommet, vet verdivelgeren i hver blokk etter triggeren hva som var i den: den viser feltene i bodyen, headerne og spørringsparameterne, hvert med innholdet sitt, slik at du kan velge `incident.title` i stedet for å skrive en sti. Inntil da sier den at ingen forespørsel har kommet, og tilbyr **Kopier testforespørsel**, en `curl`-kommando til URL-en; feltene dukker opp så snart kjøringen forespørselen starter, er ferdig. Se [Bruk verdier fra tidligere blokker](/docs/workflows/authoring#bruk-verdier-fra-tidligere-blokker).
 
 For å teste arbeidsflyten uten det andre verktøyet klikker du på **Kjør arbeidsflyt** i **Bygger** og skriver inn headere, spørringsparametere og en body.
 
@@ -161,24 +161,24 @@ Nesten alt i OneUptime — monitorer, hendelser, varsler, planlagte vedlikehold,
 
 Slik bygger du «når X skjer i OneUptime, gjør Y» uten å måtte sjekke ting i en løkke.
 
-**On Update** kan begrenses til noen felt med **Listen on**: da utløses den bare når en oppdatering endrer ett av dem, til en hvilken som helst verdi — å slå av en bryter eller tømme et felt teller med.
+**On Update** kan begrenses til noen felt med **Fields to watch**: da utløses den bare når en oppdatering endrer ett av dem, til en hvilken som helst verdi — å slå av en bryter eller tømme et felt teller med.
 
 ```mermaid title="Når en On Update-trigger utløses"
 flowchart TB
     save["En post lagres"] --> changed{"Ble en verdi endret?"}
     changed -->|"Nei"| nothing["Ingenting utløses"]
-    changed -->|"Ja"| listen{"Er Listen on angitt?"}
+    changed -->|"Ja"| listen{"Er Fields to watch angitt?"}
     listen -->|"Nei"| fires["Arbeidsflyten kjører"]
     listen -->|"Ja"| field{"Ble ett av feltene endret?"}
     field -->|"Ja"| fires
     field -->|"Nei"| nothing
 ```
 
-**On Create** og **On Update** sender posten videre til neste blokk, med feltene du velger i triggerens **Select Fields**. For eksempel sender triggeren **Incident → On Create** den nye hendelsen videre, slik at neste blokk kan lese tittelen, beskrivelsen, alvorlighetsgraden eller et hvilket som helst annet felt du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt du ikke valgte, kommer tomt frem.
+**On Create** og **On Update** sender posten videre til neste blokk, med feltene du velger i triggerens **Fields to pass on**. For eksempel sender triggeren **Incident → On Create** den nye hendelsen videre, slik at neste blokk kan lese tittelen, beskrivelsen, alvorlighetsgraden eller et hvilket som helst annet felt du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt du ikke valgte, kommer tomt frem.
 
 **On Delete** sender bare ID-en til den slettede posten videre: posten er borte når arbeidsflyten kjører, så de andre feltene kan ikke leses.
 
-For å teste en begivenhetstrigger uten å vente på begivenheten klikker du på **Kjør arbeidsflyt** i **Bygger** og skriver inn ID-en til en eksisterende post, som en **Hendelse-ID**. Kjøringen leser den posten med feltene du valgte.
+For å teste en begivenhetstrigger uten å vente på begivenheten klikker du på **Kjør arbeidsflyt** i **Bygger** og velger en eksisterende post: de nyeste er listet opp, og når du skriver inn nummeret til en post eller en del av navnet, finner du en annen. Kjøringen leser den posten med feltene du valgte, som om begivenheten nettopp hadde skjedd med den; selve posten blir verken endret eller slettet.
 
 ### Begivenhetene team bruker mest
 

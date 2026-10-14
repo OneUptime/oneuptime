@@ -56,6 +56,18 @@ jest.mock("../../../Server/BillingConfig", () => {
   };
 });
 
+/*
+ * config.env may carry a real incoming webhook for the operator's channel,
+ * and every refill and adjustment is posted to it. Blanked so the suite
+ * cannot post to Slack.
+ */
+jest.mock("../../../Server/EnvironmentConfig", () => {
+  return {
+    ...jest.requireActual("../../../Server/EnvironmentConfig"),
+    NotificationSlackWebhookOnSubscriptionUpdate: "",
+  };
+});
+
 describe("AI credits running out on Postgres", () => {
   test("opt-in: set RUN_POSTGRES_AI_CREDITS_TESTS=true to run against a migrated database", () => {
     expect(typeof describePostgres).toBe("function");

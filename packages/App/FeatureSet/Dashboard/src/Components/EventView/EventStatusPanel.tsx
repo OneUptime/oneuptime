@@ -47,6 +47,25 @@ export interface EventPanelAction {
   onClick: () => void;
   isDisabled?: boolean | undefined;
   tooltip?: string | undefined;
+  /*
+   * An action that goes somewhere else - Open in Slack - is a link: it opens
+   * in a new tab, and can be copied or opened with the browser's own
+   * gestures. Its tooltip, when it has one, says where it goes.
+   */
+  href?: string | undefined;
+  /*
+   * Choices under the button instead of one action: Open in Slack for a
+   * record with two Slack channels lists both.
+   */
+  menuItems?: Array<EventPanelMenuItem> | undefined;
+}
+
+export interface EventPanelMenuItem {
+  id: string;
+  label: string;
+  // The Open channel menu marks each channel with its product's logo.
+  icon?: IconProp | undefined;
+  onClick: () => void;
 }
 
 /*
@@ -239,6 +258,81 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const translatedActionLabel: string =
       translateString(action.label) || action.label;
+
+    if (action.menuItems && action.menuItems.length > 0 && !props.isDisabled) {
+      /*
+       * The menu's own wrapper is what the row lays out, so it grows on a
+       * phone the way the other buttons do (flex-auto), and the button
+       * fills it.
+       */
+      return (
+        <div
+          key={action.id}
+          className="flex min-w-[7rem] max-w-full flex-auto sm:max-w-64 sm:flex-none [&>div]:w-full"
+        >
+          <MoreMenu
+            text={translatedActionLabel}
+            dataTestId={action.id}
+            elementToBeShownInsteadOfButton={
+              <span className="inline-flex items-center gap-2">
+                {action.icon && (
+                  <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+                )}
+                <span className="truncate">{translatedActionLabel}</span>
+                <Icon
+                  icon={IconProp.ChevronDown}
+                  className="h-3.5 w-3.5 shrink-0 text-gray-400"
+                />
+              </span>
+            }
+            triggerClassName={`${actionBaseClassName} ${neutralActionClassName} w-full cursor-pointer`}
+          >
+            {action.menuItems.map((item: EventPanelMenuItem) => {
+              return (
+                <MoreMenuItem
+                  key={item.id}
+                  text={item.label}
+                  icon={item.icon}
+                  onClick={item.onClick}
+                />
+              );
+            })}
+          </MoreMenu>
+        </div>
+      );
+    }
+
+    if (action.href && !props.isDisabled && !action.isDisabled) {
+      // Where the link goes - "#incident-42" - is a name, not text to translate.
+      const linkTooltip: string | undefined = action.tooltip || undefined;
+
+      const link: ReactElement = (
+        <a
+          key={action.id}
+          id={action.id}
+          href={action.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${actionBaseClassName} ${neutralActionClassName}`}
+        >
+          {action.icon && (
+            <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+          )}
+          <span className="truncate">{translatedActionLabel}</span>
+        </a>
+      );
+
+      if (!linkTooltip) {
+        return link;
+      }
+
+      return (
+        <Tooltip key={action.id} text={linkTooltip}>
+          {link}
+        </Tooltip>
+      );
+    }
+
     const translatedTooltip: string | undefined = action.tooltip
       ? translateString(action.tooltip) || action.tooltip
       : undefined;

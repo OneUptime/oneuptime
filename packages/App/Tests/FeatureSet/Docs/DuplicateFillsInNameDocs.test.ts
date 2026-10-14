@@ -63,6 +63,18 @@ function duplicateWorkflowLabel(language: string): string {
   return `**${drawnActionLabel(language, "Duplicate Workflow")}**`;
 }
 
+/*
+ * The dashboard's Duplicate Dashboard, drawn the same way, and the Settings
+ * page it is on, as the dashboard's side menu names it.
+ */
+function duplicateDashboardLabel(language: string): string {
+  return `**${drawnActionLabel(language, "Duplicate Dashboard")}**`;
+}
+
+function settingsPageLabel(language: string): string {
+  return `**${drawnActionLabel(language, "Settings")}**`;
+}
+
 // The workflow guide's bullet about duplicating, in the Tidying up list.
 function duplicateWorkflowBullet(language: string): string {
   return (
@@ -88,8 +100,8 @@ describe("the Duplicate guides, in every language", () => {
     (language: string) => {
       const paragraph: string = duplicateDashboardParagraph(language);
 
-      expect(paragraph).toContain("**Duplicate Dashboard**");
-      expect(paragraph).toContain("→ Duplicate Dashboard**");
+      expect(paragraph).toContain(duplicateDashboardLabel(language));
+      expect(paragraph).toContain(settingsPageLabel(language));
       // The copy's name, and a copy of the copy's.
       expect(paragraph).toContain("Checkout API 2");
       expect(paragraph).toContain("Checkout API 3");
@@ -110,7 +122,7 @@ describe("the Duplicate guides, in every language", () => {
 describe("the English guides", () => {
   it("say where Duplicate Dashboard is, what the copy is called, and that it opens", () => {
     expect(duplicateDashboardParagraph("en")).toBe(
-      'To copy a dashboard, open it and go to **Settings → Duplicate Dashboard**. The copy\'s name is filled in for you: the dashboard\'s name, numbered past the names the project already has ("Checkout API" is copied as "Checkout API 2", and a copy of that one as "Checkout API 3"). Change it if you like, click **Duplicate Dashboard**, and the copy opens. It has the dashboard\'s widgets, variables, description and labels. Branding and custom domains stay with the original, and public sharing always starts off, so you can decide whether to turn it on.',
+      'To copy a dashboard, open it, go to its **Settings** page and click **Duplicate Dashboard**. The copy\'s name is filled in for you: the dashboard\'s name, numbered past the names the project already has ("Checkout API" is copied as "Checkout API 2", and a copy of that one as "Checkout API 3"). Change it if you like, confirm with **Duplicate Dashboard**, and the copy opens. It has the dashboard\'s widgets, variables, description and labels. Branding and custom domains stay with the original, and public sharing always starts off, so you can decide whether to turn it on.',
     );
   });
 

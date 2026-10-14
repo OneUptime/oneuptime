@@ -49,7 +49,7 @@ Para iniciar uma manualmente:
 @tab A partir de um evento
 1. Abra o incidente, alerta ou evento de manutenção programada e vá para a página **Runbooks** dele.
 2. Clique em **Executar Runbook**. A caixa de diálogo **Executar um Runbook** lista os runbooks do projeto que estão ligados.
-3. Clique em **Run** ao lado do runbook. A execução aparece na lista do evento: clique em **Visualizar** para abri-la.
+3. Clique em **Executar** ao lado do runbook. A execução aparece na lista do evento: clique em **Visualizar** para abri-la.
 @tab A partir do runbook
 1. Abra o runbook em **Runbooks**.
 2. Na **Visão geral** dele, clique em **Run Now**.

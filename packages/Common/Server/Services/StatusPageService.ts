@@ -304,6 +304,17 @@ export class Service extends ProjectReferencesService<StatusPage> {
 
   private static readonly DOMAIN_TO_ID_CACHE_TTL_MS: number = 60 * 1000;
 
+  /*
+   * The project of each status page, which never changes, kept per process
+   * (getProjectIdOfStatusPage). Only pages that were found are kept: a page
+   * made a moment ago is found at once, and ids nobody has cannot fill it.
+   */
+  private projectIdOfStatusPageCache: InMemoryTTLCache<string> =
+    new InMemoryTTLCache(10_000);
+
+  private static readonly PROJECT_ID_OF_STATUS_PAGE_CACHE_TTL_MS: number =
+    60 * 60 * 1000;
+
   public constructor() {
     super(StatusPage);
   }
@@ -324,11 +335,16 @@ export class Service extends ProjectReferencesService<StatusPage> {
     this.statusPageDomainToIdCache.clear();
   }
 
+  public clearProjectIdOfStatusPageCache(): void {
+    this.projectIdOfStatusPageCache.clear();
+  }
+
   /*
    * The project a status page belongs to, which never changes: its project
-   * column alone, read by its id as root. The page's cached overview is
-   * kept by its project's generation (StatusPageOverviewCache), which keeps
-   * this once per page. Null when there is no such page.
+   * column alone, read by its id as root, and kept per process for an hour.
+   * Every public request for a page asks it (BlockedProjectStatusPages), and
+   * the page's cached overview is kept by its project's generation
+   * (StatusPageOverviewCache). Null when there is no such page.
    */
   @CaptureSpan()
   public async getProjectIdOfStatusPage(
@@ -338,13 +354,31 @@ export class Service extends ProjectReferencesService<StatusPage> {
       return null;
     }
 
+    const key: string = statusPageId.toString().toLowerCase();
+
+    const kept: string | undefined = this.projectIdOfStatusPageCache.get(key);
+
+    if (kept) {
+      return new ObjectID(kept);
+    }
+
     const statusPage: StatusPage | null = await this.findOneById({
       id: statusPageId,
       select: { projectId: true },
       props: { isRoot: true },
     });
 
-    return statusPage?.projectId || null;
+    const projectId: ObjectID | null = statusPage?.projectId || null;
+
+    if (projectId) {
+      this.projectIdOfStatusPageCache.set(
+        key,
+        projectId.toString(),
+        Service.PROJECT_ID_OF_STATUS_PAGE_CACHE_TTL_MS,
+      );
+    }
+
+    return projectId;
   }
 
   /*

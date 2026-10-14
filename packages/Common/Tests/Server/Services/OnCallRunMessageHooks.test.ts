@@ -106,11 +106,8 @@ describe("OnCallDutyPolicyExecutionLogService", () => {
       .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
       .mockResolvedValue(1);
     jest
-      .spyOn(IncidentService, "getIncidentNumber")
-      .mockResolvedValue({ number: 8, numberWithPrefix: "INC-8" });
-    jest
-      .spyOn(IncidentService, "getIncidentLinkInDashboard")
-      .mockResolvedValue(URL.fromString("https://oneuptime.test/incident"));
+      .spyOn(OnCallDutyPolicyService, "getOnCallDutyPolicyLinkInDashboard")
+      .mockResolvedValue(URL.fromString("https://oneuptime.test/policy"));
 
     await hookOf(OnCallDutyPolicyExecutionLogService, "onCreateSuccess")(
       {
@@ -126,9 +123,9 @@ describe("OnCallDutyPolicyExecutionLogService", () => {
     const feed: Parameters<
       typeof IncidentFeedService.createIncidentFeedItem
     >[0] = feedSpy.mock.calls[0]![0];
-    expect(feed.feedInfoInMarkdown).toContain(
-      "On Call Policy Started Executing",
-    );
+    // One sentence (OnCallFeedText): the policy started paging.
+    expect(feed.feedInfoInMarkdown).toContain("On-call policy **[PolicyX](");
+    expect(feed.feedInfoInMarkdown).toContain("started paging.");
     // REGRESSION (screenshot 5, red box): this used to be posted to Slack and Teams.
     expect(feed.workspaceNotification).toBeUndefined();
   });
@@ -170,10 +167,43 @@ describe("OnCallDutyPolicyExecutionLogService", () => {
     expect(feedSpy).not.toHaveBeenCalled();
   });
 
-  test("a status update writes the feed entry, for the feed only", async () => {
+  test("a run that is only under way writes no feed entry: its start is already there", async () => {
+    const findOneById: SpyInstance<
+      typeof OnCallDutyPolicyExecutionLogService.findOneById
+    > = jest.spyOn(OnCallDutyPolicyExecutionLogService, "findOneById");
+
+    for (const status of [
+      OnCallDutyPolicyStatus.Scheduled,
+      OnCallDutyPolicyStatus.Started,
+      OnCallDutyPolicyStatus.Executing,
+    ]) {
+      await hookOf(OnCallDutyPolicyExecutionLogService, "onUpdateSuccess")(
+        {
+          updateBy: {
+            query: { _id: RUN_ID.toString() },
+            data: { status: status },
+            props: { isRoot: true },
+          },
+          carryForward: null,
+        },
+        [RUN_ID],
+      );
+    }
+
+    // The run's Slack / Teams message still hears of every change.
+    expect(refreshedIds()).toEqual([
+      RUN_ID.toString(),
+      RUN_ID.toString(),
+      RUN_ID.toString(),
+    ]);
+    expect(findOneById).not.toHaveBeenCalled();
+    expect(feedSpy).not.toHaveBeenCalled();
+  });
+
+  test("a status update that ends the run writes the feed entry, for the feed only", async () => {
     const stored: OnCallDutyPolicyExecutionLog = newRun();
-    stored.status = OnCallDutyPolicyStatus.Executing;
-    stored.statusMessage = "First escalation rule executed...";
+    stored.status = OnCallDutyPolicyStatus.Completed;
+    stored.statusMessage = "Stopped by an administrator";
 
     jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
@@ -197,7 +227,7 @@ describe("OnCallDutyPolicyExecutionLogService", () => {
       {
         updateBy: {
           query: { _id: RUN_ID.toString() },
-          data: { status: OnCallDutyPolicyStatus.Executing },
+          data: { status: OnCallDutyPolicyStatus.Completed },
           props: { isRoot: true },
         },
         carryForward: null,
@@ -208,7 +238,10 @@ describe("OnCallDutyPolicyExecutionLogService", () => {
     expect(refreshedIds()).toEqual([RUN_ID.toString()]);
     expect(feedSpy).toHaveBeenCalledTimes(1);
     expect(feedSpy.mock.calls[0]![0].feedInfoInMarkdown).toContain(
-      "On Call Policy Status Updated",
+      "stopped paging.",
+    );
+    expect(feedSpy.mock.calls[0]![0].feedInfoInMarkdown).toContain(
+      "Stopped by an administrator.",
     );
     // REGRESSION (screenshot 5, red box): "Status Updated ... Started / Executing" in chat.
     expect(feedSpy.mock.calls[0]![0].workspaceNotification).toBeUndefined();

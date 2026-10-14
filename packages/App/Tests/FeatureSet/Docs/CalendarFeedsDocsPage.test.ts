@@ -16,6 +16,7 @@ import {
   MIN_FUTURE_DAYS,
   PREVIOUS_TOKEN_GRACE_DAYS,
 } from "Common/Types/OnCallDutyPolicy/CalendarFeedWindow";
+import { strayMarkers } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -230,10 +231,24 @@ const DASHBOARD_UI_NAMES: Array<string> = [
   // The Add User Override form "Get cover" opens, as it asks.
   "Who is away?",
   "Who covers?",
+  // What Who covers? says until someone is picked: saved so, it skips you.
+  "Next person in the rotation",
   "Starts",
   "Ends",
   "Remind me before shifts",
+  // The link field's reveal button, and the Status panel with each badge it shows.
+  "Show",
+  "Status",
+  "Active",
+  "Waiting for first sync",
+  "Not fetched yet",
+  "Disabled",
+  "Needs regeneration",
+  // The card's ⋯ menu, and the panel's own Enable link button.
   "Regenerate link",
+  "Disable link",
+  "Enable link",
+  "Delete link",
   "Only my shifts on this schedule",
   "Add your shifts to your calendar",
   "Subscribe to this schedule",
@@ -429,6 +444,20 @@ describe("Calendar Feeds docs page", () => {
         );
 
         expect({ lang, missing }).toEqual({ lang, missing: [] });
+      }
+    });
+
+    /*
+     * A bold span that ends in punctuation and runs straight into a letter
+     * is never closed, and the reader sees its asterisks (strayMarkers): the
+     * labels each translation quotes in bold are drawn bold, in every script.
+     */
+    it("draws every bold label in every translation, with no asterisks left on the page", async () => {
+      for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
+        expect({
+          lang,
+          stray: await strayMarkers(readPage(lang), lang),
+        }).toEqual({ lang, stray: [] });
       }
     });
 
@@ -815,6 +844,49 @@ describe("Calendar Feeds docs page", () => {
           inDocs: true,
         });
       }
+    });
+
+    /*
+     * The card's Status panel wears one badge (FEED_HEALTH_LABELS). The page
+     * lists every one, in the order the code declares them, in the list
+     * under the paragraph that introduces the panel - and nothing else.
+     */
+    it("lists every badge the Status panel can show, in the code's order", () => {
+      const util: string = readRepoFile(
+        "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil.ts",
+      );
+      const start: number = util.indexOf("FEED_HEALTH_LABELS");
+      const block: string = util.slice(start, util.indexOf("};", start));
+      const badges: Array<string> = Array.from(
+        block.matchAll(/translationKey\("([^"]+)"\)/g),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1] || "";
+      });
+
+      expect(start).toBeGreaterThan(0);
+      expect(badges.length).toBeGreaterThanOrEqual(5);
+
+      const lines: Array<string> = english.split("\n");
+      const intro: number = lines.findIndex((line: string): boolean => {
+        return line.startsWith("The **Status** panel");
+      });
+
+      expect(intro).toBeGreaterThan(0);
+      expect(lines[intro + 1]).toBe("");
+
+      const listed: Array<string> = [];
+
+      for (const line of lines.slice(intro + 2)) {
+        const item: RegExpMatchArray | null = line.match(/^- \*\*([^*]+)\*\*:/);
+
+        if (!item) {
+          break;
+        }
+
+        listed.push(item[1] || "");
+      }
+
+      expect(listed).toEqual(badges);
     });
 
     it("names mobile controls exactly as the mobile app does", () => {

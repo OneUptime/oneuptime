@@ -61,7 +61,7 @@ Persönliche Feeds gelten pro Projekt: Ein zweites Projekt bekommt einen zweiten
 Klicken Sie auf **Kalenderlink erzeugen**. Die Karte **Ihre Bereitschaftsschichten abonnieren** bietet nun einen einzigen Ablauf zum Abonnieren:
 
 - **Zu Ihrem Kalender hinzufügen**: **Google Kalender** öffnet Google Kalender, der fragt, ob der Kalender hinzugefügt werden soll. **Apple Kalender / Outlook** öffnet die `webcal://`-Form des Links in der App, mit der Ihr Computer oder Telefon abonniert: Apple Kalender auf Mac, iPhone oder iPad, Outlook unter Windows.
-- **Oder Link kopieren**: **Link kopieren** kopiert den `https://`-Link für jede andere App, die einen Kalender per URL abonnieren kann. Der Link bleibt auf der Seite verborgen, bis Sie ihn per Klick einblenden.
+- **Oder Link kopieren**: **Link kopieren** kopiert den `https://`-Link für jede andere App, die einen Kalender per URL abonnieren kann, ohne ihn anzuzeigen. Der Link bleibt auf der Seite verborgen, bis Sie auf **Anzeigen** klicken.
 
 ### Den Link abonnieren
 
@@ -78,19 +78,27 @@ Klicken Sie auf der Karte **Kalender-Feed-Einstellungen** auf **Einstellungen be
 | **Tage vergangener Schichten** | Wie weit der Kalender zurückreicht (Standard 2, höchstens 60). |
 | **Tage im Voraus** | Wie weit der Kalender vorausreicht (Standard 90, zwischen 7 und 180). |
 
-Die Statuszeile zeigt, wann der Link zuletzt abgerufen wurde, von welcher Kalender-App, wie oft, und die letzten vier Zeichen des Tokens, damit Sie Links unterscheiden können. Wurde der Link nach zwei Tagen von nichts abgerufen, fragt die Seite, ob der Server aus dem Internet erreichbar ist (siehe Fehlerbehebung).
+Der Bereich **Status** neben den Optionen zum Abonnieren zeigt, ob der Link funktioniert: wann er zuletzt abgerufen wurde und von welcher Kalender-App, ungefähr wie oft, und die letzten vier Zeichen des Tokens, damit Sie Links unterscheiden können. Sein Badge zeigt:
+
+- **Aktiv**: Eine Kalender-App hat den Link abgerufen.
+- **Wartet auf die erste Synchronisierung**: Noch nichts hat den Link abgerufen. Die meisten Apps tun das wenige Minuten nach dem Abonnieren; Google Kalender kann einige Stunden brauchen.
+- **Noch nicht abgerufen**: In den zwei Tagen seit seiner Erstellung hat nichts den Link abgerufen, daher fragt die Seite, ob der Server von dort erreichbar ist, wo Ihre Kalender-App läuft (siehe Fehlerbehebung).
+- **Deaktiviert**: Der Link liefert einen leeren Kalender, bis Sie auf **Link aktivieren** klicken.
+- **Muss neu erzeugt werden**: Der gespeicherte Link kann nicht mehr gelesen werden, meist weil sich das Verschlüsselungsgeheimnis des Servers geändert hat. **Link neu erzeugen** erzeugt einen neuen.
 
 ### Den Link verwalten
+
+Der Rest steckt im Menü **⋯** der Karte. **Link neu erzeugen** und **Link löschen** fragen nach, bevor sie etwas tun.
 
 | Aktion | Was passiert |
 | --- | --- |
 | **Link neu erzeugen** | Erstellt ein neues Token. Jede App, die den alten Link abonniert hat, wird nicht mehr aktualisiert: 30 Tage lang liefert der alte Link einen leeren Kalender, damit diese Apps ihre Kopie leeren, danach antwortet er mit 404. Abonnieren Sie den neuen Link erneut. |
-| **Deaktivieren** | Behält den Link, liefert aber einen leeren Kalender, bis Sie ihn wieder aktivieren. |
-| **Löschen** | Entfernt den Link. Apps, die ihn weiter abrufen, erhalten 404 und zeigen weiterhin, was sie zuletzt geladen haben — deaktivieren Sie zuerst, wenn sie sich leeren sollen. |
+| **Link deaktivieren** | Behält den Link, liefert aber einen leeren Kalender, bis Sie auf **Link aktivieren** klicken, im selben Menü oder im Bereich **Status**. |
+| **Link löschen** | Entfernt den Link. Apps, die ihn weiter abrufen, erhalten 404 und zeigen weiterhin, was sie zuletzt geladen haben — deaktivieren Sie zuerst, wenn sie sich leeren sollen. |
 
 ### Bevorstehende Schichten und Vertretung
 
-Die Seite listet außerdem Ihre **Bevorstehende Schichten** (die nächsten 30 Tage) und die weiter unten beschriebene Karte **Vor Schichten erinnern**. Jede Ihrer eigenen Schichten hat einen Link **Vertretung finden**: Er öffnet die Benutzervertretungen im Projekt der Schicht mit einer neuen, für diese Schicht vorausgefüllten Vertretung, Sie als **Wer ist abwesend?** und die Zeiten der Schicht als **Beginnt** und **Endet** (ab jetzt, falls die Schicht schon begonnen hat), sodass nur noch **Wer vertritt?** fehlt. Die Vertretung leitet in dieser Zeit alle Ihre Alarmierungen aus jeder Bereitschaftsrichtlinie an die vertretende Person weiter; eine Schicht, die nur innerhalb einer Richtlinie existiert, wird stattdessen auf der Seite für Benutzervertretungen dieser Richtlinie vertreten. Eine Schicht, in der Sie selbst jemanden vertreten, hat kein **Vertretung finden**: Vertretungen verketten sich nicht, eine Vertretung der Vertretung würde also nichts ändern.
+Die Seite listet außerdem Ihre **Bevorstehende Schichten** (die nächsten 30 Tage) und die weiter unten beschriebene Karte **Vor Schichten erinnern**. Jede Ihrer eigenen Schichten hat einen Link **Vertretung finden**: Er öffnet die Benutzervertretungen im Projekt der Schicht mit einer neuen, für diese Schicht vorausgefüllten Vertretung, Sie als **Wer ist abwesend?** und die Zeiten der Schicht als **Beginnt** und **Endet** (ab jetzt, falls die Schicht schon begonnen hat), sodass nur noch **Wer vertritt?** fehlt. Die Vertretung leitet in dieser Zeit alle Ihre Alarmierungen aus jeder Bereitschaftsrichtlinie an die vertretende Person weiter; eine Schicht, die nur innerhalb einer Richtlinie existiert, wird stattdessen auf der Seite für Benutzervertretungen dieser Richtlinie vertreten. Lassen Sie **Wer vertritt?** auf **Nächste Person in der Rotation**, werden Sie stattdessen übersprungen: Jede Ihrer Schichten geht an die nächste Person in der Rotation, die nicht abwesend ist. Eine Schicht, in der Sie selbst jemanden vertreten, hat kein **Vertretung finden**: Vertretungen verketten sich nicht, eine Vertretung der Vertretung würde also nichts ändern.
 
 Derselbe persönliche Link, mit `?schedule=<id>` auf einen Plan gefiltert, wird auf der Seite jedes Plans als **Nur meine Schichten in diesem Dienstplan** angeboten, und das Bereitschaftsbanner sowie die Seite **Meine Bereitschaftsrichtlinien** enthalten einen Link **Ihre Schichten in Ihren Kalender übernehmen** zur Seite oben.
 
@@ -109,7 +117,7 @@ Verwenden Sie in OneUptime **Google Kalender** oder **Apple Kalender / Outlook**
 
 Die Schaltfläche **Google Kalender** öffnet Googles Seite zum Hinzufügen per URL, `https://calendar.google.com/calendar/r?cid=` gefolgt von der `webcal://`-Form des Links, prozentkodiert. Diese Seite nimmt nur die `webcal://`-Form: Steht dort die `https://`-Form, antwortet Google mit „Unable to add calendar. Check the URL.“ **Per URL** nimmt beide Formen.
 
-Google ruft den Feed **von Googles Servern** ab, der OneUptime-Server muss also aus dem Internet erreichbar sein — OneUptime Cloud ist es immer; für eine selbst gehostete Installation siehe Fehlerbehebung. Der erste Abruf erfolgt meist wenige Minuten nach dem Abonnieren; danach aktualisiert Google etwa alle 8 bis 24 Stunden, manchmal seltener. Es gibt keine Aktualisieren-Schaltfläche für abonnierte Kalender, und Google ignoriert die Aktualisierungshinweise im Feed. Die Statuszeile der Feed-Seite zeigt **Zuletzt abgerufen … von Google Calendar**, sobald Google den Link gelesen hat.
+Google ruft den Feed **von Googles Servern** ab, der OneUptime-Server muss also aus dem Internet erreichbar sein — OneUptime Cloud ist es immer; für eine selbst gehostete Installation siehe Fehlerbehebung. Der erste Abruf erfolgt meist wenige Minuten nach dem Abonnieren; danach aktualisiert Google etwa alle 8 bis 24 Stunden, manchmal seltener. Es gibt keine Aktualisieren-Schaltfläche für abonnierte Kalender, und Google ignoriert die Aktualisierungshinweise im Feed. Der Status auf der Karte zeigt **Zuletzt abgerufen … von Google Calendar**, sobald Google den Link gelesen hat.
 
 Name und Zeitzone des Kalenders werden **nur beim ersten Abonnieren** gelesen: Wird ein Plan später umbenannt, ändert sich der Kalendername in Google nicht — entfernen Sie den Kalender und fügen Sie ihn erneut hinzu, wenn der Name wichtig ist. Google verwirft Erinnerungen aus Kalenderdateien; legen Sie also Standardbenachrichtigungen für diesen Kalender in den Google-Einstellungen fest oder verwenden Sie besser die eigenen Erinnerungen von OneUptime. Google merkt sich eine Adresse, die es nicht lesen konnte: Haben Sie das Problem behoben, fügen Sie den Link mit angehängtem `?nocache=1` erneut hinzu (OneUptime ignoriert unbekannte Abfrageparameter, der Feed bleibt unverändert) oder erzeugen Sie den Link neu. Die Google-Kalender-App unter Android und iOS kann keine URL abonnieren; fügen Sie den Link auf einem Computer hinzu, dann erscheint er auf dem Telefon.
 @tab Outlook im Web
@@ -194,7 +202,7 @@ Ein geteilter Link gehört dem **Projekt**, nicht der Person, die ihn kopiert ha
 
 ### Plan-Feed
 
-Auf der Seite eines Plans hat die Karte **Diesen Dienstplan abonnieren** zwei Hälften: **Nur meine Schichten in diesem Dienstplan** (Ihr persönlicher Link mit Planfilter) und **Alle Schichten in diesem Dienstplan (geteilter Teamlink)**. Jeder mit der Berechtigung **Bearbeiten** für Pläne kann **Geteilten Link veröffentlichen**, ihn mit **Link neu erzeugen** erneuern oder **Deaktivieren**; jeder, der den Plan lesen darf, kann ihn kopieren. Die Karte zeigt, wann der Link zuletzt rotiert wurde.
+Auf der Seite eines Plans hat die Karte **Diesen Dienstplan abonnieren** zwei Hälften: **Nur meine Schichten in diesem Dienstplan** (Ihr persönlicher Link mit Planfilter) und **Alle Schichten in diesem Dienstplan (geteilter Teamlink)**. Jeder mit der Berechtigung **Bearbeiten** für Pläne kann **Geteilten Link veröffentlichen** und ihn im Menü **⋯** der Karte mit **Link neu erzeugen** erneuern oder mit **Link deaktivieren** abschalten; jeder, der den Plan lesen darf, kann ihn kopieren. Der Status der Karte zeigt, wann der Link zuletzt rotiert wurde.
 
 ### Projekt-Feed
 
@@ -231,7 +239,7 @@ Der Feed zeigt die Rotation, **wie sie jetzt eingerichtet ist**, auch für verga
 
 - Das Token im Link ist das einzige Zugangsmerkmal. Wer den Link hat, sieht die Schichten — Namen, Pläne, Richtlinien —, bis er neu erzeugt wird. Fügen Sie Links nicht in Chaträume oder Tickets ein; braucht ein Team einen Kalender, teilen Sie den Plan- oder Projekt-Link statt Ihres persönlichen.
 - Links gelten pro Projekt. Ein geleakter persönlicher Link legt die Schichten eines Projekts offen, nicht die aller Projekte, denen Sie angehören.
-- Das Neuerzeugen eines Links verschiebt das alte Token in eine 30-tägige Schonfrist (leerer Kalender, danach 404). **Deaktivieren** liefert einen leeren Kalender. Ein unbekannter oder abgelaufener Link antwortet mit einem schlichten 404 ohne Hinweis. Leere Kalender bringen abonnierte Apps dazu, ihre Kopie zu leeren; ein 404 lässt sie die Kopie behalten — deshalb liefern Deaktivieren und Neuerzeugen leere Kalender.
+- Das Neuerzeugen eines Links verschiebt das alte Token in eine 30-tägige Schonfrist (leerer Kalender, danach 404). **Link deaktivieren** liefert einen leeren Kalender. Ein unbekannter oder abgelaufener Link antwortet mit einem schlichten 404 ohne Hinweis. Leere Kalender bringen abonnierte Apps dazu, ihre Kopie zu leeren; ein 404 lässt sie die Kopie behalten — deshalb liefern Deaktivieren und Neuerzeugen leere Kalender.
 - Tokens werden gehasht gespeichert; die auf der Einstellungsseite angezeigte Kopie ist mit `ENCRYPTION_SECRET` verschlüsselt. Setzen Sie diese Variable bei einer selbst gehosteten Installation auf ein echtes Geheimnis — der Server warnt beim Start, wenn sie nicht gesetzt ist oder noch einer der Platzhalter aus diesem Repository ist (`secret` oder das `please-change-this-to-random-value`, das `config.example.env` setzt). Ändern Sie sie später, bietet die Seite **Link neu erzeugen** an, weil die gespeicherte Kopie nicht mehr gelesen werden kann; der Feed funktioniert weiter, bis Sie das tun.
 - Feed-Antworten sind mit `Cache-Control: private` markiert, von Suchmaschinen ausgeschlossen (`X-Robots-Tag: noindex`) und pro Link sowie pro Client-Adresse ratenbegrenzt.
 
@@ -277,7 +285,7 @@ Ebenfalls relevant:
 :::
 
 :::details Google Kalender zeigt den Kalender, aber keine Schichten
-Prüfen Sie zuerst die Statuszeile der Feed-Seite. **Zuletzt abgerufen … von Google Calendar** bedeutet, dass Google den Link gelesen hat: Öffnen Sie den Link im Browser und sehen Sie sich an, was er liefert — ein leerer Kalender nennt seinen Grund in `X-WR-CALDESC` (siehe „Der Kalender ist leer“ unten).
+Prüfen Sie zuerst den Status auf der Karte. **Zuletzt abgerufen … von Google Calendar** bedeutet, dass Google den Link gelesen hat: Öffnen Sie den Link im Browser und sehen Sie sich an, was er liefert — ein leerer Kalender nennt seinen Grund in `X-WR-CALDESC` (siehe „Der Kalender ist leer“ unten).
 
 **Noch nicht abgerufen** bedeutet, dass Google ihn nicht lesen konnte: Von einem Rechner außerhalb Ihres Netzwerks muss `curl -sI <link>` sofort mit `200` und `Content-Type: text/calendar` antworten. Eine Umleitung, eine Anmeldeseite, eine Firewall oder eine Bot-Prüfung vor OneUptime stoppt Googles Abrufer; das tat auch eine Umleitungsschleife in älteren OneUptime-Versionen, auf Installationen mit `PROVISION_SSL=true`, bei denen TLS vor Nginx endet. Sobald er mit `200` antwortet, fügen Sie den Link mit angehängtem `?nocache=1` erneut hinzu, damit Google ihn neu liest.
 :::
@@ -285,7 +293,7 @@ Prüfen Sie zuerst die Statuszeile der Feed-Seite. **Zuletzt abgerufen … von G
 :::details Nichts hat den Link abgerufen, oder „URL konnte nicht abgerufen werden“
 Google Kalender, Outlook im Web, Fastmail und Proton rufen **von ihren eigenen Servern** ab, der OneUptime-Host muss also aus dem öffentlichen Internet mit einem Zertifikat erreichbar sein, dem sie vertrauen. Eine Installation in einem privaten Netzwerk, hinter einem VPN oder mit einer internen Zertifizierungsstelle ist für sie unerreichbar, egal was Sie einfügen.
 
-Apple Kalender, Thunderbird und das klassische Outlook rufen vom Gerät ab und funktionieren überall dort, wo das Gerät das Dashboard öffnen kann — nachdem dem Zertifikat auf diesem Gerät vertraut wurde, falls es selbstsigniert ist. Die Statuszeile der Feed-Seite sagt Ihnen, ob etwas den Link bereits abgerufen hat; `curl -I` gegen den Link von außerhalb Ihres Netzwerks ist die schnellste Prüfung:
+Apple Kalender, Thunderbird und das klassische Outlook rufen vom Gerät ab und funktionieren überall dort, wo das Gerät das Dashboard öffnen kann — nachdem dem Zertifikat auf diesem Gerät vertraut wurde, falls es selbstsigniert ist. Der Status auf der Karte sagt Ihnen, ob etwas den Link bereits abgerufen hat; `curl -I` gegen den Link von außerhalb Ihres Netzwerks ist die schnellste Prüfung:
 
 ```bash
 curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"

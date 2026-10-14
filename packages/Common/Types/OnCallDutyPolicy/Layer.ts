@@ -65,6 +65,21 @@ export interface MultiLayerProps {
  */
 export const ROTATION_PERIOD_START_KEY: string = "rotationPeriodStartsAt";
 
+/*
+ * Key stamped on an event, when asked for (LayerExpansionOptions.withTurnIndex),
+ * holding the place in the layer's turn order - the index into
+ * LayerProps.users - of the person whose turn the event is.
+ *
+ * The person alone does not say it: the same person can take turns twice in
+ * one layer ([Alice, Bob, Alice, Carol]), and "the next person in the
+ * rotation" after each of those turns is somebody different. The skip pass
+ * (UserOverrideUtil.applySkipsToLayerEvents) reads it to hand the turn of
+ * somebody who is away to whoever comes after THIS turn. It is removed from
+ * every event the resolution hands out (ScheduleResolution), so nothing
+ * outside the engine ever sees it.
+ */
+export const ROTATION_TURN_INDEX_KEY: string = "rotationTurnIndex";
+
 export interface PriorityCalendarEvents extends CalendarEvent {
   priority: number;
   /*
@@ -90,6 +105,12 @@ export interface LayerExpansionOptions {
    * nobody), an in-window hit keeps the events produced so far.
    */
   maxSimulationIterations?: number;
+  /*
+   * Stamp ROTATION_TURN_INDEX_KEY on every event: whose place in the layer's
+   * turn order the event is. Off unless asked, so callers that never ask get
+   * exactly the events they always did.
+   */
+  withTurnIndex?: boolean;
 }
 
 export interface LayerEventsResult {
@@ -99,6 +120,30 @@ export interface LayerEventsResult {
    * engine's own ceiling) before reaching the end of the window, i.e. the
    * events may be incomplete.
    */
+  truncated: boolean;
+}
+
+/*
+ * One layer's own events, before the layers are merged by priority: what
+ * the skip pass works on, because "the next person in the rotation" is a
+ * question about one layer's turn order, and a layer whose people are all
+ * away must leave its time to the layers below it - which only holds if the
+ * skip happens before the merge decides whose time it is.
+ */
+export interface ExpandedLayer {
+  // 1 for the top layer: a lower number wins the merge.
+  priority: number;
+  layerId?: string;
+  layerName?: string;
+  // The layer's people as ids, in turn order (LayerProps.users).
+  userIds: Array<string>;
+  // Stamped with priority (and layerId / layerName when the caller set them).
+  events: Array<PriorityCalendarEvents>;
+}
+
+export interface ExpandedLayers {
+  layers: Array<ExpandedLayer>;
+  // True when any layer's expansion hit an iteration cap.
   truncated: boolean;
 }
 
@@ -164,6 +209,8 @@ export default class LayerUtil {
       options.maxSimulationIterations > 0
         ? Math.floor(options.maxSimulationIterations)
         : undefined;
+
+    const withTurnIndex: boolean = options?.withTurnIndex === true;
 
     // Looop vars
     let currentUserIndex: number = 0;
@@ -236,6 +283,7 @@ export default class LayerUtil {
           data.users,
           currentUserIndex,
           firstPeriodTrueStart,
+          withTurnIndex,
         ),
       ];
 
@@ -353,6 +401,7 @@ export default class LayerUtil {
            * period's TRUE start so the identity does not move with the window.
            */
           isFirstPeriod ? firstPeriodTrueStart : currentEventStartTime,
+          withTurnIndex,
         ),
       );
 
@@ -1561,6 +1610,8 @@ export default class LayerUtil {
     currentUserIndex: number,
     // True (un-clamped) start of the rotation period these segments came from.
     rotationPeriodStartsAt: Date,
+    // Stamp ROTATION_TURN_INDEX_KEY (see LayerExpansionOptions.withTurnIndex).
+    withTurnIndex: boolean,
   ): Array<CalendarEvent> {
     const events: Array<CalendarEvent> = [];
 
@@ -1578,6 +1629,12 @@ export default class LayerUtil {
       // See ROTATION_PERIOD_START_KEY.
       (event as unknown as Record<string, unknown>)[ROTATION_PERIOD_START_KEY] =
         rotationPeriodStartsAt.getTime();
+
+      // See ROTATION_TURN_INDEX_KEY.
+      if (withTurnIndex) {
+        (event as unknown as Record<string, unknown>)[ROTATION_TURN_INDEX_KEY] =
+          currentUserIndex;
+      }
 
       events.push(event);
     }
@@ -1602,25 +1659,59 @@ export default class LayerUtil {
     data: MultiLayerProps,
     options?: LayerExpansionOptions | undefined,
   ): LayerEventsResult {
+    const expanded: ExpandedLayers = this.getLayerEventsWithMeta(data, {
+      ...(options?.maxSimulationIterations !== undefined
+        ? { maxSimulationIterations: options.maxSimulationIterations }
+        : {}),
+    });
+
     const events: Array<PriorityCalendarEvents> = [];
+
+    for (const layer of expanded.layers) {
+      events.push(...layer.events);
+    }
+
+    return {
+      events: this.mergeLayerEvents(events, {
+        getNumberOfEvents: options?.getNumberOfEvents,
+      }),
+      truncated: expanded.truncated,
+    };
+  }
+
+  /*
+   * The first half of getMultiLayerEventsWithMeta: every layer expanded over
+   * the window on its own, its events stamped with the layer's priority (and
+   * id and name, when the caller set them), but NOT merged yet. The skip pass
+   * runs between this and mergeLayerEvents (see ScheduleResolution).
+   *
+   * getNumberOfEvents is never forwarded to the per-layer expansion: capping
+   * each layer to N events before the priority merge can drop a lower-
+   * priority (fallback) layer's post-block coverage - if a higher-priority
+   * layer's restricted block swallows the fallback's first N events, the
+   * fallback's (N+1)-th event, the true "next" on call after the block, is
+   * never generated. The cap is applied once, after the merge.
+   */
+  public getLayerEventsWithMeta(
+    data: MultiLayerProps,
+    options?: LayerExpansionOptions | undefined,
+  ): ExpandedLayers {
+    const layers: Array<ExpandedLayer> = [];
     let layerPriority: number = 1;
     let truncated: boolean = false;
 
     const layerOptions: LayerExpansionOptions | undefined =
-      options?.maxSimulationIterations !== undefined
-        ? { maxSimulationIterations: options.maxSimulationIterations }
+      options?.maxSimulationIterations !== undefined ||
+      options?.withTurnIndex === true
+        ? {
+            ...(options.maxSimulationIterations !== undefined
+              ? { maxSimulationIterations: options.maxSimulationIterations }
+              : {}),
+            ...(options.withTurnIndex === true ? { withTurnIndex: true } : {}),
+          }
         : undefined;
 
     for (const layer of data.layers) {
-      /*
-       * Do NOT forward getNumberOfEvents to the per-layer expansion. Capping
-       * each layer to N events before the priority merge can drop a lower-
-       * priority (fallback) layer's post-block coverage: if a higher-priority
-       * layer's restricted block swallows the fallback's first N events, the
-       * fallback's (N+1)-th event — the true "next" on-call after the block —
-       * is never generated, corrupting the merged "next" roster. The cap is
-       * applied only once, after the merge, below.
-       */
       const layerResult: LayerEventsResult = this.getEventsWithMeta(
         {
           users: layer.users,
@@ -1636,6 +1727,22 @@ export default class LayerUtil {
       );
 
       truncated = truncated || layerResult.truncated;
+
+      const expandedLayer: ExpandedLayer = {
+        priority: layerPriority,
+        userIds: (layer.users || []).map((user: UserModel): string => {
+          return user?.id?.toString() || "";
+        }),
+        events: [],
+      };
+
+      if (layer.layerId !== undefined) {
+        expandedLayer.layerId = layer.layerId;
+      }
+
+      if (layer.layerName !== undefined) {
+        expandedLayer.layerName = layer.layerName;
+      }
 
       /*
        * Add priority (and, when the caller identified the layer, its id and
@@ -1656,28 +1763,47 @@ export default class LayerUtil {
           priorityEvent.layerName = layer.layerName;
         }
 
-        events.push(priorityEvent);
+        expandedLayer.events.push(priorityEvent);
       }
+
+      layers.push(expandedLayer);
 
       // increment layer priority
       layerPriority++;
     }
 
-    // now remove the overlapping events
+    return { layers, truncated };
+  }
 
+  /*
+   * The second half of getMultiLayerEventsWithMeta: the layers' events merged
+   * by priority (removeOverlappingEvents, which MUTATES the events it is
+   * given - hand it copies when the same events are merged more than once),
+   * then cut to getNumberOfEvents when asked. Every event's turn index
+   * (ROTATION_TURN_INDEX_KEY) is removed: it only means something inside one
+   * layer.
+   */
+  public mergeLayerEvents(
+    events: Array<PriorityCalendarEvents>,
+    options?: { getNumberOfEvents?: number | undefined } | undefined,
+  ): Array<CalendarEvent> {
     const nonOverlappingEvents: Array<CalendarEvent> =
       this.removeOverlappingEvents(events);
 
-    if (options?.getNumberOfEvents !== undefined) {
-      if (nonOverlappingEvents.length > options.getNumberOfEvents) {
-        return {
-          events: nonOverlappingEvents.slice(0, options.getNumberOfEvents),
-          truncated,
-        };
-      }
+    for (const event of nonOverlappingEvents) {
+      delete (event as unknown as Record<string, unknown>)[
+        ROTATION_TURN_INDEX_KEY
+      ];
     }
 
-    return { events: nonOverlappingEvents, truncated };
+    if (
+      options?.getNumberOfEvents !== undefined &&
+      nonOverlappingEvents.length > options.getNumberOfEvents
+    ) {
+      return nonOverlappingEvents.slice(0, options.getNumberOfEvents);
+    }
+
+    return nonOverlappingEvents;
   }
 
   public removeOverlappingEvents(

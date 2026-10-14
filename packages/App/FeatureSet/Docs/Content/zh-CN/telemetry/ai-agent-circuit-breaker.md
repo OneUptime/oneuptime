@@ -125,11 +125,11 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 添加触发器
 
-点击虚线框 **Choose what starts this workflow** ，在 **Add Trigger** 面板中选择 **On Create Alert** 。点击触发器，在 **Select Fields** 中勾选标题和描述，然后点击 **保存** 。块上的 ID `alert-on-create-1` 是后续块引用它的方式。
+点击虚线框 **Choose what starts this workflow** ，在 **Add Trigger** 面板中选择 **On Create Alert** 。点击触发器： **Fields to pass on** 一开始就带有标题，所以点击 **添加字段** ，勾选描述，然后点击 **保存** 。块上的 ID `alert-on-create-1` 是后续块引用它的方式。
 
 ### 检查标题
 
-点击 **添加组件** ，选择 **If / Else** ，把触发器的 **Success** 连接点连到它。把 **Value to check** 设为警报标题（点击 **{ }** 后选择它），把 **Comparison** 设为 **包含** ，把 **Compare with** 设为你的触发条件标题共有的开头，例如 `LLM budget exceeded`。
+点击 **添加组件** ，选择 **If / Else** ，把触发器的 **Success** 连接点连到它。把 **要检查的值** 设为警报标题（点击 **{ }** 后选择它），把 **比较** 设为 **包含** ，把 **比较对象** 设为你的触发条件标题共有的开头，例如 `LLM budget exceeded`。
 
 ### 调用你的端点
 
@@ -189,7 +189,7 @@ API 块的 **Request Headers** ：
 :::
 
 :::details 工作流运行了，但总是走 No 分支
-标题为空或不匹配。触发器的 **Select Fields** 中未勾选的字段会以空值到达，所以请勾选标题。然后把警报标题与 **Compare with** 对比：**包含** 必须能在其中找到完全相同的文本。
+标题为空或不匹配。不在触发器的 **Fields to pass on** 中的字段会以空值到达，所以请把标题加进去。然后把警报标题与 **比较对象** 对比：**包含** 必须能在其中找到完全相同的文本。
 :::
 
 :::details 你的端点返回 401

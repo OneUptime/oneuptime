@@ -28,6 +28,14 @@ interface PushNotificationMessage {
    *     channel granted Do Not Disturb access).
    */
   isCriticalAlert?: boolean;
+  /*
+   * The alarm and volume the device chose for critical pages
+   * (UserPush.criticalAlertSound, UserPush.criticalAlertVolume - a
+   * CriticalAlertSound and a percentage). Read only when isCriticalAlert is
+   * set: an ordinary push follows the phone's own sound settings.
+   */
+  criticalAlertSound?: string | undefined;
+  criticalAlertVolume?: number | undefined;
 }
 
 export default PushNotificationMessage;

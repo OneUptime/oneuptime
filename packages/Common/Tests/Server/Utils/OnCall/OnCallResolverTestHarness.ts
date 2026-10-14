@@ -397,7 +397,8 @@ export function makeOverride(data: {
   id: string;
   projectId: string;
   overrideUserId: string;
-  routeAlertsToUserId: string;
+  // Who covers; null for a skip (the next person in the rotation covers).
+  routeAlertsToUserId: string | null;
   startsAt: Date;
   endsAt: Date;
   policyId?: string | undefined;
@@ -408,7 +409,9 @@ export function makeOverride(data: {
     id: oid(data.id),
     projectId: oid(data.projectId),
     overrideUserId: oid(data.overrideUserId),
-    routeAlertsToUserId: oid(data.routeAlertsToUserId),
+    routeAlertsToUserId: data.routeAlertsToUserId
+      ? oid(data.routeAlertsToUserId)
+      : null,
     startsAt: data.startsAt,
     endsAt: data.endsAt,
     onCallDutyPolicyId: data.policyId ? oid(data.policyId) : null,

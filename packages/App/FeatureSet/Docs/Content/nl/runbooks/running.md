@@ -49,7 +49,7 @@ Zo start u er een met de hand:
 @tab Vanuit een evenement
 1. Open het incident, de waarschuwing of het geplande onderhoudsevenement en ga naar de pagina **Runbooks** ervan.
 2. Klik op **Runbook uitvoeren**. Het dialoogvenster **Een runbook uitvoeren** toont de runbooks van het project die zijn ingeschakeld.
-3. Klik naast het runbook op **Run**. De uitvoering verschijnt in de lijst van het evenement: klik op **Bekijken** om haar te openen.
+3. Klik naast het runbook op **Uitvoeren**. De uitvoering verschijnt in de lijst van het evenement: klik op **Bekijken** om haar te openen.
 @tab Vanuit het runbook
 1. Open het runbook via **Runbooks**.
 2. Klik op het **Overzicht** ervan op **Run Now**.

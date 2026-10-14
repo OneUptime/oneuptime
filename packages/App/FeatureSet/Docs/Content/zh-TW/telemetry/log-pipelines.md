@@ -110,7 +110,7 @@ flowchart TB
 
 ### 範例：Sophos XGS 防火牆
 
-當 Sophos XGS 防火牆把 syslog 傳送到 [探測器](/docs/monitor/network-device-monitor) 時，每則訊息都會儲存為該網路設備的日誌，syslog 訊息即為其內文。若要剖析它：
+OneUptime 會自行把 Sophos 和 FortiGate 的 syslog 讀取為 `sophos.*` 和 `fortigate.*` 屬性（請參閱[網路事件](/docs/monitor/network-events)）；這個範例手動建立同樣的結果，就像你為它不了解的格式所做的那樣。當 Sophos XGS 防火牆把 syslog 傳送到 [探測器](/docs/monitor/network-device-monitor) 時，每則訊息都會儲存為該網路設備的日誌，syslog 訊息即為其內文。若要剖析它：
 
 :::steps
 #### 為防火牆建立管道
@@ -199,7 +199,7 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 
 ## 類別處理器
 
-依序評估規則清單，並把第一個篩選器符合的規則名稱儲存到目標屬性中，讓你可以一次搜尋所有 "Payment Error" 日誌。設定 **目標屬性**（預設為 `category`），然後新增 **類別規則**：每條規則包含一個 **Category name** 與 **When logs match** 下的條件。第一個符合的規則生效；不符合任何規則的日誌會保持不變。
+依序評估規則清單，並把第一個篩選器符合的規則名稱儲存到目標屬性中，讓你可以一次搜尋所有 "Payment Error" 日誌。設定 **目標屬性**（預設為 `category`），然後新增 **類別規則**：每條規則包含一個 **Category name** 與 **When logs match** 下的條件。第一個符合的規則生效；不符合任何規則的日誌會保持不變。在網路設備的日誌上，一條以事件形式命名的規則（`ups.on_battery`），放在目標屬性 `event.name` 下，會使該日誌成為[網路事件](/docs/monitor/network-events#你自己的事件)。
 
 ## 後續步驟
 

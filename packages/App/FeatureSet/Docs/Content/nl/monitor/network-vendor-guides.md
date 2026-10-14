@@ -31,7 +31,7 @@ flowchart TB
 
 - Een [netwerkapparaat](/docs/monitor/network-device-monitor) per kast, gepolld door een sonde die het kan bereiken, met een leverancierssjabloon dat de juiste gezondheids-OID's en [SNMP-tabellen](/docs/monitor/network-device-monitor#snmp-tabellen) meebrengt.
 - Een netwerkapparaat-monitor per apparaat voor de waarschuwingen. Maak hem vanaf de pagina van het apparaat zodat de [aanbevolen waarschuwingen](/docs/monitor/network-device-monitor#aanbevolen-waarschuwingspakket), inclusief één waarschuwing per rij voor elke tabel die weet hoe gezond eruitziet, voor je worden ingevuld. Voor een vloot houdt een [waarschuwingsbeleid](/docs/monitor/network-device-monitor#waarschuwingsbeleid) er een bij op elk apparaat.
-- Voor wat een leverancier alleen in zijn logs meldt: syslog naar de sonde, een [logboekpipeline](/docs/telemetry/log-pipelines) om elke regel in attributen om te zetten, [logs-monitors met Group By](/docs/monitor/logs-monitor#waarschuwingen-per-groep-group-by) om één keer per tunnel of gateway te waarschuwen, en [opnameregels voor logboeken](/docs/telemetry/log-recording-rules) om de getallen in die logs in grafieken te zetten.
+- Voor wat een leverancier alleen in zijn logs meldt: syslog naar de sonde, die OneUptime zelf als [netwerkgebeurtenissen](/docs/monitor/network-events) leest, [logs-monitors met Group By](/docs/monitor/logs-monitor#waarschuwingen-per-groep-group-by) om één keer per tunnel of gateway te waarschuwen, en [opnameregels voor logboeken](/docs/telemetry/log-recording-rules) om de getallen in die logs in grafieken te zetten.
 
 ## Sophos Firewall (XGS / SFOS)
 
@@ -71,20 +71,20 @@ Bij een tunnel die Sophos als actief meldt, zijn alleen de security associations
 ### Gateways en SD-WAN uit syslog
 
 :::steps
-1. Zet de syslog-ontvanger van de sonde aan: stel `PROBE_SYSLOG_RECEIVER_ENABLED=true` in op de sonde. Hij luistert standaard op UDP 5140 (`PROBE_SYSLOG_RECEIVER_PORT` verandert dat); publiceer de poort als de sonde in Docker draait. Berichten worden gekoppeld aan het netwerkapparaat waarvan de hostnaam, of een van de **Overige adressen**, het adres van de afzender is, en verschijnen op de pagina **Logboeken** van het apparaat.
+1. De syslog-ontvanger van de sonde staat standaard aan. Hij luistert op poort 5140, via UDP en TCP (`PROBE_SYSLOG_RECEIVER_PORT` verandert dat); publiceer de poort als de sonde in Docker draait. Berichten worden gekoppeld aan het netwerkapparaat waarvan de hostnaam, of een van de **Overige adressen**, het adres van de afzender is, en verschijnen op de pagina's **Gebeurtenissen** en **Logboeken** van het apparaat.
 2. Voeg op de firewall, onder **System services → Log settings**, een syslog-server toe die naar de sonde en die poort wijst, en vink de logtypen **Event** voor IPsec en gateways en het logtype **SD-WAN** aan: de SLA-logs blijven uit tot dat is aangevinkt.
-3. Maak onder **Logboeken → Instellingen → Pipelines** een pipeline waarvan het filter op de logs van de firewall past, zoals `attributes.networkDevice.name = 'hq-firewall'`, en voeg een **Key=Value Parser** toe met **Target Prefix** `sophos`. Plak een regel van de firewall in de tester ervan om de exacte attribuutnamen te zien die jouw SFOS-versie oplevert; [het Sophos-voorbeeld](/docs/telemetry/log-pipelines#voorbeeld-sophos-xgs-firewall) loopt het door.
-4. Maak [logs-monitors](/docs/monitor/logs-monitor) op de logs van de firewall, elk met **Group by Attributes** zodat elke tunnel of gateway op zichzelf waarschuwt, en het criterium **Log Count** **Greater Than** `0` over een paar minuten. De rijen hieronder zijn de drie om mee te beginnen.
+3. Er valt niets te parsen. OneUptime leest de `key=value`-velden van de firewall als `sophos.*`-attributen, en haalt er tunnels, gateways, SD-WAN-SLA-wijzigingen, failovers en aanmeldingen uit als [netwerkgebeurtenissen](/docs/monitor/network-events). Open een log op de pagina **Logboeken** van het apparaat om de exacte attribuutnamen te zien die jouw SFOS-versie oplevert.
+4. Klik op de pagina **Gebeurtenissen** van het apparaat op **Waarschuwing maken** en kies een waarschuwing. Die opent een ingevulde [logs-monitor](/docs/monitor/logs-monitor), met **Group by Attributes** zodat elke tunnel of gateway op zichzelf waarschuwt, en **Opgelost door attributen** zodat elke waarschuwing sluit wanneer de firewall meldt dat het weer werkt. De rijen hieronder zijn de drie om mee te beginnen.
 5. Zet de SD-WAN-kwaliteit in grafieken: met SD-WAN-logging aan schrijft de firewall een SLA-samenvatting per profiel en gateway (`latency`, `jitter`, `packet_loss`). Maak onder **Logboeken → Instellingen → Opnameregels** één regel per getal, zoals het gemiddelde van `sophos.latency` gegroepeerd op `sophos.gw_name` en `sophos.profile_name`, en zet de resultaten daarna in grafieken, of waarschuw erop met een [metriekenmonitor](/docs/monitor/metrics-monitor) die op gateway groepeert. [Opnameregels voor logboeken](/docs/telemetry/log-recording-rules) loopt dit voorbeeld door.
 :::
 
-| Waarschuwing | Te tellen logs | Groeperen op |
-| --- | --- | --- |
-| IPsec-tunnel beëindigd | Attribuut `sophos.log_component` = `IPSec`, body bevat `terminated` | `sophos.con_name` |
-| Gateway onbereikbaar | Attribuut `sophos.log_component` = `Gateway`, body bevat `is Down` | `sophos.gatewayname` |
-| SD-WAN-SLA niet gehaald | Attribuut `sophos.log_type` = `SD-WAN`, body bevat `SLA not met` | `sophos.gw_name` |
+| Waarschuwing | Gebeurtenis die wordt geteld | Eén waarschuwing per | Gesloten door |
+| --- | --- | --- | --- |
+| Een VPN-tunnel valt uit | `vpn.tunnel_down` | `vpn.tunnel.name` | `vpn.tunnel_up` |
+| Een WAN-link valt uit | `gateway.down` | `network.gateway.name` | `gateway.up` |
+| SD-WAN-link onder zijn SLA | `sdwan.sla_not_met` | `network.gateway.name` | `sdwan.sla_met` |
 
-De syslog-gebeurtenissen vullen de SNMP-tabel aan: ze komen binnen op het moment dat een tunnel wegvalt, terwijl de tabel ook een tunnel vangt die nooit is opgekomen.
+De eerste twee staan in de lijst van **Waarschuwing maken**; voor de derde open je een van de gebeurtenissen ervan en klik je op **Waarschuwing maken voor deze gebeurtenis**. De syslog-gebeurtenissen vullen de SNMP-tabel aan: ze komen binnen op het moment dat een tunnel wegvalt, terwijl de tabel ook een tunnel vangt die nooit is opgekomen.
 
 ### Traps
 
@@ -153,7 +153,7 @@ De tunnelstatus vereist SFOS v20 of later. Controleer ook of de SNMP-view van je
 :::
 
 :::details Er komt geen syslog van de firewall binnen
-De syslog-ontvanger van de sonde staat standaard uit: stel `PROBE_SYSLOG_RECEIVER_ENABLED=true` in en publiceer UDP 5140, of je `PROBE_SYSLOG_RECEIVER_PORT`, naar de sonde. Berichten worden op het adres van de afzender aan een apparaat gekoppeld, dus de hostnaam van de firewall in OneUptime, of een van zijn **Overige adressen**, moet het adres zijn waarvandaan hij syslog stuurt.
+De sonde luistert naar syslog op poort 5140, via UDP en TCP, tenzij hij is gestart met `PROBE_SYSLOG_RECEIVER_ENABLED=false`: publiceer die poort, of je `PROBE_SYSLOG_RECEIVER_PORT`, als de sonde in Docker draait. Berichten worden op het adres van de afzender aan een apparaat gekoppeld, dus de hostnaam van de firewall in OneUptime, of een van zijn **Overige adressen**, moet het adres zijn waarvandaan hij syslog stuurt; tot die tijd staan ze op de pagina **Gebeurtenissen** van het netwerk als **Nog geen apparaat**.
 :::
 
 :::details Een Fabric Engine-switch kreeg het EXOS-sjabloon
@@ -168,6 +168,7 @@ Het totale aantal clients vereist firmware 6.5.3 of later. Op oudere firmware me
 
 :::cards
 - [Netwerkapparaat-monitor](/docs/monitor/network-device-monitor): Alles wat een apparaat verzamelt, en elk criterium waarop het kan waarschuwen.
+- [Netwerkgebeurtenissen](/docs/monitor/network-events): Wat de syslog van elke leverancier zegt, als gebeurtenissen en waarschuwingen.
 - [Logboekpipelines](/docs/telemetry/log-pipelines): Firewall-logs in attributen opsplitsen.
 - [Logs-monitor](/docs/monitor/logs-monitor): Eén keer per tunnel of gateway waarschuwen.
 :::

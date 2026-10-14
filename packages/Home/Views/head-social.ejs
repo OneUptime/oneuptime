@@ -20,12 +20,18 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
 <meta property="og:description" content="<%= pageDescription %>">
 <meta property="og:image" content="<%= pageImageUrl %>">
 <meta property="og:site_name" content="OneUptime">
+<link rel="image_src" href="<%= pageImageUrl %>">
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="<%= twitterCard %>">
 <meta name="theme-color" content="#000000">
 <meta name="twitter:image" content="<%= pageImageUrl %>">
-<meta name="twitter:site" content="@oneuptimeinc">
+<%#
+    One X account everywhere: @OneUptimeHQ, the account the footer's X link
+    and OneUptime's other profiles (YouTube, Reddit) use. Tests/
+    XAccount.test.ts holds every template to it.
+-%>
+<meta name="twitter:site" content="@OneUptimeHQ">
 <meta name="twitter:title" content="<%= pageTitle %>">
 <meta name="twitter:description" content="<%= pageDescription %>">
 
@@ -40,7 +46,6 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
     "logo": "https://oneuptime.com/img/ou-bb.svg",
     "sameAs": [
         "https://www.facebook.com/oneuptimeinc",
-        "https://twitter.com/OneUptimeInc",
         "https://x.com/oneuptimehq",
         "https://njump.me/npub1kggtaw83q0mctlwvh854xdu3wjmen8tmq9cx9l030x2ylay6wk8qy2f2e6",
         "https://www.linkedin.com/company/oneuptime",
@@ -54,12 +59,6 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
         "email": "support@oneuptime.com",
         "contactType": "customer service",
         "url": "https://oneuptime.com/support"
-    },
-    "hasMerchantReturnPolicy": {
-        "@type": "MerchantReturnPolicy",
-        "@id": "https://oneuptime.com/#return-policy",
-        "applicableCountry": ["US", "GB", "CA", "AU", "DE", "FR", "NL", "IN", "SG", "JP"],
-        "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"
     }
 } }) -%>
 
@@ -79,7 +78,14 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
 } }) -%>
 <% } %>
 
-<!-- SoftwareApplication Schema for Product Pages -->
+<!--
+    SoftwareApplication Schema for Product Pages.
+
+    No aggregateRating: Google's review snippet rules allow a rating only when
+    it comes from real reviews shown on the page, and none of these pages shows
+    one. No shipping details or return policy either: those describe physical
+    goods, and on software they are merchant data that is not true.
+-->
 <% if (pageType === 'product' && softwareApp) { %>
 <%- include('./Partials/json-ld', { schema: {
     "@context": "https://schema.org",
@@ -103,54 +109,9 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
         "description": "Free tier available. Paid plans start at $22/month.",
         "seller": {
             "@id": "https://oneuptime.com/#organization"
-        },
-        "hasMerchantReturnPolicy": {
-            "@id": "https://oneuptime.com/#return-policy"
-        },
-        "shippingDetails": {
-            "@type": "OfferShippingDetails",
-            "shippingRate": {
-                "@type": "MonetaryAmount",
-                "value": 0,
-                "currency": "USD"
-            },
-            "shippingDestination": [
-                { "@type": "DefinedRegion", "addressCountry": "US" },
-                { "@type": "DefinedRegion", "addressCountry": "GB" },
-                { "@type": "DefinedRegion", "addressCountry": "CA" },
-                { "@type": "DefinedRegion", "addressCountry": "AU" },
-                { "@type": "DefinedRegion", "addressCountry": "DE" },
-                { "@type": "DefinedRegion", "addressCountry": "FR" },
-                { "@type": "DefinedRegion", "addressCountry": "NL" },
-                { "@type": "DefinedRegion", "addressCountry": "IN" },
-                { "@type": "DefinedRegion", "addressCountry": "SG" },
-                { "@type": "DefinedRegion", "addressCountry": "JP" }
-            ],
-            "deliveryTime": {
-                "@type": "ShippingDeliveryTime",
-                "handlingTime": {
-                    "@type": "QuantitativeValue",
-                    "minValue": 0,
-                    "maxValue": 0,
-                    "unitCode": "DAY"
-                },
-                "transitTime": {
-                    "@type": "QuantitativeValue",
-                    "minValue": 0,
-                    "maxValue": 0,
-                    "unitCode": "DAY"
-                }
-            }
         }
     },
-    "featureList": softwareApp.features,
-    "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "150",
-        "bestRating": "5",
-        "worstRating": "1"
-    }
+    "featureList": softwareApp.features
 } }) -%>
 <% } %>
 

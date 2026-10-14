@@ -210,7 +210,7 @@ Fast jedes Textfeld nimmt Variablen an:
 - Header und Body-Felder (innerhalb von Zeichenkettenwerten).
 - Beide Seiten eines **If / Else**-Bausteins.
 
-In JSON-Feldern – **Data (JSON Object)**, **Query** und **Select Fields** bei den Datensatz-Komponenten, dem **Request Body** eines API-Bausteins, den **Arguments** von **Run Custom JavaScript** – wird ein Verweis passend zu seiner Stelle eingesetzt:
+In JSON-Feldern – **Data (JSON Object)** und **Query** bei den Datensatz-Komponenten, dem **Request Body** eines API-Bausteins, den **Arguments** von **Run Custom JavaScript** – wird ein Verweis passend zu seiner Stelle eingesetzt:
 
 - **In Anführungszeichen ist er Text.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` setzt den Wert in die Zeichenkette. Anführungszeichen, Backslashes und Zeilenumbrüche im Wert werden maskiert, sodass das JSON gültig und der Wert eine Zeichenkette bleibt.
 - **Für sich allein ist er der Wert selbst.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` setzt das ganze Objekt ein, eine Liste bleibt eine Liste und eine Zahl eine Zahl. Text, der selbst JSON ist – `5`, `true` oder ein Objekt, das ein Baustein als JSON-Text zurückgegeben hat –, wird als dieser Wert eingesetzt. Jeder andere Text wird als Zeichenkette eingesetzt.
@@ -238,7 +238,7 @@ Zum Beispiel listet dieser **Message Text** jede Warnung auf, die ein Webhook ge
 Ein Webhook kommt mit einem Body wie `{ "service": "checkout", "status": "failed" }` an. Um daraus einen OneUptime-Vorfall zu machen:
 
 1. Trigger **Webhook** mit der ID `ci-webhook`.
-2. Baustein **If / Else**: **Value to check** ist das Feld `status` des Request Body des Webhooks (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison** ist **is equal to**, und **Compare with** ist `failed`.
+2. Baustein **If / Else**: **Zu prüfender Wert** ist das Feld `status` des Request Body des Webhooks (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Vergleich** ist **ist gleich**, und **Vergleichen mit** ist `failed`.
 3. Aus dem Zweig **Yes** ein **Create One Incident**-Baustein mit:
    - Titel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beschreibung: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`

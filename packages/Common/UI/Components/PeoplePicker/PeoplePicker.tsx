@@ -17,6 +17,7 @@ import {
   getPeoplePickerValueKeySet,
   PeoplePickerChange,
   PeoplePickerKind,
+  PeoplePickerNobodyPicked,
   PeoplePickerOption,
   PeoplePickerValue,
   removeFromPeoplePickerValue,
@@ -88,6 +89,23 @@ export interface ComponentProps {
    * covers?" picker). A pick already made still shows as a chip.
    */
   excluded?: PeoplePickerValue | undefined;
+  /*
+   * What nothing picked means, said in a pill where the pick would be while
+   * nothing is: "Next person in the rotation".
+   */
+  whenNobodyPicked?: PeoplePickerNobodyPicked | undefined;
+  /*
+   * More chips, drawn after the picks in the same row: what the field holds
+   * that is not a pick - in a workflow step, a value from an earlier step.
+   * They count as something picked: whenNobodyPicked is not said beside
+   * them.
+   */
+  extraChips?: Array<ReactElement> | undefined;
+  /*
+   * A control of the caller's own at the end of the row, after every chip:
+   * a workflow step's { } button.
+   */
+  trailing?: ReactElement | undefined;
 }
 
 // The button of a single-pick picker once something is picked.
@@ -298,6 +316,39 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
     },
   );
 
+  /*
+   * Nothing picked, and that means something: say what, where the pick
+   * would be - "Next person in the rotation" - so an empty field reads as
+   * the choice it is rather than as something left to fill in.
+   */
+  const nobodyPicked: PeoplePickerNobodyPicked | undefined =
+    props.whenNobodyPicked;
+
+  const extraChips: Array<ReactElement> = props.extraChips || [];
+
+  chips.push(...extraChips);
+
+  if (nobodyPicked && picks.length === 0 && extraChips.length === 0) {
+    const nobodyPickedText: string =
+      translateString(nobodyPicked.text) || nobodyPicked.text;
+
+    chips.push(
+      <span
+        key="people-picker-nobody-picked"
+        data-testid="people-picker-nobody-picked"
+        className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+      >
+        {nobodyPicked.icon ? (
+          <Icon
+            icon={nobodyPicked.icon}
+            className="h-4 w-4 flex-shrink-0 text-gray-500"
+          />
+        ) : null}
+        <span className="min-w-0 truncate">{nobodyPickedText}</span>
+      </span>,
+    );
+  }
+
   return (
     <div data-testid={props.dataTestId || "people-picker"}>
       <div
@@ -311,6 +362,7 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
          * added after it. One pick: what is picked first, then "Change".
          */}
         {props.isSinglePick ? [...chips, button] : [button, ...chips]}
+        {props.trailing}
       </div>
 
       {lookup.error && (

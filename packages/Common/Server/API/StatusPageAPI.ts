@@ -154,6 +154,7 @@ import StatusPagesListingMonitorsBuilder, {
 } from "../Utils/StatusPage/StatusPagesListingMonitorsBuilder";
 import FileOwnership from "../Utils/File/FileOwnership";
 import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
+import BlockedProjectStatusPages from "../Utils/StatusPage/BlockedProjectStatusPages";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft
@@ -277,6 +278,14 @@ export default class StatusPageAPI extends BaseAPI<
 
   public constructor() {
     super(StatusPage, StatusPageService);
+
+    /*
+     * A status page of a project a master admin blocked is taken down: every
+     * route below that names a page - :statusPageId or :statusPageIdOrDomain -
+     * answers as if the page did not exist, before its own middleware runs
+     * (BlockedProjectStatusPages).
+     */
+    BlockedProjectStatusPages.guard(this.router);
 
     // get title, description of the page.  This is used for SEO.
     this.router.get(
@@ -1069,11 +1078,23 @@ export default class StatusPageAPI extends BaseAPI<
               },
             });
 
-          if (!statusPageDomain) {
+          /*
+           * The page arrives in the body here rather than in the path, so the
+           * gate in front of the other routes (BlockedProjectStatusPages) is
+           * asked directly: a blocked project's domain reads like one no
+           * status page has.
+           */
+          if (
+            !statusPageDomain ||
+            !statusPageDomain.statusPageId ||
+            (await BlockedProjectStatusPages.isStatusPageOfBlockedProject(
+              statusPageDomain.statusPageId,
+            ))
+          ) {
             throw new BadDataException("No status page found with this domain");
           }
 
-          const objectId: ObjectID = statusPageDomain.statusPageId!;
+          const objectId: ObjectID = statusPageDomain.statusPageId;
 
           return Response.sendJsonObjectResponse(req, res, {
             statusPageId: objectId.toString(),

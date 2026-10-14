@@ -465,6 +465,18 @@ export function isGroupSourceIdOf(
   );
 }
 
+/*
+ * What a source id shares with every source id of its schedule's groups:
+ * the id up to its first "#". A source id isGroupSourceIdOf a schedule's
+ * only when the two share it, so a schedule's records are found among the
+ * few that do, not by asking every record.
+ */
+export function getGroupSourceIdKey(sourceId: string): string {
+  const separator: number = sourceId.indexOf("#");
+
+  return separator === -1 ? sourceId : sourceId.slice(0, separator);
+}
+
 // A wall-clock time of day in `timezone`, on `day` of the week of `reference`.
 function atWallClock(data: {
   reference: Date;

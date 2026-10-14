@@ -143,9 +143,8 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 | قابلیت | چه می‌کند | مسیر |
 | --- | --- | --- |
-| `/incident` و میان‌بُر **Create New Incident** | اعلام یک رخداد از Slack | `POST /api/slack/interactive` |
-| `/maintenance` و میان‌بُر **Create Scheduled Event** | زمان‌بندی نگهداری از Slack | `POST /api/slack/interactive` |
-| `/oneuptime` | پرسیدن از OneUptime AI دربارهٔ لاگ‌ها، تریس‌ها، متریک‌ها، رخدادها و مانیتورهای شما | `POST /api/slack/command` |
+| `/oneuptime` | اعلام یک رخداد، زمان‌بندی نگهداری، دیدن اینکه چه کسی آنکال است و پرسیدن از OneUptime AI؛ `/oneuptime help` همهٔ فرمان‌ها را فهرست می‌کند | `POST /api/slack/command` |
+| میان‌بُرهای **Create New Incident** و **Create Scheduled Event** | اعلام یک رخداد یا زمان‌بندی نگهداری از میان‌بُرهای Slack | `POST /api/slack/interactive` |
 | دکمه‌ها و فرم‌های پیام‌های OneUptime | تأیید، حل کردن، افزودن یادداشت، تغییر وضعیت، اجرای یک سیاست آنکال | `POST /api/slack/interactive` و `POST /api/slack/options-load` |
 | رویدادها | اشاره‌ها، پیام‌ها، واکنش‌ها و سنجاق‌ها، برای نمونه ذخیرهٔ یک پیام به‌عنوان یادداشت | `POST /api/slack/events` |
 
@@ -154,6 +153,10 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 شرح رخدادها و هشدارها می‌تواند تصویر صفحه داشته باشد، برای نمونه تصویر یک مانیتور مصنوعی ([نمایش نماگرفت](/docs/monitor/incident-alert-templating#نمایش-نماگرفت) را ببینید). OneUptime هر کدام را به‌صورت یک فایل خصوصی در فضای کاری شما بارگذاری می‌کند تا در پیام‌های Slack نشان دهد، و برای این کار به scope ربات `files:write` نیاز دارد. مانیفست ساخته‌شده آن را دارد.
 
 اگر برنامهٔ Slack خود را از یک مانیفست قدیمی‌تر ساخته‌اید، `files:write` را زیر **OAuth & Permissions > Bot Token Scopes** بیفزایید (یا برنامه را از مانیفست کنونی به‌روز کنید). سپس در **تنظیمات پروژه** > **فضای کاری** > **Slack** دوباره **Connect with Slack** را برگزینید تا scope تازه داده شود. تا آن زمان، هر تصویر صفحه به‌صورت متن جایگزینش نمایش داده می‌شود.
+
+### برنامه‌های ساخته‌شده از مانیفست قدیمی‌تر
+
+برنامهٔ Slackای که از یک مانیفست قدیمی‌تر OneUptime ساخته شده، `/incident` و `/maintenance` را به‌عنوان فرمان‌های جداگانه ثبت می‌کند، که ممکن است با فرمان‌های هم‌نام برنامه‌های دیگر تداخل داشته باشند. آن‌ها همچنان کار می‌کنند و همان فرم‌های `/oneuptime incident` و `/oneuptime maintenance` را باز می‌کنند. برای جایگزین کردن آن‌ها با `/oneuptime`، برنامه را از مانیفستی که سرور شما می‌سازد به‌روز کنید: در [api.slack.com/apps](https://api.slack.com/apps)، **App Manifest** برنامه را باز کنید، مانیفست را بچسبانید و ذخیره کنید. scopeها تغییری نمی‌کنند، پس برنامه به نصب دوباره نیاز ندارد.
 
 ## دسترسی شبکه برای استقرارهای خودمیزبان
 
@@ -172,7 +175,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 | روش و مسیر | هدف |
 | --- | --- |
 | `POST /api/slack/events` | تأیید Events API، واکنش‌ها، سنجاق‌ها، اشاره‌ها و پیام‌ها |
-| `POST /api/slack/interactive` | دکمه‌ها، میان‌بُرها، ارسال پنجره‌های مُدال، `/incident` و `/maintenance` |
+| `POST /api/slack/interactive` | دکمه‌ها، میان‌بُرها، ارسال پنجره‌های مُدال، و `/incident` و `/maintenance` یک برنامهٔ قدیمی‌تر |
 | `POST /api/slack/options-load` | درخواست گزینه‌های منوهای تعاملی |
 | `POST /api/slack/command` | فرمان `/oneuptime` |
 

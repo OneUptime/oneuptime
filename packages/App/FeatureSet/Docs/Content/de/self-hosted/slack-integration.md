@@ -143,9 +143,8 @@ Das Manifest richtet diese Funktionen ein. Jede erreicht Ihren Server über die 
 
 | Funktion | Was sie tut | Route |
 | --- | --- | --- |
-| `/incident` und der Shortcut **Create New Incident** | Einen Vorfall aus Slack heraus melden | `POST /api/slack/interactive` |
-| `/maintenance` und der Shortcut **Create Scheduled Event** | Eine Wartung aus Slack heraus planen | `POST /api/slack/interactive` |
-| `/oneuptime` | OneUptime AI zu Ihren Logs, Traces, Metriken, Vorfällen und Monitoren befragen | `POST /api/slack/command` |
+| `/oneuptime` | Einen Vorfall melden, eine Wartung planen, sehen, wer Bereitschaft hat, und OneUptime AI fragen; `/oneuptime help` listet alle Befehle auf | `POST /api/slack/command` |
+| Die Shortcuts **Create New Incident** und **Create Scheduled Event** | Einen Vorfall melden oder eine Wartung planen, über die Shortcuts von Slack | `POST /api/slack/interactive` |
 | Schaltflächen und Formulare in OneUptime-Nachrichten | Bestätigen, lösen, eine Notiz hinzufügen, den Status ändern, eine On-Call-Richtlinie ausführen | `POST /api/slack/interactive` und `POST /api/slack/options-load` |
 | Ereignisse | Erwähnungen, Nachrichten, Reaktionen und Pins, zum Beispiel um eine Nachricht als Notiz zu speichern | `POST /api/slack/events` |
 
@@ -154,6 +153,10 @@ Das Manifest richtet diese Funktionen ein. Jede erreicht Ihren Server über die 
 Beschreibungen von Vorfällen und Alarmen können Screenshots enthalten, zum Beispiel den eines synthetischen Monitors (siehe [Einen Screenshot zeigen](/docs/monitor/incident-alert-templating#einen-screenshot-zeigen)). OneUptime zeigt sie in Slack-Nachrichten, indem es jeden als private Datei in Ihren Arbeitsbereich hochlädt; dafür braucht es den Bot-Scope `files:write`. Das erzeugte Manifest enthält ihn.
 
 Wenn Sie Ihre Slack-App aus einem älteren Manifest erstellt haben, fügen Sie `files:write` unter **OAuth & Permissions > Bot Token Scopes** hinzu (oder aktualisieren Sie die App aus dem aktuellen Manifest). Wählen Sie dann unter **Projekteinstellungen > Arbeitsbereich > Slack** erneut **Mit Slack verbinden**, damit der neue Scope gewährt wird. Bis dahin wird jeder Screenshot als sein Alternativtext angezeigt.
+
+### Apps aus einem älteren Manifest
+
+Eine Slack-App, die aus einem früheren OneUptime-Manifest erstellt wurde, registriert `/incident` und `/maintenance` als eigene Befehle, die mit gleichnamigen Befehlen anderer Apps kollidieren können. Sie funktionieren weiter und öffnen dieselben Formulare wie `/oneuptime incident` und `/oneuptime maintenance`. Um sie durch `/oneuptime` zu ersetzen, aktualisieren Sie die App aus dem Manifest, das Ihr Server erzeugt: Öffnen Sie auf [api.slack.com/apps](https://api.slack.com/apps) das **App Manifest** der App, fügen Sie das Manifest ein und speichern Sie. Die Scopes bleiben gleich, die App muss also nicht neu installiert werden.
 
 ## Netzwerkzugriff für selbst gehostete Installationen
 
@@ -172,7 +175,7 @@ Leiten Sie diese Callbacks über den Ingress an OneUptime weiter:
 | Methode und Pfad | Zweck |
 | --- | --- |
 | `POST /api/slack/events` | Verifizierung der Events API, Reaktionen, Pins, Erwähnungen und Nachrichten |
-| `POST /api/slack/interactive` | Schaltflächen, Shortcuts, abgeschickte Modals, `/incident` und `/maintenance` |
+| `POST /api/slack/interactive` | Schaltflächen, Shortcuts, abgeschickte Modals und `/incident` und `/maintenance` einer älteren App |
 | `POST /api/slack/options-load` | Anfragen nach Optionen interaktiver Menüs |
 | `POST /api/slack/command` | Befehl `/oneuptime` |
 

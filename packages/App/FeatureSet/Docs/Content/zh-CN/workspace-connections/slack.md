@@ -5,7 +5,7 @@
 :::cards
 - [连接 Slack](#连接-slack): 在您的工作区中安装 OneUptime，然后关联您自己的账户。
 - [通知规则](#通知规则): 决定哪些事件发布到哪里，以及哪些事件拥有专属频道。
-- [从 Slack 创建事件和维护](#从-slack-创建事件和维护): 以您本人的身份使用 `/incident` 和 `/maintenance`。
+- [/oneuptime 命令](#oneuptime-命令): 声明事件、安排维护、查看谁在值班，以及询问 AI。
 - [从 Slack 处理事件、警报和活动](#从-slack-处理事件警报和活动): OneUptime 消息上的按钮。
 :::
 
@@ -76,6 +76,8 @@ flowchart TB
 
 规则创建的频道以 **New Slack Channel Name** 加上记录编号命名，例如 `oneuptime-incident-42`。只有创建的频道才会接收规则邀请的人员：记录的所有者、所选的团队和用户，以及对于事件和警报，在被呼叫时加入的值班人员。私密事件、警报或片段会获得私密频道。此后记录的每次更新（状态变化、备注、新所有者）都会发布到它的频道，以及其规则指定的现有频道。创建时即已解决的事件、警报或片段不会获得专属频道；其创建消息仍会发送到您的规则指定的频道。请参阅 [声明时即已确认或已解决](/docs/incidents/declaring-incidents#声明时即已确认或已解决)。
 
+拥有专属频道的事件、警报、片段或计划维护事件，会在其 OneUptime 页面标题的状态按钮旁显示 **在 Slack 中打开**。它会在新标签页中打开该频道，进入 Slack 应用或浏览器。拥有两个专属频道的记录会在按钮下列出这两个频道。在 Slack 和 Microsoft Teams 中都有频道的记录，会改为只显示一个 **打开频道** 按钮，列出所有频道。不会提供您的规则所发布到的现有频道。
+
 频道保持易读：每次更新只发布一次，记录的第一个状态写在宣布该记录的消息里，而不是单独发一条消息。值班策略的一次运行就是一条消息，随着升级推进而被编辑：呼叫了谁、呼叫了几次以及通过什么方式、谁没有被呼叫以及原因、谁确认了。只有在需要有人采取行动时才会发布新消息：某条升级规则没有呼叫到任何人，或者运行结束时仍没有人确认。Slack 账户未连接到 OneUptime 的人无法被添加到频道；OneUptime 在每个频道中只说一次，用一条列出所有这些人的消息，名单变长时编辑这条消息。把该消息中的 **Connect Slack account** 链接发给他们，即可一步连接账户。记录的所有者或状态页订阅者已收到通知这件事，保留在 OneUptime 中该记录的信息流里。
 
 **项目设置** > **工作区** > **Slack** 列出 OneUptime 能看到的频道，每个频道旁边都有 **发送测试**。OneUptime 第一次在公开频道发布时会自行加入。私密频道只有在 Slack 中邀请 OneUptime 应用加入后，才会被列出并可以发布消息。
@@ -123,13 +125,36 @@ flowchart TB
 
 备注以您的身份、按您的权限保存，因此您自己的 Slack 账户必须已连接。无论多少人回应，一条消息只会保存一次。
 
+## /oneuptime 命令
+
+OneUptime 在 Slack 中只有一个命令：`/oneuptime`。在它后面输入的词决定要做什么；后面的其他任何内容都是向 OneUptime AI 提出的问题。
+
+| 命令 | 作用 |
+| --- | --- |
+| `/oneuptime help` | 列出所有命令，并附示例。 |
+| `/oneuptime incident [title]` | 打开已填好标题的事件表单。 |
+| `/oneuptime maintenance [title]` | 打开已填好标题的计划维护表单。 |
+| `/oneuptime oncall` | 列出您能看到的每个值班计划中当前由谁值班、值班到何时，以及下一位是谁。 |
+| `/oneuptime ask [question]`，或任何问题 | OneUptime AI 回答有关日志、追踪、指标、事件和监视器的问题。 |
+
+对 `help` 和 `oncall` 的回答是只有您能看到的消息，显示在命令下方。如果第一个词看起来像拼错的命令，例如 `incidnet`，您会收到与它相似的命令，而不是 OneUptime AI 的回答。事件和维护表单以您本人的身份操作：请参阅 [从 Slack 创建事件和维护](#从-slack-创建事件和维护)。
+
+> [!NOTE]
+> `/oneuptime incident` 和 `/oneuptime maintenance` 取代了 `/incident` 和 `/maintenance`，后两者可能与其他 Slack 应用的同名命令冲突。用较早的清单创建的 Slack 应用会保留它们，在应用更新之前，它们会打开相同的表单：请参阅 [用较旧清单创建的应用](/docs/self-hosted/slack-integration#用较旧清单创建的应用)。
+
 ## 从 Slack 询问 OneUptime AI
 
-用日常语言询问有关日志、追踪、指标、事件和监视器的问题。在频道中 @提及 OneUptime，或向它发送私信，它会在消息串中回答；在那里回复即可继续提问。 `/oneuptime ask which monitors are down?` 会将答案发布到频道中。两种方式都需要连接您自己的 Slack 账户，并为项目开启 AI。Slack 中的回答只读取数据：要更改内容，请使用按钮。请参阅 [询问 AI](/docs/ai/ask-ai)。
+用日常语言询问有关日志、追踪、指标、事件和监视器的问题。在频道中 @提及 OneUptime，或向它发送私信，它会在消息串中回答。 `/oneuptime ask which monitors are down?` 会将答案发布到频道中。两种方式都需要连接您自己的 Slack 账户，并为项目开启 AI。Slack 中的回答只读取数据：要更改内容，请使用按钮。请参阅 [询问 AI](/docs/ai/ask-ai)。
+
+OneUptime 只回答发给它的内容。
+
+- **在您自己的对话中，直接回复即可。** 在频道中（而不是在消息串中）提出的问题，会在其下方的消息串中开始一段对话：在那里回复即可继续提问，无需再次提及 OneUptime；其他人提及它即可加入对话。
+- **在其他任何消息串中，请提及 OneUptime。** 例如在事件消息下方的消息串中，请每次都提及它：人们在那里互相发送的内容不会得到回答。
+- **如果您的 Slack 账户未连接。** OneUptime 会在每段对话中请您连接一次，以只有您能看到的消息，并附带一个 **Connect Slack account** 按钮。
 
 ## 从 Slack 创建事件和维护
 
-`/incident` 和 `/maintenance` 会打开一个表单，由您以本人身份填写并提交：即以您的 Slack 账户所连接的 OneUptime 账户的身份（请参阅 [连接 Slack](#连接-slack) ），按该账户在项目中的权限提交。如果您的 Slack 账户未连接，或您的 OneUptime 账户已不再是项目成员，OneUptime 会在您运行命令的地方，以只有您能看到的消息告诉您该怎么做，并且不会打开表单。 **Create New Incident** 和 **Create Scheduled Event** 快捷方式会打开相同的表单。
+`/oneuptime incident` 和 `/oneuptime maintenance` 会打开一个表单，由您以本人身份填写并提交：即以您的 Slack 账户所连接的 OneUptime 账户的身份（请参阅 [连接 Slack](#连接-slack) ），按该账户在项目中的权限提交。如果您的 Slack 账户未连接，或您的 OneUptime 账户已不再是项目成员，OneUptime 会在您运行命令的地方，以只有您能看到的消息告诉您该怎么做，并且不会打开表单。 **Create New Incident** 和 **Create Scheduled Event** 快捷方式会打开相同的表单。
 
 - **谁可以使用。** 能在 OneUptime 中声明事件或创建计划维护活动的人：对于事件，是 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member** （自定义角色中的 **Create Incident** ）；对于活动，是 **Scheduled Maintenance Admin** 和 **Scheduled Maintenance Member** （ **Create Scheduled Maintenance** ）。其他任何人都会在运行命令的地方收到告知，并且不会打开表单。
 - **表单提供什么。** 每个列表（严重程度、监视器、监视器状态、值班策略和标签）都包含您可以读取的内容，与 OneUptime 中的同一列表一致：如果角色仅限于某些标签，则为带有这些标签的监视器和值班策略。您完全无法读取的列表不会出现在表单中。已归档的值班策略永远不会提供。
@@ -167,6 +192,10 @@ OneUptime 的 Slack 消息上的按钮同样以您的身份执行：即以您的
 
 :::details 按钮或命令提示我的 Slack 账户未连接
 在该回复中按 **Connect Slack account** 即可一步连接，或在 **用户设置** > **工作区** > **Slack** 中通过 **Connect my account with Slack** 关联它。如果您已不再是项目成员，OneUptime 会改为告知这一点，并且不会替您执行任何操作。
+:::
+
+:::details OneUptime 不回答消息串中的回复
+没有提及的回复，只有在您自己与 OneUptime AI 的对话中才会得到回答：也就是您在频道中向它提出的问题下方的消息串。在其他任何消息串中，例如事件消息下方的消息串，请 @提及 OneUptime。如果您的 Slack 账户未连接，OneUptime 只会在每段对话中请您连接一次，而不是每条消息都提示：在该消息中按 **Connect Slack account**，或在 **用户设置** > **工作区** > **Slack** 中关联它。请参阅 [从 Slack 询问 OneUptime AI](#从-slack-询问-oneuptime-ai)。
 :::
 
 :::details 通知能到达，但按钮和命令没有反应

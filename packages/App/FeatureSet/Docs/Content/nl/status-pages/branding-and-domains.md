@@ -92,7 +92,7 @@ Hoeveel dagen de grafiek beslaat, stelt u hier niet in. Dat is **Uptimegeschiede
 
 OneUptime wordt geleverd met zeventien talen: Engels, Duits, Frans, Spaans, Italiaans, Portugees, Nederlands, Deens, Noors, Zweeds, Russisch, Japans, Koreaans, Chinees (vereenvoudigd), Chinees (traditioneel), Hindi en Perzisch.
 
-**Indexering door zoekmachines.** Eén schakelaar, **Zoekmachines toestaan deze statuspagina te indexeren**, bepaalt of Google, Bing en andere zoekmachines de pagina mogen opnemen. Hij staat standaard aan. Er is geen knop **Bewerken**: de schakelaar wordt opgeslagen op het moment dat u hem omzet. Zet hem uit en de pagina wordt geserveerd met `noindex, nofollow` (een robots-metatag en een header `X-Robots-Tag`); iedereen met de link kan de pagina nog steeds openen. Zoekmachines kunnen een paar weken nodig hebben om een pagina te laten vallen die ze al hebben geïndexeerd.
+**Indexering door zoekmachines.** Eén schakelaar, **Zoekmachines toestaan deze statuspagina te indexeren**, bepaalt of Google, Bing en andere zoekmachines de pagina mogen opnemen. Hij staat standaard aan. Er is geen knop **Bewerken**: de schakelaar wordt opgeslagen op het moment dat u hem omzet. Zet hem uit en de pagina wordt geserveerd met `noindex, nofollow` (een robots-metatag en een header `X-Robots-Tag`); iedereen met de link kan de pagina nog steeds openen. Zoekmachines kunnen een paar weken nodig hebben om een pagina te laten vallen die ze al hebben geïndexeerd. De schakelaar geldt alleen voor de pagina op haar aangepaste domeinen. Haar voorbeeld-URL wordt altijd geserveerd met `noindex, nofollow`, dus een statuspagina verschijnt pas in zoekresultaten zodra ze een aangepast domein heeft.
 
 > [!TIP]
 > Zet **Zoekmachines toestaan deze statuspagina te indexeren** uit zolang een pagina alleen intern is of nog wordt ingericht, zodat een halfafgemaakte pagina niet gaat scoren op uw merknaam.
@@ -241,7 +241,7 @@ Het dialoogvenster ervan, **Reissue SSL Certificate for this Status Page**, vraa
 
 De actie verschijnt niet bij een domein dat een door u geüpload certificaat gebruikt: er is geen Let's Encrypt-certificaat om opnieuw uit te geven, dus upload in plaats daarvan een nieuw door het domein te bewerken. Ze verschijnt ook niet voordat het eerste certificaat van het domein is besteld, wat vanzelf gebeurt zodra het CNAME-record ervan is geverifieerd.
 
-Dezelfde knop, met dezelfde limiet van 24 uur, staat bij de aangepaste domeinen van dashboards onder **Dashboards → uw dashboard → Huisstijl → Aangepaste domeinen**, die net zo werken als aangepaste domeinen van statuspagina's: zie [Delen en publieke dashboards](/docs/dashboards/sharing#custom-domains).
+Dezelfde knop, met dezelfde limiet van 24 uur, staat bij de aangepaste domeinen van dashboards onder **Dashboards → uw dashboard → Huisstijl → Aangepaste domeinen**, die net zo werken als aangepaste domeinen van statuspagina's: zie [Delen en publieke dashboards](/docs/dashboards/sharing#aangepaste-domeinen).
 
 ### De kolom Status van het domein lezen
 

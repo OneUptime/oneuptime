@@ -589,6 +589,13 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       expect(arg.select).toEqual({
         _id: true,
         userId: true,
+        /*
+         * The rule's half of whether its push rings through silent mode
+         * (the device's isCriticalAlertEnabled below is the other half).
+         * Dropped, it reads as the default, Critical, and a rule its owner
+         * set to Standard keeps waking them through Do Not Disturb.
+         */
+        pushNotificationLevel: true,
         userCall: {
           phone: true,
           isVerified: true,
@@ -639,6 +646,13 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
           isVerified: true,
           userId: true,
           isCriticalAlertEnabled: true,
+          /*
+           * The alarm and the iPhone volume the handset chose for critical
+           * pages. Dropped, they read as unset and every page plays the
+           * system sound at full volume instead of the one its owner picked.
+           */
+          criticalAlertSound: true,
+          criticalAlertVolume: true,
         },
       });
     });

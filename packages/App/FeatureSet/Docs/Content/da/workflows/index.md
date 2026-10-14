@@ -128,7 +128,7 @@ Triggeren tager den stiplede bloks plads. ID'et på den, `incident-on-create-1`,
 
 ### Vælg hændelsens felter
 
-Klik på triggeren. Under **Select Fields** sætter du flueben ved de felter, forespørgslen skal have med, som titlen og beskrivelsen, og klikker på **Gem**.
+Klik på triggeren. **Fields to pass on** starter med titlen: klik på **Tilføj felt**, sæt flueben ved beskrivelsen og de andre felter, forespørgslen skal have med, og klik på **Gem**.
 
 Triggeren sender den nye hændelse videre med disse felter. Et felt, du ikke vælger, kommer tomt frem.
 
@@ -158,7 +158,7 @@ En forespørgsel, der mislykkes — en URL, der ikke kan nås, eller et svar, de
 
 ### Test det
 
-Klik på **Kør arbejdsgang**, indtast **Hændelses-ID** for en hændelse i dette projekt, klik på **Run Workflow Manually**, og bekræft med **Run**. Workflowet er stadig slået fra, så dette er en **Testkørsel**, og forespørgslen bliver virkelig sendt.
+Klik på **Kør arbejdsgang**, og vælg en hændelse i dette projekt under **Hændelse**: de seneste er vist, og når du skriver dens nummer eller en del af dens titel, finder du en anden. Klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Workflowet er stadig slået fra, så dette er en **Testkørsel**, og forespørgslen bliver virkelig sendt.
 
 Et panel **Arbejdsgangskørsel** åbner og følger kørslen. Åbn trinnet **API Post (JSON)** for at se den body, det sendte, og det svar, det fik.
 

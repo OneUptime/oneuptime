@@ -119,7 +119,9 @@ const findFeedImplementationPaths: (directory: string) => Array<string> = (
         !entry.name.endsWith(".tsx") ||
         !fs
           .readFileSync(absolutePath, "utf8")
-          .includes('import Feed from "Common/UI/Components/Feed/Feed"')
+          .includes(
+            'import FeedContent from "Common/UI/Components/Feed/FeedContent"',
+          )
       ) {
         return [];
       }
@@ -308,11 +310,14 @@ describe("dashboard feed ordering parity", () => {
       expect(card).toMatch(
         new RegExp(String.raw`\bfeedOptions=\{\s*${hook}\s*\}`),
       );
-      expect(card).toMatch(/\bonRefresh=\{\s*refresh\s*\}/);
+      expect(card).toMatch(/\bonRefresh=\{\s*feed\.refresh\s*\}/);
       expect(
         getCallArguments(source, FEED_ITEMS_HOOK_CALL).length,
       ).toBeGreaterThan(0);
-      expect(source).toMatch(/\brefresh,\s*\n[\s\S]*?\}\s*=\s*useFeedItems/);
+      // The ⋯ menu's Refresh re-reads the very feed the card shows.
+      expect(source).toMatch(
+        /const feed: UseFeedItemsResult = useFeedItems(?:<\w+>)?\(/,
+      );
 
       /*
        * A change of options must both re-read the feed (viewKey) and change
@@ -486,28 +491,61 @@ describe("dashboard feed ordering parity", () => {
     expect(new Set(literalKeys).size).toBe(literalKeys.length);
   });
 
+  /*
+   * One body for every feed (FeedContent): the skeleton on first load, the
+   * error with Refresh?, the timeline with its More, and More's own error.
+   * The More button's words follow the order the reader chose.
+   */
   test.each(FEED_IMPLEMENTATIONS)(
     "$name uses the shared progressive feed UI",
     (implementation: FeedImplementation) => {
       const source: string = readSource(implementation);
+      const wiring: FeedOptionsWiring = getFeedOptionsWiring(source);
 
       expect(source).toContain(
-        'import Feed from "Common/UI/Components/Feed/Feed"',
+        'import FeedContent from "Common/UI/Components/Feed/FeedContent"',
       );
-      expect(source).toContain(
-        'import useFeedItems from "Common/UI/Components/Feed/useFeedItems"',
+      expect(source).toMatch(
+        /import useFeedItems, \{\s*UseFeedItemsResult,\s*\} from "Common\/UI\/Components\/Feed\/useFeedItems"/,
       );
-      expect(source).toContain("<Feed");
-      expect(source).toContain("hasMore={hasMore}");
-      expect(source).toContain("isLoadingMore={isLoadingMore}");
-      expect(source).toContain("onMore={loadMore}");
+      expect(source.match(/<FeedContent\b/g) || []).toHaveLength(1);
+      expect(source).toMatch(/<FeedContent\s+feed=\{feed\}/);
+      expect(source).toMatch(
+        new RegExp(
+          String.raw`sortOrder=\{${wiring.hook}\.options\.sortOrder\}`,
+        ),
+      );
+      // No feed draws the old loader / list / More trio by hand any more.
+      expect(source).not.toContain("<ComponentLoader");
+      expect(source).not.toMatch(/<Feed\b/);
+      expect(source).not.toContain("onMore={loadMore}");
+    },
+  );
+
+  /*
+   * Every entry carries its kind (FeedEntryKind): the icon and colour in the
+   * rail, whether a burst of it folds, the words of its details toggle.
+   */
+  test.each(FEED_IMPLEMENTATIONS)(
+    "$name gives every entry its kind's icon, colour, burst and details wording",
+    (implementation: FeedImplementation) => {
+      const source: string = readSource(implementation);
+
+      expect(source).toMatch(/\bicon:\s*kind\.icon,/);
+      expect(source).toMatch(/\bburstKind:\s*kind\.burst,/);
+      expect(source).toMatch(/\bcolor:\s*getFeedEntryColor\(\{/);
+      expect(source).toMatch(/kind\.moreText/);
+      expect(source).toMatch(/\beventType:\s*/);
+      // The kind decides the colour: a bare row colour no longer does.
+      expect(source).not.toMatch(/\|\|\s*Gray500/);
     },
   );
 
   /*
    * The incident and alert feeds are the two that post AI investigations.
    * Their AI items go through the shared compact helper (summary + root
-   * cause, full report behind More Information) and stay in safe mode.
+   * cause, the full report unfolding under Show the full report) and stay
+   * in safe mode.
    */
   test.each(
     FEED_IMPLEMENTATIONS.filter((implementation: FeedImplementation) => {
@@ -530,8 +568,11 @@ describe("dashboard feed ordering parity", () => {
         "moreTextInMarkdown: feedItemMarkdown.moreTextInMarkdown,",
       );
       expect(source).toContain("safeMode: isAIInvestigation,");
-      expect(source).toContain(
-        "isAIInvestigation ? IconProp.Sparkles : IconProp.Cube",
+      expect(source).toMatch(
+        /isAIInvestigation\s*\?\s*SHARED_FEED_ENTRY_KINDS\.AIRootCause\s*:/,
+      );
+      expect(source).toMatch(
+        /detailsLabel:\s*isAIInvestigation\s*\?\s*AI_REPORT_DETAILS_LABEL\s*:\s*kind\.moreText/,
       );
     },
   );

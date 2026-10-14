@@ -512,12 +512,10 @@ const FormField: <T extends GenericObject>(
           : (props.field.defaultValue as boolean)) || false;
     }
 
-    const storedInputValue: unknown =
+    const storedValue: unknown =
       props.currentValues?.[props.fieldName as keyof FormValues<T>];
     const inputInitialValue: unknown =
-      storedInputValue === undefined
-        ? props.field.defaultValue
-        : storedInputValue;
+      storedValue === undefined ? props.field.defaultValue : storedValue;
 
     /*
      * A checkbox and a switch draw their own label, beside the control: the
@@ -738,10 +736,14 @@ const FormField: <T extends GenericObject>(
                 }
                 options={props.field.dropdownOptions || []}
                 placeholder={translatedPlaceholder || ""}
+                /*
+                 * What the form holds, 0 included: an option whose value is
+                 * 0 ("Don't repeat", "Immediately") is a choice, and a
+                 * truthiness check drew it as none.
+                 */
                 value={
-                  props.currentValues &&
-                  (props.currentValues as any)[props.fieldName]
-                    ? (props.currentValues as any)[props.fieldName]
+                  storedValue !== undefined && storedValue !== null
+                    ? (storedValue as any)
                     : ""
                 }
               />
@@ -1084,6 +1086,7 @@ const FormField: <T extends GenericObject>(
                   props.field.peoplePicker,
                   props.currentValues,
                 )}
+                whenNobodyPicked={props.field.peoplePicker.whenNobodyPicked}
                 disabled={props.field.disabled}
                 error={props.touched && props.error ? props.error : undefined}
                 ariaLabelledby={fieldLabelId}

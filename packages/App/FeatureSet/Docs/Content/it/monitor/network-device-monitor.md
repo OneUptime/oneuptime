@@ -43,7 +43,7 @@ Il dispositivo e il monitor svolgono compiti diversi:
 
 - **Una sonda in grado di raggiungere il dispositivo.** La sonda invia il ping e il walk al dispositivo dalla propria rete, quindi un dispositivo con un indirizzo privato richiede una [sonda personalizzata](/docs/probe/custom-probe) all'interno di quella rete: una sonda su internet pubblico non può raggiungerlo.
 - **SNMP, per avere più del ping.** Facoltativo. Una community string v1 o v2c, o un utente SNMPv3, configurati sul dispositivo, con UDP 161 aperto dalla sonda. Senza, il dispositivo riceve solo il ping.
-- **Trap, syslog e flussi.** Facoltativo. La sonda riceve i trap SNMP su UDP 162, il syslog su UDP 5140 una volta attivato e i record di flusso su UDP 2055, 4739 e 6343: apri queste porte dai tuoi dispositivi verso la sonda.
+- **Trap, syslog e flussi.** Facoltativo. La sonda riceve i trap SNMP su UDP 162, il syslog su UDP e TCP 5140 e i record di flusso su UDP 2055, 4739 e 6343: apri queste porte dai tuoi dispositivi verso la sonda.
 
 ## La panoramica della rete
 
@@ -62,7 +62,7 @@ Sotto, una riga dice se qualcosa apre un incidente quando un dispositivo diventa
 
 Finché non è stato aggiunto nulla, la panoramica mostra invece i due modi per iniziare: **Rileva dispositivi** scansiona un intervallo di indirizzi perché tu scelga cosa aggiungere, ideale per un'intera rete o un nuovo sito, e **Aggiungi un singolo dispositivo** ne aggiunge uno tramite il suo indirizzo IP o hostname.
 
-Il menu Rete tiene in vista ciò che apri ogni giorno: **Panoramica**, **Devices**, **Siti**, **Map**, **Traffic** e **Discovery**. Il resto è raccolto in sezioni, e una sezione si apre da sola su una qualsiasi delle sue pagine:
+Il menu Rete tiene in vista ciò che apri ogni giorno: **Panoramica**, **Devices**, **Siti**, **Map**, **Traffic**, **Eventi** e **Discovery**. Il resto è raccolto in sezioni, e una sezione si apre da sola su una qualsiasi delle sue pagine:
 
 | Sezione | Pagine |
 | --- | --- |
@@ -413,6 +413,7 @@ I produttori suddividono queste informazioni in modi diversi, e la pagina le rim
 - UniFi riporta canale, potenza di trasmissione e client per SSID: una radio li prende dagli SSID della sua banda.
 - Aruba conta i client per radio: i client di un access point sono quelli delle sue radio.
 - Un'interfaccia che non trasmette alcuna rete (IQ Engine elenca ogni interfaccia, con N/A per queste) non viene elencata come SSID.
+- Una rete che un access point gestisce per sé non è un SSID, quindi non viene né elencata né contata: il collegamento mesh wireless di UniFi (`vwire-…`) e la sua rete per adottare i nuovi dispositivi UniFi (`element-…`), e i servizi WDS e mesh di un controller Extreme. Un SSID nascosto che hai creato tu viene elencato come qualsiasi altro.
 
 Su un dispositivo che non riporta ancora il Wi-Fi, la pagina indica il modello del suo produttore, abbinato dall'ultimo polling come fa l'applicazione automatica, e lo applica con **Applica modello**; le radio compaiono dopo il polling successivo.
 
@@ -489,7 +490,7 @@ Un'indagine di OneUptime AI su un incidente o un avviso di un monitor del dispos
 
 ### Identità del dispositivo
 
-Dopo il primo walk riuscito, OneUptime legge il gruppo di sistema SNMPv2 e, dove il dispositivo lo supporta, ENTITY-MIB, e compila la scheda del dispositivo: nome di sistema, descrizione, posizione, contatto, tempo di attività, produttore, modello, numero di serie e versione del firmware. L'OID enterprise del produttore (`sysObjectID`) è l'impronta del dispositivo: indica il produttore e sceglie il modello del produttore corrispondente. Le stesse informazioni compaiono nell'[inventario](/docs/inventory/cmdb-sync#network-device-asset-attributes) insieme a tutti gli altri asset.
+Dopo il primo walk riuscito, OneUptime legge il gruppo di sistema SNMPv2 e, dove il dispositivo lo supporta, ENTITY-MIB, e compila la scheda del dispositivo: nome di sistema, descrizione, posizione, contatto, tempo di attività, produttore, modello, numero di serie e versione del firmware. L'OID enterprise del produttore (`sysObjectID`) è l'impronta del dispositivo: indica il produttore e sceglie il modello del produttore corrispondente. Le stesse informazioni compaiono nell'[inventario](/docs/inventory/cmdb-sync#attributi-di-asset-dei-dispositivi-di-rete) insieme a tutti gli altri asset.
 
 Un dispositivo solo ping mantiene il nome e l'indirizzo che gli hai dato tu, o una scansione di rilevamento: non c'è alcun agente SNMP a cui chiedere di meglio.
 
@@ -1056,6 +1057,7 @@ Una risposta con la descrizione del dispositivo significa che la sonda può eseg
 :::cards
 - [Siti di rete](/docs/monitor/network-sites): Raggruppa i dispositivi in luoghi e riepiloga la loro salute lungo l'albero.
 - [Traffico di rete](/docs/monitor/network-traffic): Vedi chi parla con chi dai record di flusso dei tuoi dispositivi.
+- [Eventi di rete](/docs/monitor/network-events): Vedi cosa segnalano i tuoi dispositivi nel loro syslog, e ricevi avvisi al riguardo.
 - [Guide per fornitore di rete](/docs/monitor/network-vendor-guides): Sophos, Extreme e Cambium, dall'inizio alla fine.
 - [Cattura di pacchetti](/docs/probe/packet-capture): Cattura i pacchetti sulla sonda di un dispositivo per Wireshark.
 :::

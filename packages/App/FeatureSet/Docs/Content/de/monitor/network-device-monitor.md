@@ -43,7 +43,7 @@ Gerät und Monitor haben unterschiedliche Aufgaben:
 
 - **Eine Sonde, die das Gerät erreicht.** Die Sonde pingt und fragt das Gerät aus ihrem eigenen Netzwerk ab, ein Gerät an einer privaten Adresse braucht also eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) in diesem Netzwerk: Eine Sonde im öffentlichen Internet erreicht es nicht.
 - **SNMP, für mehr als Ping.** Optional. Ein v1- oder v2c-Community-String oder ein SNMPv3-Benutzer auf dem Gerät, mit UDP 161 offen von der Sonde aus. Ohne SNMP wird das Gerät nur angepingt.
-- **Traps, Syslog und Flows.** Optional. Die Sonde nimmt SNMP-Traps auf UDP 162 an, Syslog auf UDP 5140, sobald Sie es einschalten, und Flow-Datensätze auf UDP 2055, 4739 und 6343; öffnen Sie diese Ports von Ihren Geräten zur Sonde.
+- **Traps, Syslog und Flows.** Optional. Die Sonde nimmt SNMP-Traps auf UDP 162 an, Syslog auf UDP und TCP 5140 und Flow-Datensätze auf UDP 2055, 4739 und 6343; öffnen Sie diese Ports von Ihren Geräten zur Sonde.
 
 ## Die Netzwerkübersicht
 
@@ -62,7 +62,7 @@ Darunter sagt eine Zeile, ob irgendetwas einen Vorfall auslöst, wenn ein Gerät
 
 Solange noch nichts hinzugefügt wurde, zeigt die Übersicht stattdessen die zwei Einstiege: **Geräte erkennen** durchsucht einen Adressbereich, damit Sie auswählen können, was Sie hinzufügen, am besten für ein ganzes Netzwerk oder einen neuen Standort, und **Ein einzelnes Gerät hinzufügen** fügt eines über seine IP-Adresse oder seinen Hostnamen hinzu.
 
-Das Netzwerkmenü zeigt, was Sie täglich öffnen: **Übersicht**, **Geräte**, **Standorte**, **Karte**, **Datenverkehr** und **Erkennung**. Der Rest ist in Abschnitte eingeklappt, und ein Abschnitt öffnet sich von selbst auf jeder seiner Seiten:
+Das Netzwerkmenü zeigt, was Sie täglich öffnen: **Übersicht**, **Geräte**, **Standorte**, **Karte**, **Datenverkehr**, **Ereignisse** und **Erkennung**. Der Rest ist in Abschnitte eingeklappt, und ein Abschnitt öffnet sich von selbst auf jeder seiner Seiten:
 
 | Abschnitt | Seiten |
 | --- | --- |
@@ -413,6 +413,7 @@ Hersteller verteilen diese Angaben unterschiedlich, und die Seite setzt sie wied
 - UniFi meldet Kanal, Sendeleistung und Clients pro SSID: Ein Funkmodul übernimmt sie von den SSIDs auf seinem Band.
 - Aruba zählt Clients pro Funkmodul: Die Clients eines Access Points sind die seiner Funkmodule.
 - Eine Schnittstelle, die kein Netzwerk aussendet (IQ Engine listet jede Schnittstelle, für diese mit N/A), wird nicht als SSID aufgeführt.
+- Ein Netzwerk, das ein Access Point für sich selbst betreibt, ist keine SSID und wird daher weder aufgeführt noch gezählt: die drahtlose Mesh-Verbindung von UniFi (`vwire-…`) und das Netzwerk, über das UniFi neue UniFi-Geräte adoptiert (`element-…`), sowie die WDS- und Mesh-Dienste eines Extreme-Controllers. Eine versteckte SSID, die Sie selbst angelegt haben, wird wie jede andere aufgeführt.
 
 Ein Gerät, das noch kein WLAN meldet, lässt die Seite die Vorlage seines Herstellers nennen, abgeglichen aus der letzten Abfrage wie beim automatischen Anwenden, und mit **Vorlage anwenden** anwenden; die Funkmodule erscheinen nach der nächsten Abfrage.
 
@@ -489,7 +490,7 @@ Eine Untersuchung durch OneUptime AI zu einem Vorfall oder einer Warnung eines N
 
 ### Geräteidentität
 
-Nach dem ersten erfolgreichen Walk liest OneUptime die SNMPv2-Systemgruppe und, wo das Gerät es unterstützt, ENTITY-MIB und füllt den Gerätedatensatz: Systemname, Beschreibung, Standort, Kontakt, Betriebszeit, Hersteller, Modell, Seriennummer und Firmware-Version. Die Enterprise-OID des Herstellers (`sysObjectID`) ist der Fingerabdruck des Geräts: Sie benennt den Hersteller und wählt die passende Hersteller-Vorlage. Dieselben Angaben erscheinen im [Inventar](/docs/inventory/cmdb-sync#network-device-asset-attributes) neben jedem anderen Asset.
+Nach dem ersten erfolgreichen Walk liest OneUptime die SNMPv2-Systemgruppe und, wo das Gerät es unterstützt, ENTITY-MIB und füllt den Gerätedatensatz: Systemname, Beschreibung, Standort, Kontakt, Betriebszeit, Hersteller, Modell, Seriennummer und Firmware-Version. Die Enterprise-OID des Herstellers (`sysObjectID`) ist der Fingerabdruck des Geräts: Sie benennt den Hersteller und wählt die passende Hersteller-Vorlage. Dieselben Angaben erscheinen im [Inventar](/docs/inventory/cmdb-sync#asset-attribute-von-netzwerkgeräten) neben jedem anderen Asset.
 
 Ein nur angepingtes Gerät behält den Namen und die Adresse, die Sie oder ein Erkennungsscan ihm gegeben haben: Es gibt keinen SNMP-Agenten, den man nach etwas Besserem fragen könnte.
 
@@ -1056,6 +1057,7 @@ Eine Antwort mit der Beschreibung des Geräts bedeutet, dass die Sonde es mit di
 :::cards
 - [Netzwerkstandorte](/docs/monitor/network-sites): Geräte zu Orten gruppieren und ihre Integrität den Baum hinauf zusammenfassen.
 - [Netzwerkverkehr](/docs/monitor/network-traffic): Aus den Flow-Datensätzen Ihrer Geräte sehen, wer mit wem spricht.
+- [Netzwerkereignisse](/docs/monitor/network-events): Sehen, was Ihre Geräte in ihrem Syslog melden, und dafür Warnungen einrichten.
 - [Leitfäden für Netzwerkhersteller](/docs/monitor/network-vendor-guides): Sophos, Extreme und Cambium, von Anfang bis Ende.
 - [Paketmitschnitt](/docs/probe/packet-capture): Pakete auf der Sonde eines Geräts für Wireshark mitschneiden.
 :::

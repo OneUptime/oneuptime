@@ -105,22 +105,26 @@ La portée est volontairement étroite. Seules les alertes produites par une rè
 ```mermaid title="Quand une alerte d'astreinte sonne malgré le mode silencieux"
 flowchart TB
     Page["Une alerte d'astreinte"]
+    Rule{"Sa règle d'astreinte est<br/>sur « Alerte critique » ?"}
     Device{"Critical On-Call Alerts<br/>activé pour cet appareil ?"}
     OS{"Le système du téléphone<br/>autorise les alertes critiques ?"}
     Loud["Joue un son malgré le<br/>mode silencieux et Ne pas déranger"]
     Quiet["Livrée en silence,<br/>comme tout autre push"]
-    Page --> Device
+    Page --> Rule
+    Rule -->|"oui"| Device
+    Rule -->|"non"| Quiet
     Device -->|"oui"| OS
     Device -->|"non"| Quiet
     OS -->|"oui"| Loud
     OS -->|"non"| Quiet
 ```
 
-Trois conditions doivent toutes être remplies pour qu'une alerte outrepasse le mode silencieux. S'il en manque une, l'alerte est quand même livrée – simplement en silence.
+Quatre conditions doivent toutes être remplies pour qu'une alerte outrepasse le mode silencieux. S'il en manque une, l'alerte est quand même livrée – simplement en silence.
 
 1. **La personne l'a activé pour cet appareil.** Enregistré par appareil, désactivé par défaut, dans `UserPush.isCriticalAlertEnabled`. Le téléphone et la tablette d'une même personne sont des décisions distinctes.
-2. **Le serveur marque l'alerte comme critique.** Il envoie la charge utile de son critique d'APNs plus `interruptionLevel: critical` pour iOS, et cible le canal de notification `oncall_critical` pour Android.
-3. **Le système d'exploitation l'autorise**, et c'est là que les deux plateformes diffèrent.
+2. **La règle d'astreinte qui a envoyé l'alerte le demande.** Sous **Paramètres utilisateur > Règles d'astreinte**, chaque règle qui notifie un téléphone est réglée sur « Alerte critique », la valeur par défaut, ou sur « Standard », qui suit les réglages sonores du téléphone – ainsi une personne peut être réveillée pour un incident critique et prévenue en silence pour un incident mineur. Enregistré par règle dans `UserNotificationRule.pushNotificationLevel`.
+3. **Le serveur marque l'alerte comme critique.** Il envoie la charge utile de son critique d'APNs plus `interruptionLevel: critical` pour iOS, et cible un canal de notification critique pour Android : `oncall_critical`, ou le canal propre à l'alarme choisie (voir [Choisir le son d'alarme](#choisir-le-son-dalarme)).
+4. **Le système d'exploitation l'autorise**, et c'est là que les deux plateformes diffèrent.
 
 :::tabs
 @tab iOS
@@ -144,13 +148,26 @@ Android n'a pas d'étape d'approbation par le fabricant, mais le contournement d
 
 Deux mécanismes interviennent, et ils couvrent des cas différents :
 
-- Le canal de notification `oncall_critical` demande `bypassDnd`, ce qui couvre Ne pas déranger et nécessite l'accès décrit ci-dessus.
-- Le même canal utilise le flux audio **alarme**, audible sur un téléphone dont la sonnerie est simplement coupée. Cette moitié ne nécessite aucune autorisation.
+- Chaque canal de notification critique – `oncall_critical` et celui de chaque son d'alarme – demande `bypassDnd`, ce qui couvre Ne pas déranger et nécessite l'accès décrit ci-dessus.
+- Les mêmes canaux utilisent le flux audio **alarme**, audible sur un téléphone dont la sonnerie est simplement coupée. Cette moitié ne nécessite aucune autorisation.
 
 Android fige les réglages d'un canal à sa première création : ils ne peuvent donc pas être modifiés par une mise à jour de l'application – seulement en livrant un nouvel identifiant de canal.
 :::
 
-Pour vérifier que cela fonctionne, envoyez une notification de test à l'appareil depuis **Paramètres utilisateur > Méthodes de notification > Push Notifications**. Si l'appareil a les alertes critiques activées, le test est lui aussi envoyé comme alerte critique – mettez donc d'abord le téléphone en silencieux, et vous entendrez si une vraie alerte vous atteindrait.
+Pour vérifier que cela fonctionne, envoyez une notification de test à l'appareil depuis **Paramètres utilisateur > Méthodes de notification > Push Notifications**. Si l'appareil a les alertes critiques activées, le test est lui aussi envoyé comme alerte critique – mettez donc d'abord le téléphone en silencieux, et vous entendrez si une vraie alerte vous atteindrait. La même liste indique pour chaque appareil si les alertes critiques sont activées et, pour un téléphone où elles ne le sont pas, comment les activer.
+
+### Choisir le son d'alarme
+
+Une alerte critique joue le son d'alerte critique propre au téléphone, sauf si la personne en choisit un autre. Dans l'application, **Settings > Notifications > Alarm sound**, affiché dès que Critical On-Call Alerts est activé, propose cinq alarmes plus fortes, faites pour réveiller : Klaxon, Siren, Digital alarm, Smoke alarm et Rising alarm, qui commence doucement puis devient de plus en plus fort. Chacune peut être écoutée avant d'être choisie. Le choix appartient à l'appareil et est enregistré dans `UserPush.criticalAlertSound`, et la notification de test le joue aussi.
+
+- **iOS** : l'alerte nomme le son, et iOS le joue depuis l'application malgré le mode silencieux, au volume choisi sur le même écran : 25 %, 50 %, 75 % ou 100 %, la valeur par défaut. Le volume est enregistré dans `UserPush.criticalAlertVolume`.
+- **Android** : chaque alarme a son propre canal de notification (`oncall_critical_klaxon`, `oncall_critical_siren`, etc.), car Android fixe le son d'un canal à sa création. Le serveur envoie l'alerte sur le canal de l'alarme choisie, et elle sonne au volume d'alarme du téléphone.
+
+Un appareil garde le son du système jusqu'à ce qu'il exécute une version de l'application qui propose ce choix : une ancienne application ne reçoit donc jamais une alarme qu'elle n'a pas.
+
+### Répéter une alerte jusqu'à sa prise en compte
+
+Une règle push peut renvoyer son alerte jusqu'à ce que quelqu'un la prenne en compte. Sous **Paramètres utilisateur > Règles d'astreinte**, réglez **Répéter jusqu'à la prise en compte** en ajoutant une règle push, ou modifiez-le plus tard sur la ligne de la règle : chaque minute, ou toutes les 2, 3, 5, 10, 15 ou 30 minutes. L'alerte est renvoyée à cet intervalle, 10 fois de plus au maximum, et s'arrête dès que l'incident, l'alerte ou l'épisode est pris en compte. Enregistré par règle dans `UserNotificationRule.repeatEveryMinutes`, où 0, la valeur par défaut, envoie l'alerte une seule fois.
 
 ## Dépannage
 
@@ -171,8 +188,10 @@ Pour vérifier que cela fonctionne, envoyez une notification de test à l'appare
 ### Les alertes critiques n'outrepassent pas le mode silencieux
 
 - Vérifiez que l'interrupteur est activé pour **cet** appareil – le réglage est propre à chaque appareil, et une réinstallation ou un nouveau téléphone configuré de zéro crée un nouvel enregistrement d'appareil (un téléphone configuré à partir d'une sauvegarde de l'ancien reprend l'enregistrement de l'ancien téléphone dès que celui-ci ne reçoit plus de notifications, avec le réglage qu'avait l'application)
+- Vérifiez la règle d'astreinte de cette gravité sous **Paramètres utilisateur > Règles d'astreinte** : une règle push réglée sur « Standard » suit les réglages sonores du téléphone, quel que soit l'interrupteur de l'appareil
 - **iOS** : confirmez que la compilation porte l'entitlement d'alertes critiques d'Apple (voir ci-dessus), et que Critical Alerts est autorisé sous iOS Settings > Notifications > OneUptime On-Call
 - **Android** : confirmez que l'application a l'accès à Ne pas déranger sous Settings > Notifications > Do Not Disturb access
+- **Android** : si vous avez choisi un son d'alarme, le canal de notification propre à ce son doit lui aussi être autorisé à outrepasser Ne pas déranger ; l'écran Alarm sound de l'application indique quand ce n'est pas le cas
 - L'écran de réglages indique lequel de ces éléments manque ; il relit l'état actuel auprès du système plutôt que de se fier à ce que l'application a demandé en dernier
 
 ### Push marqués « non livrés »

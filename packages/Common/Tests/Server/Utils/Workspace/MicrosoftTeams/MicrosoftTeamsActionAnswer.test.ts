@@ -53,6 +53,7 @@ import {
 import { WorkspaceEventType } from "../../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import URL from "../../../../../Types/API/URL";
 import { JSONObject } from "../../../../../Types/JSON";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 
 /*
  * A PRESS IN MICROSOFT TEAMS IS ANSWERED WHERE IT WAS MADE, TO WHOEVER MADE
@@ -334,7 +335,7 @@ describe("MicrosoftTeamsConnectPrompt.describe", () => {
     });
   });
 
-  test("a form to create something: to type its command again", () => {
+  test("a form to create something: to type its command again, as the word Slack's /oneuptime takes too", () => {
     expect(
       MicrosoftTeamsConnectPrompt.describe({
         actionType: MicrosoftTeamsIncidentActionType.SubmitNewIncident,
@@ -343,7 +344,19 @@ describe("MicrosoftTeamsConnectPrompt.describe", () => {
       purpose: "declare an incident",
       again: {
         kind: WorkspaceConnectRequestAgainKind.Command,
-        label: "create incident",
+        label: "incident",
+      },
+    });
+    expect(
+      MicrosoftTeamsConnectPrompt.describe({
+        actionType:
+          MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance,
+      }),
+    ).toEqual({
+      purpose: "create a scheduled maintenance event",
+      again: {
+        kind: WorkspaceConnectRequestAgainKind.Command,
+        label: "maintenance",
       },
     });
   });
@@ -398,4 +411,82 @@ describe("MicrosoftTeamsConnectPrompt.getPlace", () => {
       ).toBeUndefined();
     },
   );
+});
+
+/*
+ * #4768: a question to OneUptime AI from an account not connected is
+ * prompted once in a conversation (MicrosoftTeamsConnectPrompt.promptOnce):
+ * a channel's thread, a group chat or a personal chat, for the person who
+ * asked, in their organization.
+ */
+describe("MicrosoftTeamsConnectPrompt.getConversation", () => {
+  test("a channel's thread: the thread, by its conversation id, and the person by their Microsoft Entra object id", () => {
+    expect(
+      MicrosoftTeamsConnectPrompt.getConversation({
+        from: { id: "29:carol", name: "Carol", aadObjectId: "aad-carol" },
+        conversation: {
+          id: "19:ops@thread.tacv2;messageid=1760000000000",
+          conversationType: "channel",
+        },
+        channelData: { tenant: { id: "tenant-1" } },
+      }),
+    ).toEqual({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      workspaceId: "tenant-1",
+      conversationId: "19:ops@thread.tacv2;messageid=1760000000000",
+      workspaceUserId: "aad-carol",
+    });
+  });
+
+  test("a personal chat names its tenant on the conversation", () => {
+    expect(
+      MicrosoftTeamsConnectPrompt.getConversation({
+        from: { id: "29:carol", aadObjectId: "aad-carol" },
+        conversation: {
+          id: "a:personal-chat",
+          conversationType: "personal",
+          tenantId: "tenant-2",
+        },
+      }),
+    ).toEqual({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      workspaceId: "tenant-2",
+      conversationId: "a:personal-chat",
+      workspaceUserId: "aad-carol",
+    });
+  });
+
+  test("two threads of one channel are two conversations", () => {
+    function inThread(root: string): JSONObject {
+      return {
+        from: { id: "29:carol", aadObjectId: "aad-carol" },
+        conversation: { id: `19:ops@thread.tacv2;messageid=${root}` },
+        channelData: { tenant: { id: "tenant-1" } },
+      };
+    }
+
+    expect(
+      MicrosoftTeamsConnectPrompt.getConversation(inThread("1")),
+    ).not.toEqual(MicrosoftTeamsConnectPrompt.getConversation(inThread("2")));
+  });
+
+  test("a sender with no Microsoft Entra object id is told apart by their Teams id; an activity naming nothing names nothing", () => {
+    expect(
+      MicrosoftTeamsConnectPrompt.getConversation({
+        from: { id: "29:guest" },
+        conversation: { id: "19:chat@thread.v2" },
+      }),
+    ).toEqual({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      workspaceId: "",
+      conversationId: "19:chat@thread.v2",
+      workspaceUserId: "29:guest",
+    });
+    expect(MicrosoftTeamsConnectPrompt.getConversation({})).toEqual({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      workspaceId: "",
+      conversationId: "",
+      workspaceUserId: "",
+    });
+  });
 });

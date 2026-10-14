@@ -13,6 +13,9 @@ import LogComponents from "./Components/Log";
 import ManualComponents from "./Components/Manual";
 import MattermostComponents from "./Components/Mattermost";
 import MicrosoftTeamsComponents from "./Components/MicrosoftTeams";
+import OnCallComponents, {
+  ON_CALL_COMPONENT_CATEGORY,
+} from "./Components/OnCall";
 import ScheduleComponents from "./Components/Schedule";
 import SlackComponents from "./Components/Slack";
 import SleepComponents from "./Components/Sleep";
@@ -22,6 +25,7 @@ import WebhookComponents from "./Components/Webhook";
 import WorkflowComponents from "./Components/Workflow";
 
 const components: Array<ComponentMetadata> = [
+  ...OnCallComponents,
   ...AIComponents,
   ...LogComponents,
   ...APIComponents,
@@ -47,6 +51,16 @@ const components: Array<ComponentMetadata> = [
 export default components;
 
 export const Categories: Array<ComponentCategory> = [
+  /*
+   * First: paging people is what an on-call product's workflows are most
+   * often for, so the Page steps lead the Add Component panel's groups.
+   */
+  {
+    name: ON_CALL_COMPONENT_CATEGORY,
+    description:
+      "Page people, a team, whoever is on call, or an on-call policy.",
+    icon: IconProp.Call,
+  },
   {
     name: "AI",
     description:

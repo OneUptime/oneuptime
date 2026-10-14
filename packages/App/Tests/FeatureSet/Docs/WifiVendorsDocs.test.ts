@@ -2,6 +2,11 @@ import SnmpVendorTemplateUtil, {
   SnmpVendorTemplate,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import {
+  WIFI_INTERNAL_NETWORK_RULES,
+  WifiInternalNetworkKind,
+  WifiInternalNetworkRule,
+} from "Common/Types/Monitor/SnmpMonitor/WifiInternalNetwork";
+import {
   WIFI_VENDORS_DOCS_PATH,
   getWifiTemplates,
 } from "../../../FeatureSet/Dashboard/src/Components/NetworkDevice/WifiTemplateAdvice";
@@ -89,8 +94,122 @@ describe.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
       expect(section).toContain("ExtremeCloud IQ");
       expect(section).toContain("Network Config → SNMP");
     });
+
+    test("names the networks UniFi runs for itself, which the Wi-Fi tab leaves out (#4730)", () => {
+      const tab: string = sectionInLanguage(
+        language,
+        NETWORK_DEVICE_PAGE,
+        "### The Wi-Fi Tab",
+      );
+
+      // The names as UniFi spells them, in every language's punctuation.
+      expect(tab).toContain("`vwire-…`");
+      expect(tab).toContain("`element-…`");
+      expect(tab).toContain("WDS");
+    });
   },
 );
+
+describe("what the Wi-Fi tab leaves out, held to the rules that leave it out (#4730)", () => {
+  const tab: string = read("en", DEVICE_GUIDE).substring(
+    read("en", DEVICE_GUIDE).indexOf("### The Wi-Fi Tab"),
+    read("en", DEVICE_GUIDE).indexOf("### Supported Wi-Fi Vendors"),
+  );
+
+  // The bullet that says it, whole.
+  const bullet: string =
+    tab.split("\n").find((line: string): boolean => {
+      return line.includes("(`vwire-…`)");
+    }) || "";
+
+  function ruleOf(
+    vendor: string,
+    kind: WifiInternalNetworkKind,
+    column: string,
+  ): WifiInternalNetworkRule {
+    const rule: WifiInternalNetworkRule | undefined =
+      WIFI_INTERNAL_NETWORK_RULES.find(
+        (candidate: WifiInternalNetworkRule): boolean => {
+          return (
+            candidate.vendor === vendor &&
+            candidate.kind === kind &&
+            candidate.column === column
+          );
+        },
+      );
+
+    expect(rule).toBeDefined();
+    return rule!;
+  }
+
+  test("is a bullet of its own, beside IQ Engine's N/A interfaces", () => {
+    expect(bullet.startsWith("- ")).toBe(true);
+    expect(tab).toContain("with N/A for those) is not listed as an SSID.");
+  });
+
+  test("names UniFi's mesh link by the name UniFi gives it", () => {
+    const rule: WifiInternalNetworkRule = ruleOf(
+      "Ubiquiti UniFi",
+      WifiInternalNetworkKind.MeshLink,
+      "unifiVapEssId",
+    );
+
+    expect(bullet).toContain("UniFi's wireless mesh link (`vwire-…`)");
+    expect(rule.pattern?.test("vwire-0123456789abcdef")).toBe(true);
+  });
+
+  test("names UniFi's device adoption network by the name UniFi gives it", () => {
+    const rule: WifiInternalNetworkRule = ruleOf(
+      "Ubiquiti UniFi",
+      WifiInternalNetworkKind.DeviceAdoption,
+      "unifiVapEssId",
+    );
+
+    expect(bullet).toContain(
+      "its network for adopting new UniFi devices (`element-…`)",
+    );
+    expect(rule.pattern?.test("element-0123456789abcdef")).toBe(true);
+  });
+
+  test("names the Extreme controller's WDS and mesh services, by their service types", () => {
+    const rule: WifiInternalNetworkRule = ruleOf(
+      "Extreme Networks",
+      WifiInternalNetworkKind.MeshLink,
+      "wlanServiceType",
+    );
+
+    expect(bullet).toContain("an Extreme controller's WDS and mesh services");
+    // wds(3) and mesh(6), as HIPATH-WIRELESS-HWC-MIB numbers them.
+    expect(rule.values).toEqual(["3", "6"]);
+  });
+
+  test("promises a hidden SSID of the reader's own is listed - no rule reads whether one is hidden", () => {
+    expect(bullet).toContain(
+      "A hidden SSID of your own is listed like any other.",
+    );
+
+    for (const rule of WIFI_INTERNAL_NETWORK_RULES) {
+      expect(rule.column.toLowerCase()).not.toContain("hide");
+      expect(rule.column.toLowerCase()).not.toContain("supress");
+    }
+  });
+
+  test("names no vendor the rules do not cover", () => {
+    const vendors: Array<string> = Array.from(
+      new Set(
+        WIFI_INTERNAL_NETWORK_RULES.map(
+          (rule: WifiInternalNetworkRule): string => {
+            return rule.vendor;
+          },
+        ),
+      ),
+    ).sort();
+
+    expect(vendors).toEqual(["Extreme Networks", "Ubiquiti UniFi"]);
+    expect(bullet).not.toContain("Aruba");
+    expect(bullet).not.toContain("Cambium");
+  });
+});
 
 describe("the English guide", () => {
   const guide: string = read("en", DEVICE_GUIDE);

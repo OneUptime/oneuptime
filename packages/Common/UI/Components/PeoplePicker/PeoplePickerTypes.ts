@@ -1,3 +1,4 @@
+import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import type { DropdownOption } from "../Dropdown/Dropdown";
 import type { DropdownChange } from "../Dropdown/DropdownChange";
@@ -37,6 +38,11 @@ export enum PeoplePickerKind {
   Team = "team",
   // Pages whoever is on call in it: an escalation rule's responders.
   OnCallSchedule = "onCallSchedule",
+  /*
+   * Runs its escalation rules: what a workflow's Page an On-Call Policy step
+   * pages. Not people, but picked the way they are.
+   */
+  OnCallPolicy = "onCallPolicy",
 }
 
 // One record the picker can show: in its search list, or as a picked chip.
@@ -101,6 +107,21 @@ export interface PeoplePickerFieldConfig {
    * it is, and the field's own validation says what is wrong with it.
    */
   excludePicksOf?: Array<PeoplePickerFieldKind> | undefined;
+  /*
+   * What leaving the picker empty means, said where a pick would be while
+   * nothing is picked: a user override's "Who covers?" reads "Next person
+   * in the rotation" until somebody is chosen. Removing the pick brings it
+   * back. Leave it out for a picker whose empty value needs no words.
+   */
+  whenNobodyPicked?: PeoplePickerNobodyPicked | undefined;
+}
+
+// What an empty picker stands for (PeoplePickerFieldConfig.whenNobodyPicked).
+export interface PeoplePickerNobodyPicked {
+  // A translation key: "Next person in the rotation".
+  text: string;
+  // Drawn before the words. Default: none.
+  icon?: IconProp | undefined;
 }
 
 /*

@@ -26,13 +26,13 @@ Um workflow só pode ter um gatilho. Se você precisa de duas formas de iniciar 
 
 ## Manual
 
-Rode o workflow quando quiser: clique em **Executar fluxo de trabalho** na página **Construtor**, preencha o **JSON** do gatilho, clique em **Run Workflow Manually** e confirme com **Run**. Outro workflow também pode iniciá-lo, com um bloco **Execute Workflow**.
+Rode o workflow quando quiser: clique em **Executar fluxo de trabalho** na página **Construtor**, preencha o **JSON** do gatilho, clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. Outro workflow também pode iniciá-lo, com um bloco **Execute Workflow**.
 
 Bom para: automações de um clique para as quais você quer um botão, como «girar esta chave» ou «enviar um alerta de teste», e lógica que você compartilha entre workflows.
 
 **Returns**: **JSON** — aquilo com que a execução foi iniciada.
 
-- A partir de **Executar fluxo de trabalho**, é o JSON que você digitou, como texto. Para ler um campo dele, passe-o antes por um bloco **Text to JSON**.
+- A partir de **Executar fluxo de trabalho**, é o JSON que você digitou. Para ler um campo dele, acrescente o nome do campo à referência, como em `{{local.components.manual-1.returnValues.value.name}}`.
 - A partir de um bloco **Execute Workflow**, cada chave dos **Arguments** do bloco é um valor próprio. Com `{"customerId": "42"}`, um bloco seguinte lê `{{local.components.manual-1.returnValues.customerId}}`, onde `manual-1` é o ID do gatilho Manual.
 
 ## Schedule
@@ -96,7 +96,7 @@ sequenceDiagram
 
 Leia um campo acrescentando o nome dele à referência, como em `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
-Depois que chega uma requisição, o seletor de valores de cada bloco após o gatilho sabe o que ela continha: lista os campos do corpo, os cabeçalhos e os parâmetros de consulta, cada um com o seu conteúdo, para você escolher `incident.title` em vez de digitar um caminho. Até lá, ele avisa que nenhuma requisição chegou e oferece **Copy test request**, um comando `curl` para a URL; os campos aparecem assim que a execução iniciada por essa requisição terminar. Veja [Usar valores de blocos anteriores](/docs/workflows/authoring#usar-valores-de-blocos-anteriores).
+Depois que chega uma requisição, o seletor de valores de cada bloco após o gatilho sabe o que ela continha: lista os campos do corpo, os cabeçalhos e os parâmetros de consulta, cada um com o seu conteúdo, para você escolher `incident.title` em vez de digitar um caminho. Até lá, ele avisa que nenhuma requisição chegou e oferece **Copiar requisição de teste**, um comando `curl` para a URL; os campos aparecem assim que a execução iniciada por essa requisição terminar. Veja [Usar valores de blocos anteriores](/docs/workflows/authoring#usar-valores-de-blocos-anteriores).
 
 Para testar o workflow sem a outra ferramenta, clique em **Executar fluxo de trabalho** no **Construtor** e digite cabeçalhos, parâmetros de consulta e um corpo.
 
@@ -161,24 +161,24 @@ Quase tudo no OneUptime — monitores, incidentes, alertas, eventos de manutenç
 
 É assim que você monta «quando X acontecer no OneUptime, faça Y» sem precisar ficar verificando em um loop.
 
-**On Update** pode ser restrito a alguns campos com **Listen on**: aí ele só dispara quando uma atualização muda um deles, para qualquer valor — desligar uma chave ou limpar um campo conta.
+**On Update** pode ser restrito a alguns campos com **Fields to watch**: aí ele só dispara quando uma atualização muda um deles, para qualquer valor — desligar uma chave ou limpar um campo conta.
 
 ```mermaid title="Quando um gatilho On Update dispara"
 flowchart TB
     save["Um registro é salvo"] --> changed{"Algum valor mudou?"}
     changed -->|"Não"| nothing["Nada dispara"]
-    changed -->|"Sim"| listen{"Listen on definido?"}
+    changed -->|"Sim"| listen{"Fields to watch definido?"}
     listen -->|"Não"| fires["O workflow roda"]
     listen -->|"Sim"| field{"Um dos campos dele mudou?"}
     field -->|"Sim"| fires
     field -->|"Não"| nothing
 ```
 
-**On Create** e **On Update** repassam o registro ao próximo bloco, com os campos que você escolhe no **Select Fields** do gatilho. Por exemplo, o gatilho **Incident → On Create** repassa o novo incidente, então o próximo bloco pode ler o título, a descrição, a gravidade ou qualquer outro campo que você selecionou, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Um campo que você não selecionou chega vazio.
+**On Create** e **On Update** repassam o registro ao próximo bloco, com os campos que você escolhe no **Fields to pass on** do gatilho. Por exemplo, o gatilho **Incident → On Create** repassa o novo incidente, então o próximo bloco pode ler o título, a descrição, a gravidade ou qualquer outro campo que você selecionou, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Um campo que você não selecionou chega vazio.
 
 **On Delete** repassa só o ID do registro excluído: o registro já não existe quando o workflow roda, então os outros campos dele não podem ser lidos.
 
-Para testar um gatilho de evento sem esperar o evento, clique em **Executar fluxo de trabalho** no **Construtor** e informe o ID de um registro existente, como um **ID do incidente**. A execução lê esse registro com os campos que você selecionou.
+Para testar um gatilho de evento sem esperar o evento, clique em **Executar fluxo de trabalho** no **Construtor** e escolha um registro existente: os mais recentes são listados, e digitar o número de um registro ou parte do nome dele encontra outro. A execução lê esse registro com os campos que você selecionou, como se o evento tivesse acabado de acontecer com ele; o registro em si não é alterado nem excluído.
 
 ### Os eventos mais usados
 

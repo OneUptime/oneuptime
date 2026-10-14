@@ -61,7 +61,7 @@ Open **User Settings** > **Calendar** > **Calendar Feed** in the project whose s
 Click **Generate calendar link**. The card **Subscribe to your on-call shifts** now offers one subscribe flow:
 
 - **Add to your calendar**: **Google Calendar** opens Google Calendar, which asks whether to add the calendar. **Apple Calendar / Outlook** opens the `webcal://` form of the link in the app your computer or phone subscribes with: Apple Calendar on a Mac, iPhone or iPad, Outlook on Windows.
-- **Or copy the link**: **Copy link** copies the `https://` link for any other app that can subscribe to a calendar by URL. The link stays hidden on the page until you click to reveal it.
+- **Or copy the link**: **Copy link** copies the `https://` link for any other app that can subscribe to a calendar by URL, without showing it. The link stays hidden on the page until you click **Show**.
 
 ### Subscribe to the link
 
@@ -78,19 +78,27 @@ Click **Edit settings** on the **Calendar feed settings** card to change what th
 | **Days of past shifts** | How far back the calendar reaches (default 2, at most 60). |
 | **Days ahead** | How far ahead the calendar reaches (default 90, between 7 and 180). |
 
-The status line shows when the link was last fetched, by which calendar app, how many times, and the last four characters of the token so you can tell links apart. If nothing has fetched the link after two days, the page asks whether the server is reachable from the internet (see Troubleshooting).
+The **Status** panel beside the subscribe options says whether the link works: when it was last fetched and by which calendar app, roughly how many times, and the last four characters of the token so you can tell links apart. Its badge reads:
+
+- **Active**: a calendar app has fetched the link.
+- **Waiting for first sync**: nothing has fetched the link yet. Most apps do within minutes of subscribing; Google Calendar can take a few hours.
+- **Not fetched yet**: nothing has fetched the link in the two days since it was made, so the page asks whether the server is reachable from where your calendar app runs (see Troubleshooting).
+- **Disabled**: the link serves an empty calendar until you click **Enable link**.
+- **Needs regeneration**: the stored link can no longer be read, usually because the server's encryption secret changed. **Regenerate link** makes a new one.
 
 ### Manage the link
+
+The rest is in the card's **⋯** menu. **Regenerate link** and **Delete link** ask before they act.
 
 | Action | What happens |
 | --- | --- |
 | **Regenerate link** | Mints a new token. Every app subscribed to the old link stops updating: for 30 days the old link serves an empty calendar so those apps clear their copy, after that it returns 404. Re-subscribe with the new link. |
-| **Disable** | Keeps the link but serves an empty calendar until you enable it again. |
-| **Delete** | Removes the link. Apps that still poll it get 404 and keep showing whatever they last fetched — disable first if you want them to empty out. |
+| **Disable link** | Keeps the link but serves an empty calendar until you click **Enable link**, in the same menu or in the **Status** panel. |
+| **Delete link** | Removes the link. Apps that still poll it get 404 and keep showing whatever they last fetched — disable first if you want them to empty out. |
 
 ### Upcoming shifts and cover
 
-The page also lists your **Upcoming shifts** (the next 30 days), and the **Remind me before shifts** card described further down. Each of your own shifts has a **Get cover** link: it opens User Overrides in the shift's project with a new override pre-filled for that shift, you as **Who is away?** and the shift's times as **Starts** and **Ends** (from now, if the shift has started), so all that is left is **Who covers?**. The override sends all your pages during those times to the person who covers, from every on-call policy; a shift that exists only inside one policy is covered on that policy's User Overrides page instead. A shift you are covering for someone else has no **Get cover**: overrides do not chain, so cover for cover would change nothing.
+The page also lists your **Upcoming shifts** (the next 30 days), and the **Remind me before shifts** card described further down. Each of your own shifts has a **Get cover** link: it opens User Overrides in the shift's project with a new override pre-filled for that shift, you as **Who is away?** and the shift's times as **Starts** and **Ends** (from now, if the shift has started), so all that is left is **Who covers?**. The override sends all your pages during those times to the person who covers, from every on-call policy; a shift that exists only inside one policy is covered on that policy's User Overrides page instead. Leave **Who covers?** as **Next person in the rotation**, and it skips you instead: each of your turns goes to the next person in the rotation who is not away. A shift you are covering for someone else has no **Get cover**: overrides do not chain, so cover for cover would change nothing.
 
 The same personal link, filtered to one schedule with `?schedule=<id>`, is offered as **Only my shifts on this schedule** on every schedule's page, and the on-call banner and the **My On-Call Policies** page carry an **Add your shifts to your calendar** link to the page above.
 
@@ -109,7 +117,7 @@ Use **Google Calendar** or **Apple Calendar / Outlook** in OneUptime where your 
 
 The **Google Calendar** button opens Google's add-by-URL page, `https://calendar.google.com/calendar/r?cid=` followed by the `webcal://` form of the link, percent-encoded. That page only takes the `webcal://` form: with the `https://` form in it, Google answers "Unable to add calendar. Check the URL." **From URL** takes either form.
 
-Google fetches the feed **from Google's servers**, so the OneUptime server must be reachable from the internet — OneUptime Cloud always is; for a self-hosted install see Troubleshooting. The first fetch usually happens within minutes of subscribing; after that Google refreshes roughly every 8 to 24 hours and sometimes longer. There is no refresh button for subscribed calendars, and Google ignores the refresh hints in the feed. The feed page's status line says **Last fetched … by Google Calendar** once Google has read the link.
+Google fetches the feed **from Google's servers**, so the OneUptime server must be reachable from the internet — OneUptime Cloud always is; for a self-hosted install see Troubleshooting. The first fetch usually happens within minutes of subscribing; after that Google refreshes roughly every 8 to 24 hours and sometimes longer. There is no refresh button for subscribed calendars, and Google ignores the refresh hints in the feed. The status on the card says **Last fetched … by Google Calendar** once Google has read the link.
 
 The calendar's name and time zone are read **only when you first subscribe**: renaming a schedule later does not rename the calendar in Google — remove and re-add it if the name matters. Google drops reminders carried in calendar files, so set default notifications on that calendar in Google's settings, or better, use OneUptime's own reminders. Google remembers an address it could not read: after fixing whatever stopped it, add the link again with `?nocache=1` appended (OneUptime ignores unknown query parameters, so the feed itself is unchanged) or regenerate the link. The Google Calendar app on Android and iOS cannot subscribe by URL; add the link on a computer and it appears on the phone.
 @tab Outlook on the web
@@ -194,7 +202,7 @@ A shared link belongs to the **project**, not to whoever copied it, and it shows
 
 ### Schedule feed
 
-On a schedule's page the card **Subscribe to this schedule** has two halves: **Only my shifts on this schedule** (your personal link with a schedule filter) and **Everyone's shifts on this schedule (shared team link)**. Anyone with **Edit** permission on schedules can **Publish shared link**, **Regenerate link** or **Disable** it; anyone who can read the schedule can copy it. The card shows when the link was last rotated.
+On a schedule's page the card **Subscribe to this schedule** has two halves: **Only my shifts on this schedule** (your personal link with a schedule filter) and **Everyone's shifts on this schedule (shared team link)**. Anyone with **Edit** permission on schedules can **Publish shared link**, and **Regenerate link** or **Disable link** from the card's **⋯** menu; anyone who can read the schedule can copy it. The card's status shows when the link was last rotated.
 
 ### Project feed
 
@@ -231,7 +239,7 @@ The feed shows the rotation **as it is configured now**, including for past days
 
 - The token in the link is the only credential. Anyone who has the link sees the shifts — names, schedules, policies — until it is regenerated. Do not paste links into chat rooms or tickets; when a team needs a calendar, share the schedule or project link rather than your personal one.
 - Links are per project. A leaked personal link exposes one project's shifts, not every project you belong to.
-- Regenerating a link moves the old token into a 30-day grace period (empty calendar, then 404). **Disable** serves an empty calendar. An unknown or expired link returns a plain 404 with no hint. Empty calendars make subscribed apps clear their copy; a 404 makes them keep it, which is why disabling and regenerating serve empty calendars.
+- Regenerating a link moves the old token into a 30-day grace period (empty calendar, then 404). **Disable link** serves an empty calendar. An unknown or expired link returns a plain 404 with no hint. Empty calendars make subscribed apps clear their copy; a 404 makes them keep it, which is why disabling and regenerating serve empty calendars.
 - Tokens are stored hashed; the copy shown on the settings page is encrypted with `ENCRYPTION_SECRET`. Set that variable to a real secret on a self-hosted install — the server warns at start-up when it is unset or still one of the placeholders this repository ships (`secret`, or the `please-change-this-to-random-value` that `config.example.env` sets). If you change it later, the page offers **Regenerate link** because the stored copy can no longer be read; the feed keeps working until you do.
 - Feed responses are marked `Cache-Control: private`, are excluded from search engines (`X-Robots-Tag: noindex`) and are rate limited per link and per client address.
 
@@ -277,7 +285,7 @@ Older OneUptime versions put the `https://` form of the link into the **Google C
 :::
 
 :::details Google Calendar shows the calendar but no shifts
-First check the feed page's status line. **Last fetched … by Google Calendar** means Google read the link: open the link in a browser and look at what it serves — an empty calendar states its reason in `X-WR-CALDESC` (see "The calendar is empty" below).
+First check the status on the card. **Last fetched … by Google Calendar** means Google read the link: open the link in a browser and look at what it serves — an empty calendar states its reason in `X-WR-CALDESC` (see "The calendar is empty" below).
 
 **Not fetched yet** means Google could not read it: from a machine outside your network, `curl -sI <link>` must answer `200` with `Content-Type: text/calendar` straight away. A redirect, a login page, a firewall or a bot check in front of OneUptime stops Google's fetcher; so did a redirect loop in older OneUptime versions, on installs with `PROVISION_SSL=true` whose TLS ends in front of Nginx. Once it answers `200`, add the link again with `?nocache=1` appended so Google reads it afresh.
 :::
@@ -285,7 +293,7 @@ First check the feed page's status line. **Last fetched … by Google Calendar**
 :::details Nothing has fetched the link, or "Could not fetch the URL"
 Google Calendar, Outlook on the web, Fastmail and Proton fetch **from their own servers**, so the OneUptime host must be reachable from the public internet with a certificate they trust. An install on a private network, behind a VPN, or with an internal certificate authority is unreachable to them no matter what you paste.
 
-Apple Calendar, Thunderbird and classic Outlook fetch from the device, so they work wherever the device can open the dashboard — after trusting the certificate on that device if it is self-signed. The feed page's status line tells you whether anything has fetched the link yet; `curl -I` against the link from outside your network is the quickest check:
+Apple Calendar, Thunderbird and classic Outlook fetch from the device, so they work wherever the device can open the dashboard — after trusting the certificate on that device if it is self-signed. The status on the card tells you whether anything has fetched the link yet; `curl -I` against the link from outside your network is the quickest check:
 
 ```bash
 curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"

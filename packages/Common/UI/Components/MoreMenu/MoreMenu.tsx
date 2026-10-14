@@ -56,6 +56,16 @@ export interface ComponentProps {
    * room below, clamped to the viewport.
    */
   isMenuPortaled?: boolean | undefined;
+  /*
+   * Line the menu's left edge up with the trigger's, instead of right edge to
+   * right edge. Right suits the ⋯ menus at the end of a row or a card, and
+   * stays the default. Left suits a trigger at the start of a line - a pill
+   * that names a value and opens the choices for it - whose right-aligned
+   * menu would hang out past the left of the table it sits in. Without room
+   * to the right, the menu falls back to hanging leftwards, and either way it
+   * is kept inside the viewport.
+   */
+  isMenuLeftAligned?: boolean | undefined;
 }
 
 /*
@@ -299,26 +309,40 @@ const MoreMenu: React.ForwardRefExoticComponent<
       const isOverflowingLeft: boolean =
         triggerRect.right - menuWidth < PORTALED_MENU_VIEWPORT_PADDING_PX;
 
-      const right: number | undefined = isOverflowingLeft
-        ? undefined
-        : Math.max(
-            viewportWidth - triggerRect.right,
-            PORTALED_MENU_VIEWPORT_PADDING_PX,
-          );
+      /*
+       * Left edge to left edge instead (isMenuLeftAligned), while the menu
+       * fits to the right of the trigger. Reading the width for that is safe
+       * now: it is set on the element itself (PORTALED_MENU_WIDTH), not left
+       * to a class the Tailwind runtime might not have written yet.
+       */
+      const isLeftAligned: boolean =
+        Boolean(props.isMenuLeftAligned) &&
+        triggerRect.left + menuWidth <=
+          viewportWidth - PORTALED_MENU_VIEWPORT_PADDING_PX;
+
+      const right: number | undefined =
+        isLeftAligned || isOverflowingLeft
+          ? undefined
+          : Math.max(
+              viewportWidth - triggerRect.right,
+              PORTALED_MENU_VIEWPORT_PADDING_PX,
+            );
       /*
        * Without room to hang leftwards - a trigger near the left edge, as on
        * the mobile cards - the menu hangs rightwards from the trigger's own
        * left edge instead, still kept inside the viewport.
        */
-      const left: number | undefined = isOverflowingLeft
-        ? Math.max(
-            Math.min(
-              triggerRect.left,
-              viewportWidth - PORTALED_MENU_VIEWPORT_PADDING_PX - menuWidth,
-            ),
-            PORTALED_MENU_VIEWPORT_PADDING_PX,
-          )
-        : undefined;
+      const left: number | undefined = isLeftAligned
+        ? Math.max(triggerRect.left, PORTALED_MENU_VIEWPORT_PADDING_PX)
+        : isOverflowingLeft
+          ? Math.max(
+              Math.min(
+                triggerRect.left,
+                viewportWidth - PORTALED_MENU_VIEWPORT_PADDING_PX - menuWidth,
+              ),
+              PORTALED_MENU_VIEWPORT_PADDING_PX,
+            )
+          : undefined;
 
       const spaceBelow: number =
         viewportHeight -
@@ -342,7 +366,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
         right,
         isAbove,
       });
-    }, [buttonId, props.isOpeningUpwards, ref]);
+    }, [buttonId, props.isOpeningUpwards, props.isMenuLeftAligned, ref]);
 
     /*
      * Measured before paint, so the menu never flashes at the corner of the
@@ -715,6 +739,16 @@ const MoreMenu: React.ForwardRefExoticComponent<
       ? getMenuPortalTarget()
       : null;
 
+    /*
+     * The corner the menu grows from as it opens: the one at its trigger. Only
+     * a left-aligned menu that really is anchored by its left edge grows from
+     * the left; every other menu keeps the right, as it always has.
+     */
+    const isMenuGrowingFromLeft: boolean = Boolean(
+      props.isMenuLeftAligned &&
+        (!isMenuPortaled || portaledMenuPosition?.right === undefined),
+    );
+
     const menu: ReactElement = (
       <div
         ref={ref}
@@ -731,11 +765,19 @@ const MoreMenu: React.ForwardRefExoticComponent<
            */
           isMenuPortaled
             ? "w-56 rounded-lg"
-            : "absolute right-0 z-50 w-56 rounded-lg"
+            : `absolute ${
+                props.isMenuLeftAligned ? "left-0" : "right-0"
+              } z-50 w-56 rounded-lg`
         } bg-white text-left shadow-xl ring-1 ring-gray-200 focus:outline-none py-1 transition duration-150 ease-out motion-reduce:transition-none ${
           isMenuAbove
-            ? `${isMenuPortaled ? "" : "bottom-full mb-2 "}origin-bottom-right`
-            : `${isMenuPortaled ? "" : "mt-2 "}origin-top-right`
+            ? `${isMenuPortaled ? "" : "bottom-full mb-2 "}${
+                isMenuGrowingFromLeft
+                  ? "origin-bottom-left"
+                  : "origin-bottom-right"
+              }`
+            : `${isMenuPortaled ? "" : "mt-2 "}${
+                isMenuGrowingFromLeft ? "origin-top-left" : "origin-top-right"
+              }`
         } ${hasMenuEntered ? "opacity-100" : "opacity-0 scale-95"}`}
         style={
           isMenuPortaled

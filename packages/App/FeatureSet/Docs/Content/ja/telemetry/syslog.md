@@ -28,7 +28,7 @@ flowchart TB
 OneUptime はリクエストからメッセージを読み取った時点で応答し、少し後に解析して保存します。メッセージの本文はログの本文に残り、それ以外はすべて属性になります。
 
 > [!TIP]
-> OneUptime のプローブで監視しているネットワーク機器は、リレーを使わずに UDP で syslog を直接プローブに送れます。その場合、ログは OneUptime のその機器に表示されます。[ネットワークベンダー別ガイド (Sophos、Extreme、Cambium)](/docs/monitor/network-vendor-guides) を参照してください。
+> ネットワーク機器は、リレーを使わずに UDP または TCP で syslog を OneUptime のプローブに直接送れます。その場合、OneUptime は各ベンダーのメッセージをその機器のイベントとして読み取ります。[ネットワークイベント](/docs/monitor/network-events) を参照してください。
 
 ## 始める前に
 
@@ -200,7 +200,7 @@ OneUptime は、各ログエントリに次の属性を自動的に追加しま�
 
 これらの属性は **製品 → ログ** のエクスプローラーで検索できます。たとえば `@syslog.severity.name:error` や `@syslog.hostname:web-01` です。[検索構文](/docs/telemetry/search-syntax) を参照してください。
 
-メッセージ自体はログの本文に残ります。Sophos XGS や Fortinet FortiGate などのファイアウォールは、メッセージを `key=value` のペア (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) で書きます。[ログパイプライン](/docs/telemetry/log-pipelines#keyvalue-parser) に **Key=Value Parser** プロセッサーを追加すると、これらのペアも属性に変わります。
+メッセージ自体はログの本文に残ります。ネットワークベンダーの形式のメッセージは、さらに読み取られます。Sophos や FortiGate のファイアウォールの `key=value` のペア (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) は `sophos.*` と `fortigate.*` の属性になり、起きたことは [ネットワークイベント](/docs/monitor/network-events) になります。それ以外の `key=value` 形式については、[ログパイプライン](/docs/telemetry/log-pipelines#keyvalue-parser) に **Key=Value Parser** プロセッサーを追加すると、ペアが属性に変わります。
 
 ### 重大度
 

@@ -504,6 +504,28 @@ describe("Setup checklist", () => {
   });
 });
 
+/*
+ * The words the card's redesign added: the ⋯ and its items, the status pill,
+ * the subscribe options' lines, the link field and the status sentences.
+ */
+const REDESIGN_KEYS: Array<string> = [
+  "Manage link",
+  "Disable link",
+  "Enable link",
+  "Delete link",
+  "Waiting for first sync",
+  "Needs regeneration",
+  "Show link",
+  "Hide link",
+  "Calendar link",
+  "Calendar link, hidden",
+  "Link copied.",
+  "Opens Google Calendar in a new tab",
+  "Opens the calendar app on this device",
+  "This browser did not let the page copy the link, so it is shown and selected above. Copy it with Ctrl+C, or Cmd+C on a Mac.",
+  "No calendar app has fetched this link yet. Most apps do within minutes of subscribing; Google Calendar can take a few hours.",
+];
+
 describe("Locales", () => {
   const en: Record<string, unknown> = readLocale("en");
 
@@ -533,6 +555,7 @@ describe("Locales", () => {
     "Google Calendar refreshes subscribed calendars on its own schedule, every few hours (sometimes only once a day), so changes take a while to show up there. Reminders and pages still come from OneUptime on time.",
     "Google Calendar reads this link from Google's servers, so this OneUptime server must be reachable from the internet.",
     "Google Calendar and Outlook on the web can't reach this link: {{host}} is a private address, and they read calendars from their own servers. Apple Calendar or Outlook on a computer in your network can still subscribe.",
+    ...REDESIGN_KEYS,
   ];
 
   /*
@@ -588,6 +611,29 @@ describe("Locales", () => {
     }
   });
 
+  /*
+   * Every word the redesign added is in all sixteen languages - translated,
+   * not an English placeholder: the card is the one page a reader sets up
+   * once, in whatever language they read.
+   */
+  test("the redesign's words are translated in every locale", () => {
+    for (const locale of LOCALES) {
+      if (locale === "en") {
+        continue;
+      }
+
+      const json: Record<string, unknown> = readLocale(locale);
+
+      for (const key of REDESIGN_KEYS) {
+        expect({ locale, key, translated: json[key] !== key }).toEqual({
+          locale,
+          key,
+          translated: true,
+        });
+      }
+    }
+  });
+
   test("the strings the components translate at runtime are all in en.json", () => {
     const sources: Array<string> = [
       readSource("Components", "OnCallPolicy", "CalendarFeedLinks.tsx"),
@@ -595,7 +641,13 @@ describe("Locales", () => {
         "Components",
         "OnCallPolicy",
         "CalendarFeed",
-        "FeedStatusLine.tsx",
+        "FeedStatusPanel.tsx",
+      ),
+      readSource(
+        "Components",
+        "OnCallPolicy",
+        "CalendarFeed",
+        "FeedLinkField.tsx",
       ),
       readSource(
         "Components",
@@ -631,7 +683,13 @@ describe("Locales", () => {
     ];
 
     const literalPattern: RegExp =
-      /translateString\(\s*"((?:[^"\\]|\\.)*)"\s*,?\s*\)/g;
+      /(?:translateString|translateText)\(\s*"((?:[^"\\]|\\.)*)"\s*,?\s*\)/g;
+    /*
+     * A word chosen between two - Show or Hide, Copy link or Copied! - is
+     * looked up as `translateText(cond ? "A" : "B")`: both are keys.
+     */
+    const choicePattern: RegExp =
+      /translateText\(\s*[\w.!]+\s*\?\s*"((?:[^"\\]|\\.)*)"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,?\s*\)/g;
     let found: number = 0;
 
     for (const source of sources) {
@@ -640,9 +698,17 @@ describe("Locales", () => {
         found += 1;
         expect(en[key]).toBe(key);
       }
+
+      for (const match of source.matchAll(choicePattern)) {
+        for (const literal of [match[1], match[2]] as Array<string>) {
+          const key: string = literal.replace(/\\"/g, '"');
+          found += 1;
+          expect(en[key]).toBe(key);
+        }
+      }
     }
 
-    expect(found).toBeGreaterThan(30);
+    expect(found).toBeGreaterThan(40);
   });
 
   /*
@@ -657,7 +723,7 @@ describe("Locales", () => {
         "Components",
         "OnCallPolicy",
         "CalendarFeed",
-        "FeedStatusLine.tsx",
+        "FeedStatusPanel.tsx",
       ),
       readSource(
         "Components",
@@ -669,10 +735,12 @@ describe("Locales", () => {
 
     /*
      * The key argument is sometimes a singular/plural ternary, so the call is
-     * matched up to its values object and every literal inside is collected.
+     * matched up to its values object and every literal inside is collected:
+     * translator.translateTemplate in the status panel, translateInterpolated
+     * in the upcoming shifts card.
      */
     const callPattern: RegExp =
-      /translateInterpolated\(\s*translateString,\s*(.*?),\s*\{/g;
+      /(?:translateInterpolated\(\s*translateString,|translateTemplate\()\s*(.*?),\s*\{/g;
     const literalPattern: RegExp = /"((?:[^"\\]|\\.)*)"/g;
     const keys: Array<string> = [];
 

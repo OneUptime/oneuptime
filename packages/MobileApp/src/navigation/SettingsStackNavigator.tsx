@@ -5,6 +5,7 @@ import SettingsScreen from "../screens/SettingsScreen";
 import ProjectsScreen from "../screens/settings/ProjectsScreen";
 import SSOProviderSelectScreen from "../screens/settings/SSOProviderSelectScreen";
 import OnCallCalendarFeedScreen from "../screens/OnCallCalendarFeedScreen";
+import CriticalAlertSoundScreen from "../screens/settings/CriticalAlertSoundScreen";
 import type { SettingsStackParamList } from "./types";
 
 const Stack: ReturnType<
@@ -36,6 +37,11 @@ export default function SettingsStackNavigator(): React.JSX.Element {
         name="OnCallCalendarFeed"
         component={OnCallCalendarFeedScreen}
         options={{ title: "Calendar Feed" }}
+      />
+      <Stack.Screen
+        name="CriticalAlertSound"
+        component={CriticalAlertSoundScreen}
+        options={{ title: "Alarm Sound" }}
       />
     </Stack.Navigator>
   );

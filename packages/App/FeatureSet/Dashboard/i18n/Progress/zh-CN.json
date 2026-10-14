@@ -1,13 +1,16 @@
 {
   "baseline": {
-    "keys": 28113,
-    "untranslated": 16442
+    "keys": 28484,
+    "untranslated": 16424
   },
   "sameAsEnglish": [
     "AI / LLM",
     "Runner",
+    "SNMP trap",
     "VMware vCenter",
+    "Webhook URL",
     "kubectl set image deployment/web * -n web",
+    "syslog",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",

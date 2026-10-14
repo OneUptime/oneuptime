@@ -28,7 +28,7 @@ flowchart TB
 O OneUptime responde assim que lê as mensagens da requisição, e as analisa e guarda um instante depois. O texto da mensagem fica no corpo do log; todo o resto vira atributo.
 
 > [!TIP]
-> Os dispositivos de rede que você monitora com uma sonda do OneUptime podem enviar o syslog diretamente à sonda por UDP, sem relay — os logs então aparecem no dispositivo dentro do OneUptime. Veja [Guias por fornecedor de rede](/docs/monitor/network-vendor-guides).
+> Os dispositivos de rede podem enviar o syslog diretamente a uma sonda do OneUptime, por UDP ou TCP, sem relay — o OneUptime então lê as mensagens de cada fabricante como eventos no dispositivo. Veja [Eventos de rede](/docs/monitor/network-events).
 
 ## Antes de começar
 
@@ -200,7 +200,7 @@ O OneUptime adiciona automaticamente os seguintes atributos a cada entrada de lo
 
 Esses atributos ficam pesquisáveis no explorador de **Produtos → Registros** — por exemplo `@syslog.severity.name:error` ou `@syslog.hostname:web-01`. Veja [Sintaxe de pesquisa](/docs/telemetry/search-syntax).
 
-A mensagem em si fica no corpo do log. Firewalls como Sophos XGS e Fortinet FortiGate a escrevem como pares `key=value` (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`); adicione um processador **Key=Value Parser** num [pipeline de registros](/docs/telemetry/log-pipelines#keyvalue-parser) para transformar também esses pares em atributos.
+A mensagem em si fica no corpo do log. Uma mensagem no formato de um fabricante de rede é lida mais a fundo: os pares `key=value` de um firewall Sophos ou FortiGate (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) viram atributos `sophos.*` e `fortigate.*`, e o que aconteceu vira um [evento de rede](/docs/monitor/network-events). Para qualquer outro formato `key=value`, adicione um processador **Key=Value Parser** num [pipeline de registros](/docs/telemetry/log-pipelines#keyvalue-parser) para transformar os pares em atributos.
 
 ### Severidade
 

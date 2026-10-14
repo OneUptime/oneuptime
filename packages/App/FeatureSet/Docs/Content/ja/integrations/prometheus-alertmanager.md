@@ -1,146 +1,174 @@
-# Prometheus Alertmanager 連携
+# Prometheus Alertmanager
 
-[Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) の通知を OneUptime のインシデントに変換します。Prometheus がアラートルールを評価し、Alertmanager がルーティングし、OneUptime が記録してエスカレーションします。
+[Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) のアラートを OneUptime に送信すると、発火した各アラートがオンコールチームを呼び出すインシデントになり、アラートが回復すると解決されます。Alertmanager は通知を Webhook レシーバーに送信するため、どちら側にもインストールするものはありません。
 
-この連携は**インバウンド**で、構築方法は 2 つあります。
+:::cards
+- [OneUptime でアラートを受け取る方法を選ぶ](#oneuptime-でアラートを受け取る方法を選ぶ): 受信リクエスト モニター、または独自のワークフロー。
+- [モニターでアラートを受け取る](#モニターでアラートを受け取る): アラートごとに 1 つのインシデント、回復時に解決。
+- [Alertmanager を設定する](#alertmanager-を設定する): Webhook レシーバーと、それを使うルート。
+- [トラブルシューティング](#トラブルシューティング): アラートが届かない場合や、インシデントが開いたままの場合。
+:::
 
-| 方式                                                                        | 選ぶ場面                                                                                                                                                        |
-| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **[受信リクエストモニター](/docs/monitor/incoming-request-monitor)** (推奨) | アラートをオンコールエスカレーション付きのインシデントにし、アラートごとに 1 件のインシデントを作り、復旧時に自動解決したい場合。独自ロジックの保守も不要です。 |
-| **[ワークフロー](/docs/workflows/index) + Webhook トリガー**                | OneUptime が標準で行わないルーティングロジックが必要な場合 — 他システムの呼び出し、ペイロードの整形、条件分岐など。                                             |
+## 仕組み
 
-```text
-Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneUptime  ──►  Incident + on-call
+```mermaid title="発火したアラートからインシデントへ"
+flowchart TB
+    rule["Prometheus の<br/>ルールが発火"] --> group["Alertmanager が<br/>アラートを<br/>グループ化"]
+    group --> post["レシーバーが<br/>OneUptime に<br/>送信"]
+    post --> status{"各アラートの<br/>ステータス"}
+    status -->|"firing"| open["インシデントを<br/>作成し、<br/>オンコールを呼び出し"]
+    status -->|"resolved"| resolve["インシデントを解決"]
 ```
+
+Prometheus はアラートルールを評価し、発火したアラートを Alertmanager に送信します。Alertmanager はルートの `group_by` にあるラベルでアラートをグループ化し、各グループを 1 つの JSON 通知として Webhook レシーバーに送信します。通知の `alerts` リストにはグループ内のすべてのアラートが含まれ、それぞれに独自の `status`（`firing` または `resolved`）、ラベルとアノテーション、そしてアラートを識別する `fingerprint` があります。
 
 ## 前提条件
 
-- `alertmanager.yml` を編集できる Prometheus + Alertmanager 環境。
-- Alertmanager から OneUptime インスタンスへ HTTPS で到達できること。
-- モニター (またはワークフロー) を作成できる OneUptime プロジェクト。
+- `alertmanager.yml` を編集でき、HTTPS で OneUptime に到達できる Alertmanager。
+- OneUptime でモニターを作成する権限。ワークフローを使う場合はワークフローを作成する権限。
 
-## オプション 1 — 受信リクエストモニター
+## OneUptime でアラートを受け取る方法を選ぶ
 
-### ステップ 1 — モニターを作成する
+まず OneUptime を設定します。Alertmanager の送信先となる URL が得られます。
 
-1. **モニター → モニターを作成** に移動し、**受信リクエスト** を選びます。
-2. モニターを開き、左メニューの **Documentation** をクリックします。URL をコピーします。
+| 方法 | 使う場面 |
+| --- | --- |
+| 受信リクエスト モニター（推奨） | すべてのアラートを、オンコールを呼び出し、アラートが回復すると解決されるインシデントにしたい場合。構築するものはありません。 |
+| Webhook トリガーを持つワークフロー | アラートの絞り込み、形の変換、先に他のシステムを呼び出すなど、独自のロジックが必要な場合。ワークフローはアラートごとではなく通知ごとに一つのインシデントを作成し、回復時に解決しません。 |
 
-   ```
-   https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
-   ```
+どちらも同じレシーバーから同じ JSON を受け取るため、一方で始めて、後から `alertmanager.yml` の URL を 1 つ変えるだけで切り替えられます。
 
-   セルフホストの場合は自分のホストを使ってください。パスに含まれるシークレットキーが唯一の認証情報です。
+## モニターでアラートを受け取る
 
-### ステップ 2 — Alertmanager をモニターに向ける
+[受信リクエスト モニター](/docs/monitor/incoming-request-monitor) は URL を提供し、その条件が各通知の処理を決めます。
 
-`alertmanager.yml` で:
+:::steps
+### モニターを作成する
 
-```yaml
-receivers:
-  - name: oneuptime
-    webhook_configs:
-      - url: "https://oneuptime.com/heartbeat/YOUR_SECRET_KEY"
-        send_resolved: true
+**モニター** に移動し、**モニターを作成** をクリックします。**モニターの種類** で **受信リクエスト** を選び、名前を `Alertmanager` にして **次へ** をクリックします。
 
+### 発火したアラートごとにインシデントを宣言する
+
+**条件** ステップで、モニターをオフラインにする最初の条件を開きます。そのフィルターを **リクエストボディ**、**含む**、`"status":"firing"` に設定します。この条件は、フィルターが一致するとすでにインシデントを宣言します。インシデントを次のように入力します。
+
+- **インシデントタイトル**: `{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`。
+- **重大度**: これらのアラートに付けるインシデントの重大度。
+- **オンコール** の下の **オンコールポリシー**: 呼び出すポリシー。
+- **その他の項目** の下の **インシデントを自動解決**: 初期状態のままオンにしておきます。オフにすると回復が無視され、インシデントは開いたままになります。
+
+### アラートごとに 1 つのインシデントを作成する
+
+同じ条件で **設定** を開き、**ペイロードのフィールドでインシデントとアラートをグループ化** をオンにします。次のように入力すると、各アラートに独自のインシデントができ、その回復でインシデントが解決されます。
+
+| フィールド | 値 |
+| --- | --- |
+| **次ごとに別々のインシデントを作成…** | `requestBody.alerts[*].fingerprint` |
+| **回復を示すフィールド** | `requestBody.alerts[*].status` |
+| **回復を意味する値** | `resolved` |
+
+### モニターをオンラインに戻す
+
+モニターをオンラインにする 2 つ目の条件を開き、そのフィルターを **リクエストボディ**、**含む**、`"status":"resolved"` に設定します。
+
+### URL をコピーする
+
+**モニターを作成** をクリックします。モニターの **概要** ページに **ハートビート URL** が表示されます。Alertmanager 用にコピーします。
+
+```text
+https://oneuptime.com/heartbeat/<secret key>
+```
+
+セルフホスト環境では、`oneuptime.com` の代わりに独自のホストになります。
+:::
+
+`[*]` は通知内のすべてのアラートを読むため、3 つのアラートを含む通知は、**1 回のリクエストあたりの最大インシデント数**（変更しない限り `100`）を上限として、3 つのインシデントを作成できます。各アラート自身の `status` が、そのインシデントの扱いを決めます。通知内の 1 つのアラートが解決し、2 つがまだ発火している場合、閉じられるのは解決したアラートのインシデントだけです。各設定の働きについては、[他システムからのアラート受信](/docs/monitor/incoming-request-monitor#他システムからのアラート受信) を参照してください。
+
+> [!WARNING]
+> 1 つの通知内でアラートごとに異なる値でグループ化してください。Alertmanager の `fingerprint` はアラートのラベルセット全体のハッシュなので、常に異なります。ルートの `group_by` にあるラベルは決して異なりません。それこそがアラートを 1 つの通知にまとめているものだからです。以下のルートで `requestBody.alerts[*].labels.alertname` でグループ化すると、通知内のすべてのアラートが 1 つのインシデントにまとめられ、そのインシデントは最初のアラートのステータスになります。
+
+## インシデントに名前を付ける
+
+上のタイトルは、通知内のすべてのアラートが共有するラベルを読みます。`commonLabels` にはそれらのラベルが、`commonAnnotations` には共有されるアノテーションが含まれます。`alertname` と `instance` でグループ化する以下のルートでは、どちらも含まれます。**説明** の下で、インシデントに次のような **インシデントの説明** を設定します。
+
+```text
+{{requestBody.commonAnnotations.summary}}
+
+{{requestBody.commonAnnotations.description}}
+Severity: {{requestBody.commonLabels.severity}}
+Alertmanager: {{requestBody.externalURL}}
+```
+
+- グループ化キーも変数で、パスの最後のセグメントにちなんで `{{fingerprint}}` という名前になります。ハッシュなので、対応者には何も伝えません。
+- `{{requestBody.alerts[0].annotations.summary}}` は通知の最初のアラートを読みますが、それがインシデントを作成したアラートとは限りません。
+- 通知にないフィールドへの参照は、空にされず、中括弧も含めて書かれたまま残ります。
+
+使用できるすべての変数は [インシデント & アラート テンプレート](/docs/monitor/incident-alert-templating) を参照してください。
+
+## Alertmanager を設定する
+
+:::steps
+### Webhook レシーバーを追加する
+
+`alertmanager.yml` に、コピーした URL に送信するレシーバーを追加し、それをルートのレシーバーにします。
+
+```yaml title="alertmanager.yml"
 route:
   receiver: oneuptime
   group_by: ["alertname", "instance"]
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 4h
+
+receivers:
+  - name: oneuptime
+    webhook_configs:
+      - url: "https://oneuptime.com/heartbeat/<secret key>"
+        send_resolved: true
 ```
 
-`send_resolved: true` は必須です。アラートが復旧したことを OneUptime に伝えるのはこの設定です。`curl -X POST http://localhost:9093/-/reload` で Alertmanager をリロードするか、再起動してください。
+`send_resolved: true` は Alertmanager の既定値ですが、オンのままにするために明示しています。これがないと、OneUptime はアラートの回復を知ることができません。Alertmanager は `Content-Type: application/json` を送信し、モニターはこれを使って通知のフィールドを読みます。
 
-Alertmanager は `Content-Type: application/json` を送信します。OneUptime がペイロードからフィールドを読み取るにはこれが必要です。
+### Alertmanager を再読み込みする
 
-### ステップ 3 — 条件を設定する
-
-モニターの **Criteria** を開き、最初の条件を編集します。
-
-**フィルター**
-
-- **Filter Type**: `JavaScript Expression`
-- **Filter Condition**: `Evaluates To True`
-- **Value**: `"{{requestBody.status}}" === "firing"`
-
-  文字列比較にはプレースホルダーを囲む引用符が必要です。式を使いたくない場合は `Request Body` / `Contains` / `"status":"firing"` のフィルターでも動作します。
-
-**アクション**
-
-- _When filters match, change monitor status_ を有効にし、**Offline** (または Degraded) に設定します。
-- _When filters match, declare an incident_ を有効にします。**Title**、**Severity**、呼び出す **On-Call Policies** を設定します。
-- そのインシデントの **More fields** で **Auto Resolve Incident** を有効にします。これがないと復旧通知は無視され、インシデントは永久に開いたままになります。
-
-**Settings → Group incidents and alerts by a payload field**
-
-これを有効にすると、1 つのエンドポイントで通知ごとに 1 件ではなく、アラートごとに 1 件ずつ複数のインシデントを同時に保持できます。
-
-| フィールド                         | 値                                  |
-| ---------------------------------- | ----------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].fingerprint` |
-| Field that signals recovery        | `requestBody.alerts[*].status`      |
-| Value that means recovered         | `resolved`                          |
-| Max incidents per request          | `100`                               |
-
-`[*]` は Alertmanager の `alerts` 配列に展開され、抽出された値が**異なる**ごとに 1 件のインシデントを開きます。両方のパスが `[*]` を使うため、復旧はアラート単位で判定されます。1 件が解決し 2 件がまだ発火しているペイロードでは、解決した 1 件だけがクローズされます。
-
-> **Warning:** アラートごとに本当に一意なものでグループ化してください。Alertmanager の `fingerprint` はアラートのラベルセット全体のハッシュなので、常に一意です。ラベルが使えるのは、それが 1 つの通知の**内部**で変化する場合だけです。ルートの `group_by` に列挙されたラベルは、まさにそれが集約グループを定義しているため、決して変化しません。上記の `group_by: ["alertname", "instance"]` の場合、`requestBody.alerts[*].labels.alertname` でグループ化するとペイロード内のすべてのアラートから同じ値が抽出され、すべてが 1 件のインシデントにまとまってしまいます。さらに悪いことに、値が重複した場合は**最初**の出現だけが保持されるため、最初のアラートが `resolved` のペイロードでは、残りがまだ発火中でもそのインシデントがクローズされます。
-
-### ステップ 4 — インシデントのタイトルと説明を書く
-
-グルーピングキーはパスの最後のセグメントにちなんだ変数として利用でき、`requestBody.alerts[*].fingerprint` なら `{{fingerprint}}` になります。これはハッシュであり対応者に見せるものではないので、代わりに通知全体で共通のラベルからタイトルを作ってください。`commonLabels` にはルートの `group_by` にあるすべてのラベルが含まれるため、上記の設定なら `alertname` と `instance` の両方を使えます。
-
-- **Title**: `{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`
-- **Description**:
-
-  ```
-  {{requestBody.commonAnnotations.summary}}
-
-  {{requestBody.commonAnnotations.description}}
-  Severity: {{requestBody.commonLabels.severity}}
-  Alertmanager: {{requestBody.externalURL}}
-  ```
-
-`commonLabels` と `commonAnnotations` には通知全体で共通のフィールドが入ります。`requestBody.alerts[0].annotations.summary` のようなアラート単位のパスは、常にペイロードの*最初*のアラートを読み取り、そのインシデントが開かれた対象のアラートではありません。各インシデントに固有のアノテーション文を持たせたい場合は `group_by` を絞り込んでください。解決しないパスは空になるのではなく、波括弧を含めてそのまま出力されます。変数の全一覧は [インシデント & アラートの動的テンプレート](/docs/monitor/incident-alert-templating) を参照してください。
-
-### ステップ 5 — モニターを Operational に戻す (オプション)
-
-条件は一致したときにしか動作しないため、すべてが収まった後にモニターが Offline のままにならないよう、2 つ目の条件を追加します。
-
-- **Filter Type**: `JavaScript Expression`、**Value**: `"{{requestBody.status}}" === "resolved"`
-- _Change monitor status to_ **Operational** とし、インシデントは作成しません。
-
-### ステップ 6 — テストする
+設定を再読み込みするか、Alertmanager を再起動します。
 
 ```bash
-curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+curl -X POST http://localhost:9093/-/reload
+```
+:::
+
+このルートは Alertmanager の既定のタイミングを使います。新しいグループを送信する前に `30s`（`group_wait`）、新しいアラートを含むグループを再送する前に `5m`（`group_interval`）、変化のない通知を繰り返す前に `4h`（`repeat_interval`）待ちます。
+
+## テストする
+
+Alertmanager と同じように、発火中の 2 つのアラートを含む通知を OneUptime に送信します。
+
+```bash
+curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
   -H "Content-Type: application/json" \
   -d '{
     "version": "4",
     "status": "firing",
-    "commonLabels": { "alertname": "HighCPU", "severity": "critical" },
-    "commonAnnotations": { "summary": "CPU above 90% for 5m" },
+    "receiver": "oneuptime",
+    "groupLabels": { "alertname": "DiskFull", "instance": "web-1" },
+    "commonLabels": { "alertname": "DiskFull", "instance": "web-1", "severity": "critical" },
+    "commonAnnotations": { "summary": "Disk almost full on web-1" },
     "externalURL": "http://alertmanager:9093",
     "alerts": [
       {
         "status": "firing",
-        "labels": { "alertname": "HighCPU", "instance": "web-1" },
+        "labels": { "alertname": "DiskFull", "instance": "web-1", "severity": "critical", "device": "/dev/sda1" },
         "fingerprint": "a1b2c3d4e5f60001"
       },
       {
         "status": "firing",
-        "labels": { "alertname": "HighCPU", "instance": "web-2" },
+        "labels": { "alertname": "DiskFull", "instance": "web-1", "severity": "critical", "device": "/dev/sdb1" },
         "fingerprint": "a1b2c3d4e5f60002"
       }
     ]
   }'
 ```
 
-`fingerprint` ごとに 1 件、計 2 件のインシデントができるはずです。両方のアラートの `status` を `resolved` にして再送すると、どちらもクローズされるはずです。
+`fingerprint` ごとに 1 つずつ、2 つのインシデントが作成され、どちらのタイトルも `DiskFull on web-1` になります。各 `status` を `resolved` にして同じリクエストを送ると、両方が解決されます。
 
-`amtool` で実際のアラートを発火させることもできます。
+Alertmanager からの経路全体をテストするには、`amtool` でアラートを発火させます。Alertmanager は `group_wait` の後にアラートを送信し、数分後にアラートが期限切れになると回復を送信します。
 
 ```bash
 amtool alert add test_alert severity=warning \
@@ -148,49 +176,60 @@ amtool alert add test_alert severity=warning \
   --alertmanager.url=http://localhost:9093
 ```
 
-## オプション 2 — ワークフロー
+## ワークフローでアラートを受け取る
 
-「アラートがインシデントになる」以上のロジックが必要な場合に使います。
+Alertmanager とインシデントの間に独自のステップが必要な場合は、[ワークフロー](/docs/workflows/index) を使います。
 
-1. **ワークフロー → ワークフローを作成** を開き、`Alertmanager → Incidents` という名前にして **ビルダー** を開きます。
-2. **Webhook** トリガーを追加して **URL をコピー**します。ブロックを `Alertmanager` にリネームします。
-3. トリガーに接続した **条件** ブロックを追加します:
-   - **Left**: `{{Alertmanager.Request Body.status}}`
-   - **Operator**: `==`
-   - **Right**: `firing`
-4. **はい** から **インシデントを作成** ブロックを追加します:
-   - **タイトル**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **説明**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **重大度**: 1 つ選びます (先に `{{Alertmanager.Request Body.commonLabels.severity}}` で分岐することもできます)。
-5. **保存** したうえで、上のステップ 2 の `webhook_configs` の URL をワークフローの URL に向け直します。
+:::steps
+### ワークフローを作成する
 
-アラートごとに 1 件のインシデントを作るには、`Request Body.alerts` をループする [Custom Code](/docs/workflows/components#custom-code) ブロックを追加します。`send_resolved: true` を使う場合は、`status == resolved` を条件とする 2 つ目の **条件** 分岐を追加し、該当するインシデントを検索して **Update Incident** で解決状態へ移します。
+**ワークフロー** に移動し、**ワークフローを作成**、続いて **ゼロから作成** をクリックします。名前を `Alertmanager alerts` にして **ワークフローを作成** をクリックします。
 
-## デッドマンスイッチ
+### Webhook トリガーを追加する
 
-どちらのオプションも、Prometheus 自体が停止したことは教えてくれません。アラートが来ないことは、何も問題がないのと見分けがつかないからです。一般的な対処は、常に発火するアラートを、それをスケジュールどおりに受け取ることを期待するモニターへルーティングすることです。[kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) には `Watchdog` という名前のものが同梱されています。素の Prometheus では、常に真になる式 (`vector(1)`) のアラートルールを追加してください。
+破線の **このワークフローを開始するものを選択** ブロックをクリックし、**Webhook** を選びます。トリガーをクリックしてから **URL をコピー** をクリックし、その URL を `alertmanager.yml` のレシーバーに使います。
 
-**2 つ目の**受信リクエストモニターを作成し、短い `repeat_interval` で `Watchdog` をそこへルーティングして、そのモニターに **Filter Type: Incoming Request** / **Filter Condition: Not Recieved In Minutes** の条件を設定します。リクエスト欠落の条件がアラート受信側にふさわしいのは、この 1 つのケースだけです。
+### 通知が発火中か確認する
 
-以下はステップ 2 の設定に watchdog のルートとレシーバーを組み込んだものです。サブルートは親ルート自身のレシーバーより先に照合されるため、`Watchdog` は 2 つ目のモニターへ、それ以外はこれまでどおり 1 つ目のモニターへ届きます。
+**コンポーネントを追加** をクリックして **If / Else** ブロックを追加し、トリガーの **Out** ドットをそれにつなぎます。**Value to check** を `{{local.components.webhook-1.returnValues.request-body.status}}`、**Comparison** を **is equal to**、**Compare with** を `firing` に設定します。
 
-```yaml
-receivers:
-  - name: oneuptime
-    webhook_configs:
-      - url: "https://oneuptime.com/heartbeat/YOUR_SECRET_KEY"
-        send_resolved: true
+### インシデントを宣言する
 
-  - name: oneuptime-watchdog
-    webhook_configs:
-      - url: "https://oneuptime.com/heartbeat/WATCHDOG_SECRET_KEY"
+**Create One Incident** ブロックを追加し、**If / Else** ブロックの **Yes** 側をそれにつなぎます。**Incident Template** で、重大度と呼び出すオンコールポリシーを設定するテンプレートを選びます（[インシデントテンプレート](/docs/incidents/settings#インシデントテンプレート) を参照）。**JSON Object** で、Alertmanager から来る内容を設定します。
 
+```json
+{
+  "title": "{{local.components.webhook-1.returnValues.request-body.commonLabels.alertname}}",
+  "description": "{{local.components.webhook-1.returnValues.request-body.commonAnnotations.summary}}\nAlertmanager: {{local.components.webhook-1.returnValues.request-body.externalURL}}"
+}
+```
+
+テンプレートがない場合、**JSON Object** にはプロジェクトのインシデント重大度のいずれかの ID である `incidentSeverityId` も必要です。
+
+### ワークフローをオンにする
+
+**ビルダー** の上部で **有効** をオンにします。オフのワークフローは Alertmanager に `400` を返します。
+:::
+
+1 回の実行は 1 つの通知を処理するため、通知に含まれるアラートの数にかかわらず、宣言するインシデントは 1 つです。`resolved` の通知は **If / Else** ブロックの **No** 側に進みますが、そこには何もつながっていないため、実行はそこで終わります。アラートごとに 1 つのインシデントを作成し、回復時に解決するには、モニターを使います。
+
+## Alertmanager 自体を監視する
+
+どちらの方法も、Prometheus や Alertmanager が動かなくなったことには気付きません。アラートが届かない状態は、すべてが正常な状態とまったく同じに見えるからです。そこで、常に発火しているアラートを 2 つ目のモニターに送り、そのアラートが届かなくなったときにインシデントを宣言させます。[kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) には、`Watchdog` という名前のそのようなアラートが付属しています。素の Prometheus では、`vector(1)` のように式が常に真になる `Watchdog` という名前のアラートルールを追加します。
+
+:::steps
+### ウォッチドッグ モニターを作成する
+
+`Alertmanager watchdog` という名前で 2 つ目の受信リクエスト モニターを作成します。モニターをオフラインにする最初の条件のフィルターを **受信リクエスト**、**Not Recieved In Minutes**、`10` に、2 つ目の条件のフィルターを **受信リクエスト**、**Recieved In Minutes**、`10` に設定します。ダッシュボードではどちらもこの綴りで表示されます。新しいモニターの **ハートビート URL** をコピーします。
+
+### ウォッチドッグ アラートをそこに送る
+
+ウォッチドッグ モニターの URL 用のレシーバーと、`Watchdog` を 5 分ごとにそこへ送るルートを追加します。子ルートは親のレシーバーより先に確認されるため、`Watchdog` はウォッチドッグ モニターに送られ、それ以外のアラートは引き続き最初のモニターに送られます。
+
+```yaml title="alertmanager.yml"
 route:
   receiver: oneuptime
   group_by: ["alertname", "instance"]
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 4h
   routes:
     - receiver: oneuptime-watchdog
       matchers:
@@ -198,21 +237,66 @@ route:
       group_wait: 0s
       group_interval: 5m
       repeat_interval: 5m
+
+receivers:
+  - name: oneuptime
+    webhook_configs:
+      - url: "https://oneuptime.com/heartbeat/<secret key>"
+        send_resolved: true
+  - name: oneuptime-watchdog
+    webhook_configs:
+      - url: "https://oneuptime.com/heartbeat/<watchdog secret key>"
 ```
+:::
+
+ウォッチドッグ アラートが 10 分間届かないと、ウォッチドッグ モニターはオフラインになり、インシデントを宣言します。次のウォッチドッグ通知でモニターはオンラインに戻り、インシデントが解決されます。
 
 ## トラブルシューティング
 
-- **何も届かない** — Alertmanager が URL に到達できることを確認し、そのログに配信エラーがないか確認します。OneUptime は何も検証する前に空の `200` をすべてのリクエストに返すため、`200` はペイロードが受理されたことを示しません。代わりにモニターのタイムラインを確認してください。
-- **インシデントは作成されるがクローズされない** — Alertmanager の `send_resolved: true`、条件の復旧フィールドと値 (比較は大文字と小文字を区別します)、インシデントの **More fields** にある **Auto Resolve Incident** を確認します。より分かりにくい原因が 2 つあります。**Max incidents per request** より多くの異なるキーを含むペイロードでは、上限を超えたキーは復旧処理からも見えません。また、`resolved` 通知が評価される前に別のアラートに関する通知が届き、取り込み時の結合 (下記) でその `resolved` 通知がスキップされた場合、Alertmanager は発火通知は繰り返しても解決通知は繰り返さないため、そのインシデントは永久に取り残されます。これらは手作業でクローズしてください。
-- **インシデントがまったく作成されず、モニターのステータスも変わらない** — グルーピングパスはリテラルの `requestBody.` で始まる必要があり、ワイルドカードとして働くのはパス中の最初の `[*]` だけです。どちらの誤りも警告なしに失敗します。
-- **インシデントの本文に生の `{{...}}` プレースホルダーが表示される** — パスが解決されず、OneUptime は未解決のプレースホルダーを空にせずそのまま残します。ルールによって設定されるアノテーションは異なるため、自分のルールで実際に存在するフィールド (`commonAnnotations` かアラート単位の `annotations` か) を参照してください。
-- **アラートが多数入ったペイロードでインシデントが 1 件しかできない** — 通知内で変化しないラベル、多くの場合ルートの `group_by` にも含まれるラベルでグループ化しています。代わりに `requestBody.alerts[*].fingerprint` でグループ化してください。
-- **インシデントが多すぎる** — `group_by` / `group_interval` を広げて、Alertmanager が関連するアラートをまとめるようにします。**Max incidents per request** を下げれば件数は抑えられますが、上限を超えたキーは復旧処理からも見えなくなります。
-- **大量のバースト時に一部の通知がスキップされているように見える** — 1 つの送信元がモニターを圧倒しないよう、同じモニター宛のリクエストは取り込み時に結合されます。以前のリクエストが評価される前に同じモニター宛の新しいリクエストが届くと、評価されるのは新しいほうだけです。バーストの最後の通知は必ず評価されますが、それより前の通知は、後の通知が別のアラートに関するものであってもスキップされます。Alertmanager は `group_by` の各グループを個別の通知として同じ URL に送るためです。`group_wait` と `group_interval` を大きくすると間隔が空きます。結合はアプリコンテナの環境変数 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED` で制御され、既定では有効です。すべてのペイロードを評価する必要があるセルフホストの運用者は、そのコンテナで `false` に設定できます。
+:::details OneUptime に何も届かない
+- Alertmanager のログで、レシーバーへの配信エラーを確認します。
+- モニターは何かを確認する前に、シークレットキーが間違っていてもすぐに `200` を返します。通知が届いているかは、モニターのタイムラインで確認します。
+- オフのワークフローは `400` を返します。その **ビルダー** の上部で **有効** をオンにします。
+:::
 
-## 次に読むべきページ
+:::details インシデントは作成されるが解決されない
+- `send_resolved: false` を設定しているレシーバーがないか確認します。その場合、Alertmanager は回復を一切送信しません。
+- 条件のインシデントには、**その他の項目** の下の **インシデントを自動解決** が必要です。
+- **回復を示すフィールド** は `requestBody.alerts[*].status`、**回復を意味する値** は正確に `resolved` でなければなりません。比較では大文字と小文字が区別されます。
+- **1 回のリクエストあたりの最大インシデント数** を超える通知内のアラートはまったく読まれないため、その回復も失われます。
+- バースト中にスキップされた回復（下記を参照）は、そのインシデントを開いたままにします。Alertmanager は発火中のアラートを繰り返し送りますが、回復は繰り返しません。そのようなインシデントは手動で解決します。
+:::
 
-- [受信リクエストモニター](/docs/monitor/incoming-request-monitor) — モニタータイプ、その条件、インシデントグルーピングの詳細。
-- [インテグレーションの概要](/docs/integrations/index) — インバウンドとアウトバウンドのパターン。
-- [Grafana](/docs/integrations/grafana) — 同じ考え方を Grafana のアラートで。
-- [Webhook トリガー](/docs/workflows/triggers#webhook) — ワークフローの受信 URL の仕組み。
+:::details インシデントが作成されない
+グループ化のパスは `requestBody.` で始まる必要があり、リストを読むのはパス内の最初の `[*]` だけです。どちらかのルールに反するパスは、エラーもなく何にも一致しません。
+:::
+
+:::details アラートが多数含まれる通知でインシデントが 1 つだけ
+通知内のすべてのアラートで同じになるラベル、多くの場合ルートの `group_by` にあるラベルでグループ化しています。代わりに `requestBody.alerts[*].fingerprint` でグループ化してください。
+:::
+
+:::details インシデントに値ではなく参照が表示される
+通知にないフィールドへの参照は、中括弧も含めて書かれたまま残ります。ルールによって設定するアノテーションは異なるため、`commonAnnotations` や各アラートの `annotations` など、ルールが実際に設定するフィールドを使ってください。
+:::
+
+:::details インシデントが多すぎる
+ルートをより少ないラベルでグループ化するか、`group_interval` を増やして、Alertmanager が関連するアラートをまとめて送るようにします。**1 回のリクエストあたりの最大インシデント数** を下げると 1 つの通知から作成されるインシデントは制限されますが、上限を超えたアラートは読まれないため、その回復も失われます。
+:::
+
+:::details バースト中に通知がスキップされる
+前のリクエストが評価される前に新しいリクエストがモニターに届くと、OneUptime は最新のものだけを評価します。これにより、1 つの送信元がモニターをあふれさせることを防ぎます。バーストの最後の通知は必ず評価されますが、Alertmanager は各グループを同じ URL に送るため、別のアラートに関する前の通知はスキップされることがあります。`group_wait` と `group_interval` を増やして通知の間隔を空けてください。セルフホスト環境では、すべてのリクエストを評価するために OneUptime アプリの環境で `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` を設定します。
+:::
+
+## セキュリティ
+
+- **URL はパスワードと同じように扱ってください。** URL を持っている人は誰でもインシデントを作成できます。漏えいした場合はリセットします。モニターの **設定** ページで **受信リクエストのシークレットキーをリセット**、またはワークフローの **Webhook** トリガーで **URL をリセット** を使います。その後、`alertmanager.yml` のレシーバーの `url` を更新します。
+- **セルフホスト環境の場合は？** Alertmanager がファイアウォール越しに HTTPS で OneUptime に到達できるようにしてください。
+
+## 次のステップ
+
+:::cards
+- [受信リクエスト モニター](/docs/monitor/incoming-request-monitor): アラートを受け取るモニターのすべての設定。
+- [Grafana](/docs/integrations/grafana): Grafana のアラート向けの同じ設定。
+- [エスカレーションルール](/docs/on-call/escalation-rules): オンコールポリシーが誰をいつ呼び出すかを決めます。
+- [インテグレーションの概要](/docs/integrations/index): 接続できるその他のツール。
+:::

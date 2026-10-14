@@ -212,8 +212,8 @@ Twilio संदेशों को टेक्स्ट-टू-स्पीच
 केवल छूटी हुई कॉल पर कार्रवाई करने के लिए, जैसे उन्हें Slack या Microsoft Teams में पोस्ट करने या टिकट खोलने के लिए:
 
 :::steps
-1. **On Update Incoming Call Log** ट्रिगर जोड़ें। **Listen on** को **Ended At** पर सेट करें, और जिन फ़ील्ड का आप इस्तेमाल करना चाहते हैं उन्हें चुनें, जैसे **Status**, **Caller Phone Number** और **Routing Phone Number**।
-2. एक **If / Else** चरण जोड़ें। ट्रिगर की **Status** को तुलना **is not equal to** और `Completed` के साथ जाँचें।
+1. **On Update Incoming Call Log** ट्रिगर जोड़ें। **Fields to watch** को **Ended At** पर सेट करें, और जिन फ़ील्ड का आप इस्तेमाल करना चाहते हैं उन्हें चुनें, जैसे **Status**, **Caller Phone Number** और **Routing Phone Number**।
+2. एक **If / Else** चरण जोड़ें। ट्रिगर की **Status** को तुलना **इसके बराबर नहीं है** और `Completed` के साथ जाँचें।
 3. अपने चरणों को **Yes** पोर्ट से जोड़ें।
 :::
 

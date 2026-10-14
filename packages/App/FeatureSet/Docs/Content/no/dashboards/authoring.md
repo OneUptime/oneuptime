@@ -1,69 +1,139 @@
-# Lage et dashbord
+# Opprette et dashbord
 
-For å opprette et dashbord, åpne **Dashbord → Opprett dashbord** og velg en mal, eller **Blank Dashboard** for å starte fra bunnen av. En mal fyller inn navnet på dashbordet for deg (nummerert, som "Kubernetes Dashboard 2", når prosjektet allerede har ett); et tomt dashbord gir du navn selv. Klikk **Opprett dashbord**, og det nye dashbordet åpnes. Et tomt dashbord åpnes på et tomt lerret, med knappen **Legg til widget** for den første widgeten.
+For å opprette et dashbord åpner du **Produkter → Dashbord**, klikker på **Opprett Dashbord** og velger en mal, eller **Blank Dashboard** for å starte fra bunnen av. En mal fyller inn dashbordets navn for deg (nummerert, som i "Kubernetes Dashboard 2", når prosjektet allerede har ett); et tomt dashbord ber deg om et navn. Klikk på **Opprett Dashbord**, og det nye dashbordet åpnes. Et tomt dashbord åpnes på det tomme lerretet sitt, med en knapp **Legg til widget** for den første widgeten.
 
-## Lerretet
+:::cards
+- [Opprett dashbordet](#opprett-dashbordet): Start fra en mal eller fra et tomt lerret.
+- [Rediger og lagre](#rediger-og-lagre): Ingenting endres for noen før du klikker på Lagre endringer.
+- [Legg til en widget](#legg-til-en-widget): Velg den i katalogen, sett den opp og plasser den.
+- [Zoom inn på en topp](#zoom-inn-på-en-topp): Dra over et diagram for å lese hele dashbordet i det øyeblikket.
+:::
 
-Et dashbord er et rutenett. Widgets snapper på plass — du bestemmer hvor hver enkelt sitter og hvor stor den er. Du kan utvide siden nedover etter hvert som du legger til flere rader. Hver widget beholder proporsjonene sine på større eller mindre skjermer.
+## Før du begynner
 
-## Rediger og Vis
+Prosjekteiere og -administratorer kan opprette og redigere alle dashbord. Alle andre trenger en teamtillatelse: `CreateDashboard` for å opprette dashbord og `EditDashboard` for å endre dem. Prosjektmedlemmer og seere kan lese dashbord uten noen av dem. Den som ikke kan redigere et dashbord, kan likevel åpne **⋯**-menyen, der **Edit Dashboard** er låst og forteller hvilken tillatelse som trengs.
 
-Bryteren i headeren veksler mellom to moduser:
+## Opprett dashbordet
 
-- **Rediger** — widget-paletten er åpen, du kan dra widgets rundt, endre størrelse på dem og klikke på en hvilken som helst widget for å endre innstillingene.
-- **Vis** — dashbordet er skrivebeskyttet, nøyaktig slik besøkende og andre teammedlemmer ser det. Bruk dette for å sjekke resultatet før du deler.
+:::steps
+### Åpne malvelgeren
 
-Det er det samme dashbordet i begge modusene. Det er ingen separat "publiser"-steg — hver redigering er live i det øyeblikket den lagres.
+Åpne **Produkter → Dashbord**, og klikk på **Opprett Dashbord**. Dialogen **Opprett fra mal** viser **Blank Dashboard** og femten maler, gruppert etter hva de overvåker.
 
-## Legge til en widget
+### Velg en mal
 
-1. Klikk **Legg til widget** for å åpne widget-paletten: på lerretet til et tomt dashbord, eller i verktøylinjen mens du redigerer dashbordet.
-2. Velg widget-typen. Se [Widgets](/docs/dashboards/widgets) for katalogen.
-3. Widgeten dukker opp på lerretet.
-4. Klikk på tannhjul-ikonet på widgeten for å åpne innstillingene.
-5. Velg datakilden (en metrikk, et listefilter, et avsnitt med tekst osv.) og eventuelle visningsalternativer.
-6. Dra widgeten for å flytte den. Dra et hjørne for å endre størrelse.
+Klikk på et kort. En mal bygger widgetene sine, og ofte variablene sine, for deg; **Blank Dashboard** starter med et tomt lerret.
 
-## Hvor data kommer fra
+### Gi dashbordet et navn
 
-De fleste widgets leser fra ett av tre steder:
+Navnet på en mal er fylt inn, nummerert forbi navnene prosjektet allerede har. Navnet på et tomt dashbord er tomt: skriv inn et. Beskrivelsen er valgfri, ligger sammenslått under **Flere felt**, og du kan legge den til senere på dashbordets side **Oversikt**.
 
-- **Målinger** — velg en metrikk og en aggregasjon (gjennomsnitt, maks, antall, persentil). Legg til filtre. Velg hvordan resultatet skal grupperes. Dette er den samme spørringsbyggeren du ser andre steder i OneUptime.
-- **Live lister** — hendelser, varsler, monitorer, Kubernetes-pods, Docker-containere, hoster. Hver listewidget tar et filter og viser de samsvarende elementene, oppdatert live.
-- **Statisk innhold** — **Tekst**-widgeten tar en blokk med Markdown. Bruk den for overskrifter, kontekst, lenker til runbooks eller midlertidige notater under en hendelse.
+### Opprett det
 
-## Terskler og formatering
+Klikk på **Opprett Dashbord**. Det nye dashbordet åpnes: med en mals widgets med en gang, eller med det tomme lerretet til et tomt dashbord med **Legg til widget** på.
+:::
 
-Enkeltverdi-widgets (**Verdi**, **Måler**) lar deg sette:
+Malene, etter gruppen velgeren viser dem under:
 
-- En **advarselsterskel** — fargen blir gul når verdien krysser den.
-- En **kritisk terskel** — fargen blir rød når verdien krysser den.
+| Gruppe | Maler |
+| --- | --- |
+| Get Started | Blank Dashboard |
+| Monitoring & APM | Monitor Dashboard, Metrics Dashboard, Real User Monitoring Dashboard, SLO Dashboard |
+| Incident Response | Incident Dashboard, Alert Dashboard |
+| Infrastructure | Kubernetes Dashboard, Kubernetes Cost Dashboard, Hosts Dashboard, Proxmox Dashboard, VMware Dashboard, Ceph Dashboard, Storage Array Dashboard, Docker Swarm Dashboard, Network Dashboard |
 
-Diagrammer lar deg sette Y-akse-enheten, velge hvor forklaringen skal plasseres, og velge om serier skal stables oppå hverandre eller overlegges. Tabeller lar deg velge hvilke kolonner som skal vises og hvor mange rader.
+En mal er et utgangspunkt, ikke en kobling: når dashbordet er opprettet, endrer du det som du vil. Malen oppdaterer det ikke senere.
 
-## Tidsperiode og oppdatering
+## Rediger og lagre
 
-Øverst på dashbordet påvirker to kontroller hver metrikk-widget:
+Et dashbord åpnes i visningsmodus, for lesing. For å endre det åpner du **⋯**-menyen i verktøylinjen og velger **Edit Dashboard**. Verktøylinjen viser **Editing** ved siden av navnet og bytter ut tidsintervallet og de andre kontrollene med **Legg til widget**, **Variabler**, **Avbryt** og **Lagre endringer**.
 
-- **Tidsperiode** — en forhåndsinnstilling (siste time, 24 timer, 7 dager, 30 dager) eller et egendefinert område. Hvert diagram og tall bruker dette vinduet.
-- **Oppdatering** — hvor ofte widgets spør på nytt. Av, 5s, 10s, 30s, 1m, 5m, 15m. Live lister oppdateres på egen hånd uavhengig av denne innstillingen.
+```mermaid title="Fra å lese et dashbord til å endre det, og tilbake"
+flowchart TB
+    view["Visning: dashbordet<br/>åpnes her"] -->|"⋯ → Edit Dashboard"| edit["Redigering: legg til,<br/>endre, flytt og<br/>skaler widgets"]
+    edit -->|"Lagre endringer"| saved["Alle ser<br/>endringene"]
+    edit -->|"Avbryt, deretter<br/>Forkast endringer"| dropped["Ingenting endres"]
+    saved --> back["Tilbake i<br/>visningsmodus"]
+    dropped --> back
+```
 
-Widgets som ikke bruker tidsperioden (som en Tekst-widget) ignorerer begge kontrollene.
+Endringene dine er bare dine til du lagrer dem. Ingenting lagres mens du redigerer, så andre ser fortsatt dashbordet slik det var.
 
-## Lagring
+- **Lagre endringer** lagrer widgetene, plasseringene og størrelsene deres, variablene og intervallet for automatisk oppdatering, alt på én gang, og går tilbake til visningsmodus. Hvis lagringen blir avvist, for eksempel fordi du har mistet tillatelsen i mellomtiden, blir du i redigeringsmodus med endringene dine, og årsaken står over rutenettet.
+- **Avbryt** spør først, fordi den kaster endringene dine: **Forkast endringer** går tilbake til dashbordet slik det ble lagret, og **Fortsett å redigere** tar deg tilbake til arbeidet ditt.
 
-Lerretet lagrer på egen hånd mens du arbeider. En liten indikator i headeren forteller deg når den siste endringen er lagret. Hvis du gjør en stor endring, dupliser dashbordet først slik at du har en trygg kopi.
+Mens du redigerer, står den automatiske oppdateringen på pause, og et zoomet tidsintervall går tilbake til intervallet du valgte.
+
+## Legg til en widget
+
+:::steps
+### Åpne widgetkatalogen
+
+Klikk på **Legg til widget**: i verktøylinjen mens du redigerer, eller på lerretet til et tomt dashbord. Katalogen grupperer widgetene etter hva de viser. Skriv i søkefeltet for å finne en etter navn eller formål ("error budget", "pods"), og trykk Enter for å legge til det første treffet.
+
+### Velg en widget
+
+Klikk på den. Widgeten havner på det første ledige stedet i rutenettet der den får plass, og innstillingene åpnes.
+
+### Angi hva den viser
+
+Innstillingsdialogen viser en **Live Preview** av widgeten over innstillingene, og forhåndsvisningen følger hver endring du gjør. Velg hva widgeten leser (en metrikkspørring, et filter, en tekst) og hvordan den ser ut, og klikk deretter på **Ferdig**.
+
+### Plasser den
+
+Dra widgeten for å flytte den, og dra i kantene eller hjørnene for å endre størrelsen. Se [Widgets i rutenettet](#widgets-i-rutenettet).
+:::
+
+[Dashbord-widgets](/docs/dashboards/widgets) går gjennom hver widget og innstillingene.
+
+## Widgets i rutenettet
+
+Lerretet er et rutenett som er tolv kolonner bredt. Widgets fester seg til det, og siden vokser nedover etter hvert som du legger til rader. Mens du drar en widget, viser et stiplet omriss hvor den havner, med kolonne og rad; mens du endrer størrelsen på en, viser omrisset størrelsen i rutenettenheter. Widgets som er i veien, flytter seg, så to widgets overlapper aldri.
+
+Hver type widget har en minste størrelse, slik at det den tegner forblir lesbart: et diagram er minst seks kolonner bredt og tre rader høyt, mens ett enkelt tall får plass i én celle.
+
+For å endre en widget senere klikker du på den mens du redigerer. Innstillingene åpnes igjen, med to knapper til nederst:
+
+- **Duplicate Widget** legger til en kopi, med de samme innstillingene, på det første ledige stedet.
+- **Slett widget** fjerner den når du har bekreftet.
+
+## Tidsintervall og automatisk oppdatering
+
+I visningsmodus angir verktøylinjens tidsintervallvelger vinduet som alle diagram-, tall-, logg- og sporwidgets leser. Velg en forhåndsinnstilling fra de siste 5 minuttene til de siste 3 månedene, eller en egendefinert start og slutt. Hver gang dashbordet åpnes, starter det på den siste timen.
+
+Lister over hendelser, varsler, overvåkinger og ressurser viser den nåværende tilstanden sin, uansett tidsintervall.
+
+Ved siden av tidsintervallet leser menyen for automatisk oppdatering hver widget på nytt med 5 sekunders, 10 sekunders, 30 sekunders, 1 minutts, 5 minutters eller 15 minutters mellomrom, med en nedtelling til neste oppdatering. La den være av mens du feilsøker, slik at visningen står stille. For å gjøre et intervall til dashbordets eget velger du det, redigerer deretter dashbordet og klikker på **Lagre endringer**: hvert besøk starter da med det.
+
+Tidsintervallvelgeren, variablene og den automatiske oppdateringen vises så snart dashbordet har en widget.
+
+### Zoom inn på en topp
+
+Du trenger ikke ta i bruk tidsintervallvelgeren for å se på en topp. Dra over den interessante strekningen av et linje- eller arealdiagram, og **hele dashbordet** flytter seg til det vinduet, akkurat som om du hadde valgt det i tidsintervallvelgeren: hver widget som bruker tidsintervallet, spør på nytt samtidig, så du leser ett øyeblikk over hele dashbordet i stedet for ett diagram i en annen skala enn naboene. Sanntidslister fortsetter å vise hva som skjer nå, som de alltid gjør.
+
+**Dobbeltklikk på et hvilket som helst diagram** for å angre: dashbordet går tilbake til intervallet det hadde før du begynte å zoome, uansett hvor mange ganger du har zoomet videre inn. En knapp **Reset zoom** vises ved siden av tidsintervallvelgeren mens en zoom er aktiv, og et dobbeltklikk på et dashbord som ikke er zoomet, gjør ingenting.
+
+Et zoomet vindu ligger fast, så det slutter å rulle fremover mens automatisk oppdatering er på; det er med vilje, for et vindu som gled unna deg midt i en feilsøking, ville vært verre. Tilbakestill zoomen for å få det til å rulle igjen.
+
+Zoom fungerer bare i visningsmodus; i redigeringsmodus flytter og skalerer dra i stedet widgets. Stolpediagrammer zoomer på samme måte (dra over stolpene), og et dobbeltklikk på ett av dem tilbakestiller dashbordet som et hvilket som helst annet diagram. Bare et drag zoomer: et vanlig klikk på et diagram endrer aldri dashbordets tidsintervall. De samme bevegelsene fungerer på diagrammene i hele OneUptime; se [Zoome inn på et tidsintervall](/docs/telemetry/charts-and-time-ranges).
+
+## Fullskjerm
+
+**⋯ → Full Screen** viser dashbordets widgets på hele skjermen, for en veggskjerm eller et møte. Trykk Esc for å gå ut.
 
 ## Tips for dashbord som eldes godt
 
-- **Ett emne per dashbord.** Motstå fristelsen til å sette "alt vi overvåker" på én side. Noen få fokuserte dashbord slår én gigantisk side.
-- **Sett den viktigste widgeten øverst.** Folk skanner fra toppen og ned — gjør det første de ser til svaret på "er dette systemet sunt?"
-- **Merk seksjoner med Tekst-widgets.** En kort overskrift hvert par rader ("Latens," "Feil," "Kapasitet") gjør siden skannbar fra den andre siden av rommet.
-- **Bruk variabler i stedet for duplisering.** Hvis du er i ferd med å bygge samme dashbord for en annen tjeneste, bygg ett dashbord med en `service`-variabel i stedet. Se [Variabler & filtre](/docs/dashboards/variables).
+- **Ett tema per dashbord.** Noen få fokuserte dashbord slår én side med alt du følger med på.
+- **Plasser den viktigste widgeten øverst.** Folk leser ovenfra og ned, så la det første de ser, svare på "er dette sunt?"
+- **Gi seksjonene navn med Tekst-widgets.** En kort overskrift med noen raders mellomrom ("Ventetid", "Feil", "Kapasitet") gjør siden lett å skumme, selv fra den andre siden av rommet.
+- **Bruk variabler i stedet for kopier.** Hvis du er i ferd med å bygge det samme dashbordet for en annen tjeneste, legger du heller til en variabel `service`. Se [Dashbord-variabler & filtre](/docs/dashboards/variables).
+- **Ta en kopi før en stor endring.** **Dupliser Dashbord**, på dashbordets side **Innstillinger**, lager en trygg kopi du kan prøve ut ideene dine på.
 
-## Hvor du leser videre
+## Neste steg
 
-- [Widgets](/docs/dashboards/widgets) — katalogen.
-- [Variabler & filtre](/docs/dashboards/variables) — variabler, filtre og tidsperioden.
-- [Deling & offentlige dashbord](/docs/dashboards/sharing) — å dele utenfor teamet ditt.
-- [Konfigurasjon & tillatelser](/docs/dashboards/configuration) — eiere og tilgangskontroll.
+:::cards
+- [Dashbord-widgets](/docs/dashboards/widgets): Hver widget, innstillingene og hvilken du skal velge.
+- [Dashbord-variabler & filtre](/docs/dashboards/variables): Ett dashbord for hver tjeneste, vert eller kunde.
+- [Deling & offentlige dashbord](/docs/dashboards/sharing): Del dashbordet utenfor teamet ditt.
+- [Dashbord-konfigurasjon & tillatelser](/docs/dashboards/configuration): Eiere, etiketter, arkivering og hvem som kan gjøre hva.
+:::

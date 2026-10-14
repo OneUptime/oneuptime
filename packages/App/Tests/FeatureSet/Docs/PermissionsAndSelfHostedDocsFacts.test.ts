@@ -6,6 +6,26 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import AndroidNotificationChannel from "Common/Types/PushNotification/AndroidNotificationChannel";
+import PushNotificationLevel, {
+  DEFAULT_PUSH_NOTIFICATION_LEVEL,
+} from "Common/Types/NotificationRule/PushNotificationLevel";
+import {
+  MAX_NOTIFICATION_REPEATS,
+  NO_NOTIFICATION_REPEAT,
+  REPEAT_EVERY_MINUTES_OPTIONS,
+  getDueRepeatNumber,
+  getRepeatEveryMinutes,
+} from "Common/Types/NotificationRule/NotificationRepeat";
+import CriticalAlertSound, {
+  CRITICAL_ALERT_SOUNDS,
+  CriticalAlertSoundDefinition,
+  DEFAULT_CRITICAL_ALERT_SOUND,
+  getCriticalAlertSoundDefinition,
+} from "Common/Types/PushNotification/CriticalAlertSound";
+import {
+  CRITICAL_ALERT_VOLUME_OPTIONS,
+  DEFAULT_CRITICAL_ALERT_VOLUME_PERCENT,
+} from "Common/Types/PushNotification/CriticalAlertVolume";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -66,6 +86,12 @@ const SOURCES: Record<string, string> = {
   workflowEmailTrigger:
     "packages/Common/Types/Workflow/IncomingEmailTrigger.ts",
   userPush: "packages/Common/Models/DatabaseModels/UserPush.ts",
+  userNotificationRule:
+    "packages/Common/Models/DatabaseModels/UserNotificationRule.ts",
+  notificationRuleService: `${COMMON_SERVER}/Services/UserNotificationRuleService.ts`,
+  pushLevelControl: `${DASHBOARD}/Components/NotificationRule/PushNotificationLevelControl.tsx`,
+  onCallRulesTable: `${DASHBOARD}/Components/NotificationRule/OnCallRulesTable.tsx`,
+  userPushApi: `${COMMON_SERVER}/API/UserPushAPI.ts`,
   navBar: "packages/Common/UI/Components/Navbar/NavBar.tsx",
   dashboardNavBar: `${DASHBOARD}/Components/NavBar/NavBar.tsx`,
   navigationItems: `${DASHBOARD}/Utils/NavigationItems.tsx`,
@@ -76,6 +102,8 @@ const SOURCES: Record<string, string> = {
   userChip: `${DASHBOARD}/Components/User/User.tsx`,
   teamPermissionTable: `${DASHBOARD}/Components/Team/TeamPermissionTable.tsx`,
   pushCard: `${DASHBOARD}/Components/NotificationMethods/Push.tsx`,
+  pushCriticalAlertStatus: `${DASHBOARD}/Components/NotificationMethods/PushDeviceCriticalAlertStatus.tsx`,
+  pushCriticalAlerts: `${DASHBOARD}/Components/NotificationMethods/PushDeviceCriticalAlerts.ts`,
   userSettingsSideMenu: `${DASHBOARD}/Pages/UserSettings/SideMenu.tsx`,
   mobileAppJson: `${MOBILE_APP}/app.json`,
   mobileAppConfig: `${MOBILE_APP}/app.config.js`,
@@ -83,6 +111,8 @@ const SOURCES: Record<string, string> = {
   mobileChannels: `${MOBILE_APP}/src/notifications/channels.ts`,
   mobileCriticalAlerts: `${MOBILE_APP}/src/notifications/criticalAlerts.ts`,
   mobileSettingsScreen: `${MOBILE_APP}/src/screens/SettingsScreen.tsx`,
+  mobileAlarmSounds: `${MOBILE_APP}/src/notifications/criticalAlertSounds.ts`,
+  mobileAlarmSoundScreen: `${MOBILE_APP}/src/screens/settings/CriticalAlertSoundScreen.tsx`,
 };
 
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
@@ -145,6 +175,22 @@ const DROPDOWN_OPTION_LABEL: RegExp = /label: "([^"]+)"/g;
 const INGRESS_TO_APP: RegExp =
   /set \$backend_app http:\/\/\$\{SERVER_APP_HOSTNAME\}:\$\{APP_PORT\};/;
 
+// "A, B and C" or "A, B or C": what separates the items of a list in a sentence.
+const LIST_SEPARATOR: RegExp = /, | and | or /;
+
+// 'title: "Klaxon",' - the title of each of the mobile app's alarm sounds.
+const TITLE_LITERAL: RegExp = /title: "([^"]+)"/g;
+
+// The numbers of an array literal, as "[\n  25, 50, 75, 100,\n]" writes them.
+const NUMBER_LITERAL: RegExp = /\d+/g;
+
+/*
+ * A source's comments: a block comment, and a line comment at the start of a
+ * line or after a space (not the "//" of "https://").
+ */
+const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
+const LINE_COMMENT: RegExp = /(^|\s)\/\/.*$/gm;
+
 function readSource(key: string): string {
   const relativePath: string | undefined = SOURCES[key];
 
@@ -189,6 +235,55 @@ function httpsPathsIn(text: string): Array<string> {
 // A cell's text without the backticks around it.
 function unwrapCode(cell: string): string {
   return cell.startsWith("`") && cell.endsWith("`") ? cell.slice(1, -1) : cell;
+}
+
+// What a text says between two pieces of it, each of which it must have.
+function textBetween(text: string, start: string, end: string): string {
+  const from: number = text.indexOf(start);
+
+  expect({ start, found: from > -1 }).toEqual({ start, found: true });
+
+  const to: number = text.indexOf(end, from + start.length);
+
+  expect({ end, found: to > -1 }).toEqual({ end, found: true });
+
+  return text.slice(from + start.length, to);
+}
+
+// The items of a list a sentence writes, in order: "A, B and C".
+function listItems(text: string): Array<string> {
+  return text.split(LIST_SEPARATOR).map((item: string): string => {
+    return item.trim();
+  });
+}
+
+/*
+ * A source without its comments, so a fact holds what the code does - a
+ * comment that names a constant is not the code using it.
+ */
+function codeOf(source: string): string {
+  return source.replace(BLOCK_COMMENT, "").replace(LINE_COMMENT, "$1");
+}
+
+// The numbers of the array literal a source assigns to a constant.
+function arrayLiteralNumbers(
+  source: string,
+  declaration: string,
+): Array<number> {
+  const start: number = source.indexOf(declaration);
+
+  expect({ declaration, found: start > -1 }).toEqual({
+    declaration,
+    found: true,
+  });
+
+  return [
+    ...source
+      .slice(start + declaration.length, source.indexOf("];", start))
+      .matchAll(NUMBER_LITERAL),
+  ].map((match: RegExpExecArray): number => {
+    return Number(match[0]);
+  });
 }
 
 /*
@@ -842,6 +937,26 @@ describe("Push Notifications, against the server, the chart and the mobile app",
 describe("Push Notifications: critical on-call alerts, against the server and the mobile app", () => {
   const page: string = english(PUSH);
 
+  it("says the device list shows each device's critical alerts, and how to turn them on, as the Push card draws them", () => {
+    const card: string = readSource("pushCard");
+
+    // A column of each device's state, drawn as a status...
+    expect(card).toContain('title: "Critical Alerts"');
+    expect(card).toContain("<PushDeviceCriticalAlertStatus");
+
+    // ...which, for a phone with it off, offers the steps that turn it on.
+    const status: string = readSource("pushCriticalAlertStatus");
+
+    expect(status).toContain('translator.translateText("How to turn on")');
+    expect(readSource("pushCriticalAlerts")).toContain(
+      'criticalAlertsSwitch: "Critical On-Call Alerts",',
+    );
+
+    expect(page).toContain(
+      "The same list shows whether each device has critical alerts on and, for a phone that does not, how to turn them on.",
+    );
+  });
+
   it("stores the setting per device, off by default", () => {
     const model: string = readSource("userPush");
     const column: number = model.indexOf("public isCriticalAlertEnabled?:");
@@ -855,19 +970,116 @@ describe("Push Notifications: critical on-call alerts, against the server and th
     );
   });
 
-  it("marks the page critical as the page says, for iOS and Android", () => {
-    const service: string = readSource("pushService");
+  it("marks the page critical as the page says: for iOS, and on Android a critical channel - the original one unless the device chose an alarm", () => {
+    const service: string = codeOf(readSource("pushService"));
+    const start: number = service.indexOf(
+      "public static getExpoDeliveryOptions(",
+    );
 
-    expect(service).toContain('interruptionLevel: "critical",');
-    expect(service).toContain("AndroidNotificationChannel.Critical");
+    expect(start).toBeGreaterThan(-1);
+
+    // The method, up to the brace that closes it.
+    const options: string = service.slice(
+      start,
+      service.indexOf("\n  }\n", start),
+    );
+
+    expect(options).toContain('interruptionLevel: "critical",');
+
+    // A critical page's Android channel is the channel of the device's sound.
+    const sound: number = options.indexOf("getCriticalAlertSoundDefinition(");
+
+    expect(sound).toBeGreaterThan(-1);
+    expect(options.indexOf(".androidChannelId", sound)).toBeGreaterThan(sound);
+
+    // The original critical channel for the phone's own sound, the default...
     expect(AndroidNotificationChannel.Critical).toBe("oncall_critical");
+    expect(getCriticalAlertSoundDefinition(undefined).androidChannelId).toBe(
+      AndroidNotificationChannel.Critical,
+    );
+    expect(
+      CRITICAL_ALERT_SOUNDS.find(
+        (definition: CriticalAlertSoundDefinition): boolean => {
+          return definition.sound === CriticalAlertSound.Default;
+        },
+      )?.androidChannelId,
+    ).toBe(AndroidNotificationChannel.Critical);
+
+    // ...and a critical channel whichever sound it is.
+    for (const definition of CRITICAL_ALERT_SOUNDS) {
+      expect({
+        sound: definition.sound,
+        critical: definition.androidChannelId.startsWith(
+          AndroidNotificationChannel.Critical,
+        ),
+      }).toEqual({ sound: definition.sound, critical: true });
+    }
+
     expect(page).toContain(
-      "plus `interruptionLevel: critical` for iOS, and targets the `oncall_critical` notification channel for Android.",
+      "plus `interruptionLevel: critical` for iOS, and targets a critical notification channel for Android: `oncall_critical`, or the chosen alarm's own channel (see [Choosing the alarm sound](#choosing-the-alarm-sound)).",
     );
   });
 
-  it("creates the critical channel in the app with Do Not Disturb bypass and the alarm stream", () => {
-    const channels: string = readSource("mobileChannels");
+  it("leaves the level to each on-call rule, Critical unless the rule is set to Standard", () => {
+    const model: string = readSource("userNotificationRule");
+    const column: number = model.indexOf(
+      "public pushNotificationLevel?: PushNotificationLevel",
+    );
+
+    expect(column).toBeGreaterThan(-1);
+    expect(model.slice(column - 400, column)).toContain(
+      "default: PushNotificationLevel.Critical,",
+    );
+    expect(DEFAULT_PUSH_NOTIFICATION_LEVEL).toBe(
+      PushNotificationLevel.Critical,
+    );
+
+    // The page's fourth condition is the rule's half of the server's decision.
+    const service: string = readSource("notificationRuleService");
+
+    expect(service).toContain("isCriticalPushNotification({");
+    expect(service).toContain(
+      "pushNotificationLevel: notificationRuleItem.pushNotificationLevel,",
+    );
+
+    expect(page).toContain(
+      "Four things must all be true for a page to override silent mode.",
+    );
+    expect(page).toContain(
+      "Stored per rule in `UserNotificationRule.pushNotificationLevel`.",
+    );
+    expect(page).toContain(
+      'Rule{"Its on-call rule set<br/>to Critical alert?"}',
+    );
+  });
+
+  it("names the On-Call Rules page where the user settings menu shows it, and the levels as a rule's row draws them", () => {
+    expect(
+      objectMenu(readSource("userSettingsSideMenu")).get(
+        "Alerts & Notifications",
+      ),
+    ).toContain("On-Call Rules");
+
+    const control: string = readSource("pushLevelControl");
+
+    expect(control).toContain('title: translationKey("Critical alert"),');
+    expect(control).toContain('title: translationKey("Standard"),');
+
+    // The device list's own word on the switch says the same as the page.
+    expect(readSource("pushCard")).toContain(
+      "override silent mode and Do Not Disturb, except from on-call rules set to Standard.",
+    );
+
+    expect(page).toContain(
+      "Under **User Settings > On-Call Rules**, every rule that notifies a phone is set to Critical alert, the default, or Standard, which follows the phone's sound settings",
+    );
+    expect(page).toContain(
+      "- Check the on-call rule for that severity under **User Settings > On-Call Rules**: a push rule set to Standard follows the phone's sound settings",
+    );
+  });
+
+  it("creates every critical channel in the app with Do Not Disturb bypass and the alarm stream, the alarm sounds' channels included", () => {
+    const channels: string = codeOf(readSource("mobileChannels"));
 
     expect(channels).toContain('CRITICAL: "oncall_critical",');
 
@@ -877,10 +1089,25 @@ describe("Push Notifications: critical on-call alerts, against the server and th
 
     expect(critical).toContain("bypassDnd: true,");
     expect(critical).toContain("usage: Notifications.AndroidAudioUsage.ALARM,");
+
+    // Each alarm's channel is the critical channel in all but its sound.
+    expect(
+      channels.slice(channels.indexOf("function criticalSoundChannel(")),
+    ).toContain("...CRITICAL_CHANNEL,");
+
+    for (const definition of CRITICAL_ALERT_SOUNDS) {
+      expect({
+        channel: definition.androidChannelId,
+        created: channels.includes(`"${definition.androidChannelId}"`),
+      }).toEqual({ channel: definition.androidChannelId, created: true });
+    }
+
     expect(page).toContain(
-      "The `oncall_critical` notification channel requests `bypassDnd`",
+      "- Every critical notification channel - `oncall_critical`, and one for each alarm sound - requests `bypassDnd`, which covers Do Not Disturb",
     );
-    expect(page).toContain("The same channel uses the **alarm** audio stream");
+    expect(page).toContain(
+      "- The same channels use the **alarm** audio stream",
+    );
   });
 
   it("names the app's setting where its Settings screen shows it, and the Android screen it opens", () => {
@@ -957,6 +1184,319 @@ describe("Push Notifications: critical on-call alerts, against the server and th
 
     expect(major > 1 || (major === 1 && minor >= 5)).toBe(true);
     expect(page).toContain("carries the entitlement from **version 1.5.0**");
+  });
+});
+
+describe("Push Notifications: the alarm sound and repeating a page, against the server, the Dashboard and the mobile app", () => {
+  const page: string = english(PUSH);
+
+  // The alarms a responder can pick: every sound but the phone's own.
+  const alarms: Array<CriticalAlertSoundDefinition> =
+    CRITICAL_ALERT_SOUNDS.filter(
+      (definition: CriticalAlertSoundDefinition): boolean => {
+        return definition.sound !== DEFAULT_CRITICAL_ALERT_SOUND;
+      },
+    );
+
+  const titleOf: (definition: CriticalAlertSoundDefinition) => string = (
+    definition: CriticalAlertSoundDefinition,
+  ): string => {
+    return definition.title;
+  };
+
+  it("plays the phone's own critical sound on the original channel until the device chooses another, and the choice on the test notification too", () => {
+    const fallback: CriticalAlertSoundDefinition =
+      getCriticalAlertSoundDefinition(undefined);
+
+    expect(fallback.sound).toBe(DEFAULT_CRITICAL_ALERT_SOUND);
+    expect(fallback.iosSoundName).toBe("default");
+    expect(fallback.androidChannelId).toBe(AndroidNotificationChannel.Critical);
+
+    // Stored per device, the phone's own sound until the app writes a choice.
+    const model: string = codeOf(readSource("userPush"));
+    const column: number = model.indexOf(
+      "public criticalAlertSound?: CriticalAlertSound",
+    );
+
+    expect(column).toBeGreaterThan(-1);
+    expect(model.slice(column - 400, column)).toContain(
+      "default: CriticalAlertSound.Default,",
+    );
+
+    // The test notification carries the device's alarm, as a page does.
+    expect(codeOf(readSource("userPushApi"))).toContain(
+      "testMessage.criticalAlertSound = device.criticalAlertSound;",
+    );
+
+    expect(page).toContain(
+      "A critical page plays the phone's own critical alert sound unless the responder picks another.",
+    );
+    expect(page).toContain(
+      "The choice belongs to the device and is stored in `UserPush.criticalAlertSound`, and the test notification plays it too.",
+    );
+    expect(page).toContain(
+      "A device keeps the system sound until it runs a version of the app that offers the choice",
+    );
+  });
+
+  it("names the five alarms the server and the app both offer, as both title them", () => {
+    expect(alarms.length).toBe(5);
+    expect(page).toContain("offers five louder alarms made to wake people: ");
+    expect(
+      listItems(
+        textBetween(
+          page,
+          "made to wake people: ",
+          ", which starts soft and keeps getting louder.",
+        ),
+      ),
+    ).toEqual(alarms.map(titleOf));
+
+    // The last one named is the one that starts soft.
+    expect(alarms[alarms.length - 1]?.sound).toBe(CriticalAlertSound.Rising);
+
+    // The app's own list of sounds, the phone's own first, titled the same.
+    const appSounds: string = codeOf(readSource("mobileAlarmSounds"));
+
+    expect(
+      [...appSounds.matchAll(TITLE_LITERAL)].map(
+        (match: RegExpExecArray): string => {
+          return match[1] as string;
+        },
+      ),
+    ).toEqual(CRITICAL_ALERT_SOUNDS.map(titleOf));
+    expect(appSounds).toContain(
+      'description: "Starts soft, then keeps getting louder',
+    );
+  });
+
+  it("names the app's Alarm sound row where its Settings screen shows it, once Critical On-Call Alerts is on, and the screen that plays each sound", () => {
+    const screen: string = codeOf(readSource("mobileSettingsScreen"));
+    const start: number = screen.indexOf('<ListGroup title="Notifications">');
+
+    expect(start).toBeGreaterThan(-1);
+
+    const group: string = screen.slice(
+      start,
+      screen.indexOf("</ListGroup>", start),
+    );
+    const toggle: number = group.indexOf('title="Critical On-Call Alerts"');
+    const row: number = group.indexOf('title="Alarm sound"');
+
+    expect(toggle).toBeGreaterThan(-1);
+    expect(row).toBeGreaterThan(toggle);
+
+    // The row is drawn only while the switch above it is on.
+    expect(group.slice(toggle, row)).toContain("{criticalAlerts.isEnabled ? (");
+
+    const soundScreen: string = codeOf(readSource("mobileAlarmSoundScreen"));
+
+    expect(soundScreen).toContain('title="Alarm sound"');
+    // Every sound has a button beside it that plays it.
+    expect(soundScreen).toContain("void alarm.preview(option.id);");
+    // And the screen says when a sound's channel cannot ring through Do Not Disturb.
+    expect(soundScreen).toContain(
+      'title="This sound cannot ring through Do Not Disturb"',
+    );
+
+    expect(page).toContain(
+      "In the app, **Settings > Notifications > Alarm sound**, shown once Critical On-Call Alerts is on, offers",
+    );
+    expect(page).toContain("Each one can be played before it is chosen.");
+    expect(page).toContain(
+      "- **Android**: if you chose an alarm sound, its own notification channel must be allowed to override Do Not Disturb too; the app's Alarm sound screen says when it is not",
+    );
+  });
+
+  it("names the sound and its volume in an iPhone's page, from the steps the app offers, full by default", () => {
+    const service: string = codeOf(readSource("pushService"));
+
+    expect(service).toContain("name: sound.iosSoundName,");
+    expect(service).toContain(
+      "volume: toCriticalAlertSoundVolume(message.criticalAlertVolume),",
+    );
+
+    const steps: Array<string> = listItems(
+      textBetween(
+        page,
+        "at the volume chosen on the same screen: ",
+        ", the default.",
+      ),
+    );
+
+    expect(steps).toEqual(
+      CRITICAL_ALERT_VOLUME_OPTIONS.map((percent: number): string => {
+        return `${percent}%`;
+      }),
+    );
+    // "100%, the default": the step the page names last is the default.
+    expect(steps[steps.length - 1]).toBe(
+      `${DEFAULT_CRITICAL_ALERT_VOLUME_PERCENT}%`,
+    );
+
+    // The app offers the same steps, on the screen that offers the sounds.
+    const appSounds: string = codeOf(readSource("mobileAlarmSounds"));
+
+    expect(
+      arrayLiteralNumbers(
+        appSounds,
+        "export const CRITICAL_ALERT_VOLUME_OPTIONS: ReadonlyArray<number> = [",
+      ),
+    ).toEqual([...CRITICAL_ALERT_VOLUME_OPTIONS]);
+    expect(appSounds).toContain(
+      `export const DEFAULT_CRITICAL_ALERT_VOLUME: number = ${DEFAULT_CRITICAL_ALERT_VOLUME_PERCENT};`,
+    );
+    expect(codeOf(readSource("mobileAlarmSoundScreen"))).toContain(
+      "CRITICAL_ALERT_VOLUME_OPTIONS.map(",
+    );
+
+    const model: string = codeOf(readSource("userPush"));
+    const column: number = model.indexOf("public criticalAlertVolume?: number");
+
+    expect(column).toBeGreaterThan(-1);
+    expect(model.slice(column - 400, column)).toContain(
+      "default: DEFAULT_CRITICAL_ALERT_VOLUME_PERCENT,",
+    );
+    expect(page).toContain(
+      "The volume is stored in `UserPush.criticalAlertVolume`.",
+    );
+  });
+
+  it("gives each alarm a critical channel of its own on Android, and sends the page on the chosen one", () => {
+    const channelOf: (sound: CriticalAlertSound) => string | undefined = (
+      sound: CriticalAlertSound,
+    ): string | undefined => {
+      return alarms.find(
+        (definition: CriticalAlertSoundDefinition): boolean => {
+          return definition.sound === sound;
+        },
+      )?.androidChannelId;
+    };
+
+    expect(channelOf(CriticalAlertSound.Klaxon)).toBe(
+      AndroidNotificationChannel.CriticalKlaxon,
+    );
+    expect(channelOf(CriticalAlertSound.Siren)).toBe(
+      AndroidNotificationChannel.CriticalSiren,
+    );
+
+    // One channel per alarm, none of them the original critical channel.
+    expect(
+      new Set([
+        AndroidNotificationChannel.Critical,
+        ...alarms.map((definition: CriticalAlertSoundDefinition): string => {
+          return definition.androidChannelId;
+        }),
+      ]).size,
+    ).toBe(alarms.length + 1);
+
+    const line: string =
+      page.split("\n").find((pageLine: string): boolean => {
+        return pageLine.startsWith(
+          "- **Android**: each alarm has a notification channel of its own",
+        );
+      }) || "";
+
+    expect(inlineCodes(line)).toEqual([
+      AndroidNotificationChannel.CriticalKlaxon,
+      AndroidNotificationChannel.CriticalSiren,
+    ]);
+    expect(line).toContain(
+      "and so on), because Android fixes a channel's sound when the channel is created.",
+    );
+
+    // The server names the chosen sound's channel.
+    expect(codeOf(readSource("pushService"))).toContain(
+      "? sound.androidChannelId",
+    );
+
+    // The app creates those channels.
+    const channels: string = codeOf(readSource("mobileChannels"));
+
+    expect(channels).toContain(
+      `CRITICAL_KLAXON: "${AndroidNotificationChannel.CriticalKlaxon}",`,
+    );
+    expect(channels).toContain(
+      `CRITICAL_SIREN: "${AndroidNotificationChannel.CriticalSiren}",`,
+    );
+    expect(page).toContain(
+      "The server sends the page on the chosen alarm's channel, and it plays at the phone's alarm volume.",
+    );
+  });
+
+  it("repeats a push rule's page at the intervals the server accepts, at most 10 more times, and sends it once by default", () => {
+    expect(REPEAT_EVERY_MINUTES_OPTIONS[0]).toBe(1);
+    expect(
+      listItems(
+        textBetween(
+          page,
+          "on the rule's row: every minute, or every ",
+          " minutes. ",
+        ),
+      ).map((minutes: string): number => {
+        return Number(minutes);
+      }),
+    ).toEqual(REPEAT_EVERY_MINUTES_OPTIONS.slice(1));
+
+    // Sent again each interval, and never more than the most repeats.
+    expect(
+      getDueRepeatNumber({
+        minutesSinceStart: 10,
+        notifyAfterMinutes: 0,
+        repeatEveryMinutes: 5,
+      }),
+    ).toBe(2);
+    expect(
+      getDueRepeatNumber({
+        minutesSinceStart: 24 * 60,
+        notifyAfterMinutes: 0,
+        repeatEveryMinutes: 1,
+      }),
+    ).toBe(MAX_NOTIFICATION_REPEATS);
+    expect(page).toContain(
+      `The page is sent again at that interval, up to ${MAX_NOTIFICATION_REPEATS} more times, and stops as soon as the incident, alert or episode is acknowledged.`,
+    );
+
+    // A rule that never chose sends once.
+    expect(getRepeatEveryMinutes(undefined)).toBe(NO_NOTIFICATION_REPEAT);
+
+    const model: string = codeOf(readSource("userNotificationRule"));
+    const column: number = model.indexOf("public repeatEveryMinutes?: number");
+
+    expect(column).toBeGreaterThan(-1);
+    expect(model.slice(column - 400, column)).toContain(
+      "default: NO_NOTIFICATION_REPEAT,",
+    );
+    expect(page).toContain(
+      `It is stored per rule in \`UserNotificationRule.repeatEveryMinutes\`, where ${NO_NOTIFICATION_REPEAT}, the default, sends the page once.`,
+    );
+  });
+
+  it("names the field as the On-Call Rules form titles it on a new push rule, changed later from the rule's row", () => {
+    const table: string = codeOf(readSource("onCallRulesTable"));
+    const title: number = table.indexOf('title: "Repeat until acknowledged",');
+
+    expect(title).toBeGreaterThan(-1);
+
+    const field: string = table.slice(
+      title,
+      table.indexOf("dataTestId:", title),
+    );
+
+    expect(field).toContain("dropdownOptions: PUSH_REPEAT_DROPDOWN_OPTIONS,");
+    // Asked when a rule is added; the form that edits a rule leaves it out.
+    expect(field).toContain("doNotShowWhenEditing: true,");
+    // The field's own help gives the page's limit.
+    expect(field).toContain(`up to ${MAX_NOTIFICATION_REPEATS} more times.`);
+    // A push rule's row changes it later.
+    expect(table).toContain("<PushRepeatControl");
+    expect(dashboardLabel("Repeat until acknowledged")).toBe(
+      "Repeat until acknowledged",
+    );
+
+    expect(page).toContain(
+      "Under **User Settings > On-Call Rules**, set **Repeat until acknowledged** when adding a push rule, or change it later on the rule's row",
+    );
   });
 });
 

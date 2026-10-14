@@ -1,255 +1,224 @@
-# Widgets
+# Widgets de tableau de bord
 
-Un widget est une tuile sur un tableau de bord. Cette page liste chaque widget que vous pouvez ajouter, ce qu'il affiche et quand y avoir recours.
+Un widget est une tuile d'un tableau de bord. Cette page liste chaque widget du catalogue **Ajouter un widget**, ce qu'il affiche et les paramètres qui comptent, dans les groupes du catalogue. Pour placer des widgets sur la grille et les enregistrer, voir [Créer un tableau de bord](/docs/dashboards/authoring).
 
-Pour savoir comment glisser les widgets sur le canevas, voir [Création d'un tableau de bord](/docs/dashboards/authoring).
+:::cards
+- [Quel widget choisir ?](#quel-widget-choisir): Choisir selon la question à laquelle la tuile répond.
+- [Graphiques et nombres](#graphiques-et-nombres): Graphique, Valeur, Jauge et Tableau, à partir d'une requête de métriques.
+- [Journaux, traces et sécurité](#journaux-traces-et-sécurité): Graphiques de volume, flux en direct et listes.
+- [Quand un widget ne peut pas être affiché](#quand-un-widget-ne-peut-pas-être-affiché): Ce qu'affiche un widget défaillant, et comment le réparer.
+:::
+
+## Quel widget choisir ?
+
+Partez de la question à laquelle la tuile doit répondre :
+
+| La question | Le widget |
+| --- | --- |
+| Comment une métrique a-t-elle évolué dans le temps ? | **Graphique** |
+| Combien de journaux, de quelle gravité, dans le temps ? | **Graphique de journaux** |
+| À quelle vitesse vont les requêtes, et combien échouent, dans le temps ? | **Trace Chart** |
+| Quelle est une valeur en ce moment ? | **Valeur**, ou **Jauge** quand elle a une plage connue |
+| Quels hôtes, services ou points de terminaison se démarquent ? | **Tableau** ou **Trace Table** |
+| Que se passe-t-il en ce moment ? | **Flux de journaux**, **Liste des traces**, **Liste des incidents** ou **Liste des alertes** |
+| Tous nos sites sont-ils en ligne ? | **Liste des moniteurs** |
+| Tenons-nous la fiabilité promise ? | **SLO** ou **SLO List** |
+| Dans quel état sont nos clusters et nos hôtes ? | Un widget du groupe Infrastructure |
+| Où est notre réseau dans le monde, et qu'est-ce qui est en panne ? | **Carte du réseau** |
+| Un titre, une note, l'heure dans un autre bureau ? | **Texte** ou **Horloge** |
+| Des données conservées hors de OneUptime ? | Un widget du groupe External Data Sources |
+| Quelque chose qu'aucun widget ne couvre ? | **HTML**, une fois sûr qu'aucun autre widget ne le fait |
+
+```mermaid title="Choisir un widget, une question à la fois"
+flowchart TB
+    q1("La réponse varie-t-elle<br/>avec le temps ?") -->|"Oui"| w1["Graphique, graphique<br/>de journaux ou<br/>Trace Chart"]
+    q1 -->|"Non"| q2("Est-ce une valeur ?")
+    q2 -->|"Non"| q3("Des éléments et<br/>leur état ?")
+    q2 -->|"Oui"| w2["Valeur, ou Jauge si<br/>la plage est connue"]
+    q3 -->|"Oui"| w3["Un widget de liste,<br/>ou un tableau"]
+    q3 -->|"Non"| w4["Texte, Horloge<br/>ou HTML"]
+```
+
+La plupart des tableaux de bord en combinent quelques-uns : un graphique en haut, une ou deux valeurs à côté, un titre en texte, et une ou deux listes en dessous.
 
 ## Graphiques et nombres
 
-### Chart
+Ces quatre widgets lisent une requête de métriques, construite comme dans l'explorateur de métriques : choisissez une métrique et une agrégation, ajoutez des filtres d'attributs, et regroupez par un attribut pour obtenir une série par valeur.
 
-Un graphique en courbes, en barres ou en aires d'une ou plusieurs séries de métriques sur la plage temporelle du tableau de bord.
+### Graphique
 
-**Paramètres** :
+Une série temporelle d'une ou plusieurs requêtes de métriques sur la plage temporelle du tableau de bord. **Chart Type** la dessine en lignes, en barres, en aires, en aires empilées ou en secteurs. **Additional Queries** superposent d'autres métriques sur les mêmes axes, et **Formules** les combinent avec `+`, `-`, `*`, `/`, `%`, `^` et des parenthèses, comme `(1 - a) * 100`. Les réglages d'affichage de chaque requête ajoutent une légende et une unité, une couleur, des lignes d'avertissement et critique, et un taux par seconde pour les compteurs qui ne font que croître.
 
-- Une ou plusieurs requêtes de métriques.
-- Une formule optionnelle qui combine deux requêtes (par exemple, `errors / total * 100` pour obtenir un taux d'erreur).
-- Une option « afficher comme un taux » pour les compteurs cumulatifs qui grandissent sans se réinitialiser.
-- Options d'affichage : empilé ou superposé, unité de l'axe Y, position de la légende, type de graphique.
+Utilisez-le quand la forme de la courbe raconte l'histoire : latence, erreurs, débit ou profondeur de file d'attente.
 
-À utiliser quand : les tendances sont importantes. Latence dans le temps, nombre d'erreurs, profondeur de file d'attente, tout ce dont la forme de la courbe raconte l'histoire.
+### Valeur
 
-### Value
+Un grand nombre avec une sparkline : la valeur de la requête sur toute la plage temporelle, additionnée pour une somme ou un comptage, la plus haute pour un maximum, la plus basse pour un minimum, et la moyenne sinon. Une flèche compare la seconde moitié de la plage à la première, colorée selon **Trend Direction** : si une valeur plus haute est meilleure ou pire, ou déduit du nom de la métrique. **Warning Threshold** colore le fond en jaune et **Seuil critique** en rouge dès que la valeur les atteint.
 
-Un grand nombre unique avec des seuils colorés optionnels.
+Utilisez-la quand un nombre répond à la question : le taux d'erreur, la latence P95 ou les requêtes servies aujourd'hui.
 
-**Paramètres** :
+### Jauge
 
-- Une requête de métrique qui renvoie un seul nombre (dernière valeur, moyenne ou max sur la plage temporelle).
-- Un seuil d'**avertissement** optionnel (jaune au-dessus).
-- Un seuil **critique** optionnel (rouge au-dessus).
-- Format du nombre et unité.
+Un cadran entre un minimum et un maximum, 0 et 100 sauf si vous les fixez, avec une zone jaune à partir de **Warning Threshold** et une zone rouge à partir de **Seuil critique**.
 
-À utiliser quand : un seul nombre répond à la question. Taux d'erreur actuel, latence P95 à l'instant, nombre d'incidents ouverts.
+Utilisez-la quand la valeur se situe dans une plage connue : l'utilisation du CPU ou du disque en pourcentage, ou la capacité d'une file d'attente.
 
-### Gauge
+### Tableau
 
-Une jauge circulaire avec un minimum, un maximum, une bande d'avertissement et une bande critique.
+Des valeurs de métriques en lignes. **Regrouper par attributs** donne une ligne par valeur, par exemple une par `host.name` ; sans regroupement, chaque ligne est un intervalle de temps. **Metrics & Columns** définit les colonnes : des métriques, et des formules sur elles, comme la disponibilité en pourcentage. Quand vous regroupez, **Reduce across time** ramène la série de chaque ligne à une valeur : la dernière valeur, la moyenne, la somme, le minimum ou le maximum.
 
-**Paramètres** : une requête de métrique et les quatre bornes.
+Utilisez-le pour une ventilation plutôt qu'une tendance : les hôtes les plus bruyants, les erreurs par service, les requêtes par point de terminaison.
 
-À utiliser quand : la valeur s'inscrit dans une plage connue. Pourcentage CPU (0–100 %), utilisation du disque, capacité d'une file.
+## Texte, horloge et HTML
 
-### Table
+Ces widgets n'ont besoin d'aucune source de données.
 
-Un tableau des résultats d'une métrique, une ligne par groupe.
+### Texte
 
-**Paramètres** : une requête de métrique (généralement regroupée par une étiquette comme hôte ou service), les colonnes à afficher et une limite de lignes.
+Une ligne ou un bloc de texte, pour un titre, une note ou des liens vers vos runbooks. Activez **Markdown** pour afficher titres, liens, listes, code et tableaux ; sinon le texte s'affiche tel que saisi, en gras, en italique ou souligné si vous le souhaitez.
 
-À utiliser quand : vous voulez une décomposition plutôt qu'une tendance. Top 10 des hôtes les plus bruyants, nombre d'erreurs par service, requêtes par endpoint.
+### Horloge
 
-## Text
+L'heure actuelle dans n'importe quel fuseau horaire, en chiffres ou sur un cadran analogique, avec un libellé comme « Sydney Office ». Sans fuseau horaire, elle affiche celui de chaque personne qui la regarde. Ajoutez-en une par bureau pour voir qui est réveillé.
 
-Un bloc statique de Markdown.
+### HTML
 
-**Paramètres** : le corps en Markdown. Titres, listes, liens, emphase et blocs de code sont tous rendus.
+Votre propre HTML, CSS et JavaScript, rendus comme un widget. Ses paramètres sont le corps HTML, une feuille de style facultative, un script facultatif et trois interrupteurs d'autorisation.
 
-À utiliser quand : vous voulez un titre de section, un paragraphe de contexte, une liste de liens vers des runbooks ou une bannière temporaire pendant un incident.
+Utilisez-le quand vous avez besoin de quelque chose qu'aucun widget intégré ne couvre : un badge tiers intégré, un tableau tiré d'une API interne, une légende personnalisée, ou un ensemble de liens stylés vers vos propres outils.
 
-## HTML
+#### Ce qu'il peut faire et ne peut pas faire
 
-Votre propre HTML, CSS et JavaScript, rendus sous forme de widget.
+Le widget s'affiche dans un cadre isolé, sur sa propre origine isolée. Dans ce cadre, votre code peut faire à peu près tout : construire du DOM, lancer des minuteurs, appeler n'importe quelle URL, dessiner sur un canvas.
 
-**Paramètres** : le corps HTML, une feuille de style optionnelle, un script optionnel et trois interrupteurs d'autorisation.
+Ce qu'il ne peut pas faire, c'est atteindre la page OneUptime qui l'entoure. Il n'a accès ni au DOM du tableau de bord, ni à ses cookies, ni au stockage local, ni à la session d'API, et il ne peut pas faire quitter l'onglet du navigateur. C'est vrai que le tableau de bord soit privé ou partagé publiquement.
 
-À utiliser quand : vous avez besoin de quelque chose qu'aucun widget intégré ne couvre — un badge tiers intégré, un tableau tiré d'une API interne, une légende personnalisée, un ensemble de liens stylés vers vos propres outils.
+Deux conséquences à connaître avant de coller quelque chose :
 
-### Ce qu'il peut et ne peut pas faire
+- Un `fetch` depuis le widget est une requête cross-origin issue d'une origine opaque : le serveur appelé doit donc l'autoriser par CORS. Appeler l'API OneUptime d'ici n'est pas pris en charge.
+- Le widget démarre transparent. Définissez un arrière-plan sur `body` dans votre CSS si vous voulez qu'il remplisse la carte.
 
-Le widget est rendu dans un cadre en bac à sable (sandbox), sur sa propre origine isolée. À l'intérieur de ce cadre, votre code peut faire à peu près n'importe quoi : construire du DOM, lancer des minuteurs, faire un fetch vers n'importe quelle URL, dessiner sur un canvas.
+#### Utiliser les variables du tableau de bord
 
-Ce qu'il ne peut pas faire, c'est atteindre la page OneUptime qui l'entoure. Il n'a accès ni au DOM du tableau de bord, ni aux cookies, ni au stockage local, ni à la session d'API, et il ne peut pas faire quitter la page à l'onglet du navigateur. Cela vaut que le tableau de bord soit privé ou partagé publiquement.
+Écrivez `{{variableName}}` n'importe où dans le HTML, le CSS ou le JavaScript, et il est remplacé par la valeur actuelle de cette variable avant l'affichage du widget. Choisir une nouvelle valeur réaffiche le widget. Un espace réservé qui nomme une variable inexistante est laissé tel quel.
 
-Deux conséquences à connaître avant d'y coller quelque chose :
+Les scripts reçoivent les mêmes valeurs, plus la plage temporelle du tableau de bord, dans `window.ONEUPTIME` :
 
-- Un `fetch` depuis le widget est une requête cross-origin provenant d'une origine opaque : le serveur que vous appelez doit donc l'autoriser via CORS. Appeler l'API de OneUptime depuis ici n'est pas pris en charge.
-- Le widget démarre transparent. Définissez un arrière-plan sur `body` dans votre CSS si vous voulez qu'il remplisse la tuile.
-
-### Utiliser les variables du tableau de bord
-
-Écrivez `{{variableName}}` n'importe où dans le HTML, le CSS ou le JavaScript : la valeur actuelle de cette variable y est substituée avant le rendu du widget. Choisir une nouvelle valeur réaffiche le widget. Un espace réservé qui nomme une variable inexistante est laissé tel quel.
-
-Les scripts reçoivent les mêmes valeurs, ainsi que la plage temporelle du tableau de bord, via `window.ONEUPTIME` :
-
-```javascript
-window.ONEUPTIME.variables.environment; // valeur actuelle, ou "" si non définie
-window.ONEUPTIME.startDate; // chaîne ISO 8601, début de la plage temporelle du tableau de bord
-window.ONEUPTIME.endDate; // chaîne ISO 8601, fin de celle-ci
+```javascript title="window.ONEUPTIME"
+window.ONEUPTIME.variables.environment; // current value, or "" if unset
+window.ONEUPTIME.startDate; // ISO 8601 string, start of the dashboard's time range
+window.ONEUPTIME.endDate; // ISO 8601 string, end of it
 ```
 
-Le widget se recharge à chaque actualisation du tableau de bord : un widget qui récupère ses propres données suit donc l'intervalle d'actualisation.
+Le widget se recharge à chaque actualisation du tableau de bord, si bien qu'un widget qui récupère ses propres données suit l'intervalle d'actualisation.
 
-### Autorisations
+#### Autorisations
 
-**Run JavaScript** (« Exécuter le JavaScript », activé par défaut) exécute votre script. Désactivez-le pour ne rendre que le balisage et les styles — le script est alors entièrement retiré du widget plutôt que simplement bloqué.
+**Run JavaScript** (activé par défaut) exécute votre script. Désactivez-le pour n'afficher que le balisage et les styles — le script est alors entièrement retiré du widget, et pas seulement bloqué.
 
-**Open links in a new tab** (« Ouvrir les liens dans un nouvel onglet », activé par défaut) permet aux liens et à `window.open` d'ouvrir un onglet du navigateur. Les liens s'ouvrent toujours dans un nouvel onglet ; le widget ne peut jamais faire naviguer le tableau de bord lui-même.
+**Open links in a new tab** (activé par défaut) permet aux liens et à `window.open` d'ouvrir un onglet du navigateur. Les liens s'ouvrent toujours dans un nouvel onglet ; le widget ne peut jamais faire naviguer le tableau de bord lui-même.
 
-**Allow forms to submit** (« Autoriser l'envoi des formulaires », désactivé par défaut) permet à un `<form>` situé dans le widget d'être envoyé.
+**Allow forms to submit** (désactivé par défaut) permet à un `<form>` du widget d'être envoyé.
 
-Toute personne pouvant modifier le tableau de bord décide de ce que ce widget exécute, et toute personne qui consulte le tableau de bord l'exécute — sur un tableau de bord public, cela inclut les visiteurs anonymes. Traitez l'accès en modification à un tableau de bord contenant un widget HTML comme vous traiteriez l'accès à n'importe quel autre code que vous livrez.
+Quiconque peut modifier le tableau de bord décide de ce que ce widget exécute, et toute personne qui consulte le tableau de bord l'exécute — sur un tableau de bord public, cela inclut les visiteurs anonymes. Traitez l'accès en modification à un tableau de bord qui porte un widget HTML comme l'accès à n'importe quel autre code que vous livrez.
 
-## Journaux et traces
+## Journaux, traces et sécurité
 
-### Log Chart
+| Widget | Ce qu'il affiche | Paramètres importants |
+| --- | --- | --- |
+| **Graphique de journaux** | Le volume de journaux dans le temps, une série par gravité, en barres, lignes ou aires. | Gravités, texte contenu dans le corps, filtres d'attributs. |
+| **Flux de journaux** | Les dernières lignes de journal qui correspondent à un filtre. | Gravité, texte contenu dans le corps, filtres d'attributs comme `@service.name:checkout`, nombre de lignes. |
+| **Trace Chart** | Le nombre de requêtes, le nombre d'erreurs ou le temps de réponse (moyenne, minimum, maximum, P50 à P99) dans le temps. | La métrique, les spans à compter, et un attribut selon lequel répartir les séries. |
+| **Liste des traces** | Les dernières traces, avec leur durée et leur statut. | Statut, nombre de lignes. |
+| **Trace Table** | Les principaux noms de span, statuts ou valeurs d'attribut par nombre de requêtes, avec les temps de réponse médian, moyen, minimum et maximum. | Le regroupement des lignes, et les spans à compter. |
+| **Événements de sécurité** | Les derniers événements de sécurité, avec gravité, classe d'événement et hôte. | Gravités, classes d'événements, texte contenu dans le message. |
+| **Security Events Flow** | Un flux d'événements de sécurité, de leur source à leur gravité en passant par leur classe d'événement. | Gravités, nombre d'événements. |
 
-Un graphique de séries temporelles du volume de journaux sur la plage temporelle du tableau de bord. Chaque série correspond à une sévérité, si bien que les pics d'erreurs se détachent du trafic normal.
+Les widgets de traces ne comptent que les spans racines, comme l'explorateur de traces, sauf si vous incluez les spans enfants dans leurs paramètres. Un schéma courant est un graphique de latence en haut avec une liste de traces lentes en dessous.
 
-**Paramètres** :
+## Incidents, alertes et moniteurs
 
-- Visualisation en barres, en courbes ou en aires. Les graphiques en barres et en aires empilent les séries de sévérité.
-- Filtres de sévérité facultatifs.
-- Recherche textuelle facultative dans le corps du journal.
-- Filtres exacts sur les attributs OpenTelemetry via des lignes clé/valeur cherchables. Les noms d'attributs et les valeurs connues sont suggérés à la saisie, et les valeurs personnalisées restent prises en charge.
-- Un titre facultatif.
+| Widget | Ce qu'il affiche | Filtres |
+| --- | --- | --- |
+| **Liste des incidents** | Les incidents avec leur état et leur gravité. | Non résolus, acquittés ou résolus ; gravité, état, moniteurs et étiquettes. |
+| **Liste des alertes** | Les alertes avec leur état et leur gravité. | Non résolues, acquittées ou résolues ; gravité, état, moniteurs et étiquettes. |
+| **Liste des moniteurs** | Les moniteurs avec leur statut actuel. | Opérationnel ou non, statut, type de moniteur et étiquettes, ou une **Variable d'étiquette** que les personnes choisissent dans la barre d'outils. |
 
-Les contrôles de plage temporelle et de rafraîchissement du tableau de bord relancent automatiquement la requête du graphique. Les variables d'attributs de télémétrie du tableau de bord s'y appliquent aussi, y compris les variables à sélection multiple.
-
-Log Chart nécessite pour l'instant un tableau de bord authentifié. Les tableaux de bord publics affichent le widget comme indisponible plutôt que d'exposer anonymement les agrégats de journaux du projet.
-
-À utiliser quand : vous voulez repérer des variations du volume de journaux ou comparer erreurs, avertissements et messages d'information sans quitter le tableau de bord.
-
-### Log Stream
-
-Un flux en direct des lignes de journaux correspondant à un filtre.
-
-**Paramètres** : filtres de journaux (service, sévérité, attributs) et colonnes à afficher.
-
-À utiliser quand : vous voulez voir ce que dit l'application en ce moment, sans quitter le tableau de bord.
-
-### Trace List
-
-Une liste de traces récentes correspondant à un filtre, avec durée, statut et service.
-
-**Paramètres** : filtres de traces (service, statut, attributs).
-
-À utiliser quand : vous voulez une liste de l'activité récente plutôt qu'un graphique. Un schéma courant consiste à placer un graphique de latence en haut avec une liste de traces lentes en dessous.
-
-## Listes en direct
-
-### Incident List
-
-Une liste en direct des incidents correspondant à un filtre.
-
-**Paramètres** : filtres par état, sévérité, étiquettes, monitor ou équipe.
-
-À utiliser quand : le tableau de bord répond à « qu'est-ce qui est cassé en ce moment ? ».
-
-### Alert List
-
-Une liste en direct des alertes correspondant à un filtre.
-
-**Paramètres** : filtres par état, sévérité, étiquettes.
-
-À utiliser quand : un tableau de bord d'équipe suit les alertes sur ses services.
-
-### Monitor List
-
-Une liste en direct des monitors et de leur statut actuel.
-
-**Paramètres** : filtres par type de monitor, étiquettes ou état actuel.
-
-À utiliser quand : vous voulez une vue de flotte — « est-ce que tous les sites sont en ligne ? ».
+Comme la plupart des widgets de liste, ces trois-là peuvent dessiner un nid d'abeilles de cellules colorées selon le statut au lieu d'un tableau : choisissez-le sous **Mode d'affichage**. Ils montrent l'état actuel, quelle que soit la plage temporelle du tableau de bord.
 
 ## Objectifs de niveau de service
 
 ### SLO
 
-Un objectif de niveau de service, tracé soit comme un nombre unique, soit comme une courbe dans le temps.
+Un objectif de niveau de service, dessiné soit comme un seul nombre, soit comme une courbe dans le temps.
 
-**Paramètres** : quel SLO, lequel de ses trois nombres (SLI, Error Budget Remaining ou Burn Rate), affichage Tile ou Chart, et un titre facultatif.
+**Paramètres** : quel SLO, ou le SLO choisi dans une variable du tableau de bord ; lequel de ses trois nombres (SLI, Error Budget Remaining ou Burn Rate) ; l'affichage en Tile ou en Graphique ; et un titre facultatif.
 
-- **Tile** affiche le nombre actuel, avec une seconde ligne lorsqu'il y en a une — la cible sous le SLI, les minutes restantes sous le budget d'erreur. Une pastille de statut colore l'ensemble.
-- **Chart** trace le même nombre sur la plage temporelle du tableau de bord, la cible étant marquée par une ligne pointillée sur la série du SLI. L'historique est écrit toutes les quelques minutes par le worker d'évaluation : un SLO tout neuf s'affiche donc vide jusqu'à sa première évaluation.
+- **Tile** affiche le nombre actuel, plus une seconde ligne quand il y en a une — l'objectif sous le SLI, les minutes restantes sous le budget d'erreur. Une pastille de statut colore l'ensemble.
+- **Graphique** dessine le même nombre sur la plage temporelle du tableau de bord, avec l'objectif marqué en pointillés sur la série du SLI. L'historique est écrit toutes les quelques minutes par le worker d'évaluation, donc un SLO tout neuf apparaît vide jusqu'à sa première évaluation.
 
-À utiliser quand : le tableau de bord répond à « tenons-nous ce que nous avons promis ? » plutôt qu'à « qu'est-ce qui se passe en ce moment ? ».
+Utilisez-le quand le tableau de bord répond à « tenons-nous ce que nous avons promis ? » plutôt qu'à « que se passe-t-il en ce moment ? ».
 
-Le widget SLO fonctionne sur les [tableaux de bord publics](/docs/dashboards/sharing). Ce qui est publié, ce sont les chiffres clés du SLO — son nom, sa cible, son SLI actuel, le budget d'erreur restant, le burn rate et son statut — quel que soit celui que le widget trace réellement. Sa définition reste privée : les moniteurs qu'il surveille, ses étiquettes, sa description, sa requête et sa planification d'évaluation ne sont jamais envoyés à un visiteur public. Un widget Tile ne publie que ces chiffres actuels ; un widget Chart publie en plus l'historique de la seule série qu'il trace, et rien d'autre.
+Le widget SLO fonctionne sur les [tableaux de bord publics](/docs/dashboards/sharing). Ce qui est publié, ce sont les chiffres clés du SLO — son nom, son objectif, le SLI actuel, le budget d'erreur restant, le burn rate et le statut — quel que soit celui que le widget dessine. Sa définition reste privée : les moniteurs qu'il observe, ses étiquettes, sa description, sa requête et son planning d'évaluation ne sont jamais envoyés à un visiteur public. Un widget Tile ne publie que ces chiffres actuels ; un widget Graphique publie aussi l'historique de la seule série qu'il dessine, et rien d'autre.
 
-## Listes de ressources Kubernetes
+### SLO List
 
-Pour les projets disposant d'un [agent Kubernetes](/docs/monitor/kubernetes-agent) installé. Chaque widget accepte des filtres optionnels par cluster, namespace et étiquettes.
-
-- **Kubernetes Pod List** — pods avec leur phase, redémarrages et nœud.
-- **Kubernetes Node List** — nœuds avec leurs conditions et leur capacité.
-- **Kubernetes Namespace List** — namespaces et nombres de workloads.
-- **Kubernetes Deployment List** — déploiements avec répliques souhaitées vs prêtes.
-- **Kubernetes StatefulSet List** — stateful sets avec répliques prêtes.
-- **Kubernetes DaemonSet List** — daemon sets avec souhaitées vs prêtes.
-- **Kubernetes Job List** — jobs et leur statut d'exécution.
-- **Kubernetes CronJob List** — cron jobs avec planification et dernière exécution.
-
-À utiliser quand : vous voulez un seul tableau de bord mêlant l'état Kubernetes à la télémétrie de ces workloads.
-
-## Listes de ressources Docker
-
-Pour les projets disposant d'une surveillance Docker configurée.
-
-- **Docker Host List** — hôtes exécutant Docker, avec les nombres de conteneurs.
-- **Docker Container List** — conteneurs avec état, image, hôte, temps de fonctionnement.
-- **Docker Image List** — images et leurs tailles.
-- **Docker Network List** — réseaux Docker et conteneurs connectés.
-- **Docker Volume List** — volumes Docker et leur utilisation.
+Chaque SLO avec son statut, son SLI, son budget d'erreur et son burn rate, celui qui a le moins de budget en premier. Filtrez-la par statut ou par étiquettes, ou par une **Variable d'étiquette** que les personnes choisissent dans la barre d'outils. [Métriques et tableaux de bord des SLO](/docs/slo/metrics) montre les deux widgets SLO à l'œuvre.
 
 ## Infrastructure
 
-### Host List
+Chacun de ces widgets liste les ressources qu'un agent ou un collecteur signale à OneUptime. Restreignez-les par cluster, hôte ou namespace dans leurs filtres, et affichez-les en liste ou en nid d'abeilles.
 
-Les hôtes surveillés par le moniteur de serveur de OneUptime, avec statut, CPU, mémoire et temps de fonctionnement.
+| Groupe | Widgets | Alimentés par |
+| --- | --- | --- |
+| **Hôtes** | **Hôtes**, avec leur état de connexion, OS, CPU et mémoire | Tout collecteur OpenTelemetry qui envoie `host.name` |
+| **Kubernetes** | **Pods**, **Nœuds**, **Espaces de noms**, **Déploiements**, **StatefulSets**, **DaemonSets**, **Tâches**, **CronJobs** | L'[agent Kubernetes](/docs/monitor/kubernetes-agent) |
+| **Docker** | **Hôtes**, **Conteneurs**, **Images**, **Réseaux**, **Volumes** | L'agent Docker |
+| **Docker Swarm** | **Nœuds**, **Services** | L'agent Docker Swarm |
+| **Podman** | **Hôtes**, **Conteneurs**, **Images**, **Réseaux**, **Volumes** | L'agent Podman |
+| **Proxmox** | **Nœuds**, **Invités** | L'agent Proxmox |
+| **VMware** | **Hôtes**, **Virtual Machines** | L'agent VMware, ou un vCenter que vous connectez |
+| **Ceph** | **OSDs**, en mur coloré selon l'état, et **Pools** | L'agent Ceph |
+| **Baies de stockage** | **Volumes**, et **Hardware** en mur coloré selon le statut | L'agent Storage Array |
 
-**Paramètres** : filtres par étiquettes ou état actuel.
+Utilisez-les pour une page qui réunit l'état de votre infrastructure et la télémétrie des charges de travail qui tournent dessus.
 
-## Réseau
+### Carte du réseau
 
-### Network Map
+Vos sites réseau dessinés sur la carte du monde, chacun épinglé à sa propre latitude et longitude et coloré selon le statut des moniteurs qui lui est remonté. Les sites proches partagent un marqueur avec leur nombre inscrit dedans ; un marqueur qui représente un seul site ouvre ce site quand vous cliquez dessus.
 
-Vos sites réseau tracés sur la carte du monde, chacun épinglé à sa propre latitude et longitude et coloré selon le statut de moniteur agrégé sur lui. Les sites proches les uns des autres partagent un marqueur portant leur nombre ; un marqueur qui représente exactement un site ouvre ce site quand vous cliquez dessus.
+La carte se cadre sur les sites qu'elle a dessinés — un parc dans un seul pays remplit le cadre avec ce pays, un parc réparti sur plusieurs continents s'ouvre sur le monde. Il n'y a pas de commandes de zoom ni de déplacement : une tuile de tableau de bord est une image, et la page Carte du réseau sous Réseau est l'endroit où parcourir la hiérarchie.
 
-La carte se cadre d'elle-même sur les sites qu'elle a tracés — un parc situé dans un seul pays remplit le cadre avec ce pays, un parc réparti sur plusieurs continents s'ouvre sur le monde. Il n'y a ni zoom ni déplacement : une tuile de tableau de bord est une image, et c'est la page Network Map, sous Network, qui permet de parcourir la hiérarchie.
+Au-dessus de la carte s'affiche le nombre de sites en panne, car un point rouge de deux pixels parmi deux cents verts n'est lu par personne à distance de tableau de bord. En dessous, une ligne de couverture dit ce que la carte ne montre pas : les sites sans coordonnées, et si le plafond de lignes a été atteint.
 
-Au-dessus de la carte s'affiche le nombre de sites hors service, car un point rouge de deux pixels parmi deux cents verts n'est pas quelque chose que l'on lit à distance de tableau de bord. En dessous, une ligne de couverture indique ce que la carte ne montre _pas_ — les sites sans coordonnées, et si le plafond de lignes a été atteint.
+**Paramètres** : titre, vue carte ou liste, nombre maximal de sites dessinés, affichage ou non des noms de sites, et filtres par type de site et par statut. Les noms de sites disparaissent automatiquement quand la carte devient trop chargée pour qu'on les lise ; l'infobulle nomme toujours chaque marqueur.
 
-**Paramètres** : titre, vue carte ou liste, nombre maximal de sites tracés, affichage ou non des noms de sites, et filtres par type de site et par statut. Les noms de sites disparaissent automatiquement lorsque la carte devient trop chargée pour qu'ils restent lisibles ; l'infobulle nomme toujours chaque marqueur.
+Un site n'apparaît que s'il a des coordonnées. Ajoutez une latitude et une longitude sur le site (ou importez-les par CSV) pour l'épingler.
 
-Un site n'apparaît que s'il a des coordonnées. Ajoutez la latitude et la longitude sur le site (ou importez-les depuis un CSV) pour l'épingler.
+## Sources de données externes
 
-## Quel widget choisir ?
+Le groupe External Data Sources dessine un **Graphique**, une **Valeur**, une **Jauge** ou un **Tableau** à partir d'un système qui n'appartient pas à OneUptime : Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch ou n'importe quelle API REST. Vous connectez le système une fois, puis vous écrivez la requête de chaque widget dans le langage de ce système. [Sources de données externes](/docs/dashboards/data-sources) explique comment.
 
-Quelques règles rapides :
+## Sur un tableau de bord public
 
-- **Tendance dans le temps ?** Chart.
-- **Volume de journaux ou pics d'erreurs dans le temps ?** Log Chart.
-- **Un seul nombre qui compte en ce moment ?** Value (ou Gauge s'il a un min/max clair).
-- **Décomposition entre plusieurs choses ?** Table.
-- **Ce qu'il se passe dans le système en ce moment ?** Log Stream, Trace List, Incident List.
-- **L'état d'un groupe spécifique de ressources ?** Le widget de liste correspondant.
-- **Tenons-nous la fiabilité promise ?** SLO.
-- **Où se trouve votre réseau dans le monde, et qu'est-ce qui est en rouge ?** Network Map.
-- **Un titre, un paragraphe ou un lien ?** Text.
-- **Quelque chose qu'aucun des cas ci-dessus ne couvre ?** HTML — mais seulement après avoir vérifié qu'aucun widget intégré ne peut vraiment le faire.
+Un [tableau de bord public](/docs/dashboards/sharing) dessine la plupart des widgets pour ses visiteurs, chacun ne montrant que ce pour quoi il a été configuré. Quelques-uns ne peuvent pas s'afficher sans session connectée :
 
-La plupart des tableaux de bord mélangent quelques widgets — un graphique en haut, une ou deux valeurs à côté, un séparateur en texte et une ou deux listes en dessous.
+- **Graphique de journaux**, **Trace Chart**, **Trace Table**, **Événements de sécurité** et **Security Events Flow** indiquent à leur place qu'ils ne sont pas disponibles sur les tableaux de bord publics.
+- Les widgets du groupe External Data Sources sont entièrement retirés d'un tableau de bord public, car leurs paramètres sont la requête elle-même.
 
 ## Quand un widget ne peut pas être affiché
 
-Un widget qui ne peut pas être dessiné affiche **Ce widget n'a pas pu être affiché** à sa place, et le reste du tableau de bord continue de fonctionner. Cela arrive quand OneUptime n'a aucun widget de ce type (un widget supprimé, un type mal orthographié lorsque le tableau de bord a été écrit via l'API, ou un widget ajouté par une version plus récente), ou quand le widget échoue pendant son affichage, par exemple parce que ses paramètres enregistrés sont incomplets.
+Un widget qui ne peut pas être dessiné affiche **Ce widget n'a pas pu être affiché** à sa place, et le reste du tableau de bord continue de fonctionner. Cela arrive quand OneUptime n'a aucun widget de ce type (un widget supprimé, mal orthographié lors de l'écriture du tableau de bord par l'API, ou ajouté par une version plus récente), ou quand le widget échoue pendant son affichage, par exemple parce que ses paramètres enregistrés sont incomplets.
 
-Si vous pouvez modifier le tableau de bord, cliquez sur **Modifier le widget** sur ce widget. Le tableau de bord passe en mode édition avec les paramètres de ce widget ouverts : corrigez-les, ou cliquez sur **Supprimer le widget**, puis sur **Enregistrer les modifications**. Un widget qui a échoué pendant son affichage propose aussi **Réessayer**, et est redessiné à la prochaine actualisation automatique ou quand vous changez la période.
+Si vous pouvez modifier le tableau de bord, cliquez sur **Modifier le widget** dessus. Le tableau de bord passe en modification avec les paramètres de ce widget ouverts : corrigez-les, ou cliquez sur **Supprimer le widget**, puis sur **Enregistrer les modifications**. Un widget qui a échoué pendant son affichage propose aussi **Réessayer**, et il est redessiné à la prochaine actualisation automatique ou quand vous changez la plage temporelle.
 
-Les visiteurs d'un tableau de bord public voient seulement que le widget n'a pas pu être affiché.
+Les visiteurs d'un tableau de bord public apprennent seulement que le widget n'a pas pu être affiché.
 
-## Pour aller plus loin
+## Prochaines étapes
 
-- [Variables et filtres](/docs/dashboards/variables) — rendre les widgets réutilisables pour plusieurs services ou clients.
-- [Création d'un tableau de bord](/docs/dashboards/authoring) — la mécanique du canevas.
-- [Partage et tableaux de bord publics](/docs/dashboards/sharing) — partager au-delà de votre équipe.
+:::cards
+- [Variables et filtres de tableau de bord](/docs/dashboards/variables): Laisser les personnes orienter les widgets vers un service, un hôte ou un client.
+- [Sources de données externes](/docs/dashboards/data-sources): Afficher Prometheus, SQL, Loki et d'autres à côté de vos propres données.
+- [Créer un tableau de bord](/docs/dashboards/authoring): Ajouter, disposer et enregistrer des widgets.
+- [Partage et tableaux de bord publics](/docs/dashboards/sharing): Partager le tableau de bord hors de votre équipe.
+:::

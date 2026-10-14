@@ -28,3 +28,7 @@ container_security_dir
 /greenlock.d/config.json
 /greenlock.d/config.json.bak
 /.greenlockrc
+
+# The marketing site's Tailwind CSS, built by Scripts/BuildTailwindCss.ts (and its
+# staging directories, should a build be interrupted).
+/build/tailwind*/

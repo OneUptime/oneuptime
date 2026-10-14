@@ -15,6 +15,10 @@ import FeedMarkdown, {
  *   Microsoft Teams   {{TIME(2026-10-12T17:28:00Z)}}       (an Adaptive Card text function)
  *   Slack             <!date^1760290080^{time}|17:28 UTC>   (a date, with its fallback)
  *
+ * A moment further off than today names its day as well (dateAndTime):
+ * Teams' {{DATE(..., SHORT)}} and Slack's {date_short_pretty} ("today",
+ * "tomorrow", "Oct 17, 2026"), each in the reader's own calendar.
+ *
  * A message's Markdown carries the Teams form (time), which a Teams card
  * shows as it is. Slack's text gets the Slack form once its Markdown is
  * converted (toSlack, in SlackUtil.getMarkdownBlocks) - the conversion would
@@ -26,6 +30,10 @@ import FeedMarkdown, {
 // The Teams form, as time() writes it: whole seconds, in UTC.
 const TIME_TOKEN_PATTERN: RegExp =
   /\{\{TIME\((\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)\)\}\}/g;
+
+// The Teams form of a day, as dateAndTime() writes it.
+const DATE_TOKEN_PATTERN: RegExp =
+  /\{\{DATE\((\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z), SHORT\)\}\}/g;
 
 // The milliseconds of an ISO date ("...:00.000Z"): a TIME() takes seconds.
 const ISO_MILLISECONDS_PATTERN: RegExp = /\.\d{3}Z$/;
@@ -42,6 +50,20 @@ export default class WorkspaceMessageTime {
   }
 
   /*
+   * The moment with its day, as Markdown both workspaces show in the
+   * reader's own calendar and clock: "Fri, Oct 17, 2026 at 5:00 PM" in
+   * Teams, "Oct 17, 2026 at 5:00 PM" - or "tomorrow at 5:00 PM" - in Slack.
+   * For a moment that may be days away: when somebody who is away is back.
+   */
+  public static dateAndTime(date: Date): MarkdownText {
+    const iso: string = this.toIsoSeconds(date);
+
+    return FeedMarkdown.asMarkdown(
+      `{{DATE(${iso}, SHORT)}} at {{TIME(${iso})}}`,
+    );
+  }
+
+  /*
    * The moment a wait of `minutes` that started at `startedAt` is over, on
    * the minute: OneUptime moves an escalation on at its first minute's tick
    * once the wait is over, so 17:21:37 and 7 minutes reads 5:29 PM.
@@ -54,13 +76,24 @@ export default class WorkspaceMessageTime {
 
   // Slack's text with each moment as a Slack date, its fallback in UTC.
   public static toSlack(text: string): string {
-    if (!text || text.indexOf("{{TIME(") === -1) {
+    if (
+      !text ||
+      (text.indexOf("{{TIME(") === -1 && text.indexOf("{{DATE(") === -1)
+    ) {
       return text;
     }
 
-    return text.replace(
-      TIME_TOKEN_PATTERN,
-      (token: string, iso: string): string => {
+    return text
+      .replace(DATE_TOKEN_PATTERN, (token: string, iso: string): string => {
+        const date: Date = new Date(iso);
+
+        if (isNaN(date.getTime())) {
+          return token;
+        }
+
+        return `<!date^${Math.floor(date.getTime() / 1000)}^{date_short_pretty}|${this.toUtcDay(date)}>`;
+      })
+      .replace(TIME_TOKEN_PATTERN, (token: string, iso: string): string => {
         const date: Date = new Date(iso);
 
         if (isNaN(date.getTime())) {
@@ -68,8 +101,7 @@ export default class WorkspaceMessageTime {
         }
 
         return `<!date^${Math.floor(date.getTime() / 1000)}^{time}|${this.toUtcClock(date)}>`;
-      },
-    );
+      });
   }
 
   /*
@@ -77,13 +109,24 @@ export default class WorkspaceMessageTime {
    * no workspace shows it - a notification log.
    */
   public static toPlainText(text: string): string {
-    if (!text || text.indexOf("{{TIME(") === -1) {
+    if (
+      !text ||
+      (text.indexOf("{{TIME(") === -1 && text.indexOf("{{DATE(") === -1)
+    ) {
       return text;
     }
 
-    return text.replace(
-      TIME_TOKEN_PATTERN,
-      (token: string, iso: string): string => {
+    return text
+      .replace(DATE_TOKEN_PATTERN, (token: string, iso: string): string => {
+        const date: Date = new Date(iso);
+
+        if (isNaN(date.getTime())) {
+          return token;
+        }
+
+        return this.toUtcDay(date);
+      })
+      .replace(TIME_TOKEN_PATTERN, (token: string, iso: string): string => {
         const date: Date = new Date(iso);
 
         if (isNaN(date.getTime())) {
@@ -91,12 +134,16 @@ export default class WorkspaceMessageTime {
         }
 
         return this.toUtcClock(date);
-      },
-    );
+      });
   }
 
   private static toIsoSeconds(date: Date): string {
     return date.toISOString().replace(ISO_MILLISECONDS_PATTERN, "Z");
+  }
+
+  // "2026-10-17": the day, in UTC.
+  private static toUtcDay(date: Date): string {
+    return date.toISOString().slice(0, 10);
   }
 
   private static toUtcClock(date: Date): string {
