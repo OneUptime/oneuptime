@@ -57,7 +57,7 @@ The workflow opens in the **Builder** with three steps: **On Create Alert**; **S
 @tab From scratch
 1. Save the token as a secret global variable: go to **Workflows → Global Variables**, click **Create Workflow Variable**, name it `TELEGRAM_BOT_TOKEN`, and click **Next**. Paste the token into **Content**, turn on **Secret**, and click **Create Workflow Variable**.
 2. Go to **Workflows**, click **Create Workflow**, choose **Start from scratch**, name the workflow, and click **Create Workflow**.
-3. In the **Builder**, click **Choose what starts this workflow** and pick **On Create Alert** under **Popular**. Click the trigger and, in **Select Fields**, pick the fields your message shows, such as `title` and `alertNumberWithPrefix`.
+3. In the **Builder**, click **Choose what starts this workflow** and pick **On Create Alert** under **Popular**. Click the trigger and, in **Fields to pass on**, pick the fields your message shows, such as `title` and `alertNumberWithPrefix`.
 4. Click **Add Component**, search for `telegram`, and click **Send Message to Telegram**. Connect the trigger's **Success** output to it.
 5. Click the new step. In **Telegram Bot Token**, click **{ }** and pick `TELEGRAM_BOT_TOKEN` under **Global variables**. Enter the chat's ID in **Chat ID**, write the message in **Message Text**, and insert the alert's fields with **{ }**.
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Switch **Enabled** on at the top of the **Builder**. From now on, every new alert is sent to the chat.
 
-To test it without raising an alert, click **Run Workflow** and put the ID of an alert you already have in **Alert ID**. The alert's page shows its ID. Click **Run Workflow Manually** and confirm with **Run**. The **Workflow Run** panel follows the run, and the message shows up in the chat. If the step takes **Error** instead, the **Log** step's line says why: see [Troubleshooting](#troubleshooting).
+To test it without raising an alert, click **Run Workflow** and pick an alert you already have under **Alert**: the most recent ones are listed, and typing its number or part of its title finds another. Click **Run Workflow Manually** and confirm with **Run**. The **Workflow Run** panel follows the run, and the message shows up in the chat. If the step takes **Error** instead, the **Log** step's line says why: see [Troubleshooting](#troubleshooting).
 :::
 
 ## Tips

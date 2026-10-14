@@ -47,7 +47,7 @@ flowchart TB
 
 ### 新增觸發器
 
-點選虛線的 **Choose what starts this workflow** 區塊，然後選擇 **On Create Incident**。點選觸發器，在 **Select Fields** 中選擇 `title`、`description` 和 `incidentNumberWithPrefix`。
+點選虛線的 **Choose what starts this workflow** 區塊，然後選擇 **On Create Incident**。點選觸發器，在 **Fields to pass on** 中選擇 `title`、`description` 和 `incidentNumberWithPrefix`。
 
 ### 開啟 issue
 
@@ -71,7 +71,7 @@ flowchart TB
 
 ### 測試，然後啟用
 
-點選 **執行工作流程**，輸入一個測試事件的 **事件 ID**，然後執行它。**API Post (JSON)** 步驟會顯示一個包含新 issue 的 `201` 回應，其中帶有它的 `iid` 和 `web_url`。然後在 **建構器** 頂部開啟 **已啟用**。
+點選 **執行工作流程**，在 **事件** 中選擇一個測試事件，然後執行它。**API Post (JSON)** 步驟會顯示一個包含新 issue 的 `201` 回應，其中帶有它的 `iid` 和 `web_url`。然後在 **建構器** 頂部開啟 **已啟用**。
 :::
 
 該區塊傳送的是 JSON，所以不需要 `Content-Type` 標頭。GitLab 會建立它沒見過的標籤，所以 `incident` 和 `oneuptime` 無需事先設定。事件解決後 issue 仍保持開啟，因為後續工作通常比事件持續得更久。

@@ -47,7 +47,7 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Incident**. Klicka på utlösaren och välj i **Select Fields** `title`, `description` och `incidentNumberWithPrefix`.
+Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Incident**. Klicka på utlösaren och välj i **Fields to pass on** `title`, `description` och `incidentNumberWithPrefix`.
 
 ### Öppna issuet
 
@@ -71,7 +71,7 @@ Och **Request Body** på:
 
 ### Testa det och slå sedan på det
 
-Klicka på **Kör arbetsflöde**, ange **Incident-ID** för en testincident och kör det. Steget **API Post (JSON)** visar ett `201`-svar med det nya issuet, med dess `iid` och dess `web_url`. Slå sedan på **Aktiverad** högst upp i **Byggare**.
+Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API Post (JSON)** visar ett `201`-svar med det nya issuet, med dess `iid` och dess `web_url`. Slå sedan på **Aktiverad** högst upp i **Byggare**.
 :::
 
 Blocket skickar JSON, så det behöver ingen `Content-Type`-rubrik. GitLab skapar etiketter som det inte har sett förut, så `incident` och `oneuptime` behöver inte konfigureras. Issuet förblir öppet när incidenten är löst, eftersom uppföljningsarbetet oftast lever längre än incidenten.

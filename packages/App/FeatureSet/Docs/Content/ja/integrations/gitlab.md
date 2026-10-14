@@ -47,7 +47,7 @@ flowchart TB
 
 ### トリガーを追加する
 
-破線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックし、**Select Fields** で `title`、`description`、`incidentNumberWithPrefix` を選びます。
+破線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックし、**Fields to pass on** で `title`、`description`、`incidentNumberWithPrefix` を選びます。
 
 ### issue を作成する
 
@@ -71,7 +71,7 @@ flowchart TB
 
 ### テストしてからオンにする
 
-**ワークフローを実行** をクリックし、テスト用インシデントの **インシデント ID** を入力して実行します。**API Post (JSON)** ステップには、新しい issue を含む `201` の応答が、その `iid` と `web_url` とともに表示されます。その後、**ビルダー** の上部で **有効** をオンにします。
+**ワークフローを実行** をクリックし、**インシデント** でテスト用インシデントを選んで実行します。**API Post (JSON)** ステップには、新しい issue を含む `201` の応答が、その `iid` と `web_url` とともに表示されます。その後、**ビルダー** の上部で **有効** をオンにします。
 :::
 
 ブロックは JSON を送るため、`Content-Type` ヘッダーは不要です。GitLab は見たことのないラベルを作成するため、`incident` と `oneuptime` の準備は不要です。フォローアップ作業は通常インシデントより長く続くため、インシデントが解決しても issue は開いたままです。

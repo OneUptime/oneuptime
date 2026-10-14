@@ -57,7 +57,7 @@ Telegram에서 [@BotFather](https://t.me/BotFather)에게 `/newbot`을 보내고
 @tab 처음부터
 1. 토큰을 시크릿 전역 변수로 저장합니다. **워크플로 → 전역 변수**로 이동해 **워크플로 변수 만들기**를 클릭하고, 이름을 `TELEGRAM_BOT_TOKEN`으로 지정한 뒤 **다음**을 클릭합니다. 토큰을 **콘텐츠**에 붙여 넣고 **시크릿**을 켠 뒤 **워크플로 변수 만들기**를 클릭합니다.
 2. **워크플로**로 이동해 **워크플로 생성**을 클릭하고 **처음부터 시작**을 고른 뒤, 워크플로 이름을 지정하고 **워크플로 생성**을 클릭합니다.
-3. **빌더**에서 **Choose what starts this workflow**를 클릭하고 **Popular** 아래의 **On Create Alert**를 고릅니다. 트리거를 클릭하고 **Select Fields**에서 메시지에 표시할 필드(예: `title`, `alertNumberWithPrefix`)를 고릅니다.
+3. **빌더**에서 **Choose what starts this workflow**를 클릭하고 **Popular** 아래의 **On Create Alert**를 고릅니다. 트리거를 클릭하고 **Fields to pass on**에서 메시지에 표시할 필드(예: `title`, `alertNumberWithPrefix`)를 고릅니다.
 4. **구성 요소 추가**를 클릭하고 `telegram`을 검색한 뒤 **Send Message to Telegram**을 클릭합니다. 트리거의 **Success** 출력을 이 단계에 연결합니다.
 5. 새 단계를 클릭합니다. **Telegram Bot Token**에서 **{ }** 버튼을 클릭하고 **Global variables** 아래의 `TELEGRAM_BOT_TOKEN`을 고릅니다. 채팅 ID를 **Chat ID**에 입력하고, **Message Text**에 메시지를 쓴 뒤, **{ }** 버튼으로 알림의 필드를 넣습니다.
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 **빌더** 위쪽에서 **활성화됨**을 켭니다. 이제부터 새 알림은 모두 채팅으로 보내집니다.
 
-알림을 발생시키지 않고 테스트하려면 **워크플로 실행**을 클릭하고 기존 알림의 ID를 **경고 ID**에 입력합니다. 알림 페이지에 ID가 나옵니다. **Run Workflow Manually**를 클릭하고 **Run**으로 확인합니다. **워크플로 실행** 패널이 실행을 따라가며, 메시지가 채팅에 나타납니다. 단계가 대신 **Error**로 진행하면 **Log** 단계의 줄에 이유가 나옵니다. [문제 해결](#문제-해결)을 참고하세요.
+알림을 발생시키지 않고 테스트하려면 **워크플로 실행**을 클릭하고, **경고**에서 이미 있는 알림을 고릅니다. 최근 알림이 목록에 나오며, 번호나 제목의 일부를 입력하면 다른 알림을 찾을 수 있습니다. **워크플로 수동 실행**을 클릭하고 **실행**으로 확인합니다. **워크플로 실행** 패널이 실행을 따라가며, 메시지가 채팅에 나타납니다. 단계가 대신 **Error**로 진행하면 **Log** 단계의 줄에 이유가 나옵니다. [문제 해결](#문제-해결)을 참고하세요.
 :::
 
 ## 팁

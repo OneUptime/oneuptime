@@ -52,7 +52,7 @@ O workflow abre no **Construtor** com três etapas: **On Create Incident**; **Se
 @tab Do zero
 1. Salve a URL como uma variável global secreta: vá em **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Fluxo de trabalho Variável**, dê o nome `DISCORD_WEBHOOK_URL` e clique em **Próximo**. Cole a URL em **Conteúdo**, ative **Segredo** e clique em **Criar: Fluxo de trabalho Variável**.
 2. Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
-3. No **Construtor**, clique em **Choose what starts this workflow** e escolha **On Create Incident** em **Popular**. Clique no gatilho e, em **Select Fields**, escolha os campos que a sua mensagem mostra, por exemplo `title` e `incidentNumberWithPrefix`.
+3. No **Construtor**, clique em **Choose what starts this workflow** e escolha **On Create Incident** em **Popular**. Clique no gatilho e, em **Fields to pass on**, escolha os campos que a sua mensagem mostra, por exemplo `title` e `incidentNumberWithPrefix`.
 4. Clique em **Adicionar componente**, pesquise `discord` e clique em **Send Message to Discord**. Conecte a saída **Success** do gatilho a ela.
 5. Clique na nova etapa. Em **Discord Incoming Webhook URL**, clique em **{ }** e escolha `DISCORD_WEBHOOK_URL` em **Global variables**. Em **Message Text**, escreva a mensagem e insira os campos do incidente com **{ }**.
 :::
@@ -68,7 +68,7 @@ Uma mensagem feita do zero lê os campos do incidente com referências como esta
 
 Ative o interruptor **Habilitado** no topo do **Construtor**. A partir daí, cada novo incidente é publicado no canal.
 
-Para testar sem abrir um incidente, clique em **Executar fluxo de trabalho** e coloque o ID de um incidente que você já tem em **ID do incidente**. A página do incidente mostra o ID dele. Clique em **Run Workflow Manually** e confirme com **Run**. O painel **Execução do Fluxo de Trabalho** acompanha a execução, e a mensagem aparece no canal. Se a etapa seguir por **Error**, a linha da etapa **Log** diz por quê: veja [Solução de problemas](#solução-de-problemas).
+Para testar sem abrir um incidente, clique em **Executar fluxo de trabalho** e escolha um incidente que você já tem em **Incidente**: os mais recentes são listados, e digitar o número dele ou parte do título encontra outro. Clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O painel **Execução do Fluxo de Trabalho** acompanha a execução, e a mensagem aparece no canal. Se a etapa seguir por **Error**, a linha da etapa **Log** diz por quê: veja [Solução de problemas](#solução-de-problemas).
 :::
 
 ## Dicas

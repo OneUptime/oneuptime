@@ -52,7 +52,7 @@ De workflow opent in de **Bouwer** met drie stappen: **On Create Incident**; **S
 @tab Vanaf nul
 1. Sla de URL op als geheime globale variabele: ga naar **Workflows → Globale variabelen**, klik op **Workflow Variabele aanmaken**, noem hem `DISCORD_WEBHOOK_URL` en klik op **Volgende**. Plak de URL in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**.
 2. Ga naar **Workflows**, klik op **Workflow maken**, kies **Vanaf nul beginnen**, geef de workflow een naam en klik op **Workflow maken**.
-3. Klik in de **Bouwer** op **Choose what starts this workflow** en kies **On Create Incident** onder **Popular**. Klik op de trigger en kies in **Select Fields** de velden die je bericht toont, zoals `title` en `incidentNumberWithPrefix`.
+3. Klik in de **Bouwer** op **Choose what starts this workflow** en kies **On Create Incident** onder **Popular**. Klik op de trigger en kies in **Fields to pass on** de velden die je bericht toont, zoals `title` en `incidentNumberWithPrefix`.
 4. Klik op **Component toevoegen**, zoek naar `discord` en klik op **Send Message to Discord**. Verbind de uitgang **Success** van de trigger met deze stap.
 5. Klik op de nieuwe stap. Klik in **Discord Incoming Webhook URL** op **{ }** en kies `DISCORD_WEBHOOK_URL` onder **Global variables**. Schrijf het bericht in **Message Text** en voeg de velden van het incident in met **{ }**.
 :::
@@ -68,7 +68,7 @@ Een bericht vanaf nul leest de velden van het incident met verwijzingen zoals de
 
 Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Vanaf nu wordt elk nieuw incident in het kanaal gepost.
 
-Om te testen zonder een incident te openen, klik je op **Workflow uitvoeren** en vul je de ID van een bestaand incident in bij **Incident-ID**. De pagina van het incident toont zijn ID. Klik op **Run Workflow Manually** en bevestig met **Run**. Het paneel **Workflow-uitvoering** volgt de run, en het bericht verschijnt in het kanaal. Neemt de stap in plaats daarvan **Error**, dan zegt de regel van de stap **Log** waarom: zie [Problemen oplossen](#problemen-oplossen).
+Om te testen zonder een incident te openen, klik je op **Workflow uitvoeren** en kies je onder **Incident** een incident dat je al hebt: de meest recente staan in de lijst, en door het nummer of een deel van de titel te typen vind je een ander. Klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. Het paneel **Workflow-uitvoering** volgt de run, en het bericht verschijnt in het kanaal. Neemt de stap in plaats daarvan **Error**, dan zegt de regel van de stap **Log** waarom: zie [Problemen oplossen](#problemen-oplossen).
 :::
 
 ## Tips

@@ -47,7 +47,7 @@ Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **S
 
 ### Legg til triggeren
 
-Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **On Create Incident**. Klikk på utløseren, og velg i **Select Fields** `title`, `description` og `incidentNumberWithPrefix`.
+Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **On Create Incident**. Klikk på utløseren, og velg i **Fields to pass on** `title`, `description` og `incidentNumberWithPrefix`.
 
 ### Åpne issuet
 
@@ -71,7 +71,7 @@ Og **Request Body** til:
 
 ### Test den, og slå den deretter på
 
-Klikk på **Kjør arbeidsflyt**, skriv inn **Hendelse-ID** for en testhendelse, og kjør den. Trinnet **API Post (JSON)** viser et `201`-svar med det nye issuet, med `iid` og `web_url`. Slå deretter på **Aktivert** øverst i **Bygger**.
+Klikk på **Kjør arbeidsflyt**, velg en testhendelse under **Hendelse**, og kjør den. Trinnet **API Post (JSON)** viser et `201`-svar med det nye issuet, med `iid` og `web_url`. Slå deretter på **Aktivert** øverst i **Bygger**.
 :::
 
 Blokken sender JSON, så den trenger ingen `Content-Type`-header. GitLab oppretter etiketter den ikke har sett før, så `incident` og `oneuptime` trenger ikke settes opp. Issuet forblir åpent når hendelsen er løst, siden oppfølgingsarbeidet vanligvis varer lenger enn hendelsen.

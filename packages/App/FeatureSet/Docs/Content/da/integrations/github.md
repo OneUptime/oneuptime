@@ -60,7 +60,7 @@ Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start
 
 ### Tilføj triggeren
 
-Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Incident**. Klik på triggeren, og vælg i **Select Fields** `title`, `description` og `incidentNumberWithPrefix`.
+Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Incident**. Klik på triggeren, og vælg i **Fields to pass on** `title`, `description` og `incidentNumberWithPrefix`.
 
 ### Åbn issuet
 
@@ -86,7 +86,7 @@ Og dens **Request Body** til:
 
 ### Test det, og slå det derefter til
 
-Klik på **Kør arbejdsgang**, angiv **Hændelses-ID** for en testhændelse, og kør den. Trinnet **API Post (JSON)** viser et `201`-svar med det nye issue, med dets `number` og dets `html_url`. Slå derefter **Aktiveret** til øverst i **Bygger**.
+Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og kør den. Trinnet **API Post (JSON)** viser et `201`-svar med det nye issue, med dets `number` og dets `html_url`. Slå derefter **Aktiveret** til øverst i **Bygger**.
 :::
 
 Issuet forbliver åbent, når hændelsen er løst, da opfølgningsarbejdet som regel lever længere end hændelsen. For tickets, der holdes i takt med hændelsen i begge retninger, se [Jira](/docs/integrations/jira).

@@ -47,7 +47,7 @@ Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **
 
 ### Añadir el disparador
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador y, en **Select Fields**, elige `title`, `description` e `incidentNumberWithPrefix`.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador y, en **Fields to pass on**, elige `title`, `description` e `incidentNumberWithPrefix`.
 
 ### Abrir el issue
 
@@ -71,7 +71,7 @@ Y su **Request Body** en:
 
 ### Probarlo y luego activarlo
 
-Haz clic en **Ejecutar flujo de trabajo**, escribe el **ID del incidente** de un incidente de prueba y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `201` con el nuevo issue, con su `iid` y su `web_url`. Después activa **Habilitado** en la parte superior del **Constructor**.
+Haz clic en **Ejecutar flujo de trabajo**, elige un incidente de prueba en **Incidente** y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `201` con el nuevo issue, con su `iid` y su `web_url`. Después activa **Habilitado** en la parte superior del **Constructor**.
 :::
 
 El bloque envía JSON, así que no necesita ninguna cabecera `Content-Type`. GitLab crea las etiquetas que aún no conoce, así que `incident` y `oneuptime` no necesitan ninguna preparación. El issue sigue abierto cuando el incidente se resuelve, porque el trabajo de seguimiento suele durar más que el incidente.

@@ -52,7 +52,7 @@ Workflowet åbner i **Bygger** med tre trin: **On Create Incident**; **Send Mess
 @tab Fra bunden
 1. Gem URL'en som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Workflow Variabel**, giv den navnet `DISCORD_WEBHOOK_URL`, og klik på **Næste**. Indsæt URL'en i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
 2. Gå til **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv workflowet et navn, og klik på **Opret arbejdsgang**.
-3. Klik i **Bygger** på **Choose what starts this workflow**, og vælg **On Create Incident** under **Popular**. Klik på triggeren, og vælg i **Select Fields** de felter, din besked viser, for eksempel `title` og `incidentNumberWithPrefix`.
+3. Klik i **Bygger** på **Choose what starts this workflow**, og vælg **On Create Incident** under **Popular**. Klik på triggeren, og vælg i **Fields to pass on** de felter, din besked viser, for eksempel `title` og `incidentNumberWithPrefix`.
 4. Klik på **Tilføj komponent**, søg efter `discord`, og klik på **Send Message to Discord**. Forbind triggerens udgang **Success** til den.
 5. Klik på det nye trin. Klik i **Discord Incoming Webhook URL** på **{ }**, og vælg `DISCORD_WEBHOOK_URL` under **Global variables**. Skriv beskeden i **Message Text**, og indsæt hændelsens felter med **{ }**.
 :::
@@ -68,7 +68,7 @@ En besked bygget fra bunden læser hændelsens felter med referencer som disse:
 
 Slå **Aktiveret** til øverst i **Bygger**. Fra nu af postes hver ny hændelse i kanalen.
 
-For at teste uden at åbne en hændelse klikker du på **Kør arbejdsgang** og angiver ID'et på en eksisterende hændelse i **Hændelses-ID**. Hændelsens side viser dens ID. Klik på **Run Workflow Manually**, og bekræft med **Run**. Panelet **Arbejdsgangskørsel** følger kørslen, og beskeden dukker op i kanalen. Tager trinnet i stedet **Error**, siger linjen fra trinnet **Log** hvorfor: se [Fejlfinding](#fejlfinding).
+For at teste uden at åbne en hændelse klikker du på **Kør arbejdsgang** og vælger en hændelse, du allerede har, under **Hændelse**: de seneste er vist, og når du skriver dens nummer eller en del af dens titel, finder du en anden. Klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Panelet **Arbejdsgangskørsel** følger kørslen, og beskeden dukker op i kanalen. Tager trinnet i stedet **Error**, siger linjen fra trinnet **Log** hvorfor: se [Fejlfinding](#fejlfinding).
 :::
 
 ## Tips

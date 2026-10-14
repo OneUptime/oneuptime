@@ -52,7 +52,7 @@ flowchart TB
 @tab 从零开始
 1. 把 URL 保存为机密的全局变量：前往 **工作流 → 全局变量**，点击 **创建工作流 变量**，将其命名为 `DISCORD_WEBHOOK_URL`，然后点击 **下一步**。把 URL 粘贴到 **内容** 中，打开 **密钥**，然后点击 **创建工作流 变量**。
 2. 前往 **工作流**，点击 **创建工作流**，选择 **从零开始**，为工作流命名，然后点击 **创建工作流**。
-3. 在 **生成器** 中，点击 **Choose what starts this workflow**，然后在 **Popular** 下选择 **On Create Incident**。点击触发器，在 **Select Fields** 中选择消息要显示的字段，例如 `title` 和 `incidentNumberWithPrefix`。
+3. 在 **生成器** 中，点击 **Choose what starts this workflow**，然后在 **Popular** 下选择 **On Create Incident**。点击触发器，在 **Fields to pass on** 中选择消息要显示的字段，例如 `title` 和 `incidentNumberWithPrefix`。
 4. 点击 **添加组件**，搜索 `discord`，然后点击 **Send Message to Discord**。把触发器的 **Success** 输出连接到它。
 5. 点击新步骤。在 **Discord Incoming Webhook URL** 中点击 **{ }**，然后在 **Global variables** 下选择 `DISCORD_WEBHOOK_URL`。在 **Message Text** 中写下消息，并用 **{ }** 插入事件的字段。
 :::
@@ -68,7 +68,7 @@ flowchart TB
 
 在 **生成器** 顶部打开 **已启用**。从现在起，每个新事件都会发布到频道中。
 
-要在不打开事件的情况下进行测试，请点击 **运行工作流**，并在 **事件 ID** 中填入一个已有事件的 ID。事件的页面会显示它的 ID。点击 **Run Workflow Manually**，然后用 **Run** 确认。**工作流运行** 面板会跟踪这次运行，消息会出现在频道中。如果该步骤改走 **Error**，**Log** 步骤的那一行会说明原因：请参阅 [故障排除](#故障排除)。
+要在不打开事件的情况下进行测试，请点击 **运行工作流**，在 **事件** 下选择一个已有的事件：列表中会列出最近的事件，输入它的编号或标题的一部分可以找到其他事件。点击 **手动运行工作流**，然后用 **运行** 确认。**工作流运行** 面板会跟踪这次运行，消息会出现在频道中。如果该步骤改走 **Error**，**Log** 步骤的那一行会说明原因：请参阅 [故障排除](#故障排除)。
 :::
 
 ## 提示

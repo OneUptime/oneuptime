@@ -57,7 +57,7 @@ De workflow opent in de **Bouwer** met drie stappen: **On Create Alert**; **Send
 @tab Vanaf nul
 1. Sla het token op als geheime globale variabele: ga naar **Workflows → Globale variabelen**, klik op **Workflow Variabele aanmaken**, noem hem `TELEGRAM_BOT_TOKEN` en klik op **Volgende**. Plak het token in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**.
 2. Ga naar **Workflows**, klik op **Workflow maken**, kies **Vanaf nul beginnen**, geef de workflow een naam en klik op **Workflow maken**.
-3. Klik in de **Bouwer** op **Choose what starts this workflow** en kies **On Create Alert** onder **Popular**. Klik op de trigger en kies in **Select Fields** de velden die je bericht toont, zoals `title` en `alertNumberWithPrefix`.
+3. Klik in de **Bouwer** op **Choose what starts this workflow** en kies **On Create Alert** onder **Popular**. Klik op de trigger en kies in **Fields to pass on** de velden die je bericht toont, zoals `title` en `alertNumberWithPrefix`.
 4. Klik op **Component toevoegen**, zoek naar `telegram` en klik op **Send Message to Telegram**. Verbind de uitgang **Success** van de trigger met deze stap.
 5. Klik op de nieuwe stap. Klik in **Telegram Bot Token** op **{ }** en kies `TELEGRAM_BOT_TOKEN` onder **Global variables**. Vul de ID van de chat in bij **Chat ID**, schrijf het bericht in **Message Text** en voeg de velden van de waarschuwing in met **{ }**.
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Vanaf nu wordt elke nieuwe waarschuwing naar de chat gestuurd.
 
-Om te testen zonder een waarschuwing te laten afgaan, klik je op **Workflow uitvoeren** en vul je de ID van een bestaande waarschuwing in bij **Waarschuwings-ID**. De pagina van de waarschuwing toont haar ID. Klik op **Run Workflow Manually** en bevestig met **Run**. Het paneel **Workflow-uitvoering** volgt de run, en het bericht verschijnt in de chat. Neemt de stap in plaats daarvan **Error**, dan zegt de regel van de stap **Log** waarom: zie [Problemen oplossen](#problemen-oplossen).
+Om te testen zonder een waarschuwing te laten afgaan, klik je op **Workflow uitvoeren** en kies je onder **Waarschuwing** een waarschuwing die je al hebt: de meest recente staan in de lijst, en door het nummer of een deel van de titel te typen vind je een andere. Klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. Het paneel **Workflow-uitvoering** volgt de run, en het bericht verschijnt in de chat. Neemt de stap in plaats daarvan **Error**, dan zegt de regel van de stap **Log** waarom: zie [Problemen oplossen](#problemen-oplossen).
 :::
 
 ## Tips

@@ -57,7 +57,7 @@ El flujo de trabajo se abre en el **Constructor** con tres pasos: **On Create Al
 @tab Desde cero
 1. Guarda el token como variable global secreta: ve a **Flujos de trabajo → Variables globales**, haz clic en **Crear Variable del flujo de trabajo**, ponle el nombre `TELEGRAM_BOT_TOKEN` y haz clic en **Siguiente**. Pega el token en **Contenido**, activa **Secreto** y haz clic en **Crear Variable del flujo de trabajo**.
 2. Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo**, elige **Empezar desde cero**, ponle nombre al flujo de trabajo y haz clic en **Crear flujo de trabajo**.
-3. En el **Constructor**, haz clic en **Elige qué inicia este flujo de trabajo** y elige **On Create Alert** en **Populares**. Haz clic en el disparador y, en **Select Fields**, elige los campos que muestra tu mensaje, por ejemplo `title` y `alertNumberWithPrefix`.
+3. En el **Constructor**, haz clic en **Elige qué inicia este flujo de trabajo** y elige **On Create Alert** en **Populares**. Haz clic en el disparador y, en **Fields to pass on**, elige los campos que muestra tu mensaje, por ejemplo `title` y `alertNumberWithPrefix`.
 4. Haz clic en **Añadir componente**, busca `telegram` y haz clic en **Send Message to Telegram**. Conecta la salida **Success** del disparador a este paso.
 5. Haz clic en el paso nuevo. En **Telegram Bot Token**, haz clic en **{ }** y elige `TELEGRAM_BOT_TOKEN` en **Variables globales**. Escribe el ID del chat en **Chat ID**, escribe el mensaje en **Message Text** e inserta los campos de la alerta con **{ }**.
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Activa el interruptor **Habilitado** en la parte superior del **Constructor**. A partir de ahí, cada alerta nueva se envía al chat.
 
-Para probarlo sin disparar una alerta, haz clic en **Ejecutar flujo de trabajo** y pon el ID de una alerta que ya tengas en **ID de la alerta**. La página de la alerta muestra su ID. Haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El panel **Ejecución del flujo de trabajo** sigue la ejecución, y el mensaje aparece en el chat. Si el paso toma **Error** en su lugar, la línea del paso **Log** dice por qué: consulta [Solución de problemas](#solución-de-problemas).
+Para probarlo sin disparar una alerta, haz clic en **Ejecutar flujo de trabajo** y elige una alerta que ya tengas en **Alerta**: se muestran las más recientes, y al escribir su número o parte de su título encuentras otra. Haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El panel **Ejecución del flujo de trabajo** sigue la ejecución, y el mensaje aparece en el chat. Si el paso toma **Error** en su lugar, la línea del paso **Log** dice por qué: consulta [Solución de problemas](#solución-de-problemas).
 :::
 
 ## Consejos

@@ -52,7 +52,7 @@ Der Arbeitsablauf öffnet sich im **Editor** mit drei Schritten: **On Create Inc
 @tab Von Grund auf
 1. Speichern Sie die URL als geheime globale Variable: Gehen Sie zu **Arbeitsabläufe → Globale Variablen**, klicken Sie auf **Arbeitsablaufvariable erstellen**, nennen Sie sie `DISCORD_WEBHOOK_URL` und klicken Sie auf **Weiter**. Fügen Sie die URL in **Inhalt** ein, schalten Sie **Geheimnis** ein und klicken Sie auf **Arbeitsablaufvariable erstellen**.
 2. Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen**, wählen Sie **Ohne Vorlage beginnen**, geben Sie dem Arbeitsablauf einen Namen und klicken Sie auf **Arbeitsablauf erstellen**.
-3. Klicken Sie im **Editor** auf **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident** unter **Beliebt**. Klicken Sie auf den Auslöser und wählen Sie in **Select Fields** die Felder, die Ihre Nachricht zeigt, etwa `title` und `incidentNumberWithPrefix`.
+3. Klicken Sie im **Editor** auf **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident** unter **Beliebt**. Klicken Sie auf den Auslöser und wählen Sie in **Fields to pass on** die Felder, die Ihre Nachricht zeigt, etwa `title` und `incidentNumberWithPrefix`.
 4. Klicken Sie auf **Komponente hinzufügen**, suchen Sie nach `discord` und klicken Sie auf **Send Message to Discord**. Verbinden Sie den Ausgang **Success** des Auslösers mit diesem Schritt.
 5. Klicken Sie auf den neuen Schritt. Klicken Sie in **Discord Incoming Webhook URL** auf **{ }** und wählen Sie `DISCORD_WEBHOOK_URL` unter **Globale Variablen**. Schreiben Sie die Nachricht in **Message Text** und fügen Sie die Felder des Vorfalls mit **{ }** ein.
 :::
@@ -68,7 +68,7 @@ Eine Nachricht von Grund auf liest die Felder des Vorfalls mit Verweisen wie die
 
 Schalten Sie **Aktiviert** oben im **Editor** ein. Von nun an wird jeder neue Vorfall im Kanal gepostet.
 
-Um zu testen, ohne einen Vorfall zu eröffnen, klicken Sie auf **Arbeitsablauf ausführen** und tragen die ID eines vorhandenen Vorfalls in **Vorfall-ID** ein. Die Seite des Vorfalls zeigt seine ID. Klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Das Panel **Arbeitsablauf-Ausführung** verfolgt den Lauf, und die Nachricht erscheint im Kanal. Nimmt der Schritt stattdessen **Error**, sagt die Zeile des Schritts **Log**, warum: siehe [Fehlerbehebung](#fehlerbehebung).
+Um zu testen, ohne einen Vorfall zu eröffnen, klicken Sie auf **Arbeitsablauf ausführen** und wählen unter **Vorfall** einen vorhandenen Vorfall aus: Die neuesten sind aufgelistet, und wenn Sie seine Nummer oder einen Teil seines Titels eintippen, finden Sie einen anderen. Klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Das Panel **Arbeitsablauf-Ausführung** verfolgt den Lauf, und die Nachricht erscheint im Kanal. Nimmt der Schritt stattdessen **Error**, sagt die Zeile des Schritts **Log**, warum: siehe [Fehlerbehebung](#fehlerbehebung).
 :::
 
 ## Tipps

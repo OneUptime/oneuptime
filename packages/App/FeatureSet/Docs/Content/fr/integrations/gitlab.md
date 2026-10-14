@@ -47,7 +47,7 @@ Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis 
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur et, dans **Select Fields**, choisissez `title`, `description` et `incidentNumberWithPrefix`.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur et, dans **Fields to pass on**, choisissez `title`, `description` et `incidentNumberWithPrefix`.
 
 ### Ouvrir l'issue
 
@@ -71,7 +71,7 @@ Et son **Request Body** sur :
 
 ### Tester, puis activer
 
-Cliquez sur **Exécuter le flux de travail**, saisissez l'**ID d'incident** d'un incident de test et lancez-le. L'étape **API Post (JSON)** affiche une réponse `201` contenant la nouvelle issue, avec son `iid` et son `web_url`. Activez ensuite **Activé** en haut du **Constructeur**.
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `201` contenant la nouvelle issue, avec son `iid` et son `web_url`. Activez ensuite **Activé** en haut du **Constructeur**.
 :::
 
 Le bloc envoie du JSON, il n'a donc besoin d'aucun en-tête `Content-Type`. GitLab crée les labels qu'il ne connaît pas encore : `incident` et `oneuptime` ne demandent donc aucune configuration. L'issue reste ouverte quand l'incident est résolu, car le travail qui en découle survit généralement à l'incident.

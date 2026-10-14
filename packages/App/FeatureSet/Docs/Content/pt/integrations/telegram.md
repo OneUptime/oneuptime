@@ -57,7 +57,7 @@ O workflow abre no **Construtor** com três etapas: **On Create Alert**; **Send 
 @tab Do zero
 1. Salve o token como uma variável global secreta: vá em **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Fluxo de trabalho Variável**, dê o nome `TELEGRAM_BOT_TOKEN` e clique em **Próximo**. Cole o token em **Conteúdo**, ative **Segredo** e clique em **Criar: Fluxo de trabalho Variável**.
 2. Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
-3. No **Construtor**, clique em **Choose what starts this workflow** e escolha **On Create Alert** em **Popular**. Clique no gatilho e, em **Select Fields**, escolha os campos que a sua mensagem mostra, por exemplo `title` e `alertNumberWithPrefix`.
+3. No **Construtor**, clique em **Choose what starts this workflow** e escolha **On Create Alert** em **Popular**. Clique no gatilho e, em **Fields to pass on**, escolha os campos que a sua mensagem mostra, por exemplo `title` e `alertNumberWithPrefix`.
 4. Clique em **Adicionar componente**, pesquise `telegram` e clique em **Send Message to Telegram**. Conecte a saída **Success** do gatilho a ela.
 5. Clique na nova etapa. Em **Telegram Bot Token**, clique em **{ }** e escolha `TELEGRAM_BOT_TOKEN` em **Global variables**. Informe o ID do chat em **Chat ID**, escreva a mensagem em **Message Text** e insira os campos do alerta com **{ }**.
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Ative o interruptor **Habilitado** no topo do **Construtor**. A partir daí, cada novo alerta é enviado para o chat.
 
-Para testar sem disparar um alerta, clique em **Executar fluxo de trabalho** e coloque o ID de um alerta que você já tem em **ID do alerta**. A página do alerta mostra o ID dele. Clique em **Run Workflow Manually** e confirme com **Run**. O painel **Execução do Fluxo de Trabalho** acompanha a execução, e a mensagem aparece no chat. Se a etapa seguir por **Error**, a linha da etapa **Log** diz por quê: veja [Solução de problemas](#solução-de-problemas).
+Para testar sem disparar um alerta, clique em **Executar fluxo de trabalho** e escolha um alerta que você já tem em **Alerta**: os mais recentes são listados, e digitar o número dele ou parte do título encontra outro. Clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O painel **Execução do Fluxo de Trabalho** acompanha a execução, e a mensagem aparece no chat. Se a etapa seguir por **Error**, a linha da etapa **Log** diz por quê: veja [Solução de problemas](#solução-de-problemas).
 :::
 
 ## Dicas

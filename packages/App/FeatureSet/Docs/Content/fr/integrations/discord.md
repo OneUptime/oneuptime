@@ -52,7 +52,7 @@ Le workflow s'ouvre dans le **Constructeur** avec trois étapes : **On Create In
 @tab De zéro
 1. Enregistrez l'URL comme variable globale secrète : allez dans **Flux de travail → Variables globales**, cliquez sur **Créer : Variable de flux de travail**, nommez-la `DISCORD_WEBHOOK_URL`, et cliquez sur **Suivant**. Collez l'URL dans **Contenu**, activez **Secret**, et cliquez sur **Créer : Variable de flux de travail**.
 2. Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, choisissez **Partir de zéro**, nommez le workflow, et cliquez sur **Créer un flux de travail**.
-3. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident** sous **Popular**. Cliquez sur le déclencheur et, dans **Select Fields**, choisissez les champs que votre message affiche, par exemple `title` et `incidentNumberWithPrefix`.
+3. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident** sous **Popular**. Cliquez sur le déclencheur et, dans **Fields to pass on**, choisissez les champs que votre message affiche, par exemple `title` et `incidentNumberWithPrefix`.
 4. Cliquez sur **Ajouter un composant**, cherchez `discord`, et cliquez sur **Send Message to Discord**. Reliez la sortie **Success** du déclencheur à cette étape.
 5. Cliquez sur la nouvelle étape. Dans **Discord Incoming Webhook URL**, cliquez sur **{ }** et choisissez `DISCORD_WEBHOOK_URL` sous **Variables globales**. Dans **Message Text**, écrivez le message, et insérez les champs de l'incident avec **{ }**.
 :::
@@ -68,7 +68,7 @@ Un message construit de zéro lit les champs de l'incident avec des références
 
 Basculez l'interrupteur **Activé** en haut du **Constructeur**. À partir de là, chaque nouvel incident est publié dans le canal.
 
-Pour tester sans ouvrir d'incident, cliquez sur **Exécuter le flux de travail** et indiquez l'ID d'un incident existant dans **ID d'incident**. La page de l'incident affiche son ID. Cliquez sur **Run Workflow Manually** et confirmez avec **Run**. Le panneau **Exécution du flux de travail** suit l'exécution, et le message apparaît dans le canal. Si l'étape prend plutôt **Error**, la ligne de l'étape **Log** dit pourquoi : voir [Dépannage](#dépannage).
+Pour tester sans ouvrir d'incident, cliquez sur **Exécuter le flux de travail** et choisissez un incident existant sous **Incident** : les plus récents sont listés, et saisir son numéro ou une partie de son titre en trouve un autre. Cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Le panneau **Exécution du flux de travail** suit l'exécution, et le message apparaît dans le canal. Si l'étape prend plutôt **Error**, la ligne de l'étape **Log** dit pourquoi : voir [Dépannage](#dépannage).
 :::
 
 ## Conseils

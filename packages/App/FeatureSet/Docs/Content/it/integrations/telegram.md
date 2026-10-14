@@ -57,7 +57,7 @@ Il workflow si apre nel **Costruttore** con tre passi: **On Create Alert**; **Se
 @tab Da zero
 1. Salva il token come variabile globale segreta: vai su **Flussi di lavoro → Variabili globali**, fai clic su **Crea: Flusso di lavoro Variabile**, chiamala `TELEGRAM_BOT_TOKEN` e fai clic su **Avanti**. Incolla il token in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Flusso di lavoro Variabile**.
 2. Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, scegli **Parti da zero**, dai un nome al workflow e fai clic su **Crea flusso di lavoro**.
-3. Nel **Costruttore**, fai clic su **Choose what starts this workflow** e scegli **On Create Alert** sotto **Popular**. Fai clic sul trigger e, in **Select Fields**, scegli i campi che mostra il tuo messaggio, per esempio `title` e `alertNumberWithPrefix`.
+3. Nel **Costruttore**, fai clic su **Choose what starts this workflow** e scegli **On Create Alert** sotto **Popular**. Fai clic sul trigger e, in **Fields to pass on**, scegli i campi che mostra il tuo messaggio, per esempio `title` e `alertNumberWithPrefix`.
 4. Fai clic su **Aggiungi componente**, cerca `telegram` e fai clic su **Send Message to Telegram**. Collega l'uscita **Success** del trigger a questo passo.
 5. Fai clic sul nuovo passo. In **Telegram Bot Token**, fai clic su **{ }** e scegli `TELEGRAM_BOT_TOKEN` sotto **Global variables**. Inserisci l'ID della chat in **Chat ID**, scrivi il messaggio in **Message Text** e inserisci i campi dell'avviso con **{ }**.
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Attiva l'interruttore **Abilitato** in cima al **Costruttore**. Da quel momento, ogni nuovo avviso viene inviato alla chat.
 
-Per provarlo senza far scattare un avviso, fai clic su **Esegui flusso di lavoro** e inserisci l'ID di un avviso che hai già in **ID avviso**. La pagina dell'avviso mostra il suo ID. Fai clic su **Run Workflow Manually** e conferma con **Run**. Il pannello **Esecuzione del flusso di lavoro** segue l'esecuzione, e il messaggio compare nella chat. Se invece il passo prende **Error**, la riga del passo **Log** dice perché: vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
+Per provarlo senza far scattare un avviso, fai clic su **Esegui flusso di lavoro** e scegli un avviso che hai già sotto **Avviso**: sono elencati i più recenti, e digitando il suo numero o parte del suo titolo ne trovi un altro. Fai clic su **Esegui manualmente il flusso di lavoro** e conferma con **Esegui**. Il pannello **Esecuzione del flusso di lavoro** segue l'esecuzione, e il messaggio compare nella chat. Se invece il passo prende **Error**, la riga del passo **Log** dice perché: vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
 :::
 
 ## Suggerimenti

@@ -57,7 +57,7 @@ Der Arbeitsablauf öffnet sich im **Editor** mit drei Schritten: **On Create Ale
 @tab Von Grund auf
 1. Speichern Sie das Token als geheime globale Variable: Gehen Sie zu **Arbeitsabläufe → Globale Variablen**, klicken Sie auf **Arbeitsablaufvariable erstellen**, nennen Sie sie `TELEGRAM_BOT_TOKEN` und klicken Sie auf **Weiter**. Fügen Sie das Token in **Inhalt** ein, schalten Sie **Geheimnis** ein und klicken Sie auf **Arbeitsablaufvariable erstellen**.
 2. Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen**, wählen Sie **Ohne Vorlage beginnen**, geben Sie dem Arbeitsablauf einen Namen und klicken Sie auf **Arbeitsablauf erstellen**.
-3. Klicken Sie im **Editor** auf **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Alert** unter **Beliebt**. Klicken Sie auf den Auslöser und wählen Sie in **Select Fields** die Felder, die Ihre Nachricht zeigt, etwa `title` und `alertNumberWithPrefix`.
+3. Klicken Sie im **Editor** auf **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Alert** unter **Beliebt**. Klicken Sie auf den Auslöser und wählen Sie in **Fields to pass on** die Felder, die Ihre Nachricht zeigt, etwa `title` und `alertNumberWithPrefix`.
 4. Klicken Sie auf **Komponente hinzufügen**, suchen Sie nach `telegram` und klicken Sie auf **Send Message to Telegram**. Verbinden Sie den Ausgang **Success** des Auslösers mit diesem Schritt.
 5. Klicken Sie auf den neuen Schritt. Klicken Sie in **Telegram Bot Token** auf **{ }** und wählen Sie `TELEGRAM_BOT_TOKEN` unter **Globale Variablen**. Geben Sie die ID des Chats in **Chat ID** ein, schreiben Sie die Nachricht in **Message Text** und fügen Sie die Felder der Warnung mit **{ }** ein.
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Schalten Sie **Aktiviert** oben im **Editor** ein. Von nun an wird jede neue Warnung an den Chat gesendet.
 
-Um zu testen, ohne eine Warnung auszulösen, klicken Sie auf **Arbeitsablauf ausführen** und tragen die ID einer vorhandenen Warnung in **Warnungs-ID** ein. Die Seite der Warnung zeigt ihre ID. Klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Das Panel **Arbeitsablauf-Ausführung** verfolgt den Lauf, und die Nachricht erscheint im Chat. Nimmt der Schritt stattdessen **Error**, sagt die Zeile des Schritts **Log**, warum: siehe [Fehlerbehebung](#fehlerbehebung).
+Um zu testen, ohne eine Warnung auszulösen, klicken Sie auf **Arbeitsablauf ausführen** und wählen unter **Warnung** eine vorhandene Warnung aus: Die neuesten sind aufgelistet, und wenn Sie ihre Nummer oder einen Teil ihres Titels eintippen, finden Sie eine andere. Klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Das Panel **Arbeitsablauf-Ausführung** verfolgt den Lauf, und die Nachricht erscheint im Chat. Nimmt der Schritt stattdessen **Error**, sagt die Zeile des Schritts **Log**, warum: siehe [Fehlerbehebung](#fehlerbehebung).
 :::
 
 ## Tipps

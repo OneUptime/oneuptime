@@ -57,7 +57,7 @@ Arbeidsflyten åpnes i **Bygger** med tre trinn: **On Create Alert**; **Send Mes
 @tab Fra bunnen
 1. Lagre tokenet som en hemmelig global variabel: gå til **Arbeidsflyter → Globale variabler**, klikk på **Opprett Workflow Variabel**, gi den navnet `TELEGRAM_BOT_TOKEN`, og klikk på **Neste**. Lim inn tokenet i **Innhold**, slå på **Hemmelighet**, og klikk på **Opprett Workflow Variabel**.
 2. Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt**, velg **Start fra bunnen**, gi arbeidsflyten et navn, og klikk på **Opprett arbeidsflyt**.
-3. Klikk på **Choose what starts this workflow** i **Bygger**, og velg **On Create Alert** under **Popular**. Klikk på utløseren, og velg i **Select Fields** feltene meldingen din viser, for eksempel `title` og `alertNumberWithPrefix`.
+3. Klikk på **Choose what starts this workflow** i **Bygger**, og velg **On Create Alert** under **Popular**. Klikk på utløseren, og velg i **Fields to pass on** feltene meldingen din viser, for eksempel `title` og `alertNumberWithPrefix`.
 4. Klikk på **Legg til komponent**, søk etter `telegram`, og klikk på **Send Message to Telegram**. Koble utgangen **Success** fra utløseren til den.
 5. Klikk på det nye trinnet. Klikk på **{ }** i **Telegram Bot Token**, og velg `TELEGRAM_BOT_TOKEN` under **Global variables**. Skriv inn ID-en til chatten i **Chat ID**, skriv meldingen i **Message Text**, og sett inn feltene til varselet med **{ }**.
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Slå på **Aktivert** øverst i **Bygger**. Fra nå av sendes hvert nye varsel til chatten.
 
-For å teste uten å utløse et varsel klikker du på **Kjør arbeidsflyt** og skriver inn ID-en til et eksisterende varsel i **Varsel-ID**. Siden til varselet viser ID-en. Klikk på **Run Workflow Manually**, og bekreft med **Run**. Panelet **Arbeidsflytkjøring** følger kjøringen, og meldingen dukker opp i chatten. Tar trinnet **Error** i stedet, sier linjen fra trinnet **Log** hvorfor: se [Feilsøking](#feilsøking).
+For å teste uten å utløse et varsel klikker du på **Kjør arbeidsflyt** og velger et varsel du allerede har, under **Varsel**: de nyeste er listet opp, og når du skriver inn nummeret eller en del av tittelen, finner du et annet. Klikk på **Kjør arbeidsflyten manuelt**, og bekreft med **Kjør**. Panelet **Arbeidsflytkjøring** følger kjøringen, og meldingen dukker opp i chatten. Tar trinnet **Error** i stedet, sier linjen fra trinnet **Log** hvorfor: se [Feilsøking](#feilsøking).
 :::
 
 ## Tips

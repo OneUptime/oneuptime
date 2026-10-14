@@ -57,7 +57,7 @@ flowchart TB
 @tab 从零开始
 1. 把令牌保存为机密的全局变量：前往 **工作流 → 全局变量**，点击 **创建工作流 变量**，将其命名为 `TELEGRAM_BOT_TOKEN`，然后点击 **下一步**。把令牌粘贴到 **内容** 中，打开 **密钥**，然后点击 **创建工作流 变量**。
 2. 前往 **工作流**，点击 **创建工作流**，选择 **从零开始**，为工作流命名，然后点击 **创建工作流**。
-3. 在 **生成器** 中，点击 **Choose what starts this workflow**，然后在 **Popular** 下选择 **On Create Alert**。点击触发器，在 **Select Fields** 中选择消息要显示的字段，例如 `title` 和 `alertNumberWithPrefix`。
+3. 在 **生成器** 中，点击 **Choose what starts this workflow**，然后在 **Popular** 下选择 **On Create Alert**。点击触发器，在 **Fields to pass on** 中选择消息要显示的字段，例如 `title` 和 `alertNumberWithPrefix`。
 4. 点击 **添加组件**，搜索 `telegram`，然后点击 **Send Message to Telegram**。把触发器的 **Success** 输出连接到它。
 5. 点击新步骤。在 **Telegram Bot Token** 中点击 **{ }**，然后在 **Global variables** 下选择 `TELEGRAM_BOT_TOKEN`。在 **Chat ID** 中输入聊天的 ID，在 **Message Text** 中写下消息，并用 **{ }** 插入警报的字段。
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 在 **生成器** 顶部打开 **已启用**。从现在起，每个新警报都会发送到聊天中。
 
-要在不触发警报的情况下进行测试，请点击 **运行工作流**，并在 **警报 ID** 中填入一个已有警报的 ID。警报的页面会显示它的 ID。点击 **Run Workflow Manually**，然后用 **Run** 确认。**工作流运行** 面板会跟踪这次运行，消息会出现在聊天中。如果该步骤改走 **Error**，**Log** 步骤的那一行会说明原因：请参阅 [故障排除](#故障排除)。
+要在不触发警报的情况下进行测试，请点击 **运行工作流**，在 **警报** 下选择一个已有的警报：列表中会列出最近的警报，输入它的编号或标题的一部分可以找到其他警报。点击 **手动运行工作流**，然后用 **运行** 确认。**工作流运行** 面板会跟踪这次运行，消息会出现在聊天中。如果该步骤改走 **Error**，**Log** 步骤的那一行会说明原因：请参阅 [故障排除](#故障排除)。
 :::
 
 ## 提示

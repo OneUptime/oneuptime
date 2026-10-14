@@ -60,7 +60,7 @@ Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois em
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Incident**. Clique no gatilho e, em **Select Fields**, escolha `title`, `description` e `incidentNumberWithPrefix`.
+Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Incident**. Clique no gatilho e, em **Fields to pass on**, escolha `title`, `description` e `incidentNumberWithPrefix`.
 
 ### Abrir a issue
 
@@ -86,7 +86,7 @@ E o **Request Body** como:
 
 ### Testar e depois ativar
 
-Clique em **Executar fluxo de trabalho**, informe o **ID do incidente** de um incidente de teste e execute. A etapa **API Post (JSON)** mostra uma resposta `201` com a nova issue, com o `number` e o `html_url` dela. Depois ative **Habilitado** no topo do **Construtor**.
+Clique em **Executar fluxo de trabalho**, escolha um incidente de teste em **Incidente** e execute. A etapa **API Post (JSON)** mostra uma resposta `201` com a nova issue, com o `number` e o `html_url` dela. Depois ative **Habilitado** no topo do **Construtor**.
 :::
 
 A issue continua aberta quando o incidente é resolvido, já que o trabalho de acompanhamento costuma durar mais que o incidente. Para tickets que acompanham o incidente nos dois sentidos, veja [Jira](/docs/integrations/jira).

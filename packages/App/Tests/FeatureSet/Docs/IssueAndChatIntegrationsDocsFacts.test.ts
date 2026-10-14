@@ -41,6 +41,14 @@ import ComponentMetadata, {
   ReturnValue,
 } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
+import { SELECT_FIELDS_NAME } from "Common/Types/Workflow/Components/BaseModel";
+import {
+  RunRecordColumns,
+  RunRecordEvent,
+  RunRecordTriggerInfo,
+  getRunRecordColumns,
+  getRunRecordTriggerInfo,
+} from "Common/Types/Workflow/RunRecord";
 import {
   WorkflowTemplate,
   WorkflowTemplateCategory,
@@ -231,10 +239,8 @@ describe("GitHub and GitLab: an issue for every incident", () => {
       const text: string = englishPage(page);
 
       expect(trigger.title).toBe("On Create Incident");
-      expect(argumentNames(trigger)).toContain("Select Fields");
-      expect(trigger.runWorkflowManuallyArguments?.[0]?.name).toBe(
-        "Incident ID",
-      );
+      expect(SELECT_FIELDS_NAME).toBe("Fields to pass on");
+      expect(argumentNames(trigger)).toContain(SELECT_FIELDS_NAME);
       expect(post.title).toBe("API Post (JSON)");
       expect(argumentNames(post)).toEqual([
         "URL",
@@ -256,13 +262,10 @@ describe("GitHub and GitLab: an issue for every incident", () => {
       ).toEqual(expect.arrayContaining(["Response Status", "Response Body"]));
 
       expect(text).toContain(
-        `pick ${bold("On Create Incident")}. Click the trigger, and in ${bold("Select Fields")} pick`,
+        `pick ${bold("On Create Incident")}. Click the trigger, and in ${bold(SELECT_FIELDS_NAME)} pick`,
       );
       expect(text).toContain(
         `Under ${bold("More fields")}, set its ${bold("Request Headers")} to:`,
-      );
-      expect(text).toContain(
-        `Click ${bold("Run Workflow")}, enter the ${bold("Incident ID")} of a test incident, and run it.`,
       );
       expect(text).toContain(
         `Its ${bold("Response Status")} and ${bold("Response Body")} in the run say why.`,
@@ -271,11 +274,11 @@ describe("GitHub and GitLab: an issue for every incident", () => {
   );
 
   it.each(ISSUE_PAGES)(
-    "%s picks in Select Fields every field its body reads, each one an incident's",
+    "%s picks in Fields to pass on every field its body reads, each one an incident's",
     (page: string) => {
       const pickLine: string = englishSection(page, "### Add the trigger");
       const picked: Array<string> = codeIn(
-        pickLine.slice(pickLine.indexOf("Select Fields")),
+        pickLine.slice(pickLine.indexOf(SELECT_FIELDS_NAME)),
       );
       const body: JSONObject = jsonBlocks(page)[1] as JSONObject;
       const read: Array<string> = modelFieldsRead(
@@ -867,14 +870,96 @@ describe("Discord and Telegram: a message from a template, or from scratch", () 
     );
   });
 
-  it("Telegram: tests the workflow with an Alert ID, the way an On Create Alert trigger is run by hand", () => {
-    const trigger: ComponentMetadata = component("alert-on-create");
+});
 
-    expect(trigger.title).toBe("On Create Alert");
-    expect(trigger.runWorkflowManuallyArguments?.[0]?.name).toBe("Alert ID");
-    expect("alertNumberWithPrefix" in new Alert()).toBe(true);
-    expect(englishPage(TELEGRAM)).toContain(
-      `click ${bold("Run Workflow")} and put the ID of an alert you already have in ${bold("Alert ID")}.`,
-    );
-  });
+/*
+ * ------------------------------------------------ Run Workflow, by hand
+ *
+ * Run Workflow on a record trigger asks for the record, under its name
+ * (RunForm draws the field as the model's singular name), and lists the
+ * newest ones; typing a number or part of a title finds another. It asked
+ * for the record's ID before, typed, which is what these pages said.
+ */
+
+interface RunPage {
+  page: string;
+  trigger: string;
+  // The model's singular name: what the Run panel names the field.
+  record: string;
+  numberWithPrefix: string;
+  sentence: string;
+}
+
+const PICKED_FROM_THE_LIST: string =
+  ": the most recent ones are listed, and typing its number or part of its title finds another.";
+
+const RUN_PAGES: Array<RunPage> = [
+  ...ISSUE_PAGES.map((page: string): RunPage => {
+    return {
+      page: page,
+      trigger: "incident-on-create",
+      record: "Incident",
+      numberWithPrefix: "incidentNumberWithPrefix",
+      sentence: `Click ${bold("Run Workflow")}, pick a test incident under ${bold("Incident")}, and run it.`,
+    };
+  }),
+  {
+    page: DISCORD,
+    trigger: "incident-on-create",
+    record: "Incident",
+    numberWithPrefix: "incidentNumberWithPrefix",
+    sentence: `click ${bold("Run Workflow")} and pick an incident you already have under ${bold("Incident")}${PICKED_FROM_THE_LIST}`,
+  },
+  {
+    page: TELEGRAM,
+    trigger: "alert-on-create",
+    record: "Alert",
+    numberWithPrefix: "alertNumberWithPrefix",
+    sentence: `click ${bold("Run Workflow")} and pick an alert you already have under ${bold("Alert")}${PICKED_FROM_THE_LIST}`,
+  },
+];
+
+describe("Run Workflow: the trigger's record, picked rather than typed", () => {
+  it.each(RUN_PAGES)(
+    "$page picks the record under its name, as the Run panel asks for it",
+    (entry: RunPage) => {
+      const trigger: ComponentMetadata = component(entry.trigger);
+      const info: RunRecordTriggerInfo | null =
+        getRunRecordTriggerInfo(trigger);
+      const text: string = englishPage(entry.page);
+
+      expect(info?.singularName).toBe(entry.record);
+      expect(info?.event).toBe(RunRecordEvent.Created);
+      expect(trigger.runWorkflowManuallyArguments?.[0]?.id).toBe("_id");
+      expect(
+        readRepoFile("Common/UI/Components/Workflow/RunForm.tsx"),
+      ).toContain("title: info.singularName,");
+      expect(text).toContain(entry.sentence);
+      // Neither the ID the panel asked for before, nor the setting's old name.
+      expect(text).not.toContain(`${entry.record} ID`);
+      expect(text).not.toContain("Select Fields");
+    },
+  );
+
+  it.each(RUN_PAGES)(
+    "$page's record is found by its number or part of its title, and the newest are listed first",
+    (entry: RunPage) => {
+      const info: RunRecordTriggerInfo | null = getRunRecordTriggerInfo(
+        component(entry.trigger),
+      );
+      const columns: RunRecordColumns = getRunRecordColumns(
+        entry.record === "Alert" ? new Alert() : new Incident(),
+      );
+
+      expect(info?.hasNumber).toBe(true);
+      expect(info?.hasName).toBe(true);
+      expect(columns.number?.numberWithPrefixColumn).toBe(
+        entry.numberWithPrefix,
+      );
+      expect(columns.nameColumn).toBe("title");
+      expect(
+        readRepoFile("Common/UI/Components/Workflow/RunRecordField.tsx"),
+      ).toContain('mostRecent: translationKey("Most recent")');
+    },
+  );
 });

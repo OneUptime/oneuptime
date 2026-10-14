@@ -57,7 +57,7 @@ Arbetsflödet öppnas i **Byggare** med tre steg: **On Create Alert**; **Send Me
 @tab Från grunden
 1. Spara token som en hemlig global variabel: gå till **Arbetsflöden → Globala variabler**, klicka på **Skapa Arbetsflöde Variabel**, ge den namnet `TELEGRAM_BOT_TOKEN` och klicka på **Nästa**. Klistra in token i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**.
 2. Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde**, välj **Börja från grunden**, ge arbetsflödet ett namn och klicka på **Skapa arbetsflöde**.
-3. Klicka på **Choose what starts this workflow** i **Byggare** och välj **On Create Alert** under **Popular**. Klicka på utlösaren och välj i **Select Fields** de fält som ditt meddelande visar, till exempel `title` och `alertNumberWithPrefix`.
+3. Klicka på **Choose what starts this workflow** i **Byggare** och välj **On Create Alert** under **Popular**. Klicka på utlösaren och välj i **Fields to pass on** de fält som ditt meddelande visar, till exempel `title` och `alertNumberWithPrefix`.
 4. Klicka på **Lägg till komponent**, sök efter `telegram` och klicka på **Send Message to Telegram**. Anslut utlösarens utgång **Success** till det.
 5. Klicka på det nya steget. Klicka på **{ }** i **Telegram Bot Token** och välj `TELEGRAM_BOT_TOKEN` under **Global variables**. Ange chattens ID i **Chat ID**, skriv meddelandet i **Message Text** och infoga larmets fält med **{ }**.
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Slå på **Aktiverad** högst upp i **Byggare**. Från och med nu skickas varje nytt larm till chatten.
 
-För att testa utan att utlösa ett larm klickar du på **Kör arbetsflöde** och anger ID:t för ett befintligt larm i **Larm-ID**. Larmets sida visar dess ID. Klicka på **Run Workflow Manually** och bekräfta med **Run**. Panelen **Arbetsflödeskörning** följer körningen, och meddelandet dyker upp i chatten. Om steget i stället tar **Error** säger raden från steget **Log** varför: se [Felsökning](#felsökning).
+För att testa utan att utlösa ett larm klickar du på **Kör arbetsflöde** och väljer ett larm du redan har under **Larm**: de senaste visas i listan, och genom att skriva dess nummer eller en del av dess titel hittar du ett annat. Klicka på **Kör arbetsflödet manuellt** och bekräfta med **Kör**. Panelen **Arbetsflödeskörning** följer körningen, och meddelandet dyker upp i chatten. Om steget i stället tar **Error** säger raden från steget **Log** varför: se [Felsökning](#felsökning).
 :::
 
 ## Tips

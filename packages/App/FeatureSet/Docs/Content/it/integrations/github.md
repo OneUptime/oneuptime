@@ -60,7 +60,7 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **On Create Incident**. Fai clic sul trigger e, in **Select Fields**, scegli `title`, `description` e `incidentNumberWithPrefix`.
+Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **On Create Incident**. Fai clic sul trigger e, in **Fields to pass on**, scegli `title`, `description` e `incidentNumberWithPrefix`.
 
 ### Aprire la issue
 
@@ -86,7 +86,7 @@ E il suo **Request Body** su:
 
 ### Provarlo, poi attivarlo
 
-Fai clic su **Esegui flusso di lavoro**, inserisci l'**ID incidente** di un incidente di prova ed eseguilo. Il passo **API Post (JSON)** mostra una risposta `201` con la nuova issue, con il suo `number` e il suo `html_url`. Poi attiva **Abilitato** in cima al **Costruttore**.
+Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passo **API Post (JSON)** mostra una risposta `201` con la nuova issue, con il suo `number` e il suo `html_url`. Poi attiva **Abilitato** in cima al **Costruttore**.
 :::
 
 La issue resta aperta quando l'incidente viene risolto, perché il lavoro che ne segue di solito dura più dell'incidente. Per ticket allineati all'incidente in entrambe le direzioni, vedi [Jira](/docs/integrations/jira).

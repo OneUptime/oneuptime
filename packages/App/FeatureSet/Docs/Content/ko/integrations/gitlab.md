@@ -47,7 +47,7 @@ flowchart TB
 
 ### 트리거 추가하기
 
-점선으로 된 **Choose what starts this workflow** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭하고 **Select Fields**에서 `title`, `description`, `incidentNumberWithPrefix`를 고릅니다.
+점선으로 된 **Choose what starts this workflow** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭하고 **Fields to pass on**에서 `title`, `description`, `incidentNumberWithPrefix`를 고릅니다.
 
 ### issue 열기
 
@@ -71,7 +71,7 @@ flowchart TB
 
 ### 테스트한 다음 켜기
 
-**워크플로 실행**을 클릭하고 테스트 인시던트의 **인시던트 ID**를 입력한 뒤 실행합니다. **API Post (JSON)** 단계에 새 issue가 담긴 `201` 응답이 그 `iid`, `web_url`과 함께 나타납니다. 그런 다음 **빌더** 위쪽에서 **활성화됨**을 켭니다.
+**워크플로 실행**을 클릭하고 **인시던트**에서 테스트 인시던트를 고른 뒤 실행합니다. **API Post (JSON)** 단계에 새 issue가 담긴 `201` 응답이 그 `iid`, `web_url`과 함께 나타납니다. 그런 다음 **빌더** 위쪽에서 **활성화됨**을 켭니다.
 :::
 
 블록은 JSON을 보내므로 `Content-Type` 헤더가 필요 없습니다. GitLab은 처음 보는 레이블을 만들어 주므로 `incident`와 `oneuptime`은 미리 준비할 필요가 없습니다. 후속 작업은 보통 인시던트보다 오래가므로, 인시던트가 해결되어도 issue는 열린 채로 남습니다.

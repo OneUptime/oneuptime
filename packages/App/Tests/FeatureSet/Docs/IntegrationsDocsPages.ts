@@ -156,7 +156,7 @@ const INBOUND_WORKFLOW_STEPS: ReadonlyArray<string> = [
  */
 const ISSUE_WORKFLOW_STEPS: ReadonlyArray<string> = [
   "On Create Incident",
-  "Select Fields",
+  "Fields to pass on",
   "API Post (JSON)",
   "Success",
   "URL",
@@ -301,7 +301,7 @@ export const STEP_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Error",
     "Log",
     "On Create Incident",
-    "Select Fields",
+    "Fields to pass on",
     "Discord Incoming Webhook URL",
     "On Update Incident",
     "On Create Alert",
@@ -315,7 +315,7 @@ export const STEP_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Log",
     "Telegram Bot Token",
     "On Create Alert",
-    "Select Fields",
+    "Fields to pass on",
     "Chat ID",
     "On Create Incident",
     "On Update Incident",

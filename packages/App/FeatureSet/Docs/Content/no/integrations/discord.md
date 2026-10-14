@@ -52,7 +52,7 @@ Arbeidsflyten åpnes i **Bygger** med tre trinn: **On Create Incident**; **Send 
 @tab Fra bunnen
 1. Lagre URL-en som en hemmelig global variabel: gå til **Arbeidsflyter → Globale variabler**, klikk på **Opprett Workflow Variabel**, gi den navnet `DISCORD_WEBHOOK_URL`, og klikk på **Neste**. Lim inn URL-en i **Innhold**, slå på **Hemmelighet**, og klikk på **Opprett Workflow Variabel**.
 2. Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt**, velg **Start fra bunnen**, gi arbeidsflyten et navn, og klikk på **Opprett arbeidsflyt**.
-3. Klikk på **Choose what starts this workflow** i **Bygger**, og velg **On Create Incident** under **Popular**. Klikk på utløseren, og velg i **Select Fields** feltene meldingen din viser, for eksempel `title` og `incidentNumberWithPrefix`.
+3. Klikk på **Choose what starts this workflow** i **Bygger**, og velg **On Create Incident** under **Popular**. Klikk på utløseren, og velg i **Fields to pass on** feltene meldingen din viser, for eksempel `title` og `incidentNumberWithPrefix`.
 4. Klikk på **Legg til komponent**, søk etter `discord`, og klikk på **Send Message to Discord**. Koble utgangen **Success** fra utløseren til den.
 5. Klikk på det nye trinnet. Klikk på **{ }** i **Discord Incoming Webhook URL**, og velg `DISCORD_WEBHOOK_URL` under **Global variables**. Skriv meldingen i **Message Text**, og sett inn feltene til hendelsen med **{ }**.
 :::
@@ -68,7 +68,7 @@ En melding bygget fra bunnen leser feltene til hendelsen med referanser som diss
 
 Slå på **Aktivert** øverst i **Bygger**. Fra nå av postes hver nye hendelse i kanalen.
 
-For å teste uten å åpne en hendelse klikker du på **Kjør arbeidsflyt** og skriver inn ID-en til en eksisterende hendelse i **Hendelse-ID**. Siden til hendelsen viser ID-en. Klikk på **Run Workflow Manually**, og bekreft med **Run**. Panelet **Arbeidsflytkjøring** følger kjøringen, og meldingen dukker opp i kanalen. Tar trinnet **Error** i stedet, sier linjen fra trinnet **Log** hvorfor: se [Feilsøking](#feilsøking).
+For å teste uten å åpne en hendelse klikker du på **Kjør arbeidsflyt** og velger en hendelse du allerede har, under **Hendelse**: de nyeste er listet opp, og når du skriver inn nummeret eller en del av tittelen, finner du en annen. Klikk på **Kjør arbeidsflyten manuelt**, og bekreft med **Kjør**. Panelet **Arbeidsflytkjøring** følger kjøringen, og meldingen dukker opp i kanalen. Tar trinnet **Error** i stedet, sier linjen fra trinnet **Log** hvorfor: se [Feilsøking](#feilsøking).
 :::
 
 ## Tips

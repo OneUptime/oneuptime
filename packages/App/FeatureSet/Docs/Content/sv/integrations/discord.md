@@ -52,7 +52,7 @@ Arbetsflödet öppnas i **Byggare** med tre steg: **On Create Incident**; **Send
 @tab Från grunden
 1. Spara URL:en som en hemlig global variabel: gå till **Arbetsflöden → Globala variabler**, klicka på **Skapa Arbetsflöde Variabel**, ge den namnet `DISCORD_WEBHOOK_URL` och klicka på **Nästa**. Klistra in URL:en i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**.
 2. Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde**, välj **Börja från grunden**, ge arbetsflödet ett namn och klicka på **Skapa arbetsflöde**.
-3. Klicka på **Choose what starts this workflow** i **Byggare** och välj **On Create Incident** under **Popular**. Klicka på utlösaren och välj i **Select Fields** de fält som ditt meddelande visar, till exempel `title` och `incidentNumberWithPrefix`.
+3. Klicka på **Choose what starts this workflow** i **Byggare** och välj **On Create Incident** under **Popular**. Klicka på utlösaren och välj i **Fields to pass on** de fält som ditt meddelande visar, till exempel `title` och `incidentNumberWithPrefix`.
 4. Klicka på **Lägg till komponent**, sök efter `discord` och klicka på **Send Message to Discord**. Anslut utlösarens utgång **Success** till det.
 5. Klicka på det nya steget. Klicka på **{ }** i **Discord Incoming Webhook URL** och välj `DISCORD_WEBHOOK_URL` under **Global variables**. Skriv meddelandet i **Message Text** och infoga incidentens fält med **{ }**.
 :::
@@ -68,7 +68,7 @@ Ett meddelande byggt från grunden läser incidentens fält med referenser som d
 
 Slå på **Aktiverad** högst upp i **Byggare**. Från och med nu postas varje ny incident i kanalen.
 
-För att testa utan att öppna en incident klickar du på **Kör arbetsflöde** och anger ID:t för en befintlig incident i **Incident-ID**. Incidentens sida visar dess ID. Klicka på **Run Workflow Manually** och bekräfta med **Run**. Panelen **Arbetsflödeskörning** följer körningen, och meddelandet dyker upp i kanalen. Om steget i stället tar **Error** säger raden från steget **Log** varför: se [Felsökning](#felsökning).
+För att testa utan att öppna en incident klickar du på **Kör arbetsflöde** och väljer en incident du redan har under **Incident**: de senaste visas i listan, och genom att skriva dess nummer eller en del av dess titel hittar du en annan. Klicka på **Kör arbetsflödet manuellt** och bekräfta med **Kör**. Panelen **Arbetsflödeskörning** följer körningen, och meddelandet dyker upp i kanalen. Om steget i stället tar **Error** säger raden från steget **Log** varför: se [Felsökning](#felsökning).
 :::
 
 ## Tips

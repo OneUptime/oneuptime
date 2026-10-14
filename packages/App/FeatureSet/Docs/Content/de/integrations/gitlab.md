@@ -47,7 +47,7 @@ Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen**, d
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Block **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Auslöser und wählen Sie in **Select Fields** `title`, `description` und `incidentNumberWithPrefix`.
+Klicken Sie auf den gestrichelten Block **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Auslöser und wählen Sie in **Fields to pass on** `title`, `description` und `incidentNumberWithPrefix`.
 
 ### Das Issue öffnen
 
@@ -71,7 +71,7 @@ Und seinen **Request Body** auf:
 
 ### Testen und dann einschalten
 
-Klicken Sie auf **Arbeitsablauf ausführen**, geben Sie die **Vorfall-ID** eines Testvorfalls ein und führen Sie ihn aus. Der Schritt **API Post (JSON)** zeigt eine Antwort `201` mit dem neuen Issue, mit seiner `iid` und seiner `web_url`. Schalten Sie dann oben im **Editor** **Aktiviert** ein.
+Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API Post (JSON)** zeigt eine Antwort `201` mit dem neuen Issue, mit seiner `iid` und seiner `web_url`. Schalten Sie dann oben im **Editor** **Aktiviert** ein.
 :::
 
 Der Block sendet JSON und braucht deshalb keinen Header `Content-Type`. GitLab legt Labels an, die es noch nicht kennt, `incident` und `oneuptime` müssen also nicht eingerichtet werden. Das Issue bleibt offen, wenn der Vorfall behoben ist, denn die Nacharbeit überdauert den Vorfall meist.

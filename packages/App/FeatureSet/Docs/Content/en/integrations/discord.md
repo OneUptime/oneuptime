@@ -52,7 +52,7 @@ The workflow opens in the **Builder** with three steps: **On Create Incident**; 
 @tab From scratch
 1. Save the URL as a secret global variable: go to **Workflows → Global Variables**, click **Create Workflow Variable**, name it `DISCORD_WEBHOOK_URL`, and click **Next**. Paste the URL into **Content**, turn on **Secret**, and click **Create Workflow Variable**.
 2. Go to **Workflows**, click **Create Workflow**, choose **Start from scratch**, name the workflow, and click **Create Workflow**.
-3. In the **Builder**, click **Choose what starts this workflow** and pick **On Create Incident** under **Popular**. Click the trigger and, in **Select Fields**, pick the fields your message shows, such as `title` and `incidentNumberWithPrefix`.
+3. In the **Builder**, click **Choose what starts this workflow** and pick **On Create Incident** under **Popular**. Click the trigger and, in **Fields to pass on**, pick the fields your message shows, such as `title` and `incidentNumberWithPrefix`.
 4. Click **Add Component**, search for `discord`, and click **Send Message to Discord**. Connect the trigger's **Success** output to it.
 5. Click the new step. In **Discord Incoming Webhook URL**, click **{ }** and pick `DISCORD_WEBHOOK_URL` under **Global variables**. In **Message Text**, write the message, and insert the incident's fields with **{ }**.
 :::
@@ -68,7 +68,7 @@ A message from scratch reads the incident's fields with references such as these
 
 Switch **Enabled** on at the top of the **Builder**. From now on, every new incident is posted in the channel.
 
-To test it without opening an incident, click **Run Workflow** and put the ID of an incident you already have in **Incident ID**. The incident's page shows its ID. Click **Run Workflow Manually** and confirm with **Run**. The **Workflow Run** panel follows the run, and the message shows up in the channel. If the step takes **Error** instead, the **Log** step's line says why: see [Troubleshooting](#troubleshooting).
+To test it without opening an incident, click **Run Workflow** and pick an incident you already have under **Incident**: the most recent ones are listed, and typing its number or part of its title finds another. Click **Run Workflow Manually** and confirm with **Run**. The **Workflow Run** panel follows the run, and the message shows up in the channel. If the step takes **Error** instead, the **Log** step's line says why: see [Troubleshooting](#troubleshooting).
 :::
 
 ## Tips

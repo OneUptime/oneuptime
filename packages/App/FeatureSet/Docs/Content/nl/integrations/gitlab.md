@@ -47,7 +47,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en dan op **Vanaf nul beginnen
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger en kies in **Select Fields** `title`, `description` en `incidentNumberWithPrefix`.
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger en kies in **Fields to pass on** `title`, `description` en `incidentNumberWithPrefix`.
 
 ### Het issue openen
 
@@ -71,7 +71,7 @@ En de **Request Body** op:
 
 ### Testen en daarna aanzetten
 
-Klik op **Workflow uitvoeren**, vul de **Incident-ID** van een testincident in en voer hem uit. De stap **API Post (JSON)** toont een antwoord `201` met het nieuwe issue, met zijn `iid` en zijn `web_url`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API Post (JSON)** toont een antwoord `201` met het nieuwe issue, met zijn `iid` en zijn `web_url`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
 :::
 
 Het blok stuurt JSON, dus het heeft geen header `Content-Type` nodig. GitLab maakt labels aan die het nog niet kent, dus `incident` en `oneuptime` hoeven niet te worden ingesteld. Het issue blijft open wanneer het incident is opgelost, omdat het vervolgwerk het incident meestal overleeft.

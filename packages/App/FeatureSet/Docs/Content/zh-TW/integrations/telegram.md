@@ -57,7 +57,7 @@ flowchart TB
 @tab 從零開始
 1. 把權杖儲存為機密的全域變數：前往 **工作流程 → 全域變數**，點選 **建立工作流程 變數**，將其命名為 `TELEGRAM_BOT_TOKEN`，然後點選 **下一步**。把權杖貼上到 **內容** 中，開啟 **密鑰**，然後點選 **建立工作流程 變數**。
 2. 前往 **工作流程**，點選 **建立工作流程**，選擇 **從零開始**，為工作流程命名，然後點選 **建立工作流程**。
-3. 在 **建構器** 中，點選 **Choose what starts this workflow**，然後在 **Popular** 下選擇 **On Create Alert**。點選觸發器，在 **Select Fields** 中選擇訊息要顯示的欄位，例如 `title` 和 `alertNumberWithPrefix`。
+3. 在 **建構器** 中，點選 **Choose what starts this workflow**，然後在 **Popular** 下選擇 **On Create Alert**。點選觸發器，在 **Fields to pass on** 中選擇訊息要顯示的欄位，例如 `title` 和 `alertNumberWithPrefix`。
 4. 點選 **新增元件**，搜尋 `telegram`，然後點選 **Send Message to Telegram**。把觸發器的 **Success** 輸出連接到它。
 5. 點選新步驟。在 **Telegram Bot Token** 中點選 **{ }**，然後在 **Global variables** 下選擇 `TELEGRAM_BOT_TOKEN`。在 **Chat ID** 中輸入聊天的 ID，在 **Message Text** 中寫下訊息，並用 **{ }** 插入警示的欄位。
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 在 **建構器** 頂部開啟 **已啟用**。從現在起，每個新警示都會發送到聊天中。
 
-要在不觸發警示的情況下進行測試，請點選 **執行工作流程**，並在 **警示 ID** 中填入一個已有警示的 ID。警示的頁面會顯示它的 ID。點選 **Run Workflow Manually**，然後用 **Run** 確認。**工作流程執行** 面板會追蹤這次執行，訊息會出現在聊天中。如果該步驟改走 **Error**，**Log** 步驟的那一列會說明原因：請參閱 [疑難排解](#疑難排解)。
+要在不觸發警示的情況下進行測試，請點選 **執行工作流程**，在 **警示** 下選擇一個既有的警示：清單中會列出最近的警示，輸入它的編號或標題的一部分可以找到其他警示。點選 **手動執行工作流程**，然後用 **執行** 確認。**工作流程執行** 面板會追蹤這次執行，訊息會出現在聊天中。如果該步驟改走 **Error**，**Log** 步驟的那一列會說明原因：請參閱 [疑難排解](#疑難排解)。
 :::
 
 ## 提示

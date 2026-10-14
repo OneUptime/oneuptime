@@ -57,7 +57,7 @@ Le workflow s'ouvre dans le **Constructeur** avec trois étapes : **On Create Al
 @tab De zéro
 1. Enregistrez le jeton comme variable globale secrète : allez dans **Flux de travail → Variables globales**, cliquez sur **Créer : Variable de flux de travail**, nommez-la `TELEGRAM_BOT_TOKEN`, et cliquez sur **Suivant**. Collez le jeton dans **Contenu**, activez **Secret**, et cliquez sur **Créer : Variable de flux de travail**.
 2. Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, choisissez **Partir de zéro**, nommez le workflow, et cliquez sur **Créer un flux de travail**.
-3. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Alert** sous **Popular**. Cliquez sur le déclencheur et, dans **Select Fields**, choisissez les champs que votre message affiche, par exemple `title` et `alertNumberWithPrefix`.
+3. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Alert** sous **Popular**. Cliquez sur le déclencheur et, dans **Fields to pass on**, choisissez les champs que votre message affiche, par exemple `title` et `alertNumberWithPrefix`.
 4. Cliquez sur **Ajouter un composant**, cherchez `telegram`, et cliquez sur **Send Message to Telegram**. Reliez la sortie **Success** du déclencheur à cette étape.
 5. Cliquez sur la nouvelle étape. Dans **Telegram Bot Token**, cliquez sur **{ }** et choisissez `TELEGRAM_BOT_TOKEN` sous **Variables globales**. Saisissez l'ID de la discussion dans **Chat ID**, écrivez le message dans **Message Text**, et insérez les champs de l'alerte avec **{ }**.
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Basculez l'interrupteur **Activé** en haut du **Constructeur**. À partir de là, chaque nouvelle alerte est envoyée dans la discussion.
 
-Pour tester sans lever d'alerte, cliquez sur **Exécuter le flux de travail** et indiquez l'ID d'une alerte existante dans **ID d'alerte**. La page de l'alerte affiche son ID. Cliquez sur **Run Workflow Manually** et confirmez avec **Run**. Le panneau **Exécution du flux de travail** suit l'exécution, et le message apparaît dans la discussion. Si l'étape prend plutôt **Error**, la ligne de l'étape **Log** dit pourquoi : voir [Dépannage](#dépannage).
+Pour tester sans lever d'alerte, cliquez sur **Exécuter le flux de travail** et choisissez une alerte existante sous **Alerte** : les plus récentes sont listées, et saisir son numéro ou une partie de son titre en trouve une autre. Cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Le panneau **Exécution du flux de travail** suit l'exécution, et le message apparaît dans la discussion. Si l'étape prend plutôt **Error**, la ligne de l'étape **Log** dit pourquoi : voir [Dépannage](#dépannage).
 :::
 
 ## Conseils

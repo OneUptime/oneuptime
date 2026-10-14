@@ -57,7 +57,7 @@ Workflowet åbner i **Bygger** med tre trin: **On Create Alert**; **Send Message
 @tab Fra bunden
 1. Gem tokenet som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Workflow Variabel**, giv den navnet `TELEGRAM_BOT_TOKEN`, og klik på **Næste**. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
 2. Gå til **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv workflowet et navn, og klik på **Opret arbejdsgang**.
-3. Klik i **Bygger** på **Choose what starts this workflow**, og vælg **On Create Alert** under **Popular**. Klik på triggeren, og vælg i **Select Fields** de felter, din besked viser, for eksempel `title` og `alertNumberWithPrefix`.
+3. Klik i **Bygger** på **Choose what starts this workflow**, og vælg **On Create Alert** under **Popular**. Klik på triggeren, og vælg i **Fields to pass on** de felter, din besked viser, for eksempel `title` og `alertNumberWithPrefix`.
 4. Klik på **Tilføj komponent**, søg efter `telegram`, og klik på **Send Message to Telegram**. Forbind triggerens udgang **Success** til den.
 5. Klik på det nye trin. Klik i **Telegram Bot Token** på **{ }**, og vælg `TELEGRAM_BOT_TOKEN` under **Global variables**. Angiv chattens ID i **Chat ID**, skriv beskeden i **Message Text**, og indsæt advarslens felter med **{ }**.
 :::
@@ -73,7 +73,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 Slå **Aktiveret** til øverst i **Bygger**. Fra nu af sendes hver ny advarsel til chatten.
 
-For at teste uden at udløse en advarsel klikker du på **Kør arbejdsgang** og angiver ID'et på en eksisterende advarsel i **Advarsels-ID**. Advarslens side viser dens ID. Klik på **Run Workflow Manually**, og bekræft med **Run**. Panelet **Arbejdsgangskørsel** følger kørslen, og beskeden dukker op i chatten. Tager trinnet i stedet **Error**, siger linjen fra trinnet **Log** hvorfor: se [Fejlfinding](#fejlfinding).
+For at teste uden at udløse en advarsel klikker du på **Kør arbejdsgang** og vælger en advarsel, du allerede har, under **Advarsel**: de seneste er vist, og når du skriver dens nummer eller en del af dens titel, finder du en anden. Klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Panelet **Arbejdsgangskørsel** følger kørslen, og beskeden dukker op i chatten. Tager trinnet i stedet **Error**, siger linjen fra trinnet **Log** hvorfor: se [Fejlfinding](#fejlfinding).
 :::
 
 ## Tips

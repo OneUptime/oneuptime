@@ -47,7 +47,7 @@ Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois em
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Incident**. Clique no gatilho e, em **Select Fields**, escolha `title`, `description` e `incidentNumberWithPrefix`.
+Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Incident**. Clique no gatilho e, em **Fields to pass on**, escolha `title`, `description` e `incidentNumberWithPrefix`.
 
 ### Abrir a issue
 
@@ -71,7 +71,7 @@ E o **Request Body** como:
 
 ### Testar e depois ativar
 
-Clique em **Executar fluxo de trabalho**, informe o **ID do incidente** de um incidente de teste e execute. A etapa **API Post (JSON)** mostra uma resposta `201` com a nova issue, com o `iid` e o `web_url` dela. Depois ative **Habilitado** no topo do **Construtor**.
+Clique em **Executar fluxo de trabalho**, escolha um incidente de teste em **Incidente** e execute. A etapa **API Post (JSON)** mostra uma resposta `201` com a nova issue, com o `iid` e o `web_url` dela. Depois ative **Habilitado** no topo do **Construtor**.
 :::
 
 O bloco envia JSON, então não precisa de cabeçalho `Content-Type`. O GitLab cria os rótulos que ainda não conhece, então `incident` e `oneuptime` não precisam de nenhuma preparação. A issue continua aberta quando o incidente é resolvido, já que o trabalho de acompanhamento costuma durar mais que o incidente.
