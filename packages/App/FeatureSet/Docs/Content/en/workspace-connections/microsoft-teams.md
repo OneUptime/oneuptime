@@ -6,6 +6,7 @@ Connect OneUptime to Microsoft Teams to post incidents, alerts, episodes, schedu
 - [Connect Microsoft Teams](#connect-microsoft-teams): Admin consent, your sign-in, and the app in each team.
 - [Notification rules](#notification-rules): Decide which events post where, and which get a channel of their own.
 - [Talking to the OneUptime bot](#talking-to-the-oneuptime-bot): Commands, questions and forms in a chat with the bot.
+- [On-call tags](#on-call-tags): Keep a team's tag equal to whoever is on call, and page it.
 - [Acting on incidents, alerts and events from Microsoft Teams](#acting-on-incidents-alerts-and-events-from-microsoft-teams): The buttons on OneUptime's cards.
 :::
 
@@ -169,10 +170,31 @@ Typing `incident` or `maintenance` to the OneUptime bot opens a form for the per
 
 In a channel or a group chat, `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` pages Nawaz straight away. OneUptime creates an alert whose title is your message, and each person you @mention gets a phone call, an SMS, a push notification or an email, as their own on-call rules say, until somebody acknowledges the alert.
 
-- **Who is paged at once.** The people you @mention, when a message follows them. OneUptime knows a person by the OneUptime account their Microsoft Teams account is connected to, or else by their email address in Microsoft Teams. Nobody outside the project is paged.
-- **Anything else gets a card.** With nobody @mentioned, as in a personal chat with the bot, no message, a tag, or a person OneUptime cannot tell, the bot answers with the **Page someone** card, what you typed filled in, and says whom it could not pick. Pick people, a team, an on-call schedule, which pages whoever is on call in it now, or an on-call policy, which pages through its escalation rules, and submit it. Anyone in the conversation may submit the card, as themselves. Once it has paged, the card is removed, so nobody pages with it twice.
+- **Who is paged at once.** The people you @mention, and whoever is on call in the schedules a tag you @mention follows (see [On-call tags](#on-call-tags)), when a message follows them. OneUptime knows a person by the OneUptime account their Microsoft Teams account is connected to, or else by their email address in Microsoft Teams. Nobody outside the project is paged.
+- **Anything else gets a card.** With nobody @mentioned, as in a personal chat with the bot, no message, a tag that follows no on-call schedule you can see, or a person OneUptime cannot tell, the bot answers with the **Page someone** card, what you typed filled in, and says whom it could not pick. Pick people, a team, an on-call schedule, which pages whoever is on call in it now, or an on-call policy, which pages through its escalation rules, and submit it. Anyone in the conversation may submit the card, as themselves. Once it has paged, the card is removed, so nobody pages with it twice.
 - **Where it shows.** The conversation shows the page as one card, kept up to date: who was paged and how, and who acknowledged. Where the bot cannot post it, its reply says who was paged, with a link to the alert.
 - **Who may page.** Anyone who may both execute an on-call policy and create an alert: **Project Owner**, **Project Admin** and **Project Member**, or **On-Call Member** with **Alert Member** (**Create On-Call Duty Policy Execution Log** and **Create Alert** in a custom role). Paging people, a team or a schedule directly, with no on-call policy behind the page, also takes access to every on-call policy of the project. Anyone else is told so in a reply, and nobody is paged.
+
+## On-call tags
+
+Keep a Microsoft Teams tag, such as `@Payments on-call`, equal to whoever is on call in one or more on-call schedules, so anyone in its team can @mention it to reach them. OneUptime changes the tag's people at every hand-off and override, and checks it every 15 minutes.
+
+:::steps
+### Connect a tag to a schedule
+
+Open the schedule under **On-Call Duty** > **On-Call Schedules**. In its **Microsoft Teams tags** card, click **Connect tag**, pick the team, and name the tag: the team's tag of that name, or a new one OneUptime makes. The people in it are replaced with whoever is on call straight away.
+
+### Connect it to the secondary schedule too
+
+For a tag that holds the primary and the secondary on call, connect the same tag on the secondary schedule's page. A tag can follow any number of schedules.
+:::
+
+- **What the card shows.** Who is in each tag now, its team, the other schedules it follows, and whether it is **Up to date**. A tag holds only people in its team: somebody on call who is not in the team is named, with why.
+- **Nobody on call.** OneUptime takes everybody out of the tag until somebody is on call. A new tag needs somebody from the team on call, as Microsoft Teams makes no tag with nobody in it.
+- **Paging it.** `@OneUptime page @Payments on-call The checkout API is down` pages whoever is on call in the schedules the tag follows. See [Paging someone from Microsoft Teams](#paging-someone-from-microsoft-teams).
+- **What Microsoft 365 needs.** Changing tags takes the app's `TeamworkTag.ReadWrite.All` permission, which a Microsoft 365 administrator grants with **Grant Admin Consent** under **Project Settings** > **Workspace** > **Microsoft Teams**. If your organization consented before OneUptime could keep tags, consent once more.
+- **Who may connect one.** The roles that may edit schedules: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Edit On-Call Duty Policy Schedule** in a custom role. On OneUptime Cloud, connecting one needs the **Growth** plan.
+- **Disconnecting.** OneUptime stops changing the tag. The tag, and the people in it, stay in Microsoft Teams as they are.
 
 ## Acting on incidents, alerts and events from Microsoft Teams
 

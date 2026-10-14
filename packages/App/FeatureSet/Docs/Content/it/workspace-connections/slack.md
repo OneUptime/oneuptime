@@ -6,6 +6,7 @@ Collega OneUptime a Slack per pubblicare nei tuoi canali incidenti, avvisi, epis
 - [Collegare Slack](#collegare-slack): Installa OneUptime nel tuo workspace, poi collega il tuo account.
 - [Regole di notifica](#regole-di-notifica): Decidi quali eventi vengono pubblicati dove, e quali hanno un canale tutto loro.
 - [Il comando /oneuptime](#il-comando-oneuptime): Dichiara incidenti, programma manutenzioni, vedi chi è reperibile e chiedi all'IA.
+- [Gruppi di utenti di reperibilità](#gruppi-di-utenti-di-reperibilità): Mantieni un gruppo di utenti uguale a chi è reperibile, e chiamalo.
 - [Agire su incidenti, avvisi ed eventi da Slack](#agire-su-incidenti-avvisi-ed-eventi-da-slack): I pulsanti dei messaggi di OneUptime.
 :::
 
@@ -167,10 +168,31 @@ OneUptime risponde solo a ciò che è rivolto a lui.
 
 `/oneuptime page @nawaz The checkout API is throwing 500s` chiama subito Nawaz. OneUptime crea un avviso il cui titolo è il tuo messaggio, e ogni persona che menzioni con @ riceve una telefonata, un SMS, una notifica push o un'email, come dicono le sue regole di reperibilità, finché qualcuno non conferma l'avviso.
 
-- **Chi viene chiamato subito.** Le persone che menzioni con @, quando le segue un messaggio. OneUptime riconosce una persona dall'account OneUptime a cui è collegato il suo account Slack, oppure dall'indirizzo email che Slack ha per lei. Nessuno al di fuori del progetto viene chiamato.
-- **Tutto il resto apre un modulo.** Senza nessuno menzionato con @, senza messaggio, con un gruppo di utenti o `@here`, o con una persona che OneUptime non riesce a riconoscere, si apre il modulo **Page someone** con quello che hai scritto già compilato, e dice chi non è riuscito a scegliere. Scegli persone, un team, una pianificazione di reperibilità, che chiama chi è reperibile in essa in quel momento, o una policy di reperibilità, che chiama tramite le sue regole di escalation, e invialo. Un nome che scrivi per primo, come in `/oneuptime page Primary The disk is full`, sceglie la pianificazione, il team o la policy con quel nome.
+- **Chi viene chiamato subito.** Le persone che menzioni con @, e chi è reperibile nelle pianificazioni seguite da un gruppo di utenti che menzioni con @ (vedi [Gruppi di utenti di reperibilità](#gruppi-di-utenti-di-reperibilità)), quando le segue un messaggio. OneUptime riconosce una persona dall'account OneUptime a cui è collegato il suo account Slack, oppure dall'indirizzo email che Slack ha per lei. Nessuno al di fuori del progetto viene chiamato.
+- **Tutto il resto apre un modulo.** Senza nessuno menzionato con @, senza messaggio, con `@here`, con un gruppo di utenti che non segue nessuna pianificazione di reperibilità che puoi vedere, o con una persona che OneUptime non riesce a riconoscere, si apre il modulo **Page someone** con quello che hai scritto già compilato, e dice chi non è riuscito a scegliere. Scegli persone, un team, una pianificazione di reperibilità, che chiama chi è reperibile in essa in quel momento, o una policy di reperibilità, che chiama tramite le sue regole di escalation, e invialo. Un nome che scrivi per primo, come in `/oneuptime page Primary The disk is full`, sceglie la pianificazione, il team o la policy con quel nome.
 - **Dove si vede.** Il canale mostra la chiamata come un solo messaggio, tenuto aggiornato: chi è stato chiamato e come, e chi ha confermato. Dove OneUptime non può pubblicare, come in un canale privato in cui non è stato invitato, un messaggio che vedi solo tu dice chi è stato chiamato, con un link all'avviso.
 - **Chi può chiamare.** Chiunque possa sia eseguire una policy di reperibilità sia creare un avviso: **Project Owner**, **Project Admin** e **Project Member**, oppure **On-Call Member** insieme ad **Alert Member** (**Create On-Call Duty Policy Execution Log** e **Create Alert** in un ruolo personalizzato). Chiamare direttamente persone, un team o una pianificazione, senza una policy di reperibilità dietro la chiamata, richiede anche l'accesso a tutte le policy di reperibilità del progetto. A chiunque altro viene detto dove ha eseguito il comando, e nessuno viene chiamato.
+
+## Gruppi di utenti di reperibilità
+
+Mantieni un gruppo di utenti Slack, come `@payments-oncall`, uguale a chi è reperibile in una o più pianificazioni di reperibilità, così chiunque può menzionarlo con @ per raggiungerli. OneUptime cambia i membri del gruppo a ogni passaggio di consegne e sostituzione, e lo controlla ogni 15 minuti.
+
+:::steps
+### Collegare un gruppo di utenti a una pianificazione
+
+Apri la pianificazione in **Reperibilità** > **Pianificazioni di reperibilità**. Nella sua scheda **Gruppi di utenti Slack**, fai clic su **Collega gruppo di utenti**, poi scegli uno dei gruppi di utenti della tua area di lavoro, oppure **Crea un nuovo gruppo di utenti** con un nome e un handle. I suoi membri vengono sostituiti subito da chi è reperibile.
+
+### Collegarlo anche alla pianificazione secondaria
+
+Per un gruppo che contenga la reperibilità primaria e quella secondaria, collega lo stesso gruppo anche nella pagina della pianificazione secondaria. Un gruppo può seguire qualsiasi numero di pianificazioni.
+:::
+
+- **Cosa mostra la scheda.** Chi c'è ora in ogni gruppo, le altre pianificazioni che segue e se è **Aggiornato**. Chi è reperibile ma non può entrare nel gruppo viene indicato, con il motivo: OneUptime trova una persona dal suo account Slack collegato, oppure dall'indirizzo email che Slack ha per lei, e Slack esclude gli ospiti dai gruppi di utenti.
+- **Nessuno reperibile.** Slack non può tenere un gruppo di utenti vuoto, quindi OneUptime disattiva il gruppo finché qualcuno non è reperibile, poi lo riattiva.
+- **Chiamarlo.** `/oneuptime page @payments-oncall The checkout API is down` chiama chi è reperibile nelle pianificazioni seguite dal gruppo. Vedi [Chiamare qualcuno da Slack](#chiamare-qualcuno-da-slack).
+- **Cosa serve a Slack.** I gruppi di utenti fanno parte dei piani a pagamento di Slack, e un'area di lavoro può permettere solo ai suoi proprietari e amministratori di modificarli: la scheda dice quale dei due, e cosa fare. Se Slack è stato collegato prima che OneUptime potesse mantenere i gruppi di utenti, collegalo di nuovo una volta in **Impostazioni del progetto** > **Area di lavoro** > **Slack**.
+- **Chi può collegarne uno.** I ruoli che possono modificare le pianificazioni: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, oppure **Edit On-Call Duty Policy Schedule** in un ruolo personalizzato. Su OneUptime Cloud, collegarne uno richiede il piano **Growth**.
+- **Scollegare.** OneUptime smette di modificare il gruppo. Il gruppo e i suoi membri restano in Slack come sono.
 
 ## Agire su incidenti, avvisi ed eventi da Slack
 

@@ -6,6 +6,7 @@ Conecta OneUptime con Microsoft Teams para publicar en tus canales y chats los i
 - [Conectar Microsoft Teams](#conectar-microsoft-teams): El consentimiento de administrador, tu inicio de sesión y la app en cada equipo.
 - [Reglas de notificación](#reglas-de-notificación): Decide qué eventos se publican dónde, y cuáles tienen un canal propio.
 - [Hablar con el bot de OneUptime](#hablar-con-el-bot-de-oneuptime): Comandos, preguntas y formularios en un chat con el bot.
+- [Etiquetas de guardia](#etiquetas-de-guardia): Mantén la etiqueta de un equipo igual a quienes están de guardia, y avísala.
 - [Actuar sobre incidentes, alertas y eventos desde Microsoft Teams](#actuar-sobre-incidentes-alertas-y-eventos-desde-microsoft-teams): Los botones de las tarjetas de OneUptime.
 :::
 
@@ -169,10 +170,31 @@ Escribir `incident` o `maintenance` al bot de OneUptime abre un formulario para 
 
 En un canal o un chat de grupo, `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` avisa a Nawaz de inmediato. OneUptime crea una alerta cuyo título es tu mensaje, y cada persona que mencionas con @ recibe una llamada, un SMS, una notificación push o un correo electrónico, según sus propias reglas de guardia, hasta que alguien reconoce la alerta.
 
-- **A quién se avisa de inmediato.** A las personas que mencionas con @, cuando un mensaje las sigue. OneUptime identifica a una persona por la cuenta de OneUptime a la que está conectada su cuenta de Microsoft Teams, o si no, por su dirección de correo electrónico en Microsoft Teams. Nunca se avisa a nadie de fuera del proyecto.
-- **Todo lo demás recibe una tarjeta.** Sin nadie mencionado con @, como en un chat personal con el bot, sin mensaje, con una etiqueta, o con una persona que OneUptime no puede identificar, el bot responde con la tarjeta **Page someone**, con lo que escribiste ya rellenado, y dice a quién no pudo elegir. Elige personas, un equipo, una programación de guardia, que avisa a quien esté de guardia en ella ahora, o una política de guardia, que avisa mediante sus reglas de escalado, y envíala. Cualquiera en la conversación puede enviar la tarjeta, en su propio nombre. Una vez que ha avisado, la tarjeta se elimina, para que nadie avise con ella dos veces.
+- **A quién se avisa de inmediato.** A las personas que mencionas con @, y a quienes están de guardia en las programaciones que sigue una etiqueta que mencionas con @ (consulta [Etiquetas de guardia](#etiquetas-de-guardia)), cuando un mensaje las sigue. OneUptime identifica a una persona por la cuenta de OneUptime a la que está conectada su cuenta de Microsoft Teams, o si no, por su dirección de correo electrónico en Microsoft Teams. Nunca se avisa a nadie de fuera del proyecto.
+- **Todo lo demás recibe una tarjeta.** Sin nadie mencionado con @, como en un chat personal con el bot, sin mensaje, con una etiqueta que no sigue ninguna programación de guardia que puedas ver, o con una persona que OneUptime no puede identificar, el bot responde con la tarjeta **Page someone**, con lo que escribiste ya rellenado, y dice a quién no pudo elegir. Elige personas, un equipo, una programación de guardia, que avisa a quien esté de guardia en ella ahora, o una política de guardia, que avisa mediante sus reglas de escalado, y envíala. Cualquiera en la conversación puede enviar la tarjeta, en su propio nombre. Una vez que ha avisado, la tarjeta se elimina, para que nadie avise con ella dos veces.
 - **Dónde se muestra.** La conversación muestra el aviso como una sola tarjeta, que se mantiene al día: a quién se avisó y cómo, y quién lo reconoció. Donde el bot no puede publicarla, su respuesta dice a quién se avisó, con un enlace a la alerta.
 - **Quién puede avisar.** Quien pueda tanto ejecutar una política de guardia como crear una alerta: **Project Owner**, **Project Admin** y **Project Member**, o **On-Call Member** junto con **Alert Member** (**Create On-Call Duty Policy Execution Log** y **Create Alert** en un rol personalizado). Avisar directamente a personas, a un equipo o a una programación, sin una política de guardia detrás del aviso, requiere además acceso a todas las políticas de guardia del proyecto. A cualquier otra persona se le indica en una respuesta, y no se avisa a nadie.
+
+## Etiquetas de guardia
+
+Mantén una etiqueta de Microsoft Teams, como `@Payments on-call`, igual a quienes están de guardia en una o varias programaciones de guardia, para que cualquiera de su equipo pueda mencionarla con @ y llegar a ellos. OneUptime cambia los miembros de la etiqueta en cada relevo y cada sustitución, y la comprueba cada 15 minutos.
+
+:::steps
+### Conectar una etiqueta a una programación
+
+Abre la programación en **Guardia** > **Programaciones de guardia**. En su tarjeta **Etiquetas de Microsoft Teams**, haz clic en **Conectar etiqueta**, elige el equipo y escribe el nombre de la etiqueta: la etiqueta del equipo con ese nombre, o una nueva que crea OneUptime. Sus miembros se sustituyen al instante por quienes están de guardia.
+
+### Conectarla también a la programación secundaria
+
+Para una etiqueta que tenga a la guardia principal y a la secundaria, conecta la misma etiqueta en la página de la programación secundaria. Una etiqueta puede seguir cualquier número de programaciones.
+:::
+
+- **Qué muestra la tarjeta.** Quién está ahora en cada etiqueta, su equipo, las otras programaciones que sigue y si está **Al día**. Una etiqueta solo incluye a miembros de su equipo: quien está de guardia pero no está en el equipo aparece con el motivo.
+- **Nadie de guardia.** OneUptime saca a todos de la etiqueta hasta que alguien esté de guardia. Una etiqueta nueva necesita a alguien del equipo de guardia, porque Microsoft Teams no crea etiquetas vacías.
+- **Avisar a la etiqueta.** `@OneUptime page @Payments on-call The checkout API is down` avisa a quienes están de guardia en las programaciones que sigue la etiqueta. Consulta [Avisar a alguien desde Microsoft Teams](#avisar-a-alguien-desde-microsoft-teams).
+- **Qué necesita Microsoft 365.** Cambiar etiquetas requiere el permiso `TeamworkTag.ReadWrite.All` de la aplicación, que un administrador de Microsoft 365 concede con **Conceder consentimiento de administrador** en **Ajustes del proyecto** > **Espacio de trabajo** > **Microsoft Teams**. Si tu organización dio su consentimiento antes de que OneUptime pudiera mantener etiquetas, vuelve a darlo una vez.
+- **Quién puede conectar una.** Los roles que pueden editar programaciones: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** y **On-Call Member**, o **Edit On-Call Duty Policy Schedule** en un rol personalizado. En OneUptime Cloud, conectar una requiere el plan **Growth**.
+- **Desconectar.** OneUptime deja de cambiar la etiqueta. La etiqueta y sus miembros se quedan en Microsoft Teams tal como están.
 
 ## Actuar sobre incidentes, alertas y eventos desde Microsoft Teams
 

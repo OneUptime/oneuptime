@@ -6,6 +6,7 @@ Forbind OneUptime med Microsoft Teams for at slå hændelser, advarsler, episode
 - [Forbind Microsoft Teams](#forbind-microsoft-teams): Administratorsamtykke, dit login og appen i hvert team.
 - [Notifikationsregler](#notifikationsregler): Bestem, hvilke begivenheder der slås op hvor, og hvilke der får deres egen kanal.
 - [Tal med OneUptime-botten](#tal-med-oneuptime-botten): Kommandoer, spørgsmål og formularer i en chat med botten.
+- [Vagt-mærker](#vagt-mærker): Hold et teams mærke lig med dem, der har vagt, og tilkald det.
 - [Handl på hændelser, advarsler og begivenheder fra Microsoft Teams](#handl-på-hændelser-advarsler-og-begivenheder-fra-microsoft-teams): Knapperne på OneUptimes kort.
 :::
 
@@ -169,10 +170,31 @@ At skrive `incident` eller `maintenance` til OneUptime-botten åbner en formular
 
 I en kanal eller en gruppechat tilkalder `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` Nawaz med det samme. OneUptime opretter en advarsel med din besked som titel, og hver person, du nævner med @, får et opkald, en SMS, en push-notifikation eller en e-mail, som deres egne vagtregler siger, indtil nogen kvitterer for advarslen.
 
-- **Hvem der tilkaldes med det samme.** De personer, du nævner med @, når en besked følger efter dem. OneUptime kender en person på den OneUptime-konto, personens Microsoft Teams-konto er forbundet med, eller ellers på personens e-mailadresse i Microsoft Teams. Ingen uden for projektet tilkaldes.
-- **Alt andet giver et kort.** Hvis ingen er nævnt med @, som i en personlig chat med botten, der ikke er nogen besked, du nævner et tag, eller OneUptime ikke kan se, hvem en person er, svarer botten med kortet **Page someone**, med det, du skrev, udfyldt, og det siger, hvem det ikke kunne vælge. Vælg personer, et team, en vagtplan, som tilkalder den, der har vagt i den nu, eller en vagtpolitik, som tilkalder via sine eskaleringsregler, og indsend det. Alle i samtalen må indsende kortet, som sig selv. Når det har tilkaldt, fjernes kortet, så ingen tilkalder med det to gange.
+- **Hvem der tilkaldes med det samme.** De personer, du nævner med @, og dem, der har vagt i de vagtplaner, som et mærke, du nævner med @, følger (se [Vagt-mærker](#vagt-mærker)), når en besked følger efter dem. OneUptime kender en person på den OneUptime-konto, personens Microsoft Teams-konto er forbundet med, eller ellers på personens e-mailadresse i Microsoft Teams. Ingen uden for projektet tilkaldes.
+- **Alt andet giver et kort.** Hvis ingen er nævnt med @, som i en personlig chat med botten, der ikke er nogen besked, du nævner et mærke, der ikke følger nogen vagtplan, du kan se, eller OneUptime ikke kan se, hvem en person er, svarer botten med kortet **Page someone**, med det, du skrev, udfyldt, og det siger, hvem det ikke kunne vælge. Vælg personer, et team, en vagtplan, som tilkalder den, der har vagt i den nu, eller en vagtpolitik, som tilkalder via sine eskaleringsregler, og indsend det. Alle i samtalen må indsende kortet, som sig selv. Når det har tilkaldt, fjernes kortet, så ingen tilkalder med det to gange.
 - **Hvor det vises.** Samtalen viser tilkaldet som ét kort, der holdes opdateret: hvem der blev tilkaldt og hvordan, og hvem der kvitterede. Hvor botten ikke kan skrive det, fortæller dens svar, hvem der blev tilkaldt, med et link til advarslen.
 - **Hvem der må tilkalde.** Alle, der både må køre en vagtpolitik og oprette en advarsel: **Project Owner**, **Project Admin** og **Project Member**, eller **On-Call Member** sammen med **Alert Member** (**Create On-Call Duty Policy Execution Log** og **Create Alert** i en brugerdefineret rolle). At tilkalde personer, et team eller en vagtplan direkte, uden en vagtpolitik bag tilkaldet, kræver også adgang til alle projektets vagtpolitikker. Alle andre får det at vide i et svar, og ingen tilkaldes.
+
+## Vagt-mærker
+
+Hold et mærke i Microsoft Teams, f.eks. `@Payments on-call`, lig med dem, der har vagt i en eller flere vagtplaner, så alle i dets team kan nævne det med @ for at nå dem. OneUptime ændrer mærkets medlemmer ved hver overdragelse og hver tilsidesættelse og tjekker det hvert 15. minut.
+
+:::steps
+### Forbind et mærke med en vagtplan
+
+Åbn vagtplanen under **Vagtordning** > **Vagtplaner**. Klik på **Forbind mærke** i dens kort **Mærker i Microsoft Teams**, vælg teamet, og giv mærket et navn: teamets mærke med det navn eller et nyt, som OneUptime opretter. Medlemmerne bliver straks erstattet af dem, der har vagt.
+
+### Forbind det også med den sekundære vagtplan
+
+Til et mærke med både den primære og den sekundære vagt forbinder du det samme mærke på den sekundære vagtplans side. Et mærke kan følge et vilkårligt antal vagtplaner.
+:::
+
+- **Hvad kortet viser.** Hvem der er i hvert mærke nu, dets team, de andre vagtplaner, det følger, og om det er **Opdateret**. Et mærke rummer kun personer fra sit eget team: en person med vagt, som ikke er i teamet, nævnes med årsagen.
+- **Ingen har vagt.** OneUptime tager alle ud af mærket, indtil nogen har vagt. Et nyt mærke kræver, at nogen fra teamet har vagt, for Microsoft Teams opretter ikke mærker uden medlemmer.
+- **Tilkald mærket.** `@OneUptime page @Payments on-call The checkout API is down` tilkalder dem, der har vagt i de vagtplaner, mærket følger. Se [Tilkald nogen fra Microsoft Teams](#tilkald-nogen-fra-microsoft-teams).
+- **Hvad Microsoft 365 kræver.** At ændre mærker kræver appens tilladelse `TeamworkTag.ReadWrite.All`, som en Microsoft 365-administrator giver med **Giv administratorsamtykke** under **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams**. Hvis din organisation gav samtykke, før OneUptime kunne holde mærker opdateret, så giv det igen én gang.
+- **Hvem der må forbinde et.** De roller, der må redigere vagtplaner: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en brugerdefineret rolle. På OneUptime Cloud kræver det abonnementet **Growth** at forbinde et.
+- **Afbryd forbindelsen.** OneUptime holder op med at ændre mærket. Mærket og dets medlemmer bliver i Microsoft Teams, som de er.
 
 ## Handl på hændelser, advarsler og begivenheder fra Microsoft Teams
 

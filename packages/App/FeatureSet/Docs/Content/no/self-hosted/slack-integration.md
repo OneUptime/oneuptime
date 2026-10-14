@@ -154,6 +154,12 @@ Beskrivelser av hendelser og varsler kan inneholde skjermbilder, for eksempel fr
 
 Hvis du opprettet Slack-appen fra et eldre manifest, legger du til `files:write` under **OAuth & Permissions > Bot Token Scopes** (eller oppdaterer appen fra det gjeldende manifestet). Velg deretter **Connect with Slack** igjen under **Prosjektinnstillinger > Arbeidsområde > Slack**, slik at det nye scopet blir gitt. Inntil da vises hvert skjermbilde som sin alternative tekst.
 
+### Vakt-brukergrupper
+
+Å holde en vaktplans Slack-brukergruppe lik dem som har vakt (se [Vakt-brukergrupper](/docs/workspace-connections/slack#vakt-brukergrupper)) krever bot-scopene `usergroups:read` og `usergroups:write`. Det genererte manifestet inneholder dem.
+
+Hvis du opprettet Slack-appen fra et eldre manifest, legger du til `usergroups:read` og `usergroups:write` under **OAuth & Permissions > Bot Token Scopes** (eller oppdaterer appen fra det gjeldende manifestet). Velg deretter **Connect with Slack** igjen under **Prosjektinnstillinger > Arbeidsområde > Slack**, slik at de nye scopene blir gitt. Inntil da sier vaktplanens kort at OneUptimes Slack-app ennå ikke har lov til å endre brukergrupper.
+
 ### Apper opprettet fra et eldre manifest
 
 En Slack-app som er opprettet fra et tidligere OneUptime-manifest, registrerer `/incident` og `/maintenance` som egne kommandoer, som kan kollidere med kommandoer med samme navn i andre apper. De virker fortsatt og åpner de samme skjemaene som `/oneuptime incident` og `/oneuptime maintenance`. For å erstatte dem med `/oneuptime` oppdaterer du appen fra manifestet serveren din genererer: på [api.slack.com/apps](https://api.slack.com/apps) åpner du appens **App Manifest**, limer inn manifestet og lagrer.

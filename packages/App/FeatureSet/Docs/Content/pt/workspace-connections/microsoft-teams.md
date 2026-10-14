@@ -6,6 +6,7 @@ Conecte o OneUptime ao Microsoft Teams para publicar nos seus canais e chats inc
 - [Conectar o Microsoft Teams](#conectar-o-microsoft-teams): O consentimento do administrador, o seu login e o app em cada equipe.
 - [Regras de notificação](#regras-de-notificação): Decida quais eventos são publicados onde, e quais ganham um canal próprio.
 - [Conversar com o bot do OneUptime](#conversar-com-o-bot-do-oneuptime): Comandos, perguntas e formulários em um chat com o bot.
+- [Marcas de plantão](#marcas-de-plantão): Mantenha a marca de uma equipe igual a quem está de plantão, e acione-a.
 - [Agir sobre incidentes, alertas e eventos pelo Microsoft Teams](#agir-sobre-incidentes-alertas-e-eventos-pelo-microsoft-teams): Os botões dos cartões do OneUptime.
 :::
 
@@ -169,10 +170,31 @@ Digitar `incident` ou `maintenance` para o bot do OneUptime abre um formulário 
 
 Em um canal ou em um chat em grupo, `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` aciona o Nawaz na hora. O OneUptime cria um alerta cujo título é a sua mensagem, e cada pessoa que você menciona com @ recebe uma ligação, um SMS, uma notificação push ou um e-mail, conforme as próprias regras de plantão dela, até que alguém confirme o alerta.
 
-- **Quem é acionado na hora.** As pessoas que você menciona com @, quando uma mensagem vem depois delas. O OneUptime reconhece uma pessoa pela conta do OneUptime à qual a conta do Microsoft Teams dela está conectada, ou então pelo endereço de e-mail dela no Microsoft Teams. Ninguém de fora do projeto é acionado.
-- **Todo o resto recebe um cartão.** Sem ninguém mencionado com @, como em um chat pessoal com o bot, sem mensagem, com uma marca, ou com uma pessoa que o OneUptime não reconhece, o bot responde com o cartão **Page someone**, com o que você digitou já preenchido, e diz quem não conseguiu escolher. Escolha pessoas, uma equipe, um agendamento de plantão, que aciona quem estiver de plantão nele agora, ou uma política de plantão, que aciona pelas regras de escalonamento dela, e envie o cartão. Qualquer pessoa na conversa pode enviar o cartão, como ela mesma. Depois que ele aciona, o cartão é removido, para que ninguém acione com ele duas vezes.
+- **Quem é acionado na hora.** As pessoas que você menciona com @, e quem está de plantão nos agendamentos que uma marca que você menciona com @ segue (veja [Marcas de plantão](#marcas-de-plantão)), quando uma mensagem vem depois delas. O OneUptime reconhece uma pessoa pela conta do OneUptime à qual a conta do Microsoft Teams dela está conectada, ou então pelo endereço de e-mail dela no Microsoft Teams. Ninguém de fora do projeto é acionado.
+- **Todo o resto recebe um cartão.** Sem ninguém mencionado com @, como em um chat pessoal com o bot, sem mensagem, com uma marca que não segue nenhum agendamento de plantão que você possa ver, ou com uma pessoa que o OneUptime não reconhece, o bot responde com o cartão **Page someone**, com o que você digitou já preenchido, e diz quem não conseguiu escolher. Escolha pessoas, uma equipe, um agendamento de plantão, que aciona quem estiver de plantão nele agora, ou uma política de plantão, que aciona pelas regras de escalonamento dela, e envie o cartão. Qualquer pessoa na conversa pode enviar o cartão, como ela mesma. Depois que ele aciona, o cartão é removido, para que ninguém acione com ele duas vezes.
 - **Onde aparece.** A conversa mostra o acionamento como um único cartão, mantido atualizado: quem foi acionado e como, e quem confirmou. Onde o bot não pode publicá-lo, a resposta dele diz quem foi acionado, com um link para o alerta.
 - **Quem pode acionar.** Quem pode tanto executar uma política de plantão quanto criar um alerta: **Project Owner**, **Project Admin** e **Project Member**, ou **On-Call Member** junto com **Alert Member** (**Create On-Call Duty Policy Execution Log** e **Create Alert** em uma função personalizada). Acionar pessoas, uma equipe ou um agendamento diretamente, sem uma política de plantão por trás do acionamento, também exige acesso a todas as políticas de plantão do projeto. Qualquer outra pessoa é avisada em uma resposta, e ninguém é acionado.
+
+## Marcas de plantão
+
+Mantenha uma marca do Microsoft Teams, como `@Payments on-call`, igual a quem está de plantão em um ou mais agendamentos de plantão, para que qualquer pessoa da equipe dela possa mencioná-la com @ e falar com eles. O OneUptime muda os membros da marca a cada passagem de turno e substituição, e a verifica a cada 15 minutos.
+
+:::steps
+### Conectar uma marca a um agendamento
+
+Abra o agendamento em **Plantão** > **Agendamentos de plantão**. No cartão **Marcas do Microsoft Teams** dele, clique em **Conectar marca**, escolha a equipe e dê um nome à marca: a marca da equipe com esse nome, ou uma nova criada pelo OneUptime. Os membros dela são substituídos na hora por quem está de plantão.
+
+### Conectá-la também ao agendamento secundário
+
+Para uma marca com o plantão principal e o secundário, conecte a mesma marca na página do agendamento secundário. Uma marca pode seguir quantos agendamentos você quiser.
+:::
+
+- **O que o cartão mostra.** Quem está em cada marca agora, a equipe dela, os outros agendamentos que ela segue e se o status dela é **Atualizado**. Uma marca só inclui membros da sua equipe: quem está de plantão mas não está na equipe aparece com o motivo.
+- **Ninguém de plantão.** O OneUptime tira todos da marca até alguém estar de plantão. Uma marca nova precisa de alguém da equipe de plantão, porque o Microsoft Teams não cria marcas vazias.
+- **Acionar a marca.** `@OneUptime page @Payments on-call The checkout API is down` aciona quem está de plantão nos agendamentos que a marca segue. Veja [Acionar alguém pelo Microsoft Teams](#acionar-alguém-pelo-microsoft-teams).
+- **O que o Microsoft 365 exige.** Alterar marcas exige a permissão `TeamworkTag.ReadWrite.All` do app, que um administrador do Microsoft 365 concede com **Conceder Consentimento de Administrador** em **Configurações do projeto** > **Espaço de trabalho** > **Microsoft Teams**. Se a sua organização deu o consentimento antes de o OneUptime poder manter marcas, dê de novo uma vez.
+- **Quem pode conectar uma.** As funções que podem editar agendamentos: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, ou **Edit On-Call Duty Policy Schedule** em uma função personalizada. No OneUptime Cloud, conectar uma exige o plano **Growth**.
+- **Desconectar.** O OneUptime para de mudar a marca. A marca e os membros dela ficam no Microsoft Teams como estão.
 
 ## Agir sobre incidentes, alertas e eventos pelo Microsoft Teams
 

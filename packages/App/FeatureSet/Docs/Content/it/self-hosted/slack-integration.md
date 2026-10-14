@@ -154,6 +154,12 @@ Le descrizioni di incidenti e avvisi possono contenere screenshot, per esempio q
 
 Se hai creato la tua app Slack da un manifest più vecchio, aggiungi `files:write` in **OAuth & Permissions > Bot Token Scopes** (o aggiorna l'app dal manifest attuale). Poi seleziona di nuovo **Connect with Slack** in **Impostazioni del progetto > Area di lavoro > Slack**, perché il nuovo scope venga concesso. Fino ad allora, ogni screenshot viene mostrato come il suo testo alternativo.
 
+### Gruppi di utenti di reperibilità
+
+Mantenere il gruppo di utenti Slack di una pianificazione uguale a chi è reperibile (vedi [Gruppi di utenti di reperibilità](/docs/workspace-connections/slack#gruppi-di-utenti-di-reperibilità)) richiede gli scope del bot `usergroups:read` e `usergroups:write`. Il manifest generato li include.
+
+Se hai creato la tua app Slack da un manifest più vecchio, aggiungi `usergroups:read` e `usergroups:write` in **OAuth & Permissions > Bot Token Scopes** (o aggiorna l'app dal manifest attuale). Poi seleziona di nuovo **Connect with Slack** in **Impostazioni del progetto > Area di lavoro > Slack**, perché i nuovi scope vengano concessi. Fino ad allora, la scheda della pianificazione dice che l'app Slack di OneUptime non ha ancora il permesso di modificare i gruppi di utenti.
+
 ### App create da un manifest più vecchio
 
 Un'app Slack creata da un manifest OneUptime precedente registra `/incident` e `/maintenance` come comandi propri, che possono entrare in conflitto con i comandi con lo stesso nome di altre app. Continuano a funzionare e aprono gli stessi moduli di `/oneuptime incident` e `/oneuptime maintenance`. Per sostituirli con `/oneuptime`, aggiorna l'app dal manifest che genera il tuo server: su [api.slack.com/apps](https://api.slack.com/apps), apri la pagina **App Manifest** dell'app, incolla il manifest e salva.
