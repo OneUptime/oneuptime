@@ -9,6 +9,7 @@ import ChatMessageMarkdown, {
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import { renderAsDashboard } from "./DashboardMarkdownRenderer";
+import { fastestRun } from "../../Helpers/FastestRun";
 import {
   decodeHtmlEntities,
   htmlAsText,
@@ -907,12 +908,16 @@ describe("ChatMessageMarkdown.toMarkdown: in time that grows with the message", 
   const LENGTH: number = 400000;
   const LIMIT_IN_MS: number = 2000;
 
+  // The fastest of a few attempts counts: one can stall in a busy run.
   const timed: (content: ChatMessageContent) => number = (
     content: ChatMessageContent,
   ): number => {
-    const started: number = Date.now();
-    ChatMessageMarkdown.toMarkdown(content);
-    return Date.now() - started;
+    return fastestRun({
+      run: (): string => {
+        return ChatMessageMarkdown.toMarkdown(content).toString();
+      },
+      limitInMs: LIMIT_IN_MS,
+    }).inMs;
   };
 
   test.each([

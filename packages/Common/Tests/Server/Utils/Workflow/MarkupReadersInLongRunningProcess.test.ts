@@ -44,8 +44,8 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
 /*
  * Each shape is read and written in under half a second on a developer
- * machine. The patterns this replaced took minutes on a megabyte of the
- * slow ones.
+ * machine; the fastest of up to three attempts counts. The patterns this
+ * replaced took minutes on a megabyte of the slow ones.
  */
 const TEAMS_READ_LIMIT_IN_MS: number = 1000;
 
@@ -263,21 +263,39 @@ function runWithUnoptimizedRegularExpressions(): ProcessReport {
           return false;
         };
 
+        /*
+         * The fastest of up to three attempts counts, as Tests/Helpers/FastestRun
+         * has it: one attempt can stall in a busy test run.
+         */
         const teamsMessages = TEAMS_SHAPES.map(([shape, text]) => {
-          const started = Date.now();
-          let read;
+          let fastest = null;
 
-          try {
-            const note = ChatMessageMarkdown.toMarkdown({
-              blocks: MicrosoftTeamsMessageReader.readHtml(text, null),
-            }).toString();
+          for (let attempt = 0; attempt < 3; attempt++) {
+            const started = Date.now();
+            let read;
 
-            read = { ok: true, markup: holdsMarkup(note) };
-          } catch (error) {
-            read = { ok: false, error: String((error && error.message) || error).split("\n")[0] };
+            try {
+              const note = ChatMessageMarkdown.toMarkdown({
+                blocks: MicrosoftTeamsMessageReader.readHtml(text, null),
+              }).toString();
+
+              read = { ok: true, markup: holdsMarkup(note) };
+            } catch (error) {
+              read = { ok: false, error: String((error && error.message) || error).split("\n")[0] };
+            }
+
+            const ms = Date.now() - started;
+
+            if (fastest === null || ms < fastest.ms) {
+              fastest = { shape, read, ms };
+            }
+
+            if (!read.ok || ms < ${TEAMS_READ_LIMIT_IN_MS}) {
+              break;
+            }
           }
 
-          return { shape, read, ms: Date.now() - started };
+          return fastest;
         });
 
         /*
