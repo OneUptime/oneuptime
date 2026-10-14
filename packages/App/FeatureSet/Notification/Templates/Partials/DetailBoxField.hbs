@@ -1,4 +1,9 @@
-<div class="st-DetailCard-field" style="padding: 14px 0; border-bottom: 1px solid #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; overflow-wrap: anywhere; word-break: break-word;">
+{{!--
+  The row's divider is drawn above it, and only when another row of its
+  card came before it (detailCardDivider, Utils/EmailDetailCard.ts): a card
+  never starts or ends with a divider, in any mail client.
+--}}
+<div class="st-DetailCard-field" style="padding: 14px 0;{{#detailCardDivider}} border-top: 1px solid #e2e8f0;{{/detailCardDivider}} font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; overflow-wrap: anywhere; word-break: break-word;">
   {{#if title}}<p class="st-DetailCard-label" style="margin: 0 0 4px; font-size: 12px; line-height: 18px; color: #64748b; font-weight: 600;">{{title}}</p>{{/if}}
   {{!--
     THE ESCAPING CONTRACT FOR THIS PARTIAL.

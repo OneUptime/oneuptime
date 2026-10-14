@@ -8,10 +8,14 @@
   colour as a project typed it. Without a colour the state has no dot and
   its name keeps the neutral text colour; without a text colour the name
   takes the colour itself, as it did before text colours existed.
+
+  Like every row of a detail card, it draws its divider above itself, and
+  only when another row of the card came before it (detailCardDivider,
+  Utils/EmailDetailCard.ts).
 --}}
 <div
   class="st-DetailCard-field"
-  style="padding: 16px 0; border-bottom: 1px solid #e2e8f0;"
+  style="padding: 16px 0;{{#detailCardDivider}} border-top: 1px solid #e2e8f0;{{/detailCardDivider}}"
 >
   <p
     class="st-DetailCard-label"

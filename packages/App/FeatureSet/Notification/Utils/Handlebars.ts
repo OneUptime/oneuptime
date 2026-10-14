@@ -3,6 +3,7 @@ import logger from "Common/Server/Utils/Logger";
 import fsp from "fs/promises";
 import Handlebars from "handlebars";
 import Path from "path";
+import { registerEmailDetailCardHelpers } from "./EmailDetailCard";
 
 const loadPartials: PromiseVoidFunction = async (): Promise<void> => {
   // get all partials in the partial folder and comile then and register then as partials in handlebars.
@@ -116,3 +117,9 @@ Handlebars.registerHelper("brandName", (options: unknown) => {
 Handlebars.registerHelper("brandNameHtml", (options: unknown) => {
   return Handlebars.escapeExpression(getBrandNameFromEmailRoot(options));
 });
+
+/*
+ * A detail card's dividers: drawn between its rows, never after the last
+ * one (EmailDetailCard.ts).
+ */
+registerEmailDetailCardHelpers(Handlebars);
