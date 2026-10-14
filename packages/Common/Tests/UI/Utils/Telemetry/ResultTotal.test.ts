@@ -91,7 +91,20 @@ describe("getLowerBoundProvenByPage — the fewest rows a page proves exist", ()
 });
 
 describe("getUnavailableReason — why a count could not be shown", () => {
-  test("the API's 408 is a count that ran out of time: too many to count", () => {
+  /*
+   * The API answers an exact count that ran out of time with 504 (issue
+   * #4707; a browser resends a 408 on its own), and a server from before
+   * that fix with 408. Either is too many to count.
+   */
+  test("the API's 504 is a count that ran out of time: too many to count", () => {
+    expect(
+      ResultTotalUtil.getUnavailableReason(
+        new HTTPErrorResponse(504, { error: "Counting took too long" }, {}),
+      ),
+    ).toBe(ResultTotalUnavailableReason.TooManyToCount);
+  });
+
+  test("an older server's 408 is too", () => {
     expect(
       ResultTotalUtil.getUnavailableReason(
         new HTTPErrorResponse(408, { message: "Counting took too long" }, {}),
@@ -100,7 +113,7 @@ describe("getUnavailableReason — why a count could not be shown", () => {
   });
 
   test("any other failed response is a failed count", () => {
-    for (const status of [400, 403, 500, 502, 504]) {
+    for (const status of [400, 403, 500, 502]) {
       expect(
         ResultTotalUtil.getUnavailableReason(
           new HTTPErrorResponse(status, { message: "nope" }, {}),

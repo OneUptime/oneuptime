@@ -426,6 +426,8 @@ Felter, som OneUptime selv udfylder, tilbydes ikke, når du skriver en post: pos
 
 **Skip** og **Limit** er to talfelter på Find Many, Update Many og Delete Many, under **Flere felter** — `Skip: 0` med `Limit: 100` tager de første hundrede match. **Limit** er som standard `10`, og på Update Many og Delete Many begrænser den, hvor mange poster der faktisk skrives, ikke kun hvor mange der kommer tilbage. Så `Items Deleted: 10` betyder, at ti poster blev slettet, ikke at ti matchede. Hæv **Limit**, når du vil ændre mere end ti.
 
+Delete One og Delete Many efter forespørgsel tømmer aldrig en historik. På en monitors statusbegivenheder og på tilstandshistorikken for hændelser, advarsler, planlagt vedligeholdelse og episoder fjerner de aldrig en posts aktuelle tilstand, og de beholder hver statusbegivenhed for en monitor, der dækker en del af de seneste 90 dage, så en statusside aldrig viser en monitor grå. Kørslens log siger, hvor mange der blev beholdt. For at slette én bestemt begivenhed skal du forespørge den på dens `_id`.
+
 **Success** og **Error** siger, om forespørgslen kørte, ikke hvad den fandt. En forespørgsel, der ikke matcher noget, returnerer `0` og går stadig ud via **Success** — det er ikke en fejl. For at forgrene på, om noget matchede, læser du det returnerede antal i en **If / Else**-blok.
 
 ## Næste trin

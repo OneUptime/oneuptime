@@ -71,6 +71,21 @@
  *   gate.deliver()         answers everything pending, in order, and
  *                          returns how many it answered
  *
+ * Reads the query time limit stops (issue #4707). A spec sets
+ * .timeLimit, and the reads it names answer the way the API answers a read
+ * ClickHouse stopped at its time limit (HTTP 504, the API's own sentence)
+ * until the spec sets them back:
+ *
+ *   .timeLimit.lists       the explorers' span and log lists
+ *   .timeLimit.histograms  the explorers' histograms
+ *   .timeLimit.facets      facet keys the facet endpoints could not count:
+ *                          named in timedOutFacets, their values empty (a
+ *                          resource facet keeps its list, every count 0),
+ *                          the way the server sends them
+ *
+ * window.__chartTimeZoomTimeLimit, set before the page loads, is where
+ * .timeLimit starts, for a spec whose first load is stopped.
+ *
  * Anything the fixture does not model (a table, an analytics model, a
  * metric name, an API URL or an explorer filter) lands on .unhandled as
  * well. The spec asserts `unhandled` is empty. .dataset holds the ids and
@@ -260,6 +275,16 @@ const fixture = {
   unhandled: [],
   histogramGate: createGate(),
   aggregateGate: createGate(),
+  /*
+   * See the header. A spec that needs the first load stopped sets
+   * window.__chartTimeZoomTimeLimit before the page loads (addInitScript).
+   */
+  timeLimit: {
+    lists: false,
+    histograms: false,
+    facets: [],
+    ...(window.__chartTimeZoomTimeLimit || {}),
+  },
 };
 window.__chartTimeZoomFixture = fixture;
 
@@ -279,6 +304,14 @@ function ok(data) {
 
 function fail(statusCode, message) {
   return new HTTPErrorResponse(statusCode, { message }, {});
+}
+
+// What the API answers a read ClickHouse stopped at its time limit with.
+const TIME_LIMIT_SENTENCE =
+  "This query took longer than 45 seconds and was stopped before it finished. Try a shorter time range or more specific filters.";
+
+function stoppedAtTimeLimit() {
+  return new HTTPErrorResponse(504, { error: TIME_LIMIT_SENTENCE }, {});
 }
 
 function make(modelType, record) {
@@ -1962,8 +1995,21 @@ function facetsOf(options) {
   const matches = bodyFilter(options.filters, options.body, options.url);
   const rows = rowsBetween(options.generated, start, end).filter(matches);
   const facets = {};
+  const timedOutFacets = [];
   for (const key of options.body.facetKeys || []) {
-    if (options.facets[key]) {
+    if (fixture.timeLimit.facets.includes(key)) {
+      /*
+       * Stopped at the time limit: a plain facet comes back empty, a
+       * resource facet with its list and every count 0.
+       */
+      timedOutFacets.push(key);
+      facets[key] =
+        key === "primaryEntityId"
+          ? serviceFacet([])
+          : RESOURCE_FACET_CATALOG_KEYS.includes(key)
+            ? resourceFacet(key)
+            : [];
+    } else if (options.facets[key]) {
       facets[key] = options.facets[key](rows);
     } else if (RESOURCE_FACET_CATALOG_KEYS.includes(key)) {
       facets[key] = resourceFacet(key);
@@ -1972,7 +2018,7 @@ function facetsOf(options) {
       facets[key] = [];
     }
   }
-  return { facets };
+  return { facets, timedOutFacets };
 }
 
 function quantile(sortedValues, fraction) {
@@ -2434,6 +2480,12 @@ AnalyticsModelAPI.getList = async (options) => {
     skip,
     limit,
   });
+  if (
+    fixture.timeLimit.lists &&
+    (modelName === tableName(Span) || modelName === tableName(Log))
+  ) {
+    throw stoppedAtTimeLimit();
+  }
   const records = sortRecords(
     analyticsRows(options.modelType, options.query, "analytics.getList") || [],
     options.sort,
@@ -2555,6 +2607,10 @@ async function handleApi(method, options) {
     return parsed.pathname.endsWith(candidate.path);
   });
   if (method === "POST" && endpoint) {
+    // A stopped histogram answers as the API does: the error response.
+    if (fixture.timeLimit.histograms && endpoint.path.endsWith("/histogram")) {
+      return stoppedAtTimeLimit();
+    }
     let response;
     try {
       response = endpoint.answer(body, url, entry);

@@ -14,6 +14,7 @@ import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import ServerException from "../../../Types/Exception/ServerException";
 import TimeoutException from "../../../Types/Exception/TimeoutException";
+import QueryTimeoutException from "../../../Types/Exception/QueryTimeoutException";
 import GenericObject from "../../../Types/GenericObject";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import ModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
@@ -247,7 +248,7 @@ describe("AnalyticsDatabaseService — exact counts", () => {
       expect(logger.warn).toHaveBeenCalled();
     });
 
-    test("an exact count that ran out of time says so, as a 408 that says what to do", async () => {
+    test("an exact count that ran out of time says so, as a 504 that says what to do", async () => {
       mockQueryFailure(timeoutError());
 
       let thrown: unknown = undefined;
@@ -257,14 +258,50 @@ describe("AnalyticsDatabaseService — exact counts", () => {
         thrown = error;
       }
 
+      /*
+       * A QueryTimeoutException: still a TimeoutException (classed
+       * Infrastructure), answered 504 rather than 408, which a browser
+       * resends on its own (issue #4707).
+       */
+      expect(thrown).toBeInstanceOf(QueryTimeoutException);
       expect(thrown).toBeInstanceOf(TimeoutException);
       expect((thrown as TimeoutException).code).toBe(
-        ExceptionCode.TimeoutException,
+        ExceptionCode.QueryTimeoutException,
       );
-      expect((thrown as TimeoutException).code).toBe(408);
+      expect((thrown as TimeoutException).code).toBe(504);
       expect((thrown as TimeoutException).message).toBe(
         "Counting every matching span took longer than 45 seconds. Narrow the time range or add a filter to get an exact total.",
       );
+    });
+
+    test("an exact count whose answer was stopped at the limit after it began says so too", async () => {
+      /*
+       * What executeQuery's reader throws for an answer the time limit cut
+       * off (see ClickhouseReadResult): the count's own message wins over
+       * the generic one, and it is never read as 0.
+       */
+      jest.spyOn(service, "executeQuery").mockResolvedValue({
+        json: () => {
+          return Promise.reject(
+            new QueryTimeoutException(
+              "This query took longer than 45 seconds and was stopped before it finished. Try a shorter time range or more specific filters.",
+            ),
+          );
+        },
+      } as never);
+
+      let thrown: unknown = undefined;
+      try {
+        await count(true);
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(QueryTimeoutException);
+      expect((thrown as QueryTimeoutException).message).toBe(
+        "Counting every matching span took longer than 45 seconds. Narrow the time range or add a filter to get an exact total.",
+      );
+      expect(logger.warn).not.toHaveBeenCalled();
     });
 
     test("TOO_SLOW — ClickHouse giving up up front — is the same answer", async () => {

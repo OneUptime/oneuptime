@@ -215,7 +215,7 @@ Lägg till ett filter per fält som du vill kontrollera; varje filter kan ha sit
 - Greater Than, Less Than och de andra talvillkoren matchar bara ett tal, så returnera ett fält som `42`, inte `"42"`. Sant och Falskt matchar bara ett booleskt värde.
 - Ett fält som inte finns i returnerade data — en saknad nyckel eller ett matrisindex efter slutet — jämförs som tomt: **Is Empty** matchar det, och inget annat villkor gör det.
 - Ett fält vars namn innehåller en punkt kan inte nås med en sökväg.
-- I Terraform anger filtrets `custom_code_monitor_options` fältsökvägen: se [Monitorsteg](/docs/terraform/monitor-steps#comparing-one-field-of-a-scripts-result).
+- I Terraform anger filtrets `custom_code_monitor_options` fältsökvägen: se [Monitorsteg](/docs/terraform/monitor-steps#jämföra-ett-fält-i-ett-skripts-resultat).
 
 ## Moduler som är tillgängliga i skriptet
 

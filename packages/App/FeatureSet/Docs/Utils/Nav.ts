@@ -1096,7 +1096,7 @@ const DocsNav: NavGroup[] = [
     section: "Developers",
     links: [
       {
-        title: "Overview",
+        title: "Terraform Overview",
         url: "/docs/terraform/index",
       },
       {

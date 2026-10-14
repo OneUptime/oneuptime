@@ -38,6 +38,10 @@ import {
 import { APP_API_URL } from "../../../Config";
 import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
+import TelemetryLoadErrorMessage from "../../TelemetryViewer/components/TelemetryLoadErrorMessage";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "../../../Utils/Telemetry/TelemetryLoadError";
 import OneUptimeDate from "../../../../Types/Date";
 import useTelemetryEntityNames from "../../../Utils/Telemetry/UseTelemetryEntityNames";
 import { TelemetryEntityNameMap } from "../../../Utils/Telemetry/TelemetryEntityNames";
@@ -358,6 +362,14 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   const [topListLimit, setTopListLimit] = useState<number>(10);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  /*
+   * Why the chart's read did not come back (issue #4707): it says so where
+   * the chart goes, rather than "No data available" for a window that was
+   * too wide to finish.
+   */
+  const [loadError, setLoadError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
   const [timeseriesData, setTimeseriesData] = useState<
     Array<AnalyticsTimeseriesRow>
   >([]);
@@ -415,6 +427,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
 
       try {
         setIsLoading(true);
+        setLoadError(undefined);
 
         const dateRange: InBetween<Date> =
           RangeStartAndEndDateTimeUtil.getStartAndEndDate(props.timeRange);
@@ -551,13 +564,13 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         } else {
           setTableData(data as Array<AnalyticsTableRow>);
         }
-      } catch {
+      } catch (err) {
         // A late failure of a superseded request must not blank newer data.
         if (isStale()) {
           return;
         }
 
-        // Silently degrade
+        setLoadError(TelemetryLoadErrorUtil.fromError(err));
         setTimeseriesData([]);
         setTimeseriesBucketMs(undefined);
         setTopListData([]);
@@ -1289,6 +1302,27 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           {...(chartType === "timeseries" ? selection.placeholderProps : {})}
         >
           <ComponentLoader />
+        </div>
+      );
+    }
+
+    if (loadError) {
+      /*
+       * Where the timeseries would be, it takes a double-click as the chart
+       * does, like the loader above and the histogram cards' messages.
+       */
+      return (
+        <div
+          className="flex h-72 select-none items-center justify-center"
+          {...(chartType === "timeseries" ? selection.placeholderProps : {})}
+        >
+          <TelemetryLoadErrorMessage
+            error={loadError}
+            subject="chart"
+            onRetry={() => {
+              void fetchAnalytics();
+            }}
+          />
         </div>
       );
     }

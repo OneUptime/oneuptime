@@ -426,6 +426,8 @@ Los campos que OneUptime rellena por sí mismo no se ofrecen al escribir un regi
 
 **Skip** y **Limit** son dos campos numéricos de Find Many, Update Many y Delete Many, en **Más campos**: `Skip: 0` con `Limit: 100` toma las cien primeras coincidencias. **Limit** vale `10` por defecto, y en Update Many y Delete Many limita cuántos registros se escriben de verdad, no solo cuántos se devuelven. Así que `Items Deleted: 10` significa que se eliminaron diez registros, no que coincidieran diez. Sube **Limit** cuando quieras cambiar más de diez.
 
+Delete One y Delete Many por consulta nunca vacían un historial. En los eventos de estado de un monitor, y en los historiales de estados de incidentes, alertas, mantenimientos programados y episodios, nunca eliminan el estado actual de un registro, y conservan cada evento de estado de un monitor que cubre parte de los últimos 90 días, para que una página de estado nunca muestre un monitor en gris. El registro de la ejecución dice cuántos se conservaron. Para eliminar un evento concreto, consúltalo por su `_id`.
+
 **Success** y **Error** indican si la consulta se ejecutó, no lo que encontró. Una consulta que no coincide con nada devuelve `0` y sale igualmente por **Success**: eso no es un fallo. Para ramificar según si algo coincidió, lee el recuento devuelto en un bloque **If / Else**.
 
 ## Siguientes pasos
