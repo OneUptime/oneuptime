@@ -301,7 +301,10 @@ export default class WorkspaceNotificationText {
   private static withoutTrailingColon(text: string): string {
     let end: number = text.length;
 
-    while (end > 0 && (text.charAt(end - 1) === ":" || text.charAt(end - 1) === " ")) {
+    while (
+      end > 0 &&
+      (text.charAt(end - 1) === ":" || text.charAt(end - 1) === " ")
+    ) {
       end--;
     }
 

@@ -587,18 +587,15 @@ describe("WorkspaceConnectCompletion.getAgainOutcome: what the settings page say
     ["oncall"],
     ["show active incidents"],
     [undefined],
-  ])(
-    "a command (%s) is run again",
-    (label: string | undefined) => {
-      expect(
-        WorkspaceConnectCompletion.getAgainOutcome(
-          label
-            ? { kind: WorkspaceConnectRequestAgainKind.Command, label: label }
-            : { kind: WorkspaceConnectRequestAgainKind.Command },
-        ),
-      ).toBe(ConnectRequestOutcome.RunAgain);
-    },
-  );
+  ])("a command (%s) is run again", (label: string | undefined) => {
+    expect(
+      WorkspaceConnectCompletion.getAgainOutcome(
+        label
+          ? { kind: WorkspaceConnectRequestAgainKind.Command, label: label }
+          : { kind: WorkspaceConnectRequestAgainKind.Command },
+      ),
+    ).toBe(ConnectRequestOutcome.RunAgain);
+  });
 
   test("nothing to do again: the chat has the whole answer", () => {
     expect(WorkspaceConnectCompletion.getAgainOutcome(undefined)).toBe(

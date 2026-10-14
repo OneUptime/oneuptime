@@ -400,12 +400,12 @@ beforeEach(() => {
   jest
     .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
     .mockResolvedValue([ObjectID.generate()]);
-  jest
-    .spyOn(IncidentService, "findBy")
-    .mockImplementation((async (findBy: JSONObject) => {
-      incidentReads.push(findBy);
-      return [CHECKOUT];
-    }) as never);
+  jest.spyOn(IncidentService, "findBy").mockImplementation((async (
+    findBy: JSONObject,
+  ) => {
+    incidentReads.push(findBy);
+    return [CHECKOUT];
+  }) as never);
   jest
     .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
     .mockResolvedValue([ObjectID.generate()]);
@@ -616,9 +616,7 @@ describe("the Home's buttons: the forms open, and answers come in a modal", () =
       return calls("views.open").length === 1;
     }, "the form opened");
 
-    const view: JSONObject = calls("views.open")[0]!.data[
-      "view"
-    ] as JSONObject;
+    const view: JSONObject = calls("views.open")[0]!.data["view"] as JSONObject;
     expect(calls("views.open")[0]!.data["trigger_id"]).toBe(
       "1760000000.home-trigger",
     );
@@ -652,9 +650,7 @@ describe("the Home's buttons: the forms open, and answers come in a modal", () =
       return calls("views.open").length === 1;
     }, "the answer shown");
 
-    const view: JSONObject = calls("views.open")[0]!.data[
-      "view"
-    ] as JSONObject;
+    const view: JSONObject = calls("views.open")[0]!.data["view"] as JSONObject;
     expect(view["type"]).toBe("modal");
     expect(JSON.stringify(view["blocks"])).toContain("On call now");
     // Never a direct message or an ephemeral message in a channel.
@@ -788,8 +784,8 @@ describe("a hello in a channel somebody adds the app to", () => {
 
   test("the time a Home is drawn reads in each reader's own clock", () => {
     // The footer's moment is a Slack date once drawn.
-    expect(WorkspaceMessageTime.toSlack(WorkspaceMessageTime.time(NOW).toString())).toContain(
-      `<!date^${Math.floor(NOW.getTime() / 1000)}^{time}|17:15 UTC>`,
-    );
+    expect(
+      WorkspaceMessageTime.toSlack(WorkspaceMessageTime.time(NOW).toString()),
+    ).toContain(`<!date^${Math.floor(NOW.getTime() / 1000)}^{time}|17:15 UTC>`);
   });
 });

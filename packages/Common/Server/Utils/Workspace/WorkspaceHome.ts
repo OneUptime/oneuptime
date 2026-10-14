@@ -627,8 +627,7 @@ export default class WorkspaceHome {
     const at: Date | null = data.at ? new Date(data.at) : null;
 
     return {
-      scheduleName:
-        data.schedule.name?.toString().trim() || "Unnamed schedule",
+      scheduleName: data.schedule.name?.toString().trim() || "Unnamed schedule",
       scheduleLink:
         data.dashboardUrl && data.schedule.id
           ? URL.fromString(data.dashboardUrl.toString())

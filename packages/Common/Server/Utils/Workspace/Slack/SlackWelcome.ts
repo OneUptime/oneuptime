@@ -201,7 +201,9 @@ export default class SlackWelcome {
   }
 
   // The Slack notification rules of the project's incidents, in OneUptime.
-  private static async getRulesLink(projectId: ObjectID): Promise<string | null> {
+  private static async getRulesLink(
+    projectId: ObjectID,
+  ): Promise<string | null> {
     try {
       const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 

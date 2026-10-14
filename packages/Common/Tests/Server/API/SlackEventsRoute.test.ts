@@ -1802,9 +1802,11 @@ describe("the placeholder an answer stands behind", () => {
       },
     ]);
     // Removed after the answer was posted, never before it.
-    expect(slackCalls.map((call: SlackCall): string => {
-      return call.method;
-    })).toEqual(["chat.postMessage", "chat.postMessage", "chat.delete"]);
+    expect(
+      slackCalls.map((call: SlackCall): string => {
+        return call.method;
+      }),
+    ).toEqual(["chat.postMessage", "chat.postMessage", "chat.delete"]);
 
     // What the thread reads now: the question, then the answer.
     expect(

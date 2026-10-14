@@ -372,9 +372,9 @@ describe("MicrosoftTeamsUtil.sendDirectMessageToUserAsBot", () => {
         text: "🚨 New incident assigned to you: INC-8 — Checkout is down",
       });
 
-      expect(
-        (adapter.sentActivities[0] as { summary?: string }).summary,
-      ).toBe("🚨 New incident assigned to you: INC-8 — Checkout is down");
+      expect((adapter.sentActivities[0] as { summary?: string }).summary).toBe(
+        "🚨 New incident assigned to you: INC-8 — Checkout is down",
+      );
     });
 
     test("without a line, the card is sent as it always was", async () => {

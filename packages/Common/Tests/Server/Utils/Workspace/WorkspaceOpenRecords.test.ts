@@ -60,7 +60,10 @@ const PROPS: DatabaseCommonInteractionProps = {
 
 const OPEN_INCIDENT_STATE: ObjectID = ObjectID.generate();
 const OPEN_ALERT_STATE: ObjectID = ObjectID.generate();
-const WAITING_STATES: Array<ObjectID> = [ObjectID.generate(), ObjectID.generate()];
+const WAITING_STATES: Array<ObjectID> = [
+  ObjectID.generate(),
+  ObjectID.generate(),
+];
 const IN_PROGRESS_STATES: Array<ObjectID> = [ObjectID.generate()];
 
 const DECLARED: Date = new Date("2026-10-08T17:15:00.000Z");
@@ -352,7 +355,9 @@ describe("the reads: the asker's own props, this project, the open states", () =
     expect(list.records).toHaveLength(10);
     expect(list.isCut).toBe(true);
     expect(list.records[0]!.number).toBe("INC-100");
-    expect(list.listLink).toBe(`${DASHBOARD}/${PROJECT_ID.toString()}/incidents`);
+    expect(list.listLink).toBe(
+      `${DASHBOARD}/${PROJECT_ID.toString()}/incidents`,
+    );
   });
 
   test("a smaller limit, for the Home: that many, and cut after them", async () => {
@@ -370,9 +375,11 @@ describe("the reads: the asker's own props, this project, the open states", () =
     });
 
     expect((alertFind.mock.calls[0]![0] as JSONObject)["limit"]).toBe(3);
-    expect(list.records.map((record: WorkspaceOpenRecord) => {
-      return record.number;
-    })).toEqual(["AL-3", "AL-2"]);
+    expect(
+      list.records.map((record: WorkspaceOpenRecord) => {
+        return record.number;
+      }),
+    ).toEqual(["AL-3", "AL-2"]);
     expect(list.isCut).toBe(true);
   });
 
@@ -524,8 +531,16 @@ describe("what a list says", () => {
   });
 
   test.each([
-    [WorkspaceOpenRecordKind.Incidents, "✅ **No open incidents.**", "No open incidents."],
-    [WorkspaceOpenRecordKind.Alerts, "✅ **No open alerts.**", "No open alerts."],
+    [
+      WorkspaceOpenRecordKind.Incidents,
+      "✅ **No open incidents.**",
+      "No open incidents.",
+    ],
+    [
+      WorkspaceOpenRecordKind.Alerts,
+      "✅ **No open alerts.**",
+      "No open alerts.",
+    ],
     [
       WorkspaceOpenRecordKind.UpcomingMaintenance,
       "🛠️ **No scheduled maintenance coming up.**",

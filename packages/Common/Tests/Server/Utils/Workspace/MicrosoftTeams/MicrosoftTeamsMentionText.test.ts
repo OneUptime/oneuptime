@@ -37,11 +37,7 @@ describe("the mentions Microsoft Teams writes into a message", () => {
       "<at>OneUptime</at> page <at>Ana</at> and <at>Bo</at>: disk full",
       " page  and : disk full",
     ],
-    [
-      "a mention at the very end",
-      "thanks <at>OneUptime</at>",
-      "thanks ",
-    ],
+    ["a mention at the very end", "thanks <at>OneUptime</at>", "thanks "],
     ["nothing but a mention", "<at>OneUptime</at>", ""],
     [
       "a name with Teams' escaped characters",
@@ -131,7 +127,9 @@ describe("the mentions Microsoft Teams writes into a message", () => {
         if (random(3) === 0) {
           const name: string = names[random(names.length)]!;
           message +=
-            random(2) === 0 ? `<at>${name}</at>` : `<at id="${piece}">${name}</at>`;
+            random(2) === 0
+              ? `<at>${name}</at>`
+              : `<at id="${piece}">${name}</at>`;
           continue;
         }
 

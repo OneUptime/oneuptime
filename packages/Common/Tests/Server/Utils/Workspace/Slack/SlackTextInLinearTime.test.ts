@@ -28,11 +28,27 @@ jest.setTimeout(60000);
 
 describe("a question without its mentions (SlackAPI.cleanSlackMessageText)", () => {
   test.each([
-    ["the bot mentioned first", "<@U0ONEUPTIME> which monitors are down?", "which monitors are down?"],
-    ["a mention with the name Slack adds", "<@U0ONEUPTIME|oneuptime> why is checkout slow?", "why is checkout slow?"],
-    ["mentions in the middle", "is <@U0ALICE> or <@U0BOB|bob> on call?", "is or on call?"],
+    [
+      "the bot mentioned first",
+      "<@U0ONEUPTIME> which monitors are down?",
+      "which monitors are down?",
+    ],
+    [
+      "a mention with the name Slack adds",
+      "<@U0ONEUPTIME|oneuptime> why is checkout slow?",
+      "why is checkout slow?",
+    ],
+    [
+      "mentions in the middle",
+      "is <@U0ALICE> or <@U0BOB|bob> on call?",
+      "is or on call?",
+    ],
     ["a mention at the end", "thanks <@U0ONEUPTIME>", "thanks"],
-    ["whitespace runs and new lines", "  why\n\n is   it  down? ", "why is it down?"],
+    [
+      "whitespace runs and new lines",
+      "  why\n\n is   it  down? ",
+      "why is it down?",
+    ],
     ["no text", "", ""],
   ])("%s", (_name: string, text: string, expected: string) => {
     expect(SlackAPI.cleanSlackMessageText(text)).toBe(expected);
@@ -47,9 +63,12 @@ describe("a question without its mentions (SlackAPI.cleanSlackMessageText)", () 
     ["everybody", "<!here> look"],
     ["a link", "<https://oneuptime.com|OneUptime>"],
     ["an escaped less-than sign", "is 3 &lt;@ 4?"],
-  ])("%s is not a person's mention, and stays", (_name: string, text: string) => {
-    expect(SlackAPI.cleanSlackMessageText(text)).toBe(text);
-  });
+  ])(
+    "%s is not a person's mention, and stays",
+    (_name: string, text: string) => {
+      expect(SlackAPI.cleanSlackMessageText(text)).toBe(text);
+    },
+  );
 
   /*
    * Generated questions: words and mentions as Slack writes them, in any
@@ -176,15 +195,24 @@ describe("a section without the line breaks around it (SlackUtil.trimLineBreaks)
   });
 
   test.each([
-    ["a run of line breaks that does not reach the end", (n: number): string => {
-      return `a${"\n".repeat(n)}a`;
-    }],
-    ["a run of line breaks at the start", (n: number): string => {
-      return `${"\n".repeat(n)}a`;
-    }],
-    ["nothing but line breaks", (n: number): string => {
-      return "\r\n".repeat(Math.ceil(n / 2));
-    }],
+    [
+      "a run of line breaks that does not reach the end",
+      (n: number): string => {
+        return `a${"\n".repeat(n)}a`;
+      },
+    ],
+    [
+      "a run of line breaks at the start",
+      (n: number): string => {
+        return `${"\n".repeat(n)}a`;
+      },
+    ],
+    [
+      "nothing but line breaks",
+      (n: number): string => {
+        return "\r\n".repeat(Math.ceil(n / 2));
+      },
+    ],
   ])(
     "400,000 characters of %s are read in time that grows with them",
     (_name: string, make: (n: number) => string) => {

@@ -237,7 +237,9 @@ export default class WorkspaceOpenRecords {
   }
 
   // What a member who may not read a kind of record is told.
-  public static getRefusalAnswer(kind: WorkspaceOpenRecordKind): WorkspaceAnswer {
+  public static getRefusalAnswer(
+    kind: WorkspaceOpenRecordKind,
+  ): WorkspaceAnswer {
     const message: string = `You do not have permission to see the ${WORDS[kind].noun} in this project. Ask a project admin for access to them.`;
 
     return {

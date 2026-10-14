@@ -2952,9 +2952,11 @@ describe("controls: commands that always worked still answer once with HTTP 200"
     expect(view.bubbles).toHaveLength(1);
     const reply: string = answerOf(view.bubbles[0]!);
     expect(toUtf16Bytes(reply)).toBeLessThan(8 * 1024);
-    expect(reply.split("\n").filter((line: string): boolean => {
-      return line.startsWith("- ");
-    })).toHaveLength(10);
+    expect(
+      reply.split("\n").filter((line: string): boolean => {
+        return line.startsWith("- ");
+      }),
+    ).toHaveLength(10);
     expect(reply).toContain("Maintenance window 10");
     expect(reply).not.toContain("Production HTTP Monitor");
   });
@@ -2997,11 +2999,11 @@ describe("controls: commands that always worked still answer once with HTTP 200"
     expect(view.bubbles).toHaveLength(1);
     const reply: string = answerOf(view.bubbles[0]!);
     expect(reply.startsWith("🚨 **Open incidents**\n")).toBe(true);
-    const lines: Array<string> = reply.split("\n").filter(
-      (line: string): boolean => {
+    const lines: Array<string> = reply
+      .split("\n")
+      .filter((line: string): boolean => {
         return line.startsWith("- ");
-      },
-    );
+      });
     expect(lines).toHaveLength(10);
     for (const line of lines) {
       // A title is cut at 120 characters, with an ellipsis.

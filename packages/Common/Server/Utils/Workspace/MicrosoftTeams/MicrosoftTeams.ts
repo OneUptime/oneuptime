@@ -3788,81 +3788,80 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           listCommand: listCommand,
         });
         return;
-      } else {
-        switch (input.command) {
-          case WorkspaceCommandName.Help:
-            await MicrosoftTeamsCommands.replyHelp({
-              turnContext: data.turnContext,
-            });
-            return;
-          case WorkspaceCommandName.Incident:
-            // "incident <title>" opens the form with the title filled in.
-            logger.debug("Processing the incident command");
-            await MicrosoftTeamsCreateCommands.handleCreateIncidentCommand({
+      }
+      switch (input.command) {
+        case WorkspaceCommandName.Help:
+          await MicrosoftTeamsCommands.replyHelp({
+            turnContext: data.turnContext,
+          });
+          return;
+        case WorkspaceCommandName.Incident:
+          // "incident <title>" opens the form with the title filled in.
+          logger.debug("Processing the incident command");
+          await MicrosoftTeamsCreateCommands.handleCreateIncidentCommand({
+            turnContext: data.turnContext,
+            activity: data.activity,
+            projectId: projectId,
+            initialTitle: WorkspaceCommands.toTitle(input.text),
+          });
+          return;
+        case WorkspaceCommandName.Maintenance:
+          // "maintenance <title>" opens the form with the title filled in.
+          logger.debug("Processing the maintenance command");
+          await MicrosoftTeamsCreateCommands.handleCreateScheduledMaintenanceCommand(
+            {
               turnContext: data.turnContext,
               activity: data.activity,
               projectId: projectId,
               initialTitle: WorkspaceCommands.toTitle(input.text),
-            });
-            return;
-          case WorkspaceCommandName.Maintenance:
-            // "maintenance <title>" opens the form with the title filled in.
-            logger.debug("Processing the maintenance command");
-            await MicrosoftTeamsCreateCommands.handleCreateScheduledMaintenanceCommand(
-              {
-                turnContext: data.turnContext,
-                activity: data.activity,
-                projectId: projectId,
-                initialTitle: WorkspaceCommands.toTitle(input.text),
-              },
-            );
-            return;
-          case WorkspaceCommandName.OnCall:
-            await MicrosoftTeamsCommands.handleOnCallCommand({
+            },
+          );
+          return;
+        case WorkspaceCommandName.OnCall:
+          await MicrosoftTeamsCommands.handleOnCallCommand({
+            turnContext: data.turnContext,
+            activity: data.activity,
+            projectId: projectId,
+          });
+          return;
+        case WorkspaceCommandName.Page:
+          /*
+           * "page @Nawaz <message>" pages at once; anything else opens
+           * the Page someone card. The people are read from the
+           * message's own mentions, which the text above has dropped.
+           */
+          await MicrosoftTeamsPage.handleCommand({
+            turnContext: data.turnContext,
+            activity: data.activity,
+            projectId: projectId,
+          });
+          return;
+        case WorkspaceCommandName.Ask:
+        case null:
+          /*
+           * A command misspelt is answered with the command it looks like,
+           * not by AI.
+           */
+          if (input.misspelt) {
+            await MicrosoftTeamsCommands.replyMisspelling({
               turnContext: data.turnContext,
-              activity: data.activity,
-              projectId: projectId,
+              misspelt: input.misspelt,
             });
             return;
-          case WorkspaceCommandName.Page:
-            /*
-             * "page @Nawaz <message>" pages at once; anything else opens
-             * the Page someone card. The people are read from the
-             * message's own mentions, which the text above has dropped.
-             */
-            await MicrosoftTeamsPage.handleCommand({
-              turnContext: data.turnContext,
-              activity: data.activity,
-              projectId: projectId,
-            });
-            return;
-          case WorkspaceCommandName.Ask:
-          case null:
-            /*
-             * A command misspelt is answered with the command it looks like,
-             * not by AI.
-             */
-            if (input.misspelt) {
-              await MicrosoftTeamsCommands.replyMisspelling({
-                turnContext: data.turnContext,
-                misspelt: input.misspelt,
-              });
-              return;
-            }
+          }
 
-            /*
-             * AI Ops: any message that is not one of the explicit commands
-             * above is a natural-language question for the observability
-             * assistant, as is the text after "ask".
-             */
-            await this.answerObservabilityQuestion({
-              activity: data.activity,
-              turnContext: data.turnContext,
-              projectId: projectId,
-              question: input.text,
-            });
-            return;
-        }
+          /*
+           * AI Ops: any message that is not one of the explicit commands
+           * above is a natural-language question for the observability
+           * assistant, as is the text after "ask".
+           */
+          await this.answerObservabilityQuestion({
+            activity: data.activity,
+            turnContext: data.turnContext,
+            projectId: projectId,
+            question: input.text,
+          });
+          return;
       }
     } catch (error) {
       /*
@@ -6804,7 +6803,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       turnContext.turnState.set(this.WELCOME_CARD_STATE_KEY, true);
 
-      const activity: JSONObject = turnContext.activity as unknown as JSONObject;
+      const activity: JSONObject =
+        turnContext.activity as unknown as JSONObject;
       const conversation: JSONObject =
         (activity["conversation"] as JSONObject | undefined) || {};
       const tenantId: string =

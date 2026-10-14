@@ -67,7 +67,8 @@ ${"No description provided."}
   });
 
   test("text OneUptime escaped reads as typed: brackets, parentheses, stars, ampersands", () => {
-    const markdown: string = mdText`📄 ${"Site 03 - payments (EU) *urgent* [p1] & <b>"}`.toString();
+    const markdown: string =
+      mdText`📄 ${"Site 03 - payments (EU) *urgent* [p1] & <b>"}`.toString();
 
     expect(WorkspaceNotificationText.fromMarkdown(markdown)).toBe(
       "📄 Site 03 - payments (EU) *urgent* [p1] & <b>",
@@ -106,9 +107,9 @@ ${"No description provided."}
     expect(text.length).toBeLessThanOrEqual(
       WorkspaceNotificationText.MAX_LENGTH,
     );
-    expect(text.endsWith("slow…") || text.endsWith("very…") || text.endsWith("is…")).toBe(
-      true,
-    );
+    expect(
+      text.endsWith("slow…") || text.endsWith("very…") || text.endsWith("is…"),
+    ).toBe(true);
   });
 
   test("a cut never splits an emoji", () => {
@@ -147,7 +148,10 @@ describe("the line of a message's blocks", () => {
     expect(
       WorkspaceNotificationText.fromBlocks([
         { _type: "WorkspacePayloadDivider" },
-        { _type: "WorkspacePayloadMarkdown", text: "**Disk full** on web-1" } as never,
+        {
+          _type: "WorkspacePayloadMarkdown",
+          text: "**Disk full** on web-1",
+        } as never,
         { _type: "WorkspacePayloadMarkdown", text: "Second" } as never,
       ]),
     ).toBe("Disk full on web-1");

@@ -185,7 +185,9 @@ export default class SlackHome {
         slackUserId: data.slackUserId,
       });
     } catch (err) {
-      logger.debug("Could not draw the Slack Home of an account just connected.");
+      logger.debug(
+        "Could not draw the Slack Home of an account just connected.",
+      );
       logger.debug(err);
     }
   }
@@ -253,7 +255,9 @@ export default class SlackHome {
    * account of whoever opens it (?connectAccount=true); null without a
    * dashboard address.
    */
-  public static async getConnectUrl(projectId: ObjectID): Promise<string | null> {
+  public static async getConnectUrl(
+    projectId: ObjectID,
+  ): Promise<string | null> {
     try {
       const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
@@ -269,7 +273,9 @@ export default class SlackHome {
   }
 
   // A member refused - not one any more, or the project blocked: why.
-  private static getRefusedBlocks(message: string): Array<WorkspaceMessageBlock> {
+  private static getRefusedBlocks(
+    message: string,
+  ): Array<WorkspaceMessageBlock> {
     const blocks: Array<WorkspaceMessageBlock> =
       WorkspaceHome.getNotAMemberBlocks();
 

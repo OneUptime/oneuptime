@@ -349,7 +349,11 @@ describe("what the Home says", () => {
     expect(textOf(blocks[5]!)).toBe("✅ **No open alerts.**");
     expect(
       (blocks[7] as WorkspacePayloadButtons).buttons.map(
-        (button: { title: string; actionId: string; isPrimary?: boolean | undefined }) => {
+        (button: {
+          title: string;
+          actionId: string;
+          isPrimary?: boolean | undefined;
+        }) => {
           return [button.title, button.actionId, Boolean(button.isPrimary)];
         },
       ),
@@ -420,7 +424,11 @@ describe("the person's shifts, said", () => {
   test.each([
     [
       "not on call, their next shift known",
-      { now: [], next: { scheduleName: "Primary", scheduleLink: null, at: NEXT_START }, isNowCut: false },
+      {
+        now: [],
+        next: { scheduleName: "Primary", scheduleLink: null, at: NEXT_START },
+        isNowCut: false,
+      },
       `📟 **Your on-call**\nYou're not on call right now. Your next shift: **Primary**, from ${WorkspaceMessageTime.dateAndTime(NEXT_START).toString()}.`,
     ],
     [
@@ -430,7 +438,11 @@ describe("the person's shifts, said", () => {
     ],
     [
       "on call with no hand-off known",
-      { now: [{ scheduleName: "Primary", scheduleLink: null, at: null }], next: null, isNowCut: false },
+      {
+        now: [{ scheduleName: "Primary", scheduleLink: null, at: null }],
+        next: null,
+        isNowCut: false,
+      },
       "📟 **Your on-call**\n🟢 You're on call in **Primary**.",
     ],
     [
@@ -458,7 +470,9 @@ describe("the person's shifts, said", () => {
   test("shifts that could not be read", () => {
     expect(
       WorkspaceHome.getOnCallMarkdown(view({ onCall: null })).toString(),
-    ).toBe("📟 **Your on-call**\nYour on-call shifts could not be read just now.");
+    ).toBe(
+      "📟 **Your on-call**\nYour on-call shifts could not be read just now.",
+    );
   });
 });
 
@@ -501,7 +515,8 @@ describe("the Home of somebody not connected, or not a member", () => {
       "🔗 **Connect your Slack account** to see your on-call shifts and the open incidents and alerts here, and to declare incidents and page people from Slack. It takes one click.",
     );
 
-    const button: WorkspacePayloadButtons = blocks[2] as WorkspacePayloadButtons;
+    const button: WorkspacePayloadButtons =
+      blocks[2] as WorkspacePayloadButtons;
     expect(button.buttons).toHaveLength(1);
     expect(button.buttons[0]!.title).toBe("Connect Slack account");
     expect(button.buttons[0]!.isPrimary).toBe(true);
@@ -537,7 +552,10 @@ describe("the Home of somebody not connected, or not a member", () => {
 });
 
 describe("what a notification of the Home says", () => {
-  function list(count: number, isCut: boolean = false): WorkspaceOpenRecordList {
+  function list(
+    count: number,
+    isCut: boolean = false,
+  ): WorkspaceOpenRecordList {
     return {
       kind: WorkspaceOpenRecordKind.Incidents,
       records: Array.from({ length: count }, (_v: unknown, index: number) => {

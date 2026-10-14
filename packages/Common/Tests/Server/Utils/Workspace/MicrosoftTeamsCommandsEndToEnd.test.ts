@@ -1118,7 +1118,9 @@ describe("the Home: a card in the person's chat with OneUptime", () => {
     checkout.id = ObjectID.generate();
     checkout.incidentNumberWithPrefix = "INC-12";
     checkout.title = "Checkout is down";
-    jest.spyOn(IncidentService, "findBy").mockResolvedValue([checkout] as never);
+    jest
+      .spyOn(IncidentService, "findBy")
+      .mockResolvedValue([checkout] as never);
     jest
       .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
       .mockResolvedValue([ObjectID.generate()]);
@@ -1338,7 +1340,9 @@ describe("the Home: a card in the person's chat with OneUptime", () => {
 });
 
 describe("the welcome when the app is added", () => {
-  function botAdded(conversationType: "personal" | "channel" | "groupChat"): JSONObject {
+  function botAdded(
+    conversationType: "personal" | "channel" | "groupChat",
+  ): JSONObject {
     return {
       type: "conversationUpdate",
       id: nextActivityId(`added-${conversationType}`),
@@ -1478,11 +1482,13 @@ describe("the welcome when the app is added", () => {
   });
 
   test("an organization connected to no project: who connects it, and a way to OneUptime", async () => {
-    jest.spyOn(MicrosoftTeamsUtil, "resolveProjectByTenantId").mockResolvedValue({
-      projectAuth: null,
-      isAmbiguous: false,
-      candidateProjectIds: [],
-    } as unknown as MicrosoftTeamsTenantResolution);
+    jest
+      .spyOn(MicrosoftTeamsUtil, "resolveProjectByTenantId")
+      .mockResolvedValue({
+        projectAuth: null,
+        isAmbiguous: false,
+        candidateProjectIds: [],
+      } as unknown as MicrosoftTeamsTenantResolution);
 
     const delivery: Delivery = await deliver(botAdded("groupChat"));
 

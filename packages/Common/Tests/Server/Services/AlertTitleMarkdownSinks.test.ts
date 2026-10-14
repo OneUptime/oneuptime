@@ -632,7 +632,9 @@ describe("Microsoft Teams", () => {
     // The one link for the alert goes to its page, under its number.
     const alertLinks: Array<Tokens.Link> = tokensOf(message).filter(
       (token: Token): boolean => {
-        return token.type === "link" && (token as Tokens.Link).text === "ALT-42";
+        return (
+          token.type === "link" && (token as Tokens.Link).text === "ALT-42"
+        );
       },
     ) as Array<Tokens.Link>;
 

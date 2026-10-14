@@ -375,7 +375,9 @@ describe("the welcome a team or a group chat gets", () => {
     );
   }
 
-  const PROJECT: ObjectID = new ObjectID("b0000000-0000-4000-8000-000000000001");
+  const PROJECT: ObjectID = new ObjectID(
+    "b0000000-0000-4000-8000-000000000001",
+  );
 
   beforeEach(() => {
     jest

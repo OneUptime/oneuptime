@@ -89,22 +89,29 @@ describe("the homepage mocks' Slack commands", () => {
     expect(mocks).toContain("mock-respond.ejs");
   });
 
-  test.each(mocks)("%s names only commands the Slack app has", (file: string) => {
-    const markup: string = fs.readFileSync(
-      path.join(MOCKS_DIRECTORY, file),
-      "utf8",
-    );
+  test.each(mocks)(
+    "%s names only commands the Slack app has",
+    (file: string) => {
+      const markup: string = fs.readFileSync(
+        path.join(MOCKS_DIRECTORY, file),
+        "utf8",
+      );
 
-    for (const text of commandLikeTexts(markup)) {
-      const command: string = text.split(" ")[0] as string;
+      for (const text of commandLikeTexts(markup)) {
+        const command: string = text.split(" ")[0] as string;
 
-      expect({ file: file, text: text, isRegistered: registeredCommands().includes(command) }).toEqual({
-        file: file,
-        text: text,
-        isRegistered: true,
-      });
-    }
-  });
+        expect({
+          file: file,
+          text: text,
+          isRegistered: registeredCommands().includes(command),
+        }).toEqual({
+          file: file,
+          text: text,
+          isRegistered: true,
+        });
+      }
+    },
+  );
 
   test("the incident mock shows a page sent from Slack with /oneuptime page", () => {
     const markup: string = fs.readFileSync(
