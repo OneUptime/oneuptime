@@ -128,7 +128,7 @@ El disparador ocupa el lugar del bloque discontinuo. El ID que aparece en él, `
 
 ### Elegir los campos del incidente
 
-Haz clic en el disparador. En **Select Fields**, marca los campos que debe llevar la solicitud, como el título y la descripción, y haz clic en **Guardar**.
+Haz clic en el disparador. **Fields to pass on** empieza con el título: haz clic en **Añadir campo**, marca la descripción y cualquier otro campo que deba llevar la solicitud, y haz clic en **Guardar**.
 
 El disparador pasa el incidente nuevo con esos campos. Un campo que no seleccionas llega vacío.
 
@@ -158,7 +158,7 @@ Una solicitud que falla — una URL inaccesible o una respuesta que no es 2xx �
 
 ### Probarlo
 
-Haz clic en **Ejecutar flujo de trabajo**, introduce el **ID del incidente** de un incidente de este proyecto, haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El flujo de trabajo sigue desactivado, así que es una **Ejecución de prueba**, y la solicitud se envía de verdad.
+Haz clic en **Ejecutar flujo de trabajo** y elige un incidente de este proyecto en **Incidente**: se muestran los más recientes, y al escribir su número o parte de su título encuentras otro. Haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El flujo de trabajo sigue desactivado, así que es una **Ejecución de prueba**, y la solicitud se envía de verdad.
 
 Se abre un panel **Ejecución del flujo de trabajo** que sigue la ejecución. Abre el paso **API Post (JSON)** para ver el cuerpo que envió y la respuesta que recibió.
 

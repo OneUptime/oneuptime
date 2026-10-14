@@ -783,14 +783,16 @@ describe("NetworkDevice Logs keeps its setup guide below the bare viewer", () =>
     expect(namesOf(ancestorsOf(tab.elements, viewer))).not.toContain("div");
   });
 
-  test("the guide still tells the user how to turn the syslog receiver on", () => {
+  test("the guide still tells the user where the probe listens, with nothing to turn on first", () => {
     const tab: TelemetryTab = getTab("NetworkDevice", "Logs");
     const card: JsxElement = getElementsNamed(tab.elements, "Card")[0]!;
     const cardBody: string = tab.source.slice(card.openEnd, card.closeStart);
 
-    expect(cardBody).toContain("PROBE_SYSLOG_RECEIVER_ENABLED=true");
     expect(cardBody).toContain("UDP port 162");
-    expect(cardBody).toContain("UDP port 5140");
+    expect(cardBody).toContain("on port 5140, over UDP and TCP");
+    // The syslog receiver is on by default (#4728): no switch to explain.
+    expect(cardBody).not.toContain("PROBE_SYSLOG_RECEIVER_ENABLED");
+    expect(cardBody).not.toContain("off by default");
   });
 });
 

@@ -242,7 +242,7 @@ Ein Feld, das an oder aus ist - `isEnabled`, `isVisibleOnStatusPage`, `isArchive
 isVisibleOnStatusPage must be true or false.
 ```
 
-Ein Update, das die Werte eines Datensatzes so schreibt, wie sie bereits sind, ändert nichts: Es startet die Workflows **On Update** des Datensatzes nicht, sendet keine Live-Aktualisierungen und fügt keinen Audit-Protokolleintrag hinzu. `false` über `false` geschrieben zählt als derselbe Wert, ebenso `"false"` über `false` geschrieben, eine als Text geschriebene Zahl, eine Zeit, die als derselbe Zeitpunkt in einem anderen Format geschrieben wird, und Labels, die als dieselben Labels in beliebiger Reihenfolge geschrieben werden. Wenn ein Update einige Werte ändert und andere so zurückschreibt, wie sie sind, listet sein Audit-Protokolleintrag nur die geänderten Werte auf, und **Listen on** eines Workflows hört nur diese.
+Ein Update, das die Werte eines Datensatzes so schreibt, wie sie bereits sind, ändert nichts: Es startet die Workflows **On Update** des Datensatzes nicht, sendet keine Live-Aktualisierungen und fügt keinen Audit-Protokolleintrag hinzu. `false` über `false` geschrieben zählt als derselbe Wert, ebenso `"false"` über `false` geschrieben, eine als Text geschriebene Zahl, eine Zeit, die als derselbe Zeitpunkt in einem anderen Format geschrieben wird, und Labels, die als dieselben Labels in beliebiger Reihenfolge geschrieben werden. Wenn ein Update einige Werte ändert und andere so zurückschreibt, wie sie sind, listet sein Audit-Protokolleintrag nur die geänderten Werte auf, und **Fields to watch** eines Workflows hört nur diese.
 
 ### Wo ein Projekt gekauft wurde
 

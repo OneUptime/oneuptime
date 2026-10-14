@@ -269,7 +269,7 @@ The scope must be your environment URL followed by `/.default`. A wrong environm
 ### Open a case for every incident
 
 :::steps
-1. Create a workflow from scratch named `Incidents to Dynamics 365`. Click the dashed block and add the **On Create Incident** trigger. In its **Select Fields**, ask for `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
+1. Create a workflow from scratch named `Incidents to Dynamics 365`. Click the dashed block and add the **On Create Incident** trigger. In its **Fields to pass on**, ask for `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
 2. Click **Add Component**, add an **API Post (JSON)** block, and connect the trigger's **Success** dot to it. Set its **Identifier** to `create-case`, and its **URL** to `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Under **More fields**, set its **Request Headers** to:
 
@@ -323,7 +323,7 @@ Dynamics 365 ships `severitycode` with a single option, so set `prioritycode` in
 Build this as a second workflow, so a failure here never stops cases being opened.
 
 :::steps
-1. Create a workflow named `Close Dynamics 365 cases`, with the **On Update Incident** trigger. Set **Listen on** to `{"currentIncidentStateId": true}` and **Select Fields** to `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
+1. Create a workflow named `Close Dynamics 365 cases`, with the **On Update Incident** trigger. Set **Fields to watch** to `{"currentIncidentStateId": true}` and **Fields to pass on** to `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
 2. Add an **If / Else** block: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
 3. After its **Yes** side, add an **API Get (JSON)** block with the **Identifier** `find-case`, the same headers without `Prefer`, and this **URL**:
 

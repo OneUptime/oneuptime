@@ -27,6 +27,12 @@ import ComponentID from "./ComponentID";
 import { ComponentType, NodeType } from "./Component";
 import { ConditionOperator, ConditionValueType } from "./Components/Condition";
 import { MATTERMOST_INCOMING_WEBHOOK_URL_PATTERN } from "./Components/Mattermost";
+import {
+  PAGE_ARGUMENT_IDS,
+  PAGE_ERROR_PORT_ID,
+  PAGE_SUCCESS_PORT_ID,
+  PageAbout,
+} from "./Components/OnCallPageSettings";
 import { SWITCH_DEFAULT_PORT_ID } from "./Components/Switch";
 import {
   OAuth2ClientAuthenticationMethod,
@@ -122,7 +128,8 @@ const WORKFLOW_TEMPLATE_CATEGORY_INFO: Record<
   [WorkflowTemplateCategory.OnCall]: {
     category: WorkflowTemplateCategory.OnCall,
     label: "On-Call",
-    description: "Follow an on-call escalation from start to finish.",
+    description:
+      "Page the right people, and follow an on-call escalation from start to finish.",
     icon: IconProp.Call,
   },
   [WorkflowTemplateCategory.StatusPage]: {
@@ -284,8 +291,16 @@ export interface WorkflowTemplate {
   /** Suggested name for the created workflow. */
   workflowName: string;
   workflowDescription: string;
-  /** Configuration the wizard collects before creating. Empty means it runs as-is. */
+  /** Configuration the wizard collects before creating. Empty means it asks for nothing. */
   variables: Array<WorkflowTemplateVariable>;
+  /**
+   * What the created workflow still needs that the wizard cannot ask for,
+   * because it is picked from the project's own records in the Builder: who
+   * a Page step pages. A short sentence or two, shown under "What you'll
+   * need" where a template that runs as it is created says "Nothing to fill
+   * in.". Absent on the templates that leave nothing to set up.
+   */
+  setUpInBuilder?: string | undefined;
   /**
    * OAuth 2.0 variables the wizard writes beside the static ones, built from
    * the values typed into `variables`. Absent on templates that need none.
@@ -8633,6 +8648,337 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           fromComponentId: "slack-1",
           toComponentId: "log-delivery-failed",
           fromPort: "error",
+        },
+      ],
+    },
+  },
+
+  /*
+   * PAGING. Each of these leaves one setting for whoever creates the
+   * workflow: who to page. That is a person, a team, a schedule or a policy
+   * of their own project, picked by name, which no template can know and no
+   * wizard field can ask for. The workflow is created switched off and opens
+   * in the builder, where the Page step says "Click to set up"; everything
+   * else about the page is filled in.
+   */
+  {
+    id: "incident-critical-page-on-call",
+    name: "Page whoever is on call when a critical incident is created",
+    description:
+      "Checks each new incident's severity and, when it is critical, pages the person on call in a schedule you pick.",
+    teaches:
+      "How an If / Else in front of a Page step makes paging conditional. Open the Page step and pick the schedule.",
+    setUpInBuilder: "An on-call schedule to page. You pick it in the Builder.",
+    category: WorkflowTemplateCategory.OnCall,
+    icon: IconProp.Call,
+    workflowName: "Page on-call for critical incidents",
+    workflowDescription:
+      "Pages whoever is on call in the schedule you pick when a critical incident is created, about that incident. If your most severe incidents are called something else, change what the If / Else compares with.",
+    variables: [],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-1",
+          metadataId: "incident-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: INCIDENT_SELECT },
+        },
+        {
+          componentId: "if-else-1",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "input-1-type": ConditionValueType.Text,
+            "input-1":
+              "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}",
+            operator: ConditionOperator.EqualTo,
+            "input-2-type": ConditionValueType.Text,
+            "input-2": "Critical Incident",
+          },
+        },
+        {
+          componentId: "page-on-call-1",
+          metadataId: ComponentID.PageOnCall,
+          componentType: ComponentType.Component,
+          position: { x: -100, y: 500 },
+          args: {
+            [PAGE_ARGUMENT_IDS.about]: PageAbout.Incident,
+            [PAGE_ARGUMENT_IDS.incidentId]:
+              "{{local.components.incident-on-create-1.returnValues.model._id}}",
+          },
+        },
+        {
+          componentId: "log-not-critical",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "ℹ️ Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} is {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}, so nobody was paged.",
+          },
+        },
+        {
+          componentId: "log-paged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -300, y: 720 },
+          args: {
+            value:
+              "📟 {{local.components.page-on-call-1.returnValues.summary}}",
+          },
+        },
+        {
+          componentId: "log-nobody-paged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 20, y: 720 },
+          args: {
+            value:
+              "❌ Nobody was paged for incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}: {{local.components.page-on-call-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-1",
+          toComponentId: "if-else-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "if-else-1",
+          toComponentId: "page-on-call-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "if-else-1",
+          toComponentId: "log-not-critical",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "page-on-call-1",
+          toComponentId: "log-paged",
+          fromPort: PAGE_SUCCESS_PORT_ID,
+        },
+        {
+          fromComponentId: "page-on-call-1",
+          toComponentId: "log-nobody-paged",
+          fromPort: PAGE_ERROR_PORT_ID,
+        },
+      ],
+    },
+  },
+  {
+    id: "incident-severity-page",
+    name: "Page different people for each incident severity",
+    description:
+      "Starts an on-call policy you pick for critical incidents, pages a team you pick for major ones, and only logs the rest.",
+    teaches:
+      "How Switch / Case makes paging depend on a value, with a different Page step on each path. Open each Page step and pick who it pages.",
+    setUpInBuilder:
+      "An on-call policy and a team to page. You pick them in the Builder.",
+    category: WorkflowTemplateCategory.OnCall,
+    icon: IconProp.Switch,
+    workflowName: "Page by incident severity",
+    workflowDescription:
+      "Critical incidents start the on-call policy you pick, with its escalation rules. Major ones page every member of the team you pick. Every other severity is logged. If your severities have other names, change the cases to match them.",
+    variables: [],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-1",
+          metadataId: "incident-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: INCIDENT_SELECT },
+        },
+        {
+          componentId: "switch-1",
+          metadataId: ComponentID.Switch,
+          componentType: ComponentType.Component,
+          /*
+           * Wider than the trigger above it, as its cases' names make it
+           * (Workflow/PortLayout), so it starts further left: centred under
+           * the trigger, and its middle case straight above page-team-1.
+           */
+          position: { x: 32, y: 300 },
+          args: {
+            value:
+              "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}",
+            cases: [
+              {
+                id: "case-1",
+                comparison: ConditionOperator.EqualTo,
+                value: "Critical Incident",
+                compareAs: ConditionValueType.Text,
+              },
+              {
+                id: "case-2",
+                comparison: ConditionOperator.EqualTo,
+                value: "Major Incident",
+                compareAs: ConditionValueType.Text,
+              },
+            ],
+          },
+        },
+        {
+          componentId: "page-on-call-policy-1",
+          metadataId: ComponentID.PageOnCallPolicy,
+          componentType: ComponentType.Component,
+          position: { x: -260, y: 560 },
+          args: {
+            [PAGE_ARGUMENT_IDS.about]: PageAbout.Incident,
+            [PAGE_ARGUMENT_IDS.incidentId]:
+              "{{local.components.incident-on-create-1.returnValues.model._id}}",
+          },
+        },
+        {
+          componentId: "page-team-1",
+          metadataId: ComponentID.PageTeam,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 560 },
+          args: {
+            [PAGE_ARGUMENT_IDS.about]: PageAbout.Incident,
+            [PAGE_ARGUMENT_IDS.incidentId]:
+              "{{local.components.incident-on-create-1.returnValues.model._id}}",
+          },
+        },
+        {
+          componentId: "log-other-severity",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 460, y: 560 },
+          args: {
+            value:
+              "ℹ️ Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} is {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}, so nobody was paged.",
+          },
+        },
+        {
+          componentId: "log-policy-not-started",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -260, y: 800 },
+          args: {
+            value:
+              "❌ No on-call policy was started for the critical incident: {{local.components.page-on-call-policy-1.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "log-team-not-paged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 800 },
+          args: {
+            value:
+              "❌ Nobody was paged for the major incident: {{local.components.page-team-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-1",
+          toComponentId: "switch-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "page-on-call-policy-1",
+          fromPort: "case-1",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "page-team-1",
+          fromPort: "case-2",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "log-other-severity",
+          fromPort: SWITCH_DEFAULT_PORT_ID,
+        },
+        {
+          fromComponentId: "page-on-call-policy-1",
+          toComponentId: "log-policy-not-started",
+          fromPort: PAGE_ERROR_PORT_ID,
+        },
+        {
+          fromComponentId: "page-team-1",
+          toComponentId: "log-team-not-paged",
+          fromPort: PAGE_ERROR_PORT_ID,
+        },
+      ],
+    },
+  },
+  {
+    id: "webhook-page-users",
+    name: "Page someone when another tool calls a webhook",
+    description:
+      "Gives you a URL. A POST to it pages the people you pick, with the title and message it sent, and opens an alert they can acknowledge.",
+    teaches:
+      "How paging works with no incident behind it: the Page step's title and message become a new alert. Open the Page step and pick who to page.",
+    setUpInBuilder: "People to page. You pick them in the Builder.",
+    category: WorkflowTemplateCategory.OnCall,
+    icon: IconProp.User,
+    workflowName: "Page people from a webhook",
+    workflowDescription:
+      "Anything that can send a POST with a title and a message to this workflow's webhook pages the people you pick. OneUptime creates an alert from the title and the message, and acknowledging the page acknowledges it.",
+    variables: [],
+    graph: {
+      nodes: [
+        {
+          componentId: "webhook-1",
+          metadataId: ComponentID.Webhook,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+        },
+        {
+          componentId: "page-users-1",
+          metadataId: ComponentID.PageUsers,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            [PAGE_ARGUMENT_IDS.about]: PageAbout.NewAlert,
+            [PAGE_ARGUMENT_IDS.title]:
+              "{{local.components.webhook-1.returnValues.request-body.title}}",
+            [PAGE_ARGUMENT_IDS.message]:
+              "{{local.components.webhook-1.returnValues.request-body.message}}",
+          },
+        },
+        {
+          componentId: "log-paged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -100, y: 520 },
+          args: {
+            value: "📟 {{local.components.page-users-1.returnValues.summary}}",
+          },
+        },
+        {
+          componentId: "log-nobody-paged",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 520 },
+          args: {
+            value:
+              "❌ Nobody was paged: {{local.components.page-users-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "webhook-1",
+          toComponentId: "page-users-1",
+          fromPort: "out",
+        },
+        {
+          fromComponentId: "page-users-1",
+          toComponentId: "log-paged",
+          fromPort: PAGE_SUCCESS_PORT_ID,
+        },
+        {
+          fromComponentId: "page-users-1",
+          toComponentId: "log-nobody-paged",
+          fromPort: PAGE_ERROR_PORT_ID,
         },
       ],
     },

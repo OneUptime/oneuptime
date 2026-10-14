@@ -194,12 +194,19 @@ interface TemplateDetailsProps {
  * how it works - what starts it, then the kinds of block it is made of, as
  * the canvas names them - and what the next steps will ask for. Two short
  * lines, where the old preview was a column of its own.
+ *
+ * A template can also leave something for the Builder that no step here can
+ * ask for - who a Page step pages is picked from the project's own people.
+ * Its details say so (setUpInBuilder) rather than "Nothing to fill in.":
+ * the workflow it creates does nothing until that is picked.
  */
 const TemplateDetails: FunctionComponent<TemplateDetailsProps> = (
   props: TemplateDetailsProps,
 ): ReactElement => {
   const preview: WorkflowTemplatePreview = props.preview;
   const tx: TranslateFunction = props.tx;
+  // Template text is shown as it is written, like its name and description.
+  const setUpInBuilder: string = (preview.template.setUpInBuilder || "").trim();
 
   return (
     <dl className="mt-3 space-y-2.5" data-testid="workflow-template-details">
@@ -236,7 +243,7 @@ const TemplateDetails: FunctionComponent<TemplateDetailsProps> = (
         <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500 sm:w-36 sm:flex-shrink-0 sm:pt-0.5">
           {tx("What you'll need")}
         </dt>
-        <dd className="min-w-0 flex-1">
+        <dd className="min-w-0 flex-1 space-y-1">
           {preview.settings.length > 0 ? (
             <ul
               className="flex flex-wrap gap-x-4 gap-y-1"
@@ -280,12 +287,27 @@ const TemplateDetails: FunctionComponent<TemplateDetailsProps> = (
               )}
             </ul>
           ) : (
+            <></>
+          )}
+          {setUpInBuilder ? (
+            <p
+              className="text-sm text-gray-600"
+              data-testid="workflow-template-details-in-builder"
+            >
+              {setUpInBuilder}
+            </p>
+          ) : (
+            <></>
+          )}
+          {preview.settings.length === 0 && !setUpInBuilder ? (
             <p
               className="text-sm text-gray-600"
               data-testid="workflow-template-details-no-settings"
             >
               {tx("Nothing to fill in.")}
             </p>
+          ) : (
+            <></>
           )}
         </dd>
       </div>

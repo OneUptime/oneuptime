@@ -269,7 +269,7 @@ El ámbito debe ser la URL de tu entorno seguida de `/.default`. Una URL de ento
 ### Abrir un caso por cada incidente
 
 :::steps
-1. Crea desde cero un flujo de trabajo llamado `Incidents to Dynamics 365`. Haz clic en el bloque discontinuo y añade el disparador **On Create Incident**. En sus **Select Fields**, pide `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
+1. Crea desde cero un flujo de trabajo llamado `Incidents to Dynamics 365`. Haz clic en el bloque discontinuo y añade el disparador **On Create Incident**. En sus **Fields to pass on**, pide `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
 2. Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Success** del disparador. Pon su **Identificador** en `create-case` y su **URL** en `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. En **Más campos**, pon sus **Request Headers** en:
 
@@ -323,7 +323,7 @@ Dynamics 365 trae `severitycode` con una sola opción, así que usa `prioritycod
 Constrúyelo como un segundo flujo de trabajo, para que un fallo aquí nunca impida abrir casos.
 
 :::steps
-1. Crea un flujo de trabajo llamado `Close Dynamics 365 cases`, con el disparador **On Update Incident**. Pon **Listen on** en `{"currentIncidentStateId": true}` y **Select Fields** en `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
+1. Crea un flujo de trabajo llamado `Close Dynamics 365 cases`, con el disparador **On Update Incident**. Pon **Fields to watch** en `{"currentIncidentStateId": true}` y **Fields to pass on** en `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
 2. Añade un bloque **If / Else**: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
 3. Después de su lado **Yes**, añade un bloque **API Get (JSON)** con el **Identificador** `find-case`, las mismas cabeceras sin `Prefer` y esta **URL**:
 

@@ -38,6 +38,11 @@ export enum PeoplePickerKind {
   Team = "team",
   // Pages whoever is on call in it: an escalation rule's responders.
   OnCallSchedule = "onCallSchedule",
+  /*
+   * Runs its escalation rules: what a workflow's Page an On-Call Policy step
+   * pages. Not people, but picked the way they are.
+   */
+  OnCallPolicy = "onCallPolicy",
 }
 
 // One record the picker can show: in its search list, or as a picked chip.

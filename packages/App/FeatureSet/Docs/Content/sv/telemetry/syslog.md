@@ -28,7 +28,7 @@ flowchart TB
 OneUptime svarar så snart meddelandena har lästs från requesten, och tolkar och sparar dem en stund senare. Meddelandetexten stannar i loggens innehåll; allt annat blir attribut.
 
 > [!TIP]
-> Nätverksenheter som du övervakar med en OneUptime-probe kan skicka sin syslog direkt till proben över UDP, utan relä – loggarna visas då på enheten i OneUptime. Se [Guider per nätverksleverantör](/docs/monitor/network-vendor-guides).
+> Nätverksenheter kan skicka sin syslog direkt till en OneUptime-probe över UDP eller TCP, utan relä – OneUptime läser då varje leverantörs meddelanden som händelser på enheten. Se [Nätverkshändelser](/docs/monitor/network-events).
 
 ## Innan du börjar
 
@@ -200,7 +200,7 @@ OneUptime lägger automatiskt till följande attribut på varje loggpost:
 
 De här attributen blir sökbara i utforskaren **Produkter → Loggar** – till exempel `@syslog.severity.name:error` eller `@syslog.hostname:web-01`. Se [Söksyntax](/docs/telemetry/search-syntax).
 
-Själva meddelandet stannar i loggens innehåll. Brandväggar som Sophos XGS och Fortinet FortiGate skriver det som `key=value`-par (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`); lägg till en **Key=Value Parser**-processor i en [loggpipeline](/docs/telemetry/log-pipelines#keyvalue-parser) för att göra även de paren till attribut.
+Själva meddelandet stannar i loggens innehåll. Ett meddelande i en nätverksleverantörs format läses vidare: `key=value`-paren från en Sophos- eller FortiGate-brandvägg (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) blir `sophos.*`- och `fortigate.*`-attribut, och det som hände blir en [nätverkshändelse](/docs/monitor/network-events). För alla andra `key=value`-format lägger du till en **Key=Value Parser**-processor i en [loggpipeline](/docs/telemetry/log-pipelines#keyvalue-parser) för att göra paren till attribut.
 
 ### Allvarlighetsgrad
 

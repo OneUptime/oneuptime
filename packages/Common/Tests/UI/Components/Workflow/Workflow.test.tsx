@@ -1640,3 +1640,62 @@ describe("Workflow builder: a workflow that is off", () => {
     },
   );
 });
+
+describe("Workflow builder: a test run asked for from a step's settings", () => {
+  /*
+   * While the workflow is off, a step after a Webhook or Incoming Email
+   * trigger that nothing has reached offers "Test with Run Workflow" in its
+   * value picker. The settings save the step (which closes them), then ask
+   * the builder to open Run Workflow on the trigger.
+   */
+  test("the settings save, close, and Run Workflow opens on the trigger", () => {
+    const trigger: Node<NodeDataProp> = makeNode(TRIGGER_METADATA);
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [action, trigger],
+      runsAreTestRuns: true,
+    });
+
+    fireEvent.click(screen.getByTestId(`workflow-node-${action.id}`));
+
+    const settings: SettingsProps = getSettingsProps();
+    expect(settings.onRequestTestRun).toBeDefined();
+
+    act(() => {
+      settings.onSave({
+        ...action.data,
+        arguments: { message: "Deploy finished" },
+      });
+      settings.onRequestTestRun!();
+    });
+
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+    expect(screen.getByTestId("run-workflow-modal")).toBeInTheDocument();
+    expect(screen.getByTestId("run-trigger-id")).toHaveTextContent(
+      "manual-trigger-1",
+    );
+    expect(harness.onRunUpdate).toHaveBeenLastCalledWith(true);
+    // What was typed is kept for the run.
+    expect(
+      getStoredNodes(harness).find((node: Node<WorkflowNodeRenderData>) => {
+        return node.id === action.id;
+      })?.data.arguments,
+    ).toEqual({ message: "Deploy finished" });
+  });
+
+  test("someone who may not run the workflow is never offered one", () => {
+    const trigger: Node<NodeDataProp> = makeNode(TRIGGER_METADATA);
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+
+    renderBuilder({
+      initialNodes: [action, trigger],
+      runsAreTestRuns: true,
+      runDisabledReason:
+        "Running this workflow takes permission to run it. You need one of these permissions: Project Owner, Project Admin, Run Workflow.",
+    });
+
+    fireEvent.click(screen.getByTestId(`workflow-node-${action.id}`));
+
+    expect(getSettingsProps().onRequestTestRun).toBeUndefined();
+  });
+});

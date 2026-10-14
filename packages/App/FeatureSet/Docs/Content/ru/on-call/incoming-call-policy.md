@@ -212,8 +212,8 @@ Twilio зачитывает сообщения синтезированным г
 Чтобы реагировать только на пропущенные звонки, например публиковать их в Slack или Microsoft Teams или открывать тикет:
 
 :::steps
-1. Добавьте триггер **On Update Incoming Call Log**. Укажите для **Listen on** значение **Ended At** и выберите поля, которые хотите использовать, например **Status**, **Caller Phone Number** и **Routing Phone Number**.
-2. Добавьте шаг **If / Else**. Проверьте **Status** триггера со сравнением **is not equal to** и значением `Completed`.
+1. Добавьте триггер **On Update Incoming Call Log**. Укажите для **Fields to watch** значение **Ended At** и выберите поля, которые хотите использовать, например **Status**, **Caller Phone Number** и **Routing Phone Number**.
+2. Добавьте шаг **If / Else**. Проверьте **Status** триггера со сравнением **не равно** и значением `Completed`.
 3. Подключите свои шаги к порту **Yes**.
 :::
 

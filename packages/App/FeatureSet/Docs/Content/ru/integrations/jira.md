@@ -307,7 +307,7 @@ Jira Cloud принимает аутентификацию Basic, собранн
 ### Создание задачи Jira для каждого инцидента
 
 :::steps
-1. Создайте с нуля рабочий процесс с именем `Incidents to Jira`. Нажмите на пунктирный блок и добавьте триггер **On Create Incident**. В его **Select Fields** запросите `{"_id": true, "title": true, "description": true, "incidentNumber": true}`. Оставьте его **Identifier** равным `incident-on-create-1`.
+1. Создайте с нуля рабочий процесс с именем `Incidents to Jira`. Нажмите на пунктирный блок и добавьте триггер **On Create Incident**. В его **Fields to pass on** запросите `{"_id": true, "title": true, "description": true, "incidentNumber": true}`. Оставьте его **Identifier** равным `incident-on-create-1`.
 2. Нажмите **Добавить компонент**, добавьте блок **API Post (JSON)** и соедините с ним точку **Success** триггера. Задайте его **Identifier** значение `create-issue`, его **URL** — `{{global.variables.JIRA_URL}}/rest/api/3/issue`, а в разделе **Дополнительные поля** его **Request Headers** — `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Задайте его **Request Body** — саму задачу, заменив `OPS` и `Bug` ключом вашего проекта и типом задачи этого проекта:
 
@@ -384,14 +384,14 @@ curl -u 'you@example.com:your_api_token' \
 }
 ```
 
-Для этого добавьте `projectId` в **Select Fields** триггера и сохраните `.value`: столбец со ссылкой на ID другой записи приходит как `{"_type": "ObjectID", "value": "..."}`. `globalId` делает вызов безопасным для повтора: Jira обновляет ссылку с этим значением, а не добавляет вторую.
+Для этого добавьте `projectId` в **Fields to pass on** триггера и сохраните `.value`: столбец со ссылкой на ID другой записи приходит как `{"_type": "ObjectID", "value": "..."}`. `globalId` делает вызов безопасным для повтора: Jira обновляет ссылку с этим значением, а не добавляет вторую.
 
 ### Комментарии и переходы по мере продвижения инцидента
 
 Соберите это вторым рабочим процессом, чтобы сбой здесь никогда не мешал открывать задачи.
 
 :::steps
-1. Создайте рабочий процесс с именем `Incident updates to Jira` и триггером **On Update Incident**. Задайте **Listen on** значение `{"currentIncidentStateId": true}`, а **Select Fields** — `{"_id": true, "currentIncidentState": {"name": true}}`.
+1. Создайте рабочий процесс с именем `Incident updates to Jira` и триггером **On Update Incident**. Задайте **Fields to watch** значение `{"currentIncidentStateId": true}`, а **Fields to pass on** — `{"_id": true, "currentIncidentState": {"name": true}}`.
 2. Добавьте блок **If / Else**: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved` или имя вашего состояния устранения.
 3. После его стороны **Yes** найдите задачу блоком **API Post (JSON)** с **Identifier** `find-issue`, который отправляет запрос на `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 

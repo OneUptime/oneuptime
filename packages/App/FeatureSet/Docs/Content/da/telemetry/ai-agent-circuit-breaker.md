@@ -125,11 +125,11 @@ Gem først endpointets token et sted, hvor workflowet kan bruge det uden at vise
 
 ### Tilføj udløseren
 
-Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Alert** i panelet **Add Trigger**. Klik på udløseren, markér titlen og beskrivelsen i **Select Fields**, og klik på **Gem**. ID'et på blokken, `alert-on-create-1`, er det, senere blokke bruger til at henvise til den.
+Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Alert** i panelet **Add Trigger**. Klik på udløseren: **Fields to pass on** starter med titlen, så klik på **Tilføj felt**, markér beskrivelsen, og klik på **Gem**. ID'et på blokken, `alert-on-create-1`, er det, senere blokke bruger til at henvise til den.
 
 ### Tjek titlen
 
-Klik på **Tilføj komponent**, vælg **If / Else**, og forbind udløserens punkt **Success** med den. Sæt **Value to check** til advarslens titel (klik på **{ }**, og vælg den), **Comparison** til **indeholder** og **Compare with** til den begyndelse, dine snubletrådes titler har til fælles, f.eks. `LLM budget exceeded`.
+Klik på **Tilføj komponent**, vælg **If / Else**, og forbind udløserens punkt **Success** med den. Sæt **Værdi, der skal tjekkes** til advarslens titel (klik på **{ }**, og vælg den), **Sammenligning** til **indeholder** og **Sammenlign med** til den begyndelse, dine snubletrådes titler har til fælles, f.eks. `LLM budget exceeded`.
 
 ### Kald dit endpoint
 
@@ -189,7 +189,7 @@ Tjek, at **Aktiveret** er slået til øverst i **Bygger**: workflows oprettes sl
 :::
 
 :::details Workflowet kører, men tager altid grenen No
-Titlen er tom eller matcher ikke. Et felt, som udløserens **Select Fields** ikke markerer, kommer tomt frem, så markér titlen. Sammenlign derefter advarslens titel med **Compare with**: **indeholder** skal finde præcis den tekst i den.
+Titlen er tom eller matcher ikke. Et felt, der ikke står i udløserens **Fields to pass on**, kommer tomt frem, så tilføj titlen dér. Sammenlign derefter advarslens titel med **Sammenlign med**: **indeholder** skal finde præcis den tekst i den.
 :::
 
 :::details Dit endpoint svarer 401

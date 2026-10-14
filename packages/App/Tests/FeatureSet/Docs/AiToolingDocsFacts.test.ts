@@ -644,14 +644,14 @@ describe("the AI Agent Circuit Breakers page", () => {
     );
   });
 
-  it("starts the workflow from the trigger the Alert model offers: On Create Alert, with Select Fields and a Success dot", () => {
+  it("starts the workflow from the trigger the Alert model offers: On Create Alert, with Fields to pass on and a Success dot", () => {
     const trigger: ComponentMetadata = componentTitled(
       BaseModelComponent.getComponents(new Alert()),
       "On Create Alert",
     );
 
     expect(trigger.id).toBe("alert-on-create");
-    expect(argumentNames(trigger)).toEqual(["Select Fields"]);
+    expect(argumentNames(trigger)).toEqual(["Fields to pass on"]);
     expect(portTitles(trigger.outPorts)).toEqual(["Success"]);
     expect(
       trigger.returnValues.map((value: { id: string }): string => {
@@ -659,7 +659,7 @@ describe("the AI Agent Circuit Breakers page", () => {
       }),
     ).toEqual(["model"]);
     expect(page).toContain(
-      "pick **On Create Alert** in the **Add Trigger** panel. Click the trigger, tick the title and the description in **Select Fields**",
+      "pick **On Create Alert** in the **Add Trigger** panel. Click the trigger: **Fields to pass on** starts with the title, so click **Add field**, tick the description",
     );
   });
 

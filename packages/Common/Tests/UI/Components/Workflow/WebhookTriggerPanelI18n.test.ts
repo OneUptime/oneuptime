@@ -191,3 +191,85 @@ describe("the Webhook trigger panel in every dashboard language", () => {
     );
   });
 });
+
+/*
+ * Under the URL, the advice to reset it is for someone who may reset it. It
+ * was a second sentence glued on with a space - "If it leaks, reset it." -
+ * which a language had to word without the sentence its "it" points back to.
+ * Each case is now one key, both sentences together.
+ */
+describe("the footer under the URL, one whole key for each case", () => {
+  const PAIRS: Array<{ alone: string; withReset: string; glued: string }> = [
+    {
+      alone: WebhookTriggerPanelCopy.keepPrivate,
+      withReset: WebhookTriggerPanelCopy.keepPrivateCanReset,
+      glued: "If it leaks, reset it.",
+    },
+    {
+      alone: WebhookTriggerPanelCopy.isWorkflowId,
+      withReset: WebhookTriggerPanelCopy.isWorkflowIdCanReset,
+      glued: "Reset it to get a private URL.",
+    },
+  ];
+
+  test("with a reset, the advice is the same sentence and then the reset, in one key", () => {
+    for (const pair of PAIRS) {
+      expect(pair.withReset).toBe(`${pair.alone} ${pair.glued}`);
+    }
+  });
+
+  test.each(OTHER_LOCALES)(
+    "%s words each case, and they differ",
+    (locale: string) => {
+      const translations: Record<string, string> = readLocale(locale);
+
+      for (const pair of PAIRS) {
+        const alone: string = translations[pair.alone] || "";
+        const withReset: string = translations[pair.withReset] || "";
+
+        expect(alone).not.toBe(pair.alone);
+        expect(withReset).not.toBe(pair.withReset);
+        // The reset case says more than the case without it.
+        expect(withReset.length).toBeGreaterThan(alone.length);
+      }
+    },
+  );
+
+  test("the glued sentences are gone from every locale", () => {
+    for (const locale of ["en", ...OTHER_LOCALES]) {
+      const translations: Record<string, string> = readLocale(locale);
+
+      for (const pair of PAIRS) {
+        expect({
+          locale,
+          key: pair.glued,
+          present: pair.glued in translations,
+        }).toEqual({ locale, key: pair.glued, present: false });
+      }
+    }
+  });
+
+  test("the panel glues no translated sentence onto another", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "..",
+        "UI",
+        "Components",
+        "Workflow",
+        "WebhookTriggerPanel.tsx",
+      ),
+      "utf8",
+    );
+
+    // The second sentence was added after the first when the reset was offered.
+    expect(source).not.toMatch(/canReset\s*\?\s*`/);
+    expect(source).not.toContain("resetIfLeaked");
+    expect(source).not.toContain("resetToMakePrivate");
+    expect(source).toContain("WebhookTriggerPanelCopy.keepPrivateCanReset");
+    expect(source).toContain("WebhookTriggerPanelCopy.isWorkflowIdCanReset");
+  });
+});

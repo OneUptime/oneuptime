@@ -369,14 +369,43 @@ describe("buildStepSampleGroups: other steps", () => {
    * JSON typed into Run Workflow reaches the Manual trigger as one piece of
    * text, so running it would not fill in any fields: nothing is promised.
    */
-  test("the Manual trigger does not promise fields that a run would not bring", () => {
-    expect(
-      buildStepSampleGroups(
-        context({ upstreamComponents: [manual] }),
-        [],
-        OPTIONS,
-      ),
-    ).toEqual([]);
+  /*
+   * Run Workflow sends the JSON typed for the Manual trigger as JSON
+   * (RunValues), so a run brings its fields, and the picker says they come.
+   */
+  test("the Manual trigger says its JSON's fields show up once it has run", () => {
+    const group: ValueSuggestionGroup | undefined = buildStepSampleGroups(
+      context({ upstreamComponents: [manual] }),
+      [],
+      OPTIONS,
+    )[0];
+    const json: ValueSuggestion | undefined = item(
+      group,
+      "{{local.components.manual-1.returnValues.value}}",
+    );
+
+    expect(json?.drillIn?.note).toBe(
+      "Manual hasn't run yet. Its fields show up here after it does.",
+    );
+  });
+
+  test("a Manual run started with JSON lists the JSON's fields", () => {
+    const group: ValueSuggestionGroup | undefined = buildStepSampleGroups(
+      context({ upstreamComponents: [manual] }),
+      [
+        {
+          componentId: "manual-1",
+          returnValues: { value: value({ name: "Ada" }) },
+        },
+      ],
+      OPTIONS,
+    )[0];
+    const json: ValueSuggestion | undefined = item(
+      group,
+      "{{local.components.manual-1.returnValues.value}}",
+    );
+
+    expect(json?.drillIn?.loadChildren).toBeDefined();
   });
 
   test("the Manual trigger's typed JSON is shown as the text it arrived as", () => {

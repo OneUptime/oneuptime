@@ -335,13 +335,13 @@ Docker Engine 27 이상은 네트워크에 쓸 IPv6 서브넷을 고르고, 프�
 | --- | --- | --- | --- |
 | 수신 요청과 하트비트 | `PROBE_INGRESS_PORT` | 꺼짐 | [수신 요청 Ingress](/docs/probe/incoming-request-ingress) |
 | SNMP 트랩 | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | 켜짐, UDP 162 | [네트워크 장치 모니터](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | 꺼짐, UDP 5140 | [네트워크 공급업체별 가이드](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | 켜짐, UDP 및 TCP 5140 | [네트워크 이벤트](/docs/monitor/network-events) |
 | NetFlow, IPFIX, sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | 켜짐, UDP 2055, 4739, 6343 | [네트워크 트래픽](/docs/monitor/network-traffic) |
 | 상태 확인 | `PORT` | 켜짐, TCP 3874 | `/status/live` 및 `/status/ready` |
 
 컨테이너 안에서는 호스트 네트워킹을 쓰거나 포트를 게시해야만 다른 머신에서 그 포트에 닿을 수 있습니다.
 
-Syslog 수신기는 1분에 최대 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE`개(기본값 `600`)의 메시지를 전달하고, 나머지는 버리며, 버린 개수를 로그에 남깁니다.
+Syslog 수신기는 1분에 최대 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE`개(기본값 `600`)의 메시지를 전달합니다. 그 한도를 넘어도 네트워크 이벤트로 읽은 메시지는 같은 수만큼 더 전달하고, 나머지는 버리며, 버린 개수를 로그에 남깁니다.
 
 `PROBE_NAME`과 `PROBE_DESCRIPTION`은 `REGISTER_PROBE_KEY`로 스스로를 등록하는 프로브(자체 호스팅 설치가 모든 프로젝트를 위해 실행하는 프로브 등)만 읽습니다. 사용자 지정 프로브는 이름과 설명을 대시보드에서 가져옵니다.
 

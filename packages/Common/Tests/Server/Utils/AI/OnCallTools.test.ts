@@ -1,4 +1,5 @@
 import {
+  DIRECT_PAGE_POLICY_LABEL,
   GetOnCallStatusTool,
   QueryOnCallPagesTool,
   QueryOnCallPoliciesTool,
@@ -573,6 +574,119 @@ describe("query_on_call_pages", () => {
     const callArgs: JSONObject = findBySpy.mock.calls[0]?.[0] as JSONObject;
     expect(callArgs["props"]).toBe(ctx.props);
     expect(callArgs["limit"]).toBe(10);
+  });
+
+  /*
+   * A workflow's Page steps page people with no on-call policy behind the
+   * page, and the page is kept as a run. Asked "which policy paged Alice?",
+   * the answer for such a run has to be "none - a workflow paged her
+   * directly", not a policy's name left blank.
+   */
+  test("a direct page says it has no policy, and which workflow started it", async () => {
+    const EXECUTION_ID: ObjectID = ObjectID.generate();
+    const directPage: OnCallDutyPolicyExecutionLog = buildExecutionLog({
+      id: EXECUTION_ID,
+    });
+
+    // As a direct page is read: no policy, by id or by relation.
+    delete directPage.onCallDutyPolicy;
+    directPage.triggeredByWorkflowName = "Page on-call for critical incidents";
+
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
+      .mockResolvedValue([directPage] as never);
+    jest.spyOn(UserOnCallLogService, "findBy").mockResolvedValue([
+      buildUserLog({
+        executionLogId: EXECUTION_ID,
+        userName: "Alice Smith",
+        status: UserNotificationExecutionStatus.Completed,
+      }),
+    ] as never);
+
+    const result: ToolExecutionResult = await QueryOnCallPagesTool.execute(
+      {},
+      ctx,
+    );
+
+    expect(DIRECT_PAGE_POLICY_LABEL).toBe("Direct page (no on-call policy)");
+    expect(result.dataForLlm).toContain(DIRECT_PAGE_POLICY_LABEL);
+    expect(result.dataForLlm).toContain(
+      "Workflow: Page on-call for critical incidents",
+    );
+    // What it is about and who it reached are said as of any run.
+    expect(result.dataForLlm).toContain("Incident #42: Checkout down");
+    expect(result.dataForLlm).toContain("Alice Smith: Completed");
+    expect(result.dataForLlm).not.toContain("Payments primary");
+
+    // The widget's Policy column says the same.
+    const rows: Array<JSONObject> = (
+      result.widget as unknown as { data: { rows: Array<JSONObject> } }
+    ).data.rows;
+
+    expect(rows[0]!["policy"]).toBe(DIRECT_PAGE_POLICY_LABEL);
+    expect(rows[0]!["policyId"]).toBeUndefined();
+
+    // Told apart by the run's policy id, which is read with every row.
+    const select: JSONObject = (findBySpy.mock.calls[0]?.[0] as JSONObject)[
+      "select"
+    ] as JSONObject;
+
+    expect(select["onCallDutyPolicyId"]).toBe(true);
+    expect(select["triggeredByWorkflowName"]).toBe(true);
+  });
+
+  test("a policy's run whose policy cannot be read is not called a direct page", async () => {
+    const unreadable: OnCallDutyPolicyExecutionLog = buildExecutionLog();
+
+    delete unreadable.onCallDutyPolicy;
+    unreadable.onCallDutyPolicyId = POLICY_ID;
+
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
+      .mockResolvedValue([unreadable] as never);
+    jest.spyOn(UserOnCallLogService, "findBy").mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryOnCallPagesTool.execute(
+      {},
+      ctx,
+    );
+
+    expect(result.dataForLlm).not.toContain("Direct page");
+    expect(result.dataForLlm).not.toContain("Workflow:");
+  });
+
+  test("a policy's run names its policy and no workflow, as before", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
+      .mockResolvedValue([buildExecutionLog()] as never);
+    jest.spyOn(UserOnCallLogService, "findBy").mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryOnCallPagesTool.execute(
+      {},
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("Payments primary");
+    expect(result.dataForLlm).not.toContain("Direct page");
+    expect(result.dataForLlm).not.toContain("Workflow:");
+  });
+
+  test("the tool tells the model that direct pages are listed too", () => {
+    expect(QueryOnCallPagesTool.description).toContain(
+      "direct pages a workflow sent with no policy",
+    );
+    expect(QueryOnCallPagesTool.description).toContain(
+      DIRECT_PAGE_POLICY_LABEL,
+    );
   });
 
   test("policy and incident filters reach the service query", async () => {

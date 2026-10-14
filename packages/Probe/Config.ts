@@ -26,6 +26,10 @@ import {
   DEFAULT_NETFLOW_COLLECTOR_PORT,
   DEFAULT_SFLOW_COLLECTOR_PORT,
 } from "Common/Types/NetFlow/NetworkFlowCollectorPorts";
+import {
+  DEFAULT_SYSLOG_RATE_LIMIT_PER_MINUTE,
+  DEFAULT_SYSLOG_RECEIVER_PORT,
+} from "Common/Types/Syslog/SyslogReceiverDefaults";
 
 if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
   logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");
@@ -508,32 +512,42 @@ export const PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE: number =
   });
 
 /*
- * Syslog receiver. The probe listens for syslog messages (RFC 3164 and
- * RFC 5424) on the configured UDP port, batches them, and forwards them to
- * the OneUptime instance, where they are correlated to Network Devices by
- * source IP and written into the telemetry Logs pipeline. Point your
- * devices' syslog destination at this probe.
+ * Syslog receiver. The probe listens for syslog messages (RFC 3164, RFC
+ * 5424, CEF and vendor formats) on one port, over UDP and over TCP, batches
+ * them, and forwards them to the OneUptime instance, where they are matched
+ * to Network Devices, read by the vendor parsers and written into the
+ * telemetry Logs pipeline. Point your devices' syslog destination at this
+ * probe.
  *
- * Off by default: opt in with PROBE_SYSLOG_RECEIVER_ENABLED=true. The
+ * On by default, like the trap receiver and the flow collector: the port is
+ * above 1024 (no privileges needed), inside a container it is unreachable
+ * until the operator publishes it, and a failed bind (port in use) is
+ * logged once and leaves polling untouched. Set
+ * PROBE_SYSLOG_RECEIVER_ENABLED=false to turn the receiver off. The
  * default port is 5140 rather than the standard 514 because ports < 1024
- * need privileges outside Docker; a failed bind (port in use, or no
- * privilege) logs an error and leaves polling untouched.
+ * need privileges outside Docker.
  */
 export const PROBE_SYSLOG_RECEIVER_ENABLED: boolean =
-  process.env["PROBE_SYSLOG_RECEIVER_ENABLED"] === "true";
+  process.env["PROBE_SYSLOG_RECEIVER_ENABLED"] !== "false";
 
 export const PROBE_SYSLOG_RECEIVER_PORT: number =
   NumberUtil.parseNumberWithDefault({
     value: process.env["PROBE_SYSLOG_RECEIVER_PORT"],
-    defaultValue: 5140,
+    defaultValue: DEFAULT_SYSLOG_RECEIVER_PORT,
     min: 1,
+    max: 65535,
   });
 
-// Safety valve: max syslog messages forwarded per minute before dropping (per probe).
+/*
+ * Safety valve: max syslog messages forwarded per minute before dropping
+ * (per probe). Past it, the probe still forwards what it recognises as a
+ * network event - up to the same number again - so a flood of routine
+ * lines cannot crowd out the one that says a link went down.
+ */
 export const PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE: number =
   NumberUtil.parseNumberWithDefault({
     value: process.env["PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE"],
-    defaultValue: 600,
+    defaultValue: DEFAULT_SYSLOG_RATE_LIMIT_PER_MINUTE,
     min: 1,
   });
 

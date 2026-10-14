@@ -54,6 +54,11 @@ import MonitorAlert from "./MonitorAlert";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
+import LogGroupCriteriaFanOut, {
+  LOG_GROUP_ALERT_RESOLVED_MESSAGE,
+  LOG_GROUP_INCIDENT_RESOLVED_MESSAGE,
+  LOG_GROUP_RESOLVED_ROOT_CAUSE,
+} from "./LogGroupCriteriaFanOut";
 import MonitorMaintenanceSuppression, {
   MonitorMaintenanceSuppressionResult,
 } from "./MonitorMaintenanceSuppression";
@@ -82,6 +87,31 @@ interface ProbeAgreementResult {
 }
 
 export default class MonitorResourceUtil {
+  /*
+   * Whether this monitor's per-series incidents and alerts are resolved
+   * only when something says so, and never because a series is missing
+   * from an evaluation:
+   *
+   *   - an Incoming Request monitor, where a payload describes only the
+   *     keys it carries;
+   *   - a Logs monitor whose groups are resolved by a log
+   *     (MonitorStepLogMonitor.resolvedByAttributes), where a group with
+   *     no log in the window has said nothing.
+   */
+  public static isSeriesResolvedExplicitly(input: {
+    monitor: Monitor;
+    dataToProcess: DataToProcess;
+  }): boolean {
+    if (input.monitor.monitorType === MonitorType.IncomingRequest) {
+      return true;
+    }
+
+    return (
+      input.monitor.monitorType === MonitorType.Logs &&
+      LogGroupCriteriaFanOut.isResolvedByLog(input.dataToProcess)
+    );
+  }
+
   @CaptureSpan()
   public static async monitorResource(
     dataToProcess: DataToProcess,
@@ -899,6 +929,41 @@ export default class MonitorResourceUtil {
         }
       }
 
+      /*
+       * A Logs monitor whose groups are resolved by a log ("interface.down"
+       * per interface, resolved by "interface.up"). The worker names the
+       * groups such a log has arrived for; exactly those groups' incidents
+       * and alerts are resolved - never one that has merely gone quiet.
+       * Runs whether or not a criteria matched, so the log that brings the
+       * last interface back still closes its alert.
+       */
+      if (monitor.monitorType === MonitorType.Logs) {
+        const resolvedLogGroupFingerprints: Array<string> =
+          LogGroupCriteriaFanOut.getResolvedFingerprints(dataToProcess);
+
+        if (resolvedLogGroupFingerprints.length > 0) {
+          await MonitorIncident.resolveSeriesIncidentsByFingerprint({
+            monitor: monitor,
+            fingerprints: resolvedLogGroupFingerprints,
+            rootCause: LOG_GROUP_RESOLVED_ROOT_CAUSE,
+            resolvedMessage: LOG_GROUP_INCIDENT_RESOLVED_MESSAGE,
+            dataToProcess: dataToProcess,
+            autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+            evaluationSummary: evaluationSummary,
+          });
+
+          await MonitorAlert.resolveSeriesAlertsByFingerprint({
+            monitor: monitor,
+            fingerprints: resolvedLogGroupFingerprints,
+            rootCause: LOG_GROUP_RESOLVED_ROOT_CAUSE,
+            resolvedMessage: LOG_GROUP_ALERT_RESOLVED_MESSAGE,
+            dataToProcess: dataToProcess,
+            autoResolveCriteriaInstanceIdAlertIdsDictionary,
+            evaluationSummary: evaluationSummary,
+          });
+        }
+      }
+
       if (response.criteriaMetId && response.rootCause) {
         logger.debug(
           `${dataToProcess.monitorId.toString()} - Criteria met: ${
@@ -1174,7 +1239,10 @@ export default class MonitorResourceUtil {
          * matchesPerSeries.
          */
         const disableSeriesAbsenceResolution: boolean =
-          monitor.monitorType === MonitorType.IncomingRequest;
+          MonitorResourceUtil.isSeriesResolvedExplicitly({
+            monitor: monitor,
+            dataToProcess: dataToProcess,
+          });
 
         const breachingSeriesFingerprints: Set<string> | undefined =
           isPerSeriesEvaluation && !disableSeriesAbsenceResolution
@@ -1345,9 +1413,16 @@ export default class MonitorResourceUtil {
            * the explicit resolution block above. Non-grouped incoming
            * incidents have no seriesFingerprint, so they still resolve
            * normally; non-incoming-request types are unaffected (flag false).
+           *
+           * A Logs monitor whose groups are resolved by a log is the same
+           * case: with no log in the window no criteria is met, and that
+           * is silence, not recovery.
            */
           disableSeriesAbsenceResolution:
-            monitor.monitorType === MonitorType.IncomingRequest,
+            MonitorResourceUtil.isSeriesResolvedExplicitly({
+              monitor: monitor,
+              dataToProcess: dataToProcess,
+            }),
         });
 
         await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
@@ -1359,7 +1434,10 @@ export default class MonitorResourceUtil {
           dataToProcess: dataToProcess,
           evaluationSummary: evaluationSummary,
           disableSeriesAbsenceResolution:
-            monitor.monitorType === MonitorType.IncomingRequest,
+            MonitorResourceUtil.isSeriesResolvedExplicitly({
+              monitor: monitor,
+              dataToProcess: dataToProcess,
+            }),
         });
 
         // get last monitor status timeline.

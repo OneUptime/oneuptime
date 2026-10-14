@@ -28,7 +28,7 @@ flowchart TB
 OneUptime répond dès qu'il a lu les messages de la requête, puis les analyse et les stocke un instant plus tard. Le texte du message reste dans le corps du log ; tout le reste devient un attribut.
 
 > [!TIP]
-> Les équipements réseau que vous surveillez avec une sonde OneUptime peuvent envoyer leur syslog directement à la sonde en UDP, sans relais — les logs apparaissent alors sur l'équipement dans OneUptime. Voir [Guides par constructeur réseau](/docs/monitor/network-vendor-guides).
+> Les équipements réseau peuvent envoyer leur syslog directement à une sonde OneUptime, en UDP ou en TCP, sans relais — OneUptime lit alors les messages de chaque constructeur comme des événements sur l'équipement. Voir [Événements réseau](/docs/monitor/network-events).
 
 ## Avant de commencer
 
@@ -200,7 +200,7 @@ OneUptime ajoute automatiquement les attributs suivants à chaque entrée de log
 
 Ces attributs deviennent consultables dans l'explorateur **Produits → Journaux** — par exemple `@syslog.severity.name:error` ou `@syslog.hostname:web-01`. Voir [Syntaxe de recherche](/docs/telemetry/search-syntax).
 
-Le message lui-même reste dans le corps du log. Des pare-feu comme Sophos XGS et Fortinet FortiGate l'écrivent sous forme de paires `key=value` (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) ; ajoutez un processeur **Key=Value Parser** dans un [pipeline de journaux](/docs/telemetry/log-pipelines#keyvalue-parser) pour transformer aussi ces paires en attributs.
+Le message lui-même reste dans le corps du log. Un message au format d'un constructeur réseau est lu plus avant : les paires `key=value` d'un pare-feu Sophos ou FortiGate (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) deviennent des attributs `sophos.*` et `fortigate.*`, et ce qui s'est passé devient un [événement réseau](/docs/monitor/network-events). Pour tout autre format `key=value`, ajoutez un processeur **Key=Value Parser** dans un [pipeline de journaux](/docs/telemetry/log-pipelines#keyvalue-parser) pour transformer les paires en attributs.
 
 ### Sévérité
 

@@ -54,7 +54,7 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **On Create Incident**. Fai clic sul trigger e, in **Select Fields**, scegli `title` e `description`.
+Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **On Create Incident**. Fai clic sul trigger e, in **Fields to pass on**, scegli `title` e `description`.
 
 ### Creare il record
 
@@ -93,7 +93,7 @@ Un workflow ha un solo trigger, quindi per risolvere serve un secondo workflow, 
 :::steps
 ### Aggiungere il trigger On Update Incident
 
-Crea un workflow chiamato `Resolve ServiceNow incidents` e scegli **On Update Incident** come trigger. In **Listen on**, scegli `currentIncidentStateId`, così viene eseguito solo quando cambia lo stato. In **Select Fields**, chiedi se il nuovo stato è uno stato risolto:
+Crea un workflow chiamato `Resolve ServiceNow incidents` e scegli **On Update Incident** come trigger. In **Fields to watch**, scegli `currentIncidentStateId`, così viene eseguito solo quando cambia lo stato. In **Fields to pass on**, chiedi se il nuovo stato è uno stato risolto:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

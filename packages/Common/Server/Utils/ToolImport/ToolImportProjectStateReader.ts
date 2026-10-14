@@ -399,24 +399,24 @@ export default class ToolImportProjectStateReader {
   }
 
   /*
-   * The project's status page subscribers by email - every one, as a
-   * record an earlier import may have made, and each page's emails, for
-   * matching someone who already follows the page - read as OneUptime.
+   * The project's status page subscribers by email - every one, however
+   * many there are, as a record an earlier import may have made, and each
+   * page's emails, for matching someone who already follows the page -
+   * read as OneUptime.
    */
   private static async readExistingSubscribers(projectId: ObjectID): Promise<{
     records: Array<ToolImportExistingRecord>;
     emailsByStatusPageId: Map<string, Set<string>>;
   }> {
     const subscribers: Array<StatusPageSubscriber> =
-      await StatusPageSubscriberService.findBy({
+      await StatusPageSubscriberService.findAllBy({
         query: { projectId: projectId },
         select: {
           _id: true,
           statusPageId: true,
           subscriberEmail: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
+        sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
       });
 
@@ -509,7 +509,9 @@ export default class ToolImportProjectStateReader {
   /*
    * Every record an earlier import of this tool brought over, and whether
    * it is still in the project: a person while they are a member, any other
-   * record while it exists.
+   * record while it exists. Every one, however many imports it took: a
+   * record left out would leave its item looking new, to be matched by name
+   * or made again.
    */
   private static async readPreviousRecords(data: {
     projectId: ObjectID;
@@ -521,7 +523,7 @@ export default class ToolImportProjectStateReader {
     >;
   }): Promise<Array<ToolImportPreviousRecord>> {
     const records: Array<ToolImportRecord> =
-      await ToolImportRecordService.findBy({
+      await ToolImportRecordService.findAllBy({
         query: { projectId: data.projectId, source: data.source },
         select: {
           kind: true,
@@ -529,8 +531,7 @@ export default class ToolImportProjectStateReader {
           recordId: true,
           isComplete: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
+        sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
       });
 

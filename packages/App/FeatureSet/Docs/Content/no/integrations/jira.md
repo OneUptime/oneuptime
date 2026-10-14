@@ -307,7 +307,7 @@ Tokener utløper som standard etter ett år og fornyes ikke. For å slippe å by
 ### Opprett en Jira-sak for hver hendelse
 
 :::steps
-1. Opprett en arbeidsflyt fra bunnen som heter `Incidents to Jira`. Klikk på den stiplede blokken, og legg til triggeren **On Create Incident**. Be om `{"_id": true, "title": true, "description": true, "incidentNumber": true}` i **Select Fields**. La **Identifier** stå som `incident-on-create-1`.
+1. Opprett en arbeidsflyt fra bunnen som heter `Incidents to Jira`. Klikk på den stiplede blokken, og legg til triggeren **On Create Incident**. Be om `{"_id": true, "title": true, "description": true, "incidentNumber": true}` i **Fields to pass on**. La **Identifier** stå som `incident-on-create-1`.
 2. Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og koble triggerens **Success**-punkt til den. Sett **Identifier** til `create-issue`, **URL** til `{{global.variables.JIRA_URL}}/rest/api/3/issue` og, under **Flere felt**, **Request Headers** til `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Sett **Request Body** til saken, og erstatt `OPS` og `Bug` med prosjektnøkkelen din og en sakstype i det prosjektet:
 
@@ -384,14 +384,14 @@ For å gi alle i Jira en vei tilbake legger du til en **API Post (JSON)**-blokk 
 }
 ```
 
-Legg til `projectId` i triggerens **Select Fields** for dette, og behold `.value`: en kolonne som inneholder en annen posts ID, kommer frem som `{"_type": "ObjectID", "value": "..."}`. `globalId` gjør kallet trygt å gjenta: Jira oppdaterer lenken som har den, i stedet for å legge til en ny.
+Legg til `projectId` i triggerens **Fields to pass on** for dette, og behold `.value`: en kolonne som inneholder en annen posts ID, kommer frem som `{"_type": "ObjectID", "value": "..."}`. `globalId` gjør kallet trygt å gjenta: Jira oppdaterer lenken som har den, i stedet for å legge til en ny.
 
 ### Kommenter og gjør overganger etter hvert som hendelsen går fremover
 
 Bygg dette som en egen arbeidsflyt, slik at en feil her aldri hindrer at saker opprettes.
 
 :::steps
-1. Opprett en arbeidsflyt som heter `Incident updates to Jira`, med triggeren **On Update Incident**. Sett **Listen on** til `{"currentIncidentStateId": true}` og **Select Fields** til `{"_id": true, "currentIncidentState": {"name": true}}`.
+1. Opprett en arbeidsflyt som heter `Incident updates to Jira`, med triggeren **On Update Incident**. Sett **Fields to watch** til `{"currentIncidentStateId": true}` og **Fields to pass on** til `{"_id": true, "currentIncidentState": {"name": true}}`.
 2. Legg til en **If / Else**-blokk: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, eller navnet på den løste tilstanden din.
 3. Finn saken etter **Yes**-siden med en **API Post (JSON)**-blokk der **Identifier** er `find-issue`, som sender til `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 

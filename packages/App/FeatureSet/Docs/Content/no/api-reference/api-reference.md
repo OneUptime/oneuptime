@@ -242,7 +242,7 @@ Et felt som er på eller av - `isEnabled`, `isVisibleOnStatusPage`, `isArchived`
 isVisibleOnStatusPage must be true or false.
 ```
 
-En oppdatering som skriver en posts verdier slik de allerede er, endrer ingenting: den starter ikke postens **On Update**-arbeidsflyter, sender ikke liveoppdateringer og legger ikke til en oppføring i revisjonsloggen. `false` skrevet over `false` regnes som samme verdi, og det samme gjør `"false"` skrevet over `false`, et tall skrevet som tekst, et tidspunkt skrevet som samme øyeblikk i et annet format og etiketter skrevet som de samme etikettene i vilkårlig rekkefølge. Når en oppdatering endrer noen verdier og skriver andre tilbake slik de er, viser revisjonsloggoppføringen bare verdiene som ble endret, og en arbeidsflyts **Listen on** hører bare dem.
+En oppdatering som skriver en posts verdier slik de allerede er, endrer ingenting: den starter ikke postens **On Update**-arbeidsflyter, sender ikke liveoppdateringer og legger ikke til en oppføring i revisjonsloggen. `false` skrevet over `false` regnes som samme verdi, og det samme gjør `"false"` skrevet over `false`, et tall skrevet som tekst, et tidspunkt skrevet som samme øyeblikk i et annet format og etiketter skrevet som de samme etikettene i vilkårlig rekkefølge. Når en oppdatering endrer noen verdier og skriver andre tilbake slik de er, viser revisjonsloggoppføringen bare verdiene som ble endret, og en arbeidsflyts **Fields to watch** hører bare dem.
 
 ### Hvor et prosjekt ble kjøpt
 

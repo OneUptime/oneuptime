@@ -307,7 +307,7 @@ Tokens verlopen standaard na een jaar en worden niet vernieuwd. Om er niet een m
 ### Een Jira-issue openen voor elk incident
 
 :::steps
-1. Maak vanaf nul een workflow met de naam `Incidents to Jira`. Klik op het gestippelde blok en voeg de trigger **On Create Incident** toe. Vraag in de **Select Fields** ervan om `{"_id": true, "title": true, "description": true, "incidentNumber": true}`. Laat de **Identifier** ervan op `incident-on-create-1` staan.
+1. Maak vanaf nul een workflow met de naam `Incidents to Jira`. Klik op het gestippelde blok en voeg de trigger **On Create Incident** toe. Vraag in de **Fields to pass on** ervan om `{"_id": true, "title": true, "description": true, "incidentNumber": true}`. Laat de **Identifier** ervan op `incident-on-create-1` staan.
 2. Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Success**-punt van de trigger ermee. Stel de **Identifier** in op `create-issue`, de **URL** op `{{global.variables.JIRA_URL}}/rest/api/3/issue` en, onder **Meer velden**, de **Request Headers** op `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Stel de **Request Body** in op het issue, en vervang `OPS` en `Bug` door je projectsleutel en een issuetype van dat project:
 
@@ -384,14 +384,14 @@ Om iedereen in Jira een weg terug te geven, voeg je na `create-issue` een **API 
 }
 ```
 
-Voeg hiervoor `projectId` toe aan de **Select Fields** van de trigger, en houd de `.value`: een kolom met de ID van een ander record komt binnen als `{"_type": "ObjectID", "value": "..."}`. De `globalId` maakt de aanroep veilig om te herhalen: Jira werkt de link bij die hem draagt in plaats van een tweede toe te voegen.
+Voeg hiervoor `projectId` toe aan de **Fields to pass on** van de trigger, en houd de `.value`: een kolom met de ID van een ander record komt binnen als `{"_type": "ObjectID", "value": "..."}`. De `globalId` maakt de aanroep veilig om te herhalen: Jira werkt de link bij die hem draagt in plaats van een tweede toe te voegen.
 
 ### Opmerkingen plaatsen en doorzetten terwijl het incident vordert
 
 Bouw dit als een tweede workflow, zodat een fout hier nooit verhindert dat er issues worden geopend.
 
 :::steps
-1. Maak een workflow met de naam `Incident updates to Jira`, met de trigger **On Update Incident**. Stel **Listen on** in op `{"currentIncidentStateId": true}` en **Select Fields** op `{"_id": true, "currentIncidentState": {"name": true}}`.
+1. Maak een workflow met de naam `Incident updates to Jira`, met de trigger **On Update Incident**. Stel **Fields to watch** in op `{"currentIncidentStateId": true}` en **Fields to pass on** op `{"_id": true, "currentIncidentState": {"name": true}}`.
 2. Voeg een **If / Else**-blok toe: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, of de naam van je opgeloste status.
 3. Zoek na de **Yes**-kant ervan het issue met een **API Post (JSON)**-blok waarvan de **Identifier** `find-issue` is, dat post naar `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 

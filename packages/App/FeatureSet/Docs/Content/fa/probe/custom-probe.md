@@ -335,13 +335,13 @@ Docker Engine ۲۷ و نسخه‌های بعدی یک زیرشبکهٔ IPv6 بر
 | --- | --- | --- | --- |
 | درخواست‌های ورودی و ضربان‌ها | `PROBE_INGRESS_PORT` | خاموش | [ورودی درخواست‌های دریافتی](/docs/probe/incoming-request-ingress) |
 | SNMP trap | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | روشن، UDP ۱۶۲ | [مانیتور دستگاه شبکه](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | خاموش، UDP ۵۱۴۰ | [راهنماهای سازندگان تجهیزات شبکه](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | روشن، UDP و TCP ۵۱۴۰ | [رویدادهای شبکه](/docs/monitor/network-events) |
 | NetFlow، IPFIX و sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | روشن، UDP ۲۰۵۵، ۴۷۳۹ و ۶۳۴۳ | [ترافیک شبکه](/docs/monitor/network-traffic) |
 | بررسی سلامت | `PORT` | روشن، TCP ۳۸۷۴ | `/status/live` و `/status/ready` |
 
 درون یک کانتینر، یک درگاه فقط با شبکهٔ میزبان یا وقتی منتشرش کنید از ماشین‌های دیگر در دسترس است.
 
-گیرندهٔ syslog در هر دقیقه حداکثر `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` پیام را ارسال می‌کند، به‌طور پیش‌فرض `600`، بقیه را دور می‌ریزد و در لاگ می‌نویسد چند پیام را دور ریخته است.
+گیرندهٔ syslog در هر دقیقه حداکثر `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` پیام را ارسال می‌کند، به‌طور پیش‌فرض `600`. پس از آن همچنان پیام‌هایی را که به‌صورت رویداد شبکه می‌خواند ارسال می‌کند، تا همان اندازهٔ دیگر، بقیه را دور می‌ریزد و در لاگ می‌نویسد چند پیام را دور ریخته است.
 
 `PROBE_NAME` و `PROBE_DESCRIPTION` فقط توسط پراب‌هایی خوانده می‌شوند که خودشان را با `REGISTER_PROBE_KEY` ثبت می‌کنند، مانند پراب‌هایی که یک نصب خودمیزبان برای همهٔ پروژه‌ها اجرا می‌کند. پراب سفارشی نام و توضیحاتش را از داشبورد می‌گیرد.
 

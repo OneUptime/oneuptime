@@ -210,7 +210,7 @@ Nästan alla textfält tar emot variabler:
 - Headers och fält i bodyn (inuti strängvärden).
 - Båda sidor av ett **If / Else**-block.
 
-I JSON-fält — **Data (JSON Object)**, **Query** och **Select Fields** på postkomponenterna, ett API-blocks **Request Body**, **Arguments** på **Run Custom JavaScript** — fylls en referens i beroende på var den står:
+I JSON-fält — **Data (JSON Object)** och **Query** på postkomponenterna, ett API-blocks **Request Body**, **Arguments** på **Run Custom JavaScript** — fylls en referens i beroende på var den står:
 
 - **Inom citattecken är den text.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` sätter in värdet i strängen. Citattecken, omvända snedstreck och radbrytningar i värdet escapas, så att JSON:en förblir giltig och värdet förblir en sträng.
 - **Ensam är den själva värdet.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` infogar hela objektet, en lista förblir en lista och ett tal förblir ett tal. Text som själv är JSON — `5`, `true` eller ett objekt som ett block returnerade som JSON-text — infogas som det värdet. All annan text infogas som en sträng.
@@ -238,7 +238,7 @@ Till exempel visar den här **Message Text** varje larm som en webhook skickade:
 En webhook kommer med en body som `{ "service": "checkout", "status": "failed" }`. För att göra den till en OneUptime-incident:
 
 1. En **Webhook**-utlösare med ID:t `ci-webhook`.
-2. Ett **If / Else**-block: **Value to check** är fältet `status` i webhookens Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison** är **is equal to** och **Compare with** är `failed`.
+2. Ett **If / Else**-block: **Värde att kontrollera** är fältet `status` i webhookens Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Jämförelse** är **är lika med** och **Jämför med** är `failed`.
 3. Från grenen **Yes** ett **Create One Incident**-block med:
    - Titel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beskrivning: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`

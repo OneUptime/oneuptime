@@ -118,6 +118,10 @@ const BASE_MODEL_TABLE_FILE: string = path.resolve(
   __dirname,
   "../../../../Common/UI/Components/ModelTable/BaseModelTable.tsx",
 );
+const COMMON_UI_WORKFLOW_DIR: string = path.resolve(
+  __dirname,
+  "../../../../Common/UI/Components/Workflow",
+);
 
 const PAGE: string = "integrations/irc";
 const CATALOG: string = "integrations/index";
@@ -218,7 +222,7 @@ const DASHBOARD_LABELS: ReadonlyArray<string> = [
   "Global variables",
   "Enabled",
   "Run Workflow",
-  "Incident ID",
+  "Incident",
   "Run Workflow Manually",
   "Run",
   "Workflow Run",
@@ -1276,40 +1280,55 @@ describe("the IRC page and the Builder panels it walks through", () => {
     expect(popular).toContain("On Create Incident");
   });
 
-  test("On Create Incident reads Select Fields, leaves by Success, and is run by hand with an Incident ID", () => {
+  test("On Create Incident reads Fields to pass on, leaves by Success, and is run by hand with an incident picked under Incident", () => {
     expect(onCreateIncident.title).toBe("On Create Incident");
     expect(
       onCreateIncident.arguments.map((argument: Argument): string => {
         return argument.name;
       }),
-    ).toContain("Select Fields");
+    ).toContain("Fields to pass on");
     expect(
       onCreateIncident.outPorts.map((port: Port): string => {
         return port.title;
       }),
     ).toEqual(["Success"]);
+    /*
+     * Run Workflow asks for the trigger's record: the field is named after
+     * the record ("Incident"), and an incident is picked in it by number or
+     * title (RunForm, RunRecordField) rather than its ID typed.
+     */
     expect(
       (onCreateIncident.runWorkflowManuallyArguments || []).map(
         (argument: Argument): string => {
-          return argument.name;
+          return argument.id;
         },
       ),
-    ).toEqual(["Incident ID"]);
+    ).toEqual(["_id"]);
+    expect(onCreateIncident.tableName).toBe("Incident");
+    expect(
+      fs.readFileSync(path.join(COMMON_UI_WORKFLOW_DIR, "RunForm.tsx"), "utf8"),
+    ).toContain("title: info.singularName,");
 
-    const bold: Set<string> = boldTermsOf(readIrcPage("en"));
+    const page: string = readIrcPage("en");
+    const bold: Set<string> = boldTermsOf(page);
 
     expect(bold.has("On Create Incident")).toBe(true);
-    expect(bold.has("Select Fields")).toBe(true);
-    expect(bold.has("Incident ID")).toBe(true);
+    expect(bold.has("Fields to pass on")).toBe(true);
+    expect(bold.has("Incident")).toBe(true);
+    expect(bold.has("Incident ID")).toBe(false);
+    expect(page).toContain(
+      "pick an incident you already have under **Incident**: the most recent ones are listed, and typing its number or part of its title finds another.",
+    );
   });
 
   test.each(LANGUAGES)(
-    "%s names the trigger and its Select Fields as the Builder shows them",
+    "%s names the trigger and its Fields to pass on as the Builder shows them",
     (language: string) => {
       const bold: Set<string> = boldTermsOf(readIrcPage(language));
 
       expect(bold.has("On Create Incident")).toBe(true);
-      expect(bold.has("Select Fields")).toBe(true);
+      expect(bold.has("Fields to pass on")).toBe(true);
+      expect(bold.has("Select Fields")).toBe(false);
     },
   );
 });

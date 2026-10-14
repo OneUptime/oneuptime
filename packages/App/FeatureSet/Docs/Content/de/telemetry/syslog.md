@@ -28,7 +28,7 @@ flowchart TB
 OneUptime antwortet, sobald es die Nachrichten aus der Anfrage gelesen hat, und parst und speichert sie einen Moment später. Der Nachrichtentext bleibt im Log-Inhalt; alles andere wird zu einem Attribut.
 
 > [!TIP]
-> Netzwerkgeräte, die Sie mit einer OneUptime-Probe überwachen, können ihr Syslog per UDP direkt an die Probe senden, ganz ohne Relay – die Logs erscheinen dann am Gerät in OneUptime. Siehe [Leitfäden für Netzwerkhersteller](/docs/monitor/network-vendor-guides).
+> Netzwerkgeräte können ihr Syslog per UDP oder TCP direkt an eine OneUptime-Probe senden, ganz ohne Relay – OneUptime liest die Meldungen jedes Herstellers dann als Ereignisse am Gerät. Siehe [Netzwerkereignisse](/docs/monitor/network-events).
 
 ## Bevor Sie beginnen
 
@@ -200,7 +200,7 @@ OneUptime fügt jedem Log-Eintrag automatisch die folgenden Attribute hinzu:
 
 Diese Attribute werden im Explorer unter **Produkte → Protokolle** durchsuchbar – zum Beispiel `@syslog.severity.name:error` oder `@syslog.hostname:web-01`. Siehe [Suchsyntax](/docs/telemetry/search-syntax).
 
-Die Nachricht selbst bleibt im Log-Inhalt. Firewalls wie Sophos XGS und Fortinet FortiGate schreiben sie als `key=value`-Paare (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`); fügen Sie in einer [Protokoll-Pipeline](/docs/telemetry/log-pipelines#keyvalue-parser) einen Prozessor **Key=Value Parser** hinzu, um auch diese Paare zu Attributen zu machen.
+Die Nachricht selbst bleibt im Log-Inhalt. Eine Nachricht im Format eines Netzwerkherstellers wird weiter gelesen: Die `key=value`-Paare einer Sophos- oder FortiGate-Firewall (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) werden zu `sophos.*`- und `fortigate.*`-Attributen, und was passiert ist, wird zu einem [Netzwerkereignis](/docs/monitor/network-events). Für jedes andere `key=value`-Format fügen Sie in einer [Protokoll-Pipeline](/docs/telemetry/log-pipelines#keyvalue-parser) einen Prozessor **Key=Value Parser** hinzu, um die Paare zu Attributen zu machen.
 
 ### Schweregrad
 

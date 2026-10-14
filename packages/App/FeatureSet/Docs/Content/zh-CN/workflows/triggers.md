@@ -26,13 +26,13 @@
 
 ## Manual
 
-随时运行工作流：在 **生成器** 页面点击 **运行工作流**，填写触发器的 **JSON**，点击 **Run Workflow Manually**，然后用 **Run** 确认。另一个工作流也可以用 **Execute Workflow** 块启动它。
+随时运行工作流：在 **生成器** 页面点击 **运行工作流**，填写触发器的 **JSON**，点击 **手动运行工作流**，然后用 **运行** 确认。另一个工作流也可以用 **Execute Workflow** 块启动它。
 
 适用于：你想用一个按钮触发的一键式自动化，例如“轮换这个密钥”或“发送一条测试警报”，以及在工作流之间共享的逻辑。
 
 **Returns**: **JSON** —— 启动这次运行时传入的内容。
 
-- 从 **运行工作流** 启动时，它是你输入的 JSON，以文本形式到达。要读取其中的字段，先让它经过一个 **Text to JSON** 块。
+- 从 **运行工作流** 启动时，它是你输入的 JSON。要读取其中的字段，把字段名称加到引用后面，例如 `{{local.components.manual-1.returnValues.value.name}}`。
 - 从 **Execute Workflow** 块启动时，块的 **Arguments** 中的每个键都是一个独立的值。对于 `{"customerId": "42"}`，后续块读取 `{{local.components.manual-1.returnValues.customerId}}`，其中 `manual-1` 是 Manual 触发器的 ID。
 
 ## Schedule
@@ -96,7 +96,7 @@ sequenceDiagram
 
 要读取单个字段，把它的名称加到引用后面，例如 `{{local.components.webhook-1.returnValues.request-body.message}}`。
 
-请求到达后，触发器之后每个块中的值选择器都会知道里面有什么：它会列出正文的字段、标头和查询参数，各自带有内容，因此你可以选择 `incident.title`，而不必输入路径。在此之前，它会说明还没有请求到达，并提供 **Copy test request**，即一条发往该 URL 的 `curl` 命令；一旦请求启动的那次运行结束，字段就会出现。参见 [使用前面块的值](/docs/workflows/authoring#使用前面块的值)。
+请求到达后，触发器之后每个块中的值选择器都会知道里面有什么：它会列出正文的字段、标头和查询参数，各自带有内容，因此你可以选择 `incident.title`，而不必输入路径。在此之前，它会说明还没有请求到达，并提供 **复制测试请求**，即一条发往该 URL 的 `curl` 命令；一旦请求启动的那次运行结束，字段就会出现。参见 [使用前面块的值](/docs/workflows/authoring#使用前面块的值)。
 
 要在没有那个工具的情况下测试工作流，在 **生成器** 中点击 **运行工作流**，然后输入标头、查询参数和正文。
 
@@ -161,24 +161,24 @@ OneUptime 中几乎所有东西——监视器、事件、警报、计划维护�
 
 这样，你就能搭建“当 OneUptime 中发生 X 时，做 Y”，而无需在循环里反复检查。
 
-**On Update** 可以用 **Listen on** 限定在某些字段上：这样只有当更新把其中某个字段改成任何值时才会触发——关闭开关或清空字段也算。
+**On Update** 可以用 **Fields to watch** 限定在某些字段上：这样只有当更新把其中某个字段改成任何值时才会触发——关闭开关或清空字段也算。
 
 ```mermaid title="On Update 触发器何时触发"
 flowchart TB
     save["记录被保存"] --> changed{"有值发生变化吗？"}
     changed -->|"否"| nothing["什么都不触发"]
-    changed -->|"是"| listen{"设置了 Listen on 吗？"}
+    changed -->|"是"| listen{"设置了 Fields to watch 吗？"}
     listen -->|"否"| fires["工作流运行"]
     listen -->|"是"| field{"其中某个字段变了吗？"}
     field -->|"是"| fires
     field -->|"否"| nothing
 ```
 
-**On Create** 和 **On Update** 会把记录传给下一个块，带上你在触发器的 **Select Fields** 中选择的字段。例如，**Incident → On Create** 触发器会传下新事件，下一个块就能读取它的标题、描述、严重程度或你选择的任何其他字段，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你没有选择的字段到达时为空。
+**On Create** 和 **On Update** 会把记录传给下一个块，带上你在触发器的 **Fields to pass on** 中选择的字段。例如，**Incident → On Create** 触发器会传下新事件，下一个块就能读取它的标题、描述、严重程度或你选择的任何其他字段，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你没有选择的字段到达时为空。
 
 **On Delete** 只传下被删除记录的 ID：工作流运行时记录已经不在了，所以无法读取它的其他字段。
 
-要不等事件发生就测试事件触发器，在 **生成器** 中点击 **运行工作流**，然后输入一条现有记录的 ID，例如 **事件 ID**。这次运行会读取那条记录及你选择的字段。
+要不等事件发生就测试事件触发器，在 **生成器** 中点击 **运行工作流**，然后选择一条现有记录：列表中会列出最近的记录，输入记录的编号或名称的一部分可以找到其他记录。这次运行会读取那条记录及你选择的字段，就像事件刚刚发生在它身上一样；记录本身不会被更改或删除。
 
 ### 团队最常用的事件
 

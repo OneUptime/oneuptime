@@ -12,7 +12,9 @@ import Text from "../../../../../Types/Text";
 import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
-import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
+import BaseModelComponents, {
+  SELECT_FIELDS_NAME,
+} from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
 import logComponentError from "./LogComponentError";
@@ -96,7 +98,9 @@ export default class FindManyBaseModel<
 
       if (!args["select"]) {
         throw options.onError(
-          new BadDataException("Select Fields is undefined."),
+          new BadDataException(
+            `${SELECT_FIELDS_NAME} is empty. Choose the fields the next steps need.`,
+          ),
         );
       }
 
@@ -106,7 +110,9 @@ export default class FindManyBaseModel<
 
       if (typeof args["select"] !== "object") {
         throw options.onError(
-          new BadDataException("Select Fields is should be of type object."),
+          new BadDataException(
+            `${SELECT_FIELDS_NAME} could not be read. Choose the fields again.`,
+          ),
         );
       }
 

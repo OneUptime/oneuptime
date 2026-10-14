@@ -119,7 +119,7 @@ Die URL ist der einzige Berechtigungsnachweis, behandeln Sie sie also wie ein Pa
 
 :::steps
 1. Speichern Sie den API-Schlüssel des Werkzeugs als geheime globale Variable, wie [unten](#zugangsdaten-sicher-aufbewahren) gezeigt.
-2. Legen Sie einen Workflow an, klicken Sie auf den gestrichelten Baustein und wählen Sie einen Ereignis-Trigger, etwa **On Create Incident**. Kreuzen Sie in seinen **Select Fields** die Felder an, die gesendet werden sollen, etwa `title` und `description`.
+2. Legen Sie einen Workflow an, klicken Sie auf den gestrichelten Baustein und wählen Sie einen Ereignis-Trigger, etwa **On Create Incident**. Kreuzen Sie in seinen **Fields to pass on** die Felder an, die gesendet werden sollen, etwa `title` und `description`.
 3. Klicken Sie auf **Komponente hinzufügen** und fügen Sie einen **API Post (JSON)**-Baustein hinzu. Verbinden Sie den Punkt **Success** des Triggers damit.
 4. Füllen Sie seine **URL** aus, seine **Request Headers** mit dem `Authorization`-Header und seinen **Request Body** mit den Feldern des Vorfalls, etwa `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Klicken Sie auf **Arbeitsablauf ausführen**, geben Sie die **Vorfall-ID** eines Vorfalls ein und führen Sie ihn aus. Ein Testlauf sendet die Anfrage wirklich. Schalten Sie danach **Aktiviert** ein.

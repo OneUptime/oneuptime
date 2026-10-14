@@ -43,7 +43,7 @@ flowchart TB
 
 - **能到達裝置的探測器。** 探測器從它自己的網路 Ping 和遍歷裝置，所以位於私有位址的裝置需要該網路內的[自訂探測器](/docs/probe/custom-probe)：公用網際網路上的探測器無法到達它。
 - **SNMP，用於 Ping 以外的資料。** 選用。需要在裝置上設定 v1 或 v2c 社群字串或 SNMPv3 使用者，並允許探測器存取 UDP 161。沒有它，裝置只會被 Ping。
-- **Trap、syslog 和流。** 選用。探測器在 UDP 162 上接收 SNMP Trap，開啟後在 UDP 5140 上接收 syslog，在 UDP 2055、4739 和 6343 上接收流記錄，因此請放行從裝置到探測器的這些連接埠。
+- **Trap、syslog 和流。** 選用。探測器在 UDP 162 上接收 SNMP Trap，在 UDP 和 TCP 5140 上接收 syslog，在 UDP 2055、4739 和 6343 上接收流記錄，因此請放行從裝置到探測器的這些連接埠。
 
 ## 網路概覽
 
@@ -62,7 +62,7 @@ flowchart TB
 
 在新增任何內容之前，概覽會改為顯示兩種入門方式：**探索裝置**掃描一個位址範圍，讓你挑選要新增的內容，最適合整個網路或新站點；**新增單一裝置**依 IP 位址或主機名稱新增一台裝置。
 
-網路選單讓你每天開啟的頁面一直可見：**概覽**、**Devices**、**站點**、**Map**、**Traffic** 和 **Discovery**。其餘頁面收合在各區段中，開啟區段中的任一頁面時該區段會自動展開：
+網路選單讓你每天開啟的頁面一直可見：**概覽**、**Devices**、**站點**、**Map**、**Traffic**、**事件**和 **Discovery**。其餘頁面收合在各區段中，開啟區段中的任一頁面時該區段會自動展開：
 
 | 區段 | 頁面 |
 | --- | --- |
@@ -1057,6 +1057,7 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 :::cards
 - [網路站點](/docs/monitor/network-sites): 把裝置分組到各個地點，並沿著樹往上彙總其健康狀況。
 - [網路流量](/docs/monitor/network-traffic): 從裝置的流記錄中查看誰在跟誰通訊。
+- [網路事件](/docs/monitor/network-events): 查看裝置在 syslog 中回報的內容，並對其設定警示。
 - [網路設備廠商指南](/docs/monitor/network-vendor-guides): Sophos、Extreme 和 Cambium 的端對端指南。
 - [封包擷取](/docs/probe/packet-capture): 在裝置的探測器上擷取封包，供 Wireshark 使用。
 :::

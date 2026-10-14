@@ -110,7 +110,7 @@ flowchart TB
 
 ### 示例：Sophos XGS 防火墙
 
-当 Sophos XGS 防火墙把 syslog 发送到 [探针](/docs/monitor/network-device-monitor) 时，每条消息都会存储为该网络设备的日志，syslog 消息即为其正文。要解析它：
+OneUptime 会自行把 Sophos 和 FortiGate 的 syslog 读取为 `sophos.*` 和 `fortigate.*` 属性（参见[网络事件](/docs/monitor/network-events)）；这个示例手动构建同样的结果，就像你为它不了解的格式所做的那样。当 Sophos XGS 防火墙把 syslog 发送到 [探针](/docs/monitor/network-device-monitor) 时，每条消息都会存储为该网络设备的日志，syslog 消息即为其正文。要解析它：
 
 :::steps
 #### 为防火墙创建管道
@@ -199,7 +199,7 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 
 ## 类别处理器
 
-按顺序评估规则列表，并把第一个过滤器匹配的规则名称存储到目标属性中，这样你就可以一次搜索所有 "Payment Error" 日志。设置 **目标属性**（默认为 `category`），然后添加 **类别规则**：每条规则包含一个 **Category name** 和 **When logs match** 下的条件。第一个匹配的规则生效；不匹配任何规则的日志保持不变。
+按顺序评估规则列表，并把第一个过滤器匹配的规则名称存储到目标属性中，这样你就可以一次搜索所有 "Payment Error" 日志。设置 **目标属性**（默认为 `category`），然后添加 **类别规则**：每条规则包含一个 **Category name** 和 **When logs match** 下的条件。第一个匹配的规则生效；不匹配任何规则的日志保持不变。在网络设备的日志上，一条以事件形式命名的规则（`ups.on_battery`），放在目标属性 `event.name` 下，会使该日志成为[网络事件](/docs/monitor/network-events#你自己的事件)。
 
 ## 后续步骤
 

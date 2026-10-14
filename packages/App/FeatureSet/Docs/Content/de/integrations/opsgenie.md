@@ -49,7 +49,7 @@ Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen** un
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Trigger und wählen Sie in **Select Fields** die Felder `title` und `description`.
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Trigger und wählen Sie in **Fields to pass on** die Felder `title` und `description`.
 
 ### Den Alarm anlegen
 
@@ -85,7 +85,7 @@ Ein Workflow hat einen Trigger, das Schließen braucht also einen zweiten Workfl
 :::steps
 ### Den Trigger On Update Incident hinzufügen
 
-Legen Sie einen Workflow namens `Close Opsgenie alerts` an und wählen Sie **On Update Incident** als Trigger. Wählen Sie in **Listen on** das Feld `currentIncidentStateId`, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Select Fields** ab, ob der neue Status ein behobener ist:
+Legen Sie einen Workflow namens `Close Opsgenie alerts` an und wählen Sie **On Update Incident** als Trigger. Wählen Sie in **Fields to watch** das Feld `currentIncidentStateId`, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Fields to pass on** ab, ob der neue Status ein behobener ist:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ Schalten Sie **Aktiviert** ein und beheben Sie dann einen Testvorfall in OneUpti
 
 Um den Schweregrad jedes Vorfalls als Opsgenie-Priorität zu senden, fügen Sie zwischen dem Trigger und dem **API Post (JSON)**-Baustein einen **Run Custom JavaScript**-Baustein hinzu.
 
-1. Wählen Sie in den **Select Fields** des Triggers zusätzlich den `name` des Schweregrads: `{ "incidentSeverity": { "name": true } }`.
+1. Wählen Sie in den **Fields to pass on** des Triggers zusätzlich den `name` des Schweregrads: `{ "incidentSeverity": { "name": true } }`.
 2. Setzen Sie die **Arguments** des Bausteins auf `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` und seinen **JavaScript Code** auf:
 
    ```javascript

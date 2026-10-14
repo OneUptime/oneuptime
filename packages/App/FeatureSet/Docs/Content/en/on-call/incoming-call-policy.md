@@ -212,7 +212,7 @@ Incoming call logs are available as workflow triggers:
 To act on missed calls only, for example to post them to Slack or Microsoft Teams or to open a ticket:
 
 :::steps
-1. Add the **On Update Incoming Call Log** trigger. Set **Listen on** to **Ended At**, and select the fields you want to use, such as **Status**, **Caller Phone Number** and **Routing Phone Number**.
+1. Add the **On Update Incoming Call Log** trigger. Set **Fields to watch** to **Ended At**, and select the fields you want to use, such as **Status**, **Caller Phone Number** and **Routing Phone Number**.
 2. Add an **If / Else** step. Check the trigger's **Status**, with the comparison **is not equal to** and `Completed`.
 3. Connect your steps to the **Yes** port.
 :::
