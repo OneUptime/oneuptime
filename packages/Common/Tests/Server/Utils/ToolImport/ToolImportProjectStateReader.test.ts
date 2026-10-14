@@ -1,17 +1,26 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import ServiceModel from "../../../../Models/DatabaseModels/Service";
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "../../../../Models/DatabaseModels/StatusPageSubscriber";
+import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import ToolImportRecord from "../../../../Models/DatabaseModels/ToolImportRecord";
+import User from "../../../../Models/DatabaseModels/User";
 import IncidentRoleService from "../../../../Server/Services/IncidentRoleService";
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
 import MonitorService from "../../../../Server/Services/MonitorService";
+import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallDutyPolicyScheduleService";
+import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
+import ServiceService from "../../../../Server/Services/ServiceService";
 import StatusPageService from "../../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../../../Server/Services/StatusPageSubscriberService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import TeamService from "../../../../Server/Services/TeamService";
 import ToolImportRecordService from "../../../../Server/Services/ToolImportRecordService";
 import {
   buildToolImportPlan,
+  ToolImportExistingRecord,
   ToolImportPreviousRecord,
   ToolImportProjectState,
 } from "../../../../Server/Utils/ToolImport/ToolImportPlanner";
@@ -22,6 +31,11 @@ import Email from "../../../../Types/Email";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import { TOOL_IMPORT_MAX_RECORDS_PER_KIND } from "../../../../Types/ToolImport/ToolImportLimits";
+import {
+  buildToolImportMonitor,
+  getToolImportMonitorMatchKey,
+  ToolImportMonitorDefaults,
+} from "../../../../Types/ToolImport/ToolImportMonitorBuilder";
 import {
   makeToolImportNote,
   ToolImportNoteCode,
@@ -34,13 +48,19 @@ import {
 import ToolImportResourceKind, {
   getToolImportItemKey,
 } from "../../../../Types/ToolImport/ToolImportResourceKind";
+import { ImportedMonitor } from "../../../../Types/ToolImport/ToolImportSnapshot";
 import ToolImportSource from "../../../../Types/ToolImport/ToolImportSource";
 import {
   idsNamedBy,
   readAsTheDatabaseWould,
   TableRead,
 } from "./ToolImportApplierWorld";
-import { fullAccess, snapshot } from "./ToolImportSnapshotFixtures";
+import {
+  fullAccess,
+  person,
+  service,
+  snapshot,
+} from "./ToolImportSnapshotFixtures";
 
 /*
  * What a project holds of the imports before, read whatever its size:
@@ -53,7 +73,12 @@ import { fullAccess, snapshot } from "./ToolImportSnapshotFixtures";
  *  - every record earlier imports remembered, and every subscriber the
  *    project has (readState), past the most rows one read returns: what the
  *    first import brought over stays already imported, and someone who
- *    already follows a page is that subscriber, after any number of imports.
+ *    already follows a page is that subscriber, after any number of imports;
+ *  - every monitor, membership and record of a kind the project has
+ *    (readState), past the most rows one read returns: what an import made
+ *    among the oldest of them stays already imported, and an imported check,
+ *    person or service is the oldest monitor, member or service it already
+ *    is - never made, or invited, a second time.
  */
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
@@ -201,6 +226,12 @@ describe("ToolImportProjectStateReader.readState, past the most rows one read re
   // Two imports of the page's subscribers, each bringing as many as it reads.
   const IMPORTED: number = 2 * TOOL_IMPORT_MAX_RECORDS_PER_KIND;
 
+  // Every page of a read of every row: a page at a time, in the order of their ids.
+  const EVERY_PAGE: Array<unknown> = [
+    [0, LIMIT_MAX, { _id: SortOrder.Ascending }],
+    [LIMIT_MAX, LIMIT_MAX, { _id: SortOrder.Ascending }],
+  ];
+
   interface StatuspageProject {
     // What the imports remembered, oldest first.
     records: Array<ToolImportRecord>;
@@ -210,15 +241,17 @@ describe("ToolImportProjectStateReader.readState, past the most rows one read re
     deletedSourceId: string;
   }
 
+  // What an import of `source` remembered of one of its items.
   function rememberedRecord(
     kind: ToolImportResourceKind,
     sourceId: string,
     recordId: ObjectID,
+    source: ToolImportSource = ToolImportSource.AtlassianStatuspage,
   ): ToolImportRecord {
     const record: ToolImportRecord = new ToolImportRecord();
     record.id = ObjectID.generate();
     record.projectId = PROJECT_ID;
-    record.source = ToolImportSource.AtlassianStatuspage;
+    record.source = source;
     record.kind = kind;
     record.sourceId = sourceId;
     record.recordId = recordId;
@@ -275,6 +308,50 @@ describe("ToolImportProjectStateReader.readState, past the most rows one read re
     return { records, subscribers, deletedSourceId };
   }
 
+  /*
+   * A table of the project as its service answers reads of it: `rows`
+   * (oldest first) as the database reads them (readAsTheDatabaseWould: a
+   * read that stops at its limit misses the oldest). Each read is kept.
+   */
+  function serveTable<T extends BaseModel>(
+    databaseService: unknown,
+    rows: Array<T>,
+  ): Array<TableRead> {
+    const reads: Array<TableRead> = [];
+
+    jest
+      .spyOn(
+        databaseService as {
+          findBy: (args: TableRead) => Promise<Array<T>>;
+        },
+        "findBy",
+      )
+      .mockImplementation(async (args: TableRead): Promise<Array<T>> => {
+        reads.push(args);
+        return readAsTheDatabaseWould(rows, args);
+      });
+
+    return reads;
+  }
+
+  // Tables the project has nothing in.
+  function serveNothingFrom(databaseServices: Array<unknown>): void {
+    for (const databaseService of databaseServices) {
+      jest
+        .spyOn(databaseService as { findBy: () => Promise<[]> }, "findBy")
+        .mockImplementation(async (): Promise<[]> => {
+          return [];
+        });
+    }
+  }
+
+  // Where each read started, how many rows it asked for, and in what order.
+  function pagesOf(reads: Array<TableRead>): Array<unknown> {
+    return reads.map((read: TableRead): unknown => {
+      return [read.skip, read.limit, read.sort];
+    });
+  }
+
   interface ProjectReads {
     records: Array<TableRead>;
     subscribers: Array<TableRead>;
@@ -282,28 +359,14 @@ describe("ToolImportProjectStateReader.readState, past the most rows one read re
 
   /*
    * The project as its services answer: the records and the subscribers as
-   * the database reads them (readAsTheDatabaseWould: a read that stops at
-   * its limit misses the oldest), and the page and the component renamed
-   * in OneUptime since the import, so neither has the tool's name.
+   * the database reads them, and the page and the component renamed in
+   * OneUptime since the import, so neither has the tool's name.
    */
   function serveProject(project: StatuspageProject): ProjectReads {
-    const reads: ProjectReads = { records: [], subscribers: [] };
-
-    jest.spyOn(ToolImportRecordService, "findBy").mockImplementation((async (
-      args: TableRead,
-    ): Promise<Array<ToolImportRecord>> => {
-      reads.records.push(args);
-      return readAsTheDatabaseWould(project.records, args);
-    }) as never);
-
-    jest
-      .spyOn(StatusPageSubscriberService, "findBy")
-      .mockImplementation((async (
-        args: TableRead,
-      ): Promise<Array<StatusPageSubscriber>> => {
-        reads.subscribers.push(args);
-        return readAsTheDatabaseWould(project.subscribers, args);
-      }) as never);
+    const reads: ProjectReads = {
+      records: serveTable(ToolImportRecordService, project.records),
+      subscribers: serveTable(StatusPageSubscriberService, project.subscribers),
+    };
 
     const page: StatusPage = new StatusPage();
     page.id = PAGE_ID;
@@ -321,25 +384,31 @@ describe("ToolImportProjectStateReader.readState, past the most rows one read re
       return [component];
     }) as never);
 
-    for (const service of [
+    serveNothingFrom([
       TeamMemberService,
       IncidentStateService,
       IncidentRoleService,
-    ]) {
-      jest
-        .spyOn(service as unknown as { findBy: () => Promise<[]> }, "findBy")
-        .mockImplementation(async (): Promise<[]> => {
-          return [];
-        });
-    }
+    ]);
 
     return reads;
   }
 
-  async function readStatuspageState(): Promise<ToolImportProjectState> {
+  async function readStateOf(
+    source: ToolImportSource,
+  ): Promise<ToolImportProjectState> {
     return await ToolImportProjectStateReader.readState({
       projectId: PROJECT_ID,
-      source: ToolImportSource.AtlassianStatuspage,
+      source: source,
+    });
+  }
+
+  function itemOf(
+    plan: ToolImportPlan,
+    kind: ToolImportResourceKind,
+    sourceId: string,
+  ): ToolImportPlanItem | undefined {
+    return plan.items.find((candidate: ToolImportPlanItem): boolean => {
+      return candidate.key === getToolImportItemKey(kind, sourceId);
     });
   }
 
@@ -350,7 +419,9 @@ describe("ToolImportProjectStateReader.readState, past the most rows one read re
     expect(project.records.length).toBeGreaterThan(LIMIT_MAX);
     expect(project.subscribers.length).toBeGreaterThan(LIMIT_MAX);
 
-    const state: ToolImportProjectState = await readStatuspageState();
+    const state: ToolImportProjectState = await readStateOf(
+      ToolImportSource.AtlassianStatuspage,
+    );
 
     expect(state.previousRecords).toHaveLength(project.records.length);
     // The first import's, the oldest of them all.
@@ -395,22 +466,8 @@ describe("ToolImportProjectStateReader.readState, past the most rows one read re
     expect(emails?.has("late-4@example.com")).toBe(true);
 
     // Read a page at a time, in the order of their ids, to the last row.
-    const pages: (list: Array<TableRead>) => Array<unknown> = (
-      list: Array<TableRead>,
-    ): Array<unknown> => {
-      return list.map((read: TableRead): unknown => {
-        return [read.skip, read.limit, read.sort];
-      });
-    };
-
-    expect(pages(reads.records)).toEqual([
-      [0, LIMIT_MAX, { _id: SortOrder.Ascending }],
-      [LIMIT_MAX, LIMIT_MAX, { _id: SortOrder.Ascending }],
-    ]);
-    expect(pages(reads.subscribers)).toEqual([
-      [0, LIMIT_MAX, { _id: SortOrder.Ascending }],
-      [LIMIT_MAX, LIMIT_MAX, { _id: SortOrder.Ascending }],
-    ]);
+    expect(pagesOf(reads.records)).toEqual(EVERY_PAGE);
+    expect(pagesOf(reads.subscribers)).toEqual(EVERY_PAGE);
   });
 
   test("imported again, the page and its component are already imported - renamed since, never made twice - and someone who already follows the page is that subscriber", async () => {
@@ -465,30 +522,23 @@ describe("ToolImportProjectStateReader.readState, past the most rows one read re
           },
         ],
       }),
-      state: await readStatuspageState(),
+      state: await readStateOf(ToolImportSource.AtlassianStatuspage),
       access: fullAccess(),
     });
 
-    const item: (kind: ToolImportResourceKind, id: string) => unknown = (
-      kind: ToolImportResourceKind,
-      id: string,
-    ): unknown => {
-      return plan.items.find((candidate: ToolImportPlanItem): boolean => {
-        return candidate.key === getToolImportItemKey(kind, id);
-      });
-    };
-
-    expect(item(ToolImportResourceKind.StatusPage, "acme")).toMatchObject({
+    expect(
+      itemOf(plan, ToolImportResourceKind.StatusPage, "acme"),
+    ).toMatchObject({
       action: ToolImportAction.AlreadyImported,
       existingRecordId: PAGE_ID.toString(),
     });
-    expect(item(ToolImportResourceKind.Monitor, "web")).toMatchObject({
+    expect(itemOf(plan, ToolImportResourceKind.Monitor, "web")).toMatchObject({
       action: ToolImportAction.AlreadyImported,
       existingRecordId: MONITOR_ID.toString(),
     });
     // Not offered: subscribing Ann again would be refused.
     expect(
-      item(ToolImportResourceKind.StatusPageSubscriber, "ann"),
+      itemOf(plan, ToolImportResourceKind.StatusPageSubscriber, "ann"),
     ).toMatchObject({
       action: ToolImportAction.Match,
       existingRecordId: PAGE_ID.toString(),
@@ -497,7 +547,429 @@ describe("ToolImportProjectStateReader.readState, past the most rows one read re
       ),
     });
     expect(
-      item(ToolImportResourceKind.StatusPageSubscriber, "bob"),
+      itemOf(plan, ToolImportResourceKind.StatusPageSubscriber, "bob"),
     ).toMatchObject({ action: ToolImportAction.Create });
+  });
+
+  // The statuses and severities a monitor's steps name.
+  const MONITOR_DEFAULTS: ToolImportMonitorDefaults = {
+    onlineMonitorStatusId: ObjectID.generate(),
+    offlineMonitorStatusId: ObjectID.generate(),
+    defaultIncidentSeverityId: ObjectID.generate(),
+    defaultAlertSeverityId: ObjectID.generate(),
+  };
+
+  // A Pingdom check of a website.
+  function websiteCheck(
+    sourceId: string,
+    name: string,
+    url: string,
+  ): ImportedMonitor {
+    return {
+      sourceId: sourceId,
+      name: name,
+      sourceType: "http",
+      monitorType: MonitorType.Website,
+      destination: url,
+      isPaused: false,
+      notes: [],
+    };
+  }
+
+  const CHECKOUT_CHECK: ImportedMonitor = websiteCheck(
+    "checkout",
+    "Checkout",
+    "https://checkout.example.com",
+  );
+  const DOCS_CHECK: ImportedMonitor = websiteCheck(
+    "docs",
+    "Docs",
+    "https://docs.example.com",
+  );
+
+  // A monitor of the project, called `name`, that checks what `check` does.
+  function monitorChecking(check: ImportedMonitor, name: string): Monitor {
+    const monitor: Monitor = new Monitor();
+    monitor.id = ObjectID.generate();
+    monitor.projectId = PROJECT_ID;
+    monitor.name = name;
+    monitor.monitorType = check.monitorType!;
+    monitor.monitorSteps = buildToolImportMonitor({
+      monitor: check,
+      defaults: MONITOR_DEFAULTS,
+    }).monitorSteps;
+    return monitor;
+  }
+
+  interface PingdomProject {
+    // The project's monitors, oldest first.
+    monitors: Array<Monitor>;
+    // What the import remembered.
+    records: Array<ToolImportRecord>;
+    // The monitor the import made of the checkout check.
+    checkout: Monitor;
+    // The monitor someone made in OneUptime of what the docs check checks.
+    docs: Monitor;
+  }
+
+  /*
+   * A Pingdom account imported once. The monitor someone made in OneUptime
+   * of what its docs check checks, and the one the import made of its
+   * checkout check - renamed in OneUptime since - are the project's
+   * oldest: more monitors than one read returns were made after them.
+   */
+  function pingdomProject(): PingdomProject {
+    const docs: Monitor = monitorChecking(DOCS_CHECK, "Docs");
+    const checkout: Monitor = monitorChecking(CHECKOUT_CHECK, "Checkout (EU)");
+    const monitors: Array<Monitor> = [docs, checkout];
+
+    for (let index: number = 0; index < LIMIT_MAX; index++) {
+      const monitor: Monitor = new Monitor();
+      monitor.id = ObjectID.generate();
+      monitor.projectId = PROJECT_ID;
+      monitor.name = `Release ${index}`;
+      monitor.monitorType = MonitorType.Manual;
+      monitors.push(monitor);
+    }
+
+    return {
+      monitors: monitors,
+      records: [
+        rememberedRecord(
+          ToolImportResourceKind.Monitor,
+          CHECKOUT_CHECK.sourceId,
+          checkout.id!,
+          ToolImportSource.Pingdom,
+        ),
+      ],
+      checkout: checkout,
+      docs: docs,
+    };
+  }
+
+  // The project as its services answer, and the reads of its monitors.
+  function servePingdomProject(project: PingdomProject): Array<TableRead> {
+    serveTable(ToolImportRecordService, project.records);
+    serveNothingFrom([
+      TeamMemberService,
+      IncidentStateService,
+      IncidentRoleService,
+    ]);
+
+    return serveTable(MonitorService, project.monitors);
+  }
+
+  test("every monitor is read, page by page, with what it checks: the oldest are there, the one an import made too", async () => {
+    const project: PingdomProject = pingdomProject();
+    const reads: Array<TableRead> = servePingdomProject(project);
+
+    expect(project.monitors.length).toBeGreaterThan(LIMIT_MAX);
+
+    const state: ToolImportProjectState = await readStateOf(
+      ToolImportSource.Pingdom,
+    );
+
+    // By name: what tells the import's monitor is still there.
+    const named: Array<ToolImportExistingRecord> =
+      state.existingByKind.get(ToolImportResourceKind.Monitor) || [];
+
+    expect(named).toHaveLength(project.monitors.length);
+    expect(named).toEqual(
+      expect.arrayContaining([
+        { id: project.docs.id!.toString(), name: "Docs" },
+        { id: project.checkout.id!.toString(), name: "Checkout (EU)" },
+      ]),
+    );
+    expect(state.previousRecords).toEqual([
+      {
+        kind: ToolImportResourceKind.Monitor,
+        sourceId: "checkout",
+        recordId: project.checkout.id!.toString(),
+        isComplete: true,
+        stillExists: true,
+      },
+    ]);
+
+    // With what each checks: what an imported check is matched to.
+    expect(state.existingMonitors).toHaveLength(project.monitors.length);
+    expect(state.existingMonitors).toEqual(
+      expect.arrayContaining([
+        {
+          id: project.docs.id!.toString(),
+          name: "Docs",
+          monitorType: MonitorType.Website,
+          addressKey: getToolImportMonitorMatchKey(DOCS_CHECK),
+        },
+        {
+          id: project.checkout.id!.toString(),
+          name: "Checkout (EU)",
+          monitorType: MonitorType.Website,
+          addressKey: getToolImportMonitorMatchKey(CHECKOUT_CHECK),
+        },
+      ]),
+    );
+
+    // Both reads - by name, then with what each checks - to the last row.
+    expect(pagesOf(reads)).toEqual([...EVERY_PAGE, ...EVERY_PAGE]);
+  });
+
+  test("imported again, the monitor the import made is already imported - renamed since, never made twice - and a check is the oldest monitor that already checks what it does", async () => {
+    const project: PingdomProject = pingdomProject();
+    servePingdomProject(project);
+
+    const plan: ToolImportPlan = buildToolImportPlan({
+      snapshot: snapshot({
+        source: ToolImportSource.Pingdom,
+        monitors: [CHECKOUT_CHECK, DOCS_CHECK],
+      }),
+      state: await readStateOf(ToolImportSource.Pingdom),
+      access: fullAccess(),
+    });
+
+    const checkout: ToolImportPlanItem | undefined = itemOf(
+      plan,
+      ToolImportResourceKind.Monitor,
+      "checkout",
+    );
+
+    expect(checkout).toMatchObject({
+      action: ToolImportAction.AlreadyImported,
+      existingRecordId: project.checkout.id!.toString(),
+    });
+    expect(checkout?.notes).not.toContainEqual(
+      makeToolImportNote(ToolImportNoteCode.ImportedBeforeDeletedSince),
+    );
+    expect(itemOf(plan, ToolImportResourceKind.Monitor, "docs")).toMatchObject({
+      action: ToolImportAction.Match,
+      existingRecordId: project.docs.id!.toString(),
+      reason: makeToolImportNote(ToolImportNoteCode.MonitorAlreadyChecked, {
+        name: "Docs",
+      }),
+    });
+  });
+
+  // Someone's membership of the project, with their account's email.
+  function membershipOf(email: string): TeamMember {
+    const user: User = new User();
+    user.id = ObjectID.generate();
+    user.email = new Email(email);
+
+    const membership: TeamMember = new TeamMember();
+    membership.id = ObjectID.generate();
+    membership.projectId = PROJECT_ID;
+    membership.userId = user.id!;
+    membership.user = user;
+    return membership;
+  }
+
+  function serviceNamed(name: string): ServiceModel {
+    const record: ServiceModel = new ServiceModel();
+    record.id = ObjectID.generate();
+    record.projectId = PROJECT_ID;
+    record.name = name;
+    return record;
+  }
+
+  interface OpsGenieProject {
+    // The project's memberships and services, oldest first.
+    memberships: Array<TeamMember>;
+    services: Array<ServiceModel>;
+    // What the import remembered.
+    records: Array<ToolImportRecord>;
+    // Ann, whom the import invited, and Bob, a member before it.
+    ann: TeamMember;
+    bob: TeamMember;
+    // The service the import made of the checkout service.
+    checkout: ServiceModel;
+    // Billing, made in OneUptime before the import.
+    billing: ServiceModel;
+  }
+
+  /*
+   * An Opsgenie account imported once: Ann, invited then, and its checkout
+   * service, renamed in OneUptime since. Bob was a member, and Billing a
+   * service, before the import. They are the project's oldest memberships
+   * and services: more of each than one read returns were made after them.
+   */
+  function opsGenieProject(): OpsGenieProject {
+    const bob: TeamMember = membershipOf("bob@example.com");
+    const ann: TeamMember = membershipOf("ann@example.com");
+    const billing: ServiceModel = serviceNamed("Billing");
+    const checkout: ServiceModel = serviceNamed("Checkout (legacy)");
+    const memberships: Array<TeamMember> = [bob, ann];
+    const services: Array<ServiceModel> = [billing, checkout];
+
+    for (let index: number = 0; index < LIMIT_MAX; index++) {
+      memberships.push(membershipOf(`member-${index}@example.com`));
+      services.push(serviceNamed(`Service ${index}`));
+    }
+
+    return {
+      memberships: memberships,
+      services: services,
+      records: [
+        rememberedRecord(
+          ToolImportResourceKind.Person,
+          "ann",
+          ann.userId!,
+          ToolImportSource.OpsGenie,
+        ),
+        rememberedRecord(
+          ToolImportResourceKind.Service,
+          "checkout",
+          checkout.id!,
+          ToolImportSource.OpsGenie,
+        ),
+      ],
+      ann: ann,
+      bob: bob,
+      checkout: checkout,
+      billing: billing,
+    };
+  }
+
+  interface OpsGenieReads {
+    memberships: Array<TableRead>;
+    services: Array<TableRead>;
+  }
+
+  // The project as its services answer: no teams, schedules or policies.
+  function serveOpsGenieProject(project: OpsGenieProject): OpsGenieReads {
+    serveTable(ToolImportRecordService, project.records);
+    serveNothingFrom([
+      TeamService,
+      OnCallDutyPolicyScheduleService,
+      OnCallDutyPolicyService,
+      IncidentStateService,
+      IncidentRoleService,
+    ]);
+
+    return {
+      memberships: serveTable(TeamMemberService, project.memberships),
+      services: serveTable(ServiceService, project.services),
+    };
+  }
+
+  test("every membership is read, page by page, each with its person's email, and every service: the oldest are there, what the import made too", async () => {
+    const project: OpsGenieProject = opsGenieProject();
+    const reads: OpsGenieReads = serveOpsGenieProject(project);
+
+    expect(project.memberships.length).toBeGreaterThan(LIMIT_MAX);
+    expect(project.services.length).toBeGreaterThan(LIMIT_MAX);
+
+    const state: ToolImportProjectState = await readStateOf(
+      ToolImportSource.OpsGenie,
+    );
+
+    // Everyone, by email.
+    expect(state.memberUserIdsByEmail.size).toBe(project.memberships.length);
+    expect(state.memberUserIdsByEmail.get("ann@example.com")).toBe(
+      project.ann.userId!.toString(),
+    );
+    expect(state.memberUserIdsByEmail.get("bob@example.com")).toBe(
+      project.bob.userId!.toString(),
+    );
+
+    // Every service, by name.
+    const services: Array<ToolImportExistingRecord> =
+      state.existingByKind.get(ToolImportResourceKind.Service) || [];
+
+    expect(services).toHaveLength(project.services.length);
+    expect(services).toEqual(
+      expect.arrayContaining([
+        { id: project.billing.id!.toString(), name: "Billing" },
+        { id: project.checkout.id!.toString(), name: "Checkout (legacy)" },
+      ]),
+    );
+
+    // Ann is still a member, and the service the import made is still there.
+    expect(state.previousRecords).toHaveLength(2);
+    expect(state.previousRecords).toEqual(
+      expect.arrayContaining([
+        {
+          kind: ToolImportResourceKind.Person,
+          sourceId: "ann",
+          recordId: project.ann.userId!.toString(),
+          isComplete: true,
+          stillExists: true,
+        },
+        {
+          kind: ToolImportResourceKind.Service,
+          sourceId: "checkout",
+          recordId: project.checkout.id!.toString(),
+          isComplete: true,
+          stillExists: true,
+        },
+      ]),
+    );
+
+    // Read a page at a time, in the order of their ids, to the last row...
+    expect(pagesOf(reads.memberships)).toEqual(EVERY_PAGE);
+    expect(pagesOf(reads.services)).toEqual(EVERY_PAGE);
+    // ...each membership with its person's email.
+    expect(
+      reads.memberships.map((read: TableRead): unknown => {
+        return read.select;
+      }),
+    ).toEqual([
+      { userId: true, user: { email: true } },
+      { userId: true, user: { email: true } },
+    ]);
+  });
+
+  test("imported again, the oldest members are matched, not invited again, the service the import made is already imported - renamed since, never made twice - and the oldest service is matched by its name", async () => {
+    const project: OpsGenieProject = opsGenieProject();
+    serveOpsGenieProject(project);
+
+    const plan: ToolImportPlan = buildToolImportPlan({
+      snapshot: snapshot({
+        source: ToolImportSource.OpsGenie,
+        people: [person("ann"), person("bob"), person("carol")],
+        services: [
+          service("checkout", "Checkout"),
+          service("billing", "Billing"),
+        ],
+      }),
+      state: await readStateOf(ToolImportSource.OpsGenie),
+      access: fullAccess(),
+    });
+
+    expect(itemOf(plan, ToolImportResourceKind.Person, "ann")).toMatchObject({
+      action: ToolImportAction.Match,
+      existingRecordId: project.ann.userId!.toString(),
+      reason: makeToolImportNote(ToolImportNoteCode.PersonAlreadyMember),
+    });
+    expect(itemOf(plan, ToolImportResourceKind.Person, "bob")).toMatchObject({
+      action: ToolImportAction.Match,
+      existingRecordId: project.bob.userId!.toString(),
+      reason: makeToolImportNote(ToolImportNoteCode.PersonAlreadyMember),
+    });
+    // Someone new is still invited.
+    expect(itemOf(plan, ToolImportResourceKind.Person, "carol")).toMatchObject({
+      action: ToolImportAction.Invite,
+    });
+
+    const checkout: ToolImportPlanItem | undefined = itemOf(
+      plan,
+      ToolImportResourceKind.Service,
+      "checkout",
+    );
+
+    expect(checkout).toMatchObject({
+      action: ToolImportAction.AlreadyImported,
+      existingRecordId: project.checkout.id!.toString(),
+    });
+    expect(checkout?.notes).not.toContainEqual(
+      makeToolImportNote(ToolImportNoteCode.ImportedBeforeDeletedSince),
+    );
+    expect(
+      itemOf(plan, ToolImportResourceKind.Service, "billing"),
+    ).toMatchObject({
+      action: ToolImportAction.Match,
+      existingRecordId: project.billing.id!.toString(),
+      reason: makeToolImportNote(ToolImportNoteCode.NameExists, {
+        name: "Billing",
+      }),
+    });
   });
 });
