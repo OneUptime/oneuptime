@@ -1,6 +1,7 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyScheduleLayerService from "./OnCallDutyPolicyScheduleLayerService";
 import OnCallDutyPolicyScheduleLayerUserService from "./OnCallDutyPolicyScheduleLayerUserService";
+import WorkspaceUserGroupService from "./WorkspaceUserGroupService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CalendarEvent from "../../Types/Calendar/CalendarEvent";
@@ -75,6 +76,7 @@ import {
   getLayerName,
 } from "../../Types/OnCallDutyPolicy/ScheduleLayerDefaults";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import WorkspaceUserGroupSync from "../Utils/Workspace/UserGroups/WorkspaceUserGroupSync";
 
 /*
  * Who is on call in a schedule at a moment (getCurrentOnCallInSchedule).
@@ -576,9 +578,33 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       logger.error(err);
     }
 
+    /*
+     * The on-call user groups that follow a schedule being deleted. Their
+     * links to it cascade away, so they are found now and looked at once it
+     * is gone: each keeps the people of the schedules it still follows, and
+     * one that followed only these stops being kept in step. Best-effort.
+     */
+    let workspaceUserGroupIds: Array<ObjectID> = [];
+
+    try {
+      workspaceUserGroupIds =
+        await WorkspaceUserGroupService.findIdsFollowingSchedules(
+          deletedSchedules.map(
+            (deleted: { scheduleId: ObjectID }): ObjectID => {
+              return deleted.scheduleId;
+            },
+          ),
+        );
+    } catch (err) {
+      logger.error(
+        "Error finding the on-call user groups of deleted schedules (best-effort).",
+      );
+      logger.error(err);
+    }
+
     return {
       deleteBy: deleteBy,
-      carryForward: { deletedSchedules },
+      carryForward: { deletedSchedules, workspaceUserGroupIds },
     };
   }
 
@@ -606,6 +632,18 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         reason: OnCallShiftChangeReason.ScheduleDeleted,
         skipVersionBump: true,
       });
+    }
+
+    const workspaceUserGroupIds: Array<ObjectID> =
+      onDelete.carryForward?.workspaceUserGroupIds || [];
+
+    if (workspaceUserGroupIds.length > 0) {
+      // In the background: the delete does not wait for Slack or Teams.
+      WorkspaceUserGroupSync.requestSync(workspaceUserGroupIds).catch(
+        (err: unknown) => {
+          logger.error(err);
+        },
+      );
     }
 
     return onDelete;
@@ -1541,6 +1579,25 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         ignoreHooks: true,
       },
     });
+
+    /*
+     * Somebody else is on call now - a hand-off, an override or a skip
+     * starting or ending, a layer edited: the Slack user groups and
+     * Microsoft Teams tags that follow this schedule take them. In the
+     * background, so neither this refresh nor its lock waits for Slack.
+     */
+    if (
+      Service.isSameUser(
+        previousInformation.currentUserIdOnRoster,
+        newInformation.currentUserId,
+      ) === false
+    ) {
+      WorkspaceUserGroupSync.requestSyncForSchedules([scheduleId]).catch(
+        (err: unknown) => {
+          logger.error(err);
+        },
+      );
+    }
 
     logger.debug(
       "Returning new schedule information for scheduleId: " +
@@ -2743,6 +2800,16 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         event.end.getTime() > windowStart.getTime()
       );
     });
+  }
+
+  // Whether two roster users are the same person (nobody and nobody are).
+  public static isSameUser(
+    a: ObjectID | null | undefined,
+    b: ObjectID | null | undefined,
+  ): boolean {
+    return (
+      (a?.toString() || "").toLowerCase() === (b?.toString() || "").toLowerCase()
+    );
   }
 
   private static toVersionNumber(value: unknown): number {

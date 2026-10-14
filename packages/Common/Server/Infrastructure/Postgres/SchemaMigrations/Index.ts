@@ -88,6 +88,7 @@ import { AddUserNotificationRulePushNotificationLevel1801600000000 } from "./180
 import { AddCriticalAlertSoundVolumeAndPushRepeat1801650000000 } from "./1801650000000-AddCriticalAlertSoundVolumeAndPushRepeat";
 import { AddInstanceTokenSigningKey1801700000000 } from "./1801700000000-AddInstanceTokenSigningKey";
 import { AddOnCallDirectPages1801750000000 } from "./1801750000000-AddOnCallDirectPages";
+import { AddWorkspaceUserGroup1801800000000 } from "./1801800000000-AddWorkspaceUserGroup";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1376,4 +1377,5 @@ export default [
   AddCriticalAlertSoundVolumeAndPushRepeat1801650000000,
   AddInstanceTokenSigningKey1801700000000,
   AddOnCallDirectPages1801750000000,
+  AddWorkspaceUserGroup1801800000000,
 ];

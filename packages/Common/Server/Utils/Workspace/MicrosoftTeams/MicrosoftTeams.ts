@@ -349,6 +349,18 @@ const MICROSOFT_TEAMS_ROSTER_ERROR_FRAGMENTS: Array<string> = [
 // Maximum number of pages to fetch when paginating teams
 const MICROSOFT_TEAMS_MAX_PAGES: number = 500;
 
+// The most people of a team's roster read (MicrosoftTeamsUtil.getTeamRoster).
+const MICROSOFT_TEAMS_MAX_ROSTER_MEMBERS: number = 10000;
+
+// One person of a team, as its roster tells them.
+export interface MicrosoftTeamsRosterMember {
+  // Their Microsoft Entra object id: what a tag's member is.
+  aadObjectId: string;
+  email: string;
+  userPrincipalName: string;
+  name: string;
+}
+
 // How many affected monitors a "show ..." reply names for one item.
 const MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES: number = 10;
 
@@ -6493,6 +6505,101 @@ All monitoring checks are passing normally.`;
     }
 
     return index;
+  }
+
+  /*
+   * The people of a team OneUptime's app is installed in, as the Bot
+   * Connector tells them (the team's roster): each one's Microsoft Entra
+   * object id, email address and name. A tag can only hold a team's
+   * members, and this is how the on-call user group sync finds them by
+   * their OneUptime email address - without a Microsoft Graph permission to
+   * read people. Null when OneUptime does not know the app to be in the
+   * team, since only then can its bot read the roster. Throws when the Bot
+   * Connector refuses.
+   */
+  @CaptureSpan()
+  public static async getTeamRoster(data: {
+    projectId: ObjectID;
+    // The team's Microsoft Graph id.
+    teamId: string;
+  }): Promise<Array<MicrosoftTeamsRosterMember> | null> {
+    if (!MicrosoftTeamsAppClientId) {
+      return null;
+    }
+
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    const miscData: MicrosoftTeamsMiscData | undefined =
+      projectAuth?.miscData as MicrosoftTeamsMiscData | undefined;
+
+    const installedTeam: MicrosoftTeamsInstalledTeam | undefined =
+      this.indexInstalledTeamsByGraphTeamId(miscData?.installedTeams)[
+        data.teamId
+      ];
+
+    if (!projectAuth || !installedTeam || !installedTeam.teamsThreadId) {
+      return null;
+    }
+
+    const teamsThreadId: string = installedTeam.teamsThreadId;
+
+    const conversationReference: ConversationReference = {
+      bot: {
+        id: MicrosoftTeamsAppClientId,
+        name: "OneUptime Bot",
+      },
+      conversation: {
+        id: teamsThreadId,
+        isGroup: true,
+        conversationType: "channel",
+        tenantId: projectAuth.workspaceProjectId || undefined,
+      } as ConversationReference["conversation"],
+      channelId: "msteams",
+      serviceUrl: MicrosoftTeamsServiceUrl.resolve(installedTeam.serviceUrl),
+    };
+
+    const members: Array<TeamsChannelAccount> = [];
+
+    await this.getBotAdapter().continueConversationAsync(
+      MicrosoftTeamsAppClientId,
+      conversationReference,
+      async (context: TurnContext) => {
+        let continuationToken: string | undefined = undefined;
+
+        do {
+          const page: TeamsPagedMembersResult =
+            await TeamsInfo.getPagedTeamMembers(
+              context,
+              teamsThreadId,
+              500,
+              continuationToken,
+            );
+
+          members.push(...(page.members || []));
+          continuationToken = page.continuationToken || undefined;
+        } while (
+          continuationToken &&
+          members.length < MICROSOFT_TEAMS_MAX_ROSTER_MEMBERS
+        );
+      },
+    );
+
+    return members
+      .filter((member: TeamsChannelAccount): boolean => {
+        return Boolean(member?.aadObjectId);
+      })
+      .map((member: TeamsChannelAccount): MicrosoftTeamsRosterMember => {
+        return {
+          aadObjectId: member.aadObjectId!,
+          email: (member.email || "").trim(),
+          userPrincipalName: (member.userPrincipalName || "").trim(),
+          name: (member.name || "").trim(),
+        };
+      });
   }
 
   /*
