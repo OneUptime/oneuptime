@@ -117,6 +117,8 @@ const READABLE_BELOW_PLAN_TABLES: ReadonlyArray<string> = [
   "StatusPageSSO",
   "WorkspaceNotificationRule",
   "WorkspaceNotificationSummary",
+  // The @team-oncall Slack user groups and Teams tags, kept in step after a downgrade.
+  "WorkspaceUserGroup",
 ];
 
 /*

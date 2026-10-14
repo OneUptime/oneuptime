@@ -97,6 +97,8 @@ function createIncident(): Incident {
 }
 
 beforeEach((): void => {
+  // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   // The project's plan, as the action's checks read it where a plan decides (CallerPlan).
   jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
     plan: PlanType.Enterprise,

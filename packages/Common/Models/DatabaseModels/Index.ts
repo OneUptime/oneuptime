@@ -498,6 +498,7 @@ import VideoCallConnection from "./VideoCallConnection";
 import IncidentVideoCall from "./IncidentVideoCall";
 import AlertVideoCall from "./AlertVideoCall";
 import WorkspaceNotificationSummary from "./WorkspaceNotificationSummary";
+import WorkspaceUserGroup from "./WorkspaceUserGroup";
 
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 import MonitorFeed from "./MonitorFeed";
@@ -937,6 +938,7 @@ const AllModelTypes: Array<{
   IncidentVideoCall,
   AlertVideoCall,
   WorkspaceNotificationSummary,
+  WorkspaceUserGroup,
 
   MonitorFeed,
   KubernetesClusterFeed,

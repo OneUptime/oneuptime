@@ -15,14 +15,19 @@
  *     dash that only parts it from the names. An @mention inside the
  *     message is part of it ("ask @simon to join"), written "@name".
  *
- * Only people are read from the text. A user group ("@oncall-db"), or an
- * "@name" a chat sent as plain text - a Slack app created from an older
- * manifest sends names, not people - names nobody OneUptime can tell, so
- * it is kept to be said in the answer. A team, an on-call schedule or an
- * on-call policy is picked in the form the command opens instead
- * (WorkspacePage): its name at the start of the text fills the form in
- * (startsWithName), but never pages anybody by itself - a team named
- * "Database" must not be paged by "/oneuptime page database is slow".
+ * People are read from the text, and groups: a Slack user group
+ * ("@payments-oncall") or a Microsoft Teams tag the chat sent as a mention,
+ * with the chat's id for it, and @here / @channel. A group that follows
+ * on-call schedules (WorkspaceUserGroup) is paged as those schedules
+ * (WorkspacePage.resolveGroups); any other names nobody OneUptime can tell,
+ * and so does an "@name" a chat sent as plain text - a Slack app created
+ * from an older manifest sends names, not people - so both are kept to be
+ * said in the answer. A team, an on-call schedule or an on-call policy is
+ * picked in the form the command opens instead (WorkspacePage): its name at
+ * the start of the text fills the form in (startsWithName), but never pages
+ * anybody by itself - a team named "Database" must not be paged by
+ * "/oneuptime page database is slow". A group's mention is no name that
+ * only happened to start the message: the chat sent it as a mention.
  *
  * Read one character at a time, in time that grows with the text: what a
  * person types reaches a server as it is.
@@ -36,19 +41,36 @@ export interface WorkspacePagePerson {
   name: string;
 }
 
+/*
+ * A group the text @mentions: a Slack user group, a Microsoft Teams tag (or
+ * channel), @here.
+ */
+export interface WorkspacePageGroup {
+  // As the chat wrote it, without the "@": "payments-oncall", "here".
+  name: string;
+  /*
+   * The chat's id for it: a Slack user group's (S0123), what Microsoft
+   * Teams mentioned. Empty for @here, @channel and @everyone.
+   */
+  workspaceGroupId: string;
+}
+
 // What a chat sent after "page", in order.
 export type WorkspacePageToken =
   | { kind: "text"; text: string }
   | { kind: "person"; person: WorkspacePagePerson }
-  // A user group, or @here / @channel: a name, without the "@".
-  | { kind: "group"; name: string };
+  /*
+   * A user group, a tag, or @here / @channel: a name, without the "@", and
+   * the chat's id for it when it has one.
+   */
+  | { kind: "group"; name: string; workspaceGroupId?: string | undefined };
 
 // The text, read.
 export interface WorkspacePageText {
   // The people @mentioned before the message, each once, in order.
   people: Array<WorkspacePagePerson>;
-  // The groups @mentioned before the message: "oncall-db", "here".
-  groups: Array<string>;
+  // The groups @mentioned before the message, each once, in order.
+  groups: Array<WorkspacePageGroup>;
   // The "@name"s sent as plain text before the message: "@nawaz".
   unknownNames: Array<string>;
   // The message, as typed, trimmed. Empty when there is none.
@@ -91,7 +113,7 @@ export default class WorkspacePageTextReader {
   // Reads the tokens a chat sent after "page" (see the header).
   public static read(tokens: Array<WorkspacePageToken>): WorkspacePageText {
     const people: Array<WorkspacePagePerson> = [];
-    const groups: Array<string> = [];
+    const groups: Array<WorkspacePageGroup> = [];
     const unknownNames: Array<string> = [];
 
     let tokenIndex: number = 0;
@@ -165,8 +187,22 @@ export default class WorkspacePageTextReader {
       }
 
       if (token.kind === "group") {
-        if (token.name.trim() && !groups.includes(token.name.trim())) {
-          groups.push(token.name.trim());
+        const group: WorkspacePageGroup = {
+          name: token.name.trim(),
+          workspaceGroupId: (token.workspaceGroupId || "").trim(),
+        };
+
+        // Each once: by the chat's id, or by name when it has none.
+        const isNamed: boolean = groups.some(
+          (named: WorkspacePageGroup): boolean => {
+            return group.workspaceGroupId
+              ? named.workspaceGroupId === group.workspaceGroupId
+              : !named.workspaceGroupId && named.name === group.name;
+          },
+        );
+
+        if ((group.name || group.workspaceGroupId) && !isNamed) {
+          groups.push(group);
         }
 
         hasNamedSomebody = true;

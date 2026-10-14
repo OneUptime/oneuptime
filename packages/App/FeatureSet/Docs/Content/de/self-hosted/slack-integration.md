@@ -154,6 +154,12 @@ Beschreibungen von Vorfällen und Alarmen können Screenshots enthalten, zum Bei
 
 Wenn Sie Ihre Slack-App aus einem älteren Manifest erstellt haben, fügen Sie `files:write` unter **OAuth & Permissions > Bot Token Scopes** hinzu (oder aktualisieren Sie die App aus dem aktuellen Manifest). Wählen Sie dann unter **Projekteinstellungen > Arbeitsbereich > Slack** erneut **Mit Slack verbinden**, damit der neue Scope gewährt wird. Bis dahin wird jeder Screenshot als sein Alternativtext angezeigt.
 
+### Bereitschafts-Benutzergruppen
+
+Damit die Slack-Benutzergruppe eines Bereitschaftsplans gleich denen bleibt, die Bereitschaft haben (siehe [Bereitschafts-Benutzergruppen](/docs/workspace-connections/slack#bereitschafts-benutzergruppen)), braucht es die Bot-Scopes `usergroups:read` und `usergroups:write`. Das erzeugte Manifest enthält sie.
+
+Wenn Sie Ihre Slack-App aus einem älteren Manifest erstellt haben, fügen Sie `usergroups:read` und `usergroups:write` unter **OAuth & Permissions > Bot Token Scopes** hinzu (oder aktualisieren Sie die App aus dem aktuellen Manifest). Wählen Sie dann unter **Projekteinstellungen > Arbeitsbereich > Slack** erneut **Mit Slack verbinden**, damit die neuen Scopes gewährt werden. Bis dahin sagt die Karte des Bereitschaftsplans, dass die Slack-App von OneUptime Benutzergruppen noch nicht ändern darf.
+
 ### Apps aus einem älteren Manifest
 
 Eine Slack-App, die aus einem früheren OneUptime-Manifest erstellt wurde, registriert `/incident` und `/maintenance` als eigene Befehle, die mit gleichnamigen Befehlen anderer Apps kollidieren können. Sie funktionieren weiter und öffnen dieselben Formulare wie `/oneuptime incident` und `/oneuptime maintenance`. Um sie durch `/oneuptime` zu ersetzen, aktualisieren Sie die App aus dem Manifest, das Ihr Server erzeugt: Öffnen Sie auf [api.slack.com/apps](https://api.slack.com/apps) das **App Manifest** der App, fügen Sie das Manifest ein und speichern Sie.

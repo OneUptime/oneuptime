@@ -35,8 +35,9 @@ function text(value: string): WorkspacePageToken {
   return { kind: "text", text: value };
 }
 
-function group(name: string): WorkspacePageToken {
-  return { kind: "group", name: name };
+// A user group or tag with the chat's id for it; @here has none.
+function group(name: string, workspaceGroupId?: string): WorkspacePageToken {
+  return { kind: "group", name: name, workspaceGroupId: workspaceGroupId };
 }
 
 function read(...tokens: Array<WorkspacePageToken>): WorkspacePageText {
@@ -270,13 +271,21 @@ describe("the message: everything after who, as typed", () => {
   });
 });
 
-describe("who OneUptime cannot tell: groups and names sent as text", () => {
-  test("a user group, or @here, before the message is a group: kept to say it cannot be paged", () => {
+describe("groups, and names sent as text", () => {
+  test("a user group, or @here, before the message is a group - with the chat's id for it, which @here has none of", () => {
     expect(
-      read(group("oncall-db"), text(" "), group("here"), text(" db down")),
+      read(
+        group("oncall-db", "S0DB"),
+        text(" "),
+        group("here"),
+        text(" db down"),
+      ),
     ).toEqual({
       people: [],
-      groups: ["oncall-db", "here"],
+      groups: [
+        { name: "oncall-db", workspaceGroupId: "S0DB" },
+        { name: "here", workspaceGroupId: "" },
+      ],
       unknownNames: [],
       message: "db down",
     });
@@ -284,12 +293,65 @@ describe("who OneUptime cannot tell: groups and names sent as text", () => {
 
   test("people and a group together", () => {
     expect(
-      read(person(NAWAZ), text(", "), group("oncall-db"), text(": db down")),
+      read(
+        person(NAWAZ),
+        text(", "),
+        group("payments-oncall", "S0PAY"),
+        text(": db down"),
+      ),
     ).toEqual({
       people: [NAWAZ],
-      groups: ["oncall-db"],
+      groups: [{ name: "payments-oncall", workspaceGroupId: "S0PAY" }],
       unknownNames: [],
       message: "db down",
+    });
+  });
+
+  test("a group mentioned twice is one group: by its id, or by its name when it has none", () => {
+    expect(
+      read(
+        group("payments-oncall", "S0PAY"),
+        text(" and "),
+        group("Payments on-call", "S0PAY"),
+        text(" "),
+        group("here"),
+        text(" "),
+        group("here"),
+        text(" db down"),
+      ).groups,
+    ).toEqual([
+      { name: "payments-oncall", workspaceGroupId: "S0PAY" },
+      { name: "here", workspaceGroupId: "" },
+    ]);
+  });
+
+  test("two groups of one name but different ids are two groups", () => {
+    expect(
+      read(
+        group("oncall", "S0ONE"),
+        text(" "),
+        group("oncall", "S0TWO"),
+        text(" db down"),
+      ).groups,
+    ).toEqual([
+      { name: "oncall", workspaceGroupId: "S0ONE" },
+      { name: "oncall", workspaceGroupId: "S0TWO" },
+    ]);
+  });
+
+  test("a group inside the message is part of it, by name - not paged", () => {
+    expect(
+      read(
+        person(NAWAZ),
+        text(" ask "),
+        group("payments-oncall", "S0PAY"),
+        text(" to look"),
+      ),
+    ).toEqual({
+      people: [NAWAZ],
+      groups: [],
+      unknownNames: [],
+      message: "ask @payments-oncall to look",
     });
   });
 

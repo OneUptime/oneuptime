@@ -18,6 +18,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * because who may take it differs per feed: a personal link needs no
  * permission, while a shared one is gated on Edit and may render a disabled
  * button or a "ask an editor" note instead.
+ *
+ * The schedule page's Slack user groups and Microsoft Teams tags cards
+ * (OnCallPolicy/UserGroups) draw the same panel when they have none, so the
+ * empty cards on that page read as one.
  */
 export interface FeedEmptyStatePoint {
   icon: IconProp;

@@ -18,6 +18,7 @@ import Permission, {
 } from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import ProjectService from "../../../../Server/Services/ProjectService";
 
 /*
  * The people behind the sockets, as their reads see them: their props in
@@ -59,6 +60,8 @@ describe("RealtimeReaders", () => {
   let built: Array<string> = [];
 
   beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     built = [];
     RealtimeReaders.clear();
     jest
@@ -401,6 +404,8 @@ describe("RealtimeReaders.buildProps", () => {
   let blocked: jest.SpyInstance;
 
   beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     blocked = jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
   });
 
@@ -597,6 +602,8 @@ describe("an entry built while the permission cache is empty", () => {
   }
 
   beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     RealtimeReaders.clear();
     jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
     jest

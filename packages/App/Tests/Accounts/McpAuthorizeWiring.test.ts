@@ -643,6 +643,7 @@ const PROJECT_REFUSALS: Array<string> = [
   "blocked",
   "not-a-member",
   "plan",
+  "project-blocked",
   "sso",
 ];
 

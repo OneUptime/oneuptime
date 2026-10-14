@@ -142,6 +142,7 @@ import {
   jsonbWouldRefuse,
 } from "../../../Helpers/PostgresJsonbInput";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import ProjectService from "../../../../Server/Services/ProjectService";
 
 const processMonitorStepMock: jest.Mock =
   MonitorCriteriaEvaluator.processMonitorStep as unknown as jest.Mock;
@@ -314,6 +315,8 @@ describe("MonitorResourceUtil.monitorResource stores payloads Postgres can hold"
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
 
     lockMock.mockResolvedValue({});
 

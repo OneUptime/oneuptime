@@ -77,6 +77,7 @@ Incoming Webhook 或 Teams 工作流程 URL 都無法取代此機器人的訊息
 - **Channel.ReadBasic.All** - 確認頻道是否存在並取得其詳細資料所必需
 - **TeamsAppInstallation.ReadForTeam.All** - 診斷所必需。它讓 OneUptime 讀取團隊中實際安裝的是哪個應用程式套件，並與此部署的用戶端 ID 比較，這樣傳送失敗時就能告訴你是可能原因中的 *哪一個*。沒有它，OneUptime 無法區分「未安裝」和「已安裝，但那是別人的套件」，只能轉述 Microsoft 的說法，而這正是偵錯此整合要花好幾天而不是幾分鐘的主要原因。請授予它。
 - **Chat.ReadBasic.WhereInstalled** - 選用。它讓 OneUptime 讀取 OneUptime 應用程式所在的每個聊天的名稱。沒有它時，每個聊天透過資訊清單中的 **ChatSettings.Read.Chat** 權限（見下文）授予這項能力，而以舊資訊清單新增的聊天，要等其中的應用程式更新後才會具備該權限。
+- **TeamworkTag.ReadWrite.All** - 選用。它讓 OneUptime 使團隊的標籤與其所連結待命排程中正在待命的人保持一致（請參閱 [待命標籤](/docs/workspace-connections/microsoft-teams#待命標籤)）。沒有它時，待命排程的卡片會顯示你的組織尚未允許 OneUptime 管理標籤。
 
 `ChannelMessage.Send` 只有委派權限；[Microsoft Graph 權限參考](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend) 中沒有對應的應用程式權限。請把它保留在上面的委派權限清單中。
 

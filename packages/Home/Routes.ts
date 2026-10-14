@@ -51,6 +51,7 @@ import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
+import { getCliPageContent } from "./Utils/CliPage";
 import { redirectPreservingQuery } from "./Utils/Redirect";
 import { redirectLegacyUrl } from "./Utils/LegacyRedirects";
 import { fetchGitHubContributors } from "./Utils/GitHubContributors";
@@ -1128,6 +1129,7 @@ const HomeFeatureSet: FeatureSet = {
       res.render(`${ViewsPath}/cli`, {
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo,
+        cli: getCliPageContent(),
       });
     });
 

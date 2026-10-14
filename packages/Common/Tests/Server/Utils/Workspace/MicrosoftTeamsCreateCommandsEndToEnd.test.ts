@@ -205,6 +205,7 @@ import User from "../../../../Models/DatabaseModels/User";
 import Name from "../../../../Types/Name";
 import Redis from "../../../../Server/Infrastructure/Redis";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
+import ProjectService from "../../../../Server/Services/ProjectService";
 import AlertEpisodeInternalNoteService from "../../../../Server/Services/AlertEpisodeInternalNoteService";
 import AlertInternalNoteService from "../../../../Server/Services/AlertInternalNoteService";
 import IncidentEpisodeInternalNoteService from "../../../../Server/Services/IncidentEpisodeInternalNoteService";
@@ -835,6 +836,8 @@ function useRealMembershipCheck(permissions: Array<Permission> | null): void {
     : null;
 
   jest.spyOn(TeamMemberService, "findBy").mockResolvedValue(memberships);
+  // Not a blocked project: that refusal is BlockedProjectBackgroundWork.test.ts.
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   jest
     .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
     .mockResolvedValue(null);

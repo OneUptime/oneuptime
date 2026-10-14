@@ -3,7 +3,7 @@
 Die Startseite ist die erste Seite, die Sie in einem Projekt sehen. Sie zeigt auf einen Blick, ob gerade etwas Ihre Aufmerksamkeit braucht, und führt ein neues Projekt durch seine erste Einrichtung. Diese Seite erklärt, was die Startseite zeigt, wie Sie jedes Produkt, jede Seite und jede Aktion im Dashboard finden, und die Tastenkürzel, die Ihnen Wege durch Menüs ersparen.
 
 :::cards
-- [Was die Startseite zeigt](#was-die-startseite-zeigt): Die Willkommens-Checkliste, die fünf Kacheln und die aktiven Vorfälle.
+- [Was die Startseite zeigt](#was-die-startseite-zeigt): Ob etwas nicht stimmt, was Ihre Aufmerksamkeit braucht, was das Projekt enthält, und alle Produkte.
 - [Sich zurechtfinden](#sich-zurechtfinden): Das Menü Produkte und die Leisten oben auf jeder Seite.
 - [Suchen](#nach-einer-seite-einer-einstellung-oder-einer-aktion-suchen): Jede Seite, Einstellung oder Aktion finden, indem Sie ihren Namen tippen.
 - [Tastenkürzel](#tastenkürzel): Mit zwei Tasten zur Startseite, zu Monitoren oder Vorfällen.
@@ -11,11 +11,46 @@ Die Startseite ist die erste Seite, die Sie in einem Projekt sehen. Sie zeigt au
 
 ## Was die Startseite zeigt
 
-Öffnen Sie **Startseite** in der Leiste oben, oder drücken Sie von überall `g` und dann `h`. Von oben nach unten zeigt die Startseite:
+Öffnen Sie **Startseite** in der Leiste oben, oder drücken Sie von überall `g` und dann `h`. Die Startseite ist die Übersicht Ihres Projekts. Von oben nach unten zeigt sie:
 
-1. **Willkommen bei OneUptime 👋**, eine Checkliste für ein neues Projekt, bis sie erledigt ist.
-2. Fünf Kacheln, die zählen, was Aufmerksamkeit braucht.
-3. **Aktive Vorfälle**, jeden Vorfall, der noch nicht behoben ist.
+1. Ein Suchfeld, daneben **Vorfall melden** und **Erstellen**.
+2. Eine Zeile, die sagt, ob etwas nicht stimmt, über fünf Zahlen, die zählen, was Aufmerksamkeit braucht.
+3. **Willkommen bei OneUptime 👋**, eine Checkliste für ein neues Projekt, bis sie erledigt ist.
+4. **Erfordert Aufmerksamkeit**, jedes Problem, das gerade offen ist, mit seinem Namen.
+5. **Ihr Projekt**, woraus das Projekt besteht, und **Bevorstehende Wartung**, wenn eine geplant ist.
+6. **OneUptime erkunden**, jedes Produkt, eine Kategorie nach der anderen.
+
+### Suchen und erstellen
+
+Das Suchfeld öffnet die Suche, genau wie `Mod` + `K`: Tippen Sie den Namen einer beliebigen Seite, eines Monitors, eines Vorfalls, einer Warnung, einer Statusseite oder einer Bereitschaftsrichtlinie. Siehe [Suchen](#nach-einer-seite-einer-einstellung-oder-einer-aktion-suchen). **Vorfall melden** öffnet das Formular, mit dem Sie einen Vorfall melden. **Erstellen** bietet **Monitor erstellen**, **Wartung planen** und **Ankündigung erstellen** an. Jede davon wird nur Personen angezeigt, die sie verwenden dürfen.
+
+### Die Schlagzeile
+
+Die Zeile ganz oben nennt das Dringendste, was gerade offen ist, in einer passenden Farbe:
+
+| Wann | Die Startseite sagt |
+| --- | --- |
+| Ein Vorfall ist offen | Wie viele Vorfälle aktiv sind, in Rot |
+| Kein Vorfall ist offen, aber es gibt offene Warnungen, nicht betriebsbereite Monitore oder gefährdete SLOs | Wie viele Probleme Aufmerksamkeit erfordern, in Gelb |
+| Es gibt kein Problem, und eine Wartung läuft gerade | Wie viele Wartungsereignisse gerade laufen |
+| Monitore laufen, und nichts ist offen | **Alle Systeme betriebsbereit** |
+| Das Projekt hat noch keine Monitore | **Es wird noch nichts überwacht** |
+
+Daneben zeigt die Startseite, wann sie das Projekt zuletzt geladen hat, und **Aktualisieren** lädt es neu. Wenn Sie nach einer Minute oder länger zu einem Tab mit der Startseite zurückkehren, aktualisiert sie sich von selbst.
+
+### Die fünf Zahlen
+
+Jede Zahl zählt etwas, sagt, ob das Ihre Aufmerksamkeit braucht, und öffnet die Liste dahinter.
+
+| Zahl | Was sie zählt | Wenn die Zahl null ist |
+| --- | --- | --- |
+| **Aktive Vorfälle** | Vorfälle, die nicht behoben sind | **Alles in Ordnung** |
+| **Aktive Warnungen** | Warnungen, die nicht behoben sind | **Alles in Ordnung** |
+| **Nicht betriebsbereite Monitore** | Monitore, deren Status kein betriebsbereiter ist. Archivierte Monitore zählen nicht mit. | **Alle betriebsbereit** |
+| **Laufende Wartung** | Geplante Wartungsereignisse, die gerade laufen | **Keine laufenden** |
+| **Gefährdete SLOs** | Eingeschaltete SLOs, die gefährdet sind oder ihr Fehlerbudget aufgebraucht haben | **Budgets in Ordnung** |
+
+Eine Zahl über null zeigt **Erfordert Aufmerksamkeit**, bei Wartung und SLOs **Läuft gerade** und **Budget wird verbraucht**. Ein Projekt ohne Monitore sieht **Noch keine Monitore**, eines ohne SLOs **Noch keine SLOs**: Ein leeres Projekt ist nicht dasselbe wie ein gesundes. Diese beiden öffnen dann die Listen **Monitore** und **SLOs**, in denen Sie einen anlegen.
 
 ### Die Willkommens-Checkliste
 
@@ -41,26 +76,27 @@ flowchart TB
 
 Die Checkliste verschwindet, sobald alle vier Schritte erledigt sind. Um sie früher auszublenden, klicken Sie auf **Ausblenden**. Das Ausblenden gilt für diesen Browser und dieses Projekt; alles, was die Schritte öffnen, finden Sie weiterhin im Menü **Produkte**.
 
-### Die Kacheln
+### Erfordert Aufmerksamkeit
 
-Jede Kachel zählt etwas, sagt, ob das Ihre Aufmerksamkeit braucht, und öffnet die Liste hinter der Zahl.
+**Erfordert Aufmerksamkeit** führt mit Namen auf, was die Zahlen zählen: die offenen Vorfälle, die offenen Warnungen, die nicht betriebsbereiten Monitore, die gefährdeten SLOs und die laufenden Wartungen, das Dringendste zuerst. Jede Zeile zeigt ihren Schweregrad oder Status, sagt, wann ein Vorfall oder eine Warnung begonnen hat und wann eine Wartung endet, und öffnet den Eintrag. Von jeder Art erscheinen bis zu fünf, mit **Alle anzeigen** für den Rest. Wenn nichts offen ist, steht dort **Nichts erfordert Ihre Aufmerksamkeit**.
 
-| Kachel | Was sie zählt | Wenn die Zahl null ist |
-| --- | --- | --- |
-| **Aktive Vorfälle** | Vorfälle, die nicht behoben sind | **Alles in Ordnung** |
-| **Aktive Warnungen** | Warnungen, die nicht behoben sind | **Alles in Ordnung** |
-| **Nicht betriebsbereite Monitore** | Monitore, deren Status kein betriebsbereiter ist. Archivierte Monitore zählen nicht mit. | **Alle betriebsbereit** |
-| **Laufende Wartung** | Geplante Wartungsereignisse, die gerade laufen | **Keine laufenden** |
-| **Gefährdete SLOs** | Eingeschaltete SLOs, die gefährdet sind oder ihr Fehlerbudget aufgebraucht haben | **Budgets in Ordnung** |
+### Ihr Projekt
 
-Eine Zahl über null zeigt **Erfordert Aufmerksamkeit**, auf den Kacheln für Wartung und SLOs **Läuft gerade** und **Budget wird verbraucht**. Ein Projekt ohne Monitore sieht auf der Monitor-Kachel **Noch keine Monitore**, eines ohne SLOs **Noch keine SLOs**: Ein leeres Projekt ist nicht dasselbe wie ein gesundes. Diese beiden Kacheln öffnen dann die Listen **Monitore** und **SLOs**, in denen Sie einen anlegen.
+**Ihr Projekt** zählt die **Monitore**, **Statusseiten**, **Bereitschaftsrichtlinien**, **SLOs**, **Dienste**, **Dashboards** und **Arbeitsabläufe** des Projekts, ohne die archivierten. Jede Zeile öffnet ihre Liste. Hat das Projekt von einer Art noch nichts, steht dort statt einer Zahl **Einrichten**.
+
+**Bevorstehende Wartung** listet die nächsten drei geplanten Wartungsfenster auf, das früheste zuerst. Wenn nichts geplant ist, fehlt dieser Bereich.
+
+### OneUptime erkunden
+
+**OneUptime erkunden** zeigt die Produkte des Menüs **Produkte** Kategorie für Kategorie, beginnend mit den Grundlagen. Jedes Produkt sagt, wofür es da ist, und öffnet sich, wenn Sie darauf klicken.
 
 ### Das Seitenmenü der Startseite
 
-Das Seitenmenü neben der Startseite enthält dieselben Listen, jede mit einer Zahl:
+Die Startseite selbst hat kein Seitenmenü: Sie zeigt bereits alles, was das Menü zeigen würde. Die Listen, die sie öffnet, teilen sich eines, das jede Liste mit ihrer Anzahl zeigt und über **Übersicht** zur Startseite zurückführt:
 
 | Abschnitt | Seiten |
 | --- | --- |
+| **Startseite** | **Übersicht** |
 | **Vorfälle** | **Aktive Vorfälle** und **Aktive Episoden** |
 | **Warnungen** | **Aktive Warnungen** und **Aktive Episoden** |
 | **Monitore** | **Nicht betriebsbereit** |

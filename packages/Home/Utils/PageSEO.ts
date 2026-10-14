@@ -422,10 +422,16 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  /*
+   * What the CLI does (packages/CLI), as the page says it (Views/cli.ejs,
+   * Utils/CliPage.ts). These lines also go out in llms.txt, llms-full.txt,
+   * /tool/cli.md, products.json and the page's structured data, so they say
+   * only what the CLI really does: Tests/CliPage.test.ts holds them to it.
+   */
   "/tool/cli": {
     title: "CLI | Command Line Interface for Observability | OneUptime",
     description:
-      "OneUptime CLI lets you manage monitors, incidents, status pages, and observability data from your terminal. Deploy, configure, and automate your monitoring infrastructure with simple commands.",
+      "The OneUptime CLI manages monitors, incidents, status pages and more from your terminal. Install it from npm, script it with JSON and run it in CI/CD.",
     canonicalPath: "/tool/cli",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -439,18 +445,18 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       applicationCategory: "DeveloperApplication",
       operatingSystem: "macOS, Linux, Windows",
       description:
-        "Command line interface for managing OneUptime monitors, incidents, status pages, and observability data from your terminal.",
+        "Command line interface for listing, creating, updating and deleting OneUptime monitors, incidents, alerts, status pages and other records from your terminal or a script.",
       features: [
-        "Monitor creation and management",
-        "Incident response from terminal",
-        "Status page management",
-        "Real-time log tailing",
-        "CI/CD pipeline integration",
-        "Scriptable JSON output",
-        "YAML configuration support",
-        "Bulk operations",
-        "npm, Homebrew, and Docker install",
-        "API key and browser authentication",
+        "Create, list, update and delete monitors",
+        "Create, acknowledge and resolve incidents, and add notes",
+        "Status pages and status page announcements",
+        "List and count logs, spans, metrics and exceptions",
+        "Filter, sort and page with JSON queries",
+        "Tables in a terminal, JSON when piped",
+        "API key from environment variables in CI/CD",
+        "Exit codes for scripts",
+        "A saved context for each environment",
+        "Install from npm: @oneuptime/cli",
       ],
     },
   },

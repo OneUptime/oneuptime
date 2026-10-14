@@ -16,6 +16,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import AppLink from "../../../Components/AppLink/AppLink";
 import DashboardUserUtil from "../../../Utils/User";
 import ScheduleSubscribeCard from "../../../Components/OnCallPolicy/CalendarFeed/ScheduleSubscribeCard";
+import ScheduleUserGroupsCard from "../../../Components/OnCallPolicy/UserGroups/ScheduleUserGroupsCard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -273,6 +274,15 @@ const OnCallDutyScheduleView: FunctionComponent<
           }
         />
       )}
+
+      {/*
+       * The Slack user groups and Microsoft Teams tags that hold whoever is
+       * on call here: beside the roster they mirror.
+       */}
+      <ScheduleUserGroupsCard
+        scheduleId={modelId}
+        scheduleName={onCallSchedule?.name?.toString() || ""}
+      />
 
       <ScheduleSubscribeCard
         scheduleId={modelId}

@@ -105,8 +105,8 @@ Det resterende budget afgør SLO'ets status:
 | Status | Hvornår |
 | --- | --- |
 | **Sund** | Der er mere budget tilbage end risikotærsklen. |
-| **At Risk** | Det resterende budget ligger på risikotærsklen eller derunder: 20 % som standard. |
-| **Budget Exhausted** | Det resterende budget er nul eller derunder. |
+| **I risiko** | Det resterende budget ligger på risikotærsklen eller derunder: 20 % som standard. |
+| **Budget opbrugt** | Det resterende budget er nul eller derunder. |
 
 Angiv risikotærsklen under **Indstillinger** → **Objective**.
 
@@ -128,13 +128,13 @@ Med standardtærsklen på 20 % bliver et truet SLO sundt igen ved 25 % resterend
 
 ## Besked til ejere
 
-Når et SLO skifter til **At Risk** eller **Budget Exhausted**, giver OneUptime dets ejere besked:
+Når et SLO skifter til **I risiko** eller **Budget opbrugt**, giver OneUptime dets ejere besked:
 
 - Ejerne er de brugere og teammedlemmer på SLO'ets side **Ejere**, der stadig er medlemmer af projektet. Et SLO uden ejere giver i stedet projektets ejere besked.
 - Hver ejer får en e-mail som standard, og beskeden på enhver anden kanal, vedkommende slår til for **SLO status changed** under **Brugerindstillinger** → **Notifikationsindstillinger** → **Overvågning**.
 - E-mailens emne nævner status og SLO'et, for eksempel `[SLO At Risk] API Availability`.
 
-For at et SLO tæt på en grænse ikke skal blive ved med at give besked, får dets ejere højst én besked i timen. Et skift til **Budget Exhausted** sendes altid, også inden for den time.
+For at et SLO tæt på en grænse ikke skal blive ved med at give besked, får dets ejere højst én besked i timen. Et skift til **Budget opbrugt** sendes altid, også inden for den time.
 
 > [!TIP]
 > Besked til ejere fortæller dem, der står for et SLO, at dets budget er i knibe. Brug [Forbrugsrateadvarsler og -hændelser](/docs/slo/burn-rate-alerts) for at tilkalde dit vagthold via eskaleringspolitikker. En forbrugsrateregel kan også tilføje SLO'ets ejere til hver advarsel og hændelse, den opretter.

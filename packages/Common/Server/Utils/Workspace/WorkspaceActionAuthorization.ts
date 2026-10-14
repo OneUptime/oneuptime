@@ -5,6 +5,7 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import ObjectID from "../../../Types/ObjectID";
 import {
   UserGlobalAccessPermission,
@@ -12,6 +13,7 @@ import {
 } from "../../../Types/Permission";
 import AccessTokenService from "../../Services/AccessTokenService";
 import DatabaseService from "../../Services/DatabaseService";
+import ProjectService from "../../Services/ProjectService";
 import TeamMemberService from "../../Services/TeamMemberService";
 import ModelPermission from "../../Types/Database/Permissions/Index";
 import Query from "../../Types/Database/Query";
@@ -107,6 +109,17 @@ export default class WorkspaceActionAuthorization {
       throw new NotAuthorizedException(
         WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
       );
+    }
+
+    /*
+     * A project a master admin blocked: a member acts in it from chat no
+     * more than from the dashboard, and is told why - as a refusal, which
+     * the chat answers in the member's own words, where any other error
+     * would read "try again in a minute". Asked after membership, so
+     * somebody who is not a member is told only that.
+     */
+    if (await ProjectService.isProjectBlocked(projectId)) {
+      throw new NotAuthorizedException(ExceptionMessages.ProjectBlocked);
     }
 
     const userGlobalAccessPermission: UserGlobalAccessPermission | null =

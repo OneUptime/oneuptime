@@ -6,6 +6,7 @@ import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import WorkspaceLiveMessage from "../../../Models/DatabaseModels/WorkspaceLiveMessage";
+import WorkspaceUserGroup from "../../../Models/DatabaseModels/WorkspaceUserGroup";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -33,6 +34,7 @@ import TeamMemberService from "../../Services/TeamMemberService";
 import TeamService from "../../Services/TeamService";
 import UserService from "../../Services/UserService";
 import WorkspaceLiveMessageService from "../../Services/WorkspaceLiveMessageService";
+import WorkspaceUserGroupService from "../../Services/WorkspaceUserGroupService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import ProductBrandingText from "../ProductBrandingText";
@@ -44,6 +46,7 @@ import { WorkspaceAnswer } from "./WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "./WorkspaceActionAuthorization";
 import WorkspaceCommands, { WorkspaceCommandName } from "./WorkspaceCommands";
 import WorkspacePageTextReader, {
+  WorkspacePageGroup,
   WorkspacePagePerson,
   WorkspacePageText,
 } from "./WorkspacePageText";
@@ -62,6 +65,13 @@ import WorkspacePageTextReader, {
  * page as one message, edited as it goes - who was paged and how, who
  * acknowledged - with the alarm when nobody does (OnCallPolicyRunMessage,
  * a page request place).
+ *
+ * A Slack user group or a Microsoft Teams tag OneUptime keeps equal to
+ * whoever is on call (WorkspaceUserGroup, customer feedback #3) is paged
+ * the same way when it is @mentioned: as the on-call schedules it follows,
+ * so whoever is on call in them now is paged -
+ *
+ *   /oneuptime page @payments-oncall The checkout API is throwing 500s
  *
  * Anything else opens a form (a Slack modal, a Microsoft Teams card) with
  * what was typed filled in: who to page - people, a team, whoever is on call
@@ -149,6 +159,29 @@ export interface WorkspacePagePeople {
    * OneUptime."
    */
   notTold: Array<string>;
+}
+
+/*
+ * A group a chat @mentioned that follows on-call schedules: a Slack user
+ * group or a Microsoft Teams tag OneUptime keeps equal to whoever is on call
+ * in them (WorkspaceUserGroup).
+ */
+export interface WorkspacePagePagedGroup {
+  // As the chat wrote it, without the "@": "payments-oncall".
+  name: string;
+  // The on-call schedules it follows that the member may read.
+  scheduleIds: Array<ObjectID>;
+}
+
+// The groups a chat @mentioned, as OneUptime can page them.
+export interface WorkspacePageGroups {
+  // Paged as the on-call schedules they follow.
+  paged: Array<WorkspacePagePagedGroup>;
+  /*
+   * Not paged, and said in the form instead: @here, and a group that
+   * follows no on-call schedule the member may read.
+   */
+  notPaged: Array<WorkspacePageGroup>;
 }
 
 // What a form opens with: what was typed, read.
@@ -387,6 +420,247 @@ export default class WorkspacePage {
   }
 
   /*
+   * The groups a chat @mentioned, as OneUptime pages them. A Slack user
+   * group or a Microsoft Teams tag that follows on-call schedules in the
+   * project (WorkspaceUserGroup, connected on a schedule's page) is paged
+   * as those schedules: whoever is on call in them when the page goes out -
+   * who the group holds, and anybody on call it could not hold (not in the
+   * chat, a guest) too. Read as the member: a group or a schedule they may
+   * not read pages nobody, as the form does not offer it either. @here, and
+   * any other group, is not paged: the form says so.
+   *
+   * A Slack user group is matched by its id. Microsoft Teams mentions a tag
+   * with an id of its own: a tag is matched by it, or else by its name when
+   * exactly one tag of that name follows schedules in the project.
+   */
+  @CaptureSpan()
+  public static async resolveGroups(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+    groups: Array<WorkspacePageGroup>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<WorkspacePageGroups> {
+    const hasAnyGroup: boolean = data.groups.some(
+      (group: WorkspacePageGroup): boolean => {
+        return Boolean(group.workspaceGroupId);
+      },
+    );
+
+    if (!hasAnyGroup) {
+      return { paged: [], notPaged: [...data.groups] };
+    }
+
+    const rows: Array<WorkspaceUserGroup> =
+      await WorkspaceActionAuthorization.findReadable({
+        service: WorkspaceUserGroupService,
+        props: data.props,
+        query: {
+          projectId: data.projectId,
+          workspaceType: data.workspaceType,
+        },
+        select: {
+          _id: true,
+          workspaceGroupId: true,
+          name: true,
+          onCallDutyPolicySchedules: {
+            _id: true,
+          },
+        },
+        limit: LIMIT_PER_PROJECT,
+      });
+
+    const rowOf: (group: WorkspacePageGroup) => WorkspaceUserGroup | null = (
+      group: WorkspacePageGroup,
+    ): WorkspaceUserGroup | null => {
+      if (!group.workspaceGroupId) {
+        return null;
+      }
+
+      const byId: WorkspaceUserGroup | undefined = rows.find(
+        (row: WorkspaceUserGroup): boolean => {
+          return row.workspaceGroupId === group.workspaceGroupId;
+        },
+      );
+
+      if (byId || data.workspaceType !== WorkspaceType.MicrosoftTeams) {
+        return byId || null;
+      }
+
+      const name: string = group.name.trim().toLowerCase();
+      const byName: Array<WorkspaceUserGroup> = rows.filter(
+        (row: WorkspaceUserGroup): boolean => {
+          return (
+            Boolean(name) && (row.name || "").trim().toLowerCase() === name
+          );
+        },
+      );
+
+      return byName.length === 1 ? byName[0]! : null;
+    };
+
+    const matches: Array<{
+      group: WorkspacePageGroup;
+      row: WorkspaceUserGroup | null;
+    }> = data.groups.map((group: WorkspacePageGroup) => {
+      return { group: group, row: rowOf(group) };
+    });
+
+    const scheduleIds: Array<ObjectID> = [];
+
+    for (const match of matches) {
+      for (const schedule of match.row?.onCallDutyPolicySchedules || []) {
+        if (
+          schedule.id &&
+          !scheduleIds.some((id: ObjectID): boolean => {
+            return id.toString() === schedule.id!.toString();
+          })
+        ) {
+          scheduleIds.push(schedule.id);
+        }
+      }
+    }
+
+    const readable: Array<OnCallDutyPolicySchedule> =
+      scheduleIds.length > 0
+        ? await WorkspaceActionAuthorization.findReadable({
+            service: OnCallDutyPolicyScheduleService,
+            props: data.props,
+            query: {
+              projectId: data.projectId,
+              _id: QueryHelper.any(scheduleIds),
+            },
+            select: {
+              _id: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+          })
+        : [];
+
+    const readableIds: Set<string> = new Set<string>(
+      readable
+        .filter((schedule: OnCallDutyPolicySchedule): boolean => {
+          return Boolean(schedule.id);
+        })
+        .map((schedule: OnCallDutyPolicySchedule): string => {
+          return schedule.id!.toString().toLowerCase();
+        }),
+    );
+
+    const paged: Array<WorkspacePagePagedGroup> = [];
+    const notPaged: Array<WorkspacePageGroup> = [];
+    const pagedRowIds: Set<string> = new Set<string>();
+
+    for (const match of matches) {
+      const ids: Array<ObjectID> = scheduleIds.filter(
+        (scheduleId: ObjectID): boolean => {
+          return (
+            readableIds.has(scheduleId.toString().toLowerCase()) &&
+            (match.row?.onCallDutyPolicySchedules || []).some(
+              (schedule: OnCallDutyPolicySchedule): boolean => {
+                return schedule.id?.toString() === scheduleId.toString();
+              },
+            )
+          );
+        },
+      );
+
+      if (!match.row?.id || ids.length === 0) {
+        notPaged.push(match.group);
+        continue;
+      }
+
+      // The same group, mentioned twice: paged once.
+      if (pagedRowIds.has(match.row.id.toString())) {
+        continue;
+      }
+
+      pagedRowIds.add(match.row.id.toString());
+      paged.push({
+        name: match.group.name || match.row.name || "",
+        scheduleIds: ids,
+      });
+    }
+
+    return { paged: paged, notPaged: notPaged };
+  }
+
+  /*
+   * Whether what was typed pages at once: somebody to page - people
+   * OneUptime can tell, groups that follow on-call schedules - nobody named
+   * that it cannot page, and a message. Otherwise the form opens.
+   */
+  public static isReadyToPage(data: {
+    text: WorkspacePageText;
+    people: WorkspacePagePeople;
+    groups: WorkspacePageGroups;
+  }): boolean {
+    return (
+      data.people.people.length + data.groups.paged.length > 0 &&
+      data.people.notTold.length === 0 &&
+      data.groups.notPaged.length === 0 &&
+      data.text.unknownNames.length === 0 &&
+      data.text.message.length > 0
+    );
+  }
+
+  /*
+   * Who a page from what was typed pages: the people @mentioned, and the
+   * on-call schedules the groups @mentioned follow - each once.
+   */
+  public static getTargets(data: {
+    people: WorkspacePagePeople;
+    groups: WorkspacePageGroups;
+  }): OnCallPageTargets {
+    const targets: OnCallPageTargets = {
+      userIds: data.people.people.map(
+        (person: WorkspacePageResolvedPerson): ObjectID => {
+          return person.userId;
+        },
+      ),
+    };
+
+    const scheduleIds: Array<ObjectID> = [];
+
+    for (const group of data.groups.paged) {
+      for (const scheduleId of group.scheduleIds) {
+        if (
+          !scheduleIds.some((id: ObjectID): boolean => {
+            return id.toString() === scheduleId.toString();
+          })
+        ) {
+          scheduleIds.push(scheduleId);
+        }
+      }
+    }
+
+    if (scheduleIds.length > 0) {
+      targets.onCallScheduleIds = scheduleIds;
+    }
+
+    return targets;
+  }
+
+  /*
+   * Who a page from what was typed pages, as the person who paged put it:
+   * the people by name, a group as it was @mentioned ("@payments-oncall").
+   */
+  public static getPagedNames(data: {
+    people: WorkspacePagePeople;
+    groups: WorkspacePageGroups;
+  }): Array<string> {
+    return [
+      ...data.people.people.map(
+        (person: WorkspacePageResolvedPerson): string => {
+          return person.name;
+        },
+      ),
+      ...data.groups.paged.map((group: WorkspacePagePagedGroup): string => {
+        return `@${group.name}`;
+      }),
+    ];
+  }
+
+  /*
    * What a form offers to page, read as the member reads it - the on-call
    * schedules (with who is on call in each now), the project's people, its
    * teams and its live on-call policies - each in name order, up to
@@ -605,14 +879,17 @@ export default class WorkspacePage {
 
   /*
    * What a form opens with, from what was typed after "page": the people
-   * @mentioned that OneUptime can tell, picked; a schedule's, a team's or a
-   * policy's name the text starts with, picked, the rest the message; and a
-   * note for each person or group it could not pick, worded for the chat
-   * the form is in.
+   * @mentioned that OneUptime can tell, picked; the on-call schedules a
+   * group @mentioned follows (`groups`, resolveGroups), picked; a
+   * schedule's, a team's or a policy's name the text starts with, picked,
+   * the rest the message; and a note for each person or group it could not
+   * pick, worded for the chat the form is in.
    */
   public static getPrefill(data: {
     text: WorkspacePageText;
     people: WorkspacePagePeople;
+    // The groups @mentioned, resolved; none paged when left out.
+    groups?: WorkspacePageGroups | undefined;
     choices: Array<WorkspacePageChoiceGroup>;
     workspaceType: WorkspaceType;
   }): WorkspacePageFormPrefill {
@@ -666,8 +943,38 @@ export default class WorkspacePage {
       }
     }
 
-    for (const group of data.text.groups) {
-      notes.push(WorkspacePage.getGroupNote(group));
+    const groups: WorkspacePageGroups = data.groups || {
+      paged: [],
+      notPaged: data.text.groups,
+    };
+
+    for (const group of groups.paged) {
+      let isAnyPicked: boolean = false;
+
+      for (const scheduleId of group.scheduleIds) {
+        if (
+          pick(
+            WorkspacePage.toValue(WorkspacePageTargetKind.Schedule, scheduleId),
+          )
+        ) {
+          isAnyPicked = true;
+        }
+      }
+
+      if (!isAnyPicked) {
+        notes.push(
+          `The on-call schedules @${group.name} follows aren't in the list below. To page them, ${runPageAgain} again with @${group.name} and a message.`,
+        );
+      }
+    }
+
+    for (const group of groups.notPaged) {
+      notes.push(
+        WorkspacePage.getGroupNote({
+          group: group,
+          workspaceType: data.workspaceType,
+        }),
+      );
     }
 
     for (const name of data.text.unknownNames) {
@@ -1049,11 +1356,26 @@ export default class WorkspacePage {
   }
 
   /*
-   * A group the chat @mentioned - a Slack user group, @here - which a page
-   * cannot name: it names people, teams, schedules and policies.
+   * A group the chat @mentioned that a page cannot name: @here, or a user
+   * group (a Microsoft Teams tag) that follows no on-call schedule the
+   * member may read - which is what makes one pageable: connecting it on a
+   * schedule's page (WorkspaceUserGroup). Said the same way in both chats,
+   * the fact first, with the verb the schedule's card uses (Connect), and
+   * then what to do in the form.
    */
-  public static getGroupNote(group: string): string {
-    return `${ProductBrandingText.getProductName()} can't page @${group}. Pick the on-call schedule, the team or the people below.`;
+  public static getGroupNote(data: {
+    group: WorkspacePageGroup;
+    workspaceType: WorkspaceType;
+  }): string {
+    const productName: string = ProductBrandingText.getProductName();
+    const pickBelow: string =
+      "Pick the on-call schedule, the team or the people below.";
+
+    if (!data.group.workspaceGroupId) {
+      return `${productName} can't page @${data.group.name}. ${pickBelow}`;
+    }
+
+    return `${productName} can't page @${data.group.name}: it isn't connected to an on-call schedule you can see. ${pickBelow}`;
   }
 
   // The page's title: the message on one line, cut to what an alert holds.

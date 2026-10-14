@@ -154,6 +154,12 @@ OneUptime 恢復執行後，**專案設定 > 工作區 > Slack** 會顯示 **Con
 
 如果你的 Slack 應用程式是用較舊的資訊清單建立的，請在 **OAuth & Permissions > Bot Token Scopes** 下新增 `files:write`（或用目前的資訊清單更新應用程式）。然後在 **專案設定 > 工作區 > Slack** 中再次選擇 **Connect with Slack**，以授予新的權限範圍。在那之前，每張截圖都會以其替代文字顯示。
 
+### 待命使用者群組
+
+要讓待命排程的 Slack 使用者群組與正在待命的人保持一致（請參閱 [待命使用者群組](/docs/workspace-connections/slack#待命使用者群組)），需要機器人權限範圍 `usergroups:read` 和 `usergroups:write`。產生的資訊清單已包含它們。
+
+如果你的 Slack 應用程式是用較舊的資訊清單建立的，請在 **OAuth & Permissions > Bot Token Scopes** 下新增 `usergroups:read` 和 `usergroups:write`（或用目前的資訊清單更新應用程式）。然後在 **專案設定 > 工作區 > Slack** 中再次選擇 **Connect with Slack**，以授予新的權限範圍。在那之前，待命排程的卡片會顯示 OneUptime 的 Slack 應用程式尚無權變更使用者群組。
+
 ### 用較舊資訊清單建立的應用程式
 
 用較早的 OneUptime 資訊清單建立的 Slack 應用程式會把 `/incident` 和 `/maintenance` 註冊為獨立的指令，它們可能與其他應用程式的同名指令衝突。它們仍然可以使用，並開啟與 `/oneuptime incident` 和 `/oneuptime maintenance` 相同的表單。若要用 `/oneuptime` 取代它們，請用你的伺服器產生的資訊清單更新應用程式：在 [api.slack.com/apps](https://api.slack.com/apps) 中開啟應用程式的 **App Manifest**，貼上資訊清單並儲存。

@@ -1342,7 +1342,7 @@ describe("Realtime (server) ListenToModelEvent", () => {
         },
       );
 
-      await Realtime.recheckSignInRules(TENANT_ID);
+      await Realtime.recheckProjectAccess(TENANT_ID);
 
       expect(asked).toBe(sockets.length);
       expect(mostInFlight).toBeLessThanOrEqual(Realtime.RECHECK_CONCURRENCY);

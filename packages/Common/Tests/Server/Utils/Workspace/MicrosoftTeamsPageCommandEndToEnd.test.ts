@@ -83,6 +83,7 @@ import {
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import UserService from "../../../../Server/Services/UserService";
 import WorkspaceUserAuthTokenService from "../../../../Server/Services/WorkspaceUserAuthTokenService";
+import WorkspaceUserGroupService from "../../../../Server/Services/WorkspaceUserGroupService";
 import logger from "../../../../Server/Utils/Logger";
 import ProductBrandingText from "../../../../Server/Utils/ProductBrandingText";
 import ProjectMembership from "../../../../Server/Utils/TeamMember/ProjectMembership";
@@ -91,6 +92,7 @@ import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import User from "../../../../Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import WorkspaceUserGroup from "../../../../Models/DatabaseModels/WorkspaceUserGroup";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Email from "../../../../Types/Email";
@@ -318,6 +320,24 @@ let outcome: () => Promise<WorkspacePageOutcome>;
 let mayPage: boolean;
 // The Microsoft Entra ids connected to OneUptime accounts in the project.
 let connected: Record<string, ObjectID>;
+// The project's Microsoft Teams tags that follow on-call schedules.
+let tags: Array<WorkspaceUserGroup>;
+
+// A tag OneUptime keeps equal to whoever is on call in Primary.
+function tagOf(workspaceGroupId: string, name: string): WorkspaceUserGroup {
+  const row: WorkspaceUserGroup = new WorkspaceUserGroup();
+  row.id = ObjectID.generate();
+  row.workspaceType = WorkspaceType.MicrosoftTeams;
+  row.workspaceGroupId = workspaceGroupId;
+  row.workspaceTeamId = GRAPH_TEAM_ID;
+  row.name = name;
+
+  const schedule: OnCallDutyPolicySchedule = new OnCallDutyPolicySchedule();
+  schedule.id = PRIMARY;
+  row.onCallDutyPolicySchedules = [schedule];
+
+  return row;
+}
 
 function nextActivityId(label: string): string {
   activityCounter++;
@@ -606,9 +626,15 @@ beforeEach(() => {
     });
 
   // What the card offers: a schedule, and the people.
+  tags = [tagOf("tag-payments", "Payments on-call")];
+
   jest
     .spyOn(WorkspaceActionAuthorization, "findReadable")
     .mockImplementation((async (data: { service: unknown }) => {
+      if (data.service === WorkspaceUserGroupService) {
+        return tags;
+      }
+
       if (data.service === OnCallDutyPolicyScheduleService) {
         const schedule: OnCallDutyPolicySchedule =
           new OnCallDutyPolicySchedule();
@@ -987,8 +1013,109 @@ describe("anything else: the Page someone card, with what was typed filled in", 
     const card: JSONObject = cardOf(sent(delivery)[0]);
 
     expect((card["body"] as Array<JSONObject>)[1]!["text"]).toBe(
-      "⚠️ OneUptime can't page @On-call DBAs. Pick the on-call schedule, the team or the people below.",
+      "⚠️ OneUptime can't page @On-call DBAs: it isn't connected to an on-call schedule you can see. Pick the on-call schedule, the team or the people below.",
     );
+  });
+
+  test("a tag OneUptime keeps, with no message: the card, its schedule picked - nothing to say", async () => {
+    const activity: JSONObject = message(
+      "page <at>Payments on-call</at>",
+      "channel",
+    );
+    (activity["entities"] as Array<JSONObject>).push({
+      type: "mention",
+      text: "<at>Payments on-call</at>",
+      mentioned: { id: "tag-payments", name: "Payments on-call", type: "tag" },
+    });
+
+    const delivery: Delivery = await deliver(activity);
+    const card: JSONObject = cardOf(sent(delivery)[0]);
+
+    expect(elementOf(card, "pageTargets")!["value"]).toBe(
+      `schedule:${PRIMARY.toString()}`,
+    );
+    expect(pages).toEqual([]);
+  });
+});
+
+describe("page @<a tag that follows on-call schedules> <message>: paged at once", () => {
+  function tagMessage(text: string, mentioned: JSONObject): JSONObject {
+    const activity: JSONObject = message(text, "channel");
+    (activity["entities"] as Array<JSONObject>).push({
+      type: "mention",
+      text: `<at>${String(mentioned["name"])}</at>`,
+      mentioned: mentioned,
+    });
+    return activity;
+  }
+
+  test("the tag Teams mentions: whoever is on call in the schedules it follows is paged, in this channel", async () => {
+    const delivery: Delivery = await deliver(
+      tagMessage("page <at>Payments on-call</at> The checkout API is down", {
+        id: "tag-payments",
+        name: "Payments on-call",
+        type: "tag",
+      }),
+    );
+
+    expect(delivery.httpStatus).toBe(200);
+    // Typing, and nothing else: the page's card is the confirmation.
+    expect(
+      sent(delivery).map((request: ConnectorRequest): unknown => {
+        return request.activity["type"];
+      }),
+    ).toEqual(["typing"]);
+    expect(pages).toEqual([
+      {
+        targets: { userIds: [], onCallScheduleIds: [PRIMARY] },
+        message: "The checkout API is down",
+        place: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          destinationType: WorkspaceLiveMessageDestinationType.Channel,
+          channelId: CHANNEL_ID,
+          teamId: GRAPH_TEAM_ID,
+          channelName: "ops",
+        },
+        props: { userId: SIMON, tenantId: projectId },
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      },
+    ]);
+  });
+
+  test("a tag Teams mentions by an id of its own: the one tag of that name that follows schedules", async () => {
+    await deliver(
+      tagMessage("page <at>Payments on-call</at> db down", {
+        id: "MjQzMmI1N2ItMGFiZC00M2RiLWFhN2ItMTZlYWRkMTE1ZDM0",
+        name: "Payments on-call",
+        type: "tag",
+      }),
+    );
+
+    expect(pages[0]!.targets).toEqual({
+      userIds: [],
+      onCallScheduleIds: [PRIMARY],
+    });
+  });
+
+  test("a person and a tag: one page, of both", async () => {
+    const activity: JSONObject = message(
+      "page <at>Nawaz Dhandala</at> <at>Payments on-call</at> db down",
+      "channel",
+      [NAWAZ_IN_TEAMS],
+    );
+    (activity["entities"] as Array<JSONObject>).push({
+      type: "mention",
+      text: "<at>Payments on-call</at>",
+      mentioned: { id: "tag-payments", name: "Payments on-call", type: "tag" },
+    });
+
+    await deliver(activity);
+
+    expect(pages[0]!.targets).toEqual({
+      userIds: [NAWAZ],
+      onCallScheduleIds: [PRIMARY],
+    });
+    expect(pages[0]!.message).toBe("db down");
   });
 });
 
@@ -1190,7 +1317,8 @@ describe("MicrosoftTeamsPage.getPageTokens: a message, read", () => {
         person: { workspaceUserId: "29:1nawaz", name: "Nawaz Dhandala" },
       },
       { kind: "text", text: ", " },
-      { kind: "group", name: "DBAs" },
+      // With the id Teams mentioned it by: what a tag is matched with.
+      { kind: "group", name: "DBAs", workspaceGroupId: "tag-1" },
       { kind: "text", text: ": db" },
     ]);
   });

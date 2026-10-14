@@ -235,6 +235,8 @@ beforeEach(() => {
     .mockImplementation(async (): Promise<CurrentPlan> => {
       return { plan: currentPlan, isSubscriptionUnpaid: false };
     });
+  // Below the plan, but not blocked (ProjectAuthorization asks first).
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
 
   for (const method of ["get", "post", "put", "delete"] as const) {
     jest.spyOn(API, method).mockImplementation(answerLikeTheApi as never);

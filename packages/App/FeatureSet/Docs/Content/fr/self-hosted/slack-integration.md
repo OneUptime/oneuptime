@@ -154,6 +154,12 @@ Les descriptions d'incidents et d'alertes peuvent contenir des captures d'écran
 
 Si vous avez créé votre application Slack à partir d'un manifeste plus ancien, ajoutez `files:write` sous **OAuth & Permissions > Bot Token Scopes** (ou mettez à jour l'application à partir du manifeste actuel). Sélectionnez ensuite de nouveau **Se connecter avec Slack** dans **Paramètres du projet > Espace de travail > Slack**, pour que le nouveau scope soit accordé. D'ici là, chaque capture d'écran s'affiche sous forme de son texte alternatif.
 
+### Groupes d'utilisateurs d'astreinte
+
+Aligner le groupe d'utilisateurs Slack d'un planning sur les personnes d'astreinte (voir [Groupes d'utilisateurs d'astreinte](/docs/workspace-connections/slack#groupes-dutilisateurs-dastreinte)) exige les scopes de bot `usergroups:read` et `usergroups:write`. Le manifeste généré les inclut.
+
+Si vous avez créé votre application Slack à partir d'un manifeste plus ancien, ajoutez `usergroups:read` et `usergroups:write` sous **OAuth & Permissions > Bot Token Scopes** (ou mettez à jour l'application à partir du manifeste actuel). Sélectionnez ensuite de nouveau **Se connecter avec Slack** dans **Paramètres du projet > Espace de travail > Slack**, pour que les nouveaux scopes soient accordés. D'ici là, la carte du planning indique que l'application Slack de OneUptime n'est pas encore autorisée à modifier les groupes d'utilisateurs.
+
 ### Applications créées à partir d'un manifeste plus ancien
 
 Une application Slack créée à partir d'un manifeste OneUptime antérieur enregistre `/incident` et `/maintenance` comme commandes propres, qui peuvent entrer en conflit avec les commandes du même nom d'autres applications. Elles fonctionnent toujours et ouvrent les mêmes formulaires que `/oneuptime incident` et `/oneuptime maintenance`. Pour les remplacer par `/oneuptime`, mettez l'application à jour à partir du manifeste que génère votre serveur : sur [api.slack.com/apps](https://api.slack.com/apps), ouvrez la page **App Manifest** de l'application, collez le manifeste et enregistrez.

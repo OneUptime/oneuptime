@@ -201,6 +201,8 @@ const onPlan: (plan: PlanType) => void = (plan: PlanType): void => {
 };
 
 beforeEach(() => {
+  // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   setTestBillingEnabled(true);
 
   getJestSpyOn(ApiKeyService, "findApiKey").mockResolvedValue({

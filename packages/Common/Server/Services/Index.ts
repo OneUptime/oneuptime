@@ -436,6 +436,7 @@ import AlertVideoCallService from "./AlertVideoCallService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceLiveMessageService from "./WorkspaceLiveMessageService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
+import WorkspaceUserGroupService from "./WorkspaceUserGroupService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
@@ -905,6 +906,7 @@ const services: Array<BaseService> = [
   WorkspaceNotificationLogService,
   WorkspaceLiveMessageService,
   WorkspaceNotificationSummaryService,
+  WorkspaceUserGroupService,
   WorkspaceUserNotificationService,
 
   ProjectSCIMLogService,
