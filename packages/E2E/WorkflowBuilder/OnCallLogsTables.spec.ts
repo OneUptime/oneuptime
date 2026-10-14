@@ -33,6 +33,8 @@ const PROJECT_ID: string = "22222222-2222-4222-8222-222222222222";
 const PAGING_WORKFLOW_ID: string = "44444444-4444-4444-8444-444444444444";
 const LONG_WORKFLOW_NAME: string =
   "Page whoever is on call for critical incidents in the payments platform (EU and US regions)";
+const LONG_POLICY_NAME: string =
+  "Payments platform critical escalation for the EU and US regions (primary on call, then secondary, then engineering managers)";
 
 /*
  * How wide the column may be: its content is capped at 20rem (max-w-xs),
@@ -306,9 +308,9 @@ test.describe("On-call logs: direct pages among a policy's runs", () => {
     // The column is no wider than its cap, for this row and for every other.
     const firstCells: Locator = page.locator("table tbody tr > td:first-child");
 
-    await expect(firstCells).toHaveCount(5);
+    await expect(firstCells).toHaveCount(6);
 
-    for (let index: number = 0; index < 5; index++) {
+    for (let index: number = 0; index < 6; index++) {
       expect((await boxOf(firstCells.nth(index))).width).toBeLessThanOrEqual(
         NAME_COLUMN_CAP_IN_PX + 0.5,
       );
@@ -323,6 +325,71 @@ test.describe("On-call logs: direct pages among a policy's runs", () => {
         copy.style.visibility = "hidden";
         copy.style.whiteSpace = "nowrap";
         copy.style.maxWidth = "none";
+        document.body.appendChild(copy);
+
+        const width: number = copy.getBoundingClientRect().width;
+
+        copy.remove();
+
+        return width;
+      },
+    );
+
+    expect(widthOnOneLine).toBeGreaterThan(NAME_COLUMN_CAP_IN_PX);
+  });
+
+  /*
+   * The cap is the column's, not the label's. A policy's name has no label
+   * around it to let it wrap: on a cell that stays on one line it took the
+   * row's width in just the same way.
+   */
+  test("on a laptop a long policy name wraps too, in the same narrow column", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(isMobile, "A phone draws each run as a card, not a table row.");
+
+    await openLogs(page);
+
+    const name: Locator = page.getByRole("link", {
+      name: LONG_POLICY_NAME,
+      exact: true,
+    });
+    const cell: Locator = name.locator("xpath=ancestor::td");
+
+    const nameBox: Box = await boxOf(name);
+    const cellBox: Box = await boxOf(cell);
+
+    // On more than one line, inside its cell, and the cell within the cap.
+    expect(nameBox.height).toBeGreaterThan(24);
+    expect(nameBox.x + nameBox.width).toBeLessThanOrEqual(
+      cellBox.x + cellBox.width + 0.5,
+    );
+    expect(cellBox.width).toBeLessThanOrEqual(NAME_COLUMN_CAP_IN_PX + 0.5);
+
+    /*
+     * So what a run is about, when it ran and how it stands still begin
+     * inside the card. With the name on one line, the status began past the
+     * card's edge.
+     */
+    const card: Box = await boxOf(page.getByTestId("card"));
+    const statusHeader: Box = await boxOf(
+      page.locator("table thead th").filter({ hasText: "Status" }),
+    );
+
+    expect(statusHeader.x).toBeLessThan(card.x + card.width);
+
+    // And on one line the name would not have fitted in the column.
+    const widthOnOneLine: number = await name.evaluate(
+      (element: Element): number => {
+        const copy: HTMLElement = element.cloneNode(true) as HTMLElement;
+
+        copy.style.position = "absolute";
+        copy.style.visibility = "hidden";
+        copy.style.whiteSpace = "nowrap";
         document.body.appendChild(copy);
 
         const width: number = copy.getBoundingClientRect().width;
@@ -382,6 +449,17 @@ test.describe("On-call logs: direct pages among a policy's runs", () => {
     expect(nameBox.height).toBeGreaterThan(24);
     expect(nameBox.x).toBeGreaterThanOrEqual(card.x);
     expect(nameBox.x + nameBox.width).toBeLessThanOrEqual(
+      card.x + card.width + 0.5,
+    );
+
+    // A policy's long name wraps inside the card as well.
+    const policyName: Box = await boxOf(
+      page.getByRole("link", { name: LONG_POLICY_NAME, exact: true }),
+    );
+
+    expect(policyName.height).toBeGreaterThan(24);
+    expect(policyName.x).toBeGreaterThanOrEqual(card.x);
+    expect(policyName.x + policyName.width).toBeLessThanOrEqual(
       card.x + card.width + 0.5,
     );
 

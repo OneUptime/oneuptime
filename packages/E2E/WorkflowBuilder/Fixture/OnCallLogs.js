@@ -4,10 +4,11 @@
  * no on-call policy behind the page.
  *
  * ?page=on-call-logs      On-Call Duty > Execution Logs: the REAL table
- *                         (ExecutionLogsTable), listing a policy's run and
- *                         four direct pages - one started by a workflow
- *                         with a very long name, one by a person, one that
- *                         paged nobody, and one with nothing else known
+ *                         (ExecutionLogsTable), listing two policies' runs
+ *                         - one of a policy with a very long name - and
+ *                         four direct pages: one started by a workflow with
+ *                         a very long name, one by a person, one that paged
+ *                         nobody, and one with nothing else known
  * ?page=on-call-timeline  one run's timeline: the REAL table
  *                         (ExecutionLogsTimelineTable) of a direct page -
  *                         two people paged, a schedule with nobody on call,
@@ -59,6 +60,10 @@ export const DIRECT_PAGE_RUN_ID = "0193c0de-1111-4aaa-8bbb-000000000001";
 export const LONG_WORKFLOW_NAME =
   "Page whoever is on call for critical incidents in the payments platform (EU and US regions)";
 
+// A policy can be named at as much length, and has no label to wrap it.
+export const LONG_POLICY_NAME =
+  "Payments platform critical escalation for the EU and US regions (primary on call, then secondary, then engineering managers)";
+
 const NOW = Date.parse("2026-10-13T16:20:00Z");
 
 function person(id, name, email) {
@@ -80,9 +85,9 @@ const ALEX = person(
   "alex@example.com",
 );
 
-function policy(name) {
+function policy(name, number) {
   const model = new OnCallDutyPolicy();
-  model._id = "dddddddd-0000-4000-8000-000000000001";
+  model._id = `dddddddd-0000-4000-8000-00000000000${number}`;
   model.name = name;
   return model;
 }
@@ -150,7 +155,7 @@ const RUNS = [
   }),
   run({
     id: "0193c0de-2222-4aaa-8bbb-000000000002",
-    policy: policy("Critical"),
+    policy: policy("Critical", 1),
     incident: incident("Checkout is down"),
     status: OnCallDutyPolicyStatus.Completed,
     statusMessage: "Execution completed.",
@@ -180,6 +185,15 @@ const RUNS = [
     status: OnCallDutyPolicyStatus.Error,
     statusMessage: "Paging timed out.",
     minutesAgo: 1500,
+  }),
+  run({
+    id: "0193c0de-6666-4aaa-8bbb-000000000006",
+    policy: policy(LONG_POLICY_NAME, 2),
+    incident: incident("Checkout is down"),
+    status: OnCallDutyPolicyStatus.Completed,
+    statusMessage: "Execution completed.",
+    minutesAgo: 2900,
+    acknowledgedBy: ALEX,
   }),
 ];
 
