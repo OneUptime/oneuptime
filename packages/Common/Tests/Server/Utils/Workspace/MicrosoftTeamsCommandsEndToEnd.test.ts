@@ -73,6 +73,14 @@ import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import AIService from "../../../../Server/Services/AIService";
 import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallDutyPolicyScheduleService";
+import AlertService from "../../../../Server/Services/AlertService";
+import AlertStateService from "../../../../Server/Services/AlertStateService";
+import IncidentService from "../../../../Server/Services/IncidentService";
+import IncidentStateService from "../../../../Server/Services/IncidentStateService";
+import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
+import Alert from "../../../../Models/DatabaseModels/Alert";
+import Incident from "../../../../Models/DatabaseModels/Incident";
 import logger from "../../../../Server/Utils/Logger";
 import OnCallDutyPolicySchedule from "../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import User from "../../../../Models/DatabaseModels/User";
@@ -814,6 +822,242 @@ describe("a question, with AI turned off", () => {
     expect(delivery.posts).toHaveLength(1);
     expect(delivery.posts[0]!.activity["text"]).toBe(
       "AI features are disabled for this project. Enable them in Project Settings → AI Features. Type **help** to see the other commands.",
+    );
+  });
+});
+
+/*
+ * TEAMS' OWN LISTS, READ AS THE MEMBER.
+ *
+ * "show active incidents", "show active alerts", "show scheduled
+ * maintenance" and "show ongoing maintenance" read as OneUptime itself:
+ * anybody in a connected Microsoft 365 organization - with no OneUptime
+ * account, or a role that may not read incidents - could list a project's
+ * open incidents by typing them to the bot. They act as the member the
+ * sender's account is connected to now, as oncall and the forms do
+ * (MicrosoftTeamsCommands.handleListCommand, WorkspaceOpenRecords).
+ */
+describe("the 'show' lists: read as the member who typed them, never as OneUptime", () => {
+  const OPEN_STATE: ObjectID = ObjectID.generate();
+
+  interface StoredIncident {
+    projectId: ObjectID;
+    incident: Incident;
+  }
+
+  /*
+   * A small database of incidents across two projects: a read gets the rows
+   * of the project its query names, as the real one does.
+   */
+  function stubIncidents(
+    rows: Array<StoredIncident>,
+  ): ReturnType<typeof jest.spyOn> {
+    jest
+      .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
+      .mockResolvedValue([OPEN_STATE]);
+
+    return jest
+      .spyOn(IncidentService, "findBy")
+      .mockImplementation(async (findBy: unknown) => {
+        const asked: string = String(
+          (findBy as { query: { projectId: unknown } }).query.projectId,
+        );
+
+        return rows
+          .filter((row: StoredIncident): boolean => {
+            return row.projectId.toString() === asked;
+          })
+          .map((row: StoredIncident): Incident => {
+            return row.incident;
+          }) as never;
+      });
+  }
+
+  function incidentNumbered(number: number, title: string): Incident {
+    const incident: Incident = new Incident();
+    incident.id = ObjectID.generate();
+    incident.incidentNumber = number;
+    incident.incidentNumberWithPrefix = `INC-${number}`;
+    incident.title = title;
+    incident.incidentSeverity = { name: "Critical" } as never;
+    incident.currentIncidentState = { name: "Identified" } as never;
+    return incident;
+  }
+
+  test("'show active incidents': one reply that mentions the asker, with the project's open incidents read with the asker's own permissions", async () => {
+    const ours: Incident = incidentNumbered(12, "Checkout is down");
+    const theirs: Incident = incidentNumbered(99, "Another project's secret");
+    const findBy: ReturnType<typeof jest.spyOn> = stubIncidents([
+      { projectId: projectId, incident: ours },
+      { projectId: ObjectID.generate(), incident: theirs },
+    ]);
+
+    const delivery: Delivery = await deliver(message("show active incidents"));
+
+    expect(delivery.httpStatus).toBe(200);
+    expect(delivery.posts).toHaveLength(1);
+    expect(delivery.posts[0]!.conversationId).toBe(PERSONAL_CONVERSATION_ID);
+    expect(answerOf(delivery.posts[0])).toBe(
+      [
+        "🚨 **Open incidents**",
+        `- **[INC-12](${DASHBOARD_URL}/${projectId.toString()}/incidents/${ours.id!.toString()})** Checkout is down · Critical · Identified`,
+        "",
+        `[See every incident in OneUptime](${DASHBOARD_URL}/${projectId.toString()}/incidents)`,
+      ].join("\n"),
+    );
+    expect(delivery.posts[0]!.activity["summary"]).toBe(
+      "Open incidents: INC-12 Checkout is down",
+    );
+    // The asker's own props, scoped to the project - never OneUptime's.
+    expect(findBy).toHaveBeenCalledTimes(1);
+    const read: { props: DatabaseCommonInteractionProps } = findBy.mock
+      .calls[0]![0] as { props: DatabaseCommonInteractionProps };
+    expect(read.props).toEqual({
+      userId: ONEUPTIME_USER_ID,
+      tenantId: projectId,
+    });
+    expect(read.props.isRoot).toBeUndefined();
+    expect(JSON.stringify(delivery.posts)).not.toContain("secret");
+  });
+
+  test("'@OneUptime show active alerts' in a channel: answered in the channel's thread", async () => {
+    jest
+      .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
+      .mockResolvedValue([OPEN_STATE]);
+    const disk: Alert = new Alert();
+    disk.id = ObjectID.generate();
+    disk.alertNumberWithPrefix = "AL-7";
+    disk.title = "Disk 95% on web-1";
+    jest.spyOn(AlertService, "findBy").mockResolvedValue([disk] as never);
+
+    const delivery: Delivery = await deliver(
+      message("show active alerts", "channel"),
+    );
+
+    expect(delivery.posts).toHaveLength(1);
+    expect(delivery.posts[0]!.conversationId).toBe(CHANNEL_CONVERSATION_ID);
+    expect(answerOf(delivery.posts[0])).toContain(
+      `- **[AL-7](${DASHBOARD_URL}/${projectId.toString()}/alerts/${disk.id.toString()})** Disk 95% on web-1`,
+    );
+  });
+
+  test.each([
+    ["scheduled maintenance", "🛠️ **No scheduled maintenance coming up.**"],
+    ["show ongoing maintenance", "🔧 **No maintenance in progress.**"],
+  ])(
+    "%j with nothing to list: one short line",
+    async (text: string, said: string) => {
+      jest
+        .spyOn(
+          ScheduledMaintenanceStateService,
+          "getWaitingToStartScheduledMaintenanceStateIds",
+        )
+        .mockResolvedValue([OPEN_STATE]);
+      jest
+        .spyOn(
+          ScheduledMaintenanceStateService,
+          "getInProgressScheduledMaintenanceStateIds",
+        )
+        .mockResolvedValue([OPEN_STATE]);
+      jest
+        .spyOn(ScheduledMaintenanceService, "findBy")
+        .mockResolvedValue([] as never);
+
+      const delivery: Delivery = await deliver(message(text));
+
+      expect(delivery.posts).toHaveLength(1);
+      expect(answerOf(delivery.posts[0])).toBe(said);
+    },
+  );
+
+  test("from a Teams user with no connected account: asked to connect, and to type the list again - nothing read", async () => {
+    jest
+      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+      .mockRejectedValue(
+        new MicrosoftTeamsAccountNotLinkedException("not linked"),
+      );
+    const findBy: ReturnType<typeof jest.spyOn> = stubIncidents([
+      { projectId: projectId, incident: incidentNumbered(1, "Checkout") },
+    ]);
+
+    const delivery: Delivery = await deliver(
+      message("show active incidents", "channel"),
+    );
+
+    expect(delivery.httpStatus).toBe(200);
+    expect(delivery.posts).toHaveLength(1);
+    expect(answerOf(delivery.posts[0])).toBe(
+      "🔗 **Connect your Microsoft Teams account to see the open incidents.** It takes one click. Then type **show active incidents** again.",
+    );
+    const request: WorkspaceConnectRequestRecord | null = await keptRequestOf(
+      delivery.posts[0],
+    );
+    expect(request).toMatchObject({
+      workspaceUserId: SENDER["aadObjectId"],
+      purpose: "see the open incidents",
+      again: {
+        kind: WorkspaceConnectRequestAgainKind.Command,
+        label: "show active incidents",
+      },
+    });
+    expect(findBy).not.toHaveBeenCalled();
+    expect(JSON.stringify(delivery.posts)).not.toContain("Checkout");
+  });
+
+  test("from somebody no longer a member of the project: told so, and nothing read", async () => {
+    jest
+      .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
+      .mockRejectedValue(
+        new NotAuthorizedException(
+          WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+        ),
+      );
+    const findBy: ReturnType<typeof jest.spyOn> = stubIncidents([]);
+
+    const delivery: Delivery = await deliver(message("active incidents"));
+
+    expect(answerOf(delivery.posts[0])).toBe(
+      "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
+    );
+    expect(findBy).not.toHaveBeenCalled();
+  });
+
+  test("from a member whose role may not read incidents: told so, and shown nothing", async () => {
+    jest
+      .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
+      .mockResolvedValue([OPEN_STATE]);
+    jest
+      .spyOn(IncidentService, "findBy")
+      .mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permissions to read Incident.",
+        ),
+      );
+
+    const delivery: Delivery = await deliver(message("show active incidents"));
+
+    expect(answerOf(delivery.posts[0])).toBe(
+      "You do not have permission to see the incidents in this project. Ask a project admin for access to them.",
+    );
+  });
+
+  test("the list cannot be read: one reply that says so, logged - and HTTP 200, so Teams does not deliver it again", async () => {
+    jest
+      .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
+      .mockResolvedValue([OPEN_STATE]);
+    jest
+      .spyOn(IncidentService, "findBy")
+      .mockRejectedValue(new Error("connection reset"));
+
+    const delivery: Delivery = await deliver(message("show active incidents"));
+
+    expect(delivery.httpStatus).toBe(200);
+    expect(delivery.posts).toHaveLength(1);
+    expect(answerOf(delivery.posts[0])).toBe(
+      "Sorry, I couldn't read the open incidents just now. Please try again in a minute.",
+    );
+    expect(loggedErrors[0]).toBe(
+      'Could not read the list for a Microsoft Teams "show active incidents" command: Error: connection reset',
     );
   });
 });

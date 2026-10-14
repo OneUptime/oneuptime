@@ -31,8 +31,9 @@ import {
  *   before, go to MicrosoftTeamsCreateCommands with the title as the user
  *   typed it; "oncall" goes to MicrosoftTeamsCommands; help is a reply that
  *   mentions whoever asked, listing every command, and a command misspelt
- *   gets it too, with the command it looks like; the "show ..." commands and
- *   "ask" are routed as before.
+ *   gets it too, with the command it looks like; the "show ..." commands go
+ *   to MicrosoftTeamsCommands.handleListCommand, which reads them as the
+ *   member (WorkspaceOpenRecords), and "ask" to the assistant.
  * - A redelivered activity (same conversation, same id) is dropped, also when
  *   Teams retries a slow first delivery that is still being handled: the id
  *   is claimed before the work, not after it. The claim is kept in this
@@ -40,9 +41,7 @@ import {
  *   Redis came back since the first delivery, which it never heard of. A
  *   message the bot does not answer (no @mention in a channel or group chat)
  *   is ignored WITHOUT claiming its id.
- * - "show ..." replies are kept within the Teams text budget, and name ten
- *   affected monitors per item, then how many more.
- * - formatAffectedMonitorNames, getUnexpectedErrorMessage,
+ * - getUnexpectedErrorMessage,
  *   recoverFromFailedTurn (the last line of defence processBotActivity puts
  *   around every turn) and the catch of handleBotInvokeActivity: one reply
  *   that says why, sent best-effort, never a throw; and the failure logged
@@ -100,7 +99,9 @@ import MicrosoftTeamsUtil, {
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import MicrosoftTeamsActivityDeduplicator from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActivityDeduplicator";
 import MicrosoftTeamsCreateCommands from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCreateCommands";
-import MicrosoftTeamsCommands from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
+import MicrosoftTeamsCommands, {
+  MicrosoftTeamsListCommand,
+} from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
 import MicrosoftTeamsActionAnswer, {
   MicrosoftTeamsMention,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActionAnswer";
@@ -110,9 +111,6 @@ import {
   WorkspaceCommandMisspelling,
   WorkspaceCommandName,
 } from "../../../../Server/Utils/Workspace/WorkspaceCommands";
-import MicrosoftTeamsMessageSize, {
-  MICROSOFT_TEAMS_TEXT_MESSAGE_BUDGET_IN_BYTES,
-} from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsMessageSize";
 import MicrosoftTeamsAuthAction, {
   MicrosoftTeamsAccountNotLinkedException,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Auth";
@@ -121,16 +119,8 @@ import { MicrosoftTeamsIncidentActionType } from "../../../../Server/Utils/Works
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
-import IncidentService from "../../../../Server/Services/IncidentService";
-import IncidentStateService from "../../../../Server/Services/IncidentStateService";
-import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
-import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import logger, { LogAttributes } from "../../../../Server/Utils/Logger";
-import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
-import Monitor from "../../../../Models/DatabaseModels/Monitor";
-import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -167,10 +157,6 @@ const BOT_MENTION_TEXT: string = "<at>OneUptime</at>";
 const OTHER_MEMBER_ID: string = "29:1Bq7-bob-oncall-teams-user";
 const OTHER_MEMBER_MENTION_TEXT: string = "<at>Bob Oncall</at>";
 
-// The note fitTextToBudget appends to a reply it had to shorten.
-const SHORTENED_NOTE: string =
-  "…\n\n_This reply was shortened to fit in Microsoft Teams. Open OneUptime to see everything._";
-
 const UNEXPECTED_ERROR_TEXT: string =
   "Sorry, something went wrong in OneUptime while handling that message. Please try again in a minute.";
 
@@ -183,28 +169,8 @@ const ACTION_FAILED_TEXT: string =
 
 // ---- The private statics this file stubs or reads ----
 
-type ShowReplyBuilder = (projectId: ObjectID) => Promise<string>;
-
-type ShowReplyBuilderName =
-  | "getActiveIncidentsMessage"
-  | "getScheduledMaintenanceMessage"
-  | "getOngoingMaintenanceMessage"
-  | "getActiveAlertsMessage";
-
-const SHOW_REPLY_BUILDER_NAMES: Array<ShowReplyBuilderName> = [
-  "getActiveIncidentsMessage",
-  "getScheduledMaintenanceMessage",
-  "getOngoingMaintenanceMessage",
-  "getActiveAlertsMessage",
-];
-
-// What each stubbed "show ..." builder answers, unless a test says otherwise.
-const CANNED_SHOW_REPLIES: Record<ShowReplyBuilderName, string> = {
-  getActiveIncidentsMessage: "✅ No active incidents.",
-  getScheduledMaintenanceMessage: "✅ No scheduled maintenance events.",
-  getOngoingMaintenanceMessage: "✅ No ongoing maintenance events.",
-  getActiveAlertsMessage: "✅ No active alerts.",
-};
+// What the stubbed "show ..." handler answers, unless a test says otherwise.
+const CANNED_LIST_REPLY: string = "🚨 No open incidents.";
 
 /*
  * Private statics of MicrosoftTeamsUtil, reached through a cast the way
@@ -222,10 +188,6 @@ interface MicrosoftTeamsUtilInternals {
     projectId: ObjectID;
     question: string;
   }) => Promise<void>;
-  getActiveIncidentsMessage: ShowReplyBuilder;
-  getScheduledMaintenanceMessage: ShowReplyBuilder;
-  getOngoingMaintenanceMessage: ShowReplyBuilder;
-  getActiveAlertsMessage: ShowReplyBuilder;
 }
 
 const internals: MicrosoftTeamsUtilInternals =
@@ -299,7 +261,8 @@ interface Stubs {
   askAssistant: SpyInstance<
     MicrosoftTeamsUtilInternals["answerObservabilityQuestion"]
   >;
-  showReplies: Record<ShowReplyBuilderName, SpyInstance<ShowReplyBuilder>>;
+  // Teams' own lists, read as the member (MicrosoftTeamsCommands).
+  listCommand: SpyInstance<typeof MicrosoftTeamsCommands.handleListCommand>;
 }
 
 let stubs: Stubs;
@@ -353,20 +316,17 @@ beforeEach(() => {
     askAssistant: jest
       .spyOn(internals, "answerObservabilityQuestion")
       .mockResolvedValue(undefined),
-    showReplies: {
-      getActiveIncidentsMessage: jest
-        .spyOn(internals, "getActiveIncidentsMessage")
-        .mockResolvedValue(CANNED_SHOW_REPLIES.getActiveIncidentsMessage),
-      getScheduledMaintenanceMessage: jest
-        .spyOn(internals, "getScheduledMaintenanceMessage")
-        .mockResolvedValue(CANNED_SHOW_REPLIES.getScheduledMaintenanceMessage),
-      getOngoingMaintenanceMessage: jest
-        .spyOn(internals, "getOngoingMaintenanceMessage")
-        .mockResolvedValue(CANNED_SHOW_REPLIES.getOngoingMaintenanceMessage),
-      getActiveAlertsMessage: jest
-        .spyOn(internals, "getActiveAlertsMessage")
-        .mockResolvedValue(CANNED_SHOW_REPLIES.getActiveAlertsMessage),
-    },
+    /*
+     * The list handler answers with one plain reply of its own, so what
+     * the router does with a reply - and with a reply Teams refuses - shows.
+     */
+    listCommand: jest
+      .spyOn(MicrosoftTeamsCommands, "handleListCommand")
+      .mockImplementation(
+        async (data: { turnContext: TurnContext }): Promise<void> => {
+          await data.turnContext.sendActivity(CANNED_LIST_REPLY);
+        },
+      ),
   };
 });
 
@@ -374,11 +334,9 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-// No "show ..." builder, create command, oncall or AI question ran.
+// No "show ..." list, create command, oncall or AI question ran.
 function expectNoCommandRan(): void {
-  for (const builderName of SHOW_REPLY_BUILDER_NAMES) {
-    expect(stubs.showReplies[builderName]).not.toHaveBeenCalled();
-  }
+  expect(stubs.listCommand).not.toHaveBeenCalled();
   expect(stubs.createIncident).not.toHaveBeenCalled();
   expect(stubs.createMaintenance).not.toHaveBeenCalled();
   expect(stubs.onCall).not.toHaveBeenCalled();
@@ -784,26 +742,6 @@ function errorLogText(errorLog: SpyInstance<typeof logger.error>): string {
     .join("\n");
 }
 
-// ---- Monitors ----
-
-function monitorsNamed(names: Array<string | undefined>): Array<Monitor> {
-  return names.map((name: string | undefined) => {
-    const monitor: Monitor = new Monitor();
-
-    if (name !== undefined) {
-      monitor.name = name;
-    }
-
-    return monitor;
-  });
-}
-
-function numberedNames(count: number): Array<string> {
-  return Array.from({ length: count }, (_value: unknown, index: number) => {
-    return `Monitor ${String(index + 1).padStart(4, "0")}`;
-  });
-}
-
 describe("handleBotMessageActivity never rejects: one reply, never a rethrow (#4111)", () => {
   test("tenant resolution throws: exactly one reply, the unexpected-error text naming the activity id, which the error log names too", async () => {
     const outage: Error = new Error("simulated database outage");
@@ -922,7 +860,7 @@ describe("handleBotMessageActivity never rejects: one reply, never a rethrow (#4
     ).resolves.toBeUndefined();
 
     expect(turn.attempted).toEqual([
-      CANNED_SHOW_REPLIES.getActiveIncidentsMessage,
+      CANNED_LIST_REPLY,
       MicrosoftTeamsUtil.getUnexpectedErrorMessage(activity),
     ]);
     expect(turn.delivered).toEqual([
@@ -959,19 +897,22 @@ describe("handleBotMessageActivity never rejects: one reply, never a rethrow (#4
     ]);
   });
 
-  test("a 'show' command whose reply builder throws unexpectedly: one reply", async () => {
+  test("a 'show' command whose handler throws unexpectedly: one reply", async () => {
     const errorLog: SpyInstance<typeof logger.error> = silenceErrorLog();
     const bug: TypeError = new TypeError(
       "Cannot read properties of undefined (reading 'name')",
     );
-    stubs.showReplies.getScheduledMaintenanceMessage.mockRejectedValue(bug);
+    stubs.listCommand.mockRejectedValue(bug);
     const activity: JSONObject = personalMessage("show scheduled maintenance");
 
     const turn: FakeTurn = await deliver(activity);
 
-    expect(
-      stubs.showReplies.getScheduledMaintenanceMessage,
-    ).toHaveBeenCalledWith(PROJECT_ID);
+    expect(stubs.listCommand).toHaveBeenCalledWith({
+      turnContext: turn.turnContext,
+      activity: activity,
+      projectId: PROJECT_ID,
+      listCommand: MicrosoftTeamsListCommand.ScheduledMaintenance,
+    });
     expect(turn.attempted).toEqual([
       MicrosoftTeamsUtil.getUnexpectedErrorMessage(activity),
     ]);
@@ -1154,7 +1095,7 @@ describe("a failed message is logged by the command it is, never by its text", (
       },
       label: '"show active incidents"',
       fail: (failure: Error): void => {
-        stubs.showReplies.getActiveIncidentsMessage.mockRejectedValue(failure);
+        stubs.listCommand.mockRejectedValue(failure);
       },
       typed: null,
     },
@@ -1166,9 +1107,7 @@ describe("a failed message is logged by the command it is, never by its text", (
       },
       label: '"show ongoing maintenance"',
       fail: (failure: Error): void => {
-        stubs.showReplies.getOngoingMaintenanceMessage.mockRejectedValue(
-          failure,
-        );
+        stubs.listCommand.mockRejectedValue(failure);
       },
       typed: null,
     },
@@ -1626,31 +1565,41 @@ describe("help, 'show ...' and 'ask' are routed as before", () => {
     );
   });
 
-  const SHOW_ROUTES: Array<[string, ShowReplyBuilderName]> = [
-    ["show active incidents", "getActiveIncidentsMessage"],
-    ["active incidents", "getActiveIncidentsMessage"],
-    ["show scheduled maintenance", "getScheduledMaintenanceMessage"],
-    ["scheduled maintenance", "getScheduledMaintenanceMessage"],
-    ["show ongoing maintenance", "getOngoingMaintenanceMessage"],
-    ["ongoing maintenance", "getOngoingMaintenanceMessage"],
-    ["Show Active Alerts", "getActiveAlertsMessage"],
-    ["active alerts", "getActiveAlertsMessage"],
+  const SHOW_ROUTES: Array<[string, MicrosoftTeamsListCommand]> = [
+    ["show active incidents", MicrosoftTeamsListCommand.ActiveIncidents],
+    ["active incidents", MicrosoftTeamsListCommand.ActiveIncidents],
+    [
+      "show scheduled maintenance",
+      MicrosoftTeamsListCommand.ScheduledMaintenance,
+    ],
+    ["scheduled maintenance", MicrosoftTeamsListCommand.ScheduledMaintenance],
+    ["show ongoing maintenance", MicrosoftTeamsListCommand.OngoingMaintenance],
+    ["ongoing maintenance", MicrosoftTeamsListCommand.OngoingMaintenance],
+    ["Show Active Alerts", MicrosoftTeamsListCommand.ActiveAlerts],
+    ["active alerts", MicrosoftTeamsListCommand.ActiveAlerts],
   ];
 
+  /*
+   * The list is read as the member who typed it (handleListCommand,
+   * WorkspaceOpenRecords): the router hands over the message and the
+   * project the tenant resolved to, and answers nothing of its own.
+   */
   test.each(SHOW_ROUTES)(
-    "%j: answered once by %s for the resolved project",
-    async (text: string, builderName: ShowReplyBuilderName) => {
-      const turn: FakeTurn = await deliver(personalMessage(text));
+    "%j: handed once to the member-scoped list %j for the resolved project",
+    async (text: string, listCommand: MicrosoftTeamsListCommand) => {
+      const activity: JSONObject = personalMessage(text);
 
-      expect(stubs.showReplies[builderName]).toHaveBeenCalledTimes(1);
-      expect(stubs.showReplies[builderName]).toHaveBeenCalledWith(PROJECT_ID);
-      for (const otherName of SHOW_REPLY_BUILDER_NAMES) {
-        if (otherName !== builderName) {
-          expect(stubs.showReplies[otherName]).not.toHaveBeenCalled();
-        }
-      }
+      const turn: FakeTurn = await deliver(activity);
+
+      expect(stubs.listCommand).toHaveBeenCalledTimes(1);
+      expect(stubs.listCommand).toHaveBeenCalledWith({
+        turnContext: turn.turnContext,
+        activity: activity,
+        projectId: PROJECT_ID,
+        listCommand: listCommand,
+      });
       expect(stubs.askAssistant).not.toHaveBeenCalled();
-      expect(turn.attempted).toEqual([CANNED_SHOW_REPLIES[builderName]]);
+      expect(turn.attempted).toEqual([CANNED_LIST_REPLY]);
     },
   );
 
@@ -2038,364 +1987,6 @@ describe("a redelivered activity is handled once (#4111's second bubble)", () =>
       expect(stubs.resolveTenant).not.toHaveBeenCalled();
     },
   );
-});
-
-describe("'show ...' replies are kept within what Teams accepts", () => {
-  /*
-   * A reply the size of a big project's maintenance list: every line ends in
-   * a character that is not white space, so a cut at a line break is visible
-   * as the character right after the kept text.
-   */
-  function buildHugeShowReply(): string {
-    const blocks: Array<string> = [];
-
-    for (let index: number = 1; index <= 400; index++) {
-      blocks.push(
-        `🛠️ **[Scheduled Maintenance SM-${index}: Patch window ${index}](${DASHBOARD_URL}/${PROJECT_ID.toString()}/scheduled-maintenance-events/${index})**\n` +
-          `• **Status:** Scheduled\n` +
-          `• **Affected Services:** Checkout API ${index}, Payments ${index}, Search ${index} and 250 more\n`,
-      );
-    }
-
-    return `**Scheduled Maintenance Events:**\n\n${blocks.join("\n")}`;
-  }
-
-  const SHOW_COMMANDS: Array<[string, ShowReplyBuilderName]> = [
-    ["show active incidents", "getActiveIncidentsMessage"],
-    ["show scheduled maintenance", "getScheduledMaintenanceMessage"],
-    ["show ongoing maintenance", "getOngoingMaintenanceMessage"],
-    ["show active alerts", "getActiveAlertsMessage"],
-  ];
-
-  test.each(SHOW_COMMANDS)(
-    "%j: a reply over the budget is cut at a line break, fits in 40 KiB of UTF-16 and ends with the shortened note",
-    async (command: string, builderName: ShowReplyBuilderName) => {
-      const hugeReply: string = buildHugeShowReply();
-      expect(hugeReply.length * 2).toBeGreaterThan(
-        MICROSOFT_TEAMS_TEXT_MESSAGE_BUDGET_IN_BYTES * 2,
-      );
-      stubs.showReplies[builderName].mockResolvedValue(hugeReply);
-      const fitText: SpyInstance<
-        typeof MicrosoftTeamsMessageSize.fitTextToBudget
-      > = jest.spyOn(MicrosoftTeamsMessageSize, "fitTextToBudget");
-
-      const turn: FakeTurn = await deliver(personalMessage(command));
-
-      expect(stubs.showReplies[builderName]).toHaveBeenCalledWith(PROJECT_ID);
-      expect(fitText).toHaveBeenCalledWith({ text: hugeReply });
-      expect(turn.delivered).toHaveLength(1);
-
-      const sent: string = textOf(turn.delivered[0]);
-      expect(sent.length * 2).toBeLessThanOrEqual(
-        MICROSOFT_TEAMS_TEXT_MESSAGE_BUDGET_IN_BYTES,
-      );
-      // Not cut to a stub: all but a line and the note is kept.
-      expect(sent.length * 2).toBeGreaterThan(
-        MICROSOFT_TEAMS_TEXT_MESSAGE_BUDGET_IN_BYTES - 1024,
-      );
-      expect(sent.endsWith(SHORTENED_NOTE)).toBe(true);
-
-      const kept: string = sent.substring(
-        0,
-        sent.length - SHORTENED_NOTE.length,
-      );
-      expect(hugeReply.startsWith(kept)).toBe(true);
-      expect(hugeReply.charAt(kept.length)).toBe("\n");
-    },
-  );
-
-  test("a reply within the budget is sent exactly as it was built", async () => {
-    const reply: string =
-      "**Active Alerts:**\n\n🔴 **[Alert #12: CPU above 90%](https://oneuptime.example.com/alerts/12)**\n• **Status:** Created\n";
-    stubs.showReplies.getActiveAlertsMessage.mockResolvedValue(reply);
-
-    const turn: FakeTurn = await deliver(personalMessage("show active alerts"));
-
-    expect(turn.delivered).toEqual([reply]);
-  });
-});
-
-/*
- * The real "show ..." builders, with only their database reads stubbed: an
- * incident or maintenance event can cover hundreds of monitors, and master
- * listed every name, one of the ways a reply grew past what Teams accepts.
- */
-describe("'show ...' replies name ten affected monitors, then how many more", () => {
-  const MONITOR_NAMES: Array<string> = numberedNames(1500);
-
-  const AFFECTED_SERVICES_LINE: string = `• **Affected Services:** ${MONITOR_NAMES.slice(
-    0,
-    10,
-  ).join(", ")} and 1490 more\n`;
-
-  // The project each stubbed findBy was asked about.
-  let queriedProjectIds: Array<string> = [];
-
-  beforeEach(() => {
-    queriedProjectIds = [];
-  });
-
-  function recordQueriedProject(findBy: unknown): void {
-    queriedProjectIds.push(
-      String(
-        (findBy as { query?: { projectId?: unknown } | undefined }).query
-          ?.projectId,
-      ),
-    );
-  }
-
-  function stubOneActiveIncident(): void {
-    const incidentId: ObjectID = ObjectID.generate();
-
-    jest
-      .spyOn(IncidentStateService, "getUnresolvedIncidentStates")
-      .mockResolvedValue([
-        {
-          id: ObjectID.generate(),
-          name: "Identified",
-        } as unknown as IncidentState,
-      ]);
-    jest
-      .spyOn(IncidentService, "findBy")
-      .mockImplementation((findBy: unknown) => {
-        recordQueriedProject(findBy);
-        return Promise.resolve([
-          {
-            id: incidentId,
-            incidentNumber: 42,
-            title: "Checkout is down",
-            currentIncidentState: { name: "Identified" },
-            incidentSeverity: { name: "Critical" },
-            declaredAt: new Date("2026-09-29T08:00:00.000Z"),
-            monitors: monitorsNamed(MONITOR_NAMES),
-          } as unknown as Incident,
-        ]);
-      });
-    jest
-      .spyOn(IncidentService, "getIncidentLinkInDashboard")
-      .mockResolvedValue(
-        URL.fromString(
-          `${DASHBOARD_URL}/${PROJECT_ID.toString()}/incidents/${incidentId.toString()}`,
-        ),
-      );
-  }
-
-  // The states the project's events wait for their start in.
-  const WAITING_STATE_IDS: Array<ObjectID> = [
-    ObjectID.generate(),
-    ObjectID.generate(),
-  ];
-
-  // The findBy each "show scheduled maintenance" read was asked with.
-  let maintenanceReads: Array<{ query: Record<string, unknown> }> = [];
-
-  function stubOneMaintenanceEvent(): void {
-    const eventId: ObjectID = ObjectID.generate();
-    maintenanceReads = [];
-
-    // The ongoing events are asked for by the states they are in progress in.
-    jest
-      .spyOn(
-        ScheduledMaintenanceStateService,
-        "getInProgressScheduledMaintenanceStateIds",
-      )
-      .mockResolvedValue([ObjectID.generate()]);
-
-    /*
-     * And the events to come by the states they wait for their start in:
-     * the scheduled state, and a state of the project's own placed after
-     * it and before Ongoing ("Confirmed").
-     */
-    jest
-      .spyOn(
-        ScheduledMaintenanceStateService,
-        "getWaitingToStartScheduledMaintenanceStateIds",
-      )
-      .mockResolvedValue(WAITING_STATE_IDS);
-
-    jest
-      .spyOn(ScheduledMaintenanceService, "findBy")
-      .mockImplementation((findBy: unknown) => {
-        recordQueriedProject(findBy);
-        maintenanceReads.push(findBy as { query: Record<string, unknown> });
-        return Promise.resolve([
-          {
-            id: eventId,
-            scheduledMaintenanceNumber: 7,
-            title: "Database failover drill",
-            startsAt: new Date("2026-10-01T14:00:00.000Z"),
-            endsAt: new Date("2026-10-01T16:00:00.000Z"),
-            currentScheduledMaintenanceState: { name: "Scheduled" },
-            monitors: monitorsNamed(MONITOR_NAMES),
-          } as unknown as ScheduledMaintenance,
-        ]);
-      });
-    jest
-      .spyOn(
-        ScheduledMaintenanceService,
-        "getScheduledMaintenanceLinkInDashboard",
-      )
-      .mockResolvedValue(
-        URL.fromString(
-          `${DASHBOARD_URL}/${PROJECT_ID.toString()}/scheduled-maintenance-events/${eventId.toString()}`,
-        ),
-      );
-  }
-
-  const COMMANDS: Array<[string, ShowReplyBuilderName, () => void]> = [
-    [
-      "show active incidents",
-      "getActiveIncidentsMessage",
-      stubOneActiveIncident,
-    ],
-    [
-      "show scheduled maintenance",
-      "getScheduledMaintenanceMessage",
-      stubOneMaintenanceEvent,
-    ],
-    [
-      "show ongoing maintenance",
-      "getOngoingMaintenanceMessage",
-      stubOneMaintenanceEvent,
-    ],
-  ];
-
-  test.each(COMMANDS)(
-    "%j, one item with 1500 monitors: the first ten names and 'and 1490 more', unshortened",
-    async (
-      command: string,
-      builderName: ShowReplyBuilderName,
-      stubReads: () => void,
-    ) => {
-      stubs.showReplies[builderName].mockRestore();
-      stubReads();
-
-      const turn: FakeTurn = await deliver(personalMessage(command));
-
-      // Read for the project the tenant resolved to, and no other.
-      expect(queriedProjectIds).toEqual([PROJECT_ID.toString()]);
-      expect(turn.delivered).toHaveLength(1);
-      const reply: string = textOf(turn.delivered[0]);
-      expect(reply).toContain(AFFECTED_SERVICES_LINE);
-      expect(reply).not.toContain("Monitor 0011");
-      expect(reply.endsWith(SHORTENED_NOTE)).toBe(false);
-    },
-  );
-
-  /*
-   * "show scheduled maintenance" lists the events still to come by the
-   * states they wait in (ScheduledMaintenanceStartUtil.isWaitingToStart),
-   * not by the scheduled flag: an event moved on to "Confirmed" was left
-   * out of it until it started.
-   */
-  test("'show scheduled maintenance' asks for the events by the states they wait for their start in, not by the scheduled flag", async () => {
-    stubs.showReplies.getScheduledMaintenanceMessage.mockRestore();
-    stubOneMaintenanceEvent();
-
-    await deliver(personalMessage("show scheduled maintenance"));
-
-    expect(maintenanceReads).toHaveLength(1);
-
-    const query: Record<string, unknown> = maintenanceReads[0]!.query;
-
-    expect(query["currentScheduledMaintenanceState"]).toBeUndefined();
-
-    const condition: {
-      objectLiteralParameters?: Record<string, unknown>;
-    } = query["currentScheduledMaintenanceStateId"] as {
-      objectLiteralParameters?: Record<string, unknown>;
-    };
-
-    const askedFor: Array<string> = (
-      (Object.values(condition.objectLiteralParameters || {})[0] as
-        | Array<unknown>
-        | undefined) || []
-    ).map((id: unknown): string => {
-      return String(id);
-    });
-
-    expect(askedFor.sort()).toEqual(
-      WAITING_STATE_IDS.map((id: ObjectID): string => {
-        return id.toString();
-      }).sort(),
-    );
-  });
-});
-
-describe("MicrosoftTeamsUtil.formatAffectedMonitorNames", () => {
-  test("no monitors: an empty string", () => {
-    expect(MicrosoftTeamsUtil.formatAffectedMonitorNames([]).toString()).toBe(
-      "",
-    );
-  });
-
-  test("one monitor: its name", () => {
-    expect(
-      MicrosoftTeamsUtil.formatAffectedMonitorNames(
-        monitorsNamed(["Checkout API"]),
-      ).toString(),
-    ).toBe("Checkout API");
-  });
-
-  test("ten monitors: all ten names, nothing about more", () => {
-    const names: Array<string> = numberedNames(10);
-
-    expect(
-      MicrosoftTeamsUtil.formatAffectedMonitorNames(
-        monitorsNamed(names),
-      ).toString(),
-    ).toBe(names.join(", "));
-  });
-
-  test("eleven monitors: the first ten, then 'and 1 more'", () => {
-    const names: Array<string> = numberedNames(11);
-
-    expect(
-      MicrosoftTeamsUtil.formatAffectedMonitorNames(
-        monitorsNamed(names),
-      ).toString(),
-    ).toBe(`${names.slice(0, 10).join(", ")} and 1 more`);
-  });
-
-  test("1500 monitors: the first ten, then 'and 1490 more', in one short line", () => {
-    const names: Array<string> = numberedNames(1500);
-
-    const line: string = MicrosoftTeamsUtil.formatAffectedMonitorNames(
-      monitorsNamed(names),
-    ).toString();
-
-    expect(line).toBe(`${names.slice(0, 10).join(", ")} and 1490 more`);
-    expect(line).not.toContain("Monitor 0011");
-    expect(line.length).toBeLessThan(200);
-  });
-
-  test("monitors without a name are skipped, and are not counted as more", () => {
-    expect(
-      MicrosoftTeamsUtil.formatAffectedMonitorNames(
-        monitorsNamed(["", "Checkout API", undefined, "Payments", ""]),
-      ).toString(),
-    ).toBe("Checkout API, Payments");
-
-    const tenNamed: Array<string> = numberedNames(10);
-    expect(
-      MicrosoftTeamsUtil.formatAffectedMonitorNames(
-        monitorsNamed([...tenNamed, "", undefined, "", undefined, ""]),
-      ).toString(),
-    ).toBe(tenNamed.join(", "));
-
-    const twelveNamed: Array<string> = numberedNames(12);
-    expect(
-      MicrosoftTeamsUtil.formatAffectedMonitorNames(
-        monitorsNamed([
-          "",
-          ...twelveNamed.slice(0, 5),
-          undefined,
-          ...twelveNamed.slice(5),
-          "",
-        ]),
-      ).toString(),
-    ).toBe(`${twelveNamed.slice(0, 10).join(", ")} and 2 more`);
-  });
 });
 
 describe("MicrosoftTeamsUtil.getUnexpectedErrorMessage", () => {

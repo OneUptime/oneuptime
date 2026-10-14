@@ -39,12 +39,6 @@ import WorkspaceProjectAuthToken, {
   MicrosoftTeamsInstalledTeam,
   MicrosoftTeamsMiscData,
 } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
-import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
-import Alert from "../../../../Models/DatabaseModels/Alert";
-import AlertState from "../../../../Models/DatabaseModels/AlertState";
-import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
-import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import OneUptimeDate from "../../../../Types/Date";
 import {
   MicrosoftTeamsAppClientId,
@@ -52,21 +46,11 @@ import {
   MicrosoftTeamsAppTenantId,
 } from "../../../EnvironmentConfig";
 
-// Import services for bot commands
-import IncidentService from "../../../Services/IncidentService";
-import AlertService from "../../../Services/AlertService";
-import ScheduledMaintenanceService from "../../../Services/ScheduledMaintenanceService";
-import ScheduledMaintenanceStateService from "../../../Services/ScheduledMaintenanceStateService";
-import IncidentStateService from "../../../Services/IncidentStateService";
-import AlertStateService from "../../../Services/AlertStateService";
-
 // Import user services
 import User from "../../../../Models/DatabaseModels/User";
 import UserService from "../../../Services/UserService";
 
 // Import database utilities
-import QueryHelper from "../../../Types/Database/QueryHelper";
-import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { truncateToLength } from "../../Database/TruncateColumnValue";
 import { removeHtmlMarkup } from "../../../../Types/HtmlMarkup";
@@ -364,9 +348,6 @@ export interface MicrosoftTeamsRosterMember {
   userPrincipalName: string;
   name: string;
 }
-
-// How many affected monitors a "show ..." reply names for one item.
-const MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES: number = 10;
 
 /*
  * Hosts that may receive a Teams incoming webhook. Legacy Connector webhooks
@@ -3728,7 +3709,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       (input.misspelt ? `misspelt ${input.misspelt.command}` : undefined);
 
     let projectId: ObjectID | undefined = undefined;
-    let responseText: string = "";
 
     try {
       // Extract tenant ID to get project ID
@@ -3765,7 +3745,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       );
 
       if (listCommand) {
-        responseText = await this.getListCommandMessage(listCommand, projectId);
+        /*
+         * Teams' own lists, read as the member the sender's account is
+         * connected to (MicrosoftTeamsCommands.handleListCommand).
+         */
+        await MicrosoftTeamsCommands.handleListCommand({
+          turnContext: data.turnContext,
+          activity: data.activity,
+          projectId: projectId,
+          listCommand: listCommand,
+        });
+        return;
       } else {
         switch (input.command) {
           case WorkspaceCommandName.Help:
@@ -3842,18 +3832,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             return;
         }
       }
-
-      /*
-       * Send response directly using TurnContext - this is the recommended Bot
-       * Framework pattern. Lists grow with the project, so the text is kept
-       * within what Teams accepts.
-       */
-      await data.turnContext.sendActivity(
-        MicrosoftTeamsMessageSize.fitTextToBudget({ text: responseText }),
-      );
-      logger.debug("Bot message sent successfully using TurnContext", {
-        projectId: projectId.toString(),
-      });
     } catch (error) {
       /*
        * One reply, and no rethrow. This used to reply and then rethrow: the
@@ -4444,530 +4422,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       await turnContext.sendActivity(
         "Sorry, I ran into a problem answering that question. Please try again later.",
       );
-    }
-  }
-
-  /*
-   * The monitors an incident or maintenance event affects, as one line: the
-   * first few names, then how many more. An event can cover hundreds of
-   * monitors, and listing them all made the reply too large for Teams.
-   */
-  public static formatAffectedMonitorNames(
-    monitors: Array<Monitor>,
-  ): MarkdownText {
-    const names: Array<string> = monitors
-      .map((monitor: Monitor) => {
-        return monitor.name || "";
-      })
-      .filter((name: string) => {
-        return Boolean(name);
-      });
-
-    // Each name is plain text, placed into the summary's Markdown as text.
-    const shownNames: Array<string> = names.slice(
-      0,
-      MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES,
-    );
-    const notShownCount: number = names.length - shownNames.length;
-
-    return notShownCount > 0
-      ? mdText`${FeedMarkdown.join(shownNames)} and ${notShownCount} more`
-      : FeedMarkdown.join(shownNames);
-  }
-
-  // The reply to one of Teams' own lists (MicrosoftTeamsListCommand).
-  private static async getListCommandMessage(
-    listCommand: MicrosoftTeamsListCommand,
-    projectId: ObjectID,
-  ): Promise<string> {
-    switch (listCommand) {
-      case MicrosoftTeamsListCommand.ActiveIncidents:
-        return await this.getActiveIncidentsMessage(projectId);
-      case MicrosoftTeamsListCommand.ActiveAlerts:
-        return await this.getActiveAlertsMessage(projectId);
-      case MicrosoftTeamsListCommand.ScheduledMaintenance:
-        return await this.getScheduledMaintenanceMessage(projectId);
-      case MicrosoftTeamsListCommand.OngoingMaintenance:
-        return await this.getOngoingMaintenanceMessage(projectId);
-    }
-  }
-
-  private static async getActiveIncidentsMessage(
-    projectId: ObjectID,
-  ): Promise<string> {
-    try {
-      logger.debug(
-        "Getting active incidents for project: " + projectId.toString(),
-      );
-
-      // Get unresolved incident states
-      const unresolvedIncidentStates: Array<IncidentState> =
-        await IncidentStateService.getUnresolvedIncidentStates(projectId, {
-          isRoot: true,
-        });
-
-      const unresolvedIncidentStateIds: Array<ObjectID> =
-        unresolvedIncidentStates.map((state: IncidentState) => {
-          return state.id!;
-        });
-
-      // Find active incidents
-      const activeIncidents: Array<Incident> = await IncidentService.findBy({
-        query: {
-          projectId: projectId,
-          currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
-        },
-        select: {
-          _id: true,
-          incidentNumber: true,
-          incidentNumberWithPrefix: true,
-          title: true,
-          description: true,
-          currentIncidentState: {
-            name: true,
-            color: true,
-          },
-          incidentSeverity: {
-            name: true,
-            color: true,
-          },
-          createdAt: true,
-          declaredAt: true,
-          monitors: {
-            name: true,
-          },
-        },
-        sort: {
-          declaredAt: SortOrder.Descending,
-          createdAt: SortOrder.Descending,
-        },
-        limit: 10,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (activeIncidents.length === 0) {
-        return `**Active Incidents**
-
-Currently, there are no active incidents in the system. All services are operating normally.
-
-If you need to report an incident or check historical incidents, please visit the OneUptime dashboard.`;
-      }
-
-      let message: string =
-        mdText`**Active Incidents** (${activeIncidents.length})
-
-`.toString();
-
-      for (const incident of activeIncidents) {
-        const severity: string = incident.incidentSeverity?.name || "Unknown";
-        const state: string = incident.currentIncidentState?.name || "Unknown";
-        const declaredAt: Date | undefined =
-          incident.declaredAt || incident.createdAt;
-        const declaredAtText: string = declaredAt
-          ? OneUptimeDate.getDateAsFormattedString(declaredAt)
-          : "Unknown";
-
-        const severityIcon: string = ["Critical", "Major"].includes(severity)
-          ? "🔴"
-          : severity === "Minor"
-            ? "🟠"
-            : "🟡";
-
-        const incidentUrl: URL =
-          await IncidentService.getIncidentLinkInDashboard(
-            projectId,
-            incident.id!,
-          );
-
-        /*
-         * The title - plain text, which anyone holding an incident form's
-         * link may have typed - sits inside the link's text, so every
-         * Markdown character in it is escaped: a "]" cannot end that text
-         * early and point the rest somewhere else, and "![...](...)" is no
-         * image. Escaping brackets alone is not enough there: marked, for
-         * one, undoes "\[" and "\]" in a link's text before reading it.
-         */
-        message += mdText`${severityIcon} **[Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}: ${incident.title}](${incidentUrl.toString()})**
-• **Severity:** ${severity}
-• **Status:** ${state}
-• **Declared:** ${declaredAtText}
-`;
-
-        if (incident.monitors && incident.monitors.length > 0) {
-          message += mdText`• **Affected Services:** ${this.formatAffectedMonitorNames(
-            incident.monitors,
-          )}\n`;
-        }
-
-        if (incident.description) {
-          const desc: string = ChatInlineImages.toText(
-            incident.description,
-          ).replace(/\s+/g, " ");
-          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
-        }
-
-        message += mdText`• [Open in Dashboard](${incidentUrl.toString()})\n\n`;
-      }
-
-      return message;
-    } catch (error) {
-      logger.error("Error getting active incidents: " + error);
-      return "Sorry, I couldn't retrieve active incidents information at the moment. Please try again later.";
-    }
-  }
-
-  private static async getScheduledMaintenanceMessage(
-    projectId: ObjectID,
-  ): Promise<string> {
-    try {
-      logger.debug(
-        "Getting scheduled maintenance events for project: " +
-          projectId.toString(),
-      );
-
-      /*
-       * The events still to come: waiting for their start, in the scheduled
-       * state or a state of the project's own placed after Scheduled and
-       * before Ongoing, such as "Confirmed" (Common/Utils/
-       * ScheduledMaintenanceStart.isWaitingToStart).
-       */
-      const scheduledEvents: Array<ScheduledMaintenance> =
-        await ScheduledMaintenanceService.findBy({
-          query: {
-            projectId: projectId,
-            currentScheduledMaintenanceStateId: QueryHelper.any(
-              await ScheduledMaintenanceStateService.getWaitingToStartScheduledMaintenanceStateIds(
-                projectId,
-              ),
-            ),
-            isVisibleOnStatusPage: true, // Only show events visible on status page
-          },
-          select: {
-            _id: true,
-            title: true,
-            description: true,
-            startsAt: true,
-            endsAt: true,
-            currentScheduledMaintenanceState: {
-              name: true,
-            },
-            monitors: {
-              name: true,
-            },
-            scheduledMaintenanceNumber: true,
-            scheduledMaintenanceNumberWithPrefix: true,
-          },
-          sort: {
-            startsAt: SortOrder.Ascending,
-          },
-          limit: 10,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (scheduledEvents.length === 0) {
-        return `**Scheduled Maintenance Events**
-
-There are currently no scheduled maintenance events.
-
-When maintenance is scheduled, you'll see details here including:
-• Event title and description
-• Scheduled start and end times
-• Affected services
-• Status updates
-
-Check back later for upcoming maintenance windows.`;
-      }
-
-      let message: string =
-        mdText`**Scheduled Maintenance Events** (${scheduledEvents.length})
-
-`.toString();
-
-      for (const event of scheduledEvents) {
-        const state: string =
-          event.currentScheduledMaintenanceState?.name || "Scheduled";
-        const startTime: string = event.startsAt
-          ? OneUptimeDate.getDateAsFormattedString(event.startsAt)
-          : "TBD";
-        const endTime: string = event.endsAt
-          ? OneUptimeDate.getDateAsFormattedString(event.endsAt)
-          : "TBD";
-
-        const eventUrl: URL =
-          await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-            projectId,
-            event.id!,
-          );
-
-        // The title inside the link's text, escaped as an incident's is.
-        message += mdText`🛠️ **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
-• **Status:** ${state}
-• **Starts:** ${startTime}
-• **Ends:** ${endTime}
-`;
-
-        if (event.monitors && event.monitors.length > 0) {
-          message += mdText`• **Affected Services:** ${this.formatAffectedMonitorNames(
-            event.monitors,
-          )}\n`;
-        }
-
-        if (event.description) {
-          const desc: string = ChatInlineImages.toText(
-            event.description,
-          ).replace(/\s+/g, " ");
-          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
-        }
-
-        message += mdText`• [View Event](${eventUrl.toString()})\n\n`;
-      }
-
-      return message;
-    } catch (error) {
-      logger.error("Error getting scheduled maintenance: " + error);
-      return "Sorry, I couldn't retrieve scheduled maintenance information at the moment. Please try again later.";
-    }
-  }
-
-  private static async getOngoingMaintenanceMessage(
-    projectId: ObjectID,
-  ): Promise<string> {
-    try {
-      logger.debug(
-        "Getting ongoing maintenance events for project: " +
-          projectId.toString(),
-      );
-
-      /*
-       * The events in progress: in the project's ongoing state, or in a
-       * state of the project's own placed between Ongoing and Ended, such as
-       * "Verifying" (Common/Utils/ScheduledMaintenanceStart).
-       */
-      const inProgressStateIds: Array<ObjectID> =
-        await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
-          projectId,
-        );
-
-      const ongoingEvents: Array<ScheduledMaintenance> =
-        inProgressStateIds.length === 0
-          ? []
-          : await ScheduledMaintenanceService.findBy({
-              query: {
-                projectId: projectId,
-                currentScheduledMaintenanceStateId:
-                  QueryHelper.any(inProgressStateIds),
-              },
-              select: {
-                _id: true,
-                title: true,
-                description: true,
-                startsAt: true,
-                endsAt: true,
-                currentScheduledMaintenanceState: {
-                  name: true,
-                },
-                monitors: {
-                  name: true,
-                },
-                scheduledMaintenanceNumber: true,
-                scheduledMaintenanceNumberWithPrefix: true,
-              },
-              sort: {
-                startsAt: SortOrder.Descending,
-              },
-              limit: 10,
-              skip: 0,
-              props: {
-                isRoot: true,
-              },
-            });
-
-      if (ongoingEvents.length === 0) {
-        return `**Ongoing Maintenance Events**
-
-There are currently no ongoing maintenance events.
-
-When maintenance is in progress, you'll see details here including:
-• Event title and description
-• Current status and progress
-• Affected services
-• Expected completion time
-
-All systems are currently operating normally.`;
-      }
-
-      let message: string =
-        mdText`**Ongoing Maintenance Events** (${ongoingEvents.length})
-
-`.toString();
-
-      for (const event of ongoingEvents) {
-        const state: string =
-          event.currentScheduledMaintenanceState?.name || "Ongoing";
-        const startTime: string = event.startsAt
-          ? OneUptimeDate.getDateAsFormattedString(event.startsAt)
-          : "Unknown";
-        const endTime: string = event.endsAt
-          ? OneUptimeDate.getDateAsFormattedString(event.endsAt)
-          : "TBD";
-
-        const eventUrl: URL =
-          await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-            projectId,
-            event.id!,
-          );
-
-        // The title inside the link's text, escaped as an incident's is.
-        message += mdText`🔧 **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
-• **Status:** ${state}
-• **Started:** ${startTime}
-• **Expected End:** ${endTime}
-`;
-
-        if (event.monitors && event.monitors.length > 0) {
-          message += mdText`• **Affected Services:** ${this.formatAffectedMonitorNames(
-            event.monitors,
-          )}\n`;
-        }
-
-        if (event.description) {
-          const desc: string = ChatInlineImages.toText(
-            event.description,
-          ).replace(/\s+/g, " ");
-          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
-        }
-
-        message += mdText`• [View Event](${eventUrl.toString()})\n\n`;
-      }
-
-      return message;
-    } catch (error) {
-      logger.error("Error getting ongoing maintenance: " + error);
-      return "Sorry, I couldn't retrieve ongoing maintenance information at the moment. Please try again later.";
-    }
-  }
-
-  private static async getActiveAlertsMessage(
-    projectId: ObjectID,
-  ): Promise<string> {
-    try {
-      logger.debug(
-        "Getting active alerts for project: " + projectId.toString(),
-      );
-
-      // Get unresolved alert states
-      const unresolvedAlertStates: Array<AlertState> =
-        await AlertStateService.getUnresolvedAlertStates(projectId, {
-          isRoot: true,
-        });
-
-      const unresolvedAlertStateIds: Array<ObjectID> =
-        unresolvedAlertStates.map((state: AlertState) => {
-          return state.id!;
-        });
-
-      // Find active alerts
-      const activeAlerts: Array<Alert> = await AlertService.findBy({
-        query: {
-          projectId: projectId,
-          currentAlertStateId: QueryHelper.any(unresolvedAlertStateIds),
-        },
-        select: {
-          _id: true,
-          alertNumber: true,
-          alertNumberWithPrefix: true,
-          title: true,
-          description: true,
-          currentAlertState: {
-            name: true,
-            color: true,
-          },
-          alertSeverity: {
-            name: true,
-            color: true,
-          },
-          createdAt: true,
-          monitor: {
-            name: true,
-          },
-        },
-        sort: {
-          createdAt: SortOrder.Descending,
-        },
-        limit: 10,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (activeAlerts.length === 0) {
-        return `**Active Alerts**
-
-Currently, there are no active alerts in the system.
-
-When alerts are triggered, you'll see details here including:
-• Alert title and description
-• Severity level
-• Affected services or monitors
-• Time triggered
-• Current status
-
-All monitoring checks are passing normally.`;
-      }
-
-      let message: string = mdText`**Active Alerts** (${activeAlerts.length})
-
-`.toString();
-
-      for (const alert of activeAlerts) {
-        const severity: string = alert.alertSeverity?.name || "Unknown";
-        const state: string = alert.currentAlertState?.name || "Unknown";
-        const createdAt: string = alert.createdAt
-          ? OneUptimeDate.getDateAsFormattedString(alert.createdAt)
-          : "Unknown";
-
-        const alertUrl: URL = await AlertService.getAlertLinkInDashboard(
-          projectId,
-          alert.id!,
-        );
-
-        /*
-         * The title - plain text, often filled in by a monitor from an
-         * incoming email or request - sits inside the link's text, so every
-         * Markdown character in it is escaped, as an incident's title is
-         * above. The severity, state and monitor names are plain text too.
-         */
-        message += mdText`⚠️ **[Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber}: ${alert.title}](${alertUrl.toString()})**
-• **Severity:** ${severity}
-• **Status:** ${state}
-• **Triggered:** ${createdAt}
-`;
-
-        if (alert.monitor?.name) {
-          message += mdText`• **Monitor:** ${alert.monitor.name}\n`;
-        }
-
-        if (alert.description) {
-          const desc: string = ChatInlineImages.toText(
-            alert.description,
-          ).replace(/\s+/g, " ");
-          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
-        }
-
-        message += mdText`• [Open in Dashboard](${alertUrl.toString()})\n\n`;
-      }
-
-      return message;
-    } catch (error) {
-      logger.error("Error getting active alerts: " + error);
-      return "Sorry, I couldn't retrieve active alerts information at the moment. Please try again later.";
     }
   }
 
