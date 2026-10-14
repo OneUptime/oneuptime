@@ -615,8 +615,8 @@ La stessa generazione vi dà trigger per la configurazione stessa: **On Create I
 
 Alcuni dettagli che contano quando li collegate:
 
-- **On Update X** accetta un argomento facoltativo **Listen on** che restringe il trigger agli aggiornamenti che cambiano campi specifici, qualunque sia il loro nuovo valore: conta anche un interruttore disattivato o un campo svuotato. Un campo salvato con il valore che ha già non è un cambiamento, quindi un modulo di modifica che lo invia di nuovo a ogni salvataggio non risveglia il workflow. Lasciatelo vuoto per scattare a ogni cambiamento. Se un aggiornamento arriva senza traccia di quali campi sono cambiati, il filtro viene saltato e il workflow viene eseguito comunque.
-- **On Create X** e **On Update X** accettano entrambi un argomento obbligatorio **Select Fields**; **On Delete X** non accetta argomenti.
+- **On Update X** accetta un argomento facoltativo **Fields to watch** che restringe il trigger agli aggiornamenti che cambiano campi specifici, qualunque sia il loro nuovo valore: conta anche un interruttore disattivato o un campo svuotato. Un campo salvato con il valore che ha già non è un cambiamento, quindi un modulo di modifica che lo invia di nuovo a ogni salvataggio non risveglia il workflow. Lasciatelo vuoto per scattare a ogni cambiamento. Se un aggiornamento arriva senza traccia di quali campi sono cambiati, il filtro viene saltato e il workflow viene eseguito comunque.
+- **On Create X** e **On Update X** accettano entrambi un argomento obbligatorio **Fields to pass on**; **On Delete X** non accetta argomenti.
 - Tutti e tre espongono un'unica porta di uscita **Success**, e ciascuno accetta un argomento ID così potete eseguire il workflow a mano su un singolo record.
 - I nomi vengono dal nome singolare del modello, non dal nome della tabella — per questo vedete **On Create Incident Team Owner** e **On Create Incident User Owner** invece di nomi ricalcati sulle tabelle.
 - Non ci sono trigger per le definizioni dei campi personalizzati degli incidenti. Quel modello è l'unico membro della famiglia degli incidenti con i workflow disattivati.

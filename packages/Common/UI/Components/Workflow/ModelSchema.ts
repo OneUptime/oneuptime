@@ -30,6 +30,12 @@ export interface ModelSchemaColumn {
   relatedTableName?: string | undefined;
   relatedColumns?: Array<ModelSchemaColumn> | undefined;
   /*
+   * For a relation to one record, the column holding that record's ID
+   * (currentIncidentState -> currentIncidentStateId). Absent from an older
+   * response, and on a relation to many records.
+   */
+  relationIdColumn?: string | undefined;
+  /*
    * Present from the endpoint, absent on anything cached or hand-built before
    * they existed, so every reader must treat them as optional.
    */

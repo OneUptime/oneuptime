@@ -212,8 +212,8 @@ Loggar för inkommande samtal finns som utlösare i arbetsflöden:
 För att bara agera på missade samtal, till exempel för att publicera dem i Slack eller Microsoft Teams eller öppna ett ärende:
 
 :::steps
-1. Lägg till utlösaren **On Update Incoming Call Log**. Ställ in **Listen on** på **Ended At** och välj de fält du vill använda, till exempel **Status**, **Caller Phone Number** och **Routing Phone Number**.
-2. Lägg till ett steg **If / Else**. Kontrollera utlösarens **Status**, med jämförelsen **is not equal to** och `Completed`.
+1. Lägg till utlösaren **On Update Incoming Call Log**. Ställ in **Fields to watch** på **Ended At** och välj de fält du vill använda, till exempel **Status**, **Caller Phone Number** och **Routing Phone Number**.
+2. Lägg till ett steg **If / Else**. Kontrollera utlösarens **Status**, med jämförelsen **är inte lika med** och `Completed`.
 3. Anslut dina steg till porten **Yes**.
 :::
 

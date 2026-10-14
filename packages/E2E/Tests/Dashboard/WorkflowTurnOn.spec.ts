@@ -241,10 +241,17 @@ test.describe("Testing a workflow that is off, and turning it on, from the Build
         .getByRole("button", { name: "Run Workflow Manually" })
         .click();
 
+      /*
+       * The confirmation says what a run does, not "are you sure": every
+       * step runs for real, a test run included.
+       */
       const confirmRun: Locator = page.getByTestId("modal").filter({
-        hasText: "Are you sure you want to run this workflow manually?",
+        hasText: "Run this workflow now?",
       });
       await expect(confirmRun).toBeVisible();
+      await expect(confirmRun).toContainText(
+        "Every step runs for real: anything it sends, writes or deletes actually happens.",
+      );
 
       const runRequest: Promise<Response> = page.waitForResponse(
         (response: Response) => {

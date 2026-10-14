@@ -195,6 +195,10 @@ export const getManualDocumentation: TriggerDocumentationFunction = (
         title: "The JSON this run started with",
         code: ownReference(context, "value"),
       },
+      {
+        title: "One field of it, such as name",
+        code: ownReference(context, "value", ["name"]),
+      },
     ],
     notes: [
       {
@@ -209,7 +213,7 @@ export const getManualDocumentation: TriggerDocumentationFunction = (
       {
         title: "Reading one field of the JSON",
         paragraphs: [
-          "JSON typed into **Run Workflow** arrives as one piece of text. To read a single field, pass it through a **Text to JSON** step, then read the field from that step's **JSON**.",
+          "JSON typed into **Run Workflow** arrives as JSON, so a later step can read one field of it straight away: add the field's name after the reference, as in the second example. Text that is not JSON arrives as it was typed.",
         ],
       },
     ],

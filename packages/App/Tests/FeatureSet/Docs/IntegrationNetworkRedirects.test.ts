@@ -154,16 +154,22 @@ describe("retired integration network guide", () => {
     },
   );
 
-  it("chooses the browser language for a bookmark without a locale", async () => {
-    const response: Response = await fetch(
-      `${origin}/docs/self-hosted/integration-network-access`,
-      { redirect: "manual", headers: { "Accept-Language": "fr" } },
-    );
-    expect(response.status).toBe(301);
-    expect(response.headers.get("location")).toBe(
-      "/docs/fr/integrations/index",
-    );
-    expect(response.headers.get("vary")).toContain("Accept-Language");
+  it("sends a bookmark without a locale to the English catalog, whatever the browser's language", async () => {
+    /*
+     * A permanent redirect is kept by search engines, so it goes where every
+     * old address without a language goes: the English page. The reader
+     * picks their language from there.
+     */
+    for (const acceptLanguage of ["fr", "de-DE,de;q=0.9", "en-US"]) {
+      const response: Response = await fetch(
+        `${origin}/docs/self-hosted/integration-network-access`,
+        { redirect: "manual", headers: { "Accept-Language": acceptLanguage } },
+      );
+      expect(response.status).toBe(301);
+      expect(response.headers.get("location")).toBe(
+        "/docs/en/integrations/index",
+      );
+    }
   });
 
   it("keeps unlocalized markdown in the default language", async () => {

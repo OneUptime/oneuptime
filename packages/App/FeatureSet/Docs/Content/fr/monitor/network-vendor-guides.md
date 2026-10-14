@@ -31,7 +31,7 @@ flowchart TB
 
 - Un [équipement réseau](/docs/monitor/network-device-monitor) par boîtier, interrogé par une sonde qui peut le joindre, avec un modèle constructeur qui apporte les bons OID de santé et les bonnes [tables SNMP](/docs/monitor/network-device-monitor#tables-snmp).
 - Un moniteur Équipement réseau par équipement pour les alertes. Créez-le depuis la page de l'équipement pour que les [alertes recommandées](/docs/monitor/network-device-monitor#pack-dalertes-recommandé) soient remplies pour vous, y compris une alerte par ligne pour chaque table qui sait à quoi ressemble un état sain. Pour une flotte, une [politique d'alerte](/docs/monitor/network-device-monitor#politiques-dalerte) en maintient un sur chaque équipement.
-- Pour ce qu'un constructeur ne rapporte que dans ses journaux : le syslog vers la sonde, un [pipeline de journaux](/docs/telemetry/log-pipelines) pour transformer chaque ligne en attributs, des [moniteurs de journaux avec Group By](/docs/monitor/logs-monitor#alertes-par-groupe-group-by) pour alerter une fois par tunnel ou par passerelle, et des [règles d'enregistrement de journaux](/docs/telemetry/log-recording-rules) pour tracer les chiffres de ces journaux.
+- Pour ce qu'un constructeur ne rapporte que dans ses journaux : le syslog vers la sonde, que OneUptime lit de lui-même comme des [événements réseau](/docs/monitor/network-events), des [moniteurs de journaux avec Group By](/docs/monitor/logs-monitor#alertes-par-groupe-group-by) pour alerter une fois par tunnel ou par passerelle, et des [règles d'enregistrement de journaux](/docs/telemetry/log-recording-rules) pour tracer les chiffres de ces journaux.
 
 ## Sophos Firewall (XGS / SFOS)
 
@@ -71,20 +71,20 @@ Un tunnel que Sophos déclare actif n'a que ses associations de sécurité étab
 ### Passerelles et SD-WAN depuis le syslog
 
 :::steps
-1. Activez le récepteur syslog de la sonde : mettez `PROBE_SYSLOG_RECEIVER_ENABLED=true` sur la sonde. Il écoute sur UDP 5140 par défaut (`PROBE_SYSLOG_RECEIVER_PORT` le change) ; publiez le port si la sonde tourne dans Docker. Les messages sont associés à l'équipement réseau dont le nom d'hôte, ou l'une des **Autres adresses**, est l'adresse de l'expéditeur, et apparaissent sur la page **Journaux** de l'équipement.
+1. Le récepteur syslog de la sonde est activé par défaut. Il écoute sur le port 5140, en UDP et en TCP (`PROBE_SYSLOG_RECEIVER_PORT` le change) ; publiez le port si la sonde tourne dans Docker. Les messages sont associés à l'équipement réseau dont le nom d'hôte, ou l'une des **Autres adresses**, est l'adresse de l'expéditeur, et apparaissent sur les pages **Événements** et **Journaux** de l'équipement.
 2. Sur le pare-feu, sous **System services → Log settings**, ajoutez un serveur syslog qui pointe vers la sonde et ce port, et cochez les types de journal **Event** pour IPsec et les passerelles et le type de journal **SD-WAN** : les journaux de SLA restent désactivés tant qu'il n'est pas coché.
-3. Sous **Journaux → Paramètres → Pipelines**, créez un pipeline dont le filtre correspond aux journaux du pare-feu, comme `attributes.networkDevice.name = 'hq-firewall'`, et ajoutez un **Key=Value Parser** avec **Target Prefix** `sophos`. Collez une ligne du pare-feu dans son testeur pour voir les noms d'attributs exacts que produit votre version de SFOS ; [l'exemple Sophos](/docs/telemetry/log-pipelines#exemple-pare-feu-sophos-xgs) le détaille.
-4. Créez des [moniteurs de journaux](/docs/monitor/logs-monitor) sur les journaux du pare-feu, chacun avec **Group by Attributes** pour que chaque tunnel ou passerelle alerte séparément, et le critère **Log Count** **Greater Than** `0` sur quelques minutes. Les lignes ci-dessous sont les trois pour commencer.
+3. Il n'y a rien à analyser. OneUptime lit les champs `key=value` du pare-feu comme des attributs `sophos.*`, et en tire les tunnels, les passerelles, les changements de SLA SD-WAN, les basculements et les connexions sous forme d'[événements réseau](/docs/monitor/network-events). Ouvrez un journal sur la page **Journaux** de l'équipement pour voir les noms d'attributs exacts que produit votre version de SFOS.
+4. Sur la page **Événements** de l'équipement, cliquez sur **Créer une alerte** et choisissez une alerte. Elle ouvre un [moniteur de journaux](/docs/monitor/logs-monitor) déjà rempli, avec **Group by Attributes** pour que chaque tunnel ou passerelle alerte séparément, et **Résolu par attributs** pour que chaque alerte se ferme quand le pare-feu signale le retour. Les lignes ci-dessous sont les trois pour commencer.
 5. Tracez la qualité du SD-WAN : avec la journalisation SD-WAN activée, le pare-feu écrit un résumé de SLA par profil et par passerelle (`latency`, `jitter`, `packet_loss`). Sous **Journaux → Paramètres → Règles d'enregistrement**, créez une règle par chiffre, comme la moyenne de `sophos.latency` groupée par `sophos.gw_name` et `sophos.profile_name`, puis tracez les résultats, ou alertez dessus avec un [moniteur de métriques](/docs/monitor/metrics-monitor) qui groupe par passerelle. [Règles d'enregistrement de journaux](/docs/telemetry/log-recording-rules) détaille cet exemple.
 :::
 
-| Alerte | Journaux à compter | Grouper par |
-| --- | --- | --- |
-| Tunnel IPsec terminé | Attribut `sophos.log_component` = `IPSec`, le corps contient `terminated` | `sophos.con_name` |
-| Passerelle hors service | Attribut `sophos.log_component` = `Gateway`, le corps contient `is Down` | `sophos.gatewayname` |
-| SLA SD-WAN non atteint | Attribut `sophos.log_type` = `SD-WAN`, le corps contient `SLA not met` | `sophos.gw_name` |
+| Alerte | Événement compté | Une alerte par | Fermée par |
+| --- | --- | --- | --- |
+| Un tunnel VPN tombe | `vpn.tunnel_down` | `vpn.tunnel.name` | `vpn.tunnel_up` |
+| Un lien WAN tombe | `gateway.down` | `network.gateway.name` | `gateway.up` |
+| Lien SD-WAN en dessous de son SLA | `sdwan.sla_not_met` | `network.gateway.name` | `sdwan.sla_met` |
 
-Les événements syslog complètent la table SNMP : ils arrivent au moment où un tunnel tombe, tandis que la table attrape aussi un tunnel qui ne s'est jamais établi.
+Les deux premières sont dans la liste **Créer une alerte** ; pour la troisième, ouvrez l'un de ses événements et cliquez sur **Créer une alerte pour cet événement**. Les événements syslog complètent la table SNMP : ils arrivent au moment où un tunnel tombe, tandis que la table attrape aussi un tunnel qui ne s'est jamais établi.
 
 ### Traps
 
@@ -153,7 +153,7 @@ Le statut des tunnels demande SFOS v20 ou ultérieur. Vérifiez aussi que la vue
 :::
 
 :::details Aucun syslog n'arrive du pare-feu
-Le récepteur syslog de la sonde est désactivé par défaut : mettez `PROBE_SYSLOG_RECEIVER_ENABLED=true` et publiez UDP 5140, ou votre `PROBE_SYSLOG_RECEIVER_PORT`, vers la sonde. Les messages sont associés à un équipement par l'adresse de l'expéditeur : le nom d'hôte du pare-feu dans OneUptime, ou l'une de ses **Autres adresses**, doit donc être l'adresse depuis laquelle il envoie le syslog.
+La sonde écoute le syslog sur le port 5140, en UDP et en TCP, sauf si elle a été démarrée avec `PROBE_SYSLOG_RECEIVER_ENABLED=false` : publiez ce port, ou votre `PROBE_SYSLOG_RECEIVER_PORT`, si la sonde tourne dans Docker. Les messages sont associés à un équipement par l'adresse de l'expéditeur : le nom d'hôte du pare-feu dans OneUptime, ou l'une de ses **Autres adresses**, doit donc être l'adresse depuis laquelle il envoie le syslog ; d'ici là, ils sont listés sur la page **Événements** du réseau comme **Pas encore un appareil**.
 :::
 
 :::details Un commutateur Fabric Engine a reçu le modèle EXOS
@@ -168,6 +168,7 @@ Le nombre total de clients demande le firmware 6.5.3 ou ultérieur. Sur un firmw
 
 :::cards
 - [Surveillance des équipements réseau](/docs/monitor/network-device-monitor): Tout ce qu'un équipement collecte, et chaque critère sur lequel il peut alerter.
+- [Événements réseau](/docs/monitor/network-events): Ce que dit le syslog de chaque constructeur, sous forme d'événements et d'alertes.
 - [Pipelines de journaux](/docs/telemetry/log-pipelines): Découper les journaux de pare-feu en attributs.
 - [Surveillance des journaux](/docs/monitor/logs-monitor): Alerter une fois par tunnel ou par passerelle.
 :::

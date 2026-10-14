@@ -1,7 +1,12 @@
-<!-- Traces Icon - Waterfall / span diagram -->
+<%# Traces Icon - Waterfall / span diagram %>
+<% const iconSpriteHref = typeof useIconSprite !== 'undefined' && useIconSprite && typeof productIconSpriteHref !== 'undefined' && productIconSpriteHref ? productIconSpriteHref : null; -%>
 <svg class="<%= typeof iconClass !== 'undefined' ? iconClass : 'h-5 w-5' %> text-yellow-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+<% if (iconSpriteHref) { -%>
+  <use href="<%= iconSpriteHref %>#traces"></use>
+<% } else { -%>
   <rect x="2" y="3" width="20" height="4" rx="0.5"></rect>
   <rect x="2" y="10" width="10" height="4" rx="0.5"></rect>
   <rect x="2" y="17" width="5" height="4" rx="0.5"></rect>
   <rect x="17" y="17" width="5" height="4" rx="0.5"></rect>
+<% } -%>
 </svg>

@@ -50,6 +50,16 @@ export function toOnCallPageItem(
 
   const policy: unknown = item["onCallDutyPolicy"];
 
+  /*
+   * A page that names no policy, by its id or by the policy read with it,
+   * is a direct page. Only a row read WITH its policy id can say so: one
+   * read without it would look direct whenever its policy cannot be read.
+   */
+  const isDirectPage: boolean =
+    "onCallDutyPolicyId" in item &&
+    !toPlainText(item["onCallDutyPolicyId"]) &&
+    !(policy && typeof policy === "object");
+
   return {
     _id: id,
     projectId: project.projectId,
@@ -62,6 +72,7 @@ export function toOnCallPageItem(
       policy && typeof policy === "object"
         ? toPlainText((policy as Record<string, unknown>)["name"]) || undefined
         : undefined,
+    ...(isDirectPage ? { isDirectPage: true } : {}),
     triggeredByIncident: toResourceRef(item["triggeredByIncident"]),
     triggeredByAlert: toResourceRef(item["triggeredByAlert"]),
     triggeredByIncidentEpisode: toResourceRef(
@@ -87,6 +98,8 @@ export async function fetchMyOnCallPages(
         status: true,
         statusMessage: true,
         acknowledgedAt: true,
+        // Read with every row: a row with none is a direct page.
+        onCallDutyPolicyId: true,
         onCallDutyPolicy: { _id: true, name: true },
         triggeredByIncident: { _id: true, title: true },
         triggeredByAlert: { _id: true, title: true },

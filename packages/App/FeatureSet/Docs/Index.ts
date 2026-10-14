@@ -6,6 +6,10 @@ import DocsSearchIndex, {
   DocsSearchEntry,
   summarizeDocsPage,
 } from "./Utils/SearchIndex";
+import DocsSitemap from "./Utils/Sitemap";
+import DocsTranslations from "./Utils/Translations";
+import { DocsPageSeo, getDocsPageSeo } from "./Utils/Seo";
+import { getLegacyDocsPageTarget, withQueryOf } from "./Utils/Redirects";
 import {
   DEFAULT_DOCS_LANGUAGE,
   SUPPORTED_DOCS_LANGUAGES,
@@ -28,6 +32,10 @@ import DocsPlaceholders from "./Utils/Placeholders";
 import Response from "Common/Server/Utils/Response";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger from "Common/Server/Utils/Logger";
+import {
+  SITEMAP_CONTENT_TYPE,
+  getPublicOrigin,
+} from "Common/Server/Utils/Sitemap";
 import "ejs";
 import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 
@@ -101,9 +109,50 @@ const DocsFeatureSet: FeatureSet = {
 
     // Root /docs — redirect to the best language's getting-started page.
     app.get("/docs", (req: ExpressRequest, res: ExpressResponse) => {
+      // Where it goes depends on the reader's language: say so to caches.
+      res.vary("Accept-Language");
       const lang: string = pickLanguage(req);
       res.redirect(`/docs/${lang}/introduction/getting-started`);
     });
+
+    /*
+     * The page as Markdown is the source of a page, for tools and AI
+     * assistants, and never a search result of its own: every answer under
+     * /docs/as-markdown - the Markdown, a redirect, a 404 - says so. Ahead
+     * of every route that answers there.
+     */
+    app.get(
+      "/docs/as-markdown/*",
+      (_req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        res.setHeader("X-Robots-Tag", "noindex");
+        return next();
+      },
+    );
+
+    /*
+     * The docs' sitemap: every page at the address it is its own canonical
+     * page at (Utils/Sitemap.ts). The ingress serves it at the site's root
+     * too, as /sitemap-docs.xml, which the sitemap index lists. Ahead of
+     * /docs/:lang, which would take it for a language.
+     */
+    app.get(
+      "/docs/sitemap.xml",
+      async (
+        _req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => {
+        try {
+          const xml: string = await DocsSitemap.getSitemapXml();
+          res.setHeader("Content-Type", SITEMAP_CONTENT_TYPE);
+          res.setHeader("Cache-Control", "public, max-age=600");
+          return res.send(xml);
+        } catch (err) {
+          logger.error(err);
+          return next(err);
+        }
+      },
+    );
 
     /*
      * LLM / agent discovery endpoints (llms.txt convention). Registered
@@ -202,15 +251,14 @@ const DocsFeatureSet: FeatureSet = {
           return res.redirect(301, `${prefix}/${lang}/integrations/index`);
         },
       );
+      // Without a language, like every old address: to the English page.
       app.get(
         `${prefix}/self-hosted/integration-network-access`,
-        (req: ExpressRequest, res: ExpressResponse) => {
-          if (prefix === "/docs") {
-            res.vary("Accept-Language");
-          }
-          const lang: string =
-            prefix === "/docs" ? pickLanguage(req) : DEFAULT_DOCS_LANGUAGE;
-          return res.redirect(301, `${prefix}/${lang}/integrations/index`);
+        (_req: ExpressRequest, res: ExpressResponse) => {
+          return res.redirect(
+            301,
+            `${prefix}/${DEFAULT_DOCS_LANGUAGE}/integrations/index`,
+          );
         },
       );
     }
@@ -249,7 +297,7 @@ const DocsFeatureSet: FeatureSet = {
     app.get(
       "/docs/ai/sentinel",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        return res.redirect(301, "/docs/ai/ai-sre");
+        return res.redirect(301, "/docs/en/ai/ai-sre");
       },
     );
 
@@ -295,7 +343,7 @@ const DocsFeatureSet: FeatureSet = {
     app.get(
       "/docs/monitor/snmp-monitor",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        return res.redirect(301, "/docs/monitor/network-device-monitor");
+        return res.redirect(301, "/docs/en/monitor/network-device-monitor");
       },
     );
 
@@ -332,7 +380,7 @@ const DocsFeatureSet: FeatureSet = {
     app.get(
       "/docs/telemetry/real-user-monitoring",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        return res.redirect(301, "/docs/rum/index");
+        return res.redirect(301, "/docs/en/rum/index");
       },
     );
 
@@ -369,7 +417,90 @@ const DocsFeatureSet: FeatureSet = {
     app.get(
       "/docs/incidents/forms",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        return res.redirect(301, "/docs/forms/index");
+        return res.redirect(301, "/docs/en/forms/index");
+      },
+    );
+
+    /*
+     * Backward-compat: "Creating a Monitor" (/docs/monitor/create-monitor)
+     * opens the Monitor section, and Getting Started links to it as the
+     * monitors overview. /docs/monitor/monitor was never a page, but search
+     * engines found it, so it redirects there in every shape it was
+     * reachable in.
+     */
+    app.get(
+      "/docs/as-markdown/:lang/monitor/monitor",
+      (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        const lang: string = req.params["lang"] || "";
+        if (!isSupportedDocsLanguage(lang)) {
+          return next();
+        }
+        return res.redirect(
+          301,
+          `/docs/as-markdown/${lang}/monitor/create-monitor`,
+        );
+      },
+    );
+    app.get(
+      "/docs/as-markdown/monitor/monitor",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return res.redirect(301, "/docs/as-markdown/monitor/create-monitor");
+      },
+    );
+    app.get(
+      "/docs/:lang/monitor/monitor",
+      (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        const lang: string = req.params["lang"] || "";
+        if (!isSupportedDocsLanguage(lang)) {
+          return next();
+        }
+        return res.redirect(301, `/docs/${lang}/monitor/create-monitor`);
+      },
+    );
+    app.get(
+      "/docs/monitor/monitor",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return res.redirect(301, "/docs/en/monitor/create-monitor");
+      },
+    );
+
+    /*
+     * Backward-compat: OneUptime Copilot had a docs section of its own
+     * (/docs/copilot/...) until the feature was removed; its successor is the
+     * AI Agent, which fixes exceptions with a pull request. Every page of the
+     * old section - with or without a language, as HTML or as Markdown -
+     * redirects permanently to the AI Agent's page.
+     */
+    app.get(
+      ["/docs/as-markdown/:lang/copilot", "/docs/as-markdown/:lang/copilot/*"],
+      (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        const lang: string = req.params["lang"] || "";
+        if (!isSupportedDocsLanguage(lang)) {
+          return next();
+        }
+        return res.redirect(301, `/docs/as-markdown/${lang}/ai/ai-agent`);
+      },
+    );
+    app.get(
+      ["/docs/as-markdown/copilot", "/docs/as-markdown/copilot/*"],
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return res.redirect(301, "/docs/as-markdown/ai/ai-agent");
+      },
+    );
+    app.get(
+      ["/docs/:lang/copilot", "/docs/:lang/copilot/*"],
+      (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        const lang: string = req.params["lang"] || "";
+        if (!isSupportedDocsLanguage(lang)) {
+          return next();
+        }
+        return res.redirect(301, `/docs/${lang}/ai/ai-agent`);
+      },
+    );
+    app.get(
+      ["/docs/copilot", "/docs/copilot/*"],
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return res.redirect(301, "/docs/en/ai/ai-agent");
       },
     );
 
@@ -592,6 +723,18 @@ const DocsFeatureSet: FeatureSet = {
             url: localizeDocsUrl(currentNavLink.url, lang),
           };
 
+          /*
+           * The page's own address, and its translations': a page served in
+           * English under another language's prefix names the English page
+           * as canonical (Utils/Seo.ts).
+           */
+          const seo: DocsPageSeo = getDocsPageSeo({
+            origin: getPublicOrigin(),
+            pagePath: fullPath,
+            lang: lang,
+            translatedLanguages: await DocsTranslations.getLanguages(fullPath),
+          });
+
           return res.render(`${ViewsPath}/Index`, {
             nav: localizedNav,
             t: t,
@@ -615,6 +758,8 @@ const DocsFeatureSet: FeatureSet = {
             prevLink: prevRaw ? translateFlatLink(prevRaw) : null,
             nextLink: nextRaw ? translateFlatLink(nextRaw) : null,
             currentPath: req.originalUrl,
+            canonicalUrl: seo.canonicalUrl,
+            alternateLinks: seo.alternateLinks,
           });
         } catch (err) {
           logger.error(err);
@@ -624,17 +769,24 @@ const DocsFeatureSet: FeatureSet = {
     );
 
     /*
-     * Legacy URL without language prefix: /docs/:category/:page → redirect to
-     * the user's best-fit language so old links keep working and bookmarks
-     * upgrade naturally.
+     * Legacy URL without language prefix: /docs/:category/:page. It redirects
+     * permanently to the English page, the address search engines should
+     * keep (Utils/Redirects.ts), with the query it came with. The reader
+     * picks another language from the page.
      */
     app.get(
       "/docs/:categorypath/:pagepath",
-      (req: ExpressRequest, res: ExpressResponse) => {
-        const lang: string = pickLanguage(req);
-        const category: string = req.params["categorypath"]!;
-        const page: string = req.params["pagepath"]!;
-        return res.redirect(`/docs/${lang}/${category}/${page}`);
+      (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        const target: string | null = getLegacyDocsPageTarget(
+          req.params["categorypath"]!,
+          req.params["pagepath"]!,
+        );
+
+        if (target === null) {
+          return next();
+        }
+
+        return res.redirect(301, withQueryOf(req, target));
       },
     );
 

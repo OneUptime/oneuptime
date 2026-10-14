@@ -108,7 +108,7 @@ Een download bevat niets wat je niet al in de uitvoering kon lezen. Geheimen en 
 
 :::details Mijn workflow draaide niet
 1. Controleer of de workflow **Ingeschakeld** is: de schakelaar staat bovenaan de **Bouwer**, die boven het canvas zegt dat de workflow uit staat als dat zo is. Nieuwe workflows beginnen uitgeschakeld, en zolang een workflow uit staat, start zijn trigger hem niet: alleen **Workflow uitvoeren** en **Run just this step** doen dat, als testruns. Een webhook-aanroep ervan krijgt HTTP 400 met een melding die zegt hoe je hem inschakelt.
-2. Controleer bij een OneUptime-gebeurtenistrigger of de gebeurtenis echt plaatsvond: open het record en bekijk de geschiedenis ervan. Een **On Update**-trigger met **Listen on** gaat alleen af als een van die velden veranderde.
+2. Controleer bij een OneUptime-gebeurtenistrigger of de gebeurtenis echt plaatsvond: open het record en bekijk de geschiedenis ervan. Een **On Update**-trigger met **Fields to watch** gaat alleen af als een van die velden veranderde.
 3. Controleer bij een webhook-trigger of het andere systeem naar de juiste URL stuurt. De meeste tools loggen wanneer ze een webhook versturen — kijk daar.
 4. Controleer bij een schematrigger of de cron-expressie overeenkomt met de tijd die je verwacht. Schema's draaien in UTC.
 

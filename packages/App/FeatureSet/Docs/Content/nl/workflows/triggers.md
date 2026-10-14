@@ -26,13 +26,13 @@ Een workflow kan maar één trigger hebben. Heb je twee manieren nodig om dezelf
 
 ## Manual
 
-Voer de workflow uit wanneer je wilt: klik op **Workflow uitvoeren** op de pagina **Bouwer**, vul de **JSON** van de trigger in, klik op **Run Workflow Manually** en bevestig met **Run**. Een andere workflow kan hem ook starten, met een **Execute Workflow**-blok.
+Voer de workflow uit wanneer je wilt: klik op **Workflow uitvoeren** op de pagina **Bouwer**, vul de **JSON** van de trigger in, klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. Een andere workflow kan hem ook starten, met een **Execute Workflow**-blok.
 
 Handig voor: automatiseringen met één klik waarvoor je een knop wilt, zoals «deze sleutel vervangen» of «een testwaarschuwing sturen», en logica die je tussen workflows deelt.
 
 **Returns**: **JSON** — waarmee de uitvoering is gestart.
 
-- Vanuit **Workflow uitvoeren** is het de JSON die je typte, als tekst. Om één veld ervan te lezen, stuur je hem eerst door een **Text to JSON**-blok.
+- Vanuit **Workflow uitvoeren** is het de JSON die je typte. Om één veld ervan te lezen, voeg je de naam van het veld aan de verwijzing toe, zoals in `{{local.components.manual-1.returnValues.value.name}}`.
 - Vanuit een **Execute Workflow**-blok is elke sleutel van de **Arguments** van het blok een eigen waarde. Met `{"customerId": "42"}` leest een later blok `{{local.components.manual-1.returnValues.customerId}}`, waarbij `manual-1` de ID van de Manual-trigger is.
 
 ## Schedule
@@ -96,7 +96,7 @@ sequenceDiagram
 
 Lees één veld door de naam ervan aan de verwijzing toe te voegen, zoals in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
-Zodra er een verzoek is binnengekomen, weet de waardekiezer in elk blok na de trigger wat erin zat: hij toont de velden van de body, de headers en de queryparameters, elk met de inhoud, zodat je `incident.title` kiest in plaats van een pad te typen. Tot die tijd zegt hij dat er nog geen verzoek is binnengekomen en biedt hij **Copy test request** aan, een `curl`-opdracht voor de URL; de velden verschijnen zodra de uitvoering die dat verzoek start klaar is. Zie [Waarden uit eerdere blokken gebruiken](/docs/workflows/authoring#waarden-uit-eerdere-blokken-gebruiken).
+Zodra er een verzoek is binnengekomen, weet de waardekiezer in elk blok na de trigger wat erin zat: hij toont de velden van de body, de headers en de queryparameters, elk met de inhoud, zodat je `incident.title` kiest in plaats van een pad te typen. Tot die tijd zegt hij dat er nog geen verzoek is binnengekomen en biedt hij **Testverzoek kopiëren** aan, een `curl`-opdracht voor de URL; de velden verschijnen zodra de uitvoering die dat verzoek start klaar is. Zie [Waarden uit eerdere blokken gebruiken](/docs/workflows/authoring#waarden-uit-eerdere-blokken-gebruiken).
 
 Om de workflow zonder de andere tool te testen, klik je op **Workflow uitvoeren** in de **Bouwer** en typ je headers, queryparameters en een body in.
 
@@ -161,24 +161,24 @@ Bijna alles in OneUptime — monitoren, incidenten, waarschuwingen, gepland onde
 
 Zo bouw je «als X gebeurt in OneUptime, doe dan Y» zonder dingen in een lus te hoeven controleren.
 
-**On Update** kun je beperken tot sommige velden met **Listen on**: hij gaat dan alleen af als een update een van die velden wijzigt, naar welke waarde ook — een schakelaar uitzetten of een veld leegmaken telt mee.
+**On Update** kun je beperken tot sommige velden met **Fields to watch**: hij gaat dan alleen af als een update een van die velden wijzigt, naar welke waarde ook — een schakelaar uitzetten of een veld leegmaken telt mee.
 
 ```mermaid title="Wanneer een On Update-trigger afgaat"
 flowchart TB
     save["Een record wordt opgeslagen"] --> changed{"Is er een waarde gewijzigd?"}
     changed -->|"Nee"| nothing["Er gaat niets af"]
-    changed -->|"Ja"| listen{"Listen on ingesteld?"}
+    changed -->|"Ja"| listen{"Fields to watch ingesteld?"}
     listen -->|"Nee"| fires["De workflow draait"]
     listen -->|"Ja"| field{"Is een van de velden gewijzigd?"}
     field -->|"Ja"| fires
     field -->|"Nee"| nothing
 ```
 
-**On Create** en **On Update** geven het record door aan het volgende blok, met de velden die je in **Select Fields** van de trigger kiest. Zo geeft de trigger **Incident → On Create** het nieuwe incident door, zodat het volgende blok de titel, de beschrijving, de ernst of elk ander geselecteerd veld kan lezen, zoals `{{local.components.incident-on-create-1.returnValues.model.title}}`. Een veld dat je niet selecteerde, komt leeg aan.
+**On Create** en **On Update** geven het record door aan het volgende blok, met de velden die je in **Fields to pass on** van de trigger kiest. Zo geeft de trigger **Incident → On Create** het nieuwe incident door, zodat het volgende blok de titel, de beschrijving, de ernst of elk ander geselecteerd veld kan lezen, zoals `{{local.components.incident-on-create-1.returnValues.model.title}}`. Een veld dat je niet selecteerde, komt leeg aan.
 
 **On Delete** geeft alleen de ID van het verwijderde record door: het record is weg als de workflow draait, dus de andere velden ervan kunnen niet worden gelezen.
 
-Om een gebeurtenistrigger te testen zonder op de gebeurtenis te wachten, klik je op **Workflow uitvoeren** in de **Bouwer** en vul je de ID in van een bestaand record, zoals een **Incident-ID**. De uitvoering leest dat record met de velden die je selecteerde.
+Om een gebeurtenistrigger te testen zonder op de gebeurtenis te wachten, klik je op **Workflow uitvoeren** in de **Bouwer** en kies je een bestaand record: de meest recente staan in de lijst, en door het nummer van een record of een deel van de naam te typen vind je een ander. De uitvoering leest dat record met de velden die je selecteerde, alsof de gebeurtenis het net is overkomen; het record zelf wordt niet gewijzigd of verwijderd.
 
 ### Meest gebruikte gebeurtenissen
 

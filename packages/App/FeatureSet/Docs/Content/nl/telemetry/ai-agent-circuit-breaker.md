@@ -125,11 +125,11 @@ Open **Producten → Workflows** en klik op **Workflow maken**. Klik op **Vanaf 
 
 ### Voeg de trigger toe
 
-Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Alert** in het paneel **Add Trigger**. Klik op de trigger, vink de titel en de beschrijving aan bij **Select Fields** en klik op **Opslaan**. De ID op het blok, `alert-on-create-1`, is hoe latere blokken ernaar verwijzen.
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Alert** in het paneel **Add Trigger**. Klik op de trigger: **Fields to pass on** begint met de titel, dus klik op **Veld toevoegen**, vink de beschrijving aan en klik op **Opslaan**. De ID op het blok, `alert-on-create-1`, is hoe latere blokken ernaar verwijzen.
 
 ### Controleer de titel
 
-Klik op **Component toevoegen**, kies **If / Else** en verbind het punt **Success** van de trigger ermee. Zet **Value to check** op de titel van de waarschuwing (klik op **{ }** en kies hem), **Comparison** op **bevat** en **Compare with** op het begin dat de titels van je struikeldraden delen, zoals `LLM budget exceeded`.
+Klik op **Component toevoegen**, kies **If / Else** en verbind het punt **Success** van de trigger ermee. Zet **Te controleren waarde** op de titel van de waarschuwing (klik op **{ }** en kies hem), **Vergelijking** op **bevat** en **Vergelijken met** op het begin dat de titels van je struikeldraden delen, zoals `LLM budget exceeded`.
 
 ### Roep je endpoint aan
 
@@ -189,7 +189,7 @@ Controleer of **Ingeschakeld** aan staat bovenaan de **Bouwer**: workflows worde
 :::
 
 :::details De workflow draait, maar neemt altijd de tak No
-De titel is leeg of komt niet overeen. Een veld dat niet is aangevinkt bij **Select Fields** van de trigger, komt leeg aan, dus vink de titel aan. Vergelijk daarna de titel van de waarschuwing met **Compare with**: **bevat** moet precies die tekst erin vinden.
+De titel is leeg of komt niet overeen. Een veld dat niet in **Fields to pass on** van de trigger staat, komt leeg aan, dus voeg de titel daar toe. Vergelijk daarna de titel van de waarschuwing met **Vergelijken met**: **bevat** moet precies die tekst erin vinden.
 :::
 
 :::details Je endpoint antwoordt 401

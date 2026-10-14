@@ -210,7 +210,7 @@ Næsten alle tekstfelter tager imod variabler:
 - Headere og felter i bodyen (inde i strengværdier).
 - Begge sider af en **If / Else**-blok.
 
-I JSON-felter — **Data (JSON Object)**, **Query** og **Select Fields** på postkomponenterne, en API-bloks **Request Body**, **Arguments** på **Run Custom JavaScript** — udfyldes en reference efter, hvor den står:
+I JSON-felter — **Data (JSON Object)** og **Query** på postkomponenterne, en API-bloks **Request Body**, **Arguments** på **Run Custom JavaScript** — udfyldes en reference efter, hvor den står:
 
 - **Inden for anførselstegn er det tekst.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` sætter værdien ind i strengen. Anførselstegn, omvendte skråstreger og linjeskift i værdien escapes, så JSON'en forbliver gyldig, og værdien forbliver én streng.
 - **Alene er det selve værdien.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` indsætter hele objektet, en liste forbliver en liste, og et tal forbliver et tal. Tekst, der selv er JSON — `5`, `true` eller et objekt, som en blok returnerede som JSON-tekst — indsættes som den værdi. Al anden tekst indsættes som en streng.
@@ -238,7 +238,7 @@ For eksempel viser denne **Message Text** hver advarsel, som en webhook sendte:
 En webhook kommer med en body som `{ "service": "checkout", "status": "failed" }`. For at gøre det til en OneUptime-hændelse:
 
 1. En **Webhook**-trigger med ID'et `ci-webhook`.
-2. En **If / Else**-blok: **Value to check** er feltet `status` i webhookens Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison** er **is equal to**, og **Compare with** er `failed`.
+2. En **If / Else**-blok: **Værdi, der skal tjekkes** er feltet `status` i webhookens Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Sammenligning** er **er lig med**, og **Sammenlign med** er `failed`.
 3. Fra grenen **Yes** en **Create One Incident**-blok med:
    - Titel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beskrivelse: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`

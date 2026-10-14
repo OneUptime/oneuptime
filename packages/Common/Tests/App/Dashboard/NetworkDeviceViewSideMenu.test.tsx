@@ -95,6 +95,11 @@ describe("a network device's own menu", () => {
         title: "Traffic",
         href: deviceRoute(PageMap.NETWORK_DEVICE_VIEW_TRAFFIC),
       },
+      // What the device reported (#4728), then everything it sent.
+      {
+        title: "Events",
+        href: deviceRoute(PageMap.NETWORK_DEVICE_VIEW_EVENTS),
+      },
       { title: "Logs", href: deviceRoute(PageMap.NETWORK_DEVICE_VIEW_LOGS) },
       {
         title: "Monitors",
@@ -148,6 +153,7 @@ describe("a network device's own menu", () => {
   test.each([
     [PageMap.NETWORK_DEVICE_VIEW, "Overview"],
     [PageMap.NETWORK_DEVICE_VIEW_INTERFACES, "Interfaces"],
+    [PageMap.NETWORK_DEVICE_VIEW_EVENTS, "Events"],
     [PageMap.NETWORK_DEVICE_VIEW_MONITORS, "Monitors"],
   ])(
     "%s highlights %s and leaves More folded",

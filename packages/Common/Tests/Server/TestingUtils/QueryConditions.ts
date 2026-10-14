@@ -1,3 +1,4 @@
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import { FindOperator } from "typeorm";
 
 /*
@@ -11,7 +12,10 @@ import { FindOperator } from "typeorm";
  * matches nothing (QueryHelper.any([])) for none - and a condition the
  * update names its rows by, held together with the rows its caller may
  * write ("and"). A suite's own query conditions are answered too: "none of"
- * (QueryHelper.notIn), "not" (QueryHelper.notEquals) and "is" (Equal).
+ * (QueryHelper.notIn), "not" (QueryHelper.notEquals), "is" (Equal), and the
+ * two text searches - "contains" (QueryHelper.search) and "every word,
+ * anywhere" (QueryHelper.searchAllWords) - each pattern read the way ILIKE
+ * reads it.
  */
 
 interface RawCondition {
@@ -24,6 +28,33 @@ const MATCHES_NOTHING: RegExp = /TRUE\s*=\s*FALSE/i;
 const NONE_OF: RegExp = /NOT\s+IN/i;
 const ANY_OF: RegExp = /\sIN\s/i;
 const IS: RegExp = /[^!<>]=\s*:/;
+const LIKE: RegExp = /\sILIKE\s/i;
+
+/*
+ * Whether `value` matches an ILIKE pattern: % is any run of characters, _ is
+ * any one, and a backslash makes the character after it itself. Case does
+ * not count.
+ */
+export function matchesLikePattern(pattern: string, value: string): boolean {
+  let source: string = "^";
+
+  for (let index: number = 0; index < pattern.length; index++) {
+    const character: string = pattern.charAt(index);
+
+    if (character === "\\" && index + 1 < pattern.length) {
+      source += escapeRegExp(pattern.charAt(index + 1));
+      index++;
+    } else if (character === "%") {
+      source += "[\\s\\S]*";
+    } else if (character === "_") {
+      source += "[\\s\\S]";
+    } else {
+      source += escapeRegExp(character);
+    }
+  }
+
+  return new RegExp(`${source}$`, "i").test(value);
+}
 
 // The conditions an "and" (TypeORM's And) holds together, or null.
 function conditionsHeldTogether(condition: unknown): Array<unknown> | null {
@@ -68,6 +99,16 @@ function asRawCondition(condition: unknown): RawCondition | null {
   };
 }
 
+/*
+ * Whether a query's value is a condition (a TypeORM operator) rather than a
+ * plain value. Asked here, of the typeorm the services build theirs with: a
+ * suite in another package has a typeorm of its own, whose FindOperator
+ * theirs are not instances of.
+ */
+export function isQueryCondition(value: unknown): boolean {
+  return value instanceof FindOperator;
+}
+
 // Whether `value` meets `condition`.
 export function meetsCondition(condition: unknown, value: unknown): boolean {
   const together: Array<unknown> | null = conditionsHeldTogether(condition);
@@ -100,6 +141,13 @@ export function meetsCondition(condition: unknown, value: unknown): boolean {
 
   if (MATCHES_NOTHING.test(raw.sql)) {
     return false;
+  }
+
+  // "contains", and "every word, anywhere": every pattern has to match.
+  if (LIKE.test(raw.sql)) {
+    return raw.values.every((pattern: string): boolean => {
+      return matchesLikePattern(pattern, String(value));
+    });
   }
 
   if (NONE_OF.test(raw.sql) || raw.sql.includes("!=")) {

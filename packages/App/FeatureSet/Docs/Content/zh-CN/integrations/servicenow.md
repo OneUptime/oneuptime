@@ -1,78 +1,164 @@
-# ServiceNow 集成
+# ServiceNow
 
-每当创建 OneUptime 事件时，自动创建一个 [ServiceNow](https://www.servicenow.com) 事件——让 ITSM 和监控保持同步。
+为每个 OneUptime 事件创建一个 [ServiceNow](https://www.servicenow.com) 事件，并在 OneUptime 事件被解决时解决它，让你的服务台跟上监控看到的情况。两个工作流调用 ServiceNow 的 [Table API](https://developer.servicenow.com/dev.do#!/reference/api/latest/rest/c_TableAPI)。
 
-此集成为**出站**模式：OneUptime 调用 ServiceNow [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html)。它使用带有 **Incident → On Create** 触发器和 **API 组件**的 OneUptime **[工作流](/docs/workflows/index)**。
+:::cards
+- [保存凭据](#保存凭据): 让 ServiceNow 密码不出现在工作流中。
+- [创建 ServiceNow 事件](#为每个事件创建-servicenow-事件): 一个工作流，两个块。
+- [解决它们](#解决-servicenow-事件): 找到记录，然后关闭它。
+- [故障排除](#故障排除): ServiceNow 拒绝请求时。
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /api/now/table/incident)  ──►  ServiceNow incident
+## 工作方式
+
+```mermaid title="两个工作流，一个 ServiceNow 事件"
+flowchart TB
+    declared["事件已声明"] --> create["工作流 1：<br/>On Create Incident"]
+    create -->|"POST incident"| sn["ServiceNow 事件"]
+    resolved["事件已解决"] --> update["工作流 2：<br/>On Update Incident"]
+    update --> find["按 correlation_id<br/>查找记录"]
+    find -->|"PATCH state 6"| sn
 ```
 
-## 前提条件
+第一个工作流把 OneUptime 事件的 ID 写入记录的 `correlation_id`。第二个工作流按它查找记录，然后解决该记录。
 
-- 一个 ServiceNow 实例（`https://your-instance.service-now.com`）。
-- 一个具有 `rest_api_explorer` / `itil` 角色（或足够权限创建 `incident` 记录）的 ServiceNow 用户。使用此用户凭证的 Basic 认证是最简单的起点；生产环境推荐使用 OAuth。
-- 一个可以创建工作流的 OneUptime 项目。
+## 开始之前
 
-## 步骤 1——将凭证存储为机密
+- 一个 ServiceNow 实例，例如 `https://your-instance.service-now.com`。
+- 一个用于集成的 ServiceNow 用户，能够在 `incident` 表中创建和更新记录，通常具有 `itil` 角色。请求用它的用户名和密码签名。
+- 在 OneUptime 中创建工作流和全局变量的权限。在 OneUptime Cloud 上，工作流需要 **Growth** 或更高的套餐。
 
-ServiceNow 的 Table API 接受 **Basic 认证**。
+## 保存凭据
 
-1. 对 `username:password` 进行一次 base64 编码：
+Table API 使用 Basic 身份验证：把用户名和密码编码在一起。
+
+:::steps
+1. 在 macOS 或 Linux 上编码一次：
 
    ```bash
-   printf '%s' 'integration_user:password' | base64
+   printf '%s' 'integration.user:password' | base64 | tr -d '\n'
    ```
 
-2. 在 OneUptime 中，前往 **工作流 → 全局变量 → 创建**，命名为 `SERVICENOW_AUTH`，粘贴 base64 字符串，并开启 **Is Secret**。
+   请使用 `printf`，不要用 `echo`：`echo` 会添加一个换行符，它会和其余内容一起被编码，从而破坏凭据。
 
-## 步骤 2——构建工作流
+2. 在 OneUptime 中前往 **工作流 → 全局变量**，点击 **创建工作流 变量**。将其命名为 `SERVICENOW_AUTH`，然后点击 **下一步**。
+3. 把编码后的值粘贴到 **内容** 中，打开 **密钥**，然后点击 **创建工作流 变量**。
+:::
 
-1. 打开 **工作流 → 创建工作流**，命名为 `Incidents → ServiceNow`，并打开 **生成器**。
-2. 添加 **事件** 触发器，设置为 **On Create**。重命名为 `Incident`。
-3. 添加连接到触发器的 **API** 模块：
+## 为每个事件创建 ServiceNow 事件
 
-   - **Method**：`POST`
-   - **URL**：`https://your-instance.service-now.com/api/now/table/incident`
-   - **Headers**：
+:::steps
+### 创建工作流
 
-     ```text
-     Authorization: Basic {{variable.SERVICENOW_AUTH}}
-     Content-Type: application/json
-     Accept: application/json
-     ```
+前往 **工作流**，点击 **创建工作流**，然后点击 **从零开始**。将其命名为 `Incidents to ServiceNow`，然后点击 **创建工作流**。
 
-   - **Body**：
+### 添加触发器
 
-     ```json
-     {
-       "short_description": "OneUptime: {{Incident.title}}",
-       "description": "{{Incident.description}}",
-       "urgency": "1",
-       "impact": "1",
-       "correlation_id": "oneuptime-{{Incident._id}}"
-     }
-     ```
+点击虚线的 **Choose what starts this workflow** 块，选择 **On Create Incident**。点击该触发器，在 **Fields to pass on** 中选择 `title` 和 `description`。
 
-   `correlation_id` 保持了指向 OneUptime 事件的链接——如果之后你要添加解决步骤会很方便。ServiceNow `urgency`/`impact` 使用 `1`（高）、`2`（中）、`3`（低）。
+### 创建记录
 
-4. **保存**，启用，并创建一个测试事件。工作流日志中出现 `201 Created` 响应，将返回新记录的 `sys_id` 和 `number`（例如 `INC0012345`）。
+点击 **添加组件**，添加一个 **API Post (JSON)** 块，并把触发器的 **Success** 点连接到它。把它的 **URL** 设为 `https://your-instance.service-now.com/api/now/table/incident`。在 **更多字段** 下，把 **Request Headers** 设为：
 
-## 步骤 3——在 OneUptime 解决时解决（可选）
+```json
+{
+  "Authorization": "Basic {{global.variables.SERVICENOW_AUTH}}",
+  "Accept": "application/json"
+}
+```
 
-1. 创建一个带有 **事件 → On Update** 触发器的**第二个**工作流，并添加 **条件** 模块检查事件是否已解决。
-2. 要更新正确的 ServiceNow 记录，你需要其 `sys_id`。可以在步骤 2 中将其存储到 OneUptime 事件上（读取 `{{CreateRecord.response-body.result.sys_id}}` 并用 **Update Incident** 写入标签），或者先通过 `GET` 请求 `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}` 查找记录。
-3. 添加 **API** 模块：**Method** `PATCH`，**URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`，正文 `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }`（`state` `6` = 默认 ITIL 工作流中的 Resolved 状态）。
+把 **Request Body** 设为：
 
-## 故障排查
+```json
+{
+  "short_description": "OneUptime: {{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "urgency": "1",
+  "impact": "1",
+  "correlation_id": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}"
+}
+```
 
-- **`401`**——用 `printf`（不是 `echo`，它会添加换行符）重新编码 `username:password` 并更新 `SERVICENOW_AUTH`。
-- **`403`**——用户缺少写入 `incident` 表的权限；添加 `itil` 角色。
-- **`400`**——某个字段名或字段值与你实例的自定义配置不符。在 **System Definition → Tables → incident** 中检查字段名。
-- **实例拒绝调用**——某些实例限制了 Table API；确认 REST 已启用且你的 IP 未被 ACL 屏蔽。
+### 测试，然后启用
 
-## 接下来读什么
+点击 **运行工作流**，输入一个测试事件的 **事件 ID**，然后运行。**API Post (JSON)** 步骤会显示一个 `201` 响应，其中包含新记录及其 `sys_id` 和 `number`，例如 `INC0012345`。然后在 **生成器** 顶部打开 **已启用**。
+:::
 
-- [集成概览](/docs/integrations/index)——模式和认证速查表。
-- [Jira](/docs/integrations/jira)——适用于 Jira 的相同出站模式。
-- [API 组件](/docs/workflows/components#api)——读取响应体。
+`urgency` 和 `impact` 用 `1` 表示高、`2` 表示中、`3` 表示低，ServiceNow 根据这两者算出优先级。`incident` 表的任何其他列都可以按列名放进请求主体。
+
+## 解决 ServiceNow 事件
+
+一个工作流只有一个触发器，因此解决需要第二个工作流，在事件状态变化时启动。
+
+:::steps
+### 添加 On Update Incident 触发器
+
+创建一个名为 `Resolve ServiceNow incidents` 的工作流，选择 **On Update Incident** 作为触发器。在 **Fields to watch** 中选择 `currentIncidentStateId`，使它只在状态变化时运行。在 **Fields to pass on** 中请求新状态是否为已解决状态：
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### 检查事件是否已解决
+
+在触发器之后添加一个 **If / Else** 块。把 **Value to check** 设为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**Comparison** 设为 **is true**。
+
+### 查找记录
+
+在 **Yes** 一侧之后添加一个 **API Get (JSON)** 块，使用相同的 **Request Headers** 和以下 **URL**：
+
+```text
+https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
+```
+
+### 解决记录
+
+在查找块的 **Success** 之后添加一个 **API Patch (JSON)** 块，使用相同的 **Request Headers** 和以下 **URL**：
+
+```text
+https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
+```
+
+把它的 **Request Body** 设为：
+
+```json
+{
+  "state": "6",
+  "close_code": "Solution provided",
+  "close_notes": "Resolved in OneUptime"
+}
+```
+
+### 启用
+
+打开 **已启用**，然后在 OneUptime 中解决一个测试事件。它对应的 ServiceNow 事件会变为 Resolved。
+:::
+
+在 ServiceNow 默认的事件状态中，`state` `6` 表示 Resolved。`close_code` 必须是你的实例中的某个解决代码。许多实例在没有解决代码和备注的情况下不会解决事件，所以两者都要发送。
+
+## 故障排除
+
+:::details ServiceNow 返回 401
+凭据错误。用 `printf`（不要用 `echo`）重新编码 `username:password`，并替换 `SERVICENOW_AUTH` 的内容。
+:::
+
+:::details ServiceNow 返回 403
+该用户无法写入 `incident` 表。为它授予 `itil` 角色或具有相同权限的角色，并检查没有访问控制规则阻止它使用 Table API。
+:::
+
+:::details ServiceNow 返回 400，或者解决后没有任何变化
+某个列名或值与你的实例不符：例如自定义过的 `state` 列表，或者你的实例中没有的 `close_code`。请与 ServiceNow 中 **System Definition → Tables** 下的 `incident` 表以及记录本身的表单进行比较。
+:::
+
+:::details 解决时返回 404
+查找步骤没有找到记录，所以 URL 中保留了按原样写的引用。请检查第一个工作流是否写入了 `correlation_id`，以及两个工作流是否以相同的方式生成它：`oneuptime-` 加事件的 `_id`。
+:::
+
+## 后续步骤
+
+:::cards
+- [Jira](/docs/integrations/jira): 由现成模板保持同步的双向集成。
+- [工作流组件](/docs/workflows/components#api): API 块的所有设置。
+- [工作流运行记录](/docs/workflows/runs-and-logs): 查看每个请求发送了什么、收到了什么。
+- [集成概述](/docs/integrations/index): 每个集成背后的模式。
+:::

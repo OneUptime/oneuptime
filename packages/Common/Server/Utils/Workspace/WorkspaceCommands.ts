@@ -147,7 +147,7 @@ interface TypedWord {
 const WORD: RegExp = /\S+/g;
 
 // Punctuation a command may be typed with: "help?", "incident:".
-const TRAILING_PUNCTUATION: RegExp = /[:,.!?]+$/;
+const TRAILING_PUNCTUATION: string = ":,.!?";
 
 // A word with an apostrophe is a word of a sentence, never a misspelling.
 const APOSTROPHE: RegExp = /['\u2019]/;
@@ -577,7 +577,10 @@ export default class WorkspaceCommands {
 
       if (
         typed !== expected &&
-        !(isLast && typed.replace(TRAILING_PUNCTUATION, "") === expected)
+        !(
+          isLast &&
+          WorkspaceCommands.withoutTrailingPunctuation(typed) === expected
+        )
       ) {
         return null;
       }
@@ -597,7 +600,9 @@ export default class WorkspaceCommands {
       return undefined;
     }
 
-    const word: string = first.word.replace(TRAILING_PUNCTUATION, "");
+    const word: string = WorkspaceCommands.withoutTrailingPunctuation(
+      first.word,
+    );
     const lower: string = word.toLowerCase();
 
     if (lower.length < MISSPELLING_MIN_LENGTH) {
@@ -607,6 +612,11 @@ export default class WorkspaceCommands {
     for (const limit of MISSPELLING_LIMITS) {
       // "incidents" is a word of a question, not "incident" misspelt.
       if (lower === limit.command || lower === `${limit.command}s`) {
+        continue;
+      }
+
+      // Words this far apart in length are further apart than the limit.
+      if (Math.abs(lower.length - limit.command.length) > limit.maxDistance) {
         continue;
       }
 
@@ -623,6 +633,23 @@ export default class WorkspaceCommands {
     }
 
     return undefined;
+  }
+
+  /*
+   * A word without the punctuation typed after it: "help?" is "help". Read
+   * from the word's end, a character at a time. A pattern for "punctuation
+   * up to the end" was tried from every character of a run that is not at
+   * the end ("!!!!x!"), in time that grows with the square of the word, and
+   * a word is as long as a person makes it.
+   */
+  private static withoutTrailingPunctuation(word: string): string {
+    let end: number = word.length;
+
+    while (end > 0 && TRAILING_PUNCTUATION.includes(word[end - 1]!)) {
+      end--;
+    }
+
+    return word.substring(0, end);
   }
 
   /*

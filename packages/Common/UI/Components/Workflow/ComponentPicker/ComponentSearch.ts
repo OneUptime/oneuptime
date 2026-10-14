@@ -165,9 +165,53 @@ const MESSAGE_KEYWORDS: ReadonlyArray<string> = [
   "channel",
 ];
 
+/*
+ * Paging is what the Page steps are called here, and people look for it
+ * under what happens: somebody is notified, called, texted. "pager" and
+ * "paging" are the word itself in its other shapes, and the two tools are
+ * what people who page from somewhere else call it. Not "alert": that is a
+ * record here, and would put the Page steps above its own.
+ */
+const PAGE_KEYWORDS: ReadonlyArray<string> = [
+  "pager",
+  "paging",
+  "notify",
+  "notification",
+  "call",
+  "phone",
+  "sms",
+  "person",
+  "people",
+  "someone",
+  "somebody",
+  "responder",
+  "engineer",
+  "pagerduty",
+  "opsgenie",
+];
+
 export const COMPONENT_KEYWORDS: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
+  // Not "email": that means Send Email, and stays its alone.
+  [ComponentID.PageUsers]: [...PAGE_KEYWORDS, "member"],
+  [ComponentID.PageTeam]: [...PAGE_KEYWORDS, "group", "members", "everyone"],
+  [ComponentID.PageOnCall]: [
+    ...PAGE_KEYWORDS,
+    "schedule",
+    "rotation",
+    "rota",
+    "shift",
+    "duty",
+  ],
+  [ComponentID.PageOnCallPolicy]: [
+    ...PAGE_KEYWORDS,
+    "escalate",
+    "escalation",
+    "execute",
+    "rules",
+    "duty",
+  ],
   [ComponentID.Log]: ["print", "console", "debug", "output", "write"],
   [ComponentID.IfElse]: [
     "condition",

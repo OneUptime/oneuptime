@@ -210,7 +210,7 @@ Quase todo campo de texto aceita variáveis:
 - Cabeçalhos e campos do corpo (dentro de valores de string).
 - Os dois lados de um bloco **If / Else**.
 
-Nos campos JSON — **Data (JSON Object)**, **Query** e **Select Fields** nos componentes de registro, o **Request Body** de um bloco API, os **Arguments** de **Run Custom JavaScript** — uma referência é preenchida conforme o lugar onde está:
+Nos campos JSON — **Data (JSON Object)** e **Query** nos componentes de registro, o **Request Body** de um bloco API, os **Arguments** de **Run Custom JavaScript** — uma referência é preenchida conforme o lugar onde está:
 
 - **Entre aspas, é texto.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` coloca o valor dentro da string. Aspas, barras invertidas e quebras de linha do valor são escapadas, então o JSON continua válido e o valor continua sendo uma única string.
 - **Sozinha, é o próprio valor.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` insere o objeto inteiro, uma lista continua lista e um número continua número. Um texto que é JSON em si — `5`, `true` ou um objeto que um bloco devolveu como texto JSON — entra como esse valor. Qualquer outro texto entra como string.
@@ -238,7 +238,7 @@ Por exemplo, este **Message Text** lista todos os alertas que um webhook enviou:
 Chega um webhook com um corpo como `{ "service": "checkout", "status": "failed" }`. Para transformar isso em um incidente do OneUptime:
 
 1. Um gatilho **Webhook** com o ID `ci-webhook`.
-2. Um bloco **If / Else**: **Value to check** é o campo `status` do Request Body do webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison** é **is equal to** e **Compare with** é `failed`.
+2. Um bloco **If / Else**: **Valor a verificar** é o campo `status` do Request Body do webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparação** é **é igual a** e **Comparar com** é `failed`.
 3. A partir do ramo **Yes**, um bloco **Create One Incident** com:
    - Título: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Descrição: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`

@@ -110,7 +110,7 @@ Die beiden Trennzeichen müssen verschieden sein, dürfen einander nicht enthalt
 
 ### Beispiel: Sophos-XGS-Firewall
 
-Wenn eine Sophos-XGS-Firewall Syslog an eine [Probe](/docs/monitor/network-device-monitor) sendet, wird jede Meldung als Protokoll des Netzwerkgeräts gespeichert, mit der Syslog-Meldung als Text. So parsen Sie sie:
+OneUptime liest Sophos- und FortiGate-Syslog von selbst in `sophos.*`- und `fortigate.*`-Attribute (siehe [Netzwerkereignisse](/docs/monitor/network-events)); dieses Beispiel baut dasselbe von Hand, wie Sie es für ein Format tun würden, das OneUptime nicht kennt. Wenn eine Sophos-XGS-Firewall Syslog an eine [Probe](/docs/monitor/network-device-monitor) sendet, wird jede Meldung als Protokoll des Netzwerkgeräts gespeichert, mit der Syslog-Meldung als Text. So parsen Sie sie:
 
 :::steps
 #### Eine Pipeline für die Firewall erstellen
@@ -199,7 +199,7 @@ Verschiebt den Wert eines Attributs (**Quellschlüssel**) in ein anderes (**Ziel
 
 ## Kategorie-Prozessor
 
-Wertet eine Liste von Regeln der Reihe nach aus und speichert den Namen der ersten Regel, deren Filter zutrifft, in einem Zielattribut, sodass Sie alle „Payment Error“-Protokolle auf einmal finden. Setzen Sie **Zielattribut** (standardmäßig `category`) und fügen Sie dann **Kategorieregeln** hinzu: einen **Kategoriename** und die Bedingungen unter **Wenn Protokolle übereinstimmen**. Die erste zutreffende Regel gewinnt; ein Protokoll, auf das keine zutrifft, bleibt unverändert.
+Wertet eine Liste von Regeln der Reihe nach aus und speichert den Namen der ersten Regel, deren Filter zutrifft, in einem Zielattribut, sodass Sie alle „Payment Error“-Protokolle auf einmal finden. Setzen Sie **Zielattribut** (standardmäßig `category`) und fügen Sie dann **Kategorieregeln** hinzu: einen **Kategoriename** und die Bedingungen unter **Wenn Protokolle übereinstimmen**. Die erste zutreffende Regel gewinnt; ein Protokoll, auf das keine zutrifft, bleibt unverändert. In den Protokollen eines Netzwerkgeräts macht eine Regel, die wie ein Ereignis benannt ist (`ups.on_battery`), unter dem Zielattribut `event.name` das Protokoll zu einem [Netzwerkereignis](/docs/monitor/network-events#eigene-ereignisse).
 
 ## Nächste Schritte
 

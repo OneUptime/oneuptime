@@ -87,7 +87,7 @@ Start fra malen, som bygger hele arbeidsflyten for deg, eller fra bunnen.
 Arbeidsflyten åpnes i **Bygger** med tre trinn: **On Create Incident**; **Send Message to IRC**, som poster hendelsens nummer, tittel, alvorlighetsgrad og tilstand på to linjer; og et **Logg**-trinn på utgangen **Feil**, som noterer hvorfor en melding ikke ble levert. Serveren og kanalen lagres som arbeidsflytens variabler `ircServer` og `ircChannel`. Har du lagret passord i forrige trinn, klikker du på **Send Message to IRC**, åpner **Flere felt** og velger hver variabel med **{ }**-knappen i innstillingen.
 @tab Fra bunnen
 1. Åpne **Arbeidsflyter**, klikk på **Opprett arbeidsflyt**, velg **Start fra bunnen**, gi arbeidsflyten et navn og klikk på **Opprett arbeidsflyt**.
-2. Klikk på **Choose what starts this workflow** i **Bygger**, og velg **On Create Incident** under **Popular**. Klikk på triggeren, og velg i **Select Fields** feltene fra hendelsen som meldingen din viser, for eksempel tittelen.
+2. Klikk på **Choose what starts this workflow** i **Bygger**, og velg **On Create Incident** under **Popular**. Klikk på triggeren, og velg i **Fields to pass on** feltene fra hendelsen som meldingen din viser, for eksempel tittelen.
 3. Klikk på **Legg til komponent**, søk etter `irc` og klikk på **Send Message to IRC**. Koble triggerens utgang **Suksess** til trinnet.
 4. Klikk på det nye trinnet og fyll ut **IRC Server**, **Channel** og **Message Text**. **{ }**-knappen i **Message Text** setter inn felter fra hendelsen, for eksempel tittelen.
 5. Har du lagret passord i forrige trinn, åpner du **Flere felt**. Klikk på **{ }** i **Server Password**, **SASL Password** eller **Channel Key**, og velg variabelen under **Global variables**. Skriv navnet på kontoen din i **SASL Username**.
@@ -97,7 +97,7 @@ Arbeidsflyten åpnes i **Bygger** med tre trinn: **On Create Incident**; **Send 
 
 Slå på bryteren **Aktivert** øverst i **Bygger**. Fra nå av blir hver ny hendelse postet i kanalen.
 
-For å teste uten å åpne en hendelse klikker du på **Kjør arbeidsflyt** og setter ID-en til en hendelse du allerede har, i **Hendelse-ID**. Hendelsens side viser ID-en. Klikk på **Run Workflow Manually** og bekreft med **Run**. Panelet **Arbeidsflytkjøring** følger kjøringen: IRC-trinnets logg sier hvor mange linjer det sendte, for eksempel `Sent 2 lines to #your-channel.`, og meldingen dukker opp i kanalen. Tar trinnet **Feil** i stedet, sier loggen hvorfor: se [Feilsøking](#feilsøking).
+For å teste uten å åpne en hendelse klikker du på **Kjør arbeidsflyt** og velger en hendelse du allerede har, under **Hendelse**: de nyeste er listet opp, og når du skriver inn nummeret eller en del av tittelen, finner du en annen. Klikk på **Kjør arbeidsflyten manuelt** og bekreft med **Kjør**. Panelet **Arbeidsflytkjøring** følger kjøringen: IRC-trinnets logg sier hvor mange linjer det sendte, for eksempel `Sent 2 lines to #your-channel.`, og meldingen dukker opp i kanalen. Tar trinnet **Feil** i stedet, sier loggen hvorfor: se [Feilsøking](#feilsøking).
 :::
 
 ## Tips

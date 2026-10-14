@@ -615,8 +615,8 @@ Samma generering ger dig utlösare för själva konfigurationen: **On Create Inc
 
 Några detaljer som spelar roll när du kopplar ihop dem:
 
-- **On Update X** tar ett valfritt argument **Listen on** som snävar in utlösaren till uppdateringar som ändrar specifika fält, vad de än ändras till: ett reglage som stängs av eller ett fält som rensas räknas också. Ett fält som sparas med värdet som det redan har är ingen ändring, så ett redigeringsformulär som skickar tillbaka det vid varje sparning väcker inte arbetsflödet. Lämna det tomt för att utlösa vid varje ändring. Kommer en uppdatering in utan en registrering av vilka fält som ändrades hoppas filtret över och arbetsflödet körs ändå.
-- **On Create X** och **On Update X** tar båda ett obligatoriskt argument **Select Fields**; **On Delete X** tar inga argument.
+- **On Update X** tar ett valfritt argument **Fields to watch** som snävar in utlösaren till uppdateringar som ändrar specifika fält, vad de än ändras till: ett reglage som stängs av eller ett fält som rensas räknas också. Ett fält som sparas med värdet som det redan har är ingen ändring, så ett redigeringsformulär som skickar tillbaka det vid varje sparning väcker inte arbetsflödet. Lämna det tomt för att utlösa vid varje ändring. Kommer en uppdatering in utan en registrering av vilka fält som ändrades hoppas filtret över och arbetsflödet körs ändå.
+- **On Create X** och **On Update X** tar båda ett obligatoriskt argument **Fields to pass on**; **On Delete X** tar inga argument.
 - Alla tre har en enda utgångsport **Success**, och var och en accepterar ett ID-argument så att du kan köra arbetsflödet för hand mot en post.
 - Namnen kommer från modellens namn i singular, inte från dess tabellnamn — därför ser du **On Create Incident Team Owner** och **On Create Incident User Owner** i stället för namn i tabellform.
 - Det finns inga utlösare för definitioner av anpassade incidentfält. Den modellen är den enda medlemmen i incidentfamiljen där arbetsflöden är avstängda.

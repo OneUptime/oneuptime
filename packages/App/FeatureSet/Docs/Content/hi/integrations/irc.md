@@ -87,7 +87,7 @@ Template से शुरू कीजिए, जो पूरा workflow आ�
 Workflow **बिल्डर** में तीन steps के साथ खुलता है: **On Create Incident**; **Send Message to IRC**, जो incident का number, title, severity और state दो lines में पोस्ट करता है; और उसके **त्रुटि** output पर एक **लॉग** step, जो लिखता है कि message क्यों नहीं पहुँचा। Server और channel workflow के variables `ircServer` और `ircChannel` में रखे जाते हैं। अगर पिछले step में आपने passwords रखे थे, तो **Send Message to IRC** पर क्लिक कीजिए, **और फ़ील्ड** खोलिए, और हर variable को उसकी setting के **{ }** बटन से चुनिए।
 @tab शुरू से
 1. **वर्कफ़्लो** खोलिए, **वर्कफ़्लो बनाएं** दबाइए, **शुरू से बनाएं** चुनिए, workflow को नाम दीजिए और **वर्कफ़्लो बनाएं** दबाइए।
-2. **बिल्डर** में **Choose what starts this workflow** पर क्लिक कीजिए और **Popular** के नीचे **On Create Incident** चुनिए। Trigger पर क्लिक कीजिए और **Select Fields** में incident के वे fields चुनिए जो आपका message दिखाता है, जैसे उसका title।
+2. **बिल्डर** में **Choose what starts this workflow** पर क्लिक कीजिए और **Popular** के नीचे **On Create Incident** चुनिए। Trigger पर क्लिक कीजिए और **Fields to pass on** में incident के वे fields चुनिए जो आपका message दिखाता है, जैसे उसका title।
 3. **घटक जोड़ें** दबाइए, `irc` खोजिए और **Send Message to IRC** पर क्लिक कीजिए। Trigger के **सफलता** output को इस step से जोड़िए।
 4. नए step पर क्लिक कीजिए और **IRC Server**, **Channel** और **Message Text** भरिए। **Message Text** का **{ }** बटन incident के fields डालता है, जैसे उसका title।
 5. अगर पिछले step में आपने passwords रखे थे, तो **और फ़ील्ड** खोलिए। **Server Password**, **SASL Password** या **Channel Key** में **{ }** पर क्लिक कीजिए और **Global variables** के नीचे से variable चुनिए। **SASL Username** में अपने account का नाम लिखिए।
@@ -97,7 +97,7 @@ Workflow **बिल्डर** में तीन steps के साथ ख�
 
 **बिल्डर** में सबसे ऊपर **सक्षम** switch चालू कीजिए। अब से हर नया incident channel में पोस्ट होगा।
 
-बिना नया incident खोले जाँचने के लिए **वर्कफ़्लो चलाएं** दबाइए और किसी मौजूदा incident का ID **घटना ID** में डालिए। Incident के page पर उसका ID दिखता है। **Run Workflow Manually** दबाइए और **Run** से पुष्टि कीजिए। **वर्कफ़्लो रन** panel run के साथ चलता है: IRC step का log बताता है कि उसने कितनी lines भेजीं, जैसे `Sent 2 lines to #your-channel.`, और message channel में दिख जाता है। अगर step इसके बजाय **त्रुटि** पर जाए, तो उसका log कारण बताता है: [समस्या निवारण](#समस्या-निवारण) देखिए।
+बिना नया incident खोले जाँचने के लिए **वर्कफ़्लो चलाएं** दबाइए और **घटना** के नीचे कोई मौजूदा incident चुनिए: सबसे हाल के incident सूची में दिखते हैं, और उसका नंबर या title का हिस्सा टाइप करने पर कोई दूसरा मिल जाता है। **वर्कफ़्लो मैन्युअल रूप से चलाएं** दबाइए और **चलाएं** से पुष्टि कीजिए। **वर्कफ़्लो रन** panel run के साथ चलता है: IRC step का log बताता है कि उसने कितनी lines भेजीं, जैसे `Sent 2 lines to #your-channel.`, और message channel में दिख जाता है। अगर step इसके बजाय **त्रुटि** पर जाए, तो उसका log कारण बताता है: [समस्या निवारण](#समस्या-निवारण) देखिए।
 :::
 
 ## सुझाव

@@ -1,88 +1,163 @@
-# PagerDuty-integratie
+# PagerDuty
 
-Trigger een [PagerDuty](https://www.pagerduty.com)-incident telkens wanneer een OneUptime-incident wordt aangemaakt, en los het op wanneer OneUptime oplost. Handig wanneer PagerDuty je escalatie en oncall-roosters beheert en je OneUptime's monitoring daarin wilt voeden.
+Stuur OneUptime-incidenten naar [PagerDuty](https://www.pagerduty.com). Eén workflow start een PagerDuty-incident wanneer een OneUptime-incident wordt gemeld, en een tweede lost het op wanneer het OneUptime-incident is opgelost. Gebruik dit wanneer PagerDuty je team oproept en OneUptime je systemen bewaakt.
 
-Deze integratie is **outbound**: OneUptime roept PagerDuty's [Events API v2](https://developer.pagerduty.com/docs/events-api-v2/overview/) aan. Ze maakt gebruik van een OneUptime **[Workflow](/docs/workflows/index)** met een **Incident → On Create**-trigger en een **API-component**.
+:::cards
+- [De routing key opslaan](#de-routing-key-opslaan): Houd de sleutel van PagerDuty buiten je workflows.
+- [PagerDuty-incidenten starten](#een-pagerduty-incident-starten-voor-elk-incident): Eén workflow, twee blokken.
+- [Ze oplossen](#het-pagerduty-incident-oplossen): Een tweede workflow die de status van het incident volgt.
+- [Problemen oplossen](#problemen-oplossen): Wanneer PagerDuty een gebeurtenis weigert.
+:::
 
-> OneUptime heeft zijn eigen ingebouwde oncall en escalatie — zie [On Call](/docs/on-call/incoming-call-policy). Gebruik deze integratie alleen als je events specifiek ook in PagerDuty wilt laten landen.
+> [!TIP]
+> OneUptime roept ook mensen op, met bereikbaarheidsbeleid, roosters en escalatieregels. Om je team van PagerDuty te laten overstappen, zie [Overstappen van PagerDuty](/docs/moving-to-oneuptime/pagerduty): een import haalt je gebruikers, roosters en escalatiebeleid over.
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  ──►  PagerDuty incident
+## Hoe het werkt
+
+```mermaid title="Twee workflows, één PagerDuty-incident"
+flowchart TB
+    declared["Incident gemeld"] --> create["Workflow 1:<br/>On Create Incident"]
+    create -->|"trigger"| pd["PagerDuty-incident"]
+    resolved["Incident opgelost"] --> update["Workflow 2:<br/>On Update Incident"]
+    update -->|"resolve"| pd
 ```
 
-## Vereisten
+Beide workflows roepen de [Events API v2](https://developer.pagerduty.com/docs/events-api-v2/overview/) van PagerDuty aan met dezelfde `dedup_key`, gemaakt van de ID van het OneUptime-incident. Aan die sleutel ziet PagerDuty dat de resolve-gebeurtenis het incident sluit dat de trigger-gebeurtenis opende.
 
-- Een PagerDuty-service met een **Events API v2**-integratie. In PagerDuty: **Service → Integrations → Add integration → Events API v2**. Kopieer de **Integration Key** (ook wel de _routing key_ genoemd).
-- Een OneUptime-project waar je workflows kunt aanmaken.
+## Voordat je begint
 
-## Stap 1 — Sla de routing key op
+- Een PagerDuty-service met een Events API v2-integratie. Open in PagerDuty de service, daarna **Integrations**, klik op **Add an integration** en kies **Events API V2**. Kopieer de **Integration Key**: de Events API noemt die de routing key.
+- In OneUptime het recht om workflows en globale variabelen te maken. Op OneUptime Cloud hebben workflows het **Growth**-abonnement of hoger nodig.
 
-1. Ga naar **Workflows → Globale variabelen → Aanmaken**.
-2. Geef het de naam `PAGERDUTY_ROUTING_KEY`, plak de integratiesleutel, en zet **Is Secret** aan.
+## De routing key opslaan
 
-## Stap 2 — Bouw de "trigger"-workflow
+:::steps
+1. Ga naar **Workflows → Globale variabelen** en klik op **Workflow Variabele aanmaken**.
+2. Noem hem `PAGERDUTY_ROUTING_KEY` en klik op **Volgende**.
+3. Plak de integratiesleutel in **Inhoud**, zet **Geheim** aan en klik op **Workflow Variabele aanmaken**.
+:::
 
-1. Open **Workflows → Workflow maken**, geef het de naam `Incidents → PagerDuty`, en open de **Bouwer**.
-2. Voeg een **Incident**-trigger toe ingesteld op **On Create**. Hernoem het naar `Incident`.
-3. Voeg een **API**-blok toe verbonden met de trigger:
+Een geheime variabele wordt in de uitvoeringslogboeken vervangen door `[REDACTED]`, dus de sleutel verschijnt nooit in een uitvoering.
 
-   - **Method**: `POST`
-   - **URL**: `https://events.pagerduty.com/v2/enqueue`
-   - **Headers**: `Content-Type: application/json`
-   - **Body**:
+## Een PagerDuty-incident starten voor elk incident
 
-     ```json
-     {
-       "routing_key": "{{variable.PAGERDUTY_ROUTING_KEY}}",
-       "event_action": "trigger",
-       "dedup_key": "oneuptime-{{Incident._id}}",
-       "payload": {
-         "summary": "{{Incident.title}}",
-         "source": "OneUptime",
-         "severity": "critical",
-         "custom_details": {
-           "description": "{{Incident.description}}"
-         }
-       }
-     }
-     ```
+:::steps
+### De workflow maken
 
-   De **`dedup_key`** koppelt dit PagerDuty-incident aan het OneUptime-incident zodat je het later kunt oplossen. Het gebruik van het OneUptime-incident-id maakt het uniek en voorspelbaar.
+Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul beginnen**. Noem hem `Incidents to PagerDuty` en klik op **Workflow maken**.
 
-4. **Opslaan**, schakel in en maak een testincident aan. Een respons `202` in de workflow-logs betekent dat PagerDuty het event heeft geaccepteerd.
+### De trigger toevoegen
 
-## Stap 3 — Oplossen bij OneUptime-oplossing (aanbevolen)
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger en kies in **Fields to pass on** `title` en `description`.
 
-1. In **dezelfde** workflow een tweede **Incident**-trigger toevoegen? Nee — een workflow heeft één trigger. Maak in plaats daarvan een **tweede** workflow aan met de naam `Resolve PagerDuty` met een trigger **Incident → On Update**.
-2. Voeg een **Voorwaarden**-blok toe om te controleren of het incident nu is opgelost (vertak op de status/`{{Incident.currentIncidentState.name}}` van het incident gelijk aan de naam van je opgeloste status).
-3. Voeg vanuit **Ja** een **API**-blok toe naar PagerDuty met dezelfde **`dedup_key`** en `event_action` ingesteld op `resolve`:
+### De trigger-gebeurtenis sturen
 
-   ```json
-   {
-     "routing_key": "{{variable.PAGERDUTY_ROUTING_KEY}}",
-     "event_action": "resolve",
-     "dedup_key": "oneuptime-{{Incident._id}}"
-   }
+Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Success**-punt van de trigger ermee. Stel de **URL** in op `https://events.pagerduty.com/v2/enqueue` en de **Request Body** op:
+
+```json
+{
+  "routing_key": "{{global.variables.PAGERDUTY_ROUTING_KEY}}",
+  "event_action": "trigger",
+  "dedup_key": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}",
+  "payload": {
+    "summary": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+    "source": "OneUptime",
+    "severity": "critical",
+    "custom_details": {
+      "description": "{{local.components.incident-on-create-1.returnValues.model.description}}"
+    }
+  }
+}
+```
+
+### Testen en daarna aanzetten
+
+Klik op **Workflow uitvoeren**, vul de **Incident-ID** van een testincident in en voer hem uit. De stap **API Post (JSON)** toont een `202`-antwoord met `"status": "success"`, en PagerDuty opent een incident. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+:::
+
+Het blok stuurt JSON, dus het heeft geen `Content-Type`-header nodig. De `severity` van PagerDuty is een van `critical`, `error`, `warning` en `info`: zie [Ernstniveaus toewijzen](#ernstniveaus-toewijzen) om die van elk incident mee te sturen.
+
+## Het PagerDuty-incident oplossen
+
+Een workflow heeft één trigger, dus voor het oplossen is een tweede workflow nodig, die start wanneer de status van een incident verandert.
+
+:::steps
+### De trigger On Update Incident toevoegen
+
+Maak een workflow met de naam `Resolve PagerDuty incidents` en kies **On Update Incident** als trigger. Kies in **Fields to watch** `currentIncidentStateId`, zodat hij alleen draait wanneer de status verandert. Vraag in **Fields to pass on** of de nieuwe status een opgeloste status is:
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### Controleren dat het incident is opgelost
+
+Voeg na de trigger een **If / Else**-blok toe. Stel **Value to check** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Comparison** op **is true**.
+
+### De resolve-gebeurtenis sturen
+
+Voeg na de **Yes**-kant een **API Post (JSON)**-blok toe, met dezelfde **URL** en deze **Request Body**:
+
+```json
+{
+  "routing_key": "{{global.variables.PAGERDUTY_ROUTING_KEY}}",
+  "event_action": "resolve",
+  "dedup_key": "oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}"
+}
+```
+
+### Hem aanzetten
+
+Zet **Ingeschakeld** aan en los daarna in OneUptime een testincident op. PagerDuty lost zijn incident op.
+:::
+
+Controleren op `isResolvedState` in plaats van op de naam van een status blijft werken wanneer je je statussen hernoemt. Zie [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities).
+
+## Ernstniveaus toewijzen
+
+Om de ernst van elk incident mee te sturen, voeg je tussen de trigger en het **API Post (JSON)**-blok een **Run Custom JavaScript**-blok toe, en lees je het antwoord ervan in de body.
+
+1. Kies in de **Fields to pass on** van de trigger ook de `name` van de ernst: `{ "incidentSeverity": { "name": true } }`.
+2. Stel de **Arguments** van het blok in op `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, en de **JavaScript Code** op:
+
+   ```javascript
+   // Your incident severities, by name, to PagerDuty's.
+   const SEVERITY = {
+     "Critical Incident": "critical",
+     "Major Incident": "error",
+     "Minor Incident": "warning",
+   };
+
+   return { severity: SEVERITY[args.severity] || "info" };
    ```
 
-PagerDuty matcht de `dedup_key` en sluit het originele incident.
+3. Stel in de body van het verzoek `"severity"` in op `"{{local.components.javascript-1.returnValues.returnValue.severity}}"`.
 
-## Severitymapping (optioneel)
+De namen hierboven zijn de drie ernstniveaus waarmee een nieuw project begint. Gebruik je eigen namen als je ze hebt hernoemd.
 
-PagerDuty's `severity` accepteert `critical`, `error`, `warning` of `info`. Om te mappen vanuit OneUptime-severities voeg je **Voorwaarden**-takken toe op `{{Incident.incidentSeverity.name}}` vóór het API-blok en stuur je vanuit elke tak een andere body.
+## Problemen oplossen
 
-## Inbound (optioneel)
+:::details PagerDuty antwoordt 400
+De body van het antwoord zegt wat PagerDuty weigerde, en de stap **API Post (JSON)** van de uitvoering toont dat. Meestal is de routing key geen Events API v2-integratiesleutel: kopieer hem opnieuw uit de **Integrations** van de service. Een gebeurtenis zonder `summary`, `source` of `severity` wordt ook geweigerd.
+:::
 
-Om het omgekeerde te doen — een OneUptime-incident openen vanuit een PagerDuty-event — voeg je een workflow met **Webhook**-trigger toe en wijs je een PagerDuty [V3-webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/) (of een Events Orchestration) naar de URL ervan, gevolgd door **Incident maken**. Zie het [inbound-patroon](/docs/integrations/index#inbound-een-andere-tool-stuurt-data-naar-oneuptime).
+:::details De resolve-gebeurtenis sluit niets
+Beide gebeurtenissen moeten precies dezelfde `dedup_key` hebben. Controleer of beide bodies hem opbouwen als `oneuptime-` gevolgd door de `_id` van het incident, en of de resolve-workflow aan staat.
+:::
 
-## Probleemoplossing
+:::details De workflow draait nooit
+Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Logboeken → Uitvoeringen**: een uitvoering die de **No**-kant van het **If / Else**-blok nam, is een update die geen oplossing was.
+:::
 
-- **`400` met `"invalid routing key"`** — de integratie moet **Events API v2** zijn, niet de oudere Events API v1 of een ander integratietype. Kopieer de sleutel opnieuw.
-- **Oplossen sluit niets** — de `dedup_key` bij de resolve-aanroep moet precies overeenkomen met die van de trigger-aanroep.
-- **Niets in de logs** — bevestig dat de workflow **Ingeschakeld** is en de trigger op **On Create** staat.
+:::details PagerDuty toont een verwijzing in plaats van een waarde
+Een verwijzing die niet kan worden opgelost, wordt verstuurd zoals ze geschreven is, accolades en al. Controleer de identifier van het blok, de veldnaam en de naam van de variabele, die hoofdlettergevoelig is. Op het tabblad **Stappen** van de uitvoering is een instelling met zo'n verwijzing gemarkeerd als **Did not resolve**.
+:::
 
-## Waar verder lezen
+## Volgende stappen
 
-- [Integraties – Overzicht](/docs/integrations/index) — patronen en het authenticatie-spiekbriefje.
-- [On Call](/docs/on-call/incoming-call-policy) — de ingebouwde escalatie van OneUptime.
-- [Opsgenie](/docs/integrations/opsgenie) — hetzelfde idee voor Opsgenie.
+:::cards
+- [Overstappen van PagerDuty](/docs/moving-to-oneuptime/pagerduty): Haal je team, roosters en escalatiebeleid over.
+- [Escalatieregels](/docs/on-call/escalation-rules): Roep mensen op vanuit OneUptime zelf.
+- [Opsgenie](/docs/integrations/opsgenie): Dezelfde twee workflows voor Opsgenie.
+- [Overzicht van integraties](/docs/integrations/index): De patronen achter elke integratie.
+:::

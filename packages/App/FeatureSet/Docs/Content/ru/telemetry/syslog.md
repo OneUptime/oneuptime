@@ -28,7 +28,7 @@ flowchart TB
 OneUptime отвечает сразу после того, как прочитает сообщения из запроса, а разбирает и сохраняет их мгновением позже. Текст сообщения остаётся в теле лога; всё остальное становится атрибутами.
 
 > [!TIP]
-> Сетевые устройства, которые вы отслеживаете зондом OneUptime, могут отправлять свой syslog прямо на зонд по UDP, без ретранслятора, — тогда логи появляются у устройства в OneUptime. См. [Руководства по сетевым вендорам](/docs/monitor/network-vendor-guides).
+> Сетевые устройства могут отправлять свой syslog прямо на зонд OneUptime по UDP или TCP, без ретранслятора, — тогда OneUptime читает сообщения каждого производителя как события устройства. См. [Сетевые события](/docs/monitor/network-events).
 
 ## Перед началом
 
@@ -200,7 +200,7 @@ OneUptime автоматически добавляет к каждой запи
 
 Эти атрибуты становятся доступными для поиска в обозревателе **Продукты → Журналы** — например, `@syslog.severity.name:error` или `@syslog.hostname:web-01`. См. [Синтаксис поиска](/docs/telemetry/search-syntax).
 
-Само сообщение остаётся в теле лога. Межсетевые экраны вроде Sophos XGS и Fortinet FortiGate пишут его парами `key=value` (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`); добавьте процессор **Key=Value Parser** в [конвейер логов](/docs/telemetry/log-pipelines#keyvalue-parser), чтобы превратить в атрибуты и эти пары.
+Само сообщение остаётся в теле лога. Сообщение в формате сетевого производителя читается дальше: пары `key=value` межсетевого экрана Sophos или FortiGate (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) становятся атрибутами `sophos.*` и `fortigate.*`, а то, что произошло, — [сетевым событием](/docs/monitor/network-events). Для любого другого формата `key=value` добавьте процессор **Key=Value Parser** в [конвейер логов](/docs/telemetry/log-pipelines#keyvalue-parser), чтобы превратить пары в атрибуты.
 
 ### Уровень важности
 

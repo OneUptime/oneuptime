@@ -1,0 +1,15 @@
+<%#
+    The compiled Tailwind stylesheet (Scripts/BuildTailwindCss.ts). Every page
+    includes this as the last thing in its <head>, because that is where the
+    Play CDN runtime put the <style> it generated: it appended it to <head>
+    once the body began. So the cascade is what it was - a page's own <style>
+    in <head> still comes before Tailwind and loses a tie with a utility, and
+    a <style> in <body> still comes after it and wins one.
+
+    head-basic.ejs preloads the same URL near the top of <head>, so the
+    download starts long before the parser gets here. Without a build it
+    loads the runtime instead, and this writes nothing.
+-%>
+<% if (typeof tailwindStylesheetHref !== 'undefined' && tailwindStylesheetHref) { -%>
+<link rel="stylesheet" href="<%= tailwindStylesheetHref %>">
+<% } -%>

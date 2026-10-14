@@ -1,4 +1,5 @@
 import { IncomingEmailTriggerPanelCopy } from "../../../../UI/Components/Workflow/IncomingEmailTriggerPanel";
+import { WebhookTriggerPanelCopy } from "../../../../UI/Components/Workflow/WebhookTriggerPanel";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -109,15 +110,70 @@ describe("the Incoming Email trigger panel in every dashboard language", () => {
     },
   );
 
-  test("the leak sentence names the address, rather than borrowing the webhook's", () => {
+  test("with a reset, the advice is one key of its own, never the webhook's", () => {
     /*
-     * "If it leaks, reset it." is the Webhook trigger's, and Dutch and
-     * Portuguese translate its "it" as "the URL" or with the URL's gender.
+     * The two sentences are one key, so a language words them together and
+     * gives "it" the address's gender. It was a second key glued on with a
+     * space, which Dutch and Portuguese translated as the URL's when it was
+     * the Webhook trigger's "If it leaks, reset it.".
      */
-    expect(IncomingEmailTriggerPanelCopy.resetIfLeaked).not.toBe(
-      "If it leaks, reset it.",
+    expect(IncomingEmailTriggerPanelCopy.keepPrivateCanReset).toBe(
+      `${IncomingEmailTriggerPanelCopy.keepPrivate} If it leaks, reset it.`,
     );
-    expect(IncomingEmailTriggerPanelCopy.resetIfLeaked).toContain("address");
+    expect(IncomingEmailTriggerPanelCopy.keepPrivateCanReset).not.toBe(
+      WebhookTriggerPanelCopy.keepPrivateCanReset,
+    );
+  });
+
+  test.each(OTHER_LOCALES)(
+    "%s words the case with a reset apart from the case without one",
+    (locale: string) => {
+      const translations: Record<string, string> = readLocale(locale);
+      const alone: string =
+        translations[IncomingEmailTriggerPanelCopy.keepPrivate] || "";
+      const withReset: string =
+        translations[IncomingEmailTriggerPanelCopy.keepPrivateCanReset] || "";
+
+      expect(withReset).not.toBe(
+        IncomingEmailTriggerPanelCopy.keepPrivateCanReset,
+      );
+      expect(withReset.length).toBeGreaterThan(alone.length);
+      // The address's own pair, not the URL's.
+      expect(withReset).not.toBe(
+        translations[WebhookTriggerPanelCopy.keepPrivateCanReset],
+      );
+    },
+  );
+
+  test("the glued sentence is gone from every locale, and the panel glues none", () => {
+    for (const locale of ["en", ...OTHER_LOCALES]) {
+      expect({
+        locale,
+        present: "If the address leaks, reset it." in readLocale(locale),
+      }).toEqual({ locale, present: false });
+    }
+
+    const source: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "..",
+        "UI",
+        "Components",
+        "Workflow",
+        "IncomingEmailTriggerPanel.tsx",
+      ),
+      "utf8",
+    );
+
+    // The second sentence was added after the first when the reset was offered.
+    expect(source).not.toMatch(/canReset\s*\?\s*`/);
+    expect(source).not.toContain("resetIfLeaked");
+    expect(source).toContain(
+      "IncomingEmailTriggerPanelCopy.keepPrivateCanReset",
+    );
   });
 
   test("the panel draws no text that bypasses the lookup", () => {

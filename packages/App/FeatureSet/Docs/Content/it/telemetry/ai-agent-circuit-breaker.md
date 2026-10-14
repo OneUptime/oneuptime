@@ -125,11 +125,11 @@ Apri **Prodotti → Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. 
 
 ### Aggiungi il trigger
 
-Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **On Create Alert** nel pannello **Add Trigger**. Fai clic sul trigger, spunta il titolo e la descrizione in **Select Fields** e fai clic su **Salva**. L'ID sul blocco, `alert-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
+Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **On Create Alert** nel pannello **Add Trigger**. Fai clic sul trigger: **Fields to pass on** parte con il titolo, quindi fai clic su **Aggiungi campo**, spunta la descrizione e fai clic su **Salva**. L'ID sul blocco, `alert-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
 
 ### Controlla il titolo
 
-Fai clic su **Aggiungi componente**, scegli **If / Else** e collega a esso il punto **Success** del trigger. Imposta **Value to check** sul titolo dell'avviso (fai clic su **{ }** e sceglilo), **Comparison** su **contiene** e **Compare with** sull'inizio comune ai titoli dei tuoi inneschi, come `LLM budget exceeded`.
+Fai clic su **Aggiungi componente**, scegli **If / Else** e collega a esso il punto **Success** del trigger. Imposta **Valore da verificare** sul titolo dell'avviso (fai clic su **{ }** e sceglilo), **Confronto** su **contiene** e **Confronta con** sull'inizio comune ai titoli dei tuoi inneschi, come `LLM budget exceeded`.
 
 ### Chiama il tuo endpoint
 
@@ -189,7 +189,7 @@ Controlla che **Abilitato** sia attivo in cima al **Costruttore**: i flussi di l
 :::
 
 :::details Il flusso di lavoro si esegue, ma prende sempre il ramo No
-Il titolo è vuoto o non corrisponde. Un campo non spuntato in **Select Fields** del trigger arriva vuoto, quindi spunta il titolo. Poi confronta il titolo dell'avviso con **Compare with**: **contiene** deve trovarvi esattamente quel testo.
+Il titolo è vuoto o non corrisponde. Un campo che non è in **Fields to pass on** del trigger arriva vuoto, quindi aggiungi lì il titolo. Poi confronta il titolo dell'avviso con **Confronta con**: **contiene** deve trovarvi esattamente quel testo.
 :::
 
 :::details Il tuo endpoint risponde 401
