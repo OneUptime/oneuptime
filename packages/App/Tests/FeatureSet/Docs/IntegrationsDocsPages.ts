@@ -1,7 +1,7 @@
 /*
- * The integration pages docs overhaul task 28a rewrote, by the paths their
- * suites name them with, and the words they keep as the products write
- * them.
+ * The integration pages docs overhaul tasks 28a and 28b rewrote, by the
+ * paths their suites name them with, and the words they keep as the
+ * products write them.
  *
  * IntegrationsDocsFacts holds the English pages to the product, and
  * IntegrationsDocsTranslations holds every translation to its English page.
@@ -23,7 +23,22 @@ export const OPSGENIE: string = "integrations/opsgenie";
 export const SERVICENOW: string = "integrations/servicenow";
 export const DYNAMICS: string = "integrations/microsoft-dynamics-365";
 
-// The pages this task rewrote, in nav order.
+// Task 28b: the alerting tools that send OneUptime a webhook.
+export const ALERTMANAGER: string = "integrations/prometheus-alertmanager";
+export const GRAFANA: string = "integrations/grafana";
+export const DATADOG: string = "integrations/datadog";
+
+// Task 28b: the Security Events connections.
+export const GOOGLE_SECOPS: string = "integrations/google-secops";
+export const SENTINEL: string = "integrations/microsoft-sentinel";
+export const DEFENDER: string = "integrations/microsoft-defender-xdr";
+export const CROWDSTRIKE: string = "integrations/crowdstrike-falcon";
+
+/*
+ * The pages these tasks rewrote, in nav order: task 28a's are the first
+ * seven links of the Integrations group, and task 28b's follow, with
+ * Huntress, which has suites of its own, between Datadog and Google SecOps.
+ */
 export const INTEGRATIONS_PAGES: ReadonlyArray<IntegrationsDocsPageEntry> = [
   { page: OVERVIEW, navTitle: "Integrations Overview" },
   { page: ZABBIX, navTitle: "Zabbix" },
@@ -32,6 +47,31 @@ export const INTEGRATIONS_PAGES: ReadonlyArray<IntegrationsDocsPageEntry> = [
   { page: OPSGENIE, navTitle: "Opsgenie" },
   { page: SERVICENOW, navTitle: "ServiceNow" },
   { page: DYNAMICS, navTitle: "Microsoft Dynamics 365" },
+  { page: ALERTMANAGER, navTitle: "Prometheus Alertmanager" },
+  { page: GRAFANA, navTitle: "Grafana" },
+  { page: DATADOG, navTitle: "Datadog" },
+  { page: GOOGLE_SECOPS, navTitle: "Google SecOps" },
+  { page: SENTINEL, navTitle: "Microsoft Sentinel" },
+  { page: DEFENDER, navTitle: "Microsoft Defender XDR" },
+  { page: CROWDSTRIKE, navTitle: "CrowdStrike Falcon" },
+];
+
+// How many of the Integrations nav group's first links are task 28a's pages.
+export const FIRST_TASK_PAGE_COUNT: number = 7;
+
+// The alerting tools' pages: an Incoming Request monitor, or a workflow.
+export const ALERTING_PAGES: ReadonlyArray<string> = [
+  ALERTMANAGER,
+  GRAFANA,
+  DATADOG,
+];
+
+// The Security Events connections' pages.
+export const SECURITY_CONNECTION_PAGES: ReadonlyArray<string> = [
+  GOOGLE_SECOPS,
+  SENTINEL,
+  DEFENDER,
+  CROWDSTRIKE,
 ];
 
 /*
@@ -56,6 +96,25 @@ const OUTBOUND_STEPS: ReadonlyArray<string> = [
   "Comparison",
   "is true",
   "Yes",
+];
+
+/*
+ * The steps of the workflow an alerting tool's page builds: a Webhook
+ * trigger, an If / Else block and a Create One Incident block.
+ */
+const INBOUND_WORKFLOW_STEPS: ReadonlyArray<string> = [
+  "Webhook",
+  "Out",
+  "If / Else",
+  "Value to check",
+  "Comparison",
+  "is equal to",
+  "Compare with",
+  "Create One Incident",
+  "Yes",
+  "Incident Template",
+  "JSON Object",
+  "No",
 ];
 
 export const STEP_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
@@ -178,6 +237,9 @@ export const STEP_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Execute Workflow",
     "Sleep",
   ],
+  [ALERTMANAGER]: INBOUND_WORKFLOW_STEPS,
+  [GRAFANA]: INBOUND_WORKFLOW_STEPS,
+  [DATADOG]: INBOUND_WORKFLOW_STEPS,
 };
 
 /*
@@ -355,6 +417,90 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Get a row by ID",
     "Filtering Attributes",
   ],
+  // Grafana's screens and fields: its contact point and notification policies.
+  [GRAFANA]: [
+    "Alerting → Contact points",
+    "+ Add contact point",
+    "Alerting",
+    "Alerts & IRM",
+    "Contact points",
+    "Notification configuration",
+    "Integration",
+    "URL",
+    "HTTP Method",
+    "Save contact point",
+    "Alerting → Notification policies",
+    "Max Alerts",
+    "Test",
+  ],
+  // Datadog's monitor states, and the fields of its Webhooks integration.
+  [DATADOG]: [
+    "Warn",
+    "No Data",
+    "Name",
+    "URL",
+    "Payload",
+    "Test Notifications",
+    "Alert",
+  ],
+  // A SOAR playbook's HTTP request action, Google Cloud and SecOps.
+  [GOOGLE_SECOPS]: [
+    "HTTP request",
+    "Method",
+    "URL",
+    "Body",
+    "Chronicle API Viewer",
+    "Keys",
+    "JSON",
+    "SIEM Settings → Profile",
+  ],
+  // The Azure portal and Microsoft Entra ID.
+  [SENTINEL]: [
+    "Microsoft Entra ID",
+    "App registrations → New registration",
+    "Supported account types",
+    "Accounts in this organizational directory only",
+    "Register",
+    "Overview",
+    "Certificates & secrets → Client secrets → New client secret",
+    "Add",
+    "Value",
+    "Secret ID",
+    "Access control (IAM) → Add → Add role assignment",
+    "Role",
+    "Microsoft Sentinel Reader",
+    "Members",
+    "User, group, or service principal",
+    "Select members",
+    "Review + assign",
+  ],
+  [DEFENDER]: [
+    "Microsoft Entra ID",
+    "App registrations → New registration",
+    "Supported account types",
+    "Accounts in this organizational directory only",
+    "Register",
+    "Overview",
+    "API permissions → Add a permission → Microsoft Graph → Application permissions",
+    "Add permissions",
+    "Grant admin consent for",
+    "Granted",
+    "Certificates & secrets → Client secrets → New client secret",
+    "Add",
+    "Value",
+    "Secret ID",
+    "Certificates & secrets",
+  ],
+  // The Falcon console.
+  [CROWDSTRIKE]: [
+    "Support and resources → API clients and keys",
+    "Create API client",
+    "API scopes",
+    "Alerts → Read",
+    "API clients and keys",
+    "Endpoint security → Endpoint detections",
+    "Next-Gen SIEM → Alerts",
+  ],
 };
 
 /*
@@ -370,6 +516,96 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Access Token Fetched",
       "Client Credentials",
       "`customFields.dynamicsCaseId`.",
+    ],
+    /*
+     * The criteria filter's conditions, drawn from the filter type's own
+     * text, misspelling included.
+     */
+    [ALERTMANAGER]: ["Not Recieved In Minutes", "Recieved In Minutes"],
+    /*
+     * What the Security Events connection pages name that no Dashboard
+     * locale words: the providers' titles, the connection form's settings
+     * and options from the connector catalog, the Health states, the checks
+     * a test reports, the counts of a run and a preview's button, all drawn
+     * in English. A version is a version.
+     */
+    [GOOGLE_SECOPS]: [
+      "Instance resource name",
+      "Service account JSON",
+      "Data to import",
+      "Last poll succeeded",
+      "Polling, no events imported yet",
+      "No records returned",
+      "Partial import",
+      "Catching up",
+      "Last poll failed",
+      "Poll overdue",
+      "Schedule paused",
+      "Waiting for first poll",
+      "Read late alerts by detection time",
+      "Already imported",
+      "Authenticate with Google",
+      "Read rule detections",
+      "Read curated rule detections",
+      "Read the alerts view",
+      "Detections available to import",
+      "Background workers",
+      "Poll scheduler",
+      "Security event storage",
+      "Preview detections",
+      "Returned by Google SecOps",
+      "Imported into OneUptime",
+      "Time basis read",
+      "Returned by each pass",
+      "Creation lag",
+      "13.0.0",
+    ],
+    [SENTINEL]: [
+      "Application (client) ID",
+      "Directory (tenant) ID",
+      "Subscription ID",
+      "Resource group",
+      "Microsoft Sentinel",
+      "Workspace name",
+      "Azure public cloud",
+      "Azure Government (US)",
+      "Catching up",
+      "Preview incidents",
+      "Authenticate with Microsoft Entra",
+      "Read incidents",
+      "Incidents available to import",
+      "Background workers",
+      "Poll scheduler",
+      "Security event storage",
+    ],
+    [DEFENDER]: [
+      "Application (client) ID",
+      "Directory (tenant) ID",
+      "Microsoft Defender XDR",
+      "Azure public cloud",
+      "Azure Government (US)",
+      "Preview alerts",
+      "Authenticate with Microsoft Entra",
+      "Read alerts from Microsoft Graph",
+      "Alerts available to import",
+      "Background workers",
+      "Poll scheduler",
+      "Security event storage",
+    ],
+    [CROWDSTRIKE]: [
+      "Falcon cloud",
+      "CrowdStrike Falcon",
+      "US-1 (api.crowdstrike.com)",
+      "US-2 (api.us-2.crowdstrike.com)",
+      "EU-1 (api.eu-1.crowdstrike.com)",
+      "US-GOV-1 (api.laggar.gcw.crowdstrike.com)",
+      "Preview alerts",
+      "Authenticate with CrowdStrike Falcon",
+      "Read alerts from the Falcon Alerts API",
+      "Alerts available to import",
+      "Background workers",
+      "Poll scheduler",
+      "Security event storage",
     ],
   };
 
@@ -481,6 +717,104 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Every case gets a record.",
     "The same event can arrive twice.",
   ],
+  [ALERTMANAGER]: ["Treat the URL like a password.", "Self-hosted?"],
+  [GRAFANA]: ["Treat the URL like a password.", "Self-hosted?"],
+  [DATADOG]: ["Treat the URL like a password.", "Self-hosted?"],
+  [GOOGLE_SECOPS]: [
+    "Rule detections by created time.",
+    "Curated rule detections by created time.",
+    "The alerts view by detection time.",
+    "sweeps the alerts view over the 24 hours before its window",
+    "created time",
+    "24 hours",
+    "1 minute",
+    "20",
+    "200",
+    "16",
+    "4 minutes",
+    "Narrow.",
+    "Grow back.",
+    "Move past a single minute.",
+    "Data to import.",
+    "Rule run frequency and detection latency.",
+    "Read the last run's counts.",
+    "Is anything polling at all?",
+    "Look in the right place.",
+    "Google's own severity",
+    "The alert's severity",
+    "The rule's `meta` severity.",
+    "The rule's `$risk_score` outcome",
+    "Health is Partial import",
+    "running app and worker image versions",
+    "Connections move automatically.",
+    "Recent run history comes along.",
+    "The earlier rows are disabled, not deleted.",
+    "A connection that cannot be moved stays where it was.",
+    "The API routes changed.",
+    "Events carry a new connection attribute.",
+    "Search.",
+    "Correlation.",
+    "Detection rules.",
+    "Monitors.",
+    "Dashboards and AI.",
+  ],
+  [SENTINEL]: [
+    "Creation time is the cursor.",
+    "The first poll looks back 24 hours",
+    "Every later poll starts 1 minute before the saved cursor",
+    "A poll reads at most 24 hours past the cursor.",
+    "Duplicates are dropped by the incident's GUID",
+    "Narrow.",
+    "Grow back.",
+    "Move past a single minute.",
+    "Search.",
+    "Correlation.",
+    "Detection rules.",
+    "Monitors.",
+  ],
+  [DEFENDER]: [
+    "Creation time is the cursor.",
+    "The first poll looks back 24 hours",
+    "Every later poll starts 1 minute before the saved cursor",
+    "A poll reads at most 24 hours past the cursor.",
+    "Duplicates are dropped by the alert's `id`",
+    "A failed run changes nothing.",
+    "Narrow.",
+    "Grow back.",
+    "Move past a single minute.",
+    "Search.",
+    "Correlation.",
+    "Detection rules.",
+    "Monitors.",
+  ],
+  [CROWDSTRIKE]: [
+    "Creation time is the cursor.",
+    "The first poll looks back 24 hours",
+    "Every later poll starts 1 minute before the saved cursor",
+    "A poll reads at most 24 hours past the cursor.",
+    "Duplicates are dropped by `composite_id`",
+    "Each window costs",
+    "Narrow.",
+    "Grow back.",
+    "Move past a single minute.",
+    "Search.",
+    "Correlation.",
+    "Detection rules.",
+    "Monitors.",
+  ],
+};
+
+/*
+ * The variables an Incoming Request monitor's grouping adds to its incident
+ * templates, named after the last segment of the grouping path, which an
+ * alerting tool's page uses in a title or names. The facts suites hold each
+ * to the grouping the page sets.
+ */
+export const GROUPING_VARIABLES: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  [ALERTMANAGER]: ["fingerprint"],
+  [GRAFANA]: ["fingerprint"],
 };
 
 /*

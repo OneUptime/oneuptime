@@ -1,85 +1,221 @@
-# Datadog-integratie
+# Datadog
 
-Zet [Datadog](https://www.datadoghq.com)-monitoralerts om in OneUptime-incidenten, zodat de detectie van Datadog de incidentrespons en statuspagina's van OneUptime voedt.
+Stuur waarschuwingen van [Datadog](https://www.datadoghq.com)-monitors naar OneUptime, zodat elke waarschuwing een incident wordt dat je team met dienst oproept en wordt opgelost wanneer de Datadog-monitor herstelt. Datadog stuurt zijn waarschuwingen via zijn [Webhooks-integratie](https://docs.datadoghq.com/integrations/webhooks/), dus aan geen van beide kanten hoef je iets te installeren.
 
-Deze integratie is **inbound**: Datadog's [Webhooks-integratie](https://docs.datadoghq.com/integrations/webhooks/) post naar een OneUptime **[Workflow](/docs/workflows/index)** die start met een **Webhook trigger**.
+:::cards
+- [Kiezen hoe OneUptime waarschuwingen ontvangt](#kiezen-hoe-oneuptime-waarschuwingen-ontvangt): Een Incoming Request-monitor of een eigen workflow.
+- [Waarschuwingen ontvangen met een monitor](#waarschuwingen-ontvangen-met-een-monitor): Eén incident per waarschuwing, opgelost bij herstel.
+- [Datadog configureren](#datadog-configureren): Een webhook, en de monitors die hem melden.
+- [Problemen oplossen](#problemen-oplossen): Wanneer waarschuwingen niet aankomen of incidenten open blijven.
+:::
 
-```text
-Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Webhook trigger  ──►  Create Incident
+## Hoe het werkt
+
+```mermaid title="Van een Datadog-waarschuwing naar een incident"
+flowchart TB
+    monitor["Een Datadog-monitor<br/>verandert van<br/>status"] --> mention["Zijn bericht noemt<br/>de webhook"]
+    mention --> post["De webhook post<br/>je payload"]
+    post --> transition{"transition"}
+    transition -->|"Triggered"| open["Incident geopend,<br/>dienst opgeroepen"]
+    transition -->|"Recovered"| resolve["Incident opgelost"]
 ```
 
-## Vereisten
+Een Datadog-monitor meldt de webhooks die zijn bericht noemt wanneer hij van status verandert: wanneer hij afgaat, waarschuwt, herstelt of geen gegevens heeft. De JSON-body van de webhook schrijf je zelf, uit de [templatevariabelen](https://docs.datadoghq.com/integrations/webhooks/#usage) van Datadog, dus deze gids geeft je er een die elke waarschuwing een naam geeft en zegt wat ermee is gebeurd.
 
-- Een Datadog-account waar je integraties en monitors kunt configureren.
-- Een OneUptime-project waar je workflows kunt aanmaken.
+## Voordat je begint
 
-## Stap 1 — Bouw de OneUptime-workflow
+- Een Datadog-account waarin je integraties kunt configureren en monitors kunt bewerken.
+- In OneUptime het recht om monitoren aan te maken, of workflows als je die weg kiest.
 
-1. Open **Workflows → Workflow maken**, geef het de naam `Datadog → Incidents`, en open de **Bouwer**.
-2. Voeg een **Webhook**-trigger toe en **kopieer de URL**. Hernoem het blok naar `Datadog`.
-3. Voeg een **Voorwaarden**-blok toe verbonden met de trigger:
-   - **Left**: `{{Datadog.Request Body.transition}}`
-   - **Operator**: `==`
-   - **Right**: `Triggered`
-4. Voeg vanuit **Ja** een **Incident maken**-blok toe:
-   - **Titel**: `{{Datadog.Request Body.title}}`
-   - **Beschrijving**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
-   - **Ernst**: kies er een.
-5. **Opslaan** (laat uitgeschakeld totdat getest).
+## Kiezen hoe OneUptime waarschuwingen ontvangt
 
-## Stap 2 — Maak de Datadog-webhook aan
+Stel eerst OneUptime in: dat geeft je de URL waar Datadog naartoe stuurt.
 
-1. Ga in Datadog naar **Integrations → Webhooks** (installeer de **Webhooks**-integratie als je dat nog niet hebt gedaan).
-2. **Voeg een webhook toe**:
+| Weg | Gebruik hem als |
+| --- | --- |
+| Een Incoming Request-monitor (aanbevolen) | Je wilt dat elke waarschuwing een incident is dat de dienst oproept en wordt opgelost wanneer de Datadog-monitor herstelt. Er valt niets te bouwen. |
+| Een workflow met een Webhook-trigger | Je hebt eigen logica nodig: waarschuwingen filteren, ze omvormen of eerst andere systemen aanroepen. Een workflow declareert een incident voor elke waarschuwing die hij krijgt, en lost het niet op bij herstel. |
 
-   - **Name**: `oneuptime` (dit wordt `@webhook-oneuptime`).
-   - **URL**: de webhook-URL van je workflow.
-   - **Payload** — Datadog laat je de JSON-body definiëren met [sjabloonvariabelen](https://docs.datadoghq.com/integrations/webhooks/#usage):
+Beide krijgen dezelfde JSON van dezelfde webhook, dus je kunt met de ene beginnen en later overstappen door één URL in Datadog te wijzigen.
 
-     ```json
-     {
-       "title": "$EVENT_TITLE",
-       "body": "$TEXT_ONLY_MSG",
-       "alert_type": "$ALERT_TYPE",
-       "transition": "$ALERT_TRANSITION",
-       "id": "$ALERT_ID",
-       "host": "$HOSTNAME",
-       "link": "$LINK",
-       "priority": "$PRIORITY"
-     }
-     ```
+## Waarschuwingen ontvangen met een monitor
 
-3. Sla de webhook op.
+Een [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) geeft je een URL, en zijn criteria bepalen wat elke waarschuwing doet.
 
-## Stap 3 — Stuur de alerts van een monitor naar de webhook
+:::steps
+### De monitor maken
 
-Voeg de webhook-handle toe aan de monitors die je wilt doorsturen. Neem in het **notificatiebericht** van elke monitor het volgende op:
+Ga naar **Monitoren** en klik op **Monitor maken**. Kies **Incoming Request** onder **Monitortype**, noem hem `Datadog` en klik op **Volgende**.
+
+### Een incident declareren voor elke waarschuwing
+
+Open in de stap **Criteria** het eerste criterium, het criterium dat de monitor offline zet. Zet het filter op **Verzoeklichaam**, **Bevat**, `"transition":"Triggered"`. Dit criterium declareert al een incident wanneer het filter overeenkomt. Vul het incident in:
+
+- **Incidenttitel**: `{{requestBody.title}}`.
+- **Incidentbeschrijving**, onder **Beschrijving**: `{{requestBody.body}}`, en daarna `Datadog: {{requestBody.link}}` op een eigen regel.
+- **Ernst**: de incidenternst die deze waarschuwingen moeten krijgen.
+- **Bereikbaarheidsbeleid**, onder **Bereikbaarheid**: het beleid dat moet worden opgeroepen.
+- **Incident automatisch oplossen**, onder **Meer velden**: laat het aan, zoals het begint. Zonder dit worden herstelmeldingen genegeerd en blijven incidenten open.
+
+### Eén incident per waarschuwing openen
+
+Open in hetzelfde criterium **Instellingen** en zet **Group incidents and alerts by a payload field** aan. Vul het in zoals hieronder, zodat elke waarschuwing een eigen incident krijgt en haar herstel het oplost:
+
+| Veld | Waarde |
+| --- | --- |
+| **Open a separate incident for each…** | `requestBody.alert_key` |
+| **Field that signals recovery** | `requestBody.transition` |
+| **Value that means recovered** | `Recovered` |
+
+### De monitor weer online brengen
+
+Open het tweede criterium, het criterium dat de monitor online zet, en zet het filter op **Verzoeklichaam**, **Bevat**, `"transition":"Recovered"`.
+
+### De URL kopiëren
+
+Klik op **Monitor maken**. De pagina **Overzicht** van de monitor toont zijn **Heartbeat URL**. Kopieer die voor Datadog:
 
 ```text
-{{#is_alert}}@webhook-oneuptime{{/is_alert}}
-{{#is_recovery}}@webhook-oneuptime{{/is_recovery}}
+https://oneuptime.com/heartbeat/<secret key>
 ```
 
-Hiermee worden zowel de alert als het herstel naar OneUptime gestuurd. (Om alles door te sturen kun je ook onvoorwaardelijk `@webhook-oneuptime` toevoegen aan een monitor.)
+Een zelf gehoste installatie heeft een eigen host in plaats van `oneuptime.com`.
+:::
 
-## Stap 4 — Test het
+De payload hieronder zet `alert_key` op de ID van de Datadog-monitor en de tags van de groep die waarschuwde, zodat elke groep van een multi-alert-monitor een eigen incident krijgt en het herstel van die groep het oplost. Een monitor die opnieuw afgaat of opnieuw meldt terwijl zijn incident open is, opent geen tweede. Zie [Waarschuwingen uit een ander systeem ontvangen](/docs/monitor/incoming-request-monitor#waarschuwingen-uit-een-ander-systeem-ontvangen) voor wat elke instelling doet.
 
-1. Schakel de workflow in.
-2. Gebruik vanuit een monitor **Test Notifications → Alert**, of laat een echte monitor afgaan.
-3. Controleer het tabblad **Logboeken** van de workflow en je lijst met **Incidenten**.
+> [!NOTE]
+> Een melding **Warn** of **No Data** opent met deze filters geen incident. Wil je ook bij waarschuwingsniveau worden opgeroepen, klik dan op **Criteria toevoegen**, geef het nieuwe criterium het filter **Verzoeklichaam**, **Bevat**, `"transition":"Warn"`, een incident met een eigen **Ernst** en dezelfde groeperingsinstellingen, en sleep het boven het eerste criterium. Criteria worden van boven af gecontroleerd, en het eerste dat overeenkomt beslist.
 
-## Oplossen bij herstel (optioneel)
+## Datadog configureren
 
-`$ALERT_TRANSITION` is `Recovered` wanneer een monitor zich herstelt. Voeg een tweede **Voorwaarden**-tak toe (`transition == Recovered`), zoek het bijbehorende incident (match op het `id` dat je hebt gestuurd), en verplaats het naar je opgeloste status met **Update Incident**.
+:::steps
+### De webhook toevoegen
 
-## Probleemoplossing
+Open in Datadog de [tegel van de Webhooks-integratie](https://app.datadoghq.com/integrations/webhooks) en installeer die als dat nog niet is gebeurd. Voeg een webhook met deze instellingen toe en sla hem op:
 
-- **Er verschijnt geen run** — bevestig dat het bericht van de monitor `@webhook-oneuptime` bevat en dat de workflow **Ingeschakeld** is.
-- **Velden zijn leeg** — Datadog vervangt alleen sjabloonvariabelen die van toepassing zijn op het event. Bekijk de triggeruitvoer in het tabblad **Logboeken** en pas je webhook-payload aan.
-- **Dubbele incidenten** — een monitor die opnieuw alertt (renotify) stuurt meerdere `Triggered`-events; dedupliceer met een **Find Incident**-controle op het `id` vóór het aanmaken.
+- **Name**: `oneuptime`. Monitors noemen de webhook bij deze naam, als `@webhook-oneuptime`.
+- **URL**: de URL die je uit OneUptime hebt gekopieerd.
+- **Payload**:
 
-## Waar verder lezen
+  ```json
+  {
+    "alert_key": "$ALERT_ID $ALERT_SCOPE",
+    "transition": "$ALERT_TRANSITION",
+    "title": "$EVENT_TITLE",
+    "body": "$TEXT_ONLY_MSG",
+    "host": "$HOSTNAME",
+    "priority": "$PRIORITY",
+    "link": "$LINK"
+  }
+  ```
 
-- [Integraties – Overzicht](/docs/integrations/index) — het inbound-patroon.
-- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) en [Grafana](/docs/integrations/grafana) — andere inbound-bronnen.
-- [Webhook trigger](/docs/workflows/triggers#webhook) — hoe de ontvangende URL werkt.
+### De webhook noemen in je monitors
+
+Voeg in elke Datadog-monitor die via OneUptime moet oproepen `@webhook-oneuptime` toe aan het meldingsbericht van de monitor, en sla de monitor op. Datadog stuurt dan de waarschuwingen en herstelmeldingen van die monitor naar OneUptime.
+:::
+
+| Variabele | Wat Datadog erin zet |
+| --- | --- |
+| `$ALERT_ID` | De ID van de Datadog-monitor die waarschuwde. |
+| `$ALERT_SCOPE` | De tags van de groep die waarschuwde, zoals `host:web-1`. |
+| `$ALERT_TRANSITION` | Wat er gebeurde: `Triggered`, `Re-Triggered`, `Warn`, `Recovered`, `No Data` of `Renotify`, onder andere. |
+| `$EVENT_TITLE` | De titel van de gebeurtenis, zoals `[Triggered] High CPU`. |
+| `$TEXT_ONLY_MSG` | Het bericht van de monitor, zonder Markdown. |
+| `$LINK` | Een link naar de gebeurtenis in Datadog. |
+
+## Testen
+
+Stuur OneUptime een waarschuwing, zoals Datadog dat zou doen:
+
+```bash
+curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "alert_key": "1234 host:web-1",
+    "transition": "Triggered",
+    "title": "[Triggered] High CPU",
+    "body": "CPU is above 90% on web-1.",
+    "host": "web-1",
+    "priority": "normal",
+    "link": "https://app.datadoghq.com/event/event?id=1"
+  }'
+```
+
+Er gaat een incident open met de titel `[Triggered] High CPU`. Stuur hetzelfde verzoek met `transition` op `Recovered`, en het incident wordt opgelost.
+
+Test daarna vanuit Datadog: open een monitor die de webhook noemt, klik op **Test Notifications** en stuur zijn melding **Alert**. Kijk in de tijdlijn van de OneUptime-monitor of ze is aangekomen.
+
+## Waarschuwingen ontvangen met een workflow
+
+Gebruik een [workflow](/docs/workflows/index) wanneer je eigen stappen nodig hebt tussen Datadog en het incident.
+
+:::steps
+### De workflow maken
+
+Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul beginnen**. Noem hem `Datadog alerts` en klik op **Workflow maken**.
+
+### De Webhook-trigger toevoegen
+
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **Webhook**. Klik op de trigger, daarna op **URL kopiëren**, en gebruik die URL in de webhook in Datadog.
+
+### Controleren dat de monitor is afgegaan
+
+Klik op **Component toevoegen**, voeg een blok **If / Else** toe en verbind de punt **Out** van de trigger ermee. Zet **Value to check** op `{{local.components.webhook-1.returnValues.request-body.transition}}`, **Comparison** op **is equal to** en **Compare with** op `Triggered`.
+
+### Het incident declareren
+
+Voeg een blok **Create One Incident** toe en verbind de kant **Yes** van het blok **If / Else** ermee. Kies onder **Incident Template** een sjabloon dat de ernst en het bereikbaarheidsbeleid instelt dat moet worden opgeroepen (zie [Incidentsjablonen](/docs/incidents/settings#incidentsjablonen)). Stel onder **JSON Object** in wat van Datadog komt:
+
+```json
+{
+  "title": "{{local.components.webhook-1.returnValues.request-body.title}}",
+  "description": "{{local.components.webhook-1.returnValues.request-body.body}}\nDatadog: {{local.components.webhook-1.returnValues.request-body.link}}"
+}
+```
+
+Zonder sjabloon moet **JSON Object** ook `incidentSeverityId` bevatten, de ID van een van de incidenternstniveaus van het project.
+
+### De workflow inschakelen
+
+Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Een uitgeschakelde workflow antwoordt Datadog met `400`.
+:::
+
+Elke melding `Triggered` declareert een nieuw incident. Een herstel neemt de kant **No** van het blok **If / Else**, waar niets is verbonden, dus daar stopt de run. Gebruik de monitor voor één incident per waarschuwing dat bij herstel wordt opgelost.
+
+## Problemen oplossen
+
+:::details Er komt niets aan in OneUptime
+- Controleer dat het bericht van de Datadog-monitor `@webhook-oneuptime` noemt, gespeld zoals de webhook heet.
+- De monitor antwoordt meteen `200`, voordat hij iets controleert, ook bij een verkeerde geheime sleutel. Kijk in de tijdlijn van de monitor of waarschuwingen aankomen.
+- Een uitgeschakelde workflow antwoordt `400`. Zet **Ingeschakeld** aan bovenaan de **Bouwer** ervan.
+:::
+
+:::details Incidenten gaan open maar worden nooit opgelost
+- De Datadog-monitor moet de webhook ook van zijn herstel op de hoogte brengen. Een bericht dat de webhook alleen voor waarschuwingen noemt, binnen een voorwaarde, stuurt geen herstel.
+- Het incident van het criterium heeft **Incident automatisch oplossen** nodig, onder **Meer velden**.
+- **Value that means recovered** moet precies `Recovered` zijn. De vergelijking is hoofdlettergevoelig.
+- De `alert_key` van het herstel moet die van de waarschuwing zijn: laat `$ALERT_ID $ALERT_SCOPE` staan zoals in de payload.
+:::
+
+:::details Een veld toont de naam van een variabele, of niets
+Datadog vult alleen de variabelen in die op de gebeurtenis van toepassing zijn. Stuur een testmelding en kijk wat er is aangekomen: in de tijdlijn van de monitor, of voor een workflow in **Logboeken → Uitvoeringen**.
+:::
+
+:::details Elke waarschuwing van een monitor valt samen in één incident
+Elke groep heeft een eigen `alert_key` nodig. Controleer dat de payload die uit zowel `$ALERT_ID` als `$ALERT_SCOPE` opbouwt, en dat het groeperingspad `requestBody.alert_key` is.
+:::
+
+## Beveiliging
+
+- **Behandel de URL als een wachtwoord.** Iedereen die hem heeft, kan incidenten openen. Lekt hij uit, stel hem dan opnieuw in: **Geheime sleutel voor inkomende aanvraag opnieuw instellen** op de pagina **Instellingen** van de monitor, of **URL opnieuw instellen** in de **Webhook**-trigger van de workflow. Werk daarna de **URL** van de webhook in Datadog bij.
+- **Zelf gehost?** Datadog stuurt webhooks vanaf het internet, dus je OneUptime moet van daaruit via HTTPS bereikbaar zijn.
+
+## Volgende stappen
+
+:::cards
+- [Inkomende-verzoek-monitor](/docs/monitor/incoming-request-monitor): Elke instelling van de monitor die je waarschuwingen ontvangt.
+- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): Dezelfde opzet, voor Alertmanager.
+- [Escalatieregels](/docs/on-call/escalation-rules): Bepaal wie een bereikbaarheidsbeleid oproept, en wanneer.
+- [Overzicht van integraties](/docs/integrations/index): De andere tools die je kunt koppelen.
+:::

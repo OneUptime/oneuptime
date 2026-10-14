@@ -824,7 +824,14 @@ describe("Google SecOps integration docs", () => {
    * existed, so the health fields looked unreachable even in principle.
    */
   test("the docs name the nav path that actually ships", () => {
-    expect(docsSource).toContain("**Security Events → Connections**");
+    /*
+     * Opened from the Products menu, as the docs overhaul writes every
+     * product's path (the Security Events pages say "Products → Security
+     * Events").
+     */
+    expect(docsSource).toContain(
+      "**Products → Security Events → Connections**",
+    );
     expect(docsSource).not.toContain(
       "Security Events → Google SecOps Connections",
     );
