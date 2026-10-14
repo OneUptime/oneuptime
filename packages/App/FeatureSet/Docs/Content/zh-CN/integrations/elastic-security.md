@@ -44,7 +44,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → Connections**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Elastic Security**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把密钥粘贴到 **API key** 中。
+打开 **产品 → Security Events → Connections**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Elastic Security**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把密钥粘贴到 **API 密钥** 中。
 
 ### 保存之前先测试
 
@@ -55,7 +55,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 | --- | --- |
 | **Kibana URL** | 提供 Kibana 的地址，例如 `https://kibana.example.com` 或 `https://<deployment>.kb.<region>.cloud.es.io`。不带路径：没有 `/app/security`，没有 `/api`，也没有 `/s/<space>` 部分。 |
 | **Kibana space** | 空间的 ID，而不是它的名称：字母、数字、连字符和下划线。默认空间请留空。 |
-| **API key** | 密钥的 **Base64** 值本身：OneUptime 会自己加上 `ApiKey` 方案。它会被加密，API 从不返回它，也不会再次显示。要替换它，请在连接上使用 **Update credentials**。 |
+| **API 密钥** | 密钥的 **Base64** 值本身：OneUptime 会自己加上 `ApiKey` 方案。它会被加密，API 从不返回它，也不会再次显示。要替换它，请在连接上使用 **Update credentials**。 |
 
 **Polling** 步骤还有可选的 **描述**、**Poll Interval (Minutes)**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
 

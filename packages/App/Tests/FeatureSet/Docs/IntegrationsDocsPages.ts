@@ -769,7 +769,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     ],
     [ELASTIC]: [
       "Elastic Security",
-      "API key",
       "Kibana URL",
       "Kibana space",
       "Catching up",
