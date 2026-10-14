@@ -72,7 +72,29 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
  *   Check who is on call, or page someone yourself.
  *
  *   See every step in OneUptime
+ *
+ * WHERE SOMEBODY PAGED FROM A CHAT (`/oneuptime page`), the run's message
+ * says what the page is about too: the record's title - the message they
+ * typed - under its first line, as they wrote it. The record's own places
+ * have its title right above, in the message that announced it.
+ *
+ *   📟 Simon Lee is paging for Alert #12
+ *
+ *   “The checkout API is throwing 500s”
+ *
+ *   • Nawaz: paged once · by push and SMS
+ *
+ *   See every step in OneUptime
  */
+
+// How a run's message is drawn for one place.
+export interface OnCallPolicyRunViewOptions {
+  /*
+   * The record's title, under the first line: set where somebody paged
+   * from a chat, for whom it is what the page is about.
+   */
+  recordTitle?: string | undefined;
+}
 
 // How a run stands, as the message tells it.
 export enum OnCallPolicyRunOutcome {
@@ -230,6 +252,16 @@ const MAX_NAMES_IN_AN_ALARM: number = 5;
 // A sentence's own end: ".", "!" or "?".
 const SENTENCE_END: RegExp = /[.!?]$/;
 
+// A run of white space in a record's title: one space in a message's line.
+const WHITE_SPACE_RUN: RegExp = /\s+/g;
+
+/*
+ * How much of a record's title a message shows, where somebody paged from a
+ * chat: an alert's title holds 500 characters; a chat line shows a few
+ * hundred before it is a wall of text.
+ */
+const MAX_RECORD_TITLE_LENGTH: number = 300;
+
 export default class OnCallPolicyRunMessageView {
   /*
    * Why a rule did not page somebody who is away with nobody named to cover,
@@ -244,8 +276,18 @@ export default class OnCallPolicyRunMessageView {
   }
 
   // The run's message, as Markdown.
-  public static getMarkdown(run: OnCallPolicyRun): string {
+  public static getMarkdown(
+    run: OnCallPolicyRun,
+    options?: OnCallPolicyRunViewOptions | undefined,
+  ): string {
     const parts: Array<MarkdownText> = [this.getHeadline(run)];
+
+    // What the page is about, where somebody paged from a chat.
+    const recordTitle: string = this.getRecordTitle(options);
+
+    if (recordTitle) {
+      parts.push(mdText`“${recordTitle}”`);
+    }
 
     // A direct page pages everybody at once: there is no rule it is on.
     if (run.outcome === OnCallPolicyRunOutcome.Paging && !run.directPage) {
@@ -290,7 +332,36 @@ export default class OnCallPolicyRunMessageView {
    * The message as one line of plain text: what a notification, a message
    * preview or a screen reader shows of it.
    */
-  public static getPlainText(run: OnCallPolicyRun): string {
+  public static getPlainText(
+    run: OnCallPolicyRun,
+    options?: OnCallPolicyRunViewOptions | undefined,
+  ): string {
+    const line: string = this.getPlainTextLine(run);
+    const recordTitle: string = this.getRecordTitle(options);
+
+    // Where somebody paged from a chat: what the page is about, after it.
+    return recordTitle ? `${line}: ${recordTitle}` : line;
+  }
+
+  /*
+   * The record's title as the message shows it: on one line, cut to a
+   * length a chat line reads at a glance. Empty when there is none to show.
+   */
+  private static getRecordTitle(
+    options: OnCallPolicyRunViewOptions | undefined,
+  ): string {
+    const title: string = (options?.recordTitle || "")
+      .replace(WHITE_SPACE_RUN, " ")
+      .trim();
+
+    if (title.length <= MAX_RECORD_TITLE_LENGTH) {
+      return title;
+    }
+
+    return `${title.substring(0, MAX_RECORD_TITLE_LENGTH - 1).trimEnd()}…`;
+  }
+
+  private static getPlainTextLine(run: OnCallPolicyRun): string {
     // The policy, or who started a direct page: what the line is about.
     const pagerName: string = this.getPagerName(run);
     const pagerNameInSentence: string = this.getPagerName(run, {

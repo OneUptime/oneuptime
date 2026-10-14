@@ -97,6 +97,7 @@ import SlackActionAnswer, {
 } from "../Utils/Workspace/Slack/Actions/Answer";
 import SlackConnectPrompt from "../Utils/Workspace/Slack/Actions/ConnectPrompt";
 import SlackCommandActions from "../Utils/Workspace/Slack/Actions/Command";
+import SlackPageActions from "../Utils/Workspace/Slack/Actions/Page";
 import SlackAiConversations, {
   SlackMessage,
   SlackMessageKind,
@@ -1070,6 +1071,20 @@ export default class SlackAPI {
             return Response.sendTextResponse(req, res, "");
           }
 
+          // The Page someone form of `/oneuptime page`, submitted.
+          if (
+            SlackPageActions.isPageAction({
+              actionType: action.actionType,
+            })
+          ) {
+            return SlackPageActions.handlePageAction({
+              slackRequest: authResult,
+              action: action,
+              req: req,
+              res: res,
+            });
+          }
+
           if (
             SlackIncidentActions.isIncidentAction({
               actionType: action.actionType,
@@ -1600,7 +1615,7 @@ export default class SlackAPI {
 
     /*
      * The /oneuptime command and every word after it - incident,
-     * maintenance, oncall, ask, help (SlackCommandActions). Slack posts an
+     * maintenance, oncall, page, ask, help (SlackCommandActions). Slack posts an
      * application/x-www-form-urlencoded body and expects a 200 within three
      * seconds. A question for OneUptime AI is acknowledged at once and
      * answered at the command's response_url (answerQuestionCommand).

@@ -113,6 +113,11 @@ export interface OnCallPageNewAlert {
   description?: string | undefined;
   // One of the project's alert severities. The most severe when left out.
   alertSeverityId?: ObjectID | undefined;
+  /*
+   * Markdown: where the page came from, for whoever opens the alert - "Paged
+   * by Simon from Slack". A workflow's page says its workflow when left out.
+   */
+  rootCause?: string | undefined;
 }
 
 // What the page is about: exactly one of the three.
@@ -1007,8 +1012,11 @@ export class Service {
 
     // Where the alert came from, for whoever opens it.
     const workflowName: string = (props.workflowName || "").trim();
+    const rootCause: string = (data.newAlert.rootCause || "").trim();
 
-    if (workflowName) {
+    if (rootCause) {
+      alert.rootCause = rootCause;
+    } else if (workflowName) {
       alert.rootCause =
         mdText`Created by workflow **${workflowName}** to page people.`.toString();
     }

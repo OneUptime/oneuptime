@@ -445,12 +445,30 @@ export default class MicrosoftTeamsCommands {
     const sentence: string = MicrosoftTeamsCommands.toSentence(
       WorkspaceCommands.getSummary(definition.name),
     );
+    const hint: string = MicrosoftTeamsCommands.getManifestHint(definition);
 
     return MicrosoftTeamsCommands.toManifestDescription(
-      definition.argument === TITLE_ARGUMENT
-        ? [`${sentence} Type a title after it.`, sentence]
-        : [sentence],
+      hint ? [`${sentence} ${hint}`, sentence] : [sentence],
     );
+  }
+
+  /*
+   * What to type after a command, which the title Teams puts in the message
+   * cannot show: a form's title, or who to page and why. Empty for a
+   * command that needs nothing after it.
+   */
+  private static getManifestHint(
+    definition: WorkspaceCommandDefinition,
+  ): string {
+    if (definition.argument === TITLE_ARGUMENT) {
+      return "Type a title after it.";
+    }
+
+    if (definition.name === WorkspaceCommandName.Page) {
+      return "Mention who, then type a message.";
+    }
+
+    return "";
   }
 
   /*
