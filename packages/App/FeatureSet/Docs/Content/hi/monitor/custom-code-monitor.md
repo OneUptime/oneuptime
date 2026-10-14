@@ -215,7 +215,7 @@ return {
 - Greater Than, Less Than और बाकी संख्या वाली शर्तें केवल संख्या से मेल खाती हैं, इसलिए field को `"42"` नहीं, `42` के रूप में लौटाएँ। सही और गलत केवल boolean से मेल खाते हैं।
 - जो field लौटाए गए डेटा में नहीं है — कोई गायब key, या array के अंत से आगे का index — उसकी तुलना खाली के रूप में होती है: **Is Empty** उससे मेल खाता है, और कोई दूसरी शर्त नहीं।
 - जिस field के नाम में बिंदु हो, उसे पथ से संबोधित नहीं किया जा सकता।
-- Terraform में फ़िल्टर का `custom_code_monitor_options` फ़ील्ड पथ सेट करता है: देखें [मॉनिटर चरण](/docs/terraform/monitor-steps#comparing-one-field-of-a-scripts-result)।
+- Terraform में फ़िल्टर का `custom_code_monitor_options` फ़ील्ड पथ सेट करता है: देखें [मॉनिटर चरण](/docs/terraform/monitor-steps#किसी-स्क्रिप्ट-के-नतीजे-के-एक-फ़ील्ड-की-तुलना)।
 
 ## स्क्रिप्ट में उपलब्ध मॉड्यूल
 
