@@ -1,10 +1,12 @@
-# Status Pages list Delete fixture
+# List Delete fixture
 
 An offline harness for the real
 `packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/StatusPages.tsx` page and its
-Archived page. It bundles the production pages with esbuild, replaces only the
-`ModelAPI` / `API` data boundary and the synthetic user's permissions, and serves
-them on `127.0.0.1:4296`. No Docker, no database, no sign-in.
+Archived page, an incident's State Timeline page
+(`Pages/Incidents/View/StateTimeline.tsx`) and the Teams list
+(`Pages/Teams/Index.tsx`). It bundles the production pages with esbuild, replaces
+only the `ModelAPI` / `API` data boundary and the synthetic user's permissions, and
+serves them on `127.0.0.1:4296`. No Docker, no database, no sign-in.
 
 The suite drives Delete the way a person does, through every confirmation:
 
@@ -21,11 +23,23 @@ The suite drives Delete the way a person does, through every confirmation:
 - a member who may not delete (`?role=viewer`): both Deletes locked, with the
   missing permission on hover, and nothing sent;
 - the Archived page (`?page=archived`), which does not offer to archive;
-- a phone-width screen and dark mode (`?theme=dark`).
+- a phone-width screen and dark mode (`?theme=dark`);
+- an incident's State Timeline (`?page=incident-timeline`): the only state's
+  Delete locked in the server's words; each other state's dialog naming it and
+  its start and saying what deleting it does (the state before becomes current
+  again, or takes over its time); a bulk Delete naming each row by its state
+  and start, and saying the rule; rows called state changes, not the model's
+  "Incident State Timeline";
+- the Teams list (`?page=teams`): Owners and Admin keep Delete locked, saying
+  why; a project's own team deletes after a dialog that says what goes with it;
+  a bulk Delete that includes a built-in team deletes the rest and lists it as
+  not deleted.
 
 `Fixture/Fixture.js` records every DELETE the page sends on
 `window.__fixture.deletes`, so the assertions check what was deleted as well as
-what the page drew.
+what the page drew. The timeline and the teams answer a delete as their services
+do: the only state, and a team that comes with every project, are refused in the
+server's words.
 
 ## Run it
 
@@ -49,3 +63,14 @@ Then open
 `http://127.0.0.1:4296/dashboard/10000000-0000-4000-8000-000000000001/status-pages`,
 adding `?role=viewer`, `?refuse=30000000-0000-4000-8000-000000000003`,
 `?page=archived`, `?rows=10` or `?theme=dark` as needed.
+
+The other pages:
+
+- an incident with three states:
+  `http://127.0.0.1:4296/dashboard/10000000-0000-4000-8000-000000000001/incidents/40000000-0000-4000-8000-000000000001/state-timeline?page=incident-timeline`
+- an incident with only the state it was declared in: the same with
+  `40000000-0000-4000-8000-000000000002`
+- the Teams list:
+  `http://127.0.0.1:4296/dashboard/10000000-0000-4000-8000-000000000001/settings/teams?page=teams`
+
+Each takes `&theme=dark` too.

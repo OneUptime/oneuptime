@@ -3,11 +3,12 @@ import path from "path";
 
 /*
  * Delete on the real Status Pages list - each row's ⋯ menu and Bulk Actions -
- * in real Chromium, with no backend: ListDelete/Fixture/server.js bundles the
- * production page with the app's esbuild config, Tailwind, theme and font,
- * over an in-memory list whose deletes it records (and, on request, refuses).
- * What jsdom cannot show is checked here: the menus opening where they do,
- * the dialogs fitting a phone, the tooltip on a locked Delete, dark mode.
+ * and on an incident's State Timeline and the Teams list, in real Chromium,
+ * with no backend: ListDelete/Fixture/server.js bundles the production pages
+ * with the app's esbuild config, Tailwind, theme and font, over in-memory
+ * lists whose deletes it records (and, on request, refuses). What jsdom
+ * cannot show is checked here: the menus opening where they do, the dialogs
+ * fitting a phone, the tooltip on a locked Delete, dark mode.
  */
 const port: string = process.env["LIST_DELETE_FIXTURE_PORT"] || "4296";
 

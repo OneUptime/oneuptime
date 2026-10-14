@@ -6,7 +6,9 @@ import path from "path";
  * Delete on the real Status Pages list, in a browser, against the offline
  * fixture (ListDelete/Fixture): the row's ⋯ menu, the bulk bar, both
  * confirmations, a bulk Delete the server refuses part of, a member who may
- * not delete, the Archived page, and the page a bulk Delete empties.
+ * not delete, the Archived page, and the page a bulk Delete empties. Then
+ * the same Delete where a row can't always go: an incident's State Timeline
+ * (its only state) and the Teams list (the teams every project comes with).
  *
  * The maintainer's ask: "Please also have delete options here and in bulk
  * actions" - the screenshot was this list's ⋯ menu holding only Show ID.
@@ -489,5 +491,343 @@ test.describe("in dark mode", () => {
     await bulkMenu.getByRole("menuitem", { name: "Delete" }).click();
     await expect(page.getByTestId("bulk-delete-consequence")).toBeVisible();
     await screenshot(page, "bulk-delete-dialog-dark");
+  });
+});
+
+/*
+ * An incident's State Timeline page: the same row ⋯ menu and Bulk Actions,
+ * with a Delete that knows the rule its service follows - the incident's
+ * only state can't go, and every other row's dialog says what deleting it
+ * does to the states around it.
+ */
+const PROJECT_PATH: string = "/dashboard/10000000-0000-4000-8000-000000000001";
+
+const INCIDENT_WITH_HISTORY: string = "40000000-0000-4000-8000-000000000001";
+const INCIDENT_JUST_DECLARED: string = "40000000-0000-4000-8000-000000000002";
+
+const TIMELINE_IDS: Record<string, string> = {
+  created: "42000000-0000-4000-8000-000000000001",
+  acknowledged: "42000000-0000-4000-8000-000000000002",
+  resolved: "42000000-0000-4000-8000-000000000003",
+  declared: "42000000-0000-4000-8000-000000000004",
+};
+
+// ONLY_STATE_DELETE_MESSAGES' words for an incident: the server's refusal.
+const ONLY_INCIDENT_STATE: string =
+  "The incident's only state can't be deleted: an incident always has a state. To change it, add a new state.";
+
+function timelinePath(incidentId: string, search: string = ""): string {
+  return `${PROJECT_PATH}/incidents/${incidentId}/state-timeline?page=incident-timeline${search}`;
+}
+
+async function openPath(page: Page, pathWithQuery: string): Promise<void> {
+  await page.goto(pathWithQuery);
+  await expect(
+    page.getByTestId("row-actions-more-button").first(),
+  ).toBeVisible();
+}
+
+function stateRowQuestion(page: Page): Locator {
+  return page.getByTestId("state-row-delete-confirmation");
+}
+
+test.describe("an incident's State Timeline", () => {
+  test("keeps Delete on the incident's only state locked, in the server's words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPath(page, timelinePath(INCIDENT_JUST_DECLARED));
+    await expect(rowNames(page)).toHaveCount(1);
+
+    const menu: Locator = await openRowMenu(page, "Created");
+    const item: Locator = menu.getByRole("menuitem", { name: "Delete" });
+
+    await expect(item).toHaveAttribute("aria-disabled", "true");
+    await item.hover();
+    await expect(page.getByRole("tooltip")).toContainText(ONLY_INCIDENT_STATE);
+
+    await screenshot(page, "timeline-only-state-locked");
+
+    await item.click({ force: true });
+    await expect(dialog(page)).toHaveCount(0);
+    expect(await deletesSent(page)).toEqual([]);
+  });
+
+  test("the newest state: its dialog names it and says the one before becomes current again, and Delete deletes it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPath(page, timelinePath(INCIDENT_WITH_HISTORY));
+    await expect(rowNames(page)).toHaveCount(3);
+
+    const menu: Locator = await openRowMenu(page, "Resolved");
+    const item: Locator = menu.getByRole("menuitem", { name: "Delete" });
+
+    // More than one state: nothing is locked.
+    await expect(item).not.toHaveAttribute("aria-disabled", "true");
+    await item.click();
+
+    // A row is a state change, not the model's "Incident State Timeline".
+    await expect(
+      dialog(page).getByRole("heading", { name: "Delete State Change" }),
+    ).toBeVisible();
+    await expect(stateRowQuestion(page)).toContainText(
+      "Are you sure you want to delete the Resolved state that started",
+    );
+    await expect(stateRowQuestion(page)).toContainText(
+      "Acknowledged, the state before it, becomes the incident's current state again.",
+    );
+    await expect(stateRowQuestion(page)).toContainText(
+      "This action cannot be undone.",
+    );
+    // The states are the record's words, drawn apart from the sentence.
+    await expect(
+      stateRowQuestion(page).locator("strong", { hasText: "Resolved" }),
+    ).toBeVisible();
+    await expect(
+      stateRowQuestion(page).locator("strong", { hasText: "Acknowledged" }),
+    ).toBeVisible();
+    await expect(
+      dialog(page).getByTestId("modal-footer-submit-button"),
+    ).toHaveText("Delete");
+
+    await screenshot(page, "timeline-newest-state-dialog");
+    expect(await deletesSent(page)).toEqual([]);
+
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(dialog(page)).toBeHidden();
+    await expect(rowNames(page)).toHaveCount(2);
+    await expect(row(page, "Resolved")).toHaveCount(0);
+    // The state before it is the current one again.
+    await expect(row(page, "Acknowledged")).toContainText("Currently Active");
+    expect(await deletesSent(page)).toEqual([
+      { tableName: "IncidentStateTimeline", id: TIMELINE_IDS["resolved"] },
+    ]);
+  });
+
+  test("a state in the middle: its dialog says the one before takes over its time", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPath(page, timelinePath(INCIDENT_WITH_HISTORY));
+
+    const menu: Locator = await openRowMenu(page, "Acknowledged");
+    await menu.getByRole("menuitem", { name: "Delete" }).click();
+
+    await expect(stateRowQuestion(page)).toContainText(
+      "Are you sure you want to delete the Acknowledged state that started",
+    );
+    await expect(stateRowQuestion(page)).toContainText(
+      "Created, the state before it, takes over its time.",
+    );
+    await expect(stateRowQuestion(page)).not.toContainText(
+      "current state again",
+    );
+
+    await dialog(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog(page)).toBeHidden();
+    await expect(rowNames(page)).toHaveCount(3);
+    expect(await deletesSent(page)).toEqual([]);
+  });
+
+  test("the oldest state: its dialog only asks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPath(page, timelinePath(INCIDENT_WITH_HISTORY));
+
+    const menu: Locator = await openRowMenu(page, "Created");
+    await menu.getByRole("menuitem", { name: "Delete" }).click();
+
+    await expect(stateRowQuestion(page)).toContainText(
+      "Are you sure you want to delete the Created state that started",
+    );
+    await expect(stateRowQuestion(page)).toContainText(
+      "This action cannot be undone.",
+    );
+    await expect(stateRowQuestion(page)).not.toContainText(
+      "the state before it",
+    );
+  });
+
+  test("a bulk Delete names each state by its name and start, and says the rule", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPath(page, timelinePath(INCIDENT_WITH_HISTORY));
+    await selectRows(page, ["Resolved", "Acknowledged"]);
+
+    await expect(page.getByText("2 State Changes Selected")).toBeVisible();
+    const menu: Locator = await openBulkMenu(page);
+    await menu.getByRole("menuitem", { name: "Delete" }).click();
+
+    await expect(
+      dialog(page).getByRole("heading", { name: "Delete 2 State Changes" }),
+    ).toBeVisible();
+    // Named by state and start, never by id.
+    await expect(page.getByTestId("delete-confirmation-item")).toHaveText([
+      /^Resolved \(.+\)$/,
+      /^Acknowledged \(.+\)$/,
+    ]);
+    await expect(page.getByTestId("bulk-delete-consequence")).toHaveText(
+      "The state before each deleted state takes over its time, so deleting the newest one changes the incident's current state.",
+    );
+
+    await screenshot(page, "timeline-bulk-delete-dialog");
+
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(page.getByTestId("bulk-action-succeeded-count")).toHaveText(
+      "2 State Changes deleted",
+    );
+    await expect(page.getByTestId("bulk-action-failed-count")).toHaveCount(0);
+    await dialog(page).getByRole("button", { name: "Close" }).click();
+
+    await expect(rowNames(page)).toHaveCount(1);
+    await expect(row(page, "Created")).toContainText("Currently Active");
+    expect(
+      (await deletesSent(page)).map((sent: RecordedDelete): string => {
+        return sent.id;
+      }),
+    ).toEqual([TIMELINE_IDS["resolved"], TIMELINE_IDS["acknowledged"]]);
+  });
+
+  test("the dialog reads in dark mode", async ({ page }: { page: Page }) => {
+    await openPath(page, timelinePath(INCIDENT_WITH_HISTORY, "&theme=dark"));
+    await expect(page.locator("html")).toHaveClass(/dark/);
+
+    const menu: Locator = await openRowMenu(page, "Resolved");
+    await menu.getByRole("menuitem", { name: "Delete" }).click();
+    await expect(stateRowQuestion(page)).toBeVisible();
+
+    await screenshot(page, "timeline-newest-state-dialog-dark");
+  });
+});
+
+/*
+ * The Teams list: Owners and Admin come with every project and are never
+ * deleted - their Delete stays in the row's menu, locked, saying why - while
+ * a project's own team deletes like any other row.
+ */
+const TEAMS_PATH: string = `${PROJECT_PATH}/settings/teams?page=teams`;
+
+const TEAM_IDS: Record<string, string> = {
+  owners: "50000000-0000-4000-8000-000000000001",
+  admin: "50000000-0000-4000-8000-000000000002",
+  members: "50000000-0000-4000-8000-000000000003",
+  platform: "50000000-0000-4000-8000-000000000004",
+};
+
+const BUILT_IN_TEAM: string =
+  "This team comes with every project and can't be deleted.";
+
+const TEAM_CONSEQUENCE: string =
+  "Deleting a team takes away the permissions it gave its members. Anyone for whom it was their only team loses access to the project.";
+
+test.describe("the Teams list", () => {
+  test("keeps Delete on Owners and Admin locked, saying why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPath(page, TEAMS_PATH);
+    await expect(rowNames(page)).toHaveCount(4);
+
+    for (const name of ["Owners", "Admin"]) {
+      const menu: Locator = await openRowMenu(page, name);
+      const item: Locator = menu.getByRole("menuitem", { name: "Delete" });
+
+      await expect(item).toHaveAttribute("aria-disabled", "true");
+      await item.hover();
+      await expect(page.getByRole("tooltip")).toContainText(BUILT_IN_TEAM);
+
+      if (name === "Owners") {
+        await screenshot(page, "teams-built-in-locked");
+      }
+
+      await page.keyboard.press("Escape");
+      await expect(menu).toBeHidden();
+    }
+
+    // Members, which may be deleted, keeps an unlocked Delete.
+    const membersMenu: Locator = await openRowMenu(page, "Members");
+    await expect(
+      membersMenu.getByRole("menuitem", { name: "Delete" }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+    expect(await deletesSent(page)).toEqual([]);
+  });
+
+  test("deletes a project's own team after saying what goes with it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPath(page, TEAMS_PATH);
+
+    const menu: Locator = await openRowMenu(page, "Platform On-Call");
+    await menu.getByRole("menuitem", { name: "Delete" }).click();
+
+    await expect(page.getByTestId("delete-confirmation-message")).toHaveText(
+      `Are you sure you want to delete Platform On-Call? This action cannot be undone. ${TEAM_CONSEQUENCE}`,
+    );
+
+    await screenshot(page, "teams-row-delete-dialog");
+
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(dialog(page)).toBeHidden();
+    await expect(row(page, "Platform On-Call")).toHaveCount(0);
+    await expect(rowNames(page)).toHaveCount(3);
+    expect(await deletesSent(page)).toEqual([
+      { tableName: "Team", id: TEAM_IDS["platform"] },
+    ]);
+  });
+
+  test("a bulk Delete deletes the project's own team and lists a built-in one as not deleted, saying why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPath(page, TEAMS_PATH);
+    await selectRows(page, ["Admin", "Platform On-Call"]);
+
+    const menu: Locator = await openBulkMenu(page);
+    await menu.getByRole("menuitem", { name: "Delete" }).click();
+
+    await expect(page.getByTestId("delete-confirmation-item")).toHaveText([
+      "Admin",
+      "Platform On-Call",
+    ]);
+    await expect(page.getByTestId("bulk-delete-consequence")).toHaveText(
+      TEAM_CONSEQUENCE,
+    );
+
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(page.getByTestId("bulk-action-succeeded-count")).toHaveText(
+      "1 Team deleted",
+    );
+    await expect(page.getByTestId("bulk-action-failed-count")).toHaveText(
+      "1 Team not deleted",
+    );
+    const failures: Locator = page.getByTestId("bulk-action-failed-items");
+    await expect(failures).toContainText("Admin");
+    await expect(failures).toContainText(BUILT_IN_TEAM);
+
+    await screenshot(page, "teams-bulk-delete-partial");
+
+    await dialog(page).getByRole("button", { name: "Close" }).click();
+    await expect(rowNames(page)).toHaveCount(3);
+    await expect(row(page, "Admin")).toHaveCount(1);
+    await expect(row(page, "Platform On-Call")).toHaveCount(0);
+
+    // A built-in team is never sent to the server: only the other one is.
+    expect(await deletesSent(page)).toEqual([
+      { tableName: "Team", id: TEAM_IDS["platform"] },
+    ]);
   });
 });
