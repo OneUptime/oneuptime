@@ -1,66 +1,113 @@
-# GitLab Integration
+# GitLab
 
-जब OneUptime incident बनाया जाए तो स्वचालित रूप से एक [GitLab](https://gitlab.com) issue खोलें — ताकि engineering follow-up उस project में land हो जो affected service की मालिक है।
+हर OneUptime घटना के लिए एक [GitLab](https://gitlab.com) इश्यू खोलें, ताकि आगे का काम उसी प्रोजेक्ट में ट्रैक हो जिसकी वह सर्विस है। एक वर्कफ़्लो GitLab के [Issues API](https://docs.gitlab.com/api/issues/#new-issue) को कॉल करता है, GitLab.com पर या आपके अपने GitLab पर।
 
-यह इंटीग्रेशन **आउटबाउंड** है: OneUptime [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html) को कॉल करता है। यह **घटना → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है। यह GitLab.com और self-managed GitLab दोनों पर एक ही तरह काम करता है।
+:::cards
+- [टोकन सहेजें](#टोकन-सहेजें): GitLab के टोकन को अपने वर्कफ़्लो से बाहर रखें।
+- [हर घटना के लिए एक इश्यू खोलें](#हर-घटना-के-लिए-एक-gitlab-इश्यू-खोलें): एक वर्कफ़्लो, दो ब्लॉक।
+- [सुझाव](#सुझाव): आपका अपना GitLab, प्रोजेक्ट पाथ और असाइनी।
+- [समस्या निवारण](#समस्या-निवारण): जब GitLab कोई अनुरोध अस्वीकार करता है।
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/issues)  ──►  GitLab issue
+> [!NOTE]
+> OneUptime AI सुधार वाले पुल रिक्वेस्ट सिर्फ़ GitHub App से जुड़ी रिपॉजिटरी में खोलता है, इसलिए वह अभी GitLab रिपॉजिटरी में काम नहीं कर सकता। [GitHub](/docs/integrations/github) देखें।
+
+## यह कैसे काम करता है
+
+```mermaid title="एक वर्कफ़्लो, एक GitLab इश्यू"
+flowchart TB
+    declared["घटना घोषित"] --> workflow["वर्कफ़्लो:<br/>On Create Incident"]
+    workflow -->|"POST issues"| issue["GitLab इश्यू"]
 ```
 
-## पूर्वापेक्षाएँ
+वर्कफ़्लो हर नई घटना के लिए एक बार चलता है। उसका **API Post (JSON)** ब्लॉक घटना का शीर्षक और विवरण प्रोजेक्ट के इश्यू में भेजता है, एक एक्सेस टोकन से साइन करके।
 
-- एक GitLab project और उसका **Project ID** (project के overview page पर, project name के नीचे दिखाया जाता है)।
-- एक access token जो issues बना सके — `api` scope के साथ एक **Project**, **Group**, या **Personal Access Token**: **Settings → Access Tokens**।
-- एक OneUptime project जहाँ आप वर्कफ़्लो बना सकते हैं।
+## शुरू करने से पहले
 
-## चरण 1 — token store करें
+- GitLab प्रोजेक्ट का ID। प्रोजेक्ट के ओवरव्यू पेज पर एक्शन मेन्यू चुनें, यानी खड़े तीन बिंदु, फिर **Copy project ID**।
+- `api` स्कोप वाला एक GitLab एक्सेस टोकन, किसी ऐसे यूज़र या बॉट के लिए जिसकी प्रोजेक्ट में भूमिका इश्यू बना सकती है: प्रोजेक्ट, ग्रुप या पर्सनल एक्सेस टोकन। इसे प्रोजेक्ट, ग्रुप या अपनी यूज़र सेटिंग्स में **Settings → Access tokens** के नीचे बनाएं।
+- OneUptime में वर्कफ़्लो और ग्लोबल वेरिएबल बनाने का अधिकार। OneUptime Cloud पर वर्कफ़्लो के लिए **Growth** प्लान या उससे ऊपर चाहिए।
 
-1. **वर्कफ़्लो → ग्लोबल वेरिएबल → बनाएँ** पर जाएँ।
-2. इसे `GITLAB_TOKEN` नाम दें, token पेस्ट करें, और **Is Secret** चालू करें।
+## टोकन सहेजें
 
-## चरण 2 — वर्कफ़्लो बनाएँ
+:::steps
+1. **वर्कफ़्लो → ग्लोबल वेरिएबल** पर जाएं और **वर्कफ़्लो वेरिएबल बनाएँ** पर क्लिक करें।
+2. इसका नाम `GITLAB_TOKEN` रखें और **अगला** पर क्लिक करें।
+3. टोकन को **सामग्री** में पेस्ट करें, **रहस्य** चालू करें, और **वर्कफ़्लो वेरिएबल बनाएँ** पर क्लिक करें।
+:::
 
-1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Incidents → GitLab Issues` नाम दें, और **बिल्डर** खोलें।
-2. **On Create** पर सेट एक **घटना** trigger जोड़ें। इसे `Incident` नाम दें।
-3. trigger से connected एक **API** ब्लॉक जोड़ें:
+सीक्रेट वेरिएबल रन लॉग में `[REDACTED]` से बदल दिया जाता है, इसलिए टोकन किसी रन में कभी नहीं दिखता।
 
-   - **Method**: `POST`
-   - **URL**: `https://gitlab.com/api/v4/projects/12345678/issues` _(`12345678` को अपने Project ID से बदलें; self-managed के लिए, अपना host इस्तेमाल करें)_
-   - **Headers**:
+## हर घटना के लिए एक GitLab इश्यू खोलें
 
-     ```text
-     PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}
-     Content-Type: application/json
-     ```
+:::steps
+### वर्कफ़्लो बनाएं
 
-   - **Body**:
+**वर्कफ़्लो** पर जाएं, **वर्कफ़्लो बनाएं** पर क्लिक करें, फिर **शुरू से बनाएं** पर। इसका नाम `Incidents to GitLab` रखें और **वर्कफ़्लो बनाएं** पर क्लिक करें।
 
-     ```json
-     {
-       "title": "OneUptime incident: {{Incident.title}}",
-       "description": "{{Incident.description}}\n\nFiled automatically from OneUptime.",
-       "labels": "incident,oneuptime"
-     }
-     ```
+### ट्रिगर जोड़ें
 
-4. **सहेजें**, enable करें, और एक test incident बनाएँ। Workflow logs में `201 Created` का मतलब है issue बनाई गई; response body में उसका `iid` और `web_url` है।
+डैश वाले **Choose what starts this workflow** ब्लॉक पर क्लिक करें और **On Create Incident** चुनें। ट्रिगर पर क्लिक करें, और **Select Fields** में `title`, `description` और `incidentNumberWithPrefix` चुनें।
 
-## टिप्स
+### इश्यू खोलें
 
-- **Self-managed GitLab**: `https://gitlab.com` को अपने instance URL से बदलें; `/api/v4/...` path वही रहता है।
-- **ID की बजाय Project path**: numeric ID की जगह आप path को URL-encode कर सकते हैं — जैसे `group%2Fproject`।
-- **Assignee / due date**: body में `"assignee_ids": [42]` या `"due_date": "2026-01-31"` जोड़ें।
-- **वापस link करें**: `{{CreateIssue.response-body.web_url}}` पढ़ें और इसे **Update Incident** ब्लॉक के साथ incident पर store करें।
+**घटक जोड़ें** पर क्लिक करें, एक **API Post (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **Success** बिंदु को उससे जोड़ें। उसका **URL** `https://gitlab.com/api/v4/projects/12345678/issues` पर सेट करें, `12345678` की जगह अपने प्रोजेक्ट के ID के साथ। **और फ़ील्ड** के नीचे उसके **Request Headers** इस पर सेट करें:
+
+```json
+{
+  "PRIVATE-TOKEN": "{{global.variables.GITLAB_TOKEN}}"
+}
+```
+
+और उसकी **Request Body** इस पर:
+
+```json
+{
+  "title": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}\n\nOpened by OneUptime for incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}.",
+  "labels": "incident,oneuptime"
+}
+```
+
+### टेस्ट करें, फिर चालू करें
+
+**वर्कफ़्लो चलाएं** पर क्लिक करें, किसी टेस्ट घटना की **घटना ID** डालें, और चलाएं। **API Post (JSON)** चरण एक `201` जवाब दिखाता है जिसमें नया इश्यू होता है, उसके `iid` और उसके `web_url` के साथ। फिर **बिल्डर** के ऊपर **सक्षम** चालू करें।
+:::
+
+ब्लॉक JSON भेजता है, इसलिए उसे `Content-Type` हेडर की ज़रूरत नहीं। GitLab ऐसे लेबल खुद बना लेता है जो उसने पहले नहीं देखे, इसलिए `incident` और `oneuptime` को पहले से सेट करने की ज़रूरत नहीं। घटना सुलझने पर इश्यू खुला रहता है, क्योंकि आगे का काम आमतौर पर घटना के बाद भी चलता है।
+
+## सुझाव
+
+- **आपका अपना GitLab।** इसके बजाय अनुरोध अपने सर्वर पर भेजें: `https://gitlab.example.com/api/v4/projects/12345678/issues`। निजी नेटवर्क पते वाले सर्वर के लिए ऐसा सेल्फ-होस्टेड OneUptime चाहिए जिसका एडमिनिस्ट्रेटर इसकी अनुमति दे: [आउटबाउंड नेटवर्क एक्सेस](/docs/workflows/configuration#बाहर-जाने-वाली-नेटवर्क-पहुँच) देखें।
+- **ID की जगह प्रोजेक्ट का पाथ।** ID की जगह पाथ भी काम करता है, उसके `/` को `%2F` लिखकर: `projects/your-group%2Fyour-project/issues`। URL ठीक वैसा ही भेजा जाता है जैसा लिखा है, इसलिए उसे खुद एनकोड करें।
+- **इसे असाइन करें।** बॉडी में `"assignee_ids": [42]` या `"due_date": "2026-12-31"` जोड़ें, या इसे सिर्फ़ प्रोजेक्ट के सदस्यों को दिखाने के लिए `"confidential": true`।
+- **सिर्फ़ कुछ घटनाएं।** ट्रिगर और API ब्लॉक के बीच एक **If / Else** ब्लॉक रखें, और इश्यू सिर्फ़ उसकी **Yes** साइड पर खोलें, उदाहरण के लिए किसी एक गंभीरता के लिए।
 
 ## समस्या निवारण
 
-- **`401`** — token invalid या expired है, या `api` scope नहीं है।
-- **`404`** — Project ID गलत है, या token किसी private project को access नहीं कर सकता।
-- **`400`** — कोई required field missing या malformed है; `title` ज़रूरी है।
+जब GitLab अनुरोध अस्वीकार करता है, तो **API Post (JSON)** चरण **Error** पर जाता है। रन में उसका **Response Status** और **Response Body** कारण बताते हैं।
 
-## आगे क्या पढ़ें
+:::details GitLab 401 से जवाब देता है
+टोकन गलत है, एक्सपायर हो गया है या रद्द कर दिया गया है। नया टोकन बनाएं, और `GITLAB_TOKEN` की सामग्री बदल दें।
+:::
 
-- [इंटीग्रेशन अवलोकन](/docs/integrations/index) — patterns और auth cheat sheet।
-- [GitHub](/docs/integrations/github) — GitHub के लिए वही विचार।
-- [API component](/docs/workflows/components#api) — response body पढ़ना।
+:::details GitLab 403 से जवाब देता है
+टोकन के पास `api` स्कोप नहीं है, या प्रोजेक्ट में उसके यूज़र की भूमिका इश्यू नहीं बना सकती। जब कारण स्कोप होता है, तो बॉडी में `insufficient_scope` लिखा होता है।
+:::
+
+:::details GitLab 404 से जवाब देता है
+**URL** में प्रोजेक्ट का ID गलत है, या टोकन प्रोजेक्ट नहीं देख सकता। जिस प्राइवेट प्रोजेक्ट को टोकन नहीं देख सकता, उसके लिए GitLab 403 नहीं, 404 से जवाब देता है।
+:::
+
+:::details GitLab 400 से जवाब देता है
+GitLab बॉडी नहीं पढ़ सकता: `title` नहीं है, या किसी फ़ील्ड का प्रकार गलत है। बॉडी उस फ़ील्ड का नाम बताती है।
+:::
+
+## अगले कदम
+
+:::cards
+- [GitHub](/docs/integrations/github): GitHub के लिए वही वर्कफ़्लो, और GitHub App।
+- [वर्कफ़्लो घटक](/docs/workflows/components#api): API ब्लॉक की हर सेटिंग।
+- [वर्कफ़्लो रन](/docs/workflows/runs-and-logs): देखें कि हर अनुरोध ने क्या भेजा और क्या वापस पाया।
+- [इंटिग्रेशन अवलोकन](/docs/integrations/index): हर इंटिग्रेशन के पीछे के पैटर्न।
+:::
