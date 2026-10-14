@@ -1,242 +1,118 @@
-# macOS Installation Guide
+# macOS स्थापना
 
-seamless monitoring और incident management के लिए OneUptime को macOS पर native desktop application के रूप में install करें।
+OneUptime डैशबोर्ड Mac पर ऐप के रूप में इंस्टॉल होता है: Safari से उसे Dock में जोड़ें, या Google Chrome या Microsoft Edge से इंस्टॉल करें। यह अपनी अलग विंडो में खुलता है, Dock और Launchpad में इसका अपना आइकन होता है, और यह सूचनाएँ दिखा सकता है। डाउनलोड करने को कुछ नहीं है: ऐप आपके OneUptime का डैशबोर्ड ही है, और जब भी आपका OneUptime अप-टू-डेट होता है, यह भी होता है।
 
-## Installation Methods
+:::cards
+- [ऐप इंस्टॉल करें](#ऐप-इंस्टॉल-करें): Safari, Chrome या Edge से।
+- [इसे Dock में रखें](#इसे-dock-में-रखें): एक क्लिक से, या लॉगिन पर खोलें।
+- [इस Mac पर सूचनाएँ पाएँ](#इस-mac-पर-सूचनाएँ-पाएँ): ऐप को पुश सूचनाओं के लिए पंजीकृत करें।
+- [समस्या निवारण](#समस्या-निवारण): Dock में जोड़ें नहीं, सूचनाएँ नहीं, फिर से साइन इन करना।
+:::
 
-### Method 1: Safari (macOS के लिए अनुशंसित)
+## डेस्कटॉप ऐप कैसे काम करता है
 
-Safari native macOS features के साथ उत्कृष्ट PWA integration प्रदान करता है।
+```mermaid title="डैशबोर्ड इंस्टॉल करने से आपको क्या मिलता है"
+flowchart TB
+    Browser["Safari, Chrome या Edge<br/>आपका डैशबोर्ड खोलता है"]
+    Install["आप उसे Dock में जोड़ते हैं<br/>या ऐप के रूप में<br/>इंस्टॉल करते हैं"]
+    App["अपनी अलग विंडो में OneUptime,<br/>Dock और Launchpad में"]
+    OneUptime["आपका OneUptime<br/>डैशबोर्ड देता है"]
+    Browser --> Install --> App
+    App -->|"हर बार खुलने पर<br/>डैशबोर्ड लोड करता है"| OneUptime
+```
 
-1. **OneUptime को Safari में खोलें**
+Safari वेब ऐप का अपना साइन-इन, कुकीज़ और सेटिंग्स होती हैं, Safari से अलग। Chrome या Edge से इंस्टॉल किया गया ऐप इन्हें उस ब्राउज़र के साथ साझा करता है।
 
-   - Safari browser launch करें
-   - अपने OneUptime instance URL पर जाएं
-   - अपने OneUptime account में sign in करें
-   - page पूरी तरह load होने का इंतज़ार करें
+## शुरू करने से पहले
 
-2. **PWA Install करें**
+- Safari के लिए macOS Sonoma 14 या बाद का संस्करण। Chrome और Edge हर उस macOS पर ऐप इंस्टॉल करते हैं जिस पर वे चलते हैं।
+- HTTPS पर आपके OneUptime का पता: OneUptime Cloud पर `https://oneuptime.com`, या आपका अपना, जैसे `https://oneuptime.example.com`।
+- एक खाता जिससे आप डैशबोर्ड में साइन इन कर सकें।
 
-   - menu bar में **File** पर क्लिक करें
-   - **"Add to Dock"** चुनें (macOS Sonoma+)
-   - या address bar में **install icon** देखें
-   - वैकल्पिक रूप से: **File** → **"Add to Home Screen"** (पुराना macOS)
+## ऐप इंस्टॉल करें
 
-3. **Installation Customize करें**
+:::tabs
+@tab Safari
+1. Safari में अपना OneUptime खोलें और साइन इन करें।
+2. डैशबोर्ड के किसी भी पेज पर **फ़ाइल → Dock में जोड़ें** चुनें, या टूलबार में शेयर बटन पर क्लिक करें और फिर **Dock में जोड़ें** पर।
+3. नाम रहने दें या बदलें, और **जोड़ें** पर क्लिक करें।
+4. Dock से OneUptime खोलें, और एक बार फिर साइन इन करें: वेब ऐप Safari का साइन-इन साझा नहीं करता।
+@tab Chrome
+1. Chrome में अपना OneUptime खोलें और साइन इन करें।
+2. डैशबोर्ड के किसी भी पेज पर, एड्रेस बार के दाईं ओर इंस्टॉल आइकन पर क्लिक करें, फिर **इंस्टॉल करें** पर। या **⋮ → कास्ट, सेव, और शेयर करें → पेज को ऐप्लिकेशन के तौर पर इंस्टॉल करें...** खोलें।
+3. Chrome OneUptime को उसकी अपनी विंडो में खोलता है, और उसे Launchpad में जोड़ता है।
+@tab Edge
+1. Edge में अपना OneUptime खोलें और साइन इन करें।
+2. डैशबोर्ड के किसी भी पेज पर, एड्रेस बार के दाईं ओर इंस्टॉल आइकन पर क्लिक करें, फिर **इंस्टॉल करें** पर। या **सेटिंग्स और अधिक (…) → अधिक टूल → ऐप्स → इस साइट को ऐप के रूप में इंस्टॉल करें** खोलें।
+3. Edge OneUptime को उसकी अपनी विंडो में खोलता है, और उसे Launchpad में जोड़ता है।
+:::
 
-   - **App Name**: यदि चाहें तो modify करें (default: OneUptime)
-   - **Dock**: Dock में add करने का विकल्प
-   - **Launchpad**: आसान पहुंच के लिए Launchpad में add करें
+साइन इन करने के बाद डैशबोर्ड के किसी पेज से इंस्टॉल करें: साइन-इन पेज ऐप नहीं है। Safari वेब ऐप को आपके होम फ़ोल्डर के ऐप्लिकेशन फ़ोल्डर में सहेजता है।
 
-4. **App Launch करें**
-   - Dock, Launchpad या Applications folder में OneUptime खोजें
-   - dedicated window में launch करने के लिए क्लिक करें
-   - App Safari browser से स्वतंत्र रूप से चलता है
+## इसे Dock में रखें
 
-### Method 2: Google Chrome
+- **Dock।** ऐप खुला हो तब, Control दबाकर उसके Dock आइकन पर क्लिक करें और **विकल्प → Dock में रखें** चुनें। Safari वेब ऐप पहले से Dock में होता है।
+- **लॉगिन पर खोलें।** Control दबाकर Dock आइकन पर क्लिक करें और **विकल्प → लॉगिन पर खोलें** चुनें।
+- **Spotlight।** Command-स्पेस दबाएँ और OneUptime टाइप करें।
 
-Chrome उत्कृष्ट desktop integration के साथ robust PWA support प्रदान करता है।
+## इस Mac पर सूचनाएँ पाएँ
 
-1. **OneUptime को Chrome में खोलें**
+ऐप सूचनाएँ तब दिखाता है जब आप उसे हर उस प्रोजेक्ट में पुश सूचनाओं के लिए पंजीकृत कर देते हैं जिससे आप उन्हें पाना चाहते हैं। Safari वेब ऐप को वेब ऐप के अंदर से ही पंजीकृत करें: वह अपने आप में एक ब्राउज़र है। Chrome या Edge से इंस्टॉल किया गया ऐप अपने ब्राउज़र के साथ पंजीकृत होता है।
 
-   - Google Chrome launch करें
-   - अपने OneUptime instance पर जाएं
-   - सुनिश्चित करें कि signed in हैं
-   - page पूरी तरह load होने दें
+:::steps
+### अपने पुश डिवाइस खोलें
+ऐप में **उपयोगकर्ता सेटिंग्स → सूचना विधियां** और **Push Notifications** टैब खोलें।
 
-2. **Menu के माध्यम से Install करें**
+### यह ऐप पंजीकृत करें
+**डिवाइस पंजीकृत करें** पर क्लिक करें, **डिवाइस नाम** में सुझाया गया नाम रहने दें, जैसे `Safari on macOS`, या उसे बदलें, और फिर से **डिवाइस पंजीकृत करें** पर क्लिक करें। जब macOS या ब्राउज़र पूछे कि क्या OneUptime सूचनाएँ भेज सकता है, तो **अनुमति दें** चुनें।
 
-   - address bar में **install icon** (⊞) देखें
-   - **"Install OneUptime"** पर क्लिक करें
-   - या **Chrome menu** → **More tools** → **Create shortcut** उपयोग करें
+### परीक्षण भेजें
+**Browser Registered** संवाद में **Send Test Notification** पर क्लिक करें। अगर कुछ नहीं दिखता, तो Mac की सूचना सेटिंग्स देखें: [समस्या निवारण](#समस्या-निवारण) देखें।
+:::
 
-3. **Installation Options**
+ब्राउज़र डू नॉट डिस्टर्ब जैसे फ़ोकस के पार नहीं बज सकता। जिन पेज पर आपको जागना ज़रूरी है, उनके लिए गंभीर अलर्ट के साथ मोबाइल ऐप इस्तेमाल करें: [iOS स्थापना](/docs/mobile-desktop-apps/ios-installation#साइलेंट-मोड-के-पार-बजाएँ) देखें।
 
-   - native app experience के लिए **"Open as window"** चेक करें
-   - यदि आवश्यक हो तो app का नाम customize करें
-   - **"Install"** या **"Create"** पर क्लिक करें
+सेल्फ-होस्टेड OneUptime पर, ब्राउज़र सूचनाओं के लिए सर्वर की VAPID कुंजियाँ चाहिए: [पुश सूचनाएँ](/docs/self-hosted/push-notifications#सेल्फ-होस्टेड-सेटअप) देखें।
 
-4. **App Access करें**
-   - Applications folder में OneUptime खोजें
-   - या Spotlight search के माध्यम से access करें
-   - quick access के लिए Dock में pin करें
+## अपडेट
 
-### Method 3: Microsoft Edge
+अपडेट करने को कुछ नहीं है। ऐप हर बार खुलने पर आपके OneUptime से डैशबोर्ड लोड करता है, इसलिए आपका OneUptime अपग्रेड होने पर यह भी बदल जाता है। अगर कोई विंडो अपग्रेड के समय से खुली है, तो उसे Command-R से फिर से लोड करें।
 
-Edge solid macOS integration के साथ PWA support प्रदान करता है।
+## अनइंस्टॉल करें
 
-1. **OneUptime को Edge में खोलें**
+:::tabs
+@tab Safari
+Finder में अपना होम फ़ोल्डर खोलें, फिर उसका ऐप्लिकेशन फ़ोल्डर, और OneUptime को ट्रैश में खींचें।
+@tab Chrome
+ऐप की विंडो में **⋮** मेनू खोलें, ऐप को अनइंस्टॉल करने वाला आइटम चुनें, फिर **हटाएं**।
+@tab Edge
+Edge में `edge://apps` खोलें, OneUptime पर **विवरण** चुनें, फिर **अनइंस्टॉल करें**।
+:::
 
-   - Microsoft Edge launch करें
-   - OneUptime URL पर जाएं
-   - sign-in process पूरी करें
-
-2. **App Install करें**
-   - **three-dot menu** → **Apps** → **Install this site as an app** पर क्लिक करें
-   - या address bar में install prompt देखें
-   - यदि चाहें तो app का नाम customize करें
-   - **"Install"** पर क्लिक करें
-
-### Customization Options
-
-### Dock और Launchpad
-
-1. **Dock Position**: OneUptime को पसंदीदा Dock position पर drag करें
-2. **Dock Size**: Dock preferences में icon resize करें
-3. **Launchpad Organization**: monitoring app folder बनाएं
-4. **Badge Notifications**: Dock icon पर incident count दिखाएं
-
-### Menu Bar और Notifications
-
-1. **Notification Center**
-
-   - System Preferences → Notifications → OneUptime
-   - alert styles और delivery configure करें
-   - different incident types के लिए priority levels सेट करें
-
-2. **Menu Bar Integration**
-   - Safari PWAs के लिए native menu bar
-   - frequent actions के लिए custom menu items
-   - common tasks के लिए keyboard shortcuts
+ऐप को अनइंस्टॉल करने से उसका पंजीकरण नहीं हटता: उसके ब्राउज़र को अब भी सूचनाएँ मिलती हैं। उन्हें रोकने के लिए, **उपयोगकर्ता सेटिंग्स → सूचना विधियां** में **Push Notifications** टैब पर उसे **हटाएं** से हटाएँ।
 
 ## समस्या निवारण
 
-### Installation संबंधी समस्याएं
+:::details Safari में Dock में जोड़ें नहीं है
+Safari macOS Sonoma 14 से वेब ऐप्स को Dock में जोड़ता है। macOS अपडेट करें, या इसके बजाय Chrome या Edge से ऐप इंस्टॉल करें।
+:::
 
-**Safari में "Add to Dock" उपलब्ध नहीं:**
+:::details कोई सूचना नहीं दिखती
+- **उपयोगकर्ता सेटिंग्स → सूचना विधियां** में **Push Notifications** टैब पर जाँचें कि ऐप या उसका ब्राउज़र सूची में है, और **परीक्षण सूचना** भेजें।
+- Mac पर **सिस्टम सेटिंग्ज़ → सूचनाएँ** खोलें और जाँचें कि OneUptime, या जिस ब्राउज़र से वह इंस्टॉल हुआ, सूचनाएँ भेज सकता है, और कोई फ़ोकस उन्हें रोक नहीं रहा।
+- अगर ब्राउज़र OneUptime की सूचनाएँ ब्लॉक करता है, तो साइट के लिए उसकी सेटिंग्स में उन्हें अनुमति दें, और फिर से पंजीकृत करें।
+- सेल्फ-होस्टेड OneUptime पर, सर्वर के पास VAPID कुंजियाँ न हों तो **डिवाइस पंजीकृत करें** संवाद यह बताता है।
+:::
 
-```
-Solutions:
-1. macOS Sonoma (14.0) या बाद का सुनिश्चित करें
-2. Safari को latest version पर update करें
-3. alternative आज़माएं: File → Add to Home Screen
-4. Safari cache clear करें और फिर कोशिश करें
-5. Chrome या Edge को alternative के रूप में उपयोग करें
-```
+:::details ऐप फिर से साइन इन करने को कहता है
+Safari वेब ऐप का अपना साइन-इन होता है: ऐप के अंदर साइन इन करें। Chrome या Edge से इंस्टॉल किया गया ऐप अपने ब्राउज़र का साइन-इन साझा करता है, इसलिए ब्राउज़र में साइन आउट करने, या उसकी कुकीज़ साफ़ करने से, वह भी साइन आउट हो जाता है।
+:::
 
-**PWA install नहीं होता या crash होता है:**
+## अगले कदम
 
-```
-Solutions:
-1. macOS version compatibility जांचें
-2. पर्याप्त disk space सुनिश्चित करें (100MB+)
-3. browser को latest version पर update करें
-4. browser cache और cookies clear करें
-5. browser extensions अस्थायी रूप से अक्षम करें
-6. Mac restart करें और installation फिर कोशिश करें
-```
-
-**App Applications में नहीं दिख रहा:**
-
-```
-Solutions:
-1. OneUptime icon के लिए Launchpad जांचें
-2. Spotlight के साथ खोजें (⌘+Space)
-3. browser के PWA management section में देखें
-4. दूसरे browser के साथ reinstall करें
-5. जांचें कि दूसरे नाम से installed तो नहीं है
-```
-
-### Notification संबंधी समस्याएं
-
-**macOS notifications काम नहीं कर रहीं:**
-
-```
-Solutions:
-1. System Preferences → Notifications → OneUptime
-2. "Allow notifications" सक्षम करें
-3. उचित alert style सेट करें (banners/alerts)
-4. Do Not Disturb settings जांचें
-5. OneUptime notification settings सत्यापित करें
-6. prompt होने पर notification permissions grant करें
-```
-
-## Uninstallation
-
-### पूर्ण Removal
-
-1. **Applications Folder Method**
-
-   - Applications folder खोलें
-   - OneUptime खोजें
-   - Trash पर drag करें या right-click → Move to Trash
-
-2. **Dock Method**
-
-   - Dock में OneUptime पर Right-click करें
-   - "Options" → "Remove from Dock" चुनें
-   - फिर Applications folder से delete करें
-
-3. **Browser PWA Management**
-   - **Chrome**: chrome://apps/ → OneUptime खोजें → Remove
-   - **Edge**: edge://apps/ → OneUptime खोजें → Uninstall
-   - **Safari**: कोई dedicated management page नहीं
-
-### Clean Uninstallation
-
-सभी associated data हटाएं:
-
-```bash
-# Safari PWA data clear करें (general website data)
-rm -rf ~/Library/Safari/Databases
-rm -rf ~/Library/Caches/com.apple.Safari
-
-# Chrome PWA data clear करें
-rm -rf ~/Library/Application\ Support/Google/Chrome/Default/Web\ Applications
-
-# Edge PWA data clear करें
-rm -rf ~/Library/Application\ Support/Microsoft\ Edge/Default/Web\ Applications
-```
-
-## Updates और Maintenance
-
-### Automatic Updates
-
-- OneUptime PWA online होने पर स्वचालित रूप से update होता है
-- कोई App Store updates आवश्यक नहीं
-- नई features तुरंत उपलब्ध
-- Critical updates तुरंत लागू
-
-### Manual Update Process
-
-application को force update करें:
-
-1. **Safari PWAs**: Safari browser के भीतर refresh करें
-2. **Chrome PWAs**: app पर right-click करें → Reload या ⌘+R
-3. **Complete Refresh**: app बंद करें, browser फिर खोलें, OneUptime पर जाएं
-
-## macOS Features के साथ Integration
-
-### Terminal Integration
-
-Terminal के माध्यम से OneUptime प्रबंधित करें:
-
-```bash
-# quick OneUptime launch के लिए alias बनाएं
-echo 'alias oneuptime="open -a \"OneUptime\""' >> ~/.zshrc
-
-# जांचने के लिए function कि OneUptime चल रहा है
-oneuptime_status() {
-    if pgrep -f "OneUptime" > /dev/null; then
-        echo "OneUptime is running"
-    else
-        echo "OneUptime is not running"
-    fi
-}
-```
-
-## Security और Privacy
-
-### macOS Security Features
-
-1. **Gatekeeper**: सुनिश्चित करें कि PWA installations trusted sources से हैं
-2. **System Integrity Protection**: system files की रक्षा करता है
-3. **FileVault**: data protection के लिए disk encrypt करें
-4. **Keychain**: secure credential storage
-
-### Security Best Practices
-
-1. **Regular Updates**: macOS और browsers updated रखें
-2. **Strong Authentication**: उपलब्ध होने पर Touch ID/Face ID उपयोग करें
-3. **Network Security**: remote monitoring access के लिए VPN उपयोग करें
-4. **Permission Review**: दी गई permissions नियमित रूप से review करें
+:::cards
+- [iOS स्थापना](/docs/mobile-desktop-apps/ios-installation): गंभीर अलर्ट के साथ अपने iPhone पर पेज पाएँ।
+- [Windows स्थापना](/docs/mobile-desktop-apps/windows-installation): Windows पर वही ऐप।
+- [अक्सर पूछे जाने वाले प्रश्न और समस्या निवारण](/docs/mobile-desktop-apps/faq-troubleshooting): दोनों ऐप्स के बारे में जवाब।
+- [आपका खाता](/docs/introduction/your-account): OneUptime हर प्रोजेक्ट में आप तक कैसे पहुँचता है।
+:::
