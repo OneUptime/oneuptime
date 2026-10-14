@@ -36,6 +36,17 @@ function stripComments(source: string): string {
   return source.replace(COMMENTS, "").replace(LINE_COMMENTS, "$1");
 }
 
+const WHITESPACE: RegExp = /\s+/g;
+const TRAILING_COMMA: RegExp = /,(?=[)}\]])/g;
+
+/*
+ * Code with no whitespace and no trailing commas, so an assertion holds
+ * however prettier wraps it.
+ */
+function compact(code: string): string {
+  return code.replace(WHITESPACE, "").replace(TRAILING_COMMA, "");
+}
+
 const subscriptionSource: string = stripComments(
   fs.readFileSync(
     nodePath.join(ADMIN_DASHBOARD_SRC, "Pages/Projects/View/Subscription.tsx"),
@@ -140,20 +151,24 @@ describe("Project > Subscription > Active Monitors", () => {
   });
 
   test("a project at or past its limit says so beside the count", () => {
-    expect(detailFields).toContain("count > limit");
-    expect(detailFields).toContain(
-      't("pages.projectSubscription.overMonitorLimit", {',
+    // However prettier wraps the calls.
+    expect(compact(detailFields)).toContain(compact("count > limit"));
+    expect(compact(detailFields)).toContain(
+      compact(
+        't("pages.projectSubscription.overMonitorLimit", { over: formatCount(count - limit) })',
+      ),
     );
-    expect(detailFields).toContain("over: formatCount(count - limit)");
-    expect(detailFields).toContain("count === limit");
-    expect(detailFields).toContain(
-      't("pages.projectSubscription.atMonitorLimit")',
+    expect(compact(detailFields)).toContain(compact("count === limit"));
+    expect(compact(detailFields)).toContain(
+      compact('t("pages.projectSubscription.atMonitorLimit")'),
     );
   });
 
   test("its edit form is titled after what it edits, not 'Edit Project'", () => {
-    expect(card).toContain(
-      'editModalTitle={t("pages.projectSubscription.monitorLimitEditButton")}',
+    expect(compact(card)).toContain(
+      compact(
+        'editModalTitle={t("pages.projectSubscription.monitorLimitEditButton")}',
+      ),
     );
   });
 
