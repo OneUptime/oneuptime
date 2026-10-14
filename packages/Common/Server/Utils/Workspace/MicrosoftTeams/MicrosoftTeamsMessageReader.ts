@@ -2,6 +2,7 @@ import { replaceHtmlMarkup } from "../../../../Types/HtmlMarkup";
 import { JSONObject } from "../../../../Types/JSON";
 import WorkspaceChannelLinkUtil from "../../../../Types/Workspace/WorkspaceChannelLink";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import ArrayUtil from "../../../../Utils/Array";
 import {
   ChatBlock,
   ChatInline,
@@ -207,9 +208,7 @@ const MAX_ENTITY_LENGTH: number = 10;
  * "&amp;lt;" is the text "&lt;" - in one walk: a reference is "&", a name
  * or a number, and ";", read only where it is no longer than any is.
  */
-const decodeHtmlEntities: (text: string) => string = (
-  text: string,
-): string => {
+const decodeHtmlEntities: (text: string) => string = (text: string): string => {
   if (text.indexOf("&") === -1) {
     return text;
   }
@@ -679,7 +678,7 @@ class TeamsHtmlWalk {
     const url: string = (link.url || "").trim();
 
     if (!url) {
-      this.inlines.push(...words);
+      ArrayUtil.append(this.inlines, words);
       return;
     }
 
@@ -728,7 +727,7 @@ class TeamsHtmlWalk {
         item.push({ type: "text", text: "\n" });
       }
 
-      item.push(...inlines);
+      ArrayUtil.append(item, inlines);
       return;
     }
 
@@ -737,7 +736,7 @@ class TeamsHtmlWalk {
         this.quoteInlines.push({ type: "text", text: "\n\n" });
       }
 
-      this.quoteInlines.push(...inlines);
+      ArrayUtil.append(this.quoteInlines, inlines);
       return;
     }
 
@@ -956,16 +955,18 @@ export default class MicrosoftTeamsMessageReader {
         });
       }
     } else {
-      content.blocks.push(
-        ...MicrosoftTeamsMessageReader.readHtml(
+      ArrayUtil.append(
+        content.blocks,
+        MicrosoftTeamsMessageReader.readHtml(
           bodyContent,
           MicrosoftTeamsMessageReader.getMessageUrl(message),
         ),
       );
     }
 
-    content.blocks.push(
-      ...MicrosoftTeamsMessageReader.readAttachments(
+    ArrayUtil.append(
+      content.blocks,
+      MicrosoftTeamsMessageReader.readAttachments(
         asArray(message["attachments"]),
       ),
     );
@@ -1030,7 +1031,9 @@ export default class MicrosoftTeamsMessageReader {
    * quote") as a quote of who said what; files as links to them; a card's
    * visible text, one element a line.
    */
-  private static readAttachments(attachments: Array<unknown>): Array<ChatBlock> {
+  private static readAttachments(
+    attachments: Array<unknown>,
+  ): Array<ChatBlock> {
     const blocks: Array<ChatBlock> = [];
 
     for (const value of attachments) {
@@ -1044,8 +1047,7 @@ export default class MicrosoftTeamsMessageReader {
 
       if (contentType === "reference") {
         const url: string = asString(attachment["contentUrl"]).trim();
-        const name: string =
-          asString(attachment["name"]).trim() || "file";
+        const name: string = asString(attachment["name"]).trim() || "file";
 
         blocks.push({
           type: "paragraph",
@@ -1056,8 +1058,9 @@ export default class MicrosoftTeamsMessageReader {
         continue;
       }
 
-      const card: JSONObject | null =
-        MicrosoftTeamsMessageReader.parseContent(attachment["content"]);
+      const card: JSONObject | null = MicrosoftTeamsMessageReader.parseContent(
+        attachment["content"],
+      );
 
       if (!card) {
         continue;

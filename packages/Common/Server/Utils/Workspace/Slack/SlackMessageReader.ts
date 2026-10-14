@@ -1,4 +1,5 @@
 import { JSONObject } from "../../../../Types/JSON";
+import ArrayUtil from "../../../../Utils/Array";
 import {
   ChatBlock,
   ChatInline,
@@ -70,6 +71,13 @@ const HEX_CODE_POINT: RegExp = /^[0-9a-fA-F]{1,6}$/;
 
 // The longest `<...>` Slack writes that is read as one.
 const MAX_ANGLE_TOKEN_LENGTH: number = 3000;
+
+// The mentions that notify a whole channel: "<!here>" shows as "@here".
+const BROADCAST_MENTIONS: ReadonlyArray<string> = [
+  "here",
+  "channel",
+  "everyone",
+];
 
 // A link Slack shows as a preview of one in the message, not content.
 const UNFURL_KEYS: ReadonlyArray<string> = [
@@ -314,7 +322,10 @@ export default class SlackMessageReader {
       ""
     ).trim();
 
-    if (botName && (message["bot_id"] || message["subtype"] === "bot_message")) {
+    if (
+      botName &&
+      (message["bot_id"] || message["subtype"] === "bot_message")
+    ) {
       author.botName = botName;
     }
 
@@ -326,7 +337,9 @@ export default class SlackMessageReader {
    * seen first, at most SLACK_MESSAGE_MAX_LOOKUPS of each. The author is
    * not among them unless the message mentions them.
    */
-  public static getReferences(message: JSONObject | null): SlackMessageReferences {
+  public static getReferences(
+    message: JSONObject | null,
+  ): SlackMessageReferences {
     const users: Set<string> = new Set<string>();
     const channels: Set<string> = new Set<string>();
     const userGroups: Set<string> = new Set<string>();
@@ -426,20 +439,18 @@ export default class SlackMessageReader {
     );
 
     if (SlackMessageReader.hasText(fromBlocks)) {
-      content.blocks.push(...fromBlocks);
+      ArrayUtil.append(content.blocks, fromBlocks);
     } else {
-      content.blocks.push(
-        ...SlackMessageReader.readMrkdwn(
-          asString(message["text"]),
-          names,
-          labels,
-        ),
+      ArrayUtil.append(
+        content.blocks,
+        SlackMessageReader.readMrkdwn(asString(message["text"]), names, labels),
       );
     }
 
     for (const attachment of asArray(message["attachments"])) {
-      content.blocks.push(
-        ...SlackMessageReader.readAttachment(attachment, names, labels),
+      ArrayUtil.append(
+        content.blocks,
+        SlackMessageReader.readAttachment(attachment, names, labels),
       );
     }
 
@@ -621,7 +632,10 @@ export default class SlackMessageReader {
 
       switch (node["type"]) {
         case "rich_text":
-          read.push(...SlackMessageReader.readRichText(node, names, labels));
+          ArrayUtil.append(
+            read,
+            SlackMessageReader.readRichText(node, names, labels),
+          );
           break;
         case "header":
           read.push({
@@ -636,20 +650,23 @@ export default class SlackMessageReader {
           });
           break;
         case "section":
-          read.push(
-            ...SlackMessageReader.readTextObject(node["text"], names, labels),
+          ArrayUtil.append(
+            read,
+            SlackMessageReader.readTextObject(node["text"], names, labels),
           );
 
           for (const field of asArray(node["fields"])) {
-            read.push(
-              ...SlackMessageReader.readTextObject(field, names, labels),
+            ArrayUtil.append(
+              read,
+              SlackMessageReader.readTextObject(field, names, labels),
             );
           }
           break;
         case "context":
           for (const element of asArray(node["elements"])) {
-            read.push(
-              ...SlackMessageReader.readTextObject(element, names, labels),
+            ArrayUtil.append(
+              read,
+              SlackMessageReader.readTextObject(element, names, labels),
             );
           }
           break;
@@ -1012,11 +1029,13 @@ export default class SlackMessageReader {
 
     while (index < mrkdwn.length) {
       const fence: number = mrkdwn.indexOf("```", index);
-      const close: number = fence === -1 ? -1 : mrkdwn.indexOf("```", fence + 3);
+      const close: number =
+        fence === -1 ? -1 : mrkdwn.indexOf("```", fence + 3);
 
       if (fence === -1 || close === -1) {
-        blocks.push(
-          ...SlackMessageReader.readMrkdwnLines(
+        ArrayUtil.append(
+          blocks,
+          SlackMessageReader.readMrkdwnLines(
             mrkdwn.slice(index),
             names,
             labels,
@@ -1025,8 +1044,9 @@ export default class SlackMessageReader {
         break;
       }
 
-      blocks.push(
-        ...SlackMessageReader.readMrkdwnLines(
+      ArrayUtil.append(
+        blocks,
+        SlackMessageReader.readMrkdwnLines(
           mrkdwn.slice(index, fence),
           names,
           labels,
@@ -1142,32 +1162,31 @@ export default class SlackMessageReader {
     );
 
     /*
-     * One character per element of pieces' text, with which piece it is
-     * in: emphasis is worked out on the characters of text pieces only.
+     * The pieces' text a character at a time (a character beyond the first
+     * 65,536 is one), with the piece each is in: emphasis is worked out on
+     * the characters of text pieces only. Anything else is one stand-in.
      */
-    interface Character {
-      character: string;
-      piece: number;
-    }
-
-    const characters: Array<Character> = [];
+    const characters: Array<string> = [];
+    const characterPieces: Array<number> = [];
 
     pieces.forEach((piece: MrkdwnPiece, pieceIndex: number): void => {
       if (piece.kind !== "text") {
-        characters.push({ character: "\u0000", piece: pieceIndex });
+        characters.push("\u0000");
+        characterPieces.push(pieceIndex);
         return;
       }
 
       for (const character of piece.text) {
-        characters.push({ character: character, piece: pieceIndex });
+        characters.push(character);
+        characterPieces.push(pieceIndex);
       }
     });
 
     const isMarker: (index: number) => boolean = (index: number): boolean => {
-      const character: string = characters[index]!.character;
+      const character: string = characters[index]!;
       return (
         (character === "*" || character === "_" || character === "~") &&
-        pieces[characters[index]!.piece]!.kind === "text"
+        pieces[characterPieces[index]!]!.kind === "text"
       );
     };
 
@@ -1176,7 +1195,7 @@ export default class SlackMessageReader {
         return "";
       }
 
-      const character: string = characters[index]!.character;
+      const character: string = characters[index]!;
       return character === "\u0000" ? "x" : character;
     };
 
@@ -1191,7 +1210,7 @@ export default class SlackMessageReader {
     for (let index: number = 0; index < characters.length; index++) {
       if (!isMarker(index)) {
         // A line break ends every emphasis that is still open.
-        if (characters[index]!.character === "\n") {
+        if (characters[index] === "\n") {
           for (const waiting of openers.values()) {
             waiting.length = 0;
           }
@@ -1199,7 +1218,7 @@ export default class SlackMessageReader {
         continue;
       }
 
-      const marker: string = characters[index]!.character;
+      const marker: string = characters[index]!;
       const before: string = characterAt(index - 1);
       const after: string = characterAt(index + 1);
       const waiting: Array<number> = openers.get(marker)!;
@@ -1226,7 +1245,9 @@ export default class SlackMessageReader {
     }
 
     // The style of each character, from the pairs it is inside.
-    const bold: Array<number> = new Array<number>(characters.length + 1).fill(0);
+    const bold: Array<number> = new Array<number>(characters.length + 1).fill(
+      0,
+    );
     const italic: Array<number> = new Array<number>(characters.length + 1).fill(
       0,
     );
@@ -1249,6 +1270,31 @@ export default class SlackMessageReader {
     let boldDepth: number = 0;
     let italicDepth: number = 0;
     let strikeDepth: number = 0;
+
+    // A style as bits, to compare: 1 bold, 2 italic, 4 strikethrough.
+    const styleOf: (bits: number) => ChatTextStyle | undefined = (
+      bits: number,
+    ): ChatTextStyle | undefined => {
+      if (bits === 0) {
+        return undefined;
+      }
+
+      const style: ChatTextStyle = {};
+
+      if (bits & 1) {
+        style.bold = true;
+      }
+
+      if (bits & 2) {
+        style.italic = true;
+      }
+
+      if (bits & 4) {
+        style.strike = true;
+      }
+
+      return style;
+    };
 
     const isSameStyle: (
       a: ChatTextStyle | undefined,
@@ -1284,6 +1330,27 @@ export default class SlackMessageReader {
       inlines.push(inline);
     };
 
+    /*
+     * The characters of text read so far in one style: written as one run
+     * when the style changes or a token comes - not a run a character, which
+     * made a long message take seconds.
+     */
+    let runCharacters: Array<string> = [];
+    let runBits: number = 0;
+
+    const endRun: () => void = (): void => {
+      if (runCharacters.length === 0) {
+        return;
+      }
+
+      push({
+        type: "text",
+        text: runCharacters.join(""),
+        style: styleOf(runBits),
+      });
+      runCharacters = [];
+    };
+
     let lastPiece: number = -1;
 
     for (let index: number = 0; index < characters.length; index++) {
@@ -1295,31 +1362,20 @@ export default class SlackMessageReader {
         continue;
       }
 
-      const style: ChatTextStyle = {};
-
-      if (boldDepth > 0) {
-        style.bold = true;
-      }
-
-      if (italicDepth > 0) {
-        style.italic = true;
-      }
-
-      if (strikeDepth > 0) {
-        style.strike = true;
-      }
-
-      const styleOrNone: ChatTextStyle | undefined =
-        Object.keys(style).length > 0 ? style : undefined;
-      const pieceIndex: number = characters[index]!.piece;
+      const bits: number =
+        (boldDepth > 0 ? 1 : 0) |
+        (italicDepth > 0 ? 2 : 0) |
+        (strikeDepth > 0 ? 4 : 0);
+      const pieceIndex: number = characterPieces[index]!;
       const piece: MrkdwnPiece = pieces[pieceIndex]!;
 
       if (piece.kind === "text") {
-        push({
-          type: "text",
-          text: characters[index]!.character,
-          style: styleOrNone,
-        });
+        if (runCharacters.length > 0 && bits !== runBits) {
+          endRun();
+        }
+
+        runBits = bits;
+        runCharacters.push(characters[index]!);
         continue;
       }
 
@@ -1328,12 +1384,15 @@ export default class SlackMessageReader {
       }
 
       lastPiece = pieceIndex;
+      endRun();
+
+      const style: ChatTextStyle | undefined = styleOf(bits);
 
       if (piece.kind === "code") {
         push({
           type: "text",
           text: piece.text,
-          style: { ...(styleOrNone || {}), code: true },
+          style: { ...(style || {}), code: true },
         });
         continue;
       }
@@ -1343,13 +1402,15 @@ export default class SlackMessageReader {
           type: "link",
           url: piece.url,
           text: piece.text || undefined,
-          style: styleOrNone,
+          style: style,
         });
         continue;
       }
 
-      push({ type: "text", text: piece.text, style: styleOrNone });
+      push({ type: "text", text: piece.text, style: style });
     }
+
+    endRun();
 
     return inlines;
   }
@@ -1488,8 +1549,16 @@ export default class SlackMessageReader {
     }
 
     if (head.startsWith("!")) {
-      // "<!here>", "<!channel>", "<!everyone>": as Slack shows them.
+      /*
+       * "<!here>", "<!channel>", "<!everyone>": as Slack shows them, "@here"
+       * - older messages label them "here" or "@here".
+       */
       const special: string = head.slice(1).split("^")[0] || "";
+
+      if (BROADCAST_MENTIONS.includes(special)) {
+        return { kind: "token", text: `@${special}` };
+      }
+
       return { kind: "token", text: label || `@${special}` };
     }
 
@@ -1523,8 +1592,9 @@ export default class SlackMessageReader {
 
     const blocks: Array<ChatBlock> = [];
 
-    blocks.push(
-      ...SlackMessageReader.readMrkdwn(
+    ArrayUtil.append(
+      blocks,
+      SlackMessageReader.readMrkdwn(
         asString(attachment["pretext"]),
         names,
         labels,
@@ -1557,7 +1627,7 @@ export default class SlackMessageReader {
       labels,
     );
 
-    blocks.push(...text);
+    ArrayUtil.append(blocks, text);
 
     for (const field of asArray(attachment["fields"])) {
       const node: JSONObject | null = asObject(field);
@@ -1575,7 +1645,7 @@ export default class SlackMessageReader {
         });
       }
 
-      blocks.push(...fieldValue);
+      ArrayUtil.append(blocks, fieldValue);
     }
 
     const image: ChatInline | null = SlackMessageReader.attachmentLink(

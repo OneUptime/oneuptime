@@ -91,7 +91,9 @@ const readText: (html: string) => string = (html: string): string => {
 // Tags a rendered note may hold, by name: only what the renderer writes.
 const TAG_NAME: RegExp = /<([a-z][a-z0-9]*)\b/g;
 
-const tagsOf: (html: string) => Array<string> = (html: string): Array<string> => {
+const tagsOf: (html: string) => Array<string> = (
+  html: string,
+): Array<string> => {
   return Array.from(html.matchAll(TAG_NAME)).map(
     (match: RegExpMatchArray): string => {
       return match[1]!;
@@ -130,9 +132,7 @@ describe("ChatMessageMarkdown.toMarkdown: a message as it read in the chat", () 
       markdownOf(paragraph(text("line one\nline two\n\nnext paragraph"))),
     ])[0]!;
 
-    expect(html).toBe(
-      "<p>line one<br />\nline two</p>\n<p>next paragraph</p>",
-    );
+    expect(html).toBe("<p>line one<br />\nline two</p>\n<p>next paragraph</p>");
   });
 
   test("each style is its Markdown, and together they nest", () => {
@@ -170,7 +170,10 @@ describe("ChatMessageMarkdown.toMarkdown: a message as it read in the chat", () 
 
     expect(markdown).toBe("**bold**⁠*italic*");
 
-    for (const html of [renderAsDashboard([markdown])[0]!, emailHtmlOf(markdown)]) {
+    for (const html of [
+      renderAsDashboard([markdown])[0]!,
+      emailHtmlOf(markdown),
+    ]) {
       expect(html).toContain("<strong>bold</strong>");
       expect(html).toContain("<em>italic</em>");
     }
@@ -186,6 +189,45 @@ describe("ChatMessageMarkdown.toMarkdown: a message as it read in the chat", () 
     );
 
     expect(markdown).toBe("x(paren)y");
+  });
+
+  test("text after words on its line is written as typed: no list or heading starts there", () => {
+    // "**Update** - rolled back": the "-" opens no list after "Update".
+    expect(
+      markdownOf(
+        paragraph(text("Update", { bold: true }), text(" - rolled back")),
+      ),
+    ).toBe("**Update** - rolled back");
+    expect(
+      markdownOf(
+        paragraph(
+          text("api", { code: true }),
+          text(" + db "),
+          link("https://x.example/pr/1", "PR"),
+          text(" # 1. merged"),
+        ),
+      ),
+    ).toBe("`api` + db [PR](https://x.example/pr/1) # 1. merged");
+
+    // At the start of a line - its first run, or after markers only - they are text.
+    expect(markdownOf(paragraph(text("- rolled back")))).toBe(
+      "\\- rolled back",
+    );
+    expect(
+      markdownOf(paragraph(text("1"), text(". ", { bold: true }), text("x"))),
+    ).toBe("1\\. x");
+    expect(
+      markdownOf(
+        paragraph(text("- "), text("+ "), text("# x", { bold: true })),
+      ),
+    ).toBe("\\- + **# x**");
+
+    // Inside emphasis no block starts: a long run's words are as typed.
+    const long: string = `${"word ".repeat(300)}- a \`b\` + c`;
+
+    expect(markdownOf(paragraph(text(long, { bold: true })))).toBe(
+      `**${long.trim().split("`").join("\\`")}**`,
+    );
   });
 
   test("a mention is a name, and a channel-wide mention notifies nobody", () => {
@@ -215,9 +257,9 @@ describe("ChatMessageMarkdown.toMarkdown: a message as it read in the chat", () 
   });
 
   test("a link with no words shows its address", () => {
-    expect(
-      markdownOf(paragraph(link("https://status.example.com/a_b"))),
-    ).toBe("[https://status.example.com/a\\_b](https://status.example.com/a_b)");
+    expect(markdownOf(paragraph(link("https://status.example.com/a_b")))).toBe(
+      "[https://status.example.com/a\\_b](https://status.example.com/a_b)",
+    );
   });
 
   test("a mailto link is a link", () => {
@@ -231,28 +273,33 @@ describe("ChatMessageMarkdown.toMarkdown: a message as it read in the chat", () 
   });
 
   test.each([
-    ["a relative address, which would point into OneUptime", "/settings/billing"],
+    [
+      "a relative address, which would point into OneUptime",
+      "/settings/billing",
+    ],
     ["javascript:", "javascript:alert(1)"],
     ["data:", "data:text/html,<b>x</b>"],
     ["a Slack app link", "slack://channel?id=C1"],
     ["vbscript:", "vbscript:msgbox(1)"],
-  ])("%s is never linked: its words and address are text", (
-    _case: string,
-    address: string,
-  ) => {
-    const markdown: string = markdownOf(paragraph(link(address, "click")));
-    const html: string = renderAsDashboard([markdown])[0]!;
+  ])(
+    "%s is never linked: its words and address are text",
+    (_case: string, address: string) => {
+      const markdown: string = markdownOf(paragraph(link(address, "click")));
+      const html: string = renderAsDashboard([markdown])[0]!;
 
-    expect(hrefsOf(html)).toEqual([]);
-    expect(hrefsOf(emailHtmlOf(markdown))).toEqual([]);
-    expect(FeedMarkdown.withoutInvisibleBreaks(visibleText(html))).toBe(
-      `click (${address})`,
-    );
-  });
+      expect(hrefsOf(html)).toEqual([]);
+      expect(hrefsOf(emailHtmlOf(markdown))).toEqual([]);
+      expect(FeedMarkdown.withoutInvisibleBreaks(visibleText(html))).toBe(
+        `click (${address})`,
+      );
+    },
+  );
 
   test("a link whose words look like another site's address shows its real address", () => {
     const markdown: string = markdownOf(
-      paragraph(link("https://evil.example/login", "https://bank.example/login")),
+      paragraph(
+        link("https://evil.example/login", "https://bank.example/login"),
+      ),
     );
 
     expect(markdown).toBe(
@@ -269,7 +316,10 @@ describe("ChatMessageMarkdown.toMarkdown: a message as it read in the chat", () 
     expect(
       markdownOf(
         paragraph(
-          link("https://grafana.example.com/d/1", "https://grafana.example.com"),
+          link(
+            "https://grafana.example.com/d/1",
+            "https://grafana.example.com",
+          ),
         ),
       ),
     ).toBe("[https://grafana.example.com](https://grafana.example.com/d/1)");
@@ -368,7 +418,10 @@ describe("ChatMessageMarkdown.toMarkdown: a message as it read in the chat", () 
         type: "list",
         ordered: false,
         indent: 0,
-        items: [[text("drain node-3")], [text("roll back "), text("v2.4.1", { code: true })]],
+        items: [
+          [text("drain node-3")],
+          [text("roll back "), text("v2.4.1", { code: true })],
+        ],
       },
       {
         type: "list",
@@ -418,9 +471,11 @@ describe("ChatMessageMarkdown.toMarkdown: a message as it read in the chat", () 
     const html: string = renderAsDashboard([markdown])[0]!;
 
     expect(html).toContain('<ol start="3">');
-    expect(tagsOf(html).filter((tag: string): boolean => {
-      return tag === "li";
-    })).toHaveLength(2);
+    expect(
+      tagsOf(html).filter((tag: string): boolean => {
+        return tag === "li";
+      }),
+    ).toHaveLength(2);
   });
 
   test("a list is nested at most one level below the list before it", () => {
@@ -641,7 +696,7 @@ describe("ChatMessageMarkdown.toMarkdown: styled runs side by side", () => {
     "é",
     "1",
     "-",
-    "\"",
+    '"',
     "#",
     ">",
     ")",
@@ -709,10 +764,7 @@ describe("ChatMessageMarkdown.toMarkdown: styled runs side by side", () => {
           return inline.text;
         }
 
-        const words: string = (inline.text || "")
-          .split(/\s+/)
-          .join(" ")
-          .trim();
+        const words: string = (inline.text || "").split(/\s+/).join(" ").trim();
 
         return words || inline.url;
       })
@@ -726,7 +778,10 @@ describe("ChatMessageMarkdown.toMarkdown: styled runs side by side", () => {
     lines.forEach((line: Array<ChatInline>, index: number): void => {
       const expected: string = expectedText(line);
 
-      for (const html of [dashboardHtmls[index]!, emailHtmlOf(markdowns[index]!)]) {
+      for (const html of [
+        dashboardHtmls[index]!,
+        emailHtmlOf(markdowns[index]!),
+      ]) {
         expect({ markdown: markdowns[index], seen: readText(html) }).toEqual({
           markdown: markdowns[index],
           seen: expected,
@@ -753,7 +808,12 @@ describe("ChatMessageMarkdown helpers", () => {
     const content: ChatMessageContent = {
       blocks: [
         paragraph(text("Discussion with "), text("@Aidil", { bold: true })),
-        { type: "list", ordered: false, indent: 0, items: [[link("https://x.example")]] },
+        {
+          type: "list",
+          ordered: false,
+          indent: 0,
+          items: [[link("https://x.example")]],
+        },
         { type: "code", text: "a\nb" },
       ],
     };
@@ -853,7 +913,10 @@ describe("ChatMessageMarkdown.toMarkdown: in time that grows with the message", 
 
     for (let index: number = 0; index < 40000; index++) {
       inlines.push(
-        text(index % 3 === 0 ? "(" : "a", index % 2 === 0 ? { bold: true } : { italic: true }),
+        text(
+          index % 3 === 0 ? "(" : "a",
+          index % 2 === 0 ? { bold: true } : { italic: true },
+        ),
       );
     }
 

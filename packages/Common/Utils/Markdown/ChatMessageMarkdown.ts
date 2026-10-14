@@ -1,4 +1,9 @@
-import FeedMarkdown, { MarkdownText, MarkdownValue, mdText } from "./FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  MarkdownValue,
+  mdText,
+} from "./FeedMarkdown";
+import ArrayUtil from "../Array";
 
 /*
  * A SLACK OR MICROSOFT TEAMS MESSAGE, AS THE MARKDOWN OF A NOTE.
@@ -145,6 +150,13 @@ const MAX_TEXT_VALUE_LENGTH: number = 1000;
  */
 const LINE_START_TEXT_LENGTH: number = 64;
 
+/*
+ * A character that is no indentation and no list or quote marker ("-",
+ * "*", "+", "1." or "1)", ">"): written on a line, the line has begun, and
+ * nothing after it there opens a block.
+ */
+const LINE_BEGUN_PATTERN: RegExp = /[^ \t\-*+0-9.)>]/;
+
 // Whitespace, as CommonMark reads it next to an emphasis marker.
 const WHITESPACE_CHARACTER: RegExp = /\s/u;
 
@@ -176,8 +188,13 @@ interface LineRun {
    */
   inner: MarkdownValue;
   isEmpty: boolean;
-  // What it starts and ends with, to decide where its emphasis can go.
+  /*
+   * What it starts and ends with, to decide where its emphasis can go: a
+   * text run's own text, else its Markdown.
+   */
   innerText: string;
+  // Text, not code or a link: written without emphasis, it is the line's text.
+  isPlainText: boolean;
   // The emphasis it had: "~~" for strikethrough, "*", "**" or "***".
   strike: boolean;
   stars: number;
@@ -628,44 +645,49 @@ ${code}
    * spaces would make it code - and without runs that are left empty.
    */
   private static trimLine(line: Array<ChatInline>): Array<ChatInline> {
-    const kept: Array<ChatInline> = line.filter(
-      (inline: ChatInline): boolean => {
-        return inline.type === "link" || inline.text.length > 0;
-      },
-    );
+    const isBlank: (inline: ChatInline) => boolean = (
+      inline: ChatInline,
+    ): boolean => {
+      return inline.type === "text" && inline.text.trim().length === 0;
+    };
 
-    while (kept.length > 0) {
-      const first: ChatInline = kept[0]!;
+    // The runs of white space alone at either end go, all at once.
+    let start: number = 0;
+    let end: number = line.length;
 
-      if (first.type !== "text") {
-        break;
-      }
-
-      const trimmed: string = first.text.trimStart();
-
-      if (trimmed) {
-        kept[0] = { ...first, text: trimmed };
-        break;
-      }
-
-      kept.shift();
+    while (start < end && isBlank(line[start]!)) {
+      start++;
     }
 
-    while (kept.length > 0) {
-      const last: ChatInline = kept[kept.length - 1]!;
+    while (end > start && isBlank(line[end - 1]!)) {
+      end--;
+    }
 
-      if (last.type !== "text") {
-        break;
+    const kept: Array<ChatInline> = line
+      .slice(start, end)
+      .filter((inline: ChatInline): boolean => {
+        return inline.type === "link" || inline.text.length > 0;
+      });
+
+    // The first and the last run lose the white space at the line's ends.
+    const first: ChatInline | undefined = kept[0];
+
+    if (first && first.type === "text") {
+      const trimmed: string = first.text.trimStart();
+
+      if (trimmed !== first.text) {
+        kept[0] = { ...first, text: trimmed };
       }
+    }
 
+    const last: ChatInline | undefined = kept[kept.length - 1];
+
+    if (last && last.type === "text") {
       const trimmed: string = last.text.trimEnd();
 
-      if (trimmed) {
+      if (trimmed !== last.text) {
         kept[kept.length - 1] = { ...last, text: trimmed };
-        break;
       }
-
-      kept.pop();
     }
 
     return kept;
@@ -687,6 +709,40 @@ ${code}
    * styling is lost.
    */
   private static renderLine(line: Array<ChatInline>): Array<MarkdownValue> {
+    const values: Array<MarkdownValue> = [];
+
+    /*
+     * Whether the line has begun: something is written on it that is not
+     * indentation or a list or quote marker. Text after that opens no
+     * block, so it is written as typed (FeedMarkdown.textInLine): mdText
+     * reads any value after another as perhaps the start of its line, and
+     * "**Update** - rolled back" would keep a backslash before its "-".
+     */
+    let hasBegun: boolean = false;
+
+    const addText: (text: string) => void = (text: string): void => {
+      for (const value of ChatMessageMarkdown.splitTextValue(text)) {
+        values.push(hasBegun ? FeedMarkdown.textInLine(value) : value);
+        hasBegun = hasBegun || LINE_BEGUN_PATTERN.test(value);
+      }
+    };
+
+    const addMarkdown: (markdown: MarkdownValue) => void = (
+      markdown: MarkdownValue,
+    ): void => {
+      values.push(markdown);
+      hasBegun = hasBegun || LINE_BEGUN_PATTERN.test(String(markdown));
+    };
+
+    // A line of plain text alone - most lines are - is its text.
+    const only: ChatInline | undefined =
+      line.length === 1 ? line[0] : undefined;
+
+    if (only && only.type === "text" && !ChatMessageMarkdown.hasStyle(only)) {
+      addText(only.text);
+      return ChatMessageMarkdown.withLeadingTextJoined(values);
+    }
+
     const pieces: Array<{ before: string; run: LineRun; after: string }> = [];
 
     for (const inline of ChatMessageMarkdown.mergeRuns(line)) {
@@ -700,7 +756,7 @@ ${code}
         // White space alone: written as text, with no emphasis.
         pieces.push({
           before: split.before + split.after,
-          run: ChatMessageMarkdown.makeRun("", "", undefined),
+          run: ChatMessageMarkdown.makeRun("", "", undefined, true),
           after: "",
         });
         continue;
@@ -713,6 +769,7 @@ ${code}
         inner.markdown,
         inner.text,
         split.inline.style,
+        split.inline.type === "text" && !split.inline.style?.code,
       );
 
       pieces.push({ before: split.before, run: run, after: split.after });
@@ -720,30 +777,28 @@ ${code}
 
     ChatMessageMarkdown.decideEmphasis(pieces);
 
-    const values: Array<MarkdownValue> = [];
-
     for (const piece of pieces) {
       if (piece.before) {
-        values.push(...ChatMessageMarkdown.splitTextValue(piece.before));
+        addText(piece.before);
       }
 
       if (!piece.run.isEmpty) {
         if (piece.run.hasJoinerBefore) {
-          values.push(FeedMarkdown.asMarkdown(WORD_JOINER));
+          addMarkdown(FeedMarkdown.asMarkdown(WORD_JOINER));
         }
 
         if (
           ChatMessageMarkdown.isWrapped(piece.run) ||
-          typeof piece.run.inner !== "string"
+          !piece.run.isPlainText
         ) {
-          values.push(ChatMessageMarkdown.wrap(piece.run));
+          addMarkdown(ChatMessageMarkdown.wrap(piece.run));
         } else {
-          values.push(...ChatMessageMarkdown.splitTextValue(piece.run.inner));
+          addText(piece.run.innerText);
         }
       }
 
       if (piece.after) {
-        values.push(...ChatMessageMarkdown.splitTextValue(piece.after));
+        addText(piece.after);
       }
     }
 
@@ -919,14 +974,18 @@ ${code}
       }
 
       /*
-       * Text, placed as text: as it is when it is one value, joined from
-       * its values when it is long or holds a backtick. Its own characters
-       * say where its emphasis can go - escaped, a character Markdown reads
-       * is still punctuation, and a letter is still a letter.
+       * Text, placed as text inside its emphasis, where no block starts
+       * (FeedMarkdown.textInLine), each of its values in turn. Its own
+       * characters say where its emphasis can go - escaped, a character
+       * Markdown reads is still punctuation, and a letter is still a
+       * letter. Written without emphasis, it is placed as the line's text
+       * instead (renderLine).
        */
-      const values: Array<string> = ChatMessageMarkdown.splitTextValue(
+      const values: Array<MarkdownValue> = ChatMessageMarkdown.splitTextValue(
         inline.text,
-      );
+      ).map((value: string): MarkdownText => {
+        return FeedMarkdown.textInLine(value);
+      });
 
       return {
         markdown:
@@ -967,11 +1026,13 @@ ${code}
     inner: MarkdownValue,
     innerText: string,
     style: ChatTextStyle | undefined,
+    isPlainText: boolean,
   ): LineRun {
     return {
       inner: inner,
       isEmpty: innerText.length === 0,
       innerText: innerText,
+      isPlainText: isPlainText,
       strike: Boolean(style?.strike),
       stars: (style?.bold ? 2 : 0) + (style?.italic ? 1 : 0),
       keepStrike: Boolean(style?.strike),
