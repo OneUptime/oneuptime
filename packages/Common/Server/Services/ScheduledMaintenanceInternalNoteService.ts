@@ -16,6 +16,12 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import CreateBy from "../Types/Database/CreateBy";
+import OneUptimeDate from "../../Types/Date";
+import SavedChatMessage from "../../Types/Workspace/SavedChatMessage";
+import SavedChatMessageNote, {
+  SavedChatMessageNoteKind,
+} from "../Utils/Notes/SavedChatMessageNote";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -30,6 +36,9 @@ export class Service extends ProjectReferencesService<Model> {
    * create the note and their read of the scheduled maintenance event, it is held to the
    * project's plan, and it is theirs - DatabaseService stamps them as its
    * creator.
+   *
+   * A message saved as a note keeps who wrote it, in which chat and when
+   * (savedFromChatMessage, SavedChatMessageNote), and is filed at the time it was posted (postedAt).
    */
   @CaptureSpan()
   public async addNote(data: {
@@ -37,6 +46,8 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     note: string;
     postedFromSlackMessageId?: string | undefined;
+    savedFromChatMessage?: SavedChatMessage | undefined;
+    postedAt?: Date | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<Model> {
     const internalNote: Model = new Model();
@@ -44,14 +55,51 @@ export class Service extends ProjectReferencesService<Model> {
     internalNote.projectId = data.projectId;
     internalNote.note = data.note;
 
+    if (data.postedAt) {
+      internalNote.postedAt = data.postedAt;
+    }
+
     if (data.postedFromSlackMessageId) {
       internalNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
     }
 
-    return this.create({
-      data: internalNote,
-      props: data.props,
+    return await SavedChatMessageNote.create({
+      createBy: {
+        data: internalNote,
+        props: data.props,
+      },
+      savedFromChatMessage: data.savedFromChatMessage,
+      create: (createBy: CreateBy<Model>): Promise<Model> => {
+        return this.create(createBy);
+      },
     });
+  }
+
+  /*
+   * A note is filed in the timeline at postedAt: when it is written, unless
+   * the create says otherwise (a message saved as a note: when it was
+   * posted).
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
+
+    if (!onCreate.createBy.data.postedAt) {
+      onCreate.createBy.data.postedAt = OneUptimeDate.getCurrentDate();
+    }
+
+    return onCreate;
+  }
+
+  // Where a message saved as a note came from: no caller may write it.
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+    SavedChatMessageNote.writeHandedOver(onCreate.createBy);
   }
 
   @CaptureSpan()
@@ -98,6 +146,24 @@ export class Service extends ProjectReferencesService<Model> {
       "/scheduled-maintenance-internal-note/attachment",
     );
 
+    const scheduledMaintenanceNumberDisplay: string =
+      scheduledMaintenanceNumberResult.numberWithPrefix ||
+      "#" + scheduledMaintenanceNumberResult.number;
+    const scheduledMaintenanceLink: string = (
+      await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+        createdItem.projectId!,
+        scheduledMaintenanceId,
+      )
+    ).toString();
+
+    /*
+     * A message saved as a note: its entry names who wrote it and who saved
+     * it, is filed when the message was posted, and is not posted back into
+     * the channel the message is in.
+     */
+    const saved: SavedChatMessage | null =
+      SavedChatMessageNote.read(createdItem);
+
     await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
       scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
       projectId: createdItem.projectId!,
@@ -105,15 +171,39 @@ export class Service extends ProjectReferencesService<Model> {
         ScheduledMaintenanceFeedEventType.PrivateNote,
       displayColor: Blue500,
       userId: userId || undefined,
+      ...(saved
+        ? { postedAt: createdItem.postedAt, savedFromChatMessage: saved }
+        : {}),
+      /*
+       * The note starts its own line, not indented: four spaces in front of
+       * it made its first line code in the chats.
+       */
+      feedInfoInMarkdown: saved
+        ? SavedChatMessageNote.getFeedMarkdown({
+            saved: saved,
+            noteKind: SavedChatMessageNoteKind.Private,
+            record: mdText`[Scheduled Maintenance ${scheduledMaintenanceNumberDisplay}](${scheduledMaintenanceLink})`,
+            savedByName: await SavedChatMessageNote.getSavedByName({
+              saved: saved,
+              userId: userId,
+            }),
+            note: SavedChatMessageNote.getNoteMarkdown({
+              note: createdItem.note,
+              attachments: attachmentsMarkdown,
+            }),
+          }).toString()
+        : mdText`📄 posted **private note** for this [Scheduled Maintenance ${scheduledMaintenanceNumberDisplay}](${scheduledMaintenanceLink}):
 
-      feedInfoInMarkdown:
-        mdText`📄 posted **private note** for this [Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(createdItem.projectId!, scheduledMaintenanceId)).toString()}):
-    
-    ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
+${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
               `.toString(),
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: userId || undefined,
+        // A saved message's entry names its people itself.
+        notifyUserId: saved ? undefined : userId || undefined,
+        exceptChannel: SavedChatMessageNote.getSourceChannel({
+          saved: saved,
+          messageKey: createdItem.postedFromSlackMessageId,
+        }),
       },
     });
 

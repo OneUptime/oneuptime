@@ -1725,6 +1725,26 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
     }
 
+    /*
+     * A channel the message is not for: the one a note it repeats was
+     * saved from (WorkspaceMessagePayload.exceptChannelIds) - named here
+     * by its name too, so it is left out once the name is resolved.
+     */
+    const exceptChannelIds: Array<string> =
+      data.workspaceMessagePayload.exceptChannelIds || [];
+
+    if (exceptChannelIds.length > 0) {
+      for (
+        let index: number = workspaceChannelsToPostTo.length - 1;
+        index >= 0;
+        index--
+      ) {
+        if (exceptChannelIds.includes(workspaceChannelsToPostTo[index]!.id)) {
+          workspaceChannelsToPostTo.splice(index, 1);
+        }
+      }
+    }
+
     logger.debug("=== Starting message sending loop ===");
     logger.debug(
       `Total channels to post to: ${workspaceChannelsToPostTo.length}`,

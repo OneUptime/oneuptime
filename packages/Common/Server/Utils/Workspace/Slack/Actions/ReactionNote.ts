@@ -10,6 +10,8 @@ import WorkspaceNoteReactionUtil, {
   WorkspaceNoteType,
 } from "../../../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import ChatMessageMarkdown from "../../../../../Utils/Markdown/ChatMessageMarkdown";
+import { MarkdownText } from "../../../../../Utils/Markdown/FeedMarkdown";
 import DatabaseService from "../../../../Services/DatabaseService";
 import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
@@ -21,6 +23,7 @@ import WorkspaceReactionNote, {
   WorkspaceNoteSaveResult,
 } from "../../WorkspaceReactionNote";
 import SlackUtil from "../Slack";
+import SlackSavedMessage, { SlackMessageToSave } from "../SlackSavedMessage";
 import SlackActionAuthorization, {
   SlackActionRequester,
 } from "./Authorization";
@@ -38,9 +41,36 @@ export interface SlackReactionData {
 }
 
 /*
- * reaction_added: a pin on a message saves it as a private note, a megaphone
- * as a public note, on the incident / alert / scheduled maintenance / episode
- * the channel belongs to.
+ * What became of a message somebody asked to save as a note
+ * (saveMessage): saved, saved before, or not saved - refused, with the
+ * person told why; nothing in it to save; or Slack could not be read.
+ */
+export enum SlackMessageNoteOutcome {
+  Saved = "Saved",
+  AlreadySaved = "AlreadySaved",
+  Refused = "Refused",
+  NothingToSave = "NothingToSave",
+  NotFound = "NotFound",
+  Failed = "Failed",
+}
+
+/*
+ * reaction_added and pin_added: a pin on a message - Slack's own "Pin to
+ * channel" or a 📌 - saves it as a private note, a megaphone as a public
+ * note, on the incident / alert / scheduled maintenance / episode the
+ * channel belongs to.
+ *
+ * The note is the message as it read in Slack - its formatting, links,
+ * mentions as names, files and images as links (SlackSavedMessage,
+ * ChatMessageMarkdown) - and says whose words it is: the message's author
+ * (their OneUptime member when their Slack account is connected, else the
+ * name Slack shows), with whoever saved it as the note's creator. A private
+ * note is filed at the time the message was posted, however long after it
+ * was pinned.
+ *
+ * It is confirmed once: a short reply in the message's thread, with no
+ * link preview. The note's own feed entry is not posted back into this
+ * channel, where the message already is (SavedChatMessageNote).
  */
 export default class SlackReactionNoteActions {
   /*
@@ -213,19 +243,44 @@ export default class SlackReactionNoteActions {
       return;
     }
 
-    const oneUptimeUserId: ObjectID = userAuth.userId;
-
     /*
      * A refusal is told where the reaction was made: a message only they
      * see, in the channel (SlackActionAnswer), not a direct message.
      */
     const requester: SlackActionRequester = {
-      userId: oneUptimeUserId,
+      userId: userAuth.userId,
       projectId: projectId,
       projectAuthToken: authToken,
       slackUserId: userId,
       slackChannelId: channelId,
     };
+
+    await SlackReactionNoteActions.saveMessage({
+      requester: requester,
+      resource: resource,
+      noteType: noteType,
+      channelId: channelId,
+      messageTs: messageTs,
+    });
+  }
+
+  /*
+   * Saves the message at `messageTs` as a note of `noteType` on `resource`,
+   * as the member behind `requester`: checked as a note they post in
+   * OneUptime is (a refusal is told to them where they reacted), read from
+   * Slack, saved once, and confirmed once in the message's thread.
+   */
+  @CaptureSpan()
+  public static async saveMessage(data: {
+    requester: SlackActionRequester;
+    resource: WorkspaceNoteResource;
+    noteType: WorkspaceNoteType;
+    channelId: string;
+    messageTs: string;
+  }): Promise<SlackMessageNoteOutcome> {
+    const { requester, resource, noteType, channelId, messageTs } = data;
+    const projectId: ObjectID = resource.projectId;
+    const authToken: string = requester.projectAuthToken || "";
 
     const props: DatabaseCommonInteractionProps | null =
       await SlackActionAuthorization.authorize({
@@ -249,14 +304,15 @@ export default class SlackReactionNoteActions {
       });
 
     if (!props) {
-      return;
+      return SlackMessageNoteOutcome.Refused;
     }
 
-    let message: { text: string; threadTs: string | null } | null = null;
+    let message: SlackMessageToSave | null = null;
 
     try {
-      message = await SlackUtil.getMessageDetailsByTimestamp({
+      message = await SlackSavedMessage.read({
         authToken: authToken,
+        projectId: projectId,
         channelId: channelId,
         messageTs: messageTs,
       });
@@ -266,18 +322,38 @@ export default class SlackReactionNoteActions {
         channelId: channelId,
       });
       logger.error(err);
-      return;
+      return SlackMessageNoteOutcome.Failed;
     }
 
-    if (!message || !message.text) {
-      logger.debug("Reacted message has no text. Ignoring reaction.", {
+    if (!message) {
+      logger.debug("Slack has no message there any more. Ignoring reaction.", {
         projectId: projectId.toString(),
         channelId: channelId,
       });
-      return;
+      return SlackMessageNoteOutcome.NotFound;
     }
 
-    const noteText: string = message.text;
+    /*
+     * A public note is shown to everyone: the links into the company's
+     * Slack - its files and images - open for nobody there, so they stay
+     * out of it.
+     */
+    const note: MarkdownText = ChatMessageMarkdown.toMarkdown(
+      message.content,
+      { withoutAttachments: noteType === WorkspaceNoteType.Public },
+    );
+
+    if (note.isEmpty()) {
+      await SlackActionAuthorization.sendRefusal({
+        requester: requester,
+        message: WorkspaceReactionNote.getNothingToSaveMessage({
+          noteType: noteType,
+          hasAttachments: !ChatMessageMarkdown.isEmpty(message.content),
+        }),
+      });
+      return SlackMessageNoteOutcome.NothingToSave;
+    }
+
     let saveResult: WorkspaceNoteSaveResult | null;
 
     try {
@@ -294,11 +370,12 @@ export default class SlackReactionNoteActions {
             resource: resource,
             noteType: noteType,
             props: props,
-            note: noteText,
+            note: note.toString(),
             sourceMessageKey: WorkspaceReactionNote.getSourceMessageKey({
               channelId: channelId,
               messageId: messageTs,
             }),
+            savedFromChatMessage: message!.savedFromChatMessage,
           });
         },
       });
@@ -308,20 +385,21 @@ export default class SlackReactionNoteActions {
         channelId: channelId,
       });
       logger.error(err);
-      return;
+      return SlackMessageNoteOutcome.Failed;
     }
 
     // Refused, and the member has been told why.
     if (saveResult === null) {
-      return;
+      return SlackMessageNoteOutcome.Refused;
     }
 
+    // Saved before: confirmed then, so nothing is said again.
     if (saveResult === WorkspaceNoteSaveResult.Duplicate) {
       logger.debug("A note was already saved from this message. Skipping.", {
         projectId: projectId.toString(),
         channelId: channelId,
       });
-      return;
+      return SlackMessageNoteOutcome.AlreadySaved;
     }
 
     // The note is saved; the confirmation is best effort.
@@ -342,6 +420,7 @@ export default class SlackReactionNoteActions {
             resourceLink: display.link.toString(),
           }).toString(),
         ).trim(),
+        withoutLinkPreviews: true,
       });
     } catch (err) {
       logger.error("Error sending note confirmation to Slack:", {
@@ -350,5 +429,7 @@ export default class SlackReactionNoteActions {
       });
       logger.error(err);
     }
+
+    return SlackMessageNoteOutcome.Saved;
   }
 }

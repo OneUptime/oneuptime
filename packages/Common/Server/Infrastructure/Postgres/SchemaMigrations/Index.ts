@@ -87,6 +87,7 @@ import { MakeUserOverrideCoverOptional1801550000000 } from "./1801550000000-Make
 import { AddUserNotificationRulePushNotificationLevel1801600000000 } from "./1801600000000-AddUserNotificationRulePushNotificationLevel";
 import { AddCriticalAlertSoundVolumeAndPushRepeat1801650000000 } from "./1801650000000-AddCriticalAlertSoundVolumeAndPushRepeat";
 import { AddInstanceTokenSigningKey1801700000000 } from "./1801700000000-AddInstanceTokenSigningKey";
+import { AddSavedChatMessageToNotes1801750000000 } from "./1801750000000-AddSavedChatMessageToNotes";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1374,4 +1375,5 @@ export default [
   AddUserNotificationRulePushNotificationLevel1801600000000,
   AddCriticalAlertSoundVolumeAndPushRepeat1801650000000,
   AddInstanceTokenSigningKey1801700000000,
+  AddSavedChatMessageToNotes1801750000000,
 ];

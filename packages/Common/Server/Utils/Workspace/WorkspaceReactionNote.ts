@@ -36,6 +36,16 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import Query from "../../Types/Database/Query";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import GlobalCache from "../../Infrastructure/GlobalCache";
+import logger from "../Logger";
+import OneUptimeDate from "../../../Types/Date";
+import SavedChatMessage, {
+  SavedChatMessageUtil,
+} from "../../../Types/Workspace/SavedChatMessage";
+
+// A save of a message as a note, claimed while it runs (saveNote).
+const SAVE_CLAIM_NAMESPACE: string = "workspace-reaction-note-save";
+const SAVE_CLAIM_TTL_IN_SECONDS: number = 60;
 
 export enum WorkspaceNoteResourceType {
   Incident = "Incident",
@@ -395,7 +405,17 @@ export default class WorkspaceReactionNote {
    * the member who reacted: `props` are theirs, as the authorization the
    * caller ran for the note's row (see getNoteModelType) returned them. The
    * note is created with those props, so it is held to what they may do -
-   * and is theirs - as a note they post in the dashboard is.
+   * and is theirs, as the one who saved it - as a note they post in the
+   * dashboard is.
+   *
+   * `savedFromChatMessage` says whose words the note is, in which chat, and
+   * when they were posted: a private note is filed at that time
+   * (getNotePostedAt), a public one when it is published.
+   *
+   * Two pins of one message at once - Slack's pin and a 📌 reaction, two
+   * people - save it once: the save is claimed for the message first
+   * (SAVE_CLAIM_NAMESPACE), and a save already under way answers as a
+   * duplicate. Without the cache, the check of saved notes still holds.
    */
   @CaptureSpan()
   public static async saveNote(data: {
@@ -404,6 +424,7 @@ export default class WorkspaceReactionNote {
     props: DatabaseCommonInteractionProps;
     note: string;
     sourceMessageKey: string;
+    savedFromChatMessage?: SavedChatMessage | undefined;
   }): Promise<WorkspaceNoteSaveResult> {
     if (!this.supportsNoteType(data.resource.resourceType, data.noteType)) {
       throw new Error(
@@ -411,19 +432,84 @@ export default class WorkspaceReactionNote {
       );
     }
 
-    if (
-      await this.hasNote({
-        resource: data.resource,
-        noteType: data.noteType,
-        sourceMessageKey: data.sourceMessageKey,
-      })
-    ) {
-      return WorkspaceNoteSaveResult.Duplicate;
+    const claimKey: string = [
+      data.resource.resourceId.toString(),
+      data.noteType,
+      data.sourceMessageKey,
+    ].join(":");
+
+    let isClaimed: boolean = false;
+
+    try {
+      isClaimed = await GlobalCache.setStringIfNotExists(
+        SAVE_CLAIM_NAMESPACE,
+        claimKey,
+        "1",
+        { expiresInSeconds: SAVE_CLAIM_TTL_IN_SECONDS },
+      );
+
+      if (!isClaimed) {
+        return WorkspaceNoteSaveResult.Duplicate;
+      }
+    } catch (err) {
+      logger.debug(
+        "Could not claim a note's save; checking saved notes alone.",
+      );
+      logger.debug(err);
     }
 
-    await this.addNote(data);
+    try {
+      if (
+        await this.hasNote({
+          resource: data.resource,
+          noteType: data.noteType,
+          sourceMessageKey: data.sourceMessageKey,
+        })
+      ) {
+        return WorkspaceNoteSaveResult.Duplicate;
+      }
 
-    return WorkspaceNoteSaveResult.Saved;
+      await this.addNote(data);
+
+      return WorkspaceNoteSaveResult.Saved;
+    } finally {
+      if (isClaimed) {
+        try {
+          await GlobalCache.deleteKey(SAVE_CLAIM_NAMESPACE, claimKey);
+        } catch (err) {
+          logger.debug("Could not release a note's save claim.");
+          logger.debug(err);
+        }
+      }
+    }
+  }
+
+  /*
+   * When a note saved from a message belongs in the timeline: when the
+   * message was posted, for a private note - never later than now, should
+   * the chat's clock be ahead. A public note is published now (undefined:
+   * the note service's own time), as the status page's readers see it.
+   */
+  public static getNotePostedAt(data: {
+    noteType: WorkspaceNoteType;
+    savedFromChatMessage?: SavedChatMessage | undefined;
+    now?: Date | undefined;
+  }): Date | undefined {
+    if (data.noteType !== WorkspaceNoteType.Private) {
+      return undefined;
+    }
+
+    const postedAt: Date | null = SavedChatMessageUtil.getPostedAt(
+      data.savedFromChatMessage || null,
+    );
+
+    if (!postedAt) {
+      return undefined;
+    }
+
+    const now: Date = data.now || OneUptimeDate.getCurrentDate();
+
+    return postedAt.getTime() > now.getTime() ? now : postedAt;
   }
 
   // Whether a note of this type was already saved from the message.
@@ -480,6 +566,7 @@ export default class WorkspaceReactionNote {
     props: DatabaseCommonInteractionProps;
     note: string;
     sourceMessageKey: string;
+    savedFromChatMessage?: SavedChatMessage | undefined;
   }): Promise<void> {
     const id: ObjectID = data.resource.resourceId;
     const isPublic: boolean = data.noteType === WorkspaceNoteType.Public;
@@ -488,39 +575,68 @@ export default class WorkspaceReactionNote {
       props: DatabaseCommonInteractionProps;
       note: string;
       postedFromSlackMessageId: string;
+      savedFromChatMessage?: SavedChatMessage | undefined;
     } = {
       projectId: data.resource.projectId,
       props: data.props,
       note: data.note,
       postedFromSlackMessageId: data.sourceMessageKey,
+      savedFromChatMessage: data.savedFromChatMessage,
     };
+
+    // A private note is filed when its message was posted.
+    const postedAt: Date | undefined = this.getNotePostedAt({
+      noteType: data.noteType,
+      savedFromChatMessage: data.savedFromChatMessage,
+    });
 
     switch (data.resource.resourceType) {
       case WorkspaceNoteResourceType.Incident:
-        await (
-          isPublic ? IncidentPublicNoteService : IncidentInternalNoteService
-        ).addNote({ ...common, incidentId: id });
+        if (isPublic) {
+          await IncidentPublicNoteService.addNote({ ...common, incidentId: id });
+          return;
+        }
+
+        await IncidentInternalNoteService.addNote({
+          ...common,
+          incidentId: id,
+          postedAt: postedAt,
+        });
         return;
       case WorkspaceNoteResourceType.ScheduledMaintenance:
-        await (
-          isPublic
-            ? ScheduledMaintenancePublicNoteService
-            : ScheduledMaintenanceInternalNoteService
-        ).addNote({ ...common, scheduledMaintenanceId: id });
+        if (isPublic) {
+          await ScheduledMaintenancePublicNoteService.addNote({
+            ...common,
+            scheduledMaintenanceId: id,
+          });
+          return;
+        }
+
+        await ScheduledMaintenanceInternalNoteService.addNote({
+          ...common,
+          scheduledMaintenanceId: id,
+          postedAt: postedAt,
+        });
         return;
       case WorkspaceNoteResourceType.Alert:
-        await AlertInternalNoteService.addNote({ ...common, alertId: id });
+        await AlertInternalNoteService.addNote({
+          ...common,
+          alertId: id,
+          postedAt: postedAt,
+        });
         return;
       case WorkspaceNoteResourceType.IncidentEpisode:
         await IncidentEpisodeInternalNoteService.addNote({
           ...common,
           incidentEpisodeId: id,
+          postedAt: postedAt,
         });
         return;
       case WorkspaceNoteResourceType.AlertEpisode:
         await AlertEpisodeInternalNoteService.addNote({
           ...common,
           alertEpisodeId: id,
+          postedAt: postedAt,
         });
         return;
     }
@@ -603,10 +719,14 @@ export default class WorkspaceReactionNote {
   }
 
   /*
-   * The confirmation posted in the message's thread, as Markdown. The label
-   * - "Incident INC-42", with the prefix the project chose - is text in the
+   * The one confirmation of a saved message: a short reply in its thread,
+   * as Markdown. The message's words are not repeated - they are right
+   * above it - and the record's own channels are not told again either
+   * (the note's feed entry skips the channel it came from). The label -
+   * "Incident INC-42", with the prefix the project chose - is text in the
    * link, so it is never a link, a mention or styling of its own. Microsoft
-   * Teams posts it as it is; Slack posts it as mrkdwn (SlackUtil.slackify).
+   * Teams posts it as it is; Slack posts it as mrkdwn (SlackUtil.slackify),
+   * with no preview of the link.
    */
   public static getConfirmationMessage(data: {
     noteType: WorkspaceNoteType;
@@ -614,9 +734,36 @@ export default class WorkspaceReactionNote {
     resourceLink: string;
   }): MarkdownText {
     if (data.noteType === WorkspaceNoteType.Public) {
-      return mdText`✅ Message saved as **public note** to [${data.resourceLabel}](${data.resourceLink}). This note will be visible on the status page.`;
+      return mdText`✅ Saved as a **public note** on [${data.resourceLabel}](${data.resourceLink}). It is shown on the status page.`;
     }
 
-    return mdText`✅ Message saved as **private note** to [${data.resourceLabel}](${data.resourceLink}).`;
+    return mdText`✅ Saved as a **private note** on [${data.resourceLabel}](${data.resourceLink}).`;
+  }
+
+  /*
+   * What somebody is told when the message they pinned has nothing a note
+   * can hold: no text at all, or - for a public note - only files and
+   * images, which are not put on a status page (a link into the company's
+   * chat opens for nobody there).
+   */
+  public static getNothingToSaveMessage(data: {
+    noteType: WorkspaceNoteType;
+    hasAttachments: boolean;
+  }): string {
+    if (data.noteType === WorkspaceNoteType.Public && data.hasAttachments) {
+      return "This message has only files or images, which are not put on the status page, so it was not saved as a public note.";
+    }
+
+    return "This message has no text to save as a note.";
+  }
+
+  // The confirmation as plain text, for what a notification shows.
+  public static getConfirmationText(data: {
+    noteType: WorkspaceNoteType;
+    resourceLabel: string;
+  }): string {
+    return data.noteType === WorkspaceNoteType.Public
+      ? `Saved as a public note on ${data.resourceLabel}`
+      : `Saved as a private note on ${data.resourceLabel}`;
   }
 }
