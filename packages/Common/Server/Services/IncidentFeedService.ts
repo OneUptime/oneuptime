@@ -3,6 +3,9 @@ import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import SavedChatMessage, {
+  SavedChatMessageUtil,
+} from "../../Types/Workspace/SavedChatMessage";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CountBy from "../Types/Database/CountBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -17,6 +20,7 @@ import IncidentFeed, {
 } from "../../Models/DatabaseModels/IncidentFeed";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelToSkip,
 } from "./WorkspaceNotificationRuleService";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -97,6 +101,12 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
+    /*
+     * A note saved from a Slack or Microsoft Teams message: who wrote it,
+     * in which chat, and when (SavedChatMessage). The row's user is
+     * whoever saved it.
+     */
+    savedFromChatMessage?: SavedChatMessage | undefined;
     aiRunId?: ObjectID | undefined;
     // send notifificatin to slack and teams. This is optional
     workspaceNotification?:
@@ -104,6 +114,8 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
           notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
           sendWorkspaceNotification: boolean;
           appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+          // Not posted in this channel: the note came from a message there.
+          exceptChannel?: WorkspaceChannelToSkip | undefined;
         }
       | undefined;
   }): Promise<void> {
@@ -158,6 +170,12 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
 
       if (data.moreInformationInMarkdown) {
         incidentFeed.moreInformationInMarkdown = data.moreInformationInMarkdown;
+      }
+
+      if (data.savedFromChatMessage) {
+        incidentFeed.savedFromChatMessage = SavedChatMessageUtil.toJSON(
+          data.savedFromChatMessage,
+        );
       }
 
       const createdIncidentFeed: IncidentFeed = await this.create({
@@ -224,6 +242,8 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
       notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
       sendWorkspaceNotification: boolean;
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+      // Not posted in this channel: the note came from a message there.
+      exceptChannel?: WorkspaceChannelToSkip | undefined;
     };
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(

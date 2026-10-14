@@ -136,7 +136,11 @@ Reagieren Sie auf eine Nachricht oder eine Antwort in dem Kanal, den OneUptime f
 | 📌 oder 📍 | Eine private Notiz, die nur Ihr Team sieht |
 | 📣 oder 📢 | Eine öffentliche Notiz, die auf der Statusseite erscheint. Nur Vorfälle und geplante Wartungsereignisse. |
 
-Die Notiz wird als Sie gespeichert, mit Ihren Berechtigungen, daher muss Ihr eigenes Microsoft-Teams-Konto verbunden und die OneUptime-App im Team sein.
+Die Notiz übernimmt die Nachricht so, wie Microsoft Teams sie gezeigt hat: ihre Formatierung, Links und Code, die erwähnten Personen mit Namen und ihre Dateien und Bilder als Links darauf. Eine öffentliche Notiz lässt die Dateien und Bilder weg, da sie sich nur für Ihr Team öffnen.
+
+Sie gibt die Worte dessen wieder, der die Nachricht geschrieben hat: mit seinem OneUptime-Namen, wenn sein Microsoft-Teams-Konto verbunden ist, sonst mit dem Namen, den Teams zeigt. Eine private Notiz wird in der Zeitleiste dort eingeordnet, wo die Nachricht gepostet wurde, egal wie viel später sie gespeichert wird. Eine öffentliche Notiz wird beim Speichern eingeordnet, also dann, wenn die Statusseite sie zeigt. Die Zeitleiste nennt, wer sie gespeichert hat. Die Notiz wird nicht zurück in den Kanal gepostet, in dem die Nachricht bereits steht.
+
+Die Notiz wird als Sie gespeichert, mit Ihren Berechtigungen, und die OneUptime-App muss im Team sein. Ist Ihr Microsoft-Teams-Konto noch nicht verbunden, bittet OneUptime Sie in einer Antwort, die Sie erwähnt, es zu verbinden, mit einer Schaltfläche, die die Nachricht speichert, sobald Sie das getan haben.
 
 ## Mit dem OneUptime-Bot sprechen
 
