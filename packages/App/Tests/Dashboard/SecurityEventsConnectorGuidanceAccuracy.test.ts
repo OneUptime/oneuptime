@@ -654,12 +654,14 @@ const alertsFetchPrefix: string = httpErrorPrefixes.find(
 /*
  * The Troubleshooting section and the 400 walkthrough after it, ending where
  * the upgrade notes begin: those quote the migration and the API, not
- * connector messages, and are checked on their own below.
+ * connector messages, and are checked on their own below. Since the docs
+ * overhaul (task 28b) both are sections of their own (## headings), and each
+ * troubleshooting entry is a :::details block.
  */
 const docsSectionEndIndex: number = indexOfOrThrow(
   docsSource,
-  "\n### Upgrading from the earlier Google SecOps connector",
-  indexOfOrThrow(docsSource, "### Troubleshooting"),
+  "\n## Upgrading from the earlier Google SecOps connector",
+  indexOfOrThrow(docsSource, "\n## Troubleshooting"),
 );
 
 /* The pre-GA callout through the end of the Troubleshooting material. */
@@ -668,10 +670,10 @@ const docsGuidance: string = docsSource.slice(
   docsSectionEndIndex,
 );
 
-/* Just the Last Error bullet and everything after it in that material. */
+/* Just the Last Error entry and everything after it in that material. */
 const docsLastErrorGuidance: string = docsSource
   .slice(
-    indexOfOrThrow(docsSource, "- **Last Error is populated**"),
+    indexOfOrThrow(docsSource, ":::details Last Error is populated"),
     docsSectionEndIndex,
   )
   .trim();
@@ -1886,7 +1888,7 @@ describe('"Never" really means no poll has finished', () => {
 
   test("both texts still tell the operator what Never means", () => {
     expect(docsGuidance).toContain(
-      "- **Last Polled is `Never` and Last Error is empty** — no poll has finished for this connection",
+      ":::details Last Polled is `Never` and Last Error is empty\nNo poll has finished for this connection",
     );
     expect(docsGuidance).toContain(
       "the background worker has not executed the poll job at all",
@@ -2158,8 +2160,8 @@ describe("Test connection guidance names the checks that ship, in order", () => 
 
   const docsTestSection: string = sliceBetween(
     docsSource,
-    "### Test connection",
-    "### Preview, run and import on demand",
+    "\n## Test connection",
+    "\n## Preview, run and import on demand",
   );
 
   test("every documented check is a name the code reports", () => {
@@ -2244,12 +2246,14 @@ describe("Test connection guidance names the checks that ship, in order", () => 
  * the models and the API rather than restated.
  */
 describe("Upgrade guidance matches the data migration and the API", () => {
+  // The upgrade notes run from their heading to the next section's.
+  const upgradeStart: number = indexOfOrThrow(
+    docsSource,
+    "\n## Upgrading from the earlier Google SecOps connector",
+  );
   const upgradeSection: string = docsSource.slice(
-    indexOfOrThrow(
-      docsSource,
-      "### Upgrading from the earlier Google SecOps connector",
-    ),
-    indexOfOrThrow(docsSource, "## Option 3"),
+    upgradeStart,
+    indexOfOrThrow(docsSource, "\n## ", upgradeStart + 1),
   );
 
   test("connections keep their id, provider, settings, cursor and scope", () => {
