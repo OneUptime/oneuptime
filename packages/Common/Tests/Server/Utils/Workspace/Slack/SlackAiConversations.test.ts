@@ -267,6 +267,40 @@ describe("SlackAiConversations.read: what a message is, from the event alone", (
     ).toBe(SlackMessageKind.ThreadReply);
   });
 
+  /*
+   * A mention's label ends at the next "<" or ">": Slack writes those of a
+   * message's own text as &lt; and &gt;. A label that ran on to the next
+   * ">" was tried from every unclosed mention to the end of the message,
+   * in time that grows with the square of its length: 40,000 characters
+   * (the most Slack sends) of "<@0|" took 268 ms, and these take seconds.
+   */
+  test.each([
+    ["unclosed mentions of people", "<@0|"],
+    ["unclosed mentions of everybody", "<!here|"],
+  ])(
+    "a message of %s is read in time that grows with its length",
+    (_name: string, unclosed: string) => {
+      const text: string = unclosed.repeat(Math.ceil(400000 / unclosed.length));
+
+      const startedAt: number = performance.now();
+      const message: SlackMessage | null = SlackAiConversations.read(
+        channelMessage({ text: text }),
+      );
+      const tookMs: number = performance.now() - startedAt;
+
+      expect(message?.kind).toBe(SlackMessageKind.ThreadReply);
+      expect(tookMs).toBeLessThan(2000);
+    },
+  );
+
+  test("a mention after many unclosed ones is still a mention", () => {
+    expect(
+      SlackAiConversations.read(
+        channelMessage({ text: `${"<@0|".repeat(50000)}<@U0BOB|bob> look` }),
+      )?.reason,
+    ).toBe("a message that mentions somebody");
+  });
+
   test.each([
     ["no event", { type: "event_callback" }],
     ["a reaction", callback({ type: "reaction_added", user: ALICE })],
