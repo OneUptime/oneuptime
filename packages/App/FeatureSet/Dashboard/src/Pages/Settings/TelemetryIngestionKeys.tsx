@@ -82,7 +82,7 @@ const TelemetryIngestionKeys: FunctionComponent<
         saveFilterProps={{
           tableId: "settings-telemetry-ingestion-keys-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         showViewIdButton={false}
         isCreateable={true}

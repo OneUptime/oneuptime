@@ -664,7 +664,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         }}
         modelType={Alert}
         id="alerts-table"
-        isDeleteable={false}
+        isDeleteable={true}
         topContent={filterBar}
         emptyState={{ ...props.emptyState, ...facetEmptyState }}
         currentFacetState={facetSaveState}

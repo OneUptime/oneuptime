@@ -62,7 +62,7 @@ const Forms: FunctionComponent<PageComponentProps> = (
         saveFilterProps={{
           tableId: "forms-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={true}
         isViewable={true}

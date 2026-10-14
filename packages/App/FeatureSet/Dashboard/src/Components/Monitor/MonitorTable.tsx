@@ -26,7 +26,10 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
-import { MONITOR_ARCHIVE_COPY } from "../Archive/ResourceArchiveCopy";
+import {
+  ARCHIVE_INSTEAD_OF_DELETE,
+  MONITOR_ARCHIVE_COPY,
+} from "../Archive/ResourceArchiveCopy";
 import { getArchivedColumns } from "../Archive/ArchivedColumns";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -108,6 +111,15 @@ export interface ComponentProps {
    * and every other list as if it were current.
    */
   isArchivedView?: boolean | undefined;
+  /*
+   * Whether a monitor can be deleted from this list - in each row's ⋯ menu
+   * and in Bulk Actions. On by default: every list of monitors is one of the
+   * places a monitor is deleted from. Off where the list is another
+   * resource's members (a monitor group's monitors, whose row action is
+   * Unassign): deleting there would take the monitor out of every group,
+   * status page and SLO it is on, not only out of this one.
+   */
+  isDeleteable?: boolean | undefined;
 }
 
 const MonitorsTable: FunctionComponent<ComponentProps> = (
@@ -893,7 +905,11 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
               ],
         }}
         actionButtons={props.actionButtons}
-        isDeleteable={false}
+        isDeleteable={props.isDeleteable !== false}
+        // An archived monitor is off the main list already.
+        deleteConfirmationWarning={
+          isArchivedView ? undefined : ARCHIVE_INSTEAD_OF_DELETE
+        }
         showViewIdButton={true}
         isEditable={false}
         isCreateable={false}

@@ -1,0 +1,449 @@
+import {
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+
+/*
+ * What else goes when a record is deleted, said under every Delete question
+ * about it: the row's Delete in a list, a bulk Delete of many, and the
+ * record's own Delete page. "Are you sure you want to delete Production?" is
+ * a question about one status page; the hundreds of subscribers that go with
+ * it are what the person deciding most needs to know, and the one thing the
+ * question never said.
+ *
+ * One sentence per kind of record, written about the kind ("Deleting a status
+ * page also deletes ...") so it reads the same under one row's question and
+ * under "Are you sure you want to delete 12 status pages?". It says only what
+ * a person would not expect: records the database deletes along with it,
+ * things that stop working, what comes back on its own, and - where people
+ * fear it goes too - what stays. A kind with nothing to add has no entry,
+ * and its dialogs ask the question alone.
+ *
+ * Every claim is held to the code by DeleteConsequencesGuard: a table named
+ * as deleted with it has an ON DELETE CASCADE relation to it, a table named
+ * as staying has none, work a service does on delete is in its delete hook,
+ * and a kind said to come back has the ingest code that adds it again.
+ */
+
+/*
+ * A record ingest names again - a host still sending telemetry, a cluster its
+ * agent still reports - is added again as a new record. The labels, owners,
+ * description and settings a person gave the old one went with it.
+ */
+export const ADDED_BACK_BY_INGEST_SENTENCE: string = translationKey(
+  "If OneUptime still receives data about it, it is added back, without the labels, owners and settings you gave it.",
+);
+
+/*
+ * Work a service does when one is deleted (rather than the database), and
+ * the text in that service's source that does it.
+ */
+export interface DeleteSideEffect {
+  // The service file, under Common/Server/Services, without ".ts".
+  service: string;
+  // Text its delete hook holds, which does the work the sentence describes.
+  text: string;
+}
+
+export interface DeleteConsequence {
+  // What deleting one of these takes with it, as the dialogs say it.
+  sentence?: string | undefined;
+  /*
+   * The tables whose rows go with it because their relation to it is ON
+   * DELETE CASCADE - each one the sentence names, as the database's own
+   * relations say.
+   */
+  deletedWith?: ReadonlyArray<string> | undefined;
+  /*
+   * The tables the sentence says stay. None of them has an ON DELETE
+   * CASCADE relation to it.
+   */
+  stays?: ReadonlyArray<string> | undefined;
+  // What its service's delete hook does that the sentence describes.
+  sideEffects?: ReadonlyArray<DeleteSideEffect> | undefined;
+  /*
+   * Ingest adds it again when data about it still arrives: the service and
+   * method that do. Adds ADDED_BACK_BY_INGEST_SENTENCE after the sentence.
+   */
+  addedBackBy?: DeleteSideEffect | undefined;
+}
+
+/*
+ * Keyed by the model's table name (the same for every front end). The kinds
+ * of record a list or a Delete page offers to delete, where there is
+ * something to say.
+ */
+export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
+  {
+    StatusPage: {
+      sentence: translationKey(
+        "Deleting a status page also deletes its subscribers, private users and custom domains.",
+      ),
+      deletedWith: [
+        "StatusPageSubscriber",
+        "StatusPagePrivateUser",
+        "StatusPageDomain",
+      ],
+    },
+    Monitor: {
+      sentence: translationKey(
+        "Deleting a monitor also deletes its status history and takes it off status pages and monitor groups. Its incidents and alerts stay.",
+      ),
+      deletedWith: [
+        "MonitorStatusTimeline",
+        "StatusPageResource",
+        "MonitorGroupResource",
+      ],
+      stays: ["Incident", "Alert"],
+    },
+    Incident: {
+      sentence: translationKey(
+        "Deleting an incident also deletes its notes and state timeline, and takes it off status pages. Linked alerts stay.",
+      ),
+      deletedWith: [
+        "IncidentPublicNote",
+        "IncidentInternalNote",
+        "IncidentStateTimeline",
+      ],
+      stays: ["Alert"],
+    },
+    Alert: {
+      sentence: translationKey(
+        "Deleting an alert also deletes its notes and state timeline. Linked incidents stay.",
+      ),
+      deletedWith: ["AlertInternalNote", "AlertStateTimeline"],
+      stays: ["Incident"],
+    },
+    ScheduledMaintenance: {
+      sentence: translationKey(
+        "Deleting a scheduled maintenance event also deletes its notes and state timeline, and takes it off status pages.",
+      ),
+      deletedWith: [
+        "ScheduledMaintenancePublicNote",
+        "ScheduledMaintenanceInternalNote",
+        "ScheduledMaintenanceStateTimeline",
+      ],
+    },
+    IncidentEpisode: {
+      sentence: translationKey(
+        "Deleting an incident episode also deletes its notes and state timeline. Its incidents stay.",
+      ),
+      deletedWith: [
+        "IncidentEpisodePublicNote",
+        "IncidentEpisodeInternalNote",
+        "IncidentEpisodeStateTimeline",
+      ],
+      stays: ["Incident"],
+    },
+    AlertEpisode: {
+      sentence: translationKey(
+        "Deleting an alert episode also deletes its notes and state timeline. Its alerts stay.",
+      ),
+      deletedWith: ["AlertEpisodeInternalNote", "AlertEpisodeStateTimeline"],
+      stays: ["Alert"],
+    },
+    MonitorGroup: {
+      sentence: translationKey(
+        "Deleting a monitor group takes it off status pages. Its monitors stay.",
+      ),
+      deletedWith: ["StatusPageResource"],
+      stays: ["Monitor"],
+    },
+    OnCallDutyPolicy: {
+      sentence: translationKey(
+        "Deleting an on-call policy also deletes its escalation rules and user overrides, so nobody is paged through it any more.",
+      ),
+      deletedWith: [
+        "OnCallDutyPolicyEscalationRule",
+        "OnCallDutyPolicyUserOverride",
+      ],
+    },
+    OnCallDutyPolicySchedule: {
+      sentence: translationKey(
+        "Deleting an on-call schedule also deletes its layers and takes it out of every escalation rule that pages it.",
+      ),
+      deletedWith: [
+        "OnCallDutyPolicyScheduleLayer",
+        "OnCallDutyPolicyEscalationRuleSchedule",
+      ],
+    },
+    IncomingCallPolicy: {
+      sentence: translationKey(
+        "Deleting an incoming call policy also releases its phone numbers, so they can no longer be called, and deletes its escalation rules and call logs.",
+      ),
+      deletedWith: [
+        "IncomingCallPolicyPhoneNumber",
+        "IncomingCallPolicyEscalationRule",
+        "IncomingCallLog",
+      ],
+      sideEffects: [
+        {
+          service: "IncomingCallPolicyService",
+          text: "releaseIncomingCallPhoneNumber(",
+        },
+      ],
+    },
+    Workflow: {
+      sentence: translationKey(
+        "Deleting a workflow also deletes its variables and run logs.",
+      ),
+      deletedWith: ["WorkflowVariable", "WorkflowLog"],
+    },
+    Dashboard: {
+      sentence: translationKey(
+        "Deleting a dashboard also deletes its custom domains.",
+      ),
+      deletedWith: ["DashboardDomain"],
+    },
+    Runbook: {
+      sentence: translationKey(
+        "Deleting a runbook also deletes its run history.",
+      ),
+      deletedWith: ["RunbookExecution"],
+    },
+    ServiceLevelObjective: {
+      sentence: translationKey(
+        "Deleting an SLO also deletes its burn rate rules.",
+      ),
+      deletedWith: ["ServiceLevelObjectiveBurnRateRule"],
+    },
+    Service: {
+      sentence: translationKey(
+        "Deleting a service also deletes its source maps, and the metric pipeline rules and LLM cost budgets set for it.",
+      ),
+      deletedWith: [
+        "TelemetrySourceMap",
+        "MetricPipelineRule",
+        "LlmCostBudget",
+      ],
+      addedBackBy: {
+        service: "OpenTelemetryIngestService",
+        text: "await ServiceService.create(",
+      },
+    },
+    NetworkDevice: {
+      sentence: translationKey(
+        "Deleting a network device also deletes its interfaces, links, endpoints and any monitor OneUptime created for it, with that monitor's history.",
+      ),
+      deletedWith: ["NetworkInterface", "NetworkDeviceLink", "NetworkEndpoint"],
+      sideEffects: [
+        {
+          service: "NetworkDeviceService",
+          text: "autoProvisionedNetworkDeviceId: device.id",
+        },
+      ],
+    },
+    Probe: {
+      sentence: translationKey(
+        "Deleting a probe takes it off every monitor it checks.",
+      ),
+      deletedWith: ["MonitorProbe"],
+    },
+    Team: {
+      sentence: translationKey(
+        "Deleting a team takes away the permissions it gave its members. Anyone for whom it was their only team loses access to the project.",
+      ),
+      deletedWith: ["TeamPermission", "TeamMember"],
+      sideEffects: [
+        {
+          service: "TeamService",
+          text: "await TeamMemberService.deleteBy(",
+        },
+      ],
+    },
+    ApiKey: {
+      sentence: translationKey(
+        "Deleting an API key stops anything that uses it from working.",
+      ),
+      deletedWith: ["ApiKeyPermission"],
+    },
+    TelemetryIngestionKey: {
+      sentence: translationKey(
+        "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.",
+      ),
+    },
+    StatusPageAnnouncement: {
+      sentence: translationKey(
+        "Deleting an announcement takes it off every status page that shows it.",
+      ),
+    },
+    TracePipeline: {
+      sentence: translationKey(
+        "Deleting a pipeline also deletes its processors.",
+      ),
+      deletedWith: ["TracePipelineProcessor"],
+    },
+    LogPipeline: {
+      sentence: translationKey(
+        "Deleting a pipeline also deletes its processors.",
+      ),
+      deletedWith: ["LogPipelineProcessor"],
+    },
+    Form: {
+      sentence: translationKey(
+        "Deleting a form also deletes its submissions. The incidents and events it created stay.",
+      ),
+      deletedWith: ["FormSubmission"],
+      stays: ["Incident", "ScheduledMaintenance"],
+    },
+    IoTFleet: {
+      sentence: translationKey(
+        "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.",
+      ),
+      deletedWith: ["IoTDeviceCredential"],
+      addedBackBy: {
+        service: "IoTFleetService",
+        text: "public async findOrCreateByName(",
+      },
+    },
+    DatabaseServer: {
+      sentence: translationKey(
+        "Deleting a database also deletes the endpoints it is reached at.",
+      ),
+      deletedWith: ["DatabaseServerEndpoint"],
+      addedBackBy: {
+        service: "DatabaseServerService",
+        text: "public async findOrCreateByEndpoint(",
+      },
+    },
+    /*
+     * The resources telemetry describes, whose records below them (pods,
+     * containers, datastores) are snapshots ingest writes again: what a
+     * person loses is what they gave the record, and only if data about it
+     * still arrives does that matter.
+     */
+    Host: {
+      addedBackBy: {
+        service: "HostService",
+        text: "public async findOrCreateByHostIdentifier(",
+      },
+    },
+    DockerHost: {
+      addedBackBy: {
+        service: "DockerHostService",
+        text: "public async findOrCreateByHostIdentifier(",
+      },
+    },
+    PodmanHost: {
+      addedBackBy: {
+        service: "PodmanHostService",
+        text: "public async findOrCreateByHostIdentifier(",
+      },
+    },
+    KubernetesCluster: {
+      addedBackBy: {
+        service: "KubernetesClusterService",
+        text: "public async findOrCreateByClusterIdentifier(",
+      },
+    },
+    DockerSwarmCluster: {
+      addedBackBy: {
+        service: "DockerSwarmClusterService",
+        text: "public async findOrCreateByName(",
+      },
+    },
+    ProxmoxCluster: {
+      addedBackBy: {
+        service: "ProxmoxClusterService",
+        text: "public async findOrCreateByName(",
+      },
+    },
+    VMwareVCenter: {
+      addedBackBy: {
+        service: "VMwareVCenterService",
+        text: "public async findOrCreateByName(",
+      },
+    },
+    CephCluster: {
+      addedBackBy: {
+        service: "CephClusterService",
+        text: "public async findOrCreateByName(",
+      },
+    },
+    StorageArray: {
+      addedBackBy: {
+        service: "StorageArrayService",
+        text: "public async findOrCreateByName(",
+      },
+    },
+    ServerlessFunction: {
+      addedBackBy: {
+        service: "ServerlessFunctionService",
+        text: "public async findOrCreateByFunctionIdentifier(",
+      },
+    },
+    MessageQueue: {
+      addedBackBy: {
+        service: "MessageQueueService",
+        text: "public async findOrCreateByIdentity(",
+      },
+    },
+    CloudResource: {
+      addedBackBy: {
+        service: "CloudResourceService",
+        text: "public async findOrCreateByResourceIdentifier(",
+      },
+    },
+    RumApplication: {
+      addedBackBy: {
+        service: "RumApplicationService",
+        text: "public async findOrCreateByAppIdentifier(",
+      },
+    },
+    InventoryItem: {
+      addedBackBy: {
+        service: "InventoryItemService",
+        text: "private async upsertEntity(",
+      },
+    },
+  };
+
+/*
+ * The English sentences said about deleting a record of this table: its
+ * consequence, then that it comes back. Empty for a kind with nothing to add.
+ */
+export const getDeleteConsequenceSentences: (
+  tableName: string | null | undefined,
+) => Array<string> = (tableName: string | null | undefined): Array<string> => {
+  const consequence: DeleteConsequence | undefined = tableName
+    ? DELETE_CONSEQUENCES[tableName]
+    : undefined;
+
+  if (!consequence) {
+    return [];
+  }
+
+  const sentences: Array<string> = [];
+
+  if (consequence.sentence) {
+    sentences.push(consequence.sentence);
+  }
+
+  if (consequence.addedBackBy) {
+    sentences.push(ADDED_BACK_BY_INGEST_SENTENCE);
+  }
+
+  return sentences;
+};
+
+/*
+ * The same sentences in the reader's language, as one string: each one is a
+ * whole sentence translated on its own, never a piece of another. "" for a
+ * kind with nothing to add.
+ */
+export const getDeleteConsequence: (
+  tableName: string | null | undefined,
+  translator?: Translator | undefined,
+) => string = (
+  tableName: string | null | undefined,
+  translator?: Translator | undefined,
+): string => {
+  const reader: Translator = translator || getGlobalTranslator();
+
+  return getDeleteConsequenceSentences(tableName)
+    .map((sentence: string): string => {
+      return reader.translateText(sentence) || sentence;
+    })
+    .join(" ");
+};
