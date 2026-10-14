@@ -287,7 +287,7 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[minmax(0,7rem)_minmax(0,1fr)]">
+      <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[minmax(7rem,max-content)_minmax(0,1fr)]">
         {status !== UserGroupStatusKind.NotYet ? (
           <>
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 sm:pt-0.5">
