@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import WorkspaceCommands, {
   WORKSPACE_COMMANDS,
   WorkspaceCommandDefinition,
@@ -548,9 +549,8 @@ describe("WorkspaceCommands.parse: text as long as a chat sends, and longer", ()
   });
 
   test("words far apart in length are never compared letter by letter", () => {
-    const distance: jest.SpiedFunction<
-      typeof WorkspaceCommands.getEditDistance
-    > = jest.spyOn(WorkspaceCommands, "getEditDistance");
+    const distance: SpyInstance<typeof WorkspaceCommands.getEditDistance> =
+      jest.spyOn(WorkspaceCommands, "getEditDistance");
 
     parse("a".repeat(LONG));
     parse(`incidnet${"a".repeat(LONG)}`);
