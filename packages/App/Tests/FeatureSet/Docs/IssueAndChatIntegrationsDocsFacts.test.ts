@@ -27,6 +27,7 @@ import {
   codeIn,
   englishPage,
   englishSection,
+  leadOf,
   readRepoFile,
   tableWithHeader,
 } from "./InventoryAndApiDocsSupport";
@@ -1456,9 +1457,10 @@ describe("the Integrations Overview's chat rows", () => {
       direction: "Outbound",
       description: `Send a message to a Telegram chat${when}.`,
     });
-    // As the Telegram page says first.
-    expect(englishPage(TELEGRAM)).toContain(
-      "Send a message to a [Telegram](https://telegram.org) chat, group or channel when an alert fires",
-    );
+    // As the Telegram page says first, in its lead.
+    const lead: string = leadOf(englishPage(TELEGRAM));
+
+    expect(lead.startsWith("Send a message to a [Telegram](")).toBe(true);
+    expect(lead).toContain(") chat, group or channel when an alert fires");
   });
 });
