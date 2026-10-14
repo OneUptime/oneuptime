@@ -6,6 +6,7 @@ import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/Sched
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateTimelineService from "../../Services/ScheduledMaintenanceStateTimelineService";
 import ScheduledMaintenanceInternalNoteService from "../../Services/ScheduledMaintenanceInternalNoteService";
+import SavedChatMessageNote from "../Notes/SavedChatMessageNote";
 import ScheduledMaintenancePublicNoteService from "../../Services/ScheduledMaintenancePublicNoteService";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
@@ -104,13 +105,16 @@ export default class ScheduledMaintenanceAIContextBuilder {
           _id: true,
           note: true,
           createdAt: true,
+          postedAt: true,
+          savedFromChatMessage: true,
           createdByUser: {
             name: true,
             email: true,
           },
         },
+        // In the order they belong in: a saved chat message when it was written.
         sort: {
-          createdAt: SortOrder.Ascending,
+          postedAt: SortOrder.Ascending,
         },
         limit: 100,
         skip: 0,
@@ -221,13 +225,18 @@ export default class ScheduledMaintenanceAIContextBuilder {
     if (internalNotes.length > 0) {
       contextText += "# Internal Notes (Private)\n\n";
       for (const note of internalNotes) {
-        const noteTime: string = note.createdAt
-          ? OneUptimeDate.getDateAsFormattedString(note.createdAt)
+        const postedAt: Date | undefined = note.postedAt || note.createdAt;
+        const noteTime: string = postedAt
+          ? OneUptimeDate.getDateAsFormattedString(postedAt)
           : "N/A";
-        const createdBy: string =
-          note.createdByUser?.name?.toString() ||
-          note.createdByUser?.email?.toString() ||
-          "Unknown";
+        // A message saved from a chat is its author's words.
+        const createdBy: string = SavedChatMessageNote.getPromptAuthor({
+          note: note,
+          createdBy:
+            note.createdByUser?.name?.toString() ||
+            note.createdByUser?.email?.toString() ||
+            "Unknown",
+        });
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
         contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;

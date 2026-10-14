@@ -195,6 +195,7 @@ Chips horen bij de opgeslagen weergave en bij de URL van de pagina, dus een filt
 - Attribuut**sleutels** worden bij jokerteken-, "bevat"-, voorvoegsel- en achtervoegselfilters zonder onderscheid in hoofdletters vergeleken, dus u hoeft niet te onthouden of ze als `requestId` of als `requestid` is opgenomen.
 - Een filter `-@k:...` komt ook overeen met rijen die het attribuut nooit hadden: een rij zonder `platform.team` begint vanzelfsprekend niet met `a`.
 - Numerieke vergelijkingen werken op attribuutwaarden die als tekst zijn opgeslagen; een waarde die geen getal is, voldoet nooit aan een vergelijking.
+- Bij logboeken en traces wordt een exacte waarde, zoals `@http.route:/orders`, `@k:(a OR b)` of een waarde waarop u klikt in de facettenzijbalk, opgezocht in een index, zodat zoeken naar een waarde die weinig rijen hebben ook over lange tijdsbereiken snel blijft. Jokertekens, "bevat", uitsluitingen en vergelijkingen lezen elke logregel of span in het bereik: is zo'n zoekopdracht traag, voeg dan een exacte waarde toe of kies een korter bereik.
 
 ## Volgende stappen
 

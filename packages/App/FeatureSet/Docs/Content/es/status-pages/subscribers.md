@@ -47,6 +47,21 @@ Cada canal tiene además su propia lista en el menú lateral de la página de es
 
 **Un interruptor no basta.** El elemento **Suscribirse** de la barra de navegación de la página de estado solo aparece cuando **Mostrar página de suscriptores** está activado *y* al menos un canal está activado. Si activas **Correo electrónico** pero dejas **Mostrar página de suscriptores** desactivado, los visitantes no tienen forma de llegar al formulario.
 
+## Desactivar todas las notificaciones
+
+La primera tarjeta de **Ajustes de suscriptores**, **Notificaciones**, contiene **Enviar notificaciones a los suscriptores** (`sendSubscriberNotifications`), activado por defecto, que se guarda en cuanto lo cambias. Si está desactivado, la página de estado no envía nada a sus suscriptores: ninguna notificación de incidentes, episodios, mantenimiento programado o anuncios, ninguna nota ni análisis post mortem, y ningún informe por correo electrónico, digan lo que digan sus canales y tipos de eventos. Sus suscriptores se conservan, y los visitantes pueden seguir suscribiéndose mientras la página **Suscribirse** y un canal estén activados; un suscriptor nuevo por correo electrónico sigue recibiendo el correo que confirma la suscripción. No se retiene nada para enviarlo más tarde: al volver a activarlo, la página avisa a sus suscriptores de lo que pase a partir de entonces.
+
+Mientras está desactivado, la parte superior de cada lista de suscriptores lo indica, con un enlace de vuelta a **Ajustes de suscriptores**. El resumen de a quién se avisará, en un incidente o en una nota pública, nombra la página como una que no envía notificaciones a sus suscriptores, y el mensaje de estado de una notificación y su elemento de la actividad dicen por qué se saltó la página. El interruptor funciona en todos los planes. Un informe de prueba enviado a una dirección que escribes se sigue enviando.
+
+## Quién puede suscribirse
+
+La tarjeta **Quién puede suscribirse**, también en **Ajustes de suscriptores**, limita las notificaciones de una página a las personas a las que va dirigida:
+
+- **Solo los usuarios privados pueden suscribirse** (`limitSubscribersToPrivateUsers`), desactivado por defecto, se guarda en cuanto lo cambias. Si está activado, solo los [usuarios privados](/docs/status-pages/index#usuarios-privados) de la página, tanto si se añadieron a mano como si iniciaron sesión con SSO o se aprovisionaron con SCIM, pueden suscribirse, por correo electrónico, con la dirección con la que inician sesión. La página **Suscribirse** rellena esa dirección, no deja cambiarla y no ofrece ningún otro canal. Tu equipo solo puede añadir la dirección de un usuario privado, y ningún suscriptor por SMS, Slack, Microsoft Teams o webhook. Un suscriptor cuya dirección no es ahora la de un usuario privado de la página (uno añadido antes de que lo activaras, o un lector quitado desde entonces, a mano o con SCIM) no recibe nada y no se cuenta. Una página pública no tiene inicio de sesión, así que, mientras está activado, allí solo tu equipo puede añadir suscriptores.
+- **Dominios de correo electrónico permitidos** (`allowedSubscriberEmailDomains`) contiene los dominios en los que puede estar la dirección de un suscriptor por correo electrónico, uno por línea, como `acme.com`. Una dirección en un subdominio también coincide (`eu.acme.com` para `acme.com`), pero no una que solo termina con las mismas letras (`evilacme.com`). Los registros y las altas en cualquier otro dominio se rechazan, y a un suscriptor por correo electrónico que ya está en otro dominio no se le envía nada. Déjalo vacío para permitir cualquier dominio. Los suscriptores por SMS, Slack, Microsoft Teams y webhook no tienen dominio y no se ven afectados. Escribe la lista y elige **Guardar dominios**: una entrada que no es un dominio se señala antes de guardar nada, y la lista se guarda en minúsculas, un dominio por línea, hasta 100 dominios.
+
+Ninguno de los dos ajustes elimina a un suscriptor, y al desactivarlos se vuelve a enviar a todos. En OneUptime Cloud, activar cualquiera de los dos necesita el plan **Scale**; desactivarlos funciona en todos los planes.
+
 ## Qué ve un visitante en la página Suscribirse
 
 La página **Suscribirse** tiene un submenú con una pestaña por cada canal activado. Cada pestaña pide lo mínimo que necesita:

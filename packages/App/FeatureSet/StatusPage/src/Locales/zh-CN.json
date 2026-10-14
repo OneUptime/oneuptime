@@ -151,7 +151,9 @@
       "placeholder": "subscriber@company.cn",
       "managePrompt": "请输入您订阅时使用的电子邮件",
       "manageDescription": "我们将把订阅管理链接发送到此电子邮件。",
-      "managePlaceholder": "email@yourcompany.cn"
+      "managePlaceholder": "email@yourcompany.cn",
+      "signedInEmailDescription": "您将使用登录所用的电子邮件地址订阅。",
+      "signInToSubscribe": "请登录此状态页面以进行订阅。"
     },
     "sms": {
       "title": "通过短信订阅",

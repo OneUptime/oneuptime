@@ -902,6 +902,7 @@ describe("SubscriberNotificationDeliveryRecord pages sent in full", () => {
   test.each([
     StatusPageDeliverySkipReason.HidesIncidents,
     StatusPageDeliverySkipReason.HidesEpisodes,
+    StatusPageDeliverySkipReason.NotificationsOff,
     StatusPageDeliverySkipReason.AlreadyNotified,
   ])(
     "a page passed over (%s) neither succeeded nor counts as a shortfall",
@@ -1235,5 +1236,97 @@ describe("SubscriberNotificationDeliveryRecord sent and failed, in the feed and 
     expect(record.hasMatchedAnySubscriber()).toBe(false);
     record.recordSubscriberMatched();
     expect(record.hasMatchedAnySubscriber()).toBe(true);
+  });
+});
+
+/*
+ * A status page with Send Notifications to Subscribers off sends its
+ * subscribers nothing (Types/StatusPage/SubscriberNotificationsSwitch): the
+ * jobs pass it over before reading a single subscriber, and say why.
+ */
+describe("SubscriberNotificationDeliveryRecord and a status page that sends its subscribers nothing", () => {
+  test("is passed over with why, in the feed", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.skipStatusPage(
+      site03,
+      StatusPageDeliverySkipReason.NotificationsOff,
+    );
+
+    expect(record.toMarkdown()).toBe(
+      [
+        "**Status pages:**",
+        "",
+        "- **Site 03**: not sent, this status page does not send notifications to its subscribers.",
+      ].join("\n"),
+    );
+  });
+
+  test("a send whose every page sends nothing says nobody was sent it, and why", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: true });
+
+    record.skipStatusPage(
+      site03,
+      StatusPageDeliverySkipReason.NotificationsOff,
+    );
+    record.skipStatusPage(
+      site07,
+      StatusPageDeliverySkipReason.NotificationsOff,
+    );
+
+    expect(
+      record.toStatusMessage({
+        sentMessage: "Notifications sent successfully to all subscribers.",
+        retryScope: SubscriberNotificationRetryScope.PagesNotYetSent,
+      }),
+    ).toBe(
+      "Not sent to any subscriber: no status page was sent this notification. Site 03: not sent, this status page does not send notifications to its subscribers. Site 07: not sent, this status page does not send notifications to its subscribers.",
+    );
+  });
+
+  test("is not a failure, and is not recorded as told", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.skipStatusPage(
+      site03,
+      StatusPageDeliverySkipReason.NotificationsOff,
+    );
+
+    expect(record.hasFailures()).toBe(false);
+    expect(record.didStatusPageSucceed(SITE_03)).toBe(false);
+    expect(record.getTotals()).toEqual({ sent: 0, failed: 0 });
+  });
+
+  test("beside a page that was sent it, it is left out of the status message and named in the feed", () => {
+    const record: SubscriberNotificationDeliveryRecord =
+      new SubscriberNotificationDeliveryRecord({ dedupeEmailAndSms: false });
+
+    record.skipStatusPage(
+      site03,
+      StatusPageDeliverySkipReason.NotificationsOff,
+    );
+    record.startStatusPage(site07);
+    record.recordSent({
+      statusPage: site07,
+      method: StatusPageSubscriberNotificationMethod.Email,
+    });
+    record.recordSent({
+      statusPage: site07,
+      method: StatusPageSubscriberNotificationMethod.Email,
+    });
+    record.finishStatusPage(site07);
+
+    expect(
+      record.toStatusMessage({
+        sentMessage: "Sent.",
+        retryScope: SubscriberNotificationRetryScope.EveryPage,
+      }),
+    ).toBe("Sent. Site 07: 2 email sent.");
+    expect(record.toMarkdown()).toContain(
+      "- **Site 03**: not sent, this status page does not send notifications to its subscribers.",
+    );
   });
 });

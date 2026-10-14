@@ -123,7 +123,11 @@ Reacciona a un mensaje en el canal de un incidente, una alerta, un episodio o un
 | 📌 Un emoji de chincheta, o el propio **Pin to channel** de Slack | Una nota privada, visible solo para tu equipo |
 | 📢 Un emoji de megáfono o altavoz | Una nota pública, mostrada en la página de estado. Solo incidentes y eventos de mantenimiento programado. |
 
-La nota se guarda como tú, con tus permisos, así que tu propia cuenta de Slack debe estar conectada. Un mensaje se guarda solo una vez, reaccione quien reaccione.
+La nota conserva el mensaje tal como lo mostraba Slack: su formato, sus enlaces y su código, las personas y los canales que menciona por su nombre, y sus archivos e imágenes como enlaces a ellos. Una nota pública deja fuera los archivos y las imágenes, ya que solo se abren para tu equipo.
+
+Son las palabras de quien escribió el mensaje: su nombre de OneUptime si su cuenta de Slack está conectada y, si no, el nombre que muestra Slack. Una nota privada se coloca en la cronología en el momento en que se publicó el mensaje, por mucho después que se guarde. Una nota pública se coloca cuando se guarda, que es cuando la muestra la página de estado. La cronología dice quién la guardó. La nota no se vuelve a publicar en el canal, donde el mensaje ya está.
+
+La nota se guarda como tú, con tus permisos. Si tu cuenta de Slack aún no está conectada, OneUptime te pide que la conectes, en un mensaje que solo ves tú, con un botón que guarda el mensaje en cuanto lo hagas. Un mensaje se guarda solo una vez, reaccione quien reaccione.
 
 ## El comando /oneuptime
 
@@ -135,6 +139,7 @@ OneUptime tiene un solo comando en Slack, `/oneuptime`. La palabra que escribes 
 | `/oneuptime incident [title]` | Abre el formulario de incidente, con el título rellenado. |
 | `/oneuptime maintenance [title]` | Abre el formulario de mantenimiento programado, con el título rellenado. |
 | `/oneuptime oncall` | Lista quién está de guardia ahora mismo en cada programación de guardia que puedes ver, hasta cuándo y quién va después. |
+| `/oneuptime page [who] [message]` | Avisa a las personas que mencionas con @ sobre tu mensaje, o abre un formulario para elegir a quién avisar. Consulta [Avisar a alguien desde Slack](#avisar-a-alguien-desde-slack). |
 | `/oneuptime ask [question]`, o cualquier pregunta | OneUptime AI responde sobre tus registros, trazas, métricas, incidentes y monitores. |
 
 Las respuestas a `help` y `oncall` son mensajes que solo ves tú, debajo del comando. Una primera palabra que parece un comando mal escrito, como `incidnet`, recibe el comando al que se parece, no una respuesta de OneUptime AI. Los formularios de incidentes y mantenimientos actúan como tú: consulta [Crear incidentes y mantenimientos desde Slack](#crear-incidentes-y-mantenimientos-desde-slack).
@@ -161,6 +166,15 @@ OneUptime solo responde a lo que va dirigido a él.
 - **Qué puede nombrar un formulario.** El incidente o el evento se crea con tus propios permisos y se te atribuye. Un monitor, una política de guardia, una etiqueta, una gravedad o un estado que no puedes leer, o uno de otro proyecto, se rechaza como uno que el proyecto no tiene, incluso desde un formulario abierto antes de que cambiara tu acceso, y no se crea nada. OneUptime te dice por qué en el canal, en un mensaje que solo tú ves.
 
 **Execute On-Call Policy** en un incidente, una alerta o un episodio funciona igual: necesita permiso para ejecutar una política de guardia (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** y **On-Call Member**, o **Create On-Call Duty Policy Execution Log** en un rol personalizado) y para leer ese incidente, alerta o episodio, y ofrece las políticas de guardia activas que puedes leer.
+
+## Avisar a alguien desde Slack
+
+`/oneuptime page @nawaz The checkout API is throwing 500s` avisa a Nawaz de inmediato. OneUptime crea una alerta cuyo título es tu mensaje, y cada persona que mencionas con @ recibe una llamada, un SMS, una notificación push o un correo electrónico, según sus propias reglas de guardia, hasta que alguien reconoce la alerta.
+
+- **A quién se avisa de inmediato.** A las personas que mencionas con @, cuando un mensaje las sigue. OneUptime identifica a una persona por la cuenta de OneUptime a la que está conectada su cuenta de Slack, o si no, por la dirección de correo electrónico que Slack tiene de ella. Nunca se avisa a nadie de fuera del proyecto.
+- **Todo lo demás abre un formulario.** Sin nadie mencionado con @, sin mensaje, con un grupo de usuarios o `@here`, o con una persona que OneUptime no puede identificar, se abre el formulario **Page someone** con lo que escribiste ya rellenado, y dice a quién no pudo elegir. Elige personas, un equipo, una programación de guardia, que avisa a quien esté de guardia en ella ahora, o una política de guardia, que avisa mediante sus reglas de escalado, y envíalo. Un nombre que escribes primero, como en `/oneuptime page Primary The disk is full`, elige la programación, el equipo o la política con ese nombre.
+- **Dónde se muestra.** El canal muestra el aviso como un solo mensaje, que se mantiene al día: a quién se avisó y cómo, y quién lo reconoció. Donde OneUptime no puede publicar, como en un canal privado al que no se le ha invitado, un mensaje que solo tú ves dice a quién se avisó, con un enlace a la alerta.
+- **Quién puede avisar.** Quien pueda tanto ejecutar una política de guardia como crear una alerta: **Project Owner**, **Project Admin** y **Project Member**, o **On-Call Member** junto con **Alert Member** (**Create On-Call Duty Policy Execution Log** y **Create Alert** en un rol personalizado). Avisar directamente a personas, a un equipo o a una programación, sin una política de guardia detrás del aviso, requiere además acceso a todas las políticas de guardia del proyecto. A cualquier otra persona se le indica donde ejecutó el comando, y no se avisa a nadie.
 
 ## Actuar sobre incidentes, alertas y eventos desde Slack
 

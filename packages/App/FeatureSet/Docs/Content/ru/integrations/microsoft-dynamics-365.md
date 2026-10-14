@@ -269,7 +269,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### Создание обращения для каждого инцидента
 
 :::steps
-1. Создайте с нуля рабочий процесс с именем `Incidents to Dynamics 365`. Нажмите на пунктирный блок и добавьте триггер **On Create Incident**. В его **Fields to pass on** запросите `{"_id": true, "title": true, "description": true, "incidentNumber": true}`.
+1. Создайте с нуля рабочий процесс с именем `Incidents to Dynamics 365`. Нажмите на пунктирный блок и добавьте триггер **On Create Incident**. Его **Fields to pass on** начинаются с поля **Заголовок**: нажмите **Добавить поле** и выберите **Описание** и **Номер инцидента**. ID передаётся всегда.
 2. Нажмите **Добавить компонент**, добавьте блок **API Post (JSON)** и соедините с ним точку **Success** триггера. Задайте его **Identifier** значение `create-case`, а **URL** — `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. В разделе **Дополнительные поля** задайте его **Request Headers** так:
 
@@ -323,7 +323,7 @@ Dynamics 365 поставляется с `severitycode`, у которого в�
 Соберите это вторым рабочим процессом, чтобы сбой здесь никогда не мешал открывать обращения.
 
 :::steps
-1. Создайте рабочий процесс с именем `Close Dynamics 365 cases` и триггером **On Update Incident**. Задайте **Fields to watch** значение `{"currentIncidentStateId": true}`, а **Fields to pass on** — `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
+1. Создайте рабочий процесс с именем `Close Dynamics 365 cases` и триггером **On Update Incident**. В **Fields to watch** нажмите **Добавить поле** и выберите **Current Incident State**. В **Fields to pass on** нажмите **Добавить поле**, откройте **Current Incident State** и выберите **Is Resolved State**.
 2. Добавьте блок **If / Else**: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
 3. После его стороны **Yes** добавьте блок **API Get (JSON)** с **Identifier** `find-case`, теми же заголовками без `Prefer` и таким **URL**:
 

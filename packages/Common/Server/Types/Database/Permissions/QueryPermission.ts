@@ -4,6 +4,7 @@ import Select from "../Select";
 import ColumnPermissions from "./ColumnPermission";
 import ColumnRefusalMessage from "./ColumnRefusalMessage";
 import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
+import RelationListPermission from "./RelationListPermission";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -228,6 +229,14 @@ export default class QueryPermission {
     const excludedColumnNames: Array<string> =
       ColumnPermissions.getExcludedColumnNames();
 
+    /*
+     * What the caller holds, read the way the select check reads it - for
+     * the columns a relation filter names (checkRelationFilterPermission).
+     */
+    const held: HeldPermissions = HeldPermissionsUtil.fromRows({
+      rows: ColumnPermissions.getColumnCheckRows(props),
+    });
+
     // Now we need to check all columns.
 
     for (const key in query) {
@@ -284,6 +293,151 @@ export default class QueryPermission {
           }),
         );
       }
+
+      QueryPermission.checkRelationFilterPermission({
+        model: model,
+        relationColumn: key,
+        filter: (query as Record<string, unknown>)[key],
+        held: held,
+        props: props,
+      });
     }
+  }
+
+  /*
+   * A FILTER THROUGH A RELATION IS HELD TO THE RELATED COLUMN'S READ.
+   *
+   * A query may filter a record by a column of a record it names -
+   * `{ user: { name: Search("jo") } }` on a team member - and the database
+   * joins the related table to answer it. The check above holds the
+   * relation itself to the caller's read, but nothing held the related
+   * column: a filter on a status page's `callSmsConfig.twilioAuthToken`, or
+   * on its `smtpConfig.password`, was answered for anyone who may read the
+   * page. Which records a filter matches says something about the value it
+   * compares, so a WHERE reads a value as surely as a SELECT does.
+   *
+   * So each column a relation filter names is held to the related column's
+   * read: a column marked canReadOnRelationQuery, which any reader of the
+   * relation may select, or one of the id and timestamp columns every
+   * select may name, is filtered on freely; any other only by a caller who
+   * may read that column of the related model (canReadRelatedColumn) - and
+   * never by a workflow's step when the related model is a setting that
+   * holds credentials, whose read a step acting as a Project Admin is not
+   * lent (RelationListPermission.isReadWithheldFromWorkflow): whoever may
+   * edit a workflow decides what its Find steps filter by. A filter a level
+   * deeper is held to the same rule from there. Root and master admin reads
+   * never reach this check.
+   */
+  private static checkRelationFilterPermission(data: {
+    model: BaseModel;
+    relationColumn: string;
+    filter: unknown;
+    held: HeldPermissions;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    const filters: Array<unknown> = Array.isArray(data.filter)
+      ? data.filter
+      : [data.filter];
+
+    const relationFilters: Array<Record<string, unknown>> = filters.filter(
+      (filter: unknown): filter is Record<string, unknown> => {
+        return QueryPermission.isPlainObject(filter);
+      },
+    );
+
+    if (relationFilters.length === 0) {
+      return;
+    }
+
+    const tableColumnMetadata: TableColumnMetadata | undefined =
+      data.model.getTableColumnMetadata(data.relationColumn);
+
+    if (
+      !tableColumnMetadata ||
+      !tableColumnMetadata.modelType ||
+      (tableColumnMetadata.type !== TableColumnType.Entity &&
+        tableColumnMetadata.type !== TableColumnType.EntityArray)
+    ) {
+      return;
+    }
+
+    const relatedModel: BaseModel = new tableColumnMetadata.modelType();
+
+    const excludedColumnNames: Array<string> =
+      ColumnPermissions.getExcludedColumnNames();
+
+    for (const relationFilter of relationFilters) {
+      for (const relatedColumn of Object.keys(relationFilter)) {
+        const relatedColumnMetadata: TableColumnMetadata | undefined =
+          relatedModel.getTableColumnMetadata(relatedColumn);
+
+        if (!relatedColumnMetadata) {
+          throw new BadDataException(
+            `Column ${relatedColumn} not found on ${relatedModel.singularName}`,
+          );
+        }
+
+        if (
+          !excludedColumnNames.includes(relatedColumn) &&
+          !relatedColumnMetadata.canReadOnRelationQuery &&
+          (!QueryPermission.canReadRelatedColumn({
+            relatedModel: relatedModel,
+            column: relatedColumn,
+            held: data.held,
+          }) ||
+            RelationListPermission.isReadWithheldFromWorkflow(
+              tableColumnMetadata.modelType,
+              data.props,
+            ))
+        ) {
+          throw new NotAuthorizedException(
+            ColumnRefusalMessage.getRelationQueryRefusal({
+              column: relatedColumn,
+              relatedModelName: relatedModel.singularName || "",
+              relationColumn: data.relationColumn,
+              permissions: QueryPermission.getRelatedReadPermissions(
+                relatedModel,
+                relatedColumn,
+              ),
+            }),
+          );
+        }
+
+        QueryPermission.checkRelationFilterPermission({
+          model: relatedModel,
+          relationColumn: relatedColumn,
+          filter: relationFilter[relatedColumn],
+          held: data.held,
+          props: data.props,
+        });
+      }
+    }
+  }
+
+  // Who may read one column of a related model, as a refusal names them.
+  private static getRelatedReadPermissions(
+    relatedModel: BaseModel,
+    column: string,
+  ): Array<Permission> {
+    return (
+      relatedModel.getColumnAccessControlFor(column)?.read ||
+      relatedModel.getReadPermissions() ||
+      []
+    );
+  }
+
+  /*
+   * A filter object: what a relation filter is. Never an operator
+   * (Search, Includes...), an id or a date, which are values a column is
+   * compared with.
+   */
+  private static isPlainObject(value: unknown): boolean {
+    if (!value || typeof value !== Typeof.Object || Array.isArray(value)) {
+      return false;
+    }
+
+    const prototype: unknown = Object.getPrototypeOf(value);
+
+    return prototype === Object.prototype || prototype === null;
   }
 }

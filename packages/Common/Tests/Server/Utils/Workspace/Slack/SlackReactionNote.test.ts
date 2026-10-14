@@ -10,20 +10,24 @@ import type { SpyInstance } from "jest-mock";
 import IncidentEpisode from "../../../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
+import User from "../../../../../Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import GlobalCache from "../../../../../Server/Infrastructure/GlobalCache";
 import AlertEpisodeService from "../../../../../Server/Services/AlertEpisodeService";
 import AlertService from "../../../../../Server/Services/AlertService";
 import IncidentEpisodeInternalNoteService from "../../../../../Server/Services/IncidentEpisodeInternalNoteService";
 import IncidentEpisodeService from "../../../../../Server/Services/IncidentEpisodeService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import ScheduledMaintenanceService from "../../../../../Server/Services/ScheduledMaintenanceService";
+import UserService from "../../../../../Server/Services/UserService";
 import WorkspaceNotificationLogService from "../../../../../Server/Services/WorkspaceNotificationLogService";
 import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../../../Server/Services/WorkspaceUserAuthTokenService";
 import SlackActionAuthorization from "../../../../../Server/Utils/Workspace/Slack/Actions/Authorization";
 import SlackAlertActions from "../../../../../Server/Utils/Workspace/Slack/Actions/Alert";
 import SlackAlertEpisodeActions from "../../../../../Server/Utils/Workspace/Slack/Actions/AlertEpisode";
+import SlackConnectPrompt from "../../../../../Server/Utils/Workspace/Slack/Actions/ConnectPrompt";
 import SlackIncidentActions from "../../../../../Server/Utils/Workspace/Slack/Actions/Incident";
 import SlackIncidentEpisodeActions from "../../../../../Server/Utils/Workspace/Slack/Actions/IncidentEpisode";
 import SlackReactionNoteActions, {
@@ -31,7 +35,11 @@ import SlackReactionNoteActions, {
 } from "../../../../../Server/Utils/Workspace/Slack/Actions/ReactionNote";
 import SlackScheduledMaintenanceActions from "../../../../../Server/Utils/Workspace/Slack/Actions/ScheduledMaintenance";
 import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
+import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import { WorkspacePendingActionKind } from "../../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
+import { WorkspaceEventType } from "../../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import WorkspaceReactionNote, {
+  WorkspaceMessageNoteOutcome,
   WorkspaceNoteResource,
   WorkspaceNoteResourceType,
   WorkspaceNoteSaveResult,
@@ -40,6 +48,8 @@ import URL from "../../../../../Types/API/URL";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
+import { JSONObject } from "../../../../../Types/JSON";
+import Name from "../../../../../Types/Name";
 import ObjectID from "../../../../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { WorkspaceNoteType } from "../../../../../Types/Workspace/WorkspaceNoteReaction";
@@ -47,15 +57,18 @@ import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 
 /*
  * reaction_added / pin_added in Slack: which incident / alert / ... the
- * message becomes a note on, who it is attributed to, and when nothing is
- * written at all.
+ * message becomes a note on, as what - the message as it read in Slack,
+ * whose words, posted when - who saved it, how that is confirmed, and when
+ * nothing is written at all.
  */
 
 const projectId: ObjectID = ObjectID.generate();
 const secondProjectId: ObjectID = ObjectID.generate();
 const oneUptimeUserId: ObjectID = ObjectID.generate();
+// Aidil's OneUptime account, when his Slack account is connected.
+const posterUserId: ObjectID = ObjectID.generate();
 
-// The member's own props, as SlackActionAuthorization.authorize builds them.
+// The member's own props, as WorkspaceActionAuthorization.authorize builds them.
 const memberProps: DatabaseCommonInteractionProps = {
   userId: oneUptimeUserId,
   tenantId: projectId,
@@ -63,10 +76,13 @@ const memberProps: DatabaseCommonInteractionProps = {
 const incidentId: ObjectID = ObjectID.generate();
 
 const TEAM_ID: string = "T0WORKSPACE";
+// Jane pins; Aidil wrote the message, three hours before.
 const SLACK_USER_ID: string = "U0JANE";
+const POSTER_SLACK_ID: string = "U0AIDIL";
 const CHANNEL_ID: string = "C0INCIDENT";
-const MESSAGE_TS: string = "1700000000.000200";
-const THREAD_TS: string = "1700000000.000100";
+const MESSAGE_TS: string = "1791454620.000200";
+const POSTED_AT: string = "2026-10-08T10:17:00.000Z";
+const THREAD_TS: string = "1791454000.000100";
 
 function reaction(overrides?: Partial<SlackReactionData>): SlackReactionData {
   return {
@@ -75,6 +91,29 @@ function reaction(overrides?: Partial<SlackReactionData>): SlackReactionData {
     userId: SLACK_USER_ID,
     channelId: CHANNEL_ID,
     messageTs: MESSAGE_TS,
+    ...(overrides || {}),
+  };
+}
+
+// A message as conversations.history hands it over.
+function slackMessage(overrides?: JSONObject): JSONObject {
+  return {
+    type: "message",
+    user: POSTER_SLACK_ID,
+    ts: MESSAGE_TS,
+    text: "Restarted the primary DB",
+    blocks: [
+      {
+        type: "rich_text",
+        block_id: "b1",
+        elements: [
+          {
+            type: "rich_text_section",
+            elements: [{ type: "text", text: "Restarted the primary DB" }],
+          },
+        ],
+      },
+    ],
     ...(overrides || {}),
   };
 }
@@ -109,12 +148,23 @@ let resolveSpy: SpyInstance<
   typeof WorkspaceReactionNote.resolveResourceForChannel
 >;
 let userAuthFindSpy: AnySpy;
-let authorizeSpy: SpyInstance<typeof SlackActionAuthorization.authorize>;
-let fetchSpy: SpyInstance<typeof SlackUtil.getMessageDetailsByTimestamp>;
+let authorizeSpy: AnySpy;
+let fetchSpy: AnySpy;
+let namesSpy: AnySpy;
 let saveSpy: SpyInstance<typeof WorkspaceReactionNote.saveNote>;
-let threadReplySpy: SpyInstance<typeof SlackUtil.sendMessageToThread>;
+let threadReplySpy: AnySpy;
+let refusalSpy: AnySpy;
+let promptSpy: AnySpy;
+
+// Which Slack accounts are connected, to which OneUptime member.
+let connected: Record<string, ObjectID>;
 
 beforeEach((): void => {
+  connected = { [SLACK_USER_ID]: oneUptimeUserId };
+
+  jest.spyOn(GlobalCache, "setStringIfNotExists").mockResolvedValue(true);
+  jest.spyOn(GlobalCache, "deleteKey").mockResolvedValue(undefined as never);
+
   projectAuthFindSpy = jest
     .spyOn(WorkspaceProjectAuthTokenService, "findBy")
     .mockResolvedValue([projectAuth(projectId)]) as AnySpy;
@@ -123,19 +173,40 @@ beforeEach((): void => {
     .spyOn(WorkspaceReactionNote, "resolveResourceForChannel")
     .mockResolvedValue(incidentResource());
 
-  const userAuth: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
-  userAuth.userId = oneUptimeUserId;
   userAuthFindSpy = jest
     .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
-    .mockResolvedValue(userAuth) as AnySpy;
+    .mockImplementation((async (data: {
+      query: { workspaceUserId: string };
+    }): Promise<WorkspaceUserAuthToken | null> => {
+      const userId: ObjectID | undefined =
+        connected[data.query.workspaceUserId];
+
+      if (!userId) {
+        return null;
+      }
+
+      const userAuth: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+      userAuth.userId = userId;
+      return userAuth;
+    }) as never) as AnySpy;
 
   authorizeSpy = jest
-    .spyOn(SlackActionAuthorization, "authorize")
-    .mockResolvedValue(memberProps);
+    .spyOn(WorkspaceActionAuthorization, "authorize")
+    .mockResolvedValue(memberProps) as AnySpy;
 
   fetchSpy = jest
-    .spyOn(SlackUtil, "getMessageDetailsByTimestamp")
-    .mockResolvedValue({ text: "Restarted the primary DB", threadTs: null });
+    .spyOn(SlackUtil, "getMessage")
+    .mockResolvedValue(slackMessage()) as AnySpy;
+
+  namesSpy = jest
+    .spyOn(SlackUtil, "getUserDisplayName")
+    .mockImplementation((async (data: {
+      userId: string;
+    }): Promise<{ name: string; isBot: boolean } | null> => {
+      return data.userId === POSTER_SLACK_ID
+        ? { name: "Aidil Rahman", isBot: false }
+        : null;
+    }) as never) as AnySpy;
 
   saveSpy = jest
     .spyOn(WorkspaceReactionNote, "saveNote")
@@ -148,7 +219,15 @@ beforeEach((): void => {
 
   threadReplySpy = jest
     .spyOn(SlackUtil, "sendMessageToThread")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(undefined as never) as AnySpy;
+
+  refusalSpy = jest
+    .spyOn(SlackActionAuthorization, "sendRefusal")
+    .mockResolvedValue(undefined as never) as AnySpy;
+
+  promptSpy = jest
+    .spyOn(SlackConnectPrompt, "promptOnce")
+    .mockResolvedValue(null) as AnySpy;
 });
 
 afterEach((): void => {
@@ -156,25 +235,173 @@ afterEach((): void => {
 });
 
 describe("SlackReactionNoteActions.handleEmojiReaction", () => {
-  test("a pin saves the message as a private note and confirms in the thread", async () => {
+  test("a pin saves the message as a private note, as Aidil's words, posted when he posted it", async () => {
     await SlackReactionNoteActions.handleEmojiReaction(reaction());
 
-    // Saved with the member's own props: the note is theirs.
+    /*
+     * Saved with the member's own props - Jane saved it - as the message
+     * Aidil wrote: he has no OneUptime account, so he is named as Slack
+     * names him, and the note is filed when he posted it.
+     */
+    expect(saveSpy).toHaveBeenCalledTimes(1);
     expect(saveSpy).toHaveBeenCalledWith({
       resource: incidentResource(),
       noteType: WorkspaceNoteType.Private,
       props: memberProps,
       note: "Restarted the primary DB",
       sourceMessageKey: `${CHANNEL_ID}:${MESSAGE_TS}`,
+      savedFromChatMessage: {
+        workspaceType: WorkspaceType.Slack,
+        authorName: "Aidil Rahman",
+        postedAt: POSTED_AT,
+      },
     });
     expect(saveSpy.mock.calls[0]![0].props).toBe(memberProps);
 
-    // Slack's mrkdwn, as SlackUtil.slackify writes it (bold between zero-width spaces).
+    expect(fetchSpy).toHaveBeenCalledWith({
+      authToken: "xoxb-" + projectId.toString(),
+      channelId: CHANNEL_ID,
+      messageTs: MESSAGE_TS,
+    });
+
+    /*
+     * One confirmation, in the message's thread, with no link preview:
+     * Slack's mrkdwn as SlackUtil.slackify writes it (bold between
+     * zero-width spaces). The message itself is not posted again.
+     */
+    expect(threadReplySpy).toHaveBeenCalledTimes(1);
     expect(threadReplySpy).toHaveBeenCalledWith({
       authToken: "xoxb-" + projectId.toString(),
       channelId: CHANNEL_ID,
       threadTs: MESSAGE_TS,
-      text: "✅ Message saved as \u200B*private note*\u200B to <https://oneuptime.test/incidents/42|Incident #42>.",
+      text: "✅ Saved as a ​*private note*​ on <https://oneuptime.test/incidents/42|Incident #42>.",
+      withoutLinkPreviews: true,
+    });
+    expect(refusalSpy).not.toHaveBeenCalled();
+  });
+
+  test("the note keeps the message's formatting, links and mentions", async () => {
+    connected[POSTER_SLACK_ID] = posterUserId;
+    namesSpy.mockImplementation((async (data: { userId: string }) => {
+      return data.userId === "U0NITIN"
+        ? { name: "Nitin Kumar", isBot: false }
+        : { name: "Aidil Rahman", isBot: false };
+    }) as never);
+
+    fetchSpy.mockResolvedValue(
+      slackMessage({
+        text: "*Root cause:* expired cert <@U0NITIN> <https://wiki.example.com/rca|the RCA>",
+        blocks: [
+          {
+            type: "rich_text",
+            elements: [
+              {
+                type: "rich_text_section",
+                elements: [
+                  { type: "text", text: "Root cause:", style: { bold: true } },
+                  { type: "text", text: " expired cert, cc " },
+                  { type: "user", user_id: "U0NITIN" },
+                  { type: "text", text: " - see " },
+                  {
+                    type: "link",
+                    url: "https://wiki.example.com/rca",
+                    text: "the RCA",
+                  },
+                ],
+              },
+              {
+                type: "rich_text_list",
+                style: "bullet",
+                elements: [
+                  {
+                    type: "rich_text_section",
+                    elements: [{ type: "text", text: "renewed" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        files: [
+          {
+            id: "F1",
+            name: "graph.png",
+            permalink: "https://acme.slack.com/files/U0AIDIL/F1/graph.png",
+          },
+        ],
+      }),
+    );
+
+    await SlackReactionNoteActions.handleEmojiReaction(reaction());
+    await SlackReactionNoteActions.handleEmojiReaction(
+      reaction({ reaction: "mega" }),
+    );
+
+    expect(saveSpy.mock.calls[0]![0].note).toBe(
+      [
+        "**Root cause:** expired cert, cc @Nitin Kumar - see [the RCA](https://wiki.example.com/rca)",
+        "",
+        "- renewed",
+        "",
+        "📎 [graph.png](https://acme.slack.com/files/U0AIDIL/F1/graph.png)",
+      ].join("\n"),
+    );
+    // A public note leaves out the links into the company's Slack.
+    expect(saveSpy.mock.calls[1]![0].note).toBe(
+      [
+        "**Root cause:** expired cert, cc @Nitin Kumar - see [the RCA](https://wiki.example.com/rca)",
+        "",
+        "- renewed",
+      ].join("\n"),
+    );
+  });
+
+  test("a message a connected member wrote is saved as theirs, by their OneUptime name", async () => {
+    connected[POSTER_SLACK_ID] = posterUserId;
+
+    const poster: User = new User();
+    poster.name = new Name("Aidil R.");
+    const userSpy: AnySpy = jest
+      .spyOn(UserService, "findOneById")
+      .mockResolvedValue(poster) as AnySpy;
+
+    await SlackReactionNoteActions.handleEmojiReaction(reaction());
+
+    expect(userSpy.mock.calls[0]![0].id).toBe(posterUserId);
+    expect(saveSpy.mock.calls[0]![0].savedFromChatMessage).toEqual({
+      workspaceType: WorkspaceType.Slack,
+      authorName: "Aidil R.",
+      authorUserId: posterUserId.toString(),
+      postedAt: POSTED_AT,
+    });
+  });
+
+  test("a message an app posted is saved as the app's", async () => {
+    fetchSpy.mockResolvedValue(
+      slackMessage({
+        user: undefined,
+        bot_id: "B0DD",
+        bot_profile: { name: "Datadog" },
+      }),
+    );
+
+    await SlackReactionNoteActions.handleEmojiReaction(reaction());
+
+    expect(saveSpy.mock.calls[0]![0].savedFromChatMessage).toEqual({
+      workspaceType: WorkspaceType.Slack,
+      authorName: "Datadog",
+      postedAt: POSTED_AT,
+    });
+  });
+
+  test("somebody Slack does not name is named nobody, never left out", async () => {
+    namesSpy.mockResolvedValue(null);
+
+    await SlackReactionNoteActions.handleEmojiReaction(reaction());
+
+    expect(saveSpy.mock.calls[0]![0].savedFromChatMessage).toEqual({
+      workspaceType: WorkspaceType.Slack,
+      postedAt: POSTED_AT,
     });
   });
 
@@ -195,14 +422,14 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
     expect(text).not.toContain("<!channel>");
   });
 
-  test("a megaphone saves a public note", async () => {
+  test("a megaphone saves a public note, and says it is on the status page", async () => {
     await SlackReactionNoteActions.handleEmojiReaction(
       reaction({ reaction: "mega" }),
     );
 
     expect(saveSpy.mock.calls[0]![0].noteType).toBe(WorkspaceNoteType.Public);
-    expect(threadReplySpy.mock.calls[0]![0].text).toContain(
-      "This note will be visible on the status page.",
+    expect(threadReplySpy.mock.calls[0]![0].text).toBe(
+      "✅ Saved as a ​*public note*​ on <https://oneuptime.test/incidents/42|Incident #42>. It is shown on the status page.",
     );
   });
 
@@ -211,28 +438,23 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
       reaction({ reaction: "loudspeaker" }),
     );
 
-    const args: Parameters<typeof SlackActionAuthorization.authorize>[0] =
-      authorizeSpy.mock.calls[0]![0];
-    expect(args.requester).toEqual({
+    expect(authorizeSpy).toHaveBeenCalledWith({
       userId: oneUptimeUserId,
       projectId: projectId,
-      projectAuthToken: "xoxb-" + projectId.toString(),
-      slackUserId: SLACK_USER_ID,
-      // A refusal is told in the channel the reaction was made in.
-      slackChannelId: CHANNEL_ID,
+      modelType: IncidentPublicNote,
+      action: "add a public note to this incident",
+      resources: [{ service: IncidentService, id: incidentId }],
     });
-    expect(args.modelType).toBe(IncidentPublicNote);
-    expect(args.action).toBe("add a public note to this incident");
-    expect(args.resources).toEqual([
-      { service: IncidentService, id: incidentId },
-    ]);
   });
 
   test("REGRESSION: a reply in a thread is read and confirmed in that thread", async () => {
-    fetchSpy.mockResolvedValue({
-      text: "Rolled back deploy 1234",
-      threadTs: THREAD_TS,
-    });
+    fetchSpy.mockResolvedValue(
+      slackMessage({
+        text: "Rolled back deploy 1234",
+        blocks: [],
+        thread_ts: THREAD_TS,
+      }),
+    );
 
     await SlackReactionNoteActions.handleEmojiReaction(reaction());
 
@@ -270,6 +492,9 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
       workspaceType: WorkspaceType.Slack,
       projectId: secondProjectId,
     });
+    expect(fetchSpy.mock.calls[0]![0].authToken).toBe(
+      "xoxb-" + secondProjectId.toString(),
+    );
     expect(threadReplySpy.mock.calls[0]![0].authToken).toBe(
       "xoxb-" + secondProjectId.toString(),
     );
@@ -344,40 +569,148 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
     expect(saveSpy).not.toHaveBeenCalled();
   });
 
-  test("a Slack user who never connected OneUptime is ignored", async () => {
-    userAuthFindSpy.mockResolvedValue(null);
+  test("somebody who never connected Slack is asked once, only they see it, with a button that saves the message", async () => {
+    connected = {};
 
     await SlackReactionNoteActions.handleEmojiReaction(reaction());
 
     expect(authorizeSpy).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(saveSpy).not.toHaveBeenCalled();
+    expect(threadReplySpy).not.toHaveBeenCalled();
+
+    expect(promptSpy).toHaveBeenCalledTimes(1);
+    expect(promptSpy).toHaveBeenCalledWith({
+      projectId: projectId,
+      place: {
+        projectAuthToken: "xoxb-" + projectId.toString(),
+        slackUserId: SLACK_USER_ID,
+        slackChannelId: CHANNEL_ID,
+      },
+      slackTeamId: TEAM_ID,
+      description: {
+        // The prompt is at the foot of the channel: not "this message".
+        purpose:
+          "save the message you pinned as a private note on this incident",
+        pendingAction: {
+          kind: WorkspacePendingActionKind.SavePrivateNote,
+          eventType: WorkspaceEventType.Incident,
+          eventId: incidentId,
+          message: { channelId: CHANNEL_ID, messageId: MESSAGE_TS },
+        },
+      },
+      // One question for the message, however many pins.
+      conversation: {
+        workspaceType: WorkspaceType.Slack,
+        workspaceId: TEAM_ID,
+        conversationId: `${CHANNEL_ID}:${MESSAGE_TS}`,
+        workspaceUserId: SLACK_USER_ID,
+      },
+    });
   });
 
-  test("a refused user's message is never read or saved", async () => {
-    authorizeSpy.mockResolvedValue(null);
+  test("a megaphone from somebody not connected asks to save a public note", async () => {
+    connected = {};
+
+    await SlackReactionNoteActions.handleEmojiReaction(
+      reaction({ reaction: "mega" }),
+    );
+
+    expect(promptSpy.mock.calls[0]![0].description.purpose).toBe(
+      "save the message you reacted to as a public note on this incident",
+    );
+    expect(promptSpy.mock.calls[0]![0].description.pendingAction.kind).toBe(
+      WorkspacePendingActionKind.SavePublicNote,
+    );
+  });
+
+  test("a refused member is told why, only they see it, and the message is never read or saved", async () => {
+    authorizeSpy.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission to add a private note to this incident.",
+      ),
+    );
 
     await SlackReactionNoteActions.handleEmojiReaction(reaction());
 
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(saveSpy).not.toHaveBeenCalled();
     expect(threadReplySpy).not.toHaveBeenCalled();
+    expect(refusalSpy).toHaveBeenCalledWith({
+      requester: {
+        userId: oneUptimeUserId,
+        projectId: projectId,
+        projectAuthToken: "xoxb-" + projectId.toString(),
+        slackUserId: SLACK_USER_ID,
+        slackChannelId: CHANNEL_ID,
+      },
+      message:
+        "You do not have permission to add a private note to this incident.",
+    });
   });
 
-  test("a message Slack will not return is not saved", async () => {
+  test("an unexpected authorization failure is thrown, not told as a refusal", async () => {
+    authorizeSpy.mockRejectedValue(new Error("redis timeout"));
+
+    await expect(
+      SlackReactionNoteActions.handleEmojiReaction(reaction()),
+    ).rejects.toThrow("redis timeout");
+
+    expect(refusalSpy).not.toHaveBeenCalled();
+  });
+
+  test("a message Slack cannot read is not saved", async () => {
     fetchSpy.mockRejectedValue(new Error("channel_not_found"));
 
     await SlackReactionNoteActions.handleEmojiReaction(reaction());
 
     expect(saveSpy).not.toHaveBeenCalled();
+    expect(refusalSpy).not.toHaveBeenCalled();
   });
 
-  test("a message without text is not saved", async () => {
+  test("a message Slack no longer has is not saved", async () => {
     fetchSpy.mockResolvedValue(null);
 
     await SlackReactionNoteActions.handleEmojiReaction(reaction());
 
     expect(saveSpy).not.toHaveBeenCalled();
+    expect(threadReplySpy).not.toHaveBeenCalled();
+  });
+
+  test("a message with nothing to save is not saved, and the member is told", async () => {
+    fetchSpy.mockResolvedValue(slackMessage({ text: "", blocks: [] }));
+
+    await SlackReactionNoteActions.handleEmojiReaction(reaction());
+
+    expect(saveSpy).not.toHaveBeenCalled();
+    expect(refusalSpy.mock.calls[0]![0].message).toBe(
+      "The message you pinned has no text to save as a note.",
+    );
+  });
+
+  test("a message of only files is not put on the status page, and the member is told why", async () => {
+    fetchSpy.mockResolvedValue(
+      slackMessage({
+        text: "",
+        blocks: [],
+        files: [
+          {
+            id: "F1",
+            name: "graph.png",
+            permalink: "https://acme.slack.com/files/U0AIDIL/F1/graph.png",
+          },
+        ],
+      }),
+    );
+
+    await SlackReactionNoteActions.handleEmojiReaction(
+      reaction({ reaction: "mega" }),
+    );
+
+    expect(saveSpy).not.toHaveBeenCalled();
+    expect(refusalSpy.mock.calls[0]![0].message).toBe(
+      "The message you reacted to has only files or images, which the status page does not show, so it was not saved as a public note.",
+    );
   });
 
   test("reacting again, or pin and 📌 together, saves once and confirms once", async () => {
@@ -386,12 +719,10 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
     await SlackReactionNoteActions.handleEmojiReaction(reaction());
 
     expect(threadReplySpy).not.toHaveBeenCalled();
+    expect(refusalSpy).not.toHaveBeenCalled();
   });
 
-  test("a failed save sends no confirmation", async () => {
-    const directMessageSpy: AnySpy = jest
-      .spyOn(SlackUtil, "sendDirectMessageToUser")
-      .mockResolvedValue(undefined as never) as AnySpy;
+  test("a failed save sends no confirmation, and no refusal", async () => {
     saveSpy.mockRejectedValue(new Error("database is down"));
 
     await expect(
@@ -400,7 +731,7 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
 
     expect(threadReplySpy).not.toHaveBeenCalled();
     // Not a refusal: its text is for operators, not the member.
-    expect(directMessageSpy).not.toHaveBeenCalled();
+    expect(refusalSpy).not.toHaveBeenCalled();
   });
 
   /*
@@ -430,28 +761,16 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
   ])(
     "a save its own create refuses (%s) is told to the member, and nothing is confirmed",
     async (_what: string, refusal: Error) => {
-      const directMessageSpy: AnySpy = jest
-        .spyOn(SlackUtil, "sendDirectMessageToUser")
-        .mockResolvedValue(undefined as never) as AnySpy;
       saveSpy.mockRejectedValue(refusal);
 
       await expect(
         SlackReactionNoteActions.handleEmojiReaction(reaction()),
       ).resolves.toBeUndefined();
 
-      expect(directMessageSpy).toHaveBeenCalledTimes(1);
-      expect(directMessageSpy).toHaveBeenCalledWith({
-        authToken: "xoxb-" + projectId.toString(),
-        workspaceUserId: SLACK_USER_ID,
-        messageBlocks: [
-          {
-            _type: "WorkspacePayloadMarkdown",
-            text: `Could not save the message as a note: ${refusal.message}`,
-          },
-        ],
-        // A direct message notifies: its notification says what it is.
-        text: `Could not save the message as a note: ${refusal.message}`,
-      });
+      expect(refusalSpy).toHaveBeenCalledTimes(1);
+      expect(refusalSpy.mock.calls[0]![0].message).toBe(
+        `Could not save the message as a note: ${refusal.message}`,
+      );
       expect(threadReplySpy).not.toHaveBeenCalled();
     },
   );
@@ -467,8 +786,114 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
   });
 });
 
+describe("SlackReactionNoteActions.saveMessage: finished once an account is connected", () => {
+  const requester: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    projectAuthToken: string;
+    slackUserId: string;
+    slackChannelId: string;
+  } = {
+    userId: oneUptimeUserId,
+    projectId: projectId,
+    projectAuthToken: "xoxb-project",
+    slackUserId: SLACK_USER_ID,
+    slackChannelId: CHANNEL_ID,
+  };
+
+  test("saves the message and confirms it in its thread", async () => {
+    await expect(
+      SlackReactionNoteActions.saveMessage({
+        requester: requester,
+        resource: incidentResource(),
+        noteType: WorkspaceNoteType.Private,
+        channelId: CHANNEL_ID,
+        messageTs: MESSAGE_TS,
+        tellPerson: false,
+      }),
+    ).resolves.toEqual({ outcome: WorkspaceMessageNoteOutcome.Saved });
+
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    expect(threadReplySpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a refusal comes back to be told with the Connect answer, not on its own", async () => {
+    authorizeSpy.mockRejectedValue(new NotAuthorizedException("No."));
+
+    await expect(
+      SlackReactionNoteActions.saveMessage({
+        requester: requester,
+        resource: incidentResource(),
+        noteType: WorkspaceNoteType.Private,
+        channelId: CHANNEL_ID,
+        messageTs: MESSAGE_TS,
+        tellPerson: false,
+      }),
+    ).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.Refused,
+      reason: "No.",
+    });
+    expect(refusalSpy).not.toHaveBeenCalled();
+  });
+
+  test("nothing to save, saved already, gone, and a failure each come back as such", async () => {
+    fetchSpy.mockResolvedValueOnce(slackMessage({ text: "", blocks: [] }));
+    await expect(
+      SlackReactionNoteActions.saveMessage({
+        requester: requester,
+        resource: incidentResource(),
+        noteType: WorkspaceNoteType.Private,
+        channelId: CHANNEL_ID,
+        messageTs: MESSAGE_TS,
+        tellPerson: false,
+      }),
+    ).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.NothingToSave,
+      reason: "The message you pinned has no text to save as a note.",
+    });
+
+    saveSpy.mockResolvedValueOnce(WorkspaceNoteSaveResult.Duplicate);
+    await expect(
+      SlackReactionNoteActions.saveMessage({
+        requester: requester,
+        resource: incidentResource(),
+        noteType: WorkspaceNoteType.Private,
+        channelId: CHANNEL_ID,
+        messageTs: MESSAGE_TS,
+        tellPerson: false,
+      }),
+    ).resolves.toEqual({ outcome: WorkspaceMessageNoteOutcome.AlreadySaved });
+
+    fetchSpy.mockResolvedValueOnce(null);
+    await expect(
+      SlackReactionNoteActions.saveMessage({
+        requester: requester,
+        resource: incidentResource(),
+        noteType: WorkspaceNoteType.Private,
+        channelId: CHANNEL_ID,
+        messageTs: MESSAGE_TS,
+        tellPerson: false,
+      }),
+    ).resolves.toEqual({ outcome: WorkspaceMessageNoteOutcome.NotFound });
+
+    fetchSpy.mockRejectedValueOnce(new Error("ratelimited"));
+    await expect(
+      SlackReactionNoteActions.saveMessage({
+        requester: requester,
+        resource: incidentResource(),
+        noteType: WorkspaceNoteType.Private,
+        channelId: CHANNEL_ID,
+        messageTs: MESSAGE_TS,
+        tellPerson: false,
+      }),
+    ).resolves.toEqual({ outcome: WorkspaceMessageNoteOutcome.Failed });
+
+    expect(refusalSpy).not.toHaveBeenCalled();
+  });
+});
+
 describe("REGRESSION: Slack episode channels (never worked before)", () => {
-  test("a pin in an incident episode channel saves a private episode note", async () => {
+  test("a pin in an incident episode channel saves a private episode note, filed when the message was posted", async () => {
     resolveSpy.mockRestore();
     saveSpy.mockRestore();
 
@@ -505,6 +930,12 @@ describe("REGRESSION: Slack episode channels (never worked before)", () => {
       props: memberProps,
       note: "Restarted the primary DB",
       postedFromSlackMessageId: `${CHANNEL_ID}:${MESSAGE_TS}`,
+      savedFromChatMessage: {
+        workspaceType: WorkspaceType.Slack,
+        authorName: "Aidil Rahman",
+        postedAt: POSTED_AT,
+      },
+      postedAt: new Date(POSTED_AT),
     });
   });
 });
@@ -659,6 +1090,11 @@ describe("SlackReactionNoteActions.getReactionDataFromPinEvent", () => {
       note: "Restarted the primary DB",
       // Same key as a 📌 on the same message, so both together save once.
       sourceMessageKey: `${CHANNEL_ID}:${MESSAGE_TS}`,
+      savedFromChatMessage: {
+        workspaceType: WorkspaceType.Slack,
+        authorName: "Aidil Rahman",
+        postedAt: POSTED_AT,
+      },
     });
   });
 });

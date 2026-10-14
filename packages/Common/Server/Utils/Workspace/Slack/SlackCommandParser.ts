@@ -4,6 +4,7 @@ import WorkspaceCommands, {
   WorkspaceCommandInput,
   WorkspaceCommandName,
 } from "../WorkspaceCommands";
+import { WorkspacePageToken } from "../WorkspacePageText";
 
 /*
  * A SLASH COMMAND, AS SLACK SENDS IT AND AS ONEUPTIME READS IT.
@@ -19,7 +20,8 @@ import WorkspaceCommands, {
  * "&lt;" and "&gt;", and, with escaping on, people and channels as
  * <@U0123|name> and <#C0123|name>: a form's title and a question are read as
  * they were typed (toPlainText). The text as Slack sent it stays at hand for
- * a command that needs the ids in it (rawText).
+ * a command that needs the ids in it (rawText): `/oneuptime page @nawaz`
+ * pages the person behind <@U0123|nawaz> (getPageTokens).
  */
 
 // The commands of apps created from a manifest that still had them.
@@ -52,6 +54,9 @@ const SLACK_TOKEN: RegExp = /<([^<>\n]*)>/g;
 
 const LEADING_AT: RegExp = /^@/;
 const LEADING_HASH: RegExp = /^#/;
+
+// One character of white space.
+const WHITE_SPACE_CHARACTER: RegExp = /\s/;
 
 const ENTITY_LESS_THAN: RegExp = /&lt;/g;
 const ENTITY_GREATER_THAN: RegExp = /&gt;/g;
@@ -134,6 +139,13 @@ export default class SlackCommandParser {
           actionValue: "",
           command: typed,
         };
+      case WorkspaceCommandName.Page:
+        // As Slack sent it: the people are read from their ids.
+        return {
+          actionType: SlackActionType.PageSomeone,
+          actionValue: request.rawText,
+          command: typed,
+        };
       default:
         return {
           actionType: request.command as SlackActionType,
@@ -141,6 +153,104 @@ export default class SlackCommandParser {
           command: request.command,
         };
     }
+  }
+
+  /*
+   * What follows the command's first word - "page" - as tokens
+   * (WorkspacePageText): each person Slack wrote as <@U0123|nawaz>, each
+   * user group as <!subteam^S0123|@oncall-db> and @here / @channel as a
+   * group, and everything else as text, read as typed (toPlainText).
+   */
+  public static getPageTokens(rawText: string): Array<WorkspacePageToken> {
+    const tokens: Array<WorkspacePageToken> = [];
+    const text: string = SlackCommandParser.withoutFirstWord(rawText || "");
+
+    let textStart: number = 0;
+
+    const addText: (raw: string) => void = (raw: string): void => {
+      const plain: string = SlackCommandParser.toPlainText(raw);
+
+      if (!plain) {
+        return;
+      }
+
+      const last: WorkspacePageToken | undefined = tokens[tokens.length - 1];
+
+      if (last && last.kind === "text") {
+        last.text += plain;
+        return;
+      }
+
+      tokens.push({ kind: "text", text: plain });
+    };
+
+    for (const match of text.matchAll(SLACK_TOKEN)) {
+      const start: number = match.index || 0;
+      const inner: string = match[1] || "";
+      const token: WorkspacePageToken | null =
+        SlackCommandParser.readPageToken(inner);
+
+      if (!token) {
+        continue;
+      }
+
+      addText(text.substring(textStart, start));
+      tokens.push(token);
+      textStart = start + match[0].length;
+    }
+
+    addText(text.substring(textStart));
+
+    return tokens;
+  }
+
+  /*
+   * A person or a group, from a token's inside: "@U0123|nawaz",
+   * "!subteam^S0123|@oncall-db", "!here". Null for anything else - a
+   * channel, a link, a date - which is read as text.
+   */
+  private static readPageToken(inner: string): WorkspacePageToken | null {
+    const separator: number = inner.indexOf("|");
+    const target: string = separator === -1 ? inner : inner.slice(0, separator);
+    const label: string = separator === -1 ? "" : inner.slice(separator + 1);
+
+    if (target.startsWith("@") && target.length > 1) {
+      return {
+        kind: "person",
+        person: {
+          workspaceUserId: target.slice(1),
+          name: label.replace(LEADING_AT, ""),
+        },
+      };
+    }
+
+    if (target.startsWith("!subteam^")) {
+      return {
+        kind: "group",
+        name: label.replace(LEADING_AT, "") || target.slice("!subteam^".length),
+      };
+    }
+
+    if (target === "!here" || target === "!channel" || target === "!everyone") {
+      return { kind: "group", name: target.slice(1) };
+    }
+
+    return null;
+  }
+
+  // The text after its first word: "page <@U0123> hi" is "<@U0123> hi".
+  private static withoutFirstWord(text: string): string {
+    let start: number = 0;
+
+    while (start < text.length && WHITE_SPACE_CHARACTER.test(text[start]!)) {
+      start++;
+    }
+
+    while (start < text.length && !WHITE_SPACE_CHARACTER.test(text[start]!)) {
+      start++;
+    }
+
+    return text.substring(start);
   }
 
   /*

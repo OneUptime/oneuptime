@@ -307,7 +307,7 @@ Tokens udløber som standard efter et år og fornyes ikke. For at slippe for at 
 ### Opret en Jira-sag for hver hændelse
 
 :::steps
-1. Opret et workflow fra bunden med navnet `Incidents to Jira`. Klik på den stiplede blok, og tilføj triggeren **On Create Incident**. Bed i dens **Fields to pass on** om `{"_id": true, "title": true, "description": true, "incidentNumber": true}`. Lad dens **Identifier** være `incident-on-create-1`.
+1. Opret et workflow fra bunden med navnet `Incidents to Jira`. Klik på den stiplede blok, og tilføj triggeren **On Create Incident**. Dens **Fields to pass on** starter med **Titel**: klik på **Tilføj felt**, og vælg **Beskrivelse** og **Hændelsesnummer**. ID'et sendes altid videre. Lad dens **Identifier** være `incident-on-create-1`.
 2. Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Success**-punkt med den. Sæt dens **Identifier** til `create-issue`, dens **URL** til `{{global.variables.JIRA_URL}}/rest/api/3/issue` og, under **Flere felter**, dens **Request Headers** til `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Sæt dens **Request Body** til sagen, og erstat `OPS` og `Bug` med din projektnøgle og en sagstype i det projekt:
 
@@ -384,14 +384,14 @@ For at give alle i Jira en vej tilbage tilføjer du efter `create-issue` en **AP
 }
 ```
 
-Tilføj `projectId` til triggerens **Fields to pass on** til dette, og behold `.value`: en kolonne, der indeholder en anden posts ID, kommer frem som `{"_type": "ObjectID", "value": "..."}`. `globalId` gør kaldet sikkert at gentage: Jira opdaterer det link, der har det, i stedet for at tilføje et nyt.
+Klik til dette på **Tilføj felt** i triggerens **Fields to pass on**, vælg **Projekt-ID**, og behold `.value`: en kolonne, der indeholder en anden posts ID, kommer frem som `{"_type": "ObjectID", "value": "..."}`. `globalId` gør kaldet sikkert at gentage: Jira opdaterer det link, der har det, i stedet for at tilføje et nyt.
 
 ### Kommentér og lav overgange, mens hændelsen skrider frem
 
 Byg dette som et andet workflow, så en fejl her aldrig forhindrer, at der oprettes sager.
 
 :::steps
-1. Opret et workflow med navnet `Incident updates to Jira`, med triggeren **On Update Incident**. Sæt **Fields to watch** til `{"currentIncidentStateId": true}` og **Fields to pass on** til `{"_id": true, "currentIncidentState": {"name": true}}`.
+1. Opret et workflow med navnet `Incident updates to Jira`, med triggeren **On Update Incident**. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**. Klik på **Tilføj felt** i **Fields to pass on**, åbn **Current Incident State**, og vælg **Navn**.
 2. Tilføj en **If / Else**-blok: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved` eller navnet på din løste tilstand.
 3. Find sagen efter dens **Yes**-side med en **API Post (JSON)**-blok, hvis **Identifier** er `find-issue`, og som sender til `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 

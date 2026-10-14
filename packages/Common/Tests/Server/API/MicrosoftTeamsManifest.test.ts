@@ -347,6 +347,7 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
         "incident",
         "maintenance",
         "oncall",
+        "page",
         "ask",
         "show active incidents",
         "show active alerts",
@@ -374,6 +375,11 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
         {
           title: "oncall",
           description: "See who is on call right now.",
+        },
+        {
+          title: "page",
+          description:
+            "Page a person, a team or whoever is on call. Mention who, then type a message.",
         },
         {
           title: "ask",
@@ -523,9 +529,10 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
    * Teams only takes an uploaded package as an update of the installed app
    * when its version is higher. Release images set APP_VERSION; a build
    * without it falls back to a fixed version, raised to 1.6.0 when
-   * ChatSettings.Read.Chat was added, and to 1.7.0 when the commands became
-   * the words Slack's /oneuptime takes. Left behind, an admin re-uploading
-   * the manifest to pick up a change would have the upload refused.
+   * ChatSettings.Read.Chat was added, to 1.7.0 when the commands became
+   * the words Slack's /oneuptime takes, and to 1.8.0 when "page" joined them.
+   * Left behind, an admin re-uploading the manifest to pick up a change
+   * would have the upload refused.
    */
   describe("manifest version", () => {
     test("a build without APP_VERSION has AppVersion 'unknown' — which is what gets the fallback", () => {
@@ -552,16 +559,16 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
       expect(unsetAppVersion).toBe("unknown");
 
       mockEnvironmentState.appVersion = unsetAppVersion as string;
-      expect(getManifest()["version"]).toBe("1.7.0");
+      expect(getManifest()["version"]).toBe("1.8.0");
     });
 
     // The check lowercases AppVersion first, so its case does not matter.
     test.each(["unknown", "Unknown", "UNKNOWN"])(
-      "AppVersion %p gets the fallback version 1.7.0",
+      "AppVersion %p gets the fallback version 1.8.0",
       (appVersion: string) => {
         mockEnvironmentState.appVersion = appVersion;
 
-        expect(getManifest()["version"]).toBe("1.7.0");
+        expect(getManifest()["version"]).toBe("1.8.0");
       },
     );
 

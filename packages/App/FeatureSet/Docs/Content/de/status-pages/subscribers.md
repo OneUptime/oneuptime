@@ -47,6 +47,21 @@ Jeder Kanal bekommt außerdem seine eigene Liste im Seitenmenü der Statusseite 
 
 **Ein Schalter allein genügt nicht.** Der Eintrag **Abonnieren** in der Navigationsleiste der Statusseite erscheint nur, wenn **Abonnentenseite anzeigen** an ist *und* mindestens ein Kanal an ist. Schalten Sie **E-Mail** ein, lassen aber **Abonnentenseite anzeigen** aus, kommen Besucher gar nicht erst zum Formular.
 
+## Alle Benachrichtigungen ausschalten
+
+Die erste Karte in den **Abonnenten-Einstellungen**, **Benachrichtigungen**, enthält den Schalter **Benachrichtigungen an Abonnenten senden** (`sendSubscriberNotifications`), standardmäßig an, der speichert, sobald Sie ihn umlegen. Ist er aus, sendet die Statusseite ihren Abonnenten nichts: keine Benachrichtigung zu Vorfällen, Episoden, geplanter Wartung oder Ankündigungen, keine Notiz und kein Postmortem und keinen E-Mail-Bericht, was auch immer ihre Kanäle und Ereignistypen vorsehen. Ihre Abonnenten bleiben erhalten, und Besucher können weiterhin abonnieren, solange die Seite **Abonnieren** und ein Kanal an sind; ein neuer E-Mail-Abonnent bekommt weiterhin die E-Mail, die das Abonnement bestätigt. Nichts wird für später zurückgehalten: Schalten Sie ihn wieder ein, informiert die Seite ihre Abonnenten über das, was ab dann geschieht.
+
+Solange er aus ist, steht das oben in jeder Abonnentenliste, mit einem Link zurück zu den **Abonnenten-Einstellungen**. Die Zusammenfassung, wer benachrichtigt wird – bei einem Vorfall oder einer öffentlichen Notiz –, nennt die Seite als eine, die ihren Abonnenten keine Benachrichtigungen sendet, und die Statusmeldung einer Benachrichtigung und ihr Feed-Eintrag sagen, warum die Seite übergangen wurde. Der Schalter funktioniert in jedem Tarif. Ein Testbericht an eine Adresse, die Sie eingeben, geht weiterhin raus.
+
+## Wer abonnieren kann
+
+Die Karte **Wer abonnieren kann**, ebenfalls in den **Abonnenten-Einstellungen**, beschränkt die Benachrichtigungen einer Seite auf die Menschen, für die sie gedacht ist:
+
+- **Nur private Benutzer können abonnieren** (`limitSubscribersToPrivateUsers`), standardmäßig aus, speichert, sobald Sie den Schalter umlegen. Ist er an, können nur die [privaten Benutzer](/docs/status-pages/index#private-benutzer) der Seite abonnieren – ob von Hand hinzugefügt, per SSO angemeldet oder per SCIM bereitgestellt –, und zwar per E-Mail, mit der Adresse, mit der sie sich anmelden. Die Seite **Abonnieren** füllt diese Adresse aus, lässt sie nicht ändern und bietet keinen anderen Kanal an. Ihr Team kann nur die Adresse eines privaten Benutzers hinzufügen und keinen SMS-, Slack-, Microsoft-Teams- oder Webhook-Abonnenten. Ein Abonnent, dessen Adresse jetzt keinem privaten Benutzer der Seite gehört – einer, der hinzugefügt wurde, bevor Sie den Schalter eingeschaltet haben, oder ein Leser, der seitdem von Hand oder per SCIM entfernt wurde –, bekommt nichts und wird nicht gezählt. Eine öffentliche Seite hat keine Anmeldung, sodass dort, solange er an ist, nur Ihr Team Abonnenten hinzufügen kann.
+- **Zulässige E-Mail-Domains** (`allowedSubscriberEmailDomains`) enthält die Domains, unter denen die Adresse eines E-Mail-Abonnenten liegen darf, eine pro Zeile, etwa `acme.com`. Eine Adresse unter einer Subdomain passt ebenfalls (`eu.acme.com` für `acme.com`), aber keine, die nur auf dieselben Buchstaben endet (`evilacme.com`). Anmeldungen und hinzugefügte Abonnenten unter jeder anderen Domain werden abgelehnt, und ein E-Mail-Abonnent, dessen Adresse schon unter einer anderen Domain liegt, bekommt nichts. Lassen Sie das Feld leer, um jede Domain zuzulassen. SMS-, Slack-, Microsoft-Teams- und Webhook-Abonnenten haben keine Domain und sind nicht betroffen. Tippen Sie die Liste ein und wählen Sie **Domains speichern**: Ein Eintrag, der keine Domain ist, wird genannt, bevor irgendetwas gespeichert wird, und die Liste wird in Kleinbuchstaben gespeichert, eine Domain pro Zeile, bis zu 100 Domains.
+
+Keine der beiden Einstellungen löscht einen Abonnenten, und wenn Sie sie ausschalten, wird wieder an alle gesendet. In OneUptime Cloud braucht das Einschalten jeder der beiden den Tarif **Scale**; das Ausschalten funktioniert in jedem Tarif.
+
 ## Was ein Besucher auf der Seite Abonnieren sieht
 
 Die Seite **Abonnieren** hat ein Untermenü mit einem Reiter je aktiviertem Kanal. Jeder Reiter fragt nur das Nötigste ab:

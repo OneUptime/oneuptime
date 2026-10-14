@@ -48,7 +48,7 @@ flowchart TB
 
 ### افزودن تریگر
 
-روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید و **On Create Incident** را برگزینید. روی تریگر کلیک کنید، و در **Fields to pass on** گزینه‌های `title` و `description` را برگزینید.
+روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید و **On Create Incident** را برگزینید. روی تریگر کلیک کنید: **Fields to pass on** آن از پیش **عنوان** را دارد، پس روی **افزودن فیلد** کلیک کنید و **توضیحات** را برگزینید.
 
 ### فرستادن رویداد trigger
 
@@ -72,7 +72,7 @@ flowchart TB
 
 ### آزمایش، سپس روشن کردن
 
-روی **اجرای گردش کاری** کلیک کنید، **شناسه حادثه** یک حادثه آزمایشی را وارد کنید و اجرا کنید. گام **API Post (JSON)** پاسخ `202` را با `"status": "success"` نشان می‌دهد، و PagerDuty یک incident باز می‌کند. سپس در بالای **سازنده** گزینه **فعال** را روشن کنید.
+روی **اجرای گردش کاری** کلیک کنید، زیر **حادثه** یک حادثهٔ آزمایشی را برگزینید و اجرا کنید. گام **API Post (JSON)** پاسخ `202` را با `"status": "success"` نشان می‌دهد، و PagerDuty یک incident باز می‌کند. سپس در بالای **سازنده** گزینه **فعال** را روشن کنید.
 :::
 
 بلوک JSON می‌فرستد، پس به سرآیند `Content-Type` نیازی ندارد. `severity` در PagerDuty یکی از `critical`، `error`، `warning` و `info` است: برای فرستادن شدت خود هر حادثه، [نگاشت شدت‌ها](#نگاشت-شدتها) را ببینید.
@@ -84,7 +84,7 @@ flowchart TB
 :::steps
 ### افزودن تریگر On Update Incident
 
-گردش کاری‌ای به نام `Resolve PagerDuty incidents` بسازید، و **On Update Incident** را به عنوان تریگرش برگزینید. در **Fields to watch**، `currentIncidentStateId` را برگزینید تا فقط با تغییر وضعیت اجرا شود. در **Fields to pass on** بخواهید که آیا وضعیت تازه یک وضعیت رفع‌شده است یا نه:
+گردش کاری‌ای به نام `Resolve PagerDuty incidents` بسازید، و **On Update Incident** را به عنوان تریگرش برگزینید. در **Fields to watch** روی **افزودن فیلد** کلیک کنید و **Current Incident State** را برگزینید تا فقط با تغییر وضعیت اجرا شود. در **Fields to pass on** بخواهید که آیا وضعیت تازه یک وضعیت رفع‌شده است یا نه: روی **افزودن فیلد** کلیک کنید، **Current Incident State** را باز کنید و **Is Resolved State** را برگزینید. یا روی **ویرایش به‌صورت JSON** کلیک کنید و JSON را با این جایگزین کنید:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ flowchart TB
 
 برای فرستادن شدت هر حادثه، یک بلوک **Run Custom JavaScript** میان تریگر و بلوک **API Post (JSON)** اضافه کنید، و پاسخ آن را در بدنه بخوانید.
 
-1. در **Fields to pass on** تریگر، `name` شدت را هم برگزینید: `{ "incidentSeverity": { "name": true } }`.
+1. در **Fields to pass on** تریگر روی **افزودن فیلد** کلیک کنید، **شدت حادثه** را باز کنید و **نام** را برگزینید.
 2. **Arguments** بلوک را روی `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` و **JavaScript Code** آن را روی این بگذارید:
 
    ```javascript

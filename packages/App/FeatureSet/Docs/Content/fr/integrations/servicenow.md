@@ -54,7 +54,7 @@ Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis 
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur et, dans **Fields to pass on**, choisissez `title` et `description`.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description**.
 
 ### Créer l'enregistrement
 
@@ -81,7 +81,7 @@ Et son **Request Body** sur :
 
 ### Tester, puis activer
 
-Cliquez sur **Exécuter le flux de travail**, saisissez l'**ID d'incident** d'un incident de test et lancez-le. L'étape **API Post (JSON)** affiche une réponse `201` contenant le nouvel enregistrement, avec son `sys_id` et son `number`, par exemple `INC0012345`. Activez ensuite **Activé** en haut du **Constructeur**.
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `201` contenant le nouvel enregistrement, avec son `sys_id` et son `number`, par exemple `INC0012345`. Activez ensuite **Activé** en haut du **Constructeur**.
 :::
 
 `urgency` et `impact` prennent `1` pour élevé, `2` pour moyen et `3` pour faible, et ServiceNow en déduit la priorité. Toute autre colonne de la table `incident` peut aller dans le corps, sous son nom de colonne.
@@ -93,7 +93,7 @@ Un workflow a un seul déclencheur, la résolution demande donc un second workfl
 :::steps
 ### Ajouter le déclencheur On Update Incident
 
-Créez un workflow nommé `Resolve ServiceNow incidents` et choisissez **On Update Incident** comme déclencheur. Dans **Fields to watch**, choisissez `currentIncidentStateId`, pour qu'il ne s'exécute que quand l'état change. Dans **Fields to pass on**, demandez si le nouvel état est un état résolu :
+Créez un workflow nommé `Resolve ServiceNow incidents` et choisissez **On Update Incident** comme déclencheur. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Fields to pass on**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

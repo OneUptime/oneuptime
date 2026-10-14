@@ -47,6 +47,21 @@ Cada canal também tem sua própria lista no menu lateral da página de status, 
 
 **Um interruptor não basta.** O item **Inscrever-se** na barra de navegação da página de status só aparece quando **Mostrar página de assinantes** está ligado *e* pelo menos um canal está ligado. Se você ligar **E-mail** mas deixar **Mostrar página de assinantes** desligado, os visitantes não têm como chegar ao formulário.
 
+## Desligar todas as notificações
+
+O primeiro cartão de **Configurações de assinantes**, **Notificações**, contém **Enviar notificações aos assinantes** (`sendSubscriberNotifications`), ligado por padrão, que é salvo assim que você o muda. Com ele desligado, a página de status não envia nada aos seus assinantes: nenhuma notificação de incidente, episódio, manutenção programada ou anúncio, nenhuma nota ou post-mortem e nenhum relatório por e-mail, digam o que disserem os canais e os tipos de evento dela. Os assinantes dela são mantidos, e os visitantes ainda podem se inscrever enquanto a página **Inscrever-se** e um canal estiverem ligados; um novo assinante de e-mail ainda recebe o e-mail que confirma a inscrição. Nada fica guardado para ser enviado depois: quando ele é ligado de novo, a página avisa os assinantes sobre o que acontecer a partir de então.
+
+Enquanto ele está desligado, o topo de cada lista de assinantes diz isso, com um link de volta para **Configurações de assinantes**. O resumo de quem será notificado, em um incidente ou em uma nota pública, nomeia a página como uma que não envia notificações aos seus assinantes, e a mensagem de status de uma notificação e a entrada dela no feed dizem por que a página foi deixada de fora. Ele funciona em todos os planos. Um relatório de teste enviado para um endereço que você digita continua sendo enviado.
+
+## Quem pode se inscrever
+
+O cartão **Quem pode se inscrever**, também em **Configurações de assinantes**, restringe as notificações de uma página às pessoas a quem ela se destina:
+
+- **Somente usuários privados podem se inscrever** (`limitSubscribersToPrivateUsers`), desligado por padrão, é salvo assim que você o muda. Com ele ligado, só os [usuários privados](/docs/status-pages/index#usuários-privados) da página, sejam eles adicionados manualmente, conectados pelo SSO ou provisionados pelo SCIM, podem se inscrever, por e-mail, com o endereço com que entram. A página **Inscrever-se** preenche esse endereço, não deixa alterá-lo e não oferece nenhum outro canal. Sua equipe só pode adicionar o endereço de um usuário privado, e nenhum assinante de SMS, Slack, Microsoft Teams ou webhook. Um assinante cujo endereço não é agora o de um usuário privado da página, seja um adicionado antes de você ligá-lo ou um leitor removido depois, manualmente ou pelo SCIM, não recebe nada e não é contado. Uma página pública não tem login, então, enquanto ele está ligado nela, só sua equipe pode adicionar assinantes.
+- **Domínios de e-mail permitidos** (`allowedSubscriberEmailDomains`) contém os domínios em que o endereço de um assinante de e-mail pode estar, um por linha, como `acme.com`. Um endereço em um subdomínio também corresponde (`eu.acme.com` para `acme.com`), mas não um que só termina com as mesmas letras (`evilacme.com`). Inscrições e adições em qualquer outro domínio são recusadas, e um assinante de e-mail que já está em outro domínio não recebe nada. Deixe o campo vazio para permitir qualquer domínio. Assinantes de SMS, Slack, Microsoft Teams e webhook não têm domínio e não são afetados. Digite a lista e escolha **Salvar domínios**: uma entrada que não é um domínio é indicada antes de qualquer coisa ser salva, e a lista é salva em minúsculas, um domínio por linha, até 100 deles.
+
+Nenhuma das duas configurações exclui um assinante, e desligá-las volta a enviar para todos. No OneUptime Cloud, ligar qualquer uma delas precisa do plano **Scale**; desligá-las funciona em todos os planos.
+
 ## O que um visitante vê na página Inscrever-se
 
 A página **Inscrever-se** tem um submenu com uma aba para cada canal ligado. Cada aba pede o mínimo de que precisa:

@@ -4,6 +4,7 @@ import StatusPagePrivateUser from "../../../../Models/DatabaseModels/StatusPageP
 import StatusPageSubscriber from "../../../../Models/DatabaseModels/StatusPageSubscriber";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import MailService from "../../../../Server/Services/MailService";
+import ProjectService from "../../../../Server/Services/ProjectService";
 import ProjectSmtpConfigService from "../../../../Server/Services/ProjectSmtpConfigService";
 import { Service as StatusPagePrivateUserServiceClass } from "../../../../Server/Services/StatusPagePrivateUserService";
 import StatusPageService from "../../../../Server/Services/StatusPageService";
@@ -268,12 +269,16 @@ describe("the emails a status page sends", () => {
           StatusPageSubscriberService,
           "findOneBy",
         ).mockResolvedValue(subscriber());
-        findPage = getJestSpyOn(
-          StatusPageService,
-          "findOneBy",
-        ).mockImplementation((async () => {
-          return page;
-        }) as never);
+        // The one lookup every subscriber message reads its page from.
+        findPage = getJestSpyOn(StatusPageService, "findBy").mockImplementation(
+          (async () => {
+            return [page];
+          }) as never,
+        );
+        // Of a project that is not blocked.
+        getJestSpyOn(ProjectService, "isProjectBlocked").mockResolvedValue(
+          false,
+        );
       });
 
       test("reads the page with its logo's project", async () => {

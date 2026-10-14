@@ -130,6 +130,7 @@ const SLACK_HELP_TEXT: string = [
   "•   `/oneuptime incident [title]`: declare an incident",
   "•   `/oneuptime maintenance [title]`: schedule maintenance",
   "•   `/oneuptime oncall`: see who is on call right now",
+  "•   `/oneuptime page [who] [message]`: page a person, a team or whoever is on call",
   "•   `/oneuptime ask [question]`: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
   "•   `/oneuptime help`: list every command",
   "",
@@ -483,7 +484,7 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
       expect(answer.status).toBe(200);
       expect(answer.body).toEqual({
         response_type: "ephemeral",
-        text: "Here's what /oneuptime can do: incident, maintenance, oncall, ask, help",
+        text: "Here's what /oneuptime can do: incident, maintenance, oncall, page, ask, help",
         blocks: [
           {
             type: "section",

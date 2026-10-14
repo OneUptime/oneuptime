@@ -525,6 +525,109 @@ describe("Fields to pass on", () => {
  * a mousedown, a change of focus and then a click, and each of the three
  * reaches the list.
  */
+/*
+ * A link back to the record in OneUptime - /dashboard/<project id>/incidents/
+ * <incident id> - is built from its project's ID, as the Jira and Microsoft
+ * Dynamics 365 templates build theirs. The list left the project out, so
+ * those templates' own trigger showed "projectId" as an amber chip saying
+ * the run leaves it out, which it never did, and their guides could only
+ * add it as JSON.
+ */
+describe("the project's ID", () => {
+  test("as the Jira and Dynamics 365 templates store it, it is a chip like any other", async () => {
+    const harness: Harness = await renderPicker({
+      value: {
+        _id: true,
+        projectId: true,
+        title: true,
+        currentIncidentState: { name: true },
+      },
+    });
+
+    expect(chips(harness.testId)).toEqual([
+      "ID",
+      "Project ID",
+      "Title",
+      "Current Incident State › Name",
+    ]);
+
+    const chip: HTMLElement | undefined = screen
+      .getAllByTestId(`${harness.testId}-chip`)
+      .find((candidate: HTMLElement): boolean => {
+        return candidate.getAttribute("data-path") === "projectId";
+      });
+
+    expect(chip).toHaveAttribute("data-unknown", "false");
+    expect(chip).toHaveAttribute("title", "Project ID");
+    expect(
+      screen.queryByText(
+        "There is no field called “projectId”, so the run leaves it out.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(harness.onChange).not.toHaveBeenCalled();
+  });
+
+  test("Add field offers it with what OneUptime fills in, and a pick passes it on", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-add`));
+
+    const option: HTMLElement = screen.getByTestId(
+      `${harness.testId}-option-projectId`,
+    );
+    const filledIn: HTMLElement = screen.getByTestId(
+      `${harness.testId}-group-system`,
+    );
+
+    expect(option).toHaveTextContent("Project ID");
+    // Listed under "Filled in by OneUptime", the last group: after its heading.
+    expect(
+      filledIn.compareDocumentPosition(option) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.click(option);
+
+    expect(chips(harness.testId)).toEqual(["Title", "Project ID"]);
+    expect(lastValue(harness)).toEqual({ title: true, projectId: true });
+  });
+
+  test("typed as JSON and read back into the list, it is Project ID, not a field the record does not have", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-edit-json`));
+    fireEvent.change(screen.getByTestId("code-editor"), {
+      target: { value: '{"title": true, "projectId": true}' },
+    });
+    fireEvent.click(screen.getByTestId(`${harness.testId}-back-to-list`));
+
+    expect(chips(harness.testId)).toEqual(["Title", "Project ID"]);
+    expect(
+      screen
+        .getAllByTestId(`${harness.testId}-chip`)
+        .map((chip: HTMLElement): string | null => {
+          return chip.getAttribute("data-unknown");
+        }),
+    ).toEqual(["false", "false"]);
+  });
+
+  test("Fields to watch never offers it: no update moves a record to another project", async () => {
+    const harness: Harness = await renderPicker({
+      mode: FieldPickerMode.Watch,
+      value: "",
+    });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-add`));
+
+    expect(
+      screen.queryByTestId(`${harness.testId}-option-projectId`),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`${harness.testId}-option-project`),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("opening and closing the Add field list", () => {
   type PressFunction = (harness: Harness) => void;
 

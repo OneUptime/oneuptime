@@ -1,10 +1,10 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
-import { appendAttributeOperatorFilter } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
+import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import MetricService from "./MetricService";
 import { MutableMetricService as MutableMetricServiceClass } from "./MutableMetricService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
-import { JSONObject, ObjectType } from "../../Types/JSON";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -424,71 +424,23 @@ export class MetricAggregationService {
       );
     }
 
-    if (request.attributes && Object.keys(request.attributes).length > 0) {
-      for (const [attrKey, attrValue] of Object.entries(request.attributes)) {
-        MetricAggregationService.validateFacetKey(attrKey);
-
-        /*
-         * Match attribute keys case-insensitively — see the matching note in
-         * LogAggregationService.appendCommonFilters. Casings vary across
-         * OTEL conventions and app-emitted attributes.
-         */
-        if (Array.isArray(attrValue)) {
-          /*
-           * An empty selection means "no selection", which must widen to
-           * everything rather than compile to `IN ()` and match nothing.
-           */
-          if (attrValue.length === 0) {
-            continue;
-          }
-          statement.append(
-            SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-              type: TableColumnType.Text,
-              value: attrKey,
-            }}) AND v IN (${{
-              type: TableColumnType.Text,
-              value: new Includes(attrValue),
-            }}), mapKeys(attributes), mapValues(attributes))`,
-          );
-          continue;
-        }
-
-        if (typeof attrValue === "object" && attrValue !== null) {
-          appendAttributeOperatorFilter({
-            statement,
-            attributeKey: attrKey,
-            operator: attrValue as unknown as Record<string, unknown>,
-          });
-          continue;
-        }
-
-        if (attrValue === "") {
-          /*
-           * A blank equality value is "missing or empty", not "present and
-           * empty": a ClickHouse Map subscript returns the type default for a
-           * key the row does not carry, so rows without the attribute match
-           * too. Routed through the operator builder so a bare "" and an
-           * explicit EqualTo("") cannot disagree.
-           */
-          appendAttributeOperatorFilter({
-            statement,
-            attributeKey: attrKey,
-            operator: { _type: ObjectType.IsNull },
-          });
-          continue;
-        }
-
-        statement.append(
-          SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-            type: TableColumnType.Text,
-            value: attrKey,
-          }}) AND v = ${{
-            type: TableColumnType.Text,
-            value: attrValue,
-          }}, mapKeys(attributes), mapValues(attributes))`,
-        );
-      }
-    }
+    /*
+     * Attribute filters - a value, a list (empty means "no selection"), a
+     * blank ("is empty") or an operator - compiled exactly as the log and
+     * trace charts compile them: keys matched case-insensitively, an exact
+     * value checked with `has(mapValues(attributes), ...)` before the
+     * per-key lambda. MetricItemV3 has no attribute value index (see
+     * AttributeValueIndex for why), so here that check skips no granule; it
+     * only spares the lambda the rows that do not hold the value. See
+     * AttributeFilterStatement.
+     */
+    appendAttributeFilters({
+      statement: statement,
+      attributes: request.attributes,
+      validateKey: (attributeKey: string): void => {
+        MetricAggregationService.validateFacetKey(attributeKey);
+      },
+    });
   }
 
   private static isTopLevelColumn(key: string): boolean {

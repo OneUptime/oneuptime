@@ -307,7 +307,7 @@ Les jetons expirent par défaut au bout d'un an et ne se renouvellent pas. Pour 
 ### Créer un ticket Jira pour chaque incident
 
 :::steps
-1. Créez à partir de zéro un workflow nommé `Incidents to Jira`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **On Create Incident**. Dans ses **Fields to pass on**, demandez `{"_id": true, "title": true, "description": true, "incidentNumber": true}`. Laissez son **Identifiant** à `incident-on-create-1`.
+1. Créez à partir de zéro un workflow nommé `Incidents to Jira`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **On Create Incident**. Ses **Fields to pass on** commencent par **Titre** : cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident**. L'ID est toujours transmis. Laissez son **Identifiant** à `incident-on-create-1`.
 2. Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **Identifiant** sur `create-issue`, son **URL** sur `{{global.variables.JIRA_URL}}/rest/api/3/issue` et, sous **Plus de champs**, ses **Request Headers** sur `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Réglez son **Request Body** sur le ticket, et remplacez `OPS` et `Bug` par la clé de votre projet et un type de ticket de ce projet :
 
@@ -384,14 +384,14 @@ Pour donner à tous dans Jira un chemin de retour, ajoutez après `create-issue`
 }
 ```
 
-Ajoutez pour cela `projectId` aux **Fields to pass on** du déclencheur, et gardez le `.value` : une colonne qui contient l'ID d'un autre enregistrement arrive sous la forme `{"_type": "ObjectID", "value": "..."}`. Le `globalId` permet de répéter l'appel sans risque : Jira met à jour le lien qui le porte au lieu d'en ajouter un second.
+Pour cela, dans les **Fields to pass on** du déclencheur, cliquez sur **Ajouter un champ** et choisissez **ID du projet**, et gardez le `.value` : une colonne qui contient l'ID d'un autre enregistrement arrive sous la forme `{"_type": "ObjectID", "value": "..."}`. Le `globalId` permet de répéter l'appel sans risque : Jira met à jour le lien qui le porte au lieu d'en ajouter un second.
 
 ### Commenter et faire avancer le ticket avec l'incident
 
 Construisez cela dans un second workflow, pour qu'un échec ici n'empêche jamais l'ouverture des tickets.
 
 :::steps
-1. Créez un workflow nommé `Incident updates to Jira`, avec le déclencheur **On Update Incident**. Réglez **Fields to watch** sur `{"currentIncidentStateId": true}` et **Fields to pass on** sur `{"_id": true, "currentIncidentState": {"name": true}}`.
+1. Créez un workflow nommé `Incident updates to Jira`, avec le déclencheur **On Update Incident**. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**. Dans **Fields to pass on**, cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Nom**.
 2. Ajoutez un bloc **If / Else** : **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, ou le nom de votre état résolu.
 3. Après son côté **Yes**, trouvez le ticket avec un bloc **API Post (JSON)** dont l'**Identifiant** est `find-issue`, qui publie sur `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` :
 

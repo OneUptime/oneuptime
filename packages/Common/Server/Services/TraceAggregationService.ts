@@ -3,11 +3,11 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
-import { appendAttributeOperatorFilter } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
+import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import SpanService from "./SpanService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
-import { JSONObject, ObjectType } from "../../Types/JSON";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -1240,79 +1240,21 @@ export class TraceAggregationService {
       );
     }
 
-    if (request.attributes && Object.keys(request.attributes).length > 0) {
-      for (const [attrKey, attrValue] of Object.entries(request.attributes)) {
-        TraceAggregationService.validateFacetKey(attrKey);
-
-        /*
-         * Match attribute keys case-insensitively — see the matching note in
-         * LogAggregationService.appendCommonFilters. Casings vary across
-         * OTEL conventions and app-emitted attributes.
-         */
-        if (Array.isArray(attrValue)) {
-          /*
-           * Multi-value selection (a multi-select dashboard variable) — an
-           * empty array means "no selection", which must widen to everything
-           * rather than compile to `IN ()` and match nothing.
-           */
-          if (attrValue.length === 0) {
-            continue;
-          }
-          statement.append(
-            SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-              type: TableColumnType.Text,
-              value: attrKey,
-            }}) AND v IN (${{
-              type: TableColumnType.Text,
-              value: new Includes(attrValue),
-            }}), mapKeys(attributes), mapValues(attributes))`,
-          );
-          continue;
-        }
-
-        if (typeof attrValue === "object" && attrValue !== null) {
-          /*
-           * An operator row (`@k:api-*`, `@k:~web`, `@k:>5`, ...). The span
-           * list compiles these through StatementGenerator, so without this
-           * branch the object bound as "[object Object]" and the histogram
-           * beside a narrowed list showed either nothing or everything.
-           */
-          TraceAggregationService.appendAttributeOperatorFilter(
-            statement,
-            attrKey,
-            attrValue as unknown as Record<string, unknown>,
-          );
-          continue;
-        }
-
-        if (attrValue === "") {
-          /*
-           * A blank equality value is "missing or empty", not "present and
-           * empty": the list query compares `attributes['k'] = ''`, and a Map
-           * subscript returns the type default for a key the row does not
-           * carry, so rows without the attribute match too. Routed through the
-           * operator builder so a bare "" and an explicit EqualTo("") — the
-           * same filter written two ways — cannot disagree.
-           */
-          TraceAggregationService.appendAttributeOperatorFilter(
-            statement,
-            attrKey,
-            { _type: ObjectType.IsNull },
-          );
-          continue;
-        }
-
-        statement.append(
-          SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-            type: TableColumnType.Text,
-            value: attrKey,
-          }}) AND v = ${{
-            type: TableColumnType.Text,
-            value: attrValue,
-          }}, mapKeys(attributes), mapValues(attributes))`,
-        );
-      }
-    }
+    /*
+     * Attribute filters - a value, a list (a multi-select dashboard
+     * variable; empty means "no selection"), a blank ("is empty") or an
+     * operator row (`@k:api-*`, `@k:~web`, `@k:>5`, ...) - compiled exactly
+     * as the log and metric charts compile them, keys matched
+     * case-insensitively and an exact value looked up in the attribute value
+     * index first (#4706). See AttributeFilterStatement.
+     */
+    appendAttributeFilters({
+      statement: statement,
+      attributes: request.attributes,
+      validateKey: (attributeKey: string): void => {
+        TraceAggregationService.validateFacetKey(attributeKey);
+      },
+    });
 
     if (
       request.attributeSearches &&
@@ -1346,30 +1288,6 @@ export class TraceAggregationService {
         );
       }
     }
-  }
-
-  /*
-   * Attribute filter rows carry an operator (`contains`, `matches`,
-   * `is any of`, `is empty`, ...) as well as a value, and the operator
-   * travels over the wire as the serialized `{_type, value}` shape every
-   * QueryOperator's toJSON() produces. The span list compiles those through
-   * StatementGenerator; the histogram, facets and analytics used to treat
-   * anything non-array as a plain string, so a wildcard filter narrowed the
-   * list and left the chart above it unfiltered.
-   *
-   * The compilation itself lives in AttributeFilterStatement so the log and
-   * metric builders answer identically — see the comment there.
-   */
-  private static appendAttributeOperatorFilter(
-    statement: Statement,
-    attrKey: string,
-    attrValue: Record<string, unknown>,
-  ): void {
-    appendAttributeOperatorFilter({
-      statement,
-      attributeKey: attrKey,
-      operator: attrValue,
-    });
   }
 
   private static readonly DEFAULT_ANALYTICS_LIMIT: number = 10;

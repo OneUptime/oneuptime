@@ -54,7 +54,7 @@ Table API 使用 Basic 驗證：把使用者名稱和密碼編碼在一起。
 
 ### 新增觸發器
 
-點選虛線的 **Choose what starts this workflow** 區塊，選擇 **On Create Incident**。點選該觸發器，在 **Fields to pass on** 中選擇 `title` 和 `description`。
+點選虛線的 **Choose what starts this workflow** 區塊，選擇 **On Create Incident**。點選該觸發器：它的 **Fields to pass on** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述**。
 
 ### 建立記錄
 
@@ -81,7 +81,7 @@ Table API 使用 Basic 驗證：把使用者名稱和密碼編碼在一起。
 
 ### 測試，然後啟用
 
-點選 **執行工作流程**，輸入一個測試事件的 **事件 ID**，然後執行。**API Post (JSON)** 步驟會顯示一個 `201` 回應，其中包含新記錄及其 `sys_id` 和 `number`，例如 `INC0012345`。然後在 **建構器** 頂部開啟 **已啟用**。
+點選 **執行工作流程**，在 **事件** 中選擇一個測試事件，然後執行。**API Post (JSON)** 步驟會顯示一個 `201` 回應，其中包含新記錄及其 `sys_id` 和 `number`，例如 `INC0012345`。然後在 **建構器** 頂部開啟 **已啟用**。
 :::
 
 `urgency` 和 `impact` 用 `1` 表示高、`2` 表示中、`3` 表示低，ServiceNow 根據這兩者算出優先順序。`incident` 表的任何其他欄位都可以按欄位名稱放進請求內文。
@@ -93,7 +93,7 @@ Table API 使用 Basic 驗證：把使用者名稱和密碼編碼在一起。
 :::steps
 ### 新增 On Update Incident 觸發器
 
-建立一個名為 `Resolve ServiceNow incidents` 的工作流程，選擇 **On Update Incident** 作為觸發器。在 **Fields to watch** 中選擇 `currentIncidentStateId`，使它只在狀態變化時執行。在 **Fields to pass on** 中請求新狀態是否為已解決狀態：
+建立一個名為 `Resolve ServiceNow incidents` 的工作流程，選擇 **On Update Incident** 作為觸發器。在 **Fields to watch** 中點選 **新增欄位** 並選擇 **Current Incident State**，使它只在狀態變化時執行。在 **Fields to pass on** 中請求新狀態是否為已解決狀態：點選 **新增欄位**，展開 **Current Incident State** 並選擇 **Is Resolved State**。也可以點選 **以 JSON 編輯**，把 JSON 取代為：
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

@@ -1846,6 +1846,39 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
       expect(incidentWrites()).toHaveLength(1);
     });
 
+    /*
+     * Send Notifications to Subscribers off (Common/Types/StatusPage/
+     * SubscriberNotificationsSwitch): the next run would pass the page over
+     * too, so adding it does not queue the notification again.
+     */
+    test("a page added during the send that sends its subscribers nothing queues nothing", async () => {
+      everySiteHasOneEmailSubscriber();
+      pages[8] = sitePage(9, { sendSubscriberNotifications: false });
+      scopeChangesDuringTheSend(scopedTo([3, 7]), scopedTo([3, 7, 9]));
+
+      await runJob();
+
+      // Only the settled status: nothing queued it again.
+      expect(incidentWrites()).toHaveLength(1);
+    });
+
+    test("a page in the scope that sends its subscribers nothing is passed over, and the rest are told", async () => {
+      everySiteHasOneEmailSubscriber();
+      pages[6] = sitePage(7, { sendSubscriberNotifications: false });
+      mock(IncidentService.findBy).mockImplementation(
+        incidentScopeFindBy(() => {
+          return { [INCIDENT_ID.toString()]: scopedTo([3, 7]) };
+        }) as never,
+      );
+
+      await runJob();
+
+      expect(emailsSentTo()).toEqual(["site3@acme.com"]);
+      // Visited and passed over: never recorded as told, never re-queued.
+      expect(notifiedPageRecords()).toEqual([[3]]);
+      expect(incidentWrites()).toHaveLength(1);
+    });
+
     test("a page this send skipped does not queue it again", async () => {
       // Site 07 hides incidents: visited, never recorded, never re-queued.
       everySiteHasOneEmailSubscriber();

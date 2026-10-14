@@ -48,7 +48,7 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **On Create Incident**. Fai clic sul trigger e, in **Fields to pass on**, scegli `title` e `description`.
+Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **On Create Incident**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
 
 ### Inviare l'evento di attivazione
 
@@ -72,7 +72,7 @@ Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e co
 
 ### Provarlo, poi attivarlo
 
-Fai clic su **Esegui flusso di lavoro**, inserisci l'**ID incidente** di un incidente di prova ed eseguilo. Il passaggio **API Post (JSON)** mostra una risposta `202` con `"status": "success"`, e PagerDuty apre un incidente. Poi attiva **Abilitato** in cima al **Costruttore**.
+Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passaggio **API Post (JSON)** mostra una risposta `202` con `"status": "success"`, e PagerDuty apre un incidente. Poi attiva **Abilitato** in cima al **Costruttore**.
 :::
 
 Il blocco invia JSON, quindi non serve un'intestazione `Content-Type`. La `severity` di PagerDuty è una tra `critical`, `error`, `warning` e `info`: per inviare quella di ogni incidente, vedi [Mappare le gravità](#mappare-le-gravità).
@@ -84,7 +84,7 @@ Un workflow ha un solo trigger, quindi per risolvere serve un secondo workflow, 
 :::steps
 ### Aggiungere il trigger On Update Incident
 
-Crea un workflow chiamato `Resolve PagerDuty incidents` e scegli **On Update Incident** come trigger. In **Fields to watch**, scegli `currentIncidentStateId`, così viene eseguito solo quando cambia lo stato. In **Fields to pass on**, chiedi se il nuovo stato è uno stato risolto:
+Crea un workflow chiamato `Resolve PagerDuty incidents` e scegli **On Update Incident** come trigger. In **Fields to watch**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Fields to pass on**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ Controllare `isResolvedState` invece del nome di uno stato continua a funzionare
 
 Per inviare la gravità di ogni incidente, aggiungi un blocco **Run Custom JavaScript** tra il trigger e il blocco **API Post (JSON)**, e leggi la sua risposta nel corpo.
 
-1. Nei **Fields to pass on** del trigger, scegli anche il `name` della gravità: `{ "incidentSeverity": { "name": true } }`.
+1. Nei **Fields to pass on** del trigger, fai clic su **Aggiungi campo**, apri **Gravità incidente** e scegli **Nome**.
 2. Imposta gli **Arguments** del blocco su `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e il suo **JavaScript Code** su:
 
    ```javascript

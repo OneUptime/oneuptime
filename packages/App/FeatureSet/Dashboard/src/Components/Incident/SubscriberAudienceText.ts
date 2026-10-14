@@ -65,8 +65,36 @@ const EXCLUSION_TEXT: Record<
     IncidentStatusPageScopeCopy.audienceOnlyShowsScoped,
   [IncidentSubscriberAudienceExclusionReason.HidesIncidents]:
     IncidentStatusPageScopeCopy.audienceHidesIncidents,
+  [IncidentSubscriberAudienceExclusionReason.NotificationsOff]:
+    IncidentStatusPageScopeCopy.audienceNotificationsOff,
   [IncidentSubscriberAudienceExclusionReason.AlreadyNotified]:
     IncidentStatusPageScopeCopy.audienceAlreadyNotified,
+};
+
+/*
+ * Whether every status page that would show the incident sends its
+ * subscribers nothing (Send Notifications to Subscribers off) - the one
+ * reason nobody will be told that is the status pages' own setting, and
+ * worth saying under a "notify subscribers" checkbox: whoever ticks it may
+ * not know the pages are switched off.
+ */
+export const isSilencedByStatusPages: (
+  audience: IncidentSubscriberAudienceResult,
+) => boolean = (audience: IncidentSubscriberAudienceResult): boolean => {
+  return (
+    audience.statusPages.length === 0 &&
+    audience.hiddenStatusPageCount === 0 &&
+    audience.selectedStatusPagesNotListingMonitors.length === 0 &&
+    audience.excludedStatusPages.length > 0 &&
+    audience.excludedStatusPages.every(
+      (statusPage: IncidentSubscriberAudienceExcludedStatusPage): boolean => {
+        return (
+          statusPage.reason ===
+          IncidentSubscriberAudienceExclusionReason.NotificationsOff
+        );
+      },
+    )
+  );
 };
 
 /*
@@ -215,6 +243,19 @@ export const buildSubscriberAudienceView: (
     audience.statusPages.length + audience.hiddenStatusPageCount;
 
   if (!IncidentSubscriberAudience.reachesAnyone(audience)) {
+    // Every page that shows it sends its subscribers nothing: said always.
+    if (isSilencedByStatusPages(audience)) {
+      return {
+        tone: "info",
+        headline: translate(
+          IncidentStatusPageScopeCopy.audienceNotificationsOffEverywhere,
+        ),
+        pages: [],
+        notNotified: notNotified,
+        notes: [],
+      };
+    }
+
     if (
       !data.saysWhenNobodyIsNotified &&
       !isHeldBackByStatusPageScope(audience)

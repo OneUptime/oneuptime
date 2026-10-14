@@ -7,6 +7,7 @@ import WorkspaceMessagePayload, {
   WorkspaceCheckboxBlock,
   WorkspaceDateTimePickerBlock,
   WorkspaceDropdownBlock,
+  WorkspaceDropdownOptionGroup,
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
   WorkspaceModalBlock,
@@ -251,6 +252,68 @@ export default class SlackUtil extends WorkspaceBase {
     return incomingWebhookUrl
       .toString()
       .startsWith("https://hooks.slack.com/services/");
+  }
+
+  /*
+   * A Slack user's name, and the email address Slack has for them when the
+   * app may read it (the users:read.email scope; an app installed before it
+   * was asked for has no email to give). Null when Slack answers nothing.
+   * One try, no retries: a person waits for it.
+   */
+  @CaptureSpan()
+  public static async getUserProfile(data: {
+    authToken: string;
+    userId: string;
+  }): Promise<{ name: string; email: string } | null> {
+    try {
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post<JSONObject>({
+          url: URL.fromString("https://slack.com/api/users.info"),
+          data: {
+            user: data.userId,
+          },
+          headers: {
+            Authorization: `Bearer ${data.authToken}`,
+            ["Content-Type"]: "application/x-www-form-urlencoded",
+          },
+        });
+
+      if (
+        response instanceof HTTPErrorResponse ||
+        (response.jsonData as JSONObject)?.["ok"] !== true
+      ) {
+        return null;
+      }
+
+      const user: JSONObject =
+        ((response.jsonData as JSONObject)["user"] as JSONObject) || {};
+      const profile: JSONObject = (user["profile"] as JSONObject) || {};
+
+      const name: string =
+        [
+          profile["display_name"],
+          profile["real_name"],
+          user["real_name"],
+          user["name"],
+        ]
+          .map((value: unknown): string => {
+            return typeof value === "string" ? value.trim() : "";
+          })
+          .find((value: string): boolean => {
+            return value.length > 0;
+          }) || "";
+
+      const email: string =
+        typeof profile["email"] === "string"
+          ? (profile["email"] as string).trim()
+          : "";
+
+      return { name: name, email: email };
+    } catch (err) {
+      logger.debug("Slack did not tell who a user is.");
+      logger.debug(err);
+      return null;
+    }
   }
 
   @CaptureSpan()
@@ -1637,6 +1700,26 @@ export default class SlackUtil extends WorkspaceBase {
       }
     }
 
+    /*
+     * A channel the message is not for: the one a note it repeats was
+     * saved from (WorkspaceMessagePayload.exceptChannelIds) - named here
+     * by its name too, so it is left out once the name is resolved.
+     */
+    const exceptChannelIds: Array<string> =
+      data.workspaceMessagePayload.exceptChannelIds || [];
+
+    if (exceptChannelIds.length > 0) {
+      for (
+        let index: number = workspaceChannelsToPostTo.length - 1;
+        index >= 0;
+        index--
+      ) {
+        if (exceptChannelIds.includes(workspaceChannelsToPostTo[index]!.id)) {
+          workspaceChannelsToPostTo.splice(index, 1);
+        }
+      }
+    }
+
     logger.debug("Channel IDs to post to:", sendMsgLogAttributes);
     logger.debug(workspaceChannelsToPostTo, sendMsgLogAttributes);
 
@@ -1964,6 +2047,11 @@ export default class SlackUtil extends WorkspaceBase {
     channelId: string;
     threadTs: string;
     text: string;
+    /*
+     * Leave the message's links without a preview: a short answer whose
+     * link goes to OneUptime gains nothing from a card about OneUptime.
+     */
+    withoutLinkPreviews?: boolean | undefined;
   }): Promise<void> {
     const threadLogAttributes: LogAttributes = { channelId: data.channelId };
 
@@ -1977,6 +2065,9 @@ export default class SlackUtil extends WorkspaceBase {
           channel: data.channelId,
           thread_ts: data.threadTs,
           text: data.text,
+          ...(data.withoutLinkPreviews
+            ? { unfurl_links: false, unfurl_media: false }
+            : {}),
         },
         headers: {
           Authorization: `Bearer ${data.authToken}`,
@@ -2010,6 +2101,91 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     logger.debug("Thread message sent successfully.", threadLogAttributes);
+  }
+
+  /*
+   * A message as Slack hands it over - its text, blocks, files, author and
+   * ts - found by its ts in its channel, or in a thread of it
+   * (getMessageDetailsByTimestamp). Null when Slack has no such message.
+   */
+  @CaptureSpan()
+  public static async getMessage(data: {
+    authToken: string;
+    channelId: string;
+    messageTs: string;
+  }): Promise<JSONObject | null> {
+    return (
+      (await this.findMessageByTimestamp({
+        ...data,
+        apiMethod: "conversations.history",
+      })) ||
+      (await this.findMessageByTimestamp({
+        ...data,
+        apiMethod: "conversations.replies",
+      }))
+    );
+  }
+
+  /*
+   * The name Slack shows for a person - their display name, else their full
+   * name, else their handle - and whether they are a bot. Null when Slack
+   * does not say (an unknown user, a user of another workspace in a shared
+   * channel, a refusal).
+   */
+  @CaptureSpan()
+  public static async getUserDisplayName(data: {
+    authToken: string;
+    userId: string;
+  }): Promise<{ name: string; isBot: boolean } | null> {
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post<JSONObject>({
+        url: URL.fromString("https://slack.com/api/users.info"),
+        data: {
+          user: data.userId,
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/x-www-form-urlencoded",
+        },
+        options: {
+          retries: 1,
+        },
+      });
+
+    if (
+      response instanceof HTTPErrorResponse ||
+      (response.jsonData as JSONObject)?.["ok"] !== true
+    ) {
+      logger.debug("Slack did not say who a user is.");
+      return null;
+    }
+
+    const user: JSONObject | undefined = (response.jsonData as JSONObject)[
+      "user"
+    ] as JSONObject | undefined;
+    const profile: JSONObject | undefined = user?.["profile"] as
+      | JSONObject
+      | undefined;
+
+    const name: string =
+      [
+        profile?.["display_name"],
+        profile?.["real_name"],
+        user?.["real_name"],
+        user?.["name"],
+      ]
+        .map((value: unknown): string => {
+          return typeof value === "string" ? value.trim() : "";
+        })
+        .find((value: string): boolean => {
+          return value.length > 0;
+        }) || "";
+
+    if (!name) {
+      return null;
+    }
+
+    return { name: name, isBot: user?.["is_bot"] === true };
   }
 
   @CaptureSpan()
@@ -2500,6 +2676,8 @@ export default class SlackUtil extends WorkspaceBase {
 
     const textAreaBlock: JSONObject = {
       type: "input",
+      // Named, so a form's submission can be answered at this field.
+      block_id: data.payloadTextAreaBlock.blockId,
       optional: optional,
       element: {
         type: "plain_text_input",
@@ -2542,6 +2720,8 @@ export default class SlackUtil extends WorkspaceBase {
 
     const textBoxBlock: JSONObject = {
       type: "input",
+      // Named, so a form's submission can be answered at this field.
+      block_id: data.payloadTextBoxBlock.blockId,
       optional: optional,
       element: {
         type: "plain_text_input",
@@ -2602,37 +2782,98 @@ export default class SlackUtil extends WorkspaceBase {
     const isMiltiSelect: boolean =
       data.payloadDropdownBlock.multiSelect || false;
 
-    const dropdownBlock: JSONObject = {
-      type: "input",
-      optional: optional,
-      element: {
-        type: isMiltiSelect ? "multi_static_select" : "static_select",
-        action_id: data.payloadDropdownBlock.blockId,
-        placeholder: {
+    const toOption: (option: DropdownOption) => JSONObject = (
+      option: DropdownOption,
+    ): JSONObject => {
+      return {
+        text: {
           type: "plain_text",
-          text: data.payloadDropdownBlock.placeholder,
+          text: option.label,
         },
-        options: data.payloadDropdownBlock.options.map(
-          (option: DropdownOption) => {
-            return {
-              text: {
-                type: "plain_text",
-                text: option.label,
-              },
-              value: option.value,
-            };
+        value: option.value,
+      };
+    };
+
+    const element: JSONObject = {
+      type: isMiltiSelect ? "multi_static_select" : "static_select",
+      action_id: data.payloadDropdownBlock.blockId,
+      placeholder: {
+        type: "plain_text",
+        text: data.payloadDropdownBlock.placeholder,
+      },
+      initial_option: data.payloadDropdownBlock.initialValue
+        ? {
+            text: {
+              type: "plain_text",
+              text: data.payloadDropdownBlock.initialValue,
+            },
+            value: data.payloadDropdownBlock.initialValue,
+          }
+        : undefined,
+    };
+
+    const optionGroups: Array<WorkspaceDropdownOptionGroup> = (
+      data.payloadDropdownBlock.optionGroups || []
+    ).filter((group: WorkspaceDropdownOptionGroup): boolean => {
+      return group.options.length > 0;
+    });
+
+    // Slack takes options, or groups of them: never both.
+    if (optionGroups.length > 0) {
+      element["option_groups"] = optionGroups.map(
+        (group: WorkspaceDropdownOptionGroup): JSONObject => {
+          return {
+            label: {
+              type: "plain_text",
+              text: group.label,
+            },
+            options: group.options.map(toOption),
+          };
+        },
+      );
+    } else {
+      element["options"] = data.payloadDropdownBlock.options.map(toOption);
+    }
+
+    /*
+     * A multi-select's picks as it opens: each the option itself, as Slack
+     * requires - an option no list holds is left out.
+     */
+    if (isMiltiSelect && data.payloadDropdownBlock.initialValues?.length) {
+      const allOptions: Array<DropdownOption> = [
+        ...data.payloadDropdownBlock.options,
+        ...optionGroups.flatMap(
+          (group: WorkspaceDropdownOptionGroup): Array<DropdownOption> => {
+            return group.options;
           },
         ),
-        initial_option: data.payloadDropdownBlock.initialValue
-          ? {
-              text: {
-                type: "plain_text",
-                text: data.payloadDropdownBlock.initialValue,
-              },
-              value: data.payloadDropdownBlock.initialValue,
-            }
-          : undefined,
-      },
+      ];
+
+      const initialOptions: Array<JSONObject> = [];
+
+      for (const value of data.payloadDropdownBlock.initialValues) {
+        const option: DropdownOption | undefined = allOptions.find(
+          (candidate: DropdownOption): boolean => {
+            return candidate.value === value;
+          },
+        );
+
+        if (option) {
+          initialOptions.push(toOption(option));
+        }
+      }
+
+      if (initialOptions.length > 0) {
+        element["initial_options"] = initialOptions;
+      }
+    }
+
+    const dropdownBlock: JSONObject = {
+      type: "input",
+      // Named, so a form's submission can be answered at this field.
+      block_id: data.payloadDropdownBlock.blockId,
+      optional: optional,
+      element: element,
 
       label: {
         type: "plain_text",

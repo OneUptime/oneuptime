@@ -195,6 +195,7 @@ Los chips forman parte de la vista guardada y de la URL de la página, así que 
 - Las **claves** de atributo se comparan sin distinguir mayúsculas y minúsculas en los filtros con comodín, «contiene», prefijo y sufijo, así que no tiene que recordar si se ingirió como `requestId` o como `requestid`.
 - Un filtro `-@k:...` también coincide con filas que nunca tuvieron el atributo: una fila sin `platform.team` evidentemente no empieza por `a`.
 - Las comparaciones numéricas funcionan con valores de atributo guardados como texto; un valor que no es un número nunca cumple una comparación.
+- En registros y trazas, un valor exacto, como `@http.route:/orders`, `@k:(a OR b)` o un valor en el que hace clic en la barra lateral de facetas, se consulta en un índice, así que buscar un valor que tienen pocas filas sigue siendo rápido en intervalos de tiempo largos. Los comodines, «contiene», las exclusiones y las comparaciones leen cada línea de registro o span del intervalo: cuando una de estas búsquedas sea lenta, añada un valor exacto o elija un intervalo más corto.
 
 ## Próximos pasos
 

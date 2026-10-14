@@ -3,6 +3,9 @@ import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import SavedChatMessage, {
+  SavedChatMessageUtil,
+} from "../../Types/Workspace/SavedChatMessage";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -11,6 +14,7 @@ import Model, {
 } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelToSkip,
 } from "./WorkspaceNotificationRuleService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -44,11 +48,19 @@ export class Service extends ProjectReferencesService<Model> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
+    /*
+     * A note saved from a Slack or Microsoft Teams message: who wrote it,
+     * in which chat, and when (SavedChatMessage). The row's user is
+     * whoever saved it.
+     */
+    savedFromChatMessage?: SavedChatMessage | undefined;
     workspaceNotification?:
       | {
           notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
           sendWorkspaceNotification: boolean;
           appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+          // Not posted in this channel: the note came from a message there.
+          exceptChannel?: WorkspaceChannelToSkip | undefined;
         }
       | undefined;
   }): Promise<void> {
@@ -97,6 +109,11 @@ export class Service extends ProjectReferencesService<Model> {
       // When it happened: the time the caller gives, or now.
       scheduledMaintenanceFeed.postedAt =
         data.postedAt || OneUptimeDate.getCurrentDate();
+
+      if (data.savedFromChatMessage) {
+        scheduledMaintenanceFeed.savedFromChatMessage =
+          SavedChatMessageUtil.toJSON(data.savedFromChatMessage);
+      }
 
       await this.create({
         data: scheduledMaintenanceFeed,
@@ -152,6 +169,8 @@ export class Service extends ProjectReferencesService<Model> {
       notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
       sendWorkspaceNotification: boolean;
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+      // Not posted in this channel: the note came from a message there.
+      exceptChannel?: WorkspaceChannelToSkip | undefined;
     };
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(

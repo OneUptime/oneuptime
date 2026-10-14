@@ -49,7 +49,7 @@ Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen** un
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Trigger und wählen Sie in **Fields to pass on** die Felder `title` und `description`.
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Trigger: Seine **Fields to pass on** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung**.
 
 ### Den Alarm anlegen
 
@@ -73,7 +73,7 @@ Und seinen **Request Body** auf:
 
 ### Testen und dann einschalten
 
-Klicken Sie auf **Arbeitsablauf ausführen**, geben Sie die **Vorfall-ID** eines Testvorfalls ein und führen Sie ihn aus. Der Schritt **API Post (JSON)** zeigt eine `202`-Antwort, und der Alarm erscheint einen Moment später in Opsgenie. Schalten Sie danach oben im **Editor** **Aktiviert** ein.
+Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API Post (JSON)** zeigt eine `202`-Antwort, und der Alarm erscheint einen Moment später in Opsgenie. Schalten Sie danach oben im **Editor** **Aktiviert** ein.
 :::
 
 Das Schema von Opsgenie ist das Wort `GenieKey`, ein Leerzeichen, dann der Schlüssel. Opsgenie begrenzt `message` auf 130 Zeichen, und seine Prioritäten reichen von `P1` bis `P5`: Um die jeweils eigene Priorität jedes Vorfalls zu senden, siehe [Prioritäten zuordnen](#prioritäten-zuordnen).
@@ -85,7 +85,7 @@ Ein Workflow hat einen Trigger, das Schließen braucht also einen zweiten Workfl
 :::steps
 ### Den Trigger On Update Incident hinzufügen
 
-Legen Sie einen Workflow namens `Close Opsgenie alerts` an und wählen Sie **On Update Incident** als Trigger. Wählen Sie in **Fields to watch** das Feld `currentIncidentStateId`, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Fields to pass on** ab, ob der neue Status ein behobener ist:
+Legen Sie einen Workflow namens `Close Opsgenie alerts` an und wählen Sie **On Update Incident** als Trigger. Klicken Sie in **Fields to watch** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Fields to pass on** ab, ob der neue Status ein behobener ist: Klicken Sie auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Ist Behoben-Status**. Oder klicken Sie auf **Als JSON bearbeiten** und ersetzen Sie das JSON durch:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ Schalten Sie **Aktiviert** ein und beheben Sie dann einen Testvorfall in OneUpti
 
 Um den Schweregrad jedes Vorfalls als Opsgenie-Priorität zu senden, fügen Sie zwischen dem Trigger und dem **API Post (JSON)**-Baustein einen **Run Custom JavaScript**-Baustein hinzu.
 
-1. Wählen Sie in den **Fields to pass on** des Triggers zusätzlich den `name` des Schweregrads: `{ "incidentSeverity": { "name": true } }`.
+1. Klicken Sie in den **Fields to pass on** des Triggers auf **Feld hinzufügen**, öffnen Sie **Vorfallsschweregrad** und wählen Sie **Name**.
 2. Setzen Sie die **Arguments** des Bausteins auf `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` und seinen **JavaScript Code** auf:
 
    ```javascript

@@ -151,7 +151,9 @@
       "placeholder": "subscriber@company.com",
       "managePrompt": "Please enter your email you have subscribed with",
       "manageDescription": "We will send you a manage subscription link to this email.",
-      "managePlaceholder": "email@yourcompany.com"
+      "managePlaceholder": "email@yourcompany.com",
+      "signedInEmailDescription": "You subscribe with the email address you sign in with.",
+      "signInToSubscribe": "Sign in to this status page to subscribe to it."
     },
     "sms": {
       "title": "Subscribe by SMS",

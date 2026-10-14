@@ -1,152 +1,187 @@
 # Scripting en CI/CD
 
-De OneUptime CLI is ontworpen voor automatisering. Hij ondersteunt authenticatie via omgevingsvariabelen, JSON-uitvoer voor programmatische verwerking en geschikte exitcodes voor pipelineintegratie.
+De CLI werkt in een script net zo als in een terminal. Geef hem een API-sleutel in omgevingsvariabelen, lees zijn antwoorden als JSON en laat zijn exitcode het script vertellen wat er gebeurde. Deze pagina laat elk daarvan zien, en complete pipelines voor GitHub Actions, GitLab CI en Docker.
 
-## Omgevingsvariabelen
+:::cards
+- [Een script zijn API-sleutel geven](#een-script-zijn-api-sleutel-geven): Twee omgevingsvariabelen, geen opgeslagen context.
+- [Exitcodes](#exitcodes): 0 als het lukte, en waarom het anders niet lukte.
+- [Antwoorden lezen met jq](#antwoorden-lezen-met-jq): ID's, titels en datums uit de JSON.
+- [Voorbeelden van pipelines](#voorbeelden-van-pipelines): GitHub Actions, GitLab CI en Docker.
+:::
 
-Stel deze omgevingsvariabelen in om te authenticeren zonder opgeslagen contexten:
+## Hoe een script de CLI gebruikt
 
-```bash
-export ONEUPTIME_API_KEY=sk-your-api-key
-export ONEUPTIME_URL=https://oneuptime.com
+Een deployment kan OneUptime eerst vragen of er een incident openstaat, en stoppen als dat zo is:
+
+```mermaid title="Een deployment die wacht zolang er een incident openstaat"
+flowchart TB
+    J["De CI-job start"] --> S["Zijn secrets zetten<br/>ONEUPTIME_API_KEY<br/>en ONEUPTIME_URL"]
+    S --> Q["oneuptime incident count<br/>van niet opgeloste incidenten"]
+    Q -->|"0"| D["Deployen"]
+    Q -->|"1 of meer"| X["Stoppen:<br/>er staat een<br/>incident open"]
+    Q -->|"exitcode 2"| A["Stoppen:<br/>controleer de<br/>API-sleutel"]
 ```
 
-Deze hebben prioriteit boven opgeslagen contexten maar worden overschreven door CLI-vlaggen.
+## Een script zijn API-sleutel geven
+
+Stel `ONEUPTIME_API_KEY` en `ONEUPTIME_URL` in vanuit de secrets van je CI-systeem. De CLI heeft dan geen `login` en geen configuratiebestand nodig. Een vlag gaat er voor één opdracht nog steeds voor, en zij gaan voor opgeslagen contexten.
+
+```bash
+export ONEUPTIME_API_KEY="$CI_ONEUPTIME_API_KEY"
+export ONEUPTIME_URL="https://oneuptime.com"
+oneuptime incident count
+```
+
+> [!TIP]
+> Geef elke pipeline een eigen API-sleutel met alleen de toegang die hij nodig heeft: een controle die alleen leest, heeft een sleutel nodig die alleen leest. Verwijder de sleutel in OneUptime als de pipeline wordt opgeheven.
+
+Draait één machine jobs voor meerdere projecten, sla dan voor elk een context op en noem die in elke opdracht, zodat een job nooit de huidige context van een andere gebruikt:
+
+```bash
+oneuptime --context production incident count
+oneuptime --context staging monitor count
+```
 
 ## Exitcodes
 
-| Code | Betekenis                                                  |
-| ---- | ---------------------------------------------------------- |
-| `0`  | Geslaagd                                                   |
-| `1`  | Algemene fout                                              |
-| `2`  | Authenticatiefout (ontbrekende of ongeldige inloggegevens) |
-| `3`  | Niet gevonden (404)                                        |
+| Code | Betekenis | Bijvoorbeeld |
+| --- | --- | --- |
+| `0` | Het is gelukt | Een lijst, ook een die niets vindt |
+| `1` | Het is mislukt | OneUptime weigerde het verzoek, zoals `API error (422)`; ongeldige JSON; een ontbrekende of onbekende optie; een context die niet is opgeslagen |
+| `2` | Geen bruikbare API-sleutel | Geen inloggegevens gevonden; een ongeldige API-sleutel; een sleutel onder zijn abonnement (`402`); `401` |
+| `3` | Niet gevonden | OneUptime antwoordde `404`: het record bestaat niet, staat in een ander project, of de sleutel mag het niet lezen |
 
-Gebruik exitcodes in scripts om fouten af te handelen:
+`whoami` en `context current` eindigen met `0`, ook als er niets is opgeslagen: ze melden wat er is ingesteld, ze controleren het niet. Een script onderscheidt de gevallen aan de code:
 
 ```bash
-if ! oneuptime monitor list > /dev/null 2>&1; then
-  echo "Failed to list monitors"
-  exit 1
-fi
+oneuptime incident get "$INCIDENT_ID" -o json > incident.json
+case $? in
+  0) echo "Saved the incident to incident.json" ;;
+  2) echo "Check ONEUPTIME_API_KEY and ONEUPTIME_URL" >&2; exit 1 ;;
+  3) echo "There is no incident $INCIDENT_ID" >&2; exit 1 ;;
+  *) echo "OneUptime refused the request" >&2; exit 1 ;;
+esac
 ```
 
-## JSON-verwerking met jq
+Foutmeldingen gaan naar de standaardfoutuitvoer, dus `incident.json` bevat alleen het antwoord.
 
-Gebruik `-o json` voor machineleesbare uitvoer:
+## Antwoorden lezen met jq
+
+Schrijf `-o json` in scripts. In een pipe drukt de CLI toch JSON af, maar de vlag houdt het script werkend waar het ook draait:
 
 ```bash
-# Alle incidenttitels ophalen
-oneuptime incident list -o json | jq '.[].title'
+# The title of each incident
+oneuptime incident list -o json | jq -r '.[].title'
 
-# Het ID van een nieuw aangemaakte monitor vastleggen
-NEW_ID=$(oneuptime monitor create --data '{"name":"API Health"}' -o json | jq -r '._id')
-echo "Created monitor: $NEW_ID"
+# The ID of a new monitor
+MONITOR_ID=$(oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}' -o json | jq -r '._id')
 
-# Incidenten tellen op ernst
-oneuptime incident count --query '{"incidentSeverityId":"<severity-id>"}'
+# When each incident was created: dates come as objects
+oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
+
+# The newest 100 incidents as CSV
+oneuptime incident list --limit 100 -o json | jq -r '.[] | [._id, .title, .createdAt.value] | @csv'
 ```
 
-## Resources aanmaken vanuit bestanden
-
-Gebruik `--file` om resources aan te maken vanuit JSON-bestanden, nuttig voor versiebeheerde infrastructuur:
+Een telling drukt één getal af, klaar om te vergelijken:
 
 ```bash
-# monitor.json
-# {
-#   "name": "API Health Check",
-#   "projectId": "your-project-id"
-# }
-
-oneuptime monitor create --file monitor.json
+OPEN=$(oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}')
+echo "$OPEN incidents are open"
 ```
 
-## Batchbewerkingen
+## Records maken uit bestanden
 
-Verwerk meerdere resources in een lus:
+Bewaar records als JSON-bestanden naast je code, en maak ze vanaf daar aan:
+
+```json title="monitors/checkout-api.json"
+{
+  "name": "Checkout API",
+  "monitorType": "Manual"
+}
+```
 
 ```bash
-# Meerdere monitors aanmaken vanuit een JSON-arraybestand
-cat monitors.json | jq -r '.[] | @json' | while read monitor; do
-  oneuptime monitor create --data "$monitor"
+oneuptime monitor create --file monitors/checkout-api.json
+```
+
+Veel records uit één JSON-array, één aanmaak per record:
+
+```bash
+jq -c '.[]' monitors.json | while IFS= read -r monitor; do
+  oneuptime monitor create --data "$monitor" -o json | jq -r '._id'
 done
 ```
 
-## CI/CD Pipeline-voorbeelden
+> [!NOTE]
+> Elke run maakt nieuwe records. Om monitoren en statuspagina's gelijk te houden met bestanden, alleen te wijzigen wat veranderde en te verwijderen wat weg is, gebruik je de [Terraform-provider](/docs/terraform/index).
 
-### GitHub Actions
+## Voorbeelden van pipelines
 
-```yaml
-name: Check Active Incidents
+:::tabs
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  push:
+    branches: [main]
 
 jobs:
-  health-check:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Install OneUptime CLI
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install the OneUptime CLI
         run: npm install -g @oneuptime/cli
-
-      - name: Check for active incidents
+      - name: Stop while an incident is open
         env:
           ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
           ONEUPTIME_URL: https://oneuptime.com
         run: |
-          INCIDENT_COUNT=$(oneuptime incident count)
-          if [ "$INCIDENT_COUNT" -gt 0 ]; then
-            echo "WARNING: $INCIDENT_COUNT incidents found"
+          OPEN=$(oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}')
+          if [ "$OPEN" -gt 0 ]; then
+            echo "$OPEN incidents are open: not deploying."
             exit 1
           fi
+      - name: Deploy
+        run: ./deploy.sh
 ```
-
-### Generiek CI/CD-script
-
-```bash
-#!/bin/bash
-set -e
-
-export ONEUPTIME_API_KEY="$CI_ONEUPTIME_API_KEY"
-export ONEUPTIME_URL="$CI_ONEUPTIME_URL"
-
-# Een implementatie-incident aanmaken en het ID vastleggen
-# Opmerking: currentIncidentStateId en incidentSeverityId moeten verwijzen naar bestaande status/ernst-ID's in uw project
-INCIDENT_ID=$(oneuptime incident create --data '{
-  "title": "Deployment Started",
-  "currentIncidentStateId": "'"$INVESTIGATING_STATE_ID"'",
-  "incidentSeverityId": "'"$SEVERITY_ID"'",
-  "declaredAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
-}' -o json | jq -r '._id')
-
-# Implementatiestappen hier uitvoeren...
-
-# Het incident oplossen na een geslaagde implementatie
-oneuptime incident update "$INCIDENT_ID" --data '{"currentIncidentStateId":"'"$RESOLVED_STATE_ID"'"}'
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+check-incidents:
+  stage: test
+  image: node:lts
+  variables:
+    ONEUPTIME_URL: https://oneuptime.com
+  script:
+    - npm install -g @oneuptime/cli
+    - OPEN=$(oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}')
+    - echo "$OPEN incidents are open"
+    - test "$OPEN" -eq 0
 ```
-
-### Docker
-
-```dockerfile
-FROM node:26-slim
+@tab Docker
+```dockerfile title="Dockerfile"
+FROM node:lts-slim
 RUN npm install -g @oneuptime/cli
-ENV ONEUPTIME_API_KEY=""
-ENV ONEUPTIME_URL=""
 ENTRYPOINT ["oneuptime"]
 ```
+:::
+
+Voeg in GitHub Actions `ONEUPTIME_API_KEY` toe onder **Settings → Secrets and variables → Actions** van de repository; voeg hem in GitLab toe als gemaskeerde CI/CD-variabele. Geef met de Docker-image de variabelen aan elke run mee:
 
 ```bash
-docker run --rm \
-  -e ONEUPTIME_API_KEY=sk-abc123 \
-  -e ONEUPTIME_URL=https://oneuptime.com \
-  oneuptime-cli incident list
+docker build -t oneuptime-cli .
+docker run --rm -e ONEUPTIME_API_KEY -e ONEUPTIME_URL oneuptime-cli incident count
 ```
 
-## Een specifieke context gebruiken in scripts
+## Volgende stappen
 
-Als u meerdere opgeslagen contexten heeft, richt u zich op een specifieke:
-
-```bash
-oneuptime --context production incident list
-oneuptime --context staging monitor count
-```
+:::cards
+- [Authenticatie](/docs/cli/authentication): Welke sleutel een opdracht gebruikt als er meerdere zijn ingesteld.
+- [Uitvoerformaten](/docs/cli/output-formats): De JSON die je scripts lezen.
+- [Bewerkingen op bronnen](/docs/cli/resource-operations): Filters, pagina's en de velden van een record.
+- [Terraform-provider](/docs/terraform/index): De configuratie van OneUptime in bestanden bewaren.
+:::

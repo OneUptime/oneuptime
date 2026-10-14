@@ -68,9 +68,9 @@ const MARKUP_READERS: Array<MarkupReader> = [
     readsThrough: "removeHtmlMarkup",
   },
   {
-    file: "packages/Common/Server/Utils/Workspace/MicrosoftTeams/ReactionNoteSync.ts",
+    file: "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsMessageReader.ts",
     what: "a Teams message saved as a note",
-    // The same walk, with what each tag becomes in a message's text.
+    // The same walk, with what each tag means in a message (a list, a link).
     readsThrough: "replaceHtmlMarkup",
   },
   {

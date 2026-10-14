@@ -1066,7 +1066,7 @@ const DocsNav: NavGroup[] = [
     section: "Developers",
     links: [
       {
-        title: "Overview",
+        title: "CLI Overview",
         url: "/docs/cli/index",
       },
       {

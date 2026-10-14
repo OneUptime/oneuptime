@@ -36,6 +36,7 @@ Enregistrez les identifiants pour un projet, ou une seule fois pour toute l'inst
 | --- | --- | --- |
 | Où | La carte **Configuration Twilio** dans **Paramètres du projet > Notifications > Paramètres de notification** | **Admin Dashboard > Paramètres > Appel et SMS** |
 | Qui peut la définir | **Project Owner**, **Project Admin**, ou **Create Call and SMS** dans un rôle personnalisé | Un administrateur principal |
+| Qui peut lire son Auth Token | **Project Owner**, **Project Admin**, ou **Read Call and SMS** dans un rôle personnalisé. Les autres personnes qui voient la configuration en voient le reste ; le token est stocké chiffré | Un administrateur principal |
 | Utilisée pour | Les SMS et appels vers les membres du projet tant qu'elle est la configuration par défaut du projet, les pages de statut auxquelles elle est attribuée et les politiques d'appels entrants qui l'utilisent | Les SMS et appels vers les membres de tout projet qui n'a pas de configuration par défaut |
 
 Pour ajouter une configuration de projet :

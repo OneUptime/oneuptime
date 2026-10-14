@@ -36,6 +36,7 @@ Save the credentials for one project, or once for the whole installation:
 | --- | --- | --- |
 | Where | The **Twilio Config** card in **Project Settings > Notifications > Notification Settings** | **Admin Dashboard > Settings > Call and SMS** |
 | Who can set it | **Project Owner**, **Project Admin**, or **Create Call and SMS** in a custom role | A master admin |
+| Who can read its Auth Token | **Project Owner**, **Project Admin**, or **Read Call and SMS** in a custom role. Others who can see the configuration see the rest of it; the token is stored encrypted | A master admin |
 | Used for | SMS and calls to the project's members while it is the project default, status pages it is assigned to, and incoming call policies that use it | SMS and calls to the members of any project that has no default configuration |
 
 To add a project configuration:

@@ -151,7 +151,9 @@
       "placeholder": "subscriber@company.cn",
       "managePrompt": "請輸入您訂閱時使用的電子郵件",
       "manageDescription": "我們將把訂閱管理連結傳送到此電子郵件。",
-      "managePlaceholder": "email@yourcompany.cn"
+      "managePlaceholder": "email@yourcompany.cn",
+      "signedInEmailDescription": "您將使用登入所用的電子郵件地址訂閱。",
+      "signInToSubscribe": "請登入此狀態頁面以進行訂閱。"
     },
     "sms": {
       "title": "透過簡訊訂閱",

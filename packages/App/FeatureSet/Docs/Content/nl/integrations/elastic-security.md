@@ -44,7 +44,7 @@ Alerts worden per space opgeslagen. Open de space waarin je regels draaien: de I
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Elastic Security** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de sleutel in **API key**.
+Open **Producten → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Elastic Security** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de sleutel in **API-sleutel**.
 
 ### Testen voordat je opslaat
 
@@ -55,7 +55,7 @@ Klik op **Test these settings** onder **Test before saving**. De test authentice
 | --- | --- |
 | **Kibana URL** | Het adres waarop Kibana wordt aangeboden, bijvoorbeeld `https://kibana.example.com` of `https://<deployment>.kb.<region>.cloud.es.io`. Zonder pad: geen `/app/security`, geen `/api` en geen deel `/s/<space>`. |
 | **Kibana space** | De ID van de space, niet de naam: letters, cijfers, koppeltekens en onderstrepingstekens. Laat leeg voor de standaardspace. |
-| **API key** | De waarde **Base64** van de sleutel, op zichzelf: OneUptime voegt het schema `ApiKey` zelf toe. Hij wordt versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang hem met **Update credentials** bij de verbinding. |
+| **API-sleutel** | De waarde **Base64** van de sleutel, op zichzelf: OneUptime voegt het schema `ApiKey` zelf toe. Hij wordt versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang hem met **Update credentials** bij de verbinding. |
 
 De stap **Polling** heeft ook een optionele **Beschrijving**, het **Poll Interval (Minutes)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
 

@@ -117,7 +117,9 @@ import vm from "vm";
  * (the Jira settings each template asks for), WorkflowTemplatePickerDocs,
  * WorkflowWebhookUrlDocs, WorkflowRunsDocs, WorkflowTurnOnDocs,
  * DeclareIncidentStepsDocs, HuntressIntegrationDocs, IrcIntegrationDocs
- * and TemplateMissingValueClaims.
+ * and TemplateMissingValueClaims. IssueAndChatIntegrationsDocsFacts holds
+ * how every integrations page tests its workflow with Run Workflow, these
+ * pages' too, in every language, and what the Overview's chat rows say.
  */
 
 const DASHBOARD: string = "App/FeatureSet/Dashboard/src";
@@ -1083,11 +1085,20 @@ describe("PagerDuty, Opsgenie and ServiceNow", () => {
 
       const markdown: string = englishPage(page);
 
+      /*
+       * Both are built in the list the Builder draws: the state is watched
+       * by its name in Add field's list, the column an update reports
+       * (IntegrationsFieldListsDocs holds the fields to the real list), and
+       * the JSON is given for Edit as JSON, where it goes in.
+       */
       expect(markdown).toContain(
-        `In ${bold(WATCHED_FIELDS_NAME)}, pick \`currentIncidentStateId\``,
+        `In ${bold(WATCHED_FIELDS_NAME)}, click ${bold("Add field")} and pick ${bold("Current Incident State")}, so it runs only when the state changes.`,
       );
       // Its other setting is named on the page too, and neither by its old name.
       expect(markdown).toContain(`In ${bold(SELECT_FIELDS_NAME)}, ask for`);
+      expect(markdown).toContain(
+        `open ${bold("Current Incident State")} and pick ${bold("Is Resolved State")}. Or click ${bold("Edit as JSON")} and replace the JSON with:`,
+      );
       expect(markdown).not.toContain("Listen on");
       expect(markdown).not.toContain("Select Fields");
       expect(markdown).toContain(

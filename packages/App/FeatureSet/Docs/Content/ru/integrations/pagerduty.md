@@ -48,7 +48,7 @@ flowchart TB
 
 ### Добавьте триггер
 
-Нажмите на пунктирный блок **Choose what starts this workflow** и выберите **On Create Incident**. Нажмите на триггер и в **Fields to pass on** выберите `title` и `description`.
+Нажмите на пунктирный блок **Choose what starts this workflow** и выберите **On Create Incident**. Нажмите на триггер: его **Fields to pass on** начинаются с поля **Заголовок**, поэтому нажмите **Добавить поле** и выберите **Описание**.
 
 ### Отправьте событие trigger
 
@@ -72,7 +72,7 @@ flowchart TB
 
 ### Проверьте, затем включите
 
-Нажмите **Запустить рабочий процесс**, введите **ID инцидента** тестового инцидента и запустите. Шаг **API Post (JSON)** покажет ответ `202` с `"status": "success"`, а PagerDuty откроет инцидент. Затем включите **Включено** вверху окна **Конструктор**.
+Нажмите **Запустить рабочий процесс**, выберите тестовый инцидент в поле **Инцидент** и запустите. Шаг **API Post (JSON)** покажет ответ `202` с `"status": "success"`, а PagerDuty откроет инцидент. Затем включите **Включено** вверху окна **Конструктор**.
 :::
 
 Блок отправляет JSON, поэтому заголовок `Content-Type` ему не нужен. `severity` в PagerDuty принимает одно из значений `critical`, `error`, `warning` и `info`: чтобы отправлять серьёзность каждого инцидента, см. [Сопоставление уровней серьёзности](#сопоставление-уровней-серьёзности).
@@ -84,7 +84,7 @@ flowchart TB
 :::steps
 ### Добавьте триггер On Update Incident
 
-Создайте рабочий процесс с именем `Resolve PagerDuty incidents` и выберите триггер **On Update Incident**. В **Fields to watch** выберите `currentIncidentStateId`, чтобы он запускался только при смене состояния. В **Fields to pass on** запросите, является ли новое состояние состоянием устранения:
+Создайте рабочий процесс с именем `Resolve PagerDuty incidents` и выберите триггер **On Update Incident**. В **Fields to watch** нажмите **Добавить поле** и выберите **Current Incident State**, чтобы он запускался только при смене состояния. В **Fields to pass on** запросите, является ли новое состояние состоянием устранения: нажмите **Добавить поле**, откройте **Current Incident State** и выберите **Is Resolved State**. Или нажмите **Изменить как JSON** и замените JSON на:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ flowchart TB
 
 Чтобы отправлять серьёзность каждого инцидента, добавьте между триггером и блоком **API Post (JSON)** блок **Run Custom JavaScript** и читайте его ответ в теле.
 
-1. В **Fields to pass on** триггера выберите также `name` серьёзности: `{ "incidentSeverity": { "name": true } }`.
+1. В **Fields to pass on** триггера нажмите **Добавить поле**, откройте **Серьёзность инцидента** и выберите **Имя**.
 2. Задайте **Arguments** блока значение `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, а его **JavaScript Code** — следующий код:
 
    ```javascript

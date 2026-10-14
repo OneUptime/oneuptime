@@ -47,6 +47,13 @@ export const DISCORD: string = "integrations/discord";
 export const TELEGRAM: string = "integrations/telegram";
 
 /*
+ * The IRC page, which has suites of its own (IrcIntegrationDocs): named
+ * here for the checks that read every integrations page, and for the tab
+ * labels the Discord and Telegram pages word as it does.
+ */
+export const IRC: string = "integrations/irc";
+
+/*
  * The pages these tasks rewrote, in nav order: task 28a's are the first
  * seven links of the Integrations group, and task 28b's follow, with
  * Huntress, which has suites of its own, between Datadog and Google SecOps.
@@ -762,7 +769,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     ],
     [ELASTIC]: [
       "Elastic Security",
-      "API key",
       "Kibana URL",
       "Kibana space",
       "Catching up",

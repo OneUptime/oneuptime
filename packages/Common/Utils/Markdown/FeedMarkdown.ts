@@ -259,6 +259,9 @@ const LINE_START_PREFIX_PATTERN: RegExp =
 
 const TABLE_ROW_PATTERN: RegExp = /^[ \t]*\|/;
 
+// Nothing but spaces and tabs, or nothing.
+const SPACES_AND_TABS_PATTERN: RegExp = /^[ \t]*$/;
+
 // A line that opens or closes a fenced code block, as CommonMark reads one.
 const FENCE_LINE_PATTERN: RegExp = /^( {0,3})(`{3,}|~{3,})(.*)$/;
 
@@ -715,10 +718,22 @@ const readTemplate: ReadTemplateFunction = (
       }
     }
 
+    /*
+     * The last value of this line placed in a sentence, and whether it
+     * starts the line: a value after it with only spaces and tabs between
+     * starts the line too, as LINE_START_PREFIX_PATTERN would read the whole
+     * prefix (every branch of it ends in a run that takes them). Read that
+     * way, a line of many values - a join of thousands of runs - is read
+     * once, not once for every value.
+     */
+    let previousSentenceValue: number = -1;
+    let previousStartsLine: boolean = false;
+
     for (const valueIndex of valuesBetween(line.start, line.end)) {
       const placed: PlacedValue = places[valueIndex]!;
 
       if (placed.place === ValuePlace.CodeSpan) {
+        previousSentenceValue = -1;
         continue;
       }
 
@@ -734,19 +749,29 @@ const readTemplate: ReadTemplateFunction = (
       if (ranges.linkAddresses.some(inRange)) {
         placed.place = ValuePlace.LinkAddress;
         placed.inTableRow = inTableRow;
+        previousSentenceValue = -1;
         continue;
       }
 
       if (ranges.linkTexts.some(inRange)) {
         placed.place = ValuePlace.LinkText;
+        previousSentenceValue = -1;
         continue;
       }
 
       placed.place = ValuePlace.Sentence;
       placed.inTableRow = inTableRow;
-      placed.startsLine = LINE_START_PREFIX_PATTERN.test(
-        text.slice(line.start, position),
-      );
+      placed.startsLine =
+        previousSentenceValue !== -1 &&
+        previousStartsLine &&
+        SPACES_AND_TABS_PATTERN.test(
+          text.slice(previousSentenceValue + 1, position),
+        )
+          ? true
+          : LINE_START_PREFIX_PATTERN.test(text.slice(line.start, position));
+
+      previousSentenceValue = position;
+      previousStartsLine = placed.startsLine;
     }
   });
 
@@ -787,11 +812,23 @@ const CHARACTER_REFERENCE_PATTERN: RegExp =
 const CHARACTER_REFERENCE_AMPERSAND_PATTERN: RegExp =
   /&(?=#[0-9]{1,7};|#[xX][0-9a-fA-F]{1,6};|[A-Za-z][A-Za-z0-9]{0,31};|$)/g;
 
+// The characters escapeSentenceStyle may escape.
+const SENTENCE_STYLE_CHARACTER_PATTERN: RegExp = /[`*~_&]/;
+
 type EscapeSentenceStyleFunction = (text: string) => string;
 
 const escapeSentenceStyle: EscapeSentenceStyleFunction = (
   text: string,
 ): string => {
+  /*
+   * A text with none of them is written as it is, without looking for the
+   * web addresses in it: most values are such text, and a long chat message
+   * saved as a note is thousands of them.
+   */
+  if (!SENTENCE_STYLE_CHARACTER_PATTERN.test(text)) {
+    return text;
+  }
+
   const addresses: Array<{ start: number; end: number }> = Array.from(
     text.matchAll(BARE_WEB_ADDRESS_PATTERN),
   ).map((match: RegExpMatchArray): { start: number; end: number } => {
@@ -1542,6 +1579,26 @@ export default class FeedMarkdown {
     literals.push("");
 
     return renderUncached(literals, lines);
+  }
+
+  /**
+   * Plain text written after words already on its line - a chat message's
+   * text after its bold words or a link (ChatMessageMarkdown) - escaped as
+   * mdText escapes a value, except as the start of a line: the line has
+   * begun, so a "+", "-" or "1." the text starts with opens no list or
+   * heading, and is written as typed. mdText cannot tell that the values
+   * before it on the line are not empty, so it escapes those there too.
+   * Only after something on the line that is not indentation or a list or
+   * quote marker.
+   */
+  public static textInLine(text: string | null | undefined): MarkdownText {
+    return makeMarkdownText(
+      escapeSentenceValue(toText(text), {
+        place: ValuePlace.Sentence,
+        startsLine: false,
+        inTableRow: false,
+      }),
+    );
   }
 
   /**
