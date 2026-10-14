@@ -7,7 +7,6 @@ import ClickhouseDatabase, {
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
-import { ClickhouseExecuteOptions } from "Common/Server/Services/AnalyticsDatabaseService";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -88,7 +87,9 @@ jest.mock("Common/Server/Utils/Logger", () => {
 
 import LogService from "Common/Server/Services/LogService";
 import SpanService from "Common/Server/Services/SpanService";
-import AnalyticsDatabaseService from "Common/Server/Services/AnalyticsDatabaseService";
+import AnalyticsDatabaseService, {
+  ClickhouseExecuteOptions,
+} from "Common/Server/Services/AnalyticsDatabaseService";
 import LogAggregationService, {
   FacetValue,
   HistogramBucket,
@@ -304,7 +305,10 @@ function describeError(error: unknown): string {
   const details: { name?: unknown; code?: unknown; message?: unknown } =
     (error || {}) as { name?: unknown; code?: unknown; message?: unknown };
 
-  return `${String((error as object)?.constructor?.name)} code=${String(details.code)} message=${String(details.message).slice(0, 200)}`;
+  const kind: string =
+    error instanceof Object ? error.constructor.name : typeof error;
+
+  return `${kind} code=${String(details.code)} message=${String(details.message).slice(0, 200)}`;
 }
 
 // What the explorer and an API caller get: the stop, said plainly.
@@ -700,11 +704,15 @@ integration(
      * the connection, which the client can only report as an aborted read.
      * (Production's gzip responses hold a small answer in the compressor, so
      * an uncompressed client shows it with a few rows; an export of thousands
-     * flushes the same way through gzip.) executeQuery asks ClickHouse to
-     * hold a time-limited read's answer, so the stop arrives as the error
-     * itself.
+     * flushes the same way through gzip.) ClickHouse 24.x instead finishes
+     * the document, its rows cut short, with the error as its "exception"
+     * member. executeQuery asks ClickHouse to hold a time-limited read's
+     * answer, so the stop arrives as the error itself.
      */
     describe("a read that was streaming rows when it was stopped", () => {
+      // ClickHouse 24.x's way: the error as a member of the document.
+      const EXCEPTION_MEMBER: RegExp = /"exception"\s*:/;
+
       /*
        * A light sleep on one thread, so each block of rows is finished and
        * sent well inside the second, and the whole read is not.
@@ -723,8 +731,12 @@ integration(
 
             const text: string = await result.text();
 
-            return text.includes("__exception__")
-              ? "rows, then an error block"
+            if (text.includes("__exception__")) {
+              return "rows, then an error block";
+            }
+
+            return EXCEPTION_MEMBER.test(text)
+              ? "rows, then the error in the document"
               : "a whole answer";
           } catch (error) {
             return AnalyticsDatabaseService.isQueryTimeoutError(error)
@@ -733,9 +745,11 @@ integration(
           }
         })();
 
-        expect(["an aborted read", "rows, then an error block"]).toContain(
-          outcome,
-        );
+        expect([
+          "an aborted read",
+          "rows, then an error block",
+          "rows, then the error in the document",
+        ]).toContain(outcome);
       });
 
       test("through executeQuery, is the stop", async () => {

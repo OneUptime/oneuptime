@@ -59,13 +59,16 @@ describe("TelemetryLoadErrorUtil.isTimedOut", () => {
       status: 504,
     },
     { answer: "an older server's 408 for an exact count", status: 408 },
-  ])("$answer is a search that took too long", ({ status }) => {
-    expect(
-      TelemetryLoadErrorUtil.isTimedOut(
-        new HTTPErrorResponse(status, { error: TIME_LIMIT_SENTENCE }, {}),
-      ),
-    ).toBe(true);
-  });
+  ])(
+    "$answer is a search that took too long",
+    ({ status }: { status: number }) => {
+      expect(
+        TelemetryLoadErrorUtil.isTimedOut(
+          new HTTPErrorResponse(status, { error: TIME_LIMIT_SENTENCE }, {}),
+        ),
+      ).toBe(true);
+    },
+  );
 
   test("a proxy's own 504 page is a search that took too long", () => {
     expect(TelemetryLoadErrorUtil.isTimedOut(gatewayTimeoutPage())).toBe(true);
@@ -79,7 +82,7 @@ describe("TelemetryLoadErrorUtil.isTimedOut", () => {
     },
     { answer: "a 400 for a bad query", status: 400 },
     { answer: "a 503", status: 503 },
-  ])("$answer is not", ({ status }) => {
+  ])("$answer is not", ({ status }: { status: number }) => {
     expect(
       TelemetryLoadErrorUtil.isTimedOut(
         new HTTPErrorResponse(status, { error: "Something else" }, {}),
@@ -93,9 +96,12 @@ describe("TelemetryLoadErrorUtil.isTimedOut", () => {
     { answer: "a bare object with a 504 status", error: { statusCode: 504 } },
     { answer: "undefined", error: undefined },
     { answer: "null", error: null },
-  ])("$answer is not: only an HTTP answer says so", ({ error }) => {
-    expect(TelemetryLoadErrorUtil.isTimedOut(error)).toBe(false);
-  });
+  ])(
+    "$answer is not: only an HTTP answer says so",
+    ({ error }: { error: unknown }) => {
+      expect(TelemetryLoadErrorUtil.isTimedOut(error)).toBe(false);
+    },
+  );
 });
 
 describe("TelemetryLoadErrorUtil.fromError", () => {

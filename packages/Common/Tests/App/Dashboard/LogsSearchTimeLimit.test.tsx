@@ -320,9 +320,11 @@ function messages(): Array<HTMLElement> {
   return screen.queryAllByTestId(TELEMETRY_LOAD_ERROR_TEST_ID);
 }
 
+const SEARCH_MESSAGE_TITLE: RegExp = /This search/;
+
 function searchMessage(): HTMLElement | undefined {
   return messages().find((element: HTMLElement): boolean => {
-    return /This search/.test(element.textContent || "");
+    return SEARCH_MESSAGE_TITLE.test(element.textContent || "");
   });
 }
 

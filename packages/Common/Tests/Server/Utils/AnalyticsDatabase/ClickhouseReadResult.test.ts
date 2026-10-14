@@ -95,18 +95,21 @@ describe("ClickhouseReadResult.isTimeLimitError", () => {
     ["TOO_SLOW (160)", { code: "160", type: "TOO_SLOW" }],
     ["a code without a type", { code: "159" }],
     ["a type without a code", { type: "TOO_SLOW" }],
-  ])("%s is a stop at the time limit", (_name: string, error: object) => {
-    expect(ClickhouseReadResult.isTimeLimitError(error)).toBe(true);
-    expect(
-      ClickhouseReadResult.isTimeLimitError(
-        new ClickHouseError({
-          message: "stopped",
-          code: (error as { code?: string }).code || "",
-          type: (error as { type?: string }).type || "",
-        }),
-      ),
-    ).toBe(true);
-  });
+  ])(
+    "%s is a stop at the time limit",
+    (_name: string, error: Record<string, unknown>) => {
+      expect(ClickhouseReadResult.isTimeLimitError(error)).toBe(true);
+      expect(
+        ClickhouseReadResult.isTimeLimitError(
+          new ClickHouseError({
+            message: "stopped",
+            code: (error as { code?: string }).code || "",
+            type: (error as { type?: string }).type || "",
+          }),
+        ),
+      ).toBe(true);
+    },
+  );
 
   test("the QueryTimeoutException a stop becomes is one too", () => {
     expect(
