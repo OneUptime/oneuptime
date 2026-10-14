@@ -41,13 +41,13 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * What a new record must be, before anything it names is looked up: the
-   * workspace, the group's id there, a Microsoft Teams tag's team, and at
-   * least one schedule.
+   * What a new record must be: the workspace, the group's id there, a
+   * Microsoft Teams tag's team, and at least one schedule. Checked after the
+   * base hook has held what it names to the project
+   * (ProjectReferencesService), so an id of another project is answered
+   * exactly as one that matches nothing, whatever else the write lacks.
    */
-  protected override async checkCreateBeforeReferences(
-    createBy: CreateBy<Model>,
-  ): Promise<void> {
+  private checkCreate(createBy: CreateBy<Model>): void {
     const data: Model = createBy.data;
 
     if (
@@ -114,7 +114,9 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
+    await super.onBeforeCreate(createBy);
+
+    this.checkCreate(createBy);
 
     const projectId: ObjectID | undefined =
       createBy.props.tenantId || createBy.data.projectId;
@@ -139,7 +141,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return onCreate;
+    return { createBy: createBy, carryForward: undefined };
   }
 
   // A new group takes the people on call in its schedules at once.

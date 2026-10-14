@@ -1,4 +1,11 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import WorkspaceUserGroup from "../../../Models/DatabaseModels/WorkspaceUserGroup";
@@ -7,6 +14,7 @@ import WorkspaceUserGroupService, {
   NO_SCHEDULE_MESSAGE,
 } from "../../../Server/Services/WorkspaceUserGroupService";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import WorkspaceUserGroupSync from "../../../Server/Utils/Workspace/UserGroups/WorkspaceUserGroupSync";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -37,7 +45,6 @@ const PROPS: DatabaseCommonInteractionProps = {
 
 // The service's protected hooks.
 const hooks: {
-  checkCreateBeforeReferences: (createBy: unknown) => Promise<void>;
   checkUpdateBeforeReferences: (updateBy: unknown) => Promise<void>;
   onBeforeCreate: (createBy: unknown) => Promise<unknown>;
   onCreateSuccess: (
@@ -82,23 +89,35 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/*
+ * A create, past the project's reference check (a project's own schedules
+ * pass it) and with no record keeping the group yet: the record's own rules.
+ */
+async function createRules(data: WorkspaceUserGroup): Promise<unknown> {
+  return await hooks.onBeforeCreate({ data: data, props: PROPS });
+}
+
 describe("what a group record must be", () => {
+  beforeEach(() => {
+    jest
+      .spyOn(ProjectReferenceCheck, "validateCreate")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(WorkspaceUserGroupService, "findOneBy").mockResolvedValue(null);
+  });
+
   test("a Slack group following a schedule passes, its id trimmed", async () => {
     const data: WorkspaceUserGroup = slackGroup({
       workspaceGroupId: "  S0604QSJC ",
     });
 
-    await hooks.checkCreateBeforeReferences({ data: data, props: PROPS });
+    await createRules(data);
 
     expect(data.workspaceGroupId).toBe("S0604QSJC");
   });
 
   test("a workspace other than Slack or Microsoft Teams is refused", async () => {
     const error: Error = await refusal(
-      hooks.checkCreateBeforeReferences({
-        data: slackGroup({ workspaceType: "Discord" }),
-        props: PROPS,
-      }),
+      createRules(slackGroup({ workspaceType: "Discord" })),
     );
 
     expect(error).toBeInstanceOf(BadDataException);
@@ -109,10 +128,7 @@ describe("what a group record must be", () => {
 
   test("no group id in the workspace is refused", async () => {
     const error: Error = await refusal(
-      hooks.checkCreateBeforeReferences({
-        data: slackGroup({ workspaceGroupId: "   " }),
-        props: PROPS,
-      }),
+      createRules(slackGroup({ workspaceGroupId: "   " })),
     );
 
     expect(error.message).toBe(
@@ -122,10 +138,7 @@ describe("what a group record must be", () => {
 
   test("a Microsoft Teams tag needs its team", async () => {
     const error: Error = await refusal(
-      hooks.checkCreateBeforeReferences({
-        data: slackGroup({ workspaceType: WorkspaceType.MicrosoftTeams }),
-        props: PROPS,
-      }),
+      createRules(slackGroup({ workspaceType: WorkspaceType.MicrosoftTeams })),
     );
 
     expect(error.message).toBe(
@@ -138,7 +151,7 @@ describe("what a group record must be", () => {
       name: "x".repeat(60),
     });
 
-    await hooks.checkCreateBeforeReferences({ data: data, props: PROPS });
+    await createRules(data);
 
     expect(data.workspaceTeamId).toBe("team-1");
     // A tag's name holds 40 characters.
@@ -150,7 +163,7 @@ describe("what a group record must be", () => {
       name: `  ${"y".repeat(130)}`,
     });
 
-    await hooks.checkCreateBeforeReferences({ data: data, props: PROPS });
+    await createRules(data);
 
     expect(data.name).toBe("y".repeat(100));
   });
@@ -158,10 +171,7 @@ describe("what a group record must be", () => {
   test("a group follows at least one schedule", async () => {
     for (const schedules of [undefined, [], [null], ["  "]]) {
       const error: Error = await refusal(
-        hooks.checkCreateBeforeReferences({
-          data: slackGroup({ onCallDutyPolicySchedules: schedules }),
-          props: PROPS,
-        }),
+        createRules(slackGroup({ onCallDutyPolicySchedules: schedules })),
       );
 
       expect(error.message).toBe(NO_SCHEDULE_MESSAGE);
@@ -176,12 +186,29 @@ describe("what a group record must be", () => {
       [schedule()],
     ]) {
       await expect(
-        hooks.checkCreateBeforeReferences({
-          data: slackGroup({ onCallDutyPolicySchedules: schedules }),
-          props: PROPS,
-        }),
-      ).resolves.toBeUndefined();
+        createRules(slackGroup({ onCallDutyPolicySchedules: schedules })),
+      ).resolves.toEqual(expect.objectContaining({ carryForward: undefined }));
     }
+  });
+
+  test("another project's schedule is answered by the reference check first, whatever else the write lacks", async () => {
+    jest
+      .spyOn(ProjectReferenceCheck, "validateCreate")
+      .mockRejectedValue(
+        new ProjectScopedReferenceException(
+          'This WorkspaceUserGroup references records that are not in this project: OnCallDutyPolicySchedule "x".',
+        ) as never,
+      );
+
+    const error: Error = await refusal(
+      createRules(
+        slackGroup({ workspaceType: undefined, workspaceGroupId: "" }),
+      ),
+    );
+
+    // Not "Workspace Type must be...": an id from another project gets the
+    // answer an id that matches nothing gets.
+    expect(error).toBeInstanceOf(ProjectScopedReferenceException);
   });
 
   test("an update may change the schedules, never down to none", async () => {
@@ -247,24 +274,35 @@ describe("one record per group in a project", () => {
     );
   });
 
-  test("a group no record keeps yet passes, after the project's references are checked", async () => {
+  test("a group no record keeps yet passes, after the project's references and the record's rules are checked", async () => {
     const order: Array<string> = [];
 
     jest
       .spyOn(ProjectReferenceCheck, "validateCreate")
-      .mockImplementation((async () => {
-        order.push("references");
+      .mockImplementation((async (data: {
+        createBy: { data: WorkspaceUserGroup };
+      }) => {
+        // The rules have not trimmed the id yet: they come after.
+        order.push(`references ${data.createBy.data.workspaceGroupId}`);
       }) as never);
     jest
       .spyOn(WorkspaceUserGroupService, "findOneBy")
-      .mockImplementation((async () => {
-        order.push("one per group");
+      .mockImplementation((async (query: {
+        query: { workspaceGroupId: string };
+      }) => {
+        order.push(`one per group ${query.query.workspaceGroupId}`);
         return null;
       }) as never);
 
-    await hooks.onBeforeCreate({ data: slackGroup(), props: PROPS });
+    await hooks.onBeforeCreate({
+      data: slackGroup({ workspaceGroupId: " S0604QSJC " }),
+      props: PROPS,
+    });
 
-    expect(order).toEqual(["references", "one per group"]);
+    expect(order).toEqual([
+      "references  S0604QSJC ",
+      "one per group S0604QSJC",
+    ]);
   });
 });
 
