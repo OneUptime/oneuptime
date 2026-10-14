@@ -29237,5 +29237,9 @@
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "Eliminando un caso di sicurezza si eliminano anche i suoi rilevamenti, le note, la cronologia e le esecuzioni dei playbook.",
   "To keep the record, close the case with a verdict instead.": "Per conservarne la traccia, chiudi invece il caso con un verdetto.",
-  "State Change": "Cambio di stato"
+  "State Change": "Cambio di stato",
+  "Could not load values for {{key}}.": "Impossibile caricare i valori di {{key}}.",
+  "Loading values for {{key}}...": "Caricamento dei valori di {{key}}...",
+  "Values for {{key}} took too long to load.": "Il caricamento dei valori di {{key}} ha richiesto troppo tempo.",
+  "You can still type a value and press Enter.": "Puoi comunque digitare un valore e premere Enter."
 }

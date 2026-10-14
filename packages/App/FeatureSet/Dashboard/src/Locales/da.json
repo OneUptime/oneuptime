@@ -29237,5 +29237,9 @@
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "Når du sletter en sikkerhedssag, slettes dens detektioner, noter, tidslinje og playbook-kørsler også.",
   "To keep the record, close the case with a verdict instead.": "Luk i stedet sagen med en vurdering, hvis du vil bevare den.",
-  "State Change": "Tilstandsændring"
+  "State Change": "Tilstandsændring",
+  "Could not load values for {{key}}.": "Værdier for {{key}} kunne ikke indlæses.",
+  "Loading values for {{key}}...": "Indlæser værdier for {{key}}...",
+  "Values for {{key}} took too long to load.": "Det tog for lang tid at indlæse værdierne for {{key}}.",
+  "You can still type a value and press Enter.": "Du kan stadig skrive en værdi og trykke på Enter."
 }

@@ -29237,5 +29237,9 @@
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "Deleting a security case also deletes its detections, notes, timeline and playbook runs.",
   "To keep the record, close the case with a verdict instead.": "To keep the record, close the case with a verdict instead.",
-  "State Change": "State Change"
+  "State Change": "State Change",
+  "Could not load values for {{key}}.": "Could not load values for {{key}}.",
+  "Loading values for {{key}}...": "Loading values for {{key}}...",
+  "Values for {{key}} took too long to load.": "Values for {{key}} took too long to load.",
+  "You can still type a value and press Enter.": "You can still type a value and press Enter."
 }

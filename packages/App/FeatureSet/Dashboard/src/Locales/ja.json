@@ -29237,5 +29237,9 @@
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "セキュリティケースを削除すると、その検出、メモ、タイムライン、プレイブックの実行も削除されます。",
   "To keep the record, close the case with a verdict instead.": "記録を残すには、代わりに判定を付けてケースをクローズしてください。",
-  "State Change": "状態の変更"
+  "State Change": "状態の変更",
+  "Could not load values for {{key}}.": "{{key}} の値を読み込めませんでした。",
+  "Loading values for {{key}}...": "{{key}} の値を読み込んでいます...",
+  "Values for {{key}} took too long to load.": "{{key}} の値の読み込みに時間がかかりすぎました。",
+  "You can still type a value and press Enter.": "値を入力して Enter を押すこともできます。"
 }

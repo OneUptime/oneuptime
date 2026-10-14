@@ -29237,5 +29237,9 @@
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "删除安全案例也会删除其检测、备注、时间线和剧本运行记录。",
   "To keep the record, close the case with a verdict instead.": "如需保留记录，请改为给出结论并关闭案例。",
-  "State Change": "状态变更"
+  "State Change": "状态变更",
+  "Could not load values for {{key}}.": "无法加载 {{key}} 的值。",
+  "Loading values for {{key}}...": "正在加载 {{key}} 的值...",
+  "Values for {{key}} took too long to load.": "加载 {{key}} 的值耗时过长。",
+  "You can still type a value and press Enter.": "您仍可以输入一个值并按 Enter 键。"
 }

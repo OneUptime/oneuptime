@@ -29237,5 +29237,9 @@
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "При удалении кейса безопасности удаляются и его обнаружения, заметки, хронология и запуски плейбуков.",
   "To keep the record, close the case with a verdict instead.": "Чтобы сохранить запись, вместо удаления закройте кейс с вердиктом.",
-  "State Change": "Изменение состояния"
+  "State Change": "Изменение состояния",
+  "Could not load values for {{key}}.": "Не удалось загрузить значения {{key}}.",
+  "Loading values for {{key}}...": "Загрузка значений {{key}}...",
+  "Values for {{key}} took too long to load.": "Значения {{key}} загружались слишком долго.",
+  "You can still type a value and press Enter.": "Вы по-прежнему можете ввести значение и нажать Enter."
 }
