@@ -1530,6 +1530,41 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass ${BACKEND_APP_TARGET};
     }
 
+    # /files/ is where the marketing site once published its compliance PDFs
+    # (/files/soc-3.pdf and the rest), which Home now redirects to the pages
+    # of its legal center (Home/Utils/LegacyRedirects.ts). `location /file`
+    # below is a prefix of /files/, so without this block nginx sent those
+    # addresses to the app as /api/files/..., which has no such route and
+    # answered with a JSON 404. The app's file API is /file and nothing under
+    # it, and the app serves nothing at /files/, so this takes no request the
+    # app could answer. Being the longer prefix it wins over `location /file`,
+    # and ^~ keeps any regex location from taking these addresses back.
+    #
+    # It proxies exactly like `location /`, as the /workflows and /runbooks
+    # blocks do, and for the same reasons the redirect stays in Home.
+    location ^~ /files/ {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        set $backend_home http://${SERVER_HOME_HOSTNAME}:${HOME_PORT};
+        proxy_set_header Host $server_name;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        if ($billing_enabled = true) {
+            proxy_pass $backend_home;
+        }
+
+        if ($billing_enabled != true) {
+            proxy_pass ${BACKEND_APP_TARGET};
+        }
+    }
+
     location /file {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};

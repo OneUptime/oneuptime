@@ -2246,3 +2246,175 @@ test("everything the app serves under /workflow and /runbook still reaches it", 
     assert.ok(/proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(location.body));
   }
 });
+
+// ---------------------------------------------------------------------------
+// /files/: the old addresses of the compliance PDFs
+// ---------------------------------------------------------------------------
+
+/*
+ * Home redirects /files/soc-3.pdf and the other compliance PDFs it once
+ * published to the pages of its legal center (Home/Utils/LegacyRedirects.ts).
+ * `location /file`, the app's file API, is a prefix of /files/, so nginx sent
+ * them to the app as /api/files/..., which answered with a JSON 404. A
+ * `^~ /files/` location hands them back to wherever `location /` sends the
+ * marketing site.
+ */
+const LEGACY_FILES_SPEC = "^~ /files/";
+
+/** Every { from, to } in Home's legacy redirect table, read from its source. */
+function readLegacyRedirects() {
+  const source = fs.readFileSync(
+    path.join(NGINX_DIRECTORY, "..", "Home", "Utils", "LegacyRedirects.ts"),
+    "utf8",
+  );
+
+  const redirects = Array.from(
+    source.matchAll(/\{\s*from:\s*"([^"]+)",\s*to:\s*"([^"]+)",?\s*\}/g),
+    (match) => {
+      return { from: match[1], to: match[2] };
+    },
+  );
+
+  // A table this reads only part of would let the tests below pass vacuously.
+  assert.ok(redirects.length > 0, "read no entries from LegacyRedirects.ts");
+  assert.equal(
+    redirects.length,
+    source.split('from: "').length - 1,
+    "every entry of LegacyRedirects.ts must be read",
+  );
+
+  return redirects;
+}
+
+function findCatchAllLocation() {
+  const catchAll = getLocationBlocks(primaryServerBlock.body).find(
+    (location) => {
+      return location.spec === "/";
+    },
+  );
+
+  assert.ok(catchAll, "the primary ingress lost location /");
+
+  return catchAll;
+}
+
+function findLegacyFilesLocation() {
+  return getLocationBlocks(primaryServerBlock.body).find((location) => {
+    return location.spec === LEGACY_FILES_SPEC;
+  });
+}
+
+test("the primary ingress has one location for the old /files/ addresses", () => {
+  assert.equal(
+    getLocationBlocks(primaryServerBlock.body).filter((location) => {
+      return location.spec === LEGACY_FILES_SPEC;
+    }).length,
+    1,
+    `the primary ingress must have exactly one "location ${LEGACY_FILES_SPEC}"`,
+  );
+
+  for (const serverBlock of serverBlocks) {
+    if (serverBlock === primaryServerBlock) {
+      continue;
+    }
+
+    assert.ok(
+      !getLocationBlocks(serverBlock.body).some((location) => {
+        return location.spec.includes("/files");
+      }),
+      "a status-page server gained a /files location",
+    );
+  }
+});
+
+test("every address Home's legacy redirects move reaches the marketing site", () => {
+  /*
+   * Home can answer these only if nginx sends them where it sends the rest
+   * of the marketing site: to `location /` itself, or to a block that
+   * proxies exactly like it. A prefix location of the app's that happens to
+   * start the same way (as /file starts /files/) would hide them.
+   */
+  const locations = getLocationBlocks(primaryServerBlock.body);
+  const catchAll = findCatchAllLocation();
+
+  for (const { from } of readLegacyRedirects()) {
+    const location = resolveLocation(locations, from);
+
+    assert.deepEqual(
+      directivesOf(location),
+      directivesOf(catchAll),
+      `${from} lands in "location ${location.spec}", which does not send it to the marketing site`,
+    );
+  }
+});
+
+test("the /files/ location is proxied exactly like location /", () => {
+  const location = findLegacyFilesLocation();
+
+  assert.ok(location, `the primary ingress lost location ${LEGACY_FILES_SPEC}`);
+  assert.ok(
+    directivesOf(findCatchAllLocation()).includes("proxy_pass $backend_home;"),
+    "the premise: location / sends the marketing site to Home",
+  );
+  assert.deepEqual(
+    directivesOf(location),
+    directivesOf(findCatchAllLocation()),
+  );
+});
+
+test("the /files/ location leaves the redirects themselves to Home", () => {
+  const location = findLegacyFilesLocation();
+
+  for (const directive of ["return", "rewrite", "add_header", "access_log"]) {
+    assert.deepEqual(
+      getDirectives(location.body, directive),
+      [],
+      `location ${LEGACY_FILES_SPEC} should not carry ${directive}`,
+    );
+  }
+
+  // The addresses this location exists for, and where Home sends each.
+  assert.deepEqual(
+    readLegacyRedirects().filter(({ from }) => {
+      return from.startsWith("/files/");
+    }),
+    [
+      { from: "/files/soc-3.pdf", to: "/legal/soc-3" },
+      { from: "/files/pci.pdf", to: "/legal/pci" },
+      { from: "/files/iso-27001.pdf", to: "/legal/iso-27001" },
+      { from: "/files/iso-27017.pdf", to: "/legal/iso-27017" },
+      { from: "/files/iso-27018.pdf", to: "/legal/iso-27018" },
+    ],
+  );
+});
+
+test("everything the app serves under /file still reaches it", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const [uri, spec] of [
+    ["/file", "/file"],
+    ["/file/", "/file"],
+    ["/file/6a7b", "/file"],
+    ["/file/image/6a7b", "/file"],
+    // Only the /files/ directory moved; the rest of what /file caught has not.
+    ["/files", "/file"],
+    ["/filesystem", "/file"],
+    ["/files/soc-3.pdf", LEGACY_FILES_SPEC],
+    ["/files/iso-27018.pdf", LEGACY_FILES_SPEC],
+    ["/files/", LEGACY_FILES_SPEC],
+  ]) {
+    assert.equal(resolveLocation(locations, uri).spec, spec, uri);
+  }
+
+  const fileLocation = locations.find((location) => {
+    return location.spec === "/file";
+  });
+
+  assert.ok(fileLocation, "the primary ingress lost location /file");
+  assert.deepEqual(getDirectives(fileLocation.body, "rewrite"), [
+    "rewrite ^/file(.*)$ /api/file$1 break;",
+  ]);
+  assert.ok(
+    /proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(fileLocation.body),
+  );
+});
