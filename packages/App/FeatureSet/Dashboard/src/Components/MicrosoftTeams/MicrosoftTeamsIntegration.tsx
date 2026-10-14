@@ -669,7 +669,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         setUninstallError(
           translator.translateText(
             "Looks like the project auth token id is not set properly. Please try again.",
-          ),
+          ) || "",
         );
         return;
       }
