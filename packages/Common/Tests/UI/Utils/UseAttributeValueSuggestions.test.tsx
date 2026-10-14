@@ -197,6 +197,10 @@ describe("typing a key", () => {
     await wait(PAUSE);
 
     expect(askedFor()).toEqual(["exception"]);
+    expect(harness.result.current.valueSuggestions["exception"]).toEqual([
+      "exception-value-1",
+      "exception-value-2",
+    ]);
   });
 
   test("a key the project does not have is never asked about", async () => {
