@@ -1,48 +1,89 @@
-# OneUptime 移动和桌面应用
+# 应用概览
 
-OneUptime 提供两种在浏览器之外使用平台的方式:
+OneUptime 有一个手机应用和一个电脑应用。适用于 iPhone、iPad 和 Android 的 **OneUptime On-Call** 会在你值班时呼叫你，让你无论身在何处都能确认和解决事件。在 Windows、macOS 和 Linux 上，OneUptime 仪表板可以从浏览器安装为桌面应用，在自己的窗口中打开。两者都适用于 OneUptime Cloud 和自托管的 OneUptime。
 
-- **原生移动应用**,适用于 iOS 和 Android,已发布到 **Apple App Store** 和 **Google Play**。它们可将随叫随到呼叫、事件警报和确认操作直接发送到您的手机。
-- **可安装的桌面应用**,适用于 Windows、macOS 和 Linux,作为渐进式 Web 应用 (PWA) 直接从浏览器安装。它们让 OneUptime 控制面板在您的电脑上拥有自己的窗口、图标和通知界面。
+:::cards
+- [选择应用](#选择应用): 并排比较每个应用的用途。
+- [应用如何连接 OneUptime](#应用如何连接-oneuptime): 登录和值班呼叫经过的路径。
+- [获取移动应用](#获取移动应用): 从 App Store、Google Play 或 GitHub 获取。
+- [获取桌面应用](#获取桌面应用): 从 Edge、Chrome 或 Safari 安装仪表板。
+:::
 
-## 移动端(原生应用)
+## 选择应用
 
-**OneUptime On-Call** 应用是一款使用 React Native 构建的原生应用。它通过官方商店分发,因此您可以获得自动更新、推送通知和生物识别解锁。
+|  | 移动应用 | 桌面应用 |
+| --- | --- | --- |
+| 是什么 | OneUptime On-Call，适用于 iPhone、iPad 和 Android 的原生应用 | 从浏览器安装的 OneUptime 仪表板 |
+| 从哪里获取 | App Store、Google Play 或 GitHub 上的 APK | 你自己的 OneUptime：无需下载任何内容 |
+| 值班呼叫 | 能穿透静音模式和勿扰模式响起的推送通知 | 注册浏览器之后的浏览器通知 |
+| 能做什么 | 事件、警报、监视器以及谁在值班；确认、解决和添加备注 | 仪表板能做的一切 |
+| 更新 | 从应用商店更新，或安装更新的 APK | 每次打开时从你的 OneUptime 加载仪表板 |
+| 运行环境 | iOS 16.4 或更高版本，Android 7.0 或更高版本 | Windows、macOS 和 Linux 上的 Edge 或 Chrome，或 macOS Sonoma 14 或更高版本上的 Safari |
 
-- **iOS** — [在 App Store 下载](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391)。需要 iOS 15.0 或更高版本。请参阅 [iOS 安装指南](./ios-installation.md)。
-- **Android** — [在 Google Play 获取](https://play.google.com/store/apps/details?id=com.oneuptime.oncall)。需要 Android 8.0 或更高版本。对于没有 Google Play 的设备,也可直接 [下载 APK](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk)。请参阅 [Android 安装指南](./android-installation.md)。
+两者可以同时使用：工作时让桌面应用保持打开，夜里让手机叫醒你。
 
-## 桌面端(渐进式 Web 应用)
+## 应用如何连接 OneUptime
 
-OneUptime 的 Web 控制面板是一个渐进式 Web 应用,因此您可以从现代浏览器将其安装为桌面应用,无需通过任何商店。
+```mermaid title="值班呼叫如何到达你的手机和电脑"
+flowchart TB
+    OneUptime["你的 OneUptime：<br/>Cloud 或自托管"]
+    Expo["Expo 推送服务，<br/>再交给 Apple 或 Google"]
+    WebPush["你的浏览器的<br/>推送服务"]
+    Phone["你手机上的<br/>OneUptime On-Call"]
+    Desktop["你电脑上的<br/>桌面应用"]
+    OneUptime -->|"发往手机"| Expo
+    OneUptime -->|"发往已注册的<br/>浏览器"| WebPush
+    Expo -->|"推送通知"| Phone
+    WebPush -->|"通知"| Desktop
+```
 
-- [Windows 安装](./windows-installation.md)
-- [macOS 安装](./macos-installation.md)
-- [Linux 安装](./linux-installation.md)
+移动应用登录你的 OneUptime，并在你所属的每个项目中注册这部手机。此后，OneUptime 通过 Expo 推送服务发送手机的推送通知（包括值班呼叫），Expo 再把它们交给 Apple 或 Google 投递。自托管的 OneUptime 默认通过 OneUptime 推送中继发送，因此不需要自己的 Apple、Google 或 Expo 账号：参见 [推送通知](/docs/self-hosted/push-notifications)。
 
-### 桌面入门
+桌面应用就是在自己窗口中的仪表板本身。为推送通知注册它的浏览器之后，它就会显示通知：Windows、macOS 和 Linux 的页面会说明如何注册。
 
-1. 在基于 Chromium 的浏览器(Chrome、Edge)或 Safari 中打开您的 OneUptime 实例。
-2. 在地址栏中查找 **安装** 按钮,或前往 **文件 → 添加到程序坞 / 应用 → 将此网站作为应用安装**。
-3. 从开始菜单、启动台或应用启动器启动已安装的应用。
+## 开始之前
 
-### 桌面故障排查
+- 一个 OneUptime 项目中的账号。要接收呼叫，你还必须在值班：参见 [升级规则](/docs/on-call/escalation-rules)。
+- 你的 OneUptime 的地址。在 OneUptime Cloud 上是 `https://oneuptime.com`；自托管的 OneUptime 有自己的地址，例如 `https://oneuptime.example.com`。
+- 通过 HTTPS 提供的 OneUptime。移动应用不会通过普通 HTTP 连接，而浏览器只为 HTTPS 网站显示通知，Edge 和 Chrome 也只为 HTTPS 网站安装应用。
 
-**未出现安装选项:**
+## 获取移动应用
 
-- 确保您使用的是受支持的浏览器。
-- 确认您的 OneUptime 实例通过 HTTPS 提供服务。
-- 刷新页面或清除浏览器缓存。
+:::steps
+### 安装 OneUptime On-Call
+在 iPhone 或 iPad 上从 [App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) 获取，在 Android 上从 [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall) 获取。没有 Google Play 的 Android 手机，请改为安装 [APK](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk)。仪表板的 **项目设置 → 通知 → 移动应用** 中也有同样的链接。
 
-**推送通知无法正常工作:**
+### 连接到你的 OneUptime
+打开应用，使用 OneUptime Cloud 时保留 `https://oneuptime.com`，否则输入你自己的 OneUptime 地址，然后用密码、通行密钥或单点登录登录。
 
-- 当浏览器提示时,授予通知权限。
-- 检查操作系统中针对该浏览器的通知设置。
-- 自托管用户:确认您的 OneUptime 实例已配置推送通知。
+### 允许通知
+手机询问时允许通知。应用会在你的每个项目中注册这部手机，值班呼叫就会开始送达。
+:::
 
-## 支持
+每一步的详细说明以及之后要检查的内容，请参见 [Android 安装](/docs/mobile-desktop-apps/android-installation) 和 [iOS 安装](/docs/mobile-desktop-apps/ios-installation)。
 
-- 移动端相关问题:请查看 [iOS](./ios-installation.md) 或 [Android](./android-installation.md) 安装指南。
-- 桌面端相关问题:请查看 [Windows](./windows-installation.md)、[macOS](./macos-installation.md) 或 [Linux](./linux-installation.md) 安装指南。
-- 一般问题:请参阅 [常见问题与故障排查](./faq-troubleshooting.md) 页面。
-- 在我们的 [GitHub 仓库](https://github.com/OneUptime/oneuptime) 上提交错误或功能请求。
+## 获取桌面应用
+
+:::steps
+### 打开仪表板
+在 Microsoft Edge 或 Google Chrome 中登录你的 OneUptime，在 Mac 上也可以用 Safari。
+
+### 安装
+在 Edge 或 Chrome 中，点击地址栏右侧的安装图标。在 Safari 中，选择 **文件 → 添加到程序坞**。
+
+### 像其他应用一样打开它
+它会从“开始”菜单、程序坞或应用启动器在自己的窗口中打开。
+:::
+
+各浏览器的分步说明，请参见 [Windows 安装](/docs/mobile-desktop-apps/windows-installation)、[macOS 安装](/docs/mobile-desktop-apps/macos-installation) 和 [Linux 安装](/docs/mobile-desktop-apps/linux-installation)。
+
+## 后续步骤
+
+:::cards
+- [Android 安装](/docs/mobile-desktop-apps/android-installation): 在 Android 上安装应用、登录，并确认呼叫能够送达。
+- [iOS 安装](/docs/mobile-desktop-apps/ios-installation): 在 iPhone 或 iPad 上安装应用并开启关键提醒。
+- [Windows 安装](/docs/mobile-desktop-apps/windows-installation): 从 Edge 或 Chrome 安装仪表板。
+- [macOS 安装](/docs/mobile-desktop-apps/macos-installation): 从 Safari、Chrome 或 Edge 把仪表板添加到程序坞。
+- [Linux 安装](/docs/mobile-desktop-apps/linux-installation): 从 Chrome、Chromium 或 Edge 安装仪表板。
+- [常见问题与故障排除](/docs/mobile-desktop-apps/faq-troubleshooting): 解答、修复方法，以及手机不再收到呼叫时该怎么办。
+:::
