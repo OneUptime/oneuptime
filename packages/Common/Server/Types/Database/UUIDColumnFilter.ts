@@ -476,9 +476,16 @@ export default class UUIDColumnFilter {
     }
 
     if (Array.isArray(value)) {
-      return value.map((item: unknown): unknown => {
+      const items: Array<unknown> = value.map((item: unknown): unknown => {
         return this.normalizeWrittenRecord(data.columnName, item);
       });
+
+      // The very list it was, when no id in it was written another way.
+      return items.every((item: unknown, index: number): boolean => {
+        return item === value[index];
+      })
+        ? value
+        : items;
     }
 
     return this.normalizeWrittenRecord(data.columnName, value);

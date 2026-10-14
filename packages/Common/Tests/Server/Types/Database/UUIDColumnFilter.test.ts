@@ -955,7 +955,10 @@ describe("normalizeWrittenValue - an id a write gives", () => {
      * OneUptime's own).
      */
     it("never rewrites the record's own _id", () => {
-      const text: string = JSON.stringify({ _type: "ObjectID", value: STATE_ID });
+      const text: string = JSON.stringify({
+        _type: "ObjectID",
+        value: STATE_ID,
+      });
       const id: ObjectID = new ObjectID(STATE_ID);
 
       expect(written("_id", text)).toBe(text);
@@ -976,19 +979,22 @@ describe("normalizeWrittenValue - an id a write gives", () => {
       const model: BaseModel = new Incident();
       model._id = OTHER_STATE_ID;
 
+      const list: Array<unknown> = [STATE_ID, record, model];
+
       expect(written("currentIncidentState", STATE_ID)).toBe(STATE_ID);
       expect(written("currentIncidentState", record)).toBe(record);
       expect(record).toEqual({ _id: STATE_ID, name: "Acknowledged" });
-      expect(written("monitors", [STATE_ID, record, model])).toEqual([
-        STATE_ID,
-        record,
-        model,
-      ]);
+      // The very list, when nothing in it was written another way.
+      expect(written("monitors", list)).toBe(list);
+      expect(list).toEqual([STATE_ID, record, model]);
       expect(model._id).toBe(OTHER_STATE_ID);
     });
 
     it("writes a serialized ObjectID it names a record by as the id it holds", () => {
-      const text: string = JSON.stringify({ _type: "ObjectID", value: STATE_ID });
+      const text: string = JSON.stringify({
+        _type: "ObjectID",
+        value: STATE_ID,
+      });
       const record: JSONObject = { _id: text };
       const plain: JSONObject = { id: { _type: "ObjectID", value: STATE_ID } };
 

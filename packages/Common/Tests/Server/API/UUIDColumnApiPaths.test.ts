@@ -124,10 +124,7 @@ function fakeRepository(service: DatabaseService<any>): FakeRepository {
 }
 
 // The ids a read's condition on `column` would have bound.
-function boundIds(
-  repository: FakeRepository,
-  column: string,
-): Array<unknown> {
+function boundIds(repository: FakeRepository, column: string): Array<unknown> {
   const condition: unknown = repository.find.mock.calls[0]![0].where[column];
 
   if (condition instanceof FindOperator) {
@@ -143,21 +140,31 @@ function boundIds(
   return [condition];
 }
 
-function api<TModel extends Incident | Monitor>(
-  modelType: { new (): TModel },
-  service: DatabaseService<TModel>,
-): BaseAPI<TModel, DatabaseService<TModel>> {
+// Every request below is made as root, in the project.
+function asRootInProject(): void {
   jest
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
     .mockResolvedValue(ROOT_IN_PROJECT as never);
-
-  return new BaseAPI<TModel, DatabaseService<TModel>>(modelType, service);
 }
 
-function request(data: {
-  id?: string;
-  body: JSONObject;
-}): OneUptimeRequest {
+// BaseAPI's handlers for a model, over the service a test made for it.
+function incidentApi(
+  service: DatabaseService<Incident>,
+): BaseAPI<Incident, DatabaseService<Incident>> {
+  asRootInProject();
+
+  return new BaseAPI<Incident, DatabaseService<Incident>>(Incident, service);
+}
+
+function monitorApi(
+  service: DatabaseService<Monitor>,
+): BaseAPI<Monitor, DatabaseService<Monitor>> {
+  asRootInProject();
+
+  return new BaseAPI<Monitor, DatabaseService<Monitor>>(Monitor, service);
+}
+
+function request(data: { id?: string; body: JSONObject }): OneUptimeRequest {
   return {
     params: { id: data.id || RECORD_ID },
     query: {},
@@ -270,8 +277,10 @@ describe("a list and a count: the production request", () => {
       );
       const repository: FakeRepository = fakeRepository(service);
 
-      const attempt: Promise<void> = api(Incident, service).getList(
-        request({ body: { query: { currentIncidentStateId: value } } }),
+      const attempt: Promise<void> = incidentApi(service).getList(
+        request({
+          body: { query: { currentIncidentStateId: value } as JSONObject },
+        }),
         response(),
       );
 
@@ -292,8 +301,10 @@ describe("a list and a count: the production request", () => {
       );
       const repository: FakeRepository = fakeRepository(service);
 
-      const attempt: Promise<void> = api(Incident, service).count(
-        request({ body: { query: { currentIncidentStateId: value } } }),
+      const attempt: Promise<void> = incidentApi(service).count(
+        request({
+          body: { query: { currentIncidentStateId: value } as JSONObject },
+        }),
         response(),
       );
 
@@ -319,7 +330,7 @@ describe("a list and a count: the production request", () => {
       );
       const repository: FakeRepository = fakeRepository(service);
 
-      const attempt: Promise<void> = api(Incident, service).getList(
+      const attempt: Promise<void> = incidentApi(service).getList(
         request({ body: { query: { [column]: value } as JSONObject } }),
         response(),
       );
@@ -354,8 +365,10 @@ describe("a list and a count: the production request", () => {
       );
       const repository: FakeRepository = fakeRepository(service);
 
-      await api(Incident, service).getList(
-        request({ body: { query: { currentIncidentStateId: value } } }),
+      await incidentApi(service).getList(
+        request({
+          body: { query: { currentIncidentStateId: value } as JSONObject },
+        }),
         response(),
       );
 
@@ -372,7 +385,7 @@ describe("a list and a count: the production request", () => {
     const repository: FakeRepository = fakeRepository(service);
     const otherId: string = ObjectID.generate().toString();
 
-    await api(Incident, service).getList(
+    await incidentApi(service).getList(
       request({
         body: {
           query: {
@@ -406,7 +419,7 @@ describe("one record by the id in its path", () => {
       );
       const repository: FakeRepository = fakeRepository(service);
 
-      const attempt: Promise<void> = api(Incident, service)[handler](
+      const attempt: Promise<void> = incidentApi(service)[handler](
         request({
           id: "[object Object]",
           body: { data: { title: "Database is down" } },
@@ -446,7 +459,7 @@ describe("a create and an update: the ids the record gives", () => {
       );
       const reached: Reached = stopAtTheHooks(service);
 
-      const attempt: Promise<void> = api(Monitor, service).createItem(
+      const attempt: Promise<void> = monitorApi(service).createItem(
         request({
           body: {
             data: {
@@ -474,7 +487,7 @@ describe("a create and an update: the ids the record gives", () => {
       );
       const reached: Reached = stopAtTheHooks(service);
 
-      const attempt: Promise<void> = api(Monitor, service).updateItem(
+      const attempt: Promise<void> = monitorApi(service).updateItem(
         request({
           body: { data: { currentMonitorStatusId: value } as JSONObject },
         }),
@@ -503,8 +516,7 @@ describe("a create and an update: the ids the record gives", () => {
         Monitor,
       );
       const reached: Reached = stopAtTheHooks(service);
-      const theApi: BaseAPI<Monitor, DatabaseService<Monitor>> = api(
-        Monitor,
+      const theApi: BaseAPI<Monitor, DatabaseService<Monitor>> = monitorApi(
         service,
       );
 
@@ -540,7 +552,11 @@ describe("a create and an update: the ids the record gives", () => {
     ["canonical", STATE_ID, STATE_ID],
     ["upper case", STATE_ID.toUpperCase(), STATE_ID.toUpperCase()],
     ["without hyphens", STATE_ID.replace(/-/g, ""), STATE_ID.replace(/-/g, "")],
-    ["as a serialized ObjectID", { _type: "ObjectID", value: STATE_ID }, STATE_ID],
+    [
+      "as a serialized ObjectID",
+      { _type: "ObjectID", value: STATE_ID },
+      STATE_ID,
+    ],
     ["as a clear", null, null],
     ["as an empty text", "", ""],
   ] as Array<[string, unknown, unknown]>)(
@@ -551,8 +567,7 @@ describe("a create and an update: the ids the record gives", () => {
           Monitor,
         );
         const reached: Reached = stopAtTheHooks(service);
-        const theApi: BaseAPI<Monitor, DatabaseService<Monitor>> = api(
-          Monitor,
+        const theApi: BaseAPI<Monitor, DatabaseService<Monitor>> = monitorApi(
           service,
         );
 
@@ -594,7 +609,7 @@ describe("a create and an update: the ids the record gives", () => {
     const otherId: string = ObjectID.generate().toString();
 
     await expect(
-      api(Monitor, service).updateItem(
+      monitorApi(service).updateItem(
         request({
           body: {
             data: { labels: [STATE_ID, { _id: otherId }] } as JSONObject,
@@ -646,9 +661,7 @@ describe("a workflow's Create and Update steps", () => {
     );
 
     expect(reached.writes).toHaveLength(1);
-    expect(asText(reached.writes[0]!["currentMonitorStatusId"])).toBe(
-      STATE_ID,
-    );
+    expect(asText(reached.writes[0]!["currentMonitorStatusId"])).toBe(STATE_ID);
   });
 
   test("Update One writes it too", async () => {
@@ -667,9 +680,7 @@ describe("a workflow's Create and Update steps", () => {
     );
 
     expect(reached.writes).toHaveLength(1);
-    expect(asText(reached.writes[0]!["currentMonitorStatusId"])).toBe(
-      STATE_ID,
-    );
+    expect(asText(reached.writes[0]!["currentMonitorStatusId"])).toBe(STATE_ID);
   });
 
   test("an id that is not one stops the step on its error port, and the run log names the field", async () => {
