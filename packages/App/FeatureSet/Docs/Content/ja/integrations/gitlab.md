@@ -47,7 +47,7 @@ flowchart TB
 
 ### トリガーを追加する
 
-破線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックし、**Fields to pass on** で `title`、`description`、`incidentNumberWithPrefix` を選びます。
+破線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックします。その **Fields to pass on** は **タイトル** から始まるので、**フィールドを追加** をクリックして **説明** と **プレフィックス付きのインシデント番号** を選びます。
 
 ### issue を作成する
 
