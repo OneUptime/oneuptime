@@ -17,7 +17,7 @@ flowchart TB
     events["New security<br/>events"] --> tag["Tagged as they<br/>arrive with threat.*<br/>attributes"]
     indicators --> tag
     indicators --> match["Matched every<br/>minute against<br/>recent events"]
-    match --> act["An alert, an optional<br/>incident and a finding"]
+    match --> act["A case, an alert, an<br/>optional incident<br/>and a finding"]
 ```
 
 ## Before you begin
@@ -35,7 +35,7 @@ Open **Products → Security Events → Threat Intel**.
 
 ### Create the feed
 
-Click **Create Threat Intel Feed** and fill in its four steps: **Basic Info**, **TAXII Server**, **Authentication** and **On Match**. The fields are in the table below.
+Click **Create Threat Intel Feed** and fill in its five steps: **Basic Info**, **TAXII Server**, **Authentication**, **Security Cases** and **On Match**. The fields are in the table below.
 
 ### Check the first poll
 
@@ -50,6 +50,7 @@ Within a minute or two the feed's row shows **Last Polled**, and **Last Poll Sum
 | **Minimum Confidence** | Indicators with a lower STIX `confidence` are skipped: 0 to 100, 0 keeps everything. Indicators with no confidence always pass. |
 | **API Token** | A bearer token, for a collection that asks for one. |
 | **Basic Auth Username** and **Basic Auth Password** | For a collection that uses HTTP basic auth. Leave both and the token empty for a public collection. |
+| **Open a Case on Match** | On by default: each event that names an indicator opens a [case](/docs/telemetry/security-cases) about it, or joins the open case already about it. |
 | **Create Alert on Match** | On by default: each matched indicator opens an alert. |
 | **Alert Severity** | The severity of every alert this feed opens. Leave it empty to take each indicator's threat level. |
 | **Create Incident on Match** | Off by default. Incidents drive on-call escalation, SLAs and status pages, and alerts are usually enough for indicator matches. |

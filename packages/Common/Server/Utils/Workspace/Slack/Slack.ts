@@ -12,6 +12,7 @@ import WorkspaceMessagePayload, {
   WorkspaceMessagePayloadButton,
   WorkspaceModalBlock,
   WorkspacePayloadButtons,
+  WorkspacePayloadContext,
   WorkspacePayloadHeader,
   WorkspacePayloadImage,
   WorkspacePayloadInlineImage,
@@ -2052,7 +2053,7 @@ export default class SlackUtil extends WorkspaceBase {
      * link goes to OneUptime gains nothing from a card about OneUptime.
      */
     withoutLinkPreviews?: boolean | undefined;
-  }): Promise<void> {
+  }): Promise<string | undefined> {
     const threadLogAttributes: LogAttributes = { channelId: data.channelId };
 
     logger.debug("Sending message to thread with data:", threadLogAttributes);
@@ -2101,6 +2102,56 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     logger.debug("Thread message sent successfully.", threadLogAttributes);
+
+    // The message's own ts: what removes or edits it.
+    const ts: unknown = (response.jsonData as JSONObject)?.["ts"];
+
+    return typeof ts === "string" && ts ? ts : undefined;
+  }
+
+  /*
+   * Removes a message the app posted (chat.delete, which chat:write
+   * allows): the "Looking into it…" that stood in for an answer, once the
+   * answer is posted. Never throws: the answer is there either way.
+   */
+  @CaptureSpan()
+  public static async deleteMessageBestEffort(data: {
+    authToken: string;
+    channelId: string;
+    ts: string;
+  }): Promise<boolean> {
+    try {
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post({
+          url: URL.fromString("https://slack.com/api/chat.delete"),
+          data: {
+            channel: data.channelId,
+            ts: data.ts,
+          },
+          headers: {
+            Authorization: `Bearer ${data.authToken}`,
+            ["Content-Type"]: "application/json",
+          },
+        });
+
+      if (
+        response instanceof HTTPErrorResponse ||
+        (response.jsonData as JSONObject)?.["ok"] !== true
+      ) {
+        logger.debug("Slack did not remove a message of the app's.", {
+          channelId: data.channelId,
+        });
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      logger.debug("Could not remove a message of the app's.", {
+        channelId: data.channelId,
+      });
+      logger.debug(err);
+      return false;
+    }
   }
 
   /*
@@ -3096,6 +3147,33 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   /*
+   * Small, muted text under a message: a context block, whose one element
+   * is the Markdown as a section would say it (getMarkdownBlock), within
+   * the same 3000 characters.
+   */
+  @CaptureSpan()
+  public static override getContextBlock(data: {
+    payloadContextBlock: WorkspacePayloadContext;
+  }): JSONObject {
+    const section: JSONObject = this.getMarkdownBlock({
+      payloadMarkdownBlock: {
+        _type: "WorkspacePayloadMarkdown",
+        text: data.payloadContextBlock.text,
+      },
+    });
+
+    return {
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: ((section["text"] as JSONObject)["text"] as string) || " ",
+        },
+      ],
+    };
+  }
+
+  /*
    * A markdown payload as consecutive section blocks, each within Slack's
    * 3000-character limit. Text that fits is one section, byte for byte what
    * a markdown payload has always rendered to (empty text included).
@@ -3314,11 +3392,36 @@ export default class SlackUtil extends WorkspaceBase {
 
     return pieces
       .map((piece: string): string => {
-        return piece.replace(/^[\r\n]+|[\r\n]+$/g, "");
+        return this.trimLineBreaks(piece);
       })
       .filter((piece: string): boolean => {
         return piece.trim().length > 0;
       });
+  }
+
+  /*
+   * The text without the line breaks it starts and ends with. A loop from
+   * each end, not /^[\r\n]+|[\r\n]+$/g: that pattern is tried again from
+   * every line break of a run that does not reach the end, so its time grew
+   * with the square of the run.
+   */
+  public static trimLineBreaks(text: string): string {
+    let start: number = 0;
+    let end: number = text.length;
+
+    while (start < end && SlackUtil.isLineBreak(text.charAt(start))) {
+      start++;
+    }
+
+    while (end > start && SlackUtil.isLineBreak(text.charAt(end - 1))) {
+      end--;
+    }
+
+    return text.substring(start, end);
+  }
+
+  private static isLineBreak(character: string): boolean {
+    return character === "\n" || character === "\r";
   }
 
   /*
@@ -3597,7 +3700,11 @@ export default class SlackUtil extends WorkspaceBase {
         text: data.payloadButtonBlock.title,
         emoji: true,
       },
-      value: data.payloadButtonBlock.value,
+      /*
+       * Slack refuses a button whose value is empty: a button that carries
+       * nothing - the Home's Declare incident - is sent without one.
+       */
+      value: data.payloadButtonBlock.value || undefined,
       action_id: data.payloadButtonBlock.actionId,
       url: data.payloadButtonBlock.url
         ? data.payloadButtonBlock.url.toString()

@@ -19,6 +19,8 @@ import WorkspaceCommands, {
   WorkspaceExtraCommand,
 } from "../WorkspaceCommands";
 import WorkspaceOnCallNow from "../WorkspaceOnCallNow";
+import WorkspaceOpenRecords from "../WorkspaceOpenRecords";
+import WorkspaceOpenRecordKind from "../../../../Types/Workspace/WorkspaceOpenRecordKind";
 import MicrosoftTeamsAuthAction, {
   MicrosoftTeamsAccountNotLinkedException,
 } from "./Actions/Auth";
@@ -57,26 +59,47 @@ const LIST_COMMAND_SPELLINGS: ReadonlyArray<{
   spellings: ReadonlyArray<string>;
   // What it does, completing "<command>: ...".
   summary: string;
+  // What it lists (WorkspaceOpenRecords).
+  kind: WorkspaceOpenRecordKind;
+  /*
+   * What somebody not connected is asked to connect for, completing
+   * "Connect your Microsoft Teams account to ...".
+   */
+  purpose: string;
+  // What a read that failed says, completing "Sorry, I couldn't ... just now."
+  reads: string;
 }> = [
   {
     command: MicrosoftTeamsListCommand.ActiveIncidents,
     spellings: ["show active incidents", "active incidents"],
     summary: "list the incidents that are open right now",
+    kind: WorkspaceOpenRecordKind.Incidents,
+    purpose: "see the open incidents",
+    reads: "read the open incidents",
   },
   {
     command: MicrosoftTeamsListCommand.ActiveAlerts,
     spellings: ["show active alerts", "active alerts"],
     summary: "list the alerts that are open right now",
+    kind: WorkspaceOpenRecordKind.Alerts,
+    purpose: "see the open alerts",
+    reads: "read the open alerts",
   },
   {
     command: MicrosoftTeamsListCommand.ScheduledMaintenance,
     spellings: ["show scheduled maintenance", "scheduled maintenance"],
     summary: "list the scheduled maintenance events still to come",
+    kind: WorkspaceOpenRecordKind.UpcomingMaintenance,
+    purpose: "see the scheduled maintenance coming up",
+    reads: "read the scheduled maintenance coming up",
   },
   {
     command: MicrosoftTeamsListCommand.OngoingMaintenance,
     spellings: ["show ongoing maintenance", "ongoing maintenance"],
     summary: "list the maintenance events in progress",
+    kind: WorkspaceOpenRecordKind.OngoingMaintenance,
+    purpose: "see the maintenance in progress",
+    reads: "read the maintenance in progress",
   },
 ];
 
@@ -321,6 +344,81 @@ export default class MicrosoftTeamsCommands {
 
       const message: string =
         "Sorry, I couldn't read who is on call just now. Please try again in a minute.";
+
+      answer = {
+        markdown: mdText`${message}`.toString(),
+        text: message,
+      };
+    }
+
+    await MicrosoftTeamsActionAnswer.reply({
+      turnContext: data.turnContext,
+      answer: answer,
+    });
+  }
+
+  /*
+   * One of Teams' own lists ("show active incidents"): what is open, as the
+   * sender may see it (WorkspaceOpenRecords), as a reply that mentions them.
+   * The lists read as the member the sender's account is connected to, as
+   * oncall and the forms do: somebody not connected is asked to connect,
+   * and somebody who may not read the records is told so - nobody else in
+   * the Microsoft 365 organization reads the project's records through
+   * the bot.
+   */
+  @CaptureSpan()
+  public static async handleListCommand(data: {
+    turnContext: TurnContext;
+    activity: JSONObject;
+    projectId: ObjectID;
+    listCommand: MicrosoftTeamsListCommand;
+  }): Promise<void> {
+    const entry: (typeof LIST_COMMAND_SPELLINGS)[number] | undefined =
+      LIST_COMMAND_SPELLINGS.find(
+        (candidate: (typeof LIST_COMMAND_SPELLINGS)[number]): boolean => {
+          return candidate.command === data.listCommand;
+        },
+      );
+
+    if (!entry) {
+      return;
+    }
+
+    const props: DatabaseCommonInteractionProps | null =
+      await MicrosoftTeamsCommands.authorizeSender({
+        turnContext: data.turnContext,
+        activity: data.activity,
+        projectId: data.projectId,
+        does: entry.summary,
+        commandName: entry.command,
+        connect: {
+          purpose: entry.purpose,
+          command: entry.command,
+        },
+      });
+
+    if (!props) {
+      return;
+    }
+
+    let answer: WorkspaceAnswer;
+
+    try {
+      answer = await WorkspaceOpenRecords.getListAnswer({
+        kind: entry.kind,
+        projectId: data.projectId,
+        props: props,
+      });
+    } catch (error) {
+      MicrosoftTeamsReplies.logFailure(
+        `Could not read the list for a Microsoft Teams "${entry.command}" command`,
+        error,
+        {
+          projectId: data.projectId.toString(),
+        },
+      );
+
+      const message: string = `Sorry, I couldn't ${entry.reads} just now. Please try again in a minute.`;
 
       answer = {
         markdown: mdText`${message}`.toString(),

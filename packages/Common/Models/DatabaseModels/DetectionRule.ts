@@ -395,6 +395,35 @@ export default class DetectionRule extends BaseModel {
   })
   public shouldCreateIncident?: boolean = undefined;
 
+  /*
+   * On by default, unlike incidents: a case is where a security team works
+   * a detection - nobody is paged by one opening, and a case gathers a
+   * rule's repeats and every other rule's signals about the same entity
+   * instead of stacking alerts. Checked !== false, so a rule saved before
+   * the column existed opens cases too.
+   */
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Open Security Cases",
+    description:
+      "Whether matches open security cases (or join the open case about the same entity), where the security team works them and playbooks respond.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.Boolean,
+    default: true,
+  })
+  public shouldCreateCase?: boolean = undefined;
+
   @ColumnAccessControl({
     create: createPermissions,
     read: readPermissions,

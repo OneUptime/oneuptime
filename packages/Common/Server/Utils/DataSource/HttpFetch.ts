@@ -33,7 +33,11 @@ import { DataSourceConnectionSettings } from "./Types";
  */
 
 export interface DataSourceHttpRequest {
-  method: "GET" | "POST";
+  /*
+   * DELETE is for the security response actions (ending a person's Okta
+   * sessions is a DELETE); it carries no body, like GET.
+   */
+  method: "GET" | "POST" | "DELETE";
   url: string;
   headers?: Dictionary<string> | undefined;
   /*

@@ -446,8 +446,9 @@ describe("the Slack page, opened from a Connect button in Slack", () => {
     expect(notice).not.toHaveTextContent("connect your account here");
     // News, not a warning.
     expect(notice.className).toContain("bg-blue-50");
+    // The card for your own account says so.
     expect(
-      screen.getByText("Your account is already connected with Slack."),
+      screen.getByRole("heading", { name: "Your Slack account is connected" }),
     ).toBeInTheDocument();
   });
 
@@ -605,8 +606,9 @@ describe("the Slack page, opened from the Connect Slack account link in a channe
     expect(signInStarts()).toEqual([]);
     expect(navigateMock).not.toHaveBeenCalled();
     expect(screen.queryByTestId("connect-request-connecting")).toBeNull();
+    // The card for your own account says so.
     expect(
-      screen.getByText("Your account is already connected with Slack."),
+      screen.getByRole("heading", { name: "Your Slack account is connected" }),
     ).toBeInTheDocument();
   });
 
@@ -697,6 +699,23 @@ describe("the Microsoft Teams page, opened from a Connect button in Teams", () =
       "Go back to Microsoft Teams and press the button again.",
     );
     expect(screen.queryByRole("link", { name: "Back to Slack" })).toBeNull();
+  });
+
+  /*
+   * A command typed to the bot - "oncall", "show active incidents" - is
+   * typed again, as the conversation says: no button sent it.
+   */
+  test("back from the sign-in after a command: says to type it again, and names no button", async () => {
+    query["pressed"] = "run";
+
+    await renderTeams();
+
+    const notice: HTMLElement = screen.getByTestId("connect-request-notice");
+    expect(notice).toHaveTextContent(
+      "Go back to Microsoft Teams and type the command again.",
+    );
+    expect(notice).not.toHaveTextContent("press the button");
+    expect(setQueryStringMock).toHaveBeenCalledWith({ pressed: null });
   });
 
   test("back from the sign-in after a question: says to ask it again, and names no button", async () => {

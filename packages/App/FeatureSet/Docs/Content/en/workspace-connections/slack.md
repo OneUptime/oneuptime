@@ -148,6 +148,18 @@ The answers to `help` and `oncall` are messages only you see, under the command.
 > [!NOTE]
 > `/oneuptime incident` and `/oneuptime maintenance` replace `/incident` and `/maintenance`, which could clash with other Slack apps' commands of the same name. A Slack app created from an earlier manifest keeps them, and they open the same forms, until the app is updated: see [Apps created from an older manifest](/docs/self-hosted/slack-integration#apps-created-from-an-older-manifest).
 
+## OneUptime's Home in Slack
+
+Open OneUptime under **Apps** in Slack's sidebar, and its **Home** tab shows what is happening in the project, as you may see it, read again each time you open it.
+
+- **Your on-call.** The on-call schedules you are on call in now, and until when, or else your next shift.
+- **What is open.** The newest open incidents and alerts you may read, each linked to its page in OneUptime.
+- **Its buttons.** **Declare incident**, **Schedule maintenance** and **Page someone** open the same forms as `/oneuptime incident`, `/oneuptime maintenance` and `/oneuptime page`, and **Who's on call** answers as `/oneuptime oncall` does.
+
+The Home reads as you, so it needs your own Slack account connected. Until it is, the Home holds a **Connect Slack account** button, and shows you your Home once you have connected it.
+
+When somebody adds OneUptime to a channel, it posts a hello there: how to ask it a question, and where to add a notification rule that posts to the channel.
+
 ## Asking OneUptime AI from Slack
 
 Ask about your logs, traces, metrics, incidents and monitors in plain language. @mention OneUptime in a channel, or send it a direct message, and it answers in the thread. `/oneuptime ask which monitors are down?` posts its answer in the channel. Either needs your own Slack account connected, and AI turned on for the project. Answers in Slack only read: to change something, use the buttons. See [Ask AI](/docs/ai/ask-ai).

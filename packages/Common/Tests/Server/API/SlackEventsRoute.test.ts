@@ -181,12 +181,30 @@ const READ_METHODS: Array<string> = [
   "conversations.history",
 ];
 
-// What OneUptime posted: every request that is not a read.
+/*
+ * The "Looking into it…" that stands in for an answer is removed once the
+ * answer is posted (chat.delete): counted apart from what is posted.
+ */
+const REMOVAL_METHODS: Array<string> = ["chat.delete"];
+
+// What OneUptime posted: every request that is not a read or a removal.
 function writes(): Array<SlackCall> {
   return slackCalls.filter((call: SlackCall): boolean => {
-    return !READ_METHODS.includes(call.method);
+    return (
+      !READ_METHODS.includes(call.method) &&
+      !REMOVAL_METHODS.includes(call.method)
+    );
   });
 }
+
+function removals(): Array<SlackCall> {
+  return slackCalls.filter((call: SlackCall): boolean => {
+    return REMOVAL_METHODS.includes(call.method);
+  });
+}
+
+// The ts Slack gave each "Looking into it…" OneUptime posted, in order.
+let placeholderTimestamps: Array<string> = [];
 
 function reads(): Array<SlackCall> {
   return slackCalls.filter((call: SlackCall): boolean => {
@@ -226,11 +244,31 @@ function answerSlack(method: string, data: JSONObject): JSONObject {
     };
   }
 
+  if (method === "chat.delete") {
+    for (const thread of threads.values()) {
+      const index: number = thread.findIndex(
+        (message: SlackMessageRecord): boolean => {
+          return message.ts === data["ts"];
+        },
+      );
+
+      if (index !== -1) {
+        thread.splice(index, 1);
+      }
+    }
+
+    return { ok: true, channel: data["channel"], ts: data["ts"] };
+  }
+
   if (method === "chat.postMessage") {
     const ts: string = nextTs();
     const threadTs: string | undefined = data["thread_ts"] as
       | string
       | undefined;
+
+    if (data["text"] === ACKNOWLEDGEMENT) {
+      placeholderTimestamps.push(ts);
+    }
 
     if (threadTs) {
       threads.get(threadKey(String(data["channel"]), threadTs))?.push({
@@ -537,7 +575,44 @@ async function untilWrites(count: number): Promise<Array<SlackCall>> {
     return writes().length >= count;
   }, `${count} request(s) posting to Slack`);
 
+  /*
+   * A placeholder whose answer is posted is removed right after it: waited
+   * for too, so no request outlives the test.
+   */
+  await until((): boolean => {
+    return removals().length >= answeredPlaceholders();
+  }, "every answered placeholder removed");
+
   return writes();
+}
+
+// How many placeholders have their answer posted after them in their thread.
+function answeredPlaceholders(): number {
+  const posted: Array<SlackCall> = writes();
+  let answered: number = 0;
+
+  posted.forEach((call: SlackCall, index: number): void => {
+    if (call.data["text"] !== ACKNOWLEDGEMENT) {
+      return;
+    }
+
+    const isAnswered: boolean = posted
+      .slice(index + 1)
+      .some((later: SlackCall): boolean => {
+        return (
+          later.method === "chat.postMessage" &&
+          later.data["channel"] === call.data["channel"] &&
+          later.data["thread_ts"] === call.data["thread_ts"] &&
+          later.data["text"] !== ACKNOWLEDGEMENT
+        );
+      });
+
+    if (isAnswered) {
+      answered++;
+    }
+  });
+
+  return answered;
 }
 
 // ---- Who is who, and what OneUptime reads ----
@@ -578,6 +653,7 @@ beforeEach(() => {
   threads.clear();
   directMessages.clear();
   slackCalls = [];
+  placeholderTimestamps = [];
   refusals = new Map();
   debugLines = [];
   errorLines = [];
@@ -1697,5 +1773,102 @@ describe("direct messages to the app", () => {
     expect(timesLogged(A_BOT_OR_A_CHANGE)).toBe(1);
     expect(slackCalls).toEqual([]);
     expect(databaseReads).toBe(0);
+  });
+});
+
+/*
+ * "LOOKING INTO IT…" STANDS IN FOR AN ANSWER, AND GOES ONCE IT IS THERE.
+ *
+ * Each answer from OneUptime AI used to be two messages, and the first one
+ * stayed for good: three of the nine messages of a short conversation said
+ * "Looking into it…". It is removed once the answer is posted (chat.delete,
+ * which the app's chat:write allows), and a question whose answer could not
+ * be written is told so instead of being left on "Looking into it…".
+ */
+describe("the placeholder an answer stands behind", () => {
+  test("removed once the answer is posted: exactly that message, after the answer, and the thread keeps the answer alone", async () => {
+    const asked: Said = await say({
+      user: ALICE,
+      text: `<@${ONEUPTIME}> which monitors are down?`,
+    });
+
+    expect(await untilWrites(2)).toEqual(aiAnswer(OPS, asked.ts));
+
+    expect(placeholderTimestamps).toHaveLength(1);
+    expect(removals()).toEqual([
+      {
+        method: "chat.delete",
+        data: { channel: OPS, ts: placeholderTimestamps[0] },
+      },
+    ]);
+    // Removed after the answer was posted, never before it.
+    expect(
+      slackCalls.map((call: SlackCall): string => {
+        return call.method;
+      }),
+    ).toEqual(["chat.postMessage", "chat.postMessage", "chat.delete"]);
+
+    // What the thread reads now: the question, then the answer.
+    expect(
+      (threads.get(threadKey(OPS, asked.ts)) || []).map(
+        (message: SlackMessageRecord): string => {
+          return message.text;
+        },
+      ),
+    ).toEqual([`<@${ONEUPTIME}> which monitors are down?`, ANSWER_TEXT]);
+  });
+
+  test("the answer could not be written: a short reply says so, and the placeholder goes all the same", async () => {
+    jest
+      .spyOn(ObservabilityAssistant, "answerQuestion")
+      .mockRejectedValue(new Error("the model timed out"));
+
+    const asked: Said = await say({
+      user: ALICE,
+      text: `<@${ONEUPTIME}> which monitors are down?`,
+    });
+
+    expect(await untilWrites(2)).toEqual([
+      threadPost(OPS, asked.ts, ACKNOWLEDGEMENT),
+      threadPost(
+        OPS,
+        asked.ts,
+        "Sorry, I ran into a problem answering that. Please try again in a minute.",
+      ),
+    ]);
+    expect(removals()).toEqual([
+      {
+        method: "chat.delete",
+        data: { channel: OPS, ts: placeholderTimestamps[0] },
+      },
+    ]);
+  });
+
+  test("Slack will not remove the placeholder: the answer stands, and nothing is thrown", async () => {
+    refusals.set("chat.delete", "cant_delete_message");
+
+    const asked: Said = await say({
+      user: ALICE,
+      text: `<@${ONEUPTIME}> which monitors are down?`,
+    });
+
+    expect(await untilWrites(2)).toEqual(aiAnswer(OPS, asked.ts));
+    expect(removals()).toHaveLength(1);
+    expect(errorLines).toEqual([]);
+  });
+
+  test("in a direct message the placeholder goes too", async () => {
+    const sent: Said = await directMessage({
+      user: ALICE,
+      text: "which monitors are down?",
+    });
+
+    expect(await untilWrites(2)).toEqual(aiAnswer("D0ALICE", sent.ts));
+    expect(removals()).toEqual([
+      {
+        method: "chat.delete",
+        data: { channel: "D0ALICE", ts: placeholderTimestamps[0] },
+      },
+    ]);
   });
 });

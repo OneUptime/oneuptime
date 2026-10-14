@@ -108,6 +108,8 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         cardProps={{
+          // Its search and buttons drop under the title beside the side menu.
+          headerLayout: "stacked",
           title: "Threat Intel Feeds",
           description:
             "STIX/TAXII 2.1 feed subscriptions. Indicators are polled on an interval, enrich incoming events with threat.* attributes, and matches open deduplicated alerts — the same machinery as Sigma detection rules.",
@@ -126,6 +128,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           isEnabled: true,
           pollIntervalInMinutes: THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,
           minimumConfidence: 0,
+          shouldCreateCase: true,
           shouldCreateAlert: true,
           shouldWriteDetectionFinding: true,
           shouldCreateIncident: false,
@@ -141,6 +144,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           { title: "Basic Info", id: "basic-info" },
           { title: "TAXII Server", id: "taxii-server" },
           { title: "Authentication", id: "authentication" },
+          { title: "Security Cases", id: "cases" },
           { title: "On Match", id: "matching" },
         ]}
         formFields={[
@@ -280,6 +284,17 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               minValue: THREAT_INTEL_MINIMUM_CONFIDENCE_MIN,
               maxValue: THREAT_INTEL_MINIMUM_CONFIDENCE_MAX,
             },
+          },
+          {
+            field: {
+              shouldCreateCase: true,
+            },
+            title: "Open a Case on Match",
+            stepId: "cases",
+            description:
+              "Group each event that names a known indicator into a security case to triage: a new case, or the open case already about that indicator. Playbooks run on the cases it opens.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
           },
           {
             field: {
@@ -530,6 +545,8 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         isCreateable={false}
         isViewable={false}
         cardProps={{
+          // Its search and buttons drop under the title beside the side menu.
+          headerLayout: "stacked",
           title: "Indicators",
           description:
             "Raw ingested indicator rows from the feeds above, eventually consistent: a re-polled indicator can briefly appear twice until ClickHouse merges versions, and revoked or expired rows remain listed until retention cleanup. Matching always checks validity and revocation at query time, so a stale row here is never matched.",

@@ -52,6 +52,20 @@ import SigmaClickhouseCompiler, {
 } from "./Sigma/SigmaClickhouseCompiler";
 import { buildSecurityEventDbRow } from "./SecurityEventRow";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import { detectionRuleMatchMarkdown } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
+import SecurityCaseIngest, {
+  SecurityCaseIngestResult,
+  SecurityDetectionSignal,
+} from "../SecurityCase/SecurityCaseIngest";
+import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
+import {
+  SecurityEntity,
+  SecurityEntityType,
+  entitiesFromObservables,
+  inferSecurityEntityType,
+  mergeSecurityEntities,
+  securityEntityTypeForField,
+} from "../../../Types/SecurityCase/SecurityEntity";
 
 const DETECTIONS_SERVICE_NAME: string = "OneUptime Detections";
 
@@ -62,6 +76,8 @@ export interface DetectionRuleEvaluationResult {
   alertsCreated: number;
   incidentsCreated: number;
   findingsWritten: number;
+  // Cases the matches opened; the rest joined cases already open.
+  casesOpened: number;
   error: string | null;
 }
 
@@ -90,6 +106,7 @@ export default class DetectionRuleEvaluator {
         shouldCreateAlert: true,
         shouldWriteDetectionFinding: true,
         shouldCreateIncident: true,
+        shouldCreateCase: true,
         alertSeverityId: true,
         incidentSeverityId: true,
         lastEvaluatedAt: true,
@@ -230,7 +247,10 @@ export default class DetectionRuleEvaluator {
     let alertsCreated: number = 0;
     let incidentsCreated: number = 0;
     let findingsWritten: number = 0;
+    let casesOpened: number = 0;
     let totalMatches: number = 0;
+    // Each group's Detection Finding, for the case detection that points at it.
+    let findingEventUids: Map<string, string> = new Map();
 
     for (const matchGroup of matchedGroups) {
       totalMatches += matchGroup.matchCount;
@@ -264,11 +284,41 @@ export default class DetectionRuleEvaluator {
       }
 
       if (rule.shouldWriteDetectionFinding !== false) {
-        findingsWritten = await this.writeDetectionFindings({
+        findingEventUids = await this.writeDetectionFindings({
           rule,
           parsedRule,
           matchedGroups,
         });
+        findingsWritten = findingEventUids.size;
+      }
+
+      /*
+       * !== false like alerts: cases are where a security team works
+       * detections, and a rule saved before the switch existed opens them
+       * too. A failure here is logged, never the rule's error - the
+       * detections are already recorded as alerts and findings.
+       */
+      if (rule.shouldCreateCase !== false) {
+        try {
+          const ingestResult: SecurityCaseIngestResult =
+            await SecurityCaseIngest.recordDetections(
+              this.buildCaseSignals({
+                rule,
+                parsedRule,
+                matchedGroups,
+                findingEventUids,
+                startTime,
+                endTime,
+              }),
+            );
+
+          casesOpened = ingestResult.casesOpened;
+        } catch (error) {
+          logger.error(
+            `DetectionRuleEvaluator: rule ${rule.id.toString()} could not record its matches as security cases:`,
+          );
+          logger.error(error);
+        }
       }
     }
 
@@ -291,8 +341,84 @@ export default class DetectionRuleEvaluator {
       alertsCreated,
       incidentsCreated,
       findingsWritten,
+      casesOpened,
       error: null,
     };
+  }
+
+  /*
+   * One case signal per matched group: the detection a case holds. The
+   * group's value is the entity the detection is about (typed by the field
+   * the rule groups on: a principalIp group is an IP address), and the
+   * group's sample observables are its other entities.
+   */
+  public static buildCaseSignals(data: {
+    rule: DetectionRule;
+    parsedRule: SigmaRule;
+    matchedGroups: Array<DetectionMatchGroup>;
+    findingEventUids: Map<string, string>;
+    startTime: Date;
+    endTime: Date;
+  }): Array<SecurityDetectionSignal> {
+    const { rule, parsedRule } = data;
+    const severity: OcsfSeverity =
+      SIGMA_LEVEL_TO_OCSF_SEVERITY[parsedRule.level] || OcsfSeverity.Medium;
+    const groupEntityType: SecurityEntityType | undefined =
+      securityEntityTypeForField(rule.groupByField);
+
+    return data.matchedGroups.map(
+      (matchGroup: DetectionMatchGroup): SecurityDetectionSignal => {
+        const groupEntities: Array<SecurityEntity> = matchGroup.groupValue
+          ? [
+              {
+                type:
+                  groupEntityType ||
+                  inferSecurityEntityType(matchGroup.groupValue),
+                value: matchGroup.groupValue,
+              },
+            ]
+          : [];
+
+        return {
+          projectId: rule.projectId!,
+          source: SecurityDetectionSource.DetectionRule,
+          fingerprint: this.buildFingerprint(rule.id!, matchGroup.groupValue),
+          title: matchGroup.groupValue
+            ? `${rule.name} — ${matchGroup.groupValue}`
+            : rule.name || parsedRule.title,
+          description: detectionRuleMatchMarkdown({
+            ruleName: rule.name || parsedRule.title,
+            ruleDescription: rule.description || parsedRule.description,
+            matchCount: matchGroup.matchCount,
+            distinctCount: rule.distinctCountField
+              ? {
+                  field: rule.distinctCountField,
+                  count: matchGroup.distinctCount,
+                  threshold: this.effectiveThreshold(rule),
+                }
+              : undefined,
+            windowStart: OneUptimeDate.getDateAsFormattedString(data.startTime),
+            windowEnd: OneUptimeDate.getDateAsFormattedString(data.endTime),
+            sampleMessage: matchGroup.sampleMessage || undefined,
+            observables: matchGroup.sampleObservables,
+          }).toString(),
+          severity,
+          eventCount: matchGroup.matchCount,
+          groupValue: matchGroup.groupValue || undefined,
+          entities: mergeSecurityEntities(
+            groupEntities,
+            entitiesFromObservables(matchGroup.sampleObservables),
+          ),
+          mitreTactics: parsedRule.mitreTactics,
+          mitreTechniques: parsedRule.mitreTechniques,
+          ruleName: rule.name || parsedRule.title,
+          detectionRuleId: rule.id!,
+          sampleMessage: matchGroup.sampleMessage || undefined,
+          eventUid: data.findingEventUids.get(matchGroup.groupValue),
+          seenAt: data.endTime,
+        };
+      },
+    );
   }
 
   private static async openAlertsForMatches(data: {
@@ -471,7 +597,7 @@ export default class DetectionRuleEvaluator {
     rule: DetectionRule;
     parsedRule: SigmaRule;
     matchedGroups: Array<DetectionMatchGroup>;
-  }): Promise<number> {
+  }): Promise<Map<string, string>> {
     const { rule, parsedRule, matchedGroups } = data;
     const projectId: ObjectID = rule.projectId!;
 
@@ -496,18 +622,24 @@ export default class DetectionRuleEvaluator {
       DETECTION_FINDING_CLASS_UID,
     );
 
+    const eventUids: Map<string, string> = new Map();
+
     const rows: Array<JSONObject> = matchedGroups.map(
       (matchGroup: DetectionMatchGroup): JSONObject => {
         const distinctSuffix: string = rule.distinctCountField
           ? `, ${matchGroup.distinctCount} distinct ${rule.distinctCountField}`
           : "";
 
+        const eventUid: string = `detection:${rule.id!.toString()}:${this.buildFingerprint(
+          rule.id!,
+          matchGroup.groupValue,
+        )}:${OneUptimeDate.getCurrentDateAsUnixNano()}`;
+
+        eventUids.set(matchGroup.groupValue, eventUid);
+
         const normalized: NormalizedSecurityEvent = {
           time: OneUptimeDate.getCurrentDate(),
-          eventUid: `detection:${rule.id!.toString()}:${this.buildFingerprint(
-            rule.id!,
-            matchGroup.groupValue,
-          )}:${OneUptimeDate.getCurrentDateAsUnixNano()}`,
+          eventUid: eventUid,
           categoryUid,
           categoryName,
           classUid: DETECTION_FINDING_CLASS_UID,
@@ -575,7 +707,7 @@ export default class DetectionRuleEvaluator {
 
     await SecurityEventService.insertJsonRows(rows);
 
-    return rows.length;
+    return eventUids;
   }
 
   /*

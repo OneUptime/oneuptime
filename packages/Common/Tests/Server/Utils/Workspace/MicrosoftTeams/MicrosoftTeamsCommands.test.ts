@@ -1,4 +1,14 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import URL from "../../../../../Types/API/URL";
+import DatabaseConfig from "../../../../../Server/DatabaseConfig";
+import MicrosoftTeamsHome from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsHome";
 import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../../../Server/EnvironmentConfig", () => {
@@ -18,7 +28,6 @@ import MicrosoftTeamsCommands, {
   MICROSOFT_TEAMS_LIST_COMMANDS_IN_HELP,
   MicrosoftTeamsListCommand,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
-import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import MicrosoftTeamsAuthAction from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Auth";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import OnCallDutyPolicyScheduleService from "../../../../../Server/Services/OnCallDutyPolicyScheduleService";
@@ -341,66 +350,129 @@ describe("MicrosoftTeamsCommands.authorizeSender, for 'oncall'", () => {
   });
 });
 
-describe("the welcome card a new installation gets", () => {
-  function welcomeCard(): JSONObject {
-    return (
-      MicrosoftTeamsUtil as unknown as {
-        buildWelcomeAdaptiveCard: () => JSONObject;
-      }
-    ).buildWelcomeAdaptiveCard();
+/*
+ * The hello a team or a group chat gets when the app is added to it
+ * (MicrosoftTeamsHome.getTeamWelcome): what OneUptime does there and where
+ * its notifications are set up, in the words Slack's channel hello says. It
+ * used to be a long card: getting-started steps for a workspace that was
+ * often set up already, every command, a support sentence and three buttons
+ * that cut off on a phone, linked to OneUptime Cloud whatever the server.
+ */
+describe("the welcome a team or a group chat gets", () => {
+  async function welcome(data: {
+    projectId: ObjectID | null;
+    isConnected: boolean;
+    isPersonal?: boolean | undefined;
+  }): Promise<{ card: JSONObject; summary: string }> {
+    return await MicrosoftTeamsHome.getTeamWelcome(data);
   }
 
-  test("lists the commands as the help does - what to type, and what it does - never 'create incident'", () => {
-    const texts: Array<string> = (welcomeCard()["body"] as Array<JSONObject>)
-      .filter((element: JSONObject): boolean => {
-        return element["type"] === "TextBlock";
-      })
-      .map((element: JSONObject): string => {
+  function texts(card: JSONObject): Array<string> {
+    return (card["body"] as Array<JSONObject>).map(
+      (element: JSONObject): string => {
         return String(element["text"]);
-      });
+      },
+    );
+  }
 
-    const list: string = MicrosoftTeamsCommands.getCommandListMarkdown();
+  const PROJECT: ObjectID = new ObjectID(
+    "b0000000-0000-4000-8000-000000000001",
+  );
 
-    expect(texts).toContain(list);
-    expect(list.split("\n")).toEqual([
-      "- **incident [title]**: declare an incident",
-      "- **maintenance [title]**: schedule maintenance",
-      "- **oncall**: see who is on call right now",
-      "- **page [who] [message]**: page a person, a team or whoever is on call",
-      "- **ask [question]**: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
-      "- **show active incidents**, **show active alerts**: list what is open right now",
-      "- **show scheduled maintenance**, **show ongoing maintenance**: list upcoming and ongoing maintenance",
-      "- **help**: list every command",
+  beforeEach(() => {
+    jest
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockResolvedValue(URL.fromString("https://status.acme.test/dashboard"));
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("Acme Ops");
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("connected: two short lines - how to reach it, where notifications are set up - and one button", async () => {
+    const { card, summary } = await welcome({
+      projectId: PROJECT,
+      isConnected: true,
+    });
+
+    expect(texts(card)).toEqual([
+      "👋 **Hi, I'm Acme Ops.** @mention me with a question about your incidents, monitors, logs and traces, or with **help** to see what I can do: declare an incident, page someone, see who is on call.",
+      "To post incidents, alerts or scheduled maintenance to a team's channels, add a notification rule in Acme Ops under **Incidents → Workspace → Microsoft Teams**.",
     ]);
-    // The help card lists the same lines.
-    expect(MicrosoftTeamsCommands.getHelpAnswer().markdown).toContain(list);
-    // A list, not a two-column table: it reads on a phone too.
-    expect(
-      (welcomeCard()["body"] as Array<JSONObject>).some(
-        (element: JSONObject): boolean => {
-          return element["type"] === "FactSet";
-        },
-      ),
-    ).toBe(false);
-    expect(JSON.stringify(welcomeCard()).toLowerCase()).not.toContain(
-      "create incident",
+    expect(card["actions"]).toEqual([
+      {
+        type: "Action.OpenUrl",
+        title: "Set up notifications",
+        url: `https://status.acme.test/dashboard/${PROJECT.toString()}/incidents/workspace-connection-microsoft-teams`,
+      },
+    ]);
+    expect(summary).toBe(
+      "Hi, I'm Acme Ops. @mention me with a question, or with help.",
     );
   });
 
-  test("says how to reach the bot in a channel, and where the project connects Microsoft Teams", () => {
-    const texts: Array<string> = (welcomeCard()["body"] as Array<JSONObject>)
-      .filter((element: JSONObject): boolean => {
-        return element["type"] === "TextBlock";
-      })
-      .map((element: JSONObject): string => {
-        return String(element["text"]);
-      });
+  test("an organization connected to no project: who connects it, and the way to the product", async () => {
+    const { card } = await welcome({ projectId: null, isConnected: false });
 
-    expect(texts).toContain(
-      "Type them in a chat with OneUptime, or after @OneUptime in a channel or a group chat. Anything else is a question for OneUptime AI.",
+    expect(texts(card)[1]).toBe(
+      // No article before the product's name: "a Acme Ops project admin" read wrong.
+      "To get started, a project admin connects your organization in Acme Ops, under **Project Settings → Workspace → Microsoft Teams**.",
     );
-    expect(texts.join("\n")).toContain(
-      "**Project Settings → Workspace → Microsoft Teams**",
+    expect(card["actions"]).toEqual([
+      {
+        type: "Action.OpenUrl",
+        title: "Open Acme Ops",
+        url: "https://status.acme.test/dashboard",
+      },
+    ]);
+  });
+
+  test("an organization connected to several projects: where notifications are set up, without a project to link to", async () => {
+    const { card } = await welcome({ projectId: null, isConnected: true });
+
+    expect(texts(card)[1]).toContain("add a notification rule in Acme Ops");
+    expect((card["actions"] as Array<JSONObject>)[0]!["title"]).toBe(
+      "Open Acme Ops",
     );
+  });
+
+  test("a personal chat needs nobody to mention - nor does its notification", async () => {
+    const { card, summary } = await welcome({
+      projectId: null,
+      isConnected: false,
+      isPersonal: true,
+    });
+
+    expect(texts(card)[0]).toBe(
+      "👋 **Hi, I'm Acme Ops.** Ask me a question about your incidents, monitors, logs and traces, or type **help** to see what I can do: declare an incident, page someone, see who is on call.",
+    );
+    expect(summary).toBe("Hi, I'm Acme Ops. Ask me a question, or type help.");
+  });
+
+  test("no server address: no button, never a link to OneUptime Cloud", async () => {
+    jest
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockRejectedValue(new Error("no host"));
+
+    const { card } = await welcome({ projectId: PROJECT, isConnected: true });
+
+    expect(card["actions"]).toBeUndefined();
+    expect(JSON.stringify(card)).not.toContain("oneuptime.com");
+    expect(JSON.stringify(card)).not.toContain("support@");
+  });
+
+  test("no table and no command list a phone cannot fit; never 'create incident'", async () => {
+    const { card } = await welcome({ projectId: PROJECT, isConnected: true });
+
+    expect(
+      (card["body"] as Array<JSONObject>).some((element: JSONObject) => {
+        return element["type"] === "FactSet";
+      }),
+    ).toBe(false);
+    expect(JSON.stringify(card).toLowerCase()).not.toContain("create incident");
+    expect(texts(card)).toHaveLength(2);
   });
 });

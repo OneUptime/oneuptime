@@ -2,6 +2,12 @@ import DetectionRule from "../../Models/DatabaseModels/DetectionRule";
 import SecurityEventConnection from "../../Models/DatabaseModels/SecurityEventConnection";
 import SecurityEventConnectionRun from "../../Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "../../Models/DatabaseModels/ThreatIntelFeed";
+import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
+import SecurityCaseFeed from "../../Models/DatabaseModels/SecurityCaseFeed";
+import SecurityCaseNote from "../../Models/DatabaseModels/SecurityCaseNote";
+import SecurityDetection from "../../Models/DatabaseModels/SecurityDetection";
+import SecurityPlaybook from "../../Models/DatabaseModels/SecurityPlaybook";
+import SecurityPlaybookRun from "../../Models/DatabaseModels/SecurityPlaybookRun";
 import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
 import ThreatIntelIndicator from "../../Models/AnalyticsModels/ThreatIntelIndicator";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
@@ -84,7 +90,42 @@ const buildSecurityModels: BuildSecurityModelsFunction =
     const threatIntelIndicator: ThreatIntelIndicator =
       new ThreatIntelIndicator();
 
+    /*
+     * The SOAR half - cases, their detections, notes and feed, playbooks
+     * and their runs - is the investigation trail of possible breaches and
+     * the automated response to them: SIEM data like the events it is made
+     * from, held to the same tiers.
+     */
+    const soarModels: Array<SecurityModel> = [
+      new SecurityCase(),
+      new SecurityCaseFeed(),
+      new SecurityCaseNote(),
+      new SecurityDetection(),
+      new SecurityPlaybook(),
+      new SecurityPlaybookRun(),
+    ].map(
+      (
+        model:
+          | SecurityCase
+          | SecurityCaseFeed
+          | SecurityCaseNote
+          | SecurityDetection
+          | SecurityPlaybook
+          | SecurityPlaybookRun,
+      ): SecurityModel => {
+        return {
+          name: model.tableName!,
+          read: model.readRecordPermissions,
+          create: model.createRecordPermissions,
+          update: model.updateRecordPermissions,
+          delete: model.deleteRecordPermissions,
+          columns: columnsOf(model),
+        };
+      },
+    );
+
     return [
+      ...soarModels,
       {
         name: "DetectionRule",
         read: detectionRule.readRecordPermissions,
@@ -180,9 +221,15 @@ describe("Security domain access control", () => {
       }).sort(),
     ).toEqual([
       "DetectionRule",
+      "SecurityCase",
+      "SecurityCaseFeed",
+      "SecurityCaseNote",
+      "SecurityDetection",
       "SecurityEvent",
       "SecurityEventConnection",
       "SecurityEventConnectionRun",
+      "SecurityPlaybook",
+      "SecurityPlaybookRun",
       "ThreatIntelFeed",
       "ThreatIntelIndicator",
     ]);

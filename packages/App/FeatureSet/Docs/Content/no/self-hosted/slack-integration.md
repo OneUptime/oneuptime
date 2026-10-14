@@ -147,6 +147,8 @@ Manifestet setter opp disse funksjonene. Hver av dem når serveren din via ruten
 | Snarveiene **Create New Incident** og **Create Scheduled Event** | Erklær en hendelse eller planlegg vedlikehold fra Slacks snarveier | `POST /api/slack/interactive` |
 | Knapper og skjemaer i OneUptime-meldinger | Bekreft, løs, legg til et notat, endre tilstanden, kjør en vaktpolicy | `POST /api/slack/interactive` og `POST /api/slack/options-load` |
 | Hendelser | Omtaler, meldinger, reaksjoner og festede elementer, for eksempel for å lagre en melding som notat | `POST /api/slack/events` |
+| Appens fane **Home** | Vaktene dine og de åpne hendelsene og varslene, med knapper for å erklære en hendelse, planlegge vedlikehold, tilkalle noen og se hvem som har vakt | `POST /api/slack/events` og `POST /api/slack/interactive` |
+| En hilsen i hver kanal appen legges til i | Hvordan man stiller OneUptime AI et spørsmål, og hvor man legger til en varslingsregel | `POST /api/slack/events` |
 
 ### Bilder i meldinger
 
@@ -165,6 +167,8 @@ Hvis du opprettet Slack-appen fra et eldre manifest, legger du til `usergroups:r
 En Slack-app som er opprettet fra et tidligere OneUptime-manifest, registrerer `/incident` og `/maintenance` som egne kommandoer, som kan kollidere med kommandoer med samme navn i andre apper. De virker fortsatt og åpner de samme skjemaene som `/oneuptime incident` og `/oneuptime maintenance`. For å erstatte dem med `/oneuptime` oppdaterer du appen fra manifestet serveren din genererer: på [api.slack.com/apps](https://api.slack.com/apps) åpner du appens **App Manifest**, limer inn manifestet og lagrer.
 
 En app som er opprettet før `/oneuptime page`, trenger den samme oppdateringen: til den har fått den, kan ikke `/oneuptime page` se hvem du nevner med @, og åpner et skjema der du velger dem, i stedet for å tilkalle dem med en gang. Velg deretter **Connect with Slack** igjen under **Prosjektinnstillinger > Arbeidsområde > Slack**, slik at scopet `users:read.email` som manifestet legger til, blir gitt: med det blir en person hvis Slack-konto ikke er koblet til OneUptime, funnet via e-postadressen sin.
+
+En app som ble opprettet før fanen **Home**, trenger den samme oppdateringen: til den har den, viser Slack ingen fane **Home** for appen, og appen publiserer ingen hilsen i en kanal den legges til i. Oppdateringen slår på fanen og abonnerer appen på eventene `app_home_opened` og `member_joined_channel`. Den legger ikke til noe scope, så ingenting må kobles til på nytt.
 
 ## Nettverkstilgang for selvdriftede installasjoner
 

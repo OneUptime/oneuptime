@@ -173,6 +173,12 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         cardProps={{
+          /*
+           * The header holds a row of controls (search, Add connection, the
+           * menu), wider than the title's share beside the side menu at
+           * tablet widths: stacked lets them drop under the title.
+           */
+          headerLayout: "stacked",
           title: "Security Event Connections",
           description:
             "Poll Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps as OCSF security events. Test access, run a poll, and inspect imports on demand.",

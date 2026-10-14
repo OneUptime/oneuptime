@@ -147,6 +147,8 @@ OneUptime 恢復執行後，**專案設定 > 工作區 > Slack** 會顯示 **Con
 | **Create New Incident** 和 **Create Scheduled Event** 捷徑 | 透過 Slack 的捷徑宣告事件或排定維護 | `POST /api/slack/interactive` |
 | OneUptime 訊息中的按鈕和表單 | 確認、解決、新增備註、變更狀態、執行值班政策 | `POST /api/slack/interactive` 和 `POST /api/slack/options-load` |
 | 事件 | 提及、訊息、表情回應和釘選，例如把一則訊息儲存為備註 | `POST /api/slack/events` |
+| 應用程式的 **Home** 分頁 | 您的待命班次以及未解決的事件和警示，並附有用於宣告事件、排定維護、呼叫某人和查看誰在待命的按鈕 | `POST /api/slack/events` 和 `POST /api/slack/interactive` |
+| 在應用程式被新增到的每個頻道中的問候 | 如何向 OneUptime AI 提問，以及在哪裡新增通知規則 | `POST /api/slack/events` |
 
 ### 訊息中的圖片
 
@@ -165,6 +167,8 @@ OneUptime 恢復執行後，**專案設定 > 工作區 > Slack** 會顯示 **Con
 用較早的 OneUptime 資訊清單建立的 Slack 應用程式會把 `/incident` 和 `/maintenance` 註冊為獨立的指令，它們可能與其他應用程式的同名指令衝突。它們仍然可以使用，並開啟與 `/oneuptime incident` 和 `/oneuptime maintenance` 相同的表單。若要用 `/oneuptime` 取代它們，請用你的伺服器產生的資訊清單更新應用程式：在 [api.slack.com/apps](https://api.slack.com/apps) 中開啟應用程式的 **App Manifest**，貼上資訊清單並儲存。
 
 在 `/oneuptime page` 推出之前建立的應用程式也需要同樣的更新：在更新之前，`/oneuptime page` 無法識別你 @提及的人，會開啟一個表單讓你選擇他們，而不是立即呼叫他們。然後在 **專案設定 > 工作區 > Slack** 中再次選擇 **Connect with Slack**，以授予資訊清單新增的 `users:read.email` 權限範圍：有了它，Slack 帳戶未連接到 OneUptime 的人也能透過其電子郵件地址找到。
+
+在 **Home** 分頁之前建立的應用程式也需要同樣的更新：在更新之前，Slack 不會為該應用程式顯示 **Home** 分頁，應用程式也不會在它被新增到的頻道中發佈問候。更新會開啟該分頁，並讓應用程式訂閱 `app_home_opened` 和 `member_joined_channel` 事件。它不會新增任何 scope，因此無需重新連接。
 
 ## 自行託管部署的網路存取
 

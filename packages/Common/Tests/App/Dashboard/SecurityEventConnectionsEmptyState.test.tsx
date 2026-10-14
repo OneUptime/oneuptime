@@ -575,7 +575,15 @@ describe("SecurityEventConnectionsEmptyState", () => {
       );
     });
 
-    test("the product grid is one column, two from sm and four from lg", () => {
+    /*
+     * Beside the Security Events side menu the card is narrower than the
+     * viewport by a different amount at each size, so the columns come from
+     * the card's own width: at most four, each at least a quarter of the row
+     * and as wide as a tile needs (17rem for the row it is below lg, 11.5rem
+     * for the upright card it is from lg). The browser suite measures them
+     * (E2E/SecurityEventsEmptyStates).
+     */
+    test("the product grid takes its columns from the card's width, at most four", () => {
       renderEmptyState();
 
       const list: HTMLElement = screen.getByRole("list", {
@@ -583,10 +591,9 @@ describe("SecurityEventConnectionsEmptyState", () => {
       });
       expect(list).toHaveClass(
         "grid",
-        "grid-cols-1",
         "gap-3",
-        "sm:grid-cols-2",
-        "lg:grid-cols-4",
+        "grid-cols-[repeat(auto-fill,minmax(min(100%,max(17rem,calc((100%_-_2.25rem)/4))),1fr))]",
+        "lg:grid-cols-[repeat(auto-fill,minmax(min(100%,max(11.5rem,calc((100%_-_2.25rem)/4))),1fr))]",
       );
     });
   });

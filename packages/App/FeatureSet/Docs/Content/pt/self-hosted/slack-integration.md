@@ -147,6 +147,8 @@ O manifesto configura estes recursos. Cada um alcança o seu servidor pela rota 
 | Os atalhos **Create New Incident** e **Create Scheduled Event** | Declarar um incidente ou agendar uma manutenção pelos atalhos do Slack | `POST /api/slack/interactive` |
 | Botões e formulários nas mensagens do OneUptime | Reconhecer, resolver, adicionar uma nota, mudar o estado, executar uma política de plantão | `POST /api/slack/interactive` e `POST /api/slack/options-load` |
 | Eventos | Menções, mensagens, reações e fixações, por exemplo para salvar uma mensagem como nota | `POST /api/slack/events` |
+| A aba **Home** do aplicativo | Os seus turnos de plantão e os incidentes e alertas abertos, com botões para declarar um incidente, programar uma manutenção, acionar alguém e ver quem está de plantão | `POST /api/slack/events` e `POST /api/slack/interactive` |
+| Uma saudação em cada canal ao qual o aplicativo é adicionado | Como fazer uma pergunta ao OneUptime AI e onde adicionar uma regra de notificação | `POST /api/slack/events` |
 
 ### Imagens nas mensagens
 
@@ -165,6 +167,8 @@ Se você criou o seu app do Slack a partir de um manifesto mais antigo, adicione
 Um app do Slack criado a partir de um manifesto anterior do OneUptime registra `/incident` e `/maintenance` como comandos próprios, que podem conflitar com comandos de mesmo nome de outros apps. Eles continuam funcionando e abrem os mesmos formulários que `/oneuptime incident` e `/oneuptime maintenance`. Para substituí-los por `/oneuptime`, atualize o app a partir do manifesto que o seu servidor gera: em [api.slack.com/apps](https://api.slack.com/apps), abra o **App Manifest** do app, cole o manifesto e salve.
 
 Um app criado antes do `/oneuptime page` precisa da mesma atualização: até recebê-la, o `/oneuptime page` não consegue reconhecer quem você menciona com @, e abre um formulário para escolhê-los em vez de acioná-los na hora. Depois, selecione de novo **Connect with Slack** em **Configurações do projeto > Espaço de trabalho > Slack**, para que o escopo `users:read.email` que o manifesto adiciona seja concedido: com ele, uma pessoa cuja conta do Slack não está conectada ao OneUptime é encontrada pelo endereço de e-mail dela.
+
+Um aplicativo criado antes da aba **Home** precisa da mesma atualização: até tê-la, o Slack não mostra nenhuma aba **Home** para o aplicativo, e o aplicativo não publica nenhuma saudação em um canal ao qual é adicionado. A atualização ativa a aba e inscreve o aplicativo nos eventos `app_home_opened` e `member_joined_channel`. Ela não adiciona nenhum scope, então nada precisa ser conectado de novo.
 
 ## Acesso à rede para implantações auto-hospedadas
 

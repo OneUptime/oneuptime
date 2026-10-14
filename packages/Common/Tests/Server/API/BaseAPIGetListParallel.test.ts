@@ -67,6 +67,7 @@ jest.mock("../../../Server/Services/DatabaseService", () => {
       updateOneBy: jest.fn(),
       create: jest.fn(),
       hardDeleteItemsOlderThanInDays: jest.fn(),
+      keepRowsOnDeleteByQuery: jest.fn(),
     };
   });
 

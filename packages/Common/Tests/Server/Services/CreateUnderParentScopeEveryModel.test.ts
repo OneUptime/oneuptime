@@ -537,13 +537,22 @@ const relativeName: (file: string) => string = (file: string): string => {
 
 /*
  * Writes of these tables in SQL of their own, each a write OneUptime makes
- * itself. May only shrink: each entry is the exact line the scan produces.
+ * itself that no caller's read can scope. Each entry is the exact line the
+ * scan produces, and is listed only with its reason below.
  *
  *   - adopting the monitor rules of a service level objective's legacy
  *     monitor label: the objective's own rule, written as the objective's
  *     backfill writes it.
+ *   - giving a monitor with no status timeline left its current status back
+ *     (MonitorStatusTimelineReconciler.restoreMissingStatusTimelines): the
+ *     row's project, monitor and status are read from the Monitor row itself,
+ *     the status must be that project's, and no caller names any of them. It
+ *     is one statement under an advisory lock, so two workers never restore a
+ *     monitor twice, and it runs no hooks: no status changed, so it notifies
+ *     nobody and writes no feed item.
  */
 const RAW_INSERTS_BY_ONEUPTIME: Array<string> = [
+  "packages/Common/Server/Utils/Monitor/MonitorStatusTimelineReconciler.ts: MonitorStatusTimeline",
   "packages/Common/Server/Utils/Slo/SloLegacyMonitorLabelAdoption.ts: ServiceLevelObjectiveMonitorRule",
 ];
 

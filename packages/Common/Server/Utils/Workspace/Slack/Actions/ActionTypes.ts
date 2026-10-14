@@ -107,6 +107,13 @@ enum SlackActionType {
    * settings page to connect, and the click Slack reports is acknowledged.
    */
   ConnectSlackAccount = "ConnectSlackAccount",
+
+  /*
+   * A link button to a page in OneUptime - the welcome's Set up
+   * notifications. Slack opens the link and reports the click, which only
+   * has to be acknowledged.
+   */
+  OpenInOneUptime = "OpenInOneUptime",
 }
 
 // Emoji names that trigger saving a message as a Private Note (Internal Note)

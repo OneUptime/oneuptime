@@ -1,6 +1,6 @@
 /*
- * The pages of the docs' AI Observability group, and the two Security
- * pages, by the paths their suites name them with.
+ * The pages of the docs' AI Observability group, and the Security pages,
+ * by the paths their suites name them with.
  *
  * Docs overhaul task 24a rewrote the first five (AiObservabilityDocsFacts,
  * AiObservabilityDocsTranslations); task 24b the other three and the
@@ -25,6 +25,7 @@ export const AI_GATEWAYS: string = "telemetry/ai-gateways";
 export const CIRCUIT_BREAKER: string = "telemetry/ai-agent-circuit-breaker";
 export const SECURITY_EVENTS: string = "telemetry/security-events";
 export const THREAT_INTELLIGENCE: string = "telemetry/threat-intelligence";
+export const SECURITY_CASES: string = "telemetry/security-cases";
 
 // The AI observability pages of task 24a.
 export const AI_OBSERVABILITY_PAGES: ReadonlyArray<DocsPageEntry> = [
@@ -46,4 +47,5 @@ export const AI_TOOLING_PAGES: ReadonlyArray<DocsPageEntry> = [
 export const SECURITY_PAGES: ReadonlyArray<DocsPageEntry> = [
   { page: SECURITY_EVENTS, navTitle: "Security Events (SIEM)" },
   { page: THREAT_INTELLIGENCE, navTitle: "Threat Intelligence (STIX/TAXII)" },
+  { page: SECURITY_CASES, navTitle: "Security Cases and Playbooks (SOAR)" },
 ];

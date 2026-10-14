@@ -147,6 +147,8 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 | **Create New Incident** 및 **Create Scheduled Event** 바로 가기 | Slack 바로 가기에서 인시던트 선언 또는 유지 관리 예약 | `POST /api/slack/interactive` |
 | OneUptime 메시지의 버튼과 양식 | 확인, 해결, 메모 추가, 상태 변경, 온콜 정책 실행 | `POST /api/slack/interactive` 및 `POST /api/slack/options-load` |
 | 이벤트 | 멘션, 메시지, 반응, 고정. 예를 들어 메시지를 메모로 저장 | `POST /api/slack/events` |
+| 앱의 **Home** 탭 | 내 온콜 근무와 열린 인시던트와 경고, 그리고 인시던트 선언, 유지 관리 예약, 다른 사람 호출, 온콜 담당자 확인을 위한 버튼 | `POST /api/slack/events` 와 `POST /api/slack/interactive` |
+| 앱이 추가된 각 채널의 인사 | OneUptime AI 에게 질문하는 방법과 알림 규칙을 추가하는 위치 | `POST /api/slack/events` |
 
 ### 메시지의 이미지
 
@@ -165,6 +167,8 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 이전 OneUptime 매니페스트로 만든 Slack 앱은 `/incident`와 `/maintenance`를 자체 명령으로 등록하며, 이 명령은 다른 앱의 같은 이름 명령과 충돌할 수 있습니다. 이 명령은 계속 작동하고 `/oneuptime incident`, `/oneuptime maintenance`와 같은 양식을 엽니다. `/oneuptime`으로 바꾸려면 서버가 생성하는 매니페스트로 앱을 업데이트하세요. [api.slack.com/apps](https://api.slack.com/apps)에서 앱의 **App Manifest**를 열고 매니페스트를 붙여 넣은 뒤 저장합니다.
 
 `/oneuptime page` 이전에 만든 앱도 같은 업데이트가 필요합니다. 업데이트하기 전에는 `/oneuptime page`가 @멘션한 사람을 알아보지 못하고, 바로 호출하는 대신 그 사람을 고르는 양식을 엽니다. 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Connect with Slack**을 다시 선택해 매니페스트가 추가하는 `users:read.email` 스코프가 부여되게 합니다. 그러면 Slack 계정이 OneUptime에 연결되지 않은 사람도 이메일 주소로 찾을 수 있습니다.
+
+앱을 **Home** 탭 이전에 만들었다면 같은 업데이트가 필요합니다. 업데이트하기 전까지 Slack 은 앱에 **Home** 탭을 표시하지 않고, 앱은 추가된 채널에 인사를 게시하지 않습니다. 업데이트하면 탭이 켜지고 앱이 `app_home_opened` 와 `member_joined_channel` 이벤트를 구독합니다. 스코프는 추가되지 않으므로 다시 연결할 필요가 없습니다.
 
 ## 자체 호스팅 배포의 네트워크 접근
 

@@ -940,7 +940,7 @@ describe("MCP Server", () => {
   }
 
   it("lists every record with CRUD tools, by its model's name", () => {
-    expect(records()).toHaveLength(23);
+    expect(records()).toHaveLength(27);
     expect(namesIn(0)).toEqual(records());
     // Every database model with MCP on gets all six tools.
     for (const tool of [

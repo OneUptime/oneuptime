@@ -8,8 +8,8 @@ connected anything yet:
 | Security Events | `SECURITY_EVENTS` `/dashboard/:projectId/security-events` | `Pages/SecurityEvents/{Layout,Index}`, `SecurityEventsViewer` inside `TelemetryViewer`, `SecurityEventsEmptyState`, `SecurityEventsNoResults` |
 | Connections | `SECURITY_EVENTS_CONNECTIONS` `/dashboard/:projectId/security-events/connections` | `Pages/SecurityEvents/{Layout,Connections}`, `SecurityEventConnectionsTable` inside `ModelTable`, `SecurityEventConnectionsEmptyState`, `SecurityEventProviderTile`, `SecurityEventConnectionFormModal` |
 
-`Fixture/server.js` bundles the production layout (breadcrumbs, the Security Events tabs) and
-both pages with esbuild, serves them with the same Tailwind build, `tailwind.config` and
+`Fixture/server.js` bundles the production layout (breadcrumbs, the Security Events side menu)
+and both pages with esbuild, serves them with the same Tailwind build, `tailwind.config` and
 `Theme.css` production uses, and listens on `127.0.0.1:4232`
 (`SECURITY_EVENTS_EMPTY_STATES_FIXTURE_PORT`). No Docker, no database, no sign-in.
 
@@ -32,9 +32,12 @@ Stubbed:
   way they do on a real install (`https://oneuptime.acme-commerce.example/docs/integrations/<slug>`).
   Nothing is ever fetched from it: the spec answers the one docs page a clicked link names
   with a stub and aborts everything else.
-- The other Security Events tabs (Correlate, Detection Rules, Monitors, Threat Intel,
-  Documentation) render a small stub page with `data-testid="stub-page"` and
-  `data-page="<PageMap key>"`, so a test can tell where a link went.
+- The side menu's counts beside Cases and Playbook Runs (`ModelAPI.count` of the open cases
+  and of the runs waiting for approval) answer 0.
+- The side menu's other pages (Overview, Cases, Correlate, Entities, Detection Rules, Rule
+  Library, ATT&CK Coverage, Threat Intel, Monitors, Playbooks, Playbook Runs, Setup Guide)
+  render a small stub page with `data-testid="stub-page"` and `data-page="<PageMap key>"`, so a
+  test can tell where a link went.
 
 The clock is pinned: the spec fixes the browser clock to `2026-09-22T12:00:00Z`.
 
@@ -77,8 +80,9 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
   picker shows the same icons as the tiles; the hero and card-header Add connection open the
   form with nothing chosen (a tile's choice does not stick); every Setup guide opens a new tab
   on its docs URL and never the form; hovering a tile turns its border, badge and plus indigo.
-- **Layout**: at 1440 four tiles a row, one size, every name on one line; 1024 (four
-  columns, only "Splunk Enterprise Security" wraps), 768 (two) and 390 (one) with nothing
+- **Layout**, beside the side menu from md up, the grid's columns taken from the card's own
+  width: at 1440 four tiles a row, one size, every name on one line; 1280 (four columns,
+  "Splunk Enterprise Security" wraps), 1024 (two), 768 (one) and 390 (one) with nothing
   wider than the card and no horizontal scroll.
 - **Viewer**: disabled hero and header buttons with the gate's sentence under the hero
   button and in its tooltip, "Supported products", static tiles with no buttons and no plus,
@@ -94,7 +98,7 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
   filters from md up; header, then the two ways in as equal cards (titles, descriptions,
   `POST /security-events/v1/ingest` as code, the product categories); each card one control
   named by its action; Read the setup guide (button, description, Enter) navigates to the
-  Documentation tab and back returns; the Pull card (description, categories line) navigates
+  Setup Guide page and back returns; the Pull card (description, categories line) navigates
   to Connections and its empty state, and back returns; the endpoint chip can be clicked,
   triple-clicked and drag-selected without leaving the page.
 - **Security Events layout**: dark theme on the list surface; 768 without sideways scroll;

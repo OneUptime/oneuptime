@@ -4950,8 +4950,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       splitButtonsForHeader(cardButtons);
     const moreMenu: ReactElement | null = renderMoreMenu(rest);
 
+    /*
+     * One row while it fits; in a narrow card (a phone, or beside a product's
+     * side menu) the buttons wrap under the search, at the right edge,
+     * instead of the row running off the card's left edge.
+     */
     const wrapped: ReactElement = (
-      <div key="model-table-header-actions" className="flex items-center gap-3">
+      <div
+        key="model-table-header-actions"
+        className="flex flex-wrap items-center justify-end gap-3"
+      >
         {/*
          * Search slot — a compact pill showing "Search …    /" by default,
          * grown into the full search bar when expanded. Always advertising
@@ -4959,7 +4967,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
          * polished search affordance, in line with Stripe / Linear / GitHub.
          */}
         <div
-          className={`relative shrink-0 transition-[width] duration-300 ease-out ${
+          className={`relative max-w-full shrink-0 transition-[width] duration-300 ease-out ${
             isExpanded ? "w-[22rem] sm:w-[26rem] lg:w-[32rem]" : "w-44 sm:w-56"
           }`}
         >
