@@ -216,6 +216,37 @@ for (const width of [320, 390, 1440]) {
   });
 }
 
+/*
+ * Short right-hand text beside a long message: from sm up it keeps its own
+ * width, so "Try again" is never squeezed into "Try / ag / ain" - while the
+ * long release name above still wraps inside its half of the row.
+ */
+for (const width of [640, 1024, 1440]) {
+  test(`keeps short right-hand text on one line beside a long message at ${width}px`, async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    const alert: Locator = page.getByTestId("try-again-alert");
+    const right: Locator = alert.getByText("Try again", { exact: true });
+    await expect(right).toBeVisible();
+    const lines: number = await right.evaluate(
+      (element: HTMLElement): number => {
+        const range: Range = document.createRange();
+        range.selectNodeContents(element);
+        return range.getClientRects().length;
+      },
+    );
+    expect(lines).toBe(1);
+    const copyBounds: Bounds = await bounds(page.getByTestId("try-again-copy"));
+    const rightBounds: Bounds = await bounds(right);
+    expect(rightBounds.x).toBeGreaterThan(copyBounds.x);
+    expect(rightBounds.y).toBeLessThan(copyBounds.y + copyBounds.height);
+    await expectNoOverflow(page);
+  });
+}
+
 test("does not reserve icon space when icons are hidden", async ({
   page,
 }: {

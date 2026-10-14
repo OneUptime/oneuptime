@@ -37,6 +37,15 @@ from the heading text. Before renaming a heading, search for its anchor
 (`grep -rn "<category>/<page>#" packages`); `DocsLinksResolve` fails on an
 English page or a literal product link that names a heading no longer there.
 
+A category's own address (`/docs/<category>`, or `/docs/<lang>/<category>`)
+is not a page, but people type it and other sites link it: it opens the
+category's first page in the nav (`Utils/Redirects.ts`), so list a
+category's overview first. Any other name is the docs' 404 page. Links in
+the product and on the website name the page they mean, never a category's
+own address: `DocsLinksResolve` fails one that does, and `WebsiteDocsLinks`
+follows every website link through the docs' routes to the page and heading
+it names.
+
 ## Search engines
 
 What the docs tell search engines is worked out from the pages themselves,
@@ -53,8 +62,9 @@ so a new page or a new translation needs nothing more:
   copy carrying a `TODO(i18n)` comment, or most of whose sentences are the
   English page's word for word, is still English.
 - An old address without a language (`/docs/<category>/<page>`) redirects
-  permanently to the English page, and the page as Markdown
-  (`/docs/as-markdown/...`) is never indexed.
+  permanently to the English page, a category's own address
+  (`/docs/<category>`) to the English copy of the category's first page,
+  and the page as Markdown (`/docs/as-markdown/...`) is never indexed.
 
 ## What a page looks like
 
