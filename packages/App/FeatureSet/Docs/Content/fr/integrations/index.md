@@ -119,7 +119,7 @@ L'URL est le seul identifiant, traitez-la donc comme un mot de passe. Voir [Webh
 
 :::steps
 1. Enregistrez la clé d'API de l'outil comme variable globale secrète, comme indiqué [plus bas](#protéger-les-identifiants).
-2. Créez un workflow, cliquez sur le bloc en pointillés et choisissez un déclencheur d'événement, par exemple **On Create Incident**. Dans ses **Fields to pass on**, cochez les champs à envoyer, par exemple `title` et `description`.
+2. Créez un workflow, cliquez sur le bloc en pointillés et choisissez un déclencheur d'événement, par exemple **On Create Incident**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez les autres champs à envoyer, par exemple **Description**.
 3. Cliquez sur **Ajouter un composant** et ajoutez un bloc **API Post (JSON)**. Reliez-y le point **Success** du déclencheur.
 4. Remplissez son **URL**, ses **Request Headers** avec l'en-tête `Authorization`, et son **Request Body** avec les champs de l'incident, par exemple `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Cliquez sur **Exécuter le flux de travail**, choisissez un incident sous **Incident** et lancez-le. Une exécution de test envoie vraiment la requête. Activez ensuite **Activé**.

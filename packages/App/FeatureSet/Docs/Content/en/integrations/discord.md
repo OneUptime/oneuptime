@@ -52,7 +52,7 @@ The workflow opens in the **Builder** with three steps: **On Create Incident**; 
 @tab From scratch
 1. Save the URL as a secret global variable: go to **Workflows → Global Variables**, click **Create Workflow Variable**, name it `DISCORD_WEBHOOK_URL`, and click **Next**. Paste the URL into **Content**, turn on **Secret**, and click **Create Workflow Variable**.
 2. Go to **Workflows**, click **Create Workflow**, choose **Start from scratch**, name the workflow, and click **Create Workflow**.
-3. In the **Builder**, click **Choose what starts this workflow** and pick **On Create Incident** under **Popular**. Click the trigger and, in **Fields to pass on**, pick the fields your message shows, such as `title` and `incidentNumberWithPrefix`.
+3. In the **Builder**, click **Choose what starts this workflow** and pick **On Create Incident** under **Popular**. Click the trigger: its **Fields to pass on** starts with **Title**, so click **Add field** and pick the other fields your message shows, such as **Incident Number With Prefix**.
 4. Click **Add Component**, search for `discord`, and click **Send Message to Discord**. Connect the trigger's **Success** output to it.
 5. Click the new step. In **Discord Incoming Webhook URL**, click **{ }** and pick `DISCORD_WEBHOOK_URL` under **Global variables**. In **Message Text**, write the message, and insert the incident's fields with **{ }**.
 :::
