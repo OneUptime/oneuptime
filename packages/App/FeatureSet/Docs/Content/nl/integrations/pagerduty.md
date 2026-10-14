@@ -72,7 +72,7 @@ Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbin
 
 ### Testen en daarna aanzetten
 
-Klik op **Workflow uitvoeren**, vul de **Incident-ID** van een testincident in en voer hem uit. De stap **API Post (JSON)** toont een `202`-antwoord met `"status": "success"`, en PagerDuty opent een incident. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API Post (JSON)** toont een `202`-antwoord met `"status": "success"`, en PagerDuty opent een incident. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
 :::
 
 Het blok stuurt JSON, dus het heeft geen `Content-Type`-header nodig. De `severity` van PagerDuty is een van `critical`, `error`, `warning` en `info`: zie [Ernstniveaus toewijzen](#ernstniveaus-toewijzen) om die van elk incident mee te sturen.

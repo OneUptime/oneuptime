@@ -73,7 +73,7 @@ En de **Request Body** op:
 
 ### Testen en daarna aanzetten
 
-Klik op **Workflow uitvoeren**, vul de **Incident-ID** van een testincident in en voer hem uit. De stap **API Post (JSON)** toont een `202`-antwoord, en de alert verschijnt kort daarna in Opsgenie. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API Post (JSON)** toont een `202`-antwoord, en de alert verschijnt kort daarna in Opsgenie. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
 :::
 
 Het schema van Opsgenie is het woord `GenieKey`, een spatie en dan de sleutel. Opsgenie beperkt `message` tot 130 tekens, en de prioriteiten lopen van `P1` tot `P5`: zie [Prioriteiten toewijzen](#prioriteiten-toewijzen) om die van elk incident mee te sturen.

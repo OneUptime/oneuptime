@@ -72,7 +72,7 @@ Click **Add Component**, add an **API Post (JSON)** block, and connect the trigg
 
 ### Test it, then turn it on
 
-Click **Run Workflow**, enter the **Incident ID** of a test incident, and run it. The **API Post (JSON)** step shows a `202` response with `"status": "success"`, and PagerDuty opens an incident. Then switch **Enabled** on at the top of the **Builder**.
+Click **Run Workflow**, pick a test incident under **Incident**, and run it. The **API Post (JSON)** step shows a `202` response with `"status": "success"`, and PagerDuty opens an incident. Then switch **Enabled** on at the top of the **Builder**.
 :::
 
 The block sends JSON, so it needs no `Content-Type` header. PagerDuty's `severity` is one of `critical`, `error`, `warning` and `info`: to send each incident's own, see [Map severities](#map-severities).

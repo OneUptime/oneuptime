@@ -84,7 +84,7 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Beide | Een ingebouwde koppeling: incidentkanalen, acties vanuit Teams en diensten. |
 | [Mattermost](/docs/workflows/components#mattermost) | Uitgaand | Plaatst incidentupdates in een Mattermost-kanaal. |
 | [Discord](/docs/integrations/discord) | Uitgaand | Plaatst incidentupdates in een Discord-kanaal. |
-| [Telegram](/docs/integrations/telegram) | Uitgaand | Stuurt incidentupdates naar een Telegram-chat. |
+| [Telegram](/docs/integrations/telegram) | Uitgaand | Stuurt een bericht naar een Telegram-chat wanneer een waarschuwing afgaat. |
 | [IRC](/docs/integrations/irc) | Uitgaand | Plaatst incidentupdates in een IRC-kanaal. |
 
 > [!TIP]
@@ -122,7 +122,7 @@ De URL is het enige inloggegeven, dus behandel hem als een wachtwoord. Zie [Webh
 2. Maak een workflow, klik op het gestippelde blok en kies een gebeurtenistrigger, zoals **On Create Incident**. Vink in de **Fields to pass on** ervan de velden aan die je wilt versturen, zoals `title` en `description`.
 3. Klik op **Component toevoegen** en voeg een **API Post (JSON)**-blok toe. Verbind de **Success**-punt van de trigger ermee.
 4. Vul de **URL** in, de **Request Headers** met de `Authorization`-header en de **Request Body** met de velden van het incident, zoals `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-5. Klik op **Workflow uitvoeren**, vul de **Incident-ID** van een incident in en voer hem uit. Een testuitvoering stuurt het verzoek echt. Zet daarna **Ingeschakeld** aan.
+5. Klik op **Workflow uitvoeren**, kies onder **Incident** een incident en voer hem uit. Een testuitvoering stuurt het verzoek echt. Zet daarna **Ingeschakeld** aan.
 :::
 
 Wanneer de tool de gegevens in een andere vorm nodig heeft, voeg je tussen de twee een [Run Custom JavaScript](/docs/workflows/components#custom-code)-blok toe. Het recept is hetzelfde voor Zendesk, New Relic, AWS (via SNS), StatusCake en alle andere: alleen de URL en de body veranderen.

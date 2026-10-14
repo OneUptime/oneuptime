@@ -72,7 +72,7 @@ Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og kobl
 
 ### Test den, og slå den deretter på
 
-Klikk på **Kjør arbeidsflyt**, skriv inn **Hendelse-ID** for en testhendelse, og kjør den. Trinnet **API Post (JSON)** viser et `202`-svar med `"status": "success"`, og PagerDuty oppretter en hendelse. Slå deretter på **Aktivert** øverst i **Bygger**.
+Klikk på **Kjør arbeidsflyt**, velg en testhendelse under **Hendelse**, og kjør den. Trinnet **API Post (JSON)** viser et `202`-svar med `"status": "success"`, og PagerDuty oppretter en hendelse. Slå deretter på **Aktivert** øverst i **Bygger**.
 :::
 
 Blokken sender JSON, så den trenger ingen `Content-Type`-overskrift. PagerDutys `severity` er en av `critical`, `error`, `warning` og `info`: se [Knytt alvorlighetsgrader til PagerDuty](#knytt-alvorlighetsgrader-til-pagerduty) for å sende hver hendelses egen.

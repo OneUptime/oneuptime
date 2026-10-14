@@ -72,7 +72,7 @@ Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind 
 
 ### Test det, og slå det derefter til
 
-Klik på **Kør arbejdsgang**, indtast **Hændelses-ID** for en testhændelse, og kør den. Trinnet **API Post (JSON)** viser et `202`-svar med `"status": "success"`, og PagerDuty opretter en hændelse. Slå derefter **Aktiveret** til øverst i **Bygger**.
+Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og kør den. Trinnet **API Post (JSON)** viser et `202`-svar med `"status": "success"`, og PagerDuty opretter en hændelse. Slå derefter **Aktiveret** til øverst i **Bygger**.
 :::
 
 Blokken sender JSON, så den behøver ingen `Content-Type`-header. PagerDutys `severity` er en af `critical`, `error`, `warning` og `info`: se [Tilknyt alvorligheder](#tilknyt-alvorligheder) for at sende hver hændelses egen.

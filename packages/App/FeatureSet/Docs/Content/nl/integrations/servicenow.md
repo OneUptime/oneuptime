@@ -81,7 +81,7 @@ En de **Request Body** op:
 
 ### Testen en daarna aanzetten
 
-Klik op **Workflow uitvoeren**, vul de **Incident-ID** van een testincident in en voer hem uit. De stap **API Post (JSON)** toont een `201`-antwoord met het nieuwe record, met zijn `sys_id` en zijn `number`, zoals `INC0012345`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
+Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer hem uit. De stap **API Post (JSON)** toont een `201`-antwoord met het nieuwe record, met zijn `sys_id` en zijn `number`, zoals `INC0012345`. Zet daarna **Ingeschakeld** aan bovenaan de **Bouwer**.
 :::
 
 `urgency` en `impact` nemen `1` voor hoog, `2` voor gemiddeld en `3` voor laag, en ServiceNow leidt de prioriteit uit die twee af. Elke andere kolom van de tabel `incident` kan in de body, onder zijn kolomnaam.

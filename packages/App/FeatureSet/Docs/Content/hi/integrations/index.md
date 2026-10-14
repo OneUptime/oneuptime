@@ -84,7 +84,7 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | दोनों | बिल्ट-इन कनेक्शन: घटना चैनल, Teams से कार्रवाइयां, और ऑन-कॉल। |
 | [Mattermost](/docs/workflows/components#mattermost) | आउटबाउंड | घटना के अपडेट Mattermost चैनल में पोस्ट करता है। |
 | [Discord](/docs/integrations/discord) | आउटबाउंड | घटना के अपडेट Discord चैनल में पोस्ट करता है। |
-| [Telegram](/docs/integrations/telegram) | आउटबाउंड | घटना के अपडेट Telegram चैट में भेजता है। |
+| [Telegram](/docs/integrations/telegram) | आउटबाउंड | कोई अलर्ट फ़ायर होने पर Telegram चैट में एक संदेश भेजता है। |
 | [IRC](/docs/integrations/irc) | आउटबाउंड | घटना के अपडेट IRC चैनल में पोस्ट करता है। |
 
 > [!TIP]
@@ -122,7 +122,7 @@ URL ही एकमात्र क्रेडेंशियल है, इ�
 2. एक वर्कफ़्लो बनाएं, डैश वाले ब्लॉक पर क्लिक करें और कोई इवेंट ट्रिगर चुनें, जैसे **On Create Incident**। उसके **Fields to pass on** में भेजने वाले फ़ील्ड पर टिक करें, जैसे `title` और `description`।
 3. **घटक जोड़ें** पर क्लिक करें और एक **API Post (JSON)** ब्लॉक जोड़ें। ट्रिगर के **Success** बिंदु को उससे जोड़ें।
 4. उसका **URL** भरें, `Authorization` हेडर के साथ उसके **Request Headers** भरें, और घटना के फ़ील्ड के साथ उसकी **Request Body** भरें, जैसे `{{local.components.incident-on-create-1.returnValues.model.title}}`।
-5. **वर्कफ़्लो चलाएं** पर क्लिक करें, किसी घटना की **घटना ID** डालें, और चलाएं। टेस्ट रन सचमुच अनुरोध भेजता है। फिर **सक्षम** चालू करें।
+5. **वर्कफ़्लो चलाएं** पर क्लिक करें, **घटना** के नीचे कोई घटना चुनें, और चलाएं। टेस्ट रन सचमुच अनुरोध भेजता है। फिर **सक्षम** चालू करें।
 :::
 
 जब टूल को पहले डेटा का रूप बदला हुआ चाहिए, तो दोनों के बीच एक [Run Custom JavaScript](/docs/workflows/components#custom-code) ब्लॉक जोड़ें। Zendesk, New Relic, AWS (SNS के ज़रिए), StatusCake और बाकी सभी टूल के लिए तरीका यही है: बस URL और बॉडी बदलते हैं।

@@ -84,7 +84,7 @@ Comece pelo topo da tabela: quanto mais alta uma forma, menos há para manter.
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Ambos | Uma conexão integrada: canais de incidente, ações a partir do Teams e plantão. |
 | [Mattermost](/docs/workflows/components#mattermost) | De saída | Publica as atualizações de incidentes em um canal do Mattermost. |
 | [Discord](/docs/integrations/discord) | De saída | Publica as atualizações de incidentes em um canal do Discord. |
-| [Telegram](/docs/integrations/telegram) | De saída | Envia as atualizações de incidentes para um chat do Telegram. |
+| [Telegram](/docs/integrations/telegram) | De saída | Envia uma mensagem para um chat do Telegram quando um alerta dispara. |
 | [IRC](/docs/integrations/irc) | De saída | Publica as atualizações de incidentes em um canal de IRC. |
 
 > [!TIP]
@@ -122,7 +122,7 @@ A URL é a única credencial, então trate-a como uma senha. Veja [Webhook](/doc
 2. Crie um workflow, clique no bloco tracejado e escolha um gatilho de evento, como **On Create Incident**. Em **Fields to pass on**, marque os campos a enviar, como `title` e `description`.
 3. Clique em **Adicionar componente** e adicione um bloco **API Post (JSON)**. Ligue a ele o ponto **Success** do gatilho.
 4. Preencha a **URL**, os **Request Headers** com o cabeçalho `Authorization` e o **Request Body** com os campos do incidente, como `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-5. Clique em **Executar fluxo de trabalho**, informe o **ID do incidente** de um incidente e execute. Uma execução de teste envia a requisição de verdade. Depois, ative **Habilitado**.
+5. Clique em **Executar fluxo de trabalho**, escolha um incidente em **Incidente** e execute. Uma execução de teste envia a requisição de verdade. Depois, ative **Habilitado**.
 :::
 
 Quando a ferramenta precisa dos dados em outro formato, adicione um bloco [Run Custom JavaScript](/docs/workflows/components#custom-code) entre os dois. A receita é a mesma para Zendesk, New Relic, AWS (via SNS), StatusCake e todas as outras: só mudam a URL e o corpo.

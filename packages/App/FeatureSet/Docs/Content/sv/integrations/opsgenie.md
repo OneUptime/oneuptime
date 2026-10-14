@@ -73,7 +73,7 @@ Och **Request Body** på:
 
 ### Testa det och slå sedan på det
 
-Klicka på **Kör arbetsflöde**, ange **Incident-ID** för en testincident och kör det. Steget **API Post (JSON)** visar ett `202`-svar, och larmet dyker upp i Opsgenie en stund senare. Slå sedan på **Aktiverad** högst upp i **Byggare**.
+Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API Post (JSON)** visar ett `202`-svar, och larmet dyker upp i Opsgenie en stund senare. Slå sedan på **Aktiverad** högst upp i **Byggare**.
 :::
 
 Opsgenies schema är ordet `GenieKey`, ett blanksteg och sedan nyckeln. Opsgenie begränsar `message` till 130 tecken, och prioriteterna går från `P1` till `P5`: se [Koppla prioriteter](#koppla-prioriteter) för att skicka varje incidents egen.

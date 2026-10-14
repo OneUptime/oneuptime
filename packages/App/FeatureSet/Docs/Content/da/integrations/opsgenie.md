@@ -73,7 +73,7 @@ Og dens **Request Body** til:
 
 ### Test det, og slå det derefter til
 
-Klik på **Kør arbejdsgang**, indtast **Hændelses-ID** for en testhændelse, og kør den. Trinnet **API Post (JSON)** viser et `202`-svar, og alarmen dukker op i Opsgenie et øjeblik senere. Slå derefter **Aktiveret** til øverst i **Bygger**.
+Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og kør den. Trinnet **API Post (JSON)** viser et `202`-svar, og alarmen dukker op i Opsgenie et øjeblik senere. Slå derefter **Aktiveret** til øverst i **Bygger**.
 :::
 
 Opsgenies skema er ordet `GenieKey`, et mellemrum og derefter nøglen. Opsgenie begrænser `message` til 130 tegn, og prioriteterne går fra `P1` til `P5`: se [Tilknyt prioriteter](#tilknyt-prioriteter) for at sende hver hændelses egen.

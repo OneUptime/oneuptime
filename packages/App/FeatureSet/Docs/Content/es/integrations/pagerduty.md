@@ -72,7 +72,7 @@ Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conec
 
 ### Probarlo y luego activarlo
 
-Haz clic en **Ejecutar flujo de trabajo**, introduce el **ID del incidente** de un incidente de prueba y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `202` con `"status": "success"`, y PagerDuty abre un incidente. Después, activa **Habilitado** en la parte superior del **Constructor**.
+Haz clic en **Ejecutar flujo de trabajo**, elige un incidente de prueba en **Incidente** y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `202` con `"status": "success"`, y PagerDuty abre un incidente. Después, activa **Habilitado** en la parte superior del **Constructor**.
 :::
 
 El bloque envía JSON, así que no necesita cabecera `Content-Type`. La `severity` de PagerDuty es una de `critical`, `error`, `warning` e `info`: para enviar la de cada incidente, consulta [Asignar las gravedades](#asignar-las-gravedades).
