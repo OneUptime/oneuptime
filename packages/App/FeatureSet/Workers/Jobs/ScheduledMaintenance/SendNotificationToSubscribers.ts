@@ -8,6 +8,8 @@ import { Blue500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import logger from "Common/Server/Utils/Logger";
+import BlockedProjectStatusPages from "Common/Server/Utils/StatusPage/BlockedProjectStatusPages";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 /*
@@ -100,6 +102,9 @@ RunCron(
       `Found ${scheduledEvents.length} scheduled maintenance event(s) to notify subscribers for.`,
     );
 
+    // Events of a blocked project, which are not sent (see below).
+    const eventIdsOfBlockedProjects: Set<string> = new Set();
+
     for (const event of scheduledEvents) {
       try {
         logger.debug(
@@ -150,6 +155,32 @@ RunCron(
             },
           });
           continue; // skip if not visible on status page.
+        }
+
+        /*
+         * The pages of a blocked project send nothing: they are left out of
+         * the pages to send from (getStatusPagesToSendNotification). The
+         * event says so, rather than that it was sent to every subscriber.
+         */
+        if (await BlockedProjectStatusPages.isProjectBlocked(event.projectId)) {
+          logger.debug(
+            `Scheduled maintenance ${event.id} is in a blocked project; marking as Skipped.`,
+          );
+          eventIdsOfBlockedProjects.add(event.id!.toString());
+          await ScheduledMaintenanceService.updateOneById({
+            id: event.id!,
+            data: {
+              subscriberNotificationStatusOnEventScheduled:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+          continue;
         }
 
         await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
@@ -209,7 +240,10 @@ RunCron(
     // Only call notification service for successfully processed events
     const successfulEvents: Array<ScheduledMaintenance> =
       scheduledEvents.filter((event: ScheduledMaintenance) => {
-        return event.isVisibleOnStatusPage;
+        return (
+          event.isVisibleOnStatusPage &&
+          !eventIdsOfBlockedProjects.has(event.id!.toString())
+        );
       });
 
     if (successfulEvents.length > 0) {

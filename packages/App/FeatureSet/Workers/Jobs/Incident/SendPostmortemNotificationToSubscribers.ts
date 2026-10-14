@@ -52,6 +52,7 @@ import SubscriberNotificationDeliveryRecord, {
   StatusPageDeliverySkipReason,
   SubscriberNotificationRetryScope,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 import SubscriberNotificationTiming, {
   SubscriberNotificationRunClock,
   SubscriberNotificationSendWindow,
@@ -488,6 +489,21 @@ RunCron(
                     projectId: incident.projectId?.toString(),
                     incidentId: incident.id?.toString(),
                   },
+                );
+                continue;
+              }
+
+              /*
+               * The page sends its subscribers nothing (Send Notifications to
+               * Subscribers off): passed over with why, and not recorded as told.
+               */
+              if (!isSendingSubscriberNotifications(statuspage)) {
+                logger.debug(
+                  `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+                );
+                deliveryRecord.skipStatusPage(
+                  statuspage,
+                  StatusPageDeliverySkipReason.NotificationsOff,
                 );
                 continue;
               }

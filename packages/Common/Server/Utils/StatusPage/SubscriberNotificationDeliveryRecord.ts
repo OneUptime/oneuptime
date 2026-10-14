@@ -5,6 +5,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
 import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberUnsubscribe from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
+import { SUBSCRIBER_NOTIFICATIONS_OFF_TEXT } from "../../../Types/StatusPage/SubscriberNotificationsSwitch";
 import logger, { EXTERNAL_FAULT, LogAttributes } from "../Logger";
 import {
   ExcludedStatusPage,
@@ -60,6 +61,11 @@ export enum StatusPageDeliverySkipReason {
   HidesIncidents = "HidesIncidents",
   // The status page does not show episodes (showEpisodesOnStatusPage off).
   HidesEpisodes = "HidesEpisodes",
+  /*
+   * The status page sends its subscribers nothing (Send Notifications to
+   * Subscribers off, Types/StatusPage/SubscriberNotificationsSwitch).
+   */
+  NotificationsOff = "NotificationsOff",
   // Already sent this notification (Incident.statusPagesNotifiedOnCreation).
   AlreadyNotified = "AlreadyNotified",
   // Sending to this page failed part-way.
@@ -129,6 +135,8 @@ const SKIP_REASON_TEXT: Record<StatusPageDeliverySkipReason, string> = {
     "not sent, this status page does not show incidents",
   [StatusPageDeliverySkipReason.HidesEpisodes]:
     "not sent, this status page does not show episodes",
+  [StatusPageDeliverySkipReason.NotificationsOff]:
+    SUBSCRIBER_NOTIFICATIONS_OFF_TEXT,
   [StatusPageDeliverySkipReason.AlreadyNotified]:
     "not sent again, its subscribers were already sent this notification",
   [StatusPageDeliverySkipReason.Failed]:

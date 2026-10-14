@@ -15,6 +15,7 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 import { JSONObject } from "Common/Types/JSON";
 
 /*
@@ -210,8 +211,14 @@ jest.mock("Common/Server/Utils/StatusPageSubscriberWebhook", () => {
   return { __esModule: true, default: { sendWebhookNotification: jest.fn() } };
 });
 
+// Whether the announcement's project is blocked (BlockedProjectStatusPages).
+jest.mock("Common/Server/Services/ProjectService", () => {
+  return { __esModule: true, default: { isProjectBlocked: jest.fn() } };
+});
+
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import MailService from "Common/Server/Services/MailService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import SmsService from "Common/Server/Services/SmsService";
 import StatusPageAnnouncementService from "Common/Server/Services/StatusPageAnnouncementService";
 import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
@@ -367,6 +374,7 @@ function announcement(overrides?: {
 }): Row {
   const row: Row = new StatusPageAnnouncement();
   row._id = (overrides?.id || ANNOUNCEMENT_ID).toString();
+  row.projectId = PROJECT_ID;
   row.title = TITLE;
   row.description = DESCRIPTION;
   row.showAnnouncementAt =
@@ -795,6 +803,8 @@ beforeEach(() => {
     STATUS_PAGE_URL as never,
   );
 
+  mock(ProjectService.isProjectBlocked).mockResolvedValue(false as never);
+
   // Answers only for the status pages it is asked about, as the real one does.
   mock(StatusPageResourceService.findByMonitors).mockImplementation(
     async (args: unknown): Promise<Array<StatusPageResource>> => {
@@ -1153,7 +1163,7 @@ describe("Announcement:SendUpdateNotificationToSubscribers", () => {
       subscriberNotificationStatusOnAnnouncementUpdated:
         StatusPageSubscriberNotificationStatus.Success,
       subscriberNotificationStatusMessageOnAnnouncementUpdated:
-        "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.",
+        "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.",
     });
   });
 
@@ -1171,6 +1181,56 @@ describe("Announcement:SendUpdateNotificationToSubscribers", () => {
     expect(
       StatusPageSubscriberService.getSubscribersByStatusPage,
     ).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Send Notifications to Subscribers off (Common/Types/StatusPage/
+   * SubscriberNotificationsSwitch): the page is passed over before a single
+   * subscriber is read.
+   */
+  test("sends nothing from a status page that sends its subscribers nothing", async () => {
+    updatedRows = [announcement()];
+    const page: StatusPage = statusPage();
+    page.sendSubscriberNotifications = false;
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).not.toHaveBeenCalled();
+    expect(statusWrites()[1]).toEqual({
+      subscriberNotificationStatusOnAnnouncementUpdated:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusMessageOnAnnouncementUpdated:
+        "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.",
+    });
+  });
+
+  test("still sends from the pages that send, beside one that does not", async () => {
+    updatedRows = [announcement()];
+    const off: StatusPage = statusPage({ id: ObjectID.generate() });
+    off.sendSubscriberNotifications = false;
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([off, statusPage()] as never);
+
+    await runJob(UPDATED_JOB);
+
+    expect(
+      mock(StatusPageSubscriberService.getSubscribersByStatusPage).mock.calls
+        .length,
+    ).toBe(1);
+    expect(
+      String(
+        mock(StatusPageSubscriberService.getSubscribersByStatusPage).mock
+          .calls[0]![0],
+      ),
+    ).toBe(STATUS_PAGE_ID.toString());
+    expect(sentMail().length).toBeGreaterThan(0);
   });
 
   test("marks the update Skipped when the announcement has no status pages", async () => {
@@ -1325,6 +1385,28 @@ describe("Announcement:SendNotificationToSubscribers (created)", () => {
         StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated,
       );
     }
+  });
+
+  test("a new announcement is sent nothing from a status page that sends its subscribers nothing", async () => {
+    createdRows = [
+      announcement({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
+    const page: StatusPage = statusPage();
+    page.sendSubscriberNotifications = false;
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()).toEqual([]);
+    expect(sentSms()).toEqual([]);
+    expect(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).not.toHaveBeenCalled();
   });
 
   test("matches the dashboard's created defaults for SMS and chat", async () => {
@@ -2512,7 +2594,7 @@ describe.each(TRIGGERS)(
           [trigger.name === "created"
             ? "subscriberNotificationStatusMessage"
             : "subscriberNotificationStatusMessageOnAnnouncementUpdated"]:
-            "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.",
+            "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.",
         }),
       );
     });
@@ -2533,5 +2615,103 @@ describe("Announcement unsubscribe links", () => {
     expectEveryUnsubscribeLinkToCarryAToken(
       StatusPageSubscriberService.getUnsubscribeLink,
     );
+  });
+});
+
+/*
+ * A blocked project's status pages send nothing: the one lookup every
+ * subscriber notification reads (getStatusPagesToSendNotification) leaves
+ * them out, so the job gets no page to send from. It says why, rather than
+ * that no subscriber matched.
+ */
+describe("Announcements of a blocked project", () => {
+  beforeEach(() => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([] as never);
+    mock(ProjectService.isProjectBlocked).mockResolvedValue(true as never);
+  });
+
+  test("a new announcement is marked Skipped with the reason, and nothing is sent", async () => {
+    createdRows = [
+      announcement({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
+
+    await runJob(CREATED_JOB);
+
+    nothingSent();
+    expect(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).not.toHaveBeenCalled();
+    expect(ProjectService.isProjectBlocked).toHaveBeenCalledWith(PROJECT_ID);
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessage:
+          STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+      },
+    ]);
+  });
+
+  test("an update the editor asked to send is marked Skipped the same way", async () => {
+    updatedRows = [announcement()];
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(statusWrites()).toEqual([
+      {
+        subscriberNotificationStatusOnAnnouncementUpdated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessageOnAnnouncementUpdated:
+          STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+      },
+    ]);
+  });
+
+  test("with no page left in a project that is not blocked, says as before that no subscriber matched", async () => {
+    mock(ProjectService.isProjectBlocked).mockResolvedValue(false as never);
+    updatedRows = [announcement()];
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatusOnAnnouncementUpdated:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusMessageOnAnnouncementUpdated:
+        "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.",
+    });
+  });
+
+  test("a live project's announcement is sent without asking about its project", async () => {
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([statusPage()] as never);
+    mock(ProjectService.isProjectBlocked).mockResolvedValue(false as never);
+    updatedRows = [announcement()];
+
+    await runJob(UPDATED_JOB);
+
+    expect(MailService.sendMail).toHaveBeenCalled();
+    expect(ProjectService.isProjectBlocked).not.toHaveBeenCalled();
+  });
+
+  test("reads the announcement's project, which it asks", async () => {
+    createdRows = [];
+
+    await runJob(CREATED_JOB);
+
+    const select: JSONObject = (
+      mock(StatusPageAnnouncementService.findAllBy).mock.calls[1]![0] as {
+        select: JSONObject;
+      }
+    ).select;
+
+    expect(select["projectId"]).toBe(true);
   });
 });

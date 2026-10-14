@@ -151,7 +151,9 @@
       "placeholder": "prenumerant@foretag.se",
       "managePrompt": "Ange den e-postadress du prenumererar med",
       "manageDescription": "Vi skickar en hanteringslänk till den här e-postadressen.",
-      "managePlaceholder": "epost@dittforetag.se"
+      "managePlaceholder": "epost@dittforetag.se",
+      "signedInEmailDescription": "Du prenumererar med den e-postadress du loggar in med.",
+      "signInToSubscribe": "Logga in på den här statussidan för att prenumerera på den."
     },
     "sms": {
       "title": "Prenumerera via SMS",

@@ -89,7 +89,11 @@ import { AddCriticalAlertSoundVolumeAndPushRepeat1801650000000 } from "./1801650
 import { AddInstanceTokenSigningKey1801700000000 } from "./1801700000000-AddInstanceTokenSigningKey";
 import { AddOnCallDirectPages1801750000000 } from "./1801750000000-AddOnCallDirectPages";
 import { AddSavedChatMessageToNotes1801850000000 } from "./1801850000000-AddSavedChatMessageToNotes";
-import { AddWorkspaceUserGroup1801900000000 } from "./1801900000000-AddWorkspaceUserGroup";
+import { AddStatusPagePrivateUserSessionLength1801900000000 } from "./1801900000000-AddStatusPagePrivateUserSessionLength";
+import { AddStatusPageSubscriberNotificationsSwitch1801950000000 } from "./1801950000000-AddStatusPageSubscriberNotificationsSwitch";
+import { AddStatusPageSubscriberRestrictions1802000000000 } from "./1802000000000-AddStatusPageSubscriberRestrictions";
+import { AddIncidentFeedApiKeyActor1802050000000 } from "./1802050000000-AddIncidentFeedApiKeyActor";
+import { AddWorkspaceUserGroup1802100000000 } from "./1802100000000-AddWorkspaceUserGroup";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1381,5 +1385,9 @@ export default [
   AddOnCallDirectPages1801750000000,
   TwilioAuthTokenEncryptedColumn1801800000000,
   AddSavedChatMessageToNotes1801850000000,
-  AddWorkspaceUserGroup1801900000000,
+  AddStatusPagePrivateUserSessionLength1801900000000,
+  AddStatusPageSubscriberNotificationsSwitch1801950000000,
+  AddStatusPageSubscriberRestrictions1802000000000,
+  AddIncidentFeedApiKeyActor1802050000000,
+  AddWorkspaceUserGroup1802100000000,
 ];

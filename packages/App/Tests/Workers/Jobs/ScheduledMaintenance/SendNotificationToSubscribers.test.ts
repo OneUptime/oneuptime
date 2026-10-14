@@ -1,6 +1,7 @@
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 
 /*
  * Subscriber notifications for a newly created scheduled maintenance are
@@ -79,6 +80,12 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceFeedService", () => {
   };
 });
 
+// Whether the event's project is blocked (BlockedProjectStatusPages).
+jest.mock("Common/Server/Services/ProjectService", () => {
+  return { __esModule: true, default: { isProjectBlocked: jest.fn() } };
+});
+
+import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import URL from "Common/Types/API/URL";
@@ -271,6 +278,10 @@ describe("ScheduledMaintenance:SendNotificationToSubscribers", () => {
     (
       ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem as unknown as jest.Mock
     ).mockResolvedValue(undefined as never);
+
+    (ProjectService.isProjectBlocked as unknown as jest.Mock).mockResolvedValue(
+      false as never,
+    );
   });
 
   test("selects endsAt so {{scheduledEndTime}} has a value to render", async () => {
@@ -475,6 +486,106 @@ describe("ScheduledMaintenance:SendNotificationToSubscribers", () => {
         }),
       ).toBe(false);
       expect(notifiedEvents()).toHaveLength(1);
+    });
+  });
+
+  /*
+   * A blocked project's status pages send nothing: the one lookup every
+   * subscriber notification reads (getStatusPagesToSendNotification) leaves
+   * them out. The event says why, rather than that it was sent to every
+   * subscriber, and is not handed on to be sent.
+   */
+  describe("an event of a blocked project", () => {
+    const BLOCKED_PROJECT_ID: ObjectID = new ObjectID(
+      "b10c0000-0000-4000-8000-0000000000b1",
+    );
+    const BLOCKED_EVENT_ID: string = "77777777-7777-4777-8777-777777777777";
+    const LIVE_EVENT_ID: string = "88888888-8888-4888-8888-888888888888";
+
+    function blockedEvent(): ScheduledMaintenance {
+      const event: ScheduledMaintenance = storedEvent({
+        id: BLOCKED_EVENT_ID,
+      });
+      event.projectId = BLOCKED_PROJECT_ID;
+      return event;
+    }
+
+    beforeEach(() => {
+      (
+        ProjectService.isProjectBlocked as unknown as jest.Mock
+      ).mockImplementation(async (projectId: unknown): Promise<boolean> => {
+        return (
+          (projectId as ObjectID).toString() === BLOCKED_PROJECT_ID.toString()
+        );
+      });
+    });
+
+    test("is marked Skipped with the reason, with no 'sent' feed item, and is not sent", async () => {
+      storedEvents = [blockedEvent()];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(writtenStatuses()).toEqual([
+        {
+          id: BLOCKED_EVENT_ID,
+          status: StatusPageSubscriberNotificationStatus.InProgress,
+        },
+        {
+          id: BLOCKED_EVENT_ID,
+          status: StatusPageSubscriberNotificationStatus.Skipped,
+        },
+      ]);
+
+      const updates: Array<Array<unknown>> = (
+        ScheduledMaintenanceService.updateOneById as unknown as jest.Mock
+      ).mock.calls as Array<Array<unknown>>;
+
+      expect(updates[1]![0]).toEqual({
+        id: new ObjectID(BLOCKED_EVENT_ID),
+        data: {
+          subscriberNotificationStatusOnEventScheduled:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessage:
+            STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+        },
+        props: { isRoot: true, ignoreHooks: true },
+      });
+      expect(
+        ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem,
+      ).not.toHaveBeenCalled();
+      expect(
+        ScheduledMaintenanceService.notififySubscribersOnEventScheduled,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("does not hold up a live project's event in the same tick", async () => {
+      storedEvents = [blockedEvent(), storedEvent({ id: LIVE_EVENT_ID })];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(writtenStatuses()).toEqual([
+        {
+          id: BLOCKED_EVENT_ID,
+          status: StatusPageSubscriberNotificationStatus.InProgress,
+        },
+        {
+          id: BLOCKED_EVENT_ID,
+          status: StatusPageSubscriberNotificationStatus.Skipped,
+        },
+        {
+          id: LIVE_EVENT_ID,
+          status: StatusPageSubscriberNotificationStatus.InProgress,
+        },
+        {
+          id: LIVE_EVENT_ID,
+          status: StatusPageSubscriberNotificationStatus.Success,
+        },
+      ]);
+      expect(
+        notifiedEvents().map((event: ScheduledMaintenance) => {
+          return event.id?.toString();
+        }),
+      ).toEqual([LIVE_EVENT_ID]);
     });
   });
 });

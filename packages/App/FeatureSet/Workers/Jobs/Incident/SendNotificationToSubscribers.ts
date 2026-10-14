@@ -54,6 +54,7 @@ import SubscriberNotificationDeliveryRecord, {
   StatusPageDeliverySkipReason,
   SubscriberNotificationRetryScope,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 import IncidentScopeAddedPagesNotification from "Common/Types/StatusPage/IncidentScopeAddedPagesNotification";
 import SubscriberNotificationTiming, {
   SubscriberNotificationRunClock,
@@ -418,6 +419,21 @@ RunCron(
                 deliveryRecord.skipStatusPage(
                   statuspage,
                   StatusPageDeliverySkipReason.AlreadyNotified,
+                );
+                continue;
+              }
+
+              /*
+               * The page sends its subscribers nothing (Send Notifications to
+               * Subscribers off): passed over with why, and not recorded as told.
+               */
+              if (!isSendingSubscriberNotifications(statuspage)) {
+                logger.debug(
+                  `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+                );
+                deliveryRecord.skipStatusPage(
+                  statuspage,
+                  StatusPageDeliverySkipReason.NotificationsOff,
                 );
                 continue;
               }
@@ -997,7 +1013,7 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
               feedInfoInMarkdown:
                 mdText`📧 **No notification sent to subscribers** for the creation of [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).`.toString(),
               moreInformationInMarkdown: [
-                "Subscriber notifications were skipped because every associated status page either hides incidents, is left out by this incident's status page scope, was already sent this notification, or had no matching subscribers.",
+                "Subscriber notifications were skipped because every associated status page either does not send notifications to its subscribers, hides incidents, is left out by this incident's status page scope, was already sent this notification, or had no matching subscribers.",
                 deliveryMarkdown,
               ]
                 .filter(Boolean)
@@ -1137,8 +1153,9 @@ async function recordNotifiedStatusPagesSoFar(data: {
  * telling. The next run tells only those pages: everything else is in the
  * record or was looked at already.
  *
- * Pages that do not show incidents are left out: the next run would skip them
- * too. Never throws: the send it follows has already succeeded.
+ * Pages that do not show incidents, or send their subscribers nothing (Send
+ * Notifications to Subscribers off), are left out: the next run would skip
+ * them too. Never throws: the send it follows has already succeeded.
  */
 async function requeueForStatusPagesAddedWhileSending(data: {
   incident: Incident;
@@ -1157,6 +1174,7 @@ async function requeueForStatusPagesAddedWhileSending(data: {
 
         return (
           Boolean(id) &&
+          isSendingSubscriberNotifications(statusPage) &&
           statusPage.showIncidentsOnStatusPage !== false &&
           !data.visitedStatusPageIds.includes(id) &&
           !data.toldStatusPageIds.includes(id)

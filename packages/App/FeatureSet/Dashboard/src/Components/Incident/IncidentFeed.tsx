@@ -202,6 +202,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
         savedFromChatMessage: incidentFeed.savedFromChatMessage,
         user: incidentFeed.user,
       }),
+      // A change no person made, by a project API key: the key's name then.
+      apiKeyName: incidentFeed.user ? undefined : incidentFeed.apiKeyName,
       itemDateTime: incidentFeed.postedAt || incidentFeed.createdAt!,
       color: getFeedEntryColor({
         kind: kind,
@@ -248,6 +250,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
             email: true,
             profilePictureId: true,
           },
+          apiKeyName: true,
           incidentFeedEventType: true,
           postedAt: true,
           savedFromChatMessage: true,

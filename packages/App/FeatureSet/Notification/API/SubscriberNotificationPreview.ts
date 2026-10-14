@@ -77,6 +77,8 @@ const NOTHING_SENT_MESSAGES: Record<
     "Nothing would be sent: 'Notify Status Page Subscribers' is off.",
   [SubscriberNotificationPreviewNothingSentReason.NoStatusPages]:
     "Nothing would be sent: no status page that lists these monitors will show this incident.",
+  [SubscriberNotificationPreviewNothingSentReason.NotificationsOff]:
+    "Nothing would be sent: the status pages that show this incident do not send notifications to their subscribers.",
 };
 
 /*

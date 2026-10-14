@@ -28,8 +28,10 @@ import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnou
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import AffectedStatusPageResources from "Common/Server/Utils/StatusPage/AffectedStatusPageResources";
+import BlockedProjectStatusPages from "Common/Server/Utils/StatusPage/BlockedProjectStatusPages";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
@@ -48,6 +50,7 @@ import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new
@@ -93,7 +96,7 @@ const NOTIFICATION_COPY: Record<
 };
 
 const NO_MATCHING_SUBSCRIBERS_MESSAGE: string =
-  "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.";
+  "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.";
 
 const setNotificationStatus: (data: {
   announcementId: ObjectID;
@@ -138,6 +141,8 @@ const setNotificationStatus: (data: {
 
 const ANNOUNCEMENT_SELECT: Select<StatusPageAnnouncement> = {
   _id: true,
+  // Asked whether it is blocked when no status page is left to send from.
+  projectId: true,
   title: true,
   description: true,
   statusPages: {
@@ -187,6 +192,26 @@ const notifySubscribersOfAnnouncement: (data: {
         return sp.id!;
       }),
     );
+
+  /*
+   * The pages of a blocked project send nothing, and are left out of the
+   * pages to send from. Say so, rather than that no subscriber matched.
+   */
+  if (
+    statusPages.length === 0 &&
+    (await BlockedProjectStatusPages.isProjectBlocked(announcement.projectId))
+  ) {
+    logger.debug(
+      `Announcement ${announcement.id} is in a blocked project; marking as Skipped.`,
+    );
+    await setNotificationStatus({
+      announcementId: announcement.id!,
+      trigger: trigger,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+      message: STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+    });
+    return;
+  }
 
   await setNotificationStatus({
     announcementId: announcement.id!,
@@ -250,6 +275,14 @@ const notifySubscribersOfAnnouncement: (data: {
       try {
         if (!statuspage.id) {
           logger.debug("Encountered a status page without an id; skipping.");
+          continue;
+        }
+
+        // The page sends its subscribers nothing (Send Notifications to Subscribers off).
+        if (!isSendingSubscriberNotifications(statuspage)) {
+          logger.debug(
+            `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+          );
           continue;
         }
 
@@ -712,7 +745,7 @@ const notifySubscribersOfAnnouncement: (data: {
       );
     } else {
       logger.debug(
-        `No subscribers were notified for announcement ${announcement.id}. All status pages either hide announcements or had no matching subscribers.`,
+        `No subscribers were notified for announcement ${announcement.id}. All status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.`,
       );
     }
 

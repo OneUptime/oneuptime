@@ -95,7 +95,8 @@ export interface ResolvedIncidentStatusPages {
   /*
    * The status pages to tell, in name order (see compareStatusPagesByName).
    * Loaded by StatusPageSubscriberService.getStatusPagesToSendNotification, so
-   * they carry everything a subscriber job needs.
+   * they carry everything a subscriber job needs, and an archived page or a
+   * page of a blocked project, which sends nothing, is not among them.
    */
   statusPages: Array<StatusPage>;
   /*
@@ -445,7 +446,10 @@ export default class IncidentStatusPageScope {
         const statusPage: StatusPage | undefined =
           statusPageById.get(statusPageId);
 
-        // Deleted since the resource was read: nothing to tell.
+        /*
+         * Not loaded: deleted since the resource was read, archived, or a page
+         * of a blocked project. None of them sends anything: nothing to tell.
+         */
         if (!statusPage) {
           continue;
         }
