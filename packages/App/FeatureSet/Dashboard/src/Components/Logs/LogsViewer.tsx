@@ -1330,7 +1330,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
          * per request instead: a read for every page between the link's and
          * the last one (issue #4709).
          */
-        if (listResult.data.length === 0 && page > 1) {
+        const skippedRows: number = (page - 1) * pageSize;
+
+        if (
+          page > 1 &&
+          listResult.data.length === 0 &&
+          listResult.count <= skippedRows
+        ) {
           setPage(1);
         }
       } catch (err) {

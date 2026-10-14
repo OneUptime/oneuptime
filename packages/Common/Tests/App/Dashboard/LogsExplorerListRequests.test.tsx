@@ -630,6 +630,20 @@ describe("a page load reads the list once (#4709)", () => {
     expect(footerSummary()).toBe("Showing 1-100 of 150 logs");
     expect(urlParams().get("page")).toBeNull();
   });
+
+  test("an empty page whose count still says rows follow it stays where it is", async () => {
+    // Rows that went between two reads: the count does not prove an end.
+    analyticsGetListMock.mockImplementation(async (args: unknown) => {
+      const skip: number = Number((args as ListArgs).skip || 0);
+      return { data: [], count: skip + 50, skip, limit: 100, hasMore: true };
+    });
+
+    await openAt("?range=Past%201%20Hour&page=3");
+
+    expect(listCalls()).toHaveLength(1);
+    expect(lastListCall().skip).toBe(2 * PAGE_SIZE);
+    expect(urlParams().get("page")).toBe("3");
+  });
 });
 
 describe("a real change reads the list once", () => {

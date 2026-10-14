@@ -89,6 +89,7 @@ import ErrorClass, {
 } from "Common/Types/Telemetry/ErrorClass";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useStableValue from "Common/UI/Utils/UseStableValue";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -468,14 +469,30 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   props: ExceptionsViewerProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * The host's scope, by value (issue #4709). Pages hand it over as new
+   * objects on every render - an ObjectID read from the URL in the render,
+   * `entityKeysFilter={[key]}`, the stored query an incident page re-reads
+   * on every background refresh - and every read below is keyed on it, so
+   * each such render read the list, the chart and the facets again.
+   */
+  const primaryEntityId: ObjectID | undefined = useStableValue(
+    props.primaryEntityId,
+  );
+  const entityKeysFilter: Array<string> | undefined = useStableValue(
+    props.entityKeysFilter,
+  );
+  const exceptionInstanceQuery: Query<ExceptionInstance> | undefined =
+    useStableValue(props.exceptionInstanceQuery);
   /*
    * The host's stored exception-instance query, read once into the instance
    * scope this viewer resolves fingerprints from. See
    * Utils/ExceptionQueryScope.
    */
   const hostScope: ExceptionQueryScope = useMemo(() => {
-    return buildExceptionQueryScope(props.exceptionInstanceQuery);
-  }, [props.exceptionInstanceQuery]);
+    return buildExceptionQueryScope(exceptionInstanceQuery);
+  }, [exceptionInstanceQuery]);
 
   /*
    * The window the monitor evaluated over, as a picker value. Always CUSTOM,
@@ -493,7 +510,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * hanging off the incident.
    */
   const hostOwnsView: boolean = Boolean(
-    props.disableUrlSync || props.exceptionInstanceQuery,
+    props.disableUrlSync || exceptionInstanceQuery,
   );
 
   /*
@@ -919,12 +936,31 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * straight to the column, as it was, `@service:api` asked for an exception
    * whose service id is the literal string "api", which no row has.
    */
-  const resolvedServices: ResolvedExceptionServices = useMemo(() => {
+  const resolvedServicesNow: ResolvedExceptionServices = useMemo(() => {
     return resolveExceptionServiceIds({
       predicates: parsedSearch.fieldPredicates["primaryEntityId"] || [],
       services: serviceOptions,
     });
   }, [parsedSearch, serviceOptions]);
+
+  /*
+   * By value: the service list lands a moment after mount, and with no
+   * `@service:` token it changes nothing here. Keyed on the object, its
+   * landing rebuilt the list query, the chart and the facet requests, and
+   * every one of them was read twice on every page load (issue #4709).
+   */
+  const resolvedServices: ResolvedExceptionServices =
+    useStableValue(resolvedServicesNow);
+
+  /*
+   * A `@service:` token names services, and the names resolve against that
+   * list: until it is in, the token resolves to no service at all. Reading
+   * then would query "no such service" and read everything again a moment
+   * later with the real ids, so the reads wait for the list instead.
+   */
+  const isWaitingForServiceNames: boolean =
+    (parsedSearch.fieldPredicates["primaryEntityId"] || []).length > 0 &&
+    !areResourceListsLoaded;
 
   const facetGroups: Record<string, Array<string>> = useMemo(() => {
     const groups: Record<string, Array<string>> = {};
@@ -1128,7 +1164,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         attributePredicates,
         columnPredicates,
       },
-      buildExceptionEntityKeyScope(props.entityKeysFilter),
+      buildExceptionEntityKeyScope(entityKeysFilter),
     );
 
     /*
@@ -1147,7 +1183,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     searchFieldFilters,
     resolvedServices,
     hostScope,
-    props.entityKeysFilter,
+    entityKeysFilter,
   ]);
 
   const instanceScopeKey: string | null = useMemo(() => {
@@ -1179,6 +1215,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   useEffect(() => {
     if (!instanceScopeKey) {
       setScopeResolution(null);
+      return;
+    }
+
+    // A negated `@service:` is part of the scope: resolve it with the names.
+    if (isWaitingForServiceNames) {
       return;
     }
 
@@ -1249,7 +1290,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [instanceScopeKey, instanceScope, timeRange]);
+  }, [instanceScopeKey, instanceScope, timeRange, isWaitingForServiceNames]);
 
   /*
    * Fingerprints to carry into the histogram/facets payloads — only once
@@ -1262,14 +1303,24 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
   /*
    * While the fingerprints for the CURRENT scope are still in flight the list
-   * query carries the no-match sentinel, so it comes back empty by design —
-   * showing more would be a lie. But rendering that as the empty STATE is a
-   * different lie: an incident card would flash "No exceptions found" and
-   * then fill in. Report it as loading instead.
+   * query carries the no-match sentinel, so it would come back empty by
+   * design — showing more would be a lie. But rendering that as the empty
+   * STATE is a different lie: an incident card would flash "No exceptions
+   * found" and then fill in. Report it as loading instead.
    */
   const isResolvingScope: boolean = Boolean(
     instanceScopeKey && scopeResolution?.key !== instanceScopeKey,
   );
+
+  /*
+   * Whether the reads below wait (issue #4709): for the service names a
+   * `@service:` token resolves against, or for the fingerprints of the
+   * instance scope. Read before, the list, the chart, the facets and the
+   * error-class counts each went out once with a stand-in (every service,
+   * the no-match sentinel) and once more a moment later with the answer.
+   * Now each goes out once, with it.
+   */
+  const holdsReads: boolean = isWaitingForServiceNames || isResolvingScope;
 
   const query: Query<TelemetryException> = useMemo(() => {
     const q: Query<TelemetryException> = {};
@@ -1278,8 +1329,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       q.projectId = projectId;
     }
 
-    if (props.primaryEntityId) {
-      q.primaryEntityId = props.primaryEntityId;
+    if (primaryEntityId) {
+      q.primaryEntityId = primaryEntityId;
     }
 
     if (status === "unresolved") {
@@ -1384,7 +1435,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
     return q;
   }, [
-    props.primaryEntityId,
+    primaryEntityId,
     status,
     columnLiterals,
     errorClassClause,
@@ -1432,8 +1483,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   }, [query, page, pageSize]);
 
   useEffect(() => {
+    if (holdsReads) {
+      return;
+    }
+
     void fetchExceptions();
-  }, [fetchExceptions]);
+  }, [fetchExceptions, holdsReads]);
 
   // Fetch histogram (occurrences over time, split by handled/unhandled)
   const fetchHistogram: () => Promise<void> = useCallback(async () => {
@@ -1460,10 +1515,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
      */
     const histogramResourceIds: Array<string> = [...resourceIds];
     if (
-      props.primaryEntityId &&
-      !histogramResourceIds.includes(props.primaryEntityId.toString())
+      primaryEntityId &&
+      !histogramResourceIds.includes(primaryEntityId.toString())
     ) {
-      histogramResourceIds.push(props.primaryEntityId.toString());
+      histogramResourceIds.push(primaryEntityId.toString());
     }
     if (resolvedServices.matchedNothing) {
       payload["serviceIds"] = [NO_MATCH_ENTITY_ID];
@@ -1529,14 +1584,18 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     resourceIds,
     resolvedServices,
     parsedSearch,
-    props.primaryEntityId,
+    primaryEntityId,
     instanceScopeKey,
     resolvedScopeFingerprints,
   ]);
 
   useEffect(() => {
+    if (holdsReads) {
+      return;
+    }
+
     void fetchHistogram();
-  }, [fetchHistogram]);
+  }, [fetchHistogram, holdsReads]);
 
   // Histogram series (handled/unhandled) — colored per level
   const histogramSeries: Array<HistogramSeriesOption> = useMemo(() => {
@@ -1695,10 +1754,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
      */
     const facetResourceIds: Array<string> = [...resourceIds];
     if (
-      props.primaryEntityId &&
-      !facetResourceIds.includes(props.primaryEntityId.toString())
+      primaryEntityId &&
+      !facetResourceIds.includes(primaryEntityId.toString())
     ) {
-      facetResourceIds.push(props.primaryEntityId.toString());
+      facetResourceIds.push(primaryEntityId.toString());
     }
     if (resolvedServices.matchedNothing) {
       payload["serviceIds"] = [NO_MATCH_ENTITY_ID];
@@ -1752,15 +1811,19 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     resourceIds,
     resolvedServices,
     parsedSearch,
-    props.primaryEntityId,
+    primaryEntityId,
     facetSearchText,
     instanceScopeKey,
     resolvedScopeFingerprints,
   ]);
 
   useEffect(() => {
+    if (holdsReads) {
+      return;
+    }
+
     void fetchFacets();
-  }, [fetchFacets]);
+  }, [fetchFacets, holdsReads]);
 
   const [errorClassFacetValues, setErrorClassFacetValues] = useState<
     Array<FacetValue>
@@ -1793,6 +1856,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * same cadence as the list fetch beside them.
    */
   useEffect(() => {
+    if (holdsReads) {
+      return;
+    }
+
     let isCancelled: boolean = false;
 
     const loadErrorClassCounts: () => Promise<void> =
@@ -1848,7 +1915,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [errorClassFacetQuery]);
+  }, [errorClassFacetQuery, holdsReads]);
 
   /*
    * The backend facets plus the one this component counts itself. Merged
@@ -1918,7 +1985,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * projectId "Unknown Service" bucket; without this those chips read
    * "Service: 84858d6c-…".
    */
-  const scopeEntityId: string | undefined = props.primaryEntityId?.toString();
+  const scopeEntityId: string | undefined = primaryEntityId?.toString();
 
   const entityChipRefs: Array<ExceptionEntityChipRef> = useMemo(() => {
     return [...hostScope.chips, ...activeFilters].map(
@@ -2000,13 +2067,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     };
 
     const base: Array<ActiveFilter> = [];
-    if (props.primaryEntityId) {
+    if (primaryEntityId) {
       base.push(
         resolveDisplay({
           facetKey: "primaryEntityId",
-          value: props.primaryEntityId.toString(),
+          value: primaryEntityId.toString(),
           displayKey: "Service",
-          displayValue: props.primaryEntityId.toString(),
+          displayValue: primaryEntityId.toString(),
           readOnly: true,
         }),
       );
@@ -2023,7 +2090,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
      */
     base.push(
       ...buildExceptionLockedEntityKeyChips({
-        entityKeysFilter: props.entityKeysFilter,
+        entityKeysFilter: entityKeysFilter,
         entityKeyDisplays: props.entityKeyDisplays,
         storedScopeChips: hostScope.chips,
       }),
@@ -2046,9 +2113,9 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     }
     return [...base, ...activeFilters.map(resolveDisplay)];
   }, [
-    props.primaryEntityId,
+    primaryEntityId,
     props.scopeEntityType,
-    props.entityKeysFilter,
+    entityKeysFilter,
     props.entityKeyDisplays,
     scopeEntityId,
     hostScope,
@@ -2182,7 +2249,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   return (
     <TelemetryViewer<TelemetryException>
       items={exceptions}
-      isLoading={isLoading || isResolvingScope}
+      isLoading={isLoading || holdsReads}
       error={error || undefined}
       onRefresh={() => {
         void fetchExceptions();
@@ -2335,7 +2402,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       showFacetSidebar={true}
       facetData={mergedFacetData}
       facetConfigs={facetConfigs}
-      facetLoading={facetLoading}
+      facetLoading={facetLoading || holdsReads}
       onFacetInclude={handleFacetInclude}
       onFacetSearchChange={(facetKey: string, text: string) => {
         setFacetSearchText(
@@ -2361,7 +2428,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       histogramBuckets={histogramBuckets}
       histogramSeries={histogramSeries}
       histogramTitle="Exceptions over time"
-      histogramLoading={histogramLoading}
+      histogramLoading={histogramLoading || holdsReads}
       histogramBucketIntervalMs={histogramBucketIntervalMs}
       onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
       // Pagination
