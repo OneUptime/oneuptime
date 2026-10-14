@@ -160,6 +160,18 @@ OneUptime 이 인시던트, 경고, 에피소드, 예정된 유지 관리 이벤
 
 `show` 목록을 제외하면 Slack 에서 `/oneuptime` 뒤에 오는 단어와 같습니다. `create incident` 와 `create maintenance` 도 계속 작동합니다. OneUptime AI 에게 질문하려면 자신의 Microsoft Teams 계정이 연결되어 있고 프로젝트에서 AI 가 켜져 있어야 합니다. 계정이 연결되어 있지 않으면 봇은 스레드나 채팅마다 한 번, **Connect Microsoft Teams account** 버튼으로 연결을 요청합니다. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
 
+## Microsoft Teams 의 내 홈
+
+OneUptime 봇에게 `home` 을 입력하면 봇이 내 홈으로 답합니다. 내가 볼 수 있는 범위에서 프로젝트에 무슨 일이 일어나고 있는지 보여 주는 카드입니다.
+
+- **내 온콜.** 지금 온콜인 온콜 스케줄과 언제까지인지, 또는 다음 근무입니다.
+- **열려 있는 것.** 내가 읽을 수 있는 가장 최근의 열린 인시던트와 경고이며, 각각 OneUptime 의 페이지로 연결됩니다.
+- **버튼.** **Declare incident** 와 **Page someone** 은 `incident` 와 `page` 처럼, **Who's on call** 은 `oncall` 처럼 답하며, **Refresh** 는 카드를 그 자리에서 다시 읽습니다.
+
+OneUptime 앱을 나에게 추가하면 봇이 바로 내 홈을 보냅니다. 홈과 `show` 목록은 나로서 읽으므로 내 Microsoft Teams 계정이 연결되어 있어야 합니다. 연결되기 전까지 봇은 **Connect Microsoft Teams account** 버튼으로 답합니다. **사용자 설정** > **워크스페이스** > **Microsoft Teams** 의 **Microsoft Teams에서 OneUptime 열기** 는 Teams 에서 앱을 엽니다.
+
+앱이 팀에 추가되면 봇이 그 팀에서 인사합니다. 질문하는 방법과, 팀의 채널에 게시하는 알림 규칙을 추가하는 위치를 알려 줍니다.
+
 ## Microsoft Teams 에서 인시던트와 유지 관리 만들기
 
 OneUptime 봇에게 `incident` 또는 `maintenance` 를 입력하면, 개인 채팅, 채널, 그룹 채팅 어디서든 입력한 사람을 위한 양식이 열립니다. 양식은 그 사람으로서 작성됩니다. 그 사람의 Microsoft Teams 계정이 연결된 OneUptime 계정 ( [Microsoft Teams 연결하기](#microsoft-teams-연결하기) 참조) 으로서, 그 계정의 프로젝트 권한으로 제출됩니다. 계정이 연결되지 않았거나 OneUptime 계정이 더 이상 프로젝트의 멤버가 아닌 사람은 양식 대신 그 사람을 멘션하는 답글로 무엇을 해야 하는지 안내를 받습니다.

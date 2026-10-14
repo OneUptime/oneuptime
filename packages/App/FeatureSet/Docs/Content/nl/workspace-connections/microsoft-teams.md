@@ -160,6 +160,18 @@ Stuur de bot een bericht in een persoonlijke chat, of noem OneUptime met @ in ee
 
 Op de `show`-lijsten na zijn dit de woorden die in Slack na `/oneuptime` komen; `create incident` en `create maintenance` werken ook nog. OneUptime AI vragen stellen vereist dat je eigen Microsoft Teams-account gekoppeld is en dat AI voor het project aanstaat. Is je account niet gekoppeld, dan vraagt de bot je één keer per thread of chat om het te koppelen, met een knop **Connect Microsoft Teams account**. Zie [AI vragen](/docs/ai/ask-ai).
 
+## Jouw startpagina in Microsoft Teams
+
+Typ `home` naar de OneUptime-bot, en hij antwoordt met je startpagina: een kaart met wat er in het project gebeurt, zoals jij het mag zien.
+
+- **Jouw dienst.** De bereikbaarheidsschema's waarin je nu dienst hebt, en tot wanneer, of anders je volgende dienst.
+- **Wat open is.** De nieuwste open incidenten en waarschuwingen die je mag lezen, elk met een link naar de pagina ervan in OneUptime.
+- **De knoppen.** **Declare incident** en **Page someone** antwoorden zoals `incident` en `page`, **Who's on call** zoals `oncall`, en **Refresh** leest de kaart opnieuw, op dezelfde plek.
+
+Als je de OneUptime-app voor jezelf toevoegt, stuurt de bot je meteen je startpagina. De startpagina en de `show`-lijsten lezen als jou, dus hebben ze je eigen gekoppelde Microsoft Teams-account nodig: zolang dat niet zo is, antwoordt de bot met een knop **Connect Microsoft Teams account**. **OneUptime openen in Microsoft Teams**, onder **Gebruikersinstellingen** > **Werkruimte** > **Microsoft Teams**, opent de app in Teams.
+
+Als de app aan een team wordt toegevoegd, zegt de bot daar hallo: hoe je hem een vraag stelt en waar je een meldingsregel toevoegt die in de kanalen van het team plaatst.
+
 ## Incidenten en onderhoud aanmaken vanuit Microsoft Teams
 
 `incident` of `maintenance` typen aan de OneUptime-bot opent een formulier voor de persoon die het typte, in een persoonlijke chat, een kanaal of een groepschat. Het wordt ingevuld als die persoon: als het OneUptime-account waaraan diens Microsoft Teams-account is gekoppeld (zie [Microsoft Teams koppelen](#microsoft-teams-koppelen)), met de rechten van dat account in het project. Iemand van wie het account niet gekoppeld is, of van wie het OneUptime-account geen lid meer is van het project, krijgt in een antwoord dat diegene noemt te horen wat te doen, in plaats van het formulier.

@@ -160,6 +160,18 @@ flowchart TB
 
 除 `show` 清單外，這些就是 Slack 中 `/oneuptime` 後面的詞；`create incident` 和 `create maintenance` 仍然可以使用。詢問 OneUptime AI 需要連接您自己的 Microsoft Teams 帳戶，並為專案開啟 AI。如果您的帳戶未連接，機器人會在每個討論串或聊天中請您連接一次，並附上一個 **Connect Microsoft Teams account** 按鈕。請參閱 [詢問 AI](/docs/ai/ask-ai)。
 
+## Microsoft Teams 中的您的首頁
+
+向 OneUptime 機器人輸入 `home`，它會用您的首頁回答：一張依您有權查看的範圍顯示專案中正在發生的事情的卡片。
+
+- **您的待命。** 您目前正在待命的待命排程及其結束時間，否則是您的下一個班次。
+- **未解決的內容。** 您有權讀取的最新未解決事件和警示，每一項都連結到它在 OneUptime 中的頁面。
+- **按鈕。** **Declare incident** 和 **Page someone** 的回答與 `incident` 和 `page` 相同， **Who's on call** 與 `oncall` 相同， **Refresh** 會在原處重新讀取卡片。
+
+當您為自己新增 OneUptime 應用程式時，機器人會立即傳送您的首頁。首頁和 `show` 清單以您的身分讀取，因此需要連接您自己的 Microsoft Teams 帳戶：在連接之前，機器人會用一個 **Connect Microsoft Teams account** 按鈕回答。 **使用者設定** > **工作區** > **Microsoft Teams** 中的 **在 Microsoft Teams 中開啟 OneUptime** 會在 Teams 中開啟該應用程式。
+
+當應用程式被新增到團隊時，機器人會在那裡打招呼：如何向它提問，以及在哪裡新增發佈到該團隊頻道的通知規則。
+
 ## 從 Microsoft Teams 建立事件和維護
 
 向 OneUptime 機器人輸入 `incident` 或 `maintenance`，無論是在個人聊天、頻道還是群組聊天中，都會為輸入的人開啟一個表單。表單以此人的身分填寫：也就是以其 Microsoft Teams 帳戶所連接的 OneUptime 帳戶的身分（請參閱 [連接 Microsoft Teams](#連接-microsoft-teams) ），依該帳戶在專案中的權限提交。帳戶未連接的人，或 OneUptime 帳戶已不再是專案成員的人，會在提及其本人的回覆中收到該怎麼做的說明，而不是表單。

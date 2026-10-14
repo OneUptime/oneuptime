@@ -148,6 +148,18 @@ As respostas a `help` e `oncall` são mensagens que só você vê, abaixo do com
 > [!NOTE]
 > `/oneuptime incident` e `/oneuptime maintenance` substituem `/incident` e `/maintenance`, que podiam conflitar com comandos de mesmo nome de outros apps do Slack. Um app do Slack criado a partir de um manifesto anterior os mantém, e eles abrem os mesmos formulários, até que o app seja atualizado: consulte [Apps criados a partir de um manifesto mais antigo](/docs/self-hosted/slack-integration#apps-criados-a-partir-de-um-manifesto-mais-antigo).
 
+## A página inicial do OneUptime no Slack
+
+Abra o OneUptime em **Apps**, na barra lateral do Slack: a aba **Home** dele mostra o que está acontecendo no projeto, do jeito que você pode ver, e é lida de novo cada vez que você a abre.
+
+- **Seu plantão.** Os agendamentos de plantão em que você está de plantão agora, e até quando, ou então o seu próximo turno.
+- **O que está aberto.** Os incidentes e alertas abertos mais recentes que você pode ler, cada um com um link para a página dele no OneUptime.
+- **Os botões.** **Declare incident**, **Schedule maintenance** e **Page someone** abrem os mesmos formulários que `/oneuptime incident`, `/oneuptime maintenance` e `/oneuptime page`, e **Who's on call** responde como `/oneuptime oncall`.
+
+A página inicial lê como você, então precisa da sua própria conta do Slack conectada. Enquanto ela não estiver, a página inicial mostra um botão **Connect Slack account**, e mostra a sua página inicial assim que você a conectar.
+
+Quando alguém adiciona o OneUptime a um canal, ele publica uma saudação ali: como fazer uma pergunta a ele e onde adicionar uma regra de notificação que publique no canal.
+
 ## Perguntar ao OneUptime AI pelo Slack
 
 Pergunte sobre seus logs, traces, métricas, incidentes e monitores em linguagem natural. Mencione o OneUptime com @ em um canal, ou envie uma mensagem direta a ele, e ele responde na thread. `/oneuptime ask which monitors are down?` publica a resposta no canal. Ambos exigem a sua própria conta do Slack conectada e a IA ativada para o projeto. As respostas no Slack apenas leem: para mudar algo, use os botões. Consulte [Pergunte à IA](/docs/ai/ask-ai).

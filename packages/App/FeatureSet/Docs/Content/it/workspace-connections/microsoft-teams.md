@@ -160,6 +160,18 @@ Scrivi al bot in una chat personale, oppure menziona OneUptime con @ in un canal
 
 A parte le liste `show`, sono le parole che seguono `/oneuptime` in Slack; anche `create incident` e `create maintenance` funzionano ancora. Fare domande a OneUptime AI richiede il tuo account Microsoft Teams collegato e l'IA attivata per il progetto. Se il tuo non è collegato, il bot ti chiede una volta per thread o chat di collegarlo, con un pulsante **Connect Microsoft Teams account**. Vedi [Chiedi all'IA](/docs/ai/ask-ai).
 
+## La tua home in Microsoft Teams
+
+Scrivi `home` al bot di OneUptime e ti risponde con la tua home: una scheda con cosa succede nel progetto, come puoi vederlo tu.
+
+- **La tua reperibilità.** Le pianificazioni di reperibilità in cui sei reperibile adesso, e fino a quando, oppure il tuo prossimo turno.
+- **Cosa è aperto.** Gli incidenti e gli avvisi aperti più recenti che puoi leggere, ciascuno con un link alla sua pagina in OneUptime.
+- **I suoi pulsanti.** **Declare incident** e **Page someone** rispondono come `incident` e `page`, **Who's on call** come `oncall`, e **Refresh** rilegge la scheda, al suo posto.
+
+Quando aggiungi l'app OneUptime per te, il bot ti invia subito la tua home. La home e gli elenchi `show` leggono come te, quindi richiedono il tuo account Microsoft Teams collegato: finché non lo è, il bot risponde con un pulsante **Connect Microsoft Teams account**. **Apri OneUptime in Microsoft Teams**, in **Impostazioni utente** > **Area di lavoro** > **Microsoft Teams**, apre l'app in Teams.
+
+Quando l'app viene aggiunta a un team, il bot vi saluta: come fargli una domanda e dove aggiungere una regola di notifica che pubblica nei canali del team.
+
 ## Creare incidenti e manutenzioni da Microsoft Teams
 
 Scrivere `incident` o `maintenance` al bot di OneUptime apre un modulo per la persona che l'ha scritto, in una chat personale, in un canale o in una chat di gruppo allo stesso modo. Viene compilato a nome di quella persona: come l'account OneUptime a cui è collegato il suo account Microsoft Teams (vedi [Collegare Microsoft Teams](#collegare-microsoft-teams)), con i permessi di quell'account nel progetto. Chi non ha l'account collegato, o il cui account OneUptime non è più membro del progetto, riceve indicazioni su cosa fare in una risposta che lo menziona, invece del modulo.

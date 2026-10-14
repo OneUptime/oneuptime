@@ -148,6 +148,18 @@ OneUptime 在 Slack 中只有一个命令：`/oneuptime`。在它后面输入的
 > [!NOTE]
 > `/oneuptime incident` 和 `/oneuptime maintenance` 取代了 `/incident` 和 `/maintenance`，后两者可能与其他 Slack 应用的同名命令冲突。用较早的清单创建的 Slack 应用会保留它们，在应用更新之前，它们会打开相同的表单：请参阅 [用较旧清单创建的应用](/docs/self-hosted/slack-integration#用较旧清单创建的应用)。
 
+## Slack 中的 OneUptime 主页
+
+在 Slack 侧边栏的 **Apps** 下打开 OneUptime，它的 **Home** 标签页会按您有权查看的范围显示项目中正在发生的事情，每次打开时都会重新读取。
+
+- **您的值班。** 您当前正在值班的值班计划及其结束时间，否则是您的下一个班次。
+- **未解决的内容。** 您有权读取的最新未解决事件和警报，每一项都链接到它在 OneUptime 中的页面。
+- **按钮。** **Declare incident** 、 **Schedule maintenance** 和 **Page someone** 打开的表单与 `/oneuptime incident` 、 `/oneuptime maintenance` 和 `/oneuptime page` 相同， **Who's on call** 的回答与 `/oneuptime oncall` 相同。
+
+主页以您的身份读取，因此需要连接您自己的 Slack 账户。在连接之前，主页上会有一个 **Connect Slack account** 按钮，连接后会立即显示您的主页。
+
+当有人把 OneUptime 添加到频道时，它会在那里发布一条问候：如何向它提问，以及在哪里添加发布到该频道的通知规则。
+
 ## 从 Slack 询问 OneUptime AI
 
 用日常语言询问有关日志、追踪、指标、事件和监视器的问题。在频道中 @提及 OneUptime，或向它发送私信，它会在消息串中回答。 `/oneuptime ask which monitors are down?` 会将答案发布到频道中。两种方式都需要连接您自己的 Slack 账户，并为项目开启 AI。Slack 中的回答只读取数据：要更改内容，请使用按钮。请参阅 [询问 AI](/docs/ai/ask-ai)。

@@ -160,6 +160,18 @@ Message the bot in a personal chat, or @mention OneUptime in a channel or a grou
 
 Apart from the `show` lists, these are the words that follow `/oneuptime` in Slack; `create incident` and `create maintenance` still work too. Asking OneUptime AI needs your own Microsoft Teams account connected, and AI turned on for the project. If yours is not connected, the bot asks you once in each thread or chat to connect it, with a **Connect Microsoft Teams account** button. See [Ask AI](/docs/ai/ask-ai).
 
+## Your Home in Microsoft Teams
+
+Type `home` to the OneUptime bot, and it answers with your Home: a card with what is happening in the project, as you may see it.
+
+- **Your on-call.** The on-call schedules you are on call in now, and until when, or else your next shift.
+- **What is open.** The newest open incidents and alerts you may read, each linked to its page in OneUptime.
+- **Its buttons.** **Declare incident** and **Page someone** answer as `incident` and `page` do, **Who's on call** as `oncall` does, and **Refresh** reads the card again, in place.
+
+When you add the OneUptime app for yourself, the bot sends you your Home straight away. The Home and the `show` lists read as you, so they need your own Microsoft Teams account connected: until it is, the bot answers with a **Connect Microsoft Teams account** button. **Open OneUptime in Microsoft Teams**, under **User Settings** > **Workspace** > **Microsoft Teams**, opens the app in Teams.
+
+When the app is added to a team, the bot says hello in it: how to ask it a question, and where to add a notification rule that posts to the team's channels.
+
 ## Creating incidents and maintenance from Microsoft Teams
 
 Typing `incident` or `maintenance` to the OneUptime bot opens a form for the person who typed it, in a personal chat, a channel or a group chat alike. It is filled in as that person: as the OneUptime account their Microsoft Teams account is connected to (see [Connect Microsoft Teams](#connect-microsoft-teams)), with that account's permissions in the project. Someone whose account is not connected, or whose OneUptime account is no longer a member of the project, is told what to do in a reply that mentions them, instead of getting the form.
