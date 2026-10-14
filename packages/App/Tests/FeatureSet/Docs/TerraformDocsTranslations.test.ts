@@ -55,16 +55,21 @@ import {
   CREATE_BUTTONS,
   DIAGRAM_KINDS,
   EXAMPLES,
+  IMPORTING_RESOURCES,
   MONITOR_STEPS,
+  OPENTOFU,
   OPTIONAL_FIELDS,
   OTHER_NAMES,
   PRODUCT_NAMES,
   PROSE,
   QUICK_START,
+  REGISTRY,
+  SELF_HOSTED,
   TERRAFORM_GROUP_URLS,
   TERRAFORM_OVERVIEW,
   TERRAFORM_PAGES,
   TRANSLATED_TABS,
+  TROUBLESHOOTING,
   TerraformDocsPageEntry,
 } from "./TerraformDocsPages";
 import { describe, expect, it } from "@jest/globals";
@@ -130,6 +135,11 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [COMPLETE_GUIDE]: 30,
   [MONITOR_STEPS]: 27,
   [EXAMPLES]: 28,
+  [IMPORTING_RESOURCES]: 31,
+  [TROUBLESHOOTING]: 26,
+  [SELF_HOSTED]: 28,
+  [REGISTRY]: 29,
+  [OPENTOFU]: 28,
 };
 
 // The plan API keys need: a plan's name, which every language writes so.
