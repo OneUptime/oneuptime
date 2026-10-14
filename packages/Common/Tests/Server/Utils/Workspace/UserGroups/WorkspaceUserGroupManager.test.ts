@@ -592,6 +592,9 @@ describe("connecting a Microsoft Teams tag", () => {
 
     expect(create?.body).toEqual({
       displayName: "Payments on-call",
+      // What it is, in Teams' tag list - as a new Slack user group says it.
+      description:
+        "Whoever is on call right now. OneUptime keeps this tag up to date.",
       members: [{ userId: ANA_AAD }],
     });
     expect(view.name).toBe("Payments on-call");

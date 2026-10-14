@@ -13,6 +13,7 @@ import {
 } from "../../../../Types/Workspace/WorkspaceUserGroup";
 import API from "../../../../Utils/API";
 import logger from "../../Logger";
+import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import {
   WorkspaceUserGroupError,
@@ -52,6 +53,13 @@ const GRAPH_TEAMS_URL: string = "https://graph.microsoft.com/v1.0/teams";
 
 // The most pages of tags or members read for one answer.
 const MAX_PAGES: number = 20;
+
+// What a new tag says about itself in Microsoft Teams.
+export const MICROSOFT_TEAMS_TAG_DESCRIPTION: (
+  productName: string,
+) => string = (productName: string): string => {
+  return `Whoever is on call right now. ${productName} keeps this tag up to date.`;
+};
 
 // A tag, as Graph tells it.
 export interface MicrosoftTeamsTagInfo {
@@ -287,6 +295,14 @@ export default class MicrosoftTeamsTags {
         displayName: data.name.substring(
           0,
           MICROSOFT_TEAMS_TAG_NAME_MAX_LENGTH,
+        ),
+        /*
+         * What the tag says about itself in Teams' tag list, as a Slack user
+         * group OneUptime makes does (SLACK_USER_GROUP_DESCRIPTION): who it
+         * holds, and that it is kept for them - so nobody edits it by hand.
+         */
+        description: MICROSOFT_TEAMS_TAG_DESCRIPTION(
+          ProductBrandingText.getProductName(),
         ),
         members: first.map((aadObjectId: string): JSONObject => {
           return { userId: aadObjectId };

@@ -450,7 +450,9 @@ describe("a card per connected workspace", () => {
     await renderCard();
 
     // The same panel the calendar cards under it show (FeedEmptyState).
-    const empty: HTMLElement = screen.getByTestId("user-groups-Slack-empty-state");
+    const empty: HTMLElement = screen.getByTestId(
+      "user-groups-Slack-empty-state",
+    );
 
     expect(
       within(empty).getByTestId("user-groups-Slack-empty-title").textContent,
@@ -507,7 +509,9 @@ describe("a card per connected workspace", () => {
 
     await renderCard();
 
-    const alert: HTMLElement = screen.getByTestId("user-groups-Slack-load-error");
+    const alert: HTMLElement = screen.getByTestId(
+      "user-groups-Slack-load-error",
+    );
 
     expect(alert).toHaveTextContent("Could not load the user groups.");
     expect(alert).toHaveTextContent(
@@ -543,7 +547,9 @@ describe("a group's row", () => {
         .previousElementSibling?.textContent,
     ).toBe("Members");
     // Nothing to explain: no note, and no Try again.
-    expect(within(row(id)).queryByTestId(`user-group-${id}-status-text`)).toBeNull();
+    expect(
+      within(row(id)).queryByTestId(`user-group-${id}-status-text`),
+    ).toBeNull();
     expect(within(row(id)).queryByText("Try again")).toBeNull();
 
     // This schedule is not listed: only the others, as links to them.
@@ -975,7 +981,7 @@ describe("who may change them", () => {
 
     expect(disconnect).toHaveAttribute("aria-disabled", "true");
     expect(disconnect).toHaveAccessibleDescription(
-      /You do not have permission to create this user group\./,
+      /You do not have permission to update this user group\./,
     );
 
     await act(async () => {
@@ -991,7 +997,9 @@ describe("who may change them", () => {
 
     await renderCard();
 
-    const connect: HTMLElement = screen.getByTestId("user-groups-Slack-connect");
+    const connect: HTMLElement = screen.getByTestId(
+      "user-groups-Slack-connect",
+    );
 
     expect(connect).toBeDisabled();
 

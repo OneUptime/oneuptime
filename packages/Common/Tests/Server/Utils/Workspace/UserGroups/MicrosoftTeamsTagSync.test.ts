@@ -366,6 +366,10 @@ describe("Graph's answers over several pages", () => {
     expect(MICROSOFT_TEAMS_TAG_MAX_MEMBERS_ON_CREATE).toBe(25);
     expect(posts[0]!.path).toBe(`/v1.0/teams/${TEAM_PAYMENTS}/tags`);
     expect((posts[0]!.body!["members"] as Array<JSONObject>).length).toBe(25);
+    // A tag OneUptime makes says what it is, with the product's name.
+    expect(posts[0]!.body!["description"]).toBe(
+      "Whoever is on call right now. OneUptime keeps this tag up to date.",
+    );
     expect(
       posts.slice(1).map((request: GraphRequest): string => {
         return request.path;

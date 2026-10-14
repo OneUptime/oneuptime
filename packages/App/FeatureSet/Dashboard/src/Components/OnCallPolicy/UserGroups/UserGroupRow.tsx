@@ -200,22 +200,18 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
         dataTestId={`${testId}-status-text`}
         className="mt-3"
         title={fillProblem(problemText)}
-        textOnRight={
-          canTryAgain
-            ? props.isBusy
-              ? USER_GROUP_LABELS.checking
-              : USER_GROUP_LABELS.tryAgain
-            : undefined
-        }
-        onClick={
-          canTryAgain
-            ? () => {
+        {...(canTryAgain
+          ? {
+              textOnRight: props.isBusy
+                ? USER_GROUP_LABELS.checking
+                : USER_GROUP_LABELS.tryAgain,
+              onClick: () => {
                 if (!props.isBusy) {
                   props.onTryAgain?.();
                 }
-              }
-            : undefined
-        }
+              },
+            }
+          : {})}
       />
     );
   } else if (

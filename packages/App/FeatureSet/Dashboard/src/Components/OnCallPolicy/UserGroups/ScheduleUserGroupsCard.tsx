@@ -90,10 +90,15 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
 
   const model: WorkspaceUserGroup = new WorkspaceUserGroup();
 
-  // Connecting, disconnecting and Try again ask what creating one asks.
+  /*
+   * Disconnect and Try again change OneUptime's record of a group: a reader
+   * who may not is told so ("You do not have permission to update this user
+   * group."). The model gives creating, updating and deleting one the same
+   * roles, so this locks exactly what the server refuses.
+   */
   const changeGate: PermissionGateResult = PermissionGate.check(
     model,
-    ModelAction.Create,
+    ModelAction.Update,
     { singularName: copy.groupNoun },
   );
 
@@ -110,7 +115,6 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
     ModelAction.Create,
     { singularName: copy.groupNoun },
   );
-
 
   const tryAgain: (view: WorkspaceUserGroupView) => Promise<void> = async (
     view: WorkspaceUserGroupView,
