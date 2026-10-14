@@ -29224,5 +29224,7 @@
   "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.": "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.",
   "open cases assigned to you_one": "open case assigned to you",
   "open cases nobody has picked up_one": "open case nobody has picked up",
-  "playbook steps waiting for approval_one": "playbook step waiting for approval"
+  "playbook steps waiting for approval_one": "playbook step waiting for approval",
+  "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "När du tar bort ett säkerhetsärende tas även dess detektioner, anteckningar, tidslinje och playbook-körningar bort.",
+  "To keep the record, close the case with a verdict instead.": "Stäng i stället ärendet med en bedömning om du vill behålla det."
 }

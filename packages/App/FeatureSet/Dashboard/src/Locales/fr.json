@@ -29224,5 +29224,7 @@
   "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.": "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.",
   "open cases assigned to you_one": "open case assigned to you",
   "open cases nobody has picked up_one": "open case nobody has picked up",
-  "playbook steps waiting for approval_one": "playbook step waiting for approval"
+  "playbook steps waiting for approval_one": "playbook step waiting for approval",
+  "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "Supprimer un cas de sécurité supprime aussi ses détections, ses notes, sa chronologie et ses exécutions de playbook.",
+  "To keep the record, close the case with a verdict instead.": "Pour en garder la trace, clôturez plutôt le cas avec un verdict."
 }

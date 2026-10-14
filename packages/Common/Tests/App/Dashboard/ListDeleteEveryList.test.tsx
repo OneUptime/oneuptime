@@ -181,6 +181,7 @@ import LogDropFilter from "../../../Models/DatabaseModels/LogDropFilter";
 import TracePipeline from "../../../Models/DatabaseModels/TracePipeline";
 import TraceDropFilter from "../../../Models/DatabaseModels/TraceDropFilter";
 import Form from "../../../Models/DatabaseModels/Form";
+import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 
 import StatusPagesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/StatusPages";
 import StatusPagesArchived from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/Archived";
@@ -260,6 +261,8 @@ import LogDropFiltersPage from "../../../../App/FeatureSet/Dashboard/src/Pages/L
 import TracePipelinesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Traces/Settings/Pipelines";
 import TraceDropFiltersPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Traces/Settings/DropFilters";
 import FormsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/Forms";
+import SecurityCasesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Cases";
+import { CLOSE_CASE_INSTEAD_OF_DELETE } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCasesTable";
 import MonitorGroupMonitorsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/MonitorGroup/View/Monitors";
 
 type RealModelTableType = (props: Record<string, unknown>) => ReactElement;
@@ -285,8 +288,11 @@ interface ListCase {
   name: string;
   page: PageComponent;
   modelType: { new (): BaseModel };
-  // Whether the dialog says that archiving is the way off the list.
-  archiveInstead: boolean;
+  /*
+   * The list's own sentence after the question: on a live archivable list,
+   * that archiving is the way off it.
+   */
+  listWarning?: string | undefined;
   // Which of the page's tables, where it has several.
   tableId?: string | undefined;
 }
@@ -304,7 +310,27 @@ const live: (
     name,
     page: page as PageComponent,
     modelType,
-    archiveInstead: true,
+    listWarning: ARCHIVE_INSTEAD_OF_DELETE,
+  };
+};
+
+// A list whose dialogs end with a sentence of its own.
+const saying: (
+  name: string,
+  page: unknown,
+  modelType: { new (): BaseModel },
+  listWarning: string,
+) => ListCase = (
+  name: string,
+  page: unknown,
+  modelType: { new (): BaseModel },
+  listWarning: string,
+): ListCase => {
+  return {
+    name,
+    page: page as PageComponent,
+    modelType,
+    listWarning,
   };
 };
 
@@ -323,7 +349,6 @@ const plain: (
     name,
     page: page as PageComponent,
     modelType,
-    archiveInstead: false,
     tableId,
   };
 };
@@ -455,6 +480,12 @@ const LISTS: Array<ListCase> = [
   plain("Trace Pipelines", TracePipelinesPage, TracePipeline),
   plain("Trace Drop Filters", TraceDropFiltersPage, TraceDropFilter),
   plain("Forms", FormsPage, Form),
+  saying(
+    "Security Cases",
+    SecurityCasesPage,
+    SecurityCase,
+    CLOSE_CASE_INSTEAD_OF_DELETE,
+  ),
 ];
 
 let deleteRequests: Array<{ tableName: string; id: string }> = [];
@@ -575,9 +606,7 @@ describe.each(LISTS)("$name", (listCase: ListCase) => {
     const table: CapturedTable = await capture(listCase);
 
     expect(table.isDeleteable).toBe(true);
-    expect(table.deleteConfirmationWarning).toBe(
-      listCase.archiveInstead ? ARCHIVE_INSTEAD_OF_DELETE : undefined,
-    );
+    expect(table.deleteConfirmationWarning).toBe(listCase.listWarning);
   });
 
   test("deletes a row through its ⋯ menu and the dialog, by its id", async () => {
@@ -636,7 +665,7 @@ describe.each(LISTS)("$name", (listCase: ListCase) => {
     // What goes with it, then the list's own sentence.
     const expected: string = [
       getDeleteConsequence(new listCase.modelType().tableName),
-      listCase.archiveInstead ? ARCHIVE_INSTEAD_OF_DELETE : "",
+      listCase.listWarning || "",
     ]
       .filter(Boolean)
       .join(" ");

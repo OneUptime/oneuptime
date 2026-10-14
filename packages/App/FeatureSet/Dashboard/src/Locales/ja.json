@@ -29224,5 +29224,7 @@
   "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.": "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.",
   "open cases assigned to you_one": "open case assigned to you",
   "open cases nobody has picked up_one": "open case nobody has picked up",
-  "playbook steps waiting for approval_one": "playbook step waiting for approval"
+  "playbook steps waiting for approval_one": "playbook step waiting for approval",
+  "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "セキュリティケースを削除すると、その検出、メモ、タイムライン、プレイブックの実行も削除されます。",
+  "To keep the record, close the case with a verdict instead.": "記録を残すには、代わりに判定を付けてケースをクローズしてください。"
 }

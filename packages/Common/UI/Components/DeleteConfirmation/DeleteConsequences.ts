@@ -290,6 +290,17 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       deletedWith: ["FormSubmission"],
       stays: ["Incident", "ScheduledMaintenance"],
     },
+    SecurityCase: {
+      sentence: translationKey(
+        "Deleting a security case also deletes its detections, notes, timeline and playbook runs.",
+      ),
+      deletedWith: [
+        "SecurityDetection",
+        "SecurityCaseNote",
+        "SecurityCaseFeed",
+        "SecurityPlaybookRun",
+      ],
+    },
     IoTFleet: {
       sentence: translationKey(
         "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.",

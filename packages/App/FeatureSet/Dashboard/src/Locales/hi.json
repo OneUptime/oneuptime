@@ -29224,5 +29224,7 @@
   "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.": "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.",
   "open cases assigned to you_one": "open case assigned to you",
   "open cases nobody has picked up_one": "open case nobody has picked up",
-  "playbook steps waiting for approval_one": "playbook step waiting for approval"
+  "playbook steps waiting for approval_one": "playbook step waiting for approval",
+  "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "सुरक्षा केस हटाने से उसके डिटेक्शन, नोट्स, टाइमलाइन और प्लेबुक रन भी हट जाते हैं।",
+  "To keep the record, close the case with a verdict instead.": "रिकॉर्ड रखने के लिए, इसके बजाय केस को किसी निर्णय के साथ बंद करें।"
 }
