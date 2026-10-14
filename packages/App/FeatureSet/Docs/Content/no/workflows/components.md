@@ -426,6 +426,8 @@ Felt som OneUptime fyller ut selv, tilbys ikke når du skriver en post: postens 
 
 **Skip** og **Limit** er to tallfelt på Find Many, Update Many og Delete Many, under **Flere felt** — `Skip: 0` med `Limit: 100` tar de første hundre treffene. **Limit** er `10` som standard, og på Update Many og Delete Many begrenser den hvor mange poster som faktisk skrives, ikke bare hvor mange som kommer tilbake. Så `Items Deleted: 10` betyr at ti poster ble slettet, ikke at ti samsvarte. Øk **Limit** når du vil endre mer enn ti.
 
+Delete One og Delete Many etter spørring tømmer aldri en historikk. På en monitors statushendelser og på tilstandshistorikken for hendelser, varsler, planlagt vedlikehold og episoder fjerner de aldri en posts gjeldende tilstand, og de beholder hver statushendelse for en monitor som dekker en del av de siste 90 dagene, slik at en statusside aldri viser en monitor grå. Kjøringens logg sier hvor mange som ble beholdt. For å slette én bestemt hendelse spør du etter den med dens `_id`.
+
 **Success** og **Error** sier om spørringen kjørte, ikke hva den fant. En spørring som ikke samsvarer med noe, returnerer `0` og går likevel ut via **Success** — det er ikke en feil. For å forgrene på om noe samsvarte, leser du det returnerte antallet i en **If / Else**-blokk.
 
 ## Neste trinn

@@ -158,6 +158,19 @@ function Regressions() {
         textOnRight={`release-${"a".repeat(140)}`}
       />
       <Alert
+        dataTestId="try-again-alert"
+        type={AlertType.DANGER}
+        title={
+          <span data-testid="try-again-copy">
+            Slack lets only workspace owners and admins change user groups in
+            your workspace, so OneUptime can't update @payments-oncall. A Slack
+            admin can let everyone manage user groups in Slack's admin settings,
+            under Permissions &gt; User Groups.
+          </span>
+        }
+        textOnRight="Try again"
+      />
+      <Alert
         dataTestId="no-icon-alert"
         doNotShowIcon={true}
         title={

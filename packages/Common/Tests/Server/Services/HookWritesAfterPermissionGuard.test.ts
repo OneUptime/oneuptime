@@ -66,7 +66,6 @@ const ALLOWED_HOOK_WRITES: Record<string, string> = {
   "AlertStateTimelineService.ts#onBeforeDelete": TIMELINE_REASON,
   "IncidentEpisodeStateTimelineService.ts#onBeforeDelete": TIMELINE_REASON,
   "IncidentStateTimelineService.ts#onBeforeDelete": TIMELINE_REASON,
-  "MonitorStatusTimelineService.ts#onBeforeDelete": TIMELINE_REASON,
   "ScheduledMaintenanceStateTimelineService.ts#onBeforeDelete": TIMELINE_REASON,
   "MonitorGroupService.ts#onBeforeDelete": CASCADE_REASON,
   "MonitorService.ts#onBeforeDelete":

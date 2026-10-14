@@ -17,6 +17,7 @@ import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeStateTimeline from "../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -54,6 +55,16 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+
+    /*
+     * A delete by query - a workflow's Delete Many, a retention purge,
+     * the purge above - never takes an incident episode's current state, so a
+     * status page never shows it without one. One entry deleted by its id
+     * is onBeforeDelete's to judge.
+     */
+    this.keepRowsOnDeleteByQuery(
+      StateTimelineRowsKept.forTable("IncidentEpisodeStateTimeline"),
+    );
   }
 
   /*
