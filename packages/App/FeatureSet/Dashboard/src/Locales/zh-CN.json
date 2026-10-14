@@ -29154,7 +29154,7 @@
   "Deleting a dashboard also deletes its custom domains.": "删除仪表板也会删除其自定义域名。",
   "Deleting a database also deletes the endpoints it is reached at.": "删除数据库也会删除访问它所用的端点。",
   "Deleting a form also deletes its submissions. The incidents and events it created stay.": "删除表单也会删除其提交记录。它创建的事件和维护事件会保留。",
-  "Deleting a monitor also deletes its status history and takes it off status pages and monitor groups. Its incidents and alerts stay.": "删除监视器也会删除其状态历史，并将其从状态页和监视器组中移除。它的事件和警报会保留。",
+  "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.": "删除监视器也会删除其状态历史，并将其从状态页、监视器组和 SLO 中移除。它的事件和警报会保留。",
   "Deleting a monitor group takes it off status pages. Its monitors stay.": "删除监视器组会将其从状态页中移除。组内的监视器会保留。",
   "Deleting a network device also deletes its interfaces, links, endpoints and any monitor OneUptime created for it, with that monitor's history.": "删除网络设备也会删除其接口、链路、端点，以及 OneUptime 为它创建的任何监视器和该监视器的历史。",
   "Deleting a pipeline also deletes its processors.": "删除管道也会删除其处理器。",

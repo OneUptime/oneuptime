@@ -29154,7 +29154,7 @@
   "Deleting a dashboard also deletes its custom domains.": "Supprimer un tableau de bord supprime aussi ses domaines personnalisés.",
   "Deleting a database also deletes the endpoints it is reached at.": "Supprimer une base de données supprime aussi les points de terminaison par lesquels on la joint.",
   "Deleting a form also deletes its submissions. The incidents and events it created stay.": "Supprimer un formulaire supprime aussi ses soumissions. Les incidents et événements qu'il a créés sont conservés.",
-  "Deleting a monitor also deletes its status history and takes it off status pages and monitor groups. Its incidents and alerts stay.": "Supprimer un moniteur supprime aussi son historique de statut et le retire des pages de statut et des groupes de moniteurs. Ses incidents et alertes sont conservés.",
+  "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.": "Supprimer un moniteur supprime aussi son historique de statut et le retire des pages de statut, des groupes de moniteurs et des SLO. Ses incidents et alertes sont conservés.",
   "Deleting a monitor group takes it off status pages. Its monitors stay.": "Supprimer un groupe de moniteurs le retire des pages de statut. Ses moniteurs sont conservés.",
   "Deleting a network device also deletes its interfaces, links, endpoints and any monitor OneUptime created for it, with that monitor's history.": "Supprimer un appareil réseau supprime aussi ses interfaces, liens, points de terminaison et tout moniteur que OneUptime a créé pour lui, avec l'historique de ce moniteur.",
   "Deleting a pipeline also deletes its processors.": "Supprimer un pipeline supprime aussi ses processeurs.",

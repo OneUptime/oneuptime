@@ -21,9 +21,11 @@ import {
  * and its dialogs ask the question alone.
  *
  * Every claim is held to the code by DeleteConsequencesGuard: a table named
- * as deleted with it has an ON DELETE CASCADE relation to it, a table named
- * as staying has none, work a service does on delete is in its delete hook,
- * and a kind said to come back has the ingest code that adds it again.
+ * as deleted with it has an ON DELETE CASCADE relation to it, a list it is
+ * said to be taken out of is a many-to-many list of it whose join rows go
+ * with it, a table named as staying has no ON DELETE CASCADE relation to it,
+ * work a service does on delete is in its delete hook, and a kind said to
+ * come back has the ingest code that adds it again.
  */
 
 /*
@@ -49,6 +51,14 @@ export interface DeleteSideEffect {
   code: string;
 }
 
+// A many-to-many list on another record that holds this one.
+export interface ManyToManyList {
+  // The table whose records hold the list.
+  table: string;
+  // The list's property on that model.
+  property: string;
+}
+
 export interface DeleteConsequence {
   // What deleting one of these takes with it, as the dialogs say it.
   sentence?: string | undefined;
@@ -58,6 +68,13 @@ export interface DeleteConsequence {
    * relations say.
    */
   deletedWith?: ReadonlyArray<string> | undefined;
+  /*
+   * The records the sentence says it is taken out of, where the link is a
+   * many-to-many list on them (an SLO's monitors): the table that owns the
+   * list and the list's property. The join table's rows go with it, so the
+   * record leaves every such list and the records themselves stay.
+   */
+  takenOutOf?: ReadonlyArray<ManyToManyList> | undefined;
   /*
    * The tables the sentence says stay. None of them has an ON DELETE
    * CASCADE relation to it.
@@ -90,15 +107,22 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       ],
     },
     Monitor: {
+      /*
+       * SLOs are named because an SLO left with no monitors stops being
+       * evaluated - the monitor's own Delete page warns about each one
+       * (SloImpactWarning); a list's Delete, often of many monitors at
+       * once, says it here.
+       */
       sentence: translationKey(
-        "Deleting a monitor also deletes its status history and takes it off status pages and monitor groups. Its incidents and alerts stay.",
+        "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.",
       ),
       deletedWith: [
         "MonitorStatusTimeline",
         "StatusPageResource",
         "MonitorGroupResource",
       ],
-      stays: ["Incident", "Alert"],
+      takenOutOf: [{ table: "ServiceLevelObjective", property: "monitors" }],
+      stays: ["Incident", "Alert", "ServiceLevelObjective"],
     },
     Incident: {
       sentence: translationKey(

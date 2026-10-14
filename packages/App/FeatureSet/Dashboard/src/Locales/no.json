@@ -29154,7 +29154,7 @@
   "Deleting a dashboard also deletes its custom domains.": "Når du sletter et dashbord, slettes også de egendefinerte domenene.",
   "Deleting a database also deletes the endpoints it is reached at.": "Når du sletter en database, slettes også endepunktene den nås på.",
   "Deleting a form also deletes its submissions. The incidents and events it created stay.": "Når du sletter et skjema, slettes også innsendingene. Hendelsene det har opprettet, beholdes.",
-  "Deleting a monitor also deletes its status history and takes it off status pages and monitor groups. Its incidents and alerts stay.": "Når du sletter en monitor, slettes også statushistorikken, og den fjernes fra statussider og monitorgrupper. Hendelsene og varslene beholdes.",
+  "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.": "Når du sletter en monitor, slettes også statushistorikken, og den fjernes fra statussider, monitorgrupper og SLO-er. Hendelsene og varslene beholdes.",
   "Deleting a monitor group takes it off status pages. Its monitors stay.": "Når du sletter en monitorgruppe, fjernes den fra statussider. Monitorene i den beholdes.",
   "Deleting a network device also deletes its interfaces, links, endpoints and any monitor OneUptime created for it, with that monitor's history.": "Når du sletter en nettverksenhet, slettes også grensesnittene, koblingene, endepunktene og alle monitorer OneUptime har opprettet for den, med monitorens historikk.",
   "Deleting a pipeline also deletes its processors.": "Når du sletter en pipeline, slettes også prosessorene.",

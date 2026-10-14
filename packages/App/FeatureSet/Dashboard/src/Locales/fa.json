@@ -29154,7 +29154,7 @@
   "Deleting a dashboard also deletes its custom domains.": "حذف یک داشبورد دامنه‌های سفارشی آن را هم حذف می‌کند.",
   "Deleting a database also deletes the endpoints it is reached at.": "حذف یک پایگاه داده نقاط پایانی‌ای را که از طریق آن‌ها به آن دسترسی دارید هم حذف می‌کند.",
   "Deleting a form also deletes its submissions. The incidents and events it created stay.": "حذف یک فرم ارسال‌های آن را هم حذف می‌کند. حادثه‌ها و رویدادهایی که ایجاد کرده باقی می‌مانند.",
-  "Deleting a monitor also deletes its status history and takes it off status pages and monitor groups. Its incidents and alerts stay.": "حذف یک مانیتور تاریخچه‌ی وضعیت آن را هم حذف می‌کند و آن را از صفحات وضعیت و گروه‌های مانیتور برمی‌دارد. حادثه‌ها و هشدارهای آن باقی می‌مانند.",
+  "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.": "حذف یک مانیتور تاریخچه‌ی وضعیت آن را هم حذف می‌کند و آن را از صفحات وضعیت، گروه‌های مانیتور و SLOها برمی‌دارد. حادثه‌ها و هشدارهای آن باقی می‌مانند.",
   "Deleting a monitor group takes it off status pages. Its monitors stay.": "حذف یک گروه مانیتور آن را از صفحات وضعیت برمی‌دارد. مانیتورهای آن باقی می‌مانند.",
   "Deleting a network device also deletes its interfaces, links, endpoints and any monitor OneUptime created for it, with that monitor's history.": "حذف یک دستگاه شبکه رابط‌ها، پیوندها و نقاط پایانی آن و هر مانیتوری را که OneUptime برایش ساخته، همراه با تاریخچه‌ی آن مانیتور، هم حذف می‌کند.",
   "Deleting a pipeline also deletes its processors.": "حذف یک پایپ‌لاین پردازشگرهای آن را هم حذف می‌کند.",

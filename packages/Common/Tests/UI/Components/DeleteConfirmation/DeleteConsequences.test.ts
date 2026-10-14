@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { getMetadataArgsStorage } from "typeorm";
+import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -12,6 +13,7 @@ import {
   DeleteSideEffect,
   getDeleteConsequence,
   getDeleteConsequenceSentences,
+  ManyToManyList,
 } from "../../../../UI/Components/DeleteConfirmation/DeleteConsequences";
 import {
   createTranslator,
@@ -38,6 +40,13 @@ import {
 
 const COMMON_ROOT: string = path.resolve(__dirname, "../../../..");
 const SERVICES_DIR: string = path.join(COMMON_ROOT, "Server", "Services");
+const MIGRATIONS_DIR: string = path.join(
+  COMMON_ROOT,
+  "Server",
+  "Infrastructure",
+  "Postgres",
+  "SchemaMigrations",
+);
 const DASHBOARD_LOCALES: string = path.resolve(
   COMMON_ROOT,
   "..",
@@ -191,6 +200,109 @@ describe("DeleteConsequences: what goes with a record", () => {
     "deleting a %s deletes its %s rows (ON DELETE CASCADE)",
     (parent: string, child: string) => {
       expect(cascadesFrom(modelOf(child), modelOf(parent))).toBe(true);
+    },
+  );
+});
+
+describe("DeleteConsequences: the lists it is taken out of", () => {
+  /*
+   * "Takes it off ... SLOs": an SLO lists its monitors in a join table, not
+   * with a column of its own, so the claim is held to that list - the
+   * relation, its join table, and the database's foreign key from the join
+   * table to the record, which deletes the record's rows in it.
+   */
+  const lists: Array<[string, ManyToManyList]> = entries.flatMap(
+    ([tableName, consequence]: [string, DeleteConsequence]) => {
+      return (consequence.takenOutOf || []).map(
+        (list: ManyToManyList): [string, ManyToManyList] => {
+          return [tableName, list];
+        },
+      );
+    },
+  );
+
+  // Every migration's text, for the foreign keys the join tables have.
+  const migrations: string = fs
+    .readdirSync(MIGRATIONS_DIR)
+    .filter((file: string): boolean => {
+      return file.endsWith(".ts");
+    })
+    .map((file: string): string => {
+      return fs.readFileSync(path.join(MIGRATIONS_DIR, file), "utf8");
+    })
+    .join("\n");
+
+  test("names the lists the sentences describe", () => {
+    expect(lists).toEqual([
+      ["Monitor", { table: "ServiceLevelObjective", property: "monitors" }],
+    ]);
+  });
+
+  test.each(lists)(
+    "a %s is a member of the many-to-many list it is taken out of",
+    (tableName: string, list: ManyToManyList) => {
+      const owner: ModelClass = modelOf(list.table);
+
+      const relation: RelationMetadataArgs | undefined = relations.find(
+        (candidate: RelationMetadataArgs): boolean => {
+          return (
+            candidate.target === owner &&
+            candidate.propertyName === list.property
+          );
+        },
+      );
+
+      expect(relation).toBeDefined();
+      expect(relation!.relationType).toBe("many-to-many");
+
+      const relationType: unknown =
+        typeof relation!.type === "function"
+          ? (relation!.type as () => unknown)()
+          : relation!.type;
+
+      expect(relationType).toBe(modelOf(tableName));
+      // Nothing on the relation keeps the join rows when the record goes.
+      expect([undefined, "CASCADE"]).toContain(relation!.options.onDelete);
+    },
+  );
+
+  test.each(lists)(
+    "the database deletes a %s's rows in that list's join table with it",
+    (tableName: string, list: ManyToManyList) => {
+      const joinTable: JoinTableMetadataArgs | undefined =
+        getMetadataArgsStorage().joinTables.find(
+          (candidate: JoinTableMetadataArgs): boolean => {
+            return (
+              candidate.target === modelOf(list.table) &&
+              candidate.propertyName === list.property
+            );
+          },
+        );
+
+      expect(joinTable?.name).toBeTruthy();
+
+      const column: string | undefined =
+        joinTable!.inverseJoinColumns?.[0]?.name;
+
+      expect(column).toBeTruthy();
+
+      // The join table's foreign keys to the record, as the migrations add them.
+      const foreignKeys: Array<string> = migrations
+        .split("\n")
+        .filter((line: string): boolean => {
+          return (
+            line.includes(`ALTER TABLE "${joinTable!.name}" ADD CONSTRAINT`) &&
+            line.includes(
+              `FOREIGN KEY ("${column}") REFERENCES "${tableName}"("_id")`,
+            )
+          );
+        });
+
+      expect(foreignKeys.length).toBeGreaterThan(0);
+
+      for (const foreignKey of foreignKeys) {
+        expect(foreignKey).toContain("ON DELETE CASCADE");
+      }
     },
   );
 });

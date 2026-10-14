@@ -29154,7 +29154,7 @@
   "Deleting a dashboard also deletes its custom domains.": "डैशबोर्ड हटाने से उसके कस्टम डोमेन भी हट जाते हैं।",
   "Deleting a database also deletes the endpoints it is reached at.": "डेटाबेस हटाने से वे एंडपॉइंट भी हट जाते हैं जिन पर वह उपलब्ध है।",
   "Deleting a form also deletes its submissions. The incidents and events it created stay.": "फ़ॉर्म हटाने से उसके सबमिशन भी हट जाते हैं। उससे बनी घटनाएँ और इवेंट बने रहते हैं।",
-  "Deleting a monitor also deletes its status history and takes it off status pages and monitor groups. Its incidents and alerts stay.": "मॉनिटर हटाने से उसका स्थिति इतिहास भी हट जाता है और वह स्थिति पृष्ठों और मॉनिटर समूहों से हट जाता है। उसकी घटनाएँ और अलर्ट बने रहते हैं।",
+  "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.": "मॉनिटर हटाने से उसका स्थिति इतिहास भी हट जाता है और वह स्थिति पृष्ठों, मॉनिटर समूहों और SLO से हट जाता है। उसकी घटनाएँ और अलर्ट बने रहते हैं।",
   "Deleting a monitor group takes it off status pages. Its monitors stay.": "मॉनिटर समूह हटाने से वह स्थिति पृष्ठों से हट जाता है। उसके मॉनिटर बने रहते हैं।",
   "Deleting a network device also deletes its interfaces, links, endpoints and any monitor OneUptime created for it, with that monitor's history.": "नेटवर्क डिवाइस हटाने से उसके इंटरफ़ेस, लिंक, एंडपॉइंट और OneUptime द्वारा उसके लिए बनाया गया कोई भी मॉनिटर, उस मॉनिटर के इतिहास सहित, भी हट जाते हैं।",
   "Deleting a pipeline also deletes its processors.": "पाइपलाइन हटाने से उसके प्रोसेसर भी हट जाते हैं।",
