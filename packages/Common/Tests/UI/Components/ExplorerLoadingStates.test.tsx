@@ -443,9 +443,10 @@ describe("the facet sidebar while there is nothing to list", () => {
     // The search goes out; nothing has been read yet.
     view.rerender(sidebar({ facetData: {}, isLoading: true }));
 
+    // It says it is reading, above the box still being typed in.
     expect(
-      screen.queryByTestId(TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID),
-    ).toBeNull();
+      screen.getByTestId(TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID),
+    ).toBeInTheDocument();
     const sameBox: HTMLElement = screen.getByRole("textbox", {
       name: "Search Service",
     });

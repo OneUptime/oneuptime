@@ -197,17 +197,21 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
    * Nothing read yet: the first read, one retried after it failed, or an
    * explorer that holds its reads until it knows its scope (issue #4709). A
    * host hands facet keys over with an answer, so no key means no answer.
-   * The sidebar then shows its loader alone, under its heading where it is
-   * seen, rather than a facet list that says "No values in this time
+   */
+  const isReadingFirstAnswer: boolean =
+    props.isLoading && Object.keys(props.facetData).length === 0;
+
+  /*
+   * Meanwhile the loader stands alone, under the heading where it is seen,
+   * rather than above a facet list that says "No values in this time
    * range" under every facet nobody has read. Once an answer is in, its
    * sections stay through the next read - an empty answer's too, so they
    * do not blink on every refresh of an empty window (a live explorer
    * reads again every few seconds). A facet the reader is searching keeps
-   * its section as well, so the box they are typing in stays where it is.
+   * its section under the loader, so the box they type in stays put.
    */
   const hasNothingToListYet: boolean =
-    props.isLoading &&
-    Object.keys(props.facetData).length === 0 &&
+    isReadingFirstAnswer &&
     Object.values(facetSearch.searchTextByKey).every(
       (text: string): boolean => {
         return text.trim().length === 0;
@@ -235,7 +239,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
         </h3>
       </div>
 
-      {hasNothingToListYet && (
+      {isReadingFirstAnswer && (
         <div
           className="flex items-center justify-center py-8"
           data-testid={TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID}
