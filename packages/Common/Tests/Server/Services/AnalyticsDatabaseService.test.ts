@@ -22,6 +22,11 @@ import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import ModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
+import { getQueryStoppedMessage } from "../../../Server/Utils/AnalyticsDatabase/QueryResponse";
+import ServerException from "../../../Types/Exception/ServerException";
+import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
+import { ResultSet } from "@clickhouse/client";
+import { Readable } from "node:stream";
 import {
   describe,
   expect,
@@ -863,6 +868,159 @@ describe("AnalyticsDatabaseService", () => {
         expect.objectContaining({ query: rewrittenQuery }),
       );
     });
+  });
+
+  /*
+   * A read stopped by timeout_overflow_mode = 'break' can come back as HTTP
+   * 200 with an empty or cut-off body. findBy and aggregateBy handed that
+   * body straight to JSON.parse, and the resulting SyntaxError reached the
+   * Logs page as a bare "Server Error" whenever a wide search hit the cap.
+   */
+  describe("reads stopped by timeout_overflow_mode = 'break'", () => {
+    const respondWith: (body: string) => void = (body: string): void => {
+      jest.spyOn(service, "executeQuery").mockImplementation(() => {
+        return Promise.resolve(
+          new ResultSet(Readable.from([Buffer.from(body)]), "JSON", "query-id"),
+        );
+      });
+    };
+
+    const EMPTY_BODY: string = "";
+    const CUT_OFF_BODY: string =
+      '{\n\t"meta": [{"name": "column_1", "type": "String"}],\n\t"data": [{"column_1": "a"}, {"colu';
+
+    const findBy: () => Promise<Array<TestModel>> = (): Promise<
+      Array<TestModel>
+    > => {
+      return service.findBy({
+        query: {},
+        select: { column_1: true } as any,
+        sort: { column_1: SortOrder.Descending } as any,
+        limit: new PositiveNumber(10),
+        skip: new PositiveNumber(0),
+        props: { isRoot: true },
+      });
+    };
+
+    const aggregateBy: () => Promise<AggregatedResult> =
+      (): Promise<AggregatedResult> => {
+        return service.aggregateBy({
+          aggregationType: AggregationType.Sum,
+          aggregateColumnName: "column_2",
+          aggregationTimestampColumnName: "column_ObjectID",
+          startTimestamp: new Date("2024-01-01"),
+          endTimestamp: new Date("2024-01-02"),
+          query: {},
+          limit: 10,
+          skip: 0,
+          props: { isRoot: true },
+        } as any);
+      };
+
+    beforeEach(() => {
+      jest
+        .spyOn(ModelPermission, "checkReadPermission")
+        .mockImplementation(
+          (_modelType: unknown, query: unknown, select: unknown) => {
+            return Promise.resolve({ query, select } as never);
+          },
+        );
+      jest.spyOn(logger, "debug").mockImplementation(() => {
+        return undefined!;
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test("findBy still returns the rows of a complete response", async () => {
+      respondWith(
+        JSON.stringify({
+          meta: [{ name: "column_1", type: "String" }],
+          data: [{ column_1: "a" }, { column_1: "b" }],
+          rows: 2,
+        }),
+      );
+
+      const items: Array<TestModel> = await findBy();
+
+      expect(
+        items.map((item: TestModel) => {
+          return item.getColumnValue("column_1");
+        }),
+      ).toEqual(["a", "b"]);
+    });
+
+    test.each([
+      ["an empty body", EMPTY_BODY],
+      ["a cut-off body", CUT_OFF_BODY],
+    ])(
+      "findBy reports %s as a stopped search instead of a SyntaxError",
+      async (_description: string, body: string) => {
+        respondWith(body);
+
+        const error: unknown = await findBy().catch((caught: unknown) => {
+          return caught;
+        });
+
+        expect(error).toBeInstanceOf(ServerException);
+        expect((error as ServerException).code).toBe(500);
+        expect((error as ServerException).message).toBe(
+          getQueryStoppedMessage("The <singular-name> search"),
+        );
+      },
+    );
+
+    test("findBy passes any other failure through unchanged", async () => {
+      const socketError: Error = new Error("socket hang up");
+      jest.spyOn(service, "executeQuery").mockImplementation(() => {
+        const stream: Readable = new Readable({
+          read(): void {
+            this.destroy(socketError);
+          },
+        });
+        return Promise.resolve(new ResultSet(stream, "JSON", "query-id"));
+      });
+
+      await expect(findBy()).rejects.toBe(socketError);
+    });
+
+    test("aggregateBy still reads a complete response", async () => {
+      respondWith(
+        JSON.stringify({
+          meta: [],
+          data: [
+            { column_ObjectID: "2024-01-01T00:00:00.000Z", column_2: "5" },
+          ],
+          rows: 1,
+        }),
+      );
+
+      const result: AggregatedResult = await aggregateBy();
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]!.value).toBe(5);
+    });
+
+    test.each([
+      ["an empty body", EMPTY_BODY],
+      ["a cut-off body", CUT_OFF_BODY],
+    ])(
+      "aggregateBy reports %s as a stopped chart query instead of a SyntaxError",
+      async (_description: string, body: string) => {
+        respondWith(body);
+
+        const error: unknown = await aggregateBy().catch((caught: unknown) => {
+          return caught;
+        });
+
+        expect(error).toBeInstanceOf(ServerException);
+        expect((error as ServerException).message).toBe(
+          getQueryStoppedMessage("The <singular-name> chart query"),
+        );
+      },
+    );
   });
 
   describe("execute / executeQuery per-call options", () => {
