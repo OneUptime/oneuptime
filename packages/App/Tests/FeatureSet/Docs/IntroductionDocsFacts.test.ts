@@ -1239,9 +1239,9 @@ describe("Home Page & Shortcuts", () => {
     expect(sections.length).toBe(5);
     expect(sections[0]).toEqual({ title: "Home", items: ["Overview"] });
 
-    // Home itself has none: the layout gives the menu to the lists only.
+    // Home itself has none: the layout leaves the menu off the overview only.
     expect(dashboard("Pages/Home/Layout.tsx")).toMatch(
-      /sideMenu=\{\s*list \? \(\s*<DashboardSideMenu/,
+      /sideMenu=\{\s*isOverview \? undefined : \(\s*<DashboardSideMenu/,
     );
     expect(sectionOf(HOME, "### Home's side menu")).toContain(
       "Home itself has no side menu: it already shows everything the menu would.",

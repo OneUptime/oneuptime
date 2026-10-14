@@ -56,7 +56,8 @@ import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.j
  * broken rather than broken.
  *
  * These render the real nav bar, the real master page and the real Home side
- * menu, and resolve what a browser with that rule would paint. Each group ends
+ * menu (on Active Incidents: Home's overview draws every list itself and has
+ * no menu), and resolve what a browser with that rule would paint. Each group ends
  * with a control that puts the pre-fix class strings back on the rendered
  * markup and shows the same assertion failing — so the tests are proven to
  * catch the regression, not merely to pass.
@@ -183,6 +184,9 @@ const PROJECT_NAME: string = "Acme Production";
 
 const HOME_PATH: string = `/dashboard/${PROJECT_ID}/home`;
 
+// One of the lists Home opens, which carry Home's side menu.
+const HOME_LIST_PATH: string = `/dashboard/${PROJECT_ID}/home/active-incidents`;
+
 type VisibleWithRuleFunction = (width: number) => string;
 
 // What describeVisibility says about an element the rule leaves alone.
@@ -248,13 +252,16 @@ const renderMasterPage: RenderFunction = async (): Promise<void> => {
 };
 
 /*
- * The Home page's layout with its real side menu, routed as App.tsx routes
- * it: a pathless layout route wrapping the Home page's own route.
+ * The Home layout with its real side menu on Active Incidents, routed as
+ * App.tsx routes it: a pathless layout route wrapping the list's own route.
  */
 const renderHomeLayout: RenderFunction = async (): Promise<void> => {
+  // The menu fills its links from the address, as on any page.
+  goTo(HOME_LIST_PATH);
+
   await act(async () => {
     render(
-      <MemoryRouter initialEntries={[HOME_PATH]}>
+      <MemoryRouter initialEntries={[HOME_LIST_PATH]}>
         <I18nextProvider i18n={translation}>
           <Routes>
             <PageRoute
@@ -262,13 +269,15 @@ const renderHomeLayout: RenderFunction = async (): Promise<void> => {
                 <HomeLayout
                   currentProject={buildProject()}
                   hasPaymentMethod={true}
-                  pageRoute={RouteMap[PageMap.HOME] as Route}
+                  pageRoute={RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route}
                 />
               }
             >
               <PageRoute
-                path={(RouteMap[PageMap.HOME] as Route).toString()}
-                element={<div>Home page content</div>}
+                path={(
+                  RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route
+                ).toString()}
+                element={<div>Active Incidents content</div>}
               />
             </PageRoute>
           </Routes>

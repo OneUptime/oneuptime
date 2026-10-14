@@ -7,7 +7,7 @@ import Route from "Common/Types/API/Route";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { matchPath, Outlet, useLocation } from "react-router-dom";
 
 interface HomePagePresentation {
   title: string;
@@ -111,13 +111,23 @@ const HomeLayout: FunctionComponent<PageComponentProps> = (
   ];
 
   const currentPath: string = normalizePath(location.pathname);
-  // One of the lists Home opens, or nothing on the overview itself.
-  const list: HomePagePresentation | undefined = routePresentation.find(
+  const presentation: HomePagePresentation = routePresentation.find(
     (item: { route: Route; presentation: HomePagePresentation }): boolean => {
       return normalizePath(item.route.toString()) === currentPath;
     },
-  )?.presentation;
-  const presentation: HomePagePresentation = list || { title: "Home" };
+  )?.presentation || { title: "Home" };
+
+  /*
+   * The overview draws every list this menu holds, each with its count, so it
+   * takes the full width. Every other Home page is a list it opens, and keeps
+   * the menu: it moves between them, holds the two Active Episodes lists, and
+   * leads back to Overview.
+   */
+  const isOverview: boolean =
+    matchPath(
+      { path: (RouteMap[PageMap.HOME] as Route).toString(), end: true },
+      location.pathname,
+    ) !== null;
 
   const breadcrumbLinks: Array<Link> = [
     {
@@ -138,15 +148,10 @@ const HomeLayout: FunctionComponent<PageComponentProps> = (
     <Page
       title={presentation.title}
       breadcrumbLinks={breadcrumbLinks}
-      /*
-       * The overview draws every list this menu holds, each with its count,
-       * so it takes the full width. The lists keep the menu: it moves between
-       * them, holds the two Active Episodes lists, and leads back to Overview.
-       */
       sideMenu={
-        list ? (
+        isOverview ? undefined : (
           <DashboardSideMenu project={props.currentProject || undefined} />
-        ) : undefined
+        )
       }
     >
       <Suspense fallback={<PageLoader isVisible={true} />}>
