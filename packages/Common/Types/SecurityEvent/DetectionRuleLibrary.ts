@@ -176,8 +176,7 @@ detection:
     {
       id: "ca851016-9804-44ae-97e5-3687241e6d41",
       title: "Account locked out",
-      description:
-        "Okta locked an account after too many failed sign-ins.",
+      description: "Okta locked an account after too many failed sign-ins.",
       category: DetectionRuleLibraryCategory.Identity,
       dataSource: "Okta System Log",
       evaluationIntervalInMinutes: 5,

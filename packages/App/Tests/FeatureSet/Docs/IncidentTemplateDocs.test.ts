@@ -99,9 +99,9 @@ const WORKSPACE_SUMMARY_SERVICE_FILE: string = path.join(
   "Common/Server/Services/WorkspaceNotificationSummaryService.ts",
 );
 
-const TEAMS_WORKSPACE_FILE: string = path.join(
+const WORKSPACE_OPEN_RECORDS_FILE: string = path.join(
   REPO_ROOT,
-  "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams.ts",
+  "Common/Server/Utils/Workspace/WorkspaceOpenRecords.ts",
 );
 
 const SETTINGS_PAGE: string = "incidents/settings";
@@ -901,9 +901,9 @@ describe("Incident docs", () => {
       );
 
       /*
-       * Where the title is a link's text - the Slack and Teams summaries,
-       * and the Teams bot's list of active incidents - mdText places it as
-       * a link's words, where what acts in a link is escaped too.
+       * Where the title is a link's text - the Slack and Teams summaries -
+       * mdText places it as a link's words, where what acts in a link is
+       * escaped too.
        */
       const summaries: string = readSource(WORKSPACE_SUMMARY_SERVICE_FILE);
 
@@ -916,8 +916,19 @@ describe("Incident docs", () => {
       expect(summaries).toMatch(
         /Service\.link\(linkUrl, ep\.title \|\| "Untitled Episode"\)/,
       );
-      expect(readSource(TEAMS_WORKSPACE_FILE)).toMatch(
-        /mdText`\$\{severityIcon\} \*\*\[Incident \$\{[^}]*\}: \$\{incident\.title\}\]\(\$\{incidentUrl\.toString\(\)\}\)\*\*/,
+
+      /*
+       * The Slack and Teams lists of what is open (show active incidents)
+       * link the record's number, and mdText places the title after it as
+       * text.
+       */
+      const openRecords: string = readSource(WORKSPACE_OPEN_RECORDS_FILE);
+
+      expect(openRecords).toMatch(
+        /mdText`\*\*\[\$\{record\.number\}\]\(\$\{record\.link\}\)\*\*`/,
+      );
+      expect(openRecords).toMatch(
+        /mdText`\$\{number\} \$\{WorkspaceOpenRecords\.cutTitle\(record\.title\)\}`/,
       );
 
       for (const character of ["*", "_", "`", "[", "]", "(", ")", "!", "<"]) {
