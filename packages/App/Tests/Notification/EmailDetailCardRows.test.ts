@@ -71,7 +71,10 @@ beforeAll(() => {
   // The production initializer's own partial reads are asynchronous.
   for (const file of fs.readdirSync(PARTIALS_DIR)) {
     if (file.endsWith(".hbs")) {
-      Handlebars.registerPartial(file.slice(0, -4), readPartial(file.slice(0, -4)));
+      Handlebars.registerPartial(
+        file.slice(0, -4),
+        readPartial(file.slice(0, -4)),
+      );
     }
   }
 });
@@ -141,10 +144,22 @@ describe("a row with nothing to show is left out, label and all", () => {
     );
 
     test.each([
-      [["A", "B", "C"], ["A", "|B", "|C"]],
-      [["B", "C"], ["B", "|C"]],
-      [["A", "C"], ["A", "|C"]],
-      [["A", "B"], ["A", "|B"]],
+      [
+        ["A", "B", "C"],
+        ["A", "|B", "|C"],
+      ],
+      [
+        ["B", "C"],
+        ["B", "|C"],
+      ],
+      [
+        ["A", "C"],
+        ["A", "|C"],
+      ],
+      [
+        ["A", "B"],
+        ["A", "|B"],
+      ],
       [["C"], ["C"]],
       [[], []],
     ])(

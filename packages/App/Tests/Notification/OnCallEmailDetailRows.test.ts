@@ -252,12 +252,9 @@ describe.each(CASES)("the $name page-out email", (entry: PageOutCase) => {
     const message: EmailMessage = await entry.build({});
     const tree: EmailMarkupTree = readEmailMarkup(render(message));
     const detailCard: DetailCard = detailCards(tree)[0]!;
-    const last: DetailCardRow =
-      detailCard.rows[detailCard.rows.length - 1]!;
+    const last: DetailCardRow = detailCard.rows[detailCard.rows.length - 1]!;
 
-    expect(String(message.vars["rootCause"])).toContain(
-      entry.missingRootCause,
-    );
+    expect(String(message.vars["rootCause"])).toContain(entry.missingRootCause);
     expect(last.label).toBe("Root Cause:");
     expect(last.showsValue).toBe(true);
     expect(last.dividerBelow).toBe(false);
