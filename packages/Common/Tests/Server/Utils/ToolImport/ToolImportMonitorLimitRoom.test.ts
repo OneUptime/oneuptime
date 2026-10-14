@@ -128,6 +128,22 @@ describe("the monitors an import has room for", () => {
     );
   });
 
+  /*
+   * A billed project still being set up has no plan yet, and the plan read
+   * throws. The preview of everything else must not fail for it: no room
+   * is counted, and every monitor the import makes is still held to the
+   * limit by its own create.
+   */
+  test("a plan that cannot be read counts no room, and the preview goes on", async () => {
+    status.mockRejectedValue(new Error("Project does not have any plans"));
+
+    const access: ToolImportAccess = await readAccess();
+
+    expect(access.planRoomByKind?.has(ToolImportResourceKind.Monitor)).toBe(
+      false,
+    );
+  });
+
   test("a tool that brings no monitors counts none", async () => {
     await readAccess([ToolImportResourceKind.Team]);
 

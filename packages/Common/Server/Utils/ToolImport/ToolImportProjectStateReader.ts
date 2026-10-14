@@ -87,6 +87,7 @@ import ModelPermission from "../../Types/Database/Permissions/Index";
 import BillingPermissions from "../../Types/Database/Permissions/BillingPermission";
 import PlanGates from "../../Types/Database/Permissions/PlanGates";
 import ActiveMonitorLimit from "../Billing/ActiveMonitorLimit";
+import logger from "../Logger";
 import CallerPlan from "../Billing/CallerPlan";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import {
@@ -808,13 +809,24 @@ export default class ToolImportProjectStateReader {
   /*
    * How many more monitors that are checked the project's plan has room
    * for, and which limit says so; null when its plan sets none
-   * (ActiveMonitorLimit).
+   * (ActiveMonitorLimit). Null too when the plan cannot be read - a billed
+   * project still being set up has none yet: the preview then shows no
+   * room to count, and every monitor the import makes is still held to
+   * the limit by its own create.
    */
   private static async readMonitorRoom(
     projectId: ObjectID,
   ): Promise<ToolImportPlanRoom | null> {
-    const status: ActiveMonitorLimitStatus =
-      await ActiveMonitorLimit.getStatus(projectId);
+    let status: ActiveMonitorLimitStatus;
+
+    try {
+      status = await ActiveMonitorLimit.getStatus(projectId);
+    } catch (error) {
+      logger.warn(
+        `ToolImport: could not read the active monitor limit of project ${projectId.toString()}: ${error}`,
+      );
+      return null;
+    }
 
     if (!status.limit || status.activeMonitors === null) {
       return null;
