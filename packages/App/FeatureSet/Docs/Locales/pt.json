@@ -337,6 +337,7 @@
     "AI Gateways (LiteLLM, Portkey)": "Gateways de IA (LiteLLM, Portkey)",
     "AI Agent Circuit Breakers": "Disjuntores para agentes de IA",
     "Security Events (SIEM)": "Eventos de segurança (SIEM)",
+    "Security Cases and Playbooks (SOAR)": "Casos de segurança e playbooks (SOAR)",
     "Threat Intelligence (STIX/TAXII)": "Inteligência de ameaças (STIX/TAXII)",
     "RUM Overview": "Visão geral do RUM",
     "Browser Setup": "Configuração para navegadores",

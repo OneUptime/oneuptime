@@ -1,12 +1,13 @@
 # Security Events (SIEM)
 
-OneUptime keeps security events beside your logs, traces and metrics, and gives every one the same shape, [OCSF](https://schema.ocsf.io/) (the Open Cybersecurity Schema Framework), whatever format it arrived in. Send events from any source, search them, and turn the ones that matter into alerts with Sigma detection rules, threat intelligence and monitors.
+OneUptime keeps security events beside your logs, traces and metrics, and gives every one the same shape, [OCSF](https://schema.ocsf.io/) (the Open Cybersecurity Schema Framework), whatever format it arrived in. Send events from any source, search them, and find the ones that matter with Sigma detection rules, threat intelligence and monitors. What they find becomes [cases](/docs/telemetry/security-cases) to work, and playbooks respond to them.
 
 :::cards
 - [Send events](#send-security-events): An HTTPS POST, a Fluent Bit output, or a connection to a security product.
 - [Search and correlate](#explore-security-events): The Events explorer and the Correlate graph.
 - [Detection rules](#detection-rules): Sigma rules that open alerts.
 - [Monitors](#security-events-monitors): Counts over a rolling window, with a status that recovers.
+- [Cases and playbooks](/docs/telemetry/security-cases): Work what was detected, and respond to it.
 :::
 
 ## How it works
@@ -21,21 +22,28 @@ flowchart TB
     normalize --> events["Security events"]
     events --> rules["Detection rules<br/>(Sigma)"]
     events --> monitors["Security Events<br/>monitors"]
-    rules --> act["Alerts, incidents<br/>and findings"]
+    rules --> act["Cases, alerts<br/>and findings"]
     monitors --> act
 ```
 
-Open **Products → Security Events**, under **Observability**. Its tabs:
+Open **Products → Security Events**, under **Observability**. Its menu:
 
-| Tab | What it is for |
-| --- | --- |
-| **Events** | Search and filter every event, and open one to see all its fields |
-| **Correlate** | A graph of the events that share a host, a user or an IP address |
-| **Detection Rules** | Sigma rules that run on a schedule and open alerts |
-| **Threat Intel** | STIX/TAXII feeds of known-bad indicators |
-| **Monitors** | The project's Security Events monitors |
-| **Connections** | Security products that OneUptime polls for new records |
-| **Setup Guide** | Snippets to send events, filled in with your ingestion key |
+| Page | Section | What it is for |
+| --- | --- | --- |
+| **Overview** | Overview | What needs someone now, and how fast cases are handled |
+| **Cases** | Overview | The queue of what was detected, grouped by what it is about |
+| **Events** | Investigate | Search and filter every event, and open one to see all its fields |
+| **Correlate** | Investigate | A graph of the events that share a host, a user or an IP address |
+| **Entities** | Investigate | The users, hosts and addresses your findings name most |
+| **Detection Rules** | Detect | Sigma rules that run on a schedule and open cases |
+| **Rule Library** | Detect | Ready-made detection rules to add |
+| **ATT&CK Coverage** | Detect | The MITRE ATT&CK techniques your rules cover |
+| **Threat Intel** | Detect | STIX/TAXII feeds of known-bad indicators |
+| **Monitors** | Detect | The project's Security Events monitors |
+| **Playbooks** | Respond | Steps that run on cases, by themselves or by hand |
+| **Playbook Runs** | Respond | What each playbook did, and the steps waiting for approval |
+| **Connections** | Sources | Security products that OneUptime polls for new records |
+| **Setup Guide** | Sources | Snippets to send events, filled in with your ingestion key |
 
 ## Before you begin
 
@@ -43,9 +51,9 @@ Security data is read only by the Project Owner and Project Admin roles and by t
 
 | Role | What it can do |
 | --- | --- |
-| Security Admin | Everything: events, detection rules, threat intel feeds and connections |
-| Security Member | Read events and threat intel, and create, change and delete detection rules and feeds. It can't set up connections or delete security data. |
-| Security Viewer | Read events, rules, feeds, indicators and connections |
+| Security Admin | Everything: events, cases, playbooks, detection rules, threat intel feeds and connections |
+| Security Member | Read events and threat intel, work cases, run playbooks and approve their steps, and create, change and delete detection rules and feeds. It can't set up playbooks or connections, or delete security data. |
+| Security Viewer | Read events, cases, playbooks, rules, feeds, indicators and connections |
 
 ## Send security events
 
@@ -161,6 +169,7 @@ The **Setup Guide** tab has these snippets with your own host and key filled in.
 | AWS Security Hub | Findings, as Detection and Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Sign-in, MFA, account and policy events | [Okta System Log](/docs/integrations/okta) |
 
+- The product's own alerts at or above **Open Cases From** (**High and above** unless you choose another level, or **Never**) open [cases](/docs/telemetry/security-cases), grouped by the user, host or address they are about.
 - A connection reads records by the time the product created them, not by the time of the activity they describe. A SIEM rule that runs hourly creates detections long after the events it matched, and they are still imported.
 - The first poll looks back 24 hours, so a new connection shows recent records at once.
 - **Test connection**, in the connection's row, checks access to the product and that OneUptime's own workers are running, and imports nothing. **Run now** polls straight away.
@@ -211,14 +220,14 @@ The sidebar counts the window's events by **Source**, **Severity**, **Event Clas
 
 ## Detection rules
 
-A detection rule is a [Sigma](https://sigmahq.io/) rule, an open YAML format for describing suspicious activity, that OneUptime runs on a schedule against your events. When it matches, it opens an alert, optionally an incident, and writes a Detection Finding back into the events.
+A detection rule is a [Sigma](https://sigmahq.io/) rule, an open YAML format for describing suspicious activity, that OneUptime runs on a schedule against your events. When it matches, it opens or joins a [case](/docs/telemetry/security-cases), opens an alert, optionally an incident, and writes a Detection Finding back into the events. The **Rule Library** has ready-made rules to start from.
 
 ```mermaid title="How a detection rule fires"
 flowchart TB
     tick["Every minute: rules<br/>whose interval is due"] --> query["Events since<br/>the rule's last run"]
     query --> count["Counted per value of<br/>the Group By Field"]
     count --> check{"Count reaches the<br/>Match Count Threshold?"}
-    check -->|"Yes"| fire["Alert, optional incident<br/>and a Detection Finding"]
+    check -->|"Yes"| fire["Case, alert, optional incident<br/>and a Detection Finding"]
     check -->|"No"| wait["Nothing, until<br/>the next run"]
 ```
 
@@ -229,7 +238,8 @@ flowchart TB
 2. In **Basic Info**, give it a **Name**, and keep **Enabled** on.
 3. In **Sigma Rule**, paste the rule's YAML into **Sigma Rule (YAML)**. It is parsed when you save, so a mistake shows in the form.
 4. In **Evaluation**, set how often it runs and how many matches it takes; see [Evaluation settings](#evaluation-settings).
-5. In **On Match**, choose what a match does: **Create Alert on Match** (on), **Create Incident on Match** (off) and **Write Detection Finding on Match** (on), with an optional **Alert Severity** and **Incident Severity**.
+5. In **Cases**, keep **Open a Case on Match** on to group its matches into cases, by the value the rule groups by.
+6. In **On Match**, choose what else a match does: **Create Alert on Match** (on), **Create Incident on Match** (off) and **Write Detection Finding on Match** (on), with an optional **Alert Severity** and **Incident Severity**.
 :::
 
 A first rule, which matches failed logons from outside `10.x.x.x`:
@@ -374,6 +384,7 @@ Each value of the **Group By Field** gets its own alert: group by something coar
 
 :::cards
 - [Threat Intelligence](/docs/telemetry/threat-intelligence): Match your events against STIX/TAXII feeds.
+- [Security Cases and Playbooks](/docs/telemetry/security-cases): Work what your rules find, and respond with playbooks.
 - [Google SecOps](/docs/integrations/google-secops): Bring Chronicle's detections and events in.
 - [Search Syntax](/docs/telemetry/search-syntax): Everything the search bar understands.
 - [Permission Reference](/docs/permissions/reference): The Security roles, and what each can do.
