@@ -1763,16 +1763,22 @@ export default class AnalyticsDatabaseService<
    * earlier-page ties and holds the whole page right after them.
    *
    * It reads no more than the unbounded find, plus the granules that hold
-   * the page's own key values. The bound it replaces (`k >= min(top values)`)
-   * read the whole range a second time when a filter matched few rows
-   * spread over it, and when nothing matched at all — min() of no rows is
-   * the column default, 1970. Here a page past the last match reads no
-   * granule in step 2. Measured on ClickHouse 26.7, 16M rows shaped like
-   * LogItemV3, a 30-day range, one page of 101: no match 32.0M rows read ->
-   * 16.0M (the unbounded find: 16.0M); 60 matches 32.4M -> 17.0M; a 0.1%
-   * filter 10,000 rows deep 26.2M -> 16.1M; no filter 0.38M either way
-   * (unbounded: 11.0M). The real-ClickHouse suite
-   * (App Tests/Telemetry/PagedFindBoundClickhouse) holds these.
+   * the page's own key values (their ties included). The bound it replaces
+   * (`k >= min(top values)`) read the whole range a second time when a
+   * filter matched few rows spread over it, and when nothing matched at
+   * all — min() of no rows is the column default, 1970. Here a page past
+   * the last match reads no granule in step 2. Those granules are the one
+   * cost left: when a skip index narrows a rare filter to the few granules
+   * that hold its matches, step 1 and step 2 both read them — no more than
+   * the bound before #4710 read.
+   *
+   * Measured on ClickHouse 26.7, 16M rows shaped like LogItemV3, a 30-day
+   * range, one page of 101: no match 32.0M rows read -> 16.0M (the
+   * unbounded find: 16.0M); 60 matches 32.4M -> 17.0M; a 0.1% filter 10,000
+   * rows deep 25.9M -> 16.2M; no filter 0.38M either way (unbounded:
+   * 10.7M). The same on 24.8, and through a Distributed table over two
+   * shards. The real-ClickHouse suite (App
+   * Tests/Telemetry/PagedFindBoundClickhouse) holds these.
    *
    * Two of the gates below keep it exact: no GROUP BY, whose input it would
    * cut, and no Nullable leading key, because a NULL is never IN a set and
@@ -1921,11 +1927,12 @@ export default class AnalyticsDatabaseService<
 
     /*
      * GLOBAL IN, not IN, and not has(): the table is Distributed, and
-     * GLOBAL hands every shard the page's values as a table rather than
-     * as text in its query. A set is what the primary index can use on
-     * every supported ClickHouse; has() over an array constant prunes on
-     * 26.7 but not on 24.8. An empty set (a page past the last match)
-     * selects no granule at all.
+     * GLOBAL builds the set once, where the find was sent, and hands it to
+     * every shard as a table, so no shard works the page out over its own
+     * rows. A set is what the primary index can use on every supported
+     * ClickHouse; has() over an array constant prunes on 26.7 but not on
+     * 24.8. An empty set (a page past the last match) selects no granule
+     * at all.
      */
     const whereCondition: Statement = SQL` AND ${leadingSortKey} GLOBAL IN (SELECT arrayJoin(tupleElement(`;
     whereCondition.append(SORT_KEY_PAGE_BOUND_ALIAS);
