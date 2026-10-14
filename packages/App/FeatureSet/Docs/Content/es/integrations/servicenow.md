@@ -81,7 +81,7 @@ Y su **Request Body** en:
 
 ### Probarlo y luego activarlo
 
-Haz clic en **Ejecutar flujo de trabajo**, introduce el **ID del incidente** de un incidente de prueba y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `201` con el nuevo registro, su `sys_id` y su `number`, como `INC0012345`. Después, activa **Habilitado** en la parte superior del **Constructor**.
+Haz clic en **Ejecutar flujo de trabajo**, elige un incidente de prueba en **Incidente** y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `201` con el nuevo registro, su `sys_id` y su `number`, como `INC0012345`. Después, activa **Habilitado** en la parte superior del **Constructor**.
 :::
 
 `urgency` e `impact` toman `1` para alto, `2` para medio y `3` para bajo, y ServiceNow calcula la prioridad a partir de los dos. Cualquier otra columna de la tabla `incident` puede ir en el cuerpo, con su nombre de columna.

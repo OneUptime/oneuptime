@@ -84,7 +84,7 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Båda | En inbyggd anslutning: incidentkanaler, åtgärder från Teams och jour. |
 | [Mattermost](/docs/workflows/components#mattermost) | Utgående | Publicerar incidentuppdateringar i en Mattermost-kanal. |
 | [Discord](/docs/integrations/discord) | Utgående | Publicerar incidentuppdateringar i en Discord-kanal. |
-| [Telegram](/docs/integrations/telegram) | Utgående | Skickar incidentuppdateringar till en Telegram-chatt. |
+| [Telegram](/docs/integrations/telegram) | Utgående | Skickar ett meddelande till en Telegram-chatt när ett larm utlöses. |
 | [IRC](/docs/integrations/irc) | Utgående | Publicerar incidentuppdateringar i en IRC-kanal. |
 
 > [!TIP]
@@ -122,7 +122,7 @@ URL:en är den enda autentiseringsuppgiften, så behandla den som ett lösenord.
 2. Skapa ett arbetsflöde, klicka på det streckade blocket och välj en händelseutlösare, t.ex. **On Create Incident**. Kryssa i fälten som ska skickas i **Fields to pass on**, t.ex. `title` och `description`.
 3. Klicka på **Lägg till komponent** och lägg till ett **API Post (JSON)**-block. Koppla utlösarens **Success**-punkt till det.
 4. Fyll i **URL**, **Request Headers** med rubriken `Authorization` och **Request Body** med incidentens fält, t.ex. `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-5. Klicka på **Kör arbetsflöde**, ange **Incident-ID** för en incident och kör det. En testkörning skickar begäran på riktigt. Slå sedan på **Aktiverad**.
+5. Klicka på **Kör arbetsflöde**, välj en incident under **Incident** och kör det. En testkörning skickar begäran på riktigt. Slå sedan på **Aktiverad**.
 :::
 
 När verktyget behöver datan i en annan form lägger du till ett [Run Custom JavaScript](/docs/workflows/components#custom-code)-block mellan de två. Receptet är detsamma för Zendesk, New Relic, AWS (via SNS), StatusCake och alla andra: bara URL:en och innehållet ändras.

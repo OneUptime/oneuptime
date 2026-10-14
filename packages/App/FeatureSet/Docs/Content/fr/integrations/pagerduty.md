@@ -72,7 +72,7 @@ Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et rel
 
 ### Tester, puis activer
 
-Cliquez sur **Exécuter le flux de travail**, saisissez l'**ID d'incident** d'un incident de test et lancez-le. L'étape **API Post (JSON)** affiche une réponse `202` avec `"status": "success"`, et PagerDuty ouvre un incident. Activez ensuite **Activé** en haut du **Constructeur**.
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `202` avec `"status": "success"`, et PagerDuty ouvre un incident. Activez ensuite **Activé** en haut du **Constructeur**.
 :::
 
 Le bloc envoie du JSON, il n'a donc pas besoin d'en-tête `Content-Type`. Le `severity` de PagerDuty est l'un de `critical`, `error`, `warning` et `info` : pour envoyer celui de chaque incident, voir [Faire correspondre les gravités](#faire-correspondre-les-gravités).

@@ -72,7 +72,7 @@ Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e co
 
 ### Provarlo, poi attivarlo
 
-Fai clic su **Esegui flusso di lavoro**, inserisci l'**ID incidente** di un incidente di prova ed eseguilo. Il passaggio **API Post (JSON)** mostra una risposta `202` con `"status": "success"`, e PagerDuty apre un incidente. Poi attiva **Abilitato** in cima al **Costruttore**.
+Fai clic su **Esegui flusso di lavoro**, scegli un incidente di prova sotto **Incidente** ed eseguilo. Il passaggio **API Post (JSON)** mostra una risposta `202` con `"status": "success"`, e PagerDuty apre un incidente. Poi attiva **Abilitato** in cima al **Costruttore**.
 :::
 
 Il blocco invia JSON, quindi non serve un'intestazione `Content-Type`. La `severity` di PagerDuty è una tra `critical`, `error`, `warning` e `info`: per inviare quella di ogni incidente, vedi [Mappare le gravità](#mappare-le-gravità).

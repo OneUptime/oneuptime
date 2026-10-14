@@ -86,6 +86,11 @@ export default class MicrosoftTeamsReplies {
     turnContext: TurnContext;
     buildCard: (budgetInBytes: number) => JSONObject;
     budgetsInBytes?: ReadonlyArray<number> | undefined;
+    /*
+     * What Teams shows of the card where it cannot show the card: the chat
+     * list's preview, a notification. Without it, "sent a card".
+     */
+    summary?: string | undefined;
   }): Promise<void> {
     const budgetsInBytes: ReadonlyArray<number> =
       data.budgetsInBytes || MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES;
@@ -109,6 +114,7 @@ export default class MicrosoftTeamsReplies {
               content: card,
             },
           ],
+          ...(data.summary ? { summary: data.summary } : {}),
         });
         return;
       } catch (error) {

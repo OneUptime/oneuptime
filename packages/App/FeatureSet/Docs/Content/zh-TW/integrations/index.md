@@ -84,7 +84,7 @@ flowchart TB
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | 雙向 | 內建連接：事件頻道、從 Teams 執行操作，以及待命。 |
 | [Mattermost](/docs/workflows/components#mattermost) | 傳出 | 把事件更新發布到 Mattermost 頻道。 |
 | [Discord](/docs/integrations/discord) | 傳出 | 把事件更新發布到 Discord 頻道。 |
-| [Telegram](/docs/integrations/telegram) | 傳出 | 把事件更新發送到 Telegram 聊天。 |
+| [Telegram](/docs/integrations/telegram) | 傳出 | 在警示觸發時，向 Telegram 聊天傳送一條訊息。 |
 | [IRC](/docs/integrations/irc) | 傳出 | 把事件更新發布到 IRC 頻道。 |
 
 > [!TIP]
@@ -122,7 +122,7 @@ URL 是唯一的憑證，所以要像對待密碼一樣對待它。請參閱 [We
 2. 建立一個工作流程，點選虛線區塊並選擇一個事件觸發器，例如 **On Create Incident**。在它的 **Fields to pass on** 中勾選要傳送的欄位，例如 `title` 和 `description`。
 3. 點選 **新增元件**，新增一個 **API Post (JSON)** 區塊。把觸發器的 **Success** 點連接到它。
 4. 填寫它的 **URL**，在 **Request Headers** 中填入 `Authorization` 標頭，在 **Request Body** 中填入事件的欄位，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。
-5. 點選 **執行工作流程**，輸入某個事件的 **事件 ID**，然後執行。測試執行會真的傳送請求。然後開啟 **已啟用**。
+5. 點選 **執行工作流程**，在 **事件** 中選擇一個事件，然後執行。測試執行會真的傳送請求。然後開啟 **已啟用**。
 :::
 
 如果工具需要先轉換資料格式，就在兩者之間新增一個 [Run Custom JavaScript](/docs/workflows/components#custom-code) 區塊。Zendesk、New Relic、AWS（透過 SNS）、StatusCake 以及其他各種工具都是同樣的做法：只有 URL 和請求內文不同。

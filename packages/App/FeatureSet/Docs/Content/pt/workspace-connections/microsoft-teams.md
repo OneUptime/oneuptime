@@ -148,6 +148,7 @@ Envie uma mensagem ao bot em um chat pessoal, ou mencione o OneUptime com @ em u
 | `incident [title]` | Abre o formulário de incidente, com o título preenchido. |
 | `maintenance [title]` | Abre o formulário de manutenção programada, com o título preenchido. |
 | `oncall` | Lista quem está de plantão agora em cada agendamento de plantão que você pode ver, até quando, e quem é o próximo. |
+| `page [who] [message]` | Aciona as pessoas que você menciona com @ sobre a sua mensagem, ou envia um cartão para escolher quem acionar. Consulte [Acionar alguém pelo Microsoft Teams](#acionar-alguém-pelo-microsoft-teams). |
 | `ask [question]`, ou qualquer pergunta em linguagem natural | O OneUptime AI responde sobre seus logs, traces, métricas, incidentes e monitores, por exemplo "quais monitores estão fora do ar agora?". As respostas apenas leem. |
 | `show active incidents`, `show active alerts` | Lista o que está aberto agora. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Lista os eventos de manutenção futuros, ou em andamento. |
@@ -163,6 +164,15 @@ Digitar `incident` ou `maintenance` para o bot do OneUptime abre um formulário 
 - **O que um formulário pode indicar.** Em um canal ou em um chat em grupo, qualquer pessoa presente pode enviar o formulário, e ele é enviado como quem o envia, com as permissões dela. O incidente ou evento é criado com essas permissões e atribuído a essa pessoa. Um monitor, política de plantão, rótulo, gravidade ou status que ela não pode ler, ou um de outro projeto, é recusado como um que o projeto não tem, e nada é criado: o bot responde "One of the values you picked ... is not available in this project any more. Please pick it again."
 
 **Execute On-Call Policy** em um incidente, alerta ou episódio funciona do mesmo jeito: requer permissão para executar uma política de plantão (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, ou **Create On-Call Duty Policy Execution Log** em uma função personalizada) e para ler esse incidente, alerta ou episódio, e oferece as políticas de plantão ativas que a pessoa pode ler. Ver um monitor ou uma política de plantão a partir de um cartão também o lê como a pessoa que pressionou o botão.
+
+## Acionar alguém pelo Microsoft Teams
+
+Em um canal ou em um chat em grupo, `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` aciona o Nawaz na hora. O OneUptime cria um alerta cujo título é a sua mensagem, e cada pessoa que você menciona com @ recebe uma ligação, um SMS, uma notificação push ou um e-mail, conforme as próprias regras de plantão dela, até que alguém confirme o alerta.
+
+- **Quem é acionado na hora.** As pessoas que você menciona com @, quando uma mensagem vem depois delas. O OneUptime reconhece uma pessoa pela conta do OneUptime à qual a conta do Microsoft Teams dela está conectada, ou então pelo endereço de e-mail dela no Microsoft Teams. Ninguém de fora do projeto é acionado.
+- **Todo o resto recebe um cartão.** Sem ninguém mencionado com @, como em um chat pessoal com o bot, sem mensagem, com uma marca, ou com uma pessoa que o OneUptime não reconhece, o bot responde com o cartão **Page someone**, com o que você digitou já preenchido, e diz quem não conseguiu escolher. Escolha pessoas, uma equipe, um agendamento de plantão, que aciona quem estiver de plantão nele agora, ou uma política de plantão, que aciona pelas regras de escalonamento dela, e envie o cartão. Qualquer pessoa na conversa pode enviar o cartão, como ela mesma. Depois que ele aciona, o cartão é removido, para que ninguém acione com ele duas vezes.
+- **Onde aparece.** A conversa mostra o acionamento como um único cartão, mantido atualizado: quem foi acionado e como, e quem confirmou. Onde o bot não pode publicá-lo, a resposta dele diz quem foi acionado, com um link para o alerta.
+- **Quem pode acionar.** Quem pode tanto executar uma política de plantão quanto criar um alerta: **Project Owner**, **Project Admin** e **Project Member**, ou **On-Call Member** junto com **Alert Member** (**Create On-Call Duty Policy Execution Log** e **Create Alert** em uma função personalizada). Acionar pessoas, uma equipe ou um agendamento diretamente, sem uma política de plantão por trás do acionamento, também exige acesso a todas as políticas de plantão do projeto. Qualquer outra pessoa é avisada em uma resposta, e ninguém é acionado.
 
 ## Agir sobre incidentes, alertas e eventos pelo Microsoft Teams
 

@@ -1664,6 +1664,42 @@ describe("OnCallPageService.page", () => {
       expect(alertAsked().rootCause).toBeUndefined();
     });
 
+    /*
+     * A page from a chat (`/oneuptime page`) says where it came from in its
+     * own words: who paged, from which chat.
+     */
+    test("an alert a page names its own root cause for takes it, as given", async () => {
+      await pageAboutSomethingNew({
+        newAlert: {
+          rootCause: "Created by **Jane Doe** from Slack to page people.",
+        },
+      });
+
+      expect(alertAsked().rootCause).toBe(
+        "Created by **Jane Doe** from Slack to page people.",
+      );
+    });
+
+    test("a root cause the page names wins over the workflow's", async () => {
+      await pageAboutSomethingNew({
+        props: workflowStep(),
+        newAlert: { rootCause: "From chat." },
+      });
+
+      expect(alertAsked().rootCause).toBe("From chat.");
+    });
+
+    test("a root cause of only spaces is none: a workflow's alert still names the workflow", async () => {
+      await pageAboutSomethingNew({
+        props: workflowStep(),
+        newAlert: { rootCause: "   " },
+      });
+
+      expect(alertAsked().rootCause).toBe(
+        "Created by workflow **Page the on-call engineer** to page people.",
+      );
+    });
+
     test("an on-call policy the page names is the new alert's own: the alert starts it, and the page does not start it again", async () => {
       const result: OnCallPageResult = await pageAboutSomethingNew({
         targets: {

@@ -165,6 +165,12 @@ const TEAMS_CARD_BUTTONS: Array<string> = ["Escalate", "Escalate."];
 const SLACK_CONNECT_BUTTON: Array<string> = ["Connect Slack account"];
 const TEAMS_CONNECT_BUTTON: Array<string> = ["Connect Microsoft Teams account"];
 
+/*
+ * The form a page from the chat opens - Slack's modal, Microsoft Teams'
+ * card - as the server titles it, in English (SlackPageActions.FORM_TITLE).
+ */
+const PAGE_FORM: Array<string> = ["Page someone"];
+
 // Slack's own controls and the app's shortcuts, by the names Slack shows.
 const SLACK_CONTROLS: Array<string> = [
   "Pin to channel",
@@ -255,6 +261,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...CHAT_BUTTONS,
     ...SLACK_CONNECT_BUTTON,
     ...SLACK_CONTROLS,
+    ...PAGE_FORM,
   ],
   [TEAMS]: [
     "Growth",
@@ -262,6 +269,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...TEAMS_CARD_BUTTONS,
     ...TEAMS_CONNECT_BUTTON,
     ...TEAMS_CONTROLS,
+    ...PAGE_FORM,
   ],
   [VIDEO]: [...PROVIDER_CONSOLES, ...BRANDS],
   [BUILDING]: [],
@@ -405,6 +413,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     // What OneUptime AI answers in Slack: the rule's two halves.
     "In your own conversation, just reply.",
     "In any other thread, mention OneUptime.",
+    // Paging someone from Slack.
+    "Who is paged at once.",
+    "Anything else opens a form.",
+    "Where it shows.",
+    "Who may page.",
   ],
   [TEAMS]: [
     "The project's connection",
@@ -424,6 +437,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What Change State offers.",
     "Where the person is answered.",
     "If their account is not connected.",
+    // Paging someone from Microsoft Teams.
+    "Who is paged at once.",
+    "Anything else gets a card.",
+    "Where it shows.",
+    "Who may page.",
   ],
   [VIDEO]: [],
   [BUILDING]: [
@@ -1018,6 +1036,7 @@ describe("the lists this test keeps", () => {
       ...CHAT_BUTTONS,
       ...SLACK_CONNECT_BUTTON,
       ...TEAMS_CONNECT_BUTTON,
+      ...PAGE_FORM,
       ...TEAMS_CARD_BUTTONS,
       ...SLACK_CONTROLS,
       ...TEAMS_CONTROLS,

@@ -72,7 +72,7 @@ flowchart TB
 
 ### 測試，然後啟用
 
-點選 **執行工作流程**，輸入一個測試事件的 **事件 ID**，然後執行。**API Post (JSON)** 步驟會顯示帶有 `"status": "success"` 的 `202` 回應，PagerDuty 會建立一個事件。然後在 **建構器** 頂部開啟 **已啟用**。
+點選 **執行工作流程**，在 **事件** 中選擇一個測試事件，然後執行。**API Post (JSON)** 步驟會顯示帶有 `"status": "success"` 的 `202` 回應，PagerDuty 會建立一個事件。然後在 **建構器** 頂部開啟 **已啟用**。
 :::
 
 該區塊傳送的是 JSON，因此不需要 `Content-Type` 標頭。PagerDuty 的 `severity` 是 `critical`、`error`、`warning` 和 `info` 之一：要傳送每個事件自己的嚴重程度，請參閱 [對應嚴重程度](#對應嚴重程度)。

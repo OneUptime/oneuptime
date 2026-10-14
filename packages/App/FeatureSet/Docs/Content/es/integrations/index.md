@@ -84,7 +84,7 @@ Empieza por arriba de la tabla: cuanto más arriba está una forma, menos hay qu
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Ambos | Una conexión integrada: canales de incidentes, acciones desde Teams y guardias. |
 | [Mattermost](/docs/workflows/components#mattermost) | De salida | Publica las novedades de los incidentes en un canal de Mattermost. |
 | [Discord](/docs/integrations/discord) | De salida | Publica las novedades de los incidentes en un canal de Discord. |
-| [Telegram](/docs/integrations/telegram) | De salida | Envía las novedades de los incidentes a un chat de Telegram. |
+| [Telegram](/docs/integrations/telegram) | De salida | Envía un mensaje a un chat de Telegram cuando se dispara una alerta. |
 | [IRC](/docs/integrations/irc) | De salida | Publica las novedades de los incidentes en un canal de IRC. |
 
 > [!TIP]
@@ -122,7 +122,7 @@ La URL es la única credencial, así que trátala como una contraseña. Consulta
 2. Crea un flujo de trabajo, haz clic en el bloque discontinuo y elige un disparador de evento, como **On Create Incident**. En sus **Fields to pass on**, marca los campos que quieres enviar, como `title` y `description`.
 3. Haz clic en **Añadir componente** y añade un bloque **API Post (JSON)**. Conecta a él el punto **Success** del disparador.
 4. Rellena su **URL**, sus **Request Headers** con la cabecera `Authorization` y su **Request Body** con los campos del incidente, como `{{local.components.incident-on-create-1.returnValues.model.title}}`.
-5. Haz clic en **Ejecutar flujo de trabajo**, introduce el **ID del incidente** de un incidente y ejecútalo. Una ejecución de prueba envía de verdad la solicitud. Después, activa **Habilitado**.
+5. Haz clic en **Ejecutar flujo de trabajo**, elige un incidente en **Incidente** y ejecútalo. Una ejecución de prueba envía de verdad la solicitud. Después, activa **Habilitado**.
 :::
 
 Cuando la herramienta necesita los datos con otra forma, añade un bloque [Run Custom JavaScript](/docs/workflows/components#custom-code) entre los dos. La receta es la misma para Zendesk, New Relic, AWS (a través de SNS), StatusCake y todas las demás: solo cambian la URL y el cuerpo.

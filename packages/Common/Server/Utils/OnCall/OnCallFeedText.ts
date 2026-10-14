@@ -51,6 +51,12 @@ import ProductBrandingText from "../ProductBrandingText";
  *     schedule Secondary.
  *   Workflow Page the on-call engineer stopped paging because the incident
  *     is acknowledged or resolved.
+ *
+ * A page a PERSON started - from Slack or Microsoft Teams - ends as their
+ * page ending, not as the person doing something, as its chat message says
+ * "so paging stopped": "The page from Simon Lee stopped because the alert
+ * is acknowledged or resolved." ("Simon Lee stopped paging" read as if he
+ * had called it off.)
  */
 export interface OnCallStepFeedTextInput {
   status: OnCallDutyExecutionLogTimelineStatus;
@@ -313,6 +319,16 @@ const getDirectPagePager: (
 };
 
 /*
+ * Whether a person started a direct page - from a chat - rather than a
+ * workflow, or the product with nobody named (getDirectPagePager's order).
+ */
+const isDirectPageStartedByPerson: (pager: OnCallDirectPagePager) => boolean = (
+  pager: OnCallDirectPagePager,
+): boolean => {
+  return !(pager.workflowName || "").trim() && hasMarkdown(pager.startedByUser);
+};
+
+/*
  * Why the person was among those paged: ", on call in schedule **Primary**"
  * or ", as a member of **Platform**". Nothing for a person named themselves.
  */
@@ -393,6 +409,15 @@ const getDirectPageStatusSentences: (
     ? [asSentence(message)]
     : [];
 
+  /*
+   * What stopped: "Workflow **Page SRE** stopped paging" - or, for a page a
+   * person started, "The page from **Simon Lee** stopped" (see the header).
+   */
+  const isStartedByPerson: boolean = isDirectPageStartedByPerson(input.pager);
+  const stopped: MarkdownText = isStartedByPerson
+    ? mdText`The page from ${pager} stopped`
+    : mdText`${pager} stopped paging`;
+
   switch (input.status) {
     case OnCallDutyPolicyStatus.Scheduled:
       return [mdText`${pager} is about to page.`];
@@ -403,7 +428,7 @@ const getDirectPageStatusSentences: (
     case OnCallDutyPolicyStatus.Completed: {
       // Everybody's notifications went out, and nobody acknowledged.
       if (message === ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE) {
-        return [mdText`${pager} stopped paging: nobody acknowledged.`];
+        return [mdText`${stopped}: nobody acknowledged.`];
       }
 
       if (
@@ -413,16 +438,21 @@ const getDirectPageStatusSentences: (
           .slice(ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START.length)
           .trim();
 
-        return [mdText`${pager} stopped paging because the ${asSentence(why)}`];
+        return [mdText`${stopped} because the ${asSentence(why)}`];
       }
 
-      return [mdText`${pager} stopped paging.`, ...messageSentences];
+      return [mdText`${stopped}.`, ...messageSentences];
     }
     // Each target's own entry says why it was not paged.
     case OnCallDutyPolicyStatus.CompletedWithNoNotifications:
       return [mdText`${pager} paged nobody.`];
     case OnCallDutyPolicyStatus.Error:
-      return [mdText`${pager} stopped with an error.`, ...messageSentences];
+      return [
+        isStartedByPerson
+          ? mdText`The page from ${pager} stopped with an error.`
+          : mdText`${pager} stopped with an error.`,
+        ...messageSentences,
+      ];
     default:
       return [
         mdText`${pager} is now **${input.status}**.`,

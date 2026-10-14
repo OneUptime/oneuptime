@@ -102,6 +102,14 @@ export enum MicrosoftTeamsOnCallDutyActionType {
   OnCallDutyPolicyTriggered = "OnCallDutyPolicyTriggered",
 }
 
+/*
+ * "page [who] [message]" typed to the bot opens the Page someone card when
+ * it cannot page at once (MicrosoftTeamsPage); this is the card, submitted.
+ */
+export enum MicrosoftTeamsPageActionType {
+  SubmitPageSomeone = "SubmitPageSomeone",
+}
+
 // General Actions
 export enum MicrosoftTeamsGeneralActionType {
   Help = "Help",
@@ -134,6 +142,7 @@ export type MicrosoftTeamsActionType =
   | MicrosoftTeamsMonitorActionType
   | MicrosoftTeamsScheduledMaintenanceActionType
   | MicrosoftTeamsOnCallDutyActionType
+  | MicrosoftTeamsPageActionType
   | MicrosoftTeamsGeneralActionType;
 
 /*

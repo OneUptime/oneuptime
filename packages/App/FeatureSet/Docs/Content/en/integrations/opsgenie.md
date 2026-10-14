@@ -73,7 +73,7 @@ And its **Request Body** to:
 
 ### Test it, then turn it on
 
-Click **Run Workflow**, enter the **Incident ID** of a test incident, and run it. The **API Post (JSON)** step shows a `202` response, and the alert appears in Opsgenie a moment later. Then switch **Enabled** on at the top of the **Builder**.
+Click **Run Workflow**, pick a test incident under **Incident**, and run it. The **API Post (JSON)** step shows a `202` response, and the alert appears in Opsgenie a moment later. Then switch **Enabled** on at the top of the **Builder**.
 :::
 
 Opsgenie's scheme is the word `GenieKey`, a space, then the key. Opsgenie keeps `message` to 130 characters, and its priorities run from `P1` to `P5`: to send each incident's own, see [Map priorities](#map-priorities).

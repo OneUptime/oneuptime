@@ -81,7 +81,7 @@ And its **Request Body** to:
 
 ### Test it, then turn it on
 
-Click **Run Workflow**, enter the **Incident ID** of a test incident, and run it. The **API Post (JSON)** step shows a `201` response holding the new record, with its `sys_id` and its `number`, such as `INC0012345`. Then switch **Enabled** on at the top of the **Builder**.
+Click **Run Workflow**, pick a test incident under **Incident**, and run it. The **API Post (JSON)** step shows a `201` response holding the new record, with its `sys_id` and its `number`, such as `INC0012345`. Then switch **Enabled** on at the top of the **Builder**.
 :::
 
 `urgency` and `impact` take `1` for high, `2` for medium and `3` for low, and ServiceNow works out the priority from the two. Any other column of the `incident` table can go in the body, under its column name.
