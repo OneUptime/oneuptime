@@ -21,6 +21,7 @@ import {
   updateManyMergingCustomFields,
 } from "./CustomFieldsArgument";
 import logComponentError from "./LogComponentError";
+import { assertIdsAreResolved } from "./UnresolvedIdReference";
 
 export default class UpdateManyBaseModel<
   TBaseModel extends BaseModel,
@@ -108,6 +109,14 @@ export default class UpdateManyBaseModel<
         this.modelService.getModel(),
       );
 
+      // An ID still written as a {{...}} reference stops the step. See the helper.
+      assertIdsAreResolved({
+        json: args["data"] as JSONObject,
+        model: this.modelService.getModel(),
+        metadata: this.getMetadata(),
+        argumentId: "data",
+      });
+
       if (!args["query"]) {
         throw options.onError(new BadDataException("Query is undefined."));
       }
@@ -121,6 +130,14 @@ export default class UpdateManyBaseModel<
           new BadDataException("Query is should be of type object."),
         );
       }
+
+      // An ID still written as a {{...}} reference stops the step. See the helper.
+      assertIdsAreResolved({
+        json: args["query"] as JSONObject,
+        model: this.modelService.getModel(),
+        metadata: this.getMetadata(),
+        argumentId: "query",
+      });
 
       if (args["skip"] && typeof args["skip"] === "string") {
         args["skip"] = parseInt(args["skip"]);
@@ -211,7 +228,8 @@ export default class UpdateManyBaseModel<
         executePort: successPort,
       };
     } catch (err: any) {
-      logComponentError({
+      // Said in the run log, and again under the step's Error output.
+      const reason: string = logComponentError({
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
@@ -221,6 +239,7 @@ export default class UpdateManyBaseModel<
       return {
         returnValues: {},
         executePort: errorPort,
+        executePortReason: reason,
       };
     }
   }

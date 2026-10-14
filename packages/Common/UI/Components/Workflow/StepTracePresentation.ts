@@ -75,7 +75,8 @@ export interface StepOutcome {
   portDescription: string | null;
   /**
    * Why the step took the port, when it said: which case a Switch / Case
-   * matched, and that the ones above it did not.
+   * matched, and that the ones above it did not; on the Error port, the
+   * step's error - a database step's, or why nobody was paged.
    */
   portReason: string | null;
   portTone: StepPortTone;
@@ -127,6 +128,51 @@ export const getStepWarnings: GetStepWarningsFunction = (
 
   return step.warnings.filter((warning: WorkflowStepTraceWarning): boolean => {
     return Boolean(warning) && isText(warning.message);
+  });
+};
+
+type GetStepWarningsToShowFunction = (
+  step: WorkflowStepTraceEntry,
+  outcome: StepOutcome,
+) => Array<WorkflowStepTraceWarning>;
+
+/*
+ * The warnings a step's card shows: every one, but for a warning about
+ * {{...}} references that the step's error already names. A database step
+ * whose ID is a reference that did not resolve takes its Error output saying
+ * so - which reference, in which setting, that nothing was read or written,
+ * and what to check - and the runner's own warning about that reference
+ * ("did not resolve to anything and was left as literal text") would only
+ * repeat it, in a louder box, under it. The setting still says Did not
+ * resolve in Received, and the Full Log still has both lines.
+ */
+export const getStepWarningsToShow: GetStepWarningsToShowFunction = (
+  step: WorkflowStepTraceEntry,
+  outcome: StepOutcome,
+): Array<WorkflowStepTraceWarning> => {
+  const warnings: Array<WorkflowStepTraceWarning> = getStepWarnings(step);
+
+  const errorReason: string | null =
+    outcome.portTone === StepPortTone.Error ? outcome.portReason : null;
+
+  if (!errorReason) {
+    return warnings;
+  }
+
+  return warnings.filter((warning: WorkflowStepTraceWarning): boolean => {
+    const references: Array<string> = Array.isArray(
+      warning.unresolvedReferences,
+    )
+      ? warning.unresolvedReferences.filter(isText)
+      : [];
+
+    if (references.length === 0) {
+      return true;
+    }
+
+    return !references.every((reference: string): boolean => {
+      return errorReason.includes(reference);
+    });
   });
 };
 

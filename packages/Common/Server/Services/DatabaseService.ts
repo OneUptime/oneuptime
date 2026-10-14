@@ -43,6 +43,7 @@ import ReadPermission, {
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import QueryUtil from "../Types/Database/QueryUtil";
+import UUIDColumnFilter from "../Types/Database/UUIDColumnFilter";
 import RelationSelect from "../Types/Database/RelationSelect";
 import SearchBy from "../Types/Database/SearchBy";
 import SearchResult from "../Types/Database/SearchResult";
@@ -1392,6 +1393,48 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     if (error) {
       throw new BadDataException(error);
+    }
+  }
+
+  /*
+   * Every ID a write gives - an ID column's value, the records a relation
+   * names - as text Postgres reads as a uuid, or the write is refused with
+   * one plain message naming the column ('Invalid ID for "monitorId" in the
+   * data: "abc". An ID is a UUID, ...'), before any hook runs and before
+   * anything is written. A serialized ObjectID - as an object, or as the
+   * JSON text a workflow writes for a quoted reference - is written as the
+   * id it holds. Such a value used to reach the database, often first in a
+   * lookup a check or a hook made with it, and come back as a bare 500. The
+   * rule is the one a filter is held to; see
+   * UUIDColumnFilter.normalizeWrittenValue. Asked right after the boolean
+   * check, so a caller who may not write at all is told that first.
+   */
+  private refuseUnstorableIdValues(data: unknown): void {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+
+    const record: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const columnName of Object.keys(record)) {
+      const column: TableColumnMetadata | undefined =
+        this.model.getTableColumnMetadata(columnName);
+
+      if (!column) {
+        continue;
+      }
+
+      const value: unknown = record[columnName];
+
+      const written: unknown = UUIDColumnFilter.normalizeWrittenValue({
+        columnName: columnName,
+        column: column,
+        value: value,
+      });
+
+      if (written !== value) {
+        record[columnName] = written;
+      }
     }
   }
 
@@ -5218,6 +5261,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // A switch the database would refuse, in one plain sentence. See the helper.
     this.refuseUnstorableBooleanValues(createBy.data);
 
+    // So is an ID the database would not read as one. See the helper.
+    this.refuseUnstorableIdValues(createBy.data);
+
     this.unwrapHashedStringsForUnhashedColumns(createBy.data);
 
     // Who did something to the record is OneUptime's to say. See the helper.
@@ -8680,6 +8726,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       // A switch the database would refuse, in one plain sentence. See the helper.
       this.refuseUnstorableBooleanValues(updateBy.data);
+
+      // So is an ID the database would not read as one. See the helper.
+      this.refuseUnstorableIdValues(updateBy.data);
 
       /*
        * Defense in depth for the tenant confused-deputy on the update path.
