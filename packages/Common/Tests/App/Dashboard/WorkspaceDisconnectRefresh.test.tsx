@@ -19,9 +19,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * Disconnecting a workspace in Project Settings (Uninstall OneUptime from
- * Slack / Microsoft Teams) asks the shared store again, so every Workspace
- * menu stops listing it without a reload. Unlinking only your own account
- * does not change what the project has connected, and asks nothing.
+ * Slack / Microsoft Teams, in the project card's ⋯, confirmed) asks the
+ * shared store again, so every Workspace menu stops listing it without a
+ * reload. Unlinking only your own account does not change what the project
+ * has connected, and asks nothing.
  */
 
 interface MockAuthState {
@@ -238,6 +239,21 @@ async function click(name: string): Promise<void> {
   });
 }
 
+// The project card's ⋯, its Uninstall, then the dialog's Uninstall.
+async function uninstall(workspace: string): Promise<void> {
+  await click(`Manage the ${workspace} connection`);
+
+  const item: HTMLElement = await screen.findByRole("menuitem", {
+    name: `Uninstall OneUptime from ${workspace}`,
+  });
+
+  await act(async () => {
+    fireEvent.click(item);
+  });
+
+  await click("Uninstall");
+}
+
 describe("Project Settings > Slack", () => {
   async function renderSlack(): Promise<void> {
     await act(async () => {
@@ -250,7 +266,7 @@ describe("Project Settings > Slack", () => {
   test("uninstalling OneUptime from Slack asks which workspaces are connected again", async () => {
     await renderSlack();
 
-    await click("Uninstall OneUptime from Slack");
+    await uninstall("Slack");
 
     expect(deleteItemMock).toHaveBeenCalledTimes(1);
     expect(
@@ -259,13 +275,17 @@ describe("Project Settings > Slack", () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  test("a failed uninstall asks nothing", async () => {
+  test("a failed uninstall asks nothing, and says why in the dialog, still open", async () => {
     deleteItemMock.mockRejectedValue(new Error("Not allowed") as never);
     await renderSlack();
 
-    await click("Uninstall OneUptime from Slack");
+    await uninstall("Slack");
 
     expect(refresh).not.toHaveBeenCalled();
+    expect(screen.getByText("Error: Not allowed")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Uninstall" }),
+    ).toBeInTheDocument();
   });
 
   test("unlinking only your own Slack account asks nothing", async () => {
@@ -296,7 +316,7 @@ describe("Project Settings > Microsoft Teams", () => {
   test("uninstalling OneUptime from Microsoft Teams asks which workspaces are connected again", async () => {
     await renderTeams();
 
-    await click("Uninstall OneUptime from Microsoft Teams");
+    await uninstall("Microsoft Teams");
 
     expect(
       (deleteItemMock.mock.calls[0]![0] as { modelType: unknown }).modelType,

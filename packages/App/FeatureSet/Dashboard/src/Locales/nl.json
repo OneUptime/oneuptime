@@ -28742,7 +28742,6 @@
   "A project admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.": "Een projectbeheerder verbindt het onder Projectinstellingen → Workspace → Slack. Daarna kun je hier je eigen Slack-account verbinden.",
   "Acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "Bevestig incidenten en ontvang berichten van OneUptime als jezelf, in Microsoft Teams.",
   "Admin consent is granted for your Microsoft 365 organization. OneUptime posts what your notification rules send to your teams' channels. Each member connects their own Microsoft Teams account to act as themselves.": "Beheerderstoestemming is verleend voor je Microsoft 365-organisatie. OneUptime plaatst wat je meldingsregels versturen in de kanalen van je teams. Elk lid verbindt zijn eigen Microsoft Teams-account om als zichzelf te handelen.",
-  "Buttons and commands in Microsoft Teams act as you, with your permissions in this project. Open the OneUptime app in Microsoft Teams and type home to see your on-call shifts and the open incidents.": "Knoppen en opdrachten in Microsoft Teams handelen als jou, met jouw rechten in dit project. Open de OneUptime-app in Microsoft Teams en typ home om je wachtdiensten en de open incidenten te zien.",
   "Buttons, commands and reactions in Slack act as you, with your permissions in this project, and the OneUptime app's Home in Slack shows your on-call shifts.": "Knoppen, opdrachten en reacties in Slack handelen als jou, met jouw rechten in dit project, en de startpagina van de OneUptime-app in Slack toont je wachtdiensten.",
   "It posts what your notification rules send, creates a channel for each incident and invites its people. Each member connects their own Slack account to act as themselves.": "Het plaatst wat je meldingsregels versturen, maakt voor elk incident een kanaal en nodigt de betrokkenen uit. Elk lid verbindt zijn eigen Slack-account om als zichzelf te handelen.",
   "Microsoft Teams is not connected to this project yet": "Microsoft Teams is nog niet met dit project verbonden",
@@ -28751,5 +28750,10 @@
   "Post incidents, alerts and scheduled maintenance to your Slack channels, give each incident a channel of its own, and let your team acknowledge, resolve and page from Slack.": "Plaats incidenten, waarschuwingen en gepland onderhoud in je Slack-kanalen, geef elk incident een eigen kanaal en laat je team vanuit Slack bevestigen, oplossen en oproepen.",
   "Slack is not connected to this project yet": "Slack is nog niet met dit project verbonden",
   "Your Microsoft Teams account is connected": "Je Microsoft Teams-account is verbonden",
-  "Your Slack account is connected": "Je Slack-account is verbonden"
+  "Your Slack account is connected": "Je Slack-account is verbonden",
+  "Buttons and commands in Microsoft Teams act as you, with your permissions in this project. Open the OneUptime app in Microsoft Teams and type “home” to see your on-call shifts and the open incidents.": "Knoppen en opdrachten in Microsoft Teams handelen als jou, met jouw rechten in dit project. Open de OneUptime-app in Microsoft Teams en typ “home” om je wachtdiensten en de open incidenten te zien.",
+  "Manage the {{workspace}} connection": "{{workspace}}-koppeling beheren",
+  "OneUptime stops posting to {{workspace}}, and every member's {{workspace}} account is disconnected from this project, along with their {{workspace}} notification method. The {{workspace}} notification rules and summaries are kept for when you connect again.": "OneUptime plaatst niets meer in {{workspace}}, en het {{workspace}}-account van elk lid wordt losgekoppeld van dit project, samen met hun {{workspace}}-meldingsmethode. De meldingsregels en samenvattingen voor {{workspace}} blijven bewaard voor wanneer u opnieuw verbindt.",
+  "Uninstall": "Verwijderen",
+  "Uninstall OneUptime from {{workspace}}?": "OneUptime verwijderen uit {{workspace}}?"
 }

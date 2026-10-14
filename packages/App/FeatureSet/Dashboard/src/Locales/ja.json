@@ -28742,7 +28742,6 @@
   "A project admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.": "プロジェクト管理者が プロジェクト設定 → Workspace → Slack で接続します。その後、ここで自分の Slack アカウントを接続できます。",
   "Acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "Microsoft Teams で、自分としてインシデントを確認し、OneUptime からのメッセージを受け取れます。",
   "Admin consent is granted for your Microsoft 365 organization. OneUptime posts what your notification rules send to your teams' channels. Each member connects their own Microsoft Teams account to act as themselves.": "Microsoft 365 組織の管理者の同意が付与されています。OneUptime は通知ルールが送る内容をチームのチャネルに投稿します。各メンバーは自分の Microsoft Teams アカウントを接続して、自分として操作します。",
-  "Buttons and commands in Microsoft Teams act as you, with your permissions in this project. Open the OneUptime app in Microsoft Teams and type home to see your on-call shifts and the open incidents.": "Microsoft Teams のボタンとコマンドは、このプロジェクトでのあなたの権限で、あなたとして動作します。Microsoft Teams で OneUptime アプリを開いて home と入力すると、オンコールのシフトと未解決のインシデントが表示されます。",
   "Buttons, commands and reactions in Slack act as you, with your permissions in this project, and the OneUptime app's Home in Slack shows your on-call shifts.": "Slack のボタン、コマンド、リアクションは、このプロジェクトでのあなたの権限で、あなたとして動作します。Slack の OneUptime アプリのホームにはオンコールのシフトが表示されます。",
   "It posts what your notification rules send, creates a channel for each incident and invites its people. Each member connects their own Slack account to act as themselves.": "通知ルールが送る内容を投稿し、インシデントごとにチャネルを作成して関係者を招待します。各メンバーは自分の Slack アカウントを接続して、自分として操作します。",
   "Microsoft Teams is not connected to this project yet": "Microsoft Teams はまだこのプロジェクトに接続されていません",
@@ -28751,5 +28750,10 @@
   "Post incidents, alerts and scheduled maintenance to your Slack channels, give each incident a channel of its own, and let your team acknowledge, resolve and page from Slack.": "インシデント、アラート、計画メンテナンスを Slack チャネルに投稿し、インシデントごとに専用のチャネルを用意して、チームが Slack から確認、解決、呼び出しを行えるようにします。",
   "Slack is not connected to this project yet": "Slack はまだこのプロジェクトに接続されていません",
   "Your Microsoft Teams account is connected": "Microsoft Teams アカウントは接続済みです",
-  "Your Slack account is connected": "Slack アカウントは接続済みです"
+  "Your Slack account is connected": "Slack アカウントは接続済みです",
+  "Buttons and commands in Microsoft Teams act as you, with your permissions in this project. Open the OneUptime app in Microsoft Teams and type “home” to see your on-call shifts and the open incidents.": "Microsoft Teams のボタンとコマンドは、このプロジェクトでのあなたの権限で、あなたとして動作します。Microsoft Teams で OneUptime アプリを開いて 「home」 と入力すると、オンコールのシフトと未解決のインシデントが表示されます。",
+  "Manage the {{workspace}} connection": "{{workspace}} の接続を管理",
+  "OneUptime stops posting to {{workspace}}, and every member's {{workspace}} account is disconnected from this project, along with their {{workspace}} notification method. The {{workspace}} notification rules and summaries are kept for when you connect again.": "OneUptime は {{workspace}} への投稿を停止し、各メンバーの {{workspace}} アカウントは {{workspace}} の通知方法とともにこのプロジェクトから切断されます。{{workspace}} の通知ルールとサマリーは、再接続するときのために保持されます。",
+  "Uninstall": "アンインストール",
+  "Uninstall OneUptime from {{workspace}}?": "{{workspace}} から OneUptime をアンインストールしますか?"
 }

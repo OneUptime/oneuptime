@@ -28742,7 +28742,6 @@
   "A project admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.": "프로젝트 관리자가 프로젝트 설정 → Workspace → Slack에서 연결합니다. 그런 다음 여기에서 내 Slack 계정을 연결할 수 있습니다.",
   "Acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "Microsoft Teams에서 본인으로 인시던트를 확인하고 OneUptime 메시지를 받으세요.",
   "Admin consent is granted for your Microsoft 365 organization. OneUptime posts what your notification rules send to your teams' channels. Each member connects their own Microsoft Teams account to act as themselves.": "Microsoft 365 조직에 대한 관리자 동의가 부여되었습니다. OneUptime은 알림 규칙이 보내는 내용을 팀의 채널에 게시합니다. 각 구성원은 본인의 Microsoft Teams 계정을 연결해 본인으로 작업합니다.",
-  "Buttons and commands in Microsoft Teams act as you, with your permissions in this project. Open the OneUptime app in Microsoft Teams and type home to see your on-call shifts and the open incidents.": "Microsoft Teams의 버튼과 명령은 이 프로젝트에서의 내 권한으로 나로서 동작합니다. Microsoft Teams에서 OneUptime 앱을 열고 home을 입력하면 내 온콜 근무와 열린 인시던트를 볼 수 있습니다.",
   "Buttons, commands and reactions in Slack act as you, with your permissions in this project, and the OneUptime app's Home in Slack shows your on-call shifts.": "Slack의 버튼, 명령, 반응은 이 프로젝트에서의 내 권한으로 나로서 동작하며, Slack의 OneUptime 앱 홈에 내 온콜 근무가 표시됩니다.",
   "It posts what your notification rules send, creates a channel for each incident and invites its people. Each member connects their own Slack account to act as themselves.": "알림 규칙이 보내는 내용을 게시하고, 인시던트마다 채널을 만들어 관련된 사람들을 초대합니다. 각 구성원은 본인의 Slack 계정을 연결해 본인으로 작업합니다.",
   "Microsoft Teams is not connected to this project yet": "Microsoft Teams가 아직 이 프로젝트에 연결되지 않았습니다",
@@ -28751,5 +28750,10 @@
   "Post incidents, alerts and scheduled maintenance to your Slack channels, give each incident a channel of its own, and let your team acknowledge, resolve and page from Slack.": "인시던트, 알림, 예약된 유지 관리를 Slack 채널에 게시하고, 인시던트마다 전용 채널을 만들고, 팀이 Slack에서 확인, 해결, 호출할 수 있게 합니다.",
   "Slack is not connected to this project yet": "Slack이 아직 이 프로젝트에 연결되지 않았습니다",
   "Your Microsoft Teams account is connected": "Microsoft Teams 계정이 연결되었습니다",
-  "Your Slack account is connected": "Slack 계정이 연결되었습니다"
+  "Your Slack account is connected": "Slack 계정이 연결되었습니다",
+  "Buttons and commands in Microsoft Teams act as you, with your permissions in this project. Open the OneUptime app in Microsoft Teams and type “home” to see your on-call shifts and the open incidents.": "Microsoft Teams의 버튼과 명령은 이 프로젝트에서의 내 권한으로 나로서 동작합니다. Microsoft Teams에서 OneUptime 앱을 열고 “home”을 입력하면 내 온콜 근무와 열린 인시던트를 볼 수 있습니다.",
+  "Manage the {{workspace}} connection": "{{workspace}} 연결 관리",
+  "OneUptime stops posting to {{workspace}}, and every member's {{workspace}} account is disconnected from this project, along with their {{workspace}} notification method. The {{workspace}} notification rules and summaries are kept for when you connect again.": "OneUptime은 {{workspace}}에 게시를 중단하고, 각 멤버의 {{workspace}} 계정은 {{workspace}} 알림 방법과 함께 이 프로젝트에서 연결이 해제됩니다. {{workspace}} 알림 규칙과 요약은 다시 연결할 때를 위해 유지됩니다.",
+  "Uninstall": "제거",
+  "Uninstall OneUptime from {{workspace}}?": "{{workspace}}에서 OneUptime을 제거할까요?"
 }

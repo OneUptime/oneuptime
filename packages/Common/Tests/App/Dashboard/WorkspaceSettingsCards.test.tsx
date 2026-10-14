@@ -27,6 +27,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * buttons, which a personal page is not for. Uninstalling is there whether
  * or not your own account is connected: the page used to offer it only to
  * somebody who had disconnected themselves first.
+ *
+ * The project's card asks nothing of anybody: what it offers - the
+ * channel list, the teams, granting consent again, uninstalling - is in
+ * its ⋯, not a row of buttons that pressed its title into a column a word
+ * wide (in German, a letter). Uninstalling, which disconnects every
+ * member, asks first.
  */
 
 interface MockAuthState {
@@ -225,15 +231,19 @@ import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { ConnectStartPage } from "../../../Types/Workspace/ConnectCallback";
 
-// What one card draws: its title, its description and its buttons, in order.
+/*
+ * What one card draws: its title, its description, its buttons in order,
+ * and the name of its ⋯ when it has one.
+ */
 interface DrawnCard {
   title: string;
   description: string;
   buttons: Array<string>;
+  moreMenu?: string | undefined;
 }
 
 function drawnCard(card: HTMLElement): DrawnCard {
-  return {
+  const drawn: DrawnCard = {
     title:
       within(card).queryByTestId("card-details-heading")?.textContent || "",
     description:
@@ -244,6 +254,37 @@ function drawnCard(card: HTMLElement): DrawnCard {
         return (button.textContent || "").trim();
       }),
   };
+
+  const moreMenu: HTMLElement | undefined = within(card)
+    .queryAllByRole("button")
+    .find((button: HTMLElement): boolean => {
+      return (button.getAttribute("aria-label") || "").startsWith("Manage ");
+    });
+
+  if (moreMenu) {
+    drawn.moreMenu = moreMenu.getAttribute("aria-label") || "";
+  }
+
+  return drawn;
+}
+
+// The items of a card's ⋯, opened: their names, in order.
+async function openMoreMenu(name: string): Promise<Array<string>> {
+  await click(name);
+
+  return within(screen.getByRole("menu"))
+    .getAllByRole("menuitem")
+    .map((item: HTMLElement): string => {
+      return (item.textContent || "").trim();
+    });
+}
+
+async function pickMenuItem(name: string): Promise<void> {
+  const item: HTMLElement = await screen.findByRole("menuitem", { name });
+
+  await act(async () => {
+    fireEvent.click(item);
+  });
 }
 
 // The one card inside a wrapper the page marks.
@@ -341,8 +382,14 @@ const SLACK_PROJECT_CARD: DrawnCard = {
   title: "OneUptime is installed in the Acme Slack workspace",
   description:
     "It posts what your notification rules send, creates a channel for each incident and invites its people. Each member connects their own Slack account to act as themselves.",
-  buttons: ["View Channels", "Uninstall OneUptime from Slack"],
+  buttons: [],
+  moreMenu: "Manage the Slack connection",
 };
+
+const SLACK_PROJECT_MENU: Array<string> = [
+  "View Channels",
+  "Uninstall OneUptime from Slack",
+];
 
 const SLACK_CONNECT_CARD: DrawnCard = {
   title: "Connect your Slack account",
@@ -377,6 +424,37 @@ describe("Project Settings > Slack", () => {
         .compareDocumentPosition(screen.getByTestId("slack-your-account")) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+
+    // The project's card asks nothing: its channels and Uninstall are in its ⋯.
+    expect(await openMoreMenu("Manage the Slack connection")).toEqual(
+      SLACK_PROJECT_MENU,
+    );
+    // Yours keeps the page's one main action.
+    expect(allButtons()).toContain("Connect my account with Slack");
+  });
+
+  test("Uninstall asks first: what goes with it, and Cancel leaves everything as it was", async () => {
+    await renderSlack("project");
+
+    await openMoreMenu("Manage the Slack connection");
+    await pickMenuItem("Uninstall OneUptime from Slack");
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByText("Uninstall OneUptime from Slack?"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "OneUptime stops posting to Slack, and every member's Slack account is disconnected from this project, along with their Slack notification method. The Slack notification rules and summaries are kept for when you connect again.",
+      ),
+    ).toBeInTheDocument();
+    expect(deleteItemMock).not.toHaveBeenCalled();
+
+    await click("Cancel");
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(deleteItemMock).not.toHaveBeenCalled();
+    expect(cardIn("slack-project-connection")).toEqual(SLACK_PROJECT_CARD);
   });
 
   test("connected yourself: your card says so, and Uninstall is still on the project's card", async () => {
@@ -395,7 +473,9 @@ describe("Project Settings > Slack", () => {
     mockAuthState.isUserConnected = true;
     await renderSlack("project");
 
-    await click("Uninstall OneUptime from Slack");
+    await openMoreMenu("Manage the Slack connection");
+    await pickMenuItem("Uninstall OneUptime from Slack");
+    await click("Uninstall");
 
     expect(deleteItemMock).toHaveBeenCalledTimes(1);
     expect(
@@ -404,6 +484,7 @@ describe("Project Settings > Slack", () => {
     expect(refresh).toHaveBeenCalledTimes(1);
 
     // Back to the start: nothing installed, nobody connected.
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.queryByTestId("slack-project-connection")).toBeNull();
     expect(cardIn("slack-your-account").title).toBe("Connect with Slack");
     expect(allButtons()).not.toContain("Disconnect");
@@ -462,12 +543,15 @@ const TEAMS_PROJECT_CARD: DrawnCard = {
   title: "Admin Consent Completed",
   description:
     "Admin consent is granted for your Microsoft 365 organization. OneUptime posts what your notification rules send to your teams' channels. Each member connects their own Microsoft Teams account to act as themselves.",
-  buttons: [
-    "View Teams",
-    "Reset Admin Consent",
-    "Uninstall OneUptime from Microsoft Teams",
-  ],
+  buttons: [],
+  moreMenu: "Manage the Microsoft Teams connection",
 };
+
+const TEAMS_PROJECT_MENU: Array<string> = [
+  "View Teams",
+  "Reset Admin Consent",
+  "Uninstall OneUptime from Microsoft Teams",
+];
 
 const TEAMS_CONNECT_CARD: DrawnCard = {
   title: "Connect your Microsoft Teams account",
@@ -479,7 +563,7 @@ const TEAMS_CONNECT_CARD: DrawnCard = {
 const TEAMS_CONNECTED_CARD: DrawnCard = {
   title: "Your Microsoft Teams account is connected",
   description:
-    "Buttons and commands in Microsoft Teams act as you, with your permissions in this project. Open the OneUptime app in Microsoft Teams and type home to see your on-call shifts and the open incidents.",
+    "Buttons and commands in Microsoft Teams act as you, with your permissions in this project. Open the OneUptime app in Microsoft Teams and type “home” to see your on-call shifts and the open incidents.",
   buttons: ["Open OneUptime in Microsoft Teams", "Disconnect"],
 };
 
@@ -500,6 +584,23 @@ describe("Project Settings > Microsoft Teams", () => {
     expect(
       screen.getByTestId(MICROSOFT_TEAMS_SETUP_GUIDE_TEST_ID),
     ).toBeInTheDocument();
+
+    // Its teams, consent and Uninstall are in its ⋯.
+    expect(await openMoreMenu("Manage the Microsoft Teams connection")).toEqual(
+      TEAMS_PROJECT_MENU,
+    );
+  });
+
+  test("Reset Admin Consent, from the ⋯: the card asks for consent again", async () => {
+    await renderTeams("project");
+
+    await openMoreMenu("Manage the Microsoft Teams connection");
+    await pickMenuItem("Reset Admin Consent");
+
+    expect(cardIn("microsoft-teams-project-connection").buttons).toEqual([
+      "Grant Admin Consent",
+    ]);
+    expect(deleteItemMock).not.toHaveBeenCalled();
   });
 
   test("connected yourself: your card says so and opens the app, and Uninstall is still on the project's card", async () => {
@@ -514,11 +615,21 @@ describe("Project Settings > Microsoft Teams", () => {
     );
   });
 
-  test("uninstalling while connected yourself: back to Grant Admin Consent, and nobody connected", async () => {
+  test("uninstalling while connected yourself: asked first, then back to Grant Admin Consent, and nobody connected", async () => {
     mockAuthState.isUserConnected = true;
     await renderTeams("project");
 
-    await click("Uninstall OneUptime from Microsoft Teams");
+    await openMoreMenu("Manage the Microsoft Teams connection");
+    await pickMenuItem("Uninstall OneUptime from Microsoft Teams");
+
+    expect(
+      within(screen.getByRole("dialog")).getByText(
+        "Uninstall OneUptime from Microsoft Teams?",
+      ),
+    ).toBeInTheDocument();
+    expect(deleteItemMock).not.toHaveBeenCalled();
+
+    await click("Uninstall");
 
     expect(
       (deleteItemMock.mock.calls[0]![0] as { modelType: unknown }).modelType,

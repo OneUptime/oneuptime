@@ -520,33 +520,31 @@ describe("the guard catches the faults the audit fixed", () => {
   });
 
   /*
-   * The project's card - View Channels, Uninstall - asks nothing of
-   * anybody: both outlined or plain. A filled red Uninstall beside a
-   * primary View Channels is two main actions again.
+   * The Microsoft Teams settings drew Uninstall - outlined, then as a third
+   * button of the project's card - beside the Connect the page asks for.
+   * Uninstalling is in the project card's ⋯ now; drawn again beside
+   * Connect, filled, it is two main actions on one card.
    */
-  test("a filled red Uninstall beside a primary View Channels on the Slack project card", () => {
+  test("a filled red Uninstall beside the primary Connect on the Microsoft Teams card", () => {
     const file: string =
-      "packages/App/FeatureSet/Dashboard/src/Components/Slack/SlackIntegration.tsx";
+      "packages/App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsIntegration.tsx";
     const source: string = read(file);
-    const projectCard: string = source.slice(
-      source.indexOf("const projectCardButtons: Array<CardButtonSchema> = ["),
+
+    expect(findButtonGroupsWithTwoFilled(file, source)).toEqual([]);
+
+    const connectButton: string = `getConnectWithTeamsButton(
+        translationKey("Connect my account with Microsoft Teams"),
+      ),`;
+    const reverted: string = revert(
+      source,
+      connectButton,
+      `${connectButton}
+      {
+        title: \`Uninstall OneUptime from Microsoft Teams\`,
+        buttonStyle: SharedButtonStyle.DANGER,
+        onClick: () => {},
+      },`,
     );
-    const before: string = source.slice(0, source.length - projectCard.length);
-
-    expect(projectCard).not.toBe(source);
-
-    // View Channels made primary, Uninstall filled red.
-    const reverted: string =
-      before +
-      revert(
-        revert(
-          projectCard,
-          "buttonStyle: ButtonStyleType.NORMAL,",
-          "buttonStyle: ButtonStyleType.PRIMARY,",
-        ),
-        "buttonStyle: ButtonStyleType.DANGER_OUTLINE,",
-        "buttonStyle: ButtonStyleType.DANGER,",
-      );
 
     expect(
       findButtonGroupsWithTwoFilled(file, reverted).map(
@@ -554,7 +552,9 @@ describe("the guard catches the faults the audit fixed", () => {
           return group.labels.join(" | ");
         },
       ),
-    ).toEqual(["View Channels | Uninstall OneUptime from Slack"]);
+    ).toEqual([
+      "title || `Connect with Microsoft Teams` | Uninstall OneUptime from Microsoft Teams",
+    ]);
   });
 
   test("a primary bulk Remove Labels", () => {

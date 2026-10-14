@@ -5,6 +5,8 @@ import React, {
   useEffect,
 } from "react";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -50,6 +52,9 @@ import ConnectRequestNotice, {
   ConnectRequestState,
   useConnectRequest,
 } from "../Workspace/ConnectRequestNotice";
+import UninstallWorkspaceConfirm, {
+  MANAGE_WORKSPACE_CONNECTION,
+} from "../Workspace/UninstallWorkspaceConfirm";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -142,6 +147,12 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   const [slackTeamName, setSlackTeamName] = React.useState<string | null>(null);
   const [showChannelsModal, setShowChannelsModal] =
     React.useState<boolean>(false);
+
+  // Uninstalling, asked first (UninstallWorkspaceConfirm).
+  const [isUninstallConfirmOpen, setIsUninstallConfirmOpen] =
+    React.useState<boolean>(false);
+  const [isUninstalling, setIsUninstalling] = React.useState<boolean>(false);
+  const [uninstallError, setUninstallError] = React.useState<string>("");
 
   useEffect(() => {
     if (isProjectAccountConnected) {
@@ -553,80 +564,93 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   }
 
   /*
-   * The project's connection to Slack, on Project Settings: which
-   * workspace, its channels, and uninstalling the app - whether or not your
-   * own account is connected, so an admin never has to disconnect
-   * themselves first.
+   * Uninstalls the app from the project's Slack workspace, once asked
+   * (UninstallWorkspaceConfirm). A failure is said in the dialog, which
+   * stays open to try again.
    */
-  const projectCardButtons: Array<CardButtonSchema> = [
-    {
-      title: `View Channels`,
-      isLoading: isButtonLoading,
-      buttonStyle: ButtonStyleType.NORMAL,
-      onClick: async () => {
-        try {
-          setError(null);
-          setShowChannelsModal(true);
-        } catch (error) {
-          setError(
-            <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
-          );
-        }
-      },
-      icon: IconProp.Slack,
-    },
-    {
-      title: `Uninstall OneUptime from Slack`,
-      isLoading: isButtonLoading,
+  const uninstallFromSlack: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsUninstalling(true);
+      setUninstallError("");
+
+      if (!projectAuthTokenId) {
+        setUninstallError(
+          translator.translateText(
+            "Looks like the project auth token id is not set properly. Please try again.",
+          ),
+        );
+        return;
+      }
+
+      await ModelAPI.deleteItem({
+        modelType: WorkspaceProjectAuthToken,
+        id: projectAuthTokenId,
+      });
+
+      setIsUninstallConfirmOpen(false);
+      setIsProjectAccountConnected(false);
+      setWorkspaceProjectAuthTokenId(null);
       /*
-       * Red, but outlined: the most a card about an installed app asks of
-       * anyone is to look at its channels, and a filled red button would be
-       * the loudest thing on the page for a step almost nobody came to take.
+       * Uninstalling unlinks every member's Slack account too
+       * (WorkspaceProjectAuthTokenService), yours included.
        */
-      buttonStyle: ButtonStyleType.DANGER_OUTLINE,
-      onClick: async () => {
-        try {
-          setIsButtonLoading(true);
-          setError(null);
-          if (projectAuthTokenId) {
-            await ModelAPI.deleteItem({
-              modelType: WorkspaceProjectAuthToken,
-              id: projectAuthTokenId!,
-            });
+      setIsUserAccountConnected(false);
+      setWorkspaceUserAuthTokenId(null);
 
-            setIsProjectAccountConnected(false);
-            setWorkspaceProjectAuthTokenId(null);
-            /*
-             * Uninstalling unlinks every member's Slack account too
-             * (WorkspaceProjectAuthTokenService), yours included.
-             */
-            setIsUserAccountConnected(false);
-            setWorkspaceUserAuthTokenId(null);
+      /*
+       * Every Workspace menu in the project lists only connected
+       * workspaces: ask again, so they stop listing this one.
+       */
+      ConnectedWorkspaces.refresh().catch(() => {
+        // A failed request leaves the menus as they were.
+      });
+    } catch (error) {
+      setUninstallError(API.getFriendlyErrorMessage(error as Exception));
+    } finally {
+      setIsUninstalling(false);
+    }
+  };
 
-            /*
-             * Every Workspace menu in the project lists only connected
-             * workspaces: ask again, so they stop listing this one.
-             */
-            ConnectedWorkspaces.refresh().catch(() => {
-              // A failed request leaves the menus as they were.
-            });
-          } else {
-            setError(
-              <div>
-                Looks like the user auth token id is not set properly. Please
-                try again.
-              </div>,
-            );
-          }
-        } catch (error) {
-          setError(
-            <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
-          );
-        }
-        setIsButtonLoading(false);
-      },
-      icon: IconProp.Trash,
-    },
+  /*
+   * The project's connection to Slack, on Project Settings: which
+   * workspace, and - in its ⋯, whether or not your own account is
+   * connected - the channel list and uninstalling the app. Neither is a
+   * step anybody comes to the page for, so neither is a button: the card
+   * asks nothing of you, and the Connect button under it stays the page's
+   * one main action.
+   */
+  const projectCardActions: Array<ReactElement> = [
+    <CardMoreMenu
+      key="slack-project-actions"
+      ariaLabel={translator.translateTemplate(MANAGE_WORKSPACE_CONNECTION, {
+        workspace: "Slack",
+      })}
+      dataTestId="slack-project-actions"
+    >
+      {[
+        <MoreMenuItem
+          key="view-channels"
+          text="View Channels"
+          icon={IconProp.Slack}
+          dataTestId="slack-view-channels"
+          onClick={() => {
+            setError(null);
+            setShowChannelsModal(true);
+          }}
+        />,
+        <MoreMenuItem
+          key="uninstall"
+          text="Uninstall OneUptime from Slack"
+          icon={IconProp.Trash}
+          isDestructive={true}
+          dataTestId="slack-uninstall"
+          onClick={() => {
+            setUninstallError("");
+            setIsUninstallConfirmOpen(true);
+          }}
+        />,
+      ]}
+    </CardMoreMenu>,
   ];
 
   if (!isProjectAccountConnected) {
@@ -672,7 +696,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
                 : SLACK_INSTALLED_TITLE
             }
             description={SLACK_INSTALLED_DESCRIPTION}
-            buttons={projectCardButtons}
+            buttons={projectCardActions}
           />
         </div>
       )}
@@ -700,6 +724,23 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         <SlackChannelCacheModal
           onClose={() => {
             return setShowChannelsModal(false);
+          }}
+        />
+      ) : null}
+
+      {isUninstallConfirmOpen && isProjectAccountConnected ? (
+        <UninstallWorkspaceConfirm
+          workspaceName="Slack"
+          isUninstalling={isUninstalling}
+          error={uninstallError}
+          onClose={() => {
+            setIsUninstallConfirmOpen(false);
+            setUninstallError("");
+          }}
+          onConfirm={() => {
+            uninstallFromSlack().catch((error: Exception) => {
+              setUninstallError(API.getFriendlyErrorMessage(error));
+            });
           }}
         />
       ) : null}

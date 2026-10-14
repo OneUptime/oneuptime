@@ -28742,7 +28742,6 @@
   "A project admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.": "專案管理員在 專案設定 → Workspace → Slack 中連接它。之後你可以在這裡連接你自己的 Slack 帳戶。",
   "Acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "在 Microsoft Teams 中以你本人的身分確認事件並接收 OneUptime 的訊息。",
   "Admin consent is granted for your Microsoft 365 organization. OneUptime posts what your notification rules send to your teams' channels. Each member connects their own Microsoft Teams account to act as themselves.": "已為你的 Microsoft 365 組織授予管理員同意。OneUptime 會把通知規則傳送的內容發佈到你的團隊頻道中。每位成員連接自己的 Microsoft Teams 帳戶，以本人身分操作。",
-  "Buttons and commands in Microsoft Teams act as you, with your permissions in this project. Open the OneUptime app in Microsoft Teams and type home to see your on-call shifts and the open incidents.": "Microsoft Teams 中的按鈕和命令以你的身分、依你在此專案中的權限執行。在 Microsoft Teams 中開啟 OneUptime 應用程式並輸入 home，即可查看你的值班班次和未解決的事件。",
   "Buttons, commands and reactions in Slack act as you, with your permissions in this project, and the OneUptime app's Home in Slack shows your on-call shifts.": "Slack 中的按鈕、命令和表情回應以你的身分、依你在此專案中的權限執行，Slack 中 OneUptime 應用程式的首頁會顯示你的值班班次。",
   "It posts what your notification rules send, creates a channel for each incident and invites its people. Each member connects their own Slack account to act as themselves.": "它會發佈通知規則傳送的內容，為每個事件建立頻道並邀請相關人員。每位成員連接自己的 Slack 帳戶，以本人身分操作。",
   "Microsoft Teams is not connected to this project yet": "Microsoft Teams 尚未連接到此專案",
@@ -28751,5 +28750,10 @@
   "Post incidents, alerts and scheduled maintenance to your Slack channels, give each incident a channel of its own, and let your team acknowledge, resolve and page from Slack.": "將事件、警示和排定的維護發佈到你的 Slack 頻道，為每個事件提供專屬頻道，並讓你的團隊在 Slack 中確認、解決和呼叫。",
   "Slack is not connected to this project yet": "Slack 尚未連接到此專案",
   "Your Microsoft Teams account is connected": "你的 Microsoft Teams 帳戶已連接",
-  "Your Slack account is connected": "你的 Slack 帳戶已連接"
+  "Your Slack account is connected": "你的 Slack 帳戶已連接",
+  "Buttons and commands in Microsoft Teams act as you, with your permissions in this project. Open the OneUptime app in Microsoft Teams and type “home” to see your on-call shifts and the open incidents.": "Microsoft Teams 中的按鈕和命令以你的身分、依你在此專案中的權限執行。在 Microsoft Teams 中開啟 OneUptime 應用程式並輸入 「home」，即可查看你的值班班次和未解決的事件。",
+  "Manage the {{workspace}} connection": "管理 {{workspace}} 連線",
+  "OneUptime stops posting to {{workspace}}, and every member's {{workspace}} account is disconnected from this project, along with their {{workspace}} notification method. The {{workspace}} notification rules and summaries are kept for when you connect again.": "OneUptime 將停止在 {{workspace}} 發文，每位成員的 {{workspace}} 帳戶及其 {{workspace}} 通知方式都會與此專案中斷連線。{{workspace}} 通知規則和摘要會保留，供您重新連線時使用。",
+  "Uninstall": "解除安裝",
+  "Uninstall OneUptime from {{workspace}}?": "要從 {{workspace}} 解除安裝 OneUptime 嗎？"
 }
