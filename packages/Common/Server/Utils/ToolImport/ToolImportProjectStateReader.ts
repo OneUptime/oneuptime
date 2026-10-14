@@ -108,6 +108,9 @@ import {
  * the project's plan on their props). Nothing here writes.
  */
 
+// The most ids one read of records by id names.
+const ID_LOOKUP_BATCH_SIZE: number = 1000;
+
 // The records each kind of item becomes, and the services they are read with.
 interface KindTarget {
   service: DatabaseService<BaseModel>;
@@ -573,6 +576,85 @@ export default class ToolImportProjectStateReader {
           stillExists: stillExists,
         };
       });
+  }
+
+  /*
+   * The tool's ids of the status page subscribers earlier imports of this
+   * tool brought over that the project still has - every one, however many
+   * imports it took. The read passes over them
+   * (ToolImportReadContext.importedSubscriberIds), so each import reads the
+   * next ones. One deleted in OneUptime since is not among them: it is read
+   * again, and the preview offers it again.
+   */
+  public static async readImportedSubscriberIds(data: {
+    projectId: ObjectID;
+    source: ToolImportSource;
+  }): Promise<Set<string>> {
+    const records: Array<ToolImportRecord> =
+      await ToolImportRecordService.findAllBy({
+        query: {
+          projectId: data.projectId,
+          source: data.source,
+          kind: ToolImportResourceKind.StatusPageSubscriber,
+        },
+        select: { sourceId: true, recordId: true },
+        sort: { _id: SortOrder.Ascending },
+        props: { isRoot: true },
+      });
+
+    const recordIds: Array<string> = records
+      .filter((record: ToolImportRecord): boolean => {
+        return Boolean(record.sourceId && record.recordId);
+      })
+      .map((record: ToolImportRecord): string => {
+        return record.recordId!.toString();
+      });
+
+    // Which of those records the project still has, a batch of ids at a time.
+    const existingIds: Set<string> = new Set<string>();
+
+    for (
+      let start: number = 0;
+      start < recordIds.length;
+      start += ID_LOOKUP_BATCH_SIZE
+    ) {
+      const batch: Array<string> = recordIds.slice(
+        start,
+        start + ID_LOOKUP_BATCH_SIZE,
+      );
+
+      const subscribers: Array<StatusPageSubscriber> =
+        await StatusPageSubscriberService.findBy({
+          query: {
+            projectId: data.projectId,
+            _id: QueryHelper.any(batch),
+          },
+          select: { _id: true },
+          limit: batch.length,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      for (const subscriber of subscribers) {
+        if (subscriber._id) {
+          existingIds.add(subscriber._id.toString().toLowerCase());
+        }
+      }
+    }
+
+    const imported: Set<string> = new Set<string>();
+
+    for (const record of records) {
+      if (
+        record.sourceId &&
+        record.recordId &&
+        existingIds.has(record.recordId.toString().toLowerCase())
+      ) {
+        imported.add(record.sourceId);
+      }
+    }
+
+    return imported;
   }
 
   /*

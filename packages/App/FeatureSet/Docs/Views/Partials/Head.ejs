@@ -119,6 +119,21 @@ var metaDescription = typeof pageDescription !== 'undefined' && pageDescription 
 %>
 <title><%= typeof link !== 'undefined' && link && link.title ? link.title + ' - ' + t('ui.metaTitleSuffix') : t('ui.metaTitleDefault') %></title>
 <meta name="description" content="<%= metaDescription %>">
+<%
+/*
+ * The page's own address, and the languages it is written in
+ * (Utils/Seo.ts). A page served in English under another language's prefix
+ * names the English page, and lists no alternates.
+ */
+%>
+<% if (typeof canonicalUrl !== 'undefined' && canonicalUrl) { %>
+<link rel="canonical" href="<%= canonicalUrl %>">
+<% } %>
+<% if (typeof alternateLinks !== 'undefined' && alternateLinks) { %>
+<% alternateLinks.forEach(function (alternate) { %>
+<link rel="alternate" hreflang="<%= alternate.hreflang %>" href="<%= alternate.href %>">
+<% }); %>
+<% } %>
 <meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="<%= t('ui.metaTitleSuffix') %>">

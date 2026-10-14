@@ -4,13 +4,13 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>Status Pages | Keep Customers Informed During Incidents</title>
-    <meta name="description"
-        content="Beautiful, customizable status pages that keep your customers informed. Public and private status pages with automatic updates and subscriber notifications.">
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
         <%- include('../head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
+        <%- include('../Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>

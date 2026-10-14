@@ -31,6 +31,7 @@ import { DocsKnownFailures } from "./DocsContentRules";
  *   images                       images and /docs/static/ files exist
  *   noRelativeLinks              no relative links ("./page.md", "page")
  *   rendered                     no raw ":::", "@tab" or "[!NOTE]" is shown
+ *   placeholderLinks             an address to fill in is code, never a link
  *   uniqueHeadings               no two headings of a page share an anchor
  *   codeLanguage                 every English code sample names a language
  *   headingLevels                English headings never skip a level
@@ -91,28 +92,6 @@ const except: (
 const EVERY_TRANSLATION_BUT_FA: Array<string> = except(EVERY_TRANSLATION, "fa");
 
 export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
-  "ai/ai-agent": {
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "ai/ai-sre": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "ai/ask-ai": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "ai/infrastructure-ai-agents": {
-    translated: EVERY_TRANSLATION,
-  },
-  "ai/llm-provider": {
-    codeLanguage: EN,
-  },
-  "ai/mcp-server": {
-    uniqueHeadings: EVERY_LANGUAGE,
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
   "cli/authentication": {
     sameShape: EVERY_TRANSLATION,
   },

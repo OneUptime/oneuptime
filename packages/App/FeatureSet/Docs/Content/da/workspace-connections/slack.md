@@ -144,7 +144,13 @@ Svarene på `help` og `oncall` er beskeder, som kun du kan se, under kommandoen.
 
 ## Spørg OneUptime AI fra Slack
 
-Spørg om dine logs, traces, metrikker, hændelser og monitorer på almindeligt sprog. Nævn OneUptime med @ i en kanal, eller send den en direkte besked, så svarer den i tråden; svar der for at spørge om mere. `/oneuptime ask which monitors are down?` slår svaret op i kanalen. Begge kræver, at din egen Slack-konto er forbundet, og at AI er slået til for projektet. Svar i Slack læser kun: brug knapperne for at ændre noget. Se [Spørg AI](/docs/ai/ask-ai).
+Spørg om dine logs, traces, metrikker, hændelser og monitorer på almindeligt sprog. Nævn OneUptime med @ i en kanal, eller send den en direkte besked, så svarer den i tråden. `/oneuptime ask which monitors are down?` slår svaret op i kanalen. Begge kræver, at din egen Slack-konto er forbundet, og at AI er slået til for projektet. Svar i Slack læser kun: brug knapperne for at ændre noget. Se [Spørg AI](/docs/ai/ask-ai).
+
+OneUptime svarer kun på det, der er rettet til den.
+
+- **I din egen samtale svarer du bare.** Et spørgsmål, du stiller i en kanal, ikke i en tråd, starter en samtale i tråden under det: svar der for at spørge om mere uden at nævne OneUptime igen, og alle andre kommer med ved at nævne den.
+- **I enhver anden tråd nævner du OneUptime.** Under en hændelses besked, for eksempel, nævner du den hver gang: det, folk skriver til hinanden der, får intet svar.
+- **Hvis din Slack-konto ikke er forbundet.** OneUptime beder dig én gang i hver samtale om at forbinde den, i en besked kun du kan se, med en knap **Connect Slack account**.
 
 ## Opret hændelser og vedligeholdelse fra Slack
 
@@ -186,6 +192,10 @@ Når Slack sender dig tilbage uden en forbindelse, siger den side, du startede f
 
 :::details En knap eller kommando siger, at min Slack-konto ikke er forbundet
 Tryk på **Connect Slack account** i det svar for at forbinde den i ét trin, eller knyt den under **Brugerindstillinger** > **Arbejdsområde** > **Slack** med **Connect my account with Slack**. Hvis du ikke længere er medlem af projektet, siger OneUptime det i stedet og handler ikke på noget for dig.
+:::
+
+:::details OneUptime svarer ikke på et svar i en tråd
+Et svar, der ikke nævner OneUptime, besvares kun i din egen samtale med OneUptime AI: tråden under et spørgsmål, du stillede den i en kanal. I enhver anden tråd, som den under en hændelses besked, nævner du OneUptime med @. Hvis din Slack-konto ikke er forbundet, beder OneUptime dig om at forbinde den én gang i hver samtale, ikke ved hver besked: tryk på **Connect Slack account** i den besked, eller knyt den under **Brugerindstillinger** > **Arbejdsområde** > **Slack**. Se [Spørg OneUptime AI fra Slack](#spørg-oneuptime-ai-fra-slack).
 :::
 
 :::details Notifikationer ankommer, men knapper og kommandoer gør intet

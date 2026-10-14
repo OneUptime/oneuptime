@@ -10,12 +10,11 @@ import {
   generateSitemapIndexXml,
   generatePagesSitemapXml,
   generateCompareSitemapXml,
-  generateTagsSitemapXml,
   generateBlogSitemapXml,
   getBlogSitemapPageCount,
-  getTagsSitemapPageCount,
+  sendRetiredSitemap,
 } from "./Utils/Sitemap";
-import { generateBlogRssFeed, generateTagRssFeed } from "./Utils/RssFeed";
+import { generateBlogRssFeed } from "./Utils/RssFeed";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "./Utils/PageSEO";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 // Removed unused imports after dynamic sitemap refactor
@@ -66,6 +65,19 @@ import {
   getClaimsMatrix,
   getClaimsNeedingReview,
 } from "./Utils/Claims";
+import {
+  TailwindStylesheet,
+  TailwindStylesheetRoutePattern,
+  findTailwindStylesheet,
+  serveTailwindStylesheet,
+} from "./Utils/TailwindStylesheet";
+import {
+  ProductIconSprite,
+  ProductIconSpriteRoutePattern,
+  buildProductIconSprite,
+  serveProductIconSprite,
+} from "./Utils/ProductIconSprite";
+import logger from "Common/Server/Utils/Logger";
 
 // import jobs.
 import "./Jobs/UpdateBlog";
@@ -101,6 +113,59 @@ const getSEOForPath: (
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
+
+    /*
+     * The compiled Tailwind stylesheet the image build wrote
+     * (Utils/TailwindStylesheet.ts). Every page reads its URL from
+     * app.locals - not res.locals, which the blog's routes (API/BlogAPI.ts,
+     * registered before this middleware) never get. With no build the URL
+     * is null and head-basic.ejs loads the Play CDN runtime instead.
+     */
+    const tailwindStylesheet: TailwindStylesheet | null =
+      findTailwindStylesheet();
+
+    app.locals["tailwindStylesheetHref"] = tailwindStylesheet
+      ? tailwindStylesheet.href
+      : null;
+
+    if (tailwindStylesheet) {
+      logger.info(`Serving compiled Tailwind CSS: ${tailwindStylesheet.href}`);
+    } else {
+      logger.warn(
+        "No compiled Tailwind CSS (npm run build:css); pages load the Tailwind Play CDN runtime instead.",
+      );
+    }
+
+    app.get(
+      TailwindStylesheetRoutePattern,
+      serveTailwindStylesheet(tailwindStylesheet),
+    );
+
+    /*
+     * The product icons as one cached sprite (Utils/ProductIconSprite.ts),
+     * which the nav's menus and the sections below the fold draw from. If it
+     * cannot be made, productIconSpriteHref is null and every icon is drawn
+     * inline, as before.
+     */
+    let productIconSprite: ProductIconSprite | null = null;
+
+    try {
+      productIconSprite = await buildProductIconSprite();
+    } catch (err) {
+      logger.error(
+        "Could not build the product icon sprite; icons are inline.",
+      );
+      logger.error(err);
+    }
+
+    app.locals["productIconSpriteHref"] = productIconSprite
+      ? productIconSprite.href
+      : null;
+
+    app.get(
+      ProductIconSpriteRoutePattern,
+      serveProductIconSprite(productIconSprite),
+    );
 
     /*
      * Routes
@@ -341,9 +406,12 @@ const HomeFeatureSet: FeatureSet = {
     /*
      * Markdown variants of marketing pages: append `.md` to a page path
      * (e.g. /pricing.md, /product/monitoring.md, /compare/pagerduty.md).
-     * Generated from the same structured data as the HTML pages.
+     * Generated from the same structured data as the HTML pages. A variant
+     * is the page again, for tools and AI assistants, so it is never a
+     * search result of its own: every answer here is noindex.
      */
     app.get(/^\/.+\.md$/, (req: ExpressRequest, res: ExpressResponse) => {
+      res.setHeader("X-Robots-Tag", "noindex");
       const homeUrl: string = res.locals["homeUrl"] as string;
       const pagePath: string = req.path.replace(/\.md$/, "");
 
@@ -1317,16 +1385,16 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    app.get("/legal", (_req: ExpressRequest, res: ExpressResponse) => {
-      res.render(`${ViewsPath}/legal.ejs`, {
-        support: false,
-        enableGoogleTagManager: GoogleTagManagerEnabled,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        section: "terms",
-        requestDemoCta: false,
-      });
+    /*
+     * /legal always rendered the Terms of Service: the same page as
+     * /legal/terms, under a second URL, so search engines saw two copies of
+     * one document. It redirects there permanently, which keeps what every
+     * link to /legal (the footer, the trust center, the product's own
+     * footers) has always shown, and leaves one URL to rank. The Legal Center
+     * header and sidebar on every legal page still list every document.
+     */
+    app.get("/legal", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/legal/terms", 301);
     });
 
     app.get("/legal/terms", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -1338,6 +1406,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "terms",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/terms", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1350,6 +1419,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "privacy",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/privacy", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1364,6 +1434,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "code-of-conduct",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/code-of-conduct",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1377,6 +1451,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "contact",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/contact", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1391,6 +1466,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "subprocessors",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/subprocessors",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1404,6 +1483,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "dpa",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/dpa", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1416,6 +1496,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "ccpa",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/ccpa", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1428,6 +1509,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "cookies",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/cookies", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1440,6 +1522,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "hipaa",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/hipaa", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1452,6 +1535,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "dmca",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/dmca", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1464,6 +1548,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "pci",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/pci", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1478,6 +1563,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "iso-27001",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/iso-27001",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1493,6 +1582,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "iso-27017",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/iso-27017",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1508,6 +1601,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "iso-27018",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/iso-27018",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1521,6 +1618,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "soc-2",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/soc-2", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1533,6 +1631,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "soc-3",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/soc-3", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1545,6 +1644,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "vpat",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/vpat", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1559,6 +1659,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "data-residency",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/data-residency",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1572,6 +1676,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "gdpr",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/gdpr", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1586,6 +1691,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "21-cfr-part-11",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/21-cfr-part-11",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1599,6 +1708,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "gamp-5",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/gamp-5", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1611,6 +1721,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "annex-11",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/annex-11", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1623,6 +1734,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "iso-9001",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/iso-9001", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1637,6 +1749,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "gxp-cloud",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/gxp-cloud",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1650,6 +1766,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "csa-star",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/csa-star", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1662,6 +1779,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "fedramp",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/fedramp", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1674,6 +1792,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "sla",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/sla", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1686,6 +1805,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "security",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/security", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1700,6 +1820,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "deprecation-policy",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/deprecation-policy",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1976,30 +2100,14 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    // Blog tags sitemap (paginated)
+    /*
+     * Blog tags sitemaps, retired: tag pages are noindex, and the index no
+     * longer lists these. Gone (410), so crawlers drop the addresses.
+     */
     app.get(
       "/sitemap-tags-:page.xml",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const page: number = parseInt(req.params["page"] as string, 10);
-
-          if (isNaN(page) || page < 1) {
-            return res.status(404).send("Invalid sitemap page");
-          }
-
-          // Check if page exists
-          const totalPages: number = await getTagsSitemapPageCount();
-          if (page > totalPages) {
-            return res.status(404).send("Sitemap page not found");
-          }
-
-          const xml: string = await generateTagsSitemapXml(page);
-          res.setHeader("Content-Type", "text/xml");
-          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
-          return res.send(xml);
-        } catch {
-          return res.status(500).send("Error generating sitemap");
-        }
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return sendRetiredSitemap(res);
       },
     );
 
@@ -2045,26 +2153,10 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    // Blog RSS feed for a specific tag
-    app.get(
-      "/blog/tag/:tagName/rss.xml",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const tagName: string = req.params["tagName"] as string;
-
-          if (!tagName) {
-            return res.status(404).send("Tag not found");
-          }
-
-          const xml: string = await generateTagRssFeed(tagName);
-          res.setHeader("Content-Type", "application/rss+xml; charset=utf-8");
-          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
-          return res.send(xml);
-        } catch {
-          return res.status(500).send("Error generating RSS feed");
-        }
-      },
-    );
+    /*
+     * A tag's RSS feed, /blog/tag/:tagSlug/rss.xml, is served by API/BlogAPI.ts
+     * with the tag's page, ahead of its route for the tags' old addresses.
+     */
 
     // robots.txt (dynamic) - If domain is not oneuptime.com, disallow all.
     app.get("/robots.txt", (_req: ExpressRequest, res: ExpressResponse) => {

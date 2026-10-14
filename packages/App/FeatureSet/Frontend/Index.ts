@@ -23,11 +23,19 @@ import {
   getStatusPageData,
 } from "./Utils/StatusPage";
 import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
+import applyPublicPageNotFound, {
+  PUBLIC_PAGE_NOT_FOUND,
+  PublicPageNotFound,
+} from "Common/Server/Utils/PublicPageNotFound";
 import {
   isSearchEngineIndexingAllowed,
   isStatusPagePreviewPath,
 } from "Common/Types/StatusPage/SearchEngineIndexing";
-import { handlePublicDashboardLlmsTxt } from "./Utils/PublicDashboard";
+import {
+  getPublicDashboardData,
+  handlePublicDashboardLlmsTxt,
+  PublicDashboardData,
+} from "./Utils/PublicDashboard";
 import DashboardDomainService from "Common/Server/Services/DashboardDomainService";
 import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
 import {
@@ -93,7 +101,8 @@ const StatusPageFrontendConfig: FrontendConfig = {
   ): Promise<JSONObject> => {
     applyStatusPageContentSecurityPolicy(req, res);
 
-    const statusPageData: StatusPageData | null = await getStatusPageData(req);
+    const statusPageData: StatusPageData | PublicPageNotFound | null =
+      await getStatusPageData(req);
 
     /*
      * RSS feed path for the autodiscovery <link> tag. Status pages are
@@ -109,7 +118,16 @@ const StatusPageFrontendConfig: FrontendConfig = {
         ? `/status-page/${previewStatusPageId}/rss`
         : "/rss";
 
-    if (statusPageData) {
+    if (statusPageData === PUBLIC_PAGE_NOT_FOUND) {
+      /*
+       * There is no such page: none was made, it is archived, or a master
+       * admin blocked its project. The app still loads and says so, from the
+       * placeholder below, which carries nothing of the page - but as a 404
+       * kept out of search results, so search engines drop the URL rather
+       * than keep what it served before (PublicPageNotFound).
+       */
+      applyPublicPageNotFound(res);
+    } else if (statusPageData) {
       /*
        * Belt and braces with the <meta name="robots"> the template renders
        * from isSearchEngineIndexingEnabled below: the header is honoured even
@@ -131,11 +149,14 @@ const StatusPageFrontendConfig: FrontendConfig = {
     }
 
     /*
-     * No page data: the lookup failed, or the URL named no page. A preview URL
-     * is kept out of search results all the same; a custom domain fails open,
-     * as it does whenever the owner's setting cannot be read.
+     * No page data: the page does not exist, the lookup failed, or the URL
+     * named no page. A page that does not exist is never indexed, and a
+     * preview URL is kept out of search results all the same; otherwise a
+     * custom domain fails open, as it does whenever the owner's setting
+     * cannot be read.
      */
     const isSearchEngineIndexingEnabled: boolean =
+      statusPageData !== PUBLIC_PAGE_NOT_FOUND &&
       isSearchEngineIndexingAllowed({
         path: req.path,
         indexingFlag: undefined,
@@ -166,6 +187,41 @@ const PublicDashboardFrontendConfig: FrontendConfig = {
   routePrefix: "/public-dashboard",
   publicPath: PublicDashboardPublicPath,
   indexViewPath: PublicDashboardViewPath,
+  getVariablesToRenderIndexPage: async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<JSONObject> => {
+    const dashboardData: PublicDashboardData | PublicPageNotFound | null =
+      await getPublicDashboardData(req);
+
+    if (dashboardData === PUBLIC_PAGE_NOT_FOUND) {
+      /*
+       * No dashboard answers on this link: none was made, it is archived or
+       * shared only with its project, or a master admin blocked its project.
+       * The app still loads and says so, from the placeholder below, as a
+       * 404 kept out of search results (PublicPageNotFound).
+       */
+      applyPublicPageNotFound(res);
+
+      return {
+        title: "Dashboard",
+        description: "View dashboard metrics and insights.",
+        isSearchEngineIndexingEnabled: false,
+      };
+    }
+
+    if (dashboardData) {
+      return {
+        title: dashboardData.title,
+        description: dashboardData.description,
+      };
+    }
+
+    return {
+      title: "Dashboard",
+      description: "View dashboard metrics and insights.",
+    };
+  },
 };
 
 const DashboardRootPwaFileMap: Array<{ route: string; file: string }> = [

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28193,
-    "untranslated": 16973
+    "keys": 28197,
+    "untranslated": 16965
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -15,6 +15,7 @@
     "Report",
     "Runbook: {{name}}",
     "Runner",
+    "Standard",
     "Stratum",
     "Team",
     "VMware vCenter",

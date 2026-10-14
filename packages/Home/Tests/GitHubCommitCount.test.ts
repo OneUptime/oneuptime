@@ -167,6 +167,14 @@ function sourceOf(file: string): string {
 }
 
 // The /about route's handler, up to the next route.
+/*
+ * How many times a source file's text holds a string. The files are read as
+ * text, so a URL in them is text to count, not an address to check.
+ */
+function occurrences(text: string, part: string): number {
+  return text.split(part).length - 1;
+}
+
 function aboutRoute(): string {
   const routes: string = sourceOf("Routes.ts");
   const start: number = routes.indexOf('app.get("/about"');
@@ -193,13 +201,14 @@ describe("one reading of the header", () => {
     const contributors: string = sourceOf("Utils/GitHubContributors.ts");
 
     expect(route.includes("await fetchGitHubContributors()")).toBe(true);
-    expect(route.includes("https://api.github.com/")).toBe(false);
-    expect(contributors.split("https://api.github.com/").length - 1).toBe(1);
+    expect(occurrences(route, "https://api.github.com/")).toBe(0);
+    expect(occurrences(contributors, "https://api.github.com/")).toBe(1);
     expect(
-      contributors.includes(
+      occurrences(
+        contributors,
         "https://api.github.com/repos/oneuptime/oneuptime/contributors",
       ),
-    ).toBe(true);
+    ).toBe(1);
     expect(contributors.includes("/commits")).toBe(false);
     expect(contributors.includes('headers["link"]')).toBe(false);
     // Nothing else in the routes reads a Link header either.

@@ -37,6 +37,25 @@ from the heading text. Before renaming a heading, search for its anchor
 (`grep -rn "<category>/<page>#" packages`); `DocsLinksResolve` fails on an
 English page or a literal product link that names a heading no longer there.
 
+## Search engines
+
+What the docs tell search engines is worked out from the pages themselves,
+so a new page or a new translation needs nothing more:
+
+- Every page in the nav is in the docs' sitemap (`/docs/sitemap.xml`, which
+  the site's sitemap index lists as `/sitemap-docs.xml`), in English and in
+  each language it is translated into (`Utils/Sitemap.ts`).
+- A page names its canonical address and its translations in its `<head>`
+  (`Utils/Seo.ts`). A page served in English under another language's
+  prefix - one with no copy in that language, or a copy that is still
+  English - names the English page as canonical and is left out of the
+  sitemap. `Utils/Translations.ts` decides which copies are translations: a
+  copy carrying a `TODO(i18n)` comment, or most of whose sentences are the
+  English page's word for word, is still English.
+- An old address without a language (`/docs/<category>/<page>`) redirects
+  permanently to the English page, and the page as Markdown
+  (`/docs/as-markdown/...`) is never indexed.
+
 ## What a page looks like
 
 Every page answers, in this order: what is this, why would I use it, how do I
@@ -324,6 +343,9 @@ language, to the rules in `Tests/FeatureSet/Docs/DocsContentRules.ts`:
 - links land on a page in the nav and on a heading it has (never the title on
   line 1, which has no anchor), images and files under `/docs/static/` exist,
   no link is relative, and no two headings of a page share an anchor;
+- an address the reader fills in (`https://oneuptime.com/heartbeat/YOUR_KEY`,
+  `/dashboards/<id>/view`) is written as code, between backticks: as a link,
+  or as text, search engines follow it to a page that does not exist;
 - code samples are closed, and in English they name their language; English
   headings never skip a level, and Getting Started links into every nav group;
 - every English page is translated, and each translation keeps its English

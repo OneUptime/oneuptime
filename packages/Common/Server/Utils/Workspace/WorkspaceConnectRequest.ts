@@ -94,6 +94,13 @@ export interface WorkspaceConnectRequestSlackPlace {
   channelId?: string | undefined;
   threadTs?: string | undefined;
   responseUrl?: string | undefined;
+  /*
+   * The person's direct messages with the app, when that is where they
+   * wrote: where the settings page's "Back to Slack" takes them. Never
+   * where to answer - they are answered there by the app's own message,
+   * which needs no channel (SlackActionAnswer).
+   */
+  directMessageChannelId?: string | undefined;
 }
 
 /*
@@ -208,6 +215,7 @@ export default class WorkspaceConnectRequest {
         channelId: data.slack.channelId,
         threadTs: data.slack.threadTs,
         responseUrl: data.slack.responseUrl,
+        directMessageChannelId: data.slack.directMessageChannelId,
       });
     }
 
@@ -453,6 +461,9 @@ export default class WorkspaceConnectRequest {
         channelId: WorkspaceConnectRequest.asString(slack["channelId"]),
         threadTs: WorkspaceConnectRequest.asString(slack["threadTs"]),
         responseUrl: WorkspaceConnectRequest.asString(slack["responseUrl"]),
+        directMessageChannelId: WorkspaceConnectRequest.asString(
+          slack["directMessageChannelId"],
+        ),
       }) as WorkspaceConnectRequestSlackPlace;
     }
 

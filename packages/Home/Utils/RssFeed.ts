@@ -1,9 +1,9 @@
 import { create } from "xmlbuilder2";
 import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
-import BlogPostUtil, { BlogPostHeader } from "./BlogPost";
+import BlogPostUtil, { BlogPostHeader, BlogTagSummary } from "./BlogPost";
+import BlogTag from "./BlogTag";
 import OneUptimeDate from "Common/Types/Date";
 import URL from "Common/Types/API/URL";
-import Text from "Common/Types/Text";
 
 // Cache TTL: 10 minutes
 const TTL_MS: number = 10 * 60 * 1000;
@@ -132,9 +132,13 @@ export async function generateBlogRssFeed(): Promise<string> {
   return xml;
 }
 
-// Generate RSS feed for a specific tag
-export async function generateTagRssFeed(tagName: string): Promise<string> {
-  const cacheKey: string = tagName.toLowerCase();
+/*
+ * Generate the RSS feed of a tag that has a page (BlogPostUtil.getTagBySlug):
+ * its posts, titled with the tag as its posts write it, linking to the
+ * tag's page and feed by their one address (BlogTag).
+ */
+export async function generateTagRssFeed(tag: BlogTagSummary): Promise<string> {
+  const cacheKey: string = tag.slug;
   const cached: CachedData<string> | undefined = tagFeedCaches.get(cacheKey);
 
   if (isCacheValid(cached)) {
@@ -144,16 +148,15 @@ export async function generateTagRssFeed(tagName: string): Promise<string> {
   const baseUrl: URL = await BlogPostUtil.getHomeUrl();
   const baseUrlString: string = baseUrl.toString().replace(/\/$/, "");
 
-  const blogPosts: Array<BlogPostHeader> =
-    await BlogPostUtil.getBlogPostList(tagName);
-
-  const displayTagName: string = Text.fromDashesToPascalCase(tagName);
+  const blogPosts: Array<BlogPostHeader> = await BlogPostUtil.getBlogPostList(
+    tag.slug,
+  );
 
   const xml: string = await buildRssFeed({
-    title: `OneUptime Blog - ${displayTagName}`,
-    description: `Latest posts on ${displayTagName} from the OneUptime Blog.`,
-    feedUrl: `${baseUrlString}/blog/tag/${encodeURIComponent(tagName)}/rss.xml`,
-    siteUrl: `${baseUrlString}/blog/tag/${encodeURIComponent(tagName)}`,
+    title: `OneUptime Blog - ${tag.name}`,
+    description: `Latest posts on ${tag.name} from the OneUptime Blog.`,
+    feedUrl: `${baseUrlString}${BlogTag.getFeedPath(tag.slug)}`,
+    siteUrl: `${baseUrlString}${BlogTag.getPagePath(tag.slug)}`,
     posts: blogPosts,
     baseUrlString,
   });

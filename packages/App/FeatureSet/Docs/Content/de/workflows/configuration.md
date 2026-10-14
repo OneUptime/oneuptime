@@ -147,7 +147,7 @@ Was der Baustein braucht und was er kostet:
 
 - **KI aktivieren** muss eingeschaltet sein, unter **Projekteinstellungen → KI → KI-Funktionen**. In OneUptime Cloud braucht das Projekt außerdem den Plan Growth oder höher und ein bezahltes Abonnement. Selbst gehostete Installationen ohne Abrechnung haben keine Plan-Sperre.
 - Aufrufe über einen kostenpflichtigen globalen Anbieter verbrauchen das KI-Guthaben des Projekts.
-- Jeder Aufruf zählt zu den [eigenen täglichen KI-Grenzen des Projekts](/docs/ai/ai-sre#the-projects-own-daily-limits), wenn ein Projektinhaber sie festlegt. Ist eine Grenze erreicht, nimmt der Baustein bis Mitternacht UTC **Error**, ohne das Modell anzufragen.
+- Jeder Aufruf zählt zu den [eigenen täglichen KI-Grenzen des Projekts](/docs/ai/ai-sre#die-eigenen-täglichen-limits-des-projekts), wenn ein Projektinhaber sie festlegt. Ist eine Grenze erreicht, nimmt der Baustein bis Mitternacht UTC **Error**, ohne das Modell anzufragen.
 
 | Grenze                                                         | Wert                                                                                       |
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |

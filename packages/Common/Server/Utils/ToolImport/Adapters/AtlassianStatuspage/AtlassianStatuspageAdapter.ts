@@ -56,7 +56,10 @@ import {
  * may make one request a second, so reads are paced at that. Components
  * and groups are paged by `page` and `per_page` (at most 100), subscribers
  * by `page` and `limit` (at most 100); a short page is the last (see
- * readPaged for how the page number is counted).
+ * readPaged for how the page number is counted). A page can have more
+ * subscribers than one read collects: the ones earlier imports brought
+ * over are read past without being counted, so each import reads the
+ * next ones.
  *
  * How Statuspage's ideas map:
  *  - A page is a status page, with its name, its description and whether
@@ -140,7 +143,14 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
       await context.onProgress?.(ToolImportResourceKind.Monitor);
 
       for (const page of pages) {
-        reads.push(await this.readPage(client, page, snapshot.notes));
+        reads.push(
+          await this.readPage(
+            client,
+            page,
+            snapshot.notes,
+            context.importedSubscriberIds,
+          ),
+        );
       }
 
       snapshot.accountName =
@@ -198,6 +208,7 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
     client: ToolImportHttpClient,
     page: Record<string, unknown>,
     notes: Array<ToolImportNote>,
+    importedSubscriberIds: ReadonlySet<string> | undefined,
   ): Promise<StatuspagePageRead> {
     const base: string = `/v1/pages/${encodeURIComponent(asString(page["id"]))}`;
 
@@ -226,6 +237,8 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
           path: `${base}/subscribers`,
           sizeParam: "limit",
           query: { type: "email", state: "active" },
+          // Already in OneUptime: read past, so this read collects the next ones.
+          passOver: importedSubscriberIds,
         });
       },
       (): void => {
@@ -277,13 +290,16 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
    * already read - page 1 of a list that counts from 1 - is passed over
    * once. A page shorter than the size is the last. At most
    * TOOL_IMPORT_MAX_RECORDS_PER_KIND records; `hasMore` says when there
-   * were more.
+   * were more. Records whose ids are in `passOver` are read past: neither
+   * kept nor counted towards that limit. A page of them is still new to
+   * the read, so it is not taken for one that repeats.
    */
   private async readPaged(data: {
     client: ToolImportHttpClient;
     path: string;
     sizeParam: "per_page" | "limit";
     query?: Record<string, string> | undefined;
+    passOver?: ReadonlySet<string> | undefined;
   }): Promise<PagedRead> {
     const records: Array<Record<string, unknown>> = [];
     const seen: Set<string> = new Set<string>();
@@ -311,7 +327,11 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
         },
       );
 
-      records.push(...fresh);
+      records.push(
+        ...fresh.filter((record: Record<string, unknown>): boolean => {
+          return !data.passOver?.has(asString(record["id"]));
+        }),
+      );
 
       if (answer.length < PAGE_SIZE) {
         return { records: records, hasMore: false };

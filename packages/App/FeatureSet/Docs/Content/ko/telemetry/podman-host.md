@@ -235,11 +235,11 @@ podman compose down
 위의 명령과 Compose 파일, Podman 에이전트의 `install.sh`, 그리고 [PodmanAgent 디렉터리](https://github.com/OneUptime/oneuptime/tree/master/agents/PodmanAgent)의 `docker-compose.yml`은 모두 **Podman AI 에이전트**를 실행합니다. 두 번째 컨테이너인 `oneuptime-podman-ai-agent`(이미지 `oneuptime/resource-ai-agent:release`)로, OneUptime AI가 이 호스트의 인시던트나 알림을 조사하는 동안 요청하는 읽기 전용 명령을 Podman의 Docker 호환 API를 통해 `docker` CLI로 실행하고(`docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web`), 허용한 경우에만 지정한 컨테이너 재시작 같은 수정을 적용합니다. Collector와 같은 `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, `PODMAN_HOST_NAME`을 읽으므로 정확히 이 호스트를 담당하며, OneUptime에서 호스트의 **AI 에이전트** 페이지에 나타납니다.
 
 - **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 호스트의 인시던트와 알림을 조사하며, 호스트의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
-- `ONEUPTIME_AI_ALLOW_WRITES=true`로 시작하지 않는 한 읽기 전용입니다. `ONEUPTIME_AI_WRITE_TARGETS`(예: `web-*,api-*`)가 수정이 건드릴 수 있는 컨테이너를 제한합니다. 수정 실행 방식을 정하려면 `ONEUPTIME_AI_FIXES`도 지정해 시작하세요. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에는 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
+- `ONEUPTIME_AI_ALLOW_WRITES=true`로 시작하지 않는 한 읽기 전용입니다. `ONEUPTIME_AI_WRITE_TARGETS`(예: `web-*,api-*`)가 수정이 건드릴 수 있는 컨테이너를 제한합니다. 수정 실행 방식을 정하려면 `ONEUPTIME_AI_FIXES`도 지정해 시작하세요. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에는 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)).
 - Collector와 같은 소켓이 필요하며, 소켓을 root가 소유하므로 소켓을 마운트한 채 root로 실행됩니다. 그리고 rootful Podman에서는 `:ro`이든 아니든 소켓을 사용할 수 있는 사람은 이 호스트의 root입니다. 한계는 에이전트의 명령 정책입니다. `exec`, `run`, `rm`, `prune`은 절대 실행하지 않으며, 자기 자신, Collector, `ONEUPTIME_AI_PROTECTED_TARGETS`(컨테이너 이름 glob)에 있는 것은 절대 변경하지 않습니다.
 - `install.sh --no-ai-agent`는 이를 빼고, `podman rm -f oneuptime-podman-ai-agent`는 제거합니다. 업그레이드는 Collector와 같습니다. `podman pull oneuptime/resource-ai-agent:release`를 실행하고, 제거한 다음, 다시 시작하세요.
 
-실행할 수 있는 명령, 수정 방식, 문제 해결 방법은 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-and-podman-hosts)를 참조하세요.
+실행할 수 있는 명령, 수정 방식, 문제 해결 방법은 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-및-podman-호스트)를 참조하세요.
 
 ## 문제 해결
 

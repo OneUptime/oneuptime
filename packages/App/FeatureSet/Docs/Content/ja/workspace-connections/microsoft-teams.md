@@ -152,7 +152,7 @@ OneUptime がインシデント、アラート、エピソード、定期メン�
 | `show active incidents`、 `show active alerts` | 現在開いているものを一覧表示します。 |
 | `show scheduled maintenance`、 `show ongoing maintenance` | 予定されている、または進行中のメンテナンスイベントを一覧表示します。 |
 
-`show` の一覧を除き、これらは Slack で `/oneuptime` の後に続く単語です。`create incident` と `create maintenance` も引き続き使えます。OneUptime AI への質問には、プロジェクトで AI がオンになっている必要があります。[AI に質問](/docs/ai/ask-ai) を参照してください。
+`show` の一覧を除き、これらは Slack で `/oneuptime` の後に続く単語です。`create incident` と `create maintenance` も引き続き使えます。OneUptime AI への質問には、自分の Microsoft Teams アカウントの接続と、プロジェクトで AI がオンになっていることが必要です。アカウントが接続されていない場合、ボットはスレッドやチャットごとに一度だけ、**Connect Microsoft Teams account** ボタンで接続を求めます。[AI に質問](/docs/ai/ask-ai) を参照してください。
 
 ## Microsoft Teams からインシデントとメンテナンスを作成する
 

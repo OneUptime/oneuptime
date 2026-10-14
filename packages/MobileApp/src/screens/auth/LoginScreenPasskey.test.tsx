@@ -154,7 +154,12 @@ test("keeps password sign-in first and offers passkeys as a credential-free alte
   expect(disclosure().props.accessibilityState.expanded).toBe(false);
   await fireEvent.press(screen.getByText("New to passkeys?"));
   expect(disclosure().props.accessibilityState.expanded).toBe(true);
-  expect(screen.getByText(/In your profile, open Passkeys/)).toBeTruthy();
+  expect(
+    screen.getByText(
+      /then open User Profile → Security → Passkeys to add a passkey\./,
+    ),
+  ).toBeTruthy();
+  expect(screen.queryByText(/Two Factor Auth/)).toBeNull();
   await fireEvent.press(screen.getByTestId("passkey-sign-in"));
   expect(mockLoginWithPasskey).toHaveBeenCalledTimes(1);
   expect(mockLogin).not.toHaveBeenCalled();

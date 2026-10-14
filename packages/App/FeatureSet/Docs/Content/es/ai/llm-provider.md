@@ -1,213 +1,230 @@
-# Proveedores LLM
+# Proveedores de LLM
 
-OneUptime admite la integración con diversos proveedores de Modelos de Lenguaje Grande (LLM) para habilitar funciones impulsadas por IA en toda la plataforma. Esta guía te ayudará a configurar tu propio proveedor LLM.
+Un proveedor de LLM es el modelo detrás de cada función de IA en OneUptime: investigaciones, Preguntar a la IA, borradores y pull requests de corrección. Esta página muestra qué proveedor usa una función, cómo añadir el tuyo (OpenAI, Azure OpenAI y Microsoft Foundry, Anthropic, Groq, Mistral, Ollama o cualquier servidor compatible con OpenAI) y cómo apuntar OneUptime a un modelo que ejecutas tú mismo.
 
-## ¿Qué pueden hacer los proveedores LLM?
+:::cards
+- [Qué proveedor usa la IA](#qué-proveedor-usa-la-ia): El proveedor predeterminado del proyecto, o si no, el global.
+- [Autoalojado: sin configuración mediante variables de entorno](#autoalojado-sin-configuración-mediante-variables-de-entorno): Un proveedor para cada proyecto, desde los ajustes del servidor.
+- [Configurar un proveedor de LLM](#configurar-un-proveedor-de-llm): Añade un proveedor a un proyecto y pruébalo.
+- [Elegir una URL base para un modelo autoalojado](#elegir-una-url-base-para-un-modelo-autoalojado): Una dirección a la que llegue el servidor de OneUptime.
+:::
 
-Los proveedores LLM en OneUptime te ayudan a automatizar y mejorar tu flujo de trabajo de gestión de incidentes:
+## Qué impulsa un proveedor
 
-- **Investigaciones autónomas**: Investigar automáticamente los nuevos incidentes y alertas y publicar en la línea de tiempo un análisis de causa raíz con sus fuentes; consulta [AI SRE](/docs/ai/ai-sre)
-- **Notas de incidentes**: Generar automáticamente notas detalladas de incidentes y actualizaciones
-- **Notas de alertas**: Crear descripciones y contexto significativos para las alertas
-- **Notas de mantenimiento programado**: Generar notas de eventos de mantenimiento automáticamente
-- **Análisis post-mortem de incidentes**: Redactar automáticamente informes completos de análisis post-mortem de incidentes
-- **Mejoras de código**: Si conectas tu repositorio de código a OneUptime, utilizaremos tu proveedor LLM para analizar datos de telemetría (registros, trazas, métricas, excepciones) y sugerir mejoras de código
+- **Investigaciones**: OneUptime AI investiga los incidentes y las alertas nuevos y publica en la línea de tiempo un análisis de causa raíz con citas. Consulta [AI SRE](/docs/ai/ai-sre).
+- **Preguntas**: **Preguntar a la IA** responde a partir de los datos de tu proyecto, con una cita en cada afirmación. Consulta [Preguntar a la IA](/docs/ai/ask-ai).
+- **Borradores**: **Redactar con IA** en las notas de incidentes, alertas y mantenimientos programados, y los postmortems, redactados a petición o cuando un incidente se resuelve.
+- **Código**: pull requests que corrigen excepciones, trazas lentas y las causas que encuentran las investigaciones, desde OneUptime o desde GitHub. Consulta [Tareas de corrección](/docs/ai/ai-agent).
+- **Todo lo demás**: la clasificación de AI Insights, los pasos de IA de los flujos de trabajo y los runbooks, y las respuestas en Slack y Microsoft Teams.
 
-## Usuarios de OneUptime SaaS
+## Qué proveedor usa la IA
 
-Si utilizas **OneUptime SaaS** (versión alojada en la nube), puedes usar el **Proveedor LLM global** de forma predeterminada sin ninguna configuración adicional. El Proveedor LLM global está preconfigurado y listo para usar para todas las funciones de IA.
+Las funciones de IA usan el proveedor predeterminado del proyecto. Un proyecto sin proveedor predeterminado usa el proveedor global, cuando lo hay. Preguntar a la IA también puede cambiar una conversación a otro de los proveedores del proyecto, o a uno global.
 
-Si prefieres usar tus propias claves de API o un proveedor específico, aún puedes configurar un proveedor LLM personalizado siguiendo las instrucciones a continuación.
+```mermaid title="Qué proveedor usa una función de IA"
+flowchart TB
+    F["Una función de IA<br/>necesita un modelo"] --> D{"¿Tiene el proyecto<br/>un proveedor<br/>predeterminado?"}
+    D -->|"sí"| P["El proveedor<br/>predeterminado<br/>del proyecto"]
+    D -->|"no"| G{"¿Hay un proveedor<br/>global?"}
+    G -->|"sí"| GP["El proveedor global:<br/>créditos de IA en<br/>OneUptime Cloud"]
+    G -->|"no"| N["No se ejecuta nada,<br/>y las páginas de IA<br/>dicen que falta<br/>un proveedor"]
+```
 
-OneUptime SaaS solo puede llegar a endpoints de LLM en internet público. No puede conectarse a un modelo de tu red privada, como un servidor Ollama o vLLM autoalojado. Para usar un modelo que ejecutas tú mismo, autoaloja OneUptime en una red que pueda llegar a él o expón el modelo en un endpoint público; consulta [Cómo elegir la URL base de un modelo autoalojado](#cómo-elegir-la-url-base-de-un-modelo-autoalojado).
+Un proveedor es el predeterminado de un proyecto cuando **Establecer como predeterminado** está activado, como ocurre en cada proveedor nuevo. Un proyecto cuyos proveedores tienen todos desactivado el predeterminado recurre al proveedor global, como si no tuviera ninguno.
 
-## Autoalojado: configuración cero con variables de entorno
+## OneUptime Cloud
 
-En una instancia autoalojada, la forma más rápida de activar las funciones de IA para **todos los proyectos a la vez** es definir las variables de entorno `GLOBAL_LLM_PROVIDER_*` en tu servidor de OneUptime: en `config.env` para Docker Compose, o mediante los valores de Helm. Al arrancar, OneUptime registra a partir de ellas un Proveedor LLM global (y lo mantiene sincronizado); no hace falta configurar nada en el panel para cada proyecto, y las tareas de corrección de IA también lo usan cuando un proyecto no tiene un proveedor propio.
+En **OneUptime Cloud**, cada proyecto puede usar el proveedor global sin configurar nada. Está listo para cada función de IA y se paga con los créditos de IA del proyecto.
+
+Para usar en su lugar tus propias claves de API o un modelo concreto, añade un proveedor propio, como se explica abajo: no se te cobra por la IA que se ejecuta en tu propio proveedor.
+
+El proveedor de LLM global se paga con los créditos de IA del proyecto. Para limitar lo que la IA puede gastar cada día, define un **Límite diario de gasto de IA (USD)** en **Ajustes del proyecto → Funciones de IA → Más ajustes**; un **Límite diario de tokens de IA** ahí limita los tokens en cualquier proveedor, también el tuyo. Consulta [los límites diarios propios del proyecto](/docs/ai/ai-sre#los-límites-diarios-propios-del-proyecto).
+
+OneUptime Cloud solo puede llegar a endpoints de LLM en la internet pública. No puede conectarse a un modelo en tu red privada, como un servidor Ollama o vLLM autoalojado. Para usar un modelo que ejecutas tú mismo, aloja OneUptime en una red que pueda llegar a él, o expón el modelo en un endpoint público: consulta [Elegir una URL base para un modelo autoalojado](#elegir-una-url-base-para-un-modelo-autoalojado).
+
+## Autoalojado: sin configuración mediante variables de entorno
+
+En una instancia autoalojada, la forma más rápida de activar la IA para **todos los proyectos a la vez** es definir las variables de entorno `GLOBAL_LLM_PROVIDER_*` en tu servidor de OneUptime: en `config.env` para Docker Compose, o mediante los valores de Helm. Al arrancar, OneUptime registra con ellas un proveedor de LLM global y lo mantiene al día; ningún proyecto tiene que configurar nada, y las tareas de corrección de IA también lo usan cuando un proyecto no tiene proveedor propio.
 
 | Variable | Descripción |
 | --- | --- |
-| `GLOBAL_LLM_PROVIDER_TYPE` | Obligatoria para activarlo. Uno de estos valores: `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
-| `GLOBAL_LLM_PROVIDER_API_KEY` | Clave de API: obligatoria para OpenAI, Azure OpenAI, Anthropic, Groq y Mistral; no hace falta para Ollama ni para servidores compatibles con OpenAI sin clave |
-| `GLOBAL_LLM_PROVIDER_BASE_URL` | Punto de conexión de la API: obligatorio para Azure OpenAI, Ollama y servidores compatibles con OpenAI |
-| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Modelo que se usará (obligatorio para servidores compatibles con OpenAI, recomendado en los demás casos) |
-| `GLOBAL_LLM_PROVIDER_NAME` | Nombre descriptivo opcional que se muestra en el panel |
+| `GLOBAL_LLM_PROVIDER_TYPE` | Necesaria para activarlo. Una de `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
+| `GLOBAL_LLM_PROVIDER_API_KEY` | La clave de API: necesaria para OpenAI, Azure OpenAI, Anthropic, Groq y Mistral; no hace falta para Ollama ni para un servidor compatible con OpenAI sin clave |
+| `GLOBAL_LLM_PROVIDER_BASE_URL` | El endpoint: necesario para Azure OpenAI, Ollama y los servidores compatibles con OpenAI |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | El modelo que se usa: necesario para los servidores compatibles con OpenAI, recomendado para los demás |
+| `GLOBAL_LLM_PROVIDER_NAME` | Un nombre descriptivo opcional, que se muestra en el panel |
 
-**Ejemplo: Ollama autoalojado**
-
+:::tabs
+@tab Ollama
 ```bash
 GLOBAL_LLM_PROVIDER_TYPE=Ollama
-# Una dirección a la que llegue el servidor de OneUptime. Nunca localhost:
-# consulta "Cómo elegir la URL base de un modelo autoalojado" más abajo.
+# An address the OneUptime server can reach. Never localhost: see
+# "Choosing a Base URL for a Self-Hosted Model" below.
 GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
 GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
-# No hace falta clave de API: Ollama funciona sin clave.
+# No API key needed — Ollama is keyless.
 ```
-
-**Ejemplo: OpenAI**
-
+@tab OpenAI
 ```bash
 GLOBAL_LLM_PROVIDER_TYPE=OpenAI
 GLOBAL_LLM_PROVIDER_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
 GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 ```
+:::
 
-La sincronización es declarativa: si cambias las variables, el proveedor se actualiza en el siguiente reinicio, y si eliminas `GLOBAL_LLM_PROVIDER_TYPE`, se borra. Los proveedores globales creados manualmente en el panel de administración nunca se modifican. Los proyectos pueden seguir añadiendo su propio proveedor en **Ajustes del proyecto** > **IA** > **Proveedores de LLM**; un proveedor propio del proyecto siempre tiene prioridad sobre el global.
+La sincronización es declarativa: cambia una variable y el proveedor la sigue en el siguiente reinicio; quita `GLOBAL_LLM_PROVIDER_TYPE` y el proveedor se elimina. Los proveedores globales creados a mano en el Admin Dashboard nunca se tocan. Un proyecto puede seguir añadiendo un proveedor propio en **Ajustes del proyecto → IA → Proveedores de LLM**, y un proveedor que pertenece al proyecto siempre tiene prioridad.
 
-## Proveedores admitidos
+## Proveedores compatibles
 
-OneUptime actualmente admite los siguientes proveedores LLM:
-
-| Proveedor             | Descripción                                                                 | Clave de API requerida | URL base requerida         |
-| --------------------- | --------------------------------------------------------------------------- | ---------------------- | -------------------------- |
-| **OpenAI**            | GPT-5.1 y otros modelos de OpenAI                                           | Sí                     | No (usa la predeterminada) |
+| Proveedor | Para qué sirve | Clave de API necesaria | URL base necesaria |
+| --- | --- | --- | --- |
+| **OpenAI** | GPT-5.1 y los demás modelos de OpenAI | Sí | No (usa la predeterminada) |
 | **Azure OpenAI / Microsoft Foundry** | Modelos que despliegas en Microsoft Foundry o Azure OpenAI: modelos de OpenAI, Foundry Models y Claude | Sí | Sí |
-| **Anthropic**         | Claude Sonnet 5.5, Claude Opus 5.5, Claude Haiku 5.5 y otros modelos Claude | Sí                     | No (usa la predeterminada) |
-| **Groq**              | Inferencia rápida para Llama, Mixtral y otros modelos abiertos              | Sí                     | No (usa la predeterminada) |
-| **Mistral**           | Modelos alojados de Mistral                                                 | Sí                     | No (usa la predeterminada) |
-| **Ollama**            | Modelos de código abierto auto-alojados como Llama 3.1, Mistral, Qwen, etc. | No                     | Sí                         |
-| **OpenAI Compatible** | Cualquier servidor compatible con OpenAI (vLLM, LocalAI, LM Studio, etc.)   | No (opcional)          | Sí                         |
+| **Anthropic** | Claude Sonnet 5.5, Claude Opus 5.5, Claude Haiku 5.5 y los demás modelos Claude | Sí | No (usa la predeterminada) |
+| **Groq** | Inferencia rápida para Llama, Mixtral y otros modelos abiertos | Sí | No (usa la predeterminada) |
+| **Mistral** | Los modelos alojados de Mistral | Sí | No (usa la predeterminada) |
+| **Ollama** | Modelos de código abierto que ejecutas tú mismo, como Llama 3.1, Mistral o Qwen | No | Sí |
+| **OpenAI Compatible** | Cualquier servidor compatible con OpenAI: vLLM, LocalAI, LM Studio y otros | No (opcional) | Sí |
 
-## Configuración de un proveedor LLM
+## Configurar un proveedor de LLM
 
-### Paso 1: Navegar a la configuración de proveedores LLM
+:::steps
+### Abre Proveedores de LLM
 
-1. Inicia sesión en tu panel de OneUptime
-2. Ve a **Ajustes del proyecto** > **IA** > **Proveedores de LLM**
-3. Haz clic en **Crear Proveedor de LLM** para agregar un nuevo proveedor
+Ve a **Ajustes del proyecto → IA → Proveedores de LLM** (la sección **IA** del menú lateral empieza plegada) y haz clic en **Crear Proveedor de LLM**.
 
-### Paso 2: Configurar tu proveedor
+### Ponle nombre al proveedor
 
-Completa los siguientes campos:
+En **Información básica**, dale un **Nombre** que diga qué es, como "Production OpenAI" o "Local Ollama", y opcionalmente una **Descripción**.
 
-- **Nombre**: Un nombre descriptivo para esta configuración LLM (por ejemplo, "OpenAI de producción", "Ollama local")
-- **Descripción** (opcional): Una descripción para identificar el propósito de este proveedor
-- **Proveedor de LLM**: Selecciona el tipo de proveedor (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama u OpenAI Compatible)
-- **Clave de API**: Tu clave de API (requerida para OpenAI, Azure OpenAI, Anthropic, Groq y Mistral; opcional para Ollama y para servidores compatibles con OpenAI)
-- **Nombre del modelo**: El modelo específico a usar (por ejemplo, `gpt-5.1`, `claude-sonnet-5-5`, `llama3.1`)
-- **URL base** (opcional): URL de punto de conexión de API personalizado (requerida para Azure OpenAI, Ollama y OpenAI Compatible; opcional para otros)
-- **Más campos**, plegado bajo los campos anteriores: **Establecer como predeterminado**, que viene activado en un proveedor nuevo porque las funciones de IA solo usan el proveedor predeterminado del proyecto, y **Parámetros adicionales**, un objeto JSON opcional con parámetros extra que se envían al proveedor en cada solicitud (por ejemplo, `{"temperature": 0.2}`)
+### Rellena los ajustes del proveedor
 
-**Probar un proveedor.** **Probar**, en la página del proveedor o en el menú de su fila, envía al proveedor una indicación breve con los valores de **Clave de API**, **Nombre del modelo**, **URL base** y **Parámetros adicionales**, e indica si respondió y llamó a una herramienta, algo que las funciones de IA de OneUptime necesitan. Una prueba fallida dice primero qué revisar y después qué respondió el proveedor. Quien puede cambiar un proveedor puede probarlo: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** y **Edit LLM**. Todos los demás que ven el proveedor encuentran **Probar** bloqueado. Un proveedor LLM global lo prueba un administrador del servidor, en el panel de administración, en **Ajustes** > **Proveedores LLM globales**.
+En **Ajustes del proveedor**:
 
-## Configuración específica del proveedor
+- **Proveedor de LLM**: el tipo de proveedor (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama u OpenAI Compatible)
+- **Clave de API**: tu clave de API (necesaria para OpenAI, Azure OpenAI, Anthropic, Groq y Mistral; opcional para Ollama y los servidores compatibles con OpenAI)
+- **Nombre del modelo**: el modelo que se usa, como `gpt-5.1`, `claude-sonnet-5-5` o `llama3.1`
+- **URL base**: el endpoint, necesario para Azure OpenAI, Ollama y OpenAI Compatible; opcional para los demás, para sustituir su valor predeterminado
+- **Más campos**, plegado bajo los campos anteriores: **Establecer como predeterminado**, que está activado en un proveedor nuevo porque las funciones de IA solo usan el proveedor predeterminado del proyecto, y **Parámetros adicionales**, un objeto JSON opcional con parámetros extra que se envían al proveedor en cada petición (por ejemplo `{"temperature": 0.2}`)
+
+**Quién puede ver un proveedor.** Los proveedores de LLM de un proyecto solo los leen sus miembros que pueden leer los ajustes del proyecto: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** y **Read LLM**. La **Clave de API** y los **Parámetros adicionales** de un proveedor solo los leen los propietarios y administradores del proyecto, porque los parámetros se envían al proveedor en cada petición y pueden llevar un token o una cabecera igual que la clave. Los demás miembros ven si hay parámetros guardados, no cuáles son. Los miembros que pueden editar un proveedor pueden sustituir su clave de API o sus parámetros sin leerlos: en el formulario de edición esos campos empiezan vacíos, y dejar uno en blanco conserva lo guardado. Para quitar los parámetros, guarda `{}`. Solo los propietarios y administradores del proyecto pueden cambiar la **URL base** de un proveedor, porque su clave de API y sus parámetros adicionales se envían a esa dirección; los demás miembros que pueden editar un proveedor pueden cambiar todo lo demás. Todo el que puede leer un proveedor puede leer su **URL base**, así que nunca pongas en ella una clave, un token o una contraseña: usa la **Clave de API**. La lista **Proveedores LLM globales** de la misma página, los proveedores compartidos a los que recurre un proyecto, muestra su nombre, su descripción y su precio a cualquiera que haya iniciado sesión, y nada más sobre ellos.
+
+### Pruébalo
+
+**Probar un proveedor.** **Probar**, en la página del proveedor o en el menú de su fila, envía al proveedor un prompt corto con su **Clave de API**, **Nombre del modelo**, **URL base** y **Parámetros adicionales**, y dice si respondió y llamó a una herramienta, algo que necesitan las funciones de IA de OneUptime. Una prueba fallida dice primero qué comprobar y luego qué respondió el proveedor. Quien puede cambiar un proveedor puede probarlo: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** y **Edit LLM**. Todos los demás que pueden ver el proveedor encuentran **Probar** bloqueado. Un proveedor de LLM global lo prueba un administrador del servidor, en el Admin Dashboard, en **Ajustes → Proveedores LLM globales**.
+:::
+
+## Configuración por proveedor
 
 ### OpenAI
 
-1. Obtén tu clave de API de [OpenAI Platform](https://platform.openai.com/api-keys)
+1. Obtén tu clave de API en [OpenAI Platform](https://platform.openai.com/api-keys)
 2. Selecciona **OpenAI** como proveedor de LLM
-3. Ingresa tu clave de API
+3. Introduce tu clave de API
 4. Elige un nombre de modelo:
-   - `gpt-5.1` - Opción predeterminada recomendada, sólida en llamadas a herramientas e investigaciones complejas
-   - `gpt-5.1-mini` - Más rápido y económico
+   - `gpt-5.1` - Predeterminado recomendado, fuerte en llamadas a herramientas e investigaciones complejas
+   - `gpt-5.1-mini` - Más rápido y más económico
 
-**Ejemplo de configuración:**
-
-```
-Nombre: OpenAI de producción
-Proveedor de LLM: OpenAI
-Clave de API: sk-xxxxxxxxxxxxxxxxxxxx
-Nombre del modelo: gpt-5.1
+```text title="Example configuration"
+Name: Production OpenAI
+LLM Provider: OpenAI
+API Key: sk-xxxxxxxxxxxxxxxxxxxx
+Model Name: gpt-5.1
 ```
 
 ### Anthropic
 
-1. Obtén tu clave de API de [Anthropic Console](https://console.anthropic.com/)
+1. Obtén tu clave de API en [Anthropic Console](https://console.anthropic.com/)
 2. Selecciona **Anthropic** como proveedor de LLM
-3. Ingresa tu clave de API
+3. Introduce tu clave de API
 4. Elige un nombre de modelo:
-   - `claude-sonnet-5-5` - Opción predeterminada recomendada, el mejor equilibrio entre inteligencia, velocidad y coste
+   - `claude-sonnet-5-5` - Predeterminado recomendado, el mejor equilibrio entre inteligencia, velocidad y coste
    - `claude-opus-5-5` - Más capaz, para las investigaciones más difíciles
    - `claude-haiku-5-5` - El más rápido y económico
 
-**Ejemplo de configuración:**
-
-```
-Nombre: Anthropic de producción
-Proveedor de LLM: Anthropic
-Clave de API: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Nombre del modelo: claude-sonnet-5-5
+```text title="Example configuration"
+Name: Production Anthropic
+LLM Provider: Anthropic
+API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
+Model Name: claude-sonnet-5-5
 ```
 
-Claude Opus 4.7 y todos los modelos Claude posteriores eligen su propio muestreo y rechazan una solicitud que defina `temperature`, `top_p` o `top_k`. OneUptime omite esos ajustes con estos modelos. Si aun así un modelo rechaza alguno, OneUptime vuelve a enviar la solicitud sin él y lo recuerda para ese proveedor.
+Claude Opus 4.7 y todos los modelos Claude posteriores eligen su propio muestreo y rechazan una petición que define `temperature`, `top_p` o `top_k`. OneUptime omite esos ajustes para estos modelos. Si aun así un modelo rechaza uno, OneUptime vuelve a enviar la petición sin él y lo recuerda para ese proveedor.
 
-Los modelos Claude 5 piensan antes de responder, y ese razonamiento cuenta para el límite de tokens de la respuesta, así que OneUptime le deja espacio. Para que piensen menos, y respondan más rápido y por menos dinero, añade `{"output_config": {"effort": "low"}}` en el campo **Parámetros adicionales** del proveedor. OneUptime envía a Anthropic con cada solicitud los ajustes que añadas ahí, salvo `model`, `messages`, `system`, `tools`, `tool_choice` y `stream`, que fija él mismo.
+Los modelos Claude 5 piensan antes de responder, y el razonamiento cuenta para el límite de tokens de la respuesta, así que OneUptime le deja espacio. Para que piensen menos y respondan más rápido y por menos, define `{"output_config": {"effort": "low"}}` en los **Parámetros adicionales** del proveedor. OneUptime envía a Anthropic los ajustes que añades ahí en cada petición, excepto `model`, `messages`, `system`, `tools`, `tool_choice` y `stream`, que define él mismo.
 
 ### Azure OpenAI y Microsoft Foundry
 
-Usa **Azure OpenAI / Microsoft Foundry** para los modelos que despliegas en Microsoft Foundry o Azure OpenAI: modelos de OpenAI, otros Foundry Models y Claude. Escribe una de las claves del recurso como **Clave de API**, el nombre del despliegue como **Nombre del modelo** y el punto de conexión del recurso como **URL base**, como `https://contoso-ai.openai.azure.com/openai/v1`. [Microsoft Foundry y Azure OpenAI](/docs/ai/microsoft-foundry) recorre la parte de Azure: el recurso, los permisos, el despliegue del modelo, los requisitos de red y la solución de problemas.
+Usa **Azure OpenAI / Microsoft Foundry** para los modelos que despliegas en Microsoft Foundry o Azure OpenAI: modelos de OpenAI, otros Foundry Models y Claude. Introduce una de las claves del recurso como **Clave de API**, el nombre del despliegue como **Nombre del modelo** y el endpoint del recurso como **URL base**, por ejemplo `https://contoso-ai.openai.azure.com/openai/v1`. [Microsoft Foundry y Azure OpenAI](/docs/ai/microsoft-foundry) recorre la parte de Azure: el recurso, los permisos, el despliegue del modelo, los requisitos de red y la solución de problemas.
 
-### Ollama (Auto-alojado)
+### Ollama (autoalojado)
 
-Ollama te permite ejecutar LLMs de código abierto localmente o en tu propia infraestructura.
+Ollama ejecuta modelos de código abierto en tus propias máquinas.
 
 1. Instala Ollama desde [ollama.ai](https://ollama.ai)
-2. Descarga el modelo que desees: `ollama pull llama3.1`
-3. Asegúrate de que Ollama esté ejecutándose y sea accesible desde el servidor de OneUptime. Una instalación nativa solo escucha en `127.0.0.1`, así que iníciala con `OLLAMA_HOST=0.0.0.0:11434` para que acepte conexiones de otras máquinas y contenedores (la imagen oficial de Docker `ollama/ollama` ya lo hace)
+2. Descarga un modelo: `ollama pull llama3.1`
+3. Asegúrate de que Ollama se ejecuta y de que el servidor de OneUptime llega a él. Una instalación nativa escucha solo en `127.0.0.1`, así que arráncala con `OLLAMA_HOST=0.0.0.0:11434` para aceptar conexiones de otras máquinas y contenedores (la imagen oficial de Docker `ollama/ollama` ya lo hace)
 4. Selecciona **Ollama** como proveedor de LLM
-5. Ingresa la URL base: la dirección del servidor Ollama tal como la alcanza el servidor de OneUptime, por ejemplo `http://ollama:11434` (OneUptime añade `/api/chat` por sí mismo). `localhost` no funciona; consulta [Cómo elegir la URL base de un modelo autoalojado](#cómo-elegir-la-url-base-de-un-modelo-autoalojado)
-6. Ingresa el nombre del modelo que descargaste
+5. Introduce la URL base: la dirección del servidor de Ollama tal como la alcanza el servidor de OneUptime, como `http://ollama:11434` (OneUptime añade `/api/chat` por su cuenta). `localhost` no funciona: consulta [Elegir una URL base para un modelo autoalojado](#elegir-una-url-base-para-un-modelo-autoalojado)
+6. Introduce el nombre del modelo que descargaste
 
-**Ejemplo de configuración (Ollama como un servicio llamado `ollama` en la red de Docker Compose de OneUptime):**
-
-```
-Nombre: Ollama autoalojado
-Proveedor de LLM: Ollama
-URL base: http://ollama:11434
-Nombre del modelo: llama3.1
+```text title="Ollama as a service named ollama on OneUptime's Docker Compose network"
+Name: Self-Hosted Ollama
+LLM Provider: Ollama
+Base URL: http://ollama:11434
+Model Name: llama3.1
 ```
 
-**Amplía la ventana de contexto.** Si no se indica otra cosa, Ollama dimensiona la ventana de contexto de un modelo según la memoria de GPU que encuentra: 4k tokens por debajo de 24 GiB, 32k hasta 48 GiB y 256k por encima (las versiones anteriores usan 2048 o 4096 tokens). Las funciones de IA de OneUptime son agentes. Cada solicitud lleva su prompt del sistema y sus definiciones de herramientas, más de 10.000 tokens antes de cualquier pregunta, y una investigación de IA va añadiendo a la conversación el resultado de cada consulta. Cuando una solicitud ya no cabe, Ollama descarta los mensajes más antiguos, y la pregunta se va con ellos. Según el modelo y la versión de Ollama, el modelo responde entonces sin la pregunta o sin sus herramientas, o la solicitud falla con "no user query found in messages" (Qwen 3.8 y posteriores) o "the prompt is longer than the context length currently available to the model". OneUptime informa de esos fallos como "…the request is larger than the model's context window" y no vuelve a ejecutar la investigación. Establece un `num_ctx` mayor en el campo **Parámetros adicionales** del proveedor:
+**Amplía la ventana de contexto.** Salvo que se indique otra cosa, Ollama dimensiona la ventana de contexto de un modelo según la memoria de GPU que encuentra: 4k tokens por debajo de 24 GiB, 32k hasta 48 GiB y 256k por encima (las versiones antiguas usan 2.048 o 4.096 tokens). Las funciones de IA de OneUptime son agentes. Cada petición lleva su prompt de sistema y sus definiciones de herramientas, más de 10.000 tokens antes de cualquier pregunta, y una investigación de IA añade cada resultado de consulta a la conversación sobre la marcha. Cuando una petición ya no cabe, Ollama descarta los mensajes más antiguos, y la pregunta se va con ellos. Según el modelo y la versión de Ollama, el modelo responde entonces sin la pregunta o sin sus herramientas, o la petición falla con "no user query found in messages" (Qwen 3.8 y posteriores) o "the prompt is longer than the context length currently available to the model". OneUptime informa de esos fallos como "…the request is larger than the model's context window" y no vuelve a ejecutar la investigación. Define un `num_ctx` mayor en los **Parámetros adicionales** del proveedor:
 
 ```json
 { "options": { "num_ctx": 65536 } }
 ```
 
-OneUptime combina este objeto `options` con las opciones que envía a Ollama, así que indica solo los ajustes que quieras cambiar. 65.536 tokens es lo que Ollama recomienda para agentes, y basta para la mayoría de las investigaciones. Una investigación larga puede usar más, porque OneUptime solo empieza a acortar los resultados de consultas antiguos cuando la conversación supera aproximadamente los 75.000 tokens: usa 131.072 si el modelo lo admite y tu GPU tiene memoria suficiente. Una ventana de contexto mayor necesita más memoria, y `ollama ps` muestra el contexto que recibió cada modelo cargado. Para subir en su lugar el valor predeterminado para todos los clientes, define `OLLAMA_CONTEXT_LENGTH` en el servidor de Ollama. Es la única forma cuando OneUptime llega a Ollama a través de su API `/v1` compatible con OpenAI (el proveedor **OpenAI Compatible**), que ignora `num_ctx`. Para un proveedor global registrado a partir de las variables `GLOBAL_LLM_PROVIDER_*`, configura **Parámetros adicionales** en el panel de administración, en **Ajustes** > **Proveedores LLM globales**; la sincronización al arrancar no modifica ese campo.
+OneUptime fusiona este objeto `options` con las opciones que envía a Ollama, así que incluye solo los ajustes que quieras cambiar. 65.536 tokens es lo que Ollama recomienda para agentes, y cubre la mayoría de las investigaciones. Una investigación larga puede usar más, porque OneUptime solo empieza a acortar resultados de consultas antiguos cuando la conversación supera unos 75.000 tokens: usa 131.072 si el modelo lo admite y tu GPU puede con ello. Una ventana de contexto mayor necesita más memoria, y `ollama ps` muestra el contexto que recibió cada modelo cargado. Para subir en cambio el valor predeterminado para todos los clientes, define `OLLAMA_CONTEXT_LENGTH` en el servidor de Ollama. Es la única forma cuando OneUptime llega a Ollama a través de su API `/v1` compatible con OpenAI (el proveedor **OpenAI Compatible**), que ignora `num_ctx`. Para un proveedor global registrado a partir de las variables `GLOBAL_LLM_PROVIDER_*`, define los **Parámetros adicionales** en el Admin Dashboard, en **Ajustes → Proveedores LLM globales**; la sincronización al arrancar no toca ese campo.
 
 **Modelos populares de Ollama:**
 
-- `llama3.1` - Modelo Llama 3.1 de Meta, el Llama más antiguo con soporte para llamadas a herramientas
-- `llama3.3` - Modelo Llama 3.3 de Meta
-- `qwen2.5` - Modelo Qwen 2.5 de Alibaba
-- `mistral-nemo` - Modelo Nemo de Mistral AI
+- `llama3.1` - El modelo Llama 3.1 de Meta, el Llama más antiguo con soporte de llamadas a herramientas
+- `llama3.3` - El modelo Llama 3.3 de Meta
+- `qwen2.5` - El modelo Qwen 2.5 de Alibaba
+- `mistral-nemo` - El modelo Nemo de Mistral AI
 
-> Nota: las funciones de IA de OneUptime son agénticas: dependen en gran medida de las llamadas a herramientas. Usa `llama3.1` o posterior (u otro modelo compatible con llamadas a herramientas). Los modelos pequeños o sin soporte para llamadas a herramientas (por ejemplo, `llama2` o el `llama3` original) dan malos resultados: no pueden consultar tus monitores, incidentes ni telemetría, por lo que las investigaciones vuelven vacías o con información inventada.
+> [!NOTE]
+> Las funciones de IA de OneUptime son agentes: dependen mucho de las llamadas a herramientas. Usa `llama3.1` o posterior, u otro modelo que llame a herramientas. Un modelo pequeño, o uno sin llamadas a herramientas (como `llama2` o el `llama3` original), responde mal: no puede consultar tus monitores, incidentes ni telemetría, así que las investigaciones vuelven vacías o inventadas.
 
-### Cómo elegir la URL base de un modelo autoalojado
+### Elegir una URL base para un modelo autoalojado
 
-La URL base de un modelo autoalojado (Ollama, vLLM, LM Studio o cualquier otro servidor compatible con OpenAI) debe ser una dirección a la que pueda llegar el **servidor de OneUptime**. Tu navegador nunca se conecta a ella.
+La URL base de un modelo autoalojado, ya sea Ollama, vLLM, LM Studio o cualquier otro servidor compatible con OpenAI, tiene que ser una dirección a la que llegue el **servidor de OneUptime**. Tu navegador nunca se conecta a ella.
 
-**Las direcciones de loopback se rechazan siempre.** Antes de conectarse, OneUptime comprueba cada dirección a la que se resuelve el nombre de host de la URL base. `localhost`, `127.0.0.1`, `[::1]` y `0.0.0.0`, así como las direcciones link-local y de metadatos de nube como `169.254.169.254`, se rechazan en todos los despliegues, incluidos los autoalojados. Es intencionado: la URL base de un proveedor no debe servir para llegar a servicios del propio servidor de OneUptime. Además, dentro de Docker Compose o Kubernetes, `localhost` sería el contenedor de OneUptime, no la máquina que ejecuta tu modelo.
+**Las direcciones de loopback siempre se rechazan.** Antes de conectarse, OneUptime comprueba cada dirección a la que resuelve el nombre de host de la URL base. `localhost`, `127.0.0.1`, `[::1]` y `0.0.0.0`, así como las direcciones link-local y de metadatos de la nube como `169.254.169.254`, se rechazan en todos los despliegues, incluidos los autoalojados. Es deliberado: la URL base de un proveedor no debe servir para llegar a servicios del propio servidor de OneUptime. Dentro de Docker Compose o Kubernetes, `localhost` sería de todos modos el contenedor de OneUptime, no la máquina que ejecuta tu modelo.
 
-En su lugar, usa una dirección privada o un nombre de host interno:
+Usa en su lugar una dirección privada o un nombre de host interno:
 
 | Dónde se ejecuta el servidor del modelo | URL base |
 | --- | --- |
-| Un servicio en la red de Docker Compose de OneUptime (`oneuptime`) | El nombre del servicio, por ejemplo `http://ollama:11434` |
-| El mismo clúster de Kubernetes que OneUptime | El nombre DNS del Service, por ejemplo `http://ollama.<namespace>.svc.cluster.local:11434`, el mismo patrón que el [vLLM incluido](#vllm-auto-alojado-en-kubernetes-helm) |
-| La propia máquina host, fuera de cualquier contenedor | La IP de LAN del host, por ejemplo `http://192.168.1.20:11434`, o `http://host.docker.internal:11434` en Docker Desktop |
-| Otra máquina de tu red | Su IP privada o su nombre de host interno, por ejemplo `http://10.0.0.12:11434` |
+| Un servicio en la red de Docker Compose de OneUptime (`oneuptime`) | El nombre del servicio, p. ej. `http://ollama:11434` |
+| El mismo clúster de Kubernetes que OneUptime | El nombre DNS del Service, p. ej. `http://ollama.<namespace>.svc.cluster.local:11434`, el mismo patrón que el [vLLM incluido](#vllm-autoalojado-en-kubernetes-helm) |
+| La propia máquina anfitriona, fuera de cualquier contenedor | La IP de LAN del anfitrión, p. ej. `http://192.168.1.20:11434`, o `http://host.docker.internal:11434` en Docker Desktop |
+| Otra máquina de tu red | Su IP privada o su nombre de host interno, p. ej. `http://10.0.0.12:11434` |
 
-Los servidores compatibles con OpenAI siguen las mismas reglas con su propio puerto y la ruta `/v1`, por ejemplo `http://vllm:8000/v1`, o `http://192.168.1.20:1234/v1` para LM Studio. Igual que una instalación nativa de Ollama, LM Studio solo escucha en `127.0.0.1` hasta que activas **Serve on Local Network** en la configuración de su servidor.
+Los servidores compatibles con OpenAI siguen las mismas reglas con su propio puerto y su ruta `/v1`, p. ej. `http://vllm:8000/v1`, o `http://192.168.1.20:1234/v1` para LM Studio. Como una instalación nativa de Ollama, LM Studio escucha solo en `127.0.0.1` hasta que activas **Serve on Local Network** en sus ajustes de servidor.
 
-**Las direcciones privadas funcionan en instalaciones autoalojadas.** Un OneUptime autoalojado puede llegar a direcciones de red privada, como `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` e IPv6 `fc00::/7`, salvo que establezcas `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`, que las rechaza igual que OneUptime Cloud. Ese ajuste no se aplica a un Proveedor LLM global, que configura un administrador (con las variables `GLOBAL_LLM_PROVIDER_*` o en el panel de administración) y no un proyecto: puede seguir llegando a direcciones privadas. Las direcciones de loopback y link-local se siguen rechazando para todos los proveedores.
+**Las direcciones privadas funcionan en las instalaciones autoalojadas.** Un OneUptime autoalojado puede llegar a direcciones de red privadas, como `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` e IPv6 `fc00::/7`, salvo que definas `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`, que las rechaza como hace OneUptime Cloud. Ese ajuste no se aplica a un proveedor de LLM global, que configura un administrador (con las variables `GLOBAL_LLM_PROVIDER_*` o en el Admin Dashboard) y no un proyecto: sigue pudiendo llegar a direcciones privadas. Las direcciones de loopback y link-local siguen rechazadas para todos los proveedores.
 
-**OneUptime Cloud (SaaS) no puede llegar a redes privadas.** Rechaza las direcciones de red privada, y los nombres de host que se resuelven a ellas, para todos los proveedores de LLM. Para usar un modelo que se ejecuta en tu propia infraestructura, autoaloja OneUptime en una red que pueda llegar a él o expón el modelo en un endpoint de acceso público. Protege un endpoint público con una clave de API: el proveedor **Ollama** no envía credenciales, mientras que **OpenAI Compatible** envía la Clave de API como token bearer (Ollama también ofrece una API compatible con OpenAI en `/v1`, así que puede quedar detrás de un proxy inverso que compruebe la clave).
+**OneUptime Cloud (SaaS) no puede llegar a redes privadas.** Rechaza las direcciones de red privadas, y los nombres de host que resuelven a ellas, para todos los proveedores de LLM. Para usar un modelo que se ejecuta en tu propia infraestructura, aloja OneUptime en una red que pueda llegar a él, o expón el modelo en un endpoint accesible públicamente. Protege un endpoint público con una clave de API: el proveedor **Ollama** no envía credenciales, mientras que **OpenAI Compatible** envía la clave de API como token bearer (Ollama también sirve una API compatible con OpenAI en `/v1`, así que puede ir detrás de un proxy inverso que compruebe la clave).
 
-### OpenAI Compatible (vLLM, LocalAI, LM Studio, etc.)
+### OpenAI Compatible (vLLM, LocalAI, LM Studio y otros)
 
-Usa el proveedor **OpenAI Compatible** para cualquier servidor que implemente la API `/chat/completions` de OpenAI pero que no sea OpenAI en sí, por ejemplo [vLLM](https://docs.vllm.ai), [LocalAI](https://localai.io), [LM Studio](https://lmstudio.ai) o text-generation-webui. Estos servidores normalmente se auto-alojan en tu propia URL y a menudo funcionan sin autenticación.
+Usa el proveedor **OpenAI Compatible** para cualquier servidor que implemente la API `/chat/completions` de OpenAI pero no sea OpenAI, por ejemplo [vLLM](https://docs.vllm.ai), [LocalAI](https://localai.io), [LM Studio](https://lmstudio.ai) o text-generation-webui. Suelen ejecutarse en tu propia dirección, a menudo sin autenticación.
 
-1. Inicia tu servidor compatible con OpenAI y anota su URL base (normalmente termina en `/v1`)
+1. Arranca tu servidor compatible con OpenAI y anota su URL base (suele terminar en `/v1`)
 2. Selecciona **OpenAI Compatible** como proveedor de LLM
-3. Ingresa la **URL base** (requerida), por ejemplo `http://your-server:8000/v1`. Debe ser accesible desde el servidor de OneUptime, así que no puede ser `localhost`; consulta [Cómo elegir la URL base de un modelo autoalojado](#cómo-elegir-la-url-base-de-un-modelo-autoalojado)
-4. Ingresa el **Nombre del modelo** (requerido); debe coincidir con un modelo que exponga tu servidor
-5. Ingresa la **Clave de API** solo si tu servidor la requiere; déjala en blanco para servidores sin autenticación
+3. Introduce la **URL base** (obligatoria), p. ej. `http://your-server:8000/v1`. El servidor de OneUptime tiene que llegar a ella, así que no `localhost`: consulta [Elegir una URL base para un modelo autoalojado](#elegir-una-url-base-para-un-modelo-autoalojado)
+4. Introduce el **Nombre del modelo** (obligatorio): tiene que coincidir con un modelo que sirva tu servidor
+5. Introduce la **Clave de API** solo si tu servidor la pide; déjala en blanco para un servidor sin clave
 
-**Ejemplo de configuración (vLLM sin clave):**
-
-```
+```text title="A keyless vLLM"
 Name: Self-Hosted vLLM
 LLM Provider: OpenAI Compatible
 Base URL: http://vllm.internal:8000/v1
@@ -215,13 +232,14 @@ Model Name: meta-llama/Llama-3.1-8B-Instruct
 API Key: (leave blank)
 ```
 
-> Consejo: Después de guardar, usa el botón **Probar** en el proveedor para confirmar que la conexión, el nombre del modelo y la URL base son correctos.
+> [!TIP]
+> Después de guardar, usa **Probar** en el proveedor para comprobar la conexión, el nombre del modelo y la URL base.
 
-### vLLM auto-alojado en Kubernetes (Helm)
+### vLLM autoalojado en Kubernetes (Helm)
 
-Si auto-alojas OneUptime con el chart de Helm, puedes ejecutar [vLLM](https://docs.vllm.ai) (un servidor de inferencia compatible con OpenAI) dentro de tu clúster y servir modelos locales en tus propias GPUs. Ningún dato sale de tu infraestructura.
+Si alojas OneUptime con el chart de Helm, puedes ejecutar [vLLM](https://docs.vllm.ai), un servidor de inferencia compatible con OpenAI, dentro de tu clúster y servir modelos locales en tus propias GPU. Ningún dato sale de tu infraestructura.
 
-1. Actívalo en tus valores de Helm (requiere nodos con GPU NVIDIA):
+1. Actívalo en tus valores de Helm (necesita nodos con GPU NVIDIA):
 
    ```yaml
    vllm:
@@ -229,19 +247,17 @@ Si auto-alojas OneUptime con el chart de Helm, puedes ejecutar [vLLM](https://do
      model: Qwen/Qwen2.5-1.5B-Instruct
    ```
 
-2. Ejecuta `helm upgrade` y espera a que el pod de vLLM esté Ready (el primer inicio descarga el modelo)
-3. Eso es todo: vLLM se registra automáticamente como Proveedor LLM global al iniciar (`vllm.globalProvider.enabled`, `true` por defecto), por lo que las funciones de IA funcionan para todos los proyectos, incluidas las tareas de corrección de IA. (En todas partes, tanto en la nube como en instalaciones autoalojadas, las tareas de corrección del agente usan el proveedor global cuando el proyecto no tiene un proveedor propio; en la nube, ese uso se factura como tokens de IA medidos. Un proveedor propio del proyecto siempre tiene prioridad).
+2. Ejecuta `helm upgrade` y espera a que el pod de vLLM esté Ready (el primer arranque descarga el modelo)
+3. Listo: vLLM se registra automáticamente como proveedor de LLM global al arrancar (`vllm.globalProvider.enabled`, por defecto `true`), así que las funciones de IA funcionan para todos los proyectos, incluidas las tareas de corrección de IA. (En todas partes, en la nube y autoalojado, las tareas de corrección del agente usan el proveedor global cuando el proyecto no tiene proveedor propio; en la nube ese uso se factura como tokens de IA medidos. Un proveedor propio del proyecto siempre tiene prioridad.)
 
-Si desactivaste el registro automático (`vllm.globalProvider.enabled: false`), crea el proveedor manualmente:
+Si desactivaste el registro automático (`vllm.globalProvider.enabled: false`), crea el proveedor a mano:
 
 1. Selecciona **OpenAI Compatible** como proveedor de LLM (vLLM habla la API de OpenAI)
-2. Ingresa la URL base dentro del clúster: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (sustituye `cluster.local` si cambiaste `global.clusterDomain`)
-3. Ingresa el Nombre del modelo: el id completo del modelo de HuggingFace (o `vllm.servedModelName` si configuraste uno)
-4. Ingresa la Clave de API solo si configuraste `vllm.apiKey`; déjala en blanco para un vLLM sin autenticación
+2. Introduce la URL base dentro del clúster: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (sustituye `cluster.local` si cambiaste `global.clusterDomain`)
+3. Introduce el nombre del modelo: el id completo del modelo en Hugging Face (o `vllm.servedModelName` si definiste uno)
+4. Introduce la clave de API solo si definiste `vllm.apiKey`; déjala en blanco para un vLLM sin clave
 
-**Ejemplo de configuración:**
-
-```
+```text title="The in-cluster vLLM"
 Name: In-Cluster vLLM
 LLM Provider: OpenAI Compatible
 Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
@@ -249,50 +265,43 @@ Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)
 ```
 
-Con la facturación activada, o con `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (`outboundConnections.blockPrivateNetwork: true` en los valores de Helm), un proveedor propio de un proyecto no puede llegar a esta dirección dentro del clúster, que se resuelve a una IP privada del clúster. Crea en su lugar el proveedor en el panel de administración, en **Ajustes** > **Proveedores LLM globales**, con los mismos campos: un Proveedor LLM global sí puede llegar a esa dirección.
+Con la facturación activada, o con `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (`outboundConnections.blockPrivateNetwork: true` en los valores de Helm), el proveedor propio de un proyecto no puede llegar a esta dirección dentro del clúster, que resuelve a una IP privada del clúster. Crea en su lugar el proveedor en el Admin Dashboard, en **Ajustes → Proveedores LLM globales**, con los mismos campos: un proveedor de LLM global sí puede llegar a esa dirección.
 
-Consulta la [guía de vLLM del chart de Helm](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) para conocer las opciones de programación de GPU, modelos restringidos y ajustes.
-
-## Uso de URLs base personalizadas
-
-Para implementaciones empresariales o cuando se usan servicios de proxy, puedes especificar una URL base personalizada:
-
-- **Azure OpenAI / Microsoft Foundry**: Usa el punto de conexión de tu recurso, como `https://contoso-ai.openai.azure.com/openai/v1`
-- **APIs compatibles con OpenAI**: Cualquier API que siga la especificación de API de OpenAI
-- **Instancias privadas de Ollama**: La URL de tu servidor Ollama interno
+Consulta la [guía de vLLM del chart de Helm](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) para la planificación de GPU, los modelos restringidos y las opciones de ajuste.
 
 ## Buenas prácticas
 
-1. **Usa nombres descriptivos**: Nombra tus proveedores claramente (por ejemplo, "OpenAI de producción", "Ollama de desarrollo")
-2. **Protege tus claves de API**: Las claves de API están cifradas en reposo, pero evita compartirlas
-3. **Prueba tu configuración**: Después de configurar, verifica que el proveedor funcione con las funciones de IA
-4. **Monitorea el uso**: Realiza un seguimiento del uso de la API para gestionar los costos
+- **Pon nombres claros a los proveedores**, como "Production OpenAI" o "Development Ollama", para que tu equipo sepa cuál es cuál.
+- **Guarda las claves en el campo Clave de API.** Las claves de API se cifran en reposo, y solo las leen los propietarios y administradores del proyecto.
+- **Prueba después de cada cambio**, con **Probar** en el proveedor.
+- **Vigila lo que cuesta la IA.** Cada llamada aparece con sus tokens y su coste en **Ajustes del proyecto → IA → Registros de IA**.
 
 ## Solución de problemas
 
-### Problemas de conexión
+:::details No se puede llegar al proveedor
+- **OpenAI o Anthropic**: comprueba que tu clave de API es válida y tiene créditos
+- **Azure OpenAI / Microsoft Foundry**: el error empieza por lo que hay que cambiar. [Microsoft Foundry y Azure OpenAI](/docs/ai/microsoft-foundry) explica cada error con el que responde Azure
+- **Ollama**: comprueba que el servidor de Ollama se ejecuta, que escucha en una dirección a la que llega el servidor de OneUptime (`OLLAMA_HOST=0.0.0.0:11434` en una instalación nativa) y que la URL base apunta a esa dirección
+- **OpenAI Compatible**: comprueba que la URL base termina en `/v1` (o coincide con tu servidor), que el nombre del modelo coincide con un modelo que sirve tu servidor y que solo definiste una clave de API si tu servidor la pide
+- **"…points to an address OneUptime is not allowed to connect to"**: la URL base resuelve a una dirección rechazada: `localhost` u otra dirección de loopback o, en OneUptime Cloud, una dirección de red privada. (OneUptime Cloud informa en cambio de un nombre de host rechazado como "…could not be reached".) Consulta [Elegir una URL base para un modelo autoalojado](#elegir-una-url-base-para-un-modelo-autoalojado)
+- **Un cortafuegos**: comprueba que tu red permite conexiones salientes a la API del proveedor
+:::
 
-- **OpenAI/Anthropic**: Verifica que tu clave de API sea válida y tenga créditos suficientes
-- **Azure OpenAI / Microsoft Foundry**: El error empieza por lo que hay que cambiar. [Microsoft Foundry y Azure OpenAI](/docs/ai/microsoft-foundry) explica cada error con el que responde Azure
-- **Ollama**: Asegúrate de que el servidor Ollama esté en ejecución, escuche en una dirección a la que pueda llegar el servidor de OneUptime (`OLLAMA_HOST=0.0.0.0:11434` en una instalación nativa) y de que la URL base apunte a esa dirección
-- **OpenAI Compatible**: Asegúrate de que la URL base termine en `/v1` (o coincida con tu servidor), que el Nombre del modelo coincida con un modelo que expone tu servidor, y establece una Clave de API solo si tu servidor la requiere
-- **"…points to an address OneUptime is not allowed to connect to"**: la URL base se resuelve a una dirección rechazada: `localhost` u otra dirección de loopback o, en OneUptime Cloud, una dirección de red privada. (OneUptime Cloud informa de un nombre de host rechazado como "…could not be reached".) Consulta [Cómo elegir la URL base de un modelo autoalojado](#cómo-elegir-la-url-base-de-un-modelo-autoalojado)
-- **Firewall**: Verifica que tu red permita conexiones salientes a la API del proveedor
+:::details No se encuentra el modelo
+Comprueba cómo está escrito el nombre del modelo. En Ollama, descarga primero el modelo con `ollama pull <model-name>`. Algunos modelos solo están disponibles en algunas regiones.
+:::
 
-### Modelo no encontrado
+:::details La ventana de contexto es demasiado pequeña
+- **"…the request is larger than the model's context window"**: la petición no cupo en la ventana de contexto del modelo, normalmente porque una investigación de IA ha reunido muchas pruebas. Sube `num_ctx` en los **Parámetros adicionales** del proveedor, o `OLLAMA_CONTEXT_LENGTH` en el servidor de Ollama; consulta [Ollama (autoalojado)](#ollama-autoalojado)
+- **"no user query found in messages"**: el mismo problema, tal como lo informa Qwen. OneUptime siempre envía la pregunta; Ollama la descartó para que cupiera el resto de la petición
+:::
 
-- Verifica que el nombre del modelo esté escrito correctamente
-- Para Ollama, asegúrate de haber descargado el modelo con `ollama pull <model-name>`
-- Verifica si el modelo está disponible en tu región (algunos modelos tienen restricciones regionales)
+¿Sigues atascado? Busca tu error en los [issues de GitHub de OneUptime](https://github.com/OneUptime/oneuptime/issues), o contacta con soporte si tu plan lo incluye.
 
-### Ventana de contexto demasiado pequeña
+## Próximos pasos
 
-- **"…the request is larger than the model's context window"**: la solicitud no cupo en la ventana de contexto del modelo, normalmente porque una investigación de IA ha reunido muchas evidencias. Aumenta `num_ctx` en el campo **Parámetros adicionales** del proveedor, o `OLLAMA_CONTEXT_LENGTH` en el servidor de Ollama; consulta [Ollama (Auto-alojado)](#ollama-auto-alojado)
-- **"no user query found in messages"**: el mismo problema, tal como lo notifica Qwen. OneUptime siempre envía la pregunta; Ollama la descartó para que el resto de la solicitud cupiera
-
-## ¿Necesitas ayuda?
-
-Si encuentras problemas al configurar tu proveedor LLM, por favor:
-
-1. Consulta los [problemas de GitHub de OneUptime](https://github.com/OneUptime/oneuptime/issues) para ver problemas conocidos
-2. Contacta con soporte si estás en un plan empresarial
+:::cards
+- [Tareas de corrección](/docs/ai/ai-agent): Los pull requests que escribe tu proveedor, y dónde empiezan.
+- [AI SRE](/docs/ai/ai-sre): Lo que hace OneUptime AI con el proveedor una vez que lo tiene.
+- [Preguntar a la IA](/docs/ai/ask-ai): Hazle una pregunta a tu proyecto, y cambia el proveedor de una conversación.
+:::
