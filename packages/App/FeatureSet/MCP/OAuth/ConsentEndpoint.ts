@@ -94,6 +94,9 @@ export enum ConsentProjectRefusal {
   // A team the member is in blocks connecting MCP clients.
   Blocked = "blocked",
 
+  // A master admin blocked the project itself (Admin Dashboard > Projects).
+  ProjectBlocked = "project-blocked",
+
   NotAMember = "not-a-member",
 }
 
@@ -350,6 +353,13 @@ export default class ConsentEndpoint {
 
     if (refusal === McpOAuthGrantRefusal.BlockedByPermission) {
       return { isEligible: false, refusal: ConsentProjectRefusal.Blocked };
+    }
+
+    if (refusal === McpOAuthGrantRefusal.ProjectBlocked) {
+      return {
+        isEligible: false,
+        refusal: ConsentProjectRefusal.ProjectBlocked,
+      };
     }
 
     if (refusal) {

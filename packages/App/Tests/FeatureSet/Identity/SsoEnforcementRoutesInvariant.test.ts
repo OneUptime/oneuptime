@@ -215,6 +215,8 @@ const requireSsoInstanceWideOnly: () => void = (): void => {
 
 describe("SSO enforcement and the SSO login routes: on together, in every state", () => {
   beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     mounted.length = 0;
     setTestBillingEnabled(false);
     uninstallEnterpriseModule();

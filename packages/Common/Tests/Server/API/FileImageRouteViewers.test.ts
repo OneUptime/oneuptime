@@ -425,6 +425,9 @@ describe("the image routes serve a file only to the people who may see it", () =
       return blocked.has(userId.toString());
     }) as never);
 
+    // A blocked project's files are BlockedProjectBackgroundWork.test.ts.
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+
     /*
      * The database's answer to whether a record shows a file now, as one
      * statement makes it public (PublishedImages.publishWhenShown, held to
