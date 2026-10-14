@@ -356,12 +356,20 @@ describe("a page load reads everything once (#4709)", () => {
     expect(viewerProps.isLoading).toBe(true);
     expect(viewerProps.histogramLoading).toBe(true);
     expect(viewerProps.facetLoading).toBe(true);
+    /*
+     * No facet key either - not even the error classes this explorer counts
+     * itself: the sidebar reads a key as an answer, and would list every
+     * facet as "No values in this time range" instead of its loader.
+     */
+    expect(viewerProps.facetData).toEqual({});
 
     await act(async () => {
       serviceListGate!.resolve();
     });
     await settle();
 
+    // The answer is in: the error classes join the facets.
+    expect(Object.keys(viewerProps.facetData)).toContain("errorClass");
     expect(listReads()).toHaveLength(1);
     expect(listReads()[0]!.query["primaryEntityId"]).toBe(SERVICE_ID);
     expect(histogramReads()).toHaveLength(1);

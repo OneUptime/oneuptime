@@ -12,10 +12,10 @@
  *     "No logs" or "No exceptions" under a loader;
  *   - the logs list gives its loader the room its rows will take, as the
  *     other explorers' lists do, rather than a strip over the headings;
- *   - the shared facet sidebar shows its loader alone while there is nothing
- *     to list, never "No values in this time range" under every facet that
- *     has not been read - a host can hand a key over before its values (the
- *     Exceptions explorer counts error classes itself).
+ *   - the shared facet sidebar shows its loader alone while nothing has
+ *     been read, never "No values in this time range" under every facet that
+ *     has not been read; once an answer is in, its sections stay through
+ *     the next read, so an empty window's do not blink on every refresh.
  *
  * Rows already on screen keep their range while the next page loads, and
  * an answer that really is empty still says so.
@@ -339,8 +339,12 @@ describe("the facet sidebar while there is nothing to list", () => {
     { key: "errorClass", title: "Error Class", priority: 3 },
   ];
 
-  // The Exceptions explorer's error-class key, handed over before its values.
-  const KEYS_WITHOUT_VALUES: FacetData = { errorClass: [] };
+  // An answer that found nothing: every key, no values.
+  const EMPTY_ANSWER: FacetData = {
+    primaryEntityId: [],
+    exceptionType: [],
+    errorClass: [],
+  };
 
   const WITH_VALUES: FacetData = {
     primaryEntityId: [{ value: "svc-1", count: 4, displayName: "checkout" }],
@@ -368,8 +372,8 @@ describe("the facet sidebar while there is nothing to list", () => {
     return screen.queryByRole("button", { name: new RegExp(`^${title}`) });
   }
 
-  test("a held or first read: the loader alone, and no facet says it has no values", () => {
-    render(sidebar({ facetData: KEYS_WITHOUT_VALUES, isLoading: true }));
+  test("nothing read yet: the loader alone, and no facet says it has no values", () => {
+    render(sidebar({ facetData: {}, isLoading: true }));
 
     expect(
       screen.getByTestId(TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID),
@@ -379,15 +383,6 @@ describe("the facet sidebar while there is nothing to list", () => {
     expect(sectionHeading("Error Class")).toBeNull();
     // Still the sidebar: its heading stays.
     expect(screen.getByText("Filters")).toBeInTheDocument();
-  });
-
-  test("the first read of a host that hands over nothing: the loader alone", () => {
-    render(sidebar({ facetData: {}, isLoading: true }));
-
-    expect(
-      screen.getByTestId(TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(NO_VALUES)).toBeNull();
   });
 
   test("values on screen stay while the next read is out, with no loader over them", () => {
@@ -402,12 +397,10 @@ describe("the facet sidebar while there is nothing to list", () => {
 
   test("the answer lands: every facet, and an empty one says so", () => {
     const view: RenderResult = render(
-      sidebar({ facetData: KEYS_WITHOUT_VALUES, isLoading: true }),
+      sidebar({ facetData: {}, isLoading: true }),
     );
 
-    view.rerender(
-      sidebar({ facetData: KEYS_WITHOUT_VALUES, isLoading: false }),
-    );
+    view.rerender(sidebar({ facetData: EMPTY_ANSWER, isLoading: false }));
 
     expect(
       screen.queryByTestId(TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID),
@@ -415,12 +408,30 @@ describe("the facet sidebar while there is nothing to list", () => {
     expect(sectionHeading("Service")).toBeInTheDocument();
     expect(sectionHeading("Exception Type")).toBeInTheDocument();
     expect(sectionHeading("Error Class")).toBeInTheDocument();
-    expect(screen.getAllByText(NO_VALUES).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(NO_VALUES)).toHaveLength(3);
+  });
+
+  test("an empty answer's sections stay through the next read: no blink on every refresh of an empty window", () => {
+    const view: RenderResult = render(
+      sidebar({ facetData: EMPTY_ANSWER, isLoading: false }),
+    );
+    const serviceHeading: HTMLElement = sectionHeading("Service")!;
+
+    // A live explorer reads again every few seconds.
+    view.rerender(sidebar({ facetData: EMPTY_ANSWER, isLoading: true }));
+
+    expect(
+      screen.queryByTestId(TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID),
+    ).toBeNull();
+    // The same section, not one torn down and built again.
+    expect(sectionHeading("Service")).toBe(serviceHeading);
+    expect(screen.getAllByText(NO_VALUES)).toHaveLength(3);
   });
 
   test("a facet the reader is searching keeps its box while its answer is out", () => {
+    // A read that failed left nothing behind.
     const view: RenderResult = render(
-      sidebar({ facetData: KEYS_WITHOUT_VALUES, isLoading: false }),
+      sidebar({ facetData: {}, isLoading: false }),
     );
 
     const box: HTMLElement = screen.getByRole("textbox", {
@@ -429,8 +440,8 @@ describe("the facet sidebar while there is nothing to list", () => {
     box.focus();
     fireEvent.change(box, { target: { value: "check" } });
 
-    // The search goes out; nothing has values yet.
-    view.rerender(sidebar({ facetData: KEYS_WITHOUT_VALUES, isLoading: true }));
+    // The search goes out; nothing has been read yet.
+    view.rerender(sidebar({ facetData: {}, isLoading: true }));
 
     expect(
       screen.queryByTestId(TELEMETRY_FACET_SIDEBAR_LOADER_TEST_ID),

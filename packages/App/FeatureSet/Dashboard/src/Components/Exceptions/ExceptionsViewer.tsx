@@ -1946,13 +1946,24 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * The backend facets plus the one this component counts itself. Merged
    * here rather than into `facetData` state so a facet refetch cannot drop
    * the class counts, and a class recount cannot drop the rest.
+   *
+   * Nothing at all while the backend's first answer is still to come (the
+   * reads held for a `@service:` token's names or the instance scope's
+   * fingerprints, issue #4709, or a facet read retried after it failed).
+   * The sidebar reads a facet key as an answer: the class key handed over
+   * on its own made it list every facet as "No values in this time range"
+   * while the explorer was still loading, where it now shows its loader.
    */
   const mergedFacetData: FacetData = useMemo(() => {
+    if (Object.keys(facetData).length === 0 && (facetLoading || holdsReads)) {
+      return {};
+    }
+
     return {
       ...facetData,
       [EXCEPTION_ERROR_CLASS_COLUMN]: errorClassFacetValues,
     };
-  }, [facetData, errorClassFacetValues]);
+  }, [facetData, errorClassFacetValues, facetLoading, holdsReads]);
 
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(

@@ -194,22 +194,20 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
       : undefined);
 
   /*
-   * Nothing to list yet: the first read, or an explorer that holds its reads
-   * until it knows its scope (issue #4709). The sidebar then shows its
-   * loader alone, under its heading where it is seen, rather than a facet
-   * list saying "No values in this time range" under every facet that has
-   * not been read. A host can hand over a key before its values (the
-   * Exceptions explorer counts error classes itself), so it is the values
-   * that are looked at, not the keys. A facet the reader is searching keeps
-   * its section, so the box they are typing in stays where it is.
+   * Nothing read yet: the first read, one retried after it failed, or an
+   * explorer that holds its reads until it knows its scope (issue #4709). A
+   * host hands facet keys over with an answer, so no key means no answer.
+   * The sidebar then shows its loader alone, under its heading where it is
+   * seen, rather than a facet list that says "No values in this time
+   * range" under every facet nobody has read. Once an answer is in, its
+   * sections stay through the next read - an empty answer's too, so they
+   * do not blink on every refresh of an empty window (a live explorer
+   * reads again every few seconds). A facet the reader is searching keeps
+   * its section as well, so the box they are typing in stays where it is.
    */
   const hasNothingToListYet: boolean =
     props.isLoading &&
-    Object.values(props.facetData).every(
-      (values: Array<FacetValue> | undefined): boolean => {
-        return !values || values.length === 0;
-      },
-    ) &&
+    Object.keys(props.facetData).length === 0 &&
     Object.values(facetSearch.searchTextByKey).every(
       (text: string): boolean => {
         return text.trim().length === 0;
