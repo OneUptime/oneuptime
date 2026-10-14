@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInternalNote";
 import User from "../../../../Models/DatabaseModels/User";
 import UserService from "../../../../Server/Services/UserService";
@@ -259,7 +260,7 @@ describe("SavedChatMessageNote.getSavedByName", () => {
   test("whoever saved it, by name, else email; nobody when they wrote it, or cannot be read", async () => {
     const nitin: User = new User();
     nitin.name = new Name("Nitin Kumar");
-    const findSpy: jest.SpyInstance = jest
+    const findSpy: SpyInstance<typeof UserService.findOneById> = jest
       .spyOn(UserService, "findOneById")
       .mockResolvedValue(nitin);
 

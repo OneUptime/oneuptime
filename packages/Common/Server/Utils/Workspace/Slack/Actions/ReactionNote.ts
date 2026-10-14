@@ -358,7 +358,9 @@ export default class SlackReactionNoteActions {
     const authToken: string = requester.projectAuthToken || "";
     const tellPerson: boolean = data.tellPerson !== false;
 
-    const refuse: (reason: string) => Promise<WorkspaceMessageNoteResult> = async (
+    const refuse: (
+      reason: string,
+    ) => Promise<WorkspaceMessageNoteResult> = async (
       reason: string,
     ): Promise<WorkspaceMessageNoteResult> => {
       if (tellPerson) {
@@ -446,10 +448,9 @@ export default class SlackReactionNoteActions {
      * Slack - its files and images - open for nobody there, so they stay
      * out of it.
      */
-    const note: MarkdownText = ChatMessageMarkdown.toMarkdown(
-      message.content,
-      { withoutAttachments: noteType === WorkspaceNoteType.Public },
-    );
+    const note: MarkdownText = ChatMessageMarkdown.toMarkdown(message.content, {
+      withoutAttachments: noteType === WorkspaceNoteType.Public,
+    });
 
     if (note.isEmpty()) {
       const reason: string = WorkspaceReactionNote.getNothingToSaveMessage({
@@ -464,7 +465,10 @@ export default class SlackReactionNoteActions {
         });
       }
 
-      return { outcome: WorkspaceMessageNoteOutcome.NothingToSave, reason: reason };
+      return {
+        outcome: WorkspaceMessageNoteOutcome.NothingToSave,
+        reason: reason,
+      };
     }
 
     let saveResult: WorkspaceNoteSaveResult;
@@ -496,7 +500,9 @@ export default class SlackReactionNoteActions {
           projectId: projectId.toString(),
         });
 
-        return await refuse(`Could not save the message as a note: ${err.message}`);
+        return await refuse(
+          `Could not save the message as a note: ${err.message}`,
+        );
       }
 
       logger.error("Error saving Slack message as a note:", {

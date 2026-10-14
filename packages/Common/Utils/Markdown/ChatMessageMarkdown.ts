@@ -622,15 +622,17 @@ ${code}
 
       const parts: Array<string> = (inline.text || "").split("\n");
 
-      parts.forEach((part: string, index: number): void => {
+      for (let index: number = 0; index < parts.length; index++) {
         if (index > 0) {
           endLine();
         }
 
+        const part: string = parts[index]!;
+
         if (part) {
           line.push({ type: "text", text: part, style: inline.style });
         }
-      });
+      }
     }
 
     endLine();

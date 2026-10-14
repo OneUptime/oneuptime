@@ -123,6 +123,9 @@ jest.mock("../../../Server/Utils/Logger");
 
 jest.setTimeout(60000);
 
+// The token a Connect button's link carries.
+const CONNECT_TOKEN: RegExp = /connect=([A-Za-z0-9_-]{43})/;
+
 const DASHBOARD_URL: string = "https://oneuptime.test/dashboard";
 const TEAM_ID: string = "T0ACME";
 const INC_CHANNEL: string = "C0INC8";
@@ -904,7 +907,7 @@ describe("somebody not connected who pins a message", () => {
     );
 
     // The button carries the save: the token in its link.
-    const token: string = /connect=([A-Za-z0-9_-]{43})/.exec(blocks)![1]!;
+    const token: string = CONNECT_TOKEN.exec(blocks)![1]!;
     const request: WorkspaceConnectRequestRecord | null =
       await WorkspaceConnectRequest.take(token);
 
@@ -957,7 +960,7 @@ describe("somebody not connected who pins a message", () => {
       return writes().length >= 1;
     }, "the Connect prompt");
 
-    const token: string = /connect=([A-Za-z0-9_-]{43})/.exec(
+    const token: string = CONNECT_TOKEN.exec(
       JSON.stringify(writes()[0]!.data["blocks"]),
     )![1]!;
 

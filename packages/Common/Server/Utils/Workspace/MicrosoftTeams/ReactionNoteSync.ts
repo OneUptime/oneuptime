@@ -914,15 +914,13 @@ export default class MicrosoftTeamsReactionNoteSync {
 
     const report: { reason?: string | undefined } = {};
 
-    const outcome: MicrosoftTeamsReactionOutcome = await this.processReaction(
-      {
-        channel: channel,
-        reaction: reaction,
-        now: now,
-        quiet: true,
-        report: report,
-      },
-    );
+    const outcome: MicrosoftTeamsReactionOutcome = await this.processReaction({
+      channel: channel,
+      reaction: reaction,
+      now: now,
+      quiet: true,
+      report: report,
+    });
 
     switch (outcome) {
       case MicrosoftTeamsReactionOutcome.Saved:

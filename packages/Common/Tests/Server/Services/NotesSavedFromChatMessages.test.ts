@@ -81,8 +81,6 @@ const RECORD_ID: ObjectID = new ObjectID(
 );
 // Nitin, who pins.
 const NITIN_ID: ObjectID = new ObjectID("5c000000-0000-4000-8000-000000000003");
-// Aidil, who wrote the message, when his chat account is connected.
-const AIDIL_ID: ObjectID = new ObjectID("5c000000-0000-4000-8000-000000000004");
 
 const POSTED_AT: Date = new Date("2026-10-08T10:17:00.000Z");
 const MESSAGE: string =
@@ -310,6 +308,13 @@ const NOTE_CASES: Array<NoteCase> = [
   },
 ];
 
+// A case as describe.each's row: its name, then the case.
+const asRow: (noteCase: NoteCase) => [string, NoteCase] = (
+  noteCase: NoteCase,
+): [string, NoteCase] => {
+  return [noteCase.name, noteCase];
+};
+
 function userPermission(
   permission: Permission,
   isBlockPermission: boolean,
@@ -386,215 +391,218 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe.each(
-  NOTE_CASES.map((noteCase: NoteCase) => [noteCase.name, noteCase]),
-)("%s, saved from a chat message", (_name: string, noteCase: NoteCase) => {
-  let notes: InMemoryTable;
-  let feed: jest.SpyInstance;
+describe.each(NOTE_CASES.map(asRow))(
+  "%s, saved from a chat message",
+  (_name: string, noteCase: NoteCase) => {
+    let notes: InMemoryTable;
+    let feed: jest.SpyInstance;
 
-  beforeEach(() => {
-    notes = useInMemoryTable(noteCase.service, []);
-    getJestSpyOn(
-      noteCase.service as never,
-      "getAttachmentsMarkdown",
-    ).mockResolvedValue("" as never);
-    feed = noteCase.stub();
-  });
-
-  function save(data?: {
-    saved?: SavedChatMessage | undefined;
-    key?: string | undefined;
-    props?: DatabaseCommonInteractionProps | undefined;
-  }): Promise<BaseModel> {
-    const saved: SavedChatMessage | undefined =
-      data && "saved" in data ? data.saved : FROM_SLACK;
-
-    return addNoteOf(noteCase.service)({
-      [noteCase.recordColumn]: RECORD_ID,
-      projectId: PROJECT_ID,
-      note: MESSAGE,
-      postedFromSlackMessageId: data?.key || SLACK_KEY,
-      savedFromChatMessage: saved,
-      // A private note is filed when the message was posted.
-      postedAt: noteCase.isPublic ? undefined : POSTED_AT,
-      props: data?.props || memberProps(noteCase.role),
-    } as unknown as JSONObject);
-  }
-
-  test("is Nitin's, and records Aidil's message: chat, name, time", async () => {
-    await save();
-
-    expect(notes.inserts).toHaveLength(1);
-    const row: StoredRow = notes.inserts[0]!;
-
-    expect(row["note"]).toBe(MESSAGE);
-    expect(String(row["createdByUserId"])).toBe(NITIN_ID.toString());
-    expect(row["postedFromSlackMessageId"]).toBe(SLACK_KEY);
-    expect(row["savedFromChatMessage"]).toEqual({
-      workspaceType: WorkspaceType.Slack,
-      authorName: "Aidil Rahman",
-      postedAt: POSTED_AT.toISOString(),
+    beforeEach(() => {
+      notes = useInMemoryTable(noteCase.service, []);
+      getJestSpyOn(
+        noteCase.service as never,
+        "getAttachmentsMarkdown",
+      ).mockResolvedValue("" as never);
+      feed = noteCase.stub();
     });
 
-    if (noteCase.isPublic) {
-      // Published now: when the status page's readers see it.
-      expect((row["postedAt"] as Date).getTime()).toBeGreaterThan(
-        POSTED_AT.getTime(),
-      );
-    } else {
-      expect(row["postedAt"]).toEqual(POSTED_AT);
+    function save(data?: {
+      saved?: SavedChatMessage | undefined;
+      key?: string | undefined;
+      props?: DatabaseCommonInteractionProps | undefined;
+    }): Promise<BaseModel> {
+      const saved: SavedChatMessage | undefined =
+        data && "saved" in data ? data.saved : FROM_SLACK;
+
+      return addNoteOf(noteCase.service)({
+        [noteCase.recordColumn]: RECORD_ID,
+        projectId: PROJECT_ID,
+        note: MESSAGE,
+        postedFromSlackMessageId: data?.key || SLACK_KEY,
+        savedFromChatMessage: saved,
+        // A private note is filed when the message was posted.
+        postedAt: noteCase.isPublic ? undefined : POSTED_AT,
+        props: data?.props || memberProps(noteCase.role),
+      } as unknown as JSONObject);
     }
-  });
 
-  test("its timeline entry names Aidil, the chat and Nitin, and is not posted back into the message's channel", async () => {
-    await save();
+    test("is Nitin's, and records Aidil's message: chat, name, time", async () => {
+      await save();
 
-    expect(feed).toHaveBeenCalledTimes(1);
-    const item: JSONObject = feed.mock.calls[0]![0] as JSONObject;
-    const where: string = noteCase.isPublic
-      ? `posted **public note** for this ${noteCase.record} on status page via Slack`
-      : `posted **private note** for this ${noteCase.record} via Slack`;
+      expect(notes.inserts).toHaveLength(1);
+      const row: StoredRow = notes.inserts[0]!;
 
-    expect(item["feedInfoInMarkdown"]).toBe(
-      `📄 **Aidil Rahman** ${where} (note added by Nitin Kumar):\n\n${MESSAGE}`,
-    );
-    expect(String(item["userId"])).toBe(NITIN_ID.toString());
-    expect(item["savedFromChatMessage"]).toEqual({
-      workspaceType: WorkspaceType.Slack,
-      authorName: "Aidil Rahman",
-      postedAt: POSTED_AT.toISOString(),
-    });
-    expect(item["workspaceNotification"]).toEqual({
-      sendWorkspaceNotification: true,
-      notifyUserId: undefined,
-      exceptChannel: {
+      expect(row["note"]).toBe(MESSAGE);
+      expect(String(row["createdByUserId"])).toBe(NITIN_ID.toString());
+      expect(row["postedFromSlackMessageId"]).toBe(SLACK_KEY);
+      expect(row["savedFromChatMessage"]).toEqual({
         workspaceType: WorkspaceType.Slack,
-        channelId: "C0INC8",
-      },
+        authorName: "Aidil Rahman",
+        postedAt: POSTED_AT.toISOString(),
+      });
+
+      if (noteCase.isPublic) {
+        // Published now: when the status page's readers see it.
+        expect((row["postedAt"] as Date).getTime()).toBeGreaterThan(
+          POSTED_AT.getTime(),
+        );
+      } else {
+        expect(row["postedAt"]).toEqual(POSTED_AT);
+      }
     });
 
-    if (!noteCase.isPublic) {
-      expect(item["postedAt"]).toEqual(POSTED_AT);
-    }
-  });
+    test("its timeline entry names Aidil, the chat and Nitin, and is not posted back into the message's channel", async () => {
+      await save();
 
-  test("a Microsoft Teams channel's id keeps its own colons", async () => {
-    await save({
-      saved: { ...FROM_SLACK, workspaceType: WorkspaceType.MicrosoftTeams },
-      key: TEAMS_KEY,
+      expect(feed).toHaveBeenCalledTimes(1);
+      const item: JSONObject = feed.mock.calls[0]![0] as JSONObject;
+      const where: string = noteCase.isPublic
+        ? `posted **public note** for this ${noteCase.record} on status page via Slack`
+        : `posted **private note** for this ${noteCase.record} via Slack`;
+
+      expect(item["feedInfoInMarkdown"]).toBe(
+        `📄 **Aidil Rahman** ${where} (note added by Nitin Kumar):\n\n${MESSAGE}`,
+      );
+      expect(String(item["userId"])).toBe(NITIN_ID.toString());
+      expect(item["savedFromChatMessage"]).toEqual({
+        workspaceType: WorkspaceType.Slack,
+        authorName: "Aidil Rahman",
+        postedAt: POSTED_AT.toISOString(),
+      });
+      expect(item["workspaceNotification"]).toEqual({
+        sendWorkspaceNotification: true,
+        notifyUserId: undefined,
+        exceptChannel: {
+          workspaceType: WorkspaceType.Slack,
+          channelId: "C0INC8",
+        },
+      });
+
+      if (!noteCase.isPublic) {
+        expect(item["postedAt"]).toEqual(POSTED_AT);
+      }
     });
 
-    const item: JSONObject = feed.mock.calls[0]![0] as JSONObject;
+    test("a Microsoft Teams channel's id keeps its own colons", async () => {
+      await save({
+        saved: { ...FROM_SLACK, workspaceType: WorkspaceType.MicrosoftTeams },
+        key: TEAMS_KEY,
+      });
 
-    expect(
-      (item["workspaceNotification"] as JSONObject)["exceptChannel"],
-    ).toEqual({
-      workspaceType: WorkspaceType.MicrosoftTeams,
-      channelId: "19:inc-8@thread.tacv2",
-    });
-    expect(String(item["feedInfoInMarkdown"])).toContain(
-      "via Microsoft Teams (note added by Nitin Kumar):",
-    );
-  });
+      const item: JSONObject = feed.mock.calls[0]![0] as JSONObject;
 
-  test("saved by its own author, the entry does not say who added it", async () => {
-    await save({
-      saved: {
-        ...FROM_SLACK,
-        authorUserId: NITIN_ID.toString(),
-        authorName: "Nitin Kumar",
-      },
+      expect(
+        (item["workspaceNotification"] as JSONObject)["exceptChannel"],
+      ).toEqual({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        channelId: "19:inc-8@thread.tacv2",
+      });
+      expect(String(item["feedInfoInMarkdown"])).toContain(
+        "via Microsoft Teams (note added by Nitin Kumar):",
+      );
     });
 
-    const markdown: string = String(
-      (feed.mock.calls[0]![0] as JSONObject)["feedInfoInMarkdown"],
-    );
+    test("saved by its own author, the entry does not say who added it", async () => {
+      await save({
+        saved: {
+          ...FROM_SLACK,
+          authorUserId: NITIN_ID.toString(),
+          authorName: "Nitin Kumar",
+        },
+      });
 
-    expect(markdown.startsWith("📄 **Nitin Kumar** ")).toBe(true);
-    expect(markdown).not.toContain("note added by");
-  });
+      const markdown: string = String(
+        (feed.mock.calls[0]![0] as JSONObject)["feedInfoInMarkdown"],
+      );
 
-  test("a name with Markdown or a mention in it is text in the entry", async () => {
-    await save({
-      saved: {
-        ...FROM_SLACK,
-        authorName: "**Aidil** [x](https://evil.example) <!channel>",
-      },
+      expect(markdown.startsWith("📄 **Nitin Kumar** ")).toBe(true);
+      expect(markdown).not.toContain("note added by");
     });
 
-    const markdown: string = String(
-      (feed.mock.calls[0]![0] as JSONObject)["feedInfoInMarkdown"],
-    );
+    test("a name with Markdown or a mention in it is text in the entry", async () => {
+      await save({
+        saved: {
+          ...FROM_SLACK,
+          authorName: "**Aidil** [x](https://evil.example) <!channel>",
+        },
+      });
 
-    expect(markdown).toContain(
-      "\\*\\*Aidil\\*\\* \\[x\\](https://evil.example)",
-    );
-    expect(markdown).not.toContain("<!channel>");
-  });
+      const markdown: string = String(
+        (feed.mock.calls[0]![0] as JSONObject)["feedInfoInMarkdown"],
+      );
 
-  test("an API caller cannot say a note came from a chat message", async () => {
-    const service: DatabaseService<BaseModel> = noteCase.service;
-    const note: BaseModel = new (service.modelType as unknown as {
-      new (): BaseModel;
-    })();
-    const row: Record<string, unknown> = note as unknown as Record<
-      string,
-      unknown
-    >;
-    row[noteCase.recordColumn] = RECORD_ID;
-    row["projectId"] = PROJECT_ID;
-    row["note"] = "A note I typed";
-    row["savedFromChatMessage"] = {
-      workspaceType: WorkspaceType.Slack,
-      authorName: "The CEO",
-    };
+      expect(markdown).toContain(
+        "\\*\\*Aidil\\*\\* \\[x\\](https://evil.example)",
+      );
+      expect(markdown).not.toContain("<!channel>");
+    });
 
-    const error: unknown = await rejectionOf(
-      service.create({ data: note, props: memberProps(noteCase.role) }),
-    );
+    test("an API caller cannot say a note came from a chat message", async () => {
+      const service: DatabaseService<BaseModel> = noteCase.service;
+      const note: BaseModel = new (service.modelType as unknown as {
+        new (): BaseModel;
+      })();
+      const row: Record<string, unknown> = note as unknown as Record<
+        string,
+        unknown
+      >;
+      row[noteCase.recordColumn] = RECORD_ID;
+      row["projectId"] = PROJECT_ID;
+      row["note"] = "A note I typed";
+      row["savedFromChatMessage"] = {
+        workspaceType: WorkspaceType.Slack,
+        authorName: "The CEO",
+      };
 
-    // Refused as a column nobody may write, before anything is saved.
-    expect(error).toBeInstanceOf(ColumnWriteRefusedException);
-    expect((error as ColumnWriteRefusedException).columnName).toBe(
-      "savedFromChatMessage",
-    );
-    expect(notes.inserts).toEqual([]);
-    expect(feed).not.toHaveBeenCalled();
-  });
+      const error: unknown = await rejectionOf(
+        service.create({ data: note, props: memberProps(noteCase.role) }),
+      );
 
-  test("a note typed in OneUptime reads as before, with no chat in it", async () => {
-    await save({ saved: undefined });
+      // Refused as a column nobody may write, before anything is saved.
+      expect(error).toBeInstanceOf(ColumnWriteRefusedException);
+      expect((error as ColumnWriteRefusedException).columnName).toBe(
+        "savedFromChatMessage",
+      );
+      expect(notes.inserts).toEqual([]);
+      expect(feed).not.toHaveBeenCalled();
+    });
 
-    const row: StoredRow = notes.inserts[0]!;
-    expect(row["savedFromChatMessage"]).toBeUndefined();
+    test("a note typed in OneUptime reads as before, with no chat in it", async () => {
+      await save({ saved: undefined });
 
-    const item: JSONObject = feed.mock.calls[0]![0] as JSONObject;
+      const row: StoredRow = notes.inserts[0]!;
+      expect(row["savedFromChatMessage"]).toBeUndefined();
 
-    expect(String(item["feedInfoInMarkdown"]).startsWith("📄 posted **")).toBe(
-      true,
-    );
-    expect(item["savedFromChatMessage"]).toBeUndefined();
-    expect(
-      (item["workspaceNotification"] as JSONObject)["exceptChannel"],
-    ).toBeUndefined();
-    expect(
-      String((item["workspaceNotification"] as JSONObject)["notifyUserId"]),
-    ).toBe(NITIN_ID.toString());
-  });
+      const item: JSONObject = feed.mock.calls[0]![0] as JSONObject;
 
-  test("a member who may not post the note saves nothing", async () => {
-    const error: unknown = await rejectionOf(save({ props: memberProps([]) }));
+      expect(
+        String(item["feedInfoInMarkdown"]).startsWith("📄 posted **"),
+      ).toBe(true);
+      expect(item["savedFromChatMessage"]).toBeUndefined();
+      expect(
+        (item["workspaceNotification"] as JSONObject)["exceptChannel"],
+      ).toBeUndefined();
+      expect(
+        String((item["workspaceNotification"] as JSONObject)["notifyUserId"]),
+      ).toBe(NITIN_ID.toString());
+    });
 
-    expect(error).toBeInstanceOf(NotAuthorizedException);
-    expect(notes.inserts).toEqual([]);
-    expect(feed).not.toHaveBeenCalled();
-  });
-});
+    test("a member who may not post the note saves nothing", async () => {
+      const error: unknown = await rejectionOf(
+        save({ props: memberProps([]) }),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(notes.inserts).toEqual([]);
+      expect(feed).not.toHaveBeenCalled();
+    });
+  },
+);
 
 describe.each(
   NOTE_CASES.filter((noteCase: NoteCase) => {
     return !noteCase.isPublic;
-  }).map((noteCase: NoteCase) => [noteCase.name, noteCase]),
+  }).map(asRow),
 )("%s typed in OneUptime", (_name: string, noteCase: NoteCase) => {
   test("is filed when it is written", async () => {
     const notes: InMemoryTable = useInMemoryTable(noteCase.service, []);

@@ -642,7 +642,10 @@ export default class WorkspaceReactionNote {
     switch (data.resource.resourceType) {
       case WorkspaceNoteResourceType.Incident:
         if (isPublic) {
-          await IncidentPublicNoteService.addNote({ ...common, incidentId: id });
+          await IncidentPublicNoteService.addNote({
+            ...common,
+            incidentId: id,
+          });
           return;
         }
 

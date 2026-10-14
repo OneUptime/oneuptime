@@ -1646,7 +1646,11 @@ export default class SlackUtil extends WorkspaceBase {
       data.workspaceMessagePayload.exceptChannelIds || [];
 
     if (exceptChannelIds.length > 0) {
-      for (let index: number = workspaceChannelsToPostTo.length - 1; index >= 0; index--) {
+      for (
+        let index: number = workspaceChannelsToPostTo.length - 1;
+        index >= 0;
+        index--
+      ) {
         if (exceptChannelIds.includes(workspaceChannelsToPostTo[index]!.id)) {
           workspaceChannelsToPostTo.splice(index, 1);
         }

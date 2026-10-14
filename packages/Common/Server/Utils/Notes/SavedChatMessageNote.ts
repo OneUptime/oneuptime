@@ -45,8 +45,10 @@ export default class SavedChatMessageNote {
    * What each create of a note from a chat message carries, by the create
    * itself: read back by the service's onCreatePermitted.
    */
-  private static readonly handedOver: WeakMap<object, SavedChatMessage> =
-    new WeakMap<object, SavedChatMessage>();
+  private static readonly handedOver: WeakMap<
+    CreateBy<BaseModel>,
+    SavedChatMessage
+  > = new WeakMap<CreateBy<BaseModel>, SavedChatMessage>();
 
   /*
    * Creates a note with `create`, handing over where its words came from:
@@ -62,14 +64,16 @@ export default class SavedChatMessageNote {
     }
 
     SavedChatMessageNote.handedOver.set(
-      data.createBy,
+      data.createBy as unknown as CreateBy<BaseModel>,
       data.savedFromChatMessage,
     );
 
     try {
       return await data.create(data.createBy);
     } finally {
-      SavedChatMessageNote.handedOver.delete(data.createBy);
+      SavedChatMessageNote.handedOver.delete(
+        data.createBy as unknown as CreateBy<BaseModel>,
+      );
     }
   }
 
@@ -82,7 +86,9 @@ export default class SavedChatMessageNote {
     createBy: CreateBy<TModel>,
   ): void {
     const saved: SavedChatMessage | undefined =
-      SavedChatMessageNote.handedOver.get(createBy);
+      SavedChatMessageNote.handedOver.get(
+        createBy as unknown as CreateBy<BaseModel>,
+      );
 
     if (!saved) {
       return;

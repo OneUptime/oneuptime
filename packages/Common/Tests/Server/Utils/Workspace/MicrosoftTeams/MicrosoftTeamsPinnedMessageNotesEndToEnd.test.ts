@@ -126,6 +126,9 @@ import { stubReadableParents } from "../../../TestingUtils/ReadableParents";
 import { mockProjectStates } from "../../../TestingUtils/Services/ProjectStatesHelper";
 
 const DASHBOARD_URL: string = "https://oneuptime.test/dashboard";
+
+// The token a Connect button's link carries.
+const CONNECT_TOKEN: RegExp = /connect=([A-Za-z0-9_-]{43})/;
 const TENANT_ID: string = "4724aaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 const TEAM_ID: string = "graph-team-ops";
 const CHANNEL_ID: string = "19:inc-8@thread.tacv2";
@@ -682,7 +685,7 @@ describe("somebody not connected who pins a Microsoft Teams message", () => {
     expect(card.buttons).toHaveLength(1);
     expect(card.buttons[0]!["type"]).toBe("Action.OpenUrl");
 
-    const token: string = /connect=([A-Za-z0-9_-]{43})/.exec(
+    const token: string = CONNECT_TOKEN.exec(
       String(card.buttons[0]!["url"]),
     )![1]!;
     const request: WorkspaceConnectRequestRecord | null =
@@ -737,7 +740,7 @@ describe("somebody not connected who pins a Microsoft Teams message", () => {
     carolsPin();
     await syncRun();
 
-    const token: string = /connect=([A-Za-z0-9_-]{43})/.exec(
+    const token: string = CONNECT_TOKEN.exec(
       String(cardOf(connector.posts[0]!).buttons[0]!["url"]),
     )![1]!;
 

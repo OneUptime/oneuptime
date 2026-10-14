@@ -10,7 +10,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../Types/ObjectID";
 import { ConnectRequestOutcome } from "../../../Types/Workspace/ConnectCallback";
-import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import WorkspaceNotificationLogService from "../../Services/WorkspaceNotificationLogService";
 import logger from "../Logger";
 import ProductBrandingText from "../ProductBrandingText";
@@ -33,7 +33,6 @@ import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceP
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import { WorkspaceNoteType } from "../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
-import { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
 import WorkspaceReactionNote, {
   WorkspaceMessageNoteOutcome,
   WorkspaceMessageNoteResult,

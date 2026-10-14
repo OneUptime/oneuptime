@@ -111,9 +111,8 @@ export class Service extends ProjectReferencesService<Model> {
         data.postedAt || OneUptimeDate.getCurrentDate();
 
       if (data.savedFromChatMessage) {
-        scheduledMaintenanceFeed.savedFromChatMessage = SavedChatMessageUtil.toJSON(
-          data.savedFromChatMessage,
-        );
+        scheduledMaintenanceFeed.savedFromChatMessage =
+          SavedChatMessageUtil.toJSON(data.savedFromChatMessage);
       }
 
       await this.create({

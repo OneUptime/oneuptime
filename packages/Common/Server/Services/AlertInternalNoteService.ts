@@ -200,7 +200,10 @@ export class Service extends ProjectReferencesService<Model> {
     const alertNumberDisplay: string =
       alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number;
     const alertLink: string = (
-      await AlertService.getAlertLinkInDashboard(createdItem.projectId!, alertId)
+      await AlertService.getAlertLinkInDashboard(
+        createdItem.projectId!,
+        alertId,
+      )
     ).toString();
 
     /*
