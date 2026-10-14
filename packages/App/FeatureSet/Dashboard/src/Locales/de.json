@@ -28582,5 +28582,8 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "„{{key}}“ gibt den ganzen verknüpften Datensatz weiter. Wählen Sie die Felder daraus aus, die die nächsten Schritte brauchen.",
   "Not passed on": "Nicht weitergegeben",
   "Pick at least one field.": "Wählen Sie mindestens ein Feld aus.",
-  "Pick one from the list, or paste its ID.": "Wählen Sie einen aus der Liste aus oder fügen Sie seine ID ein."
+  "Pick one from the list, or paste its ID.": "Wählen Sie einen aus der Liste aus oder fügen Sie seine ID ein.",
+  "An administrator has blocked this project. Until it is unblocked, it cannot be opened, its API keys and integrations do not work, and its monitors, workflows and notifications are stopped. Please contact your administrator, or switch to another project with the project picker above.": "Ein Administrator hat dieses Projekt gesperrt. Bis es entsperrt wird, kann es nicht geöffnet werden, seine API-Schlüssel und Integrationen funktionieren nicht, und seine Monitore, Workflows und Benachrichtigungen sind angehalten. Wenden Sie sich an Ihren Administrator oder wechseln Sie oben in der Projektauswahl zu einem anderen Projekt.",
+  "Blocked": "Gesperrt",
+  "This project has been blocked": "Dieses Projekt wurde gesperrt"
 }

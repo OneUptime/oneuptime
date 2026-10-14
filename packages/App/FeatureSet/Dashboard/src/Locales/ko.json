@@ -28582,5 +28582,8 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "\"{{key}}\"은(는) 관련 레코드 전체를 전달합니다. 다음 단계에 필요한 필드를 선택하세요.",
   "Not passed on": "전달되지 않는 필드",
   "Pick at least one field.": "필드를 하나 이상 선택하세요.",
-  "Pick one from the list, or paste its ID.": "목록에서 선택하거나 ID를 붙여넣으세요."
+  "Pick one from the list, or paste its ID.": "목록에서 선택하거나 ID를 붙여넣으세요.",
+  "An administrator has blocked this project. Until it is unblocked, it cannot be opened, its API keys and integrations do not work, and its monitors, workflows and notifications are stopped. Please contact your administrator, or switch to another project with the project picker above.": "관리자가 이 프로젝트를 차단했습니다. 차단이 해제될 때까지 프로젝트를 열 수 없고, API 키와 통합이 작동하지 않으며, 모니터, 워크플로 및 알림이 중지됩니다. 관리자에게 문의하거나 위의 프로젝트 선택기에서 다른 프로젝트로 전환하세요.",
+  "Blocked": "차단됨",
+  "This project has been blocked": "이 프로젝트가 차단되었습니다"
 }

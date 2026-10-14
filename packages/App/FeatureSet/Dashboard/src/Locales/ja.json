@@ -28582,5 +28582,8 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "「{{key}}」は関連レコード全体を渡します。次のステップに必要なフィールドを選んでください。",
   "Not passed on": "渡されないフィールド",
   "Pick at least one field.": "フィールドを 1 つ以上選んでください。",
-  "Pick one from the list, or paste its ID.": "一覧から選ぶか、ID を貼り付けてください。"
+  "Pick one from the list, or paste its ID.": "一覧から選ぶか、ID を貼り付けてください。",
+  "An administrator has blocked this project. Until it is unblocked, it cannot be opened, its API keys and integrations do not work, and its monitors, workflows and notifications are stopped. Please contact your administrator, or switch to another project with the project picker above.": "管理者がこのプロジェクトをブロックしました。ブロックが解除されるまで、このプロジェクトは開けず、API キーと連携機能は動作せず、モニター、ワークフロー、通知は停止しています。管理者に連絡するか、上のプロジェクト選択から別のプロジェクトに切り替えてください。",
+  "Blocked": "ブロック中",
+  "This project has been blocked": "このプロジェクトはブロックされています"
 }

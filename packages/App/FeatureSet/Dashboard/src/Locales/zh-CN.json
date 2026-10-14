@@ -28582,5 +28582,8 @@
   "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "“{{key}}”会传递整条相关记录。请从中选择后续步骤需要的字段。",
   "Not passed on": "未传递的字段",
   "Pick at least one field.": "请至少选择一个字段。",
-  "Pick one from the list, or paste its ID.": "从列表中选择一个，或粘贴其 ID。"
+  "Pick one from the list, or paste its ID.": "从列表中选择一个，或粘贴其 ID。",
+  "An administrator has blocked this project. Until it is unblocked, it cannot be opened, its API keys and integrations do not work, and its monitors, workflows and notifications are stopped. Please contact your administrator, or switch to another project with the project picker above.": "管理员已封禁此项目。在解除封禁之前，此项目无法打开，其 API 密钥和集成无法使用，其监控、工作流和通知均已停止。请联系您的管理员，或使用上方的项目选择器切换到其他项目。",
+  "Blocked": "已封禁",
+  "This project has been blocked": "此项目已被封禁"
 }
