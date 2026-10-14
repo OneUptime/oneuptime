@@ -1,9 +1,4 @@
-import {
-  ActivityTypes,
-  TeamsChannelAccount,
-  TeamsInfo,
-  TurnContext,
-} from "botbuilder";
+import { TeamsChannelAccount, TeamsInfo, TurnContext } from "botbuilder";
 import WorkspaceUserAuthToken from "../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
@@ -85,6 +80,9 @@ const MENTION_CLOSE: string = "</at>";
 
 // The longest message the card's text input takes: an alert's title.
 const MAX_MESSAGE_LENGTH: number = 500;
+
+// Bot Framework's typing indicator (ActivityTypes.Typing).
+const TYPING_ACTIVITY_TYPE: string = "typing";
 
 export default class MicrosoftTeamsPage {
   public static isPageAction(actionType: string): boolean {
@@ -681,9 +679,9 @@ export default class MicrosoftTeamsPage {
     targets: OnCallPageTargets;
     message: string;
   }): Promise<boolean> {
-    // Paging takes a moment: Teams shows the bot is on it.
+    // Paging takes a moment: Teams shows the bot is on it ("typing").
     await MicrosoftTeamsReplies.sendBestEffort(data.turnContext, {
-      type: ActivityTypes.Typing,
+      type: TYPING_ACTIVITY_TYPE,
     });
 
     let outcome: WorkspacePageOutcome;
