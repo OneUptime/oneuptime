@@ -144,8 +144,13 @@ export enum ConnectRequestOutcome {
    * The page never says it was done: only the chat says why it was not.
    */
   Answered = "answered",
-  // A button that opens a form, or a command: press it again.
+  // A button that opens a form: press it again.
   PressAgain = "again",
+  /*
+   * A command - /oneuptime incident in Slack, a word typed to the Teams
+   * bot - which no button sent: run it (in Teams, type it) again.
+   */
+  RunAgain = "run",
   /*
    * A question to OneUptime AI - an @mention, a direct message - which no
    * button asked: ask it again.

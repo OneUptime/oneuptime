@@ -80,6 +80,8 @@ export interface SlackAnswerPlaceSource {
   responseUrl?: string | undefined;
   triggerId?: string | undefined;
   payloadType?: string | undefined;
+  // "home" for a press in the app's Home tab, which has no channel.
+  slackViewType?: string | undefined;
 }
 
 export default class SlackActionAnswer {
@@ -112,8 +114,14 @@ export default class SlackActionAnswer {
       place.responseUrl = source.responseUrl;
     }
 
-    // Only a shortcut answers in a modal: everything else has a channel.
-    if (source.triggerId && source.payloadType === "shortcut") {
+    /*
+     * Only a shortcut and a button of the app's Home tab answer in a modal:
+     * everything else has a channel.
+     */
+    if (
+      source.triggerId &&
+      (source.payloadType === "shortcut" || source.slackViewType === "home")
+    ) {
       place.triggerId = source.triggerId;
     }
 

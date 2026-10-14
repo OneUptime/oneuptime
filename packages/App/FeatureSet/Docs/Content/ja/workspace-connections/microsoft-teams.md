@@ -160,6 +160,18 @@ OneUptime がインシデント、アラート、エピソード、定期メン�
 
 `show` の一覧を除き、これらは Slack で `/oneuptime` の後に続く単語です。`create incident` と `create maintenance` も引き続き使えます。OneUptime AI への質問には、自分の Microsoft Teams アカウントの接続と、プロジェクトで AI がオンになっていることが必要です。アカウントが接続されていない場合、ボットはスレッドやチャットごとに一度だけ、**Connect Microsoft Teams account** ボタンで接続を求めます。[AI に質問](/docs/ai/ask-ai) を参照してください。
 
+## Microsoft Teams のあなたのホーム
+
+OneUptime ボットに `home` と入力すると、ボットはあなたのホームで答えます。あなたが見られる範囲でプロジェクトの状況を示すカードです。
+
+- **あなたのオンコール。** 今オンコールになっているオンコールスケジュールとその終了時刻、またはあなたの次のシフトです。
+- **未解決のもの。** あなたが読める最新の未解決のインシデントとアラートで、それぞれ OneUptime のページへのリンクが付きます。
+- **ボタン。** **Declare incident** と **Page someone** は `incident` と `page` と同じように、 **Who's on call** は `oncall` と同じように答え、 **Refresh** はカードをその場で読み直します。
+
+OneUptime アプリを自分用に追加すると、ボットがすぐにあなたのホームを送ります。ホームと `show` の一覧はあなたとして読むので、あなた自身の Microsoft Teams アカウントの接続が必要です。接続するまで、ボットは **Connect Microsoft Teams account** ボタンで答えます。 **ユーザー設定** > **ワークスペース** > **Microsoft Teams** の **Microsoft Teams で OneUptime を開く** は、Teams でアプリを開きます。
+
+アプリがチームに追加されると、ボットはそこであいさつします。質問のしかたと、チームのチャネルに投稿する通知ルールの追加場所を伝えます。
+
 ## Microsoft Teams からインシデントとメンテナンスを作成する
 
 OneUptime ボットに `incident` または `maintenance` と入力すると、個人チャット、チャネル、グループチャットのどこでも、入力した人のためのフォームが開きます。フォームはその人として入力されます。その人の Microsoft Teams アカウントが接続されている OneUptime アカウント ([Microsoft Teams を接続する](#microsoft-teams-を接続する) を参照) として、そのアカウントのプロジェクトでの権限で送信されます。アカウントが接続されていない人や、OneUptime アカウントがもうプロジェクトのメンバーでない人には、フォームの代わりに、その人をメンションした返信でどうすればよいかが伝えられます。

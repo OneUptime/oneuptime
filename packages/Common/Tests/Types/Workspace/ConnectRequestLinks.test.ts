@@ -95,9 +95,10 @@ describe("ConnectCallbackUtil.readConnectRequestOutcome", () => {
    * A question to OneUptime AI was asked in a message: no button to press
    * again, so it has an outcome of its own - "ask your question again".
    */
-  test("a question to ask again and a button to press again are told apart", () => {
+  test("a question to ask again, a command to run again and a button to press again are told apart", () => {
     expect(ConnectRequestOutcome.PressAgain).toBe("again");
     expect(ConnectRequestOutcome.AskAgain).toBe("ask");
+    expect(ConnectRequestOutcome.RunAgain).toBe("run");
   });
 
   test("every outcome has an address of its own", () => {
@@ -112,6 +113,7 @@ describe("ConnectCallbackUtil.pointsToChatAnswer", () => {
     [ConnectRequestOutcome.Done, true],
     [ConnectRequestOutcome.Answered, true],
     [ConnectRequestOutcome.PressAgain, false],
+    [ConnectRequestOutcome.RunAgain, false],
     [ConnectRequestOutcome.AskAgain, false],
     [ConnectRequestOutcome.Expired, false],
     [ConnectRequestOutcome.NotAnswered, false],
@@ -125,7 +127,7 @@ describe("ConnectCallbackUtil.pointsToChatAnswer", () => {
   );
 
   test("covers every outcome", () => {
-    expect(Object.values(ConnectRequestOutcome)).toHaveLength(6);
+    expect(Object.values(ConnectRequestOutcome)).toHaveLength(7);
   });
 });
 

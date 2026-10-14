@@ -105,12 +105,26 @@ import SlackAiConversations, {
   SlackThreadPerson,
 } from "../Utils/Workspace/Slack/SlackAiConversations";
 import WorkspaceAiAnswerSources from "../Utils/Workspace/WorkspaceAiAnswerSources";
+import SlackHome from "../Utils/Workspace/Slack/SlackHome";
+import SlackWelcome from "../Utils/Workspace/Slack/SlackWelcome";
 import WorkspaceCommands from "../Utils/Workspace/WorkspaceCommands";
 
 import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../Utils/Markdown/FeedMarkdown";
+/*
+ * A Slack mention of a person in a message's text: <@U0123> or
+ * <@U0123|name>. Its class leaves out "<" as well as ">": with "[^>]+" the
+ * pattern was tried again from every "<@" of "<@<@<@..." to the end of the
+ * message, so its time grew with the square of the message (code scanning
+ * alert #1643). Slack writes a "<" somebody typed as "&lt;", so no mention
+ * holds one.
+ */
+const SLACK_USER_MENTION: RegExp = /<@[^<>]+>/g;
+
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
 // The Slack app this server connects with.
 interface SlackAppCredentials {
   clientId: string;
@@ -783,6 +797,14 @@ export default class SlackAPI {
             },
           });
 
+          // The app's Home tab, drawn for whoever installed it (SlackHome).
+          if (slackUserId) {
+            SlackAPI.refreshHomeAfterConnect({
+              projectId: record.projectId,
+              slackUserId: slackUserId,
+            });
+          }
+
           data.backToPage();
         },
       }),
@@ -957,6 +979,15 @@ export default class SlackAPI {
             },
           });
 
+          /*
+           * The app's Home tab, which asked them to connect, fills in
+           * (SlackHome) - while the browser is already on its way back.
+           */
+          SlackAPI.refreshHomeAfterConnect({
+            projectId: record.projectId,
+            slackUserId: slackUserId,
+          });
+
           if (!connectToken) {
             return data.backToPage();
           }
@@ -1066,9 +1097,19 @@ export default class SlackAPI {
            */
           if (
             action.actionType === SlackActionType.JoinVideoCall ||
-            action.actionType === SlackActionType.ConnectSlackAccount
+            action.actionType === SlackActionType.ConnectSlackAccount ||
+            action.actionType === SlackActionType.OpenInOneUptime
           ) {
             return Response.sendTextResponse(req, res, "");
+          }
+
+          // Who's on call, from the app's Home tab: answered in a modal.
+          if (action.actionType === SlackActionType.ShowOnCall) {
+            return await SlackCommandActions.showOnCall({
+              slackRequest: authResult,
+              req: req,
+              res: res,
+            });
           }
 
           // The Page someone form of `/oneuptime page`, submitted.
@@ -1434,6 +1475,48 @@ export default class SlackAPI {
               getLogAttributesFromRequest(req as any),
             );
             return Response.sendTextResponse(req, res, "ok");
+          }
+
+          /*
+           * The OneUptime app's Home tab was opened: it is drawn for whoever
+           * opened it (SlackHome) - their on-call shifts, the open incidents
+           * and alerts, and what they can do. Slack has its 200 first.
+           */
+          if (event["type"] === "app_home_opened") {
+            Response.sendTextResponse(req, res, "ok");
+
+            await SlackHome.handleHomeOpened({
+              teamId: (payload["team_id"] as string) || "",
+              slackUserId: (event["user"] as string) || "",
+              tab: event["tab"] as string | undefined,
+            });
+
+            return;
+          }
+
+          /*
+           * Somebody added the OneUptime app to a channel: it says hello
+           * there, once (SlackWelcome). Channels it creates or joins by
+           * itself get none.
+           */
+          if (event["type"] === "member_joined_channel") {
+            Response.sendTextResponse(req, res, "ok");
+
+            if (req.headers["x-slack-retry-num"]) {
+              return;
+            }
+
+            await SlackWelcome.handleMemberJoinedChannel({
+              teamId:
+                (event["team"] as string) ||
+                (payload["team_id"] as string) ||
+                "",
+              joinedUserId: (event["user"] as string) || "",
+              channelId: (event["channel"] as string) || "",
+              inviterUserId: (event["inviter"] as string) || undefined,
+            });
+
+            return;
           }
 
           /*
@@ -1808,6 +1891,20 @@ export default class SlackAPI {
   }
 
   /*
+   * Draws the Home tab of somebody who has just connected their Slack
+   * account, detached: the sign-in's page does not wait for Slack.
+   */
+  public static refreshHomeAfterConnect(data: {
+    projectId: ObjectID;
+    slackUserId: string;
+  }): void {
+    SlackHome.refreshAfterConnect(data).catch((err: Error) => {
+      logger.debug("Could not draw the Slack Home after a connection.");
+      logger.debug(err);
+    });
+  }
+
+  /*
    * A refusal of a question, and where the commands that need no AI are -
    * "... Run `/oneuptime help` to see the other commands." - as Slack text.
    */
@@ -1976,13 +2073,19 @@ export default class SlackAPI {
       botUserId: context.botUserId,
     });
 
-    // Immediate acknowledgement so the user sees we are working.
+    /*
+     * Immediate acknowledgement so the user sees we are working. It stands
+     * in for the answer only: once the answer is posted it is removed, so a
+     * conversation does not keep a "Looking into it…" above every answer.
+     */
+    let placeholderTs: string | undefined = undefined;
+
     try {
-      await SlackUtil.sendMessageToThread({
+      placeholderTs = await SlackUtil.sendMessageToThread({
         authToken: context.projectAuthToken,
         channelId: slackChannelId,
         threadTs: threadTs,
-        text: "Looking into it… :hourglass_flowing_sand:",
+        text: SlackAPI.AI_PLACEHOLDER_TEXT,
       });
     } catch (err) {
       logger.error(
@@ -1992,20 +2095,57 @@ export default class SlackAPI {
       logger.error(err, getLogAttributesFromRequest(req as any));
     }
 
-    const answerMarkdown: string = await SlackAPI.getAiOpsAnswerMarkdown({
-      projectId: context.projectId,
-      userId: context.userId,
-      question: questionText,
-      history: history,
-    });
+    try {
+      const answerMarkdown: string = await SlackAPI.getAiOpsAnswerMarkdown({
+        projectId: context.projectId,
+        userId: context.userId,
+        question: questionText,
+        history: history,
+      });
 
-    await SlackUtil.sendMessageToThread({
-      authToken: context.projectAuthToken,
-      channelId: slackChannelId,
-      threadTs: threadTs,
-      text: SlackUtil.convertMarkdownToSlackRichText(answerMarkdown),
-    });
+      await SlackUtil.sendMessageToThread({
+        authToken: context.projectAuthToken,
+        channelId: slackChannelId,
+        threadTs: threadTs,
+        text: SlackUtil.convertMarkdownToSlackRichText(answerMarkdown),
+      });
+    } catch (err) {
+      /*
+       * The question is answered either way: a "Looking into it…" left
+       * on its own reads as an answer still coming.
+       */
+      logger.error(
+        "Could not answer a question to OneUptime AI in Slack:",
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.error(err, getLogAttributesFromRequest(req as any));
+
+      await SlackUtil.sendMessageToThread({
+        authToken: context.projectAuthToken,
+        channelId: slackChannelId,
+        threadTs: threadTs,
+        text: SlackAPI.AI_FAILED_TEXT,
+      }).catch((sendError: Error) => {
+        logger.error(sendError, getLogAttributesFromRequest(req as any));
+      });
+    } finally {
+      if (placeholderTs) {
+        await SlackUtil.deleteMessageBestEffort({
+          authToken: context.projectAuthToken,
+          channelId: slackChannelId,
+          ts: placeholderTs,
+        });
+      }
+    }
   }
+
+  // What stands in for an answer from OneUptime AI while it is written.
+  public static readonly AI_PLACEHOLDER_TEXT: string =
+    "Looking into it… :hourglass_flowing_sand:";
+
+  // What a question whose answer could not be written is told.
+  public static readonly AI_FAILED_TEXT: string =
+    "Sorry, I ran into a problem answering that. Please try again in a minute.";
 
   /*
    * What was said before a question, so a follow-up is answered in context:
@@ -2246,10 +2386,10 @@ export default class SlackAPI {
    * Removes Slack `<@USER>` / `<@USER|name>` mention tokens and trims the text.
    * Used both to extract the question and to clean history turns.
    */
-  private static cleanSlackMessageText(text: string | undefined): string {
+  public static cleanSlackMessageText(text: string | undefined): string {
     return (text || "")
-      .replace(/<@[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
+      .replace(SLACK_USER_MENTION, " ")
+      .replace(WHITESPACE_RUN, " ")
       .trim();
   }
 
