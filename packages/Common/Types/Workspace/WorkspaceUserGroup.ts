@@ -121,8 +121,12 @@ export const WORKSPACE_USER_GROUP_RETRY_UNAVAILABLE_MINUTES: number = 2;
  */
 export const WORKSPACE_USER_GROUP_RETRY_REFUSED_MINUTES: number = 60;
 
-// Slack user group handles: what OneUptime suggests and accepts.
-export const SLACK_USER_GROUP_HANDLE_MAX_LENGTH: number = 21;
+/*
+ * Slack user group handles: what OneUptime accepts (Slack documents no
+ * length; past this it decides), and the length of one it suggests.
+ */
+export const SLACK_USER_GROUP_HANDLE_MAX_LENGTH: number = 80;
+export const SLACK_USER_GROUP_SUGGESTED_HANDLE_MAX_LENGTH: number = 32;
 export const SLACK_USER_GROUP_NAME_MAX_LENGTH: number = 100;
 
 // Microsoft Teams tags: a name holds 40 characters.
@@ -141,9 +145,9 @@ const WHITE_SPACE_RUN: RegExp = /\s+/;
 /*
  * The names a new user group or tag is offered for a schedule: "Payments
  * Primary on-call", handle "payments-primary-oncall". The handle keeps
- * lower-case letters and digits, joined by single hyphens, and is cut to
- * what a Slack handle holds - at a hyphen when it can be - keeping the
- * "-oncall" that says what it is.
+ * lower-case letters and digits (accents taken off: "Café" is "cafe"),
+ * joined by single hyphens, and is cut to a short handle - at a hyphen when
+ * it can be - keeping the "-oncall" that says what it is.
  */
 export function getSuggestedUserGroupName(data: {
   scheduleName: string;
@@ -169,7 +173,14 @@ export function getSuggestedSlackHandle(scheduleName: string): string {
   let slug: string = "";
   let pendingHyphen: boolean = false;
 
-  for (const character of scheduleName.toLowerCase()) {
+  for (const character of (scheduleName || "").normalize("NFD").toLowerCase()) {
+    const code: number = character.charCodeAt(0);
+
+    // An accent's combining mark: "é" is "e" and this.
+    if (code >= 0x300 && code <= 0x36f) {
+      continue;
+    }
+
     const isWordCharacter: boolean =
       (character >= "a" && character <= "z") ||
       (character >= "0" && character <= "9");
@@ -188,12 +199,16 @@ export function getSuggestedSlackHandle(scheduleName: string): string {
   }
 
   const room: number =
-    SLACK_USER_GROUP_HANDLE_MAX_LENGTH - SUGGESTED_HANDLE_SUFFIX.length;
+    SLACK_USER_GROUP_SUGGESTED_HANDLE_MAX_LENGTH -
+    SUGGESTED_HANDLE_SUFFIX.length;
 
   if (slug.length > room) {
     const cut: string = slug.substring(0, room);
+    // Cut between two words: the cut keeps them whole.
+    const isAtWordEnd: boolean = slug[room] === "-";
     const lastHyphen: number = cut.lastIndexOf("-");
-    slug = lastHyphen > 0 ? cut.substring(0, lastHyphen) : cut;
+    slug =
+      isAtWordEnd || lastHyphen <= 0 ? cut : cut.substring(0, lastHyphen);
   }
 
   slug = trimHyphens(slug);

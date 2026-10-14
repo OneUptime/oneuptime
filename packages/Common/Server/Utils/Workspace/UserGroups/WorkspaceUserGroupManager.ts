@@ -122,10 +122,16 @@ export default class WorkspaceUserGroupManager {
       }
     }
 
+    // Slack first, then Microsoft Teams - the order every list of them uses.
+    const order: Array<WorkspaceType> = [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+    ];
+
     return views.sort(
       (a: WorkspaceUserGroupView, b: WorkspaceUserGroupView): number => {
         return (
-          a.workspaceType.localeCompare(b.workspaceType) ||
+          order.indexOf(a.workspaceType) - order.indexOf(b.workspaceType) ||
           (a.handle || a.name).localeCompare(b.handle || b.name)
         );
       },

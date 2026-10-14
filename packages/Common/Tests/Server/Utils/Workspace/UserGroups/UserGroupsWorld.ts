@@ -1,5 +1,8 @@
 import { jest } from "@jest/globals";
 import OnCallDutyPolicySchedule from "../../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyScheduleService from "../../../../../Server/Services/OnCallDutyPolicyScheduleService";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { idsOfAnyFilter } from "../../../TestingUtils/Services/ProjectStatesHelper";
 import User from "../../../../../Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
@@ -663,6 +666,16 @@ export default class UserGroupsWorld {
   public teamsWithoutApp: Set<string> = new Set<string>();
   public errors: Array<string> = [];
   public clockOffsetInMinutes: number = 0;
+  // What the person asking may not read (their permissions say so).
+  public unreadableSchedules: Set<string> = new Set<string>();
+  public unreadableGroups: Set<string> = new Set<string>();
+  // The writes made as the person asking, with their props.
+  public writes: Array<{
+    kind: "create" | "update" | "delete";
+    id: string;
+    props: DatabaseCommonInteractionProps;
+    scheduleIds?: Array<string> | undefined;
+  }> = [];
 
   private nextId: number = 1;
 
@@ -796,7 +809,48 @@ export default class UserGroupsWorld {
 
     jest
       .spyOn(WorkspaceUserGroupService, "findBy")
-      .mockImplementation((async () => {
+      .mockImplementation((async (options: {
+        query: Record<string, unknown>;
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        const query: Record<string, unknown> = options.query || {};
+
+        // The schedule page's card: the groups that follow a schedule.
+        if (query["onCallDutyPolicySchedules"] !== undefined) {
+          const wanted: Array<string> = (
+            query["onCallDutyPolicySchedules"] as Array<ObjectID>
+          ).map((id: ObjectID): string => {
+            return id.toString();
+          });
+
+          return Array.from(this.groups.values())
+            .filter((row: WorldGroupRow): boolean => {
+              return (
+                !this.unreadableGroups.has(row.id.toString()) &&
+                row.scheduleIds.some((id: string): boolean => {
+                  return wanted.includes(id);
+                })
+              );
+            })
+            .map((row: WorldGroupRow): WorkspaceUserGroup => {
+              return this.toModel(row);
+            });
+        }
+
+        // The Connect form: the project's groups in one workspace.
+        if (query["workspaceType"] !== undefined) {
+          return Array.from(this.groups.values())
+            .filter((row: WorldGroupRow): boolean => {
+              return (
+                row.workspaceType === query["workspaceType"] &&
+                !this.unreadableGroups.has(row.id.toString())
+              );
+            })
+            .map((row: WorldGroupRow): WorkspaceUserGroup => {
+              return this.toModel(row);
+            });
+        }
+
         // The worker job's round: the groups whose next look is due.
         return Array.from(this.groups.values())
           .filter((row: WorldGroupRow): boolean => {
@@ -851,6 +905,22 @@ export default class UserGroupsWorld {
 
         const data: Record<string, unknown> = options.data;
 
+        if (data["onCallDutyPolicySchedules"] !== undefined) {
+          row.scheduleIds = (
+            data["onCallDutyPolicySchedules"] as Array<OnCallDutyPolicySchedule>
+          ).map((schedule: OnCallDutyPolicySchedule): string => {
+            return schedule.id!.toString();
+          });
+
+          this.writes.push({
+            kind: "update",
+            id: row.id.toString(),
+            props: (options as unknown as { props: DatabaseCommonInteractionProps })
+              .props,
+            scheduleIds: [...row.scheduleIds],
+          });
+        }
+
         if (data["syncState"] !== undefined) {
           row.syncState = JSON.parse(
             JSON.stringify(data["syncState"]),
@@ -883,6 +953,136 @@ export default class UserGroupsWorld {
       .mockImplementation((async (options: { id: ObjectID }) => {
         this.groups.delete(options.id.toString());
         return 1;
+      }) as never);
+
+    jest
+      .spyOn(WorkspaceUserGroupService, "findOneBy")
+      .mockImplementation((async (options: {
+        query: Record<string, unknown>;
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        const query: Record<string, unknown> = options.query || {};
+        const isRoot: boolean = Boolean(options.props?.isRoot);
+
+        const row: WorldGroupRow | undefined = Array.from(
+          this.groups.values(),
+        ).find((candidate: WorldGroupRow): boolean => {
+          if (
+            query["_id"] !== undefined &&
+            candidate.id.toString() !== String(query["_id"])
+          ) {
+            return false;
+          }
+
+          if (
+            query["workspaceGroupId"] !== undefined &&
+            candidate.workspaceGroupId !== query["workspaceGroupId"]
+          ) {
+            return false;
+          }
+
+          if (
+            query["workspaceType"] !== undefined &&
+            candidate.workspaceType !== query["workspaceType"]
+          ) {
+            return false;
+          }
+
+          return isRoot || !this.unreadableGroups.has(candidate.id.toString());
+        });
+
+        return row ? this.toModel(row) : null;
+      }) as never);
+
+    jest
+      .spyOn(WorkspaceUserGroupService, "create")
+      .mockImplementation((async (options: {
+        data: WorkspaceUserGroup;
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        const data: WorkspaceUserGroup = options.data;
+        const id: ObjectID = this.newId();
+
+        const row: WorldGroupRow = {
+          id: id,
+          projectId: data.projectId || PROJECT_ID,
+          workspaceType: data.workspaceType!,
+          workspaceGroupId: data.workspaceGroupId || "",
+          workspaceTeamId: data.workspaceTeamId || null,
+          name: data.name || "",
+          handle: data.handle || null,
+          scheduleIds: (data.onCallDutyPolicySchedules || []).map(
+            (schedule: OnCallDutyPolicySchedule): string => {
+              return schedule.id!.toString();
+            },
+          ),
+          syncState: null,
+          syncedAt: null,
+          nextSyncAt: null,
+        };
+
+        this.groups.set(id.toString(), row);
+        this.writes.push({
+          kind: "create",
+          id: id.toString(),
+          props: options.props,
+          scheduleIds: [...row.scheduleIds],
+        });
+
+        const created: WorkspaceUserGroup = new WorkspaceUserGroup();
+        created.id = id;
+        return created;
+      }) as never);
+
+    jest
+      .spyOn(WorkspaceUserGroupService, "deleteOneBy")
+      .mockImplementation((async (options: {
+        query: Record<string, unknown>;
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        const id: string = String(options.query["_id"]);
+        this.groups.delete(id);
+        this.writes.push({ kind: "delete", id: id, props: options.props });
+        return 1;
+      }) as never);
+
+    jest
+      .spyOn(OnCallDutyPolicyScheduleService, "findOneBy")
+      .mockImplementation((async (options: {
+        query: Record<string, unknown>;
+      }) => {
+        const schedule: WorldSchedule | undefined = this.schedules.get(
+          String(options.query["_id"]),
+        );
+
+        if (!schedule || this.unreadableSchedules.has(schedule.id.toString())) {
+          return null;
+        }
+
+        return this.scheduleModel(schedule);
+      }) as never);
+
+    jest
+      .spyOn(OnCallDutyPolicyScheduleService, "findBy")
+      .mockImplementation((async (options: {
+        query: Record<string, unknown>;
+      }) => {
+        const ids: Array<string> = idsOfAnyFilter(options.query["_id"]).map(
+          (id: string): string => {
+            return id.toLowerCase();
+          },
+        );
+
+        return Array.from(this.schedules.values())
+          .filter((schedule: WorldSchedule): boolean => {
+            return (
+              ids.includes(schedule.id.toString().toLowerCase()) &&
+              !this.unreadableSchedules.has(schedule.id.toString())
+            );
+          })
+          .map((schedule: WorldSchedule): OnCallDutyPolicySchedule => {
+            return this.scheduleModel(schedule);
+          });
       }) as never);
 
     jest.spyOn(UserService, "findBy").mockImplementation((async () => {
@@ -1044,6 +1244,19 @@ export default class UserGroupsWorld {
 
         return this.graph.rosters.get(options.teamId) || null;
       }) as never);
+  }
+
+  private scheduleModel(schedule: WorldSchedule): OnCallDutyPolicySchedule {
+    const model: OnCallDutyPolicySchedule = new OnCallDutyPolicySchedule();
+    model.id = schedule.id;
+    model.name = schedule.name;
+    model.projectId = PROJECT_ID;
+
+    if (schedule.onCall) {
+      model.currentUserIdOnRoster = schedule.onCall;
+    }
+
+    return model;
   }
 
   private toModel(row: WorldGroupRow): WorkspaceUserGroup {
