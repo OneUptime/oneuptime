@@ -192,9 +192,11 @@ const NUMBERED_STEP: RegExp = /^\d\. /;
 // An entry of the product's menu: `page: PageMap.SECURITY_EVENTS, title: "Events",`.
 const MENU_ITEM: RegExp = /page: PageMap\.\w+,\s*title: "([^"]+)",/g;
 // A section of the product's menu: `title: "Detect", items: [`.
-const MENU_SECTION: RegExp = /title: "([^"]+)",\s*items: \[/g;
+const MENU_SECTION: RegExp =
+  /title: "([^"]+)",\s*(?:startsCollapsed: (?:true|false),\s*)?items: \[/g;
 // Where each of the menu's sections starts, to split the source by section.
-const MENU_SECTION_START: RegExp = /title: "[^"]+",\s*items: \[/;
+const MENU_SECTION_START: RegExp =
+  /title: "[^"]+",\s*(?:startsCollapsed: (?:true|false),\s*)?items: \[/;
 // One option of the monitor's window dropdown: `label: "Last 5 seconds",`.
 const WINDOW_OPTION: RegExp = /label: "(Last [^"]+)",/g;
 // A string array of a source read as text: `const NAME: Array<string> = [ ... ];`.

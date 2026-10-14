@@ -52,6 +52,9 @@ import ProxmoxClusterFeed, {
 import ScheduledMaintenanceFeed, {
   ScheduledMaintenanceFeedEventType,
 } from "../../../../Models/DatabaseModels/ScheduledMaintenanceFeed";
+import SecurityCaseFeed, {
+  SecurityCaseFeedEventType,
+} from "../../../../Models/DatabaseModels/SecurityCaseFeed";
 import ServiceFeed, {
   ServiceFeedEventType,
 } from "../../../../Models/DatabaseModels/ServiceFeed";
@@ -284,6 +287,14 @@ const FEED_MODELS: Array<FeedModelEntry> = [
     eventTypes: Object.values(ScheduledMaintenanceFeedEventType),
     resourceIdColumn: "scheduledMaintenanceId",
     eventTypeColumn: "scheduledMaintenanceFeedEventType",
+  },
+  {
+    file: "SecurityCaseFeed",
+    enumName: "SecurityCaseFeedEventType",
+    modelType: SecurityCaseFeed,
+    eventTypes: Object.values(SecurityCaseFeedEventType),
+    resourceIdColumn: "securityCaseId",
+    eventTypeColumn: "securityCaseFeedEventType",
   },
   {
     file: "ServiceFeed",

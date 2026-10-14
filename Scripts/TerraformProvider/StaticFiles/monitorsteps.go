@@ -998,10 +998,12 @@ func MonitorStepsSchemaAttribute(description string) schema.ListNestedAttribute 
 		CustomType:          NewMonitorStepsType(),
 		Optional:            true,
 		/*
-		 * Computed because the server generates default steps when a monitor
-		 * is created without any (see MonitorService.onBeforeCreate). With a
-		 * plain Optional attribute that would be "planned null, got steps" —
-		 * the inconsistent-result class this provider just eliminated.
+		 * Computed so that a configuration may leave monitor_steps out: the
+		 * monitor then keeps the steps it has (one made in the dashboard and
+		 * imported keeps its checks), where a plain Optional attribute would
+		 * plan them away. The server adds no steps of its own: a monitor
+		 * created without any has none, and probes skip it
+		 * (MonitorService.onBeforeCreate saves steps only when given).
 		 * UseStateForUnknown keeps refresh plans clean once state is settled.
 		 */
 		Computed: true,

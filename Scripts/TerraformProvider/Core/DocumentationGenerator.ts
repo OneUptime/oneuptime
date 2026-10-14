@@ -290,18 +290,18 @@ tofu apply
 
 \`source = "oneuptime/${this.config.providerName}"\` carries no hostname, so each engine resolves it against its own default registry — \`registry.opentofu.org\` under OpenTofu, \`registry.terraform.io\` under Terraform. The provider is published to both, so one address covers both engines.
 
-Writing \`source = "registry.terraform.io/oneuptime/${this.config.providerName}"\` pins the configuration to the Terraform Registry and breaks it under OpenTofu in registry-restricted environments.
+A hostname in the address makes every engine use that registry: with \`source = "registry.terraform.io/oneuptime/${this.config.providerName}"\`, OpenTofu downloads from the Terraform Registry too, and Terraform refuses the OpenTofu Registry's copy (\`authentication signature from unknown issuer\`).
 
 ## Differences worth knowing
 
 | Topic | Behaviour |
 |-------|-----------|
 | The \`terraform\` block | Stays \`terraform\`. It is a language keyword, not a reference to the Terraform CLI. |
-| \`.tf\` vs \`.tofu\` files | \`.tf\` works under both. OpenTofu also reads \`.tofu\` files and ignores any \`.tf\` file with a \`.tofu\` sibling. |
+| \`.tf\` vs \`.tofu\` files | \`.tf\` works under both. OpenTofu 1.8 and later also read \`.tofu\` files, and skip a \`.tf\` file that has a \`.tofu\` file of the same name. |
 | \`required_version\` | OpenTofu's version series starts at 1.6.0, so a \`>= 1.5.0\` constraint written for Terraform is always satisfied. |
-| Lock files | Both write \`.terraform.lock.hcl\`, but it records the registry it resolved against — one engine's lock file does not satisfy the other. |
-| State files | Identical format and filenames; state moves between engines without conversion. |
-| Variables | OpenTofu reads \`TF_VAR_*\` as well as \`TOFU_VAR_*\`. |
+| Lock files | Both write \`.terraform.lock.hcl\`, each under its own registry's address: \`init\` rewrites the provider's entry when you switch engines, so commit the change. |
+| State files | OpenTofu reads a state Terraform wrote, as it is. |
+| Variables | \`TF_VAR_name\` sets a variable under OpenTofu too. |
 
 ## Reusable modules
 

@@ -410,30 +410,29 @@ export const MITRE_TACTIC_TECHNIQUES: Readonly<
  * the per-tactic lists so a technique's name and tactics can never disagree
  * with the column it is drawn in.
  */
-export const MITRE_TECHNIQUES: ReadonlyArray<MitreTechnique> = ((): Array<
-  MitreTechnique
-> => {
-  const byId: Map<string, MitreTechnique> = new Map();
+export const MITRE_TECHNIQUES: ReadonlyArray<MitreTechnique> =
+  ((): Array<MitreTechnique> => {
+    const byId: Map<string, MitreTechnique> = new Map();
 
-  for (const tactic of MITRE_TACTICS) {
-    for (const [id, name] of MITRE_TACTIC_TECHNIQUES[tactic.id] || []) {
-      const existing: MitreTechnique | undefined = byId.get(id);
+    for (const tactic of MITRE_TACTICS) {
+      for (const [id, name] of MITRE_TACTIC_TECHNIQUES[tactic.id] || []) {
+        const existing: MitreTechnique | undefined = byId.get(id);
 
-      if (existing) {
-        existing.tacticIds.push(tactic.id);
-        continue;
+        if (existing) {
+          existing.tacticIds.push(tactic.id);
+          continue;
+        }
+
+        byId.set(id, { id, name, tacticIds: [tactic.id] });
       }
-
-      byId.set(id, { id, name, tacticIds: [tactic.id] });
     }
-  }
 
-  return Array.from(byId.values()).sort(
-    (a: MitreTechnique, b: MitreTechnique): number => {
-      return a.id.localeCompare(b.id);
-    },
-  );
-})();
+    return Array.from(byId.values()).sort(
+      (a: MitreTechnique, b: MitreTechnique): number => {
+        return a.id.localeCompare(b.id);
+      },
+    );
+  })();
 
 const TACTICS_BY_ID: Map<string, MitreTactic> = new Map(
   MITRE_TACTICS.map((tactic: MitreTactic): [string, MitreTactic] => {
@@ -442,9 +441,11 @@ const TACTICS_BY_ID: Map<string, MitreTactic> = new Map(
 );
 
 const TECHNIQUES_BY_ID: Map<string, MitreTechnique> = new Map(
-  MITRE_TECHNIQUES.map((technique: MitreTechnique): [string, MitreTechnique] => {
-    return [technique.id, technique];
-  }),
+  MITRE_TECHNIQUES.map(
+    (technique: MitreTechnique): [string, MitreTechnique] => {
+      return [technique.id, technique];
+    },
+  ),
 );
 
 /*

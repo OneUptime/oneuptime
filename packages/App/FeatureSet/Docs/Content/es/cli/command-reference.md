@@ -194,6 +194,7 @@ Los registros admiten `list`, `get`, `create`, `update`, `delete` y `count`:
 | Páginas de estado | `status-page`, `status-page-announcement` |
 | Mantenimiento programado | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | Equipos y guardias | `team`, `on-call-policy` |
+| Seguridad | `security-case`, `security-case-note`, `security-detection`, `security-playbook` |
 | Etiquetas | `label` |
 
 La telemetría admite `list`, `create` y `count`:

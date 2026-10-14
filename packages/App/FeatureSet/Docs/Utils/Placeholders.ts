@@ -45,8 +45,21 @@ export const TERRAFORM_PROVIDER_VERSION_PLACEHOLDER: string =
   "{{TERRAFORM_PROVIDER_VERSION}}";
 export const TERRAFORM_PROVIDER_MAJOR_PLACEHOLDER: string =
   "{{TERRAFORM_PROVIDER_MAJOR}}";
+/*
+ * The range for a self-hosted OneUptime: the newest provider that is not
+ * newer than the OneUptime serving the page (">= 14.0, <= 14.0.56"), the
+ * range the dashboard's Developer > Terraform pages write for it.
+ */
+export const TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER: string =
+  "{{TERRAFORM_PROVIDER_MATCHING}}";
 
 const MAJOR_VERSION_PATTERN: RegExp = new RegExp("^v?(\\d+)\\.\\d+");
+// A release's version: "14.0.56", or "v14.0.56" as a tag writes it.
+const RELEASE_VERSION_PATTERN: RegExp = new RegExp(
+  "^v?(\\d+)\\.(\\d+)\\.(\\d+)$",
+);
+// The version every development build reports, which names no release.
+const DEVELOPMENT_VERSION: string = "1.0.0";
 
 /*
  * The release's version: APP_VERSION in a built image, else the version of
@@ -114,6 +127,35 @@ export function getTerraformProviderVersionConstraint(
   return major ? `~> ${major}.0` : ">= 1.0";
 }
 
+/*
+ * ">= 14.0, <= 14.0.56" for OneUptime 14.0.56: what the dashboard's
+ * Terraform pages write for the installation they run on
+ * (getTerraformProviderVersionConstraint in
+ * Common/Utils/DeveloperDocs/TerraformConfig, which the docs tests hold this
+ * to), so a self-hosted instance's docs name the range for that instance.
+ * Without a release's version - a development build - the newest provider
+ * of the major, as {{TERRAFORM_PROVIDER_VERSION}} gives.
+ */
+export function getTerraformProviderMatchingConstraint(
+  version: string | null = getPlatformVersion(),
+): string {
+  const release: RegExpMatchArray | null = version
+    ? version.trim().match(RELEASE_VERSION_PATTERN)
+    : null;
+
+  if (!release) {
+    return getTerraformProviderVersionConstraint(version);
+  }
+
+  const plain: string = `${release[1]}.${release[2]}.${release[3]}`;
+
+  if (plain === DEVELOPMENT_VERSION) {
+    return getTerraformProviderVersionConstraint(version);
+  }
+
+  return `>= ${release[1]}.0, <= ${plain}`;
+}
+
 function getIpWhitelistMarkdown(): string {
   if (!IpWhitelist) {
     return "- No IP addresses configured.";
@@ -168,6 +210,14 @@ export default class DocsPlaceholders {
         content,
         TERRAFORM_PROVIDER_VERSION_PLACEHOLDER,
         getTerraformProviderVersionConstraint(),
+      );
+    }
+
+    if (content.includes(TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER)) {
+      content = replaceAll(
+        content,
+        TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER,
+        getTerraformProviderMatchingConstraint(),
       );
     }
 
