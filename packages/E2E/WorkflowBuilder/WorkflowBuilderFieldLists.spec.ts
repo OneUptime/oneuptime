@@ -17,6 +17,12 @@ import { expect, Locator, Page, test } from "@playwright/test";
  * around it; the list landing in view when it opens - on a phone the
  * dialog's buttons take a third of the screen - and opening there without
  * the keyboard over it; targets big enough for a finger; and the dark theme.
+ *
+ * And what a look at the lists in a browser found: a press on anything under
+ * an open list did nothing the first time, because the list closed as the
+ * press landed and what was pressed moved up from under the pointer; and a
+ * list that must hold a field said so a line away from itself, in the form's
+ * words for any box left blank.
  */
 
 type Box = { x: number; y: number; width: number; height: number };
@@ -129,6 +135,31 @@ async function boxOf(locator: Locator): Promise<Box> {
   return box;
 }
 
+/*
+ * A press as a hand makes it: down, a moment, and up, at one point. What is
+ * under the pointer when the button comes up is what gets the click - which
+ * is how a list that closed on the way down lost it.
+ */
+async function press(
+  page: Page,
+  target: Locator,
+  isMobile: boolean,
+): Promise<void> {
+  await target.scrollIntoViewIfNeeded();
+
+  if (isMobile) {
+    await target.tap();
+    return;
+  }
+
+  const box: Box = await boxOf(target);
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(60);
+  await page.mouse.up();
+}
+
 async function focusedTestId(page: Page): Promise<string | null> {
   return page.evaluate((): string | null => {
     return document.activeElement?.getAttribute("data-testid") || null;
@@ -203,18 +234,27 @@ test.describe("Workflow builder: a record trigger's field lists", () => {
     await expect(dialog.getByText("Select Fields")).toHaveCount(0);
     await expect(dialog.locator('input[type="checkbox"]')).toHaveCount(0);
 
+    /*
+     * The line under each name is what the list is for, and no more. Every
+     * other setting's help starts "Optional." or "Required."; under "Fields
+     * to watch (Optional)" that said one thing three times.
+     */
     await expect(
       dialog.getByText(
         "Run only when an update changes one of these fields. Leave it empty to run on every change to the Incident.",
-        { exact: false },
+        { exact: true },
       ),
     ).toBeVisible();
     await expect(
       dialog.getByText(
         "The Incident fields the next steps can use. A field you leave out is empty in later steps.",
-        { exact: false },
+        { exact: true },
       ),
     ).toBeVisible();
+    await expect(dialog.getByText("Optional. Run only")).toHaveCount(0);
+    await expect(dialog.getByText("Required. The Incident")).toHaveCount(0);
+    // Its name still says which of the two may be left empty.
+    await expect(dialog.getByText("(Optional)")).toHaveCount(1);
 
     // Watching nothing in particular is every change, and the list says so.
     await expect(dialog.getByTestId(`${WATCH}-empty`)).toHaveText(
@@ -594,6 +634,139 @@ test.describe("Workflow builder: a record trigger's field lists", () => {
     await expect(panel).toHaveCount(0);
   });
 
+  /*
+   * The list is in the page: closing it pulls everything under it up by its
+   * height. It closed as a press outside it landed, so whatever was pressed
+   * under it was gone from under the pointer before the release, and its
+   * click never came. The first press did nothing; the second worked.
+   */
+  test("a press on the other list's Add field, under an open list, opens it the first time", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    const dialog: Locator = await openTrigger(page);
+
+    // Fields to watch is the first list: its open list is over Fields to pass on.
+    await openList(dialog, WATCH);
+
+    const before: Box = await boxOf(dialog.getByTestId(`${PASS_ON}-add`));
+
+    await press(page, dialog.getByTestId(`${PASS_ON}-add`), isMobile);
+
+    await expect(dialog.getByTestId(`${PASS_ON}-panel`)).toBeVisible();
+    await expect(dialog.getByTestId(`${WATCH}-panel`)).toHaveCount(0);
+    await expect(dialog.getByTestId(`${PASS_ON}-add`)).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+
+    // The first list did close, and what was under it moved up into its place.
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await boxOf(dialog.getByTestId(`${PASS_ON}-add`))).y;
+      })
+      .toBeLessThan(before.y - 100);
+
+    // The list that opened is whole, in view, and ready to pick from.
+    const area: Box = await boxOf(dialog.getByTestId("modal-content"));
+    const panel: Box = await boxOf(dialog.getByTestId(`${PASS_ON}-panel`));
+
+    expect(panel.y).toBeGreaterThanOrEqual(area.y - 1);
+    expect(panel.y + panel.height).toBeLessThanOrEqual(
+      area.y + area.height + 1,
+    );
+
+    await option(dialog, PASS_ON, "declaredAt").click();
+    expect(await chips(dialog, PASS_ON)).toEqual(["Title", "Declared At"]);
+  });
+
+  test("a press on Edit as JSON, right under its own open list, shows the JSON the first time", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    const dialog: Locator = await openTrigger(page);
+
+    await openList(dialog, PASS_ON);
+    await press(page, dialog.getByTestId(`${PASS_ON}-edit-json`), isMobile);
+
+    await expect(dialog.getByTestId(PASS_ON)).toHaveAttribute(
+      "data-view",
+      "json",
+    );
+    await expect(dialog.getByTestId(`${PASS_ON}-panel`)).toHaveCount(0);
+    await expect(dialog.getByTestId(`${PASS_ON}-back-to-list`)).toBeVisible();
+    // The other list is as it was.
+    await expect(dialog.getByTestId(WATCH)).toHaveAttribute(
+      "data-view",
+      "list",
+    );
+  });
+
+  test("a press on a chip of the list below takes that chip out the first time", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    const dialog: Locator = await openTrigger(
+      page,
+      stored("select", { title: true, description: true }),
+    );
+
+    await openList(dialog, WATCH);
+    await press(
+      page,
+      dialog.getByTestId(`${PASS_ON}-remove`).first(),
+      isMobile,
+    );
+
+    await expect(dialog.getByTestId(`${PASS_ON}-chip`)).toHaveCount(1);
+    expect(await chips(dialog, PASS_ON)).toEqual(["Description"]);
+    await expect(dialog.getByTestId(`${WATCH}-panel`)).toHaveCount(0);
+    // Nothing was picked for Fields to watch on the way.
+    expect(await chips(dialog, WATCH)).toEqual([]);
+  });
+
+  test("a press held outside an open list leaves it open until the button comes up", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(isMobile, "A finger does not hold a mouse button.");
+
+    const dialog: Locator = await openTrigger(page);
+
+    await openList(dialog, WATCH);
+
+    const target: Box = await boxOf(
+      dialog.getByText("How other steps refer to this trigger"),
+    );
+
+    await page.mouse.move(
+      target.x + target.width / 2,
+      target.y + target.height / 2,
+    );
+    await page.mouse.down();
+    await page.waitForTimeout(400);
+
+    // Still down: the list has not moved anything yet.
+    await expect(dialog.getByTestId(`${WATCH}-panel`)).toBeVisible();
+
+    await page.mouse.up();
+
+    await expect(dialog.getByTestId(`${WATCH}-panel`)).toHaveCount(0);
+    await expect(page.locator(SETTINGS_DIALOG)).toBeVisible();
+  });
+
   test("the list opens in view, whole, with the chosen fields still above it", async ({
     page,
     isMobile,
@@ -764,10 +937,32 @@ test.describe("Workflow builder: a record trigger's field lists", () => {
     const saveButton: Locator = dialog.getByRole("button", { name: "Save" });
     const required: Locator = dialog
       .getByTestId(PASS_ON)
-      .getByText("Fields to pass on is required.");
+      .getByTestId("error-message");
+    const editJson: Locator = dialog.getByTestId(`${PASS_ON}-edit-json`);
+    const identifier: Locator = dialog.getByText(
+      "How other steps refer to this trigger",
+    );
 
     await expect(saveButton).toBeEnabled();
     await expect(required).toHaveCount(0);
+
+    const listBox: Locator = dialog
+      .getByTestId(`${PASS_ON}-chips`)
+      .locator("..");
+
+    type BelowTheListFunction = (locator: Locator) => Promise<number>;
+
+    // How far under the list's lower edge something starts.
+    const belowTheList: BelowTheListFunction = async (
+      locator: Locator,
+    ): Promise<number> => {
+      const list: Box = await boxOf(listBox);
+
+      return (await boxOf(locator)).y - (list.y + list.height);
+    };
+
+    const editJsonBefore: number = await belowTheList(editJson);
+    const identifierBefore: number = await belowTheList(identifier);
 
     await dialog.getByTestId(`${PASS_ON}-remove`).click();
 
@@ -776,10 +971,53 @@ test.describe("Workflow builder: a record trigger's field lists", () => {
     );
     /*
      * At once, with the focus still in the list: the dialog already says
-     * something needs fixing, and this is what.
+     * something needs fixing, and this is what. In the list's own words:
+     * "Fields to pass on is required." was the form's, for any box left
+     * blank.
      */
     await expect(required).toBeVisible();
+    await expect(required).toHaveText("Pick at least one field.");
+    await expect(
+      dialog.getByText("Fields to pass on is required."),
+    ).toHaveCount(0);
     await expect(saveButton).toBeDisabled();
+
+    /*
+     * On the line right under the list, where the eye is after the red
+     * border, with Edit as JSON at the far end of the same line - it used
+     * to come a line below Edit as JSON.
+     */
+    const list: Box = await boxOf(listBox);
+    const message: Box = await boxOf(required);
+    const editJsonAfter: Box = await boxOf(editJson);
+
+    expect(message.y).toBeGreaterThanOrEqual(list.y + list.height - 0.5);
+    expect(message.y - (list.y + list.height)).toBeLessThanOrEqual(12);
+    expect(Math.abs(message.x - list.x)).toBeLessThanOrEqual(1);
+    // One line: the two overlap from top to bottom, the message to the left.
+    expect(message.y).toBeLessThan(editJsonAfter.y + editJsonAfter.height);
+    expect(editJsonAfter.y).toBeLessThan(message.y + message.height);
+    expect(message.x + message.width).toBeLessThanOrEqual(editJsonAfter.x);
+
+    /*
+     * And the line is no taller for holding it: the link, and everything
+     * under the list, are as far below the list as they were. (On a phone
+     * the list itself is a line taller, for its words about being empty.)
+     */
+    expect(
+      Math.abs((await belowTheList(editJson)) - editJsonBefore),
+    ).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs((await belowTheList(identifier)) - identifierBefore),
+    ).toBeLessThanOrEqual(1);
+
+    // Red, as what needs fixing is.
+    const colour: Array<number> = (
+      (await styleOf(required, "color")).match(/[\d.]+/g) || []
+    ).map(Number);
+
+    expect(colour[0] as number).toBeGreaterThan(150);
+    expect(colour[0] as number).toBeGreaterThan((colour[1] as number) * 2);
 
     await openList(dialog, PASS_ON);
     await option(dialog, PASS_ON, "title").click();

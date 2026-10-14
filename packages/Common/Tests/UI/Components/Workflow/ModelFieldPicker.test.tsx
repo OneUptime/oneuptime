@@ -1036,7 +1036,50 @@ describe("a list left with nothing in it", () => {
     expect(harness.onBlur).not.toHaveBeenCalled();
 
     fireEvent.blur(add, { relatedTarget: document.body });
-    expect(harness.onBlur).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(harness.onBlur).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /*
+   * What the form says once the list is left can take a line of its own
+   * under it. Said as the press that left the list landed, it pushed what
+   * was being pressed down from under the pointer.
+   */
+  test("left by a press, the form hears of it once the press is over, not as it lands", async () => {
+    const harness: Harness = await renderPicker({ value: "" });
+    const add: HTMLElement = screen.getByTestId(`${harness.testId}-add`);
+
+    add.focus();
+
+    // The press lands somewhere under the list, and takes the focus.
+    fireEvent.mouseDown(document.body);
+    fireEvent.blur(add, { relatedTarget: document.body });
+
+    // Still down: nothing has been said, so nothing has moved.
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 30);
+    });
+    expect(harness.onBlur).not.toHaveBeenCalled();
+
+    fireEvent.mouseUp(document.body);
+
+    await waitFor(() => {
+      expect(harness.onBlur).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test("left by the keyboard, the form hears of it as the keys move on", async () => {
+    const harness: Harness = await renderPicker({ value: "" });
+    const add: HTMLElement = screen.getByTestId(`${harness.testId}-add`);
+
+    add.focus();
+    // Tab: no press is down.
+    fireEvent.blur(add, { relatedTarget: document.body });
+
+    await waitFor(() => {
+      expect(harness.onBlur).toHaveBeenCalledTimes(1);
+    });
   });
 
   /*

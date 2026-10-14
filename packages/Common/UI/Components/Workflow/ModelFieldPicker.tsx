@@ -53,6 +53,7 @@ import {
   translationKey,
   Translator,
 } from "../../Utils/TranslateTemplate";
+import useAfterPress, { AfterPressFunction } from "../../Utils/UseAfterPress";
 import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -189,6 +190,21 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
     useRef<HTMLButtonElement | null>(null);
   const chipsRef: React.MutableRefObject<HTMLUListElement | null> =
     useRef<HTMLUListElement | null>(null);
+
+  /*
+   * The form is told the list was left once the press that left it is over
+   * (Utils/UseAfterPress). Telling it is what makes an empty list that must
+   * hold a field say so, and where those words take two lines - a phone, a
+   * language with longer words - they push what is under the list down
+   * between the press and the release, and that press did nothing.
+   */
+  const afterPress: AfterPressFunction = useAfterPress();
+
+  // The latest onBlur, for what is called a moment after it was asked for.
+  const onBlurRef: React.MutableRefObject<(() => void) | undefined> = useRef(
+    props.onBlur,
+  );
+  onBlurRef.current = props.onBlur;
   /*
    * Where the focus goes once a chip is gone: the place the chip had. Kept
    * as state, set with the removal itself, so the move belongs to the render
@@ -456,7 +472,9 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
           return;
         }
 
-        props.onBlur?.();
+        afterPress(() => {
+          onBlurRef.current?.();
+        });
       }}
     >
       <div

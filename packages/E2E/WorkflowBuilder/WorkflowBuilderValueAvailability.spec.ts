@@ -10,8 +10,11 @@ import { expect, Locator, Page, test } from "@playwright/test";
  *
  *  - what is there on every run: the list, as before;
  *  - a record's fields its step does not pass on: after the ones it does,
- *    greyed, under a line that says whose they are and what to do - and a
- *    chip that reads one is amber and says the same;
+ *    greyed, under a heading that names and counts them and a line that
+ *    says whose they are and what to do - and a chip that reads one is
+ *    amber and says the same. The heading is pinned to the foot of the list
+ *    while those fields are below it, so a list full of the fields that are
+ *    passed on still says there are more;
  *  - a step that ran on some runs only (it follows If / Else's Yes): an
  *    amber line under its name;
  *  - a step that runs later, on another branch or never: folded at the end,
@@ -371,8 +374,10 @@ test.describe("Workflow builder: a record's fields its step does not pass on", (
 
   test("the fields the trigger passes on come first; the rest follow, greyed, under a line that says what to do", async ({
     page,
+    isMobile,
   }: {
     page: Page;
+    isMobile: boolean;
   }) => {
     // The trigger passes on the incident's title, and nothing else.
     const { menu } = await openIncident(page);
@@ -432,10 +437,41 @@ test.describe("Workflow builder: a record's fields its step does not pass on", (
     );
     expect(await isWhollyInList(menu, note)).toBe(true);
 
-    // And a greyed field shows under it, so the list plainly goes on.
-    const list: Box = await boxOf(menu.getByRole("listbox"));
+    /*
+     * Over the line, a heading that says which fields "these" are, and how
+     * many: it and the line are both read without scrolling.
+     */
+    const heading: Locator = menu.getByTestId(
+      "value-picker-empty-here-heading",
+    );
 
-    expect(descriptionBox.y + 12).toBeLessThanOrEqual(list.y + list.height);
+    await expect(heading.locator('[data-part="group-title"]')).toHaveText(
+      "Not passed on",
+    );
+    await expect(heading.locator('[data-part="group-count"]')).toHaveText(
+      "11 fields",
+    );
+
+    const headingBox: Box = await boxOf(heading);
+
+    expect(headingBox.y).toBeGreaterThanOrEqual(
+      titleBox.y + titleBox.height - 0.5,
+    );
+    expect(noteBox.y).toBeGreaterThanOrEqual(
+      headingBox.y + headingBox.height - 0.5,
+    );
+    expect(await isWhollyInList(menu, heading)).toBe(true);
+
+    /*
+     * On a laptop a greyed field shows under the line too. A phone's list
+     * is shorter and the line takes three lines of it: there the count is
+     * what says the list goes on.
+     */
+    if (!isMobile) {
+      const list: Box = await boxOf(menu.getByRole("listbox"));
+
+      expect(descriptionBox.y + 12).toBeLessThanOrEqual(list.y + list.height);
+    }
 
     /*
      * A field that is passed on says what it is; one that is not says no
@@ -459,6 +495,263 @@ test.describe("Workflow builder: a record's fields its step does not pass on", (
     );
     // A field that is passed on has only its tooltip: the reference it inserts.
     await expect(value(menu, TITLE)).toHaveAccessibleDescription(TITLE);
+  });
+
+  /*
+   * A step that passes on four fields fills the list with them: the fields
+   * that are not passed on start under its lower edge, and nothing said
+   * there were any. Their heading is pinned to the foot of the list for as
+   * long as they are below it.
+   */
+  test("when the fields that are passed on fill the list, the heading of the rest is pinned to its foot", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const { menu } = await openIncident(
+      page,
+      stored("select", {
+        title: true,
+        description: true,
+        rootCause: true,
+        declaredAt: true,
+        currentIncidentState: { name: true },
+      }),
+    );
+    const list: Locator = menu.getByRole("listbox");
+    const heading: Locator = menu.getByTestId(
+      "value-picker-empty-here-heading",
+    );
+    const note: Locator = menu.getByTestId("value-picker-empty-here-note");
+
+    // Seven rows of what is passed on: more than the list shows at once.
+    expect(
+      (await listedValues(menu)).filter((entry: ListedValue): boolean => {
+        return !entry.isEmptyHere;
+      }),
+    ).toHaveLength(7);
+    expect(
+      await list.evaluate((element: Element): boolean => {
+        return element.scrollHeight > element.clientHeight;
+      }),
+    ).toBe(true);
+    expect(
+      await list.evaluate((element: Element): number => {
+        return element.scrollTop;
+      }),
+    ).toBe(0);
+
+    // The line and the first greyed field are below the list's lower edge...
+    const listBox: Box = await boxOf(list);
+    const noteBox: Box = await boxOf(note);
+
+    expect(noteBox.y).toBeGreaterThanOrEqual(listBox.y + listBox.height - 0.5);
+
+    // ...and their heading is at its foot all the same, whole, with its count.
+    const pinned: Box = await boxOf(heading);
+
+    expect(await isWhollyInList(menu, heading)).toBe(true);
+    expect(
+      Math.abs(pinned.y + pinned.height - (listBox.y + listBox.height)),
+    ).toBeLessThanOrEqual(1);
+    await expect(heading).toContainText("Not passed on");
+    await expect(heading.locator('[data-part="group-count"]')).toHaveText(
+      /^\d+ fields$/,
+    );
+
+    // It is drawn over the rows passing under it, not through them.
+    const ground: Colour = await colourOf(heading, "backgroundColor");
+
+    expect(ground.a).toBe(1);
+    expect(
+      contrastOf(await colourOf(heading.getByRole("button")), ground),
+    ).toBeGreaterThanOrEqual(READABLE);
+
+    // The last row before it that shows is not cut off by a gap under it.
+    expect(
+      await page.evaluate(
+        (data: { x: number; y: number }): string | null => {
+          return (
+            document
+              .elementFromPoint(data.x, data.y)
+              ?.closest("[data-testid]")
+              ?.getAttribute("data-testid") || null
+          );
+        },
+        { x: pinned.x + 40, y: listBox.y + listBox.height - 2 },
+      ),
+    ).toBe("value-picker-empty-here-toggle");
+
+    // Scrolled to, it lets go and leads its fields like any heading.
+    await list.evaluate((element: Element): void => {
+      element.scrollTop = element.scrollHeight;
+    });
+
+    await expect
+      .poll(async (): Promise<boolean> => {
+        const box: Box | null = await heading.boundingBox();
+
+        return Boolean(box && box.y + box.height < listBox.y);
+      })
+      .toBe(true);
+  });
+
+  test("a press on the pinned heading brings the fields that are not passed on up, under it", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    const { menu } = await openIncident(
+      page,
+      stored("select", {
+        title: true,
+        description: true,
+        rootCause: true,
+        declaredAt: true,
+        currentIncidentState: { name: true },
+      }),
+    );
+    const list: Locator = menu.getByRole("listbox");
+    const heading: Locator = menu.getByTestId(
+      "value-picker-empty-here-heading",
+    );
+    const note: Locator = menu.getByTestId("value-picker-empty-here-note");
+    const search: Locator = menu.getByTestId("value-picker-search");
+
+    expect(await isWhollyInList(menu, note)).toBe(false);
+
+    if (isMobile) {
+      await menu.getByTestId("value-picker-empty-here-toggle").tap();
+    } else {
+      await menu.getByTestId("value-picker-empty-here-toggle").click();
+    }
+
+    // The heading at the top of the list, the line right under it, in view.
+    const listBox: Box = await boxOf(list);
+
+    await expect
+      .poll(async (): Promise<number> => {
+        return Math.abs((await boxOf(heading)).y - listBox.y);
+      })
+      .toBeLessThanOrEqual(1);
+    expect(await isWhollyInList(menu, note)).toBe(true);
+
+    const headingBox: Box = await boxOf(heading);
+    const noteBox: Box = await boxOf(note);
+
+    expect(noteBox.y).toBeGreaterThanOrEqual(
+      headingBox.y + headingBox.height - 0.5,
+    );
+
+    // The list is still open, on the record, and nothing was picked.
+    await expect(menu.getByTestId("value-picker-back")).toBeVisible();
+
+    if (!isMobile) {
+      // The press did not take the typing from the search box.
+      await expect(search).toBeFocused();
+    }
+  });
+
+  test("by keyboard: the row the keys are on is never under the pinned heading", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(isMobile, "A phone has no arrow keys.");
+
+    const { menu } = await openIncident(
+      page,
+      stored("select", {
+        title: true,
+        description: true,
+        rootCause: true,
+        declaredAt: true,
+        currentIncidentState: { name: true },
+      }),
+    );
+    const heading: Locator = menu.getByTestId(
+      "value-picker-empty-here-heading",
+    );
+    const usable: number = (await listedValues(menu)).filter(
+      (entry: ListedValue): boolean => {
+        return !entry.isEmptyHere;
+      },
+    ).length;
+
+    // Down every field that is passed on, to the last of them.
+    for (let step: number = 1; step < usable; step++) {
+      await page.keyboard.press("ArrowDown");
+
+      const active: Locator = menu.locator(
+        '[data-testid="value-picker-option"][aria-selected="true"]',
+      );
+
+      await expect(active).toHaveCount(1);
+
+      const row: Box = await boxOf(active);
+      const pinned: Box = await boxOf(heading);
+
+      // Whole, above the heading - or the heading has let go and is below it.
+      expect({
+        step: step,
+        isClear:
+          row.y + row.height <= pinned.y + 0.5 ||
+          pinned.y >= row.y + row.height - 0.5,
+        isInList: await isWhollyInList(menu, active),
+      }).toEqual({ step: step, isClear: true, isInList: true });
+    }
+
+    // One more: the first field that is not passed on, under the line.
+    await page.keyboard.press("ArrowDown");
+
+    const first: Locator = menu.locator(
+      '[data-testid="value-picker-option"][aria-selected="true"]',
+    );
+
+    await expect(first).toHaveAttribute("data-empty-here", "true");
+    expect(await isWhollyInList(menu, first)).toBe(true);
+  });
+
+  test("a search that finds only fields that are not passed on draws no band and no divider over their heading", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const { menu } = await openIncident(page);
+    const list: Locator = menu.getByRole("listbox");
+    const heading: Locator = menu.getByTestId(
+      "value-picker-empty-here-heading",
+    );
+
+    // With the title above it, a line divides the heading from it.
+    await expect(heading).toHaveAttribute("data-divided", "true");
+
+    await menu.getByTestId("value-picker-search").fill("root cause");
+
+    expect(
+      (await listedValues(menu)).map((entry: ListedValue): string => {
+        return entry.reference;
+      }),
+    ).toEqual([ROOT_CAUSE]);
+    await expect(heading).toHaveAttribute("data-divided", "false");
+    await expect(heading.locator('[data-part="group-count"]')).toHaveText(
+      "1 field",
+    );
+
+    // The heading is the first thing in the list: nothing empty over it.
+    const listBox: Box = await boxOf(list);
+    const headingBox: Box = await boxOf(heading);
+
+    expect(headingBox.y - listBox.y).toBeLessThanOrEqual(8);
+    expect(
+      await heading.getByRole("button").evaluate((element: Element): string => {
+        return getComputedStyle(element).borderTopWidth;
+      }),
+    ).toBe("0px");
   });
 
   test("greyed is lighter than a field that can be used, and still readable; so is the line", async ({
@@ -775,6 +1068,22 @@ test.describe("Workflow builder: a record's fields its step does not pass on", (
     );
     expect(contrastOf(greyed, ground)).toBeGreaterThanOrEqual(READABLE);
     expect(contrastOf(note, ground)).toBeGreaterThanOrEqual(READABLE);
+
+    /*
+     * The heading over them has a ground of its own, for when it is pinned
+     * over the rows passing under it: dark like the list, never the light
+     * theme's white, and its words read on it.
+     */
+    const heading: Locator = menu.getByTestId(
+      "value-picker-empty-here-heading",
+    );
+    const headingGround: Colour = await colourOf(heading, "backgroundColor");
+
+    expect(headingGround.a).toBe(1);
+    expect(luminanceOf(headingGround)).toBeLessThan(0.12);
+    expect(
+      contrastOf(await colourOf(heading.getByRole("button")), headingGround),
+    ).toBeGreaterThanOrEqual(READABLE);
 
     await value(menu, DESCRIPTION).click();
 

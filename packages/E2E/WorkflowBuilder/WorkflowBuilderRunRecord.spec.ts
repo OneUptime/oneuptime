@@ -16,6 +16,13 @@ import { expect, Locator, Page, test } from "@playwright/test";
  * the focus out of the box first (INC-11 typed out has to become the
  * incident before the confirmation is drawn), where the focus is after a
  * pick, the list and the panel on a phone, and the dark theme.
+ *
+ * And what a look at the panel in a browser found: the box has the focus as
+ * the panel opens, with the newest incidents listed (not on a phone, where
+ * that would throw the keyboard over them); Run with nothing picked says so
+ * at the field, where a dialog used to say "Please fix errors" over a form
+ * that showed none; the numbers are a column, so the titles line up; and
+ * the confirmation sets the incident apart from the sentence it is named in.
  */
 
 type Box = { x: number; y: number; width: number; height: number };
@@ -91,9 +98,12 @@ function confirmation(page: Page): Locator {
   return page.locator(MODAL).filter({ hasText: "Run this workflow now?" });
 }
 
-function fixErrors(page: Page): Locator {
-  return page.locator(MODAL).filter({ hasText: "Please fix errors" });
+// Any modal dialog at all: the one that used to say "Please fix errors".
+function anyDialog(page: Page): Locator {
+  return page.locator(MODAL);
 }
+
+const PICK_ONE: string = "Pick one from the list, or type its number or ID.";
 
 async function startedRuns(page: Page): Promise<Array<StartedRun>> {
   return page.evaluate((): Array<StartedRun> => {
@@ -183,11 +193,25 @@ test.describe("Workflow builder: Run Workflow for a record trigger", () => {
       "placeholder",
       "Search by number or name",
     );
-    await expect(box).toHaveAttribute("aria-expanded", "false");
-    // Nothing is asked for until the box is.
-    await expect(options(panel)).toHaveCount(0);
 
-    await box.click();
+    if (isMobile) {
+      /*
+       * A phone: the box is left alone until it is tapped, or its keyboard
+       * would be over the list it opens. Nothing is asked for until then.
+       */
+      await expect(box).toHaveAttribute("aria-expanded", "false");
+      await expect(box).not.toBeFocused();
+      await expect(options(panel)).toHaveCount(0);
+
+      await box.click();
+    } else {
+      /*
+       * A laptop: the box has the focus as the panel opens, so the newest
+       * incidents are listed at once and a number can be typed straight
+       * away, without a click on the box first.
+       */
+      await expect(box).toBeFocused();
+    }
 
     await expect(box).toHaveAttribute("aria-expanded", "true");
     await expect(panel.getByText("Most recent")).toBeVisible();
@@ -447,7 +471,7 @@ test.describe("Workflow builder: Run Workflow for a record trigger", () => {
     await page.keyboard.press("Enter");
 
     await expect(confirmation(page)).toHaveCount(0);
-    await expect(fixErrors(page)).toHaveCount(0);
+    await expect(anyDialog(page)).toHaveCount(0);
     await expect(searchBox(panel)).toHaveValue("zzzz");
     await expect(searchBox(panel)).toBeFocused();
     expect(await startedRuns(page)).toEqual([]);
@@ -583,21 +607,23 @@ test.describe("Workflow builder: Run Workflow for a record trigger", () => {
     expect(await listed(panel)).toEqual(["09 Name"]);
     await runButton(panel).click();
 
-    await expect(fixErrors(page)).toBeVisible();
-    await expect(confirmation(page)).toHaveCount(0);
-    await fixErrors(page).getByRole("button", { name: "Close" }).click();
-    await expect(fixErrors(page)).toHaveCount(0);
-
-    await expect(panel.getByTestId(`${FIELD}-error`)).toHaveText(
-      "Pick one from the list, or type its number or ID.",
-    );
+    /*
+     * Said at the field, in the field's words. No dialog: it used to say
+     * "Please fix errors" and had to be closed before the field could be
+     * read.
+     */
+    await expect(panel.getByTestId(`${FIELD}-error`)).toHaveText(PICK_ONE);
+    await expect(anyDialog(page)).toHaveCount(0);
     await expect(panel.getByTestId(`${FIELD}-picked`)).toHaveCount(0);
     await expect(searchBox(panel)).toHaveValue("replica");
     await expect(searchBox(panel)).toHaveAttribute("aria-invalid", "true");
     expect(await startedRuns(page)).toEqual([]);
 
+    // The typing is back in the box, and the incident it found is listed.
+    await expect(searchBox(panel)).toBeFocused();
+    await expect(options(panel)).toHaveCount(1);
+
     // Picking it is all it takes.
-    await searchBox(panel).click();
     await options(panel).first().click();
     await expect(panel.getByTestId(`${FIELD}-error`)).toHaveCount(0);
 
@@ -605,18 +631,237 @@ test.describe("Workflow builder: Run Workflow for a record trigger", () => {
     await expect(confirmation(page)).toContainText("INC-9 · Database replica");
   });
 
-  test("nothing chosen at all: the panel asks for the incident instead of running", async ({
+  /*
+   * A dialog used to say "Please fix errors - There are some validation
+   * errors on the form", over a form that showed none: a field says what it
+   * needs once it has been left, and nobody had been in it. Closing the
+   * dialog left the panel exactly as it was.
+   */
+  test("nothing chosen at all: the field asks for the incident, where it is missing, and lists them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const panel: Locator = await openRunPanel(page);
+    const error: Locator = panel.getByTestId(`${FIELD}-error`);
+
+    // Opening the panel says nothing is wrong with it.
+    await expect(error).toHaveCount(0);
+
+    await runButton(panel).click();
+
+    await expect(error).toHaveText(PICK_ONE);
+    await expect(error).toBeVisible();
+    await expect(anyDialog(page)).toHaveCount(0);
+    await expect(confirmation(page)).toHaveCount(0);
+    expect(await startedRuns(page)).toEqual([]);
+
+    // The box is where the typing goes, marked as what needs an answer...
+    await expect(searchBox(panel)).toBeFocused();
+    await expect(searchBox(panel)).toHaveAttribute("aria-invalid", "true");
+    // ...and the incidents to pick from are listed, the message under them.
+    await expect(options(panel)).toHaveCount(6);
+    expect((await boxOf(error)).y).toBeGreaterThanOrEqual(
+      (await boxOf(searchBox(panel))).y +
+        (await boxOf(searchBox(panel))).height,
+    );
+
+    // One pick, and the panel goes on to ask whether to run.
+    await options(panel).nth(1).click();
+    await expect(error).toHaveCount(0);
+    await runButton(panel).click();
+    await expect(confirmation(page)).toContainText("INC-11 · Database is down");
+  });
+
+  test("the panel put the focus in the box: leaving it empty says nothing yet", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(
+      isMobile,
+      "On a phone the box is not focused until it is tapped.",
+    );
+
+    const panel: Locator = await openRunPanel(page);
+
+    await expect(searchBox(panel)).toBeFocused();
+    await expect(options(panel)).toHaveCount(6);
+
+    // A click on the panel's own words, as after a look around.
+    await panel.getByText("Run On Update Incident").click();
+
+    await expect(searchBox(panel)).not.toBeFocused();
+    await expect(panel.getByTestId(`${FIELD}-list`)).toHaveCount(0);
+    // Nobody asked for the field: it has nothing to complain of yet.
+    await expect(panel.getByTestId(`${FIELD}-error`)).toHaveCount(0);
+    await expect(searchBox(panel)).toHaveAttribute("aria-invalid", "false");
+
+    // Words typed and left are another matter: they name no incident.
+    await searchBox(panel).fill("replica");
+    await panel.getByText("Run On Update Incident").click();
+    await expect(panel.getByTestId(`${FIELD}-error`)).toHaveText(PICK_ONE);
+  });
+
+  /*
+   * The list waits for a pause in the typing before it asks. Run pressed
+   * before the pause was over closed a list that had never asked - and it
+   * went on saying "Searching…" when the box was opened on the same words.
+   */
+  test("typed and Run pressed before the pause is over: the list still comes when the box is back", async ({
     page,
   }: {
     page: Page;
   }) => {
     const panel: Locator = await openRunPanel(page);
 
+    await searchBox(panel).click();
+    await expect(options(panel)).toHaveCount(6);
+
+    // No wait for the answer: the press comes while the typing has just stopped.
+    await searchBox(panel).fill("replica");
     await runButton(panel).click();
 
-    await expect(fixErrors(page)).toBeVisible();
-    await expect(confirmation(page)).toHaveCount(0);
-    expect(await startedRuns(page)).toEqual([]);
+    await expect(panel.getByTestId(`${FIELD}-error`)).toHaveText(PICK_ONE);
+    await expect(searchBox(panel)).toBeFocused();
+
+    // Asked for now, and answered: not "Searching…" for good.
+    await expect(options(panel)).toHaveCount(1);
+    expect(await listed(panel)).toEqual(["09 Name"]);
+    await expect(panel.getByTestId(`${FIELD}-searching`)).toHaveCount(0);
+  });
+
+  /*
+   * "INC-8" and "INC-12" are a character apart, and each sat in a chip as
+   * wide as itself: the titles after them started at different places down
+   * the list. The numbers are a column now, as wide as the longest listed.
+   */
+  test("the numbers are a column: every title starts on one line down the list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const panel: Locator = await openRunPanel(page);
+
+    await searchBox(panel).click();
+    await expect(options(panel)).toHaveCount(6);
+
+    const titleStarts: Array<number> = [];
+    const chipStarts: Array<number> = [];
+    const chipWidths: Array<number> = [];
+
+    for (let index: number = 0; index < 6; index++) {
+      const row: Locator = options(panel).nth(index);
+
+      titleStarts.push((await boxOf(row.locator('[data-part="name"]'))).x);
+
+      const chip: Box = await boxOf(row.locator('[data-part="number"] > span'));
+
+      chipStarts.push(chip.x);
+      chipWidths.push(chip.width);
+    }
+
+    // INC-12, INC-11, INC-10, INC-9, INC-8 and OPS-7: two lengths of number.
+    expect(Math.max(...chipWidths) - Math.min(...chipWidths)).toBeGreaterThan(
+      4,
+    );
+    // Each chip is as wide as its own number, and they all start together.
+    expect(Math.max(...chipStarts) - Math.min(...chipStarts)).toBeLessThan(0.5);
+    // And so do the titles, whatever the number before them.
+    expect(Math.max(...titleStarts) - Math.min(...titleStarts)).toBeLessThan(
+      0.5,
+    );
+
+    // The longest number still has the row's gap between it and its title.
+    const longest: number = chipWidths.indexOf(Math.max(...chipWidths));
+
+    expect(
+      (titleStarts[longest] as number) -
+        ((chipStarts[longest] as number) + (chipWidths[longest] as number)),
+    ).toBeGreaterThanOrEqual(8);
+
+    // A search that finds one shorter number has no wider a column than it needs.
+    await search(page, panel, "8");
+
+    const only: Locator = options(panel).first();
+    const onlyChip: Box = await boxOf(
+      only.locator('[data-part="number"] > span'),
+    );
+    const onlyTitle: Box = await boxOf(only.locator('[data-part="name"]'));
+
+    expect(onlyTitle.x - (onlyChip.x + onlyChip.width)).toBeLessThan(16);
+    expect(onlyTitle.x).toBeLessThan(titleStarts[0] as number);
+  });
+
+  /*
+   * A record's name is a sentence of its own. In the weight of the words
+   * around it, "It runs as if INC-11 · Database is down had just been
+   * updated." read as though the database had been updated.
+   */
+  test("the confirmation sets the incident apart, in bold, from the sentence that names it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const panel: Locator = await openRunPanel(page);
+
+    await search(page, panel, "11");
+    await options(panel).first().click();
+    await runButton(panel).click();
+
+    const confirm: Locator = confirmation(page);
+    const record: Locator = confirm.getByTestId("run-confirm-record");
+    const sentence: Locator = confirm.getByTestId("confirm-modal-description");
+
+    await expect(record).toHaveText("INC-11 · Database is down");
+    // The whole sentence still reads as one.
+    await expect(sentence).toHaveText(
+      `It runs as if INC-11 · Database is down had just been updated. ${RUNS_FOR_REAL}`,
+    );
+
+    type WeightFunction = (locator: Locator) => Promise<number>;
+
+    const weightOf: WeightFunction = async (
+      locator: Locator,
+    ): Promise<number> => {
+      return Number(
+        await locator.evaluate((element: Element): string => {
+          return getComputedStyle(element).fontWeight;
+        }),
+      );
+    };
+
+    expect(await weightOf(record)).toBeGreaterThanOrEqual(600);
+    expect(await weightOf(sentence)).toBeLessThanOrEqual(400);
+    // And darker than the words around it, in either theme's terms.
+    expect(luminanceOf(await styleOf(record, "color"))).toBeLessThan(
+      luminanceOf(await styleOf(sentence, "color")),
+    );
+  });
+
+  test("in the dark theme the incident in the confirmation is the brighter of the two", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const panel: Locator = await openRunPanel(page, "&theme=dark");
+
+    await search(page, panel, "11");
+    await options(panel).first().click();
+    await runButton(panel).click();
+
+    const confirm: Locator = confirmation(page);
+    const record: Locator = confirm.getByTestId("run-confirm-record");
+    const sentence: Locator = confirm.getByTestId("confirm-modal-description");
+
+    await expect(record).toBeVisible();
+    // Light words on the dark dialog, the record lighter than the sentence.
+    expect(luminanceOf(await styleOf(record, "color"))).toBeGreaterThan(0.5);
+    expect(luminanceOf(await styleOf(record, "color"))).toBeGreaterThan(
+      luminanceOf(await styleOf(sentence, "color")),
+    );
   });
 
   test("Change goes back to the search, with the newest listed again; the clear button empties the box", async ({
@@ -902,7 +1147,9 @@ test.describe("Workflow builder: Run Workflow for a record trigger", () => {
     await searchBox(panel).click();
     await expect(options(panel)).toHaveCount(6);
 
-    const number: Locator = options(panel).nth(1).locator("span").first();
+    const number: Locator = options(panel)
+      .nth(1)
+      .locator('[data-part="number"] > span');
 
     for (const surface of [
       searchBox(panel),
@@ -919,7 +1166,7 @@ test.describe("Workflow builder: Run Workflow for a record trigger", () => {
 
     for (const words of [
       number,
-      options(panel).nth(1).locator("span").nth(1),
+      options(panel).nth(1).locator('[data-part="name"]'),
       panel.getByText("Most recent"),
     ]) {
       expect(luminanceOf(await styleOf(words, "color"))).toBeGreaterThan(0.25);
