@@ -1,11 +1,11 @@
 # Eventi di sicurezza (SIEM)
 
-OneUptime conserva gli eventi di sicurezza accanto ai tuoi log, tracce e metriche, e dà a ciascuno la stessa forma, [OCSF](https://schema.ocsf.io/) (l'Open Cybersecurity Schema Framework), qualunque sia il formato in cui è arrivato. Invia eventi da qualsiasi origine, cercali e trasforma quelli importanti in avvisi con regole di rilevamento Sigma, threat intelligence e monitor.
+OneUptime conserva gli eventi di sicurezza accanto ai tuoi log, tracce e metriche, e dà a ciascuno la stessa forma, [OCSF](https://schema.ocsf.io/) (l'Open Cybersecurity Schema Framework), qualunque sia il formato in cui è arrivato. Invia eventi da qualsiasi origine, cercali e trova quelli importanti con regole di rilevamento Sigma, threat intelligence e monitor. Ciò che trovano diventa [casi](/docs/telemetry/security-cases) da gestire, e i playbook vi rispondono.
 
 :::cards
 - [Inviare eventi](#inviare-eventi-di-sicurezza): Un POST HTTPS, un output di Fluent Bit o una connessione a un prodotto di sicurezza.
 - [Cercare e correlare](#esplorare-gli-eventi-di-sicurezza): L'esploratore di eventi e il grafo di correlazione.
-- [Regole di rilevamento](#regole-di-rilevamento): Regole Sigma che aprono avvisi.
+- [Regole di rilevamento](#regole-di-rilevamento): Regole Sigma che aprono casi e avvisi.
 - [Monitor](#monitor-di-eventi-di-sicurezza): Conteggi su una finestra mobile, con uno stato che si ripristina.
 :::
 
@@ -21,21 +21,28 @@ flowchart TB
     normalize --> events["Eventi di sicurezza"]
     events --> rules["Regole di rilevamento<br/>(Sigma)"]
     events --> monitors["Monitor di eventi<br/>di sicurezza"]
-    rules --> act["Avvisi, incidenti<br/>e risultanze"]
+    rules --> act["Casi, avvisi<br/>e risultanze"]
     monitors --> act
 ```
 
-Apri **Prodotti → Security Events**, sotto **Osservabilità**. Le sue schede:
+Apri **Prodotti → Security Events**, sotto **Osservabilità**. Il suo menu:
 
-| Scheda | A cosa serve |
-| --- | --- |
-| **Eventi** | Cercare e filtrare ogni evento, e aprirne uno per vedere tutti i suoi campi |
-| **Correla** | Un grafo degli eventi che condividono un host, un utente o un indirizzo IP |
-| **Detection Rules** | Regole Sigma che girano secondo una pianificazione e aprono avvisi |
-| **Threat Intel** | Feed STIX/TAXII di indicatori malevoli noti |
-| **Monitor** | I monitor di eventi di sicurezza del progetto |
-| **Connections** | Prodotti di sicurezza che OneUptime interroga per i nuovi record |
-| **Guida alla configurazione** | Frammenti per inviare eventi, compilati con la tua chiave di ingestione |
+| Pagina | Sezione | A cosa serve |
+| --- | --- | --- |
+| **Panoramica** | Panoramica | Cosa richiede attenzione adesso, e quanto velocemente vengono gestiti i casi |
+| **Security Cases** | Panoramica | La coda di ciò che è stato rilevato, raggruppato per ciò che riguarda |
+| **Eventi** | Indagine | Cercare e filtrare ogni evento, e aprirne uno per vedere tutti i suoi campi |
+| **Correla** | Indagine | Un grafo degli eventi che condividono un host, un utente o un indirizzo IP |
+| **Entità** | Indagine | Gli utenti, gli host e gli indirizzi che le tue risultanze nominano più spesso |
+| **Detection Rules** | Rilevamento | Regole Sigma che girano secondo una pianificazione e aprono casi |
+| **Rule Library** | Rilevamento | Regole di rilevamento pronte da aggiungere |
+| **ATT&CK Coverage** | Rilevamento | Le tecniche MITRE ATT&CK coperte dalle tue regole |
+| **Threat Intel** | Rilevamento | Feed STIX/TAXII di indicatori malevoli noti |
+| **Monitor** | Rilevamento | I monitor di eventi di sicurezza del progetto |
+| **Playbooks** | Risposta | Passi che vengono eseguiti sui casi, da soli o a mano |
+| **Playbook Runs** | Risposta | Cosa ha fatto ogni playbook, e i passi in attesa di approvazione |
+| **Connections** | Origini | Prodotti di sicurezza che OneUptime interroga per i nuovi record |
+| **Guida alla configurazione** | Origini | Frammenti per inviare eventi, compilati con la tua chiave di ingestione |
 
 ## Prima di iniziare
 
@@ -43,9 +50,9 @@ I dati di sicurezza li leggono solo i ruoli Project Owner e Project Admin e i tr
 
 | Ruolo | Cosa può fare |
 | --- | --- |
-| Security Admin | Tutto: eventi, regole di rilevamento, feed di threat intel e connessioni |
-| Security Member | Leggere eventi e threat intel, e creare, modificare ed eliminare regole di rilevamento e feed. Non può configurare connessioni né eliminare dati di sicurezza. |
-| Security Viewer | Leggere eventi, regole, feed, indicatori e connessioni |
+| Security Admin | Tutto: eventi, casi, playbook, regole di rilevamento, feed di threat intel e connessioni |
+| Security Member | Leggere eventi e threat intel, gestire i casi, eseguire playbook e approvarne i passi, e creare, modificare ed eliminare regole di rilevamento e feed. Non può configurare playbook né connessioni, né eliminare dati di sicurezza. |
+| Security Viewer | Leggere eventi, casi, playbook, regole, feed, indicatori e connessioni |
 
 ## Inviare eventi di sicurezza
 
@@ -161,6 +168,7 @@ La scheda **Guida alla configurazione** contiene questi frammenti con il tuo hos
 | AWS Security Hub | Finding, come Detection e Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Eventi di accesso, MFA, account e criteri | [Okta System Log](/docs/integrations/okta) |
 
+- Gli avvisi propri del prodotto di livello pari o superiore a **Open Cases From** (**High and above** a meno che tu non scelga un altro livello, oppure **Mai**) aprono [casi](/docs/telemetry/security-cases), raggruppati per l'utente, l'host o l'indirizzo che riguardano.
 - Una connessione legge i record in base al momento in cui il prodotto li ha creati, non al momento dell'attività che descrivono. Una regola SIEM che gira ogni ora crea rilevamenti molto dopo gli eventi corrispondenti, e vengono comunque importati.
 - La prima interrogazione guarda indietro di 24 ore, così una nuova connessione mostra subito i record recenti.
 - **Testa la connessione**, nella riga della connessione, verifica l'accesso al prodotto e che i worker di OneUptime siano in funzione, senza importare nulla. **Run now** interroga subito.
@@ -211,14 +219,14 @@ La barra laterale conta gli eventi della finestra per **Origine**, **Gravità**,
 
 ## Regole di rilevamento
 
-Una regola di rilevamento è una regola [Sigma](https://sigmahq.io/), un formato YAML aperto per descrivere attività sospette, che OneUptime esegue secondo una pianificazione sui tuoi eventi. Quando corrisponde, apre un avviso, facoltativamente un incidente, e scrive un Detection Finding negli eventi.
+Una regola di rilevamento è una regola [Sigma](https://sigmahq.io/), un formato YAML aperto per descrivere attività sospette, che OneUptime esegue secondo una pianificazione sui tuoi eventi. Quando corrisponde, apre un [caso](/docs/telemetry/security-cases) o si aggiunge a uno già aperto, apre un avviso, facoltativamente un incidente, e scrive un Detection Finding negli eventi. La **Rule Library** offre regole pronte da cui partire.
 
 ```mermaid title="Come scatta una regola di rilevamento"
 flowchart TB
     tick["Ogni minuto: regole il<br/>cui intervallo è scaduto"] --> query["Eventi dall'ultima<br/>esecuzione della regola"]
     query --> count["Contati per valore del<br/>campo di raggruppamento"]
     count --> check{"Il conteggio raggiunge<br/>la soglia?"}
-    check -->|"Sì"| fire["Avviso, incidente facoltativo<br/>e un Detection Finding"]
+    check -->|"Sì"| fire["Un caso, un avviso,<br/>un incidente facoltativo<br/>e un Detection Finding"]
     check -->|"No"| wait["Niente, fino alla<br/>prossima esecuzione"]
 ```
 
@@ -229,7 +237,8 @@ flowchart TB
 2. In **Informazioni di base**, compila il **Nome** e lascia attivo **Abilitato**.
 3. In **Sigma Rule**, incolla lo YAML della regola in **Sigma Rule (YAML)**. Viene analizzato al salvataggio, così un errore compare nel modulo.
 4. In **Valutazione**, imposta ogni quanto gira e quante corrispondenze le servono; vedi [Impostazioni di valutazione](#impostazioni-di-valutazione).
-5. In **In caso di corrispondenza**, scegli cosa fa una corrispondenza: **Create Alert on Match** (attivo), **Create Incident on Match** (disattivato) e **Write Detection Finding on Match** (attivo), con una **Gravità avviso** e una **Gravità incidente** facoltative.
+5. In **Security Cases**, lascia attivo **Open a Case on Match** per raggruppare le sue corrispondenze in casi, in base al valore per cui raggruppa la regola.
+6. In **In caso di corrispondenza**, scegli cos'altro fa una corrispondenza: **Create Alert on Match** (attivo), **Create Incident on Match** (disattivato) e **Write Detection Finding on Match** (attivo), con una **Gravità avviso** e una **Gravità incidente** facoltative.
 :::
 
 Una prima regola, che corrisponde agli accessi falliti da fuori `10.x.x.x`:
@@ -374,6 +383,7 @@ Ogni valore del **Group By Field** riceve il proprio avviso: raggruppa per qualc
 
 :::cards
 - [Intelligence sulle minacce](/docs/telemetry/threat-intelligence): Confronta i tuoi eventi con feed STIX/TAXII.
+- [Casi di sicurezza e playbook](/docs/telemetry/security-cases): Gestisci ciò che trovano le tue regole, e rispondi con i playbook.
 - [Google SecOps](/docs/integrations/google-secops): Porta dentro i rilevamenti e gli eventi di Chronicle.
 - [Sintassi di ricerca](/docs/telemetry/search-syntax): Tutto ciò che capisce la barra di ricerca.
 - [Riferimento dei permessi](/docs/permissions/reference): I ruoli di sicurezza, e cosa può fare ciascuno.

@@ -276,6 +276,36 @@ export default class SecurityEventConnection extends BaseModel {
   @Column({ type: ColumnType.Boolean, nullable: false, default: true })
   public alertingOnly?: boolean = undefined;
 
+  /*
+   * The alerts a connected product raised are signals a security team works
+   * like its own rules' detections: an imported finding at or above this
+   * severity opens a security case, or joins the open case about the same
+   * entity. Empty imports findings as events only. High by default, so the
+   * product's real alerts reach the case queue and its informational noise
+   * stays in the events.
+   */
+  @ColumnAccessControl({
+    create: adminPermissions,
+    read: readPermissions,
+    update: adminPermissions,
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Open Cases From Severity",
+    description:
+      "Imported alerts at or above this severity (Low, Medium, High or Critical) open security cases. Empty imports them as events only.",
+    defaultValue: "High",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    default: "High",
+  })
+  public caseMinimumSeverity?: string = undefined;
+
   @ColumnAccessControl({ create: [], read: readPermissions, update: [] })
   @TableColumn({
     type: TableColumnType.Date,

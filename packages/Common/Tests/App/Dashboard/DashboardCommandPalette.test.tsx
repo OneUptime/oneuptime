@@ -324,7 +324,6 @@ describe("DashboardCommandPalette navigation keyword search", () => {
     ["pods", "Kubernetes", "kubernetes"],
     ["apm", "Services", "service"],
     ["error budgets", "SLOs", "slos"],
-    ["siem", "Security Events", "security-events"],
   ])(
     "%s finds %s and navigates to the selected project's page",
     (query: string, title: string, path: string) => {
@@ -345,6 +344,32 @@ describe("DashboardCommandPalette navigation keyword search", () => {
       expect(navigateMock).toHaveBeenCalledTimes(1);
       expect(navigateMock).toHaveBeenCalledWith(
         new Route(`/dashboard/project-a/${path}`),
+      );
+      expect(palette()).not.toBeInTheDocument();
+    },
+  );
+
+  test.each(["siem", "soar", "security cases"])(
+    "%s finds Security Events, which opens on its overview",
+    (query: string) => {
+      getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-a"));
+      render(<DashboardCommandPalette />);
+      pressChord({ key: "k", metaKey: true });
+
+      fireEvent.change(screen.getByTestId("command-palette-input"), {
+        target: { value: query },
+      });
+
+      // The option is named for the product; it opens the product's overview.
+      const option: HTMLElement = screen.getByTestId(
+        "command-palette-option-nav-dashboard-projectid-security-events",
+      );
+      expect(option).toHaveTextContent("Security Events");
+      fireEvent.click(option);
+
+      expect(navigateMock).toHaveBeenCalledTimes(1);
+      expect(navigateMock).toHaveBeenCalledWith(
+        new Route("/dashboard/project-a/security-events/overview"),
       );
       expect(palette()).not.toBeInTheDocument();
     },

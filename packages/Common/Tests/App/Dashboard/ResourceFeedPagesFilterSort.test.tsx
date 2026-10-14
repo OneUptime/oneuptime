@@ -75,6 +75,11 @@ import DatabaseServerFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pag
 import ServiceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Feed";
 import SloFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Feed";
 import SloFeed from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeed";
+import SecurityCaseFeed from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseFeed";
+import { getSecurityCaseFeedKind } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseFeedKind";
+import SecurityCaseFeedModel, {
+  SecurityCaseFeedEventType,
+} from "../../../Models/DatabaseModels/SecurityCaseFeed";
 import {
   getSloFeedEventIcon,
   getSloFeedEventKind,
@@ -428,9 +433,36 @@ const EMBEDDED_SLO_FEED: ResourceFeedSurface = {
 
 const SLO_FEED_PAGE_SURFACE: ResourceFeedSurface = toSurface(SLO_FEED_PAGE);
 
+/*
+ * A security case's timeline, on the case's own page. The page hands it the
+ * case it shows, so - like the embedded SLO feed - the case comes from the
+ * prop, and the address bar points at another case.
+ */
+const SECURITY_CASE_TIMELINE: ResourceFeedSurface = {
+  product: "Security case timeline",
+  feedProduct: "Security Case",
+  file: "Components/SecurityCase/SecurityCaseFeed.tsx",
+  component: SecurityCaseFeed,
+  modelType: SecurityCaseFeedModel,
+  resourceIdColumn: "securityCaseId",
+  eventTypeColumn: "securityCaseFeedEventType",
+  enumObject: SecurityCaseFeedEventType,
+  getKind: getSecurityCaseFeedKind,
+  mount: (resourceId: ObjectID): React.ReactElement => {
+    window.history.pushState(
+      {},
+      "",
+      `/dashboard/${PROJECT_ID.toString()}/security-events/cases/${ObjectID.generate().toString()}`,
+    );
+
+    return <SecurityCaseFeed securityCaseId={resourceId} />;
+  },
+};
+
 const SURFACES: Array<ResourceFeedSurface> = [
   ...FEED_PAGES.map(toSurface),
   EMBEDDED_SLO_FEED,
+  SECURITY_CASE_TIMELINE,
 ];
 
 type GetEventTypes = (surface: ResourceFeedSurface) => Array<string>;
@@ -1032,9 +1064,17 @@ describe("Resource feed pages - the ⋯ menu's sort and filter on the real pages
         })
         .sort(byName),
     ).toEqual(
-      FEED_PAGES.map((spec: FeedPageSpec): Array<string> => {
-        return [spec.product];
-      }).sort(byName),
+      Array.from(
+        new Set<string>(
+          SURFACES.map((surface: ResourceFeedSurface): string => {
+            return surface.feedProduct;
+          }),
+        ),
+      )
+        .map((product: string): Array<string> => {
+          return [product];
+        })
+        .sort(byName),
     );
 
     // Spelled out for the one product shown twice.

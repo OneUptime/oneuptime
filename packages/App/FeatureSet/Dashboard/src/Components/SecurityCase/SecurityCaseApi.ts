@@ -1,0 +1,118 @@
+import URL from "Common/Types/API/URL";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import {
+  DeclaredIncident,
+  EntityActivity,
+  EntityFindingSummary,
+  SecurityOverview,
+  parseEntityActivity,
+  parseOverview,
+  parseTopEntities,
+} from "./SecurityCaseApiTypes";
+import { APP_API_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+
+export type {
+  DeclaredIncident,
+  EntityActivity,
+  EntityFindingSummary,
+  SecurityOverview,
+};
+
+/*
+ * The Security product's own routes, beside the CRUD the model tables use
+ * (Common/Server/API/SecurityCaseAPI.ts and SecurityPlaybookRunAPI.ts). Each
+ * call reads the response defensively: a field the server left out reads as
+ * nothing rather than throwing in a render.
+ */
+
+export class SecurityApiError extends Error {}
+
+function routeUrl(route: string): URL {
+  return URL.fromString(APP_API_URL.toString()).addRoute(route);
+}
+
+async function post(route: string, data: JSONObject): Promise<JSONObject> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: routeUrl(route),
+      data: data,
+      headers: { ...ModelAPI.getCommonHeaders() },
+    });
+
+  if (response instanceof HTTPErrorResponse) {
+    throw new SecurityApiError(API.getFriendlyMessage(response));
+  }
+
+  const body: JSONValue = response.data as JSONValue;
+
+  return body && typeof body === "object" && !Array.isArray(body)
+    ? (body as JSONObject)
+    : {};
+}
+
+export default class SecurityCaseApi {
+  public static async getOverview(): Promise<SecurityOverview> {
+    return parseOverview(await post("/security-case/overview", {}));
+  }
+
+  public static async getEntityActivity(data: {
+    values: Array<string>;
+    hours: number;
+  }): Promise<Array<EntityActivity>> {
+    if (data.values.length === 0) {
+      return [];
+    }
+
+    return parseEntityActivity(
+      await post("/security-case/entity-activity", {
+        values: data.values,
+        hours: data.hours,
+      }),
+    );
+  }
+
+  public static async getTopEntities(data: {
+    days: number;
+    limit: number;
+  }): Promise<Array<EntityFindingSummary>> {
+    return parseTopEntities(
+      await post("/security-case/top-entities", {
+        days: data.days,
+        limit: data.limit,
+      }),
+    );
+  }
+
+  public static async declareIncident(data: {
+    caseId: ObjectID;
+    incidentSeverityId: ObjectID;
+  }): Promise<DeclaredIncident> {
+    const body: JSONObject = await post(
+      `/security-case/${data.caseId.toString()}/declare-incident`,
+      { incidentSeverityId: data.incidentSeverityId.toString() },
+    );
+
+    return {
+      incidentId: String(body["incidentId"] || ""),
+      incidentNumber: String(body["incidentNumber"] || ""),
+    };
+  }
+
+  public static async decideApproval(data: {
+    runId: ObjectID;
+    isApproved: boolean;
+    comment?: string | undefined;
+  }): Promise<void> {
+    await post(
+      `/security-playbook-run/${data.runId.toString()}/${
+        data.isApproved ? "approve" : "reject"
+      }`,
+      data.comment ? { comment: data.comment } : {},
+    );
+  }
+}

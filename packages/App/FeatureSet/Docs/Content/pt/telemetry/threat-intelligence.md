@@ -17,7 +17,7 @@ flowchart TB
     events["Novos eventos<br/>de segurança"] --> tag["Marcados na chegada<br/>com atributos<br/>threat.*"]
     indicators --> tag
     indicators --> match["Comparados a cada<br/>minuto com os<br/>eventos recentes"]
-    match --> act["Um alerta, um incidente<br/>opcional e um achado"]
+    match --> act["Um caso, um alerta,<br/>um incidente opcional<br/>e um achado"]
 ```
 
 ## Antes de começar
@@ -35,7 +35,7 @@ Abra **Produtos → Security Events → Threat Intel**.
 
 ### Crie o feed
 
-Clique em **Criar: Threat Intel Feed** e preencha as quatro etapas dele: **Informações básicas**, **TAXII Server**, **Autenticação** e **Ao corresponder**. Os campos estão na tabela abaixo.
+Clique em **Criar: Threat Intel Feed** e preencha as cinco etapas dele: **Informações básicas**, **TAXII Server**, **Autenticação**, **Security Cases** e **Ao corresponder**. Os campos estão na tabela abaixo.
 
 ### Confira a primeira consulta
 
@@ -50,6 +50,7 @@ Em um ou dois minutos, a linha do feed mostra **Last Polled**, e **Last Poll Sum
 | **Minimum Confidence** | Os indicadores com uma `confidence` STIX menor são ignorados: de 0 a 100, e 0 guarda tudo. Indicadores sem confiança sempre passam. |
 | **API Token** | Um token bearer, para uma coleção que peça um. |
 | **Basic Auth Username** e **Basic Auth Password** | Para uma coleção que use autenticação HTTP básica. Deixe os dois e o token vazios para uma coleção pública. |
+| **Open a Case on Match** | Ativado por padrão: cada evento que cita um indicador abre um [caso](/docs/telemetry/security-cases) sobre ele, ou entra no caso aberto que já trata dele. |
 | **Create Alert on Match** | Ativado por padrão: cada indicador correspondente abre um alerta. |
 | **Severidade do alerta** | A severidade de cada alerta que este feed abre. Deixe vazio para usar o nível de ameaça de cada indicador. |
 | **Create Incident on Match** | Desativado por padrão. Os incidentes acionam o escalonamento de plantão, os SLAs e as páginas de status, e para correspondências de indicadores os alertas costumam bastar. |

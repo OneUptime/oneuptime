@@ -150,15 +150,21 @@ const SecurityEventConnectionsEmptyState: FunctionComponent<ComponentProps> = (
           )}
         </h4>
         {/*
-         * Viewport columns rather than container ones: the Connections card
-         * is the page's full width at every size, and Tailwind here has no
-         * container queries. The tile switches from a row to an upright
-         * card at the same lg step, see SecurityEventProviderTile.
+         * Columns from the card's own width, not the viewport's: beside the
+         * Security Events side menu the card is narrower than the page, by a
+         * different amount at each size, and Tailwind here has no container
+         * queries. A column is at least a quarter of the row (less the three
+         * gaps), so there are never more than four, and at least as wide as
+         * a tile needs: 17rem for the row a tile is below lg, where the icon
+         * and the plus sit beside the name, and 11.5rem for the upright card
+         * it is from lg, where the name has the tile's whole width (see
+         * SecurityEventProviderTile). The eight products sit one, two, three
+         * or four to a row, as the card allows.
          */}
         <ul
           role="list"
           aria-labelledby={providersHeadingId}
-          className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(100%,max(17rem,calc((100%_-_2.25rem)/4))),1fr))] gap-3 lg:grid-cols-[repeat(auto-fill,minmax(min(100%,max(11.5rem,calc((100%_-_2.25rem)/4))),1fr))]"
         >
           {SecurityEventConnectorCatalog.map(
             (definition: SecurityEventConnectorDefinition): ReactElement => {

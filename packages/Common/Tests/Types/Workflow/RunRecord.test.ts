@@ -10,6 +10,7 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
+import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
@@ -285,6 +286,13 @@ describe("the columns a record is looked up in, for every model", () => {
         numberWithPrefixColumn: "episodeNumberWithPrefix",
       },
     ],
+    [
+      new SecurityCase(),
+      {
+        numberColumn: "caseNumber",
+        numberWithPrefixColumn: "caseNumberWithPrefix",
+      },
+    ],
   ];
 
   test.each(
@@ -360,6 +368,7 @@ describe("the columns a record is looked up in, for every model", () => {
         "Incident",
         "IncidentEpisode",
         "ScheduledMaintenance",
+        "SecurityCase",
       ].sort(),
     );
   });
@@ -419,9 +428,9 @@ describe("the columns a record is looked up in, for every model", () => {
       }
     }
 
-    // Not vacuous: hundreds of models, the five numbered ones among them.
+    // Not vacuous: hundreds of models, the six numbered ones among them.
     expect(models).toBeGreaterThan(100);
-    expect(numbered).toBe(5);
+    expect(numbered).toBe(6);
     expect(named).toBeGreaterThan(50);
     expect(refused).toEqual([]);
   });

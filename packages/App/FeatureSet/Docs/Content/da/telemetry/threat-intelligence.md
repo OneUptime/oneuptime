@@ -17,7 +17,7 @@ flowchart TB
     events["Nye<br/>sikkerhedsbegivenheder"] --> tag["Mærket ved<br/>ankomst med<br/>threat.*-attributter"]
     indicators --> tag
     indicators --> match["Matchet hvert<br/>minut mod nylige<br/>begivenheder"]
-    match --> act["En advarsel, en eventuel<br/>hændelse og et fund"]
+    match --> act["En sag, en advarsel,<br/>en eventuel hændelse<br/>og et fund"]
 ```
 
 ## Før du begynder
@@ -35,7 +35,7 @@ flowchart TB
 
 ### Opret feedet
 
-Klik på **Opret Threat Intel Feed**, og udfyld de fire trin: **Grundlæggende oplysninger**, **TAXII Server**, **Godkendelse** og **Ved match**. Felterne står i tabellen nedenfor.
+Klik på **Opret Threat Intel Feed**, og udfyld de fem trin: **Grundlæggende oplysninger**, **TAXII Server**, **Godkendelse**, **Security Cases** og **Ved match**. Felterne står i tabellen nedenfor.
 
 ### Tjek den første hentning
 
@@ -50,6 +50,7 @@ Inden for et minut eller to viser feedets række **Last Polled**, og **Last Poll
 | **Minimum Confidence** | Indikatorer med en lavere STIX-`confidence` springes over: 0 til 100, og 0 beholder alt. Indikatorer uden confidence slipper altid igennem. |
 | **API Token** | Et bearer-token, til en samling, der beder om et. |
 | **Basic Auth Username** og **Basic Auth Password** | Til en samling, der bruger HTTP Basic-godkendelse. Lad begge og tokenet være tomme for en offentlig samling. |
+| **Open a Case on Match** | Slået til som standard: hver begivenhed, der nævner en indikator, åbner en [sag](/docs/telemetry/security-cases) om den eller føjes til den åbne sag, der allerede handler om den. |
 | **Create Alert on Match** | Slået til som standard: hver matchet indikator åbner en advarsel. |
 | **Advarselsalvor** | Alvorligheden af hver advarsel, dette feed åbner. Lad den være tom for at bruge hver indikators trusselsniveau. |
 | **Create Incident on Match** | Slået fra som standard. Hændelser driver vagteskalering, SLA'er og statussider, og advarsler er som regel nok til indikatormatch. |

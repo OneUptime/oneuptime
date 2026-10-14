@@ -39,7 +39,7 @@ Le serveur est sans état : il n'émet aucun identifiant de session et chaque re
 - **Maintenance planifiée** : créer et gérer des événements de maintenance.
 - **Télémétrie** : interroger les logs, les métriques, les traces, les exceptions, les logs de moniteurs, les événements de sécurité et plus encore, en lecture seule.
 
-Il existe des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour 23 types d'enregistrements, des outils de liste et de comptage pour 9 types de télémétrie, et des outils conçus pour la réponse aux incidents. Les outils en lecture seule portent `readOnlyHint` et les outils de suppression portent `destructiveHint`, si bien qu'un client peut lancer seul les appels sans risque et vous demander avant les appels destructifs. Un appel d'outil en échec revient comme résultat d'outil (`isError: true`) avec un `statusCode`, les détails et une suggestion, et non comme une erreur du protocole MCP, si bien que l'agent peut lire l'échec et se corriger.
+Il existe des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour 27 types d'enregistrements, des outils de liste et de comptage pour 9 types de télémétrie, et des outils conçus pour la réponse aux incidents. Les outils en lecture seule portent `readOnlyHint` et les outils de suppression portent `destructiveHint`, si bien qu'un client peut lancer seul les appels sans risque et vous demander avant les appels destructifs. Un appel d'outil en échec revient comme résultat d'outil (`isError: true`) avec un `statusCode`, les détails et une suggestion, et non comme une erreur du protocole MCP, si bien que l'agent peut lire l'échec et se corriger.
 
 ## Avant de commencer
 
@@ -464,6 +464,7 @@ Le serveur MCP est sans état : il n'émet ni ne suit d'identifiants de session,
 | Maintenance planifiée | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Équipes et astreinte | Team, On-Call Policy |
 | Étiquettes | Label |
+| Sécurité | Security Case, Security Case Note, Security Detection, Security Playbook |
 
 | Domaine | Télémétrie avec des outils de liste et de comptage seulement |
 | --- | --- |

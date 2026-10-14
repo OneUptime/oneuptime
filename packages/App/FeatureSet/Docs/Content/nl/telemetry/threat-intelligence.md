@@ -17,7 +17,7 @@ flowchart TB
     events["Nieuwe<br/>beveiligingsgebeurtenissen"] --> tag["Bij binnenkomst<br/>gemarkeerd met<br/>threat.*-attributen"]
     indicators --> tag
     indicators --> match["Elke minuut<br/>vergeleken met<br/>recente gebeurtenissen"]
-    match --> act["Een waarschuwing, een<br/>optioneel incident<br/>en een bevinding"]
+    match --> act["Een zaak, een waarschuwing,<br/>een optioneel incident<br/>en een bevinding"]
 ```
 
 ## Voordat je begint
@@ -35,7 +35,7 @@ Open **Producten → Security Events → Threat Intel**.
 
 ### Maak de feed aan
 
-Klik op **Threat Intel Feed aanmaken** en vul de vier stappen in: **Basisinformatie**, **TAXII Server**, **Authenticatie** en **Bij overeenkomst**. De velden staan in de tabel hieronder.
+Klik op **Threat Intel Feed aanmaken** en vul de vijf stappen in: **Basisinformatie**, **TAXII Server**, **Authenticatie**, **Security Cases** en **Bij overeenkomst**. De velden staan in de tabel hieronder.
 
 ### Controleer de eerste ophaalronde
 
@@ -50,6 +50,7 @@ Binnen een minuut of twee toont de rij van de feed **Last Polled**, en **Last Po
 | **Minimum Confidence** | Indicatoren met een lagere STIX-`confidence` worden overgeslagen: 0 tot 100, en 0 houdt alles. Indicatoren zonder confidence komen altijd door. |
 | **API Token** | Een bearer-token, voor een collectie die erom vraagt. |
 | **Basic Auth Username** en **Basic Auth Password** | Voor een collectie die HTTP Basic-authenticatie gebruikt. Laat beide en het token leeg voor een openbare collectie. |
+| **Open a Case on Match** | Standaard aan: elke gebeurtenis die een indicator noemt, opent een [zaak](/docs/telemetry/security-cases) over die indicator, of wordt toegevoegd aan de open zaak die er al over gaat. |
 | **Create Alert on Match** | Standaard aan: elke gematchte indicator opent een waarschuwing. |
 | **Ernst van waarschuwing** | De ernst van elke waarschuwing die deze feed opent. Laat het leeg om het dreigingsniveau van elke indicator te nemen. |
 | **Create Incident on Match** | Standaard uit. Incidenten sturen on-call-escalatie, SLA's en statuspagina's aan, en voor indicatormatches zijn waarschuwingen meestal genoeg. |
