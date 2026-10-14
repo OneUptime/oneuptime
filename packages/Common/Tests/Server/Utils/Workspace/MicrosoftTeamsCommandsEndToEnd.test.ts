@@ -81,6 +81,12 @@ import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMa
 import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import Project from "../../../../Models/DatabaseModels/Project";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import UserService from "../../../../Server/Services/UserService";
+import { MicrosoftTeamsHomeActionType } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsHome";
+import MicrosoftTeamsPage from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsPage";
+import { WORKSPACE_HOME_TEXT } from "../../../../Server/Utils/Workspace/WorkspaceHome";
 import logger from "../../../../Server/Utils/Logger";
 import OnCallDutyPolicySchedule from "../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import User from "../../../../Models/DatabaseModels/User";
@@ -117,6 +123,8 @@ interface ConnectorPost {
 interface FakeBotConnector {
   serviceUrl: string;
   posts: Array<ConnectorPost>;
+  // Activities changed in place (PUT): a card drawn again.
+  updates: Array<{ activityId: string; activity: JSONObject }>;
   close: () => Promise<void>;
 }
 
@@ -126,6 +134,7 @@ async function startFakeBotConnector(): Promise<FakeBotConnector> {
   const fake: FakeBotConnector = {
     serviceUrl: "",
     posts: [],
+    updates: [],
     close: async (): Promise<void> => {
       return undefined;
     },
@@ -151,6 +160,16 @@ async function startFakeBotConnector(): Promise<FakeBotConnector> {
           });
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ id: `msg-${messageNumber}` }));
+          return;
+        }
+
+        if (req.method === "PUT" && match && match[2]) {
+          fake.updates.push({
+            activityId: decodeURIComponent(match[2]),
+            activity: JSON.parse(bodyText || "{}") as JSONObject,
+          });
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ id: decodeURIComponent(match[2]) }));
           return;
         }
 
@@ -391,6 +410,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   connector.posts.splice(0);
+  connector.updates.splice(0);
   projectId = ObjectID.generate();
 
   (MicrosoftTeamsUtil as unknown as CachedAdapterSlot).cachedAdapter =
@@ -1059,5 +1079,422 @@ describe("the 'show' lists: read as the member who typed them, never as OneUptim
     expect(loggedErrors[0]).toBe(
       'Could not read the list for a Microsoft Teams "show active incidents" command: Error: connection reset',
     );
+  });
+});
+
+/*
+ * THE HOME OF THE ONEUPTIME APP IN MICROSOFT TEAMS, AND ITS WELCOME.
+ *
+ * Teams has no Home tab for a bot: the Home is a card in the person's chat
+ * with OneUptime (MicrosoftTeamsHome) - the same blocks as Slack's Home tab -
+ * sent as the welcome when somebody adds the app for themselves, and again
+ * when they type "home". Its buttons declare an incident, page someone, show
+ * who is on call, and draw the card again in place. A team or a group chat
+ * the app is added to gets a short hello instead: what OneUptime does there,
+ * and where its notifications are set up - the words Slack's channel hello
+ * says. These run through the real botbuilder stack and pin what the Bot
+ * Connector is sent: every card, its buttons, its summary, and the card
+ * changed in place.
+ */
+describe("the Home: a card in the person's chat with OneUptime", () => {
+  function stubHomeReads(): void {
+    jest.spyOn(ProjectService, "findOneById").mockImplementation((async () => {
+      const project: Project = new Project();
+      project.name = "Acme Production";
+      return project;
+    }) as never);
+    jest.spyOn(UserService, "findOneById").mockImplementation((async () => {
+      const user: User = new User();
+      user.name = new Name("Customer User");
+      return user;
+    }) as never);
+    jest
+      .spyOn(OnCallDutyPolicyScheduleService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
+      .mockResolvedValue([ObjectID.generate()]);
+    const checkout: Incident = new Incident();
+    checkout.id = ObjectID.generate();
+    checkout.incidentNumberWithPrefix = "INC-12";
+    checkout.title = "Checkout is down";
+    jest.spyOn(IncidentService, "findBy").mockResolvedValue([checkout] as never);
+    jest
+      .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
+      .mockResolvedValue([ObjectID.generate()]);
+    jest.spyOn(AlertService, "findBy").mockResolvedValue([] as never);
+  }
+
+  // A button of the Home card, pressed: a message whose value names it.
+  function homeButton(
+    action: MicrosoftTeamsHomeActionType,
+    where: "personal" | "channel" = "personal",
+  ): JSONObject {
+    const activity: JSONObject = message("", where);
+    activity["text"] = "";
+    activity["entities"] = [];
+    activity["replyToId"] = "home-card-1";
+    activity["value"] = { action: action, actionValue: "" };
+    return activity;
+  }
+
+  function cardTexts(card: JSONObject): Array<string> {
+    return ((card["body"] as Array<JSONObject> | undefined) || []).map(
+      (element: JSONObject): string => {
+        return String(element["text"]);
+      },
+    );
+  }
+
+  test("'home': one card - the greeting, the person's shifts, what is open - with four buttons and a summary", async () => {
+    stubHomeReads();
+
+    const delivery: Delivery = await deliver(message("home"));
+
+    expect(delivery.httpStatus).toBe(200);
+    expect(delivery.posts).toHaveLength(1);
+    expect(delivery.posts[0]!.conversationId).toBe(PERSONAL_CONVERSATION_ID);
+
+    const card: JSONObject = cardOf(delivery.posts[0]);
+    const texts: Array<string> = cardTexts(card);
+
+    expect(texts[0]).toBe("👋 Hi Customer");
+    expect((card["body"] as Array<JSONObject>)[0]!["size"]).toBe("Large");
+    expect(texts[1]).toBe("Here's what is happening in **Acme Production**.");
+    expect(texts[2]).toBe(
+      "📟 **Your on-call**\nYou're not on call right now, and no shift of yours is coming up.",
+    );
+    expect(texts[3]).toContain("🚨 **Open incidents**");
+    expect(texts[3]).toContain("Checkout is down");
+    expect(texts[4]).toBe("✅ **No open alerts.**");
+    expect(texts[texts.length - 1]).toContain(
+      "Type **help** to see every command.",
+    );
+    // Teams draws {{TIME()}} in each reader's own clock.
+    expect(texts[texts.length - 1]).toContain("_Updated at {{TIME(");
+
+    expect(
+      (card["actions"] as Array<JSONObject>).map(
+        (action: JSONObject): unknown => {
+          return [
+            action["type"],
+            action["title"],
+            (action["data"] as JSONObject)["action"],
+            action["style"],
+          ];
+        },
+      ),
+    ).toEqual([
+      [
+        "Action.Submit",
+        WORKSPACE_HOME_TEXT.declareIncident,
+        MicrosoftTeamsHomeActionType.DeclareIncident,
+        "positive",
+      ],
+      [
+        "Action.Submit",
+        WORKSPACE_HOME_TEXT.pageSomeone,
+        MicrosoftTeamsHomeActionType.PageSomeone,
+        undefined,
+      ],
+      [
+        "Action.Submit",
+        WORKSPACE_HOME_TEXT.whoIsOnCall,
+        MicrosoftTeamsHomeActionType.WhoIsOnCall,
+        undefined,
+      ],
+      [
+        "Action.Submit",
+        WORKSPACE_HOME_TEXT.refresh,
+        MicrosoftTeamsHomeActionType.Refresh,
+        undefined,
+      ],
+    ]);
+
+    // What the notification of it says.
+    expect(delivery.posts[0]!.activity["summary"]).toBe("1 open incident");
+  });
+
+  test.each(["Home", "home!", "  HOME?  "])(
+    "%j is the Home too",
+    async (text: string) => {
+      stubHomeReads();
+
+      const delivery: Delivery = await deliver(message(text, "channel"));
+
+      expect(delivery.posts).toHaveLength(1);
+      expect(cardTexts(cardOf(delivery.posts[0]))[0]).toBe("👋 Hi Customer");
+    },
+  );
+
+  test("'home sweet home' is a question, not the Home", async () => {
+    jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(false);
+
+    const delivery: Delivery = await deliver(message("home sweet home"));
+
+    expect(delivery.posts[0]!.activity["text"]).toContain(
+      "AI features are disabled for this project.",
+    );
+  });
+
+  test("from somebody not connected: asked to connect, and to type home again - nothing read", async () => {
+    jest
+      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+      .mockRejectedValue(
+        new MicrosoftTeamsAccountNotLinkedException("not linked"),
+      );
+    const incidents: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      IncidentService,
+      "findBy",
+    );
+
+    const delivery: Delivery = await deliver(message("home"));
+
+    expect(answerOf(delivery.posts[0])).toBe(
+      "🔗 **Connect your Microsoft Teams account to see your on-call shifts and the open incidents here.** It takes one click. Then type **home** again.",
+    );
+    expect(incidents).not.toHaveBeenCalled();
+  });
+
+  test("Refresh draws the card again in its place - no new message", async () => {
+    stubHomeReads();
+
+    const delivery: Delivery = await deliver(
+      homeButton(MicrosoftTeamsHomeActionType.Refresh),
+    );
+
+    expect(delivery.httpStatus).toBe(200);
+    expect(delivery.posts).toEqual([]);
+    expect(connector.updates).toHaveLength(1);
+    expect(connector.updates[0]!.activityId).toBe("home-card-1");
+
+    const attachment: JSONObject = (
+      connector.updates[0]!.activity["attachments"] as Array<JSONObject>
+    )[0]!;
+    expect(cardTexts(attachment["content"] as JSONObject)[0]).toBe(
+      "👋 Hi Customer",
+    );
+  });
+
+  test("Who's on call answers with who is on call, as 'oncall' does", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyScheduleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const delivery: Delivery = await deliver(
+      homeButton(MicrosoftTeamsHomeActionType.WhoIsOnCall),
+    );
+
+    expect(delivery.posts).toHaveLength(1);
+    expect(answerOf(delivery.posts[0])).toContain(
+      "**No on-call schedules yet.**",
+    );
+  });
+
+  test("Declare incident sends the New Incident form, as 'incident' does", async () => {
+    const delivery: Delivery = await deliver(
+      homeButton(MicrosoftTeamsHomeActionType.DeclareIncident),
+    );
+
+    expect(delivery.posts).toHaveLength(1);
+    expect(JSON.stringify(cardOf(delivery.posts[0]))).toContain(
+      "Create New Incident",
+    );
+  });
+
+  test("Page someone opens the Page someone card, as 'page' does", async () => {
+    const page: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(MicrosoftTeamsPage, "handleCommand")
+      .mockResolvedValue(undefined as never);
+
+    const activity: JSONObject = homeButton(
+      MicrosoftTeamsHomeActionType.PageSomeone,
+    );
+
+    await deliver(activity);
+
+    expect(page).toHaveBeenCalledTimes(1);
+    expect(
+      (page.mock.calls[0]![0] as { projectId: ObjectID }).projectId.toString(),
+    ).toBe(projectId.toString());
+  });
+
+  test("a Home button pressed by somebody not connected: asked to connect", async () => {
+    jest
+      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+      .mockRejectedValue(
+        new MicrosoftTeamsAccountNotLinkedException("not linked"),
+      );
+
+    const delivery: Delivery = await deliver(
+      homeButton(MicrosoftTeamsHomeActionType.Refresh),
+    );
+
+    expect(connector.updates).toEqual([]);
+    expect(answerOf(delivery.posts[0])).toContain(
+      "**Connect your Microsoft Teams account",
+    );
+  });
+});
+
+describe("the welcome when the app is added", () => {
+  function botAdded(conversationType: "personal" | "channel" | "groupChat"): JSONObject {
+    return {
+      type: "conversationUpdate",
+      id: nextActivityId(`added-${conversationType}`),
+      timestamp: "2026-10-13T10:00:00.000Z",
+      serviceUrl: connector.serviceUrl,
+      channelId: "msteams",
+      from: SENDER,
+      recipient: BOT,
+      membersAdded: [BOT],
+      conversation:
+        conversationType === "personal"
+          ? {
+              conversationType: "personal",
+              tenantId: TENANT_ID,
+              id: PERSONAL_CONVERSATION_ID,
+            }
+          : {
+              conversationType: conversationType,
+              tenantId: TENANT_ID,
+              id: CHANNEL_CONVERSATION_ID,
+              isGroup: true,
+            },
+      channelData:
+        conversationType === "channel"
+          ? {
+              tenant: { id: TENANT_ID },
+              team: { id: "19:ops-team-4220@thread.tacv2", name: "Operations" },
+            }
+          : { tenant: { id: TENANT_ID } },
+    };
+  }
+
+  function texts(post: ConnectorPost | undefined): Array<string> {
+    return ((cardOf(post)["body"] as Array<JSONObject> | undefined) || []).map(
+      (element: JSONObject): string => {
+        return String(element["text"]);
+      },
+    );
+  }
+
+  beforeEach(() => {
+    jest.spyOn(ProjectService, "findOneById").mockImplementation((async () => {
+      const project: Project = new Project();
+      project.name = "Acme Production";
+      return project;
+    }) as never);
+    jest.spyOn(UserService, "findOneById").mockImplementation((async () => {
+      const user: User = new User();
+      user.name = new Name("Customer User");
+      return user;
+    }) as never);
+    jest
+      .spyOn(OnCallDutyPolicyScheduleService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
+      .mockResolvedValue([]);
+    jest
+      .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
+      .mockResolvedValue([]);
+  });
+
+  test("added for themselves, connected: their Home is the welcome", async () => {
+    const delivery: Delivery = await deliver(botAdded("personal"));
+
+    expect(delivery.httpStatus).toBe(200);
+    expect(delivery.posts).toHaveLength(1);
+    expect(texts(delivery.posts[0])[0]).toBe("👋 Hi Customer");
+    expect(delivery.posts[0]!.activity["summary"]).toBe(
+      "Nothing is open, and you're not on call",
+    );
+  });
+
+  test("added for themselves, not connected: the Home's Connect card, its button keeping a Connect request for 'home'", async () => {
+    jest
+      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+      .mockRejectedValue(
+        new MicrosoftTeamsAccountNotLinkedException("not linked"),
+      );
+
+    const delivery: Delivery = await deliver(botAdded("personal"));
+
+    expect(delivery.posts).toHaveLength(1);
+    expect(texts(delivery.posts[0])).toEqual([
+      "👋 Welcome to OneUptime",
+      "🔗 **Connect your Microsoft Teams account** to see your on-call shifts and the open incidents and alerts here, and to declare incidents and page people from Microsoft Teams. It takes one click.",
+    ]);
+
+    const action: JSONObject = (
+      cardOf(delivery.posts[0])["actions"] as Array<JSONObject>
+    )[0]!;
+    expect(action["type"]).toBe("Action.OpenUrl");
+    expect(action["title"]).toBe("Connect Microsoft Teams account");
+    expect(action["style"]).toBe("positive");
+
+    const url: globalThis.URL = new globalThis.URL(String(action["url"]));
+    expect(`${url.origin}${url.pathname}`).toBe(
+      `${DASHBOARD_URL}/${projectId.toString()}/user-settings/microsoft-teams-integration`,
+    );
+    const request: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(url.searchParams.get("connect"));
+    expect(request).toMatchObject({
+      workspaceUserId: SENDER["aadObjectId"],
+      purpose: "see your on-call shifts and the open incidents here",
+      again: {
+        kind: WorkspaceConnectRequestAgainKind.Command,
+        label: "home",
+      },
+    });
+  });
+
+  test("added to a team: a short hello - what it does there, and where its notifications are set up", async () => {
+    const delivery: Delivery = await deliver(botAdded("channel"));
+
+    expect(delivery.posts).toHaveLength(1);
+    expect(texts(delivery.posts[0])).toEqual([
+      "👋 **Hi, I'm OneUptime.** @mention me with a question about your incidents, monitors, logs and traces, or with **help** to see what I can do: declare an incident, page someone, see who is on call.",
+      "To post incidents, alerts or scheduled maintenance to a team's channels, add a notification rule in OneUptime under **Incidents → Workspace → Microsoft Teams**.",
+    ]);
+    expect(cardOf(delivery.posts[0])["actions"]).toEqual([
+      {
+        type: "Action.OpenUrl",
+        title: "Set up notifications",
+        url: `${DASHBOARD_URL}/${projectId.toString()}/incidents/workspace-connection-microsoft-teams`,
+      },
+    ]);
+    expect(delivery.posts[0]!.activity["summary"]).toBe(
+      "Hi, I'm OneUptime. Mention me with a question, or with help.",
+    );
+    // Nothing hard-wired to OneUptime Cloud, nor three buttons that do not fit a phone.
+    expect(JSON.stringify(delivery.posts[0]!.activity)).not.toContain(
+      "oneuptime.com",
+    );
+    expect(JSON.stringify(delivery.posts[0]!.activity)).not.toContain(
+      "support@",
+    );
+  });
+
+  test("an organization connected to no project: who connects it, and a way to OneUptime", async () => {
+    jest.spyOn(MicrosoftTeamsUtil, "resolveProjectByTenantId").mockResolvedValue({
+      projectAuth: null,
+      isAmbiguous: false,
+      candidateProjectIds: [],
+    } as unknown as MicrosoftTeamsTenantResolution);
+
+    const delivery: Delivery = await deliver(botAdded("groupChat"));
+
+    expect(texts(delivery.posts[0])[1]).toBe(
+      "To get started, a OneUptime project admin connects your organization in **Project Settings → Workspace → Microsoft Teams**.",
+    );
+    expect(cardOf(delivery.posts[0])["actions"]).toEqual([
+      {
+        type: "Action.OpenUrl",
+        title: "Open OneUptime",
+        url: DASHBOARD_URL,
+      },
+    ]);
   });
 });

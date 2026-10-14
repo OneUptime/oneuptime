@@ -79,6 +79,8 @@ export interface WorkspaceOpenRecordList {
 interface OpenRecordWords {
   emoji: string;
   title: string;
+  // Nothing open: good news for incidents and alerts.
+  emptyEmoji: string;
   empty: string;
   // "incidents": what a refused read names.
   noun: string;
@@ -89,6 +91,7 @@ const WORDS: Record<WorkspaceOpenRecordKind, OpenRecordWords> = {
   [WorkspaceOpenRecordKind.Incidents]: {
     emoji: "🚨",
     title: "Open incidents",
+    emptyEmoji: "✅",
     empty: "No open incidents.",
     noun: "incidents",
     seeAll: "See every incident in",
@@ -96,6 +99,7 @@ const WORDS: Record<WorkspaceOpenRecordKind, OpenRecordWords> = {
   [WorkspaceOpenRecordKind.Alerts]: {
     emoji: "⚠️",
     title: "Open alerts",
+    emptyEmoji: "✅",
     empty: "No open alerts.",
     noun: "alerts",
     seeAll: "See every alert in",
@@ -103,6 +107,7 @@ const WORDS: Record<WorkspaceOpenRecordKind, OpenRecordWords> = {
   [WorkspaceOpenRecordKind.UpcomingMaintenance]: {
     emoji: "🛠️",
     title: "Scheduled maintenance coming up",
+    emptyEmoji: "🛠️",
     empty: "No scheduled maintenance coming up.",
     noun: "scheduled maintenance events",
     seeAll: "See every scheduled maintenance event in",
@@ -110,6 +115,7 @@ const WORDS: Record<WorkspaceOpenRecordKind, OpenRecordWords> = {
   [WorkspaceOpenRecordKind.OngoingMaintenance]: {
     emoji: "🔧",
     title: "Maintenance in progress",
+    emptyEmoji: "🔧",
     empty: "No maintenance in progress.",
     noun: "scheduled maintenance events",
     seeAll: "See every scheduled maintenance event in",
@@ -246,7 +252,7 @@ export default class WorkspaceOpenRecords {
 
     if (list.records.length === 0) {
       return {
-        markdown: mdText`${words.emoji} **${words.empty}**`.toString(),
+        markdown: mdText`${words.emptyEmoji} **${words.empty}**`.toString(),
         text: words.empty,
       };
     }

@@ -1,0 +1,599 @@
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
+import WorkspaceHome, {
+  WORKSPACE_HOME_TEXT,
+  WorkspaceHomeActions,
+  WorkspaceHomeView,
+} from "../../../../Server/Utils/Workspace/WorkspaceHome";
+import { WorkspaceOpenRecordList } from "../../../../Server/Utils/Workspace/WorkspaceOpenRecords";
+import WorkspaceMessageTime from "../../../../Server/Utils/Workspace/WorkspaceMessageTime";
+import DatabaseConfig from "../../../../Server/DatabaseConfig";
+import ProductBrandingText from "../../../../Server/Utils/ProductBrandingText";
+import AlertService from "../../../../Server/Services/AlertService";
+import AlertStateService from "../../../../Server/Services/AlertStateService";
+import IncidentService from "../../../../Server/Services/IncidentService";
+import IncidentStateService from "../../../../Server/Services/IncidentStateService";
+import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallDutyPolicyScheduleService";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import UserService from "../../../../Server/Services/UserService";
+import logger from "../../../../Server/Utils/Logger";
+import OnCallDutyPolicySchedule from "../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import Project from "../../../../Models/DatabaseModels/Project";
+import User from "../../../../Models/DatabaseModels/User";
+import URL from "../../../../Types/API/URL";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import { JSONObject } from "../../../../Types/JSON";
+import Name from "../../../../Types/Name";
+import ObjectID from "../../../../Types/ObjectID";
+import WorkspaceOpenRecordKind from "../../../../Types/Workspace/WorkspaceOpenRecordKind";
+import {
+  WorkspaceMessageBlock,
+  WorkspacePayloadButtons,
+  WorkspacePayloadHeader,
+  WorkspacePayloadMarkdown,
+} from "../../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+
+/*
+ * THE HOME OF THE ONEUPTIME APP (WorkspaceHome), FOR SLACK AND TEAMS ALIKE.
+ *
+ * What concerns the person, right now, read with their own permissions:
+ * their on-call shifts, the open incidents and alerts, and what they can do
+ * from there. These pin its reads (the person's props, this project, their
+ * roster), every line it can say, a part that cannot be read, and the same
+ * blocks for both chats but for their own words for the commands.
+ */
+
+const DASHBOARD: string = "https://oneuptime.test/dashboard";
+const PROJECT_ID: ObjectID = new ObjectID(
+  "a0000000-0000-4000-8000-000000000001",
+);
+const NITIN: ObjectID = new ObjectID("a0000000-0000-4000-8000-0000000000a1");
+const PRIMARY_ID: ObjectID = new ObjectID(
+  "a0000000-0000-4000-8000-0000000000c1",
+);
+const READ_AT: Date = new Date("2026-10-08T17:15:00.000Z");
+const HANDOFF: Date = new Date("2026-10-10T09:00:00.000Z");
+const NEXT_START: Date = new Date("2026-10-12T09:00:00.000Z");
+
+const PROPS: DatabaseCommonInteractionProps = {
+  userId: NITIN,
+  tenantId: PROJECT_ID,
+};
+
+const ACTIONS: WorkspaceHomeActions = {
+  declareIncident: "declare",
+  pageSomeone: "page",
+  scheduleMaintenance: "maintenance",
+  whoIsOnCall: "oncall",
+};
+
+function schedule(name: string, at?: Date): OnCallDutyPolicySchedule {
+  const row: OnCallDutyPolicySchedule = new OnCallDutyPolicySchedule();
+  row.id = name === "Primary" ? PRIMARY_ID : ObjectID.generate();
+  row.name = name;
+
+  if (at) {
+    row.rosterHandoffAt = at;
+    row.rosterNextStartAt = at;
+  }
+
+  return row;
+}
+
+let onCallFind: SpyInstance<typeof OnCallDutyPolicyScheduleService.findBy>;
+let nowSchedules: Array<OnCallDutyPolicySchedule> = [];
+let nextSchedules: Array<OnCallDutyPolicySchedule> = [];
+
+beforeEach(() => {
+  nowSchedules = [];
+  nextSchedules = [];
+
+  jest
+    .spyOn(DatabaseConfig, "getDashboardUrl")
+    .mockResolvedValue(URL.fromString(DASHBOARD));
+  jest
+    .spyOn(ProductBrandingText, "getProductName")
+    .mockReturnValue("OneUptime");
+  jest.spyOn(ProjectService, "findOneById").mockImplementation((async () => {
+    const project: Project = new Project();
+    project.name = "Acme Production";
+    return project;
+  }) as never);
+  jest.spyOn(UserService, "findOneById").mockImplementation((async () => {
+    const user: User = new User();
+    user.name = new Name("Nitin Kumar");
+    return user;
+  }) as never);
+  onCallFind = jest
+    .spyOn(OnCallDutyPolicyScheduleService, "findBy")
+    .mockImplementation((async (findBy: JSONObject) => {
+      const query: JSONObject = findBy["query"] as JSONObject;
+      return query["currentUserIdOnRoster"] ? nowSchedules : nextSchedules;
+    }) as never);
+  jest
+    .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
+    .mockResolvedValue([ObjectID.generate()]);
+  jest.spyOn(IncidentService, "findBy").mockResolvedValue([]);
+  jest
+    .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
+    .mockResolvedValue([ObjectID.generate()]);
+  jest.spyOn(AlertService, "findBy").mockResolvedValue([]);
+  jest.spyOn(logger, "error").mockImplementation((() => {
+    return undefined;
+  }) as never);
+  jest.spyOn(logger, "debug").mockImplementation((() => {
+    return undefined;
+  }) as never);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+async function read(): Promise<WorkspaceHomeView> {
+  return await WorkspaceHome.read({
+    projectId: PROJECT_ID,
+    userId: NITIN,
+    props: PROPS,
+    now: READ_AT,
+  });
+}
+
+function at(date: Date): string {
+  return WorkspaceMessageTime.dateAndTime(date).toString();
+}
+
+const PRIMARY_LINK: string = `${DASHBOARD}/${PROJECT_ID.toString()}/on-call-duty/schedules/${PRIMARY_ID.toString()}`;
+
+describe("what the Home reads, as the person", () => {
+  test("their shifts now: the schedules whose roster has them on call, read with their props", async () => {
+    nowSchedules = [schedule("Primary", HANDOFF)];
+
+    const view: WorkspaceHomeView = await read();
+
+    expect(onCallFind).toHaveBeenCalledTimes(1);
+    const findBy: JSONObject = onCallFind.mock.calls[0]![0] as never;
+    expect(findBy["props"]).toBe(PROPS);
+    expect(findBy["query"]).toEqual({
+      projectId: PROJECT_ID,
+      currentUserIdOnRoster: NITIN,
+    });
+    expect(findBy["sort"]).toEqual({ name: SortOrder.Ascending });
+    expect(findBy["limit"]).toBe(WorkspaceHome.MAX_SHIFTS + 1);
+
+    expect(view.onCall).toEqual({
+      now: [
+        { scheduleName: "Primary", scheduleLink: PRIMARY_LINK, at: HANDOFF },
+      ],
+      next: null,
+      isNowCut: false,
+    });
+  });
+
+  test("not on call now: the soonest schedule they are next in", async () => {
+    nextSchedules = [schedule("Primary", NEXT_START)];
+
+    const view: WorkspaceHomeView = await read();
+
+    expect(onCallFind).toHaveBeenCalledTimes(2);
+    const findBy: JSONObject = onCallFind.mock.calls[1]![0] as never;
+    expect(findBy["query"]).toEqual({
+      projectId: PROJECT_ID,
+      nextUserIdOnRoster: NITIN,
+    });
+    expect(findBy["sort"]).toEqual({ rosterNextStartAt: SortOrder.Ascending });
+    expect(findBy["limit"]).toBe(1);
+    expect(view.onCall?.next).toEqual({
+      scheduleName: "Primary",
+      scheduleLink: PRIMARY_LINK,
+      at: NEXT_START,
+    });
+  });
+
+  test("on call in more schedules than the Home names: the first ones, and that there are more", async () => {
+    nowSchedules = ["A", "B", "C", "D", "E", "F"].map(
+      (name: string): OnCallDutyPolicySchedule => {
+        return schedule(name, HANDOFF);
+      },
+    );
+
+    const view: WorkspaceHomeView = await read();
+
+    expect(view.onCall?.now).toHaveLength(WorkspaceHome.MAX_SHIFTS);
+    expect(view.onCall?.isNowCut).toBe(true);
+  });
+
+  test("a role that may not read schedules: the shifts are marked refused, the rest still reads", async () => {
+    onCallFind.mockRejectedValue(new NotAuthorizedException("no"));
+
+    const view: WorkspaceHomeView = await read();
+
+    expect(view.onCall).toEqual({ now: null, next: null, isNowCut: false });
+    expect(view.incidents.list).not.toBeNull();
+  });
+
+  test("a read that fails: the shifts are unknown, and it is logged", async () => {
+    onCallFind.mockRejectedValue(new Error("connection reset"));
+
+    expect((await read()).onCall).toBeNull();
+  });
+
+  test("the lists: five records at most, read as the person", async () => {
+    await read();
+
+    const incidentRead: JSONObject = (
+      IncidentService.findBy as unknown as SpyInstance<
+        typeof IncidentService.findBy
+      >
+    ).mock.calls[0]![0] as never;
+
+    expect(incidentRead["props"]).toBe(PROPS);
+    expect(incidentRead["limit"]).toBe(WorkspaceHome.MAX_RECORDS + 1);
+  });
+
+  test("a list the person may not read is marked refused; one that fails, failed", async () => {
+    jest
+      .spyOn(IncidentService, "findBy")
+      .mockRejectedValue(new NotAuthorizedException("no"));
+    jest
+      .spyOn(AlertService, "findBy")
+      .mockRejectedValue(new Error("connection reset"));
+
+    const view: WorkspaceHomeView = await read();
+
+    expect(view.incidents).toEqual({
+      kind: WorkspaceOpenRecordKind.Incidents,
+      list: null,
+      refused: true,
+      failed: false,
+    });
+    expect(view.alerts).toEqual({
+      kind: WorkspaceOpenRecordKind.Alerts,
+      list: null,
+      refused: false,
+      failed: true,
+    });
+  });
+
+  test("the project, the first name to greet, the link home, and when it was read", async () => {
+    const view: WorkspaceHomeView = await read();
+
+    expect(view.projectName).toBe("Acme Production");
+    expect(view.firstName).toBe("Nitin");
+    expect(view.dashboardLink).toBe(
+      `${DASHBOARD}/${PROJECT_ID.toString()}/home/`,
+    );
+    expect(view.readAt).toBe(READ_AT);
+  });
+});
+
+function emptyList(kind: WorkspaceOpenRecordKind): WorkspaceOpenRecordList {
+  return { kind: kind, records: [], isCut: false, listLink: null };
+}
+
+function view(overrides: Partial<WorkspaceHomeView> = {}): WorkspaceHomeView {
+  return {
+    projectName: "Acme Production",
+    firstName: "Nitin",
+    onCall: {
+      now: [
+        { scheduleName: "Primary", scheduleLink: PRIMARY_LINK, at: HANDOFF },
+      ],
+      next: null,
+      isNowCut: false,
+    },
+    incidents: {
+      kind: WorkspaceOpenRecordKind.Incidents,
+      list: emptyList(WorkspaceOpenRecordKind.Incidents),
+      refused: false,
+      failed: false,
+    },
+    alerts: {
+      kind: WorkspaceOpenRecordKind.Alerts,
+      list: emptyList(WorkspaceOpenRecordKind.Alerts),
+      refused: false,
+      failed: false,
+    },
+    dashboardLink: `${DASHBOARD}/p/home/`,
+    readAt: READ_AT,
+    ...overrides,
+  };
+}
+
+function textOf(block: WorkspaceMessageBlock): string {
+  return (block as WorkspacePayloadMarkdown | WorkspacePayloadHeader).text;
+}
+
+describe("what the Home says", () => {
+  test("in Slack: a greeting, the project, the shifts, the lists, four buttons and when it was drawn", () => {
+    const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+      workspaceType: WorkspaceType.Slack,
+      view: view(),
+      actions: ACTIONS,
+    });
+
+    expect(
+      blocks.map((block: WorkspaceMessageBlock): string => {
+        return block._type;
+      }),
+    ).toEqual([
+      "WorkspacePayloadHeader",
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadDivider",
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadDivider",
+      "WorkspacePayloadButtons",
+      "WorkspacePayloadMarkdown",
+    ]);
+
+    expect(textOf(blocks[0]!)).toBe("👋 Hi Nitin");
+    expect(textOf(blocks[1]!)).toBe(
+      "Here's what is happening in **Acme Production**.",
+    );
+    expect(textOf(blocks[2]!)).toBe(
+      `📟 **Your on-call**\n🟢 You're on call in [Primary](${PRIMARY_LINK}) until ${at(HANDOFF)}.`,
+    );
+    expect(textOf(blocks[4]!)).toBe("✅ **No open incidents.**");
+    expect(textOf(blocks[5]!)).toBe("✅ **No open alerts.**");
+    expect(
+      (blocks[7] as WorkspacePayloadButtons).buttons.map(
+        (button: { title: string; actionId: string; isPrimary?: boolean | undefined }) => {
+          return [button.title, button.actionId, Boolean(button.isPrimary)];
+        },
+      ),
+    ).toEqual([
+      [WORKSPACE_HOME_TEXT.declareIncident, "declare", true],
+      [WORKSPACE_HOME_TEXT.pageSomeone, "page", false],
+      [WORKSPACE_HOME_TEXT.scheduleMaintenance, "maintenance", false],
+      [WORKSPACE_HOME_TEXT.whoIsOnCall, "oncall", false],
+    ]);
+    expect(textOf(blocks[8]!)).toBe(
+      `_Updated at ${WorkspaceMessageTime.time(READ_AT).toString()} · [Open OneUptime](${DASHBOARD}/p/home/)._ Type \`/oneuptime help\` to see every command.`,
+    );
+  });
+
+  test("in Microsoft Teams: the same Home, Teams' word for the commands, and Refresh", () => {
+    const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      view: view(),
+      actions: {
+        declareIncident: "d",
+        pageSomeone: "p",
+        whoIsOnCall: "o",
+        refresh: "r",
+      },
+    });
+
+    expect(textOf(blocks[blocks.length - 1]!)).toContain(
+      "Type **help** to see every command.",
+    );
+    expect(
+      (blocks[7] as WorkspacePayloadButtons).buttons.map(
+        (button: { title: string }): string => {
+          return button.title;
+        },
+      ),
+    ).toEqual([
+      WORKSPACE_HOME_TEXT.declareIncident,
+      WORKSPACE_HOME_TEXT.pageSomeone,
+      WORKSPACE_HOME_TEXT.whoIsOnCall,
+      WORKSPACE_HOME_TEXT.refresh,
+    ]);
+  });
+
+  test("a person with no name, a project with none: a plain greeting, no project line", () => {
+    const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+      workspaceType: WorkspaceType.Slack,
+      view: view({ firstName: null, projectName: null }),
+      actions: ACTIONS,
+    });
+
+    expect(textOf(blocks[0]!)).toBe("👋 Hi there");
+    expect(textOf(blocks[1]!)).toContain("Your on-call");
+  });
+
+  test("names are text: Markdown in a project's or a schedule's name is shown, not read", () => {
+    const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+      workspaceType: WorkspaceType.Slack,
+      view: view({ projectName: "[Prod](https://evil.example) *now*" }),
+      actions: ACTIONS,
+    });
+
+    expect(textOf(blocks[1]!)).not.toContain("[Prod](");
+    expect(textOf(blocks[1]!)).not.toContain(" *now*");
+  });
+});
+
+describe("the person's shifts, said", () => {
+  test.each([
+    [
+      "not on call, their next shift known",
+      { now: [], next: { scheduleName: "Primary", scheduleLink: null, at: NEXT_START }, isNowCut: false },
+      `📟 **Your on-call**\nYou're not on call right now. Your next shift: **Primary**, from ${WorkspaceMessageTime.dateAndTime(NEXT_START).toString()}.`,
+    ],
+    [
+      "not on call, nothing coming up",
+      { now: [], next: null, isNowCut: false },
+      "📟 **Your on-call**\nYou're not on call right now, and no shift of yours is coming up.",
+    ],
+    [
+      "on call with no hand-off known",
+      { now: [{ scheduleName: "Primary", scheduleLink: null, at: null }], next: null, isNowCut: false },
+      "📟 **Your on-call**\n🟢 You're on call in **Primary**.",
+    ],
+    [
+      "on call in more than the Home names",
+      {
+        now: [{ scheduleName: "A", scheduleLink: null, at: null }],
+        next: null,
+        isNowCut: true,
+      },
+      "📟 **Your on-call**\n🟢 You're on call in **A**.\n…and in more schedules.",
+    ],
+    [
+      "a role that may not read schedules",
+      { now: null, next: null, isNowCut: false },
+      "📟 **Your on-call**\nYou do not have permission to see the on-call schedules in this project.",
+    ],
+  ])("%s", (_name: string, onCall: unknown, expected: string) => {
+    expect(
+      WorkspaceHome.getOnCallMarkdown(
+        view({ onCall: onCall as WorkspaceHomeView["onCall"] }),
+      ).toString(),
+    ).toBe(expected);
+  });
+
+  test("shifts that could not be read", () => {
+    expect(
+      WorkspaceHome.getOnCallMarkdown(view({ onCall: null })).toString(),
+    ).toBe("📟 **Your on-call**\nYour on-call shifts could not be read just now.");
+  });
+});
+
+describe("a list on the Home, said", () => {
+  test("refused: who to ask", () => {
+    expect(
+      WorkspaceHome.getListMarkdown({
+        kind: WorkspaceOpenRecordKind.Incidents,
+        list: null,
+        refused: true,
+        failed: false,
+      }).toString(),
+    ).toBe(
+      "You do not have permission to see the incidents in this project. Ask a project admin for access to them.",
+    );
+  });
+
+  test("failed: that it could not be read", () => {
+    expect(
+      WorkspaceHome.getListMarkdown({
+        kind: WorkspaceOpenRecordKind.Alerts,
+        list: null,
+        refused: false,
+        failed: true,
+      }).toString(),
+    ).toBe("The open alerts could not be read just now.");
+  });
+});
+
+describe("the Home of somebody not connected, or not a member", () => {
+  test("Slack: what the Home would show, and one button that connects", () => {
+    const blocks: Array<WorkspaceMessageBlock> =
+      WorkspaceHome.getNotConnectedBlocks({
+        workspaceType: WorkspaceType.Slack,
+        connectUrl: `${DASHBOARD}/p/user-settings/slack-integration?connectAccount=true`,
+      });
+
+    expect(textOf(blocks[0]!)).toBe("👋 Welcome to OneUptime");
+    expect(textOf(blocks[1]!)).toBe(
+      "🔗 **Connect your Slack account** to see your on-call shifts and the open incidents and alerts here, and to declare incidents and page people from Slack. It takes one click.",
+    );
+
+    const button: WorkspacePayloadButtons = blocks[2] as WorkspacePayloadButtons;
+    expect(button.buttons).toHaveLength(1);
+    expect(button.buttons[0]!.title).toBe("Connect Slack account");
+    expect(button.buttons[0]!.isPrimary).toBe(true);
+    expect(button.buttons[0]!.url?.toString()).toBe(
+      `${DASHBOARD}/p/user-settings/slack-integration?connectAccount=true`,
+    );
+  });
+
+  test("Microsoft Teams, with no address to link to: where to connect, in words", () => {
+    const blocks: Array<WorkspaceMessageBlock> =
+      WorkspaceHome.getNotConnectedBlocks({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        connectUrl: null,
+      });
+
+    expect(textOf(blocks[1]!)).toContain(
+      "**Connect your Microsoft Teams account**",
+    );
+    expect(textOf(blocks[2]!)).toBe(
+      "In OneUptime, go to **User Settings → Microsoft Teams** and connect your account.",
+    );
+  });
+
+  test("not a member: told so, and nothing else", () => {
+    const blocks: Array<WorkspaceMessageBlock> =
+      WorkspaceHome.getNotAMemberBlocks();
+
+    expect(blocks).toHaveLength(2);
+    expect(textOf(blocks[1]!)).toBe(
+      "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
+    );
+  });
+});
+
+describe("what a notification of the Home says", () => {
+  function list(count: number, isCut: boolean = false): WorkspaceOpenRecordList {
+    return {
+      kind: WorkspaceOpenRecordKind.Incidents,
+      records: Array.from({ length: count }, (_v: unknown, index: number) => {
+        return {
+          number: `INC-${index}`,
+          title: "x",
+          link: null,
+          severity: null,
+          state: null,
+          startsAt: null,
+          endsAt: null,
+        };
+      }),
+      isCut: isCut,
+      listLink: null,
+    };
+  }
+
+  test.each([
+    [
+      "on call, one incident open",
+      view({
+        incidents: {
+          kind: WorkspaceOpenRecordKind.Incidents,
+          list: list(1),
+          refused: false,
+          failed: false,
+        },
+      }),
+      "You're on call in Primary. 1 open incident",
+    ],
+    [
+      "not on call, more open than the Home shows",
+      view({
+        onCall: { now: [], next: null, isNowCut: false },
+        incidents: {
+          kind: WorkspaceOpenRecordKind.Incidents,
+          list: list(5, true),
+          refused: false,
+          failed: false,
+        },
+        alerts: {
+          kind: WorkspaceOpenRecordKind.Alerts,
+          list: { ...list(2), kind: WorkspaceOpenRecordKind.Alerts },
+          refused: false,
+          failed: false,
+        },
+      }),
+      "5+ open incidents, 2 open alerts",
+    ],
+    [
+      "nothing at all",
+      view({ onCall: { now: [], next: null, isNowCut: false } }),
+      "Nothing is open, and you're not on call",
+    ],
+  ])("%s", (_name: string, home: WorkspaceHomeView, expected: string) => {
+    expect(WorkspaceHome.getNotificationText(home)).toBe(expected);
+  });
+});

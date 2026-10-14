@@ -524,8 +524,8 @@ describe("what a list says", () => {
   });
 
   test.each([
-    [WorkspaceOpenRecordKind.Incidents, "🚨 **No open incidents.**", "No open incidents."],
-    [WorkspaceOpenRecordKind.Alerts, "⚠️ **No open alerts.**", "No open alerts."],
+    [WorkspaceOpenRecordKind.Incidents, "✅ **No open incidents.**", "No open incidents."],
+    [WorkspaceOpenRecordKind.Alerts, "✅ **No open alerts.**", "No open alerts."],
     [
       WorkspaceOpenRecordKind.UpcomingMaintenance,
       "🛠️ **No scheduled maintenance coming up.**",

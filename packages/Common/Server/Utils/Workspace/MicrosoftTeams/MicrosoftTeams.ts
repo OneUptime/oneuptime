@@ -105,6 +105,7 @@ import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplic
 import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
 import MicrosoftTeamsPage from "./MicrosoftTeamsPage";
 import MicrosoftTeamsMentionText from "./MicrosoftTeamsMentionText";
+import MicrosoftTeamsHome from "./MicrosoftTeamsHome";
 import MicrosoftTeamsCommands, {
   MicrosoftTeamsListCommand,
 } from "./MicrosoftTeamsCommands";
@@ -3075,7 +3076,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
   }
 
-  private static buildAdaptiveCardFromMessageBlocks(data: {
+  /*
+   * A card drawn from message blocks - the same blocks Slack draws a
+   * message from: Markdown, headers, dividers and buttons.
+   */
+  public static buildAdaptiveCardFromMessageBlocks(data: {
     messageBlocks: Array<WorkspaceMessageBlock>;
     /*
      * Whether the card shows the message's inline images
@@ -3460,14 +3465,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       return openUrl;
     }
 
-    return {
+    const submit: JSONObject = {
       type: "Action.Submit",
       title: data.payloadButtonBlock.title,
       data: {
         action: data.payloadButtonBlock.actionId,
         actionValue: data.payloadButtonBlock.value,
       },
-    } as any;
+    };
+
+    // The one button the card asks for: Teams draws it as its positive action.
+    if (data.payloadButtonBlock.isPrimary) {
+      submit["style"] = "positive";
+    }
+
+    return submit;
   }
 
   // Other block methods - placeholders for now
@@ -3753,6 +3765,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug(
         `Found project ID: ${projectId.toString()} for tenant ID: ${tenantId}`,
       );
+
+      // "home": the sender's Home, as a card (MicrosoftTeamsHome).
+      if (MicrosoftTeamsHome.isHomeCommand(cleanText)) {
+        await MicrosoftTeamsHome.handleCommand({
+          turnContext: data.turnContext,
+          activity: data.activity,
+          projectId: projectId,
+        });
+        return;
+      }
 
       if (listCommand) {
         /*
@@ -4337,17 +4359,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     /*
-     * Let the user know we're working on it. The assistant runs a bounded,
-     * tool-grounded agent loop and can take several seconds, so send a quick
-     * acknowledgement first.
+     * Let the user know we're working on it: the assistant runs a bounded,
+     * tool-grounded agent loop and can take several seconds. A personal or
+     * group chat shows OneUptime typing, which goes by itself when the
+     * answer comes. A channel shows no typing, so a "Looking into it…"
+     * reply stands there and becomes the answer in its place: the thread
+     * keeps one message, not a placeholder above every answer.
      */
-    try {
-      await turnContext.sendActivity(this.AI_OPS_ACK_TEXT);
-    } catch (ackError) {
-      // A failed acknowledgement should not stop us from answering.
-      logger.debug("Failed to send acknowledgement activity");
-      logger.debug(ackError);
-    }
+    const placeholderId: string | undefined =
+      await this.sendAnswerPlaceholder(turnContext);
 
     /*
      * Make the assistant context-aware: gather the prior turns of this
@@ -4418,7 +4438,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         replyText = mdText`${replyText}\n\n**Sources**\n${FeedMarkdown.join(sourceLines, "\n")}`;
       }
 
-      await turnContext.sendActivity(replyText.toString());
+      await this.sendAnswerInPlaceOf({
+        turnContext: turnContext,
+        placeholderId: placeholderId,
+        text: replyText.toString(),
+      });
       logger.debug("AI Ops answer sent successfully using TurnContext", {
         projectId: projectId.toString(),
       });
@@ -4429,10 +4453,72 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           projectId: projectId.toString(),
         },
       );
-      await turnContext.sendActivity(
-        "Sorry, I ran into a problem answering that question. Please try again later.",
-      );
+      await this.sendAnswerInPlaceOf({
+        turnContext: turnContext,
+        placeholderId: placeholderId,
+        text: "Sorry, I ran into a problem answering that question. Please try again later.",
+      });
     }
+  }
+
+  /*
+   * What shows while OneUptime AI writes an answer (answerObservabilityQuestion):
+   * typing in a personal or group chat, nothing to remove; in a channel, a
+   * "Looking into it…" reply, whose id is returned. Never throws.
+   */
+  private static async sendAnswerPlaceholder(
+    turnContext: TurnContext,
+  ): Promise<string | undefined> {
+    const conversationType: unknown = (
+      turnContext.activity?.conversation as { conversationType?: unknown }
+    )?.conversationType;
+
+    try {
+      if (conversationType !== "channel") {
+        await turnContext.sendActivity({ type: "typing" });
+        return undefined;
+      }
+
+      const sent: ResourceResponse | undefined = await turnContext.sendActivity(
+        this.AI_OPS_ACK_TEXT,
+      );
+
+      return sent?.id || undefined;
+    } catch (ackError) {
+      // A failed acknowledgement should not stop us from answering.
+      logger.debug("Failed to send acknowledgement activity");
+      logger.debug(ackError);
+      return undefined;
+    }
+  }
+
+  /*
+   * The answer - or why there is none - in place of the channel's
+   * placeholder; a new reply when there is none, or Teams will not change
+   * it in place.
+   */
+  private static async sendAnswerInPlaceOf(data: {
+    turnContext: TurnContext;
+    placeholderId: string | undefined;
+    text: string;
+  }): Promise<void> {
+    if (data.placeholderId) {
+      try {
+        await data.turnContext.updateActivity({
+          id: data.placeholderId,
+          type: "message",
+          text: data.text,
+        });
+        return;
+      } catch (updateError) {
+        logger.debug(
+          "Microsoft Teams did not put the answer in place of its placeholder; replying instead.",
+        );
+        logger.debug(updateError);
+      }
+    }
+
+    await data.turnContext.sendActivity(data.text);
   }
 
   @CaptureSpan()
@@ -4631,6 +4717,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           } as MicrosoftTeamsRequest,
           databaseProps,
         );
+        return;
+      }
+
+      // A button of the Home card (MicrosoftTeamsHome).
+      if (MicrosoftTeamsHome.isHomeAction(actionType)) {
+        await MicrosoftTeamsHome.handleAction({
+          turnContext: data.turnContext,
+          activity: data.activity,
+          actionType: actionType,
+          projectId: projectId,
+          databaseProps: databaseProps,
+        });
         return;
       }
 
@@ -6682,98 +6780,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
   }
 
-  private static buildWelcomeAdaptiveCard(): JSONObject {
-    return {
-      $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
-      type: "AdaptiveCard",
-      version: "1.4",
-      body: [
-        {
-          type: "TextBlock",
-          text: "Welcome to OneUptime for Microsoft Teams",
-          weight: "Bolder",
-          size: "Large",
-          wrap: true,
-        },
-        {
-          type: "TextBlock",
-          text: "OneUptime keeps your team ahead of incidents by streaming alerts, maintenance updates, and on-call context directly into Microsoft Teams.",
-          wrap: true,
-          spacing: "Small",
-        },
-        {
-          type: "TextBlock",
-          text: "Getting started",
-          weight: "Bolder",
-          size: "Medium",
-          spacing: "Large",
-          wrap: true,
-        },
-        {
-          type: "TextBlock",
-          text: "1. Connect this Teams workspace to your OneUptime project from **Project Settings → Workspace → Microsoft Teams**.\n2. Choose which incidents, alerts, and maintenance events should sync into Teams.\n3. Try the commands below or automate workflows from the OneUptime dashboard.",
-          wrap: true,
-        },
-        {
-          type: "TextBlock",
-          text: "Bot commands",
-          weight: "Bolder",
-          size: "Medium",
-          spacing: "Large",
-          wrap: true,
-        },
-        {
-          type: "TextBlock",
-          text: "Type them in a chat with OneUptime, or after @OneUptime in a channel or a group chat. Anything else is a question for OneUptime AI.",
-          wrap: true,
-          spacing: "Small",
-        },
-        {
-          type: "TextBlock",
-          // The help's own list: what to type, and what it does.
-          text: MicrosoftTeamsCommands.getCommandListMarkdown(),
-          wrap: true,
-        },
-        {
-          type: "TextBlock",
-          text: "To use this app, each user must have an active OneUptime account. Please contact our support team for more details.",
-          wrap: true,
-          spacing: "Large",
-        },
-        {
-          type: "TextBlock",
-          text: "Need more help?",
-          weight: "Bolder",
-          size: "Medium",
-          spacing: "Large",
-          wrap: true,
-        },
-        {
-          type: "TextBlock",
-          text: "Review our setup guide or reach out if you need assistance configuring notifications.",
-          wrap: true,
-        },
-      ],
-      actions: [
-        {
-          type: "Action.OpenUrl",
-          title: "View Setup Guide",
-          url: "https://oneuptime.com/docs/workspace-connections/microsoft-teams",
-        },
-        {
-          type: "Action.OpenUrl",
-          title: "Contact Support",
-          url: "mailto:support@oneuptime.com?subject=OneUptime%20Microsoft%20Teams%20Bot",
-        },
-        {
-          type: "Action.OpenUrl",
-          title: "Open OneUptime Dashboard",
-          url: "https://oneuptime.com/dashboard",
-        },
-      ],
-    } as JSONObject;
-  }
-
+  /*
+   * The hello when the app is added: a person's own chat gets their Home
+   * (MicrosoftTeamsHome.sendPersonalWelcome), a team or a group chat a short
+   * welcome - what OneUptime does there and where its notifications are set
+   * up - in the words Slack's channel hello says (SlackWelcome). Sent once a
+   * turn; never throws.
+   */
   private static async sendWelcomeAdaptiveCard(
     turnContext: TurnContext,
   ): Promise<void> {
@@ -6789,14 +6802,53 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return;
       }
 
-      const welcomeCard: JSONObject = this.buildWelcomeAdaptiveCard();
-      const message: Partial<Activity> = MessageFactory.attachment({
-        contentType: "application/vnd.microsoft.card.adaptive",
-        content: welcomeCard,
-      });
-
-      await turnContext.sendActivity(message);
       turnContext.turnState.set(this.WELCOME_CARD_STATE_KEY, true);
+
+      const activity: JSONObject = turnContext.activity as unknown as JSONObject;
+      const conversation: JSONObject =
+        (activity["conversation"] as JSONObject | undefined) || {};
+      const tenantId: string =
+        ((
+          (activity["channelData"] as JSONObject | undefined)?.["tenant"] as
+            | JSONObject
+            | undefined
+        )?.["id"] as string | undefined) ||
+        (conversation["tenantId"] as string | undefined) ||
+        "";
+
+      const resolution: MicrosoftTeamsTenantResolution | null = tenantId
+        ? await this.resolveProjectByTenantId({ tenantId: tenantId })
+        : null;
+      const projectId: ObjectID | null =
+        resolution?.projectAuth?.projectId || null;
+      const isPersonal: boolean =
+        conversation["conversationType"] === "personal";
+
+      if (isPersonal && projectId) {
+        await MicrosoftTeamsHome.sendPersonalWelcome({
+          turnContext: turnContext,
+          projectId: projectId,
+        });
+        return;
+      }
+
+      const welcome: { card: JSONObject; summary: string } =
+        await MicrosoftTeamsHome.getTeamWelcome({
+          projectId: projectId,
+          isConnected: Boolean(projectId || resolution?.isAmbiguous),
+          isPersonal: isPersonal,
+        });
+
+      await turnContext.sendActivity({
+        type: "message",
+        attachments: [
+          {
+            contentType: "application/vnd.microsoft.card.adaptive",
+            content: welcome.card,
+          },
+        ],
+        summary: welcome.summary,
+      });
       logger.debug("Welcome adaptive card sent successfully");
     } catch (error) {
       logger.error("Error sending welcome adaptive card: " + error);

@@ -117,8 +117,16 @@ interface ConnectorPost {
 interface FakeBotConnector {
   serviceUrl: string;
   posts: Array<ConnectorPost>;
+  // Activities changed in place (PUT): a placeholder becoming its answer.
+  updates: Array<{
+    conversationId: string;
+    activityId: string;
+    activity: JSONObject;
+  }>;
   // Statuses the next posts are refused with, one each, before any is taken.
   refuseNext: Array<number>;
+  // Statuses the next changes in place are refused with.
+  refuseNextUpdates: Array<number>;
   close: () => Promise<void>;
 }
 
@@ -128,7 +136,9 @@ async function startFakeBotConnector(): Promise<FakeBotConnector> {
   const fake: FakeBotConnector = {
     serviceUrl: "",
     posts: [],
+    updates: [],
     refuseNext: [],
+    refuseNextUpdates: [],
     close: async (): Promise<void> => {
       return undefined;
     },
@@ -162,6 +172,25 @@ async function startFakeBotConnector(): Promise<FakeBotConnector> {
           });
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ id: `msg-${messageNumber}` }));
+          return;
+        }
+
+        if (req.method === "PUT" && match && match[2]) {
+          const refusal: number | undefined = fake.refuseNextUpdates.shift();
+
+          if (refusal) {
+            res.writeHead(refusal, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: { code: "Forbidden" } }));
+            return;
+          }
+
+          fake.updates.push({
+            conversationId: decodeURIComponent(match[1] || ""),
+            activityId: decodeURIComponent(match[2]),
+            activity: JSON.parse(bodyText || "{}") as JSONObject,
+          });
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ id: decodeURIComponent(match[2]) }));
           return;
         }
 
@@ -484,6 +513,8 @@ afterAll(async () => {
 
 beforeEach(() => {
   connector.posts.splice(0);
+  connector.updates.splice(0);
+  connector.refuseNextUpdates.splice(0);
   connector.refuseNext = [];
   projectId = ObjectID.generate();
   clockOffsetInMs = 0;
@@ -671,8 +702,15 @@ describe("people talking to each other are not answered", () => {
 });
 
 describe("@mentions, and personal chats, are answered", () => {
-  test("an @mention under OneUptime's incident card, from somebody connected: AI answers in that thread, every time", async () => {
+  /*
+   * A channel shows no typing, so a "Looking into it…" reply stands there
+   * while the answer is written - and becomes the answer, in its place: the
+   * thread keeps one message, not a placeholder above every answer.
+   */
+  test("an @mention under OneUptime's incident card, from somebody connected: AI answers in that thread, every time - in place of its placeholder", async () => {
     for (let time: number = 0; time < 2; time++) {
+      const updatesBefore: number = connector.updates.length;
+
       const delivery: Delivery = await deliver(
         message({
           from: BOB,
@@ -689,14 +727,31 @@ describe("@mentions, and personal chats, are answered", () => {
         }),
       ).toEqual([
         `${OPS_CHANNEL};messageid=${NOTIFICATION_POST_ID}: Looking into it…`,
-        `${OPS_CHANNEL};messageid=${NOTIFICATION_POST_ID}: Two monitors are down: **API** and **Checkout**.`,
       ]);
+
+      const updates: Array<{
+        conversationId: string;
+        activityId: string;
+        activity: JSONObject;
+      }> = connector.updates.slice(updatesBefore);
+
+      expect(updates).toHaveLength(1);
+      expect(updates[0]!.conversationId).toBe(
+        `${OPS_CHANNEL};messageid=${NOTIFICATION_POST_ID}`,
+      );
+      expect(updates[0]!.activity["text"]).toBe(
+        "Two monitors are down: **API** and **Checkout**.",
+      );
     }
 
     expect(askAssistant).toHaveBeenCalledTimes(2);
   });
 
-  test("a personal chat needs no mention", async () => {
+  /*
+   * A chat shows OneUptime typing while the answer is written; the typing
+   * goes by itself, and the answer is a message of its own, which notifies.
+   */
+  test("a personal chat needs no mention: OneUptime types, then answers - no placeholder to stay behind", async () => {
     const delivery: Delivery = await deliver(
       message({
         from: BOB,
@@ -705,8 +760,56 @@ describe("@mentions, and personal chats, are answered", () => {
       }),
     );
 
-    expect(delivery.posts).toHaveLength(2);
+    expect(
+      delivery.posts.map((post: ConnectorPost): unknown => {
+        return [post.activity["type"], post.activity["text"]];
+      }),
+    ).toEqual([
+      ["typing", undefined],
+      ["message", "Two monitors are down: **API** and **Checkout**."],
+    ]);
+    expect(connector.updates).toEqual([]);
     expect(askAssistant).toHaveBeenCalledTimes(1);
+  });
+
+  test("Teams will not change the placeholder in place: the answer comes as a reply of its own", async () => {
+    connector.refuseNextUpdates.push(403);
+
+    const delivery: Delivery = await deliver(
+      message({
+        from: BOB,
+        text: "what changed before this started?",
+        where: { in: "thread", postId: NOTIFICATION_POST_ID },
+        mentions: [BOT],
+      }),
+    );
+
+    expect(
+      delivery.posts.map((post: ConnectorPost): string => {
+        return String(post.activity["text"]);
+      }),
+    ).toEqual([
+      "Looking into it…",
+      "Two monitors are down: **API** and **Checkout**.",
+    ]);
+  });
+
+  test("the answer could not be written: said in place of the placeholder", async () => {
+    askAssistant.mockRejectedValue(new Error("the model timed out"));
+
+    const delivery: Delivery = await deliver(
+      message({
+        from: BOB,
+        text: "what changed before this started?",
+        where: { in: "thread", postId: NOTIFICATION_POST_ID },
+        mentions: [BOT],
+      }),
+    );
+
+    expect(delivery.posts).toHaveLength(1);
+    expect(connector.updates[0]!.activity["text"]).toBe(
+      "Sorry, I ran into a problem answering that question. Please try again later.",
+    );
   });
 
   /*
@@ -746,11 +849,14 @@ describe("@mentions, and personal chats, are answered", () => {
     );
 
     expect(
-      delivery.posts.map((post: ConnectorPost): string => {
-        return String(post.activity["text"]);
-      }),
+      delivery.posts
+        .filter((post: ConnectorPost): boolean => {
+          return post.activity["type"] !== "typing";
+        })
+        .map((post: ConnectorPost): string => {
+          return String(post.activity["text"]);
+        }),
     ).toEqual([
-      "Looking into it…",
       "Two monitors are down: **API** and **Checkout**.\n\n**Sources**\n• Monitor statuses (2 rows)\n• Deployments (1 row)",
     ]);
   });

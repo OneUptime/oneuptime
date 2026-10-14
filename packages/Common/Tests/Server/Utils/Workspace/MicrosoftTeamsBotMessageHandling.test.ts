@@ -170,7 +170,7 @@ const ACTION_FAILED_TEXT: string =
 // ---- The private statics this file stubs or reads ----
 
 // What the stubbed "show ..." handler answers, unless a test says otherwise.
-const CANNED_LIST_REPLY: string = "🚨 No open incidents.";
+const CANNED_LIST_REPLY: string = "✅ No open incidents.";
 
 /*
  * Private statics of MicrosoftTeamsUtil, reached through a cast the way
