@@ -109,12 +109,32 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
   const sections: SideMenuSectionProps[] = [
     {
+      /*
+       * Home's own page: the project's health, its open work by name, its
+       * resources and the product directory. It used to be the Active
+       * Incidents table, which has a page of its own below now. The
+       * section is "Home", so the phone menu reads "Home / Overview".
+       */
+      title: "Home",
+      items: [
+        {
+          link: {
+            title: "Overview",
+            to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+          },
+          icon: IconProp.Home,
+        },
+      ],
+    },
+    {
       title: "Incidents",
       items: [
         {
           link: {
             title: "Active Incidents",
-            to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route,
+            ),
           },
           icon: IconProp.Alert,
           badgeType: BadgeType.DANGER,
@@ -203,8 +223,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.AltGlobe,
+          /*
+           * Archived monitors are not checked, so a frozen "Offline" is not
+           * a problem - and the list this opens leaves them out. The badge
+           * counts what the list shows, like the Monitors menu's and Home's
+           * own strip.
+           */
           countQuery: {
             projectId: props.project?._id,
+            isArchived: false,
             currentMonitorStatus: {
               isOperationalState: false,
             },

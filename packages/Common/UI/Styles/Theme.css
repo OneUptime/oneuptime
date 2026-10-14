@@ -904,6 +904,14 @@ html.dark :is(.border-cyan-100, .ring-cyan-200) {
   --tw-ring-color: rgb(34 211 238 / 32%);
 }
 
+/*
+ * The teal products (Runbooks, Forms) draw their icon in a teal-ringed
+ * square in the products menu and on Home's product directory.
+ */
+html.dark .ring-teal-200 {
+  --tw-ring-color: rgb(45 212 191 / 32%);
+}
+
 html.dark :is(
     .border-fuchsia-100,
     .border-pink-100,

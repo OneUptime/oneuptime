@@ -158,8 +158,9 @@ export default class SlackCommandParser {
   /*
    * What follows the command's first word - "page" - as tokens
    * (WorkspacePageText): each person Slack wrote as <@U0123|nawaz>, each
-   * user group as <!subteam^S0123|@oncall-db> and @here / @channel as a
-   * group, and everything else as text, read as typed (toPlainText).
+   * user group as <!subteam^S0123|@oncall-db> - with its id, S0123 - and
+   * @here / @channel as a group, and everything else as text, read as typed
+   * (toPlainText).
    */
   public static getPageTokens(rawText: string): Array<WorkspacePageToken> {
     const tokens: Array<WorkspacePageToken> = [];
@@ -225,9 +226,12 @@ export default class SlackCommandParser {
     }
 
     if (target.startsWith("!subteam^")) {
+      const groupId: string = target.slice("!subteam^".length);
+
       return {
         kind: "group",
-        name: label.replace(LEADING_AT, "") || target.slice("!subteam^".length),
+        name: label.replace(LEADING_AT, "") || groupId,
+        workspaceGroupId: groupId,
       };
     }
 

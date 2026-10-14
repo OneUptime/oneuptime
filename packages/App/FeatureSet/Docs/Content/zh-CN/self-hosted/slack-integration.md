@@ -154,6 +154,12 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 
 如果你的 Slack 应用是用较旧的清单创建的，请在 **OAuth & Permissions > Bot Token Scopes** 下添加 `files:write`（或用当前清单更新应用）。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **Connect with Slack**，以授予新的权限范围。在此之前，每张截图都会显示为其替代文本。
 
+### 值班用户组
+
+要让值班计划的 Slack 用户组与正在值班的人保持一致（请参阅 [值班用户组](/docs/workspace-connections/slack#值班用户组)），需要机器人权限范围 `usergroups:read` 和 `usergroups:write`。生成的清单包含它们。
+
+如果你的 Slack 应用是用较旧的清单创建的，请在 **OAuth & Permissions > Bot Token Scopes** 下添加 `usergroups:read` 和 `usergroups:write`（或用当前清单更新应用）。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **Connect with Slack**，以授予新的权限范围。在此之前，值班计划的卡片会显示 OneUptime 的 Slack 应用尚无权更改用户组。
+
 ### 用较旧清单创建的应用
 
 用较早的 OneUptime 清单创建的 Slack 应用会把 `/incident` 和 `/maintenance` 注册为独立的命令，它们可能与其他应用的同名命令冲突。它们仍然可用，并打开与 `/oneuptime incident` 和 `/oneuptime maintenance` 相同的表单。要用 `/oneuptime` 替换它们，请用你的服务器生成的清单更新应用：在 [api.slack.com/apps](https://api.slack.com/apps) 中打开应用的 **App Manifest**，粘贴清单并保存。

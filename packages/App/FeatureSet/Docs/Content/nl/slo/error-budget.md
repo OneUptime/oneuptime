@@ -105,8 +105,8 @@ Het resterende budget bepaalt de status van de SLO:
 | Status | Wanneer |
 | --- | --- |
 | **Gezond** | Er is meer budget over dan de risicodrempel. |
-| **At Risk** | Het resterende budget zit op de risicodrempel of eronder: standaard 20%. |
-| **Budget Exhausted** | Het resterende budget is nul of lager. |
+| **Risico** | Het resterende budget zit op de risicodrempel of eronder: standaard 20%. |
+| **Budget uitgeput** | Het resterende budget is nul of lager. |
 
 Stel de risicodrempel in onder **Instellingen** → **Objective**.
 
@@ -128,13 +128,13 @@ Met de standaarddrempel van 20% wordt een SLO in gevaar weer gezond bij 25% rest
 
 ## Meldingen aan eigenaren
 
-Als een SLO naar **At Risk** of **Budget Exhausted** gaat, informeert OneUptime zijn eigenaren:
+Als een SLO naar **Risico** of **Budget uitgeput** gaat, informeert OneUptime zijn eigenaren:
 
 - De eigenaren zijn de gebruikers en teamleden op de pagina **Eigenaren** van de SLO die nog lid van het project zijn. Een SLO zonder eigenaren informeert in plaats daarvan de projecteigenaren.
 - Elke eigenaar krijgt standaard een e-mail, en de melding via elk ander kanaal dat hij aanzet voor **SLO status changed** onder **Gebruikersinstellingen** → **Meldingsinstellingen** → **Bewaking**.
 - Het onderwerp van de e-mail noemt de status en de SLO, bijvoorbeeld `[SLO At Risk] API Availability`.
 
-Zodat een SLO vlak bij een grens niet blijft melden, krijgen zijn eigenaren hoogstens één melding per uur. Een overgang naar **Budget Exhausted** wordt altijd verstuurd, ook binnen dat uur.
+Zodat een SLO vlak bij een grens niet blijft melden, krijgen zijn eigenaren hoogstens één melding per uur. Een overgang naar **Budget uitgeput** wordt altijd verstuurd, ook binnen dat uur.
 
 > [!TIP]
 > Meldingen aan eigenaren laten de verantwoordelijken van een SLO weten dat zijn budget in de problemen zit. Om uw dienstdoende team via escalatiebeleid op te roepen, gebruikt u [Waarschuwingen en incidenten voor verbruikssnelheid](/docs/slo/burn-rate-alerts). Een regel voor verbruikssnelheid kan de eigenaren van de SLO ook toevoegen aan elke waarschuwing en elk incident dat hij aanmaakt.

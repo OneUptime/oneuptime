@@ -164,7 +164,16 @@ const Alert: FunctionComponent<ComponentProps> = (
               {translatedTitle && <div>{translatedTitle}</div>}
             </div>
             {translatedTextOnRight && (
-              <div className="min-w-0 font-medium sm:ml-auto sm:text-right">
+              /*
+               * Beside the message from sm up, the right-hand text keeps its
+               * words whole: a long message beside it used to squeeze a
+               * "Try again" into "Try / ag / ain". On a phone it sits under
+               * the message and wraps like it.
+               */
+              <div
+                className="min-w-0 font-medium sm:ml-auto sm:flex-none sm:whitespace-nowrap sm:text-right"
+                data-testid="alert-text-on-right"
+              >
                 {translatedTextOnRight}
               </div>
             )}

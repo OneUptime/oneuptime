@@ -70,7 +70,7 @@ Felterne under **Flere felter**:
 | Felt | Det, du angiver | Standard |
 | --- | --- | --- |
 | **Beskrivelse** | Hvad SLO'et er til. | Tom |
-| **Risikotærskel (%)** | Den andel af det resterende fejlbudget, hvor SLO'et skifter til **At Risk**. Et heltal fra 0 til 100. | 20 |
+| **Risikotærskel (%)** | Den andel af det resterende fejlbudget, hvor SLO'et skifter til **I risiko**. Et heltal fra 0 til 100. | 20 |
 | **Window Type** | **Rolling**: de seneste N dage, som kommer sig, efterhånden som gammel nedetid falder ud af vinduet. **Calendar Month**: hver måned for sig, nulstillet den 1. | **Rolling** |
 | **Window (Days)** | Kun rullende vinduer: hvor mange dage der kigges tilbage, fra 1 til 366. Typisk 28 eller 30. | 30 |
 | **Tidszone** | Kun kalendermåneder: den tidszone, hver måned starter og slutter i. | UTC |
@@ -93,7 +93,7 @@ Alt, hvad der bestemmer, hvordan SLO'et måler, starter med en standardværdi, s
 | Monitorer | Hvor SLI'en kommer fra. Tilknyt dem manuelt eller med monitorregler: se [Monitorer og monitorregler](/docs/slo/monitor-rules). |
 | Mål | Den andel god tid, SLO'et lover, større end 0 og højst 99,999. |
 | Compliancevindue | Den periode, SLI'en og budgettet måles over: et rullende vindue på 1 til 366 dage eller en kalendermåned. |
-| Risikotærskel | Den andel af det resterende budget, hvor SLO'et skifter til **At Risk**. |
+| Risikotærskel | Den andel af det resterende budget, hvor SLO'et skifter til **I risiko**. |
 | Nedetidsstatusser | Hvilke monitorstatusser der tæller som nedetid. |
 | Tilstand for flere monitorer | Hvordan nedetid fra flere monitorer kombineres. |
 
@@ -129,18 +129,18 @@ OneUptime giver hvert evalueret SLO en status:
 | Status | Hvad den betyder |
 | --- | --- |
 | **Sund** | Der er mere budget tilbage end risikotærsklen. |
-| **At Risk** | Det resterende budget er faldet til risikotærsklen eller derunder: 20 % som standard. |
-| **Budget Exhausted** | Budgettet er brugt helt op eller overskredet. |
+| **I risiko** | Det resterende budget er faldet til risikotærsklen eller derunder: 20 % som standard. |
+| **Budget opbrugt** | Budgettet er brugt helt op eller overskredet. |
 | **Misconfigured** | SLO'et kan ikke måles: det har ingen monitorer, dets monitorer findes ikke længere eller har endnu ikke registreret nogen status i dets vindue, eller dets mål er uden for området. |
 | **Sat på pause** | Alle monitorer, det måler, er arkiveret eller har aktiv overvågning slået fra, manuelt, af en manuel hændelse eller af planlagt vedligeholdelse. Det fortsætter af sig selv, så snart en af dem bliver overvåget igen. |
 
-Et deaktiveret eller arkiveret SLO evalueres ikke, så dets status bliver, som den var; SLO-listen viser i stedet et mærke **Deaktiveret** eller **Arkiveret**. Et SLO's ejere får besked, når status skifter til **At Risk** eller **Budget Exhausted**: se [Fejlbudgetter](/docs/slo/error-budget).
+Et deaktiveret eller arkiveret SLO evalueres ikke, så dets status bliver, som den var; SLO-listen viser i stedet et mærke **Deaktiveret** eller **Arkiveret**. Et SLO's ejere får besked, når status skifter til **I risiko** eller **Budget opbrugt**: se [Fejlbudgetter](/docs/slo/error-budget).
 
 ## SLO-listen
 
 Siden **SLOs** viser hvert SLO, der ikke er arkiveret, med status, SLI, resterende budget, forbrugsrate, mål, vindue, monitorer, etiketter og ejere.
 
-- Felterne over listen tæller SLO'er efter status: **Sund**, **At Risk**, **Budget Exhausted**, **Misconfigured**, **Sat på pause** og **Deaktiveret**. Klik på et felt for kun at se de SLO'er, og igen for at se dem alle.
+- Felterne over listen tæller SLO'er efter status: **Sund**, **I risiko**, **Budget opbrugt**, **Misconfigured**, **Sat på pause** og **Deaktiveret**. Klik på et felt for kun at se de SLO'er, og igen for at se dem alle.
 - Vælg SLO'er for at tilføje eller fjerne etiketter og ejere, arkivere dem eller slette dem, alle på én gang.
 - Sidemenuens sektion **Indstillinger** indeholder **Etiketregler** og **Ejerregler**, som sætter etiketter på nye SLO'er og giver dem ejere: se [Etiket- og ejerregler](/docs/slo/label-and-owner-rules).
 - Sidemenuens sektion **Avanceret** indeholder **Arkiveret**, listen over arkiverede SLO'er.
