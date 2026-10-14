@@ -88,7 +88,7 @@ Jedes Ereignis wird zu einem OCSF-Ereignis, mit dem Anbieter `Okta` und dem Prod
 | `security.*` und eine `policy.evaluate_sign_on`, die den Zugriff verweigert hat | Detection Finding (`2004`) | `Create`, mit dem Ereignistyp als Regelname |
 | Alles andere | `0`, benannt nach dem Ereignistyp | Der letzte Teil des Ereignistyps |
 
-Ein Ereignis ohne eigene Klasse behält jedes Feld und bleibt über jedes davon durchsuchbar. Seine Spalten:
+Ein Ereignis, das in keine dieser Klassen fällt, behält trotzdem jedes Feld und bleibt über jedes davon durchsuchbar. Jedes Ereignis füllt diese Spalten:
 
 | Okta-Feld | OneUptime-Spalte |
 | --- | --- |

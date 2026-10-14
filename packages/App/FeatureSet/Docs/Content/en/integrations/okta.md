@@ -88,7 +88,7 @@ Each event becomes one OCSF event, with vendor `Okta` and product `Okta System L
 | `security.*`, and a `policy.evaluate_sign_on` that denied access | Detection Finding (`2004`) | `Create`, with the event type as the rule name |
 | Anything else | `0`, named after the event type | The last part of the event type |
 
-An event without a class of its own keeps every field, and stays searchable by any of them. Its columns:
+An event in none of these classes still keeps every field, and stays searchable by any of them. Every event fills these columns:
 
 | Okta field | OneUptime column |
 | --- | --- |
