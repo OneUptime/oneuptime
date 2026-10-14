@@ -1,130 +1,205 @@
-# Splunk Enterprise Security Integration
+# Splunk Enterprise Security
 
-Bring [Splunk Enterprise Security](https://www.splunk.com/en_us/products/enterprise-security.html) notable events into OneUptime, so the detections your correlation searches raise live in the same ClickHouse data lake as your logs, traces, and metrics — searchable, correlated with observability data, alertable, and routed to on-call.
+Import the notable events your [Splunk Enterprise Security](https://www.splunk.com/en_us/products/enterprise-security.html) correlation searches create into OneUptime's Security Events. There you search them beside your logs, traces and metrics, correlate them with every other source, and page on-call for the ones that matter. OneUptime reads them by running a search on your search head, as a Splunk user you create, and changes nothing in Splunk. Since it is only a search, it imports any index or saved search output, not just notable events.
 
-```text
-Managed connector  ──►  polls index=notable by creation time  ──►  Detection Finding events
+:::cards
+- [Set up the connection](#set-up-the-connection): A token, a role, and the connection's form.
+- [What is imported](#what-is-imported): How each row of the search becomes a security event.
+- [How polling works](#how-polling-works): The window each poll reads, and what a busy search head does to it.
+- [Troubleshooting](#troubleshooting): What each error means, and what to change.
+:::
+
+## How it works
+
+```mermaid title="From a notable event to a security event"
+flowchart TB
+    rule["A correlation search<br/>creates a<br/>notable event"] --> poll["OneUptime polls<br/>on the connection's<br/>interval"]
+    poll --> search["It runs your Search<br/>on the search head"]
+    search --> rows["It reads the rows<br/>created since<br/>last time"]
+    rows --> event["Each is stored as<br/>a Detection Finding"]
 ```
 
-The connector runs a Splunk search on a schedule through the search head's REST API and normalizes every returned row to [OCSF](https://schema.ocsf.io/) (Open Cybersecurity Schema Framework), OneUptime's canonical security-event shape. It works with Splunk Enterprise and Splunk Cloud Platform search heads, and — because it is only a search — with any index or saved-search output, not just Enterprise Security notables.
+Every minute, OneUptime polls each enabled connection whose poll interval has passed. A poll runs your search through the search head's REST API, over the rows created since the last poll, and stores each row as an [OCSF](https://schema.ocsf.io/) Detection Finding event (class `2004`). Detection rules, monitors and dashboards then treat it like a security event from any other source.
 
-## Prerequisites
+## Before you begin
 
-- A OneUptime project where you are a **project owner**, **project admin** or **security admin** (the roles that can create connections).
-- A Splunk search head running **Splunk Enterprise 9.0.1 or later** (or Splunk Cloud Platform) with the REST API reachable on its **management port**, usually `8089`. Splunk Web on port `8000` does not serve the REST API. Older search heads still work through the deprecated `search/jobs/export` endpoint, which the connector falls back to.
-- **Token authentication enabled** on the search head (**Settings → Tokens**), unless you use a username and password.
-- A Splunk **user and role** for OneUptime with:
-  - the `search` capability;
-  - read access to the index the search selects — for notable events, `notable` in the role's **Indexes searched by default / Indexes** settings (`srchIndexesAllowed`). Inheriting Enterprise Security's `ess_analyst` or `ess_user` role grants this.
-  - nothing else: the connector only reads. It never updates a notable, so `edit_notable_events` and the other Enterprise Security write capabilities are not needed.
-- Network reachability from OneUptime to the management port:
-  - **OneUptime Cloud** connects from the public internet. The search head must have a public, TLS-served address; private addresses (RFC 1918, link-local, loopback) are refused by the egress guard.
-  - **Self-hosted OneUptime** connects from your API and worker containers. A search head on a private network is reachable if those containers can route to it and `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is not set to `true` in your deployment's environment.
+- In OneUptime, the Project Owner, Project Admin or Security Admin role. Security Members and Security Viewers can see connections and their run history, but cannot change them.
+- A search head running Splunk Enterprise 9.0.1 or later, or Splunk Cloud Platform. OneUptime talks to its REST API on the management port, usually `8089`. Splunk Web, on port `8000`, does not serve the REST API.
+- A Splunk user for OneUptime, whose role has the `search` capability and can read the index the search reads: `notable` for notable events. The Enterprise Security roles `ess_analyst` and `ess_user` grant both. The connection only reads, so the role needs nothing else.
+- A search head OneUptime can reach over HTTPS. OneUptime Cloud connects from the internet, so the search head needs a public address: private addresses are refused. A self-hosted OneUptime connects from its app and worker containers, and can reach a search head on your private network unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`.
 
-## Create an authentication token
+## Set up the connection
 
-Following [Splunk's instructions](https://help.splunk.com/en/splunk-enterprise/administer/manage-users-and-security/10.4/authenticate-into-the-splunk-platform-with-tokens/create-authentication-tokens):
+The connection signs in with a Splunk authentication token, or with a username and a password.
 
-1. In Splunk Web, open **Settings → Tokens**. If you see a message that token authentication is not enabled, enable it first (you need the `edit_tokens_settings` capability, which `admin` has).
-2. Select **New Token**.
-3. In **User**, enter the Splunk user created for OneUptime. Creating a token for another user needs the `edit_tokens_all` capability; users with `edit_tokens_own` can create their own.
-4. In **Audience**, describe the purpose, for example `OneUptime security events`.
-5. Optionally set an **Expiration**. Note the date: the connector stops working when the token expires, and the **Test connection** checklist reports it as an authentication failure.
-6. Select **Create** and copy the token. Splunk shows it only once; if you close the dialog without copying, create a new token.
+:::steps
+### Create an authentication token
 
-If you prefer a **Username** and **Password**, skip this section and leave the token empty; the connector then sends HTTP basic authentication on every request.
+1. In Splunk Web, open **Settings → Tokens**. If Splunk says token authentication is disabled, select **Enable Token Authentication** first.
+2. Select **New Token**. In **User**, enter the Splunk user you made for OneUptime, and in **Audience**, write what the token is for, such as `OneUptime security events`.
+3. Choose an **Expiration**, or none. A token that expires stops the connection until you replace it.
+4. Select **Create**, and copy the token. Splunk shows it once.
 
-## Create the connection
+To sign in with a password instead, skip this step and keep the user's name and password at hand.
 
-In OneUptime, open **Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), select **Add connection**, and choose **Splunk Enterprise Security**.
+### Add the connection in OneUptime
 
-| Field                       | Required | What to enter                                                                                                                                                                                                     |
-| --------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Splunk management URL**   | Yes      | The REST API base URL of the search head, usually on port 8089, for example `https://splunk.example.com:8089`. It must be `https`, with no query string; a path is allowed when a reverse proxy prefixes the API. |
-| **Search**                  | No       | The SPL that selects the events to import. Defaults to `index=notable`. The connector adds the time range itself; do not include `earliest` or `latest`, and do not start with a pipe or a generating command (`  | tstats ...`). A leading `search `is stripped. Examples:`index=notable`, `index=notable rule_name="Threat - \*"`, `index=notable urgency IN (high, critical)`. |
-| **Username**                | No       | Only when authenticating with a password instead of an authentication token.                                                                                                                                      |
-| **Authentication token**    | No       | A Splunk authentication token (Settings > Tokens). Leave empty when using username and password. Encrypted at rest and never returned by the API.                                                                 |
-| **Password**                | No       | The password for the username above. Leave empty when using an authentication token. Encrypted at rest and never returned by the API.                                                                             |
-| **Poll interval (minutes)** | Yes      | A whole number from `1` to `1440`, default `5`.                                                                                                                                                                   |
+Open **Products → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), click **Add connection**, choose **Splunk Enterprise Security**, and click **Next**. Fill in the settings in the table below, click **Next**, and paste the token into **Authentication token**, or the password into **Password**.
 
-Either the **Authentication token** or both **Username** and **Password** must be set. Use **Test these settings** on the credentials step before saving; it runs the checklist below against the unsaved settings without storing anything. To rotate the token later, use the connection's **Update credentials** action.
+### Test it before you save
+
+Click **Test these settings** under **Test before saving**. The test signs in and runs your search with the values in the form, and stores nothing, so a wrong port or a missing role shows up before the connection exists. Then click **Next**, give the connection a **Name**, and create it.
+:::
+
+| Setting | What to enter |
+| --- | --- |
+| **Splunk management URL** | The search head's REST API, such as `https://splunk.example.com:8089`. It must use `https`, with no query string. A path is kept, for a reverse proxy that serves the API under one. |
+| **Search** | The search that selects what to import, `index=notable` unless you change it. Narrow it, such as `index=notable urgency IN (high, critical)`. OneUptime adds the time range itself, so the search cannot set `earliest` or `latest`, and it cannot start with a pipe. A leading `search` is dropped. |
+| **Username** | The Splunk user's name, only when it signs in with a password. |
+| **Authentication token** | The token from the first step. When a token is stored, it is used, and the username and password are not. |
+| **Password** | The Splunk user's password, only when no token is used. |
+
+**Authentication token** and **Password** are encrypted, never returned by the API and never shown again. Replace one with **Update credentials** on the connection. To switch from one sign-in to the other, fill in the new one there and turn on **Remove the stored Authentication token**, or **Remove the stored Password**.
+
+The **Polling** step also has an optional **Description**, the **Poll Interval (Minutes)**, a whole number from `1` to `1440` that starts at `5`, and **Enabled**, which starts on.
 
 ## What is imported
 
-Each row the search returns becomes one **Detection Finding** (OCSF class `2004`) event with vendor `Splunk` and product `Splunk Enterprise Security`. For an Enterprise Security notable event:
+Each row the search returns becomes one Detection Finding event (OCSF class `2004`), with vendor `Splunk` and product `Splunk Enterprise Security`. For a notable event:
 
-| OneUptime column               | Splunk field                                                                                                                                                                                                                              |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Event id (dedupe key)          | `event_id`; when the export lacks it (it is added at search time by the `notable` macro), Splunk's bucket and offset (`_bkt` + `_cd`); else a hash of the row                                                                             |
-| Time                           | `_time` — the moment the correlation search created the notable                                                                                                                                                                           |
-| Message                        | `rule_title`, else `rule_description`, else the rule name                                                                                                                                                                                 |
-| Rule name / id                 | `rule_name`, else `search_name`, else `source`                                                                                                                                                                                            |
-| Severity                       | `urgency` (informational, low, medium, high, critical), else `severity`                                                                                                                                                                   |
-| Status                         | `status_label`, else `status_description`, else the default review-status name for the numeric `status`                                                                                                                                   |
-| Principal user / host / IP     | `user` or `src_user`; `src` (as host or IP), `src_ip`, `src_host`                                                                                                                                                                         |
-| Target user / host / IP / port | `dest_user`; `dest` (as host or IP), `dest_ip`, `dest_host`; `dest_port`                                                                                                                                                                  |
-| Process                        | `process`, `process_name` or `parent_process`                                                                                                                                                                                             |
-| Resource                       | `file_path`, `url` or `risk_object`                                                                                                                                                                                                       |
-| MITRE ATT&CK                   | `annotations.mitre_attack`, `annotations.mitre_attack.mitre_technique_id`, `mitre_technique_id` (techniques); `annotations.mitre_attack.mitre_tactic_id`, `annotations.mitre_attack.mitre_tactic`, `mitre_tactic` (tactics, ids or names) |
-| Observables                    | Every user, host, IP, `dvc`, `host`, `file_hash`, `file_name`, `url`, `domain`, `query` and `risk_object` value                                                                                                                           |
-| Attributes                     | Every field of the row, dotted keys included (`security_domain`, `owner`, `orig_sid`, `_raw`, ...)                                                                                                                                        |
+| Splunk field | OneUptime column |
+| --- | --- |
+| `event_id`, else `_bkt` and `_cd`, else a hash of the row | Event UID, which is also what duplicates are dropped by |
+| `_time`, when the correlation search created the notable event | Event time |
+| `rule_name`, else `search_name`, else `source` | Rule name |
+| `search_name`, else `source`, else `rule_name` | Rule ID |
+| `rule_title`, else `rule_description`, else the rule name | Message |
+| `urgency`, else `severity` | Severity |
+| `status_label`, else `status_description`, else the name of the review status `status` holds | Status |
+| `annotations.mitre_attack`, and fields such as `mitre_technique_id` and `mitre_tactic` | MITRE ATT&CK tactics and techniques |
+| `user` or `src_user`; `src`, `src_ip` or `src_host`; `process`, `process_name` or `parent_process` | Principal user, IP, host and process |
+| `dest_user`; `dest`, `dest_ip` or `dest_host`; `dest_port` | Target user, IP, host and port |
+| `file_path`, `url` or `risk_object` | Target resource |
+| Every user, host and IP, and `dvc`, `host`, `file_hash`, `file_name`, `url`, `domain`, `query` and `risk_object` | Observables |
+| Every field of the row, such as `security_domain`, `owner`, `orig_sid` and `_raw` | `attributes`, under the field's own name |
 
-Rows from a search other than the notable index are imported the same way; columns whose fields are absent stay empty, and the whole row is still searchable through its attributes.
+A row from another index is imported the same way. The columns its fields do not fill stay empty, and every field is still searchable in `attributes`.
 
 ## How polling works
 
-The connector ticks once a minute and polls every enabled connection that is due on its own interval. Each poll runs one export search — `search <your Search> | fields * | sort 0 _time | head <limit>` — through `POST /services/search/v2/jobs/export` with `earliest_time` and `latest_time` set to the poll window.
+Each poll runs one export search over its window, oldest first:
 
-- **Time basis is creation time.** The window is applied to `_time`, which for a notable event is when the correlation search created it — not the time of the activity it matched. A correlation search that runs hourly over the previous hour stamps its notables with the time it ran, so they land in the window that covers that run. This is what makes a forward-moving cursor safe: a detection created late still lands in a later window instead of falling behind the cursor.
-- **The first poll looks back 24 hours**, so a new connection imports the last day of notables immediately.
-- Every later poll resumes from the connection's stored cursor with a **1 minute overlap**, so rows on a window boundary are never missed. Each scheduled poll covers at most 24 hours past the cursor; a connection with an older cursor catches up in consecutive windows.
-- **Duplicates are dropped by event id.** Rows already stored in the project with the same `event_id` (or bucket/offset identity) are skipped, so the overlap and the catch-up never import a notable twice.
-- **Oldest rows first.** An event search returns the newest rows first, so the connector sorts the window by `_time` in ascending order (`sort 0 _time`, where `0` means no sort limit) before `head` caps it. When a window holds more rows than one poll reads, the rows imported are the oldest ones, and the rest are still reachable. Splunk has to collect the whole window on the search head before it can sort, so a **Search** that matches far more than notable events makes every poll slower; keep it selective.
-- **Bounds.** A poll reads at most 10,000 rows. When the window holds more, the run is recorded as **Partial** with the warning `Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at {time}, where the next poll can resume.` The cursor then moves to that time. The next poll starts there, minus the 1 minute overlap, and skips rows it already imported, so a backlog drains up to 10,000 rows per poll.
-- **When a poll cannot move forward.** If more than 10,000 rows fall in the minute before the resume point, a poll cannot get past it. The next poll then reads a shorter window from the same starting point: half the length each time, down to one minute. The run warns `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` The window doubles again after each poll that reads its window completely. If even a one-minute window holds more than 10,000 rows, polling moves past that minute so newer notables keep arriving. The run stays **Partial**, and **Last Error** reads `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Scheduled polling does not come back for the rows in that minute it could not read; run **Import history** on that minute to recover them.
-- **Search heads older than 9.0.1.** When `search/v2/jobs/export` answers `404`, the connector retries the deprecated `search/jobs/export` endpoint and records a warning on the run. Upgrade the search head; current releases disable the v1 endpoint.
+```text
+POST {Splunk management URL}/services/search/v2/jobs/export
+    search=search index=notable | fields * | sort 0 _time | head 10001
+    earliest_time={window start}
+    latest_time={window end}
+    output_mode=json
+```
 
-Use **Preview** and **Import history** in the connection's **Diagnostics** to read or import a chosen range without moving the live cursor.
+- **Creation time is the cursor.** The window is on `_time`, which for a notable event is when the correlation search created it, not when the activity it matched happened. A search that runs hourly stamps its notable events with the time it ran, so none of them falls behind the cursor.
+- **The first poll looks back 24 hours**, so a new connection shows its recent notable events at once.
+- **Every later poll starts 1 minute before the saved cursor**, so a row created on the boundary between two windows is never skipped.
+- **A poll reads at most 24 hours past the cursor.** A connection whose cursor fell behind catches up in a row of 24 hour windows, and its **Health** reads **Catching up**.
+- **Duplicates are dropped by `event_id`**, or by Splunk's own `_bkt` and `_cd`, within the project, so the overlap, a retried window and an import never store a row twice.
+
+A search head older than 9.0.1 answers the `search/v2/jobs/export` request with `404`. OneUptime then sends it to the deprecated `search/jobs/export`, and the run says so in a warning. Upgrade the search head: current releases turn that endpoint off.
+
+### When a window holds more than one poll can read
+
+A poll reads at most 10,000 rows. When a window holds more, the run is **Partial**, with a warning such as:
+
+```text
+Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
+```
+
+The search sorts the window by `_time`, oldest first, so OneUptime moves the cursor to the creation time of the last row it read, and the next poll starts there with the same window length. A busy search head catches up 10,000 rows a poll, instead of reading the same ones again. The rows created at that same instant are read twice, and the duplicate check drops the second copy. Splunk sorts the whole window before it returns a row, so a **Search** that matches far more than you need makes every poll slower: keep it selective.
+
+When a run cannot get past the saved cursor at all, OneUptime shortens the window instead:
+
+1. **Narrow.** The next poll reads a window half as long, from the same starting point, and halves again until a window reads completely, down to one minute. The run's warning says so: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
+2. **Grow back.** After a window reads completely, the next one is twice as long again, up to 24 hours.
+3. **Move past a single minute.** If even one minute holds more than a poll can read, polling moves past it, so newer notable events keep arriving. The run stays **Partial**, and **Last Error** reads `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Import that minute with **Import this time range** to recover what one run can read.
+
+A run that fails outright, with an error from Splunk, keeps the cursor and the window length, and the next poll reads the same window again. The one exception is a request that timed out: the cursor stays, but the next window is half as long, since a window too heavy to answer in time would time out on every try. Changing the **Poll Interval (Minutes)** changes none of this: it decides how often a poll starts, not where its window begins.
+
+### Run, preview and import on demand
+
+Click **Diagnostics** on a connection to see its recent runs and to work with it by hand. Anyone who can change the connection can start these; everyone who can see it can read the history.
+
+- **Run now** starts a poll at once, with the usual cursor, even while the connection is not **Enabled**.
+- **Preview notable events** reads a time range of up to 7 days and imports nothing.
+- **Import this time range** imports a range of up to 7 days, after you confirm, without moving the cursor. Rows already imported are skipped.
+- **Copy diagnostics** on a run copies its report for support. It never includes credentials.
 
 ## Test connection
 
-**Test connection** (on the connections table, or **Test these settings** in the form) runs synchronously in the API process — no worker is involved — and returns a checklist. The Splunk-side checks are:
+**Test connection** on a connection's row, and **Test these settings** in the form, run in the API process, not in a background worker, so a test still answers when the workers are the problem. It runs these checks, in order:
 
-| Check                                  | What it does                                                                                                                    | Passes when                                                                                                                                 |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Authenticate with Splunk**           | `GET /services/authentication/current-context` with the configured credential                                                   | Splunk answers with the user's name and roles. The message names the user and roles so you can compare them with the role you granted.      |
-| **Run the search on Splunk**           | The export search over the last 24 hours with `head 1`, without the `sort` a poll adds, so the probe stays fast on a busy index | Splunk runs the search. The message names which export endpoint (`search/v2/jobs/export` or the deprecated `search/jobs/export`) served it. |
-| **Notable events available to import** | `search <your Search>                                                                                                           | stats count` over the last 24 hours and the last 7 days                                                                                     | At least one row exists. Zero rows in 7 days is a **warning**: the credentials and search are fine, but there is nothing to import yet. |
+| Check | What it checks |
+| --- | --- |
+| **Configuration** | Every setting is present and well formed. Nothing is contacted when this fails. |
+| **Authenticate with Splunk** | Splunk accepts the token, or the username and password, and names the user and its roles, for you to compare with the role you meant to grant. |
+| **Run the search on Splunk** | Your **Search** runs over the last 24 hours, for one row, and says which export endpoint answered. |
+| **Notable events available to import** | How many rows your **Search** matches in the last 24 hours and the last 7 days. None in 7 days is a warning, not a failure. |
+| **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime's own side: a process takes the Worker queue's jobs, the poll job runs every minute, and the store of security events answers. |
+| **Scheduled polling** | For a saved connection: polling is on, no run is stuck waiting for a worker, and polls run on time. |
 
-The report also includes OneUptime's own checks — **Background workers**, **Poll scheduler**, **Security event storage** and, for a saved connection, **Scheduled polling** — so "credentials accepted but nothing ingests" points at the actual cause. A failed check shows a remediation; the sections below explain the messages.
+Every request in a test has a 20 second deadline. A test never imports anything or moves the cursor, and each failed check says what to change.
 
 ## Troubleshooting
 
-Every error the connector records — in a run, in a failed check, or in the connection's **Last Error** — starts with `Splunk Enterprise Security` followed by the step that failed. Credentials are redacted before the message is stored. Read the prefix first:
+The connection's **Last Error** keeps the complete error message, with credentials redacted, behind a prefix that names the step that failed. When a connection has an error, select **View Error** in its **Actions** column to read it, and **Copy Error** in the dialog to copy it. Read the prefix first.
 
-- `Splunk Enterprise Security authentication request failed (HTTP 401)` — Splunk rejected the credential. The token is wrong, expired or revoked; token authentication is disabled on the search head; or the username and password are wrong. Create a new token (**Settings → Tokens**) and use **Update credentials**.
-- `Splunk Enterprise Security authentication request failed (HTTP 404)`, `... returned a non-JSON body.` — the URL does not point at the REST API. The usual cause is port `8000` (Splunk Web) instead of the management port `8089`, or an extra path. The message says so when Splunk answered with HTML.
-- `Splunk Enterprise Security authentication request returned an unrecognized response shape` — the URL answered JSON that is not Splunk's `current-context` document: a proxy or gateway between OneUptime and Splunk answered instead of the search head.
-- `Splunk Enterprise Security search export failed (HTTP 403)` or `count search failed (HTTP 403)` — the credential works but the role lacks the `search` capability or read access to the searched index. Add `notable` (or your index) to the role's allowed indexes.
-- `Splunk Enterprise Security search export failed (HTTP 400)` or `... was rejected by Splunk on an HTTP 200` — Splunk could not parse the search. Run the **Search** value in Splunk Web to see the parser's message; remove `earliest`/`latest` and any leading pipe. The connector only adds the time range, `| fields *`, `| sort 0 _time` and `| head`.
-- `Splunk Enterprise Security search export failed (HTTP 404)` — both the v2 and the deprecated v1 export endpoints answered `404`; the URL is not a search head's management port.
-- `Splunk Enterprise Security search export failed (HTTP 429)` — Splunk throttled the user. Scheduled polls retry the same window automatically.
-- `Splunk Enterprise Security search export failed (HTTP 5xx)` — the search head reported an error (under load, or a search that hit a limit). The next poll retries the same window.
-- `Splunk Enterprise Security search export returned a body that is not newline-delimited JSON.` — Splunk answered `200` with something other than the JSON export stream (HTML from Splunk Web, a login page from a proxy). The run is reported as failed rather than as an empty window on purpose: treating an unreadable body as "no events" would move the cursor past whatever it held.
-- `Splunk Enterprise Security count search returned an unrecognized response shape` — the `| stats count` probe returned rows without a `count` field. This only affects **Test connection**; the poll does not use it.
-- `Splunk Enterprise Security ... did not complete` — the request never got an answer: a timeout, DNS failure, a certificate OneUptime does not trust, or the egress guard refusing a private address. Check that the OneUptime API and worker processes can open a TLS connection to the management port. On OneUptime Cloud the search head must be reachable from the internet; on self-hosted deployments check `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`. When it is a timeout on a reachable search head, the search is too heavy for the window: the connector sorts every matching row by `_time` before returning any, so the next poll reads a window half as long from the same starting point, down to one minute. A narrower **Search** fixes it for good.
-- **Last Polled is `Never` and Last Error is empty** — the background worker has not executed the poll job at all, so nothing has ever reached Splunk. On self-hosted deployments the usual cause is `DISABLE_QUEUE_WORKERS=true` on the app container with no separate worker deployment draining the queues. Either set `DISABLE_QUEUE_WORKERS=false` (the `config.example.env` default that Docker Compose ships with), or run the dedicated worker deployment (Helm: `worker.enabled: true`, which is `false` by default). **Test connection** reports this as a failed worker or scheduler check.
-- **Runs are Partial** — the poll found more rows than one poll reads; read the run's warnings in **Diagnostics**. A warning that names where the next poll can resume means polling is working through a backlog from that point and needs no action: the cursor moves forward on every poll, and runs stop being Partial once it has caught up. A warning that the next poll reads a shorter window means the window is being narrowed until one poll can read it. If **Last Error** says polling moved past a minute, rows from that minute were left behind: run **Import history** on it, and check whether the **Search** selects more than you intended (a whole index instead of `index=notable`). A connection that is Partial on every poll creates more than 10,000 matching rows per poll interval; narrow the **Search**, or shorten the **Poll interval (minutes)** so more polls run per hour.
-- **Test connection passes but nothing appears** — open **Notable events available to import** in the report. Zero rows in the last 7 days means the search matched nothing on Splunk's side: check that Enterprise Security's correlation searches are enabled and creating notables (Incident Review), and that the **Search** is not narrower than you intended. Rows older than 24 hours at the time the connection was created are not imported by scheduled polling; use **Import history**.
+:::details Last Error starts with `Splunk Enterprise Security authentication request`
+- `Splunk Enterprise Security authentication request failed (HTTP ...)`: Splunk refused to say who the caller is.
+  - `HTTP 401`: Splunk did not accept the credentials. The token is wrong, expired or deleted, token authentication is disabled on the search head, or the username or the password is wrong. Create a new token, and save it with **Update credentials**.
+  - `HTTP 404`: the **Splunk management URL** is not the REST API. It points at Splunk Web on port `8000`, or it has a path the search head does not serve.
+- `Splunk Enterprise Security authentication request returned ...`: something other than the search head's REST API answered, such as Splunk Web's HTML on port `8000`, or a proxy's page. Point the URL at the management port.
+:::
+
+:::details Last Error starts with `Splunk Enterprise Security search export` or `Splunk Enterprise Security count search`
+- `Splunk Enterprise Security search export failed (HTTP ...)`: Splunk refused to run the search.
+  - `HTTP 400`: Splunk cannot parse the search. Run your **Search** in Splunk Web to read its error.
+  - `HTTP 403`: the user's role lacks the `search` capability, or cannot read the index. Add `notable`, or your index, to the indexes the role may search.
+  - `HTTP 404`: neither export endpoint exists at that URL, so it is not a search head's management port.
+  - `HTTP 429` or `HTTP 5xx`: Splunk is throttling the user, busy, or the search hit one of its limits. The next poll tries again.
+- `Splunk Enterprise Security search export was rejected by Splunk on an HTTP 200`: Splunk answered, but stopped the search with an error. The message quotes it.
+- `Splunk Enterprise Security search export returned a body that is not newline-delimited JSON.`: something other than the REST API answered, such as Splunk Web, or a proxy's sign-in page. This is reported rather than taken as an empty window, so the cursor never moves past rows nobody read.
+- `Splunk Enterprise Security count search ...`: the same failures, from the count of **Notable events available to import**, which only a test runs.
+:::
+
+:::details Last Error ends with `did not complete`
+`Splunk Enterprise Security search export did not complete`, and the same for the other steps, means the request got no answer: a timeout, a name that does not resolve, a certificate OneUptime does not trust, or a private address refused. Check that the OneUptime app and workers can open an HTTPS connection to the management port. A search head that answers other requests but times out on the search is sorting too much: the next poll reads a window half as long, and a narrower **Search** fixes it for good.
+:::
+
+:::details Last Polled is Never and Last Error is empty
+No poll has finished for this connection. Run **Test connection**: its **Background workers** and **Poll scheduler** checks name the cause. On a self-hosted install, the usual cause is `DISABLE_QUEUE_WORKERS=true` on the app, with no separate worker deployment taking the jobs: set it to `false`, or run the worker deployment (Helm: `worker.enabled: true`).
+:::
+
+:::details A run is Partial
+- `Stopped after collecting 10000 records; the window holds more`: the window held more than the 10,000 rows one run reads. Nothing is lost: the next poll starts after the last row read. A connection that stays **Partial** poll after poll is catching up on a backlog, and its **Last Polled** and **Last Event Imported** keep moving. If it never catches up, your **Search** matches more than 10,000 rows per poll interval: narrow it, or shorten the **Poll Interval (Minutes)**.
+- `More records were created in the one minute from ... than one poll can read`: polling moved past that minute. Import it with **Import this time range** in **Diagnostics**. An import reads as much as one poll.
+:::
+
+:::details The test passes, but nothing is imported
+Read **Notable events available to import** in the test's report. `0` in the last 7 days means your **Search** matched nothing in Splunk: check in Incident Review that the correlation searches are enabled and create notable events, and that the **Search** is not narrower than you meant.
+:::
 
 ## What you get
 
-- **Security Events explorer** — search and filter notables by severity, status, rule, actor, target, or any observable.
-- **Correlation** — every event's observables (users, hosts, IPs, domains, hashes) are indexed, so "everything mentioning this host" is one query, next to that host's logs and metrics.
-- **Detection Rules** — [Sigma](https://sigmahq.io/) detections-as-code evaluated every minute against your events; matches open deduplicated alerts (with on-call routing) and write Detection Finding events.
-- **Security Events monitors** — alert when matching event counts cross a threshold, with the same criteria, incident, and on-call machinery as every other monitor.
-- **Dashboards & AI** — security event widgets on custom dashboards, and AI assistant tools (`search_security_events`, `security_event_summary`) for natural-language investigation.
+- **Search.** Filter notable events by urgency, status, rule, user, host or any observable in the Security Events explorer, beside every other source.
+- **Correlation.** Every row's users, hosts, IPs and domains are indexed as observables, so one search finds everything that mentions them.
+- **Detection rules.** Sigma rules that run on a schedule over your security events, and open alerts that page on-call.
+- **Monitors.** Security Events monitors count matching events, for example new critical notable events, and open incidents or alerts past a threshold.
 
-## Billing
+Security events are billed like the rest of your telemetry, per GB ingested. See [Pricing](https://oneuptime.com/pricing).
 
-Security events are metered like other telemetry, per GB ingested. See [Pricing](https://oneuptime.com/pricing).
+## Next steps
+
+:::cards
+- [Security Events](/docs/telemetry/security-events): Search, correlate and alert on what you import.
+- [Elastic Security](/docs/integrations/elastic-security): Import the detection alerts of an Elastic stack too.
+- [Roles](/docs/permissions/reference#roles): What the Security roles can see and change.
+- [Integrations Overview](/docs/integrations/index): The other tools you can connect.
+:::

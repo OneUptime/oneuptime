@@ -1,66 +1,113 @@
-# GitLab-integration
+# GitLab
 
-Öppna ett [GitLab](https://gitlab.com)-ärende automatiskt när en OneUptime-incident skapas — så att ingenjörernas uppföljning hamnar i det projekt som äger den berörda tjänsten.
+Öppna ett [GitLab](https://gitlab.com)-issue för varje OneUptime-incident, så att uppföljningsarbetet spåras i det projekt som äger tjänsten. Ett arbetsflöde anropar GitLabs [Issues API](https://docs.gitlab.com/api/issues/#new-issue), på GitLab.com eller på ditt eget GitLab.
 
-Den här integrationen är **utgående**: OneUptime anropar [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html). Den använder ett OneUptime **[Arbetsflöde](/docs/workflows/index)** med en **Incident → On Create**-utlösare och en **API-komponent**. Det fungerar likadant på GitLab.com och egenhostad GitLab.
+:::cards
+- [Spara token](#spara-token): Håll GitLabs token utanför dina arbetsflöden.
+- [Öppna ett issue för varje incident](#öppna-ett-gitlab-issue-för-varje-incident): Ett arbetsflöde, två block.
+- [Tips](#tips): Ditt eget GitLab, projektsökvägar och tilldelade.
+- [Felsökning](#felsökning): När GitLab avvisar en begäran.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/issues)  ──►  GitLab issue
+> [!NOTE]
+> OneUptimes AI öppnar bara pull requests med rättningar i repositorier som är anslutna via GitHub App, så den kan ännu inte arbeta i ett GitLab-repositorium. Se [GitHub](/docs/integrations/github).
+
+## Så fungerar det
+
+```mermaid title="Ett arbetsflöde, ett GitLab-issue"
+flowchart TB
+    declared["Incident deklarerad"] --> workflow["Arbetsflöde:<br/>On Create Incident"]
+    workflow -->|"POST issues"| issue["GitLab-issue"]
 ```
 
-## Förutsättningar
+Arbetsflödet körs en gång för varje ny incident. Dess block **API Post (JSON)** skickar incidentens titel och beskrivning till projektets issues, signerade med en åtkomsttoken.
 
-- Ett GitLab-projekt och dess **Project ID** (visas på projektets översiktssida, under projektnamnet).
-- En åtkomsttoken som kan skapa ärenden — en **Project-**, **Group-** eller **Personal Access Token** med scopet `api`: **Settings → Access Tokens**.
-- Ett OneUptime-projekt där du kan skapa arbetsflöden.
+## Innan du börjar
 
-## Steg 1 — Spara token
+- GitLab-projektets ID. Välj åtgärdsmenyn, de lodräta prickarna, på projektets översiktssida, och sedan **Copy project ID**.
+- En GitLab-åtkomsttoken med omfånget `api`, för en användare eller bot vars roll i projektet kan skapa issues: en projekt-, grupp- eller personlig åtkomsttoken. Skapa den under **Settings → Access tokens** i projektet, gruppen eller dina användarinställningar.
+- I OneUptime behörighet att skapa arbetsflöden och globala variabler. På OneUptime Cloud kräver arbetsflöden **Growth**-abonnemanget eller högre.
 
-1. Gå till **Arbetsflöden → Globala variabler → Skapa**.
-2. Namnge det `GITLAB_TOKEN`, klistra in token och slå på **Is Secret**.
+## Spara token
 
-## Steg 2 — Bygg arbetsflödet
+:::steps
+1. Gå till **Arbetsflöden → Globala variabler** och klicka på **Skapa Arbetsflöde Variabel**.
+2. Ge den namnet `GITLAB_TOKEN` och klicka på **Nästa**.
+3. Klistra in token i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflöde Variabel**.
+:::
 
-1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Incidents → GitLab Issues` och öppna **Byggare**.
-2. Lägg till en **Incident**-utlösare inställd på **On Create**. Byt namn till `Incident`.
-3. Lägg till ett **API**-block kopplat till utlösaren:
+En hemlig variabel ersätts med `[REDACTED]` i körningsloggar, så token syns aldrig i en körning.
 
-   - **Method**: `POST`
-   - **URL**: `https://gitlab.com/api/v4/projects/12345678/issues` _(ersätt `12345678` med ditt Project ID; för egenhostad, använd din egen host)_
-   - **Headers**:
+## Öppna ett GitLab-issue för varje incident
 
-     ```text
-     PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}
-     Content-Type: application/json
-     ```
+:::steps
+### Skapa arbetsflödet
 
-   - **Body**:
+Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **Börja från grunden**. Ge det namnet `Incidents to GitLab` och klicka på **Skapa arbetsflöde**.
 
-     ```json
-     {
-       "title": "OneUptime incident: {{Incident.title}}",
-       "description": "{{Incident.description}}\n\nFiled automatically from OneUptime.",
-       "labels": "incident,oneuptime"
-     }
-     ```
+### Lägg till utlösaren
 
-4. **Spara**, aktivera och skapa en testincident. `201 Created` i arbetsflödets loggar betyder att ärendet skapades; svars-bodyn innehåller dess `iid` och `web_url`.
+Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Incident**. Klicka på utlösaren och välj i **Fields to pass on** `title`, `description` och `incidentNumberWithPrefix`.
+
+### Öppna issuet
+
+Klicka på **Lägg till komponent**, lägg till ett block **API Post (JSON)** och anslut utlösarens punkt **Success** till det. Sätt dess **URL** till `https://gitlab.com/api/v4/projects/12345678/issues`, med ditt projekts ID i stället för `12345678`. Sätt under **Fler fält** dess **Request Headers** till:
+
+```json
+{
+  "PRIVATE-TOKEN": "{{global.variables.GITLAB_TOKEN}}"
+}
+```
+
+Och **Request Body** på:
+
+```json
+{
+  "title": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}\n\nOpened by OneUptime for incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}.",
+  "labels": "incident,oneuptime"
+}
+```
+
+### Testa det och slå sedan på det
+
+Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API Post (JSON)** visar ett `201`-svar med det nya issuet, med dess `iid` och dess `web_url`. Slå sedan på **Aktiverad** högst upp i **Byggare**.
+:::
+
+Blocket skickar JSON, så det behöver ingen `Content-Type`-rubrik. GitLab skapar etiketter som det inte har sett förut, så `incident` och `oneuptime` behöver inte konfigureras. Issuet förblir öppet när incidenten är löst, eftersom uppföljningsarbetet oftast lever längre än incidenten.
 
 ## Tips
 
-- **Egenhostad GitLab**: ersätt `https://gitlab.com` med din instans-URL; `/api/v4/...`-sökvägen förblir densamma.
-- **Projektsökväg i stället för ID**: du kan URL-koda sökvägen — t.ex. `group%2Fproject` — i stället för det numeriska ID:t.
-- **Tilldelad / förfallodatum**: lägg till `"assignee_ids": [42]` eller `"due_date": "2026-01-31"` i bodyn.
-- **Länka tillbaka**: läs `{{CreateIssue.response-body.web_url}}` och spara det på incidenten med ett **Update Incident**-block.
+- **Ditt eget GitLab.** Skicka begäran till din server i stället: `https://gitlab.example.com/api/v4/projects/12345678/issues`. En server på en privat nätverksadress kräver en egenvärdad OneUptime vars administratör tillåter det: se [Utgående nätverksåtkomst](/docs/workflows/configuration#utgående-nätverksåtkomst).
+- **Projektets sökväg i stället för dess ID.** Sökvägen fungerar i stället för ID:t, med dess `/` skrivet som `%2F`: `projects/your-group%2Fyour-project/issues`. URL:en skickas exakt som den är skriven, så koda den själv.
+- **Tilldela det.** Lägg till `"assignee_ids": [42]` eller `"due_date": "2026-12-31"` i bodyn, eller `"confidential": true` för att bara visa det för projektmedlemmar.
+- **Bara vissa incidenter.** Sätt ett block **If / Else** mellan utlösaren och API-blocket, och öppna issues bara på dess **Yes**-sida, till exempel för en allvarlighetsgrad.
 
 ## Felsökning
 
-- **`401`** — token är ogiltig eller har löpt ut, eller saknar scopet `api`.
-- **`404`** — Project ID är fel, eller token kan inte komma åt ett privat projekt.
-- **`400`** — ett obligatoriskt fält saknas eller är felformaterat; `title` är obligatoriskt.
+Steget **API Post (JSON)** tar **Error** när GitLab avvisar begäran. Dess **Response Status** och **Response Body** i körningen säger varför.
 
-## Läs vidare
+:::details GitLab svarar 401
+Token är fel, har gått ut eller har återkallats. Skapa en ny och ersätt innehållet i `GITLAB_TOKEN`.
+:::
 
-- [Integrationsöversikt](/docs/integrations/index) — mönster och autentiseringsfuskbladet.
-- [GitHub](/docs/integrations/github) — samma idé för GitHub.
-- [API-komponent](/docs/workflows/components#api) — läsa svars-bodyn.
+:::details GitLab svarar 403
+Token har inte omfånget `api`, eller så kan dess användares roll i projektet inte skapa issues. Bodyn nämner `insufficient_scope` när det är omfånget.
+:::
+
+:::details GitLab svarar 404
+Projektets ID i **URL** är fel, eller så kan token inte se projektet. GitLab svarar 404, inte 403, för ett privat projekt som en token inte kan se.
+:::
+
+:::details GitLab svarar 400
+GitLab kan inte läsa bodyn: `title` saknas, eller så har ett fält fel typ. Bodyn nämner fältet.
+:::
+
+## Nästa steg
+
+:::cards
+- [GitHub](/docs/integrations/github): Samma arbetsflöde för GitHub, och GitHub App.
+- [Arbetsflödeskomponenter](/docs/workflows/components#api): Alla inställningar för API-blocken.
+- [Arbetsflödeskörningar](/docs/workflows/runs-and-logs): Läs vad varje begäran skickade och fick tillbaka.
+- [Översikt över integrationer](/docs/integrations/index): Mönstren bakom varje integration.
+:::
