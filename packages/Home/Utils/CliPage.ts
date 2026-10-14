@@ -138,23 +138,22 @@ export const CliTerminalTranscripts: CliTerminals = {
   ],
 };
 
-export const getCliPageContent: () => CliPageContent =
-  (): CliPageContent => {
-    return {
-      packageName: CliPackageName,
-      commandName: CliCommandName,
-      installCommand: INSTALL_COMMAND,
-      selfHostedInstallCommand: `${INSTALL_COMMAND}@<your-oneuptime-version>`,
-      dockerfile: [
-        "FROM node:lts-slim",
-        `RUN ${INSTALL_COMMAND}`,
-        `ENTRYPOINT ["${CliCommandName}"]`,
-      ],
-      firstCommands: {
-        install: INSTALL_COMMAND,
-        login: `${CliCommandName} login <api-key> <instance-url>`,
-        run: `${CliCommandName} incident list`,
-      },
-      terminals: CliTerminalTranscripts,
-    };
+export const getCliPageContent: () => CliPageContent = (): CliPageContent => {
+  return {
+    packageName: CliPackageName,
+    commandName: CliCommandName,
+    installCommand: INSTALL_COMMAND,
+    selfHostedInstallCommand: `${INSTALL_COMMAND}@<your-oneuptime-version>`,
+    dockerfile: [
+      "FROM node:lts-slim",
+      `RUN ${INSTALL_COMMAND}`,
+      `ENTRYPOINT ["${CliCommandName}"]`,
+    ],
+    firstCommands: {
+      install: INSTALL_COMMAND,
+      login: `${CliCommandName} login <api-key> <instance-url>`,
+      run: `${CliCommandName} incident list`,
+    },
+    terminals: CliTerminalTranscripts,
   };
+};
