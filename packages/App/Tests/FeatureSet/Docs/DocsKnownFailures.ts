@@ -7,7 +7,9 @@ import { DocsKnownFailures } from "./DocsContentRules";
  * DocsTranslations hold every other page to every rule, and these pages to
  * every rule they keep.
  *
- * This list only shrinks.
+ * This list only shrinks, and it is empty now: docs overhaul task 31
+ * rewrote the Mobile & Desktop Apps pages, the last ones on it
+ * (2026-10-14).
  *
  *   - When a change makes a page pass a rule, the suites fail and say so
  *     ("<page> passes <rule> in <lang> now: delete ..."). Delete that
@@ -41,77 +43,4 @@ import { DocsKnownFailures } from "./DocsContentRules";
  *   sameShape                    a translation keeps its English page's shape
  */
 
-/*
- * The languages as they were when the list was frozen, written out: a
- * language the docs add later is never excused by an entry made before it
- * existed.
- */
-const EN: Array<string> = ["en"];
-const EVERY_TRANSLATION: Array<string> = [
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-  "zh-CN",
-  "zh-TW",
-  "hi",
-  "fa",
-];
-const EVERY_LANGUAGE: Array<string> = [...EN, ...EVERY_TRANSLATION];
-
-// A set of languages without some of them; each one left out must be in it.
-const except: (
-  languages: Array<string>,
-  ...leftOut: Array<string>
-) => Array<string> = (
-  languages: Array<string>,
-  ...leftOut: Array<string>
-): Array<string> => {
-  for (const lang of leftOut) {
-    if (!languages.includes(lang)) {
-      throw new Error(`"${lang}" is not in ${languages.join(", ")}`);
-    }
-  }
-  return languages.filter((lang: string): boolean => {
-    return !leftOut.includes(lang);
-  });
-};
-
-export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
-  "mobile-desktop-apps/faq-troubleshooting": {
-    noRelativeLinks: EVERY_LANGUAGE,
-  },
-  "mobile-desktop-apps/index": {
-    noRelativeLinks: EVERY_LANGUAGE,
-  },
-  "mobile-desktop-apps/linux-installation": {
-    uniqueHeadings: except(EVERY_LANGUAGE, "ja", "hi"),
-    sameShape: ["ja", "hi"],
-  },
-  "mobile-desktop-apps/macos-installation": {
-    uniqueHeadings: ["en", "no", "ru", "zh-CN", "zh-TW", "fa"],
-    codeLanguage: EN,
-    sameShape: except(EVERY_TRANSLATION, "no", "ru", "zh-CN", "zh-TW", "fa"),
-  },
-  "mobile-desktop-apps/windows-installation": {
-    codeLanguage: EN,
-    sameShape: except(
-      EVERY_TRANSLATION,
-      "da",
-      "no",
-      "sv",
-      "ru",
-      "zh-CN",
-      "zh-TW",
-      "fa",
-    ),
-  },
-};
+export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {};

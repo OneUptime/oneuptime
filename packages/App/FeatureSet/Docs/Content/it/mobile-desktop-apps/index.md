@@ -1,48 +1,89 @@
-# App Mobile e Desktop di OneUptime
+# Panoramica delle app
 
-OneUptime offre due modi per utilizzare la piattaforma al di fuori del browser:
+OneUptime ha un'app per il telefono e una per il computer. **OneUptime On-Call**, per iPhone, iPad e Android, ti avvisa quando sei reperibile e ti permette di confermare e risolvere ovunque ti trovi. Su Windows, macOS e Linux, la dashboard di OneUptime si installa dal browser come app desktop, con una finestra tutta sua. Entrambe funzionano con OneUptime Cloud e con un OneUptime ospitato da te.
 
-- **App mobile native** per iOS e Android, pubblicate su **Apple App Store** e **Google Play**. Recapitano avvisi di reperibilità, allerte di incidenti e azioni di presa in carico direttamente sul tuo telefono.
-- **App desktop installabili** per Windows, macOS e Linux, distribuite come Progressive Web App (PWA) installabili direttamente dal tuo browser. Forniscono alla dashboard di OneUptime una propria finestra, icona e area di notifica sul tuo computer.
+:::cards
+- [Scegliere un'app](#scegliere-unapp): A cosa serve ogni app, fianco a fianco.
+- [Come le app raggiungono OneUptime](#come-le-app-raggiungono-oneuptime): Il percorso dell'accesso e degli avvisi di reperibilità.
+- [Ottenere l'app mobile](#ottenere-lapp-mobile): Dall'App Store, da Google Play o da GitHub.
+- [Ottenere l'app desktop](#ottenere-lapp-desktop): Installare la dashboard da Edge, Chrome o Safari.
+:::
 
-## Mobile (App native)
+## Scegliere un'app
 
-L'app **OneUptime On-Call** è un'applicazione nativa sviluppata con React Native. Viene distribuita tramite gli store ufficiali, così ottieni aggiornamenti automatici, notifiche push e sblocco biometrico.
+|  | App mobile | App desktop |
+| --- | --- | --- |
+| Che cos'è | OneUptime On-Call, un'app nativa per iPhone, iPad e Android | La dashboard di OneUptime, installata dal tuo browser |
+| Dove si ottiene | Dall'App Store, da Google Play, o come APK da GitHub | Dal tuo OneUptime: non c'è niente da scaricare |
+| Avvisi di reperibilità | Notifiche push, che possono suonare nonostante la modalità silenziosa e Non disturbare | Notifiche del browser, una volta registrato il browser |
+| Cosa puoi fare | Incidenti, avvisi, monitor e chi è reperibile; confermare, risolvere e aggiungere note | Tutto quello che fa la dashboard |
+| Aggiornamenti | Dallo store, o installando un APK più recente | A ogni apertura carica la dashboard dal tuo OneUptime |
+| Funziona su | iOS 16.4 o successivo, Android 7.0 o successivo | Windows, macOS e Linux, con Edge o Chrome, o Safari su macOS Sonoma 14 o successivo |
 
-- **iOS** — [Scarica dall'App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391). Richiede iOS 15.0 o successivo. Consulta la [Guida all'installazione su iOS](./ios-installation.md).
-- **Android** — [Ottienila su Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). Richiede Android 8.0 o successivo. È disponibile anche un [download diretto dell'APK](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) per dispositivi senza Google Play. Consulta la [Guida all'installazione su Android](./android-installation.md).
+Puoi usarle entrambe: tieni l'app desktop aperta al lavoro, e lascia che di notte ti svegli il telefono.
 
-## Desktop (Progressive Web App)
+## Come le app raggiungono OneUptime
 
-La dashboard web di OneUptime è una Progressive Web App, quindi puoi installarla come applicazione desktop da un browser moderno senza passare attraverso alcuno store.
+```mermaid title="Come gli avvisi di reperibilità raggiungono il tuo telefono e il tuo computer"
+flowchart TB
+    OneUptime["Il tuo OneUptime:<br/>Cloud o self-hosted"]
+    Expo["Servizio push di Expo,<br/>poi Apple o Google"]
+    WebPush["Il servizio push<br/>del tuo browser"]
+    Phone["OneUptime On-Call<br/>sul tuo telefono"]
+    Desktop["L'app desktop<br/>sul tuo computer"]
+    OneUptime -->|"verso un telefono"| Expo
+    OneUptime -->|"verso un browser<br/>registrato"| WebPush
+    Expo -->|"notifica push"| Phone
+    WebPush -->|"notifica"| Desktop
+```
 
-- [Installazione su Windows](./windows-installation.md)
-- [Installazione su macOS](./macos-installation.md)
-- [Installazione su Linux](./linux-installation.md)
+L'app mobile accede al tuo OneUptime e registra il telefono in ogni progetto di cui fai parte. Da quel momento OneUptime invia le notifiche push del telefono, compresi gli avvisi di reperibilità, tramite il servizio push di Expo, che le passa ad Apple o Google per la consegna. Per impostazione predefinita un OneUptime self-hosted le invia tramite il relay push di OneUptime, quindi non gli serve alcun account Apple, Google o Expo: vedi [Notifiche push](/docs/self-hosted/push-notifications).
 
-### Per iniziare con il desktop
+L'app desktop è la dashboard stessa, in una finestra tutta sua. Mostra notifiche una volta che hai registrato il suo browser per le notifiche push: le pagine su Windows, macOS e Linux spiegano come.
 
-1. Apri la tua istanza OneUptime in un browser basato su Chromium (Chrome, Edge) o in Safari.
-2. Cerca il pulsante **Installa** nella barra degli indirizzi oppure in **File → Aggiungi al Dock / App → Installa questo sito come app**.
-3. Avvia l'app installata dal menu Start, dal Launchpad o dal launcher delle applicazioni.
+## Prima di iniziare
 
-### Risoluzione dei problemi desktop
+- Un account in un progetto OneUptime. Per ricevere avvisi devi anche essere reperibile: vedi [Regole di escalation](/docs/on-call/escalation-rules).
+- L'indirizzo del tuo OneUptime. Su OneUptime Cloud è `https://oneuptime.com`; un OneUptime self-hosted ha il suo, ad esempio `https://oneuptime.example.com`.
+- Il tuo OneUptime servito in HTTPS. L'app mobile non si connette in HTTP semplice, e i browser mostrano notifiche, ed Edge e Chrome installano app, solo per siti HTTPS.
 
-**L'opzione di installazione non appare:**
+## Ottenere l'app mobile
 
-- Assicurati di utilizzare un browser supportato.
-- Verifica che la tua istanza OneUptime sia servita tramite HTTPS.
-- Aggiorna la pagina o svuota la cache del browser.
+:::steps
+### Installare OneUptime On-Call
+Scaricala dall'[App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) su un iPhone o iPad, o da [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall) su Android. Per un telefono Android senza Google Play, installa invece l'[APK](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk). Gli stessi link si trovano nella dashboard, in **Impostazioni del progetto → Notifiche → App mobili**.
 
-**Le notifiche push non funzionano:**
+### Collegarla al tuo OneUptime
+Apri l'app, lascia `https://oneuptime.com` per OneUptime Cloud o inserisci l'indirizzo del tuo OneUptime, e accedi con la password, una passkey o il single sign-on.
 
-- Concedi i permessi di notifica quando richiesto dal browser.
-- Controlla le impostazioni di notifica del sistema operativo per il browser.
-- Utenti self-hosted: verifica che le notifiche push siano configurate sulla tua istanza OneUptime.
+### Consentire le notifiche
+Consentile quando il telefono lo chiede. L'app registra il telefono in ciascuno dei tuoi progetti, e i tuoi avvisi di reperibilità iniziano ad arrivargli.
+:::
 
-## Supporto
+Ogni passaggio nel dettaglio, con cosa controllare dopo: [Installazione Android](/docs/mobile-desktop-apps/android-installation) e [Installazione iOS](/docs/mobile-desktop-apps/ios-installation).
 
-- Problemi specifici per mobile: consulta le guide all'installazione per [iOS](./ios-installation.md) o [Android](./android-installation.md).
-- Problemi specifici per desktop: consulta le guide all'installazione per [Windows](./windows-installation.md), [macOS](./macos-installation.md) o [Linux](./linux-installation.md).
-- Domande generali: consulta la pagina [FAQ e Risoluzione dei problemi](./faq-troubleshooting.md).
-- Segnala bug o richieste di funzionalità sul nostro [repository GitHub](https://github.com/OneUptime/oneuptime).
+## Ottenere l'app desktop
+
+:::steps
+### Aprire la dashboard
+Accedi al tuo OneUptime in Microsoft Edge o Google Chrome, oppure in Safari su un Mac.
+
+### Installarla
+In Edge o Chrome, fai clic sull'icona di installazione a destra della barra degli indirizzi. In Safari, scegli **Archivio → Aggiungi al Dock**.
+
+### Aprirla come qualsiasi altra app
+Si apre in una finestra tutta sua, dal menu Start, dal Dock o dal tuo launcher di app.
+:::
+
+Ogni browser passo per passo: [Installazione Windows](/docs/mobile-desktop-apps/windows-installation), [Installazione macOS](/docs/mobile-desktop-apps/macos-installation) e [Installazione Linux](/docs/mobile-desktop-apps/linux-installation).
+
+## Passi successivi
+
+:::cards
+- [Installazione Android](/docs/mobile-desktop-apps/android-installation): Installare l'app su Android, accedere e controllare che gli avvisi arrivino.
+- [Installazione iOS](/docs/mobile-desktop-apps/ios-installation): Installare l'app su un iPhone o iPad e attivare gli avvisi critici.
+- [Installazione Windows](/docs/mobile-desktop-apps/windows-installation): Installare la dashboard da Edge o Chrome.
+- [Installazione macOS](/docs/mobile-desktop-apps/macos-installation): Aggiungere la dashboard al Dock da Safari, Chrome o Edge.
+- [Installazione Linux](/docs/mobile-desktop-apps/linux-installation): Installare la dashboard da Chrome, Chromium o Edge.
+- [FAQ e risoluzione dei problemi](/docs/mobile-desktop-apps/faq-troubleshooting): Risposte, soluzioni, e cosa fare quando un telefono smette di ricevere avvisi.
+:::
