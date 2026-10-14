@@ -13,6 +13,10 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import { getStatusPageData, StatusPageData } from "../Utils/StatusPage";
 import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
+import applyPublicPageNotFound, {
+  PUBLIC_PAGE_NOT_FOUND,
+  PublicPageNotFound,
+} from "Common/Server/Utils/PublicPageNotFound";
 import XML from "Common/Types/XML";
 
 type RSSItem = {
@@ -31,7 +35,14 @@ export const handleRSS: (
 ): Promise<void> => {
   try {
     // Get status page data
-    const statusPageData: StatusPageData | null = await getStatusPageData(req);
+    const statusPageData: StatusPageData | PublicPageNotFound | null =
+      await getStatusPageData(req);
+
+    if (statusPageData === PUBLIC_PAGE_NOT_FOUND) {
+      applyPublicPageNotFound(res);
+      res.send("Status page not found");
+      return;
+    }
 
     if (!statusPageData) {
       res.status(404).send("Status page not found");

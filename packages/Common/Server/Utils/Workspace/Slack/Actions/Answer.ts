@@ -53,6 +53,13 @@ export interface SlackAnswerPlace {
   responseUrl?: string | undefined;
   // A shortcut's: opens a modal, for three seconds.
   triggerId?: string | undefined;
+  /*
+   * The person's direct messages with the app, when they wrote to it there.
+   * Not a channel to answer in with a message only they see: they are
+   * answered by the app's own message there, the last of the ways above.
+   * Kept as the way back to it from the page a Connect button opens.
+   */
+  slackDirectMessageChannelId?: string | undefined;
 }
 
 // How an answer reached the person (for the log and the tests).

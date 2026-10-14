@@ -163,6 +163,29 @@ describe("OnCallPageCard status", () => {
 
     expect(screen.getByText("On-call policy unavailable")).toBeTruthy();
   });
+
+  test("a direct page says what it is: it has no policy, and none is missing", async (): Promise<void> => {
+    /*
+     * A workflow paged this person directly. "On-call policy unavailable"
+     * would read as something lost, at the moment somebody is deciding
+     * whether the page in their hand is real.
+     */
+    await render(
+      <OnCallPageCard
+        page={page({ policyName: undefined, isDirectPage: true })}
+      />,
+    );
+
+    expect(screen.getByText("Direct page")).toBeTruthy();
+    expect(screen.queryByText("On-call policy unavailable")).toBeNull();
+  });
+
+  test("a page that names its policy shows the policy, whatever else it says", async (): Promise<void> => {
+    await render(<OnCallPageCard page={page({ isDirectPage: true })} />);
+
+    expect(screen.getByText("Database")).toBeTruthy();
+    expect(screen.queryByText("Direct page")).toBeNull();
+  });
 });
 
 describe("OnCallPageCard navigation", () => {

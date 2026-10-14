@@ -4,12 +4,12 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime | Our Open Source Friends</title>
-    <meta name="description"
-        content="Discover amazing open-source projects and companies that are building the future of software. From observability to AI, these are the tools we love and recommend.">
+    <title><%= seo.title %></title>
+    <meta name="description" content="<%= seo.description %>">
         <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
+        <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>

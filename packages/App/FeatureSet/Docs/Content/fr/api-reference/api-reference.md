@@ -242,7 +242,7 @@ Un champ activé ou désactivé - `isEnabled`, `isVisibleOnStatusPage`, `isArchi
 isVisibleOnStatusPage must be true or false.
 ```
 
-Une mise à jour qui écrit les valeurs d'un enregistrement telles qu'elles sont déjà ne change rien : elle ne lance pas les workflows **On Update** de l'enregistrement, n'envoie pas de mises à jour en direct et n'ajoute pas d'entrée au journal d'audit. `false` écrit par-dessus `false` compte comme la même valeur, tout comme `"false"` écrit par-dessus `false`, un nombre écrit sous forme de texte, une heure écrite comme le même instant dans un autre format, et des étiquettes écrites comme les mêmes étiquettes dans n'importe quel ordre. Quand une mise à jour modifie certaines valeurs et en réécrit d'autres telles quelles, son entrée de journal d'audit ne liste que les valeurs modifiées, et le **Listen on** d'un workflow n'entend que celles-là.
+Une mise à jour qui écrit les valeurs d'un enregistrement telles qu'elles sont déjà ne change rien : elle ne lance pas les workflows **On Update** de l'enregistrement, n'envoie pas de mises à jour en direct et n'ajoute pas d'entrée au journal d'audit. `false` écrit par-dessus `false` compte comme la même valeur, tout comme `"false"` écrit par-dessus `false`, un nombre écrit sous forme de texte, une heure écrite comme le même instant dans un autre format, et des étiquettes écrites comme les mêmes étiquettes dans n'importe quel ordre. Quand une mise à jour modifie certaines valeurs et en réécrit d'autres telles quelles, son entrée de journal d'audit ne liste que les valeurs modifiées, et le **Fields to watch** d'un workflow n'entend que celles-là.
 
 ### Où un projet a été acheté
 

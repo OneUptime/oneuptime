@@ -335,13 +335,13 @@ Een sonde maakt alleen uitgaande verbindingen, tenzij u een listener inschakelt 
 | --- | --- | --- | --- |
 | Inkomende verzoeken en heartbeats | `PROBE_INGRESS_PORT` | Uit | [Ingress voor inkomende verzoeken](/docs/probe/incoming-request-ingress) |
 | SNMP-traps | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Aan, UDP 162 | [Netwerkapparaat-monitor](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Uit, UDP 5140 | [Handleidingen per netwerkleverancier](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Aan, UDP en TCP 5140 | [Netwerkgebeurtenissen](/docs/monitor/network-events) |
 | NetFlow, IPFIX en sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | Aan, UDP 2055, 4739 en 6343 | [Netwerkverkeer](/docs/monitor/network-traffic) |
 | Gezondheidscontroles | `PORT` | Aan, TCP 3874 | `/status/live` en `/status/ready` |
 
 In een container is een poort vanaf andere machines alleen bereikbaar met hostnetwerk of wanneer u hem publiceert.
 
-De syslog-ontvanger stuurt hoogstens `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` berichten per minuut door, standaard `600`, laat de rest vallen en logt hoeveel hij heeft laten vallen.
+De syslog-ontvanger stuurt hoogstens `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` berichten per minuut door, standaard `600`. Daarboven stuurt hij nog steeds de berichten door die hij als netwerkgebeurtenis leest, tot nog eens zoveel, laat de rest vallen en logt hoeveel hij heeft laten vallen.
 
 `PROBE_NAME` en `PROBE_DESCRIPTION` worden alleen gelezen door sondes die zich zelf registreren met `REGISTER_PROBE_KEY`, zoals de sondes die een zelf gehoste installatie voor elk project draait. Een aangepaste sonde neemt zijn naam en beschrijving over uit het dashboard.
 

@@ -63,6 +63,7 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 | **Bewaak logboeken gedurende (time)** | Logs van de laatste 5 seconden tot de laatste 24 uur. | **Laatste 1 minuut** |
 | **Logernst** | Logs met een van de gekozen ernstniveaus. | Leeg: elk ernstniveau |
 | **Group by Attributes** | Geen filter: telt elke combinatie van waarden van deze attributen apart. | Leeg: één telling |
+| **Opgelost door attributen** | Geen filter: de log die een groep oplost. Verschijnt zodra **Group by Attributes** een attribuut heeft; zie [Opgelost door een log](#opgelost-door-een-log). | Leeg: een groep wordt opgelost wanneer de logs ervan stoppen |
 | **Filteren op telemetrieservice** (onder **Meer velden**) | Logs van een van de gekozen services. | Leeg: elke service |
 | **Filter by Infrastructure Entity** (onder **Meer velden**) | Logs van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
 | **Filteren op attributen** (onder **Meer velden**) | Logs waarvan de attributen aan elke voorwaarde voldoen. Elke voorwaarde heeft een eigen operator, zoals "is gelijk aan" of "bevat". | Leeg: geen voorwaarde |
@@ -170,7 +171,21 @@ flowchart TB
 
 De waarschuwing of het incident van elke groep wordt los van de andere opgelost. Zodra een groep niet meer aan de criteria voldoet (`HQ-Branch1` logt binnen het tijdvenster geen beëindigingen meer), wordt de waarschuwing ervan opgelost, terwijl die van `Branch2` open blijft tot ook `Branch2` stopt. Het herstel van de ene groep sluit nooit de waarschuwing van een andere.
 
-Een logs-monitor ziet gebeurtenissen, geen toestanden: de waarschuwing van een groep wordt opgelost zodra die groep een volledig tijdvenster lang niets heeft gelogd dat aan de criteria voldoet, of de tunnel nu weer werkt of niet.
+Een logs-monitor ziet gebeurtenissen, geen toestanden: de waarschuwing van een groep wordt opgelost zodra die groep een volledig tijdvenster lang niets heeft gelogd dat aan de criteria voldoet, of de tunnel nu weer werkt of niet, tenzij de monitor de log noemt die zegt dat hij weer werkt, zoals hieronder.
+
+### Opgelost door een log
+
+Een apparaat dat een tunnel als uitgevallen meldt, meldt meestal ook dat hij weer werkt. **Opgelost door attributen** noemt die log: is het ingesteld, dan blijft de waarschuwing of het incident van een groep open tot er voor dezelfde groep een log met die attributen binnenkomt, in plaats van opgelost te worden wanneer de logs van de groep stoppen.
+
+Neem een monitor die logs met `event.name` = `vpn.tunnel_down` telt, gegroepeerd op `event.device` en `vpn.tunnel.name`, met **Opgelost door attributen** ingesteld op `event.name` = `vpn.tunnel_up`. Valt tunnel `HQ-Branch1` uit, dan opent dat de waarschuwing ervan. De waarschuwing blijft de hele nacht open, ook al logt de firewall niets meer over de tunnel, en wordt opgelost wanneer de firewall meldt dat `HQ-Branch1` weer werkt. Valt de tunnel opnieuw weg, dan opent dat een nieuwe waarschuwing.
+
+- Het veld verschijnt zodra **Group by Attributes** een attribuut heeft. Het neemt tot 10 attributen aan, en een oplossende log draagt ze allemaal.
+- Een oplossende log hoort bij een groep als hij voor de group-by-attributen de waarden van de groep heeft, dus beide soorten logs moeten die attributen dragen.
+- De telemetrieservices en het tijdvenster van de monitor gelden ook voor oplossende logs. De tekst- en ernstfilters niet: die beschrijven het probleem.
+- Een groep waarvan de nieuwste log een oplossende is, wordt gesloten. Een groep die het probleem daarna opnieuw logde, blijft open.
+- U kunt een waarschuwing nog steeds zelf oplossen.
+
+[Netwerkgebeurtenissen](/docs/monitor/network-events) maakt deze monitors voor u, één klik per waarschuwing.
 
 ### Voorbeeld: één waarschuwing per Sophos-IPsec-tunnel
 

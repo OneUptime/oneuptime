@@ -110,7 +110,7 @@ Les deux délimiteurs doivent être différents, ne doivent pas se contenir l'un
 
 ### Exemple : pare-feu Sophos XGS
 
-Quand un pare-feu Sophos XGS envoie du syslog à une [sonde](/docs/monitor/network-device-monitor), chaque message est stocké comme journal de l'équipement réseau, avec le message syslog comme corps. Pour l'analyser :
+OneUptime lit de lui-même le syslog Sophos et FortiGate comme des attributs `sophos.*` et `fortigate.*` (voir [Événements réseau](/docs/monitor/network-events)) ; cet exemple construit la même chose à la main, comme vous le feriez pour un format qu'il ne connaît pas. Quand un pare-feu Sophos XGS envoie du syslog à une [sonde](/docs/monitor/network-device-monitor), chaque message est stocké comme journal de l'équipement réseau, avec le message syslog comme corps. Pour l'analyser :
 
 :::steps
 #### Créer un pipeline pour le pare-feu
@@ -199,7 +199,7 @@ Déplace la valeur d'un attribut (**Clé source**) vers un autre (**Clé cible**
 
 ## Processeur de catégories
 
-Évalue une liste de règles dans l'ordre et stocke le nom de la première règle dont le filtre correspond dans un attribut cible, afin que vous trouviez d'un coup tous les journaux « Payment Error ». Réglez **Attribut cible** (`category` par défaut), puis ajoutez des **Règles de catégorie** : un **Nom de la catégorie** et les conditions sous **When logs match**. La première règle qui correspond l'emporte ; un journal qui n'en satisfait aucune reste inchangé.
+Évalue une liste de règles dans l'ordre et stocke le nom de la première règle dont le filtre correspond dans un attribut cible, afin que vous trouviez d'un coup tous les journaux « Payment Error ». Réglez **Attribut cible** (`category` par défaut), puis ajoutez des **Règles de catégorie** : un **Nom de la catégorie** et les conditions sous **When logs match**. La première règle qui correspond l'emporte ; un journal qui n'en satisfait aucune reste inchangé. Sur les journaux d'un équipement réseau, une règle nommée comme un événement (`ups.on_battery`) sous l'attribut cible `event.name` fait du journal un [événement réseau](/docs/monitor/network-events#vos-propres-événements).
 
 ## Étapes suivantes
 

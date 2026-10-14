@@ -71,8 +71,9 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
   /*
    * The only section open on arrival, and only what people open Network
    * for: whether it is healthy, the devices, where they are, the map,
-   * where the traffic goes, and the way to find more. Six rows, down from
-   * ten open before.
+   * where the traffic goes, what the devices reported, and the way to find
+   * more. Seven rows, down from ten open before: Events (#4728) sits beside
+   * Traffic, the two things devices send a probe.
    */
   {
     title: "Network",
@@ -108,6 +109,12 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
         pageMapKey: PageMap.NETWORK_TRAFFIC,
         getBreadcrumbs: getNetworkDeviceBreadcrumbs,
         breadcrumbTitles: ["Project", "Network", "Traffic"],
+      },
+      {
+        title: "Events",
+        pageMapKey: PageMap.NETWORK_EVENTS,
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Events"],
       },
       {
         title: "Discovery",
@@ -439,7 +446,7 @@ describe("Network side menu", () => {
       expect(openSections).toEqual(["Network"]);
     });
 
-    test("shows six rows on arrival: Overview, Devices, Sites, Map, Traffic and Discovery", async () => {
+    test("shows seven rows on arrival: Overview, Devices, Sites, Map, Traffic, Events and Discovery", async () => {
       await renderNetworkMenu();
 
       expect(
@@ -452,6 +459,7 @@ describe("Network side menu", () => {
         "Sites",
         "Map",
         "Traffic",
+        "Events",
         "Discovery",
       ]);
 
@@ -467,7 +475,7 @@ describe("Network side menu", () => {
           return count + linksIn(title).length;
         }, 0);
 
-      expect(visibleRows).toBe(6);
+      expect(visibleRows).toBe(7);
     });
 
     test("leaves the deeper views out of the open section", async () => {
@@ -600,11 +608,11 @@ describe("Network side menu", () => {
   });
 
   describe("coverage", () => {
-    test("keeps all twenty-five destinations reachable exactly once", async () => {
+    test("keeps all twenty-six destinations reachable exactly once", async () => {
       await renderNetworkMenu();
 
-      expect(EXPECTED_ENTRIES).toHaveLength(25);
-      expect(allLinks()).toHaveLength(25);
+      expect(EXPECTED_ENTRIES).toHaveLength(26);
+      expect(allLinks()).toHaveLength(26);
       expect(hrefsInMenu().sort()).toEqual(
         EXPECTED_ENTRIES.map(expectedHref).sort(),
       );
@@ -689,6 +697,7 @@ describe("Network side menu", () => {
       [PageMap.NETWORK_DEVICES, "Devices"],
       [PageMap.NETWORK_SITES, "Sites"],
       [PageMap.NETWORK_TRAFFIC, "Traffic"],
+      [PageMap.NETWORK_EVENTS, "Events"],
       [PageMap.NETWORK_DEVICE_DISCOVERY, "Discovery"],
     ])(
       "%s highlights %s and keeps every folded section folded",
@@ -817,6 +826,7 @@ describe("Network side menu", () => {
       [PageMap.NETWORK_DEVICE_ENDPOINTS, "Topology / Endpoints"],
       [PageMap.NETWORK_DEVICE_DISCOVERY, "Network / Discovery"],
       [PageMap.NETWORK_TRAFFIC, "Network / Traffic"],
+      [PageMap.NETWORK_EVENTS, "Network / Events"],
       [PageMap.NETWORK_DEVICE_TOPOLOGY, "Topology / Device Topology"],
       [PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES, "Rules / Owner Rules"],
       [PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES, "Settings / Site Types"],

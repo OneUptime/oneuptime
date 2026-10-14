@@ -1,5 +1,5 @@
 import { REDIRECT_PATHS, isRedirectPath } from "../Utils/Sitemap";
-import PageSEOConfig, { PageSEOData } from "../Utils/PageSEO";
+import PageSEOConfig, { PageSEOData, getPageSEO } from "../Utils/PageSEO";
 import fs from "fs";
 import path from "path";
 
@@ -135,6 +135,89 @@ describe("Trust center routes", () => {
   });
 });
 
+describe("Legal routes", () => {
+  /*
+   * /legal rendered the Terms of Service under a second URL, so search
+   * engines saw two copies of one document. It redirects to /legal/terms
+   * permanently, which is still what every link to /legal shows. Each
+   * document hands legal.ejs its own SEO entry rather than leaving the
+   * request middleware to derive one from the path, so /Legal/DPA and
+   * /legal/dpa/ still name /legal/dpa as canonical.
+   */
+  const legalPaths: Array<string> = [
+    ...new Set<string>(
+      [...routesSource.matchAll(/app\.get\(\s*"(\/legal\/[^"]+)"/g)].map(
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
+    ),
+  ];
+
+  test("/legal permanently redirects to the terms it always showed", () => {
+    expect(hasGetRoute("/legal")).toBe(true);
+    expect(redirectTargetOf("/legal")).toBe("/legal/terms");
+    expect(redirectsPermanently("/legal")).toBe(true);
+    expect(bodyOfGetRoute("/legal")).not.toContain("res.render(");
+  });
+
+  test("the terms are still a page of their own", () => {
+    expect(redirectTargetOf("/legal/terms")).toBeNull();
+    expect(bodyOfGetRoute("/legal/terms")).toContain('section: "terms"');
+  });
+
+  test("nothing describes /legal as a page, or leads a breadcrumb trail through it", () => {
+    // A redirect has no title or description of its own to give a search.
+    expect(PageSEOConfig["/legal"]).toBeUndefined();
+
+    const trails: Array<[string, Array<string>]> = [
+      ...Object.values(PageSEOConfig),
+      getPageSEO("/legal/a-document-nobody-wrote"),
+    ].map((seo: PageSEOData): [string, Array<string>] => {
+      return [
+        seo.canonicalPath,
+        seo.breadcrumbs.map((crumb: { url: string }): string => {
+          return crumb.url;
+        }),
+      ];
+    });
+
+    for (const [pagePath, urls] of trails) {
+      expect([pagePath, urls.includes("/legal")]).toEqual([pagePath, false]);
+    }
+  });
+
+  test("every legal document is registered once", () => {
+    const declarations: Array<string> = [
+      ...routesSource.matchAll(/app\.get\(\s*"(\/legal\/[^"]+)"/g),
+    ].map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(legalPaths.length).toBe(29);
+    expect(declarations.length).toBe(legalPaths.length);
+  });
+
+  test.each(legalPaths)(
+    "%s renders its own section with its own SEO entry",
+    (legalPath: string) => {
+      const body: string = bodyOfGetRoute(legalPath)!;
+      const section: string = legalPath.replace("/legal/", "");
+
+      expect(body).toContain(`${"${ViewsPath}"}/legal.ejs`);
+      expect(body).toContain(`section: "${section}"`);
+      expect(body).toMatch(
+        new RegExp(`getSEOForPath\\(\\s*"${legalPath}",\\s*res\\.locals`),
+      );
+
+      const seo: PageSEOData | undefined = PageSEOConfig[legalPath];
+
+      expect(seo).toBeDefined();
+      expect(seo!.canonicalPath).toBe(legalPath);
+    },
+  );
+});
+
 describe("Nostr identity route", () => {
   /*
    * NIP-05 clients fetch this document from the browser, so it is only usable
@@ -231,6 +314,59 @@ describe("Sitemap hygiene", () => {
     for (const routePath of Array.from(REDIRECT_PATHS)) {
       expect(redirectTargetOf(routePath)).not.toBeNull();
     }
+  });
+
+  test("the short product addresses and /legal are excluded, and the pages they redirect to are routes", () => {
+    for (const [routePath, target] of [
+      ["/incident-management", "/product/incident-management"],
+      ["/ai-agent", "/product/ai-agent"],
+      ["/legal", "/legal/terms"],
+    ] as Array<[string, string]>) {
+      expect(redirectTargetOf(routePath)).toBe(target);
+      expect(isRedirectPath(routePath)).toBe(true);
+      expect(hasGetRoute(target)).toBe(true);
+      expect(isRedirectPath(target)).toBe(false);
+    }
+  });
+
+  test("/docs and /reference are excluded as redirects, though they are the app's, not routes here", () => {
+    for (const routePath of ["/docs", "/reference"]) {
+      expect(isRedirectPath(routePath)).toBe(true);
+      // The ingress sends them to the app: a route here would never be reached.
+      expect(hasGetRoute(routePath)).toBe(false);
+      // Kept apart from REDIRECT_PATHS, whose every path is a redirect route here.
+      expect(REDIRECT_PATHS.has(routePath)).toBe(false);
+    }
+
+    // Only the two addresses themselves: every page under them is a page.
+    expect(isRedirectPath("/docs/en/introduction/getting-started")).toBe(false);
+    expect(isRedirectPath("/reference/en/introduction")).toBe(false);
+  });
+
+  test("the retired tag sitemaps answer 410 Gone rather than a sitemap", () => {
+    const body: string | null = bodyOfGetRoute("/sitemap-tags-:page.xml");
+
+    expect(body).not.toBeNull();
+    expect(body).toContain("sendRetiredSitemap(res)");
+    expect(body).not.toContain("generateTagsSitemapXml");
+    expect(body).not.toContain("res.send(xml)");
+  });
+
+  test("a page's .md variant is never indexed, whether it is found or not", () => {
+    const start: number = routesSource.indexOf("app.get(/^\\/.+\\.md$/");
+
+    expect(start).toBeGreaterThan(-1);
+
+    const next: number = routesSource.indexOf("app.get(", start + 1);
+    const body: string = routesSource.slice(start, next);
+    const noindex: number = body.indexOf(
+      'res.setHeader("X-Robots-Tag", "noindex")',
+    );
+
+    expect(noindex).toBeGreaterThan(-1);
+    // Set before the handler answers, so the 404 carries it as well.
+    expect(noindex).toBeLessThan(body.indexOf("res.status(404)"));
+    expect(noindex).toBeLessThan(body.indexOf("sendAITextResponse("));
   });
 
   test("the self-hosted page is prioritised in the sitemap config", () => {

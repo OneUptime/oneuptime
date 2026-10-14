@@ -25,7 +25,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Color from "../../../Types/Color";
 import { serializeCustomFieldDropdownOptions } from "../../../Types/CustomField/CustomFieldDropdownOption";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Email from "../../../Types/Email";
 import MonitorRecommendationSeverityMapper from "../../../Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
 import ObjectID from "../../../Types/ObjectID";
@@ -57,7 +57,6 @@ import {
   getGroupScheduleName,
   getGroupSourceId,
   groupRotationsIntoSchedules,
-  isGroupSourceIdOf,
   resolveImportedTimezone,
 } from "../../../Types/ToolImport/ToolImportScheduleRules";
 import {
@@ -115,6 +114,7 @@ import TeamService from "../../Services/TeamService";
 import ToolImportRecordService from "../../Services/ToolImportRecordService";
 import Errors from "../Errors";
 import ToolImportProjectStateReader from "./ToolImportProjectStateReader";
+import ToolImportRecordIndex from "./ToolImportRecordIndex";
 import { ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY } from "../../../Utils/StatusPage/HistoryChartBarColors";
 
 /*
@@ -225,7 +225,16 @@ class ApplyRun {
   private resolved: Map<ToolImportResourceKind, Map<string, Array<string>>> =
     new Map<ToolImportResourceKind, Map<string, Array<string>>>();
   // What earlier imports (and this one, before a restart) remembered.
-  private records: Array<ToolImportRecord> = [];
+  private records: ToolImportRecordIndex<ToolImportRecord> =
+    new ToolImportRecordIndex<ToolImportRecord>();
+  // What was read, by the tool's id: each list indexed the first time it is searched.
+  private sourcesByList: WeakMap<
+    Array<{ sourceId: string }>,
+    Map<string, { sourceId: string }>
+  > = new WeakMap<
+    Array<{ sourceId: string }>,
+    Map<string, { sourceId: string }>
+  >();
   private done: number = 0;
   private total: number = 0;
   // The project's statuses and severities, read when the first monitor is made.
@@ -245,23 +254,28 @@ class ApplyRun {
   }
 
   public async run(): Promise<ToolImportReport> {
-    this.records = await ToolImportRecordService.findBy({
-      query: {
-        projectId: this.input.projectId,
-        source: this.input.source,
-      },
-      select: {
-        _id: true,
-        kind: true,
-        sourceId: true,
-        recordId: true,
-        isComplete: true,
-        toolImportRunId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    /*
+     * Every record, however many imports remembered: an item whose record
+     * the read left out would be made again.
+     */
+    this.records = new ToolImportRecordIndex<ToolImportRecord>(
+      await ToolImportRecordService.findAllBy({
+        query: {
+          projectId: this.input.projectId,
+          source: this.input.source,
+        },
+        select: {
+          _id: true,
+          kind: true,
+          sourceId: true,
+          recordId: true,
+          isComplete: true,
+          toolImportRunId: true,
+        },
+        sort: { _id: SortOrder.Ascending },
+        props: { isRoot: true },
+      }),
+    );
 
     /*
      * What is already in OneUptime is what anything created now names:
@@ -396,17 +410,11 @@ class ApplyRun {
    * created again. True when the item is dealt with.
    */
   private async resumeIfRecorded(item: ToolImportPlanItem): Promise<boolean> {
-    const matching: Array<ToolImportRecord> = this.records.filter(
-      (record: ToolImportRecord): boolean => {
-        return (
-          record.kind === item.kind &&
-          Boolean(record.sourceId) &&
-          (item.kind === ToolImportResourceKind.OnCallSchedule
-            ? isGroupSourceIdOf(record.sourceId!, item.sourceId)
-            : record.sourceId === item.sourceId)
-        );
-      },
-    );
+    // A schedule's records are those of every schedule it became.
+    const matching: Array<ToolImportRecord> =
+      item.kind === ToolImportResourceKind.OnCallSchedule
+        ? this.records.findWithGroups(item.kind, item.sourceId)
+        : this.records.find(item.kind, item.sourceId);
 
     if (matching.length === 0) {
       return false;
@@ -443,11 +451,7 @@ class ApplyRun {
         }
       }
 
-      this.records = this.records.filter(
-        (record: ToolImportRecord): boolean => {
-          return !matching.includes(record);
-        },
-      );
+      this.records.remove(matching);
 
       return false;
     }
@@ -969,10 +973,9 @@ class ApplyRun {
   // ---- People.
 
   private async invitePerson(item: ToolImportPlanItem): Promise<void> {
-    const person: ImportedPerson | undefined = this.input.snapshot.people.find(
-      (candidate: ImportedPerson): boolean => {
-        return candidate.sourceId === item.sourceId;
-      },
+    const person: ImportedPerson | undefined = this.sourceOf(
+      this.input.snapshot.people,
+      item.sourceId,
     );
 
     if (!person || !person.email) {
@@ -1618,15 +1621,36 @@ class ApplyRun {
     list: Array<T>,
     item: ToolImportPlanItem,
   ): T {
-    const found: T | undefined = list.find((candidate: T): boolean => {
-      return candidate.sourceId === item.sourceId;
-    });
+    const found: T | undefined = this.sourceOf(list, item.sourceId);
 
     if (!found) {
       throw new Error(`${item.name} is no longer in what was read.`);
     }
 
     return found;
+  }
+
+  // The first of a list of what was read with the tool's id, as a search of the list finds.
+  private sourceOf<T extends { sourceId: string }>(
+    list: Array<T>,
+    sourceId: string,
+  ): T | undefined {
+    let byId: Map<string, { sourceId: string }> | undefined =
+      this.sourcesByList.get(list);
+
+    if (!byId) {
+      byId = new Map<string, { sourceId: string }>();
+
+      for (const source of list) {
+        if (!byId.has(source.sourceId)) {
+          byId.set(source.sourceId, source);
+        }
+      }
+
+      this.sourcesByList.set(list, byId);
+    }
+
+    return byId.get(sourceId) as T | undefined;
   }
 
   private resolve(
@@ -1715,11 +1739,7 @@ class ApplyRun {
 
       if (ids.length === 0) {
         // A team that is not in the snapshot at all was never a team to bring.
-        if (
-          this.input.snapshot.teams.some((team: ImportedTeam): boolean => {
-            return team.sourceId === sourceId;
-          })
-        ) {
+        if (this.sourceOf(this.input.snapshot.teams, sourceId)) {
           notes.push(
             makeToolImportNote(ToolImportNoteCode.TeamLeftOut, {
               name: this.teamName(sourceId),
@@ -1763,39 +1783,30 @@ class ApplyRun {
   }
 
   private personName(personId: string): string {
-    const person: ImportedPerson | undefined = this.input.snapshot.people.find(
-      (candidate: ImportedPerson): boolean => {
-        return candidate.sourceId === personId;
-      },
+    const person: ImportedPerson | undefined = this.sourceOf(
+      this.input.snapshot.people,
+      personId,
     );
 
     return person?.email || person?.name || personId;
   }
 
   private teamName(teamId: string): string {
-    return (
-      this.input.snapshot.teams.find((team: ImportedTeam): boolean => {
-        return team.sourceId === teamId;
-      })?.name || teamId
-    );
+    return this.sourceOf(this.input.snapshot.teams, teamId)?.name || teamId;
   }
 
   private scheduleName(scheduleId: string): string {
     return (
-      this.input.snapshot.schedules.find(
-        (schedule: ImportedSchedule): boolean => {
-          return schedule.sourceId === scheduleId;
-        },
-      )?.name || scheduleId
+      this.sourceOf(this.input.snapshot.schedules, scheduleId)?.name ||
+      scheduleId
     );
   }
 
   private monitorName(monitorId: string): string {
     return (
-      getToolImportSnapshotMonitors(this.input.snapshot).find(
-        (monitor: ImportedMonitor): boolean => {
-          return monitor.sourceId === monitorId;
-        },
+      this.sourceOf(
+        getToolImportSnapshotMonitors(this.input.snapshot),
+        monitorId,
       )?.name || ""
     );
   }
@@ -1823,7 +1834,7 @@ class ApplyRun {
       props: { isRoot: true },
     });
 
-    this.records.push(created);
+    this.records.add(created);
     return created;
   }
 

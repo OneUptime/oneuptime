@@ -147,15 +147,16 @@ const CREATE_BUTTONS: Record<string, Array<string>> = {
  * is also a span status on that page, which a translation draws as its
  * Dashboard does; the dot keeps it in English. AiToolingDocsFacts holds
  * each to the workflow components that define it.
+ *
+ * If / Else's Value to check, Comparison and Compare with are not among
+ * them: its editor draws them in the reader's language (ConditionModel),
+ * so a translation names them as its Dashboard does.
  */
 export const WORKFLOW_STEP_NAMES: Record<string, Array<string>> = {
   [CIRCUIT_BREAKER]: [
     "On Create Alert",
-    "Select Fields",
+    "Fields to pass on",
     "If / Else",
-    "Value to check",
-    "Comparison",
-    "Compare with",
     "API Post (JSON)",
     "URL",
     "Request Headers",

@@ -328,11 +328,11 @@ docker compose down
 
 - **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 클러스터의 인시던트와 알림을 조사하며, 클러스터의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
 - API 토큰이 절대적인 한계입니다. 조사는 읽기만 하고 다른 것은 할 수 없는 Collector의 PVEAuditor 토큰(`PVE_API_TOKEN_ID` / `PVE_API_TOKEN_SECRET`)을 사용합니다. 자체 익스포터를 실행하고 `.env`에 토큰이 없다면 추가하세요. 수정에는 게스트 전원을 제어할 수 있는 AI 에이전트 전용 토큰(`VM.PowerMgmt`, 예를 들어 `/vms`나 풀 하나에 대한 `PVEVMUser` 역할)이 필요하며, `ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`으로 설정합니다.
-- `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하지 않는 한 읽기 전용입니다. `ONEUPTIME_AI_WRITE_TARGETS`(`100,101` 같은 VMID와, 노드 서비스의 경우 `<node>/<service>`)가 수정이 건드릴 수 있는 대상을 제한합니다. 에이전트가 이 클러스터의 게스트에서 실행된다면 그 게스트의 VMID를 `ONEUPTIME_AI_PROTECTED_TARGETS`에 넣으세요. 같은 `.env`의 `ONEUPTIME_AI_FIXES`가 수정 실행 방식, 즉 `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나를 정하며, AI 에이전트 페이지에는 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
+- `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하지 않는 한 읽기 전용입니다. `ONEUPTIME_AI_WRITE_TARGETS`(`100,101` 같은 VMID와, 노드 서비스의 경우 `<node>/<service>`)가 수정이 건드릴 수 있는 대상을 제한합니다. 에이전트가 이 클러스터의 게스트에서 실행된다면 그 게스트의 VMID를 `ONEUPTIME_AI_PROTECTED_TARGETS`에 넣으세요. 같은 `.env`의 `ONEUPTIME_AI_FIXES`가 수정 실행 방식, 즉 `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나를 정하며, AI 에이전트 페이지에는 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)).
 - 익스포터처럼 `PVE_VERIFY_SSL=true`를 설정하거나 `PVE_CA_FILE`이 클러스터의 CA(`/etc/pve/pve-root-ca.pem`, 컨테이너에 마운트)를 가리키게 하지 않는 한 API의 자체 서명 인증서를 검증하지 않습니다.
 - 기능(capability) 없이 UID 1000으로 읽기 전용 루트 파일 시스템에서 실행되며, `/access`를 읽거나 콘솔을 열거나 구성을 바꾸지 않습니다. OneUptime AI를 사용하지 않는다면 `docker-compose.yml`에서 `oneuptime-proxmox-ai-agent` 서비스를 삭제하세요.
 
-실행할 수 있는 명령, 수정 방식, 문제 해결 방법은 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#proxmox-clusters)를 참조하세요. 에이전트의 README에 수정용 토큰을 위한 정확한 `pveum` 명령이 있습니다.
+실행할 수 있는 명령, 수정 방식, 문제 해결 방법은 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#proxmox-클러스터)를 참조하세요. 에이전트의 README에 수정용 토큰을 위한 정확한 `pveum` 명령이 있습니다.
 
 ## 문제 해결
 

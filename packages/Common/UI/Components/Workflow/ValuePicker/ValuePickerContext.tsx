@@ -83,6 +83,12 @@ export interface ValuePickerContextValue {
    * any moment, such as a webhook's first request.
    */
   refreshSource: (sourceId: string) => void;
+  /*
+   * Starts a test run with Run Workflow - saving this step's settings first -
+   * when the reader may run the workflow and the settings can be saved.
+   * Offered by a note that waits for a request the paused trigger refuses.
+   */
+  onTestRun?: (() => void) | undefined;
 }
 
 const DEFAULT_CONTEXT: ValuePickerContextValue = {
@@ -133,6 +139,13 @@ export interface ValuePickerProviderProps {
    * nothing has called yet can offer a test request to copy.
    */
   webhookUrl?: string | undefined;
+  /*
+   * The workflow is turned off: its trigger is paused, so a Webhook's URL
+   * refuses the test request, and a test run fills the values in instead.
+   */
+  isWorkflowOff?: boolean | undefined;
+  // Starts such a test run; see ValuePickerContextValue.onTestRun.
+  onTestRun?: (() => void) | undefined;
   children: ReactNode;
 }
 
@@ -171,12 +184,17 @@ export const ValuePickerProvider: FunctionComponent<
       component: props.component,
       upstreamComponents: upstreamComponents,
       webhookUrl: props.webhookUrl,
+      sometimesSteps: props.valueSources?.sometimes,
+      unavailableSteps: props.valueSources?.unavailable,
+      isWorkflowOff: props.isWorkflowOff,
     };
   }, [
     props.workflowId?.toString(),
     props.component,
     upstreamComponents,
     props.webhookUrl,
+    props.valueSources,
+    props.isWorkflowOff,
   ]);
 
   /*
@@ -211,6 +229,7 @@ export const ValuePickerProvider: FunctionComponent<
       })
       .join(","),
     props.webhookUrl || "",
+    props.isWorkflowOff ? "off" : "on",
   ].join("|");
 
   const [loaded, setLoaded] = useState<Record<string, LoadedGroups>>({});
@@ -506,8 +525,10 @@ export const ValuePickerProvider: FunctionComponent<
       getChildren: getChildren,
       loadChildren: loadChildren,
       refreshSource: refreshSource,
+      onTestRun: props.onTestRun,
     };
   }, [
+    props.onTestRun,
     groups,
     isLoading,
     loadErrors.join("\n"),

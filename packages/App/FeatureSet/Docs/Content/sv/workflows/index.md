@@ -128,7 +128,7 @@ Utlösaren tar det streckade blockets plats. ID:t på det, `incident-on-create-1
 
 ### Välj incidentens fält
 
-Klicka på utlösaren. Under **Select Fields** markerar du fälten förfrågan ska ha med, som titeln och beskrivningen, och klickar på **Spara**.
+Klicka på utlösaren. **Fields to pass on** börjar med titeln: klicka på **Lägg till fält**, markera beskrivningen och de andra fält som förfrågan ska ha med, och klicka på **Spara**.
 
 Utlösaren skickar den nya incidenten vidare med de här fälten. Ett fält du inte väljer kommer fram tomt.
 
@@ -158,7 +158,7 @@ En förfrågan som misslyckas — en URL som inte går att nå, eller ett svar s
 
 ### Testa det
 
-Klicka på **Kör arbetsflöde**, ange **Incident-ID** för en incident i det här projektet, klicka på **Run Workflow Manually** och bekräfta med **Run**. Arbetsflödet är fortfarande avstängt, så det här är en **Testkörning**, och förfrågan skickas på riktigt.
+Klicka på **Kör arbetsflöde** och välj en incident i det här projektet under **Incident**: de senaste visas i listan, och genom att skriva dess nummer eller en del av dess titel hittar du en annan. Klicka på **Kör arbetsflödet manuellt** och bekräfta med **Kör**. Arbetsflödet är fortfarande avstängt, så det här är en **Testkörning**, och förfrågan skickas på riktigt.
 
 En panel **Arbetsflödeskörning** öppnas och följer körningen. Öppna steget **API Post (JSON)** för att se bodyn det skickade och svaret det fick.
 

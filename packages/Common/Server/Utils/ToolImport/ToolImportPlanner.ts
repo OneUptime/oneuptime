@@ -29,7 +29,6 @@ import ToolImportResourceKind, {
 } from "../../../Types/ToolImport/ToolImportResourceKind";
 import {
   groupRotationsIntoSchedules,
-  isGroupSourceIdOf,
   resolveImportedTimezone,
 } from "../../../Types/ToolImport/ToolImportScheduleRules";
 import {
@@ -55,6 +54,7 @@ import {
   ImportedTeam,
   ToolImportSnapshot,
 } from "../../../Types/ToolImport/ToolImportSnapshot";
+import ToolImportRecordIndex from "./ToolImportRecordIndex";
 
 /*
  * WHAT AN IMPORT WOULD DO, ITEM BY ITEM.
@@ -248,6 +248,8 @@ class PlanBuilder {
   private snapshot: ToolImportSnapshot;
   private state: ToolImportProjectState;
   private access: ToolImportAccess;
+  // What earlier imports brought over (state.previousRecords), by kind and the tool's id.
+  private previousRecords: ToolImportRecordIndex<ToolImportPreviousRecord>;
   private items: Array<ToolImportPlanItem> = [];
   // Names this import creates, by kind: a second item of the same name matches the first.
   private plannedNames: Map<ToolImportResourceKind, Map<string, string>> =
@@ -282,6 +284,9 @@ class PlanBuilder {
     this.snapshot = snapshot;
     this.state = state;
     this.access = access;
+    this.previousRecords = new ToolImportRecordIndex<ToolImportPreviousRecord>(
+      state.previousRecords,
+    );
   }
 
   public build(): ToolImportPlan {
@@ -762,11 +767,7 @@ class PlanBuilder {
    */
   private takePrevious(item: ToolImportPlanItem): boolean {
     const previous: ToolImportPreviousRecord | undefined =
-      this.state.previousRecords.find(
-        (record: ToolImportPreviousRecord): boolean => {
-          return record.kind === item.kind && record.sourceId === item.sourceId;
-        },
-      );
+      this.previousRecords.find(item.kind, item.sourceId)[0];
 
     if (previous && previous.stillExists) {
       item.action = ToolImportAction.AlreadyImported;
@@ -1190,11 +1191,7 @@ class PlanBuilder {
     const item: ToolImportPlanItem = this.newItem(data);
 
     const previous: ToolImportPreviousRecord | undefined =
-      this.state.previousRecords.find(
-        (record: ToolImportPreviousRecord): boolean => {
-          return record.kind === data.kind && record.sourceId === data.sourceId;
-        },
-      );
+      this.previousRecords.find(data.kind, data.sourceId)[0];
 
     if (previous && previous.stillExists) {
       item.action = ToolImportAction.AlreadyImported;
@@ -1202,14 +1199,10 @@ class PlanBuilder {
       item.reason = makeToolImportNote(ToolImportNoteCode.AlreadyImported);
 
       // The other schedules a schedule became, those still in the project.
-      const others: Array<string> = this.state.previousRecords
+      const others: Array<string> = this.previousRecords
+        .findWithGroups(data.kind, data.sourceId)
         .filter((record: ToolImportPreviousRecord): boolean => {
-          return (
-            record.kind === data.kind &&
-            record.stillExists &&
-            record.sourceId !== data.sourceId &&
-            isGroupSourceIdOf(record.sourceId, data.sourceId)
-          );
+          return record.stillExists && record.sourceId !== data.sourceId;
         })
         .map((record: ToolImportPreviousRecord): string => {
           return record.recordId;

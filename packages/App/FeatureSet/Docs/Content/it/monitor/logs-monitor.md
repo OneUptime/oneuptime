@@ -63,6 +63,7 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | **Log del monitor per (time)** | Log degli ultimi 5 secondi fino alle ultime 24 ore. | **Ultimo minuto** |
 | **Gravità del log** | Log con una qualsiasi delle gravità scelte. | Vuoto: tutte le gravità |
 | **Group by Attributes** | Non è un filtro: conta separatamente ogni combinazione di valori di questi attributi. | Vuoto: un solo conteggio |
+| **Risolto per attributi** | Non è un filtro: il log che risolve un gruppo. Compare appena **Group by Attributes** ha un attributo; vedi [Risolto da un log](#risolto-da-un-log). | Vuoto: un gruppo si risolve quando i suoi log si fermano |
 | **Filtra per servizio di telemetria** (in **Altri campi**) | Log di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
 | **Filter by Infrastructure Entity** (in **Altri campi**) | Log di uno qualsiasi degli host, pod, container e altre entità scelti. | Vuoto: tutte le entità |
 | **Filtra per attributi** (in **Altri campi**) | Log i cui attributi soddisfano ogni condizione. Ogni condizione ha il proprio operatore, come «uguale a» o «contiene». | Vuoto: nessuna condizione |
@@ -170,7 +171,21 @@ flowchart TB
 
 L'avviso o l'incidente di ogni gruppo si risolve per conto proprio. Appena un gruppo non soddisfa più i criteri (`HQ-Branch1` non registra più terminazioni nella finestra di tempo), il suo avviso si risolve, mentre quello di `Branch2` resta aperto finché anche `Branch2` non si ferma. Il ripristino di un gruppo non chiude mai l'avviso di un altro.
 
-Un monitor log vede eventi, non stati: l'avviso di un gruppo si risolve non appena quel gruppo non ha registrato nulla che soddisfi i criteri per un'intera finestra di tempo, che il tunnel sia tornato o no.
+Un monitor log vede eventi, non stati: l'avviso di un gruppo si risolve non appena quel gruppo non ha registrato nulla che soddisfi i criteri per un'intera finestra di tempo, che il tunnel sia tornato o no, a meno che il monitor non indichi il log che ne segnala il ritorno, come spiegato sotto.
+
+### Risolto da un log
+
+Un dispositivo che segnala un tunnel caduto di solito ne segnala anche il ritorno. **Risolto per attributi** indica quel log: una volta impostato, l'avviso o l'incidente di un gruppo resta aperto finché non arriva un log con quegli attributi per lo stesso gruppo, invece di risolversi quando i log del gruppo si fermano.
+
+Prendi un monitor che conta i log con `event.name` = `vpn.tunnel_down`, raggruppati per `event.device` e `vpn.tunnel.name`, con **Risolto per attributi** impostato su `event.name` = `vpn.tunnel_up`. La caduta del tunnel `HQ-Branch1` apre il suo avviso. L'avviso resta aperto per tutta la notte, anche se il firewall non registra più nulla sul tunnel, e si risolve quando il firewall segnala `HQ-Branch1` di nuovo attivo. Se il tunnel cade di nuovo, si apre un nuovo avviso.
+
+- Il campo compare appena **Group by Attributes** ha un attributo. Accetta fino a 10 attributi, e un log di risoluzione li porta tutti.
+- Un log di risoluzione appartiene a un gruppo quando ha i valori del gruppo per gli attributi di raggruppamento, quindi entrambi i tipi di log devono portare quegli attributi.
+- I servizi di telemetria e la finestra di tempo del monitor valgono anche per i log di risoluzione. I suoi filtri di testo e di gravità no: descrivono il problema.
+- Un gruppo il cui log più recente è di risoluzione viene chiuso. Uno che ha registrato di nuovo il problema dopo resta aperto.
+- Puoi sempre risolvere un avviso da te.
+
+[Eventi di rete](/docs/monitor/network-events) crea questi monitor per te, un clic per avviso.
 
 ### Esempio: un avviso per tunnel IPsec Sophos
 

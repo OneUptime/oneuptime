@@ -187,11 +187,11 @@ swarm 的 `docker-compose.yml`（以及 `install.sh`）也會執行 **Docker Swa
 
 - **AI 調查預設為開啟。** 代理程式連線後，OneUptime AI 會用它來調查該叢集上的事件和警示，叢集的 **概覽** 會顯示代理程式的狀態。若要停止，請在代理程式執行的位置設定 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理程式頁面上 **AI 可以執行的操作** 下的 **變更** 會顯示方法），或不安裝代理程式。
 - 和清單輪詢器一樣，它 **必須在管理節點上執行**：節點、服務和工作命令只在管理節點上可用。在工作節點上，它什麼也不執行，並且在節點成為管理節點之前不會為叢集註冊（它的 `/status` 會說明原因）。每個叢集執行一個。
-- 除非你在 `.env` 中設定 `ONEUPTIME_AI_ALLOW_WRITES=true` 並執行 `docker compose up -d`（或帶上該變數執行 `install.sh`；安裝程式會將其環境中的 `ONEUPTIME_AI_ALLOW_WRITES`、`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`、`ONEUPTIME_AI_WRITE_TARGETS` 和 `ONEUPTIME_AI_PROTECTED_TARGETS` 寫入 `.env`，再次執行時，除非你傳入該變數（即使為空），否則後四個變數會保留 `.env` 中已有的值），否則它是 **唯讀** 的；`ONEUPTIME_AI_WRITE_TARGETS`（服務和節點名稱的萬用字元模式，例如 `web_*,api_*`）會限制修正可以觸及的範圍。同一個 `.env` 中的 `ONEUPTIME_AI_FIXES` 決定修正如何執行——`ask-for-approval`（由人逐一核准）、`automatic` 或 `bypass-approval`——AI 代理程式頁面會以唯讀方式顯示它（[AI 可以執行的操作，由代理程式設定](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)）。無論處於哪種模式，清空節點一律需要人工核准。
+- 除非你在 `.env` 中設定 `ONEUPTIME_AI_ALLOW_WRITES=true` 並執行 `docker compose up -d`（或帶上該變數執行 `install.sh`；安裝程式會將其環境中的 `ONEUPTIME_AI_ALLOW_WRITES`、`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`、`ONEUPTIME_AI_WRITE_TARGETS` 和 `ONEUPTIME_AI_PROTECTED_TARGETS` 寫入 `.env`，再次執行時，除非你傳入該變數（即使為空），否則後四個變數會保留 `.env` 中已有的值），否則它是 **唯讀** 的；`ONEUPTIME_AI_WRITE_TARGETS`（服務和節點名稱的萬用字元模式，例如 `web_*,api_*`）會限制修正可以觸及的範圍。同一個 `.env` 中的 `ONEUPTIME_AI_FIXES` 決定修正如何執行——`ask-for-approval`（由人逐一核准）、`automatic` 或 `bypass-approval`——AI 代理程式頁面會以唯讀方式顯示它（[AI 可以執行的操作，由代理程式設定](/docs/ai/infrastructure-ai-agents#ai-可以做什麼由代理程式設定)）。無論處於哪種模式，清空節點一律需要人工核准。
 - 它以 root 身分執行並掛載了 Docker 通訊端，因為該通訊端歸 root 所有——而在管理節點上，能使用該通訊端的人就能控制整個 swarm，無論是否帶 `:ro`。真正的限制是代理程式的命令原則：它絕不建立或移除服務或堆疊，絕不觸碰密碼或設定，也絕不變更它自己、Collector、清單輪詢器或 `ONEUPTIME_AI_PROTECTED_TARGETS`（服務和節點名稱的萬用字元模式）中的任何內容。
 - `install.sh --no-ai-agent` 會不安裝它；也可以從 `docker-compose.yml` 中刪除 `oneuptime-docker-swarm-ai-agent` 服務。
 
-它可以執行什麼、修正如何運作以及如何排解它的問題：[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-swarm-clusters)。
+它可以執行什麼、修正如何運作以及如何排解它的問題：[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-swarm-叢集)。
 
 ## 疑難排解
 

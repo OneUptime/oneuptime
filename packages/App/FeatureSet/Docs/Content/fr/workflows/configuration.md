@@ -147,7 +147,7 @@ Ce dont le bloc a besoin, et ce qu'il coûte :
 
 - **Activer l'IA** doit être activé, sous **Paramètres du projet → IA → Fonctionnalités IA**. Sur OneUptime Cloud, le projet a aussi besoin du forfait Growth ou supérieur et d'un abonnement payé. Les installations auto-hébergées sans facturation n'ont pas de restriction de forfait.
 - Les appels via un fournisseur global payant utilisent les crédits IA du projet.
-- Chaque appel compte dans les [limites quotidiennes d'IA propres au projet](/docs/ai/ai-sre#the-projects-own-daily-limits), quand un propriétaire du projet les fixe. Une fois une limite atteinte, le bloc prend **Error** sans contacter le modèle, jusqu'à minuit UTC.
+- Chaque appel compte dans les [limites quotidiennes d'IA propres au projet](/docs/ai/ai-sre#les-limites-quotidiennes-propres-au-projet), quand un propriétaire du projet les fixe. Une fois une limite atteinte, le bloc prend **Error** sans contacter le modèle, jusqu'à minuit UTC.
 
 | Limite                                                       | Valeur                                                                    |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |

@@ -80,6 +80,7 @@ import React from "react";
 import "@testing-library/jest-dom";
 import {
   RenderResult,
+  act,
   cleanup,
   fireEvent,
   render,
@@ -706,6 +707,58 @@ describe("what has to be filled in", () => {
       expect(lastErrors(onErrors)).toEqual({ arguments: false });
     });
     expect(lastArguments(onFormChange)["operator"]).toBe("!=");
+  });
+});
+
+describe("a field's message waits for the press that left it", () => {
+  /*
+   * In a browser the focus leaves a field when a button below it is
+   * pressed, not when it is clicked. A message shown at once pushed that
+   * button - Compare as, the dialog's Save - out from under the pointer
+   * before the release, and the first press did nothing, as it did on
+   * Switch / Case's Add case (Utils/UseAfterPress).
+   */
+  test("held down on Compare as, the message waits for the release, and the press opens it", async () => {
+    renderCondition({ ...PRODUCTION_CHECK, "input-1": "" });
+
+    const header: HTMLElement = compareAsHeader();
+    expect(header).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.focus(valueToCheck());
+    fireEvent.pointerDown(header);
+    fireEvent.mouseDown(header);
+    fireEvent.blur(valueToCheck());
+
+    // However long the button is held.
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 30);
+      });
+    });
+    expect(screen.queryByText("Pick or type the value to check.")).toBeNull();
+
+    fireEvent.pointerUp(header);
+    fireEvent.mouseUp(header);
+    fireEvent.click(header);
+
+    // The press landed where it was aimed.
+    expect(compareAsHeader()).toHaveAttribute("aria-expanded", "true");
+    expect(
+      await screen.findByText("Pick or type the value to check."),
+    ).toBeInTheDocument();
+  });
+
+  test("left with the keyboard, the message shows once the key's events are handled", async () => {
+    renderCondition({ ...PRODUCTION_CHECK, "input-2": "" });
+
+    fireEvent.focus(compareWith());
+    fireEvent.blur(compareWith());
+
+    // Not in the middle of the events that moved the focus.
+    expect(screen.queryByText("Type or pick what to compare with.")).toBeNull();
+    expect(
+      await screen.findByText("Type or pick what to compare with."),
+    ).toBeInTheDocument();
   });
 });
 

@@ -29,7 +29,7 @@ import MobilePasskey, {
   MobilePasskeyRequest,
 } from "../../../../App/FeatureSet/Accounts/src/Utils/MobilePasskey";
 import MobilePasskeyPage from "../../../../App/FeatureSet/Accounts/src/Pages/MobilePasskey";
-import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
+import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 
 const state: string = "a".repeat(64);
 const code: string = "c".repeat(43);
@@ -92,9 +92,10 @@ const configureLocation: (search?: string, server?: string) => void = (
   });
 };
 
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   jest.restoreAllMocks();
+  await i18n.changeLanguage("en");
   Object.defineProperty(window, "location", {
     configurable: true,
     value: originalLocation,
@@ -212,6 +213,52 @@ describe("Mobile passkey browser page", () => {
     expect(API.post).not.toHaveBeenCalled();
   });
 
+  /*
+   * The setup help used to send people to "User Profile → Passkeys & Two
+   * Factor Auth", a page the Dashboard no longer has. It names the menu the
+   * Dashboard draws, as the sign-in page's "New to passkeys?" does.
+   */
+  test("'New to passkeys?' names the Dashboard's Security → Passkeys page", () => {
+    render(<MobilePasskeyPage />);
+    fireEvent.click(screen.getByText("New to passkeys?"));
+
+    const help: HTMLElement = screen
+      .getByText("New to passkeys?")
+      .closest("details") as HTMLElement;
+    expect(help).toHaveAttribute("open");
+    expect(help).toHaveTextContent(
+      "Create a passkey in the web dashboard, under User Profile → Security → Passkeys.",
+    );
+    expect(help).not.toHaveTextContent("Two Factor Auth");
+    expect(API.post).not.toHaveBeenCalled();
+  });
+
+  /*
+   * This page shows the sign-in page's notices. They used to end with "Try
+   * again, or sign in with your password" - advice a page with no password
+   * form cannot follow. They say what happened; the page's own button, now
+   * "Try passkey again", is the next step.
+   */
+  test("a dismissed prompt says what happened, without pointing at a password form the page does not have", async () => {
+    jest
+      .spyOn(navigator.credentials, "get")
+      .mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
+    const { container } = render(<MobilePasskeyPage />);
+    fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+
+    const notice: HTMLElement = await screen.findByText(
+      "Passkey sign-in was canceled or timed out.",
+    );
+    expect(notice).toBeVisible();
+    expect(notice.textContent!.toLowerCase()).not.toContain("password");
+    expect(container.querySelector('input[type="password"]')).toBeNull();
+    await waitFor(() => {
+      return expect(
+        screen.getByTestId("mobile-passkey-sign-in"),
+      ).toHaveTextContent("Try passkey again");
+    });
+  });
+
   test("binds the browser challenge to PKCE and returns a code without local login", async () => {
     render(<MobilePasskeyPage />);
     fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
@@ -261,12 +308,73 @@ describe("Mobile passkey browser page", () => {
       configurable: true,
       value: undefined,
     });
-    render(<MobilePasskeyPage />);
+    const { container } = render(<MobilePasskeyPage />);
     expect(screen.getByTestId("mobile-passkey-sign-in")).toBeDisabled();
+    /*
+     * This page's own sentence. The sign-in page's ends "You can still sign
+     * in with your password or SSO", and this page has neither: the way on
+     * is back in the app.
+     */
     expect(
-      screen.getByText(/Passkeys aren’t available in this browser/),
+      screen.getByText(
+        "Passkeys aren’t available in this browser. Return to the app and sign in with your password or SSO.",
+      ),
     ).toBeVisible();
+    expect(screen.queryByText(/You can still sign in/)).not.toBeInTheDocument();
+    expect(container.querySelector('input[type="password"]')).toBeNull();
+    /*
+     * Nothing can be approved here and no passkey can be set up from here,
+     * so the line about approving and the setup help are not drawn.
+     */
+    expect(
+      screen.queryByText(/After you approve, you’ll return to the mobile app/),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("New to passkeys?")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Cancel and return to app" }),
+    ).toBeEnabled();
     expect(API.post).not.toHaveBeenCalled();
+  });
+
+  test("a browser that can use passkeys keeps the line about approving and the setup help", () => {
+    render(<MobilePasskeyPage />);
+
+    expect(screen.getByTestId("mobile-passkey-sign-in")).toBeEnabled();
+    expect(
+      screen.getByText("After you approve, you’ll return to the mobile app."),
+    ).toBeVisible();
+    expect(screen.getByText("New to passkeys?")).toBeVisible();
+    expect(
+      screen.queryByText(/Passkeys aren’t available in this browser/),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The footer's language switcher changes the language without a reload.
+   * A notice is kept as its translation key, so it changes with the page.
+   */
+  test("a notice follows the language switcher", async () => {
+    jest
+      .spyOn(navigator.credentials, "get")
+      .mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
+    render(<MobilePasskeyPage />);
+    fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+    expect(
+      await screen.findByText("Passkey sign-in was canceled or timed out."),
+    ).toBeVisible();
+
+    await act(async () => {
+      await i18n.changeLanguage("de");
+    });
+
+    expect(
+      screen.getByText(
+        "Die Passkey-Anmeldung wurde abgebrochen oder ist abgelaufen.",
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("Passkey sign-in was canceled or timed out."),
+    ).not.toBeInTheDocument();
   });
 
   test("lets a dismissed device prompt retry with a fresh challenge", async () => {

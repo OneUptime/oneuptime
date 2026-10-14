@@ -87,7 +87,7 @@ Börja från mallen, som bygger hela arbetsflödet åt dig, eller från grunden.
 Arbetsflödet öppnas i **Byggare** med tre steg: **On Create Incident**; **Send Message to IRC**, som postar incidentens nummer, titel, allvarlighetsgrad och tillstånd på två rader; och ett **Logg**-steg på dess utgång **Fel**, som noterar varför ett meddelande inte levererades. Servern och kanalen sparas som arbetsflödets variabler `ircServer` och `ircChannel`. Om du sparade lösenord i föregående steg klickar du på **Send Message to IRC**, öppnar **Fler fält** och väljer varje variabel med knappen **{ }** i dess inställning.
 @tab Från grunden
 1. Öppna **Arbetsflöden**, klicka på **Skapa arbetsflöde**, välj **Börja från grunden**, ge arbetsflödet ett namn och klicka på **Skapa arbetsflöde**.
-2. Klicka i **Byggare** på **Choose what starts this workflow** och välj **On Create Incident** under **Popular**. Klicka på utlösaren och välj i **Select Fields** de fält från incidenten som ditt meddelande visar, till exempel dess titel.
+2. Klicka i **Byggare** på **Choose what starts this workflow** och välj **On Create Incident** under **Popular**. Klicka på utlösaren och välj i **Fields to pass on** de fält från incidenten som ditt meddelande visar, till exempel dess titel.
 3. Klicka på **Lägg till komponent**, sök efter `irc` och klicka på **Send Message to IRC**. Koppla utlösarens utgång **Framgång** till steget.
 4. Klicka på det nya steget och fyll i **IRC Server**, **Channel** och **Message Text**. Knappen **{ }** i **Message Text** infogar fält från incidenten, till exempel dess titel.
 5. Om du sparade lösenord i föregående steg öppnar du **Fler fält**. Klicka på **{ }** i **Server Password**, **SASL Password** eller **Channel Key** och välj variabeln under **Global variables**. Skriv ditt kontos namn i **SASL Username**.
@@ -97,7 +97,7 @@ Arbetsflödet öppnas i **Byggare** med tre steg: **On Create Incident**; **Send
 
 Slå på reglaget **Aktiverad** högst upp i **Byggare**. Från och med nu postas varje ny incident i kanalen.
 
-För att testa utan att öppna en incident klickar du på **Kör arbetsflöde** och anger ID:t för en incident du redan har i **Incident-ID**. Incidentens sida visar dess ID. Klicka på **Run Workflow Manually** och bekräfta med **Run**. Panelen **Arbetsflödeskörning** följer körningen: IRC-stegets logg säger hur många rader det skickade, till exempel `Sent 2 lines to #your-channel.`, och meddelandet dyker upp i kanalen. Tar steget **Fel** i stället, säger dess logg varför: se [Felsökning](#felsökning).
+För att testa utan att öppna en incident klickar du på **Kör arbetsflöde** och väljer en incident du redan har under **Incident**: de senaste visas i listan, och genom att skriva dess nummer eller en del av dess titel hittar du en annan. Klicka på **Kör arbetsflödet manuellt** och bekräfta med **Kör**. Panelen **Arbetsflödeskörning** följer körningen: IRC-stegets logg säger hur många rader det skickade, till exempel `Sent 2 lines to #your-channel.`, och meddelandet dyker upp i kanalen. Tar steget **Fel** i stället, säger dess logg varför: se [Felsökning](#felsökning).
 :::
 
 ## Tips

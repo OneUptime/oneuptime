@@ -62,6 +62,7 @@ import {
   getPickerItemProps,
   resourceItemKey,
 } from "./ComponentPicker/PickerItems";
+import prefersTouch from "../../Utils/PrefersTouch";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
@@ -147,25 +148,6 @@ const isTypingTarget: IsTypingTargetFunction = (
         element.isContentEditable ||
         element.getAttribute?.("contenteditable") === "true"),
   );
-};
-
-type PrefersTouchFunction = () => boolean;
-
-/*
- * On a phone, focusing the search box on open throws the keyboard over half
- * of what the panel offers. There the panel opens for browsing; a tap on the
- * box searches.
- */
-const prefersTouch: PrefersTouchFunction = (): boolean => {
-  try {
-    return Boolean(
-      typeof window !== "undefined" &&
-        window.matchMedia &&
-        window.matchMedia("(pointer: coarse)").matches,
-    );
-  } catch {
-    return false;
-  }
 };
 
 const ComponentsModal: FunctionComponent<ComponentProps> = (
@@ -259,6 +241,11 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
       ? PickerViewKind.Home
       : currentEntry.view.kind;
 
+  /*
+   * On a phone, focusing the search box on open throws the keyboard over half
+   * of what the panel offers. There the panel opens for browsing; a tap on the
+   * box searches.
+   */
   useEffect(() => {
     if (!prefersTouch()) {
       searchInputRef.current?.focus();

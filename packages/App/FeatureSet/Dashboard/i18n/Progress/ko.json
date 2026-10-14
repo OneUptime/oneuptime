@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28193,
-    "untranslated": 16445
+    "keys": 28484,
+    "untranslated": 16422
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -11,6 +11,7 @@
     "Splunk On-Call API ID",
     "VMware vCenter",
     "kubectl set image deployment/web * -n web",
+    "syslog",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",

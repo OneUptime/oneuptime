@@ -8,6 +8,7 @@ import {
   getWorkflowNodeIssuePresentation,
 } from "./GraphLintSummary";
 import { describeReference } from "./ValuePicker/ReferenceDescription";
+import { summarizePageStep } from "./OnCall/PageStepSummary";
 import { OutputLayout, getOutputLayout } from "./PortLayout";
 import { summarizeSwitch } from "./Switch/SwitchModel";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -61,6 +62,20 @@ export const getStepSummary: StepSummaryFunction = (
    */
   if (data.metadata.id === ComponentID.Switch) {
     return summarizeSwitch(data.arguments);
+  }
+
+  /*
+   * A Page step says who it pages and what about - "2 users · New alert" -
+   * so a workflow that pages different people on different paths can be
+   * told apart on the canvas. Null for any other step.
+   */
+  const pageSummary: string | null = summarizePageStep(
+    data.metadata.id,
+    data.arguments,
+  );
+
+  if (pageSummary) {
+    return pageSummary;
   }
 
   if (data.metadata.id !== ComponentID.IfElse) {
@@ -239,6 +254,26 @@ const getCategoryColors: (
       selectedShadow: "0 0 0 3px rgba(249, 115, 22, 0.2)",
       handleBg: "#f97316",
       handleBorder: "#ea580c",
+    };
+  }
+
+  /*
+   * The Page steps: the one colour on the canvas that means a phone rings.
+   * Exactly "on-call": the on-call resources' own steps ("On-Call Policy")
+   * are database steps like any other.
+   */
+  if (lowerCategory === "on-call") {
+    return {
+      bg: "color-mix(in srgb, #ec4899 12%, var(--ou-surface-primary, #ffffff))",
+      border:
+        "color-mix(in srgb, #ec4899 38%, var(--ou-border-default, #e5e7eb))",
+      headerBg: "linear-gradient(135deg, #ec4899, #db2777)",
+      headerText: "#ffffff",
+      iconColor: "#ffffff",
+      selectedBorder: "#ec4899",
+      selectedShadow: "0 0 0 3px rgba(236, 72, 153, 0.2)",
+      handleBg: "#ec4899",
+      handleBorder: "#db2777",
     };
   }
 

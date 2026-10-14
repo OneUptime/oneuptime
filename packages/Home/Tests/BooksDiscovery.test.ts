@@ -221,7 +221,11 @@ describe("Books sitemap integration", () => {
   test("publishes its configured monthly frequency and 0.7 priority", () => {
     expect(booksEntries[0]).toContain("<changefreq>monthly</changefreq>");
     expect(booksEntries[0]).toContain("<priority>0.7</priority>");
-    expect(booksEntries[0]).toMatch(/<lastmod>[^<]+<\/lastmod>/);
+    /*
+     * And no lastmod: the page has no date it last changed, and the time the
+     * sitemap was generated is not one (Utils/Sitemap.ts).
+     */
+    expect(booksEntries[0]).not.toContain("<lastmod>");
   });
 
   test("keeps sitemap discovery consistent with the SEO canonical URL", () => {

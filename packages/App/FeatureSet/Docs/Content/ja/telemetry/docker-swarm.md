@@ -187,11 +187,11 @@ Swarm の `docker-compose.yml` (と `install.sh`) は **Docker Swarm AI エー�
 
 - **AI 調査はデフォルトで有効です**。エージェントが接続すると、OneUptime AI はこれを使ってこのクラスターのインシデントやアラートを調査し、クラスターの **概要** にエージェントの状態が表示されます。止めるには、エージェントを実行している場所で `ONEUPTIME_AI_INVESTIGATION=false` を設定する (AI エージェントのページの **AI に許可する操作** の下にある **変更** で方法が表示されます) か、エージェントを省きます。
 - インベントリポーラーと同様、**マネージャーノードで実行する必要があります**。ノード、サービス、タスクのコマンドはマネージャー専用だからです。ワーカー上では何も実行せず、ノードがマネージャーになるまでクラスターに登録されません (その理由は `/status` に表示されます)。クラスターごとに 1 つ実行します。
-- `.env` で `ONEUPTIME_AI_ALLOW_WRITES=true` を設定して `docker compose up -d` を実行しない限り (または、その変数を付けて `install.sh` を実行しない限り)、**読み取り専用** です。インストーラーは環境から `ONEUPTIME_AI_ALLOW_WRITES`、`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`、`ONEUPTIME_AI_WRITE_TARGETS`、`ONEUPTIME_AI_PROTECTED_TARGETS` を `.env` に書き込み、再実行時には、その変数を (空でも) 渡さない限り、後の 4 つについて `.env` にある値を保持します。`ONEUPTIME_AI_WRITE_TARGETS` (サービス名とノード名のグロブ。例: `web_*,api_*`) で修正が触れてよい範囲を制限します。同じ `.env` の `ONEUPTIME_AI_FIXES` で修正の実行方法を指定します。`ask-for-approval` (人が 1 件ずつ承認)、`automatic`、`bypass-approval` のいずれかで、AI エージェントのページには読み取り専用で表示されます ([エージェントが設定する AI に許可する操作](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent))。ノードのドレインは、モードにかかわらず常に人の承認が必要です。
+- `.env` で `ONEUPTIME_AI_ALLOW_WRITES=true` を設定して `docker compose up -d` を実行しない限り (または、その変数を付けて `install.sh` を実行しない限り)、**読み取り専用** です。インストーラーは環境から `ONEUPTIME_AI_ALLOW_WRITES`、`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`、`ONEUPTIME_AI_WRITE_TARGETS`、`ONEUPTIME_AI_PROTECTED_TARGETS` を `.env` に書き込み、再実行時には、その変数を (空でも) 渡さない限り、後の 4 つについて `.env` にある値を保持します。`ONEUPTIME_AI_WRITE_TARGETS` (サービス名とノード名のグロブ。例: `web_*,api_*`) で修正が触れてよい範囲を制限します。同じ `.env` の `ONEUPTIME_AI_FIXES` で修正の実行方法を指定します。`ask-for-approval` (人が 1 件ずつ承認)、`automatic`、`bypass-approval` のいずれかで、AI エージェントのページには読み取り専用で表示されます ([エージェントが設定する AI に許可する操作](/docs/ai/infrastructure-ai-agents#ai-に許可することエージェントで設定))。ノードのドレインは、モードにかかわらず常に人の承認が必要です。
 - Docker ソケットをマウントした root として動作します。ソケットの所有者が root だからです。そしてマネージャー上では、ソケットを使える者が `:ro` かどうかに関係なく Swarm 全体を制御できます。歯止めはエージェントのコマンドポリシーです。サービスやスタックの作成・削除は一切せず、シークレットやコンフィグには触れず、自分自身、Collector、インベントリポーラー、`ONEUPTIME_AI_PROTECTED_TARGETS` (サービス名とノード名のグロブ) に含まれるものは決して変更しません。
 - `install.sh --no-ai-agent` で除外できます。または `docker-compose.yml` から `oneuptime-docker-swarm-ai-agent` サービスを削除します。
 
-実行できるコマンド、修正の仕組み、トラブルシューティングの方法: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-swarm-clusters)。
+実行できるコマンド、修正の仕組み、トラブルシューティングの方法: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-swarm-クラスター)。
 
 ## トラブルシューティング
 

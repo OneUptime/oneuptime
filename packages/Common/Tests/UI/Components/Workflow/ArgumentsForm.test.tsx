@@ -464,6 +464,8 @@ describe("ArgumentsForm — every setting that can take a value offers one", () 
     ArgumentControl.DateTime,
     ArgumentControl.JSONCode,
     ArgumentControl.HTMLCode,
+    // { } at the end of the row: a value joins the list as a chip.
+    ArgumentControl.RecordList,
   ];
 
   /*
@@ -486,7 +488,19 @@ describe("ArgumentsForm — every setting that can take a value offers one", () 
   test.each(settings)(
     "%s → %s",
     async (componentId: string, _name: string, arg: Argument) => {
-      const { user } = renderStep(step(componentId as ComponentID));
+      /*
+       * A setting that goes with one answer of another - a Page step's
+       * Incident ID, with "An incident" - is on the form only while that
+       * answer is the one chosen, so the step is drawn with it chosen.
+       */
+      const { user } = renderStep(
+        step(
+          componentId as ComponentID,
+          arg.shownWhen && !arg.shownWhen.includesEmpty
+            ? { [arg.shownWhen.argumentId]: arg.shownWhen.values[0]! }
+            : {},
+        ),
+      );
 
       const advanced: HTMLElement | null = screen.queryByRole("button", {
         name: "More fields",

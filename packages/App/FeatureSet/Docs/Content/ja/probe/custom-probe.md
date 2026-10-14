@@ -335,13 +335,13 @@ Docker Engine 27 以降は、ネットワーク用の IPv6 サブネットを選
 | --- | --- | --- | --- |
 | 受信リクエストとハートビート | `PROBE_INGRESS_PORT` | オフ | [受信リクエスト Ingress](/docs/probe/incoming-request-ingress) |
 | SNMP トラップ | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | オン、UDP 162 | [ネットワークデバイス モニター](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | オフ、UDP 5140 | [ネットワークベンダー別ガイド](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | オン、UDP と TCP 5140 | [ネットワークイベント](/docs/monitor/network-events) |
 | NetFlow、IPFIX、sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | オン、UDP 2055、4739、6343 | [ネットワークトラフィック](/docs/monitor/network-traffic) |
 | ヘルスチェック | `PORT` | オン、TCP 3874 | `/status/live` と `/status/ready` |
 
 コンテナー内では、ホストネットワークを使うか公開しない限り、ポートに他のマシンから届くことはありません。
 
-Syslog レシーバーが転送するメッセージは 1 分あたり最大 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` 件 (既定値は `600`) で、残りは破棄され、破棄した件数がログに出ます。
+Syslog レシーバーが転送するメッセージは 1 分あたり最大 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` 件 (既定値は `600`) です。それを超えても、ネットワークイベントとして読み取ったメッセージはさらに同じ数まで転送し、残りは破棄して、破棄した件数をログに出します。
 
 `PROBE_NAME` と `PROBE_DESCRIPTION` を読むのは、 `REGISTER_PROBE_KEY` で自分自身を登録するプローブ (セルフホストのインストールがすべてのプロジェクト向けに実行するプローブなど) だけです。カスタムプローブは、名前と説明をダッシュボードから受け取ります。
 

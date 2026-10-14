@@ -14,7 +14,7 @@ function sent(isDefault: boolean | undefined): JSONObject {
   const view: LogSavedView = new LogSavedView();
   view.name = "Checkout errors";
 
-  // Undefined: the box as a form that never drew it would leave it.
+  // An untouched box the form never set: the property is not there at all.
   if (isDefault !== undefined) {
     view.isDefault = isDefault;
   }

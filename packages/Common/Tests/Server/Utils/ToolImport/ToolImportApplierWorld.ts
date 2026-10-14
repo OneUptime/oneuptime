@@ -3,6 +3,7 @@ import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
+import StatusPageSubscriber from "../../../../Models/DatabaseModels/StatusPageSubscriber";
 import ToolImportRecord from "../../../../Models/DatabaseModels/ToolImportRecord";
 import AlertSeverityService from "../../../../Server/Services/AlertSeverityService";
 import IncidentCustomFieldService from "../../../../Server/Services/IncidentCustomFieldService";
@@ -31,16 +32,20 @@ import TeamService from "../../../../Server/Services/TeamService";
 import ToolImportRecordService from "../../../../Server/Services/ToolImportRecordService";
 import ToolImportProjectStateReader from "../../../../Server/Utils/ToolImport/ToolImportProjectStateReader";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import ToolImportResourceKind from "../../../../Types/ToolImport/ToolImportResourceKind";
+import { FindOperator } from "typeorm";
 
 /*
  * OneUptime's services as the applier unit tests see them: every create the
  * import makes is recorded (which service, the record, the props it was made
  * with, its misc data) and answered with the record and a new id, as the
  * service would answer. A test can make one service refuse, to see the
- * import carry on. ToolImportRecord rows live in memory, so a test can
- * start from what an earlier import (or an earlier attempt) remembered.
+ * import carry on. ToolImportRecord rows live in memory, read as the
+ * database reads them, so a test can start from what an earlier import (or
+ * an earlier attempt) remembered.
  *
  * The Postgres suite (ToolImportPostgres) runs an import end to end
  * through the real services and a real, migrated database.
@@ -105,6 +110,68 @@ function severityRecord<T extends IncidentSeverity | AlertSeverity>(
 }
 
 /*
+ * The ids a read by id names (QueryHelper.any on `_id`), lowercase, or null
+ * when it names none.
+ */
+export function idsNamedBy(value: unknown): Set<string> | null {
+  if (!(value instanceof FindOperator)) {
+    return null;
+  }
+
+  return new Set<string>(
+    Object.values(value.objectLiteralParameters || {})
+      .flat()
+      .map((id: unknown): string => {
+        return String(id).toLowerCase();
+      }),
+  );
+}
+
+// A read of a table, as DatabaseService.findBy is asked for one.
+export interface TableRead {
+  sort?: Record<string, unknown> | undefined;
+  skip?: unknown;
+  limit?: unknown;
+}
+
+/*
+ * The rows a read of the database returns of `rows` (oldest first): in the
+ * read's order - by `_id` when it sorts by it, newest first when it names
+ * no order, as DatabaseService does - from `skip`, and at most `limit`. So
+ * a read that stops at its limit misses the oldest rows, as one of the
+ * database would, and a read of every row (findAllBy) pages through them.
+ */
+export function readAsTheDatabaseWould<T extends BaseModel>(
+  rows: Array<T>,
+  read: TableRead,
+): Array<T> {
+  const isSorted: boolean = Object.keys(read.sort || {}).length > 0;
+
+  if (
+    isSorted &&
+    JSON.stringify(read.sort) !== JSON.stringify({ _id: SortOrder.Ascending })
+  ) {
+    throw new Error(
+      `Only an order by _id is stood in for, not ${JSON.stringify(read.sort)}.`,
+    );
+  }
+
+  const ordered: Array<T> = isSorted
+    ? [...rows].sort((a: T, b: T): number => {
+        const left: string = a._id || "";
+        const right: string = b._id || "";
+
+        return left < right ? -1 : left > right ? 1 : 0;
+      })
+    : [...rows].reverse();
+  const skip: number = typeof read.skip === "number" ? read.skip : 0;
+  const limit: number =
+    typeof read.limit === "number" ? read.limit : ordered.length;
+
+  return ordered.slice(skip, skip + limit);
+}
+
+/*
  * A readable name as a UUID, the same every time: "status-offline" is
  * always the same id, so a test can name the record it expects.
  */
@@ -122,7 +189,9 @@ export function toUuid(name: string): string {
 
 export class ApplierWorld {
   public creates: Array<RecordedCreate> = [];
+  // The remembered rows, oldest first.
   public records: Array<ToolImportRecord> = [];
+  public recordReads: Array<TableRead> = [];
   public deletedRecordIds: Array<string> = [];
   public members: Map<string, string> = new Map<string, string>();
   private refusals: Map<string, (data: BaseModel) => Error | null> = new Map<
@@ -159,13 +228,24 @@ export class ApplierWorld {
         });
     }
 
-    jest
-      .spyOn(ToolImportRecordService, "findBy")
-      .mockImplementation((async (): Promise<Array<ToolImportRecord>> => {
-        return this.records.map((record: ToolImportRecord) => {
-          return record;
-        });
-      }) as never);
+    /*
+     * The remembered rows (of a kind, when the read names one) as the
+     * database reads them: a read that stops at its limit misses the
+     * oldest, and a read of every row - findAllBy, the service's own -
+     * pages through them all. Each read is kept in `recordReads`.
+     */
+    jest.spyOn(ToolImportRecordService, "findBy").mockImplementation((async (
+      args: TableRead & { query: { kind?: ToolImportResourceKind } },
+    ): Promise<Array<ToolImportRecord>> => {
+      this.recordReads.push(args);
+
+      return readAsTheDatabaseWould(
+        this.records.filter((record: ToolImportRecord) => {
+          return !args.query.kind || record.kind === args.query.kind;
+        }),
+        args,
+      );
+    }) as never);
 
     jest
       .spyOn(ToolImportRecordService, "create")
@@ -259,6 +339,21 @@ export class ApplierWorld {
       this.reads.push("MonitorStatus");
       return this.statuses;
     }) as never);
+
+    // The subscribers it made, read back by id.
+    jest
+      .spyOn(StatusPageSubscriberService, "findBy")
+      .mockImplementation((async (args: {
+        query: { _id?: unknown };
+      }): Promise<Array<StatusPageSubscriber>> => {
+        const ids: Set<string> | null = idsNamedBy(args.query._id);
+
+        return this.dataOf<StatusPageSubscriber>("StatusPageSubscriber").filter(
+          (subscriber: StatusPageSubscriber) => {
+            return !ids || ids.has(subscriber.id!.toString().toLowerCase());
+          },
+        );
+      }) as never);
 
     jest
       .spyOn(IncidentSeverityService, "findBy")

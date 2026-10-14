@@ -1,65 +1,149 @@
-# Zabbix 集成
+# Zabbix
 
-[Zabbix](https://www.zabbix.com) 监控你的服务器和网络；OneUptime 负责事件响应、值班和状态页。将两者连接起来，每个 Zabbix 问题都会自动成为 OneUptime 事件——让合适的人收到告警，状态页保持实时准确。
+把 [Zabbix](https://www.zabbix.com) 问题发送到 OneUptime，让每个问题都成为一个呼叫值班团队的事件，并在 Zabbix 恢复时解决。Zabbix 通过 Webhook 媒介类型发送每个问题，因此两边都无需安装任何东西。
 
-此集成为**入站**模式：Zabbix 向 OneUptime 发送问题。一侧使用 Zabbix **webhook 媒体类型**，另一侧使用 OneUptime **[工作流](/docs/workflows/index)**。无需插件，无需额外服务。
+:::cards
+- [选择 OneUptime 接收问题的方式](#选择-oneuptime-接收问题的方式): Incoming Request 监视器，或你自己的工作流。
+- [用监视器接收问题](#用监视器接收问题): 每个问题一个事件，恢复时自动解决。
+- [配置 Zabbix](#配置-zabbix): 一个媒介类型、一个用户和一个动作。
+- [故障排除](#故障排除): 问题没有到达，或事件一直未关闭时。
+:::
 
-```text
-Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workflow (Webhook trigger)  ──►  Create Incident
+## 工作方式
+
+```mermaid title="从 Zabbix 问题到事件"
+flowchart TB
+    problem["Zabbix 触发器：<br/>PROBLEM 或 OK"] --> action["动作把它发送给<br/>OneUptime 用户"]
+    action --> media["媒介类型把 JSON<br/>发布到 OneUptime"]
+    media --> status{"status"}
+    status -->|"1，问题"| open["事件已创建，<br/>呼叫值班人员"]
+    status -->|"0，已恢复"| resolve["事件已解决"]
 ```
 
-## 工作原理
+Zabbix 通过用户的媒介把问题发送给该用户。这里的媒介是一个名为 **OneUptime** 的 Webhook 媒介类型：它的脚本把一个小的 JSON 文档发布到 OneUptime，其中包含问题的事件 ID、名称、主机、严重程度和状态。状态为 `1` 表示问题，为 `0` 表示问题已恢复。
 
-1. Zabbix 触发器变为 **PROBLEM** 状态。
-2. Zabbix **动作**通知 **OneUptime** 媒体类型发送事件。
-3. 媒体类型的脚本将一小段 JSON 负载 POST 到 OneUptime 工作流 URL。
-4. 工作流读取负载并创建事件（可选地，在 Zabbix 恢复时解决事件）。
+## 开始之前
 
-## 前提条件
+- 一台由你管理的 Zabbix 服务器。本指南针对 Zabbix 6.0 LTS 和 7.0 LTS 编写。从 Zabbix 5.0 起，Webhook 媒介类型的工作方式相同。
+- 一台能够通过 HTTPS 访问你的 OneUptime 的 Zabbix 服务器。
+- 在 OneUptime 中创建监视器的权限；如果选择工作流方式，则需要创建工作流的权限。
 
-- 一台你管理的 Zabbix 服务器（本指南针对 **Zabbix 6.0 LTS / 7.0 LTS**；webhook 媒体类型在 5.0+ 上同样有效）。
-- 你的 Zabbix 服务器必须能通过 HTTPS 访问你的 OneUptime 实例。
-- 一个可以创建工作流的 OneUptime 项目。
+## 选择 OneUptime 接收问题的方式
 
-## 第一部分——构建 OneUptime 工作流
+先设置 OneUptime：它会给你 Zabbix 要发送到的 URL。
 
-先完成这一步，因为你需要它生成的 webhook URL。
+| 方式 | 适用情况 |
+| --- | --- |
+| Incoming Request 监视器（推荐） | 你希望每个 Zabbix 问题都成为一个呼叫值班人员的事件，并在 Zabbix 恢复时解决。无需构建任何东西。 |
+| 带 Webhook 触发器的工作流 | 你需要自己的逻辑：先过滤问题、转换格式或调用其他系统。工作流不会在恢复时自行解决事件。 |
 
-1. 打开 **工作流 → 创建工作流**，命名为 `Zabbix → Incidents`，并打开 **生成器** 标签。
-2. 将 **Webhook** 触发器拖到画布上。点击它并**复制其显示的唯一 URL**。请妥善保管——任何拥有它的人都可以启动工作流。将该模块重命名为 `Zabbix`，以便变量读取更清晰。
-3. 将 **条件** 模块拖到画布上，并将触发器的输出连接到它。配置：
-   - **Left value**：`{{Zabbix.Request Body.status}}`
-   - **Operator**：`==`
-   - **Right value**：`1` _（Zabbix 发送 `1` 表示问题，`0` 表示恢复）_
-4. 拖入 **创建事件** 模块并连接到 Conditions 模块的 **是** 输出。填写：
-   - **标题**：`Zabbix: {{Zabbix.Request Body.name}}`
-   - **描述**：`Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **严重程度**：选择你想要的 OneUptime 事件严重程度（之后可以通过更多 Conditions 分支来映射 Zabbix 严重程度）。
-5. 保存。暂时将 **已启用** 保持*关闭*——测试后再开启。
+两者从同一个媒介类型收到相同的 JSON，所以你可以先用其中一种，之后只需修改 Zabbix 中的一个 URL 就能切换。
 
-> **提示：** 在描述（或事件标签）中放入 Zabbix `event_id`，可以让你在 Zabbix 恢复时再次找到该事件。参见[自动解决（可选）](#自动解决可选)。
+## 用监视器接收问题
 
-## 第二部分——配置 Zabbix
+[Incoming Request 监视器](/docs/monitor/incoming-request-monitor) 会给你一个 URL，它的条件决定每个请求做什么。
 
-### 步骤 1：创建 OneUptime 媒体类型
+:::steps
+### 创建监视器
 
-1. 在 Zabbix 中，前往 **Alerts → Media types**（较旧版本：**Administration → Media types**）。
-2. 点击 **Create media type**，将 **Type** 设置为 **Webhook**。
-3. **Name**：`OneUptime`。
-4. 添加以下**参数**（每个点击 _Add_）。这些将 Zabbix [宏](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location)映射到一个干净的负载中：
+前往 **监视器**，点击 **创建监视器**。在 **监视器类型** 下选择 **Incoming Request**，将其命名为 `Zabbix`，然后点击 **下一步**。
 
-   | 名称             | 值                 |
-   | ---------------- | ------------------ |
-   | `url`            | `{ALERT.SENDTO}`   |
-   | `event_id`       | `{EVENT.ID}`       |
-   | `event_name`     | `{EVENT.NAME}`     |
-   | `event_value`    | `{EVENT.VALUE}`    |
+### 为每个问题声明事件
+
+在 **标准** 步骤中，打开第一个条件，也就是把监视器标记为离线的那个。把它的过滤器设为 **请求主体**、**包含**、`"status":"1"`。这个条件在过滤器匹配时已经会声明事件。填写事件信息：
+
+- **事件标题**：`Zabbix: {{requestBody.name}} on {{requestBody.host}}`。
+- **严重程度**：Zabbix 问题应有的事件严重程度。
+- **值班** 下的 **值班策略**：要呼叫的策略。
+- **更多字段** 下的 **自动解决事件**：保持开启，它默认就是开启的。关闭后会忽略恢复，事件将一直保持打开。
+
+### 每个问题一个事件
+
+在同一个条件中，打开 **设置** 并开启 **Group incidents and alerts by a payload field**。按下表填写，让每个问题都有自己的事件，并由它的恢复来解决：
+
+| 字段 | 值 |
+| --- | --- |
+| **Open a separate incident for each…** | `requestBody.event_id` |
+| **Field that signals recovery** | `requestBody.status` |
+| **Value that means recovered** | `0` |
+
+### 让监视器恢复在线
+
+打开第二个条件，也就是把监视器标记为在线的那个，把它的过滤器设为 **请求主体**、**包含**、`"status":"0"`。
+
+### 复制 URL
+
+点击 **创建监视器**。监视器的 **概览** 页面会显示它的 **Heartbeat URL**。复制它供 Zabbix 使用：
+
+```text
+https://oneuptime.com/heartbeat/<secret key>
+```
+
+自托管安装使用自己的主机来代替 `oneuptime.com`。
+:::
+
+监视器按原样读取请求的 JSON：`"status":"1"`，没有空格。每项设置的作用请参见 [接收来自其他系统的告警](/docs/monitor/incoming-request-monitor#接收来自其他系统的告警)。
+
+## 用工作流接收问题
+
+当你需要在 Zabbix 和事件之间加入自己的步骤时，请使用 [工作流](/docs/workflows/index)。
+
+:::steps
+### 创建工作流
+
+前往 **工作流**，点击 **创建工作流**，然后点击 **从零开始**。将其命名为 `Zabbix problems`，然后点击 **创建工作流**。
+
+### 添加 Webhook 触发器
+
+点击虚线的 **Choose what starts this workflow** 块并选择 **Webhook**。点击该触发器，然后点击 **复制 URL**，把 URL 留给 Zabbix 使用。
+
+### 检查是否为问题
+
+点击 **添加组件**，添加一个 **If / Else** 块，并把触发器的 **Out** 点连接到它。把 **Value to check** 设为 `{{local.components.webhook-1.returnValues.request-body.status}}`，**Comparison** 设为 **is equal to**，**Compare with** 设为 `1`。
+
+### 声明事件
+
+添加一个 **Create One Incident** 块，并把 **If / Else** 块的 **Yes** 一侧连接到它。在 **Incident Template** 中选择一个设置了严重程度和要呼叫的值班策略的模板（参见 [事件模板](/docs/incidents/settings#事件模板)）。在 **JSON Object** 中设置来自 Zabbix 的内容：
+
+```json
+{
+  "title": "Zabbix: {{local.components.webhook-1.returnValues.request-body.name}}",
+  "description": "Host: {{local.components.webhook-1.returnValues.request-body.host}}\nSeverity: {{local.components.webhook-1.returnValues.request-body.severity}}\nZabbix event: {{local.components.webhook-1.returnValues.request-body.event_id}}"
+}
+```
+
+如果不使用模板，**JSON Object** 中还需要 `incidentSeverityId`，即项目中某个事件严重程度的 ID。
+
+### 启用
+
+在 **生成器** 顶部打开 **已启用**。处于关闭状态的工作流会以 `400` 回应 Zabbix。
+:::
+
+恢复会走向 **If / Else** 块的 **No** 一侧，那里没有连接任何东西，因此运行到此结束。要在恢复时解决事件，请使用监视器。
+
+## 配置 Zabbix
+
+Zabbix 需要三样东西：一个发布到 OneUptime 的媒介类型、一个接收它的用户，以及一个把问题发送给该用户的动作。
+
+:::steps
+### 创建 OneUptime 媒介类型
+
+1. 前往 **Alerts → Media types**（在 Zabbix 6.0 上为 **Administration → Media types**），点击 **Create media type**。
+2. 把 **Name** 设为 `OneUptime`，**Type** 设为 **Webhook**。
+3. 添加以下 **Parameters**。每一项都把一个 Zabbix [宏](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location) 映射到请求中：
+
+   | 名称 | 值 |
+   | --- | --- |
+   | `url` | `{ALERT.SENDTO}` |
+   | `event_id` | `{EVENT.ID}` |
+   | `event_name` | `{EVENT.NAME}` |
+   | `event_value` | `{EVENT.VALUE}` |
    | `event_severity` | `{EVENT.SEVERITY}` |
-   | `host`           | `{HOST.NAME}`      |
-   | `event_date`     | `{EVENT.DATE}`     |
-   | `event_time`     | `{EVENT.TIME}`     |
+   | `host` | `{HOST.NAME}` |
+   | `event_date` | `{EVENT.DATE}` |
+   | `event_time` | `{EVENT.TIME}` |
 
-5. 将以下内容粘贴到 **Script** 字段中：
+4. 把以下内容粘贴到 **Script** 中：
 
    ```javascript
    var params = JSON.parse(value);
@@ -72,7 +156,7 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
      name: params.event_name,
      host: params.host,
      severity: params.event_severity,
-     // "1" = problem, "0" = recovered. OneUptime reads this in a Conditions block.
+     // "1" for a problem, "0" for its recovery.
      status: params.event_value,
      date: params.event_date,
      time: params.event_time,
@@ -89,84 +173,78 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
    return "OK";
    ```
 
-6. 点击 **Message templates** 标签，为 **Problem** 和 **Problem recovery** 各添加一个模板（正文可以为空——负载在脚本中构建）。这是 Zabbix 针对这些事件类型使用该媒体类型的必要条件。
-7. 点击 **Add** 保存媒体类型。
+5. 在 **Message templates** 选项卡上，为 **Problem** 和 **Problem recovery** 各添加一个模板。模板文本留空：请求由脚本构建。Zabbix 只会把媒介类型用于它有模板的事件类型。
+6. 点击 **Add**。
 
-### 步骤 2：创建承载 webhook 的用户
+### 创建接收问题的用户
 
-Zabbix 将通知发送*给一个用户*。创建一个专用用户，便于查找和停用集成。
+1. 前往 **Users → Users**（在 Zabbix 6.0 上为 **Administration → Users**），点击 **Create user**。将其命名为 `OneUptime`，并为它指定一个用户组和一个能够接收通知的角色，例如 **User role**。
+2. 在 **Media** 选项卡上点击 **Add**。把 **Type** 设为 `OneUptime`，**Send to** 设为你从 OneUptime 复制的 URL。**When active** 和严重程度保持不变，或者取消勾选 OneUptime 不应收到的严重程度。
+3. 点击 **Add**，然后再次点击 **Add** 保存用户。
 
-1. 前往 **Users → Users → Create user**，命名为 `OneUptime Webhook`，赋予其可以接收通知的角色（例如 **User role**），并将其加入用户组。
-2. 在 **Media** 标签上，点击 **Add**：
-   - **Type**：`OneUptime`
-   - **Send to**：粘贴你在第一部分复制的**工作流 webhook URL**。
-   - **When active** / 严重程度：保持默认（或限制为你关心的严重程度）。
-3. 点击 **Add** 然后 **Update**。
+### 用动作把问题发送到 OneUptime
 
-### 步骤 3：通过动作将问题发送到 OneUptime
+1. 前往 **Alerts → Actions → Trigger actions**（在 Zabbix 6.0 上为 **Configuration → Actions**），点击 **Create action**。将其命名为 `Notify OneUptime`。
+2. 如有需要，在 **Conditions** 下缩小范围，例如 **Trigger severity is greater than or equals Warning**。没有条件时，每个问题都会被发送。
+3. 在 **Operations** 选项卡上，添加一个通过 `OneUptime` 媒介类型发送给 `OneUptime` 用户的操作。
+4. 在 **Recovery operations** 下添加同样的操作，这样恢复也会被发送。
+5. 点击 **Add**，并检查该动作已启用。
+:::
 
-1. 前往 **Alerts → Actions → Trigger actions → Create action**。
-2. **Name**：`Notify OneUptime`。
-3. **Conditions**（可选）：缩小范围——例如，_触发器严重程度 >= Warning_。留空则发送所有内容。
-4. 在 **Operations** 标签上，添加一个操作，通过 **OneUptime** 媒体类型发送给 **User: OneUptime Webhook**。
-5. 若要在之后恢复时解决事件，在 **Recovery operations** 中也填入相同的用户/媒体。
-6. 点击 **Add** 保存，并确保动作处于 **Enabled** 状态。
+## 测试
 
-## 第三部分——测试
+1. 在 Zabbix 中打开 **Alerts → Media types**，点击 `OneUptime` 旁边的 **Test**。填入你复制的 URL，以及示例值，例如 `event_id` `12345`、`event_name` `Test problem`、`host` `web-1` 和 `event_value` `1`。点击 **Test**：Zabbix 会显示脚本的回应 `OK`，或者脚本抛出的错误。
+2. 在 OneUptime 中打开监视器，检查是否创建了事件；或者打开工作流的 **日志 → 运行记录** 检查这次运行。
+3. 用 `event_value` `0` 和相同的 `event_id` 再测试一次。使用监视器时，事件会被解决。
 
-1. 回到 OneUptime 工作流，开启 **已启用**。
-2. 在 Zabbix 中触发一个测试问题——例如，临时降低触发器阈值，或使用翻转为问题状态的测试监控项。
-3. 打开工作流的 **日志** 标签。你应该看到一次包含 Zabbix 负载的运行，Conditions 模块走 **是** 路径，并创建了事件。
-4. 在 OneUptime 中检查**事件**——你的 Zabbix 问题现在已成为一个事件。
+然后让一个真实的触发器触发，例如暂时调低某个阈值，观察问题到达。
 
-如果没有收到任何内容，参见[故障排查](#故障排查)。
+## 映射 Zabbix 严重程度
 
-## 自动解决（可选）
+Zabbix 以文本形式发送严重程度：`Not classified`、`Information`、`Warning`、`Average`、`High` 或 `Disaster`。
 
-上面的核心工作流只*创建*事件。要在 Zabbix 恢复时*关闭*事件：
+- **使用监视器时**，为每组严重程度点击 **添加条件**，并把新条件拖到第一个条件上方：条件从上往下检查，第一个匹配的条件起决定作用。为每个条件设置两个过滤器，`"status":"1"` 和一个严重程度，例如 `"severity":"Disaster"`，并把 **匹配条件** 设为 **全部**。为每个条件设置一个事件，带有自己的 **严重程度** 和 **自动解决事件**，以及相同的分组设置。
+- **使用工作流时**，针对 `{{local.components.webhook-1.returnValues.request-body.severity}}` 添加一个 [Switch / Case](/docs/workflows/components#switch-case) 块，为每个严重程度设置一个分支，并在每个分支后面添加一个带有自己模板的 **Create One Incident** 块。
 
-1. 确保你的 Zabbix 动作已配置 **Recovery operations**（上面的步骤 3），以便也发送恢复事件。恢复时，`status` 值为 `0`。
-2. 在工作流中，添加第二个 **条件** 分支：左侧 `{{Zabbix.Request Body.status}}`，运算符 `==`，右侧 `0`。
-3. 从其 **是** 输出，添加一个 **Find Incident** 模块，查找你之前创建的未解决事件——通过描述或标签中存储的 Zabbix `event_id` 来匹配。
-4. 将其连接到 **Update Incident** 模块，并将事件移至你的*已解决*状态。
+## 故障排除
 
-由于解决方式取决于你在项目中如何建模事件状态，请先确保事件正确流转后再添加解决路径。参见[组件 → OneUptime 数据组件](/docs/workflows/components#oneuptime-data-components)。
+:::details OneUptime 没有收到任何内容
+- 在 Zabbix 中打开 **Reports → Action log**，检查动作是否发送了问题，以及返回了什么。
+- 从 Zabbix 服务器自己发送一个请求：`curl -i -X POST <url> -H 'Content-Type: application/json' -d '{"status":"1","event_id":"1","name":"Test","host":"test"}'`。
+- 监视器会在检查任何内容之前立即回应 `200`，即使密钥错误也是如此。请查看监视器的时间线，确认请求是否到达。
+- 处于关闭状态的工作流会回应 `400`。在它的 **生成器** 顶部打开 **已启用**。
+:::
 
-## 映射 Zabbix 严重程度（可选）
+:::details Zabbix 报告脚本错误
+打开媒介类型并使用 **Test**：Zabbix 会显示脚本的结果或它抛出的错误。OneUptime 返回的非 `2xx` 响应会被脚本连同状态码一起抛出，所以请先检查 URL。
+:::
 
-Zabbix 严重程度（`Not classified`、`Information`、`Warning`、`Average`、`High`、`Disaster`）以 `{{Zabbix.Request Body.severity}}` 形式传入。要将它们映射到 OneUptime 事件严重程度，在 **创建事件** 之前添加 **条件** 分支——例如，将 `Disaster` 和 `High` 路由到"Critical"事件，将其他所有内容路由到"Major"。每个分支各建一个 **创建事件** 模块。
+:::details 事件被创建但从未被解决
+- 动作需要 **Recovery operations**，否则 Zabbix 永远不会发送恢复。
+- 条件中的事件需要开启 **更多字段** 下的 **自动解决事件**。
+- **Field that signals recovery** 必须是 `requestBody.status`，**Value that means recovered** 必须恰好是 `0`。
+- 工作流不会在恢复时解决事件。请使用监视器。
+:::
 
-## 故障排查
+:::details 事件显示的是引用而不是值
+引用了请求中不存在的字段时，该引用会连同花括号按原样保留，而不会被清空。请检查 Zabbix 是否发送了 `Content-Type: application/json`，以及你使用的字段名（`name`、`host`、`severity`、`status`、`event_id`）是否与脚本的负载一致。对于工作流，请在 **日志 → 运行记录** 中打开这次运行，并与触发器收到的内容进行比较。参见 [陷阱](/docs/workflows/variables#陷阱)。
+:::
 
-**工作流从未运行。**
+:::details 每个问题都到达两次
+动作很可能有两个发送给同一用户的操作，例如第一步和一个升级步骤。请检查动作的 **Operations**。
+:::
 
-- 确认工作流的 **已启用** 开关已开启。
-- 从 Zabbix 服务器确认能访问该 URL：`curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`。你应该很快收到确认响应。
-- 在 Zabbix 中检查 **Reports → Action log** 是否有投递错误。
+## 安全
 
-**Zabbix 报告脚本错误。**
+- **像对待密码一样对待 URL。** 任何拥有它的人都可以创建事件。如果泄露，请重置它：在监视器的 **设置** 页面使用 **重置传入请求密钥**，或在工作流的 **Webhook** 触发器中使用 **重置 URL**。然后更新 Zabbix 用户媒介中的 **Send to**。
+- **只发送需要事件的内容。** 使用动作的条件或用户媒介的严重程度，把低严重程度的问题留在 Zabbix 中。
+- **自托管？** 让你的 Zabbix 服务器能够穿过防火墙，通过 HTTPS 访问你的 OneUptime。
 
-- 打开媒体类型，使用 **Test** 发送一个示例负载。Zabbix 会显示脚本的输出或抛出的错误。
-- OneUptime 返回非 2xx 响应时会被脚本中的 `throw` 捕获——检查工作流 URL 是否完全正确。
+## 后续步骤
 
-**事件已创建但字段为空。**
-
-- 打开工作流的 **日志** 标签并检查触发器输出。确认 **请求主体** 下的字段名与你引用的字段（`name`、`host`、`severity`、`status`、`event_id`）一致。
-- 缺失的字段会解析为空字符串而不是错误——参见[变量 → 注意事项](/docs/workflows/variables#gotchas)。
-
-**所有内容触发了两次。**
-
-- 你可能同时有一个问题操作和一个升级步骤发送给同一媒体。检查动作的 **Operations** 步骤。
-
-## 安全注意事项
-
-- 像对待密码一样对待工作流 webhook URL。如果泄露，请删除触发器并新建一个来轮换 URL。
-- 限制 Zabbix 动作的条件，只转发需要创建事件的严重程度。
-- 如果你在防火墙后自托管 OneUptime，允许你的 Zabbix 服务器的出口 IP 通过 HTTPS 访问它。
-
-## 接下来读什么
-
-- [集成概览](/docs/integrations/index)——入站/出站模式。
-- [Webhook 触发器](/docs/workflows/triggers#webhook)——接收 URL 的工作原理。
-- [组件](/docs/workflows/components)——Conditions、Create Incident 等。
-- [变量](/docs/workflows/variables)——在后续模块中读取 Zabbix 负载。
+:::cards
+- [入站请求监控](/docs/monitor/incoming-request-monitor): 接收 Zabbix 问题的监视器的所有设置。
+- [升级规则](/docs/on-call/escalation-rules): 决定值班策略呼叫谁、何时呼叫。
+- [工作流触发器](/docs/workflows/triggers#webhook): 工作流的 Webhook URL 如何工作。
+- [集成概述](/docs/integrations/index): 你可以连接的其他工具。
+:::

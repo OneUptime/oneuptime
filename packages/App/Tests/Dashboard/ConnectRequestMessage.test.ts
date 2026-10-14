@@ -38,6 +38,9 @@ const CHAT_PROVIDERS: Array<ConnectProvider> = [
   ConnectProvider.MicrosoftTeams,
 ];
 
+// What a sentence about a button says: a question has none.
+const BUTTON_OR_PRESS: RegExp = /button|press/i;
+
 describe("what became of the press", () => {
   test.each([
     [
@@ -55,6 +58,11 @@ describe("what became of the press", () => {
     [
       ConnectRequestOutcome.PressAgain,
       "Go back to Slack and press the button again.",
+    ],
+    // A question to OneUptime AI: asked in a message, with no button.
+    [
+      ConnectRequestOutcome.AskAgain,
+      "Go back to Slack and ask your question again.",
     ],
     [
       ConnectRequestOutcome.Expired,
@@ -101,6 +109,47 @@ describe("what became of the press", () => {
       message:
         "OneUptime finished what you pressed in Microsoft Teams and answered you there.",
     });
+  });
+
+  /*
+   * Somebody who asked OneUptime AI a question - an @mention, a direct
+   * message - pressed nothing but the Connect button itself. Told to
+   * "press the button again", they had no button to press (#4768).
+   */
+  test.each(CHAT_PROVIDERS)(
+    "a question asked in %s is asked again: the page names no button to press",
+    (provider: ConnectProvider) => {
+      const notice: ConnectRequestNoticeText | null = getConnectRequestNotice({
+        provider: provider,
+        pressed: ConnectRequestOutcome.AskAgain,
+        translator: ENGLISH,
+      });
+      const workspace: string = getWorkspaceName(provider);
+
+      expect(notice).toEqual({
+        title: `Your ${workspace} account is connected`,
+        message: `Go back to ${workspace} and ask your question again.`,
+      });
+      expect(notice!.message).not.toMatch(BUTTON_OR_PRESS);
+    },
+  );
+
+  test("the address says a question apart from a button: ask, not again", () => {
+    expect(ConnectRequestOutcome.AskAgain).toBe("ask");
+    expect(
+      getConnectRequestNotice({
+        provider: ConnectProvider.Slack,
+        pressed: "ask",
+        translator: ENGLISH,
+      })?.message,
+    ).toBe("Go back to Slack and ask your question again.");
+    expect(
+      getConnectRequestNotice({
+        provider: ConnectProvider.Slack,
+        pressed: "again",
+        translator: ENGLISH,
+      })?.message,
+    ).toBe("Go back to Slack and press the button again.");
   });
 
   test.each([
@@ -238,7 +287,7 @@ describe("the sentences are in every locale", () => {
 
   test("every outcome has a sentence, and the notices their titles", () => {
     /*
-     * 5 outcomes, 3 titles, 2 messages, "Back to Slack", the title of a
+     * 6 outcomes, 3 titles, 2 messages, "Back to Slack", the title of a
      * sign-in that could not start, for each chat, and what a Connect button
      * used already says to somebody connected (a title and a message).
      */

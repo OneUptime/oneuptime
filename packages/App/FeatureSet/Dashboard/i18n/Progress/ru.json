@@ -1,13 +1,15 @@
 {
   "baseline": {
-    "keys": 28193,
-    "untranslated": 16898
+    "keys": 28484,
+    "untranslated": 16873
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "CloudWatch Metric Streams",
+    "Null",
     "Runner",
     "VMware vCenter",
-    "kubectl set image deployment/web * -n web"
+    "kubectl set image deployment/web * -n web",
+    "syslog"
   ]
 }

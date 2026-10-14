@@ -242,7 +242,7 @@ Un campo attivo o disattivo - `isEnabled`, `isVisibleOnStatusPage`, `isArchived`
 isVisibleOnStatusPage must be true or false.
 ```
 
-Un aggiornamento che scrive i valori di un record così come sono già non cambia nulla: non avvia i workflow **On Update** del record, non invia aggiornamenti in tempo reale e non aggiunge una voce al registro di audit. `false` scritto sopra `false` conta come lo stesso valore, e così `"false"` scritto sopra `false`, un numero scritto come testo, un orario scritto come lo stesso istante in un altro formato ed etichette scritte come le stesse etichette in qualsiasi ordine. Quando un aggiornamento modifica alcuni valori e ne riscrive altri così come sono, la sua voce del registro di audit elenca solo i valori modificati, e il **Listen on** di un workflow sente solo quelli.
+Un aggiornamento che scrive i valori di un record così come sono già non cambia nulla: non avvia i workflow **On Update** del record, non invia aggiornamenti in tempo reale e non aggiunge una voce al registro di audit. `false` scritto sopra `false` conta come lo stesso valore, e così `"false"` scritto sopra `false`, un numero scritto come testo, un orario scritto come lo stesso istante in un altro formato ed etichette scritte come le stesse etichette in qualsiasi ordine. Quando un aggiornamento modifica alcuni valori e ne riscrive altri così come sono, la sua voce del registro di audit elenca solo i valori modificati, e il **Fields to watch** di un workflow sente solo quelli.
 
 ### Dove è stato acquistato un progetto
 

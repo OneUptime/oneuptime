@@ -43,6 +43,8 @@ test.describe("Home: Markdown page variants", () => {
     expect(headers["content-type"] || "").toContain("text/markdown");
     // Crawlers/agents fetch this cross-origin, so it must be world-readable.
     expect(headers["access-control-allow-origin"]).toBe("*");
+    // The page again, for tools: never a search result of its own.
+    expect(headers["x-robots-tag"]).toBe("noindex");
 
     const body: string = await response.text();
     // The pricing markdown always leads with the Pricing heading and table.
@@ -76,6 +78,7 @@ test.describe("Home: Markdown page variants", () => {
 
     const headers: { [key: string]: string } = response.headers();
     expect(headers["content-type"] || "").toContain("text/plain");
+    expect(headers["x-robots-tag"]).toBe("noindex");
 
     const body: string = await response.text();
     expect(body).toContain("No markdown variant for this page");

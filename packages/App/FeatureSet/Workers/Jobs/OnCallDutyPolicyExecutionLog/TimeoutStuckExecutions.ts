@@ -6,6 +6,11 @@ import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import {
+  ON_CALL_DIRECT_PAGE_NEVER_STARTED_MESSAGE,
+  ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE,
+  isOnCallDirectPage,
+} from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
 
 /**
  * Jobs move from Started to Executing in seconds. If it takes more than 5 minutes, it's stuck. So, mark them as error
@@ -44,6 +49,8 @@ RunCron(
         select: {
           _id: true,
           createdAt: true,
+          // Whether it is a policy's run or a direct page, for what it is told.
+          onCallDutyPolicyId: true,
         },
         props: {
           isRoot: true,
@@ -70,6 +77,7 @@ RunCron(
         select: {
           _id: true,
           createdAt: true,
+          onCallDutyPolicyId: true,
         },
         props: {
           isRoot: true,
@@ -81,7 +89,9 @@ RunCron(
         id: executionLog.id!,
         data: {
           status: OnCallDutyPolicyStatus.Error,
-          statusMessage: "Policy Execution timed out.",
+          statusMessage: isOnCallDirectPage(executionLog)
+            ? ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE
+            : "Policy Execution timed out.",
         },
         props: {
           isRoot: true,
@@ -94,8 +104,9 @@ RunCron(
         id: executionLog.id!,
         data: {
           status: OnCallDutyPolicyStatus.Error,
-          statusMessage:
-            "Policy Execution never started (stuck in Scheduled) and was timed out.",
+          statusMessage: isOnCallDirectPage(executionLog)
+            ? ON_CALL_DIRECT_PAGE_NEVER_STARTED_MESSAGE
+            : "Policy Execution never started (stuck in Scheduled) and was timed out.",
         },
         props: {
           isRoot: true,

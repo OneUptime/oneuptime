@@ -363,12 +363,13 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
 
     if (
       componentInputType === ComponentInputType.WorkflowSelect ||
-      componentInputType === ComponentInputType.IncidentTemplateSelect
+      componentInputType === ComponentInputType.IncidentTemplateSelect ||
+      componentInputType === ComponentInputType.AlertSeveritySelect
     ) {
       /*
        * Dropdown options are injected at render time by ArgumentsForm,
-       * which fetches the project's workflows or incident templates
-       * (RecordChoices).
+       * which fetches the project's workflows, incident templates or alert
+       * severities (RecordChoices).
        */
       return {
         fieldType: FormFieldSchemaType.Dropdown,

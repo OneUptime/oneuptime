@@ -1,8 +1,35 @@
-# AI SRE — Autonomous Investigations
+# AI SRE
 
 OneUptime AI is your AI Site Reliability Engineer. The moment a new incident or alert is declared, it wakes up, investigates it across your own telemetry — logs, metrics, traces, exceptions, monitors, and recent changes — and posts a cited root cause analysis to the incident or alert timeline, usually before the on-call engineer has finished reading the page.
 
 Every claim in the analysis carries a citation that deep-links to the exact data that supports it, and the investigation itself is **strictly read-only**: OneUptime AI can never change anything in your project while investigating.
+
+:::cards
+- [How it works](#how-it-works): From a new incident to a cited analysis, and a fix when you allow one.
+- [Enabling AI investigations](#enabling-ai-investigations): The switches, and what they need.
+- [Cluster access — let OneUptime AI run kubectl](#cluster-access-let-oneuptime-ai-run-kubectl): Investigate, and fix, inside Kubernetes.
+- [Cost controls](#cost-controls): Limits for incidents, for alerts and for the whole project.
+:::
+
+## How it works
+
+OneUptime AI does three things for a new incident or alert, and each has a switch of its own:
+
+- **It investigates** (on by default). It reads your telemetry, and the clusters and hosts where an AI agent runs, and posts a cited root cause analysis. An investigation changes nothing.
+- **It fixes** (off by default). When fixing is on, a confident analysis becomes a fix: a pull request for a change to your code, or a plan of commands for a cluster or a host, run the way that cluster's or host's AI agent allows.
+- **It learns.** The AI Insights pages say what keeps going wrong, worked out from everything that was recorded.
+
+```mermaid title="From a new incident to a fix"
+flowchart TB
+    N["A new incident<br/>or alert"] --> I["OneUptime AI<br/>investigates it,<br/>read-only"]
+    I --> R["A cited root cause<br/>analysis on its<br/>timeline"]
+    R --> F{"Is fixing on, and<br/>does the analysis<br/>point at a fix?"}
+    F -->|"a code change"| PR["A fix pull request,<br/>for review"]
+    F -->|"infrastructure"| P["A fix plan for the<br/>cluster or host"]
+    P --> V["The monitors show<br/>whether it worked"]
+```
+
+An analysis that finds no cause is posted quietly, without paging anyone (see [Quiet mode](#quiet-mode)), and nothing is fixed without a cause.
 
 ## What the investigation posts
 
@@ -32,15 +59,17 @@ The **AI Investigation** card ends with a conversation — **Ask OneUptime AI** 
 
 Autonomous investigations are **on by default for new projects**. So are postmortem drafts and AI Insights. Fixing starts off, and so do the pull requests that are part of it (see [Automatic code fixes](#automatic-code-fixes)). A project created before this default keeps its setting; turn investigations on as in step 3, or with **Turn on** on any Kubernetes cluster's **AI agent** page (Project Owner or Project Admin). To check or change them:
 
-1. **Configure an LLM provider.** Self-hosted installations bring their own key (or run fully air-gapped with local Ollama) — see [LLM Providers](/docs/ai/llm-provider). OneUptime Cloud users can use the pre-configured global provider, billed as metered AI tokens, so the project needs AI credits: a project owner or someone with **Manage Billing** adds them on **Project Settings > AI > AI Credits**, where **Auto Recharge** keeps them from running out.
-2. **Make sure AI is enabled for the project** (it is by default) — Project Settings > AI > AI Features > Enable AI.
+:::steps
+1. **Configure an LLM provider.** Self-hosted installations bring their own key (or run fully air-gapped with local Ollama) — see [LLM Providers](/docs/ai/llm-provider). OneUptime Cloud users can use the pre-configured global provider, billed as metered AI tokens, so the project needs AI credits: a project owner or someone with **Manage Billing** adds them on **Project Settings → AI → AI Credits**, where **Auto Recharge** keeps them from running out.
+2. **Make sure AI is enabled for the project** (it is by default): **Enable AI**, on **Project Settings → AI → AI Features**.
 3. **Choose per signal type** (both on for new projects):
-   - Incidents: **Incidents > AI > Settings** — turn on _Investigate new incidents_.
-   - Alerts: **Alerts > AI > Settings** — turn on _Investigate new alerts_.
+   - Incidents: **Incidents → AI → Settings** — turn on _Investigate new incidents_.
+   - Alerts: **Alerts → AI → Settings** — turn on _Investigate new alerts_.
+:::
 
 Each AI behaviour on those pages is a switch that saves as soon as you flip it; there is no Save button. The incident page has three, under **What OneUptime AI does**: _Investigate new incidents_, _Fix new incidents automatically_ and _Draft a postmortem when an incident resolves_. The alert page has the same, without the postmortem. _Fix new incidents automatically_ (and _Fix new alerts automatically_) starts **off**, for new projects too: it lets OneUptime AI change your infrastructure, so a project turns it on itself — see [Which incidents are investigated and fixed](#which-incidents-are-investigated-and-fixed). Two more switches are part of it, drawn under it while it is on: _Open a fix pull request when an investigation finds a code change_ and _Open a pull request that adds missing telemetry_. Turning fixing on turns both on, and turning it off turns both off; while it is on, turn off either one you do not want. Project Owners and Project Admins can change them; for everyone else each switch is locked and says which permission it needs.
 
-The pages say two things only when they are true. If **Enable AI** is off, nothing on them runs, and the page says so at the top with the Enable AI switch itself for those who may change it (Project Owners, and anyone with Manage Billing); everyone else is told who can. If the project has no LLM provider OneUptime AI can use — none at all, or providers but none set as the default — the page says that too, with a link to **Project Settings > AI > LLM Providers**. On OneUptime Cloud the global provider counts, so nothing is said there.
+The pages say two things only when they are true. If **Enable AI** is off, nothing on them runs, and the page says so at the top with the Enable AI switch itself for those who may change it (Project Owners, and anyone with Manage Billing); everyone else is told who can. If the project has no LLM provider OneUptime AI can use — none at all, or providers but none set as the default — the page says that too, with a link to **Project Settings → AI → LLM Providers**. On OneUptime Cloud the global provider counts, so nothing is said there.
 
 Incidents and alerts are configured independently, so you can give each signal type its own concurrency cap, daily token budget, fix-task budget, and follow-up pull request policy. None of those limits applies until you set it — they are folded under **More settings** at the bottom of each page; see **Cost controls** below. Changing an alert AI setting does not change the corresponding incident setting, or vice versa.
 
@@ -50,7 +79,7 @@ Fixing builds on top of investigations: while **Fix new incidents automatically*
 
 Out of the box, an investigation can only use the telemetry your agents ship. For a Kubernetes signal that is often not enough: "pods stuck in Pending" is a scheduling problem you diagnose by describing the pod and reading its events, not by looking at a metric. The **Kubernetes AI agent** lets OneUptime AI do exactly that — and, if you allow it, fix what it finds.
 
-Each cluster has an **AI** section in the dashboard (Kubernetes → cluster → AI):
+Each cluster's page has an **AI** section in its side menu:
 
 - **Agent** — the cluster's **AI agent** page: whether the agent is connected, what AI may do on the cluster, and anything that needs attention, each with the step that fixes it. The same explanation appears on the incident's investigation panel when AI had to investigate with OneUptime data only.
 - **Insights** — the cluster's **AI Insights** page: what OneUptime AI found out about the cluster — what keeps going wrong and why, and what to do about it (see [What AI learned on a cluster](#what-ai-learned-on-a-cluster)).
@@ -117,7 +146,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 Replace `{web,api}` with the namespaces AI may fix. Every namespace you list must already exist: the chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole install or upgrade — the collector included — with `namespaces "api" not found`. Create it first, or take it off the list; take a namespace off the list before you delete it. Leaving the flag out of an upgrade keeps the list stored on the release, so to go back to cluster-wide pass `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+), as the second command does — not `={}`, which Helm reads as one empty name and the chart refuses. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`: Helm keeps the stored list. `aiAgent.remediation.nodeOperations=false` keeps fixes off nodes; set it to `true` to let AI cordon, uncordon, drain and taint nodes (a drain, a taint or a patch of a node still waits for a human).
 
-Use `automatic` or `bypass-approval` in place of `ask-for-approval` for more autonomy, and `--set aiAgent.fixes=off` to turn fixes off again, which also removes the write access. Fixes also need two project switches. **Fix new incidents automatically** (on **Incidents > AI > Settings**) and **Fix new alerts automatically** (on **Alerts > AI > Settings**) start off: until one is on, nothing new of that kind is fixed. **Enable AI** (Project Settings > AI > AI Features) is on unless someone turned it off; it turns all of AI off for the project, whatever an agent's configuration says.
+Use `automatic` or `bypass-approval` in place of `ask-for-approval` for more autonomy, and `--set aiAgent.fixes=off` to turn fixes off again, which also removes the write access. Fixes also need two project switches. **Fix new incidents automatically** (on **Incidents → AI → Settings**) and **Fix new alerts automatically** (on **Alerts → AI → Settings**) start off: until one is on, nothing new of that kind is fixed. **Enable AI** (**Project Settings → AI → AI Features**) is on unless someone turned it off; it turns all of AI off for the project, whatever an agent's configuration says.
 
 ### Which incidents a cluster's fixes act on
 
@@ -139,6 +168,14 @@ Turning fixes on — any move from **Off** to another mode — and loosening the
 ### What an investigation may run
 
 With access, an investigation runs **read-only** kubectl through the AI agent — `get`, `describe`, `logs`, `events`, `top`, `rollout status/history`, `auth can-i` — as many commands as it needs, and cites each command like any other evidence. Output is never cut off: the agent keeps up to a megabyte of it, and OneUptime AI reads a long output a page at a time. Three independent checks keep it read-only: the policy that tiers every command, the server that refuses to enqueue anything else for an investigation, and the AI agent, which re-checks the same policy before spawning kubectl. "Read-only — nothing in your systems was changed" stays literally true.
+
+```mermaid title="Every command is checked three times"
+flowchart TB
+    A["OneUptime AI asks<br/>for a command"] --> T["1. The AI tool:<br/>the command policy"]
+    T --> Q["2. The server, before<br/>it queues the command"]
+    Q --> G["3. The AI agent, before<br/>it runs kubectl"]
+    G --> K["The Kubernetes API,<br/>with the agent's own<br/>ServiceAccount"]
+```
 
 ### How fixes work
 
@@ -163,13 +200,19 @@ Some lines hold in **every** mode, Bypass approval included, and no allowlist en
 
 The Automatic-mode allowlist is matched word by word against the parsed command, not as free text: `*` stands for exactly one word (an image, a name), never for extra objects, flags or a second `-n`, and every flag the command uses must be written out in the entry. `kubectl set image deployment/web * -n web` allows a new image for `web` in `web`, nothing else. An entry must spell out its verb — and the subcommand of `rollout`, `set` or `create` — rather than use `*` for it, and must be more than one word after the optional leading `kubectl`; an entry that breaks these rules, such as `scale` or `kubectl *`, could never pre-approve a change and is refused when you save it.
 
+:::details Commands that never run, and how a command is read
 Some commands **never** run, whatever the mode and even with human approval. The command policy refuses them, and it is enforced three times — by the server's tool, by the server's enqueue chokepoint, and by the AI agent before it spawns `kubectl`: `exec`, `attach`, `cp`, `port-forward`, `proxy`, `debug`, `run`, `edit`, `apply`, `replace`, `diff`, kubectl plugins and any other verb not on its list, any file input (`-f`, `-k`) or file-reading output format (`-o jsonpath-file=`, `-o go-template-file=`, `-o custom-columns-file=`, `--template`, and a bare `-o jsonpath`/`go-template`/`custom-columns` without its inline template), credential, impersonation (`--as`, `--as-group`, `--as-uid`, `--as-user-extra`), cluster-selection, `--kuberc`, raw-API and verbose-logging flags, Secret objects in **any** verb — OneUptime AI never reads, changes, deletes or creates a Secret, and `create secret`, `create token` and `set env --resolve` are refused with them — anything that grants RBAC (`create role`, `create clusterrole`, `create rolebinding`, `create clusterrolebinding`, `set subject`), `certificate approve`, `set serviceaccount`, `create deployment`, `create cronjob` or `create job` with `--image` (`create job --from=cronjob/…` stays a riskier change), `expose --overrides` or `--override-type` (the override can make kubectl create a Job, a ClusterRoleBinding or any other kind of object instead of a Service), a `patch` body that is not JSON (kubectl would read it as YAML, whose tags can spell a field no check sees), patches that change a pod template's ServiceAccount, volumes or security settings (host ports, the user-namespace opt-out `hostUsers` and the runtime class `runtimeClassName` included), patches that replace a whole part of a pod template instead of setting fields in it (a strategic-merge `$patch: replace`, a merge patch that sets a whole `containers` list, or a JSON patch that replaces or removes the pod spec) — which would drop those settings without naming them — a label or annotation on Namespace objects picked by `--all` or a selector instead of by name, any write — `patch`, `label`, `annotate`, `set` — to RBAC objects, CustomResourceDefinitions, APIServices, admission webhook configurations or admission policies, `--all-namespaces` writes, `delete --all`, and deleting namespaces, nodes, volumes, CRDs or cluster roles. Flags are parsed the way kubectl parses them, so a denied flag or kind cannot hide behind another: combined short flags are split letter by letter (`-As` is caught), optional-value flags (`--cascade`, `--dry-run`, `--validate`) never swallow the next word, and every flag except `-n`/`--namespace`, `--request-timeout` and `--match-server-version` must come after the verb (and after the subcommand of `rollout`, `set`, `create`, `auth`, `cluster-info` and `top`), because kubectl picks the command before it parses flags. The AI agent ships its own pinned kubectl (v1.36.4) and turns kuberc off, so a kuberc file cannot add defaults or aliases to a command after the policy has checked it. It hands each command a private kubeconfig for its own ServiceAccount that points at the mounted token file, never a copy of the token.
+:::
 
 ### What the AI agent's RBAC does, and does not, bound
 
+:::details What the chart's RBAC grants
 The chart's RBAC is a separate layer from the policy, and it bounds **where** the AI agent may write, not what a write may do. Read-only access (get/list/watch, pod logs) is granted cluster-wide. `aiAgent.remediation.enabled` adds patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets and their scale subresource, Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; and delete on Pods and Jobs only. `aiAgent.remediation.nodeOperations` (on by default) adds cordon, uncordon, taint and drain on nodes, cluster-wide; set it to `false` and the chart grants no node RBAC and tells the AI agent (`ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false`), which then refuses cordon, uncordon, drain, taint and label/annotate/patch on a node before it spawns kubectl — and, since the AI agent reports the switch, OneUptime refuses such a fix already when it is proposed or approved. It never grants Secrets, `exec`, `attach`, `port-forward`, ServiceAccount tokens, impersonation, CRDs or RBAC writes, so deleting any other kind, or labelling a Service, ConfigMap, Ingress, Namespace or PVC, fails at the API server with `Forbidden` even when a human approved it. The two layers are not copies of each other: to RBAC, `apply`, `edit`, `replace`, `--all-namespaces` writes and `delete --all` are ordinary patch, update and delete calls, and only the policy stops them.
+:::
 
+:::warning What write access amounts to
 Be clear about what that write access amounts to, though: **patch/update on workloads, pods and CronJobs, and create on Jobs, in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets.** A pod template can name any image, ServiceAccount and Secret volume, and RBAC has no "patch, but not the pod template" verb — that no rule names `exec` or Secrets does not change it. That is why the policy refuses changing which ServiceAccount, security settings, volumes, command or Secret wiring a pod runs with (pod-template security patches, patches that replace the pod spec or a whole `containers` list, `set serviceaccount`, `create … --image`, `expose --overrides`, non-JSON patch bodies), why the protected namespaces always need a human, and why `aiAgent.remediation.namespaces` exists. The policy does **not** refuse changing an image: `set image`, or a patch of an image field, is a riskier change — the new image runs as the workload's own ServiceAccount, with its Secrets — that a human approves, unless the cluster bypasses approvals or its allowlist names the command. Without `aiAgent.remediation.namespaces`, the write role is bound cluster-wide — kube-system, kube-public, kube-node-lease and the agent's own namespace included, since RBAC cannot leave namespaces out of a cluster-wide binding — and there the policy and the AI agent hold the line, not RBAC. With it, the chart binds the role in exactly the namespaces you list, OneUptime refuses a write anywhere else when it is proposed or approved, and the AI agent refuses it again before it spawns kubectl.
+:::
 
 ### What AI learned on a cluster
 
@@ -199,7 +242,7 @@ The cluster's **AI Logs** page (AI → Logs) is the record of everything OneUpti
 
 ### Through a Runner instead (advanced)
 
-A cluster that does not run the chart — one that sends Kubernetes telemetry some other way — can give OneUptime AI kubectl access through a Runner you run (Runbooks → Runners). Bind the Runner and a Kubernetes credential (API server URL + ServiceAccount token, under Runbooks → Runner Credentials) to the cluster with the API or Terraform (the cluster's **AI Access Runner** and **AI Access Credential**), and turn on **Runs AI Remediation Commands** for that Runner. Fixes through a Runner need the same project switches as fixes through the AI agent: **Enable AI**, and **Fix new incidents automatically** (or alerts). To limit where such a Runner may write, start it with `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` (and `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false` to keep fixes off nodes): the Runner reports those limits, so OneUptime refuses a fix outside them when it is proposed or approved, before it reaches the Runner, and the Runner refuses it again. A cluster bound to a Runner keeps using it even when the Kubernetes AI agent is installed; the AI agent page then shows which Runner and credential it goes through and, once the AI agent is connected, offers **Switch to the AI agent** in the **⋯** menu next to the agent's status.
+A cluster that does not run the chart — one that sends Kubernetes telemetry some other way — can give OneUptime AI kubectl access through a Runner you run (Runbooks → Runners). Bind the Runner and a Kubernetes credential (API server URL + ServiceAccount token, under **Runbooks → Runners → Credentials**) to the cluster with the API or Terraform (the cluster's **AI Access Runner** and **AI Access Credential**), and turn on **Runs AI Remediation Commands** for that Runner. Fixes through a Runner need the same project switches as fixes through the AI agent: **Enable AI**, and **Fix new incidents automatically** (or alerts). To limit where such a Runner may write, start it with `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` (and `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false` to keep fixes off nodes): the Runner reports those limits, so OneUptime refuses a fix outside them when it is proposed or approved, before it reaches the Runner, and the Runner refuses it again. A cluster bound to a Runner keeps using it even when the Kubernetes AI agent is installed; the AI agent page then shows which Runner and credential it goes through and, once the AI agent is connected, offers **Switch to the AI agent** in the **⋯** menu next to the agent's status.
 
 Clusters set up with an earlier chart (`aiAccess.enabled=true`) reach OneUptime AI through the previous in-cluster Runner until the chart is upgraded. The upgrade replaces that Runner with the Kubernetes AI agent and carries its settings over — see [Upgrading the Agent](/docs/telemetry/kubernetes-agent#upgrading-the-agent).
 
@@ -215,7 +258,7 @@ Whether an analysis counts as confident is decided by a server-verified signal, 
 
 ## Automatic code fixes
 
-A confident analysis that recommends a repository code change can go one step further than notifying: it opens the fix. The switch **Open a fix pull request when an investigation finds a code change** is part of fixing: it sits under **Fix new incidents automatically** on **Incidents > AI > Settings**, and under **Fix new alerts automatically** on **Alerts > AI > Settings**, and opens pull requests only while that switch is on. Both start **off**, for new projects too; turning fixing on turns it on, and turning fixing off turns it off. Nothing opens until the project has a GitHub-App-connected repository and a Runner with the code-fix capability. A signal type with this setting enabled automatically queues the same fix task as the **Open Fix PR from this analysis** button on the investigation panel: an AI agent task that turns the posted analysis into a pull request, ready for review. The button uses the same recommendation and is hidden for analyses whose remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive.
+A confident analysis that recommends a repository code change can go one step further than notifying: it opens the fix. The switch **Open a fix pull request when an investigation finds a code change** is part of fixing: it sits under **Fix new incidents automatically** on **Incidents → AI → Settings**, and under **Fix new alerts automatically** on **Alerts → AI → Settings**, and opens pull requests only while that switch is on. Both start **off**, for new projects too; turning fixing on turns it on, and turning fixing off turns it off. Nothing opens until the project has a GitHub-App-connected repository and a Runner with the code-fix capability. A signal type with this setting enabled automatically queues the same fix task as the **Open Fix PR from this analysis** button on the investigation panel: an AI agent task that turns the posted analysis into a pull request, ready for review. The button uses the same recommendation and is hidden for analyses whose remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive.
 
 A second switch under fixing, **Open a pull request that adds missing telemetry**, is for the investigations that end inconclusive because the logs, traces or metrics they needed were missing: OneUptime AI opens a pull request that adds that instrumentation to the code paths involved, for your team to review. It needs a repository connected through the GitHub App, and comes on and goes off with fixing too.
 
@@ -246,7 +289,7 @@ A rule saved before rules were simplified keeps doing what it did. One that had 
 
 ## Auto-remediation waits for the analysis
 
-When the project fixes new incidents or alerts automatically (**Fix new incidents automatically** and **Fix new alerts automatically**, with the auto remediation rules under **More settings** on **Incidents > AI > Settings** and **Alerts > AI > Settings**), fixing waits for the investigation — **RCA first**:
+When the project fixes new incidents or alerts automatically (**Fix new incidents automatically** and **Fix new alerts automatically**, with the auto remediation rules under **More settings** on **Incidents → AI → Settings** and **Alerts → AI → Settings**), fixing waits for the investigation — **RCA first**:
 
 - When a new incident or alert **enqueues an AI investigation**, auto-remediation for that incident or alert is deferred until the investigation **settles** — any terminal outcome: the analysis is posted, the run errors out after its retries, it expires in the queue, or it goes stale. Only then do the remediation rules run, so the remediation planner always has the posted root cause analysis as input instead of racing it.
 - When **no investigation is enqueued** (investigations disabled, or a severity floor, cooldown or budget you set skipped it), remediation fires immediately when the incident or alert is created, exactly as before. Auto-remediation never depends on the AI investigation lane being enabled.
@@ -256,7 +299,7 @@ An investigation that fails, expires, or goes stale still releases remediation �
 
 While remediation waits, the incident's or alert's **Remediation** card says so, and shows what happened once the investigation settles.
 
-Auto-remediation depends on two switches. **Fix new incidents automatically** (or alerts), off until the project turns it on: with it off, no new incident (or alert) is fixed. And **Enable AI** (Project Settings > AI > AI Features), the project's master AI switch: with it off, no auto-remediation rule runs — not even one that starts a runbook without AI — and no cluster or resource is fixed.
+Auto-remediation depends on two switches. **Fix new incidents automatically** (or alerts), off until the project turns it on: with it off, no new incident (or alert) is fixed. And **Enable AI** (**Project Settings → AI → AI Features**), the project's master AI switch: with it off, no auto-remediation rule runs — not even one that starts a runbook without AI — and no cluster or resource is fixed.
 
 ## What auto-remediation did
 
@@ -273,31 +316,31 @@ When the incident is linked to no cluster and no infrastructure resource at all,
 
 The **AI** section of the Incidents and Alerts side menus opens on two pages that look back at what OneUptime AI did for that signal type. Neither changes anything: both show only what was recorded, and only for the incidents (or alerts) you may see.
 
-- **Insights** (**Incidents > AI > Insights**, **Alerts > AI > Insights**) — the same AI Insights page a cluster has (see [What AI learned on a cluster](#what-ai-learned-on-a-cluster)), over the incidents (or alerts) of the last 30 days, worked out on the server from what was recorded:
+- **Insights** (**Incidents → AI → Insights**, **Alerts → AI → Insights**) — the same AI Insights page a cluster has (see [What AI learned on a cluster](#what-ai-learned-on-a-cluster)), over the incidents (or alerts) of the last 30 days, worked out on the server from what was recorded:
   - **What OneUptime AI found** — the few things that matter most, each with the incidents behind it and one next step: an incident that keeps coming back (how often and how much of everything that is, whether it is new this week or getting worse, when it tends to start, the monitors that raised it, what AI found and the step it suggests), a fix that did not help or waits for approval, the incidents AI did not look into and why (with the way to the setting that decides it, for whoever may change it), the service or monitor behind several different problems, what AI fixed on its own, and — when your team approved every fix AI proposed — the way to let AI apply fixes like these on its own.
   - **Other problems** — the rest of what AI looked into, grouped by the monitor that raised them (by title when there is none), the most frequent first: how often, the monitors behind them, which hosts, pods or other parts they hit, what the latest investigation found and suggests, what happened to the fixes AI proposed, and what your team and the automatic grading made of the findings.
   - **Monitors that keep failing** and **Services that keep failing** — the monitors behind, and the services affected by, the most incidents of the 30 days, investigated or not.
   - **What OneUptime AI did here** — the footnote: how many investigations there were and how many of the incidents created in the 30 days AI investigated, the fixes and commands and how many of them failed, investigations per day, where the fixes and the fix pull requests ended up, and why AI did not investigate the others, with the way to the AI settings that decide it.
 
   Seeing the fix numbers needs permission to read auto-remediation suggestions; without it they are left out, not shown as zero.
-- **Logs** (**Incidents > AI > Logs**, **Alerts > AI > Logs**) — every investigation, fix, fix pull request and command, newest first, each linked to its incident or alert. An investigation's summary is its TL;DR or, when no TL;DR could be written, the summary its report opens with. Filter it to one kind, and use **Load older entries** to page back. Commands need permission to read Runner jobs and fixes permission to read auto-remediation suggestions; the page says which kinds it leaves out for your role.
+- **Logs** (**Incidents → AI → Logs**, **Alerts → AI → Logs**) — every investigation, fix, fix pull request and command, newest first, each linked to its incident or alert. An investigation's summary is its TL;DR or, when no TL;DR could be written, the summary its report opens with. Filter it to one kind, and use **Load older entries** to page back. Commands need permission to read Runner jobs and fixes permission to read auto-remediation suggestions; the page says which kinds it leaves out for your role.
 
-The AI settings and the auto-remediation rules used to be at `…/settings/ai` and `…/settings/auto-remediation-rules`, and the rules then at `…/ai/auto-remediation-rules`; those addresses still work, and open **AI > Settings**, where the rules are now, under **More settings**.
+The AI settings and the auto-remediation rules used to be at `…/settings/ai` and `…/settings/auto-remediation-rules`, and the rules then at `…/ai/auto-remediation-rules`; those addresses still work, and open **AI → Settings**, where the rules are now, under **More settings**.
 
 ## Cost controls
 
 Every limit below is optional, and none applies until you set it: with automatic investigation on, every new incident and alert is investigated, whatever its severity, and nothing caps how many investigations or fix tasks run. Alert volume can be much higher than incident volume, so these are the controls to reach for when you want a ceiling.
 
-They are folded under **More settings** at the bottom of each signal type's AI settings page, with the investigation rules and the auto remediation rules (see [Which incidents are investigated and fixed](#which-incidents-are-investigated-and-fixed)), in three sections that each edit on one page: **Which incidents are investigated** (or alerts: the severity floor and the cooldown), **Investigation limits** (the concurrency cap and the time limit) and **Daily limits** (the token and fix-task limits). Folded, **More settings** names the two rules tables and the three sections and says what the defaults do — every incident (or alert) is investigated, whatever its severity, every one is fixed while fixing is on, and nothing limits how much OneUptime AI does — and, once a rule or a limit is set, shows the table or section that holds it. Open, it is one card: each table and each set of limits is a section of it, with its own title and **Edit** or **Create** button, separated from the next by a divider.
+They are folded under **More settings** at the bottom of each signal type's AI settings page, with the investigation rules and the auto remediation rules (see [Which incidents are investigated and fixed](#which-incidents-are-investigated-and-fixed)), on **Incidents → AI → Settings** and **Alerts → AI → Settings**, in three sections that each edit on one page: **Which incidents are investigated** (or alerts: the severity floor and the cooldown), **Investigation limits** (the concurrency cap and the time limit) and **Daily limits** (the token and fix-task limits). Folded, **More settings** names the two rules tables and the three sections and says what the defaults do — every incident (or alert) is investigated, whatever its severity, every one is fixed while fixing is on, and nothing limits how much OneUptime AI does — and, once a rule or a limit is set, shows the table or section that holds it. Open, it is one card: each table and each set of limits is a section of it, with its own title and **Edit** or **Create** button, separated from the next by a divider.
 
-| Control                   | Behavior                                                                                                                                                                                                                                                                                                                                                                                                     | Where to configure                  |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
-| Severity floor            | Only incidents or alerts at or above a minimum severity are investigated. Unset (the default) means **every severity**.                                                                                                                                                                                                                                                                                      | Incidents or Alerts > AI > Settings |
-| Re-investigation cooldown | A repeat incident or alert from a monitor that was investigated within the cooldown is not investigated again — the first analysis stands. Unset (the default) or 0 means **no cooldown**: every incident and alert is investigated. At most 1440 minutes (a day).                                                                                                                                           | Incidents or Alerts > AI > Settings |
-| Concurrency cap           | How many investigations of this signal type run at once. Incidents and alerts have separate pools. Unset (the default) means **no limit**: every investigation starts right away. A cap you set is at least 1, with no maximum; only then do queued investigations wait for a free slot, and they expire after 30 minutes.                                                                                   | Incidents or Alerts > AI > Settings |
-| Investigation time limit  | Optional. Stop an investigation after this many minutes and report what it found. Unset (the default) means **no time limit** — the investigation runs until it is done, with only a runaway guard of 100 LLM calls and 300 tool calls. A completed investigation additionally spends one tiny confidence-classification call (20 output tokens max), metered and counted against the daily token limit.     | Incidents or Alerts > AI > Settings |
-| Daily token limit         | Optional maximum tokens per UTC day for autonomous AI work linked to this signal type, including investigations, remediation, and follow-up fix tasks. Incident and alert usage is counted separately. When one limit is reached, only that signal type's AI work is paused until the next day — interactive AI chat is never blocked. Unset (the default) means **no limit**; set **0** to pause that lane. | Incidents or Alerts > AI > Settings |
-| Daily fix-task limit      | Maximum incident- or alert-linked fix tasks created per UTC day. Each signal type has its own limit. Unset (the default) means **no limit**; set 0 to pause that lane's fix tasks.                                                                                                                                                                                                                           | Incidents or Alerts > AI > Settings |
+| Control | Behavior |
+| --- | --- |
+| Severity floor | Only incidents or alerts at or above a minimum severity are investigated. Unset (the default) means **every severity**. |
+| Re-investigation cooldown | A repeat incident or alert from a monitor that was investigated within the cooldown is not investigated again — the first analysis stands. Unset (the default) or 0 means **no cooldown**: every incident and alert is investigated. At most 1440 minutes (a day). |
+| Concurrency cap | How many investigations of this signal type run at once. Incidents and alerts have separate pools. Unset (the default) means **no limit**: every investigation starts right away. A cap you set is at least 1, with no maximum; only then do queued investigations wait for a free slot, and they expire after 30 minutes. |
+| Investigation time limit | Optional. Stop an investigation after this many minutes and report what it found. Unset (the default) means **no time limit** — the investigation runs until it is done, with only a runaway guard of 100 LLM calls and 300 tool calls. A completed investigation additionally spends one tiny confidence-classification call (20 output tokens max), metered and counted against the daily token limit. |
+| Daily token limit | Optional maximum tokens per UTC day for autonomous AI work linked to this signal type, including investigations, remediation, and follow-up fix tasks. Incident and alert usage is counted separately. When one limit is reached, only that signal type's AI work is paused until the next day — interactive AI chat is never blocked. Unset (the default) means **no limit**; set **0** to pause that lane. |
+| Daily fix-task limit | Maximum incident- or alert-linked fix tasks created per UTC day. Each signal type has its own limit. Unset (the default) means **no limit**; set 0 to pause that lane's fix tasks. |
 
 AI work outside incidents and alerts — insight triage, and fix tasks for exceptions, insights and performance regressions — has no setting of its own and none of the limits in the table; only the project's own daily limits (below) apply to it. Its pull requests count against a repository's **Max Open Fix Pull Requests** (on the repository's **Settings** page) once you set one; unset means no cap, and 0 blocks AI fix pull requests for that repository.
 
@@ -310,7 +353,7 @@ Above every limit in the table, a project can cap what OneUptime AI uses in a da
 
 Unset (the default) means **no limit**. A limit is a whole number of at least 1; to turn AI off, use **Enable AI**. A day is a UTC day, like the incident and alert limits: usage is counted from midnight UTC, and the count starts again at the next midnight UTC. Folded, the section says what applies and what AI used today, for example "At most 200,000 tokens a day. Used today: 45,210 tokens." Only a project owner or someone with **Manage Billing** can change the limits: the same people who can turn AI off.
 
-Once a limit is reached, new AI work stops until midnight UTC. A call that is already running finishes, and every call after it is refused with one sentence that says which limit was reached, how much was used, and who can change it and where: "A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings." Ask AI, a **Generate with AI** button, a workflow, a runbook step, and Slack and Microsoft Teams answer with that sentence, and every refused call is listed in the AI Logs (Project Settings > AI > AI Logs) with the status **Budget Exceeded**. Automatic investigations, postmortem drafts, and insight triage are not started at all. An incident or alert created meanwhile says so in its AI investigation card, with a link to the limits for the people who can change them. The incident and alert daily token limits still apply under the project's own: AI stops at whichever is reached first.
+Once a limit is reached, new AI work stops until midnight UTC. A call that is already running finishes, and every call after it is refused with one sentence that says which limit was reached, how much was used, and who can change it and where: "A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings." Ask AI, a **Generate with AI** button, a workflow, a runbook step, and Slack and Microsoft Teams answer with that sentence, and every refused call is listed in the AI Logs (**Project Settings → AI → AI Logs**) with the status **Budget Exceeded**. Automatic investigations, postmortem drafts, and insight triage are not started at all. An incident or alert created meanwhile says so in its AI investigation card, with a link to the limits for the people who can change them. The incident and alert daily token limits still apply under the project's own: AI stops at whichever is reached first.
 
 #### When a limit is reached
 
@@ -320,10 +363,10 @@ Once a limit is reached, new AI work stops until midnight UTC. A call that is al
 
 ### When AI credits run out
 
-On OneUptime Cloud, OneUptime AI on the global provider is paid from the project's AI credits, on **Project Settings > AI > AI Credits**. What happens when they run out depends on **Auto Recharge**, on the same page:
+On OneUptime Cloud, OneUptime AI on the global provider is paid from the project's AI credits, on **Project Settings → AI → AI Credits**. What happens when they run out depends on **Auto Recharge**, on the same page:
 
 - **Auto Recharge on**: the AI call that finds the credits used up first adds the amount Auto Recharge is set to, charging the project's card, and then runs. Calls that arrive at the same moment charge the card once. Turning Auto Recharge on while the credits are below its threshold adds them straight away, the way the SMS and call balance's Auto Recharge does.
-- **Auto Recharge off**: OneUptime AI stops. Every AI call is refused with who can add credits, and where: "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits." Each refused call is listed in the AI Logs (Project Settings > AI > AI Logs) with the status **Insufficient Balance**. Automatic investigations and postmortem drafts are not started, and the AI agent pages and the AI Tasks page say the project is out of AI credits.
+- **Auto Recharge off**: OneUptime AI stops. Every AI call is refused with who can add credits, and where: "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits." Each refused call is listed in the AI Logs (**Project Settings → AI → AI Logs**) with the status **Insufficient Balance**. Automatic investigations and postmortem drafts are not started, and the AI agent pages and the AI Tasks page say the project is out of AI credits.
 - **Auto Recharge could not charge the card** (there is no payment method, or the card was declined): OneUptime AI stops in the same way, and the owners get the email that says the recharge failed. Auto Recharge tries the card again an hour later. Adding credits by hand, or saving Auto Recharge again, tries at once. Until then **AI Credits** says so at the top, to everyone who opens it: a project owner or someone with **Manage Billing** is asked to check the payment method or add credits, and everyone else is told who can.
 
 **The project's owners are emailed** the first time OneUptime AI stops for want of credits: when the call that spends the last of them finishes, or when an AI call is refused or an investigation is skipped. The email says what to do and links to **AI Credits**. It comes once each time the credits run out; after credits are added, the next time they run out sends another.
@@ -332,7 +375,7 @@ On OneUptime Cloud, OneUptime AI on the global provider is paid from the project
 
 - **Read-only, always.** Autonomous investigations run with a curated set of read-only tools (metric, log, trace, exception, and change queries — including `baseline_anomaly`, which judges a metric against its learned hour-of-week normal range). The AI cannot acknowledge, resolve, page, or modify anything from an investigation.
 - **Citations are minted server-side** from tool calls that actually executed — the model cannot fabricate a citation to data it never read.
-- **Full audit trail.** Every investigation is recorded as an AI run with an ordered event trail (every LLM call and tool call), and every LLM call is metered in the AI Logs page (Project Settings > AI > AI Logs) with token counts and cost.
+- **Full audit trail.** Every investigation is recorded as an AI run with an ordered event trail (every LLM call and tool call), and every LLM call is metered in the AI Logs page (**Project Settings → AI → AI Logs**) with token counts and cost.
 - **Secrets are redacted** from tool results before anything is sent to the LLM (tokens, credentials, key patterns).
 - **Images are left out of what the model reads.** An image embedded in an incident's or alert's text - a synthetic monitor's screenshot in the description, a picture pasted into a note - is hundreds of kilobytes of base64 that the model cannot read and would be billed for on every call. It is given a short note in its place, such as `[image omitted: JPEG, 340 KB]`, and the investigation's activity says what was left out. A description, root cause or note longer than 4,000 characters is cut the same way, ending with a note that says how much is missing (16,000 characters in a drafted postmortem or note). People still see every image: only what the model reads changes.
 - **Self-host = zero third-party egress.** With your own LLM provider (including local Ollama), telemetry never leaves your infrastructure.
@@ -340,7 +383,7 @@ On OneUptime Cloud, OneUptime AI on the global provider is paid from the project
 
 ## Auto-postmortem
 
-Separately from investigations, OneUptime AI can draft a postmortem automatically when an incident is resolved. It is its own switch — **Draft a postmortem when an incident resolves**, on the incident AI settings page (Incidents > AI > Settings) — so you can investigate without drafting, or draft without investigating. It is **on by default for new projects**; a project created before this default keeps its setting. The draft never overwrites an existing postmortem note, and is not written into a postmortem already switched on with **Publish on Status Page**: there it would go on the status page unreviewed, and subscribers would be told about it. This uses the same LLM provider and appears in the incident's postmortem tab for human review.
+Separately from investigations, OneUptime AI can draft a postmortem automatically when an incident is resolved. It is its own switch — **Draft a postmortem when an incident resolves**, on the incident AI settings page (**Incidents → AI → Settings**) — so you can investigate without drafting, or draft without investigating. It is **on by default for new projects**; a project created before this default keeps its setting. The draft never overwrites an existing postmortem note, and is not written into a postmortem already switched on with **Publish on Status Page**: there it would go on the status page unreviewed, and subscribers would be told about it. This uses the same LLM provider and appears in the incident's postmortem tab for human review.
 
 ## Insights — proactive detection
 
@@ -356,13 +399,13 @@ What the detectors watch:
 | Trace latency regressions | A service's p99 latency over the last hour is at least 1 second and 2×+ its prior-24-hour p99, with enough traffic to be meaningful. The detector drills into a representative slow trace and records what it found — N+1 query patterns, dominant slow spans — as evidence on the insight | Medium; High at 4×                                                                                      |
 | Metric drift              | A metric's average this week has moved 50%+ versus the same metric last week                                                                                                                                                                                                               | Always Low — drift direction says nothing about whether the change is bad, so drift is never auto-fixed |
 
-Each finding becomes an **insight** in a quiet inbox — **AI > Insights** in the dashboard. The inbox leads with what to look at first: the open finding that matters most (the most severe, the most recently seen) with what its triage concluded, the service behind most of the open findings when one stands out, and how many are new this week. Insights **never page anyone and never open incidents**; they wait until someone looks. A recurring finding refreshes its existing insight (last seen, occurrence count) instead of piling up duplicates, a finding you dismiss stays out of your inbox for 7 days, and each scan files at most 10 new insights per project.
+Each finding becomes an **insight** in a quiet inbox — **Products → AI → Insights** in the dashboard. The inbox leads with what to look at first: the open finding that matters most (the most severe, the most recently seen) with what its triage concluded, the service behind most of the open findings when one stands out, and how many are new this week. Insights **never page anyone and never open incidents**; they wait until someone looks. A recurring finding refreshes its existing insight (last seen, occurrence count) instead of piling up duplicates, a finding you dismiss stays out of your inbox for 7 days, and each scan files at most 10 new insights per project.
 
 When an LLM provider is configured, each new insight also gets a **triage analysis**: a read-only, cited AI investigation — same engine, same audit trail, and same per-run budget as autonomous investigations — that assesses the likely root cause, the blast radius, and the one next action worth taking. Insight triage is not attached to an incident or alert, so it never consumes either the incident or alert token budget. The result is saved to the insight page. Without a provider you still get the insights; you just skip the AI triage.
 
 Optionally, OneUptime AI can also open a **fix pull request** for the insight types with the strongest evidence: new and spiking exceptions (through the existing exception-fix pipeline) and trace latency regressions (grounded in the span evidence recorded on the insight). Error-log spikes and metric drift are never auto-fixed. Every automatic fix PR opens ready for review and requires human review — auto-merge does not exist. AI work outside incidents and alerts has no daily fix-task limit, so the only cap these pull requests meet is the repository's open-PR cap, if you set one.
 
-All three settings are **on by default for new projects** (a project created before this default keeps its setting), at **AI > Insights > Settings**. Each is a switch that saves as soon as you flip it:
+All three settings are **on by default for new projects** (a project created before this default keeps its setting), at **Products → AI → Insights → Settings**. Each is a switch that saves as soon as you flip it:
 
 1. **Watch telemetry for problems** — turns on the watch loop, the inbox, and triage.
 2. **Open a fix pull request when an insight points at your code** — turns on fix-task creation for eligible insights. This needs the same setup as the manual "Fix with AI" flow: a GitHub-App-connected repository and an LLM provider.
@@ -377,4 +420,30 @@ Every insight has **Confirm** and **Dismiss** buttons — use them even when you
 - An LLM provider must be configured (project-specific or the cloud global provider).
 - Investigations trigger on **newly created** incidents and alerts only — turning the switches on does not investigate historical signals.
 - The `baseline_anomaly` check needs about two weeks of metric history before its hour-of-week baselines are reliable; before that it reports "insufficient baseline data" rather than guessing.
-- On OneUptime Cloud with the global provider, investigations consume metered AI tokens (see Project Settings > AI Credits). Bring your own provider key for unmetered usage, or cap what AI may spend each day with a daily AI spend limit (Project Settings → AI Features → More settings).
+- On OneUptime Cloud with the global provider, investigations consume metered AI tokens (see **Project Settings → AI → AI Credits**). Bring your own provider key for unmetered usage, or cap what AI may spend each day with a daily AI spend limit (Project Settings → AI Features → More settings).
+
+## Troubleshooting
+
+:::details An incident was not investigated
+Its **AI Investigation** card says why: AI is off for the project, there is no LLM provider or no AI credit, a limit was reached, the incident was outside the investigation rules or below the severity floor, its monitor was investigated within the cooldown, or it was created already resolved. Ask OneUptime AI on the card to investigate it now.
+:::
+
+:::details The analysis says it could not find a cause
+The investigation found too little evidence: it says what it checked. Make sure the service sends the logs, traces or metrics the cause would show up in, and give the cluster or host an AI agent so OneUptime AI can look inside it. With **Open a pull request that adds missing telemetry** on, OneUptime AI opens a pull request that adds what was missing.
+:::
+
+:::details Nothing was fixed
+The incident's **Remediation** card has a line for every way it could have been fixed, with the reason it was not and a link to where that is changed: fixing off, no cluster or host linked to the incident, fixes off on the AI agent page, or no auto remediation rule that matched.
+:::
+
+:::details OneUptime AI stopped working for the day
+A daily limit or the AI credits ran out. The refusal says which and who can change it; see [Cost controls](#cost-controls).
+:::
+
+## Next steps
+
+:::cards
+- [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Let OneUptime AI look inside Docker, Proxmox, VMware, Ceph, databases and hosts.
+- [Fix Tasks](/docs/ai/ai-agent): How a fix pull request is written and checked.
+- [Ask AI](/docs/ai/ask-ai): Ask about anything in your project, from any page.
+:::

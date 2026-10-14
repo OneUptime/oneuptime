@@ -335,13 +335,13 @@ Une sonde n'ouvre que des connexions sortantes, sauf si vous activez un écouteu
 | --- | --- | --- | --- |
 | Requêtes entrantes et heartbeats | `PROBE_INGRESS_PORT` | Désactivé | [Ingress de requêtes entrantes](/docs/probe/incoming-request-ingress) |
 | Traps SNMP | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Activé, UDP 162 | [Surveillance des équipements réseau](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Désactivé, UDP 5140 | [Guides par constructeur réseau](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Activé, UDP et TCP 5140 | [Événements réseau](/docs/monitor/network-events) |
 | NetFlow, IPFIX et sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | Activé, UDP 2055, 4739 et 6343 | [Trafic réseau](/docs/monitor/network-traffic) |
 | Contrôles de santé | `PORT` | Activé, TCP 3874 | `/status/live` et `/status/ready` |
 
 Dans un conteneur, un port n'est joignable depuis d'autres machines qu'avec le réseau de l'hôte ou si vous le publiez.
 
-Le récepteur syslog transmet au plus `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` messages par minute, `600` par défaut, rejette le reste et note dans son journal combien il en a rejeté.
+Le récepteur syslog transmet au plus `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` messages par minute, `600` par défaut. Au-delà, il transmet encore les messages qu'il lit comme des événements réseau, jusqu'à autant de nouveau, rejette le reste et note dans son journal combien il en a rejeté.
 
 `PROBE_NAME` et `PROBE_DESCRIPTION` ne sont lus que par les sondes qui s'enregistrent elles-mêmes avec `REGISTER_PROBE_KEY`, comme les sondes qu'une installation auto-hébergée exécute pour tous les projets. Une sonde personnalisée prend son nom et sa description dans le tableau de bord.
 
