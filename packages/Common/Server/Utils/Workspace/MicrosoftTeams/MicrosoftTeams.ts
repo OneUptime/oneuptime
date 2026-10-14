@@ -350,7 +350,7 @@ const MICROSOFT_TEAMS_ROSTER_ERROR_FRAGMENTS: Array<string> = [
 const MICROSOFT_TEAMS_MAX_PAGES: number = 500;
 
 // The most people of a team's roster read (MicrosoftTeamsUtil.getTeamRoster).
-const MICROSOFT_TEAMS_MAX_ROSTER_MEMBERS: number = 10000;
+export const MICROSOFT_TEAMS_MAX_ROSTER_MEMBERS: number = 10000;
 
 // One person of a team, as its roster tells them.
 export interface MicrosoftTeamsRosterMember {
