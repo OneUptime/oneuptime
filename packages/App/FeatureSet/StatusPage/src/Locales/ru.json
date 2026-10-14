@@ -151,7 +151,9 @@
       "placeholder": "subscriber@company.ru",
       "managePrompt": "Пожалуйста, введите email, с которым вы подписались",
       "manageDescription": "Мы отправим вам ссылку для управления подпиской на этот адрес электронной почты.",
-      "managePlaceholder": "email@vashakompaniya.ru"
+      "managePlaceholder": "email@vashakompaniya.ru",
+      "signedInEmailDescription": "Вы подписываетесь с адресом электронной почты, с которым входите.",
+      "signInToSubscribe": "Войдите на эту страницу статуса, чтобы подписаться на неё."
     },
     "sms": {
       "title": "Подписаться по SMS",

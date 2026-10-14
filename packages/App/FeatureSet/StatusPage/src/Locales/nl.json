@@ -151,7 +151,9 @@
       "placeholder": "abonnee@bedrijf.nl",
       "managePrompt": "Voer het e-mailadres in waarmee u bent geabonneerd",
       "manageDescription": "We sturen u een link om uw abonnement te beheren naar dit e-mailadres.",
-      "managePlaceholder": "email@uwbedrijf.nl"
+      "managePlaceholder": "email@uwbedrijf.nl",
+      "signedInEmailDescription": "Je abonneert je met het e-mailadres waarmee je inlogt.",
+      "signInToSubscribe": "Log in op deze statuspagina om je erop te abonneren."
     },
     "sms": {
       "title": "Abonneren via SMS",

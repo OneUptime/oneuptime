@@ -37,6 +37,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import SubscriberNotificationWarnings, {
   SubscriberNotificationWarningsCopy,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberNotificationWarnings";
+import SubscriberNotificationsCopy, {
+  SUBSCRIBER_NOTIFICATIONS_OFF_WARNING_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberNotificationsCopy";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -103,7 +106,7 @@ function warning(): HTMLElement | null {
 }
 
 describe("SubscriberNotificationWarnings", () => {
-  test("asks for the four event types' switches of this page, and nothing else", async () => {
+  test("asks for the four event types' switches of this page, and whether it notifies at all, and nothing else", async () => {
     await renderWarnings();
 
     expect(getItemMock).toHaveBeenCalledTimes(1);
@@ -118,6 +121,7 @@ describe("SubscriberNotificationWarnings", () => {
       showEpisodesOnStatusPage: true,
       showAnnouncementsOnStatusPage: true,
       showScheduledMaintenanceEventsOnStatusPage: true,
+      sendSubscriberNotifications: true,
     });
   });
 
@@ -211,5 +215,86 @@ describe("SubscriberNotificationWarnings", () => {
       `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/settings`,
     );
     expect(warning()!).not.toHaveTextContent("Status Page Settings");
+  });
+});
+
+/*
+ * While the page sends its subscribers nothing at all (Send Notifications to
+ * Subscribers off), that is the one thing the warning says - which event
+ * types the page hides changes nothing then - and it links to Subscriber
+ * Settings, where the switch is.
+ */
+describe("SubscriberNotificationWarnings while the page sends its subscribers nothing", () => {
+  function offWarning(): HTMLElement | null {
+    return screen.queryByTestId(SUBSCRIBER_NOTIFICATIONS_OFF_WARNING_TEST_ID);
+  }
+
+  test("says the page sends its subscribers nothing, and why", async () => {
+    stored = { sendSubscriberNotifications: false };
+
+    await renderWarnings();
+
+    const shown: HTMLElement = offWarning()!;
+    expect(shown).toBeInTheDocument();
+    expect(
+      within(shown).getByText(SubscriberNotificationsCopy.offWarningTitle),
+    ).toBeInTheDocument();
+    expect(
+      within(shown).getByText(
+        SubscriberNotificationsCopy.offWarningDescription,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("links to this status page's Subscriber Settings, where the switch is", async () => {
+    stored = { sendSubscriberNotifications: false };
+
+    await renderWarnings();
+
+    const link: HTMLElement = within(offWarning()!).getByRole("link", {
+      name: SubscriberNotificationsCopy.offWarningLink,
+    });
+
+    expect(link).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/subscriber-settings`,
+    );
+  });
+
+  test("says only that, even while event types are hidden too", async () => {
+    stored = {
+      sendSubscriberNotifications: false,
+      showIncidentsOnStatusPage: false,
+      showEpisodesOnStatusPage: false,
+    };
+
+    await renderWarnings();
+
+    expect(offWarning()).toBeInTheDocument();
+    expect(warning()).not.toBeInTheDocument();
+  });
+
+  test("says nothing about it while the page notifies", async () => {
+    stored = { sendSubscriberNotifications: true };
+
+    await renderWarnings();
+
+    expect(offWarning()).not.toBeInTheDocument();
+  });
+
+  test("a page that has never had the switch notifies", async () => {
+    stored = {};
+
+    await renderWarnings();
+
+    expect(offWarning()).not.toBeInTheDocument();
+  });
+
+  test("a page that cannot be read is not said to be off", async () => {
+    stored = new Error("Request failed");
+
+    await renderWarnings();
+
+    expect(offWarning()).not.toBeInTheDocument();
   });
 });

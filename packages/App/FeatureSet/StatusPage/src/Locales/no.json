@@ -151,7 +151,9 @@
       "placeholder": "abonnent@firma.no",
       "managePrompt": "Vennligst skriv inn e-postadressen du abonnerer med",
       "manageDescription": "Vi sender deg en administrasjonslenke til denne e-postadressen.",
-      "managePlaceholder": "epost@dittfirma.no"
+      "managePlaceholder": "epost@dittfirma.no",
+      "signedInEmailDescription": "Du abonnerer med e-postadressen du logger på med.",
+      "signInToSubscribe": "Logg på denne statussiden for å abonnere på den."
     },
     "sms": {
       "title": "Abonner via SMS",

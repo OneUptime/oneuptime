@@ -22,6 +22,7 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 import CreateBy from "../Types/Database/CreateBy";
 import OneUptimeDate from "../../Types/Date";
 import SavedChatMessage from "../../Types/Workspace/SavedChatMessage";
@@ -222,6 +223,7 @@ export class Service extends ProjectReferencesService<Model> {
       incidentFeedEventType: IncidentFeedEventType.PrivateNote,
       displayColor: Blue500,
       userId: userId || undefined,
+      apiKeyActor: FeedApiKeyActorUtil.fromProps(_onCreate.createBy.props),
       ...(saved
         ? { postedAt: createdItem.postedAt, savedFromChatMessage: saved }
         : {}),
@@ -303,6 +305,7 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
           incidentFeedEventType: IncidentFeedEventType.PrivateNote,
           displayColor: Blue500,
           userId: userId || undefined,
+          apiKeyActor: FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
 
           feedInfoInMarkdown:
             mdText`📄 updated **Private Note** for this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})

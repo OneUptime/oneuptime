@@ -151,7 +151,9 @@
       "placeholder": "abonnent@firma.dk",
       "managePrompt": "Indtast venligst den e-mail, du har abonneret med",
       "manageDescription": "Vi sender dig et administrationslink til denne e-mailadresse.",
-      "managePlaceholder": "email@ditfirma.dk"
+      "managePlaceholder": "email@ditfirma.dk",
+      "signedInEmailDescription": "Du abonnerer med den e-mailadresse, du logger ind med.",
+      "signInToSubscribe": "Log ind på denne statusside for at abonnere på den."
     },
     "sms": {
       "title": "Abonner via SMS",

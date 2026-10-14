@@ -186,6 +186,9 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import FeedApiKeyActorUtil, {
+  FeedApiKeyActor,
+} from "../Utils/Feed/FeedApiKeyActor";
 
 /*
  * How an update changed an incident's status page scope, for its feed item.
@@ -3446,7 +3449,10 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .then(async () => {
         try {
-          return await this.createIncidentFeedAsync(incident);
+          return await this.createIncidentFeedAsync(
+            incident,
+            FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
+          );
         } catch (error) {
           logger.error(
             `Create incident feed failed in IncidentService.onCreateSuccess: ${error}`,
@@ -3507,6 +3513,9 @@ export class Service extends ProjectReferencesService<Model> {
               incidentId: createdItem.id!,
               alertIds: alertIds,
               actorUserId: this.getDeclaringUserId(onCreate, createdItem),
+              apiKeyActor: FeedApiKeyActorUtil.fromProps(
+                onCreate.createBy.props,
+              ),
             });
           }
         } catch (error) {
@@ -3552,7 +3561,10 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .then(async () => {
         try {
-          return await this.handleIncidentStateChangeAsync(createdItem);
+          return await this.handleIncidentStateChangeAsync(
+            createdItem,
+            FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
+          );
         } catch (error) {
           logger.error(
             `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
@@ -4264,7 +4276,11 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   @CaptureSpan()
-  private async createIncidentFeedAsync(incident: Model): Promise<void> {
+  private async createIncidentFeedAsync(
+    incident: Model,
+    // The API key that declared it, when one did (Utils/Feed/FeedApiKeyActor).
+    apiKeyActor?: FeedApiKeyActor | undefined,
+  ): Promise<void> {
     try {
       const createdByUserId: ObjectID | undefined | null =
         incident.createdByUserId || incident.createdByUser?.id;
@@ -4367,6 +4383,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         displayColor: Red500,
         feedInfoInMarkdown: feedInfoInMarkdown,
         userId: createdByUserId || undefined,
+        apiKeyActor: apiKeyActor,
         workspaceNotification: {
           appendMessageBlocks: incidentCreateMessageBlocks,
           sendWorkspaceNotification: true,
@@ -4385,6 +4402,8 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
   @CaptureSpan()
   private async handleIncidentStateChangeAsync(
     createdItem: Model,
+    // The API key that declared it, named on its first state's feed item.
+    apiKeyActor?: FeedApiKeyActor | undefined,
   ): Promise<void> {
     try {
       if (!createdItem.currentIncidentStateId) {
@@ -4415,9 +4434,12 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
          * Declared already resolved, the incident holds none of its monitors
          * (onBeforeCreate recorded holdsMonitors false), so its first state -
          * resolved - gives them nothing back (IncidentStateTimelineService).
+         * OneUptime's write, carrying the key that declared it, if one did,
+         * for that state's feed item.
          */
         props: {
           isRoot: true,
+          ...FeedApiKeyActorUtil.toProps(apiKeyActor),
         },
       });
     } catch (error) {
@@ -4760,6 +4782,8 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
     incidentLabel: string;
     incidentLink: URL;
     userId: ObjectID | undefined;
+    // The API key that made the change, when no person did.
+    apiKeyActor?: FeedApiKeyActor | undefined;
     written: Record<string, unknown>;
     postmortemBeforeUpdate: IncidentPostmortemStoredState | undefined;
   }): Promise<void> {
@@ -4789,6 +4813,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         displayColor: Blue500,
         feedInfoInMarkdown: postmortemFeedMarkdown,
         userId: data.userId,
+        apiKeyActor: data.apiKeyActor,
         workspaceNotification: {
           sendWorkspaceNotification: true,
         },
@@ -5047,6 +5072,10 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
           stateChangeLog: undefined,
           props: {
             isRoot: true,
+            // The API key that changed it, if one did, for the feed item.
+            ...FeedApiKeyActorUtil.toProps(
+              FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
+            ),
           },
         });
       }
@@ -5106,6 +5135,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
             incidentLabel: incidentLabel,
             incidentLink: incidentLink,
             userId: createdByUserId || undefined,
+            apiKeyActor: FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
             written: updatedIncidentData as Record<string, unknown>,
             postmortemBeforeUpdate: (
               onUpdate.carryForward as UpdateCarryForward | undefined
@@ -5559,6 +5589,7 @@ ${incidentSeverity.name}
             displayColor: Gray500,
             feedInfoInMarkdown: feedInfoInMarkdown,
             userId: createdByUserId || undefined,
+            apiKeyActor: FeedApiKeyActorUtil.fromProps(onUpdate.updateBy.props),
             workspaceNotification: {
               sendWorkspaceNotification: true,
             },

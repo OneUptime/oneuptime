@@ -1,5 +1,6 @@
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ObjectID from "Common/Types/ObjectID";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 
 /*
  * The reminder job — the "your maintenance window starts soon" mail — hands
@@ -66,6 +67,12 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceFeedService", () => {
   };
 });
 
+// Whether the event's project is blocked (BlockedProjectStatusPages).
+jest.mock("Common/Server/Services/ProjectService", () => {
+  return { __esModule: true, default: { isProjectBlocked: jest.fn() } };
+});
+
+import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import URL from "Common/Types/API/URL";
@@ -196,6 +203,10 @@ describe("ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled", () => {
     (
       ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem as unknown as jest.Mock
     ).mockResolvedValue(undefined as never);
+
+    (ProjectService.isProjectBlocked as unknown as jest.Mock).mockResolvedValue(
+      false as never,
+    );
   });
 
   test("selects endsAt so {{scheduledEndTime}} has a value to render", async () => {
@@ -273,5 +284,106 @@ describe("ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled", () => {
     expect(updateArgs.data.nextSubscriberNotificationBeforeTheEventAt).toEqual(
       nextAt,
     );
+  });
+
+  /*
+   * A blocked project's status pages send nothing: the one lookup every
+   * subscriber notification reads (getStatusPagesToSendNotification) leaves
+   * them out. The event's feed says why, rather than that its reminder was
+   * sent, and the event is not handed on to be sent.
+   */
+  describe("an event of a blocked project", () => {
+    const BLOCKED_PROJECT_ID: ObjectID = new ObjectID(
+      "b10c0000-0000-4000-8000-0000000000b1",
+    );
+    const BLOCKED_EVENT_ID: string = "77777777-7777-4777-8777-777777777777";
+    const LIVE_EVENT_ID: string = "88888888-8888-4888-8888-888888888888";
+
+    function blockedEvent(): ScheduledMaintenance {
+      const event: ScheduledMaintenance = storedEvent({
+        id: BLOCKED_EVENT_ID,
+      });
+      event.projectId = BLOCKED_PROJECT_ID;
+      return event;
+    }
+
+    function feedItems(): Array<Record<string, unknown>> {
+      return (
+        ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem as unknown as jest.Mock
+      ).mock.calls.map((call: Array<unknown>): Record<string, unknown> => {
+        return call[0] as Record<string, unknown>;
+      });
+    }
+
+    beforeEach(() => {
+      (
+        ProjectService.isProjectBlocked as unknown as jest.Mock
+      ).mockImplementation(async (projectId: unknown): Promise<boolean> => {
+        return (
+          (projectId as ObjectID).toString() === BLOCKED_PROJECT_ID.toString()
+        );
+      });
+    });
+
+    test("gets a feed item saying no reminder was sent, and why, and is not sent", async () => {
+      storedEvents = [blockedEvent()];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(feedItems()).toHaveLength(1);
+      expect(String(feedItems()[0]!["feedInfoInMarkdown"])).toContain(
+        "**No Reminder Notification Sent to Subscribers for [Scheduled Maintenance",
+      );
+      expect(feedItems()[0]!["moreInformationInMarkdown"]).toBe(
+        STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+      );
+      // Not posted to the event's chat channels, as no reminder entry is.
+      expect(feedItems()[0]!["workspaceNotification"]).toEqual({
+        sendWorkspaceNotification: false,
+      });
+      expect(notifiedEvents()).toEqual([]);
+    });
+
+    test("still moves its next reminder on, so it is not tried every minute", async () => {
+      const nextAt: Date = new Date("2024-03-04T05:38:00.000Z");
+      (
+        ScheduledMaintenanceService.getNextTimeToNotify as unknown as jest.Mock
+      ).mockReturnValue(nextAt);
+      storedEvents = [blockedEvent()];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      const updateArgs: {
+        data: { nextSubscriberNotificationBeforeTheEventAt?: Date };
+      } = (ScheduledMaintenanceService.updateOneById as unknown as jest.Mock)
+        .mock.calls[0]![0] as {
+        data: { nextSubscriberNotificationBeforeTheEventAt?: Date };
+      };
+
+      expect(
+        updateArgs.data.nextSubscriberNotificationBeforeTheEventAt,
+      ).toEqual(nextAt);
+    });
+
+    test("does not hold up a live project's event in the same tick", async () => {
+      storedEvents = [blockedEvent(), storedEvent({ id: LIVE_EVENT_ID })];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(
+        notifiedEvents().map((event: ScheduledMaintenance) => {
+          return event.id?.toString();
+        }),
+      ).toEqual([LIVE_EVENT_ID]);
+      expect(
+        feedItems().map((item: Record<string, unknown>): string => {
+          return String(item["feedInfoInMarkdown"]).startsWith(
+            "🗓️ **No Reminder",
+          )
+            ? "not sent"
+            : "sent";
+        }),
+      ).toEqual(["not sent", "sent"]);
+    });
   });
 });

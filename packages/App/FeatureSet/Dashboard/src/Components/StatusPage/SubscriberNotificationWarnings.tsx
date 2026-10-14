@@ -16,6 +16,10 @@ import useAsyncEffect from "use-async-effect";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { DisplaySwitchColumn } from "./StatusPageDisplaySettingsCopy";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
+import SubscriberNotificationsCopy, {
+  SUBSCRIBER_NOTIFICATIONS_OFF_WARNING_TEST_ID,
+} from "./SubscriberNotificationsCopy";
 
 /*
  * On a status page's subscriber pages, while the page hides one of the
@@ -24,6 +28,10 @@ import { DisplaySwitchColumn } from "./StatusPageDisplaySettingsCopy";
  * subscribers about them either, which nothing on these pages says
  * otherwise. The switches are on Advanced Settings, in the "What your status
  * page shows" card, which the warning links to.
+ *
+ * While the page sends its subscribers nothing at all (Send Notifications to
+ * Subscribers off, on Subscriber Settings), that is the one thing it says:
+ * which event types the page hides changes nothing then.
  */
 
 export interface ComponentProps {
@@ -67,6 +75,7 @@ const SubscriberNotificationWarnings: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [hidden, setHidden] = useState<Array<HiddenEventType> | null>(null);
+  const [isNotifying, setIsNotifying] = useState<boolean>(true);
 
   useAsyncEffect(async () => {
     try {
@@ -78,10 +87,12 @@ const SubscriberNotificationWarnings: FunctionComponent<ComponentProps> = (
           showEpisodesOnStatusPage: true,
           showAnnouncementsOnStatusPage: true,
           showScheduledMaintenanceEventsOnStatusPage: true,
+          sendSubscriberNotifications: true,
         },
       });
 
       if (statusPage) {
+        setIsNotifying(isSendingSubscriberNotifications(statusPage));
         setHidden(
           EVENT_TYPES.filter((eventType: HiddenEventType): boolean => {
             // Each column defaults to on, so only an explicit false hides.
@@ -93,6 +104,40 @@ const SubscriberNotificationWarnings: FunctionComponent<ComponentProps> = (
       // Fail silently - warnings won't show but functionality continues
     }
   }, [props.statusPageId.toString()]);
+
+  if (!isNotifying) {
+    return (
+      <Alert
+        type={AlertType.WARNING}
+        strongTitle={SubscriberNotificationsCopy.offWarningTitle}
+        dataTestId={SUBSCRIBER_NOTIFICATIONS_OFF_WARNING_TEST_ID}
+        title={
+          <div>
+            <p>
+              {translator.translateText(
+                SubscriberNotificationsCopy.offWarningDescription,
+              )}
+            </p>
+            <p className="mt-2">
+              <Link
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[
+                    PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                  ] as Route,
+                  { modelId: props.statusPageId },
+                )}
+                className="font-medium underline"
+              >
+                {translator.translateText(
+                  SubscriberNotificationsCopy.offWarningLink,
+                )}
+              </Link>
+            </p>
+          </div>
+        }
+      />
+    );
+  }
 
   if (!hidden || hidden.length === 0) {
     return <Fragment />;

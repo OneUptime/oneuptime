@@ -47,6 +47,21 @@ Varje kanal har också en egen lista i statussidans sidomeny under **Prenumerant
 
 **Ett reglage räcker inte.** Objektet **Prenumerera** i statussidans navigeringsfält visas bara när **Visa prenumerantsida** är på *och* minst en kanal är på. Om du slår på **E-post** men låter **Visa prenumerantsida** vara av har besökarna inget sätt att nå formuläret.
 
+## Stänga av alla aviseringar
+
+Det första kortet på **Prenumerantinställningar**, **Aviseringar**, innehåller **Skicka aviseringar till prenumeranter** (`sendSubscriberNotifications`), på som standard, som sparas så fort du slår om det. När det är av skickar statussidan ingenting till sina prenumeranter: inga aviseringar om incidenter, episoder, schemalagt underhåll eller meddelanden, inga anteckningar eller efteranalyser och inga e-postrapporter, oavsett vad dess kanaler och händelsetyper anger. Dess prenumeranter behålls, och besökare kan fortfarande prenumerera så länge sidan **Prenumerera** och en kanal är på; en ny e-postprenumerant får fortfarande e-postmeddelandet som bekräftar prenumerationen. Inget hålls kvar för att skickas senare: när det slås på igen berättar sidan för sina prenumeranter om det som händer från och med då.
+
+Så länge det är av säger överkanten av varje prenumerantlista det, med en länk tillbaka till **Prenumerantinställningar**. Sammanfattningen av vilka som kommer att aviseras, på en incident eller en offentlig anteckning, anger sidan som en sida som inte skickar aviseringar till sina prenumeranter, och en aviserings statusmeddelande och dess post i flödet säger varför sidan hoppades över. Det fungerar på alla abonnemang. En testrapport som skickas till en adress du anger går fortfarande iväg.
+
+## Vem som kan prenumerera
+
+Kortet **Vem kan prenumerera**, också på **Prenumerantinställningar**, begränsar en sidas aviseringar till de personer som den är till för:
+
+- **Endast privata användare kan prenumerera** (`limitSubscribersToPrivateUsers`), av som standard, sparas så fort du slår om det. När det är på kan bara sidans [privata användare](/docs/status-pages/index#privata-användare), oavsett om de har lagts till manuellt, loggat in med SSO eller skapats av SCIM, prenumerera, via e-post och med adressen de loggar in med. Sidan **Prenumerera** fyller i den adressen, låter den inte ändras och erbjuder ingen annan kanal. Ditt team kan bara lägga till en privat användares adress, och ingen prenumerant via SMS, Slack, Microsoft Teams eller webhook. En prenumerant vars adress inte tillhör en privat användare på sidan nu, en som lades till innan du slog på det eller en läsare som har tagits bort sedan dess, manuellt eller av SCIM, får ingenting och räknas inte. En offentlig sida har ingen inloggning, så medan det är på där kan bara ditt team lägga till prenumeranter.
+- **Tillåtna e-postdomäner** (`allowedSubscriberEmailDomains`) innehåller de domäner som en e-postprenumerants adress får ligga på, en per rad, till exempel `acme.com`. En adress på en underdomän matchar också (`eu.acme.com` för `acme.com`), men inte en som bara slutar med samma bokstäver (`evilacme.com`). Registreringar och tillägg på andra domäner avvisas, och en e-postprenumerant som redan finns på en annan domän får ingenting. Lämna den tom för att tillåta alla domäner. Prenumeranter via SMS, Slack, Microsoft Teams och webhook har ingen domän och påverkas inte. Skriv listan och välj **Spara domäner**: en post som inte är en domän anges innan något sparas, och listan sparas med gemener, en domän per rad, upp till 100 stycken.
+
+Ingen av inställningarna tar bort en prenumerant, och när de stängs av skickas det till alla igen. På OneUptime Cloud kräver det abonnemanget **Scale** att slå på någon av dem; att stänga av dem fungerar på alla abonnemang.
+
 ## Vad en besökare ser på prenumerationssidan
 
 Sidan **Prenumerera** har en undermeny med en flik per påslagen kanal. Varje flik frågar efter det minsta den behöver:

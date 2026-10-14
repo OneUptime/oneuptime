@@ -1,4 +1,7 @@
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
+import { SUBSCRIBER_NOTIFICATIONS_OFF_TEXT } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 import { Blue500, Red500 } from "Common/Types/BrandColors";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
@@ -44,6 +47,8 @@ import { describe, expect, jest, test } from "@jest/globals";
  *   status message and its feed item;
  * - one that reaches everyone settles as Success, with the same counts;
  * - it reads every subscriber of a page, past LIMIT_MAX;
+ * - a status page with Send Notifications to Subscribers off is sent
+ *   nothing, and the notification says why;
  * - it stops starting messages when its send window closes, and settles
  *   what it did as Failed;
  * - a run past its latest claim leaves the rest Pending for the next run.
@@ -468,6 +473,55 @@ export function describeSubscriberDelivery(
       expect(feedItems()[0]!["displayColor"]).toEqual(Blue500);
       expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
         `- **Acme**: ${everyChannel}.`,
+      );
+    });
+
+    /*
+     * Send Notifications to Subscribers off (Common/Types/StatusPage/
+     * SubscriberNotificationsSwitch): every page the suite reads is turned
+     * off, and the job passes them over before reading a single subscriber.
+     */
+    test("a status page that sends its subscribers nothing is sent nothing, and the notification says why", async () => {
+      harness.pendRows(1);
+
+      const pages: jest.Mock = mock(
+        StatusPageSubscriberService.getStatusPagesToSendNotification,
+      );
+      const answer: ((...args: Array<unknown>) => unknown) | undefined =
+        pages.getMockImplementation() as
+          | ((...args: Array<unknown>) => unknown)
+          | undefined;
+
+      pages.mockImplementation((async (
+        ...args: Array<unknown>
+      ): Promise<Array<StatusPage>> => {
+        const read: Array<StatusPage> = ((answer
+          ? await answer(...args)
+          : []) || []) as Array<StatusPage>;
+
+        return read.map((page: StatusPage): StatusPage => {
+          const off: StatusPage = Object.assign(new StatusPage(), page);
+          off.sendSubscriberNotifications = false;
+          return off;
+        });
+      }) as never);
+
+      await harness.runJob();
+
+      expect(mock(harness.subscribers)).not.toHaveBeenCalled();
+
+      for (const channel of CHANNELS) {
+        expect([channel, mock(harness.senders[channel]).mock.calls]).toEqual([
+          channel,
+          [],
+        ]);
+      }
+
+      expect(String(settled()[harness.messageColumn] || "")).toContain(
+        `Acme: ${SUBSCRIBER_NOTIFICATIONS_OFF_TEXT}`,
+      );
+      expect(settled()[harness.statusColumn]).not.toBe(
+        StatusPageSubscriberNotificationStatus.Failed,
       );
     });
 

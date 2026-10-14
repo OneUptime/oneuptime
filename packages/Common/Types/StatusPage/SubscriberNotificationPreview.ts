@@ -69,6 +69,11 @@ export enum SubscriberNotificationPreviewNothingSentReason {
   NotifyOff = "NotifyOff",
   // No status page that lists its monitors will show it.
   NoStatusPages = "NoStatusPages",
+  /*
+   * Every status page that shows it sends its subscribers nothing (Send
+   * Notifications to Subscribers off).
+   */
+  NotificationsOff = "NotificationsOff",
 }
 
 // One status page's email, as its subscribers would get it.

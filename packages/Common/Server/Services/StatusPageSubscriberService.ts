@@ -21,6 +21,8 @@ import ProjectService, { CurrentPlan } from "./ProjectService";
 import SmsService from "./SmsService";
 import StatusPageService from "./StatusPageService";
 import { STATUS_PAGE_ARCHIVED_NO_NEW_SUBSCRIBERS_MESSAGE } from "../../Types/StatusPage/StatusPageArchive";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_NO_NEW_SUBSCRIBERS_MESSAGE } from "../../Types/StatusPage/StatusPageProjectBlock";
+import BlockedProjectStatusPages from "../Utils/StatusPage/BlockedProjectStatusPages";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
@@ -74,6 +76,22 @@ import StatusPageEmailLogo, {
 } from "../Utils/StatusPage/StatusPageEmailLogo";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import StatusPageSubscriberResources from "../Utils/StatusPage/StatusPageSubscriberResources";
+import StatusPagePrivateUserService from "./StatusPagePrivateUserService";
+import {
+  fillSubscriberRestrictionMessage,
+  getAllowedEmailDomains,
+  getDomainNotAllowedMessage,
+  isEmailAtAllowedDomain,
+  SubscriberRestrictionMessages,
+} from "../../Types/StatusPage/SubscriberRestrictions";
+import {
+  getEmailConditionSql,
+  getIsTakenByItsStatusPageSql,
+  getOtherContactConditionSql,
+  SubscriberRestrictionSettingsSql,
+} from "../Utils/StatusPage/SubscriberRestrictionSql";
+import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
+import { Raw } from "typeorm";
 
 /*
  * For an UPDATE ... RETURNING, the postgres driver hands TypeORM's
@@ -163,6 +181,42 @@ const manageSubscriptionPageUpdates: WeakSet<UpdateBy<Model>> = new WeakSet<
  */
 export const SMS_SIGN_UP_UNAVAILABLE_MESSAGE: string =
   "SMS subscribers not enabled for this status page.";
+
+/*
+ * Which subscribers a page takes (Utils/StatusPage/SubscriberRestrictionSql),
+ * for countActiveSubscribersByChannel: its rows are "subscriber", each joined
+ * to its page as "statusPage", and $2 holds the pages counted.
+ */
+const SUBSCRIBER_RESTRICTION_COUNT_SQL: string = getIsTakenByItsStatusPageSql({
+  subscriber: {
+    email: `"subscriber"."subscriberEmail"`,
+    phone: `"subscriber"."subscriberPhone"`,
+    slack: `"subscriber"."slackIncomingWebhookUrl"`,
+    microsoftTeams: `"subscriber"."microsoftTeamsIncomingWebhookUrl"`,
+    webhook: `"subscriber"."subscriberWebhook"`,
+  },
+  statusPageId: `"subscriber"."statusPageId"`,
+  privateUsersOf: `"privateUser"."statusPageId" = ANY($2::uuid[])`,
+  settings: {
+    limitSubscribersToPrivateUsers: `"statusPage"."limitSubscribersToPrivateUsers"`,
+    allowedSubscriberEmailDomains: `"statusPage"."allowedSubscriberEmailDomains"`,
+  },
+});
+
+// The contact columns of a subscriber: the ones a send goes out on.
+const SUBSCRIBER_CONTACT_COLUMNS: Array<
+  | "subscriberEmail"
+  | "subscriberPhone"
+  | "slackIncomingWebhookUrl"
+  | "microsoftTeamsIncomingWebhookUrl"
+  | "subscriberWebhook"
+> = [
+  "subscriberEmail",
+  "subscriberPhone",
+  "slackIncomingWebhookUrl",
+  "microsoftTeamsIncomingWebhookUrl",
+  "subscriberWebhook",
+];
 
 /*
  * What onBeforeCreate hands onCreateSuccess: the status page the subscriber
@@ -551,9 +605,23 @@ export class Service extends ProjectReferencesService<Model> {
       } as LogAttributes);
 
       /*
-       * An archived page is left out above. Someone adding a subscriber to
-       * it from the dashboard should hear why, not "not found".
+       * An archived page, and a page of a blocked project, is left out above.
+       * Someone adding a subscriber to one from the dashboard should hear
+       * why, not "not found" - the block first, which unarchiving would not
+       * lift. A visitor never gets this far: the public routes answer both
+       * as missing pages.
        */
+      if (
+        data.data.statusPageId &&
+        (await BlockedProjectStatusPages.isStatusPageOfBlockedProject(
+          data.data.statusPageId,
+        ))
+      ) {
+        throw new BadDataException(
+          STATUS_PAGE_OF_BLOCKED_PROJECT_NO_NEW_SUBSCRIBERS_MESSAGE,
+        );
+      }
+
       if (
         data.data.statusPageId &&
         (await StatusPageService.isStatusPageArchived(data.data.statusPageId))
@@ -571,6 +639,13 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: data.data.projectId?.toString(),
       statusPageId: data.data.statusPageId?.toString(),
     } as LogAttributes);
+
+    // Who may be this page's subscriber: its private users, its domains.
+    await this.assertSubscriberAllowedOnPage({
+      statusPage: statuspage,
+      subscriber: data.data,
+      isSignUp: statusPageSignUps.has(data.data),
+    });
 
     const isEmailSubscriber: boolean = Boolean(data.data.subscriberEmail);
     const isSubscriptionConfirmed: boolean = Boolean(
@@ -741,6 +816,9 @@ export class Service extends ProjectReferencesService<Model> {
     // The resources it adds are its page's. See checkResourcesOnPages.
     await this.checkResourcesOnPages(updateBy);
 
+    // A contact changed to one its page does not take is refused.
+    await this.checkContactsAllowedOnPages(updateBy);
+
     const isUnsubscribed: unknown = (
       updateBy.data as unknown as JSONObject | undefined
     )?.["isUnsubscribed"];
@@ -813,6 +891,229 @@ export class Service extends ProjectReferencesService<Model> {
       named: named,
       shownToVisitorsOnly: manageSubscriptionPageUpdates.has(updateBy),
     });
+  }
+
+  /*
+   * Whether a status page takes this subscriber: Only Private Users Can
+   * Subscribe and Allowed Email Domains (Types/StatusPage/
+   * SubscriberRestrictions). Refused with what a visitor signing up on the
+   * page can act on, or with what the team can - the setting to change.
+   */
+  public async assertSubscriberAllowedOnPage(data: {
+    statusPage: Pick<
+      StatusPage,
+      "_id" | "limitSubscribersToPrivateUsers" | "allowedSubscriberEmailDomains"
+    >;
+    subscriber: Partial<
+      Pick<Model, (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]>
+    >;
+    isSignUp: boolean;
+  }): Promise<void> {
+    const email: string = (
+      data.subscriber.subscriberEmail?.toString() || ""
+    ).trim();
+
+    if (data.statusPage.limitSubscribersToPrivateUsers) {
+      const hasOtherContact: boolean = SUBSCRIBER_CONTACT_COLUMNS.some(
+        (column: (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]): boolean => {
+          return (
+            column !== "subscriberEmail" &&
+            Boolean(data.subscriber[column]?.toString().trim())
+          );
+        },
+      );
+
+      if (hasOtherContact || !email) {
+        throw new BadDataException(SubscriberRestrictionMessages.emailOnly);
+      }
+
+      const statusPageId: string | undefined = data.statusPage._id?.toString();
+
+      if (
+        !statusPageId ||
+        !(await StatusPagePrivateUserService.isPrivateUserEmail({
+          statusPageId: new ObjectID(statusPageId),
+          email: email,
+        }))
+      ) {
+        throw new BadDataException(
+          data.isSignUp
+            ? SubscriberRestrictionMessages.notPrivateUser
+            : fillSubscriberRestrictionMessage(
+                SubscriberRestrictionMessages.teamAddedNotPrivateUser,
+                { email: email },
+              ),
+        );
+      }
+    }
+
+    const domains: Array<string> = getAllowedEmailDomains(
+      data.statusPage.allowedSubscriberEmailDomains,
+    );
+
+    if (
+      email &&
+      domains.length > 0 &&
+      !isEmailAtAllowedDomain({ email: email, domains: domains })
+    ) {
+      throw new BadDataException(getDomainNotAllowedMessage(domains));
+    }
+  }
+
+  /*
+   * An update that changes a subscriber's contact - its email, phone, Slack,
+   * Microsoft Teams or webhook - is held to what its page takes, as a new
+   * subscriber is (assertSubscriberAllowedOnPage): the contact as the update
+   * leaves it. An update that changes no contact - a resource, a switch - is
+   * left alone, so a subscriber added before a setting can still be edited
+   * or unsubscribed. The subscribers are the rows the update writes, and the
+   * update is held to them (findRowsAndHoldUpdateToThem).
+   */
+  private async checkContactsAllowedOnPages(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: JSONObject | undefined = updateBy.data as unknown as
+      | JSONObject
+      | undefined;
+
+    const changedColumns: Array<(typeof SUBSCRIBER_CONTACT_COLUMNS)[number]> =
+      SUBSCRIBER_CONTACT_COLUMNS.filter(
+        (column: (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]): boolean => {
+          return Boolean(data) && data![column] !== undefined;
+        },
+      );
+
+    if (changedColumns.length === 0) {
+      return;
+    }
+
+    const subscribers: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        statusPageId: true,
+        subscriberEmail: true,
+        subscriberPhone: true,
+        slackIncomingWebhookUrl: true,
+        microsoftTeamsIncomingWebhookUrl: true,
+        subscriberWebhook: true,
+      },
+    );
+
+    const statusPageIds: Array<string> = [];
+
+    for (const subscriber of subscribers) {
+      const statusPageId: string | undefined =
+        subscriber.statusPageId?.toString();
+
+      if (statusPageId && !statusPageIds.includes(statusPageId)) {
+        statusPageIds.push(statusPageId);
+      }
+    }
+
+    if (statusPageIds.length === 0) {
+      return;
+    }
+
+    const statusPages: Array<StatusPage> = await StatusPageService.findBy({
+      query: {
+        _id: QueryHelper.any(statusPageIds),
+      },
+      select: {
+        _id: true,
+        limitSubscribersToPrivateUsers: true,
+        allowedSubscriberEmailDomains: true,
+      },
+      limit: statusPageIds.length,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const subscriber of subscribers) {
+      const statusPage: StatusPage | undefined = statusPages.find(
+        (page: StatusPage): boolean => {
+          return page._id?.toString() === subscriber.statusPageId?.toString();
+        },
+      );
+
+      if (
+        !statusPage ||
+        (!statusPage.limitSubscribersToPrivateUsers &&
+          getAllowedEmailDomains(statusPage.allowedSubscriberEmailDomains)
+            .length === 0)
+      ) {
+        continue;
+      }
+
+      const contact: Partial<
+        Pick<Model, (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]>
+      > = {};
+
+      for (const column of SUBSCRIBER_CONTACT_COLUMNS) {
+        const value: unknown = changedColumns.includes(column)
+          ? data![column]
+          : subscriber[column];
+
+        (contact as Record<string, unknown>)[column] = value ?? undefined;
+      }
+
+      await this.assertSubscriberAllowedOnPage({
+        statusPage: statusPage,
+        subscriber: contact,
+        isSignUp: manageSubscriptionPageUpdates.has(updateBy),
+      });
+    }
+  }
+
+  /*
+   * The conditions getSubscribersByStatusPage reads a page's subscribers
+   * with, so a send reaches only those the page takes now
+   * (Utils/StatusPage/SubscriberRestrictionSql): one on each contact column,
+   * the page's settings read in the same statement.
+   */
+  public getSubscriberRestrictionQuery(
+    statusPageId: ObjectID,
+  ): Record<
+    (typeof SUBSCRIBER_CONTACT_COLUMNS)[number],
+    FindWhereProperty<any>
+  > {
+    const parameter: string = "subscriberRestrictionStatusPageId";
+    const parameters: Record<string, string> = {
+      [parameter]: statusPageId.toString(),
+    };
+    const pageId: string = `CAST(:${parameter} AS uuid)`;
+
+    const settings: SubscriberRestrictionSettingsSql = {
+      limitSubscribersToPrivateUsers: `(SELECT "restrictingPage"."limitSubscribersToPrivateUsers" FROM "StatusPage" "restrictingPage" WHERE "restrictingPage"."_id" = ${pageId})`,
+      allowedSubscriberEmailDomains: `(SELECT "restrictingPage"."allowedSubscriberEmailDomains" FROM "StatusPage" "restrictingPage" WHERE "restrictingPage"."_id" = ${pageId})`,
+    };
+
+    const otherContact: () => FindWhereProperty<any> =
+      (): FindWhereProperty<any> => {
+        return Raw((alias: string): string => {
+          return getOtherContactConditionSql({
+            column: alias,
+            settings: settings,
+          });
+        }, parameters);
+      };
+
+    return {
+      subscriberEmail: Raw((alias: string): string => {
+        return getEmailConditionSql({
+          email: alias,
+          statusPageId: pageId,
+          privateUsersOf: `"privateUser"."statusPageId" = ${pageId}`,
+          settings: settings,
+        });
+      }, parameters),
+      subscriberPhone: otherContact(),
+      slackIncomingWebhookUrl: otherContact(),
+      microsoftTeamsIncomingWebhookUrl: otherContact(),
+      subscriberWebhook: otherContact(),
+    };
   }
 
   @CaptureSpan()
@@ -1664,38 +1965,13 @@ Stay informed about service availability! 🚀`.toString();
     // Its unsubscribe link needs its token (see ensureUnsubscribeTokens).
     await this.ensureUnsubscribeTokens([subscriber]);
 
-    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
-      query: {
-        _id: subscriber.statusPageId.toString(),
-      },
-      select: {
-        ...STATUS_PAGE_EMAIL_LOGO_SELECT,
-        isPublicStatusPage: true,
-        pageTitle: true,
-        name: true,
-        smtpConfig: {
-          _id: true,
-          transportType: true,
-          hostname: true,
-          port: true,
-          username: true,
-          password: true,
-          fromEmail: true,
-          fromName: true,
-          secure: true,
-          authType: true,
-          clientId: true,
-          clientSecret: true,
-          tokenUrl: true,
-          scope: true,
-          oauthProviderType: true,
-        },
-      },
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    /*
+     * Read as every subscriber message reads its page: an archived page, or
+     * a page of a blocked project, asks nobody to confirm.
+     */
+    const statusPage: StatusPage | undefined = (
+      await this.getStatusPagesToSendNotification([subscriber.statusPageId])
+    )[0];
     logger.debug(`Found Status Page: ${JSON.stringify(statusPage)}`, {
       statusPageSubscriberId: data.subscriberId?.toString(),
     } as LogAttributes);
@@ -1896,38 +2172,14 @@ Stay informed about service availability! 🚀`.toString();
     // Its unsubscribe link needs its token (see ensureUnsubscribeTokens).
     await this.ensureUnsubscribeTokens([subscriber]);
 
-    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
-      query: {
-        _id: subscriber.statusPageId.toString(),
-      },
-      select: {
-        ...STATUS_PAGE_EMAIL_LOGO_SELECT,
-        isPublicStatusPage: true,
-        pageTitle: true,
-        name: true,
-        smtpConfig: {
-          _id: true,
-          transportType: true,
-          hostname: true,
-          port: true,
-          username: true,
-          password: true,
-          fromEmail: true,
-          fromName: true,
-          secure: true,
-          authType: true,
-          clientId: true,
-          clientSecret: true,
-          tokenUrl: true,
-          scope: true,
-          oauthProviderType: true,
-        },
-      },
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    /*
+     * Read as every subscriber message reads its page: an archived page, or
+     * a page of a blocked project, sends nothing - not even to someone who
+     * confirms through a link it sent before.
+     */
+    const statusPage: StatusPage | undefined = (
+      await this.getStatusPagesToSendNotification([subscriber.statusPageId])
+    )[0];
     logger.debug(`Found Status Page: ${JSON.stringify(statusPage)}`, {
       statusPageSubscriberId: data.subscriberId?.toString(),
     } as LogAttributes);
@@ -2144,6 +2396,13 @@ Stay informed about service availability! 🚀`.toString();
         ...(options?.afterId
           ? { _id: QueryHelper.greaterThan(options.afterId) }
           : {}),
+        /*
+         * Only the subscribers the page takes now (Types/StatusPage/
+         * SubscriberRestrictions), asked in this same read, so the _id
+         * cursor and "a batch smaller than the limit is the last" still
+         * hold.
+         */
+        ...this.getSubscriberRestrictionQuery(statusPageId),
       },
       select: {
         _id: true,
@@ -2203,8 +2462,10 @@ Stay informed about service availability! 🚀`.toString();
    *
    * A channel counts a subscriber whenever the job would send on it, which is
    * whenever that column holds a value; a subscription with both an email and
-   * a phone counts once on each. Rows are pinned to the project, whatever ids
-   * the caller passes.
+   * a phone counts once on each. A subscriber its page no longer takes - not
+   * a private user, not at an allowed domain - is sent nothing, and is not
+   * counted (SUBSCRIBER_RESTRICTION_COUNT_SQL). Rows are pinned to the
+   * project, whatever ids the caller passes.
    *
    * Keyed by the lower-cased status page id. A page with no active subscriber
    * has no entry.
@@ -2239,19 +2500,22 @@ Stay informed about service availability! 🚀`.toString();
       webhook: string;
     }> = await this.getRepository().manager.query(
       `SELECT
-         "statusPageId"::text AS "statusPageId",
-         COUNT(*) FILTER (WHERE NULLIF(TRIM("subscriberEmail"), '') IS NOT NULL)::text AS "email",
-         COUNT(*) FILTER (WHERE NULLIF(TRIM("subscriberPhone"), '') IS NOT NULL)::text AS "sms",
-         COUNT(*) FILTER (WHERE NULLIF(TRIM("slackIncomingWebhookUrl"), '') IS NOT NULL)::text AS "slack",
-         COUNT(*) FILTER (WHERE NULLIF(TRIM("microsoftTeamsIncomingWebhookUrl"), '') IS NOT NULL)::text AS "microsoftTeams",
-         COUNT(*) FILTER (WHERE NULLIF(TRIM("subscriberWebhook"), '') IS NOT NULL)::text AS "webhook"
-       FROM "StatusPageSubscriber"
-       WHERE "projectId" = $1
-         AND "statusPageId" = ANY($2::uuid[])
-         AND "isUnsubscribed" = false
-         AND "isSubscriptionConfirmed" = true
-         AND "deletedAt" IS NULL
-       GROUP BY "statusPageId"`,
+         "subscriber"."statusPageId"::text AS "statusPageId",
+         COUNT(*) FILTER (WHERE NULLIF(TRIM("subscriber"."subscriberEmail"), '') IS NOT NULL)::text AS "email",
+         COUNT(*) FILTER (WHERE NULLIF(TRIM("subscriber"."subscriberPhone"), '') IS NOT NULL)::text AS "sms",
+         COUNT(*) FILTER (WHERE NULLIF(TRIM("subscriber"."slackIncomingWebhookUrl"), '') IS NOT NULL)::text AS "slack",
+         COUNT(*) FILTER (WHERE NULLIF(TRIM("subscriber"."microsoftTeamsIncomingWebhookUrl"), '') IS NOT NULL)::text AS "microsoftTeams",
+         COUNT(*) FILTER (WHERE NULLIF(TRIM("subscriber"."subscriberWebhook"), '') IS NOT NULL)::text AS "webhook"
+       FROM "StatusPageSubscriber" "subscriber"
+       LEFT JOIN "StatusPage" "statusPage"
+         ON "statusPage"."_id" = "subscriber"."statusPageId"
+       WHERE "subscriber"."projectId" = $1
+         AND "subscriber"."statusPageId" = ANY($2::uuid[])
+         AND "subscriber"."isUnsubscribed" = false
+         AND "subscriber"."isSubscriptionConfirmed" = true
+         AND "subscriber"."deletedAt" IS NULL
+         AND ${SUBSCRIBER_RESTRICTION_COUNT_SQL}
+       GROUP BY "subscriber"."statusPageId"`,
       [data.projectId.toString(), statusPageIds],
     );
 
@@ -2697,9 +2961,9 @@ Stay informed about service availability! 🚀`.toString();
         /*
          * Every subscriber notification - incidents, episodes, notes,
          * postmortems, scheduled maintenance, announcements, reports, and the
-         * confirmation a new subscription sends - finds its status pages
-         * here, so leaving archived pages out is what makes an archived page
-         * send nothing at all.
+         * confirmations a subscription sends - finds its status pages here,
+         * so leaving archived pages out is what makes an archived page send
+         * nothing at all. The pages of a blocked project are left out below.
          */
         isArchived: false,
       },
@@ -2766,13 +3030,36 @@ Stay informed about service availability! 🚀`.toString();
          * incident's notifications.
          */
         onlyShowScopedIncidents: true,
+        /*
+         * Send Notifications to Subscribers: every sender passes over a page
+         * that has it off (Types/StatusPage/SubscriberNotificationsSwitch).
+         * A page read without it keeps notifying, so leaving it out would
+         * quietly ignore the switch rather than silence anyone.
+         */
+        sendSubscriberNotifications: true,
+        // Who may be a subscriber (Types/StatusPage/SubscriberRestrictions).
+        limitSubscribersToPrivateUsers: true,
+        allowedSubscriberEmailDomains: true,
       },
     });
 
-    logger.debug("Found status pages:", {} as LogAttributes);
-    logger.debug(statusPages, {} as LogAttributes);
+    /*
+     * Nor do the pages of a project a master admin blocked send anything:
+     * they answer as if they did not exist, the unsubscribe page every
+     * message links to included (BlockedProjectStatusPages). Asked once per
+     * project, of the per-process answer (ProjectService.isProjectBlocked),
+     * so a notification adds no query; a page whose project cannot be told
+     * sends as usual.
+     */
+    const statusPagesToNotify: Array<StatusPage> =
+      await BlockedProjectStatusPages.leaveOutStatusPagesOfBlockedProjects(
+        statusPages,
+      );
 
-    return statusPages;
+    logger.debug("Found status pages:", {} as LogAttributes);
+    logger.debug(statusPagesToNotify, {} as LogAttributes);
+
+    return statusPagesToNotify;
   }
 
   @CaptureSpan()

@@ -16,6 +16,7 @@ import ScheduledMaintenancePublicNoteService from "Common/Server/Services/Schedu
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import SmsService from "Common/Server/Services/SmsService";
 import AffectedStatusPageResources from "Common/Server/Utils/StatusPage/AffectedStatusPageResources";
+import BlockedProjectStatusPages from "Common/Server/Utils/StatusPage/BlockedProjectStatusPages";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
@@ -39,6 +40,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
@@ -57,6 +59,7 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "Common/Utils/Markdown/FeedMarkdown";
+import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -282,8 +285,15 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         noteId: publicNote.id!,
         trigger: trigger,
         status: StatusPageSubscriberNotificationStatus.Skipped,
-        message:
-          "No status pages are configured for this scheduled maintenance. Skipping notifications.",
+        /*
+         * The pages of a blocked project send nothing, and are left out of
+         * the pages to send from: say so, rather than that none are set.
+         */
+        message: (await BlockedProjectStatusPages.isProjectBlocked(
+          event.projectId,
+        ))
+          ? STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE
+          : "No status pages are configured for this scheduled maintenance. Skipping notifications.",
       });
       return;
     }
@@ -351,6 +361,14 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
     for (const statuspage of statusPages) {
       if (!statuspage.id) {
         logger.debug("Encountered a status page without an id; skipping.");
+        continue;
+      }
+
+      // The page sends its subscribers nothing (Send Notifications to Subscribers off).
+      if (!isSendingSubscriberNotifications(statuspage)) {
+        logger.debug(
+          `Status page ${statuspage.id} does not send notifications to its subscribers; skipping.`,
+        );
         continue;
       }
 
@@ -880,7 +898,7 @@ ${FeedMarkdown.asMarkdown(publicNote.note)}`.toString(),
         feedInfoInMarkdown:
           mdText`📧 **No notification sent to subscribers** for ${copy.feedNotSentSubject} on [Scheduled Maintenance ${event.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(event.projectId!, event.id!)).toString()}).`.toString(),
         moreInformationInMarkdown:
-          "Subscriber notifications were skipped because all associated status pages either hide scheduled maintenance events or had no matching subscribers.",
+          "Subscriber notifications were skipped because all associated status pages either do not send notifications to their subscribers, hide scheduled maintenance events, or had no matching subscribers.",
         workspaceNotification: {
           sendWorkspaceNotification: false,
         },
