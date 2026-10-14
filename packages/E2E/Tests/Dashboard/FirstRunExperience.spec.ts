@@ -109,6 +109,16 @@ test.describe("First run: a brand-new project", () => {
     await expect(tiles).not.toContainText("All operational");
     await expect(tiles).not.toContainText("Budgets healthy");
 
+    // The overview draws no side menu; Home's lists keep it.
+    await expect(page.locator('[aria-label="Main navigation"]')).toHaveCount(0);
+
+    await gotoProjectPage({
+      page,
+      projectId,
+      url: projectUrl(projectId, "/home/monitors-inoperational"),
+      ready: page.locator('[aria-label="Main navigation"]').first(),
+    });
+
     const menu: Locator = page
       .locator('[aria-label="Main navigation"]')
       .first();
