@@ -47,7 +47,7 @@ flowchart TB
 
 ### ट्रिगर जोड़ें
 
-डैश वाले **Choose what starts this workflow** ब्लॉक पर क्लिक करें और **On Create Incident** चुनें। ट्रिगर पर क्लिक करें, और **Fields to pass on** में `title`, `description` और `incidentNumberWithPrefix` चुनें।
+डैश वाले **Choose what starts this workflow** ब्लॉक पर क्लिक करें और **On Create Incident** चुनें। ट्रिगर पर क्लिक करें: उसके **Fields to pass on** में पहले से **शीर्षक** है, इसलिए **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** और **Incident Number With Prefix** चुनें।
 
 ### इश्यू खोलें
 

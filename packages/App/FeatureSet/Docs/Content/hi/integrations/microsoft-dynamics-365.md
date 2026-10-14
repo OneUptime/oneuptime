@@ -269,7 +269,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### हर घटना के लिए एक केस खोलें
 
 :::steps
-1. शुरू से `Incidents to Dynamics 365` नाम का वर्कफ़्लो बनाएं। डैश वाले ब्लॉक पर क्लिक करें और **On Create Incident** ट्रिगर जोड़ें। उसके **Fields to pass on** में `{"_id": true, "title": true, "description": true, "incidentNumber": true}` मांगें।
+1. शुरू से `Incidents to Dynamics 365` नाम का वर्कफ़्लो बनाएं। डैश वाले ब्लॉक पर क्लिक करें और **On Create Incident** ट्रिगर जोड़ें। उसके **Fields to pass on** में पहले से **शीर्षक** है: **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** और **घटना संख्या** चुनें। ID हमेशा आगे भेजा जाता है।
 2. **घटक जोड़ें** पर क्लिक करें, एक **API Post (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **Success** बिंदु को उससे जोड़ें। उसका **Identifier** `create-case` पर, और उसका **URL** `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber` पर सेट करें।
 3. **और फ़ील्ड** के नीचे उसके **Request Headers** इस पर सेट करें:
 
@@ -323,7 +323,7 @@ Dynamics 365 `severitycode` को सिर्फ़ एक विकल्प 
 इसे दूसरे वर्कफ़्लो के रूप में बनाएं, ताकि यहां की विफलता केस खुलने से कभी न रोके।
 
 :::steps
-1. **On Update Incident** ट्रिगर के साथ `Close Dynamics 365 cases` नाम का वर्कफ़्लो बनाएं। **Fields to watch** को `{"currentIncidentStateId": true}` पर और **Fields to pass on** को `{"_id": true, "currentIncidentState": {"isResolvedState": true}}` पर सेट करें।
+1. **On Update Incident** ट्रिगर के साथ `Close Dynamics 365 cases` नाम का वर्कफ़्लो बनाएं। **Fields to watch** में **फ़ील्ड जोड़ें** पर क्लिक करें और **Current Incident State** चुनें। **Fields to pass on** में **फ़ील्ड जोड़ें** पर क्लिक करें, **Current Incident State** खोलें और **Is Resolved State** चुनें।
 2. एक **If / Else** ब्लॉक जोड़ें: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**।
 3. उसकी **Yes** साइड के बाद एक **API Get (JSON)** ब्लॉक जोड़ें, **Identifier** `find-case`, `Prefer` के बिना वही हेडर, और यह **URL**:
 
