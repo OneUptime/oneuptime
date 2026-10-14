@@ -230,6 +230,12 @@ describe("which columns record a person doing something", () => {
       "answered",
       "approved",
       "archived",
+      /*
+       * SecurityCase.closedByUserId: who closed a security case. The case
+       * service stamps it from the caller once the close is saved; no
+       * request chooses it.
+       */
+      "closed",
       "created",
       "deleted",
       "dismissed",

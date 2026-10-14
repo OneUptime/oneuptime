@@ -71,7 +71,9 @@ export function securityEntityTypeForField(
   }
 
   // Own keys only: a field named "constructor" is an attribute, not a column.
-  if (Object.prototype.hasOwnProperty.call(SECURITY_EVENT_ENTITY_FIELDS, name)) {
+  if (
+    Object.prototype.hasOwnProperty.call(SECURITY_EVENT_ENTITY_FIELDS, name)
+  ) {
     const typed: SecurityEntityType = SECURITY_EVENT_ENTITY_FIELDS[name]!;
     return typed === SecurityEntityType.Other ? undefined : typed;
   }
@@ -95,7 +97,8 @@ const IPV4_REGEX: RegExp = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 // Hex groups and colons only, at least two colons: "::1", "2001:db8::7".
 const IPV6_REGEX: RegExp = /^[0-9a-f]{0,4}(:[0-9a-f]{0,4}){2,7}$/i;
 // MD5, SHA-1, SHA-256 and SHA-512 digests.
-const HASH_REGEX: RegExp = /^(?:[0-9a-f]{32}|[0-9a-f]{40}|[0-9a-f]{64}|[0-9a-f]{128})$/i;
+const HASH_REGEX: RegExp =
+  /^(?:[0-9a-f]{32}|[0-9a-f]{40}|[0-9a-f]{64}|[0-9a-f]{128})$/i;
 const EMAIL_REGEX: RegExp = /^[^@\s]{1,64}@[^@\s]{1,255}\.[a-z]{2,63}$/i;
 const URL_REGEX: RegExp = /^[a-z][a-z0-9+.-]{1,15}:\/\/\S+$/i;
 // Labels of letters, digits and hyphens, ending in an alphabetic TLD.
@@ -222,7 +225,9 @@ export function entitiesFromObservables(
   );
 }
 
-export function getSecurityEntityIcon(type: SecurityEntityType | string): IconProp {
+export function getSecurityEntityIcon(
+  type: SecurityEntityType | string,
+): IconProp {
   switch (type) {
     case SecurityEntityType.User:
       return IconProp.User;
@@ -241,4 +246,44 @@ export function getSecurityEntityIcon(type: SecurityEntityType | string): IconPr
     default:
       return IconProp.Tag;
   }
+}
+
+/*
+ * The entities stored on a case or a detection - a JSON array of
+ * { type, value } - read defensively: a row written by an older version, or
+ * by hand through the API, may hold anything. A value-less entry is dropped
+ * and a type this version does not know reads as Other.
+ */
+export function readSecurityEntities(value: unknown): Array<SecurityEntity> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const types: Array<string> = Object.values(SecurityEntityType);
+  const entities: Array<SecurityEntity> = [];
+
+  for (const item of value) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const record: Record<string, unknown> = item as Record<string, unknown>;
+    const entityValue: unknown = record["value"];
+
+    if (typeof entityValue !== "string" || !entityValue.trim()) {
+      continue;
+    }
+
+    const type: unknown = record["type"];
+
+    entities.push({
+      type:
+        typeof type === "string" && types.includes(type)
+          ? (type as SecurityEntityType)
+          : SecurityEntityType.Other,
+      value: entityValue,
+    });
+  }
+
+  return entities;
 }

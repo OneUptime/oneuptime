@@ -56,6 +56,54 @@ export function doesGroupMeetDetectionThreshold(data: {
   return effectiveCount >= Math.max(1, data.minMatchCount);
 }
 
+/*
+ * What the events table says about one observable value over a window: how
+ * many events mention it, how many of those are findings (a rule's, a
+ * feed's or a connected product's), the worst severity among them, and when
+ * it was first and last seen.
+ */
+export interface ObservableActivity {
+  value: string;
+  eventCount: number;
+  findingCount: number;
+  maxSeverityId: number;
+  firstSeen: Date | null;
+  lastSeen: Date | null;
+}
+
+/*
+ * An observable as the project's findings rank it: how many findings name
+ * it, from how many different rules, the worst severity among them, and
+ * when the latest was raised.
+ */
+export interface EntityFindingSummary {
+  value: string;
+  findingCount: number;
+  ruleCount: number;
+  maxSeverityId: number;
+  lastSeen: Date | null;
+}
+
+// Findings: OCSF Detection Finding and Incident Finding.
+export const SECURITY_FINDING_CLASS_UIDS: Array<number> = [2004, 2005];
+
+// The most values one activity lookup reads.
+export const OBSERVABLE_ACTIVITY_MAX_VALUES: number = 50;
+
+function readDate(value: unknown): Date | null {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const text: string = String(value);
+  // ClickHouse renders DateTime64 as "2026-10-14 09:00:00.000000000", in UTC.
+  const date: Date = new Date(
+    text.includes("T") ? text : `${text.replace(" ", "T")}Z`,
+  );
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: SecurityEvent, database: clickhouseDatabase });
@@ -175,6 +223,140 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
           : [],
       };
     });
+  }
+
+  /*
+   * How active each of these values has been over a window, read from the
+   * observables of every event: the case page's entity panel and the Look Up
+   * Entity Activity playbook step. Values are matched as stored (the case's
+   * entities come from these same observables); the bloom index on the
+   * column narrows the scan to the granules that hold one.
+   */
+  public async findObservableActivity(data: {
+    projectId: ObjectID;
+    values: Array<string>;
+    startTime: Date;
+    endTime: Date;
+  }): Promise<Array<ObservableActivity>> {
+    const values: Array<string> = Array.from(
+      new Set(
+        data.values
+          .map((value: string): string => {
+            return value.trim();
+          })
+          .filter((value: string): boolean => {
+            return value.length > 0;
+          }),
+      ),
+    ).slice(0, OBSERVABLE_ACTIVITY_MAX_VALUES);
+
+    if (values.length === 0) {
+      return [];
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT observable AS value, count() AS eventCount, countIf(classUid IN (2004, 2005)) AS findingCount, max(severityId) AS maxSeverityId, min(time) AS firstSeen, max(time) AS lastSeen FROM `;
+    statement.append(`${databaseName}.${this.model.tableName}`);
+    statement.append(
+      SQL` ARRAY JOIN observables AS observable WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.DateTime64,
+        value: data.startTime,
+      }} AND time <= ${{
+        type: TableColumnType.DateTime64,
+        value: data.endTime,
+      }} AND hasAny(observables, ${{
+        type: TableColumnType.ArrayText,
+        value: values,
+      }}) AND has(${{
+        type: TableColumnType.ArrayText,
+        value: values,
+      }}, observable) GROUP BY value ORDER BY eventCount DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: OBSERVABLE_ACTIVITY_MAX_VALUES,
+      }}`,
+    );
+    statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 30 }));
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return (response.data || []).map((row: JSONObject): ObservableActivity => {
+      return {
+        value: String(row["value"] ?? ""),
+        eventCount: Number(row["eventCount"] || 0),
+        findingCount: Number(row["findingCount"] || 0),
+        maxSeverityId: Number(row["maxSeverityId"] || 0),
+        firstSeen: readDate(row["firstSeen"]),
+        lastSeen: readDate(row["lastSeen"]),
+      };
+    });
+  }
+
+  /*
+   * The values the project's findings name most over a window, worst first:
+   * the entities to look at. Findings only - every detection rule, threat
+   * intel match and connected product's alert is one - so a busy but
+   * harmless host does not outrank a quiet one three rules flagged.
+   */
+  public async findEntitiesByFindings(data: {
+    projectId: ObjectID;
+    startTime: Date;
+    endTime: Date;
+    limit: number;
+  }): Promise<Array<EntityFindingSummary>> {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT observable AS value, count() AS findingCount, uniqExact(ruleName) AS ruleCount, max(severityId) AS maxSeverityId, max(time) AS lastSeen FROM `;
+    statement.append(`${databaseName}.${this.model.tableName}`);
+    statement.append(
+      SQL` ARRAY JOIN observables AS observable WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.DateTime64,
+        value: data.startTime,
+      }} AND time <= ${{
+        type: TableColumnType.DateTime64,
+        value: data.endTime,
+      }} AND classUid IN (2004, 2005) AND observable != '' GROUP BY value ORDER BY maxSeverityId DESC, findingCount DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.min(100, Math.trunc(data.limit))),
+      }}`,
+    );
+    statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 30 }));
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return (response.data || []).map(
+      (row: JSONObject): EntityFindingSummary => {
+        return {
+          value: String(row["value"] ?? ""),
+          findingCount: Number(row["findingCount"] || 0),
+          ruleCount: Number(row["ruleCount"] || 0),
+          maxSeverityId: Number(row["maxSeverityId"] || 0),
+          lastSeen: readDate(row["lastSeen"]),
+        };
+      },
+    );
   }
 }
 

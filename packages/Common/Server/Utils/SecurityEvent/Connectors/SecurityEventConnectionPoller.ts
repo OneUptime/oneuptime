@@ -45,6 +45,7 @@ import {
   readConnectorFetchSummary,
   toConnectorTestResult,
 } from "./Types";
+import SecurityConnectionCases from "../../SecurityCase/SecurityConnectionCases";
 
 /*
  * The generic pull loop behind every Security Event Connection.
@@ -757,7 +758,13 @@ export default class SecurityEventConnectionPoller {
         if (options.type === "poll" || options.type === "backfill") {
           phase = "Import records";
           phaseStartedMs = Date.now();
-          await this.ingest(connection, definition, fetched.events, result);
+          await this.ingest(connection, definition, fetched.events, result, {
+            /*
+             * A backfill imports a range somebody picked from the past: its
+             * alerts are history, so they become events, never cases.
+             */
+            opensCases: options.type === "poll",
+          });
           result.checks.push({
             key: "import",
             name: phase,
@@ -1063,6 +1070,7 @@ export default class SecurityEventConnectionPoller {
     definition: SecurityEventConnectorDefinition,
     normalized: Array<NormalizedSecurityEvent>,
     result: SecurityEventConnectionRunResult,
+    options?: { opensCases?: boolean | undefined } | undefined,
   ): Promise<void> {
     if (!normalized.length) {
       return;
@@ -1156,6 +1164,14 @@ export default class SecurityEventConnectionPoller {
     });
 
     result.ingestedCount = rows.length;
+
+    if (options?.opensCases) {
+      await SecurityConnectionCases.recordImportedAlerts({
+        connection,
+        definition,
+        events: fresh,
+      });
+    }
 
     const times: Array<string> = rows
       .map((row: JSONObject): string => {

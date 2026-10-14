@@ -4970,6 +4970,48 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Allocate the next security case number for a project. Like AI task
+   * numbers there is no prefix column: cases are numbered CASE-1, CASE-2, ...
+   * in every project (SECURITY_CASE_NUMBER_PREFIX).
+   */
+  @CaptureSpan()
+  public async incrementAndGetSecurityCaseCounter(
+    projectId: ObjectID,
+  ): Promise<number> {
+    const mutex: SemaphoreMutex = await Semaphore.lock({
+      key: projectId.toString(),
+      namespace: "ProjectService.securityCaseCounter",
+    });
+
+    try {
+      await this.atomicIncrementColumnValueByOne({
+        id: projectId,
+        columnName: "securityCaseCounter",
+      });
+
+      const project: Model | null = await this.findOneById({
+        id: projectId,
+        select: {
+          securityCaseCounter: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!project || project.securityCaseCounter === undefined) {
+        throw new BadDataException(
+          `Could not read securityCaseCounter for project ${projectId.toString()}`,
+        );
+      }
+
+      return project.securityCaseCounter;
+    } finally {
+      await Semaphore.release(mutex);
+    }
+  }
+
+  /*
    * Allocate the next AI task number for a project. Unlike the counters
    * above there is no companion prefix column — AI task numbers are not
    * user-customizable, so the caller renders a plain "#N".

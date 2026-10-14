@@ -366,6 +366,12 @@ import HuntressConnectionService from "./HuntressConnectionService";
 import HuntressIncidentReportService from "./HuntressIncidentReportService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
+import SecurityCaseService from "./SecurityCaseService";
+import SecurityCaseFeedService from "./SecurityCaseFeedService";
+import SecurityCaseNoteService from "./SecurityCaseNoteService";
+import SecurityDetectionService from "./SecurityDetectionService";
+import SecurityPlaybookService from "./SecurityPlaybookService";
+import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
 
 // AlertEpisode Services
@@ -838,6 +844,12 @@ const services: Array<BaseService> = [
   HuntressConnectionService,
   HuntressIncidentReportService,
   ThreatIntelFeedService,
+  SecurityCaseService,
+  SecurityCaseFeedService,
+  SecurityCaseNoteService,
+  SecurityDetectionService,
+  SecurityPlaybookService,
+  SecurityPlaybookRunService,
   AlertNoteTemplateService,
   AlertFeedService,
 

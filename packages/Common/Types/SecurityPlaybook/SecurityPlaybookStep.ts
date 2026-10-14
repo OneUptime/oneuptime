@@ -82,6 +82,11 @@ export interface EmailPeopleConfig {
 
 export interface PostToChannelConfig {
   channelName: string;
+  /*
+   * The Microsoft Teams team the channel is in, by its Teams id - not a
+   * OneUptime team, hence the name. Teams only.
+   */
+  microsoftTeamsTeamId?: string | undefined;
   message?: string | undefined;
 }
 
@@ -119,6 +124,9 @@ export const SECURITY_PLAYBOOK_NOTE_MAX_LENGTH: number = 10000;
 export const ENTITY_ACTIVITY_LOOKBACK_MIN_HOURS: number = 1;
 export const ENTITY_ACTIVITY_LOOKBACK_MAX_HOURS: number = 720;
 export const ENTITY_ACTIVITY_LOOKBACK_DEFAULT_HOURS: number = 24;
+
+// An http(s) URL with a host: what a webhook step can post to.
+const WEBHOOK_URL: RegExp = /^https?:\/\/[^\s/?#]+[^\s]*$/i;
 
 function stepLabel(index: number, action: SecurityPlaybookActionType): string {
   const definition: SecurityPlaybookActionDefinition | undefined =
@@ -337,6 +345,26 @@ export function normalizeSecurityPlaybookStepConfig(
         );
       }
 
+      // A Microsoft Teams channel is named within a team.
+      if (action === SecurityPlaybookActionType.PostToMicrosoftTeams) {
+        const microsoftTeamsTeamId: string = readText(
+          rawConfig,
+          "microsoftTeamsTeamId",
+        );
+
+        if (!microsoftTeamsTeamId) {
+          throw new BadDataException(
+            `${label}: choose the team the channel is in.`,
+          );
+        }
+
+        return {
+          channelName,
+          microsoftTeamsTeamId,
+          ...(message ? { message } : {}),
+        };
+      }
+
       return { channelName, ...(message ? { message } : {}) };
     }
 
@@ -392,7 +420,7 @@ export function normalizeSecurityPlaybookStepConfig(
     case SecurityPlaybookActionType.SendWebhook: {
       const url: string = readText(rawConfig, "url");
 
-      if (!/^https?:\/\/[^\s/?#]+[^\s]*$/i.test(url)) {
+      if (!WEBHOOK_URL.test(url)) {
         throw new BadDataException(
           `${label}: enter the URL to send to, starting with https:// or http://.`,
         );

@@ -58,7 +58,9 @@ describe("SECURITY_PLAYBOOK_ACTIONS", () => {
     );
 
     expect(new Set(types).size).toBe(types.length);
-    expect(types.sort()).toEqual(Object.values(SecurityPlaybookActionType).sort());
+    expect(types.sort()).toEqual(
+      Object.values(SecurityPlaybookActionType).sort(),
+    );
 
     for (const action of SECURITY_PLAYBOOK_ACTIONS) {
       expect(SECURITY_PLAYBOOK_ACTION_CATEGORIES).toContain(action.category);
@@ -70,7 +72,9 @@ describe("SECURITY_PLAYBOOK_ACTIONS", () => {
   test("only actions that change a connected product are disruptive, and each names its product and entity", () => {
     for (const action of SECURITY_PLAYBOOK_ACTIONS) {
       expect(action.isDisruptive).toBe(Boolean(action.connectionProvider));
-      expect(Boolean(action.entityType)).toBe(Boolean(action.connectionProvider));
+      expect(Boolean(action.entityType)).toBe(
+        Boolean(action.connectionProvider),
+      );
     }
 
     expect(
@@ -80,7 +84,9 @@ describe("SECURITY_PLAYBOOK_ACTIONS", () => {
       entityType: SecurityEntityType.User,
     });
     expect(
-      getSecurityPlaybookAction(SecurityPlaybookActionType.ContainCrowdStrikeHost),
+      getSecurityPlaybookAction(
+        SecurityPlaybookActionType.ContainCrowdStrikeHost,
+      ),
     ).toMatchObject({
       connectionProvider: SecurityEventConnectorProvider.CrowdStrikeFalcon,
       entityType: SecurityEntityType.Host,
@@ -160,9 +166,13 @@ describe("parseSecurityPlaybookSteps", () => {
     expect(parsed[0]!.id).toBeTruthy();
     expect(parsed[1]!.id).toBe("same");
     expect(parsed[2]!.id).not.toBe("same");
-    expect(new Set(parsed.map((item: SecurityPlaybookStep) => {
-      return item.id;
-    })).size).toBe(3);
+    expect(
+      new Set(
+        parsed.map((item: SecurityPlaybookStep) => {
+          return item.id;
+        }),
+      ).size,
+    ).toBe(3);
   });
 
   test("names the step and the fix in every refusal", () => {
@@ -176,7 +186,8 @@ describe("parseSecurityPlaybookSteps", () => {
 
   test("Assign the case keeps a user, a team, or both, and drops malformed ids", () => {
     expect(
-      parseOne(SecurityPlaybookActionType.AssignCase, { userId: USER_ID }).config,
+      parseOne(SecurityPlaybookActionType.AssignCase, { userId: USER_ID })
+        .config,
     ).toEqual({ userId: USER_ID });
     expect(
       parseOne(SecurityPlaybookActionType.AssignCase, {
@@ -235,10 +246,15 @@ describe("parseSecurityPlaybookSteps", () => {
 
   test("Add a note needs text, trimmed, within the limit", () => {
     expect(
-      parseOne(SecurityPlaybookActionType.AddCaseNote, { note: "  Check the VPN logs.  " })
-        .config,
+      parseOne(SecurityPlaybookActionType.AddCaseNote, {
+        note: "  Check the VPN logs.  ",
+      }).config,
     ).toEqual({ note: "Check the VPN logs." });
-    expectRejected(SecurityPlaybookActionType.AddCaseNote, { note: "   " }, /write the note/);
+    expectRejected(
+      SecurityPlaybookActionType.AddCaseNote,
+      { note: "   " },
+      /write the note/,
+    );
     expectRejected(
       SecurityPlaybookActionType.AddCaseNote,
       { note: "x".repeat(10001) },
@@ -260,15 +276,18 @@ describe("parseSecurityPlaybookSteps", () => {
   });
 
   test("Check threat intel keeps a valid priority to raise to, and nothing else", () => {
-    expect(parseOne(SecurityPlaybookActionType.CheckThreatIntel, {}).config).toEqual({});
+    expect(
+      parseOne(SecurityPlaybookActionType.CheckThreatIntel, {}).config,
+    ).toEqual({});
     expect(
       parseOne(SecurityPlaybookActionType.CheckThreatIntel, {
         raisePriorityTo: SecurityCasePriority.Critical,
       }).config,
     ).toEqual({ raisePriorityTo: SecurityCasePriority.Critical });
     expect(
-      parseOne(SecurityPlaybookActionType.CheckThreatIntel, { raisePriorityTo: "Max" })
-        .config,
+      parseOne(SecurityPlaybookActionType.CheckThreatIntel, {
+        raisePriorityTo: "Max",
+      }).config,
     ).toEqual({});
   });
 
@@ -277,8 +296,9 @@ describe("parseSecurityPlaybookSteps", () => {
       parseOne(SecurityPlaybookActionType.LookUpEntityActivity, {}).config,
     ).toEqual({ lookbackInHours: 24 });
     expect(
-      parseOne(SecurityPlaybookActionType.LookUpEntityActivity, { lookbackInHours: "72" })
-        .config,
+      parseOne(SecurityPlaybookActionType.LookUpEntityActivity, {
+        lookbackInHours: "72",
+      }).config,
     ).toEqual({ lookbackInHours: 72 });
     expectRejected(
       SecurityPlaybookActionType.LookUpEntityActivity,
@@ -309,21 +329,40 @@ describe("parseSecurityPlaybookSteps", () => {
         teamIds: [TEAM_ID],
         message: "Look at {{case.title}}",
       }).config,
-    ).toEqual({ userIds: [], teamIds: [TEAM_ID], message: "Look at {{case.title}}" });
-    expectRejected(SecurityPlaybookActionType.EmailPeople, {}, /choose who to email/);
+    ).toEqual({
+      userIds: [],
+      teamIds: [TEAM_ID],
+      message: "Look at {{case.title}}",
+    });
+    expectRejected(
+      SecurityPlaybookActionType.EmailPeople,
+      {},
+      /choose who to email/,
+    );
   });
 
   test("posting to a channel needs its name, with or without the #", () => {
     expect(
-      parseOne(SecurityPlaybookActionType.PostToSlack, { channelName: "#soc-alerts" })
-        .config,
+      parseOne(SecurityPlaybookActionType.PostToSlack, {
+        channelName: "#soc-alerts",
+      }).config,
     ).toEqual({ channelName: "soc-alerts" });
     expect(
       parseOne(SecurityPlaybookActionType.PostToMicrosoftTeams, {
         channelName: "SOC",
+        microsoftTeamsTeamId: "8b2f3a51-7d1e-4c0a-9a35-2f0b1d6c7e44",
         message: "New case",
       }).config,
-    ).toEqual({ channelName: "SOC", message: "New case" });
+    ).toEqual({
+      channelName: "SOC",
+      microsoftTeamsTeamId: "8b2f3a51-7d1e-4c0a-9a35-2f0b1d6c7e44",
+      message: "New case",
+    });
+    expectRejected(
+      SecurityPlaybookActionType.PostToMicrosoftTeams,
+      { channelName: "SOC" },
+      /choose the team the channel is in/,
+    );
     expectRejected(
       SecurityPlaybookActionType.PostToSlack,
       { channelName: " # " },
@@ -333,11 +372,21 @@ describe("parseSecurityPlaybookSteps", () => {
 
   test("actions on another record need that record's id", () => {
     expect(
-      parseOne(SecurityPlaybookActionType.PageOnCall, { onCallPolicyId: OTHER_ID }).config,
+      parseOne(SecurityPlaybookActionType.PageOnCall, {
+        onCallPolicyId: OTHER_ID,
+      }).config,
     ).toEqual({ onCallPolicyId: OTHER_ID });
     expectRejected(SecurityPlaybookActionType.PageOnCall, {}, /on-call policy/);
-    expectRejected(SecurityPlaybookActionType.DeclareIncident, {}, /incident's severity/);
-    expectRejected(SecurityPlaybookActionType.RunWorkflow, { workflowId: "x" }, /workflow/);
+    expectRejected(
+      SecurityPlaybookActionType.DeclareIncident,
+      {},
+      /incident's severity/,
+    );
+    expectRejected(
+      SecurityPlaybookActionType.RunWorkflow,
+      { workflowId: "x" },
+      /workflow/,
+    );
     expectRejected(
       SecurityPlaybookActionType.SuspendOktaUser,
       {},
@@ -350,7 +399,10 @@ describe("parseSecurityPlaybookSteps", () => {
       parseOne(SecurityPlaybookActionType.IsolateDefenderDevice, {
         connectionId: OTHER_ID,
       }).config,
-    ).toEqual({ connectionId: OTHER_ID, isolationType: DefenderIsolationType.Full });
+    ).toEqual({
+      connectionId: OTHER_ID,
+      isolationType: DefenderIsolationType.Full,
+    });
     expect(
       parseOne(SecurityPlaybookActionType.IsolateDefenderDevice, {
         connectionId: OTHER_ID,
@@ -378,6 +430,10 @@ describe("parseSecurityPlaybookSteps", () => {
       { url: "javascript:alert(1)" },
       /https:\/\//,
     );
-    expectRejected(SecurityPlaybookActionType.SendWebhook, { url: "https://" }, /https:\/\//);
+    expectRejected(
+      SecurityPlaybookActionType.SendWebhook,
+      { url: "https://" },
+      /https:\/\//,
+    );
   });
 });
