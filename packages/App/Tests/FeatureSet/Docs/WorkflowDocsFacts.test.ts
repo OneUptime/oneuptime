@@ -1,5 +1,7 @@
 import { readPage } from "./DocsContentSupport";
 import { boldSpans } from "./DocsTranslationChecks";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseModels from "Common/Models/DatabaseModels/Index";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { PermissionHelper } from "Common/Types/Permission";
@@ -40,6 +42,12 @@ import {
   OAuth2TokenStatus,
 } from "Common/Types/Workflow/WorkflowVariableOAuth";
 import { TRUNCATED_TEXT_NOTE } from "Common/Utils/MessageFit";
+import {
+  describeRowsKeptByDelete,
+  KEPT_STATUS_HISTORY_DAYS,
+  ROWS_KEPT_ON_DELETE_BY_QUERY,
+  RowsKeptOnDelete,
+} from "Common/Types/StateTimeline/RowsKeptOnDelete";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -319,6 +327,22 @@ function firstBlockId(metadataId: string): string {
   expect(BUILDER_CANVAS).toContain("let idCounter: number = 1;");
 
   return `${metadataId}-1`;
+}
+
+// A model of the table: the record type a data component is generated from.
+function modelByTableName(tableName: string): BaseModel {
+  const modelType: (new () => BaseModel) | undefined = (
+    DatabaseModels as Array<new () => BaseModel>
+  ).find((model: new () => BaseModel): boolean => {
+    return new model().tableName === tableName;
+  });
+
+  expect({ tableName, found: Boolean(modelType) }).toEqual({
+    tableName,
+    found: true,
+  });
+
+  return new modelType!();
 }
 
 function isPermissionTitle(title: string): boolean {
@@ -1007,6 +1031,67 @@ describe("the components page", () => {
     );
     expect(section(COMPONENTS, "## Working with records")).toContain(
       "**Limit** defaults to `10`",
+    );
+  });
+
+  it("says what a delete by query of a status or state timeline keeps, as the product keeps it", () => {
+    const page: string = section(COMPONENTS, "## Working with records");
+
+    // Each timeline a workflow can delete from, by the words the page names it in.
+    const NAMED_AS: Record<string, string> = {
+      MonitorStatusTimeline: "a monitor's status events",
+      IncidentStateTimeline: "incidents",
+      AlertStateTimeline: "alerts",
+      ScheduledMaintenanceStateTimeline: "scheduled maintenance events",
+      IncidentEpisodeStateTimeline: "episodes",
+      AlertEpisodeStateTimeline: "episodes",
+    };
+
+    const withDeleteSteps: Array<string> = Object.keys(
+      ROWS_KEPT_ON_DELETE_BY_QUERY,
+    ).filter((tableName: string): boolean => {
+      return RecordComponents.getComponents(modelByTableName(tableName)).some(
+        (component: ComponentMetadata): boolean => {
+          return component.id.endsWith("-delete-many");
+        },
+      );
+    });
+
+    expect(withDeleteSteps.sort()).toEqual(Object.keys(NAMED_AS).sort());
+
+    for (const tableName of withDeleteSteps) {
+      expect(page).toContain(NAMED_AS[tableName]!);
+
+      const kept: RowsKeptOnDelete = ROWS_KEPT_ON_DELETE_BY_QUERY[tableName]!;
+
+      // Every one keeps its records' current state, and a single event can go by its id.
+      expect(kept.whatStays).toContain("current");
+      expect(kept.oneRowByIdCanGo).toBe(true);
+
+      // Only a monitor's status events keep the history a status page draws.
+      expect({ tableName, history: kept.keepsHistoryInEffect }).toEqual({
+        tableName,
+        history: tableName === "MonitorStatusTimeline",
+      });
+    }
+
+    expect(page).toContain(
+      `never remove a record's current state, and they keep every monitor status event that covers part of the last ${KEPT_STATUS_HISTORY_DAYS} days`,
+    );
+
+    // The run log line the steps write.
+    expect(page).toContain("The run log says how many were kept.");
+    expect(
+      describeRowsKeptByDelete({
+        count: 2,
+        kept: ROWS_KEPT_ON_DELETE_BY_QUERY["MonitorStatusTimeline"]!,
+        one: "Monitor Status Event",
+        many: "Monitor Status Events",
+      }),
+    ).toContain("Kept 2 Monitor Status Events: ");
+
+    expect(page).toContain(
+      "To delete one particular event, query it by its `_id`.",
     );
   });
 });

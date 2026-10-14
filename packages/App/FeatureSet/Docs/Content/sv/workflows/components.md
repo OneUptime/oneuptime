@@ -426,6 +426,8 @@ Fält som OneUptime fyller i själv erbjuds inte när du skriver en post: posten
 
 **Skip** och **Limit** är två talfält på Find Many, Update Many och Delete Many, under **Fler fält** — `Skip: 0` med `Limit: 100` tar de första hundra träffarna. **Limit** är `10` som standard, och på Update Many och Delete Many begränsar den hur många poster som faktiskt skrivs, inte bara hur många som kommer tillbaka. Så `Items Deleted: 10` betyder att tio poster togs bort, inte att tio matchade. Höj **Limit** när du vill ändra fler än tio.
 
+Delete One och Delete Many efter fråga tömmer aldrig en historik. För en monitors statushändelser, och för tillståndshistoriken för incidenter, larm, planerat underhåll och episoder, tar de aldrig bort en posts aktuella tillstånd, och de behåller varje statushändelse för en monitor som täcker en del av de senaste 90 dagarna, så att en statussida aldrig visar en monitor grå. Körningens logg säger hur många som behölls. För att ta bort en viss händelse frågar du efter den med dess `_id`.
+
 **Success** och **Error** säger om frågan kördes, inte vad den hittade. En fråga som inte matchar något returnerar `0` och går ändå ut via **Success** — det är inget fel. För att förgrena på om något matchade läser du det returnerade antalet i ett **If / Else**-block.
 
 ## Nästa steg
