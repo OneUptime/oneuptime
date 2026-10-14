@@ -1214,7 +1214,7 @@ const DocsNav: NavGroup[] = [
     section: "Administration",
     links: [
       {
-        title: "Overview",
+        title: "Apps Overview",
         url: "/docs/mobile-desktop-apps/index",
       },
       {
