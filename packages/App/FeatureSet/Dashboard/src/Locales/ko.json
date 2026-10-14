@@ -29241,5 +29241,6 @@
   "Could not load values for {{key}}.": "{{key}}의 값을 불러오지 못했습니다.",
   "Loading values for {{key}}...": "{{key}}의 값을 불러오는 중...",
   "Values for {{key}} took too long to load.": "{{key}}의 값을 불러오는 데 시간이 너무 오래 걸렸습니다.",
-  "You can still type a value and press Enter.": "값을 입력하고 Enter 키를 눌러도 됩니다."
+  "You can still type a value and press Enter.": "값을 입력하고 Enter 키를 눌러도 됩니다.",
+  "No values to suggest for {{key}} in this time range.": "이 기간에 {{key}}에 대해 제안할 값이 없습니다."
 }

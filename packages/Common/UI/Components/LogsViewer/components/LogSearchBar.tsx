@@ -13,6 +13,9 @@ import IconProp from "../../../../Types/Icon/IconProp";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import { TelemetryLoadError } from "../../../Utils/Telemetry/TelemetryLoadError";
+import AttributeKeySentence, {
+  LOADING_ATTRIBUTE_VALUES_SENTENCE,
+} from "../../TelemetryViewer/components/AttributeKeySentence";
 import LogSearchSuggestions from "./LogSearchSuggestions";
 import LogSearchHelp from "./LogSearchHelp";
 
@@ -38,6 +41,11 @@ export interface LogSearchBarProps {
    */
   valuesError?: TelemetryLoadError | undefined;
   onRetryValues?: (() => void) | undefined;
+  /*
+   * The lookup of the key being typed came back with no values: the
+   * dropdown says so, instead of vanishing (issue #4708).
+   */
+  hasNoValues?: boolean | undefined;
 }
 
 export interface LogSearchBarRef {
@@ -54,6 +62,7 @@ const LogSearchBar: React.ForwardRefExoticComponent<
     const [showHelp, setShowHelp] = useState<boolean>(false);
     const [selectedSuggestionIndex, setSelectedSuggestionIndex] =
       useState<number>(-1);
+    const [isRetrySelected, setIsRetrySelected] = useState<boolean>(false);
     const inputRef: React.RefObject<HTMLInputElement> =
       useRef<HTMLInputElement>(null!);
     const containerRef: React.RefObject<HTMLDivElement> =
@@ -143,12 +152,36 @@ const LogSearchBar: React.ForwardRefExoticComponent<
     const hasValuesError: boolean =
       isValueMode && !isLoadingForCurrentMode && Boolean(props.valuesError);
 
+    /*
+     * The values' Try again is reached with the down arrow and pressed with
+     * Enter, so a keyboard reader never has to leave the search box for it
+     * (Tab would move the focus away, and the dropdown closes with it).
+     */
+    const canSelectRetry: boolean =
+      hasValuesError &&
+      Boolean(props.onRetryValues) &&
+      filteredSuggestions.length === 0;
+    const retrySelected: boolean = canSelectRetry && isRetrySelected;
+
+    /*
+     * The key's values came back empty: said until the reader types a value
+     * of their own, which needs no comment.
+     */
+    const hasNoValues: boolean =
+      isValueMode &&
+      !isLoadingForCurrentMode &&
+      !hasValuesError &&
+      Boolean(props.hasNoValues) &&
+      filteredSuggestions.length === 0 &&
+      partialValue.length === 0;
+
     const shouldShowSuggestions: boolean =
       showSuggestions &&
       isFocused &&
       (filteredSuggestions.length > 0 ||
         isLoadingForCurrentMode ||
-        hasValuesError) &&
+        hasValuesError ||
+        hasNoValues) &&
       (isValueMode ? true : currentWord.length > 0);
 
     // Show help when focused, input is empty, and no suggestions visible
@@ -160,12 +193,20 @@ const LogSearchBar: React.ForwardRefExoticComponent<
 
     useEffect(() => {
       setSelectedSuggestionIndex(-1);
+      setIsRetrySelected(false);
     }, [currentWord]);
 
     const handleKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void =
       useCallback(
         (e: KeyboardEvent<HTMLInputElement>): void => {
           if (e.key === "Enter") {
+            if (shouldShowSuggestions && retrySelected) {
+              setIsRetrySelected(false);
+              props.onRetryValues?.();
+              e.preventDefault();
+              return;
+            }
+
             if (
               shouldShowSuggestions &&
               !isLoadingForCurrentMode &&
@@ -244,6 +285,10 @@ const LogSearchBar: React.ForwardRefExoticComponent<
 
           if (e.key === "ArrowDown") {
             e.preventDefault();
+            if (canSelectRetry) {
+              setIsRetrySelected(true);
+              return;
+            }
             setSelectedSuggestionIndex((prev: number): number => {
               return Math.min(prev + 1, filteredSuggestions.length - 1);
             });
@@ -252,6 +297,10 @@ const LogSearchBar: React.ForwardRefExoticComponent<
 
           if (e.key === "ArrowUp") {
             e.preventDefault();
+            if (canSelectRetry) {
+              setIsRetrySelected(false);
+              return;
+            }
             setSelectedSuggestionIndex((prev: number): number => {
               return Math.max(prev - 1, 0);
             });
@@ -267,6 +316,8 @@ const LogSearchBar: React.ForwardRefExoticComponent<
           partialValue,
           props,
           isLoadingForCurrentMode,
+          canSelectRetry,
+          retrySelected,
         ],
       );
 
@@ -337,12 +388,15 @@ const LogSearchBar: React.ForwardRefExoticComponent<
       };
     }, []);
 
-    const loadingMessage: string = isValueMode
-      ? translator.translateTemplate("Loading values for {{key}}...", {
-          key: fieldPrefix,
-        })
-      : translator.translateText("Loading attributes...") ||
-        "Loading attributes...";
+    const loadingMessage: React.ReactNode = isValueMode ? (
+      <AttributeKeySentence
+        template={LOADING_ATTRIBUTE_VALUES_SENTENCE}
+        attributeKey={fieldPrefix}
+      />
+    ) : (
+      translator.translateText("Loading attributes...") ||
+      "Loading attributes..."
+    );
 
     const emptyMessage: string | undefined =
       isValueMode &&
@@ -426,6 +480,8 @@ const LogSearchBar: React.ForwardRefExoticComponent<
             emptyMessage={emptyMessage}
             valuesError={hasValuesError ? props.valuesError : undefined}
             onRetryValues={props.onRetryValues}
+            isRetrySelected={retrySelected}
+            hasNoValues={hasNoValues}
           />
         )}
 

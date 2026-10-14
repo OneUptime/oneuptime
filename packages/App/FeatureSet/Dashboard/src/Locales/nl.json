@@ -29241,5 +29241,6 @@
   "Could not load values for {{key}}.": "Waarden voor {{key}} konden niet worden geladen.",
   "Loading values for {{key}}...": "Waarden voor {{key}} laden...",
   "Values for {{key}} took too long to load.": "Het laden van de waarden voor {{key}} duurde te lang.",
-  "You can still type a value and press Enter.": "U kunt nog steeds een waarde typen en op Enter drukken."
+  "You can still type a value and press Enter.": "U kunt nog steeds een waarde typen en op Enter drukken.",
+  "No values to suggest for {{key}} in this time range.": "Geen voorgestelde waarden voor {{key}} in deze periode."
 }

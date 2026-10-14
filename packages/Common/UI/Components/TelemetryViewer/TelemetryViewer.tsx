@@ -98,6 +98,8 @@ export interface TelemetryViewerProps<T> {
    */
   searchValuesError?: TelemetryLoadError | undefined;
   onRetrySearchValues?: (() => void) | undefined;
+  // The `@key:` lookup came back with no values: the dropdown says so.
+  searchHasNoValues?: boolean | undefined;
 
   // -- Toolbar: time --
   timeRange: RangeStartAndEndDateTime;
@@ -314,6 +316,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             isValuesLoading={props.searchValuesLoading}
             valuesError={props.searchValuesError}
             onRetryValues={props.onRetrySearchValues}
+            hasNoValues={props.searchHasNoValues}
             isLoading={props.isLoading}
           />
         </div>

@@ -29241,5 +29241,6 @@
   "Could not load values for {{key}}.": "مقدارهای {{key}} بارگذاری نشد.",
   "Loading values for {{key}}...": "در حال بارگذاری مقدارهای {{key}}...",
   "Values for {{key}} took too long to load.": "بارگذاری مقدارهای {{key}} بیش از حد طول کشید.",
-  "You can still type a value and press Enter.": "همچنان می‌توانید مقداری را تایپ کنید و Enter را بزنید."
+  "You can still type a value and press Enter.": "همچنان می‌توانید مقداری را تایپ کنید و Enter را بزنید.",
+  "No values to suggest for {{key}} in this time range.": "در این بازهٔ زمانی هیچ مقداری از {{key}} برای پیشنهاد نیست."
 }

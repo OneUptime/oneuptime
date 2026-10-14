@@ -3372,6 +3372,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       searchValuesLoading={attributeValues.isLoading}
       searchValuesError={attributeValues.error}
       onRetrySearchValues={attributeValues.retry}
+      searchHasNoValues={attributeValues.hasNoValues}
       onSearchFieldValueSelect={(fieldKey: string, value: string) => {
         /*
          * Turn a typed `key:value` into a chip via the same path as a facet

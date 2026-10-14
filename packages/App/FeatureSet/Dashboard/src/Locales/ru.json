@@ -29241,5 +29241,6 @@
   "Could not load values for {{key}}.": "Не удалось загрузить значения {{key}}.",
   "Loading values for {{key}}...": "Загрузка значений {{key}}...",
   "Values for {{key}} took too long to load.": "Значения {{key}} загружались слишком долго.",
-  "You can still type a value and press Enter.": "Вы по-прежнему можете ввести значение и нажать Enter."
+  "You can still type a value and press Enter.": "Вы по-прежнему можете ввести значение и нажать Enter.",
+  "No values to suggest for {{key}} in this time range.": "За этот период нет значений {{key}} для подсказки."
 }

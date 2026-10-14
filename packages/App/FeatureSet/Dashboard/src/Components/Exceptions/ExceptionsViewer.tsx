@@ -2332,6 +2332,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       searchValuesLoading={attributeValues.isLoading}
       searchValuesError={attributeValues.error}
       onRetrySearchValues={attributeValues.retry}
+      searchHasNoValues={attributeValues.hasNoValues}
       onSearchFieldValueSelect={(fieldKey: string, value: string) => {
         /*
          * Enter turns `key:value` into a chip. A chip stores its value

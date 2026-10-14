@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import AttributeValuesLoadError from "./AttributeValuesLoadError";
+import AttributeValuesEmpty from "./AttributeValuesEmpty";
 import { TelemetryLoadError } from "../../../Utils/Telemetry/TelemetryLoadError";
 
 export interface TelemetrySearchSuggestionsProps {
@@ -15,8 +16,11 @@ export interface TelemetrySearchSuggestionsProps {
    */
   isAttributeMode?: boolean | undefined;
   isLoading?: boolean | undefined;
-  // Shown beside the spinner, already in the reader's language.
-  loadingMessage?: string | undefined;
+  /*
+   * Shown beside the spinner, already in the reader's language (the search
+   * bar draws the key of "Loading values for <key>..." in monospace).
+   */
+  loadingMessage?: React.ReactNode | undefined;
   emptyMessage?: string | undefined;
   /*
    * The values of `fieldContext` could not be loaded: said in place of the
@@ -24,6 +28,13 @@ export interface TelemetrySearchSuggestionsProps {
    */
   valuesError?: TelemetryLoadError | undefined;
   onRetryValues?: (() => void) | undefined;
+  // Try again is selected with the down arrow: Enter presses it.
+  isRetrySelected?: boolean | undefined;
+  /*
+   * The lookup of `fieldContext`'s values came back with none: said in
+   * place of the list, instead of the dropdown vanishing.
+   */
+  hasNoValues?: boolean | undefined;
 }
 
 const MAX_VISIBLE_SUGGESTIONS: number = 8;
@@ -78,10 +89,18 @@ const TelemetrySearchSuggestions: FunctionComponent<
           attributeKey={props.fieldContext}
           error={props.valuesError}
           onRetry={props.onRetryValues}
+          isRetrySelected={props.isRetrySelected}
         />
       )}
       {!props.isLoading &&
         !props.valuesError &&
+        props.hasNoValues &&
+        props.fieldContext && (
+          <AttributeValuesEmpty attributeKey={props.fieldContext} />
+        )}
+      {!props.isLoading &&
+        !props.valuesError &&
+        !props.hasNoValues &&
         visible.length === 0 &&
         props.emptyMessage !== undefined && (
           <div className="px-3 py-2 text-sm text-gray-400">

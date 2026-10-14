@@ -29241,5 +29241,6 @@
   "Could not load values for {{key}}.": "无法加载 {{key}} 的值。",
   "Loading values for {{key}}...": "正在加载 {{key}} 的值...",
   "Values for {{key}} took too long to load.": "加载 {{key}} 的值耗时过长。",
-  "You can still type a value and press Enter.": "您仍可以输入一个值并按 Enter 键。"
+  "You can still type a value and press Enter.": "您仍可以输入一个值并按 Enter 键。",
+  "No values to suggest for {{key}} in this time range.": "此时间范围内没有可建议的 {{key}} 值。"
 }

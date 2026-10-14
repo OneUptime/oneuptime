@@ -1998,6 +1998,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       searchValuesLoading={attributeValues.isLoading}
       searchValuesError={attributeValues.error}
       onRetrySearchValues={attributeValues.retry}
+      searchHasNoValues={attributeValues.hasNoValues}
       onSearchFieldValueSelect={(
         fieldKey: string,
         value: string,

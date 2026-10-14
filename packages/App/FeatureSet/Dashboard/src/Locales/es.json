@@ -29241,5 +29241,6 @@
   "Could not load values for {{key}}.": "No se pudieron cargar los valores de {{key}}.",
   "Loading values for {{key}}...": "Cargando valores de {{key}}...",
   "Values for {{key}} took too long to load.": "La carga de los valores de {{key}} tardó demasiado.",
-  "You can still type a value and press Enter.": "Aún puedes escribir un valor y pulsar Intro."
+  "You can still type a value and press Enter.": "Aún puedes escribir un valor y pulsar Intro.",
+  "No values to suggest for {{key}} in this time range.": "No hay valores que sugerir para {{key}} en este intervalo."
 }

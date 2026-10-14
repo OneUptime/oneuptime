@@ -1064,6 +1064,7 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
         searchValuesLoading={attributeValues.isLoading}
         searchValuesError={attributeValues.error}
         onRetrySearchValues={attributeValues.retry}
+        searchHasNoValues={attributeValues.hasNoValues}
         searchFieldAliasMap={SECURITY_EVENT_FIELD_ALIASES}
         searchHelpRows={SECURITY_EVENT_SEARCH_HELP_ROWS as Array<SearchHelpRow>}
         searchHelpCombinedExample={SECURITY_EVENT_SEARCH_COMBINED_EXAMPLE}

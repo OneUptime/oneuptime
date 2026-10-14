@@ -29241,5 +29241,6 @@
   "Could not load values for {{key}}.": "{{key}} के मान लोड नहीं हो सके।",
   "Loading values for {{key}}...": "{{key}} के मान लोड हो रहे हैं...",
   "Values for {{key}} took too long to load.": "{{key}} के मान लोड होने में बहुत अधिक समय लगा।",
-  "You can still type a value and press Enter.": "आप अब भी कोई मान टाइप करके Enter दबा सकते हैं।"
+  "You can still type a value and press Enter.": "आप अब भी कोई मान टाइप करके Enter दबा सकते हैं।",
+  "No values to suggest for {{key}} in this time range.": "इस समय-सीमा में {{key}} के लिए सुझाने को कोई मान नहीं।"
 }

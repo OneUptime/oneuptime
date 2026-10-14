@@ -1301,6 +1301,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             isValuesLoading={attributeValues.isLoading}
             valuesError={attributeValues.error}
             onRetryValues={attributeValues.retry}
+            hasNoValues={attributeValues.hasNoValues}
             toolbar={<LogsViewerToolbar {...toolbarProps} />}
           />
         </div>

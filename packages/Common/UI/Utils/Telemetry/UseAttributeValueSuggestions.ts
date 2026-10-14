@@ -58,6 +58,11 @@ export interface AttributeValueSuggestionsState {
   isLoading: boolean;
   // The typed key's values could not be loaded.
   error: TelemetryLoadError | undefined;
+  /*
+   * The typed key's values came back, and there were none: the bar says so
+   * rather than closing its dropdown without a word.
+   */
+  hasNoValues: boolean;
   // Asks for the typed key's values again, now.
   retry: () => void;
 }
@@ -159,6 +164,7 @@ export default function useAttributeValueSuggestions(
       (verdict === AttributeKeyVerdict.LookUp &&
         (!answer || answer.kind === "loading")),
     error: answer && answer.kind === "failed" ? answer.error : undefined,
+    hasNoValues: Boolean(loadedValues && loadedValues.length === 0),
     retry: retry,
   };
 }

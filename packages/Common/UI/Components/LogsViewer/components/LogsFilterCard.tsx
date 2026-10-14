@@ -14,6 +14,7 @@ export interface LogsFilterCardProps {
   isValuesLoading?: boolean | undefined;
   valuesError?: TelemetryLoadError | undefined;
   onRetryValues?: (() => void) | undefined;
+  hasNoValues?: boolean | undefined;
 }
 
 const LogsFilterCard: React.ForwardRefExoticComponent<
@@ -46,6 +47,7 @@ const LogsFilterCard: React.ForwardRefExoticComponent<
             isValuesLoading={props.isValuesLoading}
             valuesError={props.valuesError}
             onRetryValues={props.onRetryValues}
+            hasNoValues={props.hasNoValues}
           />
         </div>
         <div>{props.toolbar}</div>

@@ -29241,5 +29241,6 @@
   "Could not load values for {{key}}.": "Could not load values for {{key}}.",
   "Loading values for {{key}}...": "Loading values for {{key}}...",
   "Values for {{key}} took too long to load.": "Values for {{key}} took too long to load.",
-  "You can still type a value and press Enter.": "You can still type a value and press Enter."
+  "You can still type a value and press Enter.": "You can still type a value and press Enter.",
+  "No values to suggest for {{key}} in this time range.": "No values to suggest for {{key}} in this time range."
 }

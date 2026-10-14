@@ -29241,5 +29241,6 @@
   "Could not load values for {{key}}.": "{{key}} の値を読み込めませんでした。",
   "Loading values for {{key}}...": "{{key}} の値を読み込んでいます...",
   "Values for {{key}} took too long to load.": "{{key}} の値の読み込みに時間がかかりすぎました。",
-  "You can still type a value and press Enter.": "値を入力して Enter を押すこともできます。"
+  "You can still type a value and press Enter.": "値を入力して Enter を押すこともできます。",
+  "No values to suggest for {{key}} in this time range.": "この期間に {{key}} の候補となる値はありません。"
 }
