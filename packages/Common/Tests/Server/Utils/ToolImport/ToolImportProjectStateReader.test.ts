@@ -594,10 +594,11 @@ describe("ToolImportProjectStateReader.readState, past the most rows one read re
     monitor.projectId = PROJECT_ID;
     monitor.name = name;
     monitor.monitorType = check.monitorType!;
+    // A check that is not manual always has its steps.
     monitor.monitorSteps = buildToolImportMonitor({
       monitor: check,
       defaults: MONITOR_DEFAULTS,
-    }).monitorSteps;
+    }).monitorSteps!;
     return monitor;
   }
 
