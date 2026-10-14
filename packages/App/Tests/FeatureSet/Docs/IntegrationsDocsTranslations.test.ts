@@ -138,14 +138,14 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   "integrations/microsoft-sentinel": 22,
   "integrations/microsoft-defender-xdr": 22,
   "integrations/crowdstrike-falcon": 21,
-  "integrations/splunk": 23,
-  "integrations/elastic-security": 23,
-  "integrations/aws-security-hub": 23,
+  "integrations/splunk": 22,
+  "integrations/elastic-security": 21,
+  "integrations/aws-security-hub": 22,
   "integrations/okta": 23,
-  "integrations/github": 23,
-  "integrations/gitlab": 23,
-  "integrations/discord": 23,
-  "integrations/telegram": 23,
+  "integrations/github": 21,
+  "integrations/gitlab": 20,
+  "integrations/discord": 20,
+  "integrations/telegram": 18,
 };
 
 /*
