@@ -284,8 +284,9 @@ test.describe("Workflow builder: a record trigger's field lists", () => {
       "aria-expanded",
       "true",
     );
+    // The record's own fields and related records, its project's ID among them.
     await expect(
-      panel.getByRole("combobox", { name: "Search 16 fields" }),
+      panel.getByRole("combobox", { name: "Search 17 fields" }),
     ).toBeVisible();
     await expect(
       panel.getByRole("listbox", { name: "Fields to pass on" }),
@@ -325,6 +326,14 @@ test.describe("Workflow builder: a record trigger's field lists", () => {
     await expect(option(dialog, PASS_ON, "currentIncidentState")).toContainText(
       "5 fields",
     );
+    /*
+     * The project's ID, for a link back to the record in OneUptime, is with
+     * what OneUptime fills in; the Project itself is no related record here.
+     */
+    await expect(option(dialog, PASS_ON, "projectId").locator(NAME)).toHaveText(
+      "Project ID",
+    );
+    await expect(option(dialog, PASS_ON, "project")).toHaveCount(0);
     await expect(option(dialog, PASS_ON, "labels")).toContainText("Records");
     await expect(dialog.getByTestId(`${PASS_ON}-chosen-count`)).toHaveText(
       "1 chosen",
@@ -560,14 +569,17 @@ test.describe("Workflow builder: a record trigger's field lists", () => {
       option(dialog, PASS_ON, "currentIncidentState"),
     ).toHaveAttribute("aria-expanded", "false");
 
-    // Up from the first row wraps to the last.
+    /*
+     * Up from the first row wraps to the last: the project's ID, the last of
+     * what OneUptime fills in.
+     */
     await page.keyboard.press("ArrowUp");
     await page.keyboard.press("ArrowUp");
-    expect(await activeId()).toBe(`${PASS_ON}-option-incidentNumberWithPrefix`);
+    expect(await activeId()).toBe(`${PASS_ON}-option-projectId`);
     // The row the keyboard is on is scrolled to, not left under the fold.
-    await expect(
-      option(dialog, PASS_ON, "incidentNumberWithPrefix"),
-    ).toBeInViewport({ ratio: 1 });
+    await expect(option(dialog, PASS_ON, "projectId")).toBeInViewport({
+      ratio: 1,
+    });
 
     await page.keyboard.press("Escape");
     await expect(dialog.getByTestId(`${PASS_ON}-panel`)).toHaveCount(0);
@@ -1061,6 +1073,9 @@ test.describe("Workflow builder: a record trigger's field lists", () => {
       "incidentNumberWithPrefix",
       "currentIncidentState",
       "currentIncidentState.name",
+      // No update moves a record to another project.
+      "projectId",
+      "project",
     ]) {
       await expect(option(dialog, WATCH, never)).toHaveCount(0);
     }
