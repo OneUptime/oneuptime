@@ -1,5 +1,6 @@
 import React, { forwardRef, ReactElement, ReactNode } from "react";
 import LogSearchBar, { LogSearchBarRef } from "./LogSearchBar";
+import { TelemetryLoadError } from "../../../Utils/Telemetry/TelemetryLoadError";
 
 export interface LogsFilterCardProps {
   logAttributes: Array<string>;
@@ -11,6 +12,8 @@ export interface LogsFilterCardProps {
   onFieldValueSelect?: ((fieldKey: string, value: string) => void) | undefined;
   isAttributesLoading?: boolean | undefined;
   isValuesLoading?: boolean | undefined;
+  valuesError?: TelemetryLoadError | undefined;
+  onRetryValues?: (() => void) | undefined;
 }
 
 const LogsFilterCard: React.ForwardRefExoticComponent<
@@ -41,6 +44,8 @@ const LogsFilterCard: React.ForwardRefExoticComponent<
             onFieldValueSelect={props.onFieldValueSelect}
             isAttributesLoading={props.isAttributesLoading}
             isValuesLoading={props.isValuesLoading}
+            valuesError={props.valuesError}
+            onRetryValues={props.onRetryValues}
           />
         </div>
         <div>{props.toolbar}</div>

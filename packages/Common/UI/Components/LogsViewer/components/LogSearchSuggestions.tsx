@@ -1,6 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+import AttributeValuesLoadError from "../../TelemetryViewer/components/AttributeValuesLoadError";
+import { TelemetryLoadError } from "../../../Utils/Telemetry/TelemetryLoadError";
 
 export interface LogSearchSuggestionsProps {
   suggestions: Array<string>;
@@ -13,8 +15,15 @@ export interface LogSearchSuggestionsProps {
    */
   isAttributeMode?: boolean | undefined;
   isLoading?: boolean | undefined;
+  // Shown beside the spinner, already in the reader's language.
   loadingMessage?: string | undefined;
   emptyMessage?: string | undefined;
+  /*
+   * The values of `fieldContext` could not be loaded: said in place of the
+   * list, with Try again when `onRetryValues` is given (issue #4708).
+   */
+  valuesError?: TelemetryLoadError | undefined;
+  onRetryValues?: (() => void) | undefined;
 }
 
 const MAX_VISIBLE_SUGGESTIONS: number = 8;
@@ -54,11 +63,19 @@ const LogSearchSuggestions: FunctionComponent<LogSearchSuggestionsProps> = (
             ></path>
           </svg>
           <span>
-            {translator.translateText(props.loadingMessage || "Loading...")}
+            {props.loadingMessage || translator.translateText("Loading...")}
           </span>
         </div>
       )}
+      {!props.isLoading && props.valuesError && props.fieldContext && (
+        <AttributeValuesLoadError
+          attributeKey={props.fieldContext}
+          error={props.valuesError}
+          onRetry={props.onRetryValues}
+        />
+      )}
       {!props.isLoading &&
+        !props.valuesError &&
         visible.length === 0 &&
         props.emptyMessage !== undefined && (
           <div className="px-3 py-2 text-sm text-gray-400">

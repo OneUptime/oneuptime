@@ -76,6 +76,7 @@ import {
   resolveExceptionServiceChipId,
   resolveExceptionServiceIds,
   splitExceptionFieldPredicates,
+  EXCEPTION_KNOWN_FIELD_KEYS,
 } from "../../Utils/ExceptionsSearchQuery";
 import { ERROR_CLASS_DISPLAY_NAMES } from "../../Utils/ExceptionErrorClassLabels";
 import {
@@ -92,6 +93,13 @@ import ErrorClass, {
 } from "Common/Types/Telemetry/ErrorClass";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useAttributeValueSuggestions, {
+  AttributeValueSuggestionsState,
+} from "Common/UI/Utils/Telemetry/UseAttributeValueSuggestions";
+import {
+  fetchAttributeValueSuggestions,
+  getTimeRangeScope,
+} from "Common/UI/Utils/Telemetry/AttributeValueSuggestions";
 import useStableValue from "Common/UI/Utils/UseStableValue";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
@@ -603,13 +611,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     [],
   );
   const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
-  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
-    Record<string, Array<string>>
-  >({});
-  const [attributeValuesLoading, setAttributeValuesLoading] =
-    useState<boolean>(false);
-  const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
-    useRef<string>("");
+  // The key list could not load: the `@key:` value picker then asks for any key.
+  const [attributesFailed, setAttributesFailed] = useState<boolean>(false);
 
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
     initialUrlState.timeRange,
@@ -849,7 +852,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           (response.data["attributes"] || []) as Array<string>,
         );
       } catch {
-        // non-critical
+        // Non-critical: the bar still takes a typed key.
+        setAttributesFailed(true);
       } finally {
         setAttributesLoading(false);
       }
@@ -858,53 +862,29 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   }, []);
 
   /*
-   * Lazily fetch values for the attribute the user is currently typing
-   * (e.g. `@service:`) so the dropdown can populate suggestions.
+   * The values the search bar offers once `@key:` is typed: looked up after
+   * the reader pauses, for a key the project's exceptions have, once per key
+   * and time range (issue #4708). `@type:`, `@service:`, `@env:` and
+   * `@class:` are this explorer's fields, not attributes: never looked up.
    */
-  useEffect(() => {
-    const currentWord: string = (searchValue.split(/\s+/).pop() || "").trim();
-    if (!currentWord.startsWith("@") || !currentWord.includes(":")) {
-      return;
-    }
-    const colonIdx: number = currentWord.indexOf(":");
-    const attrKey: string = currentWord.substring(1, colonIdx);
-
-    if (!attrKey || attrKey === lastValueSuggestionKeyRef.current) {
-      return;
-    }
-    lastValueSuggestionKeyRef.current = attrKey;
-
-    const loadValues: () => Promise<void> = async () => {
-      try {
-        setAttributeValuesLoading(true);
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/telemetry/exceptions/get-attribute-values",
-            ),
-            data: { attributeKey: attrKey },
-            headers: ModelAPI.getCommonHeaders(),
-          });
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-        const values: Array<string> = (response.data["values"] ||
-          []) as Array<string>;
-        setAttributeValueSuggestions(
-          (
-            prev: Record<string, Array<string>>,
-          ): Record<string, Array<string>> => {
-            return { ...prev, [attrKey]: values };
-          },
-        );
-      } catch {
-        // non-critical
-      } finally {
-        setAttributeValuesLoading(false);
-      }
-    };
-    void loadValues();
-  }, [searchValue]);
+  const attributeValues: AttributeValueSuggestionsState =
+    useAttributeValueSuggestions({
+      searchText: searchValue,
+      attributeKeys: telemetryAttributes,
+      isAttributeKeysLoading: attributesLoading,
+      hasAttributeKeysFailed: attributesFailed,
+      ignoreKey: (key: string): boolean => {
+        return EXCEPTION_KNOWN_FIELD_KEYS.has(key.toLowerCase());
+      },
+      scope: `exceptions|${ProjectUtil.getCurrentProjectId()?.toString() || ""}|${getTimeRangeScope(timeRange)}`,
+      fetchValues: (attributeKey: string): Promise<Array<string>> => {
+        return fetchAttributeValueSuggestions({
+          signal: "exceptions",
+          attributeKey: attributeKey,
+          timeRange: timeRange,
+        });
+      },
+    });
 
   const serviceById: Record<string, Service> = useMemo(() => {
     const map: Record<string, Service> = {};
@@ -2347,9 +2327,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           );
         }),
       ]}
-      searchValueSuggestions={attributeValueSuggestions}
+      searchValueSuggestions={attributeValues.valueSuggestions}
       searchAttributesLoading={attributesLoading}
-      searchValuesLoading={attributeValuesLoading}
+      searchValuesLoading={attributeValues.isLoading}
+      searchValuesError={attributeValues.error}
+      onRetrySearchValues={attributeValues.retry}
       onSearchFieldValueSelect={(fieldKey: string, value: string) => {
         /*
          * Enter turns `key:value` into a chip. A chip stores its value

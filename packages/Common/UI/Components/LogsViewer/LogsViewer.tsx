@@ -59,7 +59,18 @@ import {
   normalizeLogsTableColumns,
 } from "./types";
 import LogsAnalyticsView from "./components/LogsAnalyticsView";
-import { LogSearchBarRef } from "./components/LogSearchBar";
+import {
+  isLogSearchFieldAlias,
+  LogSearchBarRef,
+} from "./components/LogSearchBar";
+import useAttributeValueSuggestions, {
+  AttributeValueSuggestionsState,
+} from "../../Utils/Telemetry/UseAttributeValueSuggestions";
+import {
+  fetchAttributeValueSuggestions,
+  getTimeRangeScope,
+  toValueList,
+} from "../../Utils/Telemetry/AttributeValueSuggestions";
 import { queryStringToFilter } from "../../../Types/Log/LogQueryToFilter";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
@@ -315,18 +326,16 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [filterData, setFilterData] = useState<Query<Log>>(props.filterData);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  /*
+   * The project's attribute keys: the `@` dropdown's list, the column
+   * picker's attribute columns, and what tells the `@key:` value picker which
+   * keys to look up. Loaded once; a list that could not load is not asked
+   * for again and again (it used to be, back to back, for as long as the
+   * page was open), and the value picker then looks up any key.
+   */
   const [logAttributes, setLogAttributes] = useState<Array<string>>([]);
-  const [attributesLoaded, setAttributesLoaded] = useState<boolean>(false);
-  const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
-
-  // Per-attribute value suggestions, populated lazily as the user types `@key:`.
-  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
-    Record<string, Array<string>>
-  >({});
-  const [attributeValuesLoading, setAttributeValuesLoading] =
-    useState<boolean>(false);
-  const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
-    useRef<string>("");
+  const [attributesLoading, setAttributesLoading] = useState<boolean>(true);
+  const [attributesFailed, setAttributesFailed] = useState<boolean>(false);
 
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
   const [pageError, setPageError] = useState<string>("");
@@ -700,11 +709,15 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       }
     }, []);
 
-  const loadAttributes: PromiseVoidFunction =
-    useCallback(async (): Promise<void> => {
-      try {
-        setAttributesLoading(true);
+  useEffect(() => {
+    void loadServices();
+  }, [loadServices]);
 
+  useEffect(() => {
+    let isCancelled: boolean = false;
+
+    const loadAttributes: () => Promise<void> = async (): Promise<void> => {
+      try {
         const attributeResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post({
             url: URL.fromString(APP_API_URL.toString()).addRoute(
@@ -720,81 +733,55 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           throw attributeResponse;
         }
 
-        const attributes: Array<string> = (attributeResponse.data[
-          "attributes"
-        ] || []) as Array<string>;
-        setLogAttributes(attributes);
-        setAttributesLoaded(true);
-      } catch {
-        setLogAttributes([]);
-        setAttributesLoaded(false);
-      } finally {
-        setAttributesLoading(false);
-      }
-    }, []);
-
-  useEffect(() => {
-    void loadServices();
-  }, [loadServices]);
-
-  // Load attributes eagerly for search bar suggestions
-  useEffect(() => {
-    if (!attributesLoaded && !attributesLoading) {
-      void loadAttributes();
-    }
-  }, [attributesLoaded, attributesLoading, loadAttributes]);
-
-  /*
-   * Lazily fetch values for the attribute the user is currently typing.
-   * Triggered by `@key:` patterns in the search bar — the same approach
-   * used by Traces/Metrics so the value dropdown can populate.
-   */
-  useEffect(() => {
-    const currentWord: string = (searchQuery.split(/\s+/).pop() || "").trim();
-    if (!currentWord.startsWith("@") || !currentWord.includes(":")) {
-      return;
-    }
-    const colonIdx: number = currentWord.indexOf(":");
-    const attrKey: string = currentWord.substring(1, colonIdx);
-
-    if (!attrKey || attrKey === lastValueSuggestionKeyRef.current) {
-      return;
-    }
-    lastValueSuggestionKeyRef.current = attrKey;
-
-    const loadValues: () => Promise<void> = async (): Promise<void> => {
-      try {
-        setAttributeValuesLoading(true);
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/telemetry/logs/get-attribute-values",
-            ),
-            data: { attributeKey: attrKey },
-            headers: {
-              ...ModelAPI.getCommonHeaders(),
-            },
-          });
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
+        if (!isCancelled) {
+          setLogAttributes(toValueList(attributeResponse.data["attributes"]));
         }
-        const values: Array<string> = (response.data["values"] ||
-          []) as Array<string>;
-        setAttributeValueSuggestions(
-          (
-            prev: Record<string, Array<string>>,
-          ): Record<string, Array<string>> => {
-            return { ...prev, [attrKey]: values };
-          },
-        );
       } catch {
-        // non-critical — leave the dropdown empty so users can still free-type
+        if (!isCancelled) {
+          setLogAttributes([]);
+          setAttributesFailed(true);
+        }
       } finally {
-        setAttributeValuesLoading(false);
+        if (!isCancelled) {
+          setAttributesLoading(false);
+        }
       }
     };
-    void loadValues();
-  }, [searchQuery]);
+
+    void loadAttributes();
+
+    return (): void => {
+      isCancelled = true;
+    };
+  }, []);
+
+  /*
+   * The values the search bar offers once `@key:` is typed: looked up after
+   * the reader pauses, for a key the project has, once per key and time
+   * range (issue #4708). The time range is the one on screen, so the values
+   * are those of the logs the reader is looking at.
+   */
+  const attributeValues: AttributeValueSuggestionsState =
+    useAttributeValueSuggestions({
+      searchText: searchQuery,
+      attributeKeys: logAttributes,
+      isAttributeKeysLoading: attributesLoading,
+      hasAttributeKeysFailed: attributesFailed,
+      ignoreKey: isLogSearchFieldAlias,
+      scope: `logs|${ProjectUtil.getCurrentProjectId()?.toString() || ""}|${getTimeRangeScope(props.timeRange)}`,
+      fetchValues: (attributeKey: string): Promise<Array<string>> => {
+        return fetchAttributeValueSuggestions({
+          signal: "logs",
+          attributeKey: attributeKey,
+          timeRange: props.timeRange,
+        });
+      },
+    });
+
+  const attributeValueSuggestions: Record<
+    string,
+    Array<string>
+  > = attributeValues.valueSuggestions;
 
   // Reset focused row when displayed logs change
   useEffect(() => {
@@ -1311,7 +1298,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             valueSuggestions={resolvedValueSuggestions}
             onFieldValueSelect={handleFieldValueSelectWithServiceResolve}
             isAttributesLoading={attributesLoading}
-            isValuesLoading={attributeValuesLoading}
+            isValuesLoading={attributeValues.isLoading}
+            valuesError={attributeValues.error}
+            onRetryValues={attributeValues.retry}
             toolbar={<LogsViewerToolbar {...toolbarProps} />}
           />
         </div>

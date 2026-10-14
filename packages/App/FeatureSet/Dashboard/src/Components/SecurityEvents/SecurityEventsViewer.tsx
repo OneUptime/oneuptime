@@ -41,6 +41,10 @@ import ModelAPI, {
 } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useAttributeValueSuggestions, {
+  AttributeValueSuggestionsState,
+} from "Common/UI/Utils/Telemetry/UseAttributeValueSuggestions";
+import { getTimeRangeScope } from "Common/UI/Utils/Telemetry/AttributeValueSuggestions";
 import {
   parseTelemetryFilterTuples,
   serializeTelemetryFilterTuplesAsPairs,
@@ -320,13 +324,8 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
 
   const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
   const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
-  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
-    Record<string, Array<string>>
-  >({});
-  const [attributeValuesLoading, setAttributeValuesLoading] =
-    useState<boolean>(false);
-  const lastValueSuggestionKey: React.MutableRefObject<string> =
-    useRef<string>("");
+  // The key list could not load: the `@key:` value picker then asks for any key.
+  const [attributesFailed, setAttributesFailed] = useState<boolean>(false);
 
   const [latestEventTime, setLatestEventTime] =
     useState<LatestEventTime>(undefined);
@@ -699,6 +698,9 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
       })
       .catch(() => {
         // Non-critical: the bar still accepts hand-typed attribute keys.
+        if (!isCancelled) {
+          setAttributesFailed(true);
+        }
       })
       .finally(() => {
         if (!isCancelled) {
@@ -711,46 +713,30 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
     };
   }, []);
 
-  useEffect(() => {
-    const currentWord: string = (searchValue.split(/\s+/).pop() || "").trim();
-
-    if (!currentWord.startsWith("@") || !currentWord.includes(":")) {
-      return;
-    }
-
-    const attributeKey: string = currentWord.substring(
-      1,
-      currentWord.indexOf(":"),
-    );
-
-    if (
-      !attributeKey ||
-      attributeKey === lastValueSuggestionKey.current ||
-      SECURITY_EVENT_SEARCH_FIELD_KEYS.has(attributeKey.toLowerCase())
-    ) {
-      return;
-    }
-
-    lastValueSuggestionKey.current = attributeKey;
-    setAttributeValuesLoading(true);
-
-    SecurityEventAttributeUtil.getAttributeValues(attributeKey)
-      .then((values: Array<string>) => {
-        setAttributeValueSuggestions(
-          (
-            previous: Record<string, Array<string>>,
-          ): Record<string, Array<string>> => {
-            return { ...previous, [attributeKey]: values };
-          },
+  /*
+   * The values the search bar offers once `@key:` is typed: looked up after
+   * the reader pauses, for a key the project's security events have, once
+   * per key and time range, from the events in the range on screen
+   * (issue #4708).
+   */
+  const attributeValues: AttributeValueSuggestionsState =
+    useAttributeValueSuggestions({
+      searchText: searchValue,
+      attributeKeys: attributeKeys,
+      isAttributeKeysLoading: attributesLoading,
+      hasAttributeKeysFailed: attributesFailed,
+      ignoreKey: (key: string): boolean => {
+        return SECURITY_EVENT_SEARCH_FIELD_KEYS.has(key.toLowerCase());
+      },
+      scope: `security-events|${projectId?.toString() || ""}|${getTimeRangeScope(timeRange)}`,
+      fetchValues: (attributeKey: string): Promise<Array<string>> => {
+        return SecurityEventAttributeUtil.getAttributeValues(
+          attributeKey,
+          undefined,
+          timeRange,
         );
-      })
-      .catch(() => {
-        // Non-critical.
-      })
-      .finally(() => {
-        setAttributeValuesLoading(false);
-      });
-  }, [searchValue]);
+      },
+    });
 
   // --- Live ---
 
@@ -1073,9 +1059,11 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
         searchPlaceholder={SECURITY_EVENT_SEARCH_PLACEHOLDER}
         searchSuggestions={[...SECURITY_EVENT_SEARCH_SUGGESTIONS]}
         searchAttributeSuggestions={attributeKeys}
-        searchValueSuggestions={attributeValueSuggestions}
+        searchValueSuggestions={attributeValues.valueSuggestions}
         searchAttributesLoading={attributesLoading}
-        searchValuesLoading={attributeValuesLoading}
+        searchValuesLoading={attributeValues.isLoading}
+        searchValuesError={attributeValues.error}
+        onRetrySearchValues={attributeValues.retry}
         searchFieldAliasMap={SECURITY_EVENT_FIELD_ALIASES}
         searchHelpRows={SECURITY_EVENT_SEARCH_HELP_ROWS as Array<SearchHelpRow>}
         searchHelpCombinedExample={SECURITY_EVENT_SEARCH_COMBINED_EXAMPLE}
