@@ -671,6 +671,8 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification (ch
       _type: "WorkspaceMessagePayload",
       workspaceType: WorkspaceType.MicrosoftTeams,
       messageBlocks: teamsBlocks.messageBlocks,
+      // What a notification of the post says (WorkspaceNotificationText).
+      text: "Incident update",
       channelNames: [],
       channelIds: [],
       chatIds: ["chat-a"],
@@ -680,6 +682,8 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification (ch
       _type: "WorkspaceMessagePayload",
       workspaceType: WorkspaceType.MicrosoftTeams,
       messageBlocks: teamsBlocks.messageBlocks,
+      // What a notification of the post says (WorkspaceNotificationText).
+      text: "Incident update",
       channelNames: [],
       channelIds: [],
       chatIds: ["chat-b"],
@@ -740,6 +744,8 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification (ch
       _type: "WorkspaceMessagePayload",
       workspaceType: WorkspaceType.MicrosoftTeams,
       messageBlocks: teamsBlocks.messageBlocks,
+      // What a notification of the post says (WorkspaceNotificationText).
+      text: "Incident update",
       channelNames: [],
       channelIds: ["chan-123"],
       teamId: "team-1",
@@ -750,6 +756,8 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification (ch
       _type: "WorkspaceMessagePayload",
       workspaceType: WorkspaceType.MicrosoftTeams,
       messageBlocks: teamsBlocks.messageBlocks,
+      // What a notification of the post says (WorkspaceNotificationText).
+      text: "Incident update",
       channelNames: ["named-channel"],
       channelIds: [],
       teamId: "team-1",
@@ -760,6 +768,8 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification (ch
       _type: "WorkspaceMessagePayload",
       workspaceType: WorkspaceType.MicrosoftTeams,
       messageBlocks: teamsBlocks.messageBlocks,
+      // What a notification of the post says (WorkspaceNotificationText).
+      text: "Incident update",
       channelNames: [],
       channelIds: [],
       chatIds: ["chat-a"],

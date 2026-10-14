@@ -147,6 +147,8 @@ Le manifeste configure ces fonctionnalités. Chacune joint votre serveur sur la 
 | Les raccourcis **Create New Incident** et **Create Scheduled Event** | Déclarer un incident ou planifier une maintenance depuis les raccourcis de Slack | `POST /api/slack/interactive` |
 | Boutons et formulaires des messages OneUptime | Accuser réception, résoudre, ajouter une note, changer l'état, exécuter une politique d'astreinte | `POST /api/slack/interactive` et `POST /api/slack/options-load` |
 | Événements | Mentions, messages, réactions et épingles, par exemple pour enregistrer un message comme note | `POST /api/slack/events` |
+| L'onglet **Home** de l'application | Vos créneaux d'astreinte et les incidents et alertes ouverts, avec des boutons pour déclarer un incident, planifier une maintenance, alerter quelqu'un et voir qui est d'astreinte | `POST /api/slack/events` et `POST /api/slack/interactive` |
+| Un message de bienvenue dans chaque canal où l'application est ajoutée | Comment poser une question à OneUptime AI, et où ajouter une règle de notification | `POST /api/slack/events` |
 
 ### Images dans les messages
 
@@ -165,6 +167,8 @@ Si vous avez créé votre application Slack à partir d'un manifeste plus ancien
 Une application Slack créée à partir d'un manifeste OneUptime antérieur enregistre `/incident` et `/maintenance` comme commandes propres, qui peuvent entrer en conflit avec les commandes du même nom d'autres applications. Elles fonctionnent toujours et ouvrent les mêmes formulaires que `/oneuptime incident` et `/oneuptime maintenance`. Pour les remplacer par `/oneuptime`, mettez l'application à jour à partir du manifeste que génère votre serveur : sur [api.slack.com/apps](https://api.slack.com/apps), ouvrez la page **App Manifest** de l'application, collez le manifeste et enregistrez.
 
 Une application créée avant `/oneuptime page` a besoin de la même mise à jour : tant qu'elle ne l'a pas, `/oneuptime page` ne peut pas savoir qui vous mentionnez avec @, et ouvre un formulaire pour les choisir au lieu de les alerter immédiatement. Sélectionnez ensuite de nouveau **Se connecter avec Slack** dans **Paramètres du projet > Espace de travail > Slack**, pour que le scope `users:read.email` qu'ajoute le manifeste soit accordé : avec lui, une personne dont le compte Slack n'est pas connecté à OneUptime est retrouvée par son adresse e-mail.
+
+Une application créée avant l'onglet **Home** a besoin de la même mise à jour : tant qu'elle ne l'a pas, Slack n'affiche aucun onglet **Home** pour l'application, et l'application ne publie aucun message de bienvenue dans un canal où elle est ajoutée. La mise à jour active l'onglet et abonne l'application aux événements `app_home_opened` et `member_joined_channel`. Elle n'ajoute aucun scope, donc rien n'est à reconnecter.
 
 ## Accès réseau pour les déploiements auto-hébergés
 

@@ -3,7 +3,6 @@ import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeMember from "../../../Models/DatabaseModels/AlertEpisodeMember";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
-import Monitor from "../../../Models/DatabaseModels/Monitor";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import AlertEpisodeFeedService from "../../../Server/Services/AlertEpisodeFeedService";
 import AlertEpisodeMemberService from "../../../Server/Services/AlertEpisodeMemberService";
@@ -26,7 +25,9 @@ import {
 } from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 import MicrosoftTeamsAlertActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Alert";
 import MicrosoftTeamsAlertEpisodeActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/AlertEpisode";
-import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import WorkspaceOpenRecords, {
+  WorkspaceOpenRecordKind,
+} from "../../../Server/Utils/Workspace/WorkspaceOpenRecords";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import AlertWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/Alert";
 import AlertEpisodeWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/AlertEpisode";
@@ -598,46 +599,51 @@ describe("Microsoft Teams", () => {
     expect(readText(sentText(turnContext))).toContain(HOSTILE_TITLE);
   });
 
-  test("the active alerts summary keeps the title inside its link, and the names as text", async () => {
+  /*
+   * The open alerts list ("show active alerts", and the Home in Slack and
+   * Teams): the alert's number links to it; the title, the severity and
+   * the state after it are text.
+   */
+  test("the open alerts list keeps the title and the names as text, and links the alert's number", async () => {
     const state: AlertState = stateNamed(HOSTILE_NAME);
-    const monitor: Monitor = new Monitor();
-    monitor.name = HOSTILE_NAME;
 
     const alert: Alert = alertTitled(HOSTILE_TITLE);
     alert.currentAlertState = state;
     alert.alertSeverity = severityNamed(HOSTILE_NAME);
-    alert.monitor = monitor;
 
     jest
-      .spyOn(AlertStateService, "getUnresolvedAlertStates")
-      .mockResolvedValue([state] as never);
+      .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
+      .mockResolvedValue([ObjectID.generate()]);
     jest.spyOn(AlertService, "findBy").mockResolvedValue([alert] as never);
     jest
-      .spyOn(AlertService, "getAlertLinkInDashboard")
-      .mockResolvedValue(URL.fromString(DASHBOARD_LINK) as never);
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockResolvedValue(URL.fromString("https://oneuptime.example/dashboard"));
 
-    const message: string = await (
-      MicrosoftTeamsUtil as unknown as {
-        getActiveAlertsMessage: (projectId: ObjectID) => Promise<string>;
-      }
-    ).getActiveAlertsMessage(PROJECT_ID);
+    const message: string = (
+      await WorkspaceOpenRecords.getListAnswer({
+        kind: WorkspaceOpenRecordKind.Alerts,
+        projectId: PROJECT_ID,
+        props: databaseProps,
+      })
+    ).markdown;
 
     expectInert([message]);
 
-    // The one link for the alert goes to the dashboard, title and all.
+    // The one link for the alert goes to its page, under its number.
     const alertLinks: Array<Tokens.Link> = tokensOf(message).filter(
       (token: Token): boolean => {
         return (
-          token.type === "link" &&
-          (token as Tokens.Link).text.startsWith("Alert ALT-42")
+          token.type === "link" && (token as Tokens.Link).text === "ALT-42"
         );
       },
     ) as Array<Tokens.Link>;
 
     expect(alertLinks).toHaveLength(1);
-    expect(alertLinks[0]!.href).toBe(DASHBOARD_LINK);
-    expect(readText(alertLinks[0]!.raw)).toContain(HOSTILE_TITLE);
-    expect(readText(message)).toContain(`Monitor: ${HOSTILE_NAME}`);
+    // A title is cut at 120 characters on its line: the alert's page has it all.
+    expect(readText(message)).toContain(
+      `ALT-42 ${HOSTILE_TITLE.substring(0, 100)}`,
+    );
+    expect(readText(message)).toContain(`${HOSTILE_NAME} · ${HOSTILE_NAME}`);
   });
 });
 

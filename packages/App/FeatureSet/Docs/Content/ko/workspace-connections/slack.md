@@ -148,6 +148,18 @@ OneUptime 의 Slack 명령은 `/oneuptime` 하나입니다. 그 뒤에 입력하
 > [!NOTE]
 > `/oneuptime incident` 와 `/oneuptime maintenance` 가, 다른 Slack 앱의 같은 이름 명령과 충돌할 수 있던 `/incident` 와 `/maintenance` 를 대신합니다. 이전 매니페스트로 만든 Slack 앱은 앱이 업데이트될 때까지 이 명령을 유지하며, 같은 양식을 엽니다. [이전 매니페스트로 만든 앱](/docs/self-hosted/slack-integration#이전-매니페스트로-만든-앱) 을 참조하세요.
 
+## Slack 의 OneUptime 홈
+
+Slack 사이드바의 **Apps** 에서 OneUptime 을 열면 **Home** 탭에 내가 볼 수 있는 범위에서 프로젝트에 무슨 일이 일어나고 있는지가 표시되며, 열 때마다 다시 읽습니다.
+
+- **내 온콜.** 지금 온콜인 온콜 스케줄과 언제까지인지, 또는 다음 근무입니다.
+- **열려 있는 것.** 내가 읽을 수 있는 가장 최근의 열린 인시던트와 경고이며, 각각 OneUptime 의 페이지로 연결됩니다.
+- **버튼.** **Declare incident**, **Schedule maintenance**, **Page someone** 은 `/oneuptime incident`, `/oneuptime maintenance`, `/oneuptime page` 와 같은 양식을 열고, **Who's on call** 은 `/oneuptime oncall` 처럼 답합니다.
+
+홈은 나로서 읽으므로 내 Slack 계정이 연결되어 있어야 합니다. 연결되기 전까지 홈에는 **Connect Slack account** 버튼이 있고, 연결하면 바로 내 홈이 표시됩니다.
+
+누군가 OneUptime 을 채널에 추가하면 OneUptime 은 그 채널에 인사를 게시합니다. 질문하는 방법과, 그 채널에 게시하는 알림 규칙을 추가하는 위치를 알려 줍니다.
+
 ## Slack 에서 OneUptime AI 에게 질문하기
 
 로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 일상적인 말로 질문하세요. 채널에서 OneUptime 을 @멘션하거나 다이렉트 메시지를 보내면 스레드에서 답변합니다. `/oneuptime ask which monitors are down?` 은 답변을 채널에 게시합니다. 두 방법 모두 자신의 Slack 계정이 연결되어 있고 프로젝트에서 AI 가 켜져 있어야 합니다. Slack 의 답변은 읽기만 합니다. 무언가를 변경하려면 버튼을 사용하세요. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.

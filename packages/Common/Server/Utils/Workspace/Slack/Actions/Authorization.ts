@@ -33,6 +33,7 @@ export type SlackActionRequester = Pick<
   | "responseUrl"
   | "triggerId"
   | "payloadType"
+  | "slackViewType"
 >;
 
 // A Slack user who may press a button on a record, and the record as they read it.

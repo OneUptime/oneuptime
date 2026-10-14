@@ -5,7 +5,9 @@ import React, {
   useEffect,
 } from "react";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
 import CardSections from "Common/UI/Components/Card/CardSections";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -61,6 +63,9 @@ import ConnectRequestNotice, {
   ConnectRequestState,
   useConnectRequest,
 } from "../Workspace/ConnectRequestNotice";
+import UninstallWorkspaceConfirm, {
+  MANAGE_WORKSPACE_CONNECTION,
+} from "../Workspace/UninstallWorkspaceConfirm";
 
 // The full setup guide, folded at the bottom of a self-hosted install's page.
 export const MICROSOFT_TEAMS_SETUP_GUIDE_TEST_ID: string =
@@ -73,6 +78,56 @@ export const MICROSOFT_TEAMS_SETUP_GUIDE_TITLE: string = translationKey(
 export const MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION: string = translationKey(
   "Azure app registration, Azure Bot resource, permissions and app manifest upload — every step, including the ones that are easy to miss.",
 );
+
+/*
+ * What each card of the Microsoft Teams settings says. The project's cards
+ * (Project Settings only) and your own are apart: consenting, installing
+ * and uninstalling the app are the project's, connecting your account is
+ * yours.
+ */
+export const TEAMS_CONSENT_COMPLETED_DESCRIPTION: string = translationKey(
+  "Admin consent is granted for your Microsoft 365 organization. OneUptime posts what your notification rules send to your teams' channels. Each member connects their own Microsoft Teams account to act as themselves.",
+);
+
+export const YOUR_TEAMS_ACCOUNT_CONNECTED_TITLE: string = translationKey(
+  "Your Microsoft Teams account is connected",
+);
+
+export const YOUR_TEAMS_ACCOUNT_CONNECTED_DESCRIPTION: string = translationKey(
+  "Buttons and commands in Microsoft Teams act as you, with your permissions in this project. Open the OneUptime app in Microsoft Teams and type “home” to see your on-call shifts and the open incidents.",
+);
+
+export const CONNECT_YOUR_TEAMS_ACCOUNT_TITLE: string = translationKey(
+  "Connect your Microsoft Teams account",
+);
+
+export const CONNECT_YOUR_TEAMS_ACCOUNT_DESCRIPTION: string = translationKey(
+  "Acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+);
+
+export const OPEN_TEAMS_APP_TITLE: string = translationKey(
+  "Open OneUptime in Microsoft Teams",
+);
+
+export const TEAMS_NOT_CONNECTED_TO_PROJECT_TITLE: string = translationKey(
+  "Microsoft Teams is not connected to this project yet",
+);
+
+export const TEAMS_NOT_CONNECTED_TO_PROJECT_DESCRIPTION: string =
+  translationKey(
+    "A project admin connects it under Project Settings → Workspace → Microsoft Teams. Then you can connect your own Microsoft Teams account here.",
+  );
+
+/*
+ * The OneUptime app in Microsoft Teams: its install dialog, or the app once
+ * added. The app's id is the bot's (the manifest's `id`), on OneUptime
+ * Cloud and on a self-hosted server alike.
+ */
+export const getMicrosoftTeamsAppLink: (clientId: string) => string = (
+  clientId: string,
+): string => {
+  return `https://teams.microsoft.com/l/app/${encodeURIComponent(clientId)}`;
+};
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -123,6 +178,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [isRefreshTeamsLoading, setIsRefreshTeamsLoading] =
     React.useState<boolean>(false);
+
+  // Uninstalling, asked first (UninstallWorkspaceConfirm).
+  const [isUninstallConfirmOpen, setIsUninstallConfirmOpen] =
+    React.useState<boolean>(false);
+  const [isUninstalling, setIsUninstalling] = React.useState<boolean>(false);
+  const [uninstallError, setUninstallError] = React.useState<string>("");
 
   // Teams Modal state
   interface TeamItem {
@@ -372,17 +433,31 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   let cardDescription: string = "";
   let cardButtons: Array<CardButtonSchema> = [];
 
-  // if user and project both connected with Microsoft Teams, then.
+  /*
+   * Your own Microsoft Teams account, connected: what that lets you do, the
+   * app to open - direct messages and its Home need it added for you - and
+   * how to undo it. The project's own connection is the card above, on
+   * Project Settings only.
+   */
   if (isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = translationKey("You are connected with Microsoft Teams");
-    cardDescription = translationKey(
-      "Your account is already connected with Microsoft Teams. You can now create workspace notification rules to send messages to your teams.",
-    );
+    cardTitle = YOUR_TEAMS_ACCOUNT_CONNECTED_TITLE;
+    cardDescription = YOUR_TEAMS_ACCOUNT_CONNECTED_DESCRIPTION;
     cardButtons = [
+      {
+        title: OPEN_TEAMS_APP_TITLE,
+        buttonStyle: SharedButtonStyle.NORMAL,
+        icon: IconProp.ExternalLink,
+        onClick: () => {
+          window.open(
+            getMicrosoftTeamsAppLink(MicrosoftTeamsAppClientId || ""),
+            "_blank",
+          );
+        },
+      },
       {
         title: `Disconnect`,
         isLoading: isButtonLoading,
-        buttonStyle: SharedButtonStyle.DANGER,
+        buttonStyle: SharedButtonStyle.DANGER_OUTLINE,
         onClick: async () => {
           try {
             setIsButtonLoading(true);
@@ -567,68 +642,121 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   };
 
-  // if user is not connected and the project is connected with Teams.
+  // The project is connected, you are not: connect your own account.
   if (!isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = translationKey("You are disconnected from Microsoft Teams");
-    cardDescription = translationKey(
-      "Connect your account with Microsoft Teams to make the most out of OneUptime.",
-    );
+    cardTitle = CONNECT_YOUR_TEAMS_ACCOUNT_TITLE;
+    cardDescription = CONNECT_YOUR_TEAMS_ACCOUNT_DESCRIPTION;
     cardButtons = [
       // connect with Teams button.
       getConnectWithTeamsButton(
         translationKey("Connect my account with Microsoft Teams"),
       ),
-      {
-        title: `Uninstall OneUptime from Microsoft Teams`,
-        isLoading: isButtonLoading,
-        /*
-         * Red, but outlined: "Connect my account with Microsoft Teams" beside
-         * it is the card's one primary button, and a filled red one would
-         * compete with it for a step almost nobody on this card has come to
-         * take.
-         */
-        buttonStyle: SharedButtonStyle.DANGER_OUTLINE,
-        onClick: async () => {
-          try {
-            setIsButtonLoading(true);
-            setError(null);
-            if (projectAuthTokenId) {
-              await ModelAPI.deleteItem({
-                modelType: WorkspaceProjectAuthToken,
-                id: projectAuthTokenId!,
-              });
-
-              setIsProjectAccountConnected(false);
-              setIsAdminConsentCompleted(false); // Reset admin consent when project is disconnected
-              setWorkspaceProjectAuthTokenId(null);
-
-              /*
-               * Every Workspace menu in the project lists only connected
-               * workspaces: ask again, so they stop listing this one.
-               */
-              ConnectedWorkspaces.refresh().catch(() => {
-                // A failed request leaves the menus as they were.
-              });
-            } else {
-              setError(
-                <div>
-                  {translator.translateText(
-                    "Looks like the project auth token id is not set properly. Please try again.",
-                  )}
-                </div>,
-              );
-            }
-          } catch (error) {
-            setError(
-              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
-            );
-          }
-          setIsButtonLoading(false);
-        },
-        icon: IconProp.Trash,
-      },
     ];
   }
+
+  /*
+   * Uninstalls the app from the project's Microsoft 365 organization, once
+   * asked (UninstallWorkspaceConfirm) - whether or not your own account is
+   * connected, so an admin never has to disconnect themselves first. A
+   * failure is said in the dialog, which stays open to try again.
+   */
+  const uninstallFromTeams: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      setIsUninstalling(true);
+      setUninstallError("");
+
+      if (!projectAuthTokenId) {
+        setUninstallError(
+          translator.translateText(
+            "Looks like the project auth token id is not set properly. Please try again.",
+          ) || "",
+        );
+        return;
+      }
+
+      await ModelAPI.deleteItem({
+        modelType: WorkspaceProjectAuthToken,
+        id: projectAuthTokenId,
+      });
+
+      setIsUninstallConfirmOpen(false);
+      setIsProjectAccountConnected(false);
+      setIsAdminConsentCompleted(false); // Reset admin consent when project is disconnected
+      setWorkspaceProjectAuthTokenId(null);
+      /*
+       * Uninstalling unlinks every member's Microsoft Teams account too
+       * (WorkspaceProjectAuthTokenService), yours included.
+       */
+      setIsUserAccountConnected(false);
+      setWorkspaceUserAuthTokenId(null);
+
+      /*
+       * Every Workspace menu in the project lists only connected
+       * workspaces: ask again, so they stop listing this one.
+       */
+      ConnectedWorkspaces.refresh().catch(() => {
+        // A failed request leaves the menus as they were.
+      });
+    } catch (error) {
+      setUninstallError(API.getFriendlyErrorMessage(error as Exception));
+    } finally {
+      setIsUninstalling(false);
+    }
+  };
+
+  /*
+   * The ⋯ of the project's card once consent is granted: its teams,
+   * granting consent again (after the app asks for a new permission) and
+   * uninstalling. None is a step anybody comes to the page for - as three
+   * buttons, they pressed the card's title into a column a word wide - so
+   * the card asks nothing of you, and the Connect button under it stays
+   * the page's one main action.
+   */
+  const projectCardActions: Array<ReactElement> = [
+    <CardMoreMenu
+      key="microsoft-teams-project-actions"
+      ariaLabel={translator.translateTemplate(MANAGE_WORKSPACE_CONNECTION, {
+        workspace: "Microsoft Teams",
+      })}
+      dataTestId="microsoft-teams-project-actions"
+    >
+      {[
+        <MoreMenuItem
+          key="view-teams"
+          text="View Teams"
+          icon={IconProp.Team}
+          dataTestId="microsoft-teams-view-teams"
+          onClick={() => {
+            openTeamsModal();
+          }}
+        />,
+        <MoreMenuItem
+          key="reset-admin-consent"
+          text="Reset Admin Consent"
+          icon={IconProp.Refresh}
+          dataTestId="microsoft-teams-reset-admin-consent"
+          onClick={() => {
+            setIsAdminConsentCompleted(false);
+          }}
+        />,
+        ...(isProjectAccountConnected
+          ? [
+              <MoreMenuItem
+                key="uninstall"
+                text="Uninstall OneUptime from Microsoft Teams"
+                icon={IconProp.Trash}
+                isDestructive={true}
+                dataTestId="microsoft-teams-uninstall"
+                onClick={() => {
+                  setUninstallError("");
+                  setIsUninstallConfirmOpen(true);
+                }}
+              />,
+            ]
+          : []),
+      ]}
+    </CardMoreMenu>,
+  ];
 
   // if admin consent is completed but no team is selected yet
   if (
@@ -669,58 +797,63 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       <ConnectCallbackNotice state={connectCallback} />
       <ConnectRequestNotice state={connectRequest} />
 
-      <div className="mt-6">
-        <Card
-          title={
-            isAdminConsentCompleted
-              ? "Admin Consent Completed"
-              : "Grant Admin Consent"
-          }
-          description={
-            isAdminConsentCompleted
-              ? "Admin consent has been successfully granted for the OneUptime Microsoft Teams app. You can now proceed to connect your account."
-              : "Grant tenant-wide admin consent for the OneUptime Microsoft Teams app. This step is required to enable application permissions (e.g., posting to channels) without per-user consent. You must be a Microsoft 365 admin."
-          }
-          buttons={
-            isAdminConsentCompleted
-              ? [
-                  {
-                    title: "Reset Admin Consent",
-                    buttonStyle: SharedButtonStyle.NORMAL,
-                    icon: IconProp.Refresh,
-                    onClick: () => {
-                      setIsAdminConsentCompleted(false);
+      {/*
+       * The project's connection: consent, its teams, uninstalling. Your
+       * own settings leave it to Project Settings.
+       */}
+      {!props.hideProjectCards && (
+        <div data-testid="microsoft-teams-project-connection">
+          <Card
+            title={
+              isAdminConsentCompleted
+                ? "Admin Consent Completed"
+                : "Grant Admin Consent"
+            }
+            description={
+              isAdminConsentCompleted
+                ? TEAMS_CONSENT_COMPLETED_DESCRIPTION
+                : "Grant tenant-wide admin consent for the OneUptime Microsoft Teams app. This step is required to enable application permissions (e.g., posting to channels) without per-user consent. You must be a Microsoft 365 admin."
+            }
+            buttons={
+              isAdminConsentCompleted
+                ? projectCardActions
+                : [
+                    {
+                      title: "Grant Admin Consent",
+                      buttonStyle: SharedButtonStyle.PRIMARY,
+                      icon: IconProp.ShieldCheck,
+                      onClick: () => {
+                        return startAdminConsent();
+                      },
                     },
-                  },
-                  {
-                    title: "View Teams",
-                    buttonStyle: SharedButtonStyle.NORMAL,
-                    icon: IconProp.Team,
-                    onClick: () => {
-                      return openTeamsModal();
-                    },
-                  },
-                ]
-              : [
-                  {
-                    title: "Grant Admin Consent",
-                    buttonStyle: SharedButtonStyle.PRIMARY,
-                    icon: IconProp.ShieldCheck,
-                    onClick: () => {
-                      return startAdminConsent();
-                    },
-                  },
-                ]
-          }
-        />
-      </div>
+                  ]
+            }
+          />
+        </div>
+      )}
 
       {isAdminConsentCompleted && (
-        <div>
+        <div
+          data-testid="microsoft-teams-your-account"
+          className={props.hideProjectCards ? "" : "mt-6"}
+        >
           <Card
             title={cardTitle}
             description={cardDescription}
             buttons={cardButtons}
+          />
+        </div>
+      )}
+
+      {/*
+       * Your own settings, before the project is connected: consenting and
+       * installing are for the project's settings, not a personal page.
+       */}
+      {!isAdminConsentCompleted && props.hideProjectCards && (
+        <div data-testid="microsoft-teams-your-account">
+          <Card
+            title={TEAMS_NOT_CONNECTED_TO_PROJECT_TITLE}
+            description={TEAMS_NOT_CONNECTED_TO_PROJECT_DESCRIPTION}
           />
         </div>
       )}
@@ -758,6 +891,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
        */}
       {isAdminConsentCompleted &&
         (isProjectAccountConnected || isUserAccountConnected) &&
+        // Uploading the package is an admin's: Project Settings only.
+        !props.hideProjectCards &&
         !BILLING_ENABLED && (
           <div className="mt-6">
             <Card
@@ -808,39 +943,42 @@ The zip file contains the app manifest and required icons for Teams installation
           </div>
         )}
 
-      {isAdminConsentCompleted && isUserAccountConnected && BILLING_ENABLED && (
-        <div className="mt-6">
-          <Card
-            title="Install OneUptime App from Microsoft Teams Store"
-            description="Install the OneUptime app directly from the Microsoft Teams App Store to enable notifications and integrations."
-            buttons={[
-              {
-                title: "Open Teams Store",
-                buttonStyle: SharedButtonStyle.PRIMARY,
-                icon: IconProp.ExternalLink,
-                onClick: () => {
-                  window.open(
-                    "https://teams.microsoft.com/l/app/" +
-                      MicrosoftTeamsAppClientId,
-                    "_blank",
-                  );
+      {isAdminConsentCompleted &&
+        isUserAccountConnected &&
+        BILLING_ENABLED &&
+        !props.hideProjectCards && (
+          <div className="mt-6">
+            <Card
+              title="Install OneUptime App from Microsoft Teams Store"
+              description="Install the OneUptime app directly from the Microsoft Teams App Store to enable notifications and integrations."
+              buttons={[
+                {
+                  title: "Open Teams Store",
+                  buttonStyle: SharedButtonStyle.PRIMARY,
+                  icon: IconProp.ExternalLink,
+                  onClick: () => {
+                    window.open(
+                      "https://teams.microsoft.com/l/app/" +
+                        MicrosoftTeamsAppClientId,
+                      "_blank",
+                    );
+                  },
                 },
-              },
-              {
-                title: "Download App Manifest for Sideloading",
-                buttonStyle: SharedButtonStyle.NORMAL,
-                icon: IconProp.Download,
-                onClick: () => {
-                  window.open(
-                    `${HOME_URL.toString()}api/microsoft-teams/app-manifest-zip`,
-                    "_blank",
-                  );
+                {
+                  title: "Download App Manifest for Sideloading",
+                  buttonStyle: SharedButtonStyle.NORMAL,
+                  icon: IconProp.Download,
+                  onClick: () => {
+                    window.open(
+                      `${HOME_URL.toString()}api/microsoft-teams/app-manifest-zip`,
+                      "_blank",
+                    );
+                  },
                 },
-              },
-            ]}
-          >
-            <MarkdownViewer
-              text={`
+              ]}
+            >
+              <MarkdownViewer
+                text={`
 ##### Installation Steps:
 
 1. **Click the button above** to open the OneUptime app in the Microsoft Teams Store
@@ -866,10 +1004,10 @@ If you prefer to manually sideload the app:
 3. Click "Upload an app" → "Upload a custom app"
 4. Select the downloaded zip file and follow the installation prompts
               `}
-            />
-          </Card>
-        </div>
-      )}
+              />
+            </Card>
+          </div>
+        )}
 
       {/*
        * The full setup guide used to render only when MICROSOFT_TEAMS_APP_CLIENT_ID
@@ -882,7 +1020,7 @@ If you prefer to manually sideload the app:
        * the guide's card is a section of the fold (CardSections), not a card
        * inside a card.
        */}
-      {!BILLING_ENABLED && (
+      {!BILLING_ENABLED && !props.hideProjectCards && (
         <div className="mb-5" data-testid={MICROSOFT_TEAMS_SETUP_GUIDE_TEST_ID}>
           <FoldedSection
             title={MICROSOFT_TEAMS_SETUP_GUIDE_TITLE}
@@ -899,6 +1037,23 @@ If you prefer to manually sideload the app:
           </FoldedSection>
         </div>
       )}
+
+      {isUninstallConfirmOpen && isProjectAccountConnected ? (
+        <UninstallWorkspaceConfirm
+          workspaceName="Microsoft Teams"
+          isUninstalling={isUninstalling}
+          error={uninstallError}
+          onClose={() => {
+            setIsUninstallConfirmOpen(false);
+            setUninstallError("");
+          }}
+          onConfirm={() => {
+            uninstallFromTeams().catch((error: Exception) => {
+              setUninstallError(API.getFriendlyErrorMessage(error));
+            });
+          }}
+        />
+      ) : null}
 
       {isTeamsModalOpen && (
         <TeamsAvailableModal

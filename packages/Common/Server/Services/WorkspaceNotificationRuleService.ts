@@ -72,6 +72,7 @@ import ChannelMembersNotAddedNotice, {
   ChannelMembersNotAdded,
 } from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import WorkspaceMessageTime from "../Utils/Workspace/WorkspaceMessageTime";
+import WorkspaceNotificationText from "../Utils/Workspace/WorkspaceNotificationText";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -1312,10 +1313,22 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           continue;
         }
 
+        /*
+         * What a phone shows for the post: the caller's own line, or the
+         * start of what the post says (WorkspaceNotificationText) - a
+         * record's created message, a state change and a note used to
+         * buzz with nothing to read.
+         */
+        const notificationText: string | undefined =
+          data.notificationText ||
+          WorkspaceNotificationText.fromBlocks(
+            messageBlocksByWorkspaceType.messageBlocks,
+          );
+
         workspaceNotificationPaylaods.push({
           ...destination,
           messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-          ...(data.notificationText ? { text: data.notificationText } : {}),
+          ...(notificationText ? { text: notificationText } : {}),
           /*
            * A channel named by its name is found only when the message is
            * sent: the sender leaves it out then (exceptChannelIds).

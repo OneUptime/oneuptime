@@ -433,6 +433,35 @@ describe("a Connect button in Microsoft Teams", () => {
   });
 
   /*
+   * A command typed to the bot - "oncall", "show active incidents" - is not
+   * a press: the conversation says to type it again, and so does the page,
+   * which used to say "press the button again".
+   */
+  test("a command: connected, told in the conversation to type it again, and the page says to run it", async () => {
+    const token: string = await press({
+      purpose: "see the open incidents",
+      pendingAction: undefined,
+      again: {
+        kind: WorkspaceConnectRequestAgainKind.Command,
+        label: "show active incidents",
+      },
+    });
+
+    const response: ProbeResponse = await comeBack(await signIn(token));
+
+    expect(
+      (
+        (sendCard.mock.calls[0]![0] as { card: JSONObject }).card[
+          "body"
+        ] as Array<JSONObject>
+      )[0]!["text"],
+    ).toBe(
+      "<at>Nitin</at> ✅ **Your Microsoft Teams account is connected to OneUptime.** Now type **show active incidents** again.",
+    );
+    expect(response.location).toBe(`${settingsPage()}?pressed=run`);
+  });
+
+  /*
    * A question to OneUptime AI - typed in a chat with the bot, or after
    * @OneUptime - is not a press: the conversation says to ask it again, and
    * so does the page, which used to say "press the button again" (#4768).

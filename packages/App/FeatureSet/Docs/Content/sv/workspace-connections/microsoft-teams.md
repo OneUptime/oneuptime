@@ -160,6 +160,18 @@ Skriv till boten i en personlig chatt, eller nämn OneUptime med @ i en kanal el
 
 Förutom `show`-listorna är detta orden som följer efter `/oneuptime` i Slack; `create incident` och `create maintenance` fungerar fortfarande också. Att fråga OneUptime AI kräver att ditt eget Microsoft Teams-konto är anslutet och att AI är påslaget för projektet. Om ditt konto inte är anslutet ber boten dig en gång i varje tråd eller chatt att ansluta det, med knappen **Connect Microsoft Teams account**. Se [Fråga AI](/docs/ai/ask-ai).
 
+## Din startsida i Microsoft Teams
+
+Skriv `home` till OneUptime-boten, så svarar den med din startsida: ett kort med det som händer i projektet, så som du får se det.
+
+- **Din jour.** Jourschemana du har jour i just nu, och till när, eller annars ditt nästa pass.
+- **Det som är öppet.** De senaste öppna incidenterna och larmen du får läsa, var och en med en länk till sin sida i OneUptime.
+- **Knapparna.** **Declare incident** och **Page someone** svarar som `incident` och `page`, **Who's on call** som `oncall`, och **Refresh** läser om kortet, på samma plats.
+
+När du lägger till OneUptime-appen för dig själv skickar boten din startsida direkt. Startsidan och `show`-listorna läser som du, så de behöver ditt eget anslutna Microsoft Teams-konto: tills det är anslutet svarar boten med knappen **Connect Microsoft Teams account**. **Öppna OneUptime i Microsoft Teams** under **Användarinställningar** > **Arbetsyta** > **Microsoft Teams** öppnar appen i Teams.
+
+När appen läggs till i ett team säger boten hej där: hur man ställer en fråga till den, och var man lägger till en aviseringsregel som publicerar i teamets kanaler.
+
 ## Skapa incidenter och underhåll från Microsoft Teams
 
 Att skriva `incident` eller `maintenance` till OneUptime-boten öppnar ett formulär för den person som skrev det, i en personlig chatt, en kanal eller en gruppchatt. Det fylls i som den personen: som det OneUptime-konto som personens Microsoft Teams-konto är anslutet till (se [Anslut Microsoft Teams](#anslut-microsoft-teams)), med det kontots behörigheter i projektet. Den som inte har sitt konto anslutet, eller vars OneUptime-konto inte längre är medlem i projektet, får veta vad som ska göras i ett svar som nämner personen, i stället för formuläret.
