@@ -869,7 +869,6 @@ describe("Discord and Telegram: a message from a template, or from scratch", () 
       "A token that is not shaped like `123456789:ABCdef…` stops the run before anything is sent, and the token is never written to the log.",
     );
   });
-
 });
 
 /*
