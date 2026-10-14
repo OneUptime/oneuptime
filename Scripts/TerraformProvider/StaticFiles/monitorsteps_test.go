@@ -648,9 +648,9 @@ func TestMonitorStepsFromAPIDropsServerExtras(t *testing.T) {
 	}
 }
 
-// A monitor created without monitor_steps gets server-default steps whose
-// telemetry sub-configs (logMonitor & co.) are populated. Importing such a
-// monitor maps them into the matching escape hatches.
+// A telemetry monitor made in the dashboard has steps whose telemetry
+// sub-configs (logMonitor & co.) are populated. Importing such a monitor maps
+// them into the matching escape hatches.
 func TestMonitorStepsFromAPIMapsInjectedSubConfigs(t *testing.T) {
 	ctx := context.Background()
 

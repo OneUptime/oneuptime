@@ -48,19 +48,21 @@ Open the monitor, status page or other resource in the dashboard. In its side me
 The page writes the resource's `resource` block from its current settings, and an `import` block with its ID. Put both in a `.tf` file:
 
 ```hcl title="status-pages.tf"
-resource "oneuptime_status_page" "public" {
-  name                  = "Public Status"
-  page_title            = "Acme Status"
-  is_public_status_page = true
+resource "oneuptime_status_page" "public_status" {
+  name       = "Public Status"
+  page_title = "Acme Status"
+
+  # Secrets are not shown here: master_password, embedded_overall_status_token.
+  # Terraform leaves them as they are in OneUptime.
 }
 
 import {
-  to = oneuptime_status_page.public
+  to = oneuptime_status_page.public_status
   id = "68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b02"
 }
 ```
 
-In the `resource` block, a comment after each ID names the record it points at. Secrets are never shown: the ones the resource needs are read from variables marked `sensitive`, and the rest are left out.
+It writes the settings that differ from their defaults, and a comment after each ID names the record it points at. Secrets are never shown: the ones the resource needs are read from variables marked `sensitive`, and the comment names the ones it leaves out.
 
 ### Plan
 
@@ -150,7 +152,7 @@ Records every project starts with, such as its monitor statuses and incident sev
 `terraform import` imports one resource at a time, and works on every Terraform and OpenTofu version. Write the `resource` block first, then run the command with the block's address and the record's ID:
 
 ```bash
-terraform import oneuptime_status_page.public 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b02
+terraform import oneuptime_status_page.public_status 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b02
 terraform import oneuptime_label.critical 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b03
 terraform import oneuptime_team.sre 68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b04
 ```

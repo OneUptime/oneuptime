@@ -2639,6 +2639,9 @@ describe("the monitor steps page", () => {
     expect(monitorService).toContain("if (createBy.data.monitorSteps) {");
     expect(attribute).toContain("Optional:            true,");
     expect(attribute).toContain("listplanmodifier.UseStateForUnknown()");
+    // Nor does the provider's own comment say the server adds steps.
+    expect(attribute).toContain("The server adds no steps of its own");
+    expect(attribute).not.toContain("generates default steps");
     expect(section(MONITOR_STEPS, "## A monitor without steps")).toContain(
       "probes skip a monitor without steps, and it stays in the status it started in",
     );

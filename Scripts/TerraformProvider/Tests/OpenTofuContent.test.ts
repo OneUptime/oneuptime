@@ -313,6 +313,40 @@ describe("published module source address", () => {
   });
 });
 
+describe("what the READMEs say about the engines and the module", () => {
+  const examplesReadme: string = read(path.join(EXAMPLES_DIR, "README.md"));
+  const moduleReadme: string = read(path.join(MODULE_DIR, "README.md"));
+  // A module source pinned to a release: "?ref=v14.0.55".
+  const PINNED_REF: RegExp = /\?ref=v(\d+\.\d+\.\d+)/g;
+
+  /*
+   * OpenTofu reads TF_VAR_* only: a TOFU_VAR_ variable sets nothing (checked
+   * with tofu 1.6.0, 1.8.0 and 1.12.7 while writing the OpenTofu docs).
+   */
+  test("no README promises TOFU_VAR_* variables", () => {
+    expect(examplesReadme).not.toContain("TOFU_VAR");
+    expect(examplesReadme).toContain("OpenTofu reads `TF_VAR_*` environment variables");
+  });
+
+  /*
+   * The module is published under modules/ from provider 14.0.0 on; the
+   * README's example pinned v11.7.4, a tag the provider repository does not
+   * have. The example names no version, and says to pick a published one.
+   */
+  test("the module README pins no release that may not exist", () => {
+    expect(Array.from(moduleReadme.matchAll(PINNED_REF))).toEqual([]);
+    expect(moduleReadme).toContain("?ref=vX.Y.Z");
+    expect(moduleReadme).toContain("replace `vX.Y.Z` with it");
+  });
+
+  // Who gets paged is an escalation rule's team, user or schedule.
+  test("the module README says how to add who gets paged", () => {
+    expect(moduleReadme).toContain("`oneuptime_team_on_call_duty_escalation_rule`");
+    expect(moduleReadme).not.toContain("`oneuptime_team_member`");
+    expect(moduleReadme).toContain("`escalation_rule_id`");
+  });
+});
+
 describe("the provider version the examples pin", () => {
   /*
    * The provider's major tracks the platform's. An example that pins an older
