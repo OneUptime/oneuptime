@@ -1774,8 +1774,9 @@ export default class AnalyticsDatabaseService<
    * (unbounded: 11.0M). The real-ClickHouse suite
    * (App Tests/Telemetry/PagedFindBoundClickhouse) holds these.
    *
-   * Every piece is a performance gate except one: the leading key must not
-   * be Nullable, because a NULL is never IN a set and would drop the row.
+   * Two of the gates below keep it exact: no GROUP BY, whose input it would
+   * cut, and no Nullable leading key, because a NULL is never IN a set and
+   * the row would be dropped. The rest only decide where it pays.
    */
   private toSortKeyPageBound(
     findBy: FindBy<TBaseModel>,
