@@ -113,6 +113,9 @@ const RARE: string = "/orders/export";
 const RARE_ROW: number = 7;
 
 const POLL_INTERVAL_MS: number = 250;
+
+// EXPLAIN's count of the granules an index left of those before it.
+const GRANULES_LINE: RegExp = /Granules: (\d+)\/(\d+)/;
 const WAIT_LIMIT_MS: number = 120000;
 
 const projectId: string = ObjectID.generate().toString();
@@ -350,7 +353,7 @@ integration("MaterializeAttributeValuesIndex against ClickHouse", () => {
     }
 
     for (const line of lines.slice(at + 1, at + 6)) {
-      const match: RegExpExecArray | null = /Granules: (\d+)\/(\d+)/.exec(line);
+      const match: RegExpExecArray | null = GRANULES_LINE.exec(line);
 
       if (match) {
         return { selected: Number(match[1]), of: Number(match[2]) };

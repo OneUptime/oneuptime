@@ -30,6 +30,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import StartsWith from "Common/Types/BaseDatabase/StartsWith";
 import Wildcard from "Common/Types/BaseDatabase/Wildcard";
 import OneUptimeDate from "Common/Types/Date";
+import escapeRegExp from "Common/Utils/RegExpEscape";
 import { JSONObject } from "Common/Types/JSON";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import ObjectID from "Common/Types/ObjectID";
@@ -262,7 +263,6 @@ function logRow(fixture: Fixture): JSONObject {
 
 type Oracle = (attributes: Record<string, string>) => boolean;
 
-const GLOB_SPECIAL: RegExp = /[.+^${}()|[\]\\]/g;
 const DECIMAL: RegExp = /^-?\d+(\.\d+)?$/;
 
 // The values under every key that matches `key` case-insensitively.
@@ -284,12 +284,12 @@ function subscript(attributes: Record<string, string>, key: string): string {
   return attributes[key] ?? "";
 }
 
+// A glob as ILIKE reads it: `*` any run, `?` one character, case ignored.
 function globMatches(glob: string, value: string): boolean {
-  const pattern: string = glob
-    .replace(GLOB_SPECIAL, "\\$&")
-    .split("*")
+  const pattern: string = escapeRegExp(glob)
+    .split("\\*")
     .join(".*")
-    .split("?")
+    .split("\\?")
     .join(".");
 
   return new RegExp(`^${pattern}$`, "is").test(value);
