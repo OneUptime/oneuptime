@@ -243,7 +243,7 @@ const COUNT_MAX_EXECUTION_TIME_IN_SECONDS: number = 45;
  * (AnalyticsDatabaseService.toSortKeyPageBound): the page's own sort-key
  * values with their in-page offset, and the sorted first `skip + limit`
  * values they are cut from. Two underscores, so no model column can ever
- * be shadowed by them (AnalyticsSortKeyPageBoundAliases pins that).
+ * be shadowed by them (AnalyticsSortKeyPageBoundScope pins that).
  */
 export const SORT_KEY_PAGE_BOUND_ALIAS: string = "__sortKeyPage";
 export const SORT_KEY_PAGE_VALUES_ALIAS: string = "__sortKeyTopValues";

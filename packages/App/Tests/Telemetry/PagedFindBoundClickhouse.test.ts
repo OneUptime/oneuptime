@@ -1,4 +1,5 @@
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
 import { ClickHouseClientConfigOptions } from "Common/Server/Infrastructure/ClickhouseConfig";
 import ClickhouseDatabase, {
@@ -45,7 +46,8 @@ import {
  *   1. Every page is exactly the unbounded page, ties included: the same
  *      rows in the same order as an independent reading of the fixture -
  *      newest and oldest first, two sort keys, a String leading key whose
- *      ties hold thousands of rows, one tie group spanning a dozen pages,
+ *      ties hold thousands of rows, the audit log's second-precision
+ *      DateTime key, one tie group spanning a dozen pages,
  *      expired rows and another project's rows that must never appear,
  *      a page 131,100 rows deep (past where ClickHouse stops folding big
  *      constants) and the 10,001-row page an API caller can ask for.
@@ -86,6 +88,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
 });
 
 import LogService from "Common/Server/Services/LogService";
+import AuditLogService from "Common/Server/Services/AuditLogService";
 
 const endpoint: string | undefined = process.env["TEST_CLICKHOUSE_URL"];
 
@@ -142,6 +145,9 @@ const RARE_EVERY: number = 2857;
 const RARE_AT: number = 1000;
 const OTHER_ROWS: number = 3000;
 const DEEP_ROWS: number = 140000;
+// Audit log entries, 25 to a second: its createdAt is a DateTime, whole seconds.
+const AUDIT_ROWS: number = 3000;
+const AUDIT_PER_SECOND: number = 25;
 
 function secondOf(index: number): number {
   const group: number =
@@ -160,6 +166,7 @@ function idOf(prefix: string, index: number): string {
 const PROJECT_ID_PREFIX: string = "00000000-0000-4000-8000";
 const OTHER_ID_PREFIX: string = "00000000-0000-4000-8001";
 const DEEP_ID_PREFIX: string = "00000000-0000-4000-8002";
+const AUDIT_ID_PREFIX: string = "00000000-0000-4000-8003";
 
 interface FixtureRow {
   index: number;
@@ -378,6 +385,7 @@ integration("a paged find against ClickHouse (#4710)", () => {
   let clickhouse: ClickhouseDatabase;
   let client: ClickhouseClient;
   let original: Record<string, unknown> | undefined;
+  let originalAudit: Record<string, unknown> | undefined;
   let measureSettings: ClickHouseSettings = {};
 
   const projectWindow: (
@@ -639,24 +647,38 @@ integration("a paged find against ClickHouse (#4710)", () => {
       Number(cache!.present) > 0 ? { use_query_condition_cache: 0 } : {}
     ) as ClickHouseSettings;
 
-    const model: AnalyticsBaseModel = new Log();
-    const generator: StatementGenerator<AnalyticsBaseModel> =
-      new StatementGenerator<AnalyticsBaseModel>({
-        modelType: Log,
-        database: clickhouse,
+    /*
+     * A model's own table (its columns, skip indexes, partitioning, keys)
+     * as `<table>Local`, and the Distributed table the service reads in
+     * front of it.
+     */
+    const createTables: (modelType: {
+      new (): AnalyticsBaseModel;
+    }) => Promise<void> = async (modelType: {
+      new (): AnalyticsBaseModel;
+    }): Promise<void> => {
+      const model: AnalyticsBaseModel = new modelType();
+      const generator: StatementGenerator<AnalyticsBaseModel> =
+        new StatementGenerator<AnalyticsBaseModel>({
+          modelType: modelType,
+          database: clickhouse,
+        });
+      const columns: Statement = generator.toColumnsCreateStatement(
+        model.tableColumns,
+      );
+
+      await client.command({
+        query: `CREATE TABLE ${database}.${model.tableName}Local (${columns.query}) ENGINE = MergeTree PARTITION BY (${model.partitionKey}) PRIMARY KEY (${model.primaryKeys.join(", ")}) ORDER BY (${model.sortKeys.join(", ")}) SETTINGS index_granularity = ${GRANULE_ROWS}, index_granularity_bytes = 0`,
+        query_params: columns.query_params,
       });
-    const columns: Statement = generator.toColumnsCreateStatement(
-      model.tableColumns,
-    );
 
-    await client.command({
-      query: `CREATE TABLE ${database}.LogItemV3Local (${columns.query}) ENGINE = MergeTree PARTITION BY (${model.partitionKey}) ORDER BY (${model.sortKeys.join(", ")}) SETTINGS index_granularity = ${GRANULE_ROWS}, index_granularity_bytes = 0`,
-      query_params: columns.query_params,
-    });
+      await client.command({
+        query: `CREATE TABLE ${database}.${model.tableName} AS ${database}.${model.tableName}Local ENGINE = Distributed('default', ${database}, ${model.tableName}Local, ${model.shardingKey || "rand()"})`,
+      });
+    };
 
-    await client.command({
-      query: `CREATE TABLE ${database}.${model.tableName} AS ${database}.LogItemV3Local ENGINE = Distributed('default', ${database}, LogItemV3Local, ${model.shardingKey})`,
-    });
+    await createTables(Log);
+    await createTables(AuditLog);
 
     original = {
       database: LogService.database,
@@ -664,11 +686,17 @@ integration("a paged find against ClickHouse (#4710)", () => {
       ingestDatabase: LogService.ingestDatabase,
       ingestDatabaseClient: LogService.ingestDatabaseClient,
     };
+    originalAudit = {
+      database: AuditLogService.database,
+      databaseClient: AuditLogService.databaseClient,
+    };
 
     LogService.database = clickhouse;
     LogService.databaseClient = client;
     LogService.ingestDatabase = clickhouse;
     LogService.ingestDatabaseClient = client;
+    AuditLogService.database = clickhouse;
+    AuditLogService.databaseClient = client;
 
     const start: string = OneUptimeDate.toClickhouseDateTime64(WINDOW_START);
     const live: string = OneUptimeDate.toClickhouseDateTime(
@@ -755,6 +783,13 @@ integration("a paged find against ClickHouse (#4710)", () => {
       retention: `toDateTime('${live}')`,
     });
 
+    // Audit log entries: 25 to a second, so every page boundary falls inside a tie.
+    await client.command({
+      query: `INSERT INTO ${database}.${new AuditLog().tableName}Local (projectId, resourceType, resourceId, action, changes, retentionDate, _id, createdAt)
+        SELECT '${PROJECT_ID.toString()}', ['Monitor', 'Incident'][number % 2 + 1], toString(number % 7), 'Update', '{}', toDateTime('${live}'), ${sqlId(AUDIT_ID_PREFIX)}, addSeconds(toDateTime('${OneUptimeDate.toClickhouseDateTime(WINDOW_START)}'), intDiv(number, ${AUDIT_PER_SECOND}))
+        FROM numbers(${AUDIT_ROWS})`,
+    });
+
     const parts: { json: () => Promise<unknown> } = await client.query({
       query:
         "SELECT count() AS parts, sum(rows) AS rows FROM system.parts WHERE database = {database:String} AND table = 'LogItemV3Local' AND active",
@@ -774,6 +809,10 @@ integration("a paged find against ClickHouse (#4710)", () => {
   afterAll(async (): Promise<void> => {
     if (original) {
       Object.assign(LogService, original);
+    }
+
+    if (originalAudit) {
+      Object.assign(AuditLogService, originalAudit);
     }
 
     if (client) {
@@ -1012,6 +1051,74 @@ integration("a paged find against ClickHouse (#4710)", () => {
         }),
       ).toBe(false);
     });
+
+    test.each([
+      ["newest first", SortOrder.Descending],
+      ["oldest first", SortOrder.Ascending],
+    ])(
+      "the audit log (%s): a second-precision DateTime key, 25 entries a second, every page of 7 and of 50",
+      async (_label: string, order: SortOrder) => {
+        const sign: number = order === SortOrder.Ascending ? 1 : -1;
+        const expected: Array<string> = Array.from(
+          { length: AUDIT_ROWS },
+          (_unused: unknown, index: number): { second: number; id: string } => {
+            return {
+              second: Math.floor(index / AUDIT_PER_SECOND),
+              id: idOf(AUDIT_ID_PREFIX, index),
+            };
+          },
+        )
+          .sort(
+            (
+              left: { second: number; id: string },
+              right: { second: number; id: string },
+            ): number => {
+              return (
+                sign * (left.second - right.second) ||
+                sign * compareText(left.id, right.id)
+              );
+            },
+          )
+          .map((row: { second: number; id: string }): string => {
+            return row.id;
+          });
+
+        for (const limit of [7, 50]) {
+          const pages: number = limit === 7 ? 45 : AUDIT_ROWS / limit + 1;
+
+          for (let page: number = 0; page < pages; page++) {
+            const skip: number = page * limit;
+            const entries: Array<AuditLog> = await AuditLogService.findBy({
+              query: { projectId: PROJECT_ID },
+              select: { createdAt: true },
+              sort: { createdAt: order },
+              skip: skip,
+              limit: limit,
+              props: { isRoot: true },
+            });
+
+            expect([
+              limit,
+              skip,
+              entries.map((entry: AuditLog): string => {
+                return entry._id!.toString();
+              }),
+            ]).toEqual([limit, skip, expected.slice(skip, skip + limit)]);
+          }
+        }
+
+        expect(
+          AuditLogService.toFindStatement({
+            query: { projectId: PROJECT_ID },
+            select: { createdAt: true },
+            sort: { createdAt: order },
+            skip: 0,
+            limit: 50,
+            props: { isRoot: true },
+          }).statement.query.startsWith("WITH ("),
+        ).toBe(true);
+      },
+    );
 
     /*
      * Past 131,072 values ClickHouse no longer folds a function of them
