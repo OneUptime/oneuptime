@@ -1,45 +1,31 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import {
-  SecurityEventsTabKey,
-  getActiveSecurityEventsTab,
+  SECURITY_EVENTS_DETAIL_PAGES,
+  SECURITY_EVENTS_LANDING_PAGE,
+  SECURITY_EVENTS_MENU,
+  SecurityEventsMenuItem,
+  SecurityEventsMenuSection,
+  getSecurityEventsMenuItems,
   getSecurityEventsPathSegment,
 } from "../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
 
 /*
- * Which header tab a Security Events route lights up.
+ * The Security Events menu, as data: its sections in the order the work
+ * goes, every page in exactly one place, and the pages that open on their
+ * own (a case, a playbook) in none. The rendered menu is pinned in
+ * Common/Tests/App/Dashboard/SecurityEventsSideMenu.test.tsx.
  *
- * The product used to hang its seven destinations off a left side menu; they
- * are header tabs now, like Logs / Traces / Metrics / Exceptions. The mapping
- * is a pure function so every route can be pinned here without rendering a
- * page — and so the two failure modes a substring test would have are pinned
- * too: a segment BEFORE the product root that happens to contain a tab's name
- * (a project id, a parent path), and the `/*` react-router leaves on the
- * product's wildcard route.
- *
- * Deferred imports with a browser stub, the shape
- * App/Tests/Dashboard/SecurityEventsSetupGuide.test.ts uses: RouteMap pulls
- * in Common/UI/Config, which reads `window` at module load.
+ * Deferred imports with a browser stub: RouteMap pulls in Common/UI/Config,
+ * which reads `window` at module load.
  */
 
 type RouteMapModule =
   typeof import("../../FeatureSet/Dashboard/src/Utils/RouteMap");
-type PageMapModule =
-  typeof import("../../FeatureSet/Dashboard/src/Utils/PageMap");
-type Route = InstanceType<(typeof import("Common/Types/API/Route"))["default"]>;
 
-let RouteMap: RouteMapModule["default"];
-let RouteUtil: RouteMapModule["RouteUtil"];
 let SecurityEventsRoutePath: RouteMapModule["SecurityEventsRoutePath"];
-let PageMap: PageMapModule["default"];
+let RouteUtil: RouteMapModule["RouteUtil"];
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
-
-function routeFor(pageMapKey: string): string {
-  return RouteUtil.getRouteString(pageMapKey as never).replace(
-    ":projectId",
-    PROJECT_ID,
-  );
-}
 
 beforeAll(async () => {
   (globalThis as Record<string, unknown>)["window"] = {
@@ -74,135 +60,148 @@ beforeAll(async () => {
     "../../FeatureSet/Dashboard/src/Utils/RouteMap"
   );
 
-  RouteMap = routeMapModule.default;
-  RouteUtil = routeMapModule.RouteUtil;
   SecurityEventsRoutePath = routeMapModule.SecurityEventsRoutePath;
-  PageMap = (await import("../../FeatureSet/Dashboard/src/Utils/PageMap"))
-    .default;
+  RouteUtil = routeMapModule.RouteUtil;
 });
 
-/*
- * Keyed by the PageMap string rather than the enum member, so the table can
- * be written before the deferred import resolves.
- */
-const EXPECTED_TAB_BY_PAGE: Array<{ page: string; tab: SecurityEventsTabKey }> =
-  [
-    { page: "SECURITY_EVENTS", tab: "events" },
-    { page: "SECURITY_EVENTS_CORRELATE", tab: "correlate" },
-    { page: "SECURITY_EVENTS_DETECTION_RULES", tab: "detection-rules" },
-    { page: "SECURITY_EVENTS_THREAT_INTEL", tab: "threat-intel" },
-    { page: "SECURITY_EVENTS_MONITORS", tab: "monitors" },
-    { page: "SECURITY_EVENTS_CONNECTIONS", tab: "connections" },
-    { page: "SECURITY_EVENTS_DOCUMENTATION", tab: "setup" },
-  ];
-
-describe("getActiveSecurityEventsTab", () => {
-  test.each(EXPECTED_TAB_BY_PAGE)(
-    "$page resolves to the $tab tab",
-    ({ page, tab }: { page: string; tab: SecurityEventsTabKey }): void => {
-      expect(getActiveSecurityEventsTab(routeFor(page))).toBe(tab);
-    },
+function routeFor(pageMapKey: string): string {
+  return RouteUtil.getRouteString(pageMapKey as never).replace(
+    ":projectId",
+    PROJECT_ID,
   );
+}
 
-  test("every routed destination has a tab of its own", () => {
-    const tabs: Array<SecurityEventsTabKey> = EXPECTED_TAB_BY_PAGE.map(
-      (entry: { page: string; tab: SecurityEventsTabKey }) => {
-        return entry.tab;
+describe("the Security Events menu", () => {
+  test("reads as the work does: overview, investigate, detect, respond, sources", () => {
+    expect(
+      SECURITY_EVENTS_MENU.map((section: SecurityEventsMenuSection): string => {
+        return section.title;
+      }),
+    ).toEqual(["Overview", "Investigate", "Detect", "Respond", "Sources"]);
+  });
+
+  test("lists each section's pages in order, by the titles the docs use", () => {
+    expect(
+      SECURITY_EVENTS_MENU.map(
+        (section: SecurityEventsMenuSection): Array<string> => {
+          return section.items.map((item: SecurityEventsMenuItem): string => {
+            return item.title;
+          });
+        },
+      ),
+    ).toEqual([
+      ["Overview", "Cases"],
+      ["Events", "Correlate", "Entities"],
+      [
+        "Detection Rules",
+        "Rule Library",
+        "ATT&CK Coverage",
+        "Threat Intel",
+        "Monitors",
+      ],
+      ["Playbooks", "Playbook Runs"],
+      ["Connections", "Setup Guide"],
+    ]);
+  });
+
+  test("puts every routed page in the menu exactly once, except the pages that open on their own", () => {
+    const menuPages: Array<string> = getSecurityEventsMenuItems().map(
+      (item: SecurityEventsMenuItem): string => {
+        return item.page;
       },
     );
 
-    expect(new Set(tabs).size).toBe(tabs.length);
+    expect(new Set(menuPages).size).toBe(menuPages.length);
+    expect([...menuPages, ...SECURITY_EVENTS_DETAIL_PAGES].sort()).toEqual(
+      Object.keys(SecurityEventsRoutePath).sort(),
+    );
+  });
 
-    /*
-     * SecurityEventsRoutePath is what actually ships. A destination added
-     * there without a tab here would silently light up "Events" — the tab
-     * bar would show the user on a page they are not on.
-     */
-    expect(Object.keys(SecurityEventsRoutePath).sort()).toEqual(
-      EXPECTED_TAB_BY_PAGE.map(
-        (entry: { page: string; tab: SecurityEventsTabKey }): string => {
-          return entry.page;
+  test("counts what is waiting beside Cases and Playbook Runs, and nowhere else", () => {
+    expect(
+      getSecurityEventsMenuItems()
+        .filter((item: SecurityEventsMenuItem): boolean => {
+          return Boolean(item.badge);
+        })
+        .map((item: SecurityEventsMenuItem): [string, string] => {
+          return [item.title, item.badge || ""];
+        }),
+    ).toEqual([
+      ["Cases", "openCases"],
+      ["Playbook Runs", "runsWaitingForApproval"],
+    ]);
+  });
+
+  test("gives every entry an icon of its own within its section", () => {
+    for (const section of SECURITY_EVENTS_MENU) {
+      const icons: Array<string> = section.items.map(
+        (item: SecurityEventsMenuItem): string => {
+          return String(item.icon);
         },
-      ).sort(),
+      );
+
+      expect([section.title, new Set(icons).size]).toEqual([
+        section.title,
+        icons.length,
+      ]);
+    }
+  });
+
+  test("opens on the overview, which is the first entry", () => {
+    expect(SECURITY_EVENTS_LANDING_PAGE).toBe(
+      SECURITY_EVENTS_MENU[0]!.items[0]!.page,
     );
   });
 
-  test("the product root selects Events, with or without a trailing slash", () => {
-    expect(getActiveSecurityEventsTab(routeFor(PageMap.SECURITY_EVENTS))).toBe(
-      "events",
+  test("routes a case and a playbook under their lists, by id", () => {
+    expect(SecurityEventsRoutePath["SECURITY_CASE_VIEW"]).toBe("cases/:id");
+    expect(SecurityEventsRoutePath["SECURITY_PLAYBOOK_VIEW"]).toBe(
+      "playbooks/:id",
     );
-    expect(
-      getActiveSecurityEventsTab(`${routeFor(PageMap.SECURITY_EVENTS)}/`),
-    ).toBe("events");
-  });
-
-  test("the wildcard route the product is mounted under selects Events", () => {
-    const rootRoute: Route = RouteMap[PageMap.SECURITY_EVENTS_ROOT] as Route;
-
-    expect(rootRoute.toString()).toContain("/*");
-    expect(
-      getActiveSecurityEventsTab(
-        rootRoute.toString().replace(":projectId", PROJECT_ID),
-      ),
-    ).toBe("events");
-  });
-
-  test("a query string never decides the tab", () => {
-    expect(
-      getActiveSecurityEventsTab(
-        `${routeFor(PageMap.SECURITY_EVENTS)}?search=monitors&filters=correlate`,
-      ),
-    ).toBe("events");
-  });
-
-  test("a segment before the product root cannot select a tab", () => {
-    expect(
-      getActiveSecurityEventsTab("/dashboard/monitors/security-events"),
-    ).toBe("events");
-    expect(
-      getActiveSecurityEventsTab(
-        "/dashboard/correlate/security-events/monitors",
-      ),
-    ).toBe("monitors");
-  });
-
-  test("an unknown sub-route falls back to Events rather than no tab at all", () => {
-    expect(
-      getActiveSecurityEventsTab(
-        `${routeFor(PageMap.SECURITY_EVENTS)}/not-a-page`,
-      ),
-    ).toBe("events");
-  });
-
-  test("a path that is not a Security Events route falls back to Events", () => {
-    expect(getActiveSecurityEventsTab(`/dashboard/${PROJECT_ID}/logs`)).toBe(
-      "events",
-    );
-    expect(getActiveSecurityEventsTab("")).toBe("events");
+    expect(SecurityEventsRoutePath["SECURITY_CASES"]).toBe("cases");
+    expect(SecurityEventsRoutePath["SECURITY_PLAYBOOKS"]).toBe("playbooks");
   });
 });
 
 describe("getSecurityEventsPathSegment", () => {
   test("names the segment after the product root", () => {
     expect(
-      getSecurityEventsPathSegment(
-        routeFor(PageMap.SECURITY_EVENTS_DETECTION_RULES),
-      ),
+      getSecurityEventsPathSegment(routeFor("SECURITY_EVENTS_DETECTION_RULES")),
     ).toBe("detection-rules");
+    expect(getSecurityEventsPathSegment(routeFor("SECURITY_CASES"))).toBe(
+      "cases",
+    );
   });
 
   test("is the empty string at the product root and null off the product", () => {
+    expect(getSecurityEventsPathSegment(routeFor("SECURITY_EVENTS"))).toBe("");
     expect(
-      getSecurityEventsPathSegment(routeFor(PageMap.SECURITY_EVENTS)),
+      getSecurityEventsPathSegment(`${routeFor("SECURITY_EVENTS")}/`),
     ).toBe("");
     expect(getSecurityEventsPathSegment(`/dashboard/${PROJECT_ID}/logs`)).toBe(
       null,
     );
+    expect(getSecurityEventsPathSegment("")).toBe(null);
   });
 
-  test("the segments it reads are the ones RouteMap actually builds", () => {
-    for (const [page, segment] of Object.entries(SecurityEventsRoutePath)) {
-      expect(getSecurityEventsPathSegment(routeFor(page))).toBe(segment);
-    }
+  test("a query string or a segment before the product root decides nothing", () => {
+    expect(
+      getSecurityEventsPathSegment(
+        `${routeFor("SECURITY_EVENTS")}?search=cases&filters=playbooks`,
+      ),
+    ).toBe("");
+    expect(
+      getSecurityEventsPathSegment(
+        "/dashboard/cases/security-events/playbooks",
+      ),
+    ).toBe("playbooks");
+  });
+
+  test("the wildcard react-router leaves on the product route is not a segment", () => {
+    expect(
+      getSecurityEventsPathSegment(
+        `/dashboard/${PROJECT_ID}/security-events/*`,
+      ),
+    ).toBe("");
   });
 });

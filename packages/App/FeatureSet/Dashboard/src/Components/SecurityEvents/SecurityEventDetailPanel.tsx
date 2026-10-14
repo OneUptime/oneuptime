@@ -18,6 +18,7 @@ import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import SecurityEventSeverityPill from "./SecurityEventSeverityPill";
+import OpenCaseFromEventButton from "./OpenCaseFromEventButton";
 import { SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX } from "./SecurityEventsFacets";
 import {
   SecurityEventDetailField,
@@ -220,6 +221,9 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
 
   const overview: ReactElement = (
     <div className="space-y-4 p-4">
+      <div className="flex justify-end">
+        <OpenCaseFromEventButton securityEvent={event} />
+      </div>
       <dl className="divide-y divide-gray-100 rounded-md border border-gray-200">
         {time && (
           <FieldRow

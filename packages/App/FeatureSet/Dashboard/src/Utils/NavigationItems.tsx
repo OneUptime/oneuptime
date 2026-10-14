@@ -280,17 +280,23 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       title: t("navbar.items.securityEventsTitle", "Security Events"),
       keywords: [
         "siem",
+        "soar",
         "security information and event management",
+        "security operations",
         "threats",
         "detections",
+        "security cases",
+        "response automation",
+        "mitre att&ck",
         "vulnerabilities",
       ],
       description: t(
         "navbar.items.securityEventsDescription",
-        "SIEM signals correlated with your observability data.",
+        "Detect threats in your security events, work them as cases, and respond with playbooks.",
       ),
+      // The overview opens the product; every Security Events page keeps it lit.
       route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SECURITY_EVENTS] as Route,
+        RouteMap[PageMap.SECURITY_EVENTS_OVERVIEW] as Route,
       ),
       activeRoute: RouteMap[PageMap.SECURITY_EVENTS],
       icon: IconProp.ShieldExclamation,

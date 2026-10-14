@@ -1546,11 +1546,35 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
   {
     id: "security-events",
     title: "Security Events",
-    productPage: PageMap.SECURITY_EVENTS,
+    productPage: PageMap.SECURITY_EVENTS_OVERVIEW,
     icon: IconProp.ShieldExclamation,
     iconColor: "rose",
     sections: [
       {
+        title: "Overview",
+        pages: [
+          {
+            page: PageMap.SECURITY_EVENTS_OVERVIEW,
+            title: "Overview",
+            icon: IconProp.ChartBar,
+            keywords: ["soc", "security operations", "mttr", "mean time"],
+          },
+          {
+            page: PageMap.SECURITY_CASES,
+            title: "Cases",
+            icon: IconProp.ShieldExclamation,
+            keywords: [
+              "security cases",
+              "security incidents",
+              "triage",
+              "investigations",
+              "alerts queue",
+            ],
+          },
+        ],
+      },
+      {
+        title: "Investigate",
         pages: [
           {
             page: PageMap.SECURITY_EVENTS,
@@ -1561,18 +1585,41 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           {
             page: PageMap.SECURITY_EVENTS_CORRELATE,
             title: "Correlate",
-            icon: IconProp.Link,
+            icon: IconProp.Graph,
           },
+          {
+            page: PageMap.SECURITY_EVENTS_ENTITIES,
+            title: "Entities",
+            icon: IconProp.Fingerprint,
+            keywords: ["risky users", "risky hosts", "ueba", "entity lookup"],
+          },
+        ],
+      },
+      {
+        title: "Detect",
+        pages: [
           {
             page: PageMap.SECURITY_EVENTS_DETECTION_RULES,
             title: "Detection Rules",
-            icon: IconProp.Filter,
+            icon: IconProp.ShieldCheck,
             keywords: ["sigma rules", "threat detection"],
+          },
+          {
+            page: PageMap.SECURITY_EVENTS_RULE_LIBRARY,
+            title: "Rule Library",
+            icon: IconProp.SquareStack3D,
+            keywords: ["detection library", "curated detections", "sigma"],
+          },
+          {
+            page: PageMap.SECURITY_EVENTS_ATTACK_COVERAGE,
+            title: "ATT&CK Coverage",
+            icon: IconProp.TableCells,
+            keywords: ["mitre", "attack matrix", "tactics", "techniques"],
           },
           {
             page: PageMap.SECURITY_EVENTS_THREAT_INTEL,
             title: "Threat Intel",
-            icon: IconProp.ShieldExclamation,
+            icon: IconProp.Bug,
             keywords: [
               "threat intelligence",
               "indicators of compromise",
@@ -1585,6 +1632,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.AltGlobe,
             keywords: ["security monitors"],
           },
+        ],
+      },
+      {
+        title: "Respond",
+        pages: [
+          {
+            page: PageMap.SECURITY_PLAYBOOKS,
+            title: "Playbooks",
+            icon: IconProp.Bolt,
+            keywords: ["soar", "automated response", "response automation"],
+          },
+          {
+            page: PageMap.SECURITY_PLAYBOOK_RUNS,
+            title: "Playbook Runs",
+            icon: IconProp.Play,
+            keywords: ["approvals", "pending approvals"],
+          },
+        ],
+      },
+      {
+        title: "Sources",
+        pages: [
           {
             page: PageMap.SECURITY_EVENTS_CONNECTIONS,
             title: "Connections",

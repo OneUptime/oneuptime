@@ -126,6 +126,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           isEnabled: true,
           pollIntervalInMinutes: THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,
           minimumConfidence: 0,
+          shouldCreateCase: true,
           shouldCreateAlert: true,
           shouldWriteDetectionFinding: true,
           shouldCreateIncident: false,
@@ -141,6 +142,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           { title: "Basic Info", id: "basic-info" },
           { title: "TAXII Server", id: "taxii-server" },
           { title: "Authentication", id: "authentication" },
+          { title: "Cases", id: "cases" },
           { title: "On Match", id: "matching" },
         ]}
         formFields={[
@@ -280,6 +282,17 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               minValue: THREAT_INTEL_MINIMUM_CONFIDENCE_MIN,
               maxValue: THREAT_INTEL_MINIMUM_CONFIDENCE_MAX,
             },
+          },
+          {
+            field: {
+              shouldCreateCase: true,
+            },
+            title: "Open a Case on Match",
+            stepId: "cases",
+            description:
+              "Group each event that names a known indicator into a security case to triage: a new case, or the open case already about that indicator. Playbooks run on the cases it opens.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
           },
           {
             field: {

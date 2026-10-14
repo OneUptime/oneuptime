@@ -324,7 +324,7 @@ describe("DashboardCommandPalette navigation keyword search", () => {
     ["pods", "Kubernetes", "kubernetes"],
     ["apm", "Services", "service"],
     ["error budgets", "SLOs", "slos"],
-    ["siem", "Security Events", "security-events"],
+    ["siem", "Security Events", "security-events/overview"],
   ])(
     "%s finds %s and navigates to the selected project's page",
     (query: string, title: string, path: string) => {
@@ -336,8 +336,9 @@ describe("DashboardCommandPalette navigation keyword search", () => {
         target: { value: query },
       });
 
+      // A nested path's slashes read as dashes in the option's id.
       const option: HTMLElement = screen.getByTestId(
-        `command-palette-option-nav-dashboard-projectid-${path}`,
+        `command-palette-option-nav-dashboard-projectid-${path.replace(/\//g, "-")}`,
       );
       expect(option).toHaveTextContent(title);
       fireEvent.click(option);
@@ -418,8 +419,9 @@ describe("DashboardCommandPalette navigation keyword search", () => {
       navigationTranslations[translationKey] = title;
       view.rerender(<DashboardCommandPalette />);
 
+      // A nested path's slashes read as dashes in the option's id.
       const option: HTMLElement = screen.getByTestId(
-        `command-palette-option-nav-dashboard-projectid-${path}`,
+        `command-palette-option-nav-dashboard-projectid-${path.replace(/\//g, "-")}`,
       );
       expect(option).toHaveTextContent(title);
       fireEvent.click(option);
