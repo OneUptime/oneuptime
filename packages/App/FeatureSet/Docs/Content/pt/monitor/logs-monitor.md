@@ -63,6 +63,7 @@ Clique em **Criar monitor**. O monitor abre na sua página **Visão geral**, e s
 | **Monitorar Registros por (tempo)** | Logs dos últimos 5 segundos até as últimas 24 horas. | **Último 1 minuto** |
 | **Severidade do Registro** | Logs com qualquer uma das severidades escolhidas. | Vazio: todas as severidades |
 | **Group by Attributes** | Não é um filtro: conta separadamente cada combinação de valores desses atributos. | Vazio: uma só contagem |
+| **Resolvido por atributos** | Não é um filtro: o log que resolve um grupo. Aparece assim que **Group by Attributes** tem um atributo; veja [Resolvido por um log](#resolvido-por-um-log). | Vazio: um grupo se resolve quando os logs dele param |
 | **Filtrar por serviço de telemetria** (em **Mais campos**) | Logs de qualquer um dos serviços escolhidos. | Vazio: todos os serviços |
 | **Filter by Infrastructure Entity** (em **Mais campos**) | Logs de qualquer um dos hosts, pods, contêineres e outras entidades escolhidos. | Vazio: todas as entidades |
 | **Filtrar por atributos** (em **Mais campos**) | Logs cujos atributos atendem a todas as condições. Cada condição tem seu próprio operador, como "igual a" ou "contém". | Vazio: nenhuma condição |
@@ -170,7 +171,21 @@ flowchart TB
 
 O alerta ou o incidente de cada grupo se resolve por conta própria. Assim que um grupo deixa de atender aos critérios (`HQ-Branch1` não registra mais encerramentos dentro da janela de tempo), seu alerta se resolve, enquanto o de `Branch2` continua aberto até que `Branch2` também pare. A recuperação de um grupo nunca fecha o alerta de outro.
 
-Um monitor de logs vê eventos, não estados: o alerta de um grupo se resolve assim que esse grupo não registrou nada que atenda aos critérios durante uma janela de tempo inteira, tenha o túnel voltado ou não.
+Um monitor de logs vê eventos, não estados: o alerta de um grupo se resolve assim que esse grupo não registrou nada que atenda aos critérios durante uma janela de tempo inteira, tenha o túnel voltado ou não, a menos que o monitor indique o log que diz que ele voltou, como explicado abaixo.
+
+### Resolvido por um log
+
+Um dispositivo que relata um túnel fora do ar geralmente relata quando ele volta. **Resolvido por atributos** indica esse log: com ele definido, o alerta ou o incidente de um grupo fica aberto até chegar um log com esses atributos para o mesmo grupo, em vez de se resolver quando os logs do grupo param.
+
+Considere um monitor que conta os logs com `event.name` = `vpn.tunnel_down`, agrupados por `event.device` e `vpn.tunnel.name`, com **Resolvido por atributos** definido como `event.name` = `vpn.tunnel_up`. A queda do túnel `HQ-Branch1` abre o alerta dele. O alerta fica aberto a noite toda, embora o firewall não registre mais nada sobre o túnel, e se resolve quando o firewall relata `HQ-Branch1` de volta. Se o túnel cair de novo, um novo alerta é aberto.
+
+- O campo aparece assim que **Group by Attributes** tem um atributo. Ele aceita até 10 atributos, e um log de resolução traz todos eles.
+- Um log de resolução pertence a um grupo quando tem os valores do grupo para os atributos de agrupamento, então os dois tipos de log precisam trazer esses atributos.
+- Os serviços de telemetria e a janela de tempo do monitor valem também para os logs de resolução. Os filtros de texto e de severidade dele, não: eles descrevem o problema.
+- Um grupo cujo log mais recente é de resolução é fechado. Um que registrou o problema de novo depois continua aberto.
+- Você ainda pode resolver um alerta por conta própria.
+
+[Eventos de rede](/docs/monitor/network-events) cria esses monitores para você, um clique por alerta.
 
 ### Exemplo: um alerta por túnel IPsec da Sophos
 

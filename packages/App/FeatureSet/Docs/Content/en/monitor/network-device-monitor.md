@@ -43,7 +43,7 @@ The device and the monitor do different jobs:
 
 - **A probe that can reach the device.** The probe pings and walks the device from its own network, so a device at a private address needs a [custom probe](/docs/probe/custom-probe) inside that network: a probe on the public internet cannot reach it.
 - **SNMP, for more than ping.** Optional. A v1 or v2c community string, or an SNMPv3 user, set on the device, with UDP 161 open from the probe. Without it the device is pinged only.
-- **Traps, syslog and flows.** Optional. The probe takes SNMP traps on UDP 162, syslog on UDP 5140 once you turn it on, and flow records on UDP 2055, 4739 and 6343, so open those from your devices to the probe.
+- **Traps, syslog and flows.** Optional. The probe takes SNMP traps on UDP 162, syslog on UDP and TCP 5140, and flow records on UDP 2055, 4739 and 6343, so open those from your devices to the probe.
 
 ## The Network Overview
 
@@ -62,7 +62,7 @@ Under it, one line says whether anything raises an incident when a device goes d
 
 Before anything is added, the Overview shows the two ways in instead: **Discover devices** scans an address range so you can pick what to add, best for a whole network or a new site, and **Add one device** adds one by its IP address or hostname.
 
-The Network menu keeps what you open every day in view: **Overview**, **Devices**, **Sites**, **Map**, **Traffic** and **Discovery**. The rest is folded into sections, and a section opens by itself on any of its pages:
+The Network menu keeps what you open every day in view: **Overview**, **Devices**, **Sites**, **Map**, **Traffic**, **Events** and **Discovery**. The rest is folded into sections, and a section opens by itself on any of its pages:
 
 | Section | Pages |
 | --- | --- |
@@ -1057,6 +1057,7 @@ An answer with the device's description means the probe can walk it with those c
 :::cards
 - [Network Sites](/docs/monitor/network-sites): Group devices into places and roll their health up the tree.
 - [Network Traffic](/docs/monitor/network-traffic): See who talks to whom from your devices' flow records.
+- [Network Events](/docs/monitor/network-events): See what your devices report in their syslog, and alert on it.
 - [Network Vendor Guides](/docs/monitor/network-vendor-guides): Sophos, Extreme and Cambium, end to end.
 - [Packet Capture](/docs/probe/packet-capture): Capture packets on a device's probe for Wireshark.
 :::

@@ -43,7 +43,7 @@ Gerät und Monitor haben unterschiedliche Aufgaben:
 
 - **Eine Sonde, die das Gerät erreicht.** Die Sonde pingt und fragt das Gerät aus ihrem eigenen Netzwerk ab, ein Gerät an einer privaten Adresse braucht also eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) in diesem Netzwerk: Eine Sonde im öffentlichen Internet erreicht es nicht.
 - **SNMP, für mehr als Ping.** Optional. Ein v1- oder v2c-Community-String oder ein SNMPv3-Benutzer auf dem Gerät, mit UDP 161 offen von der Sonde aus. Ohne SNMP wird das Gerät nur angepingt.
-- **Traps, Syslog und Flows.** Optional. Die Sonde nimmt SNMP-Traps auf UDP 162 an, Syslog auf UDP 5140, sobald Sie es einschalten, und Flow-Datensätze auf UDP 2055, 4739 und 6343; öffnen Sie diese Ports von Ihren Geräten zur Sonde.
+- **Traps, Syslog und Flows.** Optional. Die Sonde nimmt SNMP-Traps auf UDP 162 an, Syslog auf UDP und TCP 5140 und Flow-Datensätze auf UDP 2055, 4739 und 6343; öffnen Sie diese Ports von Ihren Geräten zur Sonde.
 
 ## Die Netzwerkübersicht
 
@@ -62,7 +62,7 @@ Darunter sagt eine Zeile, ob irgendetwas einen Vorfall auslöst, wenn ein Gerät
 
 Solange noch nichts hinzugefügt wurde, zeigt die Übersicht stattdessen die zwei Einstiege: **Geräte erkennen** durchsucht einen Adressbereich, damit Sie auswählen können, was Sie hinzufügen, am besten für ein ganzes Netzwerk oder einen neuen Standort, und **Ein einzelnes Gerät hinzufügen** fügt eines über seine IP-Adresse oder seinen Hostnamen hinzu.
 
-Das Netzwerkmenü zeigt, was Sie täglich öffnen: **Übersicht**, **Geräte**, **Standorte**, **Karte**, **Datenverkehr** und **Erkennung**. Der Rest ist in Abschnitte eingeklappt, und ein Abschnitt öffnet sich von selbst auf jeder seiner Seiten:
+Das Netzwerkmenü zeigt, was Sie täglich öffnen: **Übersicht**, **Geräte**, **Standorte**, **Karte**, **Datenverkehr**, **Ereignisse** und **Erkennung**. Der Rest ist in Abschnitte eingeklappt, und ein Abschnitt öffnet sich von selbst auf jeder seiner Seiten:
 
 | Abschnitt | Seiten |
 | --- | --- |
@@ -1057,6 +1057,7 @@ Eine Antwort mit der Beschreibung des Geräts bedeutet, dass die Sonde es mit di
 :::cards
 - [Netzwerkstandorte](/docs/monitor/network-sites): Geräte zu Orten gruppieren und ihre Integrität den Baum hinauf zusammenfassen.
 - [Netzwerkverkehr](/docs/monitor/network-traffic): Aus den Flow-Datensätzen Ihrer Geräte sehen, wer mit wem spricht.
+- [Netzwerkereignisse](/docs/monitor/network-events): Sehen, was Ihre Geräte in ihrem Syslog melden, und dafür Warnungen einrichten.
 - [Leitfäden für Netzwerkhersteller](/docs/monitor/network-vendor-guides): Sophos, Extreme und Cambium, von Anfang bis Ende.
 - [Paketmitschnitt](/docs/probe/packet-capture): Pakete auf der Sonde eines Geräts für Wireshark mitschneiden.
 :::

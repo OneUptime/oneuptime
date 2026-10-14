@@ -20,20 +20,29 @@ const LogMonitorPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   /*
-   * Group By does not change which logs match, so it is left out of the
-   * key: editing it must not reset and refetch the logs below.
+   * Group By and Resolved By do not change which logs match, so they are
+   * left out of the key: editing them must not reset and refetch the logs
+   * below.
    */
   const logMonitorKey: string = props.monitorStepLogMonitor
     ? JSON.stringify(
         MonitorStepLogMonitorUtil.toJSON({
           ...props.monitorStepLogMonitor,
           groupByAttributes: [],
+          resolvedByAttributes: {},
         }),
       )
     : "";
 
   const groupByAttributes: Array<string> =
     MonitorStepLogMonitorUtil.getGroupByAttributes(props.monitorStepLogMonitor);
+
+  // Empty unless the monitor is grouped and names the log that resolves a group.
+  const resolvedByAttributes: Record<string, string> =
+    MonitorStepLogMonitorUtil.getResolvedByAttributes(
+      props.monitorStepLogMonitor,
+    );
+  const resolvedByKeys: Array<string> = Object.keys(resolvedByAttributes);
 
   /*
    * The logs viewer resets its filters and page and refetches whenever it
@@ -94,6 +103,32 @@ const LogMonitorPreview: FunctionComponent<ComponentProps> = (
               ),
             }}
           />
+          {resolvedByKeys.length > 0 && (
+            <span
+              className="mt-2 block"
+              data-testid="log-monitor-resolved-by-summary"
+            >
+              <TranslatedSentence
+                template="A group's alert or incident stays open until a log with {{attributes}} arrives for that group. A group that only goes quiet is left open."
+                slots={{
+                  attributes: (
+                    <Fragment>
+                      {resolvedByKeys.map((key: string, index: number) => {
+                        return (
+                          <Fragment key={key}>
+                            {index > 0 ? ", " : ""}
+                            <code className="rounded bg-indigo-100 px-1 py-0.5 text-[11px] text-indigo-700">
+                              {`${key} = ${resolvedByAttributes[key]}`}
+                            </code>
+                          </Fragment>
+                        );
+                      })}
+                    </Fragment>
+                  ),
+                }}
+              />
+            </span>
+          )}
         </p>
       )}
       <DashboardLogsViewer

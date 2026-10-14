@@ -98,6 +98,14 @@ import {
   buildLlmMonitorPrefill,
 } from "../../Utils/LlmMonitorPrefill";
 import { fetchLlmMonitorSeedIds } from "../../Utils/LlmMonitorData";
+import {
+  NETWORK_EVENT_ALERT_QUERY_PARAM,
+  NETWORK_EVENT_DEVICE_QUERY_PARAM,
+  NETWORK_EVENT_UNKNOWN_ALERT_ERROR,
+  NetworkEventMonitorDevice,
+  NetworkEventMonitorSeedIds,
+  buildNetworkEventMonitorPrefill,
+} from "../../Utils/NetworkEventMonitorPrefill";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
@@ -1004,6 +1012,87 @@ const MonitorCreate: FunctionComponent<
     setInitialValues(prefill);
   };
 
+  /*
+   * "Create alert" from a network event (Network > Events, or one device's
+   * Events page): open on the Logs monitor that counts the event - one
+   * alert per device and per thing on it, resolved by the event that says
+   * it is over - with criteria built from the project's own statuses and
+   * severities. A link naming no alert says so in place of the form.
+   *
+   * From one device's page the link names the device, and the monitor is
+   * for that device alone. The device is read for its name only; a device
+   * that cannot be read still scopes the monitor, by its id.
+   */
+  const preSeedFromNetworkEventAlert: (
+    alertId: string,
+    networkDeviceId: string | null,
+  ) => Promise<void> = async (
+    alertId: string,
+    networkDeviceId: string | null,
+  ): Promise<void> => {
+    if (networkDeviceId && !ObjectID.isValidUUID(networkDeviceId)) {
+      setError(NETWORK_EVENT_UNKNOWN_ALERT_ERROR);
+      return;
+    }
+
+    let seeds: NetworkEventMonitorSeedIds = {
+      operationalMonitorStatusId: null,
+      unhealthyMonitorStatusId: null,
+      rankedIncidentSeverityIds: [],
+      rankedAlertSeverityIds: [],
+    };
+
+    let device: NetworkEventMonitorDevice | null = networkDeviceId
+      ? { id: networkDeviceId, name: "" }
+      : null;
+
+    const [seedsResult, deviceResult]: [
+      PromiseSettledResult<NetworkEventMonitorSeedIds>,
+      PromiseSettledResult<NetworkDevice | null>,
+    ] = await Promise.allSettled([
+      fetchLlmMonitorSeedIds(),
+      networkDeviceId
+        ? ModelAPI.getItem({
+            modelType: NetworkDevice,
+            id: new ObjectID(networkDeviceId),
+            select: {
+              name: true,
+            },
+          })
+        : Promise.resolve(null),
+    ]);
+
+    /*
+     * Both are recoverable: without the ids the criteria come without the
+     * parts that need them, and the form asks for them; without the name
+     * the monitor is named after its event alone.
+     */
+    if (seedsResult.status === "fulfilled") {
+      seeds = seedsResult.value;
+    }
+
+    if (
+      device &&
+      deviceResult.status === "fulfilled" &&
+      deviceResult.value?.name
+    ) {
+      device = { id: device.id, name: deviceResult.value.name };
+    }
+
+    const prefill: JSONObject | null = buildNetworkEventMonitorPrefill({
+      alertId: alertId,
+      device: device,
+      seeds: seeds,
+    });
+
+    if (!prefill) {
+      setError(NETWORK_EVENT_UNKNOWN_ALERT_ERROR);
+      return;
+    }
+
+    setInitialValues(prefill);
+  };
+
   const preSeedFromAIInsightLink: (
     aiInsightId: string,
   ) => Promise<void> = async (aiInsightId: string): Promise<void> => {
@@ -1165,6 +1254,23 @@ const MonitorCreate: FunctionComponent<
     if (llmMonitorTemplateId) {
       setIsLoading(true);
       preSeedFromLlmMonitorTemplate(llmMonitorTemplateId.trim()).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
+    const networkEventAlertId: string | null = Navigation.getQueryStringByName(
+      NETWORK_EVENT_ALERT_QUERY_PARAM,
+    );
+
+    if (networkEventAlertId) {
+      setIsLoading(true);
+      preSeedFromNetworkEventAlert(
+        networkEventAlertId.trim(),
+        Navigation.getQueryStringByName(
+          NETWORK_EVENT_DEVICE_QUERY_PARAM,
+        )?.trim() || null,
+      ).finally(() => {
         setIsLoading(false);
       });
       return;

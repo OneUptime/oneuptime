@@ -31,7 +31,7 @@ flowchart TB
 
 - En [netværksenhed](/docs/monitor/network-device-monitor) pr. boks, pollet af en sonde, der kan nå den, med en producentskabelon, der medbringer de rigtige tilstands-OID'er og [SNMP-tabeller](/docs/monitor/network-device-monitor#snmp-tabeller).
 - En netværksenheds-monitor pr. enhed til advarsler. Opret den fra enhedens side, så de [anbefalede advarsler](/docs/monitor/network-device-monitor#anbefalet-advarselspakke), inklusive én advarsel pr. række for hver tabel, der ved, hvordan sund ser ud, udfyldes for dig. Til en flåde holder en [advarselspolitik](/docs/monitor/network-device-monitor#advarselspolitikker) en på hver enhed.
-- Til det, en producent kun rapporterer i sine logs: syslog til sonden, en [logpipeline](/docs/telemetry/log-pipelines) til at gøre hver linje til attributter, [log-monitorer med Group By](/docs/monitor/logs-monitor#advarsler-pr-gruppe-group-by) til at advare én gang pr. tunnel eller gateway, og [optagelsesregler for logs](/docs/telemetry/log-recording-rules) til at vise tallene i de logs i grafer.
+- Til det, en producent kun rapporterer i sine logs: syslog til sonden, som OneUptime selv læser som [netværksbegivenheder](/docs/monitor/network-events), [log-monitorer med Group By](/docs/monitor/logs-monitor#advarsler-pr-gruppe-group-by) til at advare én gang pr. tunnel eller gateway, og [optagelsesregler for logs](/docs/telemetry/log-recording-rules) til at vise tallene i de logs i grafer.
 
 ## Sophos Firewall (XGS / SFOS)
 
@@ -71,20 +71,20 @@ En tunnel, som Sophos rapporterer som aktiv, har kun sine security associations 
 ### Gateways og SD-WAN fra syslog
 
 :::steps
-1. Slå sondens syslog-modtager til: sæt `PROBE_SYSLOG_RECEIVER_ENABLED=true` på sonden. Den lytter på UDP 5140 som standard (`PROBE_SYSLOG_RECEIVER_PORT` ændrer det); publicér porten, hvis sonden kører i Docker. Beskeder matches til den netværksenhed, hvis værtsnavn, eller en af hvis **Andre adresser**, er afsenderens adresse, og vises på enhedens side **Protokoller**.
+1. Sondens syslog-modtager er slået til som standard. Den lytter på port 5140, over UDP og TCP (`PROBE_SYSLOG_RECEIVER_PORT` ændrer det); publicér porten, hvis sonden kører i Docker. Beskeder matches til den netværksenhed, hvis værtsnavn, eller en af hvis **Andre adresser**, er afsenderens adresse, og vises på enhedens sider **Begivenheder** og **Protokoller**.
 2. Tilføj på firewallen, under **System services → Log settings**, en syslog-server, der peger på sonden og den port, og sæt kryds ved logtyperne **Event** for IPsec og gateways og logtypen **SD-WAN**: SLA-logs forbliver slået fra, indtil der er sat kryds ved den.
-3. Opret under **Protokoller → Indstillinger → Pipelines** en pipeline, hvis filter matcher firewallens logs, såsom `attributes.networkDevice.name = 'hq-firewall'`, og tilføj en **Key=Value Parser** med **Target Prefix** `sophos`. Indsæt en linje fra firewallen i dens tester for at se de præcise attributnavne, din SFOS-version producerer; [Sophos-eksemplet](/docs/telemetry/log-pipelines#eksempel-sophos-xgs-firewall) gennemgår det.
-4. Opret [log-monitorer](/docs/monitor/logs-monitor) på firewallens logs, hver med **Group by Attributes**, så hver tunnel eller gateway advarer for sig, og kriteriet **Log Count** **Greater Than** `0` over et par minutter. Rækkerne nedenfor er de tre at starte med.
+3. Der er intet at fortolke. OneUptime læser firewallens `key=value`-felter som `sophos.*`-attributter og læser tunneler, gateways, SD-WAN-SLA-ændringer, failovers og login ud af dem som [netværksbegivenheder](/docs/monitor/network-events). Åbn en log på enhedens side **Protokoller** for at se de præcise attributnavne, din SFOS-version producerer.
+4. Klik på **Opret advarsel** på enhedens side **Begivenheder**, og vælg en advarsel. Den åbner en udfyldt [log-monitor](/docs/monitor/logs-monitor) med **Group by Attributes**, så hver tunnel eller gateway advarer for sig, og **Løst af attributter**, så hver advarsel lukker, når firewallen melder den tilbage. Rækkerne nedenfor er de tre at starte med.
 5. Vis SD-WAN-kvaliteten i grafer: med SD-WAN-logning slået til skriver firewallen en SLA-opsummering pr. profil og gateway (`latency`, `jitter`, `packet_loss`). Opret under **Protokoller → Indstillinger → Optagelsesregler** én regel pr. tal, såsom gennemsnittet af `sophos.latency` grupperet efter `sophos.gw_name` og `sophos.profile_name`, og vis så resultaterne i grafer, eller advar om dem med en [metrik-monitor](/docs/monitor/metrics-monitor), der grupperer efter gateway. [Optagelsesregler for logs](/docs/telemetry/log-recording-rules) gennemgår dette eksempel.
 :::
 
-| Advarsel | Logs, der skal tælles | Gruppér efter |
-| --- | --- | --- |
-| IPsec-tunnel afsluttet | Attribut `sophos.log_component` = `IPSec`, brødtekst indeholder `terminated` | `sophos.con_name` |
-| Gateway nede | Attribut `sophos.log_component` = `Gateway`, brødtekst indeholder `is Down` | `sophos.gatewayname` |
-| SD-WAN-SLA ikke opfyldt | Attribut `sophos.log_type` = `SD-WAN`, brødtekst indeholder `SLA not met` | `sophos.gw_name` |
+| Advarsel | Begivenhed, der tælles | Én advarsel pr. | Lukkes af |
+| --- | --- | --- | --- |
+| En VPN-tunnel går ned | `vpn.tunnel_down` | `vpn.tunnel.name` | `vpn.tunnel_up` |
+| Et WAN-link går ned | `gateway.down` | `network.gateway.name` | `gateway.up` |
+| SD-WAN-link under sin SLA | `sdwan.sla_not_met` | `network.gateway.name` | `sdwan.sla_met` |
 
-Syslog-begivenhederne supplerer SNMP-tabellen: de ankommer i det øjeblik, en tunnel falder, mens tabellen også fanger en tunnel, der aldrig kom op.
+De to første står på listen under **Opret advarsel**; til den tredje åbner du en af dens begivenheder og klikker på **Opret advarsel for denne begivenhed**. Syslog-begivenhederne supplerer SNMP-tabellen: de ankommer i det øjeblik, en tunnel falder, mens tabellen også fanger en tunnel, der aldrig kom op.
 
 ### Traps
 
@@ -153,7 +153,7 @@ Tunnelstatus kræver SFOS v20 eller nyere. Tjek også, at SNMP-visningen for din
 :::
 
 :::details Der kommer ingen syslog fra firewallen
-Sondens syslog-modtager er slået fra som standard: sæt `PROBE_SYSLOG_RECEIVER_ENABLED=true`, og publicér UDP 5140, eller din `PROBE_SYSLOG_RECEIVER_PORT`, til sonden. Beskeder matches til en enhed efter afsenderens adresse, så firewallens værtsnavn i OneUptime, eller en af dens **Andre adresser**, skal være den adresse, den sender syslog fra.
+Sonden lytter efter syslog på port 5140, over UDP og TCP, medmindre den er startet med `PROBE_SYSLOG_RECEIVER_ENABLED=false`: publicér den port, eller din `PROBE_SYSLOG_RECEIVER_PORT`, hvis sonden kører i Docker. Beskeder matches til en enhed efter afsenderens adresse, så firewallens værtsnavn i OneUptime, eller en af dens **Andre adresser**, skal være den adresse, den sender syslog fra; indtil da står de på netværkets side **Begivenheder** som **Endnu ikke en enhed**.
 :::
 
 :::details En Fabric Engine-switch fik EXOS-skabelonen
@@ -168,6 +168,7 @@ Det samlede antal klienter kræver firmware 6.5.3 eller nyere. På ældre firmwa
 
 :::cards
 - [Netværksenheds-monitor](/docs/monitor/network-device-monitor): Alt, hvad en enhed indsamler, og hvert kriterie, den kan advare om.
+- [Netværksbegivenheder](/docs/monitor/network-events): Hvad hver producents syslog siger, som begivenheder og advarsler.
 - [Logpipelines](/docs/telemetry/log-pipelines): Opdel firewall-logs i attributter.
 - [Log-monitor](/docs/monitor/logs-monitor): Advar én gang pr. tunnel eller gateway.
 :::

@@ -234,6 +234,8 @@ export default class MonitorIncident {
     monitor: Monitor;
     fingerprints: Array<string>;
     rootCause: string;
+    // What the evaluation summary says of each incident resolved here.
+    resolvedMessage?: string | undefined;
     dataToProcess: DataToProcess;
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
       Array<string>
@@ -301,6 +303,7 @@ export default class MonitorIncident {
         type: "incident-resolved",
         title: `Incident resolved: ${openIncident.id?.toString()}`,
         message:
+          input.resolvedMessage ||
           "Incident auto-resolved because the incoming payload reported this key as resolved.",
         relatedIncidentId: openIncident.id?.toString(),
         relatedIncidentNumber: openIncident.incidentNumber,

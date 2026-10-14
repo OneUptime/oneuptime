@@ -28,7 +28,7 @@ flowchart TB
 OneUptime 一讀完要求中的訊息就會回應，稍後再剖析並儲存它們。訊息文字會保留在日誌內文中，其他所有內容都會成為屬性。
 
 > [!TIP]
-> 以 OneUptime 探針監控的網路設備，可以不經轉送站、直接透過 UDP 把 syslog 傳送到探針，日誌隨後會出現在 OneUptime 中該設備的頁面上。請參閱[網路設備廠商指南(Sophos、Extreme、Cambium)](/docs/monitor/network-vendor-guides)。
+> 網路設備可以不經轉送站、直接透過 UDP 或 TCP 把 syslog 傳送到 OneUptime 探針，隨後 OneUptime 會把各廠商的訊息讀取為該設備上的事件。請參閱[網路事件](/docs/monitor/network-events)。
 
 ## 開始之前
 
@@ -200,7 +200,7 @@ OneUptime 會自動為每筆日誌加上下列屬性：
 
 這些屬性可以在 **產品 → 日誌** 瀏覽器中搜尋，例如 `@syslog.severity.name:error` 或 `@syslog.hostname:web-01`。請參閱[搜尋語法](/docs/telemetry/search-syntax)。
 
-訊息本身會保留在日誌內文中。Sophos XGS 與 Fortinet FortiGate 等防火牆會把訊息寫成 `key=value` 配對（`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`）；在[日誌管道](/docs/telemetry/log-pipelines#keyvalue-parser)中加入一個 **Key=Value Parser** 處理器，就能把這些配對也變成屬性。
+訊息本身會保留在日誌內文中。採用網路廠商格式的訊息會被進一步讀取：Sophos 或 FortiGate 防火牆的 `key=value` 配對（`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`）會變成 `sophos.*` 和 `fortigate.*` 屬性，發生了什麼則變成[網路事件](/docs/monitor/network-events)。對於其他任何 `key=value` 格式，請在[日誌管道](/docs/telemetry/log-pipelines#keyvalue-parser)中加入一個 **Key=Value Parser** 處理器，把這些配對變成屬性。
 
 ### 嚴重性
 

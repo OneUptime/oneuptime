@@ -335,13 +335,13 @@ Una sonda apre solo connessioni in uscita, a meno che tu non attivi un listener,
 | --- | --- | --- | --- |
 | Richieste in arrivo e heartbeat | `PROBE_INGRESS_PORT` | Disattivato | [Ingress richieste in arrivo](/docs/probe/incoming-request-ingress) |
 | Trap SNMP | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Attivo, UDP 162 | [Monitor dispositivi di rete](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Disattivato, UDP 5140 | [Guide per fornitore di rete](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Attivo, UDP e TCP 5140 | [Eventi di rete](/docs/monitor/network-events) |
 | NetFlow, IPFIX e sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | Attivo, UDP 2055, 4739 e 6343 | [Traffico di rete](/docs/monitor/network-traffic) |
 | Controlli di salute | `PORT` | Attivo, TCP 3874 | `/status/live` e `/status/ready` |
 
 In un container, una porta è raggiungibile da altre macchine solo con la rete dell'host o se la pubblichi.
 
-Il ricevitore syslog inoltra al massimo `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` messaggi al minuto, `600` per impostazione predefinita, scarta il resto e scrive nel log quanti ne ha scartati.
+Il ricevitore syslog inoltra al massimo `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` messaggi al minuto, `600` per impostazione predefinita. Oltre questo limite continua a inoltrare i messaggi che legge come eventi di rete, fino ad altrettanti, scarta il resto e scrive nel log quanti ne ha scartati.
 
 `PROBE_NAME` e `PROBE_DESCRIPTION` vengono letti solo dalle sonde che si registrano da sole con `REGISTER_PROBE_KEY`, come le sonde che un'installazione self-hosted esegue per tutti i progetti. Una sonda personalizzata prende nome e descrizione dalla dashboard.
 

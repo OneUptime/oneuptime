@@ -9,6 +9,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 // Pages
 import NetworkOverview from "../Pages/NetworkDevice/Overview";
 import NetworkTraffic from "../Pages/NetworkDevice/Traffic";
+import NetworkEvents from "../Pages/NetworkDevice/Events";
 import NetworkDevices from "../Pages/NetworkDevice/Devices";
 import NetworkDeviceArchived from "../Pages/NetworkDevice/Archived";
 import NetworkDeviceDiscovery from "../Pages/NetworkDevice/Discovery";
@@ -22,6 +23,7 @@ import NetworkDeviceTables from "../Pages/NetworkDevice/View/Tables";
 import NetworkDeviceWiFi from "../Pages/NetworkDevice/View/WiFi";
 import NetworkDeviceMetrics from "../Pages/NetworkDevice/View/Metrics";
 import NetworkDeviceTraffic from "../Pages/NetworkDevice/View/Traffic";
+import NetworkDeviceEvents from "../Pages/NetworkDevice/View/Events";
 import NetworkDeviceMonitors from "../Pages/NetworkDevice/View/Monitors";
 import NetworkDeviceLogs from "../Pages/NetworkDevice/View/Logs";
 import NetworkDeviceOwners from "../Pages/NetworkDevice/View/Owners";
@@ -71,6 +73,15 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             <NetworkTraffic
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_TRAFFIC] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={NetworkDeviceRoutePath[PageMap.NETWORK_EVENTS] || ""}
+          element={
+            <NetworkEvents
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_EVENTS] as Route}
             />
           }
         />
@@ -372,6 +383,16 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             <NetworkDeviceTraffic
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_TRAFFIC] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_DEVICE_VIEW_EVENTS)}
+          element={
+            <NetworkDeviceEvents
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_EVENTS] as Route}
             />
           }
         />
