@@ -926,11 +926,6 @@
   "Visualize relationships across all services.": "Visualize relationships across all services.",
   "When and how on-call policies are triggered": "When and how on-call policies are triggered",
   "You are not currently on duty for any on-call policies across your projects.": "You are not currently on duty for any on-call policies across your projects.",
-  "You can use emoji reactions in Slack to quickly save messages as notes to alert episodes.": "You can use emoji reactions in Slack to quickly save messages as notes to alert episodes.",
-  "You can use emoji reactions in Slack to quickly save messages as notes to alerts.": "You can use emoji reactions in Slack to quickly save messages as notes to alerts.",
-  "You can use emoji reactions in Slack to quickly save messages as notes to incident episodes.": "You can use emoji reactions in Slack to quickly save messages as notes to incident episodes.",
-  "You can use emoji reactions in Slack to quickly save messages as notes to incidents.": "You can use emoji reactions in Slack to quickly save messages as notes to incidents.",
-  "You can use emoji reactions in Slack to quickly save messages as notes to scheduled maintenance events.": "You can use emoji reactions in Slack to quickly save messages as notes to scheduled maintenance events.",
   "You do not have permission to view this Runner's key": "You do not have permission to view this Runner's key",
   "You must leave all projects before deleting your account.": "You must leave all projects before deleting your account.",
   "Your incoming call policy is configured and ready to receive calls": "Your incoming call policy is configured and ready to receive calls",
@@ -23337,8 +23332,6 @@
   "You are disconnected from Microsoft Teams": "You are disconnected from Microsoft Teams",
   "You are not currently a responder on any on-call policy in this project.": "You are not currently a responder on any on-call policy in this project.",
   "You can fix it here: {{link}}": "You can fix it here: {{link}}",
-  "You can use emoji reactions in Microsoft Teams to save channel messages as notes to the {{resourceName}}.": "You can use emoji reactions in Microsoft Teams to save channel messages as notes to the {{resourceName}}.",
-  "You need to connect your Microsoft Teams account to OneUptime first (User Settings → Microsoft Teams), and the OneUptime app needs to be installed in the team.": "You need to connect your Microsoft Teams account to OneUptime first (User Settings → Microsoft Teams), and the OneUptime app needs to be installed in the team.",
   "Your OneUptime on-call notifications need setup": "Your OneUptime on-call notifications need setup",
   "Your account is already connected with Microsoft Teams. You can now create workspace notification rules to send messages to your teams.": "Your account is already connected with Microsoft Teams. You can now create workspace notification rules to send messages to your teams.",
   "Your custom address will be removed.": "Your custom address will be removed.",
@@ -28586,5 +28579,11 @@
   "Note added by {{name}}": "Note added by {{name}}",
   "Saved From Chat Message": "Saved From Chat Message",
   "via Microsoft Teams": "via Microsoft Teams",
-  "via Slack": "via Slack"
+  "via Slack": "via Slack",
+  "- **Pin to channel** - Pinning the message with Slack's own *Pin to channel* does the same as a pin.": "- **Pin to channel** - Pinning the message with Slack's own *Pin to channel* does the same as a pin.",
+  "If your {{workspace}} account is not connected to OneUptime yet, OneUptime asks you to connect it, then saves the message.": "If your {{workspace}} account is not connected to OneUptime yet, OneUptime asks you to connect it, then saves the message.",
+  "The OneUptime app needs to be installed in the team.": "The OneUptime app needs to be installed in the team.",
+  "The note keeps the message's formatting and links and shows who wrote it. A private note is filed at the time the message was posted.": "The note keeps the message's formatting and links and shows who wrote it. A private note is filed at the time the message was posted.",
+  "This works in the channel of the {{resourceName}}, on messages and on replies. OneUptime saves the message and confirms with a reply in the thread.": "This works in the channel of the {{resourceName}}, on messages and on replies. OneUptime saves the message and confirms with a reply in the thread.",
+  "You can use emoji reactions in {{workspace}} to save messages as notes on the {{resourceName}}.": "You can use emoji reactions in {{workspace}} to save messages as notes on the {{resourceName}}."
 }

@@ -1,6 +1,6 @@
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleTable from "../../Components/Workspace/WorkspaceNotificationRulesTable";
-import MicrosoftTeamsReactionNotesTips from "../../Components/MicrosoftTeams/MicrosoftTeamsReactionNotesTips";
+import WorkspaceReactionNotesTips from "../../Components/Workspace/WorkspaceReactionNotesTips";
 import WorkspaceSummaryTable from "../../Components/Workspace/WorkspaceSummaryTable";
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import PageComponentProps from "../PageComponentProps";
@@ -23,7 +23,8 @@ const AlertsTeamsPage: FunctionComponent<
             workspaceType={WorkspaceType.MicrosoftTeams}
             eventType={NotificationRuleEventType.Alert}
           />
-          <MicrosoftTeamsReactionNotesTips
+          <WorkspaceReactionNotesTips
+            workspaceType={WorkspaceType.MicrosoftTeams}
             resourceName="alert"
             supportsPublicNotes={false}
           />
@@ -38,7 +39,8 @@ const AlertsTeamsPage: FunctionComponent<
             workspaceType={WorkspaceType.MicrosoftTeams}
             eventType={NotificationRuleEventType.AlertEpisode}
           />
-          <MicrosoftTeamsReactionNotesTips
+          <WorkspaceReactionNotesTips
+            workspaceType={WorkspaceType.MicrosoftTeams}
             resourceName="alert episode"
             supportsPublicNotes={false}
           />
