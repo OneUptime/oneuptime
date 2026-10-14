@@ -97,6 +97,16 @@ import {
   MASTER_PASSWORD_REQUIRED_MESSAGE,
 } from "../../Types/StatusPage/MasterPassword";
 import { isStatusPageMasterPasswordRequired } from "../../Types/StatusPage/StatusPageAccess";
+import {
+  getPrivateUserSessionLengthProblem,
+  PRIVATE_USER_SESSION_LENGTH_COLUMN,
+} from "../../Types/StatusPage/PrivateUserSessionLength";
+import { isSendingSubscriberNotifications } from "../../Types/StatusPage/SubscriberNotificationsSwitch";
+import {
+  ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN,
+  getAllowedEmailDomainsProblem,
+  normalizeAllowedEmailDomains,
+} from "../../Types/StatusPage/SubscriberRestrictions";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageGroupService from "./StatusPageGroupService";
 import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
@@ -230,6 +240,40 @@ export const INCIDENT_COUNT_STATUS_PAGE_SELECT: Select<StatusPage> = {
   _id: true,
   projectId: true,
   onlyShowScopedIncidents: true,
+};
+
+/*
+ * Refuses a status page write holding a value no reader of it can use
+ * (checkCreateBeforeReferences, checkUpdateBeforeReferences), and writes
+ * the Allowed Email Domains it holds the way every reader reads them: one
+ * valid domain a line, lower-cased, or nothing.
+ */
+export const assertStatusPageWriteValues: (
+  data: Record<string, unknown>,
+) => void = (data: Record<string, unknown>): void => {
+  const sessionLengthProblem: string | null =
+    getPrivateUserSessionLengthProblem(
+      data[PRIVATE_USER_SESSION_LENGTH_COLUMN],
+    );
+
+  if (sessionLengthProblem) {
+    throw new BadDataException(sessionLengthProblem);
+  }
+
+  if (data[ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN] !== undefined) {
+    const domainsProblem: string | null = getAllowedEmailDomainsProblem(
+      data[ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN],
+    );
+
+    if (domainsProblem) {
+      throw new BadDataException(domainsProblem);
+    }
+
+    data[ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN] =
+      normalizeAllowedEmailDomains(
+        data[ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN] as string | null,
+      );
+  }
 };
 
 export class Service extends ProjectReferencesService<StatusPage> {
@@ -474,6 +518,28 @@ export class Service extends ProjectReferencesService<StatusPage> {
       return statusPage.subscriberEmailNotificationFooterText;
     }
     return this.getDefaultEmailFooterText();
+  }
+
+  /*
+   * What a write may hold, answered before anything is looked up
+   * (ProjectReferencesService runs these first, in the base hooks): Sign
+   * Readers Out After is a whole number of hours in range, or nothing for
+   * no limit (Types/StatusPage/PrivateUserSessionLength).
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<StatusPage>,
+  ): Promise<void> {
+    assertStatusPageWriteValues(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+  }
+
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<StatusPage>,
+  ): Promise<void> {
+    assertStatusPageWriteValues(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
   }
 
   @CaptureSpan()
@@ -992,6 +1058,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
           masterPassword: true,
           isArchived: true,
           requireSsoForLogin: true,
+          privateUserSessionLengthInHours: true,
         },
       });
 
@@ -1059,65 +1126,20 @@ export class Service extends ProjectReferencesService<StatusPage> {
       }
 
       // token decode.
-      const token: string | undefined = CookieUtil.getCookieFromExpressRequest(
-        req,
-        CookieUtil.getUserTokenKey(statusPageId),
-      );
-
-      if (token) {
+      if (statusPage) {
         try {
-          const decoded: JSONWebTokenData = JSONWebToken.decode(
-            token as string,
-          );
+          const session: StatusPagePrivateUserSession | null =
+            await this.findSignedInSession({
+              statusPage: statusPage,
+              statusPageId: statusPageId,
+              req: req,
+              select: ["session._id", "session.additionalInfo"],
+            });
 
-          if (
-            statusPage &&
-            decoded.statusPageId?.toString() === statusPageId.toString() &&
-            decoded.sessionId &&
-            ObjectID.isValidUUID(decoded.sessionId.toString()) &&
-            decoded.userId &&
-            ObjectID.isValidUUID(decoded.userId.toString())
-          ) {
-            /*
-             * One primary-key lookup joined to the private user. Do not cache
-             * authorization: revocation and soft deletion must take effect on
-             * the next request, even while the access JWT remains unexpired.
-             * The same read asks whether the session's sign-in still counts:
-             * the SSO provider that signed it in still vouches for it, or -
-             * for a session no provider signed in - the page does not
-             * require SSO (StatusPagePrivateUserSessionService.addSignInRule).
-             */
-            const session: StatusPagePrivateUserSession | null =
-              await StatusPagePrivateUserSessionService.addSignInRule(
-                StatusPagePrivateUserSessionService.getQueryBuilder("session")
-                  .select(["session._id", "session.additionalInfo"])
-                  .innerJoin("session.statusPagePrivateUser", "privateUser")
-                  .where("session._id = :sessionId", {
-                    sessionId: decoded.sessionId.toString(),
-                  })
-                  .andWhere("session.statusPageId = :statusPageId", {
-                    statusPageId: statusPageId.toString(),
-                  })
-                  .andWhere("session.statusPagePrivateUserId = :userId", {
-                    userId: decoded.userId.toString(),
-                  })
-                  .andWhere("privateUser.statusPageId = :statusPageId")
-                  .andWhere("privateUser.deletedAt IS NULL")
-                  .andWhere("session.isRevoked = false")
-                  .andWhere("session.refreshTokenExpiresAt > :now", {
-                    now: OneUptimeDate.getCurrentDate(),
-                  }),
-                { requiresSso: Boolean(statusPage.requireSsoForLogin) },
-              ).getOne();
-
-            if (
-              session &&
-              !StatusPagePrivateUserSessionService.isLoginCodeSession(session)
-            ) {
-              return {
-                hasReadAccess: true,
-              };
-            }
+          if (session) {
+            return {
+              hasReadAccess: true,
+            };
           }
         } catch (err) {
           logger.error(err, {
@@ -1173,6 +1195,142 @@ export class Service extends ProjectReferencesService<StatusPage> {
         "You do not have access to this status page. Please login to view the status page.",
       ),
     };
+  }
+
+  /*
+   * The session of the private user signed in to this status page on this
+   * request, or null: the page's sign-in cookie, its claims for this page,
+   * and the session behind it read live - not revoked, not expired, its
+   * private user not deleted, its sign-in still counting under the page's
+   * Require SSO for Login and Sign Readers Out After
+   * (StatusPagePrivateUserSessionService.addSignInRule). One primary-key
+   * lookup joined to the private user. Do not cache authorization:
+   * revocation and soft deletion must take effect on the next request, even
+   * while the access JWT remains unexpired. A login-code session - the
+   * moment between an SSO sign-in and the code exchange - is no sign-in.
+   */
+  private async findSignedInSession(data: {
+    statusPage: Pick<
+      StatusPage,
+      "requireSsoForLogin" | "privateUserSessionLengthInHours"
+    >;
+    statusPageId: ObjectID;
+    req: ExpressRequest;
+    select: Array<string>;
+  }): Promise<StatusPagePrivateUserSession | null> {
+    const statusPageId: ObjectID = data.statusPageId;
+
+    const token: string | undefined = CookieUtil.getCookieFromExpressRequest(
+      data.req,
+      CookieUtil.getUserTokenKey(statusPageId),
+    );
+
+    if (!token) {
+      return null;
+    }
+
+    const decoded: JSONWebTokenData = JSONWebToken.decode(token as string);
+
+    if (
+      decoded.statusPageId?.toString() !== statusPageId.toString() ||
+      !decoded.sessionId ||
+      !ObjectID.isValidUUID(decoded.sessionId.toString()) ||
+      !decoded.userId ||
+      !ObjectID.isValidUUID(decoded.userId.toString())
+    ) {
+      return null;
+    }
+
+    const session: StatusPagePrivateUserSession | null =
+      await StatusPagePrivateUserSessionService.addSignInRule(
+        StatusPagePrivateUserSessionService.getQueryBuilder("session")
+          .select(data.select)
+          .innerJoin("session.statusPagePrivateUser", "privateUser")
+          .where("session._id = :sessionId", {
+            sessionId: decoded.sessionId.toString(),
+          })
+          .andWhere("session.statusPageId = :statusPageId", {
+            statusPageId: statusPageId.toString(),
+          })
+          .andWhere("session.statusPagePrivateUserId = :userId", {
+            userId: decoded.userId.toString(),
+          })
+          .andWhere("privateUser.statusPageId = :statusPageId")
+          .andWhere("privateUser.deletedAt IS NULL")
+          .andWhere("session.isRevoked = false")
+          .andWhere("session.refreshTokenExpiresAt > :now", {
+            now: OneUptimeDate.getCurrentDate(),
+          }),
+        {
+          requiresSso: Boolean(data.statusPage.requireSsoForLogin),
+          sessionLengthInHours: data.statusPage.privateUserSessionLengthInHours,
+        },
+      ).getOne();
+
+    if (
+      !session ||
+      StatusPagePrivateUserSessionService.isLoginCodeSession(session)
+    ) {
+      return null;
+    }
+
+    return session;
+  }
+
+  /*
+   * The email address of the private user signed in to this status page on
+   * this request, or null when no one is (findSignedInSession). What a page
+   * that takes only its private users as subscribers holds a sign-up to
+   * (Types/StatusPage/SubscriberRestrictions): the address comes from the
+   * private user's own row, never from the token, so a reader renamed or
+   * removed since they signed in subscribes no one.
+   */
+  @CaptureSpan()
+  public async getSignedInPrivateUserEmail(data: {
+    statusPageId: ObjectID;
+    req: ExpressRequest;
+  }): Promise<string | null> {
+    try {
+      const statusPage: StatusPage | null = await this.findOneById({
+        id: data.statusPageId,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          requireSsoForLogin: true,
+          privateUserSessionLengthInHours: true,
+        },
+      });
+
+      if (!statusPage) {
+        return null;
+      }
+
+      const session: StatusPagePrivateUserSession | null =
+        await this.findSignedInSession({
+          statusPage: statusPage,
+          statusPageId: data.statusPageId,
+          req: data.req,
+          select: [
+            "session._id",
+            "session.additionalInfo",
+            "privateUser.email",
+          ],
+        });
+
+      const email: string = (
+        session?.statusPagePrivateUser?.email?.toString() || ""
+      ).trim();
+
+      return email || null;
+    } catch (err) {
+      logger.error(err, {
+        statusPageId: data.statusPageId?.toString(),
+      } as LogAttributes);
+
+      return null;
+    }
   }
 
   private hasValidMasterPasswordCookie(data: {
@@ -1833,6 +1991,19 @@ export class Service extends ProjectReferencesService<StatusPage> {
       // force send to this email instead of sending to all subscribers.
       await sendEmail(data.email, null);
       return; // don't notify subscribers when explicitly sending a test email.
+    }
+
+    /*
+     * A report is a notification: a page that sends its subscribers nothing
+     * (Send Notifications to Subscribers off) sends none. A test report,
+     * above, still goes to the address the team asked for.
+     */
+    if (!isSendingSubscriberNotifications(statuspage)) {
+      logger.debug(
+        `Status page ${statuspage.id.toString()} does not send notifications to its subscribers; no report sent.`,
+        { statusPageId: statuspage.id.toString() } as LogAttributes,
+      );
+      return;
     }
 
     const subscribers: Array<StatusPageSubscriber> =

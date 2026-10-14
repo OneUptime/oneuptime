@@ -68,6 +68,7 @@ export const IncidentStatusPageScopeCopy: {
   audienceOutsideScope: string;
   audienceOnlyShowsScoped: string;
   audienceHidesIncidents: string;
+  audienceNotificationsOff: string;
   audienceAlreadyNotified: string;
   audienceNotListingMonitors: string;
   /*
@@ -79,6 +80,7 @@ export const IncidentStatusPageScopeCopy: {
    */
   audienceNoStatusPages: string;
   audienceNoSubscribers: string;
+  audienceNotificationsOffEverywhere: string;
   audienceHiddenIncident: string;
 } = {
   pickerTitle: "Limit to these status pages",
@@ -144,12 +146,16 @@ export const IncidentStatusPageScopeCopy: {
     "{{name}} (not one of the pages this incident is limited to)",
   audienceOnlyShowsScoped: "{{name}} (only shows incidents limited to it)",
   audienceHidesIncidents: "{{name}} (does not show incidents)",
+  audienceNotificationsOff:
+    "{{name}} (does not send notifications to its subscribers)",
   audienceAlreadyNotified: "{{name}} (already sent this notification in full)",
   audienceNotListingMonitors: "{{name}} (lists none of these monitors)",
   audienceNoStatusPages:
     "No status page subscribers will be notified: no status page that lists these monitors will show this incident.",
   audienceNoSubscribers:
     "No one will be notified: these status pages have no subscribers yet.",
+  audienceNotificationsOffEverywhere:
+    "No one will be notified: these status pages do not send notifications to their subscribers.",
   audienceHiddenIncident:
     "Nothing will be sent: this incident is hidden from status pages.",
 };

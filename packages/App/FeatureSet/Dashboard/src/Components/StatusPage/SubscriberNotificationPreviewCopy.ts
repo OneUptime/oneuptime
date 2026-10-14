@@ -35,6 +35,7 @@ export const SubscriberNotificationPreviewCopy: {
   privateIncident: string;
   notifyOff: string;
   noStatusPages: string;
+  notificationsOff: string;
 
   // Pages the caller cannot see.
   oneHiddenPageNotPreviewed: string;
@@ -90,6 +91,8 @@ export const SubscriberNotificationPreviewCopy: {
   notifyOff: "'Notify Status Page Subscribers' is off.",
   noStatusPages:
     "No status page that lists these monitors will show this incident.",
+  notificationsOff:
+    "The status pages that show this incident do not send notifications to their subscribers.",
 
   oneHiddenPageNotPreviewed:
     "1 more status page you do not have access to will be sent this notification. It is not previewed.",

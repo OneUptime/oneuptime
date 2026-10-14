@@ -1,0 +1,151 @@
+import {
+  AllowedEmailDomainsIssue,
+  getAllowedEmailDomainEntries,
+  getAllowedEmailDomainsIssue,
+  MAX_ALLOWED_SUBSCRIBER_EMAIL_DOMAINS,
+} from "Common/Types/StatusPage/SubscriberRestrictions";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * Who Can Subscribe, on Subscribers -> Subscriber Settings: Only Private
+ * Users Can Subscribe (StatusPage.limitSubscribersToPrivateUsers) and
+ * Allowed Email Domains (StatusPage.allowedSubscriberEmailDomains), the two
+ * settings that keep a status page's notifications to the people it is for
+ * (Common/Types/StatusPage/SubscriberRestrictions).
+ *
+ * Kept free of React so the components and their tests read these exact
+ * strings. Every string is a whole sentence or a whole name, wrapped in
+ * translationKey() so npm run i18n:extract finds it, and translated in all
+ * seventeen Dashboard locale files.
+ */
+
+export const SUBSCRIBER_RESTRICTIONS_CARD_TEST_ID: string =
+  "status-page-subscriber-restrictions";
+
+export const PRIVATE_USERS_ONLY_SWITCH_TEST_ID: string =
+  "subscriber-private-users-only-switch";
+
+export const ALLOWED_EMAIL_DOMAINS_SETTING_TEST_ID: string =
+  "subscriber-allowed-email-domains";
+
+// What the box shows before anything is typed: two domains, one a line.
+export const ALLOWED_EMAIL_DOMAINS_PLACEHOLDER: string = "acme.com\nacme.de";
+
+export const SubscriberRestrictionsCopy: {
+  cardTitle: string;
+  cardDescription: string;
+  privateUsersOnlyTitle: string;
+  privateUsersOnlyOnDescription: string;
+  privateUsersOnlyOffDescription: string;
+  /*
+   * Beside the switch on a page no reader signs in to: one open to anyone,
+   * or to anyone with the password.
+   */
+  privateUsersOnlyNoSignInNote: string;
+  allowedDomainsLabel: string;
+  allowedDomainsDescription: string;
+  allowedDomainsSave: string;
+  allowedDomainsDiscard: string;
+  invalidDomain: string;
+  tooManyDomains: string;
+} = {
+  cardTitle: translationKey("Who Can Subscribe"),
+  cardDescription: translationKey(
+    "Limit subscriptions to the people this status page is for.",
+  ),
+  privateUsersOnlyTitle: translationKey("Only Private Users Can Subscribe"),
+  privateUsersOnlyOnDescription: translationKey(
+    "On: only people who can sign in to this status page can subscribe, by email, with the address they sign in with. Subscribers who are not private users of this page are sent nothing.",
+  ),
+  privateUsersOnlyOffDescription: translationKey(
+    "Off: anyone who can see this status page can subscribe.",
+  ),
+  privateUsersOnlyNoSignInNote: translationKey(
+    "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.",
+  ),
+  allowedDomainsLabel: translationKey("Allowed Email Domains"),
+  allowedDomainsDescription: translationKey(
+    "Only email addresses at these domains, or their subdomains, can subscribe and get notifications. One domain per line, such as acme.com. Leave empty to allow any domain. Phone, Slack, Microsoft Teams and webhook subscribers are not affected.",
+  ),
+  allowedDomainsSave: translationKey("Save Domains"),
+  allowedDomainsDiscard: translationKey("Discard Changes"),
+  invalidDomain: translationKey(
+    "{{domain}} is not a valid domain. Enter one domain per line, such as acme.com.",
+  ),
+  tooManyDomains: translationKey(
+    "Allowed Email Domains can hold at most {{count}} domains.",
+  ),
+};
+
+// The sentence under the switch, for the way it is set.
+export const getPrivateUsersOnlyDescription: (isOn: boolean) => string = (
+  isOn: boolean,
+): string => {
+  return isOn
+    ? SubscriberRestrictionsCopy.privateUsersOnlyOnDescription
+    : SubscriberRestrictionsCopy.privateUsersOnlyOffDescription;
+};
+
+/*
+ * Why a list cannot be saved, as the dashboard says it: an English template
+ * and its values, to be translated (translateTemplate), or null when it can
+ * be saved.
+ */
+export const getAllowedEmailDomainsInputProblem: (
+  value: string,
+) => { template: string; values: Record<string, string> } | null = (
+  value: string,
+): { template: string; values: Record<string, string> } | null => {
+  const issue: AllowedEmailDomainsIssue | null =
+    getAllowedEmailDomainsIssue(value);
+
+  if (!issue) {
+    return null;
+  }
+
+  if (issue.kind === "tooManyDomains") {
+    return {
+      template: SubscriberRestrictionsCopy.tooManyDomains,
+      values: { count: String(MAX_ALLOWED_SUBSCRIBER_EMAIL_DOMAINS) },
+    };
+  }
+
+  return {
+    template: SubscriberRestrictionsCopy.invalidDomain,
+    values: { domain: issue.domain },
+  };
+};
+
+/*
+ * Whether what is typed is the list that is saved: the same domains in the
+ * same order, however they are spaced, cased or separated.
+ */
+export const isSameAllowedEmailDomains: (
+  typed: string | null | undefined,
+  saved: string | null | undefined,
+) => boolean = (
+  typed: string | null | undefined,
+  saved: string | null | undefined,
+): boolean => {
+  const first: Array<string> = getAllowedEmailDomainEntries(typed);
+  const second: Array<string> = getAllowedEmailDomainEntries(saved);
+
+  return (
+    first.length === second.length &&
+    first.every((domain: string, index: number): boolean => {
+      return domain === second[index];
+    })
+  );
+};
+
+/*
+ * The list as the box shows it once saved: one domain a line, as the server
+ * stores it.
+ */
+export const toAllowedEmailDomainsText: (
+  value: string | null | undefined,
+) => string = (value: string | null | undefined): string => {
+  return getAllowedEmailDomainEntries(value).join("\n");
+};
+
+export default SubscriberRestrictionsCopy;

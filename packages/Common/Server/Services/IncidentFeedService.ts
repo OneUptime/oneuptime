@@ -24,6 +24,10 @@ import WorkspaceNotificationRuleService, {
 } from "./WorkspaceNotificationRuleService";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import {
+  FeedApiKeyActor,
+  UNNAMED_API_KEY_NAME,
+} from "../Utils/Feed/FeedApiKeyActor";
 
 export class Service extends ProjectReferencesService<IncidentFeed> {
   public constructor() {
@@ -108,6 +112,12 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
      */
     savedFromChatMessage?: SavedChatMessage | undefined;
     aiRunId?: ObjectID | undefined;
+    /*
+     * The project API key that made the change, when no person did
+     * (Utils/Feed/FeedApiKeyActor.fromProps of the write's props): the item
+     * names it as its author. Ignored when the item has a user.
+     */
+    apiKeyActor?: FeedApiKeyActor | undefined;
     // send notifificatin to slack and teams. This is optional
     workspaceNotification?:
       | {
@@ -166,6 +176,10 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
 
       if (data.userId) {
         incidentFeed.userId = data.userId;
+      } else if (data.apiKeyActor?.apiKeyId) {
+        incidentFeed.apiKeyId = data.apiKeyActor.apiKeyId;
+        incidentFeed.apiKeyName =
+          data.apiKeyActor.apiKeyName || UNNAMED_API_KEY_NAME;
       }
 
       if (data.moreInformationInMarkdown) {

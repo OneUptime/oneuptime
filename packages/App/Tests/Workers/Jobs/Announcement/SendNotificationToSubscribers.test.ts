@@ -1163,7 +1163,7 @@ describe("Announcement:SendUpdateNotificationToSubscribers", () => {
       subscriberNotificationStatusOnAnnouncementUpdated:
         StatusPageSubscriberNotificationStatus.Success,
       subscriberNotificationStatusMessageOnAnnouncementUpdated:
-        "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.",
+        "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.",
     });
   });
 
@@ -1181,6 +1181,56 @@ describe("Announcement:SendUpdateNotificationToSubscribers", () => {
     expect(
       StatusPageSubscriberService.getSubscribersByStatusPage,
     ).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Send Notifications to Subscribers off (Common/Types/StatusPage/
+   * SubscriberNotificationsSwitch): the page is passed over before a single
+   * subscriber is read.
+   */
+  test("sends nothing from a status page that sends its subscribers nothing", async () => {
+    updatedRows = [announcement()];
+    const page: StatusPage = statusPage();
+    page.sendSubscriberNotifications = false;
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+
+    await runJob(UPDATED_JOB);
+
+    nothingSent();
+    expect(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).not.toHaveBeenCalled();
+    expect(statusWrites()[1]).toEqual({
+      subscriberNotificationStatusOnAnnouncementUpdated:
+        StatusPageSubscriberNotificationStatus.Success,
+      subscriberNotificationStatusMessageOnAnnouncementUpdated:
+        "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.",
+    });
+  });
+
+  test("still sends from the pages that send, beside one that does not", async () => {
+    updatedRows = [announcement()];
+    const off: StatusPage = statusPage({ id: ObjectID.generate() });
+    off.sendSubscriberNotifications = false;
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([off, statusPage()] as never);
+
+    await runJob(UPDATED_JOB);
+
+    expect(
+      mock(StatusPageSubscriberService.getSubscribersByStatusPage).mock.calls
+        .length,
+    ).toBe(1);
+    expect(
+      String(
+        mock(StatusPageSubscriberService.getSubscribersByStatusPage).mock
+          .calls[0]![0],
+      ),
+    ).toBe(STATUS_PAGE_ID.toString());
+    expect(sentMail().length).toBeGreaterThan(0);
   });
 
   test("marks the update Skipped when the announcement has no status pages", async () => {
@@ -1335,6 +1385,28 @@ describe("Announcement:SendNotificationToSubscribers (created)", () => {
         StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated,
       );
     }
+  });
+
+  test("a new announcement is sent nothing from a status page that sends its subscribers nothing", async () => {
+    createdRows = [
+      announcement({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Pending,
+      }),
+    ];
+    const page: StatusPage = statusPage();
+    page.sendSubscriberNotifications = false;
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()).toEqual([]);
+    expect(sentSms()).toEqual([]);
+    expect(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).not.toHaveBeenCalled();
   });
 
   test("matches the dashboard's created defaults for SMS and chat", async () => {
@@ -2522,7 +2594,7 @@ describe.each(TRIGGERS)(
           [trigger.name === "created"
             ? "subscriberNotificationStatusMessage"
             : "subscriberNotificationStatusMessageOnAnnouncementUpdated"]:
-            "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.",
+            "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.",
         }),
       );
     });

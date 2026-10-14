@@ -54,6 +54,8 @@ export function sitePage(
     onlyShowScopedIncidents?: boolean;
     showIncidentsOnStatusPage?: boolean;
     showEpisodesOnStatusPage?: boolean;
+    // Send Notifications to Subscribers; left unread (on) when not given.
+    sendSubscriberNotifications?: boolean;
     projectId?: ObjectID;
   },
 ): StatusPage {
@@ -69,6 +71,11 @@ export function sitePage(
     overrides?.showIncidentsOnStatusPage !== false;
   page.showEpisodesOnStatusPage = overrides?.showEpisodesOnStatusPage !== false;
   page.onlyShowScopedIncidents = overrides?.onlyShowScopedIncidents === true;
+
+  if (overrides?.sendSubscriberNotifications !== undefined) {
+    page.sendSubscriberNotifications = overrides.sendSubscriberNotifications;
+  }
+
   return page;
 }
 
