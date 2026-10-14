@@ -4,16 +4,31 @@ import {
   DISCORD,
   GITHUB,
   GITLAB,
+  INTEGRATIONS_PAGES,
+  IRC,
   ISSUE_PAGES,
+  IntegrationsDocsPageEntry,
+  OPSGENIE,
+  OVERVIEW,
+  PAGERDUTY,
+  SERVICENOW,
   TELEGRAM,
 } from "./IntegrationsDocsPages";
-import { scanMarkdown } from "./DocsContentSupport";
+import {
+  DOCS_LANGUAGES,
+  listPages,
+  readPage,
+  scanMarkdown,
+} from "./DocsContentSupport";
+import { dashboardLabel, drawnActionLabel } from "./DocsDashboardLabels";
 import {
   bold,
+  boldIn,
   codeIn,
   englishPage,
   englishSection,
   readRepoFile,
+  tableWithHeader,
 } from "./InventoryAndApiDocsSupport";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -93,6 +108,13 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
  * and the step does what the pages say: Discord's address is pinned, a long
  * message is cut with the note the pages quote, Telegram's text goes out
  * plain, and each chat's own reason comes back on the Error output.
+ *
+ * Two sections reach past these four pages. Run Workflow, as every
+ * integrations page that tests a workflow with it says: pick the trigger's
+ * record under the name the Run panel draws it with, never type its ID, in
+ * every language. And the Integrations Overview's chat rows: each says
+ * what its tool's templates send, Telegram's alerts and the others'
+ * incidents.
  *
  * IntegrationsDocsFacts holds every integration page's references and
  * step names; IntegrationsDocsTranslations holds the 16 translations of
@@ -498,6 +520,7 @@ const CHAT_PAGES: Array<ChatPage> = [
 interface TemplateNode {
   componentId: string;
   metadataId: string;
+  componentType?: ComponentType | undefined;
   args?: JSONObject | undefined;
 }
 
@@ -877,7 +900,15 @@ describe("Discord and Telegram: a message from a template, or from scratch", () 
  * Run Workflow on a record trigger asks for the record, under its name
  * (RunForm draws the field as the model's singular name), and lists the
  * newest ones; typing a number or part of a title finds another. It asked
- * for the record's ID before, typed, which is what these pages said.
+ * for the record's ID before, typed, which is what these pages said: the
+ * Integrations Overview's outbound recipe and the PagerDuty, Opsgenie and
+ * ServiceNow pages did until task 28c's follow-up.
+ *
+ * RUN_PAGES is every integrations page that tests its workflow with Run
+ * Workflow, with the trigger that workflow starts from. A page that starts
+ * naming Run Workflow fails "lists every integrations page that names Run
+ * Workflow" until it is listed here, and then each of its 17 languages is
+ * held to the field the Run panel draws for that trigger.
  */
 
 interface RunPage {
@@ -887,28 +918,68 @@ interface RunPage {
   record: string;
   numberWithPrefix: string;
   sentence: string;
+  /*
+   * What the page says the run shows, straight after the sentence: the
+   * response of the tool the API Post (JSON) step calls.
+   */
+  shows?: string | undefined;
 }
 
 const PICKED_FROM_THE_LIST: string =
   ": the most recent ones are listed, and typing its number or part of its title finds another.";
 
-const RUN_PAGES: Array<RunPage> = [
-  ...ISSUE_PAGES.map((page: string): RunPage => {
-    return {
-      page: page,
-      trigger: "incident-on-create",
-      record: "Incident",
-      numberWithPrefix: "incidentNumberWithPrefix",
-      sentence: `Click ${bold("Run Workflow")}, pick a test incident under ${bold("Incident")}, and run it.`,
-    };
-  }),
-  {
-    page: DISCORD,
+// How a page that builds its own workflow on incidents tests it.
+const PICK_A_TEST_INCIDENT: string = `Click ${bold("Run Workflow")}, pick a test incident under ${bold("Incident")}, and run it.`;
+
+// What the API Post (JSON) step shows, as a page with one says it.
+function postShows(response: string): string {
+  return `The ${bold("API Post (JSON)")} step shows a ${response}`;
+}
+
+// A workflow built on incidents, tested with one picked under Incident.
+function incidentRunPage(
+  page: string,
+  sentence: string,
+  shows?: string,
+): RunPage {
+  return {
+    page: page,
     trigger: "incident-on-create",
     record: "Incident",
     numberWithPrefix: "incidentNumberWithPrefix",
-    sentence: `click ${bold("Run Workflow")} and pick an incident you already have under ${bold("Incident")}${PICKED_FROM_THE_LIST}`,
-  },
+    sentence: sentence,
+    shows: shows,
+  };
+}
+
+const RUN_PAGES: Array<RunPage> = [
+  incidentRunPage(
+    OVERVIEW,
+    `5. Click ${bold("Run Workflow")}, pick an incident under ${bold("Incident")}, and run it.`,
+    "A test run really sends the request.",
+  ),
+  incidentRunPage(
+    PAGERDUTY,
+    PICK_A_TEST_INCIDENT,
+    postShows('`202` response with `"status": "success"`'),
+  ),
+  incidentRunPage(OPSGENIE, PICK_A_TEST_INCIDENT, postShows("`202` response")),
+  incidentRunPage(
+    SERVICENOW,
+    PICK_A_TEST_INCIDENT,
+    postShows("`201` response holding the new record"),
+  ),
+  ...ISSUE_PAGES.map((page: string): RunPage => {
+    return incidentRunPage(
+      page,
+      PICK_A_TEST_INCIDENT,
+      postShows("`201` response holding the new issue"),
+    );
+  }),
+  incidentRunPage(
+    DISCORD,
+    `click ${bold("Run Workflow")} and pick an incident you already have under ${bold("Incident")}${PICKED_FROM_THE_LIST}`,
+  ),
   {
     page: TELEGRAM,
     trigger: "alert-on-create",
@@ -916,6 +987,10 @@ const RUN_PAGES: Array<RunPage> = [
     numberWithPrefix: "alertNumberWithPrefix",
     sentence: `click ${bold("Run Workflow")} and pick an alert you already have under ${bold("Alert")}${PICKED_FROM_THE_LIST}`,
   },
+  incidentRunPage(
+    IRC,
+    `click ${bold("Run Workflow")} and pick an incident you already have under ${bold("Incident")}${PICKED_FROM_THE_LIST}`,
+  ),
 ];
 
 describe("Run Workflow: the trigger's record, picked rather than typed", () => {
@@ -934,6 +1009,12 @@ describe("Run Workflow: the trigger's record, picked rather than typed", () => {
         readRepoFile("Common/UI/Components/Workflow/RunForm.tsx"),
       ).toContain("title: info.singularName,");
       expect(text).toContain(entry.sentence);
+
+      // The rest of the step is as it was: what the run shows.
+      if (entry.shows) {
+        expect(text).toContain(`${entry.sentence} ${entry.shows}`);
+      }
+
       // Neither the ID the panel asked for before, nor the setting's old name.
       expect(text).not.toContain(`${entry.record} ID`);
       expect(text).not.toContain("Select Fields");
@@ -961,4 +1042,423 @@ describe("Run Workflow: the trigger's record, picked rather than typed", () => {
       ).toContain('mostRecent: translationKey("Most recent")');
     },
   );
+});
+
+/*
+ * Every integrations page, in every language: a line that names the Run
+ * Workflow button picks the record under the field the Run panel draws for
+ * the page's trigger, each named as the page names the Dashboard's labels
+ * in that language (labelOnPage), and never asks for an Incident ID or an
+ * Alert ID.
+ */
+
+// The integrations pages of a language, as "integrations/<page>".
+function integrationsPages(language: string): Array<string> {
+  return listPages(language).filter((page: string): boolean => {
+    return page.startsWith("integrations/");
+  });
+}
+
+// The field a trigger's run asks for its record under: the record's name.
+function runRecordField(trigger: string): string {
+  const info: RunRecordTriggerInfo | null = getRunRecordTriggerInfo(
+    component(trigger),
+  );
+
+  if (!info) {
+    throw new Error(`${trigger} runs without a record`);
+  }
+
+  return info.singularName;
+}
+
+// The fields the Run panel asked for before it let the reader pick.
+const ID_FIELDS: ReadonlyArray<string> = ["Incident ID", "Alert ID"];
+
+// The title of every trigger a workflow can start from.
+const TRIGGER_TITLES: ReadonlyArray<string> = catalog.components
+  .filter((metadata: ComponentMetadata): boolean => {
+    return metadata.componentType === ComponentType.Trigger;
+  })
+  .map((metadata: ComponentMetadata): string => {
+    return metadata.title;
+  });
+
+/*
+ * A Dashboard label as a page in a language names it. The pages tasks 28a
+ * to 28c rewrote (INTEGRATIONS_PAGES) name every label as that language's
+ * Dashboard draws it, Persian included, which IntegrationsDocsTranslations
+ * holds. The integrations pages with suites of their own, IRC and Huntress,
+ * keep the Persian page's labels in English, which IrcIntegrationDocs holds
+ * (dashboardLabel).
+ */
+function labelOnPage(page: string, language: string, english: string): string {
+  const drawnOnThisPage: boolean = INTEGRATIONS_PAGES.some(
+    (entry: IntegrationsDocsPageEntry): boolean => {
+      return entry.page === page;
+    },
+  );
+
+  return drawnOnThisPage
+    ? drawnActionLabel(language, english)
+    : dashboardLabel(language, english);
+}
+
+// What a language's integrations pages say wrong about Run Workflow, by line.
+function runWorkflowProblems(language: string): {
+  problems: Array<string>;
+  pagesThatRun: Array<string>;
+} {
+  // Run Workflow as a page names it in either way, so no line is missed.
+  const runWorkflow: Array<string> = [
+    bold("Run Workflow"),
+    bold(drawnActionLabel(language, "Run Workflow")),
+  ];
+  const idFields: Array<string> = ID_FIELDS.flatMap(
+    (field: string): Array<string> => {
+      return [bold(field), bold(drawnActionLabel(language, field))];
+    },
+  );
+  const problems: Array<string> = [];
+  const pagesThatRun: Array<string> = [];
+
+  for (const page of integrationsPages(language)) {
+    const entry: RunPage | undefined = RUN_PAGES.find(
+      (candidate: RunPage): boolean => {
+        return candidate.page === page;
+      },
+    );
+
+    readPage(language, page)
+      .split("\n")
+      .forEach((line: string, index: number): void => {
+        if (
+          !runWorkflow.some((label: string): boolean => {
+            return line.includes(label);
+          })
+        ) {
+          return;
+        }
+
+        const where: string = `${language}/${page}:${index + 1}`;
+
+        if (!entry) {
+          problems.push(`${where} names Run Workflow, but RUN_PAGES does not`);
+          return;
+        }
+
+        if (!pagesThatRun.includes(page)) {
+          pagesThatRun.push(page);
+        }
+
+        const field: string = bold(
+          labelOnPage(page, language, runRecordField(entry.trigger)),
+        );
+        const button: string = bold(
+          labelOnPage(page, language, "Run Workflow"),
+        );
+
+        if (!line.includes(button)) {
+          problems.push(`${where} does not name the button as ${button}`);
+        }
+
+        if (!line.includes(field)) {
+          problems.push(`${where} does not pick the record under ${field}`);
+        }
+
+        for (const idField of idFields) {
+          if (line.includes(idField)) {
+            problems.push(`${where} asks for ${idField}`);
+          }
+        }
+      });
+  }
+
+  return { problems, pagesThatRun };
+}
+
+describe("Run Workflow on every integrations page, in every language", () => {
+  it("the Run panel draws a record trigger's field under the record's name, through the Dashboard's locale, as a form draws every label", () => {
+    expect(readRepoFile("Common/UI/Components/Workflow/RunForm.tsx")).toContain(
+      "title: info.singularName,",
+    );
+    expect(
+      readRepoFile("Common/UI/Components/Forms/Fields/FieldLabel.tsx"),
+    ).toContain("translateString(props.title) ?? props.title");
+    // The two triggers these pages run, and the fields they draw.
+    expect(runRecordField("incident-on-create")).toBe("Incident");
+    expect(runRecordField("alert-on-create")).toBe("Alert");
+    expect(labelOnPage(OPSGENIE, "de", "Incident")).toBe("Vorfall");
+    expect(labelOnPage(TELEGRAM, "ja", "Alert")).toBe("アラート");
+    // Persian: drawn on the rewritten pages, in English on IRC's.
+    expect(labelOnPage(OVERVIEW, "fa", "Incident")).toBe(
+      drawnActionLabel("fa", "Incident"),
+    );
+    expect(labelOnPage(OVERVIEW, "fa", "Incident")).not.toBe("Incident");
+    expect(labelOnPage(IRC, "fa", "Incident")).toBe("Incident");
+    expect(labelOnPage(IRC, "de", "Incident")).toBe("Vorfall");
+  });
+
+  it("lists every integrations page that names Run Workflow, and only those", () => {
+    const naming: Array<string> = integrationsPages("en").filter(
+      (page: string): boolean => {
+        return englishPage(page).includes(bold("Run Workflow"));
+      },
+    );
+
+    expect([...naming].sort()).toEqual(
+      RUN_PAGES.map((entry: RunPage): string => {
+        return entry.page;
+      }).sort(),
+    );
+  });
+
+  it.each(RUN_PAGES)(
+    "$page names the trigger its workflow starts from before it says to run it",
+    (entry: RunPage) => {
+      const lines: Array<string> = englishPage(entry.page).split("\n");
+      const runAt: number = lines.findIndex((line: string): boolean => {
+        return line.includes(bold("Run Workflow"));
+      });
+      const named: Array<string> = lines
+        .slice(0, runAt + 1)
+        .flatMap((line: string): Array<string> => {
+          return boldIn(line);
+        })
+        .filter((span: string): boolean => {
+          return TRIGGER_TITLES.includes(span);
+        });
+
+      expect(runAt).toBeGreaterThan(0);
+      expect(named[named.length - 1]).toBe(component(entry.trigger).title);
+      expect(entry.record).toBe(runRecordField(entry.trigger));
+    },
+  );
+
+  it.each(DOCS_LANGUAGES)(
+    "%s: every integrations page picks the record under the field its Dashboard's Run panel draws, and asks for no ID",
+    (language: string) => {
+      const found: { problems: Array<string>; pagesThatRun: Array<string> } =
+        runWorkflowProblems(language);
+
+      expect(found.problems).toEqual([]);
+      // Every listed page tells its reader to run it, in this language too.
+      expect([...found.pagesThatRun].sort()).toEqual(
+        RUN_PAGES.map((entry: RunPage): string => {
+          return entry.page;
+        }).sort(),
+      );
+    },
+  );
+});
+
+/*
+ * --------------------------------------- the Overview's chat tool rows
+ *
+ * The Integrations Overview says in one line what each chat tool's page
+ * sets up. A tool whose ready-made templates all start from one kind of
+ * record names that record in its row, and no other: Discord's and IRC's
+ * incidents, Telegram's alerts. Telegram's row said "incident updates"
+ * while its one template sends a message when an alert fires. Mattermost's
+ * templates start from incidents, alerts, monitors and maintenance, so its
+ * row is held to none of them. Slack and Microsoft Teams are built-in
+ * connections, not a step.
+ */
+
+// The workflow step each outbound chat tool's row stands for.
+const CHAT_ROW_STEPS: Readonly<Record<string, string>> = {
+  Mattermost: ComponentID.MattermostSendMessageToChannel,
+  Discord: ComponentID.DiscordSendMessageToChannel,
+  Telegram: ComponentID.TelegramSendMessageToChat,
+  IRC: ComponentID.IRCSendMessageToChannel,
+};
+
+interface ChatRow {
+  tool: string;
+  target: string;
+  direction: string;
+  description: string;
+}
+
+// The rows of the Overview's Chat tools table.
+function chatRows(): Array<ChatRow> {
+  return tableWithHeader(
+    englishSection(OVERVIEW, "### Chat tools"),
+    "Tool",
+  ).map((row: Array<string>): ChatRow => {
+    const cell: string = row[0] as string;
+
+    return {
+      tool: cell.slice(1, cell.indexOf("]")),
+      target: scanMarkdown(cell).links[0]?.target || "",
+      direction: row[1] as string,
+      description: row[2] as string,
+    };
+  });
+}
+
+function chatRow(tool: string): ChatRow {
+  const row: ChatRow | undefined = chatRows().find(
+    (candidate: ChatRow): boolean => {
+      return candidate.tool === tool;
+    },
+  );
+
+  if (!row) {
+    throw new Error(`The Overview's chat tools have no ${tool} row`);
+  }
+
+  return row;
+}
+
+function nodesOf(templateId: string): Array<TemplateNode> {
+  return (
+    getTemplateGraphSpec(templateId) as unknown as {
+      nodes: Array<TemplateNode>;
+    }
+  ).nodes;
+}
+
+// The templates that send with a step.
+function templatesSendingWith(step: string): Array<WorkflowTemplate> {
+  return getWorkflowTemplates().filter(
+    (template: WorkflowTemplate): boolean => {
+      return nodesOf(template.id).some((node: TemplateNode): boolean => {
+        return node.metadataId === step;
+      });
+    },
+  );
+}
+
+/*
+ * The record a template's trigger starts from, by its name ("Incident"),
+ * or null for a trigger that starts from none, such as a webhook.
+ */
+function recordStartedFrom(templateId: string): string | null {
+  const trigger: TemplateNode | undefined = nodesOf(templateId).find(
+    (node: TemplateNode): boolean => {
+      return node.componentType === ComponentType.Trigger;
+    },
+  );
+
+  if (!trigger) {
+    throw new Error(`${templateId} has no trigger`);
+  }
+
+  return (
+    getRunRecordTriggerInfo(component(trigger.metadataId))?.singularName || null
+  );
+}
+
+// The records a chat tool's templates start from, each once.
+function recordsOf(tool: string): Array<string | null> {
+  return Array.from(
+    new Set(
+      templatesSendingWith(CHAT_ROW_STEPS[tool] as string).map(
+        (template: WorkflowTemplate): string | null => {
+          return recordStartedFrom(template.id);
+        },
+      ),
+    ),
+  );
+}
+
+describe("the Integrations Overview's chat rows", () => {
+  it("list every outbound chat tool by the step it sends with, after the built-in connections", () => {
+    const rows: Array<ChatRow> = chatRows();
+
+    expect(
+      rows
+        .filter((row: ChatRow): boolean => {
+          return row.direction === "Outbound";
+        })
+        .map((row: ChatRow): string => {
+          return row.tool;
+        }),
+    ).toEqual(Object.keys(CHAT_ROW_STEPS));
+
+    for (const step of Object.values(CHAT_ROW_STEPS)) {
+      expect(component(step).componentType).toBe(ComponentType.Component);
+      expect(templatesSendingWith(step).length).toBeGreaterThan(0);
+    }
+
+    for (const tool of ["Slack", "Microsoft Teams"]) {
+      expect(
+        chatRow(tool).description.startsWith("A built-in connection:"),
+      ).toBe(true);
+    }
+  });
+
+  it("name, for each chat tool, the one record its templates start from, and no other", () => {
+    const tools: Array<string> = Object.keys(CHAT_ROW_STEPS);
+    const everyRecord: Array<string> = Array.from(
+      new Set(
+        tools.flatMap((tool: string): Array<string> => {
+          return recordsOf(tool).filter(
+            (record: string | null): record is string => {
+              return record !== null;
+            },
+          );
+        }),
+      ),
+    );
+
+    // What these pages' templates start from.
+    expect(recordsOf("Discord")).toEqual(["Incident"]);
+    expect(recordsOf("IRC")).toEqual(["Incident"]);
+    expect(recordsOf("Telegram")).toEqual(["Alert"]);
+    expect(recordsOf("Mattermost").length).toBeGreaterThan(1);
+
+    let held: number = 0;
+
+    for (const tool of tools) {
+      const records: Array<string | null> = recordsOf(tool);
+
+      if (records.length !== 1 || records[0] === null) {
+        continue;
+      }
+
+      const description: string = chatRow(tool).description.toLowerCase();
+      const named: Array<string> = everyRecord.filter(
+        (record: string): boolean => {
+          return description.includes(record.toLowerCase());
+        },
+      );
+
+      held += 1;
+      expect({ tool, named }).toEqual({ tool, named: records });
+    }
+
+    expect(held).toBe(3);
+  });
+
+  it("say Telegram sends a message to a chat when an alert fires, as its one template does", () => {
+    const templates: Array<WorkflowTemplate> = templatesSendingWith(
+      ComponentID.TelegramSendMessageToChat,
+    );
+    const template: WorkflowTemplate = templates[0] as WorkflowTemplate;
+    const when: string = template.name.slice(template.name.indexOf(" when "));
+
+    expect(
+      templates.map((candidate: WorkflowTemplate): string => {
+        return candidate.id;
+      }),
+    ).toEqual(["alert-created-telegram"]);
+    expect(when).toBe(" when an alert fires");
+    expect(template.category).toBe(WorkflowTemplateCategory.Alerts);
+    expect(
+      template.description.startsWith("Sends a message to a Telegram chat"),
+    ).toBe(true);
+    expect(recordStartedFrom(template.id)).toBe("Alert");
+    expect(chatRow("Telegram")).toEqual({
+      tool: "Telegram",
+      target: `/docs/${TELEGRAM}`,
+      direction: "Outbound",
+      description: `Send a message to a Telegram chat${when}.`,
+    });
+    // As the Telegram page says first.
+    expect(englishPage(TELEGRAM)).toContain(
+      "Send a message to a [Telegram](https://telegram.org) chat, group or channel when an alert fires",
+    );
+  });
 });
