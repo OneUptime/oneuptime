@@ -148,6 +148,18 @@ Svaren på `help` och `oncall` är meddelanden som bara du ser, under kommandot.
 > [!NOTE]
 > `/oneuptime incident` och `/oneuptime maintenance` ersätter `/incident` och `/maintenance`, som kunde krocka med kommandon med samma namn i andra Slack-appar. En Slack-app som skapats från ett tidigare manifest behåller dem, och de öppnar samma formulär, tills appen uppdateras: se [Appar skapade från ett äldre manifest](/docs/self-hosted/slack-integration#appar-skapade-från-ett-äldre-manifest).
 
+## OneUptimes startsida i Slack
+
+Öppna OneUptime under **Apps** i sidofältet i Slack: fliken **Home** visar vad som händer i projektet, så som du får se det, och läses om varje gång du öppnar den.
+
+- **Din jour.** Jourschemana du har jour i just nu, och till när, eller annars ditt nästa pass.
+- **Det som är öppet.** De senaste öppna incidenterna och larmen du får läsa, var och en med en länk till sin sida i OneUptime.
+- **Knapparna.** **Declare incident**, **Schedule maintenance** och **Page someone** öppnar samma formulär som `/oneuptime incident`, `/oneuptime maintenance` och `/oneuptime page`, och **Who's on call** svarar som `/oneuptime oncall`.
+
+Startsidan läser som du, så den behöver ditt eget anslutna Slack-konto. Tills det är anslutet har startsidan knappen **Connect Slack account**, och den visar din startsida så snart du har anslutit det.
+
+När någon lägger till OneUptime i en kanal publicerar den en hälsning där: hur man ställer en fråga till den, och var man lägger till en aviseringsregel som publicerar i kanalen.
+
 ## Fråga OneUptime AI från Slack
 
 Fråga om dina loggar, traces, mätvärden, incidenter och monitorer på vanligt språk. Nämn OneUptime med @ i en kanal, eller skicka ett direktmeddelande, så svarar den i tråden. `/oneuptime ask which monitors are down?` publicerar svaret i kanalen. Båda kräver att ditt eget Slack-konto är anslutet och att AI är påslaget för projektet. Svar i Slack läser bara: använd knapparna för att ändra något. Se [Fråga AI](/docs/ai/ask-ai).

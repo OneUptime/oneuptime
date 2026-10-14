@@ -148,6 +148,18 @@ De antwoorden op `help` en `oncall` zijn berichten die alleen jij ziet, onder he
 > [!NOTE]
 > `/oneuptime incident` en `/oneuptime maintenance` vervangen `/incident` en `/maintenance`, die konden botsen met gelijknamige commando's van andere Slack-apps. Een Slack-app die vanuit een eerder manifest is aangemaakt, houdt ze, en ze openen dezelfde formulieren, tot de app wordt bijgewerkt: zie [Apps aangemaakt vanuit een ouder manifest](/docs/self-hosted/slack-integration#apps-aangemaakt-vanuit-een-ouder-manifest).
 
+## De startpagina van OneUptime in Slack
+
+Open OneUptime onder **Apps** in de zijbalk van Slack: het tabblad **Home** laat zien wat er in het project gebeurt, zoals jij het mag zien, en wordt bij elke keer openen opnieuw gelezen.
+
+- **Jouw dienst.** De bereikbaarheidsschema's waarin je nu dienst hebt, en tot wanneer, of anders je volgende dienst.
+- **Wat open is.** De nieuwste open incidenten en waarschuwingen die je mag lezen, elk met een link naar de pagina ervan in OneUptime.
+- **De knoppen.** **Declare incident**, **Schedule maintenance** en **Page someone** openen dezelfde formulieren als `/oneuptime incident`, `/oneuptime maintenance` en `/oneuptime page`, en **Who's on call** antwoordt zoals `/oneuptime oncall`.
+
+De startpagina leest als jou, dus heeft ze je eigen gekoppelde Slack-account nodig. Zolang dat niet zo is, staat er een knop **Connect Slack account** op, en zodra je het hebt gekoppeld, zie je je startpagina.
+
+Als iemand OneUptime aan een kanaal toevoegt, plaatst het daar een begroeting: hoe je het een vraag stelt en waar je een meldingsregel toevoegt die in het kanaal plaatst.
+
 ## OneUptime AI vragen vanuit Slack
 
 Stel in gewone taal vragen over je logs, traces, metrieken, incidenten en monitoren. Noem OneUptime met @ in een kanaal, of stuur het een direct bericht, en het antwoordt in de thread. `/oneuptime ask which monitors are down?` plaatst het antwoord in het kanaal. Beide vereisen dat je eigen Slack-account gekoppeld is en dat AI voor het project aanstaat. Antwoorden in Slack lezen alleen: gebruik de knoppen om iets te wijzigen. Zie [AI vragen](/docs/ai/ask-ai).

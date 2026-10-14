@@ -160,6 +160,18 @@ La note est enregistrée en votre nom, avec vos autorisations, et l'application 
 
 Hormis les listes `show`, ce sont les mots qui suivent `/oneuptime` dans Slack ; `create incident` et `create maintenance` fonctionnent toujours. Interroger OneUptime AI demande votre propre compte Microsoft Teams connecté, et l'IA activée pour le projet. Si le vôtre n'est pas connecté, le bot vous demande une fois par fil ou par conversation de le connecter, avec un bouton **Connect Microsoft Teams account**. Voir [Demander à l'IA](/docs/ai/ask-ai).
 
+## Votre accueil dans Microsoft Teams
+
+Écrivez `home` au bot OneUptime, et il répond avec votre accueil : une carte qui montre ce qui se passe dans le projet, tel que vous pouvez le voir.
+
+- **Votre astreinte.** Les plannings d'astreinte dans lesquels vous êtes d'astreinte en ce moment, et jusqu'à quand, ou sinon votre prochain créneau.
+- **Ce qui est ouvert.** Les incidents et alertes ouverts les plus récents que vous pouvez lire, chacun avec un lien vers sa page dans OneUptime.
+- **Ses boutons.** **Declare incident** et **Page someone** répondent comme `incident` et `page`, **Who's on call** comme `oncall`, et **Refresh** relit la carte, à sa place.
+
+Quand vous ajoutez l'application OneUptime pour vous-même, le bot vous envoie aussitôt votre accueil. L'accueil et les listes `show` lisent en votre nom, il leur faut donc votre propre compte Microsoft Teams connecté : tant qu'il ne l'est pas, le bot répond avec un bouton **Connect Microsoft Teams account**. **Ouvrir OneUptime dans Microsoft Teams**, sous **Paramètres utilisateur** > **Espace de travail** > **Microsoft Teams**, ouvre l'application dans Teams.
+
+Quand l'application est ajoutée à une équipe, le bot y dit bonjour : comment lui poser une question, et où ajouter une règle de notification qui publie dans les canaux de l'équipe.
+
 ## Créer des incidents et des maintenances depuis Microsoft Teams
 
 Écrire `incident` ou `maintenance` au bot OneUptime ouvre un formulaire pour la personne qui l'a écrit, dans une conversation personnelle, un canal ou une conversation de groupe indifféremment. Il est rempli au nom de cette personne : en tant que compte OneUptime auquel son compte Microsoft Teams est connecté (voir [Connecter Microsoft Teams](#connecter-microsoft-teams)), avec les autorisations de ce compte dans le projet. Une personne dont le compte n'est pas connecté, ou dont le compte OneUptime n'est plus membre du projet, apprend quoi faire dans une réponse qui la mentionne, au lieu de recevoir le formulaire.

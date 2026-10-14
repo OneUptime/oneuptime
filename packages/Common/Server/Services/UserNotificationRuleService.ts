@@ -28,6 +28,7 @@ import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
+import WorkspaceNotificationText from "../Utils/Workspace/WorkspaceNotificationText";
 import ProjectService from "./ProjectService";
 import UserNotificationRuleAdminService, {
   RuleColumnCarrier,
@@ -3234,6 +3235,16 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
+     * The page's notification: its headline and what it is about, read off
+     * the message - "🚨 New incident assigned to you: INC-8 — Checkout is
+     * down" - so a locked phone says why it buzzed.
+     */
+    const notificationText: string | undefined =
+      WorkspaceNotificationText.fromBlocks(messageBlocks, {
+        isFirstParagraphAHeadline: true,
+      });
+
+    /*
      * Fire-and-forget like every other channel: the sender flips the timeline
      * row to Sent / Error itself, and the .catch is the safety net for a
      * rejection raised before it gets that far.
@@ -3243,6 +3254,7 @@ export class Service extends ProjectReferencesService<Model> {
       workspaceType: data.workspaceType,
       workspaceUserId: data.workspaceUserId,
       messageBlocks: messageBlocks,
+      notificationText: notificationText,
       messageSummary: messageSummary,
       userId: data.notificationRuleItem.userId!,
       userOnCallLogTimelineId: updatedLog.id!,
