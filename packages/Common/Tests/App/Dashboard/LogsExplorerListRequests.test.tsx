@@ -623,10 +623,11 @@ describe("a page load reads the list once (#4709)", () => {
      * The empty page 40, then page 1 - not page 39, 38, ... one request
      * each, which reading the lower-bound count as a total did.
      */
-    expect(listCalls().map((call: ListArgs): number => call.skip)).toEqual([
-      39 * PAGE_SIZE,
-      0,
-    ]);
+    expect(
+      listCalls().map((call: ListArgs): number => {
+        return call.skip;
+      }),
+    ).toEqual([39 * PAGE_SIZE, 0]);
     expect(footerSummary()).toBe("Showing 1-100 of 150 logs");
     expect(urlParams().get("page")).toBeNull();
   });
@@ -704,11 +705,11 @@ describe("a real change reads the list once", () => {
     fireEvent.click(within(footer()).getByTestId("pagination-page-3"));
     await settle();
 
-    expect(listCalls().map((call: ListArgs): number => call.skip)).toEqual([
-      0,
-      PAGE_SIZE,
-      2 * PAGE_SIZE,
-    ]);
+    expect(
+      listCalls().map((call: ListArgs): number => {
+        return call.skip;
+      }),
+    ).toEqual([0, PAGE_SIZE, 2 * PAGE_SIZE]);
     // The window the filters were set with, not one re-read per page.
     for (const call of listCalls()) {
       expect(windowOf(call.query)).toBe(PAST_HOUR_WINDOW);

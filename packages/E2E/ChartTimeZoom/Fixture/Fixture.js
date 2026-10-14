@@ -15,6 +15,11 @@
  *                                     Pages/Traces/{Layout,Index} (TracesViewer)
  *   LOGS                              /dashboard/:projectId/logs
  *                                     Pages/Logs/{Layout,Index} (LogsViewer)
+ *   EXCEPTIONS_UNRESOLVED             /dashboard/:projectId/exceptions/unresolved
+ *                                     Pages/Exceptions/{Layout,Unresolved}
+ *                                     (ExceptionsViewer)
+ *   METRICS                           /dashboard/:projectId/metrics
+ *                                     Pages/Metrics/{Layout,Index} (MetricsViewer)
  *
  * Only the data boundary (ModelAPI / AnalyticsModelAPI / API / Realtime) and
  * the signed-in user are replaced. Every record is fabricated for a generic
@@ -116,6 +121,10 @@ import TracesLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Traces/Lay
 import TracesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Traces/Index";
 import LogsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Logs/Layout";
 import LogsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Logs/Index";
+import ExceptionsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Exceptions/Layout";
+import ExceptionsUnresolved from "../../../App/FeatureSet/Dashboard/src/Pages/Exceptions/Unresolved";
+import MetricsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/Layout";
+import MetricsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/Index";
 import RouteMap, {
   RouteUtil,
 } from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -134,6 +143,7 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
 import Label from "Common/Models/DatabaseModels/Label";
 import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
+import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
@@ -142,6 +152,7 @@ import RecommendationDismissal from "Common/Models/DatabaseModels/Recommendation
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import Service from "Common/Models/DatabaseModels/Service";
+import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
 import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -160,6 +171,7 @@ import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import TimeRange from "Common/Types/Time/TimeRange";
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -1527,11 +1539,109 @@ fixture.dataset.services = EXPLORER_SERVICES.map((service) => {
   return { id: service.id, name: service.name };
 });
 
-// Read by the explorers' resource lists and saved views; none exist yet.
+// Read by the explorers' resource lists and saved views.
 table(DockerHost);
 table(PodmanHost);
 table(TraceSavedView);
-table(LogSavedView);
+
+/*
+ * One saved logs view, "Checkout errors": checkout-api's errors over the
+ * past day. Not the project default, so it applies only where a link names
+ * it (ExplorerListRequests.spec.ts, issue #4709): every other page load
+ * opens the explorer exactly as it did with no saved views at all.
+ */
+const CHECKOUT_ERRORS_VIEW_ID = uuid("65000000", 1);
+insert(LogSavedView, {
+  _id: CHECKOUT_ERRORS_VIEW_ID,
+  name: "Checkout errors",
+  query: {
+    severityText: new Includes([LogSeverity.Error]),
+    primaryEntityId: new Includes([new ObjectID(EXPLORER_SERVICES[0].id)]),
+  },
+  timeRange: { range: TimeRange.PAST_ONE_DAY },
+  columns: [],
+  sortField: "time",
+  sortOrder: SortOrder.Descending,
+  pageSize: 100,
+  isDefault: false,
+});
+fixture.dataset.logSavedViewId = CHECKOUT_ERRORS_VIEW_ID;
+
+// Read by the Metrics explorer's saved-views control; none exist.
+table(MetricSavedView);
+
+/*
+ * The Exceptions explorer's exception groups (Postgres TelemetryException,
+ * one row per fingerprint): five, all unresolved and last seen inside the
+ * past day. Only classes the default "Issues" lens shows: the fixture does
+ * not model the lens's IncludesNone, which matches every row here. The
+ * explorer's chart and facet counts are read off the same rows (see
+ * EXPLORER_ENDPOINTS): a group's occurrences fall in the minute it was last
+ * seen.
+ */
+const EXCEPTION_GROUPS = [
+  {
+    service: 0,
+    type: "DeadlineExceededError",
+    message: "context deadline exceeded calling payments-worker /charge",
+    count: 412,
+    firstSeen: 9 * DAY,
+    lastSeen: 17 * MINUTE,
+    errorClass: "infrastructure",
+  },
+  {
+    service: 0,
+    type: "TypeError",
+    message: "Cannot read properties of undefined (reading 'items')",
+    count: 37,
+    firstSeen: 2 * DAY,
+    lastSeen: 3 * HOUR,
+    errorClass: "code-fault",
+  },
+  {
+    service: 1,
+    type: "ConnectionResetError",
+    message: "connection reset by peer while writing to ledger-db",
+    count: 129,
+    firstSeen: 30 * DAY,
+    lastSeen: 41 * MINUTE,
+    errorClass: "infrastructure",
+  },
+  {
+    service: 2,
+    type: "IndexNotFoundException",
+    message: "no such index [products-v7]",
+    count: 8,
+    firstSeen: 5 * HOUR,
+    lastSeen: 2 * HOUR,
+    errorClass: "unknown",
+  },
+  {
+    service: 3,
+    type: "ChunkLoadError",
+    message: "Loading chunk 412 failed",
+    count: 64,
+    firstSeen: 4 * DAY,
+    lastSeen: 6 * HOUR,
+    errorClass: "code-fault",
+  },
+];
+EXCEPTION_GROUPS.forEach((group, index) => {
+  insert(TelemetryException, {
+    fingerprint: `fp-${String(index + 1).padStart(2, "0")}-${group.type}`,
+    exceptionType: group.type,
+    message: group.message,
+    occuranceCount: group.count,
+    firstSeenAt: ago(group.firstSeen),
+    lastSeenAt: ago(group.lastSeen),
+    isResolved: false,
+    isArchived: false,
+    primaryEntityId: new ObjectID(EXPLORER_SERVICES[group.service].id),
+    primaryEntityType: ServiceType.OpenTelemetry,
+    environment: "production",
+    errorClass: group.errorClass,
+  });
+});
 
 // A 32-bit FNV-style hash of a few integers, mixed so neighbours differ.
 function hash(...parts) {
@@ -2135,6 +2245,33 @@ function attributeValuesOf(generated, key) {
   });
 }
 
+// The exceptions explorer's chart and facet filters, over exception groups.
+const EXCEPTION_BODY_FILTERS = {
+  serviceIds: SPAN_BODY_FILTERS.serviceIds,
+  exceptionTypes: (row, types) => {
+    return types.includes(row.exceptionType);
+  },
+  environments: (row, environments) => {
+    return environments.includes(row.environment);
+  },
+  messageSearchText: (row, text) => {
+    return contains(row.message, text);
+  },
+  fingerprints: (row, fingerprints) => {
+    return fingerprints.includes(row.fingerprint);
+  },
+};
+
+// The exception groups last seen inside the request's window that it matches.
+function exceptionGroupsIn(body, url) {
+  const { start, end } = bodyWindow(body);
+  const matches = bodyFilter(EXCEPTION_BODY_FILTERS, body, url);
+  return table(TelemetryException).filter((row) => {
+    const seen = toTime(row.lastSeenAt);
+    return seen >= start && seen < end && matches(row);
+  });
+}
+
 const SPAN_SERIES_ORDER = ["unset", "ok", "error"];
 const SPAN_SERIES = {
   [SpanStatus.Unset]: "unset",
@@ -2254,6 +2391,95 @@ const EXPLORER_ENDPOINTS = [
           body.attributeKey,
         ),
       };
+    },
+  },
+  {
+    path: "/telemetry/exceptions/histogram",
+    answer: (body, url, entry) => {
+      const { start, end } = bodyWindow(body);
+      const bucketSizeInMinutes =
+        Number(body.bucketSizeInMinutes) ||
+        defaultBucketSizeInMinutes(start, end);
+      const bucketMs = bucketSizeInMinutes * MINUTE;
+      const counts = new Map();
+      exceptionGroupsIn(body, url).forEach((row) => {
+        const bucket = Math.floor(toTime(row.lastSeenAt) / bucketMs) * bucketMs;
+        counts.set(bucket, (counts.get(bucket) || 0) + row.occuranceCount);
+      });
+      const buckets = Array.from(counts.entries())
+        .sort(([left], [right]) => {
+          return left - right;
+        })
+        .map(([bucket, count]) => {
+          return {
+            time: clickHouseDateTime(bucket),
+            series: "unhandled",
+            count,
+          };
+        });
+      entry.bucketSizeInMinutes = bucketSizeInMinutes;
+      entry.buckets = buckets.length;
+      return { buckets };
+    },
+  },
+  {
+    path: "/telemetry/exceptions/facets",
+    answer: (body, url) => {
+      const rows = exceptionGroupsIn(body, url);
+      const facets = {};
+      for (const key of body.facetKeys || []) {
+        if (key === "primaryEntityId") {
+          facets[key] = serviceFacet(rows);
+        } else if (RESOURCE_FACET_CATALOG_KEYS.includes(key)) {
+          facets[key] = resourceFacet(key);
+        } else if (key === "exceptionType") {
+          facets[key] = countBy(rows, (row) => {
+            return row.exceptionType;
+          });
+        } else if (key === "environment") {
+          facets[key] = countBy(rows, (row) => {
+            return row.environment;
+          });
+        } else {
+          fixture.unhandled.push({ kind: "api", url, facetKey: key });
+          facets[key] = [];
+        }
+      }
+      return { facets, timedOutFacets: [] };
+    },
+  },
+  {
+    path: "/telemetry/exceptions/get-attributes",
+    answer: () => {
+      return { attributes: [] };
+    },
+  },
+  {
+    path: "/telemetry/metrics/facets",
+    answer: (body, url) => {
+      const facets = {};
+      for (const key of body.facetKeys || []) {
+        if (key === "primaryEntityId") {
+          // The project's services; no metric series here names one.
+          facets[key] = serviceFacet([]);
+        } else {
+          fixture.unhandled.push({ kind: "api", url, facetKey: key });
+          facets[key] = [];
+        }
+      }
+      return { facets, timedOutFacets: [] };
+    },
+  },
+  {
+    path: "/telemetry/metrics/get-attributes",
+    answer: () => {
+      const keys = new Set();
+      SERIES.forEach((item) => {
+        Object.keys(item.attributes || {}).forEach((key) => {
+          keys.add(key);
+        });
+      });
+      return { attributes: Array.from(keys).sort() };
     },
   },
 ];
@@ -2802,6 +3028,16 @@ function FixtureLogsLayout() {
   return <LogsLayout {...pageProps(PageMap.LOGS)} />;
 }
 
+function FixtureExceptionsLayout() {
+  useNavigationHooks();
+  return <ExceptionsLayout {...pageProps(PageMap.EXCEPTIONS_UNRESOLVED)} />;
+}
+
+function FixtureMetricsLayout() {
+  useNavigationHooks();
+  return <MetricsLayout {...pageProps(PageMap.METRICS)} />;
+}
+
 function StubPage(props) {
   useNavigationHooks();
   const location = useLocation();
@@ -2892,6 +3128,28 @@ createRoot(document.getElementById("root")).render(
           element={<FixtureLogsLayout />}
         >
           <Route index element={<LogsPage {...pageProps(PageMap.LOGS)} />} />
+        </Route>
+        <Route
+          path={RouteMap[PageMap.EXCEPTIONS_UNRESOLVED].toString()}
+          element={<FixtureExceptionsLayout />}
+        >
+          <Route
+            index
+            element={
+              <ExceptionsUnresolved
+                {...pageProps(PageMap.EXCEPTIONS_UNRESOLVED)}
+              />
+            }
+          />
+        </Route>
+        <Route
+          path={RouteMap[PageMap.METRICS].toString()}
+          element={<FixtureMetricsLayout />}
+        >
+          <Route
+            index
+            element={<MetricsPage {...pageProps(PageMap.METRICS)} />}
+          />
         </Route>
         <Route
           path="*"
