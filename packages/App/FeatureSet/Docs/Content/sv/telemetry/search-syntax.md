@@ -195,7 +195,7 @@ Chips ingår i den sparade vyn och i sidans URL, så ett filter överlever en om
 - Attribut**nycklar** jämförs utan hänsyn till skiftläge vid filter med jokertecken, "innehåller", prefix och suffix, så du behöver inte komma ihåg om den togs in som `requestId` eller `requestid`.
 - Ett filter `-@k:...` matchar även rader som aldrig har haft attributet: en rad helt utan `platform.team` börjar förstås inte med `a`.
 - Numeriska jämförelser fungerar på attributvärden som lagrats som text; ett värde som inte är ett tal uppfyller aldrig en jämförelse.
-- I loggar och spår slås en sökning efter ett exakt värde, till exempel `@http.route:/orders`, `@k:(a OR b)` eller ett värde du klickar på i fasettsidopanelen, upp i ett index över attributvärdena, så den förblir snabb även över långa tidsintervall. Jokertecken, "innehåller", uteslutningar och jämförelser läser varje loggrad eller span i intervallet: kombinera dem med ett exakt värde eller ett kortare intervall när en sökning är långsam.
+- I loggar och spår slås ett exakt värde, till exempel `@http.route:/orders`, `@k:(a OR b)` eller ett värde du klickar på i fasettsidopanelen, upp i ett index, så en sökning efter ett värde som få rader har förblir snabb även över långa tidsintervall. Jokertecken, "innehåller", uteslutningar och jämförelser läser varje loggrad eller span i intervallet: när en sådan sökning är långsam, lägg till ett exakt värde eller välj ett kortare intervall.
 
 ## Nästa steg
 

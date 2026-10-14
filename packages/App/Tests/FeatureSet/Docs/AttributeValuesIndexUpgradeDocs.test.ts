@@ -5,6 +5,8 @@ import {
   getSection,
   read,
 } from "./KubernetesAiAgentDocsSupport";
+import { sectionAtEnglishPlace } from "./UpgradingDocsNotes";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Log from "Common/Models/AnalyticsModels/Log";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
@@ -34,12 +36,18 @@ import path from "path";
  * The tables, the index name, the cluster name and the query limit the
  * note quotes are the code's own, so the note cannot drift from what the
  * upgrade does.
+ *
+ * The statement that follows the build and the one that stops it are code
+ * blocks of their own, in every language: a block's Copy button copies the
+ * whole block, and a reader who copied a block holding both to see how far
+ * the build had got would have stopped it.
  */
 
 const THIRTEEN_TO_FOURTEEN_HEADING: string =
   "## Upgrading from OneUptime 13 → 14";
-const NOTE_HEADING: string =
-  "### Searches by attribute value skip what cannot match";
+const NOTE_HEADING_TEXT: string =
+  "Log and trace searches by attribute value use an index";
+const NOTE_HEADING: string = `### ${NOTE_HEADING_TEXT}`;
 const PREVIOUS_NOTE_HEADING: string = "### IPv6 Ping, Port and SSL monitors";
 const NEXT_NOTE_HEADING: string =
   "### Kubernetes agent chart: the Kubernetes AI agent";
@@ -52,6 +60,8 @@ const GOOD_TO_KNOW_HEADING: string = "## Good to know";
 const MATCHING_VALUES_HEADING: string = "## Matching values";
 
 const SQL_BLOCK: RegExp = /```sql\n([\s\S]*?)\n```/g;
+const KILL_STATEMENT: RegExp = /\bKILL\s+MUTATION\b/i;
+const SELECT_STATEMENT: RegExp = /\bSELECT\b/i;
 const WHITESPACE: RegExp = /\s+/g;
 const QUERY_LIMIT: RegExp = /max_execution_time = (\d+)/;
 const LIMIT_IN_NOTE: RegExp = /the (\d+)-second query limit/;
@@ -60,6 +70,18 @@ const VALUE_CHECK: RegExp = /has(Any)?\(mapValues\(attributes\)/;
 function note(): string {
   return getSection(read(UPGRADING_PAGE), NOTE_HEADING);
 }
+
+// The note's SQL blocks, in order, each read as one line.
+function sqlBlocks(markdown: string): Array<string> {
+  return Array.from(markdown.matchAll(SQL_BLOCK)).map(
+    (match: RegExpMatchArray): string => {
+      return flat(match[1]!);
+    },
+  );
+}
+
+const FOLLOW_STATEMENT: string = `SELECT table, parts_to_do FROM system.mutations WHERE command LIKE '%${ATTRIBUTE_VALUES_INDEX_NAME}%' AND NOT is_done;`;
+const STOP_STATEMENT: string = `KILL MUTATION ON CLUSTER '${DEFAULT_CLICKHOUSE_CLUSTER_NAME}' WHERE command LIKE '%${ATTRIBUTE_VALUES_INDEX_NAME}%';`;
 
 function flat(text: string): string {
   return text.replace(WHITESPACE, " ").trim();
@@ -175,25 +197,55 @@ describe("the attribute value index upgrade note", () => {
   });
 
   it("gives the statements to follow and to stop the build, with the index's and the cluster's names", () => {
-    const blocks: Array<string> = Array.from(note().matchAll(SQL_BLOCK)).map(
-      (match: RegExpMatchArray): string => {
-        return flat(match[1]!);
-      },
-    );
-
-    expect(blocks).toEqual([
-      `SELECT table, parts_to_do FROM system.mutations WHERE command LIKE '%${ATTRIBUTE_VALUES_INDEX_NAME}%' AND NOT is_done; KILL MUTATION ON CLUSTER '${DEFAULT_CLICKHOUSE_CLUSTER_NAME}' WHERE command LIKE '%${ATTRIBUTE_VALUES_INDEX_NAME}%';`,
-    ]);
+    expect(sqlBlocks(note())).toEqual([FOLLOW_STATEMENT, STOP_STATEMENT]);
     expect(flat(note())).toContain(
       `(\`${DEFAULT_CLICKHOUSE_CLUSTER_NAME}\` is the default cluster name)`,
     );
     expect(flat(note())).toContain("`clickhouse-client`");
   });
 
-  it("says what a stopped build leaves behind", () => {
+  it("keeps the statement that stops the build out of the block that follows it, so copying one never runs the other", () => {
+    const blocks: Array<string> = sqlBlocks(note());
+
+    expect(blocks).toHaveLength(2);
+    expect(SELECT_STATEMENT.test(blocks[0]!)).toBe(true);
+    expect(KILL_STATEMENT.test(blocks[0]!)).toBe(false);
+    expect(KILL_STATEMENT.test(blocks[1]!)).toBe(true);
+    expect(SELECT_STATEMENT.test(blocks[1]!)).toBe(false);
+  });
+
+  it("says what the progress query shows once the indexing is done, as the query reads it", () => {
+    // Only mutations still running are listed...
+    expect(FOLLOW_STATEMENT).toContain("AND NOT is_done");
+    // ...so a finished build lists nothing, which the note says.
     expect(flat(note())).toContain(
-      "Days it has not reached are searched as before",
+      "It lists each table still being indexed with the number of parts left, and nothing once the indexing is done:",
     );
+  });
+
+  it("says when to stop the build, and what a stopped build leaves behind", () => {
+    expect(flat(note())).toContain(
+      "If the indexing slows a very large install down, stop it",
+    );
+    expect(flat(note())).toContain(
+      "Days it has not reached are then searched as before, until they are merged again or age out.",
+    );
+  });
+
+  it("says a value most rows carry gains little, rather than that it is read as before", () => {
+    expect(flat(note())).toContain(
+      "A value most rows carry, such as `GET`, gains little",
+    );
+    expect(flat(note())).not.toContain("is read as before");
+  });
+
+  it("carries the same two statements, follow first, in every language", () => {
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      expect({
+        language,
+        blocks: sqlBlocks(sectionAtEnglishPlace(language, NOTE_HEADING_TEXT)),
+      }).toEqual({ language, blocks: [FOLLOW_STATEMENT, STOP_STATEMENT] });
+    }
   });
 });
 
@@ -211,7 +263,7 @@ describe("the Search Syntax tip", () => {
   });
 
   it("promises the index only to exact values, as the charts compile them", () => {
-    expect(tip()).toContain("a search for an exact value");
+    expect(tip()).toContain("an exact value, such as");
     expect(tip()).toContain(
       "Wildcards, contains, exclusions and comparisons read every log line or span in the range",
     );
@@ -234,6 +286,16 @@ describe("the Search Syntax tip", () => {
     ]) {
       expect(chartPredicate(operator)).not.toMatch(VALUE_CHECK);
     }
+  });
+
+  it("promises speed only for a value few rows carry, as the upgrade note does, and says what to do when a search is slow", () => {
+    expect(tip()).toContain(
+      "so a search for a value few rows carry stays quick over long time ranges",
+    );
+    expect(flat(note())).toContain("It helps most with a value few rows carry");
+    expect(tip()).toContain(
+      "when one is slow, add an exact value or pick a shorter range",
+    );
   });
 
   it("is about logs and traces, the two tables that carry the index", () => {

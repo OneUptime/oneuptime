@@ -43,10 +43,11 @@ import { SkipIndex, SkipIndexExpression, SkipIndexType } from "./TableColumn";
  * Existing installs: boot schema-sync (AnalyticsTableManagement
  * .reconcileSkipIndexes) adds the index definition - metadata only, no part
  * is rewritten. Parts written from then on carry it, and older parts gain
- * it when they merge; MaterializeAttributeValuesIndex builds it for the
- * most recent days in the background so the searches people run most are
- * fast straight away. Data older than that is searched as before until it
- * is merged or ages out.
+ * it when they merge; MaterializeAttributeValuesIndex queues one background
+ * MATERIALIZE INDEX per table that builds it for every part already on
+ * disk, reading each row's attributes once. Until the build reaches a part
+ * - or if an operator stops it (KILL MUTATION, see the upgrade notes) - that
+ * part is searched as before, until it is merged or ages out.
  */
 export const ATTRIBUTE_VALUES_INDEX_NAME: string = "idx_attribute_values";
 

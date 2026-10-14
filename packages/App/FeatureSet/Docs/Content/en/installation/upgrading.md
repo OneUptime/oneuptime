@@ -1341,7 +1341,7 @@ destination it shows. Expect monitors that were failing permanently on macOS or
 FreeBSD probes to start reporting the truth, which may resolve incidents or
 raise new ones.
 
-### Searches by attribute value skip what cannot match
+### Log and trace searches by attribute value use an index
 
 Logs and traces filtered on an attribute value, such as `@http.route:/orders`
 or a value clicked in the facet sidebar, used to read the attributes of every
@@ -1352,9 +1352,9 @@ the parts of the table that can hold the value. The list, the chart, the facet
 counts and the export return the same results as before, sooner.
 
 It helps most with a value few rows carry, such as a request path or a user,
-tenant, order or session id. A value most rows carry, such as `GET`, is read
-as before, and so are wildcards, contains, exclusions, comparisons and
-`@k:*`.
+tenant, order or session id. A value most rows carry, such as `GET`, gains
+little, and wildcards, contains, exclusions, comparisons and `@k:*` read as
+much as before.
 
 Nothing to do. On start, OneUptime adds the index to `LogItemV3` and
 `SpanItemV3` without rewriting them, and indexes new logs and spans as they
@@ -1364,19 +1364,27 @@ about the work of one search over everything you keep. Older days get faster
 as it reaches them. The index adds a few percent to the size of these two
 tables, 4% in our measurements.
 
-To follow it, or to stop it on a very large install, run this in
-`clickhouse-client` (`oneuptime` is the default cluster name):
+To follow the background indexing, run this in `clickhouse-client`. It lists
+each table still being indexed with the number of parts left, and nothing once
+the indexing is done:
 
 ```sql
-SELECT table, parts_to_do FROM system.mutations
-WHERE command LIKE '%idx_attribute_values%' AND NOT is_done;
+SELECT table, parts_to_do
+FROM system.mutations
+WHERE command LIKE '%idx_attribute_values%'
+  AND NOT is_done;
+```
 
+If the indexing slows a very large install down, stop it (`oneuptime` is the
+default cluster name):
+
+```sql
 KILL MUTATION ON CLUSTER 'oneuptime'
 WHERE command LIKE '%idx_attribute_values%';
 ```
 
-Days it has not reached are searched as before until they are merged again or
-age out.
+Days it has not reached are then searched as before, until they are merged
+again or age out.
 
 ### Kubernetes agent chart: the Kubernetes AI agent
 

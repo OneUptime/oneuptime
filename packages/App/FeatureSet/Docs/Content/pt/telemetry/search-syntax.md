@@ -195,7 +195,7 @@ Os chips fazem parte da visualização salva e da URL da página, então um filt
 - As **chaves** de atributo são comparadas sem diferenciar maiúsculas de minúsculas nos filtros com curinga, "contém", prefixo e sufixo, então você não precisa lembrar se ela foi ingerida como `requestId` ou como `requestid`.
 - Um filtro `-@k:...` também corresponde a linhas que nunca tiveram o atributo: uma linha sem `platform.team` obviamente não começa com `a`.
 - Comparações numéricas funcionam com valores de atributo armazenados como texto; um valor que não é número nunca satisfaz uma comparação.
-- Em registros e traces, uma pesquisa por um valor exato, como `@http.route:/orders`, `@k:(a OR b)` ou um valor clicado na barra lateral de facetas, é consultada em um índice dos valores de atributo, então continua rápida em intervalos de tempo longos. Curingas, "contém", exclusões e comparações leem cada linha de registro ou span do intervalo: combine-os com um valor exato ou um intervalo mais curto quando uma pesquisa estiver lenta.
+- Em registros e traces, um valor exato, como `@http.route:/orders`, `@k:(a OR b)` ou um valor clicado na barra lateral de facetas, é consultado em um índice, então pesquisar um valor que poucas linhas têm continua rápido em intervalos de tempo longos. Curingas, "contém", exclusões e comparações leem cada linha de registro ou span do intervalo: quando uma dessas pesquisas estiver lenta, adicione um valor exato ou escolha um intervalo mais curto.
 
 ## Próximos passos
 

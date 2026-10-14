@@ -297,25 +297,31 @@ Um destino Ping ou Port colado com espaços em volta – que é o que se obtém 
 
 Não há migração para os destinos já armazenados, então **reabra cada monitor IPv6 Ping, Port e SSL depois da atualização e salve-o de novo**, e confira o destino que ele mostra. Espere que os monitores que falhavam permanentemente em sondas macOS ou FreeBSD comecem a relatar a verdade, o que pode resolver incidentes ou abrir novos.
 
-### Pesquisas por valor de atributo pulam o que não pode corresponder
+### Pesquisas de registros e traces por valor de atributo usam um índice
 
 Registros e traces filtrados por um valor de atributo, como `@http.route:/orders` ou um valor clicado na barra lateral de facetas, liam os atributos de cada linha de registro ou span do intervalo de tempo. Em uma instalação movimentada, uma pesquisa de algumas horas ou mais podia parar no limite de consulta de 45 segundos. A 14 adiciona um índice sobre os valores de atributo das tabelas de registros e de spans, então essas pesquisas leem só as partes da tabela que podem conter o valor. A lista, o gráfico, as contagens de facetas e a exportação retornam os mesmos resultados de antes, mais cedo.
 
-Ajuda mais com um valor que poucas linhas têm, como um caminho de requisição ou um id de usuário, tenant, pedido ou sessão. Um valor que a maioria das linhas tem, como `GET`, é lido como antes, assim como curingas, "contém", exclusões, comparações e `@k:*`.
+Ajuda mais com um valor que poucas linhas têm, como um caminho de requisição ou um id de usuário, tenant, pedido ou sessão. Um valor que a maioria das linhas tem, como `GET`, ganha pouco, e curingas, "contém", exclusões, comparações e `@k:*` leem tanto quanto antes.
 
 Não há nada a fazer. Na inicialização, o OneUptime adiciona o índice a `LogItemV3` e `SpanItemV3` sem reescrevê-las e indexa os novos registros e spans conforme chegam. Depois, o ClickHouse indexa em segundo plano os que você já tem, junto com a ingestão e as pesquisas: ele lê os atributos de cada linha uma vez, mais ou menos o trabalho de uma pesquisa sobre tudo o que você guarda. Os dias mais antigos ficam mais rápidos à medida que ele os alcança. O índice aumenta em alguns por cento o tamanho dessas duas tabelas, 4% nas nossas medições.
 
-Para acompanhar, ou para interromper em uma instalação muito grande, execute isto no `clickhouse-client` (`oneuptime` é o nome padrão do cluster):
+Para acompanhar a indexação em segundo plano, execute isto no `clickhouse-client`. Ele lista cada tabela que ainda está sendo indexada com o número de partes que faltam, e nada quando a indexação termina:
 
 ```sql
-SELECT table, parts_to_do FROM system.mutations
-WHERE command LIKE '%idx_attribute_values%' AND NOT is_done;
+SELECT table, parts_to_do
+FROM system.mutations
+WHERE command LIKE '%idx_attribute_values%'
+  AND NOT is_done;
+```
 
+Se a indexação deixar uma instalação muito grande lenta, interrompa-a (`oneuptime` é o nome padrão do cluster):
+
+```sql
 KILL MUTATION ON CLUSTER 'oneuptime'
 WHERE command LIKE '%idx_attribute_values%';
 ```
 
-Os dias que ele ainda não alcançou são pesquisados como antes até serem mesclados de novo ou expirarem.
+Os dias que ela ainda não alcançou passam a ser pesquisados como antes, até serem mesclados de novo ou expirarem.
 
 ### Chart do agente Kubernetes: o agente de IA do Kubernetes
 

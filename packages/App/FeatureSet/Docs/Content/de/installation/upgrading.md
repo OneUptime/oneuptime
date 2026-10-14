@@ -297,25 +297,31 @@ Ein Ping- oder Port-Ziel, das mit umgebenden Leerzeichen eingefügt wurde – ge
 
 Für bereits gespeicherte Ziele gibt es keine Migration. **Öffnen Sie daher nach dem Upgrade jeden IPv6-Monitor für Ping, Port und SSL erneut und speichern Sie ihn**, und prüfen Sie das Ziel, das er anzeigt. Rechnen Sie damit, dass Monitore, die auf macOS- oder FreeBSD-Probes dauerhaft fehlschlugen, ab jetzt die Wahrheit melden, was Vorfälle beheben oder neue auslösen kann.
 
-### Suchen nach Attributwerten überspringen, was nicht zutreffen kann
+### Suchen in Protokollen und Traces nach Attributwerten nutzen einen Index
 
 Protokolle und Traces, die nach einem Attributwert gefiltert werden, etwa `@http.route:/orders` oder ein in der Facetten-Seitenleiste angeklickter Wert, lasen bisher die Attribute jeder Protokollzeile und jedes Spans im Zeitraum. Auf einer stark ausgelasteten Installation konnte eine Suche über einige Stunden oder mehr am Abfragelimit von 45 Sekunden abbrechen. 14 fügt einen Index über die Attributwerte der Protokoll- und Span-Tabellen hinzu, sodass diese Suchen nur die Teile der Tabelle lesen, die den Wert enthalten können. Liste, Diagramm, Facettenzählungen und Export liefern dieselben Ergebnisse wie bisher, nur schneller.
 
-Am meisten hilft das bei einem Wert, den wenige Zeilen tragen, etwa einem Anfragepfad oder einer Benutzer-, Mandanten-, Bestell- oder Sitzungs-ID. Ein Wert, den die meisten Zeilen tragen, etwa `GET`, wird wie bisher gelesen, ebenso Platzhalter, Enthält-Filter, Ausschlüsse, Vergleiche und `@k:*`.
+Am meisten hilft das bei einem Wert, den wenige Zeilen tragen, etwa einem Anfragepfad oder einer Benutzer-, Mandanten-, Bestell- oder Sitzungs-ID. Ein Wert, den die meisten Zeilen tragen, etwa `GET`, gewinnt wenig, und Platzhalter, Enthält-Filter, Ausschlüsse, Vergleiche und `@k:*` lesen so viel wie bisher.
 
 Sie müssen nichts tun. Beim Start fügt OneUptime den Index zu `LogItemV3` und `SpanItemV3` hinzu, ohne sie neu zu schreiben, und indiziert neue Protokolle und Spans beim Eintreffen. ClickHouse indiziert danach die vorhandenen im Hintergrund, neben Aufnahme und Suchen: Es liest die Attribute jeder Zeile einmal, etwa so viel Arbeit wie eine Suche über alles, was Sie aufbewahren. Ältere Tage werden schneller, sobald es sie erreicht. Der Index vergrößert diese beiden Tabellen um wenige Prozent, in unseren Messungen um 4 %.
 
-Um den Fortschritt zu verfolgen oder den Vorgang auf einer sehr großen Installation anzuhalten, führen Sie dies in `clickhouse-client` aus (`oneuptime` ist der Standardname des Clusters):
+Um die Indizierung im Hintergrund zu verfolgen, führen Sie dies in `clickhouse-client` aus. Es listet jede Tabelle, die noch indiziert wird, mit der Zahl ihrer verbleibenden Teile auf, und nichts mehr, sobald die Indizierung fertig ist:
 
 ```sql
-SELECT table, parts_to_do FROM system.mutations
-WHERE command LIKE '%idx_attribute_values%' AND NOT is_done;
+SELECT table, parts_to_do
+FROM system.mutations
+WHERE command LIKE '%idx_attribute_values%'
+  AND NOT is_done;
+```
 
+Wenn die Indizierung eine sehr große Installation ausbremst, halten Sie sie an (`oneuptime` ist der Standardname des Clusters):
+
+```sql
 KILL MUTATION ON CLUSTER 'oneuptime'
 WHERE command LIKE '%idx_attribute_values%';
 ```
 
-Tage, die es noch nicht erreicht hat, werden wie bisher durchsucht, bis sie erneut zusammengeführt werden oder ablaufen.
+Tage, die sie noch nicht erreicht hat, werden dann wie bisher durchsucht, bis sie erneut zusammengeführt werden oder ablaufen.
 
 ### Chart des Kubernetes-Agenten: der Kubernetes-KI-Agent
 

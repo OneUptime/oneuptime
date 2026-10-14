@@ -297,25 +297,31 @@ Una destinazione Ping o Port incollata con spazi intorno – che è ciò che si 
 
 Non c'è alcuna migrazione per le destinazioni già memorizzate, quindi **riaprite ogni monitor IPv6 Ping, Port e SSL dopo l'aggiornamento e salvatelo di nuovo**, e verificate la destinazione che mostra. Aspettatevi che i monitor che fallivano sempre sulle sonde macOS o FreeBSD inizino a riportare la verità, il che può risolvere incidenti o aprirne di nuovi.
 
-### Le ricerche per valore di attributo saltano ciò che non può corrispondere
+### Le ricerche di log e tracce per valore di attributo usano un indice
 
 I log e le tracce filtrati su un valore di attributo, come `@http.route:/orders` o un valore su cui fate clic nella barra laterale delle faccette, leggevano gli attributi di ogni riga di log o span dell'intervallo di tempo. Su un'installazione molto carica, una ricerca su qualche ora o più poteva fermarsi al limite di query di 45 secondi. La 14 aggiunge un indice sui valori degli attributi delle tabelle di log e di span, quindi queste ricerche leggono solo le parti della tabella che possono contenere il valore. L'elenco, il grafico, i conteggi delle faccette e l'esportazione restituiscono gli stessi risultati di prima, più rapidamente.
 
-Aiuta soprattutto con un valore che hanno poche righe, come un percorso di richiesta o un id di utente, tenant, ordine o sessione. Un valore che hanno quasi tutte le righe, come `GET`, viene letto come prima, così come caratteri jolly, «contiene», esclusioni, confronti e `@k:*`.
+Aiuta soprattutto con un valore che hanno poche righe, come un percorso di richiesta o un id di utente, tenant, ordine o sessione. Un valore che hanno quasi tutte le righe, come `GET`, ci guadagna poco, e caratteri jolly, «contiene», esclusioni, confronti e `@k:*` leggono quanto prima.
 
 Non dovete fare nulla. All'avvio, OneUptime aggiunge l'indice a `LogItemV3` e `SpanItemV3` senza riscriverle e indicizza i nuovi log e span man mano che arrivano. ClickHouse indicizza poi in background quelli che avete già, insieme all'acquisizione e alle ricerche: legge una volta gli attributi di ogni riga, più o meno il lavoro di una ricerca su tutto ciò che conservate. I giorni più vecchi diventano più veloci man mano che li raggiunge. L'indice aggiunge qualche punto percentuale alla dimensione di queste due tabelle, il 4% nelle nostre misurazioni.
 
-Per seguirlo, o per fermarlo su un'installazione molto grande, eseguite questo in `clickhouse-client` (`oneuptime` è il nome predefinito del cluster):
+Per seguire l'indicizzazione in background, eseguite questo in `clickhouse-client`. Elenca ogni tabella ancora in corso di indicizzazione con il numero di parti che le restano, e nulla quando l'indicizzazione è finita:
 
 ```sql
-SELECT table, parts_to_do FROM system.mutations
-WHERE command LIKE '%idx_attribute_values%' AND NOT is_done;
+SELECT table, parts_to_do
+FROM system.mutations
+WHERE command LIKE '%idx_attribute_values%'
+  AND NOT is_done;
+```
 
+Se l'indicizzazione rallenta un'installazione molto grande, fermatela (`oneuptime` è il nome predefinito del cluster):
+
+```sql
 KILL MUTATION ON CLUSTER 'oneuptime'
 WHERE command LIKE '%idx_attribute_values%';
 ```
 
-I giorni che non ha ancora raggiunto vengono cercati come prima finché non vengono riuniti di nuovo o scadono.
+I giorni che non ha ancora raggiunto vengono allora cercati come prima, finché non vengono riuniti di nuovo o scadono.
 
 ### Chart dell'agente Kubernetes: l'agente IA Kubernetes
 

@@ -195,7 +195,7 @@ Chips are part of the saved view and the page URL, so a filter survives a refres
 - Attribute **keys** are matched case-insensitively for wildcard, contains and prefix/suffix filters, so you do not have to remember whether it was ingested as `requestId` or `requestid`.
 - A `-@k:...` filter also matches rows that never had the attribute — a row that does not carry `platform.team` at all trivially does not start with `a`.
 - Numeric comparisons work on attribute values stored as text; a value that is not a number never satisfies one.
-- On logs and traces, a search for an exact value, such as `@http.route:/orders`, `@k:(a OR b)` or a value clicked in the facet sidebar, is looked up in an index of the attribute values, so it stays quick over long time ranges. Wildcards, contains, exclusions and comparisons read every log line or span in the range: pair them with an exact value or a shorter range when a search is slow.
+- On logs and traces, an exact value, such as `@http.route:/orders`, `@k:(a OR b)` or a value clicked in the facet sidebar, is looked up in an index, so a search for a value few rows carry stays quick over long time ranges. Wildcards, contains, exclusions and comparisons read every log line or span in the range: when one is slow, add an exact value or pick a shorter range.
 
 ## Next steps
 

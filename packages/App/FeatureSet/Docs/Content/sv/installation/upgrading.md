@@ -297,25 +297,31 @@ Ett Ping- eller Port-mål som klistrades in med blanksteg runt – vilket är de
 
 Det finns ingen migrering för mål som redan har lagrats, så **öppna varje IPv6-övervakning av typen Ping, Port och SSL igen efter uppgraderingen och spara den igen**, och kontrollera målet den visar. Räkna med att övervakningar som misslyckades permanent på macOS- eller FreeBSD-prober börjar rapportera sanningen, vilket kan lösa incidenter eller öppna nya.
 
-### Sökningar på attributvärde hoppar över det som inte kan matcha
+### Sökningar i loggar och spår på attributvärde använder ett index
 
 Loggar och spår som filtreras på ett attributvärde, till exempel `@http.route:/orders` eller ett värde du klickar på i fasettsidopanelen, läste tidigare attributen för varje loggrad eller span i tidsintervallet. På en hårt belastad installation kunde en sökning över några timmar eller mer stoppa vid frågegränsen på 45 sekunder. 14 lägger till ett index över attributvärdena i logg- och span-tabellerna, så att sådana sökningar bara läser de delar av tabellen som kan innehålla värdet. Listan, diagrammet, fasettantalen och exporten ger samma resultat som förut, fast snabbare.
 
-Det hjälper mest med ett värde som få rader har, till exempel en begäranssökväg eller ett användar-, klient-, order- eller sessions-id. Ett värde som de flesta rader har, till exempel `GET`, läses som förut, och detsamma gäller jokertecken, "innehåller", uteslutningar, jämförelser och `@k:*`.
+Det hjälper mest med ett värde som få rader har, till exempel en begäranssökväg eller ett användar-, klient-, order- eller sessions-id. Ett värde som de flesta rader har, till exempel `GET`, vinner lite, och jokertecken, "innehåller", uteslutningar, jämförelser och `@k:*` läser lika mycket som förut.
 
 Du behöver inte göra något. Vid start lägger OneUptime till indexet i `LogItemV3` och `SpanItemV3` utan att skriva om dem, och indexerar nya loggar och spans när de kommer in. Därefter indexerar ClickHouse dem du redan har i bakgrunden, vid sidan av inmatning och sökningar: den läser attributen för varje rad en gång, ungefär lika mycket arbete som en sökning över allt du behåller. Äldre dagar blir snabbare när den når dem. Indexet gör de två tabellerna några procent större, 4 % i våra mätningar.
 
-För att följa det, eller för att stoppa det på en mycket stor installation, kör du detta i `clickhouse-client` (`oneuptime` är standardnamnet på klustret):
+För att följa indexeringen i bakgrunden kör du detta i `clickhouse-client`. Det visar varje tabell som fortfarande indexeras med antalet delar som återstår, och ingenting när indexeringen är klar:
 
 ```sql
-SELECT table, parts_to_do FROM system.mutations
-WHERE command LIKE '%idx_attribute_values%' AND NOT is_done;
+SELECT table, parts_to_do
+FROM system.mutations
+WHERE command LIKE '%idx_attribute_values%'
+  AND NOT is_done;
+```
 
+Om indexeringen gör en mycket stor installation långsammare kan du stoppa den (`oneuptime` är standardnamnet på klustret):
+
+```sql
 KILL MUTATION ON CLUSTER 'oneuptime'
 WHERE command LIKE '%idx_attribute_values%';
 ```
 
-Dagar som den inte har nått söks som förut tills de slås samman igen eller förfaller.
+Dagar som den inte har nått söks sedan som förut tills de slås samman igen eller förfaller.
 
 ### Kubernetes-agentens chart: Kubernetes-AI-agenten
 

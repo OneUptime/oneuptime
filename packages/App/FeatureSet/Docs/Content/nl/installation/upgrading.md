@@ -297,25 +297,31 @@ Een Ping- of Port-doel dat met witruimte eromheen werd geplakt – wat u krijgt 
 
 Er is geen migratie voor al opgeslagen doelen, dus **open na de upgrade elke IPv6-monitor voor Ping, Port en SSL opnieuw en sla hem opnieuw op**, en controleer het doel dat hij toont. Reken erop dat monitors die op macOS- of FreeBSD-probes blijvend mislukten, de waarheid gaan melden, wat incidenten kan oplossen of nieuwe kan openen.
 
-### Zoeken op attribuutwaarde slaat over wat niet kan overeenkomen
+### Zoeken in logboeken en traces op attribuutwaarde gebruikt een index
 
 Logboeken en traces die op een attribuutwaarde zijn gefilterd, zoals `@http.route:/orders` of een waarde waarop u klikt in de facettenzijbalk, lazen tot nu toe de attributen van elke logregel of span in het tijdsbereik. Op een drukke installatie kon een zoekopdracht over een paar uur of meer stoppen op de querylimiet van 45 seconden. 14 voegt een index toe over de attribuutwaarden van de log- en spantabellen, zodat deze zoekopdrachten alleen de delen van de tabel lezen die de waarde kunnen bevatten. De lijst, de grafiek, de facettellingen en de export geven dezelfde resultaten als voorheen, sneller.
 
-Het helpt het meest bij een waarde die weinig rijen hebben, zoals een aanvraagpad of een gebruikers-, tenant-, bestel- of sessie-id. Een waarde die de meeste rijen hebben, zoals `GET`, wordt gelezen zoals voorheen, net als jokertekens, "bevat", uitsluitingen, vergelijkingen en `@k:*`.
+Het helpt het meest bij een waarde die weinig rijen hebben, zoals een aanvraagpad of een gebruikers-, tenant-, bestel- of sessie-id. Een waarde die de meeste rijen hebben, zoals `GET`, wint weinig, en jokertekens, "bevat", uitsluitingen, vergelijkingen en `@k:*` lezen evenveel als voorheen.
 
 U hoeft niets te doen. Bij het opstarten voegt OneUptime de index toe aan `LogItemV3` en `SpanItemV3` zonder ze te herschrijven, en indexeert nieuwe logboeken en spans zodra ze binnenkomen. Daarna indexeert ClickHouse de bestaande op de achtergrond, naast opname en zoekopdrachten: het leest de attributen van elke rij één keer, ongeveer het werk van één zoekopdracht over alles wat u bewaart. Oudere dagen worden sneller zodra het ze bereikt. De index maakt deze twee tabellen een paar procent groter, 4% in onze metingen.
 
-Om het te volgen, of om het op een zeer grote installatie te stoppen, voert u dit uit in `clickhouse-client` (`oneuptime` is de standaardnaam van het cluster):
+Om het indexeren op de achtergrond te volgen, voert u dit uit in `clickhouse-client`. Het toont elke tabel die nog wordt geïndexeerd met het aantal delen dat nog rest, en niets meer zodra het indexeren klaar is:
 
 ```sql
-SELECT table, parts_to_do FROM system.mutations
-WHERE command LIKE '%idx_attribute_values%' AND NOT is_done;
+SELECT table, parts_to_do
+FROM system.mutations
+WHERE command LIKE '%idx_attribute_values%'
+  AND NOT is_done;
+```
 
+Als het indexeren een zeer grote installatie vertraagt, stopt u het (`oneuptime` is de standaardnaam van het cluster):
+
+```sql
 KILL MUTATION ON CLUSTER 'oneuptime'
 WHERE command LIKE '%idx_attribute_values%';
 ```
 
-Dagen die het nog niet heeft bereikt, worden doorzocht zoals voorheen totdat ze opnieuw worden samengevoegd of verlopen.
+Dagen die het nog niet heeft bereikt, worden daarna doorzocht zoals voorheen, totdat ze opnieuw worden samengevoegd of verlopen.
 
 ### Chart van de Kubernetes-agent: de Kubernetes-AI-agent
 
