@@ -21,7 +21,16 @@ const README: string = fs.readFileSync(
   "utf-8",
 );
 const NAV: string = fs.readFileSync(
-  path.join(__dirname, "..", "..", "App", "FeatureSet", "Docs", "Utils", "Nav.ts"),
+  path.join(
+    __dirname,
+    "..",
+    "..",
+    "App",
+    "FeatureSet",
+    "Docs",
+    "Utils",
+    "Nav.ts",
+  ),
   "utf-8",
 );
 const DOCS_DIR: string = path.join(
@@ -39,7 +48,8 @@ const HEADING: RegExp = /^(#{1,6})\s/;
 const CODE_SPAN: RegExp = /`([^`]+)`/g;
 // A table's separator row: | --- | --- |
 const TABLE_SEPARATOR: RegExp = /^\|\s*-/;
-const MARKDOWN_LINK: RegExp = /\]\((https:\/\/oneuptime\.com\/docs\/[^)\s]+)\)/g;
+const MARKDOWN_LINK: RegExp =
+  /\]\((https:\/\/oneuptime\.com\/docs\/[^)\s]+)\)/g;
 
 // The subcommands each kind of resource takes, in the order the CLI adds them.
 const RECORD_SUBCOMMANDS: Array<string> = [

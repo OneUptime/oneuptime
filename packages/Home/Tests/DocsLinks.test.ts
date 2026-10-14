@@ -96,9 +96,9 @@ const DOCS_LANGUAGES: Array<string> = fs
   });
 
 const DOCS_ROOT_FILES: Array<string> = [
-  ...fs.readFileSync(path.join(DOCS, "Index.ts"), "utf8").matchAll(
-    DOCS_ROOT_FILE_ROUTE,
-  ),
+  ...fs
+    .readFileSync(path.join(DOCS, "Index.ts"), "utf8")
+    .matchAll(DOCS_ROOT_FILE_ROUTE),
 ].map((match: RegExpMatchArray): string => {
   return match[1]!;
 });
@@ -232,10 +232,7 @@ const aiDiscoveryFiles: () => Array<[string, string]> = (): Array<
     ["/pricing.md", generatePricingMarkdown(HOME_URL)],
     ["/products.json", JSON.stringify(generateProductsJson(HOME_URL))],
     ["/compare.json", JSON.stringify(generateCompareIndexJson(HOME_URL))],
-    [
-      "/.well-known/mcp.json",
-      JSON.stringify(generateMcpManifest(HOME_URL)),
-    ],
+    ["/.well-known/mcp.json", JSON.stringify(generateMcpManifest(HOME_URL))],
     [
       "/.well-known/mcp.json (sign-in off)",
       JSON.stringify(generateMcpManifest(HOME_URL, { isOAuthEnabled: false })),
@@ -425,16 +422,13 @@ describe("the cards that linked a category's own docs address", () => {
     CARD_LINKS.filter((card: CardLink): boolean => {
       return card.docsTitle !== null;
     }),
-  )(
-    "$card opens the docs page it means: $docsTitle",
-    (expected: CardLink) => {
-      const page: string = expected.href.slice("/docs/".length);
-      const docsPage: DocsPage | null = docsPageOf(page);
+  )("$card opens the docs page it means: $docsTitle", (expected: CardLink) => {
+    const page: string = expected.href.slice("/docs/".length);
+    const docsPage: DocsPage | null = docsPageOf(page);
 
-      expect(NAV_PAGES).toContain(page);
-      expect(docsPage?.title).toBe(expected.docsTitle);
-    },
-  );
+    expect(NAV_PAGES).toContain(page);
+    expect(docsPage?.title).toBe(expected.docsTitle);
+  });
 
   test("the compliance cards open the trust center's certifications, which list each regime they name", async () => {
     const trust: Document = await renderOwnContent("trust.ejs", {
@@ -582,7 +576,11 @@ describe("every docs address the website writes", () => {
     expect(files.length).toBeGreaterThan(100);
     // The docs, their llms.txt and the MCP server's page, written after the origin.
     expect(found).toEqual(
-      expect.arrayContaining(["/docs", "/docs/llms.txt", "/docs/ai/mcp-server"]),
+      expect.arrayContaining([
+        "/docs",
+        "/docs/llms.txt",
+        "/docs/ai/mcp-server",
+      ]),
     );
     expect(problems).toEqual([]);
   });

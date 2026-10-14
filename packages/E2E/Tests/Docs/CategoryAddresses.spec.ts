@@ -69,6 +69,8 @@ test.describe("Docs: a category's own address", () => {
     await expect(
       page.getByRole("link", { name: "Back to Documentation" }),
     ).toHaveAttribute("href", "/docs/en/introduction/getting-started");
-    await expect(page.locator("#docs-content [data-search-open]")).toBeVisible();
+    await expect(
+      page.locator("#docs-content [data-search-open]"),
+    ).toBeVisible();
   });
 });

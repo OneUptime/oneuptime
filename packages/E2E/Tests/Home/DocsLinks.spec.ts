@@ -103,9 +103,10 @@ test.describe("Home: cards that link into the docs", () => {
       );
 
       expect([card.page, response.status()]).toEqual([card.page, 200]);
-      expect([card.page, new globalThis.URL(response.url()).pathname]).toEqual(
-        [card.page, card.landing],
-      );
+      expect([card.page, new globalThis.URL(response.url()).pathname]).toEqual([
+        card.page,
+        card.landing,
+      ]);
     }
   });
 

@@ -41,7 +41,8 @@ const DOCS_ADDRESS: RegExp =
   /(?<=^|["'`(=\s>}]|oneuptime\.com)\/docs(?![\w.~-])(?:\/[\w.~-]+)*\/?(?:\?[^\s"'`<>#)\]]*)?(?:#[^\s"'`<>)\]]*)?/g;
 
 // An address's parts: the names after /docs, then a query and an anchor.
-const ADDRESS_PARTS: RegExp = /^\/docs((?:\/[\w.~-]+)*)\/?(?:\?[^#]*)?(?:#(.*))?$/;
+const ADDRESS_PARTS: RegExp =
+  /^\/docs((?:\/[\w.~-]+)*)\/?(?:\?[^#]*)?(?:#(.*))?$/;
 
 // Punctuation that ends a sentence rather than an address: "see /docs/x/y."
 const TRAILING_PUNCTUATION: RegExp = /[.,;:!?]+$/;

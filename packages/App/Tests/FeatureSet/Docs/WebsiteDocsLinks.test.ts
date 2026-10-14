@@ -22,8 +22,6 @@ import fs from "fs";
 import { AddressInfo } from "net";
 import { createServer, Server } from "http";
 import path from "path";
-import type * as Path from "path";
-import type * as FileSystem from "fs";
 
 /*
  * Website links into the docs land on real pages.
@@ -43,24 +41,24 @@ import type * as FileSystem from "fs";
  * own CI job, with the AI discovery files as Home renders them.
  */
 jest.mock("../../../FeatureSet/Docs/Utils/Config", () => {
-  const path: typeof Path = jest.requireActual("path") as typeof Path;
-  const root: string = path.resolve(__dirname, "../../../FeatureSet/Docs");
+  const nodePath: typeof path = jest.requireActual("path") as typeof path;
+  const root: string = nodePath.resolve(__dirname, "../../../FeatureSet/Docs");
   return {
-    ContentPath: path.join(root, "Content"),
-    StaticPath: path.join(root, "Static"),
-    ViewsPath: path.join(root, "Views"),
+    ContentPath: nodePath.join(root, "Content"),
+    StaticPath: nodePath.join(root, "Static"),
+    ViewsPath: nodePath.join(root, "Views"),
   };
 });
 jest.mock("Common/Server/Utils/LocalFile", () => {
-  const fs: typeof FileSystem = jest.requireActual("fs") as typeof FileSystem;
+  const fileSystem: typeof fs = jest.requireActual("fs") as typeof fs;
   return {
     __esModule: true,
     default: {
       doesFileExist: async (file: string): Promise<boolean> => {
-        return fs.existsSync(file);
+        return fileSystem.existsSync(file);
       },
       read: (file: string): Promise<string> => {
-        return fs.promises.readFile(file, "utf8");
+        return fileSystem.promises.readFile(file, "utf8");
       },
     },
   };

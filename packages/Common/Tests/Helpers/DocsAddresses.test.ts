@@ -44,11 +44,23 @@ const targetOf: (address: string) => DocsAddressTarget = (
 
 describe("docsAddressesIn", () => {
   test.each([
-    ["a double-quoted attribute", '<a href="/docs/cli/index">', "/docs/cli/index"],
-    ["a single-quoted attribute", "<a href='/docs/cli/index'>", "/docs/cli/index"],
+    [
+      "a double-quoted attribute",
+      '<a href="/docs/cli/index">',
+      "/docs/cli/index",
+    ],
+    [
+      "a single-quoted attribute",
+      "<a href='/docs/cli/index'>",
+      "/docs/cli/index",
+    ],
     ["a template literal", "`/docs/cli/index`", "/docs/cli/index"],
     ["a Markdown link", "[CLI](/docs/cli/index)", "/docs/cli/index"],
-    ["an attribute without quotes", "<a href=/docs/cli/index>", "/docs/cli/index"],
+    [
+      "an attribute without quotes",
+      "<a href=/docs/cli/index>",
+      "/docs/cli/index",
+    ],
     ["prose", "Read /docs/cli/index first", "/docs/cli/index"],
     ["the start of a text", "/docs/cli/index", "/docs/cli/index"],
     [
@@ -67,9 +79,12 @@ describe("docsAddressesIn", () => {
       "/docs/terraform/index",
     ],
     ["a line of its own", "  /docs/cli/index\n", "/docs/cli/index"],
-  ])("finds an address in %s", (_way: string, text: string, address: string) => {
-    expect(addressesOf(text)).toEqual([address]);
-  });
+  ])(
+    "finds an address in %s",
+    (_way: string, text: string, address: string) => {
+      expect(addressesOf(text)).toEqual([address]);
+    },
+  );
 
   test.each([
     ["another site's docs", "https://tailwindcss.com/docs/preflight"],
@@ -154,9 +169,10 @@ describe("docsAddressesIn", () => {
       '"/docs" + "/cli/index"',
       "the /docs/<lang>/<category>/<page> form",
     ]) {
-      expect({ text, writtenWhole: onlyAddressOf(text).writtenWhole }).toEqual(
-        { text, writtenWhole: true },
-      );
+      expect({ text, writtenWhole: onlyAddressOf(text).writtenWhole }).toEqual({
+        text,
+        writtenWhole: true,
+      });
     }
 
     for (const text of [
@@ -167,9 +183,10 @@ describe("docsAddressesIn", () => {
       '"/docs/" + page',
       "'/docs/cli/' +\n  page",
     ]) {
-      expect({ text, writtenWhole: onlyAddressOf(text).writtenWhole }).toEqual(
-        { text, writtenWhole: false },
-      );
+      expect({ text, writtenWhole: onlyAddressOf(text).writtenWhole }).toEqual({
+        text,
+        writtenWhole: false,
+      });
     }
   });
 });
