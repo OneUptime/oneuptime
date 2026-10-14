@@ -1,144 +1,162 @@
 # Vanliga frågor och felsökning
 
-Vanliga frågor och lösningar för OneUptimes mobil- och skrivbordsappar.
+Svar på vanliga frågor om OneUptimes mobil- och skrivbordsappar, och lösningar på det som oftast går fel: inloggningen, aviseringar som inte kommer fram och en telefon som måste registreras igen.
 
-## Hur distribuerar OneUptime sina appar?
+:::cards
+- [Frågor om mobilappen](#frågor-om-mobilappen): Enheter, projekt, egen drift och säkerhet.
+- [Frågor om skrivbordsappen](#frågor-om-skrivbordsappen): Vad skrivbordsappen är, och vad den inte kan.
+- [När en telefon måste registreras igen](#när-en-telefon-måste-registreras-igen): Varför en telefon slutar få larm, och hur den kommer tillbaka.
+- [Felsökning](#felsökning): Problem med inloggning, aviseringar och installation.
+:::
 
-- **Mobil (iOS och Android):** OneUptime levererar en inbyggd app som heter **OneUptime On-Call**. Den är publicerad i [Apple App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) och [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). En signerad [APK-nedladdning](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) finns också tillgänglig för Android-enheter utan Google Play.
-- **Skrivbord (Windows, macOS, Linux):** OneUptimes webbinstrumentpanel är en Progressive Web App (PWA). Du kan installera den som ett skrivbordsprogram direkt från en Chromium-baserad webbläsare eller Safari — inget butikskonto krävs.
+## Frågor om mobilappen
 
-## Vanliga frågor om mobilappen
+:::details Är appen gratis?
+Ja. OneUptime On-Call är gratis i App Store, på Google Play och som APK på GitHub. Du loggar in med ditt OneUptime-konto.
+:::
 
-### Vilka enheter stöds?
+:::details Vilka telefoner och surfplattor fungerar den på?
+iPhone och iPad med iOS eller iPadOS 16.4 eller senare, och Android-telefoner och -surfplattor med Android 7.0 eller senare.
+:::
 
-- **iOS:** iPhone eller iPad som kör iOS 15.0 eller senare.
-- **Android:** Telefoner och surfplattor som kör Android 8.0 (Oreo) eller senare.
+:::details Fungerar den med ett OneUptime i egen drift?
+Ja. Ange `https://`-adressen till ditt OneUptime när appen startar, eller tryck på **Change Server** på inloggningsskärmen. Som standard skickar din server larm till telefoner genom OneUptimes push-relä, så den behöver inget konto hos Apple, Google eller Expo: se [Push-aviseringar](/docs/self-hosted/push-notifications).
+:::
 
-### Är appen gratis?
+:::details Kan jag använda den med flera projekt?
+Ja. Appen registrerar telefonen i varje projekt du är medlem i, så att varje projekt kan larma dig. Den visar ett projekt i taget: tryck på projektets namn högst upp på en skärm för att byta.
+:::
 
-Ja. Appen OneUptime On-Call är gratis att installera. Du loggar in med ditt befintliga OneUptime-konto.
+:::details Kan jag logga in på mer än en telefon?
+Ja. Varje telefon eller surfplatta är en egen push-enhet, med egna jourregler och en egen inställning för kritiska varningar.
+:::
 
-### Kan jag använda appen med en egendriven OneUptime-instans?
+:::details Vad kan jag göra i appen?
+- **Home**: vad som behöver uppmärksamhet i projektet: aktiva incidenter och varningar, monitorer med problem och grupperade händelser.
+- **Monitors**: alla monitorer, filtrerade efter hälsa, med sina detaljer.
+- **Inbox**: incidenter och varningar, och episoderna som grupperar dem. Öppna en för att använda **Acknowledge**, **Resolve** eller **Add Note**.
+- **On-Call**: om du har jour och till när, vem mer som har det, larmen som skickats till dig, och **Cover for me**, som lämnar över dina larm till en kollega en stund.
+- **Settings**: dina projekt och enkel inloggning, utseendet, kritiska varningar och larmljudet, **Biometrics Login**, ditt jourkalenderflöde och **Log Out**.
 
-Ja. Vid första start ber appen om en **Server-URL**. Ange URL:en till din egendrivna instans (till exempel `https://oneuptime.example.com`). Appen validerar att servern är nåbar innan du kan logga in.
+Allt annat finns i instrumentpanelen.
+:::
 
-För push-aviseringar på egendrivna instanser, följ guiden [Push-aviseringar](/docs/self-hosted/push-notifications).
+:::details Kan jag bekräfta ett larm från aviseringen?
+Nej. Tryck på aviseringen: appen öppnar incidenten, varningen eller episoden den gäller, i rätt projekt, och där bekräftar du. Är appen låst eller du utloggad öppnar den larmet så snart du är inne.
+:::
 
-### Hur levereras uppdateringar?
+:::details Är min inloggning säker på telefonen?
+Appen pratar med ditt OneUptime bara över HTTPS. Din inloggning sparas i appens egen lagring på telefonen, och **Log Out** raderar den och loggar också ut sessionen på servern. Slå på **Biometrics Login** så att appen frågar efter ditt ansikte, ditt fingeravtryck eller din lösenkod varje gång den startar.
+:::
 
-- **iOS:** Via App Store. Aktivera automatiska uppdateringar i **Inställningar → App Store**, eller uppdatera manuellt från din App Store-profil.
-- **Android (Google Play):** Automatiska uppdateringar är aktiverade som standard.
-- **Android (sidoladdad APK):** Ladda ned och installera den senaste APK:n från GitHub Releases-länken ovan.
+:::details Fungerar appen offline?
+Nej. Utan anslutning visar den **No internet connection** högst upp på skärmen och fortsätter så snart anslutningen är tillbaka.
+:::
 
-### Varför tar jag inte emot push-aviseringar?
+## Frågor om skrivbordsappen
 
-Mobila push-aviseringar använder APNs (iOS) och FCM (Android) via Expo Push. Kontrollera följande:
+:::details Vad är skrivbordsappen?
+OneUptime-instrumentpanelen, installerad från din webbläsare som en app: ett eget fönster, en ikon på Start-menyn, i Dock eller i din appstartare, och aviseringar. Den gör allt som instrumentpanelen gör, eftersom den är instrumentpanelen.
+:::
 
-1. Aviseringar är aktiverade på OS-nivå för **OneUptime On-Call**.
-2. Batterioptimering är inaktiverad och bakgrundsaktivitet är tillåten (Android).
-3. Stör ej eller Fokus-lägen är avstängda, eller appen finns på undantagslistan.
-4. Du är inloggad — push-token registreras hos servern först efter att du loggat in.
-5. Telefonen är inte markerad **Tar inte emot aviseringar** under **User Settings > Notification Methods > Push** i OneUptime. Om den är det öppnar du appen på telefonen medan du är inloggad för att registrera den igen.
-6. **Endast egen drift:** Push-aviseringar är konfigurerade på din OneUptime-instans. Se guiden [Push-aviseringar](/docs/self-hosted/push-notifications).
+:::details Varför finns den inte i någon appbutik?
+Det behövs inte. Appen hämtar instrumentpanelen från ditt OneUptime varje gång den öppnas, så den är alltid den version som ditt OneUptime kör, på Windows, macOS och Linux likadant, utan något att uppdatera.
+:::
 
-### Är data på min telefon säker?
+:::details Kan den väcka mig som telefonen?
+Nej. Webbläsare kan inte åsidosätta Stör ej eller ett Fokus, så en skrivbordsavisering är bara så hög som datorn tillåter. Använd mobilappen med kritiska varningar för larm som måste väcka dig.
+:::
 
-- All API-trafik använder HTTPS.
-- Åtkomst- och uppdateringstoken lagras i enhetens säkra nyckellager (Keychain på iOS, Keystore på Android).
-- Du kan kräva upplåsning med Face ID / Touch ID / fingeravtryck från skärmen **Inställningar** inuti appen.
+:::details Fungerar den offline?
+Nej. Den behöver en anslutning till ditt OneUptime, precis som instrumentpanelen i en webbläsarflik.
+:::
 
-### Kan jag installera appen på flera enheter?
+## När en telefon måste registreras igen
 
-Ja. Logga in med samma OneUptime-konto på så många enheter du behöver. Varje enhet får sina egna push-aviseringar.
+OneUptime skickar en telefons larm genom Expo, som lämnar dem vidare till Apple eller Google. När Expo säger att telefonen inte längre kan nås slutar OneUptime skicka till den, tills appen registrerar den igen.
 
-### Hur avinstallerar jag?
+```mermaid title="Så slutar en telefon få larm, och så kommer den tillbaka"
+flowchart TB
+    Registered["Telefonen är registrerad,<br/>och larmen når den"]
+    Gone["Expo anmäler den borta: en push<br/>avvisas, eller dess kvitto säger<br/>det ungefär 15 minuter senare"]
+    Marked["OneUptime markerar den Tar inte<br/>emot aviseringar och slutar skicka;<br/>dess regler finns kvar"]
+    Open["Du öppnar appen<br/>medan du är inloggad"]
+    Renewed["Appen registrerar sig igen,<br/>förnyar sin push-token, och<br/>larmen når den igen"]
+    Registered --> Gone --> Marked --> Open --> Renewed
+```
 
-- **iOS:** Tryck och håll på ikonen → **Ta bort app** → **Radera app**.
-- **Android:** Tryck och håll på ikonen → **Avinstallera**, eller **Inställningar → Appar → OneUptime On-Call → Avinstallera**.
+Expo anmäler en telefon borta när appen har tagits bort från den, eller när dess push-token inte längre är giltig. Telefonen tas inte bort: **Användarinställningar → Aviseringsmetoder** visar den på fliken **Push Notifications** som **Tar inte emot aviseringar**, och jourtidslinjen för ett larm som inte nådde den säger varför. Dina andra telefoner och aviseringsmetoder larmas som vanligt.
 
-Ditt OneUptime-konto och dina data lagras på servern och tas inte bort när du avinstallerar appen.
+Appen registrerar telefonen varje gång den startar, när du loggar in och när du går tillbaka till den, högst en gång var femte minut. Registreringen ber Expo om push-token igen, vilket förnyar den, och telefonen får larm igen med de regler den hade.
 
-## Vanliga frågor om skrivbordsappen (PWA)
+| Vad som hände | Vad du gör | Vad OneUptime gör |
+| --- | --- | --- |
+| Appen är fortfarande installerad | Öppna den medan du är inloggad | Telefonen får aviseringar igen, med sina regler |
+| Du installerade om appen på en iPhone eller iPad | Installera den och logga in | Oftast kommer samma post tillbaka, med sina regler |
+| Du installerade om appen på Android | Installera den, logga in och ta bort den gamla posten | En ny post med standardreglerna; den gamla förblir markerad |
+| En ny telefon, konfigurerad från en säkerhetskopia av den gamla | Öppna appen på den nya telefonen | Är den gamla telefonens post markerad tar den nya över den, med sina regler; annars får den nya telefonen en egen post |
+| En ny telefon, konfigurerad från början | Logga in och ta bort den gamla posten | En ny post med standardreglerna |
+| Du loggade ut ur appen | Logga in igen | Utloggningen tog bort telefonen och dess regler; den kommer tillbaka med standardreglerna |
 
-### Vad är en Progressive Web App (PWA)?
-
-En Progressive Web App är en webbapplikation som kan installeras som en inbyggd skrivbordsapp. När den är installerad körs den i ett eget fönster, har en egen ikon i din startare och kan leverera skrivbordsaviseringar — utan att gå via Windows Store, Mac App Store eller någon annan distributionskanal.
-
-### Varför använder skrivbordsappen PWA-teknik?
-
-- **Omedelbara uppdateringar** — appen håller sig synkroniserad med din OneUptime-instans i samma stund som du driftsätter.
-- **Inget butikskonto krävs** — installera direkt från valfri modern webbläsare.
-- **En enda kodbas** — samma instrumentpanel körs på Windows, macOS och Linux.
-
-### Varför visas inte knappen "Installera"?
-
-1. Använd en Chromium-baserad webbläsare (Chrome, Edge, Brave, Arc) eller Safari (macOS Sonoma+).
-2. Bekräfta att din OneUptime-instans levereras via HTTPS med ett giltigt certifikat.
-3. Töm webbläsarens cache och ladda om.
-4. Appen kan redan vara installerad — kontrollera dina program/Start-menyn.
-
-### Hur uppdaterar jag skrivbordsappen?
-
-PWA:n uppdateras automatiskt när du öppnar den medan du är online. För att tvinga en uppdatering, uppdatera fönstret med **Ctrl+R** (Windows/Linux) eller **Cmd+R** (macOS).
-
-### Hur avinstallerar jag skrivbords-PWA:n?
-
-- **Windows:** **Inställningar → Appar → OneUptime → Avinstallera**, eller högerklicka på Start-menyposten.
-- **macOS:** Dra appen från **Program** till papperskorgen, eller högerklicka på Dock-ikonen och välj **Ta bort**.
-- **Linux:** Använd din applikationsstartares avinstallationsalternativ, eller ta bort den relevanta `.desktop`-filen.
+En webbläsare kan också sluta få aviseringar när dess push-prenumeration löper ut. Instrumentpanelen förnyar den när den kan; förblir webbläsaren markerad registrerar du den igen med **Registrera enhet** i den webbläsaren.
 
 ## Felsökning
 
-### Problem med mobilappen
+### Inloggning
 
-**Appen loggar inte in / "Nätverksfel":**
+:::details ”Could not connect to the server”
+Appen nådde inte `https://<your-oneuptime>/api/status`. Kontrollera adressen, inklusive `https://`: appen ansluter inte över vanlig HTTP. Ligger ditt OneUptime i ett privat nätverk ansluter du först telefonen till det, till exempel via ditt VPN. Öppnad i telefonens webbläsare visar adressen `{"status":"ok"}` när telefonen når OneUptime.
+:::
 
-- Bekräfta att **Server-URL** är korrekt och nåbar från din telefon.
-- Kontrollera att din telefon är ansluten till internet.
-- För egendrivna instanser bakom ett VPN, säkerställ att VPN:et är aktivt.
+:::details ”No SSO configuration found for the email”
+Inget av de projekt som e-postadressen är medlem i har konfigurerat enkel inloggning, eller så har e-postadressen inget konto på det här OneUptime. Kontrollera e-postadressen, eller logga in med ditt lösenord. Leverantörer som din administratör har konfigurerat för hela installationen visas före e-postfältet.
+:::
 
-**Push-aviseringar fördröjda eller saknas (Android):**
+:::details En säkerhetsnyckel är din enda andra faktor
+Appen kan inte använda en säkerhetsnyckel. Logga in med en av dina reservkoder, eller lägg till en autentiseringsapp på ditt konto i instrumentpanelen: se [Slå på tvåfaktorsautentisering](/docs/introduction/your-account#slå-på-tvåfaktorsautentisering).
+:::
 
-- Inaktivera batterioptimering: **Inställningar → Appar → OneUptime On-Call → Batteri → Obegränsad**.
-- Inaktivera Datasparare för appen.
-- På Samsung-enheter, stäng av **Enhetsvård → Batteri → Bakgrundsbegränsningar** för OneUptime On-Call.
+:::details Inloggning med passkey misslyckas
+Passkeys kräver att adressen till ditt OneUptime börjar med `https://`, och en passkey som du har lagt till för det här OneUptime: se [Lägg till en passkey](/docs/introduction/your-account#lägg-till-en-passnyckel). Tryck på **Change Server** på inloggningsskärmen för att använda en annan server.
+:::
 
-**Push-aviseringar fördröjda eller saknas (iOS):**
+### Aviseringar
 
-- Undvik att tvångsstänga appen — iOS kan pausa leverans i bakgrunden.
-- Inaktivera Lågenergiläge medan du har jour.
-- Lägg till OneUptime On-Call i listan över tillåtna appar för ditt aktiva Fokus-läge.
+:::details Inga aviseringar på telefonen
+- Kontrollera att telefonen tillåter aviseringar från OneUptime On-Call, och att Stör ej eller ett Fokus inte håller tillbaka dem.
+- Kontrollera under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, att telefonen finns i listan, och skicka en **Testavisering** till den.
+- Är den markerad som **Tar inte emot aviseringar**, öppnar du appen medan du är inloggad: se [När en telefon måste registreras igen](#när-en-telefon-måste-registreras-igen).
+- Kontrollera dina jourregler under **Användarinställningar → Jourregler**: de avgör vilka larm som når vilken metod.
+- På ett OneUptime i egen drift kontrollerar du att servern når sitt push-relä: se [Push-aviseringar](/docs/self-hosted/push-notifications#nätverksåtkomst).
+:::
 
-**Face ID / Touch ID / fingeravtryck fungerar inte:**
+:::details Larm kommer för sent på Android
+Ställ in appens batterianvändning på **Obegränsad** i Androids inställningar för OneUptime On-Call, och håll appen utanför alla listor för batterisparande: se [Undvik att larm kommer fram för sent](/docs/mobile-desktop-apps/android-installation#undvik-att-larm-kommer-fram-för-sent).
+:::
 
-- Säkerställ att biometrisk data är registrerad i operativsystemets inställningar.
-- Aktivera biometrisk upplåsning på nytt från skärmen **Inställningar** inuti appen OneUptime On-Call.
+:::details Kritiska varningar ringer inte igenom tyst läge
+Öppna **Settings** i appen: raden under **Critical On-Call Alerts** säger vad som saknas på den telefonen. Kontrollera sedan under **Användarinställningar → Jourregler** att jourregeln som skickade larmet är satt till **Kritisk varning**, inte **Normal**. Varje telefon har sitt eget reglage.
+:::
 
-### Problem med skrivbordsappen (PWA)
+### Skrivbordsapp
 
-**Installationsknappen saknas:**
+:::details Ingen installationsikon i adressfältet
+Installera från en sida i instrumentpanelen efter inloggningen, över `https://`, i Edge eller Chrome, eller i Safari på macOS Sonoma 14 eller senare. Visas ikonen inte installerar även webbläsarens meny appen: se [Windows-installation](/docs/mobile-desktop-apps/windows-installation#installera-appen).
+:::
 
-- Använd en webbläsare som stöds (Chromium-baserad eller Safari på macOS Sonoma+).
-- Säkerställ att OneUptime-instansen levereras via HTTPS.
-- Vänta tills sidan har laddats klart och leta sedan efter installationsikonen i adressfältet.
+:::details Inga skrivbordsaviseringar
+Registrera webbläsaren under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, med **Registrera enhet**, tillåt aviseringar när du tillfrågas, och kontrollera datorns egna aviseringsinställningar. Ett OneUptime i egen drift behöver sina VAPID-nycklar för webbläsaraviseringar.
+:::
 
-**Skrivbordsaviseringar visas inte:**
+## Få hjälp
 
-- Tillåt aviseringar när webbläsaren ber om det.
-- Kontrollera OS:ets aviseringsinställningar (Windows Fokushjälp, macOS-aviseringar, Linux-aviseringsdaemon).
-- För egendrivna instanser, säkerställ att konfigurationen för [Push-aviseringar](/docs/self-hosted/push-notifications) är komplett.
+Om något här inte stämmer med det du ser, [öppna ett issue på GitHub](https://github.com/OneUptime/oneuptime/issues) med din apps version, längst ner på dess skärm **Settings**, och plattformen du använder.
 
-**Appen visar inte senaste data:**
+## Nästa steg
 
-- Uppdatera med **Ctrl+R** / **Cmd+R**.
-- Stäng och öppna fönstret igen.
-- Kontrollera din nätverksanslutning.
-
-## Support
-
-Om du fortfarande behöver hjälp:
-
-- Mobil: se installationsguiderna för [iOS](./ios-installation.md) eller [Android](./android-installation.md).
-- Skrivbord: se installationsguiderna för [Windows](./windows-installation.md), [macOS](./macos-installation.md) eller [Linux](./linux-installation.md).
-- Skapa ett ärende på [OneUptimes GitHub-arkiv](https://github.com/OneUptime/oneuptime).
-- Kontakta supporten via din OneUptime-instrumentpanel.
+:::cards
+- [Appar – Översikt](/docs/mobile-desktop-apps/index): Vilken app du ska använda, och hur apparna når OneUptime.
+- [Android-installation](/docs/mobile-desktop-apps/android-installation): Installera och konfigurera appen på Android.
+- [iOS-installation](/docs/mobile-desktop-apps/ios-installation): Installera och konfigurera appen på en iPhone eller iPad.
+- [Push-aviseringar](/docs/self-hosted/push-notifications): Så skickar ett OneUptime i egen drift larm, och Expos fel.
+:::
