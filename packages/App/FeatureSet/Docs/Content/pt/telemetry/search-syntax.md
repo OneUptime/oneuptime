@@ -196,6 +196,7 @@ Os chips fazem parte da visualização salva e da URL da página, então um filt
 - Um filtro `-@k:...` também corresponde a linhas que nunca tiveram o atributo: uma linha sem `platform.team` obviamente não começa com `a`.
 - Comparações numéricas funcionam com valores de atributo armazenados como texto; um valor que não é número nunca satisfaz uma comparação.
 - Em registros e traces, um valor exato, como `@http.route:/orders`, `@k:(a OR b)` ou um valor clicado na barra lateral de facetas, é consultado em um índice, então pesquisar um valor que poucas linhas têm continua rápido em intervalos de tempo longos. Curingas, "contém", exclusões e comparações leem cada linha de registro ou span do intervalo: quando uma dessas pesquisas estiver lenta, adicione um valor exato ou escolha um intervalo mais curto.
+- Uma pesquisa que dura mais de 45 segundos é interrompida. O explorador avisa onde estariam os resultados, mantém sua pesquisa e seus filtros como estavam e oferece **Tentar novamente**; o gráfico e as contagens dos filtros avisam no próprio lugar quando o tempo deles se esgota. Para que ela conclua, escolha um intervalo mais curto ou adicione um valor exato.
 
 ## Próximos passos
 

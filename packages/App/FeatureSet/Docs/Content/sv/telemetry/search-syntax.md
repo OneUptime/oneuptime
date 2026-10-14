@@ -196,6 +196,7 @@ Chips ingår i den sparade vyn och i sidans URL, så ett filter överlever en om
 - Ett filter `-@k:...` matchar även rader som aldrig har haft attributet: en rad helt utan `platform.team` börjar förstås inte med `a`.
 - Numeriska jämförelser fungerar på attributvärden som lagrats som text; ett värde som inte är ett tal uppfyller aldrig en jämförelse.
 - I loggar och spår slås ett exakt värde, till exempel `@http.route:/orders`, `@k:(a OR b)` eller ett värde du klickar på i fasettsidopanelen, upp i ett index, så en sökning efter ett värde som få rader har förblir snabb även över långa tidsintervall. Jokertecken, "innehåller", uteslutningar och jämförelser läser varje loggrad eller span i intervallet: när en sådan sökning är långsam, lägg till ett exakt värde eller välj ett kortare intervall.
+- En sökning som pågår längre än 45 sekunder stoppas. Utforskaren säger det där resultaten skulle ha stått, behåller din sökning och dina filter som de var och erbjuder **Försök igen**; diagrammet och filterantalen säger det på sin egen plats när tiden tar slut för dem. Välj ett kortare intervall eller lägg till ett exakt värde för att få sökningen att gå igenom.
 
 ## Nästa steg
 
