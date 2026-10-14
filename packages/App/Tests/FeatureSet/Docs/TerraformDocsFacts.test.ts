@@ -10,8 +10,8 @@ import {
   TERRAFORM_PROVIDER_VERSION_PLACEHOLDER,
   getTerraformProviderVersionConstraint,
 } from "../../../FeatureSet/Docs/Utils/Placeholders";
-import { DocsHeading, readPage, scanMarkdown } from "./DocsContentSupport";
-import { boldLabels, boldPaths } from "./DocsPageShape";
+import { readPage } from "./DocsContentSupport";
+import { boldPaths } from "./DocsPageShape";
 import {
   codeIn,
   englishPage,
@@ -56,7 +56,6 @@ import {
   readMonitorStepsSchema,
   readProvider,
   readRepoFile,
-  referencesIn,
   referencesInBody,
 } from "./TerraformDocsSupport";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";

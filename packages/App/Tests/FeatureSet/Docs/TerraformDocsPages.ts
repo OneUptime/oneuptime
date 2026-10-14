@@ -75,6 +75,16 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
 };
 
 /*
+ * Tab labels a translation words in its own language: they describe a way
+ * of doing something. Every other tab names a product or a system (Linux,
+ * OpenTofu, GitHub Actions) and keeps its name.
+ */
+export const TRANSLATED_TABS: Readonly<Record<string, ReadonlyArray<string>>> =
+  {
+    [COMPLETE_GUIDE]: ["Environment variable", "Terraform variable"],
+  };
+
+/*
  * Bold words that are emphasis or a list item's lead, not a Dashboard
  * label: a translation words them freely.
  */
