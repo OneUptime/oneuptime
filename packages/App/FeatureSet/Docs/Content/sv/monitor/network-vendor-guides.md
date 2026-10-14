@@ -31,7 +31,7 @@ flowchart TB
 
 - En [nätverksenhet](/docs/monitor/network-device-monitor) per låda, avsökt av en sond som kan nå den, med en tillverkarmall som tar med rätt hälso-OID:er och [SNMP-tabeller](/docs/monitor/network-device-monitor#snmp-tabeller).
 - En nätverksenhetsmonitor per enhet för varningar. Skapa den från enhetens sida så att de [rekommenderade varningarna](/docs/monitor/network-device-monitor#rekommenderat-varningspaket), inklusive en varning per rad för varje tabell som vet hur friskt ser ut, fylls i åt dig. För en flotta håller en [varningspolicy](/docs/monitor/network-device-monitor#varningspolicyer) en på varje enhet.
-- För det som en tillverkare bara rapporterar i sina loggar: syslog till sonden, en [loggpipeline](/docs/telemetry/log-pipelines) för att göra varje rad till attribut, [loggmonitorer med Group By](/docs/monitor/logs-monitor#varningar-per-grupp-group-by) för att varna en gång per tunnel eller gateway, och [inspelningsregler för loggar](/docs/telemetry/log-recording-rules) för att visa siffrorna i de loggarna i diagram.
+- För det som en tillverkare bara rapporterar i sina loggar: syslog till sonden, som OneUptime själv läser som [nätverkshändelser](/docs/monitor/network-events), [loggmonitorer med Group By](/docs/monitor/logs-monitor#varningar-per-grupp-group-by) för att varna en gång per tunnel eller gateway, och [inspelningsregler för loggar](/docs/telemetry/log-recording-rules) för att visa siffrorna i de loggarna i diagram.
 
 ## Sophos Firewall (XGS / SFOS)
 
@@ -71,20 +71,20 @@ En tunnel som Sophos rapporterar som aktiv har bara sina security associations u
 ### Gateways och SD-WAN från syslog
 
 :::steps
-1. Slå på sondens syslog-mottagare: sätt `PROBE_SYSLOG_RECEIVER_ENABLED=true` på sonden. Den lyssnar på UDP 5140 som standard (`PROBE_SYSLOG_RECEIVER_PORT` ändrar det); publicera porten om sonden körs i Docker. Meddelanden matchas mot den nätverksenhet vars värdnamn, eller någon av vars **Övriga adresser**, är avsändarens adress, och visas på enhetens sida **Loggar**.
+1. Sondens syslog-mottagare är påslagen som standard. Den lyssnar på port 5140, över UDP och TCP (`PROBE_SYSLOG_RECEIVER_PORT` ändrar det); publicera porten om sonden körs i Docker. Meddelanden matchas mot den nätverksenhet vars värdnamn, eller någon av vars **Övriga adresser**, är avsändarens adress, och visas på enhetens sidor **Händelser** och **Loggar**.
 2. Lägg på brandväggen, under **System services → Log settings**, till en syslog-server som pekar på sonden och den porten, och kryssa i loggtyperna **Event** för IPsec och gateways och loggtypen **SD-WAN**: SLA-loggarna förblir avstängda tills den är ikryssad.
-3. Skapa under **Loggar → Inställningar → Pipelines** en pipeline vars filter matchar brandväggens loggar, till exempel `attributes.networkDevice.name = 'hq-firewall'`, och lägg till en **Key=Value Parser** med **Target Prefix** `sophos`. Klistra in en rad från brandväggen i dess testare för att se exakt vilka attributnamn din SFOS-version producerar; [Sophos-exemplet](/docs/telemetry/log-pipelines#exempel-sophos-xgs-brandvägg) går igenom det.
-4. Skapa [loggmonitorer](/docs/monitor/logs-monitor) på brandväggens loggar, var och en med **Group by Attributes** så att varje tunnel eller gateway varnar för sig, och kriteriet **Log Count** **Greater Than** `0` över några minuter. Raderna nedan är de tre att börja med.
+3. Det finns inget att tolka. OneUptime läser brandväggens `key=value`-fält som `sophos.*`-attribut, och läser tunnlar, gatewayer, SD-WAN-SLA-ändringar, failover och inloggningar ur dem som [nätverkshändelser](/docs/monitor/network-events). Öppna en logg på enhetens sida **Loggar** för att se exakt vilka attributnamn din SFOS-version producerar.
+4. Klicka på **Skapa varning** på enhetens sida **Händelser** och välj en varning. Den öppnar en ifylld [loggmonitor](/docs/monitor/logs-monitor), med **Group by Attributes** så att varje tunnel eller gateway varnar för sig, och **Löst av attribut** så att varje varning stängs när brandväggen rapporterar att den är tillbaka. Raderna nedan är de tre att börja med.
 5. Visa SD-WAN-kvaliteten i diagram: med SD-WAN-loggning påslagen skriver brandväggen en SLA-sammanfattning per profil och gateway (`latency`, `jitter`, `packet_loss`). Skapa under **Loggar → Inställningar → Inspelningsregler** en regel per siffra, till exempel medelvärdet av `sophos.latency` grupperat efter `sophos.gw_name` och `sophos.profile_name`, och visa sedan resultaten i diagram, eller varna för dem med en [mätvärdesmonitor](/docs/monitor/metrics-monitor) som grupperar efter gateway. [Inspelningsregler för loggar](/docs/telemetry/log-recording-rules) går igenom det här exemplet.
 :::
 
-| Varning | Loggar att räkna | Gruppera efter |
-| --- | --- | --- |
-| IPsec-tunnel avslutad | Attribut `sophos.log_component` = `IPSec`, brödtexten innehåller `terminated` | `sophos.con_name` |
-| Gateway nere | Attribut `sophos.log_component` = `Gateway`, brödtexten innehåller `is Down` | `sophos.gatewayname` |
-| SD-WAN-SLA inte uppfyllt | Attribut `sophos.log_type` = `SD-WAN`, brödtexten innehåller `SLA not met` | `sophos.gw_name` |
+| Varning | Händelse som räknas | En varning per | Stängs av |
+| --- | --- | --- | --- |
+| En VPN-tunnel går ner | `vpn.tunnel_down` | `vpn.tunnel.name` | `vpn.tunnel_up` |
+| En WAN-länk går ner | `gateway.down` | `network.gateway.name` | `gateway.up` |
+| SD-WAN-länk under sitt SLA | `sdwan.sla_not_met` | `network.gateway.name` | `sdwan.sla_met` |
 
-Syslog-händelserna kompletterar SNMP-tabellen: de kommer i samma ögonblick som en tunnel faller, medan tabellen också fångar en tunnel som aldrig kom upp.
+De två första finns på listan under **Skapa varning**; för den tredje öppnar du en av dess händelser och klickar på **Skapa varning för den här händelsen**. Syslog-händelserna kompletterar SNMP-tabellen: de kommer i samma ögonblick som en tunnel faller, medan tabellen också fångar en tunnel som aldrig kom upp.
 
 ### Traps
 
@@ -153,7 +153,7 @@ Tunnelstatus kräver SFOS v20 eller senare. Kontrollera också att SNMP-vyn för
 :::
 
 :::details Ingen syslog kommer från brandväggen
-Sondens syslog-mottagare är avstängd som standard: sätt `PROBE_SYSLOG_RECEIVER_ENABLED=true` och publicera UDP 5140, eller din `PROBE_SYSLOG_RECEIVER_PORT`, till sonden. Meddelanden matchas mot en enhet efter avsändarens adress, så brandväggens värdnamn i OneUptime, eller någon av dess **Övriga adresser**, måste vara den adress som den skickar syslog från.
+Sonden lyssnar efter syslog på port 5140, över UDP och TCP, om den inte har startats med `PROBE_SYSLOG_RECEIVER_ENABLED=false`: publicera den porten, eller din `PROBE_SYSLOG_RECEIVER_PORT`, om sonden körs i Docker. Meddelanden matchas mot en enhet efter avsändarens adress, så brandväggens värdnamn i OneUptime, eller någon av dess **Övriga adresser**, måste vara den adress som den skickar syslog från; tills dess listas de på nätverkets sida **Händelser** som **Ännu inte en enhet**.
 :::
 
 :::details En Fabric Engine-switch fick EXOS-mallen
@@ -168,6 +168,7 @@ Det totala antalet klienter kräver firmware 6.5.3 eller senare. På äldre firm
 
 :::cards
 - [Nätverksenhets-övervakning](/docs/monitor/network-device-monitor): Allt som en enhet samlar in, och varje kriterium som den kan varna för.
+- [Nätverkshändelser](/docs/monitor/network-events): Vad varje tillverkares syslog säger, som händelser och varningar.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Dela upp brandväggsloggar i attribut.
 - [Loggövervakning](/docs/monitor/logs-monitor): Varna en gång per tunnel eller gateway.
 :::

@@ -10,6 +10,7 @@
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
+        <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>
@@ -1189,7 +1190,7 @@
                 <!-- Original incident message -->
                 <div class="group relative">
                   <div class="flex items-start gap-3">
-                    <img src="/img/OneUptimePNG/1.png" alt="OneUptime" class="w-10 h-10 rounded-lg flex-shrink-0 shadow-lg" />
+                    <img src="/img/OneUptimePNG/1.png" alt="OneUptime" class="w-10 h-10 rounded-lg flex-shrink-0 shadow-lg" width="40" height="40" loading="lazy" decoding="async" />
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2">
                         <span class="font-bold text-white text-sm hover:underline cursor-pointer">OneUptime</span>

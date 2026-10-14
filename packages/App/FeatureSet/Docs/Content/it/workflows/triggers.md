@@ -26,13 +26,13 @@ Un workflow può avere un solo trigger. Se ti servono due modi per avviare la st
 
 ## Manual
 
-Esegui il workflow quando vuoi: fai clic su **Esegui flusso di lavoro** nella pagina **Costruttore**, compila il **JSON** del trigger, fai clic su **Run Workflow Manually** e conferma con **Run**. Anche un altro workflow può avviarlo, con un blocco **Execute Workflow**.
+Esegui il workflow quando vuoi: fai clic su **Esegui flusso di lavoro** nella pagina **Costruttore**, compila il **JSON** del trigger, fai clic su **Esegui manualmente il flusso di lavoro** e conferma con **Esegui**. Anche un altro workflow può avviarlo, con un blocco **Execute Workflow**.
 
 Ideale per: automazioni con un clic per cui vuoi un pulsante, come «ruota questa chiave» o «invia un avviso di prova», e logica che condividi tra workflow.
 
 **Returns**: **JSON** — ciò con cui è stata avviata l'esecuzione.
 
-- Da **Esegui flusso di lavoro**, è il JSON che hai scritto, come testo. Per leggerne un campo, passalo prima attraverso un blocco **Text to JSON**.
+- Da **Esegui flusso di lavoro**, è il JSON che hai scritto. Per leggerne un campo, aggiungi il nome del campo al riferimento, come in `{{local.components.manual-1.returnValues.value.name}}`.
 - Da un blocco **Execute Workflow**, ogni chiave degli **Arguments** del blocco è un valore a sé. Con `{"customerId": "42"}`, un blocco successivo legge `{{local.components.manual-1.returnValues.customerId}}`, dove `manual-1` è l'ID del trigger Manual.
 
 ## Schedule
@@ -96,7 +96,7 @@ sequenceDiagram
 
 Leggi un campo aggiungendo il suo nome al riferimento, come in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
-Una volta arrivata una richiesta, il selettore dei valori di ogni blocco dopo il trigger sa cosa conteneva: elenca i campi del corpo, gli header e i parametri di query, ognuno con il suo contenuto, così puoi scegliere `incident.title` invece di scrivere un percorso. Fino ad allora dice che non è arrivata nessuna richiesta e offre **Copy test request**, un comando `curl` per l'URL; i campi compaiono non appena termina l'esecuzione avviata da quella richiesta. Vedi [Usare i valori dei blocchi precedenti](/docs/workflows/authoring#usare-i-valori-dei-blocchi-precedenti).
+Una volta arrivata una richiesta, il selettore dei valori di ogni blocco dopo il trigger sa cosa conteneva: elenca i campi del corpo, gli header e i parametri di query, ognuno con il suo contenuto, così puoi scegliere `incident.title` invece di scrivere un percorso. Fino ad allora dice che non è arrivata nessuna richiesta e offre **Copia richiesta di prova**, un comando `curl` per l'URL; i campi compaiono non appena termina l'esecuzione avviata da quella richiesta. Vedi [Usare i valori dei blocchi precedenti](/docs/workflows/authoring#usare-i-valori-dei-blocchi-precedenti).
 
 Per provare il workflow senza l'altro strumento, fai clic su **Esegui flusso di lavoro** nel **Costruttore** e inserisci header, parametri di query e un corpo.
 
@@ -161,24 +161,24 @@ Quasi tutto in OneUptime — monitor, incidenti, avvisi, eventi di manutenzione 
 
 È così che costruisci «quando in OneUptime succede X, fai Y» senza dover controllare le cose in un ciclo.
 
-**On Update** può essere limitato ad alcuni campi con **Listen on**: allora scatta solo quando un aggiornamento cambia uno di essi, con qualsiasi valore — anche spegnere un interruttore o svuotare un campo conta.
+**On Update** può essere limitato ad alcuni campi con **Fields to watch**: allora scatta solo quando un aggiornamento cambia uno di essi, con qualsiasi valore — anche spegnere un interruttore o svuotare un campo conta.
 
 ```mermaid title="Quando scatta un trigger On Update"
 flowchart TB
     save["Un record viene salvato"] --> changed{"È cambiato un valore?"}
     changed -->|"No"| nothing["Non scatta nulla"]
-    changed -->|"Sì"| listen{"Listen on impostato?"}
+    changed -->|"Sì"| listen{"Fields to watch impostato?"}
     listen -->|"No"| fires["Il workflow viene eseguito"]
     listen -->|"Sì"| field{"È cambiato uno dei suoi campi?"}
     field -->|"Sì"| fires
     field -->|"No"| nothing
 ```
 
-**On Create** e **On Update** passano il record al blocco successivo, con i campi che scegli in **Select Fields** del trigger. Ad esempio, il trigger **Incident → On Create** passa il nuovo incidente, così il blocco successivo può leggere il suo titolo, la descrizione, la gravità o qualsiasi altro campo selezionato, come `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo che non hai selezionato arriva vuoto.
+**On Create** e **On Update** passano il record al blocco successivo, con i campi che scegli in **Fields to pass on** del trigger. Ad esempio, il trigger **Incident → On Create** passa il nuovo incidente, così il blocco successivo può leggere il suo titolo, la descrizione, la gravità o qualsiasi altro campo selezionato, come `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo che non hai selezionato arriva vuoto.
 
 **On Delete** passa solo l'ID del record eliminato: quando il workflow viene eseguito il record non c'è più, quindi i suoi altri campi non si possono leggere.
 
-Per provare un trigger di evento senza aspettare l'evento, fai clic su **Esegui flusso di lavoro** nel **Costruttore** e inserisci l'ID di un record esistente, come un **ID incidente**. L'esecuzione legge quel record con i campi che hai selezionato.
+Per provare un trigger di evento senza aspettare l'evento, fai clic su **Esegui flusso di lavoro** nel **Costruttore** e scegli un record esistente: sono elencati i più recenti, e digitando il numero di un record o parte del suo nome ne trovi un altro. L'esecuzione legge quel record con i campi che hai selezionato, come se l'evento gli fosse appena accaduto; il record in sé non viene modificato né eliminato.
 
 ### Gli eventi più usati
 

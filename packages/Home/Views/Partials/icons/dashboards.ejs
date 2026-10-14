@@ -1,5 +1,10 @@
-<!-- Dashboards Icon - Pie chart -->
+<%# Dashboards Icon - Pie chart %>
+<% const iconSpriteHref = typeof useIconSprite !== 'undefined' && useIconSprite && typeof productIconSpriteHref !== 'undefined' && productIconSpriteHref ? productIconSpriteHref : null; -%>
 <svg class="<%= typeof iconClass !== 'undefined' ? iconClass : 'h-5 w-5' %> text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+<% if (iconSpriteHref) { -%>
+  <use href="<%= iconSpriteHref %>#dashboards"></use>
+<% } else { -%>
   <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z"></path>
   <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z"></path>
+<% } -%>
 </svg>

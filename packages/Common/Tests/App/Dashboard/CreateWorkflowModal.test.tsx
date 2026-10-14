@@ -1760,10 +1760,11 @@ describe("CreateWorkflowModal Jira templates", () => {
   /*
    * Someone looking for what OneUptime can do with alerts finds the Jira
    * versions after the alert templates they already know, and the Dynamics
-   * 365 ones after those. The incident templates never mention alerts, so
-   * they stay out of it.
+   * 365 ones after those. Last comes the template that pages people about a
+   * new alert: its description says the page opens one. The incident
+   * templates never mention alerts, so they stay out of it.
    */
-  test("searching for alert shows the Alerts templates, then the alert Jira templates, then the alert Dynamics 365 ones", () => {
+  test("searching for alert shows the Alerts templates, then the alert Jira templates, then the alert Dynamics 365 ones, then the one that pages about a new alert", () => {
     renderModal();
 
     const alertCategoryTemplateIds: Array<string> =
@@ -1787,6 +1788,7 @@ describe("CreateWorkflowModal Jira templates", () => {
           ...alertCategoryTemplateIds,
           ...ALERT_JIRA_KIND.templateIds,
           ...ALERT_DYNAMICS_TEMPLATE_IDS,
+          "webhook-page-users",
         ],
       });
     }

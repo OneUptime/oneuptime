@@ -1,101 +1,186 @@
-# Grafana Integration
+# Grafana
 
-[Grafana](https://grafana.com) के alerts को OneUptime incidents में बदलें। Grafana आपके dashboards पर alert rules का मूल्यांकन करता है; OneUptime उन्हें रिकॉर्ड करता है, escalate करता है और ट्रैक करता है।
+[Grafana](https://grafana.com) के अलर्ट OneUptime को भेजें, ताकि फ़ायर होने वाला हर अलर्ट एक घटना बने जो आपकी ऑन-कॉल टीम को पेज करे, और अलर्ट के ठीक होने पर सुलझ जाए। Grafana अपने अलर्ट एक वेबहुक कॉन्टैक्ट पॉइंट से भेजता है, इसलिए किसी भी तरफ़ कुछ इंस्टॉल नहीं करना पड़ता।
 
-यह integration **inbound** है: Grafana का **Webhook contact point** OneUptime पर POST करता है। इसे प्राप्त करने के दो तरीके हैं।
+:::cards
+- [चुनें कि OneUptime अलर्ट कैसे पाए](#चुनें-कि-oneuptime-अलर्ट-कैसे-पाए): एक Incoming Request मॉनिटर, या आपका अपना वर्कफ़्लो।
+- [मॉनिटर से अलर्ट पाएं](#मॉनिटर-से-अलर्ट-पाएं): हर अलर्ट पर एक घटना, रिकवरी पर सुलझी हुई।
+- [Grafana कॉन्फ़िगर करें](#grafana-कॉन्फ़िगर-करें): एक वेबहुक कॉन्टैक्ट पॉइंट, और उसे इस्तेमाल करने वाली नीति।
+- [समस्या निवारण](#समस्या-निवारण): जब अलर्ट नहीं पहुंचते, या घटनाएं खुली रहती हैं।
+:::
 
-| तरीका                                                                             | कब इस्तेमाल करें                                                                                                                           |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **[Incoming Request Monitor](/docs/monitor/incoming-request-monitor)** (अनुशंसित) | आप चाहते हैं कि alerts on-call escalation वाले incidents बनें, हर alert के लिए एक incident बने, और recovery पर वे अपने आप resolve हो जाएँ। |
-| **[Workflow](/docs/workflows/index) के साथ Webhook trigger**                      | आपको ऐसी routing logic चाहिए जो OneUptime मूल रूप से नहीं करता — दूसरे systems को कॉल करना, payloads का रूप बदलना, conditional branching।  |
+## यह कैसे काम करता है
 
-```text
-Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime  ──►  Incident + on-call
+```mermaid title="Grafana अलर्ट से घटना तक"
+flowchart TB
+    rule["Grafana अलर्ट नियम<br/>फ़ायर होता है"] --> policy["नोटिफ़िकेशन नीति<br/>अलर्ट समूहित<br/>करती है"]
+    policy --> post["कॉन्टैक्ट पॉइंट<br/>उन्हें OneUptime<br/>को भेजता है"]
+    post --> status{"हर अलर्ट की<br/>स्थिति"}
+    status -->|"firing"| open["घटना खुली,<br/>ऑन-कॉल पेज हुआ"]
+    status -->|"resolved"| resolve["घटना सुलझी"]
 ```
 
-Grafana का webhook payload Alertmanager shape follow करता है — `status`, एक `alerts` array, `commonLabels`, और `commonAnnotations`, साथ ही सुविधाजनक top-level `title` और `message` fields।
+Grafana की नोटिफ़िकेशन नीतियां फ़ायर होने वाले अलर्ट को समूहित करती हैं, और एक वेबहुक कॉन्टैक्ट पॉइंट हर समूह को एक JSON सूचना के रूप में भेजता है। इसका आकार [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) की सूचना जैसा ही है: एक `status`, एक `alerts` सूची जिसमें हर अलर्ट का अपना `status` और `fingerprint` होता है, और उसके अलर्ट के साझा `commonLabels` और `commonAnnotations`। Grafana लोगों के पढ़ने के लिए लिखे गए `title` और `message` भी जोड़ता है।
 
-## पूर्वापेक्षाएँ
+## शुरू करने से पहले
 
-- Grafana 9+ जिसमें [unified alerting](https://grafana.com/docs/grafana/latest/alerting/) चालू हो (आधुनिक Grafana में डिफ़ॉल्ट)।
-- Grafana आपके OneUptime instance तक HTTPS से पहुँच सके।
-- ऐसा OneUptime project जहाँ आप monitors (या workflows) बना सकें।
+- Grafana 9 या बाद का, Grafana Alerting के साथ, जो Grafana 9 से डिफ़ॉल्ट है। यह HTTPS पर आपके OneUptime तक पहुंच पाना चाहिए।
+- OneUptime में मॉनिटर बनाने का अधिकार, या वर्कफ़्लो का रास्ता चुनने पर वर्कफ़्लो बनाने का।
 
-## विकल्प 1 — Incoming Request Monitor
+## चुनें कि OneUptime अलर्ट कैसे पाए
 
-1. **Monitors → Create Monitor** पर जाएँ और **Incoming Request** चुनें। इसे खोलें और URL कॉपी करने के लिए बाएँ मेनू में **Documentation** पर क्लिक करें।
-2. monitor के **Criteria** खोलें और **Filter Type** को `JavaScript Expression` तथा **Value** को `"{{requestBody.status}}" === "firing"` पर सेट करें।
-3. मेल खाने पर incident घोषित करें, पेज करने के लिए **On-Call Policies** चुनें, और **More fields** में **Auto Resolve Incident** चालू करें।
-4. **Settings** के अंतर्गत **Group incidents and alerts by a payload field** चालू करें और यह सेट करें:
+पहले OneUptime सेट करें: यह आपको वह URL देता है जिस पर Grafana भेजता है।
 
-   | Field                              | मान                                 |
-   | ---------------------------------- | ----------------------------------- |
-   | Open a separate incident for each… | `requestBody.alerts[*].fingerprint` |
-   | Field that signals recovery        | `requestBody.alerts[*].status`      |
-   | Value that means recovered         | `resolved`                          |
+| तरीका | कब इस्तेमाल करें |
+| --- | --- |
+| एक Incoming Request मॉनिटर (सुझाया गया) | आप चाहते हैं कि हर अलर्ट एक घटना बने जो ऑन-कॉल को पेज करे, और अलर्ट ठीक होने पर सुलझ जाए। कुछ भी बनाना नहीं पड़ता। |
+| Webhook ट्रिगर वाला वर्कफ़्लो | आपको अपना लॉजिक चाहिए: अलर्ट फ़िल्टर करना, उनका रूप बदलना, या पहले दूसरे सिस्टम को कॉल करना। वर्कफ़्लो हर अलर्ट पर नहीं, बल्कि हर सूचना पर एक घटना खोलता है, और रिकवरी पर उसे नहीं सुलझाता। |
 
-5. incident का title `{{requestBody.commonLabels.alertname}}` रखें और उसका विवरण `{{requestBody.message}}` या `{{requestBody.commonAnnotations.summary}}` से दें। (`{{fingerprint}}` में grouping key ही होती है, पर वह एक hash है — किसी responder को दिखाने लायक नहीं।)
-6. Grafana contact point को monitor के URL पर लक्षित करें (नीचे contact point वाले चरण देखें)।
+दोनों को एक ही कॉन्टैक्ट पॉइंट से एक जैसा JSON मिलता है, इसलिए आप एक से शुरू करके बाद में Grafana में एक URL बदलकर दूसरे पर जा सकते हैं।
 
-हर **अलग** grouping मान अपना अलग incident बनता है, और Grafana के resolved बताते ही हर एक बंद हो जाता है। Grafana का प्रति-alert `fingerprint` किसी alert के label set के लिए अनोखा होता है, इसीलिए ऊपर उसे grouping path बनाया गया है। [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) पेज इसी सेटअप को और विस्तार से समझाता है — payload का रूप वही है, इसलिए वहाँ का हर चरण यहाँ भी लागू होता है।
+## मॉनिटर से अलर्ट पाएं
 
-> **Warning:** ऐसे label से group न करें जो पूरे notification में एक-सा रहता है। Grafana की डिफ़ॉल्ट notification policy `grafana_folder` और `alertname` से group करती है, इसलिए एक ही webhook के सभी alerts का alertname एक जैसा होता है — `requestBody.alerts[*].labels.alertname` से grouping करने पर पूरा payload एक ही incident में सिमट जाएगा। साथ ही grouping paths की शुरुआत अक्षरशः `requestBody.` से होनी चाहिए, और किसी path में केवल पहला `[*]` ही wildcard होता है। ये सभी गलतियाँ चुपचाप विफल होती हैं।
+एक [Incoming Request मॉनिटर](/docs/monitor/incoming-request-monitor) आपको एक URL देता है, और उसके मानदंड तय करते हैं कि हर सूचना क्या करे।
 
-## विकल्प 2 — Workflow
+:::steps
+### मॉनिटर बनाएं
 
-जब आपको "alert से incident बने" से आगे की logic चाहिए, तब इसका उपयोग करें।
+**मॉनिटर** पर जाएं और **मॉनिटर बनाएं** पर क्लिक करें। **मॉनिटर प्रकार** में **Incoming Request** चुनें, इसका नाम `Grafana` रखें, और **अगला** पर क्लिक करें।
 
-### चरण 1 — OneUptime वर्कफ़्लो बनाएँ
+### फ़ायर होने वाले हर अलर्ट के लिए घटना घोषित करें
 
-1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Grafana → Incidents` नाम दें, और **बिल्डर** खोलें।
-2. एक **वेबहुक** trigger जोड़ें और **उसका URL कॉपी करें**। ब्लॉक का नाम `Grafana` रखें।
-3. trigger से connected एक **शर्तें** ब्लॉक जोड़ें:
-   - **Left**: `{{Grafana.Request Body.status}}`
-   - **Operator**: `==`
-   - **Right**: `firing`
-4. **हाँ** से, एक **घटना बनाएं** ब्लॉक जोड़ें:
-   - **शीर्षक**: `{{Grafana.Request Body.title}}`
-   - **विवरण**: `{{Grafana.Request Body.message}}`
-   - **गंभीरता**: कोई एक चुनें (या `{{Grafana.Request Body.commonLabels.severity}}` पर branch करें)।
-5. **सहेजें** (test होने तक disabled छोड़ें)।
+**मानदंड** चरण में पहला मानदंड खोलें, वह जो मॉनिटर को ऑफ़लाइन चिह्नित करता है। उसका फ़िल्टर **अनुरोध बॉडी**, **शामिल है**, `"status":"firing"` पर सेट करें। फ़िल्टर मेल खाने पर यह मानदंड पहले से ही घटना घोषित करता है। घटना भरें:
 
-## Grafana contact point कॉन्फ़िगर करें
+- **घटना शीर्षक**: `{{requestBody.commonLabels.alertname}}`।
+- **विवरण** के नीचे **घटना विवरण**: `{{requestBody.message}}`, वह टेक्स्ट जो Grafana सूचना के लिए लिखता है।
+- **गंभीरता**: वह घटना गंभीरता जो इन अलर्ट की होनी चाहिए।
+- **ऑन-कॉल** के नीचे **ऑन-कॉल नीतियां**: पेज की जाने वाली नीतियां।
+- **और फ़ील्ड** के नीचे **घटना स्वतः सुलझाएं**: इसे चालू रहने दें, जैसा यह शुरू में होता है। इसके बिना रिकवरी को अनदेखा किया जाता है और घटनाएं खुली रहती हैं।
 
-1. Grafana में **Alerting → Contact points → Add contact point** पर जाएँ।
-2. **Name**: `OneUptime`। **Integration**: **Webhook**।
-3. **URL**: विकल्प 1 का monitor URL, या विकल्प 2 के workflow का webhook URL चिपकाएँ। **HTTP Method**: `POST`।
-4. contact point सहेजें।
-5. **Alerting → Notification policies** पर जाएँ और अपने इच्छित alerts (या डिफ़ॉल्ट policy) को **OneUptime** contact point पर route करें।
+### हर अलर्ट पर एक घटना खोलें
 
-## परीक्षण करें
+उसी मानदंड में **सेटिंग्स** खोलें और **Group incidents and alerts by a payload field** चालू करें। इसे नीचे की तरह भरें, ताकि हर अलर्ट की अपनी घटना हो, और उसकी रिकवरी उसे सुलझाए:
 
-1. यदि आपने workflow बनाया है तो उसे सक्षम करें।
-2. contact point स्क्रीन पर **Test** से एक नमूना notification भेजें, या किसी असली alert rule को fire होने दें।
-3. अपनी **Incidents** सूची देखें — और यदि आपने विकल्प 2 इस्तेमाल किया है तो workflow का **Logs** टैब भी।
+| फ़ील्ड | मान |
+| --- | --- |
+| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
+| **Field that signals recovery** | `requestBody.alerts[*].status` |
+| **Value that means recovered** | `resolved` |
 
-## Recovery पर resolve करना
+### मॉनिटर को वापस ऑनलाइन लाएं
 
-जब alert शांत हो जाता है, Grafana `status: resolved` के साथ एक और notification भेजता है।
+दूसरा मानदंड खोलें, वह जो मॉनिटर को ऑनलाइन चिह्नित करता है, और उसका फ़िल्टर **अनुरोध बॉडी**, **शामिल है**, `"status":"resolved"` पर सेट करें।
 
-**विकल्प 1** में, ऊपर कॉन्फ़िगर किए गए recovery field और मान मेल खाते incident को अपने आप बंद कर देते हैं — बशर्ते **Auto Resolve Incident** चालू हो।
+### URL कॉपी करें
 
-**विकल्प 2** में, एक दूसरी **शर्तें** शाखा (`status == resolved`) जोड़ें, मेल खाता incident ढूँढें, और उसे **Update Incident** से अपनी resolved स्थिति में ले जाएँ।
+**मॉनिटर बनाएं** पर क्लिक करें। मॉनिटर का **अवलोकन** पेज उसका **Heartbeat URL** दिखाता है। उसे Grafana के लिए कॉपी करें:
 
-## नोट्स
+```text
+https://oneuptime.com/heartbeat/<secret key>
+```
 
-- **Legacy alerting (Grafana 8 और उससे पहले)** एक अलग payload भेजता है (`ruleName`, `state`, `evalMatches`)। यदि आप legacy alerting पर हैं तो इसके बजाय `{{Grafana.Request Body.ruleName}}` और `{{Grafana.Request Body.state}}` संदर्भित करें, और `state == alerting` पर branch करें।
-- आप Grafana की alerting पूरी तरह छोड़कर OneUptime से सीधे वही metrics monitor भी करा सकते हैं — देखें [मेट्रिक्स मॉनिटर](/docs/monitor/metrics-monitor)।
+सेल्फ़-होस्टेड इंस्टॉलेशन में `oneuptime.com` की जगह उसका अपना होस्ट होता है।
+:::
+
+सूचना का हर अलर्ट अपनी घटना खोलता है, ज़्यादा से ज़्यादा **Max incidents per request** जितनी (जब तक आप इसे न बदलें, `100`), और हर अलर्ट की अपनी `status` तय करती है कि उसकी घटना कब सुलझे। Grafana का `fingerprint` अलर्ट को उसके लेबल से पहचानता है, इसलिए समूहित करने के लिए यही मान सही है। हर सेटिंग क्या करती है, यह जानने के लिए [किसी दूसरे सिस्टम से अलर्ट प्राप्त करना](/docs/monitor/incoming-request-monitor#किसी-दूसरे-सिस्टम-से-अलर्ट-प्राप्त-करना) देखें।
+
+> [!WARNING]
+> ऐसे लेबल से समूहित न करें जो सूचना के सभी अलर्ट में साझा हो। Grafana की डिफ़ॉल्ट नोटिफ़िकेशन नीति अलर्ट को `grafana_folder` और `alertname` से समूहित करती है, इसलिए एक सूचना के हर अलर्ट का `alertname` एक ही होता है: `requestBody.alerts[*].labels.alertname` से समूहित करने पर पूरी सूचना एक घटना में मिल जाती है।
+
+`{{requestBody.commonLabels.alertname}}` और `{{requestBody.message}}` पूरी सूचना का वर्णन करते हैं, जो डिफ़ॉल्ट नीति में एक अलर्ट नियम होती है। ग्रुपिंग कुंजी भी एक वेरिएबल है, `{{fingerprint}}`, पर यह एक हैश है जिससे रिस्पॉन्डर को कुछ पता नहीं चलता। इस्तेमाल किए जा सकने वाले हर वेरिएबल के लिए [घटना और अलर्ट टेम्पलेट](/docs/monitor/incident-alert-templating) देखें।
+
+## Grafana कॉन्फ़िगर करें
+
+:::steps
+### एक वेबहुक कॉन्टैक्ट पॉइंट जोड़ें
+
+Grafana में **Alerting → Contact points** पर जाएं और **+ Add contact point** पर क्लिक करें। Grafana 11 और बाद में, **Alerting** **Alerts & IRM** के नीचे है, और **Contact points** **Notification configuration** का एक टैब है।
+
+कॉन्टैक्ट पॉइंट का नाम `OneUptime` रखें, **Integration** में **Webhook** चुनें, और कॉपी किया गया URL **URL** में पेस्ट करें। **HTTP Method** को `POST` पर रहने दें, और **Save contact point** पर क्लिक करें।
+
+### अलर्ट उस पर भेजें
+
+**Alerting → Notification policies** पर जाएं। डिफ़ॉल्ट नीति का कॉन्टैक्ट पॉइंट `OneUptime` पर सेट करें, या एक चाइल्ड नीति जोड़ें जो उन अलर्ट से मेल खाए जो OneUptime को मिलने चाहिए, और जिसका कॉन्टैक्ट पॉइंट `OneUptime` हो।
+:::
+
+Grafana `Content-Type: application/json` भेजता है, जिसकी ज़रूरत मॉनिटर को सूचना के फ़ील्ड पढ़ने के लिए होती है। कॉन्टैक्ट पॉइंट की **Max Alerts** सेटिंग एक सूचना के अलर्ट सीमित करती है: इसे `0` पर रखें, यानी कोई सीमा नहीं, या ज़्यादा से ज़्यादा मॉनिटर के **Max incidents per request** जितना।
+
+## इसे टेस्ट करें
+
+1. Grafana में `OneUptime` कॉन्टैक्ट पॉइंट खोलें और **Test** पर क्लिक करें। Grafana एक फ़ायर हो रहा टेस्ट अलर्ट भेजता है, और OneUptime में एक घटना खुलती है। टेस्ट अलर्ट कभी ठीक नहीं होता, इसलिए वह घटना हाथ से सुलझाएं।
+2. किसी असली अलर्ट नियम को फ़ायर होने दें, जैसे थोड़ी देर के लिए उसका थ्रेशोल्ड कम करके, और उसकी घटना खुलते देखें, फिर थ्रेशोल्ड वापस करने पर सुलझते देखें।
+
+## वर्कफ़्लो से अलर्ट पाएं
+
+जब आपको Grafana और घटना के बीच अपने चरण चाहिए, तब [वर्कफ़्लो](/docs/workflows/index) इस्तेमाल करें।
+
+:::steps
+### वर्कफ़्लो बनाएं
+
+**वर्कफ़्लो** पर जाएं, **वर्कफ़्लो बनाएं** पर क्लिक करें, फिर **शुरू से बनाएं** पर। इसका नाम `Grafana alerts` रखें और **वर्कफ़्लो बनाएं** पर क्लिक करें।
+
+### Webhook ट्रिगर जोड़ें
+
+डैश वाले **Choose what starts this workflow** ब्लॉक पर क्लिक करें और **Webhook** चुनें। ट्रिगर पर क्लिक करें, फिर **URL कॉपी करें** पर, और वह URL Grafana के कॉन्टैक्ट पॉइंट में इस्तेमाल करें।
+
+### जांचें कि सूचना फ़ायर हो रही है
+
+**घटक जोड़ें** पर क्लिक करें, एक **If / Else** ब्लॉक जोड़ें, और ट्रिगर के **Out** बिंदु को उससे जोड़ें। **Value to check** को `{{local.components.webhook-1.returnValues.request-body.status}}` पर, **Comparison** को **is equal to** पर, और **Compare with** को `firing` पर सेट करें।
+
+### घटना घोषित करें
+
+एक **Create One Incident** ब्लॉक जोड़ें, और **If / Else** ब्लॉक की **Yes** साइड को उससे जोड़ें। **Incident Template** में ऐसा टेम्पलेट चुनें जो गंभीरता और पेज की जाने वाली ऑन-कॉल नीतियां सेट करता हो ([घटना टेम्पलेट](/docs/incidents/settings#घटना-टेम्पलेट) देखें)। **JSON Object** में वह सेट करें जो Grafana से आता है:
+
+```json
+{
+  "title": "{{local.components.webhook-1.returnValues.request-body.title}}",
+  "description": "{{local.components.webhook-1.returnValues.request-body.message}}"
+}
+```
+
+बिना टेम्पलेट के, **JSON Object** में `incidentSeverityId` भी चाहिए, जो प्रोजेक्ट की किसी घटना गंभीरता का ID है।
+
+### वर्कफ़्लो चालू करें
+
+**बिल्डर** के ऊपर **सक्षम** चालू करें। बंद वर्कफ़्लो Grafana को `400` से जवाब देता है।
+:::
+
+एक रन एक सूचना संभालता है, इसलिए सूचना में चाहे जितने अलर्ट हों, वह एक ही घटना घोषित करता है। `resolved` वाली सूचना **If / Else** ब्लॉक की **No** साइड पर जाती है, जहां कुछ नहीं जुड़ा है, इसलिए रन वहीं खत्म हो जाता है। हर अलर्ट पर एक घटना, जो रिकवरी पर सुलझे, के लिए मॉनिटर इस्तेमाल करें।
 
 ## समस्या निवारण
 
-- **कुछ भी नहीं पहुँच रहा** — पुष्टि करें कि Grafana उस URL तक पहुँच सकता है (Grafana के server logs देखें), और विकल्प 2 के लिए कि workflow **Enabled** है। OneUptime हर incoming request को validate करने से पहले ही खाली `200` लौटा देता है, इसलिए Grafana के logs में `200` इस बात की पुष्टि नहीं करता कि payload स्वीकार हुआ।
-- **Incidents खुलते हैं पर कभी बंद नहीं होते** — criteria पर recovery field और मान जाँचें, और यह भी कि incident के **More fields** में **Auto Resolve Incident** चालू है। तुलना case-sensitive है।
-- **alerts से भरे payload के लिए सिर्फ़ एक incident** — आपने ऐसे label से group किया जो notification के भीतर नहीं बदलता। इसके बजाय `requestBody.alerts[*].fingerprint` से group करें।
-- **Incident के text में कच्चे `{{...}}` placeholders दिखते हैं** — path resolve नहीं हुआ, और unresolved placeholders खाली होने के बजाय वैसे ही छोड़ दिए जाते हैं। ऐसे fields संदर्भित करें जो आपके alerting version में मौजूद हों; यदि आपने विकल्प 2 इस्तेमाल किया है तो **Logs** टैब में trigger का output देखें।
+:::details OneUptime में कुछ नहीं पहुंचता
+- कॉन्टैक्ट पॉइंट पर **Test** पर क्लिक करें: URL तक न पहुंच पाने पर Grafana त्रुटि दिखाता है। विवरण Grafana के सर्वर लॉग में होते हैं।
+- मॉनिटर कुछ भी जांचने से पहले तुरंत `200` से जवाब देता है, गलत सीक्रेट कुंजी होने पर भी। सूचनाएं पहुंच रही हैं या नहीं, यह मॉनिटर की टाइमलाइन में देखें।
+- बंद वर्कफ़्लो `400` से जवाब देता है। उसके **बिल्डर** के ऊपर **सक्षम** चालू करें।
+:::
 
-## आगे क्या पढ़ें
+:::details घटनाएं खुलती हैं पर कभी सुलझती नहीं
+- मानदंड की घटना में **और फ़ील्ड** के नीचे **घटना स्वतः सुलझाएं** होना चाहिए।
+- **Field that signals recovery** ठीक `requestBody.alerts[*].status` होना चाहिए, और **Value that means recovered** ठीक `resolved`। तुलना केस-सेंसिटिव है।
+- ग्रुपिंग पाथ `requestBody.` से शुरू होने चाहिए, और पाथ में सिर्फ़ पहला `[*]` सूची पढ़ता है। जो पाथ इनमें से कोई भी नियम तोड़ता है, वह बिना किसी त्रुटि के किसी चीज़ से मेल नहीं खाता।
+:::
 
-- [Incoming Request Monitor](/docs/monitor/incoming-request-monitor) — यह monitor type, इसके criteria, और पूरी incident grouping।
-- [इंटिग्रेशन अवलोकन](/docs/integrations/index) — inbound पैटर्न।
-- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) — बहुत मिलता-जुलता payload।
-- [मेट्रिक्स मॉनिटर](/docs/monitor/metrics-monitor) — OneUptime में सीधे metrics monitor करें।
+:::details अलर्ट से भरी सूचना के लिए एक ही घटना
+आपने ऐसे लेबल से समूहित किया जो सूचना के हर अलर्ट के लिए एक जैसा है, जैसे डिफ़ॉल्ट नीति में `alertname`। इसके बजाय `requestBody.alerts[*].fingerprint` से समूहित करें।
+:::
+
+:::details घटना में मान की जगह रेफ़रेंस दिखता है
+जो फ़ील्ड सूचना में नहीं है, उसका रेफ़रेंस कोष्ठकों समेत जैसा लिखा है वैसा ही छोड़ दिया जाता है। फ़ील्ड का नाम Grafana की भेजी चीज़ से मिलाएं: वर्कफ़्लो के लिए **लॉग → रन** में रन खोलें और उसकी तुलना ट्रिगर को मिली चीज़ से करें।
+:::
+
+[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#समस्या-निवारण) गाइड और भी मामलों को कवर करती है, और वे Grafana की सूचनाओं पर भी लागू होते हैं।
+
+## सुरक्षा
+
+- **URL को पासवर्ड की तरह रखें।** जिसके पास भी यह है, वह घटनाएं खोल सकता है। अगर यह लीक हो जाए, तो इसे रीसेट करें: मॉनिटर के **सेटिंग्स** पेज पर **इनकमिंग अनुरोध सीक्रेट कुंजी रीसेट करें**, या वर्कफ़्लो के **Webhook** ट्रिगर में **URL रीसेट करें**। फिर Grafana में कॉन्टैक्ट पॉइंट का **URL** अपडेट करें।
+- **सेल्फ़-होस्टेड?** Grafana को अपने फ़ायरवॉल से होकर HTTPS पर अपने OneUptime तक पहुंचने दें।
+
+## अगले कदम
+
+:::cards
+- [आने वाले अनुरोध मॉनिटर](/docs/monitor/incoming-request-monitor): आपके अलर्ट पाने वाले मॉनिटर की हर सेटिंग।
+- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): यही सेटअप, आपकी अलर्टिंग के लिए एक डेड मैन्स स्विच के साथ।
+- [मेट्रिक्स मॉनिटर](/docs/monitor/metrics-monitor): उन्हीं मेट्रिक्स पर OneUptime में ही अलर्ट करें।
+- [इंटिग्रेशन अवलोकन](/docs/integrations/index): वे दूसरे टूल जिन्हें आप जोड़ सकते हैं।
+:::

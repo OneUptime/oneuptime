@@ -1,79 +1,162 @@
-# Opsgenie Integration
+# Opsgenie
 
-Create an [Opsgenie](https://www.atlassian.com/software/opsgenie) alert whenever a OneUptime incident is created, and close it when OneUptime resolves.
+Send OneUptime incidents to [Opsgenie](https://www.atlassian.com/software/opsgenie). A workflow creates an Opsgenie alert when a OneUptime incident is declared, and a second one closes it when the OneUptime incident is resolved. Use it while Opsgenie still pages your team and OneUptime watches your systems.
 
-This integration is **outbound**: OneUptime calls the [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api). It uses a OneUptime **[Workflow](/docs/workflows/index)** with an **Incident → On Create** trigger and an **API component**.
+:::cards
+- [Store the API key](#store-the-api-key): Keep Opsgenie's key out of your workflows.
+- [Create Opsgenie alerts](#create-an-opsgenie-alert-for-every-incident): One workflow, two blocks.
+- [Close them](#close-the-opsgenie-alert): A second workflow that follows the incident's state.
+- [Troubleshooting](#troubleshooting): When Opsgenie refuses a request.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  ──►  Opsgenie alert
+> [!IMPORTANT]
+> Atlassian stopped selling Opsgenie in June 2025 and ends its support in April 2027. OneUptime pages people too, with on-call policies, schedules and escalation rules. To move your team over, see [Moving from Opsgenie](/docs/moving-to-oneuptime/opsgenie): an import brings your users, teams, schedules and escalations across.
+
+## How it works
+
+```mermaid title="Two workflows, one Opsgenie alert"
+flowchart TB
+    declared["Incident declared"] --> create["Workflow 1:<br/>On Create Incident"]
+    create -->|"POST /v2/alerts"| og["Opsgenie alert"]
+    resolved["Incident resolved"] --> update["Workflow 2:<br/>On Update Incident"]
+    update -->|"close by alias"| og
 ```
 
-## Prerequisites
+Both workflows call the [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api). The first gives the alert an `alias` made from the OneUptime incident's ID, and the second closes the alert by that alias.
 
-- An Opsgenie **API key** from an API integration: **Settings → Integrations → Add → API**. Copy the key.
-- Know your region. The default API host is `https://api.opsgenie.com`; EU accounts use `https://api.eu.opsgenie.com`.
-- A OneUptime project where you can create workflows.
+## Before you begin
 
-## Step 1 — Store the API key
+- An Opsgenie **API** integration, and its **API Key**. Add one under **Settings → Integrations** in Opsgenie, or under a team's **Integrations** to send alerts to that team.
+- Your Opsgenie region. Accounts in Europe, which sign in at `app.eu.opsgenie.com`, use `api.eu.opsgenie.com`. All others use `api.opsgenie.com`.
+- In OneUptime, the right to create workflows and global variables. On OneUptime Cloud, workflows need the **Growth** plan or above.
 
-1. Go to **Workflows → Global Variables → Create**.
-2. Name it `OPSGENIE_KEY`, paste the API key, and turn on **Is Secret**.
+## Store the API key
 
-## Step 2 — Build the "create alert" workflow
+:::steps
+1. Go to **Workflows → Global Variables** and click **Create Workflow Variable**.
+2. Name it `OPSGENIE_KEY` and click **Next**.
+3. Paste the API key into **Content**, turn on **Secret**, and click **Create Workflow Variable**.
+:::
 
-1. Open **Workflows → Create Workflow**, name it `Incidents → Opsgenie`, and open the **Builder**.
-2. Add an **Incident** trigger set to **On Create**. Rename it `Incident`.
-3. Add an **API** block connected to the trigger:
+A secret variable is replaced with `[REDACTED]` in run logs, so the key never shows in a run.
 
-   - **Method**: `POST`
-   - **URL**: `https://api.opsgenie.com/v2/alerts` _(use `api.eu.opsgenie.com` for EU)_
-   - **Headers**:
+## Create an Opsgenie alert for every incident
 
-     ```text
-     Authorization: GenieKey {{variable.OPSGENIE_KEY}}
-     Content-Type: application/json
-     ```
+:::steps
+### Create the workflow
 
-   - **Body**:
+Go to **Workflows**, click **Create Workflow**, then **Start from scratch**. Name it `Incidents to Opsgenie` and click **Create Workflow**.
 
-     ```json
-     {
-       "message": "{{Incident.title}}",
-       "alias": "oneuptime-{{Incident._id}}",
-       "description": "{{Incident.description}}",
-       "priority": "P1",
-       "source": "OneUptime"
-     }
-     ```
+### Add the trigger
 
-   The **`alias`** ties this Opsgenie alert to the OneUptime incident so you can close it later by alias. Note the Opsgenie auth scheme is the literal word `GenieKey` followed by a space and your key.
+Click the dashed **Choose what starts this workflow** block and pick **On Create Incident**. Click the trigger, and in **Fields to pass on** pick `title` and `description`.
 
-4. **Save**, enable, and create a test incident. A `202 Accepted` response in the workflow logs means Opsgenie queued the alert.
+### Create the alert
 
-## Step 3 — Close on OneUptime resolve (recommended)
+Click **Add Component**, add an **API Post (JSON)** block, and connect the trigger's **Success** dot to it. Set its **URL** to `https://api.opsgenie.com/v2/alerts`, or `https://api.eu.opsgenie.com/v2/alerts` in Europe. Under **More fields**, set its **Request Headers** to:
 
-1. Create a **second** workflow named `Close Opsgenie` with an **Incident → On Update** trigger.
-2. Add an **If / Else** block that checks the incident is now resolved (branch on `{{Incident.currentIncidentState.name}}`).
-3. From **Yes**, add an **API** block:
-   - **Method**: `POST`
-   - **URL**: `https://api.opsgenie.com/v2/alerts/oneuptime-{{Incident._id}}/close?identifierType=alias`
-   - **Headers**: same `Authorization: GenieKey {{variable.OPSGENIE_KEY}}`
-   - **Body**: `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`
+```json
+{ "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
+```
 
-Opsgenie looks up the alert by alias and closes it.
+And its **Request Body** to:
 
-## Priority mapping (optional)
+```json
+{
+  "message": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "alias": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "priority": "P1",
+  "source": "OneUptime"
+}
+```
 
-Opsgenie priorities run `P1`–`P5`. Map from OneUptime severities with **Conditions** branches on `{{Incident.incidentSeverity.name}}` before the API block.
+### Test it, then turn it on
+
+Click **Run Workflow**, enter the **Incident ID** of a test incident, and run it. The **API Post (JSON)** step shows a `202` response, and the alert appears in Opsgenie a moment later. Then switch **Enabled** on at the top of the **Builder**.
+:::
+
+Opsgenie's scheme is the word `GenieKey`, a space, then the key. Opsgenie keeps `message` to 130 characters, and its priorities run from `P1` to `P5`: to send each incident's own, see [Map priorities](#map-priorities).
+
+## Close the Opsgenie alert
+
+A workflow has one trigger, so closing takes a second workflow, started when an incident's state changes.
+
+:::steps
+### Add the On Update Incident trigger
+
+Create a workflow named `Close Opsgenie alerts`, and pick **On Update Incident** as its trigger. In **Fields to watch**, pick `currentIncidentStateId`, so it runs only when the state changes. In **Fields to pass on**, ask for whether the new state is a resolved one:
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### Check that the incident is resolved
+
+Add an **If / Else** block after the trigger. Set **Value to check** to `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` and **Comparison** to **is true**.
+
+### Close the alert
+
+Add an **API Post (JSON)** block after the **Yes** side, with the same **Request Headers**, and this **URL**:
+
+```text
+https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
+```
+
+Set its **Request Body** to `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+
+### Turn it on
+
+Switch **Enabled** on, then resolve a test incident in OneUptime. Opsgenie closes its alert.
+:::
+
+`identifierType=alias` tells Opsgenie that the address names the alert by its alias, not by its own ID.
+
+## Map priorities
+
+To send each incident's severity as an Opsgenie priority, add a **Run Custom JavaScript** block between the trigger and the **API Post (JSON)** block.
+
+1. In the trigger's **Fields to pass on**, also pick the severity's `name`: `{ "incidentSeverity": { "name": true } }`.
+2. Set the block's **Arguments** to `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, and its **JavaScript Code** to:
+
+   ```javascript
+   // Your incident severities, by name, to Opsgenie's priorities.
+   const PRIORITY = {
+     "Critical Incident": "P1",
+     "Major Incident": "P2",
+     "Minor Incident": "P3",
+   };
+
+   return { priority: PRIORITY[args.severity] || "P3" };
+   ```
+
+3. In the request body, set `"priority"` to `"{{local.components.javascript-1.returnValues.returnValue.priority}}"`.
+
+The names above are the three severities a new project starts with. Use your own if you renamed them.
 
 ## Troubleshooting
 
-- **`401`/`403`** — wrong key, wrong region host, or the integration lacks alert-create permission. Confirm you're using an **API** integration key and the matching `api`/`api.eu` host.
-- **Close returns `404`** — the `alias` on the close call must match the create call exactly, and `identifierType=alias` must be in the query string.
-- **Nothing happens** — confirm the workflow is **Enabled**.
+:::details Opsgenie answers 401 or 403
+The key is wrong, or it belongs to the other region. Check that the header reads `GenieKey`, a space and the key, that the key is an **API** integration's, and that the host matches your region: `api.opsgenie.com` or `api.eu.opsgenie.com`.
+:::
 
-## Where to read next
+:::details Closing answers 404
+No alert has that alias. Both workflows must build the alias the same way, `oneuptime-` followed by the incident's `_id`, and the URL must end in `?identifierType=alias`.
+:::
 
-- [Integrations Overview](/docs/integrations/index) — patterns and the auth cheat sheet.
-- [PagerDuty](/docs/integrations/pagerduty) — the same idea for PagerDuty.
-- [On Call](/docs/on-call/incoming-call-policy) — OneUptime's built-in escalation.
+:::details The alert never appears, though the step shows 202
+Opsgenie answers `202` before it processes the request, so a request it refuses later still shows `202`. Look for the request in Opsgenie's logs to see why it was refused, such as an integration that is turned off.
+:::
+
+:::details The workflow never runs
+Check that it is on: **Enabled**, at the top of its **Builder**. Then open **Logs → Runs**: a run that took the **No** side of the **If / Else** block is an update that was not a resolve.
+:::
+
+## Next steps
+
+:::cards
+- [Moving from Opsgenie](/docs/moving-to-oneuptime/opsgenie): Bring your team, schedules and escalations over before Opsgenie ends.
+- [Escalation Rules](/docs/on-call/escalation-rules): Page people from OneUptime itself.
+- [PagerDuty](/docs/integrations/pagerduty): The same two workflows for PagerDuty.
+- [Integrations Overview](/docs/integrations/index): The patterns behind every integration.
+:::

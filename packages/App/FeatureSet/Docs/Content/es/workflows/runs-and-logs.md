@@ -108,7 +108,7 @@ Una descarga no contiene nada que no pudieras leer ya en la ejecución. Los secr
 
 :::details Mi flujo de trabajo no se ejecutó
 1. Asegúrate de que el flujo de trabajo está **Habilitado**: el interruptor está en la parte superior de su **Constructor**, que lo indica encima del lienzo cuando el flujo de trabajo está desactivado. Los flujos de trabajo nuevos empiezan deshabilitados, y mientras un flujo de trabajo está desactivado su disparador no lo inicia: solo **Ejecutar flujo de trabajo** y **Ejecutar solo este paso** lo hacen, como ejecuciones de prueba. Una llamada de webhook a él recibe HTTP 400 con un mensaje que explica cómo activarlo.
-2. Para un disparador de eventos de OneUptime, confirma que el evento ocurrió de verdad: abre el registro y revisa su historial. Un disparador **On Update** con **Listen on** solo salta cuando cambió uno de esos campos.
+2. Para un disparador de eventos de OneUptime, confirma que el evento ocurrió de verdad: abre el registro y revisa su historial. Un disparador **On Update** con **Fields to watch** solo salta cuando cambió uno de esos campos.
 3. Para un disparador webhook, confirma que el otro sistema envía a la URL correcta. La mayoría de las herramientas registran cuándo envían un webhook: míralo ahí.
 4. Para un disparador programado, confirma que la expresión cron coincide con la hora que esperas. Las programaciones se ejecutan en UTC.
 

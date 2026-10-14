@@ -125,11 +125,11 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 新增觸發器
 
-按一下虛線框 **Choose what starts this workflow** ，在 **Add Trigger** 面板中選擇 **On Create Alert** 。按一下觸發器，在 **Select Fields** 中勾選標題和描述，然後按一下 **儲存** 。區塊上的 ID `alert-on-create-1` 是後續區塊參照它的方式。
+按一下虛線框 **Choose what starts this workflow** ，在 **Add Trigger** 面板中選擇 **On Create Alert** 。按一下觸發器： **Fields to pass on** 一開始就帶有標題，所以按一下 **新增欄位** ，勾選描述，然後按一下 **儲存** 。區塊上的 ID `alert-on-create-1` 是後續區塊參照它的方式。
 
 ### 檢查標題
 
-按一下 **新增元件** ，選擇 **If / Else** ，把觸發器的 **Success** 連接點連到它。把 **Value to check** 設為警示標題（按一下 **{ }** 後選擇它），把 **Comparison** 設為 **包含** ，把 **Compare with** 設為你的觸發條件標題共同的開頭，例如 `LLM budget exceeded`。
+按一下 **新增元件** ，選擇 **If / Else** ，把觸發器的 **Success** 連接點連到它。把 **要檢查的值** 設為警示標題（按一下 **{ }** 後選擇它），把 **比較** 設為 **包含** ，把 **比較對象** 設為你的觸發條件標題共同的開頭，例如 `LLM budget exceeded`。
 
 ### 呼叫你的端點
 
@@ -189,7 +189,7 @@ API 區塊的 **Request Headers** ：
 :::
 
 :::details 工作流程有執行，但總是走 No 分支
-標題是空的或不符合。觸發器的 **Select Fields** 中未勾選的欄位會以空值抵達，所以請勾選標題。然後把警示標題與 **Compare with** 比對：**包含** 必須能在其中找到完全相同的文字。
+標題是空的或不符合。不在觸發器的 **Fields to pass on** 中的欄位會以空值抵達，所以請把標題加進去。然後把警示標題與 **比較對象** 比對：**包含** 必須能在其中找到完全相同的文字。
 :::
 
 :::details 你的端點回應 401

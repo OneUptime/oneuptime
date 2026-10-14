@@ -335,13 +335,13 @@ Eine Sonde baut nur ausgehende Verbindungen auf, es sei denn, Sie schalten einen
 | --- | --- | --- | --- |
 | Eingehende Anfragen und Heartbeats | `PROBE_INGRESS_PORT` | Aus | [Eingehende-Anfrage-Ingress](/docs/probe/incoming-request-ingress) |
 | SNMP-Traps | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | An, UDP 162 | [Netzwerkgeräte-Überwachung](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Aus, UDP 5140 | [Leitfäden für Netzwerkhersteller](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | An, UDP und TCP 5140 | [Netzwerkereignisse](/docs/monitor/network-events) |
 | NetFlow, IPFIX und sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | An, UDP 2055, 4739 und 6343 | [Netzwerkverkehr](/docs/monitor/network-traffic) |
 | Health-Checks | `PORT` | An, TCP 3874 | `/status/live` und `/status/ready` |
 
 In einem Container ist ein Port von anderen Maschinen aus nur mit Host-Networking erreichbar oder wenn Sie ihn veröffentlichen.
 
-Der Syslog-Empfänger leitet höchstens `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` Nachrichten pro Minute weiter, standardmäßig `600`, verwirft den Rest und schreibt ins Log, wie viele er verworfen hat.
+Der Syslog-Empfänger leitet höchstens `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` Nachrichten pro Minute weiter, standardmäßig `600`. Darüber hinaus leitet er weiterhin die Nachrichten weiter, die er als Netzwerkereignisse liest, noch einmal so viele, verwirft den Rest und schreibt ins Log, wie viele er verworfen hat.
 
 `PROBE_NAME` und `PROBE_DESCRIPTION` werden nur von Sonden gelesen, die sich mit `REGISTER_PROBE_KEY` selbst registrieren, etwa die Sonden, die eine selbst gehostete Installation für jedes Projekt betreibt. Eine benutzerdefinierte Sonde übernimmt Name und Beschreibung aus dem Dashboard.
 

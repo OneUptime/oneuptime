@@ -12,6 +12,7 @@ import ComponentPortViewer from "./ComponentPortViewer";
 import ComponentReturnValueViewer from "./ComponentReturnValueViewer";
 import ComponentSettingsSection from "./ComponentSettingsSection";
 import DocumentationViewer from "./DocumentationViewer";
+import { getPageStepRunWarning } from "./OnCall/PageStepRunWarning";
 import { OutputConnections } from "./Switch/SwitchModel";
 import { StepValueSources } from "./ValuePicker/StepGraph";
 import { WORKFLOW_URL } from "../../Config";
@@ -101,6 +102,13 @@ export interface ComponentProps {
    * email. Their panels say so. See ComponentPrimaryPanel.
    */
   isWorkflowOff?: boolean | undefined;
+  /*
+   * Opens the Run Workflow panel for a test run. Offered by the value
+   * picker while the workflow is off and a Webhook or Incoming Email trigger
+   * has no request to list the fields of; this step's settings are saved
+   * first. Absent for someone who may not run the workflow.
+   */
+  onRequestTestRun?: (() => void) | undefined;
 }
 
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
@@ -116,6 +124,12 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   const [showRunStepConfirmation, setShowRunStepConfirmation] =
     useState<boolean>(false);
   const bodyRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+
+  const hasErrors: boolean = Object.values(hasFormValidationErrors).some(
+    (v: boolean) => {
+      return v;
+    },
+  );
 
   /*
    * The dialog focuses the first control it finds as it opens. A step's
@@ -234,6 +248,16 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         workflowId={props.workflowId}
         webhookUrl={webhookUrl}
         outputConnections={props.outputConnections}
+        isWorkflowOff={props.isWorkflowOff}
+        onTestRun={
+          props.onRequestTestRun && !hasErrors
+            ? () => {
+                // Saved first, so nothing typed here is lost to the run.
+                props.onSave(component);
+                props.onRequestTestRun?.();
+              }
+            : undefined
+        }
         component={component}
         onFormChange={(c: NodeDataProp) => {
           setComponent({ ...c });
@@ -423,12 +447,6 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     return section !== null;
   });
 
-  const hasErrors: boolean = Object.values(hasFormValidationErrors).some(
-    (v: boolean) => {
-      return v;
-    },
-  );
-
   return (
     <Modal
       title={props.title}
@@ -503,10 +521,20 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
              * Worded as what it is. There is no dry run: the step executes for
              * real, and anything it sends or changes is not undone afterwards.
              */
-            description={translator.translateTemplate(
-              'This runs "{{step}}" for real, on its own. Anything it sends, writes or deletes actually happens. Values it reads from other steps will be empty, because nothing else runs.',
-              { step: translatableTerm(component.metadata.title) },
-            )}
+            description={[
+              translator.translateTemplate(
+                'This runs "{{step}}" for real, on its own. Anything it sends, writes or deletes actually happens. Values it reads from other steps will be empty, because nothing else runs.',
+                { step: translatableTerm(component.metadata.title) },
+              ),
+              // A Page step says what "for real" means for it: phones ring.
+              translator.translateText(
+                getPageStepRunWarning(component.metadata.id) || undefined,
+              ),
+            ]
+              .filter((sentence: string | undefined): boolean => {
+                return Boolean(sentence);
+              })
+              .join(" ")}
             onClose={() => {
               setShowRunStepConfirmation(false);
             }}

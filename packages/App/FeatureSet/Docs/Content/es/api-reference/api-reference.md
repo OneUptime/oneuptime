@@ -242,7 +242,7 @@ Un campo que está activado o desactivado - `isEnabled`, `isVisibleOnStatusPage`
 isVisibleOnStatusPage must be true or false.
 ```
 
-Una actualización que escribe los valores de un registro tal como ya están no cambia nada: no inicia los workflows **On Update** del registro, no envía actualizaciones en vivo ni añade una entrada al registro de auditoría. `false` escrito sobre `false` cuenta como el mismo valor, igual que `"false"` escrito sobre `false`, un número escrito como texto, una hora escrita como el mismo instante en otro formato y unas etiquetas escritas como las mismas etiquetas en cualquier orden. Cuando una actualización cambia unos valores y vuelve a escribir otros tal como están, su entrada del registro de auditoría solo enumera los valores que cambiaron, y el **Listen on** de un workflow solo oye esos.
+Una actualización que escribe los valores de un registro tal como ya están no cambia nada: no inicia los workflows **On Update** del registro, no envía actualizaciones en vivo ni añade una entrada al registro de auditoría. `false` escrito sobre `false` cuenta como el mismo valor, igual que `"false"` escrito sobre `false`, un número escrito como texto, una hora escrita como el mismo instante en otro formato y unas etiquetas escritas como las mismas etiquetas en cualquier orden. Cuando una actualización cambia unos valores y vuelve a escribir otros tal como están, su entrada del registro de auditoría solo enumera los valores que cambiaron, y el **Fields to watch** de un workflow solo oye esos.
 
 ### Dónde se compró un proyecto
 

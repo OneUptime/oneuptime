@@ -11,7 +11,15 @@ import ComponentMetadata, {
 } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import Components from "Common/Types/Workflow/Components";
-import RecordComponents from "Common/Types/Workflow/Components/BaseModel";
+import RecordComponents, {
+  SELECT_FIELDS_NAME,
+  WATCHED_FIELDS_NAME,
+} from "Common/Types/Workflow/Components/BaseModel";
+import { getNewStepArguments } from "Common/Types/Workflow/ComponentOutPorts";
+import {
+  RunRecordColumns,
+  getRunRecordColumns,
+} from "Common/Types/Workflow/RunRecord";
 import {
   CONDITION_COMPARE_AS_OPTIONS,
   CONDITION_COMPARISONS,
@@ -458,15 +466,24 @@ describe("the overview", () => {
     expect(example).toContain(
       `{{local.components.${firstBlockId(trigger.id)}.returnValues.${returnValueId(trigger, "Incident")}.title}}`,
     );
+    /*
+     * Run Workflow asks for the trigger's record, and names the field after
+     * the record ("Incident"), where the record is picked rather than its ID
+     * typed (RunForm, RunRecordField).
+     */
     expect(
       (trigger.runWorkflowManuallyArguments || []).map(
         (argument: Argument): string => {
-          return argument.name;
+          return argument.id;
         },
       ),
-    ).toEqual(["Incident ID"]);
+    ).toEqual(["_id"]);
+    expect(new Incident().singularName).toBe("Incident");
+    expect(readSource("Common/UI/Components/Workflow/RunForm.tsx")).toContain(
+      "title: info.singularName,",
+    );
     expect(example).toContain(
-      "Click **Run Workflow**, enter the **Incident ID** of an incident in this project",
+      "Click **Run Workflow** and pick an incident in this project under **Incident**",
     );
 
     expect(post.title).toBe("API Post (JSON)");
@@ -510,14 +527,23 @@ describe("the authoring page", () => {
     );
   });
 
-  it("reads one field of the JSON through Text to JSON, by the block's own names", () => {
+  it("reads one field of the Manual trigger's JSON by adding its name to the reference", () => {
+    const manual: ComponentMetadata = component(ComponentID.Manual);
+
+    expect(returnValueNames(manual)).toEqual(["JSON"]);
+    expect(AUTHORING).toContain(
+      `\`{{local.components.${firstBlockId(manual.id)}.returnValues.${returnValueId(manual, "JSON")}.name}}\``,
+    );
+    // And the picker lists the fields under the trigger's own names.
+    expect(AUTHORING).toContain("open **JSON** under **Manual**");
+  });
+
+  it("still describes Text to JSON by the block's own names, for JSON that arrives as text", () => {
     const textToJson: ComponentMetadata = component(ComponentID.TextToJson);
 
     expect(settingNames(textToJson)).toEqual(["Text"]);
     expect(returnValueNames(textToJson)).toEqual(["JSON"]);
-    expect(AUTHORING).toContain(
-      `\`{{local.components.${firstBlockId(textToJson.id)}.returnValues.${returnValueId(textToJson, "JSON")}.name}}\``,
-    );
+    expect(COMPONENTS).toContain("Use it on JSON that arrived as text.");
   });
 });
 
@@ -589,7 +615,7 @@ describe("the triggers page", () => {
     );
   });
 
-  it("names the record triggers and On Update's Listen on as the catalog does", () => {
+  it("names the record triggers and On Update's two field lists as the catalog does", () => {
     for (const title of [
       "On Create Incident",
       "On Update Incident",
@@ -600,10 +626,136 @@ describe("the triggers page", () => {
 
     const onUpdate: ComponentMetadata = componentByTitle("On Update Incident");
 
-    expect(settingNames(onUpdate)).toContain("Listen on");
-    expect(settingNames(onUpdate)).toContain("Select Fields");
+    expect(WATCHED_FIELDS_NAME).toBe("Fields to watch");
+    expect(SELECT_FIELDS_NAME).toBe("Fields to pass on");
+    expect(settingNames(onUpdate)).toContain(WATCHED_FIELDS_NAME);
+    expect(settingNames(onUpdate)).toContain(SELECT_FIELDS_NAME);
     expect(TRIGGERS).toContain(
-      "**On Update** can be narrowed to some fields with **Listen on**",
+      `**On Update** can be narrowed to some fields with **${WATCHED_FIELDS_NAME}**`,
+    );
+    expect(TRIGGERS).toContain(
+      `with the fields you pick in the trigger's **${SELECT_FIELDS_NAME}**`,
+    );
+  });
+
+  /*
+   * The names these two settings had are gone from the builder, so a page
+   * that still used one would send its reader looking for a setting that is
+   * not there.
+   */
+  it("no workflow page names the settings as they used to be called", () => {
+    for (const page of [
+      INDEX,
+      AUTHORING,
+      TRIGGERS,
+      COMPONENTS,
+      VARIABLES,
+      RUNS,
+      CONFIGURATION,
+    ]) {
+      expect(page).not.toContain("Listen on");
+      expect(page).not.toContain("Select Fields");
+    }
+  });
+
+  it("a new record trigger's Fields to pass on starts with the title, as the first workflow says", () => {
+    expect(getNewStepArguments("incident-on-create", "Incident")).toEqual({
+      select: { title: true },
+    });
+    expect(INDEX).toContain(
+      `**${SELECT_FIELDS_NAME}** starts with the title: click **Add field**`,
+    );
+    // The button that opens the list, as the field list draws it.
+    expect(
+      readSource("Common/UI/Components/Workflow/ModelFieldPicker.tsx"),
+    ).toContain('addField: translationKey("Add field")');
+  });
+
+  it("the field lists have a JSON view, which the components page and the integrations point to", () => {
+    expect(
+      readSource("Common/UI/Components/Workflow/ModelFieldPicker.tsx"),
+    ).toContain('editAsJson: translationKey("Edit as JSON")');
+    expect(COMPONENTS).toContain(
+      `**${SELECT_FIELDS_NAME}**, on the Find components and the triggers, is picked from a list; its **Edit as JSON** shows the same column keys`,
+    );
+  });
+
+  it("Run Workflow picks an event trigger's record by number or name, or among the most recent", () => {
+    const columns: RunRecordColumns = getRunRecordColumns(new Incident());
+
+    // An incident has a number and a name to search by.
+    expect(columns.number).toBeDefined();
+    expect(columns.nameColumn).toBe("title");
+
+    const field: string = readSource(
+      "Common/UI/Components/Workflow/RunRecordField.tsx",
+    );
+
+    expect(field).toContain('mostRecent: translationKey("Most recent")');
+    expect(field).toContain(
+      'searchByNumberOrName: translationKey("Search by number or name")',
+    );
+    expect(TRIGGERS).toContain(
+      "pick an existing record: the most recent ones are listed, and typing a record's number or part of its name finds another",
+    );
+    expect(INDEX).toContain(
+      "pick an incident in this project under **Incident**: the most recent ones are listed, and typing its number or part of its title finds another",
+    );
+    // The field is named after the record, not "Incident ID" any more.
+    expect(INDEX).not.toContain("**Incident ID**");
+    expect(TRIGGERS).not.toContain("**Incident ID**");
+  });
+
+  it("JSON typed into Run Workflow reaches the Manual trigger as JSON", () => {
+    const runValues: string = readSource(
+      "Common/UI/Components/Workflow/RunValues.ts",
+    );
+
+    expect(runValues).toContain(
+      "values[argument.id] = JSONFunctions.parse(value) as JSONValue;",
+    );
+    expect(section(TRIGGERS, "## Manual")).toContain(
+      `- From **Run Workflow**, it is the JSON you typed. To read one field of it, add the field's name to the reference, as in \`{{local.components.${firstBlockId(ComponentID.Manual)}.returnValues.value.name}}\`.`,
+    );
+    expect(AUTHORING).toContain(
+      `> JSON typed into **Run Workflow** reaches the Manual trigger as JSON. To read one field of it, such as \`name\`, add the field's name to the reference: \`{{local.components.${firstBlockId(ComponentID.Manual)}.returnValues.value.name}}\`.`,
+    );
+    // No page still sends the reader through a Text to JSON block for it.
+    expect(section(TRIGGERS, "## Manual")).not.toContain("Text to JSON");
+  });
+
+  it("the value picker lists what is not available apart, and says which fields a block does not pass on", () => {
+    const menu: string = readSource(
+      "Common/UI/Components/Workflow/ValuePicker/ValuePickerMenu.tsx",
+    );
+    const stepValues: string = readSource(
+      "Common/UI/Components/Workflow/ValuePicker/StepValueSource.ts",
+    );
+    const samples: string = readSource(
+      "Common/UI/Components/Workflow/ValuePicker/StepSampleSource.ts",
+    );
+
+    // Folded at the end, with why; a block before this one on some runs says so.
+    expect(menu).toContain('other: "{{count}} steps aren\'t available here"');
+    expect(stepValues).toContain(
+      '"Runs only when {{step}} takes {{output}}, so its values can be empty here."',
+    );
+    expect(AUTHORING).toContain(
+      "- **Values that are there come first, and the rest are listed apart.**",
+    );
+    expect(AUTHORING).toContain(
+      "is listed at the end, folded and greyed, with why, and its values can't be picked",
+    );
+    // A record's fields its block does not pass on.
+    expect(AUTHORING).toContain(
+      `first the ones the block passes on, which its **${SELECT_FIELDS_NAME}** names, then, apart, the ones it doesn't, which are empty here`,
+    );
+    // While the workflow is off, a test run instead of a test request.
+    expect(samples).toContain(
+      'testWithRunWorkflow: translationKey("Test with Run Workflow")',
+    );
+    expect(AUTHORING).toContain(
+      "While the workflow is off, its URL turns requests away, so the list offers **Test with Run Workflow** instead",
     );
   });
 });

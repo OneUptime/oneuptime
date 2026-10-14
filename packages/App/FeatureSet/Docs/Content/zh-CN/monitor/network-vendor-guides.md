@@ -31,7 +31,7 @@ flowchart TB
 
 - 每台设备一个[网络设备](/docs/monitor/network-device-monitor)，由能到达它的探测器轮询，并带有一个厂商模板，提供合适的健康 OID 和 [SNMP 表](/docs/monitor/network-device-monitor#snmp-表)。
 - 每台设备一个用于警报的 Network Device 监视器。从设备页面创建它，[推荐警报](/docs/monitor/network-device-monitor#推荐警报包)就会自动填好，其中包括为每个知道何为健康的表设置的按行警报。对于设备群，[警报策略](/docs/monitor/network-device-monitor#警报策略)会在每台设备上维持一个监视器。
-- 对于厂商只在日志中报告的内容：发送到探测器的 syslog、把每一行转换为属性的[日志管道](/docs/telemetry/log-pipelines)、按隧道或网关各发一次警报的[带 Group By 的日志监视器](/docs/monitor/logs-monitor#按分组告警group-by)，以及把这些日志中的数字绘制成图表的[日志记录规则](/docs/telemetry/log-recording-rules)。
+- 对于厂商只在日志中报告的内容：发送到探测器的 syslog（OneUptime 会自行把它读取为[网络事件](/docs/monitor/network-events)）、按隧道或网关各发一次警报的[带 Group By 的日志监视器](/docs/monitor/logs-monitor#按分组告警group-by)，以及把这些日志中的数字绘制成图表的[日志记录规则](/docs/telemetry/log-recording-rules)。
 
 ## Sophos Firewall (XGS / SFOS)
 
@@ -71,20 +71,20 @@ Sophos 报告为 active 的隧道只说明其安全关联已建立。要证明�
 ### 从 syslog 获取网关和 SD-WAN 信息
 
 :::steps
-1. 开启探测器的 syslog 接收器：在探测器上设置 `PROBE_SYSLOG_RECEIVER_ENABLED=true`。它默认监听 UDP 5140（可用 `PROBE_SYSLOG_RECEIVER_PORT` 更改）；如果探测器运行在 Docker 中，请发布该端口。消息会匹配到主机名或某个**其他地址**是发送方地址的网络设备，并显示在设备的**日志**页面上。
+1. 探测器的 syslog 接收器默认开启。它在端口 5140 上通过 UDP 和 TCP 监听（可用 `PROBE_SYSLOG_RECEIVER_PORT` 更改）；如果探测器运行在 Docker 中，请发布该端口。消息会匹配到主机名或某个**其他地址**是发送方地址的网络设备，并显示在设备的**事件**和**日志**页面上。
 2. 在防火墙上，在 **System services → Log settings** 下添加指向探测器和该端口的 syslog 服务器，并勾选 IPsec 和网关的 **Event** 日志类型以及 **SD-WAN** 日志类型：在勾选之前，SLA 日志一直处于关闭状态。
-3. 在**日志 → 设置 → 管道**下，创建一个过滤条件匹配防火墙日志的管道，例如 `attributes.networkDevice.name = 'hq-firewall'`，并添加一个 **Target Prefix** 为 `sophos` 的 **Key=Value Parser**。把防火墙的一行日志粘贴到其测试器中，即可看到你的 SFOS 版本生成的确切属性名称；[Sophos 示例](/docs/telemetry/log-pipelines#示例sophos-xgs-防火墙)对此有逐步说明。
-4. 在防火墙的日志上创建[日志监视器](/docs/monitor/logs-monitor)，每个都设置 **Group by Attributes**，让每条隧道或每个网关单独发出警报，条件为在几分钟内 **Log Count** **Greater Than** `0`。下表中的三行是可以先建立的监视器。
+3. 无需解析。OneUptime 会把防火墙的 `key=value` 字段读取为 `sophos.*` 属性，并从中读出隧道、网关、SD-WAN SLA 变化、故障切换和登录，作为[网络事件](/docs/monitor/network-events)。在设备的**日志**页面上打开一条日志，即可看到你的 SFOS 版本生成的确切属性名称。
+4. 在设备的**事件**页面上点击**创建警报**并选择一个警报。它会打开一个已填好的[日志监视器](/docs/monitor/logs-monitor)，其中设置了 **Group by Attributes**，让每条隧道或每个网关单独发出警报，并设置了**按属性解决**，让每个警报在防火墙报告恢复时关闭。下表中的三行是可以先建立的监视器。
 5. 绘制 SD-WAN 质量图表：开启 SD-WAN 日志后，防火墙会按配置文件和网关写入 SLA 摘要（`latency`、`jitter`、`packet_loss`）。在**日志 → 设置 → 记录规则**下，为每个数字创建一条规则，例如按 `sophos.gw_name` 和 `sophos.profile_name` 分组的 `sophos.latency` 平均值，然后绘制结果图表，或用按网关分组的 [Metrics 监视器](/docs/monitor/metrics-monitor)对其发出警报。[日志记录规则](/docs/telemetry/log-recording-rules)逐步讲解了这个示例。
 :::
 
-| 警报 | 要统计的日志 | 分组依据 |
-| --- | --- | --- |
-| IPsec 隧道终止 | 属性 `sophos.log_component` = `IPSec`，正文包含 `terminated` | `sophos.con_name` |
-| 网关宕机 | 属性 `sophos.log_component` = `Gateway`，正文包含 `is Down` | `sophos.gatewayname` |
-| SD-WAN SLA 未达标 | 属性 `sophos.log_type` = `SD-WAN`，正文包含 `SLA not met` | `sophos.gw_name` |
+| 警报 | 统计的事件 | 每个警报对应 | 由什么关闭 |
+| --- | --- | --- | --- |
+| VPN 隧道中断 | `vpn.tunnel_down` | `vpn.tunnel.name` | `vpn.tunnel_up` |
+| WAN 链路中断 | `gateway.down` | `network.gateway.name` | `gateway.up` |
+| SD-WAN 链路低于其 SLA | `sdwan.sla_not_met` | `network.gateway.name` | `sdwan.sla_met` |
 
-syslog 事件补充了 SNMP 表：它们在隧道断开的那一刻到达，而表还能发现从未建立起来的隧道。
+前两个在**创建警报**列表中；第三个需要打开它的某个事件，然后点击**为此事件创建警报**。syslog 事件补充了 SNMP 表：它们在隧道断开的那一刻到达，而表还能发现从未建立起来的隧道。
 
 ### Trap
 
@@ -153,7 +153,7 @@ cnMaestro 可以把它的告警（例如接入点离线）发送到 HTTPS Webhoo
 :::
 
 :::details 收不到防火墙的 syslog
-探测器的 syslog 接收器默认关闭：设置 `PROBE_SYSLOG_RECEIVER_ENABLED=true`，并把 UDP 5140 或你的 `PROBE_SYSLOG_RECEIVER_PORT` 发布到探测器。消息按发送方的地址匹配到设备，所以防火墙在 OneUptime 中的主机名或其某个**其他地址**必须是它发送 syslog 时使用的地址。
+除非探测器是以 `PROBE_SYSLOG_RECEIVER_ENABLED=false` 启动的，否则它会在端口 5140 上通过 UDP 和 TCP 监听 syslog：如果探测器运行在 Docker 中，请发布该端口或你的 `PROBE_SYSLOG_RECEIVER_PORT`。消息按发送方的地址匹配到设备，所以防火墙在 OneUptime 中的主机名或其某个**其他地址**必须是它发送 syslog 时使用的地址；在此之前，这些消息会以**尚未成为设备**列在网络的**事件**页面上。
 :::
 
 :::details Fabric Engine 交换机被应用了 EXOS 模板
@@ -168,6 +168,7 @@ cnMaestro 可以把它的告警（例如接入点离线）发送到 HTTPS Webhoo
 
 :::cards
 - [网络设备监控](/docs/monitor/network-device-monitor): 设备收集的一切，以及它可以发出警报的每个条件。
+- [网络事件](/docs/monitor/network-events): 各厂商 syslog 的内容，以事件和警报的形式呈现。
 - [日志管道](/docs/telemetry/log-pipelines): 把防火墙日志解析为属性。
 - [日志监控](/docs/monitor/logs-monitor): 按隧道或网关各发一次警报。
 :::

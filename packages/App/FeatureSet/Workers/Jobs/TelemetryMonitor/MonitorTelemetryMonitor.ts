@@ -45,6 +45,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import LogService, {
   LogAttributeGroupCountResult,
   LogAttributeGroupCount,
+  LogUnresolvedAttributeGroupResult,
 } from "Common/Server/Services/LogService";
 import LogMonitorGroupResult from "Common/Types/Monitor/LogMonitor/LogMonitorGroupResult";
 import { MaxEntitiesPerCriteria } from "Common/Server/Utils/Monitor/PerEntityCriteriaFanOut";
@@ -4298,6 +4299,27 @@ export const monitorLogs: MonitorLogsFunction = async (data: {
     MonitorStepLogMonitorUtil.getGroupByAttributes(logQuery);
 
   if (groupByAttributes.length > 0) {
+    /*
+     * A monitor that names the log which resolves a group is judged on the
+     * groups still open, and told which ones a log has closed.
+     */
+    if (MonitorStepLogMonitorUtil.isResolvedByLog(logQuery)) {
+      const resolvedByQuery: Query<Log> =
+        MonitorStepLogMonitorUtil.toResolvedByQuery(
+          logQuery,
+          data.evaluateUntil,
+        );
+      resolvedByQuery.projectId = data.projectId;
+
+      return monitorUnresolvedLogGroups({
+        query: query,
+        resolvedByQuery: resolvedByQuery,
+        groupByAttributes: groupByAttributes,
+        monitorId: data.monitorId,
+        projectId: data.projectId,
+      });
+    }
+
     return monitorLogGroups({
       query: query,
       groupByAttributes: groupByAttributes,
@@ -4391,6 +4413,103 @@ const monitorLogGroups: (data: {
     groupByAttributes: data.groupByAttributes,
     groupBreakdown: groupBreakdown,
     totalGroupCount: counted.totalGroupCount,
+  };
+};
+
+/*
+ * How many resolved groups one evaluation acts on. Each is an open alert
+ * or incident to close at most, never one to open, so the ceiling is far
+ * above the one on breaching groups: a switch coming back brings every one
+ * of its ports up in the same minute, and all of them must be resolved.
+ */
+export const MaxResolvedLogGroupsPerEvaluation: number = 5000;
+
+/*
+ * The grouped evaluation of a monitor whose groups are resolved by a log
+ * (MonitorStepLogMonitor.resolvedByAttributes): "interface.down" per
+ * interface, resolved by "interface.up".
+ *
+ * The breakdown holds only the groups still open - a matching log, and no
+ * resolving log after it - so the criteria never alerts on a link that
+ * has already come back, however recently it went down. The groups a
+ * resolving log has arrived for are handed over beside it: their alerts
+ * and incidents are resolved by fingerprint, and a group that is merely
+ * quiet is left open (see MonitorResource).
+ */
+const monitorUnresolvedLogGroups: (data: {
+  query: Query<Log>;
+  resolvedByQuery: Query<Log>;
+  groupByAttributes: Array<string>;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<LogMonitorResponse> = async (data: {
+  query: Query<Log>;
+  resolvedByQuery: Query<Log>;
+  groupByAttributes: Array<string>;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<LogMonitorResponse> => {
+  const counted: LogUnresolvedAttributeGroupResult =
+    await LogService.countUnresolvedAttributeGroups({
+      query: data.query,
+      resolvedByQuery: data.resolvedByQuery,
+      groupByAttributes: data.groupByAttributes,
+      limit: MaxEntitiesPerCriteria,
+      resolvedLimit: MaxResolvedLogGroupsPerEvaluation,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  if (counted.totalGroupCount > counted.groups.length) {
+    logger.warn(
+      `${data.monitorId.toString()} - Logs monitor grouped by ${data.groupByAttributes.join(
+        ", ",
+      )} matched ${counted.totalGroupCount} groups, which is above the ${MaxEntitiesPerCriteria} per-evaluation cap. Only the ${counted.groups.length} groups with the most logs are evaluated; narrow the monitor's filters to cover the rest.`,
+      {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      },
+    );
+  }
+
+  const toGroupResult: (
+    values: Array<string>,
+    logCount: number,
+  ) => LogMonitorGroupResult = (
+    values: Array<string>,
+    logCount: number,
+  ): LogMonitorGroupResult => {
+    const labels: JSONObject = {};
+
+    data.groupByAttributes.forEach((key: string, index: number) => {
+      labels[key] = values[index] ?? "";
+    });
+
+    return {
+      fingerprint: MetricSeriesFingerprint.computeFingerprint(labels),
+      labels: labels,
+      logCount: logCount,
+    };
+  };
+
+  return {
+    projectId: data.projectId,
+    logCount: counted.totalCount,
+    logQuery: JSONFunctions.anyObjectToJSONObject(data.query),
+    monitorId: data.monitorId,
+    groupByAttributes: data.groupByAttributes,
+    groupBreakdown: counted.groups.map(
+      (group: LogAttributeGroupCount): LogMonitorGroupResult => {
+        return toGroupResult(group.values, group.count);
+      },
+    ),
+    totalGroupCount: counted.totalGroupCount,
+    resolvedGroups: counted.resolvedGroups.map(
+      (values: Array<string>): LogMonitorGroupResult => {
+        return toGroupResult(values, 0);
+      },
+    ),
   };
 };
 

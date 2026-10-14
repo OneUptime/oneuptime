@@ -1,0 +1,322 @@
+import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+
+/*
+ * The dashboard's dark theme does not come from Tailwind's dark: variants.
+ * Theme.css re-colours the light utility classes under html.dark, one rule
+ * per class and per variant (`.bg-white` does not cover `hover:bg-white`). A
+ * class it has no rule for keeps its light colour in the dark theme and
+ * nothing fails - a pale card on a dark page.
+ *
+ * The Events pages paint colour in many small places: the dot that says a
+ * row is a problem or a recovery, the "Not a device yet" badges, the alert
+ * cards' icon tiles, the set-up guide's steps and port badges, the notes.
+ * These read every source of those pages - the data modules too, where the
+ * alert cards keep their tile colours - and hold every colour class they
+ * use to what Theme.css actually remaps.
+ */
+
+const DASHBOARD_SRC: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "FeatureSet",
+  "Dashboard",
+  "src",
+);
+
+// The whole folder: a file added to it is checked without a list.
+const FOLDERS: Array<string> = ["Components/NetworkEvents"];
+
+// The pages that draw it.
+const FILES: Array<string> = [
+  "Pages/NetworkDevice/Events.tsx",
+  "Pages/NetworkDevice/View/Events.tsx",
+  "Pages/NetworkDevice/View/Logs.tsx",
+];
+
+const THEME_CSS_PATH: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Common",
+  "UI",
+  "Styles",
+  "Theme.css",
+);
+
+const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
+const LINE_COMMENT: RegExp = /\/\/.*$/gm;
+const WHITESPACE: RegExp = /\s+/g;
+
+function readCode(relativePath: string): string {
+  return fs
+    .readFileSync(path.join(DASHBOARD_SRC, relativePath), "utf8")
+    .replace(BLOCK_COMMENT, " ")
+    .replace(LINE_COMMENT, " ")
+    .replace(WHITESPACE, " ");
+}
+
+function getModules(): Map<string, string> {
+  const modules: Map<string, string> = new Map();
+
+  for (const folder of FOLDERS) {
+    for (const name of fs.readdirSync(path.join(DASHBOARD_SRC, folder))) {
+      if (name.endsWith(".ts") || name.endsWith(".tsx")) {
+        const relativePath: string = `${folder}/${name}`;
+        modules.set(relativePath, readCode(relativePath));
+      }
+    }
+  }
+
+  for (const file of FILES) {
+    modules.set(file, readCode(file));
+  }
+
+  return modules;
+}
+
+// Block comments only: prose in Theme.css must not count as a rule.
+const THEME_CSS: string = fs
+  .readFileSync(THEME_CSS_PATH, "utf8")
+  .replace(BLOCK_COMMENT, " ");
+
+/*
+ * The whole variant chain is part of the token: Theme.css remaps
+ * `hover:bg-gray-50` only with a rule of its own, so it must never be read
+ * as the bare `bg-gray-50`.
+ */
+const COLOR_TOKEN: RegExp =
+  /(?<![\w:-])((?:[a-z0-9-]+:)*(?:bg|text|border|ring|divide|from|via|to|placeholder)-(?:white|black|transparent|(?:gray|slate|red|amber|yellow|emerald|green|sky|blue|indigo|orange|rose|purple|pink|teal|cyan|lime|violet|fuchsia|zinc|neutral|stone)-\d{2,3})(?:\/\d+)?)(?![\w-])/g;
+
+/*
+ * A saturated 400-600 mark (an icon, a dot, a focus ring) reads the same
+ * on a light and a dark card. Greys are not marks: their light shades are
+ * exactly what must be remapped.
+ */
+const SOLID_MARK: RegExp =
+  /^(?:bg|text|border|ring)-(?!gray|slate)[a-z]+-(?:400|500|600)$/;
+
+const IDENTIFIER_CHAR: RegExp = /[\w-]/;
+
+const TEMPLATE_COLOR_TOKEN: RegExp =
+  /(bg|text|border|ring|divide|from|via|to)-\$\{/;
+
+const SUBSTRING_SELECTOR: RegExp = /\[class\*="([^"]+)"\]/g;
+
+// Interaction variants Theme.css remaps by prefix, matched with startsWith.
+const SUBSTRING_VARIANTS: Array<string> = Array.from(
+  THEME_CSS.matchAll(SUBSTRING_SELECTOR),
+  (match: RegExpMatchArray): string => {
+    return match[1]!;
+  },
+).filter((prefix: string): boolean => {
+  return prefix.includes(":");
+});
+
+const GROUP_HOVER_GREY_TEXT_RULE: string =
+  '.group:hover [class*="group-hover"][class*="text-gray-"]';
+
+const BACKSLASH: RegExp = /\\/g;
+const COLON: RegExp = /:/g;
+const SLASH: RegExp = /\//g;
+
+function isRemapped(token: string): boolean {
+  const utility: string = token.slice(token.lastIndexOf(":") + 1);
+
+  if (
+    utility === "text-white" ||
+    utility.endsWith("-transparent") ||
+    SOLID_MARK.test(utility)
+  ) {
+    return true;
+  }
+
+  if (THEME_CSS.includes(`[class~="${token}"]`)) {
+    return true;
+  }
+
+  if (
+    token.startsWith("group-hover:text-gray-") &&
+    THEME_CSS.includes(GROUP_HOVER_GREY_TEXT_RULE)
+  ) {
+    return true;
+  }
+
+  if (
+    SUBSTRING_VARIANTS.some((prefix: string): boolean => {
+      return token.startsWith(prefix);
+    })
+  ) {
+    return true;
+  }
+
+  // CSS escaping, as Theme.css writes the class.
+  const escapedClass: string = token
+    .replace(BACKSLASH, "\\\\")
+    .replace(COLON, "\\:")
+    .replace(SLASH, "\\/");
+  let from: number = THEME_CSS.indexOf(`.${escapedClass}`);
+
+  while (from !== -1) {
+    const next: string = THEME_CSS[from + escapedClass.length + 1] || " ";
+
+    // Followed by a non-identifier character, so bg-gray-50 is not bg-gray-500.
+    if (!IDENTIFIER_CHAR.test(next)) {
+      return true;
+    }
+
+    from = THEME_CSS.indexOf(`.${escapedClass}`, from + 1);
+  }
+
+  return false;
+}
+
+function tokensIn(code: string): Array<string> {
+  return Array.from(code.matchAll(COLOR_TOKEN)).map(
+    (match: RegExpMatchArray): string => {
+      return match[1]!;
+    },
+  );
+}
+
+describe("the Events pages in the dark theme", () => {
+  test("every component, data module and page is read", () => {
+    expect(Array.from(getModules().keys())).toEqual(
+      expect.arrayContaining([
+        "Components/NetworkEvents/NetworkEventsView.tsx",
+        // The list and an event's details: where the kind dots are drawn.
+        "Components/NetworkEvents/NetworkEventsTimeline.tsx",
+        "Components/NetworkEvents/NetworkEventDetails.tsx",
+        "Components/NetworkEvents/SyslogSetupGuide.tsx",
+        "Components/NetworkEvents/NetworkEventAlertsModal.tsx",
+        "Components/NetworkEvents/NetworkEventSourcesCard.tsx",
+        // The alert cards keep their tile colours here, in a .ts module.
+        "Components/NetworkEvents/NetworkEventAlertTemplateCopy.ts",
+        "Pages/NetworkDevice/Events.tsx",
+        "Pages/NetworkDevice/View/Events.tsx",
+      ]),
+    );
+  });
+
+  test("no module uses dark: variants or builds a colour class from a template", () => {
+    for (const [moduleKey, code] of getModules()) {
+      expect({ moduleKey, dark: code.includes("dark:") }).toEqual({
+        moduleKey,
+        dark: false,
+      });
+      expect({
+        moduleKey,
+        template: TEMPLATE_COLOR_TOKEN.test(code),
+      }).toEqual({ moduleKey, template: false });
+    }
+  });
+
+  test("every colour class the pages use is remapped for dark mode", () => {
+    const tokens: Set<string> = new Set();
+    const unmapped: Array<string> = [];
+
+    for (const [moduleKey, code] of getModules()) {
+      for (const token of tokensIn(code)) {
+        tokens.add(token);
+
+        if (!isRemapped(token)) {
+          unmapped.push(`${moduleKey}: ${token}`);
+        }
+      }
+    }
+
+    // The scan found the pages' colours at all, so this is not vacuous.
+    expect(tokens.size).toBeGreaterThan(25);
+    expect(Array.from(tokens)).toEqual(
+      expect.arrayContaining([
+        // The kind dots: a problem, a recovery, and the rest.
+        "bg-red-500",
+        "bg-emerald-500",
+        "bg-gray-300",
+        // A row on hover, and the lines between rows.
+        "hover:bg-gray-50",
+        "divide-gray-100",
+        // "Not a device yet".
+        "bg-amber-50",
+        "text-amber-800",
+        "ring-amber-200",
+        // The alert cards' icon tiles.
+        "bg-red-50",
+        "text-red-600",
+        // A day's "Today", and the line its heading draws to the edge.
+        "bg-gray-100",
+        "text-gray-600",
+        // The set-up guide's step numbers and the picked vendor's tab.
+        "bg-indigo-50",
+        "text-indigo-700",
+        "ring-indigo-200",
+        // What the device said, and the port badges.
+        "bg-gray-50",
+        "ring-gray-200",
+      ]),
+    );
+    expect(unmapped).toEqual([]);
+  });
+
+  test("the kind dots are full class names, so the stylesheet is built with them", () => {
+    const timeline: string = readCode(
+      "Components/NetworkEvents/NetworkEventsTimeline.tsx",
+    );
+
+    expect(timeline).toContain('[NetworkEventKind.Problem]: "bg-red-500",');
+    expect(timeline).toContain(
+      '[NetworkEventKind.Recovery]: "bg-emerald-500",',
+    );
+    expect(timeline).toContain('[NetworkEventKind.Info]: "bg-gray-300",');
+    // One list of them: an event's details draw the dot the list draws.
+    expect(
+      readCode("Components/NetworkEvents/NetworkEventDetails.tsx"),
+    ).toContain("KIND_DOT_CLASS_NAMES[row.kind]");
+    expect(
+      readCode("Components/NetworkEvents/NetworkEventsView.tsx"),
+    ).not.toContain("bg-red-500");
+  });
+
+  test("the lines a row's time spans are full class names too", () => {
+    const timeline: string = readCode(
+      "Components/NetworkEvents/NetworkEventsTimeline.tsx",
+    );
+
+    for (const name of [
+      '1: "sm:row-span-1",',
+      '2: "sm:row-span-2",',
+      '3: "sm:row-span-3",',
+      '1: "lg:row-span-1",',
+      '2: "lg:row-span-2",',
+    ]) {
+      expect(timeline).toContain(name);
+    }
+
+    // Never put together from a number at run time.
+    expect(timeline).not.toContain("row-span-${");
+  });
+
+  test("the open row is marked with the colour a row has under the pointer, which the dark theme has", () => {
+    const timeline: string = readCode(
+      "Components/NetworkEvents/NetworkEventsTimeline.tsx",
+    );
+
+    expect(timeline).toContain('props.isOpen ? " bg-gray-50" : ""');
+    expect(isRemapped("bg-gray-50")).toBe(true);
+    expect(isRemapped("hover:bg-gray-50")).toBe(true);
+  });
+
+  test("no fixed hex colour that would not follow the theme", () => {
+    const HEX_COLOR: RegExp = /#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/;
+
+    for (const [moduleKey, code] of getModules()) {
+      expect({ moduleKey, hex: HEX_COLOR.test(code) }).toEqual({
+        moduleKey,
+        hex: false,
+      });
+    }
+  });
+});

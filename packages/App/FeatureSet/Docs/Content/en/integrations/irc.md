@@ -87,7 +87,7 @@ Start from the template, which builds the whole workflow for you, or from scratc
 The workflow opens in the **Builder** with three steps: **On Create Incident**; **Send Message to IRC**, which posts the incident's number, title, severity and state in two lines; and a **Log** step on its **Error** output, which records why a message wasn't delivered. The server and the channel are saved as the workflow's variables `ircServer` and `ircChannel`. If you saved passwords in the previous step, click **Send Message to IRC**, open **More fields**, and pick each variable with the **{ }** button of its setting.
 @tab From scratch
 1. Open **Workflows**, click **Create Workflow**, choose **Start from scratch**, name the workflow, and click **Create Workflow**.
-2. In the **Builder**, click **Choose what starts this workflow** and pick **On Create Incident** under **Popular**. Click the trigger and, in **Select Fields**, pick the incident fields your message shows, such as its title.
+2. In the **Builder**, click **Choose what starts this workflow** and pick **On Create Incident** under **Popular**. Click the trigger and, in **Fields to pass on**, pick the incident fields your message shows, such as its title.
 3. Click **Add Component**, search for `irc`, and click **Send Message to IRC**. Connect the trigger's **Success** output to it.
 4. Click the new step and fill in **IRC Server**, **Channel** and **Message Text**. The **{ }** button in **Message Text** inserts the incident's fields, such as its title.
 5. If you saved passwords in the previous step, open **More fields**. In **Server Password**, **SASL Password** or **Channel Key**, click **{ }** and pick the variable under **Global variables**. Put your account's name in **SASL Username**.
@@ -97,7 +97,7 @@ The workflow opens in the **Builder** with three steps: **On Create Incident**; 
 
 Switch **Enabled** on at the top of the **Builder**. From now on, every new incident is posted in the channel.
 
-To test it without opening an incident, click **Run Workflow** and put the ID of an incident you already have in **Incident ID**. The incident's page shows its ID. Click **Run Workflow Manually** and confirm with **Run**. The **Workflow Run** panel follows the run: the IRC step's log says how many lines it sent, such as `Sent 2 lines to #your-channel.`, and the message shows up in the channel. If the step takes **Error** instead, its log says why: see [Troubleshooting](#troubleshooting).
+To test it without opening an incident, click **Run Workflow** and pick an incident you already have under **Incident**: the most recent ones are listed, and typing its number or part of its title finds another. Click **Run Workflow Manually** and confirm with **Run**. The **Workflow Run** panel follows the run: the IRC step's log says how many lines it sent, such as `Sent 2 lines to #your-channel.`, and the message shows up in the channel. If the step takes **Error** instead, its log says why: see [Troubleshooting](#troubleshooting).
 :::
 
 ## Tips

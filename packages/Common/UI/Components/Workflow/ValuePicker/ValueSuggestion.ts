@@ -12,8 +12,10 @@
  * Nothing here touches the DOM or the API.
  */
 
+import Dictionary from "../../../../Types/Dictionary";
 import IconProp from "../../../../Types/Icon/IconProp";
 import ObjectID from "../../../../Types/ObjectID";
+import type { SometimesBefore, UnavailableStep } from "./StepGraph";
 import {
   ComponentInputType,
   NodeDataProp,
@@ -48,6 +50,12 @@ export interface ValueDrillIn {
    * request received 5 minutes ago.") or why there are none yet.
    */
   note?: string | undefined;
+  /*
+   * Above the values inside that are empty here (isEmptyHere): whose they
+   * are, and how to make them not empty ("On Update Incident doesn't pass
+   * these on. Add them to its Fields to pass on to use them.").
+   */
+  emptyHereNote?: ValueSuggestionSentence | undefined;
 }
 
 /**
@@ -91,6 +99,41 @@ export interface ValueSuggestion {
    * and is dropped where no other source lists it.
    */
   annotatesOnly?: boolean | undefined;
+  /*
+   * Empty where this step runs, though it can be picked: a record's field
+   * the step that reads the record does not pass on. Listed apart, greyed,
+   * under why (ValueDrillIn.emptyHereNote).
+   */
+  isEmptyHere?: boolean | undefined;
+  /*
+   * Not there at all where this step runs - a value of a step that runs
+   * after it, or that no path leads from - so it cannot be picked. Listed
+   * apart, greyed, under its group's reason (ValueAvailability).
+   */
+  isUnavailable?: boolean | undefined;
+}
+
+/*
+ * A sentence the picker shows in the reader's language: a template, the key
+ * it is translated by, and its values.
+ */
+export interface ValueSuggestionSentence {
+  template: string;
+  values?: Record<string, string> | undefined;
+}
+
+export enum ValueAvailabilityState {
+  // Before this step on some runs only: its values can be empty here.
+  Sometimes = "Sometimes",
+  // After this step, or on no path to it: its values are not there.
+  Unavailable = "Unavailable",
+}
+
+// Whether a step's values can be used where the step being edited runs.
+export interface ValueAvailability {
+  state: ValueAvailabilityState;
+  // Why, in a sentence: "Runs after this step."
+  reason: ValueSuggestionSentence;
 }
 
 /**
@@ -110,6 +153,11 @@ export interface ValueSuggestionNote {
   refreshSourceId?: string | undefined;
   /** Said while it waits, e.g. "Waiting for a request…". */
   waitingText?: string | undefined;
+  /*
+   * Offers a test run with Run Workflow beside it: what fills the values
+   * while the workflow is off, and its trigger refuses real requests.
+   */
+  offersTestRun?: boolean | undefined;
 }
 
 export interface ValueSuggestionGroup {
@@ -125,6 +173,11 @@ export interface ValueSuggestionGroup {
   order: number;
   items: Array<ValueSuggestion>;
   note?: ValueSuggestionNote | undefined;
+  /*
+   * Set when the step's values cannot simply be used here: it runs on some
+   * runs only, or not before this step at all. Unset is usable as it is.
+   */
+  availability?: ValueAvailability | undefined;
 }
 
 /** What a source knows about the step whose settings are being edited. */
@@ -139,6 +192,19 @@ export interface ValueSuggestionContext {
    * and all, when the reader may see it. Never shown, only copied.
    */
   webhookUrl?: string | undefined;
+  /*
+   * The upstream steps that run before this one on some runs only, by step
+   * id, with the step and output that decide it (StepGraph).
+   */
+  sometimesSteps?: Dictionary<SometimesBefore> | undefined;
+  // The steps whose values are not there where this one runs, and why.
+  unavailableSteps?: Array<UnavailableStep> | undefined;
+  /*
+   * The workflow is turned off, so its trigger is paused: a Webhook's URL
+   * refuses requests. A test run with Run Workflow fills in what is inside
+   * its values instead.
+   */
+  isWorkflowOff?: boolean | undefined;
 }
 
 /**
@@ -317,6 +383,7 @@ const mergeDrillIns: MergeDrillInsFunction = (
     allowsPath: first.allowsPath || second.allowsPath,
     pathPlaceholder: first.pathPlaceholder || second.pathPlaceholder,
     note: first.note || second.note,
+    emptyHereNote: first.emptyHereNote || second.emptyHereNote,
     loadChildren:
       loaders.length === 0
         ? undefined
@@ -496,6 +563,7 @@ export const mergeSuggestionGroups: MergeSuggestionGroupsFunction = (
       order: Math.min(existing.order, group.order),
       items: [...existing.items, ...group.items],
       note: existing.note || group.note,
+      availability: existing.availability || group.availability,
     });
   }
 

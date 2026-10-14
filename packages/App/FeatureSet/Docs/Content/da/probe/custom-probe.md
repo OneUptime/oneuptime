@@ -335,13 +335,13 @@ En sonde laver kun udgående forbindelser, medmindre du slår en lytter til elle
 | --- | --- | --- | --- |
 | Indgående anmodninger og heartbeats | `PROBE_INGRESS_PORT` | Fra | [Indgående anmodning ingress](/docs/probe/incoming-request-ingress) |
 | SNMP-traps | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Til, UDP 162 | [Netværksenheds-monitor](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Fra, UDP 5140 | [Vejledninger pr. netværksleverandør](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Til, UDP og TCP 5140 | [Netværksbegivenheder](/docs/monitor/network-events) |
 | NetFlow, IPFIX og sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | Til, UDP 2055, 4739 og 6343 | [Netværkstrafik](/docs/monitor/network-traffic) |
 | Sundhedstjek | `PORT` | Til, TCP 3874 | `/status/live` og `/status/ready` |
 
 I en container kan en port kun nås fra andre maskiner med værtsnetværk, eller når du publicerer den.
 
-Syslog-modtageren videresender højst `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` beskeder i minuttet, `600` som standard, kasserer resten og logger, hvor mange den kasserede.
+Syslog-modtageren videresender højst `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` beskeder i minuttet, `600` som standard. Derover videresender den stadig de beskeder, den læser som netværksbegivenheder, op til lige så mange igen, kasserer resten og logger, hvor mange den kasserede.
 
 `PROBE_NAME` og `PROBE_DESCRIPTION` læses kun af sonder, der selv registrerer sig med `REGISTER_PROBE_KEY`, som de sonder, en selvhostet installation kører for alle projekter. En brugerdefineret sonde henter sit navn og sin beskrivelse fra dashboardet.
 

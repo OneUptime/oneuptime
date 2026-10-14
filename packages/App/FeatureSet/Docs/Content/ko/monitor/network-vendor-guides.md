@@ -31,7 +31,7 @@ flowchart TB
 
 - 장비마다 하나의 [네트워크 디바이스](/docs/monitor/network-device-monitor). 도달할 수 있는 프로브가 폴링하며, 알맞은 헬스 OID와 [SNMP 테이블](/docs/monitor/network-device-monitor#snmp-테이블)을 가져오는 벤더 템플릿을 씁니다.
 - 알림을 위한 디바이스마다 하나의 Network Device 모니터. 디바이스 페이지에서 만들면, 정상이 무엇인지 아는 테이블마다 행별 알림 하나를 포함한 [권장 알림](/docs/monitor/network-device-monitor#권장-알림-팩)이 채워집니다. 여러 디바이스에는 [알림 정책](/docs/monitor/network-device-monitor#알림-정책)이 모든 디바이스에 모니터를 하나씩 유지합니다.
-- 벤더가 로그로만 보고하는 것을 위해: 프로브로 보내는 syslog, 각 줄을 속성으로 바꾸는 [로그 파이프라인](/docs/telemetry/log-pipelines), 터널이나 게이트웨이마다 한 번씩 알리는 [Group By를 쓰는 로그 모니터](/docs/monitor/logs-monitor#그룹별-알림group-by), 그 로그의 숫자를 차트로 그리는 [로그 기록 규칙](/docs/telemetry/log-recording-rules).
+- 벤더가 로그로만 보고하는 것을 위해: 프로브로 보내는 syslog(OneUptime이 알아서 [네트워크 이벤트](/docs/monitor/network-events)로 읽습니다), 터널이나 게이트웨이마다 한 번씩 알리는 [Group By를 쓰는 로그 모니터](/docs/monitor/logs-monitor#그룹별-알림group-by), 그 로그의 숫자를 차트로 그리는 [로그 기록 규칙](/docs/telemetry/log-recording-rules).
 
 ## Sophos Firewall (XGS / SFOS)
 
@@ -71,20 +71,20 @@ Sophos가 active로 보고하는 터널은 보안 연결(SA)이 올라와 있다
 ### syslog로 보는 게이트웨이와 SD-WAN
 
 :::steps
-1. 프로브의 syslog 수신기를 켭니다. 프로브에 `PROBE_SYSLOG_RECEIVER_ENABLED=true`를 설정하세요. 기본적으로 UDP 5140에서 수신 대기하며(`PROBE_SYSLOG_RECEIVER_PORT`로 바꿀 수 있음), 프로브가 Docker에서 실행되면 포트를 게시하세요. 메시지는 호스트 이름이나 **기타 주소** 중 하나가 보낸 쪽의 주소인 네트워크 디바이스에 매칭되며, 디바이스의 **로그** 페이지에 나타납니다.
+1. 프로브의 syslog 수신기는 기본적으로 켜져 있습니다. 포트 5140에서 UDP와 TCP로 수신 대기하며(`PROBE_SYSLOG_RECEIVER_PORT`로 바꿀 수 있음), 프로브가 Docker에서 실행되면 포트를 게시하세요. 메시지는 호스트 이름이나 **기타 주소** 중 하나가 보낸 쪽의 주소인 네트워크 디바이스에 매칭되며, 디바이스의 **이벤트** 페이지와 **로그** 페이지에 나타납니다.
 2. 방화벽의 **System services → Log settings**에서 프로브와 그 포트를 가리키는 syslog 서버를 추가하고, IPsec과 게이트웨이에 대한 **Event** 로그 유형과 **SD-WAN** 로그 유형을 체크하세요. SLA 로그는 체크할 때까지 꺼져 있습니다.
-3. **로그 → 설정 → 파이프라인**에서 필터가 방화벽의 로그에 맞는 파이프라인(예: `attributes.networkDevice.name = 'hq-firewall'`)을 만들고, **Target Prefix**가 `sophos`인 **Key=Value Parser**를 추가합니다. 방화벽의 한 줄을 테스터에 붙여 넣으면 사용 중인 SFOS 버전이 만드는 정확한 속성 이름을 볼 수 있습니다. [Sophos 예시](/docs/telemetry/log-pipelines#예-sophos-xgs-방화벽)에서 차례로 설명합니다.
-4. 방화벽의 로그에 대해 [로그 모니터](/docs/monitor/logs-monitor)를 만들고, 각각 **Group by Attributes**를 설정해 터널이나 게이트웨이마다 따로 알리게 하며, 기준은 몇 분 동안 **Log Count** **Greater Than** `0`으로 합니다. 아래 행이 시작하기 좋은 세 가지입니다.
+3. 파싱할 것은 없습니다. OneUptime이 방화벽의 `key=value` 필드를 `sophos.*` 속성으로 읽고, 거기서 터널, 게이트웨이, SD-WAN SLA 변화, 장애 조치, 로그인을 [네트워크 이벤트](/docs/monitor/network-events)로 읽어 냅니다. 디바이스의 **로그** 페이지에서 로그를 열면 사용 중인 SFOS 버전이 만드는 정확한 속성 이름을 볼 수 있습니다.
+4. 디바이스의 **이벤트** 페이지에서 **알림 만들기**를 클릭하고 알림을 고릅니다. 내용이 채워진 [로그 모니터](/docs/monitor/logs-monitor)가 열리며, 터널이나 게이트웨이마다 따로 알리도록 **Group by Attributes**가, 방화벽이 복구를 보고하면 각 알림이 닫히도록 **해결 기준 속성**이 설정되어 있습니다. 아래 행이 시작하기 좋은 세 가지입니다.
 5. SD-WAN 품질을 차트로 그립니다. SD-WAN 로깅이 켜져 있으면 방화벽은 프로필과 게이트웨이마다 SLA 요약(`latency`, `jitter`, `packet_loss`)을 씁니다. **로그 → 설정 → 기록 규칙**에서 숫자마다 규칙을 하나씩 만드세요. 예를 들어 `sophos.gw_name`과 `sophos.profile_name`으로 그룹화한 `sophos.latency`의 평균입니다. 그런 다음 결과를 차트로 그리거나, 게이트웨이로 그룹화하는 [Metrics 모니터](/docs/monitor/metrics-monitor)로 알림을 거세요. [로그 기록 규칙](/docs/telemetry/log-recording-rules)에서 이 예시를 차례로 설명합니다.
 :::
 
-| 알림 | 셀 로그 | 그룹화 기준 |
-| --- | --- | --- |
-| IPsec 터널 종료 | 속성 `sophos.log_component` = `IPSec`, 본문에 `terminated` 포함 | `sophos.con_name` |
-| 게이트웨이 다운 | 속성 `sophos.log_component` = `Gateway`, 본문에 `is Down` 포함 | `sophos.gatewayname` |
-| SD-WAN SLA 미충족 | 속성 `sophos.log_type` = `SD-WAN`, 본문에 `SLA not met` 포함 | `sophos.gw_name` |
+| 알림 | 세는 이벤트 | 알림 단위 | 닫는 이벤트 |
+| --- | --- | --- | --- |
+| VPN 터널이 다운될 때 | `vpn.tunnel_down` | `vpn.tunnel.name` | `vpn.tunnel_up` |
+| WAN 링크가 다운될 때 | `gateway.down` | `network.gateway.name` | `gateway.up` |
+| SD-WAN 링크가 SLA 미달 | `sdwan.sla_not_met` | `network.gateway.name` | `sdwan.sla_met` |
 
-syslog 이벤트는 SNMP 테이블을 보완합니다. 터널이 끊기는 순간 도착하며, 테이블은 한 번도 올라오지 않은 터널도 잡아냅니다.
+처음 두 가지는 **알림 만들기** 목록에 있고, 세 번째는 해당 이벤트 중 하나를 열어 **이 이벤트에 대한 알림 만들기**를 클릭합니다. syslog 이벤트는 SNMP 테이블을 보완합니다. 터널이 끊기는 순간 도착하며, 테이블은 한 번도 올라오지 않은 터널도 잡아냅니다.
 
 ### 트랩
 
@@ -153,7 +153,7 @@ cnMaestro는 액세스 포인트가 오프라인이 되는 것 같은 알람을 
 :::
 
 :::details 방화벽에서 syslog가 도착하지 않음
-프로브의 syslog 수신기는 기본적으로 꺼져 있습니다. `PROBE_SYSLOG_RECEIVER_ENABLED=true`를 설정하고 UDP 5140, 또는 설정한 `PROBE_SYSLOG_RECEIVER_PORT`를 프로브에 게시하세요. 메시지는 보낸 쪽의 주소로 디바이스에 매칭되므로, OneUptime에 있는 방화벽의 호스트 이름이나 **기타 주소** 중 하나가 syslog를 보내는 주소여야 합니다.
+프로브는 `PROBE_SYSLOG_RECEIVER_ENABLED=false`로 시작하지 않은 한 포트 5140에서 UDP와 TCP로 syslog를 수신합니다. 프로브가 Docker에서 실행되면 그 포트, 또는 설정한 `PROBE_SYSLOG_RECEIVER_PORT`를 게시하세요. 메시지는 보낸 쪽의 주소로 디바이스에 매칭되므로, OneUptime에 있는 방화벽의 호스트 이름이나 **기타 주소** 중 하나가 syslog를 보내는 주소여야 합니다. 그렇게 될 때까지는 네트워크의 **이벤트** 페이지에 **아직 디바이스가 아님**으로 나열됩니다.
 :::
 
 :::details Fabric Engine 스위치에 EXOS 템플릿이 적용됨
@@ -168,6 +168,7 @@ cnMaestro는 액세스 포인트가 오프라인이 되는 것 같은 알람을 
 
 :::cards
 - [네트워크 장치 모니터](/docs/monitor/network-device-monitor): 디바이스가 수집하는 모든 것과 알림을 걸 수 있는 모든 기준.
+- [네트워크 이벤트](/docs/monitor/network-events): 각 벤더의 syslog가 알려 주는 내용을 이벤트와 알림으로.
 - [로그 파이프라인](/docs/telemetry/log-pipelines): 방화벽 로그를 속성으로 파싱합니다.
 - [로그 모니터](/docs/monitor/logs-monitor): 터널이나 게이트웨이마다 한 번씩 알립니다.
 :::

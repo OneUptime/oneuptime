@@ -282,11 +282,31 @@ describe("the searches from the report, on the real catalog", () => {
     expect(policies[0]!.component.title).toBe(
       "Create Many On-Call Duty Policies",
     );
-    expect(
-      policies.slice(0, 8).map((result: ComponentSearchResult): string => {
+    /*
+     * And Page an On-Call Policy among them, the one step outside the
+     * resource that is about a policy.
+     */
+    const categories: Array<string> = policies
+      .slice(0, 9)
+      .map((result: ComponentSearchResult): string => {
         return result.component.category;
+      });
+
+    expect(
+      categories.filter((category: string): boolean => {
+        return category === "On-Call Policy";
       }),
-    ).toEqual(new Array(8).fill("On-Call Policy"));
+    ).toHaveLength(8);
+    expect(
+      policies
+        .slice(0, 9)
+        .filter((result: ComponentSearchResult): boolean => {
+          return result.component.category !== "On-Call Policy";
+        })
+        .map((result: ComponentSearchResult): string => {
+          return result.component.title;
+        }),
+    ).toEqual(["Page an On-Call Policy"]);
   });
 
   test("the trigger picker", () => {
@@ -398,7 +418,7 @@ describe("the picker over the full catalog draws a short list", () => {
     const picker: HTMLElement = screen.getByTestId("workflow-component-picker");
 
     // Popular, the other built-ins, the common resources and "Browse all".
-    expect(within(picker).getAllByRole("button").length).toBeLessThan(40);
+    expect(within(picker).getAllByRole("button").length).toBeLessThan(50);
     expect(
       screen.getByRole("button", {
         name: `Browse all resources, ${ACTIONS.resources.length}`,

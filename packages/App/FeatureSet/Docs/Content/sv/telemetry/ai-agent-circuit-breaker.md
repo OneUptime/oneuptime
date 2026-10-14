@@ -125,11 +125,11 @@ Spara först slutpunktens token där arbetsflödet kan använda den utan att vis
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Alert** i panelen **Add Trigger**. Klicka på utlösaren, markera titeln och beskrivningen i **Select Fields** och klicka på **Spara**. ID:t på blocket, `alert-on-create-1`, är hur senare block hänvisar till det.
+Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Alert** i panelen **Add Trigger**. Klicka på utlösaren: **Fields to pass on** börjar med titeln, så klicka på **Lägg till fält**, markera beskrivningen och klicka på **Spara**. ID:t på blocket, `alert-on-create-1`, är hur senare block hänvisar till det.
 
 ### Kontrollera titeln
 
-Klicka på **Lägg till komponent**, välj **If / Else** och koppla utlösarens punkt **Success** till den. Sätt **Value to check** till larmets titel (klicka på **{ }** och välj den), **Comparison** till **innehåller** och **Compare with** till början som dina snubbeltrådars titlar har gemensamt, till exempel `LLM budget exceeded`.
+Klicka på **Lägg till komponent**, välj **If / Else** och koppla utlösarens punkt **Success** till den. Sätt **Värde att kontrollera** till larmets titel (klicka på **{ }** och välj den), **Jämförelse** till **innehåller** och **Jämför med** till början som dina snubbeltrådars titlar har gemensamt, till exempel `LLM budget exceeded`.
 
 ### Anropa din slutpunkt
 
@@ -189,7 +189,7 @@ Kontrollera att **Aktiverad** är påslaget högst upp i **Byggare**: arbetsflö
 :::
 
 :::details Arbetsflödet körs men tar alltid grenen No
-Titeln är tom eller matchar inte. Ett fält som utlösarens **Select Fields** inte markerar kommer fram tomt, så markera titeln. Jämför sedan larmets titel med **Compare with**: **innehåller** måste hitta exakt den texten i den.
+Titeln är tom eller matchar inte. Ett fält som inte finns i utlösarens **Fields to pass on** kommer fram tomt, så lägg till titeln där. Jämför sedan larmets titel med **Jämför med**: **innehåller** måste hitta exakt den texten i den.
 :::
 
 :::details Din slutpunkt svarar 401

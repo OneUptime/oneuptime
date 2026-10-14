@@ -335,13 +335,13 @@ A probe makes outbound connections only, unless you turn on a listener, or keep 
 | --- | --- | --- | --- |
 | Incoming requests and heartbeats | `PROBE_INGRESS_PORT` | Off | [Incoming Request Ingress](/docs/probe/incoming-request-ingress) |
 | SNMP traps | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | On, UDP 162 | [Network Device Monitor](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | Off, UDP 5140 | [Network Vendor Guides](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | On, UDP and TCP 5140 | [Network Events](/docs/monitor/network-events) |
 | NetFlow, IPFIX and sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | On, UDP 2055, 4739 and 6343 | [Network Traffic](/docs/monitor/network-traffic) |
 | Health checks | `PORT` | On, TCP 3874 | `/status/live` and `/status/ready` |
 
 Inside a container, a port is reachable from other machines only with host networking or when you publish it.
 
-The syslog receiver forwards at most `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` messages a minute, `600` by default, drops the rest, and logs how many it dropped.
+The syslog receiver forwards at most `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` messages a minute, `600` by default. Past that it still forwards the messages it reads as network events, up to as many again, drops the rest, and logs how many it dropped.
 
 `PROBE_NAME` and `PROBE_DESCRIPTION` are read only by probes that register themselves with `REGISTER_PROBE_KEY`, such as the probes a self-hosted installation runs for every project. A custom probe takes its name and description from the dashboard.
 

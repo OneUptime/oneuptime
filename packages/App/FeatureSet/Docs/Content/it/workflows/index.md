@@ -128,7 +128,7 @@ Il trigger prende il posto del blocco tratteggiato. L'ID che compare su di esso,
 
 ### Scegli i campi dell'incidente
 
-Fai clic sul trigger. In **Select Fields**, seleziona i campi che la richiesta deve contenere, come il titolo e la descrizione, e fai clic su **Salva**.
+Fai clic sul trigger. **Fields to pass on** parte con il titolo: fai clic su **Aggiungi campo**, seleziona la descrizione e ogni altro campo che la richiesta deve contenere, e fai clic su **Salva**.
 
 Il trigger passa il nuovo incidente con quei campi. Un campo che non selezioni arriva vuoto.
 
@@ -158,7 +158,7 @@ Una richiesta che non va a buon fine — un URL irraggiungibile o una risposta c
 
 ### Provalo
 
-Fai clic su **Esegui flusso di lavoro**, inserisci l'**ID incidente** di un incidente di questo progetto, fai clic su **Run Workflow Manually** e conferma con **Run**. Il workflow è ancora disattivato, quindi è un'**Esecuzione di prova**, e la richiesta viene inviata davvero.
+Fai clic su **Esegui flusso di lavoro** e scegli un incidente di questo progetto sotto **Incidente**: sono elencati i più recenti, e digitando il suo numero o parte del suo titolo ne trovi un altro. Fai clic su **Esegui manualmente il flusso di lavoro** e conferma con **Esegui**. Il workflow è ancora disattivato, quindi è un'**Esecuzione di prova**, e la richiesta viene inviata davvero.
 
 Si apre un pannello **Esecuzione del flusso di lavoro** che segue l'esecuzione. Apri il passaggio **API Post (JSON)** per vedere il corpo che ha inviato e la risposta che ha ricevuto.
 

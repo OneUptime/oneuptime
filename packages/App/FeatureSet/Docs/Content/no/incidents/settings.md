@@ -615,8 +615,8 @@ Den samme genereringen gir deg utløsere for selve konfigurasjonen: **On Create 
 
 Noen detaljer som betyr noe når du kobler dem sammen:
 
-- **On Update X** tar et valgfritt argument **Listen on** som snevrer inn utløseren til oppdateringer som endrer bestemte felt, uansett hva de endres til: en bryter som slås av eller et felt som tømmes, teller også. Et felt som lagres med verdien det allerede har, er ikke en endring, så et redigeringsskjema som sender det tilbake ved hver lagring, vekker ikke arbeidsflyten. La det stå tomt for å utløse ved enhver endring. Kommer en oppdatering inn uten en oversikt over hvilke felt som endret seg, hoppes filteret over, og arbeidsflyten kjører likevel.
-- **On Create X** og **On Update X** tar begge et påkrevd argument **Select Fields**; **On Delete X** tar ingen argumenter.
+- **On Update X** tar et valgfritt argument **Fields to watch** som snevrer inn utløseren til oppdateringer som endrer bestemte felt, uansett hva de endres til: en bryter som slås av eller et felt som tømmes, teller også. Et felt som lagres med verdien det allerede har, er ikke en endring, så et redigeringsskjema som sender det tilbake ved hver lagring, vekker ikke arbeidsflyten. La det stå tomt for å utløse ved enhver endring. Kommer en oppdatering inn uten en oversikt over hvilke felt som endret seg, hoppes filteret over, og arbeidsflyten kjører likevel.
+- **On Create X** og **On Update X** tar begge et påkrevd argument **Fields to pass on**; **On Delete X** tar ingen argumenter.
 - Alle tre har én enkelt utgangsport **Success**, og hver godtar et ID-argument slik at du kan kjøre arbeidsflyten for hånd mot én post.
 - Navnene kommer fra modellens navn i entall, ikke fra tabellnavnet — derfor ser du **On Create Incident Team Owner** og **On Create Incident User Owner** i stedet for navn i tabellform.
 - Det finnes ingen utløsere for definisjoner av egendefinerte hendelsesfelt. Den modellen er det eneste medlemmet av hendelsesfamilien der arbeidsflyter er slått av.

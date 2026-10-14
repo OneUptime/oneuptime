@@ -2116,6 +2116,21 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.NETWORK_EVENTS,
+            title: "Events",
+            icon: IconProp.Activity,
+            keywords: [
+              "syslog",
+              "network events",
+              "snmp traps",
+              "link down",
+              "interface down",
+              "vpn tunnel",
+              "failover",
+              "device logs",
+            ],
+          },
+          {
             page: PageMap.NETWORK_DEVICE_DISCOVERY,
             title: "Discovery",
             icon: IconProp.Search,

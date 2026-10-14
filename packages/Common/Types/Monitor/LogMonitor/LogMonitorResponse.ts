@@ -36,4 +36,14 @@ export default interface LogMonitorResponse {
    * group's count, and messages name the group.
    */
   evaluatedGroup?: LogMonitorGroupResult | undefined;
+  /*
+   * Set only when the monitor step names the log that resolves a group
+   * (MonitorStepLogMonitor.resolvedByAttributes). Its presence - even as an
+   * empty array - is what tells the evaluation that groups of this monitor
+   * are resolved by a log and never by silence: `groupBreakdown` then holds
+   * only the groups no such log has arrived for since their last matching
+   * log, and these are the groups one has arrived for. Their open alerts
+   * and incidents are resolved by fingerprint; `logCount` is 0 on them.
+   */
+  resolvedGroups?: Array<LogMonitorGroupResult> | undefined;
 }
