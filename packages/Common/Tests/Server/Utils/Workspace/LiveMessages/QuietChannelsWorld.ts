@@ -1897,6 +1897,40 @@ ${FeedMarkdown.asMarkdown(text)}`.toString(),
     });
   }
 
+  /*
+   * A Slack or Microsoft Teams message Nitin saved as a note, as
+   * IncidentInternalNoteService writes its entry (SavedChatMessageNote): who
+   * wrote it, the chat, who saved it - and not posted back into the channel
+   * the message is in, `channelId`.
+   */
+  public async incidentNoteSavedFromChat(data: {
+    text: string;
+    workspaceType: WorkspaceType;
+    channelId: string;
+  }): Promise<void> {
+    await IncidentFeedService.createIncidentFeedItem({
+      incidentId: INCIDENT_ID,
+      projectId: PROJECT_ID,
+      incidentFeedEventType: IncidentFeedEventType.PrivateNote,
+      feedInfoInMarkdown:
+        mdText`📄 **Aidil Rahman** posted **private note** for this [Incident INC-8](${DASHBOARD}) via Slack (note added by Nitin):
+
+${FeedMarkdown.asMarkdown(data.text)}`.toString(),
+      userId: NITIN,
+      savedFromChatMessage: {
+        workspaceType: data.workspaceType,
+        authorName: "Aidil Rahman",
+      },
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        exceptChannel: {
+          workspaceType: data.workspaceType,
+          channelId: data.channelId,
+        },
+      },
+    });
+  }
+
   // ---- The alert ----
 
   public async alertCreated(): Promise<void> {

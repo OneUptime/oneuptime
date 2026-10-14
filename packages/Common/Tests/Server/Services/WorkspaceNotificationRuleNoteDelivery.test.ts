@@ -654,3 +654,120 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
     ).resolves.toBeNull();
   });
 });
+
+describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification - a message saved as a note", () => {
+  /*
+   * A Slack or Microsoft Teams message saved as a note is already in the
+   * channel it was posted in: its entry is not posted back there
+   * (exceptChannel). A record's channel, named by id, is simply left out;
+   * a rule's channel, named by name, is left out once the sender resolves
+   * the name (exceptChannelIds).
+   */
+  const SAVED_NOTE_MARKDOWN: string =
+    "📄 **Aidil Rahman** posted **private note** for this [Incident #42](https://oneuptime.test/incidents/42) via Slack (note added by Jane Doe):\n\nNot sure what's happening here.";
+
+  beforeEach((): void => {
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "getUserAuth")
+      .mockResolvedValue(null);
+  });
+
+  test("a note from the incident's own Slack channel is not posted back into it, and still reaches Teams", async () => {
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
+      projectId: projectId,
+      notificationFor: { incidentId: incidentId },
+      feedInfoInMarkdown: SAVED_NOTE_MARKDOWN,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        exceptChannel: {
+          workspaceType: WorkspaceType.Slack,
+          channelId: SLACK_CHANNEL.id,
+        },
+      },
+    });
+
+    expect(slackSendSpy).not.toHaveBeenCalled();
+    expect(teamsSendSpy).toHaveBeenCalledTimes(1);
+
+    const teamsPayload: WorkspaceMessagePayload = sentPayload(
+      teamsSendSpy as never,
+    );
+    expect(teamsPayload.channelIds).toEqual([TEAMS_CHANNEL.id]);
+    // A Slack channel's id means nothing in Teams.
+    expect(teamsPayload.exceptChannelIds).toBeUndefined();
+    // The entry names its people itself: nobody is put before it.
+    expect(
+      (teamsPayload.messageBlocks[0] as WorkspacePayloadMarkdown).text,
+    ).toBe(SAVED_NOTE_MARKDOWN);
+  });
+
+  test("a note from the incident's Teams channel is not posted back into it, and still reaches Slack", async () => {
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
+      projectId: projectId,
+      notificationFor: { incidentId: incidentId },
+      feedInfoInMarkdown: SAVED_NOTE_MARKDOWN,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        exceptChannel: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          channelId: TEAMS_CHANNEL.id,
+        },
+      },
+    });
+
+    expect(teamsSendSpy).not.toHaveBeenCalled();
+    expect(slackSendSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a rule's channel named by name is posted to, without the channel the message is in", async () => {
+    jest
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "getExistingChannelNamesBasedOnEventType",
+      )
+      .mockImplementation((async (data: { workspaceType: WorkspaceType }) => {
+        return data.workspaceType === WorkspaceType.Slack
+          ? [{ id: "", name: "ops", workspaceType: WorkspaceType.Slack }]
+          : [];
+      }) as never);
+
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
+      projectId: projectId,
+      notificationFor: { incidentId: incidentId },
+      feedInfoInMarkdown: SAVED_NOTE_MARKDOWN,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        exceptChannel: {
+          workspaceType: WorkspaceType.Slack,
+          channelId: SLACK_CHANNEL.id,
+        },
+      },
+    });
+
+    // The incident's own channel is left out; #ops is posted to, told which to skip.
+    expect(slackSendSpy).toHaveBeenCalledTimes(1);
+    const payload: WorkspaceMessagePayload = sentPayload(slackSendSpy as never);
+    expect(payload.channelNames).toEqual(["ops"]);
+    expect(payload.channelIds).toEqual([]);
+    expect(payload.exceptChannelIds).toEqual([SLACK_CHANNEL.id]);
+  });
+
+  test("without a channel to skip, the payloads are as they always were", async () => {
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
+      projectId: projectId,
+      notificationFor: { incidentId: incidentId },
+      feedInfoInMarkdown: NOTE_MARKDOWN,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId: userId,
+      },
+    });
+
+    expect(sentPayload(slackSendSpy as never)).not.toHaveProperty(
+      "exceptChannelIds",
+    );
+    expect(sentPayload(teamsSendSpy as never)).not.toHaveProperty(
+      "exceptChannelIds",
+    );
+  });
+});
