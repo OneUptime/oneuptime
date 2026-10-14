@@ -88,8 +88,6 @@ export class AddWorkspaceUserGroup1801900000000 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_22145664f23a7b74a79869114c"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "WorkspaceUserGroup"`,
-    );
+    await queryRunner.query(`DROP TABLE "WorkspaceUserGroup"`);
   }
 }

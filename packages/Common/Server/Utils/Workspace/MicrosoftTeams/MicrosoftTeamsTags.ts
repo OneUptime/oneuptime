@@ -21,7 +21,9 @@ import {
   WorkspaceUserGroupProviderResult,
   WorkspaceUserGroupSyncRequest,
 } from "../UserGroups/WorkspaceUserGroupProvider";
-import MicrosoftTeamsUtil, { MicrosoftTeamsRosterMember } from "./MicrosoftTeams";
+import MicrosoftTeamsUtil, {
+  MicrosoftTeamsRosterMember,
+} from "./MicrosoftTeams";
 
 /*
  * MICROSOFT TEAMS TAGS, KEPT IN STEP WITH WHO IS ON CALL.
@@ -137,8 +139,10 @@ export default class MicrosoftTeamsTags {
     const code: string =
       typeof error["code"] === "string" ? (error["code"] as string) : "";
 
-    const headers: Record<string, unknown> = (response.headers ||
-      {}) as Record<string, unknown>;
+    const headers: Record<string, unknown> = (response.headers || {}) as Record<
+      string,
+      unknown
+    >;
     const retryAfter: number = Number(
       headers["retry-after"] ?? headers["Retry-After"],
     );
@@ -280,7 +284,10 @@ export default class MicrosoftTeamsTags {
       url: `${GRAPH_TEAMS_URL}/${encodeURIComponent(data.teamId)}/tags`,
       accessToken: data.accessToken,
       body: {
-        displayName: data.name.substring(0, MICROSOFT_TEAMS_TAG_NAME_MAX_LENGTH),
+        displayName: data.name.substring(
+          0,
+          MICROSOFT_TEAMS_TAG_NAME_MAX_LENGTH,
+        ),
         members: first.map((aadObjectId: string): JSONObject => {
           return { userId: aadObjectId };
         }),
@@ -643,7 +650,9 @@ export default class MicrosoftTeamsTags {
   }
 
   private static readValues(body: JSONObject): Array<unknown> {
-    return Array.isArray(body["value"]) ? (body["value"] as Array<unknown>) : [];
+    return Array.isArray(body["value"])
+      ? (body["value"] as Array<unknown>)
+      : [];
   }
 
   /*

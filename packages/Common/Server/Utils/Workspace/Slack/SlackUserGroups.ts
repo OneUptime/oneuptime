@@ -302,7 +302,9 @@ export default class SlackUserGroups {
       },
     });
 
-    return (Array.isArray(body["users"]) ? (body["users"] as Array<unknown>) : [])
+    return (
+      Array.isArray(body["users"]) ? (body["users"] as Array<unknown>) : []
+    )
       .filter((userId: unknown): userId is string => {
         return typeof userId === "string" && userId.length > 0;
       })
@@ -667,8 +669,10 @@ export default class SlackUserGroups {
   private static readRetryAfter(
     response: HTTPErrorResponse | HTTPResponse<JSONObject>,
   ): number | undefined {
-    const headers: Record<string, unknown> = (response.headers ||
-      {}) as Record<string, unknown>;
+    const headers: Record<string, unknown> = (response.headers || {}) as Record<
+      string,
+      unknown
+    >;
     const value: unknown = headers["retry-after"] ?? headers["Retry-After"];
     const seconds: number = Number(value);
 

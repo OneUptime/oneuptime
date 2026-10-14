@@ -459,12 +459,19 @@ export class FakeGraph {
 
   private next: number = 1;
 
-  public addTeam(teamId: string, roster: Array<MicrosoftTeamsRosterMember>): void {
+  public addTeam(
+    teamId: string,
+    roster: Array<MicrosoftTeamsRosterMember>,
+  ): void {
     this.teams.set(teamId, new Map<string, FakeTag>());
     this.rosters.set(teamId, roster);
   }
 
-  public addTag(teamId: string, displayName: string, userIds: Array<string>): FakeTag {
+  public addTag(
+    teamId: string,
+    displayName: string,
+    userIds: Array<string>,
+  ): FakeTag {
     const tag: FakeTag = {
       id: `TAG${this.next++}==`,
       displayName: displayName,
@@ -757,7 +764,9 @@ export default class UserGroupsWorld {
 
   public state(row: WorldGroupRow): WorkspaceUserGroupSyncState {
     const state: WorkspaceUserGroupSyncState | null =
-      readWorkspaceUserGroupSyncState(this.groups.get(row.id.toString())?.syncState);
+      readWorkspaceUserGroupSyncState(
+        this.groups.get(row.id.toString())?.syncState,
+      );
 
     if (!state) {
       throw new Error("The group was never synced.");
@@ -915,8 +924,9 @@ export default class UserGroupsWorld {
           this.writes.push({
             kind: "update",
             id: row.id.toString(),
-            props: (options as unknown as { props: DatabaseCommonInteractionProps })
-              .props,
+            props: (
+              options as unknown as { props: DatabaseCommonInteractionProps }
+            ).props,
             scheduleIds: [...row.scheduleIds],
           });
         }
@@ -1103,13 +1113,9 @@ export default class UserGroupsWorld {
         query: { workspaceType: WorkspaceType };
       }) => {
         return this.connections
-          .filter(
-            (connection: {
-              workspaceType: WorkspaceType;
-            }): boolean => {
-              return connection.workspaceType === options.query.workspaceType;
-            },
-          )
+          .filter((connection: { workspaceType: WorkspaceType }): boolean => {
+            return connection.workspaceType === options.query.workspaceType;
+          })
           .map(
             (connection: {
               userId: ObjectID;
@@ -1126,7 +1132,9 @@ export default class UserGroupsWorld {
 
     jest
       .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
-      .mockImplementation((async (options: { workspaceType: WorkspaceType }) => {
+      .mockImplementation((async (options: {
+        workspaceType: WorkspaceType;
+      }) => {
         const auth: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
         auth.projectId = PROJECT_ID;
 
@@ -1170,7 +1178,8 @@ export default class UserGroupsWorld {
                     id: `19:${teamId}@thread.tacv2`,
                     graphTeamId: teamId,
                     teamsThreadId: `19:${teamId}@thread.tacv2`,
-                    name: teamId === TEAM_PAYMENTS ? "Payments" : "Another team",
+                    name:
+                      teamId === TEAM_PAYMENTS ? "Payments" : "Another team",
                   },
                 ];
               }),
@@ -1203,7 +1212,9 @@ export default class UserGroupsWorld {
     }) as never);
 
     // Microsoft Graph.
-    jest.spyOn(API, "get").mockImplementation((async (options: { url: URL }) => {
+    jest.spyOn(API, "get").mockImplementation((async (options: {
+      url: URL;
+    }) => {
       const url: string = options.url.toString();
 
       if (url.startsWith("https://graph.microsoft.com/")) {

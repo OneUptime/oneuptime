@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import OnCallDutyPolicyScheduleLayerUserService from "../../../Server/Services/OnCallDutyPolicyScheduleLayerUserService";
@@ -100,7 +107,10 @@ beforeEach(() => {
     steps.push("release");
   }) as never);
   jest
-    .spyOn(OnCallDutyPolicyScheduleService as never, "getSingleAttachedPolicyId")
+    .spyOn(
+      OnCallDutyPolicyScheduleService as never,
+      "getSingleAttachedPolicyId",
+    )
     .mockResolvedValue(undefined as never);
   jest
     .spyOn(
@@ -182,7 +192,10 @@ describe("a deleted schedule's user groups drop its people", () => {
     schedule.projectId = PROJECT_ID;
 
     jest
-      .spyOn(OnCallDutyPolicyScheduleService as never, "findRowsAndHoldDeleteToThem")
+      .spyOn(
+        OnCallDutyPolicyScheduleService as never,
+        "findRowsAndHoldDeleteToThem",
+      )
       .mockResolvedValue([schedule] as never);
     jest
       .spyOn(OnCallDutyPolicyTimeLogService, "endTimeForSchedule")
@@ -205,22 +218,25 @@ describe("a deleted schedule's user groups drop its people", () => {
       .spyOn(OnCallDutyPolicyScheduleService, "propagateShiftConfigChange")
       .mockResolvedValue(undefined);
     const synced: Array<Array<string>> = [];
-    jest
-      .spyOn(WorkspaceUserGroupSync, "requestSync")
-      .mockImplementation(((ids: Array<ObjectID>) => {
-        synced.push(
-          ids.map((id: ObjectID): string => {
-            return id.toString();
-          }),
-        );
-        return new Promise<void>(() => {});
-      }) as never);
+    jest.spyOn(WorkspaceUserGroupSync, "requestSync").mockImplementation(((
+      ids: Array<ObjectID>,
+    ) => {
+      synced.push(
+        ids.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+      return new Promise<void>(() => {});
+    }) as never);
 
     const service: {
       onBeforeDelete: (deleteBy: unknown) => Promise<{
         carryForward: { workspaceUserGroupIds: Array<ObjectID> };
       }>;
-      onDeleteSuccess: (onDelete: unknown, ids: Array<ObjectID>) => Promise<unknown>;
+      onDeleteSuccess: (
+        onDelete: unknown,
+        ids: Array<ObjectID>,
+      ) => Promise<unknown>;
     } = OnCallDutyPolicyScheduleService as never;
 
     const onDelete: {
@@ -241,7 +257,10 @@ describe("a deleted schedule's user groups drop its people", () => {
 
   test("finding them failing never stops the delete", async () => {
     jest
-      .spyOn(OnCallDutyPolicyScheduleService as never, "findRowsAndHoldDeleteToThem")
+      .spyOn(
+        OnCallDutyPolicyScheduleService as never,
+        "findRowsAndHoldDeleteToThem",
+      )
       .mockResolvedValue([] as never);
     jest
       .spyOn(WorkspaceUserGroupService, "findIdsFollowingSchedules")

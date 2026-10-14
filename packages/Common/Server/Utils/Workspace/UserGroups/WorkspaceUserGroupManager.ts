@@ -575,11 +575,9 @@ export default class WorkspaceUserGroupManager {
       const scheduleIds: Array<ObjectID> =
         await WorkspaceUserGroupManager.getScheduleIds(existing.id);
 
-      const isFollowing: boolean = scheduleIds.some(
-        (id: ObjectID): boolean => {
-          return id.toString() === scheduleId.toString();
-        },
-      );
+      const isFollowing: boolean = scheduleIds.some((id: ObjectID): boolean => {
+        return id.toString() === scheduleId.toString();
+      });
 
       if (!isFollowing) {
         await WorkspaceUserGroupService.updateOneById({
@@ -620,12 +618,11 @@ export default class WorkspaceUserGroupManager {
       linkedSchedule.id = scheduleId;
       model.onCallDutyPolicySchedules = [linkedSchedule];
 
-      const created: WorkspaceUserGroup = await WorkspaceUserGroupService.create(
-        {
+      const created: WorkspaceUserGroup =
+        await WorkspaceUserGroupService.create({
           data: model,
           props: data.props,
-        },
-      );
+        });
 
       groupId = created.id!;
     }
@@ -995,9 +992,7 @@ export default class WorkspaceUserGroupManager {
 
     const sameName: MicrosoftTeamsTagInfo | undefined = tags.find(
       (candidate: MicrosoftTeamsTagInfo): boolean => {
-        return (
-          candidate.name.trim().toLowerCase() === tagName.toLowerCase()
-        );
+        return candidate.name.trim().toLowerCase() === tagName.toLowerCase();
       },
     );
 

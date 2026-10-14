@@ -641,7 +641,10 @@ describe("when Slack refuses, the admin is told plainly, and OneUptime tries aga
   });
 
   test("anything else Slack refuses is said in Slack's own words", async () => {
-    world.slack.refusals.set("usergroups.users.update", "subteam_max_users_exceeded");
+    world.slack.refusals.set(
+      "usergroups.users.update",
+      "subteam_max_users_exceeded",
+    );
     const row: WorldGroupRow = groupFor([primary]);
 
     const state: WorkspaceUserGroupSyncState = await world.sync(row);

@@ -547,41 +547,39 @@ export default class WorkspaceUserGroupSync {
       return [];
     }
 
-    const [users, connections]: [
-      Array<User>,
-      Array<WorkspaceUserAuthToken>,
-    ] = await Promise.all([
-      UserService.findBy({
-        query: {
-          _id: QueryHelper.any(userIds),
-        },
-        select: {
-          _id: true,
-          email: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      }),
-      WorkspaceUserAuthTokenService.findBy({
-        query: {
-          projectId: data.projectId,
-          workspaceType: data.workspaceType,
-          userId: QueryHelper.any(userIds),
-        },
-        select: {
-          userId: true,
-          workspaceUserId: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      }),
-    ]);
+    const [users, connections]: [Array<User>, Array<WorkspaceUserAuthToken>] =
+      await Promise.all([
+        UserService.findBy({
+          query: {
+            _id: QueryHelper.any(userIds),
+          },
+          select: {
+            _id: true,
+            email: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        }),
+        WorkspaceUserAuthTokenService.findBy({
+          query: {
+            projectId: data.projectId,
+            workspaceType: data.workspaceType,
+            userId: QueryHelper.any(userIds),
+          },
+          select: {
+            userId: true,
+            workspaceUserId: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        }),
+      ]);
 
     return userIds.map((userId: ObjectID): WorkspaceUserGroupPerson => {
       const key: string = userId.toString().toLowerCase();

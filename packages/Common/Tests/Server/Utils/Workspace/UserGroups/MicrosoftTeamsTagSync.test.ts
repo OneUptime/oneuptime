@@ -261,18 +261,19 @@ describe("nobody on call: a tag has no 'off', so it is emptied", () => {
     world.handOff(primary, bob);
     const state: WorkspaceUserGroupSyncState = await world.sync(row);
 
-    const madeAgainId: string = world.groups.get(row.id.toString())!
-      .workspaceGroupId;
+    const madeAgainId: string = world.groups.get(
+      row.id.toString(),
+    )!.workspaceGroupId;
     expect(madeAgainId).not.toBe(tag.id);
     expect(world.graph.tag(TEAM_PAYMENTS, madeAgainId)?.displayName).toBe(
       "Payments on-call",
     );
     expect(
-      world.graph.tag(TEAM_PAYMENTS, madeAgainId)!.members.map(
-        (member: { userId: string }): string => {
+      world.graph
+        .tag(TEAM_PAYMENTS, madeAgainId)!
+        .members.map((member: { userId: string }): string => {
           return member.userId;
-        },
-      ),
+        }),
     ).toEqual([BOB_AAD]);
     expect(state.isTurnedOff).toBe(false);
     expect(state.problem).toBeNull();

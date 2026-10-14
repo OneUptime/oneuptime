@@ -84,7 +84,9 @@ describe("the name and handle suggested for a schedule", () => {
       maxLength: MICROSOFT_TEAMS_TAG_NAME_MAX_LENGTH,
     });
 
-    expect(name.length).toBeLessThanOrEqual(MICROSOFT_TEAMS_TAG_NAME_MAX_LENGTH);
+    expect(name.length).toBeLessThanOrEqual(
+      MICROSOFT_TEAMS_TAG_NAME_MAX_LENGTH,
+    );
     expect(name.endsWith(" on-call")).toBe(true);
   });
 

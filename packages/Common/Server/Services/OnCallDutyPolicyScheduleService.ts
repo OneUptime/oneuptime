@@ -2808,7 +2808,8 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     b: ObjectID | null | undefined,
   ): boolean {
     return (
-      (a?.toString() || "").toLowerCase() === (b?.toString() || "").toLowerCase()
+      (a?.toString() || "").toLowerCase() ===
+      (b?.toString() || "").toLowerCase()
     );
   }
 

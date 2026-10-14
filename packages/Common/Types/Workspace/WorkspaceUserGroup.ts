@@ -207,8 +207,7 @@ export function getSuggestedSlackHandle(scheduleName: string): string {
     // Cut between two words: the cut keeps them whole.
     const isAtWordEnd: boolean = slug[room] === "-";
     const lastHyphen: number = cut.lastIndexOf("-");
-    slug =
-      isAtWordEnd || lastHyphen <= 0 ? cut : cut.substring(0, lastHyphen);
+    slug = isAtWordEnd || lastHyphen <= 0 ? cut : cut.substring(0, lastHyphen);
   }
 
   slug = trimHyphens(slug);
@@ -332,7 +331,9 @@ export function readWorkspaceUserGroupSyncState(
     isTurnedOff: json["isTurnedOff"] === true,
     problem: problem,
     checkedAt:
-      typeof json["checkedAt"] === "string" ? (json["checkedAt"] as string) : "",
+      typeof json["checkedAt"] === "string"
+        ? (json["checkedAt"] as string)
+        : "",
   };
 
   if (typeof json["problemDetail"] === "string" && json["problemDetail"]) {

@@ -40,8 +40,14 @@ const hooks: {
   checkCreateBeforeReferences: (createBy: unknown) => Promise<void>;
   checkUpdateBeforeReferences: (updateBy: unknown) => Promise<void>;
   onBeforeCreate: (createBy: unknown) => Promise<unknown>;
-  onCreateSuccess: (onCreate: unknown, item: WorkspaceUserGroup) => Promise<unknown>;
-  onUpdateSuccess: (onUpdate: unknown, ids: Array<ObjectID>) => Promise<unknown>;
+  onCreateSuccess: (
+    onCreate: unknown,
+    item: WorkspaceUserGroup,
+  ) => Promise<unknown>;
+  onUpdateSuccess: (
+    onUpdate: unknown,
+    ids: Array<ObjectID>,
+  ) => Promise<unknown>;
 } = WorkspaceUserGroupService as never;
 
 function schedule(id: ObjectID = SCHEDULE_ID): OnCallDutyPolicySchedule {
@@ -96,7 +102,9 @@ describe("what a group record must be", () => {
     );
 
     expect(error).toBeInstanceOf(BadDataException);
-    expect(error.message).toBe("Workspace Type must be Slack or MicrosoftTeams.");
+    expect(error.message).toBe(
+      "Workspace Type must be Slack or MicrosoftTeams.",
+    );
   });
 
   test("no group id in the workspace is refused", async () => {
@@ -264,17 +272,17 @@ describe("a new or changed group is looked at straight away", () => {
   test("a new group is synced in the background - the create does not wait for Slack", async () => {
     const requested: Array<Array<string>> = [];
 
-    jest
-      .spyOn(WorkspaceUserGroupSync, "requestSync")
-      .mockImplementation(((ids: Array<ObjectID>) => {
-        requested.push(
-          ids.map((id: ObjectID): string => {
-            return id.toString();
-          }),
-        );
-        // Slack never answers: the create must not wait for it.
-        return new Promise<void>(() => {});
-      }) as never);
+    jest.spyOn(WorkspaceUserGroupSync, "requestSync").mockImplementation(((
+      ids: Array<ObjectID>,
+    ) => {
+      requested.push(
+        ids.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+      // Slack never answers: the create must not wait for it.
+      return new Promise<void>(() => {});
+    }) as never);
 
     const created: WorkspaceUserGroup = slackGroup();
     created.id = new ObjectID("e0000000-0000-4000-8000-000000000010");
@@ -322,15 +330,18 @@ describe("the groups that follow some schedules", () => {
     const group: WorkspaceUserGroup = slackGroup();
     group.id = new ObjectID("e0000000-0000-4000-8000-000000000013");
 
-    const findBy: SpyInstance<typeof WorkspaceUserGroupService.findBy> =
-      jest.spyOn(WorkspaceUserGroupService, "findBy").mockResolvedValue([group]);
+    const findBy: SpyInstance<typeof WorkspaceUserGroupService.findBy> = jest
+      .spyOn(WorkspaceUserGroupService, "findBy")
+      .mockResolvedValue([group]);
 
     const ids: Array<ObjectID> =
       await WorkspaceUserGroupService.findIdsFollowingSchedules([SCHEDULE_ID]);
 
-    expect(ids.map((id: ObjectID): string => id.toString())).toEqual([
-      group.id.toString(),
-    ]);
+    expect(
+      ids.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([group.id.toString()]);
     expect(findBy.mock.calls[0]![0]).toEqual(
       expect.objectContaining({
         query: { onCallDutyPolicySchedules: [SCHEDULE_ID] },
@@ -344,9 +355,9 @@ describe("the groups that follow some schedules", () => {
     const findBy: SpyInstance<typeof WorkspaceUserGroupService.findBy> =
       jest.spyOn(WorkspaceUserGroupService, "findBy");
 
-    expect(await WorkspaceUserGroupService.findIdsFollowingSchedules([])).toEqual(
-      [],
-    );
+    expect(
+      await WorkspaceUserGroupService.findIdsFollowingSchedules([]),
+    ).toEqual([]);
     expect(findBy).not.toHaveBeenCalled();
   });
 });

@@ -227,7 +227,9 @@ export default class WorkspaceUserGroupAPI extends BaseAPI<
           WorkspaceUserGroupAPI.assertMayChange(caller.props);
 
           const scheduleId: string = WorkspaceUserGroupAPI.readText(
-            (req.body as JSONObject | undefined)?.["onCallDutyPolicyScheduleId"],
+            (req.body as JSONObject | undefined)?.[
+              "onCallDutyPolicyScheduleId"
+            ],
           );
 
           const view: WorkspaceUserGroupView =
@@ -289,7 +291,10 @@ export default class WorkspaceUserGroupAPI extends BaseAPI<
   }
 
   private static readWorkspaceType(value: unknown): WorkspaceType {
-    if (value === WorkspaceType.Slack || value === WorkspaceType.MicrosoftTeams) {
+    if (
+      value === WorkspaceType.Slack ||
+      value === WorkspaceType.MicrosoftTeams
+    ) {
       return value;
     }
 

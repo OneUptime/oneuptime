@@ -292,9 +292,7 @@ describe("the on-call user group routes", () => {
       BillingPermissions,
       "checkFeatureIsOnPlan",
     );
-    jest
-      .spyOn(WorkspaceUserGroupManager, "connect")
-      .mockResolvedValue(VIEW);
+    jest.spyOn(WorkspaceUserGroupManager, "connect").mockResolvedValue(VIEW);
 
     await call({
       method: "POST",
