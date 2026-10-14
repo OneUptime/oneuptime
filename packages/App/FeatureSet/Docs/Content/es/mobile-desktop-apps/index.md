@@ -24,18 +24,16 @@ Puede usar las dos: tenga la aplicación de escritorio abierta en el trabajo, y 
 
 ## Cómo llegan las aplicaciones a OneUptime
 
-```mermaid title="Cómo llegan las aplicaciones a su OneUptime, y cómo le llegan los avisos"
+```mermaid title="Cómo llegan los avisos de guardia a su teléfono y a su ordenador"
 flowchart TB
-    Phone["OneUptime On-Call<br/>en su teléfono"]
-    Desktop["La aplicación de escritorio<br/>en su ordenador"]
     OneUptime["Su OneUptime:<br/>Cloud o autoalojado"]
     Expo["Servicio push de Expo,<br/>luego Apple o Google"]
     WebPush["El servicio push<br/>de su navegador"]
-    Phone -->|"inicia sesión y<br/>registra el teléfono"| OneUptime
-    Desktop -->|"abre el panel"| OneUptime
-    OneUptime -->|"avisos de guardia"| Expo
+    Phone["OneUptime On-Call<br/>en su teléfono"]
+    Desktop["La aplicación de escritorio<br/>en su ordenador"]
+    OneUptime -->|"a un teléfono"| Expo
+    OneUptime -->|"a un navegador<br/>registrado"| WebPush
     Expo -->|"notificación push"| Phone
-    OneUptime -->|"web push, a un<br/>navegador registrado"| WebPush
     WebPush -->|"notificación"| Desktop
 ```
 

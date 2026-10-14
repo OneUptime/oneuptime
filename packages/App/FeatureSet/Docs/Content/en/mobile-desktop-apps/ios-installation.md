@@ -77,10 +77,10 @@ By default an on-call page follows the device's sound settings: silent mode keep
 ```mermaid title="Whether an on-call page rings through on an iPhone or iPad"
 flowchart TB
     Page["An on-call page<br/>for this device"]
-    Rule{"Is its on-call rule set<br/>to Critical alert?"}
-    Device{"Is Critical On-Call Alerts<br/>on for this device?"}
-    Quiet["It follows the device's<br/>sound, silent and<br/>Focus settings"]
-    Loud["It plays your alarm sound,<br/>at your volume, through<br/>silent mode and Focus"]
+    Rule{"Rule set to<br/>Critical alert?"}
+    Device{"Critical On-Call<br/>Alerts on?"}
+    Quiet["It follows the<br/>device's sound<br/>and Focus"]
+    Loud["It plays your alarm,<br/>at your volume,<br/>through silent mode<br/>and Focus"]
     Page --> Rule
     Rule -->|"no: Standard"| Quiet
     Rule -->|"yes"| Device

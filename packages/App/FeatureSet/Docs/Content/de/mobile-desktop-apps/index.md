@@ -24,18 +24,16 @@ Sie können beide nutzen: Lassen Sie die Desktop-App bei der Arbeit offen, und l
 
 ## Wie die Apps OneUptime erreichen
 
-```mermaid title="Wie die Apps Ihr OneUptime erreichen und wie Alarme Sie erreichen"
+```mermaid title="Wie Bereitschaftsalarme Ihr Telefon und Ihren Computer erreichen"
 flowchart TB
-    Phone["OneUptime On-Call<br/>auf Ihrem Telefon"]
-    Desktop["Die Desktop-App<br/>auf Ihrem Computer"]
     OneUptime["Ihr OneUptime:<br/>Cloud oder selbst gehostet"]
     Expo["Expo-Push-Dienst,<br/>dann Apple oder Google"]
     WebPush["Der Push-Dienst<br/>Ihres Browsers"]
-    Phone -->|"meldet sich an und<br/>registriert das Telefon"| OneUptime
-    Desktop -->|"öffnet das Dashboard"| OneUptime
-    OneUptime -->|"Bereitschaftsalarme"| Expo
+    Phone["OneUptime On-Call<br/>auf Ihrem Telefon"]
+    Desktop["Die Desktop-App<br/>auf Ihrem Computer"]
+    OneUptime -->|"an ein Telefon"| Expo
+    OneUptime -->|"an einen registrierten<br/>Browser"| WebPush
     Expo -->|"Push-Benachrichtigung"| Phone
-    OneUptime -->|"Web-Push an einen<br/>registrierten Browser"| WebPush
     WebPush -->|"Benachrichtigung"| Desktop
 ```
 

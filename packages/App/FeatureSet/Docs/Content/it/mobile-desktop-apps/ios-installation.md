@@ -77,10 +77,10 @@ Per impostazione predefinita un avviso di reperibilità segue le impostazioni au
 ```mermaid title="Se un avviso di reperibilità suona comunque su un iPhone o iPad"
 flowchart TB
     Page["Un avviso di reperibilità<br/>per questo dispositivo"]
-    Rule{"La sua regola di reperibilità<br/>è su Avviso critico?"}
-    Device{"Critical On-Call Alerts è<br/>attivo su questo dispositivo?"}
-    Quiet["Segue le impostazioni di suono,<br/>silenzioso e Full immersion<br/>del dispositivo"]
-    Loud["Riproduce il tuo suono<br/>di allarme, al tuo volume,<br/>nonostante silenzioso<br/>e Full immersion"]
+    Rule{"Regola su<br/>Avviso critico?"}
+    Device{"Critical On-Call<br/>Alerts attivo?"}
+    Quiet["Segue il suono e<br/>la Full immersion<br/>del dispositivo"]
+    Loud["Riproduce l'allarme,<br/>al tuo volume,<br/>nonostante silenzioso<br/>e Full immersion"]
     Page --> Rule
     Rule -->|"no: Standard"| Quiet
     Rule -->|"sì"| Device

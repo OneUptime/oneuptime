@@ -80,12 +80,9 @@ flowchart TB
     Registered["Le téléphone est enregistré,<br/>et les alertes l'atteignent"]
     Gone["Expo le signale disparu : un<br/>push est refusé, ou son reçu<br/>le dit environ 15 minutes après"]
     Marked["OneUptime le marque Ne reçoit<br/>pas de notifications et cesse<br/>d'envoyer ; ses règles restent"]
-    Others["Vos autres appareils et<br/>méthodes sont toujours alertés"]
     Open["Vous ouvrez l'application<br/>en étant connecté"]
-    Renewed["L'application se réenregistre<br/>et renouvelle son jeton push"]
-    Registered --> Gone --> Marked
-    Marked --> Others
-    Marked --> Open --> Renewed --> Registered
+    Renewed["L'application se réenregistre,<br/>renouvelle son jeton push, et<br/>les alertes l'atteignent à nouveau"]
+    Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
 Expo signale un téléphone disparu quand l'application en a été supprimée, ou quand son jeton push n'est plus valide. Le téléphone n'est pas supprimé : **Paramètres utilisateur → Méthodes de notification**, dans l'onglet **Push Notifications**, l'affiche comme **Ne reçoit pas de notifications**, et la chronologie d'astreinte d'une alerte qui ne l'a pas atteint dit pourquoi. Vos autres téléphones et méthodes de notification sont alertés comme d'habitude.

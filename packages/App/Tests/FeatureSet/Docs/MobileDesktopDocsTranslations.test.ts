@@ -116,21 +116,26 @@ const PAGE_NAMES: Array<string> = MOBILE_DESKTOP_PAGES.map(
 );
 
 /*
- * Each page's diagrams fit the 590px docs column, in every language: their
- * label lines are broken (<br/>) to be no wider than this, counting a
- * Chinese, Japanese or Korean character twice. Each cap is the widest line
- * the 17 languages drew, every diagram drawn in a browser at the column's
- * width without scrolling. A label put back on one line runs its diagram
- * off the column, and the docs scroll it rather than shrink it.
+ * Each diagram fits the 590px docs column, in every language: its label
+ * lines are broken (<br/>) to be no wider than its cap, counting a Chinese,
+ * Japanese or Korean character twice. A page's caps are its diagrams', in
+ * order. Each is the widest line the 17 languages drew, every diagram drawn
+ * in a browser at the column's width without scrolling.
+ *
+ * A diagram of one column - the sign-in steps, the desktop app, the FAQ's
+ * phone that registers again - has room for a long line. One that draws
+ * two nodes side by side - the overview's two apps, the Android and iOS
+ * pages' two outcomes - breaks its lines sooner, or the pair runs off the
+ * column, and the docs scroll it rather than shrink it.
  */
-const WIDEST_DIAGRAM_LINE: Record<string, number> = {
-  [APPS_OVERVIEW]: 30,
-  [ANDROID]: 32,
-  [IOS]: 32,
-  [WINDOWS]: 36,
-  [MACOS]: 36,
-  [LINUX]: 36,
-  [FAQ]: 34,
+const WIDEST_DIAGRAM_LINE: Record<string, ReadonlyArray<number>> = {
+  [APPS_OVERVIEW]: [28],
+  [ANDROID]: [36, 26],
+  [IOS]: [36, 26],
+  [WINDOWS]: [36],
+  [MACOS]: [36],
+  [LINUX]: [36],
+  [FAQ]: [36],
 };
 
 /*
@@ -295,18 +300,38 @@ function numbersIn(text: string): Array<string> {
     .sort();
 }
 
-// The widest line of any label of the page's diagrams, in this language.
-function widestDiagramLine(language: string, page: string): number {
-  return Math.max(
-    ...scanMarkdown(readPage(language, page))
-      .fences.filter((fence: { lang: string }): boolean => {
-        return fence.lang === "mermaid";
-      })
-      .flatMap((fence: { code: string }): Array<string> => {
-        return diagramLabelLines(fence.code);
-      })
-      .map(labelLineWidth),
-  );
+// The widest label line of each of the page's diagrams, in this language.
+function widestDiagramLines(language: string, page: string): Array<number> {
+  return scanMarkdown(readPage(language, page))
+    .fences.filter((fence: { lang: string }): boolean => {
+      return fence.lang === "mermaid";
+    })
+    .map((fence: { code: string }): number => {
+      return Math.max(...diagramLabelLines(fence.code).map(labelLineWidth));
+    });
+}
+
+/*
+ * The diagrams that run past their caps: "diagram n: widest > cap". Empty
+ * when every diagram fits, and when the page has as many caps as diagrams.
+ */
+function diagramsTooWide(language: string, page: string): Array<string> {
+  const caps: ReadonlyArray<number> = WIDEST_DIAGRAM_LINE[page] || [];
+  const widest: Array<number> = widestDiagramLines(language, page);
+
+  if (widest.length !== caps.length) {
+    return [`${widest.length} diagrams, ${caps.length} caps`];
+  }
+
+  return widest
+    .map((width: number, index: number): string | null => {
+      return width > (caps[index] as number)
+        ? `diagram ${index + 1}: ${width} > ${caps[index]}`
+        : null;
+    })
+    .filter((problem: string | null): problem is string => {
+      return problem !== null;
+    });
 }
 
 /*
@@ -606,9 +631,7 @@ describe("the English pages", () => {
   it.each(MOBILE_DESKTOP_PAGES)(
     "$page breaks its diagrams' labels to fit the 590px docs column",
     (entry: MobileDesktopDocsPageEntry) => {
-      expect(widestDiagramLine("en", entry.page)).toBeLessThanOrEqual(
-        WIDEST_DIAGRAM_LINE[entry.page] as number,
-      );
+      expect(diagramsTooWide("en", entry.page)).toEqual([]);
     },
   );
 
@@ -715,12 +738,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       });
 
       it("breaks its diagrams' labels into lines short enough for the 590px docs column", () => {
-        const widest: number = widestDiagramLine(language, entry.page);
-
-        expect({
-          widest: widest,
-          fits: widest <= (WIDEST_DIAGRAM_LINE[entry.page] as number),
-        }).toEqual({ widest: widest, fits: true });
+        expect(diagramsTooWide(language, entry.page)).toEqual([]);
       });
 
       it("keeps every piece of inline code: addresses, files and the browsers' own pages", () => {

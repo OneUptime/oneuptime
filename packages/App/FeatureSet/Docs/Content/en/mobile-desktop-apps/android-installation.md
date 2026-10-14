@@ -87,10 +87,10 @@ By default an on-call page follows the phone's sound settings: a muted phone sta
 ```mermaid title="Whether an on-call page rings through on Android"
 flowchart TB
     Page["An on-call page<br/>for this phone"]
-    Rule{"Is its on-call rule set<br/>to Critical alert?"}
-    Device{"Is Critical On-Call Alerts<br/>on for this phone?"}
-    Quiet["It follows the phone's<br/>sound, silent and<br/>Do Not Disturb settings"]
-    Loud["It plays your alarm sound<br/>through silent mode and<br/>Do Not Disturb"]
+    Rule{"Rule set to<br/>Critical alert?"}
+    Device{"Critical On-Call<br/>Alerts on?"}
+    Quiet["It follows the<br/>phone's sound and<br/>Do Not Disturb"]
+    Loud["It plays your alarm<br/>through silent mode<br/>and Do Not Disturb"]
     Page --> Rule
     Rule -->|"no: Standard"| Quiet
     Rule -->|"yes"| Device

@@ -78,14 +78,11 @@ OneUptime invia gli avvisi di un telefono tramite Expo, che li passa ad Apple o 
 ```mermaid title="Come un telefono smette di ricevere avvisi, e come torna"
 flowchart TB
     Registered["Il telefono è registrato,<br/>e gli avvisi gli arrivano"]
-    Gone["Expo lo dà per perso: un push<br/>viene rifiutato, o la sua ricevuta<br/>lo dice circa 15 minuti dopo"]
+    Gone["Expo lo dà per perso: un push<br/>viene rifiutato, o la sua<br/>ricevuta lo dice circa<br/>15 minuti dopo"]
     Marked["OneUptime lo segna Non riceve<br/>notifiche e smette di inviare;<br/>le sue regole restano"]
-    Others["Gli altri tuoi dispositivi e<br/>metodi ricevono ancora avvisi"]
     Open["Apri l'app<br/>da connesso"]
-    Renewed["L'app si registra di nuovo<br/>e rinnova il suo token push"]
-    Registered --> Gone --> Marked
-    Marked --> Others
-    Marked --> Open --> Renewed --> Registered
+    Renewed["L'app si registra di nuovo,<br/>rinnova il suo token push, e<br/>gli avvisi gli arrivano di nuovo"]
+    Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
 Expo dà un telefono per perso quando l'app ne è stata rimossa, o quando il suo token push non è più valido. Il telefono non viene eliminato: **Impostazioni utente → Metodi di notifica**, nella scheda **Push Notifications**, lo mostra come **Non riceve notifiche**, e la cronologia di reperibilità di un avviso che non gli è arrivato dice perché. Gli altri tuoi telefoni e metodi di notifica ricevono avvisi come sempre.

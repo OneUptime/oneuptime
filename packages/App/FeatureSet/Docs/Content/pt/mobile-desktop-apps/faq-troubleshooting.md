@@ -80,12 +80,9 @@ flowchart TB
     Registered["O celular está registrado,<br/>e os acionamentos chegam a ele"]
     Gone["A Expo o dá como perdido:<br/>um push é recusado, ou o<br/>recibo dele diz isso cerca<br/>de 15 minutos depois"]
     Marked["O OneUptime o marca Não está<br/>recebendo notificações e para<br/>de enviar; as regras ficam"]
-    Others["Os seus outros dispositivos e<br/>métodos continuam sendo acionados"]
     Open["Você abre o aplicativo<br/>estando conectado"]
-    Renewed["O aplicativo se registra de novo<br/>e renova o token push dele"]
-    Registered --> Gone --> Marked
-    Marked --> Others
-    Marked --> Open --> Renewed --> Registered
+    Renewed["O aplicativo se registra de novo,<br/>renova o token push dele, e os<br/>acionamentos voltam a chegar"]
+    Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
 A Expo dá um celular como perdido quando o aplicativo foi removido dele, ou quando o token push dele não é mais válido. O celular não é excluído: **Configurações do usuário → Métodos de notificação**, na aba **Push Notifications**, o mostra como **Não está recebendo notificações**, e a linha do tempo de plantão de um acionamento que não chegou a ele diz por quê. Os seus outros celulares e métodos de notificação são acionados como sempre.

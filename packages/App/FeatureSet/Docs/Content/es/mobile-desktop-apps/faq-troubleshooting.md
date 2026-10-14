@@ -80,12 +80,9 @@ flowchart TB
     Registered["El teléfono está registrado,<br/>y los avisos le llegan"]
     Gone["Expo lo da por perdido: un push<br/>se rechaza, o su recibo lo dice<br/>unos 15 minutos después"]
     Marked["OneUptime lo marca No recibe<br/>notificaciones y deja de enviar;<br/>sus reglas se quedan"]
-    Others["Sus otros dispositivos y<br/>métodos siguen recibiendo avisos"]
     Open["Usted abre la aplicación<br/>con la sesión iniciada"]
-    Renewed["La aplicación se vuelve<br/>a registrar y renueva<br/>su token push"]
-    Registered --> Gone --> Marked
-    Marked --> Others
-    Marked --> Open --> Renewed --> Registered
+    Renewed["La aplicación se vuelve<br/>a registrar, renueva su token<br/>push, y los avisos le llegan<br/>de nuevo"]
+    Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
 Expo da un teléfono por perdido cuando se quitó la aplicación de él, o cuando su token push ya no es válido. El teléfono no se borra: **Ajustes de usuario → Métodos de notificación**, en la pestaña **Push Notifications**, lo muestra como **No recibe notificaciones**, y la cronología de guardia de un aviso que no le llegó dice por qué. Sus otros teléfonos y métodos de notificación reciben avisos como siempre.

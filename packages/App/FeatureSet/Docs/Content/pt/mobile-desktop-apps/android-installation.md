@@ -87,10 +87,10 @@ Por padrão, um acionamento de plantão segue as configurações de som do celul
 ```mermaid title="Se um acionamento de plantão toca mesmo assim no Android"
 flowchart TB
     Page["Um acionamento de plantão<br/>para este celular"]
-    Rule{"A regra de plantão dele está<br/>em Alerta crítico?"}
-    Device{"Critical On-Call Alerts está<br/>ativado neste celular?"}
-    Quiet["Segue as configurações de som,<br/>silencioso e Não Perturbe<br/>do celular"]
-    Loud["Toca o seu som de alarme<br/>mesmo no modo silencioso<br/>e no Não Perturbe"]
+    Rule{"Regra em<br/>Alerta crítico?"}
+    Device{"Critical On-Call<br/>Alerts ativado?"}
+    Quiet["Segue o som e o<br/>Não Perturbe<br/>do celular"]
+    Loud["Toca o seu alarme<br/>mesmo no silencioso<br/>e no Não Perturbe"]
     Page --> Rule
     Rule -->|"não: Normal"| Quiet
     Rule -->|"sim"| Device

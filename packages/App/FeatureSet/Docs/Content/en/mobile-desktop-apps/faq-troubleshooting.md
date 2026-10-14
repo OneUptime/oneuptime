@@ -80,12 +80,9 @@ flowchart TB
     Registered["The phone is registered,<br/>and pages reach it"]
     Gone["Expo reports it gone: a push<br/>is refused, or its receipt says<br/>so about 15 minutes later"]
     Marked["OneUptime marks it Not receiving<br/>notifications and stops sending;<br/>its rules stay"]
-    Others["Your other devices and<br/>methods are still paged"]
     Open["You open the app<br/>while signed in"]
-    Renewed["The app registers again<br/>and renews its push token"]
-    Registered --> Gone --> Marked
-    Marked --> Others
-    Marked --> Open --> Renewed --> Registered
+    Renewed["The app registers again,<br/>renews its push token, and<br/>pages reach it again"]
+    Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
 Expo reports a phone gone when the app was removed from it, or when its push token is no longer valid. The phone is not deleted: **User Settings → Notification Methods**, on the **Push Notifications** tab, shows it as **Not receiving notifications**, and the on-call timeline of a page that did not reach it says why. Your other phones and notification methods are paged as usual.

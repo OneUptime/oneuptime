@@ -87,10 +87,10 @@ De forma predeterminada, un aviso de guardia sigue los ajustes de sonido del tel
 ```mermaid title="Si un aviso de guardia suena de todos modos en Android"
 flowchart TB
     Page["Un aviso de guardia<br/>para este teléfono"]
-    Rule{"¿Su regla de guardia está<br/>en Alerta crítica?"}
-    Device{"¿Critical On-Call Alerts está<br/>activado en este teléfono?"}
-    Quiet["Sigue los ajustes de sonido,<br/>silencio y No molestar<br/>del teléfono"]
-    Loud["Reproduce su sonido de alarma<br/>pese al modo silencio<br/>y a No molestar"]
+    Rule{"¿Regla en<br/>Alerta crítica?"}
+    Device{"¿Critical On-Call<br/>Alerts activado?"}
+    Quiet["Sigue el sonido y<br/>No molestar<br/>del teléfono"]
+    Loud["Reproduce su alarma<br/>pese al modo silencio<br/>y a No molestar"]
     Page --> Rule
     Rule -->|"no: Estándar"| Quiet
     Rule -->|"sí"| Device

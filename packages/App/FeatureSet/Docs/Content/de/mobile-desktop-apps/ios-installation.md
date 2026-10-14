@@ -77,10 +77,10 @@ Standardmäßig richtet sich ein Bereitschaftsalarm nach den Toneinstellungen de
 ```mermaid title="Ob ein Bereitschaftsalarm auf einem iPhone oder iPad durchklingelt"
 flowchart TB
     Page["Ein Bereitschaftsalarm<br/>für dieses Gerät"]
-    Rule{"Steht seine Bereitschaftsregel<br/>auf Kritische Warnung?"}
-    Device{"Ist Critical On-Call Alerts<br/>für dieses Gerät an?"}
-    Quiet["Er folgt den Einstellungen<br/>des Geräts: Ton, Stumm<br/>und Fokus"]
-    Loud["Er spielt Ihren Alarmton in<br/>Ihrer Lautstärke, trotz<br/>Stummmodus und Fokus"]
+    Rule{"Regel auf Kritische<br/>Warnung?"}
+    Device{"Critical On-Call<br/>Alerts an?"}
+    Quiet["Er folgt Ton und<br/>Fokus des Geräts"]
+    Loud["Er spielt Ihren Alarm<br/>in Ihrer Lautstärke,<br/>trotz Stummmodus<br/>und Fokus"]
     Page --> Rule
     Rule -->|"nein: Normal"| Quiet
     Rule -->|"ja"| Device

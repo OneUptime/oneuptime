@@ -87,10 +87,10 @@ Par défaut, une alerte d'astreinte suit les réglages sonores du téléphone : 
 ```mermaid title="Si une alerte d'astreinte sonne malgré tout sur Android"
 flowchart TB
     Page["Une alerte d'astreinte<br/>pour ce téléphone"]
-    Rule{"Sa règle d'astreinte est-elle<br/>sur Alerte critique ?"}
-    Device{"Critical On-Call Alerts est-il<br/>activé sur ce téléphone ?"}
-    Quiet["Elle suit les réglages de son,<br/>de silence et de Ne pas<br/>déranger du téléphone"]
-    Loud["Elle joue votre son d'alarme<br/>malgré le mode silencieux<br/>et Ne pas déranger"]
+    Rule{"Règle sur<br/>Alerte critique ?"}
+    Device{"Critical On-Call<br/>Alerts activé ?"}
+    Quiet["Elle suit le son et<br/>Ne pas déranger<br/>du téléphone"]
+    Loud["Elle joue votre alarme<br/>malgré le silencieux<br/>et Ne pas déranger"]
     Page --> Rule
     Rule -->|"non : Standard"| Quiet
     Rule -->|"oui"| Device

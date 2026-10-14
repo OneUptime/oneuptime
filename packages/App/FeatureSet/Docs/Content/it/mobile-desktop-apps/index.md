@@ -24,18 +24,16 @@ Puoi usarle entrambe: tieni l'app desktop aperta al lavoro, e lascia che di nott
 
 ## Come le app raggiungono OneUptime
 
-```mermaid title="Come le app raggiungono il tuo OneUptime, e come gli avvisi raggiungono te"
+```mermaid title="Come gli avvisi di reperibilità raggiungono il tuo telefono e il tuo computer"
 flowchart TB
-    Phone["OneUptime On-Call<br/>sul tuo telefono"]
-    Desktop["L'app desktop<br/>sul tuo computer"]
     OneUptime["Il tuo OneUptime:<br/>Cloud o self-hosted"]
     Expo["Servizio push di Expo,<br/>poi Apple o Google"]
     WebPush["Il servizio push<br/>del tuo browser"]
-    Phone -->|"accede e<br/>registra il telefono"| OneUptime
-    Desktop -->|"apre la dashboard"| OneUptime
-    OneUptime -->|"avvisi di reperibilità"| Expo
+    Phone["OneUptime On-Call<br/>sul tuo telefono"]
+    Desktop["L'app desktop<br/>sul tuo computer"]
+    OneUptime -->|"verso un telefono"| Expo
+    OneUptime -->|"verso un browser<br/>registrato"| WebPush
     Expo -->|"notifica push"| Phone
-    OneUptime -->|"web push, verso un<br/>browser registrato"| WebPush
     WebPush -->|"notifica"| Desktop
 ```
 

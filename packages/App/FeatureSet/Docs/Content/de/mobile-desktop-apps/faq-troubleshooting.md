@@ -79,13 +79,10 @@ OneUptime schickt die Alarme eines Telefons über Expo, das sie Apple oder Googl
 flowchart TB
     Registered["Das Telefon ist registriert,<br/>und Alarme erreichen es"]
     Gone["Expo meldet es als weg: Ein<br/>Push wird abgelehnt, oder<br/>seine Quittung sagt es etwa<br/>15 Minuten später"]
-    Marked["OneUptime markiert es mit Keine<br/>Benachrichtigungen und sendet nicht<br/>mehr; seine Regeln bleiben"]
-    Others["Ihre anderen Geräte und<br/>Methoden werden weiter alarmiert"]
+    Marked["OneUptime markiert es mit<br/>Keine Benachrichtigungen und<br/>sendet nicht mehr; seine<br/>Regeln bleiben"]
     Open["Sie öffnen die App,<br/>während Sie angemeldet sind"]
-    Renewed["Die App registriert sich neu<br/>und erneuert ihr Push-Token"]
-    Registered --> Gone --> Marked
-    Marked --> Others
-    Marked --> Open --> Renewed --> Registered
+    Renewed["Die App registriert sich neu,<br/>erneuert ihr Push-Token, und<br/>Alarme erreichen es wieder"]
+    Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
 Expo meldet ein Telefon als weg, wenn die App davon entfernt wurde oder sein Push-Token nicht mehr gilt. Das Telefon wird nicht gelöscht: **Benutzereinstellungen → Benachrichtigungsmethoden** zeigt es auf dem Tab **Push Notifications** als **Keine Benachrichtigungen**, und die Bereitschafts-Zeitleiste eines Alarms, der es nicht erreicht hat, sagt, warum. Ihre anderen Telefone und Benachrichtigungsmethoden werden wie gewohnt alarmiert.

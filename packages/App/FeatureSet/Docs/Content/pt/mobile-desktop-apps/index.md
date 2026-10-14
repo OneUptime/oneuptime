@@ -24,18 +24,16 @@ Você pode usar os dois: deixe o aplicativo de desktop aberto no trabalho, e dei
 
 ## Como os aplicativos chegam ao OneUptime
 
-```mermaid title="Como os aplicativos chegam ao seu OneUptime, e como os acionamentos chegam a você"
+```mermaid title="Como os acionamentos de plantão chegam ao seu celular e ao seu computador"
 flowchart TB
-    Phone["OneUptime On-Call<br/>no seu celular"]
-    Desktop["O aplicativo de desktop<br/>no seu computador"]
     OneUptime["O seu OneUptime:<br/>Cloud ou auto-hospedado"]
     Expo["Serviço push da Expo,<br/>depois Apple ou Google"]
     WebPush["O serviço push<br/>do seu navegador"]
-    Phone -->|"faz login e<br/>registra o celular"| OneUptime
-    Desktop -->|"abre o painel"| OneUptime
-    OneUptime -->|"acionamentos de plantão"| Expo
+    Phone["OneUptime On-Call<br/>no seu celular"]
+    Desktop["O aplicativo de desktop<br/>no seu computador"]
+    OneUptime -->|"para um celular"| Expo
+    OneUptime -->|"para um navegador<br/>registrado"| WebPush
     Expo -->|"notificação push"| Phone
-    OneUptime -->|"web push, para um<br/>navegador registrado"| WebPush
     WebPush -->|"notificação"| Desktop
 ```
 

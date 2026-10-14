@@ -24,18 +24,16 @@ Vous pouvez utiliser les deux : gardez l'application de bureau ouverte au travai
 
 ## Comment les applications joignent OneUptime
 
-```mermaid title="Comment les applications joignent votre OneUptime, et comment les alertes vous joignent"
+```mermaid title="Comment les alertes d'astreinte joignent votre téléphone et votre ordinateur"
 flowchart TB
-    Phone["OneUptime On-Call<br/>sur votre téléphone"]
-    Desktop["L'application de bureau<br/>sur votre ordinateur"]
     OneUptime["Votre OneUptime :<br/>Cloud ou auto-hébergé"]
     Expo["Service push d'Expo,<br/>puis Apple ou Google"]
     WebPush["Le service push<br/>de votre navigateur"]
-    Phone -->|"se connecte et<br/>enregistre le téléphone"| OneUptime
-    Desktop -->|"ouvre le tableau de bord"| OneUptime
-    OneUptime -->|"alertes d'astreinte"| Expo
+    Phone["OneUptime On-Call<br/>sur votre téléphone"]
+    Desktop["L'application de bureau<br/>sur votre ordinateur"]
+    OneUptime -->|"vers un téléphone"| Expo
+    OneUptime -->|"vers un navigateur<br/>enregistré"| WebPush
     Expo -->|"notification push"| Phone
-    OneUptime -->|"web push, vers un<br/>navigateur enregistré"| WebPush
     WebPush -->|"notification"| Desktop
 ```
 

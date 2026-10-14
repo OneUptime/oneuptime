@@ -77,10 +77,10 @@ Par défaut, une alerte d'astreinte suit les réglages sonores de l'appareil : l
 ```mermaid title="Si une alerte d'astreinte sonne malgré tout sur un iPhone ou un iPad"
 flowchart TB
     Page["Une alerte d'astreinte<br/>pour cet appareil"]
-    Rule{"Sa règle d'astreinte est-elle<br/>sur Alerte critique ?"}
-    Device{"Critical On-Call Alerts est-il<br/>activé sur cet appareil ?"}
-    Quiet["Elle suit les réglages de son,<br/>de silence et de concentration<br/>de l'appareil"]
-    Loud["Elle joue votre son d'alarme,<br/>à votre volume, malgré le mode<br/>silencieux et la concentration"]
+    Rule{"Règle sur<br/>Alerte critique ?"}
+    Device{"Critical On-Call<br/>Alerts activé ?"}
+    Quiet["Elle suit le son et la<br/>concentration de<br/>l'appareil"]
+    Loud["Elle joue votre alarme,<br/>à votre volume, malgré<br/>le silencieux et la<br/>concentration"]
     Page --> Rule
     Rule -->|"non : Standard"| Quiet
     Rule -->|"oui"| Device

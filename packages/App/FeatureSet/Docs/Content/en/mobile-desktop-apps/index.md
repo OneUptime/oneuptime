@@ -24,18 +24,16 @@ You can use both: keep the desktop app open at work, and let the phone wake you 
 
 ## How the apps reach OneUptime
 
-```mermaid title="How the apps reach your OneUptime, and how pages reach you"
+```mermaid title="How on-call pages reach your phone and your computer"
 flowchart TB
-    Phone["OneUptime On-Call<br/>on your phone"]
-    Desktop["The desktop app<br/>on your computer"]
     OneUptime["Your OneUptime:<br/>Cloud or self-hosted"]
     Expo["Expo push service,<br/>then Apple or Google"]
     WebPush["Your browser's<br/>push service"]
-    Phone -->|"signs in and<br/>registers the phone"| OneUptime
-    Desktop -->|"opens the dashboard"| OneUptime
-    OneUptime -->|"on-call pages"| Expo
+    Phone["OneUptime On-Call<br/>on your phone"]
+    Desktop["The desktop app<br/>on your computer"]
+    OneUptime -->|"to a phone"| Expo
+    OneUptime -->|"to a registered<br/>browser"| WebPush
     Expo -->|"push notification"| Phone
-    OneUptime -->|"web push, to a<br/>registered browser"| WebPush
     WebPush -->|"notification"| Desktop
 ```
 

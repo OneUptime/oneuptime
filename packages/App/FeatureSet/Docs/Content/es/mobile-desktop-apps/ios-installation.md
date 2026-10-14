@@ -77,10 +77,10 @@ De forma predeterminada, un aviso de guardia sigue los ajustes de sonido del dis
 ```mermaid title="Si un aviso de guardia suena de todos modos en un iPhone o iPad"
 flowchart TB
     Page["Un aviso de guardia<br/>para este dispositivo"]
-    Rule{"¿Su regla de guardia está<br/>en Alerta crítica?"}
-    Device{"¿Critical On-Call Alerts está<br/>activado en este dispositivo?"}
-    Quiet["Sigue los ajustes de sonido,<br/>silencio y concentración<br/>del dispositivo"]
-    Loud["Reproduce su sonido de alarma,<br/>a su volumen, pese al modo<br/>silencio y la concentración"]
+    Rule{"¿Regla en<br/>Alerta crítica?"}
+    Device{"¿Critical On-Call<br/>Alerts activado?"}
+    Quiet["Sigue el sonido y la<br/>concentración del<br/>dispositivo"]
+    Loud["Reproduce su alarma,<br/>a su volumen, pese<br/>al modo silencio y<br/>la concentración"]
     Page --> Rule
     Rule -->|"no: Estándar"| Quiet
     Rule -->|"sí"| Device

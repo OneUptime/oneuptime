@@ -87,10 +87,10 @@ Per impostazione predefinita un avviso di reperibilità segue le impostazioni au
 ```mermaid title="Se un avviso di reperibilità suona comunque su Android"
 flowchart TB
     Page["Un avviso di reperibilità<br/>per questo telefono"]
-    Rule{"La sua regola di reperibilità<br/>è su Avviso critico?"}
-    Device{"Critical On-Call Alerts è<br/>attivo su questo telefono?"}
-    Quiet["Segue le impostazioni di suono,<br/>silenzioso e Non disturbare<br/>del telefono"]
-    Loud["Riproduce il tuo suono<br/>di allarme nonostante<br/>la modalità silenziosa<br/>e Non disturbare"]
+    Rule{"Regola su<br/>Avviso critico?"}
+    Device{"Critical On-Call<br/>Alerts attivo?"}
+    Quiet["Segue il suono e<br/>Non disturbare<br/>del telefono"]
+    Loud["Riproduce l'allarme<br/>nonostante silenzioso<br/>e Non disturbare"]
     Page --> Rule
     Rule -->|"no: Standard"| Quiet
     Rule -->|"sì"| Device

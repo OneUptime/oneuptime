@@ -87,10 +87,10 @@ Standardmäßig richtet sich ein Bereitschaftsalarm nach den Toneinstellungen de
 ```mermaid title="Ob ein Bereitschaftsalarm unter Android durchklingelt"
 flowchart TB
     Page["Ein Bereitschaftsalarm<br/>für dieses Telefon"]
-    Rule{"Steht seine Bereitschaftsregel<br/>auf Kritische Warnung?"}
-    Device{"Ist Critical On-Call Alerts<br/>für dieses Telefon an?"}
-    Quiet["Er folgt den Einstellungen<br/>des Telefons: Ton, Stumm<br/>und „Bitte nicht stören“"]
-    Loud["Er spielt Ihren Alarmton<br/>trotz Stummmodus und<br/>„Bitte nicht stören“"]
+    Rule{"Regel auf Kritische<br/>Warnung?"}
+    Device{"Critical On-Call<br/>Alerts an?"}
+    Quiet["Er folgt Ton und<br/>„Bitte nicht stören“<br/>des Telefons"]
+    Loud["Er spielt Ihren Alarm<br/>trotz Stummmodus und<br/>„Bitte nicht stören“"]
     Page --> Rule
     Rule -->|"nein: Normal"| Quiet
     Rule -->|"ja"| Device
