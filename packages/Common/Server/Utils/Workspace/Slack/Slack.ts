@@ -12,6 +12,7 @@ import WorkspaceMessagePayload, {
   WorkspaceMessagePayloadButton,
   WorkspaceModalBlock,
   WorkspacePayloadButtons,
+  WorkspacePayloadContext,
   WorkspacePayloadHeader,
   WorkspacePayloadImage,
   WorkspacePayloadInlineImage,
@@ -3143,6 +3144,33 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Markdown block generated:", {} as LogAttributes);
     logger.debug(markdownBlock, {} as LogAttributes);
     return markdownBlock;
+  }
+
+  /*
+   * Small, muted text under a message: a context block, whose one element
+   * is the Markdown as a section would say it (getMarkdownBlock), within
+   * the same 3000 characters.
+   */
+  @CaptureSpan()
+  public static override getContextBlock(data: {
+    payloadContextBlock: WorkspacePayloadContext;
+  }): JSONObject {
+    const section: JSONObject = this.getMarkdownBlock({
+      payloadMarkdownBlock: {
+        _type: "WorkspacePayloadMarkdown",
+        text: data.payloadContextBlock.text,
+      },
+    });
+
+    return {
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: ((section["text"] as JSONObject)["text"] as string) || " ",
+        },
+      ],
+    };
   }
 
   /*

@@ -922,7 +922,8 @@ describe("the 'show' lists: read as the member who typed them, never as OneUptim
         "🚨 **Open incidents**",
         `- **[INC-12](${DASHBOARD_URL}/${projectId.toString()}/incidents/${ours.id!.toString()})** Checkout is down · Critical · Identified`,
         "",
-        `[See every incident in OneUptime](${DASHBOARD_URL}/${projectId.toString()}/incidents)`,
+        // The list it is cut from: Active Incidents, not every incident.
+        `[See every open incident in OneUptime](${DASHBOARD_URL}/${projectId.toString()}/incidents/unresolved)`,
       ].join("\n"),
     );
     expect(delivery.posts[0]!.activity["summary"]).toBe(
@@ -1160,20 +1161,32 @@ describe("the Home: a card in the person's chat with OneUptime", () => {
     const card: JSONObject = cardOf(delivery.posts[0]);
     const texts: Array<string> = cardTexts(card);
 
-    expect(texts[0]).toBe("👋 Hi Customer");
-    expect((card["body"] as Array<JSONObject>)[0]!["size"]).toBe("Large");
-    expect(texts[1]).toBe("Here's what is happening in **Acme Production**.");
-    expect(texts[2]).toBe(
-      "📟 **Your on-call**\nYou're not on call right now, and no shift of yours is coming up.",
-    );
-    expect(texts[3]).toContain("🚨 **Open incidents**");
-    expect(texts[3]).toContain("Checkout is down");
-    expect(texts[4]).toBe("✅ **No open alerts.**");
-    expect(texts[texts.length - 1]).toContain(
-      "Type **help** to see every command.",
-    );
+    /*
+     * Each part's title is a text block of its own, above what it holds:
+     * Teams joins the lines of one text block that a single line break
+     * separates, so a title and its line would read as one.
+     */
+    expect(texts.slice(0, 5)).toEqual([
+      "👋 Hi Customer",
+      "Here's what is happening in **Acme Production**.",
+      "📟 **Your on-call**",
+      "⚪ You're not on call right now, and no shift of yours is coming up.",
+      "🚨 **Open incidents**",
+    ]);
+    expect(texts[5]).toContain("Checkout is down");
+    expect(texts[6]).toBe("✅ **No open alerts.**");
+    expect(texts).toHaveLength(8);
+    expect(texts[7]).toContain("Type **help** to see every command");
     // Teams draws {{TIME()}} in each reader's own clock.
-    expect(texts[texts.length - 1]).toContain("_Updated at {{TIME(");
+    expect(texts[7]).toContain("Updated at {{TIME(");
+    // The footer is small and muted, a little apart from the lists.
+    expect((card["body"] as Array<JSONObject>)[7]).toMatchObject({
+      isSubtle: true,
+      size: "Small",
+      spacing: "Medium",
+    });
+    // As wide as the chat: its four buttons fit, and a record is a line.
+    expect(card["msteams"]).toEqual({ width: "Full" });
 
     expect(
       (card["actions"] as Array<JSONObject>).map(
@@ -1470,7 +1483,7 @@ describe("the welcome when the app is added", () => {
       },
     ]);
     expect(delivery.posts[0]!.activity["summary"]).toBe(
-      "Hi, I'm OneUptime. Mention me with a question, or with help.",
+      "Hi, I'm OneUptime. @mention me with a question, or with help.",
     );
     // Nothing hard-wired to OneUptime Cloud, nor three buttons that do not fit a phone.
     expect(JSON.stringify(delivery.posts[0]!.activity)).not.toContain(
@@ -1493,7 +1506,7 @@ describe("the welcome when the app is added", () => {
     const delivery: Delivery = await deliver(botAdded("groupChat"));
 
     expect(texts(delivery.posts[0])[1]).toBe(
-      "To get started, a OneUptime project admin connects your organization in **Project Settings → Workspace → Microsoft Teams**.",
+      "To get started, a project admin connects your organization in OneUptime, under **Project Settings → Workspace → Microsoft Teams**.",
     );
     expect(cardOf(delivery.posts[0])["actions"]).toEqual([
       {

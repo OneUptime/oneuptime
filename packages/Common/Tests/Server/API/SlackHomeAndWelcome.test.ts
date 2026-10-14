@@ -449,19 +449,43 @@ describe("the Home tab, opened", () => {
     const blocks: Array<JSONObject> = publishedBlocks();
     const texts: Array<string> = blockTexts(blocks);
 
+    // What you can do first, under the greeting; then each part, titled.
+    expect(
+      blocks.map((block: JSONObject): unknown => {
+        return block["type"];
+      }),
+    ).toEqual([
+      "header",
+      "section",
+      "actions",
+      "divider",
+      "section",
+      "section",
+      "divider",
+      "section",
+      "section",
+      "section",
+      "divider",
+      "context",
+    ]);
+
     expect(texts[0]).toBe("👋 Hi Alice");
     expect(texts[1]).toContain("Here's what is happening in");
     expect(texts[1]).toContain("Acme Production");
-    expect(texts[2]).toContain("Your on-call");
-    expect(texts[2]).toContain(
+    expect(texts[2]).toBe(`📟 ${ZWSP}*Your on-call*${ZWSP}\n`);
+    expect(texts[3]).toContain(
       `🟢 You're on call in <${DASHBOARD_URL}/${PROJECT_ID.toString()}/on-call-duty/schedules/${PRIMARY.id!.toString()}|Primary> until <!date^${Math.floor(HANDOFF.getTime() / 1000)}^{date_short_pretty}|`,
     );
-    expect(texts[3]).toContain("Open incidents");
-    expect(texts[3]).toContain(
+    expect(texts[4]).toBe(`🚨 ${ZWSP}*Open incidents*${ZWSP}\n`);
+    expect(texts[5]).toContain(
       `<${DASHBOARD_URL}/${PROJECT_ID.toString()}/incidents/${CHECKOUT.id!.toString()}|INC-12>`,
     );
-    expect(texts[3]).toContain("Checkout is down · Critical · Identified");
-    expect(texts[4]).toContain("No open alerts.");
+    expect(texts[5]).toContain("Checkout is down · Critical · Identified");
+    // The rest of what is open: Active Incidents, not every incident.
+    expect(texts[5]).toContain(
+      `<${DASHBOARD_URL}/${PROJECT_ID.toString()}/incidents/unresolved|See every open incident in OneUptime>`,
+    );
+    expect(texts[6]).toContain("No open alerts.");
 
     // Declare incident first and filled; no button carries an empty value.
     const buttons: Array<JSONObject> = buttonsOf(blocks);
@@ -483,9 +507,16 @@ describe("the Home tab, opened", () => {
       expect(button["value"]).toBeUndefined();
     }
 
-    // When it was drawn, in each reader's own time, and the commands.
-    expect(texts[texts.length - 1]).toContain("Updated at <!date^");
-    expect(texts[texts.length - 1]).toContain("/oneuptime help");
+    // When it was drawn, in each reader's own time, and the commands: small.
+    const footer: JSONObject = blocks[blocks.length - 1]!;
+    const footerText: string = String(
+      ((footer["elements"] as Array<JSONObject>)[0] as JSONObject)["text"],
+    );
+    expect(
+      ((footer["elements"] as Array<JSONObject>)[0] as JSONObject)["type"],
+    ).toBe("mrkdwn");
+    expect(footerText).toContain("Updated at <!date^");
+    expect(footerText).toContain("/oneuptime help");
 
     // Read with Alice's own permissions, never as OneUptime.
     expect(onCallReads[0]!["props"]).toEqual(PROPS);
@@ -544,7 +575,7 @@ describe("the Home tab, opened", () => {
     }, "the Home drawn");
 
     expect(blockTexts(publishedBlocks())).toEqual([
-      "👋 OneUptime",
+      "👋 Hi there",
       "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.\n",
     ]);
     expect(incidentReads).toEqual([]);

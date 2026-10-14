@@ -10,6 +10,7 @@ import {
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
   WorkspacePayloadButtons,
+  WorkspacePayloadContext,
   WorkspacePayloadDivider,
   WorkspacePayloadHeader,
   WorkspacePayloadMarkdown,
@@ -40,18 +41,24 @@ import WorkspaceOpenRecords, {
  *
  *   👋 Hi Nitin
  *   Here's what is happening in Acme Production.
- *
+ *   [Declare incident] [Page someone] [Schedule maintenance] [Who's on call]
+ *   ───────────────
  *   📟 Your on-call
  *   🟢 You're on call in Primary until Fri, Oct 17 at 9:00 AM.
  *   ───────────────
  *   🚨 Open incidents
  *   • INC-12 Checkout is down · Critical · Identified · since 5:15 PM
- *   See every incident in OneUptime
- *
+ *   See every open incident in OneUptime
  *   ✅ No open alerts.
  *   ───────────────
- *   [Declare incident] [Page someone] [Schedule maintenance] [Who's on call]
- *   Updated at 5:15 PM. Type /oneuptime help to see every command.
+ *   Updated at 5:15 PM · Open OneUptime · Type /oneuptime help to see …
+ *
+ * What you can do comes first: Slack draws the buttons where they are, above
+ * lists that can run long; a Teams card draws its buttons at its foot,
+ * wherever they are. Each part is its title and what it holds, in blocks of
+ * their own - one line under another in both chats (Teams joins lines of
+ * one text block that a single line break separates). The footer is small
+ * and muted (WorkspacePayloadContext).
  *
  * Everything is read as the member the chat account is connected to, with
  * their own permissions (the lists through WorkspaceOpenRecords): a part
@@ -212,18 +219,18 @@ export default class WorkspaceHome {
       );
     }
 
+    // What you can do, first (see the header).
+    blocks.push(WorkspaceHome.getButtons(data.actions));
+    blocks.push(WorkspaceHome.divider());
+
+    blocks.push(WorkspaceHome.markdown(WorkspaceHome.ON_CALL_TITLE));
     blocks.push(WorkspaceHome.markdown(WorkspaceHome.getOnCallMarkdown(view)));
     blocks.push(WorkspaceHome.divider());
-    blocks.push(
-      WorkspaceHome.markdown(WorkspaceHome.getListMarkdown(view.incidents)),
-    );
-    blocks.push(
-      WorkspaceHome.markdown(WorkspaceHome.getListMarkdown(view.alerts)),
-    );
+    blocks.push(...WorkspaceHome.getListBlocks(view.incidents));
+    blocks.push(...WorkspaceHome.getListBlocks(view.alerts));
     blocks.push(WorkspaceHome.divider());
-    blocks.push(WorkspaceHome.getButtons(data.actions));
     blocks.push(
-      WorkspaceHome.markdown(
+      WorkspaceHome.context(
         WorkspaceHome.getFooterMarkdown({
           workspaceType: data.workspaceType,
           view: view,
@@ -233,6 +240,9 @@ export default class WorkspaceHome {
 
     return blocks;
   }
+
+  // The title of the person's shifts on the Home.
+  public static readonly ON_CALL_TITLE: MarkdownText = mdText`📟 **Your on-call**`;
 
   /*
    * The Home of somebody whose chat account is not connected yet: what it
@@ -271,7 +281,7 @@ export default class WorkspaceHome {
     } else {
       blocks.push(
         WorkspaceHome.markdown(
-          mdText`In ${productName}, go to **User Settings → ${workspaceName}** and connect your account.`,
+          mdText`In ${productName}, go to **User Settings → Workspace → ${workspaceName}** and press **Connect my account with ${workspaceName}**.`,
         ),
       );
     }
@@ -282,124 +292,171 @@ export default class WorkspaceHome {
   // The Home of somebody whose account is not a member of the project.
   public static getNotAMemberBlocks(): Array<WorkspaceMessageBlock> {
     return [
-      WorkspaceHome.header(`👋 ${ProductBrandingText.getProductName()}`),
+      WorkspaceHome.header("👋 Hi there"),
       WorkspaceHome.markdown(
         mdText`${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}`,
       ),
     ];
   }
 
-  // What a notification of the Home says (the Teams card's summary).
+  /*
+   * What a notification of the Home says (the Teams card's summary): the
+   * person's shifts and what is open - never "nothing is open" of a list
+   * that was not read, nor "not on call" of shifts that were not.
+   */
   public static getNotificationText(view: WorkspaceHomeView): string {
     const parts: Array<string> = [];
+    const now: Array<WorkspaceHomeShift> | null = view.onCall?.now ?? null;
 
-    if (view.onCall?.now && view.onCall.now.length > 0) {
+    if (now && now.length > 0) {
       parts.push(
-        `You're on call in ${view.onCall.now
-          .map((shift: WorkspaceHomeShift): string => {
-            return shift.scheduleName;
-          })
-          .join(", ")}`,
+        now.length === 1 && !view.onCall?.isNowCut
+          ? `You're on call in ${now[0]!.scheduleName}`
+          : `You're on call in ${WorkspaceHome.countSchedules(now.length, view.onCall?.isNowCut)}`,
       );
     }
 
     const open: Array<string> = [];
+    const lists: Array<WorkspaceHomeList> = [view.incidents, view.alerts];
 
-    for (const home of [view.incidents, view.alerts]) {
-      if (home.list && home.list.records.length > 0) {
-        const count: string = `${home.list.records.length}${home.list.isCut ? "+" : ""}`;
-        open.push(
+    for (const home of lists) {
+      if (WorkspaceHome.isRead(home) && home.list!.records.length > 0) {
+        const count: number = home.list!.records.length;
+        const isOne: boolean = count === 1 && !home.list!.isCut;
+        const noun: string =
           home.kind === WorkspaceOpenRecordKind.Incidents
-            ? `${count} open incident${home.list.records.length === 1 && !home.list.isCut ? "" : "s"}`
-            : `${count} open alert${home.list.records.length === 1 && !home.list.isCut ? "" : "s"}`,
+            ? "open incident"
+            : "open alert";
+
+        open.push(
+          `${home.list!.isCut ? "more than " : ""}${count} ${noun}${isOne ? "" : "s"}`,
         );
       }
     }
 
     if (open.length > 0) {
-      parts.push(open.join(", "));
+      const said: string = open.join(", ");
+
+      // "More than 5 open incidents": a sentence of its own.
+      parts.push(`${said.charAt(0).toUpperCase()}${said.substring(1)}`);
     }
 
-    return parts.length > 0
-      ? parts.join(". ")
-      : "Nothing is open, and you're not on call";
+    if (parts.length > 0) {
+      return parts.join(". ");
+    }
+
+    if (!lists.every(WorkspaceHome.isRead)) {
+      return `Your ${ProductBrandingText.getProductName()} Home`;
+    }
+
+    // Shifts read, and none now: not on call. Not read: said of nothing.
+    return now ? "Nothing is open, and you're not on call" : "Nothing is open";
+  }
+
+  // "2 schedules", "more than 5 schedules".
+  private static countSchedules(
+    count: number,
+    isMore: boolean | undefined,
+  ): string {
+    return `${isMore ? "more than " : ""}${count} schedule${count === 1 ? "" : "s"}`;
+  }
+
+  // A list the Home read: neither refused nor failed.
+  private static isRead(home: WorkspaceHomeList): boolean {
+    return Boolean(home.list) && !home.refused && !home.failed;
   }
 
   // The Connect button's id: a link, whose click only needs an answer.
   public static readonly CONNECT_ACTION_ID: string = "ConnectSlackAccount";
 
   /*
-   * "📟 Your on-call" and the person's shifts: on call now, until when;
-   * else their next shift; else that none is coming up.
+   * The person's shifts, under ON_CALL_TITLE: on call now, until when (one
+   * schedule in a sentence, several as a list); else their next shift; else
+   * that none is coming up.
    */
   public static getOnCallMarkdown(view: WorkspaceHomeView): MarkdownText {
-    const title: MarkdownText = mdText`📟 **Your on-call**`;
-
-    if (!view.onCall || view.onCall.now === null) {
-      return FeedMarkdown.join(
-        [
-          title,
-          view.onCall
-            ? mdText`You do not have permission to see the on-call schedules in this project.`
-            : mdText`Your on-call shifts could not be read just now.`,
-        ],
-        "\n",
-      );
+    if (!view.onCall) {
+      return mdText`${ProductBrandingText.getProductName()} couldn't read your on-call shifts just now.`;
     }
 
-    const lines: Array<MarkdownText> = [title];
+    if (view.onCall.now === null) {
+      return mdText`You do not have permission to see the on-call schedules in this project.`;
+    }
 
-    if (view.onCall.now.length > 0) {
-      for (const shift of view.onCall.now) {
+    const now: Array<WorkspaceHomeShift> = view.onCall.now;
+
+    if (now.length === 1 && !view.onCall.isNowCut) {
+      const shift: WorkspaceHomeShift = now[0]!;
+
+      return shift.at
+        ? mdText`🟢 You're on call in ${WorkspaceHome.scheduleMarkdown(shift)} until ${WorkspaceMessageTime.dateAndTime(shift.at)}.`
+        : mdText`🟢 You're on call in ${WorkspaceHome.scheduleMarkdown(shift)}.`;
+    }
+
+    if (now.length > 0) {
+      const lines: Array<MarkdownText> = [
+        view.onCall.isNowCut
+          ? mdText`🟢 You're on call in ${WorkspaceHome.countSchedules(now.length, true)}:`
+          : mdText`🟢 You're on call in ${WorkspaceHome.countSchedules(now.length, false)}:`,
+      ];
+
+      for (const shift of now) {
         lines.push(
           shift.at
-            ? mdText`🟢 You're on call in ${WorkspaceHome.scheduleMarkdown(shift)} until ${WorkspaceMessageTime.dateAndTime(shift.at)}.`
-            : mdText`🟢 You're on call in ${WorkspaceHome.scheduleMarkdown(shift)}.`,
+            ? mdText`- ${WorkspaceHome.scheduleMarkdown(shift)} until ${WorkspaceMessageTime.dateAndTime(shift.at)}`
+            : mdText`- ${WorkspaceHome.scheduleMarkdown(shift)}`,
         );
-      }
-
-      if (view.onCall.isNowCut) {
-        lines.push(mdText`…and in more schedules.`);
       }
 
       return FeedMarkdown.join(lines, "\n");
     }
 
     if (view.onCall.next && view.onCall.next.at) {
-      lines.push(
-        mdText`You're not on call right now. Your next shift: ${WorkspaceHome.scheduleMarkdown(view.onCall.next)}, from ${WorkspaceMessageTime.dateAndTime(view.onCall.next.at)}.`,
-      );
-
-      return FeedMarkdown.join(lines, "\n");
+      return mdText`⚪ You're not on call right now. Your next shift starts ${WorkspaceMessageTime.dateAndTime(view.onCall.next.at)}, in ${WorkspaceHome.scheduleMarkdown(view.onCall.next)}.`;
     }
 
-    lines.push(
-      mdText`You're not on call right now, and no shift of yours is coming up.`,
-    );
-
-    return FeedMarkdown.join(lines, "\n");
+    return mdText`⚪ You're not on call right now, and no shift of yours is coming up.`;
   }
 
-  // A list on the Home: as Teams' "show" lists say it, or why it is empty.
+  /*
+   * A list's part of the Home: its title, then its records or why there
+   * are none to show - or, with nothing open, one line that says so.
+   */
+  public static getListBlocks(
+    home: WorkspaceHomeList,
+  ): Array<WorkspaceMessageBlock> {
+    if (WorkspaceHome.isRead(home) && home.list!.records.length === 0) {
+      return [
+        WorkspaceHome.markdown(
+          WorkspaceOpenRecords.getEmptyMarkdown(home.kind),
+        ),
+      ];
+    }
+
+    return [
+      WorkspaceHome.markdown(WorkspaceOpenRecords.getTitleMarkdown(home.kind)),
+      WorkspaceHome.markdown(WorkspaceHome.getListMarkdown(home)),
+    ];
+  }
+
+  // A list under its title: its records, or why there are none to show.
   public static getListMarkdown(home: WorkspaceHomeList): MarkdownText {
+    const noun: string =
+      home.kind === WorkspaceOpenRecordKind.Incidents ? "incidents" : "alerts";
+
     if (home.refused) {
-      return FeedMarkdown.asMarkdown(
-        WorkspaceOpenRecords.getRefusalAnswer(home.kind).markdown,
-      );
+      return mdText`You do not have permission to see the ${noun} in this project.`;
     }
 
     if (!home.list || home.failed) {
-      const what: string =
-        home.kind === WorkspaceOpenRecordKind.Incidents
-          ? "The open incidents"
-          : "The open alerts";
-
-      return mdText`${what} could not be read just now.`;
+      return mdText`${ProductBrandingText.getProductName()} couldn't read the open ${noun} just now.`;
     }
 
-    return FeedMarkdown.asMarkdown(
-      WorkspaceOpenRecords.toAnswer(home.list).markdown,
-    );
+    if (home.list.records.length === 0) {
+      return WorkspaceOpenRecords.getEmptyMarkdown(home.kind);
+    }
+
+    return WorkspaceOpenRecords.getRecordsMarkdown(home.list);
   }
 
   private static getButtons(
@@ -453,24 +510,30 @@ export default class WorkspaceHome {
   }
 
   /*
-   * "Updated at 5:15 PM · Open OneUptime. Type /oneuptime help to see every
-   * command." - when the Home was read, in each reader's own time.
+   * "Updated at 5:15 PM · Open OneUptime · Type /oneuptime help to see every
+   * command" - when the Home was read, in each reader's own time.
    */
-  private static getFooterMarkdown(data: {
+  public static getFooterMarkdown(data: {
     workspaceType: WorkspaceType;
     view: WorkspaceHomeView;
   }): MarkdownText {
-    const productName: string = ProductBrandingText.getProductName();
-    const updated: MarkdownText = mdText`Updated at ${WorkspaceMessageTime.time(data.view.readAt)}`;
-    const open: MarkdownText = data.view.dashboardLink
-      ? mdText` · [Open ${productName}](${data.view.dashboardLink})`
-      : FeedMarkdown.empty();
-    const help: MarkdownText =
-      data.workspaceType === WorkspaceType.Slack
-        ? mdText`Type ${FeedMarkdown.code("/oneuptime help")} to see every command.`
-        : mdText`Type **help** to see every command.`;
+    const parts: Array<MarkdownText> = [
+      mdText`Updated at ${WorkspaceMessageTime.time(data.view.readAt)}`,
+    ];
 
-    return mdText`_${updated}${open}._ ${help}`;
+    if (data.view.dashboardLink) {
+      parts.push(
+        mdText`[Open ${ProductBrandingText.getProductName()}](${data.view.dashboardLink})`,
+      );
+    }
+
+    parts.push(
+      data.workspaceType === WorkspaceType.Slack
+        ? mdText`Type ${FeedMarkdown.code("/oneuptime help")} to see every command`
+        : mdText`Type **help** to see every command`,
+    );
+
+    return FeedMarkdown.join(parts, " · ");
   }
 
   private static scheduleMarkdown(shift: WorkspaceHomeShift): MarkdownText {
@@ -489,6 +552,10 @@ export default class WorkspaceHome {
 
   private static divider(): WorkspacePayloadDivider {
     return { _type: "WorkspacePayloadDivider" };
+  }
+
+  private static context(markdown: MarkdownText): WorkspacePayloadContext {
+    return { _type: "WorkspacePayloadContext", text: markdown.toString() };
   }
 
   private static async readList(data: {

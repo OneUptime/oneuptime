@@ -44,7 +44,10 @@ import WorkspaceMessageTime from "./WorkspaceMessageTime";
  *   🚨 Open incidents
  *   • INC-12 Checkout is down · Critical · Identified · since Oct 8 at 5:15 PM
  *   • INC-11 Slow search · Minor · Acknowledged · since Oct 8 at 9:02 AM
- *   See every incident in OneUptime
+ *   See every open incident in OneUptime
+ *
+ * The link opens the list the answer is cut from - Active Incidents,
+ * Active Alerts, Ongoing Events - not every record the project ever had.
  *
  * Titles, severities and states are text, never Markdown.
  */
@@ -84,7 +87,10 @@ interface OpenRecordWords {
   empty: string;
   // "incidents": what a refused read names.
   noun: string;
+  // The link to the list in OneUptime, completed with the product's name.
   seeAll: string;
+  // A list cut short: "Showing the newest 10.", completed with the count.
+  shown: string;
 }
 
 const WORDS: Record<WorkspaceOpenRecordKind, OpenRecordWords> = {
@@ -94,7 +100,8 @@ const WORDS: Record<WorkspaceOpenRecordKind, OpenRecordWords> = {
     emptyEmoji: "✅",
     empty: "No open incidents.",
     noun: "incidents",
-    seeAll: "See every incident in",
+    seeAll: "See every open incident in",
+    shown: "Showing the newest",
   },
   [WorkspaceOpenRecordKind.Alerts]: {
     emoji: "⚠️",
@@ -102,7 +109,8 @@ const WORDS: Record<WorkspaceOpenRecordKind, OpenRecordWords> = {
     emptyEmoji: "✅",
     empty: "No open alerts.",
     noun: "alerts",
-    seeAll: "See every alert in",
+    seeAll: "See every open alert in",
+    shown: "Showing the newest",
   },
   [WorkspaceOpenRecordKind.UpcomingMaintenance]: {
     emoji: "🛠️",
@@ -111,6 +119,8 @@ const WORDS: Record<WorkspaceOpenRecordKind, OpenRecordWords> = {
     empty: "No scheduled maintenance coming up.",
     noun: "scheduled maintenance events",
     seeAll: "See every scheduled maintenance event in",
+    // Soonest first: the next ones.
+    shown: "Showing the next",
   },
   [WorkspaceOpenRecordKind.OngoingMaintenance]: {
     emoji: "🔧",
@@ -118,16 +128,22 @@ const WORDS: Record<WorkspaceOpenRecordKind, OpenRecordWords> = {
     emptyEmoji: "🔧",
     empty: "No maintenance in progress.",
     noun: "scheduled maintenance events",
-    seeAll: "See every scheduled maintenance event in",
+    seeAll: "See every ongoing maintenance event in",
+    shown: "Showing the newest",
   },
 };
 
-// The list pages in OneUptime, under the project.
+/*
+ * The list pages in OneUptime, under the project: the ones that list what
+ * the answer lists - Active Incidents, Active Alerts, Ongoing Events. The
+ * maintenance still to come has no page of its own: All Events.
+ */
 const LIST_PATHS: Record<WorkspaceOpenRecordKind, string> = {
-  [WorkspaceOpenRecordKind.Incidents]: "incidents",
-  [WorkspaceOpenRecordKind.Alerts]: "alerts",
+  [WorkspaceOpenRecordKind.Incidents]: "incidents/unresolved",
+  [WorkspaceOpenRecordKind.Alerts]: "alerts/unresolved",
   [WorkspaceOpenRecordKind.UpcomingMaintenance]: "scheduled-maintenance-events",
-  [WorkspaceOpenRecordKind.OngoingMaintenance]: "scheduled-maintenance-events",
+  [WorkspaceOpenRecordKind.OngoingMaintenance]:
+    "scheduled-maintenance-events/ongoing",
 };
 
 // A title longer than this is cut on its line: the record's page has it all.
@@ -250,38 +266,61 @@ export default class WorkspaceOpenRecords {
 
   // A list as an answer: its title, a line a record, and its page.
   public static toAnswer(list: WorkspaceOpenRecordList): WorkspaceAnswer {
-    const words: OpenRecordWords = WORDS[list.kind];
-
     if (list.records.length === 0) {
       return {
-        markdown: mdText`${words.emptyEmoji} **${words.empty}**`.toString(),
-        text: words.empty,
+        markdown: WorkspaceOpenRecords.getEmptyMarkdown(list.kind).toString(),
+        text: WORDS[list.kind].empty,
       };
     }
 
-    const lines: Array<MarkdownText> = [
-      mdText`${words.emoji} **${words.title}**`,
-    ];
+    return {
+      markdown: FeedMarkdown.join(
+        [
+          WorkspaceOpenRecords.getTitleMarkdown(list.kind),
+          WorkspaceOpenRecords.getRecordsMarkdown(list),
+        ],
+        "\n",
+      ).toString(),
+      text: WorkspaceOpenRecords.getNotificationText(list),
+    };
+  }
 
-    for (const record of list.records) {
-      lines.push(mdText`- ${WorkspaceOpenRecords.getLine(list.kind, record)}`);
-    }
+  // A list's title: "🚨 **Open incidents**".
+  public static getTitleMarkdown(kind: WorkspaceOpenRecordKind): MarkdownText {
+    const words: OpenRecordWords = WORDS[kind];
+
+    return mdText`${words.emoji} **${words.title}**`;
+  }
+
+  // A list with nothing in it: "✅ **No open incidents.**", on its own.
+  public static getEmptyMarkdown(kind: WorkspaceOpenRecordKind): MarkdownText {
+    const words: OpenRecordWords = WORDS[kind];
+
+    return mdText`${words.emptyEmoji} **${words.empty}**`;
+  }
+
+  /*
+   * A list's records, a line each, and the link to the rest after a blank
+   * line - a line right after the list would be read as part of its last
+   * item.
+   */
+  public static getRecordsMarkdown(
+    list: WorkspaceOpenRecordList,
+  ): MarkdownText {
+    const lines: Array<MarkdownText> = list.records.map(
+      (record: WorkspaceOpenRecord): MarkdownText => {
+        return mdText`- ${WorkspaceOpenRecords.getLine(list.kind, record)}`;
+      },
+    );
 
     const footer: MarkdownText | null = WorkspaceOpenRecords.getFooter(list);
 
-    /*
-     * After a blank line: a line right after the list would be read as part
-     * of its last item.
-     */
     if (footer) {
       lines.push(FeedMarkdown.empty());
       lines.push(footer);
     }
 
-    return {
-      markdown: FeedMarkdown.join(lines, "\n").toString(),
-      text: WorkspaceOpenRecords.getNotificationText(list),
-    };
+    return FeedMarkdown.join(lines, "\n");
   }
 
   /*
@@ -381,8 +420,8 @@ export default class WorkspaceOpenRecords {
 
     if (list.isCut) {
       return list.listLink
-        ? mdText`These are the first ${list.records.length}. [${words.seeAll} ${productName}](${list.listLink})`
-        : mdText`These are the first ${list.records.length}. ${words.seeAll} ${productName}.`;
+        ? mdText`${words.shown} ${list.records.length}. [${words.seeAll} ${productName}](${list.listLink})`
+        : mdText`${words.shown} ${list.records.length}. ${words.seeAll} ${productName}.`;
     }
 
     return list.listLink

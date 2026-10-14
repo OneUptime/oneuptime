@@ -128,6 +128,17 @@ export interface WorkspacePayloadMarkdown extends WorkspaceMessageBlock {
   text: string;
 }
 
+/*
+ * Small, muted Markdown under what a message says - when it was drawn,
+ * where to see more: Slack's context block, and a subtle small text block
+ * in a Microsoft Teams card. Never what the message is about: a
+ * notification of the message never reads it (WorkspaceNotificationText).
+ */
+export interface WorkspacePayloadContext extends WorkspaceMessageBlock {
+  _type: "WorkspacePayloadContext";
+  text: string;
+}
+
 export interface WorkspacePayloadDivider extends WorkspaceMessageBlock {
   _type: "WorkspacePayloadDivider";
 }

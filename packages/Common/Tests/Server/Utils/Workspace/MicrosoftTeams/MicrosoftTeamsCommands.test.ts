@@ -410,7 +410,7 @@ describe("the welcome a team or a group chat gets", () => {
       },
     ]);
     expect(summary).toBe(
-      "Hi, I'm Acme Ops. Mention me with a question, or with help.",
+      "Hi, I'm Acme Ops. @mention me with a question, or with help.",
     );
   });
 
@@ -418,7 +418,8 @@ describe("the welcome a team or a group chat gets", () => {
     const { card } = await welcome({ projectId: null, isConnected: false });
 
     expect(texts(card)[1]).toBe(
-      "To get started, a Acme Ops project admin connects your organization in **Project Settings → Workspace → Microsoft Teams**.",
+      // No article before the product's name: "a Acme Ops project admin" read wrong.
+      "To get started, a project admin connects your organization in Acme Ops, under **Project Settings → Workspace → Microsoft Teams**.",
     );
     expect(card["actions"]).toEqual([
       {
@@ -438,8 +439,8 @@ describe("the welcome a team or a group chat gets", () => {
     );
   });
 
-  test("a personal chat needs nobody to mention", async () => {
-    const { card } = await welcome({
+  test("a personal chat needs nobody to mention - nor does its notification", async () => {
+    const { card, summary } = await welcome({
       projectId: null,
       isConnected: false,
       isPersonal: true,
@@ -448,6 +449,7 @@ describe("the welcome a team or a group chat gets", () => {
     expect(texts(card)[0]).toBe(
       "👋 **Hi, I'm Acme Ops.** Ask me a question about your incidents, monitors, logs and traces, or type **help** to see what I can do: declare an incident, page someone, see who is on call.",
     );
+    expect(summary).toBe("Hi, I'm Acme Ops. Ask me a question, or type help.");
   });
 
   test("no server address: no button, never a link to OneUptime Cloud", async () => {

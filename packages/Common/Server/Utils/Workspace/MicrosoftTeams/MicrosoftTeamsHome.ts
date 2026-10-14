@@ -262,7 +262,7 @@ export default class MicrosoftTeamsHome {
         type: "TextBlock",
         text: (data.isConnected
           ? mdText`To post incidents, alerts or scheduled maintenance to a team's channels, add a notification rule in ${productName} under **Incidents → Workspace → Microsoft Teams**.`
-          : mdText`To get started, a ${productName} project admin connects your organization in **Project Settings → Workspace → Microsoft Teams**.`
+          : mdText`To get started, a project admin connects your organization in ${productName}, under **Project Settings → Workspace → Microsoft Teams**.`
         ).toString(),
         wrap: true,
         spacing: "Medium",
@@ -304,7 +304,10 @@ export default class MicrosoftTeamsHome {
 
     return {
       card: card,
-      summary: `Hi, I'm ${productName}. Mention me with a question, or with help.`,
+      // A personal chat needs no @mention.
+      summary: data.isPersonal
+        ? `Hi, I'm ${productName}. Ask me a question, or type help.`
+        : `Hi, I'm ${productName}. @mention me with a question, or with help.`,
     };
   }
 
@@ -351,9 +354,7 @@ export default class MicrosoftTeamsHome {
       attachments: [
         {
           contentType: MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE,
-          content: MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({
-            messageBlocks: data.blocks,
-          }),
+          content: MicrosoftTeamsHome.getCard(data.blocks),
         },
       ],
       summary: data.summary,
@@ -375,6 +376,24 @@ export default class MicrosoftTeamsHome {
     }
 
     await MicrosoftTeamsReplies.sendBestEffort(data.turnContext, activity);
+  }
+
+  /*
+   * The Home as a card, as wide as the chat: a narrow card cut its four
+   * buttons short ("Declare inci…") and wrapped each record over two lines.
+   */
+  public static getCard(blocks: Array<WorkspaceMessageBlock>): JSONObject {
+    const card: JSONObject =
+      MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({
+        messageBlocks: blocks,
+      });
+
+    card["msteams"] = {
+      ...((card["msteams"] as JSONObject | undefined) || {}),
+      width: "Full",
+    };
+
+    return card;
   }
 
   // The member's props, or null when not connected or not a member.

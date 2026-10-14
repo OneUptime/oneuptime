@@ -38,6 +38,7 @@ import WorkspaceOpenRecordKind from "../../../../Types/Workspace/WorkspaceOpenRe
 import {
   WorkspaceMessageBlock,
   WorkspacePayloadButtons,
+  WorkspacePayloadContext,
   WorkspacePayloadHeader,
   WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
@@ -311,44 +312,60 @@ function view(overrides: Partial<WorkspaceHomeView> = {}): WorkspaceHomeView {
 }
 
 function textOf(block: WorkspaceMessageBlock): string {
-  return (block as WorkspacePayloadMarkdown | WorkspacePayloadHeader).text;
+  return (
+    block as
+      | WorkspacePayloadMarkdown
+      | WorkspacePayloadHeader
+      | WorkspacePayloadContext
+  ).text;
+}
+
+function typesOf(blocks: Array<WorkspaceMessageBlock>): Array<string> {
+  return blocks.map((block: WorkspaceMessageBlock): string => {
+    return block._type;
+  });
 }
 
 describe("what the Home says", () => {
-  test("in Slack: a greeting, the project, the shifts, the lists, four buttons and when it was drawn", () => {
+  test("in Slack: a greeting, the project, four buttons, the shifts and the lists under their titles, and when it was drawn", () => {
     const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
       workspaceType: WorkspaceType.Slack,
       view: view(),
       actions: ACTIONS,
     });
 
-    expect(
-      blocks.map((block: WorkspaceMessageBlock): string => {
-        return block._type;
-      }),
-    ).toEqual([
+    /*
+     * What you can do first, under the greeting: Slack draws the buttons
+     * where they are, above lists that can run long. Then each part, its
+     * title a block of its own, and the footer small and muted.
+     */
+    expect(typesOf(blocks)).toEqual([
       "WorkspacePayloadHeader",
       "WorkspacePayloadMarkdown",
-      "WorkspacePayloadMarkdown",
-      "WorkspacePayloadDivider",
-      "WorkspacePayloadMarkdown",
-      "WorkspacePayloadMarkdown",
-      "WorkspacePayloadDivider",
       "WorkspacePayloadButtons",
+      "WorkspacePayloadDivider",
       "WorkspacePayloadMarkdown",
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadDivider",
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadDivider",
+      "WorkspacePayloadContext",
     ]);
 
     expect(textOf(blocks[0]!)).toBe("👋 Hi Nitin");
     expect(textOf(blocks[1]!)).toBe(
       "Here's what is happening in **Acme Production**.",
     );
-    expect(textOf(blocks[2]!)).toBe(
-      `📟 **Your on-call**\n🟢 You're on call in [Primary](${PRIMARY_LINK}) until ${at(HANDOFF)}.`,
+    expect(textOf(blocks[4]!)).toBe("📟 **Your on-call**");
+    expect(textOf(blocks[5]!)).toBe(
+      `🟢 You're on call in [Primary](${PRIMARY_LINK}) until ${at(HANDOFF)}.`,
     );
-    expect(textOf(blocks[4]!)).toBe("✅ **No open incidents.**");
-    expect(textOf(blocks[5]!)).toBe("✅ **No open alerts.**");
+    // Nothing open: one line each, no title above it.
+    expect(textOf(blocks[7]!)).toBe("✅ **No open incidents.**");
+    expect(textOf(blocks[8]!)).toBe("✅ **No open alerts.**");
     expect(
-      (blocks[7] as WorkspacePayloadButtons).buttons.map(
+      (blocks[2] as WorkspacePayloadButtons).buttons.map(
         (button: {
           title: string;
           actionId: string;
@@ -363,10 +380,109 @@ describe("what the Home says", () => {
       [WORKSPACE_HOME_TEXT.scheduleMaintenance, "maintenance", false],
       [WORKSPACE_HOME_TEXT.whoIsOnCall, "oncall", false],
     ]);
-    expect(textOf(blocks[8]!)).toBe(
-      `_Updated at ${WorkspaceMessageTime.time(READ_AT).toString()} · [Open OneUptime](${DASHBOARD}/p/home/)._ Type \`/oneuptime help\` to see every command.`,
+    expect(textOf(blocks[10]!)).toBe(
+      `Updated at ${WorkspaceMessageTime.time(READ_AT).toString()} · [Open OneUptime](${DASHBOARD}/p/home/) · Type \`/oneuptime help\` to see every command`,
     );
   });
+
+  test("open records: the list's title, then its records and the way to the rest, as blocks of their own", () => {
+    const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+      workspaceType: WorkspaceType.Slack,
+      view: view({
+        incidents: {
+          kind: WorkspaceOpenRecordKind.Incidents,
+          list: {
+            kind: WorkspaceOpenRecordKind.Incidents,
+            records: [
+              {
+                number: "INC-12",
+                title: "Checkout is down",
+                link: null,
+                severity: "Critical",
+                state: "Identified",
+                startsAt: null,
+                endsAt: null,
+              },
+            ],
+            isCut: true,
+            listLink: `${DASHBOARD}/p/incidents/unresolved`,
+          },
+          refused: false,
+          failed: false,
+        },
+      }),
+      actions: ACTIONS,
+    });
+
+    expect(textOf(blocks[7]!)).toBe("🚨 **Open incidents**");
+    expect(textOf(blocks[8]!)).toBe(
+      [
+        "- **INC-12** Checkout is down · Critical · Identified",
+        "",
+        `Showing the newest 1. [See every open incident in OneUptime](${DASHBOARD}/p/incidents/unresolved)`,
+      ].join("\n"),
+    );
+    expect(textOf(blocks[9]!)).toBe("✅ **No open alerts.**");
+  });
+
+  test.each([
+    [
+      "on call in several schedules",
+      [0, 1].map((i: number) => {
+        return { scheduleName: `S${i}`, scheduleLink: null, at: HANDOFF };
+      }),
+    ],
+    [
+      "on call in one",
+      [{ scheduleName: "Primary", scheduleLink: null, at: null }],
+    ],
+    ["not on call", []],
+  ])(
+    "%s: no Markdown block of the Home leans on a single line break, which Teams reads as a space",
+    (
+      _name: string,
+      now: Array<{ scheduleName: string; scheduleLink: null; at: Date | null }>,
+    ) => {
+      const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        view: view({
+          onCall: { now: now, next: null, isNowCut: now.length > 1 },
+          incidents: {
+            kind: WorkspaceOpenRecordKind.Incidents,
+            list: null,
+            refused: true,
+            failed: false,
+          },
+          alerts: {
+            kind: WorkspaceOpenRecordKind.Alerts,
+            list: null,
+            refused: false,
+            failed: true,
+          },
+        }),
+        actions: ACTIONS,
+      });
+
+      for (const block of blocks) {
+        if (
+          block._type !== "WorkspacePayloadMarkdown" &&
+          block._type !== "WorkspacePayloadContext"
+        ) {
+          continue;
+        }
+
+        // A paragraph's later lines are list items, or there are none.
+        for (const paragraph of textOf(block).split("\n\n")) {
+          for (const line of paragraph.split("\n").slice(1)) {
+            expect({ line: line, isListItem: line.startsWith("- ") }).toEqual({
+              line: line,
+              isListItem: true,
+            });
+          }
+        }
+      }
+    },
+  );
 
   test("in Microsoft Teams: the same Home, Teams' word for the commands, and Refresh", () => {
     const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
@@ -380,11 +496,12 @@ describe("what the Home says", () => {
       },
     });
 
+    expect(blocks[blocks.length - 1]!._type).toBe("WorkspacePayloadContext");
     expect(textOf(blocks[blocks.length - 1]!)).toContain(
-      "Type **help** to see every command.",
+      "Type **help** to see every command",
     );
     expect(
-      (blocks[7] as WorkspacePayloadButtons).buttons.map(
+      (blocks[2] as WorkspacePayloadButtons).buttons.map(
         (button: { title: string }): string => {
           return button.title;
         },
@@ -405,7 +522,20 @@ describe("what the Home says", () => {
     });
 
     expect(textOf(blocks[0]!)).toBe("👋 Hi there");
-    expect(textOf(blocks[1]!)).toContain("Your on-call");
+    expect(blocks[1]!._type).toBe("WorkspacePayloadButtons");
+    expect(textOf(blocks[3]!)).toBe("📟 **Your on-call**");
+  });
+
+  test("no dashboard address: the footer has no Open link", () => {
+    const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+      workspaceType: WorkspaceType.Slack,
+      view: view({ dashboardLink: null }),
+      actions: ACTIONS,
+    });
+
+    expect(textOf(blocks[blocks.length - 1]!)).toBe(
+      `Updated at ${WorkspaceMessageTime.time(READ_AT).toString()} · Type \`/oneuptime help\` to see every command`,
+    );
   });
 
   test("names are text: Markdown in a project's or a schedule's name is shown, not read", () => {
@@ -429,12 +559,12 @@ describe("the person's shifts, said", () => {
         next: { scheduleName: "Primary", scheduleLink: null, at: NEXT_START },
         isNowCut: false,
       },
-      `📟 **Your on-call**\nYou're not on call right now. Your next shift: **Primary**, from ${WorkspaceMessageTime.dateAndTime(NEXT_START).toString()}.`,
+      `⚪ You're not on call right now. Your next shift starts ${WorkspaceMessageTime.dateAndTime(NEXT_START).toString()}, in **Primary**.`,
     ],
     [
       "not on call, nothing coming up",
       { now: [], next: null, isNowCut: false },
-      "📟 **Your on-call**\nYou're not on call right now, and no shift of yours is coming up.",
+      "⚪ You're not on call right now, and no shift of yours is coming up.",
     ],
     [
       "on call with no hand-off known",
@@ -443,7 +573,19 @@ describe("the person's shifts, said", () => {
         next: null,
         isNowCut: false,
       },
-      "📟 **Your on-call**\n🟢 You're on call in **Primary**.",
+      "🟢 You're on call in **Primary**.",
+    ],
+    [
+      "on call in two schedules: a list",
+      {
+        now: [
+          { scheduleName: "Primary", scheduleLink: null, at: HANDOFF },
+          { scheduleName: "Database", scheduleLink: null, at: null },
+        ],
+        next: null,
+        isNowCut: false,
+      },
+      `🟢 You're on call in 2 schedules:\n- **Primary** until ${WorkspaceMessageTime.dateAndTime(HANDOFF).toString()}\n- **Database**`,
     ],
     [
       "on call in more than the Home names",
@@ -452,12 +594,12 @@ describe("the person's shifts, said", () => {
         next: null,
         isNowCut: true,
       },
-      "📟 **Your on-call**\n🟢 You're on call in **A**.\n…and in more schedules.",
+      "🟢 You're on call in more than 1 schedule:\n- **A**",
     ],
     [
       "a role that may not read schedules",
       { now: null, next: null, isNowCut: false },
-      "📟 **Your on-call**\nYou do not have permission to see the on-call schedules in this project.",
+      "You do not have permission to see the on-call schedules in this project.",
     ],
   ])("%s", (_name: string, onCall: unknown, expected: string) => {
     expect(
@@ -470,35 +612,48 @@ describe("the person's shifts, said", () => {
   test("shifts that could not be read", () => {
     expect(
       WorkspaceHome.getOnCallMarkdown(view({ onCall: null })).toString(),
-    ).toBe(
-      "📟 **Your on-call**\nYour on-call shifts could not be read just now.",
-    );
+    ).toBe("OneUptime couldn't read your on-call shifts just now.");
   });
 });
 
 describe("a list on the Home, said", () => {
-  test("refused: who to ask", () => {
-    expect(
-      WorkspaceHome.getListMarkdown({
-        kind: WorkspaceOpenRecordKind.Incidents,
-        list: null,
-        refused: true,
-        failed: false,
-      }).toString(),
-    ).toBe(
-      "You do not have permission to see the incidents in this project. Ask a project admin for access to them.",
-    );
+  test("refused: under its title, that the person may not see it", () => {
+    const home: WorkspaceHomeView["incidents"] = {
+      kind: WorkspaceOpenRecordKind.Incidents,
+      list: null,
+      refused: true,
+      failed: false,
+    };
+
+    expect(WorkspaceHome.getListBlocks(home).map(textOf)).toEqual([
+      "🚨 **Open incidents**",
+      "You do not have permission to see the incidents in this project.",
+    ]);
   });
 
-  test("failed: that it could not be read", () => {
+  test("failed: under its title, that it could not be read", () => {
+    const home: WorkspaceHomeView["alerts"] = {
+      kind: WorkspaceOpenRecordKind.Alerts,
+      list: null,
+      refused: false,
+      failed: true,
+    };
+
+    expect(WorkspaceHome.getListBlocks(home).map(textOf)).toEqual([
+      "⚠️ **Open alerts**",
+      "OneUptime couldn't read the open alerts just now.",
+    ]);
+  });
+
+  test("nothing open: one line, no title", () => {
     expect(
-      WorkspaceHome.getListMarkdown({
+      WorkspaceHome.getListBlocks({
         kind: WorkspaceOpenRecordKind.Alerts,
-        list: null,
+        list: emptyList(WorkspaceOpenRecordKind.Alerts),
         refused: false,
-        failed: true,
-      }).toString(),
-    ).toBe("The open alerts could not be read just now.");
+        failed: false,
+      }).map(textOf),
+    ).toEqual(["✅ **No open alerts.**"]);
   });
 });
 
@@ -535,8 +690,9 @@ describe("the Home of somebody not connected, or not a member", () => {
     expect(textOf(blocks[1]!)).toContain(
       "**Connect your Microsoft Teams account**",
     );
+    // The path and the button the Dashboard draws, as the Connect prompts say them.
     expect(textOf(blocks[2]!)).toBe(
-      "In OneUptime, go to **User Settings → Microsoft Teams** and connect your account.",
+      "In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**.",
     );
   });
 
@@ -545,6 +701,7 @@ describe("the Home of somebody not connected, or not a member", () => {
       WorkspaceHome.getNotAMemberBlocks();
 
     expect(blocks).toHaveLength(2);
+    expect(textOf(blocks[0]!)).toBe("👋 Hi there");
     expect(textOf(blocks[1]!)).toBe(
       "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
     );
@@ -604,12 +761,55 @@ describe("what a notification of the Home says", () => {
           failed: false,
         },
       }),
-      "5+ open incidents, 2 open alerts",
+      "More than 5 open incidents, 2 open alerts",
     ],
     [
       "nothing at all",
       view({ onCall: { now: [], next: null, isNowCut: false } }),
       "Nothing is open, and you're not on call",
+    ],
+    [
+      "on call in several schedules",
+      view({
+        onCall: {
+          now: [
+            { scheduleName: "Primary", scheduleLink: null, at: null },
+            { scheduleName: "Database", scheduleLink: null, at: null },
+          ],
+          next: null,
+          isNowCut: false,
+        },
+      }),
+      "You're on call in 2 schedules",
+    ],
+    [
+      "on call in more schedules than the Home names",
+      view({
+        onCall: {
+          now: [{ scheduleName: "Primary", scheduleLink: null, at: null }],
+          next: null,
+          isNowCut: true,
+        },
+      }),
+      "You're on call in more than 1 schedule",
+    ],
+    [
+      "the lists not read: nothing said of what is open",
+      view({
+        onCall: { now: [], next: null, isNowCut: false },
+        incidents: {
+          kind: WorkspaceOpenRecordKind.Incidents,
+          list: null,
+          refused: true,
+          failed: false,
+        },
+      }),
+      "Your OneUptime Home",
+    ],
+    [
+      "the shifts not read: nothing said of being on call",
+      view({ onCall: null }),
+      "Nothing is open",
     ],
   ])("%s", (_name: string, home: WorkspaceHomeView, expected: string) => {
     expect(WorkspaceHome.getNotificationText(home)).toBe(expected);

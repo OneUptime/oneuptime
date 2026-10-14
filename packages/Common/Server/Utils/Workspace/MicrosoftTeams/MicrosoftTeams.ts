@@ -12,6 +12,7 @@ import WorkspaceMessagePayload, {
   WorkspaceMessagePayloadButton,
   WorkspaceModalBlock,
   WorkspacePayloadButtons,
+  WorkspacePayloadContext,
   WorkspacePayloadHeader,
   WorkspacePayloadImage,
   WorkspacePayloadInlineImage,
@@ -3144,6 +3145,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           payloadMarkdownBlock: markdownBlock,
         });
         body.push(markdownObj);
+      } else if (block._type === "WorkspacePayloadContext") {
+        body.push(
+          this.getContextBlock({
+            payloadContextBlock: block as WorkspacePayloadContext,
+          }),
+        );
       } else if (block._type === "WorkspacePayloadHeader") {
         const headerBlock: WorkspacePayloadHeader =
           block as WorkspacePayloadHeader;
@@ -3410,6 +3417,27 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     return {
       type: "ActionSet",
       actions: [],
+    };
+  }
+
+  /*
+   * Small, muted text under a card's content (WorkspacePayloadContext): a
+   * subtle small text block, a little apart from what is above it.
+   */
+  @CaptureSpan()
+  public static override getContextBlock(data: {
+    payloadContextBlock: WorkspacePayloadContext;
+  }): JSONObject {
+    return {
+      ...this.getMarkdownBlock({
+        payloadMarkdownBlock: {
+          _type: "WorkspacePayloadMarkdown",
+          text: data.payloadContextBlock.text,
+        },
+      }),
+      isSubtle: true,
+      size: "Small",
+      spacing: "Medium",
     };
   }
 

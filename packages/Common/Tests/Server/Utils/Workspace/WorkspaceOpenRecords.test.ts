@@ -355,10 +355,37 @@ describe("the reads: the asker's own props, this project, the open states", () =
     expect(list.records).toHaveLength(10);
     expect(list.isCut).toBe(true);
     expect(list.records[0]!.number).toBe("INC-100");
+    // The page that lists what the answer lists: Active Incidents.
     expect(list.listLink).toBe(
-      `${DASHBOARD}/${PROJECT_ID.toString()}/incidents`,
+      `${DASHBOARD}/${PROJECT_ID.toString()}/incidents/unresolved`,
     );
   });
+
+  test.each([
+    [WorkspaceOpenRecordKind.Incidents, "incidents/unresolved"],
+    [WorkspaceOpenRecordKind.Alerts, "alerts/unresolved"],
+    [
+      WorkspaceOpenRecordKind.UpcomingMaintenance,
+      "scheduled-maintenance-events",
+    ],
+    [
+      WorkspaceOpenRecordKind.OngoingMaintenance,
+      "scheduled-maintenance-events/ongoing",
+    ],
+  ])(
+    "%s links to the Dashboard's own list of them",
+    async (kind: WorkspaceOpenRecordKind, path: string) => {
+      const list: WorkspaceOpenRecordList = await WorkspaceOpenRecords.read({
+        kind: kind,
+        projectId: PROJECT_ID,
+        props: PROPS,
+      });
+
+      expect(list.listLink).toBe(
+        `${DASHBOARD}/${PROJECT_ID.toString()}/${path}`,
+      );
+    },
+  );
 
   test("a smaller limit, for the Home: that many, and cut after them", async () => {
     alertFind.mockResolvedValue([
@@ -433,7 +460,7 @@ describe("what a list says", () => {
         `- **[INC-12](${linkOf("incidents", checkout)})** Checkout is down · Critical · Identified · since ${at(DECLARED)}`,
         `- **[INC-11](${linkOf("incidents", search)})** Search is slow · Minor · Acknowledged`,
         "",
-        `[See every incident in OneUptime](${DASHBOARD}/${PROJECT_ID.toString()}/incidents)`,
+        `[See every open incident in OneUptime](${DASHBOARD}/${PROJECT_ID.toString()}/incidents/unresolved)`,
       ].join("\n"),
     );
     expect(answer.text).toBe(
@@ -476,7 +503,7 @@ describe("what a list says", () => {
         "⚠️ **Open alerts**",
         `- **[AL-7](${linkOf("alerts", disk)})** Disk 95% on web-1 · Warning · Created · since ${at(DECLARED)}`,
         "",
-        `[See every alert in OneUptime](${DASHBOARD}/${PROJECT_ID.toString()}/alerts)`,
+        `[See every open alert in OneUptime](${DASHBOARD}/${PROJECT_ID.toString()}/alerts/unresolved)`,
       ].join("\n"),
     );
     expect(answer.text).toBe("Open alerts: AL-7 Disk 95% on web-1");
@@ -530,6 +557,10 @@ describe("what a list says", () => {
     expect(answer.markdown.split("\n")[1]).toBe(
       `- **[SM-3](${linkOf("scheduled-maintenance-events", upgrade)})** Database upgrade · Verifying · until ${at(ENDS)}`,
     );
+    // The rest of what is in progress: Ongoing Events.
+    expect(answer.markdown.split("\n").slice(-1)).toEqual([
+      `[See every ongoing maintenance event in OneUptime](${DASHBOARD}/${PROJECT_ID.toString()}/scheduled-maintenance-events/ongoing)`,
+    ]);
   });
 
   test.each([
@@ -591,10 +622,74 @@ describe("what a list says", () => {
 
     expect(answer.markdown.split("\n").slice(-2)).toEqual([
       "",
-      `These are the first 10. [See every incident in OneUptime](${DASHBOARD}/p/incidents)`,
+      `Showing the newest 10. [See every open incident in OneUptime](${DASHBOARD}/p/incidents)`,
     ]);
     expect(answer.text).toBe(
       "Open incidents: INC-1 Outage 1, INC-2 Outage 2, INC-3 Outage 3 and more",
+    );
+  });
+
+  test("maintenance still to come, cut short, shows the next ones", () => {
+    const answer: WorkspaceAnswer = WorkspaceOpenRecords.toAnswer({
+      kind: WorkspaceOpenRecordKind.UpcomingMaintenance,
+      records: [
+        {
+          number: "SM-1",
+          title: "Upgrade",
+          link: null,
+          severity: null,
+          state: null,
+          startsAt: null,
+          endsAt: null,
+        },
+      ],
+      isCut: true,
+      listLink: null,
+    });
+
+    expect(answer.markdown.split("\n").slice(-1)).toEqual([
+      "Showing the next 1. See every scheduled maintenance event in OneUptime.",
+    ]);
+  });
+
+  test("the title, the records and the empty line read apart, as the Home draws them", () => {
+    const list: WorkspaceOpenRecordList = {
+      kind: WorkspaceOpenRecordKind.Alerts,
+      records: [
+        {
+          number: "AL-7",
+          title: "Disk full",
+          link: null,
+          severity: null,
+          state: null,
+          startsAt: null,
+          endsAt: null,
+        },
+      ],
+      isCut: false,
+      listLink: `${DASHBOARD}/p/alerts/unresolved`,
+    };
+
+    expect(
+      WorkspaceOpenRecords.getTitleMarkdown(
+        WorkspaceOpenRecordKind.Alerts,
+      ).toString(),
+    ).toBe("⚠️ **Open alerts**");
+    expect(WorkspaceOpenRecords.getRecordsMarkdown(list).toString()).toBe(
+      [
+        "- **AL-7** Disk full",
+        "",
+        `[See every open alert in OneUptime](${DASHBOARD}/p/alerts/unresolved)`,
+      ].join("\n"),
+    );
+    expect(
+      WorkspaceOpenRecords.getEmptyMarkdown(
+        WorkspaceOpenRecordKind.Alerts,
+      ).toString(),
+    ).toBe("✅ **No open alerts.**");
+    // The answer is the title, then the records.
+    expect(WorkspaceOpenRecords.toAnswer(list).markdown).toBe(
+      `⚠️ **Open alerts**\n${WorkspaceOpenRecords.getRecordsMarkdown(list).toString()}`,
     );
   });
 
