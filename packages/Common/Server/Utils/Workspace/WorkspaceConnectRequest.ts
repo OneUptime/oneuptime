@@ -52,13 +52,41 @@ export enum WorkspacePendingActionKind {
   Resolve = "Resolve",
   MarkAsOngoing = "MarkAsOngoing",
   MarkAsComplete = "MarkAsComplete",
+  // A message pinned, or given a note emoji: saved as a note on the record.
+  SavePrivateNote = "SavePrivateNote",
+  SavePublicNote = "SavePublicNote",
+}
+
+// The message a pin or a note emoji is on, to save it once connected.
+export interface WorkspacePendingMessage {
+  // The channel it is in: a Slack channel id, a Microsoft Teams channel id.
+  channelId: string;
+  // The message: its ts in Slack, its id in Microsoft Teams.
+  messageId: string;
+  // Microsoft Teams: the team the channel is in (its Graph id).
+  teamId?: string | undefined;
 }
 
 export interface WorkspacePendingAction {
   kind: WorkspacePendingActionKind;
   eventType: WorkspaceEventType;
   eventId: ObjectID;
+  // For a note: the message to save.
+  message?: WorkspacePendingMessage | undefined;
 }
+
+// The longest id a pending message keeps: generous next to any chat's.
+const MAX_PENDING_MESSAGE_ID_LENGTH: number = 512;
+
+// Whether a pending press saves a message as a note.
+export const isSaveNoteKind: (kind: WorkspacePendingActionKind) => boolean = (
+  kind: WorkspacePendingActionKind,
+): boolean => {
+  return (
+    kind === WorkspacePendingActionKind.SavePrivateNote ||
+    kind === WorkspacePendingActionKind.SavePublicNote
+  );
+};
 
 /*
  * What to press again, for a press OneUptime cannot finish for them later: a
@@ -200,6 +228,15 @@ export default class WorkspaceConnectRequest {
         eventType: data.pendingAction.eventType,
         eventId: data.pendingAction.eventId.toString(),
       };
+
+      if (data.pendingAction.message) {
+        (record["pendingAction"] as JSONObject)["message"] =
+          WorkspaceConnectRequest.compact({
+            channelId: data.pendingAction.message.channelId,
+            messageId: data.pendingAction.message.messageId,
+            teamId: data.pendingAction.message.teamId,
+          });
+      }
     }
 
     if (data.again) {
@@ -526,11 +563,49 @@ export default class WorkspaceConnectRequest {
       return undefined;
     }
 
-    return {
+    const pendingAction: WorkspacePendingAction = {
       kind: kind,
       eventType: eventType,
       eventId: new ObjectID(eventId),
     };
+
+    const message: JSONObject | undefined = WorkspaceConnectRequest.asObject(
+      action["message"],
+    );
+    const channelId: string | undefined = WorkspaceConnectRequest.asId(
+      message?.["channelId"],
+    );
+    const messageId: string | undefined = WorkspaceConnectRequest.asId(
+      message?.["messageId"],
+    );
+
+    // A note's press is only kept with the message it is on.
+    const isNote: boolean = isSaveNoteKind(kind);
+
+    if (channelId && messageId) {
+      pendingAction.message = { channelId: channelId, messageId: messageId };
+
+      const teamId: string | undefined = WorkspaceConnectRequest.asId(
+        message?.["teamId"],
+      );
+
+      if (teamId) {
+        pendingAction.message.teamId = teamId;
+      }
+    } else if (isNote) {
+      return undefined;
+    }
+
+    return pendingAction;
+  }
+
+  // An id a chat gave: a string, not empty, and not longer than any is.
+  private static asId(value: unknown): string | undefined {
+    return typeof value === "string" &&
+      value &&
+      value.length <= MAX_PENDING_MESSAGE_ID_LENGTH
+      ? value
+      : undefined;
   }
 
   private static parseAgain(

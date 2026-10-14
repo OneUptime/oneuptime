@@ -35,6 +35,7 @@ import WorkspaceNotificationLogService from "../../Services/WorkspaceNotificatio
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Query from "../../Types/Database/Query";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { WorkspaceEventType } from "./WorkspaceMemberActions";
 import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import logger from "../Logger";
@@ -68,6 +69,27 @@ export enum WorkspaceNoteSaveResult {
   Duplicate = "Duplicate",
 }
 
+/*
+ * What became of a message somebody asked to save as a note - by a pin, or
+ * by a Connect button that finishes their pin: saved, saved before, or not
+ * saved - refused, with why; nothing in it to save; gone from the chat; or
+ * the chat could not be read.
+ */
+export enum WorkspaceMessageNoteOutcome {
+  Saved = "Saved",
+  AlreadySaved = "AlreadySaved",
+  Refused = "Refused",
+  NothingToSave = "NothingToSave",
+  NotFound = "NotFound",
+  Failed = "Failed",
+}
+
+export interface WorkspaceMessageNoteResult {
+  outcome: WorkspaceMessageNoteOutcome;
+  // Why it was refused, or why there is nothing to save: for the person.
+  reason?: string | undefined;
+}
+
 type ResourceService = DatabaseService<
   Incident | Alert | ScheduledMaintenance | IncidentEpisode | AlertEpisode
 >;
@@ -80,6 +102,8 @@ interface ResourceTypeDefinition {
   noun: string;
   // Shown to people: "Incident", "Alert Episode".
   label: string;
+  // The same kind of record, as a press names it.
+  eventType: WorkspaceEventType;
 }
 
 const RESOURCE_TYPES: Record<
@@ -93,6 +117,7 @@ const RESOURCE_TYPES: Record<
     logColumn: "incidentId",
     noun: "incident",
     label: "Incident",
+    eventType: WorkspaceEventType.Incident,
   },
   [WorkspaceNoteResourceType.Alert]: {
     service: (): ResourceService => {
@@ -101,6 +126,7 @@ const RESOURCE_TYPES: Record<
     logColumn: "alertId",
     noun: "alert",
     label: "Alert",
+    eventType: WorkspaceEventType.Alert,
   },
   [WorkspaceNoteResourceType.ScheduledMaintenance]: {
     service: (): ResourceService => {
@@ -109,6 +135,7 @@ const RESOURCE_TYPES: Record<
     logColumn: "scheduledMaintenanceId",
     noun: "scheduled maintenance",
     label: "Scheduled Maintenance",
+    eventType: WorkspaceEventType.ScheduledMaintenance,
   },
   [WorkspaceNoteResourceType.IncidentEpisode]: {
     service: (): ResourceService => {
@@ -117,6 +144,7 @@ const RESOURCE_TYPES: Record<
     logColumn: "incidentEpisodeId",
     noun: "incident episode",
     label: "Incident Episode",
+    eventType: WorkspaceEventType.IncidentEpisode,
   },
   [WorkspaceNoteResourceType.AlertEpisode]: {
     service: (): ResourceService => {
@@ -125,6 +153,7 @@ const RESOURCE_TYPES: Record<
     logColumn: "alertEpisodeId",
     noun: "alert episode",
     label: "Alert Episode",
+    eventType: WorkspaceEventType.AlertEpisode,
   },
 };
 
@@ -181,6 +210,26 @@ export default class WorkspaceReactionNote {
     resourceType: WorkspaceNoteResourceType,
   ): ResourceService {
     return RESOURCE_TYPES[resourceType].service();
+  }
+
+  // The record kind as a press names it (WorkspaceMemberActions).
+  public static getEventType(
+    resourceType: WorkspaceNoteResourceType,
+  ): WorkspaceEventType {
+    return RESOURCE_TYPES[resourceType].eventType;
+  }
+
+  // The record kind a press names, as a note's resource.
+  public static getResourceType(
+    eventType: WorkspaceEventType,
+  ): WorkspaceNoteResourceType {
+    return (
+      this.getAllResourceTypes().find(
+        (resourceType: WorkspaceNoteResourceType): boolean => {
+          return RESOURCE_TYPES[resourceType].eventType === eventType;
+        },
+      ) || WorkspaceNoteResourceType.Incident
+    );
   }
 
   // Completes "You do not have permission to ...".

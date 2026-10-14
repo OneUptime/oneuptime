@@ -106,7 +106,10 @@ import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
 import MicrosoftTeamsConnectPrompt from "./MicrosoftTeamsConnectPrompt";
 import { WorkspaceAnswer } from "../WorkspaceActionAnswers";
 import WorkspaceAiAnswerSources from "../WorkspaceAiAnswerSources";
-import { WorkspaceConnectRequestAgainKind } from "../WorkspaceConnectRequest";
+import {
+  WorkspaceConnectRequestAgainKind,
+  WorkspaceConnectRequestTeamsPlace,
+} from "../WorkspaceConnectRequest";
 import ProductBrandingText from "../../ProductBrandingText";
 import MicrosoftTeamsAlertActions from "./Actions/Alert";
 import MicrosoftTeamsAlertEpisodeActions from "./Actions/AlertEpisode";
@@ -2233,6 +2236,61 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         | Array<JSONObject>
         | undefined) || []
     );
+  }
+
+  /*
+   * A channel thread as a place to answer somebody in
+   * (WorkspaceConnectRequestTeamsPlace): the thread's conversation
+   * ("<channel>;messageid=<first message>"), the Bot Connector of the team
+   * it is in, the tenant, and the person, to mention. Null when Microsoft
+   * Teams is not set up for the project.
+   */
+  @CaptureSpan()
+  public static async getChannelThreadPlace(data: {
+    projectId: ObjectID;
+    teamId: string;
+    channelId: string;
+    parentMessageId: string;
+    // The person, by their Microsoft Entra object id, and their name.
+    userTeamsId?: string | undefined;
+    userName?: string | undefined;
+  }): Promise<WorkspaceConnectRequestTeamsPlace | null> {
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    const tenantId: string | undefined = projectAuth?.workspaceProjectId;
+
+    if (!projectAuth || !projectAuth.miscData || !tenantId) {
+      return null;
+    }
+
+    const miscData: MicrosoftTeamsMiscData =
+      projectAuth.miscData as MicrosoftTeamsMiscData;
+
+    const installedTeam: MicrosoftTeamsInstalledTeam | undefined =
+      this.indexInstalledTeamsByGraphTeamId(miscData.installedTeams)[
+        data.teamId
+      ];
+
+    const place: WorkspaceConnectRequestTeamsPlace = {
+      serviceUrl: MicrosoftTeamsServiceUrl.resolve(installedTeam?.serviceUrl),
+      conversationId: `${data.channelId};messageid=${data.parentMessageId}`,
+      conversationType: "channel",
+      tenantId: tenantId,
+    };
+
+    if (data.userTeamsId) {
+      place.userTeamsId = data.userTeamsId;
+    }
+
+    if (data.userName) {
+      place.userName = data.userName;
+    }
+
+    return place;
   }
 
   /*

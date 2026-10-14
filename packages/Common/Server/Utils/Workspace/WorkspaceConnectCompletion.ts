@@ -21,12 +21,26 @@ import WorkspaceActionAnswers, {
 } from "./WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "./WorkspaceActionAuthorization";
 import {
+  isSaveNoteKind,
   WorkspaceConnectRequestAgain,
   WorkspaceConnectRequestAgainKind,
   WorkspaceConnectRequestRecord,
   WorkspacePendingAction,
   WorkspacePendingActionKind,
+  WorkspacePendingMessage,
 } from "./WorkspaceConnectRequest";
+import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
+import { WorkspaceNoteType } from "../../../Types/Workspace/WorkspaceNoteReaction";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
+import WorkspaceReactionNote, {
+  WorkspaceMessageNoteOutcome,
+  WorkspaceMessageNoteResult,
+  WorkspaceNoteResource,
+} from "./WorkspaceReactionNote";
+import SlackReactionNoteActions from "./Slack/Actions/ReactionNote";
+import MicrosoftTeamsReactionNoteSync from "./MicrosoftTeams/ReactionNoteSync";
 import WorkspaceMemberActions, {
   WorkspaceEventRecord,
   WorkspaceEventStanding,
@@ -80,7 +94,10 @@ const STATE_TIMELINE_MODELS: Record<WorkspaceEventType, DatabaseBaseModelType> =
       ScheduledMaintenanceStateTimeline,
   };
 
-const LATE_PRESSES: Record<WorkspacePendingActionKind, WorkspaceLatePress> = {
+// A state change that comes too late: what its answer says was pressed.
+const LATE_PRESSES: Partial<
+  Record<WorkspacePendingActionKind, WorkspaceLatePress>
+> = {
   [WorkspacePendingActionKind.Acknowledge]: WorkspaceLatePress.Acknowledge,
   [WorkspacePendingActionKind.Resolve]: WorkspaceLatePress.Resolve,
   [WorkspacePendingActionKind.MarkAsOngoing]: WorkspaceLatePress.MarkAsOngoing,
@@ -175,6 +192,11 @@ export default class WorkspaceConnectCompletion {
   }): Promise<PendingActionResult> {
     const { request, pendingAction } = data;
 
+    // A pinned message, saved as the pin would have saved it.
+    if (isSaveNoteKind(pendingAction.kind)) {
+      return await WorkspaceConnectCompletion.finishNoteSave(data);
+    }
+
     try {
       const props: DatabaseCommonInteractionProps =
         await WorkspaceActionAuthorization.getProjectMemberProps({
@@ -202,7 +224,9 @@ export default class WorkspaceConnectCompletion {
         return {
           answer: await WorkspaceActionAnswers.getAlreadyAnswer({
             event: event,
-            press: LATE_PRESSES[pendingAction.kind],
+            press:
+              LATE_PRESSES[pendingAction.kind] ||
+              WorkspaceLatePress.Acknowledge,
           }),
           isDone: false,
         };
@@ -291,6 +315,10 @@ export default class WorkspaceConnectCompletion {
         return standing.hasStarted;
       case WorkspacePendingActionKind.MarkAsComplete:
         return standing.isComplete;
+      // A note is saved once by its own check (finishNoteSave).
+      case WorkspacePendingActionKind.SavePrivateNote:
+      case WorkspacePendingActionKind.SavePublicNote:
+        return false;
     }
   }
 
@@ -310,6 +338,158 @@ export default class WorkspaceConnectCompletion {
         return `mark_${record}_as_ongoing`;
       case WorkspacePendingActionKind.MarkAsComplete:
         return `mark_${record}_as_complete`;
+      case WorkspacePendingActionKind.SavePrivateNote:
+        return `save_${record}_private_note`;
+      case WorkspacePendingActionKind.SavePublicNote:
+        return `save_${record}_public_note`;
+    }
+  }
+
+  /*
+   * A message somebody pinned - or gave a note emoji - before their account
+   * was connected, saved now as the member it is connected to, exactly as
+   * the pin would have saved it: checked as a note they post in OneUptime
+   * is, read from the chat, saved once and confirmed once in its thread.
+   * The answer says what became of it; a refusal says why.
+   */
+  private static async finishNoteSave(data: {
+    request: WorkspaceConnectRequestRecord;
+    pendingAction: WorkspacePendingAction;
+    userId: ObjectID;
+  }): Promise<PendingActionResult> {
+    const { request, pendingAction } = data;
+    const message: WorkspacePendingMessage | undefined = pendingAction.message;
+    const noteType: WorkspaceNoteType =
+      pendingAction.kind === WorkspacePendingActionKind.SavePublicNote
+        ? WorkspaceNoteType.Public
+        : WorkspaceNoteType.Private;
+    const resource: WorkspaceNoteResource = {
+      resourceType: WorkspaceReactionNote.getResourceType(
+        pendingAction.eventType,
+      ),
+      resourceId: pendingAction.eventId,
+      projectId: request.projectId,
+    };
+
+    let result: WorkspaceMessageNoteResult = {
+      outcome: WorkspaceMessageNoteOutcome.Failed,
+    };
+
+    try {
+      if (message && request.workspaceType === WorkspaceType.MicrosoftTeams) {
+        result = await MicrosoftTeamsReactionNoteSync.saveAfterConnect({
+          resource: resource,
+          noteType: noteType,
+          message: message,
+          workspaceUserId: request.workspaceUserId,
+        });
+      } else if (message && request.workspaceType === WorkspaceType.Slack) {
+        const projectAuth: WorkspaceProjectAuthToken | null =
+          await WorkspaceProjectAuthTokenService.getProjectAuth({
+            projectId: request.projectId,
+            workspaceType: WorkspaceType.Slack,
+          });
+
+        if (projectAuth?.authToken) {
+          result = await SlackReactionNoteActions.saveMessage({
+            requester: {
+              userId: data.userId,
+              projectId: request.projectId,
+              projectAuthToken: projectAuth.authToken,
+              slackUserId: request.workspaceUserId,
+              slackChannelId: message.channelId,
+            },
+            resource: resource,
+            noteType: noteType,
+            channelId: message.channelId,
+            messageTs: message.messageId,
+            // Answered here, as a whole, with the news of the connection.
+            tellPerson: false,
+          });
+        }
+      }
+    } catch (err) {
+      logger.error(
+        "Could not save a pinned message once its chat account was connected.",
+        { projectId: request.projectId.toString() },
+      );
+      logger.error(err, { projectId: request.projectId.toString() });
+      result = { outcome: WorkspaceMessageNoteOutcome.Failed };
+    }
+
+    let record: MarkdownText = mdText`the ${WorkspaceMemberActions.getNoun(
+      pendingAction.eventType,
+    )}`;
+    let recordLabel: string = record.toString();
+
+    try {
+      const display: { label: string; link: { toString(): string } } =
+        await WorkspaceReactionNote.getResourceDisplay(resource);
+
+      record = WorkspaceActionAnswers.getRecordMarkdown({
+        label: display.label,
+        link: display.link.toString(),
+      });
+      recordLabel = display.label;
+    } catch (err) {
+      logger.debug("Could not name the record a pinned message was saved on.");
+      logger.debug(err);
+    }
+
+    switch (result.outcome) {
+      case WorkspaceMessageNoteOutcome.Saved: {
+        const verb: string = WorkspaceActionAnswers.getDoneVerb(
+          pendingAction.kind,
+        );
+
+        return {
+          answer: {
+            markdown: mdText`✅ You ${verb} ${record}.`.toString(),
+            text: `You ${verb} ${recordLabel}`,
+          },
+          isDone: true,
+        };
+      }
+      case WorkspaceMessageNoteOutcome.AlreadySaved:
+        return {
+          answer: {
+            markdown:
+              mdText`✅ This message is already saved as a note on ${record}.`.toString(),
+            text: `This message is already saved as a note on ${recordLabel}`,
+          },
+          isDone: false,
+        };
+      case WorkspaceMessageNoteOutcome.Refused:
+      case WorkspaceMessageNoteOutcome.NothingToSave: {
+        const reason: string =
+          result.reason || "The message could not be saved as a note.";
+
+        return {
+          answer: { markdown: mdText`${reason}`.toString(), text: reason },
+          isDone: false,
+        };
+      }
+      case WorkspaceMessageNoteOutcome.NotFound:
+        return {
+          answer: {
+            markdown:
+              mdText`The message is no longer there, so nothing was saved.`.toString(),
+            text: "The message is no longer there, so nothing was saved",
+          },
+          isDone: false,
+        };
+      case WorkspaceMessageNoteOutcome.Failed: {
+        const productName: string = ProductBrandingText.getProductName();
+
+        return {
+          answer: {
+            markdown:
+              mdText`${productName} could not save the message as a note just now. Please try again.`.toString(),
+            text: `${productName} could not save the message as a note just now`,
+          },
+          isDone: false,
+        };
+      }
     }
   }
 

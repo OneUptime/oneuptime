@@ -15,7 +15,6 @@ import WorkspaceNoteReactionUtil, {
   WorkspaceNoteType,
 } from "../../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
-import DatabaseConfig from "../../../DatabaseConfig";
 import { MicrosoftTeamsAppClientId } from "../../../EnvironmentConfig";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
 import DatabaseService from "../../../Services/DatabaseService";
@@ -31,6 +30,8 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { WorkspaceChannel } from "../WorkspaceBase";
 import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
 import WorkspaceReactionNote, {
+  WorkspaceMessageNoteOutcome,
+  WorkspaceMessageNoteResult,
   WorkspaceNoteResource,
   WorkspaceNoteResourceType,
   WorkspaceNoteSaveResult,
@@ -40,7 +41,24 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../../Utils/Markdown/FeedMarkdown";
-import { replaceHtmlMarkup } from "../../../../Types/HtmlMarkup";
+import ChatMessageMarkdown, {
+  ChatMessageContent,
+} from "../../../../Utils/Markdown/ChatMessageMarkdown";
+import SavedChatMessage from "../../../../Types/Workspace/SavedChatMessage";
+import SavedChatMessageAuthor from "../SavedChatMessageAuthor";
+import MicrosoftTeamsMessageReader, {
+  MicrosoftTeamsMessageAuthor,
+} from "./MicrosoftTeamsMessageReader";
+import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
+import WorkspaceActionAnswers from "../WorkspaceActionAnswers";
+import WorkspaceConnectRequest, {
+  WorkspaceConnectLink,
+  WorkspaceConnectRequestTeamsPlace,
+  WorkspacePendingAction,
+  WorkspacePendingActionKind,
+  WorkspacePendingMessage,
+} from "../WorkspaceConnectRequest";
+import { WorkspaceEventType } from "../WorkspaceMemberActions";
 
 // A Teams channel OneUptime created for an incident / alert / ...
 export interface MicrosoftTeamsWatchedChannel {
@@ -77,148 +95,6 @@ export enum MicrosoftTeamsReactionOutcome {
 }
 
 /*
- * A card or file attached to a Teams message, with what it holds: the card's
- * text is read from the message's attachments instead (getAdaptiveCardText).
- * An element runs from its start tag's first ">" to the first end tag after
- * it (withoutAttachmentElements).
- */
-const TEAMS_ATTACHMENT_START: RegExp = /<attachment\b/i;
-const TEAMS_ATTACHMENT_END: RegExp = /<\/attachment>/i;
-const TEAMS_ATTACHMENT_END_LENGTH: number = "</attachment>".length;
-
-export type WithoutAttachmentElementsFunction = (html: string) => string;
-
-/*
- * The HTML with every attachment element taken out, as one pass of
- * /<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi took them out - read in one
- * pass. That pattern looked for an end tag again from every start tag, to
- * the end of the text when there was none: time that grew with the square
- * of the message.
- *
- * An element is a start tag, everything up to its first ">", and everything
- * up to the first end tag after that. The end tags are found once. When a
- * start tag has no ">" or no end tag after it, no later one has either, so
- * the rest of the HTML stays as it is. matchAll starts each search at its
- * pattern's lastIndex, so every call makes its own global patterns: nothing
- * done elsewhere to a shared one can start a search part way through.
- */
-export const withoutAttachmentElements: WithoutAttachmentElementsFunction = (
-  html: string,
-): string => {
-  const ends: Array<number> = [];
-
-  for (const end of html.matchAll(new RegExp(TEAMS_ATTACHMENT_END, "gi"))) {
-    ends.push(end.index);
-  }
-
-  let text: string = "";
-  let at: number = 0;
-  let nextEnd: number = 0;
-
-  for (const start of html.matchAll(new RegExp(TEAMS_ATTACHMENT_START, "gi"))) {
-    // A start tag inside an element already taken out is part of it.
-    if (start.index < at) {
-      continue;
-    }
-
-    const startTagEnd: number = html.indexOf(">", start.index);
-
-    if (startTagEnd === -1) {
-      break;
-    }
-
-    while (nextEnd < ends.length && ends[nextEnd]! <= startTagEnd) {
-      nextEnd++;
-    }
-
-    if (nextEnd === ends.length) {
-      break;
-    }
-
-    text += html.slice(at, start.index);
-    at = ends[nextEnd]! + TEAMS_ATTACHMENT_END_LENGTH;
-  }
-
-  return text + html.slice(at);
-};
-
-export type WithoutSpaceBeforeLineEndsFunction = (text: string) => string;
-
-/*
- * The text with the spaces and tabs before each line break taken out, as
- * .replace(/[ \t]+\n/g, "\n") took them out - read in one pass. That
- * pattern started again from every space of a run that no line break ends,
- * so a long run of spaces took time that grew with the square of its
- * length: half a second for a message of 28 KB, Teams' largest.
- */
-export const withoutSpaceBeforeLineEnds: WithoutSpaceBeforeLineEndsFunction = (
-  text: string,
-): string => {
-  const lines: Array<string> = text.split("\n");
-
-  // The last line ends the text, not a line break, so it keeps its spaces.
-  for (let index: number = 0; index < lines.length - 1; index++) {
-    const line: string = lines[index]!;
-    let end: number = line.length;
-
-    while (end > 0 && (line[end - 1] === " " || line[end - 1] === "\t")) {
-      end--;
-    }
-
-    lines[index] = line.slice(0, end);
-  }
-
-  return lines.join("\n");
-};
-
-// The name of the tag a piece of markup is, "/" first for an end tag.
-const TAG_NAME: RegExp = /^<(\/?[A-Za-z][A-Za-z0-9-]*)/;
-
-// The ends of the blocks a Teams message is laid out in: each ends a line.
-const TEAMS_BLOCK_ENDS: ReadonlySet<string> = new Set<string>([
-  "/p",
-  "/div",
-  "/li",
-  "/h1",
-  "/h2",
-  "/h3",
-  "/h4",
-  "/h5",
-  "/h6",
-  "/blockquote",
-  "/pre",
-  "/tr",
-]);
-
-type TeamsMarkupAsTextFunction = (markup: string) => string;
-
-/*
- * What a tag of a Teams message becomes in its text: a line break a line,
- * a list item "- ", a mention ("<at>Jane</at>") "@" before the name, the end
- * of a block a line; any other tag or comment, nothing. None of these holds
- * a "<", so neither does the text (replaceHtmlMarkup).
- */
-const teamsMarkupAsText: TeamsMarkupAsTextFunction = (
-  markup: string,
-): string => {
-  const name: string = (TAG_NAME.exec(markup)?.[1] || "").toLowerCase();
-
-  if (name === "br") {
-    return "\n";
-  }
-
-  if (name === "li") {
-    return "- ";
-  }
-
-  if (name === "at") {
-    return "@";
-  }
-
-  return TEAMS_BLOCK_ENDS.has(name) ? "\n" : "";
-};
-
-/*
  * Pin (📌) or megaphone (📣 / 📢) a message in an incident, alert, scheduled
  * maintenance or episode channel in Microsoft Teams, and it becomes a private
  * or public note in OneUptime — the same as in Slack.
@@ -247,6 +123,10 @@ export default class MicrosoftTeamsReactionNoteSync {
 
   private static readonly CLAIM_NAMESPACE: string =
     "microsoft-teams-reaction-note";
+
+  // A reaction whose person was asked to connect their account.
+  private static readonly PROMPT_NAMESPACE: string =
+    "microsoft-teams-reaction-note-prompt";
 
   /*
    * A handled reaction is remembered for longer than it can be picked up, so
@@ -622,11 +502,26 @@ export default class MicrosoftTeamsReactionNoteSync {
     );
   }
 
+  /*
+   * Handles one note emoji: claimed first, so it is handled once - not
+   * again next minute, and not by two workers at the same time.
+   *
+   * A reaction from somebody whose Microsoft Teams account is not connected
+   * is the one exception: its claim is given back, so a later run saves the
+   * message once they have connected - they are asked to, once
+   * (promptToConnect), with a Connect button that saves it at once
+   * (saveAfterConnect).
+   *
+   * `quiet` handles it without a reply in the thread, and `report` is told
+   * why a reaction was refused: for an answer given elsewhere.
+   */
   @CaptureSpan()
   public static async processReaction(data: {
     channel: MicrosoftTeamsWatchedChannel;
     reaction: MicrosoftTeamsNoteReaction;
     now: Date;
+    quiet?: boolean | undefined;
+    report?: { reason?: string | undefined } | undefined;
   }): Promise<MicrosoftTeamsReactionOutcome> {
     const { channel, reaction } = data;
     const resource: WorkspaceNoteResource = channel.resource;
@@ -645,19 +540,14 @@ export default class MicrosoftTeamsReactionNoteSync {
       return MicrosoftTeamsReactionOutcome.NotSupported;
     }
 
-    const claimKey: string = [
-      resource.resourceId.toString(),
-      reaction.noteType,
-      channel.channelId,
-      reaction.messageId,
-      reaction.reactingUserId,
-      reaction.reactedAt.getTime().toString(),
-    ].join(":");
+    const claimKey: string = this.getClaimKey({
+      channel: channel,
+      reaction: reaction,
+    });
 
     /*
-     * Claim the reaction so it is handled once — not again next minute, and
-     * not by two workers at the same time. Without the cache there is no safe
-     * way to tell a new reaction from one already answered, so do nothing.
+     * Without the cache there is no safe way to tell a new reaction from
+     * one already answered, so nothing is done until it is back.
      */
     let claimed: boolean = false;
 
@@ -681,24 +571,56 @@ export default class MicrosoftTeamsReactionNoteSync {
       return MicrosoftTeamsReactionOutcome.AlreadyHandled;
     }
 
+    let outcome: MicrosoftTeamsReactionOutcome;
+
     try {
-      return await this.handleClaimedReaction({
+      outcome = await this.handleClaimedReaction({
         channel: channel,
         reaction: reaction,
         now: data.now,
+        quiet: data.quiet,
+        report: data.report,
       });
     } catch (err) {
       // Something unexpected (Graph or the database): let the next run retry.
-      try {
-        await GlobalCache.deleteKey(this.CLAIM_NAMESPACE, claimKey);
-      } catch (releaseErr) {
-        logger.warn("Could not release Microsoft Teams reaction claim", {
-          ...logAttributes,
-        });
-        logger.warn(releaseErr, logAttributes);
-      }
-
+      await this.releaseClaim(claimKey, logAttributes);
       throw err;
+    }
+
+    // Saved by a later run, once the person has connected their account.
+    if (outcome === MicrosoftTeamsReactionOutcome.NotLinked) {
+      await this.releaseClaim(claimKey, logAttributes);
+    }
+
+    return outcome;
+  }
+
+  // What a reaction is claimed by: the record, the note, the message, who, when.
+  private static getClaimKey(data: {
+    channel: MicrosoftTeamsWatchedChannel;
+    reaction: MicrosoftTeamsNoteReaction;
+  }): string {
+    return [
+      data.channel.resource.resourceId.toString(),
+      data.reaction.noteType,
+      data.channel.channelId,
+      data.reaction.messageId,
+      data.reaction.reactingUserId,
+      data.reaction.reactedAt.getTime().toString(),
+    ].join(":");
+  }
+
+  private static async releaseClaim(
+    claimKey: string,
+    logAttributes: { projectId: string; channelId: string },
+  ): Promise<void> {
+    try {
+      await GlobalCache.deleteKey(this.CLAIM_NAMESPACE, claimKey);
+    } catch (releaseErr) {
+      logger.warn("Could not release Microsoft Teams reaction claim", {
+        ...logAttributes,
+      });
+      logger.warn(releaseErr, logAttributes);
     }
   }
 
@@ -706,6 +628,8 @@ export default class MicrosoftTeamsReactionNoteSync {
     channel: MicrosoftTeamsWatchedChannel;
     reaction: MicrosoftTeamsNoteReaction;
     now: Date;
+    quiet?: boolean | undefined;
+    report?: { reason?: string | undefined } | undefined;
   }): Promise<MicrosoftTeamsReactionOutcome> {
     const { channel, reaction } = data;
     const resource: WorkspaceNoteResource = channel.resource;
@@ -734,6 +658,27 @@ export default class MicrosoftTeamsReactionNoteSync {
         -this.NOTICE_MAX_AGE_IN_MINUTES,
       ).getTime();
 
+    // Replies about this reaction: only for a fresh one, never when quiet.
+    const reply: (text: MarkdownText) => Promise<void> = async (
+      text: MarkdownText,
+    ): Promise<void> => {
+      if (data.report) {
+        data.report.reason = FeedMarkdown.withoutInvisibleBreaks(
+          text.toString(),
+        );
+      }
+
+      if (!isFresh || data.quiet) {
+        return;
+      }
+
+      await this.replyInThread({
+        channel: channel,
+        threadId: reaction.threadId,
+        text: text.toString(),
+      });
+    };
+
     const userAuth: WorkspaceUserAuthToken | null =
       await WorkspaceUserAuthTokenService.findOneBy({
         query: {
@@ -750,14 +695,10 @@ export default class MicrosoftTeamsReactionNoteSync {
       });
 
     if (!userAuth || !userAuth.userId) {
-      if (isFresh) {
-        await this.replyInThread({
+      if (isFresh && !data.quiet) {
+        await this.promptToConnect({
           channel: channel,
-          threadId: reaction.threadId,
-          text: await this.getNotLinkedMessage({
-            projectId: projectId,
-            reactingUserName: reaction.reactingUserName,
-          }),
+          reaction: reaction,
         });
       }
 
@@ -794,25 +735,51 @@ export default class MicrosoftTeamsReactionNoteSync {
         throw err;
       }
 
-      if (isFresh) {
-        await this.replyInThread({
-          channel: channel,
-          threadId: reaction.threadId,
-          // The person's name and the refusal are both text.
-          text: reaction.reactingUserName
-            ? mdText`${reaction.reactingUserName}, ${err.message}`.toString()
-            : mdText`${err.message}`.toString(),
-        });
-      }
+      // The person's name and the refusal are both text.
+      await reply(
+        reaction.reactingUserName
+          ? mdText`${reaction.reactingUserName}, ${err.message}`
+          : mdText`${err.message}`,
+      );
 
       return MicrosoftTeamsReactionOutcome.NotAuthorized;
     }
 
-    const text: string = this.getMessageText(reaction.message);
+    /*
+     * The message as Teams showed it - its formatting, links, mentions,
+     * files - and whose words it is, posted when (MicrosoftTeamsMessageReader).
+     * A public note leaves out the files and images: a link into the
+     * company's Teams opens for nobody on the status page.
+     */
+    const content: ChatMessageContent = MicrosoftTeamsMessageReader.read(
+      reaction.message,
+    );
+    const note: MarkdownText = ChatMessageMarkdown.toMarkdown(content, {
+      withoutAttachments: reaction.noteType === WorkspaceNoteType.Public,
+    });
 
-    if (!text) {
+    if (note.isEmpty()) {
+      await reply(
+        mdText`${WorkspaceReactionNote.getNothingToSaveMessage({
+          noteType: reaction.noteType,
+          hasAttachments: !ChatMessageMarkdown.isEmpty(content),
+        })}`,
+      );
+
       return MicrosoftTeamsReactionOutcome.NoText;
     }
+
+    const author: MicrosoftTeamsMessageAuthor =
+      MicrosoftTeamsMessageReader.getAuthor(reaction.message);
+
+    const savedFromChatMessage: SavedChatMessage =
+      await SavedChatMessageAuthor.getSavedChatMessage({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        projectId: projectId,
+        workspaceUserId: author.teamsUserId,
+        chatName: author.name,
+        postedAt: MicrosoftTeamsMessageReader.getPostedAt(reaction.message),
+      });
 
     let saveResult: WorkspaceNoteSaveResult;
 
@@ -821,8 +788,9 @@ export default class MicrosoftTeamsReactionNoteSync {
         resource: resource,
         noteType: reaction.noteType,
         props: props,
-        note: text,
+        note: note.toString(),
         sourceMessageKey: sourceMessageKey,
+        savedFromChatMessage: savedFromChatMessage,
       });
     } catch (err) {
       /*
@@ -838,15 +806,11 @@ export default class MicrosoftTeamsReactionNoteSync {
         throw err;
       }
 
-      if (isFresh) {
-        await this.replyInThread({
-          channel: channel,
-          threadId: reaction.threadId,
-          text: reaction.reactingUserName
-            ? mdText`${reaction.reactingUserName}, could not save the message as a note: ${refusal}`.toString()
-            : mdText`Could not save the message as a note: ${refusal}`.toString(),
-        });
-      }
+      await reply(
+        reaction.reactingUserName
+          ? mdText`${reaction.reactingUserName}, could not save the message as a note: ${refusal}`
+          : mdText`Could not save the message as a note: ${refusal}`,
+      );
 
       return MicrosoftTeamsReactionOutcome.Refused;
     }
@@ -855,7 +819,7 @@ export default class MicrosoftTeamsReactionNoteSync {
       return MicrosoftTeamsReactionOutcome.AlreadySaved;
     }
 
-    // The note is saved; the confirmation is best effort.
+    // The note is saved; its one confirmation is best effort.
     try {
       const display: { label: string; link: URL } =
         await WorkspaceReactionNote.getResourceDisplay(resource);
@@ -878,6 +842,120 @@ export default class MicrosoftTeamsReactionNoteSync {
     }
 
     return MicrosoftTeamsReactionOutcome.Saved;
+  }
+
+  /*
+   * A message somebody reacted to before their Microsoft Teams account was
+   * connected, saved at once now that it is (WorkspaceConnectCompletion):
+   * the channel's messages read again, and their reaction on this message
+   * handled as a run would handle it - with no reply of its own in the
+   * thread but the confirmation; the Connect button's answer says the rest.
+   */
+  @CaptureSpan()
+  public static async saveAfterConnect(data: {
+    resource: WorkspaceNoteResource;
+    noteType: WorkspaceNoteType;
+    message: WorkspacePendingMessage;
+    // Their Microsoft Entra object id: whose reaction it is.
+    workspaceUserId: string;
+  }): Promise<WorkspaceMessageNoteResult> {
+    const projectId: ObjectID = data.resource.projectId;
+
+    if (!data.message.teamId) {
+      return { outcome: WorkspaceMessageNoteOutcome.Failed };
+    }
+
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    if (!projectAuth || !projectAuth.authToken) {
+      return { outcome: WorkspaceMessageNoteOutcome.Failed };
+    }
+
+    const channel: MicrosoftTeamsWatchedChannel = {
+      resource: data.resource,
+      channelId: data.message.channelId,
+      teamId: data.message.teamId,
+    };
+
+    const messages: Array<JSONObject> =
+      await MicrosoftTeamsUtil.getRecentChannelMessagesWithReplies({
+        authToken: projectAuth.authToken,
+        projectId: projectId,
+        teamId: channel.teamId,
+        channelId: channel.channelId,
+      });
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    const reactions: Array<MicrosoftTeamsNoteReaction> = this.getNoteReactions({
+      messages: messages,
+      since: OneUptimeDate.addRemoveMinutes(
+        now,
+        -this.REACTION_MAX_AGE_IN_MINUTES,
+      ),
+    }).filter((reaction: MicrosoftTeamsNoteReaction): boolean => {
+      return (
+        reaction.messageId === data.message.messageId &&
+        reaction.noteType === data.noteType &&
+        reaction.reactingUserId === data.workspaceUserId
+      );
+    });
+
+    const reaction: MicrosoftTeamsNoteReaction | undefined =
+      reactions[reactions.length - 1];
+
+    if (!reaction) {
+      return { outcome: WorkspaceMessageNoteOutcome.NotFound };
+    }
+
+    const report: { reason?: string | undefined } = {};
+
+    const outcome: MicrosoftTeamsReactionOutcome = await this.processReaction(
+      {
+        channel: channel,
+        reaction: reaction,
+        now: now,
+        quiet: true,
+        report: report,
+      },
+    );
+
+    switch (outcome) {
+      case MicrosoftTeamsReactionOutcome.Saved:
+        return { outcome: WorkspaceMessageNoteOutcome.Saved };
+      case MicrosoftTeamsReactionOutcome.AlreadySaved:
+        return { outcome: WorkspaceMessageNoteOutcome.AlreadySaved };
+      case MicrosoftTeamsReactionOutcome.NotAuthorized:
+      case MicrosoftTeamsReactionOutcome.Refused:
+        return {
+          outcome: WorkspaceMessageNoteOutcome.Refused,
+          reason: report.reason,
+        };
+      case MicrosoftTeamsReactionOutcome.NoText:
+        return {
+          outcome: WorkspaceMessageNoteOutcome.NothingToSave,
+          reason: report.reason,
+        };
+      case MicrosoftTeamsReactionOutcome.AlreadyHandled:
+        // A run is handling it right now: saved, or about to be.
+        return (await WorkspaceReactionNote.hasNote({
+          resource: data.resource,
+          noteType: data.noteType,
+          sourceMessageKey: WorkspaceReactionNote.getSourceMessageKey({
+            channelId: channel.channelId,
+            messageId: reaction.messageId,
+          }),
+        }))
+          ? { outcome: WorkspaceMessageNoteOutcome.Saved }
+          : { outcome: WorkspaceMessageNoteOutcome.Failed };
+      case MicrosoftTeamsReactionOutcome.NotLinked:
+      case MicrosoftTeamsReactionOutcome.NotSupported:
+        return { outcome: WorkspaceMessageNoteOutcome.Failed };
+    }
   }
 
   /*
@@ -920,234 +998,105 @@ export default class MicrosoftTeamsReactionNoteSync {
     }
   }
 
-  private static async getNotLinkedMessage(data: {
-    projectId: ObjectID;
-    reactingUserName?: string | undefined;
-  }): Promise<string> {
-    // The person's Teams name is theirs to set: it is placed as text.
-    const greeting: MarkdownText = data.reactingUserName
-      ? mdText`${data.reactingUserName}, to`
-      : mdText`To`;
-
-    let settingsLink: MarkdownText = FeedMarkdown.empty();
+  /*
+   * Asks somebody who reacted before connecting their Microsoft Teams
+   * account to connect it: a card in the message's thread that mentions
+   * them, with a Connect button that saves the message at once when they
+   * have (saveAfterConnect). Asked once for each reaction
+   * (PROMPT_NAMESPACE), however many runs look at it until they connect;
+   * without the cache, not at all, rather than at every run.
+   */
+  private static async promptToConnect(data: {
+    channel: MicrosoftTeamsWatchedChannel;
+    reaction: MicrosoftTeamsNoteReaction;
+  }): Promise<void> {
+    const { channel, reaction } = data;
+    const resource: WorkspaceNoteResource = channel.resource;
+    const projectId: ObjectID = resource.projectId;
 
     try {
-      const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
-      settingsLink = mdText` in [OneUptime → User Settings → Microsoft Teams](${URL.fromString(
-        dashboardUrl.toString(),
-      )
-        .addRoute(
-          `/${data.projectId.toString()}/user-settings/microsoft-teams-integration`,
-        )
-        .toString()})`;
+      const isFirst: boolean = await GlobalCache.setStringIfNotExists(
+        this.PROMPT_NAMESPACE,
+        this.getClaimKey(data),
+        "1",
+        { expiresInSeconds: this.CLAIM_TTL_IN_SECONDS },
+      );
+
+      if (!isFirst) {
+        return;
+      }
     } catch (err) {
-      logger.debug("Could not build the Microsoft Teams settings link");
+      logger.debug(
+        "Could not note a Microsoft Teams Connect prompt; not asking.",
+      );
       logger.debug(err);
+      return;
     }
 
-    return mdText`${greeting} save messages as notes, first connect your Microsoft Teams account to OneUptime${settingsLink}, then react again.`.toString();
-  }
-
-  /*
-   * The text of a Graph chatMessage, as the note it is saved as: its body,
-   * plus any adaptive card it carries.
-   *
-   * A note is Markdown, and it goes to the dashboard, to the status page
-   * and subscribers' email when it is public, and as a feed item to the
-   * project's Slack and Microsoft Teams channels - while the message is
-   * text anyone in the channel may have typed, apps and connectors too, and
-   * Teams showed it as text: a "<b>" typed there (Teams sends it as
-   * "&lt;b&gt;") or a "![x](https://...)" did nothing. So the note's text
-   * is placed as text a stranger typed is everywhere else
-   * (FeedMarkdown.reportedValue, as a form's answers are): it reads exactly
-   * as typed, and no renderer finds a tag, a mention, an image, a link, a
-   * diagram or a reference in it - each "<" that whitespace does not follow,
-   * each "![" and each "]" a link goes on from gets an invisible word joiner.
-   * A message with none of those in its text is saved exactly as it reads.
-   */
-  public static getMessageText(message: JSONObject): string {
-    const body: JSONObject | undefined = message["body"] as
-      | JSONObject
-      | undefined;
-
-    const content: string = (body?.["content"] as string | undefined) || "";
-    const contentType: string = (
-      (body?.["contentType"] as string | undefined) || "html"
-    ).toLowerCase();
-
-    const parts: Array<string> = [];
-
-    const bodyText: string =
-      contentType === "text" ? content.trim() : this.htmlToText(content);
-
-    if (bodyText) {
-      parts.push(bodyText);
-    }
-
-    for (const attachment of (message["attachments"] as Array<JSONObject>) ||
-      []) {
-      if (
-        attachment["contentType"] !== "application/vnd.microsoft.card.adaptive"
-      ) {
-        continue;
-      }
-
-      let card: JSONObject | null = null;
-
-      try {
-        const rawCard: unknown = attachment["content"];
-        card =
-          typeof rawCard === "string"
-            ? (JSON.parse(rawCard) as JSONObject)
-            : (rawCard as JSONObject | undefined) ?? null;
-      } catch {
-        card = null;
-      }
-
-      const cardText: string = card ? this.getAdaptiveCardText(card) : "";
-
-      if (cardText) {
-        parts.push(cardText);
-      }
-    }
-
-    return FeedMarkdown.reportedValue(parts.join("\n\n").trim());
-  }
-
-  /*
-   * A Teams message body (HTML) as the text it shows: attachments out,
-   * mentions as "@name", line breaks, list items and the ends of blocks as
-   * lines, every other tag and comment out, then entities read - once, so
-   * "&amp;lt;" is the text "&lt;".
-   *
-   * Every tag and comment is read by replaceHtmlMarkup (Common/Types/
-   * HtmlMarkup), one walk that ends a tag only at a ">" outside a quoted
-   * attribute value, a comment at its "-->", and leaves no "<" of the HTML
-   * behind; teamsMarkupAsText says what each becomes. Tags used to be found
-   * with patterns that each stopped at the first ">" - a line break, a list
-   * item, a mention, then one pass of /<[^>]*>/ for the rest - which kept an
-   * unclosed tag ("<img src=x onerror=..." with no ">" after it) as it came,
-   * and kept the end of an attribute value or a comment holding ">" as
-   * text. Entities are read only after that, so text that was
-   * "&lt;script&gt;" in the HTML is text, never a tag this takes out or
-   * keeps; getMessageText then places it as text for the note.
-   *
-   * The attachments and the spaces before line ends are found with loops
-   * (withoutAttachmentElements, withoutSpaceBeforeLineEnds). They replace
-   * patterns that started again from every place a match could start, and
-   * took time that grew with the square of the message. The patterns left -
-   * entities, numeric references, runs of line breaks - start only at an
-   * "&" or a line break and never look back past it. A Teams message is at
-   * most about 28 KB; MarkupReadersInLongRunningProcess.test.ts reads a
-   * megabyte of every shape, numeric references and line breaks included,
-   * in a process that compiles patterns unoptimized.
-   */
-  public static htmlToText(html: string): string {
-    if (!html) {
-      return "";
-    }
-
-    return withoutSpaceBeforeLineEnds(
-      this.decodeHtmlEntities(
-        replaceHtmlMarkup(withoutAttachmentElements(html), teamsMarkupAsText),
-      ).replace(/\u00a0/g, " "),
-    )
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-  }
-
-  // The visible text of an adaptive card, one element per line.
-  public static getAdaptiveCardText(card: JSONObject): string {
-    const lines: Array<string> = [];
-
-    const visit: (element: unknown) => void = (element: unknown): void => {
-      if (!element || typeof element !== "object") {
-        return;
-      }
-
-      if (Array.isArray(element)) {
-        for (const child of element) {
-          visit(child);
-        }
-        return;
-      }
-
-      const node: JSONObject = element as JSONObject;
-      const type: string | undefined = node["type"] as string | undefined;
-
-      if (type === "TextBlock" && typeof node["text"] === "string") {
-        lines.push(node["text"] as string);
-      }
-
-      if (type === "RichTextBlock" && Array.isArray(node["inlines"])) {
-        const text: string = (node["inlines"] as Array<unknown>)
-          .map((inline: unknown) => {
-            if (typeof inline === "string") {
-              return inline;
-            }
-            return ((inline as JSONObject)?.["text"] as string) || "";
-          })
-          .join("");
-
-        if (text) {
-          lines.push(text);
-        }
-      }
-
-      if (type === "FactSet" && Array.isArray(node["facts"])) {
-        for (const fact of node["facts"] as Array<JSONObject>) {
-          const title: string = (fact?.["title"] as string) || "";
-          const value: string = (fact?.["value"] as string) || "";
-
-          if (title || value) {
-            lines.push(title ? `${title} ${value}`.trim() : value);
-          }
-        }
-      }
-
-      for (const key of ["body", "items", "columns"]) {
-        if (node[key]) {
-          visit(node[key]);
-        }
-      }
-    };
-
-    visit(card);
-
-    return lines
-      .map((line: string) => {
-        return line.trim();
-      })
-      .filter((line: string) => {
-        return Boolean(line);
-      })
-      .join("\n");
-  }
-
-  private static decodeHtmlEntities(text: string): string {
-    return (
-      text
-        .replace(/&nbsp;/gi, " ")
-        .replace(/&lt;/gi, "<")
-        .replace(/&gt;/gi, ">")
-        .replace(/&quot;/gi, '"')
-        .replace(/&#39;|&apos;/gi, "'")
-        .replace(/&#(\d+);/g, (_match: string, code: string) => {
-          return this.fromCodePoint(parseInt(code, 10));
-        })
-        .replace(/&#x([0-9a-f]+);/gi, (_match: string, code: string) => {
-          return this.fromCodePoint(parseInt(code, 16));
-        })
-        // Last, so "&amp;lt;" decodes to "&lt;" rather than "<".
-        .replace(/&amp;/gi, "&")
-    );
-  }
-
-  private static fromCodePoint(codePoint: number): string {
     try {
-      return String.fromCodePoint(codePoint);
-    } catch {
-      return "";
+      const kind: WorkspacePendingActionKind =
+        reaction.noteType === WorkspaceNoteType.Public
+          ? WorkspacePendingActionKind.SavePublicNote
+          : WorkspacePendingActionKind.SavePrivateNote;
+      const eventType: WorkspaceEventType = WorkspaceReactionNote.getEventType(
+        resource.resourceType,
+      );
+      const purpose: string = WorkspaceActionAnswers.getPendingActionPurpose({
+        kind: kind,
+        eventType: eventType,
+      });
+
+      const place: WorkspaceConnectRequestTeamsPlace | null =
+        await MicrosoftTeamsUtil.getChannelThreadPlace({
+          projectId: projectId,
+          teamId: channel.teamId,
+          channelId: channel.channelId,
+          parentMessageId: reaction.threadId,
+          userTeamsId: reaction.reactingUserId,
+          userName: reaction.reactingUserName,
+        });
+
+      if (!place) {
+        return;
+      }
+
+      const pendingAction: WorkspacePendingAction = {
+        kind: kind,
+        eventType: eventType,
+        eventId: resource.resourceId,
+        message: {
+          channelId: channel.channelId,
+          messageId: reaction.messageId,
+          teamId: channel.teamId,
+        },
+      };
+
+      const link: WorkspaceConnectLink =
+        await WorkspaceConnectRequest.getConnectLink({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          projectId: projectId,
+          workspaceUserId: reaction.reactingUserId,
+          purpose: purpose,
+          pendingAction: pendingAction,
+          teams: place,
+        });
+
+      await MicrosoftTeamsActionAnswer.sendToPlace({
+        place: place,
+        answer: WorkspaceActionAnswers.getConnectPrompt({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          purpose: purpose,
+          pendingAction: pendingAction,
+          button: link.button,
+        }),
+        connectUrl: link.url,
+      });
+    } catch (err) {
+      logger.error("Could not ask a Microsoft Teams member to connect", {
+        projectId: projectId.toString(),
+        channelId: channel.channelId,
+      });
+      logger.error(err);
     }
   }
 

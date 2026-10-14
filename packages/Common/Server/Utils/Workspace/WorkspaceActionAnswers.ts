@@ -157,6 +157,10 @@ export default class WorkspaceActionAnswers {
         return `mark this ${noun} as ongoing`;
       case WorkspacePendingActionKind.MarkAsComplete:
         return `mark this ${noun} as complete`;
+      case WorkspacePendingActionKind.SavePrivateNote:
+        return `save this message as a private note on this ${noun}`;
+      case WorkspacePendingActionKind.SavePublicNote:
+        return `save this message as a public note on this ${noun}`;
     }
   }
 
@@ -477,11 +481,14 @@ export default class WorkspaceActionAnswers {
         return "marks it as ongoing";
       case WorkspacePendingActionKind.MarkAsComplete:
         return "marks it as complete";
+      case WorkspacePendingActionKind.SavePrivateNote:
+      case WorkspacePendingActionKind.SavePublicNote:
+        return "saves it";
     }
   }
 
   // "acknowledged", as "You acknowledged ..." says it.
-  private static getDoneVerb(kind: WorkspacePendingActionKind): string {
+  public static getDoneVerb(kind: WorkspacePendingActionKind): string {
     switch (kind) {
       case WorkspacePendingActionKind.Acknowledge:
         return "acknowledged";
@@ -491,6 +498,10 @@ export default class WorkspaceActionAnswers {
         return "marked as ongoing";
       case WorkspacePendingActionKind.MarkAsComplete:
         return "completed";
+      case WorkspacePendingActionKind.SavePrivateNote:
+        return "saved the message as a private note on";
+      case WorkspacePendingActionKind.SavePublicNote:
+        return "saved the message as a public note on";
     }
   }
 
