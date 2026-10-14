@@ -1,234 +1,292 @@
-# Opdrachtenoverzicht
+# Opdrachtreferentie
 
-Volledig overzicht van alle OneUptime CLI-opdrachten.
+Elke opdracht van de CLI `oneuptime`, met zijn argumenten, opties en standaardwaarden. Voeg `--help` toe aan een opdracht om hetzelfde in je terminal te zien.
 
-## Authenticatieopdrachten
+:::cards
+- [Globale opties](#globale-opties): De opties die elke opdracht neemt.
+- [Inloggen en contexten](#inloggen-en-contexten): login en de context-opdrachten.
+- [Opdrachten voor bronnen](#opdrachten-voor-bronnen): list, get, create, update, delete en count.
+- [Andere opdrachten](#andere-opdrachten): whoami, resources, version en help.
+:::
+
+## De opdrachten
+
+```mermaid title="De opdrachten van de CLI oneuptime"
+flowchart LR
+    O["oneuptime"] --> L["login"]
+    O --> C["context"]
+    C --> C1["list<br/>use<br/>current<br/>delete"]
+    O --> R["incident, monitor<br/>en elke bron"]
+    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
+    O --> U["whoami<br/>resources<br/>version<br/>help"]
+```
+
+## Globale opties
+
+| Optie | Wat hij doet | Standaard |
+| --- | --- | --- |
+| `--api-key <key>` | De API-sleutel voor deze opdracht | `ONEUPTIME_API_KEY`, dan de sleutel van de context |
+| `--url <url>` | Het adres van je OneUptime voor deze opdracht | `ONEUPTIME_URL`, dan de URL van de context |
+| `--context <name>` | De opgeslagen context voor deze opdracht | De huidige context |
+| `-o, --output <format>` | `json`, `table` of `wide` | `table` in een terminal, `json` in een pipe |
+| `--no-color` | Drukt af zonder kleuren | Kleuren, tenzij `NO_COLOR` is ingesteld |
+| `-V, --version` | Drukt de versie van de CLI af | |
+| `-h, --help` | Toont de hulp van een opdracht | |
+
+De opties staan voor of na de opdracht: `oneuptime --context staging incident list` en `oneuptime incident list --context staging` doen hetzelfde.
+
+## Inloggen en contexten
 
 ### `oneuptime login`
 
-Authenticeer bij een OneUptime-instantie.
+Slaat een API-sleutel en een adres op als context, en maakt die de huidige. Zie [Inloggen](/docs/cli/authentication#inloggen).
 
 ```bash
 oneuptime login <api-key> <instance-url> [--context-name <name>]
 ```
 
-| Parameter        | Type     | Vereist | Beschrijving                         |
-| ---------------- | -------- | ------- | ------------------------------------ |
-| `<api-key>`      | argument | Ja      | API-sleutel voor authenticatie       |
-| `<instance-url>` | argument | Ja      | OneUptime instantie-URL              |
-| `--context-name` | optie    | Nee     | Contextnaam (standaard: `"default"`) |
-
----
+| Argument of optie | Verplicht | Wat het is | Standaard |
+| --- | --- | --- | --- |
+| `<api-key>` | Ja | Een API-sleutel van je project | |
+| `<instance-url>` | Ja | Het adres van je OneUptime, zoals `https://oneuptime.com` | |
+| `--context-name <name>` | Nee | De naam waaronder de context wordt opgeslagen | `default` |
 
 ### `oneuptime context list`
 
-Alle opgeslagen contexten weergeven.
+Toont de opgeslagen contexten; `*` markeert de huidige. API-sleutels worden nooit getoond.
 
 ```bash
-oneuptime context list
+oneuptime context list [-o <format>]
 ```
 
----
+| Optie | Verplicht | Wat het is |
+| --- | --- | --- |
+| `-o, --output <format>` | Nee | `json`, `table` of `wide`. JSON geeft van elke context de `name`, `apiUrl` en `isCurrent` |
 
 ### `oneuptime context use`
 
-Overschakelen naar een benoemde context.
+Maakt een opgeslagen context de huidige.
 
 ```bash
 oneuptime context use <name>
 ```
 
-| Parameter | Type     | Vereist | Beschrijving             |
-| --------- | -------- | ------- | ------------------------ |
-| `<name>`  | argument | Ja      | Te activeren contextnaam |
-
----
+| Argument | Verplicht | Wat het is |
+| --- | --- | --- |
+| `<name>` | Ja | De naam van een opgeslagen context |
 
 ### `oneuptime context current`
 
-De actieve context weergeven met gemaskeerde API-sleutel.
+Toont de naam en de URL van de huidige context, en de API-sleutel ervan verborgen op de eerste vier en laatste vier tekens na.
 
 ```bash
 oneuptime context current
 ```
 
----
-
 ### `oneuptime context delete`
 
-Een opgeslagen context verwijderen.
+Verwijdert een opgeslagen context. Was het de huidige, dan wordt de eerste overgebleven context de huidige.
 
 ```bash
 oneuptime context delete <name>
 ```
 
-| Parameter | Type     | Vereist | Beschrijving               |
-| --------- | -------- | ------- | -------------------------- |
-| `<name>`  | argument | Ja      | Te verwijderen contextnaam |
+| Argument | Verplicht | Wat het is |
+| --- | --- | --- |
+| `<name>` | Ja | De naam van een opgeslagen context |
 
----
+## Opdrachten voor bronnen
 
-## Resourceopdrachten
-
-Alle resourceopdrachten volgen hetzelfde patroon. Vervang `<resource>` door een ondersteunde resourcenaam (bijv. `incident`, `monitor`, `alert`, `status-page`).
+`<resource>` is de opdracht van een soort record, uit de tabellen bij [Bronnen](#bronnen), zoals `incident` of `monitor`. Zie [Bewerkingen op bronnen](/docs/cli/resource-operations) voor voorbeelden.
 
 ### `oneuptime <resource> list`
 
-Resources weergeven met filteren en paginering.
+Toont records, de nieuwste eerst.
 
 ```bash
-oneuptime <resource> list [options]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
 ```
 
-| Optie            | Type   | Standaard | Beschrijving              |
-| ---------------- | ------ | --------- | ------------------------- |
-| `--query <json>` | string | Geen      | Filtercriteria als JSON   |
-| `--limit <n>`    | number | `10`      | Maximum aantal resultaten |
-| `--skip <n>`     | number | `0`       | Te overslaan resultaten   |
-| `--sort <json>`  | string | Geen      | Sorteervolgorde als JSON  |
-| `-o, --output`   | string | `table`   | Uitvoerformaat            |
-
----
+| Optie | Wat hij doet | Standaard |
+| --- | --- | --- |
+| `--query <json>` | Een filter, als JSON | Elk record dat de sleutel mag lezen |
+| `--limit <n>` | Het grootste aantal records om terug te geven, tot 10.000 | `10` |
+| `--skip <n>` | Hoeveel records eerst worden overgeslagen | `0` |
+| `--sort <json>` | De volgorde, als JSON: `{"<field>":"ASC"}` of `{"<field>":"DESC"}` | De nieuwste eerst |
+| `-o, --output <format>` | `json`, `table` of `wide` | `table` in een terminal, `json` in een pipe |
 
 ### `oneuptime <resource> get`
 
-Eén resource ophalen op ID.
+Leest één record. Alleen records: telemetrie heeft geen `get`.
 
 ```bash
 oneuptime <resource> get <id> [-o <format>]
 ```
 
-| Parameter      | Type     | Vereist | Beschrijving       |
-| -------------- | -------- | ------- | ------------------ |
-| `<id>`         | argument | Ja      | Resource-ID (UUID) |
-| `-o, --output` | optie    | Nee     | Uitvoerformaat     |
-
----
+| Argument of optie | Verplicht | Wat het is |
+| --- | --- | --- |
+| `<id>` | Ja | De ID van het record, een UUID |
+| `-o, --output <format>` | Nee | `json`, `table` of `wide` |
 
 ### `oneuptime <resource> create`
 
-Een nieuwe resource aanmaken.
+Maakt een record en drukt het af.
 
 ```bash
-oneuptime <resource> create [--data <json> | --file <path>] [-o <format>]
+oneuptime <resource> create (--data <json> | --file <path>) [-o <format>]
 ```
 
-| Optie           | Type   | Vereist                      | Beschrijving              |
-| --------------- | ------ | ---------------------------- | ------------------------- |
-| `--data <json>` | string | Een van `--data` of `--file` | Resourcegegevens als JSON |
-| `--file <path>` | string | Een van `--data` of `--file` | Pad naar JSON-bestand     |
-| `-o, --output`  | string | Nee                          | Uitvoerformaat            |
-
----
+| Optie | Verplicht | Wat het is |
+| --- | --- | --- |
+| `--data <json>` | Een van de twee | Het record, als JSON |
+| `--file <path>` | Een van de twee | Een JSON-bestand met het record. Samen met `--data` opgegeven, wordt het bestand gebruikt |
+| `-o, --output <format>` | Nee | `json`, `table` of `wide` |
 
 ### `oneuptime <resource> update`
 
-Een bestaande resource bijwerken.
+Wijzigt de velden die je opgeeft. Alleen records: telemetrie heeft geen `update`.
 
 ```bash
 oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-| Parameter       | Type     | Vereist | Beschrijving                  |
-| --------------- | -------- | ------- | ----------------------------- |
-| `<id>`          | argument | Ja      | Resource-ID                   |
-| `--data <json>` | optie    | Ja      | Bij te werken velden als JSON |
-| `-o, --output`  | optie    | Nee     | Uitvoerformaat                |
-
----
+| Argument of optie | Verplicht | Wat het is |
+| --- | --- | --- |
+| `<id>` | Ja | De ID van het record |
+| `--data <json>` | Ja | De velden die moeten veranderen, als JSON |
+| `-o, --output <format>` | Nee | `json`, `table` of `wide` |
 
 ### `oneuptime <resource> delete`
 
-Een resource verwijderen.
+Verwijdert een record meteen, zonder te vragen. Alleen records: telemetrie heeft geen `delete`.
 
 ```bash
 oneuptime <resource> delete <id> [--force]
 ```
 
-| Parameter | Type     | Vereist | Beschrijving                 |
-| --------- | -------- | ------- | ---------------------------- |
-| `<id>`    | argument | Ja      | Resource-ID                  |
-| `--force` | optie    | Nee     | Bevestigingsprompt overslaan |
-
----
+| Argument of optie | Verplicht | Wat het is |
+| --- | --- | --- |
+| `<id>` | Ja | De ID van het record |
+| `--force` | Nee | Wordt geaccepteerd en verandert niets: `delete` vraagt nooit om bevestiging |
 
 ### `oneuptime <resource> count`
 
-Resources tellen die overeenkomen met een filter.
+Telt records en drukt het getal af.
 
 ```bash
-oneuptime <resource> count [--query <json>]
+oneuptime <resource> count [--query <json>] [-o <format>]
 ```
 
-| Optie            | Type   | Standaard | Beschrijving            |
-| ---------------- | ------ | --------- | ----------------------- |
-| `--query <json>` | string | Geen      | Filtercriteria als JSON |
+| Optie | Verplicht | Wat het is |
+| --- | --- | --- |
+| `--query <json>` | Nee | Een filter, als JSON. Zonder filter elk record dat de sleutel mag lezen |
+| `-o, --output <format>` | Nee | `json`, `table` of `wide` |
 
----
+### Bronnen
 
-## Hulpprogramma-opdrachten
+Records nemen `list`, `get`, `create`, `update`, `delete` en `count`:
 
-### `oneuptime version`
+| Gebied | Opdrachten |
+| --- | --- |
+| Monitoring | `monitor`, `monitor-status`, `monitor-status-event` |
+| Incidenten | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Waarschuwingen | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
+| Statuspagina's | `status-page`, `status-page-announcement` |
+| Gepland onderhoud | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
+| Teams en dienst | `team`, `on-call-policy` |
+| Labels | `label` |
 
-De CLI-versie weergeven.
+Telemetrie neemt `list`, `create` en `count`:
 
-```bash
-oneuptime version
-```
+| Gebied | Opdrachten |
+| --- | --- |
+| Observeerbaarheid | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
+| Beveiliging | `security-event`, `threat-intel-indicator` |
+| Wijzigingen en kosten | `change-event`, `kubernetes-cost-allocation` |
 
----
+De CLI verschijnt samen met OneUptime, dus `oneuptime resources` toont de opdrachten van de versie die je hebt geïnstalleerd.
+
+### API-verzoeken
+
+Elke bewerking is één verzoek aan de API, met de sleutel in de header `APIKey`. `<path>` is het API-pad van de bron, uit `oneuptime resources`: `/incident` voor `incident`, `/on-call-duty-policy` voor `on-call-policy`.
+
+| Bewerking | Verzoek | Body |
+| --- | --- | --- |
+| `list` | `POST /api/<path>/get-list` | `query`, `select`, `skip`, `limit` en `sort` |
+| `get` | `POST /api/<path>/<id>/get-item` | `select` |
+| `create` | `POST /api/<path>` | `{"data": ...}` |
+| `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
+| `delete` | `DELETE /api/<path>/<id>/` | Geen |
+| `count` | `POST /api/<path>/count` | `query` |
+
+## Andere opdrachten
 
 ### `oneuptime whoami`
 
-Huidige authenticatiegegevens weergeven.
+Toont de URL en de API-sleutel die de volgende opdracht gebruikt, met gemaskeerde sleutel, en de context waar ze vandaan komen. Hij roept OneUptime niet aan. Zie [Controleren wat de CLI gaat gebruiken](/docs/cli/authentication#controleren-wat-de-cli-gaat-gebruiken).
 
 ```bash
 oneuptime whoami
 ```
 
-Geeft de instantie-URL en gemaskeerde API-sleutel weer. Als een opgeslagen context actief is, wordt ook de contextnaam getoond.
-
----
-
 ### `oneuptime resources`
 
-Alle beschikbare resourcetypen weergeven.
+Toont elk soort record waarvoor de CLI een opdracht heeft: de opdracht, de namen in enkelvoud en meervoud, het type en het API-pad, en het totaal.
 
 ```bash
-oneuptime resources [--type <type>]
+oneuptime resources [--type <type>] [-o <format>]
 ```
 
-| Optie           | Type   | Standaard | Beschrijving                          |
-| --------------- | ------ | --------- | ------------------------------------- |
-| `--type <type>` | string | Geen      | Filteren op `database` of `analytics` |
+| Optie | Verplicht | Wat het is | Standaard |
+| --- | --- | --- | --- |
+| `--type <type>` | Nee | `database` voor records, `analytics` voor telemetrie | Beide |
+| `-o, --output <format>` | Nee | `json`, `table` of `wide`. JSON geeft van elk de `name`, `singularName`, `pluralName`, `modelType` en `apiPath` | `table` in een terminal, `json` in een pipe |
 
----
+### `oneuptime version`
 
-## Globale opties
+Drukt de versie van de CLI af, net als `oneuptime --version`.
 
-Deze vlaggen zijn beschikbaar voor alle opdrachten:
+```bash
+oneuptime version
+```
 
-| Optie                   | Beschrijving                            |
-| ----------------------- | --------------------------------------- |
-| `--api-key <key>`       | API-sleutel overschrijven               |
-| `--url <url>`           | Instantie-URL overschrijven             |
-| `--context <name>`      | Een specifieke context gebruiken        |
-| `-o, --output <format>` | Uitvoerformaat: `json`, `table`, `wide` |
-| `--no-color`            | Gekleurde uitvoer uitschakelen          |
-| `--help`                | Hulp weergeven                          |
-| `--version`             | Versie weergeven                        |
+### `oneuptime help`
 
-## API-routes
+Toont de hulp van de CLI, of die van een opdracht.
 
-Ter referentie: de CLI mapt opdrachten naar deze API-eindpunten:
+```bash
+oneuptime help [command]
+```
 
-| Opdracht | Methode | Eindpunt                        |
-| -------- | ------- | ------------------------------- |
-| `list`   | POST    | `/api/<resource>/get-list`      |
-| `get`    | POST    | `/api/<resource>/<id>/get-item` |
-| `create` | POST    | `/api/<resource>`               |
-| `update` | PUT     | `/api/<resource>/<id>/`         |
-| `delete` | DELETE  | `/api/<resource>/<id>/`         |
-| `count`  | POST    | `/api/<resource>/count`         |
+## Omgevingsvariabelen
 
-Alle verzoeken bevatten de `APIKey`-header voor authenticatie.
+| Variabele | Wat hij doet |
+| --- | --- |
+| `ONEUPTIME_API_KEY` | De API-sleutel, als geen vlag `--api-key` er een geeft |
+| `ONEUPTIME_URL` | Het adres van je OneUptime, als geen vlag `--url` er een geeft |
+| `NO_COLOR` | Ingesteld op een willekeurige waarde, zet hij kleuren uit |
+
+## Bestanden
+
+| Bestand | Wat het bevat |
+| --- | --- |
+| `~/.oneuptime/config.json` | De opgeslagen contexten, hun API-sleutels en de huidige context |
+
+## Exitcodes
+
+| Code | Betekenis |
+| --- | --- |
+| `0` | Het is gelukt |
+| `1` | Het is mislukt: OneUptime weigerde het verzoek, of de opdracht was fout |
+| `2` | Geen bruikbare API-sleutel: niet gevonden, ongeldig of onder zijn abonnement |
+| `3` | Niet gevonden: OneUptime antwoordde `404` |
+
+Zie [Exitcodes](/docs/cli/scripting#exitcodes) voor voorbeelden.
+
+## Volgende stappen
+
+:::cards
+- [CLI – Overzicht](/docs/cli/index): De CLI installeren en je eerste opdrachten uitvoeren.
+- [Bewerkingen op bronnen](/docs/cli/resource-operations): Voorbeelden van elke bewerking.
+- [Scripting en CI/CD](/docs/cli/scripting): De CLI in scripts en pipelines.
+:::

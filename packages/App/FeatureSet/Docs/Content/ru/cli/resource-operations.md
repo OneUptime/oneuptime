@@ -1,230 +1,214 @@
 # Операции с ресурсами
 
-CLI OneUptime предоставляет полные CRUD-операции (создание, чтение, обновление, удаление) для всех поддерживаемых ресурсов. Ресурсы автоматически обнаруживаются из вашего экземпляра OneUptime.
+Каждый вид записей — отдельная команда, например `incident`, `monitor` или `status-page`, и каждая принимает одни и те же операции: `list`, `get`, `create`, `update`, `delete` и `count`. Эта страница показывает каждую операцию с фильтрами, постраничным выводом и JSON, в котором записывается запись.
 
-## Доступные ресурсы
+:::cards
+- [Найдите команду для записи](#найдите-команду-для-записи): oneuptime resources выводит их все.
+- [Вывод записей](#вывод-записей): Фильтрация, сортировка и постраничный вывод.
+- [Создание записи](#создание-записи): Из JSON в командной строке или в файле.
+- [Удаление записи](#удаление-записи): Сразу и без отмены.
+:::
 
-Выполните следующую команду, чтобы просмотреть все доступные типы ресурсов:
+## Как операции связаны между собой
+
+Чтение, изменение и удаление записи требуют её ID. Вывод, подсчёт и создание не требуют ни одного, а список или создание дают вам ID, которые принимают остальные:
+
+```mermaid title="Откуда берётся ID записи"
+flowchart TB
+    L["list<br/>находит записи"] -->|"_id каждой"| G["get<br/>читает одну запись"]
+    C["create<br/>добавляет запись"] -->|"новый _id"| G
+    G --> U["update<br/>изменяет её"]
+    U --> D["delete<br/>удаляет её"]
+```
+
+ID — это UUID, например `6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11`. Его также можно скопировать со страницы записи в OneUptime: см. [Как найти ID ресурса](/docs/api-reference/api-reference#как-найти-id-ресурса).
+
+## Найдите команду для записи
 
 ```bash
 oneuptime resources
 ```
 
-Вы можете фильтровать по типу:
+Список показывает каждый вид записей с его командой, названиями, типом и путём в API. Типов два:
+
+| Тип | Что хранит | Операции |
+| --- | --- | --- |
+| `database` | Записи, которыми вы управляете: мониторы, инциденты, оповещения, страницы состояния, команды и другое | `list`, `get`, `create`, `update`, `delete`, `count` |
+| `analytics` | Телеметрию: логи, спаны, метрики, исключения и другие события | `list`, `create`, `count` |
+
+Выведите один тип командой `oneuptime resources --type database` или `--type analytics`. [Справочник команд](/docs/cli/command-reference#ресурсы) перечисляет все команды.
+
+## Вывод записей
 
 ```bash
-# Показать только ресурсы базы данных
-oneuptime resources --type database
-
-# Показать только аналитические ресурсы
-oneuptime resources --type analytics
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
 ```
 
-Распространённые ресурсы включают:
-
-| Ресурс                               | Команда                                 |
-| ------------------------------------ | --------------------------------------- |
-| Инцидент                             | `oneuptime incident`                    |
-| Алерт                                | `oneuptime alert`                       |
-| Монитор                              | `oneuptime monitor`                     |
-| Статус монитора                      | `oneuptime monitor-status`              |
-| Состояние инцидента                  | `oneuptime incident-state`              |
-| Страница статуса                     | `oneuptime status-page`                 |
-| Политика дежурства                   | `oneuptime on-call-policy`              |
-| Команда                              | `oneuptime team`                        |
-| Запланированное событие обслуживания | `oneuptime scheduled-maintenance-event` |
-
-## Список ресурсов
-
-Получение списка ресурсов с опциональной фильтрацией, пагинацией и сортировкой.
+| Параметр | Что делает | По умолчанию |
+| --- | --- | --- |
+| `--query <json>` | Возвращает только подходящие записи: см. [Фильтрация списка](#фильтрация-списка) | Все записи, которые может читать ключ |
+| `--limit <n>` | Наибольшее число возвращаемых записей, до 10 000 | `10` |
+| `--skip <n>` | Сколько подходящих записей пропустить сначала | `0` |
+| `--sort <json>` | Порядок, например `{"createdAt":"ASC"}`, или `"DESC"`, чтобы сначала шли самые новые | Сначала самые новые |
+| `-o, --output <format>` | `table`, `json` или `wide` | `table` в терминале, `json` в конвейере |
 
 ```bash
-oneuptime <resource> list [options]
-```
-
-**Опции:**
-
-| Опция                   | Описание                            | По умолчанию |
-| ----------------------- | ----------------------------------- | ------------ |
-| `--query <json>`        | Критерии фильтрации в формате JSON  | Нет          |
-| `--limit <n>`           | Максимальное количество результатов | `10`         |
-| `--skip <n>`            | Количество пропускаемых результатов | `0`          |
-| `--sort <json>`         | Порядок сортировки в формате JSON   | Нет          |
-| `-o, --output <format>` | Формат вывода                       | `table`      |
-
-**Примеры:**
-
-```bash
-# Список 10 последних инцидентов
+# The ten newest incidents
 oneuptime incident list
 
-# Фильтрация инцидентов по ID состояния
-oneuptime incident list --query '{"currentIncidentStateId":"<state-id>"}'
+# The oldest monitors first, 50 at a time: the second page
+oneuptime monitor list --sort '{"createdAt":"ASC"}' --limit 50 --skip 50
 
-# Список с пагинацией
-oneuptime incident list --limit 20 --skip 40
-
-# Сортировка по дате создания (по убыванию)
-oneuptime incident list --sort '{"createdAt":-1}'
-
-# Вывод в формате JSON
+# Every field of each incident, as JSON
 oneuptime incident list -o json
 ```
 
-## Получение ресурса
+Список запрашивает у OneUptime каждое поле каждой записи, которое может читать ключ. Таблица показывает шесть из них; JSON показывает все (см. [Форматы вывода](/docs/cli/output-formats)). Чтобы пройти по всем записям, увеличивайте `--skip` на `--limit`, пока страница не вернётся пустой; `count` говорит, сколько их всего.
 
-Получение одного ресурса по его ID.
+### Фильтрация списка
+
+`--query` принимает тот же фильтр, что и API: поле со значением совпадает с этим значением, а объект с `_type` сравнивает.
+
+| Фильтр | Совпадает с |
+| --- | --- |
+| `{"title":"Checkout API is down"}` | Записями точно с этим значением |
+| `{"title":{"_type":"Search","value":"checkout"}}` | Текстом, который содержит значение |
+| `{"createdAt":{"_type":"GreaterThan","value":"2026-10-01T00:00:00.000Z"}}` | Более поздними датами или большими числами |
+| `{"currentIncidentState":{"isResolvedState":false}}` | Полем записи, на которую ссылается ресурс: здесь — нерешёнными инцидентами |
 
 ```bash
-oneuptime <resource> get <id>
+oneuptime incident list --query '{"title":{"_type":"Search","value":"checkout"}}'
 ```
 
-**Аргументы:**
+[Фильтрация, сортировка и постраничный вывод](/docs/api-reference/api-reference#фильтрация-сортировка-и-постраничный-вывод) в справочнике API перечисляет все `_type`.
 
-| Аргумент | Описание          |
-| -------- | ----------------- |
-| `<id>`   | ID ресурса (UUID) |
-
-**Примеры:**
+## Чтение записи
 
 ```bash
-# Получение конкретного инцидента
-oneuptime incident get 550e8400-e29b-41d4-a716-446655440000
-
-# Получение монитора в формате JSON
-oneuptime monitor get abc-123 -o json
+oneuptime <resource> get <id> [-o <format>]
 ```
 
-## Создание ресурса
-
-Создание нового ресурса из встроенного JSON или файла.
-
 ```bash
-oneuptime <resource> create [options]
+oneuptime incident get 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 ```
 
-**Опции:**
+Таблица показывает по строке на каждое поле записи, обрезая каждое значение на 60 символах; `-o json` показывает значения целиком. На ID, который не называет ни одной записи, доступной вашему ключу, приходит ответ `Not found`, и команда завершается с кодом `3`.
 
-| Опция                   | Описание                            |
-| ----------------------- | ----------------------------------- |
-| `--data <json>`         | Данные ресурса в виде JSON-объекта  |
-| `--file <path>`         | Путь к JSON-файлу с данными ресурса |
-| `-o, --output <format>` | Формат вывода                       |
-
-Необходимо указать либо `--data`, либо `--file`.
-
-**Примеры:**
+## Создание записи
 
 ```bash
-# Создание инцидента с встроенным JSON
-oneuptime incident create --data '{"title":"API Outage","currentIncidentStateId":"<state-id>","incidentSeverityId":"<severity-id>","declaredAt":"2025-01-15T10:30:00Z"}'
+oneuptime <resource> create --data <json> [-o <format>]
+oneuptime <resource> create --file <path> [-o <format>]
+```
 
-# Создание из JSON-файла
+`--data` принимает запись в виде JSON, а `--file` читает её из JSON-файла. Укажите одно из двух; если указаны оба, используется файл. Поля — это поля API, и [справочник API](/reference) перечисляет поля каждого ресурса. Проект берётся из API-ключа, поэтому запись никогда его не называет.
+
+```bash
+# A manual monitor
+oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}'
+
+# An incident with one of your severities
+oneuptime incident create --data '{"title":"Checkout API is down","incidentSeverityId":"<severity-id>"}'
+
+# The same incident, from a file
 oneuptime incident create --file incident.json
-
-# Создание и вывод в формате JSON для захвата ID
-oneuptime monitor create --data '{"name":"API Health Check"}' -o json
 ```
 
-## Обновление ресурса
-
-Обновление существующего ресурса по ID.
+CLI выводит новую запись с её `_id`. Инцидент начинается в состоянии создания вашего проекта, если `currentIncidentStateId` не называет другое: см. [Состояние, в котором начинается новая запись](/docs/api-reference/api-reference#состояние-в-котором-начинается-новая-запись). Чтобы найти ID ваших уровней серьёзности:
 
 ```bash
-oneuptime <resource> update <id> [options]
+oneuptime incident-severity list -o json | jq -r '.[] | "\(._id)  \(.name)"'
 ```
 
-**Аргументы:**
+> [!TIP]
+> В Windows поместите JSON в файл и используйте `--file`: PowerShell и командная строка заключают JSON в кавычки в командной строке иначе, чем Bash.
 
-| Аргумент | Описание   |
-| -------- | ---------- |
-| `<id>`   | ID ресурса |
-
-**Опции:**
-
-| Опция                   | Описание                                         |
-| ----------------------- | ------------------------------------------------ |
-| `--data <json>`         | Поля для обновления в формате JSON (обязательно) |
-| `-o, --output <format>` | Формат вывода                                    |
-
-**Примеры:**
+## Обновление записи
 
 ```bash
-# Изменение состояния инцидента (например, на resolved)
-oneuptime incident update abc-123 --data '{"currentIncidentStateId":"<resolved-state-id>"}'
-
-# Переименование монитора
-oneuptime monitor update abc-123 --data '{"name":"Updated Monitor Name"}'
+oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-## Удаление ресурса
-
-Удаление ресурса по ID.
+`--data` обязателен и содержит только поля, которые нужно изменить:
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+# Rename a monitor
+oneuptime monitor update <monitor-id> --data '{"name":"Checkout API (EU)"}'
+
+# Move an incident to your resolved state
+oneuptime incident update <incident-id> --data '{"currentIncidentStateId":"<resolved-state-id>"}'
 ```
 
-**Аргументы:**
-
-| Аргумент | Описание   |
-| -------- | ---------- |
-| `<id>`   | ID ресурса |
-
-**Опции:**
-
-| Опция     | Описание                        |
-| --------- | ------------------------------- |
-| `--force` | Пропустить запрос подтверждения |
-
-**Примеры:**
+OneUptime отвечает на обновление пустым объектом: CLI выводит пустую строку или `{}` с `-o json`. Запустите `get`, чтобы увидеть запись в её нынешнем виде. Перевод инцидента в другое состояние этим способом записывает изменение в его хронологию, как это делает панель управления, а состояние раньше текущего отклоняется. Чтобы найти ID состояния «решён», первого в порядке вашего проекта:
 
 ```bash
-oneuptime incident delete abc-123
-oneuptime monitor delete 550e8400-e29b-41d4-a716-446655440000
-
-# Пропуск подтверждения
-oneuptime monitor delete 550e8400-e29b-41d4-a716-446655440000 --force
+oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order":"ASC"}' --limit 1 -o json | jq -r '.[0]._id'
 ```
 
-## Подсчёт ресурсов
-
-Подсчёт ресурсов, соответствующих опциональным критериям фильтрации.
+## Удаление записи
 
 ```bash
-oneuptime <resource> count [options]
+oneuptime <resource> delete <id>
 ```
 
-**Опции:**
+```bash
+oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
+```
 
-| Опция            | Описание                           |
-| ---------------- | ---------------------------------- |
-| `--query <json>` | Критерии фильтрации в формате JSON |
+Она отвечает `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.`
 
-**Примеры:**
+> [!CAUTION]
+> `delete` удаляет запись сразу. CLI не просит подтверждения, и отменить это нельзя. Она принимает `--force` для скриптов, написанных с ним, и `--force` ничего не меняет.
+
+## Подсчёт записей
 
 ```bash
-# Подсчёт всех инцидентов
+oneuptime <resource> count [--query <json>]
+```
+
+```bash
+# Every incident
 oneuptime incident count
 
-# Подсчёт инцидентов по состоянию
-oneuptime incident count --query '{"currentIncidentStateId":"<state-id>"}'
-
-# Подсчёт мониторов
-oneuptime monitor count
+# Incidents that are not resolved
+oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}'
 ```
 
-## Аналитические ресурсы
+CLI выводит одно число, одинаковое в таблице и в JSON, поэтому скрипт может прочитать его как есть.
 
-Аналитические ресурсы поддерживают ограниченный набор операций по сравнению с ресурсами базы данных:
+## Что умеет каждый тип
 
-| Операция | Поддерживается |
-| -------- | -------------- |
-| `list`   | Да             |
-| `create` | Да             |
-| `count`  | Да             |
-| `get`    | Нет            |
-| `update` | Нет            |
-| `delete` | Нет            |
+| Операция | `database` | `analytics` |
+| --- | --- | --- |
+| `list` | Да | Да |
+| `get` | Да | Нет |
+| `create` | Да | Да |
+| `update` | Да | Нет |
+| `delete` | Да | Нет |
+| `count` | Да | Да |
 
-Используйте `oneuptime resources --type analytics`, чтобы узнать, какие аналитические ресурсы доступны в вашем экземпляре.
+## Устранение неполадок
+
+:::details Сообщение «Not found: API error (404)»
+Записи нет, она в другом проекте или ключ не может её читать: OneUptime отвечает одинаково в каждом случае. Проверьте ID с помощью `list` и права ключа. Команда завершается с кодом `3`.
+:::
+
+:::details Сообщение «API error (422): You do not have permissions to select on»
+Список или чтение запрашивает каждое поле записи, а ключ не может читать одно из них: сообщение называет поле и права, которые могут его читать. Дайте ключу одно из этих прав.
+:::
+
+:::details Сообщение «Error: Invalid JSON»
+Значение `--query`, `--sort` или `--data` — не JSON. В Bash и zsh заключите его в одинарные кавычки; в Windows поместите запись в файл и используйте `--file`.
+:::
+
+:::details API error (400) при создании или обновлении
+OneUptime отклонил поле: сообщение его называет. `No fields to update` означает, что в `--data` не было ни одного поля для изменения.
+:::
+
+## Дальнейшие шаги
+
+:::cards
+- [Форматы вывода](/docs/cli/output-formats): Читать ответы в виде таблиц или JSON.
+- [Скрипты и CI/CD](/docs/cli/scripting): Использовать эти операции в скриптах и конвейерах.
+- [Справочник команд](/docs/cli/command-reference): Каждая команда, параметр и значение по умолчанию.
+:::

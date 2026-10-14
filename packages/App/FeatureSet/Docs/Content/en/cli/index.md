@@ -1,68 +1,122 @@
-# OneUptime CLI
+# CLI Overview
 
-The OneUptime CLI is a command-line interface for managing your OneUptime resources directly from the terminal. It supports full CRUD operations on monitors, incidents, alerts, status pages, and more.
+The OneUptime CLI, `oneuptime`, manages your OneUptime project from a terminal or a script. List, read, create, change, delete and count monitors, incidents, alerts, status pages and the other records the OneUptime API offers, with an API key of your project.
 
-## Features
+:::cards
+- [How the CLI works](#how-the-cli-works): One command, one API request, one answer.
+- [Install the CLI](#install-the-cli): One npm command, and the version to pick.
+- [Run your first commands](#run-your-first-commands): Save your API key, then list your incidents.
+- [Commands at a glance](#commands-at-a-glance): Every command, and the page that explains it.
+:::
 
-- **Multi-environment support** with named contexts for production, staging, and development
-- **Auto-discovery** of available resources from your OneUptime instance
-- **Flexible authentication** via CLI flags, environment variables, or saved contexts
-- **Smart output formatting** with JSON, table, and wide display modes
-- **Scriptable** for CI/CD pipelines and automation workflows
+## How the CLI works
 
-## Installation
+Each command sends one request to the OneUptime REST API and prints the answer. The CLI takes the API key and your OneUptime's address from flags, environment variables or a context that `oneuptime login` saved. The key decides what a command may read and change, exactly as it does for the API.
+
+```mermaid title="One command, one request"
+flowchart TB
+    T["Your terminal<br/>or a CI job"] -->|"oneuptime incident list"| C["oneuptime CLI"]
+    K["The API key and URL:<br/>flags, environment<br/>or a saved context"] --> C
+    C -->|"POST /api/incident/get-list"| A["OneUptime REST API"]
+    A -->|"the records the key<br/>may read, as JSON"| C
+    C -->|"a table in a terminal,<br/>JSON in a pipe"| T
+```
+
+The commands for records come with the CLI: each kind of record the OneUptime API opens to tools has one, the same records the [MCP server](/docs/ai/mcp-server) has tools for. Run `oneuptime resources` to list them.
+
+## Before you begin
+
+- **Node.js and npm**, a current LTS release, to install the CLI.
+- **An API key of your project.** Create one in **Project Settings → Advanced → API Keys** with **Create API Key**: see [Create an API key](/docs/api-reference/api-reference#create-an-api-key).
+- **On OneUptime Cloud, the Growth plan or above.** A project's API keys work only on it: see [API keys and SCIM below their plan](/docs/api-reference/api-reference#api-keys-and-scim-below-their-plan).
+
+## Install the CLI
+
+Install the `@oneuptime/cli` package from npm. It adds the `oneuptime` command, and `--version` prints the version you installed:
 
 ```bash
 npm install -g @oneuptime/cli
+oneuptime --version
 ```
 
-## Quick Start
+The CLI is released with OneUptime and has the same version number. On a self-hosted OneUptime, install the CLI of your OneUptime's version, so its commands match the records your server has:
 
 ```bash
-# Authenticate with your OneUptime instance
+npm install -g @oneuptime/cli@<your-oneuptime-version>
+```
+
+## Run your first commands
+
+:::steps
+### Save your API key
+
+Log in with the key and your OneUptime's address. The CLI saves them as a context named `default` and uses it from now on:
+
+```bash
 oneuptime login <your-api-key> https://oneuptime.com
+```
 
-# List your monitors
-oneuptime monitor list
+It answers `Logged in successfully. Context "default" is now active.` On a self-hosted OneUptime, use its address in place of `https://oneuptime.com`.
 
-# View a specific incident
-oneuptime incident get <incident-id>
+### List your incidents
 
-# See all available resources
+```bash
+oneuptime incident list
+```
+
+The ten newest incidents appear as a table. `login` saves the key without checking it, so this is the first command that shows the key works: if it is refused, see [Troubleshooting](/docs/cli/authentication#troubleshooting).
+
+### See what else you can manage
+
+```bash
 oneuptime resources
 ```
 
-## Documentation
+The list shows every kind of record you can work with, and its command, such as `monitor`, `status-page` or `on-call-policy`.
+:::
 
-| Guide                                           | Description                                              |
-| ----------------------------------------------- | -------------------------------------------------------- |
-| [Authentication](./authentication.md)           | Login, contexts, and credential management               |
-| [Resource Operations](./resource-operations.md) | CRUD operations on monitors, incidents, alerts, and more |
-| [Output Formats](./output-formats.md)           | JSON, table, and wide output modes                       |
-| [Scripting and CI/CD](./scripting.md)           | Automation, environment variables, and pipeline usage    |
-| [Command Reference](./command-reference.md)     | Complete reference for all commands and options          |
+## Commands at a glance
 
-## Global Options
+| Command | What it does | Read more |
+| --- | --- | --- |
+| `oneuptime login <api-key> <instance-url>` | Saves an API key and an address as a context | [Authentication](/docs/cli/authentication#log-in) |
+| `oneuptime context list`, `use`, `current`, `delete` | Lists, switches, shows and deletes saved contexts | [Authentication](/docs/cli/authentication#contexts) |
+| `oneuptime whoami` | Shows the URL and API key the next command will use | [Authentication](/docs/cli/authentication#check-what-the-cli-will-use) |
+| `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Works with one kind of record | [Resource Operations](/docs/cli/resource-operations) |
+| `oneuptime resources` | Lists the kinds of record, with their commands | [Command Reference](/docs/cli/command-reference#oneuptime-resources) |
+| `oneuptime version` | Prints the CLI's version | [Command Reference](/docs/cli/command-reference#oneuptime-version) |
+| `oneuptime help [command]` | Shows the help of a command | [Get help](#get-help) |
 
-These flags can be used with any command:
+## Global options
 
-| Flag                    | Description                            |
-| ----------------------- | -------------------------------------- |
-| `--api-key <key>`       | Override API key for this command      |
-| `--url <url>`           | Override instance URL for this command |
-| `--context <name>`      | Use a specific named context           |
-| `-o, --output <format>` | Output format: `json`, `table`, `wide` |
-| `--no-color`            | Disable colored output                 |
-| `--help`                | Show command help                      |
-| `--version`             | Show CLI version                       |
+These options work with every command, before or after it:
 
-## Getting Help
+| Option | What it does |
+| --- | --- |
+| `--api-key <key>` | The API key for this command, in place of the saved one |
+| `--url <url>` | Your OneUptime's address for this command |
+| `--context <name>` | A saved context for this command, in place of the current one |
+| `-o, --output <format>` | `table`, `json` or `wide`: see [Output Formats](/docs/cli/output-formats) |
+| `--no-color` | Prints without colors |
+| `-V, --version` | Prints the CLI's version |
+| `-h, --help` | Shows the help of the command |
+
+## Get help
+
+Every command has its own help, with its arguments, options and defaults:
 
 ```bash
-# General help
 oneuptime --help
-
-# Help for a specific command
-oneuptime monitor --help
-oneuptime monitor list --help
+oneuptime help incident
+oneuptime incident list --help
 ```
+
+## Next steps
+
+:::cards
+- [Authentication](/docs/cli/authentication): Contexts for each environment, and which key a command uses.
+- [Resource Operations](/docs/cli/resource-operations): List, read, create, change, delete and count records.
+- [Output Formats](/docs/cli/output-formats): Tables for people, JSON for scripts.
+- [Scripting & CI/CD](/docs/cli/scripting): Exit codes, jq and pipelines.
+- [Command Reference](/docs/cli/command-reference): Every command, option and default.
+:::
