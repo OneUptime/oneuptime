@@ -45,6 +45,9 @@ const NOW: Date = new Date("2026-10-13T07:40:00.000Z");
 // Intl writes "3:25 PM" with a narrow no-break space: read as a plain one.
 const NARROW_SPACES: RegExp = /[\u202f\u00a0]/g;
 
+// How far the list reaches past the card's padding on each side: "-mx-2".
+const LIST_REACH: RegExp = /^-mx-(\d+(?:\.\d+)?)$/;
+
 // The reader's language, as the translation hook reports it.
 let mockLanguage: string = "en";
 
@@ -1119,5 +1122,44 @@ describe("a row's lines, and the time beside them", () => {
       // As wide as the feeds' time column: it fits the longest "N min. ago".
       "sm:grid-cols-[6.25rem_0.625rem_minmax(0,1fr)_auto]",
     );
+  });
+
+  test("what a row says lines up with the card's title and buttons: the list reaches past the card's padding by a row's own", () => {
+    draw([
+      { at: "2026-10-13T07:38:00.000Z", attributes: LINK_DOWN },
+      { at: "2026-10-12T07:38:00.000Z", attributes: LINK_UP },
+      { at: null, attributes: STRANGER_REBOOT },
+    ]);
+
+    const reaches: Array<string> = Array.from(
+      screen.getByTestId("network-events-list").classList,
+    ).flatMap((name: string): Array<string> => {
+      const reach: string | undefined = LIST_REACH.exec(name)?.[1];
+
+      return reach ? [reach] : [];
+    });
+
+    // One reach, at every width.
+    expect(reaches).toHaveLength(1);
+
+    /*
+     * A row is padded so its hover and its focus ring have room; a day's
+     * heading is padded as much, so it starts where its rows' words do.
+     */
+    expect(rowElements()).toHaveLength(3);
+
+    for (const row of rowElements()) {
+      expect(row).toHaveClass(`px-${reaches[0]}`);
+    }
+
+    const headings: Array<HTMLElement> = screen.getAllByTestId(
+      "network-events-day-heading",
+    );
+
+    expect(headings).toHaveLength(2);
+
+    for (const heading of headings) {
+      expect(heading.parentElement).toHaveClass(`px-${reaches[0]}`);
+    }
   });
 });

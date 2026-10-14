@@ -373,7 +373,13 @@ const NetworkEventsTimeline: FunctionComponent<ComponentProps> = (
   }, [timed, clock]);
 
   return (
-    <div className="mt-5 space-y-5" data-testid="network-events-list">
+    /*
+     * A row is padded so its hover and focus have room to show (px-2). The
+     * list reaches that far past the card's own padding on both sides, so
+     * what a row says still lines up with the card's title, its filters
+     * and its buttons.
+     */
+    <div className="-mx-2 mt-5 space-y-5" data-testid="network-events-list">
       {days.map((day: FeedTimelineDay<TimelineItem>): ReactElement => {
         const headingId: string = `${idPrefix}-day-${day.dayKey}`;
 
