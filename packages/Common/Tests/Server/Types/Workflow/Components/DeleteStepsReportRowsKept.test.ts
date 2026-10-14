@@ -56,6 +56,7 @@ function makeOptions(): OptionsFixture {
       onError: (exception: Exception): Exception => {
         return exception;
       },
+      executeWorkflow: async (): Promise<void> => {},
     },
   };
 }

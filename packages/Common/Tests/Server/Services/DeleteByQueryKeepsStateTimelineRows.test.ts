@@ -256,7 +256,7 @@ describe.each(TIMELINES)("$name", (timeline: Timeline) => {
   test("the retention job's hardDeleteBy is narrowed the same way", async () => {
     const query: JSONObject = await queryTheHookIsHanded(timeline, () => {
       return service.hardDeleteBy({
-        query: { startsAt: QueryHelper.lessThan(new Date()) },
+        query: { startsAt: QueryHelper.lessThan(new Date()) } as never,
         props: { isRoot: true },
         limit: 100,
         skip: 0,
@@ -293,7 +293,9 @@ describe.each(TIMELINES)("$name", (timeline: Timeline) => {
       });
     });
 
-    const both: FindOperator<unknown> = query["_id"] as FindOperator<unknown>;
+    const both: FindOperator<unknown> = query[
+      "_id"
+    ] as unknown as FindOperator<unknown>;
     expect(both.type).toBe("and");
     expect((both.value as unknown as Array<unknown>)[0]).toBe(askedIds);
     expect(keptSqlOf(timeline, both)).toContain(

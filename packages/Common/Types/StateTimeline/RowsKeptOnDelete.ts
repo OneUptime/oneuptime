@@ -34,7 +34,7 @@
  * figure cover at most 90 days (Show the last ... days, 1 to 90, and the
  * uptime endpoint refuses a longer range), a monitor's overview draws 90 day
  * bars (MONITOR_UPTIME_HISTORY_DAYS) and a network site's Status Timeline
- * page shows its last 90 days. KeptStatusHistoryCoversReaders (Common Tests)
+ * page shows its last 90 days. StateTimelinesKeepRowsOnDelete (Common Tests)
  * holds this to those numbers.
  */
 export const KEPT_STATUS_HISTORY_DAYS: number = 90;
