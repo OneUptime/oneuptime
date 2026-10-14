@@ -201,7 +201,12 @@ const EntryRow: FunctionComponent<{
          * it: one line where there is room, and on a phone two, broken
          * between the two halves rather than anywhere a dot falls.
          */}
-        <div className="mt-0.5 flex flex-col text-sm text-gray-500 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-1.5">
+        {/*
+         * Gray-600, not the lighter gray-500 of a card's descriptions: these
+         * lines are read on the chosen entry's indigo tint too, where
+         * gray-500 falls short of AA (StatusTimelineAppearance).
+         */}
+        <div className="mt-0.5 flex flex-col text-sm text-gray-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-1.5">
           <Tooltip
             text={formatStatusTimelineFullTime(entry.startsAt, props.clock)}
           >
