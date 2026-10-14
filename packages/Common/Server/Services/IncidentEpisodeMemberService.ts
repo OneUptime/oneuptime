@@ -16,12 +16,14 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import Model from "../../Models/DatabaseModels/IncidentEpisodeMember";
+import Model, {
+  IncidentEpisodeMemberAddedBy,
+} from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import logger from "../Utils/Logger";
+import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
@@ -30,11 +32,43 @@ import { Yellow500, Green500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import IncidentService from "./IncidentService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
+import IncidentSeverityService from "./IncidentSeverityService";
+import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
-import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
+import FeedApiKeyActorUtil, {
+  FeedApiKeyActor,
+} from "../Utils/Feed/FeedApiKeyActor";
+import EpisodeMembersAdd, {
+  EpisodeMembersAddResult,
+  INCIDENT_EPISODE_ID_KEY,
+  INCIDENT_IDS_KEY,
+  INCIDENT_IDS_TO_ADD_KEY,
+  INCIDENT_NOT_FOUND_REASON,
+  INCIDENT_NOUNS,
+} from "../../Types/Episode/EpisodeMembersAdd";
+import EpisodeMembersBatch, {
+  EpisodeMemberFeedMention,
+} from "../Utils/Episode/EpisodeMembersBatch";
+import ModelPermission from "../Types/Database/Permissions/Index";
+import QueryHelper from "../Types/Database/QueryHelper";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+
+// What adding an incident to an episode it is in already is refused with.
+export const INCIDENT_ALREADY_IN_EPISODE_MESSAGE: string =
+  "Incident is already a member of this episode";
+
+/*
+ * The incidents to create a new episode with (INCIDENT_IDS_TO_ADD_KEY), as
+ * validated before the episode exists, and the most severe of their
+ * severities - what the episode takes when its create names none.
+ */
+export interface IncidentsForNewEpisode {
+  incidentIds: Array<ObjectID>;
+  mostSevereIncidentSeverityId: ObjectID | null;
+}
 
 /*
  * An incident's or an episode's title is plain text - an incident's is typed
@@ -295,9 +329,7 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     if (existingMember) {
-      throw new BadDataException(
-        "Incident is already a member of this episode",
-      );
+      throw new BadDataException(INCIDENT_ALREADY_IN_EPISODE_MESSAGE);
     }
 
     /*
@@ -404,7 +436,7 @@ export class Service extends ProjectReferencesService<Model> {
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.incidentEpisodeId) {
@@ -419,6 +451,17 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("projectId is required");
     }
 
+    /*
+     * One of several incidents added together (EpisodeMembersBatch): the
+     * episode's count, its last-added time and its feed entry are written
+     * once, for all of them, by whoever is adding them. The incident's own
+     * side - its episode, its feed entry - is written here as always.
+     */
+    const isAddedTogether: boolean = EpisodeMembersBatch.isAddedTogether({
+      props: onCreate.createBy.props,
+      miscDataProps: onCreate.createBy.miscDataProps,
+    });
+
     // Update incident's episode reference
     await IncidentService.updateOneById({
       id: createdItem.incidentId,
@@ -431,17 +474,19 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     // Update episode's incidentCount and lastIncidentAddedAt
-    try {
-      await IncidentEpisodeService.updateIncidentCount(
-        createdItem.incidentEpisodeId!,
-      );
-      await IncidentEpisodeService.updateLastIncidentAddedAt(
-        createdItem.incidentEpisodeId!,
-      );
-    } catch (error) {
-      logger.error(
-        `Error updating episode counts in IncidentEpisodeMemberService.onCreateSuccess: ${error}`,
-      );
+    if (!isAddedTogether) {
+      try {
+        await IncidentEpisodeService.updateIncidentCount(
+          createdItem.incidentEpisodeId!,
+        );
+        await IncidentEpisodeService.updateLastIncidentAddedAt(
+          createdItem.incidentEpisodeId!,
+        );
+      } catch (error) {
+        logger.error(
+          `Error updating episode counts in IncidentEpisodeMemberService.onCreateSuccess: ${error}`,
+        );
+      }
     }
 
     // Get incident details for feed
@@ -477,19 +522,24 @@ export class Service extends ProjectReferencesService<Model> {
     const episodeMention: FeedMention = describeEpisode(episode);
 
     // Create feed item on episode
-    await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
-      incidentEpisodeId: createdItem.incidentEpisodeId,
-      projectId: createdItem.projectId,
-      incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.IncidentAdded,
-      displayColor: Yellow500,
-      feedInfoInMarkdown:
-        mdText`${incidentMention.subject} added to episode${incidentMention.titleSuffix}`.toString(),
-      userId: createdItem.addedByUserId || undefined,
-      workspaceNotification: {
-        sendWorkspaceNotification: true,
-        notifyUserId: createdItem.addedByUserId || undefined,
-      },
-    });
+    if (!isAddedTogether) {
+      await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+        incidentEpisodeId: createdItem.incidentEpisodeId,
+        projectId: createdItem.projectId,
+        incidentEpisodeFeedEventType:
+          IncidentEpisodeFeedEventType.IncidentAdded,
+        displayColor: Yellow500,
+        feedInfoInMarkdown: EpisodeMembersBatch.getAddedFeedMarkdown({
+          mentions: [incidentMention],
+          nouns: INCIDENT_NOUNS,
+        }),
+        userId: createdItem.addedByUserId || undefined,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+          notifyUserId: createdItem.addedByUserId || undefined,
+        },
+      });
+    }
 
     // Create feed item on incident
     await IncidentFeedService.createIncidentFeedItem({
@@ -500,7 +550,7 @@ export class Service extends ProjectReferencesService<Model> {
       feedInfoInMarkdown:
         mdText`Added to ${episodeMention.subject}${episodeMention.titleSuffix}`.toString(),
       userId: createdItem.addedByUserId || undefined,
-      apiKeyActor: FeedApiKeyActorUtil.fromProps(_onCreate.createBy.props),
+      apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
     });
 
     return createdItem;
@@ -689,6 +739,674 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     return member !== null;
+  }
+
+  /*
+   * POST /incident-episode-member/add-incidents: several incidents added to
+   * an episode in one request (EpisodeMembersAdd) - from the incidents
+   * lists' Add to Existing Episode, and from the episode's own Add
+   * Incidents.
+   *
+   * Checked as the caller, before anything is written: that they may add
+   * incidents to episodes at all, and that they can see the episode - the
+   * whole request is refused otherwise - then each incident. An incident
+   * they cannot see is answered like one that does not exist, and is not
+   * added; one in the episode already is left as it is. Every other is added
+   * as a member of its own, through this service's create, so each is the
+   * same row, with the same follow-ons on the incident, as an incident added
+   * on its own; the episode's side is written once for all of them
+   * (addedTogether).
+   *
+   * The answer names every incident asked for, in the order asked, once.
+   */
+  @CaptureSpan()
+  public async addIncidentsToEpisode(data: {
+    incidentEpisodeId: unknown;
+    incidentIds: unknown;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<EpisodeMembersAddResult> {
+    const incidentEpisodeId: ObjectID = EpisodeMembersAdd.parseEpisodeId({
+      value: data.incidentEpisodeId,
+      key: INCIDENT_EPISODE_ID_KEY,
+    });
+
+    const incidentIds: Array<ObjectID> = EpisodeMembersAdd.parseIds({
+      value: data.incidentIds,
+      key: INCIDENT_IDS_KEY,
+      nouns: INCIDENT_NOUNS,
+    });
+
+    const projectId: ObjectID | undefined = data.props.tenantId;
+
+    if (!projectId) {
+      throw new BadDataException(
+        "A project is required to add incidents to an episode.",
+      );
+    }
+
+    this.checkCallerMayAddMembers({
+      projectId: projectId,
+      incidentEpisodeId: incidentEpisodeId,
+      incidentId: incidentIds[0]!,
+      props: data.props,
+    });
+
+    const episode: IncidentEpisode | null = await CallerVisibleRead.find(() => {
+      return IncidentEpisodeService.findOneById({
+        id: incidentEpisodeId,
+        select: { _id: true, projectId: true },
+        props: data.props,
+      });
+    });
+
+    if (!episode || !isSameId(episode.projectId, projectId)) {
+      throw new BadDataException(
+        "The episode to add the incidents to does not exist in this project, or you do not have access to it.",
+      );
+    }
+
+    const visibleIncidentIds: Set<string> =
+      await this.findIncidentIdsCallerCanSee({
+        projectId: projectId,
+        incidentIds: incidentIds,
+        props: data.props,
+      });
+
+    const incidentIdsInEpisode: Set<string> =
+      await this.findIncidentIdsInEpisode({
+        incidentEpisodeId: incidentEpisodeId,
+        incidentIds: incidentIds.filter((incidentId: ObjectID) => {
+          return visibleIncidentIds.has(
+            EpisodeMembersAdd.normalizeId(incidentId),
+          );
+        }),
+      });
+
+    /*
+     * The API key that asked, when no person did: the entry each incident
+     * gets names it, as an incident added on its own through the API does.
+     */
+    const apiKeyActor: FeedApiKeyActor = FeedApiKeyActorUtil.fromProps(
+      data.props,
+    );
+
+    const result: EpisodeMembersAddResult = EpisodeMembersAdd.emptyResult();
+    const addedIncidentIds: Array<ObjectID> = [];
+
+    for (const incidentId of incidentIds) {
+      const key: string = EpisodeMembersAdd.normalizeId(incidentId);
+
+      if (!visibleIncidentIds.has(key)) {
+        result.notAdded.push({ id: key, reason: INCIDENT_NOT_FOUND_REASON });
+        continue;
+      }
+
+      if (incidentIdsInEpisode.has(key)) {
+        result.alreadyInEpisode.push(key);
+        continue;
+      }
+
+      try {
+        const wasAdded: boolean = await this.createMemberAddedTogether({
+          projectId: projectId,
+          incidentEpisodeId: incidentEpisodeId,
+          incidentId: incidentId,
+          addedByUserId: data.props.userId,
+          apiKeyActor: apiKeyActor,
+          isFounder: false,
+        });
+
+        if (wasAdded) {
+          result.added.push(key);
+          addedIncidentIds.push(incidentId);
+        } else {
+          result.alreadyInEpisode.push(key);
+        }
+      } catch (error) {
+        const message: string =
+          error instanceof Error && error.message
+            ? error.message
+            : "This incident could not be added to the episode.";
+
+        logger.error(
+          `IncidentEpisodeMemberService could not add incident ${key} to episode ${incidentEpisodeId.toString()}: ${message}`,
+          {
+            projectId: projectId.toString(),
+            incidentEpisodeId: incidentEpisodeId.toString(),
+            incidentId: key,
+          } as LogAttributes,
+        );
+
+        result.notAdded.push({ id: key, reason: message });
+      }
+    }
+
+    await this.updateEpisodeAfterAddingTogether({
+      projectId: projectId,
+      incidentEpisodeId: incidentEpisodeId,
+      addedIncidentIds: addedIncidentIds,
+      addedByUserId: data.props.userId,
+      raiseSeverity: true,
+      writeFeedItem: true,
+    });
+
+    return result;
+  }
+
+  /*
+   * An incident episode created with the incidents it is for
+   * (miscDataProps[INCIDENT_IDS_TO_ADD_KEY], see EpisodeMembersAdd): the
+   * ids, checked by IncidentEpisodeService.onBeforeCreate before the episode
+   * number is taken and before anything is written. Every one must be an
+   * incident the caller can see in the project - one that is not refuses
+   * the whole create, so no episode is left behind without some of the
+   * incidents it was created for - and the caller must be allowed to add
+   * incidents to episodes. Hands back the ids, each once, and the most
+   * severe of the incidents' severities.
+   */
+  @CaptureSpan()
+  public async validateIncidentsForNewEpisode(data: {
+    projectId: ObjectID;
+    incidentIds: unknown;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<IncidentsForNewEpisode> {
+    const incidentIds: Array<ObjectID> = EpisodeMembersAdd.parseIds({
+      value: data.incidentIds,
+      key: INCIDENT_IDS_TO_ADD_KEY,
+      nouns: INCIDENT_NOUNS,
+    });
+
+    this.checkCallerMayAddMembers({
+      projectId: data.projectId,
+      /*
+       * The episode does not exist yet: the permission is the model's, asked
+       * of a member that names the first incident.
+       */
+      incidentEpisodeId: ObjectID.generate(),
+      incidentId: incidentIds[0]!,
+      props: data.props,
+    });
+
+    const incidents: Array<Incident> =
+      (await CallerVisibleRead.find(() => {
+        return IncidentService.findBy({
+          query: {
+            _id: QueryHelper.any(incidentIds),
+            projectId: data.projectId,
+          },
+          select: {
+            _id: true,
+            incidentSeverityId: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: data.props,
+        });
+      })) || [];
+
+    const visibleIncidentIds: Set<string> = new Set(
+      incidents.map((incident: Incident): string => {
+        return EpisodeMembersAdd.normalizeId(incident._id || "");
+      }),
+    );
+
+    const allVisible: boolean = incidentIds.every((incidentId: ObjectID) => {
+      return visibleIncidentIds.has(EpisodeMembersAdd.normalizeId(incidentId));
+    });
+
+    if (!allVisible) {
+      throw new BadDataException(
+        "Some of the incidents to add to the episode do not exist in this project, or you do not have access to them.",
+      );
+    }
+
+    return {
+      incidentIds: incidentIds,
+      mostSevereIncidentSeverityId: await this.getMostSevereSeverityId(
+        incidents
+          .map((incident: Incident): ObjectID | undefined => {
+            return incident.incidentSeverityId;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          }),
+      ),
+    };
+  }
+
+  /*
+   * The incidents an episode was created with, added once it exists (called
+   * by IncidentEpisodeService.onCreateSuccess, after the episode's privacy
+   * rules have run, with the ids validateIncidentsForNewEpisode checked).
+   * Each is a founding member, as the first incident of an episode a
+   * grouping rule opens is: the episode's "created" notification covers it,
+   * so its owners are not told again that it was added. The episode's count
+   * is written once; its feed entry naming them comes after its "Episode
+   * Created" entry (createIncidentsAddedFeedItem), and its severity is the
+   * one it was created with. Never throws: an incident that cannot be added
+   * is logged and left out. Hands back the ids added.
+   */
+  @CaptureSpan()
+  public async addIncidentsToNewEpisode(data: {
+    projectId: ObjectID;
+    incidentEpisodeId: ObjectID;
+    incidentIds: Array<ObjectID>;
+    addedByUserId: ObjectID | undefined;
+    apiKeyActor?: FeedApiKeyActor | undefined;
+  }): Promise<Array<ObjectID>> {
+    const addedIncidentIds: Array<ObjectID> = [];
+
+    for (const incidentId of data.incidentIds) {
+      try {
+        const wasAdded: boolean = await this.createMemberAddedTogether({
+          projectId: data.projectId,
+          incidentEpisodeId: data.incidentEpisodeId,
+          incidentId: incidentId,
+          addedByUserId: data.addedByUserId,
+          apiKeyActor: data.apiKeyActor || {},
+          isFounder: true,
+        });
+
+        if (wasAdded) {
+          addedIncidentIds.push(incidentId);
+        }
+      } catch (error) {
+        logger.error(
+          `IncidentEpisodeMemberService could not add incident ${incidentId.toString()} to the episode it was created with: ${error}`,
+          {
+            projectId: data.projectId.toString(),
+            incidentEpisodeId: data.incidentEpisodeId.toString(),
+            incidentId: incidentId.toString(),
+          } as LogAttributes,
+        );
+      }
+    }
+
+    await this.updateEpisodeAfterAddingTogether({
+      projectId: data.projectId,
+      incidentEpisodeId: data.incidentEpisodeId,
+      addedIncidentIds: addedIncidentIds,
+      addedByUserId: data.addedByUserId,
+      raiseSeverity: false,
+      writeFeedItem: false,
+    });
+
+    return addedIncidentIds;
+  }
+
+  /*
+   * The episode's one feed entry - and its one Slack / Microsoft Teams post
+   * - for incidents added together: "**3 incidents** added to episode:",
+   * then each by its number, and its title unless it is private
+   * (EpisodeMembersBatch). Read as root; nothing is written when none of the
+   * incidents exists (any more). Never throws.
+   */
+  @CaptureSpan()
+  public async createIncidentsAddedFeedItem(data: {
+    projectId: ObjectID;
+    incidentEpisodeId: ObjectID;
+    incidentIds: Array<ObjectID>;
+    addedByUserId: ObjectID | undefined;
+  }): Promise<void> {
+    if (data.incidentIds.length === 0) {
+      return;
+    }
+
+    try {
+      const incidents: Array<Incident> = await IncidentService.findBy({
+        query: {
+          _id: QueryHelper.any(data.incidentIds),
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          incidentNumber: true,
+          incidentNumberWithPrefix: true,
+          title: true,
+          isPrivate: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const incidentById: Map<string, Incident> = new Map();
+
+      for (const incident of incidents) {
+        incidentById.set(
+          EpisodeMembersAdd.normalizeId(incident._id || ""),
+          incident,
+        );
+      }
+
+      // In the order they were added.
+      const mentions: Array<EpisodeMemberFeedMention> = [];
+
+      for (const incidentId of data.incidentIds) {
+        const incident: Incident | undefined = incidentById.get(
+          EpisodeMembersAdd.normalizeId(incidentId),
+        );
+
+        if (incident) {
+          mentions.push(describeIncident(incident));
+        }
+      }
+
+      if (mentions.length === 0) {
+        return;
+      }
+
+      await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+        incidentEpisodeId: data.incidentEpisodeId,
+        projectId: data.projectId,
+        incidentEpisodeFeedEventType:
+          IncidentEpisodeFeedEventType.IncidentAdded,
+        displayColor: Yellow500,
+        feedInfoInMarkdown: EpisodeMembersBatch.getAddedFeedMarkdown({
+          mentions: mentions,
+          nouns: INCIDENT_NOUNS,
+        }),
+        userId: data.addedByUserId,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+          notifyUserId: data.addedByUserId,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `IncidentEpisodeMemberService could not write the feed entry for incidents added together: ${error}`,
+        {
+          projectId: data.projectId.toString(),
+          incidentEpisodeId: data.incidentEpisodeId.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
+  /*
+   * Whether the caller may add incidents to episodes in the project: the
+   * member model's create permission, asked of the member the request would
+   * write. A refusal names what is missing. Root writes are OneUptime's own.
+   */
+  private checkCallerMayAddMembers(data: {
+    projectId: ObjectID;
+    incidentEpisodeId: ObjectID;
+    incidentId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    if (data.props.isRoot) {
+      return;
+    }
+
+    const member: Model = new Model();
+    member.projectId = data.projectId;
+    member.incidentEpisodeId = data.incidentEpisodeId;
+    member.incidentId = data.incidentId;
+    member.addedBy = data.props.userId
+      ? IncidentEpisodeMemberAddedBy.Manual
+      : IncidentEpisodeMemberAddedBy.API;
+
+    ModelPermission.checkCreatePermissions(Model, member, data.props);
+  }
+
+  /*
+   * The incidents among `incidentIds` the caller can see in the project,
+   * read as them: privacy, labels and owners decide, as on the incidents
+   * list. A read the caller may not make at all finds none.
+   */
+  private async findIncidentIdsCallerCanSee(data: {
+    projectId: ObjectID;
+    incidentIds: Array<ObjectID>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Set<string>> {
+    const incidents: Array<Incident> =
+      (await CallerVisibleRead.find(() => {
+        return IncidentService.findBy({
+          query: {
+            _id: QueryHelper.any(data.incidentIds),
+            projectId: data.projectId,
+          },
+          select: {
+            _id: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: data.props,
+        });
+      })) || [];
+
+    return new Set(
+      incidents.map((incident: Incident): string => {
+        return EpisodeMembersAdd.normalizeId(incident._id || "");
+      }),
+    );
+  }
+
+  // The incidents among `incidentIds` that are in the episode already.
+  private async findIncidentIdsInEpisode(data: {
+    incidentEpisodeId: ObjectID;
+    incidentIds: Array<ObjectID>;
+  }): Promise<Set<string>> {
+    if (data.incidentIds.length === 0) {
+      return new Set();
+    }
+
+    const members: Array<Model> = await this.findBy({
+      query: {
+        incidentEpisodeId: data.incidentEpisodeId,
+        incidentId: QueryHelper.any(data.incidentIds),
+      },
+      select: {
+        incidentId: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return new Set(
+      members.map((member: Model): string => {
+        return EpisodeMembersAdd.normalizeId(member.incidentId || "");
+      }),
+    );
+  }
+
+  /*
+   * One incident added together with others: a member of its own, made
+   * through this service's create as OneUptime's write for the person who
+   * asked - named as the one who added it, or the API key that asked when
+   * no person did - with the episode's side left to the batch. A founding
+   * member (the incidents an episode is created with) is marked as covered
+   * by the episode's created notification. False when the incident turned
+   * out to be in the episode already (two adds racing).
+   */
+  private async createMemberAddedTogether(data: {
+    projectId: ObjectID;
+    incidentEpisodeId: ObjectID;
+    incidentId: ObjectID;
+    addedByUserId: ObjectID | undefined;
+    apiKeyActor: FeedApiKeyActor;
+    isFounder: boolean;
+  }): Promise<boolean> {
+    const member: Model = new Model();
+    member.projectId = data.projectId;
+    member.incidentEpisodeId = data.incidentEpisodeId;
+    member.incidentId = data.incidentId;
+    member.addedBy = data.addedByUserId
+      ? IncidentEpisodeMemberAddedBy.Manual
+      : IncidentEpisodeMemberAddedBy.API;
+    member.addedAt = OneUptimeDate.getCurrentDate();
+
+    if (data.addedByUserId) {
+      member.addedByUserId = data.addedByUserId;
+      member.createdByUserId = data.addedByUserId;
+    }
+
+    if (data.isFounder) {
+      member.isOwnerNotifiedOfIncidentAdded = true;
+    }
+
+    try {
+      await this.create({
+        data: member,
+        props: {
+          isRoot: true,
+          ...FeedApiKeyActorUtil.toProps(data.apiKeyActor),
+        },
+        miscDataProps: EpisodeMembersBatch.getMiscDataProps(),
+      });
+
+      return true;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === INCIDENT_ALREADY_IN_EPISODE_MESSAGE
+      ) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * The episode's side of incidents added together, once for all of them:
+   * its count (and a title kept from a template), its last-added time, its
+   * severity raised to the most severe incident added when asked - as a
+   * grouping rule raises it - and its one feed entry when asked. Nothing
+   * when none was added. Never throws: each step is logged if it fails.
+   */
+  private async updateEpisodeAfterAddingTogether(data: {
+    projectId: ObjectID;
+    incidentEpisodeId: ObjectID;
+    addedIncidentIds: Array<ObjectID>;
+    addedByUserId: ObjectID | undefined;
+    raiseSeverity: boolean;
+    writeFeedItem: boolean;
+  }): Promise<void> {
+    if (data.addedIncidentIds.length === 0) {
+      return;
+    }
+
+    const logAttributes: LogAttributes = {
+      projectId: data.projectId.toString(),
+      incidentEpisodeId: data.incidentEpisodeId.toString(),
+    };
+
+    try {
+      await IncidentEpisodeService.updateIncidentCount(data.incidentEpisodeId);
+      await IncidentEpisodeService.updateLastIncidentAddedAt(
+        data.incidentEpisodeId,
+      );
+    } catch (error) {
+      logger.error(
+        `Error updating the episode's count after incidents were added together: ${error}`,
+        logAttributes,
+      );
+    }
+
+    if (data.raiseSeverity) {
+      try {
+        const incidents: Array<Incident> = await IncidentService.findBy({
+          query: {
+            _id: QueryHelper.any(data.addedIncidentIds),
+            projectId: data.projectId,
+          },
+          select: {
+            incidentSeverityId: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const mostSevereIncidentSeverityId: ObjectID | null =
+          await this.getMostSevereSeverityId(
+            incidents
+              .map((incident: Incident): ObjectID | undefined => {
+                return incident.incidentSeverityId;
+              })
+              .filter((id: ObjectID | undefined): id is ObjectID => {
+                return Boolean(id);
+              }),
+          );
+
+        if (mostSevereIncidentSeverityId) {
+          await IncidentEpisodeService.updateEpisodeSeverity(
+            data.incidentEpisodeId,
+            mostSevereIncidentSeverityId,
+            true, // onlyIfHigher
+          );
+        }
+      } catch (error) {
+        logger.error(
+          `Error raising the episode's severity after incidents were added together: ${error}`,
+          logAttributes,
+        );
+      }
+    }
+
+    if (data.writeFeedItem) {
+      await this.createIncidentsAddedFeedItem({
+        projectId: data.projectId,
+        incidentEpisodeId: data.incidentEpisodeId,
+        incidentIds: data.addedIncidentIds,
+        addedByUserId: data.addedByUserId,
+      });
+    }
+  }
+
+  /*
+   * The most severe of these severities: the lowest order, as the project's
+   * severity settings list them. Null when none of them is known.
+   */
+  private async getMostSevereSeverityId(
+    severityIds: Array<ObjectID>,
+  ): Promise<ObjectID | null> {
+    if (severityIds.length === 0) {
+      return null;
+    }
+
+    const severities: Array<IncidentSeverity> =
+      await IncidentSeverityService.findBy({
+        query: {
+          _id: QueryHelper.any(severityIds),
+        },
+        select: {
+          _id: true,
+          order: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    let mostSevere: IncidentSeverity | null = null;
+
+    for (const severity of severities) {
+      if (!severity._id) {
+        continue;
+      }
+
+      if (
+        !mostSevere ||
+        (typeof severity.order === "number" &&
+          (typeof mostSevere.order !== "number" ||
+            severity.order < mostSevere.order))
+      ) {
+        mostSevere = severity;
+      }
+    }
+
+    return mostSevere?._id ? new ObjectID(mostSevere._id.toString()) : null;
   }
 }
 
