@@ -68,7 +68,10 @@ import { getRecordIdText, hasRecordId } from "../ObjectID/RecordIdText";
 import { getApiReferencePagePath } from "../../../Utils/ApiReferencePage";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
-import { getDeleteConsequence } from "../DeleteConfirmation/DeleteConsequences";
+import {
+  getDeleteConsequence,
+  joinSentences,
+} from "../DeleteConfirmation/DeleteConsequences";
 import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
 import { getRecordDisplayName } from "../../Utils/ModelDisplayName";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
@@ -751,7 +754,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       sentences.push(tx(listWarning.trim()));
     }
 
-    return sentences.join(" ");
+    // Run together as the reader's script writes sentences.
+    return joinSentences(sentences);
   };
 
   // The header's create button, "<verb> <noun>".
@@ -3349,10 +3353,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             );
           }
 
+          /*
+           * The nouns as a sentence has them - "delete 2 status pages?" -
+           * where the dialog's title keeps a title's capitals ("Delete 2
+           * Status Pages"); the way the Unlink question above already reads.
+           */
           return translator.translatePlural(
             BULK_DELETE_QUESTION,
             items.length,
-            getNounValues(false),
+            getNounValues(true),
           );
         },
         confirmTitle: (items: Array<TBaseModel>) => {

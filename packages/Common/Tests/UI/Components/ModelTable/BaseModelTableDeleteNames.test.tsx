@@ -469,7 +469,7 @@ describe("a bulk Delete", () => {
     );
 
     expect(description).toHaveTextContent(
-      "Are you sure you want to delete 3 Network Devices? This action cannot be undone.",
+      "Are you sure you want to delete 3 network devices? This action cannot be undone.",
     );
     expect(listedNames()).toEqual([
       "core-router-1",
@@ -522,7 +522,7 @@ describe("a bulk Delete", () => {
     );
 
     expect(description).toHaveTextContent(
-      "Are you sure you want to delete 2 Team Members?",
+      "Are you sure you want to delete 2 team members?",
     );
     expect(screen.queryByTestId("delete-confirmation-items")).toBeNull();
   });

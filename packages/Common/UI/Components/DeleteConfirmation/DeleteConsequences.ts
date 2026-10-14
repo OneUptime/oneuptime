@@ -466,6 +466,39 @@ export const getDeleteConsequenceSentences: (
 };
 
 /*
+ * A sentence that ends the way Chinese and Japanese end one - with a
+ * full-width full stop, question or exclamation mark. Those scripts put no
+ * space between sentences: "...削除されます。 すべて..." reads as a stray gap.
+ */
+const ENDS_WITH_FULL_WIDTH_STOP: RegExp = /[。！？]$/u;
+
+/*
+ * Whole sentences, each translated on its own, run together as one
+ * paragraph the way the reader's script writes them: a space after each,
+ * except after a full-width stop. Empty ones are left out.
+ */
+export const joinSentences: (sentences: ReadonlyArray<string>) => string = (
+  sentences: ReadonlyArray<string>,
+): string => {
+  return sentences
+    .map((sentence: string): string => {
+      return sentence.trim();
+    })
+    .filter((sentence: string): boolean => {
+      return sentence.length > 0;
+    })
+    .reduce((paragraph: string, sentence: string): string => {
+      if (!paragraph) {
+        return sentence;
+      }
+
+      return ENDS_WITH_FULL_WIDTH_STOP.test(paragraph)
+        ? `${paragraph}${sentence}`
+        : `${paragraph} ${sentence}`;
+    }, "");
+};
+
+/*
  * The same sentences in the reader's language, as one string: each one is a
  * whole sentence translated on its own, never a piece of another. "" for a
  * kind with nothing to add.
@@ -479,9 +512,9 @@ export const getDeleteConsequence: (
 ): string => {
   const reader: Translator = translator || getGlobalTranslator();
 
-  return getDeleteConsequenceSentences(tableName)
-    .map((sentence: string): string => {
+  return joinSentences(
+    getDeleteConsequenceSentences(tableName).map((sentence: string): string => {
       return reader.translateText(sentence) || sentence;
-    })
-    .join(" ");
+    }),
+  );
 };

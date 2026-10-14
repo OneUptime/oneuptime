@@ -1,3 +1,4 @@
+import DeleteConsequenceParagraph from "./DeleteConsequenceParagraph";
 import NamedSentence from "./NamedSentence";
 import {
   getGlobalTranslator,
@@ -217,19 +218,11 @@ const DeleteConfirmationMessage: FunctionComponent<ComponentProps> = (
         );
       })}
       {warning ? (
-        <>
-          {/*
-           * The space keeps the two paragraphs apart for anything that reads
-           * them as one line of text: textContent, a flat screen reading.
-           */}
-          {firstSentence || trailingSentences.length > 0 ? " " : ""}
-          <span
-            className="mt-3 block"
-            data-testid="delete-confirmation-consequence"
-          >
-            {warning}
-          </span>
-        </>
+        <DeleteConsequenceParagraph
+          hasTextBefore={Boolean(firstSentence) || trailingSentences.length > 0}
+        >
+          {warning}
+        </DeleteConsequenceParagraph>
       ) : (
         <></>
       )}

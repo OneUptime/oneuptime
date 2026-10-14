@@ -284,7 +284,7 @@ describe("BaseModelTable bulk delete verb", () => {
     expect(action["confirmTitle"](ONE)).toBe("Delete 1 Alert");
     // The question on its own; the warning after the names.
     expect(action["confirmMessage"](TWO)).toBe(
-      "Are you sure you want to delete 2 Alerts? This action cannot be undone.",
+      "Are you sure you want to delete 2 alerts? This action cannot be undone.",
     );
     expect(consequenceOf(action, TWO)).toBe(WARNING);
     expect(action["resultLabels"]["succeeded"]["other"]).toBe(

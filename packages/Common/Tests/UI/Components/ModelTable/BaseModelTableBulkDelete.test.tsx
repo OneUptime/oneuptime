@@ -619,7 +619,7 @@ describe("BaseModelTable bulk Delete", () => {
         expect(confirmationText()).not.toBe("");
       });
 
-      expect(confirmationText()).toContain("delete 2 Network Devices");
+      expect(confirmationText()).toContain("delete 2 network devices");
       expect(confirmationText()).toContain("cannot be undone");
     });
 
@@ -635,7 +635,7 @@ describe("BaseModelTable bulk Delete", () => {
         expect(confirmationText()).not.toBe("");
       });
 
-      expect(confirmationText()).toContain("delete 1 Network Device?");
+      expect(confirmationText()).toContain("delete 1 network device?");
     });
 
     /*
@@ -679,9 +679,22 @@ describe("BaseModelTable bulk Delete", () => {
       });
 
       expect(confirmationText().trim()).toBe(
-        "Are you sure you want to delete 2 Network Devices? This action cannot be undone.",
+        "Are you sure you want to delete 2 network devices? This action cannot be undone.",
       );
       expect(consequenceText()).toBe(NETWORK_DEVICE_CONSEQUENCE);
+    });
+
+    test("names the rows as a sentence does, where the dialog's title keeps a title's capitals", async () => {
+      await startBulkDelete();
+
+      await waitFor(() => {
+        expect(confirmationText()).not.toBe("");
+      });
+
+      // "2 Network Devices" in the middle of a question read as a heading.
+      expect(confirmationText()).toContain("delete 2 network devices?");
+      expect(confirmationText()).not.toContain("Network Devices");
+      expect(screen.getByText("Delete 2 Network Devices")).toBeInTheDocument();
     });
 
     test("uses the table's own warning for many rows instead of the one for its rows", async () => {
@@ -1160,7 +1173,7 @@ describe("BaseModelTable bulk Delete", () => {
       });
 
       expect(confirmationText().trim()).toBe(
-        "Are you sure you want to delete 2 Network Devices? This action cannot be undone.",
+        "Are you sure you want to delete 2 network devices? This action cannot be undone.",
       );
     });
   });

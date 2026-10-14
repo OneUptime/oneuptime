@@ -160,7 +160,7 @@ test.describe("Status Pages list: Delete", () => {
         modal.getByRole("heading", { name: "Delete 2 Status Pages" }),
       ).toBeVisible();
       await expect(modal.getByTestId("confirm-modal-description")).toHaveText(
-        "Are you sure you want to delete 2 Status Pages? This action cannot be undone.",
+        "Are you sure you want to delete 2 status pages? This action cannot be undone.",
       );
       await expect(modal.getByTestId("delete-confirmation-item")).toHaveText([
         names.first,

@@ -18,6 +18,11 @@
  *   - page=teams              the Teams list: Owners and Admin, which come
  *                             with every project, Members and a team of the
  *                             project's own
+ *   - page=monitors           the Monitors list, whose Delete says the most
+ *                             about what goes with a record
+ *   - page=status-page-delete a status page's own Delete page (Status Page
+ *                             > Delete); the status page is the one the path
+ *                             names (.../status-pages/<id>/delete)
  *   - role=viewer             a member who may read status pages but not
  *                             delete them (Viewer); the default is a project
  *                             owner
@@ -26,6 +31,11 @@
  *                             member's label-scoped permission does not cover
  *   - rows=<n>                how many extra status pages to list
  *                             (pagination)
+ *   - long=1                  two status pages with long names: one of many
+ *                             words, one a single word with no break in it
+ *   - delay=<ms>              how long each delete takes, so a bulk Delete
+ *                             can be seen while it runs
+ *   - lang=de|ja              the Dashboard's German or Japanese words
  *
  * Every delete request is recorded on `window.__fixture.deletes`, and every
  * list request on `window.__fixture.listRequests`, so the spec checks what
@@ -48,6 +58,11 @@ import StatusPages from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages
 import StatusPagesArchived from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/Archived";
 import IncidentStateTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/View/StateTimeline";
 import TeamsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Teams/Index";
+import MonitorsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Monitors";
+import StatusPageDeletePage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Delete";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
@@ -72,6 +87,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
@@ -84,6 +101,11 @@ const refused = (params.get("refuse") || "")
   .map((id) => id.trim().toLowerCase())
   .filter(Boolean);
 const extraRows = Number(params.get("rows") || 0);
+const hasLongNames = params.get("long") === "1";
+const deleteDelay = Math.max(0, Number(params.get("delay") || 0));
+const language = ["de", "ja"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 
 // The server's words when a label-scoped permission does not cover the row.
 const REFUSAL =
@@ -133,6 +155,27 @@ const statusPages = [
     true,
   ),
 ];
+
+/*
+ * Names as long as people give them: a sentence of a name, and a single word
+ * with nowhere to break (a host name, a slug).
+ */
+const LONG_NAMES = [
+  "Customer-Facing Status Page for EU-West Enterprise Customers, Partners and Resellers (Primary)",
+  "status.eu-west-1.enterprise-customers.partners-and-resellers.example.com",
+];
+
+if (hasLongNames) {
+  LONG_NAMES.forEach((name, index) => {
+    statusPages.push(
+      statusPage(
+        `32000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+        name,
+        "A page with a long name",
+      ),
+    );
+  });
+}
 
 for (let index = 0; index < extraRows; index++) {
   statusPages.push(
@@ -260,6 +303,63 @@ const teams = [
   ),
 ];
 
+function monitorStatus(id, name, color) {
+  const status = new MonitorStatus();
+  status._id = id;
+  status.name = name;
+  status.color = new Color(color);
+  return status;
+}
+
+const OPERATIONAL = monitorStatus(
+  "61000000-0000-4000-8000-000000000001",
+  "Operational",
+  "#10b981",
+);
+const DEGRADED = monitorStatus(
+  "61000000-0000-4000-8000-000000000002",
+  "Degraded",
+  "#f59e0b",
+);
+
+function monitor(id, name, description, monitorType, status) {
+  const record = new Monitor();
+  record._id = id;
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.name = name;
+  record.description = description;
+  record.monitorType = monitorType;
+  record.currentMonitorStatus = status;
+  record.currentMonitorStatusId = new ObjectID(status._id);
+  record.labels = [];
+  record.isArchived = false;
+  return record;
+}
+
+const monitors = [
+  monitor(
+    "60000000-0000-4000-8000-000000000001",
+    "Checkout API",
+    "The payment path customers use",
+    MonitorType.API,
+    OPERATIONAL,
+  ),
+  monitor(
+    "60000000-0000-4000-8000-000000000002",
+    "Marketing Website",
+    "www, from three regions",
+    MonitorType.Website,
+    DEGRADED,
+  ),
+  monitor(
+    "60000000-0000-4000-8000-000000000003",
+    "Primary Database Ping",
+    "The writer's address",
+    MonitorType.Ping,
+    OPERATIONAL,
+  ),
+];
+
 function serialize(value) {
   return JSON.parse(JSON.stringify(value || {}));
 }
@@ -348,6 +448,7 @@ const RECORDS = {
   StatusPage: statusPages,
   IncidentStateTimeline: timeline,
   Team: teams,
+  Monitor: monitors,
 };
 
 /*
@@ -384,7 +485,14 @@ PermissionUtil.getGlobalPermissions = () => ({
 ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
 ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
 
-ModelAPI.getItem = async () => null;
+// A record's own page reads it by its id: the Delete page, for its name.
+ModelAPI.getItem = async (options) => {
+  const tableName = new options.modelType().tableName;
+  const id = idOf(options.id);
+  return (
+    (RECORDS[tableName] || []).find((record) => idOf(record._id) === id) || null
+  );
+};
 
 ModelAPI.getList = async (options) => {
   const tableName = new options.modelType().tableName;
@@ -453,6 +561,12 @@ ModelAPI.deleteItem = async (options) => {
 
   window.__fixture.deletes.push({ tableName, id });
 
+  if (deleteDelay) {
+    await new Promise((resolve) => {
+      setTimeout(resolve, deleteDelay);
+    });
+  }
+
   if (tableName === "IncidentStateTimeline") {
     deleteTimelineRow(id);
     return;
@@ -467,6 +581,15 @@ ModelAPI.deleteItem = async (options) => {
       throw new Error(BUILT_IN_TEAM_DELETE_MESSAGE);
     }
     teams.splice(teams.indexOf(record), 1);
+    return;
+  }
+
+  if (tableName === "Monitor") {
+    const index = monitors.findIndex((record) => idOf(record._id) === id);
+    if (index === -1) {
+      throw new Error("Monitor not found.");
+    }
+    monitors.splice(index, 1);
     return;
   }
 
@@ -493,12 +616,24 @@ ModelAPI.deleteItem = async (options) => {
 API.get = async () => ({ data: { data: [], count: 0 } });
 API.post = async () => ({ data: { data: [], count: 0 } });
 
+/*
+ * The Dashboard looks every string up by its English text, so the separators
+ * i18next reads in a key (the "." and ":" of a sentence) are turned off, as
+ * the Dashboard's own setup does.
+ */
 await i18next.use(initReactI18next).init({
-  lng: "en",
-  fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  lng: language,
+  fallbackLng: language,
+  resources: {
+    en: { translation: {} },
+    de: { translation: DE },
+    ja: { translation: JA },
+  },
   interpolation: { escapeValue: false },
+  keySeparator: false,
+  nsSeparator: false,
 });
+document.documentElement.lang = language;
 
 const PAGES = {
   list: { component: StatusPages, trail: ["Status Pages"] },
@@ -511,6 +646,11 @@ const PAGES = {
     trail: ["Incidents", "State Timeline"],
   },
   teams: { component: TeamsPage, trail: ["Settings", "Teams"] },
+  monitors: { component: MonitorsPage, trail: ["Monitors"] },
+  "status-page-delete": {
+    component: StatusPageDeletePage,
+    trail: ["Status Pages", "Demo Status", "Delete"],
+  },
 };
 
 function Fixture() {

@@ -349,13 +349,31 @@ const tableLoaded: () => Promise<void> = async (): Promise<void> => {
   });
 };
 
-// The Delete dialog's words for this row, as the dialog draws them.
-const confirmationFor: (row: TimelineRow) => Promise<{
+interface DrawnConfirmation {
+  // Everything the dialog says, as one line.
   text: string;
   bold: Array<string>;
-}> = async (
+  /*
+   * What deleting it does, drawn as a paragraph of its own under the
+   * question: its text and its classes. Null when the dialog only asks.
+   */
+  effect: { text: string; className: string } | null;
+  // The classes of the bolded start, which is kept on one line.
+  startsAtClassName: string;
+}
+
+const readText: (element: Element | null) => string = (
+  element: Element | null,
+): string => {
+  return (element?.textContent || "").replace(WHITESPACE_RUN, " ").trim();
+};
+
+// The Delete dialog's words for this row, as the dialog draws them.
+const confirmationFor: (
   row: TimelineRow,
-): Promise<{ text: string; bold: Array<string> }> => {
+) => Promise<DrawnConfirmation> = async (
+  row: TimelineRow,
+): Promise<DrawnConfirmation> => {
   const confirmation: DeleteConfirmationLike =
     await recordedTableProps!.getDeleteConfirmation!(row);
 
@@ -364,13 +382,23 @@ const confirmationFor: (row: TimelineRow) => Promise<{
 
   const { container } = render(<div>{confirmation.description}</div>);
 
+  const effect: Element | null = container.querySelector(
+    '[data-testid="state-row-delete-effect"]',
+  );
+
   return {
-    text: (container.textContent || "").replace(WHITESPACE_RUN, " ").trim(),
+    text: readText(container),
     bold: Array.from(container.querySelectorAll("strong")).map(
       (element: Element): string => {
         return element.textContent || "";
       },
     ),
+    effect: effect
+      ? { text: readText(effect), className: effect.className }
+      : null,
+    startsAtClassName:
+      container.querySelector('[data-testid="delete-confirmation-starts-at"]')
+        ?.className || "",
   };
 };
 
@@ -503,26 +531,32 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
     expect(name).not.toContain(ROW_TWO);
   });
 
-  test("the newest state: the one before it becomes current again", async () => {
+  test("the newest state: the one before it becomes current again, said in a paragraph of its own", async () => {
     timeline = threeStates(pageCase);
 
     await renderPage(pageCase);
 
-    const confirmation: { text: string; bold: Array<string> } =
-      await confirmationFor(timeline[2]!);
+    const confirmation: DrawnConfirmation = await confirmationFor(timeline[2]!);
 
+    const effect: string = fill(
+      STATE_TIMELINE_DELETE_WORDS[pageCase.record].previousIsCurrentAgain,
+      { state: "Acknowledged" },
+    );
+
+    // The question and that it cannot be undone, then what it does.
     expect(confirmation.text).toBe(
       [
         fill(STATE_ROW_DELETE_QUESTION, {
           state: "Resolved",
           startsAt: shown(AT_THREE),
         }),
-        fill(
-          STATE_TIMELINE_DELETE_WORDS[pageCase.record].previousIsCurrentAgain,
-          { state: "Acknowledged" },
-        ),
         "This action cannot be undone.",
+        effect,
       ].join(" "),
+    );
+    expect(confirmation.effect?.text).toBe(effect);
+    expect(confirmation.effect?.className.split(" ")).toEqual(
+      expect.arrayContaining(["block", "mt-3"]),
     );
     expect(confirmation.bold).toEqual([
       "Resolved",
@@ -531,13 +565,16 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
     ]);
   });
 
-  test("a state in the middle: the one before it takes over its time", async () => {
+  test("a state in the middle: the one before it takes over its time, said in a paragraph of its own", async () => {
     timeline = threeStates(pageCase);
 
     await renderPage(pageCase);
 
-    const confirmation: { text: string; bold: Array<string> } =
-      await confirmationFor(timeline[1]!);
+    const confirmation: DrawnConfirmation = await confirmationFor(timeline[1]!);
+
+    const effect: string = fill(PREVIOUS_STATE_TAKES_OVER, {
+      state: "Created",
+    });
 
     expect(confirmation.text).toBe(
       [
@@ -545,10 +582,11 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
           state: "Acknowledged",
           startsAt: shown(AT_TWO),
         }),
-        fill(PREVIOUS_STATE_TAKES_OVER, { state: "Created" }),
         "This action cannot be undone.",
+        effect,
       ].join(" "),
     );
+    expect(confirmation.effect?.text).toBe(effect);
   });
 
   test("the oldest state: only the question", async () => {
@@ -556,14 +594,26 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
 
     await renderPage(pageCase);
 
-    const confirmation: { text: string; bold: Array<string> } =
-      await confirmationFor(timeline[0]!);
+    const confirmation: DrawnConfirmation = await confirmationFor(timeline[0]!);
 
     expect(confirmation.text).toBe(
       `${fill(STATE_ROW_DELETE_QUESTION, {
         state: "Created",
         startsAt: shown(AT_ONE),
       })} This action cannot be undone.`,
+    );
+    expect(confirmation.effect).toBeNull();
+  });
+
+  test("keeps when the state began on one line: a date broken after its month read as two things", async () => {
+    timeline = threeStates(pageCase);
+
+    await renderPage(pageCase);
+
+    const confirmation: DrawnConfirmation = await confirmationFor(timeline[2]!);
+
+    expect(confirmation.startsAtClassName.split(" ")).toContain(
+      "whitespace-nowrap",
     );
   });
 
@@ -589,8 +639,7 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
 
     await renderPage(pageCase);
 
-    const confirmation: { text: string; bold: Array<string> } =
-      await confirmationFor(timeline[2]!);
+    const confirmation: DrawnConfirmation = await confirmationFor(timeline[2]!);
 
     expect(confirmation.text).toBe(
       `${fill(STATE_ROW_DELETE_QUESTION, {
@@ -598,6 +647,7 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
         startsAt: shown(AT_THREE),
       })} This action cannot be undone.`,
     );
+    expect(confirmation.effect).toBeNull();
   });
 
   test("a bulk Delete says the rule", async () => {
@@ -641,10 +691,9 @@ describe("in the reader's language", () => {
       `Bestätigt (${shown(AT_TWO)})`,
     );
 
-    const confirmation: { text: string; bold: Array<string> } =
-      await confirmationFor(timeline[1]!);
+    const confirmation: DrawnConfirmation = await confirmationFor(timeline[1]!);
 
-    expect(confirmation.text).toContain(
+    expect(confirmation.effect?.text).toBe(
       "Erstellt, der Status davor, übernimmt seine Zeit.",
     );
     expect(confirmation.bold).toContain("Bestätigt");

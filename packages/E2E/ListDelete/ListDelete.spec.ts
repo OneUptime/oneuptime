@@ -251,7 +251,7 @@ test.describe("Bulk Actions", () => {
       dialog(page).getByRole("heading", { name: "Delete 2 Status Pages" }),
     ).toBeVisible();
     await expect(page.getByTestId("confirm-modal-description")).toHaveText(
-      "Are you sure you want to delete 2 Status Pages? This action cannot be undone.",
+      "Are you sure you want to delete 2 status pages? This action cannot be undone.",
     );
     await expect(page.getByTestId("delete-confirmation-item")).toHaveText([
       "Demo Status 13",
@@ -593,6 +593,33 @@ test.describe("an incident's State Timeline", () => {
       dialog(page).getByTestId("modal-footer-submit-button"),
     ).toHaveText("Delete");
 
+    /*
+     * What deleting it does is a paragraph of its own under the question and
+     * "This action cannot be undone.", as every Delete dialog sets apart what
+     * goes with a record - not a sentence in the middle of the question.
+     */
+    const effect: Locator = dialog(page).getByTestId("state-row-delete-effect");
+    await expect(effect).toHaveText(
+      "Acknowledged, the state before it, becomes the incident's current state again.",
+    );
+    await expect(effect).toHaveCSS("display", "block");
+    const startsAt: Locator = dialog(page).getByTestId(
+      "delete-confirmation-starts-at",
+    );
+    expect((await effect.boundingBox())!.y).toBeGreaterThan(
+      (await startsAt.boundingBox())!.y +
+        (await startsAt.boundingBox())!.height,
+    );
+    // When it began is one thing, on one line: it broke after "Oct" here.
+    expect(
+      await startsAt.evaluate((element: Element): number => {
+        return element.getClientRects().length;
+      }),
+    ).toBe(1);
+    await expect(stateRowQuestion(page)).toContainText(
+      "This action cannot be undone. Acknowledged, the state before it",
+    );
+
     await screenshot(page, "timeline-newest-state-dialog");
     expect(await deletesSent(page)).toEqual([]);
 
@@ -829,5 +856,430 @@ test.describe("the Teams list", () => {
     expect(await deletesSent(page)).toEqual([
       { tableName: "Team", id: TEAM_IDS["platform"] },
     ]);
+  });
+});
+
+/*
+ * The UI review's additions: the surfaces this change touched that the
+ * tests above did not draw - the Monitors list (whose Delete says the most
+ * about what goes with a record), a status page's own Delete page, the
+ * dialogs in German and Japanese, a name with nowhere to break, a phone's
+ * Bulk Actions menu and a locked Delete tapped on a phone, and a bulk
+ * result where many rows were refused for one reason.
+ */
+const LOCALES: string = path.resolve(
+  __dirname,
+  "../../App/FeatureSet/Dashboard/src/Locales",
+);
+
+async function readLocale(language: string): Promise<Record<string, string>> {
+  return JSON.parse(
+    await fs.readFile(path.join(LOCALES, `${language}.json`), "utf8"),
+  ) as Record<string, string>;
+}
+
+const MONITORS_PATH: string = `${PROJECT_PATH}/monitors?page=monitors`;
+
+const MONITOR_IDS: Record<string, string> = {
+  checkout: "60000000-0000-4000-8000-000000000001",
+  website: "60000000-0000-4000-8000-000000000002",
+  database: "60000000-0000-4000-8000-000000000003",
+};
+
+// DeleteConsequences' sentence for a monitor: it names its SLOs too.
+const MONITOR_CONSEQUENCE: string =
+  "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.";
+
+test.describe("the Monitors list", () => {
+  test("a row's Delete says what goes with the monitor, then that archiving keeps it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPath(page, MONITORS_PATH);
+    await expect(rowNames(page)).toHaveCount(3);
+
+    const menu: Locator = await openRowMenu(page, "Checkout API");
+    await expect(menu.getByRole("menuitem")).toHaveText(["Show ID", "Delete"]);
+    await menu.getByRole("menuitem", { name: "Delete" }).click();
+
+    await expect(
+      dialog(page).getByRole("heading", { name: "Delete Monitor" }),
+    ).toBeVisible();
+    await expect(page.getByTestId("delete-confirmation-message")).toHaveText(
+      `Are you sure you want to delete Checkout API? This action cannot be undone. ${MONITOR_CONSEQUENCE} ${ARCHIVE_INSTEAD}`,
+    );
+    await expect(
+      page.getByTestId("delete-confirmation-consequence"),
+    ).toHaveText(`${MONITOR_CONSEQUENCE} ${ARCHIVE_INSTEAD}`);
+
+    await screenshot(page, "monitors-row-delete-dialog");
+
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(dialog(page)).toBeHidden();
+    await expect(row(page, "Checkout API")).toHaveCount(0);
+    expect(await deletesSent(page)).toEqual([
+      { tableName: "Monitor", id: MONITOR_IDS["checkout"] },
+    ]);
+  });
+
+  test("a bulk Delete asks about the monitors in a sentence, names them, and deletes exactly those", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPath(page, MONITORS_PATH);
+    await selectRows(page, ["Checkout API", "Marketing Website"]);
+
+    const menu: Locator = await openBulkMenu(page);
+    await menu.getByRole("menuitem", { name: "Delete" }).click();
+
+    await expect(
+      dialog(page).getByRole("heading", { name: "Delete 2 Monitors" }),
+    ).toBeVisible();
+    await expect(page.getByTestId("confirm-modal-description")).toHaveText(
+      "Are you sure you want to delete 2 monitors? This action cannot be undone.",
+    );
+    await expect(page.getByTestId("delete-confirmation-item")).toHaveText([
+      "Checkout API",
+      "Marketing Website",
+    ]);
+    await expect(page.getByTestId("bulk-delete-consequence")).toHaveText(
+      `${MONITOR_CONSEQUENCE} ${ARCHIVE_INSTEAD}`,
+    );
+
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(page.getByTestId("bulk-action-succeeded-count")).toHaveText(
+      "2 Monitors deleted",
+    );
+    await dialog(page).getByRole("button", { name: "Close" }).click();
+
+    await expect(rowNames(page)).toHaveCount(1);
+    await expect(row(page, "Primary Database Ping")).toHaveCount(1);
+    expect(
+      (await deletesSent(page)).map((sent: RecordedDelete): string => {
+        return sent.id;
+      }),
+    ).toEqual([MONITOR_IDS["checkout"], MONITOR_IDS["website"]]);
+  });
+});
+
+test.describe("a status page's own Delete page", () => {
+  const deletePath: string = `${PROJECT_PATH}/status-pages/${IDS["demo"]}/delete?page=status-page-delete`;
+
+  test("says what goes with the status page on the card and in the dialog, as the list does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(deletePath);
+
+    const card: Locator = page.getByTestId("model-delete-card-message");
+    await expect(card).toHaveText(
+      `Permanently delete Demo Status. This action cannot be undone. ${STATUS_PAGE_CONSEQUENCE}`,
+    );
+    await expect(card.getByTestId("delete-confirmation-consequence")).toHaveCSS(
+      "display",
+      "block",
+    );
+
+    await screenshot(page, "status-page-delete-page");
+
+    await page
+      .getByRole("button", { name: "Delete Status Page" })
+      .first()
+      .click();
+    await expect(dialog(page)).toBeVisible();
+    await expect(
+      dialog(page).getByTestId("delete-confirmation-message"),
+    ).toHaveText(
+      `Are you sure you want to delete Demo Status? This action cannot be undone. ${STATUS_PAGE_CONSEQUENCE}`,
+    );
+    // A record's own page is not a list: it does not offer to archive.
+    await expect(dialog(page)).not.toContainText("archive it instead");
+
+    await screenshot(page, "status-page-delete-page-dialog");
+
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(dialog(page)).toBeHidden();
+    expect(await deletesSent(page)).toEqual([
+      { tableName: "StatusPage", id: IDS["demo"] },
+    ]);
+  });
+});
+
+test.describe("in the reader's language", () => {
+  test("German: the row dialog and what goes with the status page are German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const german: Record<string, string> = await readLocale("de");
+
+    await openList(page, "?lang=de");
+    await row(page, "Demo Status")
+      .getByTestId("row-actions-more-button")
+      .click();
+    await page.getByRole("menu").getByRole("menuitem").last().click();
+
+    await expect(
+      page.getByTestId("delete-confirmation-consequence"),
+    ).toHaveText(
+      `${german[STATUS_PAGE_CONSEQUENCE]} ${german[ARCHIVE_INSTEAD]}`,
+    );
+    await expect(dialog(page)).not.toContainText(STATUS_PAGE_CONSEQUENCE);
+    await expect(
+      dialog(page).getByTestId("modal-footer-submit-button"),
+    ).toHaveText(german["Delete"]!);
+
+    await screenshot(page, "row-delete-dialog-german");
+  });
+
+  test("Japanese: what goes with the status page runs on with no space after a full stop", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const japanese: Record<string, string> = await readLocale("ja");
+
+    await openList(page, "?lang=ja");
+    await row(page, "Demo Status")
+      .getByTestId("row-actions-more-button")
+      .click();
+    await page.getByRole("menu").getByRole("menuitem").last().click();
+
+    const consequence: string =
+      (await page
+        .getByTestId("delete-confirmation-consequence")
+        .textContent()) || "";
+
+    expect(consequence).toBe(
+      `${japanese[STATUS_PAGE_CONSEQUENCE]}${japanese[ARCHIVE_INSTEAD]}`,
+    );
+    expect(consequence).not.toContain("。 ");
+
+    await screenshot(page, "row-delete-dialog-japanese");
+  });
+});
+
+test.describe("a long name, on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  const SLUG: string =
+    "status.eu-west-1.enterprise-customers.partners-and-resellers.example.com";
+
+  test("wraps inside the dialog, which never scrolls sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openList(page, "?long=1");
+
+    // The slug's card is the last; its ⋯ is the last on the page.
+    await page.getByTestId("row-actions-more-button").last().click();
+    await page.getByRole("menu").getByRole("menuitem").last().click();
+
+    const name: Locator = dialog(page).getByTestId("delete-confirmation-name");
+    await expect(name).toHaveText(SLUG);
+
+    const overflow: { scrollWidth: number; clientWidth: number } = await dialog(
+      page,
+    ).evaluate(
+      (element: Element): { scrollWidth: number; clientWidth: number } => {
+        return {
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        };
+      },
+    );
+    expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
+
+    const box: { x: number; width: number } | null = await name.boundingBox();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+  });
+});
+
+test.describe("Bulk Actions on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("open their menu on the screen, Delete included", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openList(page);
+    await page
+      .getByRole("checkbox", {
+        name: "Select Status Page: Demo Status 13",
+        exact: true,
+      })
+      .check();
+    await page
+      .getByRole("checkbox", {
+        name: "Select Status Page: Demo Status",
+        exact: true,
+      })
+      .check();
+
+    const menu: Locator = await openBulkMenu(page);
+
+    /*
+     * Measured once it has opened: it grows in from 95% of its size, and a
+     * box read mid-way sits a few pixels in from where it comes to rest.
+     */
+    await expect(menu).toHaveCSS("opacity", "1");
+    await menu.evaluate(async (element: Element): Promise<void> => {
+      await Promise.all(
+        element
+          .getAnimations({ subtree: true })
+          .map((animation: Animation): Promise<Animation> => {
+            return animation.finished;
+          }),
+      );
+    });
+    const box: { x: number; width: number } | null = await menu.boundingBox();
+    expect(box!.width).toBe(224);
+
+    // It used to hang off the left edge, from a button at the start of a line.
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    await expect(
+      menu.getByRole("menuitem", { name: "Delete" }),
+    ).toBeInViewport();
+
+    await screenshot(page, "bulk-menu-phone");
+  });
+});
+
+test.describe("a locked Delete, tapped on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("says why it is locked, and the reason stays once the finger lifts", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openList(page, "?role=viewer");
+    await page.getByTestId("row-actions-more-button").nth(1).tap();
+
+    const item: Locator = page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Delete" });
+    await expect(item).toHaveAttribute("aria-disabled", "true");
+
+    const box: { x: number; y: number; width: number; height: number } | null =
+      await item.boundingBox();
+    await page.touchscreen.tap(
+      box!.x + box!.width / 2,
+      box!.y + box!.height / 2,
+    );
+
+    const tooltip: Locator = page.getByRole("tooltip");
+    await expect(tooltip).toContainText(
+      "You do not have permission to delete this Status Page.",
+    );
+
+    // A tap ends with the pointer leaving; the reason is still there to read.
+    await page.waitForTimeout(600);
+    await expect(tooltip).toBeVisible();
+
+    await screenshot(page, "row-delete-locked-phone");
+
+    await expect(dialog(page)).toHaveCount(0);
+    expect(await deletesSent(page)).toEqual([]);
+  });
+});
+
+test.describe("a bulk Delete refused for one reason", () => {
+  const REGIONAL_IDS: Array<string> = [1, 2, 3, 4, 5, 6].map(
+    (index: number): string => {
+      return `31000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
+    },
+  );
+
+  test("says the reason once, with every status page it refused", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openList(page, `?rows=6&refuse=${REGIONAL_IDS.join(",")}`);
+    await page.locator("thead").locator('input[type="checkbox"]').check();
+
+    const menu: Locator = await openBulkMenu(page);
+    await menu.getByRole("menuitem", { name: "Delete" }).click();
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(page.getByTestId("bulk-action-failed-count")).toHaveText(
+      "6 Status Pages not deleted",
+    );
+
+    const failures: Locator = page.getByTestId("bulk-action-failed-items");
+    await expect(
+      failures.getByTestId("bulk-action-failed-items-group"),
+    ).toHaveCount(1);
+    await expect(failures.getByRole("listitem")).toHaveText(
+      [1, 2, 3, 4, 5, 6].map((index: number): string => {
+        return `Status Page: Regional Status 0${index}`;
+      }),
+    );
+    expect(
+      ((await failures.textContent()) || "").split(REFUSAL).length - 1,
+    ).toBe(1);
+
+    // All six names and the reason fit without scrolling the list.
+    const list: { scrollHeight: number; clientHeight: number } =
+      await failures.evaluate(
+        (element: Element): { scrollHeight: number; clientHeight: number } => {
+          const scroller: Element = element.firstElementChild || element;
+          return {
+            scrollHeight: scroller.scrollHeight,
+            clientHeight: scroller.clientHeight,
+          };
+        },
+      );
+    expect(list.scrollHeight).toBeLessThanOrEqual(list.clientHeight);
+
+    await screenshot(page, "bulk-delete-refused-one-reason");
+  });
+});
+
+test.describe("an incident's State Timeline on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("keeps when the state began on one line, and says what deleting it does under the question", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPath(page, timelinePath(INCIDENT_WITH_HISTORY));
+    // Cards, newest first: Resolved is the first.
+    await page.getByTestId("row-actions-more-button").first().click();
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "Delete" })
+      .click();
+
+    const startsAt: Locator = dialog(page).getByTestId(
+      "delete-confirmation-starts-at",
+    );
+    await expect(startsAt).toBeVisible();
+    const lines: number = await startsAt.evaluate(
+      (element: Element): number => {
+        return element.getClientRects().length;
+      },
+    );
+    expect(lines).toBe(1);
+
+    await expect(
+      dialog(page).getByTestId("state-row-delete-effect"),
+    ).toHaveText(
+      "Acknowledged, the state before it, becomes the incident's current state again.",
+    );
+    await expect(
+      dialog(page).getByTestId("modal-footer-submit-button"),
+    ).toBeInViewport();
+
+    await screenshot(page, "timeline-newest-state-dialog-phone");
   });
 });

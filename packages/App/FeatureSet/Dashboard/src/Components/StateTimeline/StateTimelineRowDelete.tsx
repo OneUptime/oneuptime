@@ -9,6 +9,7 @@ import Sort from "Common/Types/BaseDatabase/Sort";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DeleteConsequenceParagraph from "Common/UI/Components/DeleteConfirmation/DeleteConsequenceParagraph";
 import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -34,8 +35,9 @@ import React, { ReactElement, useState } from "react";
  *     reason, and a bulk Delete lists it, with that reason, among the rows
  *     it did not delete.
  *   - Every other row's Delete dialog says which state it is ("the
- *     Acknowledged state that started ...") and what deleting it does: the
- *     state before it becomes current again, or takes over its time.
+ *     Acknowledged state that started ...") and, in a paragraph of its own
+ *     under the question, what deleting it does: the state before it becomes
+ *     current again, or takes over its time.
  *   - A row is called by its state and start wherever the table names it -
  *     its checkbox and ⋯ for a screen reader, a bulk Delete's lists - never
  *     by its id.
@@ -162,6 +164,33 @@ export interface StateTimelineRowDeleteProps<T extends BaseModel> {
   singularName: string;
   pluralName: string;
 }
+
+/*
+ * The words of a state's dialog that name the record's own things, in bold
+ * so they read as the record and not as more of the sentence: a state's
+ * name, which wraps like any name, and when it began, which is kept on one
+ * line - "Oct 14 2026, 09:05 AM GMT" broken after "Oct" read as two things.
+ */
+export const boldStateName: (text: string) => ReactElement = (
+  text: string,
+): ReactElement => {
+  return (
+    <strong className="break-words font-semibold text-gray-900">{text}</strong>
+  );
+};
+
+export const boldStartsAt: (text: string) => ReactElement = (
+  text: string,
+): ReactElement => {
+  return (
+    <strong
+      className="whitespace-nowrap font-semibold text-gray-900"
+      data-testid="delete-confirmation-starts-at"
+    >
+      {text}
+    </strong>
+  );
+};
 
 type ReadRowFunction = (row: BaseModel) => {
   id: string;
@@ -363,43 +392,47 @@ const useStateTimelineRowDelete: <T extends BaseModel>(
     const row: { stateName: string; startsAt: Date | undefined } =
       readRow(item);
 
-    const bold: (text: string) => ReactElement = (
-      text: string,
-    ): ReactElement => {
-      return <strong className="font-semibold text-gray-900">{text}</strong>;
-    };
-
     const previousStateName: string = read?.previousStateName || "";
 
+    // What deleting it does to the states around it, when it moves any.
+    const effect: ReactElement | null =
+      previousStateName &&
+      read?.effect === StateRowDeleteEffect.PreviousIsCurrentAgain ? (
+        <TranslatedSentence
+          template={words.previousIsCurrentAgain}
+          slots={{ state: boldStateName(previousStateName) }}
+        />
+      ) : previousStateName &&
+        read?.effect === StateRowDeleteEffect.PreviousTakesOver ? (
+        <TranslatedSentence
+          template={PREVIOUS_STATE_TAKES_OVER}
+          slots={{ state: boldStateName(previousStateName) }}
+        />
+      ) : null;
+
+    /*
+     * The question and that it cannot be undone, then - a paragraph of its
+     * own, as every Delete dialog sets apart what goes with a record - what
+     * deleting it does to the states around it.
+     */
     return {
       description: (
         <span data-testid="state-row-delete-confirmation">
           <TranslatedSentence
             template={STATE_ROW_DELETE_QUESTION}
             slots={{
-              state: bold(row.stateName),
-              startsAt: bold(formatStartsAt(row.startsAt)),
+              state: boldStateName(row.stateName),
+              startsAt: boldStartsAt(formatStartsAt(row.startsAt)),
             }}
           />{" "}
-          {read?.effect === StateRowDeleteEffect.PreviousIsCurrentAgain &&
-            previousStateName && (
-              <>
-                <TranslatedSentence
-                  template={words.previousIsCurrentAgain}
-                  slots={{ state: bold(previousStateName) }}
-                />{" "}
-              </>
-            )}
-          {read?.effect === StateRowDeleteEffect.PreviousTakesOver &&
-            previousStateName && (
-              <>
-                <TranslatedSentence
-                  template={PREVIOUS_STATE_TAKES_OVER}
-                  slots={{ state: bold(previousStateName) }}
-                />{" "}
-              </>
-            )}
           {translator.translateText("This action cannot be undone.")}
+          {effect ? (
+            <DeleteConsequenceParagraph dataTestId="state-row-delete-effect">
+              {effect}
+            </DeleteConsequenceParagraph>
+          ) : (
+            <></>
+          )}
         </span>
       ),
     };
