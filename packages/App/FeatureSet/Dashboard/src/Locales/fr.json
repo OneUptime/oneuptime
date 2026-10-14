@@ -28894,7 +28894,6 @@
   "The activity was real but expected, such as a penetration test or an admin task.": "The activity was real but expected, such as a penetration test or an admin task.",
   "The attacker goals behind the cases of the last 30 days.": "The attacker goals behind the cases of the last 30 days.",
   "The case is posted to it as JSON, signed so the receiver can check it came from OneUptime.": "The case is posted to it as JSON, signed so the receiver can check it came from OneUptime.",
-  "The case, its detections, notes, timeline and playbook runs are deleted. This cannot be undone. To keep the record, close the case with a verdict instead.": "The case, its detections, notes, timeline and playbook runs are deleted. This cannot be undone. To keep the record, close the case with a verdict instead.",
   "The channel's name, without the #.": "The channel's name, without the #.",
   "The detection was wrong: the rule or the data misread normal activity.": "The detection was wrong: the rule or the data misread normal activity.",
   "The entities named by the most findings: detection rule matches, threat intelligence matches and alerts from connected products. Open one in Correlate to see everything it touched.": "The entities named by the most findings: detection rule matches, threat intelligence matches and alerts from connected products. Open one in Correlate to see everything it touched.",
@@ -28909,7 +28908,6 @@
   "The run stops before its next step. Steps that already ran are not undone.": "The run stops before its next step. Steps that already ran are not undone.",
   "The run stops before this step until someone approves it on the case. On by default for steps that act outside OneUptime.": "The run stops before this step until someone approves it on the case. On by default for steps that act outside OneUptime.",
   "The run stops here and nothing after this step runs. Your name and comment are kept on the step and on the case's timeline.": "The run stops here and nothing after this step runs. Your name and comment are kept on the step and on the case's timeline.",
-  "The step is removed from the playbook. Runs already under way keep the steps they started with.": "The step is removed from the playbook. Runs already under way keep the steps they started with.",
   "The tactics and techniques this case's detections map to.": "The tactics and techniques this case's detections map to.",
   "The team the channel is in, by its ID: in Microsoft Teams, Get link to team, and copy the groupId from the link.": "The team the channel is in, by its ID: in Microsoft Teams, Get link to team, and copy the groupId from the link.",
   "The threat can no longer do harm; the cleanup is still to do.": "The threat can no longer do harm; the cleanup is still to do.",
@@ -28963,7 +28961,6 @@
   "a removed severity": "a removed severity",
   "a removed workflow": "a removed workflow",
   "case": "case",
-  "disabled": "disabled",
   "e.g. Confirmed with the user; the sign-ins were theirs.": "e.g. Confirmed with the user; the sign-ins were theirs.",
   "e.g. Contain compromised accounts": "e.g. Contain compromised accounts",
   "e.g. Suspicious sign-ins for alice@example.com": "e.g. Suspicious sign-ins for alice@example.com",
@@ -28986,5 +28983,8 @@
   "{{count}} rules · worst {{severity}}_one": "{{count}} rule · worst {{severity}}",
   "{{critical}} critical · {{high}} high": "{{critical}} critical · {{high}} high",
   "{{priority}} and up": "{{priority}} and up",
-  "{{type}}: {{value}} - open it in Correlate": "{{type}}: {{value}} - open it in Correlate"
+  "{{type}}: {{value}} - open it in Correlate": "{{type}}: {{value}} - open it in Correlate",
+  "Assignment": "Assignment",
+  "Step {{number}} ({{title}}) is removed from the playbook. Runs already under way keep the steps they started with.": "Step {{number}} ({{title}}) is removed from the playbook. Runs already under way keep the steps they started with.",
+  "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.": "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead."
 }

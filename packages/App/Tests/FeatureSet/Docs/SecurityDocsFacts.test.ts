@@ -502,7 +502,9 @@ describe("the Security Events page", () => {
       .slice(1);
 
     sectionBodies.forEach((body: string, index: number): void => {
-      for (const _title of allMatches(body, MENU_ITEM, 1)) {
+      const entryCount: number = allMatches(body, MENU_ITEM, 1).length;
+
+      for (let entry: number = 0; entry < entryCount; entry++) {
         sectionOfEntry.push(sections[index] as string);
       }
     });

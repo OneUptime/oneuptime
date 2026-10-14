@@ -366,8 +366,8 @@ const AttackCoveragePage: FunctionComponent<
                       <li key={rule.id} className="text-sm text-gray-700">
                         {rule.name}
                         {!rule.isEnabled ? (
-                          <span className="ml-1.5 text-xs text-gray-500">
-                            ({translator.translateText("disabled")})
+                          <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
+                            {translator.translateText("Disabled")}
                           </span>
                         ) : (
                           <></>
