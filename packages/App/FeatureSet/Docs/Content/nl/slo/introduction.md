@@ -70,7 +70,7 @@ De velden onder **Meer velden**:
 | Veld | Wat u instelt | Standaard |
 | --- | --- | --- |
 | **Beschrijving** | Waar de SLO voor dient. | Leeg |
-| **Risicodrempel (%)** | Het deel van het resterende foutbudget waarbij de SLO naar **At Risk** gaat. Een geheel getal van 0 tot 100. | 20 |
+| **Risicodrempel (%)** | Het deel van het resterende foutbudget waarbij de SLO naar **Risico** gaat. Een geheel getal van 0 tot 100. | 20 |
 | **Window Type** | **Rolling**: de laatste N dagen, die herstellen naarmate oude downtime uit het venster valt. **Calendar Month**: elke maand op zichzelf, teruggezet op de 1e. | **Rolling** |
 | **Window (Days)** | Alleen voortschrijdende vensters: hoeveel dagen terug te kijken, van 1 tot 366. Gebruikelijk is 28 of 30. | 30 |
 | **Tijdzone** | Alleen kalendermaanden: de tijdzone waarin elke maand begint en eindigt. | UTC |
@@ -93,7 +93,7 @@ Alles wat bepaalt hoe de SLO meet, begint met een standaardwaarde die u later wi
 | Monitoren | Waar de SLI vandaan komt. Koppel ze met de hand of met monitorregels: zie [Monitoren en monitorregels](/docs/slo/monitor-rules). |
 | Doel | Het deel goede tijd dat de SLO belooft, groter dan 0 en hoogstens 99,999. |
 | Compliancevenster | De periode waarover de SLI en het budget worden gemeten: een voortschrijdend venster van 1 tot 366 dagen, of een kalendermaand. |
-| Risicodrempel | Het deel van het resterende budget waarbij de SLO naar **At Risk** gaat. |
+| Risicodrempel | Het deel van het resterende budget waarbij de SLO naar **Risico** gaat. |
 | Downtime-statussen | Welke monitorstatussen als downtime tellen. |
 | Modus voor meerdere monitoren | Hoe de downtime van meerdere monitoren wordt gecombineerd. |
 
@@ -129,18 +129,18 @@ OneUptime geeft elke geëvalueerde SLO een status:
 | Status | Wat het betekent |
 | --- | --- |
 | **Gezond** | Er is meer budget over dan de risicodrempel. |
-| **At Risk** | Het resterende budget is gedaald tot de risicodrempel of lager: standaard 20%. |
-| **Budget Exhausted** | Het budget is helemaal op, of overschreden. |
+| **Risico** | Het resterende budget is gedaald tot de risicodrempel of lager: standaard 20%. |
+| **Budget uitgeput** | Het budget is helemaal op, of overschreden. |
 | **Misconfigured** | De SLO kan niet worden gemeten: hij heeft geen monitoren, zijn monitoren bestaan niet meer of hebben in zijn venster nog geen status geregistreerd, of zijn doel valt buiten het bereik. |
 | **Gepauzeerd** | Alle monitoren die hij meet, zijn gearchiveerd of hebben actieve bewaking uitgeschakeld, met de hand, door een handmatig incident of door gepland onderhoud. Hij gaat vanzelf verder zodra een van die monitoren weer wordt bewaakt. |
 
-Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus zijn status blijft zoals hij was; de SLO-lijst toont in plaats daarvan een badge **Uitgeschakeld** of **Gearchiveerd**. De eigenaren van een SLO krijgen een melding als de status verandert in **At Risk** of **Budget Exhausted**: zie [Foutbudgetten](/docs/slo/error-budget).
+Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus zijn status blijft zoals hij was; de SLO-lijst toont in plaats daarvan een badge **Uitgeschakeld** of **Gearchiveerd**. De eigenaren van een SLO krijgen een melding als de status verandert in **Risico** of **Budget uitgeput**: zie [Foutbudgetten](/docs/slo/error-budget).
 
 ## De SLO-lijst
 
 De pagina **SLOs** toont elke niet-gearchiveerde SLO, met status, SLI, resterend budget, verbruikssnelheid, doel, venster, monitoren, labels en eigenaren.
 
-- De tegels boven de lijst tellen SLO's per status: **Gezond**, **At Risk**, **Budget Exhausted**, **Misconfigured**, **Gepauzeerd** en **Uitgeschakeld**. Klik op een tegel om alleen die SLO's te zien, en nog eens om alle te zien.
+- De tegels boven de lijst tellen SLO's per status: **Gezond**, **Risico**, **Budget uitgeput**, **Misconfigured**, **Gepauzeerd** en **Uitgeschakeld**. Klik op een tegel om alleen die SLO's te zien, en nog eens om alle te zien.
 - Selecteer SLO's om in één keer labels en eigenaren toe te voegen of te verwijderen, ze te archiveren of ze te verwijderen.
 - De sectie **Instellingen** van het zijmenu bevat **Labelregels** en **Eigenaarsregels**, die nieuwe SLO's labelen en eigenaren geven: zie [Label- en eigenaarsregels](/docs/slo/label-and-owner-rules).
 - De sectie **Geavanceerd** van het zijmenu bevat **Gearchiveerd**, de lijst met gearchiveerde SLO's.

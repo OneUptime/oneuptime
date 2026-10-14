@@ -70,7 +70,7 @@ Feltene under **Flere felt**:
 | Felt | Det du angir | Standard |
 | --- | --- | --- |
 | **Beskrivelse** | Hva SLO-et er til. | Tom |
-| **Risikoterskel (%)** | Andelen av gjenværende feilbudsjett der SLO-et går over til **At Risk**. Et heltall fra 0 til 100. | 20 |
+| **Risikoterskel (%)** | Andelen av gjenværende feilbudsjett der SLO-et går over til **I faresonen**. Et heltall fra 0 til 100. | 20 |
 | **Window Type** | **Rolling**: de siste N dagene, som henter seg inn etter hvert som gammel nedetid faller ut av vinduet. **Calendar Month**: hver måned for seg, nullstilt den 1. | **Rolling** |
 | **Window (Days)** | Bare rullerende vinduer: hvor mange dager det skal ses bakover, fra 1 til 366. Vanlig er 28 eller 30. | 30 |
 | **Tidssone** | Bare kalendermåneder: tidssonen der hver måned starter og slutter. | UTC |
@@ -93,7 +93,7 @@ Alt som bestemmer hvordan SLO-et måler, starter med en standardverdi som du end
 | Monitorer | Hvor SLI-en kommer fra. Knytt dem til for hånd eller med monitorregler: se [Monitorer og monitorregler](/docs/slo/monitor-rules). |
 | Mål | Andelen god tid SLO-et lover, større enn 0 og høyst 99,999. |
 | Samsvarsvindu | Perioden SLI-en og budsjettet måles over: et rullerende vindu på 1 til 366 dager, eller en kalendermåned. |
-| Risikoterskel | Andelen av gjenværende budsjett der SLO-et går over til **At Risk**. |
+| Risikoterskel | Andelen av gjenværende budsjett der SLO-et går over til **I faresonen**. |
 | Nedetidsstatuser | Hvilke monitorstatuser som teller som nedetid. |
 | Modus for flere monitorer | Hvordan nedetid fra flere monitorer kombineres. |
 
@@ -129,18 +129,18 @@ OneUptime gir hvert evaluerte SLO en status:
 | Status | Hva den betyr |
 | --- | --- |
 | **Feilfri** | Det er mer budsjett igjen enn risikoterskelen. |
-| **At Risk** | Gjenværende budsjett har falt til risikoterskelen eller under: 20 % som standard. |
-| **Budget Exhausted** | Budsjettet er brukt helt opp, eller overskredet. |
+| **I faresonen** | Gjenværende budsjett har falt til risikoterskelen eller under: 20 % som standard. |
+| **Budsjett oppbrukt** | Budsjettet er brukt helt opp, eller overskredet. |
 | **Misconfigured** | SLO-et kan ikke måles: det har ingen monitorer, monitorene finnes ikke lenger eller har ennå ikke registrert noen status i vinduet, eller målet er utenfor gyldig område. |
 | **Pauset** | Alle monitorene det måler, er arkivert eller har aktiv overvåking slått av, for hånd, av en manuell hendelse eller av planlagt vedlikehold. Det fortsetter av seg selv så snart en av dem overvåkes igjen. |
 
-Et deaktivert eller arkivert SLO evalueres ikke, så statusen blir stående som den var; SLO-listen viser i stedet et merke **Deaktivert** eller **Arkivert**. Eierne av et SLO får beskjed når statusen endres til **At Risk** eller **Budget Exhausted**: se [Feilbudsjetter](/docs/slo/error-budget).
+Et deaktivert eller arkivert SLO evalueres ikke, så statusen blir stående som den var; SLO-listen viser i stedet et merke **Deaktivert** eller **Arkivert**. Eierne av et SLO får beskjed når statusen endres til **I faresonen** eller **Budsjett oppbrukt**: se [Feilbudsjetter](/docs/slo/error-budget).
 
 ## SLO-listen
 
 Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværende budsjett, forbruksrate, mål, vindu, monitorer, etiketter og eiere.
 
-- Flisene over listen teller SLO-er etter status: **Feilfri**, **At Risk**, **Budget Exhausted**, **Misconfigured**, **Pauset** og **Deaktivert**. Klikk på en flis for å se bare de SLO-ene, og igjen for å se alle.
+- Flisene over listen teller SLO-er etter status: **Feilfri**, **I faresonen**, **Budsjett oppbrukt**, **Misconfigured**, **Pauset** og **Deaktivert**. Klikk på en flis for å se bare de SLO-ene, og igjen for å se alle.
 - Velg SLO-er for å legge til eller fjerne etiketter og eiere, arkivere dem eller slette dem, alle på én gang.
 - Sidemenyens seksjon **Innstillinger** inneholder **Etikettregler** og **Eierregler**, som setter etiketter på nye SLO-er og gir dem eiere: se [Etikett- og eierregler](/docs/slo/label-and-owner-rules).
 - Sidemenyens seksjon **Avansert** inneholder **Arkivert**, listen over arkiverte SLO-er.

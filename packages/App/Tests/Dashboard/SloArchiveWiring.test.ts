@@ -295,15 +295,31 @@ describe("the Archived SLOs page", () => {
 });
 
 describe("surfaces that count or offer SLOs leave archived ones out", () => {
-  test("the Home page's 'SLOs at risk' tile does not count archived SLOs", () => {
-    const sloCount: string = between(
-      readCode("Components", "Home", "OverviewStats.tsx"),
+  test("the Home page's 'SLOs at risk' number and list leave archived SLOs out", () => {
+    /*
+     * Home's batch (HomeOverviewData) reads the burning SLOs as one list:
+     * its rows are the attention list, its total the strip's number.
+     */
+    const sloList: string = between(
+      readCode("Components", "Home", "HomeOverviewData.ts"),
+      "ModelAPI.getList<ServiceLevelObjective>({",
+      "}),",
+    );
+
+    expect(sloList).toContain("isEnabled: true,");
+    expect(sloList).toContain("isArchived: false,");
+  });
+
+  test("the Home page's SLO total, which tells 'no SLOs yet', leaves archived SLOs out", () => {
+    const sloTotal: string = between(
+      readCode("Components", "Home", "HomeOverviewData.ts"),
       "ModelAPI.count<ServiceLevelObjective>({",
       "}),",
     );
 
-    expect(sloCount).toContain("isEnabled: true,");
-    expect(sloCount).toContain("isArchived: false,");
+    expect(sloTotal).toContain("isArchived: false,");
+    // Disabled SLOs are still set up: someone paused them.
+    expect(sloTotal).not.toContain("isEnabled");
   });
 
   test("a monitor's delete warning names only the live SLOs it would change", () => {

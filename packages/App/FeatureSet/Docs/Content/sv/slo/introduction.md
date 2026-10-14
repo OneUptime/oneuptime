@@ -70,7 +70,7 @@ Fälten under **Fler fält**:
 | Fält | Det du anger | Standard |
 | --- | --- | --- |
 | **Beskrivning** | Vad SLO:et är till för. | Tom |
-| **Tröskel för riskzon (%)** | Den andel av den återstående felbudgeten där SLO:et går över till **At Risk**. Ett heltal från 0 till 100. | 20 |
+| **Tröskel för riskzon (%)** | Den andel av den återstående felbudgeten där SLO:et går över till **I riskzonen**. Ett heltal från 0 till 100. | 20 |
 | **Window Type** | **Rolling**: de senaste N dagarna, som återhämtar sig när gammalt driftstopp faller ur fönstret. **Calendar Month**: varje månad för sig, nollställd den 1:a. | **Rolling** |
 | **Window (Days)** | Bara rullande fönster: hur många dagar bakåt som räknas, från 1 till 366. Vanligt är 28 eller 30. | 30 |
 | **Tidszon** | Bara kalendermånader: tidszonen där varje månad börjar och slutar. | UTC |
@@ -93,7 +93,7 @@ Allt som avgör hur SLO:et mäter börjar med ett standardvärde som du ändrar 
 | Monitorer | Var SLI:n kommer ifrån. Koppla dem för hand eller med monitorregler: se [Monitorer och monitorregler](/docs/slo/monitor-rules). |
 | Mål | Den andel bra tid som SLO:et lovar, större än 0 och högst 99,999. |
 | Efterlevnadsfönster | Perioden som SLI:n och budgeten mäts över: ett rullande fönster på 1 till 366 dagar, eller en kalendermånad. |
-| Tröskel för riskzon | Den andel av den återstående budgeten där SLO:et går över till **At Risk**. |
+| Tröskel för riskzon | Den andel av den återstående budgeten där SLO:et går över till **I riskzonen**. |
 | Driftstoppsstatusar | Vilka monitorstatusar som räknas som driftstopp. |
 | Läge för flera monitorer | Hur driftstopp från flera monitorer kombineras. |
 
@@ -129,18 +129,18 @@ OneUptime ger varje utvärderat SLO en status:
 | Status | Vad den betyder |
 | --- | --- |
 | **Felfri** | Mer budget finns kvar än tröskeln för riskzon. |
-| **At Risk** | Den återstående budgeten har sjunkit till tröskeln för riskzon eller lägre: 20 % som standard. |
-| **Budget Exhausted** | Budgeten är helt förbrukad, eller överskriden. |
+| **I riskzonen** | Den återstående budgeten har sjunkit till tröskeln för riskzon eller lägre: 20 % som standard. |
+| **Budget förbrukad** | Budgeten är helt förbrukad, eller överskriden. |
 | **Misconfigured** | SLO:et kan inte mätas: det har inga monitorer, dess monitorer finns inte längre eller har ännu inte registrerat någon status i fönstret, eller dess mål ligger utanför intervallet. |
 | **Pausad** | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd, för hand, av en manuell incident eller av planerat underhåll. Det fortsätter av sig självt så snart någon av dem övervakas igen. |
 
-Ett inaktiverat eller arkiverat SLO utvärderas inte, så dess status står kvar som den var; SLO-listan visar i stället en etikett **Inaktiverad** eller **Arkiverad**. Ett SLO:s ägare får en avisering när statusen ändras till **At Risk** eller **Budget Exhausted**: se [Felbudgetar](/docs/slo/error-budget).
+Ett inaktiverat eller arkiverat SLO utvärderas inte, så dess status står kvar som den var; SLO-listan visar i stället en etikett **Inaktiverad** eller **Arkiverad**. Ett SLO:s ägare får en avisering när statusen ändras till **I riskzonen** eller **Budget förbrukad**: se [Felbudgetar](/docs/slo/error-budget).
 
 ## SLO-listan
 
 Sidan **SLOs** visar varje SLO som inte är arkiverat, med status, SLI, återstående budget, förbrukningstakt, mål, fönster, monitorer, etiketter och ägare.
 
-- Rutorna ovanför listan räknar SLO:er per status: **Felfri**, **At Risk**, **Budget Exhausted**, **Misconfigured**, **Pausad** och **Inaktiverad**. Klicka på en ruta för att bara se de SLO:erna, och igen för att se alla.
+- Rutorna ovanför listan räknar SLO:er per status: **Felfri**, **I riskzonen**, **Budget förbrukad**, **Misconfigured**, **Pausad** och **Inaktiverad**. Klicka på en ruta för att bara se de SLO:erna, och igen för att se alla.
 - Markera SLO:er för att lägga till eller ta bort etiketter och ägare, arkivera dem eller radera dem, alla på en gång.
 - Sidomenyns avsnitt **Inställningar** innehåller **Etikettregler** och **Ägarregler**, som sätter etiketter på nya SLO:er och ger dem ägare: se [Etikett- och ägarregler](/docs/slo/label-and-owner-rules).
 - Sidomenyns avsnitt **Avancerad** innehåller **Arkiverad**, listan över arkiverade SLO:er.

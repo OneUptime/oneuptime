@@ -105,8 +105,8 @@ Den återstående budgeten avgör SLO:ets status:
 | Status | När |
 | --- | --- |
 | **Felfri** | Mer budget finns kvar än tröskeln för riskzon. |
-| **At Risk** | Den återstående budgeten ligger på tröskeln för riskzon eller lägre: 20 % som standard. |
-| **Budget Exhausted** | Den återstående budgeten är noll eller lägre. |
+| **I riskzonen** | Den återstående budgeten ligger på tröskeln för riskzon eller lägre: 20 % som standard. |
+| **Budget förbrukad** | Den återstående budgeten är noll eller lägre. |
 
 Ange tröskeln för riskzon under **Inställningar** → **Objective**.
 
@@ -128,13 +128,13 @@ Med standardtröskeln på 20 % blir ett SLO i riskzonen felfritt igen vid 25 % �
 
 ## Aviseringar till ägare
 
-När ett SLO går över till **At Risk** eller **Budget Exhausted** aviserar OneUptime dess ägare:
+När ett SLO går över till **I riskzonen** eller **Budget förbrukad** aviserar OneUptime dess ägare:
 
 - Ägarna är de användare och teammedlemmar på SLO:ets sida **Ägare** som fortfarande är medlemmar i projektet. Ett SLO utan ägare aviserar i stället projektets ägare.
 - Varje ägare får ett e-postmeddelande som standard, och aviseringen i alla andra kanaler som hen slår på för **SLO status changed** under **Användarinställningar** → **Aviseringsinställningar** → **Övervakning**.
 - E-postmeddelandets ämne anger statusen och SLO:et, till exempel `[SLO At Risk] API Availability`.
 
-För att ett SLO nära en gräns inte ska avisera hela tiden får dess ägare högst en avisering i timmen. En övergång till **Budget Exhausted** skickas alltid, även inom den timmen.
+För att ett SLO nära en gräns inte ska avisera hela tiden får dess ägare högst en avisering i timmen. En övergång till **Budget förbrukad** skickas alltid, även inom den timmen.
 
 > [!TIP]
 > Aviseringar till ägare berättar för dem som ansvarar för ett SLO att dess budget är i knipa. För att larma ditt jourteam via eskaleringspolicyer använder du [Larm och incidenter för förbrukningstakt](/docs/slo/burn-rate-alerts). En regel för förbrukningstakt kan också lägga till SLO:ets ägare på varje larm och incident som den skapar.

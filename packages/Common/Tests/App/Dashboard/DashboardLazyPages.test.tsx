@@ -259,6 +259,7 @@ const secondaryPages: Array<PageCase> = [
   { page: PageMap.PROJECT_SSO, module: "Onboarding/SSO" },
   { page: PageMap.AI_COPILOT, module: "AICopilot/AICopilot" },
   { page: PageMap.AI_COPILOT_CONVERSATION, module: "AICopilot/AICopilot" },
+  { page: PageMap.HOME_ACTIVE_INCIDENTS, module: "Home/ActiveIncidents" },
   {
     page: PageMap.HOME_NOT_OPERATIONAL_MONITORS,
     module: "Home/NotOperationalMonitors",
