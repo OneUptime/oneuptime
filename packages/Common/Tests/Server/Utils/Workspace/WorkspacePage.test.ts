@@ -1017,7 +1017,7 @@ describe("WorkspacePage.page: the page itself", () => {
 
     expect(
       liveRows.filter((row: WorkspaceLiveMessage): boolean => {
-        return row.messageKey.startsWith("OnCallPageRequest:");
+        return Boolean(row.messageKey?.startsWith("OnCallPageRequest:"));
       }),
     ).toHaveLength(1);
   });

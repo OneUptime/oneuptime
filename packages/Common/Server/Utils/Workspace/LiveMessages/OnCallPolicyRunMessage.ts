@@ -117,7 +117,7 @@ export interface OnCallPolicyRunReading {
    */
   hasStarted: boolean;
   // The record's title: what a page from a chat is about.
-  recordTitle: string;
+  recordTitle?: string | undefined;
   /*
    * The key of the places somebody paged about the record from a chat
    * (WorkspaceLiveMessageKey.forOnCallPageRequest): an incident's or an
