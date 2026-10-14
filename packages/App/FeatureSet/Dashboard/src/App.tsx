@@ -19,6 +19,7 @@ import RouteMap from "./Utils/RouteMap";
 import useSelectedProjectSwitches from "./Utils/UseSelectedProjectSwitches";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
 import SSOAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
@@ -27,6 +28,7 @@ import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import BlockedProject from "Common/UI/Utils/BlockedProject";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { useEffect, useState, Suspense, lazy } from "react";
@@ -80,6 +82,9 @@ const AICopilot: LazyRoutes = lazy(() => {
 });
 const Sso: LazyRoutes = lazy(() => {
   return import("./Pages/Onboarding/SSO");
+});
+const HomeActiveIncidents: LazyRoutes = lazy(() => {
+  return import("./Pages/Home/ActiveIncidents");
 });
 const NotOperationalMonitors: LazyRoutes = lazy(() => {
   return import("./Pages/Home/NotOperationalMonitors");
@@ -301,6 +306,41 @@ const App: () => JSX.Element = () => {
 
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
+  /*
+   * Projects a request was refused for this visit because a master admin
+   * blocked them (BlockedProject.REFUSED_EVENT, raised by API.handleError), on top
+   * of those the project list says are blocked. The request was for the
+   * project open at the time.
+   */
+  const [blockedProjectIds, setBlockedProjectIds] = useState<Array<string>>([]);
+
+  useEffect(() => {
+    const onProjectBlocked: () => void = (): void => {
+      const projectId: string | undefined =
+        ProjectUtil.getCurrentProjectId()?.toString();
+
+      if (!projectId) {
+        return;
+      }
+
+      setBlockedProjectIds((current: Array<string>): Array<string> => {
+        return current.includes(projectId) ? current : [...current, projectId];
+      });
+    };
+
+    GlobalEvents.addEventListener(
+      BlockedProject.REFUSED_EVENT,
+      onProjectBlocked,
+    );
+
+    return () => {
+      GlobalEvents.removeEventListener(
+        BlockedProject.REFUSED_EVENT,
+        onProjectBlocked,
+      );
+    };
+  }, []);
+
   const [paymentMethodsCount, setPaymentMethodsCount] = useState<
     number | undefined
   >(undefined);
@@ -340,7 +380,18 @@ const App: () => JSX.Element = () => {
         setHasPaymentMethod(true);
       }
     } catch (e) {
-      setError(API.getFriendlyMessage(e));
+      const message: string = API.getFriendlyMessage(e);
+
+      /*
+       * A project a master admin blocked shows its own page, with the
+       * project picker (BlockedProject.REFUSED_EVENT) - not an error in place of
+       * the whole dashboard.
+       */
+      if (ProjectBlockedException.isException(message)) {
+        return;
+      }
+
+      setError(message);
     }
   }, [selectedProject?._id]);
 
@@ -520,6 +571,11 @@ const App: () => JSX.Element = () => {
         setShowProjectModal(false);
       }}
       selectedProject={selectedProject}
+      isSelectedProjectBlocked={BlockedProject.isSelectedProjectBlocked({
+        selectedProject: selectedProject,
+        projects: projects,
+        blockedProjectIds: blockedProjectIds,
+      })}
       hideNavBarOn={[RouteMap[PageMap.PROJECT_SSO]!]}
       onSsoAuthorizationRequired={() => {
         setError(new SSOAuthorizationException().message);
@@ -594,6 +650,15 @@ const App: () => JSX.Element = () => {
                     pageRoute={RouteMap[PageMap.HOME] as Route}
                     projects={projects}
                     isLoadingProjects={isLoading}
+                  />
+                }
+              />
+              <PageRoute
+                path={RouteMap[PageMap.HOME_ACTIVE_INCIDENTS]?.toString() || ""}
+                element={
+                  <HomeActiveIncidents
+                    {...commonPageProps}
+                    pageRoute={RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route}
                   />
                 }
               />

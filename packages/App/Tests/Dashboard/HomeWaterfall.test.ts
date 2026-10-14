@@ -3,19 +3,23 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The Home page used to be a request waterfall: nothing rendered until the
- * unresolved-incident-states list arrived, then GettingStarted fired four
- * count requests (even when the checklist had been dismissed forever ago),
- * and OverviewStats ran a two-stage fetch in which three counts that need no
- * state list still waited behind two state lists.
+ * Home must never become a request waterfall.
  *
- * The fix is structural, not behavioral — the page renders exactly the same
- * pixels, just without serializing independent requests — so there is nothing
- * for a renderer to assert even if one were available (the App suite runs in
- * a plain Node environment, see App/jest.config.json). These tests therefore
- * pin the INTENT against the sources, the same way
- * NetworkTopologyPanelLayering pins the SideOver z-index ladder: tolerant
- * patterns and structural extraction, never exact byte strings.
+ * It used to be one: nothing rendered until the unresolved-incident-states
+ * list arrived, then GettingStarted fired four count requests (even when the
+ * checklist had been dismissed long ago), and the tiles ran a two-stage
+ * fetch in which counts that need no state list still waited behind two
+ * state lists. The overview that replaced the tiles reads everything its
+ * headline, strip and attention list show in ONE parallel batch
+ * (HomeOverviewData.fetchHomeOverview), and every other card reads beside
+ * it, never behind it.
+ *
+ * The shape is structural, not behavioural - the page renders the same
+ * pixels either way, just later - so these tests pin the INTENT against the
+ * sources (the App suite runs in a plain Node environment): tolerant
+ * patterns and structural extraction, never exact byte strings. The batch's
+ * behaviour (seven reads in flight before any answers) is checked rendered
+ * in Common/Tests/App/Dashboard/HomeOverviewStatsFirstRun.test.tsx.
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..");
@@ -76,10 +80,9 @@ function balancedBlock(
 }
 
 /*
- * Every JSX expression container that gates its children on the page's
+ * Every JSX expression container that gates its children on a page's
  * isLoading/error state — `{isLoading && ...}`, `{!isLoading && ... && (...)}`
- * and friends. Whatever ends up inside one of these mounts only after the
- * incident-states fetch settles.
+ * and friends.
  */
 function loadingGateBlocks(source: string): Array<string> {
   const blocks: Array<string> = [];
@@ -109,9 +112,15 @@ function arrowFunctionBody(source: string, marker: string): string {
 
   expect(arrowIndex).toBeGreaterThan(markerIndex);
 
-  const braceIndex: number = source.indexOf("{", arrowIndex);
+  /*
+   * The arrow of the function's type annotation comes first; the body is
+   * the block after the arrow that follows `= async (` / `= (`.
+   */
+  const assignmentIndex: number = source.indexOf("= ", arrowIndex);
+  const bodyArrowIndex: number = source.indexOf("=>", assignmentIndex);
+  const braceIndex: number = source.indexOf("{", bodyArrowIndex);
 
-  expect(braceIndex).toBeGreaterThan(arrowIndex);
+  expect(braceIndex).toBeGreaterThan(bodyArrowIndex);
 
   return balancedBlock(source, braceIndex, "{", "}");
 }
@@ -195,7 +204,30 @@ function promiseAllEntries(source: string): Array<string> {
   });
 }
 
+// The query object of one request, whitespace collapsed.
+function queryOf(entry: string): string {
+  const queryIndex: number = entry.indexOf("query:");
+
+  expect(queryIndex).toBeGreaterThanOrEqual(0);
+
+  return balancedBlock(entry, entry.indexOf("{", queryIndex), "{", "}")
+    .replace(/\s+/g, " ")
+    .replace(/,\s*}/g, " }");
+}
+
 const HOME_SOURCE: string = readDashboardCode("Pages", "Home", "Home.tsx");
+
+const OVERVIEW_DATA_SOURCE: string = readDashboardCode(
+  "Components",
+  "Home",
+  "HomeOverviewData.ts",
+);
+
+const OVERVIEW_HOOK_SOURCE: string = readDashboardCode(
+  "Components",
+  "Home",
+  "UseHomeOverview.ts",
+);
 
 const GETTING_STARTED_SOURCE: string = readDashboardCode(
   "Components",
@@ -203,283 +235,51 @@ const GETTING_STARTED_SOURCE: string = readDashboardCode(
   "GettingStarted.tsx",
 );
 
-const OVERVIEW_STATS_SOURCE: string = readDashboardCode(
+const RESOURCES_SOURCE: string = readDashboardCode(
+  "Components",
+  "Home",
+  "ProjectResources.tsx",
+);
+
+const UPCOMING_SOURCE: string = readDashboardCode(
+  "Components",
+  "Home",
+  "UpcomingMaintenance.tsx",
+);
+
+const STRIP_SOURCE: string = readDashboardCode(
   "Components",
   "Home",
   "OverviewStats.tsx",
 );
 
-describe("Home page request waterfall", () => {
-  test("GettingStarted and OverviewStats mount outside the incident-states loading gate", () => {
-    /*
-     * Both widgets depend only on the project id and paint their own loading
-     * states, so parking them behind Home's incident-states fetch would
-     * serialize the page's requests for nothing. They must render, and they
-     * must render outside every isLoading/error-gated JSX block.
-     */
-    expect(HOME_SOURCE).toContain("<GettingStarted");
-    expect(HOME_SOURCE).toContain("<OverviewStats");
+const ACTIVE_INCIDENTS_SOURCE: string = readDashboardCode(
+  "Pages",
+  "Home",
+  "ActiveIncidents.tsx",
+);
 
-    const gates: Array<string> = loadingGateBlocks(HOME_SOURCE);
+const BATCH_BODY: string = arrowFunctionBody(
+  OVERVIEW_DATA_SOURCE,
+  "export const fetchHomeOverview",
+);
 
-    /*
-     * Sanity: the loader, the error message and the table gate must still be
-     * there — an empty gate list would mean this test is matching nothing.
-     */
-    expect(gates.length).toBeGreaterThanOrEqual(3);
-
-    for (const gate of gates) {
-      expect(gate).not.toContain("<GettingStarted");
-      expect(gate).not.toContain("<OverviewStats");
-    }
-  });
-
-  test("only the incidents table waits for the unresolved states, and it still waits", () => {
-    /*
-     * The states are not dead weight — the table's query is scoped by them.
-     * The fix must not have un-gated the one consumer that genuinely needs
-     * the fetch.
-     */
-    const tableGates: Array<string> = loadingGateBlocks(HOME_SOURCE).filter(
-      (gate: string): boolean => {
-        return gate.includes("<IncidentsTable");
-      },
-    );
-
-    expect(tableGates.length).toBe(1);
-    expect(tableGates[0]).toContain("unresolvedIncidentStates");
-  });
-
-  test("the page still surfaces its loading and error states", () => {
-    const gates: Array<string> = loadingGateBlocks(HOME_SOURCE);
-
-    expect(
-      gates.some((gate: string): boolean => {
-        return gate.includes("isLoading") && gate.includes("<PageLoader");
-      }),
-    ).toBe(true);
-
-    expect(
-      gates.some((gate: string): boolean => {
-        return gate.includes("error") && gate.includes("<ErrorMessage");
-      }),
-    ).toBe(true);
-  });
-
-  test("GettingStarted's effect short-circuits on dismissal before any count request", () => {
-    const effect: string = useEffectContaining(
-      GETTING_STARTED_SOURCE,
-      "fetchTaskCompletion",
-    );
-
-    /*
-     * The counts only exist to decide whether the checklist should render.
-     * A dismissed checklist never renders, so the dismissal read must come
-     * first and a bare `return` must sit between it and the fetch — that
-     * ordering is the whole fix (four requests on every Home visit, forever,
-     * for users who dismissed the card on day one).
-     */
-    const dismissalIndex: number = effect.indexOf("getDismissKey");
-    const fetchIndex: number = effect.indexOf("fetchTaskCompletion");
-
-    expect(dismissalIndex).toBeGreaterThanOrEqual(0);
-    expect(fetchIndex).toBeGreaterThan(dismissalIndex);
-
-    const betweenDismissalAndFetch: string = effect.slice(
-      dismissalIndex,
-      fetchIndex,
-    );
-
-    expect(betweenDismissalAndFetch).toMatch(/\breturn\b/);
-
-    // The effect must not count anything itself, before OR after the guard.
-    expect(effect).not.toContain("ModelAPI");
-  });
-
-  test("a fully completed checklist is remembered so its counts are never re-fetched", () => {
-    /*
-     * Completion cannot be known without counting once — but once every task
-     * has been complete, the card never renders again, so that verdict is
-     * persisted and the effect honours it up front.
-     */
-    const effect: string = useEffectContaining(
-      GETTING_STARTED_SOURCE,
-      "fetchTaskCompletion",
-    );
-
-    expect(effect).toContain("getCompleteKey");
-
-    expect(GETTING_STARTED_SOURCE).toMatch(
-      /LocalStorage\.setItem\(\s*getCompleteKey/,
-    );
-  });
-
-  test("OverviewStats issues all seven counts in a single parallel stage", () => {
-    /*
-     * The old shape awaited two state lists, THEN ran five counts — although
-     * the monitor, maintenance and SLO counts need no state list at all. The
-     * fixed shape has exactly one await in fetchCounts, and it is the one
-     * Promise.all joining every tile's count.
-     *
-     * Two totals joined that batch later, so a new project's tiles can tell
-     * "nothing is wrong" apart from "nothing is set up" ("No monitors yet",
-     * "No SLOs yet"). They must ride in the same parallel stage: a second
-     * round trip on every Home visit, for every project, would undo the fix.
-     */
-    const body: string = arrowFunctionBody(
-      OVERVIEW_STATS_SOURCE,
-      "fetchCounts",
-    );
-
-    const awaits: Array<string> = body.match(/\bawait\b/g) || [];
+describe("Home's one batch", () => {
+  test("fetchHomeOverview awaits exactly one thing: the Promise.all of every read", () => {
+    const awaits: Array<string> = BATCH_BODY.match(/\bawait\b/g) || [];
 
     expect(awaits.length).toBe(1);
-    expect(body).toMatch(/await\s+Promise\.all/);
-
-    const entries: Array<string> = promiseAllEntries(body);
-
-    expect(entries.length).toBe(7);
-
-    // The state-independent counts sit directly in the parallel batch…
-    expect(
-      entries.some((entry: string): boolean => {
-        return entry.includes("ModelAPI.count<Monitor>");
-      }),
-    ).toBe(true);
-    expect(
-      entries.some((entry: string): boolean => {
-        return entry.includes("ServiceLevelObjective");
-      }),
-    ).toBe(true);
-
-    /*
-     * …next to the three state-dependent chains, not behind them: the open
-     * incidents and alerts, and the maintenance in progress - Ongoing, or a
-     * state of the project's own between Ongoing and Ended, which only the
-     * project's states can name (Common/Utils/ScheduledMaintenanceStart).
-     */
-    expect(
-      entries.some((entry: string): boolean => {
-        return entry.includes("Incident");
-      }),
-    ).toBe(true);
-    expect(
-      entries.some((entry: string): boolean => {
-        return entry.includes("Alert");
-      }),
-    ).toBe(true);
-    expect(
-      entries.some((entry: string): boolean => {
-        return entry.includes("fetchOngoingMaintenanceCount");
-      }),
-    ).toBe(true);
+    expect(BATCH_BODY).toMatch(/await\s+Promise\.all/);
+    expect(promiseAllEntries(BATCH_BODY)).toHaveLength(7);
   });
 
-  test("the two set-up totals count everything, not a slice, in the same batch", () => {
-    const body: string = arrowFunctionBody(
-      OVERVIEW_STATS_SOURCE,
-      "fetchCounts",
-    );
-    const entries: Array<string> = promiseAllEntries(body);
-
-    // The query object of one ModelAPI.count entry, whitespace collapsed.
-    const queryOf: (entry: string) => string = (entry: string): string => {
-      const queryIndex: number = entry.indexOf("query:");
-
-      expect(queryIndex).toBeGreaterThanOrEqual(0);
-
-      return balancedBlock(entry, entry.indexOf("{", queryIndex), "{", "}")
-        .replace(/\s+/g, " ")
-        .replace(/,\s*}/g, " }");
-    };
-
-    const monitorTotals: Array<string> = entries.filter(
-      (entry: string): boolean => {
-        return (
-          entry.includes("ModelAPI.count<Monitor>") &&
-          queryOf(entry) === "{ projectId: props.projectId, isArchived: false }"
-        );
-      },
-    );
-
+  test("the batch's results are destructured in the order the reads are issued", () => {
     /*
-     * Every monitor that is not archived, whatever its status or whether it
-     * is enabled: zero means the project has none in its Monitors list. A
-     * narrower query would call a project whose monitors are all disabled
-     * "not set up"; archived ones are gone from that list, like archived
-     * SLOs below.
+     * Promise.all answers positionally. A destructuring list out of step
+     * with the batch would hand the monitor total to the SLO cell (or a
+     * list to a total) - two of the slots are plain numbers.
      */
-    expect(monitorTotals).toHaveLength(1);
-
-    const sloTotals: Array<string> = entries.filter(
-      (entry: string): boolean => {
-        return (
-          entry.includes("ModelAPI.count<ServiceLevelObjective>") &&
-          !queryOf(entry).includes("sloStatus")
-        );
-      },
-    );
-
-    expect(sloTotals).toHaveLength(1);
-
-    const sloTotalQuery: string = queryOf(sloTotals[0]!);
-
-    // Archived SLOs are gone from the SLOs list, so they do not count…
-    expect(sloTotalQuery).toContain("isArchived: false");
-    // …but disabled ones do: they are set up, just paused by someone.
-    expect(sloTotalQuery).not.toContain("isEnabled");
-
-    // The at-risk count keeps its own narrower query, unchanged.
-    const atRisk: Array<string> = entries.filter((entry: string): boolean => {
-      return (
-        entry.includes("ModelAPI.count<ServiceLevelObjective>") &&
-        queryOf(entry).includes("sloStatus")
-      );
-    });
-
-    expect(atRisk).toHaveLength(1);
-    expect(queryOf(atRisk[0]!)).toContain("isEnabled: true");
-    expect(queryOf(atRisk[0]!)).toContain("isArchived: false");
-  });
-
-  test("the maintenance count reads the cached state list, then counts by the in-progress states", () => {
-    /*
-     * The one state read behind the maintenance tile is the list the Home
-     * side menu reads on the same mount, through ModelListCache - so it is
-     * one request for both - and the count asks for the events in any state
-     * the event is in progress in, never by the ongoing flag alone.
-     */
-    const body: string = arrowFunctionBody(
-      OVERVIEW_STATS_SOURCE,
-      "fetchOngoingMaintenanceCount",
-    );
-
-    expect(body).toContain(
-      "ScheduledMaintenanceStateUtil.getInProgressScheduledMaintenanceStates(",
-    );
-    expect(body).toContain("ModelAPI.count<ScheduledMaintenance>");
-    expect(body).toMatch(
-      /currentScheduledMaintenanceStateId:\s*new Includes\(/,
-    );
-    expect(body).not.toContain("isOngoingState");
-
-    // No states in progress: no count is asked for at all.
-    expect(body).toMatch(/inProgressStates\.length === 0[\s\S]*return 0;/);
-  });
-
-  test("the batch's results are destructured in the order the counts are issued", () => {
-    /*
-     * Promise.all answers positionally. The totals were appended after the
-     * five tile counts; a destructuring list out of step with the batch would
-     * hand the monitor total to the SLO tile (or a tile count to a total)
-     * without any type error — every slot is a number.
-     */
-    const body: string = arrowFunctionBody(
-      OVERVIEW_STATS_SOURCE,
-      "fetchCounts",
-    );
-
-    const destructuring: RegExpMatchArray | null = body.match(
+    const destructuring: RegExpMatchArray | null = BATCH_BODY.match(
       /const\s*\[([^\]]*)\]\s*:/,
     );
 
@@ -504,31 +304,107 @@ describe("Home page request waterfall", () => {
       "totalSlos",
     ]);
 
-    const entries: Array<string> = promiseAllEntries(body);
+    const entries: Array<string> = promiseAllEntries(BATCH_BODY);
 
-    expect(entries[0]).toContain("fetchActiveIncidentsCount");
-    expect(entries[1]).toContain("fetchActiveAlertsCount");
-    expect(entries[2]).toContain("ModelAPI.count<Monitor>");
-    expect(entries[2]).toContain("isOperationalState: false");
-    expect(entries[3]).toContain("fetchOngoingMaintenanceCount");
-    expect(entries[4]).toContain("ModelAPI.count<ServiceLevelObjective>");
-    expect(entries[4]).toContain("sloStatus");
+    expect(entries[0]).toContain("fetchActiveIncidents(");
+    expect(entries[1]).toContain("fetchActiveAlerts(");
+    expect(entries[2]).toContain("fetchNotOperationalMonitors(");
+    expect(entries[3]).toContain("fetchOngoingMaintenance(");
+    expect(entries[4]).toContain("fetchSlosNeedingAttention(");
     expect(entries[5]).toContain("ModelAPI.count<Monitor>");
-    expect(entries[5]).not.toContain("currentMonitorStatus");
     expect(entries[6]).toContain("ModelAPI.count<ServiceLevelObjective>");
-    expect(entries[6]).not.toContain("sloStatus");
   });
 
-  test("Home hands the widgets a project id memoized on its string value", () => {
+  test("the two set-up totals count everything not archived, in the same batch", () => {
+    const entries: Array<string> = promiseAllEntries(BATCH_BODY);
+
+    /*
+     * Every monitor that is not archived, whatever its status or whether it
+     * is enabled: zero means the project has none in its Monitors list.
+     */
+    expect(queryOf(entries[5]!)).toBe(
+      "{ projectId: projectId, isArchived: false }",
+    );
+
+    // Archived SLOs are gone from the SLOs list; disabled ones are set up.
+    expect(queryOf(entries[6]!)).toBe(
+      "{ projectId: projectId, isArchived: false }",
+    );
+  });
+
+  test("the batch never waits on a state list itself", () => {
+    /*
+     * The shared state utils are still the source of the lists (a caching
+     * layer lives inside them), but the batch must never await them: the
+     * moment it does, the monitor and SLO reads are back behind them.
+     */
+    expect(BATCH_BODY).not.toContain("getUnresolvedIncidentStates");
+    expect(BATCH_BODY).not.toContain("getUnresolvedAlertStates");
+    expect(BATCH_BODY).not.toContain("getInProgressScheduledMaintenanceStates");
+  });
+
+  test("each state-scoped read fetches its own states, and asks nothing when there are none", () => {
+    const chains: Array<[string, string]> = [
+      ["export const fetchActiveIncidents", "getUnresolvedIncidentStates"],
+      ["export const fetchActiveAlerts", "getUnresolvedAlertStates"],
+      [
+        "export const fetchOngoingMaintenance",
+        "getInProgressScheduledMaintenanceStates",
+      ],
+    ];
+
+    for (const [marker, stateRead] of chains) {
+      const body: string = arrowFunctionBody(OVERVIEW_DATA_SOURCE, marker);
+
+      expect({ marker, reads: body.includes(stateRead) }).toEqual({
+        marker,
+        reads: true,
+      });
+      // No open (or in-progress) state: an empty list, and no request.
+      expect(body).toMatch(/\.length === 0\)\s*\{\s*return emptyList/);
+      expect(body.indexOf(stateRead)).toBeLessThan(
+        body.indexOf("ModelAPI.getList"),
+      );
+    }
+  });
+
+  test("every list in the batch reads the first few rows: its total is the number", () => {
+    const firstFewRows: RegExp = /limit: HOME_ATTENTION_LIST_LIMIT/;
+
+    for (const marker of [
+      "export const fetchActiveIncidents",
+      "export const fetchActiveAlerts",
+      "export const fetchNotOperationalMonitors",
+      "export const fetchOngoingMaintenance",
+      "export const fetchSlosNeedingAttention",
+    ]) {
+      const body: string = arrowFunctionBody(OVERVIEW_DATA_SOURCE, marker);
+
+      expect({ marker, limit: firstFewRows.test(body) }).toEqual({
+        marker,
+        limit: true,
+      });
+      expect(body).toContain("toHomeList");
+      // Not a separate count beside the list: the list answers with both.
+      expect(body).not.toContain("ModelAPI.count");
+    }
+  });
+
+  test("the strip makes no request of its own", () => {
+    expect(STRIP_SOURCE).not.toContain("ModelAPI");
+    expect(STRIP_SOURCE).not.toContain("useEffect");
+  });
+});
+
+describe("Home and its cards", () => {
+  test("Home hands the cards a project id memoized on its string value", () => {
     /*
      * ProjectUtil.getCurrentProjectId() constructs a fresh ObjectID on every
-     * call, so passing its raw result to the widgets would change the prop's
-     * identity on every Home re-render and re-fire their fetch effects
-     * (~3x the count requests per visit). The id handed down must therefore
-     * be memoized, and the memo must be keyed on the id's STRING value —
-     * the only stable form — not on another ObjectID instance.
+     * call, so passing its raw result down would change the prop's identity
+     * on every Home re-render (the clock ticks once a minute) and re-fire
+     * their fetch effects. The id handed down must be memoized, and the
+     * memo keyed on the id's STRING value.
      */
-    // "useMemo(" — the call, not the identifier in the react import list.
     const memoIndex: number = HOME_SOURCE.indexOf("useMemo(");
 
     expect(memoIndex).toBeGreaterThanOrEqual(0);
@@ -540,21 +416,14 @@ describe("Home page request waterfall", () => {
       ")",
     );
 
-    // The memo is the (sole) place the widgets' ObjectID gets built...
     expect(memoCall).toContain("ObjectID");
 
-    // ...and its dependency is a plain identifier, not an expression.
     const depsMatch: RegExpMatchArray | null = memoCall.match(
       /\[\s*([A-Za-z0-9_$]+)\s*\]\s*\)$/,
     );
 
     expect(depsMatch).not.toBeNull();
 
-    /*
-     * That identifier must be derived from the current project id's string
-     * form — anything else (the raw getter result, a fresh ObjectID) would
-     * defeat the memo.
-     */
     const depName: string = depsMatch![1] as string;
 
     expect(HOME_SOURCE).toMatch(
@@ -563,61 +432,160 @@ describe("Home page request waterfall", () => {
       ),
     );
 
-    // The widgets receive the memoized id, never the raw getter result.
+    // The batch and the cards get the memoized id, never the raw getter.
+    expect(HOME_SOURCE).toMatch(/useHomeOverview\(\s*currentProjectId\s*\)/);
     expect(HOME_SOURCE).not.toMatch(
-      /<(?:GettingStarted|OverviewStats)[^/>]*getCurrentProjectId/,
+      /<(?:GettingStarted|ProjectResources|UpcomingMaintenance)[^/>]*getCurrentProjectId/,
     );
+    for (const card of [
+      "GettingStarted",
+      "ProjectResources",
+      "UpcomingMaintenance",
+    ]) {
+      expect(HOME_SOURCE).toMatch(
+        new RegExp(`<${card}[^>]*projectId=\\{currentProjectId\\}`),
+      );
+    }
   });
 
-  test("both widgets key their fetch effects on the string form of the project id", () => {
+  test("Home itself gates nothing on a load: every card paints its own loading state", () => {
     /*
-     * Belt and braces on the consumer side: even a future caller that
-     * rebuilds the ObjectID every render must not re-fire the widgets'
-     * count requests, so the effects depend on the id's string value —
-     * an instance dep (`[props.projectId]`) would refetch on identity
-     * churn alone.
+     * The old Home parked its widgets behind its own incident-states fetch.
+     * Nothing on the page waits for anything but itself now.
      */
+    expect(loadingGateBlocks(HOME_SOURCE)).toEqual([]);
+    expect(HOME_SOURCE).not.toContain("getUnresolvedIncidentStates");
+  });
+
+  test("the batch and every card key their fetch effects on the id's string form", () => {
+    /*
+     * Belt and braces on the consumer side: a caller that rebuilds the
+     * ObjectID every render must not re-fire the requests.
+     */
+    const hookEffect: string = useEffectContaining(
+      OVERVIEW_HOOK_SOURCE,
+      "load({ isRefresh: false })",
+    );
+
+    expect(hookEffect).toMatch(/\[\s*projectIdString\s*\]\s*\)$/);
+    expect(OVERVIEW_HOOK_SOURCE).toMatch(
+      /projectIdString[^;]*=[^;]*projectId\.toString\(\)/,
+    );
+
+    const keyedOnProjectAndRefresh: RegExp =
+      /\[\s*projectIdString\s*,\s*props\.refreshKey\s*\]\s*\)$/;
+
+    for (const [name, source, needle] of [
+      ["ProjectResources", RESOURCES_SOURCE, "Promise.all"],
+      ["UpcomingMaintenance", UPCOMING_SOURCE, "fetchUpcomingMaintenance("],
+    ] as Array<[string, string, string]>) {
+      const effect: string = useEffectContaining(source, needle);
+
+      expect({
+        name,
+        keyedOnString: keyedOnProjectAndRefresh.test(effect),
+      }).toEqual({ name, keyedOnString: true });
+    }
+
     const gettingStartedEffect: string = useEffectContaining(
       GETTING_STARTED_SOURCE,
       "fetchTaskCompletion",
     );
 
-    const overviewStatsEffect: string = useEffectContaining(
-      OVERVIEW_STATS_SOURCE,
-      "fetchCounts",
+    expect(gettingStartedEffect).toMatch(
+      /\[\s*props\.projectId\??\.toString\(\)\s*\]\s*\)$/,
     );
+  });
 
-    for (const effect of [gettingStartedEffect, overviewStatsEffect]) {
-      expect(effect).toMatch(
-        /\[\s*props\.projectId\??\.toString\(\)\s*\]\s*\)$/,
-      );
+  test("a response for a project that was left, or for an older request, is dropped", () => {
+    // The hook numbers its loads and writes only the latest one's result.
+    expect(OVERVIEW_HOOK_SOURCE).toMatch(
+      /requestNumber !== latestRequest\.current/,
+    );
+    // The cards that read on their own stop listening when they unmount.
+    for (const source of [RESOURCES_SOURCE, UPCOMING_SOURCE]) {
+      expect(source).toMatch(/isCurrent = false/);
+      expect(source).toMatch(/if \(!?isCurrent\)/);
     }
   });
 
-  test("the state lists load inside the incident/alert chains, not ahead of everything", () => {
-    /*
-     * The shared state utils must still be the source of the lists (a caching
-     * layer lives inside them), but fetchCounts itself must never await them —
-     * the moment it does, the independent counts are back behind the lists.
-     */
-    expect(OVERVIEW_STATS_SOURCE).toContain("getUnresolvedIncidentStates");
-    expect(OVERVIEW_STATS_SOURCE).toContain("getUnresolvedAlertStates");
+  test("a tab nobody reads makes no requests: the hook refreshes on return, it does not poll", () => {
+    expect(OVERVIEW_HOOK_SOURCE).toContain("visibilitychange");
+    expect(OVERVIEW_HOOK_SOURCE).not.toMatch(/setInterval\(/);
+    expect(HOME_SOURCE).not.toMatch(/setInterval\(/);
+  });
+});
 
-    const body: string = arrowFunctionBody(
-      OVERVIEW_STATS_SOURCE,
-      "fetchCounts",
+describe("Getting Started", () => {
+  test("its effect short-circuits on dismissal before any count request", () => {
+    const effect: string = useEffectContaining(
+      GETTING_STARTED_SOURCE,
+      "fetchTaskCompletion",
     );
 
-    expect(body).not.toContain("getUnresolvedIncidentStates");
-    expect(body).not.toContain("getUnresolvedAlertStates");
-
     /*
-     * And the empty-list shortcut survives: no unresolved states means a
-     * count of zero without a request, for incidents and for alerts.
+     * The counts only exist to decide whether the checklist should render.
+     * A dismissed checklist never renders, so the dismissal read must come
+     * first and a bare `return` must sit between it and the fetch.
      */
-    const shortcuts: Array<string> =
-      OVERVIEW_STATS_SOURCE.match(/length\s*(?:===\s*0|>\s*0)/g) || [];
+    const dismissalIndex: number = effect.indexOf("getDismissKey");
+    const fetchIndex: number = effect.indexOf("fetchTaskCompletion");
 
-    expect(shortcuts.length).toBeGreaterThanOrEqual(2);
+    expect(dismissalIndex).toBeGreaterThanOrEqual(0);
+    expect(fetchIndex).toBeGreaterThan(dismissalIndex);
+
+    const betweenDismissalAndFetch: string = effect.slice(
+      dismissalIndex,
+      fetchIndex,
+    );
+
+    expect(betweenDismissalAndFetch).toMatch(/\breturn\b/);
+    expect(effect).not.toContain("ModelAPI");
+  });
+
+  test("a fully completed checklist is remembered so its counts are never re-fetched", () => {
+    const effect: string = useEffectContaining(
+      GETTING_STARTED_SOURCE,
+      "fetchTaskCompletion",
+    );
+
+    expect(effect).toContain("getCompleteKey");
+
+    expect(GETTING_STARTED_SOURCE).toMatch(
+      /LocalStorage\.setItem\(\s*getCompleteKey/,
+    );
+  });
+});
+
+describe("Home's Active Incidents page", () => {
+  test("only the incidents table waits for the unresolved states, and it still waits", () => {
+    /*
+     * The states are not dead weight - the table's query is scoped by
+     * them. The table moved here from Home; it must still be gated.
+     */
+    const tableGates: Array<string> = loadingGateBlocks(
+      ACTIVE_INCIDENTS_SOURCE,
+    ).filter((gate: string): boolean => {
+      return gate.includes("<IncidentsTable");
+    });
+
+    expect(tableGates.length).toBe(1);
+    expect(tableGates[0]).toContain("unresolvedIncidentStates");
+  });
+
+  test("the page still surfaces its loading and error states", () => {
+    const gates: Array<string> = loadingGateBlocks(ACTIVE_INCIDENTS_SOURCE);
+
+    expect(
+      gates.some((gate: string): boolean => {
+        return gate.includes("isLoading") && gate.includes("<PageLoader");
+      }),
+    ).toBe(true);
+
+    expect(
+      gates.some((gate: string): boolean => {
+        return gate.includes("error") && gate.includes("<ErrorMessage");
+      }),
+    ).toBe(true);
   });
 });

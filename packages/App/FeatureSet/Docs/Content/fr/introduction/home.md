@@ -3,7 +3,7 @@
 L'accueil est la première page que vous voyez dans un projet. Il vous dit d'un coup d'œil si quelque chose demande votre attention en ce moment, et guide un nouveau projet dans sa première configuration. Cette page explique ce que montre l'accueil, comment trouver n'importe quel produit, page ou action dans le tableau de bord, et les raccourcis clavier qui vous évitent des allers-retours dans les menus.
 
 :::cards
-- [Ce que montre l'accueil](#ce-que-montre-laccueil): La liste de bienvenue, les cinq tuiles et les incidents actifs.
+- [Ce que montre l'accueil](#ce-que-montre-laccueil): Si quelque chose ne va pas, ce qui demande votre attention, ce que contient le projet et tous les produits.
 - [Se repérer](#se-repérer): Le menu Produits et les barres en haut de chaque page.
 - [Rechercher](#rechercher-une-page-un-paramètre-ou-une-action): Trouver n'importe quelle page, paramètre ou action en tapant son nom.
 - [Raccourcis clavier](#raccourcis-clavier): Aller à l'accueil, aux moniteurs ou aux incidents en deux touches.
@@ -11,11 +11,46 @@ L'accueil est la première page que vous voyez dans un projet. Il vous dit d'un 
 
 ## Ce que montre l'accueil
 
-Ouvrez **Accueil** dans la barre du haut, ou appuyez sur `g` puis `h` depuis n'importe où. De haut en bas, l'accueil affiche :
+Ouvrez **Accueil** dans la barre du haut, ou appuyez sur `g` puis `h` depuis n'importe où. L'accueil est la vue d'ensemble de votre projet. De haut en bas, il affiche :
 
-1. **Bienvenue sur OneUptime 👋**, une liste de vérification pour un nouveau projet, jusqu'à ce qu'elle soit terminée.
-2. Cinq tuiles qui comptent ce qui demande de l'attention.
-3. **Incidents actifs**, chaque incident qui n'est pas encore résolu.
+1. Un champ de recherche, avec **Déclarer un incident** et **Créer** à côté.
+2. Une ligne qui dit si quelque chose ne va pas, au-dessus de cinq nombres qui comptent ce qui demande de l'attention.
+3. **Bienvenue sur OneUptime 👋**, une liste de vérification pour un nouveau projet, jusqu'à ce qu'elle soit terminée.
+4. **Attention requise**, chaque problème ouvert en ce moment, par son nom.
+5. **Votre projet**, ce qui compose le projet, et **Maintenance à venir** quand une maintenance est planifiée.
+6. **Explorer OneUptime**, tous les produits, une catégorie à la fois.
+
+### Rechercher et créer
+
+Le champ de recherche ouvre la recherche, comme `Mod` + `K` : tapez le nom de n'importe quelle page, d'un moniteur, d'un incident, d'une alerte, d'une page de statut ou d'une politique d'astreinte. Consultez la section [Rechercher](#rechercher-une-page-un-paramètre-ou-une-action). **Déclarer un incident** ouvre le formulaire de déclaration d'un incident. **Créer** propose **Créer un moniteur**, **Planifier une maintenance** et **Créer une annonce**. Chacun n'est affiché qu'aux personnes autorisées à l'utiliser.
+
+### Le titre
+
+La ligne du haut nomme ce qui est ouvert de plus urgent, dans une couleur assortie :
+
+| Quand | L'accueil affiche |
+| --- | --- |
+| Un incident est ouvert | Combien d'incidents sont actifs, en rouge |
+| Aucun incident n'est ouvert, mais il y a des alertes ouvertes, des moniteurs non opérationnels ou des SLO à risque | Combien de problèmes demandent de l'attention, en orange |
+| Aucun problème, et une maintenance est en cours | Combien d'événements de maintenance sont en cours |
+| Des moniteurs fonctionnent et rien n'est ouvert | **Tous les systèmes sont opérationnels** |
+| Le projet n'a pas encore de moniteur | **Rien n'est encore surveillé** |
+
+À côté, l'accueil indique quand il a chargé le projet pour la dernière fois, et **Actualiser** le recharge. Quand vous revenez sur un onglet de l'accueil après une minute ou plus, il s'actualise tout seul.
+
+### Les cinq nombres
+
+Chaque nombre compte quelque chose, dit si cela demande votre attention, et ouvre la liste qui se cache derrière lui.
+
+| Nombre | Ce qu'il compte | Quand le nombre est zéro |
+| --- | --- | --- |
+| **Incidents actifs** | Les incidents qui ne sont pas résolus | **Tout va bien** |
+| **Alertes actives** | Les alertes qui ne sont pas résolues | **Tout va bien** |
+| **Moniteurs non opérationnels** | Les moniteurs dont l'état n'est pas un état opérationnel. Les moniteurs archivés ne comptent pas. | **Tous opérationnels** |
+| **Maintenance en cours** | Les événements de maintenance planifiée en cours | **Aucune en cours** |
+| **SLO à risque** | Les SLO activés qui sont à risque ou ont épuisé leur budget d'erreur | **Budgets sains** |
+
+Un nombre supérieur à zéro affiche **Attention requise**, ou **En cours** et **Budget qui s'épuise** pour la maintenance et les SLO. Un projet sans moniteur voit **Aucun moniteur pour l'instant**, et un projet sans SLO voit **Aucun SLO pour l'instant** : un projet vide n'est pas un projet en bonne santé. Ces deux-là ouvrent alors les listes **Moniteurs** et **SLOs**, où vous en créez un.
 
 ### La liste de bienvenue
 
@@ -41,26 +76,27 @@ flowchart TB
 
 La liste disparaît une fois les quatre étapes terminées. Pour la masquer plus tôt, cliquez sur **Masquer**. Le masquage vaut pour ce navigateur et ce projet ; tout ce que les étapes ouvrent reste dans le menu **Produits**.
 
-### Les tuiles
+### Attention requise
 
-Chaque tuile compte quelque chose, dit si cela demande votre attention, et ouvre la liste qui se cache derrière le nombre.
+**Attention requise** liste par leur nom ce que les nombres comptent : les incidents ouverts, les alertes ouvertes, les moniteurs non opérationnels, les SLO à risque et les maintenances en cours, les plus urgents d'abord. Chaque ligne affiche sa gravité ou son état, indique quand un incident ou une alerte a commencé et quand une maintenance se termine, et ouvre l'élément. Chaque type en montre jusqu'à cinq, avec **Tout afficher** pour le reste. Quand rien n'est ouvert, la section affiche **Rien ne nécessite votre attention**.
 
-| Tuile | Ce qu'elle compte | Quand le nombre est zéro |
-| --- | --- | --- |
-| **Incidents actifs** | Les incidents qui ne sont pas résolus | **Tout va bien** |
-| **Alertes actives** | Les alertes qui ne sont pas résolues | **Tout va bien** |
-| **Moniteurs non opérationnels** | Les moniteurs dont l'état n'est pas un état opérationnel. Les moniteurs archivés ne comptent pas. | **Tous opérationnels** |
-| **Maintenance en cours** | Les événements de maintenance planifiée en cours | **Aucune en cours** |
-| **SLO à risque** | Les SLO activés qui sont à risque ou ont épuisé leur budget d'erreur | **Budgets sains** |
+### Votre projet
 
-Un nombre supérieur à zéro affiche **Attention requise**, ou **En cours** et **Budget qui s'épuise** sur les tuiles de maintenance et de SLO. Un projet sans moniteur voit **Aucun moniteur pour l'instant** sur la tuile des moniteurs, et un projet sans SLO voit **Aucun SLO pour l'instant** : un projet vide n'est pas un projet en bonne santé. Ces deux tuiles ouvrent alors les listes **Moniteurs** et **SLOs**, où vous en créez un.
+**Votre projet** compte les **Moniteurs**, les **Pages de statut**, les **Politiques d'astreinte**, les **SLOs**, les **Services**, les **Tableaux de bord** et les **Flux de travail** du projet, sans les éléments archivés. Chaque ligne ouvre sa liste. Un type dont le projet n'a encore aucun élément affiche **Configurer** au lieu d'un nombre.
+
+**Maintenance à venir** liste les trois prochaines fenêtres de maintenance planifiée, la plus proche d'abord. Elle n'apparaît pas quand rien n'est planifié.
+
+### Explorer OneUptime
+
+**Explorer OneUptime** présente les produits du menu **Produits** une catégorie à la fois, en commençant par les essentiels. Chaque produit indique à quoi il sert et s'ouvre quand vous cliquez dessus.
 
 ### Le menu latéral de l'accueil
 
-Le menu latéral de l'accueil contient les mêmes listes, chacune avec un compteur :
+L'accueil lui-même n'a pas de menu latéral : il montre déjà tout ce que le menu montrerait. Les listes qu'il ouvre en partagent un, qui donne à chaque liste son compteur et ramène à l'accueil depuis **Vue d'ensemble** :
 
 | Section | Pages |
 | --- | --- |
+| **Accueil** | **Vue d'ensemble** |
 | **Incidents** | **Incidents actifs** et **Épisodes actifs** |
 | **Alertes** | **Alertes actives** et **Épisodes actifs** |
 | **Moniteurs** | **Non opérationnel** |

@@ -3,7 +3,7 @@
 Hjem er den første siden du ser i et prosjekt. Den viser med et blikk om noe trenger deg akkurat nå, og leder et nytt prosjekt gjennom det første oppsettet. Denne siden forklarer hva Hjem viser, hvordan du finner ethvert produkt, enhver side og handling i dashbordet, og hurtigtastene som sparer deg for turer gjennom menyene.
 
 :::cards
-- [Hva Hjem viser](#hva-hjem-viser): Velkomstsjekklisten, de fem flisene og de aktive hendelsene.
+- [Hva Hjem viser](#hva-hjem-viser): Om noe er galt, hva som trenger deg, hva prosjektet inneholder og alle produktene.
 - [Finn frem](#finn-frem): Menyen Produkter og linjene øverst på hver side.
 - [Søk](#søk-etter-en-side-en-innstilling-eller-en-handling): Finn enhver side, innstilling eller handling ved å skrive navnet.
 - [Hurtigtaster](#hurtigtaster): Gå til Hjem, Overvåkere eller Hendelser med to taster.
@@ -11,11 +11,46 @@ Hjem er den første siden du ser i et prosjekt. Den viser med et blikk om noe tr
 
 ## Hva Hjem viser
 
-Åpne **Hjem** i linjen øverst, eller trykk `g` og deretter `h` hvor som helst. Fra topp til bunn viser Hjem:
+Åpne **Hjem** i linjen øverst, eller trykk `g` og deretter `h` hvor som helst. Hjem er oversikten over prosjektet ditt. Fra topp til bunn viser den:
 
-1. **Velkommen til OneUptime 👋**, en sjekkliste for et nytt prosjekt, til den er fullført.
-2. Fem fliser som teller det som trenger oppmerksomhet.
-3. **Aktive hendelser**, alle hendelser som ikke er løst ennå.
+1. Et søkefelt, med **Erklær hendelse** og **Opprett** ved siden av.
+2. Én linje som sier om noe er galt, over fem tall som teller det som trenger oppmerksomhet.
+3. **Velkommen til OneUptime 👋**, en sjekkliste for et nytt prosjekt, til den er fullført.
+4. **Krever oppmerksomhet**, hvert problem som er åpent akkurat nå, ved navn.
+5. **Prosjektet ditt**, hva prosjektet består av, og **Kommende vedlikehold** når noe er planlagt.
+6. **Utforsk OneUptime**, alle produktene, én kategori om gangen.
+
+### Søk og opprett
+
+Søkefeltet åpner søket, akkurat som `Mod` + `K`: skriv navnet på en side, monitor, hendelse, varsel, statusside eller vaktpolicy. Se [Søk](#søk-etter-en-side-en-innstilling-eller-en-handling). **Erklær hendelse** åpner skjemaet der du erklærer en hendelse. **Opprett** tilbyr **Opprett monitor**, **Planlegg vedlikehold** og **Opprett kunngjøring**. Hver av dem vises bare for dem som har lov til å bruke den.
+
+### Overskriften
+
+Linjen øverst nevner det mest presserende som er åpent, i en farge som passer:
+
+| Når | Hjem sier |
+| --- | --- |
+| En hendelse er åpen | Hvor mange hendelser som er aktive, i rødt |
+| Ingen hendelse er åpen, men det finnes åpne varsler, monitorer som ikke er i drift, eller SLO-er i faresonen | Hvor mange problemer som krever oppmerksomhet, i gult |
+| Ingenting er galt, og vedlikehold pågår | Hvor mange vedlikehold som pågår |
+| Monitorer kjører, og ingenting er åpent | **Alle systemer er i drift** |
+| Prosjektet har ingen monitorer ennå | **Ingenting overvåkes ennå** |
+
+Ved siden av sier Hjem når den sist leste prosjektet, og **Oppdater** leser det på nytt. Når du kommer tilbake til en fane med Hjem etter ett minutt eller mer, oppdaterer den seg selv.
+
+### De fem tallene
+
+Hvert tall teller noe, sier om det trenger deg, og åpner listen bak det.
+
+| Tall | Hva det teller | Når tallet er null |
+| --- | --- | --- |
+| **Aktive hendelser** | Hendelser som ikke er løst | **Alt er i orden** |
+| **Aktive varsler** | Varsler som ikke er løst | **Alt er i orden** |
+| **Ikke-operative monitorer** | Monitorer med en status som ikke er en driftsstatus. Arkiverte monitorer telles ikke. | **Alle i drift** |
+| **Pågående vedlikehold** | Planlagte vedlikehold som pågår | **Ingen pågår** |
+| **SLO-er i faresonen** | Påslåtte SLO-er som er i faresonen eller har brukt opp feilbudsjettet | **Budsjettene er sunne** |
+
+Et tall over null viser **Krever oppmerksomhet**, eller **Pågår** og **Budsjettet brukes opp** for vedlikehold og SLO-er. Et prosjekt uten monitorer ser **Ingen monitorer ennå**, og ett uten SLO-er ser **Ingen SLO-er ennå**: et tomt prosjekt er ikke det samme som et sunt. De to åpner da listene **Monitorer** og **SLOs**, der du oppretter en.
 
 ### Velkomstsjekklisten
 
@@ -41,26 +76,27 @@ flowchart TB
 
 Sjekklisten forsvinner når alle fire steg er fullført. Klikk på **Lukk** for å skjule den før. Det huskes i denne nettleseren, for dette prosjektet; alt stegene åpner, ligger fortsatt i menyen **Produkter**.
 
-### Flisene
+### Krever oppmerksomhet
 
-Hver flis teller noe, sier om det trenger deg, og åpner listen bak tallet.
+**Krever oppmerksomhet** viser ved navn det tallene teller: de åpne hendelsene, de åpne varslene, monitorene som ikke er i drift, SLO-ene i faresonen og vedlikeholdet som pågår, det mest presserende først. Hver rad viser alvorlighetsgrad eller status, sier når en hendelse eller et varsel startet og når vedlikeholdet slutter, og åpner oppføringen. Hver type viser opptil fem, med **Vis alle** for resten. Når ingenting er åpent, står det **Ingenting krever oppmerksomheten din**.
 
-| Flis | Hva den teller | Når tallet er null |
-| --- | --- | --- |
-| **Aktive hendelser** | Hendelser som ikke er løst | **Alt er i orden** |
-| **Aktive varsler** | Varsler som ikke er løst | **Alt er i orden** |
-| **Ikke-operative monitorer** | Monitorer med en status som ikke er en driftsstatus. Arkiverte monitorer telles ikke. | **Alle i drift** |
-| **Pågående vedlikehold** | Planlagte vedlikehold som pågår | **Ingen pågår** |
-| **SLO-er i faresonen** | Påslåtte SLO-er som er i faresonen eller har brukt opp feilbudsjettet | **Budsjettene er sunne** |
+### Prosjektet ditt
 
-Et tall over null viser **Krever oppmerksomhet**, eller **Pågår** og **Budsjettet brukes opp** på flisene for vedlikehold og SLO-er. Et prosjekt uten monitorer ser **Ingen monitorer ennå** på monitorflisen, og ett uten SLO-er ser **Ingen SLO-er ennå**: et tomt prosjekt er ikke det samme som et sunt. De to flisene åpner da listene **Monitorer** og **SLOs**, der du oppretter en.
+**Prosjektet ditt** teller prosjektets **Monitorer**, **Statussider**, **Vaktretningslinjer**, **SLOs**, **Tjenester**, **Dashbord** og **Arbeidsflyter**, uten de arkiverte. Hver rad åpner listen sin. En type som prosjektet ikke har noen av, viser **Konfigurer** i stedet for et tall.
+
+**Kommende vedlikehold** viser de neste tre planlagte vedlikeholdsvinduene, det tidligste først. Den utelates når ingenting er planlagt.
+
+### Utforsk OneUptime
+
+**Utforsk OneUptime** viser produktene i menyen **Produkter** én kategori om gangen, og begynner med det grunnleggende. Hvert produkt sier hva det er til, og åpnes når du klikker på det.
 
 ### Sidemenyen til Hjem
 
-Sidemenyen ved siden av Hjem har de samme listene, hver med et tall:
+Hjem har ikke selv en sidemeny: siden viser allerede alt menyen ville vist. Listene den åpner, deler én sidemeny, som viser hver liste med antallet sitt og fører tilbake til Hjem fra **Oversikt**:
 
 | Del | Sider |
 | --- | --- |
+| **Hjem** | **Oversikt** |
 | **Hendelser** | **Aktive hendelser** og **Aktive episoder** |
 | **Varsler** | **Aktive varsler** og **Aktive episoder** |
 | **Monitorer** | **Ikke operativ** |

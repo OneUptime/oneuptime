@@ -163,7 +163,18 @@ export default abstract class Realtime {
        * live updates are asked again, as their joins were.
        */
       RealtimeAccessChanges.onSignInRulesChanged((projectId?: string): void => {
-        Realtime.recheckSignInRules(projectId).catch((err: unknown) => {
+        Realtime.recheckProjectAccess(projectId).catch((err: unknown) => {
+          logger.error(err);
+        });
+      });
+
+      /*
+       * A master admin blocked or unblocked a project, here or on another
+       * server: the sockets listening to its live updates are asked again,
+       * as their joins were. A member's leaves the project's rooms.
+       */
+      RealtimeAccessChanges.onProjectBlockChanged((projectId: string): void => {
+        Realtime.recheckProjectAccess(projectId).catch((err: unknown) => {
           logger.error(err);
         });
       });
@@ -501,17 +512,18 @@ export default abstract class Realtime {
   }
 
   /*
-   * A project's sign-in rules now ask for more (every project's, when
-   * projectId is absent: the instance-wide rule). Each socket this server
-   * holds in the project's rooms is asked again, as its join was
-   * (RealtimeJoinAccess), with the rules as they are now. One the project
-   * no longer lets in leaves the project's rooms and is told why, as a
-   * refused join is; the rest carry on untouched. Without this, a page that
-   * joined before the change would hear until its access token next
-   * expired. Sockets are asked RECHECK_CONCURRENCY at a time.
+   * Who may open a project changed: its sign-in rules now ask for more
+   * (every project's, when projectId is absent: the instance-wide rule), or
+   * a master admin blocked it. Each socket this server holds in the
+   * project's rooms is asked again, as its join was (RealtimeJoinAccess),
+   * with the rules as they are now. One the project no longer lets in
+   * leaves the project's rooms and is told why, as a refused join is; the
+   * rest carry on untouched. Without this, a page that joined before the
+   * change would hear until its access token next expired. Sockets are
+   * asked RECHECK_CONCURRENCY at a time.
    */
   @CaptureSpan()
-  public static async recheckSignInRules(projectId?: string): Promise<void> {
+  public static async recheckProjectAccess(projectId?: string): Promise<void> {
     if (!this.socketServer) {
       return;
     }
@@ -613,7 +625,7 @@ export default abstract class Realtime {
     }
 
     logger.debug(
-      "A socket no longer meets the project's sign-in rules, leaving its rooms",
+      "A socket may no longer hear the project (its sign-in rules, or a block), leaving its rooms",
       recheckLogAttributes,
     );
 

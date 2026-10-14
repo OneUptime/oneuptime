@@ -460,6 +460,13 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             isFeatureFlagMonitorGroupsEnabled: true,
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,
+            /*
+             * A project a master admin blocked stays in the list, marked: the
+             * Dashboard shows it as blocked rather than as a project that
+             * vanished, and its picker still switches to the others. Its own
+             * members are told only that their project is blocked.
+             */
+            isBlocked: true,
           };
 
           const teamMembers: Array<TeamMember> = await TeamMemberService.findBy(

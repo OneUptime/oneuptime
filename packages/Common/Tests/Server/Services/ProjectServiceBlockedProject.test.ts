@@ -2,6 +2,9 @@ import ProjectService, {
   BLOCKED_PROJECT_CACHE_TTL_MS,
 } from "../../../Server/Services/ProjectService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import Project from "../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -339,5 +342,66 @@ describe("ProjectService.onUpdateSuccess — blocking and unblocking a project",
 
     await ProjectService.isProjectBlocked(PROJECT_ID);
     expect(findOneById).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Every other server is told too (RealtimeAccessChanges), so it forgets
+   * its own answer and asks the live-update sockets it holds in the project
+   * again: a block refuses the project's API requests everywhere at once,
+   * not when each server's answer runs out.
+   */
+  test.each([
+    ["blocking", true],
+    ["unblocking", false],
+  ])(
+    "%s is announced to every server, once per project",
+    async (_label: string, isBlocked: boolean) => {
+      const announce: jest.SpyInstance = jest
+        .spyOn(RealtimeAccessChanges, "announce")
+        .mockImplementation(() => {
+          return undefined;
+        });
+
+      await projectService().onUpdateSuccess(updateOf({ isBlocked }), [
+        PROJECT_ID,
+        OTHER_PROJECT_ID,
+      ]);
+
+      expect(announce.mock.calls).toEqual([
+        [
+          {
+            kind: RealtimeAccessChangeKind.ProjectBlockChanged,
+            projectId: PROJECT_ID.toString(),
+          },
+        ],
+        [
+          {
+            kind: RealtimeAccessChangeKind.ProjectBlockChanged,
+            projectId: OTHER_PROJECT_ID.toString(),
+          },
+        ],
+      ]);
+    },
+  );
+
+  test("a write that does not touch isBlocked announces nothing", async () => {
+    const announce: jest.SpyInstance = jest
+      .spyOn(RealtimeAccessChanges, "announce")
+      .mockImplementation(() => {
+        return undefined;
+      });
+
+    await projectService().onUpdateSuccess(updateOf({ name: "Renamed" }), [
+      PROJECT_ID,
+    ]);
+
+    expect(
+      announce.mock.calls.filter((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { kind?: string }).kind ===
+          RealtimeAccessChangeKind.ProjectBlockChanged
+        );
+      }),
+    ).toEqual([]);
   });
 });

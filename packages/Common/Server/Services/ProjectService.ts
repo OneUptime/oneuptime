@@ -961,14 +961,22 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     /*
      * Blocked or unblocked: this server reads the flag again on the next
-     * request, so the project's status pages and public dashboards go down -
-     * or come back - here at once, and on every other server within
+     * request, and every other server is told to (RealtimeAccessChanges) -
+     * so the project's API requests are refused or let in again, its
+     * members' live updates stop, and its status pages and public
+     * dashboards go down or come back, everywhere at once. A server the
+     * channel does not reach (a worker, Valkey down) catches up within
      * BLOCKED_PROJECT_CACHE_TTL_MS. Hook-only: a write made with
      * `ignoreHooks: true` waits out the TTL everywhere.
      */
     if (updateData["isBlocked"] !== undefined) {
       for (const projectId of updatedItemIds) {
         this.forgetBlockedStatus(projectId);
+
+        RealtimeAccessChanges.announce({
+          kind: RealtimeAccessChangeKind.ProjectBlockChanged,
+          projectId: projectId.toString(),
+        });
       }
     }
 
@@ -4376,6 +4384,13 @@ export class ProjectService extends ProjectReferencesService<Model> {
    *
    * NULL stays admitted: that is a project with no subscription at all
    * (self-hosted, or created before billing was enabled).
+   *
+   * A project a master admin blocked (Admin Dashboard > Projects) is not
+   * served, whatever it pays: its monitors are not fetched or swept until it
+   * is unblocked. Read from the row, so a block stops them at once. The
+   * probes' own fetches are raw SQL and say the same
+   * (MonitorProbeService.claimMonitorProbesForProbing, and the network
+   * device and VMware claims).
    */
   public getActiveProjectStatusQuery(): Query<Model> {
     return {
@@ -4385,6 +4400,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       paymentProviderMeteredSubscriptionStatus: QueryHelper.equalToOrNull(
         SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
       ),
+      isBlocked: false,
     };
   }
 

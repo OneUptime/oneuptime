@@ -70,6 +70,11 @@ function workflowRow(values: {
   return workflow;
 }
 
+beforeEach(() => {
+  // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
 });

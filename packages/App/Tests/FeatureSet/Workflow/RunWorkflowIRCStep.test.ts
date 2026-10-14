@@ -28,6 +28,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import ProjectService from "Common/Server/Services/ProjectService";
 
 /*
  * "Send Message to IRC" run by the workflow runner itself: its settings as
@@ -151,6 +152,8 @@ async function start(options: FakeIRCServerOptions): Promise<FakeIRCServer> {
 }
 
 beforeEach(() => {
+  // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });

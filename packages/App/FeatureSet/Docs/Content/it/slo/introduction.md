@@ -70,7 +70,7 @@ I campi in **Altri campi**:
 | Campo | Cosa imposti | Predefinito |
 | --- | --- | --- |
 | **Descrizione** | A cosa serve lo SLO. | Vuoto |
-| **Soglia a rischio (%)** | La quota del budget di errore rimanente alla quale lo SLO passa a **At Risk**. Un numero intero da 0 a 100. | 20 |
+| **Soglia a rischio (%)** | La quota del budget di errore rimanente alla quale lo SLO passa a **A rischio**. Un numero intero da 0 a 100. | 20 |
 | **Window Type** | **Rolling**: gli ultimi N giorni, che si recuperano man mano che la vecchia inattività esce dalla finestra. **Calendar Month**: ogni mese a sé, azzerato il giorno 1. | **Rolling** |
 | **Window (Days)** | Solo finestre mobili: quanti giorni guardare indietro, da 1 a 366. Di solito 28 o 30. | 30 |
 | **Fuso orario** | Solo mesi di calendario: il fuso orario in cui ogni mese inizia e finisce. | UTC |
@@ -93,7 +93,7 @@ Tutto ciò che decide come misura lo SLO parte da un valore predefinito che camb
 | Monitor | Da dove viene lo SLI. Collegali a mano o con le regole dei monitor: vedi [Monitor e regole dei monitor](/docs/slo/monitor-rules). |
 | Obiettivo | La quota di tempo buono che lo SLO promette, maggiore di 0 e al massimo 99,999. |
 | Finestra di conformità | Il periodo su cui si misurano SLI e budget: una finestra mobile da 1 a 366 giorni, oppure un mese di calendario. |
-| Soglia a rischio | La quota di budget rimanente alla quale lo SLO passa a **At Risk**. |
+| Soglia a rischio | La quota di budget rimanente alla quale lo SLO passa a **A rischio**. |
 | Stati di inattività | Quali stati dei monitor contano come inattività. |
 | Modalità multi-monitor | Come si combina l'inattività di più monitor. |
 
@@ -129,18 +129,18 @@ OneUptime assegna uno stato a ogni SLO valutato:
 | Stato | Cosa significa |
 | --- | --- |
 | **Integro** | Resta più budget della soglia a rischio. |
-| **At Risk** | Il budget rimanente è sceso alla soglia a rischio o sotto: il 20% per impostazione predefinita. |
-| **Budget Exhausted** | Il budget è stato speso tutto, o superato. |
+| **A rischio** | Il budget rimanente è sceso alla soglia a rischio o sotto: il 20% per impostazione predefinita. |
+| **Budget esaurito** | Il budget è stato speso tutto, o superato. |
 | **Misconfigured** | Lo SLO non si può misurare: non ha monitor, i suoi monitor non esistono più o non hanno ancora registrato uno stato nella sua finestra, oppure il suo obiettivo è fuori intervallo. |
 | **In pausa** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato, a mano, da un incidente manuale o da una manutenzione pianificata. Riprende da solo appena uno di essi torna a essere monitorato. |
 
-Uno SLO disattivato o archiviato non viene valutato, quindi il suo stato resta com'era; l'elenco degli SLO mostra invece un'etichetta **Disabilitato** o **Archiviato**. I proprietari di uno SLO ricevono una notifica quando lo stato passa a **At Risk** o **Budget Exhausted**: vedi [Budget di errore](/docs/slo/error-budget).
+Uno SLO disattivato o archiviato non viene valutato, quindi il suo stato resta com'era; l'elenco degli SLO mostra invece un'etichetta **Disabilitato** o **Archiviato**. I proprietari di uno SLO ricevono una notifica quando lo stato passa a **A rischio** o **Budget esaurito**: vedi [Budget di errore](/docs/slo/error-budget).
 
 ## L'elenco degli SLO
 
 La pagina **SLOs** elenca ogni SLO non archiviato, con stato, SLI, budget rimanente, tasso di consumo, obiettivo, finestra, monitor, etichette e proprietari.
 
-- I riquadri sopra l'elenco contano gli SLO per stato: **Integro**, **At Risk**, **Budget Exhausted**, **Misconfigured**, **In pausa** e **Disabilitato**. Fai clic su un riquadro per vedere solo quegli SLO, e di nuovo per vederli tutti.
+- I riquadri sopra l'elenco contano gli SLO per stato: **Integro**, **A rischio**, **Budget esaurito**, **Misconfigured**, **In pausa** e **Disabilitato**. Fai clic su un riquadro per vedere solo quegli SLO, e di nuovo per vederli tutti.
 - Seleziona degli SLO per aggiungere o togliere etichette e proprietari, archiviarli o eliminarli, tutti insieme.
 - La sezione **Impostazioni** del menu laterale contiene **Regole etichette** e **Regole del proprietario**, che etichettano i nuovi SLO e assegnano loro dei proprietari: vedi [Regole per etichette e proprietari](/docs/slo/label-and-owner-rules).
 - La sezione **Avanzato** del menu laterale contiene **Archiviato**, l'elenco degli SLO archiviati.

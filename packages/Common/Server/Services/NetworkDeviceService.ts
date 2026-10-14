@@ -3016,6 +3016,8 @@ export class Service extends ProjectReferencesService<Model> {
           AND (nd."monitoringMethod" IS NULL OR nd."monitoringMethod" <> 'Monitor')
           AND nd."nextPollAt" <= $2
           AND p."deletedAt" IS NULL
+          -- A project a master admin blocked is not polled until it is unblocked.
+          AND p."isBlocked" = false
           AND (p."paymentProviderSubscriptionStatus" IS NULL
                OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
