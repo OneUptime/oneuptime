@@ -1500,8 +1500,24 @@ router.post(
               return Promise.resolve(emptyAccurate);
             }
 
+            /*
+             * A stop leaves uncounted statusCode and the resource facets
+             * that listed rows to merge counts into. A resource facet that
+             * listed nothing answers [] counted or not (the project has none
+             * of that resource), so it is not named: the sidebar would show
+             * an empty type as "Not counted" rather than fold it away.
+             */
+            const uncountedOnStop: Array<string> = resourceCountKeys.filter(
+              (key: string): boolean => {
+                return (
+                  key === "statusCode" ||
+                  ResourceFacetPlanner.hasListedEntities(listed, key)
+                );
+              },
+            );
+
             return timedOutFacets
-              .watch(resourceCountKeys, () => {
+              .watch(uncountedOnStop, () => {
                 return TraceAggregationService.getResourceFacetCounts(
                   multiRequest,
                 );

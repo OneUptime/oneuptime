@@ -45,11 +45,17 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - facets that failed outright say why;
  *   - the note steps aside when the list already says the whole search
  *     could not finish (one message per search), while the stopped facets
- *     keep their own line.
+ *     keep their own line;
+ *   - the line is two words: why the counts are missing is said once, by
+ *     the note or by the list's message, not again in every stopped facet;
+ *   - a facet that may fold away while empty (a resource type, a security
+ *     event facet) is never folded into "N empty filters hidden" when it was
+ *     stopped: not counted is not empty.
  */
 
-const STOPPED_LINE: string = "Not counted: this took too long.";
+const STOPPED_LINE: string = "Not counted";
 const EMPTY_LINE: string = "No values in this time range";
+const STOPPED_LINE_TEST_ID: string = "facet-count-stopped";
 
 function value(id: string, count: number, name?: string): FacetValue {
   return name
@@ -126,6 +132,11 @@ function sectionFor(title: string): HTMLElement {
 
 function note(): HTMLElement | null {
   return screen.queryByTestId(TELEMETRY_LOAD_ERROR_TEST_ID);
+}
+
+// A section's own "Not counted" line, under its title.
+function stoppedLine(section: HTMLElement): HTMLElement | null {
+  return within(section).queryByTestId(STOPPED_LINE_TEST_ID);
 }
 
 interface StoppedCase {
@@ -236,8 +247,30 @@ describe.each(CASES)(
 
       const section: HTMLElement = sectionFor(testCase.plainTitle);
 
-      expect(section).toHaveTextContent(STOPPED_LINE);
+      expect(stoppedLine(section)?.textContent).toBe(STOPPED_LINE);
       expect(section).not.toHaveTextContent(EMPTY_LINE);
+    });
+
+    test("the line says it once: two words, the reason left to the note", () => {
+      render(
+        sidebarElement(testCase.sidebar, {
+          facetData: testCase.facetData,
+          timedOutFacets: testCase.stopped,
+          onRetryFacets: () => {},
+        }),
+      );
+
+      // The note says why, once, for every stopped facet.
+      expect(note()).toHaveTextContent("Filter counts took too long");
+
+      for (const title of [testCase.plainTitle, testCase.resourceTitle]) {
+        const line: HTMLElement | null = stoppedLine(sectionFor(title));
+
+        expect(line?.textContent).toBe("Not counted");
+        expect(line?.textContent).not.toMatch(/too long/);
+      }
+
+      expect(screen.getAllByText(/took too long/)).toHaveLength(1);
     });
 
     test("REGRESSION: a stopped resource facet keeps its resources, with no count rather than 0", () => {
@@ -250,7 +283,7 @@ describe.each(CASES)(
 
       const section: HTMLElement = sectionFor(testCase.resourceTitle);
 
-      expect(section).toHaveTextContent(STOPPED_LINE);
+      expect(stoppedLine(section)?.textContent).toBe(STOPPED_LINE);
       expect(within(section).getByText("checkout")).toBeInTheDocument();
       expect(within(section).getByText("payments")).toBeInTheDocument();
 
@@ -263,6 +296,32 @@ describe.each(CASES)(
       }
 
       expect(within(section).queryByText("0")).not.toBeInTheDocument();
+    });
+
+    test("a screen reader hears 'Not counted' where the count goes, not a dash", () => {
+      render(
+        sidebarElement(testCase.sidebar, {
+          facetData: testCase.facetData,
+          timedOutFacets: testCase.stopped,
+        }),
+      );
+
+      const cells: Array<HTMLElement> = within(
+        sectionFor(testCase.resourceTitle),
+      ).getAllByTestId("facet-count-unknown");
+      expect(cells).toHaveLength(2);
+
+      for (const cell of cells) {
+        // The dash is drawn for the eye only.
+        expect(within(cell).getByText("—")).toHaveAttribute(
+          "aria-hidden",
+          "true",
+        );
+        // The words are read out, and kept off the screen.
+        const spoken: HTMLElement = within(cell).getByText("Not counted");
+        expect(spoken).toHaveClass("sr-only");
+        expect(spoken).not.toHaveAttribute("aria-hidden");
+      }
     });
 
     test("the values of a stopped facet can still be picked to narrow the search", () => {
@@ -314,6 +373,7 @@ describe.each(CASES)(
 
       const section: HTMLElement = sectionFor(testCase.countedTitle);
 
+      expect(stoppedLine(section)).toBeNull();
       expect(section).not.toHaveTextContent(STOPPED_LINE);
       expect(
         within(section).getByText(testCase.countedValue),
@@ -373,13 +433,105 @@ describe.each(CASES)(
       );
 
       expect(note()).not.toBeInTheDocument();
-      expect(sectionFor(testCase.plainTitle)).toHaveTextContent(STOPPED_LINE);
-      expect(sectionFor(testCase.resourceTitle)).toHaveTextContent(
+      expect(stoppedLine(sectionFor(testCase.plainTitle))?.textContent).toBe(
+        STOPPED_LINE,
+      );
+      expect(stoppedLine(sectionFor(testCase.resourceTitle))?.textContent).toBe(
         STOPPED_LINE,
       );
     });
   },
 );
+
+/*
+ * Some facets fold away while they have nothing to show and are counted in
+ * the "N empty filters hidden" footer: the resource types (a project with
+ * no Docker hosts), and every security event facet (a source that never
+ * sends a vendor). A count the time limit stopped also comes back with
+ * nothing in it, and used to be folded with them: the security events
+ * explorer said "11 empty filters hidden" for eleven facets nobody had
+ * counted. Not counted is not empty.
+ */
+describe("a facet that folds away while empty, stopped at the time limit", () => {
+  const HIDEABLE_CONFIGS: Array<FacetConfig> = [
+    {
+      key: "severityName",
+      title: "Severity",
+      priority: 1,
+      hideWhenEmpty: true,
+    },
+    { key: "vendorName", title: "Vendor", priority: 2, hideWhenEmpty: true },
+    { key: "statusName", title: "Status", priority: 3, hideWhenEmpty: true },
+  ];
+
+  function footer(): HTMLElement | null {
+    return screen.queryByText(/empty filters? hidden/);
+  }
+
+  test("the traces / metrics / exceptions / security events sidebar keeps it, saying 'Not counted'", () => {
+    render(
+      <TelemetryFacetSidebar
+        facetData={{ severityName: [], vendorName: [], statusName: [] }}
+        facetConfigs={HIDEABLE_CONFIGS}
+        isLoading={false}
+        onIncludeFilter={jest.fn()}
+        onExcludeFilter={jest.fn()}
+        timedOutFacets={["severityName", "statusName"]}
+      />,
+    );
+
+    for (const title of ["Severity", "Status"]) {
+      expect(stoppedLine(sectionFor(title))?.textContent).toBe(STOPPED_LINE);
+      expect(sectionFor(title)).not.toHaveTextContent(EMPTY_LINE);
+    }
+
+    // The one that was counted and really is empty still folds away.
+    expect(
+      screen.queryByRole("button", { name: /^Vendor/ }),
+    ).not.toBeInTheDocument();
+    expect(footer()).toHaveTextContent("1 empty filter hidden");
+  });
+
+  test("every facet stopped: no 'empty filters hidden' at all", () => {
+    render(
+      <TelemetryFacetSidebar
+        facetData={{ severityName: [], vendorName: [], statusName: [] }}
+        facetConfigs={HIDEABLE_CONFIGS}
+        isLoading={false}
+        onIncludeFilter={jest.fn()}
+        onExcludeFilter={jest.fn()}
+        timedOutFacets={["severityName", "vendorName", "statusName"]}
+        showCountsNotice={false}
+      />,
+    );
+
+    expect(footer()).not.toBeInTheDocument();
+    expect(screen.getAllByTestId(STOPPED_LINE_TEST_ID)).toHaveLength(3);
+  });
+
+  test("the logs sidebar keeps a stopped resource facet with nothing listed, saying 'Not counted'", () => {
+    render(
+      <LogsFacetSidebar
+        facetData={{ severityText: [], hostId: [], dockerHostId: [] }}
+        isLoading={false}
+        serviceMap={{}}
+        onIncludeFilter={jest.fn()}
+        onExcludeFilter={jest.fn()}
+        selectedSavedViewId={null}
+        onSavedViewSelect={jest.fn()}
+        onClearSavedView={jest.fn()}
+        timedOutFacets={["hostId"]}
+      />,
+    );
+
+    expect(stoppedLine(sectionFor("Host"))?.textContent).toBe(STOPPED_LINE);
+    // Docker Host was counted and the project has none: it folds away.
+    expect(
+      screen.queryByRole("button", { name: /^Docker Host/ }),
+    ).not.toBeInTheDocument();
+    expect(footer()).toHaveTextContent("1 empty filter hidden");
+  });
+});
 
 describe.each(CASES)(
   "$name: counts that did not load at all",

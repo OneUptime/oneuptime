@@ -204,3 +204,145 @@ describe("TelemetryHistogram (the traces and exceptions charts)", () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });
+
+/*
+ * A zoomed chart card whose read did not come back (found in the UI review
+ * of #4824). The box where the bars go takes a double-click as "zoom out",
+ * as it does over bars, a loader or an empty window, and the message sits in
+ * that box:
+ *
+ *   - the header still says "Double-click to reset", as it does over bars;
+ *   - a double-click on Try again (readers double-click buttons out of
+ *     habit) is two tries, and never widens the range under the reader;
+ *   - a double-click anywhere else in the box still zooms out.
+ */
+type ZoomedCard = {
+  name: string;
+  render: (props: {
+    onZoomOut?: (() => void) | undefined;
+    onRetry: () => void;
+  }) => React.ReactElement;
+};
+
+const ZOOMED_CARDS: Array<ZoomedCard> = [
+  {
+    name: "LogsHistogram",
+    render: (props: {
+      onZoomOut?: (() => void) | undefined;
+      onRetry: () => void;
+    }): React.ReactElement => {
+      return (
+        <LogsHistogram
+          buckets={[]}
+          isLoading={false}
+          error={TIMED_OUT}
+          onRetry={props.onRetry}
+          onTimeRangeSelect={jest.fn()}
+          onZoomOut={props.onZoomOut}
+        />
+      );
+    },
+  },
+  {
+    name: "TelemetryHistogram",
+    render: (props: {
+      onZoomOut?: (() => void) | undefined;
+      onRetry: () => void;
+    }): React.ReactElement => {
+      return (
+        <TelemetryHistogram
+          buckets={[]}
+          isLoading={false}
+          series={SERIES}
+          title="Spans over time"
+          error={TIMED_OUT}
+          onRetry={props.onRetry}
+          onTimeRangeSelect={jest.fn()}
+          onZoomOut={props.onZoomOut}
+        />
+      );
+    },
+  },
+];
+
+// The events a real double-click fires, in order, each press counted.
+function doubleClick(element: HTMLElement): void {
+  for (const detail of [1, 2]) {
+    fireEvent.mouseDown(element, { detail: detail, button: 0 });
+    fireEvent.mouseUp(element, { detail: detail, button: 0 });
+    fireEvent.click(element, { detail: detail, button: 0 });
+  }
+
+  fireEvent.doubleClick(element, { detail: 2, button: 0 });
+}
+
+describe.each(ZOOMED_CARDS)(
+  "$name: a zoomed card that could not load",
+  (card: ZoomedCard) => {
+    test("still says how to go back: 'Double-click to reset'", () => {
+      render(
+        card.render({
+          onZoomOut: () => {},
+          onRetry: () => {},
+        }),
+      );
+
+      expect(screen.getByText("Double-click to reset")).toBeInTheDocument();
+      expect(message()).toHaveTextContent("This chart took too long to load");
+    });
+
+    test("a card that was not zoomed has no such hint", () => {
+      render(card.render({ onRetry: () => {} }));
+
+      expect(
+        screen.queryByText("Double-click to reset"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("REGRESSION: a double-click on Try again is two tries, and never zooms out", () => {
+      const onZoomOut: MockFunction = getJestMockFunction();
+      const onRetry: MockFunction = getJestMockFunction();
+
+      render(
+        card.render({
+          onZoomOut: () => {
+            onZoomOut();
+          },
+          onRetry: () => {
+            onRetry();
+          },
+        }),
+      );
+
+      doubleClick(
+        within(message()).getByTestId(TELEMETRY_LOAD_ERROR_RETRY_TEST_ID),
+      );
+
+      expect(onRetry).toHaveBeenCalledTimes(2);
+      expect(onZoomOut).not.toHaveBeenCalled();
+    });
+
+    test("a double-click elsewhere in the box zooms out, as over the bars", () => {
+      const onZoomOut: MockFunction = getJestMockFunction();
+      const onRetry: MockFunction = getJestMockFunction();
+
+      render(
+        card.render({
+          onZoomOut: () => {
+            onZoomOut();
+          },
+          onRetry: () => {
+            onRetry();
+          },
+        }),
+      );
+
+      doubleClick(
+        within(message()).getByText("This chart took too long to load"),
+      );
+
+      expect(onZoomOut).toHaveBeenCalledTimes(1);
+      expect(onRetry).not.toHaveBeenCalled();
+    });
+  },
+);

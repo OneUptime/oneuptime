@@ -28739,7 +28739,6 @@
   "Filter counts took too long": "شمارش فیلترها بیش از حد طول کشید",
   "It was stopped before it finished. Try a shorter time range or more specific filters.": "پیش از پایان متوقف شد. بازهٔ زمانی کوتاه‌تر یا فیلترهای دقیق‌تری را امتحان کنید.",
   "Not counted": "شمرده نشد",
-  "Not counted: this took too long.": "شمرده نشد: بیش از حد طول کشید.",
   "Something went wrong. Try again in a moment.": "مشکلی پیش آمد. کمی بعد دوباره تلاش کنید.",
   "This chart could not load": "این نمودار بارگذاری نشد",
   "This chart took too long to load": "بارگذاری این نمودار بیش از حد طول کشید",

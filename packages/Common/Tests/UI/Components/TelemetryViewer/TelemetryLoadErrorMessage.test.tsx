@@ -246,6 +246,89 @@ describe("Try again", () => {
 
     expect(retryButton()).not.toBeInTheDocument();
   });
+
+  /*
+   * The read is run with nothing, never the click event: an explorer's
+   * fetch takes options, and a MouseEvent passed as them would be read as
+   * some other kind of fetch.
+   */
+  test.each(["list", "chart", "note"] as const)(
+    "runs the read with no arguments (%s)",
+    (variant: "list" | "chart" | "note") => {
+      const onRetry: MockFunction = getJestMockFunction();
+
+      render(
+        <TelemetryLoadErrorMessage
+          error={TIMED_OUT}
+          variant={variant}
+          onRetry={onRetry as unknown as () => void}
+        />,
+      );
+
+      fireEvent.click(retryButton()!);
+
+      expect(onRetry).toHaveBeenCalledTimes(1);
+      expect(onRetry).toHaveBeenCalledWith();
+    },
+  );
+
+  test.each(["list", "chart", "note"] as const)(
+    "shows where the keyboard is (%s)",
+    (variant: "list" | "chart" | "note") => {
+      render(
+        <TelemetryLoadErrorMessage
+          error={TIMED_OUT}
+          variant={variant}
+          onRetry={() => {}}
+        />,
+      );
+
+      expect(retryButton()).toHaveClass(
+        "focus:outline-none",
+        "focus-visible:ring-2",
+        "focus-visible:ring-indigo-500",
+      );
+    },
+  );
+
+  /*
+   * Inside a chart card the message sits in the box that takes a
+   * double-click as "zoom out". A double-click on Try again stays on the
+   * button; its first press still goes on, so an open menu that closes on
+   * a press outside it still closes.
+   */
+  test.each(["list", "chart", "note"] as const)(
+    "a double-click on it stays on the button (%s)",
+    (variant: "list" | "chart" | "note") => {
+      const onPress: MockFunction = getJestMockFunction();
+      const onDoubleClick: MockFunction = getJestMockFunction();
+
+      render(
+        <div
+          onMouseDown={(event: React.MouseEvent<HTMLDivElement>) => {
+            onPress(event.detail);
+          }}
+          onDoubleClick={() => {
+            onDoubleClick();
+          }}
+        >
+          <TelemetryLoadErrorMessage
+            error={TIMED_OUT}
+            variant={variant}
+            onRetry={() => {}}
+          />
+        </div>,
+      );
+
+      fireEvent.mouseDown(retryButton()!, { detail: 1 });
+      fireEvent.mouseDown(retryButton()!, { detail: 2 });
+      fireEvent.doubleClick(retryButton()!, { detail: 2 });
+
+      expect(onPress).toHaveBeenCalledTimes(1);
+      expect(onPress).toHaveBeenCalledWith(1);
+      expect(onDoubleClick).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("the sidebar's note", () => {

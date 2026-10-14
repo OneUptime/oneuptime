@@ -184,7 +184,8 @@ const SEARCH_ADVICE: string =
   "It was stopped before it finished. Try a shorter time range or more specific filters.";
 const CHART_TOOK_TOO_LONG: string = "This chart took too long to load";
 const COUNTS_TOOK_TOO_LONG: string = "Filter counts took too long";
-const NOT_COUNTED: string = "Not counted: this took too long.";
+// A stopped facet's own line: the reason is the note's, or the list's.
+const NOT_COUNTED: string = "Not counted";
 
 const HISTOGRAM_PATH: string = "/telemetry/traces/histogram";
 const FACETS_PATH: string = "/telemetry/traces/facets";

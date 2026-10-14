@@ -90,6 +90,36 @@ const TelemetryLoadErrorMessage: FunctionComponent<
 
   const retryLabel: string = translator.translateText(RETRY_LABEL) || "";
 
+  /*
+   * What both Try again buttons share. The click runs the read with no
+   * arguments, never the click event.
+   *
+   * A double-click on Try again is two tries, not the chart card's own
+   * double-click: inside a chart card the message sits in the box that
+   * stands in for the bars, which takes a double-click as "zoom out", and a
+   * reader who double-clicks buttons out of habit would find the time range
+   * widened under them, the one change most likely to run out of time
+   * again. Only the second press stops here, so the first still reaches
+   * anything listening for a press outside it, an open menu say.
+   */
+  const retryButtonProps: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    "data-testid": string;
+  } = {
+    type: "button",
+    "data-testid": TELEMETRY_LOAD_ERROR_RETRY_TEST_ID,
+    onClick: (): void => {
+      props.onRetry?.();
+    },
+    onMouseDown: (event: React.MouseEvent<HTMLButtonElement>): void => {
+      if (event.detail > 1) {
+        event.stopPropagation();
+      }
+    },
+    onDoubleClick: (event: React.MouseEvent<HTMLButtonElement>): void => {
+      event.stopPropagation();
+    },
+  };
+
   if (variant === "note") {
     return (
       <div
@@ -104,10 +134,8 @@ const TelemetryLoadErrorMessage: FunctionComponent<
         <p className="mt-0.5">{description}</p>
         {props.onRetry && (
           <button
-            type="button"
-            data-testid={TELEMETRY_LOAD_ERROR_RETRY_TEST_ID}
-            className="mt-1.5 inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline"
-            onClick={props.onRetry}
+            {...retryButtonProps}
+            className="mt-1.5 inline-flex items-center gap-1 rounded-sm font-semibold underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             <Icon icon={IconProp.Refresh} className="h-3 w-3" />
             <span>{retryLabel}</span>
@@ -158,14 +186,12 @@ const TelemetryLoadErrorMessage: FunctionComponent<
       </div>
       {props.onRetry && (
         <button
-          type="button"
-          data-testid={TELEMETRY_LOAD_ERROR_RETRY_TEST_ID}
-          className={`inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 ${
+          {...retryButtonProps}
+          className={`inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
             isChart
               ? "mt-1 px-2 py-1 text-[11px]"
               : "mt-1 px-2.5 py-1.5 text-xs"
           }`}
-          onClick={props.onRetry}
         >
           <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
           <span>{retryLabel}</span>

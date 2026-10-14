@@ -146,9 +146,15 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
       : props.facetData;
   }, [props.onlyShowValuesInScope, props.facetData, activeValuesByKey]);
 
+  const timedOutFacetKeys: Set<string> = useMemo(() => {
+    return new Set<string>(props.timedOutFacets || []);
+  }, [props.timedOutFacets]);
+
   /*
    * Only configs that opt in with hideWhenEmpty (the resource facets) fold
-   * away while empty; every other config renders exactly as before.
+   * away while empty; every other config renders exactly as before. A facet
+   * the time limit stopped is never folded away as empty: its section says
+   * it was not counted.
    */
   const visibility: FacetVisibility = useMemo(() => {
     return computeFacetVisibility({
@@ -165,6 +171,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
       getTitle: (key: string): string => {
         return configsByKey.get(key)?.title ?? key;
       },
+      stoppedKeys: timedOutFacetKeys,
     });
   }, [
     orderedConfigs,
@@ -173,11 +180,8 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
     activeValuesByKey,
     facetSearch.searchExemptKeys,
     showHidden,
+    timedOutFacetKeys,
   ]);
-
-  const timedOutFacetKeys: Set<string> = new Set<string>(
-    props.timedOutFacets || [],
-  );
 
   const countsNotice: TelemetryLoadError | undefined =
     props.facetError ||

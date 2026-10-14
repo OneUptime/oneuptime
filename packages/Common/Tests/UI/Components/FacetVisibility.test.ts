@@ -210,6 +210,92 @@ describe("computeFacetVisibility — non-hideable facets", () => {
   });
 });
 
+/*
+ * A facet the server stopped at the query time limit (issue #4707) comes back
+ * with nothing in it, exactly like an empty one. Folding it into "N empty
+ * filters hidden" would call it empty, which nobody knows: it stays in its
+ * place, where its section says it was not counted, whatever its values and
+ * whatever the footer's toggle — and it is never counted as hidden.
+ */
+describe("computeFacetVisibility — a hideable facet stopped at the time limit", () => {
+  const SHAPES: Array<[string, FacetData[string] | undefined]> = [
+    ["with values", ONE_VALUE],
+    ["with every count at 0", ZERO_COUNT_VALUE],
+    ["empty", []],
+    ["not returned", undefined],
+  ];
+
+  test.each(SHAPES)(
+    "stopped and %s: shown in its place, never counted as empty",
+    (_label: string, values: FacetData[string] | undefined) => {
+      const facetData: FacetData = {};
+      if (values !== undefined) {
+        facetData["hostId"] = values;
+      }
+
+      for (const showHidden of [false, true]) {
+        const result: FacetVisibility = run({
+          facetData: facetData,
+          showHidden: showHidden,
+          stoppedKeys: new Set<string>(["hostId"]),
+        });
+
+        expect(result.visibleKeys).toEqual(["hostId"]);
+        expect(result.hiddenKeys).toEqual([]);
+        expect(result.hiddenCount).toBe(0);
+        expect(result.hiddenTitles).toEqual([]);
+      }
+    },
+  );
+
+  test("REGRESSION: an empty facet nobody counted is not folded with the empty ones", () => {
+    const result: FacetVisibility = run({
+      keys: ["hostId", "dockerHostId"],
+      facetData: { hostId: [], dockerHostId: [] },
+      stoppedKeys: new Set<string>(["hostId"]),
+    });
+
+    expect(result.visibleKeys).toEqual(["hostId"]);
+    // The one that was counted, and is empty, still folds away.
+    expect(result.hiddenKeys).toEqual(["dockerHostId"]);
+    expect(result.hiddenTitles).toEqual(["Docker Host"]);
+  });
+
+  test("a stop on another facet does not keep this one", () => {
+    const result: FacetVisibility = run({
+      keys: ["hostId", "dockerHostId"],
+      facetData: { hostId: [], dockerHostId: [] },
+      stoppedKeys: new Set<string>(["podmanHostId"]),
+    });
+
+    expect(result.visibleKeys).toEqual([]);
+    expect(result.hiddenKeys).toEqual(["hostId", "dockerHostId"]);
+  });
+
+  test("no stopped facets, or none named, is the rule as before", () => {
+    for (const stoppedKeys of [undefined, new Set<string>()]) {
+      const result: FacetVisibility = run({
+        facetData: { hostId: [] },
+        stoppedKeys: stoppedKeys,
+      });
+
+      expect(result.visibleKeys).toEqual([]);
+      expect(result.hiddenKeys).toEqual(["hostId"]);
+    }
+  });
+
+  test("a non-hideable facet stopped renders as it always does", () => {
+    const result: FacetVisibility = run({
+      keys: ["severityText"],
+      facetData: { severityText: [] },
+      stoppedKeys: new Set<string>(["severityText"]),
+    });
+
+    expect(result.visibleKeys).toEqual(["severityText"]);
+    expect(result.hiddenCount).toBe(0);
+  });
+});
+
 describe("computeFacetVisibility — a whole sidebar", () => {
   const KEYS: Array<string> = [
     "severityText",

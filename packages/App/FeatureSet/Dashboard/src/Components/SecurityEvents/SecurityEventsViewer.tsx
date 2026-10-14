@@ -1137,23 +1137,29 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
          * header actions, so an empty window would leave a hole where the
          * chart was. This keeps the frame — and states the count the window
          * holds, which on an empty one is the answer.
+         *
+         * Not while the chart could not load (issue #4707): the total is
+         * read from the same answer, so "Counting events..." would wait
+         * beside the chart's own message for a count that is not coming.
          */
         histogramHeaderActions={
-          <span
-            className="whitespace-nowrap text-[11px] text-gray-500"
-            data-testid={SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID}
-          >
-            {isVolumeLoading || !volume ? (
-              "Counting events..."
-            ) : (
-              <>
-                <span className="font-semibold tabular-nums text-gray-900">
-                  {volume.total.toLocaleString()}
-                </span>{" "}
-                {volume.total === 1 ? "event" : "events"}
-              </>
-            )}
-          </span>
+          volumeError && !isVolumeLoading ? undefined : (
+            <span
+              className="whitespace-nowrap text-[11px] text-gray-500"
+              data-testid={SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID}
+            >
+              {isVolumeLoading || !volume ? (
+                "Counting events..."
+              ) : (
+                <>
+                  <span className="font-semibold tabular-nums text-gray-900">
+                    {volume.total.toLocaleString()}
+                  </span>{" "}
+                  {volume.total === 1 ? "event" : "events"}
+                </>
+              )}
+            </span>
+          )
         }
         // Pagination
         page={page}

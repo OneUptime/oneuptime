@@ -377,6 +377,11 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
       : props.facetData;
   }, [props.onlyShowValuesInScope, props.facetData, activeValuesByKey]);
 
+  const timedOutFacetKeys: Set<string> = useMemo(() => {
+    return new Set<string>(props.timedOutFacets || []);
+  }, [props.timedOutFacets]);
+
+  // A facet the time limit stopped is never folded away as empty.
   const visibility: FacetVisibility = useMemo(() => {
     return computeFacetVisibility({
       keys: facetKeys,
@@ -386,6 +391,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
       searchExemptKeys: facetSearch.searchExemptKeys,
       showHidden: showHidden,
       getTitle: getFacetTitle,
+      stoppedKeys: timedOutFacetKeys,
     });
   }, [
     facetKeys,
@@ -393,11 +399,8 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
     activeValuesByKey,
     facetSearch.searchExemptKeys,
     showHidden,
+    timedOutFacetKeys,
   ]);
-
-  const timedOutFacetKeys: Set<string> = new Set<string>(
-    props.timedOutFacets || [],
-  );
 
   const countsNotice: TelemetryLoadError | undefined =
     props.facetError ||

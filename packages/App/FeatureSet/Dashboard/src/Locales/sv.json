@@ -28739,7 +28739,6 @@
   "Filter counts took too long": "Filterantalen tog för lång tid",
   "It was stopped before it finished. Try a shorter time range or more specific filters.": "Stoppades innan det var klart. Prova ett kortare tidsintervall eller mer specifika filter.",
   "Not counted": "Inte räknat",
-  "Not counted: this took too long.": "Inte räknat: det tog för lång tid.",
   "Something went wrong. Try again in a moment.": "Något gick fel. Försök igen om en stund.",
   "This chart could not load": "Det här diagrammet kunde inte läsas in",
   "This chart took too long to load": "Det tog för lång tid att läsa in det här diagrammet",

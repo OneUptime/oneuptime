@@ -151,6 +151,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsFacets";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import { TELEMETRY_VIEWER_LIST_TEST_ID } from "../../../UI/Components/TelemetryViewer/TelemetryViewer";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import AggregateBy from "../../../Types/BaseDatabase/AggregateBy";
@@ -1589,5 +1590,243 @@ describe("attribute columns", () => {
     await waitForLoad();
 
     expect(chipsOn(rows()[0]!)).toEqual([]);
+  });
+});
+
+/*
+ * A read stopped at the query time limit (issue #4707), as the security
+ * events explorer shows it. Found in the UI review of #4824:
+ *
+ *   - the volume card said "Counting events..." beside its own "This chart
+ *     took too long to load", for ever: the total is read from the volume's
+ *     answer, which was not coming;
+ *   - every facet count the limit stopped came back empty, and the sidebar
+ *     folded them into "N empty filters hidden" (all eleven, when the whole
+ *     search ran long), calling empty what nobody had counted.
+ */
+describe("reads stopped at the query time limit", () => {
+  function stoppedAtTimeLimit(): HTTPErrorResponse {
+    return new HTTPErrorResponse(
+      504,
+      {
+        error:
+          "This query took longer than 45 seconds and was stopped before it finished. Try a shorter time range or more specific filters.",
+      },
+      {},
+    );
+  }
+
+  function emptyFiltersFooter(): HTMLElement | null {
+    return screen.queryByText(/empty filters? hidden/);
+  }
+
+  test("REGRESSION: a volume chart that took too long says so, with no 'Counting events...' beside it", async () => {
+    let stopped: boolean = true;
+    const answer: (data: {
+      aggregateBy: AggregateBy<SecurityEvent>;
+    }) => Promise<AggregatedResult> =
+      aggregateMock.getMockImplementation() as (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }) => Promise<AggregatedResult>;
+
+    aggregateMock.mockImplementation(
+      async (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }): Promise<AggregatedResult> => {
+        if (
+          stopped &&
+          String(data.aggregateBy.aggregationInterval) !== "Total"
+        ) {
+          throw stoppedAtTimeLimit();
+        }
+
+        return answer(data);
+      },
+    );
+
+    renderViewer();
+
+    expect(
+      await screen.findByText("This chart took too long to load"),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(rows()).toHaveLength(2);
+    });
+
+    expect(
+      screen.queryByTestId(SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Counting events/)).not.toBeInTheDocument();
+
+    // Try again counts the window again, and its total comes back with it.
+    stopped = false;
+    const chartMessage: HTMLElement = screen
+      .getByText("This chart took too long to load")
+      .closest('[data-testid="telemetry-load-error"]') as HTMLElement;
+
+    await act(async () => {
+      fireEvent.click(
+        within(chartMessage).getByTestId("telemetry-load-error-retry"),
+      );
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID),
+      ).toHaveTextContent("13 events");
+    });
+    expect(
+      screen.queryByText("This chart took too long to load"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("while Try again counts the volume, the chart shows it is working, not the old message", async () => {
+    let calls: number = 0;
+    let release: (() => void) | undefined = undefined;
+    const answer: (data: {
+      aggregateBy: AggregateBy<SecurityEvent>;
+    }) => Promise<AggregatedResult> =
+      aggregateMock.getMockImplementation() as (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }) => Promise<AggregatedResult>;
+
+    aggregateMock.mockImplementation(
+      async (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }): Promise<AggregatedResult> => {
+        if (String(data.aggregateBy.aggregationInterval) !== "Total") {
+          calls++;
+
+          if (calls === 1) {
+            throw stoppedAtTimeLimit();
+          }
+
+          await new Promise<void>((resolve: () => void) => {
+            release = resolve;
+          });
+        }
+
+        return answer(data);
+      },
+    );
+
+    renderViewer();
+
+    const chartMessage: HTMLElement = (
+      await screen.findByText("This chart took too long to load")
+    ).closest('[data-testid="telemetry-load-error"]') as HTMLElement;
+
+    await act(async () => {
+      fireEvent.click(
+        within(chartMessage).getByTestId("telemetry-load-error-retry"),
+      );
+    });
+
+    // The read is running again: the message that it stopped is gone.
+    await waitFor(() => {
+      expect(release).toBeDefined();
+    });
+    expect(
+      screen.queryByText("This chart took too long to load"),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      release?.();
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID),
+      ).toHaveTextContent("13 events");
+    });
+  });
+
+  test("REGRESSION: facets the time limit stopped say 'Not counted' and are never folded away as empty", async () => {
+    const STOPPED_KEYS: Array<string> = ["severityName", "className"];
+    const answer: (data: {
+      aggregateBy: AggregateBy<SecurityEvent>;
+    }) => Promise<AggregatedResult> =
+      aggregateMock.getMockImplementation() as (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }) => Promise<AggregatedResult>;
+
+    aggregateMock.mockImplementation(
+      async (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }): Promise<AggregatedResult> => {
+        const facetKey: string | undefined = Object.keys(
+          (data.aggregateBy.groupBy as unknown as Record<string, boolean>) ||
+            {},
+        )[0];
+
+        if (
+          String(data.aggregateBy.aggregationInterval) === "Total" &&
+          facetKey &&
+          STOPPED_KEYS.includes(facetKey)
+        ) {
+          throw stoppedAtTimeLimit();
+        }
+
+        return answer(data);
+      },
+    );
+
+    renderViewer();
+
+    expect(
+      await screen.findByText("Filter counts took too long"),
+    ).toBeInTheDocument();
+
+    for (const title of ["Severity", "Event Class"]) {
+      const line: HTMLElement | null = within(
+        facetSection(title),
+      ).queryByTestId("facet-count-stopped");
+      expect(line?.textContent).toBe("Not counted");
+    }
+
+    // Source was counted: it keeps its value, and says nothing.
+    expect(facetSection("Source")).toHaveTextContent("Google SecOps");
+    expect(
+      within(facetSection("Source")).queryByTestId("facet-count-stopped"),
+    ).not.toBeInTheDocument();
+
+    /*
+     * The footer counts only the facets that were counted and came back
+     * empty: every facet but Source and the two that were stopped.
+     */
+    const counted: number = SECURITY_EVENT_FACET_KEYS.length - 1 - 2;
+    expect(emptyFiltersFooter()).toHaveTextContent(
+      `${counted} empty filters hidden`,
+    );
+  });
+
+  test("the whole search stopped: one message, and no 'empty filters hidden' for facets nobody counted", async () => {
+    getListMock.mockImplementation(async (data: { limit: number }) => {
+      if (data.limit === 1) {
+        return { data: [event()], count: 1, skip: 0, limit: 1 };
+      }
+
+      throw stoppedAtTimeLimit();
+    });
+    aggregateMock.mockImplementation(async () => {
+      throw stoppedAtTimeLimit();
+    });
+
+    renderViewer();
+
+    expect(
+      await screen.findByText("This search took too long"),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("facet-count-stopped")).toHaveLength(
+        SECURITY_EVENT_FACET_KEYS.length,
+      );
+    });
+
+    expect(emptyFiltersFooter()).not.toBeInTheDocument();
+    // One message for the search: the chart and the counts step aside.
+    expect(screen.getAllByTestId("telemetry-load-error")).toHaveLength(1);
+    expect(screen.queryByText(/Counting events/)).not.toBeInTheDocument();
   });
 });

@@ -177,13 +177,26 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
     );
   }
 
+  /*
+   * A zoomed card keeps its "Double-click to reset" hint, as it does over
+   * bars, a loader or an empty box: the box where the bars go still takes
+   * the double-click, so the way back to the range the reader zoomed from
+   * stays where it was.
+   */
   if (props.error && !props.isLoading) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-gray-100 px-4 py-2">
-          <span className="text-xs font-medium text-gray-500">
-            {translator.translateText(props.title || "Volume")}
-          </span>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="text-xs font-medium text-gray-500">
+              {translator.translateText(props.title || "Volume")}
+            </span>
+            {props.onZoomOut && (
+              <span className="text-[10px] text-gray-300">
+                {translator.translateText("Double-click to reset")}
+              </span>
+            )}
+          </div>
           {props.headerActions}
         </div>
         <div

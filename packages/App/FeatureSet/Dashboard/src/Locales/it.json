@@ -28739,7 +28739,6 @@
   "Filter counts took too long": "I conteggi dei filtri hanno richiesto troppo tempo",
   "It was stopped before it finished. Try a shorter time range or more specific filters.": "L'operazione è stata interrotta prima del termine. Prova un intervallo di tempo più breve o filtri più specifici.",
   "Not counted": "Non conteggiato",
-  "Not counted: this took too long.": "Non conteggiato: ha richiesto troppo tempo.",
   "Something went wrong. Try again in a moment.": "Qualcosa è andato storto. Riprova tra un momento.",
   "This chart could not load": "Impossibile caricare questo grafico",
   "This chart took too long to load": "Il caricamento di questo grafico ha richiesto troppo tempo",

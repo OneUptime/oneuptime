@@ -1307,8 +1307,15 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
     }
 
     if (loadError) {
+      /*
+       * Where the timeseries would be, it takes a double-click as the chart
+       * does, like the loader above and the histogram cards' messages.
+       */
       return (
-        <div className="flex h-72 items-center justify-center">
+        <div
+          className="flex h-72 select-none items-center justify-center"
+          {...(chartType === "timeseries" ? selection.placeholderProps : {})}
+        >
           <TelemetryLoadErrorMessage
             error={loadError}
             subject="chart"

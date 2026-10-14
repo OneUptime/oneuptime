@@ -81,11 +81,19 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
       </button>
 
       {props.isCountUnknown ? (
+        /*
+         * A dash where the count goes. A screen reader hears "Not counted"
+         * rather than a dash it may read as nothing, or as "minus".
+         */
         <span
-          className="min-w-[2rem] text-right font-mono text-[10px] text-gray-300"
+          className="min-w-[2rem] text-right font-mono text-[10px] text-gray-400"
           title={translator.translateText("Not counted")}
+          data-testid="facet-count-unknown"
         >
-          —
+          <span aria-hidden="true">—</span>
+          <span className="sr-only">
+            {translator.translateText("Not counted")}
+          </span>
         </span>
       ) : (
         <div className="flex items-center gap-1.5">

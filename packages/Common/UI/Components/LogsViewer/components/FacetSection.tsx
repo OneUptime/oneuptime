@@ -131,12 +131,17 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
 
       {isExpanded && (
         <div id={bodyId} className="mt-1 px-1">
+          {/*
+           * Two words, not a sentence: why it was not counted is said once,
+           * by the note at the top of the sidebar or by the message where
+           * the rows go, rather than again in every facet it stopped.
+           */}
           {props.isCountStopped && (
             <p
               className="px-1.5 pb-1 text-[11px] text-gray-500"
               data-testid="facet-count-stopped"
             >
-              {translator.translateText("Not counted: this took too long.")}
+              {translator.translateText("Not counted")}
             </p>
           )}
 

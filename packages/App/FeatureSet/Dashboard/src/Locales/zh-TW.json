@@ -28739,7 +28739,6 @@
   "Filter counts took too long": "篩選計數耗時過久",
   "It was stopped before it finished. Try a shorter time range or more specific filters.": "已在完成前停止。請嘗試縮短時間範圍或使用更具體的篩選條件。",
   "Not counted": "未計數",
-  "Not counted: this took too long.": "未計數：耗時過久。",
   "Something went wrong. Try again in a moment.": "發生錯誤。請稍後再試一次。",
   "This chart could not load": "無法載入此圖表",
   "This chart took too long to load": "此圖表載入耗時過久",

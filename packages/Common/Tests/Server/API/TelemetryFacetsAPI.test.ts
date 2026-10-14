@@ -947,11 +947,11 @@ describe("telemetry facet endpoints (list first)", () => {
     });
 
     /*
-     * The shared resource count serves statusCode and every resource facet:
-     * when the time limit stops it, each of them is named — a listed host at
-     * 0 would otherwise read as "no spans from this host".
+     * The shared resource count serves statusCode and every resource facet
+     * that listed rows: when the time limit stops it, each of them is named —
+     * a listed host at 0 would otherwise read as "no spans from this host".
      */
-    test("the shared resource count stopped at the limit names statusCode and every resource facet asked for", async () => {
+    test("the shared resource count stopped at the limit names statusCode and every resource facet it counts", async () => {
       listedRows = { hostId: [{ id: "h1", displayName: "web-1" }] };
       stubTraceCounts({ stop: ["resourceCounts"] });
 
@@ -971,6 +971,54 @@ describe("telemetry facet endpoints (list first)", () => {
         "hostId",
         "statusCode",
       ]);
+    });
+
+    /*
+     * A resource facet that listed nothing answers [] whether the shared
+     * count finished or not: the project has none of that resource. Named
+     * as stopped, the sidebar would keep an empty type on screen as "Not
+     * counted" instead of folding it into "N empty filters hidden".
+     */
+    test("REGRESSION: a stop does not name a resource facet that listed nothing", async () => {
+      listedRows = { hostId: [{ id: "h1", displayName: "web-1" }] };
+      stubTraceCounts({ stop: ["resourceCounts"] });
+
+      const result: CallResult = await callRoute({
+        uri: TRACES_ROUTE,
+        request: viewerRequest,
+        body: {
+          facetKeys: [
+            "hostId",
+            "dockerHostId",
+            "kubernetesClusterId",
+            "statusCode",
+          ],
+        },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.facets).toEqual({
+        hostId: [{ value: "h1", count: 0, displayName: "web-1" }],
+        dockerHostId: [],
+        kubernetesClusterId: [],
+        statusCode: [],
+      });
+      expect([...(result.timedOutFacets || [])].sort()).toEqual([
+        "hostId",
+        "statusCode",
+      ]);
+    });
+
+    test("a stop with only statusCode asked for names statusCode alone", async () => {
+      stubTraceCounts({ stop: ["resourceCounts"] });
+
+      const result: CallResult = await callRoute({
+        uri: TRACES_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["dockerHostId", "statusCode"] },
+      });
+
+      expect(result.timedOutFacets).toEqual(["statusCode"]);
     });
 
     test("the sample, root-span and exception counts each name their own facets", async () => {
