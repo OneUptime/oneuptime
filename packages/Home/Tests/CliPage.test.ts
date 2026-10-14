@@ -1037,7 +1037,12 @@ describe("the page's SEO entry and what it feeds", () => {
 
     expect(product?.["features"]).toEqual(features);
     expect(product?.["description"]).toBe(seo.description);
-    expect(llms).toContain(
+    // The page's line of llms.txt, whole.
+    expect(
+      llms.split("\n").find((line: string): boolean => {
+        return line.startsWith("- [OneUptime CLI](");
+      }),
+    ).toBe(
       `- [OneUptime CLI](${HOME_URL}${CLI_PAGE_PATH}.md): ${seo.description}`,
     );
 

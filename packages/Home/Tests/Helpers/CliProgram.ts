@@ -220,12 +220,10 @@ function optionOf(
 ): CliOption {
   return {
     flags: flags,
-    names: flags
-      .replace(OPTION_VALUE, "")
-      .split(FLAG_SEPARATOR)
-      .filter((name: string): boolean => {
-        return name.startsWith("-");
-      }),
+    // "-o, --output <format>" is typed as -o or --output; <format> is its value.
+    names: flags.split(FLAG_SEPARATOR).filter((name: string): boolean => {
+      return name.startsWith("-");
+    }),
     takesValue: OPTION_VALUE.test(flags),
     defaultValue: defaultValue,
     required: required,
