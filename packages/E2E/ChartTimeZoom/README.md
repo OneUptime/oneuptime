@@ -161,6 +161,7 @@ until a spec sets it back. Nothing is stopped by default:
 | `lists` | the explorers' span and log lists (`AnalyticsModelAPI.getList` of `SpanItemV3`, `LogItemV3`) |
 | `histograms` | `/telemetry/traces/histogram` and `/telemetry/logs/histogram` |
 | `facets` | the facet keys listed: the facet endpoints name them in `timedOutFacets` and answer them empty (a resource facet keeps its list, every count 0), as the server does |
+| `attributeValues` | the search bars' `@key:` value lookups, every `/telemetry/*/get-attribute-values` (issue #4708) |
 
 A spec whose first load is stopped sets `window.__chartTimeZoomTimeLimit` with
 `page.addInitScript` before the page loads; the fixture starts from it.
@@ -436,6 +437,34 @@ nothing to show; then, once released, one read:
 - the Metrics explorer on a `service:checkout-api` link, while the service names load:
   "Loading..." and no "No metrics found"; then one read, whose empty answer only now
   says so.
+
+## Explorers: the `@key:` value picker
+
+`ExplorerValueSuggestions.spec.ts` (8 tests, same fixture and command) pins issue
+#4708 in a real browser: the value picker behind `@key:` asked for a key's values
+whenever the last word looked like `@key:`, so typing a key over the search help's
+`@http.status_code:500` asked for every prefix of it (r, re, res, ... - eighteen
+lookups for `resource.host.name`, each a scan of a day of logs on a real install),
+a key the project does not have was asked about, and every key again when it came
+back. It types as a person does, a key every 90 ms, and counts the lookups the page
+recorded:
+
+- Logs: typing `@resource.service.name:` asks once, after the pause, for the whole key,
+  with the past hour on screen (`startTime`/`endTime`); typing the value narrows the
+  list in place and asks nothing more;
+- Logs: a key typed between `@` and `:` asks only for the key the reader stops on;
+- Logs: a misspelt key (`resource.servce.name`) asks nothing;
+- Logs: a key asked about before is offered again at once, with no new lookup;
+- Logs: a lookup that runs out of time (`timeLimit.attributeValues`) says so in the
+  dropdown ("Values for resource.service.name took too long to load."), never the
+  search's own message, and Try again asks again and keeps the focus in the box;
+- Logs at 390 px in the dark theme: that message and its Try again fit the screen and
+  the page grows no wider;
+- Traces (the shared search bar of the other explorers): one lookup per key, and none
+  for a key asked about before or typed over.
+
+Screenshots: `value-suggestions-logs`, `value-suggestions-stopped` and
+`value-suggestions-stopped-phone-dark`.
 
 ## Run it
 
