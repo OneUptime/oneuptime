@@ -119,7 +119,7 @@ URL-en er den eneste påloggingsinformasjonen, så behandle den som et passord. 
 
 :::steps
 1. Lagre verktøyets API-nøkkel som en hemmelig global variabel, som vist [nedenfor](#hold-påloggingsinformasjon-trygg).
-2. Opprett en arbeidsflyt, klikk på den stiplede blokken, og velg en hendelsestrigger, f.eks. **On Create Incident**. Kryss av for feltene som skal sendes i **Select Fields**, f.eks. `title` og `description`.
+2. Opprett en arbeidsflyt, klikk på den stiplede blokken, og velg en hendelsestrigger, f.eks. **On Create Incident**. Kryss av for feltene som skal sendes i **Fields to pass on**, f.eks. `title` og `description`.
 3. Klikk på **Legg til komponent**, og legg til en **API Post (JSON)**-blokk. Koble triggerens **Success**-punkt til den.
 4. Fyll ut **URL**, **Request Headers** med `Authorization`-overskriften og **Request Body** med hendelsens felt, f.eks. `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Klikk på **Kjør arbeidsflyt**, skriv inn **Hendelse-ID** for en hendelse, og kjør den. En testkjøring sender forespørselen på ordentlig. Slå deretter på **Aktivert**.

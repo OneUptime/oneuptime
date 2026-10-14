@@ -201,6 +201,11 @@ function BuilderScenario() {
           params.get("webhook") === "url" ? "fixture-secret-key" : undefined
         }
         canSeeWebhookSecretKey={params.get("webhook") === "url"}
+        /*
+         * ?off=1: the workflow is turned off, so its trigger is paused and
+         * a run started from here is a test run.
+         */
+        runsAreTestRuns={params.get("off") === "1"}
         showComponentsPickerModal={false}
         showRunModal={false}
         onComponentPickerModalUpdate={() => {}}

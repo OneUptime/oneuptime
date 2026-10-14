@@ -48,7 +48,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul begin
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger en kies in **Select Fields** `title` en `description`.
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger en kies in **Fields to pass on** `title` en `description`.
 
 ### De trigger-gebeurtenis sturen
 
@@ -84,7 +84,7 @@ Een workflow heeft één trigger, dus voor het oplossen is een tweede workflow n
 :::steps
 ### De trigger On Update Incident toevoegen
 
-Maak een workflow met de naam `Resolve PagerDuty incidents` en kies **On Update Incident** als trigger. Kies in **Listen on** `currentIncidentStateId`, zodat hij alleen draait wanneer de status verandert. Vraag in **Select Fields** of de nieuwe status een opgeloste status is:
+Maak een workflow met de naam `Resolve PagerDuty incidents` en kies **On Update Incident** als trigger. Kies in **Fields to watch** `currentIncidentStateId`, zodat hij alleen draait wanneer de status verandert. Vraag in **Fields to pass on** of de nieuwe status een opgeloste status is:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ Controleren op `isResolvedState` in plaats van op de naam van een status blijft 
 
 Om de ernst van elk incident mee te sturen, voeg je tussen de trigger en het **API Post (JSON)**-blok een **Run Custom JavaScript**-blok toe, en lees je het antwoord ervan in de body.
 
-1. Kies in de **Select Fields** van de trigger ook de `name` van de ernst: `{ "incidentSeverity": { "name": true } }`.
+1. Kies in de **Fields to pass on** van de trigger ook de `name` van de ernst: `{ "incidentSeverity": { "name": true } }`.
 2. Stel de **Arguments** van het blok in op `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, en de **JavaScript Code** op:
 
    ```javascript

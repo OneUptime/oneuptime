@@ -128,7 +128,7 @@ Triggeren tar plassen til den stiplede blokken. ID-en på den, `incident-on-crea
 
 ### Velg feltene til hendelsen
 
-Klikk på triggeren. Under **Select Fields** krysser du av for feltene forespørselen skal ha med, som tittelen og beskrivelsen, og klikker på **Lagre**.
+Klikk på triggeren. **Fields to pass on** starter med tittelen: klikk på **Legg til felt**, kryss av for beskrivelsen og de andre feltene forespørselen skal ha med, og klikk på **Lagre**.
 
 Triggeren sender den nye hendelsen videre med disse feltene. Et felt du ikke velger, kommer tomt frem.
 
@@ -158,7 +158,7 @@ En forespørsel som mislykkes — en URL som ikke kan nås, eller et svar som ik
 
 ### Test den
 
-Klikk på **Kjør arbeidsflyt**, skriv inn **Hendelse-ID** for en hendelse i dette prosjektet, klikk på **Run Workflow Manually**, og bekreft med **Run**. Arbeidsflyten er fortsatt slått av, så dette er en **Testkjøring**, og forespørselen blir virkelig sendt.
+Klikk på **Kjør arbeidsflyt**, og velg en hendelse i dette prosjektet under **Hendelse**: de nyeste er listet opp, og når du skriver inn nummeret eller en del av tittelen, finner du en annen. Klikk på **Kjør arbeidsflyten manuelt**, og bekreft med **Kjør**. Arbeidsflyten er fortsatt slått av, så dette er en **Testkjøring**, og forespørselen blir virkelig sendt.
 
 Et panel **Arbeidsflytkjøring** åpnes og følger kjøringen. Åpne trinnet **API Post (JSON)** for å se bodyen det sendte, og svaret det fikk.
 

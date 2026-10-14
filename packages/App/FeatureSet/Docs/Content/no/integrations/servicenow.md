@@ -54,7 +54,7 @@ Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **S
 
 ### Legg til triggeren
 
-Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **On Create Incident**. Klikk på triggeren, og velg `title` og `description` i **Select Fields**.
+Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **On Create Incident**. Klikk på triggeren, og velg `title` og `description` i **Fields to pass on**.
 
 ### Opprett posten
 
@@ -93,7 +93,7 @@ En arbeidsflyt har én trigger, så det trengs en annen arbeidsflyt for å løse
 :::steps
 ### Legg til triggeren On Update Incident
 
-Opprett en arbeidsflyt som heter `Resolve ServiceNow incidents`, og velg **On Update Incident** som trigger. Velg `currentIncidentStateId` i **Listen on**, slik at den bare kjører når tilstanden endres. Spør i **Select Fields** om den nye tilstanden er en løst tilstand:
+Opprett en arbeidsflyt som heter `Resolve ServiceNow incidents`, og velg **On Update Incident** som trigger. Velg `currentIncidentStateId` i **Fields to watch**, slik at den bare kjører når tilstanden endres. Spør i **Fields to pass on** om den nye tilstanden er en løst tilstand:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

@@ -40,9 +40,9 @@ export const WebhookTriggerPanelCopy: {
   readonly copyExample: string;
   readonly copyExampleTitle: string;
   readonly keepPrivate: string;
-  readonly resetIfLeaked: string;
+  readonly keepPrivateCanReset: string;
   readonly isWorkflowId: string;
-  readonly resetToMakePrivate: string;
+  readonly isWorkflowIdCanReset: string;
   readonly resetUrl: string;
   readonly resetConfirmTitle: string;
   readonly resetConfirmDescription: string;
@@ -67,12 +67,23 @@ export const WebhookTriggerPanelCopy: {
   tryIt: "Try it",
   copyExample: "Copy",
   copyExampleTitle: "Copy the example request",
-  keepPrivate:
+  /*
+   * Under the URL, one whole key for each case - with and without the
+   * advice to reset it, which only someone who may reset it is given - so
+   * a language words the two sentences together.
+   */
+  keepPrivate: translationKey(
     "Anyone with this URL can start the workflow, so keep it private.",
-  resetIfLeaked: "If it leaks, reset it.",
-  isWorkflowId:
+  ),
+  keepPrivateCanReset: translationKey(
+    "Anyone with this URL can start the workflow, so keep it private. If it leaks, reset it.",
+  ),
+  isWorkflowId: translationKey(
     "This URL ends in the workflow's ID, which anyone who can open the workflow can see.",
-  resetToMakePrivate: "Reset it to get a private URL.",
+  ),
+  isWorkflowIdCanReset: translationKey(
+    "This URL ends in the workflow's ID, which anyone who can open the workflow can see. Reset it to get a private URL.",
+  ),
   resetUrl: "Reset URL",
   resetConfirmTitle: "Reset the webhook URL?",
   resetConfirmDescription:
@@ -319,10 +330,11 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
         className="mt-px h-3.5 w-3.5 shrink-0 text-amber-500"
       />
       <p>
-        {translate(WebhookTriggerPanelCopy.isWorkflowId)}
-        {canReset
-          ? ` ${translate(WebhookTriggerPanelCopy.resetToMakePrivate)}`
-          : ""}
+        {translate(
+          canReset
+            ? WebhookTriggerPanelCopy.isWorkflowIdCanReset
+            : WebhookTriggerPanelCopy.isWorkflowId,
+        )}
       </p>
     </div>
   ) : (
@@ -335,8 +347,11 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
         className="mt-px h-3.5 w-3.5 shrink-0 text-gray-400"
       />
       <p>
-        {translate(WebhookTriggerPanelCopy.keepPrivate)}
-        {canReset ? ` ${translate(WebhookTriggerPanelCopy.resetIfLeaked)}` : ""}
+        {translate(
+          canReset
+            ? WebhookTriggerPanelCopy.keepPrivateCanReset
+            : WebhookTriggerPanelCopy.keepPrivate,
+        )}
       </p>
     </div>
   );

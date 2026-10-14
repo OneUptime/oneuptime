@@ -128,7 +128,7 @@ O gatilho ocupa o lugar do bloco tracejado. O ID que aparece nele, `incident-on-
 
 ### Escolher os campos do incidente
 
-Clique no gatilho. Em **Select Fields**, marque os campos que a requisição deve levar, como o título e a descrição, e clique em **Salvar**.
+Clique no gatilho. **Fields to pass on** começa com o título: clique em **Adicionar campo**, marque a descrição e qualquer outro campo que a requisição deva levar, e clique em **Salvar**.
 
 O gatilho repassa o novo incidente com esses campos. Um campo que você não seleciona chega vazio.
 
@@ -158,7 +158,7 @@ Uma requisição que falha — uma URL inacessível ou uma resposta que não é 
 
 ### Testar
 
-Clique em **Executar fluxo de trabalho**, informe o **ID do incidente** de um incidente deste projeto, clique em **Run Workflow Manually** e confirme com **Run**. O workflow continua desligado, então esta é uma **Execução de teste**, e a requisição é enviada de verdade.
+Clique em **Executar fluxo de trabalho** e escolha um incidente deste projeto em **Incidente**: os mais recentes são listados, e digitar o número dele ou parte do título encontra outro. Clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O workflow continua desligado, então esta é uma **Execução de teste**, e a requisição é enviada de verdade.
 
 Um painel **Execução do Fluxo de Trabalho** se abre e acompanha a execução. Abra o passo **API Post (JSON)** para ver o corpo que ele enviou e a resposta que recebeu.
 

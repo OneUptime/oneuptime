@@ -269,7 +269,7 @@ Der Geltungsbereich muss Ihre Umgebungs-URL gefolgt von `/.default` sein. Eine f
 ### Für jeden Vorfall einen Fall anlegen
 
 :::steps
-1. Legen Sie ohne Vorlage einen Workflow namens `Incidents to Dynamics 365` an. Klicken Sie auf den gestrichelten Baustein und fügen Sie den Trigger **On Create Incident** hinzu. Fragen Sie in seinen **Select Fields** `{"_id": true, "title": true, "description": true, "incidentNumber": true}` ab.
+1. Legen Sie ohne Vorlage einen Workflow namens `Incidents to Dynamics 365` an. Klicken Sie auf den gestrichelten Baustein und fügen Sie den Trigger **On Create Incident** hinzu. Fragen Sie in seinen **Fields to pass on** `{"_id": true, "title": true, "description": true, "incidentNumber": true}` ab.
 2. Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Success** des Triggers damit. Setzen Sie seine **Kennung** auf `create-case` und seine **URL** auf `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Setzen Sie unter **Weitere Felder** seine **Request Headers** auf:
 
@@ -323,7 +323,7 @@ Dynamics 365 liefert `severitycode` mit einer einzigen Option aus, setzen Sie al
 Bauen Sie dies als zweiten Workflow, damit ein Fehler hier nie das Anlegen von Fällen stoppt.
 
 :::steps
-1. Legen Sie einen Workflow namens `Close Dynamics 365 cases` an, mit dem Trigger **On Update Incident**. Setzen Sie **Listen on** auf `{"currentIncidentStateId": true}` und **Select Fields** auf `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
+1. Legen Sie einen Workflow namens `Close Dynamics 365 cases` an, mit dem Trigger **On Update Incident**. Setzen Sie **Fields to watch** auf `{"currentIncidentStateId": true}` und **Fields to pass on** auf `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
 2. Fügen Sie einen **If / Else**-Baustein hinzu: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
 3. Fügen Sie nach seiner Seite **Yes** einen **API Get (JSON)**-Baustein mit der **Kennung** `find-case` hinzu, mit denselben Headern ohne `Prefer` und dieser **URL**:
 

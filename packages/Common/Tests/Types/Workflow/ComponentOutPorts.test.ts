@@ -237,4 +237,47 @@ describe("the settings a new step starts with", () => {
     expect(getNewStepArguments("incident-create-one")).toBeNull();
     expect(getNewStepArguments(undefined)).toBeNull();
   });
+
+  /*
+   * A step that passes a record on starts by passing on the field that
+   * names it, so it works as it is added, the next steps' values have that
+   * field to offer, and the setting shows what it is for.
+   */
+  test.each([
+    ["incident-on-create", "Incident", { title: true }],
+    ["incident-on-update", "Incident", { title: true }],
+    ["incident-find-one", "Incident", { title: true }],
+    ["incident-find-many", "Incident", { title: true }],
+    ["monitor-on-create", "Monitor", { name: true }],
+    ["alert-on-update", "Alert", { title: true }],
+  ])(
+    "a new %s passes on the field that names its record",
+    (metadataId: string, tableName: string, select: JSONObject) => {
+      expect(getNewStepArguments(metadataId, tableName)).toEqual({
+        select: select,
+      });
+    },
+  );
+
+  test("steps that pass no record on start with nothing, their table or not", () => {
+    for (const metadataId of [
+      "incident-on-delete",
+      "incident-create-one",
+      "incident-update-one",
+      "incident-delete-many",
+    ]) {
+      expect([metadataId, getNewStepArguments(metadataId, "Incident")]).toEqual(
+        [metadataId, null],
+      );
+    }
+
+    expect(getNewStepArguments("incident-on-create", "NoSuchTable")).toBeNull();
+    expect(getNewStepArguments("incident-on-create", null)).toBeNull();
+  });
+
+  test("a model with no field that names a record passes on its ID", () => {
+    expect(
+      getNewStepArguments("incoming-call-log-on-create", "IncomingCallLog"),
+    ).toEqual({ select: { _id: true } });
+  });
 });

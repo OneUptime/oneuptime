@@ -410,7 +410,7 @@ A query is always scoped to the project the workflow runs in. You can't reach an
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-A key that isn't a column is ignored rather than rejected — the run log names the ones it dropped, so check there when a field doesn't land. **Select Fields**, on the Find components and the triggers, uses the same column keys with `true` values: `{"_id": true, "name": true}`.
+A key that isn't a column is ignored rather than rejected — the run log names the ones it dropped, so check there when a field doesn't land. **Fields to pass on**, on the Find components and the triggers, is picked from a list; its **Edit as JSON** shows the same column keys with `true` values: `{"_id": true, "name": true}`.
 
 **Custom fields** are one column, `customFields`, holding each custom field's value under the field's name. The Update components change only the custom fields you name, and every other one keeps its value:
 

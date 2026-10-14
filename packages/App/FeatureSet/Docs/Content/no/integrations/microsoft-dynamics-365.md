@@ -269,7 +269,7 @@ Scopet må være miljø-URL-en din etterfulgt av `/.default`. En feil miljø-URL
 ### Opprett en sak for hver hendelse
 
 :::steps
-1. Opprett en arbeidsflyt fra bunnen som heter `Incidents to Dynamics 365`. Klikk på den stiplede blokken, og legg til triggeren **On Create Incident**. Be om `{"_id": true, "title": true, "description": true, "incidentNumber": true}` i **Select Fields**.
+1. Opprett en arbeidsflyt fra bunnen som heter `Incidents to Dynamics 365`. Klikk på den stiplede blokken, og legg til triggeren **On Create Incident**. Be om `{"_id": true, "title": true, "description": true, "incidentNumber": true}` i **Fields to pass on**.
 2. Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og koble triggerens **Success**-punkt til den. Sett **Identifier** til `create-case` og **URL** til `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Sett **Request Headers** under **Flere felt** til:
 
@@ -323,7 +323,7 @@ Dynamics 365 leveres med `severitycode` med ett enkelt alternativ, så sett `pri
 Bygg dette som en egen arbeidsflyt, slik at en feil her aldri hindrer at saker opprettes.
 
 :::steps
-1. Opprett en arbeidsflyt som heter `Close Dynamics 365 cases`, med triggeren **On Update Incident**. Sett **Listen on** til `{"currentIncidentStateId": true}` og **Select Fields** til `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
+1. Opprett en arbeidsflyt som heter `Close Dynamics 365 cases`, med triggeren **On Update Incident**. Sett **Fields to watch** til `{"currentIncidentStateId": true}` og **Fields to pass on** til `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
 2. Legg til en **If / Else**-blokk: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
 3. Legg etter **Yes**-siden til en **API Get (JSON)**-blokk med **Identifier** `find-case`, de samme overskriftene uten `Prefer` og denne **URL**:
 

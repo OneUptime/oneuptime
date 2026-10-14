@@ -119,7 +119,7 @@ The URL is the only credential, so treat it like a password. See [Webhook](/docs
 
 :::steps
 1. Save the tool's API key as a secret global variable, as shown [below](#keep-credentials-safe).
-2. Create a workflow, click the dashed block and pick an event trigger, such as **On Create Incident**. In its **Select Fields**, tick the fields to send, such as `title` and `description`.
+2. Create a workflow, click the dashed block and pick an event trigger, such as **On Create Incident**. In its **Fields to pass on**, tick the fields to send, such as `title` and `description`.
 3. Click **Add Component** and add an **API Post (JSON)** block. Connect the trigger's **Success** dot to it.
 4. Fill in its **URL**, its **Request Headers** with the `Authorization` header, and its **Request Body** with the incident's fields, such as `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Click **Run Workflow**, enter the **Incident ID** of an incident, and run it. A test run really sends the request. Then switch **Enabled** on.

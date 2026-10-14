@@ -269,7 +269,7 @@ Scopet måste vara din miljö-URL följd av `/.default`. En felaktig miljö-URL 
 ### Skapa ett ärende för varje incident
 
 :::steps
-1. Skapa ett arbetsflöde från grunden som heter `Incidents to Dynamics 365`. Klicka på det streckade blocket och lägg till utlösaren **On Create Incident**. Be om `{"_id": true, "title": true, "description": true, "incidentNumber": true}` i dess **Select Fields**.
+1. Skapa ett arbetsflöde från grunden som heter `Incidents to Dynamics 365`. Klicka på det streckade blocket och lägg till utlösaren **On Create Incident**. Be om `{"_id": true, "title": true, "description": true, "incidentNumber": true}` i dess **Fields to pass on**.
 2. Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block och koppla utlösarens **Success**-punkt till det. Ställ in dess **Identifier** på `create-case` och dess **URL** på `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Ställ in dess **Request Headers** under **Fler fält** på:
 
@@ -323,7 +323,7 @@ Dynamics 365 levereras med `severitycode` med ett enda alternativ, så ställ in
 Bygg detta som ett andra arbetsflöde, så att ett fel här aldrig hindrar att ärenden skapas.
 
 :::steps
-1. Skapa ett arbetsflöde som heter `Close Dynamics 365 cases`, med utlösaren **On Update Incident**. Ställ in **Listen on** på `{"currentIncidentStateId": true}` och **Select Fields** på `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
+1. Skapa ett arbetsflöde som heter `Close Dynamics 365 cases`, med utlösaren **On Update Incident**. Ställ in **Fields to watch** på `{"currentIncidentStateId": true}` och **Fields to pass on** på `{"_id": true, "currentIncidentState": {"isResolvedState": true}}`.
 2. Lägg till ett **If / Else**-block: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
 3. Lägg efter dess **Yes**-sida till ett **API Get (JSON)**-block med **Identifier** `find-case`, samma rubriker utan `Prefer` och denna **URL**:
 

@@ -87,7 +87,7 @@ Empieza desde la plantilla, que crea todo el flujo de trabajo por ti, o desde ce
 El flujo de trabajo se abre en el **Constructor** con tres pasos: **On Create Incident**; **Send Message to IRC**, que publica el número, el título, la gravedad y el estado del incidente en dos líneas; y un paso **Registro** en su salida **Error**, que deja constancia de por qué no se entregó un mensaje. El servidor y el canal se guardan como las variables `ircServer` e `ircChannel` del flujo de trabajo. Si guardaste contraseñas en el paso anterior, haz clic en **Send Message to IRC**, abre **Más campos** y elige cada variable con el botón **{ }** de su ajuste.
 @tab Desde cero
 1. Abre **Flujos de trabajo**, haz clic en **Crear flujo de trabajo**, elige **Empezar desde cero**, ponle nombre al flujo de trabajo y haz clic en **Crear flujo de trabajo**.
-2. En el **Constructor**, haz clic en **Elige qué inicia este flujo de trabajo** y elige **On Create Incident** en **Populares**. Haz clic en el disparador y, en **Select Fields**, elige los campos del incidente que muestra tu mensaje, por ejemplo su título.
+2. En el **Constructor**, haz clic en **Elige qué inicia este flujo de trabajo** y elige **On Create Incident** en **Populares**. Haz clic en el disparador y, en **Fields to pass on**, elige los campos del incidente que muestra tu mensaje, por ejemplo su título.
 3. Haz clic en **Añadir componente**, busca `irc` y haz clic en **Send Message to IRC**. Conecta la salida **Éxito** del disparador a este paso.
 4. Haz clic en el paso nuevo y rellena **IRC Server**, **Channel** y **Message Text**. El botón **{ }** de **Message Text** inserta campos del incidente, por ejemplo su título.
 5. Si guardaste contraseñas en el paso anterior, abre **Más campos**. En **Server Password**, **SASL Password** o **Channel Key**, haz clic en **{ }** y elige la variable en **Variables globales**. Pon el nombre de tu cuenta en **SASL Username**.
@@ -97,7 +97,7 @@ El flujo de trabajo se abre en el **Constructor** con tres pasos: **On Create In
 
 Activa el interruptor **Habilitado** en la parte superior del **Constructor**. A partir de ahí, cada incidente nuevo se publica en el canal.
 
-Para probarlo sin abrir un incidente, haz clic en **Ejecutar flujo de trabajo** y pon el ID de un incidente que ya tengas en **ID del incidente**. La página del incidente muestra su ID. Haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El panel **Ejecución del flujo de trabajo** sigue la ejecución: el registro del paso de IRC dice cuántas líneas envió, por ejemplo `Sent 2 lines to #your-channel.`, y el mensaje aparece en el canal. Si el paso toma **Error**, su registro dice por qué: consulta [Solución de problemas](#solución-de-problemas).
+Para probarlo sin abrir un incidente, haz clic en **Ejecutar flujo de trabajo** y elige un incidente que ya tengas en **Incidente**: se muestran los más recientes, y al escribir su número o parte de su título encuentras otro. Haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El panel **Ejecución del flujo de trabajo** sigue la ejecución: el registro del paso de IRC dice cuántas líneas envió, por ejemplo `Sent 2 lines to #your-channel.`, y el mensaje aparece en el canal. Si el paso toma **Error**, su registro dice por qué: consulta [Solución de problemas](#solución-de-problemas).
 :::
 
 ## Consejos

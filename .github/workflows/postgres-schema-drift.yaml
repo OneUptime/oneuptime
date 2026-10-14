@@ -309,6 +309,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/WorkflowIncomingEmailSecretKeyPostgres.test.ts --forceExit
 
+      # Clones the migrated Incident, Alert, Scheduled Maintenance, episode and
+      # Monitor tables - each with its label and owner tables - into an
+      # isolated schema, and looks records up the way Run Workflow does: by
+      # number (INC-8, 8), by the words of a name and by ID, through each
+      # model's own service. So the statements the lookup builds are run by
+      # Postgres, and every read is the caller's own: held to the workflow's
+      # project, to a label the caller is held to, and away from private
+      # records they do not own.
+      - name: Test Run Workflow's record lookup on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RUN_RECORD_SEARCH_TESTS: "true"
+          RUN_RECORD_SEARCH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RUN_RECORD_SEARCH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RUN_RECORD_SEARCH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Workflow/RunRecordSearchPostgres.test.ts --forceExit
+
       # Clones the migrated HuntressConnection and HuntressIncidentReport tables
       # into an isolated schema: the signing secret is written encrypted and a
       # new one clears the last refusal, and of two deliveries racing to claim

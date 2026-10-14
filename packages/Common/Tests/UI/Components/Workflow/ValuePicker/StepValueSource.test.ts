@@ -12,7 +12,6 @@ jest.mock("../../../../../Models/DatabaseModels/Index", () => {
 });
 
 import {
-  NOT_SELECTED_BADGE,
   STEP_VALUE_SOURCE_ID,
   buildStepValueGroups,
   createStepValueSource,
@@ -267,7 +266,7 @@ describe("buildStepValueGroups", () => {
 });
 
 describe("the fields a database step reads", () => {
-  test("Select Fields, stored as JSON text or as an object", () => {
+  test("Fields to pass on, stored as JSON text or as an object, and the ID always", () => {
     expect(
       selectedColumnIds(
         step("incident-find-one", "find-1", {
@@ -276,13 +275,32 @@ describe("the fields a database step reads", () => {
       ),
     ).toEqual(["_id", "title"]);
 
+    // The ID is passed on whether it is named or not.
     expect(
       selectedColumnIds(
         step("incident-find-one", "find-1", {
           select: { title: true },
         }),
       ),
-    ).toEqual(["title"]);
+    ).toEqual(["_id", "title"]);
+  });
+
+  test("a related record's fields it passes on, as record.field", () => {
+    expect(
+      selectedColumnIds(
+        step("incident-on-update", "on-update-1", {
+          select: {
+            title: true,
+            currentIncidentState: { name: true, color: false },
+          },
+        }),
+      ),
+    ).toEqual([
+      "_id",
+      "title",
+      "currentIncidentState",
+      "currentIncidentState.name",
+    ]);
   });
 
   test("an On Delete trigger is only ever given the ID", () => {
@@ -302,7 +320,7 @@ describe("the fields a database step reads", () => {
     expect(selectedColumnIds(webhook)).toBeNull();
   });
 
-  test("the fields it reads come first; the others say they will be empty", () => {
+  test("the fields it passes on come first; the others are apart, empty here", () => {
     const find: NodeDataProp = step("incident-find-one", "find-1", {
       select: '{"description": true}',
     });
@@ -315,14 +333,91 @@ describe("the fields a database step reads", () => {
 
     expect(
       fields.map((field: ValueSuggestion) => {
-        return [field.label, field.badges || []];
+        return [field.label, Boolean(field.isEmptyHere)];
       }),
     ).toEqual([
-      ["Description", []],
-      ["ID", [NOT_SELECTED_BADGE]],
-      ["Title", [NOT_SELECTED_BADGE]],
+      // The ID is always passed on.
+      ["ID", false],
+      ["Description", false],
+      ["Title", true],
     ]);
-    expect(fields[1]!.description).toMatch(/empty/);
+    // No badge: the menu draws the empty-here fields under why.
+    expect(fields[2]!.badges).toBeUndefined();
+    expect(fields[2]!.description).toBe("The incident's title");
+  });
+
+  test("a related record's field it passes on is offered under the record's name", () => {
+    const onUpdate: NodeDataProp = step("incident-on-update", "on-update-1", {
+      select: { title: true, currentIncidentState: { name: true } },
+    });
+
+    const fields: Array<ValueSuggestion> = recordFieldSuggestions({
+      component: onUpdate,
+      returnValue: onUpdate.metadata.returnValues[0]!,
+      columns: [
+        ...COLUMNS,
+        {
+          id: "currentIncidentState",
+          title: "Current Incident State",
+          type: "Entity",
+          isRelation: true,
+          relatedColumns: [
+            { id: "name", title: "Name", type: "Text", isRelation: false },
+            { id: "color", title: "Color", type: "Color", isRelation: false },
+          ],
+        },
+      ],
+    });
+
+    expect(
+      fields.map((field: ValueSuggestion) => {
+        return [field.label, Boolean(field.isEmptyHere)];
+      }),
+    ).toEqual([
+      ["ID", false],
+      ["Title", false],
+      ["Current Incident State › Name", false],
+      ["Description", true],
+    ]);
+    expect(fields[2]!.reference).toBe(
+      "{{local.components.on-update-1.returnValues.model.currentIncidentState.name}}",
+    );
+  });
+
+  test("a record's drill-in says whose its empty fields are, and how to pass them on", () => {
+    const onUpdate: NodeDataProp = step("incident-on-update", "on-update-1", {
+      select: { title: true },
+    });
+
+    const model: ValueSuggestion = buildStepValueGroups(
+      { upstreamComponents: [onUpdate] },
+      {
+        loadRecordColumns: async (): Promise<Array<ModelSchemaColumn>> => {
+          return COLUMNS;
+        },
+      },
+    )[0]!.items[0]!;
+
+    expect(model.drillIn?.emptyHereNote).toEqual({
+      template:
+        "{{step}} doesn't pass these on, so they are empty here. Add them to its {{setting}} to use them.",
+      values: { step: "On Update Incident", setting: "Fields to pass on" },
+    });
+
+    const onDelete: NodeDataProp = step("incident-on-delete", "on-delete-1");
+    const deleted: ValueSuggestion = buildStepValueGroups(
+      { upstreamComponents: [onDelete] },
+      {
+        loadRecordColumns: async (): Promise<Array<ModelSchemaColumn>> => {
+          return COLUMNS;
+        },
+      },
+    )[0]!.items[0]!;
+
+    expect(deleted.drillIn?.emptyHereNote).toEqual({
+      template: "{{step}} passes on only the ID: the record is already gone.",
+      values: { step: "On Delete Incident" },
+    });
   });
 
   test("a description that only repeats the title is left out", () => {

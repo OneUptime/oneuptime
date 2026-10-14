@@ -54,7 +54,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul begin
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger en kies in **Select Fields** `title` en `description`.
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger en kies in **Fields to pass on** `title` en `description`.
 
 ### Het record aanmaken
 
@@ -93,7 +93,7 @@ Een workflow heeft één trigger, dus voor het oplossen is een tweede workflow n
 :::steps
 ### De trigger On Update Incident toevoegen
 
-Maak een workflow met de naam `Resolve ServiceNow incidents` en kies **On Update Incident** als trigger. Kies in **Listen on** `currentIncidentStateId`, zodat hij alleen draait wanneer de status verandert. Vraag in **Select Fields** of de nieuwe status een opgeloste status is:
+Maak een workflow met de naam `Resolve ServiceNow incidents` en kies **On Update Incident** als trigger. Kies in **Fields to watch** `currentIncidentStateId`, zodat hij alleen draait wanneer de status verandert. Vraag in **Fields to pass on** of de nieuwe status een opgeloste status is:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

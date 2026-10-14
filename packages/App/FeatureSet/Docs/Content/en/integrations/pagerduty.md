@@ -48,7 +48,7 @@ Go to **Workflows**, click **Create Workflow**, then **Start from scratch**. Nam
 
 ### Add the trigger
 
-Click the dashed **Choose what starts this workflow** block and pick **On Create Incident**. Click the trigger, and in **Select Fields** pick `title` and `description`.
+Click the dashed **Choose what starts this workflow** block and pick **On Create Incident**. Click the trigger, and in **Fields to pass on** pick `title` and `description`.
 
 ### Send the trigger event
 
@@ -84,7 +84,7 @@ A workflow has one trigger, so resolving takes a second workflow, started when a
 :::steps
 ### Add the On Update Incident trigger
 
-Create a workflow named `Resolve PagerDuty incidents`, and pick **On Update Incident** as its trigger. In **Listen on**, pick `currentIncidentStateId`, so it runs only when the state changes. In **Select Fields**, ask for whether the new state is a resolved one:
+Create a workflow named `Resolve PagerDuty incidents`, and pick **On Update Incident** as its trigger. In **Fields to watch**, pick `currentIncidentStateId`, so it runs only when the state changes. In **Fields to pass on**, ask for whether the new state is a resolved one:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ Checking `isResolvedState` rather than a state's name keeps working when you ren
 
 To send each incident's severity, add a **Run Custom JavaScript** block between the trigger and the **API Post (JSON)** block, and read its answer in the body.
 
-1. In the trigger's **Select Fields**, also pick the severity's `name`: `{ "incidentSeverity": { "name": true } }`.
+1. In the trigger's **Fields to pass on**, also pick the severity's `name`: `{ "incidentSeverity": { "name": true } }`.
 2. Set the block's **Arguments** to `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, and its **JavaScript Code** to:
 
    ```javascript

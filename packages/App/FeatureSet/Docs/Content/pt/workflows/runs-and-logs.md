@@ -108,7 +108,7 @@ Um download não contém nada que você já não pudesse ler na execução. Segr
 
 :::details O meu workflow não rodou
 1. Confira se o workflow está **Habilitado**: a chave fica no topo do **Construtor** dele, que avisa acima do canvas quando o workflow está desligado. Os novos workflows começam desabilitados, e enquanto um workflow está desligado o gatilho dele não o inicia: só **Executar fluxo de trabalho** e **Run just this step** o iniciam, como execuções de teste. Uma chamada de webhook para ele recebe HTTP 400 com uma mensagem dizendo como ligá-lo.
-2. Para um gatilho de evento do OneUptime, confirme que o evento aconteceu de fato: abra o registro e veja o histórico dele. Um gatilho **On Update** com **Listen on** só dispara quando um desses campos mudou.
+2. Para um gatilho de evento do OneUptime, confirme que o evento aconteceu de fato: abra o registro e veja o histórico dele. Um gatilho **On Update** com **Fields to watch** só dispara quando um desses campos mudou.
 3. Para um gatilho de webhook, confirme que o outro sistema está enviando para a URL certa. A maioria das ferramentas registra quando envia um webhook — confira lá.
 4. Para um gatilho agendado, confirme que a expressão cron corresponde ao horário que você espera. Os agendamentos rodam em UTC.
 

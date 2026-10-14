@@ -108,7 +108,7 @@ En nedlasting inneholder ingenting du ikke allerede kunne lese i kjøringen. Hem
 
 :::details Arbeidsflyten min kjørte ikke
 1. Sørg for at arbeidsflyten er **Aktivert**: bryteren sitter øverst i **Bygger**, som sier det over lerretet når arbeidsflyten er slått av. Nye arbeidsflyter starter deaktivert, og mens en arbeidsflyt er av, starter ikke triggeren den: bare **Kjør arbeidsflyt** og **Run just this step** gjør det, som testkjøringer. Et webhook-kall til den får HTTP 400 med en melding om hvordan du slår den på.
-2. For en OneUptime-begivenhetstrigger bekrefter du at begivenheten faktisk skjedde: åpne posten, og sjekk historikken. En **On Update**-trigger med **Listen on** utløses bare når ett av de feltene endret seg.
+2. For en OneUptime-begivenhetstrigger bekrefter du at begivenheten faktisk skjedde: åpne posten, og sjekk historikken. En **On Update**-trigger med **Fields to watch** utløses bare når ett av de feltene endret seg.
 3. For en webhook-trigger bekrefter du at det andre systemet sender til riktig URL. De fleste verktøy logger når de sender en webhook — sjekk der.
 4. For en tidsplantrigger bekrefter du at cron-uttrykket stemmer med tidspunktet du forventer. Tidsplaner kjører i UTC.
 

@@ -615,8 +615,8 @@ Dieselbe Erzeugung liefert Trigger für die Konfiguration selbst: **On Create In
 
 Ein paar Details, die beim Verdrahten wichtig sind:
 
-- **On Update X** nimmt ein optionales Argument **Listen on**, das den Trigger auf Updates eingrenzt, die bestimmte Felder ändern, worauf auch immer: Ein ausgeschalteter Schalter oder ein geleertes Feld zählt ebenfalls. Ein Feld, das mit dem Wert gespeichert wird, den es schon hat, ist keine Änderung, sodass ein Bearbeitungsformular, das es bei jedem Speichern zurücksendet, den Workflow nicht weckt. Lassen Sie es leer, um bei jeder Änderung zu feuern. Kommt ein Update ohne Aufzeichnung, welche Felder sich geändert haben, wird der Filter übersprungen und der Workflow läuft trotzdem.
-- **On Create X** und **On Update X** nehmen beide ein Pflichtargument **Select Fields**; **On Delete X** nimmt keine Argumente.
+- **On Update X** nimmt ein optionales Argument **Fields to watch**, das den Trigger auf Updates eingrenzt, die bestimmte Felder ändern, worauf auch immer: Ein ausgeschalteter Schalter oder ein geleertes Feld zählt ebenfalls. Ein Feld, das mit dem Wert gespeichert wird, den es schon hat, ist keine Änderung, sodass ein Bearbeitungsformular, das es bei jedem Speichern zurücksendet, den Workflow nicht weckt. Lassen Sie es leer, um bei jeder Änderung zu feuern. Kommt ein Update ohne Aufzeichnung, welche Felder sich geändert haben, wird der Filter übersprungen und der Workflow läuft trotzdem.
+- **On Create X** und **On Update X** nehmen beide ein Pflichtargument **Fields to pass on**; **On Delete X** nimmt keine Argumente.
 - Alle drei haben einen einzigen Ausgang **Success**, und jeder akzeptiert ein ID-Argument, sodass Sie den Workflow von Hand gegen einen Datensatz ausführen können.
 - Namen kommen vom Singularnamen des Modells, nicht vom Tabellennamen – deshalb sehen Sie **On Create Incident Team Owner** und **On Create Incident User Owner** statt tabellenförmiger Namen.
 - Für Definitionen benutzerdefinierter Vorfallfelder gibt es keine Trigger. Dieses Modell ist das eine Mitglied der Vorfall-Familie mit deaktivierten Workflows.

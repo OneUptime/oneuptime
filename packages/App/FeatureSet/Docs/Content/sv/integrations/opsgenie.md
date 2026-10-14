@@ -49,7 +49,7 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Incident**. Klicka på utlösaren och välj `title` och `description` i **Select Fields**.
+Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Incident**. Klicka på utlösaren och välj `title` och `description` i **Fields to pass on**.
 
 ### Skapa larmet
 
@@ -85,7 +85,7 @@ Ett arbetsflöde har en utlösare, så det krävs ett andra arbetsflöde för at
 :::steps
 ### Lägg till utlösaren On Update Incident
 
-Skapa ett arbetsflöde som heter `Close Opsgenie alerts` och välj **On Update Incident** som utlösare. Välj `currentIncidentStateId` i **Listen on**, så att det bara körs när statusen ändras. Fråga i **Select Fields** om den nya statusen är en löst status:
+Skapa ett arbetsflöde som heter `Close Opsgenie alerts` och välj **On Update Incident** som utlösare. Välj `currentIncidentStateId` i **Fields to watch**, så att det bara körs när statusen ändras. Fråga i **Fields to pass on** om den nya statusen är en löst status:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -116,7 +116,7 @@ Slå på **Aktiverad** och lös sedan en testincident i OneUptime. Opsgenie stä
 
 För att skicka varje incidents allvarlighetsgrad som en Opsgenie-prioritet lägger du till ett **Run Custom JavaScript**-block mellan utlösaren och **API Post (JSON)**-blocket.
 
-1. Välj också allvarlighetsgradens `name` i utlösarens **Select Fields**: `{ "incidentSeverity": { "name": true } }`.
+1. Välj också allvarlighetsgradens `name` i utlösarens **Fields to pass on**: `{ "incidentSeverity": { "name": true } }`.
 2. Ställ in blockets **Arguments** på `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` och dess **JavaScript Code** på:
 
    ```javascript

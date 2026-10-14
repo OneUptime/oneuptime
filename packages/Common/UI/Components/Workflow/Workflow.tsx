@@ -217,6 +217,11 @@ export interface ComponentProps {
    * to edit the workflow (WorkflowRunGate) - or undefined when it is not.
    */
   runStepDisabledReason?: string | undefined;
+  /*
+   * Why Run Workflow is locked for this user (WorkflowRunGate), or undefined
+   * when it is not. A step's value picker offers a test run only when not.
+   */
+  runDisabledReason?: string | undefined;
   webhookSecretKey?: string | undefined;
   /**
    * Whether the user may read the webhook secret key; the builder only loads
@@ -826,6 +831,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
      */
     const newStepArguments: JSONObject | null = getNewStepArguments(
       componentMetadata.id,
+      componentMetadata.tableName,
     );
 
     if (newStepArguments) {
@@ -1135,6 +1141,17 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
            * its URL or address starts nothing until the workflow is on.
            */
           isWorkflowOff={Boolean(props.runsAreTestRuns)}
+          /*
+           * The value picker's "Test with Run Workflow": the settings save
+           * and close, and the Run Workflow panel opens.
+           */
+          onRequestTestRun={
+            props.runDisabledReason
+              ? undefined
+              : () => {
+                  setShowRunModal(true);
+                }
+          }
           component={selectedNodeData}
           outputConnections={selectedOutputConnections}
           title={
@@ -1238,6 +1255,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             ).data
           }
           isTestRun={Boolean(props.runsAreTestRuns)}
+          // A record trigger's record is looked up in this workflow's project.
+          workflowId={props.workflowId}
           onClose={() => {
             setShowRunModal(false);
           }}

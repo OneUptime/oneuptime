@@ -62,6 +62,48 @@ export const COMPARISON_LABEL: string = translationKey("Comparison");
 export const COMPARE_WITH_LABEL: string = translationKey("Compare with");
 export const COMPARE_AS_LABEL: string = translationKey("Compare as");
 
+/*
+ * The words of the comparison catalog (Types/Workflow/Components/
+ * ConditionComparison) that If / Else and Switch / Case show: the
+ * comparisons, the groups they are listed under, and Compare as's choices
+ * with what each does. The Dashboard's string extractor does not read
+ * Common/Types, so they are listed here to be extracted and translated.
+ * Each is looked up where it is drawn - the comparison list's Dropdown
+ * looks its options and groups up itself. ConditionCatalogWords.test.ts
+ * holds this list to the catalog.
+ */
+export const CONDITION_CATALOG_WORDS: ReadonlyArray<string> = [
+  translationKey("is equal to"),
+  translationKey("is not equal to"),
+  translationKey("contains"),
+  translationKey("does not contain"),
+  translationKey("starts with"),
+  translationKey("ends with"),
+  translationKey("is greater than"),
+  translationKey("is greater than or equal to"),
+  translationKey("is less than"),
+  translationKey("is less than or equal to"),
+  translationKey("is empty"),
+  translationKey("is not empty"),
+  translationKey("is true"),
+  translationKey("is false"),
+  translationKey("Text"),
+  translationKey("Numbers"),
+  translationKey("Empty or not"),
+  translationKey("True or false"),
+  translationKey("Number"),
+  translationKey("True / False"),
+  translationKey("Null"),
+  translationKey("Undefined"),
+  translationKey(
+    'Letter by letter, and capital letters count: "Error" is not "error".',
+  ),
+  translationKey(
+    "As numbers, so 10 is greater than 9. Text that is not a number counts as 0.",
+  ),
+  translationKey("Only true counts as true. Anything else is false."),
+];
+
 export interface ConditionCompareAs {
   /*
    * What both values are compared as. Null when they are not compared the

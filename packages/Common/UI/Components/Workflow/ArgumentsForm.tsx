@@ -21,7 +21,7 @@ import ModelColumnEditor, {
   ModelColumnEditorMode,
   RecordIntent,
 } from "./ModelColumnEditor";
-import ModelFieldPicker from "./ModelFieldPicker";
+import ModelFieldPicker, { FieldPickerMode } from "./ModelFieldPicker";
 import {
   ArgumentFormFieldType,
   componentInputTypeToFormFieldType,
@@ -107,8 +107,18 @@ export interface ComponentProps {
    * id. A Switch / Case says where each case's output leads.
    */
   outputConnections?: OutputConnections | undefined;
+  /*
+   * The workflow is turned off: its trigger refuses real requests, so the
+   * value picker says a test run fills a Webhook's fields in, and offers one
+   * (onTestRun) where it can.
+   */
+  isWorkflowOff?: boolean | undefined;
+  onTestRun?: (() => void) | undefined;
   onFormChange: (value: NodeDataProp) => void;
 }
+
+// The On Update trigger's Fields to watch, as it is stored.
+const WATCHED_FIELDS_ARGUMENT_ID: string = "listen-on";
 
 const SINGLE_FIELD_KINDS: Partial<
   Record<ArgumentControl, ValueSingleFieldKind>
@@ -356,6 +366,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       | ((editor: CodeEditorActions) => ReactNode)
       | undefined;
     customElementDrawsOwnLabel?: boolean | undefined;
+    // A setting that words its own help (a field list), in place of the usual.
+    description?: string | undefined;
   };
 
   const fieldForArgument: FieldForArgumentFunction = (
@@ -368,10 +380,11 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         : null;
 
     /*
-     * Database Select args (the "Select Fields" / "Listen on" trigger inputs)
-     * get a tree-style field picker backed by the model's schema, instead of
-     * a raw JSON textarea. We need a tableName on the component metadata to
-     * fetch the column list; without it, fall back to the JSON editor.
+     * Database Select args - a record step's Fields to pass on, and the On
+     * Update trigger's Fields to watch - are chips picked from the model's
+     * fields (ModelFieldPicker), instead of a raw JSON textarea. We need a
+     * tableName on the component metadata to fetch the column list; without
+     * it, fall back to the JSON editor.
      */
     if (
       arg.type === ComponentInputType.Select &&
@@ -379,6 +392,15 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     ) {
       return {
         fieldType: FormFieldSchemaType.CustomComponent,
+        /*
+         * A field list's help is what the list is for, without the
+         * "Optional." or "Required." every other setting's help starts with.
+         * Fields to watch already reads "(Optional)" beside its name and
+         * says what leaving it empty does, and both lists say what empty
+         * means in the list itself; "Optional. ... Leave it empty to ..."
+         * under "(Optional)" said one thing three times.
+         */
+        description: arg.description,
         getCustomElement: (
           _values: FormValues<JSONObject>,
           customProps: CustomElementProps,
@@ -386,13 +408,20 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           return (
             <ModelFieldPicker
               tableName={component.metadata.tableName as string}
+              mode={
+                arg.id === WATCHED_FIELDS_ARGUMENT_ID
+                  ? FieldPickerMode.Watch
+                  : FieldPickerMode.PassOn
+              }
               initialValue={customProps.initialValue}
               onChange={(value: string) => {
                 void customProps.onChange?.(value);
               }}
+              onBlur={customProps.onBlur}
               placeholder={customProps.placeholder}
               error={customProps.error}
               tabIndex={customProps.tabIndex}
+              ariaLabelledby={customProps.ariaLabelledby}
             />
           );
         },
@@ -788,6 +817,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         valueSources={props.valueSources}
         sources={props.valueSuggestionSources}
         webhookUrl={props.webhookUrl}
+        isWorkflowOff={props.isWorkflowOff}
+        onTestRun={props.onTestRun}
       >
         <SwitchEditor
           arguments={component.arguments}
@@ -814,6 +845,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         valueSources={props.valueSources}
         sources={props.valueSuggestionSources}
         webhookUrl={props.webhookUrl}
+        isWorkflowOff={props.isWorkflowOff}
+        onTestRun={props.onTestRun}
       >
         <ConditionEditor
           arguments={component.arguments}
@@ -832,6 +865,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       valueSources={props.valueSources}
       sources={props.valueSuggestionSources}
       webhookUrl={props.webhookUrl}
+      isWorkflowOff={props.isWorkflowOff}
+      onTestRun={props.onTestRun}
     >
       <div>
         {component.metadata.arguments &&
@@ -886,6 +921,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       customProps: CustomElementProps,
                     ) => ReactElement | undefined;
                     customElementDrawsOwnLabel?: boolean | undefined;
+                    description?: string | undefined;
                   } = fieldForArgument(arg, argIndex);
 
                   /*
