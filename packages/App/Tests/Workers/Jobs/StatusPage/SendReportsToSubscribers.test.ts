@@ -61,6 +61,12 @@ jest.mock("Common/Server/Services/StatusPageService", () => {
   };
 });
 
+// Whether a page's project is blocked (BlockedProjectStatusPages).
+jest.mock("Common/Server/Services/ProjectService", () => {
+  return { __esModule: true, default: { isProjectBlocked: jest.fn() } };
+});
+
+import ProjectService from "Common/Server/Services/ProjectService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import "../../../../FeatureSet/Workers/Jobs/StatusPage/SendReportsToSubscribers";
 import {
@@ -75,6 +81,9 @@ import {
 const JOB_NAME: string = "StatusPage:SendReportToSubscribers";
 
 const STATUS_PAGE_ID: string = "2d000000-0000-4000-8000-000000000001";
+const PROJECT_ID: ObjectID = new ObjectID(
+  "2d000000-0000-4000-8000-0000000000a1",
+);
 
 type MockedService = {
   findAllBy: jest.Mock;
@@ -95,12 +104,15 @@ function every(intervalType: EventInterval, intervalCount: number): Recurring {
 
 // A page as the worker selects it.
 function page(data: {
+  id?: string;
+  projectId?: ObjectID;
   sendNextReportBy: Date;
   reportRecurringInterval: Recurring;
   reportTimezone: Timezone;
 }): StatusPage {
   const statusPage: StatusPage = new StatusPage();
-  statusPage._id = STATUS_PAGE_ID;
+  statusPage._id = data.id || STATUS_PAGE_ID;
+  statusPage.projectId = data.projectId || PROJECT_ID;
   statusPage.sendNextReportBy = data.sendNextReportBy;
   statusPage.reportRecurringInterval = data.reportRecurringInterval;
   statusPage.reportTimezone = data.reportTimezone;
@@ -130,6 +142,11 @@ beforeEach(() => {
   service.updateOneById.mockResolvedValue(1 as never);
   service.sendEmailReport.mockReset();
   service.sendEmailReport.mockResolvedValue(undefined as never);
+
+  (ProjectService.isProjectBlocked as unknown as jest.Mock).mockReset();
+  (
+    ProjectService.isProjectBlocked as unknown as jest.Mock
+  ).mockResolvedValue(false as never);
 
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation((): Date => {
     return new Date(now.getTime());
@@ -246,5 +263,95 @@ describe("StatusPage:SendReportToSubscribers", () => {
     expect(service.updateOneById.mock.invocationCallOrder[0]!).toBeLessThan(
       service.sendEmailReport.mock.invocationCallOrder[0]!,
     );
+  });
+
+  /*
+   * A blocked project's pages send nothing (getStatusPagesToSendNotification
+   * leaves them out). The worker leaves such a page as it leaves an archived
+   * one: its report is not moved on and not sent, so it goes out once the
+   * project is unblocked - rather than moving on and failing every period.
+   */
+  describe("a page of a blocked project", () => {
+    const BLOCKED_PROJECT_ID: ObjectID = new ObjectID(
+      "2d000000-0000-4000-8000-0000000000b1",
+    );
+    const BLOCKED_PAGE_ID: string = "2d000000-0000-4000-8000-000000000002";
+
+    function blockedPage(): StatusPage {
+      return page({
+        id: BLOCKED_PAGE_ID,
+        projectId: BLOCKED_PROJECT_ID,
+        sendNextReportBy: OneUptimeDate.fromString("2026-11-01T09:00:00.000Z"),
+        reportRecurringInterval: every(EventInterval.Month, 1),
+        reportTimezone: Timezone.UTC,
+      });
+    }
+
+    beforeEach(() => {
+      (
+        ProjectService.isProjectBlocked as unknown as jest.Mock
+      ).mockImplementation(async (projectId: unknown): Promise<boolean> => {
+        return (
+          (projectId as ObjectID).toString() === BLOCKED_PROJECT_ID.toString()
+        );
+      });
+    });
+
+    test("is neither moved on nor sent, so its report goes out once the project is unblocked", async () => {
+      await tick("2026-11-01T09:00:30.000Z", [blockedPage()]);
+
+      expect(service.updateOneById).not.toHaveBeenCalled();
+      expect(service.sendEmailReport).not.toHaveBeenCalled();
+      expect(ProjectService.isProjectBlocked).toHaveBeenCalledWith(
+        BLOCKED_PROJECT_ID,
+      );
+    });
+
+    test("does not hold up a live project's page in the same tick", async () => {
+      await tick("2026-11-01T09:00:30.000Z", [
+        blockedPage(),
+        page({
+          sendNextReportBy: OneUptimeDate.fromString(
+            "2026-11-01T09:00:00.000Z",
+          ),
+          reportRecurringInterval: every(EventInterval.Month, 1),
+          reportTimezone: Timezone.UTC,
+        }),
+      ]);
+
+      expect(writtenNextSend()).toBe("2026-12-01T09:00:00.000Z");
+      expect(service.updateOneById).toHaveBeenCalledTimes(1);
+      expect(service.sendEmailReport).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          service.sendEmailReport.mock.calls[0]![0] as {
+            statusPageId: ObjectID;
+          }
+        ).statusPageId.toString(),
+      ).toBe(STATUS_PAGE_ID);
+    });
+
+    test("is sent as before once its project is unblocked", async () => {
+      (
+        ProjectService.isProjectBlocked as unknown as jest.Mock
+      ).mockResolvedValue(false as never);
+
+      await tick("2026-11-01T09:00:30.000Z", [blockedPage()]);
+
+      expect(writtenNextSend()).toBe("2026-12-01T09:00:00.000Z");
+      expect(service.sendEmailReport).toHaveBeenCalledTimes(1);
+    });
+
+    test("reads each page's project, which it asks", async () => {
+      await tick("2026-11-01T09:00:30.000Z", []);
+
+      const select: Record<string, unknown> = (
+        service.findAllBy.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      expect(select["projectId"]).toBe(true);
+    });
   });
 });
