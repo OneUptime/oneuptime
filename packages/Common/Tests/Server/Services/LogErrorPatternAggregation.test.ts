@@ -531,7 +531,8 @@ describe("error-pattern drill-downs share the top list's scope", () => {
       await run(detailRequest());
 
       expect(captured[0]!.query).toContain("max_execution_time = 45");
-      expect(captured[0]!.query).toContain("timeout_overflow_mode = 'break'");
+      // A wide window stops with an error the page can explain (#4707).
+      expect(captured[0]!.query).toContain("timeout_overflow_mode = 'throw'");
       expect(captured[0]!.query).toContain("max_memory_usage =");
     },
   );

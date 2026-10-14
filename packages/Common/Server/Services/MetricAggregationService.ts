@@ -1,6 +1,9 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import MetricService from "./MetricService";
 import { MutableMetricService as MutableMetricServiceClass } from "./MutableMetricService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
@@ -201,15 +204,11 @@ export class MetricAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' yields
-     * partial rows rather than holding a pool connection.
+     * Cap runtime below the client's 58s request_timeout rather than hold a
+     * pool connection, and say so when it is reached (see
+     * INTERACTIVE_READ_TIME_LIMIT).
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -342,14 +341,10 @@ export class MetricAggregationService {
 
     /*
      * Defense in depth: cap runtime below nginx's 60s proxy_read_timeout
-     * so a slow facet never starves the endpoint.
+     * so a slow facet never starves the endpoint. A facet stopped at the
+     * limit is named in the facets endpoint's timedOutFacets.
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
