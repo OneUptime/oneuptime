@@ -29237,5 +29237,9 @@
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "Når du sletter en sikkerhetssak, slettes også deteksjonene, notatene, tidslinjen og playbook-kjøringene.",
   "To keep the record, close the case with a verdict instead.": "Lukk i stedet saken med en vurdering hvis du vil beholde den.",
-  "State Change": "Tilstandsendring"
+  "State Change": "Tilstandsendring",
+  "Episode Owners:": "Episodeeiere:",
+  "Grouping rules can name Episode Owners: people and teams who become owners of every episode the rule opens, and are notified like any other owner.": "Grupperingsregler kan navngi episodeeiere: personer og team som blir eiere av hver episode regelen åpner, og som varsles som alle andre eiere.",
+  "Optionally write an episode title template with variables such as {{alertTitle}}, {{monitorName}} and {{alertSeverity}}.": "Skriv eventuelt en mal for episodens tittel med variabler som {{alertTitle}}, {{monitorName}} og {{alertSeverity}}.",
+  "Optionally write an episode title template with variables such as {{incidentTitle}}, {{monitorName}} and {{incidentSeverity}}.": "Skriv eventuelt en mal for episodens tittel med variabler som {{incidentTitle}}, {{monitorName}} og {{incidentSeverity}}."
 }

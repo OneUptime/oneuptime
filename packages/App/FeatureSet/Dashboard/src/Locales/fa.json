@@ -29237,5 +29237,9 @@
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "حذف یک پرونده امنیتی، تشخیص‌ها، یادداشت‌ها، خط زمانی و اجراهای پلی‌بوک آن را هم حذف می‌کند.",
   "To keep the record, close the case with a verdict instead.": "برای نگه داشتن سابقه، به جای حذف، پرونده را با یک نتیجه‌گیری ببندید.",
-  "State Change": "تغییر وضعیت"
+  "State Change": "تغییر وضعیت",
+  "Episode Owners:": "مالکان اپیزود:",
+  "Grouping rules can name Episode Owners: people and teams who become owners of every episode the rule opens, and are notified like any other owner.": "قواعد گروه‌بندی می‌توانند مالکان اپیزود را تعیین کنند: افراد و تیم‌هایی که مالک هر اپیزودی می‌شوند که قاعده باز می‌کند و مانند هر مالک دیگری اعلان می‌گیرند.",
+  "Optionally write an episode title template with variables such as {{alertTitle}}, {{monitorName}} and {{alertSeverity}}.": "در صورت تمایل، قالب عنوان اپیزود را با متغیرهایی مانند {{alertTitle}}، {{monitorName}} و {{alertSeverity}} بنویسید.",
+  "Optionally write an episode title template with variables such as {{incidentTitle}}, {{monitorName}} and {{incidentSeverity}}.": "در صورت تمایل، قالب عنوان اپیزود را با متغیرهایی مانند {{incidentTitle}}، {{monitorName}} و {{incidentSeverity}} بنویسید."
 }

@@ -29237,5 +29237,9 @@
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "刪除安全案例也會刪除其偵測、備註、時間軸和劇本執行紀錄。",
   "To keep the record, close the case with a verdict instead.": "如需保留紀錄，請改為給出結論並關閉案例。",
-  "State Change": "狀態變更"
+  "State Change": "狀態變更",
+  "Episode Owners:": "片段擁有者：",
+  "Grouping rules can name Episode Owners: people and teams who become owners of every episode the rule opens, and are notified like any other owner.": "分組規則可以指定片段擁有者：這些人員和團隊會成為該規則開啟的每個片段的擁有者，並像其他擁有者一樣收到通知。",
+  "Optionally write an episode title template with variables such as {{alertTitle}}, {{monitorName}} and {{alertSeverity}}.": "可以選擇用 {{alertTitle}}、{{monitorName}} 和 {{alertSeverity}} 等變數撰寫片段標題範本。",
+  "Optionally write an episode title template with variables such as {{incidentTitle}}, {{monitorName}} and {{incidentSeverity}}.": "可以選擇用 {{incidentTitle}}、{{monitorName}} 和 {{incidentSeverity}} 等變數撰寫片段標題範本。"
 }

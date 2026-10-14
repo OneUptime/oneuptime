@@ -29237,5 +29237,9 @@
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "Eliminando un caso di sicurezza si eliminano anche i suoi rilevamenti, le note, la cronologia e le esecuzioni dei playbook.",
   "To keep the record, close the case with a verdict instead.": "Per conservarne la traccia, chiudi invece il caso con un verdetto.",
-  "State Change": "Cambio di stato"
+  "State Change": "Cambio di stato",
+  "Episode Owners:": "Proprietari dell'episodio:",
+  "Grouping rules can name Episode Owners: people and teams who become owners of every episode the rule opens, and are notified like any other owner.": "Le regole di raggruppamento possono indicare i proprietari dell'episodio: persone e team che diventano proprietari di ogni episodio aperto dalla regola e ricevono notifiche come qualsiasi altro proprietario.",
+  "Optionally write an episode title template with variables such as {{alertTitle}}, {{monitorName}} and {{alertSeverity}}.": "Facoltativamente, scrivi un modello per il titolo dell'episodio con variabili come {{alertTitle}}, {{monitorName}} e {{alertSeverity}}.",
+  "Optionally write an episode title template with variables such as {{incidentTitle}}, {{monitorName}} and {{incidentSeverity}}.": "Facoltativamente, scrivi un modello per il titolo dell'episodio con variabili come {{incidentTitle}}, {{monitorName}} e {{incidentSeverity}}."
 }
