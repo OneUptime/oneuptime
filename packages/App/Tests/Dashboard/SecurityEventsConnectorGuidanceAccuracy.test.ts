@@ -9,6 +9,7 @@ import {
   SECURITY_CONNECTION_ID_ATTRIBUTE,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import { isRequestTimeoutMessage } from "Common/Server/Utils/SecurityEvent/Connectors/RequestTimeoutMessage";
 import fs from "fs";
 import nodePath from "path";
 
@@ -145,9 +146,6 @@ const TOTAL_REQUEST_BUDGET_PATTERN: RegExp =
   /maxRequests:\s*GOOGLE_SECOPS_SEARCH_PAGE_BUDGET\s*\+\s*GOOGLE_SECOPS_CURATED_REQUEST_BUDGET\s*\+\s*GOOGLE_SECOPS_ALERTS_VIEW_REQUEST_BUDGET/;
 const FETCH_DURATION_BUDGET_PATTERN: RegExp =
   /maxDurationMs:\s*GOOGLE_SECOPS_FETCH_DURATION_MS/;
-/* The poller's "this failure was a timeout" detector. */
-const POLLER_TIMEOUT_PATTERN_SOURCE: RegExp =
-  /TIMEOUT_ERROR_PATTERN:\s*RegExp\s*=\s*\/(.+?)\/i;/;
 /* The client's timeout message, as a template. */
 const CLIENT_TIMEOUT_TEMPLATE_PATTERN: RegExp =
   /`(Google SecOps \$\{stepLabel\} timed out after \$\{timeoutInSeconds\} seconds with no response\.)`/;
@@ -1994,21 +1992,15 @@ describe("Partial-poll guidance matches what polling does", () => {
    * error reads as a timeout, and the client's timeout message is one.
    */
   test("a Google SecOps timeout is the failure that halves the next window", () => {
-    const pollerTimeoutPattern: RegExp = new RegExp(
-      requireGroup(
-        POLLER_TIMEOUT_PATTERN_SOURCE,
-        pollerSource,
-        "TIMEOUT_ERROR_PATTERN",
-      ),
-      "i",
-    );
     const clientTimeoutTemplate: string = requireGroup(
       CLIENT_TIMEOUT_TEMPLATE_PATTERN,
       clientSource,
       "the client's timeout message",
     );
 
-    expect(pollerTimeoutPattern.test(clientTimeoutTemplate)).toBe(true);
+    // The poller asks RequestTimeoutMessage whether a failed run timed out.
+    expect(pollerSource).toContain("isRequestTimeoutMessage(result.error)");
+    expect(isRequestTimeoutMessage(clientTimeoutTemplate)).toBe(true);
 
     for (const fragment of TIMEOUT_WARNING_FRAGMENTS) {
       expect(docsSource).toContain(fragment);
