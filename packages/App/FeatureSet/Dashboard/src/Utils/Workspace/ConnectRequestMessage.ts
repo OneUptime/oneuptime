@@ -54,6 +54,18 @@ export const PRESS_AGAIN: string = translationKey(
 );
 
 /*
+ * A command (ConnectRequestOutcome.RunAgain): run again in Slack, typed
+ * again to the Microsoft Teams bot - the chat says the same.
+ */
+export const RUN_AGAIN: string = translationKey(
+  "Go back to {{workspace}} and run the command again.",
+);
+
+export const TYPE_AGAIN: string = translationKey(
+  "Go back to {{workspace}} and type the command again.",
+);
+
+/*
  * A question to OneUptime AI (ConnectRequestOutcome.AskAgain): asked in a
  * message, with no button to press again - the chat says the same.
  */
@@ -98,6 +110,14 @@ export const CONNECTING_MESSAGE: string = translationKey(
   "Taking you to {{workspace}} to confirm it's you.",
 );
 
+/*
+ * Microsoft Teams' sign-in is Microsoft's own page, not Teams: the page
+ * says where the browser is really going.
+ */
+export const CONNECTING_TO_MICROSOFT_MESSAGE: string = translationKey(
+  "Taking you to Microsoft to confirm it's you.",
+);
+
 export const BACK_TO_SLACK: string = translationKey("Back to Slack");
 
 // "Slack", "Microsoft Teams": the workspace a provider's page is about.
@@ -111,6 +131,7 @@ const OUTCOME_MESSAGES: Record<ConnectRequestOutcome, string> = {
   [ConnectRequestOutcome.Done]: PRESS_DONE,
   [ConnectRequestOutcome.Answered]: PRESS_ANSWERED,
   [ConnectRequestOutcome.PressAgain]: PRESS_AGAIN,
+  [ConnectRequestOutcome.RunAgain]: RUN_AGAIN,
   [ConnectRequestOutcome.AskAgain]: ASK_AGAIN,
   [ConnectRequestOutcome.Expired]: PRESS_EXPIRED,
   [ConnectRequestOutcome.NotAnswered]: PRESS_NOT_ANSWERED,
@@ -142,9 +163,16 @@ export const getConnectRequestNotice: (data: {
     title: data.translator.translateTemplate(CONNECTED_TITLE, {
       workspace: workspace,
     }),
-    message: data.translator.translateTemplate(OUTCOME_MESSAGES[outcome], {
-      workspace: workspace,
-    }),
+    message: data.translator.translateTemplate(
+      // A command is typed to the Teams bot, never run.
+      outcome === ConnectRequestOutcome.RunAgain &&
+        data.provider === ConnectProvider.MicrosoftTeams
+        ? TYPE_AGAIN
+        : OUTCOME_MESSAGES[outcome],
+      {
+        workspace: workspace,
+      },
+    ),
   };
 };
 
@@ -198,8 +226,11 @@ export const getConnectingNotice: (data: {
     title: data.translator.translateTemplate(CONNECTING_TITLE, {
       workspace: workspace,
     }),
-    message: data.translator.translateTemplate(CONNECTING_MESSAGE, {
-      workspace: workspace,
-    }),
+    message:
+      data.provider === ConnectProvider.MicrosoftTeams
+        ? data.translator.translateTemplate(CONNECTING_TO_MICROSOFT_MESSAGE)
+        : data.translator.translateTemplate(CONNECTING_MESSAGE, {
+            workspace: workspace,
+          }),
   };
 };

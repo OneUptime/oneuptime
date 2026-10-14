@@ -10,8 +10,10 @@ import CallRequest from "../../Types/Call/CallRequest";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
 
 export class CallService extends BaseService {
   public constructor() {
@@ -43,6 +45,18 @@ export class CallService extends BaseService {
       onCallScheduleId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
+    // A project a master admin blocked sends nothing (BlockedProjectNotifications).
+    const blockedProjectRefusal: HTTPErrorResponse | null =
+      await BlockedProjectNotifications.getRefusal({
+        channel: "Call",
+        projectId: options.projectId,
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+      });
+
+    if (blockedProjectRefusal) {
+      return blockedProjectRefusal;
+    }
+
     const body: JSONObject = {
       callRequest: callRequest,
       projectId: options.projectId?.toString(),

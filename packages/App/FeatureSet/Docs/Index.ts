@@ -9,7 +9,11 @@ import DocsSearchIndex, {
 import DocsSitemap from "./Utils/Sitemap";
 import DocsTranslations from "./Utils/Translations";
 import { DocsPageSeo, getDocsPageSeo } from "./Utils/Seo";
-import { getLegacyDocsPageTarget, withQueryOf } from "./Utils/Redirects";
+import {
+  getDocsCategoryTarget,
+  getLegacyDocsPageTarget,
+  withQueryOf,
+} from "./Utils/Redirects";
 import {
   DEFAULT_DOCS_LANGUAGE,
   SUPPORTED_DOCS_LANGUAGES,
@@ -101,6 +105,29 @@ function pickLanguage(req: ExpressRequest): string {
     }
   }
   return DEFAULT_DOCS_LANGUAGE;
+}
+
+/*
+ * The docs' own 404 page, in the given language: a 404 status, with the
+ * sidebar and the search box, so the reader can find the page they were
+ * after.
+ */
+function renderNotFound(
+  req: ExpressRequest,
+  res: ExpressResponse,
+  lang: string,
+): void {
+  res.status(404);
+  return res.render(`${ViewsPath}/NotFound`, {
+    nav: getLocalizedNav(lang),
+    t: makeT(lang),
+    lang: lang,
+    dir: getDocsLanguageDirection(lang),
+    supportedLanguages: SUPPORTED_DOCS_LANGUAGES,
+    enableGoogleTagManager: GoogleTagManagerEnabled,
+    link: null,
+    currentPath: req.originalUrl,
+  });
 }
 
 const DocsFeatureSet: FeatureSet = {
@@ -504,21 +531,33 @@ const DocsFeatureSet: FeatureSet = {
       },
     );
 
-    // /docs/:lang — redirect to that language's getting-started page.
-    app.get(
-      "/docs/:lang",
-      (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        const lang: string = req.params["lang"] || "";
-        if (!isSupportedDocsLanguage(lang)) {
-          /*
-           * Not a known language — let the next handler (legacy two-segment URL)
-           * pick it up.
-           */
-          return next();
-        }
-        res.redirect(`/docs/${lang}/introduction/getting-started`);
-      },
-    );
+    /*
+     * /docs/<one name>. A language opens its getting-started page. A
+     * category of the nav (/docs/terraform) is not a page, but the website,
+     * old emails, search results and people typing an address ask for it: it
+     * redirects permanently, like every address without a language, to the
+     * English copy of the category's first page in the nav
+     * (Utils/Redirects.ts), with the query it came with. Any other name is
+     * the docs' 404 page.
+     */
+    app.get("/docs/:lang", (req: ExpressRequest, res: ExpressResponse) => {
+      const name: string = req.params["lang"] || "";
+
+      if (isSupportedDocsLanguage(name)) {
+        return res.redirect(`/docs/${name}/introduction/getting-started`);
+      }
+
+      const target: string | null = getDocsCategoryTarget(
+        name,
+        DEFAULT_DOCS_LANGUAGE,
+      );
+
+      if (target !== null) {
+        return res.redirect(301, withQueryOf(req, target));
+      }
+
+      return renderNotFound(req, res, DEFAULT_DOCS_LANGUAGE);
+    });
 
     // Raw markdown endpoint, language-aware.
     app.get(
@@ -603,17 +642,7 @@ const DocsFeatureSet: FeatureSet = {
           const content: DocsContent | null = await readContent(fullPath, lang);
 
           if (content === null) {
-            res.status(404);
-            return res.render(`${ViewsPath}/NotFound`, {
-              nav: localizedNav,
-              t: t,
-              lang: lang,
-              dir: getDocsLanguageDirection(lang),
-              supportedLanguages: SUPPORTED_DOCS_LANGUAGES,
-              enableGoogleTagManager: GoogleTagManagerEnabled,
-              link: null,
-              currentPath: req.originalUrl,
-            });
+            return renderNotFound(req, res, lang);
           }
 
           /*
@@ -655,17 +684,7 @@ const DocsFeatureSet: FeatureSet = {
             currentCategory?.links.find(isCurrentPage);
 
           if (!currentCategory || !currentNavLink) {
-            res.status(404);
-            return res.render(`${ViewsPath}/NotFound`, {
-              nav: localizedNav,
-              t: t,
-              lang: lang,
-              dir: getDocsLanguageDirection(lang),
-              supportedLanguages: SUPPORTED_DOCS_LANGUAGES,
-              enableGoogleTagManager: GoogleTagManagerEnabled,
-              link: null,
-              currentPath: req.originalUrl,
-            });
+            return renderNotFound(req, res, lang);
           }
 
           /*
@@ -773,10 +792,30 @@ const DocsFeatureSet: FeatureSet = {
      * permanently to the English page, the address search engines should
      * keep (Utils/Redirects.ts), with the query it came with. The reader
      * picks another language from the page.
+     *
+     * Two names with a language first are a category's own address in that
+     * language (/docs/de/terraform), never an old page: a category opens its
+     * first page in the nav in that language, and any other name is the
+     * docs' 404 page in that language.
      */
     app.get(
       "/docs/:categorypath/:pagepath",
       (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        const first: string = req.params["categorypath"] || "";
+
+        if (isSupportedDocsLanguage(first)) {
+          const categoryTarget: string | null = getDocsCategoryTarget(
+            req.params["pagepath"] || "",
+            first,
+          );
+
+          if (categoryTarget !== null) {
+            return res.redirect(301, withQueryOf(req, categoryTarget));
+          }
+
+          return renderNotFound(req, res, first);
+        }
+
         const target: string | null = getLegacyDocsPageTarget(
           req.params["categorypath"]!,
           req.params["pagepath"]!,

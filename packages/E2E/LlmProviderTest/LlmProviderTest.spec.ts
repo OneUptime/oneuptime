@@ -130,6 +130,26 @@ function tooltip(page: Page): Locator {
   return page.locator("[data-tippy-root]");
 }
 
+/*
+ * A menu item's tooltip opens beside the item it explains (MoreMenuItem):
+ * level with it, on the menu's left, and clear of the menu - so the reason
+ * never covers the items above it, and is never drawn where the menu opened
+ * from instead of next to the item.
+ */
+async function expectBesideItem(page: Page, item: Locator): Promise<void> {
+  const itemBox: { x: number; y: number; height: number } | null =
+    await item.boundingBox();
+  const tipBox: { x: number; y: number; width: number; height: number } | null =
+    await tooltip(page).boundingBox();
+
+  expect(
+    Math.abs(
+      tipBox!.y + tipBox!.height / 2 - (itemBox!.y + itemBox!.height / 2),
+    ),
+  ).toBeLessThan(4);
+  expect(tipBox!.x + tipBox!.width).toBeLessThanOrEqual(itemBox!.x);
+}
+
 async function settledOn(page: Page, expected: string): Promise<void> {
   await expect(outcome(page)).toHaveAttribute("data-outcome", expected);
 }
@@ -621,15 +641,7 @@ test.describe("Project Settings > AI > LLM Providers: a row's Test", () => {
     // Pointed at, it says why it is locked - beside itself.
     await item.hover();
     await expect(tooltip(page)).toContainText(REFUSAL);
-    const itemBox: { x: number; width: number } | null =
-      await item.boundingBox();
-    const tipBox: { x: number; width: number } | null =
-      await tooltip(page).boundingBox();
-    expect(
-      Math.abs(
-        tipBox!.x + tipBox!.width / 2 - (itemBox!.x + itemBox!.width / 2),
-      ),
-    ).toBeLessThan(4);
+    await expectBesideItem(page, item);
   });
 
   test("opened from the keyboard, the locked Test says why at once, beside itself", async ({
@@ -650,15 +662,7 @@ test.describe("Project Settings > AI > LLM Providers: a row's Test", () => {
     await expect(item).toBeFocused();
     await expect(tooltip(page)).toContainText(REFUSAL);
 
-    const itemBox: { x: number; width: number } | null =
-      await item.boundingBox();
-    const tipBox: { x: number; width: number } | null =
-      await tooltip(page).boundingBox();
-    expect(
-      Math.abs(
-        tipBox!.x + tipBox!.width / 2 - (itemBox!.x + itemBox!.width / 2),
-      ),
-    ).toBeLessThan(4);
+    await expectBesideItem(page, item);
     await shoot(page, "list-viewer-menu-keyboard-1280");
   });
 

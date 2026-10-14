@@ -6,6 +6,7 @@
 - [连接 Microsoft Teams](#连接-microsoft-teams): 管理员同意、您的登录，以及每个团队中的应用。
 - [通知规则](#通知规则): 决定哪些事件发布到哪里，以及哪些事件拥有专属频道。
 - [与 OneUptime 机器人对话](#与-oneuptime-机器人对话): 在与机器人的聊天中使用命令、提问和表单。
+- [值班标记](#值班标记): 让团队的标记与值班人员保持一致，并呼叫它。
 - [从 Microsoft Teams 处理事件、警报和活动](#从-microsoft-teams-处理事件警报和活动): OneUptime 卡片上的按钮。
 :::
 
@@ -159,6 +160,18 @@ flowchart TB
 
 除 `show` 列表外，这些就是 Slack 中 `/oneuptime` 后面的词；`create incident` 和 `create maintenance` 仍然可以使用。询问 OneUptime AI 需要连接您自己的 Microsoft Teams 账户，并为项目开启 AI。如果您的账户未连接，机器人会在每个话题或聊天中请您连接一次，并附带一个 **Connect Microsoft Teams account** 按钮。请参阅 [询问 AI](/docs/ai/ask-ai)。
 
+## Microsoft Teams 中的您的主页
+
+向 OneUptime 机器人输入 `home`，它会用您的主页回答：一张按您有权查看的范围显示项目中正在发生的事情的卡片。
+
+- **您的值班。** 您当前正在值班的值班计划及其结束时间，否则是您的下一个班次。
+- **未解决的内容。** 您有权读取的最新未解决事件和警报，每一项都链接到它在 OneUptime 中的页面。
+- **按钮。** **Declare incident** 和 **Page someone** 的回答与 `incident` 和 `page` 相同， **Who's on call** 与 `oncall` 相同， **Refresh** 会在原处重新读取卡片。
+
+当您为自己添加 OneUptime 应用时，机器人会立即发送您的主页。主页和 `show` 列表以您的身份读取，因此需要连接您自己的 Microsoft Teams 账户：在连接之前，机器人会用一个 **Connect Microsoft Teams account** 按钮回答。 **用户设置** > **工作区** > **Microsoft Teams** 中的 **在 Microsoft Teams 中打开 OneUptime** 会在 Teams 中打开该应用。
+
+当应用被添加到团队时，机器人会在那里打招呼：如何向它提问，以及在哪里添加发布到该团队频道的通知规则。
+
 ## 从 Microsoft Teams 创建事件和维护
 
 向 OneUptime 机器人输入 `incident` 或 `maintenance`，无论是在个人聊天、频道还是群聊中，都会为输入的人打开一个表单。表单以此人的身份填写：即以其 Microsoft Teams 账户所连接的 OneUptime 账户的身份（请参阅 [连接 Microsoft Teams](#连接-microsoft-teams) ），按该账户在项目中的权限提交。账户未连接的人，或 OneUptime 账户已不再是项目成员的人，会在提及其本人的回复中收到该怎么做的说明，而不是表单。
@@ -173,10 +186,31 @@ flowchart TB
 
 在频道或群聊中，`@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` 会立即呼叫 Nawaz。OneUptime 会创建一条以您的消息为标题的警报，您 @提及的每个人都会按其本人的值班规则收到电话、短信、推送通知或电子邮件，直到有人确认该警报。
 
-- **立即被呼叫的人。** 您 @提及的人，前提是其后跟有消息。OneUptime 通过此人的 Microsoft Teams 账户所连接的 OneUptime 账户识别此人，否则通过此人在 Microsoft Teams 中的电子邮件地址识别。项目之外的人不会被呼叫。
-- **其他情况会收到卡片。** 如果没有 @提及任何人（例如在与机器人的个人聊天中）、没有消息、提及了标记，或有 OneUptime 无法识别的人，机器人会以 **Page someone** 卡片回复，其中已填入您输入的内容，并说明哪些人无法选中。选择人员、团队、值班计划（呼叫此刻在该计划中值班的人）或值班策略（按其升级规则呼叫），然后提交。对话中的任何人都可以以自己的身份提交该卡片。呼叫完成后，卡片会被移除，以免有人用它重复呼叫。
+- **立即被呼叫的人。** 您 @提及的人，以及您 @提及的标记所关联值班计划中正在值班的人，前提是其后跟有消息（请参阅 [值班标记](#值班标记)）。OneUptime 通过此人的 Microsoft Teams 账户所连接的 OneUptime 账户识别此人，否则通过此人在 Microsoft Teams 中的电子邮件地址识别。项目之外的人不会被呼叫。
+- **其他情况会收到卡片。** 如果没有 @提及任何人（例如在与机器人的个人聊天中）、没有消息、提及了未关联您可见值班计划的标记，或有 OneUptime 无法识别的人，机器人会以 **Page someone** 卡片回复，其中已填入您输入的内容，并说明哪些人无法选中。选择人员、团队、值班计划（呼叫此刻在该计划中值班的人）或值班策略（按其升级规则呼叫），然后提交。对话中的任何人都可以以自己的身份提交该卡片。呼叫完成后，卡片会被移除，以免有人用它重复呼叫。
 - **显示位置。** 对话会以一张持续更新的卡片显示这次呼叫：呼叫了谁、如何呼叫，以及谁已确认。机器人无法发布它时，它的回复会告诉您呼叫了谁，并附上警报的链接。
 - **谁可以呼叫。** 既能执行值班策略又能创建警报的人： **Project Owner**、 **Project Admin** 和 **Project Member**，或同时拥有 **On-Call Member** 和 **Alert Member** 的人（自定义角色中的 **Create On-Call Duty Policy Execution Log** 和 **Create Alert** ）。不经值班策略直接呼叫人员、团队或值班计划，还需要访问项目中所有值班策略的权限。其他任何人都会在回复中收到告知，并且不会呼叫任何人。
+
+## 值班标记
+
+让 Microsoft Teams 标记（例如 `@Payments on-call`）与一个或多个值班计划中当前正在值班的人保持一致，这样其团队中的任何人都可以 @提及它来联系值班人员。OneUptime 会在每次交接和覆盖时更改该标记的成员，并每 15 分钟检查一次。
+
+:::steps
+### 将标记连接到值班计划
+
+在 **值班** > **值班计划** 中打开该计划。在其 **Microsoft Teams 标记** 卡片中，点击 **连接标记**，选择团队并输入标记名称：即该团队中使用此名称的标记，或由 OneUptime 新建的标记。标记中的成员会立即替换为正在值班的人。
+
+### 同时将其连接到备用值班计划
+
+若要让一个标记同时包含主值班和备用值班的人员，请在备用值班计划的页面上连接同一个标记。一个标记可以关联任意数量的值班计划。
+:::
+
+- **卡片显示的内容。** 每个标记当前的成员、它所在的团队、它关联的其他值班计划，以及它是否 **已是最新**。标记只能包含其团队的成员：不在该团队中的值班人员会连同原因一起列出。
+- **无人值班时。** OneUptime 会把所有人移出该标记，直到有人值班。新建标记需要团队中有人正在值班，因为 Microsoft Teams 不能创建没有成员的标记。
+- **呼叫该标记。** `@OneUptime page @Payments on-call The checkout API is down` 会呼叫该标记所关联值班计划中正在值班的人。请参阅 [从 Microsoft Teams 呼叫他人](#从-microsoft-teams-呼叫他人)。
+- **Microsoft 365 的要求。** 更改标记需要应用的 `TeamworkTag.ReadWrite.All` 权限，由 Microsoft 365 管理员在 **项目设置** > **工作区** > **Microsoft Teams** 中通过 **授予管理员许可** 授予。如果您的组织在 OneUptime 能够维护标记之前就已授予许可，请再授予一次。
+- **谁可以连接。** 可以编辑值班计划的角色： **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自定义角色中的 **Edit On-Call Duty Policy Schedule**。在 OneUptime Cloud 上，连接需要 **Growth** 套餐。
+- **断开连接后。** OneUptime 不再更改该标记。该标记及其成员会按原样保留在 Microsoft Teams 中。
 
 ## 从 Microsoft Teams 处理事件、警报和活动
 

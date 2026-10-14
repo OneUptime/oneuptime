@@ -147,6 +147,8 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 | **Create New Incident** 和 **Create Scheduled Event** 快捷方式 | 通过 Slack 的快捷方式声明事件或安排维护 | `POST /api/slack/interactive` |
 | OneUptime 消息中的按钮和表单 | 确认、解决、添加备注、更改状态、运行值班策略 | `POST /api/slack/interactive` 和 `POST /api/slack/options-load` |
 | 事件 | 提及、消息、表情回应和置顶，例如把一条消息保存为备注 | `POST /api/slack/events` |
+| 应用的 **Home** 标签页 | 您的值班班次以及未解决的事件和警报，并带有用于声明事件、安排维护、呼叫某人和查看谁在值班的按钮 | `POST /api/slack/events` 和 `POST /api/slack/interactive` |
+| 在应用被添加到的每个频道中的问候 | 如何向 OneUptime AI 提问，以及在哪里添加通知规则 | `POST /api/slack/events` |
 
 ### 消息中的图片
 
@@ -154,11 +156,19 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 
 如果你的 Slack 应用是用较旧的清单创建的，请在 **OAuth & Permissions > Bot Token Scopes** 下添加 `files:write`（或用当前清单更新应用）。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **Connect with Slack**，以授予新的权限范围。在此之前，每张截图都会显示为其替代文本。
 
+### 值班用户组
+
+要让值班计划的 Slack 用户组与正在值班的人保持一致（请参阅 [值班用户组](/docs/workspace-connections/slack#值班用户组)），需要机器人权限范围 `usergroups:read` 和 `usergroups:write`。生成的清单包含它们。
+
+如果你的 Slack 应用是用较旧的清单创建的，请在 **OAuth & Permissions > Bot Token Scopes** 下添加 `usergroups:read` 和 `usergroups:write`（或用当前清单更新应用）。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **Connect with Slack**，以授予新的权限范围。在此之前，值班计划的卡片会显示 OneUptime 的 Slack 应用尚无权更改用户组。
+
 ### 用较旧清单创建的应用
 
 用较早的 OneUptime 清单创建的 Slack 应用会把 `/incident` 和 `/maintenance` 注册为独立的命令，它们可能与其他应用的同名命令冲突。它们仍然可用，并打开与 `/oneuptime incident` 和 `/oneuptime maintenance` 相同的表单。要用 `/oneuptime` 替换它们，请用你的服务器生成的清单更新应用：在 [api.slack.com/apps](https://api.slack.com/apps) 中打开应用的 **App Manifest**，粘贴清单并保存。
 
 在 `/oneuptime page` 推出之前创建的应用也需要同样的更新：在更新之前，`/oneuptime page` 无法识别你 @提及的人，会打开一个表单让你选择他们，而不是立即呼叫他们。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **Connect with Slack**，以授予清单新增的 `users:read.email` 权限范围：有了它，Slack 账户未连接到 OneUptime 的人也能通过其电子邮件地址找到。
+
+在 **Home** 标签页之前创建的应用也需要同样的更新：在更新之前，Slack 不会为该应用显示 **Home** 标签页，应用也不会在它被添加到的频道中发布问候。更新会打开该标签页，并让应用订阅 `app_home_opened` 和 `member_joined_channel` 事件。它不会添加任何 scope，因此无需重新连接。
 
 ## 自托管部署的网络访问
 

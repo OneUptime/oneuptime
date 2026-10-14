@@ -4,6 +4,7 @@ import path from "path";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
+import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
 import TelemetryIngestionKeyGuard, {
@@ -393,6 +394,23 @@ export async function handleExport(
        */
       callback({
         name: "PaymentRequiredException",
+        message: err.message,
+        code: grpc.status.PERMISSION_DENIED,
+        details: err.message,
+        metadata: new grpc.Metadata(),
+      });
+      return;
+    }
+
+    if (err instanceof ProjectBlockedException) {
+      /*
+       * A master admin blocked the key's project, also thrown by
+       * getPolicyFromSecretKey. Non-retryable for the same reason: the
+       * exporter is told once per batch, rather than its data being taken
+       * and dropped as an answered success.
+       */
+      callback({
+        name: "ProjectBlockedException",
         message: err.message,
         code: grpc.status.PERMISSION_DENIED,
         details: err.message,

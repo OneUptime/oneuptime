@@ -14,6 +14,8 @@ import ComponentMetadata, {
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import { normalizeModelKeys } from "./ModelArguments";
 import logComponentError from "./LogComponentError";
+import logRowsKeptByDelete from "./LogRowsKeptByDelete";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default class DeleteManyBaseModel<
   TBaseModel extends BaseModel,
@@ -134,12 +136,15 @@ export default class DeleteManyBaseModel<
         ] = options.projectId;
       }
 
+      // A Project Admin of the project, never root. See getStepProps.
+      const props: DatabaseCommonInteractionProps =
+        await this.getStepProps(options);
+
       const itemsDeleted: number = await this.modelService.deleteBy({
         query: query,
         limit: new PositiveNumber(args["limit"] as number),
         skip: new PositiveNumber(args["skip"] as number),
-        // A Project Admin of the project, never root. See getStepProps.
-        props: await this.getStepProps(options),
+        props: props,
       });
 
       options.log(
@@ -147,6 +152,14 @@ export default class DeleteManyBaseModel<
           this.modelService.getModel().singularName || "record"
         }(s).`,
       );
+
+      // What the table kept of the rows the query names, and why.
+      await logRowsKeptByDelete({
+        service: this.modelService,
+        query: query,
+        props: props,
+        log: options.log,
+      });
 
       return {
         returnValues: {

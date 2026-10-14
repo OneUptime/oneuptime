@@ -8,7 +8,7 @@
 
   "features": {
     "app_home": {
-      "home_tab_enabled": false,
+      "home_tab_enabled": true,
       "messages_tab_enabled": true,
       "messages_tab_read_only_enabled": false
     },
@@ -57,6 +57,8 @@
         "files:write",
         "users:read",
         "users:read.email",
+        "usergroups:read",
+        "usergroups:write",
         "groups:read",
         "groups:write",
         "groups:history",
@@ -85,6 +87,8 @@
       "bot_events": [
         "reaction_added",
         "pin_added",
+        "app_home_opened",
+        "member_joined_channel",
         "app_mention",
         "message.im",
         "message.channels",

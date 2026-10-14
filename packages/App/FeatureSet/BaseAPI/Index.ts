@@ -82,6 +82,7 @@ import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
 import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
 import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificationRuleAPI";
+import WorkspaceUserGroupAPI from "Common/Server/API/WorkspaceUserGroupAPI";
 import VideoCallConnectionAPI from "Common/Server/API/VideoCallConnectionAPI";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import IncidentVideoCallService, {
@@ -598,6 +599,20 @@ import SecurityEventConnectionRunService, {
 import ThreatIntelFeedService, {
   Service as ThreatIntelFeedServiceType,
 } from "Common/Server/Services/ThreatIntelFeedService";
+import SecurityCaseAPI from "Common/Server/API/SecurityCaseAPI";
+import SecurityPlaybookRunAPI from "Common/Server/API/SecurityPlaybookRunAPI";
+import SecurityCaseFeedService, {
+  Service as SecurityCaseFeedServiceType,
+} from "Common/Server/Services/SecurityCaseFeedService";
+import SecurityCaseNoteService, {
+  Service as SecurityCaseNoteServiceType,
+} from "Common/Server/Services/SecurityCaseNoteService";
+import SecurityDetectionService, {
+  Service as SecurityDetectionServiceType,
+} from "Common/Server/Services/SecurityDetectionService";
+import SecurityPlaybookService, {
+  Service as SecurityPlaybookServiceType,
+} from "Common/Server/Services/SecurityPlaybookService";
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
@@ -1560,6 +1575,10 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
+import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
+import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
+import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
+import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
@@ -3830,6 +3849,49 @@ const BaseAPIFeatureSet: FeatureSet = {
       new SecurityEventConnectionAPI().getRouter(),
     );
 
+    // Security cases and playbooks: the SOAR half of the Security product.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityCaseAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseFeed, SecurityCaseFeedServiceType>(
+        SecurityCaseFeed,
+        SecurityCaseFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseNote, SecurityCaseNoteServiceType>(
+        SecurityCaseNote,
+        SecurityCaseNoteService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityDetection, SecurityDetectionServiceType>(
+        SecurityDetection,
+        SecurityDetectionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityPlaybook, SecurityPlaybookServiceType>(
+        SecurityPlaybook,
+        SecurityPlaybookService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityPlaybookRunAPI().getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new HuntressConnectionAPI().getRouter(),
@@ -5309,6 +5371,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new WorkspaceNotificationRuleAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new WorkspaceUserGroupAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

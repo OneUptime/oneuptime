@@ -106,6 +106,8 @@ export default class VMwareProbeCollectionStore {
           )
           AND pr."deletedAt" IS NULL
           AND p."deletedAt" IS NULL
+          -- A project a master admin blocked is not collected until it is unblocked.
+          AND p."isBlocked" = false
           AND (p."paymentProviderSubscriptionStatus" IS NULL
                OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL

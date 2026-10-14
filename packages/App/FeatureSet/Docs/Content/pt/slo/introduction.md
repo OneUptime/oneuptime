@@ -70,7 +70,7 @@ Os campos em **Mais campos**:
 | Campo | O que você define | Padrão |
 | --- | --- | --- |
 | **Descrição** | Para que serve o SLO. | Vazio |
-| **Limite de risco (%)** | A parcela do orçamento de erros restante em que o SLO passa para **At Risk**. Um número inteiro de 0 a 100. | 20 |
+| **Limite de risco (%)** | A parcela do orçamento de erros restante em que o SLO passa para **Em risco**. Um número inteiro de 0 a 100. | 20 |
 | **Window Type** | **Rolling**: os últimos N dias, que se recuperam à medida que a indisponibilidade antiga sai da janela. **Calendar Month**: cada mês por conta própria, zerado no dia 1. | **Rolling** |
 | **Window (Days)** | Só janelas móveis: quantos dias olhar para trás, de 1 a 366. O comum é 28 ou 30. | 30 |
 | **Fuso horário** | Só meses do calendário: o fuso horário em que cada mês começa e termina. | UTC |
@@ -93,7 +93,7 @@ Tudo o que define como o SLO mede começa com um valor padrão que você muda de
 | Monitores | De onde vem o SLI. Associe-os à mão ou com regras de monitor: veja [Monitores e regras de monitor](/docs/slo/monitor-rules). |
 | Meta | A parcela de tempo bom que o SLO promete, maior que 0 e no máximo 99,999. |
 | Janela de conformidade | O período em que o SLI e o orçamento são medidos: uma janela móvel de 1 a 366 dias, ou um mês do calendário. |
-| Limite de risco | A parcela do orçamento restante em que o SLO passa para **At Risk**. |
+| Limite de risco | A parcela do orçamento restante em que o SLO passa para **Em risco**. |
 | Status de indisponibilidade | Quais status de monitor contam como indisponibilidade. |
 | Modo de vários monitores | Como a indisponibilidade de vários monitores é combinada. |
 
@@ -129,18 +129,18 @@ O OneUptime dá um status a cada SLO avaliado:
 | Status | O que significa |
 | --- | --- |
 | **Íntegro** | Resta mais orçamento do que o limite de risco. |
-| **At Risk** | O orçamento restante caiu para o limite de risco ou abaixo dele: 20% por padrão. |
-| **Budget Exhausted** | O orçamento foi todo gasto, ou ultrapassado. |
+| **Em risco** | O orçamento restante caiu para o limite de risco ou abaixo dele: 20% por padrão. |
+| **Orçamento esgotado** | O orçamento foi todo gasto, ou ultrapassado. |
 | **Misconfigured** | O SLO não pode ser medido: não tem monitores, seus monitores não existem mais ou ainda não registraram nenhum status na janela, ou sua meta está fora do intervalo. |
 | **Pausado** | Todos os monitores que ele mede estão arquivados ou com o monitoramento ativo desligado, à mão, por um incidente manual ou por uma manutenção programada. Ele retoma sozinho assim que algum deles volta a ser monitorado. |
 
-Um SLO desligado ou arquivado não é avaliado, então seu status fica como estava; a lista de SLOs mostra no lugar um selo **Desabilitado** ou **Arquivado**. Os proprietários de um SLO são notificados quando o status muda para **At Risk** ou **Budget Exhausted**: veja [Orçamentos de erros](/docs/slo/error-budget).
+Um SLO desligado ou arquivado não é avaliado, então seu status fica como estava; a lista de SLOs mostra no lugar um selo **Desabilitado** ou **Arquivado**. Os proprietários de um SLO são notificados quando o status muda para **Em risco** ou **Orçamento esgotado**: veja [Orçamentos de erros](/docs/slo/error-budget).
 
 ## A lista de SLOs
 
 A página **SLOs** lista cada SLO não arquivado, com status, SLI, orçamento restante, taxa de consumo, meta, janela, monitores, rótulos e proprietários.
 
-- Os blocos acima da lista contam os SLOs por status: **Íntegro**, **At Risk**, **Budget Exhausted**, **Misconfigured**, **Pausado** e **Desabilitado**. Clique em um bloco para ver só esses SLOs, e de novo para ver todos.
+- Os blocos acima da lista contam os SLOs por status: **Íntegro**, **Em risco**, **Orçamento esgotado**, **Misconfigured**, **Pausado** e **Desabilitado**. Clique em um bloco para ver só esses SLOs, e de novo para ver todos.
 - Selecione SLOs para adicionar ou remover rótulos e proprietários, arquivá-los ou excluí-los, todos de uma vez.
 - A seção **Configurações** do menu lateral contém **Regras de Rótulos** e **Regras de proprietário**, que rotulam os SLOs novos e definem seus proprietários: veja [Regras de rótulos e proprietários](/docs/slo/label-and-owner-rules).
 - A seção **Avançado** do menu lateral contém **Arquivado**, a lista de SLOs arquivados.

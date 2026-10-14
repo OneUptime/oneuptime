@@ -147,6 +147,8 @@ Het manifest stelt deze functies in. Elke functie bereikt uw server via de getoo
 | De snelkoppelingen **Create New Incident** en **Create Scheduled Event** | Een incident melden of onderhoud plannen vanuit de snelkoppelingen van Slack | `POST /api/slack/interactive` |
 | Knoppen en formulieren in OneUptime-berichten | Bevestigen, oplossen, een notitie toevoegen, de status wijzigen, een on-callbeleid uitvoeren | `POST /api/slack/interactive` en `POST /api/slack/options-load` |
 | Events | Vermeldingen, berichten, reacties en pins, bijvoorbeeld om een bericht als notitie op te slaan | `POST /api/slack/events` |
+| Het tabblad **Home** van de app | Je diensten en de open incidenten en waarschuwingen, met knoppen om een incident te melden, onderhoud te plannen, iemand op te roepen en te zien wie dienst heeft | `POST /api/slack/events` en `POST /api/slack/interactive` |
+| Een begroeting in elk kanaal waaraan de app wordt toegevoegd | Hoe je OneUptime AI een vraag stelt en waar je een meldingsregel toevoegt | `POST /api/slack/events` |
 
 ### Afbeeldingen in berichten
 
@@ -154,11 +156,19 @@ Beschrijvingen van incidenten en meldingen kunnen screenshots bevatten, bijvoorb
 
 Hebt u uw Slack-app aangemaakt vanuit een ouder manifest, voeg dan `files:write` toe onder **OAuth & Permissions > Bot Token Scopes** (of werk de app bij vanuit het huidige manifest). Kies daarna opnieuw **Connect with Slack** in **Projectinstellingen > Werkruimte > Slack**, zodat de nieuwe scope wordt toegekend. Tot dan wordt elk screenshot getoond als de alternatieve tekst ervan.
 
+### Gebruikersgroepen voor bereikbaarheid
+
+Om de Slack-gebruikersgroep van een schema gelijk te houden aan wie er dienst heeft (zie [Gebruikersgroepen voor bereikbaarheid](/docs/workspace-connections/slack#gebruikersgroepen-voor-bereikbaarheid)), zijn de botscopes `usergroups:read` en `usergroups:write` nodig. Het gegenereerde manifest bevat die.
+
+Hebt u uw Slack-app aangemaakt vanuit een ouder manifest, voeg dan `usergroups:read` en `usergroups:write` toe onder **OAuth & Permissions > Bot Token Scopes** (of werk de app bij vanuit het huidige manifest). Kies daarna opnieuw **Connect with Slack** in **Projectinstellingen > Werkruimte > Slack**, zodat de nieuwe scopes worden toegekend. Tot dan zegt de kaart van het schema dat de Slack-app van OneUptime nog geen gebruikersgroepen mag wijzigen.
+
 ### Apps aangemaakt vanuit een ouder manifest
 
 Een Slack-app die vanuit een eerder OneUptime-manifest is aangemaakt, registreert `/incident` en `/maintenance` als eigen commando's, die kunnen botsen met gelijknamige commando's van andere apps. Ze blijven werken en openen dezelfde formulieren als `/oneuptime incident` en `/oneuptime maintenance`. Werk de app bij vanuit het manifest dat uw server genereert om ze door `/oneuptime` te vervangen: open op [api.slack.com/apps](https://api.slack.com/apps) het **App Manifest** van de app, plak het manifest en sla op.
 
 Een app die is aangemaakt vóór `/oneuptime page` heeft dezelfde update nodig: tot die er is, kan `/oneuptime page` niet zien wie u met @ noemt, en opent het een formulier om hen te kiezen in plaats van hen meteen op te roepen. Kies daarna opnieuw **Connect with Slack** in **Projectinstellingen > Werkruimte > Slack**, zodat de scope `users:read.email` die het manifest toevoegt wordt toegekend: daarmee wordt iemand van wie het Slack-account niet aan OneUptime is gekoppeld, gevonden via diens e-mailadres.
+
+Een app die vóór het tabblad **Home** is gemaakt, heeft dezelfde update nodig: zolang hij die niet heeft, toont Slack geen tabblad **Home** voor de app, en plaatst de app geen begroeting in een kanaal waaraan hij wordt toegevoegd. De update zet het tabblad aan en abonneert de app op de events `app_home_opened` en `member_joined_channel`. Er komt geen scope bij, dus hoeft er niets opnieuw gekoppeld te worden.
 
 ## Netwerktoegang voor zelf gehoste installaties
 

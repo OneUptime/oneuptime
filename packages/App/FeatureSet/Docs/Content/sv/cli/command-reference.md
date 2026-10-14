@@ -194,6 +194,7 @@ Poster tar `list`, `get`, `create`, `update`, `delete` och `count`:
 | Statussidor | `status-page`, `status-page-announcement` |
 | Planerat underhåll | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | Team och jour | `team`, `on-call-policy` |
+| Säkerhet | `security-case`, `security-case-note`, `security-detection`, `security-playbook` |
 | Etiketter | `label` |
 
 Telemetri tar `list`, `create` och `count`:

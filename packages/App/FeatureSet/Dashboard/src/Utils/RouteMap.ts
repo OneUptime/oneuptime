@@ -749,6 +749,15 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_CONNECTIONS]: "connections",
   [PageMap.SECURITY_EVENTS_THREAT_INTEL]: "threat-intel",
   [PageMap.SECURITY_EVENTS_DOCUMENTATION]: "documentation",
+  [PageMap.SECURITY_EVENTS_OVERVIEW]: "overview",
+  [PageMap.SECURITY_EVENTS_ENTITIES]: "entities",
+  [PageMap.SECURITY_EVENTS_RULE_LIBRARY]: "rule-library",
+  [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE]: "attack-coverage",
+  [PageMap.SECURITY_CASES]: "cases",
+  [PageMap.SECURITY_CASE_VIEW]: `cases/${RouteParams.ModelID}`,
+  [PageMap.SECURITY_PLAYBOOKS]: "playbooks",
+  [PageMap.SECURITY_PLAYBOOK_VIEW]: `playbooks/${RouteParams.ModelID}`,
+  [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs",
 };
 
 // Metrics product routes
@@ -1290,6 +1299,10 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INIT_PROJECT]: new Route(`/dashboard/${RouteParams.ProjectID}`),
 
   [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),
+
+  [PageMap.HOME_ACTIVE_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/home/active-incidents`,
+  ),
 
   [PageMap.HOME_NOT_OPERATIONAL_MONITORS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational`,
@@ -6585,6 +6598,60 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_OVERVIEW]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_ENTITIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_ENTITIES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_RULE_LIBRARY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_RULE_LIBRARY]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_ATTACK_COVERAGE]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW]
+    }`,
+  ),
+
+  [PageMap.SECURITY_PLAYBOOKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOKS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_PLAYBOOK_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOK_VIEW]
+    }`,
+  ),
+
+  [PageMap.SECURITY_PLAYBOOK_RUNS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_PLAYBOOK_RUNS]
     }`,
   ),
 

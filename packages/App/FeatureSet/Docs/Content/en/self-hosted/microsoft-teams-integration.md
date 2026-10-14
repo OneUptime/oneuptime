@@ -77,6 +77,7 @@ In your app registration, open **API permissions**, select **Add a permission** 
 - **Channel.ReadBasic.All** - Required to verify channel existence and retrieve channel details
 - **TeamsAppInstallation.ReadForTeam.All** - Required for diagnosis. Lets OneUptime read which app package is really installed in a team and compare it against this deployment's client id, so a failed send can tell you _which_ of the possible causes it is. Without it OneUptime cannot tell "not installed" apart from "installed, but it is somebody else's package", and simply reports what Microsoft said — which is the single biggest reason this integration takes days instead of minutes to debug. Grant it.
 - **Chat.ReadBasic.WhereInstalled** - Optional. Lets OneUptime read the name of every chat the OneUptime app is in. Without it, each chat grants that through the manifest's **ChatSettings.Read.Chat** permission (below), which a chat added with an older manifest only has once the app is updated in it.
+- **TeamworkTag.ReadWrite.All** - Optional. Lets OneUptime keep a team's tag equal to whoever is on call in the schedules it follows (see [On-call tags](/docs/workspace-connections/microsoft-teams#on-call-tags)). Without it, the schedule's card says your organization hasn't let OneUptime manage tags yet.
 
 `ChannelMessage.Send` is a delegated permission only; it has no application permission variant in the [Microsoft Graph permissions reference](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend). Keep it in the delegated list above.
 

@@ -8,6 +8,7 @@ import {
   CIRCUIT_BREAKER,
   DocsPageEntry,
   GEMINI_COPILOT,
+  SECURITY_CASES,
   SECURITY_EVENTS,
   SECURITY_PAGES,
   THREAT_INTELLIGENCE,
@@ -63,9 +64,10 @@ import { describe, expect, it } from "@jest/globals";
 /*
  * Docs overhaul task 24b: the rest of the AI Observability group (Gemini
  * CLI & GitHub Copilot, AI Gateways, AI Agent Circuit Breakers) and the
- * Security group (Security Events, Threat Intelligence), in every docs
- * language. AiToolingDocsFacts and SecurityDocsFacts hold the English pages
- * to the product; this suite holds each translation to its English page:
+ * Security group (Security Events, Threat Intelligence, Security Cases and
+ * Playbooks), in every docs language. AiToolingDocsFacts, SecurityDocsFacts
+ * and SecurityCasesDocsFacts hold the English pages to the product; this
+ * suite holds each translation to its English page:
  *
  *   - line for line: the same number of lines, each heading, table row,
  *     fence, component line and tab on the English one's line, so a later
@@ -123,6 +125,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [CIRCUIT_BREAKER]: 26,
   [SECURITY_EVENTS]: 29,
   [THREAT_INTELLIGENCE]: 28,
+  [SECURITY_CASES]: 26,
 };
 
 // Bold words that name a product opened from the Products menu.

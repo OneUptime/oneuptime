@@ -100,6 +100,70 @@ describe("the Slack app manifest's commands", () => {
     );
   });
 
+  /*
+   * Customer feedback #3: "We have a number of @teamname-oncall user groups
+   * in Slack that is always updated with the on-call person(s)". OneUptime
+   * keeps such a group in step (SlackUserGroups), which reads and changes
+   * user groups as the app's bot.
+   */
+  test("the app may read and change user groups, to keep an @team-oncall group in step with who is on call", () => {
+    const scopes: Array<string> = (
+      (manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject
+    )["bot"] as unknown as Array<string>;
+
+    expect(scopes).toEqual(
+      expect.arrayContaining(["usergroups:read", "usergroups:write"]),
+    );
+  });
+
+  /*
+   * Every Slack Web API method the user group sync calls, with the bot scope
+   * Slack asks of it. The source is read for the methods it names, so a new
+   * method cannot be called without a scope the manifest asks for.
+   */
+  test("every Slack method the user group sync calls has its scope in the manifest", () => {
+    const methodScopes: Record<string, string> = {
+      "usergroups.list": "usergroups:read",
+      "usergroups.users.list": "usergroups:read",
+      "usergroups.users.update": "usergroups:write",
+      "usergroups.create": "usergroups:write",
+      "usergroups.disable": "usergroups:write",
+      "usergroups.enable": "usergroups:write",
+      "users.info": "users:read",
+      "users.lookupByEmail": "users:read.email",
+    };
+
+    const source: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../../Server/Utils/Workspace/Slack/SlackUserGroups.ts",
+      ),
+      "utf8",
+    );
+
+    const named: Array<string> = [];
+    const marker: string = 'method: "';
+    let from: number = source.indexOf(marker);
+
+    while (from !== -1) {
+      const start: number = from + marker.length;
+      const end: number = source.indexOf('"', start);
+      named.push(source.substring(start, end));
+      from = source.indexOf(marker, end);
+    }
+
+    expect(named.length).toBeGreaterThanOrEqual(8);
+
+    const scopes: Array<string> = (
+      (manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject
+    )["bot"] as unknown as Array<string>;
+
+    for (const method of named) {
+      expect(Object.keys(methodScopes)).toContain(method);
+      expect(scopes).toContain(methodScopes[method]);
+    }
+  });
+
   test("the command is the one the server reads its words after", () => {
     expect(slashCommands[0]!.command).toBe(WorkspaceCommands.SLACK_COMMAND);
   });
@@ -190,5 +254,61 @@ describe("apps created from an older manifest", () => {
       actionValue: "Upgrade",
       command: "/maintenance",
     });
+  });
+});
+
+/*
+ * THE APP'S HOME TAB, AND ITS HELLO IN A CHANNEL.
+ *
+ * Slack shows an app's Home tab only when the manifest enables it, and
+ * tells the app it was opened (app_home_opened) only when the app asks for
+ * that event: OneUptime draws the Home then (SlackHome). member_joined_channel
+ * tells it a person added it to a channel, where it says hello once
+ * (SlackWelcome). Neither event needs a scope of its own beyond what the app
+ * has: app_home_opened none, member_joined_channel the channels:read and
+ * groups:read it reads channels with already - so turning them on asks no
+ * workspace to install the app again.
+ */
+describe("the Slack app manifest's Home tab and hello", () => {
+  const appHome: JSONObject = features["app_home"] as JSONObject;
+  const events: Array<string> = (
+    (manifest["settings"] as JSONObject)["event_subscriptions"] as JSONObject
+  )["bot_events"] as unknown as Array<string>;
+  const scopes: Array<string> = (
+    (manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject
+  )["bot"] as unknown as Array<string>;
+
+  test("the Home tab is on, beside the Messages tab people write to the app in", () => {
+    expect(appHome["home_tab_enabled"]).toBe(true);
+    expect(appHome["messages_tab_enabled"]).toBe(true);
+    expect(appHome["messages_tab_read_only_enabled"]).toBe(false);
+  });
+
+  test("the app hears when its Home is opened, and when it joins a channel", () => {
+    expect(events).toEqual(
+      expect.arrayContaining(["app_home_opened", "member_joined_channel"]),
+    );
+  });
+
+  test("the scopes those events need are ones the app had already", () => {
+    expect(scopes).toEqual(
+      expect.arrayContaining(["channels:read", "groups:read", "chat:write"]),
+    );
+  });
+
+  test("every event the app subscribes to that is not a message has a handler in the events route", () => {
+    const route: string = fs.readFileSync(
+      path.resolve(__dirname, "../../../../../Server/API/SlackAPI.ts"),
+      "utf8",
+    );
+
+    for (const event of events) {
+      if (event.startsWith("message.") || event === "app_mention") {
+        // Messages and mentions are read by SlackAiConversations.
+        continue;
+      }
+
+      expect(route).toContain(`event["type"] === "${event}"`);
+    }
   });
 });

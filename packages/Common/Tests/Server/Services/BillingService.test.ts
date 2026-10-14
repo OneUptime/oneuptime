@@ -139,8 +139,6 @@ describe("BillingService", () => {
       writable: true,
     });
 
-    let mockDate: Date = OneUptimeDate.getCurrentDate();
-
     let mockSubscription: Stripe.Subscription;
     const subscription: Subscription = getSubscriptionData();
     const subscriptionPlan: SubscriptionPlan = getSubscriptionPlanData();
@@ -149,7 +147,6 @@ describe("BillingService", () => {
 
     beforeEach(() => {
       mockSubscription = getStripeSubscription();
-      mockDate = OneUptimeDate.getCurrentDate();
     });
 
     describe("subscribeToMeteredPlan", () => {
@@ -347,25 +344,38 @@ describe("BillingService", () => {
           .mockResolvedValueOnce(mockSubscription)
           .mockResolvedValueOnce(mockSubscription2);
 
+        /*
+         * The trial ends a trial period after the moment subscribeToPlan
+         * reads the clock, which lies between these two reads. Comparing it
+         * to one read of our own fails whenever a second boundary falls
+         * between the reads.
+         */
+        const calledFrom: Date = OneUptimeDate.getCurrentDate();
         const result: {
           subscriptionId: string;
           meteredSubscriptionId: string;
           trialEndsAt: Date | null;
         } = await billingService.subscribeToPlan(meteredSubscription);
+        const calledUntil: Date = OneUptimeDate.getCurrentDate();
 
         expect(result.subscriptionId).toEqual(mockSubscription.id);
         expect(result.meteredSubscriptionId).toEqual(mockSubscription2.id);
-        const datePlusTrialDays: Date = OneUptimeDate.addRemoveDays(
-          mockDate,
-          subscriptionPlan.getTrialPeriod(),
-        );
-        const datePlusTrialDaysNumber: number = datePlusTrialDays.getTime();
 
-        expect(result.trialEndsAt?.toString()).toBeTruthy();
-        expect(result.trialEndsAt?.toString()).toEqual(
-          datePlusTrialDays.toString(),
+        expect(result.trialEndsAt).toBeInstanceOf(Date);
+        const trialEndsAt: number = result.trialEndsAt!.getTime();
+        expect(trialEndsAt).toBeGreaterThanOrEqual(
+          OneUptimeDate.addRemoveDays(
+            calledFrom,
+            subscriptionPlan.getTrialPeriod(),
+          ).getTime(),
         );
-
+        expect(trialEndsAt).toBeLessThanOrEqual(
+          OneUptimeDate.addRemoveDays(
+            calledUntil,
+            subscriptionPlan.getTrialPeriod(),
+          ).getTime(),
+        );
+        // Both subscriptions end their trial when the result says it ends.
         expect(mockStripe.subscriptions.create).toHaveBeenCalledTimes(2);
         expect(mockStripe.subscriptions.create).toHaveBeenNthCalledWith(
           1,
@@ -379,14 +389,14 @@ describe("BillingService", () => {
                 quantity: meteredSubscription.quantity,
               }),
             ]),
-            trial_end: Math.floor(datePlusTrialDaysNumber / 1000),
+            trial_end: Math.floor(trialEndsAt / 1000),
           }),
         );
         expect(mockStripe.subscriptions.create).toHaveBeenNthCalledWith(
           2,
           expect.objectContaining({
             customer: meteredSubscription.customerId,
-            trial_end: Math.floor(datePlusTrialDaysNumber / 1000),
+            trial_end: Math.floor(trialEndsAt / 1000),
           }),
         );
       });

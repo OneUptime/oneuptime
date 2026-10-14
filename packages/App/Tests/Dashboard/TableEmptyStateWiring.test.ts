@@ -206,7 +206,7 @@ interface AllClearPage {
  */
 const ALL_CLEAR_PAGES: Array<AllClearPage> = [
   { file: "Pages/Incidents/Unresolved.tsx", says: "No active incidents" },
-  { file: "Pages/Home/Home.tsx", says: "No active incidents" },
+  { file: "Pages/Home/ActiveIncidents.tsx", says: "No active incidents" },
   { file: "Pages/Global/ActiveIncidents.tsx", says: "No active incidents" },
   { file: "Pages/Alerts/Unresolved.tsx", says: "No active alerts" },
   { file: "Pages/Home/ActiveAlerts.tsx", says: "No active alerts" },
@@ -286,7 +286,7 @@ describe("lists where empty is good news say so", () => {
   test("active incidents and alerts lead with the fact, then the good news", () => {
     for (const file of [
       "Pages/Incidents/Unresolved.tsx",
-      "Pages/Home/Home.tsx",
+      "Pages/Home/ActiveIncidents.tsx",
       "Pages/Global/ActiveIncidents.tsx",
     ]) {
       expect([file, readDashboardCode(file)]).toEqual([

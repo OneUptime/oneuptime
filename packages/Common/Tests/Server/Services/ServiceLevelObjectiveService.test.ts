@@ -2220,11 +2220,16 @@ describe("ServiceLevelObjectiveService.getDueSlos", () => {
       "project"
     ] as Record<string, unknown>;
 
-    // Spread of ProjectService.getActiveProjectStatusQuery().
+    /*
+     * Spread of ProjectService.getActiveProjectStatusQuery(): its two
+     * subscription statuses, and not blocked.
+     */
     expect(Object.keys(projectQuery).sort()).toEqual([
+      "isBlocked",
       "paymentProviderMeteredSubscriptionStatus",
       "paymentProviderSubscriptionStatus",
     ]);
+    expect(projectQuery["isBlocked"]).toBe(false);
   });
 
   it("treats a never-evaluated SLO as due via lessThanEqualToOrNull", async () => {

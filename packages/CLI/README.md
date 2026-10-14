@@ -1,6 +1,6 @@
 # @oneuptime/cli
 
-Command-line interface for managing OneUptime resources. Supports all MCP-enabled resources with full CRUD operations, named contexts for multiple environments, and flexible output formats.
+Command-line interface for managing OneUptime resources. Supports every MCP-enabled resource (records with full CRUD operations, telemetry with list, create and count), named contexts for multiple environments, and flexible output formats.
 
 ## Installation
 
@@ -87,7 +87,7 @@ oneuptime context delete old-context
 
 ### Resource Operations
 
-Every discovered resource supports these subcommands:
+Every resource supports `list`, `create` and `count`. Records (monitors, incidents, teams and the like) also support `get`, `update` and `delete`; telemetry (logs, metrics, spans and the like) does not:
 
 | Subcommand                             | Description                                  |
 | -------------------------------------- | -------------------------------------------- |
@@ -191,19 +191,30 @@ Output format and list size are not read from this file. Pass `-o` and `--limit`
 
 ## Supported Resources
 
-Run `oneuptime resources` to see all available resource types. Resources are auto-discovered from OneUptime models that have MCP enabled. Currently supported:
+Every resource is a command: `oneuptime <resource> <subcommand>`. Resources are discovered from the OneUptime models that have MCP enabled, and `oneuptime resources` lists the ones your version has (`--type database` for records, `--type analytics` for telemetry).
 
-- **Incident** - Manage incidents
-- **Alert** - Manage alerts
-- **Monitor** - Manage monitors
-- **Monitor Status** - Manage monitor statuses
-- **Incident State** - Manage incident states
-- **Status Page** - Manage status pages
-- **On-Call Policy** - Manage on-call duty policies
-- **Team** - Manage teams
-- **Scheduled Maintenance Event** - Manage scheduled maintenance
+Records take `list`, `get`, `create`, `update`, `delete` and `count`:
 
-As more models are MCP-enabled in OneUptime, they automatically become available in the CLI.
+| Area                  | Commands                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Monitoring            | `monitor`, `monitor-status`, `monitor-status-event`                                                                                              |
+| Incidents             | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Alerts                | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note`                                                          |
+| Status pages          | `status-page`, `status-page-announcement`                                                                                                        |
+| Scheduled maintenance | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline`                                             |
+| Teams and on-call     | `team`, `on-call-policy`                                                                                                                         |
+| Security              | `security-case`, `security-case-note`, `security-detection`, `security-playbook`                                                                 |
+| Labels                | `label`                                                                                                                                          |
+
+Telemetry takes `list`, `create` and `count`:
+
+| Area             | Commands                                                     |
+| ---------------- | ------------------------------------------------------------ |
+| Observability    | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
+| Security         | `security-event`, `threat-intel-indicator`                   |
+| Changes and cost | `change-event`, `kubernetes-cost-allocation`                 |
+
+As more models are MCP-enabled in OneUptime, they become available in the CLI as well. The [command reference](https://oneuptime.com/docs/cli/command-reference) describes every command and its options.
 
 ## Development
 

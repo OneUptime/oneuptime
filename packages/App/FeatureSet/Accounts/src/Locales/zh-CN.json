@@ -227,6 +227,7 @@
       "plan": "{{name}} - 套餐不包含 MCP 客户端",
       "sso": "{{name}} - 请先使用单点登录进行登录",
       "blocked": "{{name}} - 您的管理员不允许",
+      "project-blocked": "{{name}} - 该项目已被封禁",
       "not-a-member": "{{name}} - 您不是成员"
     },
     "noProjects": "您尚未加入任何项目。请先创建或加入一个项目，然后重新连接您的 MCP 客户端。",

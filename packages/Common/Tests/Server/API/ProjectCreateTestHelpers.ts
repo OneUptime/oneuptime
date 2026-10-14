@@ -75,6 +75,10 @@ export function stubSignedInUser(data: {
     isMasterAdmin: false,
   } as JSONWebTokenData);
   getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false as never);
+  // Nor is their project (UserMiddleware.isProjectBlockedFor).
+  getJestSpyOn(ProjectService, "isProjectBlocked").mockResolvedValue(
+    false as never,
+  );
   getJestSpyOn(UserService, "updateLastActive").mockResolvedValue(
     undefined as never,
   );

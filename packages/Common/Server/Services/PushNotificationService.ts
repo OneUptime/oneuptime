@@ -55,6 +55,7 @@ import {
   TRUNCATED_NAME_NOTE,
   TRUNCATED_TEXT_NOTE,
 } from "../../Utils/MessageFit";
+import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
 
 // A text's size in a push notification: as JSON writes it, in UTF-8.
 const getPushTextSize: TextSizeFunction = (text: string): number => {
@@ -658,6 +659,17 @@ export default class PushNotificationService {
     pushRequest: PushNotificationRequest,
     options: PushNotificationOptions = {},
   ): Promise<void> {
+    // A project a master admin blocked sends nothing (BlockedProjectNotifications).
+    if (
+      await BlockedProjectNotifications.getRefusal({
+        channel: "Push notification",
+        projectId: options.projectId,
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+      })
+    ) {
+      return;
+    }
+
     // The installation's own name and icon, when it goes by one.
     const request: PushNotificationRequest = {
       ...pushRequest,

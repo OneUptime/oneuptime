@@ -121,6 +121,19 @@ jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
   return { __esModule: true, default: { updateOneById: jest.fn() } };
 });
 
+// The project is not blocked: a blocked project's email is refused unsent.
+jest.mock(
+  "Common/Server/Utils/Notification/BlockedProjectNotifications",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getRefusal: jest.fn<() => Promise<null>>().mockResolvedValue(null),
+      },
+    };
+  },
+);
+
 jest.mock("Common/Models/DatabaseModels/EmailLog", () => {
   return { __esModule: true, default: jest.fn() };
 });

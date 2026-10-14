@@ -227,6 +227,7 @@
       "plan": "{{name}} - abonnementet omfatter ikke MCP-klienter",
       "sso": "{{name}} - log først ind med single sign-on",
       "blocked": "{{name}} - ikke tilladt af din administrator",
+      "project-blocked": "{{name}} - projektet er blevet blokeret",
       "not-a-member": "{{name}} - du er ikke medlem"
     },
     "noProjects": "Du er ikke med i noget projekt endnu. Opret et projekt, eller bliv medlem af et, og forbind derefter din MCP-klient igen.",

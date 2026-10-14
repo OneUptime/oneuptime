@@ -366,6 +366,12 @@ import HuntressConnectionService from "./HuntressConnectionService";
 import HuntressIncidentReportService from "./HuntressIncidentReportService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
+import SecurityCaseService from "./SecurityCaseService";
+import SecurityCaseFeedService from "./SecurityCaseFeedService";
+import SecurityCaseNoteService from "./SecurityCaseNoteService";
+import SecurityDetectionService from "./SecurityDetectionService";
+import SecurityPlaybookService from "./SecurityPlaybookService";
+import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
 
 // AlertEpisode Services
@@ -436,6 +442,7 @@ import AlertVideoCallService from "./AlertVideoCallService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceLiveMessageService from "./WorkspaceLiveMessageService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
+import WorkspaceUserGroupService from "./WorkspaceUserGroupService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
@@ -838,6 +845,12 @@ const services: Array<BaseService> = [
   HuntressConnectionService,
   HuntressIncidentReportService,
   ThreatIntelFeedService,
+  SecurityCaseService,
+  SecurityCaseFeedService,
+  SecurityCaseNoteService,
+  SecurityDetectionService,
+  SecurityPlaybookService,
+  SecurityPlaybookRunService,
   AlertNoteTemplateService,
   AlertFeedService,
 
@@ -905,6 +918,7 @@ const services: Array<BaseService> = [
   WorkspaceNotificationLogService,
   WorkspaceLiveMessageService,
   WorkspaceNotificationSummaryService,
+  WorkspaceUserGroupService,
   WorkspaceUserNotificationService,
 
   ProjectSCIMLogService,

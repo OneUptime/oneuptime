@@ -23,6 +23,13 @@ import MailService from "../../FeatureSet/Notification/Services/MailService";
 import MicrosoftGraphMailProvider from "../../FeatureSet/Notification/Services/MailProviders/MicrosoftGraphMailProvider";
 import SMTPOAuthService from "../../FeatureSet/Notification/Services/SMTPOAuthService";
 import "../../FeatureSet/Notification/Utils/Handlebars";
+import { EmailMarkupTree, readEmailMarkup } from "./Fixtures/EmailMarkupTree";
+import {
+  DetailCard,
+  DetailCardRow,
+  detailCards,
+  misplacedDividers,
+} from "./Fixtures/EmailDividers";
 
 /*
  * Exercise the public delivery pipeline, including the real production
@@ -678,5 +685,103 @@ describe("digests and custom email bodies through MailService.send", () => {
     ).rejects.toThrow("Missing helper");
     expect(nodemailer.createTransport).not.toHaveBeenCalled();
     expect(sendMail).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A detail card's dividers sit between its rows, never after the last one
+ * (Utils/EmailDetailCard.ts): what the transport receives, read with the
+ * inline styles alone, as a client that keeps no <style> block reads it.
+ */
+describe("detail cards through MailService.send", () => {
+  // Each row's label, with "|" in front when it draws a divider above itself.
+  const cardShapes: (html: string) => Array<Array<string>> = (
+    html: string,
+  ): Array<Array<string>> => {
+    const tree: EmailMarkupTree = readEmailMarkup(html);
+
+    expect(misplacedDividers(tree)).toEqual([]);
+
+    return detailCards(tree).map((card: DetailCard): Array<string> => {
+      return card.rows.map((row: DetailCardRow): string => {
+        expect(row.dividerBelow).toBe(false);
+        return `${row.dividerAbove ? "|" : ""}${row.label}`;
+      });
+    });
+  };
+
+  test("a monitor's status email reaches the recipient with no divider after its last row", async () => {
+    const payload: CapturedMail = await deliver(
+      message(EmailTemplateType.MonitorOwnerStatusChanged, {
+        monitorName: "Checkout API",
+        monitorDestination: "",
+        previousStatus: "Operational",
+        currentStatus: "Offline",
+        previousStatusDurationText: "",
+        rootCause: "<p><strong>Probes in Agreement</strong>: US, EU</p>",
+        statusChangedAt: "12:30 UTC",
+        monitorDescription: "<p>API: Status Page is currently offline.</p>",
+        monitorViewLink: `${HOME_URL}/dashboard/project/monitors/1`,
+      }),
+    );
+
+    expect(cardShapes(payload.html)).toEqual([
+      [
+        "STATUS CHANGE",
+        "|Monitor Name:",
+        "|Root Cause:",
+        "|Status changed at:",
+        "|Description:",
+      ],
+    ]);
+    expect(payload.html).not.toContain("border-bottom");
+    expect(payload.html).not.toContain(".st-DetailCard-field");
+  });
+
+  test("recipients sent to at once each get their own card, divided between its rows", async () => {
+    const invoices: Array<{ to: string; description: string }> = [
+      { to: "alice@example.test", description: "Growth plan" },
+      { to: "bob@example.test", description: "" },
+      { to: "casey@example.test", description: "Scale plan" },
+    ];
+
+    await Promise.all(
+      invoices.map((invoice: { to: string; description: string }) => {
+        return MailService.send(
+          message(
+            EmailTemplateType.Invoice,
+            {
+              invoiceNumber: "INV-1",
+              invoiceDate: "1 October 2026",
+              amount: "$249.00",
+              description: invoice.description,
+            },
+            invoice.to,
+          ),
+          { emailServer: SMTP_SERVER },
+        );
+      }),
+    );
+
+    expect(sendMail).toHaveBeenCalledTimes(invoices.length);
+
+    for (const invoice of invoices) {
+      const payload: CapturedMail = sendMail.mock.calls
+        .map((call: [CapturedMail]): CapturedMail => {
+          return call[0];
+        })
+        .find((mail: CapturedMail): boolean => {
+          return mail.to === invoice.to;
+        })!;
+
+      expect(cardShapes(payload.html)).toEqual([
+        [
+          "Invoice Number:",
+          "|Invoice Date:",
+          "|Amount:",
+          ...(invoice.description ? ["|Description:"] : []),
+        ],
+      ]);
+    }
   });
 });

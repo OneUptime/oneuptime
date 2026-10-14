@@ -147,6 +147,8 @@ El manifiesto configura estas funciones. Cada una llega a tu servidor por la rut
 | Los atajos **Create New Incident** y **Create Scheduled Event** | Declarar un incidente o programar un mantenimiento desde los atajos de Slack | `POST /api/slack/interactive` |
 | Botones y formularios de los mensajes de OneUptime | Reconocer, resolver, añadir una nota, cambiar el estado, ejecutar una política de guardia | `POST /api/slack/interactive` y `POST /api/slack/options-load` |
 | Eventos | Menciones, mensajes, reacciones y fijados, por ejemplo para guardar un mensaje como nota | `POST /api/slack/events` |
+| La pestaña **Home** de la aplicación | Tus turnos de guardia y los incidentes y alertas abiertos, con botones para declarar un incidente, programar un mantenimiento, avisar a alguien y ver quién está de guardia | `POST /api/slack/events` y `POST /api/slack/interactive` |
+| Un saludo en cada canal al que se añade la aplicación | Cómo hacer una pregunta a OneUptime AI y dónde añadir una regla de notificación | `POST /api/slack/events` |
 
 ### Imágenes en los mensajes
 
@@ -154,11 +156,19 @@ Las descripciones de incidentes y alertas pueden llevar capturas de pantalla, po
 
 Si creaste tu app de Slack a partir de un manifiesto anterior, añade `files:write` en **OAuth & Permissions > Bot Token Scopes** (o actualiza la app a partir del manifiesto actual). Después, selecciona de nuevo **Conectar con Slack** en **Ajustes del proyecto > Espacio de trabajo > Slack**, para que se conceda el nuevo scope. Hasta entonces, cada captura se muestra como su texto alternativo.
 
+### Grupos de usuarios de guardia
+
+Mantener el grupo de usuarios de Slack de una programación igual a quienes están de guardia (consulta [Grupos de usuarios de guardia](/docs/workspace-connections/slack#grupos-de-usuarios-de-guardia)) requiere los scopes de bot `usergroups:read` y `usergroups:write`. El manifiesto generado los incluye.
+
+Si creaste tu app de Slack a partir de un manifiesto anterior, añade `usergroups:read` y `usergroups:write` en **OAuth & Permissions > Bot Token Scopes** (o actualiza la app a partir del manifiesto actual). Después, selecciona de nuevo **Conectar con Slack** en **Ajustes del proyecto > Espacio de trabajo > Slack**, para que se concedan los nuevos scopes. Hasta entonces, la tarjeta de la programación dice que la app de Slack de OneUptime aún no tiene permiso para cambiar grupos de usuarios.
+
 ### Apps creadas a partir de un manifiesto antiguo
 
 Una app de Slack creada a partir de un manifiesto anterior de OneUptime registra `/incident` y `/maintenance` como comandos propios, que pueden chocar con comandos del mismo nombre de otras apps. Siguen funcionando y abren los mismos formularios que `/oneuptime incident` y `/oneuptime maintenance`. Para sustituirlos por `/oneuptime`, actualiza la app a partir del manifiesto que genera tu servidor: en [api.slack.com/apps](https://api.slack.com/apps), abre el **App Manifest** de la app, pega el manifiesto y guarda.
 
 Una app creada antes de `/oneuptime page` necesita la misma actualización: hasta que la tenga, `/oneuptime page` no puede saber a quién mencionas con @, y abre un formulario para elegirlos en lugar de avisarlos de inmediato. Después, selecciona de nuevo **Conectar con Slack** en **Ajustes del proyecto > Espacio de trabajo > Slack**, para que se conceda el scope `users:read.email` que añade el manifiesto: con él, a una persona cuya cuenta de Slack no está conectada a OneUptime se la encuentra por su dirección de correo electrónico.
+
+Una aplicación creada antes de la pestaña **Home** necesita la misma actualización: hasta que la tenga, Slack no muestra ninguna pestaña **Home** para la aplicación, y la aplicación no publica ningún saludo en un canal al que se añade. La actualización activa la pestaña y suscribe la aplicación a los eventos `app_home_opened` y `member_joined_channel`. No añade ningún scope, así que no hay que volver a conectar nada.
 
 ## Acceso de red para despliegues autoalojados
 

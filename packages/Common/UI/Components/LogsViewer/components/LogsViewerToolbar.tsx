@@ -33,6 +33,11 @@ export interface LogsViewerToolbarProps {
   resultTotal?: ResultTotal | undefined;
   // Logs shown up to the end of this page: all an uncounted total vouches for.
   rowsThroughPage?: number | undefined;
+  /*
+   * No count and no page while the list could not load: the list area says
+   * why, and a count of the rows before it would describe another search.
+   */
+  hideResultCount?: boolean | undefined;
   currentPage?: number;
   // Undefined while the total is not known, and then the page has no "of N".
   totalPages?: number | undefined;
@@ -226,42 +231,47 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
           />
         )}
 
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          {props.resultTotal ? (
-            <TelemetryResultTotal
-              total={props.resultTotal}
-              rowsThroughPage={props.rowsThroughPage ?? props.resultCount}
-              itemLabel="logs"
-            />
-          ) : (
-            <span className="font-medium text-gray-700">
-              {props.isResultCountLowerBound
-                ? translator.translatePlural(
-                    { one: "{{count}}+ results", other: "{{count}}+ results" },
-                    props.resultCount,
-                  )
-                : translator.translatePlural(
-                    { one: "{{count}} result", other: "{{count}} results" },
-                    props.resultCount,
-                  )}
-            </span>
-          )}
-          {hasPaginationSummary && (
-            <span className="whitespace-nowrap text-gray-400">
-              {hasPageCount
-                ? translator.translateTemplate(
-                    "Page {{current}} of {{total}}",
-                    {
+        {!props.hideResultCount && (
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            {props.resultTotal ? (
+              <TelemetryResultTotal
+                total={props.resultTotal}
+                rowsThroughPage={props.rowsThroughPage ?? props.resultCount}
+                itemLabel="logs"
+              />
+            ) : (
+              <span className="font-medium text-gray-700">
+                {props.isResultCountLowerBound
+                  ? translator.translatePlural(
+                      {
+                        one: "{{count}}+ results",
+                        other: "{{count}}+ results",
+                      },
+                      props.resultCount,
+                    )
+                  : translator.translatePlural(
+                      { one: "{{count}} result", other: "{{count}} results" },
+                      props.resultCount,
+                    )}
+              </span>
+            )}
+            {hasPaginationSummary && (
+              <span className="whitespace-nowrap text-gray-400">
+                {hasPageCount
+                  ? translator.translateTemplate(
+                      "Page {{current}} of {{total}}",
+                      {
+                        current: translator.formatNumber(currentPage || 0),
+                        total: translator.formatNumber(totalPages || 0),
+                      },
+                    )
+                  : translator.translateTemplate("Page {{current}}", {
                       current: translator.formatNumber(currentPage || 0),
-                      total: translator.formatNumber(totalPages || 0),
-                    },
-                  )
-                : translator.translateTemplate("Page {{current}}", {
-                    current: translator.formatNumber(currentPage || 0),
-                  })}
-            </span>
-          )}
-        </div>
+                    })}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/*

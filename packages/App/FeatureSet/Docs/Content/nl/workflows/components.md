@@ -426,6 +426,8 @@ Velden die OneUptime zelf invult, worden niet aangeboden als je een record schri
 
 **Skip** en **Limit** zijn twee getalvelden bij Find Many, Update Many en Delete Many, onder **Meer velden** — `Skip: 0` met `Limit: 100` neemt de eerste honderd overeenkomsten. **Limit** is standaard `10`, en bij Update Many en Delete Many beperkt het hoeveel records er echt worden geschreven, niet alleen hoeveel er terugkomen. Dus `Items Deleted: 10` betekent dat er tien records zijn verwijderd, niet dat er tien overeenkwamen. Verhoog **Limit** als je er meer dan tien wilt wijzigen.
 
+Delete One en Delete Many op een query maken een geschiedenis nooit leeg. Bij de statusgebeurtenissen van een monitor, en bij de statusgeschiedenis van incidenten, waarschuwingen, gepland onderhoud en episodes, verwijderen ze nooit de huidige status van een record, en ze houden elke statusgebeurtenis van een monitor die een deel van de laatste 90 dagen beslaat, zodat een statuspagina een monitor nooit grijs toont. Het logboek van de uitvoering zegt hoeveel er zijn gehouden. Om één bepaalde gebeurtenis te verwijderen, vraag je die op via haar `_id`.
+
 **Success** en **Error** zeggen of de query draaide, niet wat hij vond. Een query die nergens mee overeenkomt, geeft `0` terug en gaat toch via **Success** — dat is geen fout. Om te vertakken op de vraag of er iets overeenkwam, lees je het teruggegeven aantal in een **If / Else**-blok.
 
 ## Volgende stappen

@@ -43,6 +43,11 @@ import {
 import useFacetSearchExemptions, {
   FacetSearchExemptions,
 } from "../../TelemetryViewer/useFacetSearchExemptions";
+import TelemetryLoadErrorMessage from "../../TelemetryViewer/components/TelemetryLoadErrorMessage";
+import {
+  TelemetryLoadError,
+  TelemetryLoadErrorKind,
+} from "../../../Utils/Telemetry/TelemetryLoadError";
 
 export interface LogsFacetSidebarProps {
   facetData: FacetData;
@@ -89,6 +94,19 @@ export interface LogsFacetSidebarProps {
    * See getFacetValuesInScope.
    */
   onlyShowValuesInScope?: boolean | undefined;
+  /*
+   * Facets whose counts the server stopped at the query time limit, and why
+   * the facets did not load at all (issue #4707): a note at the top says so,
+   * with a way to try again, and the stopped facets show no counts.
+   */
+  timedOutFacets?: Array<string> | undefined;
+  facetError?: TelemetryLoadError | undefined;
+  onRetryFacets?: (() => void) | undefined;
+  /*
+   * Off while the list says the search could not finish: one message, and
+   * one Try again, for the whole search. The stopped facets still say so.
+   */
+  showCountsNotice?: boolean | undefined;
 }
 
 /*
@@ -359,6 +377,11 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
       : props.facetData;
   }, [props.onlyShowValuesInScope, props.facetData, activeValuesByKey]);
 
+  const timedOutFacetKeys: Set<string> = useMemo(() => {
+    return new Set<string>(props.timedOutFacets || []);
+  }, [props.timedOutFacets]);
+
+  // A facet the time limit stopped is never folded away as empty.
   const visibility: FacetVisibility = useMemo(() => {
     return computeFacetVisibility({
       keys: facetKeys,
@@ -368,6 +391,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
       searchExemptKeys: facetSearch.searchExemptKeys,
       showHidden: showHidden,
       getTitle: getFacetTitle,
+      stoppedKeys: timedOutFacetKeys,
     });
   }, [
     facetKeys,
@@ -375,7 +399,14 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
     activeValuesByKey,
     facetSearch.searchExemptKeys,
     showHidden,
+    timedOutFacetKeys,
   ]);
+
+  const countsNotice: TelemetryLoadError | undefined =
+    props.facetError ||
+    (timedOutFacetKeys.size > 0
+      ? { kind: TelemetryLoadErrorKind.TimedOut, message: "" }
+      : undefined);
 
   return (
     <div
@@ -394,6 +425,15 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
         <div className="flex flex-1 items-center justify-center py-8">
           <ComponentLoader />
         </div>
+      )}
+
+      {!props.isLoading && countsNotice && props.showCountsNotice !== false && (
+        <TelemetryLoadErrorMessage
+          error={countsNotice}
+          subject="counts"
+          variant="note"
+          onRetry={props.onRetryFacets}
+        />
       )}
 
       <div id={facetListId} className="flex-1 overflow-y-auto">
@@ -457,6 +497,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
                 searchedAtArrivalText: facetSearch.searchedAtArrivalByKey[key],
                 isScoped: props.onlyShowValuesInScope,
               })}
+              isCountStopped={timedOutFacetKeys.has(key)}
             />
           );
         })}

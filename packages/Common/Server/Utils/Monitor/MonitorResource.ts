@@ -1,5 +1,6 @@
 import MonitorProbeService from "../../Services/MonitorProbeService";
 import MonitorService from "../../Services/MonitorService";
+import ProjectService from "../../Services/ProjectService";
 import MonitorStatusTimelineService, {
   MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
   MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE,
@@ -279,6 +280,24 @@ export default class MonitorResourceUtil {
       throw new BadDataException(
         "Monitor is disabled because one of the scheduled maintenance event this monitor is attached to has not ended. Please end the scheduled maintenance event to start monitoring again.",
       );
+    }
+
+    /*
+     * A project a master admin blocked is not monitored: its monitors are no
+     * longer handed to probes or swept (getActiveProjectStatusQuery), and a
+     * result that still reaches one - a probe that claimed it just before
+     * the block, a heartbeat or an email its sender keeps sending, a trap -
+     * opens nothing and changes nothing. Returned rather than thrown: an
+     * outside sender keeps sending whatever OneUptime answers, and each of
+     * those would otherwise be a failed job. Cached per server
+     * (ProjectService.isProjectBlocked).
+     */
+    if (await ProjectService.isProjectBlocked(monitor.projectId)) {
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} Monitor's project is blocked. Skipping.`,
+      );
+
+      return response;
     }
 
     /*

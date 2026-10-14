@@ -215,7 +215,7 @@ return {
 - Greater Than、Less Than 和其他數值條件只會符合數字，因此請把欄位傳回為 `42`，而不是 `"42"`。是和否只會符合布林值。
 - 傳回資料中不存在的欄位（缺少的鍵，或超出陣列結尾的索引）會以空值比較：**Is Empty** 會符合它，其他條件都不會。
 - 名稱中含有點號的欄位無法透過路徑存取。
-- 在 Terraform 中，篩選器的 `custom_code_monitor_options` 用來設定欄位路徑：請參閱 [監控步驟](/docs/terraform/monitor-steps#comparing-one-field-of-a-scripts-result)。
+- 在 Terraform 中，篩選器的 `custom_code_monitor_options` 用來設定欄位路徑：請參閱 [監控步驟](/docs/terraform/monitor-steps#比較指令碼結果中的某個欄位)。
 
 ## 指令碼中可用的模組
 

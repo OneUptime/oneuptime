@@ -63,6 +63,7 @@ const KNOWN_PROJECT_REFUSALS: Array<string> = [
   "plan",
   "sso",
   "blocked",
+  "project-blocked",
   "not-a-member",
 ];
 

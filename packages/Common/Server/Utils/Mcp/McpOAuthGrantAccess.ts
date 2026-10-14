@@ -3,6 +3,7 @@ import McpOAuthSso, { McpOAuthSsoRequirement } from "./McpOAuthSso";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import AccessTokenService from "../../Services/AccessTokenService";
 import { McpOAuthGrantSsoEvidence } from "../../Services/McpOAuthGrantService";
+import ProjectService from "../../Services/ProjectService";
 import UserService from "../../Services/UserService";
 import ProjectMembership from "../TeamMember/ProjectMembership";
 import McpOAuthGrant from "../../../Models/DatabaseModels/McpOAuthGrant";
@@ -23,9 +24,10 @@ import HeldPermissionsUtil from "../../../Types/HeldPermissions";
  * Asked on every MCP request a connected client makes and on every token it
  * exchanges, because a grant is a standing permission and everything it
  * rests on can change while it stands: the member can be blocked or removed
- * from the project, an administrator can block their team from connecting
- * clients, the project can start requiring single sign-on, the SSO sign-in
- * the grant was approved under can lapse. None of those but leaving the
+ * from the project, a master admin can block the project itself, an
+ * administrator can block their team from connecting clients, the project
+ * can start requiring single sign-on, the SSO sign-in the grant was
+ * approved under can lapse. None of those but leaving the
  * project touch the grant row (leaving removes it), and none of them can be
  * left to it: each is checked here, on every use.
  *
@@ -53,6 +55,9 @@ export enum McpOAuthGrantRefusal {
 
   // The member no longer belongs to the project.
   NotAProjectMember = "not-a-project-member",
+
+  // A master admin blocked the project (Admin Dashboard > Projects).
+  ProjectBlocked = "project-blocked",
 
   // A team the member is in blocks AuthorizeMcpClient.
   BlockedByPermission = "blocked-by-permission",
@@ -210,6 +215,11 @@ export default class McpOAuthGrantAccess {
    * the member's teams refuses them, read by the rule every permission check
    * follows (HeldPermissionsUtil). Labels on that row are ignored, because a
    * grant has no labels for them to select.
+   *
+   * A project a master admin blocked is refused to every member, master
+   * admins included: a client acts as the member, never as a master admin
+   * (McpDelegationAuthorization). Asked after membership, so somebody who
+   * is not a member is told only that.
    */
   public static async getProjectRefusal(data: {
     userId: ObjectID;
@@ -222,6 +232,10 @@ export default class McpOAuthGrantAccess {
       }))
     ) {
       return McpOAuthGrantRefusal.NotAProjectMember;
+    }
+
+    if (await ProjectService.isProjectBlocked(data.projectId)) {
+      return McpOAuthGrantRefusal.ProjectBlocked;
     }
 
     const tenantPermission: UserTenantAccessPermission | null =

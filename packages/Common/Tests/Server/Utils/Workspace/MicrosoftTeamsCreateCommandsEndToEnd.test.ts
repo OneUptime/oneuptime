@@ -205,6 +205,7 @@ import User from "../../../../Models/DatabaseModels/User";
 import Name from "../../../../Types/Name";
 import Redis from "../../../../Server/Infrastructure/Redis";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
+import ProjectService from "../../../../Server/Services/ProjectService";
 import AlertEpisodeInternalNoteService from "../../../../Server/Services/AlertEpisodeInternalNoteService";
 import AlertInternalNoteService from "../../../../Server/Services/AlertInternalNoteService";
 import IncidentEpisodeInternalNoteService from "../../../../Server/Services/IncidentEpisodeInternalNoteService";
@@ -835,6 +836,8 @@ function useRealMembershipCheck(permissions: Array<Permission> | null): void {
     : null;
 
   jest.spyOn(TeamMemberService, "findBy").mockResolvedValue(memberships);
+  // Not a blocked project: that refusal is BlockedProjectBackgroundWork.test.ts.
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   jest
     .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
     .mockResolvedValue(null);
@@ -2877,7 +2880,7 @@ describe("controls: commands that always worked still answer once with HTTP 200"
     );
   });
 
-  test("'show scheduled maintenance' (the command the customer saw working)", async () => {
+  test("'show scheduled maintenance' (the command the customer saw working): one card that mentions the asker", async () => {
     // The events to come are asked for by the states they wait in.
     jest
       .spyOn(
@@ -2900,12 +2903,17 @@ describe("controls: commands that always worked still answer once with HTTP 200"
 
     expect(view.httpStatuses).toEqual([200]);
     expect(view.bubbles).toHaveLength(1);
-    expect(textOf(view.bubbles[0])).toContain(
-      "**Scheduled Maintenance Events**",
+    expect(answerOf(view.bubbles[0]!)).toBe(
+      "🛠️ **No scheduled maintenance coming up.**",
     );
   });
 
-  test("'show scheduled maintenance' with 10 events of 800 monitors each: one reply within the text budget that names 10 monitors per event", async () => {
+  /*
+   * The lists used to name every affected monitor of every event, which
+   * grew a reply past what Teams accepts. A list is one line a record now
+   * (WorkspaceOpenRecords): ten events of 800 monitors each is a small card.
+   */
+  test("'show scheduled maintenance' with 10 events of 800 monitors each: one small card, a line an event", async () => {
     const monitors: Array<Monitor> = namedRows(800, (index: number) => {
       return `Production HTTP Monitor ${padded(index, 6)}`;
     }) as unknown as Array<Monitor>;
@@ -2939,32 +2947,24 @@ describe("controls: commands that always worked still answer once with HTTP 200"
       ),
     );
 
-    // Listing all 800 names per event was half a megabyte.
     expect(view.httpStatuses).toEqual([200]);
     expect(view.refused).toEqual([]);
     expect(view.bubbles).toHaveLength(1);
-    const reply: string = textOf(view.bubbles[0]);
-    expect(toUtf16Bytes(reply)).toBeLessThanOrEqual(
-      MICROSOFT_TEAMS_TEXT_MESSAGE_BUDGET_IN_BYTES,
-    );
-    expect(reply.split(" and 790 more").length - 1).toBe(10);
-    expect(reply).toContain(
-      "Production HTTP Monitor 000009, Production HTTP Monitor 000010 and 790 more",
-    );
-    expect(reply).not.toContain("Production HTTP Monitor 000011");
+    const reply: string = answerOf(view.bubbles[0]!);
+    expect(toUtf16Bytes(reply)).toBeLessThan(8 * 1024);
+    expect(
+      reply.split("\n").filter((line: string): boolean => {
+        return line.startsWith("- ");
+      }),
+    ).toHaveLength(10);
+    expect(reply).toContain("Maintenance window 10");
+    expect(reply).not.toContain("Production HTTP Monitor");
   });
 
-  test("'show active incidents' at the columns' limits (10 incidents with 500-character titles, 100-character monitor names): one reply cut to the text budget, with a note, accepted at once", async () => {
-    const truncationNote: string =
-      "…\n\n_This reply was shortened to fit in Microsoft Teams. Open OneUptime to see everything._";
+  test("'show active incidents' at the columns' limits (10 incidents with 500-character titles): one card, each title cut on its line, accepted at once", async () => {
     jest
-      .spyOn(IncidentStateService, "getUnresolvedIncidentStates")
-      .mockResolvedValue([
-        { id: ObjectID.generate() } as unknown as IncidentState,
-      ]);
-    const monitors: Array<Monitor> = namedRows(12, (index: number) => {
-      return toLongName(`Production HTTP Monitor ${padded(index, 6)}`);
-    }) as unknown as Array<Monitor>;
+      .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
+      .mockResolvedValue([ObjectID.generate()]);
     const incidents: Array<Incident> = [];
     for (let index: number = 1; index <= 10; index++) {
       incidents.push({
@@ -2981,7 +2981,6 @@ describe("controls: commands that always worked still answer once with HTTP 200"
         currentIncidentState: { name: "Investigating" },
         incidentSeverity: { name: "Critical" },
         declaredAt: new Date("2026-09-29T09:00:00.000Z"),
-        monitors: monitors,
       } as unknown as Incident);
     }
     jest.spyOn(IncidentService, "findBy").mockResolvedValue(incidents);
@@ -2998,15 +2997,19 @@ describe("controls: commands that always worked still answer once with HTTP 200"
     expect(view.httpStatuses).toEqual([200]);
     expect(view.refused).toEqual([]);
     expect(view.bubbles).toHaveLength(1);
-    const reply: string = textOf(view.bubbles[0]);
-    // Whole, the reply is about 43,000 bytes, over the budget; Teams got it cut.
-    expect(toUtf16Bytes(reply)).toBeLessThanOrEqual(40 * 1024);
-    expect(reply.startsWith("**Active Incidents** (10)\n\n")).toBe(true);
-    expect(reply.endsWith(truncationNote)).toBe(true);
-    const shownIncidents: number =
-      reply.split("• [Open in Dashboard](").length - 1;
-    expect(shownIncidents).toBeGreaterThan(0);
-    expect(shownIncidents).toBeLessThan(10);
+    const reply: string = answerOf(view.bubbles[0]!);
+    expect(reply.startsWith("🚨 **Open incidents**\n")).toBe(true);
+    const lines: Array<string> = reply
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("- ");
+      });
+    expect(lines).toHaveLength(10);
+    for (const line of lines) {
+      // A title is cut at 120 characters, with an ellipsis.
+      expect(line).toContain("… · Critical · Investigating · since ");
+    }
+    expect(toUtf16Bytes(reply)).toBeLessThan(12 * 1024);
   });
 });
 

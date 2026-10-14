@@ -4,6 +4,7 @@ import { ExpressRequest, ExpressResponse, OneUptimeRequest } from "../Express";
 import JSONWebToken from "../JsonWebToken";
 import type { RealtimeSocketSession } from "./RealtimeSessions";
 import Dictionary from "../../../Types/Dictionary";
+import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
 import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
 import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundException";
 import { JSONObject } from "../../../Types/JSON";
@@ -24,8 +25,9 @@ import CookieParser from "cookie-parser";
  *   - readRequestSession: the access token, verified, of a user who is not
  *     blocked;
  *   - getUserTenantAccessPermissionWithTenantId: the project's own access
- *     check - the project's Require SSO rule and the instance-wide one, the
- *     provider a project pins, and the person's permissions in the project.
+ *     check - whether a master admin blocked the project, the project's
+ *     Require SSO rule and the instance-wide one, the provider a project
+ *     pins, and the person's permissions in the project.
  *
  * Whatever those refuse, the join refuses, for the same reason. What is
  * left to the caller (Realtime) is what the model's own read asks: whether
@@ -37,7 +39,7 @@ export enum RealtimeJoinRefusal {
   AuthenticationRequired = "AuthenticationRequired",
   // The project requires an SSO sign-in the handshake does not carry.
   SsoRequired = "SsoRequired",
-  // A valid session without access to the project.
+  // A valid session without access to the project, or in a project a master admin blocked.
   NotAuthorized = "NotAuthorized",
 }
 
@@ -173,7 +175,11 @@ export default class RealtimeJoinAccess {
         return { allowed: false, refusal: RealtimeJoinRefusal.SsoRequired };
       }
 
-      if (err instanceof TenantNotFoundException) {
+      // A project that is gone, or one a master admin blocked.
+      if (
+        err instanceof TenantNotFoundException ||
+        err instanceof ProjectBlockedException
+      ) {
         return { allowed: false, refusal: RealtimeJoinRefusal.NotAuthorized };
       }
 

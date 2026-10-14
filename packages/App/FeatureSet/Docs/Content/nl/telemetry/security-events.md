@@ -1,11 +1,11 @@
 # Beveiligingsgebeurtenissen (SIEM)
 
-OneUptime bewaart beveiligingsgebeurtenissen naast je logs, traces en metrics, en geeft ze allemaal dezelfde vorm, [OCSF](https://schema.ocsf.io/) (het Open Cybersecurity Schema Framework), in welk formaat ze ook binnenkwamen. Stuur gebeurtenissen vanuit elke bron, doorzoek ze, en maak van de belangrijke waarschuwingen met Sigma-detectieregels, threat intelligence en monitoren.
+OneUptime bewaart beveiligingsgebeurtenissen naast je logs, traces en metrics, en geeft ze allemaal dezelfde vorm, [OCSF](https://schema.ocsf.io/) (het Open Cybersecurity Schema Framework), in welk formaat ze ook binnenkwamen. Stuur gebeurtenissen vanuit elke bron, doorzoek ze, en vind de belangrijke met Sigma-detectieregels, threat intelligence en monitoren. Wat die vinden, wordt [zaken](/docs/telemetry/security-cases) om af te handelen, en playbooks reageren erop.
 
 :::cards
 - [Gebeurtenissen sturen](#beveiligingsgebeurtenissen-sturen): Een HTTPS-POST, een Fluent Bit-output of een verbinding met een beveiligingsproduct.
 - [Zoeken en correleren](#beveiligingsgebeurtenissen-verkennen): De verkenner Gebeurtenissen en de grafiek Correleren.
-- [Detectieregels](#detectieregels): Sigma-regels die waarschuwingen openen.
+- [Detectieregels](#detectieregels): Sigma-regels die zaken en waarschuwingen openen.
 - [Monitoren](#monitoren-voor-beveiligingsgebeurtenissen): Tellingen over een glijdend venster, met een status die herstelt.
 :::
 
@@ -21,21 +21,28 @@ flowchart TB
     normalize --> events["Beveiligingsgebeurtenissen"]
     events --> rules["Detectieregels<br/>(Sigma)"]
     events --> monitors["Monitoren voor<br/>beveiligingsgebeurtenissen"]
-    rules --> act["Waarschuwingen, incidenten<br/>en bevindingen"]
+    rules --> act["Zaken, waarschuwingen<br/>en bevindingen"]
     monitors --> act
 ```
 
-Open **Producten → Security Events**, onder **Observability**. De tabbladen:
+Open **Producten → Security Events**, onder **Observability**. Het menu:
 
-| Tabblad | Waarvoor het dient |
-| --- | --- |
-| **Gebeurtenissen** | Elke gebeurtenis zoeken en filteren, en er een openen om al haar velden te zien |
-| **Correleren** | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
-| **Detection Rules** | Sigma-regels die volgens een schema draaien en waarschuwingen openen |
-| **Threat Intel** | STIX/TAXII-feeds van bekende kwaadaardige indicatoren |
-| **Monitoren** | De monitoren voor beveiligingsgebeurtenissen van het project |
-| **Connections** | Beveiligingsproducten die OneUptime op nieuwe records bevraagt |
-| **Installatiegids** | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
+| Pagina | Sectie | Waarvoor het dient |
+| --- | --- | --- |
+| **Overzicht** | Overzicht | Wat nu aandacht nodig heeft, en hoe snel zaken worden afgehandeld |
+| **Security Cases** | Overzicht | De wachtrij van wat is gedetecteerd, gegroepeerd naar waar het over gaat |
+| **Gebeurtenissen** | Investigate | Elke gebeurtenis zoeken en filteren, en er een openen om al haar velden te zien |
+| **Correleren** | Investigate | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
+| **Entiteiten** | Investigate | De gebruikers, hosts en adressen die je bevindingen het vaakst noemen |
+| **Detection Rules** | Detect | Sigma-regels die volgens een schema draaien en zaken openen |
+| **Rule Library** | Detect | Kant-en-klare detectieregels om toe te voegen |
+| **ATT&CK Coverage** | Detect | De technieken van MITRE ATT&CK die je regels dekken |
+| **Threat Intel** | Detect | STIX/TAXII-feeds van bekende kwaadaardige indicatoren |
+| **Monitoren** | Detect | De monitoren voor beveiligingsgebeurtenissen van het project |
+| **Playbooks** | Respond | Stappen die op zaken draaien, vanzelf of met de hand |
+| **Playbook Runs** | Respond | Wat elk playbook deed, en de stappen die op goedkeuring wachten |
+| **Connections** | Sources | Beveiligingsproducten die OneUptime op nieuwe records bevraagt |
+| **Installatiegids** | Sources | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
 
 ## Voordat je begint
 
@@ -43,9 +50,9 @@ Beveiligingsgegevens zijn alleen leesbaar voor de rollen Project Owner en Projec
 
 | Rol | Wat hij kan doen |
 | --- | --- |
-| Security Admin | Alles: gebeurtenissen, detectieregels, threat-intelfeeds en verbindingen |
-| Security Member | Gebeurtenissen en threat intel lezen, en detectieregels en feeds aanmaken, wijzigen en verwijderen. Hij kan geen verbindingen instellen en geen beveiligingsgegevens verwijderen. |
-| Security Viewer | Gebeurtenissen, regels, feeds, indicatoren en verbindingen lezen |
+| Security Admin | Alles: gebeurtenissen, zaken, playbooks, detectieregels, threat-intelfeeds en verbindingen |
+| Security Member | Gebeurtenissen en threat intel lezen, zaken afhandelen, playbooks uitvoeren en hun stappen goedkeuren, en detectieregels en feeds aanmaken, wijzigen en verwijderen. Hij kan geen playbooks of verbindingen instellen en geen beveiligingsgegevens verwijderen. |
+| Security Viewer | Gebeurtenissen, zaken, playbooks, regels, feeds, indicatoren en verbindingen lezen |
 
 ## Beveiligingsgebeurtenissen sturen
 
@@ -161,6 +168,7 @@ Het tabblad **Installatiegids** bevat deze snippets, met je eigen host en sleute
 | AWS Security Hub | Findings, als Detection en Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Gebeurtenissen over aanmeldingen, MFA, accounts en beleid | [Okta System Log](/docs/integrations/okta) |
 
+- De eigen waarschuwingen van het product vanaf het niveau dat in **Open Cases From** is ingesteld (**High and above**, tenzij je een ander niveau kiest, of **Nooit**), openen [zaken](/docs/telemetry/security-cases), gegroepeerd op de gebruiker, de host of het adres waar ze over gaan.
 - Een verbinding leest records op het tijdstip waarop het product ze aanmaakte, niet op het tijdstip van de activiteit die ze beschrijven. Een SIEM-regel die elk uur draait, maakt detecties lang na de gebeurtenissen waarop hij matchte, en die worden toch geïmporteerd.
 - De eerste bevraging kijkt 24 uur terug, zodat een nieuwe verbinding meteen recente records toont.
 - **Verbinding testen**, in de rij van de verbinding, controleert de toegang tot het product en of de eigen workers van OneUptime draaien, en importeert niets. **Run now** bevraagt meteen.
@@ -211,14 +219,14 @@ De zijbalk telt de gebeurtenissen in het venster per **Bron**, **Ernst**, **Gebe
 
 ## Detectieregels
 
-Een detectieregel is een [Sigma](https://sigmahq.io/)-regel, een open YAML-formaat om verdachte activiteit te beschrijven, die OneUptime volgens een schema op je gebeurtenissen loslaat. Als hij matcht, opent hij een waarschuwing, eventueel een incident, en schrijft hij een Detection Finding terug in de gebeurtenissen.
+Een detectieregel is een [Sigma](https://sigmahq.io/)-regel, een open YAML-formaat om verdachte activiteit te beschrijven, die OneUptime volgens een schema op je gebeurtenissen loslaat. Als hij matcht, opent hij een [zaak](/docs/telemetry/security-cases) of vult hij een open zaak aan, opent hij een waarschuwing, eventueel een incident, en schrijft hij een Detection Finding terug in de gebeurtenissen. De **Rule Library** heeft kant-en-klare regels om mee te beginnen.
 
 ```mermaid title="Hoe een detectieregel afgaat"
 flowchart TB
     tick["Elke minuut: regels<br/>die aan de beurt zijn"] --> query["Gebeurtenissen sinds de<br/>vorige uitvoering"]
     query --> count["Geteld per waarde van<br/>het Group By Field"]
     count --> check{"Bereikt de telling de<br/>Match Count Threshold?"}
-    check -->|"Ja"| fire["Waarschuwing, optioneel<br/>incident en een<br/>Detection Finding"]
+    check -->|"Ja"| fire["Een zaak, een waarschuwing,<br/>een optioneel incident<br/>en een Detection Finding"]
     check -->|"Nee"| wait["Niets, tot de<br/>volgende uitvoering"]
 ```
 
@@ -229,7 +237,8 @@ flowchart TB
 2. Geef de regel in **Basisinformatie** een **Naam**, en laat **Ingeschakeld** aan.
 3. Plak in **Sigma Rule** de YAML van de regel in **Sigma Rule (YAML)**. Die wordt bij het opslaan geparst, dus een fout verschijnt in het formulier.
 4. Stel in **Evaluatie** in hoe vaak hij draait en hoeveel matches hij nodig heeft; zie [Evaluatie-instellingen](#evaluatie-instellingen).
-5. Kies in **Bij overeenkomst** wat een match doet: **Create Alert on Match** (aan), **Create Incident on Match** (uit) en **Write Detection Finding on Match** (aan), met een optionele **Ernst van waarschuwing** en **Ernst van incident**.
+5. Laat in **Security Cases** de optie **Open a Case on Match** aan staan om de matches van de regel te bundelen tot zaken, op de waarde waarop de regel groepeert.
+6. Kies in **Bij overeenkomst** wat een match verder doet: **Create Alert on Match** (aan), **Create Incident on Match** (uit) en **Write Detection Finding on Match** (aan), met een optionele **Ernst van waarschuwing** en **Ernst van incident**.
 :::
 
 Een eerste regel, die matcht op mislukte aanmeldingen van buiten `10.x.x.x`:
@@ -374,6 +383,7 @@ Elke waarde van het **Group By Field** krijgt een eigen waarschuwing: groepeer o
 
 :::cards
 - [Dreigingsinformatie](/docs/telemetry/threat-intelligence): Vergelijk je gebeurtenissen met STIX/TAXII-feeds.
+- [Beveiligingszaken en playbooks](/docs/telemetry/security-cases): Handel af wat je regels vinden, en reageer met playbooks.
 - [Google SecOps](/docs/integrations/google-secops): Haal de detecties en gebeurtenissen van Chronicle binnen.
 - [Zoeksyntaxis](/docs/telemetry/search-syntax): Alles wat de zoekbalk begrijpt.
 - [Machtigingsreferentie](/docs/permissions/reference): De Security-rollen, en wat elk ervan kan.

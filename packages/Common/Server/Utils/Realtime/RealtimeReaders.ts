@@ -1,5 +1,6 @@
 import { RealtimeReader } from "./RealtimeReadAccess";
 import type { AccessTokenService as AccessTokenServiceType } from "../../Services/AccessTokenService";
+import type { ProjectService as ProjectServiceType } from "../../Services/ProjectService";
 import type { TeamMemberService as TeamMemberServiceType } from "../../Services/TeamMemberService";
 import type { Service as UserServiceType } from "../../Services/UserService";
 import type User from "../../../Models/DatabaseModels/User";
@@ -175,6 +176,20 @@ export default class RealtimeReaders {
     }
   }
 
+  /*
+   * Forgets what is held for everyone in the project, so the next event
+   * reads them again. Called when a master admin blocks or unblocks it.
+   */
+  public static forgetProject(projectId: ObjectID | string): void {
+    const project: string = projectId.toString().toLowerCase();
+
+    for (const [key, entry] of Array.from(RealtimeReaders.entries)) {
+      if (entry.projectId === project) {
+        RealtimeReaders.deleteEntry(key);
+      }
+    }
+  }
+
   // Forgets everyone. For tests.
   public static clear(): void {
     RealtimeReaders.entries.clear();
@@ -223,10 +238,11 @@ export default class RealtimeReaders {
 
   /*
    * The props a request of the person's would carry in the project, or
-   * null when they read nothing there: blocked, or not a member of it. A
-   * server admin reads every project, as their requests do - while their
-   * account still says they are one; otherwise they read as the member
-   * they are, if they are one.
+   * null when they read nothing there: blocked, not a member of it, or in
+   * a project a master admin blocked. A server admin reads every project,
+   * blocked or not, as their requests do - while their account still says
+   * they are one; otherwise they read as the member they are, if they are
+   * one.
    */
   public static async buildProps(
     identity: RealtimeReaderIdentity,
@@ -260,6 +276,11 @@ export default class RealtimeReaders {
           tenantId: tenantId,
         };
       }
+    }
+
+    // A project a master admin blocked: refused to everyone else, so nothing to hear.
+    if (await RealtimeReaders.getProjectService().isProjectBlocked(tenantId)) {
+      return null;
     }
 
     const accessTokenService: AccessTokenServiceType =
@@ -357,5 +378,10 @@ export default class RealtimeReaders {
   private static getUserService(): UserServiceType {
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     return require("../../Services/UserService").default;
+  }
+
+  private static getProjectService(): ProjectServiceType {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    return require("../../Services/ProjectService").default;
   }
 }

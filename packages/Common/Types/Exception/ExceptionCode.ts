@@ -20,6 +20,8 @@ enum ExceptionCode {
   SsoAuthorizationException = 406,
   TooManyRequestsException = 429,
   ServiceUnavailableException = 503,
+  // A database read stopped at its time limit (see QueryTimeoutException).
+  QueryTimeoutException = 504,
 }
 
 export default ExceptionCode;

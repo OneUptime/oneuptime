@@ -17,6 +17,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import ProjectService from "Common/Server/Services/ProjectService";
 
 /*
  * A test run, as the runner runs it.
@@ -70,6 +71,8 @@ function workflowRow(values: { isEnabled: boolean }): Workflow {
 let updateLog: RecordedSpy;
 
 beforeEach(() => {
+  // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });

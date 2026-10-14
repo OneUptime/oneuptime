@@ -251,7 +251,7 @@ const PROCESSOR_TYPES: Array<string> = [
  * versions - which every translation states too.
  */
 const NUMBERS: Record<string, Array<string>> = {
-  [SEARCH]: ["100"],
+  [SEARCH]: ["45", "100"],
   [ZOOM]: ["30"],
   [PIPELINES]: ["8", "32", "100", "256", "3164", "4096"],
   [PROFILES]: ["0.14", "1.0", "1.5", "15", "16"],

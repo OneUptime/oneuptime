@@ -156,6 +156,12 @@ import ToolImportRecord from "./ToolImportRecord";
 import HuntressConnection from "./HuntressConnection";
 import HuntressIncidentReport from "./HuntressIncidentReport";
 import ThreatIntelFeed from "./ThreatIntelFeed";
+import SecurityCase from "./SecurityCase";
+import SecurityCaseFeed from "./SecurityCaseFeed";
+import SecurityCaseNote from "./SecurityCaseNote";
+import SecurityDetection from "./SecurityDetection";
+import SecurityPlaybook from "./SecurityPlaybook";
+import SecurityPlaybookRun from "./SecurityPlaybookRun";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
 import LlmCostBudget from "./LlmCostBudget";
@@ -498,6 +504,7 @@ import VideoCallConnection from "./VideoCallConnection";
 import IncidentVideoCall from "./IncidentVideoCall";
 import AlertVideoCall from "./AlertVideoCall";
 import WorkspaceNotificationSummary from "./WorkspaceNotificationSummary";
+import WorkspaceUserGroup from "./WorkspaceUserGroup";
 
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 import MonitorFeed from "./MonitorFeed";
@@ -555,6 +562,12 @@ const AllModelTypes: Array<{
   HuntressConnection,
   HuntressIncidentReport,
   ThreatIntelFeed,
+  SecurityCase,
+  SecurityCaseFeed,
+  SecurityCaseNote,
+  SecurityDetection,
+  SecurityPlaybook,
+  SecurityPlaybookRun,
   LogScrubRule,
   MetricPipelineRule,
   LlmCostBudget,
@@ -937,6 +950,7 @@ const AllModelTypes: Array<{
   IncidentVideoCall,
   AlertVideoCall,
   WorkspaceNotificationSummary,
+  WorkspaceUserGroup,
 
   MonitorFeed,
   KubernetesClusterFeed,

@@ -6,6 +6,7 @@ Conecte o OneUptime ao Slack para publicar nos seus canais incidentes, alertas, 
 - [Conectar o Slack](#conectar-o-slack): Instale o OneUptime no seu workspace e depois vincule a sua própria conta.
 - [Regras de notificação](#regras-de-notificação): Decida quais eventos são publicados onde, e quais ganham um canal próprio.
 - [O comando /oneuptime](#o-comando-oneuptime): Declare incidentes, agende manutenções, veja quem está de plantão e pergunte à IA.
+- [Grupos de usuários de plantão](#grupos-de-usuários-de-plantão): Mantenha um grupo de usuários igual a quem está de plantão, e acione-o.
 - [Agir sobre incidentes, alertas e eventos pelo Slack](#agir-sobre-incidentes-alertas-e-eventos-pelo-slack): Os botões das mensagens do OneUptime.
 :::
 
@@ -147,6 +148,18 @@ As respostas a `help` e `oncall` são mensagens que só você vê, abaixo do com
 > [!NOTE]
 > `/oneuptime incident` e `/oneuptime maintenance` substituem `/incident` e `/maintenance`, que podiam conflitar com comandos de mesmo nome de outros apps do Slack. Um app do Slack criado a partir de um manifesto anterior os mantém, e eles abrem os mesmos formulários, até que o app seja atualizado: consulte [Apps criados a partir de um manifesto mais antigo](/docs/self-hosted/slack-integration#apps-criados-a-partir-de-um-manifesto-mais-antigo).
 
+## A página inicial do OneUptime no Slack
+
+Abra o OneUptime em **Apps**, na barra lateral do Slack: a aba **Home** dele mostra o que está acontecendo no projeto, do jeito que você pode ver, e é lida de novo cada vez que você a abre.
+
+- **Seu plantão.** Os agendamentos de plantão em que você está de plantão agora, e até quando, ou então o seu próximo turno.
+- **O que está aberto.** Os incidentes e alertas abertos mais recentes que você pode ler, cada um com um link para a página dele no OneUptime.
+- **Os botões.** **Declare incident**, **Schedule maintenance** e **Page someone** abrem os mesmos formulários que `/oneuptime incident`, `/oneuptime maintenance` e `/oneuptime page`, e **Who's on call** responde como `/oneuptime oncall`.
+
+A página inicial lê como você, então precisa da sua própria conta do Slack conectada. Enquanto ela não estiver, a página inicial mostra um botão **Connect Slack account**, e mostra a sua página inicial assim que você a conectar.
+
+Quando alguém adiciona o OneUptime a um canal, ele publica uma saudação ali: como fazer uma pergunta a ele e onde adicionar uma regra de notificação que publique no canal.
+
 ## Perguntar ao OneUptime AI pelo Slack
 
 Pergunte sobre seus logs, traces, métricas, incidentes e monitores em linguagem natural. Mencione o OneUptime com @ em um canal, ou envie uma mensagem direta a ele, e ele responde na thread. `/oneuptime ask which monitors are down?` publica a resposta no canal. Ambos exigem a sua própria conta do Slack conectada e a IA ativada para o projeto. As respostas no Slack apenas leem: para mudar algo, use os botões. Consulte [Pergunte à IA](/docs/ai/ask-ai).
@@ -171,10 +184,31 @@ O OneUptime só responde ao que é dirigido a ele.
 
 `/oneuptime page @nawaz The checkout API is throwing 500s` aciona o Nawaz na hora. O OneUptime cria um alerta cujo título é a sua mensagem, e cada pessoa que você menciona com @ recebe uma ligação, um SMS, uma notificação push ou um e-mail, conforme as próprias regras de plantão dela, até que alguém confirme o alerta.
 
-- **Quem é acionado na hora.** As pessoas que você menciona com @, quando uma mensagem vem depois delas. O OneUptime reconhece uma pessoa pela conta do OneUptime à qual a conta do Slack dela está conectada, ou então pelo endereço de e-mail que o Slack tem dela. Ninguém de fora do projeto é acionado.
-- **Todo o resto abre um formulário.** Sem ninguém mencionado com @, sem mensagem, com um grupo de usuários ou `@here`, ou com uma pessoa que o OneUptime não reconhece, o formulário **Page someone** se abre com o que você digitou já preenchido, e diz quem ele não conseguiu escolher. Escolha pessoas, uma equipe, um agendamento de plantão, que aciona quem estiver de plantão nele agora, ou uma política de plantão, que aciona pelas regras de escalonamento dela, e envie. Um nome que você digita primeiro, como em `/oneuptime page Primary The disk is full`, escolhe o agendamento, a equipe ou a política com esse nome.
+- **Quem é acionado na hora.** As pessoas que você menciona com @, e quem está de plantão nos agendamentos que um grupo de usuários que você menciona com @ segue (veja [Grupos de usuários de plantão](#grupos-de-usuários-de-plantão)), quando uma mensagem vem depois delas. O OneUptime reconhece uma pessoa pela conta do OneUptime à qual a conta do Slack dela está conectada, ou então pelo endereço de e-mail que o Slack tem dela. Ninguém de fora do projeto é acionado.
+- **Todo o resto abre um formulário.** Sem ninguém mencionado com @, sem mensagem, com `@here`, com um grupo de usuários que não segue nenhum agendamento de plantão que você possa ver, ou com uma pessoa que o OneUptime não reconhece, o formulário **Page someone** se abre com o que você digitou já preenchido, e diz quem ele não conseguiu escolher. Escolha pessoas, uma equipe, um agendamento de plantão, que aciona quem estiver de plantão nele agora, ou uma política de plantão, que aciona pelas regras de escalonamento dela, e envie. Um nome que você digita primeiro, como em `/oneuptime page Primary The disk is full`, escolhe o agendamento, a equipe ou a política com esse nome.
 - **Onde aparece.** O canal mostra o acionamento como uma única mensagem, mantida atualizada: quem foi acionado e como, e quem confirmou. Onde o OneUptime não pode publicar, como em um canal privado para o qual não foi convidado, uma mensagem que só você vê diz quem foi acionado, com um link para o alerta.
 - **Quem pode acionar.** Quem pode tanto executar uma política de plantão quanto criar um alerta: **Project Owner**, **Project Admin** e **Project Member**, ou **On-Call Member** junto com **Alert Member** (**Create On-Call Duty Policy Execution Log** e **Create Alert** em uma função personalizada). Acionar pessoas, uma equipe ou um agendamento diretamente, sem uma política de plantão por trás do acionamento, também exige acesso a todas as políticas de plantão do projeto. Qualquer outra pessoa é avisada onde executou o comando, e ninguém é acionado.
+
+## Grupos de usuários de plantão
+
+Mantenha um grupo de usuários do Slack, como `@payments-oncall`, igual a quem está de plantão em um ou mais agendamentos de plantão, para que qualquer pessoa possa mencioná-lo com @ e falar com eles. O OneUptime muda os membros do grupo a cada passagem de turno e substituição, e o verifica a cada 15 minutos.
+
+:::steps
+### Conectar um grupo de usuários a um agendamento
+
+Abra o agendamento em **Plantão** > **Agendamentos de plantão**. No cartão **Grupos de usuários do Slack** dele, clique em **Conectar grupo de usuários** e escolha um dos grupos de usuários do seu espaço de trabalho, ou **Criar um novo grupo de usuários** com um nome e um identificador. Os membros dele são substituídos na hora por quem está de plantão.
+
+### Conectá-lo também ao agendamento secundário
+
+Para um grupo com o plantão principal e o secundário, conecte o mesmo grupo na página do agendamento secundário. Um grupo pode seguir quantos agendamentos você quiser.
+:::
+
+- **O que o cartão mostra.** Quem está em cada grupo agora, os outros agendamentos que ele segue e se o status dele é **Atualizado**. Quem está de plantão mas não pode entrar no grupo aparece com o motivo: o OneUptime encontra uma pessoa pela conta do Slack conectada dela, ou então pelo endereço de e-mail que o Slack tem dela, e o Slack deixa convidados fora dos grupos de usuários.
+- **Ninguém de plantão.** O Slack não mantém um grupo de usuários vazio, então o OneUptime desativa o grupo até alguém estar de plantão e depois o reativa.
+- **Acionar o grupo.** `/oneuptime page @payments-oncall The checkout API is down` aciona quem está de plantão nos agendamentos que o grupo segue. Veja [Acionar alguém pelo Slack](#acionar-alguém-pelo-slack).
+- **O que o Slack exige.** Grupos de usuários fazem parte dos planos pagos do Slack, e um espaço de trabalho pode permitir que só os proprietários e administradores os alterem: o cartão diz qual é o caso, e o que fazer. Se o Slack foi conectado antes de o OneUptime poder manter grupos de usuários, conecte-o de novo uma vez em **Configurações do projeto** > **Espaço de trabalho** > **Slack**.
+- **Quem pode conectar um.** As funções que podem editar agendamentos: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, ou **Edit On-Call Duty Policy Schedule** em uma função personalizada. No OneUptime Cloud, conectar um exige o plano **Growth**.
+- **Desconectar.** O OneUptime para de mudar o grupo. O grupo e os membros dele ficam no Slack como estão.
 
 ## Agir sobre incidentes, alertas e eventos pelo Slack
 

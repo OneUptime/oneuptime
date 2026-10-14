@@ -2,6 +2,7 @@ import yaml from "js-yaml";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { resolveMitreTacticId } from "../../../Types/SecurityEvent/MitreAttack";
 import SigmaRule, {
   SIGMA_DEFAULT_LEVEL,
   SIGMA_SUPPORTED_MODIFIERS,
@@ -360,10 +361,20 @@ function extractMitre(tags: Array<string>): {
 
     const remainder: string = tag.slice("attack.".length);
 
-    if (TACTIC_TAG_REGEX.test(remainder)) {
-      const tactic: string = remainder.toUpperCase();
-      if (!tactics.includes(tactic)) {
-        tactics.push(tactic);
+    /*
+     * Tactics by id (`attack.ta0006`) or, as most published rules write
+     * them, by short name (`attack.credential_access`), stored as the id
+     * either way so a rule's findings, coverage and filters agree on one
+     * spelling. Rules from before ATT&CK v19 say `defense_evasion`, whose
+     * id now belongs to Stealth.
+     */
+    const tacticId: string | undefined = TACTIC_TAG_REGEX.test(remainder)
+      ? remainder.toUpperCase()
+      : resolveMitreTacticId(remainder);
+
+    if (tacticId) {
+      if (!tactics.includes(tacticId)) {
+        tactics.push(tacticId);
       }
     } else if (TECHNIQUE_TAG_REGEX.test(remainder)) {
       const technique: string = remainder.toUpperCase();

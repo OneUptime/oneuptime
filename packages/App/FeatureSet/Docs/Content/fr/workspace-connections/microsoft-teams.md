@@ -6,6 +6,7 @@ Connectez OneUptime à Microsoft Teams pour publier dans vos canaux et conversat
 - [Connecter Microsoft Teams](#connecter-microsoft-teams): Le consentement administrateur, votre connexion et l'application dans chaque équipe.
 - [Règles de notification](#règles-de-notification): Décidez quels événements sont publiés où, et lesquels ont un canal à eux.
 - [Parler au bot OneUptime](#parler-au-bot-oneuptime): Commandes, questions et formulaires dans une conversation avec le bot.
+- [Balises d'astreinte](#balises-dastreinte): Alignez la balise d'une équipe sur les personnes d'astreinte, et alertez-la.
 - [Agir sur les incidents, alertes et événements depuis Microsoft Teams](#agir-sur-les-incidents-alertes-et-événements-depuis-microsoft-teams): Les boutons des cartes de OneUptime.
 :::
 
@@ -159,6 +160,18 @@ La note est enregistrée en votre nom, avec vos autorisations, et l'application 
 
 Hormis les listes `show`, ce sont les mots qui suivent `/oneuptime` dans Slack ; `create incident` et `create maintenance` fonctionnent toujours. Interroger OneUptime AI demande votre propre compte Microsoft Teams connecté, et l'IA activée pour le projet. Si le vôtre n'est pas connecté, le bot vous demande une fois par fil ou par conversation de le connecter, avec un bouton **Connect Microsoft Teams account**. Voir [Demander à l'IA](/docs/ai/ask-ai).
 
+## Votre accueil dans Microsoft Teams
+
+Écrivez `home` au bot OneUptime, et il répond avec votre accueil : une carte qui montre ce qui se passe dans le projet, tel que vous pouvez le voir.
+
+- **Votre astreinte.** Les plannings d'astreinte dans lesquels vous êtes d'astreinte en ce moment, et jusqu'à quand, ou sinon votre prochain créneau.
+- **Ce qui est ouvert.** Les incidents et alertes ouverts les plus récents que vous pouvez lire, chacun avec un lien vers sa page dans OneUptime.
+- **Ses boutons.** **Declare incident** et **Page someone** répondent comme `incident` et `page`, **Who's on call** comme `oncall`, et **Refresh** relit la carte, à sa place.
+
+Quand vous ajoutez l'application OneUptime pour vous-même, le bot vous envoie aussitôt votre accueil. L'accueil et les listes `show` lisent en votre nom, il leur faut donc votre propre compte Microsoft Teams connecté : tant qu'il ne l'est pas, le bot répond avec un bouton **Connect Microsoft Teams account**. **Ouvrir OneUptime dans Microsoft Teams**, sous **Paramètres utilisateur** > **Espace de travail** > **Microsoft Teams**, ouvre l'application dans Teams.
+
+Quand l'application est ajoutée à une équipe, le bot y dit bonjour : comment lui poser une question, et où ajouter une règle de notification qui publie dans les canaux de l'équipe.
+
 ## Créer des incidents et des maintenances depuis Microsoft Teams
 
 Écrire `incident` ou `maintenance` au bot OneUptime ouvre un formulaire pour la personne qui l'a écrit, dans une conversation personnelle, un canal ou une conversation de groupe indifféremment. Il est rempli au nom de cette personne : en tant que compte OneUptime auquel son compte Microsoft Teams est connecté (voir [Connecter Microsoft Teams](#connecter-microsoft-teams)), avec les autorisations de ce compte dans le projet. Une personne dont le compte n'est pas connecté, ou dont le compte OneUptime n'est plus membre du projet, apprend quoi faire dans une réponse qui la mentionne, au lieu de recevoir le formulaire.
@@ -173,10 +186,31 @@ Hormis les listes `show`, ce sont les mots qui suivent `/oneuptime` dans Slack ;
 
 Dans un canal ou une conversation de groupe, `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` alerte Nawaz immédiatement. OneUptime crée une alerte dont le titre est votre message, et chaque personne que vous mentionnez avec @ reçoit un appel téléphonique, un SMS, une notification push ou un e-mail, selon ses propres règles d'astreinte, jusqu'à ce que quelqu'un accuse réception de l'alerte.
 
-- **Qui est alerté immédiatement.** Les personnes que vous mentionnez avec @, quand un message les suit. OneUptime reconnaît une personne au compte OneUptime auquel son compte Microsoft Teams est connecté, ou sinon à son adresse e-mail dans Microsoft Teams. Personne en dehors du projet n'est alerté.
-- **Tout le reste reçoit une carte.** Sans personne mentionnée avec @, comme dans une conversation personnelle avec le bot, sans message, avec une balise, ou avec une personne que OneUptime ne reconnaît pas, le bot répond avec la carte **Page someone**, où ce que vous avez tapé est déjà rempli, et indique qui il n'a pas pu choisir. Choisissez des personnes, une équipe, un planning d'astreinte, qui alerte la personne d'astreinte dans ce planning en ce moment, ou une politique d'astreinte, qui alerte selon ses règles d'escalade, puis soumettez-la. Toute personne de la conversation peut soumettre la carte, en son propre nom. Une fois l'alerte envoyée, la carte est retirée, pour que personne n'alerte deux fois avec elle.
+- **Qui est alerté immédiatement.** Les personnes que vous mentionnez avec @, et les personnes d'astreinte dans les plannings que suit une balise que vous mentionnez avec @ (voir [Balises d'astreinte](#balises-dastreinte)), quand un message les suit. OneUptime reconnaît une personne au compte OneUptime auquel son compte Microsoft Teams est connecté, ou sinon à son adresse e-mail dans Microsoft Teams. Personne en dehors du projet n'est alerté.
+- **Tout le reste reçoit une carte.** Sans personne mentionnée avec @, comme dans une conversation personnelle avec le bot, sans message, avec une balise qui ne suit aucun planning d'astreinte que vous pouvez voir, ou avec une personne que OneUptime ne reconnaît pas, le bot répond avec la carte **Page someone**, où ce que vous avez tapé est déjà rempli, et indique qui il n'a pas pu choisir. Choisissez des personnes, une équipe, un planning d'astreinte, qui alerte la personne d'astreinte dans ce planning en ce moment, ou une politique d'astreinte, qui alerte selon ses règles d'escalade, puis soumettez-la. Toute personne de la conversation peut soumettre la carte, en son propre nom. Une fois l'alerte envoyée, la carte est retirée, pour que personne n'alerte deux fois avec elle.
 - **Où cela s'affiche.** La conversation en affiche le suivi comme une seule carte, tenue à jour : qui a été alerté et comment, et qui a accusé réception. Là où le bot ne peut pas la publier, sa réponse indique qui a été alerté, avec un lien vers l'alerte.
 - **Qui peut alerter.** Toute personne qui peut à la fois exécuter une politique d'astreinte et créer une alerte : **Project Owner**, **Project Admin** et **Project Member**, ou **On-Call Member** avec **Alert Member** (**Create On-Call Duty Policy Execution Log** et **Create Alert** dans un rôle personnalisé). Alerter directement des personnes, une équipe ou un planning, sans politique d'astreinte derrière l'alerte, demande aussi l'accès à toutes les politiques d'astreinte du projet. Tous les autres en sont informés dans une réponse, et personne n'est alerté.
+
+## Balises d'astreinte
+
+Alignez une balise Microsoft Teams, comme `@Payments on-call`, sur les personnes d'astreinte dans un ou plusieurs plannings d'astreinte, pour que chacun dans son équipe puisse la mentionner avec @ afin de les joindre. OneUptime modifie les membres de la balise à chaque passation et à chaque remplacement, et la vérifie toutes les 15 minutes.
+
+:::steps
+### Connecter une balise à un planning
+
+Ouvrez le planning dans **Astreinte** > **Plannings d'astreinte**. Dans sa carte **Balises Microsoft Teams**, cliquez sur **Connecter une balise**, choisissez l'équipe, puis nommez la balise : la balise de l'équipe portant ce nom, ou une nouvelle que OneUptime crée. Ses membres sont aussitôt remplacés par les personnes d'astreinte.
+
+### La connecter aussi au planning secondaire
+
+Pour une balise qui contient l'astreinte principale et l'astreinte secondaire, connectez la même balise sur la page du planning secondaire. Une balise peut suivre autant de plannings que vous voulez.
+:::
+
+- **Ce que montre la carte.** Qui est dans chaque balise en ce moment, son équipe, les autres plannings qu'elle suit, et si elle est **À jour**. Une balise ne contient que des membres de son équipe : une personne d'astreinte qui n'est pas dans l'équipe est nommée, avec la raison.
+- **Personne d'astreinte.** OneUptime retire tout le monde de la balise jusqu'à ce que quelqu'un soit d'astreinte. Une nouvelle balise a besoin de quelqu'un de l'équipe d'astreinte, car Microsoft Teams ne crée pas de balise vide.
+- **L'alerter.** `@OneUptime page @Payments on-call The checkout API is down` alerte les personnes d'astreinte dans les plannings que suit la balise. Voir [Alerter quelqu'un depuis Microsoft Teams](#alerter-quelquun-depuis-microsoft-teams).
+- **Ce dont Microsoft 365 a besoin.** Modifier les balises demande l'autorisation `TeamworkTag.ReadWrite.All` de l'application, qu'un administrateur Microsoft 365 accorde avec **Accorder le consentement administrateur** dans **Paramètres du projet** > **Espace de travail** > **Microsoft Teams**. Si votre organisation a donné son consentement avant que OneUptime puisse tenir des balises à jour, donnez-le une fois de plus.
+- **Qui peut en connecter une.** Les rôles qui peuvent modifier les plannings : **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** et **On-Call Member**, ou **Edit On-Call Duty Policy Schedule** dans un rôle personnalisé. Sur OneUptime Cloud, en connecter une nécessite la formule **Growth**.
+- **Déconnecter.** OneUptime cesse de modifier la balise. La balise et ses membres restent dans Microsoft Teams tels quels.
 
 ## Agir sur les incidents, alertes et événements depuis Microsoft Teams
 

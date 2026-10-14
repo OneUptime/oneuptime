@@ -233,6 +233,7 @@ describe("why a project cannot be chosen", () => {
       "blocked",
       "not-a-member",
       "plan",
+      "project-blocked",
       "sso",
     ]);
 

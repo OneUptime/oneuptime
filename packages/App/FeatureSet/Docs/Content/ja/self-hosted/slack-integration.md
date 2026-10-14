@@ -147,6 +147,8 @@ Slack アプリの **Event Subscriptions** で、リクエスト URL を検証�
 | **Create New Incident** と **Create Scheduled Event** ショートカット | Slack のショートカットからインシデントを宣言する、またはメンテナンスを予定する | `POST /api/slack/interactive` |
 | OneUptime のメッセージにあるボタンとフォーム | 確認、解決、メモの追加、状態の変更、オンコールポリシーの実行 | `POST /api/slack/interactive` と `POST /api/slack/options-load` |
 | イベント | メンション、メッセージ、リアクション、ピン留め。たとえばメッセージをメモとして保存する | `POST /api/slack/events` |
+| アプリの **Home** タブ | あなたのオンコールのシフトと未解決のインシデントとアラート、およびインシデントの宣言、メンテナンスの予定、誰かの呼び出し、オンコール担当者の確認のためのボタン | `POST /api/slack/events` と `POST /api/slack/interactive` |
+| アプリが追加された各チャネルでのあいさつ | OneUptime AI への質問のしかたと、通知ルールの追加場所 | `POST /api/slack/events` |
 
 ### メッセージ内の画像
 
@@ -154,11 +156,19 @@ Slack アプリの **Event Subscriptions** で、リクエスト URL を検証�
 
 古いマニフェストから Slack アプリを作成した場合は、 **OAuth & Permissions > Bot Token Scopes** に `files:write` を追加します (または現在のマニフェストからアプリを更新します)。続いて **プロジェクト設定 > ワークスペース > Slack** でもう一度 **Slack で接続** を選択し、新しいスコープを付与します。それまでは、各スクリーンショットは代替テキストとして表示されます。
 
+### オンコールユーザーグループ
+
+スケジュールの Slack ユーザーグループをオンコール担当者と一致させるには ( [オンコールユーザーグループ](/docs/workspace-connections/slack#オンコールユーザーグループ) を参照)、ボットスコープ `usergroups:read` と `usergroups:write` が必要です。生成されるマニフェストにはこれらが含まれています。
+
+古いマニフェストから Slack アプリを作成した場合は、 **OAuth & Permissions > Bot Token Scopes** に `usergroups:read` と `usergroups:write` を追加します (または現在のマニフェストからアプリを更新します)。続いて **プロジェクト設定 > ワークスペース > Slack** でもう一度 **Slack で接続** を選択し、新しいスコープを付与します。それまでは、スケジュールのカードに、OneUptime の Slack アプリにはまだユーザーグループを変更する権限がないと表示されます。
+
 ### 古いマニフェストから作成したアプリ
 
 以前の OneUptime マニフェストから作成した Slack アプリは、`/incident` と `/maintenance` を独自のコマンドとして登録しており、他のアプリの同名コマンドと競合することがあります。これらは引き続き動作し、`/oneuptime incident` と `/oneuptime maintenance` と同じフォームを開きます。`/oneuptime` に置き換えるには、サーバーが生成するマニフェストからアプリを更新します。[api.slack.com/apps](https://api.slack.com/apps) でアプリの **App Manifest** を開き、マニフェストを貼り付けて保存します。
 
 `/oneuptime page` より前に作成したアプリにも、同じ更新が必要です。更新されるまで、`/oneuptime page` は @メンションした人を特定できず、すぐに呼び出す代わりに、その人を選ぶフォームを開きます。続いて **プロジェクト設定 > ワークスペース > Slack** でもう一度 **Slack で接続** を選択し、マニフェストが追加する `users:read.email` スコープを付与します。これにより、Slack アカウントが OneUptime に接続されていない人も、メールアドレスで見つかります。
+
+アプリを **Home** タブより前に作成した場合も、同じ更新が必要です。更新するまで、Slack はそのアプリに **Home** タブを表示せず、アプリは追加されたチャネルにあいさつを投稿しません。この更新でタブが有効になり、アプリが `app_home_opened` と `member_joined_channel` のイベントを購読します。スコープは追加されないので、接続し直す必要はありません。
 
 ## セルフホスト環境のネットワークアクセス
 

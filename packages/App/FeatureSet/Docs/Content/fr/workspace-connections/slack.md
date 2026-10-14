@@ -6,6 +6,7 @@ Connectez OneUptime à Slack pour publier dans vos canaux les incidents, alertes
 - [Connecter Slack](#connecter-slack): Installez OneUptime dans votre espace de travail, puis associez votre propre compte.
 - [Règles de notification](#règles-de-notification): Décidez quels événements sont publiés où, et lesquels ont un canal à eux.
 - [La commande /oneuptime](#la-commande-oneuptime): Déclarez des incidents, planifiez des maintenances, voyez qui est d'astreinte et interrogez l'IA.
+- [Groupes d'utilisateurs d'astreinte](#groupes-dutilisateurs-dastreinte): Alignez un groupe d'utilisateurs sur les personnes d'astreinte, et alertez-le.
 - [Agir sur les incidents, alertes et événements depuis Slack](#agir-sur-les-incidents-alertes-et-événements-depuis-slack): Les boutons des messages de OneUptime.
 :::
 
@@ -147,6 +148,18 @@ Les réponses à `help` et `oncall` sont des messages que vous seul voyez, sous 
 > [!NOTE]
 > `/oneuptime incident` et `/oneuptime maintenance` remplacent `/incident` et `/maintenance`, qui pouvaient entrer en conflit avec les commandes du même nom d'autres apps Slack. Une app Slack créée à partir d'un manifeste antérieur les garde, et elles ouvrent les mêmes formulaires, jusqu'à ce que l'app soit mise à jour : voir [Applications créées à partir d'un manifeste plus ancien](/docs/self-hosted/slack-integration#applications-créées-à-partir-dun-manifeste-plus-ancien).
 
+## L'accueil de OneUptime dans Slack
+
+Ouvrez OneUptime sous **Apps** dans la barre latérale de Slack : son onglet **Home** montre ce qui se passe dans le projet, tel que vous pouvez le voir, relu à chaque ouverture.
+
+- **Votre astreinte.** Les plannings d'astreinte dans lesquels vous êtes d'astreinte en ce moment, et jusqu'à quand, ou sinon votre prochain créneau.
+- **Ce qui est ouvert.** Les incidents et alertes ouverts les plus récents que vous pouvez lire, chacun avec un lien vers sa page dans OneUptime.
+- **Ses boutons.** **Declare incident**, **Schedule maintenance** et **Page someone** ouvrent les mêmes formulaires que `/oneuptime incident`, `/oneuptime maintenance` et `/oneuptime page`, et **Who's on call** répond comme `/oneuptime oncall`.
+
+L'accueil lit en votre nom, il lui faut donc votre propre compte Slack connecté. Tant qu'il ne l'est pas, l'accueil affiche un bouton **Connect Slack account**, et vous montre votre accueil dès que vous l'avez connecté.
+
+Quand quelqu'un ajoute OneUptime à un canal, il y publie un message de bienvenue : comment lui poser une question, et où ajouter une règle de notification qui publie dans le canal.
+
 ## Interroger OneUptime AI depuis Slack
 
 Posez vos questions sur vos journaux, traces, métriques, incidents et moniteurs en langage courant. Mentionnez OneUptime avec @ dans un canal, ou envoyez-lui un message direct, et il répond dans le fil. `/oneuptime ask which monitors are down?` publie sa réponse dans le canal. Les deux demandent votre propre compte Slack connecté, et l'IA activée pour le projet. Les réponses dans Slack ne font que lire : pour changer quelque chose, utilisez les boutons. Voir [Demander à l'IA](/docs/ai/ask-ai).
@@ -171,10 +184,31 @@ OneUptime ne répond qu'à ce qui lui est adressé.
 
 `/oneuptime page @nawaz The checkout API is throwing 500s` alerte Nawaz immédiatement. OneUptime crée une alerte dont le titre est votre message, et chaque personne que vous mentionnez avec @ reçoit un appel téléphonique, un SMS, une notification push ou un e-mail, selon ses propres règles d'astreinte, jusqu'à ce que quelqu'un accuse réception de l'alerte.
 
-- **Qui est alerté immédiatement.** Les personnes que vous mentionnez avec @, quand un message les suit. OneUptime reconnaît une personne au compte OneUptime auquel son compte Slack est connecté, ou sinon à l'adresse e-mail que Slack a pour elle. Personne en dehors du projet n'est alerté.
-- **Tout le reste ouvre un formulaire.** Sans personne mentionnée avec @, sans message, avec un groupe d'utilisateurs ou `@here`, ou avec une personne que OneUptime ne reconnaît pas, le formulaire **Page someone** s'ouvre avec ce que vous avez tapé déjà rempli, et indique qui il n'a pas pu choisir. Choisissez des personnes, une équipe, un planning d'astreinte, qui alerte la personne d'astreinte dans ce planning en ce moment, ou une politique d'astreinte, qui alerte selon ses règles d'escalade, puis soumettez-le. Un nom que vous tapez en premier, comme dans `/oneuptime page Primary The disk is full`, choisit le planning, l'équipe ou la politique de ce nom.
+- **Qui est alerté immédiatement.** Les personnes que vous mentionnez avec @, et les personnes d'astreinte dans les plannings que suit un groupe d'utilisateurs que vous mentionnez avec @ (voir [Groupes d'utilisateurs d'astreinte](#groupes-dutilisateurs-dastreinte)), quand un message les suit. OneUptime reconnaît une personne au compte OneUptime auquel son compte Slack est connecté, ou sinon à l'adresse e-mail que Slack a pour elle. Personne en dehors du projet n'est alerté.
+- **Tout le reste ouvre un formulaire.** Sans personne mentionnée avec @, sans message, avec `@here`, avec un groupe d'utilisateurs qui ne suit aucun planning d'astreinte que vous pouvez voir, ou avec une personne que OneUptime ne reconnaît pas, le formulaire **Page someone** s'ouvre avec ce que vous avez tapé déjà rempli, et indique qui il n'a pas pu choisir. Choisissez des personnes, une équipe, un planning d'astreinte, qui alerte la personne d'astreinte dans ce planning en ce moment, ou une politique d'astreinte, qui alerte selon ses règles d'escalade, puis soumettez-le. Un nom que vous tapez en premier, comme dans `/oneuptime page Primary The disk is full`, choisit le planning, l'équipe ou la politique de ce nom.
 - **Où cela s'affiche.** Le canal en affiche le suivi comme un seul message, tenu à jour : qui a été alerté et comment, et qui a accusé réception. Là où OneUptime ne peut pas publier, comme dans un canal privé auquel il n'a pas été invité, un message que vous seul voyez indique qui a été alerté, avec un lien vers l'alerte.
 - **Qui peut alerter.** Toute personne qui peut à la fois exécuter une politique d'astreinte et créer une alerte : **Project Owner**, **Project Admin** et **Project Member**, ou **On-Call Member** avec **Alert Member** (**Create On-Call Duty Policy Execution Log** et **Create Alert** dans un rôle personnalisé). Alerter directement des personnes, une équipe ou un planning, sans politique d'astreinte derrière l'alerte, demande aussi l'accès à toutes les politiques d'astreinte du projet. Tous les autres en sont informés là où ils ont lancé la commande, et personne n'est alerté.
+
+## Groupes d'utilisateurs d'astreinte
+
+Alignez un groupe d'utilisateurs Slack, comme `@payments-oncall`, sur les personnes d'astreinte dans un ou plusieurs plannings d'astreinte, pour que chacun puisse le mentionner avec @ afin de les joindre. OneUptime modifie les membres du groupe à chaque passation et à chaque remplacement, et le vérifie toutes les 15 minutes.
+
+:::steps
+### Connecter un groupe d'utilisateurs à un planning
+
+Ouvrez le planning dans **Astreinte** > **Plannings d'astreinte**. Dans sa carte **Groupes d'utilisateurs Slack**, cliquez sur **Connecter un groupe d'utilisateurs**, puis choisissez l'un des groupes d'utilisateurs de votre espace de travail, ou **Créer un groupe d'utilisateurs** avec un nom et un identifiant. Ses membres sont aussitôt remplacés par les personnes d'astreinte.
+
+### Le connecter aussi au planning secondaire
+
+Pour un groupe qui contient l'astreinte principale et l'astreinte secondaire, connectez le même groupe sur la page du planning secondaire. Un groupe peut suivre autant de plannings que vous voulez.
+:::
+
+- **Ce que montre la carte.** Qui est dans chaque groupe en ce moment, les autres plannings qu'il suit, et s'il est **À jour**. Une personne d'astreinte qui ne peut pas être ajoutée au groupe est nommée, avec la raison : OneUptime trouve une personne par son compte Slack connecté, ou sinon par l'adresse e-mail que Slack a pour elle, et Slack exclut les invités des groupes d'utilisateurs.
+- **Personne d'astreinte.** Slack ne peut pas conserver un groupe d'utilisateurs vide, donc OneUptime désactive le groupe jusqu'à ce que quelqu'un soit d'astreinte, puis le réactive.
+- **L'alerter.** `/oneuptime page @payments-oncall The checkout API is down` alerte les personnes d'astreinte dans les plannings que suit le groupe. Voir [Alerter quelqu'un depuis Slack](#alerter-quelquun-depuis-slack).
+- **Ce dont Slack a besoin.** Les groupes d'utilisateurs font partie des formules payantes de Slack, et un espace de travail peut ne permettre qu'à ses propriétaires et administrateurs de les modifier : la carte dit lequel des deux, et quoi faire. Si Slack a été connecté avant que OneUptime puisse tenir des groupes d'utilisateurs à jour, reconnectez-le une fois dans **Paramètres du projet** > **Espace de travail** > **Slack**.
+- **Qui peut en connecter un.** Les rôles qui peuvent modifier les plannings : **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** et **On-Call Member**, ou **Edit On-Call Duty Policy Schedule** dans un rôle personnalisé. Sur OneUptime Cloud, en connecter un nécessite la formule **Growth**.
+- **Déconnecter.** OneUptime cesse de modifier le groupe. Le groupe et ses membres restent dans Slack tels quels.
 
 ## Agir sur les incidents, alertes et événements depuis Slack
 

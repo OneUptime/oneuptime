@@ -1,0 +1,139 @@
+import AppLink from "../AppLink/AppLink";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import {
+  SecurityEntity,
+  getSecurityEntityIcon,
+  readSecurityEntities,
+} from "Common/Types/SecurityCase/SecurityEntity";
+
+import Icon from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import React, { FunctionComponent, ReactElement } from "react";
+
+// Read where the chips are drawn: Common/Types/SecurityCase/SecurityEntity.
+export { readSecurityEntities };
+
+// Where an entity is investigated: the correlation graph, seeded with it.
+export function getCorrelateRouteForEntity(value: string): Route {
+  return (
+    RouteUtil.populateRouteParams(
+      RouteMap[PageMap.SECURITY_EVENTS_CORRELATE] as Route,
+    ) as Route
+  ).addQueryParams({
+    observable: encodeURIComponent(value),
+  });
+}
+
+export interface SecurityEntityChipProps {
+  entity: SecurityEntity;
+  // A count shown after the value, e.g. events seen in the last day.
+  trailing?: ReactElement | string | undefined;
+  isLink?: boolean | undefined;
+}
+
+export const SecurityEntityChip: FunctionComponent<SecurityEntityChipProps> = (
+  props: SecurityEntityChipProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const title: string =
+    props.isLink === false
+      ? props.entity.value
+      : translator.translateTemplate(
+          "{{type}}: {{value}} - open it in Correlate",
+          {
+            type:
+              translator.translateText(props.entity.type) || props.entity.type,
+            value: props.entity.value,
+          },
+        );
+
+  const content: ReactElement = (
+    <>
+      <Icon
+        icon={getSecurityEntityIcon(props.entity.type)}
+        className="h-3.5 w-3.5 flex-shrink-0 text-gray-400 group-hover:text-indigo-500"
+      />
+      <span className="truncate font-mono" title={title}>
+        {props.entity.value}
+      </span>
+      {props.trailing !== undefined ? (
+        <span className="ml-0.5 flex-shrink-0 rounded bg-gray-100 px-1 text-[10px] font-semibold text-gray-600">
+          {props.trailing}
+        </span>
+      ) : (
+        <></>
+      )}
+    </>
+  );
+
+  const className: string =
+    "group inline-flex max-w-full items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-0.5 text-xs text-gray-700";
+
+  if (props.isLink === false) {
+    return <span className={className}>{content}</span>;
+  }
+
+  return (
+    <AppLink
+      to={getCorrelateRouteForEntity(props.entity.value)}
+      className={`${className} hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700`}
+    >
+      {content}
+    </AppLink>
+  );
+};
+
+export interface SecurityEntityChipsProps {
+  entities: Array<SecurityEntity>;
+  // Show at most this many, then "+N more".
+  limit?: number | undefined;
+  emptyText?: string | undefined;
+  isLink?: boolean | undefined;
+}
+
+const SecurityEntityChips: FunctionComponent<SecurityEntityChipsProps> = (
+  props: SecurityEntityChipsProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  if (props.entities.length === 0) {
+    return (
+      <span className="text-sm text-gray-400">
+        {translator.translateText(props.emptyText || "No entities")}
+      </span>
+    );
+  }
+
+  const limit: number = props.limit || props.entities.length;
+  const shown: Array<SecurityEntity> = props.entities.slice(0, limit);
+  const hidden: number = props.entities.length - shown.length;
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {shown.map((entity: SecurityEntity, index: number): ReactElement => {
+        return (
+          <SecurityEntityChip
+            key={`${entity.type}-${entity.value}-${index}`}
+            entity={entity}
+            isLink={props.isLink}
+          />
+        );
+      })}
+      {hidden > 0 ? (
+        <span className="text-xs font-medium text-gray-500">
+          {translator.translatePlural(
+            { one: "+{{count}} more", other: "+{{count}} more" },
+            hidden,
+          )}
+        </span>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+};
+
+export default SecurityEntityChips;

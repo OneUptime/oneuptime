@@ -416,6 +416,29 @@ export default class ThreatIntelFeed extends BaseModel {
   })
   public shouldCreateIncident?: boolean = undefined;
 
+  // On by default, like a detection rule's: see DetectionRule.shouldCreateCase.
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Open Security Cases",
+    description:
+      "Whether matches open security cases (or join the open case about the same entity), where the security team works them and playbooks respond.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.Boolean,
+    default: true,
+  })
+  public shouldCreateCase?: boolean = undefined;
+
   @ColumnAccessControl({
     create: createPermissions,
     read: readPermissions,

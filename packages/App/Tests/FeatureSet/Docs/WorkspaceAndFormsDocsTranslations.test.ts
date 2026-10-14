@@ -176,7 +176,20 @@ const SLACK_CONTROLS: Array<string> = [
   "Pin to channel",
   "Create New Incident",
   "Create Scheduled Event",
+  // Where the app is in Slack's sidebar, and its Home tab.
+  "Apps",
+  "Home",
 ];
+
+/*
+ * The buttons of the app's Home - Slack's Home tab, the Teams bot's Home
+ * card - which the apps draw in English (WORKSPACE_HOME_TEXT). Slack's has
+ * Schedule maintenance too; Teams' card has Refresh, as a card does not
+ * change by itself.
+ */
+const CHAT_HOME_BUTTONS: Array<string> = ["Declare incident", "Who's on call"];
+const SLACK_HOME_BUTTONS: Array<string> = ["Schedule maintenance"];
+const TEAMS_HOME_BUTTONS: Array<string> = ["Refresh"];
 
 // Microsoft Teams' own menus and buttons, as Teams names them.
 const TEAMS_CONTROLS: Array<string> = [
@@ -262,6 +275,8 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...SLACK_CONNECT_BUTTON,
     ...SLACK_CONTROLS,
     ...PAGE_FORM,
+    ...CHAT_HOME_BUTTONS,
+    ...SLACK_HOME_BUTTONS,
   ],
   [TEAMS]: [
     "Growth",
@@ -270,6 +285,8 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...TEAMS_CONNECT_BUTTON,
     ...TEAMS_CONTROLS,
     ...PAGE_FORM,
+    ...CHAT_HOME_BUTTONS,
+    ...TEAMS_HOME_BUTTONS,
   ],
   [VIDEO]: [...PROVIDER_CONSOLES, ...BRANDS],
   [BUILDING]: [],
@@ -418,6 +435,17 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anything else opens a form.",
     "Where it shows.",
     "Who may page.",
+    // On-call user groups.
+    "What the card shows.",
+    "Nobody on call.",
+    "Paging it.",
+    "What Slack needs.",
+    "Who may connect one.",
+    "Disconnecting.",
+    // The app's Home.
+    "Your on-call.",
+    "What is open.",
+    "Its buttons.",
   ],
   [TEAMS]: [
     "The project's connection",
@@ -442,6 +470,17 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anything else gets a card.",
     "Where it shows.",
     "Who may page.",
+    // On-call tags.
+    "What the card shows.",
+    "Nobody on call.",
+    "Paging it.",
+    "What Microsoft 365 needs.",
+    "Who may connect one.",
+    "Disconnecting.",
+    // The bot's Home.
+    "Your on-call.",
+    "What is open.",
+    "Its buttons.",
   ],
   [VIDEO]: [],
   [BUILDING]: [
@@ -553,8 +592,9 @@ const PUBLIC_PAGE_MESSAGES: Record<string, Array<PublicPageMessage>> = {
  * with Persian digits as Latin ones and thousands separators dropped.
  */
 const NUMBERS: Record<string, Array<string>> = {
-  [SLACK]: ["7"],
-  [TEAMS]: ["7"],
+  // A connect button's days; how often a user group or tag is checked.
+  [SLACK]: ["7", "15"],
+  [TEAMS]: ["7", "15"],
   [VIDEO]: ["40", "30"],
   [BUILDING]: ["50", "100", "500", "20000", "10000", "512", "128"],
   [SHARING]: ["429", "503"],
@@ -1040,6 +1080,9 @@ describe("the lists this test keeps", () => {
       ...TEAMS_CARD_BUTTONS,
       ...SLACK_CONTROLS,
       ...TEAMS_CONTROLS,
+      ...CHAT_HOME_BUTTONS,
+      ...SLACK_HOME_BUTTONS,
+      ...TEAMS_HOME_BUTTONS,
       ...PROVIDER_CONSOLES,
       ...BRANDS,
       ...listed(KEPT_IN_ENGLISH, ON_SUBMIT),

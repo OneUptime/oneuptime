@@ -1900,10 +1900,14 @@ test.describe("connections empty state actions", () => {
  */
 
 /*
- * The tile grid uses viewport columns (1, then 2 from sm, 4 from lg) and the
- * tile stands upright from lg so a long name gets the tile's full width.
- * Measured in the browser: the unit tests cannot see a wrapped name or a
- * row of unequal tiles.
+ * The page sits beside the Security Events side menu from md up, so the
+ * card is narrower than the viewport by a different amount at each size.
+ * The tile grid takes its columns from the card's own width - at most four,
+ * each at least a quarter of the row and as wide as a tile needs (17rem for
+ * the row a tile is below lg, 11.5rem for the upright card it is from lg) -
+ * and the tile stands upright from lg so a long name gets the tile's full
+ * width. Measured in the browser: the unit tests cannot see a wrapped name
+ * or a row of unequal tiles.
  */
 test.describe("connections empty state layout", () => {
   test("1440: four tiles a row, one size, every name on one line", async ({
@@ -1975,11 +1979,12 @@ test.describe("connections empty state layout", () => {
     screenshot?: string;
     fullPage?: boolean;
   }> = [
-    { width: 1024, height: 900, columns: 4 },
+    { width: 1280, height: 900, columns: 4 },
+    { width: 1024, height: 900, columns: 2 },
     {
       width: 768,
       height: 1024,
-      columns: 2,
+      columns: 1,
       screenshot: "connections-tablet",
     },
     {
@@ -2055,26 +2060,26 @@ test.describe("connections empty state layout", () => {
   }
 
   /*
-   * At 1024 the four columns are 202px wide, narrower than "Splunk
-   * Enterprise Security" in the tile's semibold: it wraps, onto two lines.
-   * The grid keeps every tile in its row the same height regardless (checked
-   * above).
+   * At 1280, beside the side menu, the four columns are about 186px wide,
+   * the name's about 154px: narrower than "Splunk Enterprise Security" in
+   * the tile's semibold, so it wraps, onto two lines. The grid keeps every
+   * tile in its row the same height regardless (checked above).
    *
    * Which OTHER names wrap is a property of the platform's text rendering,
-   * not of the layout: "Microsoft Defender XDR" fits its 168px column with
-   * about 4px to spare in Chromium on macOS, and FreeType's metrics on Linux
-   * spend them, so it wraps there - for real users too. So this pins the
-   * layout instead: every name wraps exactly when it is wider than its column
-   * as measured in this browser, and never before. A layout change that
+   * not of the layout: "Microsoft Defender XDR" is within a few pixels of
+   * its column, and Chromium on macOS and FreeType's metrics on Linux
+   * measure it differently - for real users too. So this pins the layout
+   * instead: every name wraps exactly when it is wider than its column as
+   * measured in this browser, and never before. A layout change that
    * narrowed the column, or made names wrap early, still fails here; a
    * rendering difference of a few pixels does not.
    */
-  test("1024: a name wraps only when it is wider than its column, and Splunk Enterprise Security does", async ({
+  test("1280: a name wraps only when it is wider than its column, and Splunk Enterprise Security does", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openConnections(page, { width: 1024, height: 900 });
+    await openConnections(page, { width: 1280, height: 900 });
     const layouts: Array<TileLayout> = await tileLayouts(page);
     const fits: Array<NameFit> = await nameFits(page);
 

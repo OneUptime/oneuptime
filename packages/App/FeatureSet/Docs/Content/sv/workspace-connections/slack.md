@@ -6,6 +6,7 @@ Anslut OneUptime till Slack för att publicera incidenter, larm, episoder, schem
 - [Anslut Slack](#anslut-slack): Installera OneUptime i din arbetsyta och länka sedan ditt eget konto.
 - [Aviseringsregler](#aviseringsregler): Bestäm vilka händelser som publiceras var, och vilka som får en egen kanal.
 - [Kommandot /oneuptime](#kommandot-oneuptime): Deklarera incidenter, schemalägg underhåll, se vem som har jour och fråga AI.
+- [Jouranvändargrupper](#jouranvändargrupper): Håll en användargrupp lika med dem som har jour, och larma den.
 - [Agera på incidenter, larm och händelser från Slack](#agera-på-incidenter-larm-och-händelser-från-slack): Knapparna i OneUptimes meddelanden.
 :::
 
@@ -147,6 +148,18 @@ Svaren på `help` och `oncall` är meddelanden som bara du ser, under kommandot.
 > [!NOTE]
 > `/oneuptime incident` och `/oneuptime maintenance` ersätter `/incident` och `/maintenance`, som kunde krocka med kommandon med samma namn i andra Slack-appar. En Slack-app som skapats från ett tidigare manifest behåller dem, och de öppnar samma formulär, tills appen uppdateras: se [Appar skapade från ett äldre manifest](/docs/self-hosted/slack-integration#appar-skapade-från-ett-äldre-manifest).
 
+## OneUptimes startsida i Slack
+
+Öppna OneUptime under **Apps** i sidofältet i Slack: fliken **Home** visar vad som händer i projektet, så som du får se det, och läses om varje gång du öppnar den.
+
+- **Din jour.** Jourschemana du har jour i just nu, och till när, eller annars ditt nästa pass.
+- **Det som är öppet.** De senaste öppna incidenterna och larmen du får läsa, var och en med en länk till sin sida i OneUptime.
+- **Knapparna.** **Declare incident**, **Schedule maintenance** och **Page someone** öppnar samma formulär som `/oneuptime incident`, `/oneuptime maintenance` och `/oneuptime page`, och **Who's on call** svarar som `/oneuptime oncall`.
+
+Startsidan läser som du, så den behöver ditt eget anslutna Slack-konto. Tills det är anslutet har startsidan knappen **Connect Slack account**, och den visar din startsida så snart du har anslutit det.
+
+När någon lägger till OneUptime i en kanal publicerar den en hälsning där: hur man ställer en fråga till den, och var man lägger till en aviseringsregel som publicerar i kanalen.
+
 ## Fråga OneUptime AI från Slack
 
 Fråga om dina loggar, traces, mätvärden, incidenter och monitorer på vanligt språk. Nämn OneUptime med @ i en kanal, eller skicka ett direktmeddelande, så svarar den i tråden. `/oneuptime ask which monitors are down?` publicerar svaret i kanalen. Båda kräver att ditt eget Slack-konto är anslutet och att AI är påslaget för projektet. Svar i Slack läser bara: använd knapparna för att ändra något. Se [Fråga AI](/docs/ai/ask-ai).
@@ -171,10 +184,31 @@ OneUptime svarar bara på det som riktas till den.
 
 `/oneuptime page @nawaz The checkout API is throwing 500s` larmar Nawaz direkt. OneUptime skapar ett larm med ditt meddelande som rubrik, och varje person du nämner med @ får ett telefonsamtal, ett sms, en pushnotis eller ett mejl, så som personens egna jourregler säger, tills någon bekräftar larmet.
 
-- **Vem som larmas direkt.** Personerna du nämner med @, när ett meddelande följer efter dem. OneUptime känner igen en person på det OneUptime-konto som personens Slack-konto är anslutet till, eller annars på den e-postadress Slack har för personen. Ingen utanför projektet larmas.
-- **Allt annat öppnar ett formulär.** Utan någon nämnd med @, utan meddelande, med en användargrupp eller `@here`, eller med en person som OneUptime inte känner igen, öppnas formuläret **Page someone** med det du skrev ifyllt, och det säger vem det inte kunde välja. Välj personer, ett team, ett jourschema, som larmar den som har jour i det just nu, eller en jourpolicy, som larmar genom sina eskaleringsregler, och skicka det. Ett namn du skriver först, som i `/oneuptime page Primary The disk is full`, väljer schemat, teamet eller policyn med det namnet.
+- **Vem som larmas direkt.** Personerna du nämner med @, och de som har jour i de scheman som en användargrupp du nämner med @ följer (se [Jouranvändargrupper](#jouranvändargrupper)), när ett meddelande följer efter dem. OneUptime känner igen en person på det OneUptime-konto som personens Slack-konto är anslutet till, eller annars på den e-postadress Slack har för personen. Ingen utanför projektet larmas.
+- **Allt annat öppnar ett formulär.** Utan någon nämnd med @, utan meddelande, med `@here`, med en användargrupp som inte följer något jourschema du kan se, eller med en person som OneUptime inte känner igen, öppnas formuläret **Page someone** med det du skrev ifyllt, och det säger vem det inte kunde välja. Välj personer, ett team, ett jourschema, som larmar den som har jour i det just nu, eller en jourpolicy, som larmar genom sina eskaleringsregler, och skicka det. Ett namn du skriver först, som i `/oneuptime page Primary The disk is full`, väljer schemat, teamet eller policyn med det namnet.
 - **Var det syns.** Kanalen visar larmningen som ett enda meddelande som hålls uppdaterat: vem som larmades och hur, och vem som bekräftade. Där OneUptime inte kan posta, till exempel i en privat kanal den inte har bjudits in till, säger ett meddelande som bara du ser vem som larmades, med en länk till larmet.
 - **Vem som får larma.** Alla som får både köra en jourpolicy och skapa ett larm: **Project Owner**, **Project Admin** och **Project Member**, eller **On-Call Member** tillsammans med **Alert Member** (**Create On-Call Duty Policy Execution Log** och **Create Alert** i en anpassad roll). Att larma personer, ett team eller ett schema direkt, utan en jourpolicy bakom larmningen, kräver också åtkomst till alla projektets jourpolicyer. Alla andra får veta det där de körde kommandot, och ingen larmas.
+
+## Jouranvändargrupper
+
+Håll en användargrupp i Slack, till exempel `@payments-oncall`, lika med dem som har jour i ett eller flera jourscheman, så att alla kan nämna den med @ för att nå dem. OneUptime ändrar gruppens medlemmar vid varje överlämning och åsidosättning, och kontrollerar den var 15:e minut.
+
+:::steps
+### Anslut en användargrupp till ett schema
+
+Öppna schemat under **Jourtjänst** > **Jourscheman**. Klicka på **Anslut användargrupp** i dess kort **Användargrupper i Slack**, och välj en av arbetsytans användargrupper, eller **Skapa en ny användargrupp** med ett namn och ett alias. Medlemmarna ersätts direkt med dem som har jour.
+
+### Anslut den även till det sekundära schemat
+
+För en grupp med både den primära och den sekundära jouren ansluter du samma grupp på det sekundära schemats sida. En grupp kan följa hur många scheman som helst.
+:::
+
+- **Vad kortet visar.** Vem som är i varje grupp nu, de andra scheman den följer, och om den är **Uppdaterad**. Den som har jour men inte kan läggas i gruppen nämns, med skälet: OneUptime hittar en person via personens anslutna Slack-konto, eller annars via den e-postadress Slack har för personen, och Slack håller gäster utanför användargrupper.
+- **Ingen har jour.** Slack kan inte behålla en användargrupp utan medlemmar, så OneUptime stänger av gruppen tills någon har jour, och slår sedan på den igen.
+- **Larma gruppen.** `/oneuptime page @payments-oncall The checkout API is down` larmar dem som har jour i de scheman gruppen följer. Se [Larma någon från Slack](#larma-någon-från-slack).
+- **Vad Slack kräver.** Användargrupper ingår i Slacks betalda abonnemang, och en arbetsyta kan låta bara sina ägare och administratörer ändra dem: kortet säger vilket, och vad du gör. Om Slack anslöts innan OneUptime kunde hålla användargrupper uppdaterade, ansluter du det igen en gång under **Projektinställningar** > **Arbetsyta** > **Slack**.
+- **Vem som får ansluta en.** De roller som får redigera scheman: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** och **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
+- **Koppla från.** OneUptime slutar ändra gruppen. Gruppen och dess medlemmar stannar i Slack som de är.
 
 ## Agera på incidenter, larm och händelser från Slack
 

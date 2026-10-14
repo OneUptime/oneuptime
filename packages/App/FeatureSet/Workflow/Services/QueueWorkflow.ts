@@ -2,6 +2,7 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import PositiveNumber from "Common/Types/PositiveNumber";
@@ -254,6 +255,18 @@ export default class QueueWorkflow {
     }
 
     const projectId: ObjectID = workflow.projectId;
+
+    /*
+     * A project a master admin blocked runs no workflow until it is
+     * unblocked, so a run asked for now is refused - a webhook sender is
+     * told 403 - and nothing is written for it. Registering a schedule is
+     * let through, so the schedule fires again once the project is
+     * unblocked; the runner stops each firing while it is blocked
+     * (Common/Types/Workflow/WorkflowProjectBlocked).
+     */
+    if (!scheduleAt && (await ProjectService.isProjectBlocked(projectId))) {
+      throw new ProjectBlockedException();
+    }
 
     // Who started a test run, as its log names them.
     const testRunStartedBy: string | undefined =

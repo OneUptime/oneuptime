@@ -6,6 +6,7 @@ Koppel OneUptime aan Slack om incidenten, waarschuwingen, episodes, gepland onde
 - [Slack koppelen](#slack-koppelen): Installeer OneUptime in je workspace en koppel daarna je eigen account.
 - [Meldingsregels](#meldingsregels): Bepaal welke gebeurtenissen waar worden geplaatst, en welke een eigen kanaal krijgen.
 - [Het commando /oneuptime](#het-commando-oneuptime): Meld incidenten, plan onderhoud, zie wie er dienst heeft en stel vragen aan AI.
+- [Gebruikersgroepen voor bereikbaarheid](#gebruikersgroepen-voor-bereikbaarheid): Houd een gebruikersgroep gelijk aan wie er dienst heeft, en roep die op.
 - [Handelen op incidenten, waarschuwingen en gebeurtenissen vanuit Slack](#handelen-op-incidenten-waarschuwingen-en-gebeurtenissen-vanuit-slack): De knoppen in de berichten van OneUptime.
 :::
 
@@ -147,6 +148,18 @@ De antwoorden op `help` en `oncall` zijn berichten die alleen jij ziet, onder he
 > [!NOTE]
 > `/oneuptime incident` en `/oneuptime maintenance` vervangen `/incident` en `/maintenance`, die konden botsen met gelijknamige commando's van andere Slack-apps. Een Slack-app die vanuit een eerder manifest is aangemaakt, houdt ze, en ze openen dezelfde formulieren, tot de app wordt bijgewerkt: zie [Apps aangemaakt vanuit een ouder manifest](/docs/self-hosted/slack-integration#apps-aangemaakt-vanuit-een-ouder-manifest).
 
+## De startpagina van OneUptime in Slack
+
+Open OneUptime onder **Apps** in de zijbalk van Slack: het tabblad **Home** laat zien wat er in het project gebeurt, zoals jij het mag zien, en wordt bij elke keer openen opnieuw gelezen.
+
+- **Jouw dienst.** De bereikbaarheidsschema's waarin je nu dienst hebt, en tot wanneer, of anders je volgende dienst.
+- **Wat open is.** De nieuwste open incidenten en waarschuwingen die je mag lezen, elk met een link naar de pagina ervan in OneUptime.
+- **De knoppen.** **Declare incident**, **Schedule maintenance** en **Page someone** openen dezelfde formulieren als `/oneuptime incident`, `/oneuptime maintenance` en `/oneuptime page`, en **Who's on call** antwoordt zoals `/oneuptime oncall`.
+
+De startpagina leest als jou, dus heeft ze je eigen gekoppelde Slack-account nodig. Zolang dat niet zo is, staat er een knop **Connect Slack account** op, en zodra je het hebt gekoppeld, zie je je startpagina.
+
+Als iemand OneUptime aan een kanaal toevoegt, plaatst het daar een begroeting: hoe je het een vraag stelt en waar je een meldingsregel toevoegt die in het kanaal plaatst.
+
 ## OneUptime AI vragen vanuit Slack
 
 Stel in gewone taal vragen over je logs, traces, metrieken, incidenten en monitoren. Noem OneUptime met @ in een kanaal, of stuur het een direct bericht, en het antwoordt in de thread. `/oneuptime ask which monitors are down?` plaatst het antwoord in het kanaal. Beide vereisen dat je eigen Slack-account gekoppeld is en dat AI voor het project aanstaat. Antwoorden in Slack lezen alleen: gebruik de knoppen om iets te wijzigen. Zie [AI vragen](/docs/ai/ask-ai).
@@ -171,10 +184,31 @@ OneUptime antwoordt alleen op wat aan OneUptime gericht is.
 
 `/oneuptime page @nawaz The checkout API is throwing 500s` roept Nawaz meteen op. OneUptime maakt een waarschuwing aan met je bericht als titel, en elke persoon die je met @ noemt krijgt een telefoontje, een sms, een pushmelding of een e-mail, zoals diens eigen bereikbaarheidsregels zeggen, tot iemand de waarschuwing bevestigt.
 
-- **Wie meteen wordt opgeroepen.** De mensen die je met @ noemt, als er een bericht op hen volgt. OneUptime herkent iemand aan het OneUptime-account waaraan diens Slack-account is gekoppeld, of anders aan het e-mailadres dat Slack van diegene heeft. Niemand buiten het project wordt opgeroepen.
-- **Al het andere opent een formulier.** Zonder iemand met @ genoemd, zonder bericht, met een gebruikersgroep of `@here`, of met iemand die OneUptime niet herkent, opent het formulier **Page someone** met wat je typte al ingevuld, en zegt het wie het niet kon kiezen. Kies mensen, een team, een bereikbaarheidsschema, dat oproept wie er nu dienst in heeft, of een bereikbaarheidsbeleid, dat oproept via zijn escalatieregels, en verstuur het. Een naam die je eerst typt, zoals in `/oneuptime page Primary The disk is full`, kiest het schema, het team of het beleid met die naam.
+- **Wie meteen wordt opgeroepen.** De mensen die je met @ noemt, en wie er dienst heeft in de schema's die een gebruikersgroep volgt die je met @ noemt (zie [Gebruikersgroepen voor bereikbaarheid](#gebruikersgroepen-voor-bereikbaarheid)), als er een bericht op hen volgt. OneUptime herkent iemand aan het OneUptime-account waaraan diens Slack-account is gekoppeld, of anders aan het e-mailadres dat Slack van diegene heeft. Niemand buiten het project wordt opgeroepen.
+- **Al het andere opent een formulier.** Zonder iemand met @ genoemd, zonder bericht, met `@here`, met een gebruikersgroep die geen bereikbaarheidsschema volgt dat je kunt zien, of met iemand die OneUptime niet herkent, opent het formulier **Page someone** met wat je typte al ingevuld, en zegt het wie het niet kon kiezen. Kies mensen, een team, een bereikbaarheidsschema, dat oproept wie er nu dienst in heeft, of een bereikbaarheidsbeleid, dat oproept via zijn escalatieregels, en verstuur het. Een naam die je eerst typt, zoals in `/oneuptime page Primary The disk is full`, kiest het schema, het team of het beleid met die naam.
 - **Waar het te zien is.** Het kanaal toont de oproep als één bericht dat wordt bijgewerkt: wie werd opgeroepen en hoe, en wie bevestigde. Waar OneUptime niet kan posten, zoals in een privékanaal waarvoor het niet is uitgenodigd, zegt een bericht dat alleen jij ziet wie werd opgeroepen, met een link naar de waarschuwing.
 - **Wie mag oproepen.** Iedereen die zowel een bereikbaarheidsbeleid mag uitvoeren als een waarschuwing mag aanmaken: **Project Owner**, **Project Admin** en **Project Member**, of **On-Call Member** samen met **Alert Member** (**Create On-Call Duty Policy Execution Log** en **Create Alert** in een aangepaste rol). Mensen, een team of een schema rechtstreeks oproepen, zonder bereikbaarheidsbeleid achter de oproep, vereist daarnaast toegang tot elk bereikbaarheidsbeleid van het project. Ieder ander krijgt dat te horen waar die de opdracht gaf, en niemand wordt opgeroepen.
+
+## Gebruikersgroepen voor bereikbaarheid
+
+Houd een Slack-gebruikersgroep, zoals `@payments-oncall`, gelijk aan wie er dienst heeft in een of meer bereikbaarheidsschema's, zodat iedereen die met @ kan noemen om hen te bereiken. OneUptime past de leden van de groep aan bij elke overdracht en vervanging, en controleert de groep elke 15 minuten.
+
+:::steps
+### Een gebruikersgroep aan een schema koppelen
+
+Open het schema onder **Bereikbaarheidsdienst** > **Bereikbaarheidsschema's**. Klik in de kaart **Slack-gebruikersgroepen** op **Gebruikersgroep koppelen**, en kies een van de gebruikersgroepen in je werkruimte, of **Nieuwe gebruikersgroep maken** met een naam en een alias. De leden worden meteen vervangen door wie er dienst heeft.
+
+### De groep ook aan het secundaire schema koppelen
+
+Voor een groep met zowel de primaire als de secundaire dienst koppel je dezelfde groep ook op de pagina van het secundaire schema. Een groep kan zoveel schema's volgen als je wilt.
+:::
+
+- **Wat de kaart toont.** Wie er nu in elke groep zit, de andere schema's die de groep volgt, en of die **Actueel** is. Wie dienst heeft maar niet in de groep kan, wordt genoemd, met de reden: OneUptime vindt iemand via diens gekoppelde Slack-account, of anders via het e-mailadres dat Slack van diegene heeft, en Slack houdt gasten buiten gebruikersgroepen.
+- **Niemand heeft dienst.** Slack kan geen lege gebruikersgroep bewaren, dus OneUptime schakelt de groep uit tot iemand dienst heeft, en schakelt die dan weer in.
+- **De groep oproepen.** `/oneuptime page @payments-oncall The checkout API is down` roept op wie er dienst heeft in de schema's die de groep volgt. Zie [Iemand oproepen vanuit Slack](#iemand-oproepen-vanuit-slack).
+- **Wat Slack nodig heeft.** Gebruikersgroepen horen bij de betaalde abonnementen van Slack, en een werkruimte kan alleen de eigenaren en beheerders toestaan ze te wijzigen: de kaart zegt welke van de twee, en wat je kunt doen. Als Slack gekoppeld is voordat OneUptime gebruikersgroepen kon bijhouden, koppel het dan één keer opnieuw onder **Projectinstellingen** > **Werkruimte** > **Slack**.
+- **Wie er een mag koppelen.** De rollen die schema's mogen bewerken: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** en **On-Call Member**, of **Edit On-Call Duty Policy Schedule** in een aangepaste rol. In OneUptime Cloud vraagt koppelen het abonnement **Growth**.
+- **Ontkoppelen.** OneUptime past de groep niet meer aan. De groep en de leden blijven in Slack zoals ze zijn.
 
 ## Handelen op incidenten, waarschuwingen en gebeurtenissen vanuit Slack
 

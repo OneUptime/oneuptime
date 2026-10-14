@@ -426,6 +426,8 @@ Les champs que OneUptime remplit lui-même ne sont pas proposés quand vous écr
 
 **Skip** et **Limit** sont deux champs numériques sur Find Many, Update Many et Delete Many, sous **Plus de champs** — `Skip: 0` avec `Limit: 100` prend les cent premières correspondances. **Limit** vaut `10` par défaut, et sur Update Many et Delete Many il plafonne le nombre d'enregistrements réellement écrits, pas seulement le nombre de résultats renvoyés. Ainsi, `Items Deleted: 10` signifie que dix enregistrements ont été supprimés, pas que dix correspondaient. Augmentez **Limit** quand vous voulez en modifier plus de dix.
 
+Delete One et Delete Many par requête ne vident jamais un historique. Sur les événements de statut d'un moniteur, et sur les historiques d'états des incidents, des alertes, des maintenances planifiées et des épisodes, ils ne suppriment jamais l'état actuel d'un enregistrement, et ils gardent chaque événement de statut d'un moniteur qui couvre une partie des 90 derniers jours, pour qu'une page de statut n'affiche jamais un moniteur en gris. Le journal de l'exécution dit combien ont été gardés. Pour supprimer un événement précis, interrogez-le par son `_id`.
+
 **Success** et **Error** indiquent si la requête s'est exécutée, pas ce qu'elle a trouvé. Une requête qui ne correspond à rien renvoie `0` et sort quand même par **Success** — ce n'est pas un échec. Pour créer un embranchement selon qu'il y a eu des correspondances, lisez le décompte renvoyé dans un bloc **If / Else**.
 
 ## Étapes suivantes

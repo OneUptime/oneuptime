@@ -114,6 +114,8 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
    */
   beforeEach(() => {
     jest.clearAllMocks();
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     next = getJestMockFunction();
     spyFindApiKey.mockResolvedValue(null);
     spyFindApiKeyPermissions.mockResolvedValue([]);

@@ -421,7 +421,7 @@ describe("Detection Rules guide: the walkthrough rule", () => {
     expect(rule.mitreTactics).toEqual(["TA0006"]);
   });
 
-  test("named ATT&CK tags are not mapped, as the tags row warns", () => {
+  test("a tactic named rather than numbered maps to its id, as the tags row says", () => {
     const rule: SigmaRule = SigmaRuleParser.parse(`title: Named tags
 tags:
   - attack.credential_access
@@ -431,8 +431,11 @@ detection:
   condition: selection
 `);
 
-    expect(rule.mitreTactics).toEqual([]);
+    expect(rule.mitreTactics).toEqual(["TA0006"]);
     expect(rule.mitreTechniques).toEqual([]);
+    expect(guideToMarkdown(DetectionRulesGuide)).toContain(
+      "`attack.ta0006` or its name, `attack.credential_access`, is a tactic",
+    );
   });
 
   test("excludes internal IPs the way the overview describes", () => {

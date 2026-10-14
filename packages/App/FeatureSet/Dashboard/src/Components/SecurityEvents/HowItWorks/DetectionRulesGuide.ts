@@ -376,7 +376,7 @@ OneUptime runs the boolean core of the Sigma specification. A rule is parsed and
 | --- | --- |
 | \`detection\` | **Required.** Named selections plus a \`condition\` that combines them. |
 | \`level\` | The rule's severity: ${codeList(SIGMA_LEVELS_IN_ORDER)}. Missing or unrecognized levels read as \`${SIGMA_DEFAULT_LEVEL}\`. See **Severity Levels**. |
-| \`tags\` | ATT&CK ids become the finding's MITRE fields: \`attack.t1110\` (or \`attack.t1110.001\`) is a technique, \`attack.ta0006\` a tactic. Named tags such as \`attack.credential_access\` are not mapped. |
+| \`tags\` | ATT&CK tags become the finding's MITRE fields: \`attack.t1110\` (or \`attack.t1110.001\`) is a technique, and \`attack.ta0006\` or its name, \`attack.credential_access\`, is a tactic. They also place the rule on **ATT&CK Coverage**. |
 | \`description\` | Used on alerts when the rule's own Description field is empty. |
 | \`title\` | For your reference. Alerts and findings show the rule's Name field. |
 | \`id\` | Stored on findings as \`${DETECTION_SIGMA_ID_ATTRIBUTE}\`. |

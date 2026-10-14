@@ -6,6 +6,7 @@ Anslut OneUptime till Microsoft Teams för att publicera incidenter, larm, episo
 - [Anslut Microsoft Teams](#anslut-microsoft-teams): Administratörsmedgivande, din inloggning och appen i varje team.
 - [Aviseringsregler](#aviseringsregler): Bestäm vilka händelser som publiceras var, och vilka som får en egen kanal.
 - [Prata med OneUptime-boten](#prata-med-oneuptime-boten): Kommandon, frågor och formulär i en chatt med boten.
+- [Jourtaggar](#jourtaggar): Håll ett teams tagg lika med dem som har jour, och larma den.
 - [Agera på incidenter, larm och händelser från Microsoft Teams](#agera-på-incidenter-larm-och-händelser-från-microsoft-teams): Knapparna på OneUptimes kort.
 :::
 
@@ -159,6 +160,18 @@ Skriv till boten i en personlig chatt, eller nämn OneUptime med @ i en kanal el
 
 Förutom `show`-listorna är detta orden som följer efter `/oneuptime` i Slack; `create incident` och `create maintenance` fungerar fortfarande också. Att fråga OneUptime AI kräver att ditt eget Microsoft Teams-konto är anslutet och att AI är påslaget för projektet. Om ditt konto inte är anslutet ber boten dig en gång i varje tråd eller chatt att ansluta det, med knappen **Connect Microsoft Teams account**. Se [Fråga AI](/docs/ai/ask-ai).
 
+## Din startsida i Microsoft Teams
+
+Skriv `home` till OneUptime-boten, så svarar den med din startsida: ett kort med det som händer i projektet, så som du får se det.
+
+- **Din jour.** Jourschemana du har jour i just nu, och till när, eller annars ditt nästa pass.
+- **Det som är öppet.** De senaste öppna incidenterna och larmen du får läsa, var och en med en länk till sin sida i OneUptime.
+- **Knapparna.** **Declare incident** och **Page someone** svarar som `incident` och `page`, **Who's on call** som `oncall`, och **Refresh** läser om kortet, på samma plats.
+
+När du lägger till OneUptime-appen för dig själv skickar boten din startsida direkt. Startsidan och `show`-listorna läser som du, så de behöver ditt eget anslutna Microsoft Teams-konto: tills det är anslutet svarar boten med knappen **Connect Microsoft Teams account**. **Öppna OneUptime i Microsoft Teams** under **Användarinställningar** > **Arbetsyta** > **Microsoft Teams** öppnar appen i Teams.
+
+När appen läggs till i ett team säger boten hej där: hur man ställer en fråga till den, och var man lägger till en aviseringsregel som publicerar i teamets kanaler.
+
 ## Skapa incidenter och underhåll från Microsoft Teams
 
 Att skriva `incident` eller `maintenance` till OneUptime-boten öppnar ett formulär för den person som skrev det, i en personlig chatt, en kanal eller en gruppchatt. Det fylls i som den personen: som det OneUptime-konto som personens Microsoft Teams-konto är anslutet till (se [Anslut Microsoft Teams](#anslut-microsoft-teams)), med det kontots behörigheter i projektet. Den som inte har sitt konto anslutet, eller vars OneUptime-konto inte längre är medlem i projektet, får veta vad som ska göras i ett svar som nämner personen, i stället för formuläret.
@@ -173,10 +186,31 @@ Att skriva `incident` eller `maintenance` till OneUptime-boten öppnar ett formu
 
 I en kanal eller en gruppchatt larmar `@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` Nawaz direkt. OneUptime skapar ett larm med ditt meddelande som rubrik, och varje person du nämner med @ får ett telefonsamtal, ett sms, en pushnotis eller ett mejl, så som personens egna jourregler säger, tills någon bekräftar larmet.
 
-- **Vem som larmas direkt.** Personerna du nämner med @, när ett meddelande följer efter dem. OneUptime känner igen en person på det OneUptime-konto som personens Microsoft Teams-konto är anslutet till, eller annars på personens e-postadress i Microsoft Teams. Ingen utanför projektet larmas.
-- **Allt annat får ett kort.** Utan någon nämnd med @, som i en personlig chatt med boten, utan meddelande, med en tagg, eller med en person som OneUptime inte känner igen, svarar boten med kortet **Page someone**, med det du skrev ifyllt, och säger vem den inte kunde välja. Välj personer, ett team, ett jourschema, som larmar den som har jour i det just nu, eller en jourpolicy, som larmar genom sina eskaleringsregler, och skicka kortet. Alla i konversationen får skicka kortet, som sig själva. När det har larmat tas kortet bort, så att ingen larmar med det två gånger.
+- **Vem som larmas direkt.** Personerna du nämner med @, och de som har jour i de scheman som en tagg du nämner med @ följer (se [Jourtaggar](#jourtaggar)), när ett meddelande följer efter dem. OneUptime känner igen en person på det OneUptime-konto som personens Microsoft Teams-konto är anslutet till, eller annars på personens e-postadress i Microsoft Teams. Ingen utanför projektet larmas.
+- **Allt annat får ett kort.** Utan någon nämnd med @, som i en personlig chatt med boten, utan meddelande, med en tagg som inte följer något jourschema du kan se, eller med en person som OneUptime inte känner igen, svarar boten med kortet **Page someone**, med det du skrev ifyllt, och säger vem den inte kunde välja. Välj personer, ett team, ett jourschema, som larmar den som har jour i det just nu, eller en jourpolicy, som larmar genom sina eskaleringsregler, och skicka kortet. Alla i konversationen får skicka kortet, som sig själva. När det har larmat tas kortet bort, så att ingen larmar med det två gånger.
 - **Var det syns.** Konversationen visar larmningen som ett enda kort som hålls uppdaterat: vem som larmades och hur, och vem som bekräftade. Där boten inte kan posta det, säger dess svar vem som larmades, med en länk till larmet.
 - **Vem som får larma.** Alla som får både köra en jourpolicy och skapa ett larm: **Project Owner**, **Project Admin** och **Project Member**, eller **On-Call Member** tillsammans med **Alert Member** (**Create On-Call Duty Policy Execution Log** och **Create Alert** i en anpassad roll). Att larma personer, ett team eller ett schema direkt, utan en jourpolicy bakom larmningen, kräver också åtkomst till alla projektets jourpolicyer. Alla andra får veta det i ett svar, och ingen larmas.
+
+## Jourtaggar
+
+Håll en tagg i Microsoft Teams, till exempel `@Payments on-call`, lika med dem som har jour i ett eller flera jourscheman, så att alla i dess team kan nämna den med @ för att nå dem. OneUptime ändrar taggens medlemmar vid varje överlämning och åsidosättning, och kontrollerar den var 15:e minut.
+
+:::steps
+### Anslut en tagg till ett schema
+
+Öppna schemat under **Jourtjänst** > **Jourscheman**. Klicka på **Anslut tagg** i dess kort **Taggar i Microsoft Teams**, välj teamet och namnge taggen: teamets tagg med det namnet, eller en ny som OneUptime skapar. Medlemmarna ersätts direkt med dem som har jour.
+
+### Anslut den även till det sekundära schemat
+
+För en tagg med både den primära och den sekundära jouren ansluter du samma tagg på det sekundära schemats sida. En tagg kan följa hur många scheman som helst.
+:::
+
+- **Vad kortet visar.** Vem som är i varje tagg nu, dess team, de andra scheman den följer, och om den är **Uppdaterad**. En tagg innehåller bara personer i sitt eget team: den som har jour men inte är med i teamet nämns, med skälet.
+- **Ingen har jour.** OneUptime tar bort alla från taggen tills någon har jour. En ny tagg behöver någon från teamet som har jour, eftersom Microsoft Teams inte skapar taggar utan medlemmar.
+- **Larma taggen.** `@OneUptime page @Payments on-call The checkout API is down` larmar dem som har jour i de scheman taggen följer. Se [Larma någon från Microsoft Teams](#larma-någon-från-microsoft-teams).
+- **Vad Microsoft 365 kräver.** Att ändra taggar kräver appens behörighet `TeamworkTag.ReadWrite.All`, som en Microsoft 365-administratör beviljar med **Bevilja administratörssamtycke** under **Projektinställningar** > **Arbetsyta** > **Microsoft Teams**. Om din organisation gav samtycke innan OneUptime kunde hålla taggar uppdaterade, ger du det igen en gång.
+- **Vem som får ansluta en.** De roller som får redigera scheman: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** och **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
+- **Koppla från.** OneUptime slutar ändra taggen. Taggen och dess medlemmar stannar i Microsoft Teams som de är.
 
 ## Agera på incidenter, larm och händelser från Microsoft Teams
 

@@ -6,6 +6,7 @@
 - [連接 Microsoft Teams](#連接-microsoft-teams): 管理員同意、您的登入，以及每個團隊中的應用程式。
 - [通知規則](#通知規則): 決定哪些事件發布到哪裡，以及哪些事件擁有專屬頻道。
 - [與 OneUptime 機器人對話](#與-oneuptime-機器人對話): 在與機器人的聊天中使用指令、提問和表單。
+- [待命標籤](#待命標籤): 讓團隊的標籤與待命人員保持一致，並呼叫它。
 - [從 Microsoft Teams 處理事件、警示和活動](#從-microsoft-teams-處理事件警示和活動): OneUptime 卡片上的按鈕。
 :::
 
@@ -159,6 +160,18 @@ flowchart TB
 
 除 `show` 清單外，這些就是 Slack 中 `/oneuptime` 後面的詞；`create incident` 和 `create maintenance` 仍然可以使用。詢問 OneUptime AI 需要連接您自己的 Microsoft Teams 帳戶，並為專案開啟 AI。如果您的帳戶未連接，機器人會在每個討論串或聊天中請您連接一次，並附上一個 **Connect Microsoft Teams account** 按鈕。請參閱 [詢問 AI](/docs/ai/ask-ai)。
 
+## Microsoft Teams 中的您的首頁
+
+向 OneUptime 機器人輸入 `home`，它會用您的首頁回答：一張依您有權查看的範圍顯示專案中正在發生的事情的卡片。
+
+- **您的待命。** 您目前正在待命的待命排程及其結束時間，否則是您的下一個班次。
+- **未解決的內容。** 您有權讀取的最新未解決事件和警示，每一項都連結到它在 OneUptime 中的頁面。
+- **按鈕。** **Declare incident** 和 **Page someone** 的回答與 `incident` 和 `page` 相同， **Who's on call** 與 `oncall` 相同， **Refresh** 會在原處重新讀取卡片。
+
+當您為自己新增 OneUptime 應用程式時，機器人會立即傳送您的首頁。首頁和 `show` 清單以您的身分讀取，因此需要連接您自己的 Microsoft Teams 帳戶：在連接之前，機器人會用一個 **Connect Microsoft Teams account** 按鈕回答。 **使用者設定** > **工作區** > **Microsoft Teams** 中的 **在 Microsoft Teams 中開啟 OneUptime** 會在 Teams 中開啟該應用程式。
+
+當應用程式被新增到團隊時，機器人會在那裡打招呼：如何向它提問，以及在哪裡新增發佈到該團隊頻道的通知規則。
+
 ## 從 Microsoft Teams 建立事件和維護
 
 向 OneUptime 機器人輸入 `incident` 或 `maintenance`，無論是在個人聊天、頻道還是群組聊天中，都會為輸入的人開啟一個表單。表單以此人的身分填寫：也就是以其 Microsoft Teams 帳戶所連接的 OneUptime 帳戶的身分（請參閱 [連接 Microsoft Teams](#連接-microsoft-teams) ），依該帳戶在專案中的權限提交。帳戶未連接的人，或 OneUptime 帳戶已不再是專案成員的人，會在提及其本人的回覆中收到該怎麼做的說明，而不是表單。
@@ -173,10 +186,31 @@ flowchart TB
 
 在頻道或群組聊天中，`@OneUptime page @Nawaz Dhandala The checkout API is throwing 500s` 會立即呼叫 Nawaz。OneUptime 會建立一則以您的訊息為標題的警示，您 @提及的每個人都會依其本人的待命規則收到電話、簡訊、推播通知或電子郵件，直到有人確認該警示。
 
-- **立即被呼叫的人。** 您 @提及的人，前提是其後跟有訊息。OneUptime 透過此人的 Microsoft Teams 帳戶所連接的 OneUptime 帳戶識別此人，否則透過此人在 Microsoft Teams 中的電子郵件地址識別。專案以外的人不會被呼叫。
-- **其他情況會收到卡片。** 如果沒有 @提及任何人（例如在與機器人的個人聊天中）、沒有訊息、提及了標籤，或有 OneUptime 無法識別的人，機器人會以 **Page someone** 卡片回覆，其中已填入您輸入的內容，並說明哪些人無法選取。選擇人員、團隊、待命排程（呼叫此刻在該排程中待命的人）或待命策略（依其上報規則呼叫），然後提交。對話中的任何人都可以以自己的身分提交該卡片。呼叫完成後，卡片會被移除，以免有人用它重複呼叫。
+- **立即被呼叫的人。** 您 @提及的人，以及您 @提及的標籤所連結待命排程中正在待命的人，前提是其後跟有訊息（請參閱 [待命標籤](#待命標籤)）。OneUptime 透過此人的 Microsoft Teams 帳戶所連接的 OneUptime 帳戶識別此人，否則透過此人在 Microsoft Teams 中的電子郵件地址識別。專案以外的人不會被呼叫。
+- **其他情況會收到卡片。** 如果沒有 @提及任何人（例如在與機器人的個人聊天中）、沒有訊息、提及了未連結您可見待命排程的標籤，或有 OneUptime 無法識別的人，機器人會以 **Page someone** 卡片回覆，其中已填入您輸入的內容，並說明哪些人無法選取。選擇人員、團隊、待命排程（呼叫此刻在該排程中待命的人）或待命策略（依其上報規則呼叫），然後提交。對話中的任何人都可以以自己的身分提交該卡片。呼叫完成後，卡片會被移除，以免有人用它重複呼叫。
 - **顯示位置。** 對話會以一張持續更新的卡片顯示這次呼叫：呼叫了誰、如何呼叫，以及誰已確認。機器人無法張貼它時，它的回覆會告訴您呼叫了誰，並附上警示的連結。
 - **誰可以呼叫。** 既能執行待命策略又能建立警示的人： **Project Owner**、 **Project Admin** 和 **Project Member**，或同時擁有 **On-Call Member** 和 **Alert Member** 的人（自訂角色中的 **Create On-Call Duty Policy Execution Log** 和 **Create Alert** ）。不經待命策略直接呼叫人員、團隊或待命排程，還需要存取專案中所有待命策略的權限。其他任何人都會在回覆中收到告知，並且不會呼叫任何人。
+
+## 待命標籤
+
+讓 Microsoft Teams 標籤（例如 `@Payments on-call`）與一個或多個待命排程中目前正在待命的人保持一致，讓其團隊中的任何人都能 @提及它來聯絡待命人員。OneUptime 會在每次交接和覆寫時變更該標籤的成員，並每 15 分鐘檢查一次。
+
+:::steps
+### 將標籤連線到待命排程
+
+在 **待命** > **待命排程** 中開啟該排程。在其 **Microsoft Teams 標籤** 卡片中，點選 **連線標籤**，選擇團隊並輸入標籤名稱：即該團隊中使用此名稱的標籤，或由 OneUptime 建立的新標籤。標籤中的成員會立即換成正在待命的人。
+
+### 同時將其連線到備援待命排程
+
+若要讓一個標籤同時包含主要和備援待命人員，請在備援待命排程的頁面上連線同一個標籤。一個標籤可以連結任意數量的待命排程。
+:::
+
+- **卡片顯示的內容。** 每個標籤目前的成員、它所在的團隊、它連結的其他待命排程，以及它是否 **已是最新**。標籤只能包含其團隊的成員：不在該團隊中的待命人員會連同原因一起列出。
+- **無人待命時。** OneUptime 會把所有人移出該標籤，直到有人待命。新建標籤需要團隊中有人正在待命，因為 Microsoft Teams 無法建立沒有成員的標籤。
+- **呼叫該標籤。** `@OneUptime page @Payments on-call The checkout API is down` 會呼叫該標籤所連結待命排程中正在待命的人。請參閱 [從 Microsoft Teams 呼叫他人](#從-microsoft-teams-呼叫他人)。
+- **Microsoft 365 的要求。** 變更標籤需要應用程式的 `TeamworkTag.ReadWrite.All` 權限，由 Microsoft 365 管理員在 **專案設定** > **工作區** > **Microsoft Teams** 中透過 **授予管理員同意** 授予。如果您的組織在 OneUptime 能夠維護標籤之前就已同意，請再同意一次。
+- **誰可以連線。** 可以編輯待命排程的角色： **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自訂角色中的 **Edit On-Call Duty Policy Schedule**。在 OneUptime Cloud 上，連線需要 **Growth** 方案。
+- **中斷連線後。** OneUptime 不再變更該標籤。該標籤及其成員會照原樣留在 Microsoft Teams 中。
 
 ## 從 Microsoft Teams 處理事件、警示和活動
 
