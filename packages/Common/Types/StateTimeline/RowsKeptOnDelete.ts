@@ -6,7 +6,7 @@
  * status page's bars and uptime, a monitor's overview, an incident's current
  * state on a status page. When a record has no row left, or none for a span
  * of the history a reader shows, that reader has nothing to draw: a status
- * page paints the monitor grey ("no data"), and an active incident shows no
+ * page paints the monitor gray ("no data"), and an active incident shows no
  * state at all.
  *
  * So a delete that names its rows by a query - a workflow's Delete Many,
@@ -73,7 +73,7 @@ export const ROWS_KEPT_ON_DELETE_BY_QUERY: Readonly<
     parentColumn: "monitorId",
     keepsHistoryInEffect: true,
     whatStays: `each monitor's current status, and every status event that covers part of the last ${KEPT_STATUS_HISTORY_DAYS} days`,
-    why: "so status pages never show a monitor grey",
+    why: "so status pages never show a monitor gray",
     oneRowByIdCanGo: true,
   },
   NetworkSiteStatusTimeline: {

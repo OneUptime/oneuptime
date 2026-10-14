@@ -28613,5 +28613,7 @@
   "Only email addresses at these domains, or their subdomains, can subscribe and get notifications. One domain per line, such as acme.com. Leave empty to allow any domain. Phone, Slack, Microsoft Teams and webhook subscribers are not affected.": "只有这些域名或其子域名下的电子邮件地址才能订阅并接收通知。每行一个域名，例如 acme.com。留空则允许任何域名。电话、Slack、Microsoft Teams 和 Webhook 订阅者不受影响。",
   "{{domain}} is not a valid domain. Enter one domain per line, such as acme.com.": "{{domain}} 不是有效的域名。请每行输入一个域名，例如 acme.com。",
   "Reader Sessions": "读者会话",
-  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "按当前设置，读者不会登录此状态页，因此开启此设置时，访客无法订阅，只有您的团队可以添加订阅者。"
+  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "按当前设置，读者不会登录此状态页，因此开启此设置时，访客无法订阅，只有您的团队可以添加订阅者。",
+  "This is the monitor's oldest status event and it covers part of the last {{days}} days, so it can't be deleted: status pages would show that time gray.": "这是该监视器最早的状态事件，且覆盖了最近 {{days}} 天中的一部分，因此无法删除：删除后状态页面会将这段时间显示为灰色。",
+  "This is the monitor's only status event, so it can't be deleted: the monitor would have no status, and status pages would show it gray.": "这是该监视器唯一的状态事件，因此无法删除：删除后监视器将没有状态，状态页面会将其显示为灰色。"
 }

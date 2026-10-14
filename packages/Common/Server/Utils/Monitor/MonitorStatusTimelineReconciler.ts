@@ -71,14 +71,14 @@ const MAX_ROUNDS: number = 100000;
  * A MONITOR WITH NO STATUS TIMELINE LEFT.
  *
  * A status page draws a monitor's bars and uptime from its status timeline, so a monitor
- * with no row left is grey there - "no data" - even when it has been Operational all along.
+ * with no row left is gray there - "no data" - even when it has been Operational all along.
  * Two things left monitors that way:
  *
  *   - OneUptime Cloud's retention purge, from December 2023 to March 2025, deleted every
  *     status timeline row whose startsAt was more than 120 days old. A monitor that had not
- *     changed status for 120 days lost its only row, its CURRENT status, and turned grey for
+ *     changed status for 120 days lost its only row, its CURRENT status, and turned gray for
  *     good. Deletes by query now never take a monitor's current status
- *     (Types/StateTimeline/RowsKeptOnDelete), but the monitors already emptied stay grey.
+ *     (Types/StateTimeline/RowsKeptOnDelete), but the monitors already emptied stay gray.
  *   - A monitor whose first status row could not be written when it was created
  *     (MonitorService.createStatusTimelineWithRetry gives up after three lock failures). A
  *     Manual monitor is never probed, so nothing else ever writes one.

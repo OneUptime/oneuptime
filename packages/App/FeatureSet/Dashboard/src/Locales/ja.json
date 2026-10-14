@@ -28613,5 +28613,7 @@
   "Only email addresses at these domains, or their subdomains, can subscribe and get notifications. One domain per line, such as acme.com. Leave empty to allow any domain. Phone, Slack, Microsoft Teams and webhook subscribers are not affected.": "これらのドメインまたはそのサブドメインのメールアドレスのみが購読して通知を受け取れます。1 行に 1 つのドメインを入力します（例: acme.com）。空欄にすると、すべてのドメインを許可します。電話、Slack、Microsoft Teams、Webhook の購読者には影響しません。",
   "{{domain}} is not a valid domain. Enter one domain per line, such as acme.com.": "{{domain}} は有効なドメインではありません。1 行に 1 つのドメインを入力してください（例: acme.com）。",
   "Reader Sessions": "閲覧者のセッション",
-  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "現在の設定では、閲覧者はこのステータスページにサインインしません。この設定がオンの間、訪問者は購読できず、購読者を追加できるのはチームだけです。"
+  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "現在の設定では、閲覧者はこのステータスページにサインインしません。この設定がオンの間、訪問者は購読できず、購読者を追加できるのはチームだけです。",
+  "This is the monitor's oldest status event and it covers part of the last {{days}} days, so it can't be deleted: status pages would show that time gray.": "これはモニターの最も古いステータスイベントで、過去 {{days}} 日間の一部を含むため、削除できません。削除するとステータスページでその期間がグレー表示になります。",
+  "This is the monitor's only status event, so it can't be deleted: the monitor would have no status, and status pages would show it gray.": "これはモニターの唯一のステータスイベントのため、削除できません。削除するとモニターのステータスがなくなり、ステータスページでグレー表示になります。"
 }

@@ -28613,5 +28613,7 @@
   "Only email addresses at these domains, or their subdomains, can subscribe and get notifications. One domain per line, such as acme.com. Leave empty to allow any domain. Phone, Slack, Microsoft Teams and webhook subscribers are not affected.": "只有這些網域或其子網域的電子郵件地址才能訂閱並接收通知。每行一個網域，例如 acme.com。留空則允許任何網域。電話、Slack、Microsoft Teams 和 Webhook 訂閱者不受影響。",
   "{{domain}} is not a valid domain. Enter one domain per line, such as acme.com.": "{{domain}} 不是有效的網域。請每行輸入一個網域，例如 acme.com。",
   "Reader Sessions": "讀者工作階段",
-  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "依目前的設定，讀者不會登入此狀態頁面，因此開啟此設定時，訪客無法訂閱，只有您的團隊可以新增訂閱者。"
+  "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.": "依目前的設定，讀者不會登入此狀態頁面，因此開啟此設定時，訪客無法訂閱，只有您的團隊可以新增訂閱者。",
+  "This is the monitor's oldest status event and it covers part of the last {{days}} days, so it can't be deleted: status pages would show that time gray.": "這是該監測器最早的狀態事件，且涵蓋最近 {{days}} 天中的一部分，因此無法刪除：刪除後狀態頁面會將這段時間顯示為灰色。",
+  "This is the monitor's only status event, so it can't be deleted: the monitor would have no status, and status pages would show it gray.": "這是該監測器唯一的狀態事件，因此無法刪除：刪除後監測器將沒有狀態，狀態頁面會將其顯示為灰色。"
 }

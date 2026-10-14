@@ -103,7 +103,7 @@ RunCron(
     }
 
     /*
-     * A monitor with no status timeline left is grey on every status page, whatever its
+     * A monitor with no status timeline left is gray on every status page, whatever its
      * status. Its own current status is recorded again as one row (see
      * MonitorStatusTimelineReconciler.restoreMissingStatusTimelines): the monitors OneUptime
      * Cloud's old 120 day purge emptied, and any whose first row was never written. Its own

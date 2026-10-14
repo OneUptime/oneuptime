@@ -11,6 +11,13 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import MonitorStatusEventDelete, {
+  StatusEventDeleteRefusal,
+} from "Common/Utils/Monitor/MonitorStatusEventDelete";
+import { KEPT_STATUS_HISTORY_DAYS } from "Common/Types/StateTimeline/RowsKeptOnDelete";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
 import {
   getStateTimelineDurationColumn,
@@ -41,6 +48,90 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
   const [showRootCause, setShowRootCause] = useState<boolean>(false);
   const [rootCause, setRootCause] = useState<string>("");
 
+  const translator: Translator = useTranslator();
+
+  /*
+   * The one event a delete would be refused for - the monitor's only event,
+   * or its oldest while it covers part of the last 90 days - so its Delete is
+   * locked, saying why, instead of failing once clicked
+   * (MonitorStatusEventDelete). Read from the monitor's two oldest events,
+   * whatever the table shows, each time the table loads: a delete or a new
+   * event can move it.
+   */
+  const [deleteLock, setDeleteLock] = useState<{
+    eventId: string;
+    refusal: StatusEventDeleteRefusal;
+  } | null>(null);
+
+  const loadDeleteLock: () => Promise<void> = async (): Promise<void> => {
+    try {
+      const oldest: ListResult<MonitorStatusTimeline> =
+        await ModelAPI.getList<MonitorStatusTimeline>({
+          modelType: MonitorStatusTimeline,
+          query: {
+            monitorId: modelId,
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          limit: 2,
+          skip: 0,
+          select: {
+            _id: true,
+            startsAt: true,
+            endsAt: true,
+          },
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+        });
+
+      setDeleteLock(
+        MonitorStatusEventDelete.getLockedOldestEvent({
+          oldestEvents: oldest.data.map((event: MonitorStatusTimeline) => {
+            return {
+              id: (event._id || event.id?.toString() || "").toLowerCase(),
+              startsAt: event.startsAt,
+              endsAt: event.endsAt,
+            };
+          }),
+          eventCount: oldest.count,
+          now: OneUptimeDate.getCurrentDate(),
+        }),
+      );
+    } catch {
+      // Nothing is locked; the server still refuses that delete, saying why.
+      setDeleteLock(null);
+    }
+  };
+
+  const getDeleteDisabledReason: (
+    item: MonitorStatusTimeline,
+  ) => string | undefined = (
+    item: MonitorStatusTimeline,
+  ): string | undefined => {
+    const itemId: string = (
+      item._id ||
+      item.id?.toString() ||
+      ""
+    ).toLowerCase();
+
+    if (!deleteLock || !itemId || itemId !== deleteLock.eventId) {
+      return undefined;
+    }
+
+    if (deleteLock.refusal === StatusEventDeleteRefusal.OnlyEvent) {
+      return translator.translateText(
+        "This is the monitor's only status event, so it can't be deleted: the monitor would have no status, and status pages would show it gray.",
+      );
+    }
+
+    return translator.translateTemplate(
+      "This is the monitor's oldest status event and it covers part of the last {{days}} days, so it can't be deleted: status pages would show that time gray.",
+      {
+        days: KEPT_STATUS_HISTORY_DAYS.toString(),
+      },
+    );
+  };
+
   return (
     <Fragment>
       <DisabledWarning monitorId={modelId} />
@@ -53,6 +144,10 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
           tableId: "monitor-status-timeline-table",
         }}
         isDeleteable={true}
+        getDeleteDisabledReason={getDeleteDisabledReason}
+        onFetchSuccess={() => {
+          void loadDeleteLock();
+        }}
         showViewIdButton={true}
         isCreateable={true}
         isViewable={false}

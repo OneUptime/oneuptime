@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  *   - and it gives every monitor with no status timeline left its current
  *     status back as one row (MonitorStatusTimelineReconciler
  *     .restoreMissingStatusTimelines): the monitors OneUptime Cloud's old 120
- *     day purge emptied, whose status pages show them grey, and any whose
+ *     day purge emptied, whose status pages show them gray, and any whose
  *     first row was never written. It runs on startup too, so a deploy
  *     restores them at once.
  *

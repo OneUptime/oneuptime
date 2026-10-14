@@ -3,9 +3,10 @@ import MonitorStatusEventDelete, {
   ONLY_STATUS_EVENT_MESSAGE,
   StatusEventDeleteDecision,
   StatusEventDeleteFacts,
-} from "../../../../Server/Utils/Monitor/MonitorStatusEventDelete";
-import ObjectID from "../../../../Types/ObjectID";
-import { KEPT_STATUS_HISTORY_DAYS } from "../../../../Types/StateTimeline/RowsKeptOnDelete";
+  StatusEventDeleteRefusal,
+} from "../../../Utils/Monitor/MonitorStatusEventDelete";
+import ObjectID from "../../../Types/ObjectID";
+import { KEPT_STATUS_HISTORY_DAYS } from "../../../Types/StateTimeline/RowsKeptOnDelete";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -54,7 +55,11 @@ describe("the monitor's only event", () => {
           eventCount,
           event: { startsAt: daysAgo(365), endsAt: null },
         }),
-      ).toEqual({ kind: "refuse", message: ONLY_STATUS_EVENT_MESSAGE });
+      ).toEqual({
+        kind: "refuse",
+        refusal: StatusEventDeleteRefusal.OnlyEvent,
+        message: ONLY_STATUS_EVENT_MESSAGE,
+      });
     }
   });
 
@@ -64,7 +69,11 @@ describe("the monitor's only event", () => {
         eventCount: 1,
         event: { startsAt: daysAgo(3000), endsAt: daysAgo(2000) },
       }),
-    ).toEqual({ kind: "refuse", message: ONLY_STATUS_EVENT_MESSAGE });
+    ).toEqual({
+        kind: "refuse",
+        refusal: StatusEventDeleteRefusal.OnlyEvent,
+        message: ONLY_STATUS_EVENT_MESSAGE,
+      });
   });
 });
 
@@ -78,6 +87,7 @@ describe("the monitor's oldest event", () => {
         }),
       ).toEqual({
         kind: "refuse",
+        refusal: StatusEventDeleteRefusal.OldestInKeptHistory,
         message: OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
       });
     }
@@ -90,6 +100,7 @@ describe("the monitor's oldest event", () => {
       decide({ event: { startsAt: daysAgo(365), endsAt }, after: null }),
     ).toEqual({
       kind: "refuse",
+      refusal: StatusEventDeleteRefusal.OldestInKeptHistory,
       message: OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
     });
   });
@@ -120,6 +131,7 @@ describe("the monitor's oldest event", () => {
       }),
     ).toEqual({
       kind: "refuse",
+      refusal: StatusEventDeleteRefusal.OldestInKeptHistory,
       message: OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
     });
   });
@@ -133,6 +145,7 @@ describe("the monitor's oldest event", () => {
       }),
     ).toEqual({
       kind: "refuse",
+      refusal: StatusEventDeleteRefusal.OldestInKeptHistory,
       message: OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
     });
   });
@@ -155,6 +168,7 @@ describe("the monitor's oldest event", () => {
       }),
     ).toEqual({
       kind: "refuse",
+      refusal: StatusEventDeleteRefusal.OldestInKeptHistory,
       message: OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
     });
   });
@@ -241,10 +255,109 @@ describe("an event in the middle", () => {
 describe("the refusals", () => {
   test("say what would happen in plain words, and what to do instead", () => {
     expect(ONLY_STATUS_EVENT_MESSAGE).toBe(
-      "This is the monitor's only status event, so it can't be deleted: the monitor would be left with no status, and status pages would show it grey. To change the monitor's status, add a new status event.",
+      "This is the monitor's only status event, so it can't be deleted: the monitor would be left with no status, and status pages would show it gray. To change the monitor's status, add a new status event.",
     );
     expect(OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE).toBe(
-      "This is the monitor's oldest status event and it covers part of the last 90 days, so it can't be deleted: that time would be left with no status, and status pages would show it grey. To change the status for that time, add a status event with the same start, then delete this one.",
+      "This is the monitor's oldest status event and it covers part of the last 90 days, so it can't be deleted: that time would be left with no status, and status pages would show it gray. To change the status for that time, add a status event with the same start, then delete this one.",
     );
+  });
+});
+
+describe("the event a status timeline page locks Delete on", () => {
+  const lockOf: (data: {
+    oldestEvents: Array<{
+      id: string;
+      startsAt?: Date | undefined;
+      endsAt?: Date | null | undefined;
+    }>;
+    eventCount: number;
+  }) => { eventId: string; refusal: StatusEventDeleteRefusal } | null = (data: {
+    oldestEvents: Array<{
+      id: string;
+      startsAt?: Date | undefined;
+      endsAt?: Date | null | undefined;
+    }>;
+    eventCount: number;
+  }) => {
+    return MonitorStatusEventDelete.getLockedOldestEvent({ ...data, now: NOW });
+  };
+
+  test("is the only event, whatever its age", () => {
+    for (const startsAt of [daysAgo(1000), daysAgo(1)]) {
+      expect(
+        lockOf({
+          oldestEvents: [{ id: "only", startsAt, endsAt: null }],
+          eventCount: 1,
+        }),
+      ).toEqual({
+        eventId: "only",
+        refusal: StatusEventDeleteRefusal.OnlyEvent,
+      });
+    }
+  });
+
+  test("is the oldest event while it covers part of the last 90 days", () => {
+    expect(
+      lockOf({
+        oldestEvents: [
+          { id: "oldest", startsAt: daysAgo(365), endsAt: daysAgo(20) },
+          { id: "next", startsAt: daysAgo(20), endsAt: null },
+        ],
+        eventCount: 2,
+      }),
+    ).toEqual({
+      eventId: "oldest",
+      refusal: StatusEventDeleteRefusal.OldestInKeptHistory,
+    });
+  });
+
+  test("is none once the oldest event ended before the last 90 days", () => {
+    expect(
+      lockOf({
+        oldestEvents: [
+          { id: "oldest", startsAt: daysAgo(365), endsAt: daysAgo(100) },
+          { id: "next", startsAt: daysAgo(100), endsAt: null },
+        ],
+        eventCount: 5,
+      }),
+    ).toBeNull();
+  });
+
+  test("reads an open oldest event, an orphan, by the start of the next one", () => {
+    expect(
+      lockOf({
+        oldestEvents: [
+          { id: "orphan", startsAt: daysAgo(400), endsAt: null },
+          { id: "next", startsAt: daysAgo(300), endsAt: null },
+        ],
+        eventCount: 3,
+      }),
+    ).toBeNull();
+
+    expect(
+      lockOf({
+        oldestEvents: [
+          { id: "orphan", startsAt: daysAgo(400), endsAt: null },
+          { id: "next", startsAt: daysAgo(30), endsAt: null },
+        ],
+        eventCount: 3,
+      })?.eventId,
+    ).toBe("orphan");
+  });
+
+  test("is none when the two oldest events start together: each is the other's before", () => {
+    expect(
+      lockOf({
+        oldestEvents: [
+          { id: "a", startsAt: daysAgo(10), endsAt: daysAgo(10) },
+          { id: "b", startsAt: daysAgo(10), endsAt: null },
+        ],
+        eventCount: 2,
+      }),
+    ).toBeNull();
+  });
+
+  test("is none for a monitor with no events", () => {
+    expect(lockOf({ oldestEvents: [], eventCount: 0 })).toBeNull();
   });
 });

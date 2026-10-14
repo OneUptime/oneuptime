@@ -49,7 +49,7 @@ import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
 import MonitorStatusEventDelete, {
   StatusEventDeleteDecision,
-} from "../Utils/Monitor/MonitorStatusEventDelete";
+} from "../../Utils/Monitor/MonitorStatusEventDelete";
 
 /*
  * Thrown by onBeforeCreate when the incoming status is the same as the status of
@@ -120,7 +120,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     /*
      * A delete by query - a workflow's Delete Many, a retention purge -
      * leaves each monitor's current status and every status event that
-     * covers part of the last 90 days, so a monitor never turns grey on a
+     * covers part of the last 90 days, so a monitor never turns gray on a
      * status page because its history was cleaned up. One event deleted by
      * its id is onBeforeDelete's to judge.
      */

@@ -24,7 +24,7 @@ import logger from "../../../Server/Utils/Logger";
 import {
   OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
   ONLY_STATUS_EVENT_MESSAGE,
-} from "../../../Server/Utils/Monitor/MonitorStatusEventDelete";
+} from "../../../Utils/Monitor/MonitorStatusEventDelete";
 import MonitorStatusTimelineReconciler, {
   RESTORE_GRACE_PERIOD_IN_MINUTES,
   RESTORED_STATUS_EVENT_ROOT_CAUSE,
@@ -66,10 +66,10 @@ import { DataSource, Logger as QueryLogger } from "typeorm";
  * A DELETE BY QUERY OF A STATE TIMELINE LEAVES WHAT READERS STILL DRAW,
  * AGAINST POSTGRES.
  *
- * A status page paints a monitor grey wherever its status timeline has no
+ * A status page paints a monitor gray wherever its status timeline has no
  * row: OneUptime Cloud's old retention purge (every row whose start was 120
  * days old, December 2023 to March 2025) emptied the timeline of every
- * monitor that had been Operational for that long, and turned it grey for
+ * monitor that had been Operational for that long, and turned it gray for
  * good. These run the services' real paths on real rows:
  *
  *   - OneUptime's own purge (hardDeleteBy and deleteBy as root, the
@@ -1101,7 +1101,7 @@ describePostgres(
         // The year-long row and the row before the change 20 days ago matched and stayed.
         expect(logs).toEqual([
           "Deleted 2 Monitor Status Event(s).",
-          "Kept 2 Monitor Status Events: a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor grey. To delete one specific Monitor Status Event, query it by its ID.",
+          "Kept 2 Monitor Status Events: a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor gray. To delete one specific Monitor Status Event, query it by its ID.",
         ]);
       });
 

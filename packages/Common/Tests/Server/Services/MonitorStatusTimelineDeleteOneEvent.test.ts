@@ -9,7 +9,7 @@ import { OnDelete } from "../../../Server/Types/Database/Hooks";
 import {
   OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
   ONLY_STATUS_EVENT_MESSAGE,
-} from "../../../Server/Utils/Monitor/MonitorStatusEventDelete";
+} from "../../../Utils/Monitor/MonitorStatusEventDelete";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";

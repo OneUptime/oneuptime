@@ -125,7 +125,7 @@ describe("the words", () => {
         ROWS_KEPT_ON_DELETE_BY_QUERY["MonitorStatusTimeline"]!,
       ),
     ).toBe(
-      "a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor grey",
+      "a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor gray",
     );
 
     expect(
@@ -144,7 +144,7 @@ describe("the words", () => {
         many: "Monitor Status Events",
       }),
     ).toBe(
-      "Kept 3 Monitor Status Events: a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor grey. To delete one specific Monitor Status Event, query it by its ID.",
+      "Kept 3 Monitor Status Events: a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor gray. To delete one specific Monitor Status Event, query it by its ID.",
     );
   });
 

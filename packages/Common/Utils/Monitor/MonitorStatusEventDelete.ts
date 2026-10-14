@@ -1,6 +1,6 @@
-import OneUptimeDate from "../../../Types/Date";
-import ObjectID from "../../../Types/ObjectID";
-import { KEPT_STATUS_HISTORY_DAYS } from "../../../Types/StateTimeline/RowsKeptOnDelete";
+import OneUptimeDate from "../../Types/Date";
+import ObjectID from "../../Types/ObjectID";
+import { KEPT_STATUS_HISTORY_DAYS } from "../../Types/StateTimeline/RowsKeptOnDelete";
 
 /*
  * DELETING ONE STATUS EVENT OF A MONITOR, BY ITS ID.
@@ -19,7 +19,7 @@ import { KEPT_STATUS_HISTORY_DAYS } from "../../../Types/StateTimeline/RowsKeptO
  * Two deletes are refused, because no event is left to take the time:
  *
  *   - the monitor's only event: the monitor would have no status at all, and
- *     status pages would show it grey;
+ *     status pages would show it gray;
  *   - the monitor's oldest event while it still covers part of the last
  *     KEPT_STATUS_HISTORY_DAYS days: that time would be left with no status.
  *     Once it ended before that, it can go: the history then begins with the
@@ -28,12 +28,22 @@ import { KEPT_STATUS_HISTORY_DAYS } from "../../../Types/StateTimeline/RowsKeptO
  * A delete that names its events by a query is a clean-up, not a
  * correction: it moves no event, and DatabaseService has already narrowed it
  * to the events that are over (Types/StateTimeline/RowsKeptOnDelete).
+ *
+ * Shared: the service refuses with these rules (MonitorStatusTimelineService
+ * onBeforeDelete), and the monitor's Status Timeline page locks Delete on the
+ * one event they would refuse (getLockedOldestEvent), saying why.
  */
 
-export const ONLY_STATUS_EVENT_MESSAGE: string =
-  "This is the monitor's only status event, so it can't be deleted: the monitor would be left with no status, and status pages would show it grey. To change the monitor's status, add a new status event.";
+// Why a delete of one status event is refused.
+export enum StatusEventDeleteRefusal {
+  OnlyEvent = "OnlyEvent",
+  OldestInKeptHistory = "OldestInKeptHistory",
+}
 
-export const OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE: string = `This is the monitor's oldest status event and it covers part of the last ${KEPT_STATUS_HISTORY_DAYS} days, so it can't be deleted: that time would be left with no status, and status pages would show it grey. To change the status for that time, add a status event with the same start, then delete this one.`;
+export const ONLY_STATUS_EVENT_MESSAGE: string =
+  "This is the monitor's only status event, so it can't be deleted: the monitor would be left with no status, and status pages would show it gray. To change the monitor's status, add a new status event.";
+
+export const OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE: string = `This is the monitor's oldest status event and it covers part of the last ${KEPT_STATUS_HISTORY_DAYS} days, so it can't be deleted: that time would be left with no status, and status pages would show it gray. To change the status for that time, add a status event with the same start, then delete this one.`;
 
 export interface StatusEventInTimeline {
   startsAt?: Date | undefined;
@@ -56,6 +66,7 @@ export type StatusEventDeleteDecision =
   | {
       // Refused: no event is left to take the time.
       kind: "refuse";
+      refusal: StatusEventDeleteRefusal;
       message: string;
     }
   | {
@@ -72,7 +83,11 @@ export type StatusEventDeleteDecision =
 export default class MonitorStatusEventDelete {
   public static decide(facts: StatusEventDeleteFacts): StatusEventDeleteDecision {
     if (facts.eventCount <= 1) {
-      return { kind: "refuse", message: ONLY_STATUS_EVENT_MESSAGE };
+      return {
+        kind: "refuse",
+        refusal: StatusEventDeleteRefusal.OnlyEvent,
+        message: ONLY_STATUS_EVENT_MESSAGE,
+      };
     }
 
     if (!facts.before) {
@@ -100,6 +115,7 @@ export default class MonitorStatusEventDelete {
       ) {
         return {
           kind: "refuse",
+          refusal: StatusEventDeleteRefusal.OldestInKeptHistory,
           message: OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
         };
       }
@@ -125,5 +141,57 @@ export default class MonitorStatusEventDelete {
       previousId: facts.before.id,
       endsAt: facts.after.startsAt || facts.event.endsAt || null,
     };
+  }
+
+  /*
+   * For a page that lists a monitor's status events: the one event a delete
+   * by its id would refuse, and why - or null when every event can go. Only
+   * the oldest event can be refused (its only event is its oldest), so the
+   * page needs no more than the monitor's two oldest events, oldest first,
+   * and how many it has.
+   *
+   * Two events that start at the same moment are each the other's "before",
+   * as the service reads them, so neither is refused as the oldest.
+   */
+  public static getLockedOldestEvent(data: {
+    oldestEvents: Array<StatusEventInTimeline & { id: string }>;
+    eventCount: number;
+    now: Date;
+  }): { eventId: string; refusal: StatusEventDeleteRefusal } | null {
+    const oldest: (StatusEventInTimeline & { id: string }) | undefined =
+      data.oldestEvents[0];
+
+    if (!oldest || data.eventCount < 1) {
+      return null;
+    }
+
+    const next: (StatusEventInTimeline & { id: string }) | null =
+      data.oldestEvents[1] || null;
+
+    const startsWithIt: boolean = Boolean(
+      next &&
+        next.startsAt &&
+        oldest.startsAt &&
+        new Date(next.startsAt).getTime() ===
+          new Date(oldest.startsAt).getTime(),
+    );
+
+    if (startsWithIt && data.eventCount > 1) {
+      return null;
+    }
+
+    const decision: StatusEventDeleteDecision = MonitorStatusEventDelete.decide(
+      {
+        event: oldest,
+        before: null,
+        after: next,
+        eventCount: data.eventCount,
+        now: data.now,
+      },
+    );
+
+    return decision.kind === "refuse"
+      ? { eventId: oldest.id, refusal: decision.refusal }
+      : null;
   }
 }

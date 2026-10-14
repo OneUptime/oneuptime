@@ -1438,7 +1438,7 @@ jobs:
       # A delete by query of a state timeline - OneUptime's retention purge,
       # a workflow's Delete Many - leaves each record's current row, and a
       # monitor or network site its last 90 days, so a status page never paints
-      # a monitor grey for a history that was cleaned up; the monitors already
+      # a monitor gray for a history that was cleaned up; the monitors already
       # emptied get their current status back. The SQL is the row's own
       # condition, so it is only proved by Postgres.
       - name: Test what a delete of state timeline rows keeps on migrated Postgres

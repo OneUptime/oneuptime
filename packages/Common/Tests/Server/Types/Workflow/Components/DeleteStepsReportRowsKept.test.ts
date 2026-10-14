@@ -114,7 +114,7 @@ describe("Delete Many", () => {
 
     expect(fixture.lines).toEqual([
       "Deleted 12 Monitor Status Event(s).",
-      "Kept 3 Monitor Status Events: a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor grey. To delete one specific Monitor Status Event, query it by its ID.",
+      "Kept 3 Monitor Status Events: a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor gray. To delete one specific Monitor Status Event, query it by its ID.",
     ]);
 
     // Counted with the step's own query and as the step acts.
@@ -226,7 +226,7 @@ describe("Delete One", () => {
     expect(result.returnValues["items-deleted"]).toBe(0);
     expect(fixture.lines).toEqual([
       "Deleted 0 Monitor Status Event(s).",
-      "Kept 1 Monitor Status Event: a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor grey. To delete one specific Monitor Status Event, query it by its ID.",
+      "Kept 1 Monitor Status Event: a delete by query leaves each monitor's current status, and every status event that covers part of the last 90 days, so status pages never show a monitor gray. To delete one specific Monitor Status Event, query it by its ID.",
     ]);
   });
 
