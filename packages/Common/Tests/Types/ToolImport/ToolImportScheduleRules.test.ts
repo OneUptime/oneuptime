@@ -20,6 +20,7 @@ import {
   getConcurrentLayerOrder,
   getGroupScheduleName,
   getGroupSourceId,
+  getGroupSourceIdKey,
   getNextDayOfWeek,
   getRestrictionCoverage,
   groupRotationsIntoSchedules,
@@ -35,6 +36,7 @@ import {
   ImportedRestriction,
   ImportedRotation,
 } from "../../../Types/ToolImport/ToolImportSnapshot";
+import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import moment from "moment-timezone";
 
 /*
@@ -337,6 +339,44 @@ describe("ToolImportScheduleRules: how a schedule's rotations share OneUptime sc
     expect(isGroupSourceIdOf("abc#2", "abc")).toBe(true);
     expect(isGroupSourceIdOf("abcd", "abc")).toBe(false);
     expect(isGroupSourceIdOf("ab#2", "abc")).toBe(false);
+  });
+
+  test("every schedule a schedule became shares its key, so its records are found among those that share it", () => {
+    expect(getGroupSourceIdKey("abc")).toBe("abc");
+    expect(getGroupSourceIdKey(getGroupSourceId("abc", 1))).toBe("abc");
+    expect(getGroupSourceIdKey(getGroupSourceId("abc", 11))).toBe("abc");
+    expect(getGroupSourceIdKey("abcd")).toBe("abcd");
+    // An id of the tool's own with a "#" in it: the key is what comes before it.
+    expect(getGroupSourceIdKey("a#b")).toBe("a");
+    expect(getGroupSourceIdKey(getGroupSourceId("a#b", 1))).toBe("a");
+    expect(getGroupSourceIdKey("")).toBe("");
+
+    // Of any two ids, one a group of the other's schedule shares its key.
+    const ids: Array<string> = generatedTexts(
+      300,
+      7253,
+      ["a", "b", "#", "2", "#2"],
+      6,
+    );
+    const strays: Array<string> = [];
+    let groups: number = 0;
+
+    for (const id of ids) {
+      for (const schedule of ids) {
+        if (id === schedule || !isGroupSourceIdOf(id, schedule)) {
+          continue;
+        }
+
+        groups++;
+
+        if (getGroupSourceIdKey(id) !== getGroupSourceIdKey(schedule)) {
+          strays.push(`${id} of ${schedule}`);
+        }
+      }
+    }
+
+    expect(strays).toEqual([]);
+    expect(groups).toBeGreaterThan(1000);
   });
 });
 
