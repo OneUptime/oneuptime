@@ -24,6 +24,8 @@ interface ProbeProps {
   /** Bumping this hands the hook a new query identity, as a filter change would. */
   queryKey?: string | undefined;
   onReady?: ((state: LogsHistogramState) => void) | undefined;
+  // Passed to the hook as `isEnabled`; left out, the hook's default.
+  isEnabled?: boolean | undefined;
 }
 
 /*
@@ -44,7 +46,10 @@ const HistogramProbe: FunctionComponent<ProbeProps> = (
      */
   }, [fetchBuckets, queryKey]);
 
-  const state: LogsHistogramState = useLogsHistogram(fetch);
+  const state: LogsHistogramState = useLogsHistogram(
+    fetch,
+    props.isEnabled === undefined ? undefined : { isEnabled: props.isEnabled },
+  );
 
   props.onReady?.(state);
 
@@ -889,6 +894,97 @@ describe("useLogsHistogram", () => {
 
       expect(error()).toBe("");
       expect(counts()).toBe("11:59=3,12:00=8");
+    });
+  });
+  /*
+   * Held back (issue #4709): the logs explorer waits to learn which query it
+   * will show - a saved view applying on load - before its first reads. The
+   * chart must not read the query before that one, and must read the one
+   * after it once.
+   */
+  describe("held back with isEnabled", () => {
+    test("sends nothing while held, and reads as loading", async () => {
+      let calls: number = 0;
+      const fetchBuckets: FetchHistogramBucketsFunction = async (): Promise<
+        Array<HistogramBucket>
+      > => {
+        calls++;
+        return FIRST_WINDOW;
+      };
+
+      const view: ReturnType<typeof render> = render(
+        <HistogramProbe fetchBuckets={fetchBuckets} isEnabled={false} />,
+      );
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(calls).toBe(0);
+      expect(isLoading()).toBe(true);
+      expect(counts()).toBe("");
+
+      // A new query while held is not read either.
+      view.rerender(
+        <HistogramProbe
+          fetchBuckets={fetchBuckets}
+          queryKey="saved-view"
+          isEnabled={false}
+        />,
+      );
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(calls).toBe(0);
+    });
+
+    test("let go, it reads the query it then has, once", async () => {
+      const asked: Array<string> = [];
+      const fetchFor: (label: string) => FetchHistogramBucketsFunction = (
+        label: string,
+      ): FetchHistogramBucketsFunction => {
+        return async (): Promise<Array<HistogramBucket>> => {
+          asked.push(label);
+          return label === "saved-view" ? SECOND_WINDOW : FIRST_WINDOW;
+        };
+      };
+
+      const view: ReturnType<typeof render> = render(
+        <HistogramProbe fetchBuckets={fetchFor("default")} isEnabled={false} />,
+      );
+
+      // The saved view lands: a new query and the hold let go, together.
+      view.rerender(
+        <HistogramProbe
+          fetchBuckets={fetchFor("saved-view")}
+          isEnabled={true}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(counts()).toBe("11:59=3,12:00=8");
+      });
+
+      expect(asked).toEqual(["saved-view"]);
+      expect(isLoading()).toBe(false);
+    });
+
+    test("left out, it reads at once, as it always has", async () => {
+      let calls: number = 0;
+      const fetchBuckets: FetchHistogramBucketsFunction = async (): Promise<
+        Array<HistogramBucket>
+      > => {
+        calls++;
+        return FIRST_WINDOW;
+      };
+
+      render(<HistogramProbe fetchBuckets={fetchBuckets} />);
+
+      await waitFor(() => {
+        expect(counts()).toBe("11:59=3");
+      });
+      expect(calls).toBe(1);
     });
   });
 });

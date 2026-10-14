@@ -13,6 +13,14 @@ export interface TelemetryPaginationProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
   isDisabled?: boolean;
+  /*
+   * Set while the list loads with nothing on screen yet - the first page,
+   * or an explorer that holds its reads until it knows its scope (issue
+   * #4709). The summary then says "Loading..." rather than "No traces",
+   * which would contradict the loader where the rows go. Rows already on
+   * screen keep their range while the next page loads.
+   */
+  isLoading?: boolean | undefined;
   itemLabel?: string | undefined;
   /*
    * Set when `totalItems` is not a total but the lower bound an analytics
@@ -47,7 +55,7 @@ const TelemetryPagination: FunctionComponent<TelemetryPaginationProps> = (
       itemsOnCurrentPage={props.itemsOnCurrentPage}
       isCompact={true}
       className="bg-gray-50/50"
-      isLoading={false}
+      isLoading={Boolean(props.isLoading)}
       isError={false}
       isDisabled={Boolean(props.isDisabled)}
       onNavigateToPage={(pageNumber: number, itemsOnPage: number) => {

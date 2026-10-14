@@ -124,7 +124,7 @@ const LogDropFilters: FunctionComponent<
       id="log-drop-filters-table"
       name="Logs > Settings > Drop Filters"
       userPreferencesKey="log-drop-filters-table"
-      isDeleteable={false}
+      isDeleteable={true}
       isEditable={false}
       isCreateable={true}
       isViewable={true}

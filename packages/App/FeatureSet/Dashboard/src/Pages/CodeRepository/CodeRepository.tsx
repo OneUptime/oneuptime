@@ -346,7 +346,7 @@ const CodeRepositoryPage: FunctionComponent<
         saveFilterProps={{
           tableId: "code-repository-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={false}
         bulkActions={{

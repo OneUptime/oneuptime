@@ -7,7 +7,10 @@ import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
-import { DASHBOARD_ARCHIVE_COPY } from "../../Components/Archive/ResourceArchiveCopy";
+import {
+  DASHBOARD_ARCHIVE_COPY,
+  ARCHIVE_INSTEAD_OF_DELETE,
+} from "../../Components/Archive/ResourceArchiveCopy";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -226,7 +229,8 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         onFetchSuccess={(data: Array<Dashboard>) => {
           onResourcesFetched(data);
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         onCreateClick={openTemplatePicker}

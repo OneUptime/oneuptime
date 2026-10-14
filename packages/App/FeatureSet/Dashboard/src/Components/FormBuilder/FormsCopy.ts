@@ -252,9 +252,6 @@ export const FormsCopy: {
   deleteSubmissionTitle: string;
   deleteSubmissionDescription: string;
 
-  // Deleting the form.
-  deleteFormNote: string;
-
   // Duplicating the form.
   duplicateFormNote: string;
 } = {
@@ -553,9 +550,6 @@ export const FormsCopy: {
   deleteSubmissionTitle: "Delete Submission",
   deleteSubmissionDescription:
     "Delete this submission? Its answers and the submitter's name and email are removed from this list. What it created is not deleted, and neither is the private note on it.",
-
-  deleteFormNote:
-    "Its submissions are deleted with it. The incidents and events it created are not.",
 
   duplicateFormNote:
     "The copy has this form's questions, templates, On Submit settings, branding, thank-you message and IP allowlist, and a link of its own. It starts turned off: turn it on from its Share page when it is ready.",

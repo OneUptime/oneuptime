@@ -233,6 +233,29 @@ const rowDeleteAction: RowDeleteActionFunction = async (
 const TWO: Array<IncidentAlert> = [new IncidentAlert(), new IncidentAlert()];
 const ONE: Array<IncidentAlert> = [new IncidentAlert()];
 
+type DetailsTextFunction = (
+  action: Record<string, any>,
+  items: Array<IncidentAlert>,
+) => string;
+
+/*
+ * What the dialog says after the names it lists: the paragraph of what goes
+ * with the rows, drawn from the action's confirmDetails.
+ */
+const consequenceOf: DetailsTextFunction = (
+  action: Record<string, any>,
+  items: Array<IncidentAlert>,
+): string => {
+  const details: { container: HTMLElement; unmount: () => void } = render(
+    action["confirmDetails"](items),
+  );
+  const text: string =
+    details.container.querySelector('[data-testid="bulk-delete-consequence"]')
+      ?.textContent || "";
+  details.unmount();
+  return text;
+};
+
 describe("BaseModelTable bulk delete verb", () => {
   beforeEach(() => {
     capturedBulkActions = [];
@@ -259,8 +282,16 @@ describe("BaseModelTable bulk delete verb", () => {
     expect(action["buttonStyleType"]).toBe(ButtonStyleType.DANGER);
     expect(action["confirmTitle"](TWO)).toBe("Delete 2 Alerts");
     expect(action["confirmTitle"](ONE)).toBe("Delete 1 Alert");
+    // The question on its own; the warning after the names.
     expect(action["confirmMessage"](TWO)).toBe(
-      `Are you sure you want to delete 2 Alerts? This action cannot be undone. ${WARNING}`,
+      "Are you sure you want to delete 2 alerts? This action cannot be undone.",
+    );
+    expect(consequenceOf(action, TWO)).toBe(WARNING);
+    expect(action["resultLabels"]["succeeded"]["other"]).toBe(
+      "{{count}} {{itemsName}} deleted",
+    );
+    expect(action["resultLabels"]["failed"]["other"]).toBe(
+      "{{count}} {{itemsName}} not deleted",
     );
   });
 
@@ -285,11 +316,14 @@ describe("BaseModelTable bulk delete verb", () => {
     expect(action["confirmTitle"](TWO)).toBe("Unlink 2 Alerts");
     expect(action["confirmTitle"](ONE)).toBe("Unlink 1 Alert");
     expect(action["confirmMessage"](TWO)).toBe(
-      `Are you sure you want to unlink 2 alerts? ${WARNING}`,
+      "Are you sure you want to unlink 2 alerts?",
     );
     expect(action["confirmMessage"](ONE)).toBe(
-      `Are you sure you want to unlink 1 alert? ${WARNING}`,
+      "Are you sure you want to unlink 1 alert?",
     );
+    expect(consequenceOf(action, TWO)).toBe(WARNING);
+    // An unlink is not a delete: its results keep the general words.
+    expect(action["resultLabels"]).toBeUndefined();
   });
 
   test("with a verb and no icon, keeps the trash can", async () => {

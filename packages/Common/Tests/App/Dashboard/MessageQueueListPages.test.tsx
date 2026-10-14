@@ -428,12 +428,13 @@ describe("the Queues list table", () => {
     expect(screen.getByTestId("model-table")).toBeInTheDocument();
   });
 
-  test("creates queues by hand ('Create Queue') and views them, but never edits or deletes rows in place", () => {
+  test("creates queues by hand ('Create Queue'), views them, and deletes them from each row's menu, but never edits rows in place", () => {
     expect(tableProps!.isCreateable).toBe(true);
     expect(tableProps!.singularName).toBe("Queue");
     expect(tableProps!.isViewable).toBe(true);
     expect(tableProps!.isEditable).toBe(false);
-    expect(tableProps!.isDeleteable).toBe(false);
+    // Delete in each row's ⋯ menu and in Bulk Actions.
+    expect(tableProps!.isDeleteable).toBe(true);
   });
 
   test("searches name, description and destination", () => {
@@ -1156,14 +1157,14 @@ describe("the Archived list", () => {
     });
   }
 
-  test("lists archived queues only, read-only, with unarchive as its bulk action", async () => {
+  test("lists archived queues only, with unarchive as its bulk action, and deletes them", async () => {
     await renderArchived();
 
     expect(tableProps!.modelType).toBe(MessageQueue);
     expect(tableProps!.query).toEqual({ isArchived: true });
     expect(tableProps!.isCreateable).toBe(false);
     expect(tableProps!.isEditable).toBe(false);
-    expect(tableProps!.isDeleteable).toBe(false);
+    expect(tableProps!.isDeleteable).toBe(true);
     expect(tableProps!.isViewable).toBe(true);
     expect(tableProps!.bulkActions!.buttons).toEqual(["unarchive-action"]);
     expect(tableProps!.userPreferencesKey).toBe(

@@ -231,11 +231,22 @@ function reasonFor(id: string): string | undefined {
   return recordedTableProps!.getDeleteDisabledReason!({ _id: id });
 }
 
-// The Delete dialog's words for this row, as the dialog draws them.
-async function confirmationFor(row: MonitorStatusTimeline): Promise<{
+interface DrawnConfirmation {
+  // Everything the dialog says, as one line.
   text: string;
   bold: Array<string>;
-}> {
+  /*
+   * What deleting it does, drawn as a paragraph of its own under the
+   * question (the incident timelines' dialogs set it apart the same way).
+   * Null when the dialog only asks.
+   */
+  effect: { text: string; className: string } | null;
+}
+
+// The Delete dialog's words for this row, as the dialog draws them.
+async function confirmationFor(
+  row: MonitorStatusTimeline,
+): Promise<DrawnConfirmation> {
   const confirmation: DeleteConfirmationLike = await recordedTableProps!
     .getDeleteConfirmation!(row as unknown as Row);
 
@@ -244,6 +255,10 @@ async function confirmationFor(row: MonitorStatusTimeline): Promise<{
   // The dialog keeps its own title: "Delete Monitor Status Event".
   expect(confirmation.title).toBeUndefined();
 
+  const effect: Element | null = container.querySelector(
+    '[data-testid="status-event-delete-effect"]',
+  );
+
   return {
     text: (container.textContent || "").replace(WHITESPACE_RUN, " ").trim(),
     bold: Array.from(container.querySelectorAll("strong")).map(
@@ -251,6 +266,12 @@ async function confirmationFor(row: MonitorStatusTimeline): Promise<{
         return element.textContent || "";
       },
     ),
+    effect: effect
+      ? {
+          text: (effect.textContent || "").replace(WHITESPACE_RUN, " ").trim(),
+          className: effect.className,
+        }
+      : null,
   };
 }
 
@@ -409,8 +430,9 @@ describe("each status event is named by its status and start, never its id", () 
     };
     afterAnswer = { data: [], count: 0 };
 
-    const confirmation: { text: string; bold: Array<string> } =
-      await confirmationFor(event(NEXT, daysAgo(20), null, "Offline"));
+    const confirmation: DrawnConfirmation = await confirmationFor(
+      event(NEXT, daysAgo(20), null, "Offline"),
+    );
 
     expect(confirmation.bold).toContain("Betriebsbereit");
     expect(confirmation.text).not.toContain("Operational");
@@ -498,11 +520,19 @@ describe("the Delete dialog says what deleting the event does", () => {
     };
     afterAnswer = { data: [], count: 0 };
 
-    const confirmation: { text: string; bold: Array<string> } =
-      await confirmationFor(event(NEWEST, daysAgo(1), null, "Operational"));
+    const confirmation: DrawnConfirmation = await confirmationFor(
+      event(NEWEST, daysAgo(1), null, "Operational"),
+    );
 
+    // The question and that it cannot be undone, then what it does.
     expect(confirmation.text).toBe(
-      `Are you sure you want to delete the Operational status event that started ${shown(daysAgo(1))}? Offline, the status before it, becomes the monitor's current status again. This action cannot be undone.`,
+      `Are you sure you want to delete the Operational status event that started ${shown(daysAgo(1))}? This action cannot be undone. Offline, the status before it, becomes the monitor's current status again.`,
+    );
+    expect(confirmation.effect?.text).toBe(
+      "Offline, the status before it, becomes the monitor's current status again.",
+    );
+    expect(confirmation.effect?.className.split(" ")).toEqual(
+      expect.arrayContaining(["block", "mt-3"]),
     );
     expect(confirmation.bold).toEqual([
       "Operational",
@@ -520,11 +550,15 @@ describe("the Delete dialog says what deleting the event does", () => {
     };
     afterAnswer = { data: [event(NEWEST, daysAgo(1), null)], count: 1 };
 
-    const confirmation: { text: string; bold: Array<string> } =
-      await confirmationFor(event(NEXT, daysAgo(20), daysAgo(1), "Offline"));
+    const confirmation: DrawnConfirmation = await confirmationFor(
+      event(NEXT, daysAgo(20), daysAgo(1), "Offline"),
+    );
 
     expect(confirmation.text).toBe(
-      `Are you sure you want to delete the Offline status event that started ${shown(daysAgo(20))}? Operational, the status before it, takes over its time. This action cannot be undone.`,
+      `Are you sure you want to delete the Offline status event that started ${shown(daysAgo(20))}? This action cannot be undone. Operational, the status before it, takes over its time.`,
+    );
+    expect(confirmation.effect?.text).toBe(
+      "Operational, the status before it, takes over its time.",
     );
   });
 
@@ -534,13 +568,15 @@ describe("the Delete dialog says what deleting the event does", () => {
     beforeAnswer = { data: [], count: 0 };
     afterAnswer = { data: [event(NEXT, daysAgo(120), null)], count: 1 };
 
-    const confirmation: { text: string; bold: Array<string> } =
-      await confirmationFor(
-        event(OLDEST, daysAgo(400), daysAgo(120), "Operational"),
-      );
+    const confirmation: DrawnConfirmation = await confirmationFor(
+      event(OLDEST, daysAgo(400), daysAgo(120), "Operational"),
+    );
 
     expect(confirmation.text).toBe(
-      `Are you sure you want to delete the Operational status event that started ${shown(daysAgo(400))}? It ended more than 90 days ago, so status pages no longer show it. This action cannot be undone.`,
+      `Are you sure you want to delete the Operational status event that started ${shown(daysAgo(400))}? This action cannot be undone. It ended more than 90 days ago, so status pages no longer show it.`,
+    );
+    expect(confirmation.effect?.text).toBe(
+      "It ended more than 90 days ago, so status pages no longer show it.",
     );
   });
 
@@ -549,12 +585,14 @@ describe("the Delete dialog says what deleting the event does", () => {
 
     beforeAnswer = new Error("offline");
 
-    const confirmation: { text: string; bold: Array<string> } =
-      await confirmationFor(event(NEXT, daysAgo(20), daysAgo(1), "Offline"));
+    const confirmation: DrawnConfirmation = await confirmationFor(
+      event(NEXT, daysAgo(20), daysAgo(1), "Offline"),
+    );
 
     expect(confirmation.text).toBe(
       `Are you sure you want to delete the Offline status event that started ${shown(daysAgo(20))}? This action cannot be undone.`,
     );
+    expect(confirmation.effect).toBeNull();
   });
 
   test("an event that became the only one since the table loaded says why it can't go, instead of asking", async () => {

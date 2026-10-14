@@ -14,6 +14,10 @@ import ScheduledMaintenanceMeasurementValueService from "./ScheduledMaintenanceM
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  ONLY_STATE_DELETE_MESSAGES,
+  StateTimelineRecord,
+} from "../../Utils/StateTimeline/StateTimelineRowDelete";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
@@ -1904,7 +1908,9 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
 
         if (scheduledMaintenanceStateTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only state timeline. Scheduled Maintenance should have at least one state in its timeline.",
+            ONLY_STATE_DELETE_MESSAGES[
+              StateTimelineRecord.ScheduledMaintenance
+            ],
           );
         }
 
@@ -1997,16 +2003,11 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
             },
           });
 
-          // Update the next state to start at the start of this state.
-          await this.updateOneById({
-            id: stateAfterThis.id!,
-            data: {
-              startsAt: scheduledMaintenanceStateTimelineToBeDeleted.startsAt!,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          /*
+           * The state after it keeps its start: it is when that state really
+           * began. Moving it back to this one's start as well made the two
+           * cover this state's time twice (StateTimelineRowDelete).
+           */
           logger.debug("This state is in the middle.", {
             scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
           } as LogAttributes);

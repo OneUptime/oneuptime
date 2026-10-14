@@ -17,7 +17,7 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
         modelType={ScheduledMaintenanceNoteTemplate}
         id="incident-templates-table"
         name="Settings > Scheduled Maintenance Templates"
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={true}
         isViewable={true}

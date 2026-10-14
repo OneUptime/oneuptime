@@ -68,6 +68,10 @@ import { getRecordIdText, hasRecordId } from "../ObjectID/RecordIdText";
 import { getApiReferencePagePath } from "../../../Utils/ApiReferencePage";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
+import {
+  getDeleteConsequence,
+  joinSentences,
+} from "../DeleteConfirmation/DeleteConsequences";
 import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
 import { getRecordDisplayName } from "../../Utils/ModelDisplayName";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
@@ -241,13 +245,20 @@ export enum ModalTableBulkDefaultActions {
 }
 
 export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
+  /*
+   * The table's own bulk actions. On a table whose rows are deleted from it
+   * (`isDeleteable`), the default Delete joins them on its own; listing
+   * ModalTableBulkDefaultActions.Delete only places it. On a table that is
+   * not, there is no Delete to place.
+   */
   buttons: Array<BulkActionButtonSchema<T> | ModalTableBulkDefaultActions>;
   matchBulkSelectedItemByField?: keyof T | undefined; // which field to use to match selected items. For exmaple this could be '_id'
   /**
-   * Appended to the bulk Delete confirmation, for a surface where deleting the
-   * selected rows also removes records the user did not select, or where a
-   * reversible alternative exists. The default sentence only says the deletion
-   * cannot be undone - it cannot know what else goes with it.
+   * Said after the bulk Delete's question in place of the table's
+   * deleteConfirmationWarning, for a bulk Delete that needs other words than
+   * the row's Delete - removing several links at once, say, or the rule a
+   * row's own dialog spells out case by case. What the model's records take
+   * with them (DeleteConsequences) is said before it either way.
    */
   deleteConfirmationWarning?: string | undefined;
   /**
@@ -307,7 +318,22 @@ export interface BaseTableProps<
   listDetailOptions?: undefined | ListDetailProps;
   selectMoreFields?: Select<TBaseModel>;
   initialItemsOnPage?: number;
+  /*
+   * Whether this list's rows are deleted from it: Delete in each row's ⋯
+   * menu and, on a table that offers bulk actions (or to a viewer who may
+   * delete), Delete in Bulk Actions - the two always together. Off for a
+   * list whose records are deleted somewhere else: another resource's page
+   * listing its members, a list across projects, history, or a record whose
+   * delete has its own flow.
+   */
   isDeleteable: boolean;
+  /*
+   * A sentence of this list's own, said after the Delete question in the
+   * row's dialog and in the bulk Delete's - a gentler way to the same end
+   * ("archive it instead"), say. What the model's records take with them
+   * (DeleteConsequences) is said before it without being asked for.
+   */
+  deleteConfirmationWarning?: string | undefined;
   isEditable?: boolean | undefined;
   isCreateable: boolean;
   onCreateClick?: (() => void) | undefined;
@@ -618,6 +644,20 @@ export const BULK_DELETE_QUESTION: PluralTemplate = {
     "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.",
 };
 
+/*
+ * What a bulk Delete's result says about each row: deleted, or not - and
+ * then, under it, which ones and why.
+ */
+export const BULK_DELETED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} deleted",
+  other: "{{count}} {{itemsName}} deleted",
+};
+
+export const BULK_NOT_DELETED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} not deleted",
+  other: "{{count}} {{itemsName}} not deleted",
+};
+
 // A table that names its own verb ("Unlink") for the bulk action.
 export const BULK_ACTION_TITLE: PluralTemplate = {
   one: "{{action}} {{count}} {{itemName}}",
@@ -683,6 +723,39 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         : "";
 
     return givenName || getRecordDisplayName(item, { model: model });
+  };
+
+  /*
+   * What a Delete dialog says after its question, in the reader's language:
+   * what this model's records take with them (DeleteConsequences - the same
+   * sentence the record's own Delete page says), then the list's own
+   * sentence. A table that names its own verb ("Unlink") removes
+   * relationships, not the records they point at, so it says only its own.
+   */
+  type GetDeleteWarningFunction = (listWarning: string | undefined) => string;
+
+  const getDeleteWarning: GetDeleteWarningFunction = (
+    listWarning: string | undefined,
+  ): string => {
+    const sentences: Array<string> = [];
+
+    if (!props.bulkActions?.deleteVerb?.trim()) {
+      const consequence: string = getDeleteConsequence(
+        model.tableName,
+        translator,
+      );
+
+      if (consequence) {
+        sentences.push(consequence);
+      }
+    }
+
+    if (listWarning?.trim()) {
+      sentences.push(tx(listWarning.trim()));
+    }
+
+    // Run together as the reader's script writes sentences.
+    return joinSentences(sentences);
   };
 
   // The header's create button, "<verb> <noun>".
@@ -2270,6 +2343,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * clicks would make a finished move look like it was still going on.
      */
     quiet?: boolean | undefined;
+    /*
+     * When the page asked for has no rows left but earlier pages do - a bulk
+     * Delete that took every row of the last page - go to the last page that
+     * has rows, instead of an empty page under a "Showing 21-20 of 20".
+     */
+    stayInRange?: boolean | undefined;
   }) => Promise<void>;
 
   const getFetchSort: () => Sort<TBaseModel> = (): Sort<TBaseModel> => {
@@ -2296,6 +2375,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const fetchItems: FetchItemsFunction = async (options?: {
     quiet?: boolean | undefined;
+    stayInRange?: boolean | undefined;
   }): Promise<void> => {
     const isQuiet: boolean = Boolean(options?.quiet);
 
@@ -2332,6 +2412,33 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         sort: getFetchSort(),
         requestOptions: props.fetchRequestOptions,
       });
+
+      if (
+        options?.stayInRange &&
+        listResult.data.length === 0 &&
+        listResult.count > 0 &&
+        currentPageNumber > 1
+      ) {
+        /*
+         * The page number's own effect fetches the last page with rows; the
+         * empty one is never drawn.
+         */
+        setCurrentPageNumber(
+          Math.max(
+            1,
+            Math.min(
+              currentPageNumber - 1,
+              Math.ceil(listResult.count / itemsOnPage),
+            ),
+          ),
+        );
+
+        if (!isQuiet) {
+          setIsLoading(false);
+        }
+
+        return;
+      }
 
       setTotalItemsCount(listResult.count);
       setHasMore(listResult.hasMore);
@@ -3235,26 +3342,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonStyleType: ButtonStyleType.DANGER,
         icon: (deleteVerb && props.bulkActions?.deleteIcon) || IconProp.Trash,
         confirmMessage: (items: Array<TBaseModel>) => {
-          const warning: string = props.bulkActions?.deleteConfirmationWarning
-            ? ` ${tx(props.bulkActions.deleteConfirmationWarning)}`
-            : "";
-
           if (deleteVerb) {
-            return `${translator.translatePlural(
+            return translator.translatePlural(
               BULK_ACTION_QUESTION,
               items.length,
               {
                 action: translatableTerm(deleteVerb, { inSentence: true }),
                 ...getNounValues(true),
               },
-            )}${warning}`;
+            );
           }
 
-          return `${translator.translatePlural(
+          /*
+           * The nouns as a sentence has them - "delete 2 status pages?" -
+           * where the dialog's title keeps a title's capitals ("Delete 2
+           * Status Pages"); the way the Unlink question above already reads.
+           */
+          return translator.translatePlural(
             BULK_DELETE_QUESTION,
             items.length,
-            getNounValues(false),
-          )}${warning}`;
+            getNounValues(true),
+          );
         },
         confirmTitle: (items: Array<TBaseModel>) => {
           if (deleteVerb) {
@@ -3275,18 +3383,49 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
          * which. The rows were picked by hand, often across pages and after a
          * filter, and this is the last moment to notice one that should not be
          * there - so the first few are named under the count.
+         *
+         * Then, in a paragraph of its own, what goes with them (and the
+         * list's own sentence): after the names it is about them, where in
+         * the middle of the question it was one more sentence to read past.
          */
         confirmDetails: (items: Array<TBaseModel>): ReactElement => {
+          const warning: string = getDeleteWarning(
+            props.bulkActions?.deleteConfirmationWarning ??
+              props.deleteConfirmationWarning,
+          );
+
           return (
-            <DeleteItemNames
-              names={items.map((item: TBaseModel) => {
-                return getItemLabel(item);
-              })}
-              totalCount={items.length}
-            />
+            <div className="space-y-3">
+              <DeleteItemNames
+                names={items.map((item: TBaseModel) => {
+                  return getItemLabel(item);
+                })}
+                totalCount={items.length}
+              />
+              {warning ? (
+                <p
+                  data-testid="bulk-delete-consequence"
+                  className="text-sm leading-6 text-gray-600"
+                >
+                  {warning}
+                </p>
+              ) : (
+                <></>
+              )}
+            </div>
           );
         },
         confirmButtonStyleType: ButtonStyleType.DANGER,
+        /*
+         * "2 Status Pages deleted, 1 Status Page not deleted". A table that
+         * names its own verb keeps the general words.
+         */
+        resultLabels: deleteVerb
+          ? undefined
+          : {
+              succeeded: BULK_DELETED_COUNT,
+              failed: BULK_NOT_DELETED_COUNT,
+            },
         onClick: async ({
           items,
           onProgressInfo,
@@ -3703,18 +3842,28 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           > = [...(props.bulkActions?.buttons ?? [])];
 
           /*
-           * Auto-include the default Delete bulk action whenever the user has
-           * model-level delete permission, so every table that exposes row
-           * selection also exposes a way to delete the selected rows. This is
-           * intentionally decoupled from `isDeleteable` — that flag governs the
-           * per-row Delete button in the Actions column, not bulk operations.
-           * The confirmation modal is wired up via the schema's confirmMessage
-           * / confirmTitle below. Skip if the table author already added it.
+           * Delete is in Bulk Actions exactly where it is in each row's ⋯
+           * menu: on a table whose rows are deleted from it (`isDeleteable`).
+           * It is added there on its own - a page that lists
+           * ModalTableBulkDefaultActions.Delete only places it - for anyone
+           * the model lets delete, so a table that exposes row selection also
+           * exposes a way to delete the selected rows. The confirmation is
+           * wired up via the schema's confirmMessage / confirmTitle below.
            *
-           * Only auto-inject it when the table already offers bulk actions.
-           * Table derives the row checkboxes from this array being non-empty,
-           * so injecting a locked Delete into an otherwise empty array would
-           * grow a selection column onto tables that have never had one.
+           * It used to be added to every table whose viewer may delete the
+           * model, whatever `isDeleteable` said. So a list that kept Delete
+           * off its rows on purpose still deleted from Bulk Actions: a
+           * monitor group's monitors (whose row action is Unassign), lists
+           * across every project (whose deletes went to the wrong one), a
+           * notification method whose own Delete first says which rules use
+           * it - and history and logs grew a selection column for owners.
+           * Now one switch decides both, and a list without Delete has none.
+           *
+           * Only auto-inject it when the table already offers bulk actions,
+           * or for a viewer who may delete: Table derives the row checkboxes
+           * from this array being non-empty, so injecting a locked Delete
+           * into an otherwise empty array would grow a selection column that
+           * does nothing.
            *
            * A page's own button counts as the delete action when it carries
            * the title the default one would have: "Delete", or the table's
@@ -3761,14 +3910,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            * every other action worked (issue #3559).
            */
           const canAutoInjectDelete: boolean =
-            userCanDelete || (bulkDeleteGate.show && sourceButtons.length > 0);
+            props.isDeleteable &&
+            (userCanDelete ||
+              (bulkDeleteGate.show && sourceButtons.length > 0));
 
           if (canAutoInjectDelete && !alreadyHasDeleteAction) {
             sourceButtons.push(ModalTableBulkDefaultActions.Delete);
           }
 
-          return {
-            buttons: sourceButtons
+          const buttons: Array<BulkActionButtonSchema<TBaseModel>> =
+            sourceButtons
               .map(
                 (
                   action:
@@ -3786,9 +3937,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                    * A table author who asked for the default Delete but whose
                    * viewer cannot delete used to leave the raw enum string in
                    * the array, which then reached BulkUpdateForm as if it were
-                   * a button schema. Resolve it here, in every branch.
+                   * a button schema. Resolve it here, in every branch. A table
+                   * whose rows are not deleted from it has no Delete to place.
                    */
-                  if (!bulkDeleteGate.show) {
+                  if (!props.isDeleteable || !bulkDeleteGate.show) {
                     return null;
                   }
 
@@ -3815,12 +3967,26 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 ): boolean => {
                   return action !== null;
                 },
-              ) as Array<BulkActionButtonSchema<TBaseModel>>,
+              ) as Array<BulkActionButtonSchema<TBaseModel>>;
+
+          return {
+            buttons,
+            /*
+             * A list whose rows are not deleted from it, and that has no bulk
+             * actions of its own, used to get its row selection - and Export
+             * CSV with it - from the Delete added for whoever may delete the
+             * model. Delete is gone from such a list; the selection and
+             * Export CSV stay for the people who had them (a monitor's logs
+             * and the LLM calls word their export for it: getExportValue).
+             */
+            isCsvExportOnly:
+              !props.isDeleteable && userCanDelete && buttons.length === 0,
           };
         })()}
         onBulkActionEnd={async () => {
           clearBulkSelectionState();
-          await fetchItems();
+          // A bulk Delete can empty the page it was started on.
+          await fetchItems({ stayInRange: true });
         }}
         onBulkActionStart={() => {}}
         bulkSelectedItems={bulkSelectedItems}
@@ -5259,6 +5425,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                   props.singularName,
                   model.singularName,
                 )}
+                /*
+                 * What goes with it, as the bulk Delete and the record's own
+                 * Delete page say it.
+                 */
+                warning={getDeleteWarning(props.deleteConfirmationWarning)}
               />
             )
           }

@@ -27,6 +27,10 @@ const FIND: string =
 const BOUNDARY_SUBQUERY: string =
   " AND {p4:Identifier} >= (SELECT {p4:Identifier} FROM {p1:Identifier} ORDER BY {p4:Identifier} DESC LIMIT 1 OFFSET 99)";
 
+// A paged find's page bound: a WITH clause in front, with an ORDER BY of its own.
+const PAGE_BOUND_WITH: string =
+  "WITH (SELECT (arraySlice(v, 101), countEqual(arraySlice(v, 1, 100), v[101])) FROM (SELECT arrayReverseSort(groupArray({p7:Identifier})) AS v FROM (SELECT {p7:Identifier} FROM {p1:Identifier} ORDER BY {p7:Identifier} DESC LIMIT 150))) AS page ";
+
 describe("outerOrderBy", () => {
   test("reads the terms of the ORDER BY, up to its LIMIT", () => {
     expect(
@@ -42,6 +46,14 @@ describe("outerOrderBy", () => {
         `${FIND}${BOUNDARY_SUBQUERY} ORDER BY {p5:Identifier} ASC, {p6:Identifier} ASC LIMIT 50`,
       ),
     ).toBe("{p5:Identifier} ASC, {p6:Identifier} ASC");
+  });
+
+  test("reads the last ORDER BY, past the page bound's in the WITH clause", () => {
+    expect(
+      outerOrderBy(
+        `${PAGE_BOUND_WITH}${FIND} AND {p7:Identifier} GLOBAL IN (SELECT arrayJoin(tupleElement(page, 1))) ORDER BY {p5:Identifier} DESC, {p6:Identifier} DESC LIMIT 50 OFFSET ifNull(tupleElement(page, 2), 0)`,
+      ),
+    ).toBe("{p5:Identifier} DESC, {p6:Identifier} DESC");
   });
 
   test("reads to the end of a query with no LIMIT", () => {
@@ -60,6 +72,17 @@ describe("orderByColumns", () => {
     p5: "time",
     p6: "_id",
   };
+
+  test("resolves the page's own ORDER BY behind a page bound", () => {
+    expect(
+      orderByColumns(
+        statementOf(
+          `${PAGE_BOUND_WITH}${FIND} ORDER BY {p5:Identifier} DESC, {p6:Identifier} DESC LIMIT 50 OFFSET ifNull(tupleElement(page, 2), 0)`,
+          { ...PARAMETERS, p7: "time" },
+        ),
+      ),
+    ).toStrictEqual(["time", "_id"]);
+  });
 
   test("resolves each bound term to its column, in order, whatever the numbering", () => {
     expect(

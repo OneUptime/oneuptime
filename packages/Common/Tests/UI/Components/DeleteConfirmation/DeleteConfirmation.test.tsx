@@ -149,6 +149,76 @@ describe("DeleteConfirmationMessage", () => {
     );
   });
 
+  test("puts the warning - what goes with it - in a paragraph of its own under the question", () => {
+    render(
+      <DeleteConfirmationMessage
+        name="Production"
+        typeLabel="status page"
+        warning="Deleting a status page also deletes its subscribers, private users and custom domains."
+      />,
+    );
+
+    const consequence: HTMLElement = screen.getByTestId(
+      "delete-confirmation-consequence",
+    );
+
+    expect(consequence.textContent).toBe(
+      "Deleting a status page also deletes its subscribers, private users and custom domains.",
+    );
+    // Its own block, set apart from the question.
+    expect(consequence).toHaveClass("block");
+    expect(consequence).toHaveClass("mt-3");
+    // The question and the undo sentence stay together above it.
+    const message: HTMLElement = screen.getByTestId(
+      "delete-confirmation-message",
+    );
+    expect(message.lastElementChild).toBe(consequence);
+    expect(consequence.previousSibling?.textContent).toBe(" ");
+    expect(
+      (message.textContent || "").slice(
+        0,
+        -(consequence.textContent || "").length,
+      ),
+    ).toBe(
+      "Are you sure you want to delete Production? This action cannot be undone. ",
+    );
+  });
+
+  test("draws no paragraph without a warning, or with a blank one", () => {
+    const { rerender } = render(
+      <DeleteConfirmationMessage name="orders" typeLabel="queue" />,
+    );
+
+    expect(screen.queryByTestId("delete-confirmation-consequence")).toBeNull();
+
+    rerender(
+      <DeleteConfirmationMessage
+        name="orders"
+        typeLabel="queue"
+        warning="  "
+      />,
+    );
+
+    expect(screen.queryByTestId("delete-confirmation-consequence")).toBeNull();
+    expect(textOf("delete-confirmation-message")).toBe(
+      "Are you sure you want to delete orders? This action cannot be undone.",
+    );
+  });
+
+  test("a warning that is all there is to say starts without a space", () => {
+    render(
+      <DeleteConfirmationMessage
+        name=""
+        typeLabel="form"
+        kind="statement"
+        isIrreversible={false}
+        warning="Its submissions stay."
+      />,
+    );
+
+    expect(textOf("delete-confirmation-message")).toBe("Its submissions stay.");
+  });
+
   test("shows the full name on hover when it was shortened", () => {
     render(
       <DeleteConfirmationMessage

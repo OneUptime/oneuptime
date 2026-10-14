@@ -238,6 +238,27 @@ export function shouldWaitForAsyncInsert(): boolean {
  */
 const COUNT_MAX_EXECUTION_TIME_IN_SECONDS: number = 45;
 
+/*
+ * The names a paged find's statement gives its page bound
+ * (AnalyticsDatabaseService.toSortKeyPageBound): the page's own sort-key
+ * values with their in-page offset, and the sorted first `skip + limit`
+ * values they are cut from. Two underscores, so no model column can ever
+ * be shadowed by them (AnalyticsSortKeyPageBoundScope pins that).
+ */
+export const SORT_KEY_PAGE_BOUND_ALIAS: string = "__sortKeyPage";
+export const SORT_KEY_PAGE_VALUES_ALIAS: string = "__sortKeyTopValues";
+
+/*
+ * What a paged find adds to its statement to read only the rows its page
+ * can hold: a WITH clause in front of the SELECT, a condition on the
+ * WHERE, and the OFFSET that replaces `skip`.
+ */
+export interface SortKeyPageBound {
+  withClause: Statement;
+  whereCondition: Statement;
+  offset: Statement;
+}
+
 export default class AnalyticsDatabaseService<
   TBaseModel extends AnalyticsBaseModel,
 > extends BaseService {
@@ -1708,44 +1729,67 @@ export default class AnalyticsDatabaseService<
   }
 
   /**
-   * Bounds the rows an `ORDER BY ... , _id` find has to sort, without
-   * changing which rows it returns.
+   * Finds a sorted page without sorting every matching row, and without
+   * reading the time range twice (issue #4710). Returns null where it cannot
+   * help or cannot be proven exact; the find is then sent as written.
    *
-   * ClickHouse can read in sorting-key order — and stop early — only when the
+   * ClickHouse reads in sorting-key order — and stops early — only when the
    * ORDER BY lines up with the table's physical key. The `_id` tiebreaker
    * appended by `toPaginationStableSort` is deliberately NOT a sorting-key
    * column, so it denies that plan: the engine reads every row matching the
    * WHERE, sorts the lot in memory, then discards all but one page. On the
    * Logs viewer that turned a 100-row page into a full-window scan and tripped
-   * the 3 GiB `max_memory_usage` ceiling (Code 241, surfacing as
-   * "Server Error").
+   * the 3 GiB `max_memory_usage` ceiling (Code 241, "Server Error").
+   * Weakening the tiebreaker would bring back the skip/repeat paging bug it
+   * fixes, so the find is split in two, inside one statement:
    *
-   * Weakening the tiebreaker would reintroduce the skip/repeat paging bug it
-   * was added to fix, so bound the input instead. `min(k)` over the top
-   * `skip + limit` values of the leading sort key `k` is a rank statistic of
-   * k's MULTISET: it does not depend on which of several tied rows the inner
-   * LIMIT happened to keep. Every row that could reach position `skip + limit`
-   * satisfies `k >= min(k)`, and every row tied at the boundary value is
-   * admitted — so the page is exactly the page the unbounded query returns.
-   * That is what makes this a pure cost change: every gate below is a
-   * performance gate, and getting one wrong can only make a query slower,
-   * never lose or repeat a row.
+   * 1. A narrow read of the leading sort key `k` alone, in key order, that
+   *    stops after `skip + limit` matching rows. Sorted, those are the first
+   *    `skip + limit` values of k with their repeats — a rank statistic of
+   *    k's multiset, the same whichever of several tied rows the read kept.
+   *    The scalar subquery hands on only what the page needs: its own
+   *    values (positions skip + 1 onwards) and how many of the rows tied
+   *    with its first value belong to earlier pages.
+   * 2. The wide read, of the rows whose k is one of the page's values —
+   *    the primary index skips every granule that holds none of them —
+   *    sorted with the tiebreaker, skipping those earlier-page ties.
    *
-   * The inner pass reads one narrow key column in physical order and stops at
-   * `skip + limit` rows, so it costs far less than the wide outer read it
-   * saves.
+   * Exact, ties included: in the unbounded order the rows at positions
+   * skip + 1 .. skip + limit carry exactly the page's values, every row
+   * whose k lies between the page's first and last value carries one of
+   * them, and every row before the page that ties with its first value
+   * sorts ahead of the page. So the rows step 2 reads, in tiebreaker
+   * order, are a stretch of the unbounded order that starts with those
+   * earlier-page ties and holds the whole page right after them.
    *
-   * `min()` is nested over a subquery rather than taken as the N-th value via
-   * `ORDER BY k DESC LIMIT 1 OFFSET n - 1` on purpose: on a final page with
-   * fewer than `skip + limit` matching rows the latter returns no row, the
-   * scalar is NULL, `k >= NULL` is NULL, and the page comes back empty.
-   * `min()` over the available rows degrades to the smallest matching value.
+   * It reads no more than the unbounded find, plus the granules that hold
+   * the page's own key values (their ties included). The bound it replaces
+   * (`k >= min(top values)`) read the whole range a second time when a
+   * filter matched few rows spread over it, and when nothing matched at
+   * all — min() of no rows is the column default, 1970. Here a page past
+   * the last match reads no granule in step 2. Those granules are the one
+   * cost left: when a skip index narrows a rare filter to the few granules
+   * that hold its matches, step 1 and step 2 both read them — no more than
+   * the bound before #4710 read.
+   *
+   * Measured on ClickHouse 26.7, 16M rows shaped like LogItemV3, a 30-day
+   * range, one page of 101: no match 32.0M rows read -> 16.0M (the
+   * unbounded find: 16.0M); 60 matches 32.4M -> 17.0M; a 0.1% filter 10,000
+   * rows deep 25.9M -> 16.2M; no filter 0.38M either way (unbounded:
+   * 10.7M). The same on 24.8, through a Distributed table over two shards,
+   * and with the older analyzer a server can still switch to
+   * (enable_analyzer = 0). The real-ClickHouse suite (App
+   * Tests/Telemetry/PagedFindBoundClickhouse) holds these.
+   *
+   * Two of the gates below keep it exact: no GROUP BY, whose input it would
+   * cut, and no Nullable leading key, because a NULL is never IN a set and
+   * the row would be dropped. The rest only decide where it pays.
    */
-  private toSortKeyBoundaryFilter(
+  private toSortKeyPageBound(
     findBy: FindBy<TBaseModel>,
     sort: Sort<TBaseModel>,
     options: { hasGroupBy: boolean; databaseName: string },
-  ): Statement | null {
+  ): SortKeyPageBound | null {
     /*
      * Under GROUP BY the predicate would restrict the aggregation INPUT
      * rather than the page, so it would change results. Mirrors the
@@ -1788,9 +1832,10 @@ export default class AnalyticsDatabaseService<
     }
 
     /*
-     * A non-required column is `Nullable(...)` in the DDL, and `k >= NULL`
-     * is NULL — the predicate would DROP those rows rather than just
-     * narrowing the scan. Fail safe to today's behavior.
+     * A non-required column is `Nullable(...)` in the DDL. A NULL key is
+     * never IN the page's values (and groupArray leaves it out of them),
+     * so the bound would DROP those rows rather than narrow the scan.
+     * Fail safe to the unbounded find.
      */
     const leadingSortColumn: AnalyticsTableColumn | null =
       this.model.getTableColumn(leadingSortKey);
@@ -1809,20 +1854,21 @@ export default class AnalyticsDatabaseService<
     }
 
     /*
-     * The predicate is valid only BECAUSE of LIMIT/OFFSET: it admits the
-     * rows that can reach position `skip + limit` and no more. Guards the
-     * `new PositiveNumber(undefined)` -> NaN path that exists upstream.
+     * The bound is built from LIMIT and OFFSET themselves: it reads the
+     * first `skip + limit` key values and keeps positions skip + 1 onwards.
+     * A page that is not a whole, positive number of rows from a whole,
+     * non-negative offset (NaN from `new PositiveNumber(undefined)`,
+     * Infinity, a fraction, LIMIT 0) is sent unbounded.
      */
     const limit: number = Number(findBy.limit);
     const skip: number = Number(findBy.skip);
 
-    if (!Number.isFinite(limit) || !Number.isFinite(skip)) {
-      return null;
-    }
-
-    const boundaryRowCount: number = skip + limit;
-
-    if (boundaryRowCount <= 0) {
+    if (
+      !Number.isSafeInteger(limit) ||
+      !Number.isSafeInteger(skip) ||
+      limit < 1 ||
+      skip < 0
+    ) {
       return null;
     }
 
@@ -1831,33 +1877,82 @@ export default class AnalyticsDatabaseService<
       SortOrder.Ascending;
 
     /*
-     * The bound must be computed over the same row set the outer query
-     * filters on, so the WHERE is regenerated rather than shared: appending
-     * one Statement into two places would bind its parameters twice.
+     * The narrow read must see the same rows the wide one filters, so the
+     * WHERE is regenerated rather than shared: appending one Statement in
+     * two places would bind its parameters twice.
      */
-    const boundaryWhereStatement: Statement =
+    const narrowWhereStatement: Statement =
       this.statementGenerator.toWhereStatement(findBy.query);
 
-    const boundaryStatement: Statement = SQL` AND ${leadingSortKey} `;
-
-    boundaryStatement.append(isDescending ? SQL`>=` : SQL`<=`);
-    boundaryStatement.append(
-      isDescending
-        ? SQL` (SELECT min(${leadingSortKey}) FROM (SELECT ${leadingSortKey} FROM ${options.databaseName}.${this.model.tableName} WHERE TRUE `
-        : SQL` (SELECT max(${leadingSortKey}) FROM (SELECT ${leadingSortKey} FROM ${options.databaseName}.${this.model.tableName} WHERE TRUE `,
+    /*
+     * One scalar subquery, named once, so the narrow read runs once though
+     * both the WHERE and the OFFSET use it. The page's values and its
+     * offset are worked out inside it, so the OFFSET is a plain number:
+     * OFFSET takes only a constant, and ClickHouse does not fold a function
+     * whose result is a constant over about 1 MiB into one — counting the
+     * ties in a slice of 131,073 DateTime64 values outside the subquery
+     * fails with "OFFSET expression must be constant".
+     */
+    const withClause: Statement = SQL`WITH (SELECT (arraySlice(`;
+    withClause.append(SORT_KEY_PAGE_VALUES_ALIAS);
+    withClause.append(
+      SQL`, ${{ value: skip + 1, type: TableColumnType.Number }}), countEqual(arraySlice(`,
     );
-    boundaryStatement.append(boundaryWhereStatement);
-    boundaryStatement.append(this.getRetentionReadFilter());
-    boundaryStatement.append(SQL` ORDER BY ${leadingSortKey} `);
-    boundaryStatement.append(isDescending ? SQL`DESC` : SQL`ASC`);
-    boundaryStatement.append(
+    withClause.append(SORT_KEY_PAGE_VALUES_ALIAS);
+    withClause.append(
+      SQL`, 1, ${{ value: skip, type: TableColumnType.Number }}), `,
+    );
+    withClause.append(SORT_KEY_PAGE_VALUES_ALIAS);
+    withClause.append(
+      SQL`[${{ value: skip + 1, type: TableColumnType.Number }}])) FROM (SELECT `,
+    );
+    // Sorted in the page's own direction, so position 1 leads the page.
+    withClause.append(isDescending ? "arrayReverseSort" : "arraySort");
+    withClause.append(SQL`(groupArray(${leadingSortKey})) AS `);
+    withClause.append(SORT_KEY_PAGE_VALUES_ALIAS);
+    withClause.append(
+      SQL` FROM (SELECT ${leadingSortKey} FROM ${options.databaseName}.${this.model.tableName} WHERE TRUE `,
+    );
+    withClause.append(narrowWhereStatement);
+    withClause.append(this.getRetentionReadFilter());
+    withClause.append(SQL` ORDER BY ${leadingSortKey} `);
+    withClause.append(isDescending ? SQL`DESC` : SQL`ASC`);
+    withClause.append(
       SQL` LIMIT ${{
-        value: boundaryRowCount,
+        value: skip + limit,
         type: TableColumnType.Number,
-      }}))`,
+      }}))) AS `,
     );
+    withClause.append(SORT_KEY_PAGE_BOUND_ALIAS);
+    withClause.append(" ");
 
-    return boundaryStatement;
+    /*
+     * GLOBAL IN, not IN, and not has(): the table is Distributed, and
+     * GLOBAL builds the set once, where the find was sent, and hands it to
+     * every shard as a table, so no shard works the page out over its own
+     * rows. A set is what the primary index can use on every supported
+     * ClickHouse; has() over an array constant prunes on 26.7 but not on
+     * 24.8. An empty set (a page past the last match) selects no granule
+     * at all.
+     */
+    const whereCondition: Statement = SQL` AND ${leadingSortKey} GLOBAL IN (SELECT arrayJoin(tupleElement(`;
+    whereCondition.append(SORT_KEY_PAGE_BOUND_ALIAS);
+    whereCondition.append(", 1)))");
+
+    /*
+     * ifNull, though the subquery always answers its one row: ClickHouse
+     * types a scalar subquery Nullable (it could answer none), and OFFSET
+     * takes no Nullable type. The analyzer ClickHouse uses by default
+     * folds the value all the same; the older one, still chosen by a
+     * server or profile that sets enable_analyzer = 0, refuses it on 26.7
+     * ("Illegal type Nullable(UInt64) of OFFSET expression") and every
+     * list would fail. The 0 is never used.
+     */
+    const offset: Statement = SQL`ifNull(tupleElement(`;
+    offset.append(SORT_KEY_PAGE_BOUND_ALIAS);
+    offset.append(", 2), 0)");
+
+    return { withClause, whereCondition, offset };
   }
 
   public toFindStatement(findBy: FindBy<TBaseModel>): {
@@ -1896,18 +1991,25 @@ export default class AnalyticsDatabaseService<
     );
 
     /*
-     * Keeps the `_id` tiebreaker affordable. Result-preserving by
-     * construction, so it is appended to the WHERE without touching the
-     * ORDER BY above. Null whenever the bound cannot help or cannot be
-     * proven safe.
+     * Keeps the `_id` tiebreaker affordable: the page's rows are found by
+     * their leading sort key first, and only those are read whole. Exact
+     * by construction, so the ORDER BY above is untouched. Null whenever
+     * the bound cannot help or cannot be proven exact (issue #4710).
      */
-    const sortKeyBoundaryStatement: Statement | null =
-      this.toSortKeyBoundaryFilter(findBy, findBy.sort!, {
+    const pageBound: SortKeyPageBound | null = this.toSortKeyPageBound(
+      findBy,
+      findBy.sort!,
+      {
         hasGroupBy: Boolean(groupByStatement),
         databaseName: databaseName,
-      });
+      },
+    );
 
     const statement: Statement = SQL``;
+
+    if (pageBound) {
+      statement.append(pageBound.withClause);
+    }
 
     statement.append(SQL`SELECT `.append(select.statement));
     statement.append(SQL` FROM ${databaseName}.${this.model.tableName}`);
@@ -1916,8 +2018,8 @@ export default class AnalyticsDatabaseService<
       .append(whereStatement)
       .append(this.getRetentionReadFilter());
 
-    if (sortKeyBoundaryStatement) {
-      statement.append(sortKeyBoundaryStatement);
+    if (pageBound) {
+      statement.append(pageBound.whereCondition);
     }
 
     if (groupByStatement) {
@@ -1933,11 +2035,21 @@ export default class AnalyticsDatabaseService<
       }}`,
     );
 
-    statement.append(SQL` OFFSET ${{
-      value: Number(findBy.skip),
-      type: TableColumnType.Number,
-    }}
+    /*
+     * A bounded page skips only the rows of earlier pages that tie with
+     * its first sort-key value: the bound already left out every row
+     * ahead of those.
+     */
+    if (pageBound) {
+      statement.append(SQL` OFFSET `).append(pageBound.offset).append(`
         `);
+    } else {
+      statement.append(SQL` OFFSET ${{
+        value: Number(findBy.skip),
+        type: TableColumnType.Number,
+      }}
+        `);
+    }
 
     /*
      * Defense in depth: cap find-query runtime below the ClickHouse

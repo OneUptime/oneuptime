@@ -22,7 +22,7 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
         saveFilterProps={{
           tableId: "alert-note-templates-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={true}
         isViewable={true}

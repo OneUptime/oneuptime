@@ -11,7 +11,10 @@ jest.mock("../../../Server/Services/KubernetesClusterService", () => {
 
 import LogService from "../../../Server/Services/LogService";
 import SpanService from "../../../Server/Services/SpanService";
-import { Results } from "../../../Server/Services/AnalyticsDatabaseService";
+import {
+  Results,
+  SORT_KEY_PAGE_BOUND_ALIAS,
+} from "../../../Server/Services/AnalyticsDatabaseService";
 import ModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import Span from "../../../Models/AnalyticsModels/Span";
@@ -127,9 +130,13 @@ function inline(statement: Statement): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-// The WHERE clause of a statement: from "WHERE TRUE" to the next clause.
+/*
+ * The WHERE clause of a statement: from its own "WHERE TRUE" to the next
+ * clause. The last one: a paged find opens with the narrow read of its
+ * page bound, whose WHERE comes first.
+ */
 function whereClause(text: string): string {
-  const start: number = text.indexOf("WHERE TRUE");
+  const start: number = text.lastIndexOf("WHERE TRUE");
   const ends: Array<number> = [" SETTINGS", " ORDER BY", " GROUP BY", " LIMIT"]
     .map((clause: string): number => {
       return text.indexOf(clause, start);
@@ -364,11 +371,14 @@ describe("an exact span count reads what the list reads", () => {
       );
 
       /*
-       * The list may add one bound after it — the result-preserving
-       * sort-key boundary that keeps its `_id` tiebreaker cheap — and
-       * nothing else.
+       * The list adds one condition after it — the page bound that keeps
+       * its `_id` tiebreaker cheap (AnalyticsDatabaseService
+       * .toSortKeyPageBound) — and nothing else.
        */
       expect(list.startsWith(count)).toBe(true);
+      expect(list.slice(count.length)).toBe(
+        ` AND "startTime" GLOBAL IN (SELECT arrayJoin(tupleElement(${SORT_KEY_PAGE_BOUND_ALIAS}, 1)))`,
+      );
       expect(count).toContain("retentionDate >= now()");
     },
   );
