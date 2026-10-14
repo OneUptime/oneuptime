@@ -96,7 +96,7 @@ const OnCallDutyPage: FunctionComponent<
         saveFilterProps={{
           tableId: "on-call-schedules-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         name="On-Call > Schedules"
         showViewIdButton={true}
         isEditable={false}

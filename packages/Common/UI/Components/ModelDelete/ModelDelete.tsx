@@ -12,6 +12,7 @@ import {
 import { ButtonStyleType } from "../Button/Button";
 import Card from "../Card/Card";
 import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
+import { getDeleteConsequence } from "../DeleteConfirmation/DeleteConsequences";
 import TypeToConfirmDelete, {
   isTypedNameConfirmed,
 } from "../DeleteConfirmation/TypeToConfirmDelete";
@@ -165,6 +166,12 @@ const ModelDelete: <TBaseModel extends BaseModel>(
 
   const typeLabel: string = model.singularName || "item";
 
+  /*
+   * What goes with it (DeleteConsequences), on the card and in the dialog:
+   * the same sentence a list's row Delete and bulk Delete say about it.
+   */
+  const consequence: string = getDeleteConsequence(model.tableName, translator);
+
   const isTypedNameRequired: boolean = Boolean(
     props.requireTypedName && fullName,
   );
@@ -221,6 +228,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
             name={shownName}
             fullName={fullName}
             typeLabel={typeLabel}
+            warning={consequence}
           />
         }
         buttons={[
@@ -254,6 +262,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
               name={shownName}
               fullName={fullName}
               typeLabel={typeLabel}
+              warning={consequence}
             />
           }
           title={translateNamedAction(translator, {

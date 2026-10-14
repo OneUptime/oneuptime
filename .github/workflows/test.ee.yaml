@@ -63,13 +63,14 @@ jobs:
         run: node node_modules/.bin/jest Tests/EnterpriseImportGuard.test.ts Tests/EnterprisePluginResolution.test.ts --forceExit
       # App's UI source guards that walk ee/Dashboard and ee/AdminDashboard as
       # well as the core frontends: every More (⋯) menu item has an icon, a
-      # details card shows the record's own ID on its ID line, and every Show
-      # ID dialog is the shared one that never hands React an object. The App
-      # Test job deletes ee/ first, so only this run holds the Enterprise
+      # details card shows the record's own ID on its ID line, every Show ID
+      # dialog is the shared one that never hands React an object, and no
+      # list asks for the bulk Delete while keeping Delete off its rows. The
+      # App Test job deletes ee/ first, so only this run holds the Enterprise
       # screens to them. They only read files.
       - name: Run App's UI source guards with ee/ present
         working-directory: packages/App
-        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts Tests/Dashboard/ListDeletePolicy.test.ts --forceExit
       # App's docs facts that hold a page to code in ee/ as well as in core:
       # the identity pages to the SCIM server and its pages, the SLO pages to
       # the audit log settings, the upgrading notes to the enterprise Health

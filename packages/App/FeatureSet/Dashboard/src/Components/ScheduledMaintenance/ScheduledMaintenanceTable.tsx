@@ -524,7 +524,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         topContent={filterBar}
         emptyState={{ ...props.emptyState, ...facetEmptyState }}
         currentFacetState={facetSaveState}

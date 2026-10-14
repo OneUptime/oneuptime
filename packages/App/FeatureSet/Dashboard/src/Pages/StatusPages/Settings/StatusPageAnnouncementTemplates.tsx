@@ -40,7 +40,7 @@ const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
           tableId: "status-page-announcement-templates-table",
         }}
         name="Settings > Status Page Announcement Templates"
-        isDeleteable={false}
+        isDeleteable={true}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         isEditable={false}
         isCreateable={true}

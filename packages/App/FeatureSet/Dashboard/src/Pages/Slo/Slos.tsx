@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import { getSloFormFields, SLO_CREATE_INITIAL_VALUES } from "./SloFormFields";
@@ -494,7 +495,8 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
           hasFetchedTableRef.current = true;
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         isViewable={true}

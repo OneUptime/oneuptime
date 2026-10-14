@@ -644,6 +644,8 @@ describe("Every item in a table's menus has an icon", () => {
         <BaseModelTable<Monitor>
           {...makeProps({
             isViewable: true,
+            // The table's Delete is in Bulk Actions where rows are deleted.
+            isDeleteable: true,
             bulkActions: {
               buttons: [archive, ModalTableBulkDefaultActions.Delete],
             },

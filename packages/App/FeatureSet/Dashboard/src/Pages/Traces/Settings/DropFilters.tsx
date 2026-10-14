@@ -74,7 +74,7 @@ const TraceDropFilters: FunctionComponent<
       id="trace-drop-filters-table"
       name="Traces > Settings > Drop Filters"
       userPreferencesKey="trace-drop-filters-table"
-      isDeleteable={false}
+      isDeleteable={true}
       isEditable={false}
       isCreateable={true}
       isViewable={true}

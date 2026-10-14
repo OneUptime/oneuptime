@@ -5,6 +5,7 @@ import PageComponentProps from "../PageComponentProps";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -59,6 +60,24 @@ interface AccessNotice {
   teamName: string;
   error: string;
 }
+
+/*
+ * Owners and Admin come with every project, and the server refuses to delete
+ * them (TeamService, in these words: Common/Types/Team/BuiltInTeam). Their
+ * Delete is locked instead, saying why, and a bulk Delete that includes one
+ * lists it, with this reason, among the teams it did not delete.
+ */
+export const BUILT_IN_TEAM_DELETE_REASON: string = translationKey(
+  "This team comes with every project and can't be deleted.",
+);
+
+export const getTeamDeleteDisabledReason: (team: Team) => string | undefined = (
+  team: Team,
+): string | undefined => {
+  return team.isTeamDeleteable === false
+    ? BUILT_IN_TEAM_DELETE_REASON
+    : undefined;
+};
 
 const Teams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -192,7 +211,11 @@ const Teams: FunctionComponent<PageComponentProps> = (
         saveFilterProps={{
           tableId: "settings-teams-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        selectMoreFields={{
+          isTeamDeleteable: true,
+        }}
+        getDeleteDisabledReason={getTeamDeleteDisabledReason}
         isEditable={false}
         isCreateable={true}
         isViewable={true}

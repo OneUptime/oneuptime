@@ -292,12 +292,17 @@ describe("the list is usable at estate scale", () => {
     expect(code).toContain('"entityKey"');
   });
 
-  test("the row action is View only", () => {
+  test("a row opens with View and is deleted from its ⋯ menu, never edited in place", () => {
     expect(code).toContain("isViewable={true}");
     expect(code).toContain("isEditable={false}");
-    expect(code).toContain("isDeleteable={false}");
+    // Delete in each row's ⋯ menu and in Bulk Actions, on both views.
+    expect(code).toContain("isDeleteable={true}");
     expect(code).not.toContain("isEditable={!isArchivedView}");
     expect(code).not.toContain("isDeleteable={!isArchivedView}");
+    // Archive is the reversible way off the live list only.
+    expect(code).toContain(
+      "isArchivedView ? undefined : ARCHIVE_INSTEAD_OF_DELETE",
+    );
   });
 
   test("the name column cannot be customized away", () => {

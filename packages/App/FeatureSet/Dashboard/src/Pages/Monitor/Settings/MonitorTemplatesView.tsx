@@ -1149,6 +1149,13 @@ const MonitorTemplatesView: FunctionComponent<
         description="Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, labels, or custom field defaults onto every linked monitor."
         noItemsMessage="No monitors are linked to this template yet."
         disableCreate={true}
+        /*
+         * The template's linked monitors: the row's way out of this list is
+         * Unlink from Template. Deleting a monitor from here would delete it
+         * everywhere, not unlink it - that belongs on the Monitors list,
+         * which Open in Monitors List opens on these same rows.
+         */
+        isDeleteable={false}
         query={linkedMonitorsQuery}
         cardButtons={[
           {

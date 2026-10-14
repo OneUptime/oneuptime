@@ -93,7 +93,7 @@ const TracePipelines: FunctionComponent<
       saveFilterProps={{
         tableId: "trace-pipelines-table",
       }}
-      isDeleteable={false}
+      isDeleteable={true}
       isEditable={false}
       isCreateable={true}
       isViewable={true}
