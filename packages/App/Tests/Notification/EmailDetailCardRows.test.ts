@@ -472,10 +472,13 @@ describe("the space under a row is one its value's last block collapses into", (
     }
 
     // The email's styles as sent, without the partial's own comments.
+    const richRules: Array<string> = [];
+
     for (const rule of render("{{> Style}}").split("}")) {
       if (rule.includes(".st-Rich") && rule.includes("margin")) {
         const declaration: string = rule.slice(rule.indexOf("{") + 1);
 
+        richRules.push(rule.slice(0, rule.indexOf("{")).trim());
         expect(
           pixels(
             boxSide(
@@ -489,5 +492,10 @@ describe("the space under a row is one its value's last block collapses into", (
         ).toBeLessThanOrEqual(14);
       }
     }
+
+    // A paragraph's and a quote's margins come from these rules.
+    expect(richRules).toEqual(
+      expect.arrayContaining([".st-Rich p", ".st-Rich blockquote"]),
+    );
   });
 });
