@@ -1593,17 +1593,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         const dataObj: JSONObject = data.getValue(key) as JSONObject;
 
         for (const key in dataObj) {
-          dataObj[key] = await Encryption.decrypt(dataObj[key] as string);
+          const value: string = dataObj[key] as string;
+          /*
+           * Leave a value that is not our ciphertext as it is: a column
+           * freshly made encrypted holds legacy plaintext until its backfill
+           * runs, and decrypting that would throw or yield "" (looksEncrypted).
+           */
+          dataObj[key] = Encryption.looksEncrypted(value)
+            ? await Encryption.decrypt(value)
+            : value;
         }
 
         data.setValue(key, dataObj);
       } else {
         //If its string or other type.
+        const value: string = DatabaseService.unwrapHashedStringEnvelope(
+          (data as any)[key],
+        );
         data.setValue(
           key,
-          await Encryption.decrypt(
-            DatabaseService.unwrapHashedStringEnvelope((data as any)[key]),
-          ),
+          Encryption.looksEncrypted(value)
+            ? await Encryption.decrypt(value)
+            : value,
         );
       }
     }

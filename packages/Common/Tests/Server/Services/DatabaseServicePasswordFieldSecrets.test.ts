@@ -425,26 +425,35 @@ describe("rows stored in the HashedString envelope before the fix still decrypt"
     expect(await readApiToken(stored)).toBe("plain_ciphertext_token");
   });
 
-  test("only the HashedString envelope is unwrapped — other JSON-shaped values go to decrypt untouched", async () => {
+  test("only the HashedString envelope is unwrapped, and a value that is not our ciphertext is returned untouched", async () => {
     const decryptSpy: jest.SpyInstance = jest.spyOn(CryptoJS.AES, "decrypt");
     decryptSpy.mockReturnValue(CryptoJS.enc.Utf8.parse("stubbed") as never);
 
     const innerCipherText: string = await Encryption.encrypt("inner");
 
-    const notEnvelopes: Array<string> = [
+    /*
+     * None of these is our ciphertext: not a HashedString envelope that
+     * unwraps to a string (so the stored string stands), and the stored
+     * string does not begin with the AES envelope prefix. The read hands it
+     * back as it is, without ever calling AES.decrypt - the same tolerance
+     * that lets a column freshly made encrypted read its not-yet-encrypted
+     * rows (Encryption.looksEncrypted).
+     */
+    const notOurCiphertext: Array<string> = [
       JSON.stringify({ _type: "DateTime", value: innerCipherText }),
       JSON.stringify({ value: innerCipherText }),
       JSON.stringify({ _type: "HashedString", value: 42 }),
       '{"_type":"HashedString","value":"not closed',
     ];
 
-    for (const stored of notEnvelopes) {
+    for (const stored of notOurCiphertext) {
       decryptSpy.mockClear();
-      await readApiToken(stored);
-      expect(decryptSpy).toHaveBeenCalledTimes(1);
-      expect(decryptSpy.mock.calls[0]![0]).toBe(stored);
+      expect(await readApiToken(stored)).toBe(stored);
+      expect(decryptSpy).not.toHaveBeenCalled();
     }
 
+    // A HashedString envelope wrapping our ciphertext unwraps, and the inner
+    // ciphertext - which does look encrypted - is decrypted.
     decryptSpy.mockClear();
     await readApiToken(
       JSON.stringify({ _type: "HashedString", value: innerCipherText }),
