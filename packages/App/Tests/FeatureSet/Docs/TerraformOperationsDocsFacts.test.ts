@@ -25,7 +25,6 @@ import {
   codeIn,
   englishPage,
   englishSection,
-  lineStartingWith,
   rowStartingWith,
   tableWithHeader,
 } from "./InventoryAndApiDocsSupport";
@@ -279,7 +278,10 @@ describe("the importing page", () => {
     );
     expect(getItem).toContain("throw new NotFoundException(");
     expect(
-      detailsBody(IMPORTING_RESOURCES, "Cannot import non-existent remote object"),
+      detailsBody(
+        IMPORTING_RESOURCES,
+        "Cannot import non-existent remote object",
+      ),
     ).toContain(
       "No record has that ID, or the provider's API key may not read it: OneUptime answers both the same way.",
     );
@@ -424,10 +426,12 @@ describe("the importing page", () => {
     expect(routes).toContain(
       "`/dashboard/${RouteParams.ProjectID}/monitors/${\n      MonitorsRoutePath[PageMap.MONITOR_VIEW]\n    }`",
     );
-    expect(routes).toContain("[PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,");
-    expect(codeIn(rowStartingWith(rows, "The address bar")[1] as string)).toEqual(
-      ["/dashboard/<project-id>/monitors/<monitor-id>"],
+    expect(routes).toContain(
+      "[PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,",
     );
+    expect(
+      codeIn(rowStartingWith(rows, "The address bar")[1] as string),
+    ).toEqual(["/dashboard/<project-id>/monitors/<monitor-id>"]);
   });
 
   it("is right that a secret OneUptime never sends back is not read into the state", () => {
@@ -490,7 +494,9 @@ describe("the troubleshooting page", () => {
     );
 
     // "You do not have permissions to create Monitor", a 422.
-    expect(tablePermission).toContain("`You do not have permissions to ${type} ${");
+    expect(tablePermission).toContain(
+      "`You do not have permissions to ${type} ${",
+    );
     expect(tablePermission).toContain("throw new NotAuthorizedException(");
     expect(new Monitor().singularName).toBe("Monitor");
     expect(ExceptionCode.NotAuthorizedException).toBe(422);
@@ -545,7 +551,10 @@ describe("the troubleshooting page", () => {
   it("says where an error comes from by the words the provider writes", () => {
     const providerSource: string = readRepoFile(PROVIDER_GENERATOR);
     const generator: string = readRepoFile(RESOURCE_GENERATOR);
-    const page: string = englishSection(TROUBLESHOOTING, "## How to read an error");
+    const page: string = englishSection(
+      TROUBLESHOOTING,
+      "## How to read an error",
+    );
 
     expect(providerSource).toContain(
       'return nil, fmt.Errorf("failed to execute request: %w", err)',
@@ -583,7 +592,9 @@ describe("the troubleshooting page", () => {
     );
 
     expect(providerSource).toContain("Timeout: time.Second * 60,");
-    expect(section).toContain("The provider waits up to 60 seconds for each answer.");
+    expect(section).toContain(
+      "The provider waits up to 60 seconds for each answer.",
+    );
     // Reads (get-item, get-list, count) and deletes: three attempts.
     expect(providerSource).toContain(
       'idempotent := method == "GET" || method == "DELETE" || strings.HasSuffix(path, "/get-item")',
@@ -702,9 +713,9 @@ describe("the troubleshooting page", () => {
   it("refuses the empty values the page names, in monitor_steps and its parts", () => {
     const source: string = readRepoFile(MONITOR_STEPS_GO);
 
-    expect(
-      goFunction(source, "func MonitorStepsSchemaAttribute("),
-    ).toContain("Validators:   []validator.List{listvalidator.SizeAtLeast(1)},");
+    expect(goFunction(source, "func MonitorStepsSchemaAttribute(")).toContain(
+      "Validators:   []validator.List{listvalidator.SizeAtLeast(1)},",
+    );
 
     const step: string = goFunction(source, "func monitorStepsStepSchema()");
     const field: (name: string) => string = (name: string): string => {
@@ -717,7 +728,7 @@ describe("the troubleshooting page", () => {
     expect(field("request_headers")).toContain("mapvalidator.SizeAtLeast(1)");
     expect(field("request_body")).toContain("stringvalidator.LengthAtLeast(1)");
     expect(englishSection(TROUBLESHOOTING, "### Empty values")).toContain(
-      "such as `monitor_steps = []`, `request_headers = {}` or `request_body = \"\"`",
+      'such as `monitor_steps = []`, `request_headers = {}` or `request_body = ""`',
     );
   });
 
@@ -873,9 +884,9 @@ describe("the self-hosted page", () => {
     expect(englishPage(SELF_HOSTED)).toContain(
       "The provider adds `https://` when the address has no scheme, and `/api` at the end, so `https://oneuptime.example.com` sends every request to `https://oneuptime.example.com/api`.",
     );
-    expect(
-      readRepoFile("packages/Nginx/default.conf.template"),
-    ).toContain("    location /api {");
+    expect(readRepoFile("packages/Nginx/default.conf.template")).toContain(
+      "    location /api {",
+    );
   });
 
   it("names the settings an installation's address comes from", () => {
@@ -907,7 +918,9 @@ describe("the self-hosted page", () => {
     );
 
     expect(versionApi).toContain('router.get("/version",');
-    expect(versionApi).toContain("res.send({ version: AppVersion, commit: GitSha });");
+    expect(versionApi).toContain(
+      "res.send({ version: AppVersion, commit: GitSha });",
+    );
     expect(englishPage(SELF_HOSTED)).toContain(
       'The answer is JSON, such as `{"version":"{{TERRAFORM_PROVIDER_MAJOR}}.0.40","commit":"..."}`.',
     );
@@ -980,9 +993,11 @@ describe("the self-hosted page", () => {
       );
 
       return (
-        (attributeNamed(mirror.body.attributes, "include")?.value as {
-          items: Array<{ value: string }>;
-        }).items[0] as { value: string }
+        (
+          attributeNamed(mirror.body.attributes, "include")?.value as {
+            items: Array<{ value: string }>;
+          }
+        ).items[0] as { value: string }
       ).value;
     });
 
@@ -1041,7 +1056,9 @@ describe("the registry page", () => {
       "The provider, for Linux, macOS, Windows, FreeBSD, OpenBSD and Solaris",
     );
     // GoReleaser signs the checksums file with OneUptime's key.
-    expect(generator).toContain("signs:\n  - artifacts: checksum\n    cmd: gpg");
+    expect(generator).toContain(
+      "signs:\n  - artifacts: checksum\n    cmd: gpg",
+    );
     expect(rows[0]?.[1]).toContain("with checksums that OneUptime signs");
   });
 
@@ -1057,7 +1074,9 @@ describe("the registry page", () => {
     expect(job).toContain(
       "needs: [generate-build-number, read-version, terraform-provider-e2e]",
     );
-    expect(job).toContain('VERSION="${{needs.read-version.outputs.major_minor}}"');
+    expect(job).toContain(
+      'VERSION="${{needs.read-version.outputs.major_minor}}"',
+    );
     expect(job).toContain(
       'npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}"',
     );
@@ -1091,14 +1110,16 @@ describe("the registry page", () => {
     }
 
     expect(documentation).toContain('subcategory: "Guides"');
-    expect(rowStartingWith(rows, "A guide to using the provider with OpenTofu")[1]).toBe(
-      "The registry's guides",
-    );
+    expect(
+      rowStartingWith(rows, "A guide to using the provider with OpenTofu")[1],
+    ).toBe("The registry's guides");
   });
 
   it("names the provider's own repository and what its releases link to", () => {
     expect(publish).toContain('GITHUB_ORG="OneUptime"');
-    expect(publish).toContain('PROVIDER_REPO="terraform-provider-$PROVIDER_NAME"');
+    expect(publish).toContain(
+      'PROVIDER_REPO="terraform-provider-$PROVIDER_NAME"',
+    );
     expect(publish).toContain("**Full Changelog**");
     expect(englishPage(REGISTRY)).toContain(
       "[The provider's releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases) link to the changes since the one before.",
@@ -1113,9 +1134,11 @@ describe("the registry page", () => {
 
     expect(lock.labels[0]).toBe(REGISTRY_PROVIDER_ADDRESSES[0]);
     expect(
-      (attributeNamed(lock.body.attributes, "constraints")?.value as {
-        value: string;
-      }).value,
+      (
+        attributeNamed(lock.body.attributes, "constraints")?.value as {
+          value: string;
+        }
+      ).value,
     ).toBe(TERRAFORM_PROVIDER_VERSION_PLACEHOLDER);
     expect(englishSection(REGISTRY, "## The lock file")).toContain(
       `OpenTofu writes \`${REGISTRY_PROVIDER_ADDRESSES[1]}\` where Terraform writes \`${REGISTRY_PROVIDER_ADDRESSES[0]}\``,
@@ -1159,7 +1182,11 @@ describe("the OpenTofu page", () => {
     expect(readRepoFile(DOCUMENTATION_GENERATOR)).toContain(
       'this.fileGenerator.copyDirectory(MODULES_SOURCE_DIR, "modules");',
     );
-    expect(fs.existsSync(path.join(__dirname, "../../../../..", MODULES_DIRECTORY, MODULE))).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(__dirname, "../../../../..", MODULES_DIRECTORY, MODULE),
+      ),
+    ).toBe(true);
   });
 
   it("names the statuses and severity the module looks up, and the inputs that rename them", () => {
@@ -1224,21 +1251,28 @@ describe("the OpenTofu page", () => {
 
   it("says what the generated OpenTofu guide says about variables, .tofu files and lock files", () => {
     const documentation: string = readRepoFile(DOCUMENTATION_GENERATOR);
-    const page: string = englishSection(OPENTOFU, "## What differs from Terraform");
+    const page: string = englishSection(
+      OPENTOFU,
+      "## What differs from Terraform",
+    );
 
     expect(documentation).not.toContain("TOFU_VAR");
     expect(documentation).toContain(
       "| Variables | \\`TF_VAR_name\\` sets a variable under OpenTofu too. |",
     );
-    expect(page).toContain("| Variables | `TF_VAR_name` sets a variable under OpenTofu too. |");
-    expect(documentation).toContain("OpenTofu 1.8 and later also read \\`.tofu\\` files");
+    expect(page).toContain(
+      "| Variables | `TF_VAR_name` sets a variable under OpenTofu too. |",
+    );
+    expect(documentation).toContain(
+      "OpenTofu 1.8 and later also read \\`.tofu\\` files",
+    );
     expect(page).toContain("OpenTofu 1.8 and later also read `.tofu` files");
     expect(documentation).toContain(
       "\\`init\\` rewrites the provider's entry when you switch engines",
     );
     expect(page).toContain("Switching engines rewrites that entry");
-    expect(
-      readRepoFile("Examples/opentofu/README.md"),
-    ).not.toContain("TOFU_VAR");
+    expect(readRepoFile("Examples/opentofu/README.md")).not.toContain(
+      "TOFU_VAR",
+    );
   });
 });

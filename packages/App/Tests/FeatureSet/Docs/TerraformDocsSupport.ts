@@ -113,6 +113,10 @@ interface TerraformResource {
   legacyName?: string | undefined;
   operations: { read?: unknown };
   schema: Record<string, TerraformAttribute>;
+  // What the read operation answers with: the attributes a read maps back.
+  operationSchemas?:
+    | { read?: Record<string, TerraformAttribute> | undefined }
+    | undefined;
 }
 
 // What these helpers read of the generator's TerraformDataSource.

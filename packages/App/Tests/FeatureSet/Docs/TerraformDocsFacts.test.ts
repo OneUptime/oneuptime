@@ -26,6 +26,7 @@ import {
   MONITOR_STEPS,
   OTHER_VERSION_CONSTRAINTS,
   QUICK_START,
+  SELF_HOSTED,
   TERRAFORM_OVERVIEW,
   TERRAFORM_PAGES,
   TerraformDocsPageEntry,
@@ -268,8 +269,9 @@ function declarationsOf(page: string): Declarations {
         declared.modules.set(
           `module.${block.labels[0]}`,
           publishedModuleDirectory(
-            stringLiteral(attributeNamed(block.body.attributes, "source")?.value) ||
-              "",
+            stringLiteral(
+              attributeNamed(block.body.attributes, "source")?.value,
+            ) || "",
           ) || "",
         );
       }
@@ -1013,11 +1015,7 @@ function argumentsProblems(
  * with a read endpoint), and its ID is the record's.
  */
 function importBlockProblems(block: HclBlock, where: string): Array<string> {
-  const problems: Array<string> = argumentsProblems(
-    block,
-    ["to", "id"],
-    where,
-  );
+  const problems: Array<string> = argumentsProblems(block, ["to", "id"], where);
   const to: HclValue | undefined = attributeNamed(
     block.body.attributes,
     "to",
@@ -1118,16 +1116,16 @@ function moduleBlockProblems(block: HclBlock, where: string): Array<string> {
       continue;
     }
 
-    const keys: Set<string> | undefined = module.objectKeys.get(
-      attribute.name,
-    );
+    const keys: Set<string> | undefined = module.objectKeys.get(attribute.name);
 
     if (keys && attribute.value.kind === "object") {
       for (const item of attribute.value.attributes) {
         const value: HclValue = item.value;
 
         if (value.kind !== "object") {
-          problems.push(`${where}: ${attribute.name}.${item.name} is not an object`);
+          problems.push(
+            `${where}: ${attribute.name}.${item.name} is not an object`,
+          );
           continue;
         }
 
@@ -1236,7 +1234,10 @@ function lockFileProblems(body: HclBody, where: string): Array<string> {
   for (const block of body.blocks) {
     const address: string = block.labels[0] || "";
 
-    if (block.type !== "provider" || !REGISTRY_PROVIDER_ADDRESSES.includes(address)) {
+    if (
+      block.type !== "provider" ||
+      !REGISTRY_PROVIDER_ADDRESSES.includes(address)
+    ) {
       problems.push(`${where}: a lock file holds a ${block.type} "${address}"`);
       continue;
     }
@@ -1246,10 +1247,13 @@ function lockFileProblems(body: HclBody, where: string): Array<string> {
     );
 
     if (
-      stringLiteral(attributeNamed(block.body.attributes, "constraints")?.value) !==
-      TERRAFORM_PROVIDER_VERSION_PLACEHOLDER
+      stringLiteral(
+        attributeNamed(block.body.attributes, "constraints")?.value,
+      ) !== TERRAFORM_PROVIDER_VERSION_PLACEHOLDER
     ) {
-      problems.push(`${where}: the lock file's constraint is not the placeholder`);
+      problems.push(
+        `${where}: the lock file's constraint is not the placeholder`,
+      );
     }
   }
 
@@ -1657,6 +1661,7 @@ describe("the checks themselves", () => {
       data: new Set(),
       variables: new Set(),
       providerAliases: new Set(),
+      modules: new Map(),
     };
 
     expect(
@@ -1668,6 +1673,315 @@ describe("the checks themselves", () => {
     expect(referenceProblems(QUICK_START, "var.secret", declared, "x")).toEqual(
       ["x: var.secret is not declared on the page"],
     );
+  });
+
+  it("catch a reference to a module the page does not declare, or to an output the module lacks", () => {
+    const declared: Declarations = {
+      resources: new Set(),
+      data: new Set(),
+      variables: new Set(),
+      providerAliases: new Set(),
+      modules: new Map([
+        ["module.storefront", "monitoring-and-incident-response"],
+        // A module block whose source is not a module the provider publishes.
+        ["module.elsewhere", ""],
+      ]),
+    };
+
+    expect(
+      referenceProblems(
+        QUICK_START,
+        "module.storefront.on_call_policy_id",
+        declared,
+        "x",
+      ),
+    ).toEqual([]);
+    expect(
+      referenceProblems(
+        QUICK_START,
+        "module.storefront.policy_id",
+        declared,
+        "x",
+      ),
+    ).toEqual(["x: module.storefront has no output policy_id"]);
+    expect(
+      referenceProblems(
+        QUICK_START,
+        "module.billing.on_call_policy_id",
+        declared,
+        "x",
+      ),
+    ).toEqual(["x: module.billing is not declared on the page"]);
+    expect(
+      referenceProblems(
+        QUICK_START,
+        "module.elsewhere.on_call_policy_id",
+        declared,
+        "x",
+      ),
+    ).toEqual(["x: module.elsewhere has no output on_call_policy_id"]);
+  });
+
+  it("catch an import of what cannot be imported, of a type the provider lacks, or without an ID or an address", () => {
+    const body: HclBody = parseHcl(
+      [
+        "import {",
+        "  to = oneuptime_file.logo",
+        '  id = "68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b02"',
+        "}",
+        "",
+        "import {",
+        "  to = oneuptime_lable.critical",
+        '  id = "68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b03"',
+        "}",
+        "",
+        "import {",
+        "  to = oneuptime_label.critical",
+        "}",
+        "",
+        "import {",
+        "  to  = oneuptime_label",
+        '  ids = ["68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b03"]',
+        "}",
+        "",
+        "import {",
+        "  to = oneuptime_label.critical",
+        '  id = "68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b03"',
+        "}",
+      ].join("\n"),
+    );
+    const problems: Array<Array<string>> = body.blocks.map(
+      (block: HclBlock, index: number): Array<string> => {
+        return blockProblems(block, `x${index}`);
+      },
+    );
+
+    expect(problems).toEqual([
+      ["x0: oneuptime_file cannot be imported"],
+      ["x1: the provider has no resource oneuptime_lable"],
+      ["x2: import needs the record's id"],
+      ["x3: a import block has no ids", "x3: import needs to = <type>.<name>"],
+      [],
+    ]);
+  });
+
+  it("catch a removed block that would destroy the record, or that names no resource of the provider", () => {
+    const body: HclBody = parseHcl(
+      [
+        "removed {",
+        "  from = oneuptime_team.sre",
+        "}",
+        "",
+        "removed {",
+        "  from = oneuptime_team.sre",
+        "",
+        "  lifecycle {",
+        "    destroy = true",
+        "  }",
+        "}",
+        "",
+        "removed {",
+        "  from = oneuptime_teams.sre",
+        "",
+        "  lifecycle {",
+        "    destroy = false",
+        "  }",
+        "}",
+        "",
+        "removed {",
+        "  from = oneuptime_team.sre",
+        "",
+        "  lifecycle {",
+        "    destroy = false",
+        "  }",
+        "}",
+      ].join("\n"),
+    );
+    const problems: Array<Array<string>> = body.blocks.map(
+      (block: HclBlock, index: number): Array<string> => {
+        return blockProblems(block, `x${index}`);
+      },
+    );
+
+    expect(problems).toEqual([
+      ["x0: removed without lifecycle { destroy = false }"],
+      ["x1: removed without lifecycle { destroy = false }"],
+      ["x2: removed needs from = <a provider resource>"],
+      [],
+    ]);
+  });
+
+  it("catch a module the provider does not publish, an input or a monitor key it lacks, and a missing required input", () => {
+    const published: string =
+      "github.com/OneUptime/terraform-provider-oneuptime//modules/monitoring-and-incident-response";
+    const body: HclBody = parseHcl(
+      [
+        'module "storefront" {',
+        `  source = "${published}?ref=vX.Y.Z"`,
+        "",
+        '  service_nmae = "storefront"',
+        "",
+        "  monitors = {",
+        '    homepage = { url = "https://example.com", expected_status = "204" }',
+        '    api      = "https://api.example.com/health"',
+        "  }",
+        "}",
+        "",
+        'module "elsewhere" {',
+        '  source = "github.com/OneUptime/terraform-provider-oneuptime//modules/no-such-module?ref=vX.Y.Z"',
+        "}",
+        "",
+        'module "unpinned" {',
+        `  source = "${published}"`,
+        "}",
+        "",
+        'module "pinned" {',
+        `  source = "${published}?ref=v14.0.20"`,
+        "",
+        '  service_name = "storefront"',
+        "",
+        "  monitors = {",
+        '    homepage = { url = "https://example.com", expected_status_code = "204" }',
+        "  }",
+        "}",
+      ].join("\n"),
+    );
+    const problems: Array<Array<string>> = body.blocks.map(
+      (block: HclBlock, index: number): Array<string> => {
+        return blockProblems(block, `x${index}`);
+      },
+    );
+
+    expect(problems[0]).toEqual([
+      "x0: the module has no input service_nmae",
+      "x0: monitors.homepage has no expected_status",
+      "x0: monitors.api is not an object",
+      "x0: the module needs service_name",
+    ]);
+    expect(problems[1]).toEqual([
+      'x1: "github.com/OneUptime/terraform-provider-oneuptime//modules/no-such-module?ref=vX.Y.Z" is not a module the provider publishes',
+    ]);
+    // A source without a ref tracks whatever was published last.
+    expect(problems[2]).toEqual([
+      `x2: "${published}" is not a module the provider publishes`,
+    ]);
+    expect(problems[3]).toEqual([]);
+  });
+
+  it("catch a CLI configuration that installs another provider, from a relative path or by a method Terraform lacks", () => {
+    const body: HclBody = parseHcl(
+      [
+        'plugin_cache_dir = "/var/cache/terraform"',
+        "",
+        "provider_installation {",
+        "  filesystem_mirror {",
+        '    path    = "terraform-mirror"',
+        '    include = ["registry.terraform.io/hashicorp/aws"]',
+        "  }",
+        "  network_mirror {",
+        '    url  = "https://mirror.example.com/"',
+        '    path = "/srv/terraform-mirror"',
+        "  }",
+        "  direct {",
+        '    exclude = "registry.terraform.io/oneuptime/oneuptime"',
+        "  }",
+        "  local_mirror {",
+        '    path = "/srv/terraform-mirror"',
+        "  }",
+        "}",
+        "",
+        'credentials "app.terraform.io" {',
+        '  token = "x"',
+        "}",
+      ].join("\n"),
+    );
+
+    expect(cliConfigurationProblems(body, "x")).toEqual([
+      "x: a CLI configuration sets no top-level attribute",
+      "x: a filesystem mirror's path is absolute",
+      'x: filesystem_mirror.include names "registry.terraform.io/hashicorp/aws", not the provider',
+      "x: a network_mirror block has no path",
+      "x: direct.exclude is not a list",
+      "x: provider_installation has no local_mirror",
+      "x: a credentials block in a CLI configuration",
+    ]);
+
+    // Each registry's address of the provider is the provider.
+    for (const address of REGISTRY_PROVIDER_ADDRESSES) {
+      expect(
+        cliConfigurationProblems(
+          parseHcl(
+            [
+              "provider_installation {",
+              "  filesystem_mirror {",
+              '    path    = "/srv/terraform-mirror"',
+              `    include = ["${address}"]`,
+              "  }",
+              "  direct {",
+              `    exclude = ["${address}"]`,
+              "  }",
+              "}",
+            ].join("\n"),
+          ),
+          "x",
+        ),
+      ).toEqual([]);
+    }
+  });
+
+  it("catch a lock file that holds another provider, an argument a lock file lacks or another constraint", () => {
+    const body: HclBody = parseHcl(
+      [
+        'provider "registry.terraform.io/hashicorp/aws" {',
+        '  version = "5.0.0"',
+        "}",
+        "",
+        'provider "registry.opentofu.org/oneuptime/oneuptime" {',
+        '  version     = "14.0.20"',
+        '  constraints = "14.0.20"',
+        '  hashes      = ["h1:..."]',
+        "  pinned      = true",
+        "}",
+      ].join("\n"),
+    );
+
+    expect(lockFileProblems(body, "x")).toEqual([
+      'x: a lock file holds a provider "registry.terraform.io/hashicorp/aws"',
+      "x: a provider block has no pinned",
+      "x: the lock file's constraint is not the placeholder",
+    ]);
+  });
+
+  it("take the self-hosted range on the page that explains it, and nowhere else", () => {
+    const terraformBlock: (version: string) => HclBlock = (
+      version: string,
+    ): HclBlock => {
+      return parseHcl(
+        [
+          "terraform {",
+          "  required_providers {",
+          "    oneuptime = {",
+          '      source  = "oneuptime/oneuptime"',
+          `      version = "${version}"`,
+          "    }",
+          "  }",
+          "}",
+        ].join("\n"),
+      ).blocks[0] as HclBlock;
+    };
+
+    for (const version of OTHER_VERSION_CONSTRAINTS[SELF_HOSTED] || []) {
+      expect(blockProblems(terraformBlock(version), "x", SELF_HOSTED)).toEqual(
+        [],
+      );
+      expect(blockProblems(terraformBlock(version), "x", QUICK_START)).toEqual([
+        `x: the version is "${version}", not the placeholder`,
+      ]);
+    }
+
+    expect(blockProblems(terraformBlock("14.0.20"), "x", SELF_HOSTED)).toEqual([
+      'x: the version is "14.0.20", not the placeholder',
+    ]);
   });
 
   it("read the HCL the pages write: heredocs, templates, quoted keys, calls and references", () => {
