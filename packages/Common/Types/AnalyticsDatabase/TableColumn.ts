@@ -11,12 +11,34 @@ export enum SkipIndexType {
   MinMax = "minmax",
 }
 
+/*
+ * What a skip index is built over when it is not the column's own value.
+ * A closed list rather than free SQL: the expression is written into the
+ * table's DDL, and each entry is checked against the column type it needs.
+ */
+export enum SkipIndexExpression {
+  /*
+   * `mapValues(<column>)` - every value of a Map(String, String) column, so
+   * a filter that needs one exact value under some key (`attributes['k'] =
+   * 'v'`, `attributes['k'] IN (...)`, `has(mapValues(attributes), 'v')`)
+   * skips the granules that hold no such value at all. See the attributes
+   * column of Log and Span.
+   */
+  MapValues = "mapValues",
+}
+
 export interface SkipIndex {
   name: string;
   type: SkipIndexType;
   // e.g. 0.01 for bloom_filter, 10 for set, or [10240, 3, 0] for tokenbf_v1
   params?: Array<number> | undefined;
   granularity: number;
+  /*
+   * Build the index over this expression of the column instead of the
+   * column itself. Absent: the column (wrapped in assumeNotNull where the
+   * index type cannot take a Nullable column).
+   */
+  expression?: SkipIndexExpression | undefined;
 }
 
 /*

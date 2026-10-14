@@ -297,6 +297,32 @@ Slack 和 Microsoft Teams 操作同样受项目套餐约束：在不包含值班
 
 已存储的目标没有迁移，因此 **请在升级后重新打开每个 IPv6 的 Ping、Port 和 SSL 监视器并再次保存**，并检查它显示的目标。预计在 macOS 或 FreeBSD 探针上一直失败的监视器会开始报告真实情况，这可能会解决事件，也可能引发新的事件。
 
+### 日志和追踪按属性值搜索时使用索引
+
+按属性值过滤的日志和追踪（例如 `@http.route:/orders` 或在分面侧栏中点击的值）过去会读取时间范围内每一行日志或每个 span 的属性。在繁忙的安装中，跨越几个小时或更长时间的搜索可能会在 45 秒的查询限制处停止。14 为日志表和 span 表的属性值添加了索引，因此这类搜索只读取表中可能包含该值的部分。列表、图表、分面计数和导出返回与以前相同的结果，只是更快。
+
+对少数行才有的值帮助最大，例如请求路径，或用户、租户、订单、会话的 ID。大多数行都有的值（例如 `GET`）提升不大，通配符、包含、排除、比较和 `@k:*` 读取的数据量与以前相同。
+
+无需任何操作。启动时，OneUptime 会在不重写 `LogItemV3` 和 `SpanItemV3` 的情况下为它们添加索引，并在新的日志和 span 到达时为其建立索引。随后，ClickHouse 会在后台为已有的日志和 span 建立索引，与数据摄取和搜索同时进行：它会把每一行的属性读取一次，工作量大约相当于对所保留的全部数据做一次搜索。较早的日期会在它处理到时变快。索引会让这两张表增大几个百分点，在我们的测量中为 4%。
+
+如需跟踪后台建立索引的进度，请在 `clickhouse-client` 中运行以下语句。它会列出仍在建立索引的每张表以及剩余的数据部分数；索引建立完成后不返回任何行：
+
+```sql
+SELECT table, parts_to_do
+FROM system.mutations
+WHERE command LIKE '%idx_attribute_values%'
+  AND NOT is_done;
+```
+
+如果建立索引拖慢了非常大的安装，请停止它（`oneuptime` 是默认的集群名称）：
+
+```sql
+KILL MUTATION ON CLUSTER 'oneuptime'
+WHERE command LIKE '%idx_attribute_values%';
+```
+
+此后，它尚未处理到的日期会照常搜索，直到再次合并或过期。
+
 ### Kubernetes 代理 chart：Kubernetes AI 代理
 
 `kubernetes-agent` chart 现在默认运行 **Kubernetes AI 代理**：一个小型的只读 Pod（`component=ai-agent`，镜像 `oneuptime/kubernetes-ai-agent`），让 OneUptime AI 在调查该集群上的事件或警报时可以运行 `kubectl`。它取代了 `aiAccess.enabled=true` 安装的集群内 Runner。它与 OneUptime 12 中停用的 AI Agent 无关（[如果你运行过独立的 AI Agent](#如果你运行过独立的-ai-agent)）。

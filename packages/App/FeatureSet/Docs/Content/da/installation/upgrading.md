@@ -297,6 +297,32 @@ Et Ping- eller Port-mål, der blev indsat med mellemrum omkring – hvilket er d
 
 Der er ingen migrering for mål, der allerede er gemt, så **åbn hver IPv6-overvågning af typen Ping, Port og SSL igen efter opgraderingen, og gem den igen**, og kontrollér det mål, den viser. Forvent, at overvågninger, der fejlede permanent på macOS- eller FreeBSD-probes, begynder at melde sandheden, hvilket kan løse hændelser eller rejse nye.
 
+### Søgninger i logs og spor efter attributværdi bruger et indeks
+
+Logs og spor, der filtreres på en attributværdi, f.eks. `@http.route:/orders` eller en værdi, du klikker på i facetsidepanelet, læste før attributterne for hver loglinje eller hvert span i tidsintervallet. På en travl installation kunne en søgning over et par timer eller mere stoppe ved forespørgselsgrænsen på 45 sekunder. 14 tilføjer et indeks over attributværdierne i log- og span-tabellerne, så disse søgninger kun læser de dele af tabellen, der kan indeholde værdien. Listen, diagrammet, facettællingerne og eksporten giver de samme resultater som før, bare hurtigere.
+
+Det hjælper mest med en værdi, som få rækker har, f.eks. en forespørgselssti eller et bruger-, lejer-, ordre- eller sessions-id. En værdi, som de fleste rækker har, f.eks. `GET`, vinder ikke meget, og jokertegn, "indeholder", udelukkelser, sammenligninger og `@k:*` læser lige så meget som før.
+
+Du skal ikke gøre noget. Ved start tilføjer OneUptime indekset til `LogItemV3` og `SpanItemV3` uden at omskrive dem og indekserer nye logs og spans, efterhånden som de kommer. ClickHouse indekserer derefter dem, du allerede har, i baggrunden ved siden af indlæsning og søgninger: den læser attributterne for hver række én gang, omtrent det samme arbejde som én søgning over alt, hvad du gemmer. Ældre dage bliver hurtigere, efterhånden som den når dem. Indekset gør de to tabeller et par procent større, 4 % i vores målinger.
+
+For at følge indekseringen i baggrunden skal du køre dette i `clickhouse-client`. Det viser hver tabel, der stadig indekseres, med antallet af dele, der mangler, og intet, når indekseringen er færdig:
+
+```sql
+SELECT table, parts_to_do
+FROM system.mutations
+WHERE command LIKE '%idx_attribute_values%'
+  AND NOT is_done;
+```
+
+Hvis indekseringen gør en meget stor installation langsommere, så stop den (`oneuptime` er standardnavnet på klyngen):
+
+```sql
+KILL MUTATION ON CLUSTER 'oneuptime'
+WHERE command LIKE '%idx_attribute_values%';
+```
+
+Dage, den ikke har nået, søges derefter som før, indtil de flettes igen eller udløber.
+
 ### Kubernetes-agentens chart: Kubernetes-AI-agenten
 
 Chartet `kubernetes-agent` kører nu som standard **Kubernetes-AI-agenten**: én lille, skrivebeskyttet pod (`component=ai-agent`, image `oneuptime/kubernetes-ai-agent`), der lader OneUptime AI køre `kubectl`, mens den undersøger en hændelse eller advarsel på den klynge. Den erstatter den Runner i klyngen, som `aiAccess.enabled=true` installerede. Den har intet at gøre med den AI Agent, der blev udfaset i OneUptime 12 ([Hvis du kørte den selvstændige AI Agent](#hvis-du-kørte-den-selvstændige-ai-agent)).
