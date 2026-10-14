@@ -42,7 +42,9 @@ describe("inferSecurityEntityType", () => {
   });
 
   test("a hex string of a length no digest has is not a hash", () => {
-    expect(inferSecurityEntityType("abcdef0123")).toBe(SecurityEntityType.Other);
+    expect(inferSecurityEntityType("abcdef0123")).toBe(
+      SecurityEntityType.Other,
+    );
   });
 });
 
@@ -97,7 +99,9 @@ describe("mergeSecurityEntities", () => {
       [{ type: SecurityEntityType.Host, value: "web-01" }],
     );
 
-    expect(merged).toEqual([{ type: SecurityEntityType.Host, value: "WEB-01" }]);
+    expect(merged).toEqual([
+      { type: SecurityEntityType.Host, value: "WEB-01" },
+    ]);
   });
 
   test("a typed copy improves an earlier untyped one", () => {
@@ -106,7 +110,9 @@ describe("mergeSecurityEntities", () => {
       [{ type: SecurityEntityType.Host, value: "web-01" }],
     );
 
-    expect(merged).toEqual([{ type: SecurityEntityType.Host, value: "web-01" }]);
+    expect(merged).toEqual([
+      { type: SecurityEntityType.Host, value: "web-01" },
+    ]);
   });
 
   test("a typed entity is never downgraded by a later guess", () => {

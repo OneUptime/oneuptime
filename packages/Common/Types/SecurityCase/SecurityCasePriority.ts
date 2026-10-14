@@ -66,7 +66,9 @@ export function isPriorityAtLeast(
     return true;
   }
 
-  return securityCasePriorityRank(priority) >= SECURITY_CASE_PRIORITY_RANK[minimum];
+  return (
+    securityCasePriorityRank(priority) >= SECURITY_CASE_PRIORITY_RANK[minimum]
+  );
 }
 
 export function higherSecurityCasePriority(
