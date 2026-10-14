@@ -47,7 +47,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en dan op **Vanaf nul beginnen
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger en kies in **Fields to pass on** `title`, `description` en `incidentNumberWithPrefix`.
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving** en **Incident Number With Prefix**.
 
 ### Het issue openen
 
