@@ -1,182 +1,112 @@
-# Installationsguide för Windows
+# Windows-installation
 
-Installera OneUptime som en skrivbordsapplikation på Windows för heltäckande övervakning och incidenthantering.
+OneUptime-instrumentpanelen installeras på Windows som en app, från Microsoft Edge eller Google Chrome. Den öppnas i ett eget fönster, med en egen ikon i aktivitetsfältet och på Start-menyn, och kan visa aviseringar. Det finns inget att ladda ner: appen är instrumentpanelen i ditt OneUptime, och den är uppdaterad så snart ditt OneUptime är det.
 
-## Installationsmetoder
+:::cards
+- [Installera appen](#installera-appen): Från Edge eller Chrome, med några få klick.
+- [Fäst den och starta den med Windows](#fäst-den-och-starta-den-med-windows): Ha den ett klick bort.
+- [Få aviseringar på den här datorn](#få-aviseringar-på-den-här-datorn): Registrera webbläsaren för push-aviseringar.
+- [Felsökning](#felsökning): Ingen installationsikon, inga aviseringar, logga in igen.
+:::
 
-### Metod 1: Microsoft Edge (rekommenderas)
+## Så fungerar skrivbordsappen
 
-Edge ger den bästa Windows PWA-integrationen med inbyggda funktioner.
+```mermaid title="Vad du får när du installerar instrumentpanelen"
+flowchart TB
+    Browser["Edge eller Chrome<br/>öppnar din<br/>instrumentpanel"]
+    Install["Du installerar den<br/>som en app"]
+    App["OneUptime i ett eget<br/>fönster, i aktivitetsfältet<br/>och på Start-menyn"]
+    OneUptime["Ditt OneUptime levererar<br/>instrumentpanelen"]
+    Browser --> Install --> App
+    App -->|"hämtar<br/>instrumentpanelen<br/>varje gång den öppnas"| OneUptime
+```
 
-1. **Öppna OneUptime i Edge**
+Den installerade appen delar inloggning, inställningar och aviseringstillstånd med sin webbläsare. Stäng webbläsaren, så fortsätter appen i sitt eget fönster.
 
-   - Starta Microsoft Edge-webbläsaren
-   - Navigera till URL:en för din OneUptime-instans
-   - Logga in på ditt OneUptime-konto
-   - Vänta tills sidan laddas helt
+## Innan du börjar
 
-2. **Installera app**
+- Windows 10 eller Windows 11, med en aktuell Microsoft Edge eller Google Chrome.
+- Adressen till ditt OneUptime, över HTTPS: `https://oneuptime.com` på OneUptime Cloud, eller din egen, till exempel `https://oneuptime.example.com`.
+- Ett konto som du kan logga in på instrumentpanelen med.
 
-   - Leta efter **installationsikonen** (⊞) i adressfältet
-   - Klicka på knappen **"Installera OneUptime"**
-   - Eller klicka på **tredubbelpunktsmenyn** → **Appar** → **Installera den här webbplatsen som en app**
+## Installera appen
 
-3. **Anpassa installationen**
+:::tabs
+@tab Edge
+1. Öppna ditt OneUptime i Edge och logga in.
+2. Klicka på installationsikonen till höger i adressfältet på valfri sida i instrumentpanelen, och sedan på **Installera**. Eller öppna **Inställningar med mera (…) → Fler verktyg → Appar → Installera den här webbplatsen som en app**.
+3. Edge öppnar OneUptime i ett eget fönster och erbjuder kanske att fästa det i aktivitetsfältet eller på Start.
+@tab Chrome
+1. Öppna ditt OneUptime i Chrome och logga in.
+2. Klicka på installationsikonen till höger i adressfältet på valfri sida i instrumentpanelen, och sedan på **Installera**. Eller öppna **⋮ → Casta, spara och dela → Installera sidan som app…**.
+3. Chrome öppnar OneUptime i ett eget fönster och lägger till det på Start-menyn.
+:::
 
-   - **Appnamn**: Ändra om du vill (standard: OneUptime)
-   - **Start-menyn**: Välj om du vill lägga till i Start-menyn
-   - **Aktivitetsfältet**: Alternativ för att fästa i aktivitetsfältet
-   - **Skrivbord**: Skapa skrivbordsgenväg
+Installera från en sida i instrumentpanelen, efter att du har loggat in: inloggningssidan är inte appen. Sök efter OneUptime på Start-menyn för att öppna den senare.
 
-4. **Slutför installationen**
-   - Klicka på **"Installera"** för att avsluta
-   - OneUptime öppnas i ett eget fönster
-   - Hitta det i Start-menyn under installerade appar
+## Fäst den och starta den med Windows
 
-### Metod 2: Google Chrome
+- **Aktivitetsfältet.** Högerklicka på appens ikon i aktivitetsfältet medan den är öppen och välj **Fäst i aktivitetsfältet**.
+- **Starta med Windows.** Öppna `edge://apps` i Edge, välj **Detaljer** för OneUptime och slå på **Starta automatiskt vid inloggning på enheten**. Samma sida fäster appen i aktivitetsfältet eller på Start, eller lägger en genväg på skrivbordet.
 
-Chrome erbjuder utmärkt PWA-stöd med rik skrivbordsintegration.
+## Få aviseringar på den här datorn
 
-1. **Öppna OneUptime i Chrome**
+Appen visar aviseringar genom sin webbläsare, när du har registrerat webbläsaren för push-aviseringar i varje projekt du vill få dem från.
 
-   - Starta Google Chrome
-   - Gå till din OneUptime-instans
-   - Se till att du är inloggad
-   - Låt sidan laddas helt
+:::steps
+### Öppna dina push-enheter
+Öppna **Användarinställningar → Aviseringsmetoder** och fliken **Push Notifications** i appen.
 
-2. **Installera via adressfältet**
+### Registrera den här webbläsaren
+Klicka på **Registrera enhet**, behåll det föreslagna **Enhetsnamn**, till exempel `Edge on Windows`, eller ändra det, och klicka på **Registrera enhet** igen. När webbläsaren frågar om OneUptime får visa aviseringar väljer du **Tillåt**.
 
-   - Leta efter **installationsikonen** (⊞) i adressfältet
-   - Klicka på **"Installera OneUptime"**
-   - Eller använd menyn: **tre punkter** → **Fler verktyg** → **Skapa genväg**
+### Skicka ett test
+Klicka på **Send Test Notification** i dialogrutan **Browser Registered**. Visas ingenting, titta på Windows egna aviseringsinställningar: se [Felsökning](#felsökning).
+:::
 
-3. **Installationsalternativ**
+En webbläsare ringer inte högre än Windows tillåter: den kan inte åsidosätta Stör ej. Använd mobilappen med kritiska varningar för larm som måste väcka dig: se [Android-installation](/docs/mobile-desktop-apps/android-installation#ring-igenom-tyst-läge) eller [iOS-installation](/docs/mobile-desktop-apps/ios-installation#ring-igenom-tyst-läge).
 
-   - Markera **"Öppna som fönster"** för app-liknande upplevelse
-   - Anpassa appnamnet om du vill
-   - Klicka på **"Installera"** eller **"Skapa"**
+På ett OneUptime i egen drift behöver webbläsaraviseringar serverns VAPID-nycklar: se [Push-aviseringar](/docs/self-hosted/push-notifications#egeninstallerad-konfiguration).
 
-4. **Starta appen**
-   - Hitta OneUptime i Windows Start-meny
-   - Eller starta från skrivbordsgenvägen
-   - Appen öppnas i ett dedikerat fönster
+## Uppdateringar
 
-### Metod 3: Firefox
+Det finns inget att uppdatera. Appen hämtar instrumentpanelen från ditt OneUptime varje gång den öppnas, så den ändras när ditt OneUptime uppgraderas. Har ett fönster varit öppet sedan uppgraderingen laddar du om det med Ctrl+R.
 
-Firefox stöder PWA-installation med grundläggande skrivbordsintegration.
+## Avinstallera
 
-1. **Öppna OneUptime i Firefox**
+:::tabs
+@tab Edge
+Öppna `edge://apps`, välj **Detaljer** för OneUptime och sedan **Avinstallera**.
+@tab Chrome
+Öppna menyn **⋮** i appens fönster, välj objektet som avinstallerar appen och sedan **Ta bort**.
+:::
 
-   - Starta Firefox-webbläsaren
-   - Navigera till OneUptime-URL:en
-   - Slutför inloggningsprocessen
+Windows visar också appen under **Inställningar → Appar → Installerade appar**, där **Avinstallera** också tar bort den.
 
-2. **Installera PWA**
-   - Leta efter **installationsprompt** eller banner
-   - Eller klicka på **menyn** → **Installera**
-   - Om tillgängligt, klicka på motsvarigheten till **"Lägg till på startskärmen"**
-
-### Startkonfiguration
-
-1. **Automatisk start**: Konfigurera OneUptime att starta med Windows
-   - Högerklicka på aktivitetsfältet → Aktivitetshanteraren → Start
-   - Aktivera OneUptime om du vill
-2. **Standardstorlek**: Ange önskad fönsterstorlek och position
-
-### Aviseringsinställningar
-
-1. **Windows-aviseringar**
-
-   - Inställningar → System → Aviseringar och åtgärder
-   - Hitta OneUptime och konfigurera varningsinställningar
-   - Aktivera banneraviseringar för incidenter
-
-2. **Fokusassistent**
-   - Konfigurera inställningar för Stör ej
-   - Tillåt OneUptime kritiska aviseringar
-   - Ange prioritetsnivåer för olika varningstyper
-
-## Avancerade installationsalternativ
+Att avinstallera appen avregistrerar inte dess webbläsare: den får fortfarande aviseringar. Vill du stoppa dem tar du bort webbläsaren under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, med **Ta bort**.
 
 ## Felsökning
 
-### Installationsproblem
+:::details Ingen installationsikon i adressfältet
+Öppna en sida i instrumentpanelen efter inloggningen, inte inloggningssidan, och kontrollera att adressen börjar med `https://`: webbläsare installerar bara appar från säkra webbplatser. Visas ikonen fortfarande inte använder du webbläsarens meny som ovan. Andra webbläsare kanske inte installerar webbplatser som appar; använd Edge eller Chrome.
+:::
 
-**Installationsknapp visas inte:**
+:::details Inga aviseringar visas
+- Kontrollera under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**, att den här webbläsaren finns i listan, och skicka en **Testavisering** till den.
+- Öppna **Inställningar → System → Meddelanden** i Windows: aviseringar måste vara på, även för webbläsaren, och Stör ej av. Windows 10 kallar sidan ”Meddelanden och åtgärder”.
+- Blockerar webbläsaren aviseringar för OneUptime, klicka på ikonen till vänster i adressfältet, tillåt aviseringar för webbplatsen och registrera webbläsaren igen.
+- På ett OneUptime i egen drift säger dialogrutan **Registrera enhet** när servern saknar VAPID-nycklar.
+:::
 
-```
-Lösningar:
-1. Se till att du använder Edge eller Chrome (rekommenderade webbläsare)
-2. Verifiera HTTPS-anslutning till OneUptime-instansen
-3. Rensa webbläsarens cache och cookies
-4. Uppdatera webbläsaren till den senaste versionen
-5. Kontrollera om PWA-kraven uppfylls på servern
-6. Inaktivera webbläsartillägg tillfälligt
-```
+:::details Appen ber dig logga in igen
+Appen delar sin webbläsares inloggning. Loggar du ut i webbläsaren, eller rensar dess cookies, loggas appen också ut.
+:::
 
-**Installationen misslyckas eller kraschar:**
+## Nästa steg
 
-```
-Lösningar:
-1. Kör webbläsaren som administratör
-2. Kontrollera Windows User Account Control (UAC)-inställningar
-3. Se till att det finns tillräckligt med diskutrymme (minst 100 MB)
-4. Inaktivera antivirusprogram tillfälligt
-5. Rensa webbläsardata helt
-6. Starta om Windows och försök igen
-```
-
-**Appen visas inte i Start-menyn:**
-
-```
-Lösningar:
-1. Sök efter "OneUptime" i Windows-sökning
-2. Kontrollera om den installerats under ett annat namn
-3. Titta i avsnittet "Nyligen tillagda" appar
-4. Installera om och se till att "Lägg till i Start-menyn" är markerat
-5. Skapa manuell genväg vid behov
-```
-
-### Aviseringsproblem
-
-**Windows-aviseringar fungerar inte:**
-
-```
-Lösningar:
-1. Windows Inställningar → System → Aviseringar och åtgärder
-2. Aktivera aviseringar för OneUptime
-3. Kontrollera inställningar för Fokusassistent
-4. Se till att aviserings behörigheter finns i OneUptime
-5. Testa med enkel avisering först
-```
-
-## Avinstallation
-
-### Fullständig borttagning
-
-1. **Windows-inställningsmetod**
-
-   - Inställningar → Appar → Appar och funktioner
-   - Sök efter "OneUptime"
-   - Klicka och välj "Avinstallera"
-
-2. **Webbläsarmetod**
-
-   - Öppna Edge/Chrome
-   - Gå till edge://apps/ eller chrome://apps/
-   - Hitta OneUptime
-   - Klicka på alternativ → Avinstallera
-
-3. **Start-menymetod**
-   - Högerklicka på OneUptime i Start-menyn
-   - Välj "Avinstallera"
-   - Bekräfta borttagningen
-
-## Uppdateringar och underhåll
-
-### Automatiska uppdateringar
-
-- OneUptime PWA uppdateras automatiskt när du är online
-- Ingen manuell åtgärd krävs
-- Uppdateringar tillämpas omedelbart vid omstart
-- Kritiska korrigeringar driftsätts direkt
+:::cards
+- [macOS-installation](/docs/mobile-desktop-apps/macos-installation): Samma app på en Mac.
+- [Android-installation](/docs/mobile-desktop-apps/android-installation): Bli larmad på din telefon.
+- [Vanliga frågor och felsökning](/docs/mobile-desktop-apps/faq-troubleshooting): Svar om båda apparna.
+- [Ditt konto](/docs/introduction/your-account): Så når OneUptime dig i varje projekt.
+:::

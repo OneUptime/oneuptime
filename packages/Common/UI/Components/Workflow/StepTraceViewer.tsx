@@ -33,7 +33,7 @@ import {
   getReceivedRows,
   getReturnedRows,
   getStepOutcome,
-  getStepWarnings,
+  getStepWarningsToShow,
   getTraceResumesAt,
   getTraceSteps,
   isSingleStepRun,
@@ -297,18 +297,26 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
 
   /*
    * Why it went that way, when the step said: which case a Switch / Case
-   * matched and that the ones above it did not. Written by the runner, so
-   * shown as written.
+   * matched and that the ones above it did not; why a step took its Error
+   * output - nobody was paged, a database step's error. Written by the
+   * runner, so shown as written. An Error output's reason is the step's
+   * error, the first thing anyone opening a failed step needs, so it reads as
+   * one - the size and colour of the step's other error text - rather than
+   * as a small grey note under a warning that is louder than it.
    */
   if (!outcome.portReason) {
     return line;
   }
 
+  const isErrorReason: boolean = outcome.portTone === StepPortTone.Error;
+
   return (
-    <div className="space-y-0.5">
+    <div className={isErrorReason ? "space-y-1" : "space-y-0.5"}>
       {line}
       <p
-        className="break-words text-xs text-gray-500"
+        className={`whitespace-pre-wrap break-words ${
+          isErrorReason ? "text-sm text-red-700" : "text-xs text-gray-500"
+        }`}
         data-testid="workflow-run-step-reason"
       >
         {outcome.portReason}
@@ -515,8 +523,12 @@ const StepItem: FunctionComponent<StepItemProps> = (
 
   const step: WorkflowStepTraceEntry = props.step;
   const isFailed: boolean = isStepFailed(step);
-  const warnings: Array<WorkflowStepTraceWarning> = getStepWarnings(step);
   const outcome: StepOutcome = getStepOutcome(props.trace, props.index);
+  // Less any the step's error already says. See the helper.
+  const warnings: Array<WorkflowStepTraceWarning> = getStepWarningsToShow(
+    step,
+    outcome,
+  );
 
   /*
    * Only the runner writes a trace, and it writes text here, but a row is

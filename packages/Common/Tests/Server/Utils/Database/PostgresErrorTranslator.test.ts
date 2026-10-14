@@ -1,6 +1,7 @@
 import PostgresErrorTranslator, {
   TranslatedPostgresException,
 } from "../../../../Server/Utils/Database/PostgresErrorTranslator";
+import { EXAMPLE_UUID } from "../../../../Server/Types/Database/UUIDColumnFilter";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import Exception from "../../../../Types/Exception/Exception";
 import { describe, expect, it } from "@jest/globals";
@@ -368,6 +369,87 @@ describe("PostgresErrorTranslator", () => {
         PostgresErrorTranslator.createUniqueViolationException("Duplicate."),
       );
     });
+  });
+
+  /*
+   * A value Postgres cannot read as a uuid. A filter and a write are refused
+   * before they reach Postgres, naming the column (UUIDColumnFilter); this
+   * is what answers the rest - a custom route, a statement written by hand -
+   * with a 400 instead of the bare 500 the API used to send.
+   */
+  describe("a value Postgres cannot read as a uuid (22P02)", () => {
+    const invalidUuid: (value: string) => FakeQueryFailedError = (
+      value: string,
+    ): FakeQueryFailedError => {
+      return {
+        message: `invalid input syntax for type uuid: "${value}"`,
+        code: "22P02",
+      };
+    };
+
+    it("translates to a BadDataException saying what an ID is", () => {
+      const translated: unknown = PostgresErrorTranslator.translate(
+        invalidUuid("[object Object]"),
+      );
+
+      expect(translated).toBeInstanceOf(BadDataException);
+      expect((translated as Exception).message).toBe(
+        `An ID in this request is not valid. An ID is a UUID, such as "${EXAMPLE_UUID}". Please check the IDs in the request and try again.`,
+      );
+    });
+
+    it("records the SQLSTATE on the translated exception", () => {
+      expect(
+        (
+          PostgresErrorTranslator.translate(
+            invalidUuid("abc"),
+          ) as TranslatedPostgresException
+        ).postgresErrorCode,
+      ).toBe("22P02");
+    });
+
+    // Whatever was bound, which need not be the caller's own text.
+    it("does not repeat the value Postgres was given", () => {
+      const translated: unknown = PostgresErrorTranslator.translate(
+        invalidUuid("secret-value-from-somewhere"),
+      );
+
+      expect((translated as Exception).message).not.toContain(
+        "secret-value-from-somewhere",
+      );
+    });
+
+    it("reads the pg fields off driverError when the wrapper has no code", () => {
+      const translated: unknown = PostgresErrorTranslator.translate({
+        message: "wrapped",
+        driverError: invalidUuid("abc"),
+      });
+
+      expect(translated).toBeInstanceOf(BadDataException);
+    });
+
+    it("is not a unique violation", () => {
+      expect(
+        PostgresErrorTranslator.isUniqueViolation(
+          PostgresErrorTranslator.translate(invalidUuid("abc")),
+        ),
+      ).toBe(false);
+    });
+
+    // Every other 22P02 is some other column's problem, and left as it was.
+    it.each([
+      ["an integer", 'invalid input syntax for type integer: "abc"'],
+      ["a json", "invalid input syntax for type json"],
+      ["an enum", 'invalid input value for enum "Status": "abc"'],
+      ["no message at all", ""],
+    ])(
+      "passes through a 22P02 for %s unchanged",
+      (_name: string, message: string) => {
+        const other: FakeQueryFailedError = { message, code: "22P02" };
+
+        expect(PostgresErrorTranslator.translate(other)).toBe(other);
+      },
+    );
   });
 
   describe("errors it should not touch", () => {

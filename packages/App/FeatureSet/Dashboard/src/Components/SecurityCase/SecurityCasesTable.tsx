@@ -403,7 +403,15 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
               );
 
               return (
-                <div className="min-w-[14rem]">
+                /*
+                 * One grid track that may shrink to nothing (grid-cols-1 is
+                 * minmax(0, 1fr)), never under 14rem: what the cell holds
+                 * never widens the column, so the queue keeps fitting beside
+                 * the side menu with each row's ⋯ menu. An entity chip
+                 * longer than the column truncates (its tooltip has the
+                 * whole value), and a long word in the title breaks.
+                 */
+                <div className="grid min-w-[14rem] grid-cols-1">
                   <AppLink
                     className="group block min-w-0"
                     to={RouteUtil.populateRouteParams(

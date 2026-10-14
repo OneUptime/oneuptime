@@ -1,144 +1,162 @@
-# FAQ और Troubleshooting
+# अक्सर पूछे जाने वाले प्रश्न और समस्या निवारण
 
-OneUptime mobile और desktop apps के लिए अक्सर पूछे जाने वाले प्रश्न और समाधान।
+OneUptime के मोबाइल और डेस्कटॉप ऐप्स के बारे में आम सवालों के जवाब, और सबसे अक्सर होने वाली गड़बड़ियों के समाधान: साइन इन करना, न पहुँचने वाली सूचनाएँ, और ऐसा फ़ोन जिसे फिर से पंजीकृत होना है।
 
-## OneUptime अपनी apps कैसे distribute करता है?
+:::cards
+- [मोबाइल ऐप से जुड़े सवाल](#मोबाइल-ऐप-से-जुड़े-सवाल): डिवाइस, प्रोजेक्ट, सेल्फ-होस्टिंग और सुरक्षा।
+- [डेस्कटॉप ऐप से जुड़े सवाल](#डेस्कटॉप-ऐप-से-जुड़े-सवाल): डेस्कटॉप ऐप क्या है, और यह क्या नहीं कर सकता।
+- [जब फ़ोन को फिर से पंजीकृत होना पड़े](#जब-फ़ोन-को-फिर-से-पंजीकृत-होना-पड़े): फ़ोन पर पेज आने क्यों बंद होते हैं, और वह वापस कैसे आता है।
+- [समस्या निवारण](#समस्या-निवारण): साइन-इन, सूचना और इंस्टॉल की समस्याएँ।
+:::
 
-- **Mobile (iOS और Android):** OneUptime **OneUptime On-Call** नामक एक native app ship करता है। यह [Apple App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) और [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall) पर publish किया गया है। Google Play के बिना Android devices के लिए एक signed [APK download](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) भी उपलब्ध है।
-- **Desktop (Windows, macOS, Linux):** OneUptime का web dashboard एक Progressive Web App (PWA) है। आप इसे सीधे Chromium-based browser या Safari से desktop application के रूप में install कर सकते हैं — किसी store account की आवश्यकता नहीं है।
+## मोबाइल ऐप से जुड़े सवाल
 
-## Mobile App FAQ
+:::details क्या ऐप मुफ़्त है?
+हाँ। OneUptime On-Call App Store पर, Google Play पर और GitHub पर APK के रूप में मुफ़्त है। आप अपने OneUptime खाते से साइन इन करते हैं।
+:::
 
-### कौन से devices supported हैं?
+:::details यह किन फ़ोन और टैबलेट पर चलता है?
+iOS या iPadOS 16.4 या बाद के संस्करण वाले iPhone और iPad, और Android 7.0 या बाद के संस्करण वाले Android फ़ोन और टैबलेट।
+:::
 
-- **iOS:** iOS 15.0 या बाद का version चलाने वाला iPhone या iPad।
-- **Android:** Android 8.0 (Oreo) या बाद का version चलाने वाले phones और tablets।
+:::details क्या यह सेल्फ-होस्टेड OneUptime के साथ काम करता है?
+हाँ। ऐप शुरू होने पर अपने OneUptime का `https://` पता डालें, या साइन-इन स्क्रीन पर **Change Server** पर टैप करें। डिफ़ॉल्ट रूप से आपका सर्वर फ़ोन पर पेज OneUptime के पुश रिले से भेजता है, इसलिए उसे किसी Apple, Google या Expo खाते की ज़रूरत नहीं होती: [पुश सूचनाएँ](/docs/self-hosted/push-notifications) देखें।
+:::
 
-### क्या app मुफ्त है?
+:::details क्या मैं इसे कई प्रोजेक्ट के साथ इस्तेमाल कर सकता हूँ?
+हाँ। ऐप फ़ोन को उन सभी प्रोजेक्ट में पंजीकृत करता है जिनके आप सदस्य हैं, ताकि हर प्रोजेक्ट आपको पेज कर सके। यह एक बार में एक प्रोजेक्ट दिखाता है: बदलने के लिए स्क्रीन के ऊपर प्रोजेक्ट के नाम पर टैप करें।
+:::
 
-हां। OneUptime On-Call app install करने के लिए मुफ्त है। आप अपने मौजूदा OneUptime account से sign in करते हैं।
+:::details क्या मैं एक से ज़्यादा फ़ोन पर साइन इन कर सकता हूँ?
+हाँ। हर फ़ोन या टैबलेट अपना अलग पुश डिवाइस है, अपने ऑन-कॉल नियमों और अपनी गंभीर अलर्ट सेटिंग के साथ।
+:::
 
-### क्या मैं self-hosted OneUptime instance के साथ app का उपयोग कर सकता हूं?
+:::details मैं ऐप में क्या कर सकता हूँ?
+- **Home**: प्रोजेक्ट में किस चीज़ पर ध्यान देना है: सक्रिय घटनाएँ और अलर्ट, समस्या वाले मॉनिटर, और समूहबद्ध इवेंट।
+- **Monitors**: सभी मॉनिटर, सेहत के अनुसार फ़िल्टर किए हुए, अपने विवरण के साथ।
+- **Inbox**: घटनाएँ और अलर्ट, और उन्हें समूहबद्ध करने वाले एपिसोड। **Acknowledge**, **Resolve** या **Add Note** के लिए किसी एक को खोलें।
+- **On-Call**: आप ऑन-कॉल हैं या नहीं और कब तक, और कौन है, आपको भेजे गए पेज, और **Cover for me**, जो कुछ समय के लिए आपके पेज किसी साथी को सौंप देता है।
+- **Settings**: आपके प्रोजेक्ट और सिंगल साइन-ऑन, रूप-रंग, गंभीर अलर्ट और अलार्म ध्वनि, **Biometrics Login**, आपका ऑन-कॉल कैलेंडर फ़ीड, और **Log Out**।
 
-हां। पहले launch पर, app एक **Server URL** के लिए पूछता है। अपने self-hosted instance का URL enter करें (उदाहरण के लिए, `https://oneuptime.example.com`)। app sign in करने देने से पहले validate करता है कि server reachable है।
+बाकी सब कुछ डैशबोर्ड में है।
+:::
 
-self-hosted instances पर push notifications के लिए, [Push Notifications](/docs/self-hosted/push-notifications) guide का पालन करें।
+:::details क्या मैं सूचना से ही पेज स्वीकार कर सकता हूँ?
+नहीं। सूचना पर टैप करें: ऐप सही प्रोजेक्ट में वह घटना, अलर्ट या एपिसोड खोलता है जिसके बारे में सूचना है, और आप उसे वहाँ स्वीकार करते हैं। अगर ऐप लॉक है या आप साइन आउट हैं, तो आपके अंदर आते ही वह पेज खोलता है।
+:::
 
-### Updates कैसे deliver होते हैं?
+:::details क्या फ़ोन पर मेरा साइन-इन सुरक्षित है?
+ऐप आपके OneUptime से केवल HTTPS पर बात करता है। आपका साइन-इन फ़ोन पर ऐप के अपने स्टोरेज में रखा जाता है, और **Log Out** उसे मिटाता है और सर्वर पर सेशन को भी साइन आउट करता है। **Biometrics Login** चालू करें, ताकि ऐप हर बार शुरू होने पर आपका चेहरा, फ़िंगरप्रिंट या पासकोड माँगे।
+:::
 
-- **iOS:** App Store के माध्यम से। **Settings → App Store** में automatic updates enable करें, या अपनी App Store profile से manually update करें।
-- **Android (Google Play):** Automatic updates default रूप से enabled हैं।
-- **Android (APK sideload):** ऊपर दिए गए GitHub Releases link से latest APK download और install करें।
+:::details क्या ऐप ऑफ़लाइन काम करता है?
+नहीं। कनेक्शन न होने पर यह स्क्रीन के ऊपर **No internet connection** दिखाता है, और कनेक्शन लौटते ही फिर से चलने लगता है।
+:::
 
-### मुझे push notifications क्यों नहीं मिल रहे?
+## डेस्कटॉप ऐप से जुड़े सवाल
 
-Mobile push, Expo Push के माध्यम से APNs (iOS) और FCM (Android) का उपयोग करता है। निम्नलिखित check करें:
+:::details डेस्कटॉप ऐप क्या है?
+आपके ब्राउज़र से ऐप के रूप में इंस्टॉल किया गया OneUptime डैशबोर्ड: अपनी अलग विंडो, Start मेनू, Dock या आपके लॉन्चर में एक आइकन, और सूचनाएँ। यह वह सब करता है जो डैशबोर्ड करता है, क्योंकि यह डैशबोर्ड ही है।
+:::
 
-1. **OneUptime On-Call** के लिए OS level पर notifications enabled हैं।
-2. Battery optimisation disabled है और background activity allowed है (Android)।
-3. Do Not Disturb या Focus modes बंद हैं, या app exception list पर है।
-4. आप sign in हैं — push token केवल आपके sign in करने के बाद ही server के साथ register होता है।
-5. OneUptime में **User Settings > Notification Methods > Push** के अंतर्गत phone **सूचनाएँ नहीं मिल रहीं** के रूप में marked नहीं है। अगर है, तो sign in रहते हुए phone पर app खोलें ताकि वह फिर से register हो जाए।
-6. **केवल Self-hosted:** Push notifications आपके OneUptime instance पर configured हैं। [Push Notifications](/docs/self-hosted/push-notifications) guide देखें।
+:::details यह किसी ऐप स्टोर में क्यों नहीं है?
+इसकी ज़रूरत नहीं है। ऐप हर बार खुलने पर आपके OneUptime से डैशबोर्ड लोड करता है, इसलिए यह हमेशा वही संस्करण होता है जो आपका OneUptime चलाता है, Windows, macOS और Linux पर एक जैसा, और अपडेट करने को कुछ नहीं।
+:::
 
-### क्या मेरे phone पर data सुरक्षित है?
+:::details क्या यह फ़ोन की तरह मुझे जगा सकता है?
+नहीं। ब्राउज़र डू नॉट डिस्टर्ब या फ़ोकस को ओवरराइड नहीं कर सकते, इसलिए डेस्कटॉप सूचना उतनी ही ज़ोर से बजती है जितना कंप्यूटर उसे बजने दे। जिन पेज पर आपको जागना ज़रूरी है, उनके लिए गंभीर अलर्ट के साथ मोबाइल ऐप इस्तेमाल करें।
+:::
 
-- सभी API traffic HTTPS का उपयोग करता है।
-- Access और refresh tokens device के secure keystore (iOS पर Keychain, Android पर Keystore) में stored होते हैं।
-- आप in-app **Settings** screen से Face ID / Touch ID / fingerprint unlock आवश्यक कर सकते हैं।
+:::details क्या यह ऑफ़लाइन काम करता है?
+नहीं। इसे आपके OneUptime से कनेक्शन चाहिए, ठीक वैसे ही जैसे ब्राउज़र टैब में खुले डैशबोर्ड को।
+:::
 
-### क्या मैं app को कई devices पर install कर सकता हूं?
+## जब फ़ोन को फिर से पंजीकृत होना पड़े
 
-हां। जितने भी devices आपको चाहिए, उन पर एक ही OneUptime account के साथ sign in करें। प्रत्येक device को अपने own push notifications प्राप्त होते हैं।
+OneUptime किसी फ़ोन के पेज Expo के ज़रिए भेजता है, जो उन्हें Apple या Google को सौंपता है। जब Expo कहता है कि फ़ोन तक अब नहीं पहुँचा जा सकता, तो OneUptime उसे भेजना बंद कर देता है, जब तक ऐप उसे फिर से पंजीकृत न करे।
 
-### मैं uninstall कैसे करूं?
+```mermaid title="फ़ोन पर पेज आने कैसे बंद होते हैं, और वह वापस कैसे आता है"
+flowchart TB
+    Registered["फ़ोन पंजीकृत है,<br/>और पेज उस तक पहुँचते हैं"]
+    Gone["Expo बताता है कि वह गायब है:<br/>कोई पुश ठुकराया जाता है, या<br/>लगभग 15 मिनट बाद उसकी<br/>रसीद यह कहती है"]
+    Marked["OneUptime उसे सूचनाएँ नहीं<br/>मिल रहीं चिह्नित करके भेजना<br/>बंद करता है; उसके नियम<br/>बने रहते हैं"]
+    Open["आप साइन इन रहते हुए<br/>ऐप खोलते हैं"]
+    Renewed["ऐप फिर से पंजीकृत होता है,<br/>अपना पुश टोकन नया करता है,<br/>और पेज फिर पहुँचते हैं"]
+    Registered --> Gone --> Marked --> Open --> Renewed
+```
 
-- **iOS:** icon को long-press करें → **Remove App** → **Delete App**।
-- **Android:** icon को long-press करें → **Uninstall**, या **Settings → Apps → OneUptime On-Call → Uninstall**।
+Expo किसी फ़ोन को तब गायब बताता है जब उससे ऐप हटा दिया गया हो, या जब उसका पुश टोकन अब मान्य न हो। फ़ोन हटाया नहीं जाता: **उपयोगकर्ता सेटिंग्स → सूचना विधियां**, **Push Notifications** टैब पर, उसे **सूचनाएँ नहीं मिल रहीं** दिखाता है, और जो पेज उस तक नहीं पहुँचा, उसकी ऑन-कॉल टाइमलाइन कारण बताती है। आपके दूसरे फ़ोन और सूचना विधियाँ हमेशा की तरह पेज पाती हैं।
 
-आपका OneUptime account और data server पर stored होता है और जब आप app uninstall करते हैं तो हटाया नहीं जाता।
+ऐप फ़ोन को हर बार शुरू होने पर, आपके साइन इन करने पर, और आपके उस पर लौटने पर पंजीकृत करता है, ज़्यादा से ज़्यादा हर पाँच मिनट में एक बार। पंजीकरण Expo से पुश टोकन फिर से माँगता है, जिससे वह नया हो जाता है, और फ़ोन अपने पुराने नियमों के साथ फिर से पेज पाने लगता है।
 
-## Desktop App (PWA) FAQ
+| क्या हुआ | क्या करें | OneUptime क्या करता है |
+| --- | --- | --- |
+| ऐप अब भी इंस्टॉल है | साइन इन रहते हुए उसे खोलें | फ़ोन अपने नियमों के साथ फिर से सूचनाएँ पाता है |
+| आपने iPhone या iPad पर ऐप फिर से इंस्टॉल किया | उसे इंस्टॉल करें और साइन इन करें | आमतौर पर वही प्रविष्टि अपने नियमों के साथ लौट आती है |
+| आपने Android पर ऐप फिर से इंस्टॉल किया | उसे इंस्टॉल करें, साइन इन करें, और पुरानी प्रविष्टि हटाएँ | डिफ़ॉल्ट नियमों के साथ एक नई प्रविष्टि; पुरानी चिह्नित ही रहती है |
+| पुराने फ़ोन के बैकअप से सेट किया गया नया फ़ोन | नए फ़ोन पर ऐप खोलें | अगर पुराने फ़ोन की प्रविष्टि चिह्नित है, तो नया फ़ोन उसे उसके नियमों समेत ले लेता है; वरना नए फ़ोन को अपनी प्रविष्टि मिलती है |
+| शुरू से सेट किया गया नया फ़ोन | साइन इन करें, और पुरानी प्रविष्टि हटाएँ | डिफ़ॉल्ट नियमों के साथ एक नई प्रविष्टि |
+| आपने ऐप से साइन आउट किया | फिर से साइन इन करें | साइन आउट ने फ़ोन और उसके नियम हटा दिए; वह डिफ़ॉल्ट नियमों के साथ लौटता है |
 
-### Progressive Web App (PWA) क्या है?
+ब्राउज़र को भी सूचनाएँ मिलनी बंद हो सकती हैं, जब उसकी पुश सदस्यता की अवधि खत्म हो जाए। डैशबोर्ड जब कर सकता है, उसे नया कर देता है; अगर ब्राउज़र चिह्नित ही रहे, तो उसी ब्राउज़र में **डिवाइस पंजीकृत करें** से उसे फिर से पंजीकृत करें।
 
-एक Progressive Web App एक web application है जिसे एक native desktop app की तरह install किया जा सकता है। एक बार install होने के बाद, यह अपनी window में run करता है, आपके launcher में इसका अपना icon होता है, और यह desktop notifications deliver कर सकता है — Windows Store, Mac App Store, या किसी अन्य distribution channel से जाए बिना।
+## समस्या निवारण
 
-### Desktop app PWA technology का उपयोग क्यों करता है?
+### साइन इन करना
 
-- **Instant updates** — जिस क्षण आप deploy करते हैं, app आपके OneUptime instance के साथ sync रहता है।
-- **किसी store account की आवश्यकता नहीं** — किसी भी modern browser से सीधे install करें।
-- **Single codebase** — वही dashboard Windows, macOS, और Linux पर चलता है।
+:::details “Could not connect to the server”
+ऐप `https://<your-oneuptime>/api/status` तक नहीं पहुँच सका। `https://` समेत पता जाँचें: ऐप सादे HTTP पर कनेक्ट नहीं होता। अगर आपका OneUptime किसी निजी नेटवर्क पर है, तो पहले फ़ोन को उससे जोड़ें, उदाहरण के लिए अपने VPN से। फ़ोन OneUptime तक पहुँच पाता है तो वह पता फ़ोन के ब्राउज़र में खोलने पर `{"status":"ok"}` दिखता है।
+:::
 
-### "Install" button क्यों नहीं दिखाई दे रहा?
+:::details “No SSO configuration found for the email”
+जिन प्रोजेक्ट से वह ईमेल जुड़ा है, उनमें से किसी में सिंगल साइन-ऑन सेट नहीं है, या उस ईमेल का इस OneUptime पर कोई खाता नहीं है। ईमेल जाँचें, या अपने पासवर्ड से साइन इन करें। आपके एडमिनिस्ट्रेटर ने पूरे इंस्टॉलेशन के लिए जो प्रदाता सेट किए हैं, वे ईमेल फ़ील्ड से पहले दिखते हैं।
+:::
 
-1. Chromium-based browser (Chrome, Edge, Brave, Arc) या Safari (macOS Sonoma+) का उपयोग करें।
-2. पुष्टि करें कि आपका OneUptime instance HTTPS पर valid certificate के साथ serve हो रहा है।
-3. अपना browser cache clear करें और reload करें।
-4. app पहले से ही installed हो सकता है — अपने Applications / Start Menu check करें।
+:::details सिक्योरिटी की ही आपका इकलौता दूसरा फ़ैक्टर है
+ऐप सिक्योरिटी की इस्तेमाल नहीं कर सकता। अपने किसी बैकअप कोड से साइन इन करें, या डैशबोर्ड में अपने खाते में एक ऑथेंटिकेटर ऐप जोड़ें: [टू-फ़ैक्टर ऑथेंटिकेशन चालू करें](/docs/introduction/your-account#टू-फ़ैक्टर-ऑथेंटिकेशन-चालू-करें) देखें।
+:::
 
-### मैं desktop app कैसे update करूं?
+:::details पासकी से साइन इन विफल होता है
+पासकी के लिए ज़रूरी है कि आपके OneUptime का पता `https://` से शुरू हो, और आपने इस OneUptime के लिए एक पासकी जोड़ी हो: [एक पासकी जोड़ें](/docs/introduction/your-account#एक-पासकी-जोड़ें) देखें। कोई दूसरा सर्वर इस्तेमाल करने के लिए, साइन-इन स्क्रीन पर **Change Server** पर टैप करें।
+:::
 
-जब भी आप online रहते हुए इसे open करते हैं तो PWA automatically update होता है। update को force करने के लिए, window को **Ctrl+R** (Windows/Linux) या **Cmd+R** (macOS) के साथ refresh करें।
+### सूचनाएँ
 
-### मैं desktop PWA को uninstall कैसे करूं?
+:::details फ़ोन पर कोई सूचना नहीं
+- जाँचें कि फ़ोन OneUptime On-Call की सूचनाओं की अनुमति देता है, और डू नॉट डिस्टर्ब या कोई फ़ोकस उन्हें रोक नहीं रहा।
+- **उपयोगकर्ता सेटिंग्स → सूचना विधियां** में **Push Notifications** टैब पर जाँचें कि फ़ोन सूची में है, और उसे **परीक्षण सूचना** भेजें।
+- अगर वह **सूचनाएँ नहीं मिल रहीं** चिह्नित है, तो साइन इन रहते हुए ऐप खोलें: [जब फ़ोन को फिर से पंजीकृत होना पड़े](#जब-फ़ोन-को-फिर-से-पंजीकृत-होना-पड़े) देखें।
+- **उपयोगकर्ता सेटिंग्स → ऑन-कॉल नियम** के तहत अपने ऑन-कॉल नियम जाँचें: वे तय करते हैं कि कौन-सा पेज किस तरीके तक पहुँचे।
+- सेल्फ-होस्टेड OneUptime पर, जाँचें कि सर्वर अपने पुश रिले तक पहुँच पाता है: [पुश सूचनाएँ](/docs/self-hosted/push-notifications#नेटवर्क-पहुँच) देखें।
+:::
 
-- **Windows:** **Settings → Apps → OneUptime → Uninstall**, या Start Menu entry पर right-click करें।
-- **macOS:** app को **Applications** से Trash में drag करें, या Dock icon पर right-click करें और **Remove** चुनें।
-- **Linux:** अपने application launcher के uninstall option का उपयोग करें, या relevant `.desktop` file को हटाएं।
+:::details Android पर पेज देर से आते हैं
+OneUptime On-Call के लिए Android की सेटिंग्स में ऐप का बैटरी इस्तेमाल **बिना पाबंदी के** पर सेट करें, और ऐप को किसी भी बैटरी सेवर सूची से बाहर रखें: [पेज देर से न पहुँचें](/docs/mobile-desktop-apps/android-installation#पेज-देर-से-न-पहुँचें) देखें।
+:::
 
-## Troubleshooting
+:::details गंभीर अलर्ट साइलेंट मोड के पार नहीं बजते
+ऐप की **Settings** खोलें: **Critical On-Call Alerts** के नीचे की पंक्ति बताती है कि उस फ़ोन पर क्या कमी है। फिर **उपयोगकर्ता सेटिंग्स → ऑन-कॉल नियम** के तहत जाँचें कि जिस ऑन-कॉल नियम ने पेज भेजा, वह **सामान्य** पर नहीं, **महत्वपूर्ण अलर्ट** पर सेट है। हर फ़ोन का अपना स्विच होता है।
+:::
 
-### Mobile App Issues
+### डेस्कटॉप ऐप
 
-**App sign in नहीं हो रहा / "Network Error":**
+:::details एड्रेस बार में इंस्टॉल आइकन नहीं है
+साइन इन करने के बाद डैशबोर्ड के किसी पेज से, `https://` पर, Edge या Chrome में, या macOS Sonoma 14 या बाद के संस्करण पर Safari में इंस्टॉल करें। अगर आइकन नहीं दिखता, तो ब्राउज़र का मेनू भी इसे इंस्टॉल करता है: [Windows स्थापना](/docs/mobile-desktop-apps/windows-installation#ऐप-इंस्टॉल-करें) देखें।
+:::
 
-- पुष्टि करें कि **Server URL** सही है और आपके phone से reachable है।
-- check करें कि आपका phone internet से connected है।
-- VPN के पीछे self-hosted instances के लिए, सुनिश्चित करें कि VPN active है।
+:::details डेस्कटॉप पर कोई सूचना नहीं
+**उपयोगकर्ता सेटिंग्स → सूचना विधियां** में **Push Notifications** टैब पर **डिवाइस पंजीकृत करें** से ब्राउज़र पंजीकृत करें, पूछे जाने पर सूचनाओं की अनुमति दें, और कंप्यूटर की अपनी सूचना सेटिंग्स जाँचें। सेल्फ-होस्टेड OneUptime को ब्राउज़र सूचनाओं के लिए अपनी VAPID कुंजियाँ चाहिए।
+:::
 
-**Push notifications delayed या missing (Android):**
+## मदद पाएँ
 
-- Battery optimisation disable करें: **Settings → Apps → OneUptime On-Call → Battery → Unrestricted**।
-- app के लिए Data Saver disable करें।
-- Samsung devices पर, OneUptime On-Call के लिए **Device care → Battery → Background usage limits** बंद करें।
+अगर यहाँ कुछ वैसा नहीं है जैसा आप देखते हैं, तो अपने ऐप के संस्करण के साथ, जो उसकी **Settings** स्क्रीन के सबसे नीचे है, और आप जिस प्लेटफ़ॉर्म का इस्तेमाल करते हैं उसके साथ, [GitHub पर एक issue खोलें](https://github.com/OneUptime/oneuptime/issues)।
 
-**Push notifications delayed या missing (iOS):**
+## अगले कदम
 
-- app को Force-Quit करने से बचें — iOS background delivery को pause कर सकता है।
-- जब आप on-call हों तो Low Power Mode disable करें।
-- OneUptime On-Call को किसी भी active Focus mode की allow list में add करें।
-
-**Face ID / Touch ID / fingerprint काम नहीं कर रहा:**
-
-- सुनिश्चित करें कि biometrics आपके OS settings में enrolled हैं।
-- OneUptime On-Call app के अंदर **Settings** screen से biometric unlock को फिर से enable करें।
-
-### Desktop App (PWA) Issues
-
-**Install button गायब है:**
-
-- एक supported browser का उपयोग करें (Chromium-based या macOS Sonoma+ पर Safari)।
-- सुनिश्चित करें कि OneUptime instance HTTPS पर serve हो रहा है।
-- page के पूरी तरह load होने का इंतजार करें, फिर install icon के लिए address bar check करें।
-
-**Desktop notifications दिखाई नहीं दे रहे:**
-
-- जब browser प्रॉम्प्ट करे तो notifications allow करें।
-- OS notification settings check करें (Windows Focus Assist, macOS Notifications, Linux notification daemon)।
-- self-hosted instances के लिए, सुनिश्चित करें कि [Push Notifications](/docs/self-hosted/push-notifications) configuration पूरा है।
-
-**App latest data नहीं दिखा रहा:**
-
-- **Ctrl+R** / **Cmd+R** से refresh करें।
-- window को बंद करें और फिर से open करें।
-- अपना network connection check करें।
-
-## Support
-
-यदि आपको अभी भी सहायता चाहिए:
-
-- Mobile: [iOS](./ios-installation.md) या [Android](./android-installation.md) installation guides देखें।
-- Desktop: [Windows](./windows-installation.md), [macOS](./macos-installation.md), या [Linux](./linux-installation.md) installation guides देखें।
-- [OneUptime GitHub repository](https://github.com/OneUptime/oneuptime) पर एक issue open करें।
-- अपने OneUptime dashboard के माध्यम से support से संपर्क करें।
+:::cards
+- [ऐप्स का अवलोकन](/docs/mobile-desktop-apps/index): कौन-सा ऐप इस्तेमाल करें, और ऐप्स OneUptime तक कैसे पहुँचते हैं।
+- [Android स्थापना](/docs/mobile-desktop-apps/android-installation): Android पर ऐप इंस्टॉल और सेट करें।
+- [iOS स्थापना](/docs/mobile-desktop-apps/ios-installation): iPhone या iPad पर ऐप इंस्टॉल और सेट करें।
+- [पुश सूचनाएँ](/docs/self-hosted/push-notifications): सेल्फ-होस्टेड OneUptime पेज कैसे भेजता है, और Expo की त्रुटियाँ।
+:::

@@ -1,180 +1,112 @@
-# Windows Installation Guide
+# Windows स्थापना
 
-व्यापक monitoring और incident management के लिए OneUptime को Windows पर desktop application के रूप में install करें।
+OneUptime डैशबोर्ड Microsoft Edge या Google Chrome से Windows पर ऐप के रूप में इंस्टॉल होता है। यह अपनी अलग विंडो में खुलता है, टास्कबार और Start मेनू में इसका अपना आइकन होता है, और यह सूचनाएँ दिखा सकता है। डाउनलोड करने को कुछ नहीं है: ऐप आपके OneUptime का डैशबोर्ड ही है, और जब भी आपका OneUptime अप-टू-डेट होता है, यह भी होता है।
 
-## Installation Methods
+:::cards
+- [ऐप इंस्टॉल करें](#ऐप-इंस्टॉल-करें): Edge या Chrome से, कुछ ही क्लिक में।
+- [इसे पिन करें और Windows के साथ शुरू करें](#इसे-पिन-करें-और-windows-के-साथ-शुरू-करें): इसे एक क्लिक की दूरी पर रखें।
+- [इस कंप्यूटर पर सूचनाएँ पाएँ](#इस-कंप्यूटर-पर-सूचनाएँ-पाएँ): ब्राउज़र को पुश सूचनाओं के लिए पंजीकृत करें।
+- [समस्या निवारण](#समस्या-निवारण): इंस्टॉल आइकन नहीं, सूचनाएँ नहीं, फिर से साइन इन करना।
+:::
 
-### Method 1: Microsoft Edge (अनुशंसित)
+## डेस्कटॉप ऐप कैसे काम करता है
 
-Edge native features के साथ सबसे अच्छा Windows PWA integration प्रदान करता है।
+```mermaid title="डैशबोर्ड इंस्टॉल करने से आपको क्या मिलता है"
+flowchart TB
+    Browser["Edge या Chrome आपका<br/>डैशबोर्ड खोलता है"]
+    Install["आप उसे ऐप के रूप में<br/>इंस्टॉल करते हैं"]
+    App["अपनी अलग विंडो<br/>में OneUptime,<br/>टास्कबार और Start मेनू में"]
+    OneUptime["आपका OneUptime<br/>डैशबोर्ड देता है"]
+    Browser --> Install --> App
+    App -->|"हर बार खुलने पर<br/>डैशबोर्ड लोड करता है"| OneUptime
+```
 
-1. **OneUptime को Edge में खोलें**
+इंस्टॉल किया गया ऐप अपने ब्राउज़र का साइन-इन, सेटिंग्स और सूचना की अनुमति साझा करता है। ब्राउज़र बंद कर दें, तब भी ऐप अपनी विंडो में चलता रहता है।
 
-   - Microsoft Edge browser launch करें
-   - अपने OneUptime instance URL पर जाएं
-   - अपने OneUptime account में sign in करें
-   - page पूरी तरह load होने का इंतज़ार करें
+## शुरू करने से पहले
 
-2. **App Install करें**
+- Windows 10 या Windows 11, नए Microsoft Edge या Google Chrome के साथ।
+- HTTPS पर आपके OneUptime का पता: OneUptime Cloud पर `https://oneuptime.com`, या आपका अपना, जैसे `https://oneuptime.example.com`।
+- एक खाता जिससे आप डैशबोर्ड में साइन इन कर सकें।
 
-   - address bar में **install icon** (⊞) देखें
-   - **"Install OneUptime"** button पर क्लिक करें
-   - या **three-dot menu** → **Apps** → **Install this site as an app** पर क्लिक करें
+## ऐप इंस्टॉल करें
 
-3. **Installation Customize करें**
+:::tabs
+@tab Edge
+1. Edge में अपना OneUptime खोलें और साइन इन करें।
+2. डैशबोर्ड के किसी भी पेज पर, एड्रेस बार के दाईं ओर इंस्टॉल आइकन पर क्लिक करें, फिर **इंस्टॉल करें** पर। या **सेटिंग्स और अधिक (…) → अधिक टूल → ऐप्स → इस साइट को ऐप के रूप में इंस्टॉल करें** खोलें।
+3. Edge OneUptime को उसकी अपनी विंडो में खोलता है, और उसे टास्कबार या Start पर पिन करने का सुझाव दे सकता है।
+@tab Chrome
+1. Chrome में अपना OneUptime खोलें और साइन इन करें।
+2. डैशबोर्ड के किसी भी पेज पर, एड्रेस बार के दाईं ओर इंस्टॉल आइकन पर क्लिक करें, फिर **इंस्टॉल करें** पर। या **⋮ → कास्ट, सेव, और शेयर करें → पेज को ऐप्लिकेशन के तौर पर इंस्टॉल करें...** खोलें।
+3. Chrome OneUptime को उसकी अपनी विंडो में खोलता है और उसे Start मेनू में जोड़ता है।
+:::
 
-   - **App Name**: यदि चाहें तो modify करें (default: OneUptime)
-   - **Start Menu**: Start Menu में add करने का विकल्प
-   - **Taskbar**: taskbar पर pin करने का विकल्प
-   - **Desktop**: desktop shortcut बनाएं
+साइन इन करने के बाद डैशबोर्ड के किसी पेज से इंस्टॉल करें: साइन-इन पेज ऐप नहीं है। बाद में इसे खोलने के लिए Start मेनू में OneUptime खोजें।
 
-4. **Installation पूरी करें**
-   - finish करने के लिए **"Install"** पर क्लिक करें
-   - OneUptime अपनी window में खुलेगा
-   - इसे Start Menu में installed apps के अंतर्गत खोजें
+## इसे पिन करें और Windows के साथ शुरू करें
 
-### Method 2: Google Chrome
+- **टास्कबार।** ऐप खुला हो तब, टास्कबार पर उसके आइकन पर राइट-क्लिक करें और **टास्कबार पर पिन करें** चुनें।
+- **Windows के साथ शुरू।** Edge में `edge://apps` खोलें, OneUptime पर **विवरण** चुनें और **डिवाइस लॉगिन पर ऑटो-स्टार्ट** चालू करें। यही पेज ऐप को टास्कबार या Start पर पिन करता है, या डेस्कटॉप पर शॉर्टकट बनाता है।
 
-Chrome rich desktop integration के साथ उत्कृष्ट PWA support प्रदान करता है।
+## इस कंप्यूटर पर सूचनाएँ पाएँ
 
-1. **OneUptime को Chrome में खोलें**
+ऐप अपने ब्राउज़र के ज़रिए सूचनाएँ दिखाता है, जब आप ब्राउज़र को हर उस प्रोजेक्ट में पुश सूचनाओं के लिए पंजीकृत कर देते हैं जिससे आप उन्हें पाना चाहते हैं।
 
-   - Google Chrome launch करें
-   - अपने OneUptime instance पर जाएं
-   - सुनिश्चित करें कि signed in हैं
-   - page पूरी तरह load होने दें
+:::steps
+### अपने पुश डिवाइस खोलें
+ऐप में **उपयोगकर्ता सेटिंग्स → सूचना विधियां** और **Push Notifications** टैब खोलें।
 
-2. **Address Bar के माध्यम से Install करें**
+### यह ब्राउज़र पंजीकृत करें
+**डिवाइस पंजीकृत करें** पर क्लिक करें, **डिवाइस नाम** में सुझाया गया नाम रहने दें, जैसे `Edge on Windows`, या उसे बदलें, और फिर से **डिवाइस पंजीकृत करें** पर क्लिक करें। जब ब्राउज़र पूछे कि क्या OneUptime सूचनाएँ दिखा सकता है, तो **अनुमति दें** चुनें।
 
-   - address bar में **install icon** (⊞) देखें
-   - **"Install OneUptime"** पर क्लिक करें
-   - या menu उपयोग करें: **three dots** → **More tools** → **Create shortcut**
+### परीक्षण भेजें
+**Browser Registered** संवाद में **Send Test Notification** पर क्लिक करें। अगर कुछ नहीं दिखता, तो Windows की अपनी सूचना सेटिंग्स देखें: [समस्या निवारण](#समस्या-निवारण) देखें।
+:::
 
-3. **Installation Options**
+ब्राउज़र उतनी ही ज़ोर से बज सकता है जितना Windows उसे बजने दे: वह परेशान न करें को ओवरराइड नहीं कर सकता। जिन पेज पर आपको जागना ज़रूरी है, उनके लिए गंभीर अलर्ट के साथ मोबाइल ऐप इस्तेमाल करें: [Android स्थापना](/docs/mobile-desktop-apps/android-installation#साइलेंट-मोड-के-पार-बजाएँ) या [iOS स्थापना](/docs/mobile-desktop-apps/ios-installation#साइलेंट-मोड-के-पार-बजाएँ) देखें।
 
-   - app-like experience के लिए **"Open as window"** चेक करें
-   - यदि चाहें तो app का नाम customize करें
-   - **"Install"** या **"Create"** पर क्लिक करें
+सेल्फ-होस्टेड OneUptime पर, ब्राउज़र सूचनाओं के लिए सर्वर की VAPID कुंजियाँ चाहिए: [पुश सूचनाएँ](/docs/self-hosted/push-notifications#सेल्फ-होस्टेड-सेटअप) देखें।
 
-4. **App Launch करें**
-   - Windows Start Menu में OneUptime खोजें
-   - या desktop shortcut से launch करें
-   - App dedicated window में खुलता है
+## अपडेट
 
-### Method 3: Firefox
+अपडेट करने को कुछ नहीं है। ऐप हर बार खुलने पर आपके OneUptime से डैशबोर्ड लोड करता है, इसलिए आपका OneUptime अपग्रेड होने पर यह भी बदल जाता है। अगर कोई विंडो अपग्रेड के समय से खुली है, तो उसे Ctrl+R से फिर से लोड करें।
 
-Firefox basic desktop integration के साथ PWA installation का समर्थन करता है।
+## अनइंस्टॉल करें
 
-1. **OneUptime को Firefox में खोलें**
+:::tabs
+@tab Edge
+`edge://apps` खोलें, OneUptime पर **विवरण** चुनें, फिर **अनइंस्टॉल करें**।
+@tab Chrome
+ऐप की विंडो में **⋮** मेनू खोलें, ऐप को अनइंस्टॉल करने वाला आइटम चुनें, फिर **हटाएं**।
+:::
 
-   - Firefox browser launch करें
-   - OneUptime URL पर जाएं
-   - sign-in process पूरी करें
+Windows ऐप को **सेटिंग्स → ऐप्स → इंस्टॉल किए गए ऐप्स** के तहत भी दिखाता है, जहाँ **अनइंस्टॉल करें** भी उसे हटा देता है।
 
-2. **PWA Install करें**
-   - **installation prompt** या banner देखें
-   - या **menu** → **Install** पर क्लिक करें
-   - यदि उपलब्ध हो, **"Add to Home Screen"** equivalent पर क्लिक करें
-
-### Startup Configuration
-
-1. **Auto-Start**: OneUptime को Windows के साथ start करने के लिए configure करें
-   - taskbar पर right-click करें → Task Manager → Startup
-   - यदि चाहें तो OneUptime सक्षम करें
-2. **Default Size**: पसंदीदा window size और position सेट करें
-
-### Notification Settings
-
-1. **Windows Notifications**
-
-   - Settings → System → Notifications & actions
-   - OneUptime खोजें और alert preferences configure करें
-   - incidents के लिए banner notifications सक्षम करें
-
-2. **Focus Assist**
-   - Do Not Disturb settings configure करें
-   - OneUptime critical notifications की अनुमति दें
-   - different alert types के लिए priority levels सेट करें
+ऐप को अनइंस्टॉल करने से उसके ब्राउज़र का पंजीकरण नहीं हटता: उसे अब भी सूचनाएँ मिलती हैं। उन्हें रोकने के लिए, **उपयोगकर्ता सेटिंग्स → सूचना विधियां** में **Push Notifications** टैब पर ब्राउज़र को **हटाएं** से हटाएँ।
 
 ## समस्या निवारण
 
-### Installation संबंधी समस्याएं
+:::details एड्रेस बार में इंस्टॉल आइकन नहीं है
+साइन इन करने के बाद डैशबोर्ड का कोई पेज खोलें, साइन-इन पेज नहीं, और जाँचें कि पता `https://` से शुरू होता है: ब्राउज़र केवल सुरक्षित साइटों से ऐप इंस्टॉल करते हैं। अगर आइकन फिर भी नहीं दिखता, तो ऊपर बताए अनुसार ब्राउज़र का मेनू इस्तेमाल करें। दूसरे ब्राउज़र शायद साइटों को ऐप के रूप में इंस्टॉल न करें; Edge या Chrome इस्तेमाल करें।
+:::
 
-**Install button नहीं दिख रहा:**
+:::details कोई सूचना नहीं दिखती
+- **उपयोगकर्ता सेटिंग्स → सूचना विधियां** में **Push Notifications** टैब पर जाँचें कि यह ब्राउज़र सूची में है, और उसे **परीक्षण सूचना** भेजें।
+- Windows में **सेटिंग्स → सिस्टम → सूचनाएँ** खोलें: सूचनाएँ चालू होनी चाहिए, ब्राउज़र के लिए भी, और परेशान न करें बंद होना चाहिए। Windows 10 में इस पेज का नाम “सूचनाएँ और क्रियाएँ” है।
+- अगर ब्राउज़र OneUptime की सूचनाएँ ब्लॉक करता है, तो एड्रेस बार के बाईं ओर के आइकन पर क्लिक करें, साइट के लिए सूचनाओं की अनुमति दें, और ब्राउज़र को फिर से पंजीकृत करें।
+- सेल्फ-होस्टेड OneUptime पर, सर्वर के पास VAPID कुंजियाँ न हों तो **डिवाइस पंजीकृत करें** संवाद यह बताता है।
+:::
 
-```
-Solutions:
-1. सुनिश्चित करें कि आप Edge या Chrome उपयोग कर रहे हैं (अनुशंसित browsers)
-2. OneUptime instance से HTTPS connection सत्यापित करें
-3. browser cache और cookies clear करें
-4. browser को latest version पर update करें
-5. जांचें कि server पर PWA requirements पूरी हैं
-6. browser extensions अस्थायी रूप से अक्षम करें
-```
+:::details ऐप फिर से साइन इन करने को कहता है
+ऐप अपने ब्राउज़र का साइन-इन साझा करता है। ब्राउज़र में साइन आउट करने, या उसकी कुकीज़ साफ़ करने से, ऐप भी साइन आउट हो जाता है।
+:::
 
-**Installation fail या crash होती है:**
+## अगले कदम
 
-```
-Solutions:
-1. browser को administrator के रूप में चलाएं
-2. Windows User Account Control (UAC) settings जांचें
-3. पर्याप्त disk space सुनिश्चित करें (minimum 100MB)
-4. antivirus software अस्थायी रूप से अक्षम करें
-5. browser data पूरी तरह clear करें
-6. Windows restart करें और फिर कोशिश करें
-```
-
-**App Start Menu में नहीं दिख रहा:**
-
-```
-Solutions:
-1. Windows search में "OneUptime" खोजें
-2. जांचें कि दूसरे नाम से installed तो नहीं है
-3. "Recently added" apps section देखें
-4. Reinstall करें और सुनिश्चित करें कि "Add to Start Menu" checked है
-5. यदि आवश्यक हो तो manually shortcut बनाएं
-```
-
-### Notification संबंधी समस्याएं
-
-**Windows notifications काम नहीं कर रहीं:**
-
-```
-Solutions:
-1. Windows Settings → System → Notifications & actions
-2. OneUptime के लिए notifications सक्षम करें
-3. Focus Assist settings जांचें
-4. OneUptime में notification permissions सुनिश्चित करें
-5. पहले simple notification से test करें
-```
-
-## Uninstallation
-
-### पूर्ण Removal
-
-1. **Windows Settings Method**
-
-   - Settings → Apps → Apps & features
-   - "OneUptime" खोजें
-   - क्लिक करें और "Uninstall" चुनें
-
-2. **Browser Method**
-
-   - Edge/Chrome खोलें
-   - edge://apps/ या chrome://apps/ पर जाएं
-   - OneUptime खोजें
-   - options → Uninstall पर क्लिक करें
-
-3. **Start Menu Method**
-   - Start Menu में OneUptime पर Right-click करें
-   - "Uninstall" चुनें
-   - removal confirm करें
-
-## Updates और Maintenance
-
-### Automatic Updates
-
-- OneUptime PWA online होने पर स्वचालित रूप से update होता है
-- कोई manual intervention आवश्यक नहीं
-- restart पर Updates तुरंत लागू
-- Critical patches तुरंत deployed
+:::cards
+- [macOS स्थापना](/docs/mobile-desktop-apps/macos-installation): Mac पर वही ऐप।
+- [Android स्थापना](/docs/mobile-desktop-apps/android-installation): अपने फ़ोन पर पेज पाएँ।
+- [अक्सर पूछे जाने वाले प्रश्न और समस्या निवारण](/docs/mobile-desktop-apps/faq-troubleshooting): दोनों ऐप्स के बारे में जवाब।
+- [आपका खाता](/docs/introduction/your-account): OneUptime हर प्रोजेक्ट में आप तक कैसे पहुँचता है।
+:::

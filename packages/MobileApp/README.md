@@ -70,7 +70,7 @@ On first launch, the app will ask for:
 1. **Server URL** - The URL of your OneUptime instance (defaults to `https://oneuptime.com`). The app validates the URL by calling `/api/status` before proceeding.
 2. **Login** - Email and password for your OneUptime account.
 
-Tokens are stored securely in the device Keychain. The server URL is stored in AsyncStorage.
+The session's tokens and the server URL are stored in AsyncStorage, the app's own storage on the device (`src/storage/keychain.ts` keeps its old name). Logging out deletes the tokens.
 
 ## Project Structure
 
@@ -83,7 +83,7 @@ MobileApp/
 │   ├── navigation/    # React Navigation (auth stack, main tabs)
 │   ├── oncall/        # Pure on-call domain logic (shifts, duty state, overrides)
 │   ├── screens/       # Screen components (auth, home, incidents, alerts, on-call, settings)
-│   ├── storage/       # Keychain (tokens) and AsyncStorage (server URL)
+│   ├── storage/       # AsyncStorage: session tokens, server URL, preferences
 │   ├── theme/         # Colors, typography, spacing, theme context
 │   └── App.tsx        # Root component with providers
 ├── assets/            # App icons and splash screen

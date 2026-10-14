@@ -112,6 +112,12 @@ curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
 
 Datumswerte und IDs außer `_id` kommen verpackt zurück, als `{ "_type": "DateTime", "value": "..." }` und `{ "_type": "ObjectID", "value": "..." }`: Lesen Sie sie aus `value`.
 
+Jede ID, nach der eine Anfrage filtert oder die sie schreibt - `_id`, ein Feld wie `monitorId` und jeder Datensatz, den eine Relation auflistet, etwa `"labels": [{ "_id": "..." }]` -, ist eine UUID, als Text gesendet oder so verpackt, wie sie zurückkommt. Alles andere, etwa Text, der keine UUID ist, oder ein Objekt anstelle einer ID, wird mit einem `400` abgelehnt, das das Feld nennt und sagt, ob es in `query` oder in `data` stand, und es wird nichts gelesen oder geschrieben:
+
+```text
+Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUID, such as "550e8400-e29b-41d4-a716-446655440000".
+```
+
 ### Statuscodes
 
 | Code | Bedeutung | Mehr dazu |
