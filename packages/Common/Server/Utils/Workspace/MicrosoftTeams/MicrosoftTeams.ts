@@ -120,6 +120,7 @@ import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
 import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplicator";
 import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
 import MicrosoftTeamsPage from "./MicrosoftTeamsPage";
+import MicrosoftTeamsMentionText from "./MicrosoftTeamsMentionText";
 import MicrosoftTeamsCommands, {
   MicrosoftTeamsListCommand,
 } from "./MicrosoftTeamsCommands";
@@ -3689,20 +3690,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       return;
     }
 
-    // Clean the message text by removing bot mentions
-    const cleanText: string = messageText
-      .replace(/<at[^>]*>.*?<\/at>/g, "")
-      .trim()
-      .toLowerCase();
-
     /*
      * Preserve the original casing of the user's question. The AI assistant
      * should receive the free-form text exactly as the user typed it (case,
-     * punctuation and spacing all matter), with only the bot @mention stripped.
+     * punctuation and spacing all matter), with only the @mentions stripped
+     * - read in one walk, however long the message (MicrosoftTeamsMentionText).
      */
-    const originalQuestionText: string = messageText
-      .replace(/<at[^>]*>.*?<\/at>/g, "")
-      .trim();
+    const originalQuestionText: string =
+      MicrosoftTeamsMentionText.removeMentions(messageText).trim();
+
+    // The same text in lower case, for the commands Teams matches exactly.
+    const cleanText: string = originalQuestionText.toLowerCase();
 
     /*
      * Teams' own lists ("show active incidents") are matched exactly, so a
@@ -3965,7 +3963,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * channel/chat message bodies are typically HTML (body.contentType "html").
    */
   private static toPlainTextFromTeamsMessageBody(rawContent: string): string {
-    return this.stripHtmlTags(rawContent.replace(/<at[^>]*>.*?<\/at>/g, ""))
+    return this.stripHtmlTags(
+      MicrosoftTeamsMentionText.removeMentions(rawContent),
+    )
       .replace(/&nbsp;/g, " ")
       .replace(/\s+/g, " ")
       .trim();

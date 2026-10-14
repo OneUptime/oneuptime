@@ -3314,11 +3314,36 @@ export default class SlackUtil extends WorkspaceBase {
 
     return pieces
       .map((piece: string): string => {
-        return piece.replace(/^[\r\n]+|[\r\n]+$/g, "");
+        return this.trimLineBreaks(piece);
       })
       .filter((piece: string): boolean => {
         return piece.trim().length > 0;
       });
+  }
+
+  /*
+   * The text without the line breaks it starts and ends with. A loop from
+   * each end, not /^[\r\n]+|[\r\n]+$/g: that pattern is tried again from
+   * every line break of a run that does not reach the end, so its time grew
+   * with the square of the run.
+   */
+  public static trimLineBreaks(text: string): string {
+    let start: number = 0;
+    let end: number = text.length;
+
+    while (start < end && SlackUtil.isLineBreak(text.charAt(start))) {
+      start++;
+    }
+
+    while (end > start && SlackUtil.isLineBreak(text.charAt(end - 1))) {
+      end--;
+    }
+
+    return text.substring(start, end);
+  }
+
+  private static isLineBreak(character: string): boolean {
+    return character === "\n" || character === "\r";
   }
 
   /*

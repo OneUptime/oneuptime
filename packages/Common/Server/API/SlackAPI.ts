@@ -111,6 +111,18 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../Utils/Markdown/FeedMarkdown";
+/*
+ * A Slack mention of a person in a message's text: <@U0123> or
+ * <@U0123|name>. Its class leaves out "<" as well as ">": with "[^>]+" the
+ * pattern was tried again from every "<@" of "<@<@<@..." to the end of the
+ * message, so its time grew with the square of the message (code scanning
+ * alert #1643). Slack writes a "<" somebody typed as "&lt;", so no mention
+ * holds one.
+ */
+const SLACK_USER_MENTION: RegExp = /<@[^<>]+>/g;
+
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
 // The Slack app this server connects with.
 interface SlackAppCredentials {
   clientId: string;
@@ -2246,10 +2258,10 @@ export default class SlackAPI {
    * Removes Slack `<@USER>` / `<@USER|name>` mention tokens and trims the text.
    * Used both to extract the question and to clean history turns.
    */
-  private static cleanSlackMessageText(text: string | undefined): string {
+  public static cleanSlackMessageText(text: string | undefined): string {
     return (text || "")
-      .replace(/<@[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
+      .replace(SLACK_USER_MENTION, " ")
+      .replace(WHITESPACE_RUN, " ")
       .trim();
   }
 
