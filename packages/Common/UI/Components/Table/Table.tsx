@@ -37,6 +37,11 @@ import { DragDropContext, DropResult } from "react-beautiful-dnd";
 
 export interface BulkActionProps<T extends GenericObject> {
   buttons: Array<BulkActionButtonSchema<T>>;
+  /*
+   * Row selection for Export CSV alone, on a table with no other bulk
+   * action: it is offered unless disableBulkCsvExport says otherwise.
+   */
+  isCsvExportOnly?: boolean | undefined;
 }
 
 /*
@@ -194,8 +199,8 @@ const Table: TableFunction = <T extends GenericObject>(
     translateString(props.pluralLabel) ?? props.pluralLabel;
   const isBulkActionsEnabled: boolean | undefined =
     props.bulkActions &&
-    props.bulkActions.buttons &&
-    props.bulkActions.buttons.length > 0;
+    ((props.bulkActions.buttons && props.bulkActions.buttons.length > 0) ||
+      (props.bulkActions.isCsvExportOnly && !props.disableBulkCsvExport));
 
   /*
    * "Export CSV" is offered on every table that already exposes bulk actions.

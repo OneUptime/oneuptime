@@ -51,7 +51,7 @@ import API from "Common/UI/Utils/API/API";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -61,6 +61,23 @@ export interface ComponentProps {
 }
 
 type BulkCaseChange = "status" | "priority";
+
+/*
+ * Said after a Delete's question, in a row's dialog and a bulk one: closing
+ * a case keeps it, as the case page's own Delete says.
+ */
+export const CLOSE_CASE_INSTEAD_OF_DELETE: string = translationKey(
+  "To keep the record, close the case with a verdict instead.",
+);
+
+// A case as its page names it: its number, then its title.
+export const getSecurityCaseName: (securityCase: SecurityCase) => string = (
+  securityCase: SecurityCase,
+): string => {
+  return `${securityCase.caseNumberWithPrefix || ""} ${
+    securityCase.title || ""
+  }`.trim();
+};
 
 /*
  * The case queue. A case is opened by a detection - a rule, threat
@@ -183,7 +200,14 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
           ...getSecurityCaseQueueQuery(view, User.getUserId()),
         }}
         refreshToggle={refreshToggle}
-        isDeleteable={false}
+        /*
+         * Delete in each case's ⋯ menu and in Bulk Actions - one switch for
+         * both. Its dialogs name the case as its page does, say what goes
+         * with it (DeleteConsequences) and that a verdict keeps the record.
+         */
+        isDeleteable={true}
+        getItemName={getSecurityCaseName}
+        deleteConfirmationWarning={CLOSE_CASE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         isViewable={true}

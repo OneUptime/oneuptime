@@ -17,6 +17,10 @@ import TeamMemberService from "./TeamMemberService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  ONLY_STATE_DELETE_MESSAGES,
+  StateTimelineRecord,
+} from "../../Utils/StateTimeline/StateTimelineRowDelete";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -1278,7 +1282,7 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
 
         if (incidentStateTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only state timeline. Incident should have at least one state in its timeline.",
+            ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.Incident],
           );
         }
 
@@ -1371,16 +1375,11 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
             },
           });
 
-          // Update the next state to start at the start of this state.
-          await this.updateOneById({
-            id: stateAfterThis.id!,
-            data: {
-              startsAt: incidentStateTimelineToBeDeleted.startsAt!,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          /*
+           * The state after it keeps its start: it is when that state really
+           * began. Moving it back to this one's start as well made the two
+           * cover this state's time twice (StateTimelineRowDelete).
+           */
           logger.debug("This state is in the middle.", {
             incidentId: incidentId?.toString(),
           } as LogAttributes);

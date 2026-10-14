@@ -51,7 +51,7 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
           tableId: "monitor-templates-table",
         }}
         name="Settings > Monitor Templates"
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={true}
         isViewable={true}

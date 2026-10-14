@@ -73,6 +73,7 @@ import React, {
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import useBulkOidTemplateActions from "../../Components/NetworkDevice/useBulkOidTemplateActions";
@@ -984,7 +985,9 @@ const NetworkDevices: FunctionComponent<
          * told about them: it says nothing matches and offers to clear them.
          */
         emptyState={devicesEmptyState}
-        isDeleteable={false}
+        isDeleteable={true}
+        // Archive is the reversible way off this list.
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         /*
@@ -998,12 +1001,12 @@ const NetworkDevices: FunctionComponent<
         createInitialValues={addDeviceInitialValues}
         showRefreshButton={true}
         /*
-         * Bulk "Delete" is not listed here - ModelTable adds it to every table
-         * that offers bulk actions, for anyone who may delete the model (issue
-         * #3559: cleaning up a fleet of stale or duplicated devices one row at
-         * a time is not a real option). What is set here is what the default
-         * confirmation cannot know: what else leaves with the devices, and
-         * that Archive is the reversible alternative.
+         * Bulk "Delete" is not listed here - ModelTable adds it to a table
+         * whose rows are deleted from it (isDeleteable), for anyone who may
+         * delete the model (issue #3559: cleaning up a fleet of stale or
+         * duplicated devices one row at a time is not a real option). What
+         * else leaves with a device is DeleteConsequences' sentence, said by
+         * every Delete of one.
          */
         bulkActions={{
           buttons: [
@@ -1018,8 +1021,6 @@ const NetworkDevices: FunctionComponent<
             ...shortenDeviceNameBulkActions,
             ...archiveBulkActions,
           ],
-          deleteConfirmationWarning:
-            "Their interfaces, links, endpoints and any monitor OneUptime created for them - with that monitor's history - are deleted too. To take devices off this list without losing any of that, archive them instead: archived devices can be restored at any time.",
         }}
         name="Network Devices"
         isViewable={true}

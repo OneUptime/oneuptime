@@ -786,8 +786,16 @@ describe("the dashboard renders the strings", () => {
     expect(card).not.toContain("translateString(FormsCopy.copyLink)");
     expect(card).toContain("translateString(FormsCopy.openForm)");
 
-    expect(readCode("Pages/Forms/View/Delete.tsx")).toContain(
-      "translateString(FormsCopy.deleteFormNote)",
+    /*
+     * What goes with a form is said by ModelDelete itself, from the shared
+     * catalog (DeleteConsequences), which it looks up in the reader's
+     * language: the page draws no note of its own any more.
+     */
+    expect(readCode("Pages/Forms/View/Delete.tsx")).not.toContain(
+      "deleteFormNote",
+    );
+    expect(readCode("Pages/Forms/View/Delete.tsx")).not.toContain(
+      "confirmationContent",
     );
   });
 });

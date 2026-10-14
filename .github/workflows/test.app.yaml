@@ -224,6 +224,7 @@ jobs:
               test-label-rule-transfer-ui
               test-diagrams-ui
               test-navigation-search-ui
+              test-list-delete-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -349,4 +350,6 @@ jobs:
             output/playwright/calendar-feed-ui/test-results
             output/playwright/home-overview-ui/*.png
             output/playwright/home-overview-ui/test-results
+            output/playwright/list-delete-ui/*.png
+            output/playwright/list-delete-ui/test-results
           retention-days: 7

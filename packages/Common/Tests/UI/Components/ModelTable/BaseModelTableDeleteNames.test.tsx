@@ -279,7 +279,8 @@ const startBulkDelete: StartBulkDeleteFunction = async (
 ): Promise<HTMLElement> => {
   const { container } = renderTable({
     ...options,
-    isDeleteable: false,
+    // Bulk Actions offer Delete where each row's ⋯ menu does.
+    isDeleteable: true,
     withBulkActions: true,
   });
 
@@ -468,7 +469,7 @@ describe("a bulk Delete", () => {
     );
 
     expect(description).toHaveTextContent(
-      "Are you sure you want to delete 3 Network Devices? This action cannot be undone.",
+      "Are you sure you want to delete 3 network devices? This action cannot be undone.",
     );
     expect(listedNames()).toEqual([
       "core-router-1",
@@ -521,7 +522,7 @@ describe("a bulk Delete", () => {
     );
 
     expect(description).toHaveTextContent(
-      "Are you sure you want to delete 2 Team Members?",
+      "Are you sure you want to delete 2 team members?",
     );
     expect(screen.queryByTestId("delete-confirmation-items")).toBeNull();
   });
@@ -569,7 +570,13 @@ describe("a bulk Delete", () => {
       2,
     );
 
-    expect(description).toHaveTextContent("Their interfaces are deleted too.");
+    // The question first, the names, then the warning in its own paragraph.
+    expect(description).not.toHaveTextContent(
+      "Their interfaces are deleted too.",
+    );
     expect(listedNames()).toEqual(["core-router-1", "core-router-2"]);
+    expect(screen.getByTestId("bulk-delete-consequence")).toHaveTextContent(
+      "Their interfaces are deleted too.",
+    );
   });
 });

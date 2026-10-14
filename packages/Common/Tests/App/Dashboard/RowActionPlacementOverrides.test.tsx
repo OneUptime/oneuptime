@@ -574,7 +574,11 @@ describe("Custom probes: Show ID and Key is never the row's button", () => {
     expect(
       within(rowActions).queryByRole("button", { name: "Show ID and Key" }),
     ).toBeNull();
-    expect(menuLabels(openMenuIn(rowActions))).toEqual(["Show ID and Key"]);
+    // Delete last, below the utilities: custom probes are deleted from here.
+    expect(menuLabels(openMenuIn(rowActions))).toEqual([
+      "Show ID and Key",
+      "Delete",
+    ]);
   });
 
   /*
@@ -612,7 +616,7 @@ describe("Custom probes: Show ID and Key is never the row's button", () => {
 
     const menu: HTMLElement = openMenuIn(rowActions);
 
-    expect(menuLabels(menu)).toEqual(["Show ID"]);
+    expect(menuLabels(menu)).toEqual(["Show ID", "Delete"]);
 
     fireEvent.click(within(menu).getByRole("menuitem", { name: "Show ID" }));
 

@@ -196,7 +196,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
         saveFilterProps={{
           tableId: "incident-templates-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={true}
         isViewable={true}

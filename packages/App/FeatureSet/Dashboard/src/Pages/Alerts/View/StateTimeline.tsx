@@ -21,6 +21,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+import useStateTimelineRowDelete, {
+  StateTimelineRowDeleteProps,
+} from "../../../Components/StateTimeline/StateTimelineRowDelete";
+import { StateTimelineRecord } from "Common/Utils/StateTimeline/StateTimelineRowDelete";
 import React, {
   Fragment,
   FunctionComponent,
@@ -33,6 +37,19 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  /*
+   * The alert's only state can't be deleted, and every other row's Delete
+   * says what deleting it does (StateTimelineRowDelete).
+   */
+  const stateRowDelete: StateTimelineRowDeleteProps<AlertStateTimeline> =
+    useStateTimelineRowDelete<AlertStateTimeline>({
+      record: StateTimelineRecord.Alert,
+      modelType: AlertStateTimeline,
+      recordIdColumn: "alertId",
+      recordId: modelId,
+      stateColumn: "alertState",
+    });
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<string>("");
 
@@ -51,6 +68,13 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
         }}
         isEditable={false}
         isDeleteable={true}
+        getDeleteDisabledReason={stateRowDelete.getDeleteDisabledReason}
+        getDeleteConfirmation={stateRowDelete.getDeleteConfirmation}
+        getItemName={stateRowDelete.getItemName}
+        singularName={stateRowDelete.singularName}
+        pluralName={stateRowDelete.pluralName}
+        deleteConfirmationWarning={stateRowDelete.deleteConfirmationWarning}
+        onFetchSuccess={stateRowDelete.onFetchSuccess}
         isCreateable={true}
         isViewable={false}
         showViewIdButton={true}

@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -160,7 +161,8 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           });
           return Promise.resolve(item);
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         showRefreshButton={true}
