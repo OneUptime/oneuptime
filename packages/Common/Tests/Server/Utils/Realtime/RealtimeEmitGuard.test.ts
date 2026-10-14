@@ -5,6 +5,8 @@ import AlertService from "../../../../Server/Services/AlertService";
 import IncidentEpisodeService from "../../../../Server/Services/IncidentEpisodeService";
 import AlertEpisodeService from "../../../../Server/Services/AlertEpisodeService";
 import ServiceLevelObjectiveService from "../../../../Server/Services/ServiceLevelObjectiveService";
+import SecurityCaseService from "../../../../Server/Services/SecurityCaseService";
+import SecurityPlaybookRunService from "../../../../Server/Services/SecurityPlaybookRunService";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../../Server/Services/AIRunEventService";
 import AIConversationMessageService from "../../../../Server/Services/AIConversationMessageService";
@@ -378,6 +380,8 @@ describe("every model that sends live updates is read the way its service reads 
     IncidentEpisodeService,
     AlertEpisodeService,
     ServiceLevelObjectiveService,
+    SecurityCaseService,
+    SecurityPlaybookRunService,
     AIRunService,
     AIRunEventService,
     AIConversationMessageService,

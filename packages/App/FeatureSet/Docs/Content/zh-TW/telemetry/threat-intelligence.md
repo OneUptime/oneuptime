@@ -17,7 +17,7 @@ flowchart TB
     events["新的安全性事件"] --> tag["抵達時以<br/>threat.* 屬性<br/>加上標籤"]
     indicators --> tag
     indicators --> match["每分鐘與<br/>最近的事件比對"]
-    match --> act["警示、選用的事件<br/>和偵測結果"]
+    match --> act["案件、警示、<br/>選用的事件<br/>和偵測結果"]
 ```
 
 ## 開始之前
@@ -35,7 +35,7 @@ flowchart TB
 
 ### 建立情資來源
 
-按一下 **建立Threat Intel Feed** ，填寫它的四個步驟：**基本資訊**、**TAXII Server**、**驗證** 和 **符合時** 。各欄位請見下表。
+按一下 **建立Threat Intel Feed**，填寫它的五個步驟：**基本資訊**、**TAXII Server**、**驗證**、**Security Cases** 和 **符合時**。各欄位請見下表。
 
 ### 檢查第一次輪詢
 
@@ -50,6 +50,7 @@ flowchart TB
 | **Minimum Confidence** | STIX `confidence` 低於此值的指標會被略過：0 到 100，設為 0 時全部保留。沒有 confidence 的指標一律通過。 |
 | **API Token** | bearer 權杖，用於要求權杖的集合。 |
 | **Basic Auth Username** 和 **Basic Auth Password** | 用於使用 HTTP 基本驗證的集合。公開集合請把兩者和權杖都留空。 |
+| **Open a Case on Match** | 預設開啟：每個提到指標的事件都會開啟一個與該指標有關的 [案件](/docs/telemetry/security-cases)，或併入已有的、與該指標有關的未關閉案件。 |
 | **Create Alert on Match** | 預設開啟：每個符合的指標都會開啟一個警示。 |
 | **警示嚴重性** | 此情資來源開啟的每個警示的嚴重程度。留空時使用每個指標的威脅等級。 |
 | **Create Incident on Match** | 預設關閉。事件會驅動待命呈報、SLA 和狀態頁面，而對於指標符合，通常警示就已足夠。 |

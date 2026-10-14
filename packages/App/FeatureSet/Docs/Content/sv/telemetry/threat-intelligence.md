@@ -17,7 +17,7 @@ flowchart TB
     events["Nya<br/>säkerhetshändelser"] --> tag["Märkta vid<br/>ankomst med<br/>threat.*-attribut"]
     indicators --> tag
     indicators --> match["Matchade varje<br/>minut mot nya<br/>händelser"]
-    match --> act["Ett larm, en eventuell<br/>incident och ett fynd"]
+    match --> act["Ett ärende, ett larm,<br/>en eventuell incident<br/>och ett fynd"]
 ```
 
 ## Innan du börjar
@@ -35,7 +35,7 @@ flowchart TB
 
 ### Skapa flödet
 
-Klicka på **Skapa Threat Intel Feed** och fyll i dess fyra steg: **Grundläggande information**, **TAXII Server**, **Autentisering** och **Vid träff**. Fälten finns i tabellen nedan.
+Klicka på **Skapa Threat Intel Feed** och fyll i dess fem steg: **Grundläggande information**, **TAXII Server**, **Autentisering**, **Security Cases** och **Vid träff**. Fälten finns i tabellen nedan.
 
 ### Kontrollera den första hämtningen
 
@@ -50,6 +50,7 @@ Inom en minut eller två visar flödets rad **Last Polled**, och **Last Poll Sum
 | **Minimum Confidence** | Indikatorer med lägre STIX-`confidence` hoppas över: 0 till 100, och 0 behåller allt. Indikatorer utan confidence släpps alltid igenom. |
 | **API Token** | En bearer-token, för en samling som kräver en. |
 | **Basic Auth Username** och **Basic Auth Password** | För en samling som använder HTTP Basic-autentisering. Lämna båda och token tomma för en offentlig samling. |
+| **Open a Case on Match** | På som standard: varje händelse som nämner en indikator öppnar ett [ärende](/docs/telemetry/security-cases) om den, eller läggs till i det öppna ärende som redan handlar om den. |
 | **Create Alert on Match** | På som standard: varje indikator som träffar öppnar ett larm. |
 | **Varningsallvar** | Allvarlighetsgraden för varje larm som det här flödet öppnar. Lämna den tom för att använda varje indikators hotnivå. |
 | **Create Incident on Match** | Av som standard. Incidenter driver joureskalering, SLA:er och statussidor, och larm räcker oftast för indikatorträffar. |

@@ -318,6 +318,8 @@ const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
   NetworkSiteType: PROJECT_SETTING,
   StatusPageSubscriberNotificationTemplate: PROJECT_SETTING,
   Domain: PROJECT_SETTING,
+  SecurityPlaybook:
+    "Every Security role reads the project's playbooks, and a run names the playbook it was started from; the reference check refuses another project's playbook.",
   UserCall: NOTIFICATION_METHOD,
   UserEmail: NOTIFICATION_METHOD,
   UserMicrosoftTeams: NOTIFICATION_METHOD,

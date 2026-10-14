@@ -1,11 +1,11 @@
 # 安全事件(SIEM)
 
-OneUptime 把安全事件与你的日志、跟踪和指标保存在一起，并且无论它们以什么格式到达，都统一成同一种结构：[OCSF](https://schema.ocsf.io/)（Open Cybersecurity Schema Framework）。你可以从任何来源发送事件、搜索它们，并用 Sigma 检测规则、威胁情报和监视器把重要的事件变成警报。
+OneUptime 把安全事件与你的日志、跟踪和指标保存在一起，并且无论它们以什么格式到达，都统一成同一种结构：[OCSF](https://schema.ocsf.io/)（Open Cybersecurity Schema Framework）。你可以从任何来源发送事件、搜索它们，并用 Sigma 检测规则、威胁情报和监视器找出重要的事件。它们发现的问题会成为需要处理的 [案例](/docs/telemetry/security-cases)，并由剧本做出响应。
 
 :::cards
 - [发送事件](#发送安全事件): 一个 HTTPS POST、一个 Fluent Bit 输出，或与安全产品的连接。
 - [搜索和关联分析](#浏览安全事件): 事件浏览器和关联分析图。
-- [检测规则](#检测规则): 会打开警报的 Sigma 规则。
+- [检测规则](#检测规则): 会打开案例和警报的 Sigma 规则。
 - [监视器](#安全事件监视器): 滚动时间窗口内的计数，以及会恢复的状态。
 :::
 
@@ -21,21 +21,28 @@ flowchart TB
     normalize --> events["安全事件"]
     events --> rules["检测规则<br/>（Sigma）"]
     events --> monitors["安全事件<br/>监视器"]
-    rules --> act["警报、事件<br/>和检测结果"]
+    rules --> act["案例、警报<br/>和检测结果"]
     monitors --> act
 ```
 
-在 **可观测性** 下打开 **产品 → Security Events** 。它的标签页如下：
+在 **可观测性** 下打开 **产品 → Security Events**。它的菜单如下：
 
-| 标签页 | 用途 |
-| --- | --- |
-| **事件** | 搜索和过滤每个事件，并打开某个事件查看它的所有字段 |
-| **关联分析** | 共享同一主机、用户或 IP 地址的事件构成的图 |
-| **Detection Rules** | 按计划运行并打开警报的 Sigma 规则 |
-| **Threat Intel** | 已知恶意指标的 STIX/TAXII 源 |
-| **监视器** | 项目的安全事件监视器 |
-| **Connections** | OneUptime 轮询新记录的安全产品 |
-| **设置指南** | 发送事件的代码片段，已填好你的摄取密钥 |
+| 页面 | 分区 | 用途 |
+| --- | --- | --- |
+| **概览** | 概览 | 当下需要有人处理的事项，以及案例的处理速度 |
+| **Security Cases** | 概览 | 检测到的问题组成的队列，按所涉及的对象分组 |
+| **事件** | 调查 | 搜索和过滤每个事件，并打开某个事件查看它的所有字段 |
+| **关联分析** | 调查 | 共享同一主机、用户或 IP 地址的事件构成的图 |
+| **实体** | 调查 | 你的检测结果中最常提及的用户、主机和地址 |
+| **Detection Rules** | 检测 | 按计划运行并打开案例的 Sigma 规则 |
+| **Rule Library** | 检测 | 可直接添加的现成检测规则 |
+| **ATT&CK Coverage** | 检测 | 你的规则覆盖的 MITRE ATT&CK 技术 |
+| **Threat Intel** | 检测 | 已知恶意指标的 STIX/TAXII 源 |
+| **监视器** | 检测 | 项目的安全事件监视器 |
+| **Playbooks** | 响应 | 在案例上自动或手动运行的步骤 |
+| **Playbook Runs** | 响应 | 每个剧本做了什么，以及等待审批的步骤 |
+| **Connections** | 来源 | OneUptime 轮询新记录的安全产品 |
+| **设置指南** | 来源 | 发送事件的代码片段，已填好你的摄取密钥 |
 
 ## 开始之前
 
@@ -43,9 +50,9 @@ flowchart TB
 
 | 角色 | 能做什么 |
 | --- | --- |
-| Security Admin | 一切：事件、检测规则、威胁情报源和连接 |
-| Security Member | 读取事件和威胁情报，并创建、修改和删除检测规则和情报源。不能设置连接，也不能删除安全数据。 |
-| Security Viewer | 读取事件、规则、情报源、指标和连接 |
+| Security Admin | 一切：事件、案例、剧本、检测规则、威胁情报源和连接 |
+| Security Member | 读取事件和威胁情报，处理案例，运行剧本并批准其步骤，以及创建、修改和删除检测规则和情报源。不能设置剧本或连接，也不能删除安全数据。 |
+| Security Viewer | 读取事件、案例、剧本、规则、情报源、指标和连接 |
 
 ## 发送安全事件
 
@@ -161,6 +168,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS Security Hub | Finding，作为 Detection Finding 和 Compliance Finding | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 登录、MFA、账户和策略事件 | [Okta System Log](/docs/integrations/okta) |
 
+- 产品自身的警报，只要级别达到或高于 **Open Cases From**（默认为 **High and above**，你也可以选择其他级别或 **从未**），就会打开 [案例](/docs/telemetry/security-cases)，并按它们涉及的用户、主机或地址分组。
 - 连接按产品创建记录的时间读取记录，而不是按记录所描述活动的时间。每小时运行一次的 SIEM 规则会在它匹配的事件之后很久才创建检测，这些检测仍然会被导入。
 - 第一次轮询会回溯 24 小时，所以新连接会立刻显示最近的记录。
 - 连接所在行中的 **测试连接** 会检查对产品的访问以及 OneUptime 自身的工作进程是否在运行，不会导入任何内容。**Run now** 会立即轮询。
@@ -211,14 +219,14 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ## 检测规则
 
-检测规则是一条 [Sigma](https://sigmahq.io/) 规则，一种描述可疑活动的开放 YAML 格式，OneUptime 会按计划对你的事件运行它。匹配时，它会打开一个警报，可选地打开一个事件（incident），并把一个 Detection Finding 写回安全事件中。
+检测规则是一条 [Sigma](https://sigmahq.io/) 规则，一种描述可疑活动的开放 YAML 格式，OneUptime 会按计划对你的事件运行它。匹配时，它会打开或并入一个 [案例](/docs/telemetry/security-cases)，打开一个警报，可选地打开一个事件（incident），并把一个 Detection Finding 写回安全事件中。**Rule Library** 提供了可作为起点的现成规则。
 
 ```mermaid title="检测规则如何触发"
 flowchart TB
     tick["每分钟：运行到期的<br/>规则"] --> query["自规则上次运行<br/>以来的事件"]
     query --> count["按 Group By Field<br/>的每个值计数"]
     count --> check{"计数达到<br/>Match Count Threshold？"}
-    check -->|"是"| fire["警报、可选的事件<br/>和 Detection Finding"]
+    check -->|"是"| fire["案例、警报、<br/>可选的事件<br/>和 Detection Finding"]
     check -->|"否"| wait["什么也不做，<br/>直到下次运行"]
 ```
 
@@ -229,7 +237,8 @@ flowchart TB
 2. 在 **基本信息** 中填写 **名称** ，并保持 **已启用** 打开。
 3. 在 **Sigma Rule** 中，把规则的 YAML 粘贴到 **Sigma Rule (YAML)** 中。保存时会解析它，所以错误会显示在表单中。
 4. 在 **评估** 中，设置它运行的频率以及需要多少次匹配；参见 [评估设置](#评估设置)。
-5. 在 **匹配时** 中选择匹配后要做什么：**Create Alert on Match**（打开）、**Create Incident on Match**（关闭）和 **Write Detection Finding on Match**（打开），以及可选的 **警报严重性** 和 **事件严重性** 。
+5. 在 **Security Cases** 中保持 **Open a Case on Match** 打开，按规则的分组值把它的匹配归入案例。
+6. 在 **匹配时** 中选择匹配后还要做什么：**Create Alert on Match**（打开）、**Create Incident on Match**（关闭）和 **Write Detection Finding on Match**（打开），以及可选的 **警报严重性** 和 **事件严重性**。
 :::
 
 第一条规则，匹配来自 `10.x.x.x` 之外的登录失败：
@@ -374,6 +383,7 @@ Detection Finding 是来自产品 `OneUptime Detections`、类别为 `Detection 
 
 :::cards
 - [威胁情报](/docs/telemetry/threat-intelligence): 将你的事件与 STIX/TAXII 源进行比对。
+- [安全案例与剧本](/docs/telemetry/security-cases): 处理规则发现的问题，并用剧本做出响应。
 - [Google SecOps](/docs/integrations/google-secops): 导入 Chronicle 的检测和事件。
 - [搜索语法](/docs/telemetry/search-syntax): 搜索栏能理解的一切。
 - [权限参考](/docs/permissions/reference): Security 角色以及每个角色能做什么。

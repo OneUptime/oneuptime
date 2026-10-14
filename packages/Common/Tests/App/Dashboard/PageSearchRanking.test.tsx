@@ -248,8 +248,9 @@ describe("a name many pages share gives way to a distinctive one", () => {
     const listed: Array<string> = rows("monitors");
 
     expect(listed[0]).toBe("Monitors");
+    // Security Events lists its Monitors page in its menu's Detect section.
     expect(listed.indexOf("All Monitors — Monitors")).toBeLessThan(
-      listed.indexOf("Monitors — Security Events"),
+      listed.indexOf("Monitors — Security Events › Detect"),
     );
   });
 
