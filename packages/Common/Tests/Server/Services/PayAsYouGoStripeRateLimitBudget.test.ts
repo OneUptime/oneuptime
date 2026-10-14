@@ -26,6 +26,7 @@ import AllMeteredPlans, {
 import ServerMeteredPlan from "../../../Server/Types/Billing/MeteredPlan/ServerMeteredPlan";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import MonitorStepsProjectValidator from "../../../Server/Utils/Monitor/MonitorStepsProjectValidator";
+import ActiveMonitorLimit from "../../../Server/Utils/Billing/ActiveMonitorLimit";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -37,7 +38,6 @@ import Decimal from "../../../Types/Decimal";
 import ProductType from "../../../Types/MeteredPlan/ProductType";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import * as EnvironmentConfig from "../../../Server/EnvironmentConfig";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
@@ -235,9 +235,12 @@ describe("Stripe rate-limit budget for pay-as-you-go billing", () => {
       GROWTH_PLAN,
     );
     getJestSpyOn(BillingService, "isBillingEnabled").mockReturnValue(true);
-    getJestSpyOn(MonitorService, "countBy").mockResolvedValue(
-      new PositiveNumber(1),
-    );
+    /*
+     * The project's one active monitor, counted and written on the project
+     * under the active monitor limit's lock (ActiveMonitorLimit, which reads
+     * Postgres): what the usage write reports.
+     */
+    getJestSpyOn(ActiveMonitorLimit, "refreshCount").mockResolvedValue(1);
 
     originalStripe = (BillingService as unknown as { stripe: unknown }).stripe;
     stripe = installRecordingStripe();

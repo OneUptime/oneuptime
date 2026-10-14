@@ -1,12 +1,9 @@
 import BillingService from "../../../Services/BillingService";
-import MonitorService from "../../../Services/MonitorService";
 import ProjectService from "../../../Services/ProjectService";
-import QueryHelper from "../../Database/QueryHelper";
+import ActiveMonitorLimit from "../../../Utils/Billing/ActiveMonitorLimit";
 import ServerMeteredPlan from "./ServerMeteredPlan";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
-import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
-import PositiveNumber from "../../../../Types/PositiveNumber";
 import Project from "../../../../Models/DatabaseModels/Project";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import PayAsYouGoBillingService, {
@@ -26,26 +23,14 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
       meteredPlanSubscriptionId?: string | undefined;
     },
   ): Promise<void> {
-    const count: PositiveNumber = await MonitorService.countBy({
-      query: {
-        projectId: projectId,
-        monitorType: QueryHelper.notEquals(MonitorType.Manual),
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // update this count in project as well.
-    await ProjectService.updateOneById({
-      id: projectId,
-      data: {
-        currentActiveMonitorsCount: count.toNumber(),
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    /*
+     * Every monitor but a Manual one, counted and written on the project
+     * (Project.currentActiveMonitorsCount) under the active monitor limit's
+     * lock, so the count the project shows is what the Monitor table holds
+     * - the same count the plan's limit is held to. See
+     * ActiveMonitorLimit.refreshCount.
+     */
+    const count: number = await ActiveMonitorLimit.refreshCount(projectId);
 
     /*
      * This runs on every monitor create and delete, so each live check here
@@ -82,7 +67,7 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
         (options?.meteredPlanSubscriptionId as string) ||
           (project.paymentProviderMeteredSubscriptionId as string),
         this,
-        count.toNumber(),
+        count,
         { liveAuthorization: liveAuthorization },
       );
     }

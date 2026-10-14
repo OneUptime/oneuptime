@@ -103,6 +103,11 @@ export enum ToolImportNoteCode {
   MonitorNeedsPaymentMethod = "MonitorNeedsPaymentMethod",
   // {limit}: what the Free plan allows.
   MonitorPlanLimit = "MonitorPlanLimit",
+  /*
+   * {limit}: how many active monitors the project's own plan includes (a
+   * plan bought from a reseller, ActiveMonitorLimit).
+   */
+  MonitorLimitReached = "MonitorLimitReached",
   StatusPagePlanLimit = "StatusPagePlanLimit",
   SubscriberPlanLimit = "SubscriberPlanLimit",
   SubscriberNotConfirmed = "SubscriberNotConfirmed",
