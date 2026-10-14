@@ -215,7 +215,7 @@ Fügen Sie pro Feld, das Sie prüfen möchten, einen Filter hinzu; jeder kann ei
 - Greater Than, Less Than und die anderen Zahlenbedingungen treffen nur auf eine Zahl zu, geben Sie ein Feld also als `42` zurück, nicht als `"42"`. Wahr und Falsch treffen nur auf einen booleschen Wert zu.
 - Ein Feld, das in den zurückgegebenen Daten fehlt — ein fehlender Schlüssel oder ein Array-Index hinter dem Ende — gilt als leer: **Is Empty** trifft darauf zu, keine andere Bedingung.
 - Ein Feld, dessen Name einen Punkt enthält, lässt sich mit einem Pfad nicht ansprechen.
-- In Terraform legt `custom_code_monitor_options` des Filters den Feldpfad fest: siehe [Monitor-Schritte](/docs/terraform/monitor-steps#comparing-one-field-of-a-scripts-result).
+- In Terraform legt `custom_code_monitor_options` des Filters den Feldpfad fest: siehe [Monitor-Schritte](/docs/terraform/monitor-steps#ein-feld-des-skriptergebnisses-vergleichen).
 
 ## Im Skript verfügbare Module
 

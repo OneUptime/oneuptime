@@ -338,7 +338,7 @@ const CARD_LINKS: Array<CardLink> = [
     card: "Infrastructure as Code",
     href: "/docs/terraform/index",
     label: "Terraform Provider",
-    docsTitle: "Terraform Provider",
+    docsTitle: "Terraform Overview",
   },
   {
     page: "/solutions/platform",

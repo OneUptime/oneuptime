@@ -82,9 +82,9 @@ const TRANSLATED_LANGUAGES: ReadonlyArray<string> = MONITOR_PAGE_LANGUAGES;
 /*
  * The languages whose custom-code monitor and Terraform monitor-steps pages
  * name the vCenter attribute and escape hatch: the ones those pages are
- * translated into.
+ * translated into, every language since docs task 30a.
  */
-const ESCAPE_HATCH_LANGUAGES: ReadonlyArray<string> = ["fa"];
+const ESCAPE_HATCH_LANGUAGES: ReadonlyArray<string> = MONITOR_PAGE_LANGUAGES;
 
 /*
  * The install without Docker: the "systemd" tab of "Install and start the

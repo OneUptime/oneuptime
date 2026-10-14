@@ -215,7 +215,7 @@ Voeg één filter toe per veld dat u wilt controleren; elk filter kan een eigen 
 - Greater Than, Less Than en de andere getalvoorwaarden komen alleen overeen met een getal, dus geef een veld terug als `42`, niet als `"42"`. Waar en Onwaar komen alleen overeen met een boolean.
 - Een veld dat niet in de teruggegeven gegevens staat (een ontbrekende sleutel, of een array-index voorbij het einde) wordt als leeg vergeleken: **Is Empty** komt ermee overeen, en geen enkele andere voorwaarde.
 - Een veld met een punt in de naam is niet bereikbaar met een pad.
-- In Terraform stelt de `custom_code_monitor_options` van het filter het veldpad in: zie [Monitorstappen](/docs/terraform/monitor-steps#comparing-one-field-of-a-scripts-result).
+- In Terraform stelt de `custom_code_monitor_options` van het filter het veldpad in: zie [Monitorstappen](/docs/terraform/monitor-steps#eén-veld-van-het-resultaat-van-een-script-vergelijken).
 
 ## Modules die in het script beschikbaar zijn
 
