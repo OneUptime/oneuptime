@@ -1,3 +1,4 @@
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -13,9 +14,9 @@ import path from "path";
  *   - Users & Permissions names every Access choice the form offers, with
  *     Choose permissions later as the one picked to start with, and says
  *     where block permissions and the expiry date went;
- *   - the Terraform quick start, in every docs language (its steps are
- *     English in all of them, Persian aside), picks Project Admin under
- *     Access and no longer asks for an expiry;
+ *   - the Terraform quick start, in every docs language, picks Project
+ *     Admin under Access and no longer asks for an expiry, naming each label
+ *     as that language's Dashboard draws it (docs task 30a translated it);
  *   - the MCP server guide picks Viewer or Project Admin under Access.
  *
  * The choices are read from the form's own source - the Access question
@@ -165,10 +166,14 @@ describe("the Terraform quick start", () => {
     (language: string) => {
       const page: string = readPage(language, "terraform/quick-start");
 
-      expect(page).toContain("**Access**");
-      expect(page).toContain("**Project Admin**");
-      expect(page).toContain("**Choose permissions later**");
-      expect(page).toContain("**More fields**");
+      for (const label of [
+        "Access",
+        "Project Admin",
+        "Choose permissions later",
+        "More fields",
+      ]) {
+        expect(page).toContain(`**${drawnDashboardLabel(language, label)}**`);
+      }
 
       // The step the form no longer has.
       expect(page).not.toContain("and an expiry.");

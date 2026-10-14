@@ -4,7 +4,10 @@ import {
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
 import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import SpanService from "./SpanService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
@@ -274,24 +277,17 @@ export class TraceAggregationService {
     const statement: Statement =
       TraceAggregationService.buildHistogramStatement(request);
 
+    /*
+     * A histogram stopped at its time limit throws a QueryTimeoutException:
+     * the chart says it was stopped rather than draw an empty window that
+     * reads as "no spans" (issue #4707).
+     */
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      /*
-       * When max_execution_time fires with timeout_overflow_mode='break',
-       * ClickHouse may return a truncated JSON response. Return an empty
-       * histogram rather than failing — the user still sees the span list.
-       */
-      logger.warn(
-        "Histogram query returned unparseable response, returning empty result",
-      );
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     return rows.map((row: JSONObject): HistogramBucket => {
       return {
@@ -333,8 +329,8 @@ export class TraceAggregationService {
   /*
    * Sample-based facet computation. Runs a single sort-key aligned query
    * (ORDER BY startTime DESC LIMIT sampleSize) and computes top-K per facet
-   * in Node.js. This avoids ClickHouse GROUP BY aggregations that can't
-   * return partial results under max_execution_time 'break' mode, and
+   * in Node.js. This avoids ClickHouse GROUP BY aggregations over the
+   * whole window, which a wide window cannot finish in time, and
    * leverages the (projectId, startTime, ...) primary key for efficient
    * backwards scans. Facet values reflect the most recent N root spans in
    * the window — the most actionable view for filtering.
@@ -434,8 +430,7 @@ export class TraceAggregationService {
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
       }),
     );
 
@@ -602,8 +597,7 @@ export class TraceAggregationService {
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         additionalSettings: { optimize_use_projections: 1 },
       }),
     );
@@ -611,25 +605,17 @@ export class TraceAggregationService {
     const serviceCounts: Map<string, number> = new Map<string, number>();
     const statusCounts: Map<string, number> = new Map<string, number>();
 
+    /*
+     * Counts stopped at the time limit throw (a QueryTimeoutException); the
+     * facets endpoint names the facets they leave uncounted instead of
+     * showing every resource at 0 (issue #4707).
+     */
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      /*
-       * 'break' mode can return truncated JSON on timeout. Degrade to empty
-       * counts — the Postgres resolver still lists every resource (count 0),
-       * which is no worse than the prior transient-failure behavior.
-       */
-      logger.warn(
-        "Resource facet count query returned unparseable response, returning empty counts",
-      );
-      return { serviceCounts, statusCounts };
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     for (const row of rows) {
       const cnt: number = Number(row["cnt"] || 0);
@@ -702,8 +688,7 @@ export class TraceAggregationService {
 
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         additionalSettings: { optimize_use_projections: 1 },
       }),
     );
@@ -711,21 +696,13 @@ export class TraceAggregationService {
     let rootCount: number = 0;
     let nonRootCount: number = 0;
 
+    // Stopped at the time limit: throws, see getResourceFacetCounts.
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      // 'break' mode can truncate JSON on timeout — degrade to zero counts.
-      logger.warn(
-        "Root span count query returned unparseable response, returning zero counts",
-      );
-      return { rootCount, nonRootCount };
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     for (const row of rows) {
       const cnt: number = Number(row["cnt"] || 0);
@@ -747,9 +724,9 @@ export class TraceAggregationService {
    * Exact has-exception vs no-exception counts over the window, backing the
    * "Has Exception" sidebar facet. Unlike getResourceFacetCounts /
    * getRootSpanCounts, hasException is not a proj_hist_by_minute key, so this
-   * is a base-table GROUP BY (still bounded by max_execution_time / 'break').
-   * It is a single low-cardinality column read, so it is cheap for typical
-   * windows and degrades gracefully on very wide ones.
+   * is a base-table GROUP BY (still bounded by max_execution_time). It is a
+   * single low-cardinality column read, so it is cheap for typical windows;
+   * on one too wide to count in time the facet says so.
    *
    * Exactness matters specifically here: exception spans are usually rare, so
    * the recent-N sample (getFacetValuesFromSample) can miss them entirely and
@@ -789,29 +766,20 @@ export class TraceAggregationService {
 
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
       }),
     );
 
     let withExceptionCount: number = 0;
     let withoutExceptionCount: number = 0;
 
+    // Stopped at the time limit: throws, see getResourceFacetCounts.
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      // 'break' mode can truncate JSON on timeout — degrade to zero counts.
-      logger.warn(
-        "Has-exception count query returned unparseable response, returning zero counts",
-      );
-      return { withExceptionCount, withoutExceptionCount };
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     for (const row of rows) {
       const cnt: number = Number(row["cnt"] || 0);
@@ -907,14 +875,13 @@ export class TraceAggregationService {
 
     /*
      * Defense in depth: cap histogram runtime below nginx's 60s
-     * proxy_read_timeout. ClickHouse returns partial aggregated results
-     * with 'break' mode rather than throwing, which is acceptable for
-     * a density visualization. Explicitly enable projection use.
+     * proxy_read_timeout, and say so when it is reached (see
+     * INTERACTIVE_READ_TIME_LIMIT) rather than draw a chart that looks
+     * complete. Explicitly enable projection use.
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
         additionalSettings: { optimize_use_projections: 1 },
       }),
     );
@@ -1012,8 +979,7 @@ export class TraceAggregationService {
      */
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
       }),
     );
 
@@ -1481,19 +1447,13 @@ export class TraceAggregationService {
         topValues,
       );
 
+    // Stopped at the time limit: throws, rather than chart an empty window.
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      logger.warn(
-        "Trace analytics timeseries query returned unparseable response, returning empty result",
-      );
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     const timeseriesRows: Array<TraceAnalyticsTimeseriesRow> = rows.map(
       (row: JSONObject): TraceAnalyticsTimeseriesRow => {
@@ -1535,19 +1495,13 @@ export class TraceAggregationService {
     const statement: Statement =
       TraceAggregationService.buildAnalyticsTopListStatement(request);
 
+    // Stopped at the time limit: throws, rather than list nothing.
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      logger.warn(
-        "Trace analytics top list query returned unparseable response, returning empty result",
-      );
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     return rows
       .map((row: JSONObject): TraceAnalyticsTopItem => {
@@ -1575,19 +1529,13 @@ export class TraceAggregationService {
     const statement: Statement =
       TraceAggregationService.buildAnalyticsTableStatement(request);
 
+    // Stopped at the time limit: throws, rather than list nothing.
     const dbResult: Results = await SpanService.executeQuery(statement);
 
-    let rows: Array<JSONObject> = [];
-    try {
-      const response: DbJSONResponse = await dbResult.json<{
-        data?: Array<JSONObject>;
-      }>();
-      rows = response.data || [];
-    } catch {
-      logger.warn(
-        "Trace analytics table query returned unparseable response, returning empty result",
-      );
-    }
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
 
     const groupByKeys: Array<string> = request.groupBy;
 
@@ -1981,8 +1929,7 @@ export class TraceAggregationService {
 
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
       }),
     );
 
@@ -2075,8 +2022,7 @@ export class TraceAggregationService {
 
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
       }),
     );
 
@@ -2144,8 +2090,7 @@ export class TraceAggregationService {
 
     statement.append(
       getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        ...INTERACTIVE_READ_TIME_LIMIT,
       }),
     );
 

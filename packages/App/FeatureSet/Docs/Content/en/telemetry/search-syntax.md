@@ -196,6 +196,7 @@ Chips are part of the saved view and the page URL, so a filter survives a refres
 - A `-@k:...` filter also matches rows that never had the attribute — a row that does not carry `platform.team` at all trivially does not start with `a`.
 - Numeric comparisons work on attribute values stored as text; a value that is not a number never satisfies one.
 - On logs and traces, an exact value, such as `@http.route:/orders`, `@k:(a OR b)` or a value clicked in the facet sidebar, is looked up in an index, so a search for a value few rows carry stays quick over long time ranges. Wildcards, contains, exclusions and comparisons read every log line or span in the range: when one is slow, add an exact value or pick a shorter range.
+- A search that runs longer than 45 seconds is stopped. The explorer says so where the results would be, keeps your search and filters as they were and offers **Try again**; the chart and the filter counts say so in their own place when they run out of time. To make it finish, pick a shorter range or add an exact value.
 
 ## Next steps
 

@@ -99,7 +99,7 @@ Any route not listed above renders a "Not modelled" stub (`data-testid="stub-pag
 ## What the fixture records
 
 `window.__chartTimeZoomFixture` holds `dataset` (ids and identifiers), `requests`,
-`unhandled` and two gates.
+`unhandled`, two gates and `timeLimit`.
 
 Every data request is appended to `requests` in order, as
 `{ seq, kind, modelName, ... }`:
@@ -131,6 +131,19 @@ With `gate.mode = "manual"` later answers wait in `gate.pending`, each described
 answers); `gate.deliver()` answers everything pending, in order, and returns how
 many it answered. Setting `mode` back to `"immediate"` does not release what is
 already held: `deliver()` does.
+
+`timeLimit` names the reads ClickHouse stops at the query time limit (issue #4707).
+Each one answers as the API answers such a read, a 504 with the API's sentence,
+until a spec sets it back. Nothing is stopped by default:
+
+| `timeLimit.` | Stops |
+|---|---|
+| `lists` | the explorers' span and log lists (`AnalyticsModelAPI.getList` of `SpanItemV3`, `LogItemV3`) |
+| `histograms` | `/telemetry/traces/histogram` and `/telemetry/logs/histogram` |
+| `facets` | the facet keys listed: the facet endpoints name them in `timedOutFacets` and answer them empty (a resource facet keeps its list, every count 0), as the server does |
+
+A spec whose first load is stopped sets `window.__chartTimeZoomTimeLimit` with
+`page.addInitScript` before the page loads; the fixture starts from it.
 
 ## What the spec covers
 
@@ -341,6 +354,23 @@ pointer over bar] · +278ms mouseup(2) on path.recharts-rectangle [pressed node 
 ```
 
 (the Traces explorer's (e) on a bar, before the fix: no `click(2)`, no `dblclick(2)`).
+
+## Explorers: a search past the query time limit
+
+`ExplorerTimeLimit.spec.ts` (6 tests, same fixture and command) opens the Logs and
+Traces explorers with reads stopped at the time limit (`timeLimit`, above) and pins
+issue #4707 in a real browser:
+
+- the message goes where the rows go, never over the page: the search bar, the time
+  range and the filters stay, and nothing reads "Server Error";
+- when the list, the chart and the counts all stopped there is one message, the
+  chart's card steps aside, and each stopped facet says "Not counted";
+- Try again runs the list, the chart and the counts once each, and the rows come back;
+- counts that stopped alone: one note at the top of the sidebar, the reason said once,
+  the services still listed with a dash for a count, and the note's Try again counts
+  them;
+- a chart that stopped alone says so in its own card, and its Try again draws it;
+- at 390 px the message and its Try again fit the screen, with no sideways scroll.
 
 ## Run it
 

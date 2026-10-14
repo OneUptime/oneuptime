@@ -215,7 +215,7 @@ return {
 - Greater Than、Less Than などの数値の条件は数値にしか一致しないので、フィールドは `"42"` ではなく `42` として返してください。真と偽はブール値にしか一致しません。
 - 返されたデータにないフィールド (存在しないキーや、末尾を超えた配列のインデックス) は空として比較されます。一致するのは **Is Empty** だけで、ほかの条件は一致しません。
 - 名前にドットを含むフィールドは、パスで指定できません。
-- Terraform では、フィルターの `custom_code_monitor_options` でフィールドパスを設定します。[モニターステップ](/docs/terraform/monitor-steps#comparing-one-field-of-a-scripts-result) を参照してください。
+- Terraform では、フィルターの `custom_code_monitor_options` でフィールドパスを設定します。[モニターステップ](/docs/terraform/monitor-steps#スクリプトの結果のフィールドを-1-つ比較する) を参照してください。
 
 ## スクリプトで使えるモジュール
 

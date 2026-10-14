@@ -8,6 +8,9 @@ import React, {
   useState,
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "Common/UI/Utils/Telemetry/TelemetryLoadError";
 import {
   ActiveFilter,
   FacetConfig,
@@ -622,8 +625,20 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     number | undefined
   >(undefined);
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
+  /*
+   * Why the occurrences chart did not load, the facets the time limit
+   * stopped, and why the facets did not load at all (issue #4707): each says
+   * so in its own place instead of an empty chart or "No values".
+   */
+  const [histogramError, setHistogramError] = useState<
+    TelemetryLoadError | undefined
+  >(undefined);
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  const [timedOutFacets, setTimedOutFacets] = useState<Array<string>>([]);
+  const [facetError, setFacetError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
   /*
    * Per-facet search text for resource facets (primaryEntityId / hostId / etc.).
    * Updates trigger a backend refetch so the result includes resources from
@@ -1571,10 +1586,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         []) as unknown as Array<HistogramBucket>;
       setHistogramBuckets(buckets);
       setHistogramBucketIntervalMs(bucketSizeInMinutes * 60 * 1000);
-    } catch {
-      // non-critical
+      setHistogramError(undefined);
+    } catch (err) {
+      // Non-critical: the chart's own card says why it has no bars.
       setHistogramBuckets([]);
       setHistogramBucketIntervalMs(undefined);
+      setHistogramError(TelemetryLoadErrorUtil.fromError(err));
     } finally {
       setHistogramLoading(false);
     }
@@ -1799,9 +1816,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       const facets: FacetData = (response.data["facets"] ||
         {}) as unknown as FacetData;
       setFacetData(facets);
-    } catch {
-      // Facets are non-critical; silently degrade
+      setTimedOutFacets(
+        Array.isArray(response.data["timedOutFacets"])
+          ? (response.data["timedOutFacets"] as Array<string>)
+          : [],
+      );
+      setFacetError(undefined);
+    } catch (err) {
+      // Non-critical: the sidebar says why the facets are missing.
       setFacetData({});
+      setTimedOutFacets([]);
+      setFacetError(TelemetryLoadErrorUtil.fromError(err));
     } finally {
       setFacetLoading(false);
     }
@@ -2252,6 +2277,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       isLoading={isLoading || holdsReads}
       error={error || undefined}
       onRefresh={() => {
+        // A held read goes out by itself once what it waits for is in.
+        if (holdsReads) {
+          return;
+        }
+
         void fetchExceptions();
         void fetchHistogram();
       }}
@@ -2403,6 +2433,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       facetData={mergedFacetData}
       facetConfigs={facetConfigs}
       facetLoading={facetLoading || holdsReads}
+      timedOutFacets={timedOutFacets}
+      facetError={facetError}
+      onRetryFacets={() => {
+        // A held read goes out by itself once what it waits for is in.
+        if (!holdsReads) {
+          void fetchFacets();
+        }
+      }}
       onFacetInclude={handleFacetInclude}
       onFacetSearchChange={(facetKey: string, text: string) => {
         setFacetSearchText(
@@ -2429,6 +2467,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       histogramSeries={histogramSeries}
       histogramTitle="Exceptions over time"
       histogramLoading={histogramLoading || holdsReads}
+      histogramError={histogramError}
+      onRetryHistogram={() => {
+        if (!holdsReads) {
+          void fetchHistogram();
+        }
+      }}
       histogramBucketIntervalMs={histogramBucketIntervalMs}
       onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
       // Pagination

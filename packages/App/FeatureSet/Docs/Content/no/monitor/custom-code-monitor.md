@@ -215,7 +215,7 @@ Legg til ett filter per felt du vil sjekke; hvert filter kan ha sitt eget vilkå
 - Greater Than, Less Than og de andre tallvilkårene samsvarer bare med et tall, så returner et felt som `42`, ikke `"42"`. Sann og Usann samsvarer bare med en boolsk verdi.
 - Et felt som ikke finnes i de returnerte dataene — en manglende nøkkel eller en matriseindeks forbi slutten — sammenlignes som tomt: **Is Empty** samsvarer med det, og ingen andre vilkår gjør det.
 - Et felt med punktum i navnet kan ikke nås med en sti.
-- I Terraform setter filterets `custom_code_monitor_options` feltstien: se [Monitortrinn](/docs/terraform/monitor-steps#comparing-one-field-of-a-scripts-result).
+- I Terraform setter filterets `custom_code_monitor_options` feltstien: se [Monitortrinn](/docs/terraform/monitor-steps#sammenligne-ett-felt-i-resultatet-fra-et-skript).
 
 ## Moduler som er tilgjengelige i skriptet
 

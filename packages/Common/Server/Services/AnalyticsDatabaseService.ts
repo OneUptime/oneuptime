@@ -33,6 +33,7 @@ import {
   getQuerySettings,
   TimeoutOverflowMode,
 } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import ClickhouseReadResult from "../Utils/AnalyticsDatabase/ClickhouseReadResult";
 import {
   getDistributedDdlTaskTimeoutSeconds,
   getStorageTableName,
@@ -76,7 +77,7 @@ import ExceptionCode from "../../Types/Exception/ExceptionCode";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ServerException from "../../Types/Exception/ServerException";
-import TimeoutException from "../../Types/Exception/TimeoutException";
+import QueryTimeoutException from "../../Types/Exception/QueryTimeoutException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -508,17 +509,29 @@ export default class AnalyticsDatabaseService<
           countPositive = new PositiveNumber(rawCount);
           hasCount = true;
         }
-      } catch {
+      } catch (error) {
         /*
-         * When max_execution_time fires with timeout_overflow_mode='break',
-         * ClickHouse may return a truncated response for count() queries
-         * (the aggregation has no partial row to emit). Treat this as
-         * "count unavailable" rather than a fatal error — the list query
-         * itself still succeeds. An exact count fails below instead.
+         * An exact count is a total a person reads, and one the time limit
+         * stopped says so (see toCountException) — never "0". Any other
+         * failure to read it fails below, as a count without a number.
+         */
+        if (
+          countBy.exact &&
+          AnalyticsDatabaseService.isQueryTimeoutError(error)
+        ) {
+          throw this.toCountException(countBy, error);
+        }
+
+        /*
+         * The default count runs with timeout_overflow_mode='break', and
+         * ClickHouse answers a count it broke off at max_execution_time with
+         * an empty body (the aggregation has no partial row to emit). Its
+         * callers — telemetry monitors' thresholds, the AI spike detector —
+         * read that as "count unavailable", 0, as they always have.
          */
         if (!countBy.exact) {
           logger.warn(
-            `${this.model.tableName} count query returned unparseable response, defaulting to 0`,
+            `${this.model.tableName} count query stopped before it finished, defaulting to 0`,
             { tableName: this.model.tableName } as LogAttributes,
           );
         }
@@ -1269,23 +1282,12 @@ export default class AnalyticsDatabaseService<
   /*
    * Whether ClickHouse refused to finish a query in the time it was given:
    * TIMEOUT_EXCEEDED (159) once max_execution_time passes with
-   * timeout_overflow_mode 'throw', or TOO_SLOW (160) when the server
-   * estimates up front that it would.
+   * timeout_overflow_mode 'throw', TOO_SLOW (160) when the server estimates
+   * up front that it would, or the QueryTimeoutException executeQuery turns
+   * either into (see ClickhouseReadResult).
    */
   public static isQueryTimeoutError(error: unknown): boolean {
-    if (!error || typeof error !== "object") {
-      return false;
-    }
-
-    const code: unknown = (error as { code?: unknown }).code;
-    const type: unknown = (error as { type?: unknown }).type;
-
-    return (
-      code === "159" ||
-      code === "160" ||
-      type === "TIMEOUT_EXCEEDED" ||
-      type === "TOO_SLOW"
-    );
+    return ClickhouseReadResult.isTimeLimitError(error);
   }
 
   /*
@@ -1299,7 +1301,7 @@ export default class AnalyticsDatabaseService<
     error: unknown,
   ): unknown {
     if (countBy.exact && AnalyticsDatabaseService.isQueryTimeoutError(error)) {
-      return new TimeoutException(
+      return new QueryTimeoutException(
         `Counting every matching ${this.model.singularName.toLowerCase()} took longer than ${COUNT_MAX_EXECUTION_TIME_IN_SECONDS} seconds. Narrow the time range or add a filter to get an exact total.`,
       );
     }
@@ -1450,21 +1452,28 @@ export default class AnalyticsDatabaseService<
   }
 
   /**
-   * The timeout_overflow_mode an aggregate statement should carry.
-   * Callers that render charts keep the 'break' default (partial
-   * buckets are acceptable there); callers that ALERT on the result —
-   * the metric-monitor worker — pass 'throw' so a timed-out evaluation
-   * fails loudly instead of silently scoring partial data.
+   * The timeout_overflow_mode an aggregate statement carries: always
+   * 'throw' (issue #4707).
    *
-   * Allow-listed, never passed through: aggregateBy is deserialized
-   * wholesale from API clients and this setting is emitted into SQL as
-   * a trusted literal (see QuerySettingsHelper), so anything other than
-   * the exact string "throw" degrades to the 'break' default.
+   * Charts used to keep a 'break' default on the understanding that it
+   * returns the buckets counted so far. It does not: ClickHouse answers a
+   * grouped read it breaks off at max_execution_time with an EMPTY body
+   * (measured on 24.8 and 26.7), which failed the chart with a bare "Server
+   * Error". Partial buckets that look complete would be no better — a
+   * chart missing one end of its window draws a drop that never happened.
+   * A chart that runs out of time now says so, the way the alerting callers
+   * (the metric-monitor worker) already asked for with
+   * `aggregateBy.timeoutOverflowMode = "throw"`.
+   *
+   * The field is still accepted and no longer needed. It is never passed
+   * through: aggregateBy is deserialized wholesale from API clients and this
+   * setting is emitted into SQL as a trusted literal (see
+   * QuerySettingsHelper).
    */
   protected getTimeoutOverflowMode(
-    aggregateBy: AggregateBy<TBaseModel>,
+    _aggregateBy: AggregateBy<TBaseModel>,
   ): TimeoutOverflowMode {
-    return aggregateBy.timeoutOverflowMode === "throw" ? "throw" : "break";
+    return "throw";
   }
 
   public toAggregateStatement(aggregateBy: AggregateBy<TBaseModel>): {
@@ -1590,10 +1599,9 @@ export default class AnalyticsDatabaseService<
      * - max_execution_time=45: cap aggregate runtime below the
      *   ClickHouse client's 58s request_timeout, same as the count/find
      *   statements — a wide-window aggregate over a large table would
-     *   otherwise run until the HTTP client disconnects. The overflow
-     *   mode defaults to 'break' (partial buckets are acceptable for
-     *   chart rendering) but alerting callers opt into 'throw' via
-     *   aggregateBy.timeoutOverflowMode — see getTimeoutOverflowMode.
+     *   otherwise run until the HTTP client disconnects. It stops with
+     *   'throw', so a chart that runs out of time is told so — see
+     *   getTimeoutOverflowMode.
      * - optimize_aggregation_in_order: when GROUP BY is a prefix of the
      *   sort key (we always group by a time bucket and the time column
      *   is at the tail of every analytics primary key), ClickHouse can
@@ -1935,13 +1943,20 @@ export default class AnalyticsDatabaseService<
      * Defense in depth: cap find-query runtime below the ClickHouse
      * client's 58s request_timeout. The LIMIT clause keeps most queries
      * fast, but complex WHERE filters (e.g. parentSpanId IS NULL) on
-     * wide time ranges can still cause long scans. 'break' mode returns
-     * partial results rather than throwing.
+     * wide time ranges can still cause long scans.
+     *
+     * 'throw', so a find that runs out of time is reported as exactly that
+     * (a QueryTimeoutException, see executeQuery). 'break' was meant to
+     * return the rows found so far, but ClickHouse answers a read it breaks
+     * off with an empty or cut-off body (measured on 24.8 and 26.7): the
+     * explorers' lists failed with a bare "Server Error" (issue #4707). And
+     * the rows found so far would not have been the page asked for — a
+     * newest-first list missing its newest rows still looks complete.
      */
     statement.append(
       getQuerySettings({
         maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        timeoutOverflowMode: "throw",
       }),
     );
 
@@ -2322,6 +2337,14 @@ export default class AnalyticsDatabaseService<
     })) as ExecResult<Stream>;
   }
 
+  /*
+   * Runs a read and hands back its answer, whose json() only ever returns a
+   * whole document (issue #4707, see ClickhouseReadResult). A read stopped at
+   * its time limit throws a QueryTimeoutException — the API answers 504 with
+   * "This query took longer than 45 seconds and was stopped before it
+   * finished. Try a shorter time range or more specific filters." — instead
+   * of a SyntaxError on an empty or cut-off body.
+   */
   @CaptureSpan()
   public async executeQuery(
     statement: Statement | string,
@@ -2336,15 +2359,67 @@ export default class AnalyticsDatabaseService<
     const queryParams: Record<string, unknown> | undefined =
       statement instanceof Statement ? statement.query_params : undefined;
 
-    return await client.query({
-      query: query,
-      format: "JSON",
-      query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
-      ...(options?.clickhouseSettings
-        ? { clickhouse_settings: options.clickhouseSettings }
-        : {}),
-      ...(options?.queryId ? { query_id: options.queryId } : {}),
+    const timeLimitInSeconds: number | undefined =
+      ClickhouseReadResult.getTimeLimitInSeconds(
+        query,
+        options?.clickhouseSettings,
+      );
+
+    const clickhouseSettings: ClickHouseSettings | undefined =
+      AnalyticsDatabaseService.getReadSettings({
+        clickhouseSettings: options?.clickhouseSettings,
+        hasTimeLimit: timeLimitInSeconds !== undefined,
+        useMigrationConnection: Boolean(options?.useMigrationConnection),
+      });
+
+    let resultSet: ResultSet<"JSON">;
+
+    try {
+      resultSet = await client.query({
+        query: query,
+        format: "JSON",
+        query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
+        ...(clickhouseSettings
+          ? { clickhouse_settings: clickhouseSettings }
+          : {}),
+        ...(options?.queryId ? { query_id: options.queryId } : {}),
+      });
+    } catch (error) {
+      throw ClickhouseReadResult.toReadError(error, {
+        timeLimitInSeconds: timeLimitInSeconds,
+      });
+    }
+
+    return ClickhouseReadResult.guard(resultSet, {
+      timeLimitInSeconds: timeLimitInSeconds,
     });
+  }
+
+  /*
+   * The per-call settings a read is sent with. A read with a time limit also
+   * asks ClickHouse to hold its answer until the query is done
+   * (http_wait_end_of_query): a read stopped part-way through then answers
+   * with the error itself (408, TIMEOUT_EXCEEDED) instead of a 200 whose
+   * rows end in a dropped connection, which the client can only report as
+   * "aborted". It costs nothing a reader would notice — json() waits for the
+   * whole body anyway — and ClickHouse keeps an answer over 1 MiB on disk
+   * until it is sent. A read with no time limit streams as before, so a long
+   * one keeps the client's 58 s idle timer fed, and a migration's statements
+   * are left exactly as their caller sends them.
+   */
+  public static getReadSettings(data: {
+    clickhouseSettings?: ClickHouseSettings | undefined;
+    hasTimeLimit: boolean;
+    useMigrationConnection: boolean;
+  }): ClickHouseSettings | undefined {
+    if (data.useMigrationConnection || !data.hasTimeLimit) {
+      return data.clickhouseSettings;
+    }
+
+    return {
+      http_wait_end_of_query: 1,
+      ...(data.clickhouseSettings || {}),
+    };
   }
 
   private getDatabaseClient(): ClickhouseClient {
@@ -2858,7 +2933,8 @@ export default class AnalyticsDatabaseService<
     }
 
     const model: TBaseModel = this.getModel();
-    const narrowsReadsOnItsOwn: boolean = !this.readsThroughThePermissionCheck();
+    const narrowsReadsOnItsOwn: boolean =
+      !this.readsThroughThePermissionCheck();
 
     const getScope: (
       reader: RealtimeReader,

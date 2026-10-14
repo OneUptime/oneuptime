@@ -20,6 +20,9 @@ import useLogsHistogram, {
   LogsHistogramData,
   LogsHistogramState,
 } from "Common/UI/Components/LogsViewer/useLogsHistogram";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "Common/UI/Utils/Telemetry/TelemetryLoadError";
 import {
   ATTRIBUTE_FACET_PREFIX,
   applyTypedLogFilterToRequest,
@@ -640,6 +643,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   const [logs, setLogs] = useState<Array<Log>>([]);
   const [error, setError] = useState<string>("");
+  /*
+   * Why the list did not load (issue #4707). Shown where the rows go, so the
+   * search bar, the time range and the filters stay on screen to narrow a
+   * search that took too long. It used to replace the whole page, with
+   * "Server Error".
+   */
+  const [listError, setListError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [filterOptions, setFilterOptions] = useState<Query<Log>>(() => {
     const base: Query<Log> = buildBaseQuery(props);
@@ -781,6 +793,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     Record<string, string>
   >({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Facets the server could not count in time, and why the facets did not
+   * load at all: the sidebar says so instead of "No values" or zeros.
+   */
+  const [timedOutFacets, setTimedOutFacets] = useState<Array<string>>([]);
+  const [facetError, setFacetError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
 
   // Track user-applied facet filters: Map<facetKey, Set<value>>
   const [appliedFacetFilters, setAppliedFacetFilters] = useState<
@@ -1198,10 +1218,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   /*
    * The newest list request, and whether it is still out. Only the newest
-   * request may paint the list, move the page or clear the loaders: an older
-   * one that lands late - for filters the reader has since changed, or a
-   * live poll a change overtook - would paint rows for a query nobody is
-   * looking at any more.
+   * request may paint the list, say why it failed, move the page or clear the
+   * loaders: an older one that lands late - for filters the reader has since
+   * changed, a search stopped at the time limit long after the narrower one
+   * that replaced it landed (issue #4707), or a live poll a change overtook -
+   * would paint rows or an error for a query nobody is looking at any more.
    */
   const listRequestSequenceRef: React.MutableRefObject<number> =
     useRef<number>(0);
@@ -1239,6 +1260,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         setIsLiveUpdating(true);
       } else {
         setIsLoading(true);
+        setListError(undefined);
       }
 
       try {
@@ -1287,6 +1309,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
         setLogs(listResult.data);
         setTotalCount(listResult.count);
+        setListError(undefined);
 
         /*
          * What the result total needs from this page. Keyed by the filter
@@ -1344,11 +1367,21 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           return;
         }
 
-        setError(API.getFriendlyMessage(err));
+        /*
+         * A live poll that fails leaves the rows on screen for the next poll
+         * to refresh. A search that fails says why where its rows would be;
+         * the rows of the search before it are cleared, so neither the list
+         * nor an export can pass them off as this one's.
+         */
+        if (!skipLoadingState) {
+          setLogs([]);
+          setListError(TelemetryLoadErrorUtil.fromError(err));
+        }
       } finally {
         /*
          * The newest request clears both loaders, whatever raised them: the
-         * one it replaced may have been the one that did.
+         * one it replaced may have been the one that did. A newer search's
+         * loader stays up until its own answer lands.
          */
         if (isNewest()) {
           isListRequestOutRef.current = false;
@@ -1566,10 +1599,21 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           {}) as unknown as FacetData;
 
         setFacetData(facets);
-      } catch {
-        // Facets are non-critical; silently degrade
+        setTimedOutFacets(
+          Array.isArray(response.data["timedOutFacets"])
+            ? (response.data["timedOutFacets"] as Array<string>)
+            : [],
+        );
+        setFacetError(undefined);
+      } catch (err) {
+        /*
+         * Facets are non-critical: the page keeps working without them, and
+         * the sidebar says why they are missing.
+         */
         if (isCurrent()) {
           setFacetData({});
+          setTimedOutFacets([]);
+          setFacetError(TelemetryLoadErrorUtil.fromError(err));
         }
       } finally {
         // A superseded request must not switch off the loader of the live one.
@@ -2700,6 +2744,22 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     entityFacetDisplayNames,
   ]);
 
+  /*
+   * One click runs the search again: the list, and the chart and the
+   * filter counts if they did not load either.
+   */
+  const retrySearch: () => void = (): void => {
+    void fetchItems();
+
+    if (histogram.error) {
+      void histogram.refresh();
+    }
+
+    if (facetError || timedOutFacets.length > 0) {
+      void fetchFacets();
+    }
+  };
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
@@ -2858,6 +2918,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       <div id={props.id}>
         <LogsViewer
           isLoading={isLoading || awaitsInitialSavedView}
+          listError={listError}
+          onRetryList={retrySearch}
+          histogramError={histogram.error}
+          onRetryHistogram={() => {
+            void histogram.refresh();
+          }}
+          timedOutFacets={timedOutFacets}
+          facetError={facetError}
+          onRetryFacets={() => {
+            void fetchFacets();
+          }}
           onFilterChanged={handleFilterChanged}
           filterData={filterOptions}
           logs={logs}

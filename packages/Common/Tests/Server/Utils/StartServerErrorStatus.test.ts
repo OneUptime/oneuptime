@@ -12,6 +12,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
+import QueryTimeoutException from "../../../Types/Exception/QueryTimeoutException";
 import {
   afterEach,
   beforeEach,
@@ -140,6 +141,35 @@ describe("the express error handler never hands an invalid status to res.status(
     statuses = [];
     handle(new NotFoundException("Incident not found"));
     expect(statuses).toEqual([404]);
+  });
+
+  /*
+   * A search stopped at the 45 s query limit (issue #4707). The explorers and
+   * API callers read 504 as "took too long" and the message as what to try.
+   * Not 408: a browser resends a request answered 408 on a reused
+   * connection, running the same search again unseen.
+   */
+  it("answers a read stopped at its time limit with 504 and its message", () => {
+    const message: string =
+      "This query took longer than 45 seconds and was stopped before it finished. Try a shorter time range or more specific filters.";
+
+    handle(new QueryTimeoutException(message));
+
+    expect(statuses).toEqual([504]);
+    expect(bodies).toEqual([{ error: message }]);
+  });
+
+  /*
+   * What the issue's readers saw: JSON.parse's SyntaxError on the empty body
+   * a stopped read answered with. It is not an Exception, so its message is
+   * thrown away. The ClickHouse reader no longer lets one reach this handler
+   * (ClickhouseReadResult); this is why it must not.
+   */
+  it("answers an error that is not an Exception with a bare 500", () => {
+    handle(new SyntaxError("Unexpected end of JSON input"));
+
+    expect(statuses).toEqual([500]);
+    expect(bodies).toEqual([{ error: "Server Error" }]);
   });
 
   it("leaves a response that has already started to the default handler", () => {

@@ -215,7 +215,7 @@ return {
 - Greater Than, Less Than 같은 숫자 조건은 숫자에만 일치하므로 필드를 `"42"` 가 아니라 `42` 로 반환하세요. 참과 거짓은 불리언에만 일치합니다.
 - 반환된 데이터에 없는 필드(없는 키나 배열 끝을 넘는 인덱스)는 빈 값으로 비교됩니다. **Is Empty** 는 일치하고 다른 조건은 일치하지 않습니다.
 - 이름에 점이 들어 있는 필드는 경로로 지정할 수 없습니다.
-- Terraform에서는 필터의 `custom_code_monitor_options` 가 필드 경로를 설정합니다. [모니터 단계](/docs/terraform/monitor-steps#comparing-one-field-of-a-scripts-result)를 참고하세요.
+- Terraform에서는 필터의 `custom_code_monitor_options` 가 필드 경로를 설정합니다. [모니터 단계](/docs/terraform/monitor-steps#스크립트-결과의-필드-하나-비교하기)를 참고하세요.
 
 ## 스크립트에서 사용할 수 있는 모듈
 
