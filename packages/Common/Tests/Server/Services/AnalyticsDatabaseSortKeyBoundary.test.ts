@@ -203,7 +203,7 @@ const SETTINGS: string =
 // Where the WITH clause hands over to the page's own SELECT.
 const SELECT_AFTER_BOUND: string = `AS ${SORT_KEY_PAGE_BOUND_ALIAS} SELECT `;
 
-const PAGE_OFFSET: string = `OFFSET tupleElement(${SORT_KEY_PAGE_BOUND_ALIAS}, 2)`;
+const PAGE_OFFSET: string = `OFFSET ifNull(tupleElement(${SORT_KEY_PAGE_BOUND_ALIAS}, 2), 0)`;
 
 // The bound is the only thing that puts a WITH clause in front of a find.
 function hasBound(statement: Statement): boolean {
@@ -301,7 +301,7 @@ describe("AnalyticsDatabaseService sort key page bound", () => {
           "FROM (SELECT {p4:Identifier} FROM {p5:Identifier}.{p6:Identifier} WHERE TRUE <where> ORDER BY {p7:Identifier} DESC LIMIT {p8:Int32}))) AS __sortKeyPage " +
           "SELECT <select> FROM {p9:Identifier}.{p10:Identifier} WHERE TRUE <where> " +
           "AND {p11:Identifier} GLOBAL IN (SELECT arrayJoin(tupleElement(__sortKeyPage, 1))) " +
-          "ORDER BY {p12:Identifier} DESC, {p13:Identifier} DESC LIMIT {p14:Int32} OFFSET tupleElement(__sortKeyPage, 2)\n" +
+          "ORDER BY {p12:Identifier} DESC, {p13:Identifier} DESC LIMIT {p14:Int32} OFFSET ifNull(tupleElement(__sortKeyPage, 2), 0)\n" +
           SETTINGS,
       );
       expect(statement.query_params).toStrictEqual({
@@ -475,6 +475,26 @@ describe("AnalyticsDatabaseService sort key page bound", () => {
           },
         ),
       ).toStrictEqual([["p1", 100]]);
+    });
+
+    /*
+     * ClickHouse types a scalar subquery Nullable, and OFFSET takes no
+     * Nullable type. The default analyzer folds the value anyway; the
+     * older one (enable_analyzer = 0) refuses it on 26.7 with "Illegal
+     * type Nullable(UInt64) of OFFSET expression", which would fail every
+     * list on such a server. ifNull gives it a plain number; the
+     * subquery always answers its one row, so the 0 is never used.
+     */
+    test("the OFFSET is a plain number on either analyzer: the page's ties, never a Nullable", () => {
+      const query: string = runFind({ limit: 50, skip: 100 }).query;
+
+      expect(count(query, " OFFSET ")).toBe(1);
+      expect(query).toContain(
+        ` OFFSET ifNull(tupleElement(${SORT_KEY_PAGE_BOUND_ALIAS}, 2), 0)\n`,
+      );
+      expect(query).not.toContain(
+        ` OFFSET tupleElement(${SORT_KEY_PAGE_BOUND_ALIAS}, 2)`,
+      );
     });
 
     /*

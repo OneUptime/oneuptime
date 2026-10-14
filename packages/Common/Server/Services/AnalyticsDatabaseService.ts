@@ -1776,8 +1776,9 @@ export default class AnalyticsDatabaseService<
    * range, one page of 101: no match 32.0M rows read -> 16.0M (the
    * unbounded find: 16.0M); 60 matches 32.4M -> 17.0M; a 0.1% filter 10,000
    * rows deep 25.9M -> 16.2M; no filter 0.38M either way (unbounded:
-   * 10.7M). The same on 24.8, and through a Distributed table over two
-   * shards. The real-ClickHouse suite (App
+   * 10.7M). The same on 24.8, through a Distributed table over two shards,
+   * and with the older analyzer a server can still switch to
+   * (enable_analyzer = 0). The real-ClickHouse suite (App
    * Tests/Telemetry/PagedFindBoundClickhouse) holds these.
    *
    * Two of the gates below keep it exact: no GROUP BY, whose input it would
@@ -1938,9 +1939,18 @@ export default class AnalyticsDatabaseService<
     whereCondition.append(SORT_KEY_PAGE_BOUND_ALIAS);
     whereCondition.append(", 1)))");
 
-    const offset: Statement = SQL`tupleElement(`;
+    /*
+     * ifNull, though the subquery always answers its one row: ClickHouse
+     * types a scalar subquery Nullable (it could answer none), and OFFSET
+     * takes no Nullable type. The analyzer ClickHouse uses by default
+     * folds the value all the same; the older one, still chosen by a
+     * server or profile that sets enable_analyzer = 0, refuses it on 26.7
+     * ("Illegal type Nullable(UInt64) of OFFSET expression") and every
+     * list would fail. The 0 is never used.
+     */
+    const offset: Statement = SQL`ifNull(tupleElement(`;
     offset.append(SORT_KEY_PAGE_BOUND_ALIAS);
-    offset.append(", 2)");
+    offset.append(", 2), 0)");
 
     return { withClause, whereCondition, offset };
   }

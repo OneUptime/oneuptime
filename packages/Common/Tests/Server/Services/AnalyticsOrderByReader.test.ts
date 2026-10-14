@@ -51,7 +51,7 @@ describe("outerOrderBy", () => {
   test("reads the last ORDER BY, past the page bound's in the WITH clause", () => {
     expect(
       outerOrderBy(
-        `${PAGE_BOUND_WITH}${FIND} AND {p7:Identifier} GLOBAL IN (SELECT arrayJoin(tupleElement(page, 1))) ORDER BY {p5:Identifier} DESC, {p6:Identifier} DESC LIMIT 50 OFFSET tupleElement(page, 2)`,
+        `${PAGE_BOUND_WITH}${FIND} AND {p7:Identifier} GLOBAL IN (SELECT arrayJoin(tupleElement(page, 1))) ORDER BY {p5:Identifier} DESC, {p6:Identifier} DESC LIMIT 50 OFFSET ifNull(tupleElement(page, 2), 0)`,
       ),
     ).toBe("{p5:Identifier} DESC, {p6:Identifier} DESC");
   });
@@ -77,7 +77,7 @@ describe("orderByColumns", () => {
     expect(
       orderByColumns(
         statementOf(
-          `${PAGE_BOUND_WITH}${FIND} ORDER BY {p5:Identifier} DESC, {p6:Identifier} DESC LIMIT 50 OFFSET tupleElement(page, 2)`,
+          `${PAGE_BOUND_WITH}${FIND} ORDER BY {p5:Identifier} DESC, {p6:Identifier} DESC LIMIT 50 OFFSET ifNull(tupleElement(page, 2), 0)`,
           { ...PARAMETERS, p7: "time" },
         ),
       ),

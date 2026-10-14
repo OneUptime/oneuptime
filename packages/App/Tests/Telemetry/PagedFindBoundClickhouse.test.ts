@@ -64,6 +64,10 @@ import {
  *      straddles them - every page is still the unbounded page: the narrow
  *      read and the page's values are worked out once, on the server the
  *      find is sent to, and handed to both shards.
+ *   5. A server that still uses ClickHouse's older analyzer
+ *      (enable_analyzer = 0) pages the same, on one shard and on two: that
+ *      analyzer takes no Nullable OFFSET, which the page's offset, read
+ *      from a scalar subquery, is on 26.7 unless ifNull makes it a number.
  *
  * Granules are 128 rows (index_granularity = 128, adaptive granularity
  * off), so a fixture of tens of thousands of rows spans hundreds of them.
@@ -519,7 +523,7 @@ integration("a paged find against ClickHouse (#4710)", () => {
 
   const pageBoundSelect: string = `AS ${SORT_KEY_PAGE_BOUND_ALIAS} SELECT `;
   const pageBoundIn: string = ` GLOBAL IN (SELECT arrayJoin(tupleElement(${SORT_KEY_PAGE_BOUND_ALIAS}, 1)))`;
-  const pageBoundOffset: string = `OFFSET tupleElement(${SORT_KEY_PAGE_BOUND_ALIAS}, 2)`;
+  const pageBoundOffset: string = `OFFSET ifNull(tupleElement(${SORT_KEY_PAGE_BOUND_ALIAS}, 2), 0)`;
 
   // The page bound's three pieces in a statement: [WITH clause end, IN condition start, IN condition end].
   function boundPieces(query: string): [number, number, number] {
@@ -675,6 +679,76 @@ integration("a paged find against ClickHouse (#4710)", () => {
     const [row] = (await result.json()) as Array<{ granules: string | number }>;
 
     return Number(row!.granules);
+  }
+
+  interface Connection {
+    database: ClickhouseDatabase;
+    client: ClickhouseClient;
+  }
+
+  /*
+   * A connection to `databaseName` that reads with ClickHouse's older
+   * analyzer, as a server or profile that sets enable_analyzer = 0 (under
+   * either of its names) still does; null on a server without it.
+   */
+  async function connectWithOlderAnalyzer(
+    databaseName: string,
+  ): Promise<Connection | null> {
+    const found: { json: () => Promise<unknown> } = await client.query({
+      query:
+        "SELECT name FROM system.settings WHERE name IN ('enable_analyzer', 'allow_experimental_analyzer') ORDER BY name = 'enable_analyzer' DESC LIMIT 1",
+      format: "JSONEachRow",
+    });
+    const [setting] = (await found.json()) as Array<{ name: string }>;
+
+    if (!setting) {
+      return null;
+    }
+
+    const olderOptions: ClickHouseClientConfigOptions = {
+      ...options,
+      database: databaseName,
+      clickhouse_settings: { [setting.name]: 0 } as ClickHouseSettings,
+    };
+    const olderDatabase: ClickhouseDatabase = new ClickhouseDatabase(
+      olderOptions,
+    );
+    const olderClient: ClickhouseClient =
+      await olderDatabase.connect(olderOptions);
+
+    // The connection really reads with the older analyzer.
+    const analyzer: { json: () => Promise<unknown> } = await olderClient.query({
+      query: "SELECT toUInt8(getSetting({name:String})) AS analyzer",
+      query_params: { name: setting.name },
+      format: "JSONEachRow",
+    });
+    const [row] = (await analyzer.json()) as Array<{
+      analyzer: string | number;
+    }>;
+
+    expect(Number(row!.analyzer)).toBe(0);
+
+    return { database: olderDatabase, client: olderClient };
+  }
+
+  // Runs `read` with LogService reading through `connection`.
+  async function readingThrough<T>(
+    connection: Connection,
+    read: () => Promise<T> | T,
+  ): Promise<T> {
+    const own: Record<string, unknown> = {
+      database: LogService.database,
+      databaseClient: LogService.databaseClient,
+    };
+
+    LogService.database = connection.database;
+    LogService.databaseClient = connection.client;
+
+    try {
+      return await read();
+    } finally {
+      Object.assign(LogService, own);
+    }
   }
 
   beforeAll(async (): Promise<void> => {
@@ -1382,6 +1456,106 @@ integration("a paged find against ClickHouse (#4710)", () => {
   });
 
   /*
+   * A server or profile can still switch ClickHouse back to its older
+   * analyzer (enable_analyzer = 0). That analyzer takes no Nullable OFFSET,
+   * and on 26.7 the page's offset, read from a scalar subquery, is typed
+   * Nullable: sent bare, every list on such a server failed with "Illegal
+   * type Nullable(UInt64) of OFFSET expression". Read through a connection
+   * that uses that analyzer, every page is still the unbounded page.
+   */
+  describe("a server that still uses the older analyzer", () => {
+    let older: Connection | null = null;
+
+    beforeAll(async (): Promise<void> => {
+      older = await connectWithOlderAnalyzer(database);
+    });
+
+    afterAll(async (): Promise<void> => {
+      if (older) {
+        await older.database.disconnect();
+      }
+    });
+
+    test.each(FILTERS)(
+      "$label: newest and oldest first, pages of 7 and 50, against the fixture",
+      async ({ query, filter }: FilterCase) => {
+        // A server without the older analyzer has nothing to page differently.
+        if (!older) {
+          return;
+        }
+
+        const connection: Connection = older;
+
+        for (const sort of [NEWEST_FIRST, OLDEST_FIRST]) {
+          const expected: Array<string> = oracle(filter, sort);
+
+          for (const limit of [7, 50]) {
+            for (const skip of offsetsToCheck(expected, limit)) {
+              expect([
+                sort.leadOrder,
+                limit,
+                skip,
+                await readingThrough(connection, () => {
+                  return findPage(
+                    projectWindow(PROJECT_ID, query),
+                    sort,
+                    skip,
+                    limit,
+                  );
+                }),
+              ]).toEqual([
+                sort.leadOrder,
+                limit,
+                skip,
+                expected.slice(skip, skip + limit),
+              ]);
+            }
+          }
+        }
+      },
+    );
+
+    test.each([
+      ["newest first", SortOrder.Descending],
+      ["oldest first", SortOrder.Ascending],
+    ])(
+      "%s: a page 131,100 rows deep, the last page and one past it, and the 10,001 rows an API caller can ask for",
+      async (_label: string, order: SortOrder) => {
+        if (!older) {
+          return;
+        }
+
+        const connection: Connection = older;
+        const sort: SortSpec = { lead: "time", leadOrder: order };
+        const query: Record<string, unknown> = projectWindow(
+          DEEP_PROJECT_ID,
+          {},
+        );
+
+        for (const [skip, limit] of [
+          [131100, 101],
+          [DEEP_ROWS - 37, 101],
+          [DEEP_ROWS, 101],
+          [0, 10001],
+        ] as Array<[number, number]>) {
+          const page: Array<string> = await readingThrough(connection, () => {
+            return findPage(query, sort, skip, limit);
+          });
+
+          expect([skip, limit, page]).toEqual([
+            skip,
+            limit,
+            await ids(unbounded(findStatement(query, sort, skip, limit), skip)),
+          ]);
+          expect(page).toHaveLength(
+            Math.max(0, Math.min(limit, DEEP_ROWS - skip)),
+          );
+        }
+      },
+    );
+  });
+
+  /*
    * A sharded install reads a Distributed table over several shards, each
    * holding part of a project's rows (spans go to a shard by their trace,
    * so every shard holds some of a project's spans). The narrow read and
@@ -1402,6 +1576,7 @@ integration("a paged find against ClickHouse (#4710)", () => {
       let shardedDatabase: string = "";
       let sharded: ClickhouseDatabase | undefined;
       let shardedClient: ClickhouseClient | undefined;
+      let shardedOlder: Connection | null = null;
 
       // Runs `read` with LogService reading the two-shard table.
       async function throughShards<T>(read: () => Promise<T> | T): Promise<T> {
@@ -1486,6 +1661,8 @@ integration("a paged find against ClickHouse (#4710)", () => {
         await client.command({
           query: `CREATE TABLE ${shardedDatabase}.LogItemV3 AS ${database}.LogItemV3Local ENGINE = Distributed('${twoShardCluster!}', '', 'LogItemV3Local', rand())`,
         });
+
+        shardedOlder = await connectWithOlderAnalyzer(shardedDatabase);
       });
 
       afterAll(async (): Promise<void> => {
@@ -1497,6 +1674,10 @@ integration("a paged find against ClickHouse (#4710)", () => {
 
         if (sharded) {
           await sharded.disconnect();
+        }
+
+        if (shardedOlder) {
+          await shardedOlder.database.disconnect();
         }
       });
 
@@ -1653,6 +1834,75 @@ integration("a paged find against ClickHouse (#4710)", () => {
           }
         },
       );
+
+      // The older analyzer works the page out once too, and hands it to both shards.
+      test.each(FILTERS)(
+        "$label, with the older analyzer: newest and oldest first, pages of 50, against the fixture",
+        async ({ query, filter }: FilterCase) => {
+          if (!shardedOlder) {
+            return;
+          }
+
+          const connection: Connection = shardedOlder;
+
+          for (const sort of [NEWEST_FIRST, OLDEST_FIRST]) {
+            const expected: Array<string> = oracle(filter, sort);
+
+            for (const skip of offsetsToCheck(expected, 50)) {
+              expect([
+                sort.leadOrder,
+                skip,
+                await readingThrough(connection, () => {
+                  return findPage(
+                    projectWindow(PROJECT_ID, query),
+                    sort,
+                    skip,
+                    50,
+                  );
+                }),
+              ]).toEqual([
+                sort.leadOrder,
+                skip,
+                expected.slice(skip, skip + 50),
+              ]);
+            }
+          }
+        },
+      );
+
+      test("with the older analyzer: a page 131,100 rows deep and the 10,001 rows an API caller can ask for", async () => {
+        if (!shardedOlder) {
+          return;
+        }
+
+        const connection: Connection = shardedOlder;
+        const query: Record<string, unknown> = projectWindow(
+          DEEP_PROJECT_ID,
+          {},
+        );
+
+        for (const [order, skip, limit] of [
+          [SortOrder.Descending, 131100, 101],
+          [SortOrder.Ascending, 131100, 101],
+          [SortOrder.Descending, 0, 10001],
+        ] as Array<[SortOrder, number, number]>) {
+          const sort: SortSpec = { lead: "time", leadOrder: order };
+          const page: Array<string> = await readingThrough(connection, () => {
+            return findPage(query, sort, skip, limit);
+          });
+          const statement: Statement = await throughShards(() => {
+            return findStatement(query, sort, skip, limit);
+          });
+
+          expect([order, skip, limit, page]).toEqual([
+            order,
+            skip,
+            limit,
+            await ids(unbounded(statement, skip)),
+          ]);
+          expect(page).toHaveLength(limit);
+        }
+      });
     },
   );
 });
