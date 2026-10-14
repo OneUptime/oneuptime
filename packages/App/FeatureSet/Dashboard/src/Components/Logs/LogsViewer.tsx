@@ -704,6 +704,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   const liveRequestInFlight: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+  /*
+   * The list request the reader is waiting for. A search they have moved on
+   * from (narrowed because it ran long, say) can still come back, stopped at
+   * the time limit long after the narrower one landed (issue #4707): its
+   * error, its rows and its loader are dropped rather than painted over the
+   * search on screen. Live polls take no number of their own: they refresh
+   * the search that is current, and give way to any search started after
+   * them.
+   */
+  const listRequestSequence: React.MutableRefObject<number> = useRef<number>(0);
   const hasAppliedInitialSavedView: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
@@ -1122,6 +1132,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
       setError("");
 
+      const sequence: number = skipLoadingState
+        ? listRequestSequence.current
+        : ++listRequestSequence.current;
+
+      // A search started after this one: its answer is the one to show.
+      const isSuperseded: () => boolean = (): boolean => {
+        return listRequestSequence.current !== sequence;
+      };
+
       if (skipLoadingState) {
         if (liveRequestInFlight.current) {
           return;
@@ -1170,6 +1189,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             requestOptions: {},
           });
 
+        if (isSuperseded()) {
+          return;
+        }
+
         setLogs(listResult.data);
         setTotalCount(listResult.count);
         setListError(undefined);
@@ -1217,7 +1240,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
          * the rows of the search before it are cleared, so neither the list
          * nor an export can pass them off as this one's.
          */
-        if (!skipLoadingState) {
+        if (!skipLoadingState && !isSuperseded()) {
           setLogs([]);
           setListError(TelemetryLoadErrorUtil.fromError(err));
         }
@@ -1225,7 +1248,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         if (skipLoadingState) {
           liveRequestInFlight.current = false;
           setIsLiveUpdating(false);
-        } else {
+        } else if (!isSuperseded()) {
+          // The newer search's loader stays up until its own answer lands.
           setIsLoading(false);
         }
       }

@@ -44,15 +44,11 @@ export default class TelemetryLoadErrorUtil {
   }
 
   public static fromError(error: unknown): TelemetryLoadError {
-    if (TelemetryLoadErrorUtil.isTimedOut(error)) {
-      return {
-        kind: TelemetryLoadErrorKind.TimedOut,
-        message: (error as HTTPErrorResponse).message,
-      };
-    }
-
     return {
-      kind: TelemetryLoadErrorKind.Failed,
+      kind: TelemetryLoadErrorUtil.isTimedOut(error)
+        ? TelemetryLoadErrorKind.TimedOut
+        : TelemetryLoadErrorKind.Failed,
+      // A gateway's 504 page is not a message: API.getFriendlyMessage.
       message: API.getFriendlyMessage(error),
     };
   }

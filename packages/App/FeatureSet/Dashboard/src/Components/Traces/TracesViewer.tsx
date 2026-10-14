@@ -1593,9 +1593,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       spansInFlightRef.current = true;
       if (!options.skipLoadingState) {
         setIsLoading(true);
+        setListError(undefined);
       }
       setError("");
-      setListError(undefined);
       const skip: number = (page - 1) * pageSize;
       try {
         const result: ListResult<Span> = await AnalyticsModelAPI.getList<Span>({
@@ -1615,6 +1615,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }
         setSpans(result.data);
         setTotalCount(result.count);
+        setListError(undefined);
         setListAnswer({
           query: baseQuery,
           page: {
@@ -1624,9 +1625,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           },
         });
       } catch (err) {
-        if (isSuperseded()) {
+        /*
+         * A live poll that fails leaves what is on screen (the rows, or why
+         * there are none) for the next poll to refresh, as the chart does. A
+         * search that fails says why where its rows would be, and the rows
+         * of the search before it are cleared, so they cannot pass for this
+         * one's while it is tried again.
+         */
+        if (isSuperseded() || options.skipLoadingState) {
           return;
         }
+        setSpans([]);
         setListError(TelemetryLoadErrorUtil.fromError(err));
       } finally {
         /*
