@@ -45,6 +45,53 @@ describe("FeedMarkdown.multilineText - a text of many lines", () => {
   });
 });
 
+describe("FeedMarkdown.join - many values on one line", () => {
+  /*
+   * Whether a value starts its line was read from the whole of the line
+   * before it, once for every value: a join of thousands of values with
+   * nothing between them - the runs of a long chat message saved as a note
+   * (ChatMessageMarkdown) - took time that grew with the square of them,
+   * four seconds for 88,000. A value after one that starts the line, with
+   * only spaces and tabs between, starts it too, as the whole prefix reads,
+   * so it is read once.
+   */
+  const VALUE_COUNT: number = 100000;
+  const BUDGET_IN_MS: number = 2000;
+
+  test("a hundred thousand values next to one another are read at once", () => {
+    const values: Array<string> = Array.from(
+      { length: VALUE_COUNT },
+      (_: unknown, index: number): string => {
+        return index % 2 === 0 ? "*" : "word";
+      },
+    );
+
+    const started: number = performance.now();
+    const output: string = FeedMarkdown.join(values, "").toString();
+
+    expect(performance.now() - started).toBeLessThan(BUDGET_IN_MS);
+    expect(output).toBe("\\*word".repeat(VALUE_COUNT / 2));
+  });
+
+  test("each value still starts its line where everything before it could be empty", () => {
+    // Values before a value may be empty, so each one is escaped as a line's start.
+    expect(FeedMarkdown.join(["# a", "# b", "1. c"], "").toString()).toBe(
+      "\\# a\\# b1\\. c",
+    );
+    expect(FeedMarkdown.join(["# a", "# b"], "  \t").toString()).toBe(
+      "\\# a  \t\\# b",
+    );
+    // A word between: the value after it is inside the line.
+    expect(FeedMarkdown.join(["# a", "# b"], " x ").toString()).toBe(
+      "\\# a x # b",
+    );
+    // A marker between: the value after it starts a list item's line.
+    expect(FeedMarkdown.join(["# a", "# b"], "\n- ").toString()).toBe(
+      "\\# a\n- \\# b",
+    );
+  });
+});
+
 describe("FeedMarkdown - the markers before a value on its line", () => {
   /*
    * Whether a value starts its line is read from the template's text before

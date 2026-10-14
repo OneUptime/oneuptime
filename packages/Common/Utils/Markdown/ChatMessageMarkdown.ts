@@ -137,7 +137,13 @@ const ATTACHMENT_MARK: string = "📎 ";
  * values no longer than this, so a message of thousands of addresses reads
  * in time that grows with its length.
  */
-const MAX_TEXT_VALUE_LENGTH: number = 400;
+const MAX_TEXT_VALUE_LENGTH: number = 1000;
+
+/*
+ * How much of a line's start is one value at least: longer than any
+ * opening of a block ("123456789. ", ">>> ", "####### ", "|", "===").
+ */
+const LINE_START_TEXT_LENGTH: number = 64;
 
 // Whitespace, as CommonMark reads it next to an emphasis marker.
 const WHITESPACE_CHARACTER: RegExp = /\s/u;
@@ -164,17 +170,54 @@ const WORD_JOINER: string = "⁠";
 
 // One run of a line, with what it renders as and its emphasis marker.
 interface LineRun {
-  // The run as Markdown, without its emphasis.
-  inner: MarkdownText;
+  /*
+   * The run without its emphasis: text (placed as text by mdText) or
+   * Markdown (a code span, a link). Empty for white space alone.
+   */
+  inner: MarkdownValue;
+  isEmpty: boolean;
+  // What it starts and ends with, to decide where its emphasis can go.
   innerText: string;
-  // The emphasis around it: "~~" for strikethrough, "*", "**" or "***".
+  // The emphasis it had: "~~" for strikethrough, "*", "**" or "***".
   strike: boolean;
   stars: number;
-  // Whether it is wrapped in its emphasis (renderLine decides).
-  isWrapped: boolean;
+  // Which of it it keeps where it is (decideEmphasis).
+  keepStrike: boolean;
+  keepStars: boolean;
   // Whether a word joiner goes before it, to keep two markers apart.
   hasJoinerBefore: boolean;
 }
+
+type EdgeCharacterFunction = (text: string) => string;
+
+/*
+ * The first and the last character of a text, whole: an emoji or any
+ * character beyond the first 65,536 is two code units, and a half of one
+ * is no character Markdown can tell the kind of.
+ */
+const firstCharacter: EdgeCharacterFunction = (text: string): string => {
+  const codePoint: number | undefined = text.codePointAt(0);
+  return codePoint === undefined ? "" : String.fromCodePoint(codePoint);
+};
+
+const lastCharacter: EdgeCharacterFunction = (text: string): string => {
+  if (!text) {
+    return "";
+  }
+
+  const last: number = text.charCodeAt(text.length - 1);
+
+  // A low surrogate ends a pair that starts one code unit before it.
+  if (last >= 0xdc00 && last <= 0xdfff && text.length >= 2) {
+    const previous: number = text.charCodeAt(text.length - 2);
+
+    if (previous >= 0xd800 && previous <= 0xdbff) {
+      return text.slice(text.length - 2);
+    }
+  }
+
+  return text.slice(text.length - 1);
+};
 
 type IsWhitespaceFunction = (character: string) => boolean;
 
@@ -194,10 +237,26 @@ export default class ChatMessageMarkdown {
   ): MarkdownText {
     const pieces: Array<MarkdownValue> = [];
     let previousWasList: boolean = false;
+    // The depth of the list before, -1 after anything else.
+    let previousListIndent: number = -1;
 
     for (const block of content.blocks || []) {
+      /*
+       * A list is nested at most one level below the list before it: a
+       * nested list with no list above it is a list of its own (indented,
+       * it would be code), and a jump of levels reads as one.
+       */
+      const indent: number =
+        block.type === "list"
+          ? Math.min(
+              Math.max(Math.floor(block.indent || 0), 0),
+              previousListIndent + 1,
+              MAX_LIST_INDENT,
+            )
+          : 0;
+
       const markdown: MarkdownText = ChatMessageMarkdown.renderBlock(
-        block,
+        block.type === "list" ? { ...block, indent: indent } : block,
         options,
       );
 
@@ -217,6 +276,7 @@ export default class ChatMessageMarkdown {
 
       pieces.push(markdown);
       previousWasList = isList;
+      previousListIndent = isList ? indent : -1;
     }
 
     return FeedMarkdown.join(pieces, "").trim();
@@ -371,7 +431,7 @@ export default class ChatMessageMarkdown {
 
     for (const lines of ChatMessageMarkdown.splitParagraphs(inlines)) {
       const rendered: MarkdownText = ChatMessageMarkdown.joinLines(
-        lines.map((line: Array<ChatInline>): MarkdownText => {
+        lines.map((line: Array<ChatInline>): Array<MarkdownValue> => {
           return ChatMessageMarkdown.renderLine(line);
         }),
         "",
@@ -394,7 +454,7 @@ export default class ChatMessageMarkdown {
 
     for (const lines of ChatMessageMarkdown.splitParagraphs(inlines)) {
       const rendered: MarkdownText = ChatMessageMarkdown.joinLines(
-        lines.map((line: Array<ChatInline>): MarkdownText => {
+        lines.map((line: Array<ChatInline>): Array<MarkdownValue> => {
           return ChatMessageMarkdown.renderLine(line);
         }),
         "> ",
@@ -414,14 +474,28 @@ export default class ChatMessageMarkdown {
    * are left out.
    */
   private static joinLines(
-    lines: Array<MarkdownText>,
+    lines: Array<Array<MarkdownValue>>,
     prefix: string,
   ): MarkdownText {
-    const kept: Array<MarkdownText> = lines.filter(
-      (line: MarkdownText): boolean => {
-        return !line.isEmpty();
-      },
-    );
+    const kept: Array<MarkdownValue> = [];
+
+    for (const values of lines) {
+      if (values.length === 0) {
+        continue;
+      }
+
+      /*
+       * A line of plain text is placed as it is, after the line break: the
+       * one template reads it as starting a line, so a "#" or a "- " it
+       * starts with is text. A line of several runs is joined first - its
+       * first value starts a line there too.
+       */
+      kept.push(
+        values.length === 1 && typeof values[0] === "string"
+          ? values[0]
+          : FeedMarkdown.join(values, ""),
+      );
+    }
 
     return FeedMarkdown.join(kept, `${HARD_BREAK}${prefix}`);
   }
@@ -461,7 +535,7 @@ ${code}
     let number: number = start;
 
     for (const item of block.items || []) {
-      const lines: Array<MarkdownText> = [];
+      const lines: Array<Array<MarkdownValue>> = [];
 
       for (const paragraph of ChatMessageMarkdown.splitParagraphs(
         ChatMessageMarkdown.withoutLeftOut(item, options),
@@ -612,7 +686,7 @@ ${code}
    * be shown there is written as plain text: its words are kept, only the
    * styling is lost.
    */
-  private static renderLine(line: Array<ChatInline>): MarkdownText {
+  private static renderLine(line: Array<ChatInline>): Array<MarkdownValue> {
     const pieces: Array<{ before: string; run: LineRun; after: string }> = [];
 
     for (const inline of ChatMessageMarkdown.mergeRuns(line)) {
@@ -626,17 +700,13 @@ ${code}
         // White space alone: written as text, with no emphasis.
         pieces.push({
           before: split.before + split.after,
-          run: ChatMessageMarkdown.makeRun(
-            FeedMarkdown.empty(),
-            "",
-            undefined,
-          ),
+          run: ChatMessageMarkdown.makeRun("", "", undefined),
           after: "",
         });
         continue;
       }
 
-      const inner: { markdown: MarkdownText; text: string } =
+      const inner: { markdown: MarkdownValue; text: string } =
         ChatMessageMarkdown.renderInner(split.inline);
 
       const run: LineRun = ChatMessageMarkdown.makeRun(
@@ -657,12 +727,19 @@ ${code}
         values.push(...ChatMessageMarkdown.splitTextValue(piece.before));
       }
 
-      if (!piece.run.inner.isEmpty()) {
+      if (!piece.run.isEmpty) {
         if (piece.run.hasJoinerBefore) {
           values.push(FeedMarkdown.asMarkdown(WORD_JOINER));
         }
 
-        values.push(ChatMessageMarkdown.wrap(piece.run));
+        if (
+          ChatMessageMarkdown.isWrapped(piece.run) ||
+          typeof piece.run.inner !== "string"
+        ) {
+          values.push(ChatMessageMarkdown.wrap(piece.run));
+        } else {
+          values.push(...ChatMessageMarkdown.splitTextValue(piece.run.inner));
+        }
       }
 
       if (piece.after) {
@@ -670,35 +747,80 @@ ${code}
       }
     }
 
-    // The first value starts the line: a "#" or "- " typed there is text.
-    return FeedMarkdown.join(values, "").trim();
+    /*
+     * The first value starts the line: a "#" or "- " typed there is text.
+     * mdText reads where a value starts a line from the value alone, so the
+     * text a line starts with is one value - "1" and ". " from two runs
+     * would be a numbered list's "1. " that neither value is.
+     */
+    return ChatMessageMarkdown.withLeadingTextJoined(values);
   }
 
   /*
-   * Plain text as values of at most MAX_TEXT_VALUE_LENGTH characters, cut
-   * after a space where there is one: each placed as text by mdText.
+   * The values with the plain text a line starts with as one value, as long
+   * as any block's opening is (LINE_START_TEXT_LENGTH): a backtick stays a
+   * value of its own (splitTextValue), and so does Markdown.
    */
-  private static splitTextValue(text: string): Array<MarkdownValue> {
-    if (text.length <= MAX_TEXT_VALUE_LENGTH) {
+  private static withLeadingTextJoined(
+    values: Array<MarkdownValue>,
+  ): Array<MarkdownValue> {
+    let leading: string = "";
+    let index: number = 0;
+
+    while (
+      index < values.length &&
+      leading.length < LINE_START_TEXT_LENGTH &&
+      typeof values[index] === "string" &&
+      (values[index] as string).indexOf("`") === -1
+    ) {
+      leading += values[index] as string;
+      index++;
+    }
+
+    if (index <= 1) {
+      return values;
+    }
+
+    return [leading, ...values.slice(index)];
+  }
+
+  /*
+   * Plain text as values, each placed as text by mdText: at most
+   * MAX_TEXT_VALUE_LENGTH characters, cut after a space where there is one,
+   * and every backtick a value of its own. mdText leaves the characters of
+   * a bare web address as they are, so the address stays the one typed -
+   * but a backtick is in no address, and left there it could pair with
+   * another into a code span, where Slack reads "<...>" as a link: on its
+   * own, it is always escaped.
+   */
+  private static splitTextValue(text: string): Array<string> {
+    if (text.length <= MAX_TEXT_VALUE_LENGTH && text.indexOf("`") === -1) {
       return [text];
     }
 
-    const values: Array<MarkdownValue> = [];
-    let start: number = 0;
+    const values: Array<string> = [];
 
-    while (start < text.length) {
-      let end: number = Math.min(start + MAX_TEXT_VALUE_LENGTH, text.length);
-
-      if (end < text.length) {
-        const space: number = text.lastIndexOf(" ", end);
-
-        if (space > start) {
-          end = space + 1;
-        }
+    for (const [index, part] of text.split("`").entries()) {
+      if (index > 0) {
+        values.push("`");
       }
 
-      values.push(text.slice(start, end));
-      start = end;
+      let start: number = 0;
+
+      while (start < part.length) {
+        let end: number = Math.min(start + MAX_TEXT_VALUE_LENGTH, part.length);
+
+        if (end < part.length) {
+          const space: number = part.lastIndexOf(" ", end);
+
+          if (space > start) {
+            end = space + 1;
+          }
+        }
+
+        values.push(part.slice(start, end));
+        start = end;
+      }
     }
 
     return values;
@@ -787,7 +909,7 @@ ${code}
    * and its address, as text).
    */
   private static renderInner(inline: ChatInline): {
-    markdown: MarkdownText;
+    markdown: MarkdownValue;
     text: string;
   } {
     if (inline.type === "text") {
@@ -796,11 +918,21 @@ ${code}
         return { markdown: code, text: code.toString() };
       }
 
-      const text: MarkdownText = FeedMarkdown.join(
-        ChatMessageMarkdown.splitTextValue(inline.text),
-        "",
+      /*
+       * Text, placed as text: as it is when it is one value, joined from
+       * its values when it is long or holds a backtick. Its own characters
+       * say where its emphasis can go - escaped, a character Markdown reads
+       * is still punctuation, and a letter is still a letter.
+       */
+      const values: Array<string> = ChatMessageMarkdown.splitTextValue(
+        inline.text,
       );
-      return { markdown: text, text: text.toString() };
+
+      return {
+        markdown:
+          values.length === 1 ? values[0]! : FeedMarkdown.join(values, ""),
+        text: inline.text,
+      };
     }
 
     const address: string | null = ChatMessageMarkdown.getLinkableAddress(
@@ -832,37 +964,35 @@ ${code}
   }
 
   private static makeRun(
-    inner: MarkdownText,
+    inner: MarkdownValue,
     innerText: string,
     style: ChatTextStyle | undefined,
   ): LineRun {
     return {
       inner: inner,
+      isEmpty: innerText.length === 0,
       innerText: innerText,
       strike: Boolean(style?.strike),
       stars: (style?.bold ? 2 : 0) + (style?.italic ? 1 : 0),
-      isWrapped: Boolean(style?.strike) || Boolean(style?.bold || style?.italic),
+      keepStrike: Boolean(style?.strike),
+      keepStars: Boolean(style?.bold || style?.italic),
       hasJoinerBefore: false,
     };
   }
 
   // The run in its emphasis, if it keeps it.
-  private static wrap(run: LineRun): MarkdownText {
-    if (!run.isWrapped) {
-      return run.inner;
-    }
+  private static wrap(run: LineRun): MarkdownValue {
+    let markdown: MarkdownValue = run.inner;
 
-    let markdown: MarkdownText = run.inner;
-
-    if (run.stars === 1) {
+    if (run.keepStars && run.stars === 1) {
       markdown = mdText`*${markdown}*`;
-    } else if (run.stars === 2) {
+    } else if (run.keepStars && run.stars === 2) {
       markdown = mdText`**${markdown}**`;
-    } else if (run.stars === 3) {
+    } else if (run.keepStars && run.stars === 3) {
       markdown = mdText`***${markdown}***`;
     }
 
-    if (run.strike) {
+    if (run.keepStrike) {
       markdown = mdText`~~${markdown}~~`;
     }
 
@@ -871,20 +1001,28 @@ ${code}
 
   // The character a run starts or ends with, as it will be written.
   private static getEdge(run: LineRun, edge: "first" | "last"): string {
-    if (run.isWrapped) {
-      return run.strike ? "~" : "*";
+    if (run.keepStrike) {
+      return "~";
+    }
+
+    if (run.keepStars) {
+      return "*";
     }
 
     const text: string = run.innerText;
 
-    return edge === "first" ? text.charAt(0) : text.charAt(text.length - 1);
+    return edge === "first" ? firstCharacter(text) : lastCharacter(text);
   }
 
   /*
-   * Which runs keep their emphasis (see renderLine): every styled run
-   * starts wrapped; one whose ends do not work where it is loses it, and
-   * its neighbours are looked at again, since what is next to them changed.
-   * Each run loses its emphasis at most once, so this ends.
+   * Which runs keep their emphasis (see renderLine). Every styled run
+   * starts with all of it: strikethrough outside, then bold and italic.
+   * One whose markers cannot open or close where they are first lets its
+   * strikethrough go - its bold or italic then meets its neighbours - and
+   * then all of it; its neighbours are looked at again whenever what is
+   * next to them changes (a run's markers, or the word joiner before it).
+   * A run only ever loses emphasis, so this ends, after looking at each
+   * run a few times at most.
    */
   private static decideEmphasis(
     pieces: Array<{ before: string; run: LineRun; after: string }>,
@@ -902,7 +1040,7 @@ ${code}
         pieces[index]!;
 
       if (piece.before) {
-        return piece.before.charAt(piece.before.length - 1);
+        return lastCharacter(piece.before);
       }
 
       for (let previous: number = index - 1; previous >= 0; previous--) {
@@ -910,15 +1048,15 @@ ${code}
           pieces[previous]!;
 
         if (candidate.after) {
-          return candidate.after.charAt(candidate.after.length - 1);
+          return lastCharacter(candidate.after);
         }
 
-        if (!candidate.run.inner.isEmpty()) {
+        if (!candidate.run.isEmpty) {
           return ChatMessageMarkdown.getEdge(candidate.run, "last");
         }
 
         if (candidate.before) {
-          return candidate.before.charAt(candidate.before.length - 1);
+          return lastCharacter(candidate.before);
         }
       }
 
@@ -932,7 +1070,7 @@ ${code}
         pieces[index]!;
 
       if (piece.after) {
-        return piece.after.charAt(0);
+        return firstCharacter(piece.after);
       }
 
       for (let next: number = index + 1; next < pieces.length; next++) {
@@ -940,61 +1078,24 @@ ${code}
           pieces[next]!;
 
         if (candidate.before) {
-          return candidate.before.charAt(0);
+          return firstCharacter(candidate.before);
         }
 
-        if (!candidate.run.inner.isEmpty()) {
+        if (!candidate.run.isEmpty) {
           return candidate.run.hasJoinerBefore
             ? WORD_JOINER
             : ChatMessageMarkdown.getEdge(candidate.run, "first");
         }
 
         if (candidate.after) {
-          return candidate.after.charAt(0);
+          return firstCharacter(candidate.after);
         }
       }
 
       return "";
     };
 
-    while (pending.length > 0) {
-      const index: number = pending.pop()!;
-      const piece: { before: string; run: LineRun; after: string } =
-        pieces[index]!;
-      const run: LineRun = piece.run;
-
-      // A joiner is needed only where two markers of a kind would touch.
-      const before: string = characterBefore(index);
-
-      run.hasJoinerBefore =
-        run.isWrapped &&
-        !piece.before &&
-        before !== "" &&
-        before === ChatMessageMarkdown.getEdge(run, "first");
-
-      if (!run.isWrapped) {
-        continue;
-      }
-
-      const first: string = run.innerText.charAt(0);
-      const last: string = run.innerText.charAt(run.innerText.length - 1);
-      const opensHere: boolean = ChatMessageMarkdown.canOpen(
-        run.hasJoinerBefore ? WORD_JOINER : before,
-        first,
-      );
-      const closesHere: boolean = ChatMessageMarkdown.canClose(
-        last,
-        characterAfter(index),
-      );
-
-      if (opensHere && closesHere) {
-        continue;
-      }
-
-      run.isWrapped = false;
-      run.hasJoinerBefore = false;
-
-      // What is next to the runs either side has changed: look again.
+    const lookAgainAround: (index: number) => void = (index: number): void => {
       if (index > 0) {
         pending.push(index - 1);
       }
@@ -1002,7 +1103,95 @@ ${code}
       if (index + 1 < pieces.length) {
         pending.push(index + 1);
       }
+    };
+
+    while (pending.length > 0) {
+      const index: number = pending.pop()!;
+      const piece: { before: string; run: LineRun; after: string } =
+        pieces[index]!;
+      const run: LineRun = piece.run;
+      const before: string = characterBefore(index);
+
+      for (;;) {
+        const hadJoiner: boolean = run.hasJoinerBefore;
+
+        // A joiner only where two markers of a kind would touch.
+        run.hasJoinerBefore =
+          ChatMessageMarkdown.isWrapped(run) &&
+          !piece.before &&
+          before !== "" &&
+          before === ChatMessageMarkdown.getEdge(run, "first");
+
+        if (hadJoiner !== run.hasJoinerBefore) {
+          // The run before reads what follows it: look at it again.
+          if (index > 0) {
+            pending.push(index - 1);
+          }
+        }
+
+        if (
+          !ChatMessageMarkdown.isWrapped(run) ||
+          ChatMessageMarkdown.isEmphasisReadable({
+            run: run,
+            before: run.hasJoinerBefore ? WORD_JOINER : before,
+            after: characterAfter(index),
+          })
+        ) {
+          break;
+        }
+
+        // Its strikethrough goes first; then the rest.
+        if (run.keepStrike && run.keepStars) {
+          run.keepStrike = false;
+        } else {
+          run.keepStrike = false;
+          run.keepStars = false;
+        }
+
+        lookAgainAround(index);
+      }
     }
+  }
+
+  // Whether a run is written in any emphasis.
+  private static isWrapped(run: LineRun): boolean {
+    return run.keepStrike || run.keepStars;
+  }
+
+  /*
+   * Whether a run's markers open and close where they are: its outer
+   * markers between what is next to it and what is inside them - the
+   * inner markers, for a run in both strikethrough and bold or italic,
+   * whose inner markers always work against the outer ones ("~" is
+   * punctuation every reader agrees on).
+   */
+  private static isEmphasisReadable(data: {
+    run: LineRun;
+    before: string;
+    after: string;
+  }): boolean {
+    const isNested: boolean = data.run.keepStrike && data.run.keepStars;
+    const textFirst: string = firstCharacter(data.run.innerText);
+    const textLast: string = lastCharacter(data.run.innerText);
+
+    /*
+     * Text that starts or ends with the innermost marker's own character -
+     * "word~" in strikethrough, "*word" in bold - is no emphasis to every
+     * reader: the emails' (marked) reads "~~word\~~~" as text.
+     */
+    const innermostMarker: string = data.run.keepStars ? "*" : "~";
+
+    if (textFirst === innermostMarker || textLast === innermostMarker) {
+      return false;
+    }
+
+    const first: string = isNested ? "*" : textFirst;
+    const last: string = isNested ? "*" : textLast;
+
+    return (
+      ChatMessageMarkdown.canOpen(data.before, first) &&
+      ChatMessageMarkdown.canClose(last, data.after)
+    );
   }
 
   /*

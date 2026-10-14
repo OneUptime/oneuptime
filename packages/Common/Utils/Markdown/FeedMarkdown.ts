@@ -259,6 +259,9 @@ const LINE_START_PREFIX_PATTERN: RegExp =
 
 const TABLE_ROW_PATTERN: RegExp = /^[ \t]*\|/;
 
+// Nothing but spaces and tabs, or nothing.
+const SPACES_AND_TABS_PATTERN: RegExp = /^[ \t]*$/;
+
 // A line that opens or closes a fenced code block, as CommonMark reads one.
 const FENCE_LINE_PATTERN: RegExp = /^( {0,3})(`{3,}|~{3,})(.*)$/;
 
@@ -715,10 +718,22 @@ const readTemplate: ReadTemplateFunction = (
       }
     }
 
+    /*
+     * The last value of this line placed in a sentence, and whether it
+     * starts the line: a value after it with only spaces and tabs between
+     * starts the line too, as LINE_START_PREFIX_PATTERN would read the whole
+     * prefix (every branch of it ends in a run that takes them). Read that
+     * way, a line of many values - a join of thousands of runs - is read
+     * once, not once for every value.
+     */
+    let previousSentenceValue: number = -1;
+    let previousStartsLine: boolean = false;
+
     for (const valueIndex of valuesBetween(line.start, line.end)) {
       const placed: PlacedValue = places[valueIndex]!;
 
       if (placed.place === ValuePlace.CodeSpan) {
+        previousSentenceValue = -1;
         continue;
       }
 
@@ -734,19 +749,29 @@ const readTemplate: ReadTemplateFunction = (
       if (ranges.linkAddresses.some(inRange)) {
         placed.place = ValuePlace.LinkAddress;
         placed.inTableRow = inTableRow;
+        previousSentenceValue = -1;
         continue;
       }
 
       if (ranges.linkTexts.some(inRange)) {
         placed.place = ValuePlace.LinkText;
+        previousSentenceValue = -1;
         continue;
       }
 
       placed.place = ValuePlace.Sentence;
       placed.inTableRow = inTableRow;
-      placed.startsLine = LINE_START_PREFIX_PATTERN.test(
-        text.slice(line.start, position),
-      );
+      placed.startsLine =
+        previousSentenceValue !== -1 &&
+        previousStartsLine &&
+        SPACES_AND_TABS_PATTERN.test(
+          text.slice(previousSentenceValue + 1, position),
+        )
+          ? true
+          : LINE_START_PREFIX_PATTERN.test(text.slice(line.start, position));
+
+      previousSentenceValue = position;
+      previousStartsLine = placed.startsLine;
     }
   });
 
