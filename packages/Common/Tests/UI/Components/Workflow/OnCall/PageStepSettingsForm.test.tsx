@@ -338,32 +338,6 @@ describe("a new Page Users step", () => {
     ).toBeInTheDocument();
   });
 
-  /*
-   * The form's own "(Optional)" beside an optional setting's name said it a
-   * second time: "Message (Optional)" over "Optional. More about it".
-   */
-  test("an optional setting says so once: in its help, not beside its name as well", async () => {
-    await renderStep(step(ComponentID.PageUsers));
-
-    fireEvent.click(moreFields()!);
-    await screen.findByText(/^Optional\. How severe the new alert is\./);
-
-    const labels: Array<Element> = Array.from(
-      document.querySelectorAll("label"),
-    );
-
-    expect(labels.length).toBeGreaterThan(0);
-
-    for (const label of labels) {
-      expect(label.textContent || "").not.toContain("(Optional)");
-    }
-
-    // Named by its label alone, for whoever hears the form read out.
-    expect(
-      screen.getByRole("textbox", { name: "Message" }),
-    ).toBeInTheDocument();
-  });
-
   test("Page About says neither: an answer is always chosen", async () => {
     await renderStep(step(ComponentID.PageUsers));
 

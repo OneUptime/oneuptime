@@ -915,13 +915,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     description: isChoice
                       ? translator.translateText(arg.description)
                       : describeArgument(translator, arg, component.arguments),
-                    /*
-                     * A setting's help opens with "Required." or
-                     * "Optional." (describeArgument), so the form's own
-                     * "(Optional)" beside the name would only say it twice:
-                     * "Message (Optional)" over "Optional. More about it".
-                     */
-                    hideOptionalLabel: true,
+                    hideOptionalLabel: isChoice ? true : undefined,
                     /*
                      * A setting that goes with one answer of another - a
                      * Page step's Title, with "A new alert" - is on the form
