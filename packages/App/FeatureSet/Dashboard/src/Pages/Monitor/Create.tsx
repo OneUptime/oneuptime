@@ -128,6 +128,9 @@ import {
 import ProbeUtil from "../../Utils/Probe";
 import MonitorProbeSelectionUtil from "Common/Utils/Monitor/MonitorProbeSelectionUtil";
 import { MonitorPayAsYouGoCard } from "../../Components/Billing/PayAsYouGo";
+import ActiveMonitorLimitNotice, {
+  ActiveMonitorLimitNoticeShowWhen,
+} from "../../Components/Monitor/ActiveMonitorLimitNotice";
 import {
   shouldDropDefaultMonitoringInterval,
   withDefaultMonitoringInterval,
@@ -1428,6 +1431,15 @@ const MonitorCreate: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * At the plan's limit on active monitors, said first, before the form
+       * is filled in: the server refuses every one but a Manual monitor.
+       * Above the Free plan's pricing card, which fills a phone's screen
+       * with the price of a monitor that cannot be added.
+       */}
+      <ActiveMonitorLimitNotice
+        showWhen={ActiveMonitorLimitNoticeShowWhen.AtOrOverLimit}
+      />
       {/*
        * Every monitor type except Manual is metered as an active monitor, so
        * a Free plan project is told the rate before it picks a type.

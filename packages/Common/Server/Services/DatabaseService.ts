@@ -8,6 +8,7 @@ import AggregateBy, {
 import CountBy from "../Types/Database/CountBy";
 import FindAllBy from "../Types/Database/FindAllBy";
 import CreateBy from "../Types/Database/CreateBy";
+import CreateLimit from "../Types/Database/CreateLimit";
 import DeleteBy from "../Types/Database/DeleteBy";
 import DeleteById from "../Types/Database/DeleteById";
 import DeleteOneBy from "../Types/Database/DeleteOneBy";
@@ -57,6 +58,7 @@ import PasswordHash from "../Utils/PasswordHash";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import WriteProgress from "../Utils/Database/WriteProgress";
+import ProjectLimitLock from "../Utils/Database/ProjectLimitLock";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ConfigLogLevel from "../Types/ConfigLogLevel";
 import BaseService from "./BaseService";
@@ -1278,6 +1280,47 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     this.stampTenantOnCreate(createBy.data, createBy.props);
 
     return await this.onBeforeCreate(createBy);
+  }
+
+  /*
+   * A limit on how many records of this kind the project may have, as this
+   * create is held to it, or null when none is (Types/Database/CreateLimit).
+   * The create's INSERT is then decided with it, in one transaction holding
+   * the limit's lock (insertWithinCreateLimit), so two creates at the limit
+   * cannot both pass. Asked of every create, one that skips its hooks too -
+   * a limit holds on every path - right before the INSERT, once every
+   * check and hook has passed. Reads what the limit is; the count is the
+   * CreateLimit's own, made under the lock.
+   */
+  protected async getCreateLimit(
+    _createBy: CreateBy<TBaseModel>,
+  ): Promise<CreateLimit | null> {
+    return null;
+  }
+
+  /*
+   * The INSERT of a create held to a limit (getCreateLimit): one
+   * transaction takes the limit's lock in the project, asks the limit
+   * whether the project has room, and inserts the record. The count is so
+   * read once every earlier create held to the same limit has committed
+   * (ProjectLimitLock). A refusal rolls the transaction back: the record is
+   * never written.
+   */
+  private async insertWithinCreateLimit(
+    record: TBaseModel,
+    createLimit: CreateLimit,
+  ): Promise<TBaseModel> {
+    return await ProjectLimitLock.run({
+      limitName: createLimit.limitName,
+      projectId: createLimit.projectId,
+      run: async (manager: EntityManager): Promise<TBaseModel> => {
+        await createLimit.check(manager);
+
+        return await manager
+          .getRepository<TBaseModel>(this.modelType.name)
+          .save(record);
+      },
+    });
   }
 
   /*
@@ -5481,6 +5524,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // Whatever has written to it since the top of create(), this must INSERT.
     this.assertCreateWillInsert(createBy.data, createBy.props);
 
+    // A limit on how many the project may have, decided with the INSERT. See the hook.
+    const createLimit: CreateLimit | null = await this.getCreateLimit(createBy);
+
     /*
      * Whether the caller's permission let this create through only as one
      * they will own (createReliesOnOwnership), on a model with owner rows of
@@ -5492,10 +5538,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       OwnedScopePermission.hasOwnerTables(this.modelType);
 
     try {
-      // The INSERT itself, in save()'s own transaction.
+      /*
+       * The INSERT itself, in save()'s own transaction - or, held to a
+       * limit, in the one that decides it (insertWithinCreateLimit).
+       */
       createBy.data = await handedBack.progress.write(
         true,
         async (): Promise<TBaseModel> => {
+          if (createLimit) {
+            return await this.insertWithinCreateLimit(
+              createBy.data,
+              createLimit,
+            );
+          }
+
           return await this.getRepository().save(createBy.data);
         },
       );

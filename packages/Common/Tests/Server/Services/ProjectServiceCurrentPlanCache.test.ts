@@ -3,6 +3,7 @@ import ProjectService, {
   ProjectService as ProjectServiceClass,
 } from "../../../Server/Services/ProjectService";
 import BillingService from "../../../Server/Services/BillingService";
+import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import PlanDowngradeOwnerNotice from "../../../Server/Utils/Billing/PlanDowngradeOwnerNotice";
 import Project from "../../../Models/DatabaseModels/Project";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
@@ -338,5 +339,96 @@ describe("a reactivated subscription", () => {
     expect(
       (await ProjectService.getCurrentPlan(PROJECT_ID)).isSubscriptionUnpaid,
     ).toBe(false);
+  });
+});
+
+/*
+ * How many active monitors a project's own plan includes - a plan bought
+ * from a reseller, Project.activeMonitorsLimit - is a part of the plan: read
+ * with it, cached with it, and dropped with it when it changes, so every
+ * monitor create is held to the new limit at once on the server that wrote
+ * it (ActiveMonitorLimit).
+ */
+describe("the active monitor limit, read and cached with the plan", () => {
+  interface ProjectServiceInternals {
+    onUpdateSuccess: (
+      onUpdate: OnUpdate<Project>,
+      updatedItemIds: Array<ObjectID>,
+    ) => Promise<OnUpdate<Project>>;
+  }
+
+  const written: (patch: Record<string, unknown>) => Promise<void> = async (
+    patch: Record<string, unknown>,
+  ): Promise<void> => {
+    Object.assign(stored, patch);
+
+    await (
+      ProjectService as unknown as ProjectServiceInternals
+    ).onUpdateSuccess(
+      {
+        updateBy: { data: patch, props: { isRoot: true } },
+        carryForward: null,
+      } as unknown as OnUpdate<Project>,
+      [PROJECT_ID],
+    );
+  };
+
+  test("a plan bought from a reseller carries its limit", async () => {
+    stored["activeMonitorsLimit"] = 500;
+
+    await expect(ProjectService.getCurrentPlan(PROJECT_ID)).resolves.toEqual({
+      plan: PlanType.Growth,
+      isSubscriptionUnpaid: false,
+      activeMonitorsLimit: 500,
+    });
+    expect(findOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ activeMonitorsLimit: true }),
+      }),
+    );
+  });
+
+  test.each([undefined, null, 0])(
+    "a stored limit of %p is no limit, and is left out",
+    async (value: number | null | undefined) => {
+      stored["activeMonitorsLimit"] = value;
+
+      const plan: CurrentPlan = await ProjectService.getCurrentPlan(PROJECT_ID);
+
+      expect(plan).toEqual({
+        plan: PlanType.Growth,
+        isSubscriptionUnpaid: false,
+      });
+      expect(Object.keys(plan)).not.toContain("activeMonitorsLimit");
+    },
+  );
+
+  test("a new limit - a reseller's change of tier, a master admin's edit - holds at once on this server", async () => {
+    stored["activeMonitorsLimit"] = 500;
+    expect(
+      (await ProjectService.getCurrentPlan(PROJECT_ID)).activeMonitorsLimit,
+    ).toBe(500);
+
+    // Written elsewhere: this server keeps its cached plan for the minute.
+    stored["activeMonitorsLimit"] = 1000;
+    expect(
+      (await ProjectService.getCurrentPlan(PROJECT_ID)).activeMonitorsLimit,
+    ).toBe(500);
+
+    // Written here, through the service: dropped at once.
+    await written({ activeMonitorsLimit: 1000 });
+    expect(
+      (await ProjectService.getCurrentPlan(PROJECT_ID)).activeMonitorsLimit,
+    ).toBe(1000);
+  });
+
+  test("a write that leaves the limit alone keeps the cached plan", async () => {
+    stored["activeMonitorsLimit"] = 500;
+    await ProjectService.getCurrentPlan(PROJECT_ID);
+
+    await written({ name: "Renamed" });
+    await ProjectService.getCurrentPlan(PROJECT_ID);
+
+    expect(findOneById).toHaveBeenCalledTimes(1);
   });
 });

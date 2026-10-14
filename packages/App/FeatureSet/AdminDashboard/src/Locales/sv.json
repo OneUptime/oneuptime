@@ -358,7 +358,16 @@
       "amountTooPrecise": "Beloppet får inte ha fler än två decimaler.",
       "reasonRequired": "Ange en orsak till den här justeringen.",
       "adjustBalanceStepBalance": "Saldo",
-      "adjustBalanceStepAmount": "Belopp och orsak"
+      "adjustBalanceStepAmount": "Belopp och orsak",
+      "monitorLimitCardTitle": "Aktiva monitorer",
+      "monitorLimitCardDescription": "Alla monitorer utom manuella räknas, påslagna eller inte. Vid gränsen kan projektet inte lägga till fler, och de som finns fortsätter att köras. Ett abonnemang som köpts från en återförsäljare sätter den här gränsen, och återförsäljarens nästa nivåändring skriver över den. Projekt på abonnemanget Free omfattas även av gränsen för Free.",
+      "monitorLimitEditButton": "Redigera monitorgräns",
+      "fieldActiveMonitors": "Aktiva monitorer",
+      "fieldMonitorLimit": "Gräns för aktiva monitorer",
+      "fieldMonitorLimitDescription": "Det högsta antalet aktiva monitorer projektet får ha. Lämna tomt för ingen gräns.",
+      "noMonitorLimit": "Ingen gräns",
+      "overMonitorLimit": "{{over}} över gränsen",
+      "atMonitorLimit": "Vid gränsen"
     },
     "projectSupport": {
       "title": "Åtkomst för kundsupport",

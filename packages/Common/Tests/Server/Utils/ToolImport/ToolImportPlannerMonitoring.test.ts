@@ -530,6 +530,96 @@ describe("ToolImportPlanner: monitors", () => {
     );
   });
 
+  /*
+   * A project whose own plan caps active monitors - a plan bought from a
+   * reseller (ActiveMonitorLimit) - hears its own limit, not the Free
+   * plan's: the room says which note it takes.
+   */
+  test("past a plan's own limit, what does not fit is skipped with that limit; Manual monitors still come", () => {
+    const result: ToolImportPlan = plan(
+      {
+        monitors: [
+          monitor("1"),
+          monitor("2"),
+          monitor("3", {
+            monitorType: MonitorType.Manual,
+            destination: undefined,
+          }),
+        ],
+      },
+      projectState(),
+      fullAccess({
+        planRoomByKind: new Map([
+          [
+            ToolImportResourceKind.Monitor,
+            {
+              room: 1,
+              limit: 500,
+              noteCode: ToolImportNoteCode.MonitorLimitReached,
+            },
+          ],
+        ]),
+      }),
+    );
+
+    expect(
+      result.items.map((planned: ToolImportPlanItem) => {
+        return [planned.sourceId, planned.action];
+      }),
+    ).toEqual([
+      ["1", ToolImportAction.Create],
+      ["2", ToolImportAction.Skip],
+      ["3", ToolImportAction.Create],
+    ]);
+    expect(monitorItem(result, "2").reason).toEqual(
+      makeToolImportNote(ToolImportNoteCode.MonitorLimitReached, {
+        limit: 500,
+      }),
+    );
+  });
+
+  // The support report's project: 2,881 active monitors on a plan of 500.
+  test("a project already past its own limit has no room: every monitor that is checked is skipped, no Manual one", () => {
+    const result: ToolImportPlan = plan(
+      {
+        monitors: [
+          monitor("1"),
+          monitor("2", {
+            monitorType: MonitorType.IncomingRequest,
+            destination: undefined,
+          }),
+          monitor("3", {
+            monitorType: MonitorType.Manual,
+            destination: undefined,
+          }),
+        ],
+      },
+      projectState(),
+      fullAccess({
+        planRoomByKind: new Map([
+          [
+            ToolImportResourceKind.Monitor,
+            {
+              room: 0,
+              limit: 500,
+              noteCode: ToolImportNoteCode.MonitorLimitReached,
+            },
+          ],
+        ]),
+      }),
+    );
+
+    for (const sourceId of ["1", "2"]) {
+      expect(monitorItem(result, sourceId).action).toBe(ToolImportAction.Skip);
+      expect(monitorItem(result, sourceId).reason).toEqual(
+        makeToolImportNote(ToolImportNoteCode.MonitorLimitReached, {
+          limit: 500,
+        }),
+      );
+    }
+    expect(monitorItem(result, "3").action).toBe(ToolImportAction.Create);
+  });
+
   test("a paused monitor never takes the plan's last room from one that is on; the preview keeps the tool's order", () => {
     const result: ToolImportPlan = plan(
       {

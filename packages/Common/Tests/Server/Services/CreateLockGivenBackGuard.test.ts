@@ -382,7 +382,13 @@ describe("DatabaseService hands every failure of a create to onCreateError", () 
     );
   });
 
-  test("the INSERT is recorded as the create's write, in save()'s own transaction", () => {
+  /*
+   * In a transaction of its own either way: save()'s, or - for a create a
+   * service holds to a limit on how many the project may have
+   * (getCreateLimit) - the one that takes the limit's lock and asks the
+   * limit before it inserts (insertWithinCreateLimit, ProjectLimitLock).
+   */
+  test("the INSERT is recorded as the create's write, in a transaction of its own", () => {
     const writes: Array<string> = callArguments(
       createItself,
       /handedBack\.progress\.write/,
@@ -390,13 +396,26 @@ describe("DatabaseService hands every failure of a create to onCreateError", () 
 
     expect(writes).toHaveLength(1);
     expect(writes[0]!).toMatch(
-      /^\s*true,\s*async \(\): Promise<TBaseModel> => \{\s*return await this\.getRepository\(\)\.save\(createBy\.data\);\s*\},?\s*$/,
+      /^\s*true,\s*async \(\): Promise<TBaseModel> => \{\s*if \(createLimit\) \{\s*return await this\.insertWithinCreateLimit\(\s*createBy\.data,\s*createLimit,?\s*\);\s*\}\s*return await this\.getRepository\(\)\.save\(createBy\.data\);\s*\},?\s*$/,
     );
     // The one save() of the create is that one.
     expect(
       (createItself.match(/\.getRepository\(\)\s*\.\s*save\s*\(/g) || [])
         .length,
     ).toBe(1);
+
+    // A limited create asks its limit under the lock, then saves, in that transaction.
+    const limited: string = methodText(classSource, "insertWithinCreateLimit");
+    const lock: number = limited.indexOf("ProjectLimitLock.run(");
+    const check: number = limited.indexOf("await createLimit.check(manager);");
+    const save: number = limited.indexOf(".save(record)");
+
+    expect(lock).toBeGreaterThan(-1);
+    expect(check).toBeGreaterThan(lock);
+    expect(save).toBeGreaterThan(check);
+    expect(limited).toMatch(
+      /manager\s*\.getRepository<TBaseModel>\(this\.modelType\.name\)\s*\.save\(record\)/,
+    );
   });
 
   test("what onBeforeCreate hands back is handed on as soon as it has run", () => {

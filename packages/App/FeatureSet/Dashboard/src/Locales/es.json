@@ -29237,5 +29237,21 @@
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "Al eliminar un caso de seguridad también se eliminan sus detecciones, notas, cronología y ejecuciones de playbook.",
   "To keep the record, close the case with a verdict instead.": "Para conservar el registro, cierra el caso con un veredicto en su lugar.",
-  "State Change": "Cambio de estado"
+  "State Change": "Cambio de estado",
+  "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.": "El plan de este proyecto incluye {{limit}} monitores activos, y al proyecto no le queda espacio para este. Elimina los monitores que ya no necesites, o cambia el plan, para traerlo.",
+  "To add more, delete monitors you no longer need or change your plan.": "Para añadir más, elimina los monitores que ya no necesites o cambia tu plan.",
+  "Upgrade your plan to add more.": "Mejora tu plan para añadir más.",
+  "View plan": "Ver plan",
+  "View plans": "Ver planes",
+  "You've reached the Free plan's monitor limit": "Has alcanzado el límite de monitores del plan Free",
+  "You've reached your plan's monitor limit": "Has alcanzado el límite de monitores de tu plan",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}.": "Tu plan incluye {{count}} monitores activos, y este proyecto tiene {{activeMonitors}}.",
+  "Your plan includes {{count}} active monitors, and this project has {{activeMonitors}}._one": "Tu plan incluye {{count}} monitor activo, y este proyecto tiene {{activeMonitors}}.",
+  "All of them keep running, but no more can be added until the project has fewer than {{limit}}.": "Todos siguen funcionando, pero no se pueden añadir más hasta que el proyecto tenga menos de {{limit}}.",
+  "Manual monitors don't count towards the limit, so you can still add them. Monitors that are turned off or archived do count.": "Los monitores manuales no cuentan para el límite, así que aún puedes añadirlos. Los monitores desactivados o archivados sí cuentan.",
+  "Nothing was created or changed.": "No se creó ni cambió nada.",
+  "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "El plan Free permite hasta {{count}} monitores activos, y este proyecto tiene {{activeMonitors}}.",
+  "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "El plan Free permite hasta {{count}} monitor activo, y este proyecto tiene {{activeMonitors}}.",
+  "You're over the Free plan's monitor limit": "Has superado el límite de monitores del plan Free",
+  "You're over your plan's monitor limit": "Has superado el límite de monitores de tu plan"
 }
