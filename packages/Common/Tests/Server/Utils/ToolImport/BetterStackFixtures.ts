@@ -1,4 +1,8 @@
-import { FixtureApi, json } from "./ToolImportFixtureTransport";
+import {
+  ToolImportHttpRequest,
+  ToolImportHttpResponse,
+} from "../../../../Server/Utils/ToolImport/ToolImportHttpClient";
+import { FixtureAnswer, FixtureApi, json } from "./ToolImportFixtureTransport";
 
 /*
  * A Better Stack Uptime team in API v2's documented shapes
@@ -6,7 +10,9 @@ import { FixtureApi, json } from "./ToolImportFixtureTransport";
  * { id, type, attributes }, paged with `pagination.next`. Every monitor
  * type the import knows and the ones it does not, heartbeats (one sharing
  * an id with a monitor, as the two lists may), a public status page with
- * sections, each kind of resource and subscribers, and a private one.
+ * sections, each kind of resource and subscribers, and a private one. For
+ * a page with more subscribers than one read collects, as many as a test
+ * asks for, paged as Better Stack pages them.
  */
 
 export const BETTER_STACK_TOKEN: string = "bs_team_token_0123456789";
@@ -269,6 +275,47 @@ export function betterStackPage(
   return {
     data: data,
     pagination: { first: "first", last: "last", prev: null, next: next },
+  };
+}
+
+// `count` confirmed email subscribers of a page, numbered from `from`.
+export function betterStackSubscribers(
+  count: number,
+  from: number,
+): Array<Record<string, unknown>> {
+  return Array.from({ length: count }, (_value: unknown, index: number) => {
+    return record("status_page_subscriber", String(100000 + from + index), {
+      email: `person${from + index}@example.com`,
+      confirmed_at: "2026-01-02T03:04:05.000Z",
+      status_page_resource_ids: [],
+    });
+  });
+}
+
+/*
+ * A list as Better Stack pages it: the page asked for (counting from 1),
+ * as many records as `per_page` asks for, and `pagination.next` while
+ * records are left after it.
+ */
+export function betterStackPaged(
+  records: Array<Record<string, unknown>>,
+): FixtureAnswer {
+  return (
+    _request: ToolImportHttpRequest,
+    url: URL,
+  ): ToolImportHttpResponse => {
+    const size: number = Number(url.searchParams.get("per_page"));
+    const page: number = Number(url.searchParams.get("page"));
+    const from: number = (page - 1) * size;
+    const next: URL = new URL(url.toString());
+    next.searchParams.set("page", String(page + 1));
+
+    return json(
+      betterStackPage(
+        records.slice(from, from + size),
+        from + size < records.length ? next.toString() : null,
+      ),
+    );
   };
 }
 

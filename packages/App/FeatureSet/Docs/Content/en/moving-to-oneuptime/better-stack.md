@@ -78,7 +78,7 @@ Every monitor is checked from your project's probes, as one you create yourself 
 
 ## Limits
 
-One import creates at most 2,000 records: at most 1,000 monitors and 50 status pages. Subscribers do not count toward that: one import brings over at most 5,000 subscribers. Anything over a limit is shown as not brought over. Run the import again to bring over the rest.
+One import creates at most 2,000 records: at most 1,000 monitors and 50 status pages. Subscribers do not count toward that: one import brings over at most 5,000 subscribers, and it reads past the ones earlier imports brought over without listing them again. Anything over a limit is shown as not brought over. Run the import again to bring over the rest.
 
 On OneUptime Cloud, monitors that run checks need a payment method, and anything your plan has no room for is shown as not brought over, with what it needs.
 
