@@ -53,11 +53,15 @@ oneuptime login <api-key> <instance-url> [--context-name <name>]
 
 ### `oneuptime context list`
 
-Lists the saved contexts; `*` marks the current one. With `-o json`, each context's `name`, `apiUrl` and `isCurrent`.
+Lists the saved contexts; `*` marks the current one. API keys are never listed.
 
 ```bash
 oneuptime context list [-o <format>]
 ```
+
+| Option | Required | What it is |
+| --- | --- | --- |
+| `-o, --output <format>` | No | `json`, `table` or `wide`. JSON gives each context's `name`, `apiUrl` and `isCurrent` |
 
 ### `oneuptime context use`
 

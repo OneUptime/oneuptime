@@ -18,8 +18,8 @@ flowchart TB
     J["The CI job starts"] --> S["Its secrets set<br/>ONEUPTIME_API_KEY<br/>and ONEUPTIME_URL"]
     S --> Q["oneuptime incident count<br/>of incidents not resolved"]
     Q -->|"0"| D["Deploy"]
-    Q -->|"1 or more"| X["Stop the deployment"]
-    Q -->|"exit code 2"| A["Stop: the key is<br/>missing or refused"]
+    Q -->|"1 or more"| X["Stop: an incident<br/>is open"]
+    Q -->|"exit code 2"| A["Stop: check<br/>the API key"]
 ```
 
 ## Give a script its API key
