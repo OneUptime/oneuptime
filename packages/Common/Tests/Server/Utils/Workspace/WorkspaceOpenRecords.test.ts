@@ -374,7 +374,9 @@ describe("the reads: the asker's own props, this project, the open states", () =
       limit: 2,
     });
 
-    expect((alertFind.mock.calls[0]![0] as JSONObject)["limit"]).toBe(3);
+    expect(
+      (alertFind.mock.calls[0]![0] as unknown as JSONObject)["limit"],
+    ).toBe(3);
     expect(
       list.records.map((record: WorkspaceOpenRecord) => {
         return record.number;

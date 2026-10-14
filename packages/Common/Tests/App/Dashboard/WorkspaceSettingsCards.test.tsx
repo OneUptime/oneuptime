@@ -566,7 +566,7 @@ describe("User Settings > Microsoft Teams", () => {
 
   test("connected: Open OneUptime in Microsoft Teams opens the app's own page in Teams", async () => {
     mockAuthState.isUserConnected = true;
-    const open: jest.SpiedFunction<typeof window.open> = jest
+    const open: ReturnType<typeof jest.spyOn> = jest
       .spyOn(window, "open")
       .mockImplementation(() => {
         return null;
