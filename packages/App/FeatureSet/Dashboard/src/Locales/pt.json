@@ -28740,5 +28740,6 @@
   "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.": "O evento de status mais antigo do monitor não pode ser excluído enquanto cobrir parte dos últimos {{days}} dias: as páginas de status mostrariam esse período em cinza. Para substituí-lo, adicione um evento de status que comece antes dele e depois exclua este.",
   "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.": "O único evento de status do monitor não pode ser excluído: o monitor ficaria sem status e as páginas de status o mostrariam em cinza. Para mudar o status, adicione um novo evento de status.",
   "{{status}}, the status before it, becomes the monitor's current status again.": "{{status}}, o status anterior, volta a ser o status atual do monitor.",
-  "{{status}}, the status before it, takes over its time.": "{{status}}, o status anterior, passa a cobrir esse período."
+  "{{status}}, the status before it, takes over its time.": "{{status}}, o status anterior, passa a cobrir esse período.",
+  "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.": "O status anterior a cada evento excluído passa a cobrir o período dele, então excluir o mais recente muda o status atual do monitor."
 }

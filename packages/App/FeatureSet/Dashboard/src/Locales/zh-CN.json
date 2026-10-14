@@ -28740,5 +28740,6 @@
   "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.": "监视器最早的状态事件在覆盖最近 {{days}} 天中的一部分时无法删除：删除后状态页面会将这段时间显示为灰色。要替换它，请先添加一个在它之前开始的状态事件，然后删除此事件。",
   "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.": "无法删除监视器唯一的状态事件：删除后监视器将没有状态，状态页面会将其显示为灰色。要更改其状态，请添加新的状态事件。",
   "{{status}}, the status before it, becomes the monitor's current status again.": "其之前的状态 {{status}} 将重新成为监视器的当前状态。",
-  "{{status}}, the status before it, takes over its time.": "其之前的状态 {{status}} 将接管这段时间。"
+  "{{status}}, the status before it, takes over its time.": "其之前的状态 {{status}} 将接管这段时间。",
+  "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.": "每个被删除事件的时间由其之前的状态接管，因此删除最新的事件会改变监视器的当前状态。"
 }

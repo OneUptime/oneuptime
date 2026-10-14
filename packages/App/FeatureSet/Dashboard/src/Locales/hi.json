@@ -28740,5 +28740,6 @@
   "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.": "मॉनिटर का सबसे पुराना स्थिति इवेंट तब तक हटाया नहीं जा सकता जब तक वह पिछले {{days}} दिनों के एक हिस्से को कवर करता है: स्थिति पृष्ठ उस समय को ग्रे दिखाएंगे। इसे बदलने के लिए, इससे पहले शुरू होने वाला एक स्थिति इवेंट जोड़ें, फिर इसे हटाएं।",
   "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.": "मॉनिटर का एकमात्र स्थिति इवेंट हटाया नहीं जा सकता: मॉनिटर की कोई स्थिति नहीं रहेगी, और स्थिति पृष्ठ इसे ग्रे दिखाएंगे। इसकी स्थिति बदलने के लिए, एक नया स्थिति इवेंट जोड़ें।",
   "{{status}}, the status before it, becomes the monitor's current status again.": "इससे पहले की स्थिति, {{status}}, फिर से मॉनिटर की वर्तमान स्थिति बन जाती है।",
-  "{{status}}, the status before it, takes over its time.": "इससे पहले की स्थिति, {{status}}, इसका समय ले लेती है।"
+  "{{status}}, the status before it, takes over its time.": "इससे पहले की स्थिति, {{status}}, इसका समय ले लेती है।",
+  "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.": "हर हटाए गए इवेंट का समय उससे पहले की स्थिति ले लेती है, इसलिए सबसे नया इवेंट हटाने से मॉनिटर की वर्तमान स्थिति बदल जाती है।"
 }

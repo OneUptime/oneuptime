@@ -28740,5 +28740,6 @@
   "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.": "Monitorns äldsta statushändelse kan inte tas bort så länge den täcker en del av de senaste {{days}} dagarna: statussidor skulle visa den perioden grå. Lägg till en statushändelse som börjar före den för att ersätta den, och ta sedan bort den här.",
   "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.": "Monitorns enda statushändelse kan inte tas bort: monitorn skulle inte ha någon status, och statussidor skulle visa den grå. Lägg till en ny statushändelse för att ändra dess status.",
   "{{status}}, the status before it, becomes the monitor's current status again.": "{{status}}, statusen före den, blir monitorns aktuella status igen.",
-  "{{status}}, the status before it, takes over its time.": "{{status}}, statusen före den, tar över dess period."
+  "{{status}}, the status before it, takes over its time.": "{{status}}, statusen före den, tar över dess period.",
+  "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.": "Statusen före varje borttagen händelse tar över dess period, så att ta bort den senaste ändrar monitorns aktuella status."
 }

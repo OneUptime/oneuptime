@@ -28740,5 +28740,6 @@
   "The monitor's oldest status event can't be deleted while it covers part of the last {{days}} days: status pages would show that time gray. To replace it, add a status event that starts before it, then delete this one.": "قدیمی‌ترین رویداد وضعیت مانیتور را تا وقتی بخشی از {{days}} روز گذشته را پوشش می‌دهد نمی‌توان حذف کرد: صفحات وضعیت آن بازه را خاکستری نشان می‌دهند. برای جایگزینی آن، یک رویداد وضعیت اضافه کنید که پیش از آن شروع شود، سپس این یکی را حذف کنید.",
   "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.": "تنها رویداد وضعیت مانیتور را نمی‌توان حذف کرد: مانیتور دیگر هیچ وضعیتی نخواهد داشت و صفحات وضعیت آن را خاکستری نشان می‌دهند. برای تغییر وضعیت آن، یک رویداد وضعیت جدید اضافه کنید.",
   "{{status}}, the status before it, becomes the monitor's current status again.": "{{status}}، وضعیت پیش از آن، دوباره وضعیت فعلی مانیتور می‌شود.",
-  "{{status}}, the status before it, takes over its time.": "{{status}}، وضعیت پیش از آن، این بازه را در بر می‌گیرد."
+  "{{status}}, the status before it, takes over its time.": "{{status}}، وضعیت پیش از آن، این بازه را در بر می‌گیرد.",
+  "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.": "وضعیت پیش از هر رویداد حذف‌شده بازه‌ی آن را در بر می‌گیرد، پس حذف جدیدترین رویداد وضعیت فعلی مانیتور را تغییر می‌دهد."
 }

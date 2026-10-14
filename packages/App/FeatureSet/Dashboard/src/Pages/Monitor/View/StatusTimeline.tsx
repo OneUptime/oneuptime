@@ -14,11 +14,14 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
+import {
+  DeleteConfirmation,
+  ModalTableBulkDefaultActions,
+} from "Common/UI/Components/ModelTable/BaseModelTable";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import MonitorStatusEventDelete, {
   StatusEventDeleteDecision,
   StatusEventDeleteRefusal,
@@ -401,6 +404,17 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
         getDeleteDisabledReason={getDeleteDisabledReason}
         getDeleteConfirmation={getDeleteConfirmation}
         getItemName={getStatusEventName}
+        bulkActions={{
+          buttons: [ModalTableBulkDefaultActions.Delete],
+          /*
+           * A bulk Delete asks about several events at once, so it can't say
+           * what each one does, as a row's Delete does. It says the rule:
+           * deleting the newest event changes what the monitor shows now.
+           */
+          deleteConfirmationWarning: translationKey(
+            "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.",
+          ),
+        }}
         onFetchSuccess={() => {
           void loadDeleteLock();
         }}

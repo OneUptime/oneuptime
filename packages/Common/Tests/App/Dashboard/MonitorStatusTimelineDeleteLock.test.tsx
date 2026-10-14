@@ -40,12 +40,15 @@ import { MemoryRouter } from "react-router-dom";
  * ModelTable is stubbed to record its props; ModelAPI to answer the reads.
  */
 
+// The reader's language, when a test sets one: English text -> theirs.
+let mockTranslations: Record<string, string> = {};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (key: string, opts?: { defaultValue?: string }): string => {
-          return opts?.defaultValue ?? key;
+          return mockTranslations[key] ?? opts?.defaultValue ?? key;
         },
       };
     },
@@ -66,6 +69,10 @@ interface DeleteConfirmationLike {
 
 interface RecordedTableProps {
   isDeleteable?: boolean;
+  bulkActions?: {
+    buttons?: Array<unknown>;
+    deleteConfirmationWarning?: string;
+  };
   getDeleteDisabledReason?: (item: Row) => string | undefined;
   getDeleteConfirmation?: (item: Row) => Promise<DeleteConfirmationLike>;
   getItemName?: (item: Row) => string;
@@ -151,6 +158,7 @@ import {
   OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
   ONLY_STATUS_EVENT_MESSAGE,
 } from "../../../Utils/Monitor/MonitorStatusEventDelete";
+import { ModalTableBulkDefaultActions } from "../../../UI/Components/ModelTable/BaseModelTable";
 
 const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
@@ -248,6 +256,7 @@ async function confirmationFor(row: MonitorStatusTimeline): Promise<{
 
 beforeEach(() => {
   jest.useFakeTimers({ now: NOW });
+  mockTranslations = {};
   recordedTableProps = null;
   listReads.length = 0;
   lockAnswer = { data: [], count: 0 };
@@ -383,6 +392,30 @@ describe("each status event is named by its status and start, never its id", () 
     expect(name).not.toContain(NEXT);
   });
 
+  test("a built-in status is named as the row's status bubble shows it, in the reader's language", async () => {
+    mockTranslations = { Operational: "Betriebsbereit" };
+
+    await renderPage();
+
+    expect(
+      recordedTableProps!.getItemName!(
+        event(NEXT, daysAgo(20), null, "Operational") as unknown as Row,
+      ),
+    ).toBe(`Betriebsbereit (${shown(daysAgo(20))})`);
+
+    beforeAnswer = {
+      data: [event(OLDEST, daysAgo(365), daysAgo(20), "Operational")],
+      count: 1,
+    };
+    afterAnswer = { data: [], count: 0 };
+
+    const confirmation: { text: string; bold: Array<string> } =
+      await confirmationFor(event(NEXT, daysAgo(20), null, "Offline"));
+
+    expect(confirmation.bold).toContain("Betriebsbereit");
+    expect(confirmation.text).not.toContain("Operational");
+  });
+
   test("an event whose status was not read is named by its start alone", async () => {
     await renderPage();
 
@@ -391,6 +424,19 @@ describe("each status event is named by its status and start, never its id", () 
         event(NEXT, daysAgo(20), null) as unknown as Row,
       ),
     ).toBe(shown(daysAgo(20)));
+  });
+});
+
+describe("a bulk Delete says what deleting events does", () => {
+  test("keeps the table's own Delete, and warns that the newest one changes the monitor's current status", async () => {
+    await renderPage();
+
+    expect(recordedTableProps!.bulkActions!.buttons).toEqual([
+      ModalTableBulkDefaultActions.Delete,
+    ]);
+    expect(recordedTableProps!.bulkActions!.deleteConfirmationWarning).toBe(
+      "The status before each deleted event takes over its time, so deleting the newest one changes the monitor's current status.",
+    );
   });
 });
 
