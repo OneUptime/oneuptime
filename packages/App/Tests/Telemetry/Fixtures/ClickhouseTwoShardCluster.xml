@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<!--
+  A cluster of two shards on one ClickHouse server, for
+  Tests/Telemetry/PagedFindBoundClickhouse.test.ts (issue #4710).
+
+  Each shard is a database of its own on the same server: a Distributed table
+  created with an empty database name reads each shard's default_database, so
+  `Distributed('paged_find_bound_two_shards', '', 'LogItemV3Local')` reads
+  paged_find_bound_shard_1.LogItemV3Local and paged_find_bound_shard_2.LogItemV3Local
+  as two shards, each over its own connection, as a sharded install reads its
+  shards. The suite creates and drops both databases.
+
+  The App Test workflow copies this file into its ClickHouse service container
+  (config.d is read again a moment after it changes) and sets
+  TEST_CLICKHOUSE_TWO_SHARD_CLUSTER=paged_find_bound_two_shards. The password is
+  the throwaway test server's (CLICKHOUSE_PASSWORD=test).
+-->
+<clickhouse>
+    <remote_servers>
+        <paged_find_bound_two_shards>
+            <shard>
+                <replica>
+                    <host>localhost</host>
+                    <port>9000</port>
+                    <user>default</user>
+                    <password>test</password>
+                    <default_database>paged_find_bound_shard_1</default_database>
+                </replica>
+            </shard>
+            <shard>
+                <replica>
+                    <host>localhost</host>
+                    <port>9000</port>
+                    <user>default</user>
+                    <password>test</password>
+                    <default_database>paged_find_bound_shard_2</default_database>
+                </replica>
+            </shard>
+        </paged_find_bound_two_shards>
+    </remote_servers>
+</clickhouse>
