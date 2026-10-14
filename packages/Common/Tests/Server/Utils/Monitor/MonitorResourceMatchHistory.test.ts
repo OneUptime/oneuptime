@@ -54,6 +54,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import ProjectService from "../../../../Server/Services/ProjectService";
 
 /*
  * Issue #4686 on the probe-response path: a probe result for a Website
@@ -219,6 +220,8 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
   let createIncidents: jest.SpyInstance;
 
   beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     jest.useFakeTimers();
     atMinute(0);
 

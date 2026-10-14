@@ -44,7 +44,7 @@ Las alertas se guardan por espacio. Abre el espacio donde se ejecutan tus reglas
 
 ### Añadir la conexión en OneUptime
 
-Abre **Productos → Eventos de seguridad → Conexiones** (`/dashboard/{projectId}/security-events/connections`), haz clic en **Añadir conexión**, elige **Elastic Security** y haz clic en **Siguiente**. Rellena los ajustes de la tabla de abajo, haz clic en **Siguiente** y pega la clave en **API key**.
+Abre **Productos → Eventos de seguridad → Conexiones** (`/dashboard/{projectId}/security-events/connections`), haz clic en **Añadir conexión**, elige **Elastic Security** y haz clic en **Siguiente**. Rellena los ajustes de la tabla de abajo, haz clic en **Siguiente** y pega la clave en **Clave de API**.
 
 ### Probarla antes de guardar
 
@@ -55,7 +55,7 @@ Haz clic en **Probar esta configuración** en **Probar antes de guardar**. La pr
 | --- | --- |
 | **Kibana URL** | La dirección desde la que se sirve Kibana, por ejemplo `https://kibana.example.com` o `https://<deployment>.kb.<region>.cloud.es.io`. Sin ruta: ni `/app/security`, ni `/api`, ni la parte `/s/<space>`. |
 | **Kibana space** | El ID del espacio, no su nombre: letras, cifras, guiones y guiones bajos. Déjalo vacío para el espacio predeterminado. |
-| **API key** | El valor **Base64** de la clave, por sí solo: OneUptime añade él mismo el esquema `ApiKey`. Se cifra, la API nunca lo devuelve y nunca se vuelve a mostrar. Sustitúyelo con **Actualizar credenciales** en la conexión. |
+| **Clave de API** | El valor **Base64** de la clave, por sí solo: OneUptime añade él mismo el esquema `ApiKey`. Se cifra, la API nunca lo devuelve y nunca se vuelve a mostrar. Sustitúyelo con **Actualizar credenciales** en la conexión. |
 
 El paso **Sondeo** también tiene una **Descripción** opcional, el **Intervalo de sondeo (minutos)**, un número entero de `1` a `1440` que empieza en `5`, y **Habilitado**, que empieza activado.
 

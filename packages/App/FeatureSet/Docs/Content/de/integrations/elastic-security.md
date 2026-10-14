@@ -44,7 +44,7 @@ Warnungen werden pro Space gespeichert. Öffnen Sie den Space, in dem Ihre Regel
 
 ### Die Verbindung in OneUptime hinzufügen
 
-Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen** (`/dashboard/{projectId}/security-events/connections`), klicken Sie auf **Verbindung hinzufügen**, wählen Sie **Elastic Security** und klicken Sie auf **Weiter**. Füllen Sie die Einstellungen aus der Tabelle unten aus, klicken Sie auf **Weiter** und fügen Sie den Schlüssel in **API key** ein.
+Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen** (`/dashboard/{projectId}/security-events/connections`), klicken Sie auf **Verbindung hinzufügen**, wählen Sie **Elastic Security** und klicken Sie auf **Weiter**. Füllen Sie die Einstellungen aus der Tabelle unten aus, klicken Sie auf **Weiter** und fügen Sie den Schlüssel in **API-Schlüssel** ein.
 
 ### Vor dem Speichern testen
 
@@ -55,7 +55,7 @@ Klicken Sie unter **Vor dem Speichern testen** auf **Diese Einstellungen testen*
 | --- | --- |
 | **Kibana URL** | Die Adresse, unter der Kibana bereitgestellt wird, etwa `https://kibana.example.com` oder `https://<deployment>.kb.<region>.cloud.es.io`. Ohne Pfad: nicht `/app/security`, nicht `/api` und nicht der Teil `/s/<space>`. |
 | **Kibana space** | Die ID des Space, nicht sein Name: Buchstaben, Ziffern, Bindestriche und Unterstriche. Lassen Sie sie für den Standard-Space leer. |
-| **API key** | Der **Base64**-Wert des Schlüssels, für sich allein: OneUptime fügt das Schema `ApiKey` selbst hinzu. Er wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie ihn mit **Anmeldedaten aktualisieren** an der Verbindung. |
+| **API-Schlüssel** | Der **Base64**-Wert des Schlüssels, für sich allein: OneUptime fügt das Schema `ApiKey` selbst hinzu. Er wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie ihn mit **Anmeldedaten aktualisieren** an der Verbindung. |
 
 Der Schritt **Abfrage** hat außerdem eine optionale **Beschreibung**, das **Abfrageintervall (Minuten)**, eine ganze Zahl von `1` bis `1440`, die mit `5` beginnt, und **Aktiviert**, das eingeschaltet beginnt.
 

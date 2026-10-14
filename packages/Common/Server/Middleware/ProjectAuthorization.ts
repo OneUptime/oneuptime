@@ -1,5 +1,6 @@
 import ApiKeyService, { ResolvedApiKey } from "../Services/ApiKeyService";
 import GlobalConfigService from "../Services/GlobalConfigService";
+import ProjectService from "../Services/ProjectService";
 import UserService from "../Services/UserService";
 import {
   ExpressRequest,
@@ -9,6 +10,7 @@ import {
 } from "../Utils/Express";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ProjectBlockedException from "../../Types/Exception/ProjectBlockedException";
 import ObjectID from "../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../Types/Permission";
 import UserType from "../../Types/UserType";
@@ -204,6 +206,20 @@ export default class ProjectMiddleware {
         await ApiKeyService.findApiKey(apiKey);
 
       if (apiKeyRow) {
+        /*
+         * A blocked project's keys are refused, whatever they may do and
+         * whatever the project's plan: a master admin blocked the project
+         * (Admin Dashboard > Projects), and until it is unblocked nothing
+         * but a master admin acts in it. Asked first, at the one door every
+         * API-key request goes through - the CLI, Terraform and the MCP
+         * server's API-key mode included. Cached per server
+         * (ProjectService.isProjectBlocked); a lookup that fails is an
+         * error, not a pass.
+         */
+        if (await ProjectService.isProjectBlocked(apiKeyRow.projectId)) {
+          throw new ProjectBlockedException();
+        }
+
         /*
          * A project's API keys work only while it is on the plan that sells
          * them (Types/Billing/PlanCutoffCredentials). Below it - after a

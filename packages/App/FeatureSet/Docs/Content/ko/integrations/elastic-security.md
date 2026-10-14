@@ -44,7 +44,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ### OneUptime에서 연결 추가
 
-**제품 → Security Events → Connections**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 뒤 **Elastic Security**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 키를 **API key**에 붙여 넣습니다.
+**제품 → Security Events → Connections**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 뒤 **Elastic Security**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 키를 **API 키**에 붙여 넣습니다.
 
 ### 저장하기 전에 테스트
 
@@ -55,7 +55,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | --- | --- |
 | **Kibana URL** | Kibana를 제공하는 주소. 예: `https://kibana.example.com` 또는 `https://<deployment>.kb.<region>.cloud.es.io`. 경로는 붙이지 않습니다. `/app/security`도, `/api`도, `/s/<space>` 부분도 없어야 합니다. |
 | **Kibana space** | 스페이스의 이름이 아니라 ID. 영문자, 숫자, 하이픈, 밑줄로 이루어집니다. 기본 스페이스라면 비워 둡니다. |
-| **API key** | 키의 **Base64** 값 그대로. `ApiKey` 스킴은 OneUptime이 직접 붙입니다. 암호화되며, API가 반환하지 않고 다시 표시되지도 않습니다. 교체하려면 연결의 **Update credentials**를 사용합니다. |
+| **API 키** | 키의 **Base64** 값 그대로. `ApiKey` 스킴은 OneUptime이 직접 붙입니다. 암호화되며, API가 반환하지 않고 다시 표시되지도 않습니다. 교체하려면 연결의 **Update credentials**를 사용합니다. |
 
 **Polling** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **Poll Interval (Minutes)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다.
 

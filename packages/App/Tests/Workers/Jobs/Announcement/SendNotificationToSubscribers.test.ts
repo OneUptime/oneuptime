@@ -2684,7 +2684,7 @@ describe("Announcements of a blocked project", () => {
       subscriberNotificationStatusOnAnnouncementUpdated:
         StatusPageSubscriberNotificationStatus.Success,
       subscriberNotificationStatusMessageOnAnnouncementUpdated:
-        "No matching subscribers found. All associated status pages either hide announcements or had no matching subscribers.",
+        "No matching subscribers found. All associated status pages either do not send notifications to their subscribers, hide announcements, or had no matching subscribers.",
     });
   });
 

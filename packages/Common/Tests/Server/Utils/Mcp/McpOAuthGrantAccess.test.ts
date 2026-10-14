@@ -302,6 +302,8 @@ describe("McpOAuthGrantAccess", () => {
       UserService,
       "isUserBlocked",
     ).mockResolvedValue(false);
+    // A blocked project's refusal is BlockedProjectBackgroundWork.test.ts.
+    getJestSpyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     membershipLookup = getJestSpyOn(
       ProjectMembership,
       "isMember",

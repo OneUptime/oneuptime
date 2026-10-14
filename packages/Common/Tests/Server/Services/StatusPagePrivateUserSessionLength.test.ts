@@ -26,6 +26,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { Repository, SelectQueryBuilder, UpdateResult } from "typeorm";
 
 /*
@@ -66,7 +67,7 @@ type RecordedCall = { method: string; args: Array<unknown> };
 interface FakeQuery {
   query: SelectQueryBuilder<StatusPagePrivateUserSession>;
   calls: Array<RecordedCall>;
-  getOne: jest.Mock<() => Promise<StatusPagePrivateUserSession | null>>;
+  getOne: Mock<() => Promise<StatusPagePrivateUserSession | null>>;
 }
 
 // A query builder that records how it is built, and answers with getOne.
@@ -76,7 +77,7 @@ const buildFakeQuery: (
   answer: StatusPagePrivateUserSession | null = null,
 ): FakeQuery => {
   const calls: Array<RecordedCall> = [];
-  const getOne: jest.Mock<() => Promise<StatusPagePrivateUserSession | null>> =
+  const getOne: Mock<() => Promise<StatusPagePrivateUserSession | null>> =
     jest.fn(async (): Promise<StatusPagePrivateUserSession | null> => {
       return answer;
     });
@@ -425,10 +426,10 @@ describe("a session's refresh token expires by the end of its limit", () => {
     expect(renewed.refreshTokenExpiresAt.getTime()).toBe(expectedEnd);
     expect(
       (
-        update.mock.calls[0]![0] as {
-          data: { refreshTokenExpiresAt: Date };
+        update.mock.calls[0]![0].data as {
+          refreshTokenExpiresAt: Date;
         }
-      ).data.refreshTokenExpiresAt.getTime(),
+      ).refreshTokenExpiresAt.getTime(),
     ).toBe(expectedEnd);
   });
 
@@ -507,11 +508,13 @@ describe("a session's refresh token expires by the end of its limit", () => {
     };
 
     getJestSpyOn(service, "findOneBy").mockResolvedValue(session);
-    const repositoryUpdate: jest.Mock<
+    const repositoryUpdate: Mock<
       (where: unknown, data: unknown) => Promise<UpdateResult>
-    > = jest.fn(async (): Promise<UpdateResult> => {
-      return { affected: 1, generatedMaps: [], raw: [] };
-    });
+    > = jest.fn<(where: unknown, data: unknown) => Promise<UpdateResult>>(
+      async (): Promise<UpdateResult> => {
+        return { affected: 1, generatedMaps: [], raw: [] };
+      },
+    );
     getJestSpyOn(service, "getRepository").mockReturnValue({
       update: repositoryUpdate,
     } as unknown as Repository<StatusPagePrivateUserSession>);

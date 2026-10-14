@@ -11,6 +11,7 @@ import IoTDeviceCredentialService from "Common/Server/Services/IoTDeviceCredenti
 import { handleExport } from "../../FeatureSet/Telemetry/GrpcServer";
 import { startMqttServer } from "../../FeatureSet/Telemetry/MqttServer";
 import MetricsQueueService from "../../FeatureSet/Telemetry/Services/Queue/MetricsQueueService";
+import ProjectService from "Common/Server/Services/ProjectService";
 
 jest.mock("Common/Server/Infrastructure/Queue", () => {
   return {
@@ -114,6 +115,8 @@ const paymentError: PaymentRequiredException = new PaymentRequiredException(
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   (PayAsYouGoBillingService.requirePayAsYouGo as MockFn).mockResolvedValue(
     undefined,
   );

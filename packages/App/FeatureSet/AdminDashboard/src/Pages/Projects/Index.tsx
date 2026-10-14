@@ -165,8 +165,8 @@ const Projects: FunctionComponent = (): ReactElement => {
       },
       confirmMessage: (items: Array<Project>): string => {
         return isBlocked
-          ? `Are you sure you want to block ${items.length} project(s)? Blocked projects and their members will lose access until unblocked.`
-          : `Are you sure you want to unblock ${items.length} project(s)? They will regain access.`;
+          ? `Are you sure you want to block ${items.length} project(s)? Until they are unblocked, their members, API keys and MCP clients lose access; their monitors, workflows, telemetry ingest and notifications stop; and their status pages and public dashboards go offline. Master admins keep access.`
+          : `Are you sure you want to unblock ${items.length} project(s)? Their members, API keys and MCP clients regain access, and their monitors, workflows, telemetry ingest, notifications, status pages and public dashboards start again.`;
       },
       onClick: async (
         onClickProps: BulkActionOnClickProps<Project>,

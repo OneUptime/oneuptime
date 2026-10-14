@@ -1,234 +1,292 @@
 # Referencia de comandos
 
-Referencia completa de todos los comandos de la CLI de OneUptime.
+Cada comando de la CLI `oneuptime`, con sus argumentos, opciones y valores predeterminados. Añada `--help` a cualquier comando para ver lo mismo en su terminal.
 
-## Comandos de autenticación
+:::cards
+- [Opciones globales](#opciones-globales): Las opciones que admite cada comando.
+- [Inicio de sesión y contextos](#inicio-de-sesión-y-contextos): login y los comandos context.
+- [Comandos de recursos](#comandos-de-recursos): list, get, create, update, delete y count.
+- [Otros comandos](#otros-comandos): whoami, resources, version y help.
+:::
+
+## Los comandos
+
+```mermaid title="Los comandos de la CLI oneuptime"
+flowchart LR
+    O["oneuptime"] --> L["login"]
+    O --> C["context"]
+    C --> C1["list<br/>use<br/>current<br/>delete"]
+    O --> R["incident, monitor<br/>y cada recurso"]
+    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
+    O --> U["whoami<br/>resources<br/>version<br/>help"]
+```
+
+## Opciones globales
+
+| Opción | Qué hace | Predeterminado |
+| --- | --- | --- |
+| `--api-key <key>` | La clave de API para este comando | `ONEUPTIME_API_KEY`, luego la clave del contexto |
+| `--url <url>` | La dirección de su OneUptime para este comando | `ONEUPTIME_URL`, luego la URL del contexto |
+| `--context <name>` | El contexto guardado que usar para este comando | El contexto actual |
+| `-o, --output <format>` | `json`, `table` o `wide` | `table` en una terminal, `json` en una tubería |
+| `--no-color` | Imprime sin colores | Colores, salvo que `NO_COLOR` esté definida |
+| `-V, --version` | Imprime la versión de la CLI | |
+| `-h, --help` | Muestra la ayuda de un comando | |
+
+Las opciones van antes o después del comando: `oneuptime --context staging incident list` y `oneuptime incident list --context staging` hacen lo mismo.
+
+## Inicio de sesión y contextos
 
 ### `oneuptime login`
 
-Autenticarse con una instancia de OneUptime.
+Guarda una clave de API y una dirección como contexto, y lo convierte en el actual. Consulte [Iniciar sesión](/docs/cli/authentication#iniciar-sesión).
 
 ```bash
 oneuptime login <api-key> <instance-url> [--context-name <name>]
 ```
 
-| Parámetro        | Tipo      | Requerido | Descripción                                       |
-| ---------------- | --------- | --------- | ------------------------------------------------- |
-| `<api-key>`      | argumento | Sí        | Clave de API para la autenticación                |
-| `<instance-url>` | argumento | Sí        | URL de la instancia de OneUptime                  |
-| `--context-name` | opción    | No        | Nombre del contexto (predeterminado: `"default"`) |
-
----
+| Argumento u opción | Obligatorio | Qué es | Predeterminado |
+| --- | --- | --- | --- |
+| `<api-key>` | Sí | Una clave de API de su proyecto | |
+| `<instance-url>` | Sí | La dirección de su OneUptime, como `https://oneuptime.com` | |
+| `--context-name <name>` | No | El nombre con el que se guarda el contexto | `default` |
 
 ### `oneuptime context list`
 
-Listar todos los contextos guardados.
+Lista los contextos guardados; `*` marca el actual. Las claves de API nunca se listan.
 
 ```bash
-oneuptime context list
+oneuptime context list [-o <format>]
 ```
 
----
+| Opción | Obligatorio | Qué es |
+| --- | --- | --- |
+| `-o, --output <format>` | No | `json`, `table` o `wide`. JSON da el `name`, `apiUrl` e `isCurrent` de cada contexto |
 
 ### `oneuptime context use`
 
-Cambiar a un contexto con nombre.
+Convierte un contexto guardado en el actual.
 
 ```bash
 oneuptime context use <name>
 ```
 
-| Parámetro | Tipo      | Requerido | Descripción                   |
-| --------- | --------- | --------- | ----------------------------- |
-| `<name>`  | argumento | Sí        | Nombre del contexto a activar |
-
----
+| Argumento | Obligatorio | Qué es |
+| --- | --- | --- |
+| `<name>` | Sí | El nombre de un contexto guardado |
 
 ### `oneuptime context current`
 
-Mostrar el contexto activo con la clave de API enmascarada.
+Muestra el nombre y la URL del contexto actual, y su clave de API oculta salvo sus cuatro primeros y cuatro últimos caracteres.
 
 ```bash
 oneuptime context current
 ```
 
----
-
 ### `oneuptime context delete`
 
-Eliminar un contexto guardado.
+Elimina un contexto guardado. Si era el actual, el primer contexto que queda pasa a ser el actual.
 
 ```bash
 oneuptime context delete <name>
 ```
 
-| Parámetro | Tipo      | Requerido | Descripción                    |
-| --------- | --------- | --------- | ------------------------------ |
-| `<name>`  | argumento | Sí        | Nombre del contexto a eliminar |
-
----
+| Argumento | Obligatorio | Qué es |
+| --- | --- | --- |
+| `<name>` | Sí | El nombre de un contexto guardado |
 
 ## Comandos de recursos
 
-Todos los comandos de recursos siguen el mismo patrón. Reemplaza `<resource>` con cualquier nombre de recurso admitido (por ejemplo, `incident`, `monitor`, `alert`, `status-page`).
+`<resource>` es el comando de un tipo de registro, de las tablas de [Recursos](#recursos), como `incident` o `monitor`. Consulte [Operaciones de recursos](/docs/cli/resource-operations) para ver ejemplos.
 
 ### `oneuptime <resource> list`
 
-Listar recursos con filtrado y paginación.
+Lista registros, los más recientes primero.
 
 ```bash
-oneuptime <resource> list [options]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
 ```
 
-| Opción           | Tipo   | Predeterminado | Descripción                            |
-| ---------------- | ------ | -------------- | -------------------------------------- |
-| `--query <json>` | cadena | Ninguno        | Criterios de filtro en formato JSON    |
-| `--limit <n>`    | número | `10`           | Número máximo de resultados            |
-| `--skip <n>`     | número | `0`            | Resultados a omitir                    |
-| `--sort <json>`  | cadena | Ninguno        | Orden de clasificación en formato JSON |
-| `-o, --output`   | cadena | `table`        | Formato de salida                      |
-
----
+| Opción | Qué hace | Predeterminado |
+| --- | --- | --- |
+| `--query <json>` | Un filtro, en JSON | Cada registro que la clave puede leer |
+| `--limit <n>` | El máximo de registros que devolver, hasta 10.000 | `10` |
+| `--skip <n>` | Cuántos registros saltar primero | `0` |
+| `--sort <json>` | El orden, en JSON: `{"<field>":"ASC"}` o `{"<field>":"DESC"}` | Los más recientes primero |
+| `-o, --output <format>` | `json`, `table` o `wide` | `table` en una terminal, `json` en una tubería |
 
 ### `oneuptime <resource> get`
 
-Obtener un solo recurso por ID.
+Lee un registro. Solo registros: la telemetría no tiene `get`.
 
 ```bash
 oneuptime <resource> get <id> [-o <format>]
 ```
 
-| Parámetro      | Tipo      | Requerido | Descripción           |
-| -------------- | --------- | --------- | --------------------- |
-| `<id>`         | argumento | Sí        | ID del recurso (UUID) |
-| `-o, --output` | opción    | No        | Formato de salida     |
-
----
+| Argumento u opción | Obligatorio | Qué es |
+| --- | --- | --- |
+| `<id>` | Sí | El ID del registro, un UUID |
+| `-o, --output <format>` | No | `json`, `table` o `wide` |
 
 ### `oneuptime <resource> create`
 
-Crear un nuevo recurso.
+Crea un registro y lo imprime.
 
 ```bash
-oneuptime <resource> create [--data <json> | --file <path>] [-o <format>]
+oneuptime <resource> create (--data <json> | --file <path>) [-o <format>]
 ```
 
-| Opción          | Tipo   | Requerido                  | Descripción                       |
-| --------------- | ------ | -------------------------- | --------------------------------- |
-| `--data <json>` | cadena | Uno de `--data` o `--file` | Datos del recurso en formato JSON |
-| `--file <path>` | cadena | Uno de `--data` o `--file` | Ruta al archivo JSON              |
-| `-o, --output`  | cadena | No                         | Formato de salida                 |
-
----
+| Opción | Obligatorio | Qué es |
+| --- | --- | --- |
+| `--data <json>` | Una de las dos | El registro, en JSON |
+| `--file <path>` | Una de las dos | Un archivo JSON con el registro. Si se indica junto con `--data`, se usa el archivo |
+| `-o, --output <format>` | No | `json`, `table` o `wide` |
 
 ### `oneuptime <resource> update`
 
-Actualizar un recurso existente.
+Cambia los campos que indique. Solo registros: la telemetría no tiene `update`.
 
 ```bash
 oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-| Parámetro       | Tipo      | Requerido | Descripción                         |
-| --------------- | --------- | --------- | ----------------------------------- |
-| `<id>`          | argumento | Sí        | ID del recurso                      |
-| `--data <json>` | opción    | Sí        | Campos a actualizar en formato JSON |
-| `-o, --output`  | opción    | No        | Formato de salida                   |
-
----
+| Argumento u opción | Obligatorio | Qué es |
+| --- | --- | --- |
+| `<id>` | Sí | El ID del registro |
+| `--data <json>` | Sí | Los campos que cambiar, en JSON |
+| `-o, --output <format>` | No | `json`, `table` o `wide` |
 
 ### `oneuptime <resource> delete`
 
-Eliminar un recurso.
+Elimina un registro de inmediato, sin preguntar. Solo registros: la telemetría no tiene `delete`.
 
 ```bash
 oneuptime <resource> delete <id> [--force]
 ```
 
-| Parámetro | Tipo      | Requerido | Descripción                         |
-| --------- | --------- | --------- | ----------------------------------- |
-| `<id>`    | argumento | Sí        | ID del recurso                      |
-| `--force` | opción    | No        | Omitir la solicitud de confirmación |
-
----
+| Argumento u opción | Obligatorio | Qué es |
+| --- | --- | --- |
+| `<id>` | Sí | El ID del registro |
+| `--force` | No | Se acepta y no cambia nada: `delete` nunca pide confirmación |
 
 ### `oneuptime <resource> count`
 
-Contar recursos que coincidan con un filtro.
+Cuenta registros e imprime el número.
 
 ```bash
-oneuptime <resource> count [--query <json>]
+oneuptime <resource> count [--query <json>] [-o <format>]
 ```
 
-| Opción           | Tipo   | Predeterminado | Descripción                         |
-| ---------------- | ------ | -------------- | ----------------------------------- |
-| `--query <json>` | cadena | Ninguno        | Criterios de filtro en formato JSON |
+| Opción | Obligatorio | Qué es |
+| --- | --- | --- |
+| `--query <json>` | No | Un filtro, en JSON. Sin él, cada registro que la clave puede leer |
+| `-o, --output <format>` | No | `json`, `table` o `wide` |
 
----
+### Recursos
 
-## Comandos de utilidad
+Los registros admiten `list`, `get`, `create`, `update`, `delete` y `count`:
 
-### `oneuptime version`
+| Área | Comandos |
+| --- | --- |
+| Monitorización | `monitor`, `monitor-status`, `monitor-status-event` |
+| Incidentes | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Alertas | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
+| Páginas de estado | `status-page`, `status-page-announcement` |
+| Mantenimiento programado | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
+| Equipos y guardias | `team`, `on-call-policy` |
+| Etiquetas | `label` |
 
-Mostrar la versión de la CLI.
+La telemetría admite `list`, `create` y `count`:
 
-```bash
-oneuptime version
-```
+| Área | Comandos |
+| --- | --- |
+| Observabilidad | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
+| Seguridad | `security-event`, `threat-intel-indicator` |
+| Cambios y costes | `change-event`, `kubernetes-cost-allocation` |
 
----
+La CLI se publica junto con OneUptime, así que `oneuptime resources` lista los comandos de la versión que instaló.
+
+### Solicitudes a la API
+
+Cada operación es una solicitud a la API, con la clave en la cabecera `APIKey`. `<path>` es la ruta de API del recurso, que da `oneuptime resources`: `/incident` para `incident`, `/on-call-duty-policy` para `on-call-policy`.
+
+| Operación | Solicitud | Cuerpo |
+| --- | --- | --- |
+| `list` | `POST /api/<path>/get-list` | `query`, `select`, `skip`, `limit` y `sort` |
+| `get` | `POST /api/<path>/<id>/get-item` | `select` |
+| `create` | `POST /api/<path>` | `{"data": ...}` |
+| `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
+| `delete` | `DELETE /api/<path>/<id>/` | Ninguno |
+| `count` | `POST /api/<path>/count` | `query` |
+
+## Otros comandos
 
 ### `oneuptime whoami`
 
-Mostrar los detalles de autenticación actuales.
+Muestra la URL y la clave de API que usará el siguiente comando, con la clave enmascarada, y el contexto del que proceden. No llama a OneUptime. Consulte [Comprobar qué usará la CLI](/docs/cli/authentication#comprobar-qué-usará-la-cli).
 
 ```bash
 oneuptime whoami
 ```
 
-Muestra la URL de la instancia y la clave de API enmascarada. Si hay un contexto guardado activo, también se muestra el nombre del contexto.
-
----
-
 ### `oneuptime resources`
 
-Listar todos los tipos de recursos disponibles.
+Lista cada tipo de registro para el que la CLI tiene un comando: su comando, sus nombres en singular y en plural, su tipo y su ruta de API, y el total.
 
 ```bash
-oneuptime resources [--type <type>]
+oneuptime resources [--type <type>] [-o <format>]
 ```
 
-| Opción          | Tipo   | Predeterminado | Descripción                          |
-| --------------- | ------ | -------------- | ------------------------------------ |
-| `--type <type>` | cadena | Ninguno        | Filtrar por `database` o `analytics` |
+| Opción | Obligatorio | Qué es | Predeterminado |
+| --- | --- | --- | --- |
+| `--type <type>` | No | `database` para registros, `analytics` para telemetría | Ambos |
+| `-o, --output <format>` | No | `json`, `table` o `wide`. JSON da el `name`, `singularName`, `pluralName`, `modelType` y `apiPath` de cada uno | `table` en una terminal, `json` en una tubería |
 
----
+### `oneuptime version`
 
-## Opciones globales
+Imprime la versión de la CLI, como hace `oneuptime --version`.
 
-Estos indicadores están disponibles en todos los comandos:
+```bash
+oneuptime version
+```
 
-| Opción                  | Descripción                                |
-| ----------------------- | ------------------------------------------ |
-| `--api-key <key>`       | Reemplazar la clave de API                 |
-| `--url <url>`           | Reemplazar la URL de la instancia          |
-| `--context <name>`      | Usar un contexto específico                |
-| `-o, --output <format>` | Formato de salida: `json`, `table`, `wide` |
-| `--no-color`            | Deshabilitar la salida con colores         |
-| `--help`                | Mostrar ayuda                              |
-| `--version`             | Mostrar versión                            |
+### `oneuptime help`
 
-## Rutas de la API
+Muestra la ayuda de la CLI, o la de un comando.
 
-Como referencia, la CLI asigna los comandos a estos puntos de conexión de la API:
+```bash
+oneuptime help [command]
+```
 
-| Comando  | Método | Punto de conexión               |
-| -------- | ------ | ------------------------------- |
-| `list`   | POST   | `/api/<resource>/get-list`      |
-| `get`    | POST   | `/api/<resource>/<id>/get-item` |
-| `create` | POST   | `/api/<resource>`               |
-| `update` | PUT    | `/api/<resource>/<id>/`         |
-| `delete` | DELETE | `/api/<resource>/<id>/`         |
-| `count`  | POST   | `/api/<resource>/count`         |
+## Variables de entorno
 
-Todas las solicitudes incluyen el encabezado `APIKey` para la autenticación.
+| Variable | Qué hace |
+| --- | --- |
+| `ONEUPTIME_API_KEY` | La clave de API, cuando ninguna opción `--api-key` da una |
+| `ONEUPTIME_URL` | La dirección de su OneUptime, cuando ninguna opción `--url` da una |
+| `NO_COLOR` | Definida con cualquier valor, desactiva los colores |
+
+## Archivos
+
+| Archivo | Qué contiene |
+| --- | --- |
+| `~/.oneuptime/config.json` | Los contextos guardados, sus claves de API y el contexto actual |
+
+## Códigos de salida
+
+| Código | Significado |
+| --- | --- |
+| `0` | Funcionó |
+| `1` | Falló: OneUptime rechazó la solicitud, o el comando era incorrecto |
+| `2` | Ninguna clave de API utilizable: no se encontró ninguna, no es válida o está por debajo de su plan |
+| `3` | No encontrado: OneUptime respondió `404` |
+
+Consulte [Códigos de salida](/docs/cli/scripting#códigos-de-salida) para ver ejemplos.
+
+## Próximos pasos
+
+:::cards
+- [Visión general de la CLI](/docs/cli/index): Instalar la CLI y ejecutar sus primeros comandos.
+- [Operaciones de recursos](/docs/cli/resource-operations): Ejemplos de cada operación.
+- [Scripts y CI/CD](/docs/cli/scripting): La CLI en scripts y pipelines.
+:::

@@ -1,234 +1,292 @@
-# Command Reference
+# कमांड संदर्भ
 
-सभी OneUptime CLI commands का पूर्ण संदर्भ।
+`oneuptime` CLI की हर कमांड, उसके आर्ग्युमेंट, विकल्पों और डिफ़ॉल्ट के साथ। अपने टर्मिनल में यही देखने के लिए किसी भी कमांड में `--help` जोड़ें।
 
-## Authentication Commands
+:::cards
+- [ग्लोबल विकल्प](#ग्लोबल-विकल्प): वे विकल्प जो हर कमांड लेती है।
+- [लॉगिन और कॉन्टेक्स्ट](#लॉगिन-और-कॉन्टेक्स्ट): login और context कमांड।
+- [संसाधन कमांड](#संसाधन-कमांड): list, get, create, update, delete और count।
+- [अन्य कमांड](#अन्य-कमांड): whoami, resources, version और help।
+:::
+
+## कमांड
+
+```mermaid title="oneuptime CLI की कमांड"
+flowchart LR
+    O["oneuptime"] --> L["login"]
+    O --> C["context"]
+    C --> C1["list<br/>use<br/>current<br/>delete"]
+    O --> R["incident, monitor<br/>और हर संसाधन"]
+    R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
+    O --> U["whoami<br/>resources<br/>version<br/>help"]
+```
+
+## ग्लोबल विकल्प
+
+| विकल्प | यह क्या करता है | डिफ़ॉल्ट |
+| --- | --- | --- |
+| `--api-key <key>` | इस कमांड के लिए API कुंजी | `ONEUPTIME_API_KEY`, फिर कॉन्टेक्स्ट की कुंजी |
+| `--url <url>` | इस कमांड के लिए आपके OneUptime का पता | `ONEUPTIME_URL`, फिर कॉन्टेक्स्ट का URL |
+| `--context <name>` | इस कमांड के लिए उपयोग होने वाला सहेजा कॉन्टेक्स्ट | मौजूदा कॉन्टेक्स्ट |
+| `-o, --output <format>` | `json`, `table` या `wide` | टर्मिनल में `table`, पाइप में `json` |
+| `--no-color` | बिना रंगों के प्रिंट करता है | रंगों के साथ, जब तक `NO_COLOR` सेट न हो |
+| `-V, --version` | CLI का संस्करण प्रिंट करता है | |
+| `-h, --help` | किसी कमांड की सहायता दिखाता है | |
+
+विकल्प कमांड से पहले या बाद में आते हैं: `oneuptime --context staging incident list` और `oneuptime incident list --context staging` एक ही काम करते हैं।
+
+## लॉगिन और कॉन्टेक्स्ट
 
 ### `oneuptime login`
 
-OneUptime instance के साथ authenticate करें।
+एक API कुंजी और एक पते को कॉन्टेक्स्ट के रूप में सहेजती है, और उसे मौजूदा कॉन्टेक्स्ट बनाती है। [लॉग इन करें](/docs/cli/authentication#लॉग-इन-करें) देखें।
 
 ```bash
 oneuptime login <api-key> <instance-url> [--context-name <name>]
 ```
 
-| Parameter        | Type     | आवश्यक | विवरण                               |
-| ---------------- | -------- | ------ | ----------------------------------- |
-| `<api-key>`      | argument | हाँ    | authentication के लिए API key       |
-| `<instance-url>` | argument | हाँ    | OneUptime instance URL              |
-| `--context-name` | option   | नहीं   | Context नाम (डिफ़ॉल्ट: `"default"`) |
-
----
+| आर्ग्युमेंट या विकल्प | ज़रूरी | यह क्या है | डिफ़ॉल्ट |
+| --- | --- | --- | --- |
+| `<api-key>` | हाँ | आपके प्रोजेक्ट की एक API कुंजी | |
+| `<instance-url>` | हाँ | आपके OneUptime का पता, जैसे `https://oneuptime.com` | |
+| `--context-name <name>` | नहीं | वह नाम जिससे कॉन्टेक्स्ट सहेजा जाता है | `default` |
 
 ### `oneuptime context list`
 
-सभी saved contexts सूचीबद्ध करें।
+सहेजे कॉन्टेक्स्ट सूचीबद्ध करती है; `*` मौजूदा को चिह्नित करता है। API कुंजियाँ कभी सूचीबद्ध नहीं होतीं।
 
 ```bash
-oneuptime context list
+oneuptime context list [-o <format>]
 ```
 
----
+| विकल्प | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `-o, --output <format>` | नहीं | `json`, `table` या `wide`। JSON हर कॉन्टेक्स्ट का `name`, `apiUrl` और `isCurrent` देता है |
 
 ### `oneuptime context use`
 
-एक named context पर switch करें।
+किसी सहेजे कॉन्टेक्स्ट को मौजूदा बनाती है।
 
 ```bash
 oneuptime context use <name>
 ```
 
-| Parameter | Type     | आवश्यक | विवरण                            |
-| --------- | -------- | ------ | -------------------------------- |
-| `<name>`  | argument | हाँ    | activate करने के लिए Context नाम |
-
----
+| आर्ग्युमेंट | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `<name>` | हाँ | किसी सहेजे कॉन्टेक्स्ट का नाम |
 
 ### `oneuptime context current`
 
-Masked API key के साथ active context प्रदर्शित करें।
+मौजूदा कॉन्टेक्स्ट का नाम और URL दिखाती है, और उसकी API कुंजी, जिसमें पहले चार और आखिरी चार अक्षरों को छोड़कर सब छिपा होता है।
 
 ```bash
 oneuptime context current
 ```
 
----
-
 ### `oneuptime context delete`
 
-एक saved context हटाएं।
+सहेजा कॉन्टेक्स्ट हटाती है। अगर वह मौजूदा था, तो बचा हुआ पहला कॉन्टेक्स्ट मौजूदा बन जाता है।
 
 ```bash
 oneuptime context delete <name>
 ```
 
-| Parameter | Type     | आवश्यक | विवरण                          |
-| --------- | -------- | ------ | ------------------------------ |
-| `<name>`  | argument | हाँ    | delete करने के लिए Context नाम |
+| आर्ग्युमेंट | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `<name>` | हाँ | किसी सहेजे कॉन्टेक्स्ट का नाम |
 
----
+## संसाधन कमांड
 
-## Resource Commands
-
-सभी resource commands एक ही pattern का पालन करते हैं। `<resource>` को किसी भी समर्थित resource नाम से बदलें (जैसे `incident`, `monitor`, `alert`, `status-page`)।
+`<resource>` किसी तरह के रिकॉर्ड की कमांड है, [संसाधन](#संसाधन) टेबलों से, जैसे `incident` या `monitor`। उदाहरणों के लिए [संसाधन संचालन](/docs/cli/resource-operations) देखें।
 
 ### `oneuptime <resource> list`
 
-filtering और pagination के साथ resources सूचीबद्ध करें।
+रिकॉर्ड सूचीबद्ध करती है, सबसे नए पहले।
 
 ```bash
-oneuptime <resource> list [options]
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
 ```
 
-| Option           | Type   | Default | विवरण                           |
-| ---------------- | ------ | ------- | ------------------------------- |
-| `--query <json>` | string | None    | JSON के रूप में filter criteria |
-| `--limit <n>`    | number | `10`    | अधिकतम results                  |
-| `--skip <n>`     | number | `0`     | skip करने के लिए results        |
-| `--sort <json>`  | string | None    | JSON के रूप में sort order      |
-| `-o, --output`   | string | `table` | Output format                   |
-
----
+| विकल्प | यह क्या करता है | डिफ़ॉल्ट |
+| --- | --- | --- |
+| `--query <json>` | एक फ़िल्टर, JSON के रूप में | हर वह रिकॉर्ड जिसे कुंजी पढ़ सकती है |
+| `--limit <n>` | लौटाए जाने वाले अधिकतम रिकॉर्ड, 10,000 तक | `10` |
+| `--skip <n>` | पहले कितने रिकॉर्ड छोड़ने हैं | `0` |
+| `--sort <json>` | क्रम, JSON के रूप में: `{"<field>":"ASC"}` या `{"<field>":"DESC"}` | सबसे नए पहले |
+| `-o, --output <format>` | `json`, `table` या `wide` | टर्मिनल में `table`, पाइप में `json` |
 
 ### `oneuptime <resource> get`
 
-ID से एक single resource प्राप्त करें।
+एक रिकॉर्ड पढ़ती है। केवल रिकॉर्ड के लिए: टेलीमेट्री में `get` नहीं है।
 
 ```bash
 oneuptime <resource> get <id> [-o <format>]
 ```
 
-| Parameter      | Type     | आवश्यक | विवरण              |
-| -------------- | -------- | ------ | ------------------ |
-| `<id>`         | argument | हाँ    | Resource ID (UUID) |
-| `-o, --output` | option   | नहीं   | Output format      |
-
----
+| आर्ग्युमेंट या विकल्प | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `<id>` | हाँ | रिकॉर्ड की ID, एक UUID |
+| `-o, --output <format>` | नहीं | `json`, `table` या `wide` |
 
 ### `oneuptime <resource> create`
 
-एक नया resource बनाएं।
+एक रिकॉर्ड बनाती है और उसे प्रिंट करती है।
 
 ```bash
-oneuptime <resource> create [--data <json> | --file <path>] [-o <format>]
+oneuptime <resource> create (--data <json> | --file <path>) [-o <format>]
 ```
 
-| Option          | Type   | आवश्यक                         | विवरण                         |
-| --------------- | ------ | ------------------------------ | ----------------------------- |
-| `--data <json>` | string | `--data` या `--file` में से एक | JSON के रूप में Resource data |
-| `--file <path>` | string | `--data` या `--file` में से एक | JSON फ़ाइल का path            |
-| `-o, --output`  | string | नहीं                           | Output format                 |
-
----
+| विकल्प | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `--data <json>` | दोनों में से एक | रिकॉर्ड, JSON के रूप में |
+| `--file <path>` | दोनों में से एक | रिकॉर्ड वाली JSON फ़ाइल। `--data` के साथ दी जाए, तो फ़ाइल उपयोग होती है |
+| `-o, --output <format>` | नहीं | `json`, `table` या `wide` |
 
 ### `oneuptime <resource> update`
 
-एक मौजूदा resource अपडेट करें।
+आपके दिए फ़ील्ड बदलती है। केवल रिकॉर्ड के लिए: टेलीमेट्री में `update` नहीं है।
 
 ```bash
 oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-| Parameter       | Type     | आवश्यक | विवरण                                     |
-| --------------- | -------- | ------ | ----------------------------------------- |
-| `<id>`          | argument | हाँ    | Resource ID                               |
-| `--data <json>` | option   | हाँ    | JSON के रूप में update करने के लिए fields |
-| `-o, --output`  | option   | नहीं   | Output format                             |
-
----
+| आर्ग्युमेंट या विकल्प | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `<id>` | हाँ | रिकॉर्ड की ID |
+| `--data <json>` | हाँ | बदलने वाले फ़ील्ड, JSON के रूप में |
+| `-o, --output <format>` | नहीं | `json`, `table` या `wide` |
 
 ### `oneuptime <resource> delete`
 
-एक resource हटाएं।
+बिना पूछे, तुरंत एक रिकॉर्ड हटाती है। केवल रिकॉर्ड के लिए: टेलीमेट्री में `delete` नहीं है।
 
 ```bash
 oneuptime <resource> delete <id> [--force]
 ```
 
-| Parameter | Type     | आवश्यक | विवरण                      |
-| --------- | -------- | ------ | -------------------------- |
-| `<id>`    | argument | हाँ    | Resource ID                |
-| `--force` | option   | नहीं   | confirmation prompt छोड़ें |
-
----
+| आर्ग्युमेंट या विकल्प | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `<id>` | हाँ | रिकॉर्ड की ID |
+| `--force` | नहीं | स्वीकार होता है और कुछ नहीं बदलता: `delete` कभी पुष्टि नहीं माँगता |
 
 ### `oneuptime <resource> count`
 
-एक filter से मेल खाने वाले resources गिनें।
+रिकॉर्ड गिनती है, और संख्या प्रिंट करती है।
 
 ```bash
-oneuptime <resource> count [--query <json>]
+oneuptime <resource> count [--query <json>] [-o <format>]
 ```
 
-| Option           | Type   | Default | विवरण                           |
-| ---------------- | ------ | ------- | ------------------------------- |
-| `--query <json>` | string | None    | JSON के रूप में filter criteria |
+| विकल्प | ज़रूरी | यह क्या है |
+| --- | --- | --- |
+| `--query <json>` | नहीं | एक फ़िल्टर, JSON के रूप में। इसके बिना, हर वह रिकॉर्ड जिसे कुंजी पढ़ सकती है |
+| `-o, --output <format>` | नहीं | `json`, `table` या `wide` |
 
----
+### संसाधन
 
-## Utility Commands
+रिकॉर्ड `list`, `get`, `create`, `update`, `delete` और `count` लेते हैं:
 
-### `oneuptime version`
+| क्षेत्र | कमांड |
+| --- | --- |
+| मॉनिटरिंग | `monitor`, `monitor-status`, `monitor-status-event` |
+| घटनाएँ | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| अलर्ट | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
+| स्थिति पृष्ठ | `status-page`, `status-page-announcement` |
+| अनुसूचित रखरखाव | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
+| टीमें और ऑन-कॉल | `team`, `on-call-policy` |
+| लेबल | `label` |
 
-CLI version प्रदर्शित करें।
+टेलीमेट्री `list`, `create` और `count` लेती है:
 
-```bash
-oneuptime version
-```
+| क्षेत्र | कमांड |
+| --- | --- |
+| ऑब्ज़र्वेबिलिटी | `log`, `metric`, `span`, `exception-instance`, `monitor-log` |
+| सुरक्षा | `security-event`, `threat-intel-indicator` |
+| बदलाव और लागत | `change-event`, `kubernetes-cost-allocation` |
 
----
+CLI, OneUptime के साथ रिलीज़ होता है, इसलिए `oneuptime resources` आपके इंस्टॉल किए संस्करण की कमांड सूचीबद्ध करता है।
+
+### API अनुरोध
+
+हर संचालन API को एक अनुरोध है, जिसमें कुंजी `APIKey` हेडर में होती है। `<path>` संसाधन का API पाथ है, जो `oneuptime resources` से मिलता है: `incident` के लिए `/incident`, `on-call-policy` के लिए `/on-call-duty-policy`।
+
+| संचालन | अनुरोध | बॉडी |
+| --- | --- | --- |
+| `list` | `POST /api/<path>/get-list` | `query`, `select`, `skip`, `limit` और `sort` |
+| `get` | `POST /api/<path>/<id>/get-item` | `select` |
+| `create` | `POST /api/<path>` | `{"data": ...}` |
+| `update` | `PUT /api/<path>/<id>/` | `{"data": ...}` |
+| `delete` | `DELETE /api/<path>/<id>/` | कोई नहीं |
+| `count` | `POST /api/<path>/count` | `query` |
+
+## अन्य कमांड
 
 ### `oneuptime whoami`
 
-वर्तमान authentication विवरण दिखाएं।
+वह URL और API कुंजी दिखाती है जिनका अगली कमांड उपयोग करेगी, कुंजी छिपाकर, और वह कॉन्टेक्स्ट जिससे वे आती हैं। यह OneUptime को कॉल नहीं करती। [देखें कि CLI क्या उपयोग करेगा](/docs/cli/authentication#देखें-कि-cli-क्या-उपयोग-करेगा) देखें।
 
 ```bash
 oneuptime whoami
 ```
 
-instance URL और masked API key प्रदर्शित करता है। यदि कोई saved context active है, तो context नाम भी दिखाया जाता है।
-
----
-
 ### `oneuptime resources`
 
-सभी उपलब्ध resource types सूचीबद्ध करें।
+हर तरह का वह रिकॉर्ड सूचीबद्ध करती है जिसकी CLI में कमांड है: उसकी कमांड, एकवचन और बहुवचन नाम, प्रकार और API पाथ, और कुल संख्या।
 
 ```bash
-oneuptime resources [--type <type>]
+oneuptime resources [--type <type>] [-o <format>]
 ```
 
-| Option          | Type   | Default | विवरण                                    |
-| --------------- | ------ | ------- | ---------------------------------------- |
-| `--type <type>` | string | None    | `database` या `analytics` से filter करें |
+| विकल्प | ज़रूरी | यह क्या है | डिफ़ॉल्ट |
+| --- | --- | --- | --- |
+| `--type <type>` | नहीं | रिकॉर्ड के लिए `database`, टेलीमेट्री के लिए `analytics` | दोनों |
+| `-o, --output <format>` | नहीं | `json`, `table` या `wide`। JSON हर एक का `name`, `singularName`, `pluralName`, `modelType` और `apiPath` देता है | टर्मिनल में `table`, पाइप में `json` |
 
----
+### `oneuptime version`
 
-## Global Options
+CLI का संस्करण प्रिंट करती है, जैसे `oneuptime --version` करता है।
 
-ये flags सभी commands पर उपलब्ध हैं:
+```bash
+oneuptime version
+```
 
-| Option                  | विवरण                                  |
-| ----------------------- | -------------------------------------- |
-| `--api-key <key>`       | API key override करें                  |
-| `--url <url>`           | instance URL override करें             |
-| `--context <name>`      | एक specific context उपयोग करें         |
-| `-o, --output <format>` | Output format: `json`, `table`, `wide` |
-| `--no-color`            | colored output अक्षम करें              |
-| `--help`                | help दिखाएं                            |
-| `--version`             | version दिखाएं                         |
+### `oneuptime help`
 
-## API Routes
+CLI की, या किसी कमांड की, सहायता दिखाती है।
 
-संदर्भ के लिए, CLI commands इन API endpoints से map होते हैं:
+```bash
+oneuptime help [command]
+```
 
-| Command  | Method | Endpoint                        |
-| -------- | ------ | ------------------------------- |
-| `list`   | POST   | `/api/<resource>/get-list`      |
-| `get`    | POST   | `/api/<resource>/<id>/get-item` |
-| `create` | POST   | `/api/<resource>`               |
-| `update` | PUT    | `/api/<resource>/<id>/`         |
-| `delete` | DELETE | `/api/<resource>/<id>/`         |
-| `count`  | POST   | `/api/<resource>/count`         |
+## एनवायरनमेंट वेरिएबल
 
-सभी requests में authentication के लिए `APIKey` header शामिल है।
+| वेरिएबल | यह क्या करता है |
+| --- | --- |
+| `ONEUPTIME_API_KEY` | API कुंजी, जब कोई `--api-key` फ़्लैग कुंजी न दे |
+| `ONEUPTIME_URL` | आपके OneUptime का पता, जब कोई `--url` फ़्लैग पता न दे |
+| `NO_COLOR` | कोई भी मान देने पर रंग बंद करता है |
+
+## फ़ाइलें
+
+| फ़ाइल | इसमें क्या होता है |
+| --- | --- |
+| `~/.oneuptime/config.json` | सहेजे कॉन्टेक्स्ट, उनकी API कुंजियाँ, और मौजूदा कॉन्टेक्स्ट |
+
+## एग्ज़िट कोड
+
+| कोड | मतलब |
+| --- | --- |
+| `0` | काम हुआ |
+| `1` | विफल हुआ: OneUptime ने अनुरोध अस्वीकार किया, या कमांड गलत थी |
+| `2` | कोई उपयोग योग्य API कुंजी नहीं: नहीं मिली, अमान्य, या अपने प्लान से नीचे |
+| `3` | नहीं मिला: OneUptime ने `404` जवाब दिया |
+
+उदाहरणों के लिए [एग्ज़िट कोड](/docs/cli/scripting#एग्ज़िट-कोड) देखें।
+
+## अगले कदम
+
+:::cards
+- [CLI अवलोकन](/docs/cli/index): CLI इंस्टॉल करें और अपनी पहली कमांड चलाएँ।
+- [संसाधन संचालन](/docs/cli/resource-operations): हर संचालन के उदाहरण।
+- [स्क्रिप्टिंग और CI/CD](/docs/cli/scripting): स्क्रिप्ट और पाइपलाइन में CLI।
+:::

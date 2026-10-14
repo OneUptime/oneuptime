@@ -51,6 +51,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
 import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import ProjectService from "../../../../Server/Services/ProjectService";
 
 /*
  * Resolved By, from the worker's answer to the alert: a Logs monitor that
@@ -395,6 +396,8 @@ describe("MonitorResourceUtil.monitorResource: a Logs monitor's groups, resolved
   let createAlerts: jest.SpyInstance;
 
   beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
     jest.spyOn(Semaphore, "release").mockResolvedValue(undefined as never);
     jest.spyOn(MonitorService, "findOneById");

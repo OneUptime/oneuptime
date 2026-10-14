@@ -1732,7 +1732,30 @@ export default class Markdown {
       );
     };
 
+    /*
+     * The lines between a table's rows are drawn above the row below them,
+     * never under the row above: a line under the last row would sit on the
+     * table's own bottom border and, in a collapsed table, be drawn in its
+     * place - a cell's border wins over the table's - so the table's bottom
+     * edge was the near-invisible hairline and the box read as open. (Detail
+     * cards draw their dividers the same way: Utils/EmailDetailCard.ts in
+     * the Notification feature set.)
+     *
+     * So the heavier rule under the header is the first body row's top
+     * border, and each later body row draws a hairline above itself. A table
+     * with a header and no body rows draws no line at all. marked renders a
+     * table's cells row by row, its header row first, then calls tablerow
+     * for each row and table() at the end, all in one synchronous pass: so a
+     * header cell starts a new table, and the body rows it has finished so
+     * far tell a body cell which row it is in.
+     */
+    let finishedBodyRows: number = 0;
+
     renderer.tablerow = function (content: string): string {
+      if (content.startsWith("<td")) {
+        finishedBodyRows += 1;
+      }
+
       return `<tr>${content}</tr>`;
     };
 
@@ -1743,14 +1766,22 @@ export default class Markdown {
       const tag: string = flags.header ? "th" : "td";
       const align: string = flags.align ? `text-align:${flags.align};` : "";
 
+      if (flags.header) {
+        finishedBodyRows = 0;
+      }
+
       /*
-       * A header cell gets the tinted band and the heavier bottom rule; a
-       * body cell gets a hairline so consecutive rows stay separable. Both
-       * keep the same padding so the columns line up.
+       * A header cell gets the tinted band; the first body row, the heavier
+       * rule above it; a later body row, a hairline so consecutive rows stay
+       * separable. All keep the same padding so the columns line up.
        */
+      const rowDivider: string =
+        finishedBodyRows === 0
+          ? "border-top:1px solid #cbd5e1;"
+          : "border-top:1px solid #f1f5f9;";
       const tone: string = flags.header
-        ? "background-color:#f8fafc;color:#475569;font-weight:600;border-bottom:1px solid #cbd5e1;"
-        : "color:#1e293b;font-weight:400;border-bottom:1px solid #f1f5f9;";
+        ? "background-color:#f8fafc;color:#475569;font-weight:600;"
+        : `color:#1e293b;font-weight:400;${rowDivider}`;
 
       return (
         `<${tag} style="padding:8px 10px;${cellFont}${tone}` +

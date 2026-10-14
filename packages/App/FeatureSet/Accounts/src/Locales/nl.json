@@ -227,6 +227,7 @@
       "plan": "{{name}} - abonnement bevat geen MCP-clients",
       "sso": "{{name}} - meld u eerst aan met single sign-on",
       "blocked": "{{name}} - niet toegestaan door uw beheerder",
+      "project-blocked": "{{name}} - het project is geblokkeerd",
       "not-a-member": "{{name}} - u bent geen lid"
     },
     "noProjects": "U hoort nog niet bij een project. Maak een project aan of sluit u aan bij een project en koppel uw MCP-client daarna opnieuw.",

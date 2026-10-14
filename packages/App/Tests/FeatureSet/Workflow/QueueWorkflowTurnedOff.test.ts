@@ -220,6 +220,8 @@ const jobData: (spies: Spies) => JSONObject = (spies: Spies): JSONObject => {
 };
 
 beforeEach(() => {
+  // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   jest.spyOn(logger, "error").mockImplementation((): void => {
     // A refused lookup is logged; that is not under test here.
   });

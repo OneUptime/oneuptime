@@ -1,230 +1,214 @@
 # Resource Operations
 
-The OneUptime CLI provides full CRUD (Create, Read, Update, Delete) operations for all supported resources. Resources are auto-discovered from your OneUptime instance.
+Each kind of record is a command of its own, such as `incident`, `monitor` or `status-page`, and each one takes the same operations: `list`, `get`, `create`, `update`, `delete` and `count`. This page shows every operation, with filters, paging and the JSON a record is written in.
 
-## Available Resources
+:::cards
+- [Find the command for a record](#find-the-command-for-a-record): oneuptime resources lists them all.
+- [List records](#list-records): Filter, sort and page.
+- [Create a record](#create-a-record): From JSON on the command line or in a file.
+- [Delete a record](#delete-a-record): At once, with no undo.
+:::
 
-Run the following command to see all available resource types:
+## How the operations fit together
+
+Reading, changing and deleting a record need its ID. Listing, counting and creating need none, and a list or a create gives you the IDs the others take:
+
+```mermaid title="Where a record's ID comes from"
+flowchart TB
+    L["list<br/>finds records"] -->|"the _id of each"| G["get<br/>reads one record"]
+    C["create<br/>adds a record"] -->|"the new _id"| G
+    G --> U["update<br/>changes it"]
+    U --> D["delete<br/>removes it"]
+```
+
+An ID is a UUID, such as `6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11`. You can also copy one from the record's page in OneUptime: see [Finding a resource's ID](/docs/api-reference/api-reference#finding-a-resources-id).
+
+## Find the command for a record
 
 ```bash
 oneuptime resources
 ```
 
-You can filter by type:
+The list shows each kind of record with its command, its names, its type and its API path. There are two types:
+
+| Type | What it holds | Operations |
+| --- | --- | --- |
+| `database` | Records you manage: monitors, incidents, alerts, status pages, teams and more | `list`, `get`, `create`, `update`, `delete`, `count` |
+| `analytics` | Telemetry: logs, spans, metrics, exceptions and other events | `list`, `create`, `count` |
+
+Show one type with `oneuptime resources --type database` or `--type analytics`. The [Command Reference](/docs/cli/command-reference#resources) lists every command.
+
+## List records
 
 ```bash
-# Show only database resources
-oneuptime resources --type database
-
-# Show only analytics resources
-oneuptime resources --type analytics
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
 ```
 
-Common resources include:
-
-| Resource                    | Command                                 |
-| --------------------------- | --------------------------------------- |
-| Incident                    | `oneuptime incident`                    |
-| Alert                       | `oneuptime alert`                       |
-| Monitor                     | `oneuptime monitor`                     |
-| Monitor Status              | `oneuptime monitor-status`              |
-| Incident State              | `oneuptime incident-state`              |
-| Status Page                 | `oneuptime status-page`                 |
-| On-Call Policy              | `oneuptime on-call-policy`              |
-| Team                        | `oneuptime team`                        |
-| Scheduled Maintenance Event | `oneuptime scheduled-maintenance-event` |
-
-## List Resources
-
-Retrieve a list of resources with optional filtering, pagination, and sorting.
+| Option | What it does | Default |
+| --- | --- | --- |
+| `--query <json>` | Returns only the records that match: see [Filter a list](#filter-a-list) | Every record the key may read |
+| `--limit <n>` | The most records to return, up to 10,000 | `10` |
+| `--skip <n>` | How many matching records to pass over first | `0` |
+| `--sort <json>` | The order, such as `{"createdAt":"ASC"}`, or `"DESC"` for newest first | Newest first |
+| `-o, --output <format>` | `table`, `json` or `wide` | `table` in a terminal, `json` in a pipe |
 
 ```bash
-oneuptime <resource> list [options]
-```
-
-**Options:**
-
-| Option                  | Description               | Default |
-| ----------------------- | ------------------------- | ------- |
-| `--query <json>`        | Filter criteria as JSON   | None    |
-| `--limit <n>`           | Maximum number of results | `10`    |
-| `--skip <n>`            | Number of results to skip | `0`     |
-| `--sort <json>`         | Sort order as JSON        | None    |
-| `-o, --output <format>` | Output format             | `table` |
-
-**Examples:**
-
-```bash
-# List the 10 most recent incidents
+# The ten newest incidents
 oneuptime incident list
 
-# Filter incidents by state ID
-oneuptime incident list --query '{"currentIncidentStateId":"<state-id>"}'
+# The oldest monitors first, 50 at a time: the second page
+oneuptime monitor list --sort '{"createdAt":"ASC"}' --limit 50 --skip 50
 
-# List with pagination
-oneuptime incident list --limit 20 --skip 40
-
-# Sort by creation date (descending)
-oneuptime incident list --sort '{"createdAt":-1}'
-
-# Output as JSON
+# Every field of each incident, as JSON
 oneuptime incident list -o json
 ```
 
-## Get a Resource
+A list asks OneUptime for every field of each record that the key may read. A table shows six of them; JSON shows them all (see [Output Formats](/docs/cli/output-formats)). To page through every record, raise `--skip` by `--limit` until a page comes back empty; `count` says how many there are.
 
-Retrieve a single resource by its ID.
+### Filter a list
+
+`--query` takes the same filter as the API: a field with a value matches that value, and an object with a `_type` compares.
+
+| Filter | Matches |
+| --- | --- |
+| `{"title":"Checkout API is down"}` | Records with exactly that value |
+| `{"title":{"_type":"Search","value":"checkout"}}` | Text that contains the value |
+| `{"createdAt":{"_type":"GreaterThan","value":"2026-10-01T00:00:00.000Z"}}` | Later dates, or larger numbers |
+| `{"currentIncidentState":{"isResolvedState":false}}` | A field of a record the resource names: here, incidents that are not resolved |
 
 ```bash
-oneuptime <resource> get <id>
+oneuptime incident list --query '{"title":{"_type":"Search","value":"checkout"}}'
 ```
 
-**Arguments:**
+[Filter, sort and page](/docs/api-reference/api-reference#filter-sort-and-page) in the API reference lists every `_type`.
 
-| Argument | Description            |
-| -------- | ---------------------- |
-| `<id>`   | The resource ID (UUID) |
-
-**Examples:**
+## Read a record
 
 ```bash
-# Get a specific incident
-oneuptime incident get 550e8400-e29b-41d4-a716-446655440000
-
-# Get a monitor as JSON
-oneuptime monitor get abc-123 -o json
+oneuptime <resource> get <id> [-o <format>]
 ```
 
-## Create a Resource
-
-Create a new resource from inline JSON or a file.
-
 ```bash
-oneuptime <resource> create [options]
+oneuptime incident get 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 ```
 
-**Options:**
+A table shows one row for each field of the record, each value cut at 60 characters; `-o json` shows the values whole. An ID that names no record your key may read answers `Not found`, and the command exits with code `3`.
 
-| Option                  | Description                                  |
-| ----------------------- | -------------------------------------------- |
-| `--data <json>`         | Resource data as a JSON object               |
-| `--file <path>`         | Path to a JSON file containing resource data |
-| `-o, --output <format>` | Output format                                |
-
-You must provide either `--data` or `--file`.
-
-**Examples:**
+## Create a record
 
 ```bash
-# Create an incident with inline JSON
-oneuptime incident create --data '{"title":"API Outage","currentIncidentStateId":"<state-id>","incidentSeverityId":"<severity-id>","declaredAt":"2025-01-15T10:30:00Z"}'
+oneuptime <resource> create --data <json> [-o <format>]
+oneuptime <resource> create --file <path> [-o <format>]
+```
 
-# Create from a JSON file
+`--data` takes the record as JSON, and `--file` reads it from a JSON file. Give one of the two; given both, the file is used. The fields are the API's, and the [API reference](/reference) lists each resource's. The project comes from the API key, so a record never names it.
+
+```bash
+# A manual monitor
+oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}'
+
+# An incident with one of your severities
+oneuptime incident create --data '{"title":"Checkout API is down","incidentSeverityId":"<severity-id>"}'
+
+# The same incident, from a file
 oneuptime incident create --file incident.json
-
-# Create and output as JSON to capture the ID
-oneuptime monitor create --data '{"name":"API Health Check"}' -o json
 ```
 
-## Update a Resource
-
-Update an existing resource by ID.
+The CLI prints the new record, with its `_id`. An incident starts in your project's created state unless `currentIncidentStateId` names another one: see [The state a new record starts in](/docs/api-reference/api-reference#the-state-a-new-record-starts-in). To find your severities' IDs:
 
 ```bash
-oneuptime <resource> update <id> [options]
+oneuptime incident-severity list -o json | jq -r '.[] | "\(._id)  \(.name)"'
 ```
 
-**Arguments:**
+> [!TIP]
+> On Windows, put the JSON in a file and use `--file`: PowerShell and the Command Prompt quote JSON on the command line differently from Bash.
 
-| Argument | Description     |
-| -------- | --------------- |
-| `<id>`   | The resource ID |
-
-**Options:**
-
-| Option                  | Description                         |
-| ----------------------- | ----------------------------------- |
-| `--data <json>`         | Fields to update as JSON (required) |
-| `-o, --output <format>` | Output format                       |
-
-**Examples:**
+## Update a record
 
 ```bash
-# Change incident state (e.g., to resolved)
-oneuptime incident update abc-123 --data '{"currentIncidentStateId":"<resolved-state-id>"}'
+oneuptime <resource> update <id> --data <json> [-o <format>]
+```
 
+`--data` is required and holds only the fields to change:
+
+```bash
 # Rename a monitor
-oneuptime monitor update abc-123 --data '{"name":"Updated Monitor Name"}'
+oneuptime monitor update <monitor-id> --data '{"name":"Checkout API (EU)"}'
+
+# Move an incident to your resolved state
+oneuptime incident update <incident-id> --data '{"currentIncidentStateId":"<resolved-state-id>"}'
 ```
 
-## Delete a Resource
-
-Delete a resource by ID.
+OneUptime answers an update with an empty object: the CLI prints an empty line, or `{}` with `-o json`. Run `get` to see the record as it is now. Moving an incident to another state this way records the change on its timeline, as the dashboard does, and a state before its current one is refused. To find the ID of the resolved state, the first one in your project's order:
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order":"ASC"}' --limit 1 -o json | jq -r '.[0]._id'
 ```
 
-**Arguments:**
-
-| Argument | Description     |
-| -------- | --------------- |
-| `<id>`   | The resource ID |
-
-**Options:**
-
-| Option    | Description              |
-| --------- | ------------------------ |
-| `--force` | Skip confirmation prompt |
-
-**Examples:**
+## Delete a record
 
 ```bash
-oneuptime incident delete abc-123
-oneuptime monitor delete 550e8400-e29b-41d4-a716-446655440000
-
-# Skip confirmation
-oneuptime monitor delete 550e8400-e29b-41d4-a716-446655440000 --force
+oneuptime <resource> delete <id>
 ```
 
-## Count Resources
-
-Count resources matching optional filter criteria.
-
 ```bash
-oneuptime <resource> count [options]
+oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 ```
 
-**Options:**
+It answers `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.`
 
-| Option           | Description             |
-| ---------------- | ----------------------- |
-| `--query <json>` | Filter criteria as JSON |
+> [!CAUTION]
+> `delete` removes the record at once. The CLI does not ask you to confirm, and there is no undo. It accepts `--force`, for scripts written with it, and `--force` changes nothing.
 
-**Examples:**
+## Count records
 
 ```bash
-# Count all incidents
+oneuptime <resource> count [--query <json>]
+```
+
+```bash
+# Every incident
 oneuptime incident count
 
-# Count incidents by state
-oneuptime incident count --query '{"currentIncidentStateId":"<state-id>"}'
-
-# Count monitors
-oneuptime monitor count
+# Incidents that are not resolved
+oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}'
 ```
 
-## Analytics Resources
+The CLI prints one number, the same in a table and in JSON, so a script can read it as it is.
 
-Analytics resources support a limited set of operations compared to database resources:
+## What each type can do
 
-| Operation | Supported |
-| --------- | --------- |
-| `list`    | Yes       |
-| `create`  | Yes       |
-| `count`   | Yes       |
-| `get`     | No        |
-| `update`  | No        |
-| `delete`  | No        |
+| Operation | `database` | `analytics` |
+| --- | --- | --- |
+| `list` | Yes | Yes |
+| `get` | Yes | No |
+| `create` | Yes | Yes |
+| `update` | Yes | No |
+| `delete` | Yes | No |
+| `count` | Yes | Yes |
 
-Use `oneuptime resources --type analytics` to see which analytics resources are available on your instance.
+## Troubleshooting
+
+:::details Not found: API error (404)
+The record does not exist, is in another project, or is one the key may not read: OneUptime answers the same for each. Check the ID with `list`, and the key's permissions. The command exits with code `3`.
+:::
+
+:::details API error (422): You do not have permissions to select on
+A list or a get asks for every field of the record, and the key may not read one of them: the message names the field and the permissions that may read it. Give the key one of those permissions.
+:::
+
+:::details Error: Invalid JSON
+The value of `--query`, `--sort` or `--data` is not JSON. In Bash and zsh, wrap it in single quotes; on Windows, put a record in a file and use `--file`.
+:::
+
+:::details API error (400) on a create or an update
+OneUptime refused a field: the message names it. `No fields to update` means `--data` held no field to change.
+:::
+
+## Next steps
+
+:::cards
+- [Output Formats](/docs/cli/output-formats): Read the answers as tables or as JSON.
+- [Scripting & CI/CD](/docs/cli/scripting): Use these operations in scripts and pipelines.
+- [Command Reference](/docs/cli/command-reference): Every command, option and default.
+:::

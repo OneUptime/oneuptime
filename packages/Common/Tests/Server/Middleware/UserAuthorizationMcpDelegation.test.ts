@@ -241,6 +241,8 @@ describe("UserMiddleware hands a request with an MCP delegation token to McpDele
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
 
     res = { set: jest.fn() } as unknown as ExpressResponse;
     next = jest.fn();
@@ -502,6 +504,8 @@ describe("UserMiddleware hands a request with an MCP delegation token to McpDele
       let authorizeSpy: SpyInstance;
 
       beforeEach(() => {
+        // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+        jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
         authorizeSpy = getJestSpyOn(McpDelegationAuthorization, "authorize");
       });
 
