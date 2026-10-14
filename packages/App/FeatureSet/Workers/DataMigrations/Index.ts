@@ -117,6 +117,7 @@ import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecre
 import EncryptProjectCallSMSConfigTwilioAuthToken from "./EncryptProjectCallSMSConfigTwilioAuthToken";
 import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
+import MaterializeAttributeValuesIndex from "./MaterializeAttributeValuesIndex";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
@@ -713,6 +714,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * last slot AddAuditLogMcpClientColumns asserts for itself. Idempotent.
    */
   new EncryptProjectCallSMSConfigTwilioAuthToken(),
+  /*
+   * Builds idx_attribute_values - the bloom filter over every attribute
+   * value of LogItemV3 and SpanItemV3 - for the rows an install already
+   * has, so a log or trace search for one attribute value skips the
+   * granules that cannot hold it over the whole retention (#4706). Boot
+   * schema-sync adds the index definition first; this queues a background
+   * MATERIALIZE INDEX that reads each row's attributes once. Cluster-aware
+   * and idempotent; no ordering requirement, so it sits before the last
+   * slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new MaterializeAttributeValuesIndex(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

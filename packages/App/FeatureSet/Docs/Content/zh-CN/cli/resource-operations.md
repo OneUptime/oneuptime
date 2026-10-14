@@ -1,230 +1,214 @@
 # 资源操作
 
-OneUptime CLI 为所有支持的资源提供完整的 CRUD（创建、读取、更新、删除）操作。资源从您的 OneUptime 实例自动发现。
+每种记录都有自己的命令，例如 `incident`、`monitor` 或 `status-page`，它们都接受相同的操作：`list`、`get`、`create`、`update`、`delete` 和 `count`。本页介绍每个操作，以及筛选、分页和书写记录所用的 JSON。
 
-## 可用资源
+:::cards
+- [找到某种记录的命令](#找到某种记录的命令): oneuptime resources 会把它们全部列出。
+- [列出记录](#列出记录): 筛选、排序和分页。
+- [创建记录](#创建记录): 来自命令行或文件中的 JSON。
+- [删除记录](#删除记录): 立即删除，无法撤销。
+:::
 
-运行以下命令查看所有可用的资源类型：
+## 各操作如何配合
+
+读取、更改和删除记录都需要它的 ID。列出、统计和创建则不需要，而列表或创建的结果会给出其他操作所需的 ID：
+
+```mermaid title="记录的 ID 从哪里来"
+flowchart TB
+    L["list<br/>查找记录"] -->|"每条的 _id"| G["get<br/>读取一条记录"]
+    C["create<br/>添加一条记录"] -->|"新的 _id"| G
+    G --> U["update<br/>更改它"]
+    U --> D["delete<br/>删除它"]
+```
+
+ID 是一个 UUID，例如 `6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11`。你也可以在 OneUptime 中该记录的页面上复制它：参见 [查找资源的 ID](/docs/api-reference/api-reference#查找资源的-id)。
+
+## 找到某种记录的命令
 
 ```bash
 oneuptime resources
 ```
 
-您可以按类型过滤：
+列表显示每种记录的命令、名称、类型和 API 路径。类型有两种：
+
+| 类型 | 包含什么 | 操作 |
+| --- | --- | --- |
+| `database` | 你管理的记录：监视器、事件、警报、状态页面、团队等 | `list`, `get`, `create`, `update`, `delete`, `count` |
+| `analytics` | 遥测数据：日志、跨度、指标、异常和其他事件 | `list`, `create`, `count` |
+
+用 `oneuptime resources --type database` 或 `--type analytics` 只显示一种类型。[命令参考](/docs/cli/command-reference#资源) 列出了每条命令。
+
+## 列出记录
 
 ```bash
-# 仅显示数据库资源
-oneuptime resources --type database
-
-# 仅显示分析资源
-oneuptime resources --type analytics
+oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
 ```
 
-常用资源包括：
-
-| 资源         | 命令                                    |
-| ------------ | --------------------------------------- |
-| 事件         | `oneuptime incident`                    |
-| 告警         | `oneuptime alert`                       |
-| 监控器       | `oneuptime monitor`                     |
-| 监控器状态   | `oneuptime monitor-status`              |
-| 事件状态     | `oneuptime incident-state`              |
-| 状态页面     | `oneuptime status-page`                 |
-| 值班策略     | `oneuptime on-call-policy`              |
-| 团队         | `oneuptime team`                        |
-| 计划维护事件 | `oneuptime scheduled-maintenance-event` |
-
-## 列出资源
-
-获取资源列表，支持可选的过滤、分页和排序。
+| 选项 | 作用 | 默认值 |
+| --- | --- | --- |
+| `--query <json>` | 只返回匹配的记录：参见 [筛选列表](#筛选列表) | 密钥可读取的所有记录 |
+| `--limit <n>` | 最多返回的记录数，最多 10,000 | `10` |
+| `--skip <n>` | 先跳过多少条匹配的记录 | `0` |
+| `--sort <json>` | 顺序，例如 `{"createdAt":"ASC"}`，或用 `"DESC"` 让最新的排在前面 | 最新的在前 |
+| `-o, --output <format>` | `table`、`json` 或 `wide` | 终端中为 `table`，管道中为 `json` |
 
 ```bash
-oneuptime <resource> list [options]
-```
-
-**选项：**
-
-| 选项                    | 描述                | 默认值  |
-| ----------------------- | ------------------- | ------- |
-| `--query <json>`        | JSON 格式的过滤条件 | 无      |
-| `--limit <n>`           | 最大结果数          | `10`    |
-| `--skip <n>`            | 跳过的结果数        | `0`     |
-| `--sort <json>`         | JSON 格式的排序顺序 | 无      |
-| `-o, --output <format>` | 输出格式            | `table` |
-
-**示例：**
-
-```bash
-# 列出最近 10 个事件
+# The ten newest incidents
 oneuptime incident list
 
-# 按状态 ID 过滤事件
-oneuptime incident list --query '{"currentIncidentStateId":"<state-id>"}'
+# The oldest monitors first, 50 at a time: the second page
+oneuptime monitor list --sort '{"createdAt":"ASC"}' --limit 50 --skip 50
 
-# 带分页的列表
-oneuptime incident list --limit 20 --skip 40
-
-# 按创建日期降序排序
-oneuptime incident list --sort '{"createdAt":-1}'
-
-# 以 JSON 格式输出
+# Every field of each incident, as JSON
 oneuptime incident list -o json
 ```
 
-## 获取资源
+列表会向 OneUptime 请求密钥可读取的每条记录的所有字段。表格显示其中六个；JSON 显示全部（参见 [输出格式](/docs/cli/output-formats)）。要翻阅所有记录，按 `--limit` 递增 `--skip`，直到某一页返回为空；`count` 会告诉你总数。
 
-通过 ID 获取单个资源。
+### 筛选列表
+
+`--query` 接受与 API 相同的筛选：带值的字段匹配该值，带 `_type` 的对象进行比较。
+
+| 筛选 | 匹配 |
+| --- | --- |
+| `{"title":"Checkout API is down"}` | 恰好具有该值的记录 |
+| `{"title":{"_type":"Search","value":"checkout"}}` | 包含该值的文本 |
+| `{"createdAt":{"_type":"GreaterThan","value":"2026-10-01T00:00:00.000Z"}}` | 更晚的日期，或更大的数字 |
+| `{"currentIncidentState":{"isResolvedState":false}}` | 资源所指向记录的字段：这里是尚未解决的事件 |
 
 ```bash
-oneuptime <resource> get <id>
+oneuptime incident list --query '{"title":{"_type":"Search","value":"checkout"}}'
 ```
 
-**参数：**
+API 参考中的 [筛选、排序和分页](/docs/api-reference/api-reference#筛选排序和分页) 列出了每种 `_type`。
 
-| 参数   | 描述            |
-| ------ | --------------- |
-| `<id>` | 资源 ID（UUID） |
-
-**示例：**
+## 读取记录
 
 ```bash
-# 获取特定事件
-oneuptime incident get 550e8400-e29b-41d4-a716-446655440000
-
-# 以 JSON 格式获取监控器
-oneuptime monitor get abc-123 -o json
+oneuptime <resource> get <id> [-o <format>]
 ```
 
-## 创建资源
-
-从内联 JSON 或文件创建新资源。
-
 ```bash
-oneuptime <resource> create [options]
+oneuptime incident get 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
 ```
 
-**选项：**
+表格为记录的每个字段显示一行，每个值在 60 个字符处截断；`-o json` 显示完整的值。如果 ID 指向的不是你的密钥可读取的记录，会返回 `Not found`，命令以退出码 `3` 结束。
 
-| 选项                    | 描述                         |
-| ----------------------- | ---------------------------- |
-| `--data <json>`         | JSON 对象格式的资源数据      |
-| `--file <path>`         | 包含资源数据的 JSON 文件路径 |
-| `-o, --output <format>` | 输出格式                     |
-
-必须提供 `--data` 或 `--file` 之一。
-
-**示例：**
+## 创建记录
 
 ```bash
-# 使用内联 JSON 创建事件
-oneuptime incident create --data '{"title":"API Outage","currentIncidentStateId":"<state-id>","incidentSeverityId":"<severity-id>","declaredAt":"2025-01-15T10:30:00Z"}'
+oneuptime <resource> create --data <json> [-o <format>]
+oneuptime <resource> create --file <path> [-o <format>]
+```
 
-# 从 JSON 文件创建
+`--data` 以 JSON 形式接收记录，`--file` 从 JSON 文件中读取它。二者给出其一即可；两者都给出时使用文件。字段就是 API 的字段，[API 参考](/reference) 列出了每个资源的字段。项目来自 API 密钥，所以记录中从不指定项目。
+
+```bash
+# A manual monitor
+oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}'
+
+# An incident with one of your severities
+oneuptime incident create --data '{"title":"Checkout API is down","incidentSeverityId":"<severity-id>"}'
+
+# The same incident, from a file
 oneuptime incident create --file incident.json
-
-# 创建并以 JSON 格式输出以捕获 ID
-oneuptime monitor create --data '{"name":"API Health Check"}' -o json
 ```
 
-## 更新资源
-
-通过 ID 更新现有资源。
+CLI 会打印新记录及其 `_id`。事件从你项目的已创建状态开始，除非 `currentIncidentStateId` 指定了其他状态：参见 [新记录的初始状态](/docs/api-reference/api-reference#新记录的初始状态)。要查找各严重程度的 ID：
 
 ```bash
-oneuptime <resource> update <id> [options]
+oneuptime incident-severity list -o json | jq -r '.[] | "\(._id)  \(.name)"'
 ```
 
-**参数：**
+> [!TIP]
+> 在 Windows 上，把 JSON 写进文件并使用 `--file`：PowerShell 和命令提示符为命令行中的 JSON 加引号的方式与 Bash 不同。
 
-| 参数   | 描述    |
-| ------ | ------- |
-| `<id>` | 资源 ID |
-
-**选项：**
-
-| 选项                    | 描述                          |
-| ----------------------- | ----------------------------- |
-| `--data <json>`         | JSON 格式的待更新字段（必填） |
-| `-o, --output <format>` | 输出格式                      |
-
-**示例：**
+## 更新记录
 
 ```bash
-# 更改事件状态（例如更改为已解决）
-oneuptime incident update abc-123 --data '{"currentIncidentStateId":"<resolved-state-id>"}'
-
-# 重命名监控器
-oneuptime monitor update abc-123 --data '{"name":"Updated Monitor Name"}'
+oneuptime <resource> update <id> --data <json> [-o <format>]
 ```
 
-## 删除资源
-
-通过 ID 删除资源。
+`--data` 是必需的，只包含要更改的字段：
 
 ```bash
-oneuptime <resource> delete <id> [--force]
+# Rename a monitor
+oneuptime monitor update <monitor-id> --data '{"name":"Checkout API (EU)"}'
+
+# Move an incident to your resolved state
+oneuptime incident update <incident-id> --data '{"currentIncidentStateId":"<resolved-state-id>"}'
 ```
 
-**参数：**
-
-| 参数   | 描述    |
-| ------ | ------- |
-| `<id>` | 资源 ID |
-
-**选项：**
-
-| 选项      | 描述         |
-| --------- | ------------ |
-| `--force` | 跳过确认提示 |
-
-**示例：**
+OneUptime 用一个空对象回答更新：CLI 打印一个空行，使用 `-o json` 时打印 `{}`。运行 `get` 查看记录的当前状态。用这种方式把事件移到另一个状态，会像仪表盘那样在它的时间线上记录这次更改，而早于当前状态的状态会被拒绝。要查找已解决状态（在你项目的顺序中排第一个）的 ID：
 
 ```bash
-oneuptime incident delete abc-123
-oneuptime monitor delete 550e8400-e29b-41d4-a716-446655440000
-
-# 跳过确认
-oneuptime monitor delete 550e8400-e29b-41d4-a716-446655440000 --force
+oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order":"ASC"}' --limit 1 -o json | jq -r '.[0]._id'
 ```
 
-## 统计资源数量
-
-统计符合可选过滤条件的资源数量。
+## 删除记录
 
 ```bash
-oneuptime <resource> count [options]
+oneuptime <resource> delete <id>
 ```
 
-**选项：**
+```bash
+oneuptime monitor delete 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11
+```
 
-| 选项             | 描述                |
-| ---------------- | ------------------- |
-| `--query <json>` | JSON 格式的过滤条件 |
+它回答 `Monitor 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11 deleted successfully.`
 
-**示例：**
+> [!CAUTION]
+> `delete` 会立即删除记录。CLI 不会请你确认，也无法撤销。它接受 `--force`，以兼容带有该标志的脚本，但 `--force` 不会改变任何行为。
+
+## 统计记录
 
 ```bash
-# 统计所有事件
+oneuptime <resource> count [--query <json>]
+```
+
+```bash
+# Every incident
 oneuptime incident count
 
-# 按状态统计事件
-oneuptime incident count --query '{"currentIncidentStateId":"<state-id>"}'
-
-# 统计监控器数量
-oneuptime monitor count
+# Incidents that are not resolved
+oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}'
 ```
 
-## 分析资源
+CLI 只打印一个数字，在表格和 JSON 中都一样，所以脚本可以直接读取它。
 
-分析资源与数据库资源相比，支持的操作较为有限：
+## 每种类型能做什么
 
-| 操作     | 是否支持 |
-| -------- | -------- |
-| `list`   | 是       |
-| `create` | 是       |
-| `count`  | 是       |
-| `get`    | 否       |
-| `update` | 否       |
-| `delete` | 否       |
+| 操作 | `database` | `analytics` |
+| --- | --- | --- |
+| `list` | 是 | 是 |
+| `get` | 是 | 否 |
+| `create` | 是 | 是 |
+| `update` | 是 | 否 |
+| `delete` | 是 | 否 |
+| `count` | 是 | 是 |
 
-使用 `oneuptime resources --type analytics` 查看您的实例上可用的分析资源。
+## 故障排除
+
+:::details 消息“Not found: API error (404)”
+该记录不存在、位于其他项目，或者密钥无法读取它：OneUptime 对每种情况的回答都相同。用 `list` 检查 ID，并检查密钥的权限。命令以退出码 `3` 结束。
+:::
+
+:::details 消息“API error (422): You do not have permissions to select on”
+列表或读取会请求记录的所有字段，而密钥无法读取其中一个：消息会指出该字段以及可以读取它的权限。为密钥分配其中一个权限。
+:::
+
+:::details 消息“Error: Invalid JSON”
+`--query`、`--sort` 或 `--data` 的值不是 JSON。在 Bash 和 zsh 中用单引号把它括起来；在 Windows 上把记录写进文件并使用 `--file`。
+:::
+
+:::details 创建或更新时返回 API error (400)
+OneUptime 拒绝了某个字段：消息会指出它。`No fields to update` 表示 `--data` 中没有要更改的字段。
+:::
+
+## 后续步骤
+
+:::cards
+- [输出格式](/docs/cli/output-formats): 以表格或 JSON 形式读取回答。
+- [脚本与 CI/CD](/docs/cli/scripting): 在脚本和流水线中使用这些操作。
+- [命令参考](/docs/cli/command-reference): 每条命令、选项和默认值。
+:::

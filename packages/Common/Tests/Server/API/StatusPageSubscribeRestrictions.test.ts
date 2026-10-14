@@ -151,7 +151,9 @@ describe("StatusPageAPI - who may sign up on a status page that takes only its p
       page.allowSubscribersToChooseResources = true;
       page.allowSubscribersToChooseEventTypes = true;
       page.limitSubscribersToPrivateUsers = limitSubscribersToPrivateUsers;
-      page.allowedSubscriberEmailDomains = allowedSubscriberEmailDomains;
+      if (allowedSubscriberEmailDomains !== undefined) {
+        page.allowedSubscriberEmailDomains = allowedSubscriberEmailDomains;
+      }
       return page;
     };
 
