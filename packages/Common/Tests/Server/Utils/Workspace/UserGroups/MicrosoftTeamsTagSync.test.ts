@@ -6,8 +6,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import MicrosoftTeamsTags, {
+  MicrosoftTeamsTagInfo,
+} from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsTags";
 import WorkspaceUserGroupSync from "../../../../../Server/Utils/Workspace/UserGroups/WorkspaceUserGroupSync";
+import { JSONObject } from "../../../../../Types/JSON";
 import {
+  MICROSOFT_TEAMS_TAG_MAX_MEMBERS_ON_CREATE,
   WorkspaceUserGroupLeftOutReason,
   WorkspaceUserGroupProblem,
   WorkspaceUserGroupSyncState,
@@ -234,6 +239,142 @@ describe("who an on-call tag holds", () => {
 
     expect(seen.length).toBeGreaterThan(0);
     expect(new Set(seen)).toEqual(new Set([`Bearer ${GRAPH_TOKEN}`]));
+  });
+});
+
+describe("Graph's answers over several pages", () => {
+  // The paths of the reads of the team's tags.
+  function tagListReads(): Array<string> {
+    return world.graph.paths("GET").filter((path: string): boolean => {
+      return path === `/v1.0/teams/${TEAM_PAYMENTS}/tags`;
+    });
+  }
+
+  test("the tag on a team's last page of tags is found: every page is read, by the address Graph names", async () => {
+    world.graph.addTag(TEAM_PAYMENTS, "Payments escalation", [BOB_AAD]);
+    world.graph.addTag(TEAM_PAYMENTS, "Payments leads", [BOB_AAD]);
+    // The tag the group follows goes last.
+    const tags: Map<string, FakeTag> = world.graph.teams.get(TEAM_PAYMENTS)!;
+    tags.delete(tag.id);
+    tags.set(tag.id, tag);
+    world.graph.pageSize = 1;
+    const row: WorldGroupRow = groupFor([primary]);
+
+    const state: WorkspaceUserGroupSyncState = await world.sync(row);
+
+    expect(state.problem).toBeNull();
+    expect(tagMembers()).toEqual([ANA_AAD]);
+    expect(tagListReads().length).toBe(3);
+  });
+
+  test("a tag with more people than a page holds: all of them are read, and everybody who should not be in it is taken out", async () => {
+    const strangers: Array<string> = [
+      "e1e1e1e1-0000-4000-8000-0000000000e1",
+      "e2e2e2e2-0000-4000-8000-0000000000e2",
+      "e3e3e3e3-0000-4000-8000-0000000000e3",
+    ];
+
+    for (const stranger of strangers) {
+      world.graph.tag(TEAM_PAYMENTS, tag.id)!.members.push({
+        id: `MEMBER-${stranger}`,
+        userId: stranger,
+      });
+    }
+
+    world.graph.pageSize = 2;
+    const row: WorldGroupRow = groupFor([primary]);
+
+    const state: WorkspaceUserGroupSyncState = await world.sync(row);
+
+    expect(state.problem).toBeNull();
+    expect(tagMembers()).toEqual([ANA_AAD]);
+    // Carol and the three put in by hand: one request each.
+    expect(world.graph.paths("DELETE").length).toBe(4);
+  });
+
+  test.each([
+    ["another host", "https://graph.example.net"],
+    ["plain http", "http://graph.microsoft.com"],
+    [
+      "a host that only starts like Graph's",
+      "https://graph.microsoft.com.example.net",
+    ],
+    ["Graph's name before an @", "https://graph.microsoft.com@example.net"],
+    ["another port", "https://graph.microsoft.com:8443"],
+  ])(
+    "a next page at %s is not asked for: the token goes to Graph only",
+    async (_: string, base: string) => {
+      world.graph.addTag(TEAM_PAYMENTS, "Payments escalation", [BOB_AAD]);
+      world.graph.pageSize = 1;
+      world.graph.nextLinkBase = base;
+      const row: WorldGroupRow = groupFor([primary]);
+
+      const state: WorkspaceUserGroupSyncState = await world.sync(row);
+
+      // The tag is on the first page: the group is kept in step regardless.
+      expect(state.problem).toBeNull();
+      expect(tagMembers()).toEqual([ANA_AAD]);
+      expect(tagListReads().length).toBe(1);
+      expect(world.elsewhere).toEqual([]);
+    },
+  );
+
+  test("a team that names page after page: at most 20 are read for one answer", async () => {
+    for (let index: number = 0; index < 30; index++) {
+      world.graph.addTag(TEAM_PAYMENTS, `Old tag ${index}`, [BOB_AAD]);
+    }
+
+    world.graph.pageSize = 1;
+    const row: WorldGroupRow = groupFor([primary]);
+
+    const state: WorkspaceUserGroupSyncState = await world.sync(row);
+
+    expect(tagListReads().length).toBe(20);
+    // The tag the group follows came first.
+    expect(state.problem).toBeNull();
+    expect(tagMembers()).toEqual([ANA_AAD]);
+  });
+
+  test("a new tag for more people than Teams takes with a new one: made with the first 25, the rest added after", async () => {
+    const people: Array<string> = [];
+
+    for (let index: number = 0; index < 30; index++) {
+      people.push(`d0d0d0d0-0000-4000-8000-${String(index).padStart(12, "0")}`);
+    }
+
+    const made: MicrosoftTeamsTagInfo = await MicrosoftTeamsTags.create({
+      accessToken: GRAPH_TOKEN,
+      teamId: TEAM_PAYMENTS,
+      name: "Payments everyone",
+      aadObjectIds: people,
+    });
+
+    expect(
+      world.graph
+        .tag(TEAM_PAYMENTS, made.id)!
+        .members.map((member: { userId: string }): string => {
+          return member.userId;
+        }),
+    ).toEqual(people);
+
+    const posts: Array<GraphRequest> = world.graph.requests.filter(
+      (request: GraphRequest): boolean => {
+        return request.method === "POST";
+      },
+    );
+
+    expect(MICROSOFT_TEAMS_TAG_MAX_MEMBERS_ON_CREATE).toBe(25);
+    expect(posts[0]!.path).toBe(`/v1.0/teams/${TEAM_PAYMENTS}/tags`);
+    expect((posts[0]!.body!["members"] as Array<JSONObject>).length).toBe(25);
+    expect(
+      posts.slice(1).map((request: GraphRequest): string => {
+        return request.path;
+      }),
+    ).toEqual(
+      new Array<string>(5).fill(
+        `/v1.0/teams/${TEAM_PAYMENTS}/tags/${made.id}/members`,
+      ),
+    );
   });
 });
 

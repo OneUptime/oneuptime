@@ -455,6 +455,14 @@ export class FakeGraph {
   // Users the tag API refuses to add (HTTP 400).
   public refusedUsers: Set<string> = new Set<string>();
   public rateLimitOnce: boolean = false;
+  /*
+   * Lists (a team's tags, a tag's members) answered this many entries a
+   * page, each page naming the next with "@odata.nextLink" as Graph does -
+   * an address under nextLinkBase, Graph's own unless a test says otherwise.
+   * 0: every list on one page.
+   */
+  public pageSize: number = 0;
+  public nextLinkBase: string = "https://graph.microsoft.com";
   public requests: Array<GraphRequest> = [];
 
   private next: number = 1;
@@ -495,6 +503,7 @@ export class FakeGraph {
     const parsed: globalThis.URL = new globalThis.URL(url);
     const path: string = decodeURIComponent(parsed.pathname);
     this.requests.push({ method: method, path: path, body: body });
+    const skip: number = Number(parsed.searchParams.get("$skiptoken") || 0);
 
     if (this.rateLimitOnce) {
       this.rateLimitOnce = false;
@@ -533,11 +542,13 @@ export class FakeGraph {
     // /teams/{team}/tags
     if (parts.length === 2) {
       if (method === "GET") {
-        return this.ok({
-          value: Array.from(tags.values()).map((tag: FakeTag): JSONObject => {
+        return this.page(
+          parsed.pathname,
+          skip,
+          Array.from(tags.values()).map((tag: FakeTag): JSONObject => {
             return this.tagJson(teamId, tag);
           }),
-        });
+        );
       }
 
       const members: Array<JSONObject> =
@@ -571,11 +582,13 @@ export class FakeGraph {
     // /teams/{team}/tags/{tag}/members
     if (parts.length === 4) {
       if (method === "GET") {
-        return this.ok({
-          value: tag.members.map((member: FakeTagMember): JSONObject => {
+        return this.page(
+          parsed.pathname,
+          skip,
+          tag.members.map((member: FakeTagMember): JSONObject => {
             return { id: member.id, userId: member.userId };
           }),
-        });
+        );
       }
 
       const userId: string = String(body?.["userId"] || "");
@@ -639,6 +652,28 @@ export class FakeGraph {
     return new HTTPResponse<JSONObject>(200, body, {});
   }
 
+  // One page of a list, from `skip` on, naming the next page when there is one.
+  private page(
+    pathname: string,
+    skip: number,
+    values: Array<JSONObject>,
+  ): HTTPResponse<JSONObject> {
+    if (this.pageSize <= 0) {
+      return this.ok({ value: values });
+    }
+
+    const body: JSONObject = {
+      value: values.slice(skip, skip + this.pageSize),
+    };
+
+    if (skip + this.pageSize < values.length) {
+      body["@odata.nextLink"] =
+        `${this.nextLinkBase}${pathname}?$skiptoken=${skip + this.pageSize}`;
+    }
+
+    return this.ok(body);
+  }
+
   private notFound(): HTTPErrorResponse {
     return new HTTPErrorResponse(
       404,
@@ -672,6 +707,8 @@ export default class UserGroupsWorld {
   // Teams the app is not installed in: no roster.
   public teamsWithoutApp: Set<string> = new Set<string>();
   public errors: Array<string> = [];
+  // Requests sent anywhere but Slack's Web API and Microsoft Graph.
+  public elsewhere: Array<string> = [];
   public clockOffsetInMinutes: number = 0;
   // What the person asking may not read (their permissions say so).
   public unreadableSchedules: Set<string> = new Set<string>();
@@ -1208,6 +1245,7 @@ export default class UserGroupsWorld {
         return this.graph.answer("POST", url, options.data || {});
       }
 
+      this.elsewhere.push(`POST ${url}`);
       throw new Error(`Unexpected POST ${url}`);
     }) as never);
 
@@ -1221,6 +1259,7 @@ export default class UserGroupsWorld {
         return this.graph.answer("GET", url, null);
       }
 
+      this.elsewhere.push(`GET ${url}`);
       throw new Error(`Unexpected GET ${url}`);
     }) as never);
 
@@ -1233,6 +1272,7 @@ export default class UserGroupsWorld {
         return this.graph.answer("DELETE", url, null);
       }
 
+      this.elsewhere.push(`DELETE ${url}`);
       throw new Error(`Unexpected DELETE ${url}`);
     }) as never);
 
