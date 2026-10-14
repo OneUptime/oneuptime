@@ -36,12 +36,27 @@ import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
- * How wide the "Policy Name" column may grow before its text wraps. It
- * holds a policy's name or, for a direct page, the workflow that started
- * it. Without a cap, one long workflow name took the row's width and pushed
- * Status, Acknowledged By and View Timeline out of the card.
+ * The two columns that hold what people wrote wrap their text: "Policy
+ * Name" - a policy's name or, for a direct page, the workflow that started
+ * it - and "Triggered By", the title of the incident, alert or episode. A
+ * table cell stays on one line unless its column says otherwise, so one long
+ * name or title took the row's width for itself, and when the run was
+ * triggered and how it stands began past the card's right edge.
+ *
+ * Each has a cap, so it wraps before it crowds the columns after it.
  */
 export const ON_CALL_LOGS_NAME_COLUMN_MAX_WIDTH_CLASS_NAME: string = "max-w-xs";
+export const ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MAX_WIDTH_CLASS_NAME: string =
+  "max-w-sm";
+
+/*
+ * And "Triggered By" has a floor. Beside the side menu on a laptop the
+ * table is short of room, and a column that may wrap is then given the
+ * least it can take: without a floor that is its longest word, and a title
+ * folded to a word or two a line.
+ */
+export const ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MIN_WIDTH_CLASS_NAME: string =
+  "min-w-[12rem]";
 
 /*
  * What a run that paged nobody says on hover. A policy went through its
@@ -234,6 +249,11 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
       },
       title: "Triggered By",
       type: FieldType.Element,
+      // A long title wraps inside the column, which keeps a readable width.
+      wrapContent: true,
+      wrapMaxWidthClassName:
+        ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MAX_WIDTH_CLASS_NAME,
+      contentClassName: ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MIN_WIDTH_CLASS_NAME,
       getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
         if (item.triggeredByIncident) {
           return (

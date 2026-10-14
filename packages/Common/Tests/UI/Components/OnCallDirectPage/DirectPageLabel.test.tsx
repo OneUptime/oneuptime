@@ -122,6 +122,33 @@ describe("what started the page", () => {
     );
   });
 
+  /*
+   * In a table short of room a cell that may wrap is given the least it
+   * can take, which for this line would be its longest word: a name folded
+   * to a word or two a line under the label. It keeps a width a sentence
+   * can be read at.
+   */
+  test("its line keeps a readable width when the table is short of room", () => {
+    render(
+      <DirectPageLabel workflowName="Page whoever is on call when a critical incident is created" />,
+    );
+
+    expect(screen.getByTestId("on-call-direct-page-workflow")).toHaveClass(
+      "min-w-[12rem]",
+    );
+  });
+
+  test("the label itself asks for no more room than its own words", () => {
+    render(<DirectPageLabel />);
+
+    const label: HTMLElement = screen.getByTestId("on-call-direct-page-label");
+
+    expect(label.className).not.toContain("min-w-");
+    expect(screen.getByTestId("on-call-direct-page").className).not.toContain(
+      "min-w-",
+    );
+  });
+
   describe("a page that can open the workflow draws its name itself", () => {
     test("the name is handed over as text, and what comes back is drawn in its place", () => {
       const seen: Array<string> = [];

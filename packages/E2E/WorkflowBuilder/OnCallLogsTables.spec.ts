@@ -18,12 +18,13 @@ import { expect, Locator, Page, test } from "@playwright/test";
  * width and pushed Status, Acknowledged By and View Timeline out of the
  * card. A table drawn by hand for a test never showed that.
  *
- * What only a browser shows is checked here: the name wraps inside a column
- * that stays narrow, on a laptop and in a phone's cards; the label is one
- * line, in a quiet grey that reads in both themes and is not mistaken for a
- * status; the workflow's name is a link; and a line of the timeline that
- * names nobody says which team had no members. What each cell says, and
- * which rows get the label, is unit tested in packages/Common.
+ * What only a browser shows is checked here: a long name, and a long
+ * incident title, wrap inside columns that stay narrow - and readable, when
+ * the table is short of room - on a laptop and in a phone's cards; the
+ * label is one line, in a quiet grey that reads in both themes and is not
+ * mistaken for a status; the workflow's name is a link; and a line of the
+ * timeline that names nobody says which team had no members. What each cell
+ * says, and which rows get the label, is unit tested in packages/Common.
  */
 
 type Box = { x: number; y: number; width: number; height: number };
@@ -35,12 +36,23 @@ const LONG_WORKFLOW_NAME: string =
   "Page whoever is on call for critical incidents in the payments platform (EU and US regions)";
 const LONG_POLICY_NAME: string =
   "Payments platform critical escalation for the EU and US regions (primary on call, then secondary, then engineering managers)";
+const LONG_INCIDENT_TITLE: string =
+  "Card payments fail at checkout for customers in the EU region after the 14:00 deploy";
 
 /*
  * How wide the column may be: its content is capped at 20rem (max-w-xs),
  * and a cell has 1.5rem before its content and 0.75rem after it.
  */
 const NAME_COLUMN_CAP_IN_PX: number = 320 + 24 + 12;
+
+/*
+ * The Triggered By column's content is capped at 24rem (max-w-sm) and never
+ * narrower than 12rem (min-w-[12rem]), with the same space around it. The
+ * line under a label that names a workflow has the same 12rem floor.
+ */
+const TITLE_COLUMN_CAP_IN_PX: number = 384 + 24 + 12;
+const TITLE_COLUMN_FLOOR_IN_PX: number = 192 + 24 + 12;
+const WORKFLOW_LINE_FLOOR_IN_PX: number = 192;
 
 const DIRECT_PAGE_EXPLANATION: string =
   "People were paged directly, with no on-call policy: everybody at once, and no escalation.";
@@ -403,6 +415,116 @@ test.describe("On-call logs: direct pages among a policy's runs", () => {
     expect(widthOnOneLine).toBeGreaterThan(NAME_COLUMN_CAP_IN_PX);
   });
 
+  /*
+   * An incident's or an alert's title is long more often than a name is.
+   * On one line this one is wider than the card: the row showed a name and
+   * a title, and nothing of when it was triggered or how it stands.
+   */
+  test("on a laptop a long incident title wraps in its own column, which keeps a readable width", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(isMobile, "A phone draws each run as a card, not a table row.");
+
+    await openLogs(page);
+
+    const title: Locator = page.getByRole("link", {
+      name: LONG_INCIDENT_TITLE,
+      exact: true,
+    });
+    const cell: Locator = title.locator("xpath=ancestor::td");
+
+    const titleBox: Box = await boxOf(title);
+    const cellBox: Box = await boxOf(cell);
+
+    // On more than one line, and inside its cell.
+    expect(titleBox.height).toBeGreaterThan(24);
+    expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(
+      cellBox.x + cellBox.width + 0.5,
+    );
+
+    /*
+     * Within its cap - and not under its floor, although this table is
+     * short of room: a column that may wrap is then given the least it can
+     * take, which without a floor is the title's longest word.
+     */
+    expect(cellBox.width).toBeLessThanOrEqual(TITLE_COLUMN_CAP_IN_PX + 0.5);
+    expect(cellBox.width).toBeGreaterThanOrEqual(
+      TITLE_COLUMN_FLOOR_IN_PX - 0.5,
+    );
+
+    // When each run was triggered and how it stands begin inside the card.
+    const card: Box = await boxOf(page.getByTestId("card"));
+    const headers: Locator = page.locator("table thead th");
+
+    for (const name of ["Triggered at", "Status"]) {
+      const header: Box = await boxOf(headers.filter({ hasText: name }));
+
+      expect(header.x).toBeLessThan(card.x + card.width);
+    }
+
+    // On one line the title alone is wider than its column may be.
+    const widthOnOneLine: number = await title.evaluate(
+      (element: Element): number => {
+        const copy: HTMLElement = element.cloneNode(true) as HTMLElement;
+
+        copy.style.position = "absolute";
+        copy.style.visibility = "hidden";
+        copy.style.whiteSpace = "nowrap";
+        document.body.appendChild(copy);
+
+        const width: number = copy.getBoundingClientRect().width;
+
+        copy.remove();
+
+        return width;
+      },
+    );
+
+    expect(widthOnOneLine).toBeGreaterThan(TITLE_COLUMN_CAP_IN_PX);
+  });
+
+  /*
+   * Every row here is a label with a workflow's name under it: nothing
+   * wider - a person, a policy's long name - holds the column open, so the
+   * table gives it the least it can take. That used to be the label's own
+   * width, with the name folded to two words a line under it.
+   */
+  test("on a laptop a workflow's name keeps a readable line, with no other row to hold the column open", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(isMobile, "A phone draws each run as a card, not a table row.");
+
+    await page.goto("/?page=on-call-logs&rows=workflows");
+    await expect(page.getByTestId("on-call-direct-page-label")).toHaveCount(2);
+
+    const lines: Locator = page.getByTestId("on-call-direct-page-workflow");
+
+    await expect(lines).toHaveCount(2);
+
+    for (let index: number = 0; index < 2; index++) {
+      expect((await boxOf(lines.nth(index))).width).toBeGreaterThanOrEqual(
+        WORKFLOW_LINE_FLOOR_IN_PX - 0.5,
+      );
+    }
+
+    // And the column is still within its cap.
+    const firstCells: Locator = page.locator("table tbody tr > td:first-child");
+
+    for (let index: number = 0; index < 2; index++) {
+      expect((await boxOf(firstCells.nth(index))).width).toBeLessThanOrEqual(
+        NAME_COLUMN_CAP_IN_PX + 0.5,
+      );
+    }
+  });
+
   test("on a laptop the columns after it start where they would for a short name", async ({
     page,
     isMobile,
@@ -460,6 +582,17 @@ test.describe("On-call logs: direct pages among a policy's runs", () => {
     expect(policyName.height).toBeGreaterThan(24);
     expect(policyName.x).toBeGreaterThanOrEqual(card.x);
     expect(policyName.x + policyName.width).toBeLessThanOrEqual(
+      card.x + card.width + 0.5,
+    );
+
+    // And so does an incident's long title.
+    const title: Box = await boxOf(
+      page.getByRole("link", { name: LONG_INCIDENT_TITLE, exact: true }),
+    );
+
+    expect(title.height).toBeGreaterThan(24);
+    expect(title.x).toBeGreaterThanOrEqual(card.x);
+    expect(title.x + title.width).toBeLessThanOrEqual(
       card.x + card.width + 0.5,
     );
 

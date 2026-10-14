@@ -104,6 +104,8 @@ import ExecutionLogsTable, {
   DIRECT_PAGE_PAGED_NOBODY_TOOLTIP,
   NOBODY_PAGED_YET_MESSAGE,
   ON_CALL_LOGS_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
+  ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MAX_WIDTH_CLASS_NAME,
+  ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MIN_WIDTH_CLASS_NAME,
   POLICY_HAS_NOT_RUN_MESSAGE,
   POLICY_PAGED_NOBODY_TOOLTIP,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTable";
@@ -139,6 +141,7 @@ interface RecordedColumn {
   field: JSONObject;
   wrapContent?: boolean;
   wrapMaxWidthClassName?: string;
+  contentClassName?: string;
   getElement?: (item: unknown) => ReactElement;
 }
 
@@ -353,11 +356,56 @@ describe("On-Call Duty > Logs, and the logs of an incident or an alert", () => {
     expect(ON_CALL_LOGS_NAME_COLUMN_MAX_WIDTH_CLASS_NAME).toBe("max-w-xs");
   });
 
+  /*
+   * The same of an incident's or an alert's title, which is longer than a
+   * name more often than not: "Card payments fail at checkout for customers
+   * in the EU region after the 14:00 deploy" on one line left the card
+   * showing a name and a title, with when the run was triggered and how it
+   * stands past its right edge.
+   */
+  test("Triggered By wraps a long title too, inside a cap of its own", () => {
+    const triggeredBy: RecordedColumn = column(table(), "Triggered By");
+
+    expect(triggeredBy.wrapContent).toBe(true);
+    expect(triggeredBy.wrapMaxWidthClassName).toBe(
+      ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MAX_WIDTH_CLASS_NAME,
+    );
+    expect(ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MAX_WIDTH_CLASS_NAME).toBe(
+      "max-w-sm",
+    );
+  });
+
+  /*
+   * A column that may wrap is given the least it can take when the table
+   * is short of room - and beside the side menu on a laptop it always is.
+   * Without a floor that least is the title's longest word.
+   */
+  test("and keeps a floor, so a title never folds to a word a line", () => {
+    const triggeredBy: RecordedColumn = column(table(), "Triggered By");
+
+    expect(triggeredBy.contentClassName).toBe(
+      ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MIN_WIDTH_CLASS_NAME,
+    );
+    expect(ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MIN_WIDTH_CLASS_NAME).toBe(
+      "min-w-[12rem]",
+    );
+  });
+
+  test("one policy's own logs wrap the title the same way", () => {
+    render(<ExecutionLogsTable onCallDutyPolicyId={new ObjectID(POLICY_ID)} />);
+
+    const triggeredBy: RecordedColumn = column(recorded(), "Triggered By");
+
+    expect(triggeredBy.wrapContent).toBe(true);
+    expect(triggeredBy.contentClassName).toBe("min-w-[12rem]");
+  });
+
   test("the columns that must stay on one line still do", () => {
     const recordedTable: RecordedTable = table();
 
     for (const title of ["Triggered at", "Status", "Acknowledged By"]) {
       expect(column(recordedTable, title).wrapContent).toBeUndefined();
+      expect(column(recordedTable, title).contentClassName).toBeUndefined();
     }
   });
 

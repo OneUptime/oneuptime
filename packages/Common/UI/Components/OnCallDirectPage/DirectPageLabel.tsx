@@ -87,7 +87,7 @@ const DirectPageLabel: FunctionComponent<ComponentProps> = (
       {workflowName ? (
         <span
           data-testid={`${dataTestId}-workflow`}
-          className="max-w-full whitespace-normal break-words text-xs font-normal text-gray-500"
+          className="min-w-[12rem] max-w-full whitespace-normal break-words text-xs font-normal text-gray-500"
         >
           <TranslatedSentence
             template={DIRECT_PAGE_WORKFLOW_TEMPLATE}

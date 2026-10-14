@@ -8,7 +8,11 @@
  *                         - one of a policy with a very long name - and
  *                         four direct pages: one started by a workflow with
  *                         a very long name, one by a person, one that paged
- *                         nobody, and one with nothing else known
+ *                         nobody, and one with nothing else known. One run
+ *                         is about an incident with a very long title.
+ *                         &rows=workflows lists only the pages a workflow
+ *                         started: no row is left that holds the name
+ *                         column open
  * ?page=on-call-timeline  one run's timeline: the REAL table
  *                         (ExecutionLogsTimelineTable) of a direct page -
  *                         two people paged, a schedule with nobody on call,
@@ -64,6 +68,10 @@ export const LONG_WORKFLOW_NAME =
 export const LONG_POLICY_NAME =
   "Payments platform critical escalation for the EU and US regions (primary on call, then secondary, then engineering managers)";
 
+// A title as long as people write them: it wraps, in a column of its own.
+export const LONG_INCIDENT_TITLE =
+  "Card payments fail at checkout for customers in the EU region after the 14:00 deploy";
+
 const NOW = Date.parse("2026-10-13T16:20:00Z");
 
 function person(id, name, email) {
@@ -92,9 +100,9 @@ function policy(name, number) {
   return model;
 }
 
-function incident(title) {
+function incident(title, number) {
   const model = new Incident();
-  model._id = "1c1d0000-0000-4000-8000-000000000008";
+  model._id = `1c1d0000-0000-4000-8000-00000000000${number}`;
   model.title = title;
   return model;
 }
@@ -148,7 +156,7 @@ const RUNS = [
   run({
     id: DIRECT_PAGE_RUN_ID,
     workflowName: "Page the on-call engineer",
-    incident: incident("Checkout is down"),
+    incident: incident("Checkout is down", 8),
     status: OnCallDutyPolicyStatus.Executing,
     statusMessage: "2 people were paged.",
     minutesAgo: 3,
@@ -156,7 +164,7 @@ const RUNS = [
   run({
     id: "0193c0de-2222-4aaa-8bbb-000000000002",
     policy: policy("Critical", 1),
-    incident: incident("Checkout is down"),
+    incident: incident(LONG_INCIDENT_TITLE, 9),
     status: OnCallDutyPolicyStatus.Completed,
     statusMessage: "Execution completed.",
     minutesAgo: 4,
@@ -189,7 +197,7 @@ const RUNS = [
   run({
     id: "0193c0de-6666-4aaa-8bbb-000000000006",
     policy: policy(LONG_POLICY_NAME, 2),
-    incident: incident("Checkout is down"),
+    incident: incident("Checkout is down", 8),
     status: OnCallDutyPolicyStatus.Completed,
     statusMessage: "Execution completed.",
     minutesAgo: 2900,
@@ -269,6 +277,23 @@ function result(rows, data) {
 }
 
 /*
+ * The runs the list shows. With &rows=workflows, only the pages a workflow
+ * started: every row is then a label with a name under it, and nothing
+ * wider - a person, a policy's long name - holds the column open.
+ */
+function shownRuns() {
+  const rows = new URLSearchParams(window.location.search).get("rows");
+
+  if (rows === "workflows") {
+    return RUNS.filter((shown) => {
+      return Boolean(shown.triggeredByWorkflowName);
+    });
+  }
+
+  return RUNS;
+}
+
+/*
  * Stands in for the API and for who is signed in: somebody who may read
  * everything in the project.
  */
@@ -327,7 +352,7 @@ export function installOnCallLogs() {
     });
 
     if (data.modelType === OnCallDutyPolicyExecutionLog) {
-      return result(RUNS, data);
+      return result(shownRuns(), data);
     }
 
     if (data.modelType === OnCallDutyPolicyExecutionLogTimeline) {
