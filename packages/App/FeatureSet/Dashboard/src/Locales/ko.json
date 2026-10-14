@@ -16881,7 +16881,7 @@
   "State / region.": "State / region.",
   "State Cascade:": "State Cascade:",
   "State Change Notifications:": "State Change Notifications:",
-  "State Changes": "State Changes",
+  "State Changes": "상태 변경",
   "State timeline": "State timeline",
   "Statement Timeout": "Statement Timeout",
   "Statement Timeout (ms)": "Statement Timeout (ms)",
@@ -29236,5 +29236,6 @@
   "Priority Changed": "Priority Changed",
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "보안 케이스를 삭제하면 해당 탐지, 메모, 타임라인, 플레이북 실행 내역도 삭제됩니다.",
-  "To keep the record, close the case with a verdict instead.": "기록을 남기려면 대신 판정과 함께 케이스를 종료하세요."
+  "To keep the record, close the case with a verdict instead.": "기록을 남기려면 대신 판정과 함께 케이스를 종료하세요.",
+  "State Change": "상태 변경"
 }

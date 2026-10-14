@@ -85,6 +85,8 @@ const ScheduledMaintenanceViewStateTimeline: FunctionComponent<
         getDeleteDisabledReason={stateRowDelete.getDeleteDisabledReason}
         getDeleteConfirmation={stateRowDelete.getDeleteConfirmation}
         getItemName={stateRowDelete.getItemName}
+        singularName={stateRowDelete.singularName}
+        pluralName={stateRowDelete.pluralName}
         deleteConfirmationWarning={stateRowDelete.deleteConfirmationWarning}
         onFetchSuccess={stateRowDelete.onFetchSuccess}
         isCreateable={true}

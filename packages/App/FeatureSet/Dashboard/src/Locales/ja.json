@@ -29236,5 +29236,6 @@
   "Priority Changed": "Priority Changed",
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "セキュリティケースを削除すると、その検出、メモ、タイムライン、プレイブックの実行も削除されます。",
-  "To keep the record, close the case with a verdict instead.": "記録を残すには、代わりに判定を付けてケースをクローズしてください。"
+  "To keep the record, close the case with a verdict instead.": "記録を残すには、代わりに判定を付けてケースをクローズしてください。",
+  "State Change": "状態の変更"
 }

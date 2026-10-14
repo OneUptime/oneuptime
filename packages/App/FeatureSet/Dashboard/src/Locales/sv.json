@@ -16881,7 +16881,7 @@
   "State / region.": "State / region.",
   "State Cascade:": "State Cascade:",
   "State Change Notifications:": "State Change Notifications:",
-  "State Changes": "State Changes",
+  "State Changes": "Tillståndsändringar",
   "State timeline": "State timeline",
   "Statement Timeout": "Statement Timeout",
   "Statement Timeout (ms)": "Statement Timeout (ms)",
@@ -29236,5 +29236,6 @@
   "Priority Changed": "Priority Changed",
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "När du tar bort ett säkerhetsärende tas även dess detektioner, anteckningar, tidslinje och playbook-körningar bort.",
-  "To keep the record, close the case with a verdict instead.": "Stäng i stället ärendet med en bedömning om du vill behålla det."
+  "To keep the record, close the case with a verdict instead.": "Stäng i stället ärendet med en bedömning om du vill behålla det.",
+  "State Change": "Tillståndsändring"
 }

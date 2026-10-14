@@ -29236,5 +29236,6 @@
   "Priority Changed": "Priority Changed",
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "Deleting a security case also deletes its detections, notes, timeline and playbook runs.",
-  "To keep the record, close the case with a verdict instead.": "To keep the record, close the case with a verdict instead."
+  "To keep the record, close the case with a verdict instead.": "To keep the record, close the case with a verdict instead.",
+  "State Change": "State Change"
 }

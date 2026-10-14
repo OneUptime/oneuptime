@@ -16881,7 +16881,7 @@
   "State / region.": "State / region.",
   "State Cascade:": "State Cascade:",
   "State Change Notifications:": "State Change Notifications:",
-  "State Changes": "State Changes",
+  "State Changes": "Statuswijzigingen",
   "State timeline": "State timeline",
   "Statement Timeout": "Statement Timeout",
   "Statement Timeout (ms)": "Statement Timeout (ms)",
@@ -29236,5 +29236,6 @@
   "Priority Changed": "Priority Changed",
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "Als u een beveiligingszaak verwijdert, worden ook de detecties, notities, tijdlijn en playbook-uitvoeringen ervan verwijderd.",
-  "To keep the record, close the case with a verdict instead.": "Sluit de zaak in plaats daarvan af met een oordeel om deze te bewaren."
+  "To keep the record, close the case with a verdict instead.": "Sluit de zaak in plaats daarvan af met een oordeel om deze te bewaren.",
+  "State Change": "Statuswijziging"
 }

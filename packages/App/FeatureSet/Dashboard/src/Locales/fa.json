@@ -16881,7 +16881,7 @@
   "State / region.": "State / region.",
   "State Cascade:": "State Cascade:",
   "State Change Notifications:": "State Change Notifications:",
-  "State Changes": "State Changes",
+  "State Changes": "تغییرات وضعیت",
   "State timeline": "State timeline",
   "Statement Timeout": "Statement Timeout",
   "Statement Timeout (ms)": "Statement Timeout (ms)",
@@ -29236,5 +29236,6 @@
   "Priority Changed": "Priority Changed",
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "حذف یک پرونده امنیتی، تشخیص‌ها، یادداشت‌ها، خط زمانی و اجراهای پلی‌بوک آن را هم حذف می‌کند.",
-  "To keep the record, close the case with a verdict instead.": "برای نگه داشتن سابقه، به جای حذف، پرونده را با یک نتیجه‌گیری ببندید."
+  "To keep the record, close the case with a verdict instead.": "برای نگه داشتن سابقه، به جای حذف، پرونده را با یک نتیجه‌گیری ببندید.",
+  "State Change": "تغییر وضعیت"
 }

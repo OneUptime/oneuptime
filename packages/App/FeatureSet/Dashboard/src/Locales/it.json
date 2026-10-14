@@ -16881,7 +16881,7 @@
   "State / region.": "State / region.",
   "State Cascade:": "State Cascade:",
   "State Change Notifications:": "State Change Notifications:",
-  "State Changes": "State Changes",
+  "State Changes": "Cambi di stato",
   "State timeline": "State timeline",
   "Statement Timeout": "Statement Timeout",
   "Statement Timeout (ms)": "Statement Timeout (ms)",
@@ -29236,5 +29236,6 @@
   "Priority Changed": "Priority Changed",
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "Eliminando un caso di sicurezza si eliminano anche i suoi rilevamenti, le note, la cronologia e le esecuzioni dei playbook.",
-  "To keep the record, close the case with a verdict instead.": "Per conservarne la traccia, chiudi invece il caso con un verdetto."
+  "To keep the record, close the case with a verdict instead.": "Per conservarne la traccia, chiudi invece il caso con un verdetto.",
+  "State Change": "Cambio di stato"
 }

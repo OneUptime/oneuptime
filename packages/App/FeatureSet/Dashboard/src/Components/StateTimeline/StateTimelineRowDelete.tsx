@@ -124,6 +124,21 @@ export const PREVIOUS_STATE_TAKES_OVER: string = translationKey(
   "{{state}}, the state before it, takes over its time.",
 );
 
+/*
+ * What one row is called wherever the table names it - the Delete dialog's
+ * title ("Delete State Change"), a bulk Delete's ("Delete 2 State Changes")
+ * and its result, the selection bar, the Create button and the page count -
+ * instead of the model's "Incident State Timeline", which names the whole
+ * history rather than one entry in it.
+ */
+export const STATE_CHANGE_NAMES: Readonly<{
+  singular: string;
+  plural: string;
+}> = {
+  singular: translationKey("State Change"),
+  plural: translationKey("State Changes"),
+};
+
 export interface StateTimelineRowDeleteOptions<T extends BaseModel> {
   record: StateTimelineRecord;
   modelType: { new (): T };
@@ -143,6 +158,9 @@ export interface StateTimelineRowDeleteProps<T extends BaseModel> {
   onFetchSuccess: () => void;
   // Said after a bulk Delete's question (the row's dialog says more).
   deleteConfirmationWarning: string;
+  // What one row is called: a state change (STATE_CHANGE_NAMES).
+  singularName: string;
+  pluralName: string;
 }
 
 type ReadRowFunction = (row: BaseModel) => {
@@ -395,6 +413,8 @@ const useStateTimelineRowDelete: <T extends BaseModel>(
       void loadOnlyRow();
     },
     deleteConfirmationWarning: words.bulkWarning,
+    singularName: STATE_CHANGE_NAMES.singular,
+    pluralName: STATE_CHANGE_NAMES.plural,
   };
 };
 

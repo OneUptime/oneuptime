@@ -16881,7 +16881,7 @@
   "State / region.": "State / region.",
   "State Cascade:": "State Cascade:",
   "State Change Notifications:": "State Change Notifications:",
-  "State Changes": "State Changes",
+  "State Changes": "状态变更",
   "State timeline": "State timeline",
   "Statement Timeout": "Statement Timeout",
   "Statement Timeout (ms)": "Statement Timeout (ms)",
@@ -29236,5 +29236,6 @@
   "Priority Changed": "Priority Changed",
   "Response Action": "Response Action",
   "Deleting a security case also deletes its detections, notes, timeline and playbook runs.": "删除安全案例也会删除其检测、备注、时间线和剧本运行记录。",
-  "To keep the record, close the case with a verdict instead.": "如需保留记录，请改为给出结论并关闭案例。"
+  "To keep the record, close the case with a verdict instead.": "如需保留记录，请改为给出结论并关闭案例。",
+  "State Change": "状态变更"
 }

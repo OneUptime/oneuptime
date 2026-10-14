@@ -75,6 +75,8 @@ interface RecordedTableProps {
   ) => Promise<DeleteConfirmationLike>;
   getItemName?: (item: TimelineRow) => string;
   onFetchSuccess?: (data: Array<unknown>, totalCount: number) => void;
+  singularName?: string;
+  pluralName?: string;
 }
 
 let recordedTableProps: RecordedTableProps | null = null;
@@ -391,6 +393,18 @@ afterEach(() => {
 describe.each(PAGES)("$name", (pageCase: PageCase) => {
   beforeEach(() => {
     recordColumn = pageCase.recordColumn;
+  });
+
+  /*
+   * The Delete dialog's title, a bulk Delete's and its result, the selection
+   * bar and the Create button name one row: a state change, not the model's
+   * "Incident State Timeline", which is the whole history.
+   */
+  test("calls its rows state changes", async () => {
+    await renderPage(pageCase);
+
+    expect(recordedTableProps!.singularName).toBe("State Change");
+    expect(recordedTableProps!.pluralName).toBe("State Changes");
   });
 
   test("reads the record's oldest state, in this project, whenever the table loads", async () => {
