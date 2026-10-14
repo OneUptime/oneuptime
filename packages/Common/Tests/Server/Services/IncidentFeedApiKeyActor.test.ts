@@ -19,6 +19,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
+import type { SpyInstance } from "jest-mock";
 import path from "path";
 
 jest.mock("../../../Server/Utils/Logger");
@@ -200,7 +201,7 @@ describe("IncidentFeedService.createIncidentFeedItem", () => {
       Parameters<typeof IncidentFeedService.createIncidentFeedItem>[0]
     >,
   ): Promise<IncidentFeed> {
-    const create: jest.SpiedFunction<typeof IncidentFeedService.create> = jest
+    const create: SpyInstance<typeof IncidentFeedService.create> = jest
       .spyOn(IncidentFeedService, "create")
       .mockResolvedValue(new IncidentFeed());
 
@@ -261,11 +262,11 @@ describe("a public note posted with an API key", () => {
   async function postedWith(
     props: DatabaseCommonInteractionProps,
   ): Promise<Record<string, unknown>> {
-    const feedItem: jest.SpiedFunction<
+    const feedItem: SpyInstance<
       typeof IncidentFeedService.createIncidentFeedItem
     > = jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
-      .mockResolvedValue(new IncidentFeed());
+      .mockResolvedValue(undefined);
     jest.spyOn(IncidentService, "getIncidentNumber").mockResolvedValue({
       number: 12,
       numberWithPrefix: "INC-12",

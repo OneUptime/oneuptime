@@ -44,6 +44,13 @@ const STATUS_COLUMNS: Array<
   "paymentProviderMeteredSubscriptionStatus",
 ];
 
+/*
+ * Every column the query filters on: the two subscription statuses, and
+ * isBlocked - a project a master admin blocked is not served, whatever it
+ * pays.
+ */
+const QUERY_COLUMNS: Array<string> = [...STATUS_COLUMNS, "isBlocked"];
+
 const ALL_STATUSES: Array<SubscriptionStatus> =
   Object.values(SubscriptionStatus);
 
@@ -134,14 +141,16 @@ describe("ProjectService.getActiveProjectStatusQuery keeps past_due projects mon
     jest.restoreAllMocks();
   });
 
-  it("filters on exactly the two subscription status columns", () => {
+  it("filters on exactly the two subscription status columns, and on not being blocked", () => {
     const query: Query<Project> = ProjectService.getActiveProjectStatusQuery();
 
-    expect(Object.keys(query).sort()).toEqual([...STATUS_COLUMNS].sort());
+    expect(Object.keys(query).sort()).toEqual([...QUERY_COLUMNS].sort());
 
     for (const column of STATUS_COLUMNS) {
       expect(getOperator(query, column).type).toBe("raw");
     }
+
+    expect(query.isBlocked).toBe(false);
   });
 
   describe.each(STATUS_COLUMNS)("%s", (column: string) => {
@@ -270,7 +279,8 @@ describe("ProjectService.getActiveProjectStatusQuery keeps past_due projects mon
         findAllBy.mock.calls[0]![0] as unknown as { query: Query<Project> }
       ).query;
 
-      expect(Object.keys(query).sort()).toEqual([...STATUS_COLUMNS].sort());
+      expect(Object.keys(query).sort()).toEqual([...QUERY_COLUMNS].sort());
+      expect(query.isBlocked).toBe(false);
 
       for (const column of STATUS_COLUMNS) {
         const operator: RawOperator = getOperator(query, column);

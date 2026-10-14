@@ -1,152 +1,187 @@
 # اسکریپت‌نویسی و CI/CD
 
-CLI مربوط به OneUptime برای خودکارسازی طراحی شده است. از احراز هویت مبتنی بر متغیر محیطی، خروجی JSON برای تجزیه برنامه‌نویسی‌شده، و کدهای خروج مناسب برای یکپارچه‌سازی با خط لوله پشتیبانی می‌کند.
+CLI در اسکریپت همان‌طور کار می‌کند که در ترمینال. کلید API را با متغیرهای محیطی به آن بدهید، پاسخ‌هایش را به‌صورت JSON بخوانید، و بگذارید کد خروجش به اسکریپت بگوید چه اتفاقی افتاد. این صفحه هر کدام از این‌ها را نشان می‌دهد، همراه با خط لوله‌های کامل برای GitHub Actions، GitLab CI و Docker.
 
-## متغیرهای محیطی
+:::cards
+- [کلید API یک اسکریپت را به آن بدهید](#کلید-api-یک-اسکریپت-را-به-آن-بدهید): دو متغیر محیطی، بدون زمینهٔ ذخیره‌شده.
+- [کدهای خروج](#کدهای-خروج): ۰ وقتی کار کرد، و چرا کار نکرد.
+- [خواندن پاسخ‌ها با jq](#خواندن-پاسخها-با-jq): شناسه‌ها، عنوان‌ها و تاریخ‌ها از دل JSON.
+- [نمونه‌های خط لوله](#نمونههای-خط-لوله): GitHub Actions، GitLab CI و Docker.
+:::
 
-این متغیرهای محیطی را تنظیم کنید تا بدون بافتار ذخیره‌شده احراز هویت کنید:
+## اسکریپت چگونه از CLI استفاده می‌کند
 
-```bash
-export ONEUPTIME_API_KEY=sk-your-api-key
-export ONEUPTIME_URL=https://oneuptime.com
+یک استقرار می‌تواند اول از OneUptime بپرسد که آیا حادثه‌ای باز است، و اگر هست متوقف شود:
+
+```mermaid title="استقراری که تا باز بودن یک حادثه صبر می‌کند"
+flowchart TB
+    J["جاب CI آغاز می‌شود"] --> S["رازهایش تنظیم می‌کنند:<br/>ONEUPTIME_API_KEY<br/>و ONEUPTIME_URL"]
+    S --> Q["oneuptime incident count<br/>برای حادثه‌های حل‌نشده"]
+    Q -->|"۰"| D["استقرار"]
+    Q -->|"۱ یا بیشتر"| X["توقف: یک حادثه<br/>باز است"]
+    Q -->|"کد خروج ۲"| A["توقف: کلید API<br/>را بررسی کنید"]
 ```
 
-این‌ها بر بافتارهای ذخیره‌شده اولویت دارند اما پرچم‌های CLI بر آن‌ها اولویت دارند.
+## کلید API یک اسکریپت را به آن بدهید
+
+`ONEUPTIME_API_KEY` و `ONEUPTIME_URL` را از رازهای سیستم CI خود تنظیم کنید. آن‌گاه CLI نه به `login` نیاز دارد و نه به فایل پیکربندی. برای یک دستور، پرچم همچنان بر آن‌ها مقدم است، و آن‌ها بر زمینه‌های ذخیره‌شده مقدم‌اند.
+
+```bash
+export ONEUPTIME_API_KEY="$CI_ONEUPTIME_API_KEY"
+export ONEUPTIME_URL="https://oneuptime.com"
+oneuptime incident count
+```
+
+> [!TIP]
+> به هر خط لوله کلید API خودش را بدهید، فقط با دسترسی‌ای که نیاز دارد: بررسی‌ای که فقط می‌خواند به کلیدی نیاز دارد که فقط می‌خواند. وقتی خط لوله کنار گذاشته شد، کلید را در OneUptime حذف کنید.
+
+اگر یک ماشین جاب‌های چند پروژه را اجرا می‌کند، برای هر پروژه یک زمینه ذخیره کنید و در هر دستور نامش را بیاورید، تا هیچ جابی هرگز زمینهٔ فعلی جاب دیگری را به کار نبرد:
+
+```bash
+oneuptime --context production incident count
+oneuptime --context staging monitor count
+```
 
 ## کدهای خروج
 
-| کد   | معنا                                                    |
-| ---- | ------------------------------------------------------- |
-| `0`  | موفق                                                    |
-| `1`  | خطای عمومی                                              |
-| `2`  | خطای احراز هویت (اعتبارنامه جا افتاده یا نامعتبر)       |
-| `3`  | یافت نشد (۴۰۴)                                          |
+| کد | معنا | نمونه |
+| --- | --- | --- |
+| `0` | کار کرد | یک list، حتی اگر چیزی پیدا نکند |
+| `1` | شکست خورد | OneUptime درخواست را رد کرد، مانند `API error (422)`؛ JSON نامعتبر؛ گزینه‌ای جاافتاده یا ناشناخته؛ زمینه‌ای که ذخیره نشده است |
+| `2` | کلید API قابل‌استفاده‌ای نیست | اعتبارنامه‌ای پیدا نشد؛ کلید API نامعتبر؛ کلیدی پایین‌تر از طرحش (`402`)؛ `401` |
+| `3` | پیدا نشد | OneUptime پاسخ `404` داد: رکورد وجود ندارد، در پروژهٔ دیگری است، یا کلید نمی‌تواند آن را بخواند |
 
-از کدهای خروج در اسکریپت‌ها برای مدیریت خطا استفاده کنید:
+`whoami` و `context current` حتی وقتی چیزی ذخیره نشده با `0` خارج می‌شوند: آنچه را تنظیم شده گزارش می‌کنند و آن را بررسی نمی‌کنند. اسکریپت حالت‌ها را با کد از هم جدا می‌کند:
 
 ```bash
-if ! oneuptime monitor list > /dev/null 2>&1; then
-  echo "Failed to list monitors"
-  exit 1
-fi
+oneuptime incident get "$INCIDENT_ID" -o json > incident.json
+case $? in
+  0) echo "Saved the incident to incident.json" ;;
+  2) echo "Check ONEUPTIME_API_KEY and ONEUPTIME_URL" >&2; exit 1 ;;
+  3) echo "There is no incident $INCIDENT_ID" >&2; exit 1 ;;
+  *) echo "OneUptime refused the request" >&2; exit 1 ;;
+esac
 ```
 
-## پردازش JSON با jq
+پیام‌های خطا به خطای استاندارد می‌روند، پس `incident.json` فقط پاسخ را در خود دارد.
 
-از `-o json` برای تولید خروجی قابل خواندن توسط ماشین استفاده کنید:
+## خواندن پاسخ‌ها با jq
+
+در اسکریپت‌ها `-o json` را بنویسید. CLI در پایپ به هر حال JSON چاپ می‌کند، اما این پرچم اسکریپت را هر جا که اجرا شود کارا نگه می‌دارد:
 
 ```bash
-# Extract all incident titles
-oneuptime incident list -o json | jq '.[].title'
+# The title of each incident
+oneuptime incident list -o json | jq -r '.[].title'
 
-# Get the ID of a newly created monitor
-NEW_ID=$(oneuptime monitor create --data '{"name":"API Health"}' -o json | jq -r '._id')
-echo "Created monitor: $NEW_ID"
+# The ID of a new monitor
+MONITOR_ID=$(oneuptime monitor create --data '{"name":"Checkout API","monitorType":"Manual"}' -o json | jq -r '._id')
 
-# Count incidents by severity
-oneuptime incident count --query '{"incidentSeverityId":"<severity-id>"}'
+# When each incident was created: dates come as objects
+oneuptime incident list -o json | jq -r '.[] | "\(.createdAt.value)  \(.title)"'
+
+# The newest 100 incidents as CSV
+oneuptime incident list --limit 100 -o json | jq -r '.[] | [._id, .title, .createdAt.value] | @csv'
 ```
 
-## ساخت منابع از روی فایل
-
-از `--file` برای ساخت منابع از فایل‌های JSON استفاده کنید؛ برای زیرساخت تحت کنترل نسخه مفید است:
+شمارش یک عدد چاپ می‌کند، آمادهٔ مقایسه:
 
 ```bash
-# monitor.json
-# {
-#   "name": "API Health Check",
-#   "projectId": "your-project-id"
-# }
-
-oneuptime monitor create --file monitor.json
+OPEN=$(oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}')
+echo "$OPEN incidents are open"
 ```
 
-## عملیات گروهی
+## ساختن رکوردها از فایل‌ها
 
-چند منبع را در یک حلقه پردازش کنید:
+رکوردها را به‌صورت فایل‌های JSON کنار کدتان نگه دارید و از همان‌جا بسازیدشان:
+
+```json title="monitors/checkout-api.json"
+{
+  "name": "Checkout API",
+  "monitorType": "Manual"
+}
+```
 
 ```bash
-# Create multiple monitors from a JSON array file
-cat monitors.json | jq -r '.[] | @json' | while read monitor; do
-  oneuptime monitor create --data "$monitor"
+oneuptime monitor create --file monitors/checkout-api.json
+```
+
+چند رکورد از یک آرایهٔ JSON، برای هر کدام یک create:
+
+```bash
+jq -c '.[]' monitors.json | while IFS= read -r monitor; do
+  oneuptime monitor create --data "$monitor" -o json | jq -r '._id'
 done
 ```
 
-## نمونه‌های خط لوله CI/CD
+> [!NOTE]
+> هر اجرا رکوردهای تازه می‌سازد. برای هماهنگ نگه داشتن مانیتورها و صفحه‌های وضعیت با فایل‌ها، که فقط آنچه تغییر کرده را تغییر دهد و آنچه رفته را حذف کند، از [ارائه‌دهندهٔ Terraform](/docs/terraform/index) استفاده کنید.
 
-### GitHub Actions
+## نمونه‌های خط لوله
 
-```yaml
-name: Check Active Incidents
+:::tabs
+@tab GitHub Actions
+```yaml title=".github/workflows/deploy.yml"
+name: Deploy
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  push:
+    branches: [main]
 
 jobs:
-  health-check:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Install OneUptime CLI
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install the OneUptime CLI
         run: npm install -g @oneuptime/cli
-
-      - name: Check for active incidents
+      - name: Stop while an incident is open
         env:
           ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
           ONEUPTIME_URL: https://oneuptime.com
         run: |
-          INCIDENT_COUNT=$(oneuptime incident count)
-          if [ "$INCIDENT_COUNT" -gt 0 ]; then
-            echo "WARNING: $INCIDENT_COUNT incidents found"
+          OPEN=$(oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}')
+          if [ "$OPEN" -gt 0 ]; then
+            echo "$OPEN incidents are open: not deploying."
             exit 1
           fi
+      - name: Deploy
+        run: ./deploy.sh
 ```
-
-### اسکریپت عمومی CI/CD
-
-```bash
-#!/bin/bash
-set -e
-
-export ONEUPTIME_API_KEY="$CI_ONEUPTIME_API_KEY"
-export ONEUPTIME_URL="$CI_ONEUPTIME_URL"
-
-# Create a deployment incident and capture the ID
-# Note: currentIncidentStateId and incidentSeverityId must reference existing state/severity IDs in your project
-INCIDENT_ID=$(oneuptime incident create --data '{
-  "title": "Deployment Started",
-  "currentIncidentStateId": "'"$INVESTIGATING_STATE_ID"'",
-  "incidentSeverityId": "'"$SEVERITY_ID"'",
-  "declaredAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
-}' -o json | jq -r '._id')
-
-# Run deployment steps here...
-
-# Resolve the incident after successful deployment
-oneuptime incident update "$INCIDENT_ID" --data '{"currentIncidentStateId":"'"$RESOLVED_STATE_ID"'"}'
+@tab GitLab CI
+```yaml title=".gitlab-ci.yml"
+check-incidents:
+  stage: test
+  image: node:lts
+  variables:
+    ONEUPTIME_URL: https://oneuptime.com
+  script:
+    - npm install -g @oneuptime/cli
+    - OPEN=$(oneuptime incident count --query '{"currentIncidentState":{"isResolvedState":false}}')
+    - echo "$OPEN incidents are open"
+    - test "$OPEN" -eq 0
 ```
-
-### Docker
-
-```dockerfile
-FROM node:26-slim
+@tab Docker
+```dockerfile title="Dockerfile"
+FROM node:lts-slim
 RUN npm install -g @oneuptime/cli
-ENV ONEUPTIME_API_KEY=""
-ENV ONEUPTIME_URL=""
 ENTRYPOINT ["oneuptime"]
 ```
+:::
+
+در GitHub Actions، `ONEUPTIME_API_KEY` را زیر **Settings → Secrets and variables → Actions** در مخزن اضافه کنید؛ در GitLab، آن را به‌عنوان یک متغیر CI/CD پوشیده (masked) اضافه کنید. با ایمیج Docker، متغیرها را به هر اجرا بدهید:
 
 ```bash
-docker run --rm \
-  -e ONEUPTIME_API_KEY=sk-abc123 \
-  -e ONEUPTIME_URL=https://oneuptime.com \
-  oneuptime-cli incident list
+docker build -t oneuptime-cli .
+docker run --rm -e ONEUPTIME_API_KEY -e ONEUPTIME_URL oneuptime-cli incident count
 ```
 
-## استفاده از یک بافتار مشخص در اسکریپت‌ها
+## گام‌های بعدی
 
-اگر چند بافتار ذخیره‌شده دارید، یکی را مشخص کنید:
-
-```bash
-oneuptime --context production incident list
-oneuptime --context staging monitor count
-```
+:::cards
+- [احراز هویت](/docs/cli/authentication): وقتی چند کلید تنظیم شده باشد، دستور کدام را به کار می‌برد.
+- [قالب‌های خروجی](/docs/cli/output-formats): JSONی که اسکریپت‌هایتان می‌خوانند.
+- [عملیات روی منابع](/docs/cli/resource-operations): فیلترها، صفحه‌بندی و فیلدهای یک رکورد.
+- [ارائه‌دهندهٔ Terraform](/docs/terraform/index): پیکربندی OneUptime را در فایل‌ها نگه دارید.
+:::

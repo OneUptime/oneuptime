@@ -251,6 +251,8 @@ const turnOn: (row: ProviderRow) => void = (row: ProviderRow): void => {
 };
 
 beforeEach(() => {
+  // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   ProjectSsoProviderStanding.forget();
 
   samlRows = [

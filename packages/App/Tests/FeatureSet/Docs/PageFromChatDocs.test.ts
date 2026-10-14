@@ -16,6 +16,7 @@ import WorkspacePage, {
   WorkspacePageTargetKind,
 } from "Common/Server/Utils/Workspace/WorkspacePage";
 import WorkspacePageTextReader, {
+  WorkspacePageGroup,
   WorkspacePageText,
 } from "Common/Server/Utils/Workspace/WorkspacePageText";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -55,6 +56,8 @@ const MANIFEST_PATH: string = path.resolve(
 
 const SLACK_HEADING: string = "Paging someone from Slack";
 const TEAMS_HEADING: string = "Paging someone from Microsoft Teams";
+const SLACK_GROUPS_HEADING: string = "On-call user groups";
+const TEAMS_TAGS_HEADING: string = "On-call tags";
 
 function read(page: string): string {
   return fs.readFileSync(path.join(CONTENT_DIR, page), "utf8");
@@ -212,17 +215,23 @@ describe("the examples, read as the command reads them", () => {
     });
   });
 
-  test("Slack: a user group or `@here` is not a person - the form opens, and says so", () => {
+  test("Slack: `@here`, and a user group that follows no on-call schedule, are nobody to page - the form opens, and says so", () => {
     const text: string = section(SLACK_PAGE, `## ${SLACK_HEADING}`);
 
     expect(bullet(text, "Anything else opens a form.")).toContain(
-      "a user group or `@here`",
+      "`@here`, a user group that follows no on-call schedule you can see,",
     );
 
     for (const [sent, group] of [
-      ["page <!here> The checkout API is down", "here"],
-      ["page <!subteam^S0123|@oncall-db> The replica is behind", "oncall-db"],
-    ] as Array<[string, string]>) {
+      [
+        "page <!here> The checkout API is down",
+        { name: "here", workspaceGroupId: "" },
+      ],
+      [
+        "page <!subteam^S0123|@oncall-db> The replica is behind",
+        { name: "oncall-db", workspaceGroupId: "S0123" },
+      ],
+    ] as Array<[string, WorkspacePageGroup]>) {
       const read: WorkspacePageText = WorkspacePageTextReader.read(
         SlackCommandParser.getPageTokens(sent),
       );
@@ -232,8 +241,117 @@ describe("the examples, read as the command reads them", () => {
         people: [],
         groups: [group],
       });
-      expect(WorkspacePage.getGroupNote(group)).toContain(`@${group}`);
+
+      // Read as no group that follows a schedule: the form says so.
+      const prefill: WorkspacePageFormPrefill = WorkspacePage.getPrefill({
+        text: read,
+        people: { people: [], notTold: [] },
+        groups: { paged: [], notPaged: read.groups },
+        choices: [],
+        workspaceType: WorkspaceType.Slack,
+      });
+
+      expect(prefill.notes).toEqual([
+        WorkspacePage.getGroupNote({
+          group: group,
+          workspaceType: WorkspaceType.Slack,
+        }),
+      ]);
+      expect(prefill.notes[0]).toContain(`@${group.name}`);
     }
+
+    // What makes a user group pageable, in the note's own words.
+    expect(
+      WorkspacePage.getGroupNote({
+        group: { name: "oncall-db", workspaceGroupId: "S0123" },
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toContain("it isn't connected to an on-call schedule you can see");
+  });
+
+  test("Slack: `/oneuptime page @payments-oncall ...` pages whoever is on call in the schedules the user group follows, as the page says", () => {
+    const paging: string = section(SLACK_PAGE, `## ${SLACK_HEADING}`);
+    const groups: string = section(SLACK_PAGE, `## ${SLACK_GROUPS_HEADING}`);
+
+    expect(bullet(paging, "Who is paged at once.")).toContain(
+      `and whoever is on call in the schedules a user group you @mention follows (see [${SLACK_GROUPS_HEADING}](#${slugify(SLACK_GROUPS_HEADING)}))`,
+    );
+    expect(bullet(groups, "Paging it.")).toContain(
+      "`/oneuptime page @payments-oncall The checkout API is down` pages whoever is on call in the schedules the group follows.",
+    );
+
+    // As Slack sends it: the user group escaped, with its id.
+    const read: WorkspacePageText = WorkspacePageTextReader.read(
+      SlackCommandParser.getPageTokens(
+        "page <!subteam^S0PAYMENTS|@payments-oncall> The checkout API is down",
+      ),
+    );
+
+    expect(read).toEqual({
+      people: [],
+      groups: [{ name: "payments-oncall", workspaceGroupId: "S0PAYMENTS" }],
+      unknownNames: [],
+      message: "The checkout API is down",
+    });
+
+    // A group that follows a schedule pages at once, as the schedule.
+    const scheduleId: ObjectID = ObjectID.generate();
+
+    expect(
+      WorkspacePage.isReadyToPage({
+        text: read,
+        people: { people: [], notTold: [] },
+        groups: {
+          paged: [{ name: "payments-oncall", scheduleIds: [scheduleId] }],
+          notPaged: [],
+        },
+      }),
+    ).toBe(true);
+  });
+
+  test("Microsoft Teams: `@OneUptime page @Payments on-call ...` - a tag Teams mentions is a group, with the id it is mentioned by", () => {
+    const paging: string = section(TEAMS_PAGE, `## ${TEAMS_HEADING}`);
+    const tags: string = section(TEAMS_PAGE, `## ${TEAMS_TAGS_HEADING}`);
+
+    expect(bullet(paging, "Who is paged at once.")).toContain(
+      `and whoever is on call in the schedules a tag you @mention follows (see [${TEAMS_TAGS_HEADING}](#${slugify(TEAMS_TAGS_HEADING)}))`,
+    );
+    expect(bullet(paging, "Anything else gets a card.")).toContain(
+      "a tag that follows no on-call schedule you can see,",
+    );
+    expect(bullet(tags, "Paging it.")).toContain(
+      "`@OneUptime page @Payments on-call The checkout API is down` pages whoever is on call in the schedules the tag follows.",
+    );
+
+    const activity: JSONObject = {
+      text: "<at>OneUptime</at> page <at>Payments on-call</at> The checkout API is down",
+      recipient: { id: "28:oneuptime-bot" },
+      entities: [
+        {
+          type: "mention",
+          text: "<at>OneUptime</at>",
+          mentioned: { id: "28:oneuptime-bot", name: "OneUptime" },
+        },
+        {
+          type: "mention",
+          text: "<at>Payments on-call</at>",
+          mentioned: {
+            id: "tag-payments",
+            name: "Payments on-call",
+            type: "tag",
+          },
+        },
+      ],
+    };
+
+    expect(
+      WorkspacePageTextReader.read(MicrosoftTeamsPage.getPageTokens(activity)),
+    ).toEqual({
+      people: [],
+      groups: [{ name: "Payments on-call", workspaceGroupId: "tag-payments" }],
+      unknownNames: [],
+      message: "The checkout API is down",
+    });
   });
 
   test("Slack: `/oneuptime page Primary The disk is full` picks the schedule named Primary in the form, and the rest is the message", () => {

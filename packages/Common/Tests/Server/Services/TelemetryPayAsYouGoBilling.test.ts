@@ -135,6 +135,8 @@ beforeEach(() => {
   (EnvironmentConfig as { IsBillingEnabled: boolean }).IsBillingEnabled = true;
   service = new Service();
   hooks = service as unknown as KeyHooks;
+  // Whether the key's project is blocked is BlockedProjectBackgroundWork.test.ts.
+  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
   jest
     .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
     .mockResolvedValue(false);

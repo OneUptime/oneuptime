@@ -23,6 +23,7 @@
     "Runner",
     "Standard",
     "Stratum",
+    "Tag",
     "Team",
     "Tunnel",
     "VMware vCenter",
@@ -30,6 +31,7 @@
     "host",
     "kubectl set image deployment/web * -n web",
     "syslog",
+    "tag",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB"

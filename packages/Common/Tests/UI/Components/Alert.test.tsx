@@ -271,6 +271,23 @@ describe("Alert content and caller customizations", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("12 days remaining");
   });
 
+  test("beside a long message, the right-hand text keeps its words whole - never 'Try / ag / ain'", () => {
+    renderAlert({
+      title:
+        "Slack lets only workspace owners and admins change user groups in your workspace, so OneUptime can't update @payments-oncall. A Slack admin can let everyone manage user groups in Slack's admin settings, under Permissions > User Groups.",
+      textOnRight: "Try again",
+    });
+
+    const right: HTMLElement = screen.getByTestId("alert-text-on-right");
+
+    expect(right).toHaveTextContent("Try again");
+    // From sm up it sits beside the message: it does not shrink or wrap.
+    expect(right).toHaveClass("sm:flex-none", "sm:whitespace-nowrap");
+    // On a phone it sits under the message and wraps like it.
+    expect(right).not.toHaveClass("whitespace-nowrap");
+    expect(right).not.toHaveClass("flex-none");
+  });
+
   test("preserves caller identifiers and class customization hooks", () => {
     renderAlert({
       id: "project-warning",

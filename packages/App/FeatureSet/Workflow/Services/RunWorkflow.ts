@@ -42,10 +42,12 @@ import {
   WORKFLOW_ARCHIVED_WHILE_WAITING_MESSAGE,
   getChildWorkflowArchivedMessage,
 } from "Common/Types/Workflow/WorkflowArchive";
+import { WORKFLOW_PROJECT_BLOCKED_BEFORE_RUN_MESSAGE } from "Common/Types/Workflow/WorkflowProjectBlocked";
 import {
   getChildWorkflowTurnedOffMessage,
   getWorkflowTestRunLogLine,
 } from "Common/Types/Workflow/WorkflowEnabled";
+import ProjectService from "Common/Server/Services/ProjectService";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
@@ -486,6 +488,51 @@ export default class RunWorkflow {
     }
   }
 
+  /*
+   * A run of a blocked project's workflow does not start, or carry on after
+   * a Sleep step. A run with a log has it closed as cancelled; a schedule's
+   * firing has none and is skipped, and the schedule is kept, so it fires
+   * again once the project is unblocked.
+   */
+  private async stopRunOfBlockedProject(runProps: RunProps): Promise<void> {
+    if (!runProps.workflowLogId) {
+      logger.debug(
+        "A scheduled run of a workflow whose project is blocked came due. Skipping it.",
+        this.getLogAttributes(),
+      );
+      return;
+    }
+
+    const existingLog: WorkflowLog | null =
+      await WorkflowLogService.findOneById({
+        id: runProps.workflowLogId,
+        select: {
+          logs: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (existingLog?.logs) {
+      this.logs = [existingLog.logs as string];
+    }
+
+    this.log(WORKFLOW_PROJECT_BLOCKED_BEFORE_RUN_MESSAGE);
+
+    // A run asleep in a Sleep step is not woken again.
+    await WorkflowLogService.updateColumnsByIdWithoutHooks({
+      id: runProps.workflowLogId,
+      data: {
+        workflowStatus: WorkflowStatus.Error,
+        logs: this.logs.join("\n"),
+        completedAt: OneUptimeDate.getCurrentDate(),
+        resumeData: null!,
+        resumeAt: null!,
+      },
+    });
+  }
+
   public async runWorkflow(runProps: RunProps): Promise<void> {
     // get nodes and edges.
 
@@ -663,6 +710,21 @@ export default class RunWorkflow {
        */
       if (workflow.isArchived && !runProps.isResume) {
         await this.stopRunOfArchivedWorkflow(runProps);
+        return;
+      }
+
+      /*
+       * A project a master admin blocked runs nothing until it is unblocked.
+       * The queue refuses new runs (QueueWorkflow.addWorkflowToQueue); these
+       * got past it before the block - a run already queued, the next firing
+       * of a schedule, a run waking from a Sleep step - and are stopped here,
+       * after an archived or turned-off workflow has given its own answer.
+       */
+      if (
+        workflow.projectId &&
+        (await ProjectService.isProjectBlocked(workflow.projectId))
+      ) {
+        await this.stopRunOfBlockedProject(runProps);
         return;
       }
 

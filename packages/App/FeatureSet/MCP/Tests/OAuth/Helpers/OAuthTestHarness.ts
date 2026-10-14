@@ -102,6 +102,8 @@ interface ProjectState extends TestProject {
   isSubscriptionUnpaid: boolean;
   requireSso: boolean;
   requiredSsoProviderId: ObjectID | null;
+  // A master admin blocked it (Admin Dashboard > Projects).
+  isBlocked: boolean;
 }
 
 type SessionState =
@@ -482,6 +484,7 @@ export default class OAuthTestHarness {
       isSubscriptionUnpaid: options?.isSubscriptionUnpaid === true,
       requireSso: false,
       requiredSsoProviderId: null,
+      isBlocked: false,
     };
 
     this.projects.set(project.id.toString(), project);
@@ -511,6 +514,11 @@ export default class OAuthTestHarness {
 
     state.requireSso = options.required;
     state.requiredSsoProviderId = options.requiredSsoProviderId || null;
+  }
+
+  // A master admin blocks the project, or unblocks it.
+  public setProjectBlocked(project: TestProject, isBlocked: boolean): void {
+    this.requireProject(project.id).isBlocked = isBlocked;
   }
 
   public setGlobalSsoRequired(isRequired: boolean): void {
@@ -1402,6 +1410,15 @@ export default class OAuthTestHarness {
       "getRequireSsoForLogin",
       async (projectId: ObjectID): Promise<boolean> => {
         return this.requireProject(projectId).requireSso;
+      },
+    );
+
+    this.replace(
+      ProjectService,
+      "isProjectBlocked",
+      async (projectId: ObjectID): Promise<boolean> => {
+        // As ProjectService answers: a project that does not exist is not blocked.
+        return this.projects.get(projectId.toString())?.isBlocked === true;
       },
     );
 

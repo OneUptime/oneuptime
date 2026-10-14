@@ -1,3 +1,4 @@
+import GlobalEvents from "../GlobalEvents";
 import LocalStorage from "../LocalStorage";
 import Navigation from "../Navigation";
 import PermissionUtil from "../Permission";
@@ -13,6 +14,7 @@ import URL from "../../../Types/API/URL";
 import Dictionary from "../../../Types/Dictionary";
 import APIException from "../../../Types/Exception/ApiException";
 import Exception from "../../../Types/Exception/Exception";
+import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import {
@@ -21,6 +23,7 @@ import {
 } from "../../../Types/Permission";
 import API, { AuthRetryContext } from "../../../Utils/API";
 import { IDENTITY_URL } from "../../Config";
+import BlockedProject from "../BlockedProject";
 
 /*
  * One in-flight refresh per session, shared by every caller in this tab: the
@@ -151,6 +154,23 @@ class BaseAPI extends API {
           forceNavigate: true,
         });
       }
+    }
+
+    /*
+     * A project a master admin blocked answers every request for it with a
+     * 403 that says so (ProjectBlockedException). Not the Forbidden page:
+     * the browser remembers the project, so it would send the person back
+     * there on every visit, even with other projects to open. The app shows
+     * the project's own notice instead (BlockedProject.REFUSED_EVENT), and its
+     * project picker still switches to the others.
+     */
+    if (
+      error instanceof HTTPErrorResponse &&
+      error.statusCode === 403 &&
+      ProjectBlockedException.isException(error.message)
+    ) {
+      GlobalEvents.dispatchEvent(BlockedProject.REFUSED_EVENT);
+      return error;
     }
 
     if (

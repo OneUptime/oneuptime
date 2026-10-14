@@ -120,7 +120,7 @@ describePostgres("status page Sign Readers Out After against Postgres", () => {
 
   beforeEach(async () => {
     statusPage.requireSsoForLogin = false;
-    statusPage.privateUserSessionLengthInHours = undefined;
+    delete statusPage.privateUserSessionLengthInHours;
 
     await query(
       `TRUNCATE ${TABLES.map((table: string): string => {
@@ -172,8 +172,11 @@ describePostgres("status page Sign Readers Out After against Postgres", () => {
   const setLimit: (lengthInHours: number | null) => Promise<void> = async (
     lengthInHours: number | null,
   ): Promise<void> => {
-    statusPage.privateUserSessionLengthInHours =
-      lengthInHours === null ? undefined : lengthInHours;
+    if (lengthInHours === null) {
+      delete statusPage.privateUserSessionLengthInHours;
+    } else {
+      statusPage.privateUserSessionLengthInHours = lengthInHours;
+    }
     await query(
       `UPDATE "${schema}"."StatusPage" SET "privateUserSessionLengthInHours" = $1`,
       [lengthInHours],

@@ -92,15 +92,6 @@ const except: (
 const EVERY_TRANSLATION_BUT_FA: Array<string> = except(EVERY_TRANSLATION, "fa");
 
 export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
-  "cli/authentication": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "cli/index": {
-    noRelativeLinks: EVERY_LANGUAGE,
-  },
-  "cli/output-formats": {
-    codeLanguage: EN,
-  },
   "mobile-desktop-apps/faq-troubleshooting": {
     noRelativeLinks: EVERY_LANGUAGE,
   },

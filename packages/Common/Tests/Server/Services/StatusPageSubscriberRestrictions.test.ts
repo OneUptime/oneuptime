@@ -89,8 +89,10 @@ function page(settings: PageSettings, id: ObjectID = PAGE_ID): StatusPage {
   statusPage.name = "Acme Status";
   statusPage.limitSubscribersToPrivateUsers =
     settings.limitSubscribersToPrivateUsers ?? false;
-  statusPage.allowedSubscriberEmailDomains =
-    settings.allowedSubscriberEmailDomains;
+  if (settings.allowedSubscriberEmailDomains !== undefined) {
+    statusPage.allowedSubscriberEmailDomains =
+      settings.allowedSubscriberEmailDomains;
+  }
   return statusPage;
 }
 

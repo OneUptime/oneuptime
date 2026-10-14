@@ -31,7 +31,7 @@ import React, {
   useEffect,
 } from "react";
 
-interface IconColorClasses {
+export interface IconColorClasses {
   bg: string;
   ring: string;
   text: string;
@@ -41,9 +41,10 @@ interface IconColorClasses {
  * Icon color map carried over from the former NavBarMenuItem, extended with the
  * few colors the dashboard items use (yellow/red/teal) plus a glyph text color
  * so every product renders in its intended color. Unknown colors fall back to
- * indigo.
+ * indigo. Exported so Home's product directory and resource list paint each
+ * product the colour the menu does.
  */
-const ICON_COLOR_CLASSES: Record<string, IconColorClasses> = {
+export const ICON_COLOR_CLASSES: Record<string, IconColorClasses> = {
   purple: {
     bg: "bg-purple-50",
     ring: "ring-purple-200",

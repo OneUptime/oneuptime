@@ -57,6 +57,8 @@
         "files:write",
         "users:read",
         "users:read.email",
+        "usergroups:read",
+        "usergroups:write",
         "groups:read",
         "groups:write",
         "groups:history",

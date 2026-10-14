@@ -110,21 +110,40 @@ describe("SlackCommandParser.getPageTokens", () => {
     });
   });
 
-  test("a user group, @here and @channel are groups: nobody OneUptime can page", () => {
+  test("a user group keeps its id - what OneUptime matches a group that follows on-call schedules by; @here and @channel have none", () => {
     expect(
       pageTextOf(
         "page <!subteam^S0DB|@oncall-db> <!here> <!channel|channel> db down",
       ),
     ).toEqual({
       people: [],
-      groups: ["oncall-db", "here", "channel"],
+      groups: [
+        { name: "oncall-db", workspaceGroupId: "S0DB" },
+        { name: "here", workspaceGroupId: "" },
+        { name: "channel", workspaceGroupId: "" },
+      ],
       unknownNames: [],
       message: "db down",
     });
   });
 
-  test("a user group with no name: its id", () => {
-    expect(pageTextOf("page <!subteam^S0DB> db").groups).toEqual(["S0DB"]);
+  test("a user group with no name: its id, for both", () => {
+    expect(pageTextOf("page <!subteam^S0DB> db").groups).toEqual([
+      { name: "S0DB", workspaceGroupId: "S0DB" },
+    ]);
+  });
+
+  test("/oneuptime page @payments-oncall: the user group, then the message", () => {
+    expect(
+      pageTextOf(
+        "page <!subteam^S0PAYMENTS|@payments-oncall> The checkout API is throwing 500s",
+      ),
+    ).toEqual({
+      people: [],
+      groups: [{ name: "payments-oncall", workspaceGroupId: "S0PAYMENTS" }],
+      unknownNames: [],
+      message: "The checkout API is throwing 500s",
+    });
   });
 
   test("a channel, a link and a date in the message read as typed", () => {

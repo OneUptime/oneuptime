@@ -3,6 +3,8 @@ import Icon from "../../Icon/Icon";
 import Route from "../../../../Types/API/Route";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Project from "../../../../Models/DatabaseModels/Project";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -14,6 +16,7 @@ export interface ComponentProps {
 const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const title: string = props.project.name!;
   const route: Route = new Route("/dashboard/" + props.project.id?.toString());
 
@@ -35,6 +38,18 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
         <span className="text-sm font-medium text-gray-700 truncate">
           {title}
         </span>
+        {/*
+         * A master admin blocked it: still listed, so it is not a project
+         * that vanished, and opening it says why it cannot be used.
+         */}
+        {props.project.isBlocked && (
+          <span
+            className="ml-auto flex-shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"
+            data-testid="project-picker-blocked"
+          >
+            {translator.translateText("Blocked")}
+          </span>
+        )}
       </div>
     </li>
   );

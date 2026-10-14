@@ -61,6 +61,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import ProjectService from "Common/Server/Services/ProjectService";
 
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "11111111-aaaa-4111-8111-111111111111",
@@ -290,6 +291,8 @@ describe("RunWorkflow with OAuth 2.0 variables", () => {
   };
 
   beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
@@ -818,6 +821,11 @@ describe("RunWorkflow.getVariables with OAuth 2.0 variables", () => {
  * and the socket.
  */
 describe("RunWorkflow, WorkflowVariableOAuthToken and OAuth2TokenClient together", () => {
+  beforeEach(() => {
+    // Not a blocked project: that refusal has suites of its own (BlockedProject*).
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });

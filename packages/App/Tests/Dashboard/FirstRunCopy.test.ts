@@ -286,7 +286,8 @@ const DESCRIBED_PAGES: Array<[string, Array<DescribedPage>]> = [
   [
     "active incidents",
     [
-      { file: "Pages/Home/Home.tsx", shape: "jsx" },
+      // Home's own Active Incidents page: Home itself is the overview now.
+      { file: "Pages/Home/ActiveIncidents.tsx", shape: "jsx" },
       { file: "Pages/Incidents/Unresolved.tsx", shape: "jsx" },
     ],
   ],
@@ -740,11 +741,11 @@ describe("Home's overview tiles", () => {
      * while the form would open for someone who cannot submit it.
      */
     expect(code).toMatch(
-      /notSetUp: \{\s*isNotSetUp: counts !== null && counts\.totalMonitors === 0,\s*label: NO_MONITORS_YET_LABEL,\s*pageMap: PageMap\.MONITORS,?\s*\}/,
+      /notSetUp: \(counts: HomeCounts\): NotSetUpState => \{\s*return \{\s*isNotSetUp: counts\.totalMonitors === 0,\s*label: NO_MONITORS_YET_LABEL,\s*pageMap: PageMap\.MONITORS,?\s*\};?\s*\}/,
     );
     expect(code).not.toContain("PageMap.MONITOR_CREATE");
     expect(code).toMatch(
-      /notSetUp: \{\s*isNotSetUp: counts !== null && counts\.totalSlos === 0,\s*label: NO_SLOS_YET_LABEL,\s*pageMap: PageMap\.SLOS,?\s*\}/,
+      /notSetUp: \(counts: HomeCounts\): NotSetUpState => \{\s*return \{\s*isNotSetUp: counts\.totalSlos === 0,\s*label: NO_SLOS_YET_LABEL,\s*pageMap: PageMap\.SLOS,?\s*\};?\s*\}/,
     );
   });
 
@@ -768,8 +769,9 @@ describe("Home's overview tiles", () => {
   });
 
   test("the status line goes through the translator", () => {
-    // The tile titles are translated by InfoCard; the status line was not.
-    expect(code).toMatch(/<span>\{tx\(statusLabel\)\}<\/span>/);
+    // The titles and the status lines are both looked up where they are drawn.
+    expect(code).toMatch(/translator\.translateText\(tile\.statusLabel\)/);
+    expect(code).toMatch(/translator\.translateText\(tile\.label\)/);
   });
 });
 

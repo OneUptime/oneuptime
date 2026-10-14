@@ -227,6 +227,7 @@
       "plan": "{{name}} - 方案不包含 MCP 用戶端",
       "sso": "{{name}} - 請先使用單一登入進行登入",
       "blocked": "{{name}} - 您的管理員不允許",
+      "project-blocked": "{{name}} - 此專案已被封鎖",
       "not-a-member": "{{name}} - 您不是成員"
     },
     "noProjects": "您尚未加入任何專案。請先建立或加入一個專案，然後重新連接您的 MCP 用戶端。",
