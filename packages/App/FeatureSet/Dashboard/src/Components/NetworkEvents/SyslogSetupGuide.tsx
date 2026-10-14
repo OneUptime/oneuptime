@@ -54,6 +54,24 @@ export interface ComponentProps {
   deviceVendor?: string | undefined;
 }
 
+/*
+ * The room the lines to paste keep free for their copy button, which a code
+ * block lays over its top right corner.
+ *
+ * Below xl the block is narrower than a vendor's longest first line, so the
+ * button stood on the line - on a phone on its port number, however far the
+ * lines were scrolled. There the lines start under the button.
+ *
+ * From xl every vendor's lines fit beside it. They get a little more room
+ * above and below than a code block gives itself, so that with one line to
+ * paste (HPE Aruba) the button does not reach past the frame.
+ *
+ * At every width the button's own width stays free where the lines end: a
+ * probe's address can be long enough to reach it.
+ */
+const CONFIGURATION_CLASS_NAME: string =
+  "mt-3 [&_code]:!pb-3 [&_code]:!pr-12 max-xl:[&_code]:!pt-12 xl:[&_code]:!pt-3";
+
 const PortBadge: FunctionComponent<{
   protocol: "UDP" | "TCP";
 }> = (props: { protocol: "UDP" | "TCP" }): ReactElement => {
@@ -271,13 +289,8 @@ const SyslogSetupGuide: FunctionComponent<ComponentProps> = (
                 })}
               </ol>
               {configuration ? (
-                /*
-                 * A little more room above and below the lines than a code
-                 * block gives itself: with one line to paste (HPE Aruba) its
-                 * copy button otherwise reaches past its frame.
-                 */
                 <div
-                  className="mt-3 [&_code]:!py-3"
+                  className={CONFIGURATION_CLASS_NAME}
                   data-testid="syslog-setup-configuration"
                 >
                   <CodeBlock code={configuration} language="text" />

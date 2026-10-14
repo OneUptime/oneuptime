@@ -616,23 +616,159 @@ describe("the vendor tabs, for a screen reader and the keyboard", () => {
   });
 });
 
+/*
+ * The room the guide keeps free around the lines to paste, as its classes
+ * say: where the lines end ("[&_code]:!pr-12"), under them
+ * ("[&_code]:!pb-3"), and above them below a width and from it
+ * ("max-xl:[&_code]:!pt-12", "xl:[&_code]:!pt-3").
+ */
+const ROOM_AT_LINE_END: RegExp = /^\[&_code\]:!pr-(\d+(?:\.\d+)?)$/;
+const ROOM_UNDER_THE_LINES: RegExp = /^\[&_code\]:!pb-(\d+(?:\.\d+)?)$/;
+const ROOM_ABOVE_ON_NARROW: RegExp =
+  /^max-(sm|md|lg|xl|2xl):\[&_code\]:!pt-(\d+(?:\.\d+)?)$/;
+const ROOM_ABOVE_ON_WIDE: RegExp =
+  /^(sm|md|lg|xl|2xl):\[&_code\]:!pt-(\d+(?:\.\d+)?)$/;
+
+// Where the copy button stands and how big it is, as its own classes say.
+const DISTANCE_FROM_RIGHT: RegExp = /^right-(\d+(?:\.\d+)?)$/;
+const DISTANCE_FROM_TOP: RegExp = /^top-(\d+(?:\.\d+)?)$/;
+const PADDING_ALL_ROUND: RegExp = /^p-(\d+(?:\.\d+)?)$/;
+const WIDTH: RegExp = /^w-(\d+(?:\.\d+)?)$/;
+const HEIGHT: RegExp = /^h-(\d+(?:\.\d+)?)$/;
+
+// The one class of an element that a pattern matches, taken apart.
+function classLike(element: Element, pattern: RegExp): RegExpExecArray {
+  const found: Array<RegExpExecArray> = Array.from(element.classList).flatMap(
+    (name: string): Array<RegExpExecArray> => {
+      const match: RegExpExecArray | null = pattern.exec(name);
+
+      return match ? [match] : [];
+    },
+  );
+
+  if (found.length !== 1) {
+    throw new Error(
+      `${found.length} classes like ${pattern} on <${element.tagName}>`,
+    );
+  }
+
+  return found[0]!;
+}
+
+// A spacing class's size in px: Tailwind counts in quarters of a rem.
+function spacingOf(element: Element, pattern: RegExp): number {
+  const found: RegExpExecArray = classLike(element, pattern);
+
+  return Number(found[found.length - 1]) * 4;
+}
+
+interface CopyButton {
+  // How far it reaches in from the block's right edge, and down from its top.
+  reach: number;
+  drop: number;
+}
+
+function copyButtonOf(block: HTMLElement): CopyButton {
+  const button: HTMLElement = within(block).getByRole("button", {
+    name: "Copy to clipboard",
+  });
+  const icon: Element | undefined = Array.from(
+    button.querySelectorAll("*"),
+  ).find((candidate: Element): boolean => {
+    return Array.from(candidate.classList).some((name: string): boolean => {
+      return WIDTH.test(name);
+    });
+  });
+
+  if (!icon) {
+    throw new Error("The copy button has no icon with a size");
+  }
+
+  const padding: number = 2 * spacingOf(button, PADDING_ALL_ROUND);
+
+  return {
+    reach:
+      spacingOf(button, DISTANCE_FROM_RIGHT) + padding + spacingOf(icon, WIDTH),
+    drop:
+      spacingOf(button, DISTANCE_FROM_TOP) + padding + spacingOf(icon, HEIGHT),
+  };
+}
+
 describe("the lines to paste", () => {
-  test("a guide of one line has room for its copy button: the block is padded above and below", () => {
+  test("the copy button lies over the block's top right corner, 40px each way", () => {
+    renderGuide();
+
+    expect(
+      copyButtonOf(screen.getByTestId("syslog-setup-configuration")),
+    ).toEqual({ reach: 40, drop: 40 });
+  });
+
+  test("on a narrow page the lines start under the copy button: it stood on the first line's port number", () => {
+    renderGuide();
+
+    const block: HTMLElement = screen.getByTestId("syslog-setup-configuration");
+
+    /*
+     * A phone's block is narrower than every vendor's first line, and a
+     * small laptop's narrower than the longest. The lines scroll sideways;
+     * the button does not, so what was under it could not be read at all.
+     */
+    expect(spacingOf(block, ROOM_ABOVE_ON_NARROW)).toBeGreaterThan(
+      copyButtonOf(block).drop,
+    );
+  });
+
+  test("the two rules for the room above the lines meet at one width, and leave none out", () => {
+    renderGuide();
+
+    const block: HTMLElement = screen.getByTestId("syslog-setup-configuration");
+
+    // "max-xl:" ends where "xl:" starts.
+    expect(classLike(block, ROOM_ABOVE_ON_NARROW)[1]).toBe(
+      classLike(block, ROOM_ABOVE_ON_WIDE)[1],
+    );
+    // No third rule that would have to win over either of them.
+    expect(
+      Array.from(block.classList).filter((name: string): boolean => {
+        return name.includes("!pt-") || name.includes("!py-");
+      }),
+    ).toHaveLength(2);
+  });
+
+  test("at every width the copy button's width is kept free where the lines end", () => {
+    renderGuide();
+
+    const block: HTMLElement = screen.getByTestId("syslog-setup-configuration");
+
+    // A probe's address can be long enough to reach the button on any screen.
+    expect(spacingOf(block, ROOM_AT_LINE_END)).toBeGreaterThan(
+      copyButtonOf(block).reach,
+    );
+  });
+
+  test("a guide of one line has room for its copy button on a wide page: the block is padded above and below", () => {
     renderGuide();
 
     fireEvent.click(tab(SyslogSetupVendor.Aruba));
 
+    const block: HTMLElement = screen.getByTestId("syslog-setup-configuration");
+
     // One line: without the room, the button reached past the block's frame.
     expect(configuration()?.split("\n")).toHaveLength(1);
-    expect(screen.getByTestId("syslog-setup-configuration")).toHaveClass(
-      "[&_code]:!py-3",
+
+    // A line of this size is 22.75px high: 14px, 1.625 to the line.
+    expect(block.querySelector("code")).toHaveClass(
+      "text-sm",
+      "leading-relaxed",
     );
-    expect(
-      within(screen.getByTestId("syslog-setup-configuration")).getByRole(
-        "button",
-        { name: "Copy to clipboard" },
-      ),
-    ).toBeInTheDocument();
+
+    const blockHeight: number =
+      spacingOf(block, ROOM_ABOVE_ON_WIDE) +
+      22.75 +
+      spacingOf(block, ROOM_UNDER_THE_LINES);
+
+    expect(blockHeight).toBeGreaterThan(copyButtonOf(block).drop);
+    expect(block).toHaveClass("xl:[&_code]:!pt-3", "[&_code]:!pb-3");
   });
 
   test("the docs link's arrow stays with its last word when the link wraps", () => {
