@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28444,
-    "untranslated": 16931
+    "keys": 28484,
+    "untranslated": 16928
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -16,6 +16,7 @@
     "Filter:",
     "Filter: {{expression}}",
     "Gateway",
+    "Null",
     "Pause",
     "Peer",
     "Problem",

@@ -49,7 +49,7 @@ Pour en lancer une à la main :
 @tab Depuis un événement
 1. Ouvrez l'incident, l'alerte ou l'événement de maintenance planifiée, et allez sur sa page **Runbooks**.
 2. Cliquez sur **Exécuter le Runbook**. La boîte de dialogue **Exécuter un Runbook** liste les runbooks du projet qui sont activés.
-3. Cliquez sur **Run** à côté du runbook. L'exécution apparaît dans la liste de l'événement : cliquez sur **Voir** pour l'ouvrir.
+3. Cliquez sur **Exécuter** à côté du runbook. L'exécution apparaît dans la liste de l'événement : cliquez sur **Voir** pour l'ouvrir.
 @tab Depuis le runbook
 1. Ouvrez le runbook depuis **Runbooks**.
 2. Sur sa **Vue d'ensemble**, cliquez sur **Run Now**.

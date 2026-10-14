@@ -12,9 +12,12 @@
  */
 
 import {
+  ComponentInputType,
   NodeDataProp,
   ReturnValue,
 } from "../../../../Types/Workflow/Component";
+import { SELECT_FIELDS_NAME } from "../../../../Types/Workflow/Components/BaseModel";
+import { selectedColumnIds } from "./StepValueSource";
 import {
   ParsedReferencePath,
   ReferenceRootType,
@@ -150,6 +153,51 @@ const pathAfter: PathAfterFunction = (
   }
 
   return rest ? `${index}.${rest}` : index;
+};
+
+const FIELD_NAME: RegExp = /^[A-Za-z0-9_-]+/;
+
+type IsPassedOnFunction = (step: NodeDataProp, path: string) => boolean;
+
+/*
+ * Whether a record step passes on the field a path into its record reads:
+ * "title", or a related record's field "currentIncidentState.name". True
+ * when the step's Fields to pass on cannot be read, as nothing can be said.
+ */
+const isPassedOn: IsPassedOnFunction = (
+  step: NodeDataProp,
+  path: string,
+): boolean => {
+  const selected: Array<string> | null = selectedColumnIds(step);
+
+  if (!selected) {
+    return true;
+  }
+
+  const segments: Array<string> = path.split(".").map((segment: string) => {
+    return segment.match(FIELD_NAME)?.[0] || "";
+  });
+  const field: string = segments[0] || "";
+
+  if (!field) {
+    return true;
+  }
+
+  if (!selected.includes(field)) {
+    return false;
+  }
+
+  // A related record's field is passed on only when it is named.
+  const relatedField: string = segments[1] || "";
+  const passesRelatedFields: boolean = selected.some((id: string): boolean => {
+    return id.startsWith(`${field}.`);
+  });
+
+  return (
+    !relatedField ||
+    !passesRelatedFields ||
+    selected.includes(`${field}.${relatedField}`)
+  );
 };
 
 type JoinFunction = (source: string, parts: Array<string>) => string;
@@ -289,6 +337,16 @@ export const describeReference: DescribeReferenceFunction = (
       "This is this step's own value, which does not exist yet while its settings are read.";
   } else if ((context.downstreamIds || []).includes(componentId)) {
     problem = `"${title}" runs after this step, so this value is empty here.`;
+  } else if (
+    returnValue.type === ComponentInputType.BaseModel &&
+    deeper &&
+    !isPassedOn(step, deeper)
+  ) {
+    /*
+     * A record's field its step does not pass on is empty, the record or
+     * not: the value picker lists it apart, and the chip says so too.
+     */
+    problem = `"${title}" doesn't pass this field on, so it is empty here. Add it to its ${SELECT_FIELDS_NAME}.`;
   }
 
   return {

@@ -54,7 +54,7 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Incident**. Klicka på utlösaren och välj `title` och `description` i **Select Fields**.
+Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Incident**. Klicka på utlösaren och välj `title` och `description` i **Fields to pass on**.
 
 ### Skapa posten
 
@@ -93,7 +93,7 @@ Ett arbetsflöde har en utlösare, så det krävs ett andra arbetsflöde för at
 :::steps
 ### Lägg till utlösaren On Update Incident
 
-Skapa ett arbetsflöde som heter `Resolve ServiceNow incidents` och välj **On Update Incident** som utlösare. Välj `currentIncidentStateId` i **Listen on**, så att det bara körs när statusen ändras. Fråga i **Select Fields** om den nya statusen är en löst status:
+Skapa ett arbetsflöde som heter `Resolve ServiceNow incidents` och välj **On Update Incident** som utlösare. Välj `currentIncidentStateId` i **Fields to watch**, så att det bara körs när statusen ändras. Fråga i **Fields to pass on** om den nya statusen är en löst status:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

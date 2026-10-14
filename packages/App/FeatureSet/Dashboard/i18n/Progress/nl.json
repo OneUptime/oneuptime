@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28444,
-    "untranslated": 17010
+    "keys": 28484,
+    "untranslated": 17009
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -31,10 +31,13 @@
     "Interfaces",
     "Label: {{name}}",
     "Model",
+    "Null",
     "Offline",
     "Peer",
     "Protocol",
     "Provider",
+    "Record",
+    "Records",
     "Runbook: {{name}}",
     "Runner",
     "Service",

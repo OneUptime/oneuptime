@@ -212,8 +212,8 @@ Twilio 用文字转语音朗读这些消息，因此请按您希望听到的样�
 只处理未接来电时，例如把它们发布到 Slack 或 Microsoft Teams，或创建工单：
 
 :::steps
-1. 添加 **On Update Incoming Call Log** 触发器。将 **Listen on** 设为 **Ended At** ，并选择要使用的字段，例如 **Status** 、 **Caller Phone Number** 和 **Routing Phone Number** 。
-2. 添加一个 **If / Else** 步骤。用比较 **is not equal to** 和 `Completed` 检查触发器的 **Status** 。
+1. 添加 **On Update Incoming Call Log** 触发器。将 **Fields to watch** 设为 **Ended At** ，并选择要使用的字段，例如 **Status** 、 **Caller Phone Number** 和 **Routing Phone Number** 。
+2. 添加一个 **If / Else** 步骤。用比较 **不等于** 和 `Completed` 检查触发器的 **Status** 。
 3. 把您的步骤连接到 **Yes** 端口。
 :::
 

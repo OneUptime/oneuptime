@@ -449,6 +449,12 @@ export interface OnCallPageItem {
   statusMessage?: string;
   acknowledgedAt: string | null;
   policyName?: string;
+  /*
+   * A direct page: this person was paged with no on-call policy behind the
+   * page - by a workflow's Page Users, Page a Team or Page Whoever Is On Call
+   * step. It has no policy to name, and nothing about it is missing.
+   */
+  isDirectPage?: boolean;
   triggeredByIncident: { _id?: string; title?: string } | null;
   triggeredByAlert: { _id?: string; title?: string } | null;
   triggeredByIncidentEpisode: { _id?: string; title?: string } | null;

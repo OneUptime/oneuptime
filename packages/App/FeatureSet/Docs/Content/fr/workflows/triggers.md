@@ -26,13 +26,13 @@ Un workflow ne peut avoir qu'un seul déclencheur. S'il vous faut deux façons d
 
 ## Manual
 
-Exécutez le workflow à la demande : cliquez sur **Exécuter le flux de travail** sur la page **Constructeur**, remplissez le **JSON** du déclencheur, cliquez sur **Run Workflow Manually** et confirmez avec **Run**. Un autre workflow peut aussi le démarrer, avec un bloc **Execute Workflow**.
+Exécutez le workflow à la demande : cliquez sur **Exécuter le flux de travail** sur la page **Constructeur**, remplissez le **JSON** du déclencheur, cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Un autre workflow peut aussi le démarrer, avec un bloc **Execute Workflow**.
 
 Idéal pour : les automatisations en un clic pour lesquelles vous voulez un bouton, comme « faire tourner cette clé » ou « envoyer une alerte de test », et la logique que vous partagez entre workflows.
 
 **Returns** : **JSON** — ce avec quoi l'exécution a été lancée.
 
-- Depuis **Exécuter le flux de travail**, c'est le JSON que vous avez tapé, sous forme de texte. Pour en lire un champ, faites-le d'abord passer par un bloc **Text to JSON**.
+- Depuis **Exécuter le flux de travail**, c'est le JSON que vous avez tapé. Pour en lire un champ, ajoutez le nom du champ à la référence, comme dans `{{local.components.manual-1.returnValues.value.name}}`.
 - Depuis un bloc **Execute Workflow**, chaque clé des **Arguments** du bloc devient une valeur à part entière. Avec `{"customerId": "42"}`, un bloc suivant lit `{{local.components.manual-1.returnValues.customerId}}`, où `manual-1` est l'ID du déclencheur Manual.
 
 ## Schedule
@@ -96,7 +96,7 @@ sequenceDiagram
 
 Lisez un champ en ajoutant son nom à la référence, comme dans `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
-Une fois qu'une requête est arrivée, le sélecteur de valeurs de chaque bloc qui suit le déclencheur sait ce qu'elle contenait : il liste les champs du corps, les en-têtes et les paramètres de requête, chacun avec son contenu, pour que vous puissiez choisir `incident.title` au lieu de taper un chemin. D'ici là, il indique qu'aucune requête n'est arrivée et propose **Copy test request**, une commande `curl` pour l'URL ; les champs apparaissent dès que l'exécution lancée par cette requête est terminée. Voir [Utiliser des valeurs des blocs précédents](/docs/workflows/authoring#utiliser-des-valeurs-des-blocs-précédents).
+Une fois qu'une requête est arrivée, le sélecteur de valeurs de chaque bloc qui suit le déclencheur sait ce qu'elle contenait : il liste les champs du corps, les en-têtes et les paramètres de requête, chacun avec son contenu, pour que vous puissiez choisir `incident.title` au lieu de taper un chemin. D'ici là, il indique qu'aucune requête n'est arrivée et propose **Copier la requête de test**, une commande `curl` pour l'URL ; les champs apparaissent dès que l'exécution lancée par cette requête est terminée. Voir [Utiliser des valeurs des blocs précédents](/docs/workflows/authoring#utiliser-des-valeurs-des-blocs-précédents).
 
 Pour tester le workflow sans l'autre outil, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et saisissez des en-têtes, des paramètres de requête et un corps.
 
@@ -161,24 +161,24 @@ Presque tout ce qui existe dans OneUptime — moniteurs, incidents, alertes, év
 
 C'est ainsi que vous construisez « quand X se produit dans OneUptime, faire Y » sans avoir à vérifier en boucle.
 
-**On Update** peut être restreint à certains champs avec **Listen on** : il ne se produit alors que lorsqu'une modification change l'un d'eux, vers n'importe quelle valeur — désactiver un interrupteur ou vider un champ compte.
+**On Update** peut être restreint à certains champs avec **Fields to watch** : il ne se produit alors que lorsqu'une modification change l'un d'eux, vers n'importe quelle valeur — désactiver un interrupteur ou vider un champ compte.
 
 ```mermaid title="Quand un déclencheur On Update se produit"
 flowchart TB
     save["Un enregistrement est enregistré"] --> changed{"Une valeur a-t-elle changé ?"}
     changed -->|"Non"| nothing["Rien ne se déclenche"]
-    changed -->|"Oui"| listen{"Listen on est renseigné ?"}
+    changed -->|"Oui"| listen{"Fields to watch est renseigné ?"}
     listen -->|"Non"| fires["Le workflow s'exécute"]
     listen -->|"Oui"| field{"L'un de ses champs a changé ?"}
     field -->|"Oui"| fires
     field -->|"Non"| nothing
 ```
 
-**On Create** et **On Update** transmettent l'enregistrement au bloc suivant, avec les champs que vous choisissez dans le **Select Fields** du déclencheur. Par exemple, le déclencheur **Incident → On Create** transmet le nouvel incident : le bloc suivant peut lire son titre, sa description, sa gravité ou tout autre champ sélectionné, comme `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un champ que vous n'avez pas sélectionné arrive vide.
+**On Create** et **On Update** transmettent l'enregistrement au bloc suivant, avec les champs que vous choisissez dans le **Fields to pass on** du déclencheur. Par exemple, le déclencheur **Incident → On Create** transmet le nouvel incident : le bloc suivant peut lire son titre, sa description, sa gravité ou tout autre champ sélectionné, comme `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un champ que vous n'avez pas sélectionné arrive vide.
 
 **On Delete** ne transmet que l'ID de l'enregistrement supprimé : l'enregistrement n'existe plus quand le workflow s'exécute, ses autres champs ne peuvent donc pas être lus.
 
-Pour tester un déclencheur d'événement sans attendre l'événement, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et saisissez l'ID d'un enregistrement existant, comme un **ID d'incident**. L'exécution lit cet enregistrement avec les champs que vous avez sélectionnés.
+Pour tester un déclencheur d'événement sans attendre l'événement, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et choisissez un enregistrement existant : les plus récents sont listés, et saisir le numéro d'un enregistrement ou une partie de son nom en trouve un autre. L'exécution lit cet enregistrement avec les champs que vous avez sélectionnés, comme si l'événement venait de lui arriver ; l'enregistrement lui-même n'est ni modifié ni supprimé.
 
 ### Les événements les plus utilisés
 

@@ -212,8 +212,8 @@ Twilio는 음성 합성으로 메시지를 읽어 주므로, 들리길 원하는
 부재중 전화에만 대응하려면(예: Slack이나 Microsoft Teams에 게시하거나 티켓을 열려면):
 
 :::steps
-1. **On Update Incoming Call Log** 트리거를 추가합니다. **Listen on** 을 **Ended At** 으로 설정하고, **Status**, **Caller Phone Number**, **Routing Phone Number** 처럼 사용할 필드를 선택합니다.
-2. **If / Else** 단계를 추가합니다. 트리거의 **Status** 를 비교 연산 **is not equal to** 와 `Completed` 로 확인합니다.
+1. **On Update Incoming Call Log** 트리거를 추가합니다. **Fields to watch** 를 **Ended At** 으로 설정하고, **Status**, **Caller Phone Number**, **Routing Phone Number** 처럼 사용할 필드를 선택합니다.
+2. **If / Else** 단계를 추가합니다. 트리거의 **Status** 를 비교 연산 **같지 않음** 와 `Completed` 로 확인합니다.
 3. 내 단계를 **Yes** 포트에 연결합니다.
 :::
 

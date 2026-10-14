@@ -22,14 +22,20 @@ export const CHIP_REFERENCE_ATTRIBUTE: string = "data-template-reference";
 const CHIP_BASE_CLASS: string =
   "inline-flex max-w-full cursor-default select-none items-center gap-1 whitespace-nowrap rounded-md border px-1.5 py-px align-baseline text-xs font-medium leading-4";
 
+/*
+ * A chip is 12px words on a tinted ground, so both of its parts are a shade
+ * that reads there at 4.5:1 or better. The step a value comes from is a
+ * shade lighter than what the chip reads, and thinner - never faint.
+ * (indigo-500 on indigo-50 was 4.0:1, and amber-600 on amber-50 3.1:1.)
+ */
 const CHIP_TONE_CLASS: Record<ReferenceTone, string> = {
   [ReferenceTone.Normal]: "border-indigo-200 bg-indigo-50 text-indigo-700",
-  [ReferenceTone.Warning]: "border-amber-200 bg-amber-50 text-amber-700",
+  [ReferenceTone.Warning]: "border-amber-200 bg-amber-50 text-amber-800",
 };
 
 const CHIP_SOURCE_CLASS: Record<ReferenceTone, string> = {
-  [ReferenceTone.Normal]: "truncate font-normal text-indigo-500",
-  [ReferenceTone.Warning]: "truncate font-normal text-amber-600",
+  [ReferenceTone.Normal]: "truncate font-normal text-indigo-600",
+  [ReferenceTone.Warning]: "truncate font-normal text-amber-700",
 };
 
 const CHIP_PART_CLASS: string = "truncate";

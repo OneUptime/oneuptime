@@ -54,7 +54,7 @@ Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis 
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur et, dans **Select Fields**, choisissez `title` et `description`.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur et, dans **Fields to pass on**, choisissez `title` et `description`.
 
 ### Créer l'enregistrement
 
@@ -93,7 +93,7 @@ Un workflow a un seul déclencheur, la résolution demande donc un second workfl
 :::steps
 ### Ajouter le déclencheur On Update Incident
 
-Créez un workflow nommé `Resolve ServiceNow incidents` et choisissez **On Update Incident** comme déclencheur. Dans **Listen on**, choisissez `currentIncidentStateId`, pour qu'il ne s'exécute que quand l'état change. Dans **Select Fields**, demandez si le nouvel état est un état résolu :
+Créez un workflow nommé `Resolve ServiceNow incidents` et choisissez **On Update Incident** comme déclencheur. Dans **Fields to watch**, choisissez `currentIncidentStateId`, pour qu'il ne s'exécute que quand l'état change. Dans **Fields to pass on**, demandez si le nouvel état est un état résolu :
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

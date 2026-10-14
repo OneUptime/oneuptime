@@ -108,7 +108,7 @@ En nedladdning innehåller inget som du inte redan kunde läsa i körningen. Hem
 
 :::details Mitt arbetsflöde kördes inte
 1. Se till att arbetsflödet är **Aktiverad**: brytaren sitter högst upp i dess **Byggare**, som säger det ovanför arbetsytan när arbetsflödet är avstängt. Nya arbetsflöden börjar inaktiverade, och medan ett arbetsflöde är avstängt startar dess utlösare det inte: bara **Kör arbetsflöde** och **Run just this step** gör det, som testkörningar. Ett webhook-anrop till det får HTTP 400 med ett meddelande om hur du slår på det.
-2. För en utlösare för OneUptime-händelser bekräftar du att händelsen faktiskt inträffade: öppna posten och kontrollera dess historik. En **On Update**-utlösare med **Listen on** aktiveras bara när något av de fälten ändrades.
+2. För en utlösare för OneUptime-händelser bekräftar du att händelsen faktiskt inträffade: öppna posten och kontrollera dess historik. En **On Update**-utlösare med **Fields to watch** aktiveras bara när något av de fälten ändrades.
 3. För en webhook-utlösare bekräftar du att det andra systemet skickar till rätt URL. De flesta verktyg loggar när de skickar en webhook — kontrollera där.
 4. För en schemautlösare bekräftar du att cron-uttrycket stämmer med tiden du förväntar dig. Scheman körs i UTC.
 

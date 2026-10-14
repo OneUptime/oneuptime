@@ -108,7 +108,7 @@ Un download non contiene nulla che tu non possa già leggere nell'esecuzione. I 
 
 :::details Il mio workflow non è partito
 1. Assicurati che il workflow sia **Abilitato**: l'interruttore si trova in cima al suo **Costruttore**, che lo segnala sopra la tela quando il workflow è disattivato. I nuovi workflow partono disabilitati, e mentre un workflow è disattivato il suo trigger non lo avvia: lo fanno solo **Esegui flusso di lavoro** e **Run just this step**, come esecuzioni di prova. Una chiamata webhook verso di esso riceve HTTP 400 con un messaggio che spiega come attivarlo.
-2. Per un trigger di evento OneUptime, verifica che l'evento sia davvero avvenuto: apri il record e controlla la sua cronologia. Un trigger **On Update** con **Listen on** scatta solo quando cambia uno di quei campi.
+2. Per un trigger di evento OneUptime, verifica che l'evento sia davvero avvenuto: apri il record e controlla la sua cronologia. Un trigger **On Update** con **Fields to watch** scatta solo quando cambia uno di quei campi.
 3. Per un trigger webhook, verifica che l'altro sistema invii all'URL giusto. La maggior parte degli strumenti registra quando invia un webhook: controlla lì.
 4. Per un trigger pianificato, verifica che l'espressione cron corrisponda all'ora che ti aspetti. Le pianificazioni girano in UTC.
 

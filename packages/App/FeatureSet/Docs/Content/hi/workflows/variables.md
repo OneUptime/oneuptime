@@ -210,7 +210,7 @@ OAuth 2.0 वेरिएबल के पेज पर **एक्सेस ट
 - हेडर और बॉडी फ़ील्ड (स्ट्रिंग मानों के अंदर)।
 - **If / Else** ब्लॉक के दोनों पक्ष।
 
-JSON फ़ील्ड में — रिकॉर्ड घटकों पर **Data (JSON Object)**, **Query** और **Select Fields**, API ब्लॉक का **Request Body**, **Run Custom JavaScript** पर **Arguments** — कोई संदर्भ इस हिसाब से भरा जाता है कि वह कहाँ है:
+JSON फ़ील्ड में — रिकॉर्ड घटकों पर **Data (JSON Object)** और **Query**, API ब्लॉक का **Request Body**, **Run Custom JavaScript** पर **Arguments** — कोई संदर्भ इस हिसाब से भरा जाता है कि वह कहाँ है:
 
 - **उद्धरण चिह्नों के अंदर, यह टेक्स्ट है।** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` मान को स्ट्रिंग के अंदर रखता है। मान में उद्धरण चिह्न, बैकस्लैश और नई पंक्तियाँ एस्केप की जाती हैं, ताकि JSON वैध रहे और मान एक ही स्ट्रिंग रहे।
 - **अकेले होने पर, यह खुद मान है।** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` पूरा ऑब्जेक्ट डालता है, सूची सूची ही रहती है, और संख्या संख्या ही। ऐसा टेक्स्ट जो खुद JSON है — `5`, `true`, या ऐसा ऑब्जेक्ट जिसे किसी ब्लॉक ने JSON टेक्स्ट के रूप में लौटाया — उसी मान के रूप में डाला जाता है। बाकी कोई भी टेक्स्ट स्ट्रिंग के रूप में डाला जाता है।
@@ -238,7 +238,7 @@ JSON फ़ील्ड में — रिकॉर्ड घटकों प�
 एक वेबहुक `{ "service": "checkout", "status": "failed" }` जैसी बॉडी के साथ आता है। इसे OneUptime घटना में बदलने के लिए:
 
 1. `ci-webhook` ID वाला एक **वेबहुक** ट्रिगर।
-2. एक **If / Else** ब्लॉक: **Value to check** वेबहुक के Request Body का `status` फ़ील्ड है (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison** है **is equal to**, और **Compare with** है `failed`।
+2. एक **If / Else** ब्लॉक: **जांचने वाला मान** वेबहुक के Request Body का `status` फ़ील्ड है (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **तुलना** है **इसके बराबर है**, और **इससे तुलना करें** है `failed`।
 3. **Yes** शाखा से एक **Create One Incident** ब्लॉक, जिसमें:
    - शीर्षक: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - विवरण: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`

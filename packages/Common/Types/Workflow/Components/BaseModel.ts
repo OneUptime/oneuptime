@@ -13,6 +13,14 @@ import ComponentMetadata, {
   ComponentType,
 } from "./../Component";
 
+/*
+ * What the record triggers' and Find steps' field lists are called, wherever
+ * they are named: the settings dialog, the step's help, the run log, and the
+ * value picker's note on a field a step does not pass on.
+ */
+export const SELECT_FIELDS_NAME: string = "Fields to pass on";
+export const WATCHED_FIELDS_NAME: string = "Fields to watch";
+
 export default class BaseModelComponent {
   public static getComponents(model: BaseModel): Array<ComponentMetadata> {
     const components: Array<ComponentMetadata> = [];
@@ -27,11 +35,12 @@ export default class BaseModelComponent {
      * is called everywhere else in the product - when the column is "_id".
      * Both spellings work.
      *
-     * Query, Select and the write payload all get an editor backed by the
-     * model's real column list, so the names are offered rather than
-     * remembered. The hint stays because those editors keep a JSON escape
-     * hatch for values rows cannot express, and because it is still the only
-     * thing explaining the two spellings.
+     * Query, the field lists and the write payload all get an editor backed
+     * by the model's real column list, so the names are offered rather than
+     * remembered. The hint stays on Query and the payload because their
+     * editors keep a JSON escape hatch for values rows cannot express, and
+     * because it is still the only thing explaining the two spellings. The
+     * field lists say it in their own JSON view instead (ModelFieldPicker).
      */
     const columnHint: string = `Keys are column names on ${model.singularName}. The ID column is "_id" (the "id" spelling is accepted too).`;
 
@@ -41,6 +50,20 @@ export default class BaseModelComponent {
       'Example: {"_id": "00000000-0000-0000-0000-000000000000"}';
 
     const selectPlaceholder: string = 'Example: {"_id": true, "name": true}';
+
+    /*
+     * The record triggers' and Find steps' two field lists, in words a
+     * first-time builder reads without the docs. "Listen on" and "Select
+     * Fields" were the maintainer's "very confusing" pair: two identical
+     * checkbox lists under SQL-ish names, with column keys in their help.
+     * Each now says what it decides and what leaving it empty means. The
+     * column keys only matter to someone editing the JSON, which says so
+     * itself (ModelFieldPicker); the finer points of a change are in the
+     * step's How to use (DatabaseDocumentation).
+     */
+    const selectDescription: string = `The ${model.singularName} fields the next steps can use. A field you leave out is empty in later steps.`;
+
+    const listenOnDescription: string = `Run only when an update changes one of these fields. Leave it empty to run on every change to the ${model.singularName}.`;
 
     const dataDescription: string = `${model.singularName} fields to write, as a JSON object. ${columnHint}`;
 
@@ -87,8 +110,8 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Select,
-            name: "Select Fields",
-            description: `Fields to read from ${model.singularName}. ${columnHint}`,
+            name: SELECT_FIELDS_NAME,
+            description: selectDescription,
             required: true,
             id: "select",
             placeholder: selectPlaceholder,
@@ -146,8 +169,8 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Select,
-            name: "Select Fields",
-            description: `Fields to read from ${model.singularName}. ${columnHint}`,
+            name: SELECT_FIELDS_NAME,
+            description: selectDescription,
             required: true,
             id: "select",
             placeholder: selectPlaceholder,
@@ -384,8 +407,8 @@ export default class BaseModelComponent {
         arguments: [
           {
             type: ComponentInputType.Select,
-            name: "Select Fields",
-            description: `Fields to read from ${model.singularName}. ${columnHint}`,
+            name: SELECT_FIELDS_NAME,
+            description: selectDescription,
             required: true,
             id: "select",
             placeholder: selectPlaceholder,
@@ -555,16 +578,16 @@ export default class BaseModelComponent {
         arguments: [
           {
             type: ComponentInputType.Select,
-            name: "Listen on",
-            description: `Narrows this trigger to updates that change these fields on ${model.singularName}. Leave it blank to fire on any change. A field saved with the value it already has is not a change. When an update arrives without a record of which fields changed, this filter is skipped and the workflow runs anyway.`,
+            name: WATCHED_FIELDS_NAME,
+            description: listenOnDescription,
             required: false,
             id: "listen-on",
             placeholder: 'Example: {"columnName": true, ...}',
           },
           {
             type: ComponentInputType.Select,
-            name: "Select Fields",
-            description: `Fields to read from ${model.singularName}. ${columnHint}`,
+            name: SELECT_FIELDS_NAME,
+            description: selectDescription,
             required: true,
             id: "select",
             placeholder: selectPlaceholder,

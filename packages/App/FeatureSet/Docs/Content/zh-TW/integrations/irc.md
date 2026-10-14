@@ -87,7 +87,7 @@ sequenceDiagram
 工作流程會在 **建構器** 中開啟，包含三個步驟：**On Create Incident**；**Send Message to IRC**，以兩行張貼事件的編號、標題、嚴重程度與狀態；以及接在其 **錯誤** 輸出上的 **日誌** 步驟，用來記錄訊息為何沒有送達。伺服器與頻道會存成工作流程變數 `ircServer` 和 `ircChannel`。如果你在上一步存了密碼，點選 **Send Message to IRC**，開啟 **更多欄位**，再用各設定的 **{ }** 按鈕選擇對應的變數。
 @tab 從零開始
 1. 開啟 **工作流程**，點選 **建立工作流程**，選擇 **從零開始**，替工作流程命名，然後點選 **建立工作流程**。
-2. 在 **建構器** 中點選 **Choose what starts this workflow**，在 **Popular** 下選擇 **On Create Incident**。點選該觸發器，在 **Select Fields** 中選擇訊息要顯示的事件欄位，例如標題。
+2. 在 **建構器** 中點選 **Choose what starts this workflow**，在 **Popular** 下選擇 **On Create Incident**。點選該觸發器，在 **Fields to pass on** 中選擇訊息要顯示的事件欄位，例如標題。
 3. 點選 **新增元件**，搜尋 `irc`，點選 **Send Message to IRC**。把觸發器的 **成功** 輸出連到這個步驟。
 4. 點選新步驟，填寫 **IRC Server**、**Channel** 和 **Message Text**。**Message Text** 中的 **{ }** 按鈕可以插入事件的欄位，例如標題。
 5. 如果你在上一步存了密碼，開啟 **更多欄位**。在 **Server Password**、**SASL Password** 或 **Channel Key** 點選 **{ }**，在 **Global variables** 下選擇變數。在 **SASL Username** 填入你的帳號名稱。
@@ -97,7 +97,7 @@ sequenceDiagram
 
 開啟 **建構器** 頂端的 **已啟用** 開關。從現在起，每個新事件都會張貼到頻道。
 
-如果想在不建立新事件的情況下測試，點選 **執行工作流程**，在 **事件 ID** 填入一個既有事件的 ID。事件頁面上會顯示它的 ID。點選 **Run Workflow Manually**，再以 **Run** 確認。**工作流程執行** 面板會追蹤這次執行：IRC 步驟的日誌會說明送出了幾行，例如 `Sent 2 lines to #your-channel.`，訊息也會出現在頻道中。如果步驟改走 **錯誤**，它的日誌會說明原因：請參閱[疑難排解](#疑難排解)。
+如果想在不建立新事件的情況下測試，點選 **執行工作流程**，在 **事件** 下選擇一個既有的事件：清單中會列出最近的事件，輸入它的編號或標題的一部分可以找到其他事件。點選 **手動執行工作流程**，再以 **執行** 確認。**工作流程執行** 面板會追蹤這次執行：IRC 步驟的日誌會說明送出了幾行，例如 `Sent 2 lines to #your-channel.`，訊息也會出現在頻道中。如果步驟改走 **錯誤**，它的日誌會說明原因：請參閱[疑難排解](#疑難排解)。
 :::
 
 ## 提示

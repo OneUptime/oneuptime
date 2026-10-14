@@ -119,7 +119,7 @@ L'URL è l'unica credenziale, quindi trattalo come una password. Vedi [Webhook](
 
 :::steps
 1. Salva la chiave API dello strumento come variabile globale segreta, come mostrato [più sotto](#proteggere-le-credenziali).
-2. Crea un workflow, fai clic sul blocco tratteggiato e scegli un trigger di evento, come **On Create Incident**. Nei suoi **Select Fields**, spunta i campi da inviare, come `title` e `description`.
+2. Crea un workflow, fai clic sul blocco tratteggiato e scegli un trigger di evento, come **On Create Incident**. Nei suoi **Fields to pass on**, spunta i campi da inviare, come `title` e `description`.
 3. Fai clic su **Aggiungi componente** e aggiungi un blocco **API Post (JSON)**. Collegagli il punto **Success** del trigger.
 4. Compila il suo **URL**, i suoi **Request Headers** con l'intestazione `Authorization` e il suo **Request Body** con i campi dell'incidente, come `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Fai clic su **Esegui flusso di lavoro**, inserisci l'**ID incidente** di un incidente ed eseguilo. Un'esecuzione di prova invia davvero la richiesta. Poi attiva **Abilitato**.

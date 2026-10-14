@@ -212,8 +212,8 @@ Logboeken van inkomende oproepen zijn beschikbaar als workflowtriggers:
 Om alleen op gemiste oproepen te reageren, bijvoorbeeld om ze in Slack of Microsoft Teams te plaatsen of een ticket te openen:
 
 :::steps
-1. Voeg de trigger **On Update Incoming Call Log** toe. Stel **Listen on** in op **Ended At**, en selecteer de velden die u wilt gebruiken, zoals **Status**, **Caller Phone Number** en **Routing Phone Number**.
-2. Voeg een stap **If / Else** toe. Controleer de **Status** van de trigger, met de vergelijking **is not equal to** en `Completed`.
+1. Voeg de trigger **On Update Incoming Call Log** toe. Stel **Fields to watch** in op **Ended At**, en selecteer de velden die u wilt gebruiken, zoals **Status**, **Caller Phone Number** en **Routing Phone Number**.
+2. Voeg een stap **If / Else** toe. Controleer de **Status** van de trigger, met de vergelijking **is niet gelijk aan** en `Completed`.
 3. Verbind uw stappen met de poort **Yes**.
 :::
 

@@ -48,7 +48,7 @@ flowchart TB
 
 ### Добавьте триггер
 
-Нажмите на пунктирный блок **Choose what starts this workflow** и выберите **On Create Incident**. Нажмите на триггер и в **Select Fields** выберите `title` и `description`.
+Нажмите на пунктирный блок **Choose what starts this workflow** и выберите **On Create Incident**. Нажмите на триггер и в **Fields to pass on** выберите `title` и `description`.
 
 ### Отправьте событие trigger
 
@@ -84,7 +84,7 @@ flowchart TB
 :::steps
 ### Добавьте триггер On Update Incident
 
-Создайте рабочий процесс с именем `Resolve PagerDuty incidents` и выберите триггер **On Update Incident**. В **Listen on** выберите `currentIncidentStateId`, чтобы он запускался только при смене состояния. В **Select Fields** запросите, является ли новое состояние состоянием устранения:
+Создайте рабочий процесс с именем `Resolve PagerDuty incidents` и выберите триггер **On Update Incident**. В **Fields to watch** выберите `currentIncidentStateId`, чтобы он запускался только при смене состояния. В **Fields to pass on** запросите, является ли новое состояние состоянием устранения:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ flowchart TB
 
 Чтобы отправлять серьёзность каждого инцидента, добавьте между триггером и блоком **API Post (JSON)** блок **Run Custom JavaScript** и читайте его ответ в теле.
 
-1. В **Select Fields** триггера выберите также `name` серьёзности: `{ "incidentSeverity": { "name": true } }`.
+1. В **Fields to pass on** триггера выберите также `name` серьёзности: `{ "incidentSeverity": { "name": true } }`.
 2. Задайте **Arguments** блока значение `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, а его **JavaScript Code** — следующий код:
 
    ```javascript

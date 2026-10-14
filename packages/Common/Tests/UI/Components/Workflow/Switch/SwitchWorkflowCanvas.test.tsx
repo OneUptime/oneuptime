@@ -224,6 +224,8 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import Components from "../../../../../Types/Workflow/Components";
+import BaseModelComponent from "../../../../../Types/Workflow/Components/BaseModel";
+import Incident from "../../../../../Models/DatabaseModels/Incident";
 import {
   getStarterSwitchCases,
   readSwitchCases,
@@ -553,6 +555,37 @@ describe("a new Switch / Case", () => {
     );
 
     expect(added?.data.arguments).toBeUndefined();
+  });
+
+  /*
+   * A trigger or Find step that passes a record on starts by passing on the
+   * field that names it (ComponentOutPorts.getNewStepArguments), so its
+   * Fields to pass on is never an empty requirement the moment it lands.
+   */
+  test("a new record step passes on the field that names its record", () => {
+    const harness: Harness = renderBuilder({
+      initialNodes: [step(ComponentID.Manual, "manual-1")],
+      initialEdges: [],
+      showComponentsPickerModal: true,
+    });
+
+    const findOne: ComponentMetadata = BaseModelComponent.getComponents(
+      new Incident(),
+    ).find((component: ComponentMetadata): boolean => {
+      return component.id === "incident-find-one";
+    }) as ComponentMetadata;
+
+    act(() => {
+      mockPickerProps?.onComponentClick(findOne);
+    });
+
+    const added: Node<NodeDataProp> | undefined = lastNodes(harness).find(
+      (node: Node<NodeDataProp>) => {
+        return node.data.metadataId === "incident-find-one";
+      },
+    );
+
+    expect(added?.data.arguments).toEqual({ select: { title: true } });
   });
 });
 

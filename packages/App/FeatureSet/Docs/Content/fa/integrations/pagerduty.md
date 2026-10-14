@@ -48,7 +48,7 @@ flowchart TB
 
 ### افزودن تریگر
 
-روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید و **On Create Incident** را برگزینید. روی تریگر کلیک کنید، و در **Select Fields** گزینه‌های `title` و `description` را برگزینید.
+روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید و **On Create Incident** را برگزینید. روی تریگر کلیک کنید، و در **Fields to pass on** گزینه‌های `title` و `description` را برگزینید.
 
 ### فرستادن رویداد trigger
 
@@ -84,7 +84,7 @@ flowchart TB
 :::steps
 ### افزودن تریگر On Update Incident
 
-گردش کاری‌ای به نام `Resolve PagerDuty incidents` بسازید، و **On Update Incident** را به عنوان تریگرش برگزینید. در **Listen on**، `currentIncidentStateId` را برگزینید تا فقط با تغییر وضعیت اجرا شود. در **Select Fields** بخواهید که آیا وضعیت تازه یک وضعیت رفع‌شده است یا نه:
+گردش کاری‌ای به نام `Resolve PagerDuty incidents` بسازید، و **On Update Incident** را به عنوان تریگرش برگزینید. در **Fields to watch**، `currentIncidentStateId` را برگزینید تا فقط با تغییر وضعیت اجرا شود. در **Fields to pass on** بخواهید که آیا وضعیت تازه یک وضعیت رفع‌شده است یا نه:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -117,7 +117,7 @@ flowchart TB
 
 برای فرستادن شدت هر حادثه، یک بلوک **Run Custom JavaScript** میان تریگر و بلوک **API Post (JSON)** اضافه کنید، و پاسخ آن را در بدنه بخوانید.
 
-1. در **Select Fields** تریگر، `name` شدت را هم برگزینید: `{ "incidentSeverity": { "name": true } }`.
+1. در **Fields to pass on** تریگر، `name` شدت را هم برگزینید: `{ "incidentSeverity": { "name": true } }`.
 2. **Arguments** بلوک را روی `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` و **JavaScript Code** آن را روی این بگذارید:
 
    ```javascript

@@ -395,8 +395,34 @@ describe("the resource named comes first", () => {
   });
 
   test("a name run together or by its initials still names the resource", () => {
-    expect(titles(ACTIONS, "oncall")[0]).toBe("Create One On-Call Policy");
-    expect(titles(ACTIONS, "on-call")[0]).toBe("Create One On-Call Policy");
+    /*
+     * "on-call" is also the name of the Page steps' own group, and two of
+     * them have it in their title: they lead, as hand-written steps do, and
+     * the resource named follows them.
+     */
+    for (const search of ["oncall", "on-call"]) {
+      const found: Array<ComponentSearchResult> = searchComponents(
+        ACTIONS,
+        search,
+      ).results;
+      const firstResourceStep: ComponentSearchResult | undefined = found.find(
+        (result: ComponentSearchResult): boolean => {
+          return Boolean(result.component.tableName);
+        },
+      );
+
+      expect(firstResourceStep!.component.title).toBe(
+        "Create One On-Call Policy",
+      );
+      expect(
+        found
+          .slice(0, found.indexOf(firstResourceStep!))
+          .map((result: ComponentSearchResult): string => {
+            return result.component.category;
+          }),
+      ).toEqual(new Array(found.indexOf(firstResourceStep!)).fill("On-Call"));
+    }
+
     expect(titles(ACTIONS, "slo")[0]).toBe(
       "Create One Service Level Objective",
     );

@@ -810,6 +810,212 @@ test.describe("a webhook nothing has called yet", () => {
   });
 });
 
+/*
+ * "Pls make the available and non-available variables a little more visually
+ * distinct": what can be used where this step runs is the list; what cannot
+ * is folded after it, each step with why, and its values are never picked.
+ */
+test.describe("what cannot be used here", () => {
+  const SLACK_ERROR: string = "{{local.components.slack-1.returnValues.error}}";
+
+  test("a step that runs later is folded at the end, with why, and the focus stays in the search box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStep(page, "log-1");
+    await page.getByTestId("workflow-argument-value-insert-value").click();
+    await expect(page.getByText("Loading variables…")).toHaveCount(0);
+
+    const toggle: Locator = page.getByTestId("value-picker-unavailable-toggle");
+
+    // Slack runs after this Log; the loose Log returns nothing to explain.
+    await expect(toggle).toHaveText("1 step isn't available here");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByTestId("value-picker-unavailable-step")).toHaveCount(
+      0,
+    );
+
+    // After everything that can be used.
+    const lastOption: Locator = page
+      .getByTestId("value-picker")
+      .getByRole("option")
+      .last();
+    const optionBox: { y: number } | null = await lastOption.boundingBox();
+    const toggleBox: { y: number } | null = await toggle.boundingBox();
+
+    expect(toggleBox!.y).toBeGreaterThan(optionBox!.y);
+
+    await toggle.click();
+
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByTestId("value-picker-search")).toBeFocused();
+
+    const step: Locator = page.getByTestId("value-picker-unavailable-step");
+
+    await expect(step).toHaveCount(1);
+    await expect(step).toContainText("slack-1");
+    await expect(step).toContainText("Runs after this step.");
+    // Under the fold of the list when it opened: it is brought into view.
+    await expect(step).toBeInViewport({ ratio: 1 });
+    // Named, not offered: browsing lists none of its values.
+    await expect(
+      page.getByTestId("value-picker-unavailable-value"),
+    ).toHaveCount(0);
+    expect(await optionReferences(page)).not.toContain(SLACK_ERROR);
+  });
+
+  test("a search shows its values greyed; a click and the keys pass them by", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStep(page, "log-1");
+    await page.getByTestId("workflow-argument-value-insert-value").click();
+    await expect(page.getByText("Loading variables…")).toHaveCount(0);
+
+    const before: string = await page
+      .getByTestId("saved-arguments")
+      .inputValue();
+
+    await page.getByTestId("value-picker-search").fill("slack");
+
+    const value: Locator = page.getByTestId("value-picker-unavailable-value");
+
+    await expect(value).toHaveCount(1);
+    await expect(value).toHaveAttribute("data-reference", SLACK_ERROR);
+    await expect(value).toHaveAttribute("aria-disabled", "true");
+    await expect(value).toHaveCSS("cursor", "not-allowed");
+    await expect(page.getByTestId("value-picker-unavailable")).toContainText(
+      "Not available here",
+    );
+    // Nothing matches among what can be used, and it does not say "no match".
+    expect(await optionReferences(page)).toEqual([]);
+    await expect(page.getByTestId("value-picker-no-match")).toHaveCount(0);
+
+    // Greyer than a value that can be picked.
+    const greyed: string = await value
+      .locator("span")
+      .first()
+      .evaluate((element: Element) => {
+        return getComputedStyle(element).color;
+      });
+
+    await page.getByTestId("value-picker-search").fill("request body");
+
+    const usable: string = await option(page, BODY)
+      .locator("span")
+      .first()
+      .evaluate((element: Element) => {
+        return getComputedStyle(element).color;
+      });
+
+    expect(greyed).not.toBe(usable);
+
+    // A click on it, and Enter with only it listed, insert nothing.
+    await page.getByTestId("value-picker-search").fill("slack");
+    await value.click();
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByTestId("value-picker")).toBeVisible();
+    expect(await page.getByTestId("saved-arguments").inputValue()).toBe(before);
+    // The Log's Value still holds its one chip, the Webhook's body.
+    await expect(
+      page
+        .getByTestId("workflow-argument-value")
+        .locator("[data-template-reference]"),
+    ).toHaveCount(1);
+  });
+
+  test("in the dark theme the folded steps are still set apart", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStep(page, "log-1", "&theme=dark");
+    await page.getByTestId("workflow-argument-value-insert-value").click();
+    await expect(page.getByText("Loading variables…")).toHaveCount(0);
+    await page.getByTestId("value-picker-unavailable-toggle").click();
+
+    const reason: Locator = page
+      .getByTestId("value-picker-unavailable-step")
+      .locator("p");
+    const reasonColour: string = await reason.evaluate((element: Element) => {
+      return getComputedStyle(element).color;
+    });
+    const nameColour: string = await option(page, BODY)
+      .locator("span")
+      .first()
+      .evaluate((element: Element) => {
+        return getComputedStyle(element).color;
+      });
+
+    // Not gray-400 on the light theme's white, and dimmer than a usable name.
+    expect(reasonColour).not.toBe("rgb(156, 163, 175)");
+    expect(reasonColour).not.toBe(nameColour);
+  });
+});
+
+/*
+ * While the workflow is off its Webhook URL refuses requests, so a test
+ * request to copy would never arrive: the list offers a test run instead,
+ * which saves what was typed and opens Run Workflow.
+ */
+test.describe("a webhook nothing has called, while the workflow is off", () => {
+  test("offers Test with Run Workflow, which saves the step and opens Run Workflow", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStep(page, "log-1", "&samples=none&webhook=url&off=1");
+    await page.getByTestId("workflow-argument-value-insert-value").click();
+
+    const note: Locator = page.getByTestId("value-picker-group-note");
+
+    await expect(note).toContainText(
+      "while this workflow is off its URL refuses requests. Test it with Run Workflow",
+    );
+    // No request to copy: it would be refused.
+    await expect(note.getByTestId("value-picker-note-copy")).toHaveCount(0);
+    await expect(note.getByRole("status")).toHaveText(
+      "Waiting for a test run…",
+    );
+
+    const testRun: Locator = note.getByTestId("value-picker-note-test-run");
+
+    await expect(testRun).toHaveText("Test with Run Workflow");
+    await testRun.click();
+
+    // The settings are saved and closed, and Run Workflow is open.
+    await expect(page.getByTestId("workflow-component-settings")).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole("heading", { name: "Run Workflow", exact: true }),
+    ).toBeVisible();
+
+    const saved: Record<string, Record<string, unknown>> = JSON.parse(
+      await page.getByTestId("saved-arguments").inputValue(),
+    );
+
+    expect(saved["log-1"]!["value"]).toBe(`Body: ${BODY}`);
+  });
+
+  test("on, it offers a test request instead", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openStep(page, "log-1", "&samples=none&webhook=url");
+    await page.getByTestId("workflow-argument-value-insert-value").click();
+
+    const note: Locator = page.getByTestId("value-picker-group-note");
+
+    await expect(note.getByTestId("value-picker-note-copy")).toBeVisible();
+    await expect(note.getByTestId("value-picker-note-test-run")).toHaveCount(0);
+  });
+});
+
 test.describe("dark theme", () => {
   test("chips and the list take the dark colours", async ({
     page,

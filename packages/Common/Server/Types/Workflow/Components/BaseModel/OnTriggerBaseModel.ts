@@ -22,6 +22,7 @@ import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
+import { getWatchedColumns } from "../../../../../Types/Workflow/WatchedFields";
 import Workflow from "../../../../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
@@ -298,8 +299,15 @@ export default class OnTriggerBaseModel<
              * changed to: a switch turned off (false), a count set to 0 or
              * a text cleared is a change too. Reading the value instead of
              * the key skipped every one of those.
+             *
+             * A relation to one record is reported by the column holding
+             * its ID, so watching "Current Incident State" hears a change
+             * of currentIncidentStateId (Types/Workflow/WatchedFields).
              */
-            for (const key in listenOn) {
+            for (const key of getWatchedColumns({
+              listenOn: listenOn,
+              model: this.service!.getModel(),
+            })) {
               if (Object.prototype.hasOwnProperty.call(updatedFields, key)) {
                 isUpdated = true;
                 break;

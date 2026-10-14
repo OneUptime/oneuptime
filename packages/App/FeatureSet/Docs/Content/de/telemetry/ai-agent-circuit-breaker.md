@@ -125,11 +125,11 @@ Speichern Sie zuerst das Token des Endpunkts dort, wo der Workflow es nutzen kan
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Alert** im Bereich **Add Trigger**. Klicken Sie auf den Trigger, haken Sie unter **Select Fields** den Titel und die Beschreibung an und klicken Sie auf **Speichern**. Die ID auf dem Baustein, `alert-on-create-1`, ist der Name, unter dem spätere Bausteine auf ihn verweisen.
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Alert** im Bereich **Add Trigger**. Klicken Sie auf den Trigger: **Fields to pass on** beginnt mit dem Titel, klicken Sie also auf **Feld hinzufügen**, haken Sie die Beschreibung an und klicken Sie auf **Speichern**. Die ID auf dem Baustein, `alert-on-create-1`, ist der Name, unter dem spätere Bausteine auf ihn verweisen.
 
 ### Den Titel prüfen
 
-Klicken Sie auf **Komponente hinzufügen**, wählen Sie **If / Else** und verbinden Sie den Punkt **Success** des Triggers damit. Setzen Sie **Value to check** auf den Titel der Warnung (klicken Sie auf **{ }** und wählen Sie ihn), **Comparison** auf **enthält** und **Compare with** auf den Anfang, den Ihre Auslösertitel gemeinsam haben, etwa `LLM budget exceeded`.
+Klicken Sie auf **Komponente hinzufügen**, wählen Sie **If / Else** und verbinden Sie den Punkt **Success** des Triggers damit. Setzen Sie **Zu prüfender Wert** auf den Titel der Warnung (klicken Sie auf **{ }** und wählen Sie ihn), **Vergleich** auf **enthält** und **Vergleichen mit** auf den Anfang, den Ihre Auslösertitel gemeinsam haben, etwa `LLM budget exceeded`.
 
 ### Ihren Endpunkt aufrufen
 
@@ -189,7 +189,7 @@ Prüfen Sie, ob **Aktiviert** oben im **Editor** eingeschaltet ist: Workflows we
 :::
 
 :::details Der Workflow läuft, nimmt aber immer den Zweig No
-Der Titel ist leer oder passt nicht. Ein Feld, das unter **Select Fields** des Triggers nicht angehakt ist, kommt leer an, also haken Sie den Titel an. Vergleichen Sie dann den Titel der Warnung mit **Compare with**: **enthält** muss genau diesen Text darin finden.
+Der Titel ist leer oder passt nicht. Ein Feld, das nicht in **Fields to pass on** des Triggers steht, kommt leer an, also fügen Sie den Titel dort hinzu. Vergleichen Sie dann den Titel der Warnung mit **Vergleichen mit**: **enthält** muss genau diesen Text darin finden.
 :::
 
 :::details Ihr Endpunkt antwortet mit 401

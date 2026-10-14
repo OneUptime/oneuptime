@@ -505,13 +505,68 @@ describe("what a search matches", () => {
     expect(new Set(searchIds("jira"))).toEqual(new Set(ids(JIRA_TEMPLATES)));
   });
 
-  test("a search for alert finds the alert templates: the two Alerts ones, then the eight Jira ones, then the six Dynamics 365 ones", () => {
+  test("a search for alert finds the alert templates: the two Alerts ones, then the eight Jira ones, then the six Dynamics 365 ones - and last the one that pages about a new alert", () => {
     expect(searchIds("alert")).toEqual([
       ...ids(getTemplatesInView(WorkflowTemplateCategory.Alerts)),
       ...ALERT_JIRA_IDS,
       ...ALERT_DYNAMICS_IDS,
+      // Its page opens an alert, which its description says: found, after the templates named for alerts.
+      "webhook-page-users",
     ]);
     expect(ALERT_DYNAMICS_IDS).toHaveLength(6);
+  });
+
+  /*
+   * "I want to conditionally page someone" - the three paging templates are
+   * what that search is for, under whichever of its words is typed.
+   */
+  const PAGING_TEMPLATE_IDS: Array<string> = [
+    "incident-critical-page-on-call",
+    "incident-severity-page",
+    "webhook-page-users",
+  ];
+
+  test.each(["page", "Page", "pages"])(
+    "a search for %s finds the three paging templates first, before the status page ones",
+    (search: string) => {
+      const results: Array<string> = searchIds(search);
+
+      expect(results.slice(0, 3)).toEqual(PAGING_TEMPLATE_IDS);
+      // The Status Page templates are still found, after them.
+      expect(results).toContain("subscriber-added-slack");
+      expect(results.indexOf("subscriber-added-slack")).toBeGreaterThan(2);
+    },
+  );
+
+  test("a search for paging finds exactly the three: it is what each of them teaches", () => {
+    expect(searchIds("paging")).toEqual(PAGING_TEMPLATE_IDS);
+  });
+
+  test("a search for conditional finds the one with an If / Else in front of its Page step", () => {
+    expect(searchIds("conditional")).toEqual([
+      "incident-critical-page-on-call",
+    ]);
+  });
+
+  test("a search for what is paged finds the template that pages it", () => {
+    expect(searchIds("page team")).toEqual(["incident-severity-page"]);
+    expect(searchIds("page someone")).toEqual(["webhook-page-users"]);
+    // Both page for critical incidents; the one named for it comes first.
+    expect(searchIds("on call critical")).toEqual([
+      "incident-critical-page-on-call",
+      "incident-severity-page",
+    ]);
+    expect(searchIds("severity").slice(0, 2)).toEqual([
+      "incident-severity-slack",
+      "incident-severity-page",
+    ]);
+  });
+
+  test("the On-Call category holds the paging templates beside the one that follows an escalation", () => {
+    expect(ids(getTemplatesInView(WorkflowTemplateCategory.OnCall))).toEqual([
+      "oncall-executed-slack",
+      ...PAGING_TEMPLATE_IDS,
+    ]);
   });
 
   test("a search for dynamics finds the thirteen Dynamics 365 templates and nothing else", () => {
