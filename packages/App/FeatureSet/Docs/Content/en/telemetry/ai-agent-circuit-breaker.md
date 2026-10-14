@@ -125,7 +125,7 @@ Open **Products → Workflows** and click **Create Workflow**. Click **Start fro
 
 ### Add the trigger
 
-Click the dashed **Choose what starts this workflow** block and pick **On Create Alert** in the **Add Trigger** panel. Click the trigger, tick the title and the description in **Select Fields**, and click **Save**. The ID on the block, `alert-on-create-1`, is how later blocks refer to it.
+Click the dashed **Choose what starts this workflow** block and pick **On Create Alert** in the **Add Trigger** panel. Click the trigger: **Fields to pass on** starts with the title, so click **Add field**, tick the description, and click **Save**. The ID on the block, `alert-on-create-1`, is how later blocks refer to it.
 
 ### Check the title
 
@@ -189,7 +189,7 @@ Check that **Enabled** is on at the top of the **Builder**: workflows are create
 :::
 
 :::details The workflow runs, but always takes the No branch
-The title is empty or doesn't match. A field the trigger's **Select Fields** doesn't tick arrives empty, so tick the title. Then compare the alert's title with **Compare with**: **contains** must find that exact text in it.
+The title is empty or doesn't match. A field that isn't in the trigger's **Fields to pass on** arrives empty, so add the title there. Then compare the alert's title with **Compare with**: **contains** must find that exact text in it.
 :::
 
 :::details Your endpoint answers 401

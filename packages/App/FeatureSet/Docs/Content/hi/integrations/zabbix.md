@@ -1,65 +1,149 @@
-# Zabbix Integration
+# Zabbix
 
-[Zabbix](https://www.zabbix.com) आपके सर्वर और नेटवर्क की निगरानी करता है; OneUptime आपकी incident response, on-call, और status pages चलाता है। दोनों को जोड़ें और हर Zabbix समस्या स्वचालित रूप से OneUptime incident बन जाती है — ताकि सही लोगों को पेज मिले और आपका status page सटीक रहे।
+[Zabbix](https://www.zabbix.com) की समस्याएं OneUptime को भेजें, ताकि हर समस्या एक घटना बने जो आपकी ऑन-कॉल टीम को पेज करे, और Zabbix के ठीक होने पर सुलझ जाए। Zabbix हर समस्या को वेबहुक मीडिया टाइप के ज़रिए भेजता है, इसलिए किसी भी तरफ़ कुछ इंस्टॉल नहीं करना पड़ता।
 
-यह इंटीग्रेशन **इनबाउंड** है: Zabbix OneUptime को समस्याएँ भेजता है। यह एक तरफ Zabbix **webhook media type** और दूसरी तरफ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है। कोई प्लगइन नहीं, कोई अतिरिक्त सेवाएँ नहीं।
-
-```text
-Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workflow (Webhook trigger)  ──►  Create Incident
-```
+:::cards
+- [चुनें कि OneUptime समस्याएं कैसे पाए](#चुनें-कि-oneuptime-समस्याएं-कैसे-पाए): एक Incoming Request मॉनिटर, या आपका अपना वर्कफ़्लो।
+- [मॉनिटर से समस्याएं पाएं](#मॉनिटर-से-समस्याएं-पाएं): हर समस्या पर एक घटना, जो ठीक होने पर सुलझ जाती है।
+- [Zabbix कॉन्फ़िगर करें](#zabbix-कॉन्फ़िगर-करें): एक मीडिया टाइप, एक यूज़र और एक एक्शन।
+- [समस्या निवारण](#समस्या-निवारण): जब समस्याएं नहीं पहुंचतीं, या घटनाएं खुली रह जाती हैं।
+:::
 
 ## यह कैसे काम करता है
 
-1. Zabbix trigger **PROBLEM** में बदल जाता है।
-2. Zabbix **action** **OneUptime** media type को event भेजने के लिए कहता है।
-3. Media type का script एक छोटा JSON payload OneUptime workflow URL पर POST करता है।
-4. वर्कफ़्लो payload पढ़ता है और एक incident बनाता है (और वैकल्पिक रूप से, Zabbix recover होने पर इसे resolve करता है)।
+```mermaid title="Zabbix समस्या से घटना तक"
+flowchart TB
+    problem["Zabbix ट्रिगर:<br/>PROBLEM या OK"] --> action["एक्शन इसे भेजता है<br/>OneUptime यूज़र को"]
+    action --> media["मीडिया टाइप JSON<br/>OneUptime पर भेजता है"]
+    media --> status{"status"}
+    status -->|"1, समस्या"| open["घटना खुली,<br/>ऑन-कॉल को पेज"]
+    status -->|"0, ठीक हुई"| resolve["घटना सुलझी"]
+```
 
-## पूर्वापेक्षाएँ
+Zabbix किसी समस्या को एक यूज़र को, उस यूज़र के मीडिया के ज़रिए भेजता है। यहां मीडिया **OneUptime** नाम का एक वेबहुक मीडिया टाइप है: उसकी स्क्रिप्ट OneUptime को एक छोटा JSON दस्तावेज़ भेजती है, जिसमें समस्या का इवेंट ID, नाम, होस्ट, गंभीरता और स्टेटस होता है। समस्या के लिए स्टेटस `1` होता है और उसके ठीक होने पर `0`।
 
-- एक Zabbix server जिसे आप प्रबंधित करते हैं (यह गाइड **Zabbix 6.0 LTS / 7.0 LTS** के लिए लिखी गई है; webhook media type 5.0+ पर भी उसी तरह काम करती है)।
-- आपका Zabbix server HTTPS के माध्यम से आपके OneUptime instance तक पहुँचने में सक्षम होना चाहिए।
-- एक OneUptime project जहाँ आप वर्कफ़्लो बना सकते हैं।
+## शुरू करने से पहले
 
-## भाग 1 — OneUptime वर्कफ़्लो बनाएँ
+- एक Zabbix सर्वर जिसका एडमिनिस्ट्रेशन आप करते हैं। यह गाइड Zabbix 6.0 LTS और 7.0 LTS के लिए लिखी गई है। वेबहुक मीडिया टाइप Zabbix 5.0 से इसी तरह काम करते हैं।
+- एक Zabbix सर्वर जो HTTPS पर आपके OneUptime तक पहुंच सके।
+- OneUptime में मॉनिटर बनाने का अधिकार, या अगर आप वह रास्ता चुनते हैं तो वर्कफ़्लो बनाने का।
 
-यह पहले करें, क्योंकि आपको उस webhook URL की ज़रूरत होगी जो यह generate करता है।
+## चुनें कि OneUptime समस्याएं कैसे पाए
 
-1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें। इसे `Zabbix → Incidents` नाम दें और **बिल्डर** tab खोलें।
-2. कैनवास पर एक **वेबहुक** trigger खींचें। उस पर क्लिक करें और **unique URL कॉपी करें** जो यह दिखाता है। इसे सुरक्षित रखें — जिसके पास भी यह है वह वर्कफ़्लो शुरू कर सकता है। ब्लॉक का नाम `Zabbix` रखें ताकि variables सुंदर दिखें।
-3. कैनवास पर एक **शर्तें** ब्लॉक खींचें और trigger का output उससे जोड़ें। कॉन्फ़िगर करें:
-   - **Left value**: `{{Zabbix.Request Body.status}}`
-   - **Operator**: `==`
-   - **Right value**: `1` _(Zabbix समस्या के लिए `1` और recovery के लिए `0` भेजता है)_
-4. एक **घटना बनाएं** ब्लॉक खींचें और उसे Conditions ब्लॉक के **हाँ** output से जोड़ें। भरें:
-   - **शीर्षक**: `Zabbix: {{Zabbix.Request Body.name}}`
-   - **विवरण**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **गंभीरता**: वह OneUptime incident severity चुनें जो आप चाहते हैं (आप बाद में अधिक Conditions branches जोड़कर इसे बेहतर कर सकते हैं जो Zabbix severities को map करें)।
-5. सहेजें। **सक्षम** _बंद_ छोड़ें अभी के लिए — test के बाद आप इसे चालू करेंगे।
+पहले OneUptime सेट करें: वही आपको वह URL देता है जिस पर Zabbix भेजता है।
 
-> **टिप:** description (या incident label) में Zabbix `event_id` रखने से आप बाद में इस incident को फिर से खोज सकते हैं यदि आप recovery पर auto-resolve करना चाहते हैं। [स्वचालित रूप से resolve करना](#स्वचालित-रूप-से-resolve-करना-वैकल्पिक) देखें।
+| तरीका | कब इस्तेमाल करें |
+| --- | --- |
+| Incoming Request मॉनिटर (सुझाया गया) | आप चाहते हैं कि हर Zabbix समस्या एक घटना बने जो ऑन-कॉल को पेज करे, और Zabbix के ठीक होने पर सुलझ जाए। बनाने को कुछ नहीं है। |
+| Webhook ट्रिगर वाला वर्कफ़्लो | आपको अपना लॉजिक चाहिए: समस्याओं को फ़िल्टर करना, उनका रूप बदलना, या पहले दूसरे सिस्टम को कॉल करना। वर्कफ़्लो ठीक होने पर घटना को अपने-आप नहीं सुलझाता। |
 
-## भाग 2 — Zabbix कॉन्फ़िगर करें
+दोनों को एक ही मीडिया टाइप से एक जैसा JSON मिलता है, इसलिए आप एक से शुरू करके बाद में Zabbix में एक URL बदलकर दूसरे पर जा सकते हैं।
 
-### चरण 1: OneUptime media type बनाएँ
+## मॉनिटर से समस्याएं पाएं
 
-1. Zabbix में, **Alerts → Media types** पर जाएँ (पुराने संस्करणों पर: **Administration → Media types**)।
-2. **Create media type** क्लिक करें और **Type** को **Webhook** पर सेट करें।
-3. **Name**: `OneUptime`।
-4. ये **Parameters** जोड़ें (हर एक के लिए _Add_ क्लिक करें)। ये Zabbix [macros](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location) को एक साफ़ payload में map करते हैं:
+एक [Incoming Request मॉनिटर](/docs/monitor/incoming-request-monitor) आपको एक URL देता है, और उसके मानदंड तय करते हैं कि हर अनुरोध क्या करे।
 
-   | नाम              | मान                |
-   | ---------------- | ------------------ |
-   | `url`            | `{ALERT.SENDTO}`   |
-   | `event_id`       | `{EVENT.ID}`       |
-   | `event_name`     | `{EVENT.NAME}`     |
-   | `event_value`    | `{EVENT.VALUE}`    |
+:::steps
+### मॉनिटर बनाएं
+
+**मॉनिटर** पर जाएं और **मॉनिटर बनाएं** पर क्लिक करें। **मॉनिटर प्रकार** में **Incoming Request** चुनें, इसका नाम `Zabbix` रखें, और **अगला** पर क्लिक करें।
+
+### हर समस्या के लिए घटना घोषित करें
+
+**मानदंड** चरण में पहला मानदंड खोलें, वह जो मॉनिटर को ऑफ़लाइन चिह्नित करता है। उसका फ़िल्टर **अनुरोध बॉडी**, **शामिल है**, `"status":"1"` पर सेट करें। फ़िल्टर मेल खाने पर यह मानदंड पहले से ही घटना घोषित करता है। घटना भरें:
+
+- **घटना शीर्षक**: `Zabbix: {{requestBody.name}} on {{requestBody.host}}`।
+- **गंभीरता**: वह घटना गंभीरता जो Zabbix समस्याओं की होनी चाहिए।
+- **ऑन-कॉल** के नीचे **ऑन-कॉल नीतियां**: पेज की जाने वाली नीतियां।
+- **और फ़ील्ड** के नीचे **घटना स्वतः सुलझाएं**: इसे चालू रहने दें, जैसा यह शुरू में होता है। इसके बिना रिकवरी को अनदेखा किया जाता है और घटनाएं खुली रहती हैं।
+
+### हर समस्या पर एक घटना खोलें
+
+उसी मानदंड में **सेटिंग्स** खोलें और **Group incidents and alerts by a payload field** चालू करें। इसे नीचे की तरह भरें, ताकि हर समस्या की अपनी घटना हो, और उसकी रिकवरी उसे सुलझाए:
+
+| फ़ील्ड | मान |
+| --- | --- |
+| **Open a separate incident for each…** | `requestBody.event_id` |
+| **Field that signals recovery** | `requestBody.status` |
+| **Value that means recovered** | `0` |
+
+### मॉनिटर को वापस ऑनलाइन लाएं
+
+दूसरा मानदंड खोलें, वह जो मॉनिटर को ऑनलाइन चिह्नित करता है, और उसका फ़िल्टर **अनुरोध बॉडी**, **शामिल है**, `"status":"0"` पर सेट करें।
+
+### URL कॉपी करें
+
+**मॉनिटर बनाएं** पर क्लिक करें। मॉनिटर का **अवलोकन** पेज उसका **Heartbeat URL** दिखाता है। उसे Zabbix के लिए कॉपी करें:
+
+```text
+https://oneuptime.com/heartbeat/<secret key>
+```
+
+सेल्फ़-होस्टेड इंस्टॉलेशन में `oneuptime.com` की जगह उसका अपना होस्ट होता है।
+:::
+
+मॉनिटर अनुरोध के JSON को जैसा लिखा है वैसा ही पढ़ता है: `"status":"1"`, बिना स्पेस के। हर सेटिंग क्या करती है, यह जानने के लिए [दूसरे सिस्टम से अलर्ट पाना](/docs/monitor/incoming-request-monitor#किसी-दूसरे-सिस्टम-से-अलर्ट-प्राप्त-करना) देखें।
+
+## वर्कफ़्लो से समस्याएं पाएं
+
+जब आपको Zabbix और घटना के बीच अपने चरण चाहिए, तब [वर्कफ़्लो](/docs/workflows/index) इस्तेमाल करें।
+
+:::steps
+### वर्कफ़्लो बनाएं
+
+**वर्कफ़्लो** पर जाएं, **वर्कफ़्लो बनाएं** पर क्लिक करें, फिर **शुरू से बनाएं** पर। इसका नाम `Zabbix problems` रखें और **वर्कफ़्लो बनाएं** पर क्लिक करें।
+
+### Webhook ट्रिगर जोड़ें
+
+डैश वाले **Choose what starts this workflow** ब्लॉक पर क्लिक करें और **Webhook** चुनें। ट्रिगर पर क्लिक करें, फिर **URL कॉपी करें** पर, और URL को Zabbix के लिए रख लें।
+
+### जांचें कि यह समस्या है
+
+**घटक जोड़ें** पर क्लिक करें, एक **If / Else** ब्लॉक जोड़ें, और ट्रिगर के **Out** बिंदु को उससे जोड़ें। **Value to check** को `{{local.components.webhook-1.returnValues.request-body.status}}` पर, **Comparison** को **is equal to** पर, और **Compare with** को `1` पर सेट करें।
+
+### घटना घोषित करें
+
+एक **Create One Incident** ब्लॉक जोड़ें, और **If / Else** ब्लॉक की **Yes** साइड को उससे जोड़ें। **Incident Template** में ऐसा टेम्पलेट चुनें जो गंभीरता और पेज की जाने वाली ऑन-कॉल नीतियां सेट करता हो ([घटना टेम्पलेट](/docs/incidents/settings#घटना-टेम्पलेट) देखें)। **JSON Object** में वह सेट करें जो Zabbix से आता है:
+
+```json
+{
+  "title": "Zabbix: {{local.components.webhook-1.returnValues.request-body.name}}",
+  "description": "Host: {{local.components.webhook-1.returnValues.request-body.host}}\nSeverity: {{local.components.webhook-1.returnValues.request-body.severity}}\nZabbix event: {{local.components.webhook-1.returnValues.request-body.event_id}}"
+}
+```
+
+बिना टेम्पलेट के, **JSON Object** में `incidentSeverityId` भी चाहिए, जो प्रोजेक्ट की किसी घटना गंभीरता का ID है।
+
+### इसे चालू करें
+
+**बिल्डर** के ऊपर **सक्षम** चालू करें। बंद वर्कफ़्लो Zabbix को `400` से जवाब देता है।
+:::
+
+रिकवरी **If / Else** ब्लॉक की **No** साइड पर जाती है, जहां कुछ नहीं जुड़ा है, इसलिए रन वहीं खत्म हो जाता है। रिकवरी पर घटनाएं सुलझाने के लिए मॉनिटर इस्तेमाल करें।
+
+## Zabbix कॉन्फ़िगर करें
+
+Zabbix को तीन चीज़ें चाहिए: OneUptime पर भेजने वाला एक मीडिया टाइप, जिसे भेजना है वह यूज़र, और एक एक्शन जो समस्याएं उस यूज़र को भेजे।
+
+:::steps
+### OneUptime मीडिया टाइप बनाएं
+
+1. **Alerts → Media types** पर जाएं, या Zabbix 6.0 पर **Administration → Media types** पर, और **Create media type** पर क्लिक करें।
+2. **Name** को `OneUptime` और **Type** को **Webhook** पर सेट करें।
+3. ये **Parameters** जोड़ें। हर एक किसी Zabbix [मैक्रो](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location) को अनुरोध में डालता है:
+
+   | नाम | मान |
+   | --- | --- |
+   | `url` | `{ALERT.SENDTO}` |
+   | `event_id` | `{EVENT.ID}` |
+   | `event_name` | `{EVENT.NAME}` |
+   | `event_value` | `{EVENT.VALUE}` |
    | `event_severity` | `{EVENT.SEVERITY}` |
-   | `host`           | `{HOST.NAME}`      |
-   | `event_date`     | `{EVENT.DATE}`     |
-   | `event_time`     | `{EVENT.TIME}`     |
+   | `host` | `{HOST.NAME}` |
+   | `event_date` | `{EVENT.DATE}` |
+   | `event_time` | `{EVENT.TIME}` |
 
-5. **Script** फ़ील्ड में यह पेस्ट करें:
+4. इसे **Script** में पेस्ट करें:
 
    ```javascript
    var params = JSON.parse(value);
@@ -72,7 +156,7 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
      name: params.event_name,
      host: params.host,
      severity: params.event_severity,
-     // "1" = problem, "0" = recovered. OneUptime reads this in a Conditions block.
+     // "1" for a problem, "0" for its recovery.
      status: params.event_value,
      date: params.event_date,
      time: params.event_time,
@@ -89,84 +173,78 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
    return "OK";
    ```
 
-6. **Message templates** tab क्लिक करें और **Problem** और **Problem recovery** के लिए एक template जोड़ें (body खाली हो सकती है — payload script में बनाया जाता है)। यह Zabbix के लिए उन event types के लिए media type इस्तेमाल करने के लिए ज़रूरी है।
-7. Media type सहेजने के लिए **Add** करें।
+5. **Message templates** टैब पर **Problem** के लिए एक टेम्पलेट और **Problem recovery** के लिए एक टेम्पलेट जोड़ें। उनका टेक्स्ट खाली छोड़ें: अनुरोध स्क्रिप्ट बनाती है। Zabbix किसी मीडिया टाइप का इस्तेमाल सिर्फ़ उन्हीं तरह के इवेंट के लिए करता है जिनका उसके पास टेम्पलेट है।
+6. **Add** पर क्लिक करें।
 
-### चरण 2: webhook ले जाने के लिए एक user बनाएँ
+### समस्याएं पाने वाला यूज़र बनाएं
 
-Zabbix notifications _एक user को_ भेजता है। एक समर्पित user बनाएँ ताकि इंटीग्रेशन ढूंढना और बंद करना आसान हो।
+1. **Users → Users** पर जाएं, या Zabbix 6.0 पर **Administration → Users** पर, और **Create user** पर क्लिक करें। इसका नाम `OneUptime` रखें, और इसे एक यूज़र ग्रुप और ऐसी भूमिका दें जो सूचनाएं पा सके, जैसे **User role**।
+2. **Media** टैब पर **Add** पर क्लिक करें। **Type** को `OneUptime` पर, और **Send to** को OneUptime से कॉपी किए गए URL पर सेट करें। **When active** और गंभीरताओं को जैसा है वैसा छोड़ दें, या उन गंभीरताओं से टिक हटा दें जो OneUptime को नहीं मिलनी चाहिए।
+3. **Add** पर क्लिक करें, फिर यूज़र सहेजने के लिए दोबारा **Add** पर।
 
-1. **Users → Users → Create user** पर जाएँ। इसे `OneUptime Webhook` नाम दें, इसे एक ऐसी role दें जो notifications प्राप्त कर सके (जैसे **User role**), और इसे एक user group में जोड़ें।
-2. **Media** tab पर, **Add** क्लिक करें:
-   - **Type**: `OneUptime`
-   - **Send to**: भाग 1 में कॉपी किया गया **workflow webhook URL** पेस्ट करें।
-   - **When active** / severities: डिफ़ॉल्ट छोड़ें (या उन severities तक सीमित करें जिनकी आपको परवाह है)।
-3. **Add** और **Update** करें।
+### एक्शन से समस्याएं OneUptime को भेजें
 
-### चरण 3: action के साथ OneUptime को समस्याएँ भेजें
+1. **Alerts → Actions → Trigger actions** पर जाएं, या Zabbix 6.0 पर **Configuration → Actions** पर, और **Create action** पर क्लिक करें। इसका नाम `Notify OneUptime` रखें।
+2. चाहें तो **Conditions** में इसे सीमित करें, जैसे **Trigger severity is greater than or equals Warning**। बिना शर्तों के हर समस्या भेजी जाती है।
+3. **Operations** टैब पर एक ऑपरेशन जोड़ें जो `OneUptime` मीडिया टाइप के ज़रिए `OneUptime` यूज़र को भेजे।
+4. वही ऑपरेशन **Recovery operations** में भी जोड़ें, ताकि रिकवरी भी भेजी जाए।
+5. **Add** पर क्लिक करें, और जांचें कि एक्शन चालू है।
+:::
 
-1. **Alerts → Actions → Trigger actions → Create action** पर जाएँ।
-2. **Name**: `Notify OneUptime`।
-3. **Conditions** (वैकल्पिक): इसे संकुचित करें — उदाहरण के लिए, _Trigger severity >= Warning_। सब कुछ भेजने के लिए खाली छोड़ें।
-4. **Operations** tab पर, एक operation जोड़ें जो **OneUptime** media type के माध्यम से **User: OneUptime Webhook** को भेजे।
-5. बाद में recovery पर incidents resolve करने के लिए, **Recovery operations** में भी उसी user/media से भरें।
-6. सहेजें के लिए **Add** करें और सुनिश्चित करें कि action **Enabled** है।
+## इसे टेस्ट करें
 
-## भाग 3 — परीक्षण करें
+1. Zabbix में **Alerts → Media types** खोलें और `OneUptime` के पास **Test** पर क्लिक करें। कॉपी किया गया URL भरें, और नमूना मान, जैसे `event_id` `12345`, `event_name` `Test problem`, `host` `web-1` और `event_value` `1`। **Test** पर क्लिक करें: Zabbix स्क्रिप्ट का जवाब `OK`, या उसकी फेंकी गई त्रुटि दिखाता है।
+2. OneUptime में मॉनिटर खोलें और जांचें कि घटना खुली, या वर्कफ़्लो का **लॉग → रन** खोलें और रन जांचें।
+3. `event_value` `0` और उसी `event_id` के साथ दोबारा टेस्ट करें। मॉनिटर के साथ घटना सुलझ जाती है।
 
-1. OneUptime वर्कफ़्लो में वापस जाएँ, **सक्षम** चालू करें।
-2. Zabbix में, एक परीक्षण समस्या trigger करें — उदाहरण के लिए, अस्थायी रूप से trigger threshold कम करें, या एक test item इस्तेमाल करें जो problem state में बदल जाए।
-3. अपने वर्कफ़्लो का **लॉग** tab खोलें। आपको Zabbix payload के साथ एक run दिखना चाहिए, Conditions ब्लॉक **हाँ** path लेते हुए, और incident बनते हुए।
-4. OneUptime में **घटनाएं** जाँचें — आपकी Zabbix समस्या अब एक incident है।
+फिर किसी असली ट्रिगर को चलने दें, जैसे थोड़ी देर के लिए कोई थ्रेशोल्ड कम करके, और समस्या को आते देखें।
 
-यदि कुछ नहीं पहुँचता है, तो [समस्या निवारण](#समस्या-निवारण) देखें।
+## Zabbix गंभीरताओं को मैप करें
 
-## स्वचालित रूप से resolve करना (वैकल्पिक)
+Zabbix अपनी गंभीरता टेक्स्ट के रूप में भेजता है: `Not classified`, `Information`, `Warning`, `Average`, `High` या `Disaster`।
 
-ऊपर का मुख्य वर्कफ़्लो incidents _खोलता_ है। Zabbix के recover होने पर उन्हें _बंद_ भी करने के लिए:
-
-1. सुनिश्चित करें कि आपके Zabbix action में **Recovery operations** कॉन्फ़िगर हैं (ऊपर चरण 3) ताकि recovery events भी भेजे जाएँ। Recovery पर, `status` `0` के रूप में आता है।
-2. वर्कफ़्लो में, एक दूसरा **शर्तें** branch जोड़ें: left `{{Zabbix.Request Body.status}}`, operator `==`, right `0`।
-3. उसके **हाँ** output से, एक **Find Incident** ब्लॉक जोड़ें जो पहले बनाए गए open incident को खोजे — description या label में स्टोर किए गए Zabbix `event_id` पर match करें।
-4. उसे एक **Update Incident** ब्लॉक से जोड़ें और incident को आपके _resolved_ state में ले जाएँ।
-
-चूँकि resolution इस बात पर निर्भर करता है कि आप अपने project में incident states कैसे model करते हैं, **create** path को reliable core के रूप में रखें और resolve path बाद में जोड़ें जब आप पुष्टि कर लें कि events सही से flow हो रहे हैं। [कंपोनेंट → OneUptime data components](/docs/workflows/components#oneuptime-data-components) देखें।
-
-## Zabbix severities mapping (वैकल्पिक)
-
-Zabbix severities (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) `{{Zabbix.Request Body.severity}}` के रूप में आती हैं। उन्हें OneUptime incident severities से map करने के लिए, **घटना बनाएं** से पहले **शर्तें** branches जोड़ें — उदाहरण के लिए, `Disaster` और `High` को "Critical" incident में और बाकी सब को "Major" में route करें। प्रत्येक branch के लिए एक **घटना बनाएं** ब्लॉक बनाएँ।
+- **मॉनिटर के साथ**, गंभीरताओं के हर समूह के लिए **मानदंड जोड़ें** पर क्लिक करें, और नए मानदंड को पहले वाले के ऊपर खींचें: मानदंड ऊपर से जांचे जाते हैं, और जो पहले मेल खाता है वही तय करता है। हर एक को दो फ़िल्टर दें, `"status":"1"` और एक गंभीरता जैसे `"severity":"Disaster"`, और **मिलान शर्त** को **सभी** पर रखें। हर एक को एक घटना दें जिसकी अपनी **गंभीरता** और **घटना स्वतः सुलझाएं** हो, और वही ग्रुपिंग सेटिंग।
+- **वर्कफ़्लो के साथ**, `{{local.components.webhook-1.returnValues.request-body.severity}}` पर एक [Switch / Case](/docs/workflows/components#switch-case) ब्लॉक जोड़ें, हर गंभीरता के लिए एक केस के साथ, और हर केस के बाद अपने टेम्पलेट वाला एक **Create One Incident** ब्लॉक।
 
 ## समस्या निवारण
 
-**वर्कफ़्लो कभी नहीं चलता।**
+:::details OneUptime में कुछ नहीं पहुंचता
+- Zabbix में **Reports → Action log** खोलें और जांचें कि एक्शन ने समस्या भेजी या नहीं, और क्या वापस आया।
+- Zabbix सर्वर से खुद एक अनुरोध भेजें: `curl -i -X POST <url> -H 'Content-Type: application/json' -d '{"status":"1","event_id":"1","name":"Test","host":"test"}'`।
+- मॉनिटर कुछ भी जांचने से पहले तुरंत `200` से जवाब देता है, गलत सीक्रेट कुंजी होने पर भी। अनुरोध पहुंच रहे हैं या नहीं, यह मॉनिटर की टाइमलाइन में देखें।
+- बंद वर्कफ़्लो `400` से जवाब देता है। उसके **बिल्डर** के ऊपर **सक्षम** चालू करें।
+:::
 
-- पुष्टि करें कि वर्कफ़्लो का **सक्षम** switch चालू है।
-- Zabbix server से, पुष्टि करें कि वह URL तक पहुँच सकता है: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`। आपको एक त्वरित acknowledgement मिलना चाहिए।
-- Zabbix में **Reports → Action log** जाँचें delivery errors के लिए।
+:::details Zabbix स्क्रिप्ट त्रुटि बताता है
+मीडिया टाइप खोलें और **Test** इस्तेमाल करें: Zabbix स्क्रिप्ट का नतीजा या उसकी फेंकी गई त्रुटि दिखाता है। OneUptime से `2xx` के अलावा कोई भी जवाब स्क्रिप्ट उसके स्टेटस के साथ फेंक देती है, इसलिए पहले URL जांचें।
+:::
 
-**Zabbix एक script error रिपोर्ट करता है।**
+:::details घटनाएं खुलती हैं पर कभी सुलझती नहीं
+- एक्शन में **Recovery operations** होने चाहिए, वरना Zabbix कभी रिकवरी नहीं भेजता।
+- मानदंड की घटना में **और फ़ील्ड** के नीचे **घटना स्वतः सुलझाएं** होना चाहिए।
+- **Field that signals recovery** ठीक `requestBody.status` होना चाहिए, और **Value that means recovered** ठीक `0`।
+- वर्कफ़्लो रिकवरी पर घटनाएं नहीं सुलझाता। मॉनिटर इस्तेमाल करें।
+:::
 
-- Media type खोलें और एक sample payload भेजने के लिए **Test** इस्तेमाल करें। Zabbix script का output या thrown error दिखाता है।
-- OneUptime से non-2xx response script में `throw` द्वारा दिखाई जाती है — जाँचें कि workflow URL बिल्कुल सही है।
+:::details घटना में मान की जगह रेफ़रेंस दिखता है
+जो फ़ील्ड अनुरोध में नहीं है, उसका रेफ़रेंस खाली करने के बजाय कोष्ठकों समेत जैसा लिखा है वैसा ही छोड़ दिया जाता है। जांचें कि Zabbix `Content-Type: application/json` भेजता है, और आपके इस्तेमाल किए फ़ील्ड नाम (`name`, `host`, `severity`, `status`, `event_id`) स्क्रिप्ट के पेलोड से मेल खाते हैं। वर्कफ़्लो के लिए **लॉग → रन** में रन खोलें और उसकी तुलना ट्रिगर को मिली चीज़ से करें। [सावधानियां](/docs/workflows/variables#फँसाने-वाली-बातें) देखें।
+:::
 
-**Incident बनता है लेकिन fields खाली हैं।**
+:::details हर समस्या दो बार आती है
+एक्शन में शायद दो ऑपरेशन हैं जो एक ही यूज़र को भेजते हैं, जैसे पहला चरण और एक एस्केलेशन चरण। एक्शन के **Operations** जांचें।
+:::
 
-- वर्कफ़्लो का **लॉग** tab खोलें और trigger output inspect करें। पुष्टि करें कि **अनुरोध बॉडी** के अंतर्गत field names वही हैं जिन्हें आप reference कर रहे हैं (`name`, `host`, `severity`, `status`, `event_id`)।
-- एक missing field error की बजाय empty string में resolve होता है — [Variables → Gotchas](/docs/workflows/variables#gotchas) देखें।
+## सुरक्षा
 
-**सब कुछ दो बार fire होता है।**
+- **URL को पासवर्ड की तरह रखें।** जिसके पास भी यह है, वह घटनाएं खोल सकता है। अगर यह लीक हो जाए, तो इसे रीसेट करें: मॉनिटर के **सेटिंग्स** पेज पर **इनकमिंग अनुरोध सीक्रेट कुंजी रीसेट करें**, या वर्कफ़्लो के **Webhook** ट्रिगर में **URL रीसेट करें**। फिर Zabbix यूज़र के मीडिया में **Send to** अपडेट करें।
+- **सिर्फ़ वही भेजें जिसे घटना चाहिए।** कम गंभीरता वाली समस्याओं को Zabbix में रखने के लिए एक्शन की शर्तें, या यूज़र के मीडिया की गंभीरताएं इस्तेमाल करें।
+- **सेल्फ़-होस्टेड?** अपने Zabbix सर्वर को अपने फ़ायरवॉल से होकर HTTPS पर अपने OneUptime तक पहुंचने दें।
 
-- शायद आपके पास एक problem operation और एक escalation step दोनों हैं जो एक ही media को भेज रहे हैं। Action के **Operations** steps जाँचें।
+## अगले कदम
 
-## सुरक्षा नोट्स
-
-- Workflow webhook URL को पासवर्ड की तरह मानें। यदि यह leak हो जाता है, तो trigger डिलीट करें और URL rotate करने के लिए नया बनाएँ।
-- Zabbix action की conditions प्रतिबंधित करें ताकि आप केवल वे severities forward करें जो incident की ज़रूरत हों।
-- यदि आप OneUptime self-hosted firewall के पीछे चला रहे हैं, तो अपने Zabbix server के egress IP को HTTPS के माध्यम से इस तक पहुँचने दें।
-
-## आगे क्या पढ़ें
-
-- [इंटीग्रेशन अवलोकन](/docs/integrations/index) — inbound/outbound patterns।
-- [Webhook trigger](/docs/workflows/triggers#webhook) — receiving URL कैसे काम करता है।
-- [कंपोनेंट](/docs/workflows/components) — Conditions, Create Incident, और अधिक।
-- [वेरिएबल](/docs/workflows/variables) — बाद के ब्लॉक्स में Zabbix payload पढ़ना।
+:::cards
+- [आने वाले अनुरोध मॉनिटर](/docs/monitor/incoming-request-monitor): Zabbix समस्याएं पाने वाले मॉनिटर की हर सेटिंग।
+- [एस्केलेशन नियम](/docs/on-call/escalation-rules): तय करें कि ऑन-कॉल नीति किसे और कब पेज करे।
+- [वर्कफ़्लो ट्रिगर](/docs/workflows/triggers#webhook): वर्कफ़्लो का वेबहुक URL कैसे काम करता है।
+- [इंटिग्रेशन अवलोकन](/docs/integrations/index): वे दूसरे टूल जिन्हें आप जोड़ सकते हैं।
+:::

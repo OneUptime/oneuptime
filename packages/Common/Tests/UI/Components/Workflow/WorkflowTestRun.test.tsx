@@ -308,7 +308,7 @@ describe("the Run Workflow panel's note", () => {
     );
 
     const confirm: HTMLElement = screen.getByText(
-      "Are you sure you want to run this workflow manually?",
+      "Every step runs for real: anything it sends, writes or deletes actually happens.",
     );
     const dialog: HTMLElement = confirm.closest('[role="dialog"]')!;
 

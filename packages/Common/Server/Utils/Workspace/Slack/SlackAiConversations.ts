@@ -100,9 +100,14 @@ export interface SlackThreadPerson extends SlackThread {
 /*
  * Somebody mentioned: a person (<@U0123>, <@U0123|name>), a user group
  * (<!subteam^S0123>) or everybody (<!here>, <!channel>, <!everyone>).
+ *
+ * A label ends at the next "<" or ">": Slack writes those characters of a
+ * message's own text as &lt; and &gt;, so a label never holds one. A label
+ * that ran on to the next ">" was tried from every unclosed "<@U0|" to the
+ * end of the message, in time that grows with the square of its length.
  */
 const MENTION_PATTERN: RegExp =
-  /<@[A-Z0-9]+(?:\|[^>]*)?>|<!(?:here|channel|everyone|subteam\^[A-Z0-9]+)(?:\|[^>]*)?>/;
+  /<@[A-Z0-9]+(?:\|[^<>]*)?>|<!(?:here|channel|everyone|subteam\^[A-Z0-9]+)(?:\|[^<>]*)?>/;
 
 const CHANNEL_TYPES: Array<string> = ["channel", "group", "mpim"];
 

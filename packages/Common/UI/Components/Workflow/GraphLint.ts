@@ -28,7 +28,9 @@ import {
   NodeType,
   Port,
   ReturnValue,
+  getArgumentChoice,
   isArgumentRequired,
+  isArgumentShown,
   isJSON5ToleratedInputType,
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
@@ -87,6 +89,11 @@ export enum WorkflowLintRule {
   SwitchCaseUnknownComparison = "SwitchCaseUnknownComparison",
   SwitchCaseNeverTaken = "SwitchCaseNeverTaken",
   SwitchCaseNotConnected = "SwitchCaseNotConnected",
+  /*
+   * A setting that is a choice of a few holds something that is none of its
+   * choices: a workflow written by hand. The step would stop the run.
+   */
+  UnknownChoice = "UnknownChoice",
 }
 
 export interface WorkflowLintIssue {
@@ -545,6 +552,16 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
       const value: JSONValue | undefined = argumentValues[argument.id];
 
       /*
+       * A setting that is not part of the step as it is set up now - a Page
+       * step's Title while it pages about an incident - is not read when the
+       * step runs, and is not on its form to be put right. Whatever it still
+       * holds from before is not checked.
+       */
+      if (!isArgumentShown(argument, argumentValues)) {
+        continue;
+      }
+
+      /*
        * Required as the step is set up now: If / Else's Compare with is not
        * needed for "is empty".
        */
@@ -564,6 +581,38 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
       }
 
       if (isEmptyArgumentValue(value, argument.type)) {
+        continue;
+      }
+
+      /*
+       * A choice saved as a value from an earlier step is whatever that
+       * comes to when the step runs, and is checked below as the reference
+       * it is. Anything else has to be one of the choices.
+       */
+      if (
+        argument.type === ComponentInputType.Choice &&
+        (argument.choices || []).length > 0 &&
+        !(
+          typeof value === "string" &&
+          parseTemplateExpressions(value).length > 0
+        ) &&
+        !getArgumentChoice(argument, value)
+      ) {
+        const stored: string =
+          typeof value === "string" ? value : JSON.stringify(value);
+
+        addNodeIssue({
+          rule: WorkflowLintRule.UnknownChoice,
+          severity: WorkflowLintSeverity.Error,
+          argumentId: argument.id,
+          message: translateTemplate(
+            '"{{argument}}" is set to "{{value}}", which is not one of its choices. Open the step and pick one.',
+            {
+              argument: translatableTerm(argument.name),
+              value: stored.length > 60 ? `${stored.slice(0, 60)}…` : stored,
+            },
+          ),
+        });
         continue;
       }
 

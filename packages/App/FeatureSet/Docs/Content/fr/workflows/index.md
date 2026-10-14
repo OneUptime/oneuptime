@@ -128,7 +128,7 @@ Le déclencheur prend la place du bloc en pointillés. L'ID qui y figure, `incid
 
 ### Choisir les champs de l'incident
 
-Cliquez sur le déclencheur. Dans **Select Fields**, cochez les champs que la requête doit transporter, comme le titre et la description, puis cliquez sur **Enregistrer**.
+Cliquez sur le déclencheur. **Fields to pass on** commence avec le titre : cliquez sur **Ajouter un champ**, cochez la description et tout autre champ que la requête doit transporter, puis cliquez sur **Enregistrer**.
 
 Le déclencheur transmet le nouvel incident avec ces champs. Un champ que vous ne sélectionnez pas arrive vide.
 
@@ -158,7 +158,7 @@ Une requête qui échoue — une URL injoignable, ou une réponse qui n'est pas 
 
 ### Le tester
 
-Cliquez sur **Exécuter le flux de travail**, saisissez l'**ID d'incident** d'un incident de ce projet, cliquez sur **Run Workflow Manually** et confirmez avec **Run**. Le workflow est toujours désactivé : c'est donc une **Exécution de test**, et la requête est vraiment envoyée.
+Cliquez sur **Exécuter le flux de travail** et choisissez un incident de ce projet sous **Incident** : les plus récents sont listés, et saisir son numéro ou une partie de son titre en trouve un autre. Cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Le workflow est toujours désactivé : c'est donc une **Exécution de test**, et la requête est vraiment envoyée.
 
 Un panneau **Exécution du flux de travail** s'ouvre et suit l'exécution. Ouvrez l'étape **API Post (JSON)** pour voir le corps qu'elle a envoyé et la réponse qu'elle a reçue.
 

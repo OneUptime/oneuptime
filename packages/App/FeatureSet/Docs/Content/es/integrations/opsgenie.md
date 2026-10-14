@@ -1,79 +1,162 @@
-# Integración con Opsgenie
+# Opsgenie
 
-Crea una alerta de [Opsgenie](https://www.atlassian.com/software/opsgenie) cada vez que se crea un incidente en OneUptime, y ciérrala cuando OneUptime lo resuelva.
+Envía los incidentes de OneUptime a [Opsgenie](https://www.atlassian.com/software/opsgenie). Un flujo de trabajo crea una alerta de Opsgenie cuando se declara un incidente de OneUptime, y un segundo flujo la cierra cuando el incidente de OneUptime se resuelve. Úsalo mientras Opsgenie siga avisando a tu equipo y OneUptime vigile tus sistemas.
 
-Esta integración es **saliente**: OneUptime llama a la [API de alertas de Opsgenie](https://docs.opsgenie.com/docs/alert-api). Usa un **[Workflow](/docs/workflows/index)** de OneUptime con un disparador **Incident → On Create** y un **componente API**.
+:::cards
+- [Guardar la clave de API](#guardar-la-clave-de-api): Mantén la clave de Opsgenie fuera de tus flujos de trabajo.
+- [Crear alertas de Opsgenie](#crear-una-alerta-de-opsgenie-por-cada-incidente): Un flujo de trabajo, dos bloques.
+- [Cerrarlas](#cerrar-la-alerta-de-opsgenie): Un segundo flujo de trabajo que sigue el estado del incidente.
+- [Solución de problemas](#solución-de-problemas): Cuando Opsgenie rechaza una solicitud.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  ──►  Opsgenie alert
+> [!IMPORTANT]
+> Atlassian dejó de vender Opsgenie en junio de 2025 y pone fin a su soporte en abril de 2027. OneUptime también avisa a las personas, con políticas de guardia, calendarios y reglas de escalado. Para traer a tu equipo, consulta [Migrar desde Opsgenie](/docs/moving-to-oneuptime/opsgenie): una importación trae tus usuarios, tus equipos, tus calendarios y tus escalados.
+
+## Cómo funciona
+
+```mermaid title="Dos flujos de trabajo, una alerta de Opsgenie"
+flowchart TB
+    declared["Incidente declarado"] --> create["Flujo de trabajo 1:<br/>On Create Incident"]
+    create -->|"POST /v2/alerts"| og["Alerta de Opsgenie"]
+    resolved["Incidente resuelto"] --> update["Flujo de trabajo 2:<br/>On Update Incident"]
+    update -->|"cerrar por alias"| og
 ```
 
-## Prerrequisitos
+Ambos flujos de trabajo llaman a la [API Alert de Opsgenie](https://docs.opsgenie.com/docs/alert-api). El primero da a la alerta un `alias` formado a partir del ID del incidente de OneUptime, y el segundo cierra la alerta por ese alias.
 
-- Una **clave de API** de Opsgenie de una integración de tipo API: **Settings → Integrations → Add → API**. Copia la clave.
-- Conoce tu región. El host de API predeterminado es `https://api.opsgenie.com`; las cuentas de la UE usan `https://api.eu.opsgenie.com`.
-- Un proyecto de OneUptime donde puedas crear workflows.
+## Antes de empezar
 
-## Paso 1 — Guardar la clave de API
+- Una integración de Opsgenie de tipo **API** y su **API Key**. Añade una en **Settings → Integrations** en Opsgenie, o en las **Integrations** de un equipo para enviar las alertas a ese equipo.
+- Tu región de Opsgenie. Las cuentas de Europa, que inician sesión en `app.eu.opsgenie.com`, usan `api.eu.opsgenie.com`. Todas las demás usan `api.opsgenie.com`.
+- En OneUptime, permiso para crear flujos de trabajo y variables globales. En OneUptime Cloud, los flujos de trabajo necesitan el plan **Growth** o superior.
 
-1. Ve a **Flujos de trabajo → Variables Globales → Crear**.
-2. Nómbrala `OPSGENIE_KEY`, pega la clave de API y activa **Is Secret**.
+## Guardar la clave de API
 
-## Paso 2 — Construir el workflow de "crear alerta"
+:::steps
+1. Ve a **Flujos de trabajo → Variables globales** y haz clic en **Crear Variable del flujo de trabajo**.
+2. Ponle el nombre `OPSGENIE_KEY` y haz clic en **Siguiente**.
+3. Pega la clave de API en **Contenido**, activa **Secreto** y haz clic en **Crear Variable del flujo de trabajo**.
+:::
 
-1. Abre **Flujos de trabajo → Crear flujo de trabajo**, nómbralo `Incidents → Opsgenie` y abre el **Constructor**.
-2. Añade un disparador **Incident** configurado en **On Create**. Renómbralo `Incident`.
-3. Añade un bloque **API** conectado al disparador:
+Una variable secreta se sustituye por `[REDACTED]` en los registros de ejecución, así que la clave nunca aparece en una ejecución.
 
-   - **Method**: `POST`
-   - **URL**: `https://api.opsgenie.com/v2/alerts` _(usa `api.eu.opsgenie.com` para la UE)_
-   - **Headers**:
+## Crear una alerta de Opsgenie por cada incidente
 
-     ```text
-     Authorization: GenieKey {{variable.OPSGENIE_KEY}}
-     Content-Type: application/json
-     ```
+:::steps
+### Crear el flujo de trabajo
 
-   - **Body**:
+Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **Empezar desde cero**. Ponle el nombre `Incidents to Opsgenie` y haz clic en **Crear flujo de trabajo**.
 
-     ```json
-     {
-       "message": "{{Incident.title}}",
-       "alias": "oneuptime-{{Incident._id}}",
-       "description": "{{Incident.description}}",
-       "priority": "P1",
-       "source": "OneUptime"
-     }
-     ```
+### Añadir el disparador
 
-   El **`alias`** vincula esta alerta de Opsgenie al incidente de OneUptime para poder cerrarla más adelante por alias. Ten en cuenta que el esquema de autenticación de Opsgenie es la palabra literal `GenieKey` seguida de un espacio y tu clave.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador y, en **Fields to pass on**, elige `title` y `description`.
 
-4. **Guarda**, habilita y crea un incidente de prueba. Una respuesta `202 Accepted` en los registros del workflow significa que Opsgenie ha encolado la alerta.
+### Crear la alerta
 
-## Paso 3 — Cerrar al resolver en OneUptime (recomendado)
+Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Success** del disparador. Pon su **URL** en `https://api.opsgenie.com/v2/alerts`, o `https://api.eu.opsgenie.com/v2/alerts` en Europa. En **Más campos**, pon sus **Request Headers** en:
 
-1. Crea un **segundo** workflow llamado `Close Opsgenie` con un disparador **Incident → On Update**.
-2. Añade un bloque **Condiciones** que compruebe que el incidente ya está resuelto (ramifica sobre `{{Incident.currentIncidentState.name}}`).
-3. Desde **Sí**, añade un bloque **API**:
-   - **Method**: `POST`
-   - **URL**: `https://api.opsgenie.com/v2/alerts/oneuptime-{{Incident._id}}/close?identifierType=alias`
-   - **Headers**: el mismo `Authorization: GenieKey {{variable.OPSGENIE_KEY}}`
-   - **Body**: `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`
+```json
+{ "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
+```
 
-Opsgenie busca la alerta por alias y la cierra.
+Y su **Request Body** en:
 
-## Mapeo de prioridades (opcional)
+```json
+{
+  "message": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "alias": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "priority": "P1",
+  "source": "OneUptime"
+}
+```
 
-Las prioridades de Opsgenie van de `P1` a `P5`. Mapéalas desde las gravedades de OneUptime con ramas **Condiciones** sobre `{{Incident.incidentSeverity.name}}` antes del bloque API.
+### Probarlo y luego activarlo
+
+Haz clic en **Ejecutar flujo de trabajo**, elige un incidente de prueba en **Incidente** y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `202`, y la alerta aparece en Opsgenie un momento después. Después, activa **Habilitado** en la parte superior del **Constructor**.
+:::
+
+El esquema de Opsgenie es la palabra `GenieKey`, un espacio y luego la clave. Opsgenie limita `message` a 130 caracteres, y sus prioridades van de `P1` a `P5`: para enviar la de cada incidente, consulta [Asignar las prioridades](#asignar-las-prioridades).
+
+## Cerrar la alerta de Opsgenie
+
+Un flujo de trabajo tiene un solo disparador, así que cerrar requiere un segundo flujo de trabajo, que se inicia cuando cambia el estado de un incidente.
+
+:::steps
+### Añadir el disparador On Update Incident
+
+Crea un flujo de trabajo llamado `Close Opsgenie alerts` y elige **On Update Incident** como disparador. En **Fields to watch**, elige `currentIncidentStateId`, para que solo se ejecute cuando cambie el estado. En **Fields to pass on**, pide si el nuevo estado es un estado resuelto:
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### Comprobar que el incidente está resuelto
+
+Añade un bloque **If / Else** después del disparador. Pon **Value to check** en `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` y **Comparison** en **is true**.
+
+### Cerrar la alerta
+
+Añade un bloque **API Post (JSON)** después del lado **Yes**, con los mismos **Request Headers** y esta **URL**:
+
+```text
+https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
+```
+
+Pon su **Request Body** en `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+
+### Activarlo
+
+Activa **Habilitado** y luego resuelve un incidente de prueba en OneUptime. Opsgenie cierra su alerta.
+:::
+
+`identifierType=alias` indica a Opsgenie que la dirección nombra la alerta por su alias, no por su propio ID.
+
+## Asignar las prioridades
+
+Para enviar la gravedad de cada incidente como prioridad de Opsgenie, añade un bloque **Run Custom JavaScript** entre el disparador y el bloque **API Post (JSON)**.
+
+1. En los **Fields to pass on** del disparador, elige también el `name` de la gravedad: `{ "incidentSeverity": { "name": true } }`.
+2. Pon los **Arguments** del bloque en `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, y su **JavaScript Code** en:
+
+   ```javascript
+   // Your incident severities, by name, to Opsgenie's priorities.
+   const PRIORITY = {
+     "Critical Incident": "P1",
+     "Major Incident": "P2",
+     "Minor Incident": "P3",
+   };
+
+   return { priority: PRIORITY[args.severity] || "P3" };
+   ```
+
+3. En el cuerpo de la solicitud, pon `"priority"` en `"{{local.components.javascript-1.returnValues.returnValue.priority}}"`.
+
+Los nombres de arriba son las tres gravedades con las que empieza un proyecto nuevo. Usa los tuyos si les cambiaste el nombre.
 
 ## Solución de problemas
 
-- **`401`/`403`** — clave incorrecta, host de región equivocado, o la integración no tiene permiso para crear alertas. Confirma que estás usando una clave de integración **API** y el host `api`/`api.eu` correspondiente.
-- **El cierre devuelve `404`** — el `alias` en la llamada de cierre debe coincidir exactamente con el de la llamada de creación, y `identifierType=alias` debe estar en la cadena de consulta.
-- **No ocurre nada** — confirma que el workflow está **Habilitado**.
+:::details Opsgenie responde 401 o 403
+La clave es incorrecta, o pertenece a la otra región. Comprueba que la cabecera contiene `GenieKey`, un espacio y la clave, que la clave es la de una integración **API**, y que el host corresponde a tu región: `api.opsgenie.com` o `api.eu.opsgenie.com`.
+:::
 
-## Dónde seguir leyendo
+:::details El cierre responde 404
+Ninguna alerta tiene ese alias. Ambos flujos de trabajo deben formar el alias de la misma manera, `oneuptime-` seguido del `_id` del incidente, y la URL debe terminar en `?identifierType=alias`.
+:::
 
-- [Resumen de Integraciones](/docs/integrations/index) — patrones y la guía de autenticación.
-- [PagerDuty](/docs/integrations/pagerduty) — la misma idea para PagerDuty.
-- [On Call](/docs/on-call/incoming-call-policy) — la escalación integrada de OneUptime.
+:::details La alerta no aparece nunca, aunque el paso muestra 202
+Opsgenie responde `202` antes de procesar la solicitud, así que una solicitud que rechace después sigue mostrando `202`. Busca la solicitud en los registros de Opsgenie para ver por qué se rechazó, por ejemplo una integración desactivada.
+:::
+
+:::details El flujo de trabajo nunca se ejecuta
+Comprueba que está activado: **Habilitado**, en la parte superior de su **Constructor**. Después abre **Registros → Ejecuciones**: una ejecución que tomó el lado **No** del bloque **If / Else** es una actualización que no era una resolución.
+:::
+
+## Próximos pasos
+
+:::cards
+- [Migrar desde Opsgenie](/docs/moving-to-oneuptime/opsgenie): Trae a tu equipo, tus calendarios y tus escalados antes del fin de Opsgenie.
+- [Reglas de escalado](/docs/on-call/escalation-rules): Avisa a las personas desde el propio OneUptime.
+- [PagerDuty](/docs/integrations/pagerduty): Los mismos dos flujos de trabajo para PagerDuty.
+- [Descripción general de integraciones](/docs/integrations/index): Los patrones detrás de cada integración.
+:::

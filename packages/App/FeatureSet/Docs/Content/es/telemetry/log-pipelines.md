@@ -110,7 +110,7 @@ Los dos delimitadores deben ser distintos, no pueden contenerse entre sí y no p
 
 ### Ejemplo: firewall Sophos XGS
 
-Cuando un firewall Sophos XGS envía syslog a una [sonda](/docs/monitor/network-device-monitor), cada mensaje se guarda como registro del dispositivo de red, con el mensaje syslog como cuerpo. Para analizarlo:
+OneUptime lee por sí solo el syslog de Sophos y FortiGate como atributos `sophos.*` y `fortigate.*` (consulta [Eventos de red](/docs/monitor/network-events)); este ejemplo construye lo mismo a mano, como lo haría usted con un formato que OneUptime no conoce. Cuando un firewall Sophos XGS envía syslog a una [sonda](/docs/monitor/network-device-monitor), cada mensaje se guarda como registro del dispositivo de red, con el mensaje syslog como cuerpo. Para analizarlo:
 
 :::steps
 #### Crear una canalización para el firewall
@@ -199,7 +199,7 @@ Mueve el valor de un atributo (**Clave de origen**) a otro (**Clave de destino**
 
 ## Procesador de categorías
 
-Evalúa una lista de reglas en orden y guarda en un atributo de destino el nombre de la primera regla cuyo filtro coincide, para que pueda buscar de una vez todos los registros «Payment Error». Ponga el **Atributo de destino** (`category` por defecto) y añada **Reglas de categoría**: un **Nombre de la categoría** y las condiciones en **Cuando coincidan los registros**. Gana la primera regla que coincide; un registro que no coincide con ninguna queda sin cambios.
+Evalúa una lista de reglas en orden y guarda en un atributo de destino el nombre de la primera regla cuyo filtro coincide, para que pueda buscar de una vez todos los registros «Payment Error». Ponga el **Atributo de destino** (`category` por defecto) y añada **Reglas de categoría**: un **Nombre de la categoría** y las condiciones en **Cuando coincidan los registros**. Gana la primera regla que coincide; un registro que no coincide con ninguna queda sin cambios. En los registros de un dispositivo de red, una regla con nombre de evento (`ups.on_battery`) bajo el atributo de destino `event.name` convierte el registro en un [evento de red](/docs/monitor/network-events#tus-propios-eventos).
 
 ## Próximos pasos
 

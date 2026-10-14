@@ -1,78 +1,164 @@
-# ServiceNow Integration
+# ServiceNow
 
-Open a [ServiceNow](https://www.servicenow.com) incident automatically whenever a OneUptime incident is created — so ITSM and monitoring stay in step.
+Open a [ServiceNow](https://www.servicenow.com) incident for every OneUptime incident, and resolve it when the OneUptime incident is resolved, so your service desk follows what your monitoring sees. Two workflows call ServiceNow's [Table API](https://developer.servicenow.com/dev.do#!/reference/api/latest/rest/c_TableAPI).
 
-This integration is **outbound**: OneUptime calls the ServiceNow [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html). It uses a OneUptime **[Workflow](/docs/workflows/index)** with an **Incident → On Create** trigger and an **API component**.
+:::cards
+- [Store the credentials](#store-the-credentials): Keep the ServiceNow password out of your workflows.
+- [Open ServiceNow incidents](#open-a-servicenow-incident-for-every-incident): One workflow, two blocks.
+- [Resolve them](#resolve-the-servicenow-incident): Find the record, then close it.
+- [Troubleshooting](#troubleshooting): When ServiceNow refuses a request.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /api/now/table/incident)  ──►  ServiceNow incident
+## How it works
+
+```mermaid title="Two workflows, one ServiceNow incident"
+flowchart TB
+    declared["Incident declared"] --> create["Workflow 1:<br/>On Create Incident"]
+    create -->|"POST incident"| sn["ServiceNow incident"]
+    resolved["Incident resolved"] --> update["Workflow 2:<br/>On Update Incident"]
+    update --> find["Find the record<br/>by correlation_id"]
+    find -->|"PATCH state 6"| sn
 ```
 
-## Prerequisites
+The first workflow writes the OneUptime incident's ID into the record's `correlation_id`. The second looks the record up by it, then resolves the record.
 
-- A ServiceNow instance (`https://your-instance.service-now.com`).
-- A ServiceNow user with the `rest_api_explorer` / `itil` roles (or enough rights to create `incident` records). Basic auth with this user's credentials is the simplest start; OAuth is recommended for production.
-- A OneUptime project where you can create workflows.
+## Before you begin
 
-## Step 1 — Store credentials as a secret
+- A ServiceNow instance, such as `https://your-instance.service-now.com`.
+- A ServiceNow user for the integration that can create and update records in the `incident` table, usually with the `itil` role. Its name and password sign the requests.
+- In OneUptime, the right to create workflows and global variables. On OneUptime Cloud, workflows need the **Growth** plan or above.
 
-ServiceNow's Table API accepts **Basic auth**.
+## Store the credentials
 
-1. Base64-encode `username:password` once:
+The Table API takes Basic auth: the user's name and password, encoded together.
+
+:::steps
+1. Encode them once, on macOS or Linux:
 
    ```bash
-   printf '%s' 'integration_user:password' | base64
+   printf '%s' 'integration.user:password' | base64 | tr -d '\n'
    ```
 
-2. In OneUptime, go to **Workflows → Global Variables → Create**, name it `SERVICENOW_AUTH`, paste the base64 string, and turn on **Is Secret**.
+   Use `printf`, not `echo`: `echo` adds a newline, which is encoded with the rest and breaks the credentials.
 
-## Step 2 — Build the workflow
+2. In OneUptime, go to **Workflows → Global Variables** and click **Create Workflow Variable**. Name it `SERVICENOW_AUTH` and click **Next**.
+3. Paste the encoded value into **Content**, turn on **Secret**, and click **Create Workflow Variable**.
+:::
 
-1. Open **Workflows → Create Workflow**, name it `Incidents → ServiceNow`, and open the **Builder**.
-2. Add an **Incident** trigger set to **On Create**. Rename it `Incident`.
-3. Add an **API** block connected to the trigger:
+## Open a ServiceNow incident for every incident
 
-   - **Method**: `POST`
-   - **URL**: `https://your-instance.service-now.com/api/now/table/incident`
-   - **Headers**:
+:::steps
+### Create the workflow
 
-     ```text
-     Authorization: Basic {{variable.SERVICENOW_AUTH}}
-     Content-Type: application/json
-     Accept: application/json
-     ```
+Go to **Workflows**, click **Create Workflow**, then **Start from scratch**. Name it `Incidents to ServiceNow` and click **Create Workflow**.
 
-   - **Body**:
+### Add the trigger
 
-     ```json
-     {
-       "short_description": "OneUptime: {{Incident.title}}",
-       "description": "{{Incident.description}}",
-       "urgency": "1",
-       "impact": "1",
-       "correlation_id": "oneuptime-{{Incident._id}}"
-     }
-     ```
+Click the dashed **Choose what starts this workflow** block and pick **On Create Incident**. Click the trigger, and in **Fields to pass on** pick `title` and `description`.
 
-   `correlation_id` keeps a link back to the OneUptime incident — handy if you later add a resolve step. ServiceNow `urgency`/`impact` use `1` (high), `2` (medium), `3` (low).
+### Create the record
 
-4. **Save**, enable, and create a test incident. A `201 Created` response in the workflow logs returns the new record's `sys_id` and `number` (for example `INC0012345`).
+Click **Add Component**, add an **API Post (JSON)** block, and connect the trigger's **Success** dot to it. Set its **URL** to `https://your-instance.service-now.com/api/now/table/incident`. Under **More fields**, set its **Request Headers** to:
 
-## Step 3 — Resolve on OneUptime resolve (optional)
+```json
+{
+  "Authorization": "Basic {{global.variables.SERVICENOW_AUTH}}",
+  "Accept": "application/json"
+}
+```
 
-1. Create a **second** workflow with an **Incident → On Update** trigger and an **If / Else** block that checks the incident is resolved.
-2. To update the right ServiceNow record you need its `sys_id`. Either store it on the OneUptime incident in Step 2 (read `{{CreateRecord.response-body.result.sys_id}}` and write it to a label with **Update Incident**), or look the record up first with a `GET` on `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
-3. Add an **API** block: **Method** `PATCH`, **URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`, body `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Resolved in the default ITIL workflow).
+And its **Request Body** to:
+
+```json
+{
+  "short_description": "OneUptime: {{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "urgency": "1",
+  "impact": "1",
+  "correlation_id": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}"
+}
+```
+
+### Test it, then turn it on
+
+Click **Run Workflow**, pick a test incident under **Incident**, and run it. The **API Post (JSON)** step shows a `201` response holding the new record, with its `sys_id` and its `number`, such as `INC0012345`. Then switch **Enabled** on at the top of the **Builder**.
+:::
+
+`urgency` and `impact` take `1` for high, `2` for medium and `3` for low, and ServiceNow works out the priority from the two. Any other column of the `incident` table can go in the body, under its column name.
+
+## Resolve the ServiceNow incident
+
+A workflow has one trigger, so resolving takes a second workflow, started when an incident's state changes.
+
+:::steps
+### Add the On Update Incident trigger
+
+Create a workflow named `Resolve ServiceNow incidents`, and pick **On Update Incident** as its trigger. In **Fields to watch**, pick `currentIncidentStateId`, so it runs only when the state changes. In **Fields to pass on**, ask for whether the new state is a resolved one:
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### Check that the incident is resolved
+
+Add an **If / Else** block after the trigger. Set **Value to check** to `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` and **Comparison** to **is true**.
+
+### Find the record
+
+Add an **API Get (JSON)** block after the **Yes** side, with the same **Request Headers**, and this **URL**:
+
+```text
+https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
+```
+
+### Resolve the record
+
+Add an **API Patch (JSON)** block after the find block's **Success**, with the same **Request Headers**, and this **URL**:
+
+```text
+https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
+```
+
+Set its **Request Body** to:
+
+```json
+{
+  "state": "6",
+  "close_code": "Solution provided",
+  "close_notes": "Resolved in OneUptime"
+}
+```
+
+### Turn it on
+
+Switch **Enabled** on, then resolve a test incident in OneUptime. Its ServiceNow incident moves to Resolved.
+:::
+
+`state` `6` is Resolved in ServiceNow's default incident states. `close_code` must be one of your instance's resolution codes. Many instances will not resolve an incident without a resolution code and notes, so send both.
 
 ## Troubleshooting
 
-- **`401`** — re-encode `username:password` with `printf` (not `echo`, which adds a newline) and update `SERVICENOW_AUTH`.
-- **`403`** — the user lacks rights to write the `incident` table; add the `itil` role.
-- **`400`** — a field name or value is wrong for your instance's customizations. Check field names in **System Definition → Tables → incident**.
-- **The instance rejects the call** — some instances restrict the Table API; confirm REST is enabled and your IP isn't blocked by an ACL.
+:::details ServiceNow answers 401
+The credentials are wrong. Encode `username:password` again with `printf`, not `echo`, and replace the content of `SERVICENOW_AUTH`.
+:::
 
-## Where to read next
+:::details ServiceNow answers 403
+The user cannot write to the `incident` table. Give it the `itil` role, or a role with the same rights, and check that no access control rule blocks the Table API for it.
+:::
 
-- [Integrations Overview](/docs/integrations/index) — patterns and the auth cheat sheet.
-- [Jira](/docs/integrations/jira) — the same outbound pattern for Jira.
-- [API component](/docs/workflows/components#api) — reading the response body.
+:::details ServiceNow answers 400, or resolving changes nothing
+A column name or a value does not fit your instance: a customized `state` list, or a `close_code` your instance does not have. Compare with the `incident` table under **System Definition → Tables** in ServiceNow, and with the record's own form.
+:::
+
+:::details Resolving answers 404
+The find step found no record, so the URL kept the reference as written. Check that the first workflow wrote `correlation_id`, and that both workflows build it the same way: `oneuptime-` followed by the incident's `_id`.
+:::
+
+## Next steps
+
+:::cards
+- [Jira](/docs/integrations/jira): A two-way integration, kept in step by ready-made templates.
+- [Workflow Components](/docs/workflows/components#api): Every setting of the API blocks.
+- [Workflow Runs](/docs/workflows/runs-and-logs): Read what each request sent and got back.
+- [Integrations Overview](/docs/integrations/index): The patterns behind every integration.
+:::

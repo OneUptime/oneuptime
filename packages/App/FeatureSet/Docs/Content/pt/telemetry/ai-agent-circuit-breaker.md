@@ -125,11 +125,11 @@ Abra **Produtos → Fluxos de trabalho** e clique em **Criar fluxo de trabalho**
 
 ### Adicione o gatilho
 
-Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Alert** no painel **Add Trigger**. Clique no gatilho, marque o título e a descrição em **Select Fields** e clique em **Salvar**. O ID no bloco, `alert-on-create-1`, é como os blocos seguintes se referem a ele.
+Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Alert** no painel **Add Trigger**. Clique no gatilho: **Fields to pass on** começa com o título, então clique em **Adicionar campo**, marque a descrição e clique em **Salvar**. O ID no bloco, `alert-on-create-1`, é como os blocos seguintes se referem a ele.
 
 ### Verifique o título
 
-Clique em **Adicionar componente**, escolha **If / Else** e conecte a ele o ponto **Success** do gatilho. Defina **Value to check** como o título do alerta (clique em **{ }** e escolha-o), **Comparison** como **contém** e **Compare with** como o começo que os títulos dos seus gatilhos têm em comum, como `LLM budget exceeded`.
+Clique em **Adicionar componente**, escolha **If / Else** e conecte a ele o ponto **Success** do gatilho. Defina **Valor a verificar** como o título do alerta (clique em **{ }** e escolha-o), **Comparação** como **contém** e **Comparar com** como o começo que os títulos dos seus gatilhos têm em comum, como `LLM budget exceeded`.
 
 ### Chame o seu endpoint
 
@@ -189,7 +189,7 @@ Confira se **Habilitado** está ativado no topo do **Construtor**: os fluxos de 
 :::
 
 :::details O fluxo de trabalho roda, mas sempre segue o ramo No
-O título está vazio ou não corresponde. Um campo não marcado em **Select Fields** do gatilho chega vazio, então marque o título. Depois compare o título do alerta com **Compare with**: **contém** precisa encontrar exatamente esse texto nele.
+O título está vazio ou não corresponde. Um campo que não está em **Fields to pass on** do gatilho chega vazio, então adicione o título ali. Depois compare o título do alerta com **Comparar com**: **contém** precisa encontrar exatamente esse texto nele.
 :::
 
 :::details O seu endpoint responde 401

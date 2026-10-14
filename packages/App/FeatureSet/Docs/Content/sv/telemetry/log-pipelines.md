@@ -110,7 +110,7 @@ De två avgränsarna måste vara olika, får inte innehålla varandra och får i
 
 ### Exempel: Sophos XGS-brandvägg
 
-När en Sophos XGS-brandvägg skickar syslog till en [probe](/docs/monitor/network-device-monitor) lagras varje meddelande som en logg för nätverksenheten, med syslog-meddelandet som kropp. Så här tolkar du det:
+OneUptime läser själv syslog från Sophos och FortiGate som `sophos.*`- och `fortigate.*`-attribut (se [Nätverkshändelser](/docs/monitor/network-events)); det här exemplet bygger samma sak för hand, så som du skulle göra för ett format som det inte känner till. När en Sophos XGS-brandvägg skickar syslog till en [probe](/docs/monitor/network-device-monitor) lagras varje meddelande som en logg för nätverksenheten, med syslog-meddelandet som kropp. Så här tolkar du det:
 
 :::steps
 #### Skapa en pipeline för brandväggen
@@ -199,7 +199,7 @@ Flyttar värdet från ett attribut (**Källnyckel**) till ett annat (**Målnycke
 
 ## Kategoriprocessor
 
-Utvärderar en lista med regler i ordning och lagrar namnet på den första regel vars filter matchar i ett målattribut, så att du kan hitta alla "Payment Error"-loggar på en gång. Sätt **Målattribut** (`category` som standard) och lägg sedan till **Kategoriregler**: ett **Category name** och villkoren under **When logs match**. Den första regeln som matchar vinner; en logg som inte matchar någon lämnas oförändrad.
+Utvärderar en lista med regler i ordning och lagrar namnet på den första regel vars filter matchar i ett målattribut, så att du kan hitta alla "Payment Error"-loggar på en gång. Sätt **Målattribut** (`category` som standard) och lägg sedan till **Kategoriregler**: ett **Category name** och villkoren under **When logs match**. Den första regeln som matchar vinner; en logg som inte matchar någon lämnas oförändrad. På en nätverksenhets loggar gör en regel som är namngiven som en händelse (`ups.on_battery`) under målattributet `event.name` loggen till en [nätverkshändelse](/docs/monitor/network-events#dina-egna-händelser).
 
 ## Nästa steg
 

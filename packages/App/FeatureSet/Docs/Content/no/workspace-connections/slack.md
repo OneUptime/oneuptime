@@ -135,6 +135,7 @@ OneUptime har én kommando i Slack, `/oneuptime`. Ordet du skriver etter den, si
 | `/oneuptime incident [title]` | Åpner hendelsesskjemaet med tittelen fylt ut. |
 | `/oneuptime maintenance [title]` | Åpner skjemaet for planlagt vedlikehold med tittelen fylt ut. |
 | `/oneuptime oncall` | Viser hvem som har vakt akkurat nå i hver vaktplan du kan se, til når, og hvem som er neste. |
+| `/oneuptime page [who] [message]` | Tilkaller personene du nevner med @, om meldingen din, eller åpner et skjema der du velger hvem som skal tilkalles. Se [Tilkall noen fra Slack](#tilkall-noen-fra-slack). |
 | `/oneuptime ask [question]`, eller et hvilket som helst spørsmål | OneUptime AI svarer om logger, traces, målinger, hendelser og monitorer. |
 
 Svarene på `help` og `oncall` er meldinger bare du ser, under kommandoen. Et første ord som ligner en feilstavet kommando, som `incidnet`, får kommandoen det ligner, ikke et svar fra OneUptime AI. Skjemaene for hendelser og vedlikehold handler som deg: se [Opprett hendelser og vedlikehold fra Slack](#opprett-hendelser-og-vedlikehold-fra-slack).
@@ -161,6 +162,15 @@ OneUptime svarer bare på det som er rettet til den.
 - **Hva et skjema kan nevne.** Hendelsen eller begivenheten opprettes med dine egne tillatelser og krediteres deg. En monitor, vaktpolicy, etikett, alvorlighetsgrad eller status du ikke kan lese, eller en fra et annet prosjekt, avvises som en prosjektet ikke har, selv fra et skjema som ble åpnet før tilgangen din endret seg, og ingenting opprettes. OneUptime forteller deg hvorfor i kanalen, i en melding bare du ser.
 
 **Execute On-Call Policy** på en hendelse, et varsel eller en episode fungerer på samme måte: den krever tillatelse til å kjøre en vaktpolicy (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member**, eller **Create On-Call Duty Policy Execution Log** i en egendefinert rolle) og til å lese den hendelsen, det varselet eller den episoden, og den tilbyr de aktive vaktpolicyene du kan lese.
+
+## Tilkall noen fra Slack
+
+`/oneuptime page @nawaz The checkout API is throwing 500s` tilkaller Nawaz med en gang. OneUptime oppretter et varsel med meldingen din som tittel, og hver person du nevner med @, får en telefonsamtale, en SMS, en pushvarsling eller en e-post, slik vedkommendes egne vaktregler sier, til noen bekrefter varselet.
+
+- **Hvem som tilkalles med en gang.** Personene du nevner med @, når en melding følger etter dem. OneUptime kjenner igjen en person på OneUptime-kontoen vedkommendes Slack-konto er koblet til, eller ellers på e-postadressen Slack har for vedkommende. Ingen utenfor prosjektet tilkalles.
+- **Alt annet åpner et skjema.** Uten noen nevnt med @, uten melding, med en brukergruppe eller `@here`, eller med en person OneUptime ikke kjenner igjen, åpnes skjemaet **Page someone** med det du skrev ferdig utfylt, og det sier hvem det ikke kunne velge. Velg personer, et team, en vaktplan, som tilkaller den som har vakt i den nå, eller en vaktpolicy, som tilkaller gjennom eskaleringsreglene sine, og send det inn. Et navn du skriver først, som i `/oneuptime page Primary The disk is full`, velger vaktplanen, teamet eller policyen med det navnet.
+- **Hvor det vises.** Kanalen viser tilkallingen som én melding som holdes oppdatert: hvem som ble tilkalt og hvordan, og hvem som bekreftet. Der OneUptime ikke kan poste, for eksempel i en privat kanal den ikke er invitert til, sier en melding bare du ser hvem som ble tilkalt, med en lenke til varselet.
+- **Hvem som kan tilkalle.** Alle som både kan kjøre en vaktpolicy og opprette et varsel: **Project Owner**, **Project Admin** og **Project Member**, eller **On-Call Member** sammen med **Alert Member** (**Create On-Call Duty Policy Execution Log** og **Create Alert** i en egendefinert rolle). Å tilkalle personer, et team eller en vaktplan direkte, uten en vaktpolicy bak tilkallingen, krever også tilgang til alle vaktpolicyene i prosjektet. Alle andre får beskjed om det der de kjørte kommandoen, og ingen tilkalles.
 
 ## Handle på hendelser, varsler og begivenheter fra Slack
 

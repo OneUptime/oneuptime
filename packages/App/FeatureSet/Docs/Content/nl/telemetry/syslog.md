@@ -28,7 +28,7 @@ flowchart TB
 OneUptime antwoordt zodra het de berichten uit het request heeft gelezen, en leest en bewaart ze een moment later. De berichttekst blijft in de inhoud van de log; al het andere wordt een attribuut.
 
 > [!TIP]
-> Netwerkapparaten die je met een OneUptime-probe bewaakt, kunnen hun syslog via UDP rechtstreeks naar de probe sturen, zonder relay; de logs verschijnen dan bij het apparaat in OneUptime. Zie [Handleidingen per netwerkleverancier](/docs/monitor/network-vendor-guides).
+> Netwerkapparaten kunnen hun syslog via UDP of TCP rechtstreeks naar een OneUptime-probe sturen, zonder relay; OneUptime leest de berichten van elke leverancier dan als gebeurtenissen bij het apparaat. Zie [Netwerkgebeurtenissen](/docs/monitor/network-events).
 
 ## Voordat je begint
 
@@ -200,7 +200,7 @@ OneUptime voegt automatisch de volgende attributen aan elke logregel toe:
 
 Deze attributen worden doorzoekbaar in de explorer **Producten → Logboeken**, bijvoorbeeld `@syslog.severity.name:error` of `@syslog.hostname:web-01`. Zie [Zoeksyntaxis](/docs/telemetry/search-syntax).
 
-Het bericht zelf blijft in de inhoud van de log. Firewalls zoals Sophos XGS en Fortinet FortiGate schrijven het als `key=value`-paren (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`); voeg in een [logboekpipeline](/docs/telemetry/log-pipelines#keyvalue-parser) een processor **Key=Value Parser** toe om ook die paren in attributen om te zetten.
+Het bericht zelf blijft in de inhoud van de log. Een bericht in het formaat van een netwerkleverancier wordt verder gelezen: de `key=value`-paren van een Sophos- of FortiGate-firewall (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) worden `sophos.*`- en `fortigate.*`-attributen, en wat er gebeurde wordt een [netwerkgebeurtenis](/docs/monitor/network-events). Voeg voor elk ander `key=value`-formaat in een [logboekpipeline](/docs/telemetry/log-pipelines#keyvalue-parser) een processor **Key=Value Parser** toe om de paren in attributen om te zetten.
 
 ### Niveau
 

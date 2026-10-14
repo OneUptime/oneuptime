@@ -43,7 +43,7 @@ Enheden og monitoren udfører forskellige opgaver:
 
 - **En sonde, der kan nå enheden.** Sonden pinger og walker enheden fra sit eget netværk, så en enhed på en privat adresse kræver en [brugerdefineret sonde](/docs/probe/custom-probe) inde i det netværk: en sonde på det offentlige internet kan ikke nå den.
 - **SNMP, til mere end ping.** Valgfrit. En v1- eller v2c-community string, eller en SNMPv3-bruger, sat op på enheden, med UDP 161 åben fra sonden. Uden det bliver enheden kun pinget.
-- **Traps, syslog og flows.** Valgfrit. Sonden modtager SNMP-traps på UDP 162, syslog på UDP 5140, når du slår det til, og flowposter på UDP 2055, 4739 og 6343, så åbn dem fra dine enheder til sonden.
+- **Traps, syslog og flows.** Valgfrit. Sonden modtager SNMP-traps på UDP 162, syslog på UDP og TCP 5140, og flowposter på UDP 2055, 4739 og 6343, så åbn dem fra dine enheder til sonden.
 
 ## Netværksoversigten
 
@@ -62,7 +62,7 @@ Under den siger én linje, om noget opretter en hændelse, når en enhed går ne
 
 Før noget er tilføjet, viser oversigten i stedet de to måder at komme i gang på: **Find enheder** scanner et adresseområde, så du kan vælge, hvad du vil tilføje, bedst til et helt netværk eller en ny lokation, og **Tilføj én enhed** tilføjer én ud fra dens IP-adresse eller værtsnavn.
 
-Netværk-menuen holder det, du åbner hver dag, synligt: **Oversigt**, **Devices**, **Lokationer**, **Map**, **Traffic** og **Discovery**. Resten er foldet sammen i sektioner, og en sektion folder sig selv ud på hver af sine sider:
+Netværk-menuen holder det, du åbner hver dag, synligt: **Oversigt**, **Devices**, **Lokationer**, **Map**, **Traffic**, **Begivenheder** og **Discovery**. Resten er foldet sammen i sektioner, og en sektion folder sig selv ud på hver af sine sider:
 
 | Sektion | Sider |
 | --- | --- |
@@ -1057,6 +1057,7 @@ Et svar med enhedens beskrivelse betyder, at sonden kan walke den med de loginop
 :::cards
 - [Netværkslokationer](/docs/monitor/network-sites): Grupper enheder i steder, og opsummer deres tilstand op gennem træet.
 - [Netværkstrafik](/docs/monitor/network-traffic): Se, hvem der taler med hvem, ud fra dine enheders flowposter.
+- [Netværksbegivenheder](/docs/monitor/network-events): Se, hvad dine enheder rapporterer i deres syslog, og få advarsler om det.
 - [Vejledninger pr. netværksleverandør](/docs/monitor/network-vendor-guides): Sophos, Extreme og Cambium, fra start til slut.
 - [Pakkeopsamling](/docs/probe/packet-capture): Opsaml pakker på en enheds sonde til Wireshark.
 :::

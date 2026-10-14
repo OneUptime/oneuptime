@@ -20,9 +20,15 @@ import {
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
 import WorkspaceLiveMessageKey, {
+  WorkspaceLiveMessageData,
+  WorkspaceLiveMessageDestinationType,
+  WorkspaceLiveMessagePageRecordType,
   WorkspaceLiveMessageRunEnding,
 } from "../../../../Types/Workspace/WorkspaceLiveMessageKey";
-import { WorkspacePayloadMarkdown } from "../../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceMessagePayload, {
+  WorkspacePayloadMarkdown,
+} from "../../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import DatabaseConfig from "../../../DatabaseConfig";
 import AlertEpisodeService from "../../../Services/AlertEpisodeService";
 import AlertService from "../../../Services/AlertService";
@@ -42,11 +48,16 @@ import WorkspaceNotificationRuleService, {
 } from "../../../Services/WorkspaceNotificationRuleService";
 import logger, { LogAttributes } from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import WorkspaceUtil from "../Workspace";
+import { WorkspaceSendMessageResponse } from "../WorkspaceBase";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
+import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
+import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 import OnCallPolicyRunMessageView, {
   ON_CALL_RUN_NOT_PAGED,
+  OnCallDirectPageRun,
   OnCallPolicyRun,
   OnCallPolicyRunAlarm,
   OnCallPolicyRunNotPaged,
@@ -55,10 +66,6 @@ import OnCallPolicyRunMessageView, {
   OnCallPolicyRunRule,
 } from "./OnCallPolicyRunMessageView";
 import WorkspaceLiveMessages from "./WorkspaceLiveMessages";
-
-// What the timeline says when a rule paged somebody twice: not worth a line.
-const ALREADY_NOTIFIED_TIMELINE_MESSAGE: string =
-  "Skipped because notification sent to this user already.";
 
 // "Skipped because ..." at the start of a timeline message, and its full stop.
 const SKIPPED_BECAUSE_PREFIX: RegExp = /^skipped because\s+/i;
@@ -109,13 +116,23 @@ export interface OnCallPolicyRunReading {
    * policy) says so in ONE new message.
    */
   hasStarted: boolean;
+  // The record's title: what a page from a chat is about.
+  recordTitle?: string | undefined;
+  /*
+   * The key of the places somebody paged about the record from a chat
+   * (WorkspaceLiveMessageKey.forOnCallPageRequest): an incident's or an
+   * alert's. None for an episode, which nobody pages about from a chat.
+   */
+  pageRequestKey?: string | undefined;
 }
 
 interface RunRecord {
   notificationFor: NotificationFor;
   label: string;
   url: URL;
+  title: string;
   stateName?: string | undefined;
+  pageRequestKey?: string | undefined;
   isAcknowledged: () => Promise<boolean>;
 }
 
@@ -142,6 +159,19 @@ interface RefreshInFlight {
  * together - while one runs, any number of new ones become one more run
  * after it - and the work on the run's message is serialised across
  * processes (WorkspaceLiveMessages.withLock).
+ *
+ * A direct page - people, a team or a schedule paged with no policy behind
+ * the page (Types/OnCallDutyPolicy/OnCallDirectPage) - is a run like any
+ * other here: one message, edited as its pages go out and are answered,
+ * naming who started the page where a policy's run names the policy.
+ *
+ * A PAGE FROM A CHAT (`/oneuptime page`) is shown where it was asked for
+ * too. The channel or chat the command was run in is kept as a place of the
+ * record it paged about (WorkspaceLiveMessageKind.OnCallPageRequest), and
+ * every run of that record keeps its message there as well: the same
+ * message, with what the page is about under its first line, edited as the
+ * run goes, and its own alarms. Where the record's own messages go there
+ * already, the run is not posted a second time.
  */
 export default class OnCallPolicyRunMessage {
   private static inFlight: Map<string, RefreshInFlight> = new Map<
@@ -239,6 +269,15 @@ export default class OnCallPolicyRunMessage {
           messageKey: messageKey,
         });
 
+      // Where somebody paged about the record from a chat, if anywhere.
+      const pageRequestPlaces: Array<WorkspaceLiveMessage> =
+        reading.pageRequestKey
+          ? await WorkspaceLiveMessageService.findByMessageKey({
+              projectId: reading.projectId,
+              messageKey: reading.pageRequestKey,
+            })
+          : [];
+
       /*
        * A run that has ended is told as its message first told it. The
        * message is brought up to date after the run ends too - a page's
@@ -257,76 +296,323 @@ export default class OnCallPolicyRunMessage {
       const alarms: Array<OnCallPolicyRunAlarm> =
         OnCallPolicyRunMessageView.getAlarms(reading.run);
 
-      if (kept.length === 0) {
+      /*
+       * The messages where the record's messages go, and those where
+       * somebody paged from a chat: each kind is posted, edited and alarmed
+       * on its own.
+       */
+      const keptEverywhere: Array<WorkspaceLiveMessage> = kept.filter(
+        (keptMessage: WorkspaceLiveMessage): boolean => {
+          return !this.isAtPageRequestPlace(keptMessage);
+        },
+      );
+      const keptAtPageRequestPlaces: Array<WorkspaceLiveMessage> = kept.filter(
+        (keptMessage: WorkspaceLiveMessage): boolean => {
+          return this.isAtPageRequestPlace(keptMessage);
+        },
+      );
+
+      if (keptEverywhere.length === 0) {
         /*
          * The first post is a new message itself: whatever alarm the run
          * calls for now, it says already, so none is raised on top of it.
          */
-        await WorkspaceLiveMessages.postEverywhere({
-          projectId: reading.projectId,
+        keptEverywhere.push(
+          ...(await WorkspaceLiveMessages.postEverywhere({
+            projectId: reading.projectId,
+            messageKey: messageKey,
+            notificationFor: reading.notificationFor,
+            messageBlocks: [markdownBlock],
+            text: OnCallPolicyRunMessageView.getPlainText(reading.run),
+            messageData: {
+              alarms: alarms.map((alarm: OnCallPolicyRunAlarm): string => {
+                return alarm.key;
+              }),
+              ...(endedAs ? { endedAs: endedAs } : {}),
+            },
+          })),
+        );
+      } else {
+        await this.updateEverywhere({
+          reading: reading,
+          keptEverywhere: keptEverywhere,
+          markdownBlock: markdownBlock,
+          alarms: alarms,
+          endedAs: endedAs,
+        });
+      }
+
+      if (pageRequestPlaces.length > 0 || keptAtPageRequestPlaces.length > 0) {
+        await this.syncPageRequestPlaces({
+          reading: reading,
           messageKey: messageKey,
-          notificationFor: reading.notificationFor,
-          messageBlocks: [markdownBlock],
-          text: OnCallPolicyRunMessageView.getPlainText(reading.run),
+          places: pageRequestPlaces,
+          keptEverywhere: keptEverywhere,
+          keptAtPlaces: keptAtPageRequestPlaces,
+          alarms: alarms,
+          endedAs: endedAs,
+        });
+      }
+    });
+  }
+
+  /*
+   * Brings the run's messages where the record's messages go up to date:
+   * posts each alarm the run calls for that none of them has raised yet,
+   * where the record's messages go, then edits each message.
+   */
+  private static async updateEverywhere(data: {
+    reading: OnCallPolicyRunReading;
+    keptEverywhere: Array<WorkspaceLiveMessage>;
+    markdownBlock: WorkspacePayloadMarkdown;
+    alarms: Array<OnCallPolicyRunAlarm>;
+    endedAs: WorkspaceLiveMessageRunEnding | undefined;
+  }): Promise<void> {
+    const { reading, markdownBlock, alarms, endedAs } = data;
+    const kept: Array<WorkspaceLiveMessage> = data.keptEverywhere;
+
+    const raised: Array<string> = this.getRaisedAlarms(kept);
+
+    const newAlarms: Array<OnCallPolicyRunAlarm> = alarms.filter(
+      (alarm: OnCallPolicyRunAlarm): boolean => {
+        return !raised.includes(alarm.key);
+      },
+    );
+
+    for (const alarm of newAlarms) {
+      try {
+        await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
+          {
+            projectId: reading.projectId,
+            notificationFor: reading.notificationFor,
+            feedInfoInMarkdown: alarm.markdown,
+            // An alarm is posted to be seen: its notification says what is wrong.
+            notificationText: alarm.text,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            },
+          },
+        );
+      } catch (err) {
+        logger.error("Could not post an on-call alarm to Slack / Teams.", {
+          projectId: reading.projectId.toString(),
+        } as LogAttributes);
+        logger.error(err, {
+          projectId: reading.projectId.toString(),
+        } as LogAttributes);
+      }
+
+      raised.push(alarm.key);
+    }
+
+    for (const keptMessage of kept) {
+      await WorkspaceLiveMessages.updateKept({
+        keptMessage: keptMessage,
+        messageBlocks: [markdownBlock],
+        text: OnCallPolicyRunMessageView.getPlainText(reading.run),
+        messageData: {
+          ...(keptMessage.messageData || {}),
+          alarms: [...raised],
+          ...(endedAs ? { endedAs: endedAs } : {}),
+        },
+        // The alarms were posted, edit or no edit: never post them again.
+        rememberIfNotEdited: true,
+      });
+    }
+  }
+
+  /*
+   * THE RUN WHERE SOMEBODY PAGED FROM A CHAT.
+   *
+   * Each place somebody ran `/oneuptime page` about the run's record gets
+   * the run's message too, with what the page is about under its first
+   * line - unless a message of the run is in that channel already, as one
+   * of the record's own places. Each message there is edited as the run
+   * goes, and raises the run's alarms there once, on its own: the person
+   * who paged reads "nobody has acknowledged" where they paged.
+   */
+  private static async syncPageRequestPlaces(data: {
+    reading: OnCallPolicyRunReading;
+    messageKey: string;
+    places: Array<WorkspaceLiveMessage>;
+    keptEverywhere: Array<WorkspaceLiveMessage>;
+    keptAtPlaces: Array<WorkspaceLiveMessage>;
+    alarms: Array<OnCallPolicyRunAlarm>;
+    endedAs: WorkspaceLiveMessageRunEnding | undefined;
+  }): Promise<void> {
+    const { reading, alarms, endedAs } = data;
+
+    const placeBlock: WorkspacePayloadMarkdown = {
+      _type: "WorkspacePayloadMarkdown",
+      text: OnCallPolicyRunMessageView.getMarkdown(reading.run, {
+        recordTitle: reading.recordTitle,
+      }),
+    };
+    const placeText: string = OnCallPolicyRunMessageView.getPlainText(
+      reading.run,
+      { recordTitle: reading.recordTitle },
+    );
+
+    for (const keptMessage of data.keptAtPlaces) {
+      const raised: Array<string> = this.getRaisedAlarms([keptMessage]);
+
+      for (const alarm of alarms) {
+        if (raised.includes(alarm.key)) {
+          continue;
+        }
+
+        await this.postAlarmAtPlace({
+          reading: reading,
+          place: keptMessage,
+          alarm: alarm,
+        });
+
+        raised.push(alarm.key);
+      }
+
+      await WorkspaceLiveMessages.updateKept({
+        keptMessage: keptMessage,
+        messageBlocks: [placeBlock],
+        text: placeText,
+        messageData: {
+          ...(keptMessage.messageData || {}),
+          alarms: raised,
+          ...(endedAs ? { endedAs: endedAs } : {}),
+        },
+        // The alarms were posted, edit or no edit: never post them again.
+        rememberIfNotEdited: true,
+      });
+    }
+
+    const kept: Array<WorkspaceLiveMessage> = [
+      ...data.keptEverywhere,
+      ...data.keptAtPlaces,
+    ];
+
+    for (const place of data.places) {
+      const isThere: boolean = kept.some(
+        (keptMessage: WorkspaceLiveMessage): boolean => {
+          return this.isSameChannel(keptMessage, place);
+        },
+      );
+
+      if (isThere || !place.channelId || !place.workspaceType) {
+        continue;
+      }
+
+      /*
+       * Its first post is a new message itself: whatever alarm the run
+       * calls for now, it says already.
+       */
+      const posted: WorkspaceLiveMessage | null =
+        await WorkspaceLiveMessages.postAndKeep({
+          projectId: reading.projectId,
+          messageKey: data.messageKey,
+          destination: this.getPlaceDestination(place, placeBlock, placeText),
           messageData: {
             alarms: alarms.map((alarm: OnCallPolicyRunAlarm): string => {
               return alarm.key;
             }),
             ...(endedAs ? { endedAs: endedAs } : {}),
+            isPageRequestPlace: true,
           },
+          notificationFor: reading.notificationFor,
         });
-        return;
+
+      if (posted) {
+        kept.push(posted);
       }
+    }
+  }
 
-      const raised: Array<string> = this.getRaisedAlarms(kept);
+  // Whether a kept message of a run is where somebody paged from a chat.
+  public static isAtPageRequestPlace(
+    keptMessage: WorkspaceLiveMessage,
+  ): boolean {
+    return (
+      (keptMessage.messageData as WorkspaceLiveMessageData | undefined)
+        ?.isPageRequestPlace === true
+    );
+  }
 
-      const newAlarms: Array<OnCallPolicyRunAlarm> = alarms.filter(
-        (alarm: OnCallPolicyRunAlarm): boolean => {
-          return !raised.includes(alarm.key);
-        },
+  // Whether two kept rows are in one channel or chat.
+  private static isSameChannel(
+    a: WorkspaceLiveMessage,
+    b: WorkspaceLiveMessage,
+  ): boolean {
+    return (
+      Boolean(a.channelId) &&
+      a.workspaceType === b.workspaceType &&
+      a.channelId === b.channelId
+    );
+  }
+
+  // A page request place, as a destination of one message.
+  private static getPlaceDestination(
+    place: WorkspaceLiveMessage,
+    block: WorkspacePayloadMarkdown,
+    text: string,
+  ): WorkspaceMessagePayload {
+    const isChat: boolean =
+      place.destinationType === WorkspaceLiveMessageDestinationType.Chat;
+
+    return {
+      _type: "WorkspaceMessagePayload",
+      workspaceType: place.workspaceType as WorkspaceType,
+      messageBlocks: [block],
+      channelNames: [],
+      channelIds: isChat ? [] : [place.channelId!],
+      ...(isChat ? { chatIds: [place.channelId!] } : {}),
+      ...(place.teamId ? { teamId: place.teamId } : {}),
+      ...(text ? { text: text } : {}),
+    };
+  }
+
+  /*
+   * An alarm of the run, where somebody paged from a chat: a new message
+   * there, logged in Notification Logs as the run's other posts are.
+   * Never throws.
+   */
+  private static async postAlarmAtPlace(data: {
+    reading: OnCallPolicyRunReading;
+    place: WorkspaceLiveMessage;
+    alarm: OnCallPolicyRunAlarm;
+  }): Promise<void> {
+    const { reading, place, alarm } = data;
+    const block: WorkspacePayloadMarkdown = {
+      _type: "WorkspacePayloadMarkdown",
+      text: alarm.markdown,
+    };
+
+    try {
+      const responses: Array<WorkspaceSendMessageResponse> =
+        await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+          projectId: reading.projectId,
+          messagePayloadsByWorkspace: [
+            this.getPlaceDestination(place, block, alarm.text),
+          ],
+        });
+
+      await WorkspaceNotificationRuleService.logSendResponses({
+        projectId: reading.projectId,
+        notificationFor: reading.notificationFor,
+        responses: responses,
+        messageBlocksByWorkspaceTypes: [
+          {
+            workspaceType: place.workspaceType as WorkspaceType,
+            messageBlocks: [block],
+          },
+        ],
+      });
+    } catch (err) {
+      logger.error(
+        "Could not post an on-call alarm where somebody paged from a chat.",
+        { projectId: reading.projectId.toString() } as LogAttributes,
       );
-
-      for (const alarm of newAlarms) {
-        try {
-          await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
-            {
-              projectId: reading.projectId,
-              notificationFor: reading.notificationFor,
-              feedInfoInMarkdown: alarm.markdown,
-              // An alarm is posted to be seen: its notification says what is wrong.
-              notificationText: alarm.text,
-              workspaceNotification: {
-                sendWorkspaceNotification: true,
-              },
-            },
-          );
-        } catch (err) {
-          logger.error("Could not post an on-call alarm to Slack / Teams.", {
-            projectId: reading.projectId.toString(),
-          } as LogAttributes);
-          logger.error(err, {
-            projectId: reading.projectId.toString(),
-          } as LogAttributes);
-        }
-
-        raised.push(alarm.key);
-      }
-
-      for (const keptMessage of kept) {
-        await WorkspaceLiveMessages.updateKept({
-          keptMessage: keptMessage,
-          messageBlocks: [markdownBlock],
-          text: OnCallPolicyRunMessageView.getPlainText(reading.run),
-          messageData: {
-            ...(keptMessage.messageData || {}),
-            alarms: [...raised],
-            ...(endedAs ? { endedAs: endedAs } : {}),
-          },
-          // The alarms were posted, edit or no edit: never post them again.
-          rememberIfNotEdited: true,
-        });
-      }
-    });
+      logger.error(err, {
+        projectId: reading.projectId.toString(),
+      } as LogAttributes);
+    }
   }
 
   /*
@@ -433,21 +719,28 @@ export default class OnCallPolicyRunMessage {
             name: true,
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
           },
+          // Who started a direct page.
+          triggeredByWorkflowId: true,
+          triggeredByWorkflowName: true,
+          triggeredByUserId: true,
+          triggeredByUser: {
+            name: true,
+            email: true,
+          },
         },
         props: {
           isRoot: true,
         },
       });
 
-    if (
-      !executionLog ||
-      !executionLog.projectId ||
-      !executionLog.onCallDutyPolicyId
-    ) {
+    if (!executionLog || !executionLog.projectId) {
       return null;
     }
 
     const projectId: ObjectID = executionLog.projectId;
+
+    // No policy: people, a team or a schedule paged directly.
+    const isDirectPage: boolean = isOnCallDirectPage(executionLog);
 
     const connected: Array<unknown> =
       await WorkspaceLiveMessages.getConnectedWorkspaceTypes(projectId);
@@ -462,27 +755,34 @@ export default class OnCallPolicyRunMessage {
       return null;
     }
 
+    /*
+     * A direct page has no escalation rules - and none are read for it: with
+     * no policy to match on, the read would hand back every rule of the
+     * project.
+     */
     const rules: Array<OnCallDutyPolicyEscalationRule> =
-      await OnCallDutyPolicyEscalationRuleService.findBy({
-        query: {
-          projectId: projectId,
-          onCallDutyPolicyId: executionLog.onCallDutyPolicyId,
-        },
-        select: {
-          _id: true,
-          name: true,
-          order: true,
-          escalateAfterInMinutes: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: {
-          isRoot: true,
-        },
-      });
+      isDirectPage || !executionLog.onCallDutyPolicyId
+        ? []
+        : await OnCallDutyPolicyEscalationRuleService.findBy({
+            query: {
+              projectId: projectId,
+              onCallDutyPolicyId: executionLog.onCallDutyPolicyId,
+            },
+            select: {
+              _id: true,
+              name: true,
+              order: true,
+              escalateAfterInMinutes: true,
+            },
+            sort: {
+              order: SortOrder.Ascending,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: {
+              isRoot: true,
+            },
+          });
 
     const timeline: Array<OnCallDutyPolicyExecutionLogTimeline> =
       await OnCallDutyPolicyExecutionLogTimelineService.findBy({
@@ -507,6 +807,11 @@ export default class OnCallPolicyRunMessage {
           onCallDutyPolicyEscalationRuleId: true,
           onCallDutyScheduleId: true,
           onCallDutySchedule: {
+            name: true,
+          },
+          // The team a direct page named, for one with nobody in it.
+          userBelongsToTeamId: true,
+          userBelongsToTeam: {
             name: true,
           },
           isAcknowledged: true,
@@ -551,11 +856,13 @@ export default class OnCallPolicyRunMessage {
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
-    const policyUrl: URL =
-      await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-        projectId,
-        executionLog.onCallDutyPolicyId,
-      );
+    const policyUrl: URL | null =
+      !isDirectPage && executionLog.onCallDutyPolicyId
+        ? await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+            projectId,
+            executionLog.onCallDutyPolicyId,
+          )
+        : null;
 
     const runUrl: URL = URL.fromString(dashboardUrl.toString()).addRoute(
       `/${projectId.toString()}/on-call-duty/execution-logs/${executionLogId.toString()}`,
@@ -566,10 +873,16 @@ export default class OnCallPolicyRunMessage {
       rules: rules,
       timeline: timeline,
       deliveries: deliveries,
-      policyUrl: policyUrl.toString(),
+      policyUrl: policyUrl ? policyUrl.toString() : "",
       runUrl: runUrl.toString(),
       recordLabel: record.label,
       recordUrl: record.url.toString(),
+      directPage: isDirectPage
+        ? this.getDirectPage({
+            executionLog: executionLog,
+            dashboardUrl: dashboardUrl,
+          })
+        : undefined,
     });
 
     const outcome: {
@@ -587,17 +900,69 @@ export default class OnCallPolicyRunMessage {
      * Read from the run itself: a rule is under way (OneUptime records the
      * rule on the run before it writes the rule's first step), or the run
      * is over.
+     *
+     * A direct page has no rule, and pages everybody it names in one pass.
+     * Its message waits for the end of that pass - the run is "executing"
+     * once somebody was paged, and over at once when nobody was - so the
+     * first post already says what the page came to. Posted at the pass's
+     * first step instead, a page that reached nobody told the channel
+     * "is paging for Incident INC-8" in one notification and "Nobody was
+     * paged" in a second message a moment later.
      */
     const hasStarted: boolean =
       run.outcome !== OnCallPolicyRunOutcome.Paging ||
-      Boolean(executionLog.lastExecutedEscalationRuleId);
+      Boolean(executionLog.lastExecutedEscalationRuleId) ||
+      (isDirectPage &&
+        executionLog.status === OnCallDutyPolicyStatus.Executing);
 
     return {
       projectId: projectId,
       notificationFor: record.notificationFor,
       run: run,
       hasStarted: hasStarted,
+      recordTitle: record.title,
+      ...(record.pageRequestKey
+        ? { pageRequestKey: record.pageRequestKey }
+        : {}),
     };
+  }
+
+  /*
+   * Who started a direct page, for its message to name: the workflow whose
+   * step did - by the name the run recorded, as a link to it in the
+   * Dashboard when the run recorded which workflow it was - or the person.
+   */
+  private static getDirectPage(data: {
+    executionLog: OnCallDutyPolicyExecutionLog;
+    dashboardUrl: URL;
+  }): OnCallDirectPageRun {
+    const executionLog: OnCallDutyPolicyExecutionLog = data.executionLog;
+    const workflowName: string = (
+      executionLog.triggeredByWorkflowName || ""
+    ).trim();
+
+    if (workflowName) {
+      return {
+        startedByWorkflowName: workflowName,
+        ...(executionLog.triggeredByWorkflowId && executionLog.projectId
+          ? {
+              startedByWorkflowUrl: URL.fromString(data.dashboardUrl.toString())
+                .addRoute(
+                  `/${executionLog.projectId.toString()}/workflows/${executionLog.triggeredByWorkflowId.toString()}/builder`,
+                )
+                .toString(),
+            }
+          : {}),
+      };
+    }
+
+    if (executionLog.triggeredByUserId) {
+      return {
+        startedByPersonName: this.getPersonName(executionLog.triggeredByUser),
+      };
+    }
+
+    return {};
   }
 
   /*
@@ -613,6 +978,8 @@ export default class OnCallPolicyRunMessage {
     runUrl: string;
     recordLabel: string;
     recordUrl: string;
+    // Set for a direct page: who started it.
+    directPage?: OnCallDirectPageRun | undefined;
   }): OnCallPolicyRun {
     const executionLog: OnCallDutyPolicyExecutionLog = data.executionLog;
 
@@ -783,7 +1150,7 @@ export default class OnCallPolicyRunMessage {
            * Paged by this rule already, through another of its targets: the
            * same person, counted where they were first paged.
            */
-          if (step.statusMessage === ALREADY_NOTIFIED_TIMELINE_MESSAGE) {
+          if (step.statusMessage === ALREADY_PAGED_TIMELINE_MESSAGE) {
             continue;
           }
 
@@ -918,6 +1285,18 @@ export default class OnCallPolicyRunMessage {
           step.onCallDutyPolicyEscalationRuleId,
           `nobody was on call in schedule ${scheduleName}`,
         );
+        continue;
+      }
+
+      /*
+       * A direct page's step about a team: the team it named has no
+       * members, so nobody was paged through it.
+       */
+      if (data.directPage && step.userBelongsToTeamId) {
+        addNotPaged(`team:${step.userBelongsToTeamId.toString()}`, {
+          teamName: step.userBelongsToTeam?.name?.trim() || "(unnamed)",
+          reason: "has no members",
+        });
         continue;
       }
 
@@ -1101,9 +1480,11 @@ export default class OnCallPolicyRunMessage {
         : undefined;
 
     return {
-      policyName:
-        executionLog.onCallDutyPolicy?.name?.trim() || "On-call policy",
+      policyName: data.directPage
+        ? ""
+        : executionLog.onCallDutyPolicy?.name?.trim() || "On-call policy",
       policyUrl: data.policyUrl,
+      ...(data.directPage ? { directPage: data.directPage } : {}),
       runUrl: data.runUrl,
       recordLabel: data.recordLabel,
       recordUrl: data.recordUrl,
@@ -1218,6 +1599,7 @@ export default class OnCallPolicyRunMessage {
       const incident: Incident | null = await IncidentService.findOneById({
         id: incidentId,
         select: {
+          title: true,
           incidentNumber: true,
           incidentNumberWithPrefix: true,
           currentIncidentState: {
@@ -1240,7 +1622,12 @@ export default class OnCallPolicyRunMessage {
           projectId,
           incidentId,
         ),
+        title: incident.title?.toString() || "",
         stateName: incident.currentIncidentState?.name || undefined,
+        pageRequestKey: WorkspaceLiveMessageKey.forOnCallPageRequest(
+          WorkspaceLiveMessagePageRecordType.Incident,
+          incidentId,
+        ),
         isAcknowledged: async (): Promise<boolean> => {
           return await IncidentService.isIncidentAcknowledged({
             incidentId: incidentId,
@@ -1254,6 +1641,7 @@ export default class OnCallPolicyRunMessage {
       const alert: Alert | null = await AlertService.findOneById({
         id: alertId,
         select: {
+          title: true,
           alertNumber: true,
           alertNumberWithPrefix: true,
           currentAlertState: {
@@ -1273,7 +1661,12 @@ export default class OnCallPolicyRunMessage {
         notificationFor: { alertId: alertId },
         label: `Alert ${alert.alertNumberWithPrefix || "#" + (alert.alertNumber ?? "")}`,
         url: await AlertService.getAlertLinkInDashboard(projectId, alertId),
+        title: alert.title?.toString() || "",
         stateName: alert.currentAlertState?.name || undefined,
+        pageRequestKey: WorkspaceLiveMessageKey.forOnCallPageRequest(
+          WorkspaceLiveMessagePageRecordType.Alert,
+          alertId,
+        ),
         isAcknowledged: async (): Promise<boolean> => {
           return await AlertService.isAlertAcknowledged({ alertId: alertId });
         },
@@ -1286,6 +1679,7 @@ export default class OnCallPolicyRunMessage {
         await IncidentEpisodeService.findOneById({
           id: episodeId,
           select: {
+            title: true,
             episodeNumber: true,
             episodeNumberWithPrefix: true,
             currentIncidentState: {
@@ -1308,6 +1702,7 @@ export default class OnCallPolicyRunMessage {
           projectId,
           episodeId,
         ),
+        title: episode.title?.toString() || "",
         stateName: episode.currentIncidentState?.name || undefined,
         isAcknowledged: async (): Promise<boolean> => {
           return await IncidentEpisodeService.isEpisodeAcknowledged({
@@ -1323,6 +1718,7 @@ export default class OnCallPolicyRunMessage {
         await AlertEpisodeService.findOneById({
           id: episodeId,
           select: {
+            title: true,
             episodeNumber: true,
             episodeNumberWithPrefix: true,
             currentAlertState: {
@@ -1345,6 +1741,7 @@ export default class OnCallPolicyRunMessage {
           projectId,
           episodeId,
         ),
+        title: episode.title?.toString() || "",
         stateName: episode.currentAlertState?.name || undefined,
         isAcknowledged: async (): Promise<boolean> => {
           return await AlertEpisodeService.isEpisodeAcknowledged({

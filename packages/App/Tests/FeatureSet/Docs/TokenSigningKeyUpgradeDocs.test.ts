@@ -34,7 +34,9 @@ const NOTE_LEAD: string =
   "**A placeholder `ENCRYPTION_SECRET` no longer signs sign-in tokens.**";
 const PREVIOUS_LEAD: string =
   "**A database statement the app stops waiting for is cancelled.**";
-const LAST_ITEM_START: string = "- See [API and endpoint changes]";
+// The note after it: the workflow builder's field lists (WorkflowFieldListsUpgradeDocs).
+const NEXT_LEAD: string =
+  "**A workflow's field lists have plain names, and a watched related record is heard.**";
 const SECRETS_HEADING: string = "### Generate random secrets";
 const DOCKER_COMPOSE_PAGE: string = "installation/docker-compose";
 const LINK_TARGET: RegExp = /\]\(([^)\s]+)\)/g;
@@ -112,7 +114,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 describe("the English upgrade note on sign-in tokens", () => {
   const note: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
-  it("is a note of the 13 → 14 changes, once, after the note on cancelled statements and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on cancelled statements and before the note on workflow field lists", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -122,9 +124,9 @@ describe("the English upgrade note on sign-in tokens", () => {
     expect(
       ENGLISH_ITEMS[NOTE_INDEX - 1]!.startsWith(`- ${PREVIOUS_LEAD}`),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(LAST_ITEM_START)).toBe(
-      true,
-    );
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("names as placeholders exactly the values the server treats as shipped", () => {

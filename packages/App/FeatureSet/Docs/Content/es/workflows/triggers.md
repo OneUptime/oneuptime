@@ -32,7 +32,7 @@ Ejecuta el flujo de trabajo cuando quieras: haz clic en **Ejecutar flujo de trab
 
 **Retornos**: **JSON** — aquello con lo que se inició la ejecución.
 
-- Desde **Ejecutar flujo de trabajo**, es el JSON que escribiste, como texto. Para leer uno de sus campos, pásalo primero por un bloque **Text to JSON**.
+- Desde **Ejecutar flujo de trabajo**, es el JSON que escribiste. Para leer uno de sus campos, añade el nombre del campo a la referencia, como en `{{local.components.manual-1.returnValues.value.name}}`.
 - Desde un bloque **Execute Workflow**, cada clave de los **Arguments** del bloque es un valor propio. Con `{"customerId": "42"}`, un bloque posterior lee `{{local.components.manual-1.returnValues.customerId}}`, donde `manual-1` es el ID del disparador Manual.
 
 ## Schedule
@@ -96,7 +96,7 @@ sequenceDiagram
 
 Lee un campo añadiendo su nombre a la referencia, como en `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
-Cuando ha llegado una solicitud, el selector de valores de cada bloque posterior al disparador sabe lo que contenía: muestra los campos del cuerpo, las cabeceras y los parámetros de consulta, cada uno con su contenido, para que puedas elegir `incident.title` en lugar de escribir una ruta. Hasta entonces, indica que no ha llegado ninguna solicitud y ofrece **Copy test request**, un comando `curl` para la URL; los campos aparecen en cuanto termina la ejecución que inicia esa solicitud. Consulta [Usar valores de bloques anteriores](/docs/workflows/authoring#usar-valores-de-bloques-anteriores).
+Cuando ha llegado una solicitud, el selector de valores de cada bloque posterior al disparador sabe lo que contenía: muestra los campos del cuerpo, las cabeceras y los parámetros de consulta, cada uno con su contenido, para que puedas elegir `incident.title` en lugar de escribir una ruta. Hasta entonces, indica que no ha llegado ninguna solicitud y ofrece **Copiar solicitud de prueba**, un comando `curl` para la URL; los campos aparecen en cuanto termina la ejecución que inicia esa solicitud. Consulta [Usar valores de bloques anteriores](/docs/workflows/authoring#usar-valores-de-bloques-anteriores).
 
 Para probar el flujo de trabajo sin la otra herramienta, haz clic en **Ejecutar flujo de trabajo** en el **Constructor** y escribe cabeceras, parámetros de consulta y un cuerpo.
 
@@ -161,24 +161,24 @@ Casi todo en OneUptime — monitores, incidentes, alertas, eventos de mantenimie
 
 Así construyes «cuando pase X en OneUptime, haz Y» sin tener que comprobar las cosas en un bucle.
 
-**On Update** se puede limitar a algunos campos con **Listen on**: entonces solo salta cuando una actualización cambia uno de ellos, a cualquier valor — desactivar un interruptor o vaciar un campo cuenta.
+**On Update** se puede limitar a algunos campos con **Fields to watch**: entonces solo salta cuando una actualización cambia uno de ellos, a cualquier valor — desactivar un interruptor o vaciar un campo cuenta.
 
 ```mermaid title="Cuándo salta un disparador On Update"
 flowchart TB
     save["Se guarda un registro"] --> changed{"¿Cambió algún valor?"}
     changed -->|"No"| nothing["No salta nada"]
-    changed -->|"Sí"| listen{"¿Listen on definido?"}
+    changed -->|"Sí"| listen{"¿Fields to watch definido?"}
     listen -->|"No"| fires["El flujo de trabajo se ejecuta"]
     listen -->|"Sí"| field{"¿Cambió uno de sus campos?"}
     field -->|"Sí"| fires
     field -->|"No"| nothing
 ```
 
-**On Create** y **On Update** pasan el registro al bloque siguiente, con los campos que eliges en el **Select Fields** del disparador. Por ejemplo, el disparador **Incident → On Create** pasa el incidente nuevo, así que el bloque siguiente puede leer su título, su descripción, su gravedad o cualquier otro campo que hayas seleccionado, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo que no seleccionaste llega vacío.
+**On Create** y **On Update** pasan el registro al bloque siguiente, con los campos que eliges en el **Fields to pass on** del disparador. Por ejemplo, el disparador **Incident → On Create** pasa el incidente nuevo, así que el bloque siguiente puede leer su título, su descripción, su gravedad o cualquier otro campo que hayas seleccionado, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo que no seleccionaste llega vacío.
 
 **On Delete** solo pasa el ID del registro eliminado: el registro ya no existe cuando se ejecuta el flujo de trabajo, así que sus otros campos no se pueden leer.
 
-Para probar un disparador de evento sin esperar al evento, haz clic en **Ejecutar flujo de trabajo** en el **Constructor** e introduce el ID de un registro existente, como un **ID del incidente**. La ejecución lee ese registro con los campos que seleccionaste.
+Para probar un disparador de evento sin esperar al evento, haz clic en **Ejecutar flujo de trabajo** en el **Constructor** y elige un registro existente: se muestran los más recientes, y al escribir el número de un registro o parte de su nombre encuentras otro. La ejecución lee ese registro con los campos que seleccionaste, como si el evento le acabara de ocurrir; el registro en sí no se modifica ni se elimina.
 
 ### Los eventos más usados
 

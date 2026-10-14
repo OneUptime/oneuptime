@@ -87,7 +87,7 @@ Comece pelo modelo, que cria o workflow inteiro para você, ou do zero.
 O workflow abre no **Construtor** com três etapas: **On Create Incident**; **Send Message to IRC**, que publica o número, o título, a gravidade e o estado do incidente em duas linhas; e uma etapa **Registro** na sua saída **Erro**, que registra por que uma mensagem não foi entregue. O servidor e o canal são guardados como as variáveis `ircServer` e `ircChannel` do workflow. Se você guardou senhas na etapa anterior, clique em **Send Message to IRC**, abra **Mais campos** e escolha cada variável com o botão **{ }** da configuração.
 @tab Do zero
 1. Abra **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
-2. No **Construtor**, clique em **Choose what starts this workflow** e escolha **On Create Incident** em **Popular**. Clique no gatilho e, em **Select Fields**, escolha os campos do incidente que a sua mensagem mostra, por exemplo o título.
+2. No **Construtor**, clique em **Choose what starts this workflow** e escolha **On Create Incident** em **Popular**. Clique no gatilho e, em **Fields to pass on**, escolha os campos do incidente que a sua mensagem mostra, por exemplo o título.
 3. Clique em **Adicionar componente**, pesquise `irc` e clique em **Send Message to IRC**. Ligue a saída **Sucesso** do gatilho a esta etapa.
 4. Clique na nova etapa e preencha **IRC Server**, **Channel** e **Message Text**. O botão **{ }** de **Message Text** insere campos do incidente, por exemplo o título.
 5. Se você guardou senhas na etapa anterior, abra **Mais campos**. Em **Server Password**, **SASL Password** ou **Channel Key**, clique em **{ }** e escolha a variável em **Global variables**. Coloque o nome da sua conta em **SASL Username**.
@@ -97,7 +97,7 @@ O workflow abre no **Construtor** com três etapas: **On Create Incident**; **Se
 
 Ligue a chave **Habilitado** no topo do **Construtor**. A partir daí, cada novo incidente é publicado no canal.
 
-Para testar sem abrir um incidente, clique em **Executar fluxo de trabalho** e coloque o ID de um incidente que você já tem em **ID do incidente**. A página do incidente mostra o ID dele. Clique em **Run Workflow Manually** e confirme com **Run**. O painel **Execução do Fluxo de Trabalho** acompanha a execução: o log da etapa de IRC diz quantas linhas ela enviou, por exemplo `Sent 2 lines to #your-channel.`, e a mensagem aparece no canal. Se a etapa seguir por **Erro**, o log dela diz por quê: veja [Solução de problemas](#solução-de-problemas).
+Para testar sem abrir um incidente, clique em **Executar fluxo de trabalho** e escolha um incidente que você já tem em **Incidente**: os mais recentes são listados, e digitar o número dele ou parte do título encontra outro. Clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O painel **Execução do Fluxo de Trabalho** acompanha a execução: o log da etapa de IRC diz quantas linhas ela enviou, por exemplo `Sent 2 lines to #your-channel.`, e a mensagem aparece no canal. Se a etapa seguir por **Erro**, o log dela diz por quê: veja [Solução de problemas](#solução-de-problemas).
 :::
 
 ## Dicas

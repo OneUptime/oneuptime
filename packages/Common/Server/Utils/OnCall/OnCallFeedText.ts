@@ -9,6 +9,7 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import ProductBrandingText from "../ProductBrandingText";
 
 /*
  * THE FEED ENTRIES OF AN ON-CALL RUN.
@@ -39,6 +40,23 @@ import FeedMarkdown, {
  *
  * Feed only, never chat: Slack and Teams hear of the run through its one
  * message, edited as it goes.
+ *
+ * A DIRECT PAGE - people, a team or a schedule paged with no policy behind
+ * the page (Types/OnCallDutyPolicy/OnCallDirectPage) - reads the same way,
+ * with whoever started it where the policy is, and no escalation rule:
+ *
+ *   Workflow Page the on-call engineer paged Nitin Kumar, on call in
+ *     schedule Primary. Notification sent by SMS.
+ *   Workflow Page the on-call engineer paged nobody: nobody was on call in
+ *     schedule Secondary.
+ *   Workflow Page the on-call engineer stopped paging because the incident
+ *     is acknowledged or resolved.
+ *
+ * A page a PERSON started - from Slack or Microsoft Teams - ends as their
+ * page ending, not as the person doing something, as its chat message says
+ * "so paging stopped": "The page from Simon Lee stopped because the alert
+ * is acknowledged or resolved." ("Simon Lee stopped paging" read as if he
+ * had called it off.)
  */
 export interface OnCallStepFeedTextInput {
   status: OnCallDutyExecutionLogTimelineStatus;
@@ -62,6 +80,38 @@ export interface OnCallRunStatusFeedTextInput {
   status: OnCallDutyPolicyStatus;
   // The policy, as a link to it in the Dashboard: [PolicyX](...).
   policyLink: MarkdownText;
+  // What the run says about where it stands: why it ended, the error.
+  statusMessage?: string | undefined;
+}
+
+/*
+ * Who started a direct page, as its feed entries name them: the workflow
+ * whose step started it, by the name it had then, or the person who did,
+ * as a link to them. With neither, the product itself is named.
+ */
+export interface OnCallDirectPagePager {
+  workflowName?: string | undefined;
+  startedByUser?: MarkdownText | undefined;
+}
+
+export interface OnCallDirectPageStepFeedTextInput {
+  status: OnCallDutyExecutionLogTimelineStatus;
+  pager: OnCallDirectPagePager;
+  // The schedule the person was on call in, as typed.
+  scheduleName?: string | undefined;
+  // The team the person was paged as a member of, as typed.
+  teamName?: string | undefined;
+  // Who was paged, as a link to them; empty or unset when nobody was.
+  recipient?: MarkdownText | undefined;
+  // Who the page was meant for, when a user override sent it to someone else.
+  overriddenUser?: MarkdownText | undefined;
+  // What the step itself says: "Notification sent by SMS.", why it was skipped.
+  statusMessage?: string | undefined;
+}
+
+export interface OnCallDirectPageStatusFeedTextInput {
+  status: OnCallDutyPolicyStatus;
+  pager: OnCallDirectPagePager;
   // What the run says about where it stands: why it ended, the error.
   statusMessage?: string | undefined;
 }
@@ -242,6 +292,175 @@ const getRunStatusSentences: (
   }
 };
 
+/*
+ * Who started a direct page, where a policy's run names the policy:
+ * "Workflow **Page SRE**", the person, or the product.
+ */
+const getDirectPagePager: (
+  pager: OnCallDirectPagePager,
+  options?: { isInSentence?: boolean | undefined } | undefined,
+) => MarkdownText = (
+  pager: OnCallDirectPagePager,
+  options?: { isInSentence?: boolean | undefined } | undefined,
+): MarkdownText => {
+  const workflowName: string = (pager.workflowName || "").trim();
+
+  if (workflowName) {
+    return options?.isInSentence
+      ? mdText`workflow **${workflowName}**`
+      : mdText`Workflow **${workflowName}**`;
+  }
+
+  if (hasMarkdown(pager.startedByUser)) {
+    return mdText`**${pager.startedByUser!}**`;
+  }
+
+  return mdText`${ProductBrandingText.getProductName()}`;
+};
+
+/*
+ * Whether a person started a direct page - from a chat - rather than a
+ * workflow, or the product with nobody named (getDirectPagePager's order).
+ */
+const isDirectPageStartedByPerson: (pager: OnCallDirectPagePager) => boolean = (
+  pager: OnCallDirectPagePager,
+): boolean => {
+  return !(pager.workflowName || "").trim() && hasMarkdown(pager.startedByUser);
+};
+
+/*
+ * Why the person was among those paged: ", on call in schedule **Primary**"
+ * or ", as a member of **Platform**". Nothing for a person named themselves.
+ */
+const getDirectPageVia: (
+  input: OnCallDirectPageStepFeedTextInput,
+) => MarkdownText = (
+  input: OnCallDirectPageStepFeedTextInput,
+): MarkdownText => {
+  const scheduleName: string = (input.scheduleName || "").trim();
+  const teamName: string = (input.teamName || "").trim();
+
+  if (scheduleName) {
+    return mdText`, on call in schedule **${scheduleName}**`;
+  }
+
+  if (teamName) {
+    return mdText`, as a member of **${teamName}**`;
+  }
+
+  return FeedMarkdown.empty();
+};
+
+// Who a direct page paged, or did not, and through what.
+const getDirectPageStepHeadline: (
+  input: OnCallDirectPageStepFeedTextInput,
+) => MarkdownText = (
+  input: OnCallDirectPageStepFeedTextInput,
+): MarkdownText => {
+  const pager: MarkdownText = getDirectPagePager(input.pager);
+
+  if (!hasMarkdown(input.recipient)) {
+    const scheduleName: string = (input.scheduleName || "").trim();
+    const teamName: string = (input.teamName || "").trim();
+
+    if (scheduleName) {
+      return mdText`${pager} paged nobody: nobody was on call in schedule **${scheduleName}**.`;
+    }
+
+    if (teamName) {
+      return mdText`${pager} paged nobody: team **${teamName}** has no members.`;
+    }
+
+    return mdText`${pager} paged nobody.`;
+  }
+
+  const recipient: MarkdownText = mdText`**${input.recipient!}**`;
+  const via: MarkdownText = getDirectPageVia(input);
+
+  switch (input.status) {
+    case OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged:
+      return mdText`${recipient} acknowledged the page from ${getDirectPagePager(
+        input.pager,
+        { isInSentence: true },
+      )}.`;
+    case OnCallDutyExecutionLogTimelineStatus.Error:
+      return mdText`${pager} could not page ${recipient}${via}.`;
+    case OnCallDutyExecutionLogTimelineStatus.Skipped:
+      return mdText`${pager} did not page ${recipient}${via}.`;
+    case OnCallDutyExecutionLogTimelineStatus.NotificationSent:
+      return mdText`${pager} paged ${recipient}${via}.`;
+    default:
+      return mdText`${pager} is paging ${recipient}${via}.`;
+  }
+};
+
+/*
+ * How a direct page that ended says so, read back from the fixed words its
+ * run was given as it ended (OnCallDutyPolicyRunEnding, OnCallDirectPage).
+ */
+const getDirectPageStatusSentences: (
+  input: OnCallDirectPageStatusFeedTextInput,
+) => Array<MarkdownText> = (
+  input: OnCallDirectPageStatusFeedTextInput,
+): Array<MarkdownText> => {
+  const pager: MarkdownText = getDirectPagePager(input.pager);
+  const message: string = (input.statusMessage || "").trim();
+  const messageSentences: Array<MarkdownText> = message
+    ? [asSentence(message)]
+    : [];
+
+  /*
+   * What stopped: "Workflow **Page SRE** stopped paging" - or, for a page a
+   * person started, "The page from **Simon Lee** stopped" (see the header).
+   */
+  const isStartedByPerson: boolean = isDirectPageStartedByPerson(input.pager);
+  const stopped: MarkdownText = isStartedByPerson
+    ? mdText`The page from ${pager} stopped`
+    : mdText`${pager} stopped paging`;
+
+  switch (input.status) {
+    case OnCallDutyPolicyStatus.Scheduled:
+      return [mdText`${pager} is about to page.`];
+    case OnCallDutyPolicyStatus.Started:
+      return [mdText`${pager} started paging.`];
+    case OnCallDutyPolicyStatus.Executing:
+      return [mdText`${pager} is paging.`, ...messageSentences];
+    case OnCallDutyPolicyStatus.Completed: {
+      // Everybody's notifications went out, and nobody acknowledged.
+      if (message === ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE) {
+        return [mdText`${stopped}: nobody acknowledged.`];
+      }
+
+      if (
+        message.indexOf(ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START) === 0
+      ) {
+        const why: string = message
+          .slice(ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START.length)
+          .trim();
+
+        return [mdText`${stopped} because the ${asSentence(why)}`];
+      }
+
+      return [mdText`${stopped}.`, ...messageSentences];
+    }
+    // Each target's own entry says why it was not paged.
+    case OnCallDutyPolicyStatus.CompletedWithNoNotifications:
+      return [mdText`${pager} paged nobody.`];
+    case OnCallDutyPolicyStatus.Error:
+      return [
+        isStartedByPerson
+          ? mdText`The page from ${pager} stopped with an error.`
+          : mdText`${pager} stopped with an error.`,
+        ...messageSentences,
+      ];
+    default:
+      return [
+        mdText`${pager} is now **${input.status}**.`,
+        ...messageSentences,
+      ];
+  }
+};
+
 export default class OnCallFeedText {
   // One step of a run: a page sent, acknowledged, skipped or failed.
   public static getStepMarkdown(input: OnCallStepFeedTextInput): string {
@@ -267,16 +486,66 @@ export default class OnCallFeedText {
   /*
    * A run starting. With the person who started it by hand, the sentence
    * follows their name in the feed ("Nitin started on-call policy PolicyX").
+   * Started by a workflow's step, it names the workflow ("Workflow Page SRE
+   * started on-call policy PolicyX").
    */
   public static getRunStartedMarkdown(data: {
     policyLink: MarkdownText;
     isStartedBySomeone: boolean;
+    startedByWorkflowName?: string | undefined;
   }): string {
     if (data.isStartedBySomeone) {
       return mdText`started on-call policy **${data.policyLink}**.`.toString();
     }
 
+    const workflowName: string = (data.startedByWorkflowName || "").trim();
+
+    if (workflowName) {
+      return mdText`Workflow **${workflowName}** started on-call policy **${data.policyLink}**.`.toString();
+    }
+
     return mdText`${getPolicy(data.policyLink)} started paging.`.toString();
+  }
+
+  /*
+   * One step of a direct page: a person paged, acknowledged, skipped or
+   * failed, or a team or a schedule it found nobody in.
+   */
+  public static getDirectPageStepMarkdown(
+    input: OnCallDirectPageStepFeedTextInput,
+  ): string {
+    const sentences: Array<MarkdownText> = [getDirectPageStepHeadline(input)];
+
+    // A line about nobody says why in its own words.
+    if (!hasMarkdown(input.recipient)) {
+      return FeedMarkdown.join(sentences, "\n\n").toString();
+    }
+
+    if (hasMarkdown(input.overriddenUser)) {
+      sentences.push(
+        mdText`They are covering for ${input.overriddenUser!} (a user override).`,
+      );
+    }
+
+    const messageSentence: MarkdownText = getStepMessageSentence(
+      input.statusMessage,
+    );
+
+    if (hasMarkdown(messageSentence)) {
+      sentences.push(messageSentence);
+    }
+
+    return FeedMarkdown.join(sentences, "\n\n").toString();
+  }
+
+  // Where a direct page stands now: stopped and why, paged nobody, failed.
+  public static getDirectPageStatusMarkdown(
+    input: OnCallDirectPageStatusFeedTextInput,
+  ): string {
+    return FeedMarkdown.join(
+      getDirectPageStatusSentences(input),
+      "\n\n",
+    ).toString();
   }
 
   /*

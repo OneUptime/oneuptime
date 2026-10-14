@@ -18,8 +18,11 @@
  *   - Real: VMAPI substitution, the JavaScript component in the isolated-vm
  *     sandbox, the If / Else and Switch / Case components, the Log component, the API
  *     components themselves — sanitizeArgs, URL parsing, HTTPResponse and the
- *     choice of port included — and the Slack component, which posts the
- *     message's blocks through the same API.fetch.
+ *     choice of port included — the Slack component, which posts the
+ *     message's blocks through the same API.fetch, and the four Page steps:
+ *     their settings read, the page they ask for and the output they take.
+ *     The paging itself (OnCallPageService.page) is the suite's to stand in
+ *     for: it is a database from end to end.
  *   - Faked: the other system, at API.fetch, the one function every API
  *     component and the Slack component send through; the database, per
  *     step, by component id; and one DNS lookup (stubDnsLookups), so the
@@ -62,6 +65,7 @@ import ApiPut from "../../../Server/Types/Workflow/Components/API/Put";
 import ApiPatch from "../../../Server/Types/Workflow/Components/API/Patch";
 import ApiDelete from "../../../Server/Types/Workflow/Components/API/Delete";
 import SlackSendMessageToChannel from "../../../Server/Types/Workflow/Components/Slack/SendMessageToChannel";
+import Page from "../../../Server/Types/Workflow/Components/OnCall/Page";
 import { jest } from "@jest/globals";
 import dns from "dns";
 
@@ -302,6 +306,12 @@ export interface Scenario {
    * user following the script's own comments would do.
    */
   editCode?: Dictionary<EditCodeFunction> | undefined;
+  /*
+   * Settings filled in before the run, keyed by component id — what the
+   * person who created the workflow picks in the builder, such as who a
+   * Page step pages. Laid over what the template set.
+   */
+  settings?: Dictionary<JSONObject> | undefined;
 }
 
 export interface SimulationTrace {
@@ -366,6 +376,10 @@ const COMPONENT_CODE: Dictionary<ComponentCode> = {
   [ComponentID.ApiPatch]: new ApiPatch(),
   [ComponentID.ApiDelete]: new ApiDelete(),
   [ComponentID.SlackSendMessageToChannel]: new SlackSendMessageToChannel(),
+  [ComponentID.PageUsers]: new Page(ComponentID.PageUsers),
+  [ComponentID.PageTeam]: new Page(ComponentID.PageTeam),
+  [ComponentID.PageOnCall]: new Page(ComponentID.PageOnCall),
+  [ComponentID.PageOnCallPolicy]: new Page(ComponentID.PageOnCallPolicy),
 };
 
 const DATABASE_OPERATION: RegExp = /-(find-one|find-many|create-one)$/;
@@ -373,6 +387,13 @@ const DATABASE_OPERATION: RegExp = /-(find-one|find-many|create-one)$/;
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-2222-4333-8444-555555555555",
 );
+
+// The project every simulated workflow runs in, and the workflow it runs as.
+export const SIMULATED_PROJECT_ID: ObjectID = PROJECT_ID;
+export const SIMULATED_WORKFLOW_ID: ObjectID = new ObjectID(
+  "22222222-3333-4444-8555-666666666666",
+);
+export const SIMULATED_WORKFLOW_NAME: string = "Simulated workflow";
 
 /** Enough of a jest spy to put the real function back. */
 interface RestorableSpy {
@@ -526,7 +547,8 @@ const executeStep: ExecuteStepFunction = async (data: {
       );
     },
     workflowLogId: ObjectID.generate(),
-    workflowId: ObjectID.generate(),
+    workflowId: SIMULATED_WORKFLOW_ID,
+    workflowName: SIMULATED_WORKFLOW_NAME,
     projectId: PROJECT_ID,
     getRemainingExecutionTimeInMs: (): number => {
       return 60000;
@@ -590,6 +612,24 @@ export const runTemplate: RunTemplateFunction = async (
     }
 
     node.arguments["code"] = edited;
+  }
+
+  for (const componentId of Object.keys(scenario.settings || {})) {
+    const node: SimulatedNode | undefined = graph.nodes[componentId];
+
+    // A setting for a step the template does not have would prove nothing.
+    if (!node) {
+      throw new Error(`${scenario.templateId} has no step ${componentId}.`);
+    }
+
+    node.arguments = {
+      ...node.arguments,
+      ...(JSON.parse(
+        JSON.stringify(
+          (scenario.settings as Dictionary<JSONObject>)[componentId],
+        ),
+      ) as JSONObject),
+    };
   }
 
   const trace: SimulationTrace = {

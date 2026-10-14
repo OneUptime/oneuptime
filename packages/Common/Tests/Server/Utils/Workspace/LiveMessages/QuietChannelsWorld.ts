@@ -14,6 +14,7 @@ import OnCallDutyPolicyEscalationRule from "../../../../../Models/DatabaseModels
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimeline from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import OnCallDutyPolicySchedule from "../../../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import Team from "../../../../../Models/DatabaseModels/Team";
 import User from "../../../../../Models/DatabaseModels/User";
 import UserOnCallLogTimeline from "../../../../../Models/DatabaseModels/UserOnCallLogTimeline";
 import WorkspaceNotificationRule from "../../../../../Models/DatabaseModels/WorkspaceNotificationRule";
@@ -32,13 +33,23 @@ import IncidentService from "../../../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../../../Server/Services/IncidentStateService";
 import IncidentStateTimelineService from "../../../../../Server/Services/IncidentStateTimelineService";
 import OnCallDutyPolicyEscalationRuleService, {
+  AwayOverride,
   NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
 } from "../../../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
-import OnCallDutyPolicyExecutionLogService from "../../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
+import OnCallDutyPolicyExecutionLogService, {
+  OnCallDirectPageRun,
+  OnCallDirectPageStartedBy,
+} from "../../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyExecutionLogTimelineService from "../../../../../Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
+import OnCallDutyPolicyScheduleService, {
+  CurrentOnCallInSchedule,
+} from "../../../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../../../../../Server/Services/OnCallDutyPolicyService";
 import ScheduledMaintenanceFeedService from "../../../../../Server/Services/ScheduledMaintenanceFeedService";
 import ScheduledMaintenanceService from "../../../../../Server/Services/ScheduledMaintenanceService";
+import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
+import UserNotificationRuleService from "../../../../../Server/Services/UserNotificationRuleService";
+import UserOnCallLogService from "../../../../../Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../../../Server/Services/UserOnCallLogTimelineService";
 import UserService from "../../../../../Server/Services/UserService";
 import WorkspaceNotificationLogService from "../../../../../Server/Services/WorkspaceNotificationLogService";
@@ -62,6 +73,7 @@ import { Red500 } from "../../../../../Types/BrandColors";
 import Email from "../../../../../Types/Email";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import { OnCallDirectPageTargets } from "../../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
@@ -73,6 +85,7 @@ import UserNotificationStatus from "../../../../../Types/UserNotification/UserNo
 import NotificationRuleEventType from "../../../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleWorkspaceChannel from "../../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import PositiveNumber from "../../../../../Types/PositiveNumber";
 import FeedMarkdown, {
   mdText,
   MarkdownText,
@@ -143,6 +156,17 @@ export const SEC: ObjectID = new ObjectID(
 export const WORKSPACE_RULE_ID: ObjectID = new ObjectID(
   "a0000000-0000-4000-8000-000000000041",
 );
+// The teams and the workflow of a direct page (startDirectPage).
+export const TEAM_PLATFORM: ObjectID = new ObjectID(
+  "a0000000-0000-4000-8000-000000000061",
+);
+export const TEAM_NOBODY_JOINED: ObjectID = new ObjectID(
+  "a0000000-0000-4000-8000-000000000062",
+);
+export const PAGING_WORKFLOW_ID: ObjectID = new ObjectID(
+  "a0000000-0000-4000-8000-000000000071",
+);
+export const PAGING_WORKFLOW_NAME: string = "Page the on-call engineer";
 
 export const DASHBOARD: string = "https://oneuptime.test/dashboard";
 
@@ -220,6 +244,11 @@ const SCHEDULE_NAMES: Record<string, string> = {
   [SEC.toString()]: "sec",
 };
 
+const TEAM_NAMES: Record<string, string> = {
+  [TEAM_PLATFORM.toString()]: "Platform",
+  [TEAM_NOBODY_JOINED.toString()]: "Night Shift",
+};
+
 export interface WorkspaceChannels {
   slack?: NotificationRuleWorkspaceChannel | undefined;
   teams?: NotificationRuleWorkspaceChannel | undefined;
@@ -289,6 +318,11 @@ export default class QuietChannelsWorld {
   public runFor: "incident" | "alert" = "incident";
   public recordAcknowledged: boolean = false;
   public recordStateName: string = "Identified";
+  /*
+   * The record's title, when a suite reads it: a page from a chat shows it
+   * where it was asked for (OnCallPolicyRunMessage's page request places).
+   */
+  public recordTitle: string | undefined = undefined;
 
   // The people in the project, and the rule's people for a new channel.
   public members: Set<string> = new Set<string>([
@@ -296,6 +330,24 @@ export default class QuietChannelsWorld {
     NB_USER_3.toString(),
     JANE.toString(),
   ]);
+
+  /*
+   * What a direct page - people, a team or a schedule paged with no policy
+   * (startDirectPage) - finds when it looks: who has joined each team, who
+   * is on call in each schedule right now, and who is away (with somebody
+   * covering, or nobody). And how many of its pages are still going out,
+   * for the worker's tick that ends it (directPagePagesAreOver).
+   */
+  public teamMembers: Record<string, Array<ObjectID>> = {
+    [TEAM_PLATFORM.toString()]: [NITIN, JANE],
+    [TEAM_NOBODY_JOINED.toString()]: [],
+  };
+  public onCallNow: Record<string, ObjectID | null> = {
+    [PRIMARY_COVER.toString()]: NITIN,
+    [SEC.toString()]: null,
+  };
+  public away: Record<string, AwayOverride> = {};
+  public pagesStillOut: number = 0;
 
   public constructor(data: {
     workspaces: Array<WorkspaceType>;
@@ -563,6 +615,11 @@ export default class QuietChannelsWorld {
         incident.projectId = PROJECT_ID;
         incident.incidentNumber = 8;
         incident.incidentNumberWithPrefix = "INC-8";
+
+        if (this.recordTitle !== undefined) {
+          incident.title = this.recordTitle;
+        }
+
         const state: IncidentState = new IncidentState();
         state.name = this.recordStateName;
         incident.currentIncidentState = state;
@@ -593,6 +650,11 @@ export default class QuietChannelsWorld {
         alert.projectId = PROJECT_ID;
         alert.alertNumber = 12;
         alert.alertNumberWithPrefix = "AL-12";
+
+        if (this.recordTitle !== undefined) {
+          alert.title = this.recordTitle;
+        }
+
         const state: AlertState = new AlertState();
         state.name = this.recordStateName;
         alert.currentAlertState = state;
@@ -752,10 +814,18 @@ export default class QuietChannelsWorld {
           }
 
           const run: OnCallDutyPolicyExecutionLog = copyOf(this.run);
-          run.onCallDutyPolicy = this.policy();
+
+          // A direct page has no policy to read with it.
+          if (run.onCallDutyPolicyId) {
+            run.onCallDutyPolicy = this.policy();
+          }
 
           if (run.acknowledgedByUserId) {
             run.acknowledgedByUser = user(run.acknowledgedByUserId);
+          }
+
+          if (run.triggeredByUserId) {
+            run.triggeredByUser = user(run.triggeredByUserId);
           }
 
           return run;
@@ -819,10 +889,41 @@ export default class QuietChannelsWorld {
       step: OnCallDutyPolicyExecutionLogTimeline,
     ): OnCallDutyPolicyExecutionLogTimeline => {
       const copy: OnCallDutyPolicyExecutionLogTimeline = copyOf(step);
-      copy.onCallDutyPolicy = this.policy();
+
+      // A direct page's step names no policy.
+      if (step.onCallDutyPolicyId) {
+        copy.onCallDutyPolicy = this.policy();
+      }
 
       if (step.alertSentToUserId) {
         copy.alertSentToUser = user(step.alertSentToUserId);
+      }
+
+      if (step.overridedByUserId) {
+        copy.overridedByUser = user(step.overridedByUserId);
+      }
+
+      if (step.userBelongsToTeamId) {
+        const team: Team = new Team();
+        team.id = step.userBelongsToTeamId;
+        team.name = TEAM_NAMES[step.userBelongsToTeamId.toString()]!;
+        copy.userBelongsToTeam = team;
+      }
+
+      // The run the step belongs to: who started it, for a direct page's entry.
+      if (this.run) {
+        const run: OnCallDutyPolicyExecutionLog =
+          new OnCallDutyPolicyExecutionLog();
+
+        if (this.run.triggeredByWorkflowName) {
+          run.triggeredByWorkflowName = this.run.triggeredByWorkflowName;
+        }
+
+        if (this.run.triggeredByUserId) {
+          run.triggeredByUserId = this.run.triggeredByUserId;
+        }
+
+        copy.onCallDutyPolicyExecutionLog = run;
       }
 
       const script: RuleScript | undefined = this.rules.find(
@@ -961,6 +1062,8 @@ export default class QuietChannelsWorld {
         return 1;
       }) as never);
 
+    this.installDirectPages(hook);
+
     // How each page reached its person.
     jest
       .spyOn(UserOnCallLogTimelineService, "findBy")
@@ -980,7 +1083,233 @@ export default class QuietChannelsWorld {
       }) as never);
   }
 
+  /*
+   * A DIRECT PAGE, through OneUptime's real code: the run is created by the
+   * execution log service's own startDirectPage and its create hooks, and
+   * its people are found and paged by the escalation rule service's own
+   * startDirectPage. Only what those read from the database is here - who
+   * has joined a team, who is on call in a schedule, who is away - and the
+   * far end of a page: a person's notification rules going out, as an SMS
+   * and an email (as for a rule's page, executeRule).
+   */
+  private installDirectPages(
+    hook: (
+      service: unknown,
+      name: string,
+    ) => (...args: Array<unknown>) => Promise<unknown>,
+  ): void {
+    // The run's create: its real hooks, around a row kept here.
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "create")
+      .mockImplementation((async (createBy: {
+        data: OnCallDutyPolicyExecutionLog;
+        props: Record<string, unknown>;
+      }): Promise<OnCallDutyPolicyExecutionLog> => {
+        const onCreate: { createBy: { data: OnCallDutyPolicyExecutionLog } } =
+          (await hook(
+            OnCallDutyPolicyExecutionLogService,
+            "onBeforeCreate",
+          )(createBy)) as {
+            createBy: { data: OnCallDutyPolicyExecutionLog };
+          };
+
+        await hook(
+          OnCallDutyPolicyExecutionLogService,
+          "onCreatePermitted",
+        )(onCreate);
+
+        const run: OnCallDutyPolicyExecutionLog = onCreate.createBy.data;
+        run.id = ObjectID.generate();
+        run.createdAt = new Date(this.clock);
+        this.run = run;
+
+        await hook(OnCallDutyPolicyExecutionLogService, "onCreateSuccess")(
+          onCreate,
+          run,
+        );
+
+        return run;
+      }) as never);
+
+    jest.spyOn(TeamMemberService, "getUsersInTeams").mockImplementation((async (
+      teamIds: Array<ObjectID>,
+    ): Promise<Array<User>> => {
+      return teamIds.flatMap((teamId: ObjectID): Array<User> => {
+        return (this.teamMembers[teamId.toString()] || []).map(user);
+      });
+    }) as never);
+
+    jest
+      .spyOn(OnCallDutyPolicyScheduleService, "getCurrentOnCallInSchedule")
+      .mockImplementation((async (
+        scheduleId: ObjectID,
+      ): Promise<CurrentOnCallInSchedule | null> => {
+        const onCall: ObjectID | null | undefined =
+          this.onCallNow[scheduleId.toString()];
+
+        return onCall ? { userId: onCall, coveredUserId: null } : null;
+      }) as never);
+
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "getAwayOverride")
+      .mockImplementation((async (data: {
+        userId: ObjectID;
+      }): Promise<AwayOverride | null> => {
+        return this.away[data.userId.toString()] || null;
+      }) as never);
+
+    // A page going out: the person's notification rules, as for a rule's page.
+    jest
+      .spyOn(UserNotificationRuleService, "startUserNotificationRulesExecution")
+      .mockImplementation((async (
+        userId: ObjectID,
+        options: {
+          onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+        },
+      ): Promise<void> => {
+        await this.deliverPage(
+          userId,
+          options.onCallDutyPolicyExecutionLogTimelineId!,
+        );
+      }) as never);
+
+    // The pages of the run that are still going out, as the worker counts them.
+    jest
+      .spyOn(UserOnCallLogService, "countBy")
+      .mockImplementation((async () => {
+        return new PositiveNumber(this.pagesStillOut);
+      }) as never);
+  }
+
+  /*
+   * One page reaching its person: an SMS and an email go out (each a
+   * delivery written, then marked sent), and the page's step is marked
+   * Notification Sent - once as the page goes out, and once more when the
+   * person's notification rules have all run.
+   */
+  private async deliverPage(userId: ObjectID, stepId: ObjectID): Promise<void> {
+    for (const method of ["userSmsId", "userEmailId"] as const) {
+      const delivery: UserOnCallLogTimeline = new UserOnCallLogTimeline();
+      delivery.id = ObjectID.generate();
+      delivery.projectId = PROJECT_ID;
+      delivery.userId = userId;
+      delivery.onCallDutyPolicyExecutionLogId = this.run!.id!;
+      delivery.status = UserNotificationStatus.Sending;
+      delivery[method] = ObjectID.generate();
+      this.deliveries.push(delivery);
+
+      await (
+        UserOnCallLogTimelineService as unknown as Record<
+          string,
+          (...args: Array<unknown>) => Promise<unknown>
+        >
+      )["onCreateSuccess"]!.call(
+        UserOnCallLogTimelineService,
+        {
+          createBy: { data: delivery, props: { isRoot: true } },
+          carryForward: null,
+        },
+        delivery,
+      );
+
+      delivery.status = UserNotificationStatus.Sent;
+
+      await (
+        UserOnCallLogTimelineService as unknown as Record<
+          string,
+          (...args: Array<unknown>) => Promise<unknown>
+        >
+      )["onUpdateSuccess"]!.call(
+        UserOnCallLogTimelineService,
+        {
+          updateBy: {
+            query: { _id: delivery.id.toString() },
+            data: { status: UserNotificationStatus.Sent },
+            props: { isRoot: true },
+          },
+          carryForward: null,
+        },
+        [delivery.id],
+      );
+    }
+
+    await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
+      id: stepId,
+      data: {
+        status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+        statusMessage: "Alert Sent",
+      },
+      props: { isRoot: true },
+    });
+
+    await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
+      id: stepId,
+      data: {
+        status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+      },
+      props: { isRoot: true },
+    });
+  }
+
   // ---- Driving the run ----
+
+  /*
+   * A direct page about the record: the people, teams and schedules it
+   * names are paged at once, with no policy, as a workflow's Page steps
+   * start one (OnCallPageService). Hands back what came of it.
+   */
+  public async startDirectPage(data: {
+    targets: Partial<OnCallDirectPageTargets>;
+    startedBy?: OnCallDirectPageStartedBy | undefined;
+  }): Promise<OnCallDirectPageRun> {
+    const started: OnCallDirectPageRun =
+      await OnCallDutyPolicyExecutionLogService.startDirectPage({
+        projectId: PROJECT_ID,
+        targets: {
+          userIds: data.targets.userIds || [],
+          teamIds: data.targets.teamIds || [],
+          onCallScheduleIds: data.targets.onCallScheduleIds || [],
+        },
+        ...(this.runFor === "incident"
+          ? { triggeredByIncidentId: INCIDENT_ID }
+          : { triggeredByAlertId: ALERT_ID }),
+        startedBy: data.startedBy || {
+          workflowId: PAGING_WORKFLOW_ID,
+          workflowName: PAGING_WORKFLOW_NAME,
+        },
+      });
+
+    await this.settle();
+
+    return started;
+  }
+
+  /*
+   * The worker's tick on a direct page nobody has answered, so many minutes
+   * after its paging started: once it has waited for an acknowledgement
+   * and every page has sent all it had to send, the run is over
+   * (OnCallDutyPolicyExecutionLog:ExecutePendingExecutions).
+   */
+  public async directPageTick(
+    minutesAfterPagingStarted: number,
+  ): Promise<boolean> {
+    const pagingStartedAt: Date = new Date(
+      this.run!.lastEscalationRuleExecutedAt || this.run!.createdAt!,
+    );
+
+    const ended: boolean =
+      await OnCallDutyPolicyExecutionLogService.endDirectPageIfItsPagesAreOver({
+        executionLogId: this.run!.id!,
+        pagingStartedAt: pagingStartedAt,
+        at: new Date(
+          pagingStartedAt.getTime() + minutesAfterPagingStarted * MINUTE_IN_MS,
+        ),
+      });
+
+    await this.settle();
+
+    return ended;
+  }
 
   // A run of PolicyX, created as OneUptime creates one, and its first rule.
   public async startRun(): Promise<void> {
@@ -1094,14 +1423,21 @@ export default class QuietChannelsWorld {
     await this.settle();
   }
 
-  // Somebody acknowledges their page: their step, then the run.
+  /*
+   * Somebody acknowledges their page: their step, then the run. Their step
+   * is the page they were sent - not a line that says they were skipped,
+   * which is no page to acknowledge.
+   */
   public async acknowledge(userId: ObjectID): Promise<void> {
     const step: OnCallDutyPolicyExecutionLogTimeline | undefined = [
       ...this.steps,
     ]
       .reverse()
       .find((candidate: OnCallDutyPolicyExecutionLogTimeline): boolean => {
-        return candidate.alertSentToUserId?.toString() === userId.toString();
+        return (
+          candidate.alertSentToUserId?.toString() === userId.toString() &&
+          candidate.status !== OnCallDutyExecutionLogTimelineStatus.Skipped
+        );
       });
 
     this.recordAcknowledged = true;

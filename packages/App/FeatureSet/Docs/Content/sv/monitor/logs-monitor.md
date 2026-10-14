@@ -63,6 +63,7 @@ Klicka på **Skapa monitor**. Monitorn öppnas på sin sida **Översikt**, och d
 | **Övervakningsloggar för (tid)** | Loggar från de senaste 5 sekunderna upp till de senaste 24 timmarna. | **Senaste 1 minuten** |
 | **Loggens allvarlighetsgrad** | Loggar med någon av de valda allvarlighetsgraderna. | Tomt: alla allvarlighetsgrader |
 | **Group by Attributes** | Inget filter: räknar varje kombination av dessa attributs värden för sig. | Tomt: en räkning |
+| **Löst av attribut** | Inget filter: loggen som löser en grupp. Visas så snart **Group by Attributes** har ett attribut; se [Löst av en logg](#löst-av-en-logg). | Tomt: en grupp löses när dess loggar upphör |
 | **Filtrera efter telemetritjänst** (under **Fler fält**) | Loggar från någon av de valda tjänsterna. | Tomt: alla tjänster |
 | **Filter by Infrastructure Entity** (under **Fler fält**) | Loggar från någon av de valda värdarna, poddarna, containrarna och andra entiteterna. | Tomt: alla entiteter |
 | **Filtrera efter attribut** (under **Fler fält**) | Loggar vars attribut uppfyller alla villkor. Varje villkor har en egen operator, som "är lika med" eller "innehåller". | Tomt: inga villkor |
@@ -170,7 +171,21 @@ flowchart TB
 
 Varje grupps varning eller incident löses för sig. Så snart en grupp inte längre uppfyller kriterierna (`HQ-Branch1` loggar inga fler avslutningar inom tidsfönstret) löses dess varning, medan varningen för `Branch2` förblir öppen tills även `Branch2` slutar. Att en grupp återhämtar sig stänger aldrig en annan grupps varning.
 
-En loggmonitor ser händelser, inte tillstånd: en grupps varning löses så snart gruppen inte har loggat något som uppfyller kriterierna under ett helt tidsfönster, oavsett om tunneln är uppe igen eller inte.
+En loggmonitor ser händelser, inte tillstånd: en grupps varning löses så snart gruppen inte har loggat något som uppfyller kriterierna under ett helt tidsfönster, oavsett om tunneln är uppe igen eller inte - om inte monitorn anger loggen som säger att den är uppe igen, som nedan.
+
+### Löst av en logg
+
+En enhet som rapporterar en tunnel nere rapporterar oftast också när den är uppe igen. **Löst av attribut** anger den loggen: när fältet är satt förblir en grupps varning eller incident öppen tills en logg med de attributen kommer för samma grupp, i stället för att lösas när gruppens loggar upphör.
+
+Ta en monitor som räknar loggar med `event.name` = `vpn.tunnel_down`, grupperade efter `event.device` och `vpn.tunnel.name`, med **Löst av attribut** satt till `event.name` = `vpn.tunnel_up`. När tunneln `HQ-Branch1` går ner öppnas dess varning. Varningen förblir öppen hela natten, trots att brandväggen inte loggar något mer om tunneln, och löses när brandväggen rapporterar `HQ-Branch1` uppe igen. Om tunneln faller igen öppnas en ny varning.
+
+- Fältet visas så snart **Group by Attributes** har ett attribut. Det tar upp till 10 attribut, och en lösande logg bär alla.
+- En lösande logg hör till en grupp när den har gruppens värden för group by-attributen, så båda sorters loggar måste bära de attributen.
+- Monitorns telemetritjänster och tidsfönster gäller också för lösande loggar. Dess text- och allvarlighetsfilter gör det inte: de beskriver problemet.
+- En grupp vars nyaste logg är en lösande stängs. En grupp som loggade problemet igen efteråt förblir öppen.
+- Du kan fortfarande lösa en varning själv.
+
+[Nätverkshändelser](/docs/monitor/network-events) skapar de här monitorerna åt dig, ett klick per varning.
 
 ### Exempel: en varning per Sophos-IPsec-tunnel
 

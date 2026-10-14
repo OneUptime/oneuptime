@@ -13,6 +13,7 @@ import Permission from "../../../../Types/Permission";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
+import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import {
   AIChatCitationTargetType,
   AIChatWidgetColumn,
@@ -991,6 +992,18 @@ export const GetOnCallStatusTool: ObservabilityTool = {
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * What a direct page's row says where another row names its policy. A
+ * workflow's Page Users, Page a Team and Page Whoever Is On Call steps, and
+ * `/oneuptime page` in Slack and Microsoft Teams, page people with no
+ * on-call policy behind the page; the page is kept as a run, so it is
+ * listed here with the runs. Without this its policy would simply be
+ * missing from the row, and "which policy paged them?" would be answered
+ * with a guess.
+ */
+export const DIRECT_PAGE_POLICY_LABEL: string =
+  "Direct page (no on-call policy)";
+
 function formatTrigger(log: OnCallDutyPolicyExecutionLog): string | undefined {
   if (log.triggeredByIncident) {
     const incidentNumber: string = log.triggeredByIncident.incidentNumber
@@ -1010,7 +1023,7 @@ function formatTrigger(log: OnCallDutyPolicyExecutionLog): string | undefined {
 export const QueryOnCallPagesTool: ObservabilityTool = {
   name: "query_on_call_pages",
   description:
-    "Recent on-call pages (on-call policy executions): when a policy was triggered, by which incident or alert, how far it escalated, who was notified and whether anyone acknowledged. Defaults to the last 24 hours; pass startTime/endTime (ISO 8601) for another window. Filter by onCallPolicyId (find it with query_on_call_policies), incidentId (query_incidents) or alertId (query_alerts). Use this to answer 'was anyone paged?', 'who was notified?' and 'did anyone acknowledge?'.",
+    "Recent on-call pages (on-call policy executions, and direct pages a workflow or a person in Slack or Microsoft Teams sent with no policy): when a policy was triggered, by which incident or alert, how far it escalated, who was notified and whether anyone acknowledged. A direct page has no policy and no escalation: its policy reads 'Direct page (no on-call policy)' and startedBy names the workflow or the person who paged. Defaults to the last 24 hours; pass startTime/endTime (ISO 8601) for another window. Filter by onCallPolicyId (find it with query_on_call_policies), incidentId (query_incidents) or alertId (query_alerts). Use this to answer 'was anyone paged?', 'who was notified?' and 'did anyone acknowledge?'.",
   inputSchema: {
     type: "object",
     properties: {
@@ -1109,6 +1122,9 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
           statusMessage: true,
           lastExecutedEscalationRuleOrder: true,
           acknowledgedAt: true,
+          // Read with every row: a row with none is a direct page.
+          onCallDutyPolicyId: true,
+          triggeredByWorkflowName: true,
           onCallDutyPolicy: {
             _id: true,
             name: true,
@@ -1205,9 +1221,20 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
         return {
           id: log.id?.toString(),
           triggeredAt: log.createdAt,
-          policy: log.onCallDutyPolicy?.name,
+          policy:
+            log.onCallDutyPolicy?.name ||
+            (isOnCallDirectPage(log) ? DIRECT_PAGE_POLICY_LABEL : undefined),
           policyId: log.onCallDutyPolicy?.id?.toString(),
           trigger: formatTrigger(log),
+          /*
+           * Who started a direct page: the workflow whose step did, or the
+           * person who paged from a chat.
+           */
+          startedBy: log.triggeredByWorkflowName
+            ? `Workflow: ${log.triggeredByWorkflowName}`
+            : isOnCallDirectPage(log) && log.triggeredByUser
+              ? `Person: ${nameOf(log.triggeredByUser) || "a user"}`
+              : undefined,
           status: log.status,
           statusMessage: log.statusMessage,
           escalatedToRuleOrder: log.lastExecutedEscalationRuleOrder,
@@ -1263,7 +1290,7 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
         rows.length > 0
           ? WidgetBuilder.table({
               title: `On-call pages (${rows.length})`,
-              description: `Policy executions in the last ${windowLabel}`,
+              description: `Policy executions and direct pages in the last ${windowLabel}`,
               columns: [
                 { key: "triggeredAt", title: "Triggered", type: "date" },
                 { key: "policy", title: "Policy", type: "text" },

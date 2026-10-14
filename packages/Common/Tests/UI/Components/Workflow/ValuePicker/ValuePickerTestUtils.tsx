@@ -100,6 +100,8 @@ export interface WithPickerOptions {
   graphComponents?: Array<NodeDataProp> | undefined;
   valueSources?: StepValueSources | undefined;
   component?: NodeDataProp | undefined;
+  isWorkflowOff?: boolean | undefined;
+  onTestRun?: (() => void) | undefined;
 }
 
 type WithPickerFunction = (
@@ -117,6 +119,8 @@ export const withPicker: WithPickerFunction = (
       graphComponents={options.graphComponents || []}
       component={options.component}
       valueSources={options.valueSources}
+      isWorkflowOff={options.isWorkflowOff}
+      onTestRun={options.onTestRun}
       sources={
         options.sources || [staticSource(options.groups || SAMPLE_GROUPS)]
       }

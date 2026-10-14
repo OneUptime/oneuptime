@@ -128,7 +128,7 @@ De trigger neemt de plaats van het gestippelde blok in. De ID erop, `incident-on
 
 ### De velden van het incident kiezen
 
-Klik op de trigger. Vink onder **Select Fields** de velden aan die het verzoek moet meesturen, zoals de titel en de beschrijving, en klik op **Opslaan**.
+Klik op de trigger. **Fields to pass on** begint met de titel: klik op **Veld toevoegen**, vink de beschrijving aan en elk ander veld dat het verzoek moet meesturen, en klik op **Opslaan**.
 
 De trigger geeft het nieuwe incident met deze velden door. Een veld dat je niet selecteert, komt leeg aan.
 
@@ -158,7 +158,7 @@ Een verzoek dat mislukt — een onbereikbare URL of een antwoord dat geen 2xx is
 
 ### Testen
 
-Klik op **Workflow uitvoeren**, vul de **Incident-ID** in van een incident in dit project, klik op **Run Workflow Manually** en bevestig met **Run**. De workflow staat nog uit, dus dit is een **Testrun**, en het verzoek wordt echt verstuurd.
+Klik op **Workflow uitvoeren** en kies onder **Incident** een incident in dit project: de meest recente staan in de lijst, en door het nummer of een deel van de titel te typen vind je een ander. Klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. De workflow staat nog uit, dus dit is een **Testrun**, en het verzoek wordt echt verstuurd.
 
 Er opent een paneel **Workflow-uitvoering** dat de uitvoering volgt. Open de stap **API Post (JSON)** om de body te zien die is verstuurd en het antwoord dat terugkwam.
 

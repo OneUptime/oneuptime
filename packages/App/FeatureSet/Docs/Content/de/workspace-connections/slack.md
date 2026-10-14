@@ -135,6 +135,7 @@ OneUptime hat in Slack einen einzigen Befehl, `/oneuptime`. Das Wort, das Sie da
 | `/oneuptime incident [title]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. |
 | `/oneuptime maintenance [title]` | Öffnet das Formular für geplante Wartung, mit ausgefülltem Titel. |
 | `/oneuptime oncall` | Listet, wer gerade in jedem Bereitschaftsplan, den Sie sehen können, Bereitschaft hat, bis wann und wer als Nächstes dran ist. |
+| `/oneuptime page [who] [message]` | Alarmiert die Personen, die Sie mit @ erwähnen, wegen Ihrer Nachricht, oder öffnet ein Formular, in dem Sie wählen, wer alarmiert wird. Siehe [Jemanden aus Slack alarmieren](#jemanden-aus-slack-alarmieren). |
 | `/oneuptime ask [question]`, oder jede Frage | OneUptime AI antwortet zu Ihren Logs, Traces, Metriken, Vorfällen und Monitoren. |
 
 Die Antworten auf `help` und `oncall` sind Nachrichten, die nur Sie sehen, unter dem Befehl. Ein erstes Wort, das wie ein vertippter Befehl aussieht, etwa `incidnet`, bekommt den Befehl, dem es ähnelt, statt einer Antwort von OneUptime AI. Die Formulare für Vorfälle und Wartungen handeln als Sie: siehe [Vorfälle und Wartungen aus Slack erstellen](#vorfälle-und-wartungen-aus-slack-erstellen).
@@ -161,6 +162,15 @@ OneUptime antwortet nur auf das, was an OneUptime gerichtet ist.
 - **Was ein Formular nennen darf.** Der Vorfall oder das Ereignis wird mit Ihren eigenen Berechtigungen erstellt und Ihnen zugeschrieben. Ein Monitor, eine Bereitschaftsrichtlinie, eine Beschriftung, ein Schweregrad oder Status, den Sie nicht lesen dürfen, oder einer eines anderen Projekts, wird abgelehnt wie einer, den das Projekt nicht hat, auch aus einem Formular, das vor der Änderung Ihres Zugriffs geöffnet wurde, und es wird nichts erstellt. OneUptime sagt Ihnen im Kanal, in einer Nachricht, die nur Sie sehen, warum.
 
 **Execute On-Call Policy** an einem Vorfall, einer Warnung oder Episode funktioniert genauso: Es braucht die Berechtigung, eine Bereitschaftsrichtlinie auszuführen (**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** und **On-Call Member**, oder **Create On-Call Duty Policy Execution Log** in einer benutzerdefinierten Rolle) und diesen Vorfall, diese Warnung oder Episode zu lesen, und bietet die aktiven Bereitschaftsrichtlinien an, die Sie lesen dürfen.
+
+## Jemanden aus Slack alarmieren
+
+`/oneuptime page @nawaz The checkout API is throwing 500s` alarmiert Nawaz sofort. OneUptime erstellt eine Warnung mit Ihrer Nachricht als Titel, und jede Person, die Sie mit @ erwähnen, bekommt einen Anruf, eine SMS, eine Push-Benachrichtigung oder eine E-Mail, wie es ihre eigenen Bereitschaftsregeln vorsehen, bis jemand die Warnung bestätigt.
+
+- **Wer sofort alarmiert wird.** Die Personen, die Sie mit @ erwähnen, wenn eine Nachricht auf sie folgt. OneUptime erkennt eine Person am OneUptime-Konto, mit dem ihr Slack-Konto verbunden ist, oder sonst an der E-Mail-Adresse, die Slack für sie hat. Niemand außerhalb des Projekts wird alarmiert.
+- **Alles andere öffnet ein Formular.** Ohne Erwähnung mit @, ohne Nachricht, mit einer Benutzergruppe oder `@here` oder mit einer Person, die OneUptime nicht erkennt, öffnet sich das Formular **Page someone** mit dem, was Sie geschrieben haben, und nennt, wen es nicht auswählen konnte. Wählen Sie Personen, ein Team, einen Bereitschaftsplan, der alarmiert, wer darin gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie, die über ihre Eskalationsregeln alarmiert, und senden Sie es ab. Ein Name, den Sie zuerst schreiben, wie in `/oneuptime page Primary The disk is full`, wählt den Bereitschaftsplan, das Team oder die Richtlinie mit diesem Namen.
+- **Wo es erscheint.** Der Kanal zeigt die Alarmierung als eine Nachricht, die aktuell gehalten wird: wer alarmiert wurde und wie, und wer bestätigt hat. Wo OneUptime nicht posten kann, etwa in einem privaten Kanal, in den es nicht eingeladen wurde, nennt eine Nachricht, die nur Sie sehen, wer alarmiert wurde, mit einem Link zur Warnung.
+- **Wer alarmieren darf.** Alle, die sowohl eine Bereitschaftsrichtlinie ausführen als auch eine Warnung erstellen dürfen: **Project Owner**, **Project Admin** und **Project Member**, oder **On-Call Member** zusammen mit **Alert Member** (**Create On-Call Duty Policy Execution Log** und **Create Alert** in einer benutzerdefinierten Rolle). Personen, ein Team oder einen Bereitschaftsplan direkt zu alarmieren, ohne Bereitschaftsrichtlinie dahinter, braucht zusätzlich Zugriff auf alle Bereitschaftsrichtlinien des Projekts. Alle anderen erfahren das dort, wo sie den Befehl ausgeführt haben, und niemand wird alarmiert.
 
 ## Aus Slack auf Vorfälle, Warnungen und Ereignisse reagieren
 

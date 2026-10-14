@@ -90,6 +90,20 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
           icon: IconProp.ArrowUpDown,
         },
         {
+          /*
+           * What the devices reported - links, tunnels, failovers,
+           * restarts - read out of their syslog and traps. Beside Traffic:
+           * the two things devices send a probe.
+           */
+          link: {
+            title: "Events",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_EVENTS] as Route,
+            ),
+          },
+          icon: IconProp.Activity,
+        },
+        {
           link: {
             title: "Discovery",
             to: RouteUtil.populateRouteParams(

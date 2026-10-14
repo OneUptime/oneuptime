@@ -1,56 +1,113 @@
-# Telegram-integrasjon
+# Telegram
 
-Send hendelsesoppdateringer til en [Telegram](https://telegram.org)-chat eller -gruppe. OneUptime har en innebygd **Telegram**-arbeidsflytkomponent, så oppsettet er raskt.
+Send en melding til en [Telegram](https://telegram.org)-chat, -gruppe eller -kanal når et varsel utløses eller en hendelse åpnes. OneUptimes arbeidsflyttrinn **Send Message to Telegram** sender den som en bot du selv oppretter, og en ferdig mal bygger arbeidsflyten for varsler. Denne integrasjonen er **utgående**: boten sender meldinger og leser ikke det som blir sagt i chatten.
 
-Denne integrasjonen er **utgående**: OneUptime sender meldinger gjennom en Telegram-bot.
+:::cards
+- [Slik fungerer det](#slik-fungerer-det): Hva arbeidsflyten gjør når et varsel utløses.
+- [Oppsett](#sett-opp-integrasjonen): En bot, chatten dens og så arbeidsflyten: fra malen eller fra bunnen.
+- [Tips](#tips): Ren tekst, lange meldinger og hendelser.
+- [Feilsøking](#feilsøking): Hva feilene fra Telegram betyr, og hva du bør endre.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  Telegram component  ──►  message in your chat
+## Slik fungerer det
+
+```mermaid title="Fra varsel til Telegram-melding"
+flowchart TB
+    fired["Varsel utløst"] --> trigger["On Create Alert"]
+    trigger --> step["Send Message<br/>to Telegram"]
+    step -->|"Success"| chat["Melding i<br/>chatten din"]
+    step -->|"Error"| log["Log: hvorfor den<br/>ikke ble levert"]
 ```
 
-## Steg 1 — Opprett en bot og hent tokenet
+Trinnet sender **Message Text** til chatten som boten din via Telegrams Bot API. Det tar utgangen **Success** når Telegram tar imot meldingen, og utgangen **Error**, med Telegrams begrunnelse, når Telegram avviser den. Malen kobler et trinn **Log** til **Error**, slik at en kjøring som ikke kunne sende, sier hvorfor.
 
-1. I Telegram, send melding til [@BotFather](https://t.me/BotFather) og send `/newbot`.
-2. Følg instruksjonene. BotFather gir deg et **bot-token** som `123456789:AA...`.
+## Før du begynner
 
-## Steg 2 — Finn chat-ID-en din
+- En Telegram-konto, for å opprette boten og legge den til i chatten.
+- I OneUptime retten til å opprette arbeidsflyter og variabler. På OneUptime Cloud krever arbeidsflyter planen **Growth** eller høyere.
 
-1. Legg til boten i gruppen (eller start en direkte chat med den) og send den en melding.
-2. Åpne `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates` i en nettleser.
-3. Finn `"chat":{"id":...}` i svaret — det nummeret er din **chat-ID** (gruppe-ID-er er negative).
+## Sett opp integrasjonen
 
-## Steg 3 — Lagre hemmelighetene
+:::steps
+### Opprett en bot
 
-1. I OneUptime, gå til **Arbeidsflyter → Globale variabler → Opprett**.
-2. Opprett `TELEGRAM_BOT_TOKEN` (hemmelig) og `TELEGRAM_CHAT_ID`.
+Send `/newbot` til [@BotFather](https://t.me/BotFather) i Telegram, og svar på spørsmålene. Den gir deg tokenet til boten, for eksempel `123456789:ABCdefGhIJKlmnoPQRstuVWxyz`. Alle som har tokenet, kan sende meldinger som boten din, så ta like godt vare på det som på et passord.
 
-## Steg 4 — Bygg arbeidsflyten
+### Finn ID-en til chatten
 
-1. Åpne **Arbeidsflyter → Opprett arbeidsflyt**, gi den navnet `Incidents → Telegram`, og åpne **Bygger**.
-2. Legg til en **Hendelse**-trigger satt til **On Create**. Gi den nytt navn `Incident`.
-3. Legg til en **Telegram**-komponent koblet til triggeren:
-   - **Bot token**: `{{variable.TELEGRAM_BOT_TOKEN}}`
-   - **Chat ID**: `{{variable.TELEGRAM_CHAT_ID}}`
-   - **Melding**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
-4. **Lagre**, aktiver, og opprett en testhendelse. Meldingen ankommer i chatten din.
+1. Legg boten til i gruppen, eller gjør den til administrator for kanalen. For å skrive til en person starter vedkommende først en chat med boten.
+2. Send en melding i gruppen som nevner boten, for eksempel `/start@your_bot`, slik at boten ser den.
+3. Åpne `https://api.telegram.org/bot<token>/getUpdates` i en nettleser, med tokenet til boten i stedet for `<token>`.
+4. Finn `"chat":{"id":` i svaret. Tallet etter er ID-en til chatten. ID-en til en gruppe starter med `-`, og ID-en til en stor gruppe med `-100`.
 
-## Alternativ: API-komponenten
+En offentlig kanal kan angis med sitt `@username` i stedet for en ID.
 
-En **API**-blokk fungerer også:
+### Bygg arbeidsflyten
 
-- **Method**: `POST`
-- **URL**: `https://api.telegram.org/bot{{variable.TELEGRAM_BOT_TOKEN}}/sendMessage`
-- **Headers**: `Content-Type: application/json`
-- **Body**: `{ "chat_id": "{{variable.TELEGRAM_CHAT_ID}}", "text": "New incident: {{Incident.title}}" }`
+Start fra malen, som bygger hele arbeidsflyten for varsler, eller fra bunnen.
+
+:::tabs
+@tab Fra malen
+1. Åpne **Arbeidsflyter**, og klikk på **Opprett arbeidsflyt**.
+2. Skriv `Telegram` i **Søk i maler…**, klikk på **Tell Telegram when an alert fires**, og klikk deretter på **Bruk denne malen**.
+3. Behold navnet **Notify Telegram on new alert**, eller endre det, og klikk på **Neste**.
+4. Lim inn tokenet i **Telegram Bot Token** og ID-en i **Telegram Chat ID**, og klikk på **Opprett arbeidsflyt**.
+
+Arbeidsflyten åpnes i **Bygger** med tre trinn: **On Create Alert**; **Send Message to Telegram**, som sender nummeret, tittelen, alvorlighetsgraden og tilstanden til varselet; og et trinn **Log** på utgangen **Error**. Tokenet lagres som arbeidsflytens hemmelige variabel `telegramBotToken`, og ID-en som `telegramChatId`.
+@tab Fra bunnen
+1. Lagre tokenet som en hemmelig global variabel: gå til **Arbeidsflyter → Globale variabler**, klikk på **Opprett Workflow Variabel**, gi den navnet `TELEGRAM_BOT_TOKEN`, og klikk på **Neste**. Lim inn tokenet i **Innhold**, slå på **Hemmelighet**, og klikk på **Opprett Workflow Variabel**.
+2. Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt**, velg **Start fra bunnen**, gi arbeidsflyten et navn, og klikk på **Opprett arbeidsflyt**.
+3. Klikk på **Choose what starts this workflow** i **Bygger**, og velg **On Create Alert** under **Popular**. Klikk på utløseren, og velg i **Fields to pass on** feltene meldingen din viser, for eksempel `title` og `alertNumberWithPrefix`.
+4. Klikk på **Legg til komponent**, søk etter `telegram`, og klikk på **Send Message to Telegram**. Koble utgangen **Success** fra utløseren til den.
+5. Klikk på det nye trinnet. Klikk på **{ }** i **Telegram Bot Token**, og velg `TELEGRAM_BOT_TOKEN` under **Global variables**. Skriv inn ID-en til chatten i **Chat ID**, skriv meldingen i **Message Text**, og sett inn feltene til varselet med **{ }**.
+:::
+
+En melding bygget fra bunnen leser feltene til varselet med referanser som disse:
+
+```text
+🚨 Alert {{local.components.alert-on-create-1.returnValues.model.alertNumberWithPrefix}} fired
+Title: {{local.components.alert-on-create-1.returnValues.model.title}}
+```
+
+### Slå den på og test den
+
+Slå på **Aktivert** øverst i **Bygger**. Fra nå av sendes hvert nye varsel til chatten.
+
+For å teste uten å utløse et varsel klikker du på **Kjør arbeidsflyt** og velger et varsel du allerede har, under **Varsel**: de nyeste er listet opp, og når du skriver inn nummeret eller en del av tittelen, finner du et annet. Klikk på **Kjør arbeidsflyten manuelt**, og bekreft med **Kjør**. Panelet **Arbeidsflytkjøring** følger kjøringen, og meldingen dukker opp i chatten. Tar trinnet **Error** i stedet, sier linjen fra trinnet **Log** hvorfor: se [Feilsøking](#feilsøking).
+:::
 
 ## Tips
 
-- Boten ser bare meldinger etter at den er lagt til i en gruppe og **personvernmodus** tillater det — hvis `getUpdates` er tomt, send boten en melding først, eller deaktiver personvernmodus via BotFather.
-- Bruk **Betingelser** for å filtrere etter alvorlighetsgrad før sending.
-- Legg til `"parse_mode": "Markdown"` i API-body-en (eller bruk komponentens formatering) for fet tekst og lenker.
+- **Ren tekst.** Trinnet sender teksten slik den er skrevet, uten Telegrams formatering, så `*` og `_` vises som de er.
+- **Følg med på grensen på 4 096 tegn.** Telegram tar imot meldinger på opptil 4 096 tegn. En lengre blir kuttet og slutter med "… (truncated — see OneUptime for the full text)" i stedet for å bli avvist.
+- **Hendelser også.** Bygg den samme arbeidsflyten på **On Create Incident**, eller på **On Update Incident** for tilstandsendringer. For å sende bare noen varsler setter du en blokk **If / Else** foran trinnet.
+- **Formen på tokenet kontrolleres.** Et token som ikke har formen `123456789:ABCdef…`, stopper kjøringen før noe sendes, og tokenet skrives aldri til loggen.
 
-## Hvor du leser videre
+## Feilsøking
 
-- [Oversikt over integrasjoner](/docs/integrations/index) — det utgående mønsteret.
-- [Discord](/docs/integrations/discord) — det samme for Discord.
-- [Komponenter → Telegram](/docs/workflows/components#telegram) — komponentreferansen.
+Når trinnet tar **Error**, sier kjøringen hvorfor: malens trinn **Log** skriver `❌ Telegram could not deliver the alert notification:`, Telegrams begrunnelse og en påminnelse om at boten må være i chatten.
+
+:::details Telegram svarer "Bad Request: chat not found"
+**Chat ID** er feil, eller boten kan ikke se chatten: legg boten til i gruppen, gjør den til administrator for kanalen, eller be personen om å starte en chat med boten. ID-en til en gruppe starter med `-`.
+:::
+
+:::details Telegram svarer "Forbidden: bot was blocked by the user" eller "bot is not a member"
+Personen har blokkert boten, eller boten er fjernet fra gruppen eller kanalen. Legg den til igjen, eller send til en annen chat.
+:::
+
+:::details Telegram svarer "Unauthorized"
+Telegram godtok ikke tokenet: det er tilbakekalt hos @BotFather, eller kopiert feil. Kopier det gjeldende tokenet til boten fra @BotFather, og erstatt verdien til variabelen.
+:::
+
+:::details Telegram svarer "Too Many Requests: retry after"
+Telegram begrenser hvor raskt én bot sender, særlig til en gruppe. En byge av varsler kan treffe grensen: send færre meldinger, for eksempel bare for noen alvorlighetsgrader.
+:::
+
+## Neste trinn
+
+:::cards
+- [Arbeidsflyt-komponenter](/docs/workflows/components#telegram): Hver innstilling i trinnet, og hva utgangene betyr.
+- [Discord](/docs/integrations/discord): Den samme ideen, i en Discord-kanal.
+- [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs): Les hva hver kjøring av arbeidsflyten gjorde.
+- [Oversikt over integrasjoner](/docs/integrations/index): Det utgående mønsteret og de andre verktøyene du kan koble til.
+:::

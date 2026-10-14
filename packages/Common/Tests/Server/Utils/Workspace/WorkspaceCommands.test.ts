@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import WorkspaceCommands, {
   WORKSPACE_COMMANDS,
   WorkspaceCommandDefinition,
@@ -44,6 +45,12 @@ describe("WorkspaceCommands.parse: each command", () => {
     ],
     ["maintenance", WorkspaceCommandName.Maintenance, ""],
     ["oncall", WorkspaceCommandName.OnCall, ""],
+    [
+      "page @nawaz The checkout API is down",
+      WorkspaceCommandName.Page,
+      "@nawaz The checkout API is down",
+    ],
+    ["page", WorkspaceCommandName.Page, ""],
     [
       "ask which monitors are down?",
       WorkspaceCommandName.Ask,
@@ -93,12 +100,56 @@ describe("WorkspaceCommands.parse: each command", () => {
     }
   });
 
-  test("the commands are incident, maintenance, oncall, ask and help, in that order", () => {
+  test("the commands are incident, maintenance, oncall, page, ask and help, in that order", () => {
     expect(
       WORKSPACE_COMMANDS.map((definition: WorkspaceCommandDefinition) => {
         return definition.name;
       }),
-    ).toEqual(["incident", "maintenance", "oncall", "ask", "help"]);
+    ).toEqual(["incident", "maintenance", "oncall", "page", "ask", "help"]);
+  });
+
+  /*
+   * Like incident and maintenance, page takes what follows it: a question
+   * that only starts with the word ("page views this week?") opens the page
+   * form, which pages nobody until it is submitted. `ask` asks it.
+   */
+  test("page keeps everything after it, as typed; ask asks a question that starts with the word", () => {
+    expect(parse("Page: @nawaz, @simon - db down")).toEqual({
+      command: WorkspaceCommandName.Page,
+      text: "@nawaz, @simon - db down",
+    });
+    expect(parse("page views this week?")).toEqual({
+      command: WorkspaceCommandName.Page,
+      text: "views this week?",
+    });
+    expect(parse("ask page views this week?")).toEqual({
+      command: WorkspaceCommandName.Ask,
+      text: "page views this week?",
+    });
+  });
+
+  test("page is never read as a misspelling: it is too short to tell from the words a question starts with", () => {
+    for (const word of ["pages", "paged", "pace", "sage", "pgae"]) {
+      expect(parse(`${word} the database`).misspelt).toBeUndefined();
+      expect(parse(`${word} the database`).command).toBeNull();
+    }
+  });
+});
+
+describe("WorkspaceCommands.getArgumentHint", () => {
+  test("what may follow each command, as the help and the Slack app's usage hint write it", () => {
+    expect(
+      WORKSPACE_COMMANDS.map((definition: WorkspaceCommandDefinition) => {
+        return [definition.name, WorkspaceCommands.getArgumentHint(definition)];
+      }),
+    ).toEqual([
+      ["incident", "[title]"],
+      ["maintenance", "[title]"],
+      ["oncall", ""],
+      ["page", "[who] [message]"],
+      ["ask", "[question]"],
+      ["help", ""],
+    ]);
   });
 });
 
@@ -179,6 +230,168 @@ describe("WorkspaceCommands.parse: letter case, spaces and punctuation", () => {
     },
   );
 
+  test.each([
+    ["help?!", WorkspaceCommandName.Help, ""],
+    ["help...", WorkspaceCommandName.Help, ""],
+    ["HELP!!!", WorkspaceCommandName.Help, ""],
+    ["oncall.,:!?", WorkspaceCommandName.OnCall, ""],
+    ["on-call...", WorkspaceCommandName.OnCall, ""],
+    ["on call?!", WorkspaceCommandName.OnCall, ""],
+    [
+      "incident:: Checkout is down",
+      WorkspaceCommandName.Incident,
+      "Checkout is down",
+    ],
+    [
+      "create incident!!! Disk full",
+      WorkspaceCommandName.Incident,
+      "Disk full",
+    ],
+    [
+      "maintenance,,, Database upgrade",
+      WorkspaceCommandName.Maintenance,
+      "Database upgrade",
+    ],
+    [
+      "ask: which monitors are down?",
+      WorkspaceCommandName.Ask,
+      "which monitors are down?",
+    ],
+  ])(
+    "%j: every mark after a command is dropped, however many",
+    (text: string, command: WorkspaceCommandName, rest: string) => {
+      expect(parse(text)).toEqual({ command: command, text: rest });
+    },
+  );
+
+  test.each([":", ",", ".", "!", "?"])(
+    "%j is punctuation a command may be typed with",
+    (mark: string) => {
+      expect(parse(`help${mark}`)).toEqual({
+        command: WorkspaceCommandName.Help,
+        text: "",
+      });
+      expect(parse(`incident${mark} Checkout is down`)).toEqual({
+        command: WorkspaceCommandName.Incident,
+        text: "Checkout is down",
+      });
+    },
+  );
+
+  test.each([";", "-", "…", ")", '"', "'", "/", "*", "~"])(
+    "%j is not: a command typed with it is a question",
+    (mark: string) => {
+      expect(parse(`help${mark}`)).toEqual({
+        command: null,
+        text: `help${mark}`,
+      });
+    },
+  );
+
+  test.each([
+    // The marks are before the word, or inside it.
+    "?help",
+    "!incident Checkout is down",
+    "he!p",
+    "help?me",
+    "help?!x",
+    "on.call",
+    // The mark is after a first word of two, not after the command.
+    "create: incident Disk full",
+    "on, call",
+  ])(
+    "%j: only marks at the very end of a command are dropped",
+    (text: string) => {
+      expect(parse(text).command).toBeNull();
+      expect(parse(text).text).toBe(text);
+    },
+  );
+
+  test.each(["??", "?!", "...", "!!!", ":", ",.!?:"])(
+    "%j - marks alone - is a question, and never a command misspelt",
+    (text: string) => {
+      expect(parse(text)).toEqual({ command: null, text: text });
+    },
+  );
+
+  /*
+   * Every word of up to five characters that can be made of a letter and
+   * the five marks, after a command: 9,330 of them. It is the command when
+   * all of them are marks, and never otherwise.
+   */
+  test("a command followed by any characters is that command only when every one of them is a mark", () => {
+    const alphabet: Array<string> = ["x", ":", ",", ".", "!", "?"];
+    const wrong: Array<string> = [];
+    let endings: Array<string> = [""];
+    let checked: number = 0;
+
+    for (let length: number = 1; length <= 5; length++) {
+      endings = endings.flatMap((ending: string): Array<string> => {
+        return alphabet.map((character: string): string => {
+          return ending + character;
+        });
+      });
+
+      for (const ending of endings) {
+        const isMarksOnly: boolean = !ending.includes("x");
+        checked++;
+
+        for (const [command, name] of [
+          ["help", WorkspaceCommandName.Help],
+          ["on call", WorkspaceCommandName.OnCall],
+        ] as Array<[string, WorkspaceCommandName]>) {
+          const input: WorkspaceCommandInput = parse(`${command}${ending}`);
+
+          if (input.command !== (isMarksOnly ? name : null)) {
+            wrong.push(`${command}${ending}`);
+          }
+        }
+
+        // A command that takes a title keeps the title as typed.
+        const withTitle: WorkspaceCommandInput = parse(
+          `incident${ending} Disk full${ending}`,
+        );
+
+        if (
+          isMarksOnly &&
+          (withTitle.command !== WorkspaceCommandName.Incident ||
+            withTitle.text !== `Disk full${ending}`)
+        ) {
+          wrong.push(`incident${ending} Disk full${ending}`);
+        }
+
+        if (!isMarksOnly && withTitle.command !== null) {
+          wrong.push(`incident${ending} Disk full${ending}`);
+        }
+      }
+    }
+
+    expect(checked).toBe(9330);
+    expect(wrong).toEqual([]);
+  });
+
+  test("a single ? is the help", () => {
+    expect(parse("?")).toEqual({
+      command: WorkspaceCommandName.Help,
+      text: "",
+    });
+    expect(parse(" ? ")).toEqual({
+      command: WorkspaceCommandName.Help,
+      text: "",
+    });
+  });
+
+  test("the marks after a command are dropped; those of what follows it are kept", () => {
+    expect(parse("incident: Checkout is down!!!")).toEqual({
+      command: WorkspaceCommandName.Incident,
+      text: "Checkout is down!!!",
+    });
+    expect(parse("ask, is checkout down?!")).toEqual({
+      command: WorkspaceCommandName.Ask,
+      text: "is checkout down?!",
+    });
+  });
+
   test.each(["", "   ", "\n\t ", null, undefined])(
     "%j - nothing at all - asks for the commands",
     (text: string | null | undefined) => {
@@ -205,6 +418,270 @@ describe("WorkspaceCommands.parse: letter case, spaces and punctuation", () => {
       text: "incident Checkout is down",
     });
   });
+});
+
+/*
+ * A chat sends whatever a person typed, and a "word" is as long as they made
+ * it: Slack sends up to 40,000 characters. The marks after a command were
+ * read with a pattern for "punctuation up to the end", which was tried from
+ * every mark of a run that is not at the end ("!!!!x!") - in time that grows
+ * with the square of the word, and once for each command's name. One
+ * 40,000-character word took 2 seconds a name. These read ten times that.
+ */
+describe("WorkspaceCommands.parse: text as long as a chat sends, and longer", () => {
+  const LONG: number = 400000;
+  const LIMIT_MS: number = 2000;
+
+  function timed(text: string): { input: WorkspaceCommandInput; ms: number } {
+    const startedAt: number = performance.now();
+    const input: WorkspaceCommandInput = parse(text);
+
+    return { input: input, ms: performance.now() - startedAt };
+  }
+
+  test.each([":", ",", ".", "!", "?"])(
+    "a word of %j, with one letter before the last, is read in time that grows with its length",
+    (mark: string) => {
+      const word: string = `${mark.repeat(LONG)}x${mark}`;
+      const { input, ms } = timed(word);
+
+      expect(input).toEqual({ command: null, text: word });
+      expect(ms).toBeLessThan(LIMIT_MS);
+    },
+  );
+
+  test("a word of every mark in turn, with one letter before the last", () => {
+    const word: string = `${":,.!?".repeat(LONG / 5)}x?`;
+    const { input, ms } = timed(word);
+
+    expect(input).toEqual({ command: null, text: word });
+    expect(ms).toBeLessThan(LIMIT_MS);
+  });
+
+  test.each([
+    ["help", WorkspaceCommandName.Help],
+    ["oncall", WorkspaceCommandName.OnCall],
+    ["on-call", WorkspaceCommandName.OnCall],
+    ["on call", WorkspaceCommandName.OnCall],
+    ["?", WorkspaceCommandName.Help],
+  ])(
+    "%j with that many marks after it is still the command",
+    (command: string, name: WorkspaceCommandName) => {
+      // "?" followed by marks is marks alone: a question (see above).
+      const text: string = `${command}${"!".repeat(LONG)}`;
+      const { input, ms } = timed(text);
+
+      expect(input).toEqual(
+        command === "?"
+          ? { command: null, text: text }
+          : { command: name, text: "" },
+      );
+      expect(ms).toBeLessThan(LIMIT_MS);
+    },
+  );
+
+  test("a command with that many marks after it, then a title", () => {
+    const { input, ms } = timed(`incident${":".repeat(LONG)} Checkout is down`);
+
+    expect(input).toEqual({
+      command: WorkspaceCommandName.Incident,
+      text: "Checkout is down",
+    });
+    expect(ms).toBeLessThan(LIMIT_MS);
+  });
+
+  test("a command, then a run of marks that does not end the word: a question", () => {
+    const text: string = `help${"?".repeat(LONG)}x? me`;
+    const { input, ms } = timed(text);
+
+    expect(input).toEqual({ command: null, text: text });
+    expect(ms).toBeLessThan(LIMIT_MS);
+  });
+
+  test("a second word of marks, where a command of two words would end", () => {
+    const text: string = `create ${"!".repeat(LONG)}x! Disk full`;
+    const { input, ms } = timed(text);
+
+    expect(input).toEqual({ command: null, text: text });
+    expect(ms).toBeLessThan(LIMIT_MS);
+  });
+
+  test("a title of marks is kept as typed", () => {
+    const title: string = `${"!".repeat(LONG)}x!`;
+    const { input, ms } = timed(`incident ${title}`);
+
+    expect(input).toEqual({
+      command: WorkspaceCommandName.Incident,
+      text: title,
+    });
+    expect(ms).toBeLessThan(LIMIT_MS);
+  });
+
+  test.each([
+    ["letters", "a".repeat(LONG)],
+    ["a misspelt command run on", `incidnet${"a".repeat(LONG)}`],
+    ["a misspelt command, then marks", `incidnet${"!".repeat(LONG)}x!`],
+    ["a command run on", `incident${"s".repeat(LONG)}`],
+  ])(
+    "one long word of %s is a question, and no command misspelt",
+    (_name: string, word: string) => {
+      const { input, ms } = timed(word);
+
+      expect(input).toEqual({ command: null, text: word });
+      expect(input.misspelt).toBeUndefined();
+      expect(ms).toBeLessThan(LIMIT_MS);
+    },
+  );
+
+  test("a misspelt command with that many marks after it is still read as one", () => {
+    const text: string = `incidnet${"!".repeat(LONG)} Checkout is down`;
+    const { input, ms } = timed(text);
+
+    expect(input).toEqual({
+      command: null,
+      text: text,
+      misspelt: {
+        word: "incidnet",
+        command: WorkspaceCommandName.Incident,
+        text: "Checkout is down",
+      },
+    });
+    expect(ms).toBeLessThan(LIMIT_MS);
+  });
+
+  test.each([
+    ["short words", "a ".repeat(LONG / 2), null],
+    ["marks, each a word", "! ".repeat(LONG / 2), null],
+    [
+      "spaces, then a command",
+      `${" ".repeat(LONG)}help`,
+      WorkspaceCommandName.Help,
+    ],
+    [
+      "tabs and new lines between a command's two words",
+      `on${"\t\n".repeat(LONG / 2)}call`,
+      WorkspaceCommandName.OnCall,
+    ],
+    [
+      "spaces between a command and its title",
+      `incident${" ".repeat(LONG)}Checkout is down`,
+      WorkspaceCommandName.Incident,
+    ],
+  ])(
+    "that many characters of %s",
+    (_name: string, text: string, command: WorkspaceCommandName | null) => {
+      const { input, ms } = timed(text);
+
+      expect(ms).toBeLessThan(LIMIT_MS);
+
+      if (command === null) {
+        // A question, as typed.
+        expect(input).toEqual({ command: null, text: text.trim() });
+        return;
+      }
+
+      expect(input).toEqual({
+        command: command,
+        text:
+          command === WorkspaceCommandName.Incident ? "Checkout is down" : "",
+      });
+    },
+  );
+
+  test("a long title is put on one line in time that grows with its length", () => {
+    const startedAt: number = performance.now();
+    const title: string = WorkspaceCommands.toTitle(
+      `Checkout${" \t\n".repeat(LONG / 3)}is down`,
+    );
+
+    expect(title).toBe("Checkout is down");
+    expect(performance.now() - startedAt).toBeLessThan(LIMIT_MS);
+  });
+
+  test("words far apart in length are never compared letter by letter", () => {
+    const distance: SpyInstance<typeof WorkspaceCommands.getEditDistance> =
+      jest.spyOn(WorkspaceCommands, "getEditDistance");
+
+    parse("a".repeat(LONG));
+    parse(`incidnet${"a".repeat(LONG)}`);
+
+    expect(distance).not.toHaveBeenCalled();
+
+    /*
+     * A word is compared with the commands at most two letters longer or
+     * shorter (incident, maintenance) or one (oncall), and with no other.
+     */
+    const compared: (word: string) => Array<string> = (
+      word: string,
+    ): Array<string> => {
+      distance.mockClear();
+      parse(word);
+
+      return distance.mock.calls.map((call: [string, string]) => {
+        return call[1];
+      });
+    };
+
+    // 5 letters: three short of "incident", one short of "oncall".
+    expect(compared("check")).toEqual(["oncall"]);
+    // 6: two short of "incident", as long as "oncall".
+    expect(compared("status")).toEqual(["incident", "oncall"]);
+    // 7: one short of "incident", one over "oncall".
+    expect(compared("deploys")).toEqual(["incident", "oncall"]);
+    // 8: as long as "incident", two over "oncall", three short of "maintenance".
+    expect(compared("deployed")).toEqual(["incident"]);
+    // 9: one over "incident", two short of "maintenance".
+    expect(compared("deploying")).toEqual(["incident", "maintenance"]);
+    // 10: two over "incident".
+    expect(compared("deployment")).toEqual(["incident", "maintenance"]);
+    // 11: three over "incident", as long as "maintenance".
+    expect(compared("deployments")).toEqual(["maintenance"]);
+    // 13: two over "maintenance"; 14: three over.
+    expect(compared("deploymentsxy")).toEqual(["maintenance"]);
+    expect(compared("deploymentsxyz")).toEqual([]);
+    // Shorter than any misspelling is read from.
+    expect(compared("dep")).toEqual([]);
+  });
+});
+
+describe("WorkspaceCommands.parse: a command misspelt, by how long the word is", () => {
+  test.each([
+    // Two letters short of "incident", and of "maintenance".
+    ["incide Checkout", "incide", WorkspaceCommandName.Incident, "Checkout"],
+    [
+      "maintenan Database",
+      "maintenan",
+      WorkspaceCommandName.Maintenance,
+      "Database",
+    ],
+    // Two letters over.
+    ["incidentxy", "incidentxy", WorkspaceCommandName.Incident, ""],
+    ["maintenancexy", "maintenancexy", WorkspaceCommandName.Maintenance, ""],
+    // One letter short of "oncall", and one over.
+    ["oncal", "oncal", WorkspaceCommandName.OnCall, ""],
+    ["oncalll", "oncalll", WorkspaceCommandName.OnCall, ""],
+  ])(
+    "%j is as far in length as a misspelling goes",
+    (
+      text: string,
+      word: string,
+      command: WorkspaceCommandName,
+      rest: string,
+    ) => {
+      expect(parse(text)).toEqual({
+        command: null,
+        text: text,
+        misspelt: { word: word, command: command, text: rest },
+      });
+    },
+  );
+
+  test.each(["incid", "incidentxyz", "maintena", "maintenancexyz", "oncalllx"])(
+    "%j is further in length than a misspelling goes: a question",
+    (text: string) => {
+      expect(parse(text)).toEqual({ command: null, text: text });
+    },
+  );
 });
 
 describe("WorkspaceCommands.parse: questions for OneUptime AI", () => {
@@ -367,6 +844,7 @@ const SLACK_HELP_LINES: Array<string> = [
   "- `/oneuptime incident [title]`: declare an incident",
   "- `/oneuptime maintenance [title]`: schedule maintenance",
   "- `/oneuptime oncall`: see who is on call right now",
+  "- `/oneuptime page [who] [message]`: page a person, a team or whoever is on call",
   "- `/oneuptime ask [question]`: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
   "- `/oneuptime help`: list every command",
   "",
@@ -378,6 +856,7 @@ const TEAMS_HELP_LINES: Array<string> = [
   "- **incident [title]**: declare an incident",
   "- **maintenance [title]**: schedule maintenance",
   "- **oncall**: see who is on call right now",
+  "- **page [who] [message]**: page a person, a team or whoever is on call",
   "- **ask [question]**: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
   "- **help**: list every command",
   "",
@@ -397,6 +876,7 @@ describe("WorkspaceCommands.getSummary", () => {
       ["incident", "declare an incident"],
       ["maintenance", "schedule maintenance"],
       ["oncall", "see who is on call right now"],
+      ["page", "page a person, a team or whoever is on call"],
       [
         "ask",
         "ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
@@ -424,7 +904,7 @@ describe("WorkspaceCommands.getHelpAnswer", () => {
 
     expect(answer).toEqual({
       markdown: SLACK_HELP_LINES.join("\n"),
-      text: "Here's what /oneuptime can do: incident, maintenance, oncall, ask, help",
+      text: "Here's what /oneuptime can do: incident, maintenance, oncall, page, ask, help",
     });
   });
 
@@ -447,7 +927,7 @@ describe("WorkspaceCommands.getHelpAnswer", () => {
       SLACK_HELP_LINES.join("\n").split("/oneuptime").join("/irm"),
     );
     expect(answer.text).toBe(
-      "Here's what /irm can do: incident, maintenance, oncall, ask, help",
+      "Here's what /irm can do: incident, maintenance, oncall, page, ask, help",
     );
   });
 
@@ -458,7 +938,7 @@ describe("WorkspaceCommands.getHelpAnswer", () => {
 
     expect(answer).toEqual({
       markdown: TEAMS_HELP_LINES.join("\n"),
-      text: "Here's what I can do: incident, maintenance, oncall, ask, help",
+      text: "Here's what I can do: incident, maintenance, oncall, page, ask, help",
     });
     // A card shows no code: nothing is written as code in Teams.
     expect(answer.markdown).not.toContain("`");
@@ -477,10 +957,10 @@ describe("WorkspaceCommands.getHelpAnswer", () => {
 
     const lines: Array<string> = answer.markdown.split("\n");
 
-    expect(lines[5]).toBe(
+    expect(lines[6]).toBe(
       "- **show active incidents**, **show active alerts**: list what is open right now",
     );
-    expect(lines[6]).toBe("- **help**: list every command");
+    expect(lines[7]).toBe("- **help**: list every command");
   });
 
   test("Microsoft Teams: the bot is @mentioned by the name Teams shows for it, whatever the product is called", () => {
@@ -569,14 +1049,14 @@ describe("WorkspaceCommands.getCommandListLines: the help's list, alone", () => 
       return line.toString();
     });
 
-    expect(lines).toEqual(TEAMS_HELP_LINES.slice(1, 6));
+    expect(lines).toEqual(TEAMS_HELP_LINES.slice(1, 7));
     expect(
       WorkspaceCommands.getCommandListLines({
         workspaceType: WorkspaceType.Slack,
       }).map((line: { toString: () => string }): string => {
         return line.toString();
       }),
-    ).toEqual(SLACK_HELP_LINES.slice(1, 6));
+    ).toEqual(SLACK_HELP_LINES.slice(1, 7));
   });
 });
 

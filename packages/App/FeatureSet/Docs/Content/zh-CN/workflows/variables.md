@@ -210,7 +210,7 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 - 标头和正文字段（在字符串值内）。
 - **If / Else** 块的两侧。
 
-在 JSON 输入框中——记录组件上的 **Data (JSON Object)**、**Query** 和 **Select Fields**，API 块的 **Request Body**，**Run Custom JavaScript** 上的 **Arguments**——引用会按它所在的位置被填入：
+在 JSON 输入框中——记录组件上的 **Data (JSON Object)** 和 **Query**，API 块的 **Request Body**，**Run Custom JavaScript** 上的 **Arguments**——引用会按它所在的位置被填入：
 
 - **在引号内，它是文本。** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` 会把值放进字符串里。值中的引号、反斜杠和换行会被转义，所以 JSON 仍然有效，值仍是一个字符串。
 - **单独出现时，它就是值本身。** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` 会插入整个对象，列表仍是列表，数字仍是数字。本身就是 JSON 的文本——`5`、`true`，或者块以 JSON 文本返回的对象——会作为那个值插入。其他任何文本都作为字符串插入。
@@ -238,7 +238,7 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 一个 Webhook 带着类似 `{ "service": "checkout", "status": "failed" }` 的正文到达。要把它变成一个 OneUptime 事件：
 
 1. 一个 ID 为 `ci-webhook` 的 **Webhook** 触发器。
-2. 一个 **If / Else** 块：**Value to check** 是 Webhook 的 Request Body 中的 `status` 字段（`{{local.components.ci-webhook.returnValues.request-body.status}}`），**Comparison** 是 **is equal to**，**Compare with** 是 `failed`。
+2. 一个 **If / Else** 块：**要检查的值** 是 Webhook 的 Request Body 中的 `status` 字段（`{{local.components.ci-webhook.returnValues.request-body.status}}`），**比较** 是 **等于**，**比较对象** 是 `failed`。
 3. 从 **Yes** 分支接一个 **Create One Incident** 块，其中：
    - 标题：`CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 描述：`See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`

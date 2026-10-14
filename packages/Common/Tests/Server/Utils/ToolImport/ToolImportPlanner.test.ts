@@ -3,9 +3,11 @@ import {
   buildToolImportPlan,
   normalizeImportName,
   ToolImportAccess,
+  ToolImportPreviousRecord,
   ToolImportProjectState,
 } from "../../../../Server/Utils/ToolImport/ToolImportPlanner";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { TOOL_IMPORT_MAX_ITEMS_PER_KIND } from "../../../../Types/ToolImport/ToolImportLimits";
 import {
   makeToolImportNote,
@@ -557,6 +559,65 @@ describe("ToolImportPlanner: on-call schedules", () => {
       }),
     );
 
+    expect(item(result, "OnCallSchedule:s")).toMatchObject({
+      action: ToolImportAction.AlreadyImported,
+      existingRecordId: "schedule-1",
+      additionalRecordIds: ["schedule-2"],
+    });
+  });
+
+  test("what the first of many imports brought over is already imported, its records the oldest of more than one read's worth", () => {
+    // The first import's records, then more than LIMIT_MAX of later ones'.
+    const later: Array<ToolImportPreviousRecord> = Array.from(
+      { length: LIMIT_MAX + 1 },
+      (_value: unknown, index: number): ToolImportPreviousRecord => {
+        return {
+          kind: ToolImportResourceKind.StatusPageSubscriber,
+          sourceId: `subscriber-${index}`,
+          recordId: `subscriber-record-${index}`,
+          isComplete: true,
+          stillExists: true,
+        };
+      },
+    );
+
+    const result: ToolImportPlan = plan(
+      {
+        teams: [team("platform", "Platform", [])],
+        schedules: [schedule("s", "Primary", [rotation("r", ["a"])])],
+      },
+      projectState({
+        previousRecords: [
+          {
+            kind: ToolImportResourceKind.Team,
+            sourceId: "platform",
+            recordId: "team-platform",
+            isComplete: true,
+            stillExists: true,
+          },
+          {
+            kind: ToolImportResourceKind.OnCallSchedule,
+            sourceId: "s",
+            recordId: "schedule-1",
+            isComplete: true,
+            stillExists: true,
+          },
+          {
+            kind: ToolImportResourceKind.OnCallSchedule,
+            sourceId: "s#2",
+            recordId: "schedule-2",
+            isComplete: true,
+            stillExists: true,
+          },
+          ...later,
+        ],
+      }),
+    );
+
+    expect(item(result, "Team:platform")).toMatchObject({
+      action: ToolImportAction.AlreadyImported,
+      existingRecordId: "team-platform",
+    });
     expect(item(result, "OnCallSchedule:s")).toMatchObject({
       action: ToolImportAction.AlreadyImported,
       existingRecordId: "schedule-1",

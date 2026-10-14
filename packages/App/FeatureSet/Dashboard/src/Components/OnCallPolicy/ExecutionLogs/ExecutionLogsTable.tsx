@@ -1,9 +1,12 @@
+import AppLink from "../../../Components/AppLink/AppLink";
 import IncidentView from "../../../Components/Incident/Incident";
 import UserElement from "../../../Components/User/User";
 import OnCallPolicyView from "../OnCallPolicy";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import { isOnCallDirectPage } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -11,6 +14,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import DirectPageLabel from "Common/UI/Components/OnCallDirectPage/DirectPageLabel";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -30,6 +34,52 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+
+/*
+ * The two columns that hold what people wrote wrap their text: "Policy
+ * Name" - a policy's name or, for a direct page, the workflow that started
+ * it - and "Triggered By", the title of the incident, alert or episode. A
+ * table cell stays on one line unless its column says otherwise, so one long
+ * name or title took the row's width for itself, and when the run was
+ * triggered and how it stands began past the card's right edge.
+ *
+ * Each has a cap, so it wraps before it crowds the columns after it.
+ */
+export const ON_CALL_LOGS_NAME_COLUMN_MAX_WIDTH_CLASS_NAME: string = "max-w-xs";
+export const ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MAX_WIDTH_CLASS_NAME: string =
+  "max-w-sm";
+
+/*
+ * And "Triggered By" has a floor. Beside the side menu on a laptop the
+ * table is short of room, and a column that may wrap is then given the
+ * least it can take: without a floor that is its longest word, and a title
+ * folded to a word or two a line.
+ */
+export const ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MIN_WIDTH_CLASS_NAME: string =
+  "min-w-[12rem]";
+
+/*
+ * What a run that paged nobody says on hover. A policy went through its
+ * escalation rules; a direct page has none, and names what it found empty.
+ */
+export const POLICY_PAGED_NOBODY_TOOLTIP: string = translationKey(
+  "This execution ran to completion without notifying anyone. Usually every escalation rule targeted an on-call schedule that had nobody on call.",
+);
+export const DIRECT_PAGE_PAGED_NOBODY_TOOLTIP: string = translationKey(
+  "This page reached nobody. Usually the on-call schedule had nobody on call, the team had no members, or the people it named were away.",
+);
+
+/*
+ * What the empty list says. One policy's own logs are about that policy;
+ * the project's, an incident's and an alert's list direct pages too, which
+ * no policy ran.
+ */
+export const POLICY_HAS_NOT_RUN_MESSAGE: string = translationKey(
+  "This policy has not executed so far.",
+);
+export const NOBODY_PAGED_YET_MESSAGE: string = translationKey(
+  "Nobody has been paged so far.",
+);
 
 export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -85,6 +135,9 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         },
         title: "Policy Name",
         type: FieldType.Element,
+        // A long name wraps inside the column rather than widening the table.
+        wrapContent: true,
+        wrapMaxWidthClassName: ON_CALL_LOGS_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
         getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
           if (item["onCallDutyPolicy"]) {
             return (
@@ -93,6 +146,50 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
               />
             );
           }
+
+          /*
+           * People paged with no on-call policy behind the page - a
+           * workflow's Page step. The row says so, and what started it,
+           * where another row names its policy.
+           */
+          if (isOnCallDirectPage(item)) {
+            const workflowId: ObjectID | undefined = item.triggeredByWorkflowId;
+
+            return (
+              <DirectPageLabel
+                workflowName={item.triggeredByWorkflowName}
+                /*
+                 * The workflow's name opens the workflow, as a policy's name
+                 * opens the policy: it is where to change who is paged.
+                 */
+                renderWorkflowName={
+                  workflowId
+                    ? (workflowName: string): ReactElement => {
+                        return (
+                          <AppLink
+                            className="hover:underline"
+                            to={RouteUtil.populateRouteParams(
+                              RouteMap[PageMap.WORKFLOW_BUILDER] as Route,
+                              {
+                                modelId: new ObjectID(workflowId.toString()),
+                              },
+                            )}
+                          >
+                            <span>{workflowName}</span>
+                          </AppLink>
+                        );
+                      }
+                    : undefined
+                }
+                startedBy={
+                  item.triggeredByUser ? (
+                    <UserElement user={item.triggeredByUser} />
+                  ) : undefined
+                }
+              />
+            );
+          }
+
           return <p>{translator.translateText("No on-call policy.")}</p>;
         },
       },
@@ -152,6 +249,11 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
       },
       title: "Triggered By",
       type: FieldType.Element,
+      // A long title wraps inside the column, which keeps a readable width.
+      wrapContent: true,
+      wrapMaxWidthClassName:
+        ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MAX_WIDTH_CLASS_NAME,
+      contentClassName: ON_CALL_LOGS_TRIGGERED_BY_COLUMN_MIN_WIDTH_CLASS_NAME,
       getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
         if (item.triggeredByIncident) {
           return (
@@ -229,7 +331,11 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             <Pill
               color={Yellow}
               text={OnCallDutyPolicyStatus.CompletedWithNoNotifications}
-              tooltip="This execution ran to completion without notifying anyone. Usually every escalation rule targeted an on-call schedule that had nobody on call."
+              tooltip={
+                isOnCallDirectPage(item)
+                  ? DIRECT_PAGE_PAGED_NOBODY_TOOLTIP
+                  : POLICY_PAGED_NOBODY_TOOLTIP
+              }
             />
           );
         } else if (item["status"] === OnCallDutyPolicyStatus.Started) {
@@ -281,11 +387,19 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: "On-Call Policy Logs",
           description:
-            "Each time an on-call policy ran: what triggered it and who acknowledged it. Open one to see every notification it sent and whether it was delivered.",
+            "Each time an on-call policy ran or people were paged directly: what triggered it and who acknowledged it. Open one to see every notification it sent and whether it was delivered.",
         }}
         selectMoreFields={{
           statusMessage: true,
+          // Read with every row: a row with none is a direct page.
           onCallDutyPolicyId: true,
+          // What started a direct page: a workflow, or a person.
+          triggeredByWorkflowId: true,
+          triggeredByWorkflowName: true,
+          triggeredByUser: {
+            name: true,
+            email: true,
+          },
           triggeredByAlert: {
             title: true,
           },
@@ -296,7 +410,11 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             title: true,
           },
         }}
-        noItemsMessage={"This policy has not executed so far."}
+        noItemsMessage={
+          props.onCallDutyPolicyId
+            ? POLICY_HAS_NOT_RUN_MESSAGE
+            : NOBODY_PAGED_YET_MESSAGE
+        }
         onViewPage={async (item: OnCallDutyPolicyExecutionLog) => {
           return RouteUtil.populateRouteParams(
             RouteMap[PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE]!,

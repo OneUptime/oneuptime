@@ -1,52 +1,104 @@
-# Integração com o Discord
+# Discord
 
-Poste atualizações de incidentes em um canal do [Discord](https://discord.com). O OneUptime tem um componente de workflow **Discord** integrado, por isso esta é uma das integrações mais rápidas de configurar.
+Publique uma mensagem em um canal do [Discord](https://discord.com) quando um incidente é aberto, para que quem acompanha esse canal saiba na hora. A etapa de workflow **Send Message to Discord** do OneUptime publica pelo webhook do canal, e um modelo pronto monta o workflow inteiro para você. Esta integração é de **saída**: o OneUptime publica no canal e não lê o que é dito nele.
 
-Esta integração é de **saída**: o OneUptime posta em um canal do Discord por meio de uma URL de webhook de entrada.
+:::cards
+- [Como funciona](#como-funciona): O que o workflow faz quando um incidente é aberto.
+- [Configuração](#configurar-a-integração): Um webhook no Discord e depois o workflow: pelo modelo ou do zero.
+- [Dicas](#dicas): Formatação, mensagens longas e mais eventos.
+- [Solução de problemas](#solução-de-problemas): O que os erros da etapa significam e o que mudar.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  Discord component  ──►  message in your channel
+## Como funciona
+
+```mermaid title="De um incidente a uma mensagem do Discord"
+flowchart TB
+    declared["Incidente declarado"] --> trigger["On Create Incident"]
+    trigger --> step["Send Message<br/>to Discord"]
+    step -->|"Success"| channel["Mensagem no<br/>seu canal"]
+    step -->|"Error"| log["Log: por que não<br/>foi entregue"]
 ```
 
-## Passo 1 — Crie um webhook no Discord
+A etapa publica o **Message Text** no webhook do canal. Ela segue pela saída **Success** quando o Discord aceita a mensagem, e pela saída **Error**, com o motivo do Discord, quando o Discord a recusa. O modelo conecta uma etapa **Log** a **Error**, para que uma execução que não conseguiu publicar diga por quê.
 
-1. No Discord, abra as configurações do canal desejado em **Edit Channel → Integrations → Webhooks**.
-2. Clique em **New Webhook**, dê um nome (ex.: `OneUptime`), escolha o canal e **copie a Webhook URL**.
+## Antes de começar
 
-## Passo 2 — Armazene a URL do webhook (opcional, mas recomendado)
+- No Discord, a permissão **Manage Webhooks** no canal.
+- No OneUptime, o direito de criar workflows e variáveis. No OneUptime Cloud, os workflows precisam do plano **Growth** ou superior.
 
-1. No OneUptime, vá em **Fluxos de trabalho → Variáveis globais → Criar**.
-2. Nomeie como `DISCORD_WEBHOOK_URL`, cole a URL e ative **Is Secret**.
+## Configurar a integração
 
-Manter em uma variável permite reutilizá-la em workflows e rotacioná-la em um único lugar.
+:::steps
+### Criar um webhook no Discord
 
-## Passo 3 — Construa o workflow
+1. No Discord, abra as configurações do canal com **Edit Channel**, depois **Integrations → Webhooks**, e selecione **New Webhook**.
+2. Dê um nome a ele, por exemplo `OneUptime`, e verifique se ele publica no canal certo.
+3. Selecione **Copy Webhook URL**.
 
-1. Abra **Fluxos de trabalho → Criar fluxo de trabalho**, nomeie-o `Incidents → Discord` e abra o **Construtor**.
-2. Adicione um gatilho **Incidente** definido como **On Create**. Renomeie-o para `Incident`.
-3. Adicione um componente **Discord** conectado ao gatilho:
-   - **URL do webhook**: `{{variable.DISCORD_WEBHOOK_URL}}` (ou cole diretamente).
-   - **Mensagem**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
-4. **Salvar**, ative e crie um incidente de teste. A mensagem aparece no seu canal.
+Quem tiver a URL pode publicar no canal, então guarde-a com o mesmo cuidado que uma senha.
 
-## Alternativa: o componente API
+### Criar o workflow
 
-Se preferir não usar o componente dedicado, um bloco **API** faz a mesma coisa:
+Comece pelo modelo, que monta o workflow inteiro para você, ou do zero.
 
-- **Method**: `POST`
-- **URL**: `{{variable.DISCORD_WEBHOOK_URL}}`
-- **Headers**: `Content-Type: application/json`
-- **Body**: `{ "content": "New incident: {{Incident.title}}" }`
+:::tabs
+@tab Pelo modelo
+1. Abra **Fluxos de trabalho** e clique em **Criar fluxo de trabalho**.
+2. Digite `Discord` em **Pesquisar modelos…**, clique em **Tell Discord when an incident opens** e depois em **Usar este modelo**.
+3. Mantenha o nome **Notify Discord on new incident** ou mude-o, e clique em **Próximo**.
+4. Cole a URL em **Discord Webhook URL** e clique em **Criar fluxo de trabalho**.
 
-Isso é útil se você quiser os [embeds](https://discord.com/developers/docs/resources/webhook#execute-webhook) mais ricos do Discord — adicione um array `embeds` ao corpo.
+O workflow abre no **Construtor** com três etapas: **On Create Incident**; **Send Message to Discord**, que publica o número, o título, a gravidade e o estado do incidente; e uma etapa **Log** na saída **Error** dela. A URL é salva como a variável secreta `discordWebhookUrl` do workflow.
+@tab Do zero
+1. Salve a URL como uma variável global secreta: vá em **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Fluxo de trabalho Variável**, dê o nome `DISCORD_WEBHOOK_URL` e clique em **Próximo**. Cole a URL em **Conteúdo**, ative **Segredo** e clique em **Criar: Fluxo de trabalho Variável**.
+2. Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
+3. No **Construtor**, clique em **Choose what starts this workflow** e escolha **On Create Incident** em **Popular**. Clique no gatilho e, em **Fields to pass on**, escolha os campos que a sua mensagem mostra, por exemplo `title` e `incidentNumberWithPrefix`.
+4. Clique em **Adicionar componente**, pesquise `discord` e clique em **Send Message to Discord**. Conecte a saída **Success** do gatilho a ela.
+5. Clique na nova etapa. Em **Discord Incoming Webhook URL**, clique em **{ }** e escolha `DISCORD_WEBHOOK_URL` em **Global variables**. Em **Message Text**, escreva a mensagem e insira os campos do incidente com **{ }**.
+:::
+
+Uma mensagem feita do zero lê os campos do incidente com referências como estas:
+
+```text
+🚨 **Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} declared**
+**Title:** {{local.components.incident-on-create-1.returnValues.model.title}}
+```
+
+### Ativar e testar
+
+Ative o interruptor **Habilitado** no topo do **Construtor**. A partir daí, cada novo incidente é publicado no canal.
+
+Para testar sem abrir um incidente, clique em **Executar fluxo de trabalho** e escolha um incidente que você já tem em **Incidente**: os mais recentes são listados, e digitar o número dele ou parte do título encontra outro. Clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O painel **Execução do Fluxo de Trabalho** acompanha a execução, e a mensagem aparece no canal. Se a etapa seguir por **Error**, a linha da etapa **Log** diz por quê: veja [Solução de problemas](#solução-de-problemas).
+:::
 
 ## Dicas
 
-- Use **Condições** para postar apenas para certas severidades — ramifique em `{{Incident.incidentSeverity.name}}` antes do bloco Discord.
-- Adicione mais workflows em **Incidente → On Update** para postar confirmações e resoluções no mesmo canal.
+- **Formatar com o Markdown do Discord.** O texto é enviado como foi digitado, então o Markdown do Discord funciona nele: asteriscos em volta de uma palavra a deixam em negrito, e uma URL aparece como link.
+- **Respeitar o limite de 2.000 caracteres.** O Discord aceita mensagens de até 2.000 caracteres. Uma mais longa é cortada, e termina com "… (truncated — see OneUptime for the full text)", em vez de ser recusada.
+- **Publicar mais do que novos incidentes.** Monte outro workflow sobre **On Update Incident** para mudanças de estado, ou sobre **On Create Alert** para alertas, com a mesma etapa. Para publicar só alguns incidentes, coloque um bloco **If / Else** antes da etapa.
+- **Só os endereços do Discord.** A etapa publica em uma URL `https` em `discord.com` ou `discordapp.com`, e não segue redirecionamentos, então uma URL que aponta para qualquer outro lugar interrompe a execução.
 
-## O que ler em seguida
+## Solução de problemas
 
-- [Visão geral das integrações](/docs/integrations/index) — o padrão de saída.
-- [Telegram](/docs/integrations/telegram) — a mesma ideia para o Telegram.
-- [Componentes → Discord](/docs/workflows/components#discord) — a referência do componente.
+Quando a etapa segue por **Error**, a execução diz por quê: a etapa **Log** do modelo escreve `❌ Discord could not deliver the incident notification:` e o motivo do Discord.
+
+:::details O Discord responde "Unknown Webhook" ou "Invalid Webhook Token"
+O webhook foi excluído, ou a URL foi copiada errada. Crie um novo webhook e substitua a URL: no workflow do modelo, a variável `discordWebhookUrl`; em um workflow seu, o conteúdo de `DISCORD_WEBHOOK_URL`.
+:::
+
+:::details O Discord responde "You are being rate limited"
+O Discord limita com que frequência um webhook pode publicar. Uma rajada de incidentes pode atingir esse limite: publique menos mensagens, por exemplo só para algumas gravidades.
+:::
+
+:::details A execução para com "Discord Webhook URL must be an https URL on discord.com or discordapp.com"
+**Discord Incoming Webhook URL** contém algo diferente de um webhook do Discord, ou a variável que ele lê está vazia. Cole de novo a URL de **Copy Webhook URL**.
+:::
+
+## Próximos passos
+
+:::cards
+- [Componentes de workflow](/docs/workflows/components#discord): Cada configuração da etapa e o que as saídas dela significam.
+- [Telegram](/docs/integrations/telegram): A mesma ideia, em um chat do Telegram.
+- [Execuções de workflow](/docs/workflows/runs-and-logs): Leia o que cada execução do workflow fez.
+- [Visão geral das integrações](/docs/integrations/index): O padrão de saída e as outras ferramentas que você pode conectar.
+:::

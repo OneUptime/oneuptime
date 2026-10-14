@@ -516,7 +516,7 @@ describe("help: one card that mentions whoever asked, with the words Slack's /on
       );
       // What a notification of it says.
       expect(delivery.posts[0]!.activity["summary"]).toBe(
-        "Here's what I can do: incident, maintenance, oncall, ask, help",
+        "Here's what I can do: incident, maintenance, oncall, page, ask, help",
       );
     },
   );
@@ -529,6 +529,7 @@ describe("help: one card that mentions whoever asked, with the words Slack's /on
       "- **incident [title]**: declare an incident",
       "- **maintenance [title]**: schedule maintenance",
       "- **oncall**: see who is on call right now",
+      "- **page [who] [message]**: page a person, a team or whoever is on call",
       "- **ask [question]**: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
       "- **show active incidents**, **show active alerts**: list what is open right now",
       "- **show scheduled maintenance**, **show ongoing maintenance**: list upcoming and ongoing maintenance",

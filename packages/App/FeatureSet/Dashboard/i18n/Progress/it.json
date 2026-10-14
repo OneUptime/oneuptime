@@ -1,27 +1,35 @@
 {
   "baseline": {
-    "keys": 28197,
-    "untranslated": 16965
+    "keys": 28484,
+    "untranslated": 16947
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "App",
     "Budget",
+    "Client",
     "Embedding",
+    "Failover",
+    "Gateway",
+    "Hardware",
     "In Huntress",
     "Offline",
     "Pattern {{number}}: {{problem}}",
+    "Peer",
     "Provider",
+    "Record",
     "Report",
     "Runbook: {{name}}",
     "Runner",
     "Standard",
     "Stratum",
     "Team",
+    "Tunnel",
     "VMware vCenter",
     "cluster",
     "host",
     "kubectl set image deployment/web * -n web",
+    "syslog",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB"

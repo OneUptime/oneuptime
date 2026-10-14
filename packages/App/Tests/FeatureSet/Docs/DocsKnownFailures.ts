@@ -101,46 +101,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "cli/output-formats": {
     codeLanguage: EN,
   },
-  "integrations/aws-security-hub": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/crowdstrike-falcon": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/elastic-security": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/google-secops": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "integrations/index": {
-    pageLinks: EVERY_TRANSLATION,
-  },
-  "integrations/jira": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "integrations/microsoft-defender-xdr": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/microsoft-dynamics-365": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "integrations/microsoft-sentinel": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/okta": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/prometheus-alertmanager": {
-    codeLanguage: EN,
-  },
-  "integrations/splunk": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/zabbix": {
-    pageLinks: EVERY_TRANSLATION,
-  },
   "mobile-desktop-apps/faq-troubleshooting": {
     noRelativeLinks: EVERY_LANGUAGE,
   },

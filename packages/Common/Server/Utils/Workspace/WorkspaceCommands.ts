@@ -18,6 +18,8 @@ import { WorkspaceAnswer } from "./WorkspaceActionAnswers";
  *   /oneuptime incident [title]       declare an incident
  *   /oneuptime maintenance [title]    schedule a maintenance event
  *   /oneuptime oncall                 who is on call right now
+ *   /oneuptime page [who] [message]   page a person, a team or whoever is
+ *                                     on call (WorkspacePageText)
  *   /oneuptime ask [question]         ask OneUptime AI
  *   /oneuptime help                   every command, with examples
  *
@@ -44,6 +46,7 @@ export enum WorkspaceCommandName {
   Incident = "incident",
   Maintenance = "maintenance",
   OnCall = "oncall",
+  Page = "page",
   Ask = "ask",
   Help = "help",
 }
@@ -55,6 +58,11 @@ export interface WorkspaceCommandDefinition {
    * "[title]". Empty for a command that takes nothing after it.
    */
   argument: string;
+  /*
+   * What may follow that, as the help names it: page's "message", written
+   * "[who] [message]" (getArgumentHint).
+   */
+  moreArguments?: ReadonlyArray<string> | undefined;
   // Other ways to type it, in lower case: "create incident".
   aliases: ReadonlyArray<string>;
   /*
@@ -86,6 +94,18 @@ export const WORKSPACE_COMMANDS: ReadonlyArray<WorkspaceCommandDefinition> = [
     name: WorkspaceCommandName.OnCall,
     argument: "",
     aliases: ["on-call", "on call"],
+    example: "",
+  },
+  /*
+   * Who to page - people by @mention, or a team, an on-call schedule or an
+   * on-call policy picked in the form it opens - then what to tell them
+   * (WorkspacePageText).
+   */
+  {
+    name: WorkspaceCommandName.Page,
+    argument: "who",
+    moreArguments: ["message"],
+    aliases: [],
     example: "",
   },
   {
@@ -147,7 +167,7 @@ interface TypedWord {
 const WORD: RegExp = /\S+/g;
 
 // Punctuation a command may be typed with: "help?", "incident:".
-const TRAILING_PUNCTUATION: RegExp = /[:,.!?]+$/;
+const TRAILING_PUNCTUATION: string = ":,.!?";
 
 // A word with an apostrophe is a word of a sentence, never a misspelling.
 const APOSTROPHE: RegExp = /['\u2019]/;
@@ -207,6 +227,8 @@ export default class WorkspaceCommands {
         return "schedule maintenance";
       case WorkspaceCommandName.OnCall:
         return "see who is on call right now";
+      case WorkspaceCommandName.Page:
+        return "page a person, a team or whoever is on call";
       case WorkspaceCommandName.Ask:
         return `ask ${ProductBrandingText.getProductName()} AI about your logs, traces, metrics, incidents and monitors`;
       case WorkspaceCommandName.Help:
@@ -268,6 +290,25 @@ export default class WorkspaceCommands {
     }
 
     return { command: null, text: text };
+  }
+
+  /*
+   * What may follow a command, as the help, the Slack app's usage hint and
+   * the docs write it: "[title]", "[who] [message]" - or "" for a command
+   * that takes nothing after it.
+   */
+  public static getArgumentHint(
+    definition: WorkspaceCommandDefinition,
+  ): string {
+    if (!definition.argument) {
+      return "";
+    }
+
+    return [definition.argument, ...(definition.moreArguments || [])]
+      .map((argument: string): string => {
+        return `[${argument}]`;
+      })
+      .join(" ");
   }
 
   // A title as a form takes it: on one line, each run of space one space.
@@ -490,7 +531,7 @@ export default class WorkspaceCommands {
       ? WorkspaceCommands.withArgument(
           data.workspaceType,
           usage,
-          data.definition.argument,
+          data.definition,
         )
       : WorkspaceCommands.typed(data.workspaceType, usage);
 
@@ -547,11 +588,24 @@ export default class WorkspaceCommands {
   private static withArgument(
     workspaceType: WorkspaceType,
     usage: string,
-    argument: string,
+    definition: WorkspaceCommandDefinition,
   ): MarkdownText {
-    return workspaceType === WorkspaceType.Slack
-      ? FeedMarkdown.code(`${usage} [${argument}]`)
-      : mdText`**${usage} [${argument}]**`;
+    if (workspaceType === WorkspaceType.Slack) {
+      return FeedMarkdown.code(
+        `${usage} ${WorkspaceCommands.getArgumentHint(definition)}`,
+      );
+    }
+
+    const hint: MarkdownText = FeedMarkdown.join(
+      [definition.argument, ...(definition.moreArguments || [])].map(
+        (argument: string): MarkdownText => {
+          return mdText`[${argument}]`;
+        },
+      ),
+      " ",
+    );
+
+    return mdText`**${usage} ${hint}**`;
   }
 
   /*
@@ -577,7 +631,10 @@ export default class WorkspaceCommands {
 
       if (
         typed !== expected &&
-        !(isLast && typed.replace(TRAILING_PUNCTUATION, "") === expected)
+        !(
+          isLast &&
+          WorkspaceCommands.withoutTrailingPunctuation(typed) === expected
+        )
       ) {
         return null;
       }
@@ -597,7 +654,9 @@ export default class WorkspaceCommands {
       return undefined;
     }
 
-    const word: string = first.word.replace(TRAILING_PUNCTUATION, "");
+    const word: string = WorkspaceCommands.withoutTrailingPunctuation(
+      first.word,
+    );
     const lower: string = word.toLowerCase();
 
     if (lower.length < MISSPELLING_MIN_LENGTH) {
@@ -607,6 +666,11 @@ export default class WorkspaceCommands {
     for (const limit of MISSPELLING_LIMITS) {
       // "incidents" is a word of a question, not "incident" misspelt.
       if (lower === limit.command || lower === `${limit.command}s`) {
+        continue;
+      }
+
+      // Words this far apart in length are further apart than the limit.
+      if (Math.abs(lower.length - limit.command.length) > limit.maxDistance) {
         continue;
       }
 
@@ -623,6 +687,23 @@ export default class WorkspaceCommands {
     }
 
     return undefined;
+  }
+
+  /*
+   * A word without the punctuation typed after it: "help?" is "help". Read
+   * from the word's end, a character at a time. A pattern for "punctuation
+   * up to the end" was tried from every character of a run that is not at
+   * the end ("!!!!x!"), in time that grows with the square of the word, and
+   * a word is as long as a person makes it.
+   */
+  private static withoutTrailingPunctuation(word: string): string {
+    let end: number = word.length;
+
+    while (end > 0 && TRAILING_PUNCTUATION.includes(word[end - 1]!)) {
+      end--;
+    }
+
+    return word.substring(0, end);
   }
 
   /*

@@ -926,6 +926,89 @@ describe("a picked template's details", () => {
     expect(
       within(details).queryByTestId("workflow-template-details-settings"),
     ).not.toBeInTheDocument();
+    expect(
+      within(details).queryByTestId("workflow-template-details-in-builder"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * A paging template asks the wizard for nothing, and still does nothing as
+   * it is created: who it pages is picked from the project's own people,
+   * teams, schedules and policies, in the Builder. "Nothing to fill in."
+   * beside it would tell somebody it was ready. It says what it needs and
+   * where that is picked instead.
+   */
+  test.each<[string, string]>([
+    [
+      "incident-critical-page-on-call",
+      "An on-call schedule to page. You pick it in the Builder.",
+    ],
+    [
+      "incident-severity-page",
+      "An on-call policy and a team to page. You pick them in the Builder.",
+    ],
+    ["webhook-page-users", "People to page. You pick them in the Builder."],
+  ])(
+    "the paging template %s says what it still needs and where that is picked, not that there is nothing to fill in",
+    (templateId: string, sentence: string) => {
+      renderPicker();
+      showView(WorkflowTemplateCategory.OnCall);
+
+      const details: HTMLElement = detailsOf(templateId);
+      const needs: HTMLElement = within(details).getByTestId(
+        "workflow-template-details-in-builder",
+      );
+
+      expect(needs.textContent).toBe(sentence);
+      expect(
+        within(details).queryByTestId("workflow-template-details-no-settings"),
+      ).not.toBeInTheDocument();
+      expect(details).not.toHaveTextContent("Nothing to fill in.");
+      // Under What you'll need, where a setting the wizard asks for is listed.
+      expect(needs.closest("dd")?.previousElementSibling).toHaveTextContent(
+        "What you'll need",
+      );
+    },
+  );
+
+  test("every template's details say one thing under What you'll need: its settings, what is picked in the Builder, or that there is nothing to fill in", () => {
+    renderPicker();
+    showView(WorkflowTemplateCollection.All);
+
+    let pickedInBuilder: number = 0;
+
+    for (const candidate of ALL_TEMPLATES) {
+      const details: HTMLElement = within(pick(candidate.id)).getByTestId(
+        "workflow-template-details",
+      );
+      const hasSettings: boolean = candidate.variables.length > 0;
+      const isSetUpInBuilder: boolean = Boolean(candidate.setUpInBuilder);
+
+      if (isSetUpInBuilder) {
+        pickedInBuilder++;
+      }
+
+      expect({
+        template: candidate.id,
+        settings: within(details).queryAllByTestId(
+          "workflow-template-details-settings",
+        ).length,
+        inBuilder: within(details).queryAllByTestId(
+          "workflow-template-details-in-builder",
+        ).length,
+        nothing: within(details).queryAllByTestId(
+          "workflow-template-details-no-settings",
+        ).length,
+      }).toEqual({
+        template: candidate.id,
+        settings: hasSettings ? 1 : 0,
+        inBuilder: isSetUpInBuilder ? 1 : 0,
+        nothing: !hasSettings && !isSetUpInBuilder ? 1 : 0,
+      });
+    }
+
+    // The three that page people.
+    expect(pickedInBuilder).toBe(3);
   });
 
   test("every template's details open, with its trigger and every setting it asks for", () => {

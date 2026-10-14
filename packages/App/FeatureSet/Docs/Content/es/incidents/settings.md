@@ -615,8 +615,8 @@ La misma generación te da disparadores para la propia configuración: **On Crea
 
 Algunos detalles que importan cuando los conectas:
 
-- **On Update X** admite un argumento opcional **Listen on** que acota el disparador a las actualizaciones que cambian campos concretos, sea cual sea su nuevo valor: un interruptor desactivado o un campo borrado también cuentan. Un campo guardado con el valor que ya tiene no es un cambio, así que un formulario de edición que lo devuelve en cada guardado no despierta el flujo de trabajo. Déjalo vacío para dispararlo con cualquier cambio. Si una actualización llega sin registro de qué campos cambiaron, el filtro se omite y el flujo de trabajo se ejecuta de todos modos.
-- **On Create X** y **On Update X** admiten ambos un argumento obligatorio **Select Fields**; **On Delete X** no admite argumentos.
+- **On Update X** admite un argumento opcional **Fields to watch** que acota el disparador a las actualizaciones que cambian campos concretos, sea cual sea su nuevo valor: un interruptor desactivado o un campo borrado también cuentan. Un campo guardado con el valor que ya tiene no es un cambio, así que un formulario de edición que lo devuelve en cada guardado no despierta el flujo de trabajo. Déjalo vacío para dispararlo con cualquier cambio. Si una actualización llega sin registro de qué campos cambiaron, el filtro se omite y el flujo de trabajo se ejecuta de todos modos.
+- **On Create X** y **On Update X** admiten ambos un argumento obligatorio **Fields to pass on**; **On Delete X** no admite argumentos.
 - Los tres exponen un único puerto de salida **Success**, y cada uno acepta un argumento de ID para que puedas ejecutar el flujo de trabajo a mano sobre un registro.
 - Los nombres vienen del nombre singular del modelo, no del nombre de su tabla; por eso ves **On Create Incident Team Owner** y **On Create Incident User Owner** en lugar de nombres con forma de tabla.
 - No hay disparadores para las definiciones de campos personalizados de incidente. Ese modelo es el único miembro de la familia de incidentes con los flujos de trabajo desactivados.

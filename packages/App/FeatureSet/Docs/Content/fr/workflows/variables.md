@@ -210,7 +210,7 @@ Presque tous les champs de texte acceptent des variables :
 - Les en-têtes et les champs du corps (à l'intérieur des valeurs de chaîne).
 - Les deux côtés d'un bloc **If / Else**.
 
-Dans les champs JSON — **Data (JSON Object)**, **Query** et **Select Fields** sur les composants d'enregistrement, le **Request Body** d'un bloc API, les **Arguments** de **Run Custom JavaScript** — une référence est remplie selon l'endroit où elle se trouve :
+Dans les champs JSON — **Data (JSON Object)** et **Query** sur les composants d'enregistrement, le **Request Body** d'un bloc API, les **Arguments** de **Run Custom JavaScript** — une référence est remplie selon l'endroit où elle se trouve :
 
 - **Entre guillemets, c'est du texte.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` place la valeur dans la chaîne. Les guillemets, les barres obliques inverses et les sauts de ligne de la valeur sont échappés : le JSON reste valide et la valeur reste une seule chaîne.
 - **Seule, c'est la valeur elle-même.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` insère l'objet entier, une liste reste une liste et un nombre reste un nombre. Un texte qui est lui-même du JSON — `5`, `true`, ou un objet qu'un bloc a renvoyé sous forme de texte JSON — est inséré comme cette valeur. Tout autre texte est inséré comme une chaîne.
@@ -238,7 +238,7 @@ Par exemple, ce **Message Text** liste chaque alerte envoyée par un webhook :
 Un webhook arrive avec un corps comme `{ "service": "checkout", "status": "failed" }`. Pour en faire un incident OneUptime :
 
 1. Un déclencheur **Webhook** avec l'ID `ci-webhook`.
-2. Un bloc **If / Else** : **Value to check** est le champ `status` du Request Body du webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison** est **is equal to**, et **Compare with** est `failed`.
+2. Un bloc **If / Else** : **Valeur à vérifier** est le champ `status` du Request Body du webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparaison** est **est égal à**, et **Comparer avec** est `failed`.
 3. Depuis la branche **Yes**, un bloc **Create One Incident** avec :
    - Titre : `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Description : `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`

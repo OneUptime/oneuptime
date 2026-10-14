@@ -28,7 +28,7 @@ flowchart TB
 OneUptime रिक्वेस्ट से मैसेज पढ़ते ही जवाब देता है, और कुछ पल बाद उन्हें पार्स करके सहेजता है। मैसेज का टेक्स्ट लॉग की बॉडी में रहता है; बाकी सब एट्रिब्यूट बन जाता है।
 
 > [!TIP]
-> जिन नेटवर्क डिवाइस को आप OneUptime प्रोब से मॉनिटर करते हैं, वे बिना रिले के UDP पर सीधे प्रोब को अपना syslog भेज सकते हैं — तब लॉग OneUptime में उसी डिवाइस पर दिखते हैं। देखें [नेटवर्क वेंडर गाइड (Sophos, Extreme, Cambium)](/docs/monitor/network-vendor-guides)।
+> नेटवर्क डिवाइस बिना रिले के UDP या TCP पर सीधे OneUptime प्रोब को अपना syslog भेज सकते हैं — तब OneUptime हर वेंडर के संदेशों को उसी डिवाइस पर इवेंट के रूप में पढ़ता है। देखें [नेटवर्क इवेंट](/docs/monitor/network-events)।
 
 ## शुरू करने से पहले
 
@@ -200,7 +200,7 @@ OneUptime हर लॉग एंट्री में अपने आप य�
 
 ये एट्रिब्यूट **उत्पाद → लॉग** एक्सप्लोरर में खोजे जा सकते हैं — जैसे `@syslog.severity.name:error` या `@syslog.hostname:web-01`। देखें [खोज सिंटैक्स](/docs/telemetry/search-syntax)।
 
-मैसेज खुद लॉग की बॉडी में रहता है। Sophos XGS और Fortinet FortiGate जैसे फ़ायरवॉल इसे `key=value` जोड़ों में लिखते हैं (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`); इन जोड़ों को भी एट्रिब्यूट में बदलने के लिए किसी [लॉग पाइपलाइन](/docs/telemetry/log-pipelines#keyvalue-parser) में **Key=Value Parser** प्रोसेसर जोड़ें।
+मैसेज खुद लॉग की बॉडी में रहता है। किसी नेटवर्क वेंडर के फ़ॉर्मेट वाला मैसेज आगे भी पढ़ा जाता है: Sophos या FortiGate फ़ायरवॉल के `key=value` जोड़े (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`) `sophos.*` और `fortigate.*` एट्रिब्यूट बन जाते हैं, और जो हुआ वह एक [नेटवर्क इवेंट](/docs/monitor/network-events) बन जाता है। किसी और `key=value` फ़ॉर्मेट के लिए, जोड़ों को एट्रिब्यूट में बदलने के लिए किसी [लॉग पाइपलाइन](/docs/telemetry/log-pipelines#keyvalue-parser) में **Key=Value Parser** प्रोसेसर जोड़ें।
 
 ### सीवियरिटी
 

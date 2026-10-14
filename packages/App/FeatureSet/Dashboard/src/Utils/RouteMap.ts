@@ -144,12 +144,14 @@ export const KubernetesRoutePath: Dictionary<string> = {
 export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_OVERVIEW]: `overview`,
   [PageMap.NETWORK_TRAFFIC]: `traffic`,
+  [PageMap.NETWORK_EVENTS]: `events`,
   [PageMap.NETWORK_DEVICE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: `${RouteParams.ModelID}/interfaces`,
   [PageMap.NETWORK_DEVICE_VIEW_TABLES]: `${RouteParams.ModelID}/tables`,
   [PageMap.NETWORK_DEVICE_VIEW_WIFI]: `${RouteParams.ModelID}/wifi`,
   [PageMap.NETWORK_DEVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.NETWORK_DEVICE_VIEW_TRAFFIC]: `${RouteParams.ModelID}/traffic`,
+  [PageMap.NETWORK_DEVICE_VIEW_EVENTS]: `${RouteParams.ModelID}/events`,
   [PageMap.NETWORK_DEVICE_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
   [PageMap.NETWORK_DEVICE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.NETWORK_DEVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
@@ -3197,6 +3199,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.NETWORK_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_EVENTS]
+    }`,
+  ),
+
   [PageMap.NETWORK_DEVICE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW]
@@ -3230,6 +3238,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_VIEW_TRAFFIC]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_TRAFFIC]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_EVENTS]
     }`,
   ),
 

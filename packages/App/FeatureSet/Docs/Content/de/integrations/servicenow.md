@@ -1,78 +1,164 @@
-# ServiceNow-Integration
+# ServiceNow
 
-Öffnen Sie automatisch einen [ServiceNow](https://www.servicenow.com)-Vorfall, sobald ein OneUptime-Vorfall erstellt wird – damit ITSM und Monitoring stets synchron bleiben.
+Legen Sie für jeden OneUptime-Vorfall einen [ServiceNow](https://www.servicenow.com)-Vorfall an und beheben Sie ihn, wenn der OneUptime-Vorfall behoben ist, damit Ihr Service Desk dem folgt, was Ihre Überwachung sieht. Zwei Workflows rufen die [Table API](https://developer.servicenow.com/dev.do#!/reference/api/latest/rest/c_TableAPI) von ServiceNow auf.
 
-Diese Integration ist **ausgehend**: OneUptime ruft die ServiceNow-[Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html) auf. Sie verwendet einen OneUptime-**[Workflow](/docs/workflows/index)** mit einem **Vorfall → On Create**-Auslöser und einer **API-Komponente**.
+:::cards
+- [Die Zugangsdaten speichern](#die-zugangsdaten-speichern): Halten Sie das ServiceNow-Passwort aus Ihren Workflows heraus.
+- [ServiceNow-Vorfälle anlegen](#für-jeden-vorfall-einen-servicenow-vorfall-anlegen): Ein Workflow, zwei Bausteine.
+- [Sie beheben](#den-servicenow-vorfall-beheben): Den Datensatz finden und dann schließen.
+- [Fehlerbehebung](#fehlerbehebung): Wenn ServiceNow eine Anfrage ablehnt.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /api/now/table/incident)  ──►  ServiceNow incident
+## So funktioniert es
+
+```mermaid title="Zwei Workflows, ein ServiceNow-Vorfall"
+flowchart TB
+    declared["Vorfall gemeldet"] --> create["Workflow 1:<br/>On Create Incident"]
+    create -->|"POST incident"| sn["ServiceNow-Vorfall"]
+    resolved["Vorfall behoben"] --> update["Workflow 2:<br/>On Update Incident"]
+    update --> find["Datensatz finden<br/>über correlation_id"]
+    find -->|"PATCH state 6"| sn
 ```
 
-## Voraussetzungen
+Der erste Workflow schreibt die ID des OneUptime-Vorfalls in die `correlation_id` des Datensatzes. Der zweite sucht den Datensatz darüber und behebt ihn dann.
 
-- Eine ServiceNow-Instanz (`https://your-instance.service-now.com`).
-- Ein ServiceNow-Benutzer mit den Rollen `rest_api_explorer` / `itil` (oder ausreichenden Rechten zum Erstellen von `incident`-Datensätzen). Basic-Auth mit den Zugangsdaten dieses Benutzers ist der einfachste Einstieg; für die Produktion wird OAuth empfohlen.
-- Ein OneUptime-Projekt, in dem Sie Workflows erstellen können.
+## Bevor Sie beginnen
 
-## Schritt 1 — Zugangsdaten als Geheimnis speichern
+- Eine ServiceNow-Instanz, etwa `https://your-instance.service-now.com`.
+- Ein ServiceNow-Benutzer für die Integration, der Datensätze in der Tabelle `incident` anlegen und ändern darf, meist mit der Rolle `itil`. Sein Name und Passwort signieren die Anfragen.
+- In OneUptime das Recht, Workflows und globale Variablen anzulegen. In OneUptime Cloud brauchen Workflows den Tarif **Growth** oder höher.
 
-Die Table API von ServiceNow akzeptiert **Basic-Auth**.
+## Die Zugangsdaten speichern
 
-1. Kodieren Sie `username:password` einmal mit Base64:
+Die Table API nimmt Basic-Auth an: Name und Passwort des Benutzers, gemeinsam kodiert.
+
+:::steps
+1. Kodieren Sie sie einmal, unter macOS oder Linux:
 
    ```bash
-   printf '%s' 'integration_user:password' | base64
+   printf '%s' 'integration.user:password' | base64 | tr -d '\n'
    ```
 
-2. Gehen Sie in OneUptime zu **Arbeitsabläufe → Globale Variablen → Erstellen**, benennen Sie die Variable `SERVICENOW_AUTH`, fügen Sie die Base64-Zeichenkette ein und aktivieren Sie **Is Secret**.
+   Verwenden Sie `printf`, nicht `echo`: `echo` hängt einen Zeilenumbruch an, der mitkodiert wird und die Zugangsdaten unbrauchbar macht.
 
-## Schritt 2 — Den Workflow erstellen
+2. Gehen Sie in OneUptime zu **Arbeitsabläufe → Globale Variablen** und klicken Sie auf **Arbeitsablaufvariable erstellen**. Nennen Sie sie `SERVICENOW_AUTH` und klicken Sie auf **Weiter**.
+3. Fügen Sie den kodierten Wert in **Inhalt** ein, schalten Sie **Geheimnis** ein und klicken Sie auf **Arbeitsablaufvariable erstellen**.
+:::
 
-1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**, benennen Sie ihn `Incidents → ServiceNow`, und öffnen Sie den **Editor**.
-2. Fügen Sie einen **Vorfall**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
-3. Fügen Sie einen **API**-Block verbunden mit dem Auslöser hinzu:
+## Für jeden Vorfall einen ServiceNow-Vorfall anlegen
 
-   - **Method**: `POST`
-   - **URL**: `https://your-instance.service-now.com/api/now/table/incident`
-   - **Headers**:
+:::steps
+### Den Workflow anlegen
 
-     ```text
-     Authorization: Basic {{variable.SERVICENOW_AUTH}}
-     Content-Type: application/json
-     Accept: application/json
-     ```
+Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen** und dann auf **Ohne Vorlage beginnen**. Nennen Sie ihn `Incidents to ServiceNow` und klicken Sie auf **Arbeitsablauf erstellen**.
 
-   - **Body**:
+### Den Trigger hinzufügen
 
-     ```json
-     {
-       "short_description": "OneUptime: {{Incident.title}}",
-       "description": "{{Incident.description}}",
-       "urgency": "1",
-       "impact": "1",
-       "correlation_id": "oneuptime-{{Incident._id}}"
-     }
-     ```
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Trigger und wählen Sie in **Fields to pass on** die Felder `title` und `description`.
 
-   `correlation_id` erhält einen Rückverweis auf den OneUptime-Vorfall – praktisch, wenn Sie später einen Auflöse-Schritt hinzufügen. ServiceNow `urgency`/`impact` verwenden `1` (hoch), `2` (mittel), `3` (niedrig).
+### Den Datensatz anlegen
 
-4. **Speichern**, aktivieren und einen Test-Vorfall erstellen. Eine `201 Created`-Antwort in den Workflow-Logs gibt die `sys_id` und `number` des neuen Datensatzes zurück (zum Beispiel `INC0012345`).
+Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Success** des Triggers damit. Setzen Sie seine **URL** auf `https://your-instance.service-now.com/api/now/table/incident`. Setzen Sie unter **Weitere Felder** seine **Request Headers** auf:
 
-## Schritt 3 — Bei OneUptime-Auflösung auflösen (optional)
+```json
+{
+  "Authorization": "Basic {{global.variables.SERVICENOW_AUTH}}",
+  "Accept": "application/json"
+}
+```
 
-1. Erstellen Sie einen **zweiten** Workflow mit einem **Vorfall → On Update**-Auslöser und einem **Bedingungen**-Block, der prüft, ob der Vorfall aufgelöst ist.
-2. Um den richtigen ServiceNow-Datensatz zu aktualisieren, benötigen Sie seine `sys_id`. Entweder speichern Sie diese am OneUptime-Vorfall in Schritt 2 (lesen Sie `{{CreateRecord.response-body.result.sys_id}}` und schreiben Sie sie mit **Update Incident** in ein Label), oder suchen Sie den Datensatz zuerst mit einem `GET` auf `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
-3. Fügen Sie einen **API**-Block hinzu: **Method** `PATCH`, **URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`, Body `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Aufgelöst im Standard-ITIL-Workflow).
+Und seinen **Request Body** auf:
+
+```json
+{
+  "short_description": "OneUptime: {{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "urgency": "1",
+  "impact": "1",
+  "correlation_id": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}"
+}
+```
+
+### Testen und dann einschalten
+
+Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API Post (JSON)** zeigt eine `201`-Antwort mit dem neuen Datensatz, seiner `sys_id` und seiner `number`, etwa `INC0012345`. Schalten Sie danach oben im **Editor** **Aktiviert** ein.
+:::
+
+`urgency` und `impact` nehmen `1` für hoch, `2` für mittel und `3` für niedrig, und ServiceNow errechnet aus beiden die Priorität. Jede andere Spalte der Tabelle `incident` kann unter ihrem Spaltennamen in den Body.
+
+## Den ServiceNow-Vorfall beheben
+
+Ein Workflow hat einen Trigger, das Beheben braucht also einen zweiten Workflow, der startet, wenn sich der Status eines Vorfalls ändert.
+
+:::steps
+### Den Trigger On Update Incident hinzufügen
+
+Legen Sie einen Workflow namens `Resolve ServiceNow incidents` an und wählen Sie **On Update Incident** als Trigger. Wählen Sie in **Fields to watch** das Feld `currentIncidentStateId`, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Fields to pass on** ab, ob der neue Status ein behobener ist:
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### Prüfen, ob der Vorfall behoben ist
+
+Fügen Sie nach dem Trigger einen **If / Else**-Baustein hinzu. Setzen Sie **Value to check** auf `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` und **Comparison** auf **is true**.
+
+### Den Datensatz finden
+
+Fügen Sie nach der Seite **Yes** einen **API Get (JSON)**-Baustein hinzu, mit denselben **Request Headers** und dieser **URL**:
+
+```text
+https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
+```
+
+### Den Datensatz beheben
+
+Fügen Sie nach dem Punkt **Success** des Suchbausteins einen **API Patch (JSON)**-Baustein hinzu, mit denselben **Request Headers** und dieser **URL**:
+
+```text
+https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
+```
+
+Setzen Sie seinen **Request Body** auf:
+
+```json
+{
+  "state": "6",
+  "close_code": "Solution provided",
+  "close_notes": "Resolved in OneUptime"
+}
+```
+
+### Ihn einschalten
+
+Schalten Sie **Aktiviert** ein und beheben Sie dann einen Testvorfall in OneUptime. Sein ServiceNow-Vorfall wechselt zu Resolved.
+:::
+
+`state` `6` ist Resolved in den Standard-Vorfallstatus von ServiceNow. `close_code` muss einer der Lösungscodes Ihrer Instanz sein. Viele Instanzen beheben einen Vorfall nicht ohne Lösungscode und Notizen, senden Sie also beides.
 
 ## Fehlerbehebung
 
-- **`401`** — kodieren Sie `username:password` erneut mit `printf` (nicht `echo`, das einen Zeilenumbruch hinzufügt) und aktualisieren Sie `SERVICENOW_AUTH`.
-- **`403`** — der Benutzer hat keine Rechte zum Schreiben der `incident`-Tabelle; fügen Sie die Rolle `itil` hinzu.
-- **`400`** — ein Feldname oder -wert ist für die Anpassungen Ihrer Instanz falsch. Prüfen Sie Feldnamen unter **System Definition → Tables → incident**.
-- **Die Instanz lehnt den Aufruf ab** — einige Instanzen schränken die Table API ein; bestätigen Sie, dass REST aktiviert ist und Ihre IP nicht durch eine ACL blockiert wird.
+:::details ServiceNow antwortet mit 401
+Die Zugangsdaten sind falsch. Kodieren Sie `username:password` erneut mit `printf`, nicht `echo`, und ersetzen Sie den Inhalt von `SERVICENOW_AUTH`.
+:::
 
-## Weiterführende Themen
+:::details ServiceNow antwortet mit 403
+Der Benutzer darf nicht in die Tabelle `incident` schreiben. Geben Sie ihm die Rolle `itil` oder eine Rolle mit denselben Rechten, und prüfen Sie, dass keine Zugriffsregel die Table API für ihn sperrt.
+:::
 
-- [Integrationen – Überblick](/docs/integrations/index) — Muster und der Authentifizierungs-Spickzettel.
-- [Jira](/docs/integrations/jira) — dasselbe ausgehende Muster für Jira.
-- [API-Komponente](/docs/workflows/components#api) — den Response-Body lesen.
+:::details ServiceNow antwortet mit 400, oder das Beheben ändert nichts
+Ein Spaltenname oder ein Wert passt nicht zu Ihrer Instanz: eine angepasste `state`-Liste oder ein `close_code`, den Ihre Instanz nicht hat. Vergleichen Sie mit der Tabelle `incident` unter **System Definition → Tables** in ServiceNow und mit dem Formular des Datensatzes.
+:::
+
+:::details Das Beheben antwortet mit 404
+Der Suchschritt hat keinen Datensatz gefunden, die URL hat den Verweis also so behalten, wie er geschrieben ist. Prüfen Sie, dass der erste Workflow `correlation_id` geschrieben hat und dass beide Workflows sie gleich bilden: `oneuptime-`, gefolgt von der `_id` des Vorfalls.
+:::
+
+## Nächste Schritte
+
+:::cards
+- [Jira](/docs/integrations/jira): Eine Zwei-Wege-Integration, mit fertigen Vorlagen abgeglichen.
+- [Workflow-Komponenten](/docs/workflows/components#api): Jede Einstellung der API-Bausteine.
+- [Workflow-Ausführungen](/docs/workflows/runs-and-logs): Lesen Sie, was jede Anfrage gesendet und zurückbekommen hat.
+- [Integrationsübersicht](/docs/integrations/index): Die Muster hinter jeder Integration.
+:::

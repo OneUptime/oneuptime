@@ -1182,3 +1182,107 @@ for (const billingEnabled of [true, false]) {
     },
   );
 }
+
+// ---------------------------------------------------------------------------
+// /files/: the old addresses of the compliance PDFs
+// ---------------------------------------------------------------------------
+
+/*
+ * `location /file`, the app's file API, is a prefix of /files/, so the
+ * compliance PDFs the marketing site once published (/files/soc-3.pdf and the
+ * rest) reached the app as /api/files/... and got a JSON 404, instead of
+ * reaching Home, which redirects them to its legal center. A `^~ /files/`
+ * location now proxies them like `location /`.
+ */
+const LEGACY_FILES_HEADER = "location ^~ /files/ {";
+
+test(
+  "the /files/ location survives rendering, pointed at Home and the app",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    for (const billingEnabled of ["true", "false"]) {
+      const rendered = render(
+        baseEnvironment({ BILLING_ENABLED: billingEnabled }),
+      );
+
+      assert.equal(
+        rendered.split(LEGACY_FILES_HEADER).length - 1,
+        1,
+        `${LEGACY_FILES_HEADER} must render exactly once`,
+      );
+
+      const start = rendered.indexOf(LEGACY_FILES_HEADER);
+      const block = rendered.slice(start, rendered.indexOf("\n    }", start));
+
+      for (const directive of [
+        "resolver 127.0.0.11 valid=30s;",
+        "set $backend_app http://app:3002;",
+        "set $backend_home http://home:1444;",
+        "if ($billing_enabled = true) {",
+        "proxy_pass $backend_home;",
+        "if ($billing_enabled != true) {",
+        "proxy_pass $backend_app;",
+        "proxy_http_version 1.1;",
+        "proxy_set_header Connection $connection_upgrade;",
+      ]) {
+        assert.ok(
+          block.includes(directive),
+          `the /files/ location lost "${directive}" in rendering`,
+        );
+      }
+
+      assert.ok(
+        !/\b(return|rewrite)\b/.test(block),
+        "the /files/ location must pass the address on as it came",
+      );
+    }
+  },
+);
+
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx sends the old /files/ addresses where it sends the marketing site (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 60000 },
+    async () => {
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        // Home is the marketing site when billing is on; otherwise the app is.
+        const marketingSite = billingEnabled ? "home" : "app";
+
+        for (const uri of [
+          "/files/soc-3.pdf",
+          "/files/pci.pdf",
+          "/files/iso-27001.pdf",
+          "/files/iso-27017.pdf",
+          "/files/iso-27018.pdf",
+          "/files/soc-3.pdf?utm_source=security-questionnaire",
+        ]) {
+          const response = await getThroughIngress(port, uri, "localhost");
+
+          assert.equal(response.status, 200, uri);
+          assert.equal(
+            response.answer?.upstream,
+            marketingSite,
+            `${uri} must reach ${marketingSite}: ${response.body}`,
+          );
+          assert.equal(response.answer.url, uri);
+        }
+
+        /*
+         * The app's file API still reaches the app, under /api, whatever
+         * billing says; so does /files with no trailing slash, which this
+         * change leaves where it was.
+         */
+        for (const [uri, upstreamUrl] of [
+          ["/file/image/6a7b", "/api/file/image/6a7b"],
+          ["/file/6a7b", "/api/file/6a7b"],
+          ["/files", "/api/files"],
+        ]) {
+          const response = await getThroughIngress(port, uri, "localhost");
+
+          assert.equal(response.answer?.upstream, "app", uri);
+          assert.equal(response.answer.url, upstreamUrl, uri);
+        }
+      });
+    },
+  );
+}

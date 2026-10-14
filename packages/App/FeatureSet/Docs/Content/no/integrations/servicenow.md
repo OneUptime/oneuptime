@@ -1,78 +1,164 @@
-# ServiceNow-integrasjon
+# ServiceNow
 
-Åpne en [ServiceNow](https://www.servicenow.com)-hendelse automatisk hver gang en OneUptime-hendelse opprettes — slik at ITSM og overvåking holder tritt.
+Opprett en hendelse i [ServiceNow](https://www.servicenow.com) for hver OneUptime-hendelse, og løs den når OneUptime-hendelsen er løst, slik at servicedesken din følger det overvåkingen din ser. To arbeidsflyter kaller ServiceNows [Table API](https://developer.servicenow.com/dev.do#!/reference/api/latest/rest/c_TableAPI).
 
-Denne integrasjonen er **utgående**: OneUptime kaller ServiceNows [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html). Den bruker en OneUptime **[Arbeidsflyt](/docs/workflows/index)** med en **Hendelse → On Create**-trigger og en **API-komponent**.
+:::cards
+- [Lagre påloggingsinformasjonen](#lagre-påloggingsinformasjonen): Hold ServiceNow-passordet utenfor arbeidsflytene dine.
+- [Opprett hendelser i ServiceNow](#opprett-en-hendelse-i-servicenow-for-hver-hendelse): Én arbeidsflyt, to blokker.
+- [Løs dem](#løs-hendelsen-i-servicenow): Finn posten, og lukk den deretter.
+- [Feilsøking](#feilsøking): Når ServiceNow avviser en forespørsel.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /api/now/table/incident)  ──►  ServiceNow incident
+## Slik fungerer det
+
+```mermaid title="To arbeidsflyter, én hendelse i ServiceNow"
+flowchart TB
+    declared["Hendelse erklært"] --> create["Arbeidsflyt 1:<br/>On Create Incident"]
+    create -->|"POST incident"| sn["Hendelse i ServiceNow"]
+    resolved["Hendelse løst"] --> update["Arbeidsflyt 2:<br/>On Update Incident"]
+    update --> find["Finn posten<br/>via correlation_id"]
+    find -->|"PATCH state 6"| sn
 ```
 
-## Forutsetninger
+Den første arbeidsflyten skriver OneUptime-hendelsens ID i postens `correlation_id`. Den andre finner posten via den ID-en og løser den deretter.
 
-- En ServiceNow-instans (`https://your-instance.service-now.com`).
-- En ServiceNow-bruker med `rest_api_explorer` / `itil`-rollene (eller nok rettigheter til å opprette `incident`-poster). Basic auth med denne brukerens legitimasjon er den enkleste starten; OAuth anbefales for produksjon.
-- Et OneUptime-prosjekt der du kan opprette arbeidsflyter.
+## Før du begynner
 
-## Steg 1 — Lagre legitimasjon som en hemmelighet
+- En ServiceNow-instans, f.eks. `https://your-instance.service-now.com`.
+- En ServiceNow-bruker for integrasjonen som kan opprette og oppdatere poster i tabellen `incident`, vanligvis med rollen `itil`. Brukerens navn og passord signerer forespørslene.
+- I OneUptime tilgang til å opprette arbeidsflyter og globale variabler. På OneUptime Cloud krever arbeidsflyter **Growth**-abonnementet eller høyere.
 
-ServiceNows Table API godtar **Basic auth**.
+## Lagre påloggingsinformasjonen
 
-1. Base64-koder `brukernavn:passord` én gang:
+Table API godtar Basic-autentisering: brukerens navn og passord, kodet sammen.
+
+:::steps
+1. Kod dem én gang, på macOS eller Linux:
 
    ```bash
-   printf '%s' 'integration_user:password' | base64
+   printf '%s' 'integration.user:password' | base64 | tr -d '\n'
    ```
 
-2. I OneUptime, gå til **Arbeidsflyter → Globale variabler → Opprett**, gi den navnet `SERVICENOW_AUTH`, lim inn base64-strengen, og slå på **Is Secret**.
+   Bruk `printf`, ikke `echo`: `echo` legger til et linjeskift, som kodes sammen med resten og ødelegger påloggingsinformasjonen.
 
-## Steg 2 — Bygg arbeidsflyten
+2. Gå i OneUptime til **Arbeidsflyter → Globale variabler**, og klikk på **Opprett Workflow Variabel**. Gi den navnet `SERVICENOW_AUTH`, og klikk på **Neste**.
+3. Lim inn den kodede verdien i **Innhold**, slå på **Hemmelighet**, og klikk på **Opprett Workflow Variabel**.
+:::
 
-1. Åpne **Arbeidsflyter → Opprett arbeidsflyt**, gi den navnet `Incidents → ServiceNow`, og åpne **Bygger**.
-2. Legg til en **Hendelse**-trigger satt til **On Create**. Gi den nytt navn `Incident`.
-3. Legg til en **API**-blokk koblet til triggeren:
+## Opprett en hendelse i ServiceNow for hver hendelse
 
-   - **Method**: `POST`
-   - **URL**: `https://your-instance.service-now.com/api/now/table/incident`
-   - **Headers**:
+:::steps
+### Opprett arbeidsflyten
 
-     ```text
-     Authorization: Basic {{variable.SERVICENOW_AUTH}}
-     Content-Type: application/json
-     Accept: application/json
-     ```
+Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **Start fra bunnen**. Gi den navnet `Incidents to ServiceNow`, og klikk på **Opprett arbeidsflyt**.
 
-   - **Body**:
+### Legg til triggeren
 
-     ```json
-     {
-       "short_description": "OneUptime: {{Incident.title}}",
-       "description": "{{Incident.description}}",
-       "urgency": "1",
-       "impact": "1",
-       "correlation_id": "oneuptime-{{Incident._id}}"
-     }
-     ```
+Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **On Create Incident**. Klikk på triggeren, og velg `title` og `description` i **Fields to pass on**.
 
-   `correlation_id` holder en lenke tilbake til OneUptime-hendelsen — hendig hvis du senere legger til et løsningssteg. ServiceNow `urgency`/`impact` bruker `1` (høy), `2` (middels), `3` (lav).
+### Opprett posten
 
-4. **Lagre**, aktiver, og opprett en testhendelse. Et `201 Created`-svar i arbeidsflytloggene returnerer den nye postens `sys_id` og `number` (for eksempel `INC0012345`).
+Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og koble triggerens **Success**-punkt til den. Sett **URL** til `https://your-instance.service-now.com/api/now/table/incident`. Sett **Request Headers** under **Flere felt** til:
 
-## Steg 3 — Løs ved OneUptime-løsning (valgfritt)
+```json
+{
+  "Authorization": "Basic {{global.variables.SERVICENOW_AUTH}}",
+  "Accept": "application/json"
+}
+```
 
-1. Opprett en **andre** arbeidsflyt med en **Hendelse → On Update**-trigger og en **Betingelser**-blokk som sjekker at hendelsen er løst.
-2. For å oppdatere riktig ServiceNow-post trenger du dens `sys_id`. Enten lagre den på OneUptime-hendelsen i Steg 2 (les `{{CreateRecord.response-body.result.sys_id}}` og skriv den til en kode med **Update Incident**), eller slå opp posten først med en `GET` på `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
-3. Legg til en **API**-blokk: **Method** `PATCH`, **URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`, body `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Løst i standard ITIL-arbeidsflyten).
+Og **Request Body** til:
+
+```json
+{
+  "short_description": "OneUptime: {{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "urgency": "1",
+  "impact": "1",
+  "correlation_id": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}"
+}
+```
+
+### Test den, og slå den deretter på
+
+Klikk på **Kjør arbeidsflyt**, velg en testhendelse under **Hendelse**, og kjør den. Trinnet **API Post (JSON)** viser et `201`-svar med den nye posten, med `sys_id` og `number`, f.eks. `INC0012345`. Slå deretter på **Aktivert** øverst i **Bygger**.
+:::
+
+`urgency` og `impact` tar `1` for høy, `2` for middels og `3` for lav, og ServiceNow regner ut prioriteten fra de to. Enhver annen kolonne i tabellen `incident` kan legges i innholdet under kolonnenavnet sitt.
+
+## Løs hendelsen i ServiceNow
+
+En arbeidsflyt har én trigger, så det trengs en annen arbeidsflyt for å løse den, startet når en hendelses tilstand endres.
+
+:::steps
+### Legg til triggeren On Update Incident
+
+Opprett en arbeidsflyt som heter `Resolve ServiceNow incidents`, og velg **On Update Incident** som trigger. Velg `currentIncidentStateId` i **Fields to watch**, slik at den bare kjører når tilstanden endres. Spør i **Fields to pass on** om den nye tilstanden er en løst tilstand:
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### Sjekk at hendelsen er løst
+
+Legg til en **If / Else**-blokk etter triggeren. Sett **Value to check** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Comparison** til **is true**.
+
+### Finn posten
+
+Legg til en **API Get (JSON)**-blokk etter **Yes**-siden, med de samme **Request Headers** og denne **URL**:
+
+```text
+https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
+```
+
+### Løs posten
+
+Legg til en **API Patch (JSON)**-blokk etter søkeblokkens **Success**, med de samme **Request Headers** og denne **URL**:
+
+```text
+https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
+```
+
+Sett **Request Body** til:
+
+```json
+{
+  "state": "6",
+  "close_code": "Solution provided",
+  "close_notes": "Resolved in OneUptime"
+}
+```
+
+### Slå den på
+
+Slå på **Aktivert**, og løs deretter en testhendelse i OneUptime. Hendelsen i ServiceNow går over til Resolved.
+:::
+
+`state` `6` er Resolved i ServiceNows standardtilstander for hendelser. `close_code` må være en av løsningskodene i instansen din. Mange instanser løser ikke en hendelse uten en løsningskode og notater, så send begge.
 
 ## Feilsøking
 
-- **`401`** — rekod `brukernavn:passord` med `printf` (ikke `echo`, som legger til en nylinje) og oppdater `SERVICENOW_AUTH`.
-- **`403`** — brukeren mangler rettigheter til å skrive til `incident`-tabellen; legg til `itil`-rollen.
-- **`400`** — et feltnavn eller en verdi er feil for instansens tilpasninger. Sjekk feltnavn i **System Definition → Tables → incident**.
-- **Instansen avviser kallet** — noen instanser begrenser Table API; bekreft at REST er aktivert og at IP-en din ikke er blokkert av en ACL.
+:::details ServiceNow svarer 401
+Påloggingsinformasjonen er feil. Kod `username:password` på nytt med `printf`, ikke `echo`, og erstatt innholdet i `SERVICENOW_AUTH`.
+:::
 
-## Hvor du leser videre
+:::details ServiceNow svarer 403
+Brukeren kan ikke skrive til tabellen `incident`. Gi brukeren rollen `itil`, eller en rolle med de samme rettighetene, og sjekk at ingen tilgangsregel blokkerer Table API for brukeren.
+:::
 
-- [Oversikt over integrasjoner](/docs/integrations/index) — mønstre og autentiserings-juksearket.
-- [Jira](/docs/integrations/jira) — det samme utgående mønsteret for Jira.
-- [API-komponent](/docs/workflows/components#api) — å lese svar-body.
+:::details ServiceNow svarer 400, eller løsningen endrer ingenting
+Et kolonnenavn eller en verdi passer ikke til instansen din: en tilpasset `state`-liste eller en `close_code` som instansen din ikke har. Sammenlign med tabellen `incident` under **System Definition → Tables** i ServiceNow og med postens eget skjema.
+:::
+
+:::details Løsningen svarer 404
+Søketrinnet fant ingen post, så URL-en beholdt referansen slik den er skrevet. Sjekk at den første arbeidsflyten skrev `correlation_id`, og at begge arbeidsflytene lager den på samme måte: `oneuptime-` etterfulgt av hendelsens `_id`.
+:::
+
+## Neste trinn
+
+:::cards
+- [Jira](/docs/integrations/jira): En toveisintegrasjon, holdt i takt av ferdige maler.
+- [Arbeidsflyt-komponenter](/docs/workflows/components#api): Alle innstillingene for API-blokkene.
+- [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs): Les hva hver forespørsel sendte og fikk tilbake.
+- [Oversikt over integrasjoner](/docs/integrations/index): Mønstrene bak hver integrasjon.
+:::
