@@ -33,8 +33,8 @@ flowchart TB
     MS["monitor_steps:<br/>en liste af trin"] --> ST["Et trin: hvad der<br/>skal tjekkes, og hvordan<br/>det nås"]
     ST --> CR["criteria:<br/>bedømt i rækkefølge"]
     CR --> FI["filters:<br/>betingelserne"]
-    CR --> IN["incidents:<br/>hvad der åbnes"]
-    CR --> AL["alerts:<br/>hvad der åbnes"]
+    CR --> IN["incidents:<br/>hvad der<br/>åbnes"]
+    CR --> AL["alerts:<br/>hvad der<br/>åbnes"]
 ```
 
 Det mindste nyttige trin tjekker én adresse og har ét kriterium med ét filter:

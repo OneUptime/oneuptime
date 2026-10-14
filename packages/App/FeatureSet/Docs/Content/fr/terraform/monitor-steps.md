@@ -32,9 +32,9 @@ L'ordre des critères compte donc : placez d'abord les critères qui alertent, l
 flowchart TB
     MS["monitor_steps :<br/>une liste d'étapes"] --> ST["Une étape : quoi vérifier<br/>et comment l'atteindre"]
     ST --> CR["criteria :<br/>jugés dans l'ordre"]
-    CR --> FI["filters :<br/>les conditions"]
-    CR --> IN["incidents :<br/>ce qu'il faut ouvrir"]
-    CR --> AL["alerts :<br/>ce qu'il faut ouvrir"]
+    CR --> FI["filters :<br/>les<br/>conditions"]
+    CR --> IN["incidents :<br/>ce qu'il faut<br/>ouvrir"]
+    CR --> AL["alerts :<br/>ce qu'il faut<br/>ouvrir"]
 ```
 
 La plus petite étape utile vérifie une adresse et a un critère avec un filtre :

@@ -32,9 +32,9 @@ Die Reihenfolge der Kriterien zählt also: Führen Sie die Kriterien, die alarmi
 flowchart TB
     MS["monitor_steps:<br/>eine Liste von Schritten"] --> ST["Ein Schritt: was geprüft<br/>wird und wie es zu<br/>erreichen ist"]
     ST --> CR["criteria:<br/>der Reihe nach beurteilt"]
-    CR --> FI["filters:<br/>die Bedingungen"]
-    CR --> IN["incidents:<br/>was geöffnet wird"]
-    CR --> AL["alerts:<br/>was geöffnet wird"]
+    CR --> FI["filters:<br/>die<br/>Bedingungen"]
+    CR --> IN["incidents:<br/>was geöffnet<br/>wird"]
+    CR --> AL["alerts:<br/>was geöffnet<br/>wird"]
 ```
 
 Der kleinste nützliche Schritt prüft eine Adresse und hat ein Kriterium mit einem Filter:

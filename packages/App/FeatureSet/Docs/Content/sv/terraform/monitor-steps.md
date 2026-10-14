@@ -33,8 +33,8 @@ flowchart TB
     MS["monitor_steps:<br/>en lista med steg"] --> ST["Ett steg: vad som<br/>ska kontrolleras och<br/>hur det nås"]
     ST --> CR["criteria:<br/>bedöms i ordning"]
     CR --> FI["filters:<br/>villkoren"]
-    CR --> IN["incidents:<br/>vad som öppnas"]
-    CR --> AL["alerts:<br/>vad som öppnas"]
+    CR --> IN["incidents:<br/>vad som<br/>öppnas"]
+    CR --> AL["alerts:<br/>vad som<br/>öppnas"]
 ```
 
 Det minsta användbara steget kontrollerar en adress och har ett kriterium med ett filter:

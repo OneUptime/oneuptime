@@ -32,9 +32,9 @@ De volgorde van de criteria doet er dus toe: zet de criteria die alarm slaan bov
 flowchart TB
     MS["monitor_steps:<br/>een lijst van stappen"] --> ST["Een stap: wat je<br/>controleert en hoe<br/>je het bereikt"]
     ST --> CR["criteria:<br/>op volgorde beoordeeld"]
-    CR --> FI["filters:<br/>de voorwaarden"]
-    CR --> IN["incidents:<br/>wat te openen"]
-    CR --> AL["alerts:<br/>wat te openen"]
+    CR --> FI["filters:<br/>de<br/>voorwaarden"]
+    CR --> IN["incidents:<br/>wat te<br/>openen"]
+    CR --> AL["alerts:<br/>wat te<br/>openen"]
 ```
 
 De kleinste nuttige stap controleert één adres en heeft één criterium met één filter:
