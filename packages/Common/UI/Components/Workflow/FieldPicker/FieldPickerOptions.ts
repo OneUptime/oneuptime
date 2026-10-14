@@ -171,6 +171,14 @@ export interface GetFieldOptionsOptions {
    * list would leave them out (Deleted At), so they can be seen and removed.
    */
   storedPaths?: Array<string> | undefined;
+  /*
+   * Puts a field's name, its description and its kind in the reader's
+   * language, as the fields are listed: a related record's field is named
+   * from two names ("Current Incident State › Name"), which only the parts
+   * have a wording for, and the list is searched and sorted by the names it
+   * shows. Left out, everything stays as the schema words it.
+   */
+  translate?: ((text: string) => string) | undefined;
 }
 
 type GetFieldOptionsFunction = (
@@ -190,6 +198,37 @@ export const getFieldOptions: GetFieldOptionsFunction = (
       return !column.isTenantColumn;
     },
   );
+
+  type TranslateFunction = (text: string) => string;
+
+  const translate: TranslateFunction = (text: string): string => {
+    return options.translate ? options.translate(text) || text : text;
+  };
+
+  type NameOfFunction = (column: ModelSchemaColumn) => string;
+
+  // What a field is called: its title in the reader's language, or its key.
+  const nameOf: NameOfFunction = (column: ModelSchemaColumn): string => {
+    return column.title ? translate(column.title) : column.id;
+  };
+
+  type DescriptionOfFunction = (
+    column: ModelSchemaColumn,
+  ) => string | undefined;
+
+  const descriptionOf: DescriptionOfFunction = (
+    column: ModelSchemaColumn,
+  ): string | undefined => {
+    return isColumnDescriptionInformative(column) && column.description
+      ? translate(column.description)
+      : undefined;
+  };
+
+  type KindOfFunction = (column: ModelSchemaColumn) => string;
+
+  const kindOf: KindOfFunction = (column: ModelSchemaColumn): string => {
+    return translate(typeLabelOf(column));
+  };
 
   // The ID columns a relation to one record stands for, when watching.
   const relationIdColumns: Set<string> = new Set<string>();
@@ -293,11 +332,8 @@ export const getFieldOptions: GetFieldOptionsFunction = (
       continue;
     }
 
-    const description: string | undefined = isColumnDescriptionInformative(
-      column,
-    )
-      ? column.description
-      : undefined;
+    const name: string = nameOf(column);
+    const description: string | undefined = descriptionOf(column);
 
     if (options.mode === FieldPickerMode.Watch) {
       if (
@@ -325,9 +361,9 @@ export const getFieldOptions: GetFieldOptionsFunction = (
 
         result.push({
           path: idColumn || column.id,
-          title: column.title || column.id,
-          shortTitle: column.title || column.id,
-          typeLabel: typeLabelOf(column),
+          title: name,
+          shortTitle: name,
+          typeLabel: kindOf(column),
           columnType: column.type,
           description: description,
           group: groupOf(column),
@@ -338,9 +374,9 @@ export const getFieldOptions: GetFieldOptionsFunction = (
 
       result.push({
         path: column.id,
-        title: column.title || column.id,
-        shortTitle: column.title || column.id,
-        typeLabel: typeLabelOf(column),
+        title: name,
+        shortTitle: name,
+        typeLabel: kindOf(column),
         columnType: column.type,
         description: description,
         group: groupOf(column),
@@ -379,9 +415,9 @@ export const getFieldOptions: GetFieldOptionsFunction = (
 
       result.push({
         path: column.id,
-        title: column.title || column.id,
-        shortTitle: column.title || column.id,
-        typeLabel: typeLabelOf(column),
+        title: name,
+        shortTitle: name,
+        typeLabel: kindOf(column),
         columnType: column.type,
         description: description,
         group: group,
@@ -396,21 +432,18 @@ export const getFieldOptions: GetFieldOptionsFunction = (
           : isSystemColumn(sub)
             ? 2
             : 1;
+        const subName: string = nameOf(sub);
 
         result.push({
           path: `${column.id}${FIELD_PATH_SEPARATOR}${sub.id}`,
-          title: `${column.title || column.id}${FIELD_TITLE_SEPARATOR}${
-            sub.title || sub.id
-          }`,
-          shortTitle: sub.title || sub.id,
-          typeLabel: typeLabelOf(sub),
+          title: `${name}${FIELD_TITLE_SEPARATOR}${subName}`,
+          shortTitle: subName,
+          typeLabel: kindOf(sub),
           columnType: sub.type,
-          description: isColumnDescriptionInformative(sub)
-            ? sub.description
-            : undefined,
+          description: descriptionOf(sub),
           group: group,
           relationPath: column.id,
-          relationTitle: column.title || column.id,
+          relationTitle: name,
           rank: rank,
           aliases: [],
         });
@@ -421,9 +454,9 @@ export const getFieldOptions: GetFieldOptionsFunction = (
 
     result.push({
       path: column.id,
-      title: column.title || column.id,
-      shortTitle: column.title || column.id,
-      typeLabel: typeLabelOf(column),
+      title: name,
+      shortTitle: name,
+      typeLabel: kindOf(column),
       columnType: column.type,
       description: description,
       group: groupOf(column),

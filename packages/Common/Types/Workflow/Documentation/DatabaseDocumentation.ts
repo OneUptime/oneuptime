@@ -644,7 +644,7 @@ const onCreateOrUpdate: UpdateOrDeleteFunction = (
         ? [
             {
               type: ComponentDocumentationNoteType.Tip,
-              text: "**Fields to watch** hears changes only: a field saved with the value it already has is not one. It is no guarantee either: when an update does not say which fields changed, the workflow runs anyway.",
+              text: "A field saved with the value it already has is not a change, so it does not start a run. **Fields to watch** is no guarantee either: when an update does not say which fields changed, the workflow runs anyway.",
             },
           ]
         : []),

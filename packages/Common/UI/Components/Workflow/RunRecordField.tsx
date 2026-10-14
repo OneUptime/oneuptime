@@ -17,6 +17,11 @@
  * A number or an ID typed out, which the list found one record for, becomes
  * that record when the box is left: the field shows which incident INC-8 is,
  * and the confirmation names it, before anything runs.
+ *
+ * Where the panel asks for it (autoFocus), the box has the focus as the
+ * panel opens, so the newest records are listed at once and a number can be
+ * typed straight away - except where a finger is the pointer, where focusing
+ * a box throws the keyboard over the list it opens.
  */
 
 import Icon from "../Icon/Icon";
@@ -39,6 +44,7 @@ import {
   RunRecordTriggerInfo,
 } from "../../../Types/Workflow/RunRecord";
 import API from "../../Utils/API/API";
+import prefersTouch from "../../Utils/PrefersTouch";
 import {
   translatableTerm,
   translationKey,
@@ -57,6 +63,34 @@ import React, {
 // How long typing has to pause before the list is asked for again.
 export const RUN_RECORD_SEARCH_DELAY_MS: number = 250;
 
+/*
+ * The widest a number may make the list's first column, in characters. A
+ * number longer than this - a prefix someone wrote a word into - pushes its
+ * own title along rather than every title in the list.
+ */
+export const RUN_RECORD_NUMBER_COLUMN_MAX_CHARACTERS: number = 14;
+
+type GetNumberColumnCharactersFunction = (
+  records: Array<RunRecordOption>,
+) => number;
+
+/**
+ * How many characters wide the list's number column is: as wide as the
+ * longest number listed, so "INC-8" and "INC-80" are followed by titles that
+ * start on one line down the list, the way a table's column does. 0 when no
+ * record listed has a number, and there is no column.
+ */
+export const getRunRecordNumberColumnCharacters: GetNumberColumnCharactersFunction =
+  (records: Array<RunRecordOption>): number => {
+    let widest: number = 0;
+
+    for (const record of records) {
+      widest = Math.max(widest, (record.number || "").length);
+    }
+
+    return Math.min(widest, RUN_RECORD_NUMBER_COLUMN_MAX_CHARACTERS);
+  };
+
 export const RunRecordFieldCopy: {
   readonly searchByNumberOrName: string;
   readonly searchByNumber: string;
@@ -70,6 +104,7 @@ export const RunRecordFieldCopy: {
   readonly clear: string;
   readonly results: string;
   readonly pickFromList: string;
+  readonly pickFromListOrId: string;
   readonly runsAsIfCreated: string;
   readonly runsAsIfUpdated: string;
   readonly runsAsIfDeleted: string;
@@ -89,6 +124,7 @@ export const RunRecordFieldCopy: {
   pickFromList: translationKey(
     "Pick one from the list, or type its number or ID.",
   ),
+  pickFromListOrId: translationKey("Pick one from the list, or paste its ID."),
   runsAsIfCreated: translationKey(
     "The run starts as if this {{record}} had just been created.",
   ),
@@ -142,6 +178,21 @@ export const getRunRecordPlaceholder: GetRunRecordPlaceholderFunction = (
   }
 
   return RunRecordFieldCopy.pasteId;
+};
+
+type GetRunRecordPickHintFunction = (info: RunRecordTriggerInfo) => string;
+
+/**
+ * What the field says when it has nothing to run with: no record picked, or
+ * words typed that name none. One sentence for both, since the way out is
+ * the same - and only a model whose records have numbers is told to type one.
+ */
+export const getRunRecordPickHint: GetRunRecordPickHintFunction = (
+  info: RunRecordTriggerInfo,
+): string => {
+  return info.hasNumber
+    ? RunRecordFieldCopy.pickFromList
+    : RunRecordFieldCopy.pickFromListOrId;
 };
 
 type GetRunRecordLabelFunction = (record: RunRecordOption) => string;
@@ -316,8 +367,13 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
       };
     });
 
+    // Whether the list was really asked for, or closed before the pause ended.
+    let wasAsked: boolean = false;
+
     const timer: ReturnType<typeof setTimeout> = setTimeout(
       () => {
+        wasAsked = true;
+
         void (async (): Promise<void> => {
           try {
             const records: Array<RunRecordOption> = await load({
@@ -355,8 +411,33 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
 
     return () => {
       clearTimeout(timer);
+
+      /*
+       * Closed, or typed on, before the pause was over: the list was never
+       * asked for, so it is not waiting for an answer. Left as "loading" it
+       * said "Searching…" for good the next time the box was opened on the
+       * same words - type, press Run before the pause ends, and the list it
+       * points at never came.
+       */
+      if (!wasAsked) {
+        setList((current: ListState) => {
+          return current.status === "loading" && current.search === trimmedQuery
+            ? { ...current, status: "idle" }
+            : current;
+        });
+      }
     };
   }, [isOpen, trimmedQuery, picked]);
+
+  /*
+   * As the panel opens, the box is where the typing goes. preventScroll:
+   * the panel slides in from the side, and is not all on screen yet.
+   */
+  useEffect(() => {
+    if (props.autoFocus && !prefersTouch()) {
+      inputRef.current?.focus({ preventScroll: true });
+    }
+  }, []);
 
   /*
    * The focus follows the field: to the box when Change brings it back, and
@@ -378,6 +459,9 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
 
   const activeRecord: RunRecordOption | undefined =
     records[Math.min(activeIndex, records.length - 1)];
+
+  const numberColumnCharacters: number =
+    getRunRecordNumberColumnCharacters(records);
 
   type OptionIdFunction = (record: RunRecordOption) => string;
 
@@ -541,12 +625,28 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
           pick(record);
         }}
       >
-        {record.number ? (
-          <span className="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs font-medium text-gray-700">
-            {record.number}
+        {/*
+         * The numbers are a column: each sits in a slot as wide as the
+         * longest one listed, so the titles after them start on one line.
+         * The slot is sized in the number's own font and size (ch is the
+         * width of one of its characters) plus the chip's side padding, and
+         * on the element itself, which is there from the first draw.
+         */}
+        {numberColumnCharacters > 0 ? (
+          <span
+            data-part="number"
+            className="inline-flex shrink-0 items-center font-mono text-xs"
+            style={{ minWidth: `calc(${numberColumnCharacters}ch + 0.75rem)` }}
+          >
+            {record.number ? (
+              <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs font-medium text-gray-700">
+                {record.number}
+              </span>
+            ) : null}
           </span>
         ) : null}
         <span
+          data-part="name"
           className={`min-w-0 flex-1 truncate text-sm ${
             record.name ? "text-gray-900" : "font-mono text-gray-600"
           }`}
@@ -668,7 +768,17 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
           pick(exactRecord, { keepFocus: false });
         }
 
-        props.onBlur?.();
+        /*
+         * The form is told the field was left - which is when it says what
+         * the field needs - only once there is something in it. The panel
+         * puts the focus in the box as it opens: a click anywhere else
+         * would have the empty box say "Pick one from the list" in red at
+         * someone who has not been asked anything yet. What is missing is
+         * said when Run is pressed (RunForm's showErrors).
+         */
+        if (trimmedQuery !== "" || picked) {
+          props.onBlur?.();
+        }
       }}
     >
       {picked ? (
@@ -722,7 +832,6 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
             data-testid={`${testId}-search`}
             autoComplete="off"
             spellCheck={false}
-            autoFocus={props.autoFocus}
             tabIndex={props.tabIndex}
             value={query}
             placeholder={translator.translateText(
@@ -767,13 +876,18 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
         </div>
       )}
       {renderList()}
+      {/*
+       * Whatever the form found wrong - nothing picked, or words that name
+       * no record - the field says the one way out, in its own words.
+       * "Incident is required." was the form's, for any box left blank.
+       */}
       {props.error ? (
         <p
           className="mt-1 text-sm text-red-600"
           data-testid={`${testId}-error`}
           role="alert"
         >
-          {props.error}
+          {translator.translateText(getRunRecordPickHint(props.info))}
         </p>
       ) : null}
     </div>

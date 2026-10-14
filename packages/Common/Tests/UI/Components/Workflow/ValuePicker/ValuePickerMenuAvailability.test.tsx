@@ -20,6 +20,7 @@ jest.mock("../../../../../Models/DatabaseModels/Index", () => {
 });
 
 import ValuePickerMenu, {
+  EMPTY_HERE_HEADING_ROOM,
   UNAVAILABLE_SETTLE_MS,
   ValuePickerMenuCopy,
 } from "../../../../../UI/Components/Workflow/ValuePicker/ValuePickerMenu";
@@ -1245,12 +1246,13 @@ describe("a record's fields its step does not pass on", () => {
 
     expect(option(INCIDENT_DESCRIPTION)).toHaveAccessibleDescription(note);
     expect(option(INCIDENT_SEVERITY)).toHaveAccessibleDescription(note);
-    // The section they are in has no name of its own: the line describes it.
-    expect(
-      screen
-        .getByTestId("value-picker-empty-here-note")
-        .closest("[role='group']"),
-    ).toHaveAccessibleDescription(note);
+    // The section they are in is named by its heading, and described by the line.
+    const section: HTMLElement = screen
+      .getByTestId("value-picker-empty-here-note")
+      .closest("[role='group']") as HTMLElement;
+
+    expect(section).toHaveAccessibleDescription(note);
+    expect(section).toHaveAccessibleName("Not passed on 2 fields");
 
     for (const reference of [INCIDENT, INCIDENT_ID, INCIDENT_TITLE]) {
       expect(option(reference)).not.toHaveAttribute("aria-describedby");
@@ -1271,11 +1273,287 @@ describe("a record's fields its step does not pass on", () => {
     );
 
     expect(screen.queryByTestId("value-picker-empty-here-note")).toBeNull();
+    expect(screen.queryByTestId("value-picker-empty-here-heading")).toBeNull();
+    expect(screen.queryByText("Not passed on")).toBeNull();
     expect(
       screen.getAllByRole("option").some((option: HTMLElement) => {
         return option.hasAttribute("data-empty-here");
       }),
     ).toBe(false);
+    // And no room is kept at the foot of the list for a heading that is not there.
+    expect(screen.getByRole("listbox").style.scrollPaddingBottom).toBe("");
+  });
+
+  /*
+   * The line said "doesn't pass these on" with nothing to say which were
+   * "these": it stood under the fields that are passed on, and - with four
+   * of them filling the list - over nothing in sight. A heading names the
+   * section and counts it.
+   */
+  describe("under a heading that names them and counts them", () => {
+    type HeadingFunction = () => HTMLElement;
+
+    const heading: HeadingFunction = (): HTMLElement => {
+      return screen.getByTestId("value-picker-empty-here-heading");
+    };
+
+    const toggle: HeadingFunction = (): HTMLElement => {
+      return screen.getByTestId("value-picker-empty-here-toggle");
+    };
+
+    test("it says what they are and how many, between the fields that are passed on and the line", async () => {
+      await openRecord();
+
+      expect(
+        heading().querySelector('[data-part="group-title"]'),
+      ).toHaveTextContent(/^Not passed on$/);
+      expect(
+        heading().querySelector('[data-part="group-count"]'),
+      ).toHaveTextContent(/^2 fields$/);
+
+      type ByReferenceFunction = (reference: string) => HTMLElement;
+
+      const byReference: ByReferenceFunction = (
+        reference: string,
+      ): HTMLElement => {
+        return screen.getAllByRole("option").find((option: HTMLElement) => {
+          return option.getAttribute("data-reference") === reference;
+        })!;
+      };
+
+      type IsBeforeFunction = (first: Node, second: Node) => boolean;
+
+      const isBefore: IsBeforeFunction = (
+        first: Node,
+        second: Node,
+      ): boolean => {
+        return Boolean(
+          first.compareDocumentPosition(second) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        );
+      };
+
+      const note: HTMLElement = screen.getByTestId(
+        "value-picker-empty-here-note",
+      );
+
+      // Title, then the heading, then the line, then Description.
+      expect(isBefore(byReference(INCIDENT_TITLE), heading())).toBe(true);
+      expect(isBefore(heading(), note)).toBe(true);
+      expect(isBefore(note, byReference(INCIDENT_DESCRIPTION))).toBe(true);
+    });
+
+    test("one field is counted as one", async () => {
+      await openRecord(INCIDENT_FIELDS.slice(0, 3));
+
+      expect(
+        heading().querySelector('[data-part="group-count"]'),
+      ).toHaveTextContent(/^1 field$/);
+    });
+
+    test("a search counts what it found of them", async () => {
+      const { user } = await openRecord();
+
+      await user.type(screen.getByTestId("value-picker-search"), "severity");
+
+      expect(optionReferences()).toEqual([INCIDENT_SEVERITY]);
+      expect(
+        heading().querySelector('[data-part="group-count"]'),
+      ).toHaveTextContent(/^1 field$/);
+    });
+
+    /*
+     * Pinned to the foot of the list for as long as the fields it is over
+     * are below it: a step that passes on four fields fills the list with
+     * them, and nothing said there were more, or that they would be empty.
+     */
+    test("it is pinned to the foot of the list, on a ground of its own", async () => {
+      await openRecord();
+
+      // Down over the list's own bottom padding, so no row shows under it.
+      expect(heading()).toHaveClass("sticky", "-bottom-1", "z-10", "bg-white");
+      expect(screen.getByRole("listbox")).toHaveClass("py-1");
+    });
+
+    test("it is the list's own child: a pinned element keeps inside its parent", async () => {
+      await openRecord();
+
+      const list: HTMLElement = screen.getByRole("listbox");
+
+      expect(heading().parentElement).toBe(list);
+      // The fields it is over are the next thing in the list, in their group.
+      expect(heading().nextElementSibling).toHaveAttribute("role", "group");
+      expect(heading().nextElementSibling).toContainElement(
+        screen.getByTestId("value-picker-empty-here-note"),
+      );
+      // The line is not pinned with it: it is read once the fields are reached.
+      expect(heading()).not.toContainElement(
+        screen.getByTestId("value-picker-empty-here-note"),
+      );
+    });
+
+    test("room is kept at the foot of the list, so the row the keys are on is not under it", async () => {
+      await openRecord();
+
+      expect(screen.getByRole("listbox").style.scrollPaddingBottom).toBe(
+        EMPTY_HERE_HEADING_ROOM,
+      );
+    });
+
+    test("the steps' own list keeps no such room", () => {
+      renderMenu([recordGroup(INCIDENT_FIELDS), SOMETIMES_GROUP]);
+
+      expect(screen.getByRole("listbox").style.scrollPaddingBottom).toBe("");
+      expect(
+        screen.queryByTestId("value-picker-empty-here-heading"),
+      ).toBeNull();
+    });
+
+    test("it is not one of the values: the keys walk past it", async () => {
+      const { user } = await openRecord();
+
+      expect(toggle()).not.toHaveAttribute("role", "option");
+      expect(optionReferences()).toEqual([
+        INCIDENT,
+        INCIDENT_ID,
+        INCIDENT_TITLE,
+        INCIDENT_DESCRIPTION,
+        INCIDENT_SEVERITY,
+      ]);
+
+      // From Title straight on to Description, the first under the heading.
+      await user.keyboard("{ArrowDown}{ArrowDown}");
+      expect(activeReference()).toBe(INCIDENT_TITLE);
+      await user.keyboard("{ArrowDown}");
+      expect(activeReference()).toBe(INCIDENT_DESCRIPTION);
+
+      // Tab never lands on it either.
+      expect(toggle()).toHaveAttribute("tabindex", "-1");
+    });
+
+    test("a press on it brings the fields up to the top of the list, and keeps the focus where it was", async () => {
+      await openRecord();
+
+      const list: HTMLElement = screen.getByRole("listbox");
+      const group: HTMLElement = heading().nextElementSibling as HTMLElement;
+
+      type RectFunction = () => DOMRect;
+
+      // The list starts at 100; the fields' group is 400 further down.
+      list.getBoundingClientRect = ((): DOMRect => {
+        return { top: 100, bottom: 340, height: 240 } as DOMRect;
+      }) as RectFunction;
+      group.getBoundingClientRect = ((): DOMRect => {
+        return { top: 500, bottom: 900, height: 400 } as DOMRect;
+      }) as RectFunction;
+      Object.defineProperty(heading(), "offsetHeight", {
+        configurable: true,
+        value: 32,
+      });
+      list.scrollTop = 10;
+
+      const search: HTMLElement = screen.getByTestId("value-picker-search");
+
+      expect(search).toHaveFocus();
+
+      // The press itself must not take the focus from the search box.
+      expect(fireEvent.mouseDown(toggle())).toBe(false);
+      fireEvent.click(toggle());
+
+      /*
+       * Scrolled by how far the group is below the list's top, less the
+       * heading, which leads the group once it is no longer pinned.
+       */
+      expect(list.scrollTop).toBe(10 + (500 - 100) - 32);
+      expect(search).toHaveFocus();
+    });
+
+    test("a press picks nothing", async () => {
+      const { onPick } = await openRecord();
+
+      fireEvent.click(toggle());
+
+      expect(onPick).not.toHaveBeenCalled();
+      expect(screen.getByTestId("value-picker-back")).toBeInTheDocument();
+    });
+
+    /*
+     * The line over the heading divides it from the fields above. A search
+     * that finds only fields that are not passed on has none above: the
+     * line stood under an empty band, dividing the heading from nothing.
+     */
+    test("with fields above it, a line divides it from them", async () => {
+      await openRecord();
+
+      expect(heading()).toHaveAttribute("data-divided", "true");
+      expect(toggle()).toHaveClass("border-t", "border-gray-100");
+    });
+
+    test("with none above it, there is no line and no empty band over it", async () => {
+      const { user } = await openRecord();
+
+      await user.type(screen.getByTestId("value-picker-search"), "severity");
+
+      expect(optionReferences()).toEqual([INCIDENT_SEVERITY]);
+      expect(heading()).toHaveAttribute("data-divided", "false");
+      expect(toggle()).not.toHaveClass("border-t");
+
+      const list: HTMLElement = screen.getByRole("listbox");
+
+      // The record's own section, with nothing in it, is not drawn at all.
+      expect(list.firstElementChild).toBe(heading());
+      expect(within(list).getAllByRole("group")).toHaveLength(1);
+    });
+
+    test("a search that finds only fields that are passed on draws them alone", async () => {
+      const { user } = await openRecord();
+
+      await user.type(screen.getByTestId("value-picker-search"), "title");
+
+      expect(optionReferences()).toEqual([INCIDENT_TITLE]);
+      expect(
+        screen.queryByTestId("value-picker-empty-here-heading"),
+      ).toBeNull();
+      expect(
+        within(screen.getByRole("listbox")).getAllByRole("group"),
+      ).toHaveLength(1);
+    });
+
+    test("a deleted record's step is under the same heading", async () => {
+      const group: ValueSuggestionGroup = recordGroup(INCIDENT_FIELDS);
+      group.items[0]!.drillIn!.emptyHereNote = {
+        template: StepValueCopy.onDeletePassesOnId,
+        values: { step: "On Delete Incident" },
+      };
+
+      renderMenu([group]);
+      fireEvent.click(screen.getAllByRole("option")[0]!);
+
+      await waitFor(() => {
+        expect(heading()).toHaveTextContent("Not passed on");
+      });
+      expect(heading()).toHaveTextContent("2 fields");
+    });
+
+    test("typed after {{ in the field, the list has the same heading", async () => {
+      const onPick: MockFunction = getJestMockFunction();
+
+      render(
+        withPicker(
+          <ValuePickerMenu hasSearchBox={false} query="" onPick={onPick} />,
+          { groups: [recordGroup(INCIDENT_FIELDS)] },
+        ),
+      );
+
+      fireEvent.click(screen.getAllByRole("option")[0]!);
+
+      await waitFor(() => {
+        expect(optionReferences()).toContain(INCIDENT_SEVERITY);
+      });
+
+      expect(heading()).toHaveTextContent("Not passed on");
+      expect(heading()).toHaveClass("sticky");
+    });
   });
 
   test("a deleted record's step says it passes on only the ID", async () => {
@@ -1655,6 +1933,26 @@ describe("every word of the list can be read", () => {
         groundClass: "bg-white",
       }),
     );
+
+    /*
+     * The heading over them and its count are words to read too: on the
+     * heading's own white, which is what covers the rows passing under it
+     * while it is pinned.
+     */
+    for (const words of ["Not passed on", "2 fields"]) {
+      expect([
+        words,
+        written().find((entry: WrittenWords): boolean => {
+          return entry.words === words;
+        }),
+      ]).toEqual([
+        words,
+        expect.objectContaining({
+          textClass: "text-gray-500",
+          groundClass: "bg-white",
+        }),
+      ]);
+    }
   });
 
   test("a webhook nothing has called yet: its note, the request to copy and the line that it is waiting", () => {

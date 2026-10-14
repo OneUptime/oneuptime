@@ -14774,7 +14774,6 @@
   "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.": "下のボタンをクリックして、このドメインの SSL を申し込んでください。証明書は Let's Encrypt で取得します。この手続きは安全で、完全に無料です。証明書は申し込み後、プロビジョニングまでに 3 時間かかります。",
   "Please enter the amount to recharge. It is in USD.": "チャージする金額を入力してください。単位は USD です。",
   "Please enter the new name of the view": "ビューの新しい名前を入力してください",
-  "Please fix errors": "エラーを修正してください",
   "Please give this workflow a name of at least 2 letters.": "ワークフローの名前は 2 文字以上で入力してください。",
   "Please link a Twilio configuration first.": "まず Twilio の設定をリンクしてください。",
   "Please note: Some domain changes might take 72 hours to propagate.": "注意: ドメインの変更によっては、反映まで 72 時間かかることがあります。",
@@ -17669,7 +17668,6 @@
   "Then restart the agent:": "その後、エージェントを再起動します:",
   "Then start it:": "その後、起動します:",
   "There are no members in this project to add.": "このプロジェクトには追加できるメンバーがいません。",
-  "There are some validation errors on the form. Please fix them before you run the workflow.": "フォームに検証エラーがあります。ワークフローを実行する前に修正してください。",
   "There are two ways for an MCP client to authenticate.": "MCP クライアントの認証方法は 2 つあります。",
   "There is not enough of this error in the window to read its shape. Widening the window, or opening one of its traces, is the next move.": "この時間枠には、このエラーの傾向を読み取れるだけの発生がありません。次は、時間枠を広げるか、トレースのいずれかを開いてみてください。",
   "There is nothing to look this device up by. Give it a MAC address, or set its hostname to an IP address so a router at its site that collects endpoints can learn the MAC from its ARP table — then the switch port appears here once a switch with Collect Connected Endpoints turned on sees it.": "このデバイスを照会する手がかりがありません。MAC アドレスを設定するか、ホスト名を IP アドレスに設定して、エンドポイントを収集するサイト内のルーターが ARP テーブルから MAC を学習できるようにしてください — その後、「接続されたエンドポイントを収集」が有効なスイッチがそれを確認すると、ここにスイッチのポートが表示されます。",
@@ -28346,5 +28344,8 @@
   "{{step}} passes on only the ID: the record is already gone.": "{{step}} は ID だけを渡します。レコードはすでに存在しません。",
   "“{{key}}” goes more than one related record deep.": "「{{key}}」は関連レコードを 2 階層以上たどっています。",
   "“{{key}}” has an unexpected value.": "「{{key}}」の値が想定外です。",
-  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "「{{key}}」は関連レコード全体を渡します。次のステップに必要なフィールドを選んでください。"
+  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "「{{key}}」は関連レコード全体を渡します。次のステップに必要なフィールドを選んでください。",
+  "Not passed on": "渡されないフィールド",
+  "Pick at least one field.": "フィールドを 1 つ以上選んでください。",
+  "Pick one from the list, or paste its ID.": "一覧から選ぶか、ID を貼り付けてください。"
 }

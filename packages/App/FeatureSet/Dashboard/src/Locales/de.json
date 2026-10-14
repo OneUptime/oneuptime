@@ -14774,7 +14774,6 @@
   "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.": "Bitte klicken Sie auf die Schaltfläche unten, um SSL für diese Domain zu bestellen. Wir verwenden LetsEncrypt, um ein Zertifikat zu bestellen. Dieser Vorgang ist sicher und völlig kostenlos. Nach der Bestellung dauert die Bereitstellung des Zertifikats 3 Stunden.",
   "Please enter the amount to recharge. It is in USD.": "Bitte geben Sie den Aufladebetrag ein. Er wird in USD angegeben.",
   "Please enter the new name of the view": "Bitte geben Sie den neuen Namen der Ansicht ein",
-  "Please fix errors": "Bitte beheben Sie die Fehler",
   "Please give this workflow a name of at least 2 letters.": "Bitte geben Sie diesem Arbeitsablauf einen Namen mit mindestens 2 Buchstaben.",
   "Please link a Twilio configuration first.": "Bitte verknüpfen Sie zuerst eine Twilio-Konfiguration.",
   "Please note: Some domain changes might take 72 hours to propagate.": "Bitte beachten Sie: Manche Domain-Änderungen können bis zu 72 Stunden brauchen, bis sie wirksam werden.",
@@ -17669,7 +17668,6 @@
   "Then restart the agent:": "Starten Sie dann den Agenten neu:",
   "Then start it:": "Starten Sie ihn dann:",
   "There are no members in this project to add.": "In diesem Projekt gibt es keine Mitglieder, die hinzugefügt werden können.",
-  "There are some validation errors on the form. Please fix them before you run the workflow.": "Das Formular enthält Validierungsfehler. Bitte beheben Sie diese, bevor Sie den Arbeitsablauf ausführen.",
   "There are two ways for an MCP client to authenticate.": "Es gibt zwei Möglichkeiten, wie sich ein MCP-Client authentifizieren kann.",
   "There is not enough of this error in the window to read its shape. Widening the window, or opening one of its traces, is the next move.": "In diesem Zeitfenster gibt es nicht genug Vorkommen dieses Fehlers, um sein Muster zu erkennen. Erweitern Sie als Nächstes das Zeitfenster oder öffnen Sie einen seiner Traces.",
   "There is nothing to look this device up by. Give it a MAC address, or set its hostname to an IP address so a router at its site that collects endpoints can learn the MAC from its ARP table — then the switch port appears here once a switch with Collect Connected Endpoints turned on sees it.": "Es gibt nichts, anhand dessen dieses Gerät nachgeschlagen werden kann. Geben Sie ihm eine MAC-Adresse oder setzen Sie seinen Hostnamen auf eine IP-Adresse, damit ein Router an seinem Standort, der Endpunkte erfasst, die MAC aus seiner ARP-Tabelle lernen kann — dann erscheint der Switch-Port hier, sobald ein Switch mit aktiviertem „Verbundene Endpunkte erfassen“ es sieht.",
@@ -28346,5 +28344,8 @@
   "{{step}} passes on only the ID: the record is already gone.": "{{step}} gibt nur die ID weiter: Der Eintrag ist bereits gelöscht.",
   "“{{key}}” goes more than one related record deep.": "„{{key}}“ reicht tiefer als einen verknüpften Datensatz.",
   "“{{key}}” has an unexpected value.": "„{{key}}“ hat einen unerwarteten Wert.",
-  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "„{{key}}“ gibt den ganzen verknüpften Datensatz weiter. Wählen Sie die Felder daraus aus, die die nächsten Schritte brauchen."
+  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "„{{key}}“ gibt den ganzen verknüpften Datensatz weiter. Wählen Sie die Felder daraus aus, die die nächsten Schritte brauchen.",
+  "Not passed on": "Nicht weitergegeben",
+  "Pick at least one field.": "Wählen Sie mindestens ein Feld aus.",
+  "Pick one from the list, or paste its ID.": "Wählen Sie einen aus der Liste aus oder fügen Sie seine ID ein."
 }

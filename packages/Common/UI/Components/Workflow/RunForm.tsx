@@ -9,8 +9,8 @@ import {
   REQUIRED_ARGUMENT_HELP,
 } from "./ArgumentsForm";
 import RunRecordField, {
-  RunRecordFieldCopy,
   getRunRecordDescription,
+  getRunRecordPickHint,
 } from "./RunRecordField";
 import { LoadRunRecordsFunction } from "./RunRecordSource";
 import {
@@ -32,9 +32,10 @@ import {
   parseRunRecordReference,
 } from "../../../Types/Workflow/RunRecord";
 import React, {
-  FunctionComponent,
   ReactElement,
+  forwardRef,
   useEffect,
+  useImperativeHandle,
   useRef,
   useState,
 } from "react";
@@ -58,6 +59,18 @@ export const RunFormCopy: {
   ),
 };
 
+/*
+ * What the panel around the form can ask of it: to say what is missing. The
+ * panel owns the Run button, the form the fields.
+ */
+export interface RunFormHandle {
+  /*
+   * Shows every field's message, as leaving each of them would, and puts
+   * the focus in the first field that has one.
+   */
+  showErrors: () => void;
+}
+
 export interface ComponentProps {
   component: NodeDataProp;
   /*
@@ -73,202 +86,241 @@ export interface ComponentProps {
   loadRunRecords?: LoadRunRecordsFunction | undefined;
 }
 
-const RunForm: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
-  const translator: Translator = useTranslator();
-  const formRef: any = useRef<FormProps<FormValues<JSONObject>>>(null);
-  const [component, setComponent] = useState<NodeDataProp>(props.component);
-  const [hasFormValidationErrors, setHasFormValidationErrors] =
-    useState<boolean>(false);
+const RunForm: React.ForwardRefExoticComponent<
+  ComponentProps & React.RefAttributes<RunFormHandle>
+> = forwardRef<RunFormHandle, ComponentProps>(
+  (
+    props: ComponentProps,
+    ref: React.ForwardedRef<RunFormHandle>,
+  ): ReactElement => {
+    const translator: Translator = useTranslator();
+    const formRef: any = useRef<FormProps<FormValues<JSONObject>>>(null);
+    const rootRef: React.MutableRefObject<HTMLDivElement | null> =
+      useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    props.onHasFormValidationErrors(hasFormValidationErrors);
-  }, [hasFormValidationErrors]);
+    /*
+     * Run pressed with something missing. A dialog used to say "Please fix
+     * errors" over a form that showed none: a field says what it needs once
+     * it has been left, and nobody had been in it yet. Now every field says
+     * it, and the focus goes to the first one - for a record trigger, into
+     * the search, which lists the records to pick from.
+     */
+    useImperativeHandle(ref, (): RunFormHandle => {
+      return {
+        showErrors: (): void => {
+          /*
+           * What Next does on a form without steps: every field is marked as
+           * left and checked, and nothing is submitted.
+           */
+          formRef.current?.goToNextStep?.();
 
-  useEffect(() => {
-    props.onFormChange(component);
-  }, [component]);
+          // Once the messages are drawn.
+          window.setTimeout(() => {
+            rootRef.current
+              ?.querySelector<HTMLElement>('[aria-invalid="true"]')
+              ?.focus();
+          }, 0);
+        },
+      };
+    }, []);
+    const [component, setComponent] = useState<NodeDataProp>(props.component);
+    const [hasFormValidationErrors, setHasFormValidationErrors] =
+      useState<boolean>(false);
 
-  /*
-   * A trigger that acts on a record - On Create Incident and the like - runs
-   * with one, picked by its number or name rather than typed as an ID.
-   */
-  const recordTrigger: RunRecordTriggerInfo | null = props.workflowId
-    ? getRunRecordTriggerInfo(component.metadata)
-    : null;
+    useEffect(() => {
+      props.onHasFormValidationErrors(hasFormValidationErrors);
+    }, [hasFormValidationErrors]);
 
-  /*
-   * Same hydration ArgumentsForm does: a StringDictionary renders as key/value
-   * rows, and those need a real object rather than the JSON string older
-   * workflows stored. The field type is chosen from the same value, so the two
-   * cannot disagree about which editor is on screen.
-   */
-  const formInitialValues: JSONObject = { ...(component.arguments || {}) };
+    useEffect(() => {
+      props.onFormChange(component);
+    }, [component]);
 
-  for (const argument of component.metadata.runWorkflowManuallyArguments ||
-    []) {
-    if (argument.type !== ComponentInputType.StringDictionary) {
-      continue;
+    /*
+     * A trigger that acts on a record - On Create Incident and the like - runs
+     * with one, picked by its number or name rather than typed as an ID.
+     */
+    const recordTrigger: RunRecordTriggerInfo | null = props.workflowId
+      ? getRunRecordTriggerInfo(component.metadata)
+      : null;
+
+    /*
+     * Same hydration ArgumentsForm does: a StringDictionary renders as key/value
+     * rows, and those need a real object rather than the JSON string older
+     * workflows stored. The field type is chosen from the same value, so the two
+     * cannot disagree about which editor is on screen.
+     */
+    const formInitialValues: JSONObject = { ...(component.arguments || {}) };
+
+    for (const argument of component.metadata.runWorkflowManuallyArguments ||
+      []) {
+      if (argument.type !== ComponentInputType.StringDictionary) {
+        continue;
+      }
+
+      const parsed: JSONObject | null = parseStringDictionaryValue(
+        formInitialValues[argument.id],
+      );
+
+      if (parsed !== null) {
+        formInitialValues[argument.id] = parsed;
+      }
     }
 
-    const parsed: JSONObject | null = parseStringDictionaryValue(
-      formInitialValues[argument.id],
-    );
+    type FieldForArgumentFunction = (argument: Argument) => any;
 
-    if (parsed !== null) {
-      formInitialValues[argument.id] = parsed;
-    }
-  }
+    const fieldForArgument: FieldForArgumentFunction = (argument: Argument) => {
+      if (
+        recordTrigger &&
+        props.workflowId &&
+        argument.id === recordTrigger.argument.id
+      ) {
+        const info: RunRecordTriggerInfo = recordTrigger;
+        const workflowId: ObjectID = props.workflowId;
 
-  type FieldForArgumentFunction = (argument: Argument) => any;
+        return {
+          // "Incident": the record, named as everywhere else.
+          title: info.singularName,
+          description: getRunRecordDescription(translator, info),
+          field: {
+            [argument.id]: true,
+          },
+          required: true,
+          /*
+           * A record picked from the list, its ID, or its number typed out
+           * (looked up when the run starts). Part of a name is not enough to
+           * run with.
+           */
+          customValidation: (values: FormValues<JSONObject>): string | null => {
+            const value: unknown = (values as JSONObject)[argument.id];
 
-  const fieldForArgument: FieldForArgumentFunction = (argument: Argument) => {
-    if (
-      recordTrigger &&
-      props.workflowId &&
-      argument.id === recordTrigger.argument.id
-    ) {
-      const info: RunRecordTriggerInfo = recordTrigger;
-      const workflowId: ObjectID = props.workflowId;
+            return parseRunRecordReference(value).kind ===
+              RunRecordReferenceKind.Text
+              ? translator.translateText(getRunRecordPickHint(info)) || ""
+              : null;
+          },
+          fieldType: FormFieldSchemaType.CustomComponent,
+          getCustomElement: (
+            _values: FormValues<JSONObject>,
+            customProps: CustomElementProps,
+          ): ReactElement => {
+            return (
+              <RunRecordField
+                workflowId={workflowId}
+                info={info}
+                value={
+                  typeof customProps.initialValue === "string"
+                    ? customProps.initialValue
+                    : ""
+                }
+                onChange={(value: string) => {
+                  void customProps.onChange?.(value);
+                }}
+                onRecordChange={props.onRunRecordChange}
+                onBlur={customProps.onBlur}
+                error={customProps.error}
+                ariaLabelledby={customProps.ariaLabelledby}
+                tabIndex={customProps.tabIndex}
+                // The one thing the panel asks: where the typing starts.
+                autoFocus={true}
+                load={props.loadRunRecords}
+              />
+            );
+          },
+        };
+      }
 
       return {
-        // "Incident": the record, named as everywhere else.
-        title: info.singularName,
-        description: getRunRecordDescription(translator, info),
+        title: `${argument.name}`,
+        description: translator.translateTemplate(
+          argument.required ? REQUIRED_ARGUMENT_HELP : OPTIONAL_ARGUMENT_HELP,
+          { description: translatableTerm(argument.description) },
+        ),
         field: {
           [argument.id]: true,
         },
-        required: true,
+        required: argument.required,
+        placeholder: argument.placeholder,
         /*
-         * A record picked from the list, its ID, or its number typed out
-         * (looked up when the run starts). Part of a name is not enough to
-         * run with.
+         * Decided from the value the form actually renders.
+         * This used to read component.returnValues, which is not
+         * where RunForm writes — so for a field holding a value
+         * the row editor cannot represent, the editor on screen
+         * and the value behind it could disagree.
          */
-        customValidation: (values: FormValues<JSONObject>): string | null => {
-          const value: unknown = (values as JSONObject)[argument.id];
-
-          return parseRunRecordReference(value).kind ===
-            RunRecordReferenceKind.Text
-            ? translator.translateText(RunRecordFieldCopy.pickFromList) || ""
-            : null;
-        },
-        fieldType: FormFieldSchemaType.CustomComponent,
-        getCustomElement: (
-          _values: FormValues<JSONObject>,
-          customProps: CustomElementProps,
-        ): ReactElement => {
-          return (
-            <RunRecordField
-              workflowId={workflowId}
-              info={info}
-              value={
-                typeof customProps.initialValue === "string"
-                  ? customProps.initialValue
-                  : ""
-              }
-              onChange={(value: string) => {
-                void customProps.onChange?.(value);
-              }}
-              onRecordChange={props.onRunRecordChange}
-              onBlur={customProps.onBlur}
-              error={customProps.error}
-              ariaLabelledby={customProps.ariaLabelledby}
-              tabIndex={customProps.tabIndex}
-              load={props.loadRunRecords}
-            />
-          );
-        },
+        ...componentInputTypeToFormFieldType(
+          argument.type,
+          formInitialValues[argument.id] ?? null,
+        ),
       };
-    }
-
-    return {
-      title: `${argument.name}`,
-      description: translator.translateTemplate(
-        argument.required ? REQUIRED_ARGUMENT_HELP : OPTIONAL_ARGUMENT_HELP,
-        { description: translatableTerm(argument.description) },
-      ),
-      field: {
-        [argument.id]: true,
-      },
-      required: argument.required,
-      placeholder: argument.placeholder,
-      /*
-       * Decided from the value the form actually renders.
-       * This used to read component.returnValues, which is not
-       * where RunForm writes — so for a field holding a value
-       * the row editor cannot represent, the editor on screen
-       * and the value behind it could disagree.
-       */
-      ...componentInputTypeToFormFieldType(
-        argument.type,
-        formInitialValues[argument.id] ?? null,
-      ),
     };
-  };
 
-  /*
-   * Top margins only: RunModal's SideOver leaves room under its content at
-   * every width, so a bottom margin here as well would end the panel on more
-   * than the others.
-   */
-  return (
-    <div className="mt-3">
-      <div className="mt-5">
-        <h2 className="mb-4 text-base font-medium text-gray-500">
-          {translator.translateTemplate("Run {{step}}", {
-            step: translatableTerm(component.metadata.title),
-          })}
-        </h2>
-        {component.metadata.runWorkflowManuallyArguments &&
-          component.metadata.runWorkflowManuallyArguments.length === 0 && (
-            <ErrorMessage
-              message={
-                <span data-testid="run-form-no-values">
-                  <TranslatedSentence
-                    template={RunFormCopy.noValues}
-                    slots={{
-                      button: (
-                        <strong className="font-semibold text-gray-700">
-                          {translator.translateText(RUN_WORKFLOW_SUBMIT_TITLE)}
-                        </strong>
-                      ),
-                    }}
-                  />
-                </span>
-              }
-            />
-          )}
-        {component.metadata.runWorkflowManuallyArguments &&
-          component.metadata.runWorkflowManuallyArguments.length > 0 && (
-            <BasicForm
-              hideSubmitButton={true}
-              ref={formRef}
-              initialValues={{
-                ...formInitialValues,
-              }}
-              onChange={(values: FormValues<JSONObject>) => {
-                setComponent({
-                  ...component,
-                  arguments: {
-                    ...((component.arguments as JSONObject) || {}),
-                    ...((values as JSONObject) || {}),
+    /*
+     * Top margins only: RunModal's SideOver leaves room under its content at
+     * every width, so a bottom margin here as well would end the panel on more
+     * than the others.
+     */
+    return (
+      <div className="mt-3" ref={rootRef} data-testid="run-form">
+        <div className="mt-5">
+          <h2 className="mb-4 text-base font-medium text-gray-500">
+            {translator.translateTemplate("Run {{step}}", {
+              step: translatableTerm(component.metadata.title),
+            })}
+          </h2>
+          {component.metadata.runWorkflowManuallyArguments &&
+            component.metadata.runWorkflowManuallyArguments.length === 0 && (
+              <ErrorMessage
+                message={
+                  <span data-testid="run-form-no-values">
+                    <TranslatedSentence
+                      template={RunFormCopy.noValues}
+                      slots={{
+                        button: (
+                          <strong className="font-semibold text-gray-700">
+                            {translator.translateText(
+                              RUN_WORKFLOW_SUBMIT_TITLE,
+                            )}
+                          </strong>
+                        ),
+                      }}
+                    />
+                  </span>
+                }
+              />
+            )}
+          {component.metadata.runWorkflowManuallyArguments &&
+            component.metadata.runWorkflowManuallyArguments.length > 0 && (
+              <BasicForm
+                hideSubmitButton={true}
+                ref={formRef}
+                initialValues={{
+                  ...formInitialValues,
+                }}
+                onChange={(values: FormValues<JSONObject>) => {
+                  setComponent({
+                    ...component,
+                    arguments: {
+                      ...((component.arguments as JSONObject) || {}),
+                      ...((values as JSONObject) || {}),
+                    },
+                  });
+                }}
+                onFormValidationErrorChanged={(hasError: boolean) => {
+                  setHasFormValidationErrors(hasError);
+                }}
+                fields={component.metadata.runWorkflowManuallyArguments.map(
+                  (argument: Argument) => {
+                    return fieldForArgument(argument);
                   },
-                });
-              }}
-              onFormValidationErrorChanged={(hasError: boolean) => {
-                setHasFormValidationErrors(hasError);
-              }}
-              fields={component.metadata.runWorkflowManuallyArguments.map(
-                (argument: Argument) => {
-                  return fieldForArgument(argument);
-                },
-              )}
-            />
-          )}
+                )}
+              />
+            )}
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  },
+);
+
+RunForm.displayName = "RunForm";
 
 export default RunForm;

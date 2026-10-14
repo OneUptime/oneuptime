@@ -15,7 +15,14 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import React, { ReactElement } from "react";
 import type { Mock } from "jest-mock";
 
@@ -170,6 +177,14 @@ const confirmDialog: ConfirmDialogFunction = (): HTMLElement => {
   return title.closest('[role="dialog"]') as HTMLElement;
 };
 
+/*
+ * What the confirmation says, as one sentence: the record in it is drawn in
+ * bold, an element of its own, so the words are read off the whole of it.
+ */
+const confirmWords: ConfirmDialogFunction = (): HTMLElement => {
+  return within(confirmDialog()).getByTestId("confirm-modal-description");
+};
+
 beforeEach(() => {
   resetPageScrollLockForTesting();
 });
@@ -212,11 +227,9 @@ describe("running an incident trigger", () => {
     fireEvent.click(option);
     pressRun();
 
-    expect(
-      within(confirmDialog()).getByText(
-        "It runs as if INC-8 · Database is down had just been created. Every step runs for real: anything it sends, writes or deletes actually happens.",
-      ),
-    ).toBeInTheDocument();
+    expect(confirmWords()).toHaveTextContent(
+      /^It runs as if INC-8 · Database is down had just been created\. Every step runs for real: anything it sends, writes or deletes actually happens\.$/,
+    );
 
     fireEvent.click(
       within(confirmDialog()).getByTestId("modal-footer-submit-button"),
@@ -237,11 +250,13 @@ describe("running an incident trigger", () => {
 
     pressRun();
 
+    expect(confirmWords()).toHaveTextContent(
+      /^It runs as if INC-8 had just been updated\. Every step runs for real: anything it sends, writes or deletes actually happens\.$/,
+    );
+    // What was typed is what the run acts on, and stands out as a pick does.
     expect(
-      within(confirmDialog()).getByText(
-        "It runs as if INC-8 had just been updated. Every step runs for real: anything it sends, writes or deletes actually happens.",
-      ),
-    ).toBeInTheDocument();
+      within(confirmWords()).getByTestId("run-confirm-record"),
+    ).toHaveTextContent(/^INC-8$/);
 
     fireEvent.click(
       within(confirmDialog()).getByTestId("modal-footer-submit-button"),
@@ -279,11 +294,9 @@ describe("running an incident trigger", () => {
 
     pressRun();
 
-    expect(
-      within(confirmDialog()).getByText(
-        "It runs as if INC-8 · Database is down had just been updated. Every step runs for real: anything it sends, writes or deletes actually happens.",
-      ),
-    ).toBeInTheDocument();
+    expect(confirmWords()).toHaveTextContent(
+      /^It runs as if INC-8 · Database is down had just been updated\. Every step runs for real: anything it sends, writes or deletes actually happens\.$/,
+    );
 
     fireEvent.click(
       within(confirmDialog()).getByTestId("modal-footer-submit-button"),
@@ -302,11 +315,65 @@ describe("running an incident trigger", () => {
     });
     pressRun();
 
+    expect(confirmWords()).toHaveTextContent(
+      /^It runs as if INC-8 had just been deleted, but nothing is deleted\. Every step runs for real: anything it sends, writes or deletes actually happens\.$/,
+    );
+  });
+
+  /*
+   * A record's name is a sentence of its own. In the weight of the words
+   * around it, "It runs as if INC-8 · Database is down had just been
+   * created." read as though the database had been created.
+   */
+  test("the confirmation sets the record apart from the sentence it is named in", async () => {
+    renderPanel(incidentTrigger("on-create"));
+
+    await act(async () => {
+      fireEvent.focus(screen.getByTestId("run-record-field-search"));
+    });
+
+    fireEvent.click(await screen.findByTestId("run-record-field-option"));
+    pressRun();
+
+    const record: HTMLElement =
+      within(confirmWords()).getByTestId("run-confirm-record");
+
+    // The whole of the record, and nothing but the record.
+    expect(record).toHaveTextContent(/^INC-8 · Database is down$/);
+    expect(record.tagName).toBe("STRONG");
+    expect(record).toHaveClass("font-semibold", "text-gray-900");
+    // The sentence around it is the dialog's own quieter grey.
+    expect(confirmWords()).toHaveClass("text-gray-600");
+    expect(confirmWords()).not.toHaveClass("font-semibold");
+    // One bold thing in the sentence: the record.
+    expect(confirmWords().querySelectorAll("strong")).toHaveLength(1);
+  });
+
+  test("a very long title is all in bold, however many lines it takes", async () => {
+    const long: RunRecordOption = {
+      ...EIGHT,
+      name: "Database connection pool exhausted on the primary cluster in eu-west-1 after the 14:00 deploy",
+    };
+
+    renderPanel(incidentTrigger("on-update"), {
+      records: (): Array<RunRecordOption> => {
+        return [long];
+      },
+    });
+
+    await act(async () => {
+      fireEvent.focus(screen.getByTestId("run-record-field-search"));
+    });
+
+    fireEvent.click(await screen.findByTestId("run-record-field-option"));
+    pressRun();
+
     expect(
-      within(confirmDialog()).getByText(
-        "It runs as if INC-8 had just been deleted, but nothing is deleted. Every step runs for real: anything it sends, writes or deletes actually happens.",
-      ),
-    ).toBeInTheDocument();
+      within(confirmWords()).getByTestId("run-confirm-record"),
+    ).toHaveTextContent(`INC-8 · ${long.name}`);
+    expect(confirmWords()).toHaveTextContent(
+      `It runs as if INC-8 · ${long.name} had just been updated. Every step runs for real: anything it sends, writes or deletes actually happens.`,
+    );
   });
 
   test("part of a title is not enough to run with: the field says to pick one", async () => {
@@ -325,9 +392,102 @@ describe("running an incident trigger", () => {
 
     pressRun();
 
-    expect(screen.getByText("Please fix errors")).toBeInTheDocument();
+    // Nothing runs, and nothing asks whether to run.
     expect(screen.queryByText("Run this workflow now?")).toBeNull();
     expect(harness.onRun).not.toHaveBeenCalled();
+    // The field still says what it needs; no dialog says it for it.
+    expect(screen.getByTestId("run-record-field-error")).toHaveTextContent(
+      "Pick one from the list, or type its number or ID.",
+    );
+    expect(screen.queryByText("Please fix errors")).toBeNull();
+    expect(screen.queryByTestId("modal")).toBeNull();
+  });
+
+  /*
+   * Run pressed with nothing picked. A dialog used to say "Please fix
+   * errors - There are some validation errors on the form", over a form that
+   * showed none: a field says what it needs once it has been left, and
+   * nobody had been in it yet. Closing the dialog left the panel as it was.
+   */
+  test("Run with nothing picked says so at the field, and puts the typing there", async () => {
+    const harness: Harness = renderPanel(incidentTrigger("on-update"));
+    const search: HTMLElement = screen.getByTestId("run-record-field-search");
+
+    /*
+     * Somewhere else first, as after a look around the panel. The box was
+     * given the focus, not chosen: leaving it empty says nothing yet.
+     */
+    await act(async () => {
+      search.blur();
+    });
+    expect(search).not.toHaveFocus();
+    expect(screen.queryByTestId("run-record-field-error")).toBeNull();
+    expect(screen.queryByTestId("run-record-field-option")).toBeNull();
+
+    pressRun();
+
+    expect(
+      await screen.findByTestId("run-record-field-error"),
+    ).toHaveTextContent(/^Pick one from the list, or type its number or ID\.$/);
+    // In the field's words, not the form's.
+    expect(screen.queryByText("Incident is required.")).toBeNull();
+    // No dialog, of either kind.
+    expect(screen.queryByText("Please fix errors")).toBeNull();
+    expect(screen.queryByText("Run this workflow now?")).toBeNull();
+    expect(screen.queryByTestId("modal")).toBeNull();
+    expect(harness.onRun).not.toHaveBeenCalled();
+
+    // The focus is in the box, which lists the records to pick from.
+    await waitFor(() => {
+      expect(search).toHaveFocus();
+    });
+    expect(await screen.findByTestId("run-record-field-option")).toBeVisible();
+    expect(search).toHaveAttribute("aria-invalid", "true");
+  });
+
+  test("a pick after that clears the message, and Run goes on to ask", async () => {
+    const harness: Harness = renderPanel(incidentTrigger("on-update"));
+
+    pressRun();
+    await screen.findByTestId("run-record-field-error");
+
+    fireEvent.click(await screen.findByTestId("run-record-field-option"));
+
+    expect(screen.queryByTestId("run-record-field-error")).toBeNull();
+
+    pressRun();
+
+    expect(confirmWords()).toHaveTextContent(
+      "It runs as if INC-8 · Database is down had just been updated.",
+    );
+
+    fireEvent.click(
+      within(confirmDialog()).getByTestId("modal-footer-submit-button"),
+    );
+
+    expect(harness.onRun.mock.calls[0]![0].arguments).toEqual({
+      _id: EIGHT.id,
+    });
+  });
+
+  /*
+   * As the panel opens the box is where the typing goes, and the newest
+   * incidents are listed at once: the one just made is one click away, and
+   * "INC-8" can be typed without a click on the box first.
+   */
+  test("the panel opens on the search, with the newest incidents listed", async () => {
+    const harness: Harness = renderPanel(incidentTrigger("on-create"));
+
+    expect(screen.getByTestId("run-record-field-search")).toHaveFocus();
+    expect(await screen.findByTestId("run-record-field-option")).toBeVisible();
+    expect(screen.getByText("Most recent")).toBeInTheDocument();
+    expect(
+      harness.load.mock.calls.map((call: Array<unknown>): string => {
+        return (call[0] as { search: string }).search;
+      }),
+    ).toEqual([""]);
+    // Opening the panel says nothing is wrong with it.
+    expect(screen.queryByTestId("run-record-field-error")).toBeNull();
   });
 
   test("without a workflow to look records up in, the ID is typed as before", () => {
@@ -362,11 +522,14 @@ describe("running any other trigger", () => {
     });
     pressRun();
 
+    expect(confirmWords()).toHaveTextContent(
+      /^Every step runs for real: anything it sends, writes or deletes actually happens\.$/,
+    );
+    // No record to name, so nothing in the sentence is set apart.
     expect(
-      within(confirmDialog()).getByText(
-        "Every step runs for real: anything it sends, writes or deletes actually happens.",
-      ),
-    ).toBeInTheDocument();
+      within(confirmWords()).queryByTestId("run-confirm-record"),
+    ).toBeNull();
+    expect(confirmWords().querySelector("strong")).toBeNull();
 
     fireEvent.click(
       within(confirmDialog()).getByTestId("modal-footer-submit-button"),
@@ -376,6 +539,26 @@ describe("running any other trigger", () => {
       value: { name: "Ada" },
     });
     expect(harness.load).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Any trigger's panel says what is wrong where it is wrong. A Webhook's
+   * Request Body that is not JSON is the editor's to say; Run pressed over
+   * it used to open "Please fix errors" as well.
+   */
+  test("Run over a value that cannot be sent opens no dialog about errors", async () => {
+    const harness: Harness = renderPanel(builtIn(ComponentID.Manual));
+
+    fireEvent.change(screen.getByTestId("code-editor"), {
+      target: { value: "{ not json" },
+    });
+    pressRun();
+
+    await waitFor(() => {
+      expect(screen.queryByText("Please fix errors")).toBeNull();
+    });
+    expect(screen.queryByText("Run this workflow now?")).toBeNull();
+    expect(harness.onRun).not.toHaveBeenCalled();
   });
 
   test("a trigger that needs no values says so, naming the button to press", () => {

@@ -14774,7 +14774,6 @@
   "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.": "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.",
   "Please enter the amount to recharge. It is in USD.": "Please enter the amount to recharge. It is in USD.",
   "Please enter the new name of the view": "Please enter the new name of the view",
-  "Please fix errors": "請修正錯誤",
   "Please give this workflow a name of at least 2 letters.": "請為此工作流程輸入至少 2 個字元的名稱。",
   "Please link a Twilio configuration first.": "Please link a Twilio configuration first.",
   "Please note: Some domain changes might take 72 hours to propagate.": "Please note: Some domain changes might take 72 hours to propagate.",
@@ -17669,7 +17668,6 @@
   "Then restart the agent:": "然後重新啟動代理程式：",
   "Then start it:": "然後啟動它：",
   "There are no members in this project to add.": "There are no members in this project to add.",
-  "There are some validation errors on the form. Please fix them before you run the workflow.": "表單中有錯誤。請先修正，再執行工作流程。",
   "There are two ways for an MCP client to authenticate.": "There are two ways for an MCP client to authenticate.",
   "There is not enough of this error in the window to read its shape. Widening the window, or opening one of its traces, is the next move.": "There is not enough of this error in the window to read its shape. Widening the window, or opening one of its traces, is the next move.",
   "There is nothing to look this device up by. Give it a MAC address, or set its hostname to an IP address so a router at its site that collects endpoints can learn the MAC from its ARP table — then the switch port appears here once a switch with Collect Connected Endpoints turned on sees it.": "There is nothing to look this device up by. Give it a MAC address, or set its hostname to an IP address so a router at its site that collects endpoints can learn the MAC from its ARP table — then the switch port appears here once a switch with Collect Connected Endpoints turned on sees it.",
@@ -28346,5 +28344,8 @@
   "{{step}} passes on only the ID: the record is already gone.": "{{step}} 只傳遞 ID：該記錄已經不存在。",
   "“{{key}}” goes more than one related record deep.": "「{{key}}」深入了不只一層相關記錄。",
   "“{{key}}” has an unexpected value.": "「{{key}}」的值不符合預期。",
-  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "「{{key}}」會傳遞整筆相關記錄。請從中選擇後續步驟需要的欄位。"
+  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "「{{key}}」會傳遞整筆相關記錄。請從中選擇後續步驟需要的欄位。",
+  "Not passed on": "未傳遞的欄位",
+  "Pick at least one field.": "請至少選擇一個欄位。",
+  "Pick one from the list, or paste its ID.": "從清單中選擇一個，或貼上其 ID。"
 }

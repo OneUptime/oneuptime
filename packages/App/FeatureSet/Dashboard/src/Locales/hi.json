@@ -14774,7 +14774,6 @@
   "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.": "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.",
   "Please enter the amount to recharge. It is in USD.": "Please enter the amount to recharge. It is in USD.",
   "Please enter the new name of the view": "Please enter the new name of the view",
-  "Please fix errors": "कृपया त्रुटियां ठीक करें",
   "Please give this workflow a name of at least 2 letters.": "कृपया इस वर्कफ़्लो को कम से कम 2 अक्षरों का नाम दें।",
   "Please link a Twilio configuration first.": "Please link a Twilio configuration first.",
   "Please note: Some domain changes might take 72 hours to propagate.": "Please note: Some domain changes might take 72 hours to propagate.",
@@ -17669,7 +17668,6 @@
   "Then restart the agent:": "इसके बाद एजेंट को फिर से शुरू करें:",
   "Then start it:": "इसके बाद इसे शुरू करें:",
   "There are no members in this project to add.": "There are no members in this project to add.",
-  "There are some validation errors on the form. Please fix them before you run the workflow.": "फ़ॉर्म में कुछ त्रुटियां हैं। वर्कफ़्लो चलाने से पहले उन्हें ठीक करें।",
   "There are two ways for an MCP client to authenticate.": "There are two ways for an MCP client to authenticate.",
   "There is not enough of this error in the window to read its shape. Widening the window, or opening one of its traces, is the next move.": "There is not enough of this error in the window to read its shape. Widening the window, or opening one of its traces, is the next move.",
   "There is nothing to look this device up by. Give it a MAC address, or set its hostname to an IP address so a router at its site that collects endpoints can learn the MAC from its ARP table — then the switch port appears here once a switch with Collect Connected Endpoints turned on sees it.": "There is nothing to look this device up by. Give it a MAC address, or set its hostname to an IP address so a router at its site that collects endpoints can learn the MAC from its ARP table — then the switch port appears here once a switch with Collect Connected Endpoints turned on sees it.",
@@ -28346,5 +28344,8 @@
   "{{step}} passes on only the ID: the record is already gone.": "{{step}} सिर्फ़ ID आगे भेजता है: रिकॉर्ड पहले ही हट चुका है।",
   "“{{key}}” goes more than one related record deep.": "\"{{key}}\" एक से ज़्यादा जुड़े हुए रिकॉर्ड की गहराई तक जाता है।",
   "“{{key}}” has an unexpected value.": "\"{{key}}\" का मान अनपेक्षित है।",
-  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "\"{{key}}\" पूरा जुड़ा हुआ रिकॉर्ड आगे भेजता है। उसमें से वे फ़ील्ड चुनें जिनकी अगले चरणों को ज़रूरत है।"
+  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "\"{{key}}\" पूरा जुड़ा हुआ रिकॉर्ड आगे भेजता है। उसमें से वे फ़ील्ड चुनें जिनकी अगले चरणों को ज़रूरत है।",
+  "Not passed on": "आगे नहीं भेजे जाते",
+  "Pick at least one field.": "कम से कम एक फ़ील्ड चुनें।",
+  "Pick one from the list, or paste its ID.": "सूची से कोई एक चुनें, या उसकी ID पेस्ट करें।"
 }

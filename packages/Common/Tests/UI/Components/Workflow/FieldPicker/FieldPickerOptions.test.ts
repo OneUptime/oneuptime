@@ -587,3 +587,249 @@ describe("the stored value as it is read", () => {
     expect(findFieldOption(options, "currentIncidentState")).toBeUndefined();
   });
 });
+
+/*
+ * The fields in the reader's language. A dashboard in German lists a
+ * record's fields by their German names, so the list has to be searched and
+ * sorted by those names too - and a related record's field is named from
+ * two of them, which no dictionary holds as one string: its chip read
+ * "Current Incident State › Name" in English beside a list that said
+ * "Aktueller Vorfallsstatus".
+ */
+describe("the fields in the reader's language", () => {
+  const GERMAN: Record<string, string> = {
+    Title: "Titel",
+    Description: "Beschreibung",
+    "Current Incident State": "Aktueller Vorfallsstatus",
+    "Incident Severity": "Vorfallschweregrad",
+    "Declared At": "Erklärt am",
+    Color: "Farbe",
+    "Long text": "Langer Text",
+    "Date and time": "Datum und Uhrzeit",
+    Record: "Datensatz",
+    "Date and time when this incident was declared.":
+      "Datum und Uhrzeit, zu der dieser Vorfall erklärt wurde.",
+  };
+
+  type TranslateFunction = (text: string) => string;
+
+  const german: TranslateFunction = (text: string): string => {
+    return GERMAN[text] || text;
+  };
+
+  type GermanOptionsFunction = (mode: FieldPickerMode) => Array<FieldOption>;
+
+  const germanOptions: GermanOptionsFunction = (
+    mode: FieldPickerMode,
+  ): Array<FieldOption> => {
+    return getFieldOptions({
+      columns: INCIDENT_COLUMNS,
+      mode: mode,
+      displayColumnId: "title",
+      translate: german,
+    });
+  };
+
+  const passOn: Array<FieldOption> = germanOptions(FieldPickerMode.PassOn);
+
+  type ByPathFunction = (path: string) => FieldOption;
+
+  const byPath: ByPathFunction = (path: string): FieldOption => {
+    const found: FieldOption | undefined = passOn.find(
+      (option: FieldOption): boolean => {
+        return option.path === path;
+      },
+    );
+
+    if (!found) {
+      throw new Error(`No field at ${path}`);
+    }
+
+    return found;
+  };
+
+  test("a field is named, described and typed in it", () => {
+    expect(byPath("title")).toMatchObject({
+      title: "Titel",
+      shortTitle: "Titel",
+      typeLabel: "Langer Text",
+    });
+    expect(byPath("declaredAt")).toMatchObject({
+      title: "Erklärt am",
+      typeLabel: "Datum und Uhrzeit",
+      description: "Datum und Uhrzeit, zu der dieser Vorfall erklärt wurde.",
+    });
+  });
+
+  test("a related record's field is named from both names, each in it", () => {
+    expect(byPath("currentIncidentState.name")).toMatchObject({
+      // "Name" reads the same in German; the record it belongs to does not.
+      title: "Aktueller Vorfallsstatus › Name",
+      shortTitle: "Name",
+      relationTitle: "Aktueller Vorfallsstatus",
+    });
+    expect(byPath("currentIncidentState.color").title).toBe(
+      "Aktueller Vorfallsstatus › Farbe",
+    );
+    // The related record itself, and what kind of thing it is.
+    expect(byPath("currentIncidentState")).toMatchObject({
+      title: "Aktueller Vorfallsstatus",
+      typeLabel: "Datensatz",
+      isRelation: true,
+    });
+  });
+
+  test("what picking a field stores is the same in every language", () => {
+    expect(paths(passOn).sort()).toEqual(
+      paths(optionsFor(FieldPickerMode.PassOn)).sort(),
+    );
+    expect(findFieldOption(passOn, "currentIncidentState.name")?.path).toBe(
+      "currentIncidentState.name",
+    );
+  });
+
+  test("a word with no wording of its own stays as the schema has it", () => {
+    // "Is Private?" is not in this dictionary.
+    expect(byPath("isPrivate").title).toBe("Is Private?");
+    // And a column without a title is still named by its key.
+    expect(
+      getFieldOptions({
+        columns: [
+          {
+            ...INCIDENT_COLUMNS.find((column: { id: string }): boolean => {
+              return column.id === "title";
+            })!,
+            id: "untitled",
+            title: "",
+          },
+        ],
+        mode: FieldPickerMode.PassOn,
+        translate: german,
+      })[0]?.title,
+    ).toBe("untitled");
+  });
+
+  test("the groups are in the order of the names the list shows", () => {
+    const main: Array<string> =
+      getFieldGroups({ options: passOn, displayColumnId: "title" })
+        .find((group: FieldGroup): boolean => {
+          return group.id === FieldGroupId.Main;
+        })
+        ?.options.map((option: FieldOption): string => {
+          return option.title;
+        }) || [];
+
+    // The title leads; the rest by their German names (A, E, V).
+    expect(main).toEqual([
+      "Titel",
+      "Aktueller Vorfallsstatus",
+      "Erklärt am",
+      "Vorfallschweregrad",
+    ]);
+  });
+
+  test("a related record's fields are in the order of their names too", () => {
+    const groups: Array<FieldGroup> = getFieldGroups({
+      options: passOn,
+      displayColumnId: "title",
+    });
+    const rows: Array<PanelRow> = getPanelRows({
+      options: passOn,
+      groups: groups,
+      query: "",
+      expanded: ["currentIncidentState"],
+    });
+    const fields: Array<string> = rows
+      .filter((row: PanelRow): boolean => {
+        return (
+          row.kind === PanelRowKind.Option &&
+          row.option?.relationPath === "currentIncidentState"
+        );
+      })
+      .map((row: PanelRow): string => {
+        return row.option?.shortTitle || "";
+      });
+
+    /*
+     * Its name leads, as in English. Then its own fields by the names shown:
+     * Beschreibung before Farbe, where English has Color before Description.
+     */
+    expect(fields.slice(0, 3)).toEqual(["Name", "Beschreibung", "Farbe"]);
+
+    const english: Array<string> = getPanelRows({
+      options: optionsFor(FieldPickerMode.PassOn),
+      groups: getFieldGroups({
+        options: optionsFor(FieldPickerMode.PassOn),
+        displayColumnId: "title",
+      }),
+      query: "",
+      expanded: ["currentIncidentState"],
+    })
+      .filter((row: PanelRow): boolean => {
+        return row.option?.relationPath === "currentIncidentState";
+      })
+      .map((row: PanelRow): string => {
+        return row.option?.shortTitle || "";
+      });
+
+    expect(english.slice(0, 3)).toEqual(["Name", "Color", "Description"]);
+  });
+
+  type SearchFunction = (query: string) => Array<string>;
+
+  const search: SearchFunction = (query: string): Array<string> => {
+    return searchFieldOptions(passOn, query).map(
+      (option: FieldOption): string => {
+        return option.path;
+      },
+    );
+  };
+
+  test("a search finds a field by the name the list shows", () => {
+    expect(search("beschr")[0]).toBe("description");
+    expect(search("titel")[0]).toBe("title");
+    // A related record's fields, through that record's German name.
+    expect(search("vorfallsstatus").slice(0, 3)).toEqual([
+      "currentIncidentState.name",
+      "currentIncidentState.description",
+      "currentIncidentState.color",
+    ]);
+    // By the kind of value, as it is written on the row.
+    expect(search("langer text")).toContain("title");
+  });
+
+  test("and still by its key, which is English in every language", () => {
+    expect(search("description")[0]).toBe("description");
+    expect(search("incidentSev")[0]).toBe("incidentSeverityId");
+    expect(search("currentIncidentState name")).toContain(
+      "currentIncidentState.name",
+    );
+  });
+
+  test("Fields to watch names a related record in it too", () => {
+    const watch: Array<FieldOption> = germanOptions(FieldPickerMode.Watch);
+
+    expect(
+      watch.find((option: FieldOption): boolean => {
+        return option.path === "currentIncidentStateId";
+      }),
+    ).toMatchObject({
+      title: "Aktueller Vorfallsstatus",
+      typeLabel: "Datensatz",
+      aliases: ["currentIncidentState"],
+    });
+  });
+
+  test("with nothing to translate with, the fields read as the schema words them", () => {
+    expect(optionsFor(FieldPickerMode.PassOn)).toEqual(
+      getFieldOptions({
+        columns: INCIDENT_COLUMNS,
+        mode: FieldPickerMode.PassOn,
+        displayColumnId: "title",
+        translate: (text: string): string => {
+          return text;
+        },
+      }),
+    );
+  });
+});

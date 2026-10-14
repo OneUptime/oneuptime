@@ -2,7 +2,8 @@ import { ButtonStyleType } from "../Button/Button";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import ConfirmModal from "../Modal/ConfirmModal";
 import SideOver from "../SideOver/SideOver";
-import RunForm, { RUN_WORKFLOW_SUBMIT_TITLE } from "./RunForm";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import RunForm, { RUN_WORKFLOW_SUBMIT_TITLE, RunFormHandle } from "./RunForm";
 import { getRunRecordLabel } from "./RunRecordField";
 import { LoadRunRecordsFunction } from "./RunRecordSource";
 import { getRunValues } from "./RunValues";
@@ -19,7 +20,12 @@ import {
 } from "../../../Types/Workflow/RunRecord";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useRef,
+  useState,
+} from "react";
 
 /*
  * The Run Workflow panel's words. It used to say "You can run this workflow
@@ -55,6 +61,31 @@ export const RunModalCopy: {
   ),
 };
 
+type GetConfirmTemplateFunction = (
+  recordTrigger: RunRecordTriggerInfo | null,
+  // The record picked, or what was typed for it.
+  record: string,
+) => string;
+
+/*
+ * The sentence the confirmation says: the one that names the record, by what
+ * the trigger makes of it, or the plain one when there is no record to name.
+ */
+export const getRunConfirmTemplate: GetConfirmTemplateFunction = (
+  recordTrigger: RunRecordTriggerInfo | null,
+  record: string,
+): string => {
+  if (!recordTrigger || !record) {
+    return RunModalCopy.confirmRunsForReal;
+  }
+
+  return recordTrigger.event === RunRecordEvent.Created
+    ? RunModalCopy.confirmCreated
+    : recordTrigger.event === RunRecordEvent.Updated
+      ? RunModalCopy.confirmUpdated
+      : RunModalCopy.confirmDeleted;
+};
+
 type GetConfirmDescriptionFunction = (data: {
   translator: Translator;
   recordTrigger: RunRecordTriggerInfo | null;
@@ -62,24 +93,65 @@ type GetConfirmDescriptionFunction = (data: {
   record: string;
 }) => string;
 
-/** What the confirmation says the run does. */
+/** What the confirmation says the run does, as text. */
 export const getRunConfirmDescription: GetConfirmDescriptionFunction = (data: {
   translator: Translator;
   recordTrigger: RunRecordTriggerInfo | null;
   record: string;
 }): string => {
-  if (!data.recordTrigger || !data.record) {
-    return data.translator.translateText(RunModalCopy.confirmRunsForReal) || "";
+  return data.translator.translateTemplate(
+    getRunConfirmTemplate(data.recordTrigger, data.record),
+    { record: data.record },
+  );
+};
+
+export interface RunConfirmDescriptionProps {
+  recordTrigger: RunRecordTriggerInfo | null;
+  // The record picked, or what was typed for it.
+  record: string;
+}
+
+/*
+ * The same sentence as the confirmation draws it, with the record standing
+ * out. A record's name is a sentence of its own - "INC-8 · Database is down"
+ * - and set in the same weight as the words around it the two ran together:
+ * "It runs as if INC-8 · Database is down had just been updated." read as
+ * though the database had been updated. In bold, where the name starts and
+ * ends is seen before it is read, however long the name is.
+ */
+export const RunConfirmDescription: FunctionComponent<
+  RunConfirmDescriptionProps
+> = (props: RunConfirmDescriptionProps): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  // No record to name: the plain sentence, which has no slot to fill.
+  if (!props.recordTrigger || !props.record) {
+    return (
+      <>
+        {getRunConfirmDescription({
+          translator: translator,
+          recordTrigger: props.recordTrigger,
+          record: props.record,
+        })}
+      </>
+    );
   }
 
-  const template: string =
-    data.recordTrigger.event === RunRecordEvent.Created
-      ? RunModalCopy.confirmCreated
-      : data.recordTrigger.event === RunRecordEvent.Updated
-        ? RunModalCopy.confirmUpdated
-        : RunModalCopy.confirmDeleted;
-
-  return data.translator.translateTemplate(template, { record: data.record });
+  return (
+    <TranslatedSentence
+      template={getRunConfirmTemplate(props.recordTrigger, props.record)}
+      slots={{
+        record: (
+          <strong
+            className="font-semibold text-gray-900"
+            data-testid="run-confirm-record"
+          >
+            {props.record}
+          </strong>
+        ),
+      }}
+    />
+  );
 };
 
 export interface ComponentProps {
@@ -104,7 +176,6 @@ export interface ComponentProps {
 const RunModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const [component, setComponent] = useState<NodeDataProp>(props.trigger);
   const [hasFormValidationErrors, setHasFormValidationErrors] =
     useState<boolean>(false);
@@ -114,8 +185,8 @@ const RunModal: FunctionComponent<ComponentProps> = (
     null,
   );
 
-  const [showFormValidationErrors, setShowFormValidationErrors] =
-    useState<boolean>(false);
+  const runFormRef: React.MutableRefObject<RunFormHandle | null> =
+    useRef<RunFormHandle | null>(null);
 
   const recordTrigger: RunRecordTriggerInfo | null = props.workflowId
     ? getRunRecordTriggerInfo(component.metadata)
@@ -143,7 +214,12 @@ const RunModal: FunctionComponent<ComponentProps> = (
       submitButtonText={RUN_WORKFLOW_SUBMIT_TITLE}
       onSubmit={() => {
         if (hasFormValidationErrors) {
-          setShowFormValidationErrors(true);
+          /*
+           * Said where it is missing: each field shows its message and the
+           * first one gets the focus. A dialog used to say "Please fix
+           * errors" over a form that showed none.
+           */
+          runFormRef.current?.showErrors();
         } else {
           setShowRunConfirmation(true);
         }
@@ -159,11 +235,12 @@ const RunModal: FunctionComponent<ComponentProps> = (
         {showRunConfirmation && (
           <ConfirmModal
             title={RunModalCopy.confirmTitle}
-            description={getRunConfirmDescription({
-              translator: translator,
-              recordTrigger: recordTrigger,
-              record: recordName,
-            })}
+            description={
+              <RunConfirmDescription
+                recordTrigger={recordTrigger}
+                record={recordName}
+              />
+            }
             onClose={() => {
               setShowRunConfirmation(false);
             }}
@@ -185,20 +262,9 @@ const RunModal: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {showFormValidationErrors && (
-          <ConfirmModal
-            title={`Please fix errors`}
-            description={`There are some validation errors on the form. Please fix them before you run the workflow.`}
-            submitButtonText={"Close"}
-            onSubmit={() => {
-              setShowFormValidationErrors(false);
-            }}
-            submitButtonType={ButtonStyleType.NORMAL}
-          />
-        )}
-
         {component.nodeType === NodeType.Node && (
           <RunForm
+            ref={runFormRef}
             component={component}
             workflowId={props.workflowId}
             loadRunRecords={props.loadRunRecords}

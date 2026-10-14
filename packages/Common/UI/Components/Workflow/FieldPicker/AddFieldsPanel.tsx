@@ -17,6 +17,12 @@
  * Escape is the field's to hear, not this list's (ModelFieldPicker): it has
  * to close the list from the Add field button and the chips as well, so one
  * place answers it for all of them.
+ *
+ * A press outside the list closes it once the press is over, not as it
+ * lands (Utils/UseAfterPress). The list is in the page, so closing it pulls
+ * everything under it up by its height: closed on the press, the button
+ * being pressed - Edit as JSON under it, the other list's Add field - was
+ * gone from under the pointer before the release, and the click did nothing.
  */
 
 import Icon from "../../Icon/Icon";
@@ -34,6 +40,9 @@ import {
   Translator,
 } from "../../../Utils/TranslateTemplate";
 import prefersTouch from "../../../Utils/PrefersTouch";
+import useAfterPress, {
+  AfterPressFunction,
+} from "../../../Utils/UseAfterPress";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -121,6 +130,26 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
   const searchRef: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
 
+  const afterPress: AfterPressFunction = useAfterPress();
+
+  // The latest onClose, for what is called a moment after it was asked for.
+  const onCloseRef: React.MutableRefObject<
+    (options: { returnFocus: boolean }) => void
+  > = useRef(props.onClose);
+  onCloseRef.current = props.onClose;
+
+  type CloseAfterPressFunction = () => void;
+
+  /*
+   * Left by a press or by Tab: closed once the press is over and the click
+   * it makes has been handled, so what was pressed is still where it was.
+   */
+  const closeAfterPress: CloseAfterPressFunction = (): void => {
+    afterPress(() => {
+      onCloseRef.current({ returnFocus: false });
+    });
+  };
+
   const rows: Array<PanelRow> = useMemo(() => {
     return getPanelRows({
       options: props.options,
@@ -194,7 +223,7 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      props.onClose({ returnFocus: false });
+      closeAfterPress();
     };
 
     document.addEventListener("mousedown", onPointerDown);
@@ -351,7 +380,7 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
             return;
           }
 
-          props.onClose({ returnFocus: false });
+          closeAfterPress();
         }
       }}
     >
@@ -507,13 +536,16 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
                 </span>
               )}
               <div className="min-w-0 flex-1">
+                {/*
+                 * A field's name, description and kind come in the reader's
+                 * language already (FieldPickerOptions): they are what the
+                 * list is searched and sorted by.
+                 */}
                 <div
                   data-part="name"
                   className="truncate text-sm font-medium text-gray-900"
                 >
-                  {translator.translateText(
-                    row.depth > 0 ? option.shortTitle : option.title,
-                  )}
+                  {row.depth > 0 ? option.shortTitle : option.title}
                 </div>
                 {/*
                  * The line under the name: gray-500 on white, and a shade
@@ -543,9 +575,9 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
                     className={`truncate text-xs ${
                       isActive ? "text-gray-600" : "text-gray-500"
                     }`}
-                    title={translator.translateText(option.description)}
+                    title={option.description}
                   >
-                    {translator.translateText(option.description)}
+                    {option.description}
                   </div>
                 ) : null}
               </div>
@@ -553,7 +585,7 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
                 data-part="kind"
                 className="mt-0.5 shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600"
               >
-                {translator.translateText(option.typeLabel)}
+                {option.typeLabel}
               </span>
             </div>
           );

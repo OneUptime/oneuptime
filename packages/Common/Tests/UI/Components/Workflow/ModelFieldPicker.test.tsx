@@ -61,15 +61,25 @@ import {
   wordsIn,
 } from "../../../Helpers/TailwindContrast";
 import { INCIDENT_COLUMNS } from "./FieldPicker/FieldPickerFixture";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 import "@testing-library/jest-dom";
 import {
+  act,
   fireEvent,
   render,
   screen,
   waitFor,
   within,
 } from "@testing-library/react";
+import { createInstance, i18n } from "i18next";
+import { I18nextProvider } from "react-i18next";
 
 type ApiGetFunction = () => MockFunction;
 
@@ -101,15 +111,18 @@ interface Harness {
   testId: string;
 }
 
-type RenderPickerFunction = (options: {
+interface RenderPickerOptions {
   mode?: FieldPickerMode;
   value?: string | JSONObject | null;
-}) => Promise<Harness>;
+  // What the form found wrong with the list, as it hands it over.
+  error?: string | undefined;
+}
 
-const renderPicker: RenderPickerFunction = async (options: {
-  mode?: FieldPickerMode;
-  value?: string | JSONObject | null;
-}): Promise<Harness> => {
+type RenderPickerFunction = (options: RenderPickerOptions) => Promise<Harness>;
+
+const renderPicker: RenderPickerFunction = async (
+  options: RenderPickerOptions,
+): Promise<Harness> => {
   const onChange: MockFunction = getJestMockFunction();
   const onBlur: MockFunction = getJestMockFunction();
   const testId: string =
@@ -128,6 +141,7 @@ const renderPicker: RenderPickerFunction = async (options: {
       onBlur={() => {
         onBlur();
       }}
+      error={options.error}
     />,
   );
 
@@ -560,9 +574,160 @@ describe("opening and closing the Add field list", () => {
 
     pressAddField(harness);
     fireEvent.mouseDown(document.body);
+    fireEvent.mouseUp(document.body);
 
-    expect(screen.queryByTestId(`${harness.testId}-panel`)).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByTestId(`${harness.testId}-panel`)).toBeNull();
+    });
     expect(screen.getByTestId(`${harness.testId}-add`)).not.toHaveFocus();
+  });
+
+  /*
+   * The list is in the page: closing it pulls everything under it up by its
+   * height. Closed as the press landed, the button being pressed - Edit as
+   * JSON right under it, the other list's Add field, a chip's remove - was
+   * gone from under the pointer before the release, and its click never
+   * came. So the list waits for the press to be over.
+   */
+  test("it is still there while the press that closes it is down, so what is pressed stays put", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    pressAddField(harness);
+
+    const editJson: HTMLElement = screen.getByTestId(
+      `${harness.testId}-edit-json`,
+    );
+    const search: HTMLElement = screen.getByTestId(`${harness.testId}-search`);
+
+    // The press lands, and takes the focus from the search box.
+    fireEvent.mouseDown(editJson);
+    fireEvent.blur(search, { relatedTarget: editJson });
+
+    expect(screen.getByTestId(`${harness.testId}-panel`)).toBeInTheDocument();
+    expect(editJson).toBeInTheDocument();
+
+    // Released: the click is Edit as JSON's, on the first press.
+    fireEvent.mouseUp(editJson);
+    fireEvent.click(editJson);
+
+    expect(screen.getByTestId(harness.testId)).toHaveAttribute(
+      "data-view",
+      "json",
+    );
+    expect(screen.queryByTestId(`${harness.testId}-panel`)).toBeNull();
+  });
+
+  test("a press that is held does not close it; the release does", async () => {
+    jest.useFakeTimers();
+
+    try {
+      const harness: Harness = await renderPicker({ value: { title: true } });
+
+      pressAddField(harness);
+      fireEvent.mouseDown(document.body);
+
+      // Held, however long.
+      act(() => {
+        jest.advanceTimersByTime(2000);
+      });
+      expect(screen.getByTestId(`${harness.testId}-panel`)).toBeInTheDocument();
+
+      fireEvent.mouseUp(document.body);
+      act(() => {
+        jest.advanceTimersByTime(1);
+      });
+
+      expect(screen.queryByTestId(`${harness.testId}-panel`)).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test("a press on another list's chip under it takes that chip, on the first press", async () => {
+    // Two lists in one dialog, as the On Update trigger has them.
+    const onChangeWatch: MockFunction = getJestMockFunction();
+    const onChangePassOn: MockFunction = getJestMockFunction();
+
+    render(
+      <div>
+        <ModelFieldPicker
+          tableName="Incident"
+          mode={FieldPickerMode.Watch}
+          initialValue={{ title: true }}
+          onChange={(value: string) => {
+            onChangeWatch(value);
+          }}
+        />
+        <ModelFieldPicker
+          tableName="Incident"
+          mode={FieldPickerMode.PassOn}
+          initialValue={{ title: true, description: true }}
+          onChange={(value: string) => {
+            onChangePassOn(value);
+          }}
+        />
+      </div>,
+    );
+
+    await screen.findByTestId("fields-to-watch");
+    await screen.findByTestId("fields-to-pass-on");
+
+    fireEvent.click(screen.getByTestId("fields-to-watch-add"));
+    expect(screen.getByTestId("fields-to-watch-panel")).toBeInTheDocument();
+
+    const remove: HTMLElement = screen.getAllByTestId(
+      "fields-to-pass-on-remove",
+    )[0]!;
+
+    fireEvent.mouseDown(remove);
+    // Still open under the press: nothing has moved.
+    expect(screen.getByTestId("fields-to-watch-panel")).toBeInTheDocument();
+    fireEvent.mouseUp(remove);
+    fireEvent.click(remove);
+
+    expect(onChangePassOn).toHaveBeenLastCalledWith(
+      JSON.stringify({ description: true }),
+    );
+    await waitFor(() => {
+      expect(screen.queryByTestId("fields-to-watch-panel")).toBeNull();
+    });
+  });
+
+  test("a press on the other list's Add field opens that list and closes this one", async () => {
+    render(
+      <div>
+        <ModelFieldPicker
+          tableName="Incident"
+          mode={FieldPickerMode.Watch}
+          initialValue={{ title: true }}
+          onChange={getJestMockFunction()}
+        />
+        <ModelFieldPicker
+          tableName="Incident"
+          mode={FieldPickerMode.PassOn}
+          initialValue={{ title: true }}
+          onChange={getJestMockFunction()}
+        />
+      </div>,
+    );
+
+    await screen.findByTestId("fields-to-watch");
+    await screen.findByTestId("fields-to-pass-on");
+
+    fireEvent.click(screen.getByTestId("fields-to-watch-add"));
+
+    const otherAdd: HTMLElement = screen.getByTestId("fields-to-pass-on-add");
+
+    fireEvent.mouseDown(otherAdd);
+    fireEvent.mouseUp(otherAdd);
+    fireEvent.click(otherAdd);
+
+    expect(screen.getByTestId("fields-to-pass-on-panel")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId("fields-to-watch-panel")).toBeNull();
+    });
+    // One list open at a time, and it is the one that was asked for.
+    expect(screen.getByTestId("fields-to-pass-on-panel")).toBeInTheDocument();
   });
 
   test("a press inside it - on a field, on its foot - keeps it open", async () => {
@@ -586,10 +751,13 @@ describe("opening and closing the Add field list", () => {
     fireEvent.blur(search, { relatedTarget: done });
     expect(screen.getByTestId(`${harness.testId}-panel`)).toBeInTheDocument();
 
+    // Tab, on past Done: no press is down, so it closes as the keys move on.
     fireEvent.blur(done, {
       relatedTarget: screen.getByTestId(`${harness.testId}-edit-json`),
     });
-    expect(screen.queryByTestId(`${harness.testId}-panel`)).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByTestId(`${harness.testId}-panel`)).toBeNull();
+    });
   });
 
   test.each(["done", "close", "list"])(
@@ -869,6 +1037,321 @@ describe("a list left with nothing in it", () => {
 
     fireEvent.blur(add, { relatedTarget: document.body });
     expect(harness.onBlur).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * What the list says when it must hold a field and holds none. The form's
+   * words were "Fields to pass on is required.", for any box left blank -
+   * and they came a line below Edit as JSON, away from the list they were
+   * about.
+   */
+  test("it says so in its own words: pick at least one field", async () => {
+    const harness: Harness = await renderPicker({
+      value: "",
+      error: "Fields to pass on is required.",
+    });
+
+    const message: HTMLElement = screen.getByTestId("error-message");
+
+    expect(message).toHaveTextContent(/^Pick at least one field\.$/);
+    expect(screen.queryByText("Fields to pass on is required.")).toBeNull();
+    expect(message).toHaveAttribute("role", "alert");
+    expect(message).toHaveClass("text-red-600");
+    // The list is drawn as the field in error it is.
+    expect(
+      screen.getByTestId(`${harness.testId}-chips`).parentElement,
+    ).toHaveClass("border-red-300");
+  });
+
+  test("the message is on the line under the list, and Edit as JSON at the far end of it", async () => {
+    const harness: Harness = await renderPicker({
+      value: "",
+      error: "Fields to pass on is required.",
+    });
+
+    const message: HTMLElement = screen.getByTestId("error-message");
+    const editJson: HTMLElement = screen.getByTestId(
+      `${harness.testId}-edit-json`,
+    );
+    const row: HTMLElement = editJson.parentElement as HTMLElement;
+
+    // One row holds both: the message first, the way out to JSON last.
+    expect(row).toContainElement(message);
+    expect(row).toHaveClass("flex", "items-start", "justify-between");
+    expect(
+      message.compareDocumentPosition(editJson) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // And the row comes right after the list, with nothing between.
+    expect(
+      screen.getByTestId(`${harness.testId}-chips`).parentElement
+        ?.nextElementSibling,
+    ).toBe(row);
+    // Edit as JSON keeps to its end however long the message is.
+    expect(editJson).toHaveClass("shrink-0");
+  });
+
+  test("the line is there without a message too, so nothing moves when one comes", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+    const editJson: HTMLElement = screen.getByTestId(
+      `${harness.testId}-edit-json`,
+    );
+
+    expect(screen.queryByTestId("error-message")).toBeNull();
+    expect(editJson.parentElement).toHaveClass(
+      "flex",
+      "items-start",
+      "justify-between",
+    );
+    /*
+     * The message is as tall as the link beside it - 20px of words and 4px
+     * over them, to the link's 16px and 4px on each side - so the row does
+     * not grow when it appears, and what is under the list stays where the
+     * pointer is.
+     */
+    expect(editJson).toHaveClass("py-1", "text-xs");
+  });
+
+  test("a message the form has for a list that holds fields is the form's to word", async () => {
+    await renderPicker({
+      value: { title: true },
+      error: "Something only the form knows.",
+    });
+
+    expect(screen.getByTestId("error-message")).toHaveTextContent(
+      "Something only the form knows.",
+    );
+  });
+
+  test("picking a field takes the message's reason away; the form says when", async () => {
+    const harness: Harness = await renderPicker({
+      value: "",
+      error: "Fields to pass on is required.",
+    });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-add`));
+    fireEvent.click(screen.getByTestId(`${harness.testId}-option-title`));
+
+    // The list holds a field now, and tells the form so.
+    expect(harness.onChange).toHaveBeenLastCalledWith(
+      JSON.stringify({ title: true }),
+    );
+    // Until the form answers, its own words stand - never "pick at least one".
+    expect(screen.getByTestId("error-message")).not.toHaveTextContent(
+      "Pick at least one field.",
+    );
+  });
+
+  test("Fields to watch may be empty, and says nothing of the kind", async () => {
+    await renderPicker({ mode: FieldPickerMode.Watch, value: "" });
+
+    expect(screen.queryByTestId("error-message")).toBeNull();
+  });
+});
+
+/*
+ * The lists in the reader's language. The Dashboard words a record's fields
+ * in German, so a chip, a row, what a search finds and the order of the
+ * list are all the German name - and a related record's field is named from
+ * two of them: its chip read "Current Incident State › Name" in English
+ * beside a list that said "Aktueller Vorfallsstatus".
+ */
+describe("in another language", () => {
+  const WORDS: Record<string, string> = {
+    Title: "Titel",
+    Description: "Beschreibung",
+    "Current Incident State": "Aktueller Vorfallsstatus",
+    "Incident Severity": "Vorfallschweregrad",
+    "Declared At": "Erklärt am",
+    Color: "Farbe",
+    "Long text": "Langer Text",
+    Record: "Datensatz",
+    "Add field": "Feld hinzufügen",
+    "Remove {{field}}": "{{field}} entfernen",
+    "Pick at least one field.": "Wählen Sie mindestens ein Feld aus.",
+  };
+
+  const german: i18n = createInstance();
+
+  beforeAll(async () => {
+    await german.init({
+      lng: "de",
+      fallbackLng: "de",
+      resources: { de: { translation: WORDS } },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  type GermanWrapperFunction = (props: {
+    children?: React.ReactNode;
+  }) => React.ReactElement;
+
+  const GermanWrapper: GermanWrapperFunction = ({
+    children,
+  }: {
+    children?: React.ReactNode;
+  }): React.ReactElement => {
+    return <I18nextProvider i18n={german}>{children}</I18nextProvider>;
+  };
+
+  type RenderGermanFunction = (
+    value: JSONObject | string,
+    error?: string,
+  ) => Promise<void>;
+
+  const renderGerman: RenderGermanFunction = async (
+    value: JSONObject | string,
+    error?: string,
+  ): Promise<void> => {
+    render(
+      <ModelFieldPicker
+        tableName="Incident"
+        initialValue={value}
+        onChange={getJestMockFunction()}
+        error={error}
+      />,
+      { wrapper: GermanWrapper },
+    );
+
+    await screen.findByTestId("fields-to-pass-on");
+  };
+
+  test("a chip reads in it, a related record's field from both of its names", async () => {
+    await renderGerman({
+      title: true,
+      description: true,
+      currentIncidentState: { name: true, color: true },
+    });
+
+    expect(chips("fields-to-pass-on")).toEqual([
+      "Titel",
+      "Beschreibung",
+      // Was "Current Incident State › Name": no dictionary holds the pair.
+      "Aktueller Vorfallsstatus › Name",
+      "Aktueller Vorfallsstatus › Farbe",
+    ]);
+    expect(
+      screen.getAllByTestId("fields-to-pass-on-remove")[2],
+    ).toHaveAccessibleName("Aktueller Vorfallsstatus › Name entfernen");
+  });
+
+  test("the list names, sorts and types its fields in it", async () => {
+    await renderGerman({ title: true });
+
+    fireEvent.click(screen.getByTestId("fields-to-pass-on-add"));
+
+    type NameOfFunction = (path: string) => string;
+
+    const nameOf: NameOfFunction = (path: string): string => {
+      return (
+        screen
+          .getByTestId(`fields-to-pass-on-option-${path}`)
+          .querySelector('[data-part="name"]')?.textContent || ""
+      );
+    };
+
+    expect(nameOf("title")).toBe("Titel");
+    expect(nameOf("currentIncidentState")).toBe("Aktueller Vorfallsstatus");
+    expect(
+      screen
+        .getByTestId("fields-to-pass-on-option-title")
+        .querySelector('[data-part="kind"]'),
+    ).toHaveTextContent("Langer Text");
+
+    // The main fields, the title first, then by the names the list shows.
+    const main: Array<string> = [
+      "title",
+      "currentIncidentState",
+      "declaredAt",
+      "incidentSeverity",
+    ];
+    const order: Array<string> = screen
+      .getAllByRole("option")
+      .map((option: HTMLElement): string => {
+        return (option.getAttribute("data-testid") || "").replace(
+          "fields-to-pass-on-option-",
+          "",
+        );
+      })
+      .filter((path: string): boolean => {
+        return main.includes(path);
+      });
+
+    expect(order).toEqual(main);
+    expect(main.map(nameOf)).toEqual([
+      "Titel",
+      "Aktueller Vorfallsstatus",
+      "Erklärt am",
+      "Vorfallschweregrad",
+    ]);
+  });
+
+  test("a search finds a field by the name on the screen, and still by its key", async () => {
+    await renderGerman({ title: true });
+
+    fireEvent.click(screen.getByTestId("fields-to-pass-on-add"));
+
+    const search: HTMLElement = screen.getByTestId("fields-to-pass-on-search");
+
+    type FoundFunction = () => Array<string>;
+
+    const found: FoundFunction = (): Array<string> => {
+      return screen
+        .getAllByRole("option")
+        .map((option: HTMLElement): string => {
+          return option.querySelector('[data-part="name"]')?.textContent || "";
+        });
+    };
+
+    fireEvent.change(search, { target: { value: "beschr" } });
+    expect(found()[0]).toBe("Beschreibung");
+
+    // Through a related record's German name, to its fields.
+    fireEvent.change(search, { target: { value: "vorfallsstatus" } });
+    expect(found()[0]).toBe("Aktueller Vorfallsstatus › Name");
+
+    // The key is the same in every language.
+    fireEvent.change(search, { target: { value: "description" } });
+    expect(found()[0]).toBe("Beschreibung");
+  });
+
+  test("a list that must hold a field says so in it", async () => {
+    await renderGerman("", "Fields to pass on ist erforderlich.");
+
+    expect(screen.getByTestId("error-message")).toHaveTextContent(
+      /^Wählen Sie mindestens ein Feld aus\.$/,
+    );
+  });
+
+  test("what picking stores is no language's: the keys", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    render(
+      <ModelFieldPicker
+        tableName="Incident"
+        initialValue={{ title: true }}
+        onChange={(value: string) => {
+          onChange(value);
+        }}
+      />,
+      { wrapper: GermanWrapper },
+    );
+
+    await screen.findByTestId("fields-to-pass-on");
+
+    fireEvent.click(screen.getByTestId("fields-to-pass-on-add"));
+    fireEvent.click(
+      screen.getByTestId("fields-to-pass-on-option-currentIncidentState"),
+    );
+    fireEvent.click(
+      screen.getByTestId("fields-to-pass-on-option-currentIncidentState.name"),
+    );
+
+    expect(onChange).toHaveBeenLastCalledWith(
+      JSON.stringify({ title: true, currentIncidentState: { name: true } }),
+    );
   });
 });
 

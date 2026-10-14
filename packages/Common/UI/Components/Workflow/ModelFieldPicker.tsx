@@ -71,6 +71,7 @@ export const ModelFieldPickerCopy: {
   readonly remove: string;
   readonly emptyWatch: string;
   readonly emptyPassOn: string;
+  readonly pickAtLeastOne: string;
   readonly unknownField: string;
   readonly loading: string;
   readonly couldNotLoad: string;
@@ -88,6 +89,7 @@ export const ModelFieldPickerCopy: {
     "Every change to the {{record}} runs this workflow.",
   ),
   emptyPassOn: translationKey("Pick the fields the next steps need."),
+  pickAtLeastOne: translationKey("Pick at least one field."),
   unknownField: translationKey(
     "There is no field called “{{key}}”, so the run leaves it out.",
   ),
@@ -149,14 +151,23 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
     return getStoredPaths(initialValue);
   }, [initialValue]);
 
+  /*
+   * The fields as the reader's language names them: a chip, a row of the
+   * list, what a search finds and the order the list is in are all one name.
+   * A related record's field is named from two of them - "Aktueller
+   * Vorfallsstatus › Name" - which no dictionary holds as one.
+   */
   const options: Array<FieldOption> = useMemo(() => {
     return getFieldOptions({
       columns: schema.columns || [],
       mode: mode,
       displayColumnId: displayColumnId,
       storedPaths: storedPaths,
+      translate: (text: string): string => {
+        return translator.translateText(text) || text;
+      },
     });
-  }, [schema.columns, mode, displayColumnId, storedPaths]);
+  }, [schema.columns, mode, displayColumnId, storedPaths, translator.language]);
 
   const groups: Array<FieldGroup> = useMemo(() => {
     return getFieldGroups({
@@ -319,7 +330,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
   const chipTitle: ChipTitleFunction = (path: string): string => {
     const option: FieldOption | undefined = findFieldOption(options, path);
 
-    return option ? translator.translateText(option.title) || path : path;
+    return option ? option.title || path : path;
   };
 
   if (schema.isLoading || (paths === null && !isJson)) {
@@ -569,11 +580,35 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
         />
       ) : null}
 
-      <div className="flex justify-end">
+      {/*
+       * One line under the list: what is wrong with it, where the eye is
+       * after the red border, and the way out to JSON at the far end. The
+       * message used to come after Edit as JSON, a line further from the
+       * list it is about.
+       */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          {props.error ? (
+            <p
+              className="pt-1 text-sm text-red-600"
+              data-testid="error-message"
+              role="alert"
+            >
+              {/*
+               * A list with nothing in it can only be missing a field, and
+               * says so in its own words: "Fields to pass on is required."
+               * was the form's, for any box left blank.
+               */}
+              {chosen.length === 0
+                ? translator.translateText(ModelFieldPickerCopy.pickAtLeastOne)
+                : props.error}
+            </p>
+          ) : null}
+        </div>
         <button
           type="button"
           data-testid={`${testId}-edit-json`}
-          className="-mr-1 rounded px-1 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:underline"
+          className="-mr-1 shrink-0 rounded px-1 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:underline"
           onClick={() => {
             setIsPanelOpen(false);
             setIsJson(true);
@@ -582,12 +617,6 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
           {translator.translateText(ModelFieldPickerCopy.editAsJson)}
         </button>
       </div>
-
-      {props.error ? (
-        <p className="text-sm text-red-600" data-testid="error-message">
-          {props.error}
-        </p>
-      ) : null}
     </div>
   );
 };

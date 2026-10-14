@@ -1605,12 +1605,16 @@ describe("database help, operation by operation", () => {
       })
       .join(" ");
 
+    // In plain words: what is no change, and what that means for a run.
     expect(notes).toContain(
-      "a field saved with the value it already has is not one",
+      "A field saved with the value it already has is not a change, so it does not start a run.",
     );
     expect(notes).toContain(
-      "when an update does not say which fields changed, the workflow runs anyway",
+      "**Fields to watch** is no guarantee either: when an update does not say which fields changed, the workflow runs anyway.",
     );
+    // "hears changes only ... is not one" made the reader work out what "one" was.
+    expect(notes).not.toContain("hears changes only");
+    expect(notes).not.toContain("is not one.");
   });
 
   test("the triggers say a test run is started with one record, picked by its number or name", () => {

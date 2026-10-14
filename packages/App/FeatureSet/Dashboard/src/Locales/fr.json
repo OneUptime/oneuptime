@@ -14774,7 +14774,6 @@
   "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.": "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.",
   "Please enter the amount to recharge. It is in USD.": "Please enter the amount to recharge. It is in USD.",
   "Please enter the new name of the view": "Please enter the new name of the view",
-  "Please fix errors": "Corrigez les erreurs",
   "Please give this workflow a name of at least 2 letters.": "Donnez à ce flux de travail un nom d'au moins 2 caractères.",
   "Please link a Twilio configuration first.": "Please link a Twilio configuration first.",
   "Please note: Some domain changes might take 72 hours to propagate.": "Please note: Some domain changes might take 72 hours to propagate.",
@@ -17669,7 +17668,6 @@
   "Then restart the agent:": "Redémarrez ensuite l'agent :",
   "Then start it:": "Démarrez-le ensuite :",
   "There are no members in this project to add.": "There are no members in this project to add.",
-  "There are some validation errors on the form. Please fix them before you run the workflow.": "Le formulaire contient des erreurs. Corrigez-les avant d'exécuter le flux de travail.",
   "There are two ways for an MCP client to authenticate.": "There are two ways for an MCP client to authenticate.",
   "There is not enough of this error in the window to read its shape. Widening the window, or opening one of its traces, is the next move.": "There is not enough of this error in the window to read its shape. Widening the window, or opening one of its traces, is the next move.",
   "There is nothing to look this device up by. Give it a MAC address, or set its hostname to an IP address so a router at its site that collects endpoints can learn the MAC from its ARP table — then the switch port appears here once a switch with Collect Connected Endpoints turned on sees it.": "There is nothing to look this device up by. Give it a MAC address, or set its hostname to an IP address so a router at its site that collects endpoints can learn the MAC from its ARP table — then the switch port appears here once a switch with Collect Connected Endpoints turned on sees it.",
@@ -28346,5 +28344,8 @@
   "{{step}} passes on only the ID: the record is already gone.": "{{step}} ne transmet que l'ID : l'élément n'existe déjà plus.",
   "“{{key}}” goes more than one related record deep.": "« {{key}} » va plus loin qu'un seul enregistrement lié.",
   "“{{key}}” has an unexpected value.": "« {{key}} » a une valeur inattendue.",
-  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "« {{key}} » transmet tout l'enregistrement lié. Choisissez-en les champs dont les étapes suivantes ont besoin."
+  "“{{key}}” passes on the whole related record. Pick the fields of it the next steps need.": "« {{key}} » transmet tout l'enregistrement lié. Choisissez-en les champs dont les étapes suivantes ont besoin.",
+  "Not passed on": "Non transmis",
+  "Pick at least one field.": "Choisissez au moins un champ.",
+  "Pick one from the list, or paste its ID.": "Choisissez-en un dans la liste, ou collez son ID."
 }

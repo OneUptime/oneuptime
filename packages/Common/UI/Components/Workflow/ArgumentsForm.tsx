@@ -361,6 +361,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       | ((editor: CodeEditorActions) => ReactNode)
       | undefined;
     customElementDrawsOwnLabel?: boolean | undefined;
+    // A setting that words its own help (a field list), in place of the usual.
+    description?: string | undefined;
   };
 
   const fieldForArgument: FieldForArgumentFunction = (
@@ -385,6 +387,15 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     ) {
       return {
         fieldType: FormFieldSchemaType.CustomComponent,
+        /*
+         * A field list's help is what the list is for, without the
+         * "Optional." or "Required." every other setting's help starts with.
+         * Fields to watch already reads "(Optional)" beside its name and
+         * says what leaving it empty does, and both lists say what empty
+         * means in the list itself; "Optional. ... Leave it empty to ..."
+         * under "(Optional)" said one thing three times.
+         */
+        description: arg.description,
         getCustomElement: (
           _values: FormValues<JSONObject>,
           customProps: CustomElementProps,
@@ -849,6 +860,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       customProps: CustomElementProps,
                     ) => ReactElement | undefined;
                     customElementDrawsOwnLabel?: boolean | undefined;
+                    description?: string | undefined;
                   } = fieldForArgument(arg, argIndex);
 
                   /*

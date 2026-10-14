@@ -72,6 +72,8 @@ export const ValuePickerMenuCopy: {
   readonly notAvailable: PluralTemplate;
   readonly notAvailableHint: string;
   readonly notAvailableTitle: string;
+  readonly notPassedOnTitle: string;
+  readonly fieldCount: PluralTemplate;
 } = {
   // A plural, written whole so the extractor reads both forms.
   notAvailable: {
@@ -82,7 +84,17 @@ export const ValuePickerMenuCopy: {
     "Their values aren't there when this step runs.",
   ),
   notAvailableTitle: translationKey("Not available here"),
+  // Over a record's fields its step does not pass on, and how many there are.
+  notPassedOnTitle: translationKey("Not passed on"),
+  fieldCount: { one: "{{count}} field", other: "{{count}} fields" },
 };
+
+/*
+ * Room kept clear at the bottom of a record's fields while the heading of
+ * the ones that are not passed on is pinned there, so the field the keys are
+ * on is scrolled to above it, not under it.
+ */
+export const EMPTY_HERE_HEADING_ROOM: string = "2.5rem";
 
 export const HIDDEN_SAMPLE_TEXT: string = translationKey("hidden");
 export const HIDDEN_SAMPLE_TITLE: string = translationKey(
@@ -220,6 +232,12 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
 
     const searchRef: React.MutableRefObject<HTMLInputElement | null> =
       useRef<HTMLInputElement | null>(null);
+    const listRef: React.MutableRefObject<HTMLDivElement | null> =
+      useRef<HTMLDivElement | null>(null);
+    const emptyHereHeadingRef: React.MutableRefObject<HTMLDivElement | null> =
+      useRef<HTMLDivElement | null>(null);
+    const emptyHereGroupRef: React.MutableRefObject<HTMLDivElement | null> =
+      useRef<HTMLDivElement | null>(null);
 
     const query: string = props.hasSearchBox ? search : props.query || "";
 
@@ -587,6 +605,28 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
       setSearch("");
       setPath("");
       setPathError(null);
+    };
+
+    type ShowEmptyHereFunction = () => void;
+
+    /*
+     * A press on the heading of the fields that are not passed on brings
+     * them up: the heading to the top of the list, where it is no longer
+     * pinned, and the line that says what to do and the fields under it.
+     */
+    const showEmptyHere: ShowEmptyHereFunction = (): void => {
+      const list: HTMLDivElement | null = listRef.current;
+      const group: HTMLDivElement | null = emptyHereGroupRef.current;
+
+      if (!list || !group) {
+        return;
+      }
+
+      // The heading's own place is right above the fields it is over.
+      list.scrollTop +=
+        group.getBoundingClientRect().top -
+        list.getBoundingClientRect().top -
+        (emptyHereHeadingRef.current?.offsetHeight || 0);
     };
 
     type InsertPathFunction = () => void;
@@ -1099,6 +1139,12 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
 
     const drillNote: string | undefined = drillItem?.drillIn?.note;
 
+    const hasEmptyHereSection: boolean = sections.some(
+      (section: OptionSection): boolean => {
+        return Boolean(section.emptyHereNote);
+      },
+    );
+
     let optionIndex: number = 0;
 
     return (
@@ -1202,7 +1248,13 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 })
               : translator.translateText("Values")
           }
+          ref={listRef}
           className="min-h-0 flex-1 overflow-y-auto py-1"
+          style={
+            hasEmptyHereSection
+              ? { scrollPaddingBottom: EMPTY_HERE_HEADING_ROOM }
+              : undefined
+          }
         >
           {showNotConnected && (
             <div
@@ -1234,8 +1286,29 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             </div>
           )}
 
-          {sections.map((section: OptionSection) => {
+          {sections.map((section: OptionSection, sectionIndex: number) => {
             const headerId: string = `${listboxId}-${section.key}`;
+
+            /*
+             * A record's own section with nothing left in it - a search that
+             * only finds fields that are not passed on - is not drawn: it
+             * was an empty band over the heading of the ones that are.
+             */
+            if (
+              section.options.length === 0 &&
+              !section.title &&
+              !section.note &&
+              !section.emptyHereNote
+            ) {
+              return null;
+            }
+
+            // Whether any value is listed above this section.
+            const hasValuesAbove: boolean = sections
+              .slice(0, sectionIndex)
+              .some((earlier: OptionSection): boolean => {
+                return earlier.options.length > 0;
+              });
             /*
              * The line over a section's values that says what sets them
              * apart - they can be empty on some runs, or are not passed on -
@@ -1251,79 +1324,148 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
               ? `${headerId}-caveat`
               : undefined;
 
+            const isEmptyHere: boolean = Boolean(section.emptyHereNote);
+
             return (
-              <div
-                key={section.key}
-                role="group"
-                aria-labelledby={section.title ? headerId : undefined}
-                aria-describedby={caveatId}
-                className="pb-1"
-              >
-                {section.title && (
+              <React.Fragment key={section.key}>
+                {/*
+                 * The heading over a record's fields that are not passed on.
+                 * It is pinned to the foot of the list for as long as they
+                 * are below it: a step that passes on four fields fills the
+                 * list with them, and nothing said there were sixty more, or
+                 * that they would be empty. Scrolled to, it lets go and
+                 * leads them like any heading. It is its own child of the
+                 * list, not the group's: a pinned element keeps inside its
+                 * parent, and the group is what is out of sight. Pinned, it
+                 * goes down over the list's own bottom padding (py-1), or
+                 * the rows passing under it show in that gap.
+                 *
+                 * The line over it divides it from the fields above: with
+                 * none above - a search found only fields that are not
+                 * passed on - there is nothing to divide it from.
+                 */}
+                {isEmptyHere ? (
                   <div
-                    id={headerId}
-                    className="flex min-w-0 items-center gap-1.5 px-3 pb-1 pt-2"
+                    ref={emptyHereHeadingRef}
+                    className={`sticky -bottom-1 z-10 bg-white px-1 ${
+                      hasValuesAbove ? "pt-1" : ""
+                    }`}
+                    data-testid="value-picker-empty-here-heading"
+                    data-divided={hasValuesAbove ? "true" : "false"}
                   >
-                    {section.iconProp && (
-                      <Icon
-                        icon={section.iconProp}
-                        className="h-3.5 w-3.5 shrink-0 text-gray-400"
-                      />
-                    )}
-                    <span
-                      className="truncate text-xs font-semibold text-gray-700"
-                      data-part="group-title"
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      id={headerId}
+                      data-testid="value-picker-empty-here-toggle"
+                      className={`flex w-full items-center gap-2 px-2 pb-1 text-left text-[11px] text-gray-500 hover:text-gray-700 focus:outline-none ${
+                        hasValuesAbove
+                          ? "border-t border-gray-100 pt-2"
+                          : "pt-1"
+                      }`}
+                      onMouseDown={(
+                        event: React.MouseEvent<HTMLButtonElement>,
+                      ) => {
+                        // The focus stays where it is: the search box, or the field.
+                        event.preventDefault();
+                      }}
+                      onClick={showEmptyHere}
                     >
-                      {translator.translateText(section.title)}
-                    </span>
-                    {/*
-                     * A step's ID, which is all that tells two steps of one
-                     * kind apart - or a line about the group. Read, either
-                     * way: gray-500, not the gray-400 of decoration.
-                     */}
-                    {section.subtitle && (
                       <span
-                        className="truncate text-[11px] text-gray-500"
-                        data-part="group-subtitle"
+                        className="min-w-0 truncate font-semibold uppercase tracking-wider"
+                        data-part="group-title"
                       >
-                        {translator.translateText(section.subtitle)}
+                        {translator.translateText(
+                          ValuePickerMenuCopy.notPassedOnTitle,
+                        )}
                       </span>
-                    )}
+                      <span
+                        className="ml-auto shrink-0"
+                        data-part="group-count"
+                      >
+                        {translator.translatePlural(
+                          ValuePickerMenuCopy.fieldCount,
+                          section.options.length,
+                        )}
+                      </span>
+                    </button>
                   </div>
-                )}
-                {section.availability?.state ===
-                ValueAvailabilityState.Sometimes ? (
-                  <div
-                    id={caveatId}
-                    className="mx-1 mb-1 flex items-start gap-1.5 px-2 text-xs text-amber-700"
-                    data-testid="value-picker-sometimes"
-                  >
-                    <Icon
-                      icon={IconProp.ExclaimationCircle}
-                      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
-                    />
-                    <span>
-                      {translateSentence(
-                        translator,
-                        section.availability.reason,
+                ) : null}
+                <div
+                  ref={isEmptyHere ? emptyHereGroupRef : undefined}
+                  role="group"
+                  aria-labelledby={
+                    section.title || isEmptyHere ? headerId : undefined
+                  }
+                  aria-describedby={caveatId}
+                  className="pb-1"
+                >
+                  {section.title && (
+                    <div
+                      id={headerId}
+                      className="flex min-w-0 items-center gap-1.5 px-3 pb-1 pt-2"
+                    >
+                      {section.iconProp && (
+                        <Icon
+                          icon={section.iconProp}
+                          className="h-3.5 w-3.5 shrink-0 text-gray-400"
+                        />
                       )}
-                    </span>
-                  </div>
-                ) : null}
-                {section.emptyHereNote ? (
-                  <div
-                    id={caveatId}
-                    className="mx-1 mb-1 mt-1 border-t border-gray-100 px-2 pt-2 text-xs text-gray-500"
-                    data-testid="value-picker-empty-here-note"
-                  >
-                    {translateSentence(translator, section.emptyHereNote)}
-                  </div>
-                ) : null}
-                {renderNote(section)}
-                {section.options.map((option: MenuOption) => {
-                  return renderOption(option, optionIndex++, caveatId);
-                })}
-              </div>
+                      <span
+                        className="truncate text-xs font-semibold text-gray-700"
+                        data-part="group-title"
+                      >
+                        {translator.translateText(section.title)}
+                      </span>
+                      {/*
+                       * A step's ID, which is all that tells two steps of one
+                       * kind apart - or a line about the group. Read, either
+                       * way: gray-500, not the gray-400 of decoration.
+                       */}
+                      {section.subtitle && (
+                        <span
+                          className="truncate text-[11px] text-gray-500"
+                          data-part="group-subtitle"
+                        >
+                          {translator.translateText(section.subtitle)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {section.availability?.state ===
+                  ValueAvailabilityState.Sometimes ? (
+                    <div
+                      id={caveatId}
+                      className="mx-1 mb-1 flex items-start gap-1.5 px-2 text-xs text-amber-700"
+                      data-testid="value-picker-sometimes"
+                    >
+                      <Icon
+                        icon={IconProp.ExclaimationCircle}
+                        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
+                      />
+                      <span>
+                        {translateSentence(
+                          translator,
+                          section.availability.reason,
+                        )}
+                      </span>
+                    </div>
+                  ) : null}
+                  {section.emptyHereNote ? (
+                    <div
+                      id={caveatId}
+                      className="mx-1 mb-1 px-2 text-xs text-gray-500"
+                      data-testid="value-picker-empty-here-note"
+                    >
+                      {translateSentence(translator, section.emptyHereNote)}
+                    </div>
+                  ) : null}
+                  {renderNote(section)}
+                  {section.options.map((option: MenuOption) => {
+                    return renderOption(option, optionIndex++, caveatId);
+                  })}
+                </div>
+              </React.Fragment>
             );
           })}
 

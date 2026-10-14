@@ -6,12 +6,15 @@
  */
 
 import RunRecordField, {
+  RUN_RECORD_NUMBER_COLUMN_MAX_CHARACTERS,
   RUN_RECORD_SEARCH_DELAY_MS,
   RunRecordFieldCopy,
   formatRunRecordCreatedAt,
   getExactRunRecord,
   getRunRecordDescription,
   getRunRecordLabel,
+  getRunRecordNumberColumnCharacters,
+  getRunRecordPickHint,
   getRunRecordPlaceholder,
 } from "../../../../UI/Components/Workflow/RunRecordField";
 import { LoadRunRecordsFunction } from "../../../../UI/Components/Workflow/RunRecordSource";
@@ -100,17 +103,21 @@ interface Harness {
   value: () => string;
 }
 
-type RenderFieldFunction = (options?: {
+interface RenderFieldOptions {
   info?: RunRecordTriggerInfo;
   initialValue?: string;
   autoResolve?: Array<RunRecordOption> | undefined;
-}) => Harness;
+  // What the form found wrong with the field, as it hands it over.
+  error?: string | undefined;
+  // The panel asks for the typing to start here.
+  autoFocus?: boolean | undefined;
+}
 
-const renderField: RenderFieldFunction = (options?: {
-  info?: RunRecordTriggerInfo;
-  initialValue?: string;
-  autoResolve?: Array<RunRecordOption> | undefined;
-}): Harness => {
+type RenderFieldFunction = (options?: RenderFieldOptions) => Harness;
+
+const renderField: RenderFieldFunction = (
+  options?: RenderFieldOptions,
+): Harness => {
   const calls: Array<LoadCall> = [];
   const onChange: Mock<(value: string) => void> = jest.fn();
   const onRecordChange: Mock<(record: RunRecordOption | null) => void> =
@@ -151,6 +158,8 @@ const renderField: RenderFieldFunction = (options?: {
           onChange(next);
         }}
         onRecordChange={onRecordChange}
+        error={options?.error}
+        autoFocus={options?.autoFocus}
         load={load}
         now={NOW}
       />
@@ -269,6 +278,65 @@ describe("the record field", () => {
 
     expect(options()).toHaveLength(1);
     expect(screen.queryByText("Most recent")).toBeNull();
+  });
+
+  /*
+   * The list waits for a pause in the typing before it asks. Closed before
+   * the pause was over, it had never asked - and went on saying
+   * "Searching…" every time the box was opened on the same words.
+   */
+  test("closed before the pause was over, the list is asked for when the box is opened again", async () => {
+    const harness: Harness = renderField({ autoResolve: [EIGHT] });
+
+    type SearchesFunction = () => Array<string>;
+
+    const searches: SearchesFunction = (): Array<string> => {
+      return harness.calls.map((call: LoadCall) => {
+        return call.search;
+      });
+    };
+
+    fireEvent.focus(searchBox());
+    await flush();
+    expect(searches()).toEqual([""]);
+
+    fireEvent.change(searchBox(), { target: { value: "data" } });
+    // Left at once: the pause is not over, and nothing asked for "data".
+    fireEvent.blur(searchBox(), { relatedTarget: document.body });
+    await flush(RUN_RECORD_SEARCH_DELAY_MS + 10);
+
+    expect(searches()).toEqual([""]);
+    expect(options()).toHaveLength(0);
+
+    // Opened again on the same words: asked for now, and answered.
+    fireEvent.focus(searchBox());
+    await flush(RUN_RECORD_SEARCH_DELAY_MS + 10);
+
+    expect(searches()).toEqual(["", "data"]);
+    expect(screen.queryByTestId("run-record-field-searching")).toBeNull();
+    expect(options()).toHaveLength(1);
+  });
+
+  test("typed on before the pause was over, only the last words are asked for", async () => {
+    const harness: Harness = renderField({ autoResolve: [EIGHT] });
+
+    fireEvent.focus(searchBox());
+    await flush();
+
+    for (const typed of ["d", "da", "dat", "data"]) {
+      fireEvent.change(searchBox(), { target: { value: typed } });
+      await flush(RUN_RECORD_SEARCH_DELAY_MS / 5);
+    }
+
+    await flush(RUN_RECORD_SEARCH_DELAY_MS + 10);
+
+    expect(
+      harness.calls.map((call: LoadCall) => {
+        return call.search;
+      }),
+    ).toEqual(["", "data"]);
+    expect(screen.queryByTestId("run-record-field-searching")).toBeNull();
+    expect(options()).toHaveLength(1);
   });
 
   test("an older answer never replaces a newer one", async () => {
@@ -864,6 +932,403 @@ describe("every word of the field can be read", () => {
 
     expect(field()).toHaveTextContent("The incidents could not be listed.");
     expect(unreadableWords(field(), PAGE_TEXT_CLASS)).toEqual([]);
+  });
+});
+
+/*
+ * The numbers are a column. "INC-8" and "INC-80" are a character apart, and
+ * each sat in a chip as wide as itself, so the titles after them started at
+ * different places down the list: a ragged edge where the eye reads down.
+ * Every number now sits in a slot as wide as the longest one listed.
+ */
+describe("the numbers line up, so the titles do", () => {
+  const EIGHTY: RunRecordOption = {
+    id: "33333333-3333-4333-8333-333333333333",
+    number: "INC-80",
+    name: "Database replica lag",
+    createdAt: "2026-09-01T08:00:00.000Z",
+    matchedBy: RunRecordMatch.Recent,
+  };
+
+  type NumberSlotsFunction = () => Array<HTMLElement>;
+
+  const numberSlots: NumberSlotsFunction = (): Array<HTMLElement> => {
+    return options().map((option: HTMLElement): HTMLElement => {
+      return option.querySelector('[data-part="number"]') as HTMLElement;
+    });
+  };
+
+  test("the column is as wide as the longest number listed", () => {
+    expect(getRunRecordNumberColumnCharacters([EIGHT, SEVEN])).toBe(5);
+    expect(getRunRecordNumberColumnCharacters([EIGHT, EIGHTY, SEVEN])).toBe(6);
+    // A number under an older, longer prefix sets the width for all.
+    expect(
+      getRunRecordNumberColumnCharacters([
+        EIGHT,
+        { ...SEVEN, number: "INCIDENT-7" },
+      ]),
+    ).toBe(10);
+  });
+
+  test("no numbers, no column", () => {
+    expect(getRunRecordNumberColumnCharacters([])).toBe(0);
+    expect(
+      getRunRecordNumberColumnCharacters([
+        { id: "a", name: "Website", matchedBy: RunRecordMatch.Recent },
+        { id: "b", name: "API", matchedBy: RunRecordMatch.Recent },
+      ]),
+    ).toBe(0);
+  });
+
+  test("a number someone wrote a sentence into does not push every title along", () => {
+    const long: string = "PRODUCTION-INCIDENT-NUMBER-123456";
+
+    expect(long.length).toBeGreaterThan(
+      RUN_RECORD_NUMBER_COLUMN_MAX_CHARACTERS,
+    );
+    expect(
+      getRunRecordNumberColumnCharacters([EIGHT, { ...SEVEN, number: long }]),
+    ).toBe(RUN_RECORD_NUMBER_COLUMN_MAX_CHARACTERS);
+  });
+
+  test("every row's number sits in a slot of that width, in the number's own type", async () => {
+    renderField({ autoResolve: [EIGHT, EIGHTY, SEVEN] });
+
+    fireEvent.focus(searchBox());
+    await flush();
+
+    const slots: Array<HTMLElement> = numberSlots();
+
+    expect(slots).toHaveLength(3);
+
+    for (const slot of slots) {
+      /*
+       * Six characters of the number's type, and the chip's padding on both
+       * sides (px-1.5 twice). On the element, so it is there at first draw.
+       */
+      expect(slot.style.minWidth).toBe("calc(6ch + 0.75rem)");
+      /*
+       * ch is the width of a character of the slot's own type: it has to be
+       * the chip's - monospace, 12px - for six of them to be six of its.
+       */
+      expect(slot).toHaveClass("font-mono", "text-xs", "shrink-0");
+    }
+
+    // The chip itself is as wide as its number, as before.
+    expect(within(slots[0]!).getByText("INC-8")).toHaveClass(
+      "font-mono",
+      "text-xs",
+      "px-1.5",
+    );
+    expect(within(slots[1]!).getByText("INC-80")).toBeInTheDocument();
+
+    // And the title comes right after the slot, on every row.
+    for (const option of options()) {
+      const parts: Array<string | null> = Array.from(option.children).map(
+        (child: Element): string | null => {
+          return child.getAttribute("data-part");
+        },
+      );
+
+      expect(parts.slice(0, 2)).toEqual(["number", "name"]);
+    }
+  });
+
+  test("a record without a number keeps its place in the column, empty", async () => {
+    renderField({
+      autoResolve: [
+        EIGHT,
+        { ...SEVEN, number: undefined } as unknown as RunRecordOption,
+      ],
+    });
+
+    fireEvent.focus(searchBox());
+    await flush();
+
+    const slots: Array<HTMLElement> = numberSlots();
+
+    expect(slots[1]).toBeInTheDocument();
+    expect(slots[1]).toBeEmptyDOMElement();
+    expect(slots[1]!.style.minWidth).toBe("calc(5ch + 0.75rem)");
+    expect(options()[1]).toHaveTextContent("Disk full");
+  });
+
+  test("a model whose records have no numbers has no column at all", async () => {
+    renderField({
+      info: { ...INFO, hasNumber: false },
+      autoResolve: [
+        { id: "a", name: "Website", matchedBy: RunRecordMatch.Recent },
+        { id: "b", name: "API", matchedBy: RunRecordMatch.Recent },
+      ],
+    });
+
+    fireEvent.focus(searchBox());
+    await flush();
+
+    expect(options()).toHaveLength(2);
+    expect(numberSlots()).toEqual([null, null]);
+    expect(options()[0]!.firstElementChild).toHaveAttribute(
+      "data-part",
+      "name",
+    );
+  });
+
+  test("the column follows what is listed: a search that finds shorter numbers narrows it", async () => {
+    const harness: Harness = renderField();
+
+    fireEvent.focus(searchBox());
+    await flush();
+    await act(async () => {
+      harness.calls[0]!.resolve([EIGHT, EIGHTY]);
+    });
+
+    expect(numberSlots()[0]!.style.minWidth).toBe("calc(6ch + 0.75rem)");
+
+    fireEvent.change(searchBox(), { target: { value: "8" } });
+    await flush(RUN_RECORD_SEARCH_DELAY_MS + 10);
+    await act(async () => {
+      harness.calls[1]!.resolve([EIGHT]);
+    });
+
+    expect(numberSlots()[0]!.style.minWidth).toBe("calc(5ch + 0.75rem)");
+  });
+});
+
+/*
+ * What the field says when there is nothing to run with. The form's own
+ * words were "Incident is required." for a box left blank; the field says
+ * the way out instead, the same for nothing picked and for words that name
+ * no record - and tells only a model whose records have numbers to type one.
+ */
+describe("what the field says when it has nothing to run with", () => {
+  type ErrorFunction = () => HTMLElement | null;
+
+  const error: ErrorFunction = (): HTMLElement | null => {
+    return screen.queryByTestId("run-record-field-error");
+  };
+
+  test("nothing is said until the form finds something wrong", () => {
+    renderField();
+
+    expect(error()).toBeNull();
+    expect(searchBox()).toHaveAttribute("aria-invalid", "false");
+  });
+
+  test("a box left blank says to pick one, not that a field is required", () => {
+    renderField({ error: "Incident is required." });
+
+    expect(error()).toHaveTextContent(
+      /^Pick one from the list, or type its number or ID\.$/,
+    );
+    expect(screen.queryByText("Incident is required.")).toBeNull();
+    expect(error()).toHaveAttribute("role", "alert");
+    expect(searchBox()).toHaveAttribute("aria-invalid", "true");
+    expect(searchBox()).toHaveClass("border-red-300");
+  });
+
+  test("words that name no record say the same", () => {
+    renderField({
+      initialValue: "database",
+      error: "Pick one from the list, or type its number or ID.",
+    });
+
+    expect(error()).toHaveTextContent(
+      /^Pick one from the list, or type its number or ID\.$/,
+    );
+  });
+
+  test("a model whose records have no numbers is not told to type one", () => {
+    renderField({
+      info: { ...INFO, singularName: "Monitor", hasNumber: false },
+      error: "Monitor is required.",
+    });
+
+    expect(error()).toHaveTextContent(
+      /^Pick one from the list, or paste its ID\.$/,
+    );
+    expect(error()).not.toHaveTextContent("number");
+  });
+
+  test.each([
+    [true, true, RunRecordFieldCopy.pickFromList],
+    [true, false, RunRecordFieldCopy.pickFromList],
+    [false, true, RunRecordFieldCopy.pickFromListOrId],
+    [false, false, RunRecordFieldCopy.pickFromListOrId],
+  ])(
+    "number %p and name %p: the hint is %p",
+    (hasNumber: boolean, hasName: boolean, hint: string) => {
+      expect(
+        getRunRecordPickHint({
+          ...INFO,
+          hasNumber: hasNumber,
+          hasName: hasName,
+        }),
+      ).toBe(hint);
+    },
+  );
+
+  test("the message can be read where it is", () => {
+    renderField({ error: "Incident is required." });
+
+    expect(
+      unreadableWords(screen.getByTestId("run-record-field"), PAGE_TEXT_CLASS),
+    ).toEqual([]);
+  });
+
+  test("a pick takes the message with it once the form has nothing to say", async () => {
+    type HostFunction = () => ReactElement;
+
+    // A form that says the field is required until it holds something.
+    const Host: HostFunction = (): ReactElement => {
+      const [value, setValue] = useState<string>("");
+
+      return (
+        <RunRecordField
+          workflowId={WORKFLOW_ID}
+          info={INFO}
+          value={value}
+          onChange={setValue}
+          error={value ? undefined : "Incident is required."}
+          load={async (): Promise<Array<RunRecordOption>> => {
+            return [EIGHT];
+          }}
+          now={NOW}
+        />
+      );
+    };
+
+    render(<Host />);
+
+    expect(error()).toBeInTheDocument();
+
+    fireEvent.focus(searchBox());
+    await flush();
+    fireEvent.click(options()[0]!);
+
+    expect(screen.getByTestId("run-record-field-picked")).toBeInTheDocument();
+    expect(error()).toBeNull();
+  });
+});
+
+/*
+ * As the Run Workflow panel opens, the box is where the typing goes: the
+ * newest records are listed at once, and "INC-8" can be typed straight
+ * away. Not where a finger is the pointer: focusing a box there throws the
+ * keyboard over the list the box opens.
+ */
+describe("the focus as the panel opens", () => {
+  type MatchMediaFunction = typeof window.matchMedia;
+
+  const originalMatchMedia: MatchMediaFunction | undefined = window.matchMedia;
+
+  type SetPointerFunction = (isCoarse: boolean) => void;
+
+  const setPointer: SetPointerFunction = (isCoarse: boolean): void => {
+    window.matchMedia = ((query: string): MediaQueryList => {
+      return {
+        matches: query === "(pointer: coarse)" ? isCoarse : false,
+        media: query,
+      } as MediaQueryList;
+    }) as MatchMediaFunction;
+  };
+
+  afterEach(() => {
+    if (originalMatchMedia) {
+      window.matchMedia = originalMatchMedia;
+    } else {
+      delete (window as unknown as { matchMedia?: MatchMediaFunction })
+        .matchMedia;
+    }
+  });
+
+  test("asked for, the box has the focus and the newest records are listed", async () => {
+    setPointer(false);
+
+    const harness: Harness = renderField({
+      autoFocus: true,
+      autoResolve: [EIGHT, SEVEN],
+    });
+
+    expect(searchBox()).toHaveFocus();
+
+    await flush();
+
+    // Nothing was typed or pressed: the list is there because the box is.
+    expect(
+      harness.calls.map((call: LoadCall) => {
+        return call.search;
+      }),
+    ).toEqual([""]);
+    expect(searchBox()).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Most recent")).toBeInTheDocument();
+    expect(options()).toHaveLength(2);
+    // And nothing is picked or reported for it.
+    expect(harness.onChange).not.toHaveBeenCalled();
+  });
+
+  test("the panel is not scrolled to it: it is still sliding in", () => {
+    setPointer(false);
+
+    type FocusFunction = typeof HTMLElement.prototype.focus;
+
+    const focus: FocusFunction = HTMLElement.prototype.focus;
+    const seen: Array<FocusOptions | undefined> = [];
+
+    HTMLElement.prototype.focus = function (
+      this: HTMLElement,
+      focusOptions?: FocusOptions,
+    ): void {
+      seen.push(focusOptions);
+      focus.call(this, focusOptions);
+    };
+
+    try {
+      renderField({ autoFocus: true });
+    } finally {
+      HTMLElement.prototype.focus = focus;
+    }
+
+    expect(seen).toEqual([{ preventScroll: true }]);
+  });
+
+  test("where a finger is the pointer the box is left alone, and nothing is asked for", async () => {
+    setPointer(true);
+
+    const harness: Harness = renderField({
+      autoFocus: true,
+      autoResolve: [EIGHT],
+    });
+
+    await flush();
+
+    expect(searchBox()).not.toHaveFocus();
+    expect(searchBox()).toHaveAttribute("aria-expanded", "false");
+    expect(harness.calls).toEqual([]);
+    expect(options()).toHaveLength(0);
+
+    // A tap on the box opens it, as it always did.
+    fireEvent.focus(searchBox());
+    await flush();
+
+    expect(options()).toHaveLength(1);
+  });
+
+  test("not asked for, the box waits to be opened", async () => {
+    setPointer(false);
+
+    const harness: Harness = renderField({ autoResolve: [EIGHT] });
+
+    await flush();
+
+    expect(searchBox()).not.toHaveFocus();
+    expect(harness.calls).toEqual([]);
+  });
+
+  test("it is not the browser's own autofocus, which would ask a phone for its keyboard", () => {
+    setPointer(true);
+    renderField({ autoFocus: true });
+
+    expect(searchBox()).not.toHaveAttribute("autofocus");
   });
 });
 
