@@ -137,13 +137,13 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
+    await super.onBeforeCreate(createBy);
 
-    if (!onCreate.createBy.data.postedAt) {
-      onCreate.createBy.data.postedAt = OneUptimeDate.getCurrentDate();
+    if (!createBy.data.postedAt) {
+      createBy.data.postedAt = OneUptimeDate.getCurrentDate();
     }
 
-    return onCreate;
+    return { createBy: createBy, carryForward: null };
   }
 
   // Where a message saved as a note came from: no caller may write it.
