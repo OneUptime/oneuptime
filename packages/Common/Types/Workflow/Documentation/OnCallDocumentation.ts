@@ -74,7 +74,7 @@ const aboutExample: AboutExampleFunction = (
 
   if (incidentStep) {
     return {
-      title: "Page about the incident this workflow has",
+      title: "Page about this workflow's incident",
       fields: [
         { name: help.whoSetting, value: help.whoExample },
         { name: "Page About", value: "An incident" },
@@ -93,7 +93,7 @@ const aboutExample: AboutExampleFunction = (
 
   if (alertStep) {
     return {
-      title: "Page about the alert this workflow has",
+      title: "Page about this workflow's alert",
       fields: [
         { name: help.whoSetting, value: help.whoExample },
         { name: "Page About", value: "An alert" },
@@ -140,7 +140,7 @@ const buildPageDocumentation: BuildPageDocumentationFunction = (
     examples: [
       aboutExample(context, help),
       {
-        title: "Tell a channel what the page came to",
+        title: "Tell a channel who was paged",
         code: ownReference(context, "summary"),
         description: `Put it in a message step after this one. It reads like "${help.summaryExample}"`,
       },

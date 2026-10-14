@@ -147,6 +147,8 @@ const getAboutArguments: () => Array<Argument> = (): Array<Argument> => {
         "How severe the new alert is. Each person is paged by their own On-Call Rules for that severity. Left empty, it is the project's most severe.",
       type: ComponentInputType.AlertSeveritySelect,
       required: false,
+      // What an empty list stands for, in the list itself.
+      placeholder: "The project's most severe",
       isAdvanced: true,
       shownWhen: getNewAlertOnly(),
     },
