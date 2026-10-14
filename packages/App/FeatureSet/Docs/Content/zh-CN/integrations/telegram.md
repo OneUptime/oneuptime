@@ -1,56 +1,113 @@
-# Telegram 集成
+# Telegram
 
-向 [Telegram](https://telegram.org) 聊天或群组发送事件更新。OneUptime 内置了 **Telegram** 工作流组件，设置非常快捷。
+在警报触发或事件打开时，向 [Telegram](https://telegram.org) 聊天、群组或频道发送一条消息。OneUptime 的工作流步骤 **Send Message to Telegram** 以你创建的机器人身份发送消息，现成的模板会为警报构建工作流。此集成是 **出站** 的：机器人只发送消息，不读取聊天中的内容。
 
-此集成为**出站**模式：OneUptime 通过 Telegram 机器人发送消息。
+:::cards
+- [工作方式](#工作方式): 警报触发时工作流会做什么。
+- [设置](#设置集成): 一个机器人、它的聊天，然后是工作流：从模板创建或从零开始。
+- [提示](#提示): 纯文本、长消息和事件。
+- [故障排除](#故障排除): Telegram 的错误是什么意思，以及该改什么。
+:::
 
-```text
-OneUptime Incident → On Create  ──►  Telegram component  ──►  message in your chat
+## 工作方式
+
+```mermaid title="从警报到 Telegram 消息"
+flowchart TB
+    fired["警报已触发"] --> trigger["On Create Alert"]
+    trigger --> step["Send Message<br/>to Telegram"]
+    step -->|"Success"| chat["你的聊天中<br/>的消息"]
+    step -->|"Error"| log["Log：未送达<br/>的原因"]
 ```
 
-## 步骤 1——创建机器人并获取令牌
+该步骤以你的机器人身份，通过 Telegram 的 Bot API 把 **Message Text** 发送到聊天。Telegram 接受消息时，它走 **Success** 输出；Telegram 拒绝时，它带着 Telegram 给出的原因走 **Error** 输出。模板把一个 **Log** 步骤连接到 **Error**，所以未能发送的运行会说明原因。
 
-1. 在 Telegram 中，向 [@BotFather](https://t.me/BotFather) 发送消息并输入 `/newbot`。
-2. 按照提示操作。BotFather 会给你一个类似 `123456789:AA...` 的**机器人令牌**。
+## 开始之前
 
-## 步骤 2——找到你的聊天 ID
+- 一个 Telegram 账户，用来创建机器人并把它添加到聊天中。
+- 在 OneUptime 中，拥有创建工作流和变量的权限。在 OneUptime Cloud 上，工作流需要 **Growth** 或更高的计划。
 
-1. 将机器人添加到群组（或与其开始私聊），并向它发送任意消息。
-2. 在浏览器中打开 `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates`。
-3. 在响应中找到 `"chat":{"id":...}`——那个数字就是你的**聊天 ID**（群组 ID 为负数）。
+## 设置集成
 
-## 步骤 3——存储机密
+:::steps
+### 创建机器人
 
-1. 在 OneUptime 中，前往 **工作流 → 全局变量 → 创建**。
-2. 创建 `TELEGRAM_BOT_TOKEN`（机密）和 `TELEGRAM_CHAT_ID`。
+在 Telegram 中，向 [@BotFather](https://t.me/BotFather) 发送 `/newbot` 并回答它的问题。它会给你机器人的令牌，例如 `123456789:ABCdefGhIJKlmnoPQRstuVWxyz`。任何拥有该令牌的人都可以用你的机器人发送消息，所以请像保管密码一样保管它。
 
-## 步骤 4——构建工作流
+### 找到聊天的 ID
 
-1. 打开 **工作流 → 创建工作流**，命名为 `Incidents → Telegram`，并打开 **生成器**。
-2. 添加 **事件** 触发器，设置为 **On Create**。重命名为 `Incident`。
-3. 添加连接到触发器的 **Telegram** 组件：
-   - **Bot token**：`{{variable.TELEGRAM_BOT_TOKEN}}`
-   - **Chat ID**：`{{variable.TELEGRAM_CHAT_ID}}`
-   - **消息**：`🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
-4. **保存**，启用，并创建一个测试事件。消息会出现在你的聊天中。
+1. 把机器人添加到群组，或者让它成为频道的管理员。要给某个人发消息，需要对方先与机器人开始聊天。
+2. 在群组中发送一条提及机器人的消息，例如 `/start@your_bot`，让机器人看到它。
+3. 在浏览器中打开 `https://api.telegram.org/bot<token>/getUpdates`，把 `<token>` 换成机器人的令牌。
+4. 在响应中找到 `"chat":{"id":`。它后面的数字就是聊天的 ID。群组的 ID 以 `-` 开头，大型群组的 ID 以 `-100` 开头。
 
-## 替代方案：API 组件
+公开频道可以用它的 `@username` 来指定，而不用 ID。
 
-**API** 模块同样有效：
+### 构建工作流
 
-- **Method**：`POST`
-- **URL**：`https://api.telegram.org/bot{{variable.TELEGRAM_BOT_TOKEN}}/sendMessage`
-- **Headers**：`Content-Type: application/json`
-- **Body**：`{ "chat_id": "{{variable.TELEGRAM_CHAT_ID}}", "text": "New incident: {{Incident.title}}" }`
+从模板开始，它会为警报构建整个工作流，或者从零开始。
+
+:::tabs
+@tab 从模板创建
+1. 打开 **工作流**，然后点击 **创建工作流**。
+2. 在 **搜索模板…** 中输入 `Telegram`，点击 **Tell Telegram when an alert fires**，然后点击 **使用此模板**。
+3. 保留名称 **Notify Telegram on new alert** 或更改它，然后点击 **下一步**。
+4. 把令牌粘贴到 **Telegram Bot Token** 中，把 ID 粘贴到 **Telegram Chat ID** 中，然后点击 **创建工作流**。
+
+工作流会在 **生成器** 中打开，包含三个步骤：**On Create Alert**；**Send Message to Telegram**，它发送警报的编号、标题、严重程度和状态；以及连接在其 **Error** 输出上的一个 **Log** 步骤。令牌会保存为工作流的机密变量 `telegramBotToken`，ID 保存为 `telegramChatId`。
+@tab 从零开始
+1. 把令牌保存为机密的全局变量：前往 **工作流 → 全局变量**，点击 **创建工作流 变量**，将其命名为 `TELEGRAM_BOT_TOKEN`，然后点击 **下一步**。把令牌粘贴到 **内容** 中，打开 **密钥**，然后点击 **创建工作流 变量**。
+2. 前往 **工作流**，点击 **创建工作流**，选择 **从零开始**，为工作流命名，然后点击 **创建工作流**。
+3. 在 **生成器** 中，点击 **Choose what starts this workflow**，然后在 **Popular** 下选择 **On Create Alert**。点击触发器，在 **Select Fields** 中选择消息要显示的字段，例如 `title` 和 `alertNumberWithPrefix`。
+4. 点击 **添加组件**，搜索 `telegram`，然后点击 **Send Message to Telegram**。把触发器的 **Success** 输出连接到它。
+5. 点击新步骤。在 **Telegram Bot Token** 中点击 **{ }**，然后在 **Global variables** 下选择 `TELEGRAM_BOT_TOKEN`。在 **Chat ID** 中输入聊天的 ID，在 **Message Text** 中写下消息，并用 **{ }** 插入警报的字段。
+:::
+
+从零开始编写的消息通过如下引用读取警报的字段：
+
+```text
+🚨 Alert {{local.components.alert-on-create-1.returnValues.model.alertNumberWithPrefix}} fired
+Title: {{local.components.alert-on-create-1.returnValues.model.title}}
+```
+
+### 开启并测试
+
+在 **生成器** 顶部打开 **已启用**。从现在起，每个新警报都会发送到聊天中。
+
+要在不触发警报的情况下进行测试，请点击 **运行工作流**，并在 **警报 ID** 中填入一个已有警报的 ID。警报的页面会显示它的 ID。点击 **Run Workflow Manually**，然后用 **Run** 确认。**工作流运行** 面板会跟踪这次运行，消息会出现在聊天中。如果该步骤改走 **Error**，**Log** 步骤的那一行会说明原因：请参阅 [故障排除](#故障排除)。
+:::
 
 ## 提示
 
-- 机器人只能在被添加到群组后才能看到消息，且**隐私模式**须允许它——如果 `getUpdates` 返回空，请先给机器人发一条消息，或通过 BotFather 关闭隐私模式。
-- 使用 **条件** 在发送前按严重程度过滤。
-- 在 API 正文中添加 `"parse_mode": "Markdown"`（或使用组件的格式功能）以支持粗体和链接。
+- **纯文本。** 该步骤按输入的原样发送文本，不使用 Telegram 的格式，所以 `*` 和 `_` 会原样显示。
+- **注意 4,096 个字符的限制。** Telegram 接受最多 4,096 个字符的消息。更长的消息会被截断，并以 "… (truncated — see OneUptime for the full text)" 结尾，而不是被拒绝。
+- **事件也可以。** 基于 **On Create Incident** 构建同样的工作流，或者基于 **On Update Incident** 发送状态变更。要只发送部分警报，请在该步骤之前放一个 **If / Else** 块。
+- **会检查令牌的格式。** 格式不像 `123456789:ABCdef…` 的令牌会在发送任何内容之前让运行停止，并且令牌永远不会写入日志。
 
-## 接下来读什么
+## 故障排除
 
-- [集成概览](/docs/integrations/index)——出站模式。
-- [Discord](/docs/integrations/discord)——适用于 Discord 的相同思路。
-- [组件 → Telegram](/docs/workflows/components#telegram)——组件参考。
+当该步骤走 **Error** 时，运行会说明原因：模板的 **Log** 步骤会写下 `❌ Telegram could not deliver the alert notification:`、Telegram 给出的原因，以及机器人必须在聊天中的提醒。
+
+:::details Telegram 返回 "Bad Request: chat not found"
+**Chat ID** 错误，或者机器人看不到该聊天：请把机器人添加到群组，让它成为频道的管理员，或者请对方与机器人开始聊天。群组的 ID 以 `-` 开头。
+:::
+
+:::details Telegram 返回 "Forbidden: bot was blocked by the user" 或 "bot is not a member"
+对方屏蔽了机器人，或者机器人已被移出群组或频道。请把它重新添加回去，或者发送到另一个聊天。
+:::
+
+:::details Telegram 返回 "Unauthorized"
+Telegram 没有接受令牌：它已在 @BotFather 中被吊销，或者复制错了。请从 @BotFather 复制机器人当前的令牌，并替换变量的值。
+:::
+
+:::details Telegram 返回 "Too Many Requests: retry after"
+Telegram 会限制一个机器人的发送速度，尤其是发往群组时。集中出现的警报可能会触及这个限制：请发送更少的消息，例如只针对部分严重程度。
+:::
+
+## 后续步骤
+
+:::cards
+- [工作流组件](/docs/workflows/components#telegram): 步骤的每项设置，以及各输出的含义。
+- [Discord](/docs/integrations/discord): 同样的思路，用于 Discord 频道。
+- [工作流运行记录](/docs/workflows/runs-and-logs): 查看工作流每次运行都做了什么。
+- [集成概述](/docs/integrations/index): 出站模式，以及你可以连接的其他工具。
+:::
