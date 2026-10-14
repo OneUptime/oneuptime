@@ -172,10 +172,9 @@ const connectionFormSource: string = readDashboardSource(
   "SecurityEvents",
   "SecurityEventConnectionFormModal.tsx",
 );
-const navTabsSource: string = readDashboardSource(
-  "Components",
-  "SecurityEvents",
-  "SecurityEventsNavTabs.tsx",
+const navigationSource: string = readDashboardSource(
+  "Utils",
+  "SecurityEventsNavigation.ts",
 );
 const layoutSource: string = readDashboardSource(
   "Pages",
@@ -498,21 +497,18 @@ describe("Security events connections page wiring", () => {
     expect(routesSource).not.toContain("GoogleSecOps");
   });
 
-  test("the page is one of the Security Events header tabs", () => {
-    expect(navTabsSource).toContain('label: "Connections"');
-    expect(navTabsSource).toContain(
-      "RouteMap[PageMap.SECURITY_EVENTS_CONNECTIONS] as Route",
+  test("the page is is in the Security Events side menu", () => {
+    expect(navigationSource).toContain('title: "Connections",');
+    expect(navigationSource).toContain(
+      "page: PageMap.SECURITY_EVENTS_CONNECTIONS,",
     );
   });
 
-  test("the layout renders the Security Events tabs in the page header", () => {
+  test("the layout renders the Security Events side menu", () => {
     expect(layoutSource).toContain(
-      'import SecurityEventsNavTabs from "../../Components/SecurityEvents/SecurityEventsNavTabs"',
+      'import SecurityEventsSideMenu from "./SideMenu"',
     );
-    expect(layoutSource).toContain(
-      "<SecurityEventsNavTabs active={getActiveSecurityEventsTab(path)} />",
-    );
-    expect(layoutSource).not.toContain("sideMenu=");
+    expect(layoutSource).toContain("sideMenu={<SecurityEventsSideMenu />}");
   });
 
   test("the page has a breadcrumb trail", () => {

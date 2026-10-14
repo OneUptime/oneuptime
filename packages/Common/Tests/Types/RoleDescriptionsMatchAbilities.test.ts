@@ -219,11 +219,11 @@ const DESCRIPTIONS: Record<string, string> = {
   [Permission.TelemetryViewer]:
     "Reads logs, traces, metrics, profiles, exceptions and saved views, and changes nothing. Does not see session replays.",
   [Permission.SecurityAdmin]:
-    "Full control over the SIEM: security events, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
+    "Full control over security operations: security events, cases with their detections and notes, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
   [Permission.SecurityMember]:
-    "Reads security events and threat intelligence, sends security events, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure security event connections or delete security data.",
+    "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them and writes their notes), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks or security event connections, or delete security data.",
   [Permission.SecurityViewer]:
-    "Read-only access to security events, detection rules, threat intelligence feeds and indicators, and security event connections.",
+    "Read-only access to security events, cases with their detections and notes, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
   [Permission.SettingsAdmin]:
     "Does everything Settings Member does, and also connects video call providers and reads the audit log. API keys, teams and their permissions, labels, SSO, SMTP, call and SMS settings and domains take Project Admin.",
   [Permission.SettingsMember]:
@@ -607,28 +607,55 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
   },
   [Permission.SecurityAdmin]: {
     may: [
-      ...manages("DetectionRule", "ThreatIntelFeed", "SecurityEventConnection"),
+      ...manages(
+        "DetectionRule",
+        "ThreatIntelFeed",
+        "SecurityEventConnection",
+        "SecurityCase",
+        "SecurityCaseNote",
+        "SecurityPlaybook",
+      ),
       ["create", "SecurityEventItemV1"],
       ["delete", "SecurityEventItemV1"],
       ["delete", "ThreatIntelIndicatorItemV1"],
+      ["delete", "SecurityDetection"],
+      ["create", "SecurityPlaybookRun"],
+      ["update", "SecurityPlaybookRun"],
     ],
     mayNot: [],
   },
   [Permission.SecurityMember]: {
     may: [
-      ...reads("SecurityEventItemV1", "ThreatIntelIndicatorItemV1"),
+      ...reads(
+        "SecurityEventItemV1",
+        "ThreatIntelIndicatorItemV1",
+        "SecurityDetection",
+        "SecurityCaseFeed",
+        "SecurityPlaybook",
+      ),
       ["create", "SecurityEventItemV1"],
-      ...manages("DetectionRule", "ThreatIntelFeed"),
+      ...manages("DetectionRule", "ThreatIntelFeed", "SecurityCaseNote"),
+      ["create", "SecurityCase"],
+      ["update", "SecurityCase"],
+      ["create", "SecurityPlaybookRun"],
+      ["update", "SecurityPlaybookRun"],
     ],
     mayNot: [
-      ...manages("SecurityEventConnection"),
+      ...manages("SecurityEventConnection", "SecurityPlaybook"),
       ["delete", "SecurityEventItemV1"],
       ["delete", "ThreatIntelIndicatorItemV1"],
+      ["delete", "SecurityCase"],
+      ["delete", "SecurityDetection"],
     ],
   },
   [Permission.SecurityViewer]: {
     may: reads(
       "SecurityEventItemV1",
+      "SecurityCase",
+      "SecurityDetection",
+      "SecurityCaseNote",
+      "SecurityPlaybook",
+      "SecurityPlaybookRun",
       "DetectionRule",
       "ThreatIntelFeed",
       "ThreatIntelIndicatorItemV1",

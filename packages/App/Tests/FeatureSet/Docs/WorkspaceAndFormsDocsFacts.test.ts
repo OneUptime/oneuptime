@@ -12,6 +12,15 @@ import FormTargetType, {
   FORM_TARGET_TYPE_TEXT,
 } from "Common/Types/Form/FormTargetType";
 import MicrosoftTeamsCommands from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
+import MicrosoftTeamsHome, {
+  MICROSOFT_TEAMS_HOME_ACTIONS,
+  MICROSOFT_TEAMS_HOME_COMMAND,
+} from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsHome";
+import { SLACK_HOME_ACTIONS } from "Common/Server/Utils/Workspace/Slack/SlackHome";
+import {
+  WORKSPACE_HOME_TEXT,
+  WorkspaceHomeActions,
+} from "Common/Server/Utils/Workspace/WorkspaceHome";
 import { LEGACY_SLACK_COMMANDS } from "Common/Server/Utils/Workspace/Slack/SlackCommandParser";
 import WorkspaceCommands, {
   WORKSPACE_COMMANDS,
@@ -1135,6 +1144,81 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(help).toContain('"which monitors are down right now?"');
     expect(englishPage(TEAMS)).toContain(
       '"which monitors are down right now?"',
+    );
+  });
+
+  /*
+   * The Home - Slack's Home tab, the Teams bot's card - names the buttons
+   * each chat draws on it (WORKSPACE_HOME_TEXT, without the emoji), and no
+   * other: Slack's has Schedule maintenance and redraws itself when opened,
+   * Teams' has Refresh.
+   */
+  it("names the Home's buttons as each chat draws them, and the word that shows it in Teams", () => {
+    const drawn: (actions: WorkspaceHomeActions) => Array<string> = (
+      actions: WorkspaceHomeActions,
+    ): Array<string> => {
+      const titles: Array<string> = [
+        WORKSPACE_HOME_TEXT.declareIncident,
+        WORKSPACE_HOME_TEXT.pageSomeone,
+        ...(actions.scheduleMaintenance
+          ? [WORKSPACE_HOME_TEXT.scheduleMaintenance]
+          : []),
+        WORKSPACE_HOME_TEXT.whoIsOnCall,
+        ...(actions.refresh ? [WORKSPACE_HOME_TEXT.refresh] : []),
+      ];
+
+      // "🚨 Declare incident" is named "Declare incident".
+      return titles
+        .map((title: string): string => {
+          return title.slice(title.indexOf(" ") + 1);
+        })
+        .sort();
+    };
+
+    for (const [page, heading, actions, workspaceType] of [
+      [
+        SLACK,
+        "OneUptime's Home in Slack",
+        SLACK_HOME_ACTIONS,
+        WorkspaceType.Slack,
+      ],
+      [
+        TEAMS,
+        "Your Home in Microsoft Teams",
+        MICROSOFT_TEAMS_HOME_ACTIONS,
+        WorkspaceType.MicrosoftTeams,
+      ],
+    ] as Array<[string, string, WorkspaceHomeActions, WorkspaceType]>) {
+      const home: string = section(englishPage(page), 2, heading);
+      const buttons: string = lineStarting(home, "- **Its buttons.**");
+
+      expect({
+        page,
+        named: boldSpans(buttons)
+          .filter((span: string): boolean => {
+            return span !== "Its buttons.";
+          })
+          .sort(),
+      }).toEqual({ page, named: drawn(actions) });
+      // What somebody not connected yet is offered there.
+      expect(home).toContain(
+        `**${WORKSPACE_HOME_TEXT.connect[workspaceType]}**`,
+      );
+    }
+
+    expect(MICROSOFT_TEAMS_HOME_COMMAND).toBe("home");
+    expect(MicrosoftTeamsHome.isHomeCommand("Home!")).toBe(true);
+    expect(
+      section(englishPage(TEAMS), 2, "Your Home in Microsoft Teams"),
+    ).toContain(
+      `Type \`${MICROSOFT_TEAMS_HOME_COMMAND}\` to the OneUptime bot`,
+    );
+    // The settings card's button that opens the app in Teams.
+    expect(
+      sourceSays(readSource("teamsCard"), "Open OneUptime in Microsoft Teams"),
+    ).toBe(true);
+    expect(englishPage(TEAMS)).toContain(
+      "**Open OneUptime in Microsoft Teams**, under **User Settings** > **Workspace** > **Microsoft Teams**, opens the app in Teams.",
     );
   });
 

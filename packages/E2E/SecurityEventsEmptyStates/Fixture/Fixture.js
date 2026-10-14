@@ -2,7 +2,7 @@
  * Offline fixture for the Security Events pages of a project that has not
  * sent or connected anything yet.
  *
- * The Security Events Layout (Page, breadcrumbs, nav tabs), the Security
+ * The Security Events Layout (Page, breadcrumbs, side menu), the Security
  * Events page (SecurityEventsViewer inside TelemetryViewer), the
  * Connections page (SecurityEventConnectionsTable inside ModelTable) and the
  * Add connection form are the production components from this branch,
@@ -25,6 +25,9 @@
  *            calls window.__securityEventsEmptyStatesFixture
  *            .resolveLatestEvent(). old: the newest event arrived at
  *            OLD_EVENT_TIME, outside the default one-day window.
+ *
+ * The side menu counts the open cases and the playbook runs waiting for
+ * approval beside Cases and Playbook Runs; both answer 0.
  *
  * Every read is recorded on window.__securityEventsEmptyStatesFixture:
  * listRequests (analytics lists carry analytics: true), countRequests,
@@ -53,7 +56,9 @@ import RouteMap, {
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import Project from "Common/Models/DatabaseModels/Project";
+import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
+import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import Service from "Common/Models/DatabaseModels/Service";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
@@ -116,6 +121,8 @@ const project = Object.assign(new Project(), {
 // The tables the two pages read. Every one of them is empty.
 const MODEL_TABLES = [tableName(SecurityEventConnection), tableName(Service)];
 const ANALYTICS_TABLES = [tableName(SecurityEvent)];
+// The side menu's badges: open cases, and runs waiting for approval.
+const BADGE_TABLES = [tableName(SecurityCase), tableName(SecurityPlaybookRun)];
 
 /*
  * ---------------------------------------------------------------------------
@@ -179,6 +186,20 @@ ModelAPI.getCount = async (options) => {
   fixture.countRequests.push({ modelName, query: serialize(options.query) });
   if (!MODEL_TABLES.includes(modelName)) {
     fixture.unhandled.push({ kind: "getCount", modelName });
+  }
+  return 0;
+};
+
+// The side menu's badge counts (CountModelSideMenuItem).
+ModelAPI.count = async (options) => {
+  const modelName = tableName(options.modelType);
+  fixture.countRequests.push({
+    modelName,
+    badge: true,
+    query: serialize(options.query),
+  });
+  if (!BADGE_TABLES.includes(modelName)) {
+    fixture.unhandled.push({ kind: "count", modelName });
   }
   return 0;
 };
@@ -312,13 +333,20 @@ function StubPage(props) {
   );
 }
 
-// Every other Security Events tab: the empty states link to some of them.
+// Every other Security Events page: the empty states link to some of them.
 const STUB_TABS = [
+  [PageMap.SECURITY_EVENTS_OVERVIEW, "Overview"],
+  [PageMap.SECURITY_CASES, "Cases"],
   [PageMap.SECURITY_EVENTS_CORRELATE, "Correlate"],
+  [PageMap.SECURITY_EVENTS_ENTITIES, "Entities"],
   [PageMap.SECURITY_EVENTS_DETECTION_RULES, "Detection Rules"],
-  [PageMap.SECURITY_EVENTS_MONITORS, "Monitors"],
+  [PageMap.SECURITY_EVENTS_RULE_LIBRARY, "Rule Library"],
+  [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE, "ATT&CK Coverage"],
   [PageMap.SECURITY_EVENTS_THREAT_INTEL, "Threat Intel"],
-  [PageMap.SECURITY_EVENTS_DOCUMENTATION, "Documentation"],
+  [PageMap.SECURITY_EVENTS_MONITORS, "Monitors"],
+  [PageMap.SECURITY_PLAYBOOKS, "Playbooks"],
+  [PageMap.SECURITY_PLAYBOOK_RUNS, "Playbook Runs"],
+  [PageMap.SECURITY_EVENTS_DOCUMENTATION, "Setup Guide"],
 ];
 
 function FixtureLayout() {

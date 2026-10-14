@@ -176,7 +176,20 @@ const SLACK_CONTROLS: Array<string> = [
   "Pin to channel",
   "Create New Incident",
   "Create Scheduled Event",
+  // Where the app is in Slack's sidebar, and its Home tab.
+  "Apps",
+  "Home",
 ];
+
+/*
+ * The buttons of the app's Home - Slack's Home tab, the Teams bot's Home
+ * card - which the apps draw in English (WORKSPACE_HOME_TEXT). Slack's has
+ * Schedule maintenance too; Teams' card has Refresh, as a card does not
+ * change by itself.
+ */
+const CHAT_HOME_BUTTONS: Array<string> = ["Declare incident", "Who's on call"];
+const SLACK_HOME_BUTTONS: Array<string> = ["Schedule maintenance"];
+const TEAMS_HOME_BUTTONS: Array<string> = ["Refresh"];
 
 // Microsoft Teams' own menus and buttons, as Teams names them.
 const TEAMS_CONTROLS: Array<string> = [
@@ -262,6 +275,8 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...SLACK_CONNECT_BUTTON,
     ...SLACK_CONTROLS,
     ...PAGE_FORM,
+    ...CHAT_HOME_BUTTONS,
+    ...SLACK_HOME_BUTTONS,
   ],
   [TEAMS]: [
     "Growth",
@@ -270,6 +285,8 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...TEAMS_CONNECT_BUTTON,
     ...TEAMS_CONTROLS,
     ...PAGE_FORM,
+    ...CHAT_HOME_BUTTONS,
+    ...TEAMS_HOME_BUTTONS,
   ],
   [VIDEO]: [...PROVIDER_CONSOLES, ...BRANDS],
   [BUILDING]: [],
@@ -425,6 +442,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What Slack needs.",
     "Who may connect one.",
     "Disconnecting.",
+    // The app's Home.
+    "Your on-call.",
+    "What is open.",
+    "Its buttons.",
   ],
   [TEAMS]: [
     "The project's connection",
@@ -456,6 +477,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What Microsoft 365 needs.",
     "Who may connect one.",
     "Disconnecting.",
+    // The bot's Home.
+    "Your on-call.",
+    "What is open.",
+    "Its buttons.",
   ],
   [VIDEO]: [],
   [BUILDING]: [
@@ -1055,6 +1080,9 @@ describe("the lists this test keeps", () => {
       ...TEAMS_CARD_BUTTONS,
       ...SLACK_CONTROLS,
       ...TEAMS_CONTROLS,
+      ...CHAT_HOME_BUTTONS,
+      ...SLACK_HOME_BUTTONS,
+      ...TEAMS_HOME_BUTTONS,
       ...PROVIDER_CONSOLES,
       ...BRANDS,
       ...listed(KEPT_IN_ENGLISH, ON_SUBMIT),

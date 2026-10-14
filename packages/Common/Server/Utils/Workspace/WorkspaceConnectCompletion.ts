@@ -162,9 +162,9 @@ export default class WorkspaceConnectCompletion {
   /*
    * What the settings page says of a press OneUptime does not finish, in
    * the words the chat answers with (WorkspaceActionAnswers.getAgainPhrase):
-   * a question is asked again - no button asked it, so the page never says
-   * to press one - and a form's button or a command is pressed again. With
-   * nothing to do again, the chat has the whole answer.
+   * a question is asked again and a command run again - no button sent
+   * either, so the page never says to press one - and a form's button is
+   * pressed again. With nothing to do again, the chat has the whole answer.
    */
   public static getAgainOutcome(
     again: WorkspaceConnectRequestAgain | undefined,
@@ -173,9 +173,18 @@ export default class WorkspaceConnectCompletion {
       return ConnectRequestOutcome.Answered;
     }
 
-    return again.kind === WorkspaceConnectRequestAgainKind.Question
-      ? ConnectRequestOutcome.AskAgain
-      : ConnectRequestOutcome.PressAgain;
+    switch (again.kind) {
+      case WorkspaceConnectRequestAgainKind.Question:
+        return ConnectRequestOutcome.AskAgain;
+      /*
+       * A command is run again in Slack and typed again in Teams - never
+       * "pressed": no button sent it.
+       */
+      case WorkspaceConnectRequestAgainKind.Command:
+        return ConnectRequestOutcome.RunAgain;
+      case WorkspaceConnectRequestAgainKind.Button:
+        return ConnectRequestOutcome.PressAgain;
+    }
   }
 
   /*

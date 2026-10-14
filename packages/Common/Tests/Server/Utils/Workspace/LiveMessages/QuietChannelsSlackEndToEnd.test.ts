@@ -281,20 +281,21 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     /*
      * What each new message's notification says. The note, the run's
      * message and the alarm say what they are about - the alarm above all,
-     * which is posted for somebody to act. The record's own messages are as
-     * they always were.
+     * which is posted for somebody to act - and so do the record's own
+     * messages now (WorkspaceNotificationText): they used to buzz phones
+     * with "This content can't be displayed".
      */
     expect(
       posts.map((post: SlackRequest): string | undefined => {
         return post.notification;
       }),
     ).toEqual([
-      undefined,
+      "🚨 Incident INC-8 Created: testslack",
       "NB User 3 could not be added to this channel",
       "PolicyX is paging for Incident INC-8",
       "PolicyX paged nobody at escalation rule 3 of 3 (third) for Incident INC-8",
-      undefined,
-      undefined,
+      "Nitin 👀 Changed Incident INC-8 State to Acknowledged",
+      "Nitin ✅ Changed Incident INC-8 State to Resolved",
     ]);
 
     // Every message went to the incident's channel, as a message of its own.

@@ -146,7 +146,7 @@ const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
 const SECURITY: string = "packages/Common/Server/Utils/SecurityEvent";
 
 const SOURCES: Record<string, string> = {
-  navTabs: `${DASHBOARD}/Components/SecurityEvents/SecurityEventsNavTabs.tsx`,
+  navigation: `${DASHBOARD}/Utils/SecurityEventsNavigation.ts`,
   navigationItems: `${DASHBOARD}/Utils/NavigationItems.tsx`,
   connectionsTable: `${DASHBOARD}/Components/SecurityEvents/SecurityEventConnectionsTable.tsx`,
   detectionRules: `${DASHBOARD}/Pages/SecurityEvents/DetectionRules.tsx`,
@@ -189,8 +189,14 @@ const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 const LINE_BREAK: RegExp = /\n/;
 const WHITESPACE: RegExp = /\s+/g;
 const NUMBERED_STEP: RegExp = /^\d\. /;
-// A tab of a product's header: `label: "Events",`.
-const TAB_LABEL: RegExp = /label: "([^"]+)",/g;
+// An entry of the product's menu: `page: PageMap.SECURITY_EVENTS, title: "Events",`.
+const MENU_ITEM: RegExp = /page: PageMap\.\w+,\s*title: "([^"]+)",/g;
+// A section of the product's menu: `title: "Detect", items: [`.
+const MENU_SECTION: RegExp =
+  /title: "([^"]+)",\s*(?:startsCollapsed: (?:true|false),\s*)?items: \[/g;
+// Where each of the menu's sections starts, to split the source by section.
+const MENU_SECTION_START: RegExp =
+  /title: "[^"]+",\s*(?:startsCollapsed: (?:true|false),\s*)?items: \[/;
 // One option of the monitor's window dropdown: `label: "Last 5 seconds",`.
 const WINDOW_OPTION: RegExp = /label: "(Last [^"]+)",/g;
 // A string array of a source read as text: `const NAME: Array<string> = [ ... ];`.
@@ -450,27 +456,66 @@ describe("the Security Events page", () => {
       "category: observabilityCategory",
     );
     expect(page).toContain(
-      "Open **Products → Security Events**, under **Observability**. Its tabs:",
+      "Open **Products → Security Events**, under **Observability**. Its menu:",
     );
   });
 
-  it("names the product's tabs in the order the product draws them", () => {
-    const labels: Array<string> = allMatches(source("navTabs"), TAB_LABEL, 1);
+  it("names the product's menu entries, and their sections, in the order the product draws them", () => {
+    const navigation: string = source("navigation");
+    const titles: Array<string> = allMatches(navigation, MENU_ITEM, 1);
+    const sections: Array<string> = allMatches(navigation, MENU_SECTION, 1);
 
-    expect(labels).toEqual([
+    expect(titles).toEqual([
+      "Overview",
+      "Security Cases",
       "Events",
       "Correlate",
+      "Entities",
       "Detection Rules",
+      "Rule Library",
+      "ATT&CK Coverage",
       "Threat Intel",
       "Monitors",
+      "Playbooks",
+      "Playbook Runs",
       "Connections",
       "Setup Guide",
     ]);
-    expect(firstCells(rowsOf(page, "How it works"))).toEqual(
-      labels.map((label: string): string => {
-        return `**${label}**`;
+    expect(sections).toEqual([
+      "Overview",
+      "Investigate",
+      "Detect",
+      "Respond",
+      "Sources",
+    ]);
+
+    const rows: Array<Array<string>> = rowsOf(page, "How it works");
+
+    expect(firstCells(rows)).toEqual(
+      titles.map((title: string): string => {
+        return `**${title}**`;
       }),
     );
+
+    // Each entry's section, as the menu groups it: the sections' entries in order.
+    const sectionOfEntry: Array<string> = [];
+    const sectionBodies: Array<string> = navigation
+      .split(MENU_SECTION_START)
+      .slice(1);
+
+    sectionBodies.forEach((body: string, index: number): void => {
+      const entryCount: number = allMatches(body, MENU_ITEM, 1).length;
+
+      for (let entry: number = 0; entry < entryCount; entry++) {
+        sectionOfEntry.push(sections[index] as string);
+      }
+    });
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[1] as string;
+      }),
+    ).toEqual(sectionOfEntry);
   });
 
   it("says only Project Owner, Project Admin and the three Security roles read security data, as the event model allows", () => {
@@ -493,19 +538,22 @@ describe("the Security Events page", () => {
       "Security Viewer",
     ]);
     expect(permissionTitled("Security Admin").description).toContain(
-      "Full control over the SIEM: security events, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections",
+      "Full control over security operations: security events, cases with their detections and notes, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections",
+    );
+    expect(rowNamed(rows, "Security Admin")[1]).toBe(
+      "Everything: events, cases, playbooks, detection rules, threat intel feeds and connections",
     );
     expect(permissionTitled("Security Member").description).toContain(
-      "creates, changes and deletes detection rules and threat intel feeds. Cannot configure security event connections or delete security data.",
+      "works security cases (opens, assigns, changes and closes them and writes their notes), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks or security event connections, or delete security data.",
     );
     expect(rowNamed(rows, "Security Member")[1]).toBe(
-      "Read events and threat intel, and create, change and delete detection rules and feeds. It can't set up connections or delete security data.",
+      "Read events and threat intel, work cases, run playbooks and approve their steps, and create, change and delete detection rules and feeds. It can't set up playbooks or connections, or delete security data.",
     );
     expect(permissionTitled("Security Viewer").description).toBe(
-      "Read-only access to security events, detection rules, threat intelligence feeds and indicators, and security event connections.",
+      "Read-only access to security events, cases with their detections and notes, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
     );
     expect(rowNamed(rows, "Security Viewer")[1]).toBe(
-      "Read events, rules, feeds, indicators and connections",
+      "Read events, cases, playbooks, rules, feeds, indicators and connections",
     );
   });
 
@@ -1091,29 +1139,36 @@ describe("the Security Events page", () => {
     );
   });
 
-  it("creates a rule in the form's four steps, with its fields and defaults", () => {
+  it("creates a rule in the form's five steps, with its fields and defaults", () => {
     const form: string = flat(source("detectionRules"));
     const steps: Array<string> = numberedSteps(page, "Create a rule");
 
     expect(form).toContain(
-      'formSteps={[ { title: "Basic Info", id: "basic-info" }, { title: "Sigma Rule", id: "sigma-rule" }, { title: "Evaluation", id: "evaluation" }, { title: "On Match", id: "on-match" }, ]}',
+      'formSteps={[ { title: "Basic Info", id: "basic-info" }, { title: "Sigma Rule", id: "sigma-rule" }, { title: "Evaluation", id: "evaluation" }, { title: "Security Cases", id: "cases" }, { title: "On Match", id: "on-match" }, ]}',
     );
     expect(
       steps.slice(1).map((step: string): string => {
         return boldSpans(step)[0] as string;
       }),
-    ).toEqual(["Basic Info", "Sigma Rule", "Evaluation", "On Match"]);
+    ).toEqual([
+      "Basic Info",
+      "Sigma Rule",
+      "Evaluation",
+      "Security Cases",
+      "On Match",
+    ]);
     expect(form).toContain(
       "createInitialValues={{ isEnabled: true, evaluationIntervalInMinutes: 5,",
     );
     expect(form).toContain(
-      "shouldCreateAlert: true, shouldWriteDetectionFinding: true, shouldCreateIncident: false, matchCountThreshold: 1, }}",
+      "shouldCreateCase: true, shouldCreateAlert: true, shouldWriteDetectionFinding: true, shouldCreateIncident: false, matchCountThreshold: 1, }}",
     );
 
     for (const title of [
       "Name",
       "Enabled",
       "Sigma Rule (YAML)",
+      "Open a Case on Match",
       "Create Alert on Match",
       "Create Incident on Match",
       "Write Detection Finding on Match",
@@ -1124,7 +1179,8 @@ describe("the Security Events page", () => {
       expect(boldSpans(steps.join("\n"))).toContain(title);
     }
 
-    expect(steps[4]).toContain(
+    expect(steps[4]).toContain("keep **Open a Case on Match** on");
+    expect(steps[5]).toContain(
       "**Create Alert on Match** (on), **Create Incident on Match** (off) and **Write Detection Finding on Match** (on)",
     );
     expect(page).toContain(
@@ -1669,21 +1725,21 @@ describe("the Threat Intelligence page", () => {
   }
 
   it("opens the feeds from Products → Security Events → Threat Intel", () => {
-    expect(source("navTabs")).toContain('label: "Threat Intel",');
+    expect(source("navigation")).toContain('title: "Threat Intel",');
     expect(page).toContain(
       "Open **Products → Security Events → Threat Intel**.",
     );
   });
 
-  it("creates a feed in the form's four steps, with its fields", () => {
+  it("creates a feed in the form's five steps, with its fields", () => {
     const form: string = flat(source("threatIntel"));
     const rows: Array<Array<string>> = rowsOf(page, "Subscribe a feed");
 
     expect(form).toContain(
-      'formSteps={[ { title: "Basic Info", id: "basic-info" }, { title: "TAXII Server", id: "taxii-server" }, { title: "Authentication", id: "authentication" }, { title: "On Match", id: "matching" }, ]}',
+      'formSteps={[ { title: "Basic Info", id: "basic-info" }, { title: "TAXII Server", id: "taxii-server" }, { title: "Authentication", id: "authentication" }, { title: "Security Cases", id: "cases" }, { title: "On Match", id: "matching" }, ]}',
     );
     expect(page).toContain(
-      "Click **Create Threat Intel Feed** and fill in its four steps: **Basic Info**, **TAXII Server**, **Authentication** and **On Match**.",
+      "Click **Create Threat Intel Feed** and fill in its five steps: **Basic Info**, **TAXII Server**, **Authentication**, **Security Cases** and **On Match**.",
     );
 
     for (const row of rows) {

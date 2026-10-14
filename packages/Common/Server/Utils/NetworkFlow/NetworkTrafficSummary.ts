@@ -21,7 +21,7 @@ import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
-import TimeoutException from "../../../Types/Exception/TimeoutException";
+import QueryTimeoutException from "../../../Types/Exception/QueryTimeoutException";
 import { JSONObject } from "../../../Types/JSON";
 import {
   MAX_NETWORK_TRAFFIC_RANGE_DAYS,
@@ -238,8 +238,13 @@ export default class NetworkTrafficSummaryUtil {
           : Promise.resolve(null),
       ]);
     } catch (error) {
+      /*
+       * 504, not 408: a browser resends a request answered 408 on a reused
+       * connection, which would sum all of it again (see
+       * QueryTimeoutException).
+       */
       if (NetworkTrafficAggregationService.isTimeout(error)) {
-        throw new TimeoutException(
+        throw new QueryTimeoutException(
           `Summing this much traffic took longer than ${NETWORK_TRAFFIC_QUERY_TIMEOUT_SECONDS} seconds. Pick a shorter time range, or narrow it to one device or address.`,
         );
       }

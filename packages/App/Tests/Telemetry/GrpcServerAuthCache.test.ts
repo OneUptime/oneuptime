@@ -63,6 +63,10 @@ jest.mock("Common/Server/Services/DatabaseService", () => {
       // no-op
     }
 
+    public keepRowsOnDeleteByQuery(): void {
+      // no-op
+    }
+
     public async findOneBy(_findOneBy: unknown): Promise<unknown> {
       throw new Error(
         "findOneBy stub was not replaced — the test must install its own implementation.",

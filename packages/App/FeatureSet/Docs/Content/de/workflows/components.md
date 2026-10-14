@@ -426,6 +426,8 @@ Felder, die OneUptime selbst ausfüllt, werden beim Schreiben eines Datensatzes 
 
 **Skip** und **Limit** sind zwei Zahlenfelder bei Find Many, Update Many und Delete Many, unter **Weitere Felder** – `Skip: 0` mit `Limit: 100` nimmt die ersten hundert Treffer. **Limit** ist standardmäßig `10`, und bei Update Many und Delete Many begrenzt es, wie viele Datensätze tatsächlich geschrieben werden, nicht nur, wie viele zurückkommen. `Items Deleted: 10` heißt also, dass zehn Datensätze gelöscht wurden, nicht, dass zehn gepasst haben. Erhöhen Sie **Limit**, wenn Sie mehr als zehn ändern möchten.
 
+Delete One und Delete Many leeren per Abfrage nie einen Verlauf. Bei den Statusereignissen eines Monitors und bei den Zustandsverläufen von Vorfällen, Warnungen, geplanten Wartungen und Episoden entfernen sie nie den aktuellen Zustand eines Datensatzes, und sie behalten jedes Statusereignis eines Monitors, das einen Teil der letzten 90 Tage abdeckt, damit eine Statusseite einen Monitor nie grau anzeigt. Das Protokoll der Ausführung sagt, wie viele behalten wurden. Um ein bestimmtes Ereignis zu löschen, fragen Sie es über seine `_id` ab.
+
 **Success** und **Error** melden, ob die Abfrage gelaufen ist, nicht, was sie gefunden hat. Eine Abfrage ohne Treffer gibt `0` zurück und verlässt den Baustein trotzdem über **Success** – das ist kein Fehler. Um danach zu verzweigen, ob etwas gepasst hat, lesen Sie die zurückgegebene Anzahl in einem **If / Else**-Baustein.
 
 ## Nächste Schritte

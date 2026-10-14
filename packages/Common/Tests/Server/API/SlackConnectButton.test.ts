@@ -490,6 +490,38 @@ describe("a Connect button in Slack", () => {
     });
 
     /*
+     * A command - /oneuptime incident - is not a press either: Slack says to
+     * run it again, and the page says the same. It used to say "press the
+     * button again", with no button to press.
+     */
+    test("a command: connected, told in Slack to run it again, and the page says to run it", async () => {
+      const token: string = await press({
+        purpose: "declare an incident",
+        pendingAction: undefined,
+        again: {
+          kind: WorkspaceConnectRequestAgainKind.Command,
+          label: "/oneuptime incident",
+        },
+      });
+
+      const response: ProbeResponse = await comeBack(await signIn(token));
+
+      expect(answersPosted()).toHaveLength(1);
+      expect(
+        (
+          (answersPosted()[0]!.data["blocks"] as Array<JSONObject>)[0]![
+            "text"
+          ] as JSONObject
+        )["text"],
+      ).toBe(
+        "✅ ​*Your Slack account is connected to OneUptime.*​ Now run ​*/oneuptime incident*​ again.\n",
+      );
+      expect(
+        new globalThis.URL(response.location!).searchParams.get("pressed"),
+      ).toBe("run");
+    });
+
+    /*
      * A question to OneUptime AI - an @mention, a direct message - is not a
      * press: once connected, the person asks it again. Slack says so where
      * they were asked to connect, and the page says the same - it used to

@@ -17,7 +17,7 @@ flowchart TB
     events["Nuevos eventos<br/>de seguridad"] --> tag["Marcados al llegar<br/>con atributos<br/>threat.*"]
     indicators --> tag
     indicators --> match["Cotejados cada<br/>minuto con los<br/>eventos recientes"]
-    match --> act["Una alerta, un incidente<br/>opcional y un hallazgo"]
+    match --> act["Un caso, una alerta,<br/>un incidente opcional<br/>y un hallazgo"]
 ```
 
 ## Antes de empezar
@@ -35,7 +35,7 @@ Abre **Productos → Eventos de seguridad → Inteligencia de amenazas**.
 
 ### Crea el feed
 
-Haz clic en **Crear Feed de inteligencia de amenazas** y rellena sus cuatro pasos: **Información básica**, **Servidor TAXII**, **Autenticación** y **Al coincidir**. Los campos están en la tabla de abajo.
+Haz clic en **Crear Feed de inteligencia de amenazas** y rellena sus cinco pasos: **Información básica**, **Servidor TAXII**, **Autenticación**, **Security Cases** y **Al coincidir**. Los campos están en la tabla de abajo.
 
 ### Comprueba la primera consulta
 
@@ -50,6 +50,7 @@ En uno o dos minutos, la fila del feed muestra **Último sondeo**, y **Resumen d
 | **Confianza mínima** | Los indicadores con una `confidence` STIX menor se omiten: de 0 a 100, y 0 lo conserva todo. Los indicadores sin confianza siempre pasan. |
 | **Token de API** | Un token bearer, para una colección que lo pida. |
 | **Usuario de Basic Auth** y **Contraseña de Basic Auth** | Para una colección que use autenticación básica HTTP. Deja ambos y el token vacíos para una colección pública. |
+| **Open a Case on Match** | Activado por defecto: cada evento que nombra un indicador abre un [caso](/docs/telemetry/security-cases) sobre él, o se suma al caso abierto que ya trata sobre él. |
 | **Crear alerta al coincidir** | Activado por defecto: cada indicador coincidente abre una alerta. |
 | **Gravedad de la alerta** | La gravedad de cada alerta que abre este feed. Déjala vacía para tomar el nivel de amenaza de cada indicador. |
 | **Crear incidente al coincidir** | Desactivado por defecto. Los incidentes impulsan la escalada de guardia, los SLA y las páginas de estado, y para las coincidencias de indicadores suelen bastar las alertas. |

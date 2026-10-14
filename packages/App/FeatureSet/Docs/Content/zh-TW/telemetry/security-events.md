@@ -1,11 +1,11 @@
 # 安全性事件(SIEM)
 
-OneUptime 把安全性事件與你的日誌、追蹤和指標存放在一起，並且無論它們以什麼格式抵達，都統一成同一種結構：[OCSF](https://schema.ocsf.io/)（Open Cybersecurity Schema Framework）。你可以從任何來源傳送事件、搜尋它們，並用 Sigma 偵測規則、威脅情資和監測器把重要的事件變成警示。
+OneUptime 把安全性事件與你的日誌、追蹤和指標存放在一起，並且無論它們以什麼格式抵達，都統一成同一種結構：[OCSF](https://schema.ocsf.io/)（Open Cybersecurity Schema Framework）。你可以從任何來源傳送事件、搜尋它們，並用 Sigma 偵測規則、威脅情資和監測器找出重要的事件。它們發現的問題會成為需要處理的 [案件](/docs/telemetry/security-cases)，並由劇本做出回應。
 
 :::cards
 - [傳送事件](#傳送安全性事件): 一個 HTTPS POST、一個 Fluent Bit 輸出，或與安全性產品的連線。
 - [搜尋和關聯分析](#探索安全性事件): 事件探索器和關聯分析圖。
-- [偵測規則](#偵測規則): 會開啟警示的 Sigma 規則。
+- [偵測規則](#偵測規則): 會開啟案件和警示的 Sigma 規則。
 - [監測器](#安全性事件監測器): 滾動時間窗內的計數，以及會恢復的狀態。
 :::
 
@@ -21,21 +21,28 @@ flowchart TB
     normalize --> events["安全性事件"]
     events --> rules["偵測規則<br/>（Sigma）"]
     events --> monitors["安全性事件<br/>監測器"]
-    rules --> act["警示、事件<br/>和偵測結果"]
+    rules --> act["案件、警示<br/>和偵測結果"]
     monitors --> act
 ```
 
-在 **可觀測性** 下開啟 **產品 → Security Events** 。它的分頁如下：
+在 **可觀測性** 下開啟 **產品 → Security Events**。它的選單如下：
 
-| 分頁 | 用途 |
-| --- | --- |
-| **事件** | 搜尋和篩選每個事件，並開啟某個事件查看它的所有欄位 |
-| **關聯分析** | 共用同一主機、使用者或 IP 位址的事件構成的圖 |
-| **Detection Rules** | 依排程執行並開啟警示的 Sigma 規則 |
-| **Threat Intel** | 已知惡意指標的 STIX/TAXII 情資來源 |
-| **監測器** | 專案的安全性事件監測器 |
-| **Connections** | OneUptime 會輪詢新記錄的安全性產品 |
-| **設定指南** | 傳送事件的程式碼片段，已填入你的擷取金鑰 |
+| 頁面 | 區段 | 用途 |
+| --- | --- | --- |
+| **概覽** | 概覽 | 當下需要有人處理的事項，以及案件的處理速度 |
+| **Security Cases** | 概覽 | 偵測到的問題所組成的佇列，依所涉及的對象分組 |
+| **事件** | 調查 | 搜尋和篩選每個事件，並開啟某個事件查看它的所有欄位 |
+| **關聯分析** | 調查 | 共用同一主機、使用者或 IP 位址的事件構成的圖 |
+| **實體** | 調查 | 你的偵測結果中最常提到的使用者、主機和位址 |
+| **Detection Rules** | 偵測 | 依排程執行並開啟案件的 Sigma 規則 |
+| **Rule Library** | 偵測 | 可直接新增的現成偵測規則 |
+| **ATT&CK Coverage** | 偵測 | 你的規則涵蓋的 MITRE ATT&CK 技術 |
+| **Threat Intel** | 偵測 | 已知惡意指標的 STIX/TAXII 情資來源 |
+| **監測器** | 偵測 | 專案的安全性事件監測器 |
+| **Playbooks** | 回應 | 在案件上自動或手動執行的步驟 |
+| **Playbook Runs** | 回應 | 每個劇本做了什麼，以及等待核准的步驟 |
+| **Connections** | 來源 | OneUptime 會輪詢新記錄的安全性產品 |
+| **設定指南** | 來源 | 傳送事件的程式碼片段，已填入你的擷取金鑰 |
 
 ## 開始之前
 
@@ -43,9 +50,9 @@ flowchart TB
 
 | 角色 | 能做什麼 |
 | --- | --- |
-| Security Admin | 一切：事件、偵測規則、威脅情資來源和連線 |
-| Security Member | 讀取事件和威脅情資，並建立、變更和刪除偵測規則和情資來源。不能設定連線，也不能刪除安全性資料。 |
-| Security Viewer | 讀取事件、規則、情資來源、指標和連線 |
+| Security Admin | 一切：事件、案件、劇本、偵測規則、威脅情資來源和連線 |
+| Security Member | 讀取事件和威脅情資，處理案件，執行劇本並核准其步驟，以及建立、變更和刪除偵測規則和情資來源。不能設定劇本或連線，也不能刪除安全性資料。 |
+| Security Viewer | 讀取事件、案件、劇本、規則、情資來源、指標和連線 |
 
 ## 傳送安全性事件
 
@@ -161,6 +168,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS Security Hub | Finding，作為 Detection Finding 和 Compliance Finding | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 登入、MFA、帳戶和原則事件 | [Okta System Log](/docs/integrations/okta) |
 
+- 產品本身的警示，只要等級達到或高於 **Open Cases From**（預設為 **High and above**，你也可以選擇其他等級或 **從未**），就會開啟 [案件](/docs/telemetry/security-cases)，並依它們涉及的使用者、主機或位址分組。
 - 連線依產品建立記錄的時間讀取記錄，而不是依記錄所描述活動的時間。每小時執行一次的 SIEM 規則會在它符合的事件之後很久才建立偵測，這些偵測仍然會被匯入。
 - 第一次輪詢會回溯 24 小時，所以新連線會立即顯示最近的記錄。
 - 連線所在列中的 **測試連線** 會檢查對產品的存取，以及 OneUptime 自己的工作程序是否在執行，不會匯入任何內容。**Run now** 會立即輪詢。
@@ -211,14 +219,14 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ## 偵測規則
 
-偵測規則是一條 [Sigma](https://sigmahq.io/) 規則，一種描述可疑活動的開放 YAML 格式，OneUptime 會依排程對你的事件執行它。符合時，它會開啟一個警示，可選擇開啟一個事件（incident），並把一個 Detection Finding 寫回安全性事件中。
+偵測規則是一條 [Sigma](https://sigmahq.io/) 規則，一種描述可疑活動的開放 YAML 格式，OneUptime 會依排程對你的事件執行它。符合時，它會開啟或併入一個 [案件](/docs/telemetry/security-cases)、開啟一個警示，可選擇開啟一個事件（incident），並把一個 Detection Finding 寫回安全性事件中。**Rule Library** 提供可作為起點的現成規則。
 
 ```mermaid title="偵測規則如何觸發"
 flowchart TB
     tick["每分鐘：執行到期的<br/>規則"] --> query["自規則上次執行<br/>以來的事件"]
     query --> count["依 Group By Field<br/>的每個值計數"]
     count --> check{"計數達到<br/>Match Count Threshold？"}
-    check -->|"是"| fire["警示、選用的事件<br/>和 Detection Finding"]
+    check -->|"是"| fire["案件、警示、<br/>選用的事件<br/>和 Detection Finding"]
     check -->|"否"| wait["什麼也不做，<br/>直到下次執行"]
 ```
 
@@ -229,7 +237,8 @@ flowchart TB
 2. 在 **基本資訊** 中填寫 **名稱** ，並讓 **已啟用** 保持開啟。
 3. 在 **Sigma Rule** 中，把規則的 YAML 貼到 **Sigma Rule (YAML)** 中。儲存時會剖析它，所以錯誤會顯示在表單中。
 4. 在 **評估** 中，設定它執行的頻率以及需要多少次符合；請參閱 [評估設定](#評估設定)。
-5. 在 **符合時** 中選擇符合後要做什麼：**Create Alert on Match**（開啟）、**Create Incident on Match**（關閉）和 **Write Detection Finding on Match**（開啟），以及選用的 **警示嚴重性** 和 **事件嚴重性** 。
+5. 在 **Security Cases** 中讓 **Open a Case on Match** 保持開啟，依規則的分組值把它的符合項目歸入案件。
+6. 在 **符合時** 中選擇符合後還要做什麼：**Create Alert on Match**（開啟）、**Create Incident on Match**（關閉）和 **Write Detection Finding on Match**（開啟），以及選用的 **警示嚴重性** 和 **事件嚴重性**。
 :::
 
 第一條規則，符合來自 `10.x.x.x` 以外的登入失敗：
@@ -374,6 +383,7 @@ Detection Finding 是來自產品 `OneUptime Detections`、類別為 `Detection 
 
 :::cards
 - [威脅情資](/docs/telemetry/threat-intelligence): 將你的事件與 STIX/TAXII 情資來源比對。
+- [安全案件與劇本](/docs/telemetry/security-cases): 處理規則發現的問題，並用劇本做出回應。
 - [Google SecOps](/docs/integrations/google-secops): 匯入 Chronicle 的偵測和事件。
 - [搜尋語法](/docs/telemetry/search-syntax): 搜尋列能理解的一切。
 - [權限參考](/docs/permissions/reference): Security 角色以及每個角色能做什麼。

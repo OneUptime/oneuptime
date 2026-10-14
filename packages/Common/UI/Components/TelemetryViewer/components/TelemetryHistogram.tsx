@@ -22,6 +22,8 @@ import OneUptimeDate from "../../../../Types/Date";
 import useHistogramRangeSelection, {
   HistogramRangeSelectionState,
 } from "../../Charts/Utils/useHistogramRangeSelection";
+import TelemetryLoadErrorMessage from "./TelemetryLoadErrorMessage";
+import { TelemetryLoadError } from "../../../Utils/Telemetry/TelemetryLoadError";
 
 export interface TelemetryHistogramProps {
   buckets: Array<HistogramBucket>;
@@ -49,6 +51,13 @@ export interface TelemetryHistogramProps {
   headerActions?: ReactNode;
   // Formats Y-axis ticks and tooltip values (e.g. milliseconds → "1.2 s").
   valueFormatter?: ((value: number) => string) | undefined;
+  /*
+   * Why the chart's read did not come back. The card stays, with the reason
+   * where the bars go and a way to try again, instead of vanishing as if the
+   * window held nothing (issue #4707).
+   */
+  error?: TelemetryLoadError | undefined;
+  onRetry?: (() => void) | undefined;
 }
 
 interface PivotedRow {
@@ -164,6 +173,43 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
         {...selection.placeholderProps}
       >
         <ComponentLoader />
+      </div>
+    );
+  }
+
+  /*
+   * A zoomed card keeps its "Double-click to reset" hint, as it does over
+   * bars, a loader or an empty box: the box where the bars go still takes
+   * the double-click, so the way back to the range the reader zoomed from
+   * stays where it was.
+   */
+  if (props.error && !props.isLoading) {
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-gray-100 px-4 py-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="text-xs font-medium text-gray-500">
+              {translator.translateText(props.title || "Volume")}
+            </span>
+            {props.onZoomOut && (
+              <span className="text-[10px] text-gray-300">
+                {translator.translateText("Double-click to reset")}
+              </span>
+            )}
+          </div>
+          {props.headerActions}
+        </div>
+        <div
+          className="flex min-h-[120px] select-none items-center justify-center"
+          {...selection.placeholderProps}
+        >
+          <TelemetryLoadErrorMessage
+            error={props.error}
+            subject="chart"
+            variant="chart"
+            onRetry={props.onRetry}
+          />
+        </div>
       </div>
     );
   }

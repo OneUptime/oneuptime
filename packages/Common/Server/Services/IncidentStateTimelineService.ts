@@ -28,6 +28,7 @@ import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTime
 import IncidentMember from "../../Models/DatabaseModels/IncidentMember";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -61,6 +62,16 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("startsAt", 3 * 365); // 3 years
     }
+
+    /*
+     * A delete by query - a workflow's Delete Many, a retention purge,
+     * the purge above - never takes an incident's current state, so a
+     * status page never shows it without one. One entry deleted by its id
+     * is onBeforeDelete's to judge.
+     */
+    this.keepRowsOnDeleteByQuery(
+      StateTimelineRowsKept.forTable("IncidentStateTimeline"),
+    );
   }
 
   /*

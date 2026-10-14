@@ -8,6 +8,9 @@ import React, {
   useState,
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import TelemetryLoadErrorUtil, {
+  TelemetryLoadError,
+} from "Common/UI/Utils/Telemetry/TelemetryLoadError";
 import {
   ActiveFilter,
   FacetConfig,
@@ -595,6 +598,14 @@ const MetricsViewer: FunctionComponent<Props> = (
 
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Facets the time limit stopped, and why the facets did not load at all
+   * (issue #4707): the sidebar says so instead of "No values" or zeros.
+   */
+  const [timedOutFacets, setTimedOutFacets] = useState<Array<string>>([]);
+  const [facetError, setFacetError] = useState<TelemetryLoadError | undefined>(
+    undefined,
+  );
   /*
    * Per-facet search text for resource facets (primaryEntityId / etc.). Updates
    * trigger a backend refetch so the sidebar can show services beyond the
@@ -1488,9 +1499,17 @@ const MetricsViewer: FunctionComponent<Props> = (
       const facets: FacetData = (response.data["facets"] ||
         {}) as unknown as FacetData;
       setFacetData(facets);
-    } catch {
-      // Facets are non-critical; silently degrade
+      setTimedOutFacets(
+        Array.isArray(response.data["timedOutFacets"])
+          ? (response.data["timedOutFacets"] as Array<string>)
+          : [],
+      );
+      setFacetError(undefined);
+    } catch (err) {
+      // Non-critical: the sidebar says why the facets are missing.
       setFacetData({});
+      setTimedOutFacets([]);
+      setFacetError(TelemetryLoadErrorUtil.fromError(err));
     } finally {
       setFacetLoading(false);
     }
@@ -1940,6 +1959,11 @@ const MetricsViewer: FunctionComponent<Props> = (
       facetData={facetData}
       facetConfigs={facetConfigs}
       facetLoading={facetLoading}
+      timedOutFacets={timedOutFacets}
+      facetError={facetError}
+      onRetryFacets={() => {
+        void fetchFacets();
+      }}
       onFacetInclude={handleFacetInclude}
       onFacetSearchChange={(facetKey: string, text: string) => {
         setFacetSearchText(

@@ -41,6 +41,10 @@ jobs:
       # stopped RUM sessions finalizing. Each suite creates and drops its own
       # database, and fails this job if the URL goes missing rather than skip.
       TEST_CLICKHOUSE_URL: http://default:test@localhost:18123
+      # The cluster of two shards the step below gives that server, so
+      # Tests/Telemetry/PagedFindBoundClickhouse also pages through a
+      # Distributed table over two shards, as a sharded install reads one.
+      TEST_CLICKHOUSE_TWO_SHARD_CLUSTER: paged_find_bound_two_shards
     services:
       clickhouse:
         # Match the version docker-compose.base.yml ships. Docker Hub's
@@ -59,6 +63,14 @@ jobs:
           --health-retries 20
     steps:
       - uses: actions/checkout@v4
+      # Two shards, each a database of its own on the one ClickHouse service
+      # (Tests/Telemetry/Fixtures/ClickhouseTwoShardCluster.xml). The server
+      # reads config.d again a moment after it changes, long before the
+      # tests start; the suite waits for the cluster all the same.
+      - name: Give the ClickHouse service a cluster of two shards
+        env:
+          CLICKHOUSE_CONTAINER: ${{ job.services.clickhouse.id }}
+        run: docker cp packages/App/Tests/Telemetry/Fixtures/ClickhouseTwoShardCluster.xml "$CLICKHOUSE_CONTAINER:/etc/clickhouse-server/config.d/paged-find-bound-two-shards.xml"
       # Core is the Community Edition by construction: it must build and pass
       # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
       - name: Remove the Enterprise Edition (core runs without ee/)
@@ -181,6 +193,7 @@ jobs:
               test-calendar-feed-ui
               test-topology-ui
               test-home-overview-ui
+              test-security-operations-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Value Picker (the
           # chip editor's caret handling differs in each).
@@ -310,6 +323,8 @@ jobs:
             output/playwright/custom-field-options-ui/test-results
             output/playwright/security-events-empty-states-ui/*.png
             output/playwright/security-events-empty-states-ui/test-results
+            output/playwright/security-operations-ui/*.png
+            output/playwright/security-operations-ui/test-results
             output/playwright/status-page-search/test-results
             output/playwright/navigation-search/test-results
             output/playwright/pencil-button/test-results

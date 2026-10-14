@@ -717,6 +717,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/security-events",
       },
       {
+        title: "Security Cases and Playbooks (SOAR)",
+        url: "/docs/telemetry/security-cases",
+      },
+      {
         title: "Threat Intelligence (STIX/TAXII)",
         url: "/docs/telemetry/threat-intelligence",
       },
@@ -1096,7 +1100,7 @@ const DocsNav: NavGroup[] = [
     section: "Developers",
     links: [
       {
-        title: "Overview",
+        title: "Terraform Overview",
         url: "/docs/terraform/index",
       },
       {

@@ -77,6 +77,8 @@ import useTelemetryEntityNames from "../../Utils/Telemetry/UseTelemetryEntityNam
 import ResultTotalUtil, {
   ResultTotal,
 } from "../../Utils/Telemetry/ResultTotal";
+import { TelemetryLoadError } from "../../Utils/Telemetry/TelemetryLoadError";
+import TelemetryLoadErrorMessage from "../TelemetryViewer/components/TelemetryLoadErrorMessage";
 import { TelemetryEntityNameMap } from "../../Utils/Telemetry/TelemetryEntityNames";
 import {
   collectLogsEntityIdsToResolve,
@@ -92,6 +94,23 @@ export interface ComponentProps {
   onFilterChanged: (filterOptions: Query<Log>) => void;
   filterData: Query<Log>;
   isLoading: boolean;
+  /*
+   * Why the list did not load (issue #4707). Shown where the rows go —
+   * never in place of the whole viewer — so the search bar, the time range
+   * and the filters stay to narrow the search, with one click to try again.
+   */
+  listError?: TelemetryLoadError | undefined;
+  onRetryList?: (() => void) | undefined;
+  // Why the chart did not load; it says so in its own card.
+  histogramError?: TelemetryLoadError | undefined;
+  onRetryHistogram?: (() => void) | undefined;
+  /*
+   * Facets whose counts the server stopped at the time limit, and why the
+   * facets did not load at all: the sidebar says so.
+   */
+  timedOutFacets?: Array<string> | undefined;
+  facetError?: TelemetryLoadError | undefined;
+  onRetryFacets?: (() => void) | undefined;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
   getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
@@ -1210,6 +1229,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     isResultCountLowerBound: pagingTotal === undefined,
     resultTotal: props.resultTotal,
     rowsThroughPage: logsBeforePage + props.logs.length,
+    hideResultCount: Boolean(props.listError),
     currentPage,
     // No "of N" until there is an N.
     totalPages: pagingTotal === undefined ? undefined : totalPages,
@@ -1309,10 +1329,17 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       )}
 
       {/* Histogram */}
-      {props.histogramBuckets && (
+      {/*
+       * When the list says the search could not finish, a chart that could
+       * not either steps aside rather than say it again: one message, one
+       * Try again (which reruns the chart too).
+       */}
+      {props.histogramBuckets && !(props.listError && props.histogramError) && (
         <LogsHistogram
           buckets={props.histogramBuckets}
           isLoading={props.histogramLoading || false}
+          error={props.histogramError}
+          onRetry={props.onRetryHistogram}
           bucketIntervalMs={props.histogramBucketIntervalMs}
           onTimeRangeSelect={viewerZoom.onTimeRangeSelect}
           onZoomOut={viewerZoom.onZoomOut}
@@ -1343,6 +1370,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               isCollapsedOnSmallScreens={!isFacetPanelOpen}
               facetData={props.facetData}
               isLoading={props.facetLoading || false}
+              timedOutFacets={props.timedOutFacets}
+              facetError={props.facetError}
+              onRetryFacets={props.onRetryFacets}
+              showCountsNotice={!props.listError}
               serviceMap={serviceMap}
               hostMap={hostMap}
               dockerHostMap={dockerHostMap}
@@ -1374,79 +1405,90 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 </div>
               )}
 
-              <LogsTable
-                logs={displayedLogs}
-                serviceMap={serviceMap}
-                resourceEntityMaps={entityLookupMaps}
-                entityNameMap={entityNameMap}
-                isLoading={props.isLoading}
-                focusedRowIndex={
-                  focusedRowIndex >= 0 ? focusedRowIndex : undefined
-                }
-                emptyMessage={
-                  props.noLogsMessage ||
-                  getEmptyMessageWithTimeRange(props.timeRange)
-                }
-                onRowClick={(_log: Log, rowId: string) => {
-                  setSelectedLogId((currentSelected: string | null) => {
-                    if (currentSelected === rowId) {
-                      return null;
-                    }
-
-                    return rowId;
-                  });
-                }}
-                selectedLogId={selectedLogId}
-                sortField={sortField}
-                sortOrder={sortOrder}
-                onSortChange={handleSortChange}
-                selectedColumns={selectedColumns}
-                getTraceRoute={props.getTraceRoute}
-                getSpanRoute={props.getSpanRoute}
-                resolveSpanRoute={props.resolveSpanRoute}
-                renderExpandedContent={(log: Log) => {
-                  return (
-                    <LogDetailsPanel
-                      log={log}
-                      serviceMap={serviceMap}
-                      resourceEntityMaps={entityLookupMaps}
-                      entityNameMap={entityNameMap}
-                      onClose={() => {
-                        setSelectedLogId(null);
-                      }}
-                      getTraceRoute={props.getTraceRoute}
-                      getSpanRoute={props.getSpanRoute}
-                      resolveSpanRoute={props.resolveSpanRoute}
-                      getSessionRoute={props.getSessionRoute}
-                      variant="embedded"
-                      projectId={props.projectId}
-                      onFilterByAttribute={
-                        handleFieldValueSelectWithServiceResolve
+              {props.listError ? (
+                <TelemetryLoadErrorMessage
+                  error={props.listError}
+                  subject="search"
+                  onRetry={props.onRetryList}
+                />
+              ) : (
+                <LogsTable
+                  logs={displayedLogs}
+                  serviceMap={serviceMap}
+                  resourceEntityMaps={entityLookupMaps}
+                  entityNameMap={entityNameMap}
+                  isLoading={props.isLoading}
+                  focusedRowIndex={
+                    focusedRowIndex >= 0 ? focusedRowIndex : undefined
+                  }
+                  emptyMessage={
+                    props.noLogsMessage ||
+                    getEmptyMessageWithTimeRange(props.timeRange)
+                  }
+                  onRowClick={(_log: Log, rowId: string) => {
+                    setSelectedLogId((currentSelected: string | null) => {
+                      if (currentSelected === rowId) {
+                        return null;
                       }
-                    />
-                  );
-                }}
-              />
 
-              <LogsPagination
-                currentPage={currentPage}
-                totalItems={totalItems}
-                hasMore={
-                  pagingTotal === undefined
-                    ? props.hasMore ?? props.logs.length >= pageSize
-                    : undefined
-                }
-                itemsOnCurrentPage={
-                  props.resultTotal || props.hasMore !== undefined
-                    ? props.logs.length
-                    : undefined
-                }
-                pageSize={pageSize}
-                pageSizeOptions={PAGE_SIZE_OPTIONS}
-                onPageChange={handlePageChange}
-                onPageSizeChange={handlePageSizeChange}
-                isDisabled={props.isLoading}
-              />
+                      return rowId;
+                    });
+                  }}
+                  selectedLogId={selectedLogId}
+                  sortField={sortField}
+                  sortOrder={sortOrder}
+                  onSortChange={handleSortChange}
+                  selectedColumns={selectedColumns}
+                  getTraceRoute={props.getTraceRoute}
+                  getSpanRoute={props.getSpanRoute}
+                  resolveSpanRoute={props.resolveSpanRoute}
+                  renderExpandedContent={(log: Log) => {
+                    return (
+                      <LogDetailsPanel
+                        log={log}
+                        serviceMap={serviceMap}
+                        resourceEntityMaps={entityLookupMaps}
+                        entityNameMap={entityNameMap}
+                        onClose={() => {
+                          setSelectedLogId(null);
+                        }}
+                        getTraceRoute={props.getTraceRoute}
+                        getSpanRoute={props.getSpanRoute}
+                        resolveSpanRoute={props.resolveSpanRoute}
+                        getSessionRoute={props.getSessionRoute}
+                        variant="embedded"
+                        projectId={props.projectId}
+                        onFilterByAttribute={
+                          handleFieldValueSelectWithServiceResolve
+                        }
+                      />
+                    );
+                  }}
+                />
+              )}
+
+              {/* No rows to page through while the list could not load. */}
+              {!props.listError && (
+                <LogsPagination
+                  currentPage={currentPage}
+                  totalItems={totalItems}
+                  hasMore={
+                    pagingTotal === undefined
+                      ? props.hasMore ?? props.logs.length >= pageSize
+                      : undefined
+                  }
+                  itemsOnCurrentPage={
+                    props.resultTotal || props.hasMore !== undefined
+                      ? props.logs.length
+                      : undefined
+                  }
+                  pageSize={pageSize}
+                  pageSizeOptions={PAGE_SIZE_OPTIONS}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                  isDisabled={props.isLoading}
+                />
+              )}
             </div>
           </div>
         </div>

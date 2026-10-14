@@ -17,7 +17,7 @@ flowchart TB
     events["新的安全事件"] --> tag["到达时用<br/>threat.* 属性<br/>打标签"]
     indicators --> tag
     indicators --> match["每分钟与<br/>最近的事件比对"]
-    match --> act["警报、可选的事件<br/>和检测结果"]
+    match --> act["案例、警报、<br/>可选的事件<br/>和检测结果"]
 ```
 
 ## 开始之前
@@ -35,7 +35,7 @@ flowchart TB
 
 ### 创建情报源
 
-点击 **创建Threat Intel Feed** ，填写它的四个步骤：**基本信息**、**TAXII Server**、**认证** 和 **匹配时** 。各字段见下表。
+点击 **创建Threat Intel Feed**，填写它的五个步骤：**基本信息**、**TAXII Server**、**认证**、**Security Cases** 和 **匹配时**。各字段见下表。
 
 ### 检查第一次轮询
 
@@ -50,6 +50,7 @@ flowchart TB
 | **Minimum Confidence** | STIX `confidence` 低于该值的指标会被跳过：0 到 100，设为 0 时全部保留。没有 confidence 的指标总能通过。 |
 | **API Token** | bearer 令牌，用于要求令牌的集合。 |
 | **Basic Auth Username** 和 **Basic Auth Password** | 用于使用 HTTP 基本身份验证的集合。公共集合请把两者和令牌都留空。 |
+| **Open a Case on Match** | 默认打开：每个提到指标的事件都会打开一个关于该指标的 [案例](/docs/telemetry/security-cases)，或并入已有的关于该指标的未关闭案例。 |
 | **Create Alert on Match** | 默认打开：每个匹配的指标都会打开一个警报。 |
 | **警报严重性** | 该情报源打开的每个警报的严重程度。留空时使用每个指标的威胁级别。 |
 | **Create Incident on Match** | 默认关闭。事件会驱动值班升级、SLA 和状态页面，而对于指标匹配，通常警报就足够了。 |

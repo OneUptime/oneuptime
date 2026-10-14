@@ -17,7 +17,7 @@ flowchart TB
     events["Nuovi eventi<br/>di sicurezza"] --> tag["Marcati all'arrivo<br/>con attributi<br/>threat.*"]
     indicators --> tag
     indicators --> match["Confrontati ogni<br/>minuto con gli<br/>eventi recenti"]
-    match --> act["Un avviso, un incidente<br/>facoltativo e una risultanza"]
+    match --> act["Un caso, un avviso,<br/>un incidente facoltativo<br/>e una risultanza"]
 ```
 
 ## Prima di iniziare
@@ -35,7 +35,7 @@ Apri **Prodotti → Security Events → Threat Intel**.
 
 ### Crea il feed
 
-Fai clic su **Crea: Threat Intel Feed** e compila i suoi quattro passi: **Informazioni di base**, **TAXII Server**, **Autenticazione** e **In caso di corrispondenza**. I campi sono nella tabella qui sotto.
+Fai clic su **Crea: Threat Intel Feed** e compila i suoi cinque passi: **Informazioni di base**, **TAXII Server**, **Autenticazione**, **Security Cases** e **In caso di corrispondenza**. I campi sono nella tabella qui sotto.
 
 ### Controlla la prima interrogazione
 
@@ -50,6 +50,7 @@ Entro un paio di minuti la riga del feed mostra **Last Polled**, e **Last Poll S
 | **Minimum Confidence** | Gli indicatori con una `confidence` STIX più bassa vengono saltati: da 0 a 100, e 0 tiene tutto. Gli indicatori senza confidenza passano sempre. |
 | **API Token** | Un token bearer, per una raccolta che lo richiede. |
 | **Basic Auth Username** e **Basic Auth Password** | Per una raccolta che usa l'autenticazione HTTP basic. Lascia vuoti entrambi e il token per una raccolta pubblica. |
+| **Open a Case on Match** | Attivo per impostazione predefinita: ogni evento che nomina un indicatore apre un [caso](/docs/telemetry/security-cases) su di esso, o si aggiunge al caso aperto che già lo riguarda. |
 | **Create Alert on Match** | Attivo per impostazione predefinita: ogni indicatore corrispondente apre un avviso. |
 | **Gravità avviso** | La gravità di ogni avviso aperto da questo feed. Lasciala vuota per prendere il livello di minaccia di ogni indicatore. |
 | **Create Incident on Match** | Disattivato per impostazione predefinita. Gli incidenti guidano l'escalation della reperibilità, gli SLA e le pagine di stato, e per le corrispondenze di indicatori di solito bastano gli avvisi. |

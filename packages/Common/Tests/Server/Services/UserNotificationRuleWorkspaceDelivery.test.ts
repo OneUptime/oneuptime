@@ -323,6 +323,7 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
     onCallPolicyEscalationRuleId?: ObjectID;
     teamId?: ObjectID;
     onCallScheduleId?: ObjectID;
+    notificationText?: string;
   }
 
   function sendArg(): CapturedSendArg {
@@ -394,6 +395,20 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
       expect(text).toContain(ACK_SHORT_URL);
       expect(text).toContain(
         "https://oneuptime.example.com/dashboard/incident",
+      );
+    });
+
+    /*
+     * A page is the one message that must be read from a locked phone: its
+     * notification (Slack's top-level text, the Teams card's summary) says
+     * why it buzzed - the headline and what it is about. It used to carry
+     * none, so the phone showed "This content can't be displayed".
+     */
+    test("its notification says the headline and the incident, not nothing", async () => {
+      await execute();
+
+      expect(sendArg().notificationText).toBe(
+        "🚨 New incident assigned to you: 📋 INC-42 — Checkout is down",
       );
     });
 
@@ -579,6 +594,9 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
       expect(arg.incidentId).toBeUndefined();
       expect(markdownText()).toContain("New alert assigned to you");
       expect(markdownText()).toContain("ALR-7");
+      expect(arg.notificationText).toContain(
+        "🚨 New alert assigned to you: 📋 ALR-7",
+      );
     });
 
     test("AlertEpisodeCreated delivers the alert-episode message", async () => {

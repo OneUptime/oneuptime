@@ -352,6 +352,15 @@ export interface BaseTableProps<
   showAs?: ShowAs | undefined;
   singularName?: string | undefined;
   pluralName?: string | undefined;
+  /*
+   * What one row is called wherever the table names it - its checkbox and
+   * its ⋯ for a screen reader, the rows a bulk action lists before and after
+   * it runs, the per-row Delete question - for a model with no name column
+   * of its own. A monitor's status event has none: without this, a bulk
+   * Delete listed the one it skipped by its id. Return "" to fall back to the
+   * row's name column, as a table without the prop does.
+   */
+  getItemName?: ((item: TBaseModel) => string) | undefined;
   actionButtons?: Array<ActionButtonSchema<TBaseModel>> | undefined;
   deleteButtonText?: string | undefined;
   onCreateEditModalClose?: (() => void) | undefined;
@@ -668,7 +677,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * never guesses at a name it was not given.
    */
   const getItemLabel: GetItemLabelFunction = (item: unknown): string => {
-    return getRecordDisplayName(item, { model: model });
+    const givenName: string =
+      item && props.getItemName
+        ? props.getItemName(item as TBaseModel).trim()
+        : "";
+
+    return givenName || getRecordDisplayName(item, { model: model });
   };
 
   // The header's create button, "<verb> <noun>".
@@ -3861,7 +3875,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         bulkSelectionTotalCount={bulkSelectionTotalCount}
         matchBulkSelectedItemByField={matchBulkSelectedItemByField || "_id"}
         bulkItemToString={(item: TBaseModel) => {
-          const label: string = props.singularName || item.singularName || "";
+          /*
+           * The kind of row in the reader's language, like the rest of the
+           * bulk dialog around it ("Monitor-Statusereignis: ..." in German).
+           */
+          const label: string = tx(
+            props.singularName || item.singularName || "",
+          );
           // Same deriver the delete confirmation uses, so the two cannot drift.
           const name: string = getItemLabel(item);
           if (name) {
@@ -3966,7 +3986,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         isDragDisabled={isDragDisabled}
         dragDisabledReason={dragDisabledReason}
         itemToString={(item: TBaseModel): string => {
-          const label: string = props.singularName || item.singularName || "";
+          const label: string = tx(
+            props.singularName || item.singularName || "",
+          );
           const name: string = getItemLabel(item);
           return name && label ? `${label}: ${name}` : name || label;
         }}
@@ -4771,8 +4793,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       splitButtonsForHeader(cardButtons);
     const moreMenu: ReactElement | null = renderMoreMenu(rest);
 
+    /*
+     * One row while it fits; in a narrow card (a phone, or beside a product's
+     * side menu) the buttons wrap under the search, at the right edge,
+     * instead of the row running off the card's left edge.
+     */
     const wrapped: ReactElement = (
-      <div key="model-table-header-actions" className="flex items-center gap-3">
+      <div
+        key="model-table-header-actions"
+        className="flex flex-wrap items-center justify-end gap-3"
+      >
         {/*
          * Search slot — a compact pill showing "Search …    /" by default,
          * grown into the full search bar when expanded. Always advertising
@@ -4780,7 +4810,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
          * polished search affordance, in line with Stripe / Linear / GitHub.
          */}
         <div
-          className={`relative shrink-0 transition-[width] duration-300 ease-out ${
+          className={`relative max-w-full shrink-0 transition-[width] duration-300 ease-out ${
             isExpanded ? "w-[22rem] sm:w-[26rem] lg:w-[32rem]" : "w-44 sm:w-56"
           }`}
         >

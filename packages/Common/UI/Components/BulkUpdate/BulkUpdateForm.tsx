@@ -455,12 +455,23 @@ const BulkUpdateForm: <T extends GenericObject>(
                 ? props.itemToString(entry.item)
                 : "";
 
+              /*
+               * A reason the server gave is English. When the reader's
+               * language has its own wording for it - a refusal the Dashboard
+               * also shows, such as a monitor's only status event - the list
+               * says it in theirs, as the error dialog for one row does.
+               */
+              const message: string | ReactElement =
+                typeof entry.message === "string"
+                  ? translator.translateText(entry.message) || entry.message
+                  : entry.message;
+
               return (
                 <div className="px-4 py-3 text-sm" key={i}>
                   {itemName && (
                     <div className="font-medium text-gray-900">{itemName}</div>
                   )}
-                  <div className="text-gray-500 mt-0.5">{entry.message}</div>
+                  <div className="text-gray-500 mt-0.5">{message}</div>
                 </div>
               );
             },

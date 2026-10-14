@@ -169,6 +169,8 @@ const EXTERNAL_CONSOLE_LABELS: Record<string, Array<string>> = {
     "App Manifest",
     // The button the app answers a press from an unconnected account with.
     "Connect Slack account",
+    // The app's own tab in Slack.
+    "Home",
   ],
   [TEAMS]: [
     // The button the bot answers a press from an unconnected account with.

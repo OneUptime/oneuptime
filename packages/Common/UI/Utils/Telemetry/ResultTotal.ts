@@ -1,4 +1,4 @@
-import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import TelemetryLoadErrorUtil from "./TelemetryLoadError";
 
 /*
  * How many rows a telemetry explorer's query matches — the "712,345 spans"
@@ -85,12 +85,13 @@ export default class ResultTotalUtil {
 
   /*
    * Why a count request failed, in the terms the explorers explain it in. The
-   * API answers an exact count that ran out of time with 408.
+   * API answers an exact count that ran out of time with 504 (408 from a
+   * server older than issue #4707's fix) — see TelemetryLoadError.
    */
   public static getUnavailableReason(
     error: unknown,
   ): ResultTotalUnavailableReason {
-    if (error instanceof HTTPErrorResponse && error.statusCode === 408) {
+    if (TelemetryLoadErrorUtil.isTimedOut(error)) {
       return ResultTotalUnavailableReason.TooManyToCount;
     }
 

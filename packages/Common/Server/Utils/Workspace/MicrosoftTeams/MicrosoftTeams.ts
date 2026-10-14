@@ -12,6 +12,7 @@ import WorkspaceMessagePayload, {
   WorkspaceMessagePayloadButton,
   WorkspaceModalBlock,
   WorkspacePayloadButtons,
+  WorkspacePayloadContext,
   WorkspacePayloadHeader,
   WorkspacePayloadImage,
   WorkspacePayloadInlineImage,
@@ -39,12 +40,6 @@ import WorkspaceProjectAuthToken, {
   MicrosoftTeamsInstalledTeam,
   MicrosoftTeamsMiscData,
 } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
-import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
-import Alert from "../../../../Models/DatabaseModels/Alert";
-import AlertState from "../../../../Models/DatabaseModels/AlertState";
-import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
-import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import OneUptimeDate from "../../../../Types/Date";
 import {
   MicrosoftTeamsAppClientId,
@@ -52,21 +47,11 @@ import {
   MicrosoftTeamsAppTenantId,
 } from "../../../EnvironmentConfig";
 
-// Import services for bot commands
-import IncidentService from "../../../Services/IncidentService";
-import AlertService from "../../../Services/AlertService";
-import ScheduledMaintenanceService from "../../../Services/ScheduledMaintenanceService";
-import ScheduledMaintenanceStateService from "../../../Services/ScheduledMaintenanceStateService";
-import IncidentStateService from "../../../Services/IncidentStateService";
-import AlertStateService from "../../../Services/AlertStateService";
-
 // Import user services
 import User from "../../../../Models/DatabaseModels/User";
 import UserService from "../../../Services/UserService";
 
 // Import database utilities
-import QueryHelper from "../../../Types/Database/QueryHelper";
-import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { truncateToLength } from "../../Database/TruncateColumnValue";
 import { removeHtmlMarkup } from "../../../../Types/HtmlMarkup";
@@ -120,6 +105,8 @@ import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
 import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplicator";
 import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
 import MicrosoftTeamsPage from "./MicrosoftTeamsPage";
+import MicrosoftTeamsMentionText from "./MicrosoftTeamsMentionText";
+import MicrosoftTeamsHome from "./MicrosoftTeamsHome";
 import MicrosoftTeamsCommands, {
   MicrosoftTeamsListCommand,
 } from "./MicrosoftTeamsCommands";
@@ -363,9 +350,6 @@ export interface MicrosoftTeamsRosterMember {
   userPrincipalName: string;
   name: string;
 }
-
-// How many affected monitors a "show ..." reply names for one item.
-const MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES: number = 10;
 
 /*
  * Hosts that may receive a Teams incoming webhook. Legacy Connector webhooks
@@ -1196,6 +1180,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     projectId: ObjectID;
     workspaceUserId: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
+    /*
+     * What the notification of the message says (the card's summary): a
+     * page notifies, so it says something readable, not "sent a card".
+     */
+    text?: string | undefined;
   }): Promise<void> {
     const adaptiveCard: JSONObject = this.buildAdaptiveCardFromMessageBlocks({
       messageBlocks: data.messageBlocks,
@@ -1248,6 +1237,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         chatId: capturedPersonalChat.id,
         projectId: data.projectId,
         adaptiveCard: adaptiveCard,
+        ...(data.text ? { summary: data.text } : {}),
       });
       return;
     }
@@ -1307,6 +1297,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             contentType: "application/vnd.microsoft.card.adaptive",
             content: adaptiveCard,
           });
+
+          if (data.text) {
+            message.summary = data.text;
+          }
 
           await context.sendActivity(message);
         },
@@ -3083,7 +3077,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
   }
 
-  private static buildAdaptiveCardFromMessageBlocks(data: {
+  /*
+   * A card drawn from message blocks - the same blocks Slack draws a
+   * message from: Markdown, headers, dividers and buttons.
+   */
+  public static buildAdaptiveCardFromMessageBlocks(data: {
     messageBlocks: Array<WorkspaceMessageBlock>;
     /*
      * Whether the card shows the message's inline images
@@ -3147,6 +3145,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           payloadMarkdownBlock: markdownBlock,
         });
         body.push(markdownObj);
+      } else if (block._type === "WorkspacePayloadContext") {
+        body.push(
+          this.getContextBlock({
+            payloadContextBlock: block as WorkspacePayloadContext,
+          }),
+        );
       } else if (block._type === "WorkspacePayloadHeader") {
         const headerBlock: WorkspacePayloadHeader =
           block as WorkspacePayloadHeader;
@@ -3416,6 +3420,27 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     };
   }
 
+  /*
+   * Small, muted text under a card's content (WorkspacePayloadContext): a
+   * subtle small text block, a little apart from what is above it.
+   */
+  @CaptureSpan()
+  public static override getContextBlock(data: {
+    payloadContextBlock: WorkspacePayloadContext;
+  }): JSONObject {
+    return {
+      ...this.getMarkdownBlock({
+        payloadMarkdownBlock: {
+          _type: "WorkspacePayloadMarkdown",
+          text: data.payloadContextBlock.text,
+        },
+      }),
+      isSubtle: true,
+      size: "Small",
+      spacing: "Medium",
+    };
+  }
+
   @CaptureSpan()
   public static override getHeaderBlock(data: {
     payloadHeaderBlock: WorkspacePayloadHeader;
@@ -3468,14 +3493,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       return openUrl;
     }
 
-    return {
+    const submit: JSONObject = {
       type: "Action.Submit",
       title: data.payloadButtonBlock.title,
       data: {
         action: data.payloadButtonBlock.actionId,
         actionValue: data.payloadButtonBlock.value,
       },
-    } as any;
+    };
+
+    // The one button the card asks for: Teams draws it as its positive action.
+    if (data.payloadButtonBlock.isPrimary) {
+      submit["style"] = "positive";
+    }
+
+    return submit;
   }
 
   // Other block methods - placeholders for now
@@ -3689,20 +3721,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       return;
     }
 
-    // Clean the message text by removing bot mentions
-    const cleanText: string = messageText
-      .replace(/<at[^>]*>.*?<\/at>/g, "")
-      .trim()
-      .toLowerCase();
-
     /*
      * Preserve the original casing of the user's question. The AI assistant
      * should receive the free-form text exactly as the user typed it (case,
-     * punctuation and spacing all matter), with only the bot @mention stripped.
+     * punctuation and spacing all matter), with only the @mentions stripped
+     * - read in one walk, however long the message (MicrosoftTeamsMentionText).
      */
-    const originalQuestionText: string = messageText
-      .replace(/<at[^>]*>.*?<\/at>/g, "")
-      .trim();
+    const originalQuestionText: string =
+      MicrosoftTeamsMentionText.removeMentions(messageText).trim();
+
+    // The same text in lower case, for the commands Teams matches exactly.
+    const cleanText: string = originalQuestionText.toLowerCase();
 
     /*
      * Teams' own lists ("show active incidents") are matched exactly, so a
@@ -3730,7 +3759,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       (input.misspelt ? `misspelt ${input.misspelt.command}` : undefined);
 
     let projectId: ObjectID | undefined = undefined;
-    let responseText: string = "";
 
     try {
       // Extract tenant ID to get project ID
@@ -3766,96 +3794,103 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         `Found project ID: ${projectId.toString()} for tenant ID: ${tenantId}`,
       );
 
+      // "home": the sender's Home, as a card (MicrosoftTeamsHome).
+      if (MicrosoftTeamsHome.isHomeCommand(cleanText)) {
+        await MicrosoftTeamsHome.handleCommand({
+          turnContext: data.turnContext,
+          activity: data.activity,
+          projectId: projectId,
+        });
+        return;
+      }
+
       if (listCommand) {
-        responseText = await this.getListCommandMessage(listCommand, projectId);
-      } else {
-        switch (input.command) {
-          case WorkspaceCommandName.Help:
-            await MicrosoftTeamsCommands.replyHelp({
-              turnContext: data.turnContext,
-            });
-            return;
-          case WorkspaceCommandName.Incident:
-            // "incident <title>" opens the form with the title filled in.
-            logger.debug("Processing the incident command");
-            await MicrosoftTeamsCreateCommands.handleCreateIncidentCommand({
+        /*
+         * Teams' own lists, read as the member the sender's account is
+         * connected to (MicrosoftTeamsCommands.handleListCommand).
+         */
+        await MicrosoftTeamsCommands.handleListCommand({
+          turnContext: data.turnContext,
+          activity: data.activity,
+          projectId: projectId,
+          listCommand: listCommand,
+        });
+        return;
+      }
+      switch (input.command) {
+        case WorkspaceCommandName.Help:
+          await MicrosoftTeamsCommands.replyHelp({
+            turnContext: data.turnContext,
+          });
+          return;
+        case WorkspaceCommandName.Incident:
+          // "incident <title>" opens the form with the title filled in.
+          logger.debug("Processing the incident command");
+          await MicrosoftTeamsCreateCommands.handleCreateIncidentCommand({
+            turnContext: data.turnContext,
+            activity: data.activity,
+            projectId: projectId,
+            initialTitle: WorkspaceCommands.toTitle(input.text),
+          });
+          return;
+        case WorkspaceCommandName.Maintenance:
+          // "maintenance <title>" opens the form with the title filled in.
+          logger.debug("Processing the maintenance command");
+          await MicrosoftTeamsCreateCommands.handleCreateScheduledMaintenanceCommand(
+            {
               turnContext: data.turnContext,
               activity: data.activity,
               projectId: projectId,
               initialTitle: WorkspaceCommands.toTitle(input.text),
-            });
-            return;
-          case WorkspaceCommandName.Maintenance:
-            // "maintenance <title>" opens the form with the title filled in.
-            logger.debug("Processing the maintenance command");
-            await MicrosoftTeamsCreateCommands.handleCreateScheduledMaintenanceCommand(
-              {
-                turnContext: data.turnContext,
-                activity: data.activity,
-                projectId: projectId,
-                initialTitle: WorkspaceCommands.toTitle(input.text),
-              },
-            );
-            return;
-          case WorkspaceCommandName.OnCall:
-            await MicrosoftTeamsCommands.handleOnCallCommand({
+            },
+          );
+          return;
+        case WorkspaceCommandName.OnCall:
+          await MicrosoftTeamsCommands.handleOnCallCommand({
+            turnContext: data.turnContext,
+            activity: data.activity,
+            projectId: projectId,
+          });
+          return;
+        case WorkspaceCommandName.Page:
+          /*
+           * "page @Nawaz <message>" pages at once; anything else opens
+           * the Page someone card. The people are read from the
+           * message's own mentions, which the text above has dropped.
+           */
+          await MicrosoftTeamsPage.handleCommand({
+            turnContext: data.turnContext,
+            activity: data.activity,
+            projectId: projectId,
+          });
+          return;
+        case WorkspaceCommandName.Ask:
+        case null:
+          /*
+           * A command misspelt is answered with the command it looks like,
+           * not by AI.
+           */
+          if (input.misspelt) {
+            await MicrosoftTeamsCommands.replyMisspelling({
               turnContext: data.turnContext,
-              activity: data.activity,
-              projectId: projectId,
+              misspelt: input.misspelt,
             });
             return;
-          case WorkspaceCommandName.Page:
-            /*
-             * "page @Nawaz <message>" pages at once; anything else opens
-             * the Page someone card. The people are read from the
-             * message's own mentions, which the text above has dropped.
-             */
-            await MicrosoftTeamsPage.handleCommand({
-              turnContext: data.turnContext,
-              activity: data.activity,
-              projectId: projectId,
-            });
-            return;
-          case WorkspaceCommandName.Ask:
-          case null:
-            /*
-             * A command misspelt is answered with the command it looks like,
-             * not by AI.
-             */
-            if (input.misspelt) {
-              await MicrosoftTeamsCommands.replyMisspelling({
-                turnContext: data.turnContext,
-                misspelt: input.misspelt,
-              });
-              return;
-            }
+          }
 
-            /*
-             * AI Ops: any message that is not one of the explicit commands
-             * above is a natural-language question for the observability
-             * assistant, as is the text after "ask".
-             */
-            await this.answerObservabilityQuestion({
-              activity: data.activity,
-              turnContext: data.turnContext,
-              projectId: projectId,
-              question: input.text,
-            });
-            return;
-        }
+          /*
+           * AI Ops: any message that is not one of the explicit commands
+           * above is a natural-language question for the observability
+           * assistant, as is the text after "ask".
+           */
+          await this.answerObservabilityQuestion({
+            activity: data.activity,
+            turnContext: data.turnContext,
+            projectId: projectId,
+            question: input.text,
+          });
+          return;
       }
-
-      /*
-       * Send response directly using TurnContext - this is the recommended Bot
-       * Framework pattern. Lists grow with the project, so the text is kept
-       * within what Teams accepts.
-       */
-      await data.turnContext.sendActivity(
-        MicrosoftTeamsMessageSize.fitTextToBudget({ text: responseText }),
-      );
-      logger.debug("Bot message sent successfully using TurnContext", {
-        projectId: projectId.toString(),
-      });
     } catch (error) {
       /*
        * One reply, and no rethrow. This used to reply and then rethrow: the
@@ -3965,7 +4000,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * channel/chat message bodies are typically HTML (body.contentType "html").
    */
   private static toPlainTextFromTeamsMessageBody(rawContent: string): string {
-    return this.stripHtmlTags(rawContent.replace(/<at[^>]*>.*?<\/at>/g, ""))
+    return this.stripHtmlTags(
+      MicrosoftTeamsMentionText.removeMentions(rawContent),
+    )
       .replace(/&nbsp;/g, " ")
       .replace(/\s+/g, " ")
       .trim();
@@ -4349,17 +4386,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     /*
-     * Let the user know we're working on it. The assistant runs a bounded,
-     * tool-grounded agent loop and can take several seconds, so send a quick
-     * acknowledgement first.
+     * Let the user know we're working on it: the assistant runs a bounded,
+     * tool-grounded agent loop and can take several seconds. A personal or
+     * group chat shows OneUptime typing, which goes by itself when the
+     * answer comes. A channel shows no typing, so a "Looking into it…"
+     * reply stands there and becomes the answer in its place: the thread
+     * keeps one message, not a placeholder above every answer.
      */
-    try {
-      await turnContext.sendActivity(this.AI_OPS_ACK_TEXT);
-    } catch (ackError) {
-      // A failed acknowledgement should not stop us from answering.
-      logger.debug("Failed to send acknowledgement activity");
-      logger.debug(ackError);
-    }
+    const placeholderId: string | undefined =
+      await this.sendAnswerPlaceholder(turnContext);
 
     /*
      * Make the assistant context-aware: gather the prior turns of this
@@ -4430,7 +4465,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         replyText = mdText`${replyText}\n\n**Sources**\n${FeedMarkdown.join(sourceLines, "\n")}`;
       }
 
-      await turnContext.sendActivity(replyText.toString());
+      await this.sendAnswerInPlaceOf({
+        turnContext: turnContext,
+        placeholderId: placeholderId,
+        text: replyText.toString(),
+      });
       logger.debug("AI Ops answer sent successfully using TurnContext", {
         projectId: projectId.toString(),
       });
@@ -4441,534 +4480,72 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           projectId: projectId.toString(),
         },
       );
-      await turnContext.sendActivity(
-        "Sorry, I ran into a problem answering that question. Please try again later.",
-      );
+      await this.sendAnswerInPlaceOf({
+        turnContext: turnContext,
+        placeholderId: placeholderId,
+        text: "Sorry, I ran into a problem answering that question. Please try again later.",
+      });
     }
   }
 
   /*
-   * The monitors an incident or maintenance event affects, as one line: the
-   * first few names, then how many more. An event can cover hundreds of
-   * monitors, and listing them all made the reply too large for Teams.
+   * What shows while OneUptime AI writes an answer (answerObservabilityQuestion):
+   * typing in a personal or group chat, nothing to remove; in a channel, a
+   * "Looking into it…" reply, whose id is returned. Never throws.
    */
-  public static formatAffectedMonitorNames(
-    monitors: Array<Monitor>,
-  ): MarkdownText {
-    const names: Array<string> = monitors
-      .map((monitor: Monitor) => {
-        return monitor.name || "";
-      })
-      .filter((name: string) => {
-        return Boolean(name);
-      });
+  private static async sendAnswerPlaceholder(
+    turnContext: TurnContext,
+  ): Promise<string | undefined> {
+    const conversationType: unknown = (
+      turnContext.activity?.conversation as { conversationType?: unknown }
+    )?.conversationType;
 
-    // Each name is plain text, placed into the summary's Markdown as text.
-    const shownNames: Array<string> = names.slice(
-      0,
-      MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES,
-    );
-    const notShownCount: number = names.length - shownNames.length;
+    try {
+      if (conversationType !== "channel") {
+        await turnContext.sendActivity({ type: "typing" });
+        return undefined;
+      }
 
-    return notShownCount > 0
-      ? mdText`${FeedMarkdown.join(shownNames)} and ${notShownCount} more`
-      : FeedMarkdown.join(shownNames);
-  }
+      const sent: ResourceResponse | undefined = await turnContext.sendActivity(
+        this.AI_OPS_ACK_TEXT,
+      );
 
-  // The reply to one of Teams' own lists (MicrosoftTeamsListCommand).
-  private static async getListCommandMessage(
-    listCommand: MicrosoftTeamsListCommand,
-    projectId: ObjectID,
-  ): Promise<string> {
-    switch (listCommand) {
-      case MicrosoftTeamsListCommand.ActiveIncidents:
-        return await this.getActiveIncidentsMessage(projectId);
-      case MicrosoftTeamsListCommand.ActiveAlerts:
-        return await this.getActiveAlertsMessage(projectId);
-      case MicrosoftTeamsListCommand.ScheduledMaintenance:
-        return await this.getScheduledMaintenanceMessage(projectId);
-      case MicrosoftTeamsListCommand.OngoingMaintenance:
-        return await this.getOngoingMaintenanceMessage(projectId);
+      return sent?.id || undefined;
+    } catch (ackError) {
+      // A failed acknowledgement should not stop us from answering.
+      logger.debug("Failed to send acknowledgement activity");
+      logger.debug(ackError);
+      return undefined;
     }
   }
 
-  private static async getActiveIncidentsMessage(
-    projectId: ObjectID,
-  ): Promise<string> {
-    try {
-      logger.debug(
-        "Getting active incidents for project: " + projectId.toString(),
-      );
-
-      // Get unresolved incident states
-      const unresolvedIncidentStates: Array<IncidentState> =
-        await IncidentStateService.getUnresolvedIncidentStates(projectId, {
-          isRoot: true,
+  /*
+   * The answer - or why there is none - in place of the channel's
+   * placeholder; a new reply when there is none, or Teams will not change
+   * it in place.
+   */
+  private static async sendAnswerInPlaceOf(data: {
+    turnContext: TurnContext;
+    placeholderId: string | undefined;
+    text: string;
+  }): Promise<void> {
+    if (data.placeholderId) {
+      try {
+        await data.turnContext.updateActivity({
+          id: data.placeholderId,
+          type: "message",
+          text: data.text,
         });
-
-      const unresolvedIncidentStateIds: Array<ObjectID> =
-        unresolvedIncidentStates.map((state: IncidentState) => {
-          return state.id!;
-        });
-
-      // Find active incidents
-      const activeIncidents: Array<Incident> = await IncidentService.findBy({
-        query: {
-          projectId: projectId,
-          currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
-        },
-        select: {
-          _id: true,
-          incidentNumber: true,
-          incidentNumberWithPrefix: true,
-          title: true,
-          description: true,
-          currentIncidentState: {
-            name: true,
-            color: true,
-          },
-          incidentSeverity: {
-            name: true,
-            color: true,
-          },
-          createdAt: true,
-          declaredAt: true,
-          monitors: {
-            name: true,
-          },
-        },
-        sort: {
-          declaredAt: SortOrder.Descending,
-          createdAt: SortOrder.Descending,
-        },
-        limit: 10,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (activeIncidents.length === 0) {
-        return `**Active Incidents**
-
-Currently, there are no active incidents in the system. All services are operating normally.
-
-If you need to report an incident or check historical incidents, please visit the OneUptime dashboard.`;
-      }
-
-      let message: string =
-        mdText`**Active Incidents** (${activeIncidents.length})
-
-`.toString();
-
-      for (const incident of activeIncidents) {
-        const severity: string = incident.incidentSeverity?.name || "Unknown";
-        const state: string = incident.currentIncidentState?.name || "Unknown";
-        const declaredAt: Date | undefined =
-          incident.declaredAt || incident.createdAt;
-        const declaredAtText: string = declaredAt
-          ? OneUptimeDate.getDateAsFormattedString(declaredAt)
-          : "Unknown";
-
-        const severityIcon: string = ["Critical", "Major"].includes(severity)
-          ? "🔴"
-          : severity === "Minor"
-            ? "🟠"
-            : "🟡";
-
-        const incidentUrl: URL =
-          await IncidentService.getIncidentLinkInDashboard(
-            projectId,
-            incident.id!,
-          );
-
-        /*
-         * The title - plain text, which anyone holding an incident form's
-         * link may have typed - sits inside the link's text, so every
-         * Markdown character in it is escaped: a "]" cannot end that text
-         * early and point the rest somewhere else, and "![...](...)" is no
-         * image. Escaping brackets alone is not enough there: marked, for
-         * one, undoes "\[" and "\]" in a link's text before reading it.
-         */
-        message += mdText`${severityIcon} **[Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}: ${incident.title}](${incidentUrl.toString()})**
-• **Severity:** ${severity}
-• **Status:** ${state}
-• **Declared:** ${declaredAtText}
-`;
-
-        if (incident.monitors && incident.monitors.length > 0) {
-          message += mdText`• **Affected Services:** ${this.formatAffectedMonitorNames(
-            incident.monitors,
-          )}\n`;
-        }
-
-        if (incident.description) {
-          const desc: string = ChatInlineImages.toText(
-            incident.description,
-          ).replace(/\s+/g, " ");
-          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
-        }
-
-        message += mdText`• [Open in Dashboard](${incidentUrl.toString()})\n\n`;
-      }
-
-      return message;
-    } catch (error) {
-      logger.error("Error getting active incidents: " + error);
-      return "Sorry, I couldn't retrieve active incidents information at the moment. Please try again later.";
-    }
-  }
-
-  private static async getScheduledMaintenanceMessage(
-    projectId: ObjectID,
-  ): Promise<string> {
-    try {
-      logger.debug(
-        "Getting scheduled maintenance events for project: " +
-          projectId.toString(),
-      );
-
-      /*
-       * The events still to come: waiting for their start, in the scheduled
-       * state or a state of the project's own placed after Scheduled and
-       * before Ongoing, such as "Confirmed" (Common/Utils/
-       * ScheduledMaintenanceStart.isWaitingToStart).
-       */
-      const scheduledEvents: Array<ScheduledMaintenance> =
-        await ScheduledMaintenanceService.findBy({
-          query: {
-            projectId: projectId,
-            currentScheduledMaintenanceStateId: QueryHelper.any(
-              await ScheduledMaintenanceStateService.getWaitingToStartScheduledMaintenanceStateIds(
-                projectId,
-              ),
-            ),
-            isVisibleOnStatusPage: true, // Only show events visible on status page
-          },
-          select: {
-            _id: true,
-            title: true,
-            description: true,
-            startsAt: true,
-            endsAt: true,
-            currentScheduledMaintenanceState: {
-              name: true,
-            },
-            monitors: {
-              name: true,
-            },
-            scheduledMaintenanceNumber: true,
-            scheduledMaintenanceNumberWithPrefix: true,
-          },
-          sort: {
-            startsAt: SortOrder.Ascending,
-          },
-          limit: 10,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (scheduledEvents.length === 0) {
-        return `**Scheduled Maintenance Events**
-
-There are currently no scheduled maintenance events.
-
-When maintenance is scheduled, you'll see details here including:
-• Event title and description
-• Scheduled start and end times
-• Affected services
-• Status updates
-
-Check back later for upcoming maintenance windows.`;
-      }
-
-      let message: string =
-        mdText`**Scheduled Maintenance Events** (${scheduledEvents.length})
-
-`.toString();
-
-      for (const event of scheduledEvents) {
-        const state: string =
-          event.currentScheduledMaintenanceState?.name || "Scheduled";
-        const startTime: string = event.startsAt
-          ? OneUptimeDate.getDateAsFormattedString(event.startsAt)
-          : "TBD";
-        const endTime: string = event.endsAt
-          ? OneUptimeDate.getDateAsFormattedString(event.endsAt)
-          : "TBD";
-
-        const eventUrl: URL =
-          await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-            projectId,
-            event.id!,
-          );
-
-        // The title inside the link's text, escaped as an incident's is.
-        message += mdText`🛠️ **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
-• **Status:** ${state}
-• **Starts:** ${startTime}
-• **Ends:** ${endTime}
-`;
-
-        if (event.monitors && event.monitors.length > 0) {
-          message += mdText`• **Affected Services:** ${this.formatAffectedMonitorNames(
-            event.monitors,
-          )}\n`;
-        }
-
-        if (event.description) {
-          const desc: string = ChatInlineImages.toText(
-            event.description,
-          ).replace(/\s+/g, " ");
-          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
-        }
-
-        message += mdText`• [View Event](${eventUrl.toString()})\n\n`;
-      }
-
-      return message;
-    } catch (error) {
-      logger.error("Error getting scheduled maintenance: " + error);
-      return "Sorry, I couldn't retrieve scheduled maintenance information at the moment. Please try again later.";
-    }
-  }
-
-  private static async getOngoingMaintenanceMessage(
-    projectId: ObjectID,
-  ): Promise<string> {
-    try {
-      logger.debug(
-        "Getting ongoing maintenance events for project: " +
-          projectId.toString(),
-      );
-
-      /*
-       * The events in progress: in the project's ongoing state, or in a
-       * state of the project's own placed between Ongoing and Ended, such as
-       * "Verifying" (Common/Utils/ScheduledMaintenanceStart).
-       */
-      const inProgressStateIds: Array<ObjectID> =
-        await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
-          projectId,
+        return;
+      } catch (updateError) {
+        logger.debug(
+          "Microsoft Teams did not put the answer in place of its placeholder; replying instead.",
         );
-
-      const ongoingEvents: Array<ScheduledMaintenance> =
-        inProgressStateIds.length === 0
-          ? []
-          : await ScheduledMaintenanceService.findBy({
-              query: {
-                projectId: projectId,
-                currentScheduledMaintenanceStateId:
-                  QueryHelper.any(inProgressStateIds),
-              },
-              select: {
-                _id: true,
-                title: true,
-                description: true,
-                startsAt: true,
-                endsAt: true,
-                currentScheduledMaintenanceState: {
-                  name: true,
-                },
-                monitors: {
-                  name: true,
-                },
-                scheduledMaintenanceNumber: true,
-                scheduledMaintenanceNumberWithPrefix: true,
-              },
-              sort: {
-                startsAt: SortOrder.Descending,
-              },
-              limit: 10,
-              skip: 0,
-              props: {
-                isRoot: true,
-              },
-            });
-
-      if (ongoingEvents.length === 0) {
-        return `**Ongoing Maintenance Events**
-
-There are currently no ongoing maintenance events.
-
-When maintenance is in progress, you'll see details here including:
-• Event title and description
-• Current status and progress
-• Affected services
-• Expected completion time
-
-All systems are currently operating normally.`;
+        logger.debug(updateError);
       }
-
-      let message: string =
-        mdText`**Ongoing Maintenance Events** (${ongoingEvents.length})
-
-`.toString();
-
-      for (const event of ongoingEvents) {
-        const state: string =
-          event.currentScheduledMaintenanceState?.name || "Ongoing";
-        const startTime: string = event.startsAt
-          ? OneUptimeDate.getDateAsFormattedString(event.startsAt)
-          : "Unknown";
-        const endTime: string = event.endsAt
-          ? OneUptimeDate.getDateAsFormattedString(event.endsAt)
-          : "TBD";
-
-        const eventUrl: URL =
-          await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-            projectId,
-            event.id!,
-          );
-
-        // The title inside the link's text, escaped as an incident's is.
-        message += mdText`🔧 **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
-• **Status:** ${state}
-• **Started:** ${startTime}
-• **Expected End:** ${endTime}
-`;
-
-        if (event.monitors && event.monitors.length > 0) {
-          message += mdText`• **Affected Services:** ${this.formatAffectedMonitorNames(
-            event.monitors,
-          )}\n`;
-        }
-
-        if (event.description) {
-          const desc: string = ChatInlineImages.toText(
-            event.description,
-          ).replace(/\s+/g, " ");
-          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
-        }
-
-        message += mdText`• [View Event](${eventUrl.toString()})\n\n`;
-      }
-
-      return message;
-    } catch (error) {
-      logger.error("Error getting ongoing maintenance: " + error);
-      return "Sorry, I couldn't retrieve ongoing maintenance information at the moment. Please try again later.";
     }
-  }
 
-  private static async getActiveAlertsMessage(
-    projectId: ObjectID,
-  ): Promise<string> {
-    try {
-      logger.debug(
-        "Getting active alerts for project: " + projectId.toString(),
-      );
-
-      // Get unresolved alert states
-      const unresolvedAlertStates: Array<AlertState> =
-        await AlertStateService.getUnresolvedAlertStates(projectId, {
-          isRoot: true,
-        });
-
-      const unresolvedAlertStateIds: Array<ObjectID> =
-        unresolvedAlertStates.map((state: AlertState) => {
-          return state.id!;
-        });
-
-      // Find active alerts
-      const activeAlerts: Array<Alert> = await AlertService.findBy({
-        query: {
-          projectId: projectId,
-          currentAlertStateId: QueryHelper.any(unresolvedAlertStateIds),
-        },
-        select: {
-          _id: true,
-          alertNumber: true,
-          alertNumberWithPrefix: true,
-          title: true,
-          description: true,
-          currentAlertState: {
-            name: true,
-            color: true,
-          },
-          alertSeverity: {
-            name: true,
-            color: true,
-          },
-          createdAt: true,
-          monitor: {
-            name: true,
-          },
-        },
-        sort: {
-          createdAt: SortOrder.Descending,
-        },
-        limit: 10,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (activeAlerts.length === 0) {
-        return `**Active Alerts**
-
-Currently, there are no active alerts in the system.
-
-When alerts are triggered, you'll see details here including:
-• Alert title and description
-• Severity level
-• Affected services or monitors
-• Time triggered
-• Current status
-
-All monitoring checks are passing normally.`;
-      }
-
-      let message: string = mdText`**Active Alerts** (${activeAlerts.length})
-
-`.toString();
-
-      for (const alert of activeAlerts) {
-        const severity: string = alert.alertSeverity?.name || "Unknown";
-        const state: string = alert.currentAlertState?.name || "Unknown";
-        const createdAt: string = alert.createdAt
-          ? OneUptimeDate.getDateAsFormattedString(alert.createdAt)
-          : "Unknown";
-
-        const alertUrl: URL = await AlertService.getAlertLinkInDashboard(
-          projectId,
-          alert.id!,
-        );
-
-        /*
-         * The title - plain text, often filled in by a monitor from an
-         * incoming email or request - sits inside the link's text, so every
-         * Markdown character in it is escaped, as an incident's title is
-         * above. The severity, state and monitor names are plain text too.
-         */
-        message += mdText`⚠️ **[Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber}: ${alert.title}](${alertUrl.toString()})**
-• **Severity:** ${severity}
-• **Status:** ${state}
-• **Triggered:** ${createdAt}
-`;
-
-        if (alert.monitor?.name) {
-          message += mdText`• **Monitor:** ${alert.monitor.name}\n`;
-        }
-
-        if (alert.description) {
-          const desc: string = ChatInlineImages.toText(
-            alert.description,
-          ).replace(/\s+/g, " ");
-          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
-        }
-
-        message += mdText`• [Open in Dashboard](${alertUrl.toString()})\n\n`;
-      }
-
-      return message;
-    } catch (error) {
-      logger.error("Error getting active alerts: " + error);
-      return "Sorry, I couldn't retrieve active alerts information at the moment. Please try again later.";
-    }
+    await data.turnContext.sendActivity(data.text);
   }
 
   @CaptureSpan()
@@ -5167,6 +4744,18 @@ All monitoring checks are passing normally.`;
           } as MicrosoftTeamsRequest,
           databaseProps,
         );
+        return;
+      }
+
+      // A button of the Home card (MicrosoftTeamsHome).
+      if (MicrosoftTeamsHome.isHomeAction(actionType)) {
+        await MicrosoftTeamsHome.handleAction({
+          turnContext: data.turnContext,
+          activity: data.activity,
+          actionType: actionType,
+          projectId: projectId,
+          databaseProps: databaseProps,
+        });
         return;
       }
 
@@ -7218,98 +6807,13 @@ All monitoring checks are passing normally.`;
     }
   }
 
-  private static buildWelcomeAdaptiveCard(): JSONObject {
-    return {
-      $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
-      type: "AdaptiveCard",
-      version: "1.4",
-      body: [
-        {
-          type: "TextBlock",
-          text: "Welcome to OneUptime for Microsoft Teams",
-          weight: "Bolder",
-          size: "Large",
-          wrap: true,
-        },
-        {
-          type: "TextBlock",
-          text: "OneUptime keeps your team ahead of incidents by streaming alerts, maintenance updates, and on-call context directly into Microsoft Teams.",
-          wrap: true,
-          spacing: "Small",
-        },
-        {
-          type: "TextBlock",
-          text: "Getting started",
-          weight: "Bolder",
-          size: "Medium",
-          spacing: "Large",
-          wrap: true,
-        },
-        {
-          type: "TextBlock",
-          text: "1. Connect this Teams workspace to your OneUptime project from **Project Settings → Workspace → Microsoft Teams**.\n2. Choose which incidents, alerts, and maintenance events should sync into Teams.\n3. Try the commands below or automate workflows from the OneUptime dashboard.",
-          wrap: true,
-        },
-        {
-          type: "TextBlock",
-          text: "Bot commands",
-          weight: "Bolder",
-          size: "Medium",
-          spacing: "Large",
-          wrap: true,
-        },
-        {
-          type: "TextBlock",
-          text: "Type them in a chat with OneUptime, or after @OneUptime in a channel or a group chat. Anything else is a question for OneUptime AI.",
-          wrap: true,
-          spacing: "Small",
-        },
-        {
-          type: "TextBlock",
-          // The help's own list: what to type, and what it does.
-          text: MicrosoftTeamsCommands.getCommandListMarkdown(),
-          wrap: true,
-        },
-        {
-          type: "TextBlock",
-          text: "To use this app, each user must have an active OneUptime account. Please contact our support team for more details.",
-          wrap: true,
-          spacing: "Large",
-        },
-        {
-          type: "TextBlock",
-          text: "Need more help?",
-          weight: "Bolder",
-          size: "Medium",
-          spacing: "Large",
-          wrap: true,
-        },
-        {
-          type: "TextBlock",
-          text: "Review our setup guide or reach out if you need assistance configuring notifications.",
-          wrap: true,
-        },
-      ],
-      actions: [
-        {
-          type: "Action.OpenUrl",
-          title: "View Setup Guide",
-          url: "https://oneuptime.com/docs/workspace-connections/microsoft-teams",
-        },
-        {
-          type: "Action.OpenUrl",
-          title: "Contact Support",
-          url: "mailto:support@oneuptime.com?subject=OneUptime%20Microsoft%20Teams%20Bot",
-        },
-        {
-          type: "Action.OpenUrl",
-          title: "Open OneUptime Dashboard",
-          url: "https://oneuptime.com/dashboard",
-        },
-      ],
-    } as JSONObject;
-  }
-
+  /*
+   * The hello when the app is added: a person's own chat gets their Home
+   * (MicrosoftTeamsHome.sendPersonalWelcome), a team or a group chat a short
+   * welcome - what OneUptime does there and where its notifications are set
+   * up - in the words Slack's channel hello says (SlackWelcome). Sent once a
+   * turn; never throws.
+   */
   private static async sendWelcomeAdaptiveCard(
     turnContext: TurnContext,
   ): Promise<void> {
@@ -7325,14 +6829,54 @@ All monitoring checks are passing normally.`;
         return;
       }
 
-      const welcomeCard: JSONObject = this.buildWelcomeAdaptiveCard();
-      const message: Partial<Activity> = MessageFactory.attachment({
-        contentType: "application/vnd.microsoft.card.adaptive",
-        content: welcomeCard,
-      });
-
-      await turnContext.sendActivity(message);
       turnContext.turnState.set(this.WELCOME_CARD_STATE_KEY, true);
+
+      const activity: JSONObject =
+        turnContext.activity as unknown as JSONObject;
+      const conversation: JSONObject =
+        (activity["conversation"] as JSONObject | undefined) || {};
+      const tenantId: string =
+        ((
+          (activity["channelData"] as JSONObject | undefined)?.["tenant"] as
+            | JSONObject
+            | undefined
+        )?.["id"] as string | undefined) ||
+        (conversation["tenantId"] as string | undefined) ||
+        "";
+
+      const resolution: MicrosoftTeamsTenantResolution | null = tenantId
+        ? await this.resolveProjectByTenantId({ tenantId: tenantId })
+        : null;
+      const projectId: ObjectID | null =
+        resolution?.projectAuth?.projectId || null;
+      const isPersonal: boolean =
+        conversation["conversationType"] === "personal";
+
+      if (isPersonal && projectId) {
+        await MicrosoftTeamsHome.sendPersonalWelcome({
+          turnContext: turnContext,
+          projectId: projectId,
+        });
+        return;
+      }
+
+      const welcome: { card: JSONObject; summary: string } =
+        await MicrosoftTeamsHome.getTeamWelcome({
+          projectId: projectId,
+          isConnected: Boolean(projectId || resolution?.isAmbiguous),
+          isPersonal: isPersonal,
+        });
+
+      await turnContext.sendActivity({
+        type: "message",
+        attachments: [
+          {
+            contentType: "application/vnd.microsoft.card.adaptive",
+            content: welcome.card,
+          },
+        ],
+        summary: welcome.summary,
+      });
       logger.debug("Welcome adaptive card sent successfully");
     } catch (error) {
       logger.error("Error sending welcome adaptive card: " + error);

@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, useId } from "react";
+import { Placement } from "tippy.js";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
@@ -51,6 +52,21 @@ export interface ComponentProps {
   isChecked?: boolean | undefined;
   dataTestId?: string | undefined;
 }
+
+/*
+ * An item's tooltip opens beside the menu, not over it. Above the item, as
+ * tooltips elsewhere open, a locked Delete's reason - the longest tooltips a
+ * menu has - covered every item above it while it was read. The menu sits at
+ * a row's or a card's right edge, so the left has the room; with none either
+ * side (a phone), it opens above or below the item as before.
+ */
+export const MENU_ITEM_TOOLTIP_PLACEMENT: Placement = "left";
+
+export const MENU_ITEM_TOOLTIP_FALLBACK_PLACEMENTS: Array<Placement> = [
+  "right",
+  "top",
+  "bottom",
+];
 
 const MoreMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -187,6 +203,8 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           text={props.tooltip}
           isTriggerAlreadyDescribed={true}
           isShownOnKeyboardFocusOnly={true}
+          placement={MENU_ITEM_TOOLTIP_PLACEMENT}
+          fallbackPlacements={MENU_ITEM_TOOLTIP_FALLBACK_PLACEMENTS}
         >
           {menuItem}
         </Tooltip>
@@ -198,7 +216,12 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <Tooltip text={props.tooltip} isShownOnKeyboardFocusOnly={true}>
+    <Tooltip
+      text={props.tooltip}
+      isShownOnKeyboardFocusOnly={true}
+      placement={MENU_ITEM_TOOLTIP_PLACEMENT}
+      fallbackPlacements={MENU_ITEM_TOOLTIP_FALLBACK_PLACEMENTS}
+    >
       {menuItem}
     </Tooltip>
   );

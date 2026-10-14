@@ -85,10 +85,9 @@ const setupGuideSource: string = readDashboardSource(
   "SecurityEvents",
   "SecurityEventsSetupGuide.tsx",
 );
-const navTabsSource: string = readDashboardSource(
-  "Components",
-  "SecurityEvents",
-  "SecurityEventsNavTabs.tsx",
+const navigationSource: string = readDashboardSource(
+  "Utils",
+  "SecurityEventsNavigation.ts",
 );
 const layoutSource: string = readDashboardSource(
   "Pages",
@@ -229,22 +228,18 @@ describe("Security events setup guide wiring", () => {
     expect(routesSource).toContain("<SecurityEventsDocumentationPage");
   });
 
-  test("the setup guide is one of the Security Events header tabs", () => {
-    expect(navTabsSource).toContain('label: "Setup Guide"');
-    expect(navTabsSource).toContain(
-      "RouteMap[PageMap.SECURITY_EVENTS_DOCUMENTATION] as Route",
+  test("the setup guide is is in the Security Events side menu", () => {
+    expect(navigationSource).toContain('title: "Setup Guide",');
+    expect(navigationSource).toContain(
+      "page: PageMap.SECURITY_EVENTS_DOCUMENTATION,",
     );
   });
 
-  test("the layout renders the Security Events tabs in the page header", () => {
+  test("the layout renders the Security Events side menu", () => {
     expect(layoutSource).toContain(
-      'import SecurityEventsNavTabs from "../../Components/SecurityEvents/SecurityEventsNavTabs"',
+      'import SecurityEventsSideMenu from "./SideMenu"',
     );
-    expect(layoutSource).toContain(
-      "<SecurityEventsNavTabs active={getActiveSecurityEventsTab(path)} />",
-    );
-    // The destinations moved into the header; nothing renders a side menu.
-    expect(layoutSource).not.toContain("sideMenu=");
+    expect(layoutSource).toContain("sideMenu={<SecurityEventsSideMenu />}");
   });
 
   test("the setup guide has a breadcrumb trail", () => {

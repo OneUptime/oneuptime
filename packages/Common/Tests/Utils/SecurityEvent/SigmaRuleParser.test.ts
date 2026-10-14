@@ -51,7 +51,7 @@ describe("SigmaRuleParser.parse", () => {
     expect(rule.logsource["product"]).toBe("okta");
   });
 
-  test("extracts MITRE tactics and techniques from attack tags, ignoring textual tactic tags", () => {
+  test("extracts MITRE tactics and techniques from attack tags, a tactic named and numbered stored once", () => {
     const rule: SigmaRule = SigmaRuleParser.parse(BRUTE_FORCE_RULE);
 
     expect(rule.mitreTechniques).toEqual(["T1110"]);

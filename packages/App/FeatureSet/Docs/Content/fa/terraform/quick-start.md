@@ -1,36 +1,63 @@
 # شروع سریع
 
-این راهنما در حدود ۱۰ دقیقه شما را از صفر به منابع مدیریت‌شده OneUptime می‌رساند: ساخت یک کلید API، پیکربندی ارائه‌دهنده، و اعمال یک برچسب، یک مانیتور HTTP و یک صفحه وضعیت.
+این راهنما شما را در حدود ده دقیقه از هیچ به یک پروژهٔ OneUptime می‌رساند که Terraform مدیریتش می‌کند. یک کلید API می‌سازید، Terraform را به پروژه‌تان وصل می‌کنید، و یک برچسب، یک مانیتور که وب‌سایت شما را بررسی می‌کند، و یک صفحهٔ وضعیت خصوصی که آن را نشان می‌دهد اعمال می‌کنید. سپس یکی از آن‌ها را تغییر می‌دهید و همه‌چیز را پاک می‌کنید.
 
-## پیش‌نیازها
+:::cards
+- [پیش از شروع](#پیش-از-شروع): Terraform، یک پروژه، و طرحی که کلید API دارد.
+- [نخستین منابعتان را بسازید](#نخستین-منابعتان-را-بسازید): از یک کلید API تا یک پلن اعمال‌شده، در شش گام.
+- [تغییر یک منبع](#تغییر-یک-منبع): پیکربندی را ویرایش کنید، پلن بگیرید و اعمال کنید.
+- [رفع اشکال](#رفع-اشکال): خطاهایی که نخستین اجرا ممکن است روی آن‌ها متوقف شود.
+:::
 
-- [Terraform](https://developer.hashicorp.com/terraform/install) نسخه ۱.۵ یا بالاتر
-- یک حساب OneUptime با یک پروژه ([oneuptime.com](https://oneuptime.com) یا نمونه خودمیزبان شما)
-
-## گام ۱: ساخت یک کلید API پروژه
-
-ارائه‌دهنده با یک **کلید API محدود به پروژه** احراز هویت می‌کند. در داشبورد OneUptime:
-
-1. پروژه خود را انتخاب کنید.
-2. به **Project Settings** > **API Keys** بروید.
-3. روی **Create API Key** کلیک کنید.
-4. یک نام (برای نمونه `terraform`) بگذارید و در **Access** گزینه **Project Admin** را انتخاب کنید. Terraform به دسترسی **Create**، **Read**، **Update (Edit)** و **Delete** روی هر نوع منبعی که می‌خواهید مدیریت کنید نیاز دارد — برای این راهنما: Label، Monitor و Status Page — و Project Admin همه این‌ها را پوشش می‌دهد. برای کلیدی محدودتر، **Choose permissions later** را انتخاب کنید و فقط نقش‌ها یا دسترسی‌هایی را که لازم دارید در صفحه کلید اضافه کنید.
-5. کلید را بسازید. این کلید یک سال پس از امروز منقضی می‌شود؛ برای انتخاب تاریخی دیگر، پیش از ساختن آن **More fields** را باز کنید، یا بعداً کلید را ویرایش کنید.
-6. صفحه کلید باز می‌شود: کلید ساخته‌شده را کپی کنید.
-
-> **هشدار:** از کلید کاربر یا کلید API ارشد خودمیزبان استفاده نکنید. کلیدهای ارشد به یک پروژه محدود نیستند و فراخوان‌های API با آن‌ها با خطای `ProjectId required` شکست می‌خورند. فقط کلیدهای API پروژه با ارائه‌دهنده Terraform کار می‌کنند.
-
-کلید را به‌عنوان متغیر محیطی صادر کنید تا هرگز در فایل‌های Terraform شما ننشیند:
-
-```bash
-export ONEUPTIME_API_KEY="your-project-api-key"
+```mermaid title="آنچه در این راهنما می‌سازید"
+flowchart TB
+    K["کلید API پروژه"] --> P["ارائه‌دهندهٔ OneUptime"]
+    F["main.tf"] --> P
+    P --> L["برچسب:<br/>critical"]
+    P --> M["مانیتور: Homepage،<br/>وب‌سایت شما را بررسی می‌کند"]
+    P --> S["صفحهٔ وضعیت:<br/>Internal Status"]
+    M --> S
 ```
 
-## گام ۲: پیکربندی ارائه‌دهنده
+## پیش از شروع
 
-یک پوشه کاری با فایل `main.tf` بسازید:
+- **Terraform 1.5 یا جدیدتر، یا OpenTofu 1.6 یا جدیدتر.** با OpenTofu، هر جا این راهنما `terraform` را اجرا می‌کند، `tofu` را اجرا کنید.
+- **یک پروژهٔ OneUptime** در [oneuptime.com](https://oneuptime.com) یا روی OneUptime خودتان، که بتوانید در آن کلید API بسازید.
+- **در OneUptime Cloud، طرح Growth یا بالاتر.** کلیدهای API یک پروژه فقط روی آن کار می‌کنند.
 
-```hcl
+## نخستین منابعتان را بسازید
+
+:::steps
+### ساخت کلید API پروژه
+
+در داشبورد OneUptime، **تنظیمات پروژه** > **پیشرفته** > **کلیدهای API** را باز کنید و روی **ساخت کلید API** کلیک کنید. به آن یک **نام** بدهید، مانند `terraform`، و در **دسترسی**، **مدیر پروژه** را انتخاب کنید: Terraform هر نوع رکوردی را که مدیریت می‌کند می‌سازد، می‌خواند، تغییر می‌دهد و حذف می‌کند، و **مدیر پروژه** اجازهٔ همهٔ این کارها را دارد. برای یک کلید محدودتر، **دسترسی‌ها را بعداً انتخاب کنید** را برگزینید و در صفحهٔ کلید فقط دسترسی‌هایی را که لازم دارید اضافه کنید.
+
+این کلید یک سال پس از امروز منقضی می‌شود. برای انتخاب تاریخی دیگر، پیش از ساختن آن **فیلدهای بیشتر** را باز کنید، یا بعداً تاریخ را در صفحهٔ کلید تغییر دهید. پس از ساخته شدن کلید، صفحه‌اش باز می‌شود: **کلید API** را از کارت **جزئیات کلید API** کپی کنید.
+
+### کلید را در دسترس Terraform بگذارید
+
+کلید را در متغیر محیطی `ONEUPTIME_API_KEY` در پوسته‌ای که Terraform را در آن اجرا می‌کنید بگذارید، تا هرگز در یک فایل نماند:
+
+:::tabs
+@tab Linux
+```bash
+export ONEUPTIME_API_KEY="<your-api-key>"
+```
+@tab macOS
+```bash
+export ONEUPTIME_API_KEY="<your-api-key>"
+```
+@tab Windows
+```powershell
+$env:ONEUPTIME_API_KEY = "<your-api-key>"
+```
+:::
+
+### Terraform را به OneUptime وصل کنید
+
+یک پوشهٔ خالی بسازید، و در آن فایلی به نام `main.tf`:
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
@@ -41,19 +68,27 @@ terraform {
 }
 
 provider "oneuptime" {
-  # api_key is read from the ONEUPTIME_API_KEY environment variable.
-  # oneuptime_url defaults to https://oneuptime.com — set it only if self-hosted:
+  # The API key comes from ONEUPTIME_API_KEY.
+  # On a self-hosted OneUptime, add your OneUptime's address:
   # oneuptime_url = "https://oneuptime.example.com"
 }
 ```
 
-کاربران خودمیزبان: مقدار `oneuptime_url` را روی نشانی نمونه خود بگذارید و پیش از پین کردن نسخه ارائه‌دهنده، راهنمای نسخه را در [راه‌اندازی خودمیزبان](/docs/terraform/self-hosted) ببینید.
+روی OneUptime خودمیزبان، پیش از انتخاب نسخهٔ ارائه‌دهنده [راه‌اندازی خودمیزبان](/docs/terraform/self-hosted) را بخوانید.
 
-## گام ۳: تعریف اولین منابع
+### منابعتان را توصیف کنید
 
-این را به `main.tf` اضافه کنید. یک برچسب، یک مانیتور وب‌سایت برای صفحه اصلی شما و یک صفحه وضعیت خصوصی می‌سازد:
+این بلوک‌ها را به `main.tf` اضافه کنید. این‌ها دو تا از وضعیت‌های مانیتوری را می‌خوانند که هر پروژه با آن‌ها شروع می‌شود، و یک برچسب، یک مانیتور که `https://example.com` را هر پنج دقیقه بررسی می‌کند (وب‌سایت خودتان را آنجا بگذارید)، و یک صفحهٔ وضعیت خصوصی که مانیتور را نشان می‌دهد می‌سازند:
 
-```hcl
+```hcl title="main.tf"
+data "oneuptime_monitor_status" "operational" {
+  name = "Operational"
+}
+
+data "oneuptime_monitor_status" "offline" {
+  name = "Offline"
+}
+
 resource "oneuptime_label" "critical" {
   name        = "critical"
   description = "Resources that page on-call when down"
@@ -61,20 +96,61 @@ resource "oneuptime_label" "critical" {
 }
 
 resource "oneuptime_monitor" "homepage" {
-  name         = "Homepage"
-  description  = "Checks that the homepage responds"
-  monitor_type = "Website"
-  labels       = [oneuptime_label.critical.id]
+  name                = "Homepage"
+  description         = "Checks that the homepage responds"
+  monitor_type        = "Website"
+  monitoring_interval = "*/5 * * * *"
+  labels              = [oneuptime_label.critical.id]
+
+  monitor_steps = [{
+    monitor_destination      = "https://example.com"
+    monitor_destination_type = "URL"
+    request_type             = "GET"
+
+    criteria = [
+      {
+        name                  = "Offline"
+        description           = "The homepage does not respond"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          }
+        ]
+      },
+      {
+        name                  = "Online"
+        description           = "The homepage responds"
+        filter_condition      = "All"
+        change_monitor_status = true
+        monitor_status_id     = data.oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          }
+        ]
+      }
+    ]
+  }]
 }
 
 resource "oneuptime_status_page" "internal" {
-  name                     = "Internal Status"
-  description              = "Status page for internal services"
-  page_title               = "Service Status"
-  page_description         = "Live status of our services"
-  is_public_status_page    = false
-  enable_email_subscribers = false
-  enable_sms_subscribers   = false
+  name                  = "Internal Status"
+  description           = "Status of our internal services"
+  page_title            = "Service Status"
+  is_public_status_page = false
+}
+
+resource "oneuptime_status_page_resource" "homepage" {
+  status_page_id = oneuptime_status_page.internal.id
+  monitor_id     = oneuptime_monitor.homepage.id
+  display_name   = "Homepage"
 }
 
 output "monitor_id" {
@@ -82,39 +158,86 @@ output "monitor_id" {
 }
 ```
 
-مانیتور `Website` که بدون `monitor_steps` صریح ساخته شود، پیش‌فرض‌های معقول سمت سرور می‌گیرد. برای اینکه خودتان نشانی، نوع درخواست و معیارهای در دسترس بودن را کنترل کنید، ویژگی‌های تودرتوی `monitor_steps` را تنظیم کنید — این‌ها در [مراحل مانیتور](/docs/terraform/monitor-steps) پوشش داده شده‌اند.
+`monitor_steps` مانیتور می‌گوید چه چیزی را بررسی می‌کند و هر نتیجه چه معنایی دارد: پس از هر بررسی، نخستین معیاری که مطابقت داشته باشد وضعیت آن را تعیین می‌کند. [مراحل مانیتور](/docs/terraform/monitor-steps) هر بخش را توضیح می‌دهد.
 
-## گام ۴: init، plan، apply
+### پلن بگیرید و اعمال کنید
 
+:::tabs
+@tab Terraform
 ```bash
 terraform init
 terraform plan
 terraform apply
 ```
+@tab OpenTofu
+```bash
+tofu init
+tofu plan
+tofu apply
+```
+:::
 
-طرح را مرور کنید (۳ منبع برای افزودن) و با `yes` تأیید کنید. اعمال در چند ثانیه کامل می‌شود و شناسه مانیتور را چاپ می‌کند.
+`init` ارائه‌دهنده را دانلود می‌کند. پلن با `Plan: 4 to add, 0 to change, 0 to destroy.` تمام می‌شود. برای اعمال آن `yes` را تایپ کنید؛ وقتی کار تمام شد، Terraform شناسهٔ مانیتور تازه را چاپ می‌کند.
 
-## گام ۵: راستی‌آزمایی در داشبورد
+### داشبورد را بررسی کنید
 
 در داشبورد OneUptime:
 
-- **Monitors** — مانیتور `Homepage` با برچسب `critical` فهرست شده است.
-- **Status Pages** — `Internal Status` ظاهر می‌شود.
-- **Project Settings > Labels** — برچسب `critical` با رنگی که تعیین کردید وجود دارد.
+- **مانیتورها** `Homepage` را با برچسب `critical` فهرست می‌کند. نخستین بررسی آن ظرف چند دقیقه انجام می‌شود.
+- **صفحات وضعیت** `Internal Status` را فهرست می‌کند که `Homepage` را نشان می‌دهد.
+- **تنظیمات پروژه** > **پایه** > **برچسب‌ها** `critical` را با رنگی که تعیین کرده‌اید فهرست می‌کند.
 
-دوباره `terraform plan` را اجرا کنید: گزارش می‌دهد `No changes.` فیلدهایی که سمت سرور محاسبه می‌شوند (اسلاگ‌ها، وضعیت فعلی، مراحل پیش‌فرض پایش) باعث انحراف نمی‌شوند.
+دوباره `terraform plan` را اجرا کنید. پاسخ می‌دهد `No changes.`: OneUptime دقیقاً همان چیزی را دارد که پیکربندی می‌گوید.
+:::
 
-## گام ۶: پاک‌سازی
+## تغییر یک منبع
 
-اگر این یک آزمایش بود، هر چیزی را که این پیکربندی ساخته حذف کنید:
+پیکربندی را تغییر دهید، نه داشبورد را. در `main.tf` مقدار `color` برچسب را `"#2ECC71"` بگذارید، سپس پلن بگیرید و اعمال کنید:
+
+```bash
+terraform plan
+terraform apply
+```
+
+پلن با `Plan: 0 to add, 1 to change, 0 to destroy.` تمام می‌شود: برچسب در جا تغییر می‌کند. تغییری که کسی در داشبورد روی منبعی که Terraform مدیریت می‌کند بدهد، در پلن بعدی دیده می‌شود، و اعمال آن همان چیزی را برمی‌گرداند که پیکربندی می‌گوید.
+
+## پاک‌سازی
+
+اگر این فقط یک آزمایش بود، آنچه را پیکربندی ساخته است حذف کنید:
 
 ```bash
 terraform destroy
 ```
 
+این کار برچسب، مانیتور، صفحهٔ وضعیت و منبع آن را حذف می‌کند. دو وضعیت مانیتور باقی می‌مانند: منبع‌های داده فقط آن‌ها را می‌خوانند.
+
+## رفع اشکال
+
+:::details پیام «Missing API Key»
+ارائه‌دهنده هیچ کلید API پیدا نکرد. `ONEUPTIME_API_KEY` را در پوسته‌ای که Terraform را در آن اجرا می‌کنید export کنید، یا `api_key` را در بلوک ارائه‌دهنده تعیین کنید، و دستور را دوباره اجرا کنید.
+:::
+
+:::details پیام «the OneUptime API returned status 400: Invalid API Key»
+کلید اشتباه تایپ شده، منقضی شده یا حذف شده است، یا به OneUptime دیگری تعلق دارد، نه به آنکه `oneuptime_url` به آن اشاره می‌کند. کلید را دوباره از صفحه‌اش کپی کنید، یا یک کلید تازه بسازید.
+:::
+
+:::details پیام «the OneUptime API returned status 402: API keys need the Growth plan»
+در OneUptime Cloud، کلیدهای API یک پروژه فقط در طرح Growth یا بالاتر کار می‌کنند. پروژه را در **تنظیمات پروژه** > **صورت‌حساب و فاکتورها** > **صورت‌حساب** ارتقا دهید، و همان کلید دوباره کار می‌کند.
+:::
+
+:::details پیام «the OneUptime API returned status 422: You do not have permissions to create Monitor»
+کلید هیچ دسترسی‌ای برای آن نوع رکورد ندارد. در صفحهٔ کلید به آن **مدیر پروژه** را بدهید، یا دسترسی‌ای را که پیام نام می‌برد.
+:::
+
+:::details پیام «No monitor status matches {name = "Offline"}»
+وضعیت‌های مانیتور پروژهٔ شما نام‌های دیگری دارند. نام‌هایی را که در **مانیتورها** > **تنظیمات** > **وضعیت مانیتور** می‌بینید به کار ببرید، یا به‌جای آن وضعیت را با `is_offline_state = true` پیدا کنید.
+:::
+
 ## گام‌های بعدی
 
-- [راهنمای کامل](/docs/terraform/complete-guide) — گزینه‌های احراز هویت، چیدمان پروژه، وابستگی‌ها، منابع داده، وضعیت راه دور
-- [نمونه‌ها](/docs/terraform/examples) — پیکربندی برای هر نوع منبع اصلی
-- [مراحل مانیتور](/docs/terraform/monitor-steps) — کنترل آنچه مانیتورهای شما بررسی می‌کنند
-- [وارد کردن منابع](/docs/terraform/importing-resources) — پذیرفتن منابعی که از قبل در داشبورد ساخته‌اید
+:::cards
+- [راهنمای کامل](/docs/terraform/complete-guide): احراز هویت، چیدمان پروژه، منبع‌های داده، state و ارتقا.
+- [مراحل مانیتور](/docs/terraform/monitor-steps): تعیین کنید مانیتور چه چیزی را بررسی می‌کند و هر نتیجه چه معنایی دارد.
+- [نمونه‌ها](/docs/terraform/examples): پیکربندی‌های آماده برای منابع رایج.
+- [وارد کردن منابع](/docs/terraform/importing-resources): آنچه را در داشبورد ساخته‌اید زیر مدیریت Terraform بیاورید.
+:::

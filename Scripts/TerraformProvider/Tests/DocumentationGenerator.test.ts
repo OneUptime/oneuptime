@@ -123,6 +123,36 @@ describe("opentofu", () => {
     );
   });
 
+  /*
+   * What each engine does, as real terraform and tofu runs showed it (docs
+   * overhaul task 30b): OpenTofu reads TF_VAR_* and no TOFU_VAR_*, .tofu
+   * files from 1.8 on, a lock file is rewritten when the engine changes, and
+   * a registry hostname in the source makes Terraform refuse the OpenTofu
+   * Registry's unsigned copy.
+   */
+  test("the guide says what each engine really does", () => {
+    const guide: string = fs.readFileSync(
+      path.join(outputDir, "docs/guides/opentofu.md"),
+      "utf-8",
+    );
+
+    expect(guide).not.toContain("TOFU_VAR");
+    expect(guide).toContain(
+      "| Variables | `TF_VAR_name` sets a variable under OpenTofu too. |",
+    );
+    expect(guide).toContain("OpenTofu 1.8 and later also read `.tofu` files");
+    expect(guide).toContain(
+      "`init` rewrites the provider's entry when you switch engines",
+    );
+    expect(guide).toContain(
+      "OpenTofu reads a state Terraform wrote, as it is.",
+    );
+    expect(guide).toContain(
+      "Terraform refuses the OpenTofu Registry's copy (`authentication signature from unknown issuer`)",
+    );
+    expect(guide).not.toContain("does not satisfy the other");
+  });
+
   test("the provider index links to the guide", () => {
     const indexDoc: string = fs.readFileSync(
       path.join(outputDir, "docs/index.md"),

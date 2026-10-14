@@ -1453,6 +1453,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/NetworkSitePurgePostgres.test.ts --forceExit
 
+      # A delete by query of a state timeline - OneUptime's retention purge,
+      # a workflow's Delete Many - leaves each record's current row, and a
+      # monitor or network site its last 90 days, so a status page never paints
+      # a monitor gray for a history that was cleaned up; the monitors already
+      # emptied get their current status back. The SQL is the row's own
+      # condition, so it is only proved by Postgres.
+      - name: Test what a delete of state timeline rows keeps on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_STATE_TIMELINE_KEEP_TESTS: "true"
+          STATE_TIMELINE_KEEP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          STATE_TIMELINE_KEEP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          STATE_TIMELINE_KEEP_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/StateTimelineRowsKeptPostgres.test.ts --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service

@@ -34,6 +34,7 @@ import SecurityEventConnectionFormModal, {
   secretFieldTypeFor,
   securityEventConnectionTestBody,
   securityEventConnectionUpdatePayload,
+  readCaseSeverityChoice,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionFormModal";
 import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEventConnection";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -1000,6 +1001,7 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
       isEnabled: true,
       pollIntervalInMinutes: 15,
       alertingOnly: true,
+      caseMinimumSeverity: "",
     });
     expect(update.data).not.toHaveProperty("secrets");
     expect(ModelAPI.create).not.toHaveBeenCalled();
@@ -1618,6 +1620,7 @@ describe("SecurityEventConnectionFormModal (Google SecOps)", () => {
       isEnabled: true,
       pollIntervalInMinutes: 5,
       alertingOnly: true,
+      caseMinimumSeverity: "",
     });
     expect(update.data).not.toHaveProperty("secrets");
     expect(onSaved).toHaveBeenCalledTimes(1);
@@ -1752,6 +1755,7 @@ describe("form value mapping", () => {
       isEnabled: false,
       pollIntervalInMinutes: 30,
       alertingOnly: true,
+      caseMinimumSeverity: "",
     });
   });
 
@@ -1981,6 +1985,7 @@ describe("form value mapping", () => {
       isEnabled: true,
       pollIntervalInMinutes: 5,
       alertingOnly: true,
+      caseMinimumSeverity: "",
     });
     expect(
       securityEventConnectionUpdatePayload(
@@ -2126,5 +2131,57 @@ describe("field types and test readiness", () => {
         connection: googleConnection(true),
       }),
     ).toBeUndefined();
+  });
+});
+
+describe("the connection's case threshold", () => {
+  test("reads Never and nothing as no threshold, a known level as itself", () => {
+    expect(readCaseSeverityChoice("Never")).toBe("");
+    expect(readCaseSeverityChoice("")).toBe("");
+    expect(readCaseSeverityChoice(undefined)).toBe("");
+    expect(readCaseSeverityChoice("Critical")).toBe("Critical");
+    expect(
+      readCaseSeverityChoice({ label: "Low and above", value: "Low" }),
+    ).toBe("Low");
+  });
+
+  test("reads a level it does not offer as High, the default", () => {
+    expect(readCaseSeverityChoice("Severe")).toBe("High");
+  });
+
+  test("sends the threshold with the rest of an edit", () => {
+    expect(
+      securityEventConnectionUpdatePayload(
+        {
+          provider: SecurityEventConnectorProvider.OktaSystemLog,
+          name: "Acme Okta",
+          description: undefined,
+          config: { orgUrl: "https://acme.okta.com" },
+          secrets: {},
+          isEnabled: true,
+          pollIntervalInMinutes: 5,
+          alertingOnly: true,
+          caseMinimumSeverity: "Medium",
+        },
+        false,
+      )["caseMinimumSeverity"],
+    ).toBe("Medium");
+    // A credentials-only update touches nothing else.
+    expect(
+      securityEventConnectionUpdatePayload(
+        {
+          provider: SecurityEventConnectorProvider.OktaSystemLog,
+          name: "Acme Okta",
+          description: undefined,
+          config: {},
+          secrets: { apiToken: "t" },
+          isEnabled: true,
+          pollIntervalInMinutes: 5,
+          alertingOnly: true,
+          caseMinimumSeverity: "Medium",
+        },
+        true,
+      ),
+    ).not.toHaveProperty("caseMinimumSeverity");
   });
 });

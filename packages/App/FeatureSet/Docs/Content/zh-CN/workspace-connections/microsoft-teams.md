@@ -160,6 +160,18 @@ flowchart TB
 
 除 `show` 列表外，这些就是 Slack 中 `/oneuptime` 后面的词；`create incident` 和 `create maintenance` 仍然可以使用。询问 OneUptime AI 需要连接您自己的 Microsoft Teams 账户，并为项目开启 AI。如果您的账户未连接，机器人会在每个话题或聊天中请您连接一次，并附带一个 **Connect Microsoft Teams account** 按钮。请参阅 [询问 AI](/docs/ai/ask-ai)。
 
+## Microsoft Teams 中的您的主页
+
+向 OneUptime 机器人输入 `home`，它会用您的主页回答：一张按您有权查看的范围显示项目中正在发生的事情的卡片。
+
+- **您的值班。** 您当前正在值班的值班计划及其结束时间，否则是您的下一个班次。
+- **未解决的内容。** 您有权读取的最新未解决事件和警报，每一项都链接到它在 OneUptime 中的页面。
+- **按钮。** **Declare incident** 和 **Page someone** 的回答与 `incident` 和 `page` 相同， **Who's on call** 与 `oncall` 相同， **Refresh** 会在原处重新读取卡片。
+
+当您为自己添加 OneUptime 应用时，机器人会立即发送您的主页。主页和 `show` 列表以您的身份读取，因此需要连接您自己的 Microsoft Teams 账户：在连接之前，机器人会用一个 **Connect Microsoft Teams account** 按钮回答。 **用户设置** > **工作区** > **Microsoft Teams** 中的 **在 Microsoft Teams 中打开 OneUptime** 会在 Teams 中打开该应用。
+
+当应用被添加到团队时，机器人会在那里打招呼：如何向它提问，以及在哪里添加发布到该团队频道的通知规则。
+
 ## 从 Microsoft Teams 创建事件和维护
 
 向 OneUptime 机器人输入 `incident` 或 `maintenance`，无论是在个人聊天、频道还是群聊中，都会为输入的人打开一个表单。表单以此人的身份填写：即以其 Microsoft Teams 账户所连接的 OneUptime 账户的身份（请参阅 [连接 Microsoft Teams](#连接-microsoft-teams) ），按该账户在项目中的权限提交。账户未连接的人，或 OneUptime 账户已不再是项目成员的人，会在提及其本人的回复中收到该怎么做的说明，而不是表单。

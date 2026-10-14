@@ -1,6 +1,7 @@
 import DocsPlaceholders, {
   IP_WHITELIST_PLACEHOLDER,
   TERRAFORM_PROVIDER_MAJOR_PLACEHOLDER,
+  TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER,
   TERRAFORM_PROVIDER_VERSION_PLACEHOLDER,
 } from "../../../FeatureSet/Docs/Utils/Placeholders";
 import {
@@ -207,6 +208,7 @@ describe("DocsPlaceholders", () => {
       IP_WHITELIST_PLACEHOLDER,
       TERRAFORM_PROVIDER_VERSION_PLACEHOLDER,
       TERRAFORM_PROVIDER_MAJOR_PLACEHOLDER,
+      TERRAFORM_PROVIDER_MATCHING_PLACEHOLDER,
       ...Object.values(PermissionPlaceholder),
     ]);
 

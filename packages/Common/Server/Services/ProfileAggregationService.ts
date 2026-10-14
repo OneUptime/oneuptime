@@ -1,5 +1,8 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import ProfileSampleDatabaseService from "./ProfileSampleService";
 import ProfileDatabaseService from "./ProfileService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
@@ -1197,15 +1200,11 @@ export class ProfileAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' yields
-     * a partial (top stacks) result rather than holding a pool connection.
+     * Cap runtime below the client's 58s request_timeout rather than hold a
+     * pool connection, and say so when it is reached
+     * (INTERACTIVE_READ_TIME_LIMIT).
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -1279,15 +1278,11 @@ export class ProfileAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' yields
-     * a partial (top stacks) result rather than holding a pool connection.
+     * Cap runtime below the client's 58s request_timeout rather than hold a
+     * pool connection, and say so when it is reached
+     * (INTERACTIVE_READ_TIME_LIMIT).
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -1310,12 +1305,7 @@ export class ProfileAggregationService {
 
     ProfileAggregationService.appendSampleFilters(statement, request);
 
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -1356,12 +1346,7 @@ export class ProfileAggregationService {
 
     TelemetryReadScopeUtil.appendServiceFilter(statement, request);
 
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -1406,15 +1391,11 @@ export class ProfileAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' yields
-     * partial service activity rather than holding a pool connection.
+     * Cap runtime below the client's 58s request_timeout rather than hold a
+     * pool connection, and say so when it is reached
+     * (INTERACTIVE_READ_TIME_LIMIT).
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }
@@ -1493,15 +1474,11 @@ export class ProfileAggregationService {
     );
 
     /*
-     * Cap runtime below the client's 58s request_timeout; 'break' yields
-     * a partial (top groups) result rather than holding a pool connection.
+     * Cap runtime below the client's 58s request_timeout rather than hold a
+     * pool connection, and say so when it is reached
+     * (INTERACTIVE_READ_TIME_LIMIT).
      */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-      }),
-    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
 
     return statement;
   }

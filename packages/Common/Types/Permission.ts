@@ -218,6 +218,36 @@ enum Permission {
   EditProjectThreatIntelFeed = "EditProjectThreatIntelFeed",
   ReadProjectThreatIntelFeed = "ReadProjectThreatIntelFeed",
 
+  // Security Cases (the SOC's queue: detections grouped into cases)
+  CreateSecurityCase = "CreateSecurityCase",
+  DeleteSecurityCase = "DeleteSecurityCase",
+  EditSecurityCase = "EditSecurityCase",
+  ReadSecurityCase = "ReadSecurityCase",
+
+  // Security Case Notes (analyst notes on a case)
+  CreateSecurityCaseNote = "CreateSecurityCaseNote",
+  DeleteSecurityCaseNote = "DeleteSecurityCaseNote",
+  EditSecurityCaseNote = "EditSecurityCaseNote",
+  ReadSecurityCaseNote = "ReadSecurityCaseNote",
+
+  // Security Case Feed (what happened on a case, written by OneUptime)
+  ReadSecurityCaseFeed = "ReadSecurityCaseFeed",
+
+  // Security Detections (the signals a case is made of)
+  DeleteSecurityDetection = "DeleteSecurityDetection",
+  ReadSecurityDetection = "ReadSecurityDetection",
+
+  // Security Playbooks (automated response to cases)
+  CreateSecurityPlaybook = "CreateSecurityPlaybook",
+  DeleteSecurityPlaybook = "DeleteSecurityPlaybook",
+  EditSecurityPlaybook = "EditSecurityPlaybook",
+  ReadSecurityPlaybook = "ReadSecurityPlaybook",
+
+  // Security Playbook Runs (starting a playbook on a case, approving its steps)
+  CreateSecurityPlaybookRun = "CreateSecurityPlaybookRun",
+  EditSecurityPlaybookRun = "EditSecurityPlaybookRun",
+  ReadSecurityPlaybookRun = "ReadSecurityPlaybookRun",
+
   // Log Pipelines
   CreateProjectLogPipeline = "CreateProjectLogPipeline",
   DeleteProjectLogPipeline = "DeleteProjectLogPipeline",
@@ -2634,7 +2664,7 @@ export class PermissionHelper {
         permission: Permission.SecurityAdmin,
         title: "Security Admin",
         description:
-          "Full control over the SIEM: security events, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
+          "Full control over security operations: security events, cases with their detections and notes, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2644,7 +2674,7 @@ export class PermissionHelper {
         permission: Permission.SecurityMember,
         title: "Security Member",
         description:
-          "Reads security events and threat intelligence, sends security events, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure security event connections or delete security data.",
+          "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them and writes their notes), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks or security event connections, or delete security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2654,7 +2684,7 @@ export class PermissionHelper {
         permission: Permission.SecurityViewer,
         title: "Security Viewer",
         description:
-          "Read-only access to security events, detection rules, threat intelligence feeds and indicators, and security event connections.",
+          "Read-only access to security events, cases with their detections and notes, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -8004,6 +8034,197 @@ export class PermissionHelper {
         title: "Read Threat Intel Feed",
         description:
           "This permission can read Threat Intel Feeds of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Permissions
+      {
+        permission: Permission.CreateSecurityCase,
+        title: "Create Security Case",
+        description:
+          "This permission can create Security Cases in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityCase,
+        title: "Delete Security Case",
+        description:
+          "This permission can delete Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityCase,
+        title: "Edit Security Case",
+        description:
+          "This permission can edit Security Cases of this project: assign them, change their status and priority, and close them.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityCase,
+        title: "Read Security Case",
+        description: "This permission can read Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Note Permissions
+      {
+        permission: Permission.CreateSecurityCaseNote,
+        title: "Create Security Case Note",
+        description:
+          "This permission can add notes to Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityCaseNote,
+        title: "Delete Security Case Note",
+        description:
+          "This permission can delete notes of Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityCaseNote,
+        title: "Edit Security Case Note",
+        description:
+          "This permission can edit notes of Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityCaseNote,
+        title: "Read Security Case Note",
+        description:
+          "This permission can read notes of Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Feed Permissions
+      {
+        permission: Permission.ReadSecurityCaseFeed,
+        title: "Read Security Case Feed",
+        description:
+          "This permission can read the feed of Security Cases of this project: what happened on each case and when.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Detection Permissions
+      {
+        permission: Permission.DeleteSecurityDetection,
+        title: "Delete Security Detection",
+        description:
+          "This permission can delete Security Detections of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityDetection,
+        title: "Read Security Detection",
+        description:
+          "This permission can read Security Detections of this project: the signals each case is made of.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Playbook Permissions
+      {
+        permission: Permission.CreateSecurityPlaybook,
+        title: "Create Security Playbook",
+        description:
+          "This permission can create Security Playbooks in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityPlaybook,
+        title: "Delete Security Playbook",
+        description:
+          "This permission can delete Security Playbooks of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityPlaybook,
+        title: "Edit Security Playbook",
+        description:
+          "This permission can edit Security Playbooks of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityPlaybook,
+        title: "Read Security Playbook",
+        description:
+          "This permission can read Security Playbooks of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Playbook Run Permissions
+      {
+        permission: Permission.CreateSecurityPlaybookRun,
+        title: "Run Security Playbook",
+        description:
+          "This permission can run Security Playbooks on Security Cases of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityPlaybookRun,
+        title: "Approve Security Playbook Steps",
+        description:
+          "This permission can approve, reject and cancel the steps of Security Playbook runs of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityPlaybookRun,
+        title: "Read Security Playbook Run",
+        description:
+          "This permission can read Security Playbook runs of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
