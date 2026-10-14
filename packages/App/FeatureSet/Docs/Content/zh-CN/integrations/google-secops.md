@@ -137,12 +137,12 @@ flowchart TB
 后台工作进程每分钟为自上次轮询以来已过间隔的每个已启用连接排入一次轮询。每次轮询都是连接历史中的一次运行，由工作进程执行。它以三种方式读取同一个时间窗口，并按检测 ID 合并结果，所以被多个读取过程返回的记录只存储一次：
 
 1. **按创建时间读取规则检测。** 使用 `ruleId=-`（每条规则的每个修订版本）和 `listBasis=CREATED_TIME` 调用 `legacy:legacySearchDetections`，并跟随 `nextPageToken`，直到最后一页。
-2. **按创建时间读取精选规则检测。** 以同样的方式调用 `legacy:legacySearchCuratedDetections`，每条精选（由 Google 编写的）规则调用一次。该终结点只接受一个精选规则 ID（`ur_...`），没有"每条规则"的通配符，所以这个读取过程会先针对从窗口之前一周到窗口结束的时间调用 `:countAllCuratedRuleSetDetections`，再逐一搜索产生了检测的每条精选规则。在那一周内没有触发过的精选规则没有可导入的内容。没有精选规则访问权限的租户会以 `400`、`403` 或 `404` 回应这个读取过程；这会被记录为运行的警告，而不是失败。
+2. **按创建时间读取精选规则检测。** 以同样的方式调用 `legacy:legacySearchCuratedDetections`，每条精选（由 Google 编写的）规则调用一次。该终结点只接受一个精选规则 ID（`ur_...`），没有“每条规则”的通配符，所以这个读取过程会先针对从窗口之前一周到窗口结束的时间调用 `:countAllCuratedRuleSetDetections`，再逐一搜索产生了检测的每条精选规则。在那一周内没有触发过的精选规则没有可导入的内容。没有精选规则访问权限的租户会以 `400`、`403` 或 `404` 回应这个读取过程；这会被记录为运行的警告，而不是失败。
 3. **按检测时间读取警报视图。** 调用 `legacy:legacyFetchAlertsView`，它除了规则警报之外，还涵盖遥测警报、SOAR 警报和机器智能警报。该终结点不支持分页，所以被 Google 限制的响应会被拆分成更小的窗口重新读取。
 
 警报视图只能按检测时间过滤，而 Google 常常在检测时间之后很久才让警报可被读取（摄取延迟、计划规则、对迟到数据的重新运行）。因此，计划的轮询还会 **在其窗口之前的 24 小时内再扫描一遍警报视图**，只读取警报，并记录为 **Read late alerts by detection time** 检查。已导入的记录会被跳过，所以扫描中重复的记录会出现在 **Already imported** 下。扫描是尽力而为的：当 Google 限制它、它的预算用完或它失败时，运行会得到一条警告，但轮询不会变为 Partial 或 Failed，游标仍会前进，因为它回溯的那一天早已被之前的轮询读过。
 
-按 **创建时间** 轮询是整个设计的核心。Google SecOps 规则按计划运行（每 10 分钟、每小时、每天），它创建的检测带有 `detectionTime`，即规则时间窗口的结束时间或匹配事件的时间，而 `createdTime` 是检测引擎实际生成它的时间。一个在 10:05 为截至 09:00 的窗口创建的检测，其检测时间早已落在一个几次轮询之前就越过了 09:00 的游标之后，所以按检测时间轮询的连接器永远看不到它，任何迟到的事件也是如此。按创建时间读取，让每次轮询问的是"自我上次查看以来，Google 创建了什么"，这才是有答案的问题。每次运行都会记录它的创建延迟，即获取的记录中有多少是在其检测时间之后超过一个轮询间隔（再加一分钟）才创建的，以及最大的时间差，所以这种影响在 Diagnostics 中清晰可见。
+按 **创建时间** 轮询是整个设计的核心。Google SecOps 规则按计划运行（每 10 分钟、每小时、每天），它创建的检测带有 `detectionTime`，即规则时间窗口的结束时间或匹配事件的时间，而 `createdTime` 是检测引擎实际生成它的时间。一个在 10:05 为截至 09:00 的窗口创建的检测，其检测时间早已落在一个几次轮询之前就越过了 09:00 的游标之后，所以按检测时间轮询的连接器永远看不到它，任何迟到的事件也是如此。按创建时间读取，让每次轮询问的是“自我上次查看以来，Google 创建了什么”，这才是有答案的问题。每次运行都会记录它的创建延迟，即获取的记录中有多少是在其检测时间之后超过一个轮询间隔（再加一分钟）才创建的，以及最大的时间差，所以这种影响在 Diagnostics 中清晰可见。
 
 新连接的第一次轮询按创建时间回溯 **24 小时**。此后的每次轮询都从连接存储的游标处恢复，并有 **1 分钟** 的重叠；在窗口边界上创建的记录会被两次轮询都读到，但只存储一次，因为轮询会跳过已用相同来源标识符存储的事件。每次计划的轮询最多读取游标之后 **24 小时**，所以保存的游标较旧的连接会通过连续的 24 小时窗口追赶（Health 显示 **Catching up**），而不会丢弃中间的检测。对于第一个 24 小时窗口之前创建的记录，请使用 Diagnostics 中的 **Import this time range**。
 
@@ -189,7 +189,7 @@ Partial 轮询还会把它的警告存储在 **Last Error** 中，直到一次�
 
 **Provider details** 会补充 **Time basis read**、**Returned by each pass** 的记录数（规则检测、精选规则检测和警报视图）以及 **Creation lag**。之后依次是检查（每个读取过程一个）、警告和检测样本。计划轮询的详细信息还会显示 **Window read by this poll** 和 **Next scheduled poll reads** 的内容，而 Partial 轮询会说明它是保留了起点并缩小了下一个窗口，还是越过了它所指明的单独一分钟。**成功**、**No records returned**、**Partial** 和 **失败** 是不同的结果。
 
-在某次运行上使用 **View events in this time range**，可以打开它所返回检测的事件时间范围。否则，一个今天创建、但检测时间是昨天的检测，可能会被"最近事件"过滤器隐藏。在之后的完整轮询清除 Last Error 之后，运行历史仍会保留失败记录。联系支持人员时请使用 **Copy diagnostics**；它从不包含服务账号凭据和令牌。
+在某次运行上使用 **View events in this time range**，可以打开它所返回检测的事件时间范围。否则，一个今天创建、但检测时间是昨天的检测，可能会被“最近事件”过滤器隐藏。在之后的完整轮询清除 Last Error 之后，运行历史仍会保留失败记录。联系支持人员时请使用 **Copy diagnostics**；它从不包含服务账号凭据和令牌。
 
 ## 为什么我看不到事件？
 
@@ -199,7 +199,7 @@ Partial 轮询还会把它的警告存储在 **Last Error** 中，直到一次�
 2. **规则运行频率和检测延迟。** 检测在规则运行时创建，这可能比它所描述的事件晚一个小时甚至一天。连接器按创建时间轮询，所以它们会在 Google 创建它们之后的第一次轮询中到达，而不是在它们的检测时间到达。刚启用的规则还没有创建任何东西，而安静的租户没有什么可创建的。可用性检查会报告过去 24 小时和 7 天内创建了多少检测；包含和不包含 **Detections** 时都为零，表示 Google 暂时没有可供 OneUptime 导入的内容。
 3. **阅读上一次运行的计数。** 在 Diagnostics 中，如果 **Returned by Google SecOps** 有数量、**Imported into OneUptime** 为零，而 **Already imported** 的计数与之相符，说明连接器正在按设计工作：这些检测已被之前的轮询导入。**Rejected** 记录是 Google 返回的、根本不是检测的对象。
 4. **到底有没有在轮询？** Last Polled 显示 `Never` 且 Last Error 为空，表示这个连接还没有完成过任何轮询。测试连接会报告 **Background workers**（消费 Worker 队列的进程）、**Poll scheduler**（每分钟一次的调度器注册）和 **Scheduled polling**（这个连接自己的计划，包括逾期的轮询或卡在排队状态的运行）。导致这种情况的部署设置请参阅下面的故障排除条目。
-5. **在正确的地方查找。** 事件按检测时间存储，这可能比它们被创建和导入的时间早几个小时甚至几天，所以安全事件中的"最近 1 小时"过滤器会隐藏一个一分钟前导入的、关于昨天的检测。请在 Diagnostics 中的某次运行上使用 **View events in this time range**：它会打开该运行所返回检测的事件时间范围。
+5. **在正确的地方查找。** 事件按检测时间存储，这可能比它们被创建和导入的时间早几个小时甚至几天，所以安全事件中的“最近 1 小时”过滤器会隐藏一个一分钟前导入的、关于昨天的检测。请在 Diagnostics 中的某次运行上使用 **View events in this time range**：它会打开该运行所返回检测的事件时间范围。
 
 ## 严重程度如何设定
 
@@ -250,9 +250,9 @@ Google SecOps 会根据规则的编写者，把检测的严重程度存储在不
 - `Google SecOps detections search failed (HTTP ...)`：Chronicle 本身拒绝了按创建时间的搜索（`legacySearchDetections` 或 `legacySearchCuratedDetections`）。`403` 通常表示服务账号在实例所绑定的项目上缺少 **Chronicle API Viewer** 角色；在精选读取过程中，`400`、`403` 或 `404` 会被降级为警告，因为租户可能只是没有精选规则的访问权限。
 - `Google SecOps detections search returned ...`：Chronicle 对搜索返回了 `200`，但主体不是可读的检测页面：为空、不是 JSON，或是解析器无法识别的结构。这会被报告出来，而不是被算作一个安静的窗口，所以游标无法越过遗漏的内容。
 - `Google SecOps curated rule detection counts failed (HTTP ...)`：Chronicle 拒绝了 `countAllCuratedRuleSetDetections`，也就是确定精选读取过程要搜索哪些精选规则的调用。出于与精选搜索相同的原因，`400`、`403` 或 `404` 会被降级为警告；其他任何状态都会让轮询失败。
-- `Google SecOps curated rule detection counts returned ...`：Chronicle 对精选规则计数返回了 `200`，但主体为空、不是 JSON，或是解析器无法识别的结构。这会被报告出来，而不是被读作"没有精选规则触发"，所以精选检测不会被悄悄跳过。
+- `Google SecOps curated rule detection counts returned ...`：Chronicle 对精选规则计数返回了 `200`，但主体为空、不是 JSON，或是解析器无法识别的结构。这会被报告出来，而不是被读作“没有精选规则触发”，所以精选检测不会被悄悄跳过。
 - `Google SecOps alerts fetch failed (HTTP ...)`：Chronicle 本身拒绝了警报视图请求。`403` 通常表示服务账号在实例所绑定的项目上缺少 **Chronicle API Viewer** 角色；`404` 通常表示实例资源名称指向了另一个实例，或者区域前缀不是 Chronicle 所服务的区域。
-- `Google SecOps alerts fetch returned ...`：Chronicle 返回了 `200`，但主体不是可读的检测警报流：为空、不是 JSON，或是解析器无法识别的结构。它被特意报告出来，而不是被算作空窗口：把无法读取的主体当作"没有警报"，会让游标越过遗漏的内容。
+- `Google SecOps alerts fetch returned ...`：Chronicle 返回了 `200`，但主体不是可读的检测警报流：为空、不是 JSON，或是解析器无法识别的结构。它被特意报告出来，而不是被算作空窗口：把无法读取的主体当作“没有警报”，会让游标越过遗漏的内容。
 - `Google SecOps alerts query was rejected by Chronicle on an HTTP 200`：Chronicle 接受了请求并运行了它，然后在返回的主体中拒绝了查询（`validSnapshotQuery` 或 `validBaselineQuery` 为 false，或存在 `queryValidationErrors`）。这是 Google 的拒绝，其中任何地方都没有 HTTP 状态码。
 - `timed out after 60 seconds with no response`：在客户端放弃之前，Google 的 OAuth 终结点和 Chronicle 都没有回应（连接测试对每个请求使用 20 秒期限，并用这个数字报告同样的措辞）。没有任何内容返回，所以消息不归咎于任何一方；请检查 OneUptime 工作进程的出站流量以及租户。
 - 与以上都不匹配的消息并非来自 Google。以字段名（`Region`、`Instance resource name` 或 `Service account JSON`）开头的消息，表示保存的设置未通过验证：请编辑连接，或用 **Update credentials** 替换密钥。从早期 Google SecOps 连接器迁移过来、保存的设置已无法通过当前规则的连接，在被编辑之前都会落在这里。否则，失败发生在 OneUptime 一侧：通常是检测已经到达，而把它们写入遥测存储时失败了。
