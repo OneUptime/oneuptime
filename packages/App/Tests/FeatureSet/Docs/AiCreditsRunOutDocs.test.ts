@@ -71,7 +71,7 @@ describe("AI SRE: when AI credits run out", () => {
   });
 
   test("names the page that holds the credits and Auto Recharge", () => {
-    expect(credits).toContain("**Project Settings > AI > AI Credits**");
+    expect(credits).toContain("**Project Settings → AI → AI Credits**");
     expect(credits).toContain("**Auto Recharge**");
   });
 

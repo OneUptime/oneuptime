@@ -35,6 +35,12 @@ import {
   getTelegramDocumentation,
 } from "./MessagingDocumentation";
 import {
+  getPageOnCallDocumentation,
+  getPageOnCallPolicyDocumentation,
+  getPageTeamDocumentation,
+  getPageUsersDocumentation,
+} from "./OnCallDocumentation";
+import {
   getIncomingEmailDocumentation,
   getManualDocumentation,
   getScheduleDocumentation,
@@ -85,6 +91,10 @@ export const BUILT_IN_COMPONENT_DOCUMENTATION: Record<
   [ComponentID.WorkflowRun]: getExecuteWorkflowDocumentation,
   [ComponentID.Sleep]: getSleepDocumentation,
   [ComponentID.AIGenerateText]: getAIGenerateTextDocumentation,
+  [ComponentID.PageUsers]: getPageUsersDocumentation,
+  [ComponentID.PageTeam]: getPageTeamDocumentation,
+  [ComponentID.PageOnCall]: getPageOnCallDocumentation,
+  [ComponentID.PageOnCallPolicy]: getPageOnCallPolicyDocumentation,
 };
 
 export type GetComponentDocumentationFunction = (data: {

@@ -90,7 +90,7 @@ describe("the API reference on switches", () => {
 
   test("says an update that changes some values is heard for those only", () => {
     expect(switchesSection()).toContain(
-      "its audit log entry lists only the values that changed, and a workflow's **Listen on** hears only those.",
+      "its audit log entry lists only the values that changed, and a workflow's **Fields to watch** hears only those.",
     );
   });
 });
@@ -102,15 +102,16 @@ describe("the workflow triggers page", () => {
     );
   });
 
-  test("Listen on hears every change to its fields, a switch turned off included", () => {
+  test("Fields to watch hears every change to its fields, a switch turned off included", () => {
     expect(read("workflows", "triggers.md")).toContain(
-      "**On Update** can be narrowed to some fields with **Listen on**: it then fires only when an update changes one of them, to any value — turning a switch off or clearing a field counts.",
+      "**On Update** can be narrowed to some fields with **Fields to watch**: it then fires only when an update changes one of them, to any value — turning a switch off or clearing a field counts.",
     );
   });
 
   /*
    * Every translation of the page says both, in its own language: its On
-   * Update line grows a second sentence, and a paragraph names Listen on.
+   * Update line grows a second sentence, and a paragraph names Fields to
+   * watch.
    */
   test("says the same in every docs language", () => {
     const languages: Array<string> = fs
@@ -144,7 +145,7 @@ describe("the workflow triggers page", () => {
       const sentenceEnds: number = (onUpdate!.match(/[.。।]/g) || []).length;
       expect([language, sentenceEnds >= 2]).toEqual([language, true]);
 
-      expect([language, text.includes("**Listen on**")]).toEqual([
+      expect([language, text.includes("**Fields to watch**")]).toEqual([
         language,
         true,
       ]);
@@ -152,12 +153,12 @@ describe("the workflow triggers page", () => {
   });
 });
 
-describe("the incident settings page on Listen on", () => {
+describe("the incident settings page on Fields to watch", () => {
   test("narrows On Update to changes, a field saved as it was not being one", () => {
     const text: string = read("incidents", "settings.md");
 
     expect(text).toContain(
-      "**On Update X** takes an optional **Listen on** argument that narrows the trigger to updates that change specific fields, whatever they change to: a switch turned off or a field cleared counts too.",
+      "**On Update X** takes an optional **Fields to watch** argument that narrows the trigger to updates that change specific fields, whatever they change to: a switch turned off or a field cleared counts too.",
     );
     expect(text).toContain(
       "A field saved with the value it already has is not a change, so an edit form that sends it back with every save does not wake the workflow.",
@@ -166,7 +167,7 @@ describe("the incident settings page on Listen on", () => {
   });
 
   /*
-   * Every translation says it too: its Listen on line grows from three
+   * Every translation says it too: its Fields to watch line grows from three
    * sentences (narrows, leave it blank, no record of the fields) to at least
    * four - a field saved as it was is not a change.
    */
@@ -193,7 +194,8 @@ describe("the incident settings page on Listen on", () => {
         .split("\n")
         .filter((line: string): boolean => {
           return (
-            line.includes("**On Update X**") && line.includes("**Listen on**")
+            line.includes("**On Update X**") &&
+            line.includes("**Fields to watch**")
           );
         });
 

@@ -143,9 +143,8 @@ OneUptime 恢復執行後，**專案設定 > 工作區 > Slack** 會顯示 **Con
 
 | 功能 | 作用 | 路由 |
 | --- | --- | --- |
-| `/incident` 和 **Create New Incident** 捷徑 | 從 Slack 宣告事件 | `POST /api/slack/interactive` |
-| `/maintenance` 和 **Create Scheduled Event** 捷徑 | 從 Slack 排定維護 | `POST /api/slack/interactive` |
-| `/oneuptime` | 向 OneUptime AI 詢問你的日誌、追蹤、指標、事件和監控 | `POST /api/slack/command` |
+| `/oneuptime` | 宣告事件、排定維護、查看誰在待命以及詢問 OneUptime AI；`/oneuptime help` 會列出所有指令 | `POST /api/slack/command` |
+| **Create New Incident** 和 **Create Scheduled Event** 捷徑 | 透過 Slack 的捷徑宣告事件或排定維護 | `POST /api/slack/interactive` |
 | OneUptime 訊息中的按鈕和表單 | 確認、解決、新增備註、變更狀態、執行值班政策 | `POST /api/slack/interactive` 和 `POST /api/slack/options-load` |
 | 事件 | 提及、訊息、表情回應和釘選，例如把一則訊息儲存為備註 | `POST /api/slack/events` |
 
@@ -154,6 +153,10 @@ OneUptime 恢復執行後，**專案設定 > 工作區 > Slack** 會顯示 **Con
 事件和警示的描述可以包含螢幕截圖，例如合成監控的截圖（請參閱 [顯示螢幕截圖](/docs/monitor/incident-alert-templating#顯示螢幕截圖)）。OneUptime 會把每張截圖當作私人檔案上傳到你的工作區，藉此在 Slack 訊息中顯示，這需要機器人權限範圍 `files:write`。產生的資訊清單已包含它。
 
 如果你的 Slack 應用程式是用較舊的資訊清單建立的，請在 **OAuth & Permissions > Bot Token Scopes** 下新增 `files:write`（或用目前的資訊清單更新應用程式）。然後在 **專案設定 > 工作區 > Slack** 中再次選擇 **Connect with Slack**，以授予新的權限範圍。在那之前，每張截圖都會以其替代文字顯示。
+
+### 用較舊資訊清單建立的應用程式
+
+用較早的 OneUptime 資訊清單建立的 Slack 應用程式會把 `/incident` 和 `/maintenance` 註冊為獨立的指令，它們可能與其他應用程式的同名指令衝突。它們仍然可以使用，並開啟與 `/oneuptime incident` 和 `/oneuptime maintenance` 相同的表單。若要用 `/oneuptime` 取代它們，請用你的伺服器產生的資訊清單更新應用程式：在 [api.slack.com/apps](https://api.slack.com/apps) 中開啟應用程式的 **App Manifest**，貼上資訊清單並儲存。權限範圍保持不變，因此不需要重新安裝應用程式。
 
 ## 自行託管部署的網路存取
 
@@ -172,7 +175,7 @@ OneUptime 恢復執行後，**專案設定 > 工作區 > Slack** 會顯示 **Con
 | 方法與路徑 | 用途 |
 | --- | --- |
 | `POST /api/slack/events` | Events API 驗證、表情回應、釘選、提及和訊息 |
-| `POST /api/slack/interactive` | 按鈕、捷徑、互動視窗提交、`/incident` 和 `/maintenance` |
+| `POST /api/slack/interactive` | 按鈕、捷徑、互動視窗提交，以及舊應用程式的 `/incident` 和 `/maintenance` |
 | `POST /api/slack/options-load` | 互動式選單的選項請求 |
 | `POST /api/slack/command` | `/oneuptime` 指令 |
 

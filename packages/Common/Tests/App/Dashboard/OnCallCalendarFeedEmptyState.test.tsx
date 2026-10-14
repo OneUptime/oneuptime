@@ -155,6 +155,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import Permission from "../../../Types/Permission";
 import { JSONObject } from "../../../Types/JSON";
 import FeedEmptyState, {
+  FEED_EMPTY_STATE_LAYOUT_CLASS_NAME,
   FeedEmptyStatePoint,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/FeedEmptyState";
 import {
@@ -285,6 +286,34 @@ describe("FeedEmptyState", () => {
       within(screen.getByTestId("feed-empty-control")).getByTestId(
         "panel-action",
       ),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * On a phone the badge sits above the text, which then has the panel's
+   * whole width: beside it, the bullets ran to three lines each and
+   * "Generate calendar link" broke over two. From sm up it is beside it.
+   */
+  test("the badge sits above the text on a phone and beside it from sm up", () => {
+    render(
+      <FeedEmptyState
+        idPrefix="feed"
+        title="No calendar link yet"
+        description="Generate one, then subscribe from your calendar app."
+        control={action("Generate")}
+      />,
+    );
+
+    const layout: HTMLElement = screen.getByTestId("feed-empty-layout");
+
+    expect(layout.className).toBe(FEED_EMPTY_STATE_LAYOUT_CLASS_NAME);
+    expect(FEED_EMPTY_STATE_LAYOUT_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["flex", "flex-col", "sm:flex-row"]),
+    );
+    // The badge first, then the text with the action in it.
+    expect(layout.children).toHaveLength(2);
+    expect(
+      within(layout.children[1] as HTMLElement).getByTestId("feed-empty-title"),
     ).toBeInTheDocument();
   });
 

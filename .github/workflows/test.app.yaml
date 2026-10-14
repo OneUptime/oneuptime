@@ -164,6 +164,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Topology runs here (Chromium only, about 2.5 minutes) since the
+          # Workflow Builder suite grew again with its UI review: group 2 had
+          # reached 24.5 of the job's 30 minutes on a slow runner.
           - group: 1
             browsers: chromium
             suites: >-
@@ -175,6 +178,8 @@ jobs:
               test-llm-provider-test-ui
               test-custom-field-options-ui
               test-pagination-ui
+              test-calendar-feed-ui
+              test-topology-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Value Picker (the
           # chip editor's caret handling differs in each).
@@ -182,14 +187,16 @@ jobs:
             browsers: chromium firefox
             suites: >-
               test-chart-time-zoom-ui
-              test-topology-ui
               test-workflow-builder-ui
               test-code-editor-ui
               test-exception-detail-ui
               test-alerts-ui
               test-pencil-button-ui
-              test-navigation-search-ui
               test-color-picker-ui
+          # Navigation Search runs here since the Workflow Builder suite
+          # gained its field list, Run panel and value availability specs
+          # (about five minutes more in group 2): it keeps each group well
+          # under the job's cap.
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -202,6 +209,7 @@ jobs:
               test-status-page-search-ui
               test-label-rule-transfer-ui
               test-diagrams-ui
+              test-navigation-search-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -321,4 +329,6 @@ jobs:
             output/playwright/llm-provider-test-ui/*.png
             output/playwright/llm-provider-test-ui/test-results
             output/playwright/pagination-ui/test-results
+            output/playwright/calendar-feed-ui/*.png
+            output/playwright/calendar-feed-ui/test-results
           retention-days: 7

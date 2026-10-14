@@ -26,13 +26,13 @@ Ett arbetsflöde kan bara ha en utlösare. Behöver du två sätt att starta sam
 
 ## Manual
 
-Kör arbetsflödet när du vill: klicka på **Kör arbetsflöde** på sidan **Byggare**, fyll i utlösarens **JSON**, klicka på **Run Workflow Manually** och bekräfta med **Run**. Ett annat arbetsflöde kan också starta det med ett **Execute Workflow**-block.
+Kör arbetsflödet när du vill: klicka på **Kör arbetsflöde** på sidan **Byggare**, fyll i utlösarens **JSON**, klicka på **Kör arbetsflödet manuellt** och bekräfta med **Kör**. Ett annat arbetsflöde kan också starta det med ett **Execute Workflow**-block.
 
 Bra för: automatisering med ett klick som du vill ha en knapp för, som ”rotera den här nyckeln” eller ”skicka ett testlarm”, och logik som du delar mellan arbetsflöden.
 
 **Returns**: **JSON** — det körningen startades med.
 
-- Från **Kör arbetsflöde** är det JSON:en du skrev, som text. För att läsa ett fält i den skickar du den först genom ett **Text to JSON**-block.
+- Från **Kör arbetsflöde** är det JSON:en du skrev. För att läsa ett fält i den lägger du till fältets namn i referensen, som i `{{local.components.manual-1.returnValues.value.name}}`.
 - Från ett **Execute Workflow**-block är varje nyckel i blockets **Arguments** ett eget värde. Med `{"customerId": "42"}` läser ett senare block `{{local.components.manual-1.returnValues.customerId}}`, där `manual-1` är Manual-utlösarens ID.
 
 ## Schedule
@@ -96,7 +96,7 @@ sequenceDiagram
 
 Läs ett enskilt fält genom att lägga till dess namn i referensen, som i `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
-När en förfrågan har kommit vet värdeväljaren i varje block efter utlösaren vad den innehöll: den visar bodyns fält, headers och frågeparametrar, vart och ett med sitt innehåll, så att du kan välja `incident.title` i stället för att skriva en sökväg. Fram till dess säger den att ingen förfrågan har kommit och erbjuder **Copy test request**, ett `curl`-kommando till URL:en; fälten dyker upp så snart körningen som förfrågan startar är klar. Se [Använd värden från tidigare block](/docs/workflows/authoring#använd-värden-från-tidigare-block).
+När en förfrågan har kommit vet värdeväljaren i varje block efter utlösaren vad den innehöll: den visar bodyns fält, headers och frågeparametrar, vart och ett med sitt innehåll, så att du kan välja `incident.title` i stället för att skriva en sökväg. Fram till dess säger den att ingen förfrågan har kommit och erbjuder **Kopiera testbegäran**, ett `curl`-kommando till URL:en; fälten dyker upp så snart körningen som förfrågan startar är klar. Se [Använd värden från tidigare block](/docs/workflows/authoring#använd-värden-från-tidigare-block).
 
 För att testa arbetsflödet utan det andra verktyget klickar du på **Kör arbetsflöde** i **Byggare** och anger headers, frågeparametrar och en body.
 
@@ -161,24 +161,24 @@ Nästan allt i OneUptime — monitorer, incidenter, larm, schemalagda underhåll
 
 Så bygger du ”när X händer i OneUptime, gör Y” utan att behöva kontrollera saker i en loop.
 
-**On Update** kan begränsas till vissa fält med **Listen on**: då aktiveras den bara när en uppdatering ändrar något av dem, till vilket värde som helst — att slå av en brytare eller tömma ett fält räknas.
+**On Update** kan begränsas till vissa fält med **Fields to watch**: då aktiveras den bara när en uppdatering ändrar något av dem, till vilket värde som helst — att slå av en brytare eller tömma ett fält räknas.
 
 ```mermaid title="När en On Update-utlösare aktiveras"
 flowchart TB
     save["En post sparas"] --> changed{"Ändrades något värde?"}
     changed -->|"Nej"| nothing["Inget aktiveras"]
-    changed -->|"Ja"| listen{"Är Listen on angivet?"}
+    changed -->|"Ja"| listen{"Är Fields to watch angivet?"}
     listen -->|"Nej"| fires["Arbetsflödet körs"]
     listen -->|"Ja"| field{"Ändrades något av dess fält?"}
     field -->|"Ja"| fires
     field -->|"Nej"| nothing
 ```
 
-**On Create** och **On Update** skickar posten vidare till nästa block, med de fält du väljer i utlösarens **Select Fields**. Till exempel skickar utlösaren **Incident → On Create** den nya incidenten vidare, så att nästa block kan läsa dess titel, beskrivning, allvarlighetsgrad eller vilket annat fält du har valt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ett fält du inte valde kommer fram tomt.
+**On Create** och **On Update** skickar posten vidare till nästa block, med de fält du väljer i utlösarens **Fields to pass on**. Till exempel skickar utlösaren **Incident → On Create** den nya incidenten vidare, så att nästa block kan läsa dess titel, beskrivning, allvarlighetsgrad eller vilket annat fält du har valt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ett fält du inte valde kommer fram tomt.
 
 **On Delete** skickar bara vidare ID:t för den borttagna posten: posten är borta när arbetsflödet körs, så dess övriga fält kan inte läsas.
 
-För att testa en händelseutlösare utan att vänta på händelsen klickar du på **Kör arbetsflöde** i **Byggare** och anger ID:t för en befintlig post, som ett **Incident-ID**. Körningen läser den posten med de fält du valde.
+För att testa en händelseutlösare utan att vänta på händelsen klickar du på **Kör arbetsflöde** i **Byggare** och väljer en befintlig post: de senaste visas i listan, och genom att skriva en posts nummer eller en del av dess namn hittar du en annan. Körningen läser den posten med de fält du valde, som om händelsen just hade inträffat för den; själva posten varken ändras eller tas bort.
 
 ### Händelserna team använder mest
 

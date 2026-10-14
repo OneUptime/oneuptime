@@ -74,6 +74,18 @@ function customDomainRequest(): ExpressRequest {
   } as unknown as ExpressRequest;
 }
 
+function previewRequest(): ExpressRequest {
+  return {
+    path: `/status-page/${STATUS_PAGE_ID}/llms.txt`,
+    hostname: "oneuptime.com",
+    protocol: "https",
+    headers: { host: "oneuptime.com" },
+    get: () => {
+      return "oneuptime.com";
+    },
+  } as unknown as ExpressRequest;
+}
+
 function robotsHeaderCalls(res: FakeResponse): Array<Array<unknown>> {
   const calls: Array<Array<unknown>> = (
     res.set as unknown as { mock: { calls: Array<Array<unknown>> } }
@@ -143,6 +155,18 @@ describe.each(NON_HTML_RESPONSES)("%s", (_name: string, handler: Handler) => {
     await handler(customDomainRequest(), res as unknown as ExpressResponse);
 
     expect(robotsHeaderCalls(res)).toEqual([]);
+  });
+
+  it("carries the noindex instruction on a preview URL, even when indexing is on", async () => {
+    // A preview URL is never indexed: only a custom domain can be.
+    mockSeoAndFeedApis(true);
+    const res: FakeResponse = fakeResponse();
+
+    await handler(previewRequest(), res as unknown as ExpressResponse);
+
+    expect(robotsHeaderCalls(res)).toEqual([
+      ["X-Robots-Tag", "noindex, nofollow"],
+    ]);
   });
 
   it("still answers 404 for a page that cannot be resolved", async () => {

@@ -23,10 +23,9 @@ import User from "Common/Models/DatabaseModels/User";
 import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import { Yellow500 } from "Common/Types/BrandColors";
 import AlertEpisodeFeedService from "Common/Server/Services/AlertEpisodeFeedService";
-import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "AlertEpisodeOwner:SendCreatedResourceEmail",
@@ -68,14 +67,11 @@ RunCron(
     });
 
     for (const episode of episodes) {
-      const projectId: ObjectID = episode.projectId!;
-      const episodeId: ObjectID = episode.id!;
       const episodeDisplayNumber: string =
         episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
 
       const episodeFeedText: string =
-        mdText`🔔 **Owner Alert Episode Created Notification Sent**:
-      Notification sent to owners because [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) was created.`.toString();
+        OwnerNotificationFeedText.created("alert episode");
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       const episodeCreatedDate: Date = episode.createdAt!;
@@ -218,7 +214,13 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += mdText`**Notified**: ${user.name?.toString()} (${user.email?.toString()})\n`;
+          moreEpisodeFeedInformationInMarkdown +=
+            OwnerNotificationFeedText.notifiedLineMarkdown(
+              OwnerNotificationFeedText.nameAndEmail({
+                name: user.name?.toString(),
+                email: user.email?.toString(),
+              }),
+            );
         } catch (e) {
           logger.error(
             "Error in sending alert episode created resource notification",

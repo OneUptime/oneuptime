@@ -28,7 +28,7 @@ flowchart TB
 OneUptime은 요청에서 메시지를 읽자마자 응답하고, 잠시 뒤에 파싱해 저장합니다. 메시지 텍스트는 로그 본문에 남고, 나머지는 모두 속성이 됩니다.
 
 > [!TIP]
-> OneUptime 프로브로 모니터링하는 네트워크 장비는 릴레이 없이 UDP로 syslog를 프로브에 바로 보낼 수 있습니다. 그러면 로그가 OneUptime의 해당 장비에 나타납니다. [네트워크 공급업체별 가이드(Sophos, Extreme, Cambium)](/docs/monitor/network-vendor-guides)를 참고하세요.
+> 네트워크 장비는 릴레이 없이 UDP나 TCP로 syslog를 OneUptime 프로브에 바로 보낼 수 있습니다. 그러면 OneUptime이 각 벤더의 메시지를 해당 장비의 이벤트로 읽습니다. [네트워크 이벤트](/docs/monitor/network-events)를 참고하세요.
 
 ## 시작하기 전에
 
@@ -200,7 +200,7 @@ OneUptime은 각 로그 항목에 다음 속성을 자동으로 추가합니다.
 
 이 속성들은 **제품 → 로그** 탐색기에서 검색할 수 있습니다. 예를 들어 `@syslog.severity.name:error`나 `@syslog.hostname:web-01`입니다. [검색 구문](/docs/telemetry/search-syntax)을 참고하세요.
 
-메시지 자체는 로그 본문에 남습니다. Sophos XGS나 Fortinet FortiGate 같은 방화벽은 메시지를 `key=value` 쌍(`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`)으로 씁니다. [로그 파이프라인](/docs/telemetry/log-pipelines#keyvalue-parser)에 **Key=Value Parser** 프로세서를 추가하면 이 쌍도 속성으로 바뀝니다.
+메시지 자체는 로그 본문에 남습니다. 네트워크 벤더 형식의 메시지는 더 읽습니다. Sophos나 FortiGate 방화벽의 `key=value` 쌍(`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`)은 `sophos.*`와 `fortigate.*` 속성이 되고, 일어난 일은 [네트워크 이벤트](/docs/monitor/network-events)가 됩니다. 그 밖의 `key=value` 형식이라면 [로그 파이프라인](/docs/telemetry/log-pipelines#keyvalue-parser)에 **Key=Value Parser** 프로세서를 추가해 쌍을 속성으로 바꾸세요.
 
 ### 심각도
 

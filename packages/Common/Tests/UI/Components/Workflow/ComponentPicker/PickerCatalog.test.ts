@@ -124,6 +124,7 @@ describe("what the picker leads with", () => {
         return group.name;
       }),
     ).toEqual([
+      "On-Call",
       "AI",
       "API",
       "Telegram",
@@ -141,6 +142,10 @@ describe("what the picker leads with", () => {
     );
 
     expect(others).toEqual([
+      "Page Users",
+      "Page a Team",
+      "Page Whoever Is On Call",
+      "Page an On-Call Policy",
       "Generate Text with AI",
       "API Put (JSON)",
       "API Patch (JSON)",

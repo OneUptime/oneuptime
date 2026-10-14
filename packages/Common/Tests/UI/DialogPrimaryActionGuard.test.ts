@@ -125,7 +125,8 @@ const EXPECTED_DIALOGS: Array<{ file: string; title: string }> = [
   },
   {
     file: "packages/Common/UI/Components/Workflow/RunModal.tsx",
-    title: "Run Workflow Manually",
+    // "Run this workflow now?", kept with the panel's other words.
+    title: "RunModalCopy.confirmTitle",
   },
   {
     file: "packages/App/FeatureSet/Dashboard/src/Components/TelemetryResource/ArchiveResourceCard.tsx",
@@ -417,12 +418,10 @@ describe("the guard catches the faults the audit fixed", () => {
     const file: string = "packages/Common/UI/Components/Workflow/RunModal.tsx";
     const reverted: string = revert(
       read(file),
-      `props.onRun(component);
-              props.onClose();
+      `props.onClose();
             }}
             submitButtonType={ButtonStyleType.PRIMARY}`,
-      `props.onRun(component);
-              props.onClose();
+      `props.onClose();
             }}
             submitButtonType={ButtonStyleType.SUCCESS}`,
     );
@@ -433,7 +432,7 @@ describe("the guard catches the faults the audit fixed", () => {
           return `${finding.title} ${finding.rule}`;
         },
       ),
-    ).toEqual(["Run Workflow Manually action-not-primary"]);
+    ).toEqual(["RunModalCopy.confirmTitle action-not-primary"]);
   });
 
   test("a primary Close beside a Cancel in a notice", () => {

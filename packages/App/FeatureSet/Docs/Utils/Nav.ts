@@ -272,6 +272,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/network-traffic",
       },
       {
+        title: "Network Events (Syslog and SNMP Traps)",
+        url: "/docs/monitor/network-events",
+      },
+      {
         title: "Kubernetes Monitor",
         url: "/docs/monitor/kubernetes-monitor",
       },
@@ -803,11 +807,11 @@ const DocsNav: NavGroup[] = [
     section: "Observability",
     links: [
       {
-        title: "Overview",
+        title: "Inventory Overview",
         url: "/docs/inventory/overview",
       },
       {
-        title: "Custom Fields",
+        title: "Inventory Custom Fields",
         url: "/docs/inventory/custom-fields",
       },
       {

@@ -155,11 +155,50 @@ export function createInMemoryGlobalCache(): {
   setString: jest.Mock;
   getString: jest.Mock;
   getAndDeleteString: jest.Mock;
+  setStringIfNotExists: jest.Mock;
+  deleteKeyIfValue: jest.Mock;
 } {
   const store: Map<string, CacheEntry> = new Map();
 
   return {
     store,
+    // SET ... NX: true only for the caller that created the key.
+    setStringIfNotExists: jest.fn(
+      async (
+        namespace: string,
+        key: string,
+        value: string,
+        options?: { expiresInSeconds: number },
+      ): Promise<boolean> => {
+        const cacheKey: string = `${namespace}-${key}`;
+        const entry: CacheEntry | undefined = store.get(cacheKey);
+
+        if (entry && entry.expiresAt > Date.now()) {
+          return false;
+        }
+
+        store.set(cacheKey, {
+          value,
+          expiresAt: Date.now() + (options?.expiresInSeconds ?? 2592000) * 1000,
+        });
+
+        return true;
+      },
+    ),
+    // Compare-and-delete: true only when the key still held `value`.
+    deleteKeyIfValue: jest.fn(
+      async (namespace: string, key: string, value: string) => {
+        const cacheKey: string = `${namespace}-${key}`;
+        const entry: CacheEntry | undefined = store.get(cacheKey);
+
+        if (!entry || entry.expiresAt <= Date.now() || entry.value !== value) {
+          return false;
+        }
+
+        store.delete(cacheKey);
+        return true;
+      },
+    ),
     // Reads without spending: a Connect button's request is peeked first.
     getString: jest.fn(
       async (namespace: string, key: string): Promise<string | null> => {

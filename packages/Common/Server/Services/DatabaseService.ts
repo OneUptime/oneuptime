@@ -8975,8 +8975,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           if (tenantId) {
             /*
              * The fields the update changed, not every field it sent: a
-             * workflow's Listen on hears a field that changed, never one
-             * written back as it was.
+             * workflow's Fields to watch hear a field that changed, never
+             * one written back as it was.
              */
             await this.onTriggerWorkflow(item.id!, tenantId, "on-update", {
               updatedFields: JSONFunctions.serialize(changedColumns),
@@ -9313,9 +9313,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * workflow and its live update, who hears about it before the write
    * (getRealtimeAccessBeforeUpdate) and the audit entry, so a write that
    * changes nothing sets off none of them - and it is what an On Update
-   * workflow is told the update changed (`updatedFields`), so its Listen on
-   * hears a field that changed and never one an edit form, Terraform or a
-   * script wrote back as it was. A column is reported with the value the
+   * workflow is told the update changed (`updatedFields`), so its Fields to
+   * watch hear a field that changed and never one an edit form, Terraform or
+   * a script wrote back as it was. A column is reported with the value the
    * update wrote, or - one the write worked out itself, a rule's criteria
    * kept in step with its switch - with the value it stores.
    */

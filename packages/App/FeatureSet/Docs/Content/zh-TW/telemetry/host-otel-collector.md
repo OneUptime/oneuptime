@@ -1165,9 +1165,9 @@ sudo bash install.sh
 - **AI 調查預設為開啟。** 代理程式連線後，OneUptime AI 會用它來調查該主機上的事件和警示，主機的 **概覽** 會顯示代理程式的狀態。若要停止，請在代理程式執行的位置設定 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理程式頁面上 **AI 可以執行的操作** 下的 **變更** 會顯示方法），或移除代理程式。
 - 它以 `HOST_NAME` 註冊；留空則使用主機自己的主機名稱，除非你設定了其他名稱，這也是此 Collector 以 `host.name` 回報的名稱。兩者必須一致，代理程式才能服務此 Collector 建立的主機。它會出現在 OneUptime 中該主機的 **AI 代理程式** 頁面上。
 - 它透過 `nsenter` 進入主機的命名空間來執行主機自己的程式，因此它以特權模式、以 root 身分並使用 `pid: host` 執行：它就是主機上的 root。代理程式的指令原則就是界限：除非你設定 `ONEUPTIME_AI_ALLOW_WRITES=true`，否則只執行唯讀指令；從不執行 shell、`sudo` 或其清單以外的程式；也從不變動它自己、此 Collector 的單元或 `ONEUPTIME_AI_PROTECTED_TARGETS` 中的任何內容。
-- 設定 `ONEUPTIME_AI_ALLOW_WRITES=true` 後，`ONEUPTIME_AI_WRITE_TARGETS`（完整的單元名稱，例如 `nginx.service,app-*`）會限制修正可以觸及哪些單元。`ONEUPTIME_AI_FIXES` 決定修正如何執行，可選 `ask-for-approval`（由人逐一核准）、`automatic` 或 `bypass-approval`，AI 代理程式頁面會以唯讀方式顯示它；安裝程式會將這兩個值從其環境寫入代理程式的 `.env`（[由代理程式設定的 AI 可以執行的操作](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)）。
+- 設定 `ONEUPTIME_AI_ALLOW_WRITES=true` 後，`ONEUPTIME_AI_WRITE_TARGETS`（完整的單元名稱，例如 `nginx.service,app-*`）會限制修正可以觸及哪些單元。`ONEUPTIME_AI_FIXES` 決定修正如何執行，可選 `ask-for-approval`（由人逐一核准）、`automatic` 或 `bypass-approval`，AI 代理程式頁面會以唯讀方式顯示它；安裝程式會將這兩個值從其環境寫入代理程式的 `.env`（[由代理程式設定的 AI 可以執行的操作](/docs/ai/infrastructure-ai-agents#ai-可以做什麼由代理程式設定)）。
 
-它可以執行什麼、修正如何運作以及如何疑難排解，請參閱 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#hosts)。
+它可以執行什麼、修正如何運作以及如何疑難排解，請參閱 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#主機)。
 
 ## 疑難排解
 

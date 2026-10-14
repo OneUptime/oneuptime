@@ -39,6 +39,7 @@ import {
 import { componentReturnValueReference } from "../../../../Types/Workflow/TemplateSyntax";
 import { getWebhookTriggerCurlExample } from "../../../../Types/Workflow/WebhookTrigger";
 import OneUptimeDate from "../../../../Types/Date";
+import { translationKey } from "../../../Utils/TranslateTemplate";
 import { stepGroupId } from "./StepValueSource";
 import {
   ValueSuggestion,
@@ -86,6 +87,10 @@ const KIND_LABELS: Record<StepSampleKind, string | undefined> = {
 export const StepSampleCopy: {
   readonly copyTestRequest: string;
   readonly waitingForRequest: string;
+  readonly noRequestYetWhileOff: string;
+  readonly noEmailYetWhileOff: string;
+  readonly testWithRunWorkflow: string;
+  readonly waitingForTestRun: string;
   readonly noRequestYetWithTest: string;
   readonly noRequestYet: string;
   readonly noRequestYetInside: string;
@@ -97,26 +102,47 @@ export const StepSampleCopy: {
   readonly noEmailYetInside: string;
   readonly cutShortEmail: string;
 } = {
-  copyTestRequest: "Copy test request",
-  waitingForRequest: "Waiting for a request…",
-  noRequestYetWithTest:
+  copyTestRequest: translationKey("Copy test request"),
+  waitingForRequest: translationKey("Waiting for a request…"),
+  /*
+   * While the workflow is off its trigger is paused, so the URL refuses the
+   * test request the note would otherwise offer to copy, and email to the
+   * address is ignored. A test run with Run Workflow fills the fields in.
+   */
+  noRequestYetWhileOff: translationKey(
+    "No request has reached this webhook yet, and while this workflow is off its URL refuses requests. Test it with Run Workflow: the fields of the request you send there show up here.",
+  ),
+  noEmailYetWhileOff: translationKey(
+    "No email has reached the workflow's address yet, and while this workflow is off email to it is ignored. Test it with Run Workflow: the fields of the email you fill in there show up here.",
+  ),
+  testWithRunWorkflow: translationKey("Test with Run Workflow"),
+  waitingForTestRun: translationKey("Waiting for a test run…"),
+  noRequestYetWithTest: translationKey(
     "No request has reached this webhook yet. Send a test request, and the fields it sends show up here.",
-  noRequestYet:
+  ),
+  noRequestYet: translationKey(
     "No request has reached this webhook yet. The fields of the first one show up here.",
-  noRequestYetInside:
+  ),
+  noRequestYetInside: translationKey(
     "No request has arrived yet. Its fields show up here after the first one.",
+  ),
   partial: "It was large, so not every field is listed.",
-  cutShortRequest:
+  cutShortRequest: translationKey(
     "The last request was too big to keep, so its fields show up here after the next one.",
-  cutShortRun:
+  ),
+  cutShortRun: translationKey(
     "It was too big to keep in the last run, so its fields show up here after the next one.",
-  waitingForEmail: "Waiting for an email…",
-  noEmailYet:
+  ),
+  waitingForEmail: translationKey("Waiting for an email…"),
+  noEmailYet: translationKey(
     "No email has reached the workflow's address yet. Send one, and its fields show up here.",
-  noEmailYetInside:
+  ),
+  noEmailYetInside: translationKey(
     "No email has arrived yet. Its fields show up here after the first one.",
-  cutShortEmail:
+  ),
+  cutShortEmail: translationKey(
     "The last email was too big to keep, so its fields show up here after the next one.",
+  ),
 };
 
 type IsWebhookFunction = (step: NodeDataProp) => boolean;
@@ -143,10 +169,10 @@ type SaysWhenFieldsArriveFunction = (step: NodeDataProp) => boolean;
 
 /*
  * Whether running the step is what fills in its values' fields: a Webhook
- * once a request arrives, an Incoming Email trigger once an email does, and
- * any step after a trigger. Not the Manual trigger: JSON typed into Run
- * Workflow arrives as one piece of text, with no fields to list, so promising
- * them would be wrong.
+ * once a request arrives, an Incoming Email trigger once an email does, the
+ * Manual trigger once Run Workflow starts it with JSON (sent as JSON since
+ * RunValues), and any step after a trigger. Not the Schedule, whose values
+ * have no fields.
  */
 const saysWhenFieldsArrive: SaysWhenFieldsArriveFunction = (
   step: NodeDataProp,
@@ -154,6 +180,8 @@ const saysWhenFieldsArrive: SaysWhenFieldsArriveFunction = (
   return (
     isWebhook(step) ||
     isIncomingEmail(step) ||
+    step.metadataId === ComponentID.Manual ||
+    step.metadata?.id === ComponentID.Manual ||
     (step.componentType || step.metadata?.componentType) !==
       ComponentType.Trigger
   );
@@ -433,7 +461,14 @@ export const buildStepSampleGroups: BuildStepSampleGroupsFunction = (
 
     let note: ValueSuggestionNote | undefined = undefined;
 
-    if (isWebhook(step) && !sample) {
+    if (isWebhook(step) && !sample && context.isWorkflowOff) {
+      note = {
+        text: StepSampleCopy.noRequestYetWhileOff,
+        offersTestRun: true,
+        refreshSourceId: STEP_SAMPLE_SOURCE_ID,
+        waitingText: StepSampleCopy.waitingForTestRun,
+      };
+    } else if (isWebhook(step) && !sample) {
       note = context.webhookUrl
         ? {
             text: StepSampleCopy.noRequestYetWithTest,
@@ -450,11 +485,18 @@ export const buildStepSampleGroups: BuildStepSampleGroupsFunction = (
     }
 
     if (isIncomingEmail(step) && !sample) {
-      note = {
-        text: StepSampleCopy.noEmailYet,
-        refreshSourceId: STEP_SAMPLE_SOURCE_ID,
-        waitingText: StepSampleCopy.waitingForEmail,
-      };
+      note = context.isWorkflowOff
+        ? {
+            text: StepSampleCopy.noEmailYetWhileOff,
+            offersTestRun: true,
+            refreshSourceId: STEP_SAMPLE_SOURCE_ID,
+            waitingText: StepSampleCopy.waitingForTestRun,
+          }
+        : {
+            text: StepSampleCopy.noEmailYet,
+            refreshSourceId: STEP_SAMPLE_SOURCE_ID,
+            waitingText: StepSampleCopy.waitingForEmail,
+          };
     }
 
     if (items.length === 0 && fieldsToSearch.length === 0 && !note) {

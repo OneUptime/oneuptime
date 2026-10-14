@@ -461,6 +461,21 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       return fieldName;
     };
 
+    /*
+     * Whether a field names the value it starts with. Any value but
+     * undefined and null does: 0 and false are values like any other. A
+     * truthiness check skipped them, so a field starting on 0 or off started
+     * empty - and a required one refused the form, though it said what it
+     * started on.
+     */
+    type HasDefaultValueFunction = (field: Field<T>) => boolean;
+
+    const hasDefaultValue: HasDefaultValueFunction = (
+      field: Field<T>,
+    ): boolean => {
+      return field.defaultValue !== undefined && field.defaultValue !== null;
+    };
+
     const setAllTouched: VoidFunction = (): void => {
       const touchedObj: Dictionary<boolean> = {};
 
@@ -795,7 +810,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             continue;
           }
 
-          if (field.defaultValue) {
+          if (hasDefaultValue(field)) {
             (filledIn as any)[fieldName] = field.defaultValue;
             didFillIn = true;
           } else if (field.getDefaultValue) {
@@ -918,8 +933,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           }
         }
 
-        // if the field is still null but has a default value then... have the default initial value
-        if (field.defaultValue && (values as any)[fieldName] === undefined) {
+        /*
+         * A field the form does not start with a value for starts on its
+         * default - 0 and false included (hasDefaultValue).
+         */
+        if (
+          hasDefaultValue(field) &&
+          (values as any)[fieldName] === undefined
+        ) {
           (values as any)[fieldName] = field.defaultValue;
         }
 

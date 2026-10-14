@@ -253,14 +253,32 @@ describe("the channel the check writes", () => {
     );
   });
 
-  test("is only the critical one - the other channels are left to the app's start", async () => {
+  test("is every critical channel, each alarm sound's included - the other channels are left to the app's start", async () => {
+    /*
+     * Each alarm sound pages on a channel of its own, and every one of them
+     * has to be written again for Android to raise its bypass once the access
+     * is granted - not only the chosen one, so a responder who picks another
+     * alarm later finds it already ringing through.
+     */
     await getCriticalAlertStatus();
 
     expect(
       android.writes.map((write: { id: string }) => {
         return write.id;
       }),
-    ).toEqual([CRITICAL]);
+    ).toEqual([
+      CRITICAL,
+      "oncall_critical_klaxon",
+      "oncall_critical_siren",
+      "oncall_critical_digital",
+      "oncall_critical_smoke_alarm",
+      "oncall_critical_rising",
+    ]);
+    expect(
+      android.writes.every((write: { requestedBypassDnd: boolean }) => {
+        return write.requestedBypassDnd;
+      }),
+    ).toBe(true);
   });
 
   test("is not written at all on iOS, which has no channels", async () => {

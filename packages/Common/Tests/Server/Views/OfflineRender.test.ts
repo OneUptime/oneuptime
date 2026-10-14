@@ -242,18 +242,20 @@ describe("server-rendered notification pages", () => {
       });
 
       describe("on the hosted product", () => {
-        test("keeps analytics working", () => {
-          expect(render(page, { enableGoogleTagManager: true })).toContain(
-            "googletagmanager.com",
-          );
+        /*
+         * Not even there. These pages are reached from product email and SMS -
+         * an on-call engineer acknowledging a page, someone finishing an SSO
+         * round trip - and nothing on them is OneUptime's to measure, least of
+         * all with the advertising tags the Tag Manager container carries.
+         */
+        test("loads no Google tag", () => {
+          const html: string = render(page, { enableGoogleTagManager: true });
+
+          expect(html).not.toContain("googletagmanager.com");
+          expect(html).not.toContain("window.dataLayer");
         });
 
         test("still loads no library from a CDN", () => {
-          /*
-           * GTM injects itself by script rather than through a src attribute,
-           * so it is not in the set this returns - which is the point: nothing
-           * that blocks a render comes from off-box either way.
-           */
           expect(
             externalHostsFetchedBy(
               render(page, { enableGoogleTagManager: true }),

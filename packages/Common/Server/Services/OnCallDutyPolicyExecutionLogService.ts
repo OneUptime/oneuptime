@@ -1,7 +1,16 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
-import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
+import OnCallDutyPolicyEscalationRuleService, {
+  OnCallPagingOutcome,
+} from "./OnCallDutyPolicyEscalationRuleService";
+import UserOnCallLogService from "./UserOnCallLogService";
+import UserService from "./UserService";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PositiveNumber from "../../Types/PositiveNumber";
+import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
+import QueryHelper from "../Types/Database/QueryHelper";
+import { ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
@@ -25,16 +34,39 @@ import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
-import IncidentService from "./IncidentService";
-import AlertService from "./AlertService";
-import AlertEpisodeService from "./AlertEpisodeService";
-import IncidentEpisodeService from "./IncidentEpisodeService";
 import { IsNull, UpdateResult } from "typeorm";
-import FeedMarkdown, {
-  mdText,
-  MarkdownText,
-} from "../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
 import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
+import OnCallFeedText, {
+  OnCallDirectPagePager,
+} from "../Utils/OnCall/OnCallFeedText";
+import {
+  MAX_ON_CALL_DIRECT_PAGE_TARGETS,
+  ON_CALL_DIRECT_PAGE_NOBODY_PAGED_MESSAGE,
+  ON_CALL_POLICY_REQUIRED_MESSAGE,
+  OnCallDirectPageTargets,
+  countOnCallDirectPageTargets,
+  getOnCallDirectPagePagingMessage,
+  hasOnCallDirectPageWaitedForAcknowledgement,
+  isOnCallDirectPage,
+} from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import OneUptimeDate from "../../Types/Date";
+
+/*
+ * Who started a direct page, for its run to record: the person, or the
+ * workflow whose step did, by the name it has now.
+ */
+export interface OnCallDirectPageStartedBy {
+  userId?: ObjectID | undefined;
+  workflowId?: ObjectID | undefined;
+  workflowName?: string | undefined;
+}
+
+// A direct page that was started: its run, and who it paged and did not.
+export interface OnCallDirectPageRun {
+  executionLogId: ObjectID;
+  outcome: OnCallPagingOutcome;
+}
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -98,6 +130,23 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    /*
+     * An execution log is a run of the on-call policy it names. The one that
+     * names none is a direct page, which only OneUptime starts
+     * (startDirectPage): an API call or a workflow's Create One step that
+     * leaves the policy out is told to name it, as it always was.
+     */
+    if (
+      !createBy.props.isRoot &&
+      !RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["onCallDutyPolicyId", "onCallDutyPolicy"],
+        "On-Call Duty Policy",
+      )
+    ) {
+      throw new BadDataException(ON_CALL_POLICY_REQUIRED_MESSAGE);
+    }
+
     if (!createBy.data.status) {
       createBy.data.status = OnCallDutyPolicyStatus.Scheduled;
     }
@@ -148,6 +197,297 @@ export class Service extends ProjectReferencesService<Model> {
     };
   }
 
+  /*
+   * A run a workflow's step started records the workflow: its id and the
+   * name it has now, for the run's feed entries, its Slack and Microsoft
+   * Teams message and the Dashboard to say "Workflow <name>". No caller may
+   * write those columns, so they are written here, once every check on the
+   * caller has passed, rather than held against their column permissions -
+   * and never from what a request sent.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps = onCreate.createBy.props;
+
+    if (!props.workflowId) {
+      return;
+    }
+
+    onCreate.createBy.data.triggeredByWorkflowId = props.workflowId;
+
+    const workflowName: string = (props.workflowName || "").trim();
+
+    if (workflowName) {
+      onCreate.createBy.data.triggeredByWorkflowName = workflowName;
+    }
+  }
+
+  /*
+   * STARTS A DIRECT PAGE: pages the people, the teams' members and whoever
+   * is on call in the schedules it names, about one incident or one alert,
+   * all at once and with no on-call policy behind the page
+   * (Types/OnCallDutyPolicy/OnCallDirectPage).
+   *
+   * The page is a run like an on-call policy's - an execution log, with a
+   * timeline line for everybody it paged or could not - so everything that
+   * follows a run follows it: each person's own On-Call Rules decide how
+   * they are reached, acknowledging a page acknowledges the record, the
+   * record's feed says who was paged, and Slack and Microsoft Teams get the
+   * run's one message.
+   *
+   * This is OneUptime's own write: whoever calls it has decided the caller
+   * may page these people about this record (OnCallPageService does, with
+   * the caller's own permissions). It hands back the run and what came of
+   * it. A page that reaches nobody is still a run, ended at once, so the
+   * record says a page was tried and why it reached nobody.
+   */
+  @CaptureSpan()
+  public async startDirectPage(data: {
+    projectId: ObjectID;
+    targets: OnCallDirectPageTargets;
+    triggeredByIncidentId?: ObjectID | undefined;
+    triggeredByAlertId?: ObjectID | undefined;
+    startedBy?: OnCallDirectPageStartedBy | undefined;
+  }): Promise<OnCallDirectPageRun> {
+    if (
+      Boolean(data.triggeredByIncidentId) === Boolean(data.triggeredByAlertId)
+    ) {
+      throw new BadDataException(
+        "A page is about one incident or one alert. Name one of them.",
+      );
+    }
+
+    const targetCount: number = countOnCallDirectPageTargets(data.targets);
+
+    if (targetCount === 0) {
+      throw new BadDataException(
+        "A page needs somebody to page: a person, a team or an on-call schedule.",
+      );
+    }
+
+    if (targetCount > MAX_ON_CALL_DIRECT_PAGE_TARGETS) {
+      throw new BadDataException(
+        `A page names at most ${MAX_ON_CALL_DIRECT_PAGE_TARGETS} people, teams and on-call schedules. This one names ${targetCount}.`,
+      );
+    }
+
+    const log: Model = new Model();
+
+    log.projectId = data.projectId;
+    log.status = OnCallDutyPolicyStatus.Scheduled;
+    log.statusMessage = "Scheduled.";
+
+    if (data.triggeredByIncidentId) {
+      log.triggeredByIncidentId = data.triggeredByIncidentId;
+      log.userNotificationEventType = UserNotificationEventType.IncidentCreated;
+    } else {
+      log.triggeredByAlertId = data.triggeredByAlertId!;
+      log.userNotificationEventType = UserNotificationEventType.AlertCreated;
+    }
+
+    /*
+     * Who started it, on the write's own props: onBeforeCreate stamps the
+     * person as who triggered the run, and onCreatePermitted the workflow.
+     */
+    const props: DatabaseCommonInteractionProps = { isRoot: true };
+
+    if (data.startedBy?.userId) {
+      props.userId = data.startedBy.userId;
+    }
+
+    if (data.startedBy?.workflowId) {
+      props.workflowId = data.startedBy.workflowId;
+
+      if (data.startedBy.workflowName) {
+        props.workflowName = data.startedBy.workflowName;
+      }
+    }
+
+    const createdLog: Model = await this.create({
+      data: log,
+      props: props,
+    });
+
+    const executionLogId: ObjectID = createdLog.id!;
+
+    await this.updateOneById({
+      id: executionLogId,
+      data: {
+        status: OnCallDutyPolicyStatus.Started,
+        statusMessage: "Paging started...",
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    let outcome: OnCallPagingOutcome;
+
+    try {
+      outcome = await OnCallDutyPolicyEscalationRuleService.startDirectPage({
+        projectId: data.projectId,
+        triggeredByIncidentId: data.triggeredByIncidentId,
+        triggeredByAlertId: data.triggeredByAlertId,
+        userNotificationEventType: log.userNotificationEventType!,
+        onCallPolicyExecutionLogId: executionLogId,
+        targets: data.targets,
+      });
+    } catch (err) {
+      /*
+       * The run says what went wrong rather than sitting at "started" until
+       * it is timed out; whoever asked for the page is told as well.
+       */
+      await this.updateOneById({
+        id: executionLogId,
+        data: {
+          status: OnCallDutyPolicyStatus.Error,
+          statusMessage:
+            (err as Error)?.message ||
+            "Error occurred while paging the people this page names.",
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      throw err;
+    }
+
+    /*
+     * Somebody was paged: the run stays open while their pages are out, and
+     * the worker ends it once the record is acknowledged or everybody's
+     * notifications have gone out (OnCallDutyPolicyExecutionLog:
+     * ExecutePendingExecutions). Nobody was: it is over, and says so.
+     */
+    await this.updateOneById({
+      id: executionLogId,
+      data:
+        outcome.paged.length > 0
+          ? {
+              status: OnCallDutyPolicyStatus.Executing,
+              statusMessage: getOnCallDirectPagePagingMessage(
+                outcome.paged.length,
+              ),
+            }
+          : {
+              status: OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+              statusMessage: ON_CALL_DIRECT_PAGE_NOBODY_PAGED_MESSAGE,
+            },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return {
+      executionLogId: executionLogId,
+      outcome: outcome,
+    };
+  }
+
+  /*
+   * Ends a direct page whose pages are all over, and says whether it did.
+   *
+   * An on-call policy's run ends once it has gone through its escalation
+   * rules. A direct page has none: it pages everybody at once, and is over
+   * when every one of those pages is - each person's own On-Call Rules have
+   * sent everything they had to send (a call after ten minutes, a push that
+   * repeats), with nobody acknowledging. Until then it stays open, so its
+   * Slack and Microsoft Teams message goes on saying people are being paged
+   * while they are.
+   *
+   * It stays open for a while after paging started in any case
+   * (ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES): somebody whose one
+   * rule is an SMS sent at once has had their whole page a minute in, and
+   * "nobody acknowledged" then would be said before anybody could have.
+   *
+   * A record that is acknowledged or resolved ends the run before this is
+   * asked (OnCallDutyPolicyExecutionLog:ExecutePendingExecutions, as for a
+   * policy's run), so a page that ends here ended with nobody on it: the
+   * run's message says "nobody acknowledged", in the words a policy's run
+   * that went through every rule is given.
+   */
+  @CaptureSpan()
+  public async endDirectPageIfItsPagesAreOver(data: {
+    executionLogId: ObjectID;
+    // When its paging started: when the run recorded it, or when the run was created.
+    pagingStartedAt: Date | null | undefined;
+    // The moment to ask about. Now, when left out.
+    at?: Date | undefined;
+  }): Promise<boolean> {
+    const executionLogId: ObjectID = data.executionLogId;
+
+    if (
+      !hasOnCallDirectPageWaitedForAcknowledgement({
+        pagingStartedAt: data.pagingStartedAt,
+        at: data.at || OneUptimeDate.getCurrentDate(),
+      })
+    ) {
+      return false;
+    }
+
+    const pagesStillOut: PositiveNumber = await UserOnCallLogService.countBy({
+      query: {
+        onCallDutyPolicyExecutionLogId: executionLogId,
+        status: QueryHelper.any([
+          UserNotificationExecutionStatus.Scheduled,
+          UserNotificationExecutionStatus.Started,
+          UserNotificationExecutionStatus.Executing,
+        ]),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (pagesStillOut.toNumber() > 0) {
+      return false;
+    }
+
+    await this.updateOneById({
+      id: executionLogId,
+      data: {
+        status: OnCallDutyPolicyStatus.Completed,
+        statusMessage: ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return true;
+  }
+
+  /*
+   * Who started a direct page, as its feed entries name them
+   * (OnCallFeedText): the workflow, by the name the run recorded, or the
+   * person, as a link to them.
+   */
+  @CaptureSpan()
+  public async getDirectPagePager(run: {
+    projectId?: ObjectID | undefined;
+    triggeredByWorkflowName?: string | undefined;
+    triggeredByUserId?: ObjectID | undefined;
+  }): Promise<OnCallDirectPagePager> {
+    const workflowName: string = (run.triggeredByWorkflowName || "").trim();
+
+    if (workflowName) {
+      return { workflowName: workflowName };
+    }
+
+    if (run.triggeredByUserId && run.projectId) {
+      return {
+        startedByUser: await UserService.getUserMarkdownString({
+          userId: run.triggeredByUserId,
+          projectId: run.projectId,
+        }),
+      };
+    }
+
+    return {};
+  }
+
   // Whether the policy an execution log is for is archived, read as OneUptime.
   private async isPolicyArchived(data: Model): Promise<boolean> {
     const policyId: ObjectID | null = RelationIdUtil.readConsistent(
@@ -195,6 +535,15 @@ export class Service extends ProjectReferencesService<Model> {
       return createdItem;
     }
 
+    /*
+     * A direct page has no policy and no escalation rules to start: whoever
+     * created it pages its people (startDirectPage), and each of them is an
+     * entry of the record's feed that names who started the page.
+     */
+    if (isOnCallDirectPage(createdItem)) {
+      return createdItem;
+    }
+
     if (
       createdItem.triggeredByIncidentId ||
       createdItem.triggeredByAlertId ||
@@ -215,56 +564,29 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       if (onCallPolicy && onCallPolicy.id) {
-        let incidentOrAlertLink: MarkdownText = FeedMarkdown.empty();
+        /*
+         * One sentence (OnCallFeedText). Started by hand - Execute On-Call
+         * Policy in a feed's Actions - it is credited to that person, and
+         * reads after their name: "Nitin started on-call policy PolicyX".
+         */
+        const startedByUserId: ObjectID | undefined =
+          createdItem.createdByUserId || createdItem.triggeredByUserId;
 
-        if (createdItem.triggeredByIncidentId) {
-          const projectId: ObjectID | undefined = createdItem.projectId;
-          const incidentId: ObjectID | undefined =
-            createdItem.triggeredByIncidentId;
-          const incidentNumberResult: {
-            number: number | null;
-            numberWithPrefix: string | null;
-          } = await IncidentService.getIncidentNumber({
-            incidentId: incidentId,
-          });
-          const incidentNumberDisplay: string =
-            incidentNumberResult.numberWithPrefix ||
-            "#" + incidentNumberResult.number;
-          incidentOrAlertLink = mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
-        }
-
-        if (createdItem.triggeredByAlertId) {
-          const alertNumberResult: {
-            number: number | null;
-            numberWithPrefix: string | null;
-          } = await AlertService.getAlertNumber({
-            alertId: createdItem.triggeredByAlertId,
-          });
-          incidentOrAlertLink = mdText`[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(createdItem.projectId!, createdItem.triggeredByAlertId)).toString()})`;
-        }
-
-        if (createdItem.triggeredByAlertEpisodeId) {
-          const alertEpisodeNumberResult: {
-            number: number | null;
-            numberWithPrefix: string | null;
-          } = await AlertEpisodeService.getEpisodeNumber({
-            episodeId: createdItem.triggeredByAlertEpisodeId,
-          });
-          incidentOrAlertLink = mdText`[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, createdItem.triggeredByAlertEpisodeId)).toString()})`;
-        }
-
-        if (createdItem.triggeredByIncidentEpisodeId) {
-          const incidentEpisodeNumberResult: {
-            number: number | null;
-            numberWithPrefix: string | null;
-          } = await IncidentEpisodeService.getEpisodeNumber({
-            episodeId: createdItem.triggeredByIncidentEpisodeId,
-          });
-          incidentOrAlertLink = mdText`[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, createdItem.triggeredByIncidentEpisodeId)).toString()})`;
-        }
-
-        const feedInfoInMarkdown: string =
-          mdText`**📞 On Call Policy Started Executing:** On Call Policy **${onCallPolicy.name}** started executing for ${incidentOrAlertLink}. Users on call on this policy will now be notified.`.toString();
+        const feedInfoInMarkdown: string = OnCallFeedText.getRunStartedMarkdown(
+          {
+            policyLink: FeedMarkdown.link(
+              onCallPolicy.name || "",
+              (
+                await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+                  onCallPolicy.projectId!,
+                  onCallPolicy.id!,
+                )
+              ).toString(),
+            ),
+            isStartedBySomeone: Boolean(startedByUserId),
+            startedByWorkflowName: createdItem.triggeredByWorkflowName,
+          },
+        );
 
         // The feed only: Slack and Teams get the run's one message instead.
         if (
@@ -278,6 +600,7 @@ export class Service extends ProjectReferencesService<Model> {
             incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
             displayColor: Yellow500,
             feedInfoInMarkdown: feedInfoInMarkdown,
+            userId: startedByUserId,
           });
         }
 
@@ -288,6 +611,7 @@ export class Service extends ProjectReferencesService<Model> {
             alertFeedEventType: AlertFeedEventType.OnCallPolicy,
             displayColor: Yellow500,
             feedInfoInMarkdown: feedInfoInMarkdown,
+            userId: startedByUserId,
           });
         }
 
@@ -302,6 +626,7 @@ export class Service extends ProjectReferencesService<Model> {
             alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OnCallPolicy,
             displayColor: Yellow500,
             feedInfoInMarkdown: feedInfoInMarkdown,
+            userId: startedByUserId,
           });
         }
 
@@ -317,6 +642,7 @@ export class Service extends ProjectReferencesService<Model> {
               IncidentEpisodeFeedEventType.OnCallPolicy,
             displayColor: Yellow500,
             feedInfoInMarkdown: feedInfoInMarkdown,
+            userId: startedByUserId,
           });
         }
       }
@@ -439,25 +765,6 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
-  public getEmojiByStatus(status: OnCallDutyPolicyStatus | undefined): string {
-    switch (status) {
-      case OnCallDutyPolicyStatus.Scheduled:
-        return "📅";
-      case OnCallDutyPolicyStatus.Started:
-        return "🚀";
-      case OnCallDutyPolicyStatus.Executing:
-        return "▶️";
-      case OnCallDutyPolicyStatus.Completed:
-        return "🏁";
-      case OnCallDutyPolicyStatus.CompletedWithNoNotifications:
-        return "⚠️";
-      case OnCallDutyPolicyStatus.Error:
-        return "❌";
-      default:
-        return "📅";
-    }
-  }
-
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -475,9 +782,17 @@ export class Service extends ProjectReferencesService<Model> {
     /*
      * When the status is updated, each execution log the update wrote that
      * an incident, an alert or an episode triggered adds its new status to
-     * that record's feed.
+     * that record's feed - when the status is news there: how the run ended.
+     * Its start is already in the feed (onCreateSuccess) and so is every
+     * page it sent, so "started" and "executing" would only say it again
+     * (OnCallFeedText.isRunStatusFeedNews).
      */
-    if (!onUpdate.updateBy.data.status) {
+    if (
+      !onUpdate.updateBy.data.status ||
+      !OnCallFeedText.isRunStatusFeedNews(
+        onUpdate.updateBy.data.status as OnCallDutyPolicyStatus,
+      )
+    ) {
       return onUpdate;
     }
 
@@ -495,6 +810,8 @@ export class Service extends ProjectReferencesService<Model> {
             triggeredByAlertId: true,
             triggeredByAlertEpisodeId: true,
             triggeredByIncidentEpisodeId: true,
+            triggeredByWorkflowName: true,
+            triggeredByUserId: true,
           },
           props: {
             isRoot: true,
@@ -509,79 +826,52 @@ export class Service extends ProjectReferencesService<Model> {
           onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId ||
           onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId)
       ) {
-        const onCallPolicy: OnCallDutyPolicy | null =
-          await OnCallDutyPolicyService.findOneById({
-            id: onCalldutyPolicyExecutionLog.onCallDutyPolicyId!,
-            select: {
-              _id: true,
-              projectId: true,
-              name: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+        /*
+         * A direct page has no policy to name: its ending names who started
+         * the page instead. A policy's run is read with its policy.
+         */
+        const isDirectPage: boolean = isOnCallDirectPage(
+          onCalldutyPolicyExecutionLog,
+        );
 
-        if (onCallPolicy && onCallPolicy.id) {
-          const moreInformationInMarkdown: string =
-            mdText`**Status:** ${onCalldutyPolicyExecutionLog.status}
-
-**Message:** ${onCalldutyPolicyExecutionLog.statusMessage}`.toString();
-
-          let incidentOrAlertLink: MarkdownText = FeedMarkdown.empty();
-
-          if (onCalldutyPolicyExecutionLog.triggeredByIncidentId) {
-            const projectId: ObjectID | undefined =
-              onCalldutyPolicyExecutionLog.projectId;
-            const incidentId: ObjectID | undefined =
-              onCalldutyPolicyExecutionLog.triggeredByIncidentId;
-            const incidentNumberResult: {
-              number: number | null;
-              numberWithPrefix: string | null;
-            } = await IncidentService.getIncidentNumber({
-              incidentId: incidentId,
+        const onCallPolicy: OnCallDutyPolicy | null = isDirectPage
+          ? null
+          : await OnCallDutyPolicyService.findOneById({
+              id: onCalldutyPolicyExecutionLog.onCallDutyPolicyId!,
+              select: {
+                _id: true,
+                projectId: true,
+                name: true,
+              },
+              props: {
+                isRoot: true,
+              },
             });
-            const incidentNumberDisplay: string =
-              incidentNumberResult.numberWithPrefix ||
-              "#" + incidentNumberResult.number;
-            incidentOrAlertLink = mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
-          }
 
-          if (onCalldutyPolicyExecutionLog.triggeredByAlertId) {
-            const alertNumberResult: {
-              number: number | null;
-              numberWithPrefix: string | null;
-            } = await AlertService.getAlertNumber({
-              alertId: onCalldutyPolicyExecutionLog.triggeredByAlertId,
-            });
-            incidentOrAlertLink = mdText`[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByAlertId)).toString()})`;
-          }
-
-          if (onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId) {
-            const alertEpisodeNumberResult: {
-              number: number | null;
-              numberWithPrefix: string | null;
-            } = await AlertEpisodeService.getEpisodeNumber({
-              episodeId: onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId,
-            });
-            incidentOrAlertLink = mdText`[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId)).toString()})`;
-          }
-
-          if (onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId) {
-            const incidentEpisodeNumberResult: {
-              number: number | null;
-              numberWithPrefix: string | null;
-            } = await IncidentEpisodeService.getEpisodeNumber({
-              episodeId:
-                onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId,
-            });
-            incidentOrAlertLink = mdText`[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId)).toString()})`;
-          }
-
+        if (isDirectPage || (onCallPolicy && onCallPolicy.id)) {
+          // One sentence, and why when that adds something (OnCallFeedText).
           const feedInfoInMarkdown: string =
-            mdText`**${this.getEmojiByStatus(onCalldutyPolicyExecutionLog.status)} On Call Policy Status Updated for ${incidentOrAlertLink}:**
-
- On-call policy **[${onCallPolicy.name?.toString()}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallPolicy.projectId!, onCallPolicy.id!)).toString()})** status updated to **${onCalldutyPolicyExecutionLog.status}**`.toString();
+            onCallPolicy && onCallPolicy.id
+              ? OnCallFeedText.getRunStatusMarkdown({
+                  status: onCalldutyPolicyExecutionLog.status!,
+                  policyLink: FeedMarkdown.link(
+                    onCallPolicy.name || "",
+                    (
+                      await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+                        onCallPolicy.projectId!,
+                        onCallPolicy.id!,
+                      )
+                    ).toString(),
+                  ),
+                  statusMessage: onCalldutyPolicyExecutionLog.statusMessage,
+                })
+              : OnCallFeedText.getDirectPageStatusMarkdown({
+                  status: onCalldutyPolicyExecutionLog.status!,
+                  pager: await this.getDirectPagePager(
+                    onCalldutyPolicyExecutionLog,
+                  ),
+                  statusMessage: onCalldutyPolicyExecutionLog.statusMessage,
+                });
 
           // The feed only: Slack and Teams get the run's one message instead.
           if (onCalldutyPolicyExecutionLog.triggeredByIncidentId) {
@@ -594,7 +884,6 @@ export class Service extends ProjectReferencesService<Model> {
                     onCalldutyPolicyExecutionLog.status,
                   )
                 : Blue500,
-              moreInformationInMarkdown: moreInformationInMarkdown,
               feedInfoInMarkdown: feedInfoInMarkdown,
             });
           }
@@ -609,7 +898,6 @@ export class Service extends ProjectReferencesService<Model> {
                     onCalldutyPolicyExecutionLog.status,
                   )
                 : Blue500,
-              moreInformationInMarkdown: moreInformationInMarkdown,
               feedInfoInMarkdown: feedInfoInMarkdown,
             });
           }
@@ -625,7 +913,6 @@ export class Service extends ProjectReferencesService<Model> {
                     onCalldutyPolicyExecutionLog.status,
                   )
                 : Blue500,
-              moreInformationInMarkdown: moreInformationInMarkdown,
               feedInfoInMarkdown: feedInfoInMarkdown,
             });
           }
@@ -642,7 +929,6 @@ export class Service extends ProjectReferencesService<Model> {
                     onCalldutyPolicyExecutionLog.status,
                   )
                 : Blue500,
-              moreInformationInMarkdown: moreInformationInMarkdown,
               feedInfoInMarkdown: feedInfoInMarkdown,
             });
           }

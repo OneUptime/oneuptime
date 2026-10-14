@@ -212,8 +212,8 @@ Twilio پیام‌ها را با صدای تبدیل متن به گفتار می
 برای واکنش فقط به تماس‌های از دست رفته، مثلاً برای فرستادنشان به Slack یا Microsoft Teams یا باز کردن یک تیکت:
 
 :::steps
-1. راه‌انداز **On Update Incoming Call Log** را اضافه کنید. **Listen on** را روی **Ended At** بگذارید و فیلدهایی را که می‌خواهید به کار ببرید برگزینید، مثل **Status**، **Caller Phone Number** و **Routing Phone Number**.
-2. یک گام **If / Else** اضافه کنید. **Status** راه‌انداز را با مقایسه **is not equal to** و `Completed` بررسی کنید.
+1. راه‌انداز **On Update Incoming Call Log** را اضافه کنید. **Fields to watch** را روی **Ended At** بگذارید و فیلدهایی را که می‌خواهید به کار ببرید برگزینید، مثل **Status**، **Caller Phone Number** و **Routing Phone Number**.
+2. یک گام **If / Else** اضافه کنید. **Status** راه‌انداز را با مقایسه **برابر نیست با** و `Completed` بررسی کنید.
 3. گام‌های خود را به درگاه **Yes** وصل کنید.
 :::
 

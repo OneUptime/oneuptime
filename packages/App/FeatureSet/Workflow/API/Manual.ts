@@ -1,7 +1,9 @@
 import QueueWorkflow from "../Services/QueueWorkflow";
+import { resolveRunRecordValues } from "../Utils/RunRecordValues";
 import WorkflowRunAccess from "../Utils/WorkflowRunAccess";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
@@ -92,6 +94,19 @@ export default class ManualAPI {
       });
 
       /*
+       * A record trigger runs with a record. Someone can name it by its
+       * number - INC-8 - rather than its ID; that is looked up in this
+       * project, with their own permissions, before the run is queued
+       * (Utils/RunRecordValues).
+       */
+      const runValues: JSONObject = await resolveRunRecordValues({
+        workflowId: workflowId,
+        projectId: projectId,
+        props: databaseProps,
+        values: (req.body?.data as JSONObject) || {},
+      });
+
+      /*
        * The run is recorded as this person's. That is also what lets it go
        * ahead while the workflow is turned off, as a test run: off pauses
        * the workflow's trigger, not a person testing it from its Builder
@@ -101,7 +116,7 @@ export default class ManualAPI {
        */
       await QueueWorkflow.addWorkflowToQueue({
         workflowId: workflowId,
-        returnValues: req.body.data || {},
+        returnValues: runValues,
         startedByUserId: databaseProps.userId,
       });
 

@@ -17,6 +17,7 @@ Je hebt haar zelden open nodig tijdens het bouwen. De instellingen van elk blok 
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | In een chattool te posten                                     | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) of [Mattermost](#mattermost) |
 | Een e-mail via je eigen mailserver te sturen                  | [Email](#email)                                                   |
+| Een persoon, een team of wie bereikbaarheidsdienst heeft op te roepen | [Paging](#paging) |
 | Een sms te sturen of een telefoon te bellen                   | [SMSEagle](#smseagle)                                             |
 | Een andere API of je eigen dienst aan te roepen               | [API](#api)                                                       |
 | Tekst samen te vatten, te classificeren of op te stellen      | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -87,6 +88,23 @@ Sluit **Success** aan op de blokken die het antwoord gebruiken, en **Error** op 
 
 > [!WARNING]
 > Uitvoer van het model is onbetrouwbare tekst. Controleer die voordat ze klanten bereikt, en laat vrije AI-tekst nooit in zijn eentje over een destructieve actie beslissen. Zie [AI-componenten](/docs/workflows/configuration#ai-componenten) voor wat er naar de provider gaat, wat er wordt gelogd en wat het kost.
+
+## SMSEagle
+
+Stuur een sms of voer een tekst-naar-spraakgesprek via een SMSEagle-apparaat, een hardware-sms-gateway op je eigen netwerk. **Send SMS via SMSEagle** stuurt een sms, en **Make a Call via SMSEagle** belt het nummer en leest de tekst voor.
+
+| Instelling                | Wat het doet                                                                                                                                                                     |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | Het adres van het apparaat, zoals `https://192.168.0.100`. Het pad van de API v2 voegt het blok zelf toe.                                                                        |
+| **SMSEagle Access Token** | Een API v2-sleutel uit de web-GUI van SMSEagle, onder Settings, API, API v2. Hij heeft de machtiging "Send SMS" nodig voor sms en "Make a TTS Advanced Call" voor gesprekken.    |
+| **Telefoonnummer**        | Het nummer dat de sms of het gesprek krijgt, in internationaal formaat, zoals `+15551234567`.                                                                                    |
+| **Message Text**          | De tekst van de sms. Alleen in **Send SMS via SMSEagle**.                                                                                                                        |
+| **Voice ID**              | Het ID van een tekst-naar-spraakstem op het apparaat. Alleen in **Make a Call via SMSEagle**.                                                                                    |
+| **Text to Read Out**      | De tekst die het apparaat tijdens het gesprek voorleest. Alleen in **Make a Call via SMSEagle**.                                                                                 |
+
+**Success** gaat af als het apparaat de sms of het gesprek in de wachtrij heeft gezet, en geeft het **Message ID** terug dat het apparaat eraan gaf. **Error** gaat af als het apparaat niet bereikbaar is of hem weigert, en geeft de reden door, zoals `voice_id: Resource with specified ID not found.` van SMSEagle. Een ontbrekende instelling, of een **Voice ID** dat geen getal is, stopt de uitvoering daarentegen.
+
+Bewaar het toegangstoken in een [geheime globale variabele](/docs/workflows/variables#globale-variabelen). Het is hoe dan ook verborgen in de logboeken van uitvoeringen. Het verzoek gaat vanuit OneUptime de deur uit, en een omleiding wordt niet gevolgd. Een apparaat op een loopback- (`localhost`, `127.0.0.1`), link-local- of cloudmetadata-adres wordt geweigerd, en een apparaat op een privénetwerkadres ook, tenzij een beheerder van een zelf gehoste installatie dat toestaat met `ALLOW_PRIVATE_NETWORK_WEBHOOKS` of `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 
 ## Slack
 
@@ -200,22 +218,48 @@ Het blok verbindt rechtstreeks met de server in zijn instellingen. Het gebruikt 
 
 Verbindingen naar loopback- (`localhost`, `127.0.0.1`), link-local- en cloudmetadata-adressen worden geweigerd. In OneUptime Cloud wordt ook een SMTP-host op een privénetwerkadres, of een naam die daarnaar verwijst, geweigerd. Zelf gehoste installaties kunnen een mailserver op hun eigen netwerk bereiken, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` op `true` staat. Een geweigerde host neemt de uitgang **Error**, en er wordt niets verstuurd.
 
-## SMSEagle
+## Paging
 
-Stuur een sms of voer een tekst-naar-spraakgesprek via een SMSEagle-apparaat, een hardware-sms-gateway op je eigen netwerk. **Send SMS via SMSEagle** stuurt een sms, en **Make a Call via SMSEagle** belt het nummer en leest de tekst voor.
+Roep mensen op vanuit een workflow: ieder krijgt een telefoontje, een sms, een pushmelding of een e-mail, zoals de eigen bereikbaarheidsregels bepalen, totdat iemand bevestigt. Er is een blok voor elke manier om te zeggen wie wordt opgeroepen. Zoek in het paneel **Component toevoegen** naar `page`.
 
-| Instelling                | Wat het doet                                                                                                                                                                     |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SMSEagle URL**          | Het adres van het apparaat, zoals `https://192.168.0.100`. Het pad van de API v2 voegt het blok zelf toe.                                                                        |
-| **SMSEagle Access Token** | Een API v2-sleutel uit de web-GUI van SMSEagle, onder Settings, API, API v2. Hij heeft de machtiging "Send SMS" nodig voor sms en "Make a TTS Advanced Call" voor gesprekken.    |
-| **Telefoonnummer**        | Het nummer dat de sms of het gesprek krijgt, in internationaal formaat, zoals `+15551234567`.                                                                                    |
-| **Message Text**          | De tekst van de sms. Alleen in **Send SMS via SMSEagle**.                                                                                                                        |
-| **Voice ID**              | Het ID van een tekst-naar-spraakstem op het apparaat. Alleen in **Make a Call via SMSEagle**.                                                                                    |
-| **Text to Read Out**      | De tekst die het apparaat tijdens het gesprek voorleest. Alleen in **Make a Call via SMSEagle**.                                                                                 |
+| Blok                        | Wie het oproept |
+| --------------------------- | --------------- |
+| **Page Users**              | De mensen die je noemt. |
+| **Page a Team**             | Elk lid van een team. |
+| **Page Whoever Is On Call** | Wie in een bereikbaarheidsschema dienst heeft op het moment dat het blok draait. |
+| **Page an On-Call Policy**  | Een bereikbaarheidsbeleid, dat oproept via zijn escalatieregels en zich herhaalt zoals het is ingesteld. |
 
-**Success** gaat af als het apparaat de sms of het gesprek in de wachtrij heeft gezet, en geeft het **Message ID** terug dat het apparaat eraan gaf. **Error** gaat af als het apparaat niet bereikbaar is of hem weigert, en geeft de reden door, zoals `voice_id: Resource with specified ID not found.` van SMSEagle. Een ontbrekende instelling, of een **Voice ID** dat geen getal is, stopt de uitvoering daarentegen.
+De eerste drie roepen iedereen die ze noemen tegelijk op, en daarna niemand meer. Gebruik voor escalatie **Page an On-Call Policy**.
 
-Bewaar het toegangstoken in een [geheime globale variabele](/docs/workflows/variables#globale-variabelen). Het is hoe dan ook verborgen in de logboeken van uitvoeringen. Het verzoek gaat vanuit OneUptime de deur uit, en een omleiding wordt niet gevolgd. Een apparaat op een loopback- (`localhost`, `127.0.0.1`), link-local- of cloudmetadata-adres wordt geweigerd, en een apparaat op een privénetwerkadres ook, tenzij een beheerder van een zelf gehoste installatie dat toestaat met `ALLOW_PRIVATE_NETWORK_WEBHOOKS` of `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
+Om alleen op te roepen wanneer iets waar is, zet je [If / Else](#conditions) vóór het blok en verbind je de uitgang die moet oproepen ermee. Met meer dan twee wegen neemt [Switch / Case](#switch-case) een pad voor elke waarde, en elk pad kan iemand anders oproepen.
+
+```mermaid title="Roep op wie dienst heeft, maar alleen bij kritieke incidenten"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+Als je een workflow maakt, hebben de sjablonen onder **Bereikbaarheid** deze klaarstaan, en een die met **Switch / Case** op ernst oproept. Een sjabloon laat aan jou over wie wordt opgeroepen: de workflow opent in de Bouwer, waar elk oproepblok **Click to set up** zegt.
+
+| Instelling | Wat het doet |
+| ---------- | ------------ |
+| **Users**, **Teams**, **On-Call Schedules** of **On-Call Policies** | Wie wordt opgeroepen: elk blok heeft de instelling die bij zijn naam hoort. Kies op naam, of druk op **{ }** aan het eind van de rij om een waarde uit een eerder blok toe te voegen. Een waarde kan één ID of meerdere bevatten en, bij **Users**, een e-mailadres. |
+| **Page About** | Waar de oproep over gaat: **A new alert**, **An incident** of **An alert**. De oproep bevestigen bevestigt dat ook. |
+| **Title** en **Message** | Voor een nieuwe waarschuwing. OneUptime maakt er een waarschuwing van, en die blijft tussen je waarschuwingen staan zoals elke andere. |
+| **Incident ID** of **Alert ID** | Voor een incident of een waarschuwing die er al is, meestal die waarmee de workflow begon: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | Voor een nieuwe waarschuwing, onder **Meer velden**. Die bepaalt welke bereikbaarheidsregels van ieder persoon hem of haar oproepen. Leeg gelaten is het de ernstigste van het project. |
+
+Een blok dat wordt toegevoegd aan een workflow die met een incident of een waarschuwing begint, is al ingesteld om over dat record op te roepen, zodat het alleen nog vraagt wie wordt opgeroepen.
+
+**Success** draait zodra ten minste één persoon is opgeroepen, of één beleid is gestart. **Error** draait wanneer niemand is opgeroepen, en de waarde **Error** van het blok zegt waarom, bijvoorbeeld dat niemand in het schema dienst heeft. **Summary** zegt in één zin wie is opgeroepen en wie is overgeslagen, klaar om in een kanaal te plaatsen, en **Paged Users** somt de opgeroepen mensen op.
+
+Iemand die afwezig is, wordt niet opgeroepen: in plaats daarvan wordt opgeroepen wie de override van die persoon als vervanger noemt. Een oproep noemt hoogstens 100 personen, teams en schema's. Zie [Hoe iedere persoon wordt bereikt](/docs/on-call/escalation-rules#hoe-iedere-persoon-wordt-bereikt).
+
+Een oproep zonder bereikbaarheidsbeleid erachter staat tussen de uitvoeringen van het beleid als **Directe oproep**: in de bereikbaarheidslogboeken van het incident of de waarschuwing, in de feed en het Slack- of Microsoft Teams-kanaal daarvan, en in de logboeken van elke opgeroepen persoon. Hij blijft 30 minuten open, en daarna zolang er nog oproepen uitgaan. Heeft tegen die tijd niemand bevestigd, dan eindigt hij zonder iemand anders op te roepen.
+
+> [!WARNING]
+> **Workflow uitvoeren** roept mensen echt op, of de workflow nu aan of uit staat, en **Run just this step** ook. Vul jezelf in terwijl je test.
 
 ## Custom Code
 
@@ -265,27 +309,27 @@ De instellingen lezen als een zin: **Als** *waarde om te controleren* *vergelijk
 
 | Instelling         | Wat het doet                                                                                                                             |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Value to check** | Meestal een waarde uit een eerder blok. Druk op **{ }** in het vak om er een te kiezen, of typ `{{`.                                     |
-| **Comparison**     | Hoe te vergelijken, in woorden. De vergelijkingen staan hieronder.                                                                       |
-| **Compare with**   | Waarmee te vergelijken, op dezelfde manier getypt of gekozen. **is leeg**, **is niet leeg**, **is true** en **is false** gebruiken het niet. |
-| **Compare as**     | Ingeklapt onder de vergelijking: **Text**, **Nummer** of **True / False**. Kies **Text** om datums als `2026-10-01` te ordenen, of **Nummer** om `200` en `200.0` gelijk te maken. |
+| **Te controleren waarde** | Meestal een waarde uit een eerder blok. Druk op **{ }** in het vak om er een te kiezen, of typ `{{`.                                     |
+| **Vergelijking**     | Hoe te vergelijken, in woorden. De vergelijkingen staan hieronder.                                                                       |
+| **Vergelijken met**   | Waarmee te vergelijken, op dezelfde manier getypt of gekozen. **is leeg**, **is niet leeg**, **is waar** en **is onwaar** gebruiken het niet. |
+| **Vergelijken als**     | Ingeklapt onder de vergelijking: **Text**, **Nummer** of **Waar / Onwaar**. Kies **Text** om datums als `2026-10-01` te ordenen, of **Nummer** om `200` en `200.0` gelijk te maken. |
 
 De vergelijkingen:
 
-- **is equal to** en **is not equal to**;
+- **is gelijk aan** en **is niet gelijk aan**;
 - voor tekst: **bevat**, **bevat niet**, **begint met** en **eindigt met**;
-- voor getallen: **is groter dan**, **is greater than or equal to**, **is kleiner dan** en **is less than or equal to**;
+- voor getallen: **is groter dan**, **is groter dan of gelijk aan**, **is kleiner dan** en **is kleiner dan of gelijk aan**;
 - **is leeg** en **is niet leeg**, die controleren of de waarde er überhaupt is;
-- **is true** en **is false**.
+- **is waar** en **is onwaar**.
 
-De getalvergelijkingen vergelijken getallen en de tekstvergelijkingen vergelijken tekst, dus je hebt **Compare as** zelden nodig. Hoe de waarden worden vergeleken:
+De getalvergelijkingen vergelijken getallen en de tekstvergelijkingen vergelijken tekst, dus je hebt **Vergelijken als** zelden nodig. Hoe de waarden worden vergeleken:
 
 - Als tekst tellen hoofdletters: `Error` is niet `error`.
 - Als getallen telt tekst die geen getal is als `0`. De instellingen wijzen op zo'n getypte waarde.
 - Als waar of onwaar telt alleen `true` als waar.
 - Aan **is leeg** wordt voldaan door helemaal niets, lege tekst, een lege lijst of een leeg object, of een waarde die het eerdere blok niet had, zoals een veld dat de webhook niet stuurde. `0` en `false` zijn waarden, dus die zijn niet leeg.
 
-**Yes** draait als aan de voorwaarde wordt voldaan en **No** als dat niet zo is. Blokken die zijn ingesteld voordat de instellingen deze namen hadden, draaien precies zoals voorheen. Eén oude keuze wordt niet meer aangeboden: een waarde vergelijken als **Null** of **Undefined**, wat negeerde wat de waarde bevatte. Een blok dat die nog gebruikt, zegt dat als je het opent; kies **is leeg** om op een ontbrekende waarde te controleren.
+**Yes** draait als aan de voorwaarde wordt voldaan en **No** als dat niet zo is. Blokken die zijn ingesteld voordat de instellingen deze namen hadden, draaien precies zoals voorheen. Eén oude keuze wordt niet meer aangeboden: een waarde vergelijken als **Null** of **Ongedefinieerd**, wat negeerde wat de waarde bevatte. Een blok dat die nog gebruikt, zegt dat als je het opent; kies **is leeg** om op een ontbrekende waarde te controleren.
 
 ## Switch / Case
 
@@ -295,12 +339,12 @@ Het vergelijkt één waarde om de beurt met elk van zijn gevallen, van boven af,
 
 | Instelling         | Wat het doet |
 | ------------------ | ------------ |
-| **Value to check** | De waarde waarmee elk geval wordt vergeleken, meestal uit een eerder blok. Druk op **{ }** in het vak om er een te kiezen, of typ `{{`. |
+| **Te controleren waarde** | De waarde waarmee elk geval wordt vergeleken, meestal uit een eerder blok. Druk op **{ }** in het vak om er een te kiezen, of typ `{{`. |
 | **Cases**          | Een vergelijking en een waarde voor elk pad, van boven af gecontroleerd. Druk op **Geval toevoegen** voor nog een, en sleep een geval aan zijn greep om het te verplaatsen. Een blok bevat maximaal 25 gevallen. |
 
-Elk geval is een uitgang op het canvas, genoemd naar zijn waarde: een geval dat vraagt **is equal to** `production` is de uitgang *production*, en een geval dat vraagt **is groter dan** `500` is *is greater than 500*. **Default** is altijd de laatste uitgang. Verbind elke uitgang met wat daarna moet draaien.
+Elk geval is een uitgang op het canvas, genoemd naar zijn waarde: een geval dat vraagt **is gelijk aan** `production` is de uitgang *production*, en een geval dat vraagt **is groter dan** `500` is *is greater than 500*. **Default** is altijd de laatste uitgang. Verbind elke uitgang met wat daarna moet draaien.
 
-Een geval komt precies overeen wanneer een [If / Else](#conditions) met dezelfde vergelijking en waarde **Yes** zou nemen: de vergelijkingen zijn dezelfde, en de waarden worden op dezelfde manier vergeleken. **Compare as** is ingeklapt onder de gevallen, met een keuze voor elk geval.
+Een geval komt precies overeen wanneer een [If / Else](#conditions) met dezelfde vergelijking en waarde **Yes** zou nemen: de vergelijkingen zijn dezelfde, en de waarden worden op dezelfde manier vergeleken. **Vergelijken als** is ingeklapt onder de gevallen, met een keuze voor elk geval.
 
 Als je een geval verwijdert dat een verbinding heeft, zeggen de instellingen naar welke blokken het leidde, en **Terugzetten** zet het geval terug. Opslaan verwijdert de verbinding samen met het geval. De controles van de Bouwer wijzen op een geval waarmee niets is verbonden, en op een geval dat nooit wordt gekozen omdat een geval erboven hetzelfde vraagt.
 
@@ -384,7 +428,7 @@ Een query is altijd beperkt tot het project waarin de workflow draait. Je kunt d
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Een sleutel die geen kolom is, wordt genegeerd in plaats van geweigerd — het logboek van de uitvoering noemt de sleutels die zijn weggelaten, dus kijk daar als een veld niet aankomt. **Select Fields**, bij de Find-componenten en de triggers, gebruikt dezelfde kolomsleutels met de waarde `true`: `{"_id": true, "name": true}`.
+Een sleutel die geen kolom is, wordt genegeerd in plaats van geweigerd — het logboek van de uitvoering noemt de sleutels die zijn weggelaten, dus kijk daar als een veld niet aankomt. **Fields to pass on**, bij de Find-componenten en de triggers, kies je uit een lijst; **Bewerken als JSON** toont daar dezelfde kolomsleutels met de waarde `true`: `{"_id": true, "name": true}`.
 
 **Aangepaste velden** zijn één kolom, `customFields`, met de waarde van elk aangepast veld onder de naam van het veld. De Update-componenten wijzigen alleen de aangepaste velden die je noemt, en alle andere houden hun waarde:
 

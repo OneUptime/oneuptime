@@ -212,8 +212,8 @@ Twilio はメッセージを音声合成で読み上げるため、聞こえて�
 不在着信にだけ対応するには（Slack や Microsoft Teams に投稿したり、チケットを作成したりする場合など）:
 
 :::steps
-1. **On Update Incoming Call Log** トリガーを追加します。 **Listen on** を **Ended At** に設定し、 **Status** 、 **Caller Phone Number** 、 **Routing Phone Number** など、使いたいフィールドを選びます。
-2. **If / Else** ステップを追加します。トリガーの **Status** を、比較 **is not equal to** と `Completed` で確認します。
+1. **On Update Incoming Call Log** トリガーを追加します。 **Fields to watch** を **Ended At** に設定し、 **Status** 、 **Caller Phone Number** 、 **Routing Phone Number** など、使いたいフィールドを選びます。
+2. **If / Else** ステップを追加します。トリガーの **Status** を、比較 **と等しくない** と `Completed` で確認します。
 3. 自分のステップを **Yes** ポートにつなぎます。
 :::
 

@@ -617,7 +617,11 @@ describe("every name the help uses is real", () => {
     ).flatMap(getDocumentationTextNames);
 
     expect(names).toEqual(
-      expect.arrayContaining(["Listen on", "Select Fields", "Success"]),
+      expect.arrayContaining([
+        "Fields to watch",
+        "Fields to pass on",
+        "Success",
+      ]),
     );
   });
 
@@ -634,14 +638,29 @@ describe("every name the help uses is real", () => {
     },
   );
 
-  test("On Delete never mentions Select Fields, which it does not have", () => {
+  test("On Delete never mentions Fields to pass on, which it does not have", () => {
     for (const metadata of DATABASE.filter((step: ComponentMetadata) => {
       return step.id.endsWith("-on-delete");
     })) {
       expect(allText(docsOf(metadata)).join(" ")).not.toContain(
-        "Select Fields",
+        "Fields to pass on",
       );
       expect(metadata.arguments).toEqual([]);
+    }
+  });
+
+  test("no help names the settings by the names they had: Select Fields, Listen on", () => {
+    for (const metadata of DATABASE) {
+      const text: string = allText(docsOf(metadata)).join(" ");
+
+      expect([metadata.id, text.includes("Select Fields")]).toEqual([
+        metadata.id,
+        false,
+      ]);
+      expect([metadata.id, text.includes("Listen on")]).toEqual([
+        metadata.id,
+        false,
+      ]);
     }
   });
 
@@ -1007,6 +1026,29 @@ describe("built-in help says what each step really does", () => {
     );
   });
 
+  /*
+   * Run Workflow sends the JSON typed for the trigger as JSON (RunValues),
+   * so one field of it is read by its name. The help used to say it arrived
+   * as one piece of text and sent the reader through a Text to JSON step.
+   */
+  test("Manual says JSON typed into Run Workflow is read field by field", () => {
+    const documentation: ComponentDocumentation = docsOf(
+      findStep(BUILT_IN, ComponentID.Manual),
+    );
+    const text: string = allText(documentation).join(" ");
+
+    expect(documentation.examples[1]).toEqual({
+      title: "One field of it, such as name",
+      code: `{{local.components.${STEP_ID}.returnValues.value.name}}`,
+    });
+    expect(text).toContain(
+      "JSON typed into **Run Workflow** arrives as JSON, so a later step can read one field of it straight away",
+    );
+    expect(text).toContain("Text that is not JSON arrives as it was typed.");
+    expect(text).not.toContain("one piece of text");
+    expect(text).not.toContain("Text to JSON");
+  });
+
   test("Slack's warning is the prefix the step checks", () => {
     expect(
       allText(
@@ -1338,7 +1380,7 @@ describe("database help, operation by operation", () => {
     expect(example?.code).toBe(
       `{{local.components.${STEP_ID}.returnValues.model.title}}`,
     );
-    expect(example?.description).toContain("**Select Fields**");
+    expect(example?.description).toContain("**Fields to pass on**");
   });
 
   test("Find Many reads the first one in the list", () => {
@@ -1543,12 +1585,58 @@ describe("database help, operation by operation", () => {
     }
   });
 
-  test("On Update explains Listen on; On Create does not mention it", () => {
+  test("On Update explains Fields to watch; On Create does not mention it", () => {
     expect(incidentDocs("-on-update").steps.join(" ")).toContain(
-      "**Listen on**",
+      "**Fields to watch**",
     );
     expect(allText(incidentDocs("-on-create")).join(" ")).not.toContain(
-      "Listen on",
+      "Fields to watch",
+    );
+  });
+
+  /*
+   * What the setting's own one line no longer says, the help does: an
+   * update that writes a field back as it was is no change, and an update
+   * that says nothing of its fields runs the workflow anyway
+   * (OnTriggerBaseModel skips the filter for it).
+   */
+  test("On Update's help says what Fields to watch hears, and that it is no guarantee", () => {
+    const notes: string = incidentDocs("-on-update")
+      .notes.map((note: ComponentDocumentationNote) => {
+        return note.text;
+      })
+      .join(" ");
+
+    // In plain words: what is no change, and what that means for a run.
+    expect(notes).toContain(
+      "A field saved with the value it already has is not a change, so it does not start a run.",
+    );
+    expect(notes).toContain(
+      "**Fields to watch** is no guarantee either: when an update does not say which fields changed, the workflow runs anyway.",
+    );
+    // "hears changes only ... is not one" made the reader work out what "one" was.
+    expect(notes).not.toContain("hears changes only");
+    expect(notes).not.toContain("is not one.");
+  });
+
+  test("the triggers say a test run is started with one record, picked by its number or name", () => {
+    for (const suffix of ["-on-create", "-on-update", "-on-delete"]) {
+      const text: string = allText(incidentDocs(suffix)).join(" ");
+
+      expect([suffix, text]).toEqual([
+        suffix,
+        expect.stringContaining(
+          "pick one Incident: type its number or part of its name.",
+        ),
+      ]);
+      expect([suffix, text.includes("enter the ID of")]).toEqual([
+        suffix,
+        false,
+      ]);
+    }
+
+    expect(allText(incidentDocs("-on-delete")).join(" ")).toContain(
+      "had just been deleted, and it is not deleted.",
     );
   });
 

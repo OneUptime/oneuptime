@@ -14,7 +14,7 @@ import path from "path";
  * no screen offers the "disable a provider while the license is lapsed"
  * action any more, or says that sign-in through a provider is off. Its
  * strings are gone from all 17 locales, and nothing the Dashboard renders
- * uses them. "Disable" stays: the calendar feed cards render it.
+ * uses them. The calendar feed cards' "Disable link" stays: they render it.
  *
  * The SCIM screens still have license copy: the banner above their
  * configuration (ee/Dashboard/Identity/License/EnterpriseLicenseBanner.tsx)
@@ -213,20 +213,26 @@ describe("the retired 'disable a provider' strings", () => {
     expect(uses).toEqual([]);
   });
 
-  test("'Disable' keeps its entry: the calendar feed cards render it", () => {
+  /*
+   * The calendar feed cards' own disable action is not one of them. It was
+   * a bare "Disable" until the cards moved it into their ⋯ menu as
+   * "Disable link"; whichever it is called, every locale keeps it.
+   */
+  test("the calendar feed cards' 'Disable link' keeps its entry: the cards render it", () => {
     for (const card of [
       "Components/OnCallPolicy/CalendarFeed/PersonalCalendarFeedCard.tsx",
       "Components/OnCallPolicy/CalendarFeed/SharedCalendarFeedCard.tsx",
     ]) {
       expect(fs.readFileSync(path.join(DASHBOARD_SRC, card), "utf8")).toContain(
-        '"Disable"',
+        '"Disable link"',
       );
     }
 
-    expect(english["Disable"]).toBe("Disable");
+    expect(RETIRED_PROVIDER_STRINGS).not.toContain("Disable link");
+    expect(english["Disable link"]).toBe("Disable link");
 
     for (const locale of OTHER_LOCALES) {
-      const value: unknown = readLocale(locale)["Disable"];
+      const value: unknown = readLocale(locale)["Disable link"];
 
       expect({ locale, type: typeof value }).toEqual({
         locale,

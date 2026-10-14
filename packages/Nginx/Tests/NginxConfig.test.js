@@ -11,9 +11,12 @@
  */
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const test = require("node:test");
 
 const {
+  NGINX_DIRECTORY,
   readTemplate,
   readNginxConf,
   stripComments,
@@ -1485,6 +1488,150 @@ test("every add_header on a browser-facing SPA location uses the always flag", (
 });
 
 // ---------------------------------------------------------------------------
+// The docs' and the API reference's sitemaps
+// ---------------------------------------------------------------------------
+
+/*
+ * The sitemap index (/sitemap.xml, served by Home) lists the docs' and the
+ * API reference's sitemaps at the site's root, beside Home's own. The app
+ * builds them, at /docs/sitemap.xml and /reference/sitemap.xml. Without this
+ * location the two root addresses fall to "location /", which with
+ * BILLING_ENABLED=true is Home - a 404 page - and the index would list two
+ * sitemaps that do not exist.
+ */
+const SITEMAP_LOCATION_SPEC = "~ ^/sitemap-(docs|reference)\\.xml$";
+
+const APP_SITEMAPS = {
+  "/sitemap-docs.xml": "/docs/sitemap.xml",
+  "/sitemap-reference.xml": "/reference/sitemap.xml",
+};
+
+// What the location's rewrites make of a request path, as nginx applies them.
+function rewrittenBySitemapLocation(location, uri) {
+  for (const directive of getDirectives(location.body, "rewrite")) {
+    const parts = directive.replace(/;$/, "").split(" ");
+    const pattern = new RegExp(parts[1]);
+
+    if (pattern.test(uri)) {
+      return uri.replace(pattern, parts[2]);
+    }
+  }
+
+  return uri;
+}
+
+test("the docs and reference sitemaps are routed exactly once, in the primary ingress", () => {
+  const routed = serverBlocks.map((block) => {
+    return getLocationBlocks(block.body).filter((location) => {
+      return location.spec === SITEMAP_LOCATION_SPEC;
+    }).length;
+  });
+
+  assert.equal(
+    routed.reduce((sum, count) => {
+      return sum + count;
+    }, 0),
+    1,
+    "exactly one location may route the docs' and the reference's sitemaps",
+  );
+  assert.ok(
+    findLocation(primaryServerBlock, SITEMAP_LOCATION_SPEC),
+    "the primary ingress must route the docs' and the reference's sitemaps",
+  );
+});
+
+test("nginx location precedence sends the two sitemaps to their block, and every other sitemap to Home", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const uri of Object.keys(APP_SITEMAPS)) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      SITEMAP_LOCATION_SPEC,
+      `${uri} must land in the sitemap location, not in "location /" (Home when billing is on)`,
+    );
+  }
+
+  // Home's own sitemaps, the retired tag sitemaps, and near misses stay Home's.
+  for (const uri of [
+    "/sitemap.xml",
+    "/sitemap-pages.xml",
+    "/sitemap-compare.xml",
+    "/sitemap-blog-1.xml",
+    "/sitemap-tags-1.xml",
+    "/sitemap-docs.xml.gz",
+    "/sitemap-docsxml",
+    "/sitemap-documentation.xml",
+    "/blog/sitemap-docs.xml",
+  ]) {
+    assert.equal(
+      resolveLocation(locations, uri).spec,
+      "/",
+      `${uri} must stay with "location /"`,
+    );
+  }
+
+  // The app's own addresses are the docs' and the reference's locations.
+  assert.equal(resolveLocation(locations, "/docs/sitemap.xml").spec, "/docs");
+  assert.equal(
+    resolveLocation(locations, "/reference/sitemap.xml").spec,
+    "/reference",
+  );
+});
+
+test("the sitemap location hands the app each sitemap at the app's own address", () => {
+  const location = findLocation(primaryServerBlock, SITEMAP_LOCATION_SPEC);
+
+  assert.deepEqual(getDirectives(location.body, "rewrite"), [
+    "rewrite ^/sitemap-docs\\.xml$ /docs/sitemap.xml break;",
+    "rewrite ^/sitemap-reference\\.xml$ /reference/sitemap.xml break;",
+  ]);
+
+  for (const [uri, appPath] of Object.entries(APP_SITEMAPS)) {
+    assert.equal(rewrittenBySitemapLocation(location, uri), appPath);
+  }
+
+  assert.deepEqual(getDirectives(location.body, "return"), []);
+});
+
+test("the sitemap location proxies to the app whatever billing says", () => {
+  const location = findLocation(primaryServerBlock, SITEMAP_LOCATION_SPEC);
+
+  assert.deepEqual(
+    getDirectives(location.body, "proxy_pass"),
+    ["proxy_pass ${BACKEND_APP_TARGET};"],
+    "exactly one proxy_pass: the app",
+  );
+  assert.ok(
+    !location.body.includes("$billing_enabled"),
+    "the sitemap location must not branch on billing: Home has no such sitemaps",
+  );
+  assert.ok(
+    !location.body.includes("$backend_home"),
+    "the sitemap location must never proxy to Home",
+  );
+  assert.ok(
+    !/\bif\s*\(/.test(location.body),
+    "the sitemap location must proxy unconditionally",
+  );
+});
+
+test("the sitemap location proxies like the /docs location it hands requests to", () => {
+  const sitemaps = findLocation(primaryServerBlock, SITEMAP_LOCATION_SPEC);
+  const docs = findLocation(primaryServerBlock, "/docs");
+
+  for (const directive of ["proxy_set_header", "proxy_http_version"]) {
+    assert.deepEqual(
+      getDirectives(sitemaps.body, directive),
+      getDirectives(docs.body, directive),
+      `the sitemap location must ${directive} exactly as /docs does`,
+    );
+  }
+
+  assert.deepEqual(getDirectives(sitemaps.body, "access_log"), []);
+  assert.deepEqual(getDirectives(sitemaps.body, "add_header"), []);
+});
+
+// ---------------------------------------------------------------------------
 // OAuth discovery documents for the MCP server
 // ---------------------------------------------------------------------------
 
@@ -1703,8 +1850,8 @@ test("no location that nginx consults first can take the OAuth discovery documen
   /*
    * nginx tries regex locations in file order and stops at the first match,
    * and a `^~` prefix or an `=` location that matches is chosen without the
-   * regexes being tried at all. resolveLocation models the first rule only,
-   * so the other two are ruled out here directly.
+   * regexes being tried at all. resolveLocation models all three; they are
+   * also ruled out here directly, so this does not rest on the model alone.
    */
   const locations = getLocationBlocks(primaryServerBlock.body);
   const discoveryIndex = locations.findIndex((location) => {
@@ -1922,4 +2069,352 @@ test("the well-known locations that were already there are unchanged", () => {
   assert.deepEqual(getDirectives(statusPageWellKnown[0].body, "rewrite"), [
     "rewrite ^/\\.well-known(.*)$ /api/status-page/.well-known$1 break;",
   ]);
+});
+
+// ---------------------------------------------------------------------------
+// /workflows and /runbooks: the marketing site's short addresses
+// ---------------------------------------------------------------------------
+
+/*
+ * Home redirects /workflows and /runbooks to /product/workflows and
+ * /product/runbooks (Home/Routes.ts). `location /workflow` and
+ * `location /runbook` are prefixes of those two paths, so nginx used to send
+ * them to the app, which has no such route and answered with a JSON 404. An
+ * exact location for each hands them back to wherever `location /` sends the
+ * marketing site, without moving anything the app serves.
+ */
+const MARKETING_ALIASES = [
+  {
+    alias: "/workflows",
+    product: "/product/workflows",
+    appPrefix: "/workflow",
+  },
+  { alias: "/runbooks", product: "/product/runbooks", appPrefix: "/runbook" },
+];
+
+/** A location's directives, one per line, with comments and indentation gone. */
+function directivesOf(location) {
+  return stripComments(location.body)
+    .split("\n")
+    .map((line) => {
+      return line.trim().replace(/\s+/g, " ");
+    })
+    .filter(Boolean);
+}
+
+function findAliasLocation(alias) {
+  return getLocationBlocks(primaryServerBlock.body).find((location) => {
+    return location.spec === `= ${alias}`;
+  });
+}
+
+test("the primary ingress has one exact location for each marketing alias", () => {
+  for (const { alias } of MARKETING_ALIASES) {
+    assert.equal(
+      getLocationBlocks(primaryServerBlock.body).filter((location) => {
+        return location.spec === `= ${alias}`;
+      }).length,
+      1,
+      `the primary ingress must have exactly one "location = ${alias}"`,
+    );
+  }
+});
+
+test("the status-page servers are left as they were", () => {
+  // They have no /workflow or /runbook prefix for the aliases to escape from.
+  for (const serverBlock of serverBlocks) {
+    if (serverBlock === primaryServerBlock) {
+      continue;
+    }
+
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      assert.ok(
+        !location.spec.startsWith("="),
+        `a status-page server gained an exact location: ${location.spec}`,
+      );
+      assert.ok(
+        !/^\/(workflow|runbook)/.test(location.spec),
+        `a status-page server gained ${location.spec}`,
+      );
+    }
+  }
+});
+
+test("nginx location precedence sends each marketing alias to its own block", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const { alias } of MARKETING_ALIASES) {
+    assert.equal(
+      resolveLocation(locations, alias).spec,
+      `= ${alias}`,
+      `${alias} must not fall into a prefix location that sends it to the app`,
+    );
+  }
+});
+
+test("each marketing alias is proxied exactly like location /", () => {
+  /*
+   * Home when billing is enabled, the app otherwise: the address goes where
+   * every other page of the marketing site goes, with the same headers.
+   */
+  const catchAll = getLocationBlocks(primaryServerBlock.body).find(
+    (location) => {
+      return location.spec === "/";
+    },
+  );
+
+  assert.ok(catchAll, "the primary ingress lost location /");
+  assert.ok(
+    directivesOf(catchAll).includes("proxy_pass $backend_home;"),
+    "the premise: location / sends the marketing site to Home",
+  );
+
+  for (const { alias } of MARKETING_ALIASES) {
+    assert.deepEqual(
+      directivesOf(findAliasLocation(alias)),
+      directivesOf(catchAll),
+    );
+  }
+});
+
+test("the marketing alias locations leave the redirect itself to Home", () => {
+  /*
+   * Home keeps the query string a paid click carries and answers with a
+   * relative Location. A `return 301` here would need the query carried by
+   * hand, and nginx would name its own listen port in an absolute Location.
+   */
+  for (const { alias } of MARKETING_ALIASES) {
+    const location = findAliasLocation(alias);
+
+    for (const directive of ["return", "rewrite", "add_header", "access_log"]) {
+      assert.deepEqual(
+        getDirectives(location.body, directive),
+        [],
+        `location = ${alias} should not carry ${directive}`,
+      );
+    }
+  }
+
+  const homeRoutes = fs.readFileSync(
+    path.join(NGINX_DIRECTORY, "..", "Home", "Routes.ts"),
+    "utf8",
+  );
+
+  for (const { alias, product } of MARKETING_ALIASES) {
+    assert.ok(
+      new RegExp(
+        `app\\.get\\("${alias}",[^}]*redirectPreservingQuery\\(req, res, "${product}", 301\\)`,
+      ).test(homeRoutes),
+      `Home must answer ${alias} with a 301 to ${product}`,
+    );
+  }
+});
+
+test("everything the app serves under /workflow and /runbook still reaches it", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const [uri, spec] of [
+    ["/workflow", "/workflow"],
+    ["/workflow/", "/workflow"],
+    ["/workflow/manual/run/6a7b", "/workflow"],
+    ["/workflow/run-step/6a7b", "/workflow"],
+    ["/workflow/model-schema/Incident", "/workflow"],
+    ["/workflow/step-samples/6a7b", "/workflow"],
+    ["/workflow/update/6a7b", "/workflow"],
+    ["/runbook", "/runbook"],
+    ["/runbook/run/6a7b", "/runbook"],
+    ["/runbook/execution/6a7b/cancel", "/runbook"],
+    ["/runbook-agent-ingest/heartbeat", "/runbook-agent-ingest"],
+    ["/runner-ingest/heartbeat", "/runner-ingest"],
+    // Only the two exact addresses moved; anything under them is as it was.
+    ["/workflows/", "/workflow"],
+    ["/workflows/6a7b", "/workflow"],
+    ["/runbooks/", "/runbook"],
+    ["/runbooks/6a7b", "/runbook"],
+  ]) {
+    assert.equal(resolveLocation(locations, uri).spec, spec, uri);
+  }
+
+  for (const { appPrefix } of MARKETING_ALIASES) {
+    const location = getLocationBlocks(primaryServerBlock.body).find(
+      (candidate) => {
+        return candidate.spec === appPrefix;
+      },
+    );
+
+    assert.ok(location, `the primary ingress lost location ${appPrefix}`);
+    assert.ok(/proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(location.body));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// /files/: the old addresses of the compliance PDFs
+// ---------------------------------------------------------------------------
+
+/*
+ * Home redirects /files/soc-3.pdf and the other compliance PDFs it once
+ * published to the pages of its legal center (Home/Utils/LegacyRedirects.ts).
+ * `location /file`, the app's file API, is a prefix of /files/, so nginx sent
+ * them to the app as /api/files/..., which answered with a JSON 404. A
+ * `^~ /files/` location hands them back to wherever `location /` sends the
+ * marketing site.
+ */
+const LEGACY_FILES_SPEC = "^~ /files/";
+
+/** Every { from, to } in Home's legacy redirect table, read from its source. */
+function readLegacyRedirects() {
+  const source = fs.readFileSync(
+    path.join(NGINX_DIRECTORY, "..", "Home", "Utils", "LegacyRedirects.ts"),
+    "utf8",
+  );
+
+  const redirects = Array.from(
+    source.matchAll(/\{\s*from:\s*"([^"]+)",\s*to:\s*"([^"]+)",?\s*\}/g),
+    (match) => {
+      return { from: match[1], to: match[2] };
+    },
+  );
+
+  // A table this reads only part of would let the tests below pass vacuously.
+  assert.ok(redirects.length > 0, "read no entries from LegacyRedirects.ts");
+  assert.equal(
+    redirects.length,
+    source.split('from: "').length - 1,
+    "every entry of LegacyRedirects.ts must be read",
+  );
+
+  return redirects;
+}
+
+function findCatchAllLocation() {
+  const catchAll = getLocationBlocks(primaryServerBlock.body).find(
+    (location) => {
+      return location.spec === "/";
+    },
+  );
+
+  assert.ok(catchAll, "the primary ingress lost location /");
+
+  return catchAll;
+}
+
+function findLegacyFilesLocation() {
+  return getLocationBlocks(primaryServerBlock.body).find((location) => {
+    return location.spec === LEGACY_FILES_SPEC;
+  });
+}
+
+test("the primary ingress has one location for the old /files/ addresses", () => {
+  assert.equal(
+    getLocationBlocks(primaryServerBlock.body).filter((location) => {
+      return location.spec === LEGACY_FILES_SPEC;
+    }).length,
+    1,
+    `the primary ingress must have exactly one "location ${LEGACY_FILES_SPEC}"`,
+  );
+
+  for (const serverBlock of serverBlocks) {
+    if (serverBlock === primaryServerBlock) {
+      continue;
+    }
+
+    assert.ok(
+      !getLocationBlocks(serverBlock.body).some((location) => {
+        return location.spec.includes("/files");
+      }),
+      "a status-page server gained a /files location",
+    );
+  }
+});
+
+test("every address Home's legacy redirects move reaches the marketing site", () => {
+  /*
+   * Home can answer these only if nginx sends them where it sends the rest
+   * of the marketing site: to `location /` itself, or to a block that
+   * proxies exactly like it. A prefix location of the app's that happens to
+   * start the same way (as /file starts /files/) would hide them.
+   */
+  const locations = getLocationBlocks(primaryServerBlock.body);
+  const catchAll = findCatchAllLocation();
+
+  for (const { from } of readLegacyRedirects()) {
+    const location = resolveLocation(locations, from);
+
+    assert.deepEqual(
+      directivesOf(location),
+      directivesOf(catchAll),
+      `${from} lands in "location ${location.spec}", which does not send it to the marketing site`,
+    );
+  }
+});
+
+test("the /files/ location is proxied exactly like location /", () => {
+  const location = findLegacyFilesLocation();
+
+  assert.ok(location, `the primary ingress lost location ${LEGACY_FILES_SPEC}`);
+  assert.ok(
+    directivesOf(findCatchAllLocation()).includes("proxy_pass $backend_home;"),
+    "the premise: location / sends the marketing site to Home",
+  );
+  assert.deepEqual(
+    directivesOf(location),
+    directivesOf(findCatchAllLocation()),
+  );
+});
+
+test("the /files/ location leaves the redirects themselves to Home", () => {
+  const location = findLegacyFilesLocation();
+
+  for (const directive of ["return", "rewrite", "add_header", "access_log"]) {
+    assert.deepEqual(
+      getDirectives(location.body, directive),
+      [],
+      `location ${LEGACY_FILES_SPEC} should not carry ${directive}`,
+    );
+  }
+
+  // The addresses this location exists for, and where Home sends each.
+  assert.deepEqual(
+    readLegacyRedirects().filter(({ from }) => {
+      return from.startsWith("/files/");
+    }),
+    [
+      { from: "/files/soc-3.pdf", to: "/legal/soc-3" },
+      { from: "/files/pci.pdf", to: "/legal/pci" },
+      { from: "/files/iso-27001.pdf", to: "/legal/iso-27001" },
+      { from: "/files/iso-27017.pdf", to: "/legal/iso-27017" },
+      { from: "/files/iso-27018.pdf", to: "/legal/iso-27018" },
+    ],
+  );
+});
+
+test("everything the app serves under /file still reaches it", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  for (const [uri, spec] of [
+    ["/file", "/file"],
+    ["/file/", "/file"],
+    ["/file/6a7b", "/file"],
+    ["/file/image/6a7b", "/file"],
+    // Only the /files/ directory moved; the rest of what /file caught has not.
+    ["/files", "/file"],
+    ["/filesystem", "/file"],
+    ["/files/soc-3.pdf", LEGACY_FILES_SPEC],
+    ["/files/iso-27018.pdf", LEGACY_FILES_SPEC],
+    ["/files/", LEGACY_FILES_SPEC],
+  ]) {
+    assert.equal(resolveLocation(locations, uri).spec, spec, uri);
+  }
+
+  const fileLocation = locations.find((location) => {
+    return location.spec === "/file";
+  });
+
+  assert.ok(fileLocation, "the primary ingress lost location /file");
+  assert.deepEqual(getDirectives(fileLocation.body, "rewrite"), [
+    "rewrite ^/file(.*)$ /api/file$1 break;",
+  ]);
+  assert.ok(
+    /proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(fileLocation.body),
+  );
 });

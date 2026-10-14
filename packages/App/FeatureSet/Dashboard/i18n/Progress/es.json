@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28113,
-    "untranslated": 3407
+    "keys": 28484,
+    "untranslated": 3403
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -171,6 +171,7 @@
     "HA {{state}}",
     "HH",
     "HackerBay, Inc.",
+    "Hardware",
     "Hash",
     "Honduras",
     "Hong Kong",

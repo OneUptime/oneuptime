@@ -961,9 +961,13 @@ describePostgres(
 
         await SlackAuthAction.answerRefusal(slackRequest);
 
+        /*
+         * A form's submission names no command: run again the one every app
+         * has from now on.
+         */
         const answer: ChannelAnswer = theAnswerTo(SLACK_STRANGER);
         expect(answer.text).toBe(
-          "🔗 **Connect your Slack account to declare an incident.** It takes one click. Then run **/incident** again.",
+          "🔗 **Connect your Slack account to declare an incident.** It takes one click. Then run **/oneuptime incident** again.",
         );
         expectConnectLink(answer);
         expect(hooksSpy).not.toHaveBeenCalled();

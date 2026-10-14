@@ -77,6 +77,7 @@ export const WorkflowDocsPaths: {
   readonly json: string;
   readonly conditions: string;
   readonly switchCase: string;
+  readonly paging: string;
   readonly sleep: string;
   readonly log: string;
   readonly executeWorkflow: string;
@@ -110,6 +111,7 @@ export const WorkflowDocsPaths: {
   json: "/workflows/components#json",
   conditions: "/workflows/components#conditions",
   switchCase: "/workflows/components#switch-case",
+  paging: "/workflows/components#paging",
   sleep: "/workflows/components#sleep",
   log: "/workflows/components#log",
   executeWorkflow: "/workflows/components#execute-workflow",

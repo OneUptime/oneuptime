@@ -490,8 +490,13 @@ describe("episode feeds", () => {
       expect(source).not.toContain('title: "Add Private Note"');
       expect(source).not.toContain('title: "Refresh"');
       expect(source).toContain("<FeedCard");
-      expect(source).toContain("onRefresh={refresh}");
-      // Icons come from the exhaustive per-event-type table.
+      expect(source).toContain("onRefresh={feed.refresh}");
+      /*
+       * The shared feed body: a skeleton while it loads, an error with Try
+       * again, the timeline after.
+       */
+      expect(source).toContain("<FeedContent feed={feed}");
+      // Kinds (icon, colour, folding) come from the exhaustive per-event-type table.
       expect(source).not.toContain("let icon: IconProp = IconProp.Circle;");
     },
   );

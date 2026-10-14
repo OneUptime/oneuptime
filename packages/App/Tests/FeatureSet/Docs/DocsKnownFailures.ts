@@ -31,6 +31,7 @@ import { DocsKnownFailures } from "./DocsContentRules";
  *   images                       images and /docs/static/ files exist
  *   noRelativeLinks              no relative links ("./page.md", "page")
  *   rendered                     no raw ":::", "@tab" or "[!NOTE]" is shown
+ *   placeholderLinks             an address to fill in is code, never a link
  *   uniqueHeadings               no two headings of a page share an anchor
  *   codeLanguage                 every English code sample names a language
  *   headingLevels                English headings never skip a level
@@ -91,32 +92,6 @@ const except: (
 const EVERY_TRANSLATION_BUT_FA: Array<string> = except(EVERY_TRANSLATION, "fa");
 
 export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
-  "ai/ai-agent": {
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "ai/ai-sre": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "ai/ask-ai": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "ai/infrastructure-ai-agents": {
-    translated: EVERY_TRANSLATION,
-  },
-  "ai/llm-provider": {
-    codeLanguage: EN,
-  },
-  "ai/mcp-server": {
-    uniqueHeadings: EVERY_LANGUAGE,
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "api-reference/api-reference": {
-    headingLevels: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
   "cli/authentication": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -125,58 +100,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "cli/output-formats": {
     codeLanguage: EN,
-  },
-  "integrations/aws-security-hub": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/crowdstrike-falcon": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/elastic-security": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/google-secops": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "integrations/index": {
-    pageLinks: EVERY_TRANSLATION,
-  },
-  "integrations/jira": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "integrations/microsoft-defender-xdr": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/microsoft-dynamics-365": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "integrations/microsoft-sentinel": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/okta": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/prometheus-alertmanager": {
-    codeLanguage: EN,
-  },
-  "integrations/splunk": {
-    translated: EVERY_TRANSLATION,
-  },
-  "integrations/zabbix": {
-    pageLinks: EVERY_TRANSLATION,
-  },
-  "inventory/cmdb-sync": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "inventory/custom-fields": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "inventory/overview": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
   "mobile-desktop-apps/faq-troubleshooting": {
     noRelativeLinks: EVERY_LANGUAGE,

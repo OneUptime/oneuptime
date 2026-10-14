@@ -10,8 +10,14 @@ import PingdomAdapter from "../../../../Server/Utils/ToolImport/Adapters/Pingdom
 import StatusCakeAdapter from "../../../../Server/Utils/ToolImport/Adapters/StatusCake/StatusCakeAdapter";
 import UptimeKumaAdapter from "../../../../Server/Utils/ToolImport/Adapters/UptimeKuma/UptimeKumaAdapter";
 import UptimeRobotAdapter from "../../../../Server/Utils/ToolImport/Adapters/UptimeRobot/UptimeRobotAdapter";
+import ToolImportRecord from "../../../../Models/DatabaseModels/ToolImportRecord";
 import ToolImportApplier from "../../../../Server/Utils/ToolImport/ToolImportApplier";
-import { buildToolImportPlan } from "../../../../Server/Utils/ToolImport/ToolImportPlanner";
+import {
+  buildToolImportPlan,
+  ToolImportPreviousRecord,
+  ToolImportProjectState,
+} from "../../../../Server/Utils/ToolImport/ToolImportPlanner";
+import ToolImportProjectStateReader from "../../../../Server/Utils/ToolImport/ToolImportProjectStateReader";
 import {
   ToolImportAdapter,
   ToolImportReadSettings,
@@ -20,6 +26,7 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
+import { TOOL_IMPORT_MAX_RECORDS_PER_KIND } from "../../../../Types/ToolImport/ToolImportLimits";
 import {
   makeToolImportNote,
   ToolImportNoteCode,
@@ -31,6 +38,7 @@ import {
   ToolImportPlanItem,
   ToolImportReport,
   ToolImportReportItem,
+  ToolImportSelection,
 } from "../../../../Types/ToolImport/ToolImportPlan";
 import ToolImportResourceKind, {
   getToolImportItemKey,
@@ -54,7 +62,10 @@ import * as UptimeRobot from "./UptimeRobotFixtures";
  * ticked - subscribers too, with the person's word - with OneUptime's
  * services stood in for (ApplierWorld.withMonitoring). Nothing that can
  * be ticked fails: every monitor an adapter offers is one the builder can
- * make, and every page shows the monitors that came over.
+ * make, and every page shows the monitors that came over. A Statuspage or
+ * Better Stack page with more subscribers than one import reads comes over
+ * across imports, each one reading past what the ones before it brought
+ * over.
  */
 
 const NOW: number = Date.parse("2026-10-08T12:00:00Z");
@@ -73,6 +84,21 @@ interface Flow {
   world: ApplierWorld;
 }
 
+// Everything that can be ticked, subscribers too, with the person's word.
+function everythingTicked(plan: ToolImportPlan): ToolImportSelection {
+  return {
+    selectedKeys: plan.items
+      .filter((item: ToolImportPlanItem): boolean => {
+        return item.isSelectable;
+      })
+      .map((item: ToolImportPlanItem): string => {
+        return item.key;
+      }),
+    inviteTeamId: null,
+    subscribersConsent: true,
+  };
+}
+
 async function importSnapshot(snapshot: ToolImportSnapshot): Promise<Flow> {
   const plan: ToolImportPlan = buildToolImportPlan({
     snapshot: snapshot,
@@ -88,17 +114,7 @@ async function importSnapshot(snapshot: ToolImportSnapshot): Promise<Flow> {
     source: snapshot.source,
     snapshot: snapshot,
     plan: plan,
-    selection: {
-      selectedKeys: plan.items
-        .filter((item: ToolImportPlanItem): boolean => {
-          return item.isSelectable;
-        })
-        .map((item: ToolImportPlanItem): string => {
-          return item.key;
-        }),
-      inviteTeamId: null,
-      subscribersConsent: true,
-    },
+    selection: everythingTicked(plan),
     props: PROPS,
     isLimitedToOneLevelPerPolicy: false,
     now: new Date(NOW),
@@ -125,6 +141,84 @@ async function importAll(data: {
   });
 
   return await importSnapshot(snapshot);
+}
+
+// What the imports so far remembered, all of it still in the project.
+function stateAfterEarlierImports(world: ApplierWorld): ToolImportProjectState {
+  return projectState({
+    previousRecords: world.records.map(
+      (record: ToolImportRecord): ToolImportPreviousRecord => {
+        return {
+          kind: record.kind!,
+          sourceId: record.sourceId!,
+          recordId: record.recordId!.toString(),
+          isComplete: record.isComplete !== false,
+          stillExists: true,
+        };
+      },
+    ),
+  });
+}
+
+/*
+ * One more import into the project earlier imports left, as a run makes
+ * it: the subscribers they brought over are read from what they
+ * remembered, the tool is read past them, and the plan is worked out
+ * against the project as they left it.
+ */
+async function readAndImport(data: {
+  world: ApplierWorld;
+  adapter: ToolImportAdapter;
+  settings: ToolImportReadSettings;
+  api: FixtureApi;
+}): Promise<Flow> {
+  const importedSubscriberIds: Set<string> =
+    await ToolImportProjectStateReader.readImportedSubscriberIds({
+      projectId: PROJECT_ID,
+      source: data.settings.source,
+    });
+  const sleep: RecordingSleep = new RecordingSleep({ now: NOW });
+
+  const snapshot: ToolImportSnapshot = await data.adapter.read(data.settings, {
+    transport: data.api.transport,
+    sleep: sleep.sleep,
+    now: (): number => {
+      return sleep.clock.now;
+    },
+    maxRequests: 500,
+    deadlineAt: NOW + 15 * 60 * 1000,
+    importedSubscriberIds: importedSubscriberIds,
+  });
+
+  const plan: ToolImportPlan = buildToolImportPlan({
+    snapshot: snapshot,
+    state: stateAfterEarlierImports(data.world),
+    access: fullAccess(),
+  });
+
+  const report: ToolImportReport = await ToolImportApplier.apply({
+    runId: ObjectID.generate(),
+    projectId: PROJECT_ID,
+    source: snapshot.source,
+    snapshot: snapshot,
+    plan: plan,
+    selection: everythingTicked(plan),
+    props: PROPS,
+    isLimitedToOneLevelPerPolicy: false,
+    now: new Date(NOW),
+    onProgress: async (): Promise<void> => {},
+  });
+
+  return { snapshot, plan, report, world: data.world };
+}
+
+// The addresses of the subscribers the imports made, in the order they were made.
+function subscriberEmails(world: ApplierWorld): Array<string> {
+  return world
+    .dataOf<StatusPageSubscriber>("StatusPageSubscriber")
+    .map((subscriber: StatusPageSubscriber): string => {
+      return subscriber.subscriberEmail!.toString();
+    });
 }
 
 function reportOf(
@@ -391,6 +485,87 @@ describe("a Better Stack team, imported", () => {
   });
 });
 
+describe("a Better Stack page with more subscribers than one import brings over", () => {
+  // More confirmed email subscribers on the public page than one import reads.
+  const REST: number = 250;
+  const TOTAL: number = TOOL_IMPORT_MAX_RECORDS_PER_KIND + REST;
+
+  // One more import of the team, read past what came over before.
+  async function importAgain(world: ApplierWorld): Promise<Flow> {
+    return await readAndImport({
+      world: world,
+      adapter: new BetterStackAdapter(),
+      settings: {
+        source: ToolImportSource.BetterStack,
+        region: "",
+        apiKey: BetterStack.BETTER_STACK_TOKEN,
+      },
+      api: BetterStack.betterStackApi().add({
+        path: `/api/v2/status-pages/${BetterStack.PUBLIC_PAGE_ID}/subscribers`,
+        answers: [
+          BetterStack.betterStackPaged(
+            BetterStack.betterStackSubscribers(TOTAL, 0),
+          ),
+        ],
+      }),
+    });
+  }
+
+  function emailsOf(from: number, count: number): Array<string> {
+    return BetterStack.betterStackSubscribers(count, from).map(
+      (subscriber: Record<string, unknown>): string => {
+        return (subscriber["attributes"] as Record<string, unknown>)[
+          "email"
+        ] as string;
+      },
+    );
+  }
+
+  test("the first import brings over the first 5,000; running it again brings over the rest, and nobody comes twice", async () => {
+    const world: ApplierWorld = new ApplierWorld().withMonitoring();
+
+    const first: Flow = await importAgain(world);
+
+    expectCleanImport(first);
+    expect(first.snapshot.notes).toEqual([
+      makeToolImportNote(ToolImportNoteCode.ReadLimitReached, {
+        kind: ToolImportResourceKind.StatusPageSubscriber,
+        limit: TOOL_IMPORT_MAX_RECORDS_PER_KIND,
+      }),
+    ]);
+    expect(subscriberEmails(world)).toEqual(
+      emailsOf(0, TOOL_IMPORT_MAX_RECORDS_PER_KIND),
+    );
+
+    const second: Flow = await importAgain(world);
+
+    // Read past the 5,000 that came over: the rest, and none left unread.
+    expectCleanImport(second);
+    expect(second.snapshot.statusPageSubscribers).toHaveLength(REST);
+    expect(second.snapshot.notes).toEqual([]);
+    /*
+     * The monitors and the pages came over the first time; the UDP and
+     * Playwright monitors are named as left out again.
+     */
+    expect(outcomes(second.report)).toEqual({
+      [ToolImportOutcome.AlreadyImported]: 14,
+      [ToolImportOutcome.Skipped]: 2,
+      [ToolImportOutcome.Created]: REST,
+    });
+    expect(subscriberEmails(world)).toEqual(emailsOf(0, TOTAL));
+
+    // Nobody is left to bring over.
+    const third: Flow = await importAgain(world);
+
+    expect(third.snapshot.statusPageSubscribers).toEqual([]);
+    expect(outcomes(third.report)).toEqual({
+      [ToolImportOutcome.AlreadyImported]: 14,
+      [ToolImportOutcome.Skipped]: 2,
+    });
+    expect(subscriberEmails(world)).toHaveLength(TOTAL);
+  }, 120000);
+});
+
 describe("a StatusCake account, imported", () => {
   test("uptime, SSL and heartbeat checks become monitors of the right type; an unknown test type is named", async () => {
     const result: Flow = await importAll({
@@ -496,6 +671,80 @@ describe("an Atlassian Statuspage organization, imported", () => {
       ["carol@example.com", false, 1, true, false],
     ]);
   });
+});
+
+describe("an Atlassian Statuspage page with more subscribers than one import brings over", () => {
+  // More email subscribers on the public page than one import reads.
+  const REST: number = 250;
+  const TOTAL: number = TOOL_IMPORT_MAX_RECORDS_PER_KIND + REST;
+
+  // One more import of the organization, read past what came over before.
+  async function importAgain(world: ApplierWorld): Promise<Flow> {
+    return await readAndImport({
+      world: world,
+      adapter: new AtlassianStatuspageAdapter(),
+      settings: {
+        source: ToolImportSource.AtlassianStatuspage,
+        region: "",
+        apiKey: Statuspage.STATUSPAGE_KEY,
+      },
+      api: Statuspage.statuspageApi().add({
+        path: `/v1/pages/${Statuspage.PUBLIC_PAGE_ID}/subscribers`,
+        answers: [
+          Statuspage.statuspagePaged(
+            Statuspage.statuspageSubscribers(TOTAL, 0),
+          ),
+        ],
+      }),
+    });
+  }
+
+  function emailsOf(from: number, count: number): Array<string> {
+    return Statuspage.statuspageSubscribers(count, from).map(
+      (subscriber: Record<string, unknown>): string => {
+        return subscriber["email"] as string;
+      },
+    );
+  }
+
+  test("the first import brings over the first 5,000; running it again brings over the rest, and nobody comes twice", async () => {
+    const world: ApplierWorld = new ApplierWorld().withMonitoring();
+
+    const first: Flow = await importAgain(world);
+
+    expectCleanImport(first);
+    expect(first.snapshot.notes).toEqual([
+      makeToolImportNote(ToolImportNoteCode.ReadLimitReached, {
+        kind: ToolImportResourceKind.StatusPageSubscriber,
+        limit: TOOL_IMPORT_MAX_RECORDS_PER_KIND,
+      }),
+    ]);
+    expect(subscriberEmails(world)).toEqual(
+      emailsOf(0, TOOL_IMPORT_MAX_RECORDS_PER_KIND),
+    );
+
+    const second: Flow = await importAgain(world);
+
+    // Read past the 5,000 that came over: the rest, and none left unread.
+    expectCleanImport(second);
+    expect(second.snapshot.statusPageSubscribers).toHaveLength(REST);
+    expect(second.snapshot.notes).toEqual([]);
+    // The pages and their components came over the first time.
+    expect(outcomes(second.report)).toEqual({
+      [ToolImportOutcome.AlreadyImported]: 6,
+      [ToolImportOutcome.Created]: REST,
+    });
+    expect(subscriberEmails(world)).toEqual(emailsOf(0, TOTAL));
+
+    // Nobody is left to bring over.
+    const third: Flow = await importAgain(world);
+
+    expect(third.snapshot.statusPageSubscribers).toEqual([]);
+    expect(outcomes(third.report)).toEqual({
+      [ToolImportOutcome.AlreadyImported]: 6,
+    });
+    expect(subscriberEmails(world)).toHaveLength(TOTAL);
+  }, 120000);
 });
 
 describe("an Uptime Kuma backup, imported", () => {

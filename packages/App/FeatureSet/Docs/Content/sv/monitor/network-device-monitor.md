@@ -43,7 +43,7 @@ Enheten och monitorn gör olika jobb:
 
 - **En sond som kan nå enheten.** Sonden pingar och walkar enheten från sitt eget nätverk, så en enhet på en privat adress behöver en [anpassad sond](/docs/probe/custom-probe) inne i det nätverket: en sond på det publika internet kan inte nå den.
 - **SNMP, för mer än ping.** Valfritt. En v1- eller v2c-community string, eller en SNMPv3-användare, inställd på enheten, med UDP 161 öppen från sonden. Utan det pingas enheten bara.
-- **Traps, syslog och flöden.** Valfritt. Sonden tar emot SNMP-traps på UDP 162, syslog på UDP 5140 när du slår på det, och flödesposter på UDP 2055, 4739 och 6343, så öppna dem från dina enheter till sonden.
+- **Traps, syslog och flöden.** Valfritt. Sonden tar emot SNMP-traps på UDP 162, syslog på UDP och TCP 5140, och flödesposter på UDP 2055, 4739 och 6343, så öppna dem från dina enheter till sonden.
 
 ## Nätverksöversikten
 
@@ -62,7 +62,7 @@ Under den säger en rad om något skapar en incident när en enhet går ner: hur
 
 Innan något har lagts till visar översikten i stället de två sätten att komma igång: **Upptäck enheter** skannar ett adressintervall så att du kan välja vad du vill lägga till, bäst för ett helt nätverk eller en ny plats, och **Lägg till en enda enhet** lägger till en via dess IP-adress eller värdnamn.
 
-Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Devices**, **Platser**, **Map**, **Traffic** och **Discovery**. Resten är hopfällt i avsnitt, och ett avsnitt fäller ut sig självt på var och en av sina sidor:
+Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Devices**, **Platser**, **Map**, **Traffic**, **Händelser** och **Discovery**. Resten är hopfällt i avsnitt, och ett avsnitt fäller ut sig självt på var och en av sina sidor:
 
 | Avsnitt | Sidor |
 | --- | --- |
@@ -490,7 +490,7 @@ En utredning av OneUptime AI av en incident eller varning från en nätverksenhe
 
 ### Enhetsidentitet
 
-Efter den första lyckade walken läser OneUptime SNMPv2-systemgruppen och, där enheten stöder det, ENTITY-MIB, och fyller i enhetens post: systemnamn, beskrivning, placering, kontakt, drifttid, tillverkare, modell, serienummer och firmwareversion. Tillverkarens enterprise-OID (`sysObjectID`) är enhetens fingeravtryck: den namnger tillverkaren och väljer den matchande tillverkarmallen. Samma uppgifter visas i [inventariet](/docs/inventory/cmdb-sync#network-device-asset-attributes) tillsammans med alla dina andra tillgångar.
+Efter den första lyckade walken läser OneUptime SNMPv2-systemgruppen och, där enheten stöder det, ENTITY-MIB, och fyller i enhetens post: systemnamn, beskrivning, placering, kontakt, drifttid, tillverkare, modell, serienummer och firmwareversion. Tillverkarens enterprise-OID (`sysObjectID`) är enhetens fingeravtryck: den namnger tillverkaren och väljer den matchande tillverkarmallen. Samma uppgifter visas i [inventariet](/docs/inventory/cmdb-sync#tillgångsattribut-för-nätverksenheter) tillsammans med alla dina andra tillgångar.
 
 En enhet med bara ping behåller det namn och den adress som du, eller en discovery-skanning, gav den: det finns ingen SNMP-agent att fråga efter något bättre.
 
@@ -1057,6 +1057,7 @@ Ett svar med enhetens beskrivning betyder att sonden kan walka den med de autent
 :::cards
 - [Nätverksplatser](/docs/monitor/network-sites): Gruppera enheter i platser och sammanfatta deras hälsa uppåt i trädet.
 - [Nätverkstrafik](/docs/monitor/network-traffic): Se vem som pratar med vem utifrån dina enheters flödesposter.
+- [Nätverkshändelser](/docs/monitor/network-events): Se vad dina enheter rapporterar i sin syslog, och få varningar om det.
 - [Guider per nätverksleverantör](/docs/monitor/network-vendor-guides): Sophos, Extreme och Cambium, från början till slut.
 - [Paketinspelning](/docs/probe/packet-capture): Spela in paket på en enhets sond för Wireshark.
 :::

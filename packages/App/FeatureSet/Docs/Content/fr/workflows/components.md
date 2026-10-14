@@ -17,6 +17,7 @@ Vous aurez rarement besoin de l'ouvrir pendant la construction. Les paramètres 
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Publier dans un outil de discussion                           | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) ou [Mattermost](#mattermost) |
 | Envoyer un e-mail via votre propre serveur de messagerie      | [Email](#email)                                                   |
+| Alerter une personne, une équipe ou la personne d'astreinte | [Paging](#paging) |
 | Envoyer un SMS ou appeler un téléphone                        | [SMSEagle](#smseagle)                                             |
 | Appeler toute autre API, ou votre propre service              | [API](#api)                                                       |
 | Résumer, classer ou rédiger du texte                          | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -87,6 +88,23 @@ Reliez **Success** aux blocs qui utilisent la réponse, et **Error** à une solu
 
 > [!WARNING]
 > La sortie du modèle est du texte non fiable. Relisez-la avant qu'elle n'atteigne des clients, et ne laissez jamais du texte libre généré par l'IA décider seul d'une action destructrice. Voir [Composants IA](/docs/workflows/configuration#composants-ia) pour ce qui est envoyé au fournisseur, ce qui est journalisé et ce que cela coûte.
+
+## SMSEagle
+
+Envoyez un SMS ou passez un appel en synthèse vocale via un appareil SMSEagle, une passerelle SMS matérielle sur votre propre réseau. **Send SMS via SMSEagle** envoie un SMS, et **Make a Call via SMSEagle** appelle le numéro et lit le texte à voix haute.
+
+| Paramètre                 | Ce qu'il fait                                                                                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | L'adresse de l'appareil, par exemple `https://192.168.0.100`. Le bloc ajoute lui-même le chemin de l'API v2.                                                                  |
+| **SMSEagle Access Token** | Une clé API v2 de la GUI web de SMSEagle, sous Settings, API, API v2. Elle a besoin de l'autorisation "Send SMS" pour les SMS et "Make a TTS Advanced Call" pour les appels.  |
+| **Numéro de téléphone**   | Le numéro à qui envoyer le SMS ou à appeler, au format international, par exemple `+15551234567`.                                                                             |
+| **Message Text**          | Le texte du SMS. Seulement dans **Send SMS via SMSEagle**.                                                                                                                    |
+| **Voice ID**              | L'ID d'une voix de synthèse vocale de l'appareil. Seulement dans **Make a Call via SMSEagle**.                                                                                |
+| **Text to Read Out**      | Le texte que l'appareil lit pendant l'appel. Seulement dans **Make a Call via SMSEagle**.                                                                                     |
+
+**Success** se produit quand l'appareil a mis le SMS ou l'appel en file d'attente, et renvoie le **Message ID** qu'il lui a attribué. **Error** se produit quand l'appareil est injoignable ou le refuse, et transmet la raison, par exemple `voice_id: Resource with specified ID not found.` donnée par SMSEagle. Un paramètre manquant ou un **Voice ID** qui n'est pas un nombre arrête au contraire l'exécution.
+
+Gardez le jeton d'accès dans une [variable globale secrète](/docs/workflows/variables#variables-globales). Il est masqué dans les journaux d'exécution dans tous les cas. La requête part de OneUptime et les redirections ne sont pas suivies. Un appareil sur une adresse de bouclage (`localhost`, `127.0.0.1`), de lien local ou de métadonnées cloud est refusé, tout comme un appareil sur une adresse de réseau privé, sauf si un administrateur auto-hébergé l'autorise avec `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Voir [Accès au réseau privé](/docs/self-hosted/private-network-access).
 
 ## Slack
 
@@ -200,22 +218,48 @@ Le bloc se connecte directement au serveur indiqué dans ses paramètres. Il n'u
 
 Les connexions vers les adresses de bouclage (`localhost`, `127.0.0.1`), de lien local et de métadonnées cloud sont refusées. Sur OneUptime Cloud, un hôte SMTP situé sur une adresse de réseau privé, ou un nom qui se résout vers une telle adresse, est également refusé. Les installations auto-hébergées peuvent atteindre un serveur de messagerie sur leur propre réseau, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` est défini sur `true`. Un hôte refusé prend la sortie **Error**, et rien n'est envoyé.
 
-## SMSEagle
+## Paging
 
-Envoyez un SMS ou passez un appel en synthèse vocale via un appareil SMSEagle, une passerelle SMS matérielle sur votre propre réseau. **Send SMS via SMSEagle** envoie un SMS, et **Make a Call via SMSEagle** appelle le numéro et lit le texte à voix haute.
+Alerter des personnes depuis un workflow : chacune reçoit un appel, un SMS, une notification push ou un e-mail, comme le prévoient ses propres règles d'astreinte, jusqu'à ce que quelqu'un accuse réception. Il y a un bloc pour chaque façon de dire qui alerter. Dans le panneau **Ajouter un composant**, cherchez `page`.
 
-| Paramètre                 | Ce qu'il fait                                                                                                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SMSEagle URL**          | L'adresse de l'appareil, par exemple `https://192.168.0.100`. Le bloc ajoute lui-même le chemin de l'API v2.                                                                  |
-| **SMSEagle Access Token** | Une clé API v2 de la GUI web de SMSEagle, sous Settings, API, API v2. Elle a besoin de l'autorisation "Send SMS" pour les SMS et "Make a TTS Advanced Call" pour les appels.  |
-| **Numéro de téléphone**   | Le numéro à qui envoyer le SMS ou à appeler, au format international, par exemple `+15551234567`.                                                                             |
-| **Message Text**          | Le texte du SMS. Seulement dans **Send SMS via SMSEagle**.                                                                                                                    |
-| **Voice ID**              | L'ID d'une voix de synthèse vocale de l'appareil. Seulement dans **Make a Call via SMSEagle**.                                                                                |
-| **Text to Read Out**      | Le texte que l'appareil lit pendant l'appel. Seulement dans **Make a Call via SMSEagle**.                                                                                     |
+| Bloc                        | Qui il alerte |
+| --------------------------- | ------------- |
+| **Page Users**              | Les personnes que vous nommez. |
+| **Page a Team**             | Chaque membre d'une équipe. |
+| **Page Whoever Is On Call** | La personne d'astreinte dans un planning d'astreinte au moment où le bloc s'exécute. |
+| **Page an On-Call Policy**  | Une politique d'astreinte, qui alerte en suivant ses règles d'escalade et se répète comme elle est réglée. |
 
-**Success** se produit quand l'appareil a mis le SMS ou l'appel en file d'attente, et renvoie le **Message ID** qu'il lui a attribué. **Error** se produit quand l'appareil est injoignable ou le refuse, et transmet la raison, par exemple `voice_id: Resource with specified ID not found.` donnée par SMSEagle. Un paramètre manquant ou un **Voice ID** qui n'est pas un nombre arrête au contraire l'exécution.
+Les trois premiers alertent en même temps toutes les personnes qu'ils nomment, et personne d'autre ensuite. Pour une escalade, utilisez **Page an On-Call Policy**.
 
-Gardez le jeton d'accès dans une [variable globale secrète](/docs/workflows/variables#variables-globales). Il est masqué dans les journaux d'exécution dans tous les cas. La requête part de OneUptime et les redirections ne sont pas suivies. Un appareil sur une adresse de bouclage (`localhost`, `127.0.0.1`), de lien local ou de métadonnées cloud est refusé, tout comme un appareil sur une adresse de réseau privé, sauf si un administrateur auto-hébergé l'autorise avec `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Voir [Accès au réseau privé](/docs/self-hosted/private-network-access).
+Pour n'alerter que lorsqu'une condition est vraie, placez [If / Else](#conditions) devant le bloc et reliez-lui la sortie qui doit alerter. Avec plus de deux chemins, [Switch / Case](#switch-case) prend un chemin pour chaque valeur, et chaque chemin peut alerter quelqu'un d'autre.
+
+```mermaid title="Alerter la personne d'astreinte, mais seulement pour les incidents critiques"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+Quand vous créez un workflow, les modèles sous **Astreinte** ont celui-ci tout prêt, ainsi qu'un autre qui alerte selon la gravité avec **Switch / Case**. Un modèle vous laisse choisir qui alerter : le workflow s'ouvre dans le Constructeur, où chaque bloc d'alerte affiche **Click to set up**.
+
+| Paramètre | Ce qu'il fait |
+| --------- | ------------- |
+| **Users**, **Teams**, **On-Call Schedules** ou **On-Call Policies** | Qui alerter : chaque bloc a celui qui va avec son nom. Choisissez par nom, ou appuyez sur **{ }** au bout de la ligne pour ajouter une valeur d'un bloc précédent. Une valeur peut contenir un ID ou plusieurs et, pour **Users**, une adresse e-mail. |
+| **Page About** | Ce sur quoi porte l'alerte : **A new alert**, **An incident** ou **An alert**. Accuser réception de l'alerte en accuse réception aussi. |
+| **Title** et **Message** | Pour une nouvelle alerte. OneUptime crée une alerte à partir d'eux, et elle reste parmi vos alertes comme n'importe quelle autre. |
+| **Incident ID** ou **Alert ID** | Pour un incident ou une alerte qui existe déjà, en général celui par lequel le workflow a commencé : `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | Pour une nouvelle alerte, sous **Plus de champs**. Elle décide lesquelles des règles d'astreinte de chaque personne l'alertent. Laissée vide, c'est la plus grave du projet. |
+
+Un bloc ajouté à un workflow qui commence par un incident ou une alerte est déjà réglé pour alerter à propos de cet enregistrement : il ne demande plus que qui alerter.
+
+**Success** s'exécute dès qu'au moins une personne est alertée, ou qu'une politique a démarré. **Error** s'exécute quand personne ne l'a été, et la valeur **Error** du bloc dit pourquoi, par exemple que personne n'est d'astreinte dans le planning. **Summary** dit en une phrase qui a été alerté et qui a été laissé de côté, prête à être publiée dans un canal, et **Paged Users** liste les personnes alertées.
+
+Une personne absente n'est pas alertée : c'est celle que son remplacement d'utilisateur désigne pour la remplacer qui l'est. Une alerte nomme au plus 100 personnes, équipes et plannings. Voir [Comment chaque personne est jointe](/docs/on-call/escalation-rules#comment-chaque-personne-est-jointe).
+
+Une alerte sans politique d'astreinte derrière elle figure avec les exécutions des politiques sous le nom **Appel direct** : dans les journaux d'astreinte de l'incident ou de l'alerte, dans son fil et son canal Slack ou Microsoft Teams, et dans les journaux de chaque personne alertée. Elle reste ouverte 30 minutes, puis aussi longtemps que des alertes partent encore. Si personne n'a accusé réception d'ici là, elle se termine sans alerter personne d'autre.
+
+> [!WARNING]
+> **Exécuter le flux de travail** alerte des personnes pour de vrai, que le workflow soit activé ou non, et **Run just this step** aussi. Désignez-vous vous-même pendant vos tests.
 
 ## Custom Code
 
@@ -265,27 +309,27 @@ Ses paramètres se lisent comme une phrase : **Si** *valeur à vérifier* *compa
 
 | Paramètre          | Ce qu'il fait                                                                                                                              |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Value to check** | En général une valeur d'un bloc précédent. Appuyez sur **{ }** dans la zone pour en choisir une, ou tapez `{{`.                            |
-| **Comparison**     | Comment comparer, en toutes lettres. Les comparaisons sont listées ci-dessous.                                                             |
-| **Compare with**   | Ce à quoi comparer, saisi ou choisi de la même façon. **est vide**, **n'est pas vide**, **is true** et **is false** ne l'utilisent pas.    |
-| **Compare as**     | Replié sous la comparaison : **Text**, **Nombre** ou **True / False**. Choisissez **Text** pour ordonner des dates écrites `2026-10-01`, ou **Nombre** pour que `200` et `200.0` soient égaux. |
+| **Valeur à vérifier** | En général une valeur d'un bloc précédent. Appuyez sur **{ }** dans la zone pour en choisir une, ou tapez `{{`.                            |
+| **Comparaison**     | Comment comparer, en toutes lettres. Les comparaisons sont listées ci-dessous.                                                             |
+| **Comparer avec**   | Ce à quoi comparer, saisi ou choisi de la même façon. **est vide**, **n'est pas vide**, **est vrai** et **est faux** ne l'utilisent pas.    |
+| **Comparer comme**     | Replié sous la comparaison : **Text**, **Nombre** ou **Vrai / Faux**. Choisissez **Text** pour ordonner des dates écrites `2026-10-01`, ou **Nombre** pour que `200` et `200.0` soient égaux. |
 
 Les comparaisons :
 
-- **is equal to** et **is not equal to** ;
+- **est égal à** et **n'est pas égal à** ;
 - pour le texte : **contient**, **ne contient pas**, **commence par** et **se termine par** ;
-- pour les nombres : **est supérieur à**, **is greater than or equal to**, **est inférieur à** et **is less than or equal to** ;
+- pour les nombres : **est supérieur à**, **est supérieur ou égal à**, **est inférieur à** et **est inférieur ou égal à** ;
 - **est vide** et **n'est pas vide**, qui vérifient si la valeur est présente ;
-- **is true** et **is false**.
+- **est vrai** et **est faux**.
 
-Les comparaisons de nombres comparent des nombres et les comparaisons de texte comparent du texte : vous avez donc rarement besoin de **Compare as**. Comment les valeurs sont comparées :
+Les comparaisons de nombres comparent des nombres et les comparaisons de texte comparent du texte : vous avez donc rarement besoin de **Comparer comme**. Comment les valeurs sont comparées :
 
 - En texte, les majuscules comptent : `Error` n'est pas `error`.
 - En nombres, un texte qui n'est pas un nombre compte comme `0`. Les paramètres signalent une valeur saisie de ce genre.
 - En vrai ou faux, seul `true` compte comme vrai.
 - **est vide** est satisfait par l'absence de toute valeur, un texte vide, une liste ou un objet vide, ou une valeur que le bloc précédent n'avait pas, comme un champ que le webhook n'a pas envoyé. `0` et `false` sont des valeurs : ils ne sont donc pas vides.
 
-**Yes** s'exécute quand la condition est remplie et **No** quand elle ne l'est pas. Les blocs configurés avant que les paramètres portent ces noms s'exécutent exactement comme avant. Un ancien choix n'est plus proposé : comparer une valeur en tant que **Null** ou **Undefined**, ce qui ignorait ce que contenait la valeur. Un bloc qui l'utilise encore le signale quand vous l'ouvrez ; choisissez **est vide** pour vérifier qu'une valeur manque.
+**Yes** s'exécute quand la condition est remplie et **No** quand elle ne l'est pas. Les blocs configurés avant que les paramètres portent ces noms s'exécutent exactement comme avant. Un ancien choix n'est plus proposé : comparer une valeur en tant que **Nul** ou **Non défini**, ce qui ignorait ce que contenait la valeur. Un bloc qui l'utilise encore le signale quand vous l'ouvrez ; choisissez **est vide** pour vérifier qu'une valeur manque.
 
 ## Switch / Case
 
@@ -295,12 +339,12 @@ Il compare une valeur à chacun de ses cas tour à tour, depuis le haut, et cont
 
 | Paramètre          | Ce qu'il fait |
 | ------------------ | ------------- |
-| **Value to check** | La valeur à laquelle chaque cas est comparé, en général celle d'un bloc précédent. Appuyez sur **{ }** dans la zone pour en choisir une, ou tapez `{{`. |
+| **Valeur à vérifier** | La valeur à laquelle chaque cas est comparé, en général celle d'un bloc précédent. Appuyez sur **{ }** dans la zone pour en choisir une, ou tapez `{{`. |
 | **Cases**          | Une comparaison et une valeur pour chaque chemin, vérifiées depuis le haut. Appuyez sur **Ajouter un cas** pour en ajouter un autre, et faites glisser un cas par sa poignée pour le déplacer. Un bloc contient au maximum 25 cas. |
 
-Chaque cas est une sortie sur le canevas, nommée d'après sa valeur : un cas qui demande **is equal to** `production` est la sortie *production*, et un cas qui demande **est supérieur à** `500` est *is greater than 500*. **Default** est toujours la dernière sortie. Reliez chaque sortie à ce qui doit s'exécuter ensuite.
+Chaque cas est une sortie sur le canevas, nommée d'après sa valeur : un cas qui demande **est égal à** `production` est la sortie *production*, et un cas qui demande **est supérieur à** `500` est *is greater than 500*. **Default** est toujours la dernière sortie. Reliez chaque sortie à ce qui doit s'exécuter ensuite.
 
-Un cas correspond exactement quand un [If / Else](#conditions) avec la même comparaison et la même valeur prendrait **Yes** : les comparaisons sont les mêmes, et les valeurs sont comparées de la même façon. **Compare as** est replié sous les cas, avec un choix pour chaque cas.
+Un cas correspond exactement quand un [If / Else](#conditions) avec la même comparaison et la même valeur prendrait **Yes** : les comparaisons sont les mêmes, et les valeurs sont comparées de la même façon. **Comparer comme** est replié sous les cas, avec un choix pour chaque cas.
 
 Quand vous retirez un cas qui a une connexion, les paramètres indiquent vers quels blocs il menait, et **Rétablir** remet le cas en place. L'enregistrement supprime la connexion avec le cas. Les vérifications du Constructeur signalent un cas auquel rien n'est relié, et un cas qui n'est jamais pris parce qu'un cas au-dessus demande la même chose.
 
@@ -384,7 +428,7 @@ Une requête est toujours limitée au projet dans lequel le workflow s'exécute.
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Une clé qui n'est pas une colonne est ignorée plutôt que rejetée — le journal de l'exécution nomme celles qu'il a écartées : regardez-y quand un champ n'arrive pas. **Select Fields**, sur les composants Find et les déclencheurs, utilise les mêmes clés de colonnes avec des valeurs `true` : `{"_id": true, "name": true}`.
+Une clé qui n'est pas une colonne est ignorée plutôt que rejetée — le journal de l'exécution nomme celles qu'il a écartées : regardez-y quand un champ n'arrive pas. **Fields to pass on**, sur les composants Find et les déclencheurs, se choisit dans une liste ; son **Modifier en JSON** montre les mêmes clés de colonnes avec des valeurs `true` : `{"_id": true, "name": true}`.
 
 Les **champs personnalisés** forment une seule colonne, `customFields`, qui contient la valeur de chaque champ personnalisé sous le nom du champ. Les composants Update ne modifient que les champs personnalisés que vous nommez, et tous les autres gardent leur valeur :
 

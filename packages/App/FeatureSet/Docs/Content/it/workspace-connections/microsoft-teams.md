@@ -89,6 +89,8 @@ Creare una regola passa per quattro passaggi:
 
 Un canale creato dalla regola prende il nome da **New Microsoft Teams Channel Name** seguito dal numero del record, come `oneuptime-incident-42`, e solo un canale creato riceve le persone che la regola invita. Un incidente, un avviso o un episodio privato riceve un canale privato. Ogni aggiornamento successivo del record — un cambio di stato, una nota, un nuovo proprietario — viene pubblicato nei suoi canali e nelle sue chat.
 
+Un incidente, un avviso, un episodio o un evento di manutenzione pianificata con un canale tutto suo ha **Apri in Microsoft Teams** nell'intestazione della sua pagina in OneUptime, accanto ai pulsanti di stato. Apre quel canale in una nuova scheda, nell'app di Microsoft Teams o nel browser. Un record con due canali suoi li elenca entrambi sotto il pulsante. Un record con canali sia in Slack sia in Microsoft Teams ha invece un solo pulsante **Apri canale**, che li elenca tutti. I canali e le chat esistenti in cui pubblicano le tue regole non vengono proposti.
+
 I canali e le chat restano leggibili: ogni evento viene pubblicato una volta sola, e il primo stato di un record è nella scheda che annuncia il record, non in una scheda a sé. Un'esecuzione di una policy di reperibilità è una sola scheda, modificata man mano che l'esecuzione scala: chi è stato chiamato, quante volte e come, chi no e perché, e chi ha confermato. Una nuova scheda viene pubblicata solo quando qualcuno deve agire: una regola di escalation non ha raggiunto nessuno, o l'esecuzione è finita senza che nessuno confermasse. Che i proprietari del record o gli iscritti alla pagina di stato siano stati informati resta nel suo feed in OneUptime.
 
 **Impostazioni del progetto** > **Area di lavoro** > **Microsoft Teams** elenca i canali che OneUptime vede nei tuoi team, e le chat a cui è stato aggiunto, con **Invia prova** accanto a ciascuno. Una chat compare non appena l'app di OneUptime vi viene aggiunta in Microsoft Teams; **Refresh Chats** recupera le nuove chat e i loro nomi attuali.
@@ -143,17 +145,18 @@ Scrivi al bot in una chat personale, oppure menziona OneUptime con @ in un canal
 | Messaggio | Cosa fa il bot |
 | --- | --- |
 | `help` | Elenca cosa sa fare. |
-| `ask <question>`, o qualsiasi domanda in linguaggio naturale | OneUptime AI risponde su log, trace, metriche, incidenti e monitor, per esempio "quali monitor sono giù in questo momento?". Le risposte si limitano a leggere. |
-| `create incident [title]` | Apre il modulo dell'incidente, con il titolo compilato. |
-| `create maintenance [title]` | Apre il modulo della manutenzione programmata, con il titolo compilato. |
+| `incident [title]` | Apre il modulo dell'incidente, con il titolo compilato. |
+| `maintenance [title]` | Apre il modulo della manutenzione programmata, con il titolo compilato. |
+| `oncall` | Elenca chi è reperibile in questo momento in ogni pianificazione di reperibilità che puoi vedere, fino a quando, e chi è il prossimo. |
+| `ask [question]`, o qualsiasi domanda in linguaggio naturale | OneUptime AI risponde su log, trace, metriche, incidenti e monitor, per esempio "quali monitor sono giù in questo momento?". Le risposte si limitano a leggere. |
 | `show active incidents`, `show active alerts` | Elenca ciò che è aperto adesso. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Elenca gli eventi di manutenzione in arrivo, o in corso. |
 
-Fare domande a OneUptime AI richiede l'IA attivata per il progetto. Vedi [Chiedi all'IA](/docs/ai/ask-ai).
+A parte le liste `show`, sono le parole che seguono `/oneuptime` in Slack; anche `create incident` e `create maintenance` funzionano ancora. Fare domande a OneUptime AI richiede il tuo account Microsoft Teams collegato e l'IA attivata per il progetto. Se il tuo non è collegato, il bot ti chiede una volta per thread o chat di collegarlo, con un pulsante **Connect Microsoft Teams account**. Vedi [Chiedi all'IA](/docs/ai/ask-ai).
 
 ## Creare incidenti e manutenzioni da Microsoft Teams
 
-Scrivere `create incident` o `create maintenance` al bot di OneUptime apre un modulo per la persona che l'ha scritto, in una chat personale, in un canale o in una chat di gruppo allo stesso modo. Viene compilato a nome di quella persona: come l'account OneUptime a cui è collegato il suo account Microsoft Teams (vedi [Collegare Microsoft Teams](#collegare-microsoft-teams)), con i permessi di quell'account nel progetto. Chi non ha l'account collegato, o il cui account OneUptime non è più membro del progetto, riceve indicazioni su cosa fare in una risposta che lo menziona, invece del modulo.
+Scrivere `incident` o `maintenance` al bot di OneUptime apre un modulo per la persona che l'ha scritto, in una chat personale, in un canale o in una chat di gruppo allo stesso modo. Viene compilato a nome di quella persona: come l'account OneUptime a cui è collegato il suo account Microsoft Teams (vedi [Collegare Microsoft Teams](#collegare-microsoft-teams)), con i permessi di quell'account nel progetto. Chi non ha l'account collegato, o il cui account OneUptime non è più membro del progetto, riceve indicazioni su cosa fare in una risposta che lo menziona, invece del modulo.
 
 - **Chi può usarli.** Le persone che possono dichiarare un incidente o creare un evento di manutenzione programmata in OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** e **Incident Member** per un incidente (**Create Incident** in un ruolo personalizzato), e **Scheduled Maintenance Admin** e **Scheduled Maintenance Member** per un evento (**Create Scheduled Maintenance**). A chiunque altro viene detto, e non riceve alcun modulo.
 - **Cosa offre un modulo.** Ogni elenco — gravità, monitor, stati dei monitor, policy di reperibilità ed etichette — contiene ciò che può leggere la persona che l'ha chiesto, come lo stesso elenco in OneUptime, e le note "not shown" della scheda contano solo quelli: con un ruolo limitato ad alcune etichette, i monitor e le policy di reperibilità che portano quelle etichette. Un elenco che non può leggere affatto viene omesso. Le policy di reperibilità archiviate non vengono mai offerte.

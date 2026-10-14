@@ -43,7 +43,7 @@ Het apparaat en de monitor doen verschillend werk:
 
 - **Een sonde die het apparaat kan bereiken.** De sonde pingt en walkt het apparaat vanuit haar eigen netwerk, dus een apparaat op een privéadres heeft een [eigen sonde](/docs/probe/custom-probe) binnen dat netwerk nodig: een sonde op het openbare internet kan het niet bereiken.
 - **SNMP, voor meer dan ping.** Optioneel. Een v1- of v2c-community string, of een SNMPv3-gebruiker, ingesteld op het apparaat, met UDP 161 open vanaf de sonde. Zonder dat wordt het apparaat alleen gepingd.
-- **Traps, syslog en flows.** Optioneel. De sonde ontvangt SNMP-traps op UDP 162, syslog op UDP 5140 zodra je dat inschakelt, en flowrecords op UDP 2055, 4739 en 6343, dus open die vanaf je apparaten naar de sonde.
+- **Traps, syslog en flows.** Optioneel. De sonde ontvangt SNMP-traps op UDP 162, syslog op UDP en TCP 5140, en flowrecords op UDP 2055, 4739 en 6343, dus open die vanaf je apparaten naar de sonde.
 
 ## Het netwerkoverzicht
 
@@ -62,7 +62,7 @@ Daaronder zegt één regel of er iets een incident opent als een apparaat uitval
 
 Zolang er nog niets is toegevoegd, toont het overzicht in plaats daarvan de twee manieren om te beginnen: **Apparaten ontdekken** scant een adresbereik zodat je kunt kiezen wat je toevoegt, het beste voor een heel netwerk of een nieuwe locatie, en **Eén apparaat toevoegen** voegt er één toe op IP-adres of hostnaam.
 
-Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Devices**, **Locaties**, **Map**, **Traffic** en **Discovery**. De rest is ingeklapt in secties, en een sectie klapt vanzelf open op elk van haar pagina's:
+Het menu Netwerk houdt in beeld wat je elke dag opent: **Overzicht**, **Devices**, **Locaties**, **Map**, **Traffic**, **Gebeurtenissen** en **Discovery**. De rest is ingeklapt in secties, en een sectie klapt vanzelf open op elk van haar pagina's:
 
 | Sectie | Pagina's |
 | --- | --- |
@@ -490,7 +490,7 @@ Een onderzoek door OneUptime AI van een incident of waarschuwing van een netwerk
 
 ### Apparaatidentiteit
 
-Na de eerste geslaagde walk leest OneUptime de SNMPv2-systeemgroep en, waar het apparaat dat ondersteunt, ENTITY-MIB, en vult het apparaatrecord in: systeemnaam, beschrijving, locatie, contact, uptime, leverancier, model, serienummer en firmwareversie. De enterprise-OID van de leverancier (`sysObjectID`) is de vingerafdruk van het apparaat: ze noemt de leverancier en kiest het bijbehorende leverancierssjabloon. Dezelfde gegevens verschijnen in de [inventaris](/docs/inventory/cmdb-sync#network-device-asset-attributes) naast al je andere assets.
+Na de eerste geslaagde walk leest OneUptime de SNMPv2-systeemgroep en, waar het apparaat dat ondersteunt, ENTITY-MIB, en vult het apparaatrecord in: systeemnaam, beschrijving, locatie, contact, uptime, leverancier, model, serienummer en firmwareversie. De enterprise-OID van de leverancier (`sysObjectID`) is de vingerafdruk van het apparaat: ze noemt de leverancier en kiest het bijbehorende leverancierssjabloon. Dezelfde gegevens verschijnen in de [inventaris](/docs/inventory/cmdb-sync#assetattributen-van-netwerkapparaten) naast al je andere assets.
 
 Een apparaat met alleen ping houdt de naam en het adres die jij, of een discovery-scan, het gaf: er is geen SNMP-agent om om iets beters te vragen.
 
@@ -1057,6 +1057,7 @@ Een antwoord met de beschrijving van het apparaat betekent dat de sonde het met 
 :::cards
 - [Netwerklocaties](/docs/monitor/network-sites): Groepeer apparaten in plaatsen en vat hun gezondheid samen in de boom.
 - [Netwerkverkeer](/docs/monitor/network-traffic): Zie wie met wie praat uit de flowrecords van je apparaten.
+- [Netwerkgebeurtenissen](/docs/monitor/network-events): Zie wat je apparaten in hun syslog melden, en laat je erover waarschuwen.
 - [Handleidingen per netwerkleverancier](/docs/monitor/network-vendor-guides): Sophos, Extreme en Cambium, van begin tot eind.
 - [Pakketcapture](/docs/probe/packet-capture): Leg pakketten vast op de sonde van een apparaat voor Wireshark.
 :::

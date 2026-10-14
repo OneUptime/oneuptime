@@ -43,7 +43,7 @@ flowchart TB
 
 - **能到达设备的探测器。** 探测器从它自己的网络 Ping 和遍历设备，所以私有地址上的设备需要该网络内的[自定义探测器](/docs/probe/custom-probe)：公共互联网上的探测器无法到达它。
 - **SNMP，用于 Ping 之外的数据。** 可选。需要在设备上配置 v1 或 v2c 团体字符串或 SNMPv3 用户，并允许探测器访问 UDP 161。没有它，设备只会被 Ping。
-- **Trap、syslog 和流。** 可选。探测器在 UDP 162 上接收 SNMP Trap，开启后在 UDP 5140 上接收 syslog，在 UDP 2055、4739 和 6343 上接收流记录，因此请放行从设备到探测器的这些端口。
+- **Trap、syslog 和流。** 可选。探测器在 UDP 162 上接收 SNMP Trap，在 UDP 和 TCP 5140 上接收 syslog，在 UDP 2055、4739 和 6343 上接收流记录，因此请放行从设备到探测器的这些端口。
 
 ## 网络概览
 
@@ -62,7 +62,7 @@ flowchart TB
 
 在添加任何内容之前，概览会改为显示两种入门方式：**发现设备**扫描一个地址范围，让你挑选要添加的内容，最适合整个网络或新站点；**添加单个设备**按 IP 地址或主机名添加一台设备。
 
-网络菜单让你每天打开的页面始终可见：**概览**、**Devices**、**站点**、**Map**、**Traffic** 和 **Discovery**。其余页面折叠在分组中，打开分组中的任一页面时该分组会自动展开：
+网络菜单让你每天打开的页面始终可见：**概览**、**Devices**、**站点**、**Map**、**Traffic**、**事件**和 **Discovery**。其余页面折叠在分组中，打开分组中的任一页面时该分组会自动展开：
 
 | 分组 | 页面 |
 | --- | --- |
@@ -490,7 +490,7 @@ OneUptime AI 调查来自 Network Device 监视器的事件或警报时，会从
 
 ### 设备身份
 
-首次遍历成功后，OneUptime 会读取 SNMPv2 系统组，并在设备支持时读取 ENTITY-MIB，然后填写设备记录：系统名称、描述、位置、联系人、运行时间、厂商、型号、序列号和固件版本。厂商的企业 OID（`sysObjectID`）是设备的指纹：它标识厂商并选出匹配的厂商模板。同样的信息会与其他所有资产一起出现在[资产清单](/docs/inventory/cmdb-sync#network-device-asset-attributes)中。
+首次遍历成功后，OneUptime 会读取 SNMPv2 系统组，并在设备支持时读取 ENTITY-MIB，然后填写设备记录：系统名称、描述、位置、联系人、运行时间、厂商、型号、序列号和固件版本。厂商的企业 OID（`sysObjectID`）是设备的指纹：它标识厂商并选出匹配的厂商模板。同样的信息会与其他所有资产一起出现在[资产清单](/docs/inventory/cmdb-sync#网络设备资产属性)中。
 
 仅 Ping 设备保留你或发现扫描为它指定的名称和地址：没有 SNMP 代理可以询问更好的信息。
 
@@ -1057,6 +1057,7 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 :::cards
 - [网络站点](/docs/monitor/network-sites): 把设备分组到各个地点，并沿树向上汇总其健康状况。
 - [网络流量](/docs/monitor/network-traffic): 从设备的流记录中查看谁在和谁通信。
+- [网络事件](/docs/monitor/network-events): 查看设备在 syslog 中报告的内容，并对其设置警报。
 - [网络设备厂商指南](/docs/monitor/network-vendor-guides): Sophos、Extreme 和 Cambium 的端到端指南。
 - [抓包](/docs/probe/packet-capture): 在设备的探测器上抓包，供 Wireshark 使用。
 :::

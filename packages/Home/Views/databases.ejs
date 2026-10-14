@@ -4,12 +4,12 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-  <title>Database Monitoring | PostgreSQL, MySQL, Redis, MongoDB & More | OneUptime</title>
-  <meta name="description"
-    content="Every database your applications query, discovered from traces, Kubernetes and Docker: query latency and errors, the services calling it, engine metrics from a config-only OpenTelemetry agent, and ready-made alerts. Open source.">
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
+  <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>

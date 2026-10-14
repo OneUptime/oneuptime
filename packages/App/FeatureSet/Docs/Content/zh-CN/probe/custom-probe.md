@@ -335,13 +335,13 @@ Docker Engine 27 及更高版本会为该网络选择一个 IPv6 子网，并把
 | --- | --- | --- | --- |
 | 入站请求和心跳 | `PROBE_INGRESS_PORT` | 关闭 | [入站请求 Ingress](/docs/probe/incoming-request-ingress) |
 | SNMP Trap | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | 开启，UDP 162 | [网络设备监控](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | 关闭，UDP 5140 | [网络设备厂商指南](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | 开启，UDP 和 TCP 5140 | [网络事件](/docs/monitor/network-events) |
 | NetFlow、IPFIX 和 sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | 开启，UDP 2055、4739 和 6343 | [网络流量](/docs/monitor/network-traffic) |
 | 健康检查 | `PORT` | 开启，TCP 3874 | `/status/live` 和 `/status/ready` |
 
 在容器中，只有使用主机网络或发布端口时，其他机器才能访问该端口。
 
-Syslog 接收器每分钟最多转发 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` 条消息，默认 `600` 条，丢弃其余的消息，并记录丢弃了多少条。
+Syslog 接收器每分钟最多转发 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` 条消息，默认 `600` 条。超过后，它仍会转发它读取为网络事件的消息，最多再转发同样多的数量，丢弃其余的消息，并记录丢弃了多少条。
 
 `PROBE_NAME` 和 `PROBE_DESCRIPTION` 只由使用 `REGISTER_PROBE_KEY` 自行注册的探测器读取，例如自托管安装为所有项目运行的探测器。自定义探测器的名称和描述取自控制台。
 

@@ -41,7 +41,7 @@ export const IncomingEmailTriggerPanelCopy: {
   readonly hideTitle: string;
   readonly maskedForScreenReaders: string;
   readonly keepPrivate: string;
-  readonly resetIfLeaked: string;
+  readonly keepPrivateCanReset: string;
   readonly resetAddress: string;
   readonly resetConfirmTitle: string;
   readonly resetConfirmDescription: string;
@@ -64,13 +64,18 @@ export const IncomingEmailTriggerPanelCopy: {
   showTitle: "Show the full address",
   hideTitle: "Hide the secret key",
   maskedForScreenReaders: "secret key hidden",
-  keepPrivate:
-    "Anyone with this address can start the workflow, so keep it private.",
   /*
-   * Not the Webhook trigger's "If it leaks, reset it.": several languages
-   * give "it" the gender of "URL", which is not the gender of "address".
+   * Under the address, one whole key for each case - with and without the
+   * advice to reset it, which only someone who may reset it is given - so
+   * a language words the two sentences together, and gives "it" the
+   * address's gender rather than the Webhook URL's.
    */
-  resetIfLeaked: "If the address leaks, reset it.",
+  keepPrivate: translationKey(
+    "Anyone with this address can start the workflow, so keep it private.",
+  ),
+  keepPrivateCanReset: translationKey(
+    "Anyone with this address can start the workflow, so keep it private. If it leaks, reset it.",
+  ),
   resetAddress: "Reset address",
   resetConfirmTitle: "Reset the email address?",
   resetConfirmDescription:
@@ -348,10 +353,11 @@ const IncomingEmailTriggerPanel: FunctionComponent<ComponentProps> = (
         className="mt-px h-3.5 w-3.5 shrink-0 text-gray-400"
       />
       <p>
-        {translate(IncomingEmailTriggerPanelCopy.keepPrivate)}
-        {canReset
-          ? ` ${translate(IncomingEmailTriggerPanelCopy.resetIfLeaked)}`
-          : ""}
+        {translate(
+          canReset
+            ? IncomingEmailTriggerPanelCopy.keepPrivateCanReset
+            : IncomingEmailTriggerPanelCopy.keepPrivate,
+        )}
       </p>
     </div>
   );

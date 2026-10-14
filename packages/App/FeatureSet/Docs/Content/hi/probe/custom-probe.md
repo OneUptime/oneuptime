@@ -335,13 +335,13 @@ Synthetic मॉनिटर जिन सीमाओं में चलता
 | --- | --- | --- | --- |
 | आने वाले अनुरोध और हार्टबीट | `PROBE_INGRESS_PORT` | बंद | [आने वाले अनुरोध Ingress](/docs/probe/incoming-request-ingress) |
 | SNMP ट्रैप | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | चालू, UDP 162 | [नेटवर्क डिवाइस मॉनिटर](/docs/monitor/network-device-monitor) |
-| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | बंद, UDP 5140 | [नेटवर्क वेंडर गाइड](/docs/monitor/network-vendor-guides) |
+| Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | चालू, UDP और TCP 5140 | [नेटवर्क इवेंट](/docs/monitor/network-events) |
 | NetFlow, IPFIX और sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | चालू, UDP 2055, 4739 और 6343 | [नेटवर्क ट्रैफ़िक](/docs/monitor/network-traffic) |
 | हेल्थ चेक | `PORT` | चालू, TCP 3874 | `/status/live` और `/status/ready` |
 
 कंटेनर के अंदर कोई पोर्ट दूसरी मशीनों से केवल होस्ट नेटवर्किंग के साथ या उसे पब्लिश करने पर ही पहुँच में होता है।
 
-Syslog रिसीवर एक मिनट में अधिकतम `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` संदेश आगे भेजता है, डिफ़ॉल्ट रूप से `600`, बाकी को छोड़ देता है और लॉग में लिखता है कि उसने कितने छोड़े।
+Syslog रिसीवर एक मिनट में अधिकतम `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` संदेश आगे भेजता है, डिफ़ॉल्ट रूप से `600`। उसके बाद भी वह उन संदेशों को आगे भेजता रहता है जिन्हें वह नेटवर्क इवेंट के रूप में पढ़ता है, उतने ही और, बाकी को छोड़ देता है और लॉग में लिखता है कि उसने कितने छोड़े।
 
 `PROBE_NAME` और `PROBE_DESCRIPTION` केवल वे प्रोब पढ़ते हैं जो `REGISTER_PROBE_KEY` से खुद को रजिस्टर करते हैं, जैसे वे प्रोब जिन्हें सेल्फ़-होस्टेड इंस्टॉलेशन सभी प्रोजेक्ट के लिए चलाता है। कस्टम प्रोब अपना नाम और विवरण डैशबोर्ड से लेता है।
 

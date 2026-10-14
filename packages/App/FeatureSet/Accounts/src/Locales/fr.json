@@ -33,24 +33,21 @@
   "login": {
     "passkey": {
       "signIn": "Se connecter avec une clé d’accès",
-      "description": "Utilisez votre empreinte digitale, votre visage ou le code PIN de votre appareil.",
-      "passwordAlternative": "ou se connecter avec un mot de passe",
       "inProgress": "Terminez ou annulez la connexion par clé d’accès avant d’utiliser votre mot de passe.",
-      "title": "Utiliser une clé d’accès enregistrée",
       "helpTitle": "Vous découvrez les clés d’accès ?",
-      "help": "Connectez-vous avec votre mot de passe ou le SSO, puis ouvrez Profil utilisateur → Clés d’accès et authentification à deux facteurs pour créer votre première clé d’accès.",
+      "help": "Une clé d’accès vous permet de vous connecter avec votre empreinte digitale, votre visage ou le code PIN de votre appareil, sans mot de passe. Pour en ajouter une, connectez-vous avec votre mot de passe ou le SSO, puis ouvrez Profil utilisateur → Sécurité → Passkeys.",
       "preparing": "Préparation de votre clé d’accès…",
       "waiting": "Consultez votre appareil",
       "waitingDescription": "Suivez les instructions de votre navigateur ou gestionnaire de mots de passe.",
       "verifying": "Connexion en cours…",
-      "cancelled": "La connexion par clé d’accès a été annulée. Réessayez ou utilisez votre mot de passe.",
-      "notCompleted": "La connexion par clé d’accès a été annulée ou a expiré. Réessayez ou connectez-vous avec votre mot de passe.",
+      "cancelled": "La connexion par clé d’accès a été annulée.",
+      "notCompleted": "La connexion par clé d’accès a été annulée ou a expiré.",
       "unsupported": "Les clés d’accès ne sont pas disponibles dans ce navigateur. Vous pouvez toujours vous connecter avec votre mot de passe ou le SSO.",
       "insecure": "Les clés d’accès nécessitent une connexion sécurisée (HTTPS). Vous pouvez toujours vous connecter avec votre mot de passe ou le SSO.",
       "tryAgain": "Réessayer avec une clé d’accès"
     },
     "title": "Connectez-vous à votre compte",
-    "subtitle": "Utilisez une clé d’accès, un mot de passe ou le SSO de votre organisation.",
+    "subtitle": "Utilisez votre mot de passe, le SSO de votre organisation ou une clé d’accès.",
     "submitButton": "Connexion",
     "forgotPassword": "Mot de passe oublié ?",
     "useSso": "Utiliser plutôt l'authentification unique (SSO)",
@@ -205,11 +202,12 @@
     "returnDescription": "Après confirmation, vous reviendrez dans l’application mobile.",
     "invalid": "Lancez la connexion depuis l’application mobile OneUptime. Cette demande est absente ou invalide.",
     "insecure": "Les clés d’accès nécessitent HTTPS. Revenez dans l’application et vérifiez l’adresse du serveur.",
+    "unsupported": "Les clés d’accès ne sont pas disponibles dans ce navigateur. Revenez dans l’application et connectez-vous avec votre mot de passe ou le SSO.",
     "failed": "La connexion n’a pas pu aboutir. Revenez dans l’application et réessayez.",
     "complete": "Votre clé d’accès a été vérifiée. Revenez dans l’application pour terminer la connexion.",
     "returnToApp": "Revenir dans l’application",
     "cancel": "Annuler et revenir dans l’application",
-    "setup": "Créez une clé d’accès dans Profil utilisateur → Clés d’accès et authentification à deux facteurs du tableau de bord web."
+    "setup": "Créez une clé d’accès dans le tableau de bord web, sous Profil utilisateur → Sécurité → Passkeys."
   },
   "mcpAuthorize": {
     "title": "Connecter un client MCP",

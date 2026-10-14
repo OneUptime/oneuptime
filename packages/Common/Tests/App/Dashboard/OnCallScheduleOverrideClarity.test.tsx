@@ -583,22 +583,26 @@ describe("The overrides card states the substitution in full", () => {
   });
 
   test("shows the override's own window, not the shift's", async () => {
+    const override: OverrideFixture = activeOverride({
+      onCallDutyPolicyId: null,
+    });
     setupApi({
-      overrides: [activeOverride({ onCallDutyPolicyId: null })],
+      overrides: [override],
       attachedPolicyIds: [POLICY_ID],
     });
     renderPreview();
 
     const card: HTMLElement = await findOverridesCard();
-    const now: Date = OneUptimeDate.getCurrentDate();
 
     /*
      * The fixture window is now-1h to now+1h, while the layer's shift is a full
      * day. Asserting on the year alone would pass for either; the hour is what
-     * distinguishes them.
+     * distinguishes them. The start is the fixture's own: reading the clock
+     * again once the card is up can land in the next minute, and expect a
+     * minute later than the one the card shows.
      */
     const startHour: string = OneUptimeDate.getDateAsFormattedStringInTimezone({
-      date: OneUptimeDate.addRemoveHours(now, -1),
+      date: override.startsAt,
       timezone: "UTC",
       showWeekday: true,
     });

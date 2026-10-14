@@ -119,6 +119,21 @@ var metaDescription = typeof pageDescription !== 'undefined' && pageDescription 
 %>
 <title><%= typeof link !== 'undefined' && link && link.title ? link.title + ' - ' + t('ui.metaTitleSuffix') : t('ui.metaTitleDefault') %></title>
 <meta name="description" content="<%= metaDescription %>">
+<%
+/*
+ * The page's own address, and the languages it is written in
+ * (Utils/Seo.ts). A page served in English under another language's prefix
+ * names the English page, and lists no alternates.
+ */
+%>
+<% if (typeof canonicalUrl !== 'undefined' && canonicalUrl) { %>
+<link rel="canonical" href="<%= canonicalUrl %>">
+<% } %>
+<% if (typeof alternateLinks !== 'undefined' && alternateLinks) { %>
+<% alternateLinks.forEach(function (alternate) { %>
+<link rel="alternate" hreflang="<%= alternate.hreflang %>" href="<%= alternate.href %>">
+<% }); %>
+<% } %>
 <meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="<%= t('ui.metaTitleSuffix') %>">
@@ -351,15 +366,11 @@ var metaDescription = typeof pageDescription !== 'undefined' && pageDescription 
     }
 </script>
 
-<% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %>
-    <!-- Google Tag Manager -->
-    <script>(function (w, d, s, l, i) {
-            w[l] = w[l] || []; w[l].push({
-                'gtm.start':
-                    new Date().getTime(), event: 'gtm.js'
-            }); var f = d.getElementsByTagName(s)[0],
-                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-        })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
-    <!-- End Google Tag Manager -->
-    <% } %>
+<%#
+    The Google Tag Manager container, through the consent partial the
+    marketing site uses: it loads once consent allows, and the answer given on
+    the marketing site's banner is the answer here.
+-%>
+<%- include('../../../../../Common/Server/Views/Partials/AnalyticsConsent', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>

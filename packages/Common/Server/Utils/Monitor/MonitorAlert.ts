@@ -211,6 +211,8 @@ export default class MonitorAlert {
     monitor: Monitor;
     fingerprints: Array<string>;
     rootCause: string;
+    // What the evaluation summary says of each alert resolved here.
+    resolvedMessage?: string | undefined;
     dataToProcess: DataToProcess;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
@@ -281,6 +283,7 @@ export default class MonitorAlert {
         type: "alert-resolved",
         title: `Alert resolved: ${openAlert.id?.toString()}`,
         message:
+          input.resolvedMessage ||
           "Alert auto-resolved because the incoming payload reported this key as resolved.",
         relatedAlertId: openAlert.id?.toString(),
         relatedAlertNumber: openAlert.alertNumber,

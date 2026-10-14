@@ -398,13 +398,14 @@ describe("the device guide opens on the Overview's verdict", () => {
 describe("the guides' menu paths lead somewhere", () => {
   const menu: Map<string, Array<string>> = networkMenu();
 
-  test("the menu parsed is the menu: six open rows first", () => {
+  test("the menu parsed is the menu: seven open rows first", () => {
     expect(menu.get("Network")).toEqual([
       "Overview",
       "Devices",
       "Sites",
       "Map",
       "Traffic",
+      "Events",
       "Discovery",
     ]);
     expect(menu.get("Rules")).toContain("Auto Import Rules");

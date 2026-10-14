@@ -125,11 +125,11 @@ Lagre først endepunktets token et sted der arbeidsflyten kan bruke det uten å 
 
 ### Legg til utløseren
 
-Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **On Create Alert** i panelet **Add Trigger**. Klikk på utløseren, kryss av for tittelen og beskrivelsen i **Select Fields**, og klikk på **Lagre**. ID-en på blokken, `alert-on-create-1`, er det senere blokker bruker for å vise til den.
+Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **On Create Alert** i panelet **Add Trigger**. Klikk på utløseren: **Fields to pass on** starter med tittelen, så klikk på **Legg til felt**, kryss av for beskrivelsen, og klikk på **Lagre**. ID-en på blokken, `alert-on-create-1`, er det senere blokker bruker for å vise til den.
 
 ### Sjekk tittelen
 
-Klikk på **Legg til komponent**, velg **If / Else**, og koble utløserens punkt **Success** til den. Sett **Value to check** til varselets tittel (klikk på **{ }**, og velg den), **Comparison** til **inneholder** og **Compare with** til begynnelsen titlene på snubletrådene dine har felles, for eksempel `LLM budget exceeded`.
+Klikk på **Legg til komponent**, velg **If / Else**, og koble utløserens punkt **Success** til den. Sett **Verdi som skal sjekkes** til varselets tittel (klikk på **{ }**, og velg den), **Sammenligning** til **inneholder** og **Sammenlign med** til begynnelsen titlene på snubletrådene dine har felles, for eksempel `LLM budget exceeded`.
 
 ### Kall endepunktet ditt
 
@@ -189,7 +189,7 @@ Sjekk at **Aktivert** er slått på øverst i **Bygger**: arbeidsflyter opprette
 :::
 
 :::details Arbeidsflyten kjører, men tar alltid grenen No
-Tittelen er tom eller samsvarer ikke. Et felt som utløserens **Select Fields** ikke krysser av for, kommer tomt frem, så kryss av for tittelen. Sammenlign deretter varselets tittel med **Compare with**: **inneholder** må finne akkurat den teksten i den.
+Tittelen er tom eller samsvarer ikke. Et felt som ikke står i utløserens **Fields to pass on**, kommer tomt frem, så legg til tittelen der. Sammenlign deretter varselets tittel med **Sammenlign med**: **inneholder** må finne akkurat den teksten i den.
 :::
 
 :::details Endepunktet ditt svarer 401

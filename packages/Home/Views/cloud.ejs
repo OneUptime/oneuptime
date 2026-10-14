@@ -4,12 +4,12 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-  <title>OneUptime | Cloud Monitoring - AWS, Google Cloud & Azure Observability</title>
-  <meta name="description"
-    content="Monitor AWS, Google Cloud, and Azure with OpenTelemetry. Auto-discovered cloud environments, real-time resource metrics, logs, traces, and alerting across every region and account. Open source.">
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
+  <%- include('./Partials/tailwind-stylesheet') -%>
 </head>
 
 <body>

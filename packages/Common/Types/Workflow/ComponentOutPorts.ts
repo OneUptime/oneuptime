@@ -16,9 +16,15 @@
  * Pure: no DOM, no server.
  */
 
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "../JSON";
 import ComponentMetadata, { Port } from "./Component";
 import ComponentID from "./ComponentID";
+import { DatabaseOperation, getDatabaseOperation } from "./DatabaseOperation";
+import {
+  getDisplayColumn,
+  getWorkflowModel,
+} from "./Documentation/ModelExamples";
 import { SWITCH_ARGUMENT_IDS } from "./Components/Switch";
 import {
   getStarterSwitchCases,
@@ -97,21 +103,57 @@ export const isOutPortFromSettings: IsOutPortFromSettingsFunction = (data: {
 
 type GetNewStepArgumentsFunction = (
   metadataId: string | undefined | null,
+  // The model a database step reads, for its Fields to pass on.
+  tableName?: string | undefined | null,
 ) => JSONObject | null;
+
+/*
+ * The steps that pass a record on, whose Fields to pass on a new step fills
+ * in: the On Create and On Update triggers and the two Find steps.
+ */
+const PASSES_RECORD_ON: Array<DatabaseOperation> = [
+  DatabaseOperation.OnCreate,
+  DatabaseOperation.OnUpdate,
+  DatabaseOperation.FindOne,
+  DatabaseOperation.FindMany,
+];
 
 /**
  * The settings a step starts with when it is added to the canvas, or null
- * for a step that starts empty, as nearly all do. A Switch / Case starts
- * with two cases, so its outputs are on the canvas, ready to connect, before
- * it is opened.
+ * for a step that starts empty, as nearly all do.
+ *
+ * - A Switch / Case starts with two cases, so its outputs are on the canvas,
+ *   ready to connect, before it is opened.
+ * - A step that passes a record on starts by passing on the field that
+ *   names it - an incident's title, a monitor's name. The record's ID is
+ *   always passed on. So the step works as it is added, the next steps'
+ *   value picker has those fields to offer, and the setting shows what it is
+ *   for before anyone reads its help.
  */
 export const getNewStepArguments: GetNewStepArgumentsFunction = (
   metadataId: string | undefined | null,
+  tableName?: string | undefined | null,
 ): JSONObject | null => {
   if (metadataId === ComponentID.Switch) {
     return {
       [SWITCH_ARGUMENT_IDS.cases]: toStoredSwitchCases(getStarterSwitchCases()),
     };
+  }
+
+  if (metadataId && tableName) {
+    const operation: DatabaseOperation | null = getDatabaseOperation({
+      componentId: metadataId,
+      tableName: tableName,
+    });
+    const model: BaseModel | null = operation
+      ? getWorkflowModel(tableName)
+      : null;
+
+    if (operation && model && PASSES_RECORD_ON.includes(operation)) {
+      return {
+        select: { [getDisplayColumn(model).id]: true },
+      };
+    }
   }
 
   return null;

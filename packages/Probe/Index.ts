@@ -184,7 +184,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
       SnmpTrapReceiver.start();
 
-      // Optional syslog receiver (PROBE_SYSLOG_RECEIVER_ENABLED).
+      /*
+       * Syslog receiver: UDP and TCP 5140. On unless
+       * PROBE_SYSLOG_RECEIVER_ENABLED=false.
+       */
       SyslogReceiver.start();
 
       /*

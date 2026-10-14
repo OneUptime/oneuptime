@@ -17,6 +17,7 @@ Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni 
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Pubblicare in uno strumento di chat                           | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) o [Mattermost](#mattermost) |
 | Inviare un'email tramite il tuo server di posta               | [Email](#email)                                                   |
+| Chiamare una persona, un team o chi è reperibile | [Paging](#paging) |
 | Inviare un SMS o chiamare un telefono                         | [SMSEagle](#smseagle)                                             |
 | Chiamare qualsiasi altra API o un tuo servizio                | [API](#api)                                                       |
 | Riassumere, classificare o scrivere testo                     | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -87,6 +88,23 @@ Collega **Success** ai blocchi che usano la risposta, ed **Error** a un'alternat
 
 > [!WARNING]
 > L'output del modello è testo non attendibile. Rivedilo prima che arrivi ai clienti, e non lasciare mai che un testo libero generato dall'IA decida da solo un'azione distruttiva. Vedi [Componenti AI](/docs/workflows/configuration#componenti-ai) per sapere cosa viene inviato al provider, cosa viene registrato e quanto costa.
+
+## SMSEagle
+
+Invia un SMS o fai una chiamata con sintesi vocale tramite un dispositivo SMSEagle, un gateway SMS hardware nella tua rete. **Send SMS via SMSEagle** invia un SMS, e **Make a Call via SMSEagle** chiama il numero e legge il testo ad alta voce.
+
+| Impostazione              | Cosa fa                                                                                                                                                          |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | L'indirizzo del dispositivo, come `https://192.168.0.100`. Il percorso dell'API v2 lo aggiunge il blocco.                                                        |
+| **SMSEagle Access Token** | Una chiave API v2 dalla GUI web di SMSEagle, in Settings, API, API v2. Serve il permesso "Send SMS" per gli SMS e "Make a TTS Advanced Call" per le chiamate.    |
+| **Numero di telefono**    | Il numero a cui inviare l'SMS o da chiamare, in formato internazionale, come `+15551234567`.                                                                     |
+| **Message Text**          | Il testo dell'SMS. Solo in **Send SMS via SMSEagle**.                                                                                                            |
+| **Voice ID**              | L'ID di una voce di sintesi vocale del dispositivo. Solo in **Make a Call via SMSEagle**.                                                                        |
+| **Text to Read Out**      | Il testo che il dispositivo legge durante la chiamata. Solo in **Make a Call via SMSEagle**.                                                                     |
+
+**Success** scatta quando il dispositivo ha messo in coda l'SMS o la chiamata, e restituisce il **Message ID** che gli ha assegnato. **Error** scatta quando il dispositivo non è raggiungibile o lo rifiuta, e riporta il motivo, come `voice_id: Resource with specified ID not found.` di SMSEagle. Un'impostazione mancante, o un **Voice ID** che non è un numero, ferma invece l'esecuzione.
+
+Tieni il token di accesso in una [variabile globale segreta](/docs/workflows/variables#variabili-globali). È comunque nascosto nei registri delle esecuzioni. La richiesta parte da OneUptime e i reindirizzamenti non vengono seguiti. Un dispositivo su un indirizzo di loopback (`localhost`, `127.0.0.1`), link-local o di metadati cloud viene rifiutato, e lo stesso vale per uno su un indirizzo di rete privata, a meno che un amministratore self-hosted non lo consenta con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access).
 
 ## Slack
 
@@ -200,22 +218,48 @@ Il blocco si collega direttamente al server indicato nelle sue impostazioni. Non
 
 Le connessioni agli indirizzi di loopback (`localhost`, `127.0.0.1`), link-local e di metadati cloud vengono rifiutate. Su OneUptime Cloud, anche un host SMTP su un indirizzo di rete privata, o un nome che si risolve in uno, viene rifiutato. Le installazioni self-hosted possono raggiungere un server di posta sulla propria rete, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia impostato su `true`. Un host rifiutato prende l'uscita **Error**, e non viene inviato nulla.
 
-## SMSEagle
+## Paging
 
-Invia un SMS o fai una chiamata con sintesi vocale tramite un dispositivo SMSEagle, un gateway SMS hardware nella tua rete. **Send SMS via SMSEagle** invia un SMS, e **Make a Call via SMSEagle** chiama il numero e legge il testo ad alta voce.
+Chiama delle persone da un workflow: ognuna riceve una telefonata, un SMS, una notifica push o un'email, come dicono le sue regole di reperibilità, finché qualcuno conferma. C'è un blocco per ogni modo di dire chi chiamare. Nel pannello **Aggiungi componente**, cerca `page`.
 
-| Impostazione              | Cosa fa                                                                                                                                                          |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SMSEagle URL**          | L'indirizzo del dispositivo, come `https://192.168.0.100`. Il percorso dell'API v2 lo aggiunge il blocco.                                                        |
-| **SMSEagle Access Token** | Una chiave API v2 dalla GUI web di SMSEagle, in Settings, API, API v2. Serve il permesso "Send SMS" per gli SMS e "Make a TTS Advanced Call" per le chiamate.    |
-| **Numero di telefono**    | Il numero a cui inviare l'SMS o da chiamare, in formato internazionale, come `+15551234567`.                                                                     |
-| **Message Text**          | Il testo dell'SMS. Solo in **Send SMS via SMSEagle**.                                                                                                            |
-| **Voice ID**              | L'ID di una voce di sintesi vocale del dispositivo. Solo in **Make a Call via SMSEagle**.                                                                        |
-| **Text to Read Out**      | Il testo che il dispositivo legge durante la chiamata. Solo in **Make a Call via SMSEagle**.                                                                     |
+| Blocco                      | Chi chiama |
+| --------------------------- | ---------- |
+| **Page Users**              | Le persone che indichi. |
+| **Page a Team**             | Ogni membro di un team. |
+| **Page Whoever Is On Call** | Chi è reperibile in una pianificazione di reperibilità quando il blocco viene eseguito. |
+| **Page an On-Call Policy**  | Una policy di reperibilità, che chiama seguendo le sue regole di escalation e si ripete come è impostata. |
 
-**Success** scatta quando il dispositivo ha messo in coda l'SMS o la chiamata, e restituisce il **Message ID** che gli ha assegnato. **Error** scatta quando il dispositivo non è raggiungibile o lo rifiuta, e riporta il motivo, come `voice_id: Resource with specified ID not found.` di SMSEagle. Un'impostazione mancante, o un **Voice ID** che non è un numero, ferma invece l'esecuzione.
+I primi tre chiamano insieme tutte le persone che indicano, e nessun altro dopo. Per un'escalation, usa **Page an On-Call Policy**.
 
-Tieni il token di accesso in una [variabile globale segreta](/docs/workflows/variables#variabili-globali). È comunque nascosto nei registri delle esecuzioni. La richiesta parte da OneUptime e i reindirizzamenti non vengono seguiti. Un dispositivo su un indirizzo di loopback (`localhost`, `127.0.0.1`), link-local o di metadati cloud viene rifiutato, e lo stesso vale per uno su un indirizzo di rete privata, a meno che un amministratore self-hosted non lo consenta con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access).
+Per chiamare solo quando qualcosa è vero, metti [If / Else](#conditions) davanti al blocco e collegagli l'uscita che deve chiamare. Con più di due percorsi, [Switch / Case](#switch-case) prende un percorso per ogni valore, e ogni percorso può chiamare qualcun altro.
+
+```mermaid title="Chiamare chi è reperibile, ma solo per gli incidenti critici"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+Quando crei un workflow, i modelli sotto **Reperibilità** hanno questo già pronto, e uno che chiama in base alla gravità con **Switch / Case**. Un modello lascia a te chi chiamare: il workflow si apre nel Costruttore, dove ogni blocco di chiamata dice **Click to set up**.
+
+| Impostazione | Cosa fa |
+| ------------ | ------- |
+| **Users**, **Teams**, **On-Call Schedules** o **On-Call Policies** | Chi chiamare: ogni blocco ha quella che va con il suo nome. Scegli per nome, oppure premi **{ }** alla fine della riga per aggiungere un valore da un blocco precedente. Un valore può contenere un ID o più di uno e, per **Users**, un indirizzo email. |
+| **Page About** | Di cosa tratta la chiamata: **A new alert**, **An incident** o **An alert**. Confermare la chiamata conferma anche quello. |
+| **Title** e **Message** | Per un nuovo avviso. OneUptime ne crea un avviso, che resta tra i tuoi avvisi come qualsiasi altro. |
+| **Incident ID** o **Alert ID** | Per un incidente o un avviso che esiste già, di solito quello da cui è partito il workflow: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | Per un nuovo avviso, sotto **Altri campi**. Decide quali regole di reperibilità di ciascuna persona la chiamano. Lasciata vuota, è la più grave del progetto. |
+
+Un blocco aggiunto a un workflow che parte da un incidente o da un avviso è già impostato per chiamare riguardo a quel record, quindi chiede soltanto chi chiamare.
+
+**Success** viene eseguito appena almeno una persona è stata chiamata, o una policy è partita. **Error** viene eseguito quando non è stato chiamato nessuno, e il valore **Error** del blocco dice perché, ad esempio che nella pianificazione nessuno è reperibile. **Summary** dice in una frase chi è stato chiamato e chi è stato escluso, pronta da pubblicare in un canale, e **Paged Users** elenca le persone chiamate.
+
+Chi è assente non viene chiamato: al suo posto viene chiamato chi la sua sostituzione utente indica per sostituirlo. Una chiamata indica al massimo 100 persone, team e pianificazioni. Vedi [Come viene raggiunta ogni persona](/docs/on-call/escalation-rules#come-viene-raggiunta-ogni-persona).
+
+Una chiamata senza una policy di reperibilità alle spalle è elencata con le esecuzioni delle policy come **Chiamata diretta**: nei log di reperibilità dell'incidente o dell'avviso, nel suo feed e nel suo canale Slack o Microsoft Teams, e nei log di ogni persona chiamata. Resta aperta per 30 minuti, e poi finché partono ancora chiamate. Se per allora nessuno ha confermato, finisce senza chiamare nessun altro.
+
+> [!WARNING]
+> **Esegui flusso di lavoro** chiama delle persone per davvero, che il workflow sia attivo o no, e così fa **Run just this step**. Indica te stesso mentre fai le prove.
 
 ## Custom Code
 
@@ -265,27 +309,27 @@ Le sue impostazioni si leggono come una frase: **Se** *valore da verificare* *co
 
 | Impostazione       | Cosa fa                                                                                                                                  |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Value to check** | Di solito un valore di un blocco precedente. Premi **{ }** nella casella per sceglierne uno, oppure scrivi `{{`.                          |
-| **Comparison**     | Come confrontare, a parole. I confronti sono elencati qui sotto.                                                                         |
-| **Compare with**   | Con cosa confrontare, scritto o scelto allo stesso modo. **è vuoto**, **non è vuoto**, **is true** e **is false** non lo usano.          |
-| **Compare as**     | Raccolto sotto il confronto: **Text**, **Numero** o **True / False**. Scegli **Text** per ordinare date scritte `2026-10-01`, oppure **Numero** per rendere uguali `200` e `200.0`. |
+| **Valore da verificare** | Di solito un valore di un blocco precedente. Premi **{ }** nella casella per sceglierne uno, oppure scrivi `{{`.                          |
+| **Confronto**     | Come confrontare, a parole. I confronti sono elencati qui sotto.                                                                         |
+| **Confronta con**   | Con cosa confrontare, scritto o scelto allo stesso modo. **è vuoto**, **non è vuoto**, **è vero** e **è falso** non lo usano.          |
+| **Confronta come**     | Raccolto sotto il confronto: **Text**, **Numero** o **Vero / Falso**. Scegli **Text** per ordinare date scritte `2026-10-01`, oppure **Numero** per rendere uguali `200` e `200.0`. |
 
 I confronti:
 
-- **is equal to** e **is not equal to**;
+- **è uguale a** e **è diverso da**;
 - per il testo: **contiene**, **non contiene**, **inizia con** e **termina con**;
-- per i numeri: **è maggiore di**, **is greater than or equal to**, **è minore di** e **is less than or equal to**;
+- per i numeri: **è maggiore di**, **è maggiore o uguale a**, **è minore di** e **è minore o uguale a**;
 - **è vuoto** e **non è vuoto**, che verificano se il valore c'è;
-- **is true** e **is false**.
+- **è vero** e **è falso**.
 
-I confronti numerici confrontano numeri e quelli testuali confrontano testo, quindi raramente ti serve **Compare as**. Come vengono confrontati i valori:
+I confronti numerici confrontano numeri e quelli testuali confrontano testo, quindi raramente ti serve **Confronta come**. Come vengono confrontati i valori:
 
 - Come testo, le maiuscole contano: `Error` non è `error`.
 - Come numeri, un testo che non è un numero vale `0`. Le impostazioni segnalano un valore scritto così.
 - Come vero o falso, solo `true` conta come vero.
 - **è vuoto** è soddisfatto dall'assenza di un valore, da un testo vuoto, da una lista o un oggetto vuoti, o da un valore che il blocco precedente non aveva, come un campo che il webhook non ha inviato. `0` e `false` sono valori, quindi non sono vuoti.
 
-**Yes** viene eseguito quando la condizione è soddisfatta e **No** quando non lo è. I blocchi configurati prima che le impostazioni avessero questi nomi funzionano esattamente come prima. Una vecchia scelta non è più offerta: confrontare un valore come **Null** o **Undefined**, che ignorava ciò che il valore conteneva. Un blocco che la usa ancora lo dice quando lo apri; scegli **è vuoto** per verificare un valore mancante.
+**Yes** viene eseguito quando la condizione è soddisfatta e **No** quando non lo è. I blocchi configurati prima che le impostazioni avessero questi nomi funzionano esattamente come prima. Una vecchia scelta non è più offerta: confrontare un valore come **Nullo** o **Non definito**, che ignorava ciò che il valore conteneva. Un blocco che la usa ancora lo dice quando lo apri; scegli **è vuoto** per verificare un valore mancante.
 
 ## Switch / Case
 
@@ -295,12 +339,12 @@ Confronta un valore con ciascuno dei suoi casi a turno, dall'alto, e prosegue da
 
 | Impostazione       | Cosa fa |
 | ------------------ | ------- |
-| **Value to check** | Il valore con cui viene confrontato ogni caso, di solito da un blocco precedente. Premi **{ }** nella casella per sceglierne uno, oppure scrivi `{{`. |
+| **Valore da verificare** | Il valore con cui viene confrontato ogni caso, di solito da un blocco precedente. Premi **{ }** nella casella per sceglierne uno, oppure scrivi `{{`. |
 | **Cases**          | Un confronto e un valore per ogni percorso, controllati dall'alto. Premi **Aggiungi caso** per aggiungerne un altro, e trascina un caso dalla sua maniglia per spostarlo. Un blocco contiene al massimo 25 casi. |
 
-Ogni caso è un'uscita sulla tela, con il nome del suo valore: un caso che chiede **is equal to** `production` è l'uscita *production*, e uno che chiede **è maggiore di** `500` è *is greater than 500*. **Default** è sempre l'ultima uscita. Collega ogni uscita a ciò che deve essere eseguito dopo.
+Ogni caso è un'uscita sulla tela, con il nome del suo valore: un caso che chiede **è uguale a** `production` è l'uscita *production*, e uno che chiede **è maggiore di** `500` è *is greater than 500*. **Default** è sempre l'ultima uscita. Collega ogni uscita a ciò che deve essere eseguito dopo.
 
-Un caso corrisponde esattamente quando un [If / Else](#conditions) con lo stesso confronto e lo stesso valore prenderebbe **Yes**: i confronti sono gli stessi, e i valori vengono confrontati allo stesso modo. **Compare as** è raccolto sotto i casi, con una scelta per ogni caso.
+Un caso corrisponde esattamente quando un [If / Else](#conditions) con lo stesso confronto e lo stesso valore prenderebbe **Yes**: i confronti sono gli stessi, e i valori vengono confrontati allo stesso modo. **Confronta come** è raccolto sotto i casi, con una scelta per ogni caso.
 
 Quando rimuovi un caso che ha un collegamento, le impostazioni dicono a quali blocchi portava, e **Ripristina** riporta il caso. Il salvataggio rimuove il collegamento insieme al caso. I controlli del Costruttore segnalano un caso a cui non è collegato nulla, e un caso che non viene mai scelto perché uno sopra di esso chiede la stessa cosa.
 
@@ -384,7 +428,7 @@ Una query è sempre limitata al progetto in cui viene eseguito il workflow. Non 
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Una chiave che non è una colonna viene ignorata invece che rifiutata: il registro dell'esecuzione nomina quelle scartate, quindi controlla lì quando un campo non arriva. **Select Fields**, sui componenti Find e sui trigger, usa le stesse chiavi di colonna con valori `true`: `{"_id": true, "name": true}`.
+Una chiave che non è una colonna viene ignorata invece che rifiutata: il registro dell'esecuzione nomina quelle scartate, quindi controlla lì quando un campo non arriva. **Fields to pass on**, sui componenti Find e sui trigger, si sceglie da un elenco; il suo **Modifica come JSON** mostra le stesse chiavi di colonna con valori `true`: `{"_id": true, "name": true}`.
 
 I **campi personalizzati** sono un'unica colonna, `customFields`, che contiene il valore di ogni campo personalizzato sotto il nome del campo. I componenti Update modificano solo i campi personalizzati che nomini, e tutti gli altri mantengono il loro valore:
 

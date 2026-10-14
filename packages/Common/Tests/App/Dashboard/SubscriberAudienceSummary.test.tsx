@@ -101,6 +101,14 @@ const MONITOR_B: string = "c0000000-0000-4000-8000-000000000002";
 const SITE_03: string = "b0000000-0000-4000-8000-000000000003";
 const SITE_07: string = "b0000000-0000-4000-8000-000000000007";
 
+/*
+ * How long a real-timer test waits for the debounced POST. waitFor returns as
+ * soon as the call is there, so the margin costs nothing when the timer is on
+ * time; it is generous because a loaded machine fires a 400 ms timer late (a
+ * 1000 ms margin ran out while the whole Common suite ran beside App's).
+ */
+const DEBOUNCED_POST_WAIT_MS: number = SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 5000;
+
 function counts(
   partial: Partial<IncidentSubscriberAudienceCounts>,
 ): IncidentSubscriberAudienceCounts {
@@ -503,7 +511,7 @@ describe("SubscriberAudienceSummary for an incident being declared", () => {
       () => {
         expect(postMock).toHaveBeenCalledTimes(1);
       },
-      { timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000 },
+      { timeout: DEBOUNCED_POST_WAIT_MS },
     );
     await settle();
 
@@ -526,7 +534,7 @@ describe("SubscriberAudienceSummary for an incident being declared", () => {
       () => {
         expect(postMock).toHaveBeenCalledTimes(1);
       },
-      { timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000 },
+      { timeout: DEBOUNCED_POST_WAIT_MS },
     );
     await settle();
 
@@ -559,7 +567,7 @@ describe("SubscriberAudienceSummary for an incident being declared", () => {
       await screen.findByText(
         IncidentStatusPageScopeCopy.audienceNoStatusPages,
         undefined,
-        { timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000 },
+        { timeout: DEBOUNCED_POST_WAIT_MS },
       ),
     ).toBeInTheDocument();
     expect(
@@ -680,7 +688,7 @@ describe("SubscriberAudienceSummary under a checkbox, when no one will be notifi
         IncidentStatusPageScopeCopy.audienceError,
         undefined,
         {
-          timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000,
+          timeout: DEBOUNCED_POST_WAIT_MS,
         },
       ),
     ).toBeInTheDocument();

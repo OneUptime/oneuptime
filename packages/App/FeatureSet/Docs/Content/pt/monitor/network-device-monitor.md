@@ -43,7 +43,7 @@ O dispositivo e o monitor fazem trabalhos diferentes:
 
 - **Uma sonda que consiga alcançar o dispositivo.** A sonda envia ping e faz o walk do dispositivo a partir da própria rede, então um dispositivo em um endereço privado precisa de uma [sonda personalizada](/docs/probe/custom-probe) dentro dessa rede: uma sonda na internet pública não consegue alcançá-lo.
 - **SNMP, para ir além do ping.** Opcional. Uma community string v1 ou v2c, ou um usuário SNMPv3, configurados no dispositivo, com UDP 161 aberto a partir da sonda. Sem isso, o dispositivo só recebe ping.
-- **Traps, syslog e fluxos.** Opcional. A sonda recebe traps SNMP em UDP 162, syslog em UDP 5140 depois que você o ativa, e registros de fluxo em UDP 2055, 4739 e 6343, então libere essas portas dos seus dispositivos até a sonda.
+- **Traps, syslog e fluxos.** Opcional. A sonda recebe traps SNMP em UDP 162, syslog em UDP e TCP 5140, e registros de fluxo em UDP 2055, 4739 e 6343, então libere essas portas dos seus dispositivos até a sonda.
 
 ## A visão geral da rede
 
@@ -62,7 +62,7 @@ Abaixo dela, uma linha diz se alguma coisa abre um incidente quando um dispositi
 
 Antes de qualquer coisa ser adicionada, a visão geral mostra no lugar as duas formas de começar: **Descobrir dispositivos** varre uma faixa de endereços para você escolher o que adicionar, o melhor para uma rede inteira ou um site novo, e **Adicionar um único dispositivo** adiciona um pelo endereço IP ou nome do host.
 
-O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, **Devices**, **Sites**, **Map**, **Traffic** e **Discovery**. O resto fica recolhido em seções, e uma seção se abre sozinha em qualquer uma das suas páginas:
+O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, **Devices**, **Sites**, **Map**, **Traffic**, **Eventos** e **Discovery**. O resto fica recolhido em seções, e uma seção se abre sozinha em qualquer uma das suas páginas:
 
 | Seção | Páginas |
 | --- | --- |
@@ -490,7 +490,7 @@ Uma investigação do OneUptime AI sobre um incidente ou alerta de um monitor de
 
 ### Identidade do dispositivo
 
-Depois do primeiro walk bem-sucedido, o OneUptime lê o grupo de sistema SNMPv2 e, quando o dispositivo oferece suporte, a ENTITY-MIB, e preenche o registro do dispositivo: nome do sistema, descrição, localização, contato, tempo ativo, fabricante, modelo, número de série e versão do firmware. O OID enterprise do fabricante (`sysObjectID`) é a impressão digital do dispositivo: ele indica o fabricante e escolhe o modelo do fabricante correspondente. As mesmas informações aparecem no [inventário](/docs/inventory/cmdb-sync#network-device-asset-attributes) junto com todos os seus outros ativos.
+Depois do primeiro walk bem-sucedido, o OneUptime lê o grupo de sistema SNMPv2 e, quando o dispositivo oferece suporte, a ENTITY-MIB, e preenche o registro do dispositivo: nome do sistema, descrição, localização, contato, tempo ativo, fabricante, modelo, número de série e versão do firmware. O OID enterprise do fabricante (`sysObjectID`) é a impressão digital do dispositivo: ele indica o fabricante e escolhe o modelo do fabricante correspondente. As mesmas informações aparecem no [inventário](/docs/inventory/cmdb-sync#atributos-de-ativo-dos-dispositivos-de-rede) junto com todos os seus outros ativos.
 
 Um dispositivo só com ping mantém o nome e o endereço que você, ou uma varredura de descoberta, deu a ele: não há agente SNMP a quem pedir algo melhor.
 
@@ -1057,6 +1057,7 @@ Uma resposta com a descrição do dispositivo significa que a sonda consegue faz
 :::cards
 - [Sites de rede](/docs/monitor/network-sites): Agrupe dispositivos em lugares e resuma a saúde deles ao longo da árvore.
 - [Tráfego de rede](/docs/monitor/network-traffic): Veja quem fala com quem a partir dos registros de fluxo dos seus dispositivos.
+- [Eventos de rede](/docs/monitor/network-events): Veja o que os seus dispositivos relatam no syslog, e receba alertas sobre isso.
 - [Guias por fornecedor de rede](/docs/monitor/network-vendor-guides): Sophos, Extreme e Cambium, de ponta a ponta.
 - [Captura de pacotes](/docs/probe/packet-capture): Capture pacotes na sonda de um dispositivo para o Wireshark.
 :::

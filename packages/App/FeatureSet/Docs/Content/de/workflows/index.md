@@ -128,7 +128,7 @@ Der Trigger nimmt den Platz des gestrichelten Bausteins ein. Die ID darauf, `inc
 
 ### Die Felder des Vorfalls wählen
 
-Klicken Sie auf den Trigger. Haken Sie unter **Select Fields** die Felder an, die die Anfrage enthalten soll, etwa den Titel und die Beschreibung, und klicken Sie auf **Speichern**.
+Klicken Sie auf den Trigger. **Fields to pass on** beginnt mit dem Titel: Klicken Sie auf **Feld hinzufügen**, haken Sie die Beschreibung und jedes weitere Feld an, das die Anfrage enthalten soll, und klicken Sie auf **Speichern**.
 
 Der Trigger reicht den neuen Vorfall mit diesen Feldern weiter. Ein Feld, das Sie nicht auswählen, kommt leer an.
 
@@ -158,7 +158,7 @@ Eine Anfrage, die fehlschlägt – eine nicht erreichbare URL oder eine Antwort,
 
 ### Testen
 
-Klicken Sie auf **Arbeitsablauf ausführen**, geben Sie die **Vorfall-ID** eines Vorfalls in diesem Projekt ein, klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Der Workflow ist noch aus, daher ist das ein **Testlauf**, und die Anfrage wird wirklich gesendet.
+Klicken Sie auf **Arbeitsablauf ausführen** und wählen Sie unter **Vorfall** einen Vorfall in diesem Projekt aus: Die neuesten sind aufgelistet, und wenn Sie seine Nummer oder einen Teil seines Titels eintippen, finden Sie einen anderen. Klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Der Workflow ist noch aus, daher ist das ein **Testlauf**, und die Anfrage wird wirklich gesendet.
 
 Ein Bereich **Arbeitsablauf-Ausführung** öffnet sich und verfolgt die Ausführung. Öffnen Sie den Schritt **API Post (JSON)**, um den gesendeten Body und die erhaltene Antwort zu sehen.
 

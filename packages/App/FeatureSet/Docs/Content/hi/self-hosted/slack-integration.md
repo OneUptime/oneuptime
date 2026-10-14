@@ -143,9 +143,8 @@ Slack ऐप के **Event Subscriptions** में अनुरोध URL स
 
 | सुविधा | क्या करती है | रूट |
 | --- | --- | --- |
-| `/incident` और **Create New Incident** शॉर्टकट | Slack से इंसिडेंट घोषित करना | `POST /api/slack/interactive` |
-| `/maintenance` और **Create Scheduled Event** शॉर्टकट | Slack से मेंटेनेंस शेड्यूल करना | `POST /api/slack/interactive` |
-| `/oneuptime` | अपने लॉग, ट्रेस, मेट्रिक्स, इंसिडेंट और मॉनिटर के बारे में OneUptime AI से पूछना | `POST /api/slack/command` |
+| `/oneuptime` | इंसिडेंट घोषित करना, मेंटेनेंस शेड्यूल करना, यह देखना कि कौन ऑन-कॉल है और OneUptime AI से पूछना; `/oneuptime help` सभी कमांड की सूची देता है | `POST /api/slack/command` |
+| **Create New Incident** और **Create Scheduled Event** शॉर्टकट | Slack के शॉर्टकट से इंसिडेंट घोषित करना या मेंटेनेंस शेड्यूल करना | `POST /api/slack/interactive` |
 | OneUptime संदेशों पर बटन और फ़ॉर्म | स्वीकार करना, हल करना, नोट जोड़ना, स्थिति बदलना, ऑन-कॉल नीति चलाना | `POST /api/slack/interactive` और `POST /api/slack/options-load` |
 | इवेंट | मेंशन, संदेश, रिएक्शन और पिन, जैसे किसी संदेश को नोट के रूप में सहेजना | `POST /api/slack/events` |
 
@@ -154,6 +153,10 @@ Slack ऐप के **Event Subscriptions** में अनुरोध URL स
 इंसिडेंट और अलर्ट के विवरण में स्क्रीनशॉट हो सकते हैं, जैसे किसी सिंथेटिक मॉनिटर का (देखें [स्क्रीनशॉट दिखाना](/docs/monitor/incident-alert-templating#स्क्रीनशॉट-दिखाना))। OneUptime हर स्क्रीनशॉट को निजी फ़ाइल के रूप में आपके वर्कस्पेस में अपलोड करके Slack संदेशों में दिखाता है, जिसके लिए बॉट स्कोप `files:write` चाहिए। बने हुए मैनिफ़ेस्ट में यह शामिल है।
 
 अगर आपने अपना Slack ऐप किसी पुराने मैनिफ़ेस्ट से बनाया था, तो **OAuth & Permissions > Bot Token Scopes** के नीचे `files:write` जोड़ें (या मौजूदा मैनिफ़ेस्ट से ऐप अपडेट करें)। फिर **प्रोजेक्ट सेटिंग्स > वर्कस्पेस > Slack** में फिर से **Connect with Slack** चुनें, ताकि नया स्कोप मिल जाए। तब तक हर स्क्रीनशॉट अपने वैकल्पिक टेक्स्ट के रूप में दिखता है।
+
+### पुराने मैनिफ़ेस्ट से बने ऐप
+
+OneUptime के किसी पुराने मैनिफ़ेस्ट से बना Slack ऐप `/incident` और `/maintenance` को अपने अलग कमांड के रूप में रजिस्टर करता है, जो दूसरे ऐप्स के इसी नाम के कमांड से टकरा सकते हैं। वे काम करते रहते हैं और वही फ़ॉर्म खोलते हैं जो `/oneuptime incident` और `/oneuptime maintenance` खोलते हैं। उन्हें `/oneuptime` से बदलने के लिए, ऐप को उस मैनिफ़ेस्ट से अपडेट करें जो आपका सर्वर बनाता है: [api.slack.com/apps](https://api.slack.com/apps) पर ऐप का **App Manifest** खोलें, मैनिफ़ेस्ट पेस्ट करें और सहेजें। स्कोप वही रहते हैं, इसलिए ऐप को दोबारा इंस्टॉल करने की ज़रूरत नहीं है।
 
 ## सेल्फ़-होस्टेड डिप्लॉयमेंट के लिए नेटवर्क एक्सेस
 
@@ -172,7 +175,7 @@ Slack ऐप के **Event Subscriptions** में अनुरोध URL स
 | मेथड और पाथ | उद्देश्य |
 | --- | --- |
 | `POST /api/slack/events` | Events API सत्यापन, रिएक्शन, पिन, मेंशन और संदेश |
-| `POST /api/slack/interactive` | बटन, शॉर्टकट, मोडल सबमिशन, `/incident` और `/maintenance` |
+| `POST /api/slack/interactive` | बटन, शॉर्टकट, मोडल सबमिशन, और किसी पुराने ऐप के `/incident` और `/maintenance` |
 | `POST /api/slack/options-load` | इंटरैक्टिव मेन्यू के विकल्पों के अनुरोध |
 | `POST /api/slack/command` | `/oneuptime` कमांड |
 

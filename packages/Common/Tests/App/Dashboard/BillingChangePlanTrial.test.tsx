@@ -94,7 +94,11 @@ jest.mock("../../../UI/Utils/API/API", () => {
 jest.mock("../../../UI/Utils/Analytics", () => {
   return {
     __esModule: true,
-    default: { capture: () => {}, captureRevenueEvent: () => {} },
+    default: {
+      capture: () => {},
+      captureRevenueEvent: () => {},
+      capturePurchase: () => {},
+    },
   };
 });
 

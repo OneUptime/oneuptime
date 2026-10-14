@@ -17,6 +17,7 @@ Rara vez la necesitarás abierta mientras construyes. Los ajustes de cada bloque
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Publicar en una herramienta de chat                           | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) o [Mattermost](#mattermost) |
 | Enviar un correo a través de tu propio servidor de correo     | [Email](#email)                                                   |
+| Avisar a una persona, a un equipo o a quien esté de guardia | [Paging](#paging) |
 | Enviar un SMS o llamar a un teléfono                          | [SMSEagle](#smseagle)                                             |
 | Llamar a cualquier otra API o a tu propio servicio            | [API](#api)                                                       |
 | Resumir, clasificar o redactar texto                          | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -87,6 +88,23 @@ Conecta **Success** a los bloques que usan la respuesta, y **Error** a una alter
 
 > [!WARNING]
 > La salida del modelo es texto no fiable. Revísala antes de que llegue a los clientes, y nunca dejes que solo un texto libre de la IA decida una acción destructiva. Consulta [Componentes de IA](/docs/workflows/configuration#componentes-de-ia) para ver qué se envía al proveedor, qué se registra y cuánto cuesta.
+
+## SMSEagle
+
+Envía un SMS o haz una llamada de texto a voz a través de un dispositivo SMSEagle, una pasarela SMS de hardware en tu propia red. **Send SMS via SMSEagle** envía un SMS, y **Make a Call via SMSEagle** llama al número y lee el texto en voz alta.
+
+| Ajuste                    | Qué hace                                                                                                                                                             |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | La dirección del dispositivo, como `https://192.168.0.100`. El bloque añade por sí mismo la ruta de la API v2.                                                       |
+| **SMSEagle Access Token** | Una clave de API v2 de la GUI web de SMSEagle, en Settings, API, API v2. Necesita el permiso "Send SMS" para los SMS y "Make a TTS Advanced Call" para las llamadas. |
+| **Número de teléfono**    | El número al que enviar el SMS o llamar, en formato internacional, como `+15551234567`.                                                                              |
+| **Message Text**          | El texto del SMS. Solo en **Send SMS via SMSEagle**.                                                                                                                 |
+| **Voice ID**              | El ID de una voz de texto a voz del dispositivo. Solo en **Make a Call via SMSEagle**.                                                                               |
+| **Text to Read Out**      | El texto que el dispositivo lee durante la llamada. Solo en **Make a Call via SMSEagle**.                                                                            |
+
+**Success** salta cuando el dispositivo puso en cola el SMS o la llamada, y devuelve el **Message ID** que le asignó. **Error** salta cuando no se puede llegar al dispositivo o este lo rechaza, y transmite el motivo, como `voice_id: Resource with specified ID not found.` de SMSEagle. En cambio, un ajuste que falte o un **Voice ID** que no sea un número detiene la ejecución.
+
+Guarda el token de acceso en una [variable global secreta](/docs/workflows/variables#variables-globales). Se oculta en los registros de ejecución en cualquier caso. La solicitud sale de OneUptime y las redirecciones no se siguen. Un dispositivo en una dirección de loopback (`localhost`, `127.0.0.1`), de enlace local o de metadatos de la nube se rechaza, y también uno en una dirección de red privada, a menos que un administrador autoalojado lo permita con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Consulta [Acceso a red privada](/docs/self-hosted/private-network-access).
 
 ## Slack
 
@@ -200,22 +218,48 @@ El bloque se conecta directamente al servidor de sus ajustes. No usa los ajustes
 
 Las conexiones a direcciones de loopback (`localhost`, `127.0.0.1`), de enlace local y de metadatos de la nube se rechazan. En OneUptime Cloud, un host SMTP en una dirección de red privada, o un nombre que se resuelve a una, también se rechaza. Las instalaciones autoalojadas pueden llegar a un servidor de correo de su propia red, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` esté definido como `true`. Un host rechazado toma la salida **Error**, y no se envía nada.
 
-## SMSEagle
+## Paging
 
-Envía un SMS o haz una llamada de texto a voz a través de un dispositivo SMSEagle, una pasarela SMS de hardware en tu propia red. **Send SMS via SMSEagle** envía un SMS, y **Make a Call via SMSEagle** llama al número y lee el texto en voz alta.
+Avisa a personas desde un flujo de trabajo: cada una recibe una llamada, un SMS, una notificación push o un correo, según indiquen sus propias reglas de guardia, hasta que alguien reconoce el aviso. Hay un bloque para cada forma de decir a quién avisar. En el panel **Añadir componente**, busca `page`.
 
-| Ajuste                    | Qué hace                                                                                                                                                             |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SMSEagle URL**          | La dirección del dispositivo, como `https://192.168.0.100`. El bloque añade por sí mismo la ruta de la API v2.                                                       |
-| **SMSEagle Access Token** | Una clave de API v2 de la GUI web de SMSEagle, en Settings, API, API v2. Necesita el permiso "Send SMS" para los SMS y "Make a TTS Advanced Call" para las llamadas. |
-| **Número de teléfono**    | El número al que enviar el SMS o llamar, en formato internacional, como `+15551234567`.                                                                              |
-| **Message Text**          | El texto del SMS. Solo en **Send SMS via SMSEagle**.                                                                                                                 |
-| **Voice ID**              | El ID de una voz de texto a voz del dispositivo. Solo en **Make a Call via SMSEagle**.                                                                               |
-| **Text to Read Out**      | El texto que el dispositivo lee durante la llamada. Solo en **Make a Call via SMSEagle**.                                                                            |
+| Bloque                      | A quién avisa |
+| --------------------------- | ------------- |
+| **Page Users**              | A las personas que nombras. |
+| **Page a Team**             | A todos los miembros de un equipo. |
+| **Page Whoever Is On Call** | A quien esté de guardia en una programación de guardia cuando se ejecuta el bloque. |
+| **Page an On-Call Policy**  | A una política de guardia, que avisa siguiendo sus reglas de escalado y se repite como esté configurada. |
 
-**Success** salta cuando el dispositivo puso en cola el SMS o la llamada, y devuelve el **Message ID** que le asignó. **Error** salta cuando no se puede llegar al dispositivo o este lo rechaza, y transmite el motivo, como `voice_id: Resource with specified ID not found.` de SMSEagle. En cambio, un ajuste que falte o un **Voice ID** que no sea un número detiene la ejecución.
+Los tres primeros avisan a la vez a todos los que nombran, y a nadie más después. Para un escalado, usa **Page an On-Call Policy**.
 
-Guarda el token de acceso en una [variable global secreta](/docs/workflows/variables#variables-globales). Se oculta en los registros de ejecución en cualquier caso. La solicitud sale de OneUptime y las redirecciones no se siguen. Un dispositivo en una dirección de loopback (`localhost`, `127.0.0.1`), de enlace local o de metadatos de la nube se rechaza, y también uno en una dirección de red privada, a menos que un administrador autoalojado lo permita con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Consulta [Acceso a red privada](/docs/self-hosted/private-network-access).
+Para avisar solo cuando algo se cumple, pon [If / Else](#conditions) delante del bloque y conéctale la salida que debe avisar. Con más de dos caminos, [Switch / Case](#switch-case) toma un camino para cada valor, y cada camino puede avisar a otra persona.
+
+```mermaid title="Avisar a quien esté de guardia, pero solo en incidentes críticos"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+Al crear un flujo de trabajo, las plantillas de **De guardia** tienen este ya preparado, y otro que avisa según la gravedad con **Switch / Case**. Una plantilla te deja a ti elegir a quién avisar: el flujo de trabajo se abre en el Constructor, donde cada bloque de aviso dice **Haz clic para configurar**.
+
+| Ajuste | Qué hace |
+| ------ | -------- |
+| **Users**, **Teams**, **On-Call Schedules** o **On-Call Policies** | A quién avisar: cada bloque tiene el que corresponde a su nombre. Elige por nombre, o pulsa **{ }** al final de la fila para añadir un valor de un bloque anterior. Un valor puede contener un ID o varios y, en **Users**, una dirección de correo. |
+| **Page About** | De qué trata el aviso: **A new alert**, **An incident** o **An alert**. Reconocer el aviso también lo reconoce. |
+| **Title** y **Message** | Para una alerta nueva. OneUptime crea una alerta con ellos, y se queda entre tus alertas como cualquier otra. |
+| **Incident ID** o **Alert ID** | Para un incidente o una alerta que ya existe, normalmente aquel con el que empezó el flujo de trabajo: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | Para una alerta nueva, en **Más campos**. Decide cuáles de las reglas de guardia de cada persona le avisan. Si se deja vacía, es la más grave del proyecto. |
+
+Un bloque añadido a un flujo de trabajo que empieza con un incidente o una alerta ya está configurado para avisar sobre ese registro, así que solo pregunta a quién avisar.
+
+**Success** se ejecuta en cuanto se avisa al menos a una persona, o se ha iniciado una política. **Error** se ejecuta cuando no se avisó a nadie, y el valor **Error** del bloque dice por qué, por ejemplo que no hay nadie de guardia en la programación. **Summary** dice en una frase a quién se avisó y a quién se dejó fuera, lista para publicarla en un canal, y **Paged Users** enumera a las personas avisadas.
+
+A quien está ausente no se le avisa: se avisa en su lugar a quien su sustitución de usuario nombra para cubrirle. Un aviso nombra como máximo 100 personas, equipos y programaciones. Consulta [Cómo se localiza a cada persona](/docs/on-call/escalation-rules#cómo-se-localiza-a-cada-persona).
+
+Un aviso sin política de guardia detrás aparece junto a las ejecuciones de las políticas como **Aviso directo**: en los registros de guardia del incidente o de la alerta, en su feed y su canal de Slack o Microsoft Teams, y en los registros de cada persona avisada. Sigue abierto 30 minutos, y después mientras sigan saliendo avisos. Si para entonces nadie lo ha reconocido, termina sin avisar a nadie más.
+
+> [!WARNING]
+> **Ejecutar flujo de trabajo** avisa a personas de verdad, esté el flujo de trabajo activado o no, y **Ejecutar solo este paso** también. Ponte a ti mismo mientras pruebas.
 
 ## Custom Code
 
@@ -265,18 +309,18 @@ Sus ajustes se leen como una frase: **Si** *valor que comprobar* *comparación* 
 
 | Ajuste             | Qué hace                                                                                                                                 |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Value to check** | Normalmente un valor de un bloque anterior. Pulsa **{ }** en el cuadro para elegir uno, o escribe `{{`.                                   |
-| **Comparison**     | Cómo comparar, en palabras. Las comparaciones aparecen más abajo.                                                                        |
-| **Compare with**   | Con qué comparar, escrito o elegido de la misma forma. **está vacío**, **no está vacío**, **is true** e **is false** no lo usan.         |
-| **Comparar como**  | Plegado bajo la comparación: **Text**, **Número** o **True / False**. Elige **Text** para ordenar fechas escritas `2026-10-01`, o **Número** para que `200` y `200.0` sean iguales. |
+| **Valor que comprobar** | Normalmente un valor de un bloque anterior. Pulsa **{ }** en el cuadro para elegir uno, o escribe `{{`.                                   |
+| **Comparación**     | Cómo comparar, en palabras. Las comparaciones aparecen más abajo.                                                                        |
+| **Comparar con**   | Con qué comparar, escrito o elegido de la misma forma. **está vacío**, **no está vacío**, **es verdadero** e **es falso** no lo usan.         |
+| **Comparar como**  | Plegado bajo la comparación: **Text**, **Número** o **Verdadero / Falso**. Elige **Text** para ordenar fechas escritas `2026-10-01`, o **Número** para que `200` y `200.0` sean iguales. |
 
 Las comparaciones:
 
-- **is equal to** e **is not equal to**;
+- **es igual a** e **no es igual a**;
 - para texto: **contiene**, **no contiene**, **comienza con** y **termina con**;
-- para números: **es mayor que**, **is greater than or equal to**, **es menor que** e **is less than or equal to**;
+- para números: **es mayor que**, **es mayor o igual que**, **es menor que** e **es menor o igual que**;
 - **está vacío** y **no está vacío**, que comprueban si el valor está presente;
-- **is true** e **is false**.
+- **es verdadero** e **es falso**.
 
 Las comparaciones de números comparan números y las de texto comparan texto, así que rara vez necesitas **Comparar como**. Cómo se comparan los valores:
 
@@ -285,7 +329,7 @@ Las comparaciones de números comparan números y las de texto comparan texto, a
 - Como verdadero o falso, solo `true` cuenta como verdadero.
 - **está vacío** se cumple con la ausencia de valor, un texto en blanco, una lista o un objeto vacío, o un valor que el bloque anterior no tenía, como un campo que el webhook no envió. `0` y `false` son valores, así que no están vacíos.
 
-**Yes** se ejecuta cuando se cumple la condición y **No** cuando no. Los bloques configurados antes de que los ajustes tuvieran estos nombres se ejecutan exactamente igual que antes. Ya no se ofrece una opción antigua: comparar un valor como **Null** o **Undefined**, que ignoraba lo que contenía el valor. Un bloque que todavía la usa lo indica al abrirlo; elige **está vacío** para comprobar si falta un valor.
+**Yes** se ejecuta cuando se cumple la condición y **No** cuando no. Los bloques configurados antes de que los ajustes tuvieran estos nombres se ejecutan exactamente igual que antes. Ya no se ofrece una opción antigua: comparar un valor como **Nulo** o **Indefinido**, que ignoraba lo que contenía el valor. Un bloque que todavía la usa lo indica al abrirlo; elige **está vacío** para comprobar si falta un valor.
 
 ## Switch / Case
 
@@ -295,10 +339,10 @@ Compara un valor con cada uno de sus casos por turno, desde arriba, y continúa 
 
 | Ajuste             | Qué hace |
 | ------------------ | -------- |
-| **Value to check** | El valor con el que se compara cada caso, normalmente de un bloque anterior. Pulsa **{ }** en el cuadro para elegir uno, o escribe `{{`. |
+| **Valor que comprobar** | El valor con el que se compara cada caso, normalmente de un bloque anterior. Pulsa **{ }** en el cuadro para elegir uno, o escribe `{{`. |
 | **Cases**          | Una comparación y un valor para cada camino, comprobados desde arriba. Pulsa **Añadir caso** para añadir otro, y arrastra un caso por su asa para moverlo. Un bloque admite como máximo 25 casos. |
 
-Cada caso es una salida en el lienzo, con el nombre de su valor: un caso que pregunta **is equal to** `production` es la salida *production*, y uno que pregunta **es mayor que** `500` es *is greater than 500*. **Default** es siempre la última salida. Conecta cada salida a lo que deba ejecutarse a continuación.
+Cada caso es una salida en el lienzo, con el nombre de su valor: un caso que pregunta **es igual a** `production` es la salida *production*, y uno que pregunta **es mayor que** `500` es *is greater than 500*. **Default** es siempre la última salida. Conecta cada salida a lo que deba ejecutarse a continuación.
 
 Un caso coincide exactamente cuando un [If / Else](#conditions) con la misma comparación y el mismo valor tomaría **Yes**: las comparaciones son las mismas, y los valores se comparan de la misma forma. **Comparar como** está plegado bajo los casos, con una opción para cada caso.
 
@@ -384,7 +428,7 @@ Una consulta siempre se limita al proyecto en el que se ejecuta el flujo de trab
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Una clave que no es una columna se ignora en lugar de rechazarse — el registro de la ejecución nombra las que descartó, así que míralo cuando un campo no llegue. **Select Fields**, en los componentes Find y en los disparadores, usa las mismas claves de columna con valores `true`: `{"_id": true, "name": true}`.
+Una clave que no es una columna se ignora en lugar de rechazarse — el registro de la ejecución nombra las que descartó, así que míralo cuando un campo no llegue. **Fields to pass on**, en los componentes Find y en los disparadores, se elige de una lista; su **Editar como JSON** muestra las mismas claves de columna con valores `true`: `{"_id": true, "name": true}`.
 
 Los **campos personalizados** son una sola columna, `customFields`, que guarda el valor de cada campo personalizado con el nombre del campo. Los componentes Update solo cambian los campos personalizados que nombras, y todos los demás conservan su valor:
 

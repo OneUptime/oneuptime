@@ -74,6 +74,33 @@ by every browser - and sending the result to a route that never existed:
   the browser still holds it: the list says so, and Register Device replaces it
   and renews the device instead of answering "already registered".
 
+And the list's Critical Alerts column, a state of each device that the
+OneUptime On-Call app sets, drawn as a status and never as a control:
+
+- a phone with critical alerts on reads On, one with them off reads Off with
+  "How to turn on", a browser reads "Not available in browsers", and nothing in
+  the column can be ticked or flipped; Registered At is gone;
+- "How to turn on" opens that phone's steps: an iPhone allows iOS's prompt, an
+  Android phone allows Do Not Disturb access and turns the switch on again;
+- closing the steps reads the list again, so a phone turned on meanwhile reads
+  On;
+- a browser alone is offered the mobile app, with both stores, and the steps
+  name the address the app connects to (this server's); an empty list offers
+  this browser and the app;
+- a test to a phone with critical alerts on says it went as a critical alert;
+  one to a phone with them off offers "How to turn on", which opens that
+  phone's steps;
+- at 390px in the dark theme the list and the steps fit the screen, in the dark
+  theme's colours;
+- in German at 390px the steps are German, and the app's own labels stay as
+  the app shows them.
+
+The page loads Theme.css and Inter as the Dashboard does, `?theme=dark`
+turns the dark theme on, and `?lang=de` (any Dashboard locale) reads the
+Dashboard's own locale file. `POST /__fixture/devices` with `{ "devices": [...] }`
+replaces the devices listed (`deviceName`, `deviceType` - `ios`, `android` or
+`web` - and optionally `isCriticalAlertEnabled`, `isVerified`, `deviceToken`).
+
 ## Run it
 
 ```

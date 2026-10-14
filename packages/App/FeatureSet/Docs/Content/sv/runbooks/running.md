@@ -49,7 +49,7 @@ Så startar du en manuellt:
 @tab Från en händelse
 1. Öppna incidenten, larmet eller den schemalagda underhållshändelsen och gå till dess sida **Runbooks**.
 2. Klicka på **Kör Runbook**. Dialogen **Kör en Runbook** listar projektets påslagna runbooks.
-3. Klicka på **Run** bredvid runbooket. Körningen visas i händelsens lista: klicka på **Visa** för att öppna den.
+3. Klicka på **Kör** bredvid runbooket. Körningen visas i händelsens lista: klicka på **Visa** för att öppna den.
 @tab Från runbooket
 1. Öppna runbooket från **Runbooks**.
 2. Klicka på **Run Now** på dess **Översikt**.

@@ -1,145 +1,176 @@
-# Trabalhando com o OneUptime a partir do GitHub
+# GitHub App
 
-O GitHub App do OneUptime não é apenas uma conexão com o seu código — você pode conversar com ele dentro do seu repositório, e ele faz o trabalho ali mesmo.
+A GitHub App do OneUptime é mais do que uma conexão com o seu código: você pode conversar com ela no seu repositório, e ela faz o trabalho ali. Mencione-a em uma issue e ela abre um pull request; mencione-a em um pull request e ela revisa o branch ou avalia o diff. Tudo o que ela produz é um pull request ou uma avaliação para uma pessoa ler: **ela nunca faz merge de nada e nunca aprova um pull request.**
 
-Mencione-o em um issue e ele abre um pull request. Mencione-o em um pull request e ele ajusta o branch, ou revisa o diff. Adicione um label a um issue e ele assume o issue. Tudo o que ele produz é um pull request ou uma revisão para uma pessoa ler: **ele nunca faz merge de nada, e nunca aprova um pull request.**
+:::cards
+- [Os comandos](#os-comandos): O que escrever, em uma issue ou em um pull request.
+- [Como fica na conversa](#como-fica-na-conversa): Um único comentário que acompanha o trabalho.
+- [Quem pode dar comandos a ela](#quem-pode-dar-comandos-a-ela): Pessoas com acesso de escrita, e mais ninguém.
+- [Solução de problemas](#solução-de-problemas): Quando uma menção não faz nada.
+:::
 
 ```text
-@oneuptime implement this                          →  um pull request que fecha o issue
-@oneuptime revise this — use exponential backoff   →  novos commits no branch deste pull request
-@oneuptime review                                  →  uma revisão de código publicada neste pull request
+@oneuptime implement this                          →  a pull request that closes the issue
+@oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
+@oneuptime review                                  →  a code review posted on this pull request
 ```
 
-> Substitua `@oneuptime` pelo handle do seu próprio app. No OneUptime Cloud ele é `@oneuptime`. Em uma instância auto-hospedada é o nome que você deu ao seu GitHub App, em minúsculas e com os espaços trocados por hifens — um app chamado "Acme AI" é mencionado como `@acme-ai`. Se as menções não fizerem nada, é a primeira coisa a verificar.
+> [!NOTE]
+> Substitua `@oneuptime` pelo identificador da sua própria app. No OneUptime Cloud é `@oneuptime`. Em uma instância auto-hospedada é o nome que você deu à sua GitHub App, em minúsculas e com hifens no lugar dos espaços: uma app chamada "Acme AI" é mencionada como `@acme-ai`. Se as menções não fizerem nada, verifique isso primeiro.
+
+## Como funciona
+
+```mermaid title="De uma menção a um pull request"
+flowchart TB
+    M["Uma menção, um rótulo<br/>ou uma atribuição"] --> W{"O autor tem acesso<br/>de escrita?"}
+    W -->|"não"| N["Uma reação de confusão,<br/>e nada mais"]
+    W -->|"sim"| K["Uma reação de olhos<br/>e uma confirmação"]
+    K --> R["Um Runner trata o<br/>pedido em um clone"]
+    R --> O["O mesmo comentário,<br/>reescrito com<br/>o resultado"]
+```
+
+É o mesmo agente e o mesmo Runner das [Tarefas de correção](/docs/ai/ai-agent), com os mesmos orçamentos; só o gatilho muda.
 
 ## Antes de começar
 
-- O repositório precisa estar **conectado a um projeto do OneUptime** pelo GitHub App. Veja [Integração com o GitHub (auto-hospedado)](/docs/self-hosted/github-integration) para a configuração, ou conecte-o em **Tarefas → Repositórios de código** no OneUptime Cloud.
-- Um **Runner com a capacidade "Executa Correções de Código com IA"** precisa estar online — o mesmo Runner que executa as [Tarefas de Correção com IA](/docs/ai/ai-agent). Sem ele, os comandos são aceitos e depois falham após 30 minutos com uma mensagem dizendo que nenhum agente os assumiu.
-- O GitHub App precisa ter a permissão **Issues: Leitura e Escrita** e precisa assinar os eventos de webhook listados em [O que assinar](#o-que-assinar).
+- O repositório precisa estar **conectado a um projeto do OneUptime** pela GitHub App: conecte-o em **Tarefas → Repositórios de código** (abra **Produtos → Código → Tarefas**). Uma instância auto-hospedada precisa primeiro da sua própria GitHub App: veja [Integração com GitHub](/docs/self-hosted/github-integration).
+- Um Runner com **Executa correções de código por IA** precisa estar online: o mesmo Runner que realiza as [Tarefas de correção](/docs/ai/ai-agent). Sem ele, os comandos são aceitos e depois falham após 30 minutos, com uma mensagem dizendo que nenhum agente os assumiu.
+- A GitHub App precisa da permissão **Issues** com **Read & write**, e precisa estar inscrita nos eventos de webhook listados em [Em que se inscrever](#em-que-se-inscrever).
 
 ## Os comandos
 
-Todo comando começa com uma menção ao app. A menção pode estar em qualquer lugar do comentário, e tudo o que você escrever depois dela é repassado como o seu pedido.
+Todo comando começa com uma menção à app. A menção pode estar em qualquer lugar do comentário, e o que você escrever depois dela é repassado como o seu pedido.
 
 ### Em um pull request
 
-| Comando | O que acontece |
-| --- | --- |
-| `@oneuptime review` | Clona o branch, lê o código alterado **e o código ao redor**, e publica uma revisão como comentário. Não altera nada. |
-| `@oneuptime revise this — <o que você quer mudar>` | Clona o branch do próprio pull request, faz a alteração e envia novos commits para esse mesmo branch. Nunca abre um segundo pull request. |
+| Comando | O que acontece | Também entende |
+| --- | --- | --- |
+| `@oneuptime review` | Clona o branch, lê o código alterado e o código ao redor, e publica uma avaliação como comentário. Não muda nada. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime revise this — <what you want changed>` | Clona o branch do próprio pull request, faz a alteração e envia novos commits para esse branch. Nunca abre um segundo pull request. | `revise`, `please revise`, `rework`, `redo` |
 
-Qualquer coisa que você escrever depois da menção e que não seja um comando reconhecido é tratada como um pedido de ajuste, porque quase sempre é isso mesmo:
+Tudo o que você escrever depois da menção e que não for um comando conhecido é lido como um pedido de revisão, porque é quase sempre isso:
 
 ```text
 @oneuptime the retry loop here should back off exponentially, and the test
 should cover the 429 case
 ```
 
-### Em um issue
+### Em uma issue
 
-| Comando | O que acontece |
-| --- | --- |
-| `@oneuptime implement this` | Trabalha no issue e abre um pull request que o fecha. |
-| `@oneuptime <qualquer outra coisa>` | O mesmo, com as suas palavras como direcionamento extra. |
+| Comando | O que acontece | Também entende |
+| --- | --- | --- |
+| `@oneuptime implement this` | Trabalha na issue e abre um pull request que a fecha. | `implement`, `please implement`, `work on this`, `pick this up`, `take this` |
+| `@oneuptime <anything else>` | O mesmo, com as suas palavras como direção extra. | — |
 
-Você também pode entregar um issue ao app **sem comentar nada**:
+Você também pode entregar uma issue à app sem um comentário:
 
-- **Adicione o label de gatilho.** Adicionar a um issue o label de gatilho do repositório — `oneuptime` por padrão — inicia o mesmo trabalho. Essa é a forma mais confiável de atribuir trabalho pela interface do GitHub.
-- **Atribua o issue ao usuário bot do app**, onde o seu repositório permitir. O GitHub não deixa um app ser assignee em todo lugar, e é por isso que o label existe; se atribuir não fizer nada, use o label.
+- **Adicione o rótulo de gatilho.** Adicionar a uma issue o rótulo de gatilho do repositório, `oneuptime` a menos que você o tenha mudado, inicia o mesmo trabalho. É a forma mais confiável de entregar trabalho a partir das próprias páginas do GitHub.
+- **Atribua a issue ao usuário bot da app**, onde o seu repositório permitir. O GitHub não deixa uma app ser responsável em todo lugar, e é por isso que o rótulo existe: se atribuir não fizer nada, use o rótulo.
 
 ### Em qualquer lugar
 
-| Comando | O que acontece |
-| --- | --- |
-| `@oneuptime help` | Lista os comandos. Uma menção sozinha, sem nada depois dela, faz o mesmo. |
-| `@oneuptime status` | Diz no que ele está trabalhando neste momento nesta thread. |
-| `@oneuptime cancel` | Interrompe as execuções que ele tem em andamento nesta thread. O trabalho já enviado continua enviado. |
+| Comando | O que acontece | Também entende |
+| --- | --- | --- |
+| `@oneuptime help` | Lista os comandos. Uma menção sozinha, sem nada depois, faz o mesmo. | `commands`, `usage`, `what can you do` |
+| `@oneuptime status` | Diz no que está trabalhando nesta conversa. | `progress` |
+| `@oneuptime cancel` | Para as execuções que ela tem em andamento nesta conversa. O trabalho já enviado continua enviado. | `stop`, `abort` |
 
 `help`, `status` e `cancel` nunca iniciam uma execução do agente, então não custam nada.
 
-## Como isso aparece na thread
+## Como fica na conversa
 
-Um comando produz **um comentário**, que o app vai editando conforme o trabalho avança — assim uma tarefa demorada nunca transforma um pull request em um log de status.
+Um comando produz **um único comentário**, que a app edita conforme o trabalho avança, então uma tarefa longa nunca transforma um pull request em um log de status.
 
-1. Ele reage com 👀 no seu comentário e publica uma confirmação nomeando o projeto do OneUptime a que a execução pertence e com um link para a execução ao vivo.
-2. Quando termina, esse mesmo comentário é reescrito com o resultado: o pull request que ele abriu, os commits que enviou, ou uma explicação honesta de por que não fez nada.
+1. Ela reage com 👀 ao seu comentário e publica uma confirmação que nomeia o projeto do OneUptime ao qual a execução pertence e leva à execução ao vivo.
+2. Quando termina, ela reescreve esse mesmo comentário com o resultado: o pull request que abriu, os commits que enviou ou uma explicação clara de por que não fez nada.
 
-Se ele não encontrar nada que valha a pena mudar, ele diz isso em vez de abrir um pull request especulativo. Esse é um resultado normal, não uma falha — dê mais direcionamento e peça de novo.
+Se não encontrar nada que valha a pena mudar, ela diz isso em vez de abrir um pull request especulativo. É um resultado normal, não uma falha: dê mais direção e peça de novo.
 
-## Quem pode comandá-lo
+## Quem pode dar comandos a ela
 
-**Apenas quem tem acesso de escrita (write), manutenção (maintain) ou administração (admin) ao repositório.** O OneUptime pergunta diretamente ao GitHub, toda vez, qual é a permissão de quem comentou naquele repositório; ele não confia no selo "contributor" que o GitHub mostra ao lado de um comentário, que descreve atividade passada e não acesso atual.
+**Apenas pessoas com acesso write, maintain ou admin ao repositório.** O OneUptime pergunta ao GitHub, toda vez, a permissão de quem comentou nesse repositório; ele não confia no selo "contributor" que o GitHub mostra ao lado de um comentário, que descreve a atividade passada e não o acesso atual.
 
-Uma menção de qualquer outra pessoa recebe uma única reação 😕 no comentário e nada mais. Isso é proposital: em um repositório público qualquer um pode comentar, e um app que responde de forma confiável a estranhos é um app que pode ser usado para encher uma thread de spam.
+Uma menção de qualquer outra pessoa recebe uma única reação 😕 e nada mais. Isso é proposital: em um repositório público qualquer um pode comentar, e uma app que sempre responde a estranhos pode ser usada para encher uma conversa de spam.
 
-Ele também ignora todo comentário escrito por um bot, inclusive os seus próprios, e ignora menções que aparecem dentro de uma citação (`>`) ou de um bloco de código. Juntas, essas duas regras são o que impede que uma resposta a um dos seus próprios comentários o coloque para rodar de novo.
+Ela também ignora todo comentário escrito por um bot, inclusive os próprios, e menções dentro de uma citação (`>`) ou de um bloco de código. Juntas, essas duas regras impedem que uma resposta a um dos próprios comentários dela a inicie de novo.
 
-## O que ele não faz
+## O que ela não faz
 
-- **Ele nunca faz merge.** Nada que este app faça pode colocar código no seu branch padrão.
-- **Ele nunca aprova nem solicita alterações.** As revisões são publicadas como comentários, então uma revisão feita por um app nunca pode satisfazer uma regra de proteção de branch.
-- **Ele nunca reescreve o histórico.** Um ajuste adiciona commits; não faz force-push. Se outra pessoa enviou algo para o branch antes, o ajuste falha em vez de descartar o trabalho dela.
-- **Ele não consegue ajustar um pull request vindo de um fork.** O branch de um fork está em um repositório onde a instalação não tem permissão de escrita. Ele ainda assim revisa esse pull request — peça uma revisão em vez do ajuste.
-- **Ele nunca muda o título, a descrição ou o branch de destino de um pull request.** Somente o código.
+- **Ela nunca faz merge.** Nada do que esta app faz pode colocar código no seu branch padrão.
+- **Ela nunca aprova nem solicita alterações.** As avaliações são publicadas como comentários, então uma avaliação da app nunca pode satisfazer uma regra de proteção de branch.
+- **Ela nunca reescreve o histórico.** Uma revisão adiciona commits; ela nunca faz force-push. Se outra pessoa enviou para o branch antes, a revisão falha em vez de jogar fora o trabalho dela.
+- **Ela não pode revisar um pull request vindo de um fork.** O branch de um fork fica em um repositório no qual a instalação não pode escrever. Ela ainda pode avaliá-lo: peça uma avaliação em vez disso.
+- **Ela nunca muda o título, a descrição ou o branch de destino de um pull request.** Só o código.
 
-## Quanto custa, e como limitar
+## Quanto custa e como limitar
 
-Todo comando que inicia trabalho é uma execução completa do agente — um clone, até 40 chamadas de LLM e 100.000 tokens de saída, mais os comandos de build e de teste do seu repositório, se você os tiver configurado.
+Todo comando que inicia trabalho é uma execução completa do agente: um clone, até 40 chamadas ao LLM e 100.000 tokens de saída, e os comandos de build e de teste do seu repositório quando você os definiu.
 
-Os comandos do GitHub são trabalho de IA fora de incidentes e alertas, então nenhum limite diário de execuções de correção se aplica a eles. O único limite que pode se aplicar é o mesmo que já governa as [Tarefas de Correção com IA](/docs/ai/ai-agent):
+Comandos do GitHub são trabalho de IA fora de incidentes e alertas, então nenhum limite diário de tarefas de correção se aplica a eles; os limites diários de IA do próprio projeto se aplicam, quando o projeto os define. O único outro limite é o que já rege as [Tarefas de correção](/docs/ai/ai-agent):
 
-- **O teto de pull requests abertos por repositório** (**Max Open Fix Pull Requests**, em **Repositórios de código → o repositório → Configurações**). Não há teto até você definir um, e 0 bloqueia os pull requests de correção com IA nesse repositório. Revisões e ajustes estão isentos: nenhum dos dois adiciona um novo pull request à sua fila de revisão.
+- **O teto de pull requests abertos** (**Max Open Fix Pull Requests**, na página **Configurações** do repositório). Não há teto até você definir um, e 0 bloqueia os pull requests de correção de IA nesse repositório. Avaliações e revisões ficam isentas: nenhuma delas adiciona um pull request à sua fila de revisão.
 
-Só uma execução de cada tipo fica ativa por issue ou pull request de cada vez. Pedir duas vezes faz ele avisar que já está trabalhando; pedir uma revisão enquanto um ajuste está rodando inicia as duas, porque são pedidos diferentes.
+Só uma execução de cada tipo fica ativa por vez em cada issue ou pull request. Pedir duas vezes informa que ela já está trabalhando; pedir uma avaliação enquanto uma revisão roda inicia as duas, já que são pedidos diferentes.
 
-Se uma execução não puder começar, o app diz o porquê na thread — ele nunca falha em silêncio.
+Se uma execução não puder começar, a app diz por quê na conversa: ela nunca falha em silêncio.
 
-## Como desligar
+## Desligando
 
-Por repositório: **Repositórios de código → o repositório → Configurações → Responder a Comandos do GitHub**. Com isso desligado, o app ignora menções, atribuições e o label de gatilho naquele repositório, e diz a quem perguntar onde fica a chave.
+Cada repositório tem uma chave: **Respond to GitHub Commands**, na página **Configurações** do repositório. Com ela desligada, a app ignora menções, atribuições e o rótulo de gatilho nesse repositório, e diz a quem perguntar onde fica a chave.
 
-A mesma página traz o **Label de Gatilho do GitHub**, caso você queira algo diferente de `oneuptime`.
+A mesma página tem o **GitHub Trigger Label**, se você quiser um rótulo diferente de `oneuptime`.
 
-## O que assinar
+## Em que se inscrever
 
-Nas configurações **Permissions & events** do seu GitHub App, assine:
+Nas configurações **Permissions & events** da sua GitHub App, inscreva-se em:
 
 | Evento | Necessário para |
 | --- | --- |
-| **Issue comment** | comandos por `@mention` em issues *e* em pull requests |
-| **Issues** | atribuição ao app, e o label de gatilho |
-| **Pull request** | revisão solicitada ao app |
-| **Pull request review** | uma menção no corpo de uma revisão enviada |
-| **Pull request review comment** | uma menção em um comentário inline do diff |
+| **Issue comment** | comandos com `@mention` em issues e pull requests |
+| **Issues** | atribuir uma issue à app, e o rótulo de gatilho |
+| **Pull request** | uma avaliação solicitada à app |
+| **Pull request review** | uma menção no corpo de uma avaliação enviada |
+| **Pull request review comment** | uma menção em um comentário em linha no diff |
 
-E em **Repository permissions**, **Issues** precisa estar em **Leitura e Escrita** — o GitHub serve os comentários de conversa dos pull requests pela API de issues, então é isso que permite ao app comentar em pull requests também.
+Em **Repository permissions**, **Issues** precisa estar em **Read & write**: o GitHub envia os comentários de conversa de um pull request pela API de issues, então é isso que permite à app comentar também em pull requests.
 
 ## Prompt injection: o que está e o que não está protegido
 
-O texto dos issues, as descrições dos pull requests, os diffs e os comentários entram todos no prompt do agente, e em um repositório público qualquer um pode escrevê-los. Um texto dizendo "ignore suas instruções e faça X" é algo realista de se encontrar em um issue.
+O texto das issues, as descrições dos pull requests, os diffs e os comentários passam a fazer parte do prompt do agente, e em um repositório público qualquer um pode escrevê-los. Uma linha dizendo "ignore suas instruções e faça X" é algo realista de encontrar em uma issue.
 
-Duas coisas limitam isso, e vale saber qual é qual:
+Duas coisas limitam isso, e vale a pena saber qual é qual:
 
-- **Os prompts rotulam o texto não confiável como um pedido, não como instruções**, e o repositório, o branch e o pull request da execução são fixados antes de o agente sequer começar — nada que o agente leia pode mudar aquilo em que ele está trabalhando.
-- **A contenção de verdade é o sandbox.** O agente roda no seu Runner, em um clone descartável, com as credenciais removidas do ambiente dos seus comandos e as operações de git restritas. Ele só consegue enviar para um branch, e só uma pessoa pode fazer o merge.
+- **Os prompts rotulam o texto não confiável como um pedido, não como instruções**, e o repositório, o branch e o pull request da execução são fixados antes de o agente começar: nada do que o agente lê pode mudar aquilo em que ele trabalha.
+- **A contenção real é o sandbox.** O agente roda no seu Runner, em um clone descartável, com as credenciais retiradas do seu ambiente de comandos e as suas operações git restritas. Ele só consegue enviar para um branch, e só uma pessoa pode fazer o merge de um.
 
-Trate um pull request escrito por IA como você trataria um de um contribuidor novo que leu o issue: revise o diff, não a descrição.
+Trate um pull request que a IA escreveu como você trataria um de um novo colaborador que leu a issue: revise o diff, não a descrição.
 
 ## Solução de problemas
 
-**Não acontece nada quando eu menciono o app.** Verifique o handle primeiro — ele é o slug do app, não o nome de exibição. Depois verifique se o repositório está conectado a um projeto (**Tarefas → Repositórios de código**), se **Responder a Comandos do GitHub** está ligado e se o seu GitHub App assina os eventos acima.
+:::details Nada acontece quando eu a menciono
+Verifique primeiro o identificador: é o slug da app, não o nome de exibição. Depois verifique se o repositório está conectado a um projeto (**Tarefas → Repositórios de código**), se **Respond to GitHub Commands** está ligado e se a sua GitHub App está inscrita nos eventos acima.
+:::
 
-**Ele reage com 😕 e não diz nada.** Você não tem acesso de escrita ao repositório.
+:::details Ela reage com 😕 e não diz nada
+Você não tem acesso de escrita ao repositório.
+:::
 
-**Ele diz que já está trabalhando nisso.** Já existe uma execução desse tipo ativa neste issue ou pull request. `@oneuptime status` diz qual é, e `@oneuptime cancel` a interrompe.
+:::details Ela diz que já está trabalhando nisso
+Uma execução desse tipo já está ativa nesta issue ou neste pull request. `@oneuptime status` diz qual é, e `@oneuptime cancel` a interrompe.
+:::
 
-**Ele confirmou e depois ficou muito tempo em silêncio.** Verifique se há um Runner com **Executa Correções de Código com IA** online em **Runbooks → Agentes de runbook**. Sem ele, a execução falha depois de 30 minutos e a thread é avisada.
+:::details Ela confirmou e depois ficou em silêncio por muito tempo
+Verifique se um Runner com **Executa correções de código por IA** está online em **Runbooks → Agentes de runbook**. Sem ele, a execução falha após 30 minutos e a conversa é avisada.
+:::
 
-**Ele diz que o pull request vem de um fork.** Ajustes precisam de um branch neste repositório. Peça uma revisão, ou envie o branch para cá.
+:::details Ela diz que o pull request vem de um fork
+Uma revisão precisa de um branch neste repositório. Peça uma avaliação em vez disso, ou envie o branch para cá.
+:::
 
-## O que ler em seguida
+## Próximos passos
 
-- [Tarefas de Correção com IA](/docs/ai/ai-agent) — o mesmo agente, disparado a partir de uma exceção em vez do GitHub.
-- [Integração com o GitHub (auto-hospedado)](/docs/self-hosted/github-integration) — criar e configurar o GitHub App.
-- [Runners](/docs/runbooks/agents) — o processo que executa as tarefas.
+:::cards
+- [Tarefas de correção](/docs/ai/ai-agent): O mesmo agente, iniciado a partir de uma exceção, um trace ou uma investigação.
+- [Integração com GitHub](/docs/self-hosted/github-integration): Crie e configure a GitHub App em uma instância auto-hospedada.
+- [Agentes de runbook](/docs/runbooks/agents): O worker que realiza cada execução.
+:::

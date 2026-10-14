@@ -4,6 +4,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import { drawnActionLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -60,7 +61,8 @@ describe("the API reference on the state a new record starts in", () => {
         "isCreatedState",
         "current_incident_state_id",
         "current_alert_state_id",
-        "**Initial State**",
+        // The create forms' field, as that language's Dashboard draws it.
+        `**${drawnActionLabel(language, "Initial State")}**`,
       ]) {
         expect(text).toContain(column);
       }

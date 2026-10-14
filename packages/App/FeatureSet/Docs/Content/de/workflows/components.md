@@ -17,6 +17,7 @@ Beim Bauen brauchen Sie sie selten offen. Die Einstellungen jedes Bausteins ende
 | -------------------------------------------------------- | ----------------------------------------------------------------- |
 | In einem Chat-Tool zu posten                             | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) oder [Mattermost](#mattermost) |
 | Eine E-Mail über Ihren eigenen Mailserver zu senden      | [E-Mail](#email)                                                  |
+| Eine Person, ein Team oder die Person in Bereitschaft zu alarmieren | [Paging](#paging) |
 | Eine SMS zu senden oder ein Telefon anzurufen            | [SMSEagle](#smseagle)                                             |
 | Jede andere API oder Ihren eigenen Dienst aufzurufen     | [API](#api)                                                       |
 | Text zusammenzufassen, einzuordnen oder zu entwerfen     | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -87,6 +88,23 @@ Verbinden Sie **Success** mit den Bausteinen, die die Antwort verwenden, und **E
 
 > [!WARNING]
 > Die Ausgabe des Modells ist nicht vertrauenswürdiger Text. Prüfen Sie sie, bevor sie Kunden erreicht, und lassen Sie nie freien KI-Text allein über eine zerstörerische Aktion entscheiden. Unter [KI-Komponenten](/docs/workflows/configuration#ki-komponenten) steht, was an den Anbieter geht, was protokolliert wird und was es kostet.
+
+## SMSEagle
+
+Eine SMS senden oder einen Text-to-Speech-Anruf tätigen, über ein SMSEagle-Gerät, ein Hardware-SMS-Gateway in Ihrem eigenen Netzwerk. **Send SMS via SMSEagle** sendet eine SMS, und **Make a Call via SMSEagle** ruft die Nummer an und liest den Text vor.
+
+| Einstellung               | Was sie tut                                                                                                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | Die Adresse des Geräts, etwa `https://192.168.0.100`. Den Pfad der API v2 ergänzt der Baustein selbst.                                                                 |
+| **SMSEagle Access Token** | Ein API-v2-Schlüssel aus der SMSEagle-Web-GUI, unter Settings, API, API v2. Er braucht die Berechtigung "Send SMS" für SMS und "Make a TTS Advanced Call" für Anrufe.  |
+| **Telefonnummer**         | Die Nummer, die eine SMS oder einen Anruf bekommt, im internationalen Format, etwa `+15551234567`.                                                                     |
+| **Message Text**          | Der Text der SMS. Nur in **Send SMS via SMSEagle**.                                                                                                                    |
+| **Voice ID**              | Die ID einer Text-to-Speech-Stimme auf dem Gerät. Nur in **Make a Call via SMSEagle**.                                                                                 |
+| **Text to Read Out**      | Der Text, den das Gerät während des Anrufs vorliest. Nur in **Make a Call via SMSEagle**.                                                                              |
+
+**Success** löst aus, wenn das Gerät die SMS oder den Anruf in die Warteschlange gestellt hat, und gibt die **Message ID** zurück, die das Gerät vergeben hat. **Error** löst aus, wenn das Gerät nicht erreichbar ist oder sie ablehnt, und gibt den Grund weiter, etwa `voice_id: Resource with specified ID not found.` von SMSEagle. Eine fehlende Einstellung oder eine **Voice ID**, die keine Zahl ist, stoppt stattdessen die Ausführung.
+
+Bewahren Sie das Zugriffstoken in einer [geheimen globalen Variable](/docs/workflows/variables#globale-variablen) auf. In den Protokollen der Ausführungen ist es so oder so verborgen. Die Anfrage geht von OneUptime aus, und eine Weiterleitung wird nicht verfolgt. Ein Gerät auf einer Loopback- (`localhost`, `127.0.0.1`), Link-Local- oder Cloud-Metadaten-Adresse wird abgelehnt, ebenso ein Gerät auf einer privaten Netzwerkadresse, es sei denn, ein Administrator einer selbst gehosteten Installation erlaubt es mit `ALLOW_PRIVATE_NETWORK_WEBHOOKS` oder `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access).
 
 ## Slack
 
@@ -200,22 +218,48 @@ Der Baustein verbindet sich direkt mit dem Server in seinen Einstellungen. Er ve
 
 Verbindungen zu Loopback (`localhost`, `127.0.0.1`), Link-Local- und Cloud-Metadaten-Adressen werden abgelehnt. In OneUptime Cloud wird auch ein SMTP-Host auf einer privaten Netzwerkadresse oder ein Name, der zu einer auflöst, abgelehnt. Selbst gehostete Installationen erreichen einen Mailserver in ihrem eigenen Netz, es sei denn, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist auf `true` gesetzt. Ein abgelehnter Host nimmt den Ausgang **Error**, und nichts wird gesendet.
 
-## SMSEagle
+## Paging
 
-Eine SMS senden oder einen Text-to-Speech-Anruf tätigen, über ein SMSEagle-Gerät, ein Hardware-SMS-Gateway in Ihrem eigenen Netzwerk. **Send SMS via SMSEagle** sendet eine SMS, und **Make a Call via SMSEagle** ruft die Nummer an und liest den Text vor.
+Personen aus einem Workflow alarmieren: Jede Person erhält einen Anruf, eine SMS, eine Push-Benachrichtigung oder eine E-Mail, wie es ihre eigenen Bereitschaftsregeln vorsehen, bis jemand bestätigt. Es gibt einen Baustein für jede Art zu sagen, wer alarmiert wird. Suchen Sie im Bereich **Komponente hinzufügen** nach `page`.
 
-| Einstellung               | Was sie tut                                                                                                                                                            |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SMSEagle URL**          | Die Adresse des Geräts, etwa `https://192.168.0.100`. Den Pfad der API v2 ergänzt der Baustein selbst.                                                                 |
-| **SMSEagle Access Token** | Ein API-v2-Schlüssel aus der SMSEagle-Web-GUI, unter Settings, API, API v2. Er braucht die Berechtigung "Send SMS" für SMS und "Make a TTS Advanced Call" für Anrufe.  |
-| **Telefonnummer**         | Die Nummer, die eine SMS oder einen Anruf bekommt, im internationalen Format, etwa `+15551234567`.                                                                     |
-| **Message Text**          | Der Text der SMS. Nur in **Send SMS via SMSEagle**.                                                                                                                    |
-| **Voice ID**              | Die ID einer Text-to-Speech-Stimme auf dem Gerät. Nur in **Make a Call via SMSEagle**.                                                                                 |
-| **Text to Read Out**      | Der Text, den das Gerät während des Anrufs vorliest. Nur in **Make a Call via SMSEagle**.                                                                              |
+| Baustein                    | Wen er alarmiert |
+| --------------------------- | ---------------- |
+| **Page Users**              | Die Personen, die Sie nennen. |
+| **Page a Team**             | Jedes Mitglied eines Teams. |
+| **Page Whoever Is On Call** | Wer in einem Bereitschaftsplan in Bereitschaft ist, wenn der Baustein läuft. |
+| **Page an On-Call Policy**  | Eine Bereitschaftsrichtlinie, die über ihre Eskalationsregeln alarmiert und sich so oft wiederholt, wie sie eingestellt ist. |
 
-**Success** löst aus, wenn das Gerät die SMS oder den Anruf in die Warteschlange gestellt hat, und gibt die **Message ID** zurück, die das Gerät vergeben hat. **Error** löst aus, wenn das Gerät nicht erreichbar ist oder sie ablehnt, und gibt den Grund weiter, etwa `voice_id: Resource with specified ID not found.` von SMSEagle. Eine fehlende Einstellung oder eine **Voice ID**, die keine Zahl ist, stoppt stattdessen die Ausführung.
+Die ersten drei alarmieren alle, die sie nennen, gleichzeitig und danach niemanden mehr. Für eine Eskalation verwenden Sie **Page an On-Call Policy**.
 
-Bewahren Sie das Zugriffstoken in einer [geheimen globalen Variable](/docs/workflows/variables#globale-variablen) auf. In den Protokollen der Ausführungen ist es so oder so verborgen. Die Anfrage geht von OneUptime aus, und eine Weiterleitung wird nicht verfolgt. Ein Gerät auf einer Loopback- (`localhost`, `127.0.0.1`), Link-Local- oder Cloud-Metadaten-Adresse wird abgelehnt, ebenso ein Gerät auf einer privaten Netzwerkadresse, es sei denn, ein Administrator einer selbst gehosteten Installation erlaubt es mit `ALLOW_PRIVATE_NETWORK_WEBHOOKS` oder `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Siehe [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access).
+Um nur zu alarmieren, wenn etwas zutrifft, setzen Sie [If / Else](#conditions) vor den Baustein und verbinden Sie den Ausgang, der alarmieren soll, mit ihm. Bei mehr als zwei Wegen nimmt [Switch / Case](#switch-case) für jeden Wert einen Weg, und jeder Weg kann jemand anderen alarmieren.
+
+```mermaid title="Alarmieren, wer in Bereitschaft ist, aber nur bei kritischen Vorfällen"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+Wenn Sie einen Workflow anlegen, halten die Vorlagen unter **Bereitschaft** diesen bereit, und einen, der mit **Switch / Case** nach Schweregrad alarmiert. Wer alarmiert wird, überlässt eine Vorlage Ihnen: Der Workflow öffnet sich im Editor, wo jeder Baustein zum Alarmieren **Click to set up** anzeigt.
+
+| Einstellung | Was sie tut |
+| ----------- | ----------- |
+| **Users**, **Teams**, **On-Call Schedules** oder **On-Call Policies** | Wer alarmiert wird: Jeder Baustein hat die Einstellung, die zu seinem Namen gehört. Wählen Sie nach Namen, oder drücken Sie **{ }** am Ende der Zeile, um einen Wert aus einem früheren Baustein hinzuzufügen. Ein Wert kann eine ID oder mehrere enthalten und, bei **Users**, eine E-Mail-Adresse. |
+| **Page About** | Worum es bei der Alarmierung geht: **A new alert**, **An incident** oder **An alert**. Die Alarmierung zu bestätigen, bestätigt auch die Warnung oder den Vorfall. |
+| **Title** und **Message** | Für eine neue Warnung. OneUptime legt daraus eine Warnung an, und sie bleibt wie jede andere bei Ihren Warnungen. |
+| **Incident ID** oder **Alert ID** | Für einen Vorfall oder eine Warnung, die es schon gibt, meist die, mit der der Workflow begonnen hat: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | Für eine neue Warnung, unter **Weitere Felder**. Sie entscheidet, welche Bereitschaftsregeln jeder Person sie alarmieren. Bleibt sie leer, ist es der höchste Schweregrad des Projekts. |
+
+Ein Baustein, der zu einem Workflow hinzugefügt wird, der mit einem Vorfall oder einer Warnung beginnt, ist schon darauf eingestellt, zu diesem Datensatz zu alarmieren, sodass er nur noch fragt, wer alarmiert wird.
+
+**Success** läuft, sobald mindestens eine Person alarmiert ist oder eine Richtlinie gestartet wurde. **Error** läuft, wenn niemand alarmiert wurde, und der Wert **Error** des Bausteins sagt, warum, zum Beispiel, dass im Plan niemand in Bereitschaft ist. **Summary** sagt in einem Satz, wer alarmiert wurde und wer ausgelassen wurde, fertig zum Posten in einem Kanal, und **Paged Users** listet die alarmierten Personen auf.
+
+Wer abwesend ist, wird nicht alarmiert: Stattdessen wird alarmiert, wen die Benutzervertretung der Person als Vertretung nennt. Eine Alarmierung nennt höchstens 100 Personen, Teams und Pläne. Siehe [Wie jede Person erreicht wird](/docs/on-call/escalation-rules#wie-jede-person-erreicht-wird).
+
+Eine Alarmierung ohne Bereitschaftsrichtlinie dahinter wird bei den Läufen der Richtlinien als **Direkte Alarmierung** aufgeführt: in den Bereitschaftsprotokollen des Vorfalls oder der Warnung, in deren Feed und Slack- oder Microsoft-Teams-Kanal und in den Protokollen jeder alarmierten Person. Sie bleibt 30 Minuten offen und danach so lange, wie noch Alarmierungen hinausgehen. Hat bis dahin niemand bestätigt, endet sie, ohne jemand anderen zu alarmieren.
+
+> [!WARNING]
+> **Arbeitsablauf ausführen** alarmiert Personen wirklich, ob der Workflow ein- oder ausgeschaltet ist, und **Nur diesen Schritt ausführen** ebenso. Tragen Sie beim Testen sich selbst ein.
 
 ## Custom Code
 
@@ -265,27 +309,27 @@ Seine Einstellungen lesen sich wie ein Satz: **Wenn** *zu prüfender Wert* *Verg
 
 | Einstellung        | Was sie tut                                                                                                                                  |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Value to check** | Meist ein Wert aus einem früheren Baustein. Drücken Sie **{ }** im Feld, um einen zu wählen, oder tippen Sie `{{`.                            |
-| **Comparison**     | Wie verglichen wird, in Worten. Die Vergleiche stehen unten.                                                                                 |
-| **Compare with**   | Womit verglichen wird, getippt oder auf dieselbe Weise gewählt. **ist leer**, **ist nicht leer**, **is true** und **is false** verwenden es nicht. |
-| **Compare as**     | Unter dem Vergleich eingeklappt: **Text**, **Zahl** oder **True / False**. Wählen Sie **Text**, um als `2026-10-01` geschriebene Daten zu ordnen, oder **Zahl**, damit `200` und `200.0` gleich sind. |
+| **Zu prüfender Wert** | Meist ein Wert aus einem früheren Baustein. Drücken Sie **{ }** im Feld, um einen zu wählen, oder tippen Sie `{{`.                            |
+| **Vergleich**     | Wie verglichen wird, in Worten. Die Vergleiche stehen unten.                                                                                 |
+| **Vergleichen mit**   | Womit verglichen wird, getippt oder auf dieselbe Weise gewählt. **ist leer**, **ist nicht leer**, **ist wahr** und **ist falsch** verwenden es nicht. |
+| **Vergleichen als**     | Unter dem Vergleich eingeklappt: **Text**, **Zahl** oder **Wahr / Falsch**. Wählen Sie **Text**, um als `2026-10-01` geschriebene Daten zu ordnen, oder **Zahl**, damit `200` und `200.0` gleich sind. |
 
 Die Vergleiche:
 
-- **is equal to** und **is not equal to**;
+- **ist gleich** und **ist ungleich**;
 - für Text: **enthält**, **enthält nicht**, **beginnt mit** und **endet mit**;
-- für Zahlen: **ist größer als**, **is greater than or equal to**, **ist kleiner als** und **is less than or equal to**;
+- für Zahlen: **ist größer als**, **ist größer oder gleich**, **ist kleiner als** und **ist kleiner oder gleich**;
 - **ist leer** und **ist nicht leer**, die prüfen, ob der Wert überhaupt da ist;
-- **is true** und **is false**.
+- **ist wahr** und **ist falsch**.
 
-Die Zahlenvergleiche vergleichen Zahlen und die Textvergleiche Text, daher brauchen Sie **Compare as** selten. So werden die Werte verglichen:
+Die Zahlenvergleiche vergleichen Zahlen und die Textvergleiche Text, daher brauchen Sie **Vergleichen als** selten. So werden die Werte verglichen:
 
 - Als Text zählen Großbuchstaben: `Error` ist nicht `error`.
 - Als Zahlen zählt Text, der keine Zahl ist, als `0`. Die Einstellungen weisen auf einen solchen getippten Wert hin.
 - Als wahr oder falsch zählt nur `true` als wahr.
 - **ist leer** wird erfüllt von gar nichts, leerem Text, einer leeren Liste oder einem leeren Objekt oder einem Wert, den der frühere Baustein nicht hatte, etwa einem Feld, das der Webhook nicht gesendet hat. `0` und `false` sind Werte, also nicht leer.
 
-**Yes** läuft, wenn die Bedingung erfüllt ist, und **No**, wenn nicht. Bausteine, die eingerichtet wurden, bevor die Einstellungen diese Namen hatten, laufen genau wie zuvor. Eine alte Wahl wird nicht mehr angeboten: einen Wert als **Null** oder **Undefined** zu vergleichen, was ignorierte, was der Wert enthielt. Ein Baustein, der sie noch verwendet, sagt das, wenn Sie ihn öffnen; wählen Sie **ist leer**, um auf einen fehlenden Wert zu prüfen.
+**Yes** läuft, wenn die Bedingung erfüllt ist, und **No**, wenn nicht. Bausteine, die eingerichtet wurden, bevor die Einstellungen diese Namen hatten, laufen genau wie zuvor. Eine alte Wahl wird nicht mehr angeboten: einen Wert als **Null** oder **Undefiniert** zu vergleichen, was ignorierte, was der Wert enthielt. Ein Baustein, der sie noch verwendet, sagt das, wenn Sie ihn öffnen; wählen Sie **ist leer**, um auf einen fehlenden Wert zu prüfen.
 
 ## Switch / Case
 
@@ -295,12 +339,12 @@ Er vergleicht einen Wert der Reihe nach von oben mit jedem seiner Fälle und geh
 
 | Einstellung        | Was sie tut |
 | ------------------ | ----------- |
-| **Value to check** | Der Wert, mit dem jeder Fall verglichen wird, meist aus einem früheren Baustein. Drücken Sie **{ }** im Feld, um einen zu wählen, oder tippen Sie `{{`. |
+| **Zu prüfender Wert** | Der Wert, mit dem jeder Fall verglichen wird, meist aus einem früheren Baustein. Drücken Sie **{ }** im Feld, um einen zu wählen, oder tippen Sie `{{`. |
 | **Cases**          | Ein Vergleich und ein Wert für jeden Weg, von oben geprüft. Drücken Sie **Fall hinzufügen** für einen weiteren, und ziehen Sie einen Fall an seinem Griff, um ihn zu verschieben. Ein Baustein enthält höchstens 25 Fälle. |
 
-Jeder Fall ist ein Ausgang auf der Arbeitsfläche, benannt nach seinem Wert: Ein Fall mit **is equal to** `production` ist der Ausgang *production*, und einer mit **ist größer als** `500` ist *is greater than 500*. **Default** ist immer der letzte Ausgang. Verbinden Sie jeden Ausgang mit dem, was als Nächstes laufen soll.
+Jeder Fall ist ein Ausgang auf der Arbeitsfläche, benannt nach seinem Wert: Ein Fall mit **ist gleich** `production` ist der Ausgang *production*, und einer mit **ist größer als** `500` ist *is greater than 500*. **Default** ist immer der letzte Ausgang. Verbinden Sie jeden Ausgang mit dem, was als Nächstes laufen soll.
 
-Ein Fall passt genau dann, wenn ein [If / Else](#conditions) mit demselben Vergleich und Wert **Yes** nehmen würde: Die Vergleiche sind dieselben, und die Werte werden auf dieselbe Weise verglichen. **Compare as** ist unter den Fällen eingeklappt, mit einer Wahl für jeden Fall.
+Ein Fall passt genau dann, wenn ein [If / Else](#conditions) mit demselben Vergleich und Wert **Yes** nehmen würde: Die Vergleiche sind dieselben, und die Werte werden auf dieselbe Weise verglichen. **Vergleichen als** ist unter den Fällen eingeklappt, mit einer Wahl für jeden Fall.
 
 Wenn Sie einen Fall entfernen, der eine Verbindung hat, zeigen die Einstellungen, zu welchen Bausteinen er führte, und **Wiederherstellen** holt den Fall zurück. Beim Speichern wird die Verbindung zusammen mit dem Fall entfernt. Die Prüfungen des Editors weisen auf einen Fall hin, mit dem nichts verbunden ist, und auf einen Fall, der nie genommen wird, weil ein Fall darüber dasselbe fragt.
 
@@ -384,7 +428,7 @@ Eine Abfrage ist immer auf das Projekt beschränkt, in dem der Workflow läuft. 
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Ein Schlüssel, der keine Spalte ist, wird ignoriert statt abgelehnt – das Protokoll der Ausführung nennt die verworfenen, schauen Sie also dort nach, wenn ein Feld nicht ankommt. **Select Fields** bei den Find-Komponenten und den Triggern verwendet dieselben Spaltenschlüssel mit `true`-Werten: `{"_id": true, "name": true}`.
+Ein Schlüssel, der keine Spalte ist, wird ignoriert statt abgelehnt – das Protokoll der Ausführung nennt die verworfenen, schauen Sie also dort nach, wenn ein Feld nicht ankommt. **Fields to pass on** bei den Find-Komponenten und den Triggern wird aus einer Liste gewählt; **Als JSON bearbeiten** zeigt dort dieselben Spaltenschlüssel mit `true`-Werten: `{"_id": true, "name": true}`.
 
 **Custom fields** sind eine Spalte, `customFields`, die den Wert jedes benutzerdefinierten Felds unter dem Namen des Felds enthält. Die Update-Komponenten ändern nur die benutzerdefinierten Felder, die Sie nennen, und jedes andere behält seinen Wert:
 

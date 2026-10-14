@@ -32,8 +32,19 @@ import {
 } from "../../../../Types/ToolImport/ToolImportPlan";
 import ToolImportResourceKind from "../../../../Types/ToolImport/ToolImportResourceKind";
 import ToolImportRunStatus from "../../../../Types/ToolImport/ToolImportRunStatus";
-import { ToolImportSnapshot } from "../../../../Types/ToolImport/ToolImportSnapshot";
+import {
+  ImportedStatusPageSubscriber,
+  ToolImportSnapshot,
+} from "../../../../Types/ToolImport/ToolImportSnapshot";
 import ToolImportSource from "../../../../Types/ToolImport/ToolImportSource";
+import {
+  PUBLIC_PAGE_ID,
+  STATUSPAGE_KEY,
+  statuspageApi,
+  statuspagePaged,
+  statuspageSubscribers,
+} from "./AtlassianStatuspageFixtures";
+import * as BetterStack from "./BetterStackFixtures";
 import {
   GRAFANA_API_URL,
   GRAFANA_HOST,
@@ -124,7 +135,11 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: { readState: jest.fn(), readAccess: jest.fn() },
+      default: {
+        readState: jest.fn(),
+        readAccess: jest.fn(),
+        readImportedSubscriberIds: jest.fn(),
+      },
     };
   },
 );
@@ -1458,6 +1473,111 @@ describe("ToolImportRunExecutor: uptime and status page tools read over their AP
       ToolImportResourceKind.Monitor,
       ToolImportResourceKind.StatusPage,
     ]);
+  });
+
+  test("a Statuspage run is read past the subscribers earlier imports of it brought over", async () => {
+    (
+      ToolImportProjectStateReader.readImportedSubscriberIds as jest.Mock
+    ).mockResolvedValue(new Set<string>(["sub-0", "sub-1", "sub-2"]));
+
+    const api: FixtureApi = statuspageApi().add({
+      path: `/v1/pages/${PUBLIC_PAGE_ID}/subscribers`,
+      answers: [statuspagePaged(statuspageSubscribers(5, 0))],
+    });
+    ToolImportRunExecutor.transportFactory = () => {
+      return api.transport;
+    };
+
+    const runId: string = runs.add({
+      source: ToolImportSource.AtlassianStatuspage,
+      status: ToolImportRunStatus.Reading,
+      apiKey: STATUSPAGE_KEY,
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    const row: Record<string, unknown> = runs.get(runId);
+
+    expect(
+      ToolImportProjectStateReader.readImportedSubscriberIds,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      source: ToolImportSource.AtlassianStatuspage,
+    });
+    expect(row["status"]).toBe(ToolImportRunStatus.ReadyToReview);
+    expect(
+      ((row["snapshot"] as ToolImportSnapshot).statusPageSubscribers || []).map(
+        (subscriber: ImportedStatusPageSubscriber): string => {
+          return subscriber.sourceId;
+        },
+      ),
+    ).toEqual(["sub-3", "sub-4"]);
+  });
+
+  test("a Better Stack run is read past the subscribers earlier imports of it brought over", async () => {
+    const subscribers: Array<Record<string, unknown>> =
+      BetterStack.betterStackSubscribers(5, 0);
+    const ids: Array<string> = subscribers.map(
+      (subscriber: Record<string, unknown>): string => {
+        return subscriber["id"] as string;
+      },
+    );
+
+    (
+      ToolImportProjectStateReader.readImportedSubscriberIds as jest.Mock
+    ).mockResolvedValue(new Set<string>(ids.slice(0, 3)));
+
+    const api: FixtureApi = BetterStack.betterStackApi().add({
+      path: `/api/v2/status-pages/${BetterStack.PUBLIC_PAGE_ID}/subscribers`,
+      answers: [BetterStack.betterStackPaged(subscribers)],
+    });
+    ToolImportRunExecutor.transportFactory = () => {
+      return api.transport;
+    };
+
+    const runId: string = runs.add({
+      source: ToolImportSource.BetterStack,
+      status: ToolImportRunStatus.Reading,
+      apiKey: BetterStack.BETTER_STACK_TOKEN,
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    const row: Record<string, unknown> = runs.get(runId);
+
+    expect(
+      ToolImportProjectStateReader.readImportedSubscriberIds,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      source: ToolImportSource.BetterStack,
+    });
+    expect(row["status"]).toBe(ToolImportRunStatus.ReadyToReview);
+    expect(
+      ((row["snapshot"] as ToolImportSnapshot).statusPageSubscribers || []).map(
+        (subscriber: ImportedStatusPageSubscriber): string => {
+          return subscriber.sourceId;
+        },
+      ),
+    ).toEqual(ids.slice(3));
+  });
+
+  test("a tool that brings no subscribers does not look for the ones brought over", async () => {
+    ToolImportRunExecutor.transportFactory = () => {
+      return uptimeRobotApi().transport;
+    };
+
+    const runId: string = runs.add({
+      source: ToolImportSource.UptimeRobot,
+      status: ToolImportRunStatus.Reading,
+      apiKey: UPTIMEROBOT_KEY,
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    expect(runs.get(runId)["status"]).toBe(ToolImportRunStatus.ReadyToReview);
+    expect(
+      ToolImportProjectStateReader.readImportedSubscriberIds,
+    ).not.toHaveBeenCalled();
   });
 
   test("a tool read from a file is never read with a key", () => {

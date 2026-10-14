@@ -289,7 +289,36 @@ describe("The native launch screen matches the app", () => {
     });
     expect(staticApp.plugins).toContainEqual([
       "expo-notifications",
-      { color: "#58A6FF" },
+      expect.objectContaining({ color: "#58A6FF" }),
+    ]);
+  });
+
+  test("bundles every alarm sound a critical page can name, and nothing else", () => {
+    /*
+     * iOS plays a custom sound only from the app bundle and Android only from
+     * res/raw; the expo-notifications plugin's `sounds` list is what copies
+     * the files into both. A sound missing here plays the default sound on
+     * iOS and, on an Android channel created with it, nothing at all.
+     */
+    const plugin: string | [string, Record<string, unknown>] | undefined =
+      staticApp.plugins.find(
+        (item: string | [string, Record<string, unknown>]): boolean => {
+          return Array.isArray(item) && item[0] === "expo-notifications";
+        },
+      );
+
+    expect(Array.isArray(plugin)).toBe(true);
+
+    const sounds: Array<string> = (
+      plugin as [string, { sounds?: Array<string> }]
+    )[1].sounds as Array<string>;
+
+    expect(sounds).toEqual([
+      "./assets/sounds/oneuptime_klaxon.wav",
+      "./assets/sounds/oneuptime_siren.wav",
+      "./assets/sounds/oneuptime_digital.wav",
+      "./assets/sounds/oneuptime_smoke_alarm.wav",
+      "./assets/sounds/oneuptime_rising.wav",
     ]);
   });
 });

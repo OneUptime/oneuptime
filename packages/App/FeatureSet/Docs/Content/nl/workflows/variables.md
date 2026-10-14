@@ -210,7 +210,7 @@ Bijna elk tekstveld accepteert variabelen:
 - Headers en velden in de body (binnen stringwaarden).
 - Beide kanten van een **If / Else**-blok.
 
-In JSON-velden — **Data (JSON Object)**, **Query** en **Select Fields** bij de recordcomponenten, de **Request Body** van een API-blok, de **Arguments** van **Run Custom JavaScript** — wordt een verwijzing ingevuld naargelang waar ze staat:
+In JSON-velden — **Data (JSON Object)** en **Query** bij de recordcomponenten, de **Request Body** van een API-blok, de **Arguments** van **Run Custom JavaScript** — wordt een verwijzing ingevuld naargelang waar ze staat:
 
 - **Tussen aanhalingstekens is het tekst.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` zet de waarde in de string. Aanhalingstekens, backslashes en regeleinden in de waarde worden ge-escaped, zodat de JSON geldig blijft en de waarde één string blijft.
 - **Op zichzelf is het de waarde zelf.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` voegt het hele object in, een lijst blijft een lijst en een getal blijft een getal. Tekst die zelf JSON is — `5`, `true` of een object dat een blok als JSON-tekst teruggaf — gaat erin als die waarde. Alle andere tekst gaat erin als string.
@@ -238,7 +238,7 @@ Deze **Message Text** somt bijvoorbeeld elke waarschuwing op die een webhook stu
 Er komt een webhook binnen met een body zoals `{ "service": "checkout", "status": "failed" }`. Om daar een OneUptime-incident van te maken:
 
 1. Een **Webhook**-trigger met de ID `ci-webhook`.
-2. Een **If / Else**-blok: **Value to check** is het veld `status` van de Request Body van de webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison** is **is equal to** en **Compare with** is `failed`.
+2. Een **If / Else**-blok: **Te controleren waarde** is het veld `status` van de Request Body van de webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Vergelijking** is **is gelijk aan** en **Vergelijken met** is `failed`.
 3. Vanuit de tak **Yes** een **Create One Incident**-blok met:
    - Titel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beschrijving: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`

@@ -61,7 +61,7 @@ Ouvrez **Paramètres utilisateur** > **Calendrier** > **Flux de calendrier** dan
 Cliquez sur **Générer le lien du calendrier**. La carte **S'abonner à vos permanences d'astreinte** propose alors un seul parcours d'abonnement :
 
 - **Ajouter à votre agenda** : **Google Agenda** ouvre Google Agenda, qui demande s'il faut ajouter le calendrier. **Apple Calendrier / Outlook** ouvre la forme `webcal://` du lien dans l'application avec laquelle votre ordinateur ou votre téléphone s'abonne : Calendrier Apple sur Mac, iPhone ou iPad, Outlook sous Windows.
-- **Ou copiez le lien** : **Copier le lien** copie le lien `https://` pour toute autre application capable de s'abonner à un calendrier par URL. Le lien reste masqué sur la page jusqu'à ce que vous cliquiez pour l'afficher.
+- **Ou copiez le lien** : **Copier le lien** copie le lien `https://` pour toute autre application capable de s'abonner à un calendrier par URL, sans l'afficher. Le lien reste masqué sur la page jusqu'à ce que vous cliquiez sur **Afficher**.
 
 ### S'abonner au lien
 
@@ -78,15 +78,23 @@ Cliquez sur **Modifier les paramètres** sur la carte **Paramètres du flux de c
 | **Jours de permanences passées** | Jusqu'où le calendrier remonte (2 par défaut, 60 au plus). |
 | **Jours à venir** | Jusqu'où le calendrier s'étend (90 par défaut, entre 7 et 180). |
 
-La ligne d'état indique quand le lien a été lu pour la dernière fois, par quelle application de calendrier, combien de fois, et les quatre derniers caractères du jeton pour distinguer les liens. Si rien n'a lu le lien au bout de deux jours, la page demande si le serveur est joignable depuis Internet (voir Dépannage).
+Le panneau **Statut**, à côté des options d'abonnement, indique si le lien fonctionne : quand il a été lu pour la dernière fois et par quelle application de calendrier, environ combien de fois, et les quatre derniers caractères du jeton pour distinguer les liens. Son badge affiche :
+
+- **Actif** : une application de calendrier a lu le lien.
+- **En attente de la première synchronisation** : rien n'a encore lu le lien. La plupart des applications le font dans les minutes qui suivent l'abonnement ; Google Agenda peut mettre quelques heures.
+- **Pas encore récupéré** : rien n'a lu le lien dans les deux jours qui ont suivi sa création, donc la page demande si le serveur est joignable depuis l'endroit où tourne votre application de calendrier (voir Dépannage).
+- **Désactivé** : le lien sert un calendrier vide jusqu'à ce que vous cliquiez sur **Activer le lien**.
+- **À régénérer** : le lien enregistré ne peut plus être lu, généralement parce que le secret de chiffrement du serveur a changé. **Régénérer le lien** en crée un nouveau.
 
 ### Gérer le lien
+
+Le reste se trouve dans le menu **⋯** de la carte. **Régénérer le lien** et **Supprimer le lien** demandent confirmation avant d'agir.
 
 | Action | Ce qui se passe |
 | --- | --- |
 | **Régénérer le lien** | Crée un nouveau jeton. Toute application abonnée à l'ancien lien cesse d'être mise à jour : pendant 30 jours, l'ancien lien sert un calendrier vide pour que ces applications vident leur copie, puis il répond 404. Réabonnez-vous avec le nouveau lien. |
-| **Désactiver** | Conserve le lien mais sert un calendrier vide jusqu'à ce que vous le réactiviez. |
-| **Supprimer** | Supprime le lien. Les applications qui l'interrogent encore reçoivent 404 et continuent d'afficher ce qu'elles ont lu en dernier — désactivez d'abord si vous voulez qu'elles se vident. |
+| **Désactiver le lien** | Conserve le lien mais sert un calendrier vide jusqu'à ce que vous cliquiez sur **Activer le lien**, dans le même menu ou dans le panneau **Statut**. |
+| **Supprimer le lien** | Supprime le lien. Les applications qui l'interrogent encore reçoivent 404 et continuent d'afficher ce qu'elles ont lu en dernier — désactivez d'abord si vous voulez qu'elles se vident. |
 
 ### Permanences à venir et remplacement
 
@@ -109,7 +117,7 @@ Utilisez **Google Agenda** ou **Apple Calendrier / Outlook** dans OneUptime lors
 
 Le bouton **Google Agenda** ouvre la page d'ajout par URL de Google, `https://calendar.google.com/calendar/r?cid=` suivi de la forme `webcal://` du lien, encodée en pourcentage. Cette page n'accepte que la forme `webcal://` : avec la forme `https://`, Google répond « Unable to add calendar. Check the URL. ». **À partir de l'URL** accepte les deux formes.
 
-Google relit le flux **depuis les serveurs de Google** : le serveur OneUptime doit donc être joignable depuis Internet — OneUptime Cloud l'est toujours ; pour une installation auto-hébergée, voir Dépannage. La première lecture a généralement lieu quelques minutes après l'abonnement ; ensuite, Google actualise environ toutes les 8 à 24 heures, parfois moins souvent. Il n'y a pas de bouton d'actualisation pour les agendas abonnés, et Google ignore les indications d'actualisation du flux. La ligne d'état de la page du flux affiche **Dernière récupération … par Google Calendar** dès que Google a lu le lien.
+Google relit le flux **depuis les serveurs de Google** : le serveur OneUptime doit donc être joignable depuis Internet — OneUptime Cloud l'est toujours ; pour une installation auto-hébergée, voir Dépannage. La première lecture a généralement lieu quelques minutes après l'abonnement ; ensuite, Google actualise environ toutes les 8 à 24 heures, parfois moins souvent. Il n'y a pas de bouton d'actualisation pour les agendas abonnés, et Google ignore les indications d'actualisation du flux. Le statut sur la carte affiche **Dernière récupération … par Google Calendar** dès que Google a lu le lien.
 
 Le nom et le fuseau horaire du calendrier ne sont lus **qu'au premier abonnement** : renommer un planning plus tard ne renomme pas le calendrier dans Google — supprimez-le et rajoutez-le si le nom compte. Google ignore les rappels contenus dans les fichiers de calendrier ; définissez donc des notifications par défaut sur cet agenda dans les réglages de Google, ou mieux, utilisez les rappels de OneUptime. Google se souvient d'une adresse qu'il n'a pas pu lire : après avoir corrigé ce qui l'en empêchait, ajoutez de nouveau le lien suivi de `?nocache=1` (OneUptime ignore les paramètres de requête inconnus, le flux reste identique) ou régénérez le lien. L'application Google Agenda sur Android et iOS ne peut pas s'abonner à une URL ; ajoutez le lien sur un ordinateur et il apparaît sur le téléphone.
 @tab Outlook sur le web
@@ -194,7 +202,7 @@ Un lien partagé appartient au **projet**, pas à la personne qui l'a copié, et
 
 ### Flux de planning
 
-Sur la page d'un planning, la carte **S'abonner à ce planning** a deux moitiés : **Uniquement mes permanences sur ce planning** (votre lien personnel avec un filtre de planning) et **Permanences de tous sur ce planning (lien d'équipe partagé)**. Quiconque a la permission **Modifier** sur les plannings peut le publier avec **Publier le lien partagé**, le renouveler avec **Régénérer le lien** ou l'arrêter avec **Désactiver** ; quiconque peut lire le planning peut le copier. La carte indique quand le lien a été renouvelé pour la dernière fois.
+Sur la page d'un planning, la carte **S'abonner à ce planning** a deux moitiés : **Uniquement mes permanences sur ce planning** (votre lien personnel avec un filtre de planning) et **Permanences de tous sur ce planning (lien d'équipe partagé)**. Quiconque a la permission **Modifier** sur les plannings peut le publier avec **Publier le lien partagé**, puis, depuis le menu **⋯** de la carte, le renouveler avec **Régénérer le lien** ou l'arrêter avec **Désactiver le lien** ; quiconque peut lire le planning peut le copier. Le statut de la carte indique quand le lien a été renouvelé pour la dernière fois.
 
 ### Flux de projet
 
@@ -231,7 +239,7 @@ Le flux montre la rotation **telle qu'elle est configurée aujourd'hui**, y comp
 
 - Le jeton du lien est le seul identifiant. Quiconque possède le lien voit les permanences — noms, plannings, politiques — jusqu'à sa régénération. Ne collez pas de liens dans des salons de discussion ou des tickets ; lorsqu'une équipe a besoin d'un calendrier, partagez le lien du planning ou du projet plutôt que votre lien personnel.
 - Les liens sont propres à chaque projet. Un lien personnel divulgué expose les permanences d'un seul projet, pas de tous les projets dont vous êtes membre.
-- Régénérer un lien place l'ancien jeton dans une période de grâce de 30 jours (calendrier vide, puis 404). **Désactiver** sert un calendrier vide. Un lien inconnu ou expiré répond par un simple 404 sans indication. Les calendriers vides poussent les applications abonnées à vider leur copie ; un 404 les fait la conserver, c'est pourquoi désactiver et régénérer servent des calendriers vides.
+- Régénérer un lien place l'ancien jeton dans une période de grâce de 30 jours (calendrier vide, puis 404). **Désactiver le lien** sert un calendrier vide. Un lien inconnu ou expiré répond par un simple 404 sans indication. Les calendriers vides poussent les applications abonnées à vider leur copie ; un 404 les fait la conserver, c'est pourquoi désactiver et régénérer servent des calendriers vides.
 - Les jetons sont stockés hachés ; la copie affichée sur la page des paramètres est chiffrée avec `ENCRYPTION_SECRET`. Définissez cette variable avec un vrai secret sur une installation auto-hébergée — le serveur avertit au démarrage lorsqu'elle n'est pas définie ou vaut encore l'une des valeurs d'exemple que fournit ce dépôt (`secret`, ou le `please-change-this-to-random-value` que définit `config.example.env`). Si vous la changez ensuite, la page propose **Régénérer le lien** car la copie stockée ne peut plus être lue ; le flux continue de fonctionner jusqu'à ce que vous le fassiez.
 - Les réponses des flux sont marquées `Cache-Control: private`, exclues des moteurs de recherche (`X-Robots-Tag: noindex`) et limitées en débit par lien et par adresse cliente.
 
@@ -277,7 +285,7 @@ Les anciennes versions de OneUptime plaçaient la forme `https://` du lien dans 
 :::
 
 :::details Google Agenda affiche l'agenda mais aucune permanence
-Vérifiez d'abord la ligne d'état de la page du flux. **Dernière récupération … par Google Calendar** signifie que Google a lu le lien : ouvrez le lien dans un navigateur et regardez ce qu'il sert — un calendrier vide indique sa raison dans `X-WR-CALDESC` (voir « Le calendrier est vide » ci-dessous).
+Vérifiez d'abord le statut sur la carte. **Dernière récupération … par Google Calendar** signifie que Google a lu le lien : ouvrez le lien dans un navigateur et regardez ce qu'il sert — un calendrier vide indique sa raison dans `X-WR-CALDESC` (voir « Le calendrier est vide » ci-dessous).
 
 **Pas encore récupéré** signifie que Google n'a pas pu le lire : depuis une machine hors de votre réseau, `curl -sI <link>` doit répondre immédiatement `200` avec `Content-Type: text/calendar`. Une redirection, une page de connexion, un pare-feu ou une vérification anti-robots devant OneUptime bloque le lecteur de Google ; une boucle de redirection des anciennes versions de OneUptime le faisait aussi, sur les installations avec `PROVISION_SSL=true` dont TLS se termine devant Nginx. Une fois qu'il répond `200`, ajoutez de nouveau le lien suivi de `?nocache=1` pour que Google le relise.
 :::
@@ -285,7 +293,7 @@ Vérifiez d'abord la ligne d'état de la page du flux. **Dernière récupératio
 :::details Rien n'a lu le lien, ou « Impossible de récupérer l'URL »
 Google Agenda, Outlook sur le web, Fastmail et Proton lisent **depuis leurs propres serveurs** : l'hôte OneUptime doit donc être joignable depuis l'Internet public avec un certificat qu'ils reconnaissent. Une installation sur un réseau privé, derrière un VPN ou avec une autorité de certification interne leur est inaccessible, quoi que vous colliez.
 
-Calendrier Apple, Thunderbird et Outlook classique lisent depuis l'appareil : ils fonctionnent partout où l'appareil peut ouvrir le tableau de bord — après avoir approuvé le certificat sur cet appareil s'il est auto-signé. La ligne d'état de la page du flux vous dit si quelque chose a déjà lu le lien ; `curl -I` sur le lien depuis l'extérieur de votre réseau est la vérification la plus rapide :
+Calendrier Apple, Thunderbird et Outlook classique lisent depuis l'appareil : ils fonctionnent partout où l'appareil peut ouvrir le tableau de bord — après avoir approuvé le certificat sur cet appareil s'il est auto-signé. Le statut sur la carte vous dit si quelque chose a déjà lu le lien ; `curl -I` sur le lien depuis l'extérieur de votre réseau est la vérification la plus rapide :
 
 ```bash
 curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"

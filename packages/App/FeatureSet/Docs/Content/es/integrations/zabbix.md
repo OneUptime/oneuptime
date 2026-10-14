@@ -1,65 +1,149 @@
-# Integración con Zabbix
+# Zabbix
 
-[Zabbix](https://www.zabbix.com) vigila tus servidores y red; OneUptime gestiona la respuesta a incidentes, la guardia y las páginas de estado. Conecta ambos y cada problema de Zabbix se convierte automáticamente en un incidente de OneUptime — para que se notifique a las personas correctas y tu página de estado permanezca actualizada.
+Envía los problemas de [Zabbix](https://www.zabbix.com) a OneUptime, para que cada problema se convierta en un incidente que avisa a tu equipo de guardia y se resuelve cuando Zabbix se recupera. Zabbix envía cada problema mediante un tipo de medio webhook, así que no hay nada que instalar en ninguno de los dos lados.
 
-Esta integración es **entrante**: Zabbix envía problemas a OneUptime. Usa un **tipo de medio webhook** de Zabbix en un lado y un **[Workflow](/docs/workflows/index)** de OneUptime en el otro. Sin plugins, sin servicios adicionales.
-
-```text
-Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workflow (Webhook trigger)  ──►  Create Incident
-```
+:::cards
+- [Elegir cómo recibe OneUptime los problemas](#elegir-cómo-recibe-oneuptime-los-problemas): Un monitor de solicitudes entrantes o un flujo de trabajo propio.
+- [Recibir problemas con un monitor](#recibir-problemas-con-un-monitor): Un incidente por problema, resuelto con la recuperación.
+- [Configurar Zabbix](#configurar-zabbix): Un tipo de medio, un usuario y una acción.
+- [Solución de problemas](#solución-de-problemas): Cuando los problemas no llegan o los incidentes siguen abiertos.
+:::
 
 ## Cómo funciona
 
-1. Un disparador de Zabbix cambia a **PROBLEM**.
-2. Una **acción** de Zabbix le indica al tipo de medio **OneUptime** que envíe el evento.
-3. El script del tipo de medio hace un POST de una pequeña carga útil JSON a una URL del workflow de OneUptime.
-4. El workflow lee la carga útil y crea un incidente (y, opcionalmente, lo resuelve cuando Zabbix se recupera).
+```mermaid title="De un problema de Zabbix a un incidente"
+flowchart TB
+    problem["Disparador de Zabbix:<br/>PROBLEM u OK"] --> action["Una acción lo envía<br/>al usuario OneUptime"]
+    action --> media["El tipo de medio<br/>envía JSON a OneUptime"]
+    media --> status{"status"}
+    status -->|"1, un problema"| open["Incidente abierto,<br/>guardia avisada"]
+    status -->|"0, recuperado"| resolve["Incidente resuelto"]
+```
 
-## Prerrequisitos
+Zabbix envía un problema a un usuario, a través de los medios de ese usuario. Aquí el medio es un tipo de medio webhook llamado **OneUptime**: su script envía a OneUptime un pequeño documento JSON con el ID de evento, el nombre, el host, la gravedad y el estado del problema. El estado es `1` para un problema y `0` para su recuperación.
 
-- Un servidor Zabbix que administres (esta guía está escrita para **Zabbix 6.0 LTS / 7.0 LTS**; el tipo de medio webhook funciona igual en 5.0+).
-- Tu servidor Zabbix debe poder llegar a tu instancia de OneUptime por HTTPS.
-- Un proyecto de OneUptime donde puedas crear workflows.
+## Antes de empezar
 
-## Parte 1 — Construir el workflow de OneUptime
+- Un servidor Zabbix que administres. Esta guía está escrita para Zabbix 6.0 LTS y 7.0 LTS. Los tipos de medio webhook funcionan igual desde Zabbix 5.0.
+- Un servidor Zabbix que pueda llegar a tu OneUptime por HTTPS.
+- En OneUptime, permiso para crear monitores, o flujos de trabajo si eliges esa vía.
 
-Hazlo primero, porque necesitarás la URL del webhook que genera.
+## Elegir cómo recibe OneUptime los problemas
 
-1. Abre **Flujos de trabajo → Crear flujo de trabajo**. Nómbralo `Zabbix → Incidents` y abre la pestaña **Constructor**.
-2. Arrastra un disparador **Webhook** al lienzo. Haz clic en él y **copia la URL única** que aparece. Guárdala bien — cualquiera que la tenga puede iniciar el workflow. Renombra el bloque como `Zabbix` para que las variables queden claras.
-3. Arrastra un bloque **Condiciones** al lienzo y conecta la salida del disparador a él. Configura:
-   - **Valor izquierdo**: `{{Zabbix.Request Body.status}}`
-   - **Operador**: `==`
-   - **Valor derecho**: `1` _(Zabbix envía `1` para un problema, `0` para recuperación)_
-4. Arrastra un bloque **Crear incidente** y conéctalo a la salida **Sí** del bloque Condiciones. Rellena:
-   - **Título**: `Zabbix: {{Zabbix.Request Body.name}}`
-   - **Descripción**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **Gravedad**: elige la gravedad de incidente de OneUptime que prefieras (puedes refinarlo más adelante con más ramas de Condiciones que mapeen las gravedades de Zabbix).
-5. Guarda. Deja **Habilitado** en _desactivado_ por ahora — lo activarás después de una prueba.
+Configura OneUptime primero: te da la URL a la que envía Zabbix.
 
-> **Consejo:** Poner el `event_id` de Zabbix en la descripción (o en una etiqueta del incidente) te permite encontrar este incidente más adelante si quieres resolverlo automáticamente al recuperarse. Consulta [Resolver automáticamente](#resolver-automáticamente-opcional).
+| Forma | Úsala cuando |
+| --- | --- |
+| Un monitor de solicitudes entrantes (recomendado) | Quieres que cada problema de Zabbix sea un incidente que avisa a la guardia y se resuelve cuando Zabbix se recupera. No hay nada que construir. |
+| Un flujo de trabajo con un disparador Webhook | Necesitas una lógica propia: filtrar los problemas, darles otra forma o llamar antes a otros sistemas. Un flujo de trabajo no resuelve el incidente por sí solo con la recuperación. |
 
-## Parte 2 — Configurar Zabbix
+Ambos reciben el mismo JSON del mismo tipo de medio, así que puedes empezar con uno y cambiar más adelante modificando una sola URL en Zabbix.
 
-### Paso 1: Crear el tipo de medio de OneUptime
+## Recibir problemas con un monitor
 
-1. En Zabbix, ve a **Alerts → Media types** (en versiones anteriores: **Administration → Media types**).
-2. Haz clic en **Create media type** y establece **Type** en **Webhook**.
-3. **Name**: `OneUptime`.
-4. Añade estos **Parameters** (haz clic en _Add_ para cada uno). Mapean las [macros](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location) de Zabbix en una carga útil limpia:
+Un [monitor de solicitudes entrantes](/docs/monitor/incoming-request-monitor) te da una URL, y sus criterios deciden qué hace cada solicitud.
 
-   | Nombre           | Valor              |
-   | ---------------- | ------------------ |
-   | `url`            | `{ALERT.SENDTO}`   |
-   | `event_id`       | `{EVENT.ID}`       |
-   | `event_name`     | `{EVENT.NAME}`     |
-   | `event_value`    | `{EVENT.VALUE}`    |
+:::steps
+### Crear el monitor
+
+Ve a **Monitores** y haz clic en **Crear monitor**. Elige **Solicitud entrante** en **Tipo de monitor**, ponle el nombre `Zabbix` y haz clic en **Siguiente**.
+
+### Declarar un incidente por cada problema
+
+En el paso **Criterios**, abre el primer criterio, el que marca el monitor como fuera de línea. Pon su filtro en **Cuerpo de la solicitud**, **Contiene**, `"status":"1"`. Este criterio ya declara un incidente cuando su filtro coincide. Completa el incidente:
+
+- **Título del incidente**: `Zabbix: {{requestBody.name}} on {{requestBody.host}}`.
+- **Gravedad**: la gravedad de incidente que deben tener los problemas de Zabbix.
+- **Políticas de guardia**, en **De guardia**: las políticas a las que avisar.
+- **Resolver incidente automáticamente**, en **Más campos**: déjalo activado, como viene. Sin él, las recuperaciones se ignoran y los incidentes siguen abiertos.
+
+### Abrir un incidente por problema
+
+En el mismo criterio, abre **Ajustes** y activa **Agrupa incidentes y alertas por un campo de la carga útil**. Rellénalo como se indica abajo, para que cada problema tenga su propio incidente y su recuperación lo resuelva:
+
+| Campo | Valor |
+| --- | --- |
+| **Abrir un incidente separado para cada…** | `requestBody.event_id` |
+| **Campo que indica la recuperación** | `requestBody.status` |
+| **Valor que significa recuperado** | `0` |
+
+### Volver a poner el monitor en línea
+
+Abre el segundo criterio, el que marca el monitor como en línea, y pon su filtro en **Cuerpo de la solicitud**, **Contiene**, `"status":"0"`.
+
+### Copiar la URL
+
+Haz clic en **Crear monitor**. La página **Vista general** del monitor muestra su **URL de latido**. Cópiala para Zabbix:
+
+```text
+https://oneuptime.com/heartbeat/<secret key>
+```
+
+Una instalación autoalojada tiene su propio host en lugar de `oneuptime.com`.
+:::
+
+El monitor lee el JSON de la solicitud tal como está escrito: `"status":"1"`, sin espacios. Consulta [Recibir alertas de otro sistema](/docs/monitor/incoming-request-monitor#recibir-alertas-de-otro-sistema) para saber qué hace cada ajuste.
+
+## Recibir problemas con un flujo de trabajo
+
+Usa un [flujo de trabajo](/docs/workflows/index) cuando necesites pasos propios entre Zabbix y el incidente.
+
+:::steps
+### Crear el flujo de trabajo
+
+Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **Empezar desde cero**. Ponle el nombre `Zabbix problems` y haz clic en **Crear flujo de trabajo**.
+
+### Añadir el disparador Webhook
+
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **Webhook**. Haz clic en el disparador, luego en **Copiar URL**, y guarda la URL para Zabbix.
+
+### Comprobar que es un problema
+
+Haz clic en **Añadir componente**, añade un bloque **If / Else** y conecta a él el punto **Out** del disparador. Pon **Value to check** en `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** en **is equal to** y **Compare with** en `1`.
+
+### Declarar el incidente
+
+Añade un bloque **Create One Incident** y conecta a él el lado **Yes** del bloque **If / Else**. En **Incident Template**, elige una plantilla que fije la gravedad y las políticas de guardia a las que avisar (consulta [Plantillas de incidentes](/docs/incidents/settings#plantillas-de-incidente)). En **JSON Object**, pon lo que viene de Zabbix:
+
+```json
+{
+  "title": "Zabbix: {{local.components.webhook-1.returnValues.request-body.name}}",
+  "description": "Host: {{local.components.webhook-1.returnValues.request-body.host}}\nSeverity: {{local.components.webhook-1.returnValues.request-body.severity}}\nZabbix event: {{local.components.webhook-1.returnValues.request-body.event_id}}"
+}
+```
+
+Sin plantilla, **JSON Object** también necesita `incidentSeverityId`, el ID de una de las gravedades de incidente del proyecto.
+
+### Activarlo
+
+Activa **Habilitado** en la parte superior del **Constructor**. Un flujo de trabajo desactivado responde a Zabbix con `400`.
+:::
+
+Una recuperación toma el lado **No** del bloque **If / Else**, donde no hay nada conectado, así que la ejecución termina ahí. Para resolver los incidentes con la recuperación, usa el monitor.
+
+## Configurar Zabbix
+
+Zabbix necesita tres cosas: un tipo de medio que envíe a OneUptime, un usuario al que enviarlo y una acción que envíe los problemas a ese usuario.
+
+:::steps
+### Crear el tipo de medio OneUptime
+
+1. Ve a **Alerts → Media types**, o a **Administration → Media types** en Zabbix 6.0, y haz clic en **Create media type**.
+2. Pon **Name** en `OneUptime` y **Type** en **Webhook**.
+3. Añade estos **Parameters**. Cada uno lleva una [macro](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location) de Zabbix a la solicitud:
+
+   | Nombre | Valor |
+   | --- | --- |
+   | `url` | `{ALERT.SENDTO}` |
+   | `event_id` | `{EVENT.ID}` |
+   | `event_name` | `{EVENT.NAME}` |
+   | `event_value` | `{EVENT.VALUE}` |
    | `event_severity` | `{EVENT.SEVERITY}` |
-   | `host`           | `{HOST.NAME}`      |
-   | `event_date`     | `{EVENT.DATE}`     |
-   | `event_time`     | `{EVENT.TIME}`     |
+   | `host` | `{HOST.NAME}` |
+   | `event_date` | `{EVENT.DATE}` |
+   | `event_time` | `{EVENT.TIME}` |
 
-5. Pega esto en el campo **Script**:
+4. Pega esto en **Script**:
 
    ```javascript
    var params = JSON.parse(value);
@@ -72,7 +156,7 @@ Hazlo primero, porque necesitarás la URL del webhook que genera.
      name: params.event_name,
      host: params.host,
      severity: params.event_severity,
-     // "1" = problem, "0" = recovered. OneUptime reads this in a Conditions block.
+     // "1" for a problem, "0" for its recovery.
      status: params.event_value,
      date: params.event_date,
      time: params.event_time,
@@ -89,84 +173,78 @@ Hazlo primero, porque necesitarás la URL del webhook que genera.
    return "OK";
    ```
 
-6. Haz clic en la pestaña **Message templates** y añade una plantilla para **Problem** y **Problem recovery** (el cuerpo puede estar vacío — la carga útil se construye en el script). Esto es necesario para que Zabbix use el tipo de medio para esos tipos de eventos.
-7. Haz clic en **Add** para guardar el tipo de medio.
+5. En la pestaña **Message templates**, añade una plantilla para **Problem** y otra para **Problem recovery**. Deja su texto vacío: el script construye la solicitud. Zabbix solo usa un tipo de medio para los tipos de evento para los que tiene una plantilla.
+6. Haz clic en **Add**.
 
-### Paso 2: Crear un usuario para transportar el webhook
+### Crear un usuario que reciba los problemas
 
-Zabbix envía notificaciones _a un usuario_. Crea uno dedicado para que la integración sea fácil de encontrar y deshabilitar.
+1. Ve a **Users → Users**, o a **Administration → Users** en Zabbix 6.0, y haz clic en **Create user**. Ponle el nombre `OneUptime` y dale un grupo de usuarios y un rol que pueda recibir notificaciones, como **User role**.
+2. En la pestaña **Media**, haz clic en **Add**. Pon **Type** en `OneUptime` y **Send to** en la URL que copiaste de OneUptime. Deja **When active** y las gravedades como están, o desmarca las gravedades que OneUptime no deba recibir.
+3. Haz clic en **Add** y luego otra vez en **Add** para guardar el usuario.
 
-1. Ve a **Users → Users → Create user**. Nómbralo `OneUptime Webhook`, dale un rol que pueda recibir notificaciones (p. ej. **User role**) y añádelo a un grupo de usuarios.
-2. En la pestaña **Media**, haz clic en **Add**:
-   - **Type**: `OneUptime`
-   - **Send to**: pega la **URL del webhook del workflow** que copiaste en la Parte 1.
-   - **When active** / severidades: deja los valores predeterminados (o restringe a las gravedades que te interesen).
-3. Haz clic en **Add** y luego en **Update**.
+### Enviar los problemas a OneUptime con una acción
 
-### Paso 3: Enviar problemas a OneUptime con una acción
+1. Ve a **Alerts → Actions → Trigger actions**, o a **Configuration → Actions** en Zabbix 6.0, y haz clic en **Create action**. Ponle el nombre `Notify OneUptime`.
+2. En **Conditions**, acótala si quieres, por ejemplo con **Trigger severity is greater than or equals Warning**. Sin condiciones, se envía cada problema.
+3. En la pestaña **Operations**, añade una operación que envíe al usuario `OneUptime` a través del tipo de medio `OneUptime`.
+4. Añade la misma operación en **Recovery operations**, para que también se envíen las recuperaciones.
+5. Haz clic en **Add** y comprueba que la acción está habilitada.
+:::
 
-1. Ve a **Alerts → Actions → Trigger actions → Create action**.
-2. **Name**: `Notify OneUptime`.
-3. **Conditions** (opcional): limita el alcance — por ejemplo, _Trigger severity >= Warning_. Déjalo vacío para enviar todo.
-4. En la pestaña **Operations**, añade una operación que envíe a **User: OneUptime Webhook** mediante el tipo de medio **OneUptime**.
-5. Para resolver incidentes al recuperarse más adelante, rellena también las **Recovery operations** con el mismo usuario/medio.
-6. Haz clic en **Add** para guardar y asegúrate de que la acción esté **Enabled**.
+## Probarlo
 
-## Parte 3 — Probarlo
+1. En Zabbix, abre **Alerts → Media types** y haz clic en **Test** junto a `OneUptime`. Introduce la URL que copiaste y valores de ejemplo como `event_id` `12345`, `event_name` `Test problem`, `host` `web-1` y `event_value` `1`. Haz clic en **Test**: Zabbix muestra la respuesta del script, `OK`, o el error que lanzó.
+2. En OneUptime, abre el monitor y comprueba que se abrió un incidente, o abre **Registros → Ejecuciones** del flujo de trabajo y revisa la ejecución.
+3. Prueba otra vez con `event_value` `0` y el mismo `event_id`. Con el monitor, el incidente se resuelve.
 
-1. De vuelta en el workflow de OneUptime, activa **Habilitado**.
-2. En Zabbix, provoca un problema de prueba — por ejemplo, baja temporalmente el umbral de un disparador, o usa un elemento de prueba que cambie a estado de problema.
-3. Abre la pestaña **Registros** de tu workflow. Deberías ver una ejecución con la carga útil de Zabbix, el bloque Condiciones tomando la ruta **Sí** y el incidente siendo creado.
-4. Comprueba **Incidentes** en OneUptime — tu problema de Zabbix es ahora un incidente.
+Después deja que se dispare un disparador real, por ejemplo bajando un umbral un momento, y observa cómo llega el problema.
 
-Si no llega nada, consulta [Solución de problemas](#solución-de-problemas).
+## Asignar las gravedades de Zabbix
 
-## Resolver automáticamente (opcional)
+Zabbix envía su gravedad como texto: `Not classified`, `Information`, `Warning`, `Average`, `High` o `Disaster`.
 
-El workflow principal de arriba _abre_ incidentes. Para también _cerrarlos_ cuando Zabbix se recupera:
-
-1. Asegúrate de que tu acción de Zabbix tenga **Recovery operations** configuradas (Paso 3 arriba) para que también se envíen los eventos de recuperación. Al recuperarse, `status` llega como `0`.
-2. En el workflow, añade una segunda rama **Condiciones**: izquierda `{{Zabbix.Request Body.status}}`, operador `==`, derecha `0`.
-3. Desde su salida **Sí**, añade un bloque **Find Incident** que busque el incidente abierto que creaste antes — haz coincidir el `event_id` de Zabbix que guardaste en la descripción o en una etiqueta.
-4. Conéctalo a un bloque **Update Incident** y mueve el incidente a tu estado _resuelto_.
-
-Dado que la resolución depende de cómo modelices los estados de incidente en tu proyecto, mantén la ruta de **creación** como el núcleo fiable y añade la ruta de resolución una vez que hayas confirmado que los eventos fluyen correctamente. Consulta [Componentes → Componentes de datos de OneUptime](/docs/workflows/components#oneuptime-data-components).
-
-## Mapeo de gravedades de Zabbix (opcional)
-
-Las gravedades de Zabbix (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) llegan como `{{Zabbix.Request Body.severity}}`. Para mapearlas a las gravedades de incidente de OneUptime, añade ramas **Condiciones** antes de **Crear incidente** — por ejemplo, redirige `Disaster` y `High` a un incidente "Critical" y todo lo demás a "Major". Construye un bloque **Crear incidente** por rama.
+- **Con el monitor**, haz clic en **Añadir criterios** para cada grupo de gravedades y arrastra el nuevo criterio por encima del primero: los criterios se comprueban desde arriba, y decide el primero que coincide. Dale a cada uno dos filtros, `"status":"1"` y una gravedad como `"severity":"Disaster"`, con **Condición de coincidencia** en **Todos**. Dale a cada uno un incidente con su propia **Gravedad** y **Resolver incidente automáticamente**, y los mismos ajustes de agrupación.
+- **Con el flujo de trabajo**, añade un bloque [Switch / Case](/docs/workflows/components#switch-case) sobre `{{local.components.webhook-1.returnValues.request-body.severity}}`, con un caso por gravedad, y un bloque **Create One Incident**, con su propia plantilla, después de cada caso.
 
 ## Solución de problemas
 
-**El workflow nunca se ejecuta.**
+:::details No llega nada a OneUptime
+- En Zabbix, abre **Reports → Action log** y comprueba que la acción envió el problema, y qué volvió.
+- Desde el servidor Zabbix, envía tú mismo una solicitud: `curl -i -X POST <url> -H 'Content-Type: application/json' -d '{"status":"1","event_id":"1","name":"Test","host":"test"}'`.
+- El monitor responde `200` de inmediato, antes de comprobar nada, incluso con una clave secreta incorrecta. Revisa la cronología del monitor para ver si llegan las solicitudes.
+- Un flujo de trabajo desactivado responde `400`. Activa **Habilitado** en la parte superior de su **Constructor**.
+:::
 
-- Confirma que el interruptor **Habilitado** del workflow esté activado.
-- Desde el servidor Zabbix, confirma que puede llegar a la URL: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`. Deberías recibir una confirmación rápida.
-- Comprueba **Reports → Action log** en Zabbix para ver errores de entrega.
+:::details Zabbix informa de un error del script
+Abre el tipo de medio y usa **Test**: Zabbix muestra el resultado del script o el error que lanzó. El script lanza cualquier respuesta de OneUptime distinta de `2xx` junto con su estado, así que revisa primero la URL.
+:::
 
-**Zabbix reporta un error de script.**
+:::details Los incidentes se abren pero nunca se resuelven
+- La acción necesita **Recovery operations**, o Zabbix nunca envía la recuperación.
+- El incidente del criterio necesita **Resolver incidente automáticamente**, en **Más campos**.
+- **Campo que indica la recuperación** debe ser `requestBody.status`, y **Valor que significa recuperado** exactamente `0`.
+- Un flujo de trabajo no resuelve los incidentes con la recuperación. Usa el monitor.
+:::
 
-- Abre el tipo de medio y usa **Test** para enviar una carga útil de muestra. Zabbix muestra la salida del script o el error lanzado.
-- Una respuesta no 2xx de OneUptime se muestra mediante el `throw` en el script — comprueba que la URL del workflow sea exactamente correcta.
+:::details El incidente muestra una referencia en lugar de un valor
+Una referencia a un campo que la solicitud no tiene se deja tal como está escrita, llaves incluidas, en lugar de vaciarse. Comprueba que Zabbix envía `Content-Type: application/json` y que los nombres de campo que usas (`name`, `host`, `severity`, `status`, `event_id`) coinciden con la carga útil del script. Para un flujo de trabajo, abre la ejecución en **Registros → Ejecuciones** y compárala con lo que recibió el disparador. Consulta [Trampas](/docs/workflows/variables#trampas-habituales).
+:::
 
-**El incidente se crea pero los campos están vacíos.**
+:::details Cada problema llega dos veces
+Probablemente la acción tiene dos operaciones que envían al mismo usuario, como un primer paso y un paso de escalado. Revisa las **Operations** de la acción.
+:::
 
-- Abre la pestaña **Registros** del workflow e inspecciona la salida del disparador. Confirma que los nombres de campo bajo **Request Body** coinciden con lo que referencias (`name`, `host`, `severity`, `status`, `event_id`).
-- Un campo faltante se resuelve como cadena vacía en lugar de un error — consulta [Variables → Puntos a tener en cuenta](/docs/workflows/variables#gotchas).
+## Seguridad
 
-**Todo se dispara dos veces.**
+- **Trata la URL como una contraseña.** Quien la tenga puede abrir incidentes. Si se filtra, restablécela: **Restablecer clave secreta de solicitud entrante** en la página **Ajustes** del monitor, o **Restablecer URL** en el disparador **Webhook** del flujo de trabajo. Después actualiza **Send to** en el medio del usuario de Zabbix.
+- **Envía solo lo que necesita un incidente.** Usa las condiciones de la acción, o las gravedades del medio del usuario, para dejar en Zabbix los problemas de baja gravedad.
+- **¿Autoalojado?** Deja que tu servidor Zabbix llegue a tu OneUptime por HTTPS a través de tu cortafuegos.
 
-- Probablemente tengas tanto una operación de problema como un paso de escalación enviando al mismo medio. Comprueba los pasos de **Operations** de la acción.
+## Próximos pasos
 
-## Notas de seguridad
-
-- Trata la URL del webhook del workflow como una contraseña. Si se filtra, elimina el disparador y crea uno nuevo para rotar la URL.
-- Restringe las condiciones de la acción de Zabbix para reenviar solo las gravedades que justifiquen un incidente.
-- Si ejecutas OneUptime en modo autohospedado detrás de un firewall, permite que la IP de salida de tu servidor Zabbix lo alcance por HTTPS.
-
-## Dónde seguir leyendo
-
-- [Resumen de Integraciones](/docs/integrations/index) — los patrones entrante/saliente.
-- [Disparador Webhook](/docs/workflows/triggers#webhook) — cómo funciona la URL receptora.
-- [Componentes](/docs/workflows/components) — Conditions, Create Incident y más.
-- [Variables](/docs/workflows/variables) — lectura de la carga útil de Zabbix en bloques posteriores.
+:::cards
+- [Monitor de solicitudes entrantes](/docs/monitor/incoming-request-monitor): Cada ajuste del monitor que recibe los problemas de Zabbix.
+- [Reglas de escalado](/docs/on-call/escalation-rules): Decide a quién avisa una política de guardia, y cuándo.
+- [Disparadores de flujo de trabajo](/docs/workflows/triggers#webhook): Cómo funciona la URL de webhook de un flujo de trabajo.
+- [Descripción general de integraciones](/docs/integrations/index): Las otras herramientas que puedes conectar.
+:::

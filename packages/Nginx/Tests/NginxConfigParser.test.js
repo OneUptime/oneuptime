@@ -233,3 +233,108 @@ test("findBlocks is exported and reads an arbitrary block header", () => {
   assert.equal(blocks[0].spec, "app");
   assert.ok(blocks[0].body.includes("server a:80;"));
 });
+
+test("resolveLocation chooses an exact location before the longest prefix", () => {
+  /*
+   * The case /workflows and /runbooks rely on: `location /workflow` is a
+   * prefix of "/workflows", so without `= /workflows` the prefix would win.
+   */
+  const source = [
+    "server {",
+    "  location / {",
+    "    proxy_pass http://home;",
+    "  }",
+    "  location /workflow {",
+    "    proxy_pass http://app;",
+    "  }",
+    "  location = /workflows {",
+    "    proxy_pass http://home;",
+    "  }",
+    "}",
+  ].join("\n");
+
+  const locations = getLocationBlocks(getServerBlocks(source)[0].body);
+
+  assert.equal(resolveLocation(locations, "/workflows").spec, "= /workflows");
+  // Exact means exact: neither a longer path nor the same path with a slash.
+  assert.equal(resolveLocation(locations, "/workflows/").spec, "/workflow");
+  assert.equal(resolveLocation(locations, "/workflows/abc").spec, "/workflow");
+  assert.equal(resolveLocation(locations, "/workflowsx").spec, "/workflow");
+  assert.equal(resolveLocation(locations, "/workflow").spec, "/workflow");
+  assert.equal(
+    resolveLocation(locations, "/workflow/manual/run/abc").spec,
+    "/workflow",
+  );
+  assert.equal(resolveLocation(locations, "/elsewhere").spec, "/");
+});
+
+test("resolveLocation chooses an exact location before a regex that also matches", () => {
+  const source = [
+    "server {",
+    "  location ~ ^/work {",
+    "    proxy_pass http://regex;",
+    "  }",
+    "  location = /workflows {",
+    "    proxy_pass http://exact;",
+    "  }",
+    "}",
+  ].join("\n");
+
+  const locations = getLocationBlocks(getServerBlocks(source)[0].body);
+
+  assert.equal(resolveLocation(locations, "/workflows").spec, "= /workflows");
+  assert.equal(resolveLocation(locations, "/workflowsx").spec, "~ ^/work");
+});
+
+test("resolveLocation reads an exact location written without a space", () => {
+  const source = [
+    "server {",
+    "  location /runbook {",
+    "    proxy_pass http://app;",
+    "  }",
+    "  location =/runbooks {",
+    "    proxy_pass http://home;",
+    "  }",
+    "}",
+  ].join("\n");
+
+  const locations = getLocationBlocks(getServerBlocks(source)[0].body);
+
+  assert.equal(resolveLocation(locations, "/runbooks").spec, "=/runbooks");
+  assert.equal(resolveLocation(locations, "/runbooks/x").spec, "/runbook");
+});
+
+test("resolveLocation lets a ^~ prefix that is the longest match skip the regexes", () => {
+  const source = [
+    "server {",
+    "  location / {",
+    "    proxy_pass http://a;",
+    "  }",
+    "  location ^~ /static/ {",
+    "    proxy_pass http://static;",
+    "  }",
+    "  location /static/js/ {",
+    "    proxy_pass http://js;",
+    "  }",
+    "  location ~ \\.js$ {",
+    "    proxy_pass http://regex;",
+    "  }",
+    "}",
+  ].join("\n");
+
+  const locations = getLocationBlocks(getServerBlocks(source)[0].body);
+
+  // The ^~ prefix is the longest match, so the regex is never tried.
+  assert.equal(
+    resolveLocation(locations, "/static/app.js").spec,
+    "^~ /static/",
+  );
+  // A longer plain prefix is the longest match here, so the regex still wins.
+  assert.equal(
+    resolveLocation(locations, "/static/js/app.js").spec,
+    "~ \\.js$",
+  );
+  assert.equal(resolveLocation(locations, "/other/app.js").spec, "~ \\.js$");
+  assert.equal(resolveLocation(locations, "/static/js/").spec, "/static/js/");
+  assert.equal(resolveLocation(locations, "/static").spec, "/");
+});

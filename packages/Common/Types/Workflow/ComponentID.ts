@@ -27,6 +27,11 @@ enum ComponentID {
   WorkflowRun = "workflow-run",
   Sleep = "sleep",
   AIGenerateText = "ai-generate-text",
+  // The Page steps (Components/OnCall).
+  PageUsers = "page-users",
+  PageTeam = "page-team",
+  PageOnCall = "page-on-call",
+  PageOnCallPolicy = "page-on-call-policy",
 }
 
 export default ComponentID;

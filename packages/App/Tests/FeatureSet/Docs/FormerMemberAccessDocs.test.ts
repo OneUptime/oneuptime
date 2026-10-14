@@ -76,7 +76,7 @@ const STATEMENTS: Record<string, Statements> = {
   },
   nl: {
     leaving: "Als een override iemands meldingen doorstuurt na",
-    mcpClient: "Als u het project verlaat, wordt de clie",
+    mcpClient: "Als je het project verlaat, wordt de cli",
     scim: "Gebruikers die SCIM zelf aanmaakt en gebruikers die lid zijn",
     personalLink: "Een persoonlijke link toont alleen diens",
     emptyCalendar: "Als je het project hebt verlaten, bl",
@@ -155,7 +155,7 @@ const STATEMENTS: Record<string, Statements> = {
   },
   hi: {
     leaving: "अगर कोई ओवरराइड किसी के पेज ऐसे व्यक्ति को भेजता",
-    mcpClient: "Project छोड़ने पर client भी disconnect ह",
+    mcpClient: "प्रोजेक्ट छोड़ने पर क्लाइंट भी डिस्कनेक्ट हो",
     scim: "SCIM जिन उपयोगकर्ताओं को खुद बनाता है और जो उपयोगकर्ता आपके प्र",
     personalLink: "निजी लिंक शिफ्टें तभी तक दिखाता है जब तक",
     emptyCalendar: "अगर आपने प्रोजेक्ट छोड़ दिया है, तो ",

@@ -17,6 +17,7 @@ You rarely need it open while you build. Every block's settings end with **How t
 | ----------------------------------------------------- | ----------------------------------------------------------------- |
 | Post to a chat tool                                   | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) or [Mattermost](#mattermost) |
 | Send an email through your own mail server            | [Email](#email)                                                   |
+| Page a person, a team or whoever is on call           | [Paging](#paging)                                                 |
 | Text or call a phone                                  | [SMSEagle](#smseagle)                                             |
 | Call any other API, or your own service               | [API](#api)                                                       |
 | Summarize, classify or draft text                     | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -87,6 +88,23 @@ Connect **Success** to the blocks that use the response, and **Error** to a fall
 
 > [!WARNING]
 > Model output is untrusted text. Review it before it reaches customers, and never let free-form AI text alone decide a destructive action. See [AI components](/docs/workflows/configuration#ai-components) for what is sent to the provider, what is logged and what it costs.
+
+## SMSEagle
+
+Send an SMS or make a text-to-speech call through an SMSEagle device, a hardware SMS gateway on your own network. **Send SMS via SMSEagle** sends an SMS, and **Make a Call via SMSEagle** calls the number and reads the text out.
+
+| Setting                   | What it does                                                                                                                                                   |
+| ------------------------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **SMSEagle URL**          | The device's address, such as `https://192.168.0.100`. The block adds the API v2 path itself.                                                                  |
+| **SMSEagle Access Token** | An API v2 key from the SMSEagle web GUI, under Settings > API > API v2. It needs the "Send SMS" permission for SMS and "Make a TTS Advanced Call" for calls.   |
+| **Phone Number**          | The number to text or call, in international format, such as `+15551234567`.                                                                                   |
+| **Message Text**          | The text of the SMS. Only in **Send SMS via SMSEagle**.                                                                                                        |
+| **Voice ID**              | The ID of a text-to-speech voice on the device. Only in **Make a Call via SMSEagle**.                                                                          |
+| **Text to Read Out**      | The text the device reads out during the call. Only in **Make a Call via SMSEagle**.                                                                           |
+
+**Success** fires when the device queued the SMS or call, and returns the **Message ID** it gave it. **Error** fires when the device can't be reached or refuses it, and passes along the reason, such as SMSEagle's `voice_id: Resource with specified ID not found.` A missing setting, or a **Voice ID** that is not a number, stops the run instead.
+
+Keep the access token in a [secret global variable](/docs/workflows/variables#global-variables). It's hidden in run logs either way. The request goes out from OneUptime, and a redirect is not followed. A device on a loopback (`localhost`, `127.0.0.1`), link-local or cloud metadata address is refused, and so is one on a private network address, unless a self-hosted administrator allows it with `ALLOW_PRIVATE_NETWORK_WEBHOOKS` or `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. See [Private Network Access](/docs/self-hosted/private-network-access).
 
 ## Slack
 
@@ -200,22 +218,48 @@ The block connects straight to the server in its settings. It does not use your 
 
 Connections to loopback (`localhost`, `127.0.0.1`), link-local and cloud metadata addresses are refused. On OneUptime Cloud, an SMTP host on a private network address, or a name that resolves to one, is refused too. Self-hosted installs can reach a mail server on their own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is set to `true`. A refused host takes the **Error** output, and nothing is sent.
 
-## SMSEagle
+## Paging
 
-Send an SMS or make a text-to-speech call through an SMSEagle device, a hardware SMS gateway on your own network. **Send SMS via SMSEagle** sends an SMS, and **Make a Call via SMSEagle** calls the number and reads the text out.
+Page people from a workflow: each person gets a phone call, an SMS, a push notification or an email, as their own on-call rules say, until somebody acknowledges. There is a block for each way of saying who to page. In the **Add Component** panel, search for `page`.
 
-| Setting                   | What it does                                                                                                                                                   |
-| ------------------------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **SMSEagle URL**          | The device's address, such as `https://192.168.0.100`. The block adds the API v2 path itself.                                                                  |
-| **SMSEagle Access Token** | An API v2 key from the SMSEagle web GUI, under Settings > API > API v2. It needs the "Send SMS" permission for SMS and "Make a TTS Advanced Call" for calls.   |
-| **Phone Number**          | The number to text or call, in international format, such as `+15551234567`.                                                                                   |
-| **Message Text**          | The text of the SMS. Only in **Send SMS via SMSEagle**.                                                                                                        |
-| **Voice ID**              | The ID of a text-to-speech voice on the device. Only in **Make a Call via SMSEagle**.                                                                          |
-| **Text to Read Out**      | The text the device reads out during the call. Only in **Make a Call via SMSEagle**.                                                                           |
+| Block                       | Who it pages                                                                              |
+| --------------------------- | ----------------------------------------------------------------------------------------- |
+| **Page Users**              | The people you name.                                                                      |
+| **Page a Team**             | Every member of a team.                                                                   |
+| **Page Whoever Is On Call** | Whoever is on call in an on-call schedule when the block runs.                            |
+| **Page an On-Call Policy**  | An on-call policy, which pages through its escalation rules and repeats as it is set to. |
 
-**Success** fires when the device queued the SMS or call, and returns the **Message ID** it gave it. **Error** fires when the device can't be reached or refuses it, and passes along the reason, such as SMSEagle's `voice_id: Resource with specified ID not found.` A missing setting, or a **Voice ID** that is not a number, stops the run instead.
+The first three page everybody they name at once, and nobody else after that. For escalation, use **Page an On-Call Policy**.
 
-Keep the access token in a [secret global variable](/docs/workflows/variables#global-variables). It's hidden in run logs either way. The request goes out from OneUptime, and a redirect is not followed. A device on a loopback (`localhost`, `127.0.0.1`), link-local or cloud metadata address is refused, and so is one on a private network address, unless a self-hosted administrator allows it with `ALLOW_PRIVATE_NETWORK_WEBHOOKS` or `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. See [Private Network Access](/docs/self-hosted/private-network-access).
+To page only when something is true, put [If / Else](#conditions) in front of the block and connect the output that should page to it. With more than two ways to go, [Switch / Case](#switch-case) takes a path for each value, and each path can page somebody else.
+
+```mermaid title="Page whoever is on call, but only for critical incidents"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+When you create a workflow, the templates under **On-Call** have this one ready, and one that pages by severity with **Switch / Case**. A template leaves who to page for you: the workflow opens in the Builder, where each paging block says **Click to set up**.
+
+| Setting                                                             | What it does                                                                                                                                                         |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Users**, **Teams**, **On-Call Schedules** or **On-Call Policies** | Who to page: each block has the one that goes with its name. Pick by name, or press **{ }** at the end of the row to add a value from an earlier block. A value can hold one ID or several and, for **Users**, an email address. |
+| **Page About**                                                      | What the page is about: **A new alert**, **An incident** or **An alert**. Acknowledging the page acknowledges it.                                                      |
+| **Title** and **Message**                                           | For a new alert. OneUptime creates an alert from them, and it stays in your alerts like any other.                                                                   |
+| **Incident ID** or **Alert ID**                                     | For an incident or an alert that is already there, usually the one the workflow started on: `{{local.components.incident-on-create-1.returnValues.model._id}}`.       |
+| **Severity**                                                        | For a new alert, under **More fields**. It decides which of each person's on-call rules page them. Left empty, it is the project's most severe.                      |
+
+A block added to a workflow that starts on an incident or an alert is already set to page about that record, so all it still asks is who to page.
+
+**Success** runs once at least one person is paged, or one policy has started. **Error** runs when nobody was, and the block's **Error** value says why, for example that nobody is on call in the schedule. **Summary** says in a sentence who was paged and who was left out, ready to post to a channel, and **Paged Users** lists the people paged.
+
+Somebody who is away is not paged: whoever their user override names to cover is paged instead. A page names at most 100 people, teams and schedules. See [How each person is reached](/docs/on-call/escalation-rules#how-each-person-is-reached).
+
+A page with no on-call policy behind it is listed with the policies' runs as a **Direct page**: in the on-call logs of the incident or the alert, in its feed and its Slack or Microsoft Teams channel, and in the logs of each person paged. It stays open for 30 minutes, and for as long after that as pages are still going out. If nobody has acknowledged by then, it ends without paging anybody else.
+
+> [!WARNING]
+> **Run Workflow** pages people for real, whether the workflow is on or off, and so does **Run just this step**. Name yourself while you test.
 
 ## Custom Code
 
@@ -384,7 +428,7 @@ A query is always scoped to the project the workflow runs in. You can't reach an
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-A key that isn't a column is ignored rather than rejected — the run log names the ones it dropped, so check there when a field doesn't land. **Select Fields**, on the Find components and the triggers, uses the same column keys with `true` values: `{"_id": true, "name": true}`.
+A key that isn't a column is ignored rather than rejected — the run log names the ones it dropped, so check there when a field doesn't land. **Fields to pass on**, on the Find components and the triggers, is picked from a list; its **Edit as JSON** shows the same column keys with `true` values: `{"_id": true, "name": true}`.
 
 **Custom fields** are one column, `customFields`, holding each custom field's value under the field's name. The Update components change only the custom fields you name, and every other one keeps its value:
 

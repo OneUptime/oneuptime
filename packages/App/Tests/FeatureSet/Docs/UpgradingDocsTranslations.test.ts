@@ -126,10 +126,18 @@ const CHAT_AND_MOBILE_BUTTONS: Array<string> = [
   "Escalate",
 ];
 
-// The workflow builder's triggers, steps, settings and outputs.
+/*
+ * The workflow builder's triggers, steps, settings and outputs. "Listen on"
+ * and "Select Fields" are what "Fields to watch" and "Fields to pass on"
+ * were called: the note on the rename names them as they were.
+ */
 const WORKFLOW_BUILDER: Array<string> = [
   "On Update",
   "Listen on",
+  "Fields to watch",
+  "Select Fields",
+  "Fields to pass on",
+  "Text to JSON",
   "Create One Incident",
   "JSON Object",
   "Incident Template",
@@ -329,6 +337,8 @@ const PROSE_LEADS: Array<string> = [
   "Probes and AI agents are read only by members of their project.",
   "An update or a delete names its project.",
   "A database statement the app stops waiting for is cancelled.",
+  "A placeholder `ENCRYPTION_SECRET` no longer signs sign-in tokens.",
+  "A workflow's field lists have plain names, and a watched related record is heard.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",
