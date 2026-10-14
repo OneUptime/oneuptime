@@ -17,6 +17,7 @@ import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMainten
 import ScheduledMaintenanceStateTimelineService from "Common/Server/Services/ScheduledMaintenanceStateTimelineService";
 import SmsService from "Common/Server/Services/SmsService";
 import AffectedStatusPageResources from "Common/Server/Utils/StatusPage/AffectedStatusPageResources";
+import BlockedProjectStatusPages from "Common/Server/Utils/StatusPage/BlockedProjectStatusPages";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "Common/Server/Services/StatusPageService";
@@ -40,6 +41,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500, Yellow500 } from "Common/Types/BrandColors";
@@ -222,6 +224,28 @@ RunCron(
               return i.id!;
             }) || [],
           );
+
+        /*
+         * The pages of a blocked project send nothing, and are left out of
+         * the pages to send from. Say so, rather than that every page hides
+         * maintenance events or had no matching subscriber.
+         */
+        if (
+          statusPages.length === 0 &&
+          (await BlockedProjectStatusPages.isProjectBlocked(event.projectId))
+        ) {
+          await ScheduledMaintenanceStateTimelineService.updateOneById({
+            id: scheduledEventStateTimeline.id!,
+            data: {
+              subscriberNotificationStatus:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+            },
+            props: { isRoot: true, ignoreHooks: true },
+          });
+          continue;
+        }
 
         /*
          * {{scheduledMaintenanceDescription}} in the format each channel

@@ -28,8 +28,10 @@ import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnou
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import AffectedStatusPageResources from "Common/Server/Utils/StatusPage/AffectedStatusPageResources";
+import BlockedProjectStatusPages from "Common/Server/Utils/StatusPage/BlockedProjectStatusPages";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
@@ -138,6 +140,8 @@ const setNotificationStatus: (data: {
 
 const ANNOUNCEMENT_SELECT: Select<StatusPageAnnouncement> = {
   _id: true,
+  // Asked whether it is blocked when no status page is left to send from.
+  projectId: true,
   title: true,
   description: true,
   statusPages: {
@@ -187,6 +191,26 @@ const notifySubscribersOfAnnouncement: (data: {
         return sp.id!;
       }),
     );
+
+  /*
+   * The pages of a blocked project send nothing, and are left out of the
+   * pages to send from. Say so, rather than that no subscriber matched.
+   */
+  if (
+    statusPages.length === 0 &&
+    (await BlockedProjectStatusPages.isProjectBlocked(announcement.projectId))
+  ) {
+    logger.debug(
+      `Announcement ${announcement.id} is in a blocked project; marking as Skipped.`,
+    );
+    await setNotificationStatus({
+      announcementId: announcement.id!,
+      trigger: trigger,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+      message: STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE,
+    });
+    return;
+  }
 
   await setNotificationStatus({
     announcementId: announcement.id!,
