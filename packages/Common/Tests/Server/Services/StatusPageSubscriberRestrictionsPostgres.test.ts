@@ -547,8 +547,9 @@ describePostgres(
       const taken: Array<string> = [];
 
       for (let index: number = 0; index < 7; index++) {
-        taken.push(`taken-${index}@acme.com`);
-        await addSubscriber({ statusPageId: pageA, email: taken[index] });
+        const email: string = `taken-${index}@acme.com`;
+        taken.push(email);
+        await addSubscriber({ statusPageId: pageA, email: email });
         await addSubscriber({
           statusPageId: pageA,
           email: `left-out-${index}@elsewhere.example`,
@@ -591,7 +592,9 @@ describePostgres(
         const page: StatusPage = new StatusPage();
         page._id = pageA.toString();
         page.limitSubscribersToPrivateUsers = settings.limit ?? false;
-        page.allowedSubscriberEmailDomains = settings.domains ?? undefined;
+        if (settings.domains !== undefined && settings.domains !== null) {
+          page.allowedSubscriberEmailDomains = settings.domains;
+        }
 
         return page;
       };

@@ -287,8 +287,12 @@ describe("Subscribing by email on a status page that takes only its private user
 
 describe("the status page's words for it", () => {
   test("are in every one of its locales, translated", () => {
-    const fs: typeof import("fs") = jest.requireActual("fs");
-    const path: typeof import("path") = jest.requireActual("path");
+    const fs: typeof import("fs") = jest.requireActual(
+      "fs",
+    ) as typeof import("fs");
+    const path: typeof import("path") = jest.requireActual(
+      "path",
+    ) as typeof import("path");
     const dir: string = path.join(
       __dirname,
       "..",
