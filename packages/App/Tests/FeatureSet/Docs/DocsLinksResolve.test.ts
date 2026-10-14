@@ -3,12 +3,19 @@ import {
   DocsLink,
   DocsPageLink,
   NAV_PAGES,
+  NOT_PAGE_CATEGORIES,
   anchorsOf,
   decodeAnchor,
   listPages,
   parseDocsLink,
   scanPage,
 } from "./DocsContentSupport";
+import {
+  DocsAddress,
+  DocsAddressTarget,
+  docsAddressesIn,
+  targetOfDocsAddress,
+} from "Common/Tests/Helpers/DocsAddresses";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -22,7 +29,15 @@ import path from "path";
  *     heading of the English page it lands on;
  *   - every /docs/<category>/<page>[#anchor] written into the product - the
  *     dashboards, the status page, emails and notifications, the website -
- *     names a page the nav lists and, with an anchor, a heading of it.
+ *     names a page the nav lists and, with an anchor, a heading of it;
+ *   - and none is a category's own address (/docs/terraform): that opens
+ *     the category's first page, so a link names the page it means.
+ *     (/docs/compliance, /docs/rbac and /docs/api, which are not even
+ *     categories, were linked from the website as such addresses and
+ *     answered 404 while every check here looked only at pages.)
+ *
+ * WebsiteDocsLinks follows the website's links through the docs' real
+ * routes as well.
  *
  * Translated pages are held to the same rule by the content-wide tests once
  * they are translated again from the rewritten English pages.
@@ -82,9 +97,10 @@ describe("English docs pages", () => {
 });
 
 /*
- * Literal links in the product's own sources. A link built at run time from
- * parts (DOCS_URL plus a path constant) is not seen here; the page tests of
- * those screens pin theirs.
+ * Literal links in the product's own sources, read by Common's
+ * Tests/Helpers/DocsAddresses. A link built at run time from parts
+ * (DOCS_URL plus a path constant) is not seen here; the page tests of those
+ * screens pin theirs.
  */
 const PRODUCT_SOURCE_ROOTS: Array<string> = [
   "packages/App/FeatureSet",
@@ -110,11 +126,6 @@ const SKIPPED_FILES: Array<string> = [
   "package-lock.json",
   "tsconfig.json",
 ];
-// A docs address a reader can open: after a quote, a bracket, "=", a space or the site's host.
-const PRODUCT_DOCS_LINK: RegExp =
-  /(?:["'`(=\s]|oneuptime\.com)\/docs\/([A-Za-z0-9-]+)\/([a-z0-9][a-z0-9-]*)(?:\/([a-z0-9][a-z0-9-]*))?(?:#([^\s"'`)<>\]]+))?/g;
-const NOT_PAGES: Array<string> = ["static", "as-markdown", "search-index"];
-const TRAILING_PUNCTUATION: RegExp = /[.,;:!?]+$/;
 
 const productFiles: () => Array<string> = (): Array<string> => {
   const files: Array<string> = [];
@@ -148,78 +159,110 @@ const productFiles: () => Array<string> = (): Array<string> => {
 
 interface ProductDocsLink {
   file: string;
+  line: number;
   link: string;
-  page: string;
+  target: DocsAddressTarget;
+  // The heading it names, decoded, or null.
   anchor: string | null;
 }
 
 const productLinks: Array<ProductDocsLink> = productFiles().flatMap(
   (file: string): Array<ProductDocsLink> => {
     const text: string = fs.readFileSync(file, "utf8");
-    if (!text.includes("/docs/")) {
+    if (!text.includes("/docs")) {
       return [];
     }
-    const links: Array<ProductDocsLink> = [];
-    for (const match of text.matchAll(PRODUCT_DOCS_LINK)) {
-      let category: string = match[1]!;
-      let page: string = match[2]!;
-      // A link with a language: /docs/<lang>/<category>/<page>.
-      if (SUPPORTED_DOCS_LANGUAGE_CODES.includes(category)) {
-        if (!match[3]) {
-          continue;
-        }
-        category = match[2]!;
-        page = match[3];
-      } else if (match[3]) {
-        // Deeper than a page: not a docs page address.
-        continue;
-      }
-      if (NOT_PAGES.includes(category)) {
-        continue;
-      }
-      const anchor: string | null = match[4]
-        ? match[4].replace(TRAILING_PUNCTUATION, "")
-        : null;
-      links.push({
-        file: path.relative(REPOSITORY, file),
-        link: match[0].trim(),
-        page: `${category}/${page}`,
-        anchor: anchor || null,
-      });
-    }
-    return links;
+    return docsAddressesIn(text).map(
+      (address: DocsAddress): ProductDocsLink => {
+        return {
+          file: path.relative(REPOSITORY, file),
+          line: address.line,
+          link: address.address,
+          target: targetOfDocsAddress(address, SUPPORTED_DOCS_LANGUAGE_CODES),
+          anchor: address.anchor,
+        };
+      },
+    );
   },
 );
+
+const whereOf: (link: ProductDocsLink) => string = (
+  link: ProductDocsLink,
+): string => {
+  return `${link.file}:${link.line}: ${link.link}`;
+};
+
+// A link to a page, and the page as "category/page", in lower case as served.
+interface ProductPageLink {
+  link: ProductDocsLink;
+  page: string;
+}
+
+const pageLinks: Array<ProductPageLink> = productLinks
+  .filter((link: ProductDocsLink): boolean => {
+    return (
+      link.target.kind === "page" &&
+      // The docs' static files and endpoints are not pages.
+      !NOT_PAGE_CATEGORIES.includes(link.target.name!.split("/")[0]!)
+    );
+  })
+  .map((link: ProductDocsLink): ProductPageLink => {
+    return { link: link, page: link.target.name!.toLowerCase() };
+  });
 
 describe("docs links in the product", () => {
   it("are found, so the checks below check something", () => {
     // The dashboard links to its docs from setup guides, empty states and help.
-    expect(productLinks.length).toBeGreaterThan(50);
+    expect(pageLinks.length).toBeGreaterThan(50);
+    // The website writes some after its origin: `${baseUrl}/docs/ai/mcp-server`.
+    expect(
+      pageLinks.some((link: ProductPageLink): boolean => {
+        return (
+          link.link.file ===
+            path.join("packages", "Home", "Utils", "AIDiscovery.ts") &&
+          link.page === "ai/mcp-server"
+        );
+      }),
+    ).toBe(true);
   });
 
   it("name pages the nav lists", () => {
-    const broken: Array<string> = productLinks
-      .filter((link: ProductDocsLink): boolean => {
+    const broken: Array<string> = pageLinks
+      .filter((link: ProductPageLink): boolean => {
         return !NAV_PAGES.includes(link.page);
       })
-      .map((link: ProductDocsLink): string => {
-        return `${link.file}: ${link.link}`;
+      .map((link: ProductPageLink): string => {
+        return whereOf(link.link);
       });
 
     expect(broken).toEqual([]);
   });
 
-  it("name headings those pages have", () => {
-    const broken: Array<string> = productLinks
+  it("name a page, not a category's own address", () => {
+    const categories: Array<string> = productLinks
       .filter((link: ProductDocsLink): boolean => {
         return (
-          link.anchor !== null &&
-          NAV_PAGES.includes(link.page) &&
-          !anchorsOf("en", link.page).has(decodeAnchor(link.anchor))
+          link.target.kind === "category" &&
+          // "/docs/as-markdown" and the like name the docs' endpoints.
+          !NOT_PAGE_CATEGORIES.includes(link.target.name!.toLowerCase())
         );
       })
-      .map((link: ProductDocsLink): string => {
-        return `${link.file}: ${link.link}`;
+      .map(whereOf);
+
+    expect(categories).toEqual([]);
+  });
+
+  it("name headings those pages have", () => {
+    const broken: Array<string> = pageLinks
+      .filter((link: ProductPageLink): boolean => {
+        return (
+          link.link.anchor !== null &&
+          NAV_PAGES.includes(link.page) &&
+          !anchorsOf("en", link.page).has(link.link.anchor)
+        );
+      })
+      .map((link: ProductPageLink): string => {
+        return whereOf(link.link);
       });
 
     expect(broken).toEqual([]);
