@@ -6,7 +6,7 @@ The OneUptime dashboard installs on Windows as an app, from Microsoft Edge or Go
 - [Install the app](#install-the-app): From Edge or Chrome, in a few clicks.
 - [Pin it and start it with Windows](#pin-it-and-start-it-with-windows): Keep it one click away.
 - [Get notifications on this computer](#get-notifications-on-this-computer): Register the browser for push notifications.
-- [Troubleshooting](#troubleshooting): No install button, no notifications, signing in again.
+- [Troubleshooting](#troubleshooting): No install icon, no notifications, signing in again.
 :::
 
 ## How the desktop app works

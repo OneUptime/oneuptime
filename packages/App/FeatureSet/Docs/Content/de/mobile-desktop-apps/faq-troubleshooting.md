@@ -1,144 +1,165 @@
-# FAQ und Fehlerbehebung
+# FAQ & Fehlerbehebung
 
-Häufig gestellte Fragen und Lösungen für die mobilen und Desktop-Apps von OneUptime.
+Antworten auf häufige Fragen zu den mobilen und Desktop-Apps von OneUptime, und Lösungen für das, was am häufigsten schiefgeht: die Anmeldung, Benachrichtigungen, die nicht ankommen, und ein Telefon, das sich neu registrieren muss.
 
-## Wie verteilt OneUptime seine Apps?
+:::cards
+- [Fragen zur mobilen App](#fragen-zur-mobilen-app): Geräte, Projekte, Selbsthosting und Sicherheit.
+- [Fragen zur Desktop-App](#fragen-zur-desktop-app): Was die Desktop-App ist, und was sie nicht kann.
+- [Wenn sich ein Telefon neu registrieren muss](#wenn-sich-ein-telefon-neu-registrieren-muss): Warum ein Telefon keine Alarme mehr bekommt, und wie es zurückkommt.
+- [Fehlerbehebung](#fehlerbehebung): Probleme mit Anmeldung, Benachrichtigungen und Installation.
+:::
 
-- **Mobile (iOS und Android):** OneUptime stellt eine native App namens **OneUptime On-Call** bereit. Sie wird im [Apple App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) und auf [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall) veröffentlicht. Ein signierter [APK-Download](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) ist zudem für Android-Geräte ohne Google Play verfügbar.
-- **Desktop (Windows, macOS, Linux):** Das OneUptime-Web-Dashboard ist eine Progressive Web App (PWA). Sie können es direkt aus einem Chromium-basierten Browser oder aus Safari als Desktop-Anwendung installieren — ohne dass ein Store-Konto erforderlich ist.
+## Fragen zur mobilen App
 
-## FAQ zur mobilen App
+:::details Ist die App kostenlos?
+Ja. OneUptime On-Call ist kostenlos im App Store, bei Google Play und als APK auf GitHub. Sie melden sich mit Ihrem OneUptime-Konto an.
+:::
 
-### Welche Geräte werden unterstützt?
+:::details Auf welchen Telefonen und Tablets läuft sie?
+Auf iPhones und iPads mit iOS bzw. iPadOS 16.4 oder neuer, und auf Android-Telefonen und -Tablets mit Android 7.0 oder neuer.
+:::
 
-- **iOS:** iPhone oder iPad mit iOS 15.0 oder neuer.
-- **Android:** Telefone und Tablets mit Android 8.0 (Oreo) oder neuer.
+:::details Funktioniert sie mit einem selbst gehosteten OneUptime?
+Ja. Geben Sie beim Start der App die `https://`-Adresse Ihres OneUptime ein, oder tippen Sie auf dem Anmeldebildschirm auf **Change Server**. Standardmäßig schickt Ihr Server Alarme über das Push-Relay von OneUptime an Telefone und braucht deshalb kein Konto bei Apple, Google oder Expo: siehe [Push-Benachrichtigungen](/docs/self-hosted/push-notifications).
+:::
 
-### Ist die App kostenlos?
+:::details Kann ich sie mit mehreren Projekten nutzen?
+Ja. Die App registriert das Telefon in jedem Projekt, dem Sie angehören, sodass jedes Projekt Sie alarmieren kann. Sie zeigt jeweils ein Projekt: Tippen Sie oben auf einem Bildschirm auf den Namen des Projekts, um zu wechseln.
+:::
 
-Ja. Die OneUptime On-Call-App kann kostenlos installiert werden. Sie melden sich mit Ihrem bestehenden OneUptime-Konto an.
+:::details Kann ich mich auf mehr als einem Telefon anmelden?
+Ja. Jedes Telefon und jedes Tablet ist ein eigenes Push-Gerät, mit eigenen Bereitschaftsregeln und einer eigenen Einstellung für kritische Warnungen.
+:::
 
-### Kann ich die App mit einer selbst gehosteten OneUptime-Instanz verwenden?
+:::details Was kann ich in der App tun?
+- **Home**: was im Projekt Aufmerksamkeit braucht: aktive Vorfälle und Warnungen, Monitore mit Problemen und gruppierte Ereignisse.
+- **Monitors**: alle Monitore, nach Zustand gefiltert, mit ihren Details.
+- **Inbox**: Vorfälle und Warnungen, und die Episoden, die sie gruppieren. Öffnen Sie einen Eintrag, um **Acknowledge**, **Resolve** oder **Add Note** zu wählen.
+- **On-Call**: ob Sie Bereitschaft haben und bis wann, wer sonst, die Alarme, die an Sie gingen, und **Cover for me**, das Ihre Alarme für eine Weile an eine Kollegin oder einen Kollegen übergibt.
+- **Settings**: Ihre Projekte und Single Sign-On, das Aussehen, kritische Warnungen und der Alarmton, **Biometrics Login**, Ihr Bereitschafts-Kalenderfeed und **Log Out**.
 
-Ja. Beim ersten Start fragt die App nach einer **Server-URL**. Geben Sie die URL Ihrer selbst gehosteten Instanz ein (zum Beispiel `https://oneuptime.example.com`). Die App überprüft, ob der Server erreichbar ist, bevor sie Ihnen die Anmeldung erlaubt.
+Alles andere finden Sie im Dashboard.
+:::
 
-Für Push-Benachrichtigungen auf selbst gehosteten Instanzen folgen Sie der Anleitung [Push Notifications](/docs/self-hosted/push-notifications).
+:::details Kann ich einen Alarm direkt in der Benachrichtigung bestätigen?
+Nein. Tippen Sie auf die Benachrichtigung: Die App öffnet den Vorfall, die Warnung oder die Episode, um die es geht, im richtigen Projekt, und dort bestätigen Sie. Ist die App gesperrt oder sind Sie abgemeldet, öffnet sie den Alarm, sobald Sie drin sind.
+:::
 
-### Wie werden Updates bereitgestellt?
+:::details Ist meine Anmeldung auf dem Telefon sicher?
+Die App spricht mit Ihrem OneUptime nur über HTTPS. Ihre Anmeldung liegt im eigenen Speicher der App auf dem Telefon, und **Log Out** löscht sie und meldet die Sitzung auch auf dem Server ab. Schalten Sie **Biometrics Login** ein, damit die App bei jedem Start nach Gesicht, Fingerabdruck oder Code fragt.
+:::
 
-- **iOS:** Über den App Store. Aktivieren Sie automatische Updates unter **Einstellungen → App Store**, oder aktualisieren Sie manuell über Ihr App-Store-Profil.
-- **Android (Google Play):** Automatische Updates sind standardmäßig aktiviert.
-- **Android (APK-Sideloading):** Laden Sie die neueste APK über den obigen GitHub-Releases-Link herunter und installieren Sie sie.
+:::details Funktioniert die App offline?
+Nein. Ohne Verbindung zeigt sie oben auf dem Bildschirm **No internet connection** und macht weiter, sobald die Verbindung zurück ist.
+:::
 
-### Warum erhalte ich keine Push-Benachrichtigungen?
+## Fragen zur Desktop-App
 
-Mobile Pushes verwenden APNs (iOS) und FCM (Android) via Expo Push. Überprüfen Sie Folgendes:
+:::details Was ist die Desktop-App?
+Das OneUptime-Dashboard, aus Ihrem Browser als App installiert: ein eigenes Fenster, ein Symbol im Startmenü, im Dock oder in Ihrem App-Starter, und Benachrichtigungen. Sie kann alles, was das Dashboard kann, weil sie das Dashboard ist.
+:::
 
-1. Benachrichtigungen sind auf Betriebssystemebene für **OneUptime On-Call** aktiviert.
-2. Die Akkuoptimierung ist deaktiviert und Hintergrundaktivität ist zugelassen (Android).
-3. „Nicht stören" oder Fokus-Modi sind ausgeschaltet, oder die App steht auf der Ausnahmeliste.
-4. Sie sind angemeldet — das Push-Token wird erst nach der Anmeldung beim Server registriert.
-5. Das Telefon ist in OneUptime unter **User Settings > Notification Methods > Push** nicht als **Keine Benachrichtigungen** markiert. Falls doch, öffnen Sie die App auf dem Telefon, während Sie angemeldet sind, um es erneut zu registrieren.
-6. **Nur selbst gehostet:** Push-Benachrichtigungen sind auf Ihrer OneUptime-Instanz konfiguriert. Siehe die Anleitung [Push Notifications](/docs/self-hosted/push-notifications).
+:::details Warum ist sie in keinem App Store?
+Das braucht sie nicht. Die App lädt das Dashboard bei jedem Öffnen von Ihrem OneUptime, sie ist also immer die Version, die Ihr OneUptime ausführt, unter Windows, macOS und Linux gleichermaßen, ohne dass Sie etwas aktualisieren müssen.
+:::
 
-### Sind die Daten auf meinem Telefon sicher?
+:::details Kann sie mich wecken wie das Telefon?
+Nein. Browser können „Nicht stören“ oder einen Fokus nicht übergehen, eine Desktop-Benachrichtigung ist also nur so laut, wie der Computer es zulässt. Für Alarme, die Sie wecken müssen, nutzen Sie die mobile App mit kritischen Warnungen.
+:::
 
-- Der gesamte API-Verkehr verwendet HTTPS.
-- Zugriffs- und Aktualisierungstoken werden im sicheren Schlüsselspeicher des Geräts abgelegt (Keychain auf iOS, Keystore auf Android).
-- Sie können die Entsperrung über Face ID / Touch ID / Fingerabdruck im **Einstellungen**-Bildschirm innerhalb der App erzwingen.
+:::details Funktioniert sie offline?
+Nein. Sie braucht eine Verbindung zu Ihrem OneUptime, wie das Dashboard in einem Browser-Tab.
+:::
 
-### Kann ich die App auf mehreren Geräten installieren?
+## Wenn sich ein Telefon neu registrieren muss
 
-Ja. Melden Sie sich mit demselben OneUptime-Konto auf so vielen Geräten an, wie Sie benötigen. Jedes Gerät erhält seine eigenen Push-Benachrichtigungen.
+OneUptime schickt die Alarme eines Telefons über Expo, das sie Apple oder Google übergibt. Meldet Expo, dass das Telefon nicht mehr erreichbar ist, schickt OneUptime ihm nichts mehr, bis die App es neu registriert.
 
-### Wie deinstalliere ich die App?
+```mermaid title="Wie ein Telefon keine Alarme mehr bekommt, und wie es zurückkommt"
+flowchart TB
+    Registered["Das Telefon ist registriert,<br/>und Alarme erreichen es"]
+    Gone["Expo meldet es als weg: Ein<br/>Push wird abgelehnt, oder<br/>seine Quittung sagt es etwa<br/>15 Minuten später"]
+    Marked["OneUptime markiert es mit Keine<br/>Benachrichtigungen und sendet nicht<br/>mehr; seine Regeln bleiben"]
+    Others["Ihre anderen Geräte und<br/>Methoden werden weiter alarmiert"]
+    Open["Sie öffnen die App,<br/>während Sie angemeldet sind"]
+    Renewed["Die App registriert sich neu<br/>und erneuert ihr Push-Token"]
+    Registered --> Gone --> Marked
+    Marked --> Others
+    Marked --> Open --> Renewed --> Registered
+```
 
-- **iOS:** Symbol gedrückt halten → **App entfernen** → **App löschen**.
-- **Android:** Symbol gedrückt halten → **Deinstallieren**, oder **Einstellungen → Apps → OneUptime On-Call → Deinstallieren**.
+Expo meldet ein Telefon als weg, wenn die App davon entfernt wurde oder sein Push-Token nicht mehr gilt. Das Telefon wird nicht gelöscht: **Benutzereinstellungen → Benachrichtigungsmethoden** zeigt es auf dem Tab **Push Notifications** als **Keine Benachrichtigungen**, und die Bereitschafts-Zeitleiste eines Alarms, der es nicht erreicht hat, sagt, warum. Ihre anderen Telefone und Benachrichtigungsmethoden werden wie gewohnt alarmiert.
 
-Ihr OneUptime-Konto und Ihre Daten werden auf dem Server gespeichert und nicht entfernt, wenn Sie die App deinstallieren.
+Die App registriert das Telefon bei jedem Start, wenn Sie sich anmelden, und wenn Sie zu ihr zurückkehren, höchstens alle fünf Minuten einmal. Beim Registrieren fragt sie Expo erneut nach dem Push-Token, was es erneuert, und das Telefon bekommt wieder Alarme, mit den Regeln, die es hatte.
 
-## FAQ zur Desktop-App (PWA)
+| Was passiert ist | Was zu tun ist | Was OneUptime tut |
+| --- | --- | --- |
+| Die App ist noch installiert | Öffnen Sie sie, während Sie angemeldet sind | Das Telefon bekommt wieder Benachrichtigungen, mit seinen Regeln |
+| Sie haben die App auf einem iPhone oder iPad neu installiert | Installieren Sie sie und melden Sie sich an | Meist kommt derselbe Eintrag zurück, mit seinen Regeln |
+| Sie haben die App auf Android neu installiert | Installieren Sie sie, melden Sie sich an und löschen Sie den alten Eintrag | Ein neuer Eintrag mit den Standardregeln; der alte bleibt markiert |
+| Ein neues Telefon, aus einem Backup des alten eingerichtet | Öffnen Sie die App auf dem neuen Telefon | Ist der Eintrag des alten Telefons markiert, übernimmt ihn das neue, mit seinen Regeln; sonst bekommt das neue Telefon einen eigenen Eintrag |
+| Ein neues Telefon, neu eingerichtet | Melden Sie sich an und löschen Sie den alten Eintrag | Ein neuer Eintrag mit den Standardregeln |
+| Sie haben sich in der App abgemeldet | Melden Sie sich wieder an | Das Abmelden hat das Telefon und seine Regeln entfernt; es kommt mit den Standardregeln zurück |
 
-### Was ist eine Progressive Web App (PWA)?
-
-Eine Progressive Web App ist eine Webanwendung, die wie eine native Desktop-App installiert werden kann. Nach der Installation läuft sie in einem eigenen Fenster, hat ein eigenes Symbol in Ihrem Launcher und kann Desktop-Benachrichtigungen zustellen — ohne den Umweg über den Windows Store, den Mac App Store oder einen anderen Vertriebskanal.
-
-### Warum verwendet die Desktop-App PWA-Technologie?
-
-- **Sofortige Updates** — die App bleibt mit Ihrer OneUptime-Instanz synchron, sobald Sie ein Deployment durchführen.
-- **Kein Store-Konto erforderlich** — Installation direkt aus jedem modernen Browser.
-- **Eine Codebasis** — dasselbe Dashboard läuft unter Windows, macOS und Linux.
-
-### Warum erscheint die Schaltfläche „Installieren" nicht?
-
-1. Verwenden Sie einen Chromium-basierten Browser (Chrome, Edge, Brave, Arc) oder Safari (macOS Sonoma oder neuer).
-2. Vergewissern Sie sich, dass Ihre OneUptime-Instanz über HTTPS mit einem gültigen Zertifikat bereitgestellt wird.
-3. Leeren Sie den Browser-Cache und laden Sie die Seite neu.
-4. Die App ist möglicherweise bereits installiert — sehen Sie unter Programme / Startmenü nach.
-
-### Wie aktualisiere ich die Desktop-App?
-
-Die PWA wird automatisch aktualisiert, sobald Sie sie online öffnen. Um ein Update zu erzwingen, aktualisieren Sie das Fenster mit **Strg+R** (Windows/Linux) oder **Cmd+R** (macOS).
-
-### Wie deinstalliere ich die Desktop-PWA?
-
-- **Windows:** **Einstellungen → Apps → OneUptime → Deinstallieren**, oder klicken Sie mit der rechten Maustaste auf den Eintrag im Startmenü.
-- **macOS:** Ziehen Sie die App aus dem Ordner **Programme** in den Papierkorb, oder klicken Sie mit der rechten Maustaste auf das Dock-Symbol und wählen Sie **Entfernen**.
-- **Linux:** Verwenden Sie die Deinstallationsoption Ihres Anwendungsstarters oder entfernen Sie die entsprechende `.desktop`-Datei.
+Auch ein Browser kann aufhören, Benachrichtigungen zu bekommen, wenn sein Push-Abonnement abläuft. Das Dashboard erneuert es, wenn es kann; bleibt der Browser markiert, registrieren Sie ihn in diesem Browser mit **Gerät registrieren** neu.
 
 ## Fehlerbehebung
 
-### Probleme mit der mobilen App
+### Anmelden
 
-**App lässt sich nicht anmelden / „Netzwerkfehler":**
+:::details „Could not connect to the server“
+Die App konnte `https://<your-oneuptime>/api/status` nicht erreichen. Prüfen Sie die Adresse, einschließlich `https://`: Die App verbindet sich nicht über einfaches HTTP. Liegt Ihr OneUptime in einem privaten Netz, verbinden Sie das Telefon zuerst damit, zum Beispiel über Ihr VPN. Öffnen Sie diese Adresse im Browser des Telefons, zeigt sie `{"status":"ok"}`, wenn das Telefon OneUptime erreicht.
+:::
 
-- Vergewissern Sie sich, dass die **Server-URL** korrekt und von Ihrem Telefon aus erreichbar ist.
-- Prüfen Sie, ob Ihr Telefon mit dem Internet verbunden ist.
-- Bei selbst gehosteten Instanzen hinter einem VPN stellen Sie sicher, dass das VPN aktiv ist.
+:::details „No SSO configuration found for the email“
+Keines der Projekte, denen diese E-Mail-Adresse angehört, hat Single Sign-On eingerichtet, oder die Adresse hat kein Konto auf diesem OneUptime. Prüfen Sie die E-Mail-Adresse, oder melden Sie sich mit Ihrem Passwort an. Anbieter, die Ihr Administrator für die ganze Installation eingerichtet hat, stehen vor dem E-Mail-Feld.
+:::
 
-**Push-Benachrichtigungen verzögert oder fehlend (Android):**
+:::details Ein Sicherheitsschlüssel ist Ihr einziger zweiter Faktor
+Die App kann keinen Sicherheitsschlüssel verwenden. Melden Sie sich mit einem Ihrer Backup-Codes an, oder fügen Sie Ihrem Konto im Dashboard eine Authenticator-App hinzu: siehe [Die Zwei-Faktor-Authentifizierung einschalten](/docs/introduction/your-account#die-zwei-faktor-authentifizierung-einschalten).
+:::
 
-- Deaktivieren Sie die Akkuoptimierung: **Einstellungen → Apps → OneUptime On-Call → Akku → Unbeschränkt**.
-- Deaktivieren Sie den Datensparmodus für die App.
-- Schalten Sie auf Samsung-Geräten unter **Gerätewartung → Akku → Begrenzungen für Hintergrundaktivität** die Begrenzung für OneUptime On-Call aus.
+:::details Die Anmeldung mit Passkey schlägt fehl
+Passkeys brauchen eine Adresse Ihres OneUptime, die mit `https://` beginnt, und einen Passkey, den Sie für dieses OneUptime hinzugefügt haben: siehe [Einen Passkey hinzufügen](/docs/introduction/your-account#einen-passkey-hinzufügen). Um einen anderen Server zu nutzen, tippen Sie auf dem Anmeldebildschirm auf **Change Server**.
+:::
 
-**Push-Benachrichtigungen verzögert oder fehlend (iOS):**
+### Benachrichtigungen
 
-- Vermeiden Sie es, die App per „Sofort beenden" zu beenden — iOS kann die Hintergrundzustellung pausieren.
-- Deaktivieren Sie den Stromsparmodus, während Sie im Bereitschaftsdienst sind.
-- Fügen Sie OneUptime On-Call zur Erlaubnisliste eines aktiven Fokus-Modus hinzu.
+:::details Keine Benachrichtigungen auf dem Telefon
+- Prüfen Sie, dass das Telefon Benachrichtigungen von OneUptime On-Call erlaubt und dass „Nicht stören“ oder ein Fokus sie nicht zurückhält.
+- Prüfen Sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push Notifications**, dass das Telefon aufgeführt ist, und senden Sie ihm eine **Testbenachrichtigung**.
+- Ist es mit **Keine Benachrichtigungen** markiert, öffnen Sie die App, während Sie angemeldet sind: siehe [Wenn sich ein Telefon neu registrieren muss](#wenn-sich-ein-telefon-neu-registrieren-muss).
+- Prüfen Sie Ihre Bereitschaftsregeln unter **Benutzereinstellungen → Bereitschaftsregeln**: Sie entscheiden, welche Alarme welche Methode erreichen.
+- Prüfen Sie bei einem selbst gehosteten OneUptime, dass der Server sein Push-Relay erreicht: siehe [Push-Benachrichtigungen](/docs/self-hosted/push-notifications#netzwerkzugriff).
+:::
 
-**Face ID / Touch ID / Fingerabdruck funktioniert nicht:**
+:::details Alarme kommen auf Android verspätet an
+Stellen Sie die Akkunutzung der App in den Android-Einstellungen für OneUptime On-Call auf **Nicht eingeschränkt**, und nehmen Sie die App von jeder Energiesparliste aus: siehe [Verhindern, dass Alarme verspätet ankommen](/docs/mobile-desktop-apps/android-installation#verhindern-dass-alarme-verspätet-ankommen).
+:::
 
-- Stellen Sie sicher, dass Biometrie in den Einstellungen Ihres Betriebssystems eingerichtet ist.
-- Aktivieren Sie die biometrische Entsperrung erneut im **Einstellungen**-Bildschirm innerhalb der OneUptime On-Call-App.
+:::details Kritische Warnungen durchbrechen den Stummmodus nicht
+Öffnen Sie in der App **Settings**: Die Zeile unter **Critical On-Call Alerts** sagt, was auf diesem Telefon fehlt. Prüfen Sie dann unter **Benutzereinstellungen → Bereitschaftsregeln**, dass die Bereitschaftsregel, die den Alarm geschickt hat, auf **Kritische Warnung** steht, nicht auf **Normal**. Jedes Telefon hat seinen eigenen Schalter.
+:::
 
-### Probleme mit der Desktop-App (PWA)
+### Desktop-App
 
-**Schaltfläche „Installieren" fehlt:**
+:::details Kein Installationssymbol in der Adressleiste
+Installieren Sie von einer Dashboard-Seite aus, nach der Anmeldung, über `https://`, in Edge oder Chrome, oder in Safari ab macOS Sonoma 14. Erscheint das Symbol nicht, installiert auch das Menü des Browsers die App: siehe [Windows-Installation](/docs/mobile-desktop-apps/windows-installation#die-app-installieren).
+:::
 
-- Verwenden Sie einen unterstützten Browser (Chromium-basiert oder Safari auf macOS Sonoma oder neuer).
-- Stellen Sie sicher, dass die OneUptime-Instanz über HTTPS bereitgestellt wird.
-- Warten Sie, bis die Seite vollständig geladen ist, und prüfen Sie dann die Adressleiste auf das Installationssymbol.
+:::details Keine Desktop-Benachrichtigungen
+Registrieren Sie den Browser unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push Notifications** mit **Gerät registrieren**, erlauben Sie Benachrichtigungen, wenn danach gefragt wird, und prüfen Sie die Benachrichtigungseinstellungen des Computers selbst. Ein selbst gehostetes OneUptime braucht seine VAPID-Schlüssel für Browser-Benachrichtigungen.
+:::
 
-**Desktop-Benachrichtigungen erscheinen nicht:**
+## Hilfe bekommen
 
-- Erlauben Sie Benachrichtigungen, wenn der Browser danach fragt.
-- Überprüfen Sie die Benachrichtigungseinstellungen Ihres Betriebssystems (Windows Benachrichtigungsassistent, macOS Mitteilungen, Linux Benachrichtigungs-Daemon).
-- Stellen Sie bei selbst gehosteten Instanzen sicher, dass die Konfiguration für [Push Notifications](/docs/self-hosted/push-notifications) vollständig ist.
+Passt hier etwas nicht zu dem, was Sie sehen, [eröffnen Sie ein Issue auf GitHub](https://github.com/OneUptime/oneuptime/issues), mit der Version Ihrer App, unten auf ihrem Bildschirm **Settings**, und der Plattform, die Sie nutzen.
 
-**App zeigt nicht die neuesten Daten an:**
+## Nächste Schritte
 
-- Aktualisieren Sie mit **Strg+R** / **Cmd+R**.
-- Schließen Sie das Fenster und öffnen Sie es erneut.
-- Überprüfen Sie Ihre Netzwerkverbindung.
-
-## Support
-
-Wenn Sie weiterhin Hilfe benötigen:
-
-- Mobile: Lesen Sie die Installationsanleitungen für [iOS](./ios-installation.md) oder [Android](./android-installation.md).
-- Desktop: Lesen Sie die Installationsanleitungen für [Windows](./windows-installation.md), [macOS](./macos-installation.md) oder [Linux](./linux-installation.md).
-- Eröffnen Sie ein Issue im [OneUptime-GitHub-Repository](https://github.com/OneUptime/oneuptime).
-- Kontaktieren Sie den Support über Ihr OneUptime-Dashboard.
+:::cards
+- [Apps – Übersicht](/docs/mobile-desktop-apps/index): Welche App Sie nutzen, und wie die Apps OneUptime erreichen.
+- [Android-Installation](/docs/mobile-desktop-apps/android-installation): Die App auf Android installieren und einrichten.
+- [iOS-Installation](/docs/mobile-desktop-apps/ios-installation): Die App auf einem iPhone oder iPad installieren und einrichten.
+- [Push-Benachrichtigungen](/docs/self-hosted/push-notifications): Wie ein selbst gehostetes OneUptime Alarme schickt, und die Fehler von Expo.
+:::

@@ -1,261 +1,118 @@
-# macOS-Installationsanleitung
+# macOS-Installation
 
-Installieren Sie OneUptime als native Desktop-Anwendung auf macOS für nahtloses Monitoring und Incident-Management.
+Das OneUptime-Dashboard lässt sich auf einem Mac als App installieren: Fügen Sie es aus Safari zum Dock hinzu, oder installieren Sie es aus Google Chrome oder Microsoft Edge. Es öffnet sich in einem eigenen Fenster, mit eigenem Symbol im Dock und im Launchpad, und kann Mitteilungen zeigen. Es gibt nichts herunterzuladen: Die App ist das Dashboard Ihres OneUptime und immer so aktuell wie Ihr OneUptime.
 
-## Installationsmethoden
+:::cards
+- [Die App installieren](#die-app-installieren): Aus Safari, Chrome oder Edge.
+- [Im Dock behalten](#im-dock-behalten): Mit einem Klick öffnen, oder bei der Anmeldung.
+- [Mitteilungen auf diesem Mac](#mitteilungen-auf-diesem-mac): Die App für Push-Benachrichtigungen registrieren.
+- [Fehlerbehebung](#fehlerbehebung): Kein „Zum Dock hinzufügen“, keine Mitteilungen, erneute Anmeldung.
+:::
 
-### Methode 1: Safari (Empfohlen für macOS)
+## So funktioniert die Desktop-App
 
-Safari bietet exzellente PWA-Integration mit nativen macOS-Funktionen.
+```mermaid title="Was Ihnen die Installation des Dashboards bringt"
+flowchart TB
+    Browser["Safari, Chrome oder Edge<br/>öffnet Ihr Dashboard"]
+    Install["Sie fügen es zum Dock hinzu<br/>oder installieren es als App"]
+    App["OneUptime in einem eigenen Fenster,<br/>im Dock und im Launchpad"]
+    OneUptime["Ihr OneUptime liefert<br/>das Dashboard"]
+    Browser --> Install --> App
+    App -->|"lädt das Dashboard<br/>bei jedem Öffnen"| OneUptime
+```
 
-1. **OneUptime in Safari öffnen**
+Eine Safari-Web-App hat ihre eigene Anmeldung, eigene Cookies und Einstellungen, getrennt von Safari. Eine aus Chrome oder Edge installierte App teilt sie mit diesem Browser.
 
-   - Safari-Browser starten
-   - Zur URL Ihrer OneUptime-Instanz navigieren
-   - Bei Ihrem OneUptime-Konto anmelden
-   - Auf vollständiges Laden der Seite warten
+## Bevor Sie beginnen
 
-2. **PWA installieren**
+- macOS Sonoma 14 oder neuer für Safari. Chrome und Edge installieren Apps auf jedem macOS, auf dem sie laufen.
+- Die Adresse Ihres OneUptime, über HTTPS: `https://oneuptime.com` bei OneUptime Cloud, oder Ihre eigene, etwa `https://oneuptime.example.com`.
+- Ein Konto, mit dem Sie sich am Dashboard anmelden können.
 
-   - Auf **Ablage** in der Menüleiste klicken
-   - **„Zum Dock hinzufügen"** auswählen (macOS Sonoma+)
-   - Oder nach dem **Installations-Symbol** in der Adressleiste suchen
-   - Alternativ: **Ablage** → **„Zum Home-Bildschirm hinzufügen"** (älteres macOS)
+## Die App installieren
 
-3. **Installation anpassen**
+:::tabs
+@tab Safari
+1. Öffnen Sie Ihr OneUptime in Safari und melden Sie sich an.
+2. Wählen Sie auf einer beliebigen Dashboard-Seite **Ablage → Zum Dock hinzufügen**, oder klicken Sie in der Symbolleiste auf die Teilen-Taste und dann auf **Zum Dock hinzufügen**.
+3. Behalten Sie den Namen oder ändern Sie ihn, und klicken Sie auf **Hinzufügen**.
+4. Öffnen Sie OneUptime aus dem Dock und melden Sie sich noch einmal an: Die Web-App teilt die Anmeldung von Safari nicht.
+@tab Chrome
+1. Öffnen Sie Ihr OneUptime in Chrome und melden Sie sich an.
+2. Klicken Sie auf einer beliebigen Dashboard-Seite auf das Installationssymbol rechts in der Adressleiste und dann auf **Installieren**. Oder öffnen Sie **⋮ → Streamen, speichern und teilen → Seite als App installieren…**.
+3. Chrome öffnet OneUptime in einem eigenen Fenster und fügt es dem Launchpad hinzu.
+@tab Edge
+1. Öffnen Sie Ihr OneUptime in Edge und melden Sie sich an.
+2. Klicken Sie auf einer beliebigen Dashboard-Seite auf das Installationssymbol rechts in der Adressleiste und dann auf **Installieren**. Oder öffnen Sie **Einstellungen und mehr (…) → Weitere Tools → Apps → Diese Website als App installieren**.
+3. Edge öffnet OneUptime in einem eigenen Fenster und fügt es dem Launchpad hinzu.
+:::
 
-   - **App-Name**: Bei Wunsch ändern (Standard: OneUptime)
-   - **Dock**: Zum Dock hinzufügen wählen
-   - **Launchpad**: Für einfachen Zugriff zum Launchpad hinzufügen
+Installieren Sie von einer Dashboard-Seite aus, nachdem Sie sich angemeldet haben: Die Anmeldeseite ist nicht die App. Safari speichert die Web-App im Ordner „Programme“ Ihres Benutzerordners.
 
-4. **App starten**
-   - OneUptime im Dock, Launchpad oder im Anwendungsordner finden
-   - Klicken, um in einem eigenen Fenster zu starten
-   - App läuft unabhängig vom Safari-Browser
+## Im Dock behalten
 
-### Methode 2: Google Chrome
+- **Dock.** Klicken Sie bei geöffneter App bei gedrückter Ctrl-Taste auf ihr Symbol im Dock und wählen Sie **Optionen → Im Dock behalten**. Eine Safari-Web-App ist schon im Dock.
+- **Bei der Anmeldung öffnen.** Klicken Sie bei gedrückter Ctrl-Taste auf das Symbol im Dock und wählen Sie **Optionen → Bei der Anmeldung öffnen**.
+- **Spotlight.** Drücken Sie Befehl-Leertaste und tippen Sie OneUptime.
 
-Chrome bietet robuste PWA-Unterstützung mit exzellenter Desktop-Integration.
+## Mitteilungen auf diesem Mac
 
-1. **OneUptime in Chrome öffnen**
+Die App zeigt Mitteilungen, sobald Sie sie in jedem Projekt, aus dem Sie sie bekommen möchten, für Push-Benachrichtigungen registrieren. Registrieren Sie die Safari-Web-App aus der Web-App heraus: Sie ist ein Browser für sich. Eine aus Chrome oder Edge installierte App wird mit ihrem Browser registriert.
 
-   - Google Chrome starten
-   - Zur OneUptime-Instanz gehen
-   - Angemeldet sein
-   - Vollständiges Laden der Seite abwarten
+:::steps
+### Ihre Push-Geräte öffnen
+Öffnen Sie in der App **Benutzereinstellungen → Benachrichtigungsmethoden** und den Tab **Push Notifications**.
 
-2. **Über Menü installieren**
+### Diese App registrieren
+Klicken Sie auf **Gerät registrieren**, behalten Sie im Feld **Gerätename** den Vorschlag, etwa `Safari on macOS`, oder ändern Sie ihn, und klicken Sie erneut auf **Gerät registrieren**. Wenn macOS oder der Browser fragt, ob OneUptime Mitteilungen senden darf, wählen Sie **Erlauben**.
 
-   - Nach **Installations-Symbol** (⊞) in der Adressleiste suchen
-   - Auf **„OneUptime installieren"** klicken
-   - Oder **Chrome-Menü** → **Weitere Tools** → **Verknüpfung erstellen** verwenden
+### Einen Test senden
+Klicken Sie im Dialog **Browser Registered** auf **Send Test Notification**. Erscheint nichts, sehen Sie sich die Mitteilungseinstellungen des Mac an: siehe [Fehlerbehebung](#fehlerbehebung).
+:::
 
-3. **Installationsoptionen**
+Ein Browser kann einen Fokus wie „Nicht stören“ nicht durchbrechen. Für Alarme, die Sie wecken müssen, nutzen Sie die mobile App mit kritischen Warnungen: siehe [iOS-Installation](/docs/mobile-desktop-apps/ios-installation#den-stummmodus-durchbrechen).
 
-   - **„Als Fenster öffnen"** für natives App-Erlebnis aktivieren
-   - App-Namen bei Bedarf anpassen
-   - Auf **„Installieren"** oder **„Erstellen"** klicken
+Bei einem selbst gehosteten OneUptime brauchen Browser-Benachrichtigungen die VAPID-Schlüssel des Servers: siehe [Push-Benachrichtigungen](/docs/self-hosted/push-notifications#einrichtung-bei-selbsthosting).
 
-4. **App aufrufen**
-   - OneUptime im Anwendungsordner finden
-   - Oder über Spotlight-Suche aufrufen
-   - Für schnellen Zugriff ans Dock anheften
+## Updates
 
-### Methode 3: Microsoft Edge
+Es gibt nichts zu aktualisieren. Die App lädt das Dashboard bei jedem Öffnen von Ihrem OneUptime, sie ändert sich also, wenn Ihr OneUptime aktualisiert wird. Ist ein Fenster seit dem Update offen, laden Sie es mit Befehl-R neu.
 
-Edge bietet solide PWA-Unterstützung mit guter macOS-Integration.
+## Deinstallieren
 
-1. **OneUptime in Edge öffnen**
+:::tabs
+@tab Safari
+Öffnen Sie im Finder Ihren Benutzerordner, dann dessen Ordner „Programme“, und ziehen Sie OneUptime in den Papierkorb.
+@tab Chrome
+Öffnen Sie im Fenster der App das Menü **⋮**, wählen Sie den Eintrag, der die App deinstalliert, und dann **Entfernen**.
+@tab Edge
+Öffnen Sie in Edge `edge://apps`, wählen Sie bei OneUptime **Details** und dann **Deinstallieren**.
+:::
 
-   - Microsoft Edge starten
-   - Zur OneUptime-URL navigieren
-   - Anmeldeprozess abschließen
-
-2. **App installieren**
-   - Auf **Drei-Punkte-Menü** → **Apps** → **Diese Website als App installieren** klicken
-   - Oder nach Installationsaufforderung in der Adressleiste suchen
-   - App-Namen nach Wunsch anpassen
-   - Auf **„Installieren"** klicken
-
-### Anpassungsoptionen
-
-### Dock und Launchpad
-
-1. **Dock-Position**: OneUptime an bevorzugte Dock-Position ziehen
-2. **Dock-Größe**: Symbol in den Dock-Einstellungen skalieren
-3. **Launchpad-Organisation**: Monitoring-App-Ordner erstellen
-4. **Badge-Benachrichtigungen**: Incident-Anzahl auf dem Dock-Symbol anzeigen
-
-### Menüleiste und Benachrichtigungen
-
-1. **Benachrichtigungszentrum**
-
-   - Systemeinstellungen → Benachrichtigungen → OneUptime
-   - Benachrichtigungsstile und -lieferung konfigurieren
-   - Prioritätsstufen für verschiedene Incident-Typen festlegen
-
-2. **Menüleisten-Integration**
-   - Native Menüleiste für Safari PWAs
-   - Benutzerdefinierte Menüelemente für häufige Aktionen
-   - Tastaturkürzel für häufige Aufgaben
+Die Deinstallation der App meldet sie nicht ab: Ihr Browser bekommt weiter Mitteilungen. Um sie zu beenden, löschen Sie sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push Notifications** mit **Löschen**.
 
 ## Fehlerbehebung
 
-### Installationsprobleme
+:::details Kein „Zum Dock hinzufügen“ in Safari
+Safari fügt Web-Apps ab macOS Sonoma 14 zum Dock hinzu. Aktualisieren Sie macOS, oder installieren Sie die App stattdessen aus Chrome oder Edge.
+:::
 
-**„Zum Dock hinzufügen" in Safari nicht verfügbar:**
+:::details Es erscheinen keine Mitteilungen
+- Prüfen Sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** auf dem Tab **Push Notifications**, dass die App oder ihr Browser aufgeführt ist, und senden Sie eine **Testbenachrichtigung**.
+- Öffnen Sie auf dem Mac **Systemeinstellungen → Mitteilungen** und prüfen Sie, dass OneUptime oder der Browser, aus dem es installiert wurde, Mitteilungen senden darf und dass kein Fokus sie zurückhält.
+- Blockiert der Browser Mitteilungen für OneUptime, erlauben Sie sie in seinen Einstellungen für die Website und registrieren Sie erneut.
+- Bei einem selbst gehosteten OneUptime sagt der Dialog **Gerät registrieren**, wenn der Server keine VAPID-Schlüssel hat.
+:::
 
-```
-Lösungen:
-1. macOS Sonoma (14.0) oder höher sicherstellen
-2. Safari auf neueste Version aktualisieren
-3. Alternative versuchen: Ablage → Zum Home-Bildschirm hinzufügen
-4. Safari-Cache leeren und erneut versuchen
-5. Chrome oder Edge als Alternative verwenden
-```
+:::details Die App fordert Sie erneut zur Anmeldung auf
+Eine Safari-Web-App hat ihre eigene Anmeldung: Melden Sie sich in der App an. Eine aus Chrome oder Edge installierte App teilt die Anmeldung ihres Browsers, sodass Abmelden im Browser oder das Löschen seiner Cookies auch sie abmeldet.
+:::
 
-**PWA installiert sich nicht oder stürzt ab:**
+## Nächste Schritte
 
-```
-Lösungen:
-1. macOS-Versionskompatibilität prüfen
-2. Ausreichend Speicherplatz sicherstellen (100 MB+)
-3. Browser auf neueste Version aktualisieren
-4. Browser-Cache und -Cookies leeren
-5. Browser-Erweiterungen vorübergehend deaktivieren
-6. Mac neu starten und Installation erneut versuchen
-```
-
-**App erscheint nicht in Anwendungen:**
-
-```
-Lösungen:
-1. Launchpad nach OneUptime-Symbol durchsuchen
-2. Mit Spotlight suchen (⌘+Leertaste)
-3. Im PWA-Verwaltungsbereich des Browsers suchen
-4. Mit anderem Browser neu installieren versuchen
-5. Prüfen, ob unter anderem Namen installiert
-```
-
-### Benachrichtigungsprobleme
-
-**macOS-Benachrichtigungen funktionieren nicht:**
-
-```
-Lösungen:
-1. Systemeinstellungen → Benachrichtigungen → OneUptime
-2. „Benachrichtigungen erlauben" aktivieren
-3. Geeigneten Benachrichtigungsstil einstellen (Banner/Hinweise)
-4. „Nicht stören"-Einstellungen prüfen
-5. OneUptime-Benachrichtigungseinstellungen überprüfen
-6. Benachrichtigungsberechtigungen bei Aufforderung erteilen
-```
-
-## Deinstallation
-
-### Vollständige Entfernung
-
-1. **Methode über Anwendungsordner**
-
-   - Anwendungsordner öffnen
-   - OneUptime finden
-   - In den Papierkorb ziehen oder rechtsklicken → In Papierkorb legen
-
-2. **Dock-Methode**
-
-   - Rechtsklick auf OneUptime im Dock
-   - „Optionen" → „Aus Dock entfernen" wählen
-   - Dann aus dem Anwendungsordner löschen
-
-3. **Browser-PWA-Verwaltung**
-   - **Chrome**: chrome://apps/ → OneUptime finden → Entfernen
-   - **Edge**: edge://apps/ → OneUptime finden → Deinstallieren
-   - **Safari**: Keine dedizierte Verwaltungsseite
-
-### Saubere Deinstallation
-
-Alle zugehörigen Daten entfernen:
-
-```bash
-# Safari-PWA-Daten löschen (allgemeine Website-Daten)
-rm -rf ~/Library/Safari/Databases
-rm -rf ~/Library/Caches/com.apple.Safari
-
-# Chrome-PWA-Daten löschen
-rm -rf ~/Library/Application\ Support/Google/Chrome/Default/Web\ Applications
-
-# Edge-PWA-Daten löschen
-rm -rf ~/Library/Application\ Support/Microsoft\ Edge/Default/Web\ Applications
-```
-
-## Updates und Wartung
-
-### Automatische Updates
-
-- OneUptime PWA aktualisiert sich automatisch bei Online-Verbindung
-- Keine App-Store-Updates erforderlich
-- Neue Funktionen sofort verfügbar
-- Kritische Updates werden sofort angewendet
-
-### Wartungsplan
-
-Regelmäßige Wartung für optimale Leistung:
-
-**Wöchentlich:**
-
-- OneUptime-App neu starten
-- Browser-Cache bei Problemen leeren
-- Auf macOS-Updates prüfen
-
-**Monatlich:**
-
-- Speichernutzung prüfen und bei Bedarf bereinigen
-- Browser aktualisieren, falls keine automatischen Updates
-- Prüfen, ob Benachrichtigungseinstellungen noch funktionieren
-
-## Integration mit macOS-Funktionen
-
-### Kurzbefehle-App-Integration
-
-Benutzerdefinierte Kurzbefehle für OneUptime erstellen:
-
-1. **Kurzbefehle**-App öffnen
-2. **Neuen Kurzbefehl** erstellen
-3. **„App öffnen"**-Aktion hinzufügen
-4. **OneUptime** auswählen
-5. Siri für Sprachaktivierung hinzufügen
-
-### Terminal-Integration
-
-OneUptime über Terminal verwalten:
-
-```bash
-# Alias für schnellen OneUptime-Start erstellen
-echo 'alias oneuptime="open -a \"OneUptime\""' >> ~/.zshrc
-
-# Funktion zum Prüfen, ob OneUptime läuft
-oneuptime_status() {
-    if pgrep -f "OneUptime" > /dev/null; then
-        echo "OneUptime is running"
-    else
-        echo "OneUptime is not running"
-    fi
-}
-```
-
-## Sicherheit und Datenschutz
-
-### macOS-Sicherheitsfunktionen
-
-1. **Gatekeeper**: Sicherstellen, dass PWA-Installationen aus vertrauenswürdigen Quellen stammen
-2. **System Integrity Protection**: Schützt Systemdateien
-3. **FileVault**: Festplatte für Datenschutz verschlüsseln
-4. **Schlüsselbund**: Sichere Anmeldedatenspeicherung
-
-### Best Practices
-
-1. **Regelmäßige Updates**: macOS und Browser aktuell halten
-2. **Starke Authentifizierung**: Touch ID/Face ID verwenden, wenn verfügbar
-3. **Netzwerksicherheit**: VPN für Remote-Monitoring-Zugriff verwenden
-4. **Datensicherung**: Regelmäßige Time Machine-Backups schließen PWA-Daten ein
-5. **Berechtigungsüberprüfung**: Erteilte Berechtigungen regelmäßig überprüfen
+:::cards
+- [iOS-Installation](/docs/mobile-desktop-apps/ios-installation): Auf Ihrem iPhone alarmiert werden, mit kritischen Warnungen.
+- [Windows-Installation](/docs/mobile-desktop-apps/windows-installation): Dieselbe App unter Windows.
+- [FAQ & Fehlerbehebung](/docs/mobile-desktop-apps/faq-troubleshooting): Antworten zu beiden Apps.
+- [Ihr Konto](/docs/introduction/your-account): Wie OneUptime Sie in jedem Projekt erreicht.
+:::

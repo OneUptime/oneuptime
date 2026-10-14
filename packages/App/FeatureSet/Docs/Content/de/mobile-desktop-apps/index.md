@@ -1,48 +1,91 @@
-# OneUptime Mobile- und Desktop-Apps
+# Apps – Übersicht
 
-OneUptime bietet zwei Möglichkeiten, die Plattform außerhalb Ihres Browsers zu nutzen:
+OneUptime hat eine App für Ihr Telefon und eine für Ihren Computer. **OneUptime On-Call**, für iPhone, iPad und Android, alarmiert Sie, wenn Sie Bereitschaft haben, und Sie bestätigen und lösen Vorfälle, wo immer Sie sind. Unter Windows, macOS und Linux installieren Sie das OneUptime-Dashboard aus Ihrem Browser als Desktop-App mit einem eigenen Fenster. Beide funktionieren mit OneUptime Cloud und mit einem OneUptime, das Sie selbst betreiben.
 
-- **Native Mobile-Apps** für iOS und Android, veröffentlicht im **Apple App Store** und auf **Google Play**. Diese liefern Bereitschaftsbenachrichtigungen, Vorfallswarnungen und Bestätigungsaktionen direkt auf Ihr Telefon.
-- **Installierbare Desktop-Apps** für Windows, macOS und Linux, ausgeliefert als Progressive Web App (PWA), die direkt aus Ihrem Browser installiert wird. Diese geben dem OneUptime-Dashboard ein eigenes Fenster, ein eigenes Symbol und eine eigene Benachrichtigungsoberfläche auf Ihrem Computer.
+:::cards
+- [Eine App wählen](#eine-app-wählen): Wofür welche App da ist, nebeneinander.
+- [Wie die Apps OneUptime erreichen](#wie-die-apps-oneuptime-erreichen): Welchen Weg Anmeldung und Bereitschaftsalarme nehmen.
+- [Die mobile App holen](#die-mobile-app-holen): Aus dem App Store, von Google Play oder von GitHub.
+- [Die Desktop-App holen](#die-desktop-app-holen): Das Dashboard aus Edge, Chrome oder Safari installieren.
+:::
 
-## Mobile (Native Apps)
+## Eine App wählen
 
-Die **OneUptime On-Call**-App ist eine native Anwendung, die mit React Native entwickelt wurde. Sie wird über die offiziellen Stores verteilt, sodass Sie automatische Updates, Push-Benachrichtigungen und biometrische Entsperrung erhalten.
+|  | Mobile App | Desktop-App |
+| --- | --- | --- |
+| Was sie ist | OneUptime On-Call, eine native App für iPhone, iPad und Android | Das OneUptime-Dashboard, aus Ihrem Browser installiert |
+| Woher Sie sie bekommen | Aus dem App Store, von Google Play oder als APK von GitHub | Von Ihrem eigenen OneUptime: Es gibt nichts herunterzuladen |
+| Bereitschaftsalarme | Push-Benachrichtigungen, die den Stummmodus und „Nicht stören“ durchbrechen können | Browser-Benachrichtigungen, sobald Sie den Browser registrieren |
+| Was Sie tun können | Vorfälle, Warnungen, Monitore und wer Bereitschaft hat; bestätigen, lösen und Notizen hinzufügen | Alles, was das Dashboard kann |
+| Updates | Aus dem Store, oder indem Sie ein neueres APK installieren | Bei jedem Öffnen lädt sie das Dashboard von Ihrem OneUptime |
+| Läuft auf | iOS 16.4 oder neuer, Android 7.0 oder neuer | Windows, macOS und Linux, mit Edge oder Chrome, oder Safari ab macOS Sonoma 14 |
 
-- **iOS** — [Im App Store herunterladen](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391). Erfordert iOS 15.0 oder neuer. Siehe die [iOS-Installationsanleitung](./ios-installation.md).
-- **Android** — [Bei Google Play erhalten](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). Erfordert Android 8.0 oder neuer. Für Geräte ohne Google Play ist auch ein direkter [APK-Download](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) verfügbar. Siehe die [Android-Installationsanleitung](./android-installation.md).
+Sie können beide nutzen: Lassen Sie die Desktop-App bei der Arbeit offen, und lassen Sie sich nachts vom Telefon wecken.
 
-## Desktop (Progressive Web App)
+## Wie die Apps OneUptime erreichen
 
-Das Web-Dashboard von OneUptime ist eine Progressive Web App, sodass Sie es aus einem modernen Browser als Desktop-Anwendung installieren können, ohne einen Store nutzen zu müssen.
+```mermaid title="Wie die Apps Ihr OneUptime erreichen und wie Alarme Sie erreichen"
+flowchart TB
+    Phone["OneUptime On-Call<br/>auf Ihrem Telefon"]
+    Desktop["Die Desktop-App<br/>auf Ihrem Computer"]
+    OneUptime["Ihr OneUptime:<br/>Cloud oder selbst gehostet"]
+    Expo["Expo-Push-Dienst,<br/>dann Apple oder Google"]
+    WebPush["Der Push-Dienst<br/>Ihres Browsers"]
+    Phone -->|"meldet sich an und<br/>registriert das Telefon"| OneUptime
+    Desktop -->|"öffnet das Dashboard"| OneUptime
+    OneUptime -->|"Bereitschaftsalarme"| Expo
+    Expo -->|"Push-Benachrichtigung"| Phone
+    OneUptime -->|"Web-Push an einen<br/>registrierten Browser"| WebPush
+    WebPush -->|"Benachrichtigung"| Desktop
+```
 
-- [Windows-Installation](./windows-installation.md)
-- [macOS-Installation](./macos-installation.md)
-- [Linux-Installation](./linux-installation.md)
+Die mobile App meldet sich bei Ihrem OneUptime an und registriert das Telefon in jedem Projekt, dem Sie angehören. Von da an schickt OneUptime die Push-Benachrichtigungen des Telefons, darunter die Bereitschaftsalarme, über den Push-Dienst von Expo, der sie Apple oder Google zur Zustellung übergibt. Ein selbst gehostetes OneUptime schickt sie standardmäßig über das Push-Relay von OneUptime und braucht deshalb kein eigenes Konto bei Apple, Google oder Expo: siehe [Push-Benachrichtigungen](/docs/self-hosted/push-notifications).
 
-### Erste Schritte auf dem Desktop
+Die Desktop-App ist das Dashboard selbst, in einem eigenen Fenster. Sie zeigt Benachrichtigungen, sobald Sie ihren Browser für Push-Benachrichtigungen registrieren: Wie das geht, zeigen die Seiten zu Windows, macOS und Linux.
 
-1. Öffnen Sie Ihre OneUptime-Instanz in einem Chromium-basierten Browser (Chrome, Edge) oder in Safari.
-2. Suchen Sie in der Adressleiste nach der Schaltfläche **Installieren** oder unter **Datei → Zum Dock hinzufügen / Apps → Diese Seite als App installieren**.
-3. Starten Sie die installierte App über Ihr Startmenü, Launchpad oder Ihren Anwendungsstarter.
+## Bevor Sie beginnen
 
-### Fehlerbehebung auf dem Desktop
+- Ein Konto in einem OneUptime-Projekt. Damit Sie alarmiert werden, müssen Sie außerdem Bereitschaft haben: siehe [Eskalationsregeln](/docs/on-call/escalation-rules).
+- Die Adresse Ihres OneUptime. Bei OneUptime Cloud ist es `https://oneuptime.com`; ein selbst gehostetes OneUptime hat seine eigene, etwa `https://oneuptime.example.com`.
+- Ihr OneUptime über HTTPS. Die mobile App verbindet sich nicht über einfaches HTTP, und Browser zeigen Benachrichtigungen – und Edge und Chrome installieren Apps – nur für HTTPS-Seiten.
 
-**Installationsoption wird nicht angezeigt:**
+## Die mobile App holen
 
-- Stellen Sie sicher, dass Sie einen unterstützten Browser verwenden.
-- Vergewissern Sie sich, dass Ihre OneUptime-Instanz über HTTPS bereitgestellt wird.
-- Laden Sie die Seite neu oder leeren Sie den Browser-Cache.
+:::steps
+### OneUptime On-Call installieren
+Holen Sie die App auf einem iPhone oder iPad aus dem [App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391), oder auf Android von [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall). Für ein Android-Telefon ohne Google Play installieren Sie stattdessen das [APK](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk). Dieselben Links finden Sie im Dashboard unter **Projekteinstellungen → Benachrichtigungen → Mobile Apps**.
 
-**Push-Benachrichtigungen funktionieren nicht:**
+### Mit Ihrem OneUptime verbinden
+Öffnen Sie die App, behalten Sie `https://oneuptime.com` für OneUptime Cloud oder geben Sie die Adresse Ihres eigenen OneUptime ein, und melden Sie sich mit Ihrem Passwort, einem Passkey oder Single Sign-On an.
 
-- Erteilen Sie die Benachrichtigungsberechtigungen, wenn der Browser danach fragt.
-- Überprüfen Sie die Benachrichtigungseinstellungen Ihres Betriebssystems für den Browser.
-- Selbst gehostete Benutzer: Vergewissern Sie sich, dass Push-Benachrichtigungen auf Ihrer OneUptime-Instanz konfiguriert sind.
+### Benachrichtigungen erlauben
+Erlauben Sie sie, wenn das Telefon fragt. Die App registriert das Telefon in jedem Ihrer Projekte, und Ihre Bereitschaftsalarme erreichen es von da an.
+:::
 
-## Support
+Jeder Schritt im Detail, mit dem, was Sie danach prüfen: [Android-Installation](/docs/mobile-desktop-apps/android-installation) und [iOS-Installation](/docs/mobile-desktop-apps/ios-installation).
 
-- Mobile-spezifische Probleme: Lesen Sie die Installationsanleitungen für [iOS](./ios-installation.md) oder [Android](./android-installation.md).
-- Desktop-spezifische Probleme: Lesen Sie die Installationsanleitungen für [Windows](./windows-installation.md), [macOS](./macos-installation.md) oder [Linux](./linux-installation.md).
-- Allgemeine Fragen: Siehe die Seite [FAQ und Fehlerbehebung](./faq-troubleshooting.md).
-- Melden Sie Fehler oder reichen Sie Funktionswünsche in unserem [GitHub-Repository](https://github.com/OneUptime/oneuptime) ein.
+## Die Desktop-App holen
+
+:::steps
+### Ihr Dashboard öffnen
+Melden Sie sich in Microsoft Edge oder Google Chrome bei Ihrem OneUptime an, oder auf einem Mac in Safari.
+
+### Es installieren
+Klicken Sie in Edge oder Chrome auf das Installationssymbol rechts in der Adressleiste. Wählen Sie in Safari **Ablage → Zum Dock hinzufügen**.
+
+### Es wie jede andere App öffnen
+Es öffnet sich in einem eigenen Fenster, aus dem Startmenü, dem Dock oder Ihrem App-Starter.
+:::
+
+Jeder Browser Schritt für Schritt: [Windows-Installation](/docs/mobile-desktop-apps/windows-installation), [macOS-Installation](/docs/mobile-desktop-apps/macos-installation) und [Linux-Installation](/docs/mobile-desktop-apps/linux-installation).
+
+## Nächste Schritte
+
+:::cards
+- [Android-Installation](/docs/mobile-desktop-apps/android-installation): Die App auf Android installieren, sich anmelden und prüfen, dass Alarme ankommen.
+- [iOS-Installation](/docs/mobile-desktop-apps/ios-installation): Die App auf einem iPhone oder iPad installieren und kritische Warnungen einschalten.
+- [Windows-Installation](/docs/mobile-desktop-apps/windows-installation): Das Dashboard aus Edge oder Chrome installieren.
+- [macOS-Installation](/docs/mobile-desktop-apps/macos-installation): Das Dashboard aus Safari, Chrome oder Edge zum Dock hinzufügen.
+- [Linux-Installation](/docs/mobile-desktop-apps/linux-installation): Das Dashboard aus Chrome, Chromium oder Edge installieren.
+- [FAQ & Fehlerbehebung](/docs/mobile-desktop-apps/faq-troubleshooting): Antworten, Lösungen und was zu tun ist, wenn ein Telefon keine Alarme mehr bekommt.
+:::

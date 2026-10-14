@@ -1,106 +1,165 @@
-# Android-Installationsanleitung
+# Android-Installation
 
-Installieren Sie die native Android-App **OneUptime On-Call** aus dem Google Play Store, oder installieren Sie die APK direkt auf Geräten ohne Google Play per Sideloading.
+Installieren Sie **OneUptime On-Call** auf einem Android-Telefon oder -Tablet, verbinden Sie die App mit Ihrem OneUptime und melden Sie sich an. Schicken Sie sich dann eine Testbenachrichtigung, und lassen Sie dringende Bereitschaftsalarme den Stummmodus und „Bitte nicht stören“ durchbrechen.
 
-## Voraussetzungen
+:::cards
+- [Die App installieren](#die-app-installieren): Von Google Play, oder als APK auf einem Telefon ohne Google Play.
+- [Anmelden](#anmelden): Die Adresse Ihres OneUptime, dann Ihr Konto.
+- [Prüfen, dass Alarme das Telefon erreichen](#prüfen-dass-alarme-das-telefon-erreichen): Das Telefon im Dashboard finden und testen.
+- [Den Stummmodus durchbrechen](#den-stummmodus-durchbrechen): Kritische Warnungen und der Alarmton.
+- [Fehlerbehebung](#fehlerbehebung): Probleme mit Anmeldung, Benachrichtigungen und Installation.
+:::
 
-- Android-Telefon oder -Tablet mit **Android 8.0 (Oreo) oder neuer**
-- Ein aktives OneUptime-Konto (oder die URL Ihrer selbst gehosteten OneUptime-Instanz)
-- Internetverbindung für die Anmeldung und den Empfang von Push-Benachrichtigungen
+## Bevor Sie beginnen
 
-## Option 1: Installation aus Google Play (empfohlen)
+- Ein Telefon oder Tablet mit Android 7.0 oder neuer.
+- Ein Konto in einem OneUptime-Projekt. Damit Sie alarmiert werden, müssen Sie außerdem Bereitschaft haben: siehe [Eskalationsregeln](/docs/on-call/escalation-rules).
+- Die Adresse Ihres OneUptime: `https://oneuptime.com` bei OneUptime Cloud, oder Ihre eigene, etwa `https://oneuptime.example.com`. Die App verbindet sich nur über HTTPS.
 
-1. Öffnen Sie den **Google Play Store** auf Ihrem Gerät.
-2. Suchen Sie nach **„OneUptime On-Call"**, oder öffnen Sie diesen Link auf Ihrem Gerät:
-   [https://play.google.com/store/apps/details?id=com.oneuptime.oncall](https://play.google.com/store/apps/details?id=com.oneuptime.oncall)
-3. Tippen Sie auf **Installieren**.
-4. Sobald die Installation abgeschlossen ist, tippen Sie auf **Öffnen** oder starten Sie **OneUptime On-Call** über Ihre App-Übersicht.
+## Die App installieren
 
-## Option 2: APK direkt installieren
+:::tabs
+@tab Google Play
+1. Öffnen Sie auf dem Telefon [OneUptime On-Call bei Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall), oder suchen Sie bei Google Play nach OneUptime On-Call.
+2. Tippen Sie auf **Installieren** und dann auf **Öffnen**.
 
-Für Geräte ohne Google Play (zum Beispiel GrapheneOS, /e/OS oder Huawei-Geräte) installieren Sie die offizielle APK aus den GitHub-Releases:
+Google Play hält die App auf dem neuesten Stand.
+@tab APK
+Für ein Telefon ohne Google Play. Das APK wird für jedes OneUptime-Release aus demselben Code gebaut und dem Release auf GitHub angehängt.
 
-1. Öffnen Sie auf Ihrem Android-Gerät diesen Link:
-   [https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk)
-2. Wenn Sie dazu aufgefordert werden, erlauben Sie Ihrem Browser, unbekannte Apps zu installieren:
-   **Einstellungen → Apps → \[Ihr Browser\] → Unbekannte Apps installieren → Aus dieser Quelle zulassen**.
-3. Öffnen Sie die heruntergeladene APK und tippen Sie auf **Installieren**.
-4. Starten Sie **OneUptime On-Call** über Ihre App-Übersicht.
+1. Öffnen Sie auf dem Telefon [das neueste APK](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk).
+2. Öffnen Sie die heruntergeladene Datei. Wenn Android fragt, erlauben Sie Ihrem Browser, unbekannte Apps zu installieren, und tippen Sie dann auf **Installieren**.
+3. Öffnen Sie OneUptime On-Call unter Ihren Apps.
 
-Die APK wird von OneUptime aus derselben Quelle wie die Play-Store-Veröffentlichung erstellt und signiert. App-Updates erfolgen beim Sideloading nicht automatisch — laden Sie die neueste APK über den obigen Link herunter, wenn eine neue Version veröffentlicht wird.
+Ein APK aktualisiert sich nicht selbst: Installieren Sie von Zeit zu Zeit das neueste darüber. Ihre Anmeldung und Ihre Einstellungen bleiben erhalten.
+:::
 
-## Erster Start und Anmeldung
+## Anmelden
 
-1. **Server-URL**
-   - Wenn Sie OneUptime Cloud verwenden, belassen Sie den Standardwert `https://oneuptime.com`.
-   - Wenn Sie selbst hosten, geben Sie die URL Ihrer OneUptime-Instanz ein (z. B. `https://oneuptime.example.com`).
-   - Die App überprüft, ob der Server erreichbar ist, bevor sie fortfährt.
-2. **Anmelden**
-   - Geben Sie die E-Mail-Adresse und das Passwort Ihres OneUptime-Kontos ein.
-   - Optional können Sie die **biometrische Entsperrung** (Fingerabdruck) aktivieren, um spätere Starts schneller zu entsperren.
-3. **Benachrichtigungen erlauben**
-   - Wenn Sie dazu aufgefordert werden, tippen Sie auf **Erlauben**, damit die App Bereitschaftsbenachrichtigungen, Vorfallswarnungen und Bestätigungen zustellen kann.
+```mermaid title="Was die App tut, wenn Sie sich anmelden"
+flowchart TB
+    Address["Sie geben die Adresse<br/>Ihres OneUptime ein"]
+    Check["Die App prüft, ob Ihr<br/>OneUptime antwortet"]
+    SignIn["Sie melden sich an: Passwort,<br/>Passkey oder SSO"]
+    Allow["Sie erlauben Benachrichtigungen"]
+    Register["Die App registriert das Telefon<br/>in jedem Ihrer Projekte"]
+    Rules["Jedes Projekt führt das Telefon,<br/>mit Standard-Bereitschaftsregeln"]
+    Address --> Check --> SignIn --> Allow --> Register --> Rules
+```
 
-## Push-Benachrichtigungen
+:::steps
+### Die Adresse Ihres OneUptime eingeben
+Öffnen Sie die App. Behalten Sie auf **Connect your workspace** `https://oneuptime.com` für OneUptime Cloud, oder geben Sie die Adresse Ihres eigenen OneUptime ein, und tippen Sie auf **Connect**. Die App geht weiter, sobald `https://<your-oneuptime>/api/status` antwortet.
 
-Push-Benachrichtigungen werden über Firebase Cloud Messaging (FCM) via Expo Push zugestellt. So stellen Sie sicher, dass Sie während des Bereitschaftsdienstes zuverlässig erreicht werden:
+### Bei Ihrem Konto anmelden
+Nutzen Sie den Weg, auf dem sich Ihr Konto anmeldet:
 
-1. Öffnen Sie **Einstellungen → Apps → OneUptime On-Call → Benachrichtigungen** und bestätigen Sie, dass alle Kategorien aktiviert sind.
-2. Öffnen Sie **Einstellungen → Apps → OneUptime On-Call → Akku** und wählen Sie **Unbeschränkt** (oder deaktivieren Sie die Akkuoptimierung), damit das Betriebssystem Hintergrund-Pushes nicht verzögert.
-3. Erlauben Sie der App, im Hintergrund zu laufen, und deaktivieren Sie alle „Datensparmodus"-Einschränkungen für sie.
-4. Wenn Sie Samsung-Geräte verwenden, schalten Sie zusätzlich **Einstellungen → Gerätewartung → Akku → Begrenzungen für Hintergrundaktivität** für OneUptime On-Call aus.
-5. Fügen Sie OneUptime On-Call zu allen Ausnahmelisten für **Do Not Disturb** (Nicht stören) hinzu, damit Benachrichtigungen während Ihrer Bereitschaftsschicht weiterhin klingeln.
+- Ihre E-Mail-Adresse und Ihr Passwort, dann **Sign In**. **Forgot password?** schickt Ihnen per E-Mail einen Link, mit dem Sie ein neues festlegen.
+- **Sign in with a passkey**, sobald Sie im Dashboard einen hinzugefügt haben: siehe [Einen Passkey hinzufügen](/docs/introduction/your-account#einen-passkey-hinzufügen). Ihr Browser öffnet sich, um ihn zu bestätigen, und bringt Sie dann zurück.
+- **Sign in with SSO**, wenn Ihre Organisation Single Sign-On nutzt. Wählen Sie Ihren Anbieter, oder geben Sie Ihre geschäftliche E-Mail-Adresse ein und tippen Sie auf **Continue**. Ein sicherer Browser öffnet sich, und Sie sind zurück in der App, sobald Sie sich angemeldet haben.
 
-## Updates
+Ist die Zwei-Faktor-Authentifizierung eingeschaltet, geben Sie den sechsstelligen Code aus Ihrer Authenticator-App ein, oder einen Ihrer Backup-Codes. Ein Sicherheitsschlüssel lässt sich in der App nicht verwenden. Verlangt Ihr Administrator die Zwei-Faktor-Authentifizierung und Sie haben sie noch nicht eingerichtet, richtet die App zuerst mit Ihnen eine Authenticator-App ein.
 
-**Google Play:**
+### Benachrichtigungen erlauben
+Wenn Android fragt, ob OneUptime On-Call Benachrichtigungen senden darf, tippen Sie auf **Zulassen**. Android 13 und neuer fragen; ältere Versionen erlauben sie, solange Sie sie nicht ausschalten.
 
-- Updates werden automatisch installiert. Um ein Update manuell auszulösen, öffnen Sie **Play Store → Profil → Apps und Gerät verwalten → Verfügbare Updates → OneUptime On-Call → Aktualisieren**.
+Die App registriert das Telefon dann in jedem Ihrer Projekte. Jedes Projekt führt es unter Ihren Push-Geräten, mit den Standard-Bereitschaftsregeln, sodass Ihre Alarme es von nun an erreichen.
+:::
 
-**APK-Sideloading:**
+Die App zeigt jeweils ein Projekt: Tippen Sie oben auf einem Bildschirm auf den Namen des Projekts, um zu wechseln. Ein Projekt, das Single Sign-On verlangt, ist unter **Settings → Manage Projects** als **SSO Required** markiert, bis Sie dort auf **Authenticate with SSO** tippen.
 
-- Laden Sie die neueste APK über den obigen GitHub-Releases-Link erneut herunter und installieren Sie sie über die bestehende App — Ihre Daten, Server-URL und Anmeldung bleiben erhalten.
+## Prüfen, dass Alarme das Telefon erreichen
 
-## Deinstallation
+:::steps
+### Das Telefon im Dashboard finden
+Öffnen Sie im Dashboard **Benutzereinstellungen → Benachrichtigungsmethoden** und den Tab **Push Notifications**. Das Telefon steht unter **Geräte für Push-Benachrichtigungen**, mit seinem Modellnamen. Jedes Projekt führt seine eigene Liste.
 
-1. **Halten Sie das Symbol von OneUptime On-Call** gedrückt und tippen Sie dann auf **Deinstallieren**.
-2. Oder öffnen Sie **Einstellungen → Apps → OneUptime On-Call → Deinstallieren**.
-3. Bestätigen Sie, um die App zu entfernen.
+### Einen Test senden
+Klicken Sie in der Zeile des Telefons auf **Testbenachrichtigung**. Auf dem Telefon kommt eine Benachrichtigung an; tippen Sie darauf, um die App zu öffnen.
+:::
 
-Ihr OneUptime-Konto und Ihre Bereitschaftspläne werden serverseitig gespeichert und nicht entfernt, wenn Sie die App deinstallieren.
+Ihre Bereitschaftsregeln entscheiden, welche Alarme an das Telefon gehen und wie schnell: siehe **Benutzereinstellungen → Bereitschaftsregeln**. Ein neues Telefon bekommt dieselben Standardregeln wie jede andere Methode, die Sie hinzufügen.
+
+## Den Stummmodus durchbrechen
+
+Standardmäßig richtet sich ein Bereitschaftsalarm nach den Toneinstellungen des Telefons: Ein stummgeschaltetes Telefon bleibt still, und „Bitte nicht stören“ hält den Alarm zurück. Kritische Warnungen lassen Bereitschaftsalarme beides durchbrechen. Sie sind aus, bis Sie sie einschalten, für jedes Telefon einzeln.
+
+```mermaid title="Ob ein Bereitschaftsalarm unter Android durchklingelt"
+flowchart TB
+    Page["Ein Bereitschaftsalarm<br/>für dieses Telefon"]
+    Rule{"Steht seine Bereitschaftsregel<br/>auf Kritische Warnung?"}
+    Device{"Ist Critical On-Call Alerts<br/>für dieses Telefon an?"}
+    Quiet["Er folgt den Einstellungen<br/>des Telefons: Ton, Stumm<br/>und „Bitte nicht stören“"]
+    Loud["Er spielt Ihren Alarmton<br/>trotz Stummmodus und<br/>„Bitte nicht stören“"]
+    Page --> Rule
+    Rule -->|"nein: Normal"| Quiet
+    Rule -->|"ja"| Device
+    Device -->|"nein"| Quiet
+    Device -->|"ja"| Loud
+```
+
+:::steps
+### Critical On-Call Alerts einschalten
+Öffnen Sie in der App **Settings** und schalten Sie unter **Notifications** den Schalter **Critical On-Call Alerts** ein.
+
+### Zugriff auf „Bitte nicht stören“ erlauben
+Android öffnet seine Liste **Zugriff auf „Bitte nicht stören“**. Schalten Sie den Zugriff für OneUptime On-Call ein und gehen Sie zurück zur App: Sie prüft den Zugriff und sagt unter dem Schalter, ob Alarme durchklingeln.
+
+### Einen Alarmton wählen
+Tippen Sie unter dem Schalter auf **Alarm sound**. Neben dem eigenen Ton des Telefons bietet die App Klaxon, Siren, Digital alarm, Smoke alarm und Rising alarm, der leise beginnt und immer lauter wird. Tippen Sie neben einem Ton auf Wiedergabe, um ihn anzuhören. Ein kritischer Alarm spielt mit der Weckerlautstärke des Telefons, lassen Sie diese also aufgedreht.
+:::
+
+Nur Bereitschaftsalarme klingeln durch, und nur aus Bereitschaftsregeln, die auf **Kritische Warnung** stehen, der Voreinstellung. Eine Regel auf **Normal** folgt den Einstellungen des Telefons, egal was der Schalter sagt, sodass Sie bei einem kritischen Vorfall geweckt und bei einem kleinen leise alarmiert werden können. Senden Sie bei stummgeschaltetem Telefon eine **Testbenachrichtigung**, um zu hören, was ein Alarm tun wird.
+
+## Verhindern, dass Alarme verspätet ankommen
+
+OneUptime sendet Bereitschaftsalarme mit hoher Priorität, die Android auch einem Telefon zustellt, das seit Stunden ruht. Ein Telefon, das den Akkuverbrauch der App einschränkt, kann sie trotzdem zurückhalten:
+
+- Öffnen Sie **Einstellungen → Apps → OneUptime On-Call → Akku** und wählen Sie **Nicht eingeschränkt**. Manche Telefone nennen es **Akkunutzung durch App**.
+- Prüfen Sie unter **Einstellungen → Apps → OneUptime On-Call → Benachrichtigungen**, dass die Benachrichtigungen der App an sind.
+- Nehmen Sie OneUptime On-Call von jeder Energiespar- oder Schlafliste aus, die Ihr Telefon führt.
+
+## Die App sperren
+
+Schalten Sie in der App unter **Settings** den Schalter **Biometrics Login** ein, und die App fragt bei jedem Start nach Ihrem Fingerabdruck, Ihrem Gesicht oder der Displaysperre des Telefons. Der Schalter erscheint, sobald auf dem Telefon eine Entsperrung per Fingerabdruck oder Gesicht eingerichtet ist. **Appearance** auf demselben Bildschirm wählt das helle oder das dunkle Aussehen, oder folgt dem Telefon.
+
+## Aktualisieren, abmelden oder deinstallieren
+
+- **Aktualisieren.** Google Play aktualisiert die App. Beim APK installieren Sie das neueste darüber. Die Version der App steht unten auf ihrem Bildschirm **Settings**.
+- **Abmelden.** **Settings → Log Out** meldet Sie ab und entfernt das Telefon in jedem Projekt aus Ihren Push-Geräten, zusammen mit seinen Bereitschaftsregeln. Melden Sie sich wieder an, kommt es mit den Standardregeln zurück.
+- **Deinstallieren.** Entfernen Sie die App wie jede andere. Waren Sie noch angemeldet, bleibt das Telefon in Ihrer Liste, bis ein Push an es fehlschlägt: OneUptime markiert es dann mit **Keine Benachrichtigungen**. Löschen Sie diesen Eintrag mit **Löschen**: Installieren Sie die App erneut und melden Sie sich an, kommt das Telefon als neuer Eintrag hinzu, mit den Standardregeln.
 
 ## Fehlerbehebung
 
-**„Netzwerkfehler" bei der Anmeldung:**
+:::details „Could not connect to the server“
+Die App konnte `https://<your-oneuptime>/api/status` nicht erreichen. Prüfen Sie die Adresse, einschließlich `https://`. Liegt Ihr OneUptime in einem privaten Netz, verbinden Sie das Telefon zuerst damit, zum Beispiel über Ihr VPN. Öffnen Sie diese Adresse im Browser des Telefons: Sie zeigt `{"status":"ok"}`, wenn das Telefon OneUptime erreicht.
+:::
 
-- Überprüfen Sie, ob die **Server-URL** korrekt und von Ihrem Gerät aus erreichbar ist.
-- Wenn Sie sich in einem Unternehmensnetzwerk oder über ein VPN verbinden, stellen Sie sicher, dass die OneUptime-Instanz erreichbar ist.
-- Vergewissern Sie sich, dass der Server über HTTPS mit einem gültigen Zertifikat bereitgestellt wird.
+:::details Es kommen keine Benachrichtigungen an
+- Prüfen Sie in den Android-Einstellungen, dass Benachrichtigungen für die App an sind, und dass „Bitte nicht stören“ aus ist oder kritische Warnungen an sind.
+- Prüfen Sie, dass das Telefon unter **Push Notifications** in **Benutzereinstellungen → Benachrichtigungsmethoden** steht, und senden Sie ihm eine **Testbenachrichtigung**.
+- Ist das Telefon mit **Keine Benachrichtigungen** markiert, öffnen Sie die App, während Sie angemeldet sind. Sie registriert das Telefon erneut; siehe [Wenn sich ein Telefon neu registrieren muss](/docs/mobile-desktop-apps/faq-troubleshooting#wenn-sich-ein-telefon-neu-registrieren-muss).
+- Prüfen Sie Ihre Bereitschaftsregeln unter **Benutzereinstellungen → Bereitschaftsregeln**.
+- Prüfen Sie bei einem selbst gehosteten OneUptime, dass Ihr Server sein Push-Relay erreicht: siehe [Push-Benachrichtigungen](/docs/self-hosted/push-notifications#netzwerkzugriff).
+:::
 
-**Keine Push-Benachrichtigungen erhalten:**
+:::details Kritische Warnungen bleiben bei „Bitte nicht stören“ still
+Öffnen Sie in der App **Settings**: Die Zeile unter **Critical On-Call Alerts** sagt, was fehlt. Meist wurde der Zugriff auf „Bitte nicht stören“ nicht erlaubt: Erlauben Sie ihn unter **Einstellungen → Benachrichtigungen → Zugriff auf „Bitte nicht stören“** und gehen Sie zurück zur App. Haben Sie einen Alarmton gewählt, muss auch der Benachrichtigungskanal dieses Tons „Bitte nicht stören“ übergehen dürfen.
+:::
 
-- Vergewissern Sie sich, dass Benachrichtigungen unter **Einstellungen → Apps → OneUptime On-Call → Benachrichtigungen** aktiviert sind.
-- Deaktivieren Sie die Akkuoptimierung für OneUptime On-Call (siehe Push-Benachrichtigungen oben).
-- Stellen Sie sicher, dass Do Not Disturb (Nicht stören) ausgeschaltet ist oder dass OneUptime On-Call auf der Ausnahmeliste steht.
-- Melden Sie sich ab und wieder an, um das beim Server registrierte Push-Token zu aktualisieren.
-- Selbst gehostete Benutzer: Vergewissern Sie sich, dass Push-Benachrichtigungen auf Ihrer OneUptime-Instanz konfiguriert sind (siehe die Anleitung [Push Notifications](/docs/self-hosted/push-notifications) für selbst gehostete Instanzen).
+:::details „App nicht installiert“, wenn Sie das APK installieren
+OneUptime On-Call ist bereits aus einer anderen Quelle auf dem Telefon, etwa von Google Play, und Android installiert die eine nicht über die andere. Deinstallieren Sie sie, installieren Sie das APK und melden Sie sich erneut an.
+:::
 
-**Biometrische Entsperrung funktioniert nicht:**
+:::details Kein Schalter Biometrics Login
+Der Schalter erscheint, sobald in den Android-Einstellungen eine Entsperrung per Fingerabdruck oder Gesicht eingerichtet ist.
+:::
 
-- Registrieren Sie einen Fingerabdruck unter **Einstellungen → Sicherheit → Fingerabdruck**.
-- Aktivieren Sie die biometrische Entsperrung erneut im **Einstellungen**-Bildschirm innerhalb der OneUptime On-Call-App.
+## Nächste Schritte
 
-**APK-Installation blockiert:**
-
-- Sie müssen dem Browser die Berechtigung erteilen, unbekannte Apps zu installieren (siehe Option 2 oben).
-- Einige Mobilfunkanbieter oder Geräteprofile in Unternehmen blockieren das Sideloading vollständig; verwenden Sie in diesem Fall stattdessen die Google-Play-Version.
-
-**Die App stürzt beim Start ab:**
-
-- Aktualisieren Sie auf die neueste Version aus Google Play oder die neueste APK.
-- Starten Sie Ihr Gerät neu.
-- Wenn das Problem weiterhin besteht, deinstallieren Sie die App, installieren Sie sie erneut und melden Sie sich dann wieder an.
-
-## Support
-
-Wenn Sie weiterhin Hilfe benötigen, wenden Sie sich über Ihr OneUptime-Dashboard an uns oder eröffnen Sie ein Issue in unserem [GitHub-Repository](https://github.com/OneUptime/oneuptime).
+:::cards
+- [FAQ & Fehlerbehebung](/docs/mobile-desktop-apps/faq-troubleshooting): Was zu tun ist, wenn ein Telefon keine Alarme mehr bekommt.
+- [iOS-Installation](/docs/mobile-desktop-apps/ios-installation): Dieselbe App auf einem iPhone oder iPad.
+- [Eskalationsregeln](/docs/on-call/escalation-rules): Festlegen, wer alarmiert wird, und wann.
+- [Push-Benachrichtigungen](/docs/self-hosted/push-notifications): Wie ein selbst gehostetes OneUptime Alarme an Telefone schickt.
+:::

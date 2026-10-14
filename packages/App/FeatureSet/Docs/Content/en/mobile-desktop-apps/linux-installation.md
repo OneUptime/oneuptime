@@ -6,7 +6,7 @@ The OneUptime dashboard installs on Linux as an app, from Google Chrome, Chromiu
 - [Install the app](#install-the-app): From Chrome, Chromium or Edge.
 - [Open it from your launcher](#open-it-from-your-launcher): Like any other desktop app.
 - [Get notifications on this computer](#get-notifications-on-this-computer): Register the browser for push notifications.
-- [Troubleshooting](#troubleshooting): No install button, no notifications, signing in again.
+- [Troubleshooting](#troubleshooting): No install icon, no notifications, no launcher entry.
 :::
 
 ## How the desktop app works
