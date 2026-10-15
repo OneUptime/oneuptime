@@ -51,9 +51,18 @@ import { getDevicePollingFormFields } from "../DevicePollingFormFields";
 import { getMacAddressFormField } from "../MacAddressFormField";
 import { getOtherAddressesFormField } from "../OtherAddressesFormField";
 import ProbeUtil from "../../../Utils/Probe";
+import {
+  ADD_PROBE_LINK_TEXT,
+  getGroupedProbeDropdownOptions,
+} from "../../../Components/NetworkDevice/ProbeOptions";
+import useRefreshProbesOnFocus from "../../../Components/NetworkDevice/useRefreshProbesOnFocus";
+import {
+  NetworkQuickAction,
+  getNetworkQuickActionRoute,
+} from "../../../Components/Network/NetworkQuickActions";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -93,6 +102,10 @@ const NetworkDeviceSettings: FunctionComponent<
    * are all global.
    */
   const [probes, setProbes] = useState<Array<Probe>>([]);
+
+  // Back from the "Add a probe" tab: the new probe is in the list at once.
+  useRefreshProbesOnFocus(setProbes);
+
   /*
    * The project's OID Collection Templates, WITH their OID lists.
    *
@@ -717,16 +730,20 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "Probe",
             stepId: "polling",
             description: PROBE_FIELD_DESCRIPTION,
+            /*
+             * The same list as Add Device's: the project's own probes under
+             * their heading, OneUptime's apart, and a way to add one without
+             * losing this form. A probe row with no name is listed by its id
+             * (the page used to throw on one, blanking the whole page).
+             */
+            sideLink: {
+              text: ADD_PROBE_LINK_TEXT,
+              url: getNetworkQuickActionRoute(NetworkQuickAction.AddProbe),
+              openLinkInNewTab: true,
+            },
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: probes.map((probe: Probe) => {
-              if (!probe.name || !probe._id) {
-                throw new BadDataException(`Probe name or id is missing`);
-              }
-
-              return {
-                label: probe.name,
-                value: probe._id,
-              };
+            dropdownOptions: getGroupedProbeDropdownOptions(probes, {
+              isOneUptimeCloud: BILLING_ENABLED,
             }),
             required: true,
             placeholder: "Probe",

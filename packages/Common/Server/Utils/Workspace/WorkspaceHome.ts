@@ -33,6 +33,9 @@ import WorkspaceOpenRecords, {
   WorkspaceOpenRecordList,
 } from "./WorkspaceOpenRecords";
 
+// A name that ends its own sentence - "Acme Inc.", "Yahoo!" - takes no full stop after it.
+const SENTENCE_END: RegExp = /[.!?]$/;
+
 /*
  * THE HOME OF THE ONEUPTIME APP, IN SLACK AND IN MICROSOFT TEAMS.
  *
@@ -214,7 +217,7 @@ export default class WorkspaceHome {
     if (view.projectName) {
       blocks.push(
         WorkspaceHome.markdown(
-          mdText`Here's what is happening in **${view.projectName}**.`,
+          mdText`Here's what is happening in **${view.projectName}**${WorkspaceHome.fullStopAfter(view.projectName)}`,
         ),
       );
     }
@@ -342,7 +345,10 @@ export default class WorkspaceHome {
     }
 
     if (parts.length > 0) {
-      return parts.join(". ");
+      // A full stop between the parts, unless a schedule's name ends with one.
+      return parts.reduce((said: string, part: string): string => {
+        return `${said}${SENTENCE_END.test(said) ? "" : "."} ${part}`;
+      });
     }
 
     if (!lists.every(WorkspaceHome.isRead)) {
@@ -390,7 +396,7 @@ export default class WorkspaceHome {
 
       return shift.at
         ? mdText`🟢 You're on call in ${WorkspaceHome.scheduleMarkdown(shift)} until ${WorkspaceMessageTime.dateAndTime(shift.at)}.`
-        : mdText`🟢 You're on call in ${WorkspaceHome.scheduleMarkdown(shift)}.`;
+        : mdText`🟢 You're on call in ${WorkspaceHome.scheduleMarkdown(shift)}${WorkspaceHome.fullStopAfter(shift.scheduleName)}`;
     }
 
     if (now.length > 0) {
@@ -412,7 +418,7 @@ export default class WorkspaceHome {
     }
 
     if (view.onCall.next && view.onCall.next.at) {
-      return mdText`⚪ You're not on call right now. Your next shift starts ${WorkspaceMessageTime.dateAndTime(view.onCall.next.at)}, in ${WorkspaceHome.scheduleMarkdown(view.onCall.next)}.`;
+      return mdText`⚪ You're not on call right now. Your next shift starts ${WorkspaceMessageTime.dateAndTime(view.onCall.next.at)}, in ${WorkspaceHome.scheduleMarkdown(view.onCall.next)}${WorkspaceHome.fullStopAfter(view.onCall.next.scheduleName)}`;
     }
 
     return mdText`⚪ You're not on call right now, and no shift of yours is coming up.`;
@@ -534,6 +540,14 @@ export default class WorkspaceHome {
     );
 
     return FeedMarkdown.join(parts, " · ");
+  }
+
+  /*
+   * The full stop that ends a sentence after a name - none when the name
+   * ends with its own: "in **Acme Inc.**", not "in **Acme Inc.**.".
+   */
+  private static fullStopAfter(name: string): MarkdownText {
+    return SENTENCE_END.test(name) ? FeedMarkdown.empty() : mdText`.`;
   }
 
   private static scheduleMarkdown(shift: WorkspaceHomeShift): MarkdownText {

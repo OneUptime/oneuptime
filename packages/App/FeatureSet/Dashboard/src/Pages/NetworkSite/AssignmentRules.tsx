@@ -49,9 +49,10 @@ const NetworkSiteAssignmentRules: FunctionComponent<
         enableDragAndDrop={true}
         dragDropIndexField="priority"
         cardProps={{
-          title: "Assignment Rules",
+          // The menu's name: "Assignment Rules" left out what they assign to.
+          title: "Site Assignment Rules",
           description:
-            "Automatically assign discovered devices to a site by subnet CIDR or hostname pattern. When several rules match a device, the one highest in the list wins - drag a rule to change its place. Rules are evaluated when a device is created, when its hostname / name / SNMP system name / DNS name changes, and on the next poll of any device that has no site yet. A device you assigned to a site by hand is never moved unless its identity changes. Use Run Now on a rule to apply it to devices that already exist.",
+            "Put devices into sites by their address or name, as they are added. When several rules match, the highest in the list wins: drag to reorder. A device you put in a site by hand stays there until its address or name changes. Run Now applies a rule to the devices you already have.",
         }}
         noItemsMessage="No assignment rules yet. Add one to route newly discovered devices into the right site automatically."
         actionButtons={[

@@ -1587,13 +1587,18 @@ export class Service extends ProjectReferencesService<Model> {
        * payments (EU)" reads unchanged. The state and severity names are
        * plain text too. The description stays Markdown: that is what it is
        * written in.
+       *
+       * The description, the root cause and the remediation notes count
+       * only when they say something, as for the incident's item: one of
+       * nothing but spaces and line breaks left a heading with nothing under
+       * it ("Root Cause:") in the feed, Slack and Teams.
        */
       let feedInfoInMarkdown: string =
         mdText`#### 🚨 Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber?.toString()} Created:
            
 **${alert.title || "No title provided."}**:
      
-${FeedMarkdown.asMarkdown(alert.description || "No description provided.")}
+${FeedMarkdown.asMarkdown(alert.description?.trim() ? alert.description : "No description provided.")}
      
 `.toString();
 
@@ -1633,7 +1638,7 @@ ${FeedMarkdown.asMarkdown(alert.description || "No description provided.")}
         feedInfoInMarkdown += `\n\n`;
       }
 
-      if (alert.rootCause) {
+      if (alert.rootCause?.trim()) {
         feedInfoInMarkdown += mdText`\n
 📄 **Root Cause**:
      
@@ -1642,7 +1647,7 @@ ${FeedMarkdown.asMarkdown(alert.rootCause || "No root cause provided.")}
 `;
       }
 
-      if (alert.remediationNotes) {
+      if (alert.remediationNotes?.trim()) {
         feedInfoInMarkdown += mdText`\n 
 🎯 **Remediation Notes**:
      

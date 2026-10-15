@@ -270,7 +270,12 @@ import NetworkSiteChildSitesPage from "../../../../App/FeatureSet/Dashboard/src/
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { SITE_TYPE_FIELD_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/SiteFormSections";
 
-const NAME_PLACEHOLDER: string = "Unit 1042 - Springfield";
+/*
+ * The examples a site's name field offers: a place anyone could have, not a
+ * retail unit number. A child site is a part of its parent.
+ */
+const NAME_PLACEHOLDER: string = "London office";
+const CHILD_NAME_PLACEHOLDER: string = "Second floor";
 const ADDRESS_PLACEHOLDER: string = "742 Evergreen Terrace, Springfield, IL";
 
 function dialog(): HTMLElement {
@@ -518,7 +523,7 @@ describe("Add Child Site", () => {
 
     expect(comboboxOf("Site Type")).toBeVisible();
     expect(
-      within(dialog()).getByPlaceholderText(NAME_PLACEHOLDER),
+      within(dialog()).getByPlaceholderText(CHILD_NAME_PLACEHOLDER),
     ).toBeVisible();
     expect(listedNames(moreFields())).toEqual([
       "Address",
@@ -534,7 +539,7 @@ describe("Add Child Site", () => {
     await openAddChildSite();
 
     pick(comboboxOf("Site Type"), "Store");
-    typeInto(NAME_PLACEHOLDER, "Springfield East");
+    typeInto(CHILD_NAME_PLACEHOLDER, "Springfield East");
 
     const model: JSONObject = await submitAndCapture();
 

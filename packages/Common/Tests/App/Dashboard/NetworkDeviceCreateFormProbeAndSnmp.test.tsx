@@ -270,7 +270,10 @@ type CapturedFormField = {
   fieldType?: FormFieldSchemaType | undefined;
   defaultValue?: unknown;
   dropdownModal?: { type: unknown } | undefined;
-  sideLink?: { text: string; url: unknown } | undefined;
+  sideLink?:
+    | { text: string; url: unknown; openLinkInNewTab?: boolean | undefined }
+    | undefined;
+  dropdownOptions?: Array<unknown> | undefined;
   required?: boolean | ((values: FormValuesLike) => boolean) | undefined;
   showIf?: ((values: FormValuesLike) => boolean) | undefined;
   collapsibleSection?:
@@ -326,6 +329,12 @@ import {
   ADD_DEVICE_PROBE_DESCRIPTION,
   ADD_DEVICE_SNMP_NOT_SET_SUMMARY,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/AddDeviceForm";
+import { ADD_DEVICE_NO_PROBE_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/ProbeOptions";
+import { BILLING_ENABLED } from "../../../UI/Config";
+import {
+  NetworkQuickAction,
+  getNetworkQuickActionRoute,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Network/NetworkQuickActions";
 import Route from "../../../Types/API/Route";
 
 const PAGE_PROPS: PageComponentProps = {
@@ -511,6 +520,67 @@ describe("the create form's Probe field", () => {
     const props: CapturedTableProps = await renderDevicesPage();
 
     expect(fieldFor(props, "probe").defaultValue).toBe("");
+  });
+
+  /*
+   * A new project has no probe of its own: the list holds only OneUptime's
+   * probes, on the internet, where 10.0.0.2 is not. The field says so, and
+   * what to do, instead of offering a list that cannot work.
+   */
+  test("with no probe of the project's own, says why the list cannot reach the network", async () => {
+    mockProbeList = [{ _id: "global-1", name: "US East", isGlobalProbe: true }];
+
+    const props: CapturedTableProps = await renderDevicesPage();
+
+    expect(fieldFor(props, "probe").description).toBe(
+      ADD_DEVICE_NO_PROBE_DESCRIPTION,
+    );
+  });
+
+  test("links to the Network Overview's Add a probe dialog, in a new tab so this form is kept", async () => {
+    mockProbeList = [];
+
+    const props: CapturedTableProps = await renderDevicesPage();
+    const sideLink: CapturedFormField["sideLink"] = fieldFor(
+      props,
+      "probe",
+    ).sideLink;
+
+    expect(sideLink?.text).toBe("Add a probe");
+    expect(String(sideLink?.url)).toBe(
+      getNetworkQuickActionRoute(NetworkQuickAction.AddProbe).toString(),
+    );
+    expect(String(sideLink?.url)).toContain("?open=add-probe");
+    expect(sideLink?.openLinkInNewTab).toBe(true);
+  });
+
+  test("lists the project's own probes first, apart from OneUptime's", async () => {
+    mockProbeList = [
+      { _id: "global-1", name: "US East", isGlobalProbe: true },
+      { _id: "probe-1", name: "Branch probe" },
+    ];
+
+    const props: CapturedTableProps = await renderDevicesPage();
+    const options: Array<{ label: string; options?: Array<unknown> }> =
+      fieldFor(props, "probe").dropdownOptions as Array<{
+        label: string;
+        options?: Array<unknown>;
+      }>;
+
+    expect(
+      options.map((group: { label: string }): string => {
+        return group.label;
+      }),
+    ).toEqual([
+      "Your probes",
+      // OneUptime Cloud's probes are on the internet; a server's run beside it.
+      BILLING_ENABLED
+        ? "OneUptime probes, on the internet"
+        : "This server's probes",
+    ]);
+    expect(options[0]!.options).toEqual([
+      { label: "Branch probe", value: "probe-1" },
+    ]);
   });
 });
 
