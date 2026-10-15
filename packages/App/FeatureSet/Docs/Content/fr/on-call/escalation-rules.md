@@ -84,7 +84,7 @@ Le résumé en haut de la page **Règles d'escalade** montre toute l'échelle : 
 
 ### Comment chaque personne est jointe
 
-Chaque personne alertée par un niveau est jointe selon ses propres règles d'astreinte : **Paramètres utilisateur** > **Règles d'astreinte**, avec un onglet pour les incidents, les épisodes d'incident, les alertes et les épisodes d'alerte, et une carte par gravité qui indique quelle méthode de notification est utilisée et après combien de temps. Un administrateur du projet peut consulter et modifier les règles d'un membre dans **Utilisateurs** > le membre > **Règles d'astreinte**.
+Chaque personne alertée par un niveau est jointe selon ses propres règles d'astreinte : **Paramètres utilisateur** > **Règles d'astreinte**, avec un onglet pour les incidents, les épisodes d'incident, les alertes et les épisodes d'alerte, et une carte par gravité qui indique quelle méthode de notification est utilisée et après combien de temps. Un administrateur du projet peut consulter et modifier les règles d'un membre dans **Utilisateurs** > le membre > **Règles d'astreinte**. Voir [Règles d'astreinte personnelles](/docs/notifications/on-call-rules).
 
 ```mermaid title="Qui un niveau alerte, et comment chaque personne est jointe"
 flowchart TB
@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Ses méthodes de notification"]
 ```
 
-Un remplacement d'utilisateur en vigueur pour une personne envoie ses alertes à la personne qui la remplace. Un remplacement qui ne désigne personne pour la remplacer lui fait passer son tour : elle ne reçoit pas d'alerte, l'exécution de la politique indique qu'elle est absente et jusqu'à quand, et dans un planning d'astreinte chacun de ses tours revient à la personne suivante de la rotation.
+Un remplacement d'utilisateur en vigueur pour une personne envoie ses alertes à la personne qui la remplace. Un remplacement qui ne désigne personne pour la remplacer lui fait passer son tour : elle ne reçoit pas d'alerte, l'exécution de la politique indique qu'elle est absente et jusqu'à quand, et dans un planning d'astreinte chacun de ses tours revient à la personne suivante de la rotation. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
 
 Chaque message est accepté par son fournisseur, de sorte qu'une alerte part toujours. Voici ce que chaque canal transporte :
 

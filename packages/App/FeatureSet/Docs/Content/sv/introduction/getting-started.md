@@ -49,7 +49,7 @@ Dokumentationen är ordnad som sidofältet, i nio avsnitt. Välj den del du beh�
 :::cards
 - [Incidenter](/docs/incidents/index): Deklarera, samordna och lös incidenter, med en fullständig tidslinje.
 - [Varningar](/docs/alerts/index): Undersök problem innan dina användare märker dem, och samla bruset i episoder.
-- [Jour](/docs/on-call/schedules): Rotationer, eskaleringsregler och vem som larmas när.
+- [Jour](/docs/on-call/index): Policyer, eskaleringsregler, rotationer och vem som larmas när.
 - [Aviseringar](/docs/notifications/index): Så når OneUptime dig: dina metoder, jourregler och aviseringsinställningar.
 - [Statussidor](/docs/status-pages/index): Håll kunderna informerade på offentliga eller privata statussidor.
 - [Arbetsytekopplingar](/docs/workspace-connections/slack): Arbeta med incidenter från Slack och Microsoft Teams.

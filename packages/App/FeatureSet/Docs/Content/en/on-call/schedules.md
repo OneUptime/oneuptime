@@ -86,7 +86,7 @@ While they are away:
 
 Pick someone under **Who covers?** instead, and that person gets all of their pages, from every schedule and every policy, rather than the rotation taking their turns.
 
-Time away added this way applies to every on-call policy. It is listed under **On-Call Duty** > **User Overrides**, where you can delete it to bring them back early. To skip someone in one policy only, add the override on that policy's **User Overrides** page and leave **Who covers?** as it is.
+Time away added this way applies to every on-call policy. It is listed under **On-Call Duty** > **User Overrides**, where you can delete it to bring them back early. To skip someone in one policy only, add the override on that policy's **User Overrides** page and leave **Who covers?** as it is. See [User Overrides](/docs/on-call/user-overrides).
 
 With the API, a user override (`/api/on-call-duty-policy-user-override`) created without `routeAlertsToUserId` skips the person in `overrideUserId` from `startsAt` to `endsAt`.
 
@@ -121,4 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Escalation Rules](/docs/on-call/escalation-rules): Page this schedule from a level of an on-call policy.
 - [Schedule Timeline](/docs/on-call/schedule-timeline): See every schedule side by side, with coverage gaps.
 - [Calendar Feeds](/docs/on-call/calendar-feeds): Put shifts in Google Calendar, Outlook or Apple Calendar.
+- [Personal On-Call Rules](/docs/notifications/on-call-rules): Decide how a page reaches you while you are on call.
 :::

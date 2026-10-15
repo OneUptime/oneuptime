@@ -77,6 +77,7 @@ Eine **Bereitschaftsrichtlinie** entscheidet, wer zu einem Vorfall oder einer Wa
 Wie jede Person erreicht wird, legt sie selbst fest. In den **Benutzereinstellungen** hält jede Person die Wege fest, auf denen OneUptime sie erreichen kann, etwa E-Mail, SMS, Anrufe, Push-Benachrichtigungen, Slack oder Microsoft Teams, und welche davon bei einer Alarmierung genutzt werden.
 
 :::cards
+- [Bereitschaft – Übersicht](/docs/on-call/index): Wie eine Alarmierung jemanden erreicht und wo jedes Teil zu finden ist.
 - [Eskalationsregeln](/docs/on-call/escalation-rules): Personen Stufe für Stufe alarmieren, bis jemand reagiert.
 - [Bereitschaftspläne](/docs/on-call/schedules): Rotationen, Ebenen und Übergaben.
 - [Wie OneUptime Sie erreicht](/docs/notifications/index): Die Methoden, Regeln und Einstellungen, die bestimmen, wie jede Person erreicht wird.

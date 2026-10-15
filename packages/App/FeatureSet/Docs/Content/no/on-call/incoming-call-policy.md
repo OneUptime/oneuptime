@@ -159,7 +159,7 @@ En regel ringer en person på nummeret personen har verifisert for innkommende a
 3. Skriv inn den 6-sifrede koden OneUptime sender til nummeret på SMS under **Verifiseringskode**, og klikk på **Verifiser**. **Send a new code** sender en ny.
 :::
 
-Hver person kan ha ett verifisert nummer per prosjekt. For å endre det sletter du først det gamle nummeret. Disse numrene er atskilt fra telefonnumrene under **Varselmetoder**, som vaktvarsler bruker.
+Hver person kan ha ett verifisert nummer per prosjekt. For å endre det sletter du først det gamle nummeret. Disse numrene er atskilt fra telefonnumrene under **Varselmetoder**, som vaktvarsler bruker. Se [Varselmetoder](/docs/notifications/notification-methods).
 
 Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være slått på for prosjektet. En prosjekteier, en **Billing Admin** eller noen med **Manage Billing** slår det på i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
 
@@ -200,7 +200,7 @@ Når et anrop er tapt, gir OneUptime beskjed til policyens eiere: brukerne og me
 
 Varselet sier hvem som ringte, hvilket nummer de ringte, hvorfor ingen svarte, og hvem som ble ringt og hvordan hvert forsøk endte. Det lenker til anropet i anropsloggen.
 
-Eiere får e-post som standard. Hver person kan velge andre kanaler (SMS, anrop, push og mer) eller slå det av i **Brukerinnstillinger** > **Varselinnstillinger**, under **Vakt** > **Retningslinjer for innkommende anrop** > **Tapt anrop**.
+Eiere får e-post som standard. Hver person kan velge andre kanaler (SMS, anrop, push og mer) eller slå det av i **Brukerinnstillinger** > **Varselinnstillinger**, under **Vakt** > **Retningslinjer for innkommende anrop** > **Tapt anrop**. Se [Varselinnstillinger](/docs/notifications/notification-settings).
 
 ### Reager på tapte anrop i en arbeidsflyt
 

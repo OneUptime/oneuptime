@@ -159,7 +159,7 @@ En regel ringer til en person på det nummer, personen har bekræftet til indgå
 3. Indtast den 6-cifrede kode, som OneUptime sender til nummeret via SMS, under **Bekræftelseskode**, og klik på **Bekræft**. **Send a new code** sender en ny.
 :::
 
-Hver person kan have ét bekræftet nummer pr. projekt. For at skifte det skal du først slette det gamle nummer. Disse numre er adskilt fra telefonnumrene under **Notifikationsmetoder**, som vagttilkald bruger.
+Hver person kan have ét bekræftet nummer pr. projekt. For at skifte det skal du først slette det gamle nummer. Disse numre er adskilt fra telefonnumrene under **Notifikationsmetoder**, som vagttilkald bruger. Se [Notifikationsmetoder](/docs/notifications/notification-methods).
 
 Numre til indgående opkald bekræftes via SMS, så **SMS** skal først være slået til for projektet. En projektejer, en **Billing Admin** eller en person med **Manage Billing** slår det til i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationsindstillinger**.
 
@@ -200,7 +200,7 @@ Når et opkald er ubesvaret, giver OneUptime politikkens ejere besked: brugerne 
 
 Notifikationen siger, hvem der ringede, hvilket nummer der blev ringet til, hvorfor ingen svarede, og hvem der blev ringet til, og hvordan hvert forsøg endte. Den linker til opkaldet i opkaldsloggen.
 
-Ejere får som standard en e-mail. Hver person kan vælge andre kanaler (SMS, opkald, push og mere) eller slå den fra i **Brugerindstillinger** > **Notifikationsindstillinger** under **Vagt** > **Indgående opkaldspolitikker** > **Ubesvaret opkald**.
+Ejere får som standard en e-mail. Hver person kan vælge andre kanaler (SMS, opkald, push og mere) eller slå den fra i **Brugerindstillinger** > **Notifikationsindstillinger** under **Vagt** > **Indgående opkaldspolitikker** > **Ubesvaret opkald**. Se [Notifikationsindstillinger](/docs/notifications/notification-settings).
 
 ### Reagér på ubesvarede opkald i et workflow
 

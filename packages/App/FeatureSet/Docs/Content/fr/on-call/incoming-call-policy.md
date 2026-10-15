@@ -159,7 +159,7 @@ Une règle fait sonner une personne sur le numéro qu'elle a vérifié pour les 
 3. Saisissez le code à 6 chiffres que OneUptime y envoie par SMS sous **Code de vérification**, et cliquez sur **Vérifier**. **Send a new code** en envoie un autre.
 :::
 
-Chaque personne peut avoir un numéro vérifié par projet. Pour le changer, supprimez d'abord l'ancien numéro. Ces numéros sont distincts des numéros de téléphone sous **Méthodes de notification**, qu'utilisent les alertes d'astreinte.
+Chaque personne peut avoir un numéro vérifié par projet. Pour le changer, supprimez d'abord l'ancien numéro. Ces numéros sont distincts des numéros de téléphone sous **Méthodes de notification**, qu'utilisent les alertes d'astreinte. Voir [Méthodes de notification](/docs/notifications/notification-methods).
 
 Les numéros pour les appels entrants sont vérifiés par SMS ; les **SMS** doivent donc d'abord être activés pour le projet. Un propriétaire du projet ou une personne disposant du rôle **Billing Admin** ou de l'autorisation **Manage Billing** les active dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Paramètres de notification**.
 
@@ -200,7 +200,7 @@ Quand un appel est manqué, OneUptime prévient les propriétaires de la politiq
 
 La notification indique qui a appelé, quel numéro a été composé, pourquoi personne n'a répondu, qui a sonné et comment chaque tentative s'est terminée. Elle renvoie vers l'appel dans le journal d'appels.
 
-Les propriétaires reçoivent un e-mail par défaut. Chacun peut choisir d'autres canaux (SMS, appel, push et plus) ou la désactiver dans **Paramètres utilisateur** > **Paramètres de notification**, sous **Astreinte** > **Politiques d'appels entrants** > **Appel manqué**.
+Les propriétaires reçoivent un e-mail par défaut. Chacun peut choisir d'autres canaux (SMS, appel, push et plus) ou la désactiver dans **Paramètres utilisateur** > **Paramètres de notification**, sous **Astreinte** > **Politiques d'appels entrants** > **Appel manqué**. Voir [Paramètres de notification](/docs/notifications/notification-settings).
 
 ### Réagir aux appels manqués dans un workflow
 

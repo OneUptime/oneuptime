@@ -49,7 +49,7 @@ Dokumentationen er opbygget som sidepanelet, i ni afsnit. Vælg den del, du har 
 :::cards
 - [Hændelser](/docs/incidents/index): Erklær, koordiner og løs hændelser med en komplet tidslinje.
 - [Advarsler](/docs/alerts/index): Undersøg problemer, før dine brugere opdager dem, og saml støjen i episoder.
-- [Vagt](/docs/on-call/schedules): Rotationer, eskaleringsregler og hvem der tilkaldes hvornår.
+- [Vagt](/docs/on-call/index): Politikker, eskaleringsregler, rotationer og hvem der tilkaldes hvornår.
 - [Notifikationer](/docs/notifications/index): Sådan når OneUptime dig: dine metoder, vagtregler og notifikationsindstillinger.
 - [Statussider](/docs/status-pages/index): Hold kunderne orienteret på offentlige eller private statussider.
 - [Workspace-forbindelser](/docs/workspace-connections/slack): Arbejd med hændelser fra Slack og Microsoft Teams.

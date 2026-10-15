@@ -47,7 +47,7 @@ Debajo de la cuadrícula, **On call this week** (**On call this month** en la vi
 - La línea de tiempo abarca 180 días hacia atrás y 365 días hacia adelante.
 
 > [!NOTE]
-> Los turnos pasados se recalculan a partir de la configuración actual de cada programación, así que muestran la rotación tal como está configurada ahora, que puede diferir de a quién se avisó realmente en su momento. Para las horas que las personas pasaron realmente de guardia, usa **Guardia** > **Informes** > **Tiempo de guardia del usuario**.
+> Los turnos pasados se recalculan a partir de la configuración actual de cada programación, así que muestran la rotación tal como está configurada ahora, que puede diferir de a quién se avisó realmente en su momento. Para las horas que las personas pasaron realmente de guardia, usa **Guardia** > **Informes** > **Tiempo de guardia del usuario**. Consulta [Tiempo de guardia del usuario](/docs/on-call/readiness#tiempo-de-guardia-del-usuario).
 
 ## Encuentra una programación o una persona
 

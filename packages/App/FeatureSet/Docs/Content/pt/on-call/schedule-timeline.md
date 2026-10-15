@@ -47,7 +47,7 @@ Abaixo da grade, **On call this week** (**On call this month** na visualização
 - A linha do tempo cobre 180 dias para trás e 365 dias para frente.
 
 > [!NOTE]
-> Os turnos passados são recalculados a partir da configuração atual de cada agendamento, então mostram a rotação como está configurada agora, o que pode ser diferente de quem foi de fato acionado na época. Para as horas que as pessoas realmente passaram de plantão, use **Plantão** > **Relatórios** > **Tempo de plantão do usuário**.
+> Os turnos passados são recalculados a partir da configuração atual de cada agendamento, então mostram a rotação como está configurada agora, o que pode ser diferente de quem foi de fato acionado na época. Para as horas que as pessoas realmente passaram de plantão, use **Plantão** > **Relatórios** > **Tempo de plantão do usuário**. Veja [Tempo de plantão do usuário](/docs/on-call/readiness#tempo-de-plantão-do-usuário).
 
 ## Encontre um agendamento ou uma pessoa
 

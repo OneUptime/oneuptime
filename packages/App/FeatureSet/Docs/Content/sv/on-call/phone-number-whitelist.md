@@ -18,7 +18,7 @@ På OneUptime Cloud kommer SMS och telefonsamtal för jour från numren nedan. L
 :::
 
 > [!TIP]
-> När du lägger till eller verifierar ditt telefonnummer under **Användarinställningar** > **Aviseringsmetoder** får du en kod från de här numren, så det är ett snabbt sätt att kontrollera att de kommer fram.
+> När du lägger till eller verifierar ditt telefonnummer under **Användarinställningar** > **Aviseringsmetoder** får du en kod från de här numren, så det är ett snabbt sätt att kontrollera att de kommer fram. Se [Aviseringsmetoder](/docs/notifications/notification-methods).
 
 ## När larm kommer från andra nummer
 

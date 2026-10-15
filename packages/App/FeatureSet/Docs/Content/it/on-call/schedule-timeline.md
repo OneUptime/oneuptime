@@ -47,7 +47,7 @@ Sotto la griglia, **On call this week** (**On call this month** nella vista mens
 - La cronologia copre 180 giorni nel passato e 365 giorni nel futuro.
 
 > [!NOTE]
-> I turni passati vengono ricalcolati dalla configurazione attuale di ogni pianificazione: mostrano quindi la rotazione così come è impostata oggi, che può differire da chi è stato davvero avvisato allora. Per le ore effettivamente trascorse in reperibilità, usa **Reperibilità** > **Report** > **Tempo di reperibilità dell'utente**.
+> I turni passati vengono ricalcolati dalla configurazione attuale di ogni pianificazione: mostrano quindi la rotazione così come è impostata oggi, che può differire da chi è stato davvero avvisato allora. Per le ore effettivamente trascorse in reperibilità, usa **Reperibilità** > **Report** > **Tempo di reperibilità dell'utente**. Vedi [Tempo di reperibilità dell'utente](/docs/on-call/readiness#tempo-di-reperibilità-dellutente).
 
 ## Trovare una pianificazione o una persona
 

@@ -84,7 +84,7 @@ O resumo no topo da página **Regras de escalonamento** mostra a escada inteira:
 
 ### Como cada pessoa é contatada
 
-Cada pessoa que um nível aciona é contatada do jeito que as próprias regras de plantão dela mandam: **Configurações do usuário** > **Regras de Plantão**, com uma aba para incidentes, episódios de incidente, alertas e episódios de alerta, e um cartão por severidade que mostra qual método de notificação é tentado e depois de quanto tempo. Um administrador do projeto pode ver e mudar as regras de um membro em **Usuários** > o membro > **Regras de Plantão**.
+Cada pessoa que um nível aciona é contatada do jeito que as próprias regras de plantão dela mandam: **Configurações do usuário** > **Regras de Plantão**, com uma aba para incidentes, episódios de incidente, alertas e episódios de alerta, e um cartão por severidade que mostra qual método de notificação é tentado e depois de quanto tempo. Um administrador do projeto pode ver e mudar as regras de um membro em **Usuários** > o membro > **Regras de Plantão**. Veja [Regras de Plantão pessoais](/docs/notifications/on-call-rules).
 
 ```mermaid title="Quem um nível aciona e como cada pessoa é contatada"
 flowchart TB
@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Os métodos de notificação dela"]
 ```
 
-Uma substituição de usuário em vigor para uma pessoa envia os acionamentos dela para quem a cobre. Uma que não nomeia ninguém para cobrir pula a pessoa: ela não é acionada, a execução da política informa que ela está ausente e até quando, e em um agendamento de plantão cada um dos turnos dela vai para a próxima pessoa da rotação.
+Uma substituição de usuário em vigor para uma pessoa envia os acionamentos dela para quem a cobre. Uma que não nomeia ninguém para cobrir pula a pessoa: ela não é acionada, a execução da política informa que ela está ausente e até quando, e em um agendamento de plantão cada um dos turnos dela vai para a próxima pessoa da rotação. Veja [Substituições de usuário](/docs/on-call/user-overrides).
 
 Toda mensagem é uma que o provedor aceita, então um acionamento sempre sai. Isto é o que cada canal leva:
 

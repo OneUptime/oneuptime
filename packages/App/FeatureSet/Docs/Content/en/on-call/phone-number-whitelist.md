@@ -18,7 +18,7 @@ On OneUptime Cloud, on-call SMS messages and phone calls come from the numbers b
 :::
 
 > [!TIP]
-> Adding or verifying your phone number in **User Settings** > **Notification Methods** sends you a code from these numbers, so it is a quick way to check that they get through.
+> Adding or verifying your phone number in **User Settings** > **Notification Methods** sends you a code from these numbers, so it is a quick way to check that they get through. See [Notification Methods](/docs/notifications/notification-methods).
 
 ## When pages come from other numbers
 
