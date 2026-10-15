@@ -79,6 +79,7 @@ How each person is reached is up to them. In **User Settings**, everyone keeps t
 :::cards
 - [Escalation Rules](/docs/on-call/escalation-rules): Page people level by level until someone responds.
 - [On-Call Schedules](/docs/on-call/schedules): Rotations, layers and hand-offs.
+- [How OneUptime Reaches You](/docs/notifications/index): The methods, rules and settings that decide how each person is reached.
 :::
 
 ## Status pages and maintenance

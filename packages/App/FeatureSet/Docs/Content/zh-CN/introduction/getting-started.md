@@ -50,6 +50,7 @@ flowchart TB
 - [事件](/docs/incidents/index): 声明、协调和解决事件，并保留完整的时间线。
 - [警报](/docs/alerts/index): 在用户注意到之前调查问题，并把噪音归并到片段中。
 - [值班](/docs/on-call/schedules): 轮换、升级规则，以及何时呼叫谁。
+- [通知](/docs/notifications/index): OneUptime 如何联系你：你的通知方式、值班规则和通知设置。
 - [状态页面](/docs/status-pages/index): 通过公开或私有的状态页面让客户了解情况。
 - [工作区连接](/docs/workspace-connections/slack): 在 Slack 和 Microsoft Teams 中处理事件。
 :::

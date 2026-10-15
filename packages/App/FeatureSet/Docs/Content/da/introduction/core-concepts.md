@@ -79,6 +79,7 @@ Hvordan hver person kontaktes, bestemmer vedkommende selv. I **Brugerindstilling
 :::cards
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Tilkald personer niveau for niveau, indtil nogen reagerer.
 - [Vagtplaner](/docs/on-call/schedules): Rotationer, lag og vagtskifter.
+- [Sådan når OneUptime dig](/docs/notifications/index): De metoder, regler og indstillinger, der afgør, hvordan hver person nås.
 :::
 
 ## Statussider og vedligeholdelse
