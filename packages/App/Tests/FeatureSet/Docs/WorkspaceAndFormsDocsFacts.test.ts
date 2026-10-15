@@ -602,6 +602,16 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         number: 42,
         numberWithPrefix: "#42",
       });
+    /*
+     * A scheduled maintenance event's prefix takes the place of its number
+     * prefix: SM-5 is sm-5, and maint-5 with maint- (not maint-sm-5).
+     */
+    const maintenance: WorkspaceChannelNameParts =
+      WorkspaceChannelName.forNumberedRecord({
+        eventType: NotificationRuleEventType.ScheduledMaintenance,
+        number: 5,
+        numberWithPrefix: "SM-5",
+      });
 
     for (const [page, workspaceType] of [
       [SLACK, WorkspaceType.Slack],
@@ -632,6 +642,10 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       );
 
       expect(paragraph).toContain("**Channel Name Prefix**");
+      // The record the maintenance examples are for, as its number reads.
+      expect(paragraph).toContain(
+        `SM-5 gets \`${name("", maintenance)}\`, and \`maint-\` makes \`${name("maint-", maintenance)}\``,
+      );
 
       // Its examples (inlineCode sorts them), as the server names them.
       expect(inlineCode(paragraph)).toEqual(
@@ -641,6 +655,9 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
           name("", unprefixed),
           "prod-",
           name("prod-", incident),
+          name("", maintenance),
+          "maint-",
+          name("maint-", maintenance),
           "-",
           "_",
           name("", incident, 2).slice(name("", incident).length),
@@ -654,6 +671,9 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
           "incident-42",
           "prod-",
           "prod-inc-42",
+          "sm-5",
+          "maint-",
+          "maint-5",
           "-",
           "_",
           "-2",
