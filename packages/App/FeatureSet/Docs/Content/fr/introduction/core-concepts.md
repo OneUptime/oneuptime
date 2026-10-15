@@ -79,6 +79,7 @@ Chaque personne décide de la façon dont on la joint. Dans les **Paramètres ut
 :::cards
 - [Règles d'escalade](/docs/on-call/escalation-rules): Alerter niveau par niveau jusqu'à ce que quelqu'un réponde.
 - [Plannings d'astreinte](/docs/on-call/schedules): Rotations, couches et passations.
+- [Comment OneUptime vous joint](/docs/notifications/index): Les méthodes, règles et paramètres qui décident comment chacun est joint.
 :::
 
 ## Pages de statut et maintenance

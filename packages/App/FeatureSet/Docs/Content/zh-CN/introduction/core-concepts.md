@@ -79,6 +79,7 @@ flowchart TB
 :::cards
 - [升级规则](/docs/on-call/escalation-rules): 逐级呼叫人员，直到有人响应。
 - [值班计划](/docs/on-call/schedules): 轮换、层级和交接。
+- [OneUptime 如何联系你](/docs/notifications/index): 决定如何联系每个人的通知方式、规则和设置。
 :::
 
 ## 状态页面和维护

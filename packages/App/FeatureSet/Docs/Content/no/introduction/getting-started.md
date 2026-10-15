@@ -50,6 +50,7 @@ Dokumentasjonen er organisert som sidefeltet, i ni deler. Velg den delen du tren
 - [Hendelser](/docs/incidents/index): Erklær, koordiner og løs hendelser, med en fullstendig tidslinje.
 - [Varsler](/docs/alerts/index): Undersøk problemer før brukerne dine merker dem, og samle støyen i episoder.
 - [Vakt](/docs/on-call/schedules): Rotasjoner, eskaleringsregler og hvem som varsles når.
+- [Notifikasjoner](/docs/notifications/index): Slik når OneUptime deg: metodene, vaktreglene og varselinnstillingene dine.
 - [Statussider](/docs/status-pages/index): Hold kundene oppdatert på offentlige eller private statussider.
 - [Arbeidsområdetilkoblinger](/docs/workspace-connections/slack): Jobb med hendelser fra Slack og Microsoft Teams.
 :::

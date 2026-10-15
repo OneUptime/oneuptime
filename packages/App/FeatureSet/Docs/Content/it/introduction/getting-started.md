@@ -50,6 +50,7 @@ La documentazione è organizzata come la barra laterale, in nove sezioni. Scegli
 - [Incidenti](/docs/incidents/index): Dichiarare, coordinare e risolvere gli incidenti, con una cronologia completa.
 - [Avvisi](/docs/alerts/index): Esaminare i problemi prima che gli utenti se ne accorgano, e raggruppare il rumore in episodi.
 - [Reperibilità](/docs/on-call/schedules): Turni, regole di escalation e chi viene avvisato quando.
+- [Notifiche](/docs/notifications/index): Come OneUptime vi raggiunge: i vostri metodi, le regole di reperibilità e le impostazioni delle notifiche.
 - [Pagine di stato](/docs/status-pages/index): Tenere informati i clienti su pagine di stato pubbliche o private.
 - [Connessioni agli spazi di lavoro](/docs/workspace-connections/slack): Gestire gli incidenti da Slack e Microsoft Teams.
 :::

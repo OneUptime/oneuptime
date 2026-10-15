@@ -79,6 +79,7 @@ Come viene raggiunta ogni persona lo decide lei. Nelle **Impostazioni utente**, 
 :::cards
 - [Regole di escalation](/docs/on-call/escalation-rules): Avvisare le persone livello per livello finché qualcuno risponde.
 - [Pianificazioni di reperibilità](/docs/on-call/schedules): Turni, livelli e passaggi di consegne.
+- [Come OneUptime vi raggiunge](/docs/notifications/index): I metodi, le regole e le impostazioni che decidono come viene raggiunta ogni persona.
 :::
 
 ## Pagine di stato e manutenzione
