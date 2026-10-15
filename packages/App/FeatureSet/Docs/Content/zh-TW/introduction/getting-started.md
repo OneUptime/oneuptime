@@ -49,7 +49,7 @@ flowchart TB
 :::cards
 - [事件](/docs/incidents/index): 宣告、協調和解決事件，並保留完整的時間軸。
 - [警示](/docs/alerts/index): 在使用者察覺之前調查問題，並把雜訊歸入片段中。
-- [待命](/docs/on-call/schedules): 輪值、上報規則，以及何時呼叫誰。
+- [待命](/docs/on-call/index): 策略、上報規則、輪值，以及何時呼叫誰。
 - [通知](/docs/notifications/index): OneUptime 如何聯絡你：你的通知方式、待命規則和通知設定。
 - [狀態頁面](/docs/status-pages/index): 透過公開或私人的狀態頁面讓客戶掌握狀況。
 - [工作區連線](/docs/workspace-connections/slack): 在 Slack 和 Microsoft Teams 中處理事件。
