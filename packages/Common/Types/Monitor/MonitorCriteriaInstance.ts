@@ -2247,9 +2247,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: this.data.createIncidents,
         isEnabled: this.data.isEnabled,
         incidentGrouping: this.data.incidentGrouping,
-        // Written only when on, so a criteria without it reads as it did.
-        ...(this.data.openForEveryEmail === true
-          ? { openForEveryEmail: true }
+        /*
+         * Written only when it was set, so a criteria without it - every one
+         * saved before it existed - reads and writes as it did. A false the
+         * API was sent is kept, so the Terraform provider reads back what it
+         * wrote.
+         */
+        ...(typeof this.data.openForEveryEmail === "boolean"
+          ? { openForEveryEmail: this.data.openForEveryEmail }
           : {}),
         name: this.data.name,
         description: this.data.description,
@@ -2367,9 +2372,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       isEnabled:
         json["isEnabled"] === undefined ? true : (json["isEnabled"] as boolean),
       incidentGrouping: (json["incidentGrouping"] as any) || undefined,
-      // Only a real `true` turns it on: anything else is the old behaviour.
-      ...(json["openForEveryEmail"] === true
-        ? { openForEveryEmail: true }
+      /*
+       * A boolean, as sent; anything else is not set at all. Only `true`
+       * turns it on (isOpenForEveryEmail).
+       */
+      ...(typeof json["openForEveryEmail"] === "boolean"
+        ? { openForEveryEmail: json["openForEveryEmail"] as boolean }
         : {}),
       filters: filters as any,
       incidents: incidents as any,

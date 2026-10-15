@@ -73,7 +73,7 @@ describe("openForEveryEmail on a criteria", () => {
     ).toBe(true);
   });
 
-  test("turned off again, it is written as if it had never been on", () => {
+  test("turned off again by the form, it is written as if it had never been on", () => {
     const criteria: MonitorCriteriaInstance = emailCriteria();
     const before: JSONObject = criteria.toJSON();
 
@@ -81,18 +81,32 @@ describe("openForEveryEmail on a criteria", () => {
     criteria.setOpenForEveryEmail(undefined);
 
     expect(criteria.toJSON()).toEqual(before);
+  });
 
-    criteria.setOpenForEveryEmail(false);
-    expect(criteria.toJSON()).toEqual(before);
+  test("a false the API was sent is kept, off, so Terraform reads back what it wrote", () => {
+    const json: JSONObject = emailCriteria().toJSON();
+    valueOf(json)["openForEveryEmail"] = false;
+
+    const read: MonitorCriteriaInstance =
+      MonitorCriteriaInstance.fromJSON(json);
+
+    expect(read.data?.openForEveryEmail).toBe(false);
+    expect(valueOf(read.toJSON())["openForEveryEmail"]).toBe(false);
+    expect(
+      MonitorCriteriaInstance.isOpenForEveryEmail({
+        monitorType: MonitorType.IncomingEmail,
+        criteriaInstance: read,
+      }),
+    ).toBe(false);
   });
 
   test.each([
-    ["false", false],
     ["the text 'true'", "true"],
     ["1", 1],
     ["null", null],
+    ["an object", { on: true }],
   ])(
-    "only a real true turns it on: %s does not",
+    "only a boolean is read: %s leaves it unset, which is off",
     (_name: string, sent: unknown) => {
       const json: JSONObject = emailCriteria().toJSON();
       valueOf(json)["openForEveryEmail"] = sent as never;

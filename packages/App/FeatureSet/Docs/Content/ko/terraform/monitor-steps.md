@@ -245,6 +245,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `alerts` | list | 열 알림. `create_alerts = true`가 아니면 빼세요. |
 | `is_enabled` | bool | 설정하지 않으면 서버에서 `true`. 기준을 남겨 두되 판정에 쓰지 않으려면 `false`로 설정하세요. |
 | `incident_grouping` | string (JSON) | 수신 요청 모니터 전용: 요청에서 찾은 값마다 인시던트 하나(예: `jsonencode({ groupByJSONPath = "..." })`). |
+| `open_for_every_email` | bool | 수신 이메일 모니터 전용: `true`이면 한 번에 하나씩이 아니라 일치하는 이메일마다 인시던트(와 알림)를 엽니다. |
 
 ### 인시던트와 알림
 

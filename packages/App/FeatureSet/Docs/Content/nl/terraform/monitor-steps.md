@@ -245,6 +245,7 @@ Gegroepeerde metriekmonitoren zijn de ene uitzondering. Als de query van een met
 | `alerts` | list | De waarschuwingen om te openen. Laat het weg, tenzij `create_alerts = true`. |
 | `is_enabled` | bool | `true` op de server als het niet is ingesteld. Stel `false` in om een criterium te bewaren zonder ermee te beoordelen. |
 | `incident_grouping` | string (JSON) | Alleen monitoren voor inkomende verzoeken: één incident per waarde die in het verzoek wordt gevonden, zoals `jsonencode({ groupByJSONPath = "..." })`. |
+| `open_for_every_email` | bool | Alleen monitoren voor inkomende e-mail: `true` opent voor elke overeenkomende e-mail een incident (en een waarschuwing), in plaats van één tegelijk. |
 
 ### Incidenten en waarschuwingen
 

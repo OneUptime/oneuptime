@@ -245,6 +245,7 @@ Les moniteurs de métriques groupés sont la seule exception. Quand la requête 
 | `alerts` | list | Les alertes à ouvrir. Laissez-le de côté, sauf avec `create_alerts = true`. |
 | `is_enabled` | bool | `true` sur le serveur quand il n'est pas renseigné. Mettez `false` pour garder un critère sans juger avec lui. |
 | `incident_grouping` | string (JSON) | Moniteurs de requêtes entrantes seulement : un incident pour chaque valeur trouvée dans la requête, comme `jsonencode({ groupByJSONPath = "..." })`. |
+| `open_for_every_email` | bool | Moniteurs d'e-mails entrants seulement : `true` ouvre un incident (et une alerte) pour chaque e-mail correspondant, au lieu d'un seul à la fois. |
 
 ### Incidents et alertes
 

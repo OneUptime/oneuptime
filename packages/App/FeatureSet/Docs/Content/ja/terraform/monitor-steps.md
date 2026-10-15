@@ -245,6 +245,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `alerts` | list | 開くアラート。`create_alerts = true` でない限り書きません。 |
 | `is_enabled` | bool | 未設定ならサーバー側で `true`。判定に使わずに条件を残しておくには `false` を設定します。 |
 | `incident_grouping` | string (JSON) | 受信リクエストモニターのみ: リクエストで見つかった値ごとにインシデントを開きます (`jsonencode({ groupByJSONPath = "..." })` など)。 |
+| `open_for_every_email` | bool | 受信メールモニターのみ: `true` にすると、一度に一つではなく、一致したメールごとにインシデント (とアラート) を開きます。 |
 
 ### インシデントとアラート
 

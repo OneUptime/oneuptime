@@ -245,6 +245,7 @@ Grupperte metrikkmonitorer er det ene unntaket. Når spørringen til en metrikkm
 | `alerts` | list | Varslene som skal åpnes. Utelat den med mindre `create_alerts = true`. |
 | `is_enabled` | bool | `true` på serveren når den ikke er angitt. Angi `false` for å beholde et kriterium uten å bedømme med det. |
 | `incident_grouping` | string (JSON) | Bare monitorer for innkommende forespørsler: én hendelse for hver verdi som finnes i forespørselen, som `jsonencode({ groupByJSONPath = "..." })`. |
+| `open_for_every_email` | bool | Bare monitorer for innkommende e-post: `true` åpner en hendelse (og et varsel) for hver e-post som samsvarer, i stedet for én om gangen. |
 
 ### Hendelser og varsler
 
