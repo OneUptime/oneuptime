@@ -51,6 +51,12 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
   // As the evaluator reads a criteria saved without one.
   const filterCondition: FilterCondition =
     props.monitorCriteriaInstance.data?.filterCondition || FilterCondition.All;
+  // An Incoming Email criteria that opens an incident for every email.
+  const isOpenForEveryEmail: boolean =
+    MonitorCriteriaInstance.isOpenForEveryEmail({
+      monitorType: props.monitorType,
+      criteriaInstance: props.monitorCriteriaInstance,
+    });
 
   return (
     <div className="mb-4">
@@ -164,7 +170,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               <Icon icon={IconProp.Alert} className="h-5 w-5 text-gray-900" />
               <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
                 <TranslatedSentence
-                  template="{{action}} when this criteria is met. These are the incident details:"
+                  template={
+                    isOpenForEveryEmail
+                      ? "{{action}} for every email that meets this criteria. These are the incident details:"
+                      : "{{action}} when this criteria is met. These are the incident details:"
+                  }
                   slots={{
                     action: (
                       <span className="font-medium text-gray-900">
@@ -197,7 +207,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               />
               <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
                 <TranslatedSentence
-                  template="{{action}} when this criteria is met. These are the alert details:"
+                  template={
+                    isOpenForEveryEmail
+                      ? "{{action}} for every email that meets this criteria. These are the alert details:"
+                      : "{{action}} when this criteria is met. These are the alert details:"
+                  }
                   slots={{
                     action: (
                       <span className="font-medium text-gray-900">

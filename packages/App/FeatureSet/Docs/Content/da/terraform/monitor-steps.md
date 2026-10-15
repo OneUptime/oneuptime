@@ -245,6 +245,7 @@ Grupperede metrikmonitorer er den ene undtagelse. Når en metrikmonitors foresp�
 | `alerts` | list | De advarsler, der skal åbnes. Udelad den, medmindre `create_alerts = true`. |
 | `is_enabled` | bool | `true` på serveren, når den ikke er angivet. Angiv `false` for at beholde et kriterium uden at bedømme med det. |
 | `incident_grouping` | string (JSON) | Kun monitorer for indgående anmodninger: én hændelse for hver værdi, der findes i anmodningen, såsom `jsonencode({ groupByJSONPath = "..." })`. |
+| `open_for_every_email` | bool | Kun monitorer for indgående e-mail: `true` åbner en hændelse (og en advarsel) for hver e-mail, der matcher, i stedet for én ad gangen. |
 
 ### Hændelser og advarsler
 

@@ -3932,12 +3932,15 @@ export default class SlackUtil extends WorkspaceBase {
    * was ("%25" where slackify encoded the address), half an emoji goes
    * through as U+FFFD, and should slackify still fail, the message is sent
    * as its text (getSlackifySafeMarkdown).
+   *
+   * A hard break is a line break (withoutHardBreakSpaces).
    */
-  public static slackify(markdown: string): string {
-    if (!markdown) {
+  public static slackify(givenMarkdown: string): string {
+    if (!givenMarkdown) {
       return "";
     }
 
+    const markdown: string = SlackUtil.withoutHardBreakSpaces(givenMarkdown);
     const held: Array<string> = [];
 
     // Read with indexOf: the text can be long.
@@ -4031,6 +4034,31 @@ export default class SlackUtil extends WorkspaceBase {
     text = safe.restore(text);
 
     return held.length > 0 ? putBack(text, true) : text;
+  }
+
+  /*
+   * Markdown whose hard breaks - two spaces at the end of a line, how a
+   * note keeps the lines of an email reply, a form answer or a chat message
+   * (FormSubmissionNote, ChatMessageMarkdown) - are plain line breaks.
+   * slackify writes a hard break the way Markdown does, a backslash before
+   * the line break, and Slack showed that backslash at the end of each
+   * line. Slack breaks the line at every line break, so the spaces come off
+   * and the line break left does the same. One pass over the lines.
+   */
+  public static withoutHardBreakSpaces(markdown: string): string {
+    if (markdown.indexOf("  \n") === -1) {
+      return markdown;
+    }
+
+    const lines: Array<string> = markdown.split("\n");
+
+    return lines
+      .map((line: string, index: number): string => {
+        return index < lines.length - 1 && line.endsWith("  ")
+          ? line.trimEnd()
+          : line;
+      })
+      .join("\n");
   }
 
   // Text as Slack shows it: "&", "<" and ">" escaped, nothing else changed.

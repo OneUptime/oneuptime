@@ -6,6 +6,7 @@ Un monitor di email in arrivo vi dà un indirizzo email che appartiene a un solo
 - [Creare il monitor](#creare-un-monitor-di-email-in-arrivo): Ottenete un indirizzo e indirizzatevi il vostro mittente.
 - [Verificare l'indirizzo](#verificare-lindirizzo-con-il-mittente): Leggete sul monitor l'email di conferma di un mittente.
 - [Scrivere criteri](#tipi-di-filtro-disponibili): Confrontate oggetto, mittente o corpo, oppure avvisate quando le email smettono di arrivare.
+- [Un incidente per ogni email](#aprire-un-incidente-per-ogni-email): Lasciate che le persone segnalino incidenti scrivendo all'indirizzo.
 - [Usare l'email negli avvisi](#variabili-del-modello): Inserite oggetto e corpo in titoli e descrizioni.
 :::
 
@@ -27,7 +28,7 @@ sequenceDiagram
 
 1. Quando create un monitor di email in arrivo, OneUptime gli assegna un indirizzo email univoco.
 2. Ogni email inviata a quell'indirizzo viene salvata sul monitor e valutata in base ai suoi criteri, dall'alto; decide il primo criterio che corrisponde.
-3. Un criterio che corrisponde può cambiare lo stato del monitor, creare un avviso e dichiarare un incidente. Un incidente con **Risoluzione automatica dell'incidente** attiva, o un avviso con **Risoluzione automatica dell'avviso** attiva, viene risolto quando in seguito corrisponde un altro criterio: per esempio quello che segna il monitor online.
+3. Un criterio che corrisponde può cambiare lo stato del monitor, creare un avviso e dichiarare un incidente. Un incidente con **Risoluzione automatica dell'incidente** attiva, o un avviso con **Risoluzione automatica dell'avviso** attiva, viene risolto quando in seguito corrisponde un altro criterio: per esempio quello che segna il monitor online. Finché l'incidente di un criterio è aperto, le email successive che corrispondono al criterio non aprono nulla di nuovo, a meno che il criterio non [apra un incidente per ogni email](#aprire-un-incidente-per-ogni-email).
 
 ## Creare un monitor di email in arrivo
 
@@ -232,6 +233,43 @@ Mettete per primo il criterio critico: i criteri vengono controllati dall'alto, 
 
 Il primo criterio scatta quando non è arrivata alcuna email per 60 minuti: utile per job pianificati o processi batch che inviano un'email di completamento. Il secondo risolve l'avviso appena ne arriva una. I minuti in cui OneUptime stesso non riceveva email non contano nei 60, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 
+## Aprire un incidente per ogni email
+
+Un criterio tiene aperto un solo incidente alla volta: finché è aperto, le email successive che corrispondono al criterio non aprono nulla di nuovo. Va bene per un sistema le cui email riferiscono su una sola cosa, come un backup notturno. Quando ogni email è una segnalazione a sé, per esempio quando le persone segnalano incidenti scrivendo all'indirizzo, attivate **Apri un nuovo incidente per ogni email** nel criterio.
+
+:::steps
+### Scegliere le email
+
+Date al criterio un filtro che corrisponda alle email per cui aprire incidenti. Per accettare solo le segnalazioni delle vostre persone, usate **Email From Address** con **Ends With** e il vostro dominio, per esempio `@example.com`.
+
+### Dichiarare l'incidente
+
+In **Azioni**, attivate **Quando i filtri corrispondono, dichiara un incidente.** Date all'incidente il titolo `{{emailSubject}}` e la descrizione `{{emailBody}}`, così ogni incidente dice cosa diceva la sua email.
+
+### Attivare l'interruttore
+
+Attivate **Apri un nuovo incidente per ogni email**, sotto l'incidente, e salvate il monitor.
+:::
+
+Da quel momento il criterio tratta ogni email a sé:
+
+| Email | Cosa succede |
+| --- | --- |
+| Una nuova email | Apre un incidente tutto suo, anche se quelli precedenti sono ancora aperti. |
+| La stessa email, consegnata di nuovo | Non apre altro: OneUptime distingue le email dalla loro intestazione `Message-ID`. |
+| Una risposta a un'email che ha aperto un incidente | Viene aggiunta a quell'incidente come nota privata e non apre nulla finché l'incidente è aperto. Una volta risolto l'incidente, una risposta apre un nuovo incidente. |
+| Una risposta automatica, come un messaggio di assenza | Non apre nulla. |
+| Un'email arrivata dopo che il monitor ha aperto 20 incidenti da email nell'ultima ora | Non apre nulla, così un loop di posta o un'ondata di email non può allertare il vostro team all'infinito. |
+
+Ogni email riceve comunque una riga in **Registri di monitoraggio**, e **Visualizza riepilogo** su quella riga dice cosa ha aperto l'email, o perché non ha aperto nulla. Quando il criterio crea anche avvisi, l'interruttore si chiama **Apri un nuovo incidente e un nuovo avviso per ogni email**, e ogni email apre allo stesso modo un avviso tutto suo.
+
+Questi incidenti restano aperti finché qualcuno non li risolve. Con **Risoluzione automatica dell'incidente** attiva, vengono risolti anche quando un'email successiva corrisponde a un altro criterio, come ogni incidente; un'email successiva che corrisponde allo stesso criterio non risolve mai quelli precedenti. Un controllo delle email mancanti (**Email Received**) non è un'email, quindi apre ancora un solo incidente alla volta.
+
+> [!WARNING]
+> **Chiunque conosca l'indirizzo può aprire incidenti.** Tenete l'indirizzo riservato, filtrate sul mittente come sopra e [reimpostate l'indirizzo](#reimpostare-o-personalizzare-lindirizzo-email) se trapela. L'indirizzo di un mittente si può falsificare, quindi il filtro tiene fuori la posta vagante, non chi è deciso a entrare.
+
+Per avere più controllo, come una gravità letta dall'oggetto o un team scelto in base al mittente, avviate invece un workflow da ogni email: vedete il [trigger Incoming Email](/docs/workflows/triggers#incoming-email).
+
 ## Casi d'uso
 
 | Caso d'uso | Cosa fa il monitor |
@@ -240,6 +278,7 @@ Il primo criterio scatta quando non è arrivata alcuna email per 60 minuti: util
 | Servizi di terze parti | Riceve notifiche da provider cloud (AWS, GCP, Azure), scanner di sicurezza, strumenti di backup e avvisi di scadenza dei certificati. |
 | Job pianificati | Avvisa quando un'email di completamento è in ritardo, o quando un job segnala un errore via email. |
 | Aggregazione degli avvisi | Raccoglie gli avvisi via email di Nagios, Zabbix o altri strumenti, così OneUptime è l'unico posto in cui gestirli. |
+| Segnalare incidenti via email | Apre un incidente per ogni email che le persone inviano all'indirizzo, e vi conserva le risposte come note. |
 
 ## Variabili del modello
 
@@ -307,6 +346,7 @@ Finché non è configurato, la scheda dell'indirizzo del monitor indica che la r
 2. Controllate che il monitoraggio sia attivo: pagina **Impostazioni** del monitor, scheda **Monitoraggio**.
 3. Aprite **Registri di monitoraggio** e fate clic su **Visualizza riepilogo** sulla riga dell'email per vedere cosa hanno letto i criteri.
 4. Controllate l'ordine dei criteri: decide il primo che corrisponde.
+5. Se il criterio apre un incidente per ogni email, l'email potrebbe essere una risposta, una seconda consegna o una risposta automatica, oppure il monitor ha già aperto 20 incidenti da email nell'ultima ora. **Visualizza riepilogo** sulla riga dell'email dice quale.
 
 ### Gli avvisi non vengono risolti
 

@@ -71,9 +71,8 @@ const incidentCreatedFeed: CreatedFeedFunction = async (
   incident.incidentNumber = 7;
   incident.incidentNumberWithPrefix = "INC-7";
   incident.title = "Checkout is down";
-  incident.description = sections.description;
-  incident.rootCause = sections.rootCause;
-  incident.remediationNotes = sections.remediationNotes;
+  // Its description, root cause and remediation notes, as given.
+  Object.assign(incident, sections);
 
   await (
     IncidentService as unknown as {
@@ -97,9 +96,8 @@ const alertCreatedFeed: CreatedFeedFunction = async (
   alert.alertNumber = 42;
   alert.alertNumberWithPrefix = "ALT-42";
   alert.title = "Checkout is down";
-  alert.description = sections.description;
-  alert.rootCause = sections.rootCause;
-  alert.remediationNotes = sections.remediationNotes;
+  // Its description, root cause and remediation notes, as given.
+  Object.assign(alert, sections);
 
   const feedItem: ReturnType<typeof jest.spyOn> = jest
     .spyOn(AlertFeedService, "createAlertFeedItem")

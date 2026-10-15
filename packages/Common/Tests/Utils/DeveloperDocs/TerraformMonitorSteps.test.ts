@@ -373,6 +373,90 @@ describe("value coercions", () => {
     ).toEqual([{ request_type: "GET" }]);
   });
 
+  test("an Incoming Email criteria that opens an incident for every email", () => {
+    expect(
+      convert(
+        envelope([
+          step({
+            monitorCriteria: criteriaEnvelope([
+              {
+                name: "Reported by email",
+                createIncidents: true,
+                openForEveryEmail: true,
+                filters: [
+                  {
+                    checkOn: "Email From Address",
+                    filterType: "Ends With",
+                    value: "@acme.example",
+                  },
+                ],
+              },
+              {
+                name: "Set to false through the API",
+                openForEveryEmail: false,
+                filters: [
+                  {
+                    checkOn: "Email Received",
+                    filterType: "Recieved In Minutes",
+                    value: 60,
+                  },
+                ],
+              },
+              {
+                name: "Never set",
+                filters: [
+                  {
+                    checkOn: "Email Received",
+                    filterType: "Recieved In Minutes",
+                    value: 60,
+                  },
+                ],
+              },
+            ]),
+          }),
+        ]),
+      ),
+    ).toEqual([
+      {
+        criteria: [
+          {
+            name: "Reported by email",
+            create_incidents: true,
+            open_for_every_email: true,
+            filters: [
+              {
+                check_on: "Email From Address",
+                filter_type: "Ends With",
+                value: "@acme.example",
+              },
+            ],
+          },
+          {
+            name: "Set to false through the API",
+            open_for_every_email: false,
+            filters: [
+              {
+                check_on: "Email Received",
+                filter_type: "Recieved In Minutes",
+                value: "60",
+              },
+            ],
+          },
+          {
+            name: "Never set",
+            filters: [
+              {
+                check_on: "Email Received",
+                filter_type: "Recieved In Minutes",
+                value: "60",
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+  });
+
   test("over-time evaluation, server options and the alert template", () => {
     expect(
       convert(
