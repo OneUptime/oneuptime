@@ -279,7 +279,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
           title="Monitor template"
           required={true}
           hideOptionalLabel={true}
-          description="Network Device templates read each device's own polls. Edit a template under Monitors > Settings > Templates; monitors made from it follow."
+          description="Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow."
         />
         <Dropdown
           id="discovery-import-template"
