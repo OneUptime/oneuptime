@@ -10,6 +10,7 @@ import {
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import DiscoveryImportDialog from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportDialog";
+import DiscoveryImportRowStatus from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportRowStatus";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
@@ -30,10 +31,13 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
+  DEFAULT_DISCOVERY_IMPORT_SETTINGS,
   DiscoveryImportAlerting,
   DiscoveryImportDeviceOutcome,
   DiscoveryImportStatus,
+  DiscoveryImportView,
   MAX_HOSTS_PER_DISCOVERY_IMPORT,
+  emptyDiscoveryImportProgress,
 } from "../../../Types/NetworkDevice/DiscoveryImport";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -342,7 +346,7 @@ async function search(text: string): Promise<void> {
 
 async function next(): Promise<void> {
   await act(async () => {
-    fireEvent.click(screen.getByTestId("discovery-import-next"));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
   });
   await flush();
   await flush();
@@ -531,7 +535,7 @@ describe("opening the import", () => {
     ).toBeInTheDocument();
 
     expect(chooseSummary()).toBe("5 hosts will be imported");
-    expect(screen.getByTestId("discovery-import-next")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
     expect(screen.getByTestId("discovery-import-steps")).toHaveTextContent(
       "Choose devices",
     );
@@ -627,7 +631,7 @@ describe("opening the import", () => {
     expect(
       screen.getByText("This discovery scan could not be found."),
     ).toBeInTheDocument();
-    expect(screen.getByTestId("discovery-import-next")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
   });
 });
 
@@ -734,7 +738,7 @@ describe("choosing the hosts", () => {
     });
 
     expect(chooseSummary()).toBe("0 hosts will be imported");
-    expect(screen.getByTestId("discovery-import-next")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
 
     await search("10.48.12.0/24");
     await act(async () => {
@@ -815,7 +819,7 @@ describe("choosing the hosts", () => {
     expect(chooseSummary()).toBe(
       "One import brings in up to 5,000 hosts: narrow the selection, then import the rest after.",
     );
-    expect(screen.getByTestId("discovery-import-next")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
     // Fifty rows at a time, however large the scan.
     expect(screen.getAllByTestId(/^discovered-host-row-/)).toHaveLength(50);
   });
@@ -1380,5 +1384,83 @@ describe("the import as it runs", () => {
     expect(
       screen.getByTestId("discovery-import-progress-title"),
     ).toHaveTextContent("Importing 1 device…");
+  });
+});
+
+/*
+ * A scan's running import on its row of the scans table: how far it has got,
+ * and the way back to its progress - for whoever closed the dialog, and for
+ * a colleague who never opened it.
+ */
+describe("the scans table row of a scan being imported", () => {
+  function rowView(
+    status: DiscoveryImportStatus,
+    devicesCreated: number,
+  ): DiscoveryImportView {
+    return {
+      id: "import-on-row",
+      scanId: SCAN_ID.toString(),
+      status: status,
+      settings: { ...DEFAULT_DISCOVERY_IMPORT_SETTINGS },
+      progress: {
+        ...emptyDiscoveryImportProgress(),
+        hosts: 514,
+        hostsDone: devicesCreated,
+        devicesCreated: devicesCreated,
+      },
+      createdAt: "2026-10-15T09:00:00.000Z",
+      isMine: false,
+    };
+  }
+
+  test("a queued import says it is waiting, and how many devices it will bring in", async () => {
+    await act(async () => {
+      render(
+        <DiscoveryImportRowStatus
+          view={rowView(DiscoveryImportStatus.Queued, 0)}
+          onView={() => {}}
+        />,
+      );
+    });
+
+    expect(
+      screen.getByTestId(`discovery-import-row-${SCAN_ID.toString()}`),
+    ).toHaveTextContent("Waiting to import 514 devices");
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "0",
+    );
+  });
+
+  test("a running import counts what it has done, and View progress opens it", async () => {
+    const onView: jest.Mock = jest.fn();
+
+    await act(async () => {
+      render(
+        <DiscoveryImportRowStatus
+          view={rowView(DiscoveryImportStatus.Running, 257)}
+          onView={onView}
+        />,
+      );
+    });
+
+    expect(
+      screen.getByTestId(`discovery-import-row-${SCAN_ID.toString()}`),
+    ).toHaveTextContent("Importing devices: 257 of 514");
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "50",
+    );
+    expect(screen.getByRole("progressbar")).toHaveAccessibleName(
+      "Import progress: 50%",
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(`discovery-import-row-view-${SCAN_ID.toString()}`),
+      );
+    });
+
+    expect(onView).toHaveBeenCalledTimes(1);
   });
 });

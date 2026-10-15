@@ -156,10 +156,10 @@ async function openMonitoringStep(
   });
 
   await waitFor(() => {
-    expect(screen.getByTestId("discovery-import-next")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
   });
 
-  fireEvent.click(screen.getByTestId("discovery-import-next"));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
   await waitFor(() => {
     expect(

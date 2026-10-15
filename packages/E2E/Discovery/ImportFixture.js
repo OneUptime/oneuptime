@@ -20,6 +20,13 @@ import ObjectID from "Common/Types/ObjectID";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import NetworkAlertPolicyBootstrapUtil from "Common/Utils/NetworkDevice/NetworkAlertPolicyBootstrapUtil";
 import { summarizeDiscoveryImportResults } from "Common/Types/NetworkDevice/DiscoveryImport";
+import {
+  buildDeviceName,
+  buildNetworkDeviceFromDiscoveredHost,
+} from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
+
+// The project every fixture record belongs to (Fixture.js).
+const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 
 const pad = (value, length) => {
   return String(value).padStart(length, "0");
@@ -44,7 +51,10 @@ export function buildPosRegisters() {
         snmpReachable: false,
         ...(isUnnamed
           ? { dnsHostnameStatus: "no-record", netbiosNameStatus: "no-reply" }
-          : { netbiosName: name, dnsHostname: `${name.toLowerCase()}.wbz.wbhq.com` }),
+          : {
+              netbiosName: name,
+              dnsHostname: `${name.toLowerCase()}.wbz.wbhq.com`,
+            }),
         ...(hosts.length < 3 ? { isAlreadyRegistered: true } : {}),
       });
     }
@@ -53,10 +63,24 @@ export function buildPosRegisters() {
 }
 
 const VENDORS = [
-  { sysObjectId: "1.3.6.1.4.1.9.1.2494", sysDescr: "Cisco IOS XE Software, Catalyst L3 Switch Software (CAT9K_IOSXE), Version 17.9.4" },
-  { sysObjectId: "1.3.6.1.4.1.2636.1.1.1.2.63", sysDescr: "Juniper Networks, Inc. ex4300-48p Ethernet Switch, kernel JUNOS 21.4R3" },
-  { sysObjectId: "1.3.6.1.4.1.14823.1.1.37", sysDescr: "ArubaOS (MODEL: Aruba7210), Version 8.10.0.6" },
-  { sysObjectId: "1.3.6.1.4.1.41112.1.6", sysDescr: "Linux 4.4.153 #1 SMP Ubiquiti UniFi AP" },
+  {
+    sysObjectId: "1.3.6.1.4.1.9.1.2494",
+    sysDescr:
+      "Cisco IOS XE Software, Catalyst L3 Switch Software (CAT9K_IOSXE), Version 17.9.4",
+  },
+  {
+    sysObjectId: "1.3.6.1.4.1.2636.1.1.1.2.63",
+    sysDescr:
+      "Juniper Networks, Inc. ex4300-48p Ethernet Switch, kernel JUNOS 21.4R3",
+  },
+  {
+    sysObjectId: "1.3.6.1.4.1.14823.1.1.37",
+    sysDescr: "ArubaOS (MODEL: Aruba7210), Version 8.10.0.6",
+  },
+  {
+    sysObjectId: "1.3.6.1.4.1.41112.1.6",
+    sysDescr: "Linux 4.4.153 #1 SMP Ubiquiti UniFi AP",
+  },
 ];
 
 /*
@@ -84,7 +108,9 @@ export function buildCampusHosts() {
       snmpReachable: false,
       ...(index % 5 === 0
         ? { dnsHostnameStatus: "no-record" }
-        : { dnsHostname: `${index % 2 === 0 ? "printer" : "phone"}-${pad(index, 3)}.corp.example.com` }),
+        : {
+            dnsHostname: `${index % 2 === 0 ? "printer" : "phone"}-${pad(index, 3)}.corp.example.com`,
+          }),
     });
   }
   return hosts;
@@ -121,16 +147,23 @@ function seedIds() {
  * customer's own template, the way #4815 describes it.
  */
 export function buildTemplates() {
-  const recommended = NetworkAlertPolicyBootstrapUtil.buildRecommendedMonitorTemplate(seedIds());
+  const recommended =
+    NetworkAlertPolicyBootstrapUtil.buildRecommendedMonitorTemplate(seedIds());
   recommended._id = TEMPLATE_IDS.recommended;
 
-  const ping = NetworkAlertPolicyBootstrapUtil.buildRecommendedMonitorTemplate(seedIds());
+  const ping =
+    NetworkAlertPolicyBootstrapUtil.buildRecommendedMonitorTemplate(seedIds());
   ping._id = TEMPLATE_IDS.ping;
   ping.templateName = "POS ping availability";
-  ping.templateDescription = "An incident when a register stops answering ping.";
-  const criteria = ping.monitorSteps.data.monitorStepsInstanceArray[0].data.monitorCriteria.data;
-  criteria.monitorCriteriaInstanceArray = criteria.monitorCriteriaInstanceArray.slice(0, 1);
-  criteria.monitorCriteriaInstanceArray[0].data.name = "Register stops answering";
+  ping.templateDescription =
+    "An incident when a register stops answering ping.";
+  const criteria =
+    ping.monitorSteps.data.monitorStepsInstanceArray[0].data.monitorCriteria
+      .data;
+  criteria.monitorCriteriaInstanceArray =
+    criteria.monitorCriteriaInstanceArray.slice(0, 1);
+  criteria.monitorCriteriaInstanceArray[0].data.name =
+    "Register stops answering";
 
   return [recommended, ping].map((template) => {
     template.monitorType = MonitorType.NetworkDevice;
@@ -146,17 +179,37 @@ function named(Model, id, fields) {
 
 export function buildMonitorStatuses() {
   return [
-    named(MonitorStatus, STATUS_IDS.operational, { name: "Operational", color: new Color("#10b981"), isOperationalState: true, isOfflineState: false }),
-    named(MonitorStatus, STATUS_IDS.offline, { name: "Offline", color: new Color("#ef4444"), isOperationalState: false, isOfflineState: true }),
+    named(MonitorStatus, STATUS_IDS.operational, {
+      name: "Operational",
+      color: new Color("#10b981"),
+      isOperationalState: true,
+      isOfflineState: false,
+    }),
+    named(MonitorStatus, STATUS_IDS.offline, {
+      name: "Offline",
+      color: new Color("#ef4444"),
+      isOperationalState: false,
+      isOfflineState: true,
+    }),
   ];
 }
 
 export function buildIncidentSeverities() {
-  return [named(IncidentSeverity, SEVERITY_IDS.incident, { name: "Critical", color: new Color("#ef4444") })];
+  return [
+    named(IncidentSeverity, SEVERITY_IDS.incident, {
+      name: "Critical",
+      color: new Color("#ef4444"),
+    }),
+  ];
 }
 
 export function buildAlertSeverities() {
-  return [named(AlertSeverity, SEVERITY_IDS.alert, { name: "High", color: new Color("#f97316") })];
+  return [
+    named(AlertSeverity, SEVERITY_IDS.alert, {
+      name: "High",
+      color: new Color("#f97316"),
+    }),
+  ];
 }
 
 export function buildPolicy(fields) {
@@ -169,8 +222,10 @@ export function buildPolicy(fields) {
   });
 }
 
-const LATEST_ROUTE = /^\/network-device-discovery-import\/scan\/([^/]+)\/latest$/;
-const IMPORT_ROUTE = /^\/network-device-discovery-import\/import\/([^/]+)(\/stop|\/retry)?$/;
+const LATEST_ROUTE =
+  /^\/network-device-discovery-import\/scan\/([^/]+)\/latest$/;
+const IMPORT_ROUTE =
+  /^\/network-device-discovery-import\/import\/([^/]+)(\/stop|\/retry)?$/;
 
 const DEVICE_ID_PREFIX = "70000000-0000-4000-8000-";
 const MONITOR_ID_PREFIX = "71000000-0000-4000-8000-";
@@ -180,6 +235,11 @@ const MONITOR_ID_PREFIX = "71000000-0000-4000-8000-";
  * importBatch (hosts settled per ask), failDevices / failMonitors (address
  * -> reason), monitorRoom (monitors the plan has room for), and the record
  * of every import asked for (importStarts) and every ask (importReads).
+ *
+ * Each device is built the way the server's import builds it - the shared
+ * builder, from the scan, with the import's settings - and recorded on
+ * control.creates, so a test reads the name, DNS name, name source, vendor
+ * template switch and polling interval the server would create.
  */
 export function createImportApi(control) {
   let nextId = 1;
@@ -205,13 +265,18 @@ export function createImportApi(control) {
       scanId: record.scanId,
       status: record.status,
       settings: record.settings,
-      ...(record.monitorTemplateName ? { monitorTemplateName: record.monitorTemplateName } : {}),
+      ...(record.monitorTemplateName
+        ? { monitorTemplateName: record.monitorTemplateName }
+        : {}),
       progress: summarizeDiscoveryImportResults(results),
       createdAt: record.createdAt,
       ...(record.completedAt ? { completedAt: record.completedAt } : {}),
       isMine: true,
       createdByUserName: "Ops Engineer",
-      ...(record.stopRequested && (record.status === "Running" || record.status === "Queued") ? { isStopRequested: true } : {}),
+      ...(record.stopRequested &&
+      (record.status === "Running" || record.status === "Queued")
+        ? { isStopRequested: true }
+        : {}),
       ...(record.retryOf ? { retryOfImportId: record.retryOf } : {}),
       results: listed,
     };
@@ -241,22 +306,50 @@ export function createImportApi(control) {
           result.deviceError = reason;
           if (result.monitor === "Pending") {
             result.monitor = "Skipped";
-            result.monitorError = "The device was not imported, so it has no monitor.";
+            result.monitorError =
+              "The device was not imported, so it has no monitor.";
           }
           continue;
         }
         deviceCounter++;
-        result.device = control.alreadyAdded[result.ipAddress] ? "AlreadyAdded" : "Created";
+        result.device = control.alreadyAdded[result.ipAddress]
+          ? "AlreadyAdded"
+          : "Created";
         result.deviceId = `${DEVICE_ID_PREFIX}${pad(deviceCounter, 12)}`;
+        const source = record.sourceHosts?.get(result.ipAddress);
+        if (result.device === "Created" && source && record.scan) {
+          const device = buildNetworkDeviceFromDiscoveredHost({
+            projectId: new ObjectID(PROJECT_ID),
+            host: source,
+            scan: record.scan,
+            autoApplyVendorHealthTemplate: record.settings.applyVendorTemplates,
+            pollingIntervalInMinutes: record.settings.pollingIntervalInMinutes,
+          });
+          result.name = device.name || result.name;
+          control.creates.push({
+            hostname: device.hostname,
+            name: device.name,
+            autoApplyVendorHealthTemplate:
+              device.autoApplyVendorHealthTemplate === true,
+            dnsName: device.dnsName || null,
+            discoveredName: device.discoveredName || null,
+            discoveredNameSource: device.discoveredNameSource || null,
+            pollingIntervalInMinutes: device.pollingIntervalInMinutes ?? null,
+          });
+        }
         continue;
       }
       if (result.monitor === "Pending") {
         budget--;
         const reason = control.failMonitors[result.ipAddress];
-        const isBeyondRoom = control.monitorRoom !== null && monitorsCreated >= control.monitorRoom;
+        const isBeyondRoom =
+          control.monitorRoom !== null &&
+          monitorsCreated >= control.monitorRoom;
         if (reason || isBeyondRoom) {
           result.monitor = "Failed";
-          result.monitorError = reason || "Your plan includes 100 active monitors, and this project has 100. All of its monitors keep running.";
+          result.monitorError =
+            reason ||
+            "Your plan includes 100 active monitors, and this project has 100. All of its monitors keep running.";
           continue;
         }
         monitorCounter++;
@@ -265,19 +358,24 @@ export function createImportApi(control) {
         result.monitorId = `${MONITOR_ID_PREFIX}${pad(monitorCounter, 12)}`;
       }
     }
-    const isDone = record.results.every((result) => result.device !== "Pending" && result.monitor !== "Pending");
+    const isDone = record.results.every(
+      (result) => result.device !== "Pending" && result.monitor !== "Pending",
+    );
     if (record.stopRequested) {
       for (const result of record.results) {
         if (result.device === "Pending") {
           result.device = "NotReached";
-          result.deviceError = "The import was stopped before it reached this host.";
+          result.deviceError =
+            "The import was stopped before it reached this host.";
           if (result.monitor === "Pending") {
             result.monitor = "Skipped";
-            result.monitorError = "The device was not imported, so it has no monitor.";
+            result.monitorError =
+              "The device was not imported, so it has no monitor.";
           }
         } else if (result.monitor === "Pending") {
           result.monitor = "Failed";
-          result.monitorError = "The import was stopped before it reached this host.";
+          result.monitorError =
+            "The import was stopped before it reached this host.";
         }
       }
       record.status = "Stopped";
@@ -292,6 +390,7 @@ export function createImportApi(control) {
 
   const create = (data) => {
     const id = `65000000-0000-4000-8000-${pad(nextId++, 12)}`;
+    const scan = control.scanById(data.scanId);
     const record = {
       id,
       scanId: data.scanId,
@@ -299,13 +398,22 @@ export function createImportApi(control) {
       settings: data.settings,
       monitorTemplateName: data.monitorTemplateName,
       createdAt: new Date().toISOString(),
+      scan,
+      sourceHosts: new Map(
+        (scan?.discoveredDevices || []).map((host) => {
+          return [host.ipAddress, host];
+        }),
+      ),
       results: data.hosts.map((host) => {
         return {
           ipAddress: host.ipAddress,
           name: host.name,
           isPingOnly: host.isPingOnly,
           device: "Pending",
-          monitor: data.settings.alerting === "MonitorTemplate" ? "Pending" : "NotRequested",
+          monitor:
+            data.settings.alerting === "MonitorTemplate"
+              ? "Pending"
+              : "NotRequested",
         };
       }),
       ...(data.retryOf ? { retryOf: data.retryOf } : {}),
@@ -320,13 +428,19 @@ export function createImportApi(control) {
       const record = create(data);
       record.status = data.status || "Completed";
       for (const result of record.results) {
-        Object.assign(result, data.outcome ? data.outcome(result) : { device: "Created" });
+        Object.assign(
+          result,
+          data.outcome ? data.outcome(result) : { device: "Created" },
+        );
       }
       record.completedAt = new Date(Date.now() - 5 * 60000).toISOString();
       return record;
     },
     handle: async ({ method, path, body, query }) => {
-      if (method === "POST" && path === "/network-device-discovery-import/start") {
+      if (
+        method === "POST" &&
+        path === "/network-device-discovery-import/start"
+      ) {
         control.importStarts.push(JSON.parse(JSON.stringify(body)));
         if (control.refuseStart) {
           throw new Error(control.refuseStart);
@@ -338,24 +452,40 @@ export function createImportApi(control) {
           .map((host) => {
             return {
               ipAddress: host.ipAddress,
-              name: host.netbiosName || host.sysName || host.dnsHostname || host.ipAddress,
+              // The name the server records at start: the one the row showed.
+              name: buildDeviceName(host, scan) || host.ipAddress,
               isPingOnly: host.snmpReachable === false,
             };
           });
-        const template = control.templates.find((item) => item._id === body.settings.monitorTemplateId);
-        const record = create({ scanId: body.scanId, settings: body.settings, hosts, monitorTemplateName: template?.templateName });
+        const template = control.templates.find(
+          (item) => item._id === body.settings.monitorTemplateId,
+        );
+        const record = create({
+          scanId: body.scanId,
+          settings: body.settings,
+          hosts,
+          monitorTemplateName: template?.templateName,
+        });
         return { import: view(record, false) };
       }
-      if (method === "GET" && path === "/network-device-discovery-import/active") {
+      if (
+        method === "GET" &&
+        path === "/network-device-discovery-import/active"
+      ) {
         return {
           imports: [...imports.values()]
-            .filter((record) => record.status === "Queued" || record.status === "Running")
+            .filter(
+              (record) =>
+                record.status === "Queued" || record.status === "Running",
+            )
             .map((record) => view(record, false)),
         };
       }
       const latest = path.match(LATEST_ROUTE);
       if (method === "GET" && latest) {
-        const records = [...imports.values()].filter((record) => record.scanId === latest[1]);
+        const records = [...imports.values()].filter(
+          (record) => record.scanId === latest[1],
+        );
         const last = records[records.length - 1];
         return { import: last ? view(last, false) : null };
       }
@@ -382,14 +512,23 @@ export function createImportApi(control) {
         }
         if (one[2] === "/retry") {
           const retryable = record.results.filter((result) => {
-            return result.device === "Failed" || result.device === "NotReached" || result.monitor === "Failed";
+            return (
+              result.device === "Failed" ||
+              result.device === "NotReached" ||
+              result.monitor === "Failed"
+            );
           });
-          control.importRetries.push(retryable.map((result) => result.ipAddress));
+          control.importRetries.push(
+            retryable.map((result) => result.ipAddress),
+          );
           for (const result of retryable) {
             delete control.failDevices[result.ipAddress];
             delete control.failMonitors[result.ipAddress];
             // A device the first import created is found, not created again.
-            if (result.device === "Created" || result.device === "AlreadyAdded") {
+            if (
+              result.device === "Created" ||
+              result.device === "AlreadyAdded"
+            ) {
               control.alreadyAdded[result.ipAddress] = true;
             }
           }

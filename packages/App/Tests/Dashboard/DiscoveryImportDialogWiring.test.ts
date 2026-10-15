@@ -154,9 +154,9 @@ describe("Import brings in what is ticked and shown", () => {
   test("every count the reader is shown is that list's length", () => {
     const code: string = readCode(DIALOG);
 
-    // Next is offered only with something to import.
+    // Next is offered only with something to import, and not too much.
     expect(code).toContain(
-      "disabled: isLoading || hostsToImport.length === 0,",
+      "isSubmitDisabled = isLoading || hostsToImport.length === 0 || hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT;",
     );
     // "N hosts will be imported" under the list.
     expect(code).toContain(
@@ -170,9 +170,9 @@ describe("Import brings in what is ticked and shown", () => {
     expect(code).toContain("hostCount: hostsToImport.length,");
   });
 
-  test("more hosts than one import may carry are refused before Next, not after Import", () => {
+  test("more hosts than one import may carry are refused before Next, not after Import, and the footer says how to go on", () => {
     expect(readCode(DIALOG)).toContain(
-      "if (hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT) { secondaryButton.disabled = true; }",
+      '{hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT ? translator.translateTemplate( "One import brings in up to {{max}} hosts: narrow the selection, then import the rest after.",',
     );
   });
 });

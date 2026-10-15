@@ -19,7 +19,7 @@ import { DiscoveryScanStatus } from "Common/Utils/NetworkDiscovery/DiscoveryScan
 import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, {
   ModalSecondaryButton,
@@ -28,7 +28,7 @@ import Modal, {
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -665,20 +665,26 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     },
   );
 
+  /*
+   * The footer, per step. Fixed words go to the Modal in English - it looks
+   * its own button texts up in the reader's language - and the ones with a
+   * count are looked up here. The step's way forward is the primary button.
+   */
   let secondaryButton: ModalSecondaryButton | undefined = undefined;
   let submitButtonText: string | undefined = undefined;
   let onSubmit: (() => void) | undefined = undefined;
-  let closeButtonText: string = "Cancel";
+  let closeButtonText: string = translationKey("Cancel");
+  let closeButtonStyleType: ButtonStyleType | undefined = undefined;
   let isSubmitDisabled: boolean = false;
   let leftFooterElement: ReactElement | undefined = undefined;
 
   if (step === DiscoveryImportStep.Choose) {
-    secondaryButton = {
-      title: translator.translateText("Next") as string,
-      dataTestId: "discovery-import-next",
-      disabled: isLoading || hostsToImport.length === 0,
-      onClick: goToMonitoring,
-    };
+    submitButtonText = translationKey("Next");
+    onSubmit = goToMonitoring;
+    isSubmitDisabled =
+      isLoading ||
+      hostsToImport.length === 0 ||
+      hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT;
     leftFooterElement = (
       <p
         className="text-sm text-gray-600"
@@ -699,13 +705,9 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
             )}
       </p>
     );
-
-    if (hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT) {
-      secondaryButton.disabled = true;
-    }
   } else if (step === DiscoveryImportStep.Monitoring) {
     secondaryButton = {
-      title: translator.translateText("Back") as string,
+      title: translationKey("Back"),
       dataTestId: "discovery-import-back",
       onClick: () => {
         setActionError("");
@@ -725,12 +727,12 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     };
     isSubmitDisabled = Boolean(blocker) || isLoadingFacts;
   } else if (progressModel) {
-    closeButtonText = "Close";
+    closeButtonText = translationKey("Close");
 
     if (progressModel.isActive) {
       if (!progressView?.isStopRequested) {
         secondaryButton = {
-          title: translator.translateText("Stop import") as string,
+          title: translationKey("Stop import"),
           dataTestId: "discovery-import-stop",
           disabled: isActing,
           onClick: () => {
@@ -752,16 +754,24 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
           void retryImport();
         };
       } else {
-        submitButtonText = "Done";
-        onSubmit = props.onClose;
+        // Nothing left to do: closing is the way forward, said once.
+        closeButtonText = translationKey("Done");
+        closeButtonStyleType = ButtonStyleType.PRIMARY;
       }
 
+      /*
+       * Away from the way forward, on the left: going back to the hosts is
+       * a fresh start, not the next step of this import.
+       */
       if (hasImportableHostsLeft) {
-        secondaryButton = {
-          title: translator.translateText("Import more devices") as string,
-          dataTestId: "discovery-import-more",
-          onClick: importMore,
-        };
+        leftFooterElement = (
+          <Button
+            title="Import more devices"
+            dataTestId="discovery-import-more"
+            buttonStyle={ButtonStyleType.NORMAL}
+            onClick={importMore}
+          />
+        );
       }
     }
   }
@@ -789,6 +799,9 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
       {...(leftFooterElement ? { leftFooterElement: leftFooterElement } : {})}
       disableSubmitButton={isSubmitDisabled}
       submitButtonStyleType={ButtonStyleType.PRIMARY}
+      {...(closeButtonStyleType !== undefined
+        ? { closeButtonStyleType: closeButtonStyleType }
+        : {})}
     >
       <div className="space-y-5" data-testid="discovery-import-dialog">
         <StepIndicator step={step} />

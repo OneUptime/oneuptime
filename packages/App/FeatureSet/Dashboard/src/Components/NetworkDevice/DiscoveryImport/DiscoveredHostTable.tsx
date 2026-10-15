@@ -88,9 +88,9 @@ export const DISCOVERED_HOSTS_PER_PAGE: number = 50;
 
 // The row's columns from md up: the box, the host, the vendor, the badges.
 const HOST_GRID_WITH_VENDOR: string =
-  "md:grid-cols-[1.25rem_minmax(0,2.4fr)_minmax(0,1.6fr)_minmax(0,8rem)]";
+  "md:grid-cols-[1.25rem_minmax(0,2.4fr)_minmax(0,1.6fr)_minmax(0,12rem)]";
 const HOST_GRID_WITHOUT_VENDOR: string =
-  "md:grid-cols-[1.25rem_minmax(0,1fr)_minmax(0,8rem)]";
+  "md:grid-cols-[1.25rem_minmax(0,1fr)_minmax(0,12rem)]";
 
 export interface DiscoveredHostTableProps {
   // The scan's hosts, normalised, with anything imported already marked.
@@ -423,10 +423,10 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
         >
           <span />
           <span>{translator.translateText("Host")}</span>
-          {hasVendorColumn && (
-            <span>{translator.translateText("Vendor")}</span>
-          )}
-          <span className="text-right">{translator.translateText("Status")}</span>
+          {hasVendorColumn && <span>{translator.translateText("Vendor")}</span>}
+          <span className="text-right">
+            {translator.translateText("Status")}
+          </span>
         </div>
         {shownHosts.length === 0 ? (
           <div
@@ -708,32 +708,32 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
         </div>
       </div>
       {props.hasVendorColumn && (
-      <div className="min-w-0 pl-8 md:pl-0">
-        {vendor ? (
-          <div
-            className="truncate text-sm text-gray-700"
-            data-testid={`discovered-host-vendor-${entry.ipAddress}`}
-          >
-            {vendor}
-          </div>
-        ) : (
-          <></>
-        )}
-        {entry.sysDescr ? (
-          <div
-            className="truncate text-xs text-gray-400"
-            title={entry.sysDescr}
-          >
-            {entry.sysDescr}
-          </div>
-        ) : !vendor ? (
-          <div className="text-sm text-gray-300 max-md:hidden md:block">
-            —
-          </div>
-        ) : (
-          <></>
-        )}
-      </div>
+        <div className="min-w-0 pl-8 md:pl-0">
+          {vendor ? (
+            <div
+              className="truncate text-sm text-gray-700"
+              data-testid={`discovered-host-vendor-${entry.ipAddress}`}
+            >
+              {vendor}
+            </div>
+          ) : (
+            <></>
+          )}
+          {entry.sysDescr ? (
+            <div
+              className="truncate text-xs text-gray-400"
+              title={entry.sysDescr}
+            >
+              {entry.sysDescr}
+            </div>
+          ) : !vendor ? (
+            <div className="text-sm text-gray-300 max-md:hidden md:block">
+              —
+            </div>
+          ) : (
+            <></>
+          )}
+        </div>
       )}
       <div className="flex flex-wrap items-center gap-2 pl-8 md:justify-end md:pl-0">
         {isPingOnly ? (
