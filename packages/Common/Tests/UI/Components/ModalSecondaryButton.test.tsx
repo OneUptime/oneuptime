@@ -158,6 +158,45 @@ describe("Modal secondaryButton", () => {
     expect(onNext).toHaveBeenCalledTimes(1);
   });
 
+  test("a Next that cannot be pressed yet looks it: dimmed, with the not-allowed cursor", async () => {
+    /*
+     * A plain button has no disabled look of its own, so a Next held back
+     * until something is chosen looked exactly like one that goes on. The
+     * footer gives the secondary button the disabled look itself - only when
+     * disabled, and still plain.
+     */
+    const onNext: MockFunction = getJestMockFunction();
+
+    render(
+      <Modal
+        title="Import Discovered Devices"
+        onClose={getJestMockFunction()}
+        secondaryButton={{
+          title: "Next",
+          dataTestId: "modal-footer-next-button",
+          disabled: true,
+          onClick: onNext,
+        }}
+      >
+        <p>Body</p>
+      </Modal>,
+    );
+
+    const next: HTMLElement = screen.getByTestId("modal-footer-next-button");
+
+    expect(next).toBeDisabled();
+    expect(next).toHaveClass(
+      "disabled:opacity-50",
+      "disabled:cursor-not-allowed",
+    );
+    expect(next.className).toContain(PLAIN_CLASS);
+    expect(next.className).not.toContain(PRIMARY_CLASS);
+
+    await userEvent.click(next);
+
+    expect(onNext).not.toHaveBeenCalled();
+  });
+
   test("is not drawn unless asked for", () => {
     render(
       <Modal

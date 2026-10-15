@@ -49,6 +49,10 @@ import {
   readsOfRowsCallerMayWrite,
   stubRowsCallerMayWriteLikeFindBy,
 } from "../TestingUtils/RowsCallerMayWrite";
+import {
+  DISCOVERY_IMPORT_POLLING_INTERVAL_REFUSAL,
+  DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES,
+} from "../../../Types/NetworkDevice/DiscoveryImport";
 
 /*
  * The read of the rows a caller's update may write, which the update path
@@ -1012,5 +1016,111 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeUpdate monitor template val
 
     expect(allowSpy).not.toHaveBeenCalled();
     expect(findTemplateSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * "Check every" on a rule (issue #4811): how often the devices it imports
+ * are polled - the same choices the import dialog offers, or nothing for the
+ * devices' own default. Refused, never rounded: a rule that polls a fleet at
+ * a rate nobody picked is not a small mistake.
+ */
+describe("how often a rule's devices are polled", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function makeUpdateBy(
+    data: Record<string, unknown>,
+  ): UpdateBy<NetworkDeviceAutoImportRule> {
+    return {
+      query: { _id: "some-rule-id" },
+      data: data,
+      props: { isRoot: true },
+    } as unknown as UpdateBy<NetworkDeviceAutoImportRule>;
+  }
+
+  it("is written and read with the rule's own permissions, like its other behaviour", () => {
+    const rule: NetworkDeviceAutoImportRule = new NetworkDeviceAutoImportRule();
+
+    expect(rule.getColumnAccessControlFor("pollingIntervalInMinutes")).toEqual(
+      rule.getColumnAccessControlFor("includePingOnlyHosts"),
+    );
+  });
+
+  it.each(
+    DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES.map(
+      (minutes: number): Array<number> => {
+        return [minutes];
+      },
+    ),
+  )(
+    "a new rule may check its devices every %i minutes",
+    async (minutes: number) => {
+      await expect(
+        (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+          makeCreateBy({ pollingIntervalInMinutes: minutes }),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  it("a new rule that says nothing leaves the devices' default", async () => {
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+        makeCreateBy(),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it.each([[7], [0], [-1], [1.5], [1440]])(
+    "a new rule checking every %p minutes is refused",
+    async (minutes: number) => {
+      await expect(
+        (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+          makeCreateBy({ pollingIntervalInMinutes: minutes }),
+        ),
+      ).rejects.toThrow(
+        new BadDataException(DISCOVERY_IMPORT_POLLING_INTERVAL_REFUSAL),
+      );
+    },
+  );
+
+  it("changing it alone reads no rule and no template", async () => {
+    const findRulesSpy: jest.SpyInstance = jest.spyOn(
+      NetworkDeviceAutoImportRuleService,
+      "findBy",
+    );
+    const findTemplateSpy: jest.SpyInstance = jest.spyOn(
+      MonitorTemplateService,
+      "findOneById",
+    );
+
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(
+        makeUpdateBy({ pollingIntervalInMinutes: 15 }),
+      ),
+    ).resolves.toBeDefined();
+
+    expect(findRulesSpy).not.toHaveBeenCalled();
+    expect(findTemplateSpy).not.toHaveBeenCalled();
+  });
+
+  it("clearing it hands the devices back to their default", async () => {
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(
+        makeUpdateBy({ pollingIntervalInMinutes: null }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("changing it to a rate nobody can pick is refused", async () => {
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(
+        makeUpdateBy({ pollingIntervalInMinutes: "3" }),
+      ),
+    ).rejects.toThrow(
+      new BadDataException(DISCOVERY_IMPORT_POLLING_INTERVAL_REFUSAL),
+    );
   });
 });

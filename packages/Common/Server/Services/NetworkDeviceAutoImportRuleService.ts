@@ -18,6 +18,7 @@ import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import ScanTargetUtil from "../../Utils/NetworkDiscovery/ScanTargetUtil";
+import { readDiscoveryImportPollingInterval } from "../../Types/NetworkDevice/DiscoveryImport";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
@@ -120,6 +121,17 @@ export class Service extends ProjectReferencesService<Model> {
       sysObjectIdPattern: createBy.data.sysObjectIdPattern,
     });
 
+    /*
+     * One of the intervals the import offers, or nothing (the devices'
+     * default). Refused, never rounded: a rule that polls a fleet at the
+     * wrong rate is not a small mistake.
+     */
+    readDiscoveryImportPollingInterval(
+      (createBy.data as unknown as Record<string, unknown>)[
+        "pollingIntervalInMinutes"
+      ],
+    );
+
     const monitorTemplateId: ObjectID | null = readMonitorTemplateId(
       createBy.data as unknown as Record<string, unknown>,
     );
@@ -156,6 +168,14 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeUpdate(updateBy);
 
     const dataKeys: Array<string> = Object.keys(updateBy.data || {});
+
+    if (dataKeys.includes("pollingIntervalInMinutes")) {
+      readDiscoveryImportPollingInterval(
+        (updateBy.data as unknown as Record<string, unknown>)[
+          "pollingIntervalInMinutes"
+        ],
+      );
+    }
 
     const isCriteriaChange: boolean =
       dataKeys.includes("ipMatchTarget") ||
