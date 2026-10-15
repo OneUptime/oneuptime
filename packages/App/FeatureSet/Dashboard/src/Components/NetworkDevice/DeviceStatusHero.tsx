@@ -289,6 +289,9 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
       modelId: props.modelId,
     },
   );
+  const alertPoliciesRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES] as Route,
+  );
 
   const siteRoute: Route | null = device.site?._id
     ? RouteUtil.populateRouteParams(
@@ -478,9 +481,25 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                 </div>
               </div>
             ) : (
-              <span className="text-sm text-gray-400">
-                {translator.translateText("Not monitored")}
-              </span>
+              /*
+               * Polled, but nothing turns a failure into an incident. "Not
+               * monitored" beside a green "Up" read as a contradiction - the
+               * probe IS watching it - so it says what is missing, and where
+               * to add it: an alert policy covers this device and its fleet.
+               */
+              <div data-testid="device-hero-no-alerts">
+                <div className="text-sm text-gray-500">
+                  {translator.translateText("No alerts yet")}
+                </div>
+                <div className="mt-1 text-xs">
+                  <AppLink
+                    to={alertPoliciesRoute}
+                    className="font-medium text-indigo-600 hover:underline"
+                  >
+                    {translator.translateText("Set up alerts") || ""}
+                  </AppLink>
+                </div>
+              </div>
             )}
           </div>
         </div>

@@ -173,6 +173,13 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
 
   const [levelData, setLevelData] = useState<SiteChildrenResponse | null>(null);
   /*
+   * How many devices the device graph below holds, once it is read (null
+   * until then): the note over a flat map is left out while there are none.
+   */
+  const [flatMapNodeCount, setFlatMapNodeCount] = useState<number | null>(
+    null,
+  );
+  /*
    * WHICH level `levelData` describes. Load-bearing, not bookkeeping: a
    * drill commits the new site id one render before the response for it
    * lands, so without this the component spends a whole round trip deriving
@@ -664,8 +671,13 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
 
   if (view !== "hierarchy") {
     const fallbackReason: FlatFallbackReason = flatFallbackReason(viewInput);
+    /*
+     * The note explains a map that is there. With no device on it the map's
+     * own empty state is the whole message: "You're viewing every device in
+     * one map" above "No network topology discovered yet" said both.
+     */
     const explanation: string =
-      fallbackReason && fallbackReason !== "requested"
+      fallbackReason && fallbackReason !== "requested" && flatMapNodeCount !== 0
         ? FLAT_FALLBACK_COPY[fallbackReason]
         : "";
 
@@ -713,6 +725,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
                 })
               : []
           }
+          onNodeCountChange={setFlatMapNodeCount}
         />
       </Fragment>
     );

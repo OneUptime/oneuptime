@@ -4,6 +4,7 @@ import {
 } from "../Network/NetworkQuickActions";
 import NetworkDeviceGraph from "./NetworkDeviceGraph";
 import NetworkTopologyToolbar from "./NetworkTopologyToolbar";
+import NetworkTopologyEmptyState from "./NetworkTopologyEmptyState";
 import NetworkDeviceDetailPanel from "./NetworkDeviceDetailPanel";
 import AddNeighborToMonitoringModal from "./AddNeighborToMonitoringModal";
 import { isAdoptableNode } from "./AdoptNeighborUtil";
@@ -106,6 +107,12 @@ export interface ComponentProps {
    * the map of every device in the project.
    */
   scopeNames?: Array<string> | undefined;
+  /*
+   * How many devices and peers the map holds, each time it is read: what is
+   * around the map can stop talking about it when there is nothing on it
+   * (the explorer's "every device in one map" note).
+   */
+  onNodeCountChange?: ((nodeCount: number) => void) | undefined;
 }
 
 /*
@@ -699,6 +706,13 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     };
   }, [persistence, overridesStorageKey]);
 
+  // The map's size, once it is read, for whatever is around the map.
+  useEffect(() => {
+    if (!isLoading) {
+      props.onNodeCountChange?.(topology.nodes.length);
+    }
+  }, [topology, isLoading]);
+
   /*
    * Forget positions for devices that have left the topology. Runs
    * against the unfiltered node set, and returns the same map instance
@@ -754,6 +768,37 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
    */
   if (isLoading && topology.nodes.length === 0) {
     return <PageLoader isVisible={true} />;
+  }
+
+  /*
+   * The way forward from an empty map: the Add Device form itself, opened by
+   * the Devices list (NetworkQuickActions), rather than the list with a
+   * button on it somewhere.
+   */
+  const addDeviceLink: ReactElement = (
+    <Link
+      to={getNetworkQuickActionRoute(NetworkQuickAction.AddDevice)}
+      className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+    >
+      Add a device
+    </Link>
+  );
+
+  /*
+   * Nothing on the network yet: the card is its empty state and nothing
+   * else. The search, the layout options, a health filter of four zeros,
+   * the "Read the map" guide and Export PDF all described a map that is not
+   * there, and pushed the one thing to do below them.
+   */
+  if (!isLoading && !error && topology.nodes.length === 0) {
+    return (
+      <Card
+        title="Network Topology"
+        description="See how your network devices connect. Select a device to inspect its health, or a connection to inspect its ports."
+      >
+        <NetworkTopologyEmptyState footer={addDeviceLink} />
+      </Card>
+    );
   }
 
   if (error && topology.nodes.length === 0) {
@@ -1057,19 +1102,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         onLayoutModelChange={(model: TopologyLayoutModel) => {
           layoutModelRef.current = model;
         }}
-        /*
-         * The way forward from an empty map: the Add Device form itself,
-         * opened by the Devices list (NetworkQuickActions), rather than the
-         * list with a button on it somewhere.
-         */
-        emptyStateFooter={
-          <Link
-            to={getNetworkQuickActionRoute(NetworkQuickAction.AddDevice)}
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-          >
-            Add a device
-          </Link>
-        }
+        emptyStateFooter={addDeviceLink}
       />
 
       {selectedNode ? (

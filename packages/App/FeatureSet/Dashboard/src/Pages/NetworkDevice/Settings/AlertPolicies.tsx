@@ -58,7 +58,11 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const networkAlertPolicyDocumentation: string = `
@@ -252,6 +256,38 @@ const AlertPolicyScopeEditor: FunctionComponent<AlertPolicyScopeEditorProps> = (
   );
 };
 
+/*
+ * The recommended policy's words, kept honest about three things an operator
+ * must not have to infer (AlertPoliciesPageWiring holds them):
+ *
+ *   - the bill: one monitor per covered device, each counted towards the
+ *     plan, with the device count said as an UPPER bound - the engine skips
+ *     monitor-backed devices and devices with no probe, and an exact-looking
+ *     number that undershoots teaches people to ignore it;
+ *   - the ping-only device: four of the pack's five checks read an SNMP
+ *     walk, so a device without credentials can only fire the stops-
+ *     answering one;
+ *   - the template: the pair adds a monitor template to the project, under a
+ *     name the person will meet again among their monitor templates.
+ *
+ * Plain words and whole sentences: the confirmation used to be glued
+ * together from English pieces around the count, so no language could word
+ * it.
+ */
+export const RECOMMENDED_POLICY_EMPTY_STATE: string = translationKey(
+  "One policy alerts on many devices: the ones you have and the ones you add later. The recommended policy opens an incident when a device stops answering or a port goes down, and an alert when a port is saturated, logs errors, or its SNMP readings fail. A device without SNMP credentials is only pinged, so only the stops-answering check can fire on it.",
+);
+
+export const RECOMMENDED_POLICY_CONFIRM: string = translationKey(
+  "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan. You can narrow the policy to some devices afterwards.",
+);
+
+export const RECOMMENDED_POLICY_CONFIRM_COUNTED: PluralTemplate = {
+  one: "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitor today. You can narrow the policy to some devices afterwards.",
+  other:
+    "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards.",
+};
+
 export interface RecommendedPolicyEmptyStateProps {
   onCreated: () => void;
 }
@@ -365,11 +401,10 @@ const RecommendedPolicyEmptyState: FunctionComponent<
    * device estate into four thousand billable monitors, and a number presented
    * as exact and then undershot by a thousand teaches them to ignore it.
    */
-  const confirmDescription: string = `This creates the "Network device alert pack (recommended)" monitor template if the project does not have it yet, and an "Alert on every device" policy that applies it to every probe-polled device in the project, and to every device added later. One Network Device monitor is provisioned per covered device, and each counts towards your plan${
+  const confirmDescription: string =
     deviceCount !== null
-      ? `: the project holds ${deviceCount} active ${deviceCount === 1 ? "device" : "devices"} today, which is the most this can provision`
-      : ""
-  }. You can narrow the policy's scope afterwards.`;
+      ? translator.translatePlural(RECOMMENDED_POLICY_CONFIRM_COUNTED, deviceCount)
+      : translator.translateText(RECOMMENDED_POLICY_CONFIRM) || "";
 
   return (
     <div className="py-4">
@@ -377,9 +412,7 @@ const RecommendedPolicyEmptyState: FunctionComponent<
         {translator.translateText("No alert policies yet")}
       </p>
       <p className="mt-1 text-sm text-gray-500">
-        {translator.translateText(
-          "A policy alerts on a whole set of devices at once: one monitor per matching device, kept as devices come and go. The recommended one raises an incident when a device stops answering or an interface goes down, and an alert when its SNMP walk fails, an interface saturates or an interface logs errors. A device with no SNMP credentials is pinged, not walked, so only the reachability item can fire on it.",
-        )}
+        {translator.translateText(RECOMMENDED_POLICY_EMPTY_STATE)}
       </p>
       {createGate.isAllowed ? (
         <div className="mt-4 flex justify-center">
@@ -522,7 +555,7 @@ const NetworkAlertPoliciesPage: FunctionComponent<
            * that the monitors go with the policy before they click it.
            */
           description:
-            "Alert on a set of devices at once. Each policy provisions one Network Device monitor per matching device from its monitor template and keeps the set in step as devices come and go — and every one of those monitors counts towards your plan. Disabling a policy stands its monitors down; deleting one deletes them.",
+            "Alert on many devices at once. A policy adds one monitor to every device it covers, including devices added later, and each monitor counts towards your plan. Turning a policy off stands its monitors down; deleting one deletes them.",
         }}
         helpContent={{
           title: "How Alert Policies Work",

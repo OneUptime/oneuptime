@@ -564,7 +564,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       field: {
         snmpConfigs: true,
       },
-      title: "SNMP Configs",
+      title: "Credentials to try",
       stepId: "snmp",
       fieldType: FormFieldSchemaType.CustomComponent,
       /*
@@ -576,7 +576,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        */
       required: true,
       description:
-        "Every credential set this scan tries, in order, stopping at the first that answers each host. Add one per group of devices that share a version and community or v3 user.",
+        "The scan tries these in order on every host that answers ping, and keeps the first that works. Add more for devices with a different community string or SNMPv3 user; each one adds a wait on hosts that answer none.",
       customValidation: validateSnmpConfigs,
       /*
        * An ICMP-only scan sends no SNMP packet, so it asks for no credentials.
@@ -715,8 +715,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
         showRefreshButton={true}
         refreshToggle={refreshToggle}
         onFetchSuccess={liveUpdates.onRowsLoaded}
+        /*
+         * The live-progress box, once the scans are read - and only when
+         * there is a scan to report on. With none, it said "Scan results up
+         * to date ... Review their results below" above "No scans yet".
+         */
         topContent={
-          liveUpdates.lastRefreshedAt ? (
+          liveUpdates.lastRefreshedAt &&
+          (liveUpdates.loadedRowCount > 0 || liveUpdates.error) ? (
             <div
               className={`mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 ${liveUpdates.error ? "border-amber-200 bg-amber-50" : "border-blue-100 bg-blue-50"}`}
             >

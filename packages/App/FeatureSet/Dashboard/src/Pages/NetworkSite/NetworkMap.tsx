@@ -894,7 +894,7 @@ const NetworkSiteMap: FunctionComponent<
           hint={
             normalizedSearch
               ? "Matching top-level sites. Click one to drill in."
-              : "Click a site to drill into its markets and units."
+              : "Click a site to open it."
           }
           description={NETWORK_SITE_METRIC_DESCRIPTIONS.siteCards}
         >

@@ -89,6 +89,7 @@ import useBulkSiteActions from "../../Components/NetworkDevice/useBulkSiteAction
 import useBulkDeviceRoleActions from "../../Components/NetworkDevice/useBulkDeviceRoleActions";
 import useBulkApplyVendorTemplate from "../../Components/NetworkDevice/useBulkApplyVendorTemplate";
 import UnboundDevicesBanner from "../../Components/NetworkDevice/UnboundDevicesBanner";
+import { isDifferentText } from "../../Components/NetworkDevice/DeviceDetailText";
 import OidTemplateElement from "../../Components/NetworkDevice/OidTemplateElement";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -1094,7 +1095,7 @@ const NetworkDevices: FunctionComponent<
         cardProps={{
           title: "Devices",
           description:
-            "Switches, routers, firewalls and anything else with an address. Each device is pinged by its probe, unless a monitor reports on it instead; add SNMP credentials to also see its interfaces and health.",
+            "Switches, routers, firewalls and anything else with an address. Each one is pinged by its probe; add SNMP credentials to also see its interfaces and health.",
         }}
         showViewIdButton={true}
         onBeforeCreate={async (
@@ -1588,7 +1589,11 @@ const NetworkDevices: FunctionComponent<
                   >
                     {(item.name as string) || "—"}
                   </AppLink>
-                  {item.sysName && (
+                  {/*
+                   * The SNMP name under the name, when it is a different
+                   * one: a device named after it read "core-sw-01" twice.
+                   */}
+                  {isDifferentText(item.sysName, item.name) && (
                     <div className="text-xs text-gray-500">{item.sysName}</div>
                   )}
                 </div>
