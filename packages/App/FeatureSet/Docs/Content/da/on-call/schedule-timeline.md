@@ -47,7 +47,7 @@ Under gitteret viser **On call this week** (**On call this month** i månedsvisn
 - Tidslinjen dækker 180 dage tilbage og 365 dage frem.
 
 > [!NOTE]
-> Tidligere vagter beregnes igen ud fra hver vagtplans nuværende opsætning, så de viser rotationen, som den er sat op nu, hvilket kan afvige fra, hvem der faktisk blev tilkaldt dengang. Til de timer, folk faktisk havde vagt, skal du bruge **Vagtordning** > **Rapporter** > **Brugerens vagttid**.
+> Tidligere vagter beregnes igen ud fra hver vagtplans nuværende opsætning, så de viser rotationen, som den er sat op nu, hvilket kan afvige fra, hvem der faktisk blev tilkaldt dengang. Til de timer, folk faktisk havde vagt, skal du bruge **Vagtordning** > **Rapporter** > **Brugerens vagttid**. Se [Brugerens vagttid](/docs/on-call/readiness#brugerens-vagttid).
 
 ## Find en vagtplan eller en person
 
